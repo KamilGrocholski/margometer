@@ -13,8 +13,8 @@ Rule **N12** in `AGENTS.md` binds: use the term this file gives.
 _Avoid_: Battle, encounter, session, match
 
 **Auto fight**: A fight the game runs itself, entered or handed over on the auto key — `F` in the
-client's own binding. The game numbers no turn while it is on (**ADR 0072**). A fight delivered in
-one lump is not one by that alone. _Avoid_: Quick fight, autobattle
+client's own binding. The game numbers no turn while it is on (**develop ADR 0072**). A fight
+delivered in one lump is not one by that alone. _Avoid_: Quick fight, autobattle
 
 **Payload**: One update the game engine receives and we read by wrapping its update function. A
 fight is many payloads. _Avoid_: Packet, frame, tick, event
@@ -63,10 +63,10 @@ _Avoid_: Source/destination, attacker/victim, from/to
 the hits, the procs and what it destroyed, so the criticals are a share of the blows struck. **The
 hardest figure at each end is not one of them**, and the panel states it nowhere: damage the game
 puts against a name raises it without ever having been a swing, so it stands above the largest
-actual blow on 15 of the 296 rows over the recordings (**ADR 0087**, **ADR 0088**). It is read in
-the handed-over fight file and in `deno task fight:figures`. The decoder's own event kind spells it
-`attack`: that is the data contract's word (`core/battle-event.ts`), which **ARCHITECTURE.md**
-protects and this file does not rename. _Avoid_: Swing, exchange, hit
+actual blow on 15 of the 296 rows over the recordings (**develop ADR 0087**, **develop ADR 0088**).
+It is read in the handed-over fight file and in `deno task fight:figures`. The decoder's own event
+kind spells it `attack`: that is the data contract's word (`core/battle-event.ts`), which
+**ARCHITECTURE.md** protects and this file does not rename. _Avoid_: Swing, exchange, hit
 
 **Hit**: A single damage number inside a blow. One blow can carry several. _Avoid_: Strike, instance
 
@@ -89,9 +89,9 @@ the narrower one — and said as one sentence at the foot of the card, once howe
 carry that sentence. **Not a Suspect**, which says a figure may be short because something in _this_
 fight could not be read: a caveated figure is complete and still answers a narrower question, so a
 recording with nothing unread in it carries every caveat it ever did, and one glyph over both would
-make the permanent look temporary and the temporary look permanent. **ADR 0088**, whose mark got an
-ink and a row in **ADR 0089**. _Avoid_: Warning, footnote, asterisk, disclaimer, approximate,
-suspect
+make the permanent look temporary and the temporary look permanent. **develop ADR 0088**, whose mark
+got an ink and a row in **develop ADR 0089**. _Avoid_: Warning, footnote, asterisk, disclaimer,
+approximate, suspect
 
 **Element**: Damage type — fire, cold, physical and the rest — taken from the key. _Avoid_: School,
 type, damage type
@@ -107,16 +107,16 @@ Every other way it can go is silence, and silence is what the panel says about i
 Ultimate, super, cast, channel, windup
 
 **Proc**: An effect that fired alongside an attack. **Some of them state a figure and no total here
-reads one** — a family of wound announcements carries a value on the wire (**ADR 0094**), and what
-it did is reported by the keys beside it. _Avoid_: Trigger, on-hit
+reads one** — a family of wound announcements carries a value on the wire (**develop ADR 0094**),
+and what it did is reported by the keys beside it. _Avoid_: Trigger, on-hit
 
 **Dot**: Damage over time, ticking outside a direct attack. _Avoid_: Damage over time, tick damage,
 bleed
 
 **Aura**: What one skill put on more than one combatant. Announced **once** and never mentioned
 again, so how far through one is comes from the published table and never from the protocol
-(`docs/auras-standing.md`). A cast reaching a side says nothing about whom it reached. _Avoid_:
-Buff, area effect, team buff
+(`develop:docs/auras-standing.md`). A cast reaching a side says nothing about whom it reached.
+_Avoid_: Buff, area effect, team buff
 
 **Shout**: The cast that forces the characters it names to attack whoever made it — the one cast
 that says whom it reached, by name. The state it leaves somebody in is a **provocation**, and it is

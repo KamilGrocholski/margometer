@@ -8,24 +8,23 @@
 
 import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import {
-    composeTipElement,
-    composeTipHandle,
-    composeTipRegister,
     composeTipWithin,
-    getTipSize,
+    initTipHandle,
+    initTipRegister,
+    renderTip,
     setTipHidden,
     setTipPlace,
-    type TipNoteTone,
-    type TipReading,
-} from "@/src/ui/panel-tip.ts";
-import { CLASS, getTipHeight } from "@/src/ui/panel-look.ts";
-import { CARD_WORDS } from "@/src/ui/panel-words.ts";
+    tallyTipSize,
+} from "#/src/ui/panel-tip.ts";
+import type { TipNoteTone, TipReading } from "#/src/ui/tip-reading.ts";
+import { CLASS, getTipHeight } from "#/src/ui/panel-look.ts";
+import { CARD_WORDS } from "#/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
     type FakeElement,
     getElementsWithin,
     getTextsByClass,
-} from "@/tests/fake-document.ts";
+} from "#/tests/fake-document.ts";
 
 /** Thirty-two characters, which is the one line a note is counted as holding. */
 const ONE_LINE_NOTE = "Surowe to obrazenia przed red...";
@@ -53,27 +52,40 @@ const HILDUR: TipReading = {
     ],
 };
 
+/**
+ * ⚠️ **The floors are spelled here rather than imported, and that is deliberate.** A test reading
+ * the constant it is checking would pass at any value of it, including the one that stands a card
+ * off the bottom of the screen. The numbers are `src/ui/panel-tip.ts`'s, measured in Chrome.
+ */
+const NAME_ON_ONE_LINE = 27;
+const SUBTITLE_ON_ONE_LINE = 32;
+
 Deno.test("a row is looked up by the name it stated, and by no other", () => {
-    const register = composeTipRegister();
+    const register = initTipRegister();
     const compose = () => HILDUR;
-    assertEquals(register.get("row:7"), null, "a row nobody drew has nothing to say");
+    assertEquals(register.lookup("row:7"), null, "a row nobody drew has nothing to say");
     register.add("row:7", compose);
-    assertEquals(register.get("row:7"), compose, "and one that was drawn says what it drew");
-    assertEquals(register.get("row:8"), null, "which reaches no neighbour");
+    assertEquals(register.lookup("row:7"), compose, "and one that was drawn says what it drew");
+    assertEquals(register.lookup("row:8"), null, "which reaches no neighbour");
     // Two rows answering to one name must not stop the draw: the first stands and the second is
-    // refused, so what a clash costs is a card on hover and never the panel — **E14**, ADR 0051.
+    // refused, so what a clash costs is a card on hover and never the panel — **E12**, develop ADR
+    // 0051.
     const other = () => HILDUR;
     register.add("row:7", other);
-    assertEquals(register.get("row:7"), compose, "and a second row of that name changes nothing");
+    assertEquals(
+        register.lookup("row:7"),
+        compose,
+        "and a second row of that name changes nothing",
+    );
     register.add("", compose);
-    assertEquals(register.get(""), null, "as does a row with no name to be looked up by");
+    assertEquals(register.lookup(""), null, "as does a row with no name to be looked up by");
     register.reset();
-    assertEquals(register.get("row:7"), null, "a redraw starts with nothing said about any row");
+    assertEquals(register.lookup("row:7"), null, "a redraw starts with nothing said about any row");
 });
 
 Deno.test("the card draws a line for each of the three kinds, marked as the kind it is", () => {
     const document = composeFakeDocument();
-    const tip = composeTipElement(document, HILDUR) as FakeElement;
+    const tip = renderTip(document, HILDUR) as FakeElement;
     assertEquals(getTextsByClass(tip, CLASS.tipName), ["Hildur Muza Śmierci"], "the name, whole");
     assertEquals(getTextsByClass(tip, CLASS.tipSubtitle), ["(83)"], "and who they are under it");
     assertEquals(
@@ -109,7 +121,7 @@ function getClassesByPrefix(element: FakeElement, prefix: string): string[] {
 
 Deno.test("a row with nothing further to say draws a name, and nobody hovered draws none", () => {
     const document = composeFakeDocument();
-    const bare = composeTipElement(document, {
+    const bare = renderTip(document, {
         name: "Kolonia Mrówek",
         subtitle: null,
         groups: [],
@@ -117,14 +129,14 @@ Deno.test("a row with nothing further to say draws a name, and nobody hovered dr
     assertEquals(getTextsByClass(bare, CLASS.tipName), ["Kolonia Mrówek"], "a name");
     assertEquals(getTextsByClass(bare, CLASS.tipValue), [], "and nothing under it");
     assertEquals(getTextsByClass(bare, CLASS.tipSubtitle), [], "not even an empty line for one");
-    const nothing = composeTipElement(document, null) as FakeElement;
+    const nothing = renderTip(document, null) as FakeElement;
     assertEquals(nothing.className, `${CLASS.tip} ${CLASS.tipHidden}`, "nobody hovered is hidden");
     assertEquals(nothing.children.length, 0, "and says nothing at all");
 });
 
 Deno.test("a suspicion on the card wears the mark as well as the colour", () => {
     const document = composeFakeDocument();
-    const tip = composeTipElement(document, {
+    const tip = renderTip(document, {
         ...HILDUR,
         groups: [{ lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "suspect" }] }],
     }) as FakeElement;
@@ -136,14 +148,14 @@ Deno.test("a suspicion on the card wears the mark as well as the colour", () => 
 });
 
 Deno.test("how tall a card stands is counted, and a note as the lines it wraps to", () => {
-    assertEquals(getTipSize(null), { lines: 1, groups: 0 }, "a window nobody opened is one line");
+    assertEquals(tallyTipSize(null), { lines: 1, groups: 0 }, "a window nobody opened is one line");
     assertEquals(
-        getTipSize(HILDUR),
+        tallyTipSize(HILDUR),
         { lines: 6, groups: 2 },
         "a name, who they are, three figures and a note that fits on one line",
     );
     assertEquals(
-        getTipSize({ ...HILDUR, subtitle: null }),
+        tallyTipSize({ ...HILDUR, subtitle: null }),
         { lines: 5, groups: 2 },
         "and a card that could not say who they are is a line shorter",
     );
@@ -154,29 +166,16 @@ Deno.test("how tall a card stands is counted, and a note as the lines it wraps t
         }],
     };
     assertEquals(
-        getTipSize(wrapped),
+        tallyTipSize(wrapped),
         { lines: 4, groups: 1 },
         "one character past what a line holds costs the whole of the next one",
     );
     assertEquals(
-        getTipSize({ ...wrapped, groups: [] }),
+        tallyTipSize({ ...wrapped, groups: [] }),
         { lines: 2, groups: 0 },
         "and a card with no run of lines spends nothing on the rules between them",
     );
 });
-
-/**
- * ⚠️ **The floors are spelled here rather than imported, and that is deliberate.** A test reading
- * the constant it is checking would pass at any value of it, including the one that stands a card
- * off the bottom of the screen. The numbers are `src/ui/panel-tip.ts`'s, measured in Chrome.
- */
-const NAME_ON_ONE_LINE = 27;
-const SUBTITLE_ON_ONE_LINE = 32;
-
-/** A card of a name alone, which is the shape the shelf's own row opens (**ADR 0084**). */
-function composeNamed(length: number): TipReading {
-    return { name: "x".repeat(length), subtitle: null, groups: [] };
-}
 
 /**
  * The name is the one cell on this panel that folds rather than shortening, so it is the one the
@@ -187,24 +186,29 @@ function composeNamed(length: number): TipReading {
  */
 Deno.test("a name too long for one line is counted as the lines it folds to", () => {
     assertEquals(
-        getTipSize(composeNamed(NAME_ON_ONE_LINE)).lines,
+        tallyTipSize(composeNamed(NAME_ON_ONE_LINE)).lines,
         1,
         "what a line holds stands on one",
     );
     assertEquals(
-        getTipSize(composeNamed(NAME_ON_ONE_LINE + 1)).lines,
+        tallyTipSize(composeNamed(NAME_ON_ONE_LINE + 1)).lines,
         2,
         "and one character past it costs the whole of the next line",
     );
     assertEquals(
-        getTipSize(composeNamed(NAME_ON_ONE_LINE * 2 + 1)).lines,
+        tallyTipSize(composeNamed(NAME_ON_ONE_LINE * 2 + 1)).lines,
         3,
         "which goes on holding past the second line as well",
     );
     // Zero is a boundary, and a card with no name to draw still stands on the line it is drawn on.
-    assertEquals(getTipSize(composeNamed(0)).lines, 1, "a name of nothing is still a line");
-    assertEquals(getTipSize(composeNamed(1)).lines, 1, "and so is a name of one letter");
+    assertEquals(tallyTipSize(composeNamed(0)).lines, 1, "a name of nothing is still a line");
+    assertEquals(tallyTipSize(composeNamed(1)).lines, 1, "and so is a name of one letter");
 });
+
+/** A card of a name alone, which is the shape the shelf's own row opens (`develop ADR 0084`). */
+function composeNamed(length: number): TipReading {
+    return { name: "x".repeat(length), subtitle: null, groups: [] };
+}
 
 /**
  * The name is drawn at `font-weight:600` and the sentences under it are not, so the same number of
@@ -216,12 +220,12 @@ Deno.test("a name is counted on a lower floor than a sentence, because it is dra
     const between = NAME_ON_ONE_LINE + 1;
     assert(between <= SUBTITLE_ON_ONE_LINE, "there is a length the two floors answer differently");
     assertEquals(
-        getTipSize(composeNamed(between)).lines,
+        tallyTipSize(composeNamed(between)).lines,
         2,
         "a name of that length has folded",
     );
     assertEquals(
-        getTipSize({
+        tallyTipSize({
             name: "x",
             subtitle: null,
             groups: [{ lines: [{ kind: "note", text: "x".repeat(between), tone: "plain" }] }],
@@ -239,7 +243,7 @@ Deno.test("a name is counted on a lower floor than a sentence, because it is dra
 Deno.test("the line under the name is counted as the lines it folds to", () => {
     const named = composeNamed(1);
     const cost = (length: number): number =>
-        getTipSize({ ...named, subtitle: "x".repeat(length) }).lines - getTipSize(named).lines;
+        tallyTipSize({ ...named, subtitle: "x".repeat(length) }).lines - tallyTipSize(named).lines;
     assertEquals(cost(SUBTITLE_ON_ONE_LINE), 1, "what a line holds costs one");
     assertEquals(cost(SUBTITLE_ON_ONE_LINE + 1), 2, "and one character past it costs two");
     assertEquals(cost(0), 1, "a line saying nothing is still drawn, so it still costs one");
@@ -247,7 +251,7 @@ Deno.test("the line under the name is counted as the lines it folds to", () => {
 
 Deno.test("hiding and showing write the class, and nothing else moves", () => {
     const document = composeFakeDocument();
-    const tip = composeTipElement(document, HILDUR) as FakeElement;
+    const tip = renderTip(document, HILDUR) as FakeElement;
     setTipHidden(tip, true);
     assertEquals(tip.className, `${CLASS.tip} ${CLASS.tipHidden}`, "hidden wears the mark");
     setTipHidden(tip, false);
@@ -261,8 +265,8 @@ Deno.test("hiding and showing write the class, and nothing else moves", () => {
  */
 Deno.test("where the detail sits and how tall it is are written together, in whole pixels", () => {
     const document = composeFakeDocument();
-    const tip = composeTipElement(document, HILDUR) as FakeElement;
-    const size = getTipSize(HILDUR);
+    const tip = renderTip(document, HILDUR) as FakeElement;
+    const size = tallyTipSize(HILDUR);
     setTipPlace(tip, 292.33333333333, null, size);
     assertEquals(
         tip.attributes.get("style"),
@@ -289,14 +293,14 @@ Deno.test("where the detail sits and how tall it is are written together, in who
 
 /**
  * ⚠️ **Both edges every time, and one of them released.** A card is drawn at `max-content` since
- * **ADR 0091**, so the sheet states a fallback for the edge nobody pinned — and an offset written
- * without releasing the other leaves the card held by both, which is a width nobody chose. The
- * failure is silent: the card is simply wider or narrower than what it says.
+ * `develop ADR 0091`, so the sheet states a fallback for the edge nobody pinned — and an offset
+ * written without releasing the other leaves the card held by both, which is a width nobody chose.
+ * The failure is silent: the card is simply wider or narrower than what it says.
  */
 Deno.test("a card pinned by one edge releases the other, whichever way round it opens", () => {
     const document = composeFakeDocument();
-    const tip = composeTipElement(document, HILDUR) as FakeElement;
-    const size = getTipSize(HILDUR);
+    const tip = renderTip(document, HILDUR) as FakeElement;
+    const size = tallyTipSize(HILDUR);
 
     setTipPlace(tip, 0, { edge: "right", at: 272 }, size);
     assertStringIncludes(
@@ -351,7 +355,7 @@ Deno.test("a card too tall for the window gives up its runs, and says that it di
             { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "suspect" }] },
         ],
     };
-    const whole = getTipHeight(getTipSize(tall));
+    const whole = getTipHeight(tallyTipSize(tall));
     assertExists(whole, "the panel can say how tall its own card stands");
 
     assertEquals(composeTipWithin(tall, whole), tall, "a card with room for it is left alone");
@@ -412,33 +416,12 @@ Deno.test("a window too short for even the figures still draws them, and says so
     );
 });
 
-/** The panel's own way of putting one region in the place of another, small enough to read. */
-function composeSwap(): (standing: FakeElement, compose: () => FakeElement) => FakeElement {
-    return (standing, compose) => {
-        const next = compose();
-        standing.replaceWith(next);
-        return next;
-    };
-}
-
-function composeHandleUnderTest() {
-    const document = composeFakeDocument();
-    const register = composeTipRegister();
-    const swap = composeSwap();
-    const handle = composeTipHandle(
-        document,
-        register,
-        (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
-    );
-    return { register, handle, first: handle.element as FakeElement };
-}
-
 Deno.test("the detail follows the pointer, and lets go of a row that stopped being drawn", () => {
     const { register, handle, first } = composeHandleUnderTest();
     assertEquals(first.className, `${CLASS.tip} ${CLASS.tipHidden}`, "a panel starts saying none");
 
     register.add("row:7", () => HILDUR);
-    handle.show("row:7", 412);
+    handle.onHover("row:7", 412);
     const shown = first.replacedBy;
     assertExists(shown, "a row hovered puts a detail where the empty one stood");
     assertEquals(getTextsByClass(shown, CLASS.tipName), [HILDUR.name], "saying whose row it is");
@@ -447,7 +430,7 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
         "at the pointer",
     );
 
-    handle.show("row:7", 480);
+    handle.onHover("row:7", 480);
     assertEquals(shown.replacedBy, null, "the same row moved over is not drawn a second time");
     assert(
         shown.attributes.get("style")?.startsWith("--MargoMeter-tip-top:480px"),
@@ -468,7 +451,7 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
             }],
         }],
     }));
-    handle.refresh();
+    handle.renderOpen();
     const later = shown.replacedBy;
     assertExists(later, "a redraw puts the same row's detail up again");
     assertEquals(getTextsByClass(later, CLASS.tipValue), ["400 000"], "with the new one");
@@ -479,35 +462,56 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
     );
 
     register.reset();
-    handle.refresh();
+    handle.renderOpen();
     assertEquals(later.className, `${CLASS.tip} ${CLASS.tipHidden}`, "a row gone takes its detail");
     assertEquals(later.replacedBy, null, "which is hidden in place rather than drawn again");
 });
 
+function composeHandleUnderTest() {
+    const document = composeFakeDocument();
+    const register = initTipRegister();
+    const swap = composeSwap();
+    const handle = initTipHandle(
+        document,
+        register,
+        (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
+    );
+    return { register, handle, first: handle.element as FakeElement };
+}
+
+/** The panel's own way of putting one region in the place of another, small enough to read. */
+function composeSwap(): (standing: FakeElement, compose: () => FakeElement) => FakeElement {
+    return (standing, compose) => {
+        const next = compose();
+        standing.replaceWith(next);
+        return next;
+    };
+}
+
 Deno.test("a move inside one pixel writes nothing, because there is nowhere new to stand", () => {
     const { register, handle, first } = composeHandleUnderTest();
     register.add("row:7", () => HILDUR);
-    handle.show("row:7", 412);
+    handle.onHover("row:7", 412);
     const shown = first.replacedBy;
     assertExists(shown, "a row hovered opens the detail");
     shown.attributes.delete("style");
-    handle.show("row:7", 412.4);
+    handle.onHover("row:7", 412.4);
     assertEquals(shown.attributes.get("style"), undefined, "a move that rounds to the same place");
-    handle.show("row:7", 413);
+    handle.onHover("row:7", 413);
     assertExists(shown.attributes.get("style"), "and a move to the next one does write");
 });
 
 /**
- * The panel's own swap hides the window in place where a card will not compose (**E14**), and the
+ * The panel's own swap hides the window in place where a card will not compose (**E12**), and the
  * handle is not told: the key it was open under still names the row the pointer is on. Without
  * this the move that follows takes the shortcut for a card already standing and only writes a
  * place onto a window nobody can see, so the row stays blank until the pointer leaves it.
  */
 Deno.test("a card hidden where it stood is composed again, not moved", () => {
     const document = composeFakeDocument();
-    const register = composeTipRegister();
+    const register = initTipRegister();
     let willFail = false;
-    const handle = composeTipHandle(document, register, (standing, compose) => {
+    const handle = initTipHandle(document, register, (standing, compose) => {
         // The panel's own answer to a card that throws: hidden where it stands, nothing replaced.
         if (willFail) {
             setTipHidden(standing, true);
@@ -521,11 +525,11 @@ Deno.test("a card hidden where it stood is composed again, not moved", () => {
 
     register.add("row:7", () => HILDUR);
     willFail = true;
-    handle.show("row:7", 412);
+    handle.onHover("row:7", 412);
     assertEquals(first.className, `${CLASS.tip} ${CLASS.tipHidden}`, "the card is hidden in place");
 
     willFail = false;
-    handle.show("row:7", 480);
+    handle.onHover("row:7", 480);
     const shown = first.replacedBy;
     assertExists(shown, "a move on the same row asks for the card again rather than moving none");
     assertEquals(getTextsByClass(shown, CLASS.tipName), [HILDUR.name], "and it names that row");
@@ -533,15 +537,15 @@ Deno.test("a card hidden where it stood is composed again, not moved", () => {
 
 /**
  * Two windows draw rows, and a card does not open on the same side for both — so the handle asks
- * for a place with the key in hand rather than asking once for all of them (**ADR 0090**). Held
- * here because the handle is the one piece that knows which card is open.
+ * for a place with the key in hand rather than asking once for all of them (`develop ADR 0090`).
+ * Held here because the handle is the one piece that knows which card is open.
  */
 Deno.test("the card asks where it may stand with the key it is open for", () => {
     const document = composeFakeDocument();
-    const register = composeTipRegister();
+    const register = initTipRegister();
     const asked: string[] = [];
     const swap = composeSwap();
-    const handle = composeTipHandle(
+    const handle = initTipHandle(
         document,
         register,
         (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
@@ -554,7 +558,7 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
     const first = handle.element as FakeElement;
 
     register.add("standing:12", () => HILDUR);
-    handle.show("standing:12", 300);
+    handle.onHover("standing:12", 300);
     const shown = first.replacedBy;
     assertExists(shown, "a row of the second window opens a card");
     assertEquals(asked, ["standing:12"], "and the place was asked for under that row's own key");
@@ -563,31 +567,31 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
         "so it stands where that window's answer put it, not the panel's",
     );
 
-    handle.show("standing:12", 360);
+    handle.onHover("standing:12", 360);
     assertEquals(asked.length, 2, "a move on the same row asks again, the card having not moved");
-    handle.refresh();
+    handle.renderOpen();
     assertEquals(asked, ["standing:12", "standing:12", "standing:12"], "and so does a redraw");
 });
 
 Deno.test("nobody under the pointer hides it, and a row nobody drew never opens it", () => {
     const { register, handle, first } = composeHandleUnderTest();
-    handle.show("row:404", 200);
+    handle.onHover("row:404", 200);
     assertEquals(first.replacedBy, null, "a key the draw never registered draws nothing");
     assertEquals(first.className, `${CLASS.tip} ${CLASS.tipHidden}`, "and leaves it hidden");
 
     register.add("row:7", () => HILDUR);
-    handle.show("row:7", 200);
+    handle.onHover("row:7", 200);
     const shown = first.replacedBy;
     assertExists(shown, "a key it did register opens it");
-    handle.show(null, 200);
+    handle.onHover(null, 200);
     assertEquals(shown.className, `${CLASS.tip} ${CLASS.tipHidden}`, "and leaving hides it again");
 });
 
 /**
  * ⚠️ **The mark a caveated sentence wears is counted although the text no longer carries it.** It
- * is a node of its own, drawn from the tone since **ADR 0092**, and a count reading `text` alone
- * would shorten every one of those notes by a mark the card still draws — a card standing lower
- * on the screen than it is tall, with its last line off the bottom.
+ * is a node of its own, drawn from the tone since `develop ADR 0092`, and a count reading `text`
+ * alone would shorten every one of those notes by a mark the card still draws — a card standing
+ * lower on the screen than it is tall, with its last line off the bottom.
  *
  * Thirty-one characters is the length that tells the two apart: with the mark it wraps and
  * without it does not. Thirty says one line either way, which is the other side of the boundary.
@@ -602,13 +606,14 @@ Deno.test("a caveated sentence is counted with the mark the card draws before it
     // of the count too, and a test stating the total would move with the card rather than with
     // the thing it is about.
     const cost = (length: number): number =>
-        getTipSize(compose(length, "caveat")).lines - getTipSize(compose(length, "plain")).lines;
+        tallyTipSize(compose(length, "caveat")).lines -
+        tallyTipSize(compose(length, "plain")).lines;
 
     assertEquals(cost(31), 1, "thirty-one characters and a mark run to a second line");
     assertEquals(cost(30), 0, "thirty and a mark still stand on one, which is the other side");
     assertEquals(
-        getTipSize(compose(31, "plain")).lines,
-        getTipSize(compose(30, "plain")).lines,
+        tallyTipSize(compose(31, "plain")).lines,
+        tallyTipSize(compose(30, "plain")).lines,
         "and neither length wraps on its own, so the line the mark bought is the mark's",
     );
 });

@@ -19,12 +19,10 @@ jobs:
     check:
         runs-on: ubuntu-latest
         steps:
-            # ⚠️ **The whole history, and the tags with it.** Since `c1be034` the gate reads this
-            # repository's own past: `tests/repository/cited-paths.test.ts` asks
-            # `git cat-file -e v0.10.1:<path>` for every reference a document makes into v1.
-            # Measured 2026-09-15 on a `--depth 1` clone of this tree: no tags, ten references
-            # dangling, that test alone red — and the same clone fetched `--unshallow --tags`
-            # green. `0` takes every branch and every tag, and costs seconds here.
+            # ⚠️ **The whole history.** The gate reads this repository's past:
+            # `tests/ui/panel-look.test.ts` holds the sheet to `git show fa1dcce:…`, the `develop`
+            # this rewrite reproduces (`tests/recording-sources.ts`). A `--depth 1` clone has no
+            # such commit and reddens that test. `0` takes every branch and tag, in seconds.
             - uses: actions/checkout@v4
               with:
                   fetch-depth: 0
@@ -34,10 +32,10 @@ jobs:
             # is a regression or a new Deno.
             - uses: denoland/setup-deno@v2
               with:
-                  deno-version: 2.9.6
+                  deno-version: 2.9.7
 
             # ⚠️ The gate typechecks the browser suite, and that suite imports an npm package, so
-            # `deno check` resolves it through the `node_modules` npm installs — ADR 0047, and
+            # `deno check` resolves it through the `node_modules` npm installs — develop ADR 0047, and
             # `deno.json` says `"nodeModulesDir": "manual"` for the same reason. Without this step
             # the gate is red on a fresh checkout with `Could not resolve "@playwright/test"`,
             # which is how it was found. No browser is installed here: this is the package, not
@@ -57,7 +55,7 @@ jobs:
 
             - uses: denoland/setup-deno@v2
               with:
-                  deno-version: 2.9.6
+                  deno-version: 2.9.7
 
             - uses: actions/setup-node@v4
               with:
@@ -65,7 +63,7 @@ jobs:
 
             - run: npm ci
 
-            # The browser layer, which the gate deliberately does not carry — ADR 0047. No install
+            # The browser layer, which the gate deliberately does not carry — develop ADR 0047. No install
             # step and no download: this image ships Google Chrome, and Playwright is pointed at it
             # by `channel`. A runner that stopped shipping one fails here rather than quietly
             # running nothing.

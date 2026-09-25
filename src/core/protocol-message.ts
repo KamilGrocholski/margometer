@@ -3,132 +3,172 @@
  *
  *     actor;target;key=value;key
  *
- * Both ends come first, each an integer combatant id optionally carrying a health percentage,
- * and `0` where the protocol named nobody. Anything the grammar does not cover throws: the
- * decoder is the layer that survives a surprise, and it does so by turning a refusal here into
- * a loud unknown rather than by reading half a message as if it were understood.
+ * Both ends come first, each an integer combatant id optionally carrying a health percentage, and
+ * `0` where the protocol named nobody. What the grammar does not cover is refused as data
+ * (`docs/design.md` §6.1): the decoder turns a refusal into a message it could not read.
  */
 
 import { assert } from "@std/assert/assert";
-import { MargoMeterError } from "@/src/core/margometer-error.ts";
-import { composeIntegerText, getIntegerFromText, isIntegerText } from "@/libs/number-text.ts";
-import { composeHealthPercentText, getHealthPercentFromText } from "@/src/core/protocol-number.ts";
-
-/**
- * Named because the decoder catches exactly this and turns it into a message it could not read.
- * A catch on the base would swallow every other failure `core/` could raise as an unread message.
- */
-export class ProtocolMessageFormatError extends MargoMeterError {
-    constructor(reason: string) {
-        super("ProtocolMessageFormat", reason);
-    }
-}
+import { err, ok, type Result } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { formatInteger, parseInteger } from "#/libs/number-text.ts";
+import { encodeHealthPercent, parseHealthPercent } from "./protocol-number.ts";
 
 export interface MessageSide {
-    combatantId: number;
-    healthPercent: number | null;
+    readonly combatantId: number;
+    readonly healthPercent: number | null;
 }
 
 export interface MessageParameter {
-    key: string;
-    /** Null for a segment with no `=`. An empty value is `""`, which is a different thing. */
-    value: string | null;
+    readonly key: string;
+    /** `null` for a segment with no `=`. An empty value is `""`, which is a different thing. */
+    readonly value: string | null;
 }
 
 export interface ProtocolMessage {
-    actor: MessageSide | null;
-    target: MessageSide | null;
-    parameters: MessageParameter[];
+    readonly actor: MessageSide | null;
+    readonly target: MessageSide | null;
+    readonly parameters: readonly MessageParameter[];
 }
+
+export const MESSAGE_END = { actor: "actor", target: "target" } as const;
+export type MessageEnd = VocabularyWord<typeof MESSAGE_END>;
+
+export const GRAMMAR_REFUSAL = {
+    segmentsExceeded: "segments-exceeded",
+    sideUnreadable: "side-unreadable",
+    parameterKeyEmpty: "parameter-key-empty",
+} as const;
+
+export type GrammarRefusal =
+    | { kind: typeof GRAMMAR_REFUSAL.segmentsExceeded; segments: number; maximum: number }
+    | { kind: typeof GRAMMAR_REFUSAL.sideUnreadable; end: MessageEnd }
+    | { kind: typeof GRAMMAR_REFUSAL.parameterKeyEmpty; index: number };
+
+/** The longest message in `captures/` carries 42 segments, 2026-08-28. */
+export const SEGMENTS_MAXIMUM = 512;
 
 const SEGMENT_SEPARATOR = ";";
 const VALUE_SEPARATOR = "=";
 const NO_COMBATANT = "0";
 const SIDE_SEGMENTS = 2;
-/** The longest message in `captures/` carries 42 segments, 2026-08-28. */
-const MAXIMUM_SEGMENTS = 512;
+
+export function parseProtocolMessage(text: string): Result<ProtocolMessage, GrammarRefusal> {
+    const segments = parseProtocolMessageSegments(text);
+    if (!segments.ok) return segments;
+    const [actorSegment, targetSegment] = segments.value;
+    assert(actorSegment !== undefined, "text always splits into at least one segment");
+    const actor = parseProtocolMessageSide(actorSegment, MESSAGE_END.actor);
+    if (!actor.ok) return actor;
+    if (targetSegment === undefined) {
+        return err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_END.target });
+    }
+    const target = parseProtocolMessageSide(targetSegment, MESSAGE_END.target);
+    if (!target.ok) return target;
+
+    const parameters: MessageParameter[] = [];
+    for (const segment of segments.value.slice(SIDE_SEGMENTS)) {
+        const separator = segment.indexOf(VALUE_SEPARATOR);
+        const key = separator === -1 ? segment : segment.slice(0, separator);
+        if (key.length === 0) {
+            return err({ kind: GRAMMAR_REFUSAL.parameterKeyEmpty, index: parameters.length });
+        }
+        const value = separator === -1 ? null : segment.slice(separator + 1);
+        parameters.push({ key, value });
+    }
+    assert(parameters.length + SIDE_SEGMENTS === segments.value.length, "no segment is dropped");
+    return ok({ actor: actor.value, target: target.value, parameters });
+}
+
+/** Walked rather than `split`, so a message past the bound is refused before it is allocated. */
+function parseProtocolMessageSegments(text: string): Result<string[], GrammarRefusal> {
+    const segments: string[] = [];
+    let from = 0;
+    for (let look = 0; look < SEGMENTS_MAXIMUM; look += 1) {
+        const separator = text.indexOf(SEGMENT_SEPARATOR, from);
+        if (separator === -1) {
+            segments.push(text.slice(from));
+            assert(segments.length <= SEGMENTS_MAXIMUM, "a message kept is one inside the bound");
+            return ok(segments);
+        }
+        segments.push(text.slice(from, separator));
+        from = separator + SEGMENT_SEPARATOR.length;
+    }
+    const count = parseProtocolMessageSegmentsCount(text, from);
+    assert(count > SEGMENTS_MAXIMUM, "a message refused for its length is past the bound");
+    return err({
+        kind: GRAMMAR_REFUSAL.segmentsExceeded,
+        segments: count,
+        maximum: SEGMENTS_MAXIMUM,
+    });
+}
+
+/** Counts without allocating: the walk is bounded by the text, one separator per step. */
+function parseProtocolMessageSegmentsCount(text: string, from: number): number {
+    assert(from <= text.length, "the count resumes inside the text");
+    let count = SEGMENTS_MAXIMUM + 1;
+    let at = text.indexOf(SEGMENT_SEPARATOR, from);
+    for (let look = 0; look < text.length; look += 1) {
+        if (at === -1) break;
+        count += 1;
+        at = text.indexOf(SEGMENT_SEPARATOR, at + SEGMENT_SEPARATOR.length);
+    }
+    assert(at === -1, "every separator in the text was counted");
+    return count;
+}
 
 /**
- * Shape and magnitude are two refusals, and the split is load-bearing: the protocol could
- * state an id past 2^53, and reading it as its nearest neighbour would charge damage to a
- * combatant who does not exist.
+ * Shape and magnitude are one refusal: an id past 2^53 read as its nearest neighbour would charge
+ * damage to a combatant who does not exist.
  */
-function parseMessageSide(segment: string, whole: string): MessageSide | null {
-    if (segment === NO_COMBATANT) return null;
+function parseProtocolMessageSide(
+    segment: string,
+    end: MessageEnd,
+): Result<MessageSide | null, GrammarRefusal> {
+    if (segment === NO_COMBATANT) return ok(null);
     const separator = segment.indexOf(VALUE_SEPARATOR);
     const idText = separator === -1 ? segment : segment.slice(0, separator);
-    if (!isIntegerText(idText)) {
-        throw new ProtocolMessageFormatError(`side "${segment}" in "${whole}"`);
-    }
-    const combatantId = getIntegerFromText(idText);
-    if (combatantId === null) {
-        throw new ProtocolMessageFormatError(`id "${idText}" in "${whole}"`);
-    }
-    if (separator === -1) return { combatantId, healthPercent: null };
-    const healthPercent = getHealthPercentFromText(segment.slice(separator + 1));
-    if (healthPercent === null) {
-        throw new ProtocolMessageFormatError(`health "${segment}" in "${whole}"`);
-    }
+    const combatantId = parseInteger(idText);
+    if (combatantId === null) return err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end });
+    assert(Number.isSafeInteger(combatantId), "an id read is one held exactly");
+    if (separator === -1) return ok({ combatantId, healthPercent: null });
+    const healthPercent = parseHealthPercent(segment.slice(separator + 1));
+    if (healthPercent === null) return err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end });
     assert(healthPercent >= 0, "a percentage the grammar accepted is never below nothing");
-    return { combatantId, healthPercent };
-}
-
-function parseMessageParameter(segment: string): MessageParameter {
-    const separator = segment.indexOf(VALUE_SEPARATOR);
-    assert(separator < segment.length, "a separator sits inside the segment it was found in");
-    if (separator === -1) return { key: segment, value: null };
-    const key = segment.slice(0, separator);
-    const value = segment.slice(separator + 1);
-    assert(key.length + value.length + 1 === segment.length, "a segment splits into two parts");
-    return { key, value };
-}
-
-export function parseProtocolMessage(message: string): ProtocolMessage {
-    const segments = message.split(SEGMENT_SEPARATOR);
-    if (segments.length < SIDE_SEGMENTS) {
-        throw new ProtocolMessageFormatError(`one segment in "${message}"`);
-    }
-    assert(segments.length <= MAXIMUM_SEGMENTS, "a message stays inside its stated bound");
-    const [actorSegment, targetSegment] = segments;
-    assert(actorSegment !== undefined, "a message split in two has a first segment");
-    assert(targetSegment !== undefined, "a message split in two has a second segment");
-    const parameters = segments.slice(SIDE_SEGMENTS).map(parseMessageParameter);
-    assert(
-        parameters.length === segments.length - SIDE_SEGMENTS,
-        "every segment past the ends is a parameter",
-    );
-    return {
-        actor: parseMessageSide(actorSegment, message),
-        target: parseMessageSide(targetSegment, message),
-        parameters,
-    };
-}
-
-function composeMessageSide(side: MessageSide | null): string {
-    if (side === null) return NO_COMBATANT;
-    const idText = composeIntegerText(side.combatantId);
-    assert(idText.length > 0, "an id is written as at least one character");
-    if (side.healthPercent === null) return idText;
-    const percentText = composeHealthPercentText(side.healthPercent);
-    assert(percentText.includes("."), "a percentage is written with its places");
-    return `${idText}${VALUE_SEPARATOR}${percentText}`;
+    return ok({ combatantId, healthPercent });
 }
 
 /**
- * Writing the wire text back is what makes "the parser loses nothing" a claim a machine can
- * settle over every recording. A field quietly dropped while parsing is exactly the fault that
- * reaches a reader as a figure that is too low and says so nowhere.
+ * The wire text written back, so that "the parser loses nothing" is a claim a machine settles over
+ * every recording. A field quietly dropped while parsing reaches a reader as a figure too low.
  */
-export function composeProtocolMessage(parsed: ProtocolMessage): string {
-    assert(parsed.parameters.length <= MAXIMUM_SEGMENTS, "a message stays inside its bound");
-    const segments = [composeMessageSide(parsed.actor), composeMessageSide(parsed.target)];
-    for (const parameter of parsed.parameters) {
-        const value = parameter.value;
-        segments.push(value === null ? parameter.key : `${parameter.key}=${value}`);
-    }
+export function encodeProtocolMessage(message: ProtocolMessage): string {
     assert(
-        segments.length === parsed.parameters.length + SIDE_SEGMENTS,
-        "both ends are written once",
+        message.parameters.length + SIDE_SEGMENTS <= SEGMENTS_MAXIMUM,
+        "a message written is one the grammar would read",
     );
+    const segments = [
+        encodeProtocolMessageSide(message.actor),
+        encodeProtocolMessageSide(message.target),
+    ];
+    for (const parameter of message.parameters) {
+        assert(parameter.key.length > 0, "every parameter written names its key");
+        const value = parameter.value;
+        segments.push(
+            value === null ? parameter.key : `${parameter.key}${VALUE_SEPARATOR}${value}`,
+        );
+    }
     return segments.join(SEGMENT_SEPARATOR);
+}
+
+function encodeProtocolMessageSide(side: MessageSide | null): string {
+    if (side === null) return NO_COMBATANT;
+    const idText = formatInteger(side.combatantId);
+    if (side.healthPercent === null) {
+        assert(idText !== NO_COMBATANT, "a side written bare is somebody, or it reads as nobody");
+        return idText;
+    }
+    const percentText = encodeHealthPercent(side.healthPercent);
+    assert(!percentText.includes(SEGMENT_SEPARATOR), "a percentage never ends its segment");
+    return `${idText}${VALUE_SEPARATOR}${percentText}`;
 }

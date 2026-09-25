@@ -2,25 +2,24 @@
  * The published help, turned into text and searched.
  *
  * Every sample here is invented: the help is the operator's own writing and none of its
- * sentences enter this repository (NOTICE.md). What the frozen table is held to is its own
+ * sentences enter this repository (`NOTICE.md`). What the frozen table is held to is its own
  * shape and the article it names — the counts themselves are a measurement, not a fixture.
  */
 
 import { assert, assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
-import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
+import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import {
     CACHE_ROOT,
-    composeAgeText,
+    countOccurrences,
+    countPhrases,
+    formatDumpAge,
     FROZEN_HELP_BANNER,
-    getFragments,
-    getOccurrenceCount,
-    getPhraseCounts,
     isDumpStale,
+    lookupFragments,
     MECHANICS_ARTICLE,
-    requireArticleId,
     requireCachedHelpArticle,
-} from "@/tools/help-article.ts";
-import { HelpArticleError } from "@/tools/margometer-tool-error.ts";
+} from "#/tools/help-article.ts";
+import { HelpArticleError } from "#/tools/margometer-tool-error.ts";
 
 const READ_AT = "2026-08-09T12:00:00.000Z";
 const READ_AT_MILLISECONDS = Date.parse(READ_AT);
@@ -28,38 +27,38 @@ const MILLISECONDS_PER_DAY = 86_400_000;
 
 Deno.test("two hits inside one window read as one fragment, and two far apart as two", () => {
     const near = `${"a".repeat(50)}NEEDLE${"b".repeat(10)}NEEDLE${"c".repeat(50)}`;
-    assertEquals(getFragments(near, "needle", 90, 6).length, 1, "one window, one slice");
-    assertEquals(getOccurrenceCount(near, "needle"), 2, "though the count still says two");
+    assertEquals(lookupFragments(near, "needle", 90, 6).length, 1, "one window, one slice");
+    assertEquals(countOccurrences(near, "needle"), 2, "though the count still says two");
 
     // Keying a repeat on the fragment's first characters collapses two hits preceded by the same
     // content — a table, a repeated heading — and the hit from elsewhere vanishes silently.
     const block = `${"x".repeat(40)}NEEDLE${"y".repeat(40)}`;
     const far = `${block}${"z".repeat(500)}${block}`;
-    const fragments = getFragments(far, "needle", 90, 6);
+    const fragments = lookupFragments(far, "needle", 90, 6);
     assertEquals(fragments.length, 2, "identical surroundings are not the same hit");
     assertEquals(fragments[0]?.slice(0, 60), fragments[1]?.slice(0, 60) ?? "", "identical, kept");
 });
 
 Deno.test("a search states what it will not do", () => {
     const text = Array.from({ length: 5 }, () => `NEEDLE${"q".repeat(400)}`).join("");
-    assertEquals(getFragments(text, "needle", 100, 3).length, 3, "no more than asked for");
-    assertEquals(getFragments(text, "absent", 100, 3), [], "and nothing where there is nothing");
-    assertThrows(() => getFragments(text, "", 100, 3), HelpArticleError, "empty phrase");
+    assertEquals(lookupFragments(text, "needle", 100, 3).length, 3, "no more than asked for");
+    assertEquals(lookupFragments(text, "absent", 100, 3), [], "and nothing where there is nothing");
+    assertThrows(() => lookupFragments(text, "", 100, 3), HelpArticleError, "empty phrase");
 });
 
 Deno.test("a dump says how old it is, and says it loudly once it is worth re-fetching", () => {
-    assertEquals(composeAgeText(READ_AT, READ_AT_MILLISECONDS), "read 2026-08-09 12:00 UTC, today");
+    assertEquals(formatDumpAge(READ_AT, READ_AT_MILLISECONDS), "read 2026-08-09 12:00 UTC, today");
     assertEquals(
-        composeAgeText(READ_AT, READ_AT_MILLISECONDS + MILLISECONDS_PER_DAY),
+        formatDumpAge(READ_AT, READ_AT_MILLISECONDS + MILLISECONDS_PER_DAY),
         "read 2026-08-09 12:00 UTC, yesterday",
         "the day after",
     );
-    const week = composeAgeText(READ_AT, READ_AT_MILLISECONDS + 7 * MILLISECONDS_PER_DAY);
+    const week = formatDumpAge(READ_AT, READ_AT_MILLISECONDS + 7 * MILLISECONDS_PER_DAY);
     assertStringIncludes(week, "7 days ago", "a week is stated in days");
     assertStringIncludes(week, "re-fetch", "and is the point at which the tool says so");
-    const day = composeAgeText(READ_AT, READ_AT_MILLISECONDS + 6 * MILLISECONDS_PER_DAY);
+    const day = formatDumpAge(READ_AT, READ_AT_MILLISECONDS + 6 * MILLISECONDS_PER_DAY);
     assert(!day.includes("re-fetch"), "the day before it is not");
-    assert(composeAgeText("not a date", READ_AT_MILLISECONDS).includes("stale"), "nor is a guess");
+    assert(formatDumpAge("not a date", READ_AT_MILLISECONDS).includes("stale"), "nor is a guess");
 
     // The words and the verdict a script reads come from one comparison, so the boundary is
     // asserted on both sides of it rather than only where the sentence changes.
@@ -84,14 +83,12 @@ Deno.test("an article this cannot date is an article it will not answer from", (
         () => requireCachedHelpArticle({ ...whole, article: "9" }, "372"),
         HelpArticleError,
     );
-    assertThrows(() => requireArticleId("mechanika"), HelpArticleError, "not a number");
-    assertEquals(requireArticleId("372"), "372", "and one that is");
 });
 
 Deno.test("counts are deduplicated and sorted, so a re-freeze shows real change only", () => {
-    const counts = getPhraseCounts("blok blok crit", ["crit", "blok", "crit"]);
+    const counts = countPhrases("blok blok crit", ["crit", "blok", "crit"]);
     assertEquals(counts, [["blok", 2], ["crit", 1]], "asked twice, counted once, in order");
-    assertEquals(getPhraseCounts("blok", ["absent"]), [["absent", 0]], "a zero is an answer");
+    assertEquals(countPhrases("blok", ["absent"]), [["absent", 0]], "a zero is an answer");
 });
 
 Deno.test("the frozen counts name the article they were taken from", () => {

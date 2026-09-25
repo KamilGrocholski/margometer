@@ -1,110 +1,35 @@
 /**
- * The statuses a combatant's `buffs` mask is read by, lifted from the production bundle.
+ * The statuses a combatant's `buffs` mask is read by, lifted from the production bundle. A payload
+ * restates the mask as one integer per combatant, and the client turns it into icons by walking
+ * one bit per registered status, so the order they are registered in is what a bit means. Names
+ * only: the sentences the game composes from them stay in the cache (`NOTICE.md`).
  *
  *     deno task game:buffs [freeze]
- *
- * A payload restates the mask as one integer per combatant, and the client turns it into icons by
- * walking one bit per registered status — so the order they are registered in is what a bit means.
- * Names only: they are functional names, and the sentences the game composes from them stay in the
- * cache (NOTICE.md).
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
-import { getQuotedLiteral } from "@/libs/text-walk.ts";
-import { composeJsonWriting } from "@/libs/json-text.ts";
-import { composeIntegerText } from "@/libs/number-text.ts";
-import { getCachedBundle, getCachedClientSource } from "@/tools/game-client-source.ts";
-import { BuffBitTableError } from "@/tools/margometer-tool-error.ts";
+import { encodeJson } from "#/libs/json-text.ts";
+import { formatInteger } from "#/libs/number-text.ts";
+import { lookupQuotedLiteral } from "#/libs/text-walk.ts";
+import { GAME_CHANNEL, readCachedBundle, readCachedClientSource } from "./game-client-source.ts";
+import { BuffBitTableError } from "./margometer-tool-error.ts";
 
 /**
  * ⚠️ **The array is matched by shape, and a minifier is why.** The development bundle names it
- * `buffNames`; production build `Bb28FQty` calls it `ae`, so a name-anchored walk reads the whole
- * table off development and the frozen reading would then be dated by a channel that decides
- * nothing. What no build renames is the entry — a name, nothing, and the class it is filed under.
+ * `buffNames`; production build `Bb28FQty` calls it `ae`, so a name-anchored walk would read the
+ * table off a channel that decides nothing. No build renames the entry: a name, nothing, a class.
  */
 const ROLE_ARGUMENT = ",null,";
 const ROLE = "buff";
 const CALL_OPEN = "(";
-
-/**
- * A mask arrives as one integer, so a bit past the thirty-second is not one this reader holds.
- * Exported because the walk that times a status reads the same masks against the same ceiling.
- */
-export const MAXIMUM_STATUS_BITS = 32;
+/** A mask arrives as one integer, so a bit past the thirty-second is not one this reader holds. */
+export const STATUS_BITS_MAXIMUM = 32;
 /** Past the number of places `,null,` occurs in three megabytes, so the walk stays bounded. */
-const MAXIMUM_LOOKS = 65536;
+const LOOKS_MAXIMUM = 65_536;
 /** Past the distance from an entry's opening bracket to its arguments, for the same reason. */
-const MAXIMUM_WALK_BACK = 256;
-
+const WALK_BACK_MAXIMUM = 256;
 const FROZEN_PATH = "frozen/buff-bits.ts";
-
-/**
- * The name registered by the entry whose `,null,` sits at `at`, or `null` where that is some other
- * call. The name is read **forwards from the bracket** rather than backwards from the comma: a
- * literal is only a literal when something says where it opened, and the bracket is that thing.
- */
-function getRegisteredStatusName(bundle: string, at: number): string | null {
-    assert(at >= 0, "an entry is looked for inside the bundle");
-    assert(ROLE.length > 0, "and the class an entry is filed under is named");
-    const role = getQuotedLiteral(bundle, at + ROLE_ARGUMENT.length);
-    if (role === null) return null;
-    if (role.text !== ROLE) return null;
-    if (bundle.charAt(role.end) !== ")") return null;
-
-    const from = at - MAXIMUM_WALK_BACK;
-    const open = bundle.lastIndexOf(CALL_OPEN, at);
-    if (open === -1) return null;
-    if (open < from) return null;
-    const name = getQuotedLiteral(bundle, open + 1);
-    if (name === null) return null;
-    if (name.end !== at) return null;
-    if (name.text.length === 0) return null;
-    assert(open < at, "a status is named before the arguments that classify it");
-    return name.text;
-}
-
-/**
- * Every status the client registers, in source order, which is bit order. A build that registers
- * none is a build this walk no longer recognises, and it refuses rather than freezing an empty
- * table — an empty reading looks exactly like a game that dropped the feature.
- */
-export function getBuffBits(bundle: string): string[] {
-    const found: string[] = [];
-    let at = bundle.indexOf(ROLE_ARGUMENT);
-    for (let look = 0; look < MAXIMUM_LOOKS; look += 1) {
-        if (at === -1) break;
-        const name = getRegisteredStatusName(bundle, at);
-        if (name !== null) {
-            assert(found.length < MAXIMUM_STATUS_BITS, "a mask holds no more bits than an integer");
-            found.push(name);
-        }
-        at = bundle.indexOf(ROLE_ARGUMENT, at + 1);
-    }
-    if (found.length === 0) {
-        throw new BuffBitTableError("no status is registered in the bundle — the client changed");
-    }
-    assert(found.length <= MAXIMUM_STATUS_BITS, "a table that was lifted fits in one mask");
-    assert(new Set(found).size === found.length, "and names each status once, at one position");
-    assert(found.every((name) => name.length > 0), "and every bit it holds is named");
-    return found;
-}
-
-/** One bit's name as the text it is written down as, or a refusal branded as this tool's. */
-function requireWrittenText(value: string): string {
-    const writing = composeJsonWriting(value);
-    if (!writing.isOk) {
-        throw new BuffBitTableError("a name of the table cannot be written", {
-            cause: writing.cause,
-        });
-    }
-    assert(writing.text.length > 0, "a name that was written says something");
-    return writing.text;
-}
-
-/**
- * What stands over the frozen table, exported so a guard can hold the file to its generator
- * without the cached client a full regeneration needs.
- */
+/** What stands over the frozen table, exported so a guard holds the file to its generator. */
 export const FROZEN_BUFF_BANNER =
     `// Generated by \`deno task game:buffs freeze\`. Do not edit by hand.
 //
@@ -112,13 +37,34 @@ export const FROZEN_BUFF_BANNER =
 // them, so the position is the bit. \`tools/buff-bit-table.ts\` says what they are lifted from.
 `;
 
-function composeFrozenBuffModule(build: string, bits: readonly string[]): string {
-    const written = bits.map((name) => `        ${requireWrittenText(name)},`).join("\n");
+/** The bit order written to `frozen/`, dated by the build whose bundle registered it. */
+export function writeFrozenBuffBits(): { build: string; count: number } {
+    const build = requireCachedBuild();
+    const bits = requireBuffBits(readCachedBundle(GAME_CHANNEL.production));
+    Deno.writeTextFileSync(FROZEN_PATH, encodeFrozenBuffModule(build, bits));
+    assert(bits.length > 0, "a table that was written down counts something");
+    return { build, count: bits.length };
+}
+
+/** The build a bit order would be dated by; an empty cache is refused rather than read past. */
+function requireCachedBuild(): string {
+    const cached = readCachedClientSource(GAME_CHANNEL.production);
+    if (cached === null) {
+        throw new BuffBitTableError(
+            "nothing cached for production — run `deno task game:client fetch production`",
+        );
+    }
+    assertStrictEquals(cached.channel, GAME_CHANNEL.production, "the channel the table stands on");
+    return cached.build;
+}
+
+function encodeFrozenBuffModule(build: string, bits: readonly string[]): string {
+    const written = bits.map((name) => `        ${encodeRequiredText(name)},`).join("\n");
     assert(written.length > 0, "a table that is written down says something");
     assert(build.length > 0, "and is dated by the build it was lifted from");
     return `${FROZEN_BUFF_BANNER}
 export const FROZEN_BUFF_BITS = {
-    gameBuild: ${requireWrittenText(build)},
+    gameBuild: ${encodeRequiredText(build)},
     bits: [
 ${written}
     ],
@@ -126,39 +72,69 @@ ${written}
 `;
 }
 
-/** The build a bit order would be dated by; an empty cache is refused rather than read past. */
-function requireCachedBuild(): string {
-    const cached = getCachedClientSource("production");
-    if (cached === null) {
-        throw new BuffBitTableError(
-            "nothing cached for production — run `deno task game:client fetch production`",
-        );
+/** One bit's name as the text it is written down as, or a refusal branded as this tool's. */
+function encodeRequiredText(value: string): string {
+    const text = encodeJson(value, 0);
+    if (!text.ok) {
+        throw new BuffBitTableError("a name of the table cannot be written", { cause: text.error });
     }
-    assert(cached.build.length > 0, "a cache that was admitted knows its own build");
-    assertStrictEquals(cached.channel, "production", "and is the channel the table stands on");
-    return cached.build;
+    return text.value;
 }
 
-/** The bit order written to `frozen/`, dated by the build whose bundle registered it. */
-export function writeFrozenBuffBits(): { build: string; count: number } {
-    const build = requireCachedBuild();
-    const bits = getBuffBits(getCachedBundle("production"));
-    assert(bits.length <= MAXIMUM_STATUS_BITS, "an order that is written down fits in one mask");
-    Deno.writeTextFileSync(FROZEN_PATH, composeFrozenBuffModule(build, bits));
-    assert(bits.length > 0, "a table that was written down counts something");
-    assert(build.length > 0, "and says which build it was counted over");
-    return { build, count: bits.length };
+/**
+ * Every status the client registers, in source order, which is bit order. A build registering
+ * none is one this walk no longer recognises, and it refuses rather than freezing an empty table:
+ * an empty reading looks exactly like a game that dropped the feature.
+ */
+export function requireBuffBits(bundle: string): string[] {
+    const found: string[] = [];
+    let at = bundle.indexOf(ROLE_ARGUMENT);
+    for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
+        if (at === -1) break;
+        const name = lookupRegisteredStatusName(bundle, at);
+        if (name !== null) {
+            assert(found.length < STATUS_BITS_MAXIMUM, "a mask holds no more bits than an integer");
+            found.push(name);
+        }
+        at = bundle.indexOf(ROLE_ARGUMENT, at + 1);
+    }
+    if (found.length === 0) {
+        throw new BuffBitTableError("no status is registered in the bundle — the client changed");
+    }
+    assertStrictEquals(new Set(found).size, found.length, "each status is named at one position");
+    return found;
+}
+
+/**
+ * The name registered by the entry whose `,null,` sits at `at`, or null where that is some other
+ * call. Read forwards from the bracket rather than back from the comma: a literal is a literal
+ * only where something says where it opened, and the bracket is that thing.
+ */
+function lookupRegisteredStatusName(bundle: string, at: number): string | null {
+    assert(at >= 0, "an entry is looked for inside the bundle");
+    const role = lookupQuotedLiteral(bundle, at + ROLE_ARGUMENT.length);
+    if (role === null) return null;
+    if (role.text !== ROLE) return null;
+    if (bundle.charAt(role.end) !== ")") return null;
+    const open = bundle.lastIndexOf(CALL_OPEN, at);
+    if (open === -1) return null;
+    if (open < at - WALK_BACK_MAXIMUM) return null;
+    const name = lookupQuotedLiteral(bundle, open + 1);
+    if (name === null) return null;
+    if (name.end !== at) return null;
+    if (name.text.length === 0) return null;
+    return name.text;
 }
 
 if (import.meta.main) {
     if (Deno.args.includes("freeze")) {
         const { build, count } = writeFrozenBuffBits();
-        console.log(`froze ${composeIntegerText(count)} bits from build ${build} → ${FROZEN_PATH}`);
+        console.log(`froze ${formatInteger(count)} bits from build ${build} → ${FROZEN_PATH}`);
     } else {
-        const bits = getBuffBits(getCachedBundle("production"));
-        console.log(`${composeIntegerText(bits.length)} bits in build ${requireCachedBuild()}`);
+        const bits = requireBuffBits(readCachedBundle(GAME_CHANNEL.production));
+        console.log(`${formatInteger(bits.length)} bits in build ${requireCachedBuild()}`);
         for (const [index, name] of bits.entries()) {
-            console.log(`  bit ${composeIntegerText(index)}  ${name}`);
+            console.log(`  bit ${formatInteger(index)}  ${name}`);
         }
         console.log(`run with \`freeze\` to write ${FROZEN_PATH}`);
     }

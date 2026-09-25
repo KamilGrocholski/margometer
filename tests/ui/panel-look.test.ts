@@ -18,19 +18,25 @@ import {
     CLASS,
     composeBarColour,
     composeStyleSheet,
-    getColourForProfession,
     getContrastRatio,
     getInkForBar,
+    getTipRoom,
     LAYER,
-    PALETTE_COLOURS,
     PLACE,
-    SIGNAL,
-    SPACE,
+    SPACE_PIXELS,
     SURFACE,
     TEXT,
-} from "@/src/ui/panel-look.ts";
-import { getWordsForProfession, PROFESSION_WORD_BY_KEY } from "@/src/ui/panel-words.ts";
-import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "@/tests/style-sheet.ts";
+} from "#/src/ui/panel-look.ts";
+import {
+    type Colour,
+    formatColour,
+    lookupColourForProfession,
+    PALETTE_COLOURS,
+    SIGNAL,
+} from "#/src/ui/panel-palette.ts";
+import { parseInteger } from "#/libs/number-text.ts";
+import { DEVELOP_REVISION } from "#/tests/recording-sources.ts";
+import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "#/tests/style-sheet.ts";
 
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
 const AA_TEXT_RATIO = 4.5;
@@ -38,6 +44,58 @@ const AA_MARK_RATIO = 3;
 /** Every profession the recordings state, measured over `captures/` on 2026-08-29. */
 const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];
 const LONGEST_DECLARATION = 200;
+
+const VARIABLE_OPENER = "--MargoMeter-";
+const HEX_DIGITS = "0123456789abcdef";
+const HEX_BASE = 16;
+/** A hash and six digits, which is the only hex spelling the sheet writes. */
+const HEX_COLOUR_LENGTH = 7;
+const RGB_OPENER = "rgb(";
+const RGB_CLOSER = ")";
+const CHANNEL_VALUE_MAXIMUM = 255;
+/** `develop`'s sheet and the whole of what it imports, at the revision the recordings are read at. */
+const DEVELOP_SHEET_FILES = [
+    "src/ui/panel-look.ts",
+    "libs/number-range.ts",
+    "libs/number-text.ts",
+    "libs/text-walk.ts",
+];
+const DEVELOP_ROOT_PREFIX = '"@/';
+const BLACK: Colour = [0, 0, 0];
+const WHITE: Colour = [255, 255, 255];
+const AA_GRAPHIC_RATIO = 3;
+
+/**
+ * ⚠️ **`DESIGN.md` says AA holds on every text-over-colour pairing, and the checks above
+ * reach three of them.** The sheet prints words in five inks and the signal ones were in none,
+ * which is why the ground each ink is drawn on is named rather than assumed. Measured 2026-09-15,
+ * the thinnest pairing registered here is `heading` over `surface` at 5.22, and the thinnest of the
+ * signal inks is `defect` over `track` at 6.61 — so `defect` names all three grounds.
+ */
+const INK_GROUNDS: Record<string, readonly string[]> = {
+    text: ["surface", "raised", "track"],
+    quiet: ["surface", "raised", "track"],
+    suspect: ["surface", "raised", "track"],
+    caveat: ["surface", "raised", "track"],
+    heading: ["surface"],
+    // The defects block stands in the panel body under a rule of its own, and on no row.
+    defect: ["surface", "raised", "track"],
+};
+
+/**
+ * ⚠️ **The sheet spells `color:` for two jobs, and the property cannot tell them apart.** A
+ * segment of the sides bar takes its ink from `currentColor`, so the rule filling it looks exactly
+ * like a rule printing words. These three are that — held at the graphical floor rather than
+ * exempted, because an exemption says nothing on the day one of them prints a word.
+ */
+const FILL_GROUNDS: Record<string, readonly string[]> = {
+    ours: ["track"],
+    theirs: ["track"],
+    nobody: ["track"],
+};
+
+/** What a cell has to state to hold a run of text on one line and give way to its neighbour. */
+const SHORTENING = ["min-width", "overflow", "text-overflow", "white-space"] as const;
 
 /**
  * ⚠️ **A row is pressed, so a press must not leave text selected behind it.** Both windows draw
@@ -54,25 +112,95 @@ Deno.test("a row refuses to have its text selected, in either window", () => {
     assertStringIncludes(own, "-webkit-user-select:none", "and Safari is told in its own words");
 });
 
-Deno.test("a bar's own spelling is read back as readily as a token's", () => {
-    assertEquals(getContrastRatio("rgb(0 0 0)", "#ffffff"), 21, "the widest, written either way");
-    assertEquals(getContrastRatio("rgb(0 0)", "#ffffff"), 1, "two channels are not a colour");
-    assertEquals(getContrastRatio("rgb(0 0 300)", "#ffffff"), 1, "nor is one past a byte");
+Deno.test("a colour the sheet writes is read back in either spelling, and nothing else is", () => {
+    assertEquals(parseSheetColour("#0f161d"), [0x0f, 0x16, 0x1d], "a token's spelling");
+    assertEquals(parseSheetColour("rgb(0 0 255)"), [0, 0, 255], "and a composed one's, to a byte");
+    assertEquals(parseSheetColour("rgb(0 0 256)"), null, "but not one past a byte");
+    assertEquals(parseSheetColour("rgb(0 0)"), null, "two channels are not a colour");
+    assertEquals(parseSheetColour("white"), null, "a colour nobody wrote is not read");
+    assertEquals(parseSheetColour("#fff"), null, "and neither is a short one");
+    assertEquals(parseSheetColour("#gggggg"), null, "nor one of letters past the digits");
 });
 
-Deno.test("a ratio is read from the colours, and refuses what it cannot read", () => {
-    assertEquals(getContrastRatio("#000000", "#ffffff"), 21, "the widest there is");
-    assertEquals(getContrastRatio("#ffffff", "#ffffff"), 1, "and the narrowest");
-    assertEquals(getContrastRatio("white", "#ffffff"), 1, "a colour nobody wrote passes nothing");
-    assertEquals(getContrastRatio("#fff", "#000000"), 1, "and neither does a short one");
+/** What the sheet writes a colour as, read back: `#rrggbb`, or `rgb(r g b)` for one it composed. */
+function parseSheetColour(text: string): Colour | null {
+    if (text.startsWith(RGB_OPENER)) return parseSheetColourRgb(text);
+    if (!text.startsWith("#")) return null;
+    if (text.length !== HEX_COLOUR_LENGTH) return null;
+    const channels: number[] = [];
+    for (let at = 1; at < text.length; at += 2) {
+        const high = HEX_DIGITS.indexOf(text.charAt(at));
+        const low = HEX_DIGITS.indexOf(text.charAt(at + 1));
+        if (high === -1) return null;
+        if (low === -1) return null;
+        channels.push(high * HEX_BASE + low);
+    }
+    return composeSheetColour(channels);
+}
+
+function parseSheetColourRgb(text: string): Colour | null {
+    if (!text.endsWith(RGB_CLOSER)) return null;
+    const channels: number[] = [];
+    const inside = text.slice(RGB_OPENER.length, text.length - RGB_CLOSER.length);
+    for (const stated of inside.split(" ")) {
+        const channel = parseInteger(stated);
+        if (channel === null) return null;
+        if (channel < 0) return null;
+        if (channel > CHANNEL_VALUE_MAXIMUM) return null;
+        channels.push(channel);
+    }
+    return composeSheetColour(channels);
+}
+
+function composeSheetColour(channels: readonly number[]): Colour | null {
+    const [red, green, blue, past] = channels;
+    if (red === undefined) return null;
+    if (green === undefined) return null;
+    if (blue === undefined) return null;
+    if (past !== undefined) return null;
+    return [red, green, blue];
+}
+
+Deno.test("a ratio runs from one, for a colour on itself, to twenty-one", () => {
+    assertEquals(getContrastRatio(BLACK, WHITE), 21, "the widest there is");
+    assertEquals(getContrastRatio(WHITE, WHITE), 1, "and the narrowest");
     assert(
-        getContrastRatio("#000000", "#ffffff") > getContrastRatio(SURFACE.panel, SURFACE.raised),
+        getContrastRatio(BLACK, WHITE) > getContrastRatio(SURFACE.panel, SURFACE.raised),
         "order",
     );
 });
 
-const VARIABLE_OPENER = "--MargoMeter-";
-const AA_GRAPHIC_RATIO = 3;
+Deno.test("every ink the sheet paints with clears its floor over the ground it is drawn on", () => {
+    const sheet = composeStyleSheet();
+    const values = readSheetVariables(sheet);
+    assertEquals(
+        values.get("surface"),
+        formatColour(SURFACE.panel),
+        "the sheet ships the surface it is read for",
+    );
+
+    const painted = readNamesUsedBy(sheet, "color");
+    const grounds = readNamesUsedBy(sheet, "background");
+    assert(painted.size > 0, "the sheet paints with something");
+    let checked = 0;
+    for (const name of painted) {
+        const fills = FILL_GROUNDS[name];
+        if (fills !== undefined) {
+            checked += countPairingsClearing(values, name, fills, AA_GRAPHIC_RATIO);
+            continue;
+        }
+        const over = INK_GROUNDS[name];
+        assertExists(over, `${name}: the sheet paints with it and the register omits it`);
+        checked += countPairingsClearing(values, name, over, AA_TEXT_RATIO);
+        for (const where of over) {
+            assertArrayIncludes([...grounds], [where], `${where}: a ground nothing paints`);
+        }
+    }
+    assert(checked > 0, "some pairing was asked");
+    for (const name of Object.keys({ ...INK_GROUNDS, ...FILL_GROUNDS })) {
+        assertArrayIncludes([...painted], [name], `${name}: registered, and painted with never`);
+    }
+});
 
 /** Every `--MargoMeter-x:y;` the sheet declares, as the name and the value it ships. */
 function readSheetVariables(sheet: string): Map<string, string> {
@@ -107,35 +235,6 @@ function readNamesUsedBy(sheet: string, property: string): Set<string> {
     return found;
 }
 
-/**
- * ⚠️ **`DESIGN.md` says AA holds on every text-over-colour pairing, and the checks above reach
- * three of them.** The sheet prints words in five inks and the signal ones were in none, which is
- * why the ground each ink is drawn on is named rather than assumed. Measured 2026-09-15, the
- * thinnest pairing registered here is `heading` over `surface` at 5.22, and the thinnest of the
- * signal inks is `defect` over `track` at 6.61 — so `defect` names all three grounds.
- */
-const INK_GROUNDS: Record<string, readonly string[]> = {
-    text: ["surface", "raised", "track"],
-    quiet: ["surface", "raised", "track"],
-    suspect: ["surface", "raised", "track"],
-    caveat: ["surface", "raised", "track"],
-    heading: ["surface"],
-    // The defects block stands in the panel body under a rule of its own, and on no row.
-    defect: ["surface", "raised", "track"],
-};
-
-/**
- * ⚠️ **The sheet spells `color:` for two jobs, and the property cannot tell them apart.** A
- * segment of the sides bar takes its ink from `currentColor`, so the rule filling it looks exactly
- * like a rule printing words. These three are that — held at the graphical floor rather than
- * exempted, because an exemption says nothing on the day one of them prints a word.
- */
-const FILL_GROUNDS: Record<string, readonly string[]> = {
-    ours: ["track"],
-    theirs: ["track"],
-    nobody: ["track"],
-};
-
 /** Each ink-over-ground pairing held to its floor, and how many were asked. */
 function countPairingsClearing(
     values: ReadonlyMap<string, string>,
@@ -143,12 +242,12 @@ function countPairingsClearing(
     grounds: readonly string[],
     floor: number,
 ): number {
-    const ink = values.get(name);
-    assertExists(ink, `${name}: painted with, and never declared`);
+    const ink = parseSheetColour(values.get(name) ?? "");
+    assertExists(ink, `${name}: painted with, and never declared as a colour`);
     let counted = 0;
     for (const where of grounds) {
-        const ground = values.get(where);
-        assertExists(ground, `${where}: drawn on, and never declared`);
+        const ground = parseSheetColour(values.get(where) ?? "");
+        assertExists(ground, `${where}: drawn on, and never declared as a colour`);
         const ratio = getContrastRatio(ink, ground);
         assert(ratio >= floor, `${name} on ${where}: ${ratio.toFixed(2)} under ${floor}`);
         counted += 1;
@@ -156,41 +255,12 @@ function countPairingsClearing(
     return counted;
 }
 
-Deno.test("every ink the sheet paints with clears its floor over the ground it is drawn on", () => {
-    const sheet = composeStyleSheet();
-    const values = readSheetVariables(sheet);
-    assertEquals(
-        values.get("surface"),
-        SURFACE.panel,
-        "the sheet ships the surface it is read for",
-    );
-
-    const painted = readNamesUsedBy(sheet, "color");
-    const grounds = readNamesUsedBy(sheet, "background");
-    assert(painted.size > 0, "the sheet paints with something");
-    let checked = 0;
-    for (const name of painted) {
-        const fills = FILL_GROUNDS[name];
-        if (fills !== undefined) {
-            checked += countPairingsClearing(values, name, fills, AA_GRAPHIC_RATIO);
-            continue;
-        }
-        const over = INK_GROUNDS[name];
-        assertExists(over, `${name}: the sheet paints with it and the register omits it`);
-        checked += countPairingsClearing(values, name, over, AA_TEXT_RATIO);
-        for (const where of over) {
-            assertArrayIncludes([...grounds], [where], `${where}: a ground nothing paints`);
-        }
-    }
-    assert(checked > 0, "some pairing was asked");
-    for (const name of Object.keys({ ...INK_GROUNDS, ...FILL_GROUNDS })) {
-        assertArrayIncludes([...painted], [name], `${name}: registered, and painted with never`);
-    }
-});
-
 Deno.test("text over every surface clears AA", () => {
     for (const surface of Object.values(SURFACE)) {
-        assert(getContrastRatio(TEXT.plain, surface) >= AA_TEXT_RATIO, `${surface} under a figure`);
+        assert(
+            getContrastRatio(TEXT.plain, surface) >= AA_TEXT_RATIO,
+            `${formatColour(surface)} under a figure`,
+        );
     }
     assert(getContrastRatio(TEXT.quiet, SURFACE.panel) >= AA_TEXT_RATIO, "and under a label");
     // The quiet ink over the raised surface: the strip's own label, and every caption the detail
@@ -205,114 +275,20 @@ Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for",
     // Every hue the panel can put under a figure: a profession on a ranking row, the colourless
     // one every cut of a figure takes, and the two hues of the palette no profession spends.
     const hues = [
-        ...PROFESSIONS.map((one) => getColourForProfession(one)),
-        getColourForProfession(null),
+        ...PROFESSIONS.map((one) => lookupColourForProfession(one)),
+        lookupColourForProfession(null),
         ...PALETTE_COLOURS,
     ];
     let lightest = 21;
     for (const hue of hues) {
         const bar = composeBarColour(hue);
         const ratio = getContrastRatio(getInkForBar(hue), bar);
-        assert(ratio >= AA_TEXT_RATIO, `${hue}: ${ratio.toFixed(2)} on ${bar}`);
+        const named = `${formatColour(hue)}: ${ratio.toFixed(2)} on ${formatColour(bar)}`;
+        assert(ratio >= AA_TEXT_RATIO, named);
         lightest = Math.min(lightest, ratio);
     }
     assert(hues.length > PALETTE_COLOURS.length, "more pairings were checked than there are hues");
     assert(lightest >= AA_TEXT_RATIO, "the worst pairing the panel can draw still clears it");
-});
-
-Deno.test("a profession keeps its colour, and one the game did not state is colourless", () => {
-    const taken = PROFESSIONS.map((one) => getColourForProfession(one));
-    assertEquals(new Set(taken).size, PROFESSIONS.length, "each of the six takes a hue of its own");
-    for (const one of taken) {
-        assert(PALETTE_COLOURS.some((hue) => hue === one), `${one} comes out of the palette`);
-    }
-    assertEquals(getColourForProfession(null), SIGNAL.unknown, "and none stated is colourless");
-    assertEquals(getColourForProfession("z"), SIGNAL.unknown, "as is one nobody has a hue for");
-    const eight: readonly string[] = PALETTE_COLOURS;
-    assert(!eight.includes(SIGNAL.unknown), "which is not one of the eight, so it reads apart");
-});
-
-/** The letters, so a table can be asked about one it does not hold. */
-const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
-
-/** Every letter the panel gives a hue to, asked of the sheet rather than listed a second time. */
-function getColouredProfessions(): string[] {
-    const found: string[] = [];
-    for (const letter of ALPHABET) {
-        if (getColourForProfession(letter) !== SIGNAL.unknown) found.push(letter);
-    }
-    assert(found.length <= ALPHABET.length, "the walk stays inside the letters there are");
-    return found;
-}
-
-/** Which letters one side of the pairing holds and the other does not, in either direction. */
-function getUnpairedProfessions(worded: Record<string, string>, coloured: string[]): string[] {
-    const found: string[] = [];
-    for (const code of coloured) {
-        if (worded[code] === undefined) found.push(code);
-    }
-    for (const code of Object.keys(worded)) {
-        if (!coloured.includes(code)) found.push(code);
-    }
-    assert(found.length <= ALPHABET.length, "a letter is reported once from either side");
-    return found.sort();
-}
-
-Deno.test("a profession the panel colours is one it can name, and the other way round", () => {
-    // N13: the game's own letters are spelled in two files, so the failure is quiet — a card
-    // reading `b` where the bar beside it is drawn, or a hue nobody can say the name of.
-    assertEquals(
-        getColouredProfessions().sort(),
-        [...PROFESSIONS].sort(),
-        "the six the recordings state are the six the panel draws",
-    );
-    assertEquals(
-        getUnpairedProfessions(PROFESSION_WORD_BY_KEY, getColouredProfessions()),
-        [],
-        "and every one of them has a word as well as a hue",
-    );
-    // A reader is proved by a sample it must flag and a sample it must not.
-    assertEquals(
-        getUnpairedProfessions({ w: "Wojownik" }, ["w", "m"]),
-        ["m"],
-        "a hue with no word",
-    );
-    assertEquals(
-        getUnpairedProfessions({ w: "W", z: "Z" }, ["w"]),
-        ["z"],
-        "and a word with no hue",
-    );
-    assertEquals(
-        getUnpairedProfessions({ w: "W" }, ["w"]),
-        [],
-        "a letter both sides hold is paired",
-    );
-});
-
-Deno.test("a profession the table does not word travels as the game wrote it", () => {
-    assertEquals(getWordsForProfession("p"), "Paladyn", "a letter the table holds is worded");
-    assertEquals(getWordsForProfession("z"), "z", "and a seventh the game invents is passed on");
-});
-
-/**
- * A hue nothing here wrote, which must not stop the panel drawing; a bar the colour of its own
- * track states its length and says nothing about whose it is, which is a degradation rather than
- * a claim — **E14**, ADR 0051. What it must never do is write `undefined` into a rule, because a
- * browser drops that and the element keeps whatever it inherits, with nothing saying so.
- */
-Deno.test("a bar asked for in no colour is drawn in its own track, and never in nothing", () => {
-    for (const hue of ["", "#12", "rgb(1 2)", "not a colour at all", "#gggggg"]) {
-        assertEquals(composeBarColour(hue), SURFACE.track, `${hue} is no colour, so it is no bar`);
-        assertEquals(getInkForBar(hue), TEXT.inkLight, "and its ink is the one every bar takes");
-    }
-    for (const written of [composeBarColour("#3987e5"), composeBarColour("")]) {
-        assert(!written.includes("undefined"), "no rule the panel writes carries a word for none");
-    }
-});
-
-Deno.test("a profession nobody has a hue for is drawn as the absence of one", () => {
-    assertEquals(getColourForProfession(""), SIGNAL.unknown, "a letter that says nothing");
-    assertEquals(getColourForProfession("zz"), SIGNAL.unknown, "and one that says too much");
 });
 
 Deno.test("the ink is computed, and at this tint every bar takes the light one", () => {
@@ -323,7 +299,7 @@ Deno.test("the ink is computed, and at this tint every bar takes the light one",
 });
 
 Deno.test("the two sides are told apart by more than a hue", () => {
-    const sides: string[] = [SIGNAL.ours, SIGNAL.theirs];
+    const sides = [formatColour(SIGNAL.ours), formatColour(SIGNAL.theirs)];
     assertEquals(new Set(sides).size, 2, "two sides, two colours");
     assert(
         getContrastRatio(SIGNAL.suspect, SURFACE.panel) >= AA_MARK_RATIO,
@@ -335,8 +311,46 @@ Deno.test("the two sides are told apart by more than a hue", () => {
         getContrastRatio(SIGNAL.caveat, TEXT.quiet) > getContrastRatio(TEXT.quiet, TEXT.quiet),
         "and off the label it stands beside, which is what a caveat mark is read against",
     );
-    assertEquals(SIGNAL.unknown, "#9299a0", "unknown is desaturated: the absence of a category");
+    assertEquals(
+        formatColour(SIGNAL.unknown),
+        "#9299a0",
+        "unknown is desaturated: the absence of a category",
+    );
 });
+
+/**
+ * The sheet is `develop`'s, to the byte (**W8**): every token, every colour and every rule. A
+ * token written in another spelling here has to write the same text, and a value that moved is a
+ * finding in one of the two.
+ */
+Deno.test("the style sheet is the one develop ships, byte for byte", async () => {
+    const develop = await readDevelopStyleSheet();
+    assertEquals(composeStyleSheet(), develop, `the sheet develop @ ${DEVELOP_REVISION} ships`);
+});
+
+/** `develop`'s modules written out of git into a directory of their own, and the sheet asked for. */
+async function readDevelopStyleSheet(): Promise<string> {
+    const root = Deno.makeTempDirSync({ prefix: "margometer-develop-sheet-" });
+    for (const path of DEVELOP_SHEET_FILES) {
+        const shown = new Deno.Command("git", {
+            args: ["show", `${DEVELOP_REVISION}:${path}`],
+            stdout: "piped",
+        }).outputSync();
+        assert(shown.success, `develop:${path} is there at ${DEVELOP_REVISION}`);
+        const upward = "../".repeat(path.split("/").length - 1);
+        const text = new TextDecoder().decode(shown.stdout);
+        const target = `${root}/${path}`;
+        Deno.mkdirSync(target.slice(0, target.lastIndexOf("/")), { recursive: true });
+        Deno.writeTextFileSync(target, text.replaceAll(DEVELOP_ROOT_PREFIX, `"./${upward}`));
+    }
+    const module = await import(`file://${root}/${DEVELOP_SHEET_FILES[0]}`);
+    Deno.removeSync(root, { recursive: true });
+    const compose = module.composeStyleSheet;
+    assert(typeof compose === "function", "develop's sheet module composes a sheet");
+    const sheet = compose();
+    assert(typeof sheet === "string", "and what it composes is text");
+    return sheet;
+}
 
 Deno.test("the sheet shuts the game out, and every class it selects is one the panel wears", () => {
     const sheet = composeStyleSheet();
@@ -356,19 +370,24 @@ Deno.test("a value is written once, and every rule spends it by name", () => {
     // declarations spend tokens like any other rule, so one occurrence is the whole allowance.
     const twice: string[] = [];
     const signals = [SIGNAL.suspect, SIGNAL.caveat, SIGNAL.defect];
-    for (const value of [...Object.values(SURFACE), ...Object.values(TEXT), ...signals]) {
+    const colours = [...Object.values(SURFACE), ...Object.values(TEXT), ...signals];
+    for (const value of colours.map(formatColour)) {
         const written = sheet.split(value).length - 1;
         if (written > 1) twice.push(`${value} written ${written} times`);
     }
     assertEquals(twice, [], "a value the sheet writes more than once");
-    assertStringIncludes(sheet, SURFACE.panel, "and the values it does write are the tokens");
+    assertStringIncludes(
+        sheet,
+        formatColour(SURFACE.panel),
+        "and the values it does write are the tokens",
+    );
     assertStringIncludes(sheet, "var(--MargoMeter-", "which a rule reaches by our own name");
     assert(sheet.split("var(--MargoMeter-").length > 10, "and reaches by name many times over");
 });
 
 Deno.test("the card stands over the window beside the panel, and both over the frame", () => {
     // ⚠️ The window carried the host's own layer and the card carried none, so a window dragged
-    // over the panel covered the card a reader had just pointed at. **ADR 0068.**
+    // over the panel covered the card a reader had just pointed at. `develop ADR 0068`.
     const sheet = composeStyleSheet();
     const layerOf = (selector: string) => {
         const at = sheet.indexOf(selector);
@@ -386,7 +405,7 @@ Deno.test("the card stands over the window beside the panel, and both over the f
     const frame = sheet.slice(sheet.indexOf(":host{"), sheet.indexOf("}", sheet.indexOf(":host{")));
     assertStringIncludes(frame, `z-index:${PLACE.layer}`, "the host takes its layer on the page");
     // A positioned host with a layer is a stacking context of its own, which is what keeps the
-    // numbers inside the root from ever meeting the game's (**ADR 0114**).
+    // numbers inside the root from ever meeting the game's (`develop ADR 0114`).
     assertStringIncludes(frame, "position:fixed", "and what stands inside it stands in it alone");
 });
 
@@ -403,112 +422,6 @@ Deno.test("a folded panel is drawn by the one region the fold hides", () => {
     assert(!sheet.includes(`;}.${CLASS.folded}{`), "and never by the bare class, which would tie");
     assertStringIncludes(sheet, "display:none", "what a folded region does is stop being drawn");
 });
-
-/** A token or a length, which is the whole of what a term can be. */
-function getTermPixels(stated: string): number {
-    assert(stated.length > 0, "a term says something");
-    let written = stated;
-    if (stated.startsWith("var(")) {
-        const name = stated.slice("var(--MargoMeter-".length, stated.length - 1);
-        const held = Object.entries(SPACE).find(([token]) => getTokenSpelling(token) === name);
-        assertExists(held, `${stated} spends a token SPACE does not hold`);
-        written = held[1];
-    }
-    if (written === "0") return 0;
-    assert(written.endsWith("px"), `${stated} is a length this panel does not measure in`);
-    const value = Number(written.slice(0, -"px".length));
-    assert(Number.isFinite(value), `${stated} is not a number`);
-    return value;
-}
-
-/** A term, or one subtraction of two — which is every arithmetic an inset here spends. */
-function getPixels(stated: string): number {
-    assert(stated.length > 0, "a length says something");
-    if (!stated.startsWith("calc(")) return getTermPixels(stated);
-    const inside = stated.slice("calc(".length, stated.length - 1);
-    const parts = inside.split(" - ");
-    assertEquals(parts.length, 2, `${stated} is not the one subtraction this reader knows`);
-    return getTermPixels(parts[0] ?? "") - getTermPixels(parts[1] ?? "");
-}
-
-/** `regionDown` is spelled `region-down` in a rule, and the guard must cross that spelling once. */
-function getTokenSpelling(token: string): string {
-    assert(token.length > 0, "a token is named before it is spelled");
-    assert(token.length <= LONGEST_DECLARATION, "a token stays inside its stated bound");
-    let spelled = "";
-    for (const character of token) {
-        const lower = character.toLowerCase();
-        spelled += lower === character ? character : `-${lower}`;
-    }
-    return spelled;
-}
-
-/** Split on the spaces a shorthand puts between its parts, not on the ones inside a `calc`. */
-function getShorthandParts(stated: string): string[] {
-    assert(stated.length > 0, "a shorthand states something");
-    assert(stated.length <= LONGEST_DECLARATION, "a shorthand stays inside its stated bound");
-    const parts: string[] = [];
-    let held = "";
-    let depth = 0;
-    for (const character of stated) {
-        if (character === "(") depth += 1;
-        if (character === ")") depth -= 1;
-        if (character === " ") {
-            if (depth === 0) {
-                if (held !== "") parts.push(held);
-                held = "";
-                continue;
-            }
-        }
-        held += character;
-    }
-    if (held !== "") parts.push(held);
-    assert(parts.length > 0, "and a shorthand that states something has a first part");
-    return parts;
-}
-
-/** Top, then bottom, out of whichever spellings the rule uses, the longhand winning. */
-function getEdgesDown(body: string, selector: string, property: string): number[] {
-    const shorthand = getDeclaration(body, property);
-    if (shorthand === null) return [0, 0];
-    const parts = getShorthandParts(shorthand);
-    const above = parts[0] ?? "";
-    // One part is every side, two are down and across, and three or four state the bottom third.
-    const below = parts.length >= 3 ? parts[2] ?? "" : above;
-    const longhand = getDeclaration(body, `${property}-bottom`);
-    assert(selector.startsWith("."), "an edge is read off a rule of a class");
-    return [getPixels(above), getPixels(longhand === null ? below : longhand)];
-}
-
-/** What a reader sees above a region's first bar and below its last, the row's own margin in. */
-function getAirAround(sheet: string, selector: string, margin: number): number[] {
-    const body = getRuleBody(sheet, selector);
-    const [insetAbove, insetBelow] = getEdgesDown(body, selector, "padding");
-    const [marginAbove, marginBelow] = getEdgesDown(body, selector, "margin");
-    assertExists(insetAbove, `${selector} states what insets it`);
-    return [
-        (marginAbove ?? 0) + (insetAbove ?? 0),
-        (insetBelow ?? 0) + margin + (marginBelow ?? 0),
-    ];
-}
-
-/** The operators a `calc` spends outside its own groups, which is where a stray term sits. */
-function getOperatorsAtDepth(stated: string): string[] {
-    assert(stated.startsWith("calc("), "a height is arithmetic before it is read as any");
-    assert(stated.length <= LONGEST_DECLARATION, "a height stays inside its stated bound");
-    const found: string[] = [];
-    let depth = 0;
-    for (const character of stated.slice("calc(".length, stated.length - 1)) {
-        if (character === "(") depth += 1;
-        if (character === ")") depth -= 1;
-        if (depth > 0) continue;
-        if (character === "*") found.push(character);
-        if (character === "+") found.push(character);
-        if (character === "-") found.push(character);
-    }
-    assertStrictEquals(depth, 0, "a height closes every group it opens");
-    return found;
-}
 
 Deno.test("what stands over a region's first bar is what stands under its last", () => {
     // The bug this catches was photographed rather than reasoned, twice over. The list asked for
@@ -535,6 +448,83 @@ Deno.test("what stands over a region's first bar is what stands under its last",
     }
 });
 
+/** A term, or one subtraction of two — which is every arithmetic an inset here spends. */
+function getPixels(stated: string): number {
+    assert(stated.length > 0, "a length says something");
+    if (!stated.startsWith("calc(")) return getTermPixels(stated);
+    const inside = stated.slice("calc(".length, stated.length - 1);
+    const parts = inside.split(" - ");
+    assertEquals(parts.length, 2, `${stated} is not the one subtraction this reader knows`);
+    return getTermPixels(parts[0] ?? "") - getTermPixels(parts[1] ?? "");
+}
+
+/** A token or a length, which is the whole of what a term can be. */
+function getTermPixels(stated: string): number {
+    assert(stated.length > 0, "a term says something");
+    if (stated.startsWith("var(")) {
+        const name = stated.slice("var(--MargoMeter-".length, stated.length - 1);
+        const held = Object.entries(SPACE_PIXELS).find(([token]) =>
+            getTokenSpelling(token) === name
+        );
+        assertExists(held, `${stated} spends a token SPACE_PIXELS does not hold`);
+        return held[1];
+    }
+    if (stated === "0") return 0;
+    assert(stated.endsWith("px"), `${stated} is a length this panel does not measure in`);
+    const value = Number(stated.slice(0, -"px".length));
+    assert(Number.isFinite(value), `${stated} is not a number`);
+    return value;
+}
+
+/** `regionDown` is spelled `region-down` in a rule, and the guard must cross that spelling once. */
+function getTokenSpelling(token: string): string {
+    assert(token.length > 0, "a token is named before it is spelled");
+    assert(token.length <= LONGEST_DECLARATION, "a token stays inside its stated bound");
+    let spelled = "";
+    for (const character of token) {
+        const lower = character.toLowerCase();
+        spelled += lower === character ? character : `-${lower}`;
+    }
+    return spelled;
+}
+
+/** Top, then bottom, out of whichever spellings the rule uses, the longhand winning. */
+function getEdgesDown(body: string, selector: string, property: string): number[] {
+    const shorthand = getDeclaration(body, property);
+    if (shorthand === null) return [0, 0];
+    const parts = getShorthandParts(shorthand);
+    const above = parts[0] ?? "";
+    // One part is every side, two are down and across, and three or four state the bottom third.
+    const below = parts.length >= 3 ? parts[2] ?? "" : above;
+    const longhand = getDeclaration(body, `${property}-bottom`);
+    assert(selector.startsWith("."), "an edge is read off a rule of a class");
+    return [getPixels(above), getPixels(longhand === null ? below : longhand)];
+}
+
+/** Split on the spaces a shorthand puts between its parts, not on the ones inside a `calc`. */
+function getShorthandParts(stated: string): string[] {
+    assert(stated.length > 0, "a shorthand states something");
+    assert(stated.length <= LONGEST_DECLARATION, "a shorthand stays inside its stated bound");
+    const parts: string[] = [];
+    let held = "";
+    let depth = 0;
+    for (const character of stated) {
+        if (character === "(") depth += 1;
+        if (character === ")") depth -= 1;
+        if (character === " ") {
+            if (depth === 0) {
+                if (held !== "") parts.push(held);
+                held = "";
+                continue;
+            }
+        }
+        held += character;
+    }
+    if (held !== "") parts.push(held);
+    assert(parts.length > 0, "and a shorthand that states something has a first part");
+    return parts;
+}
+
 Deno.test("a rule between two regions has the same air on either side of it", () => {
     // The one this catches was the last one standing, and every region was already even inside
     // itself: the pinned block carried a `margin-top` of its own on top of the list's bottom
@@ -560,6 +550,18 @@ Deno.test("a rule between two regions has the same air on either side of it", ()
     );
 });
 
+/** What a reader sees above a region's first bar and below its last, the row's own margin in. */
+function getAirAround(sheet: string, selector: string, margin: number): number[] {
+    const body = getRuleBody(sheet, selector);
+    const [insetAbove, insetBelow] = getEdgesDown(body, selector, "padding");
+    const [marginAbove, marginBelow] = getEdgesDown(body, selector, "margin");
+    assertExists(insetAbove, `${selector} states what insets it`);
+    return [
+        (marginAbove ?? 0) + (insetAbove ?? 0),
+        (insetBelow ?? 0) + margin + (marginBelow ?? 0),
+    ];
+}
+
 Deno.test("a list is as tall as the rows it promises, and carries no term besides", () => {
     const sheet = composeStyleSheet();
     const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.list}`), "height");
@@ -574,6 +576,36 @@ Deno.test("a list is as tall as the rows it promises, and carries no term beside
         `the list reserves something besides the rows it promises: ${stated}`,
     );
     assertStringIncludes(stated, "row-height", "and what it reserves is what a row costs");
+});
+
+/** The operators a `calc` spends outside its own groups, which is where a stray term sits. */
+function getOperatorsAtDepth(stated: string): string[] {
+    assert(stated.startsWith("calc("), "a height is arithmetic before it is read as any");
+    assert(stated.length <= LONGEST_DECLARATION, "a height stays inside its stated bound");
+    const found: string[] = [];
+    let depth = 0;
+    for (const character of stated.slice("calc(".length, stated.length - 1)) {
+        if (character === "(") depth += 1;
+        if (character === ")") depth -= 1;
+        if (depth > 0) continue;
+        if (character === "*") found.push(character);
+        if (character === "+") found.push(character);
+        if (character === "-") found.push(character);
+    }
+    assertStrictEquals(depth, 0, "a height closes every group it opens");
+    return found;
+}
+
+Deno.test("the panel's rhythm is whole pixels, so a bar and its ink round together", () => {
+    // A line height stated as a factor is a fractional line box — 11px at 1.35 is 14.85 — and
+    // every box under it stands off the pixel grid by a different fraction on every screen. The
+    // browser then snaps a bar one way and the glyphs inside it another: the ranking read 5
+    // device rows over the figures and 5 under, while the same rows one level down read 4 and 6,
+    // in Chrome 152 on 2026-08-29 against `dist/preview.html`. `develop ADR 0015`.
+    const sheet = composeStyleSheet();
+    const stated = getLineHeights(sheet);
+    const factors = stated.filter((height) => !height.endsWith("px"));
+    assertEquals(factors, [], "a line height stated as a factor puts every box under it off grid");
 });
 
 /** Every line height the sheet states, which is the term after the slash in a `font` shorthand. */
@@ -595,23 +627,11 @@ function getLineHeights(sheet: string): string[] {
     return found;
 }
 
-Deno.test("the panel's rhythm is whole pixels, so a bar and its ink round together", () => {
-    // A line height stated as a factor is a fractional line box — 11px at 1.35 is 14.85 — and
-    // every box under it stands off the pixel grid by a different fraction on every screen. The
-    // browser then snaps a bar one way and the glyphs inside it another: the ranking read 5
-    // device rows over the figures and 5 under, while the same rows one level down read 4 and 6,
-    // in Chrome 152 on 2026-08-29 against `dist/preview.html`. **ADR 0015.**
-    const sheet = composeStyleSheet();
-    const stated = getLineHeights(sheet);
-    const factors = stated.filter((height) => !height.endsWith("px"));
-    assertEquals(factors, [], "a line height stated as a factor puts every box under it off grid");
-});
-
 Deno.test("a row drops its ink onto its middle and stays the height the list counts", () => {
     // A face carries more ascent than descent, so the ink inside a centred line box sits high by
     // half the difference — 4.503px over the caps against 5.497px under the baseline, Chrome 152
     // on 2026-08-29. The drop answers that, and the parity below is what keeps the answer whole:
-    // a cell that lands on a half pixel is a cell the browser rounds. **ADR 0015.**
+    // a cell that lands on a half pixel is a cell the browser rounds. `develop ADR 0015`.
     const sheet = composeStyleSheet();
     const body = getRuleBody(sheet, `.${CLASS.row}`);
     assertEquals(
@@ -625,27 +645,25 @@ Deno.test("a row drops its ink onto its middle and stays the height the list cou
     assert(above > 0, "which is a length a reader can see");
     const height = getDeclaration(body, "height");
     assertExists(height, "a row states a height rather than taking one from its contents");
-    assertEquals(getPixels(height), getPixels(SPACE.rowHeight), "and it is the one a row costs");
+    assertEquals(getPixels(height), SPACE_PIXELS.rowHeight, "and it is the one a row costs");
     const line = getLineHeights(getRuleBody(sheet, `.${CLASS.panel}`));
     assertExists(line[0], "the panel states the line a row's cells are drawn on");
-    const spare = getPixels(SPACE.rowHeight) - (above ?? 0) - getPixels(line[0]);
+    const spare = SPACE_PIXELS.rowHeight - (above ?? 0) - getPixels(line[0]);
     assertEquals(spare % 2, 0, `a row centres its cells onto half a pixel: ${spare}px to share`);
 });
 
-/** What a cell has to state to hold a run of text on one line and give way to its neighbour. */
-const SHORTENING = ["min-width", "overflow", "text-overflow", "white-space"] as const;
-
-/** Which of the four a rule leaves unsaid, so a failure names the declaration that is missing. */
-function getShorteningMissing(sheet: string, selector: string): string[] {
-    const body = getRuleBody(sheet, selector);
-    const missing: string[] = [];
-    for (const property of SHORTENING) {
-        if (getDeclaration(body, property) === null) {
-            missing.push(`${selector} states no ${property}`);
-        }
-    }
-    return missing;
-}
+Deno.test("a card is trimmed to the room the sheet leaves it, the window less its air", () => {
+    const stated = getDeclaration(getRuleBody(composeStyleSheet(), `.${CLASS.tip}`), "max-height");
+    assertExists(stated, "the sheet holds a card inside the window");
+    const opener = "calc(100vh - ";
+    assert(stated.startsWith(opener), `${stated} is a bound on the window's height`);
+    const terms = stated.slice(opener.length, stated.length - 1).split(" - ");
+    const air = terms.reduce((sum, term) => sum + getPixels(term), 0);
+    assertEquals(getTipRoom(900), 900 - air, "the trim spends the air the sheet spends");
+    assertEquals(getTipRoom(air), null, "a window no taller than the air has no room");
+    assertEquals(getTipRoom(air + 1), 1, "and a pixel past it has that pixel");
+    assertEquals(getTipRoom(null), null, "a page stating no height has no room to reason about");
+});
 
 /**
  * A figure is one word and its cell never gives way; the words beside it are what shortens. The
@@ -654,9 +672,9 @@ function getShorteningMissing(sheet: string, selector: string): string[] {
  */
 /**
  * The other side of the rule below, and the one cell written against it. Every other run of words
- * on this panel is cut where it will not fit, because its height is counted as one line. The name
- * a card opens with is the **answer** to a name a row had to cut (**ADR 0084**), and an answer cut
- * again answers nothing — so it folds, and `src/ui/panel-tip.ts` counts the lines it folds to.
+ * on this panel is cut where it will not fit, because its height is counted as one line. The name a
+ * card opens with is the **answer** to a name a row had to cut (`develop ADR 0084`), and an answer
+ * cut again answers nothing — so it folds, and `src/ui/panel-tip.ts` counts the lines it folds to.
  */
 Deno.test("the name a card opens with folds rather than shortening", () => {
     // A reader is proved by a sample it must flag and one it must not.
@@ -687,6 +705,18 @@ Deno.test("the name a card opens with folds rather than shortening", () => {
         "and a word with no space to break at breaks rather than running off the card",
     );
 });
+
+/** Which of the four a rule leaves unsaid, so a failure names the declaration that is missing. */
+function getShorteningMissing(sheet: string, selector: string): string[] {
+    const body = getRuleBody(sheet, selector);
+    const missing: string[] = [];
+    for (const property of SHORTENING) {
+        if (getDeclaration(body, property) === null) {
+            missing.push(`${selector} states no ${property}`);
+        }
+    }
+    return missing;
+}
 
 Deno.test("a cell carrying a figure refuses to fold, and its neighbour shortens", () => {
     // A reader is proved by a sample it must flag and one it must not.

@@ -8,8 +8,9 @@
  */
 
 import { readFileSync } from "node:fs";
-import { expect, type PanelHandle, test } from "@/tests/e2e/panel-fixture.ts";
-import { GAME_BUILD, PAGE_WORLD } from "@/tests/e2e/panel-page.ts";
+import { expect, type PanelHandle, test } from "./panel-fixture.ts";
+import { GAME_BUILD } from "./game-page.ts";
+import { PAGE_WORLD } from "./panel-page.ts";
 
 /** The envelope's own field names, as `src/game/fight-capture.ts` writes them. */
 const ENVELOPE = [
@@ -21,6 +22,13 @@ const ENVELOPE = [
     "calls",
     "report",
 ];
+
+test("the file is named for the world and the build it was taken on", async ({ panel }) => {
+    const handed = await readHandedOver(panel);
+    expect(handed.named.startsWith(`margometer-${PAGE_WORLD}-${GAME_BUILD}-${panel.version}-`))
+        .toBe(true);
+    expect(handed.named.endsWith(".json"), "and it is a JSON file").toBe(true);
+});
 
 /** The file the browser took, read back off disk. */
 async function readHandedOver(panel: PanelHandle) {
@@ -35,13 +43,6 @@ async function readHandedOver(panel: PanelHandle) {
         read: JSON.parse(readFileSync(at, "utf8")) as Record<string, unknown>,
     };
 }
-
-test("the file is named for the world and the build it was taken on", async ({ panel }) => {
-    const handed = await readHandedOver(panel);
-    expect(handed.named.startsWith(`margometer-${PAGE_WORLD}-${GAME_BUILD}-${panel.version}-`))
-        .toBe(true);
-    expect(handed.named.endsWith(".json"), "and it is a JSON file").toBe(true);
-});
 
 test("the file is the envelope an intake reads, and carries the whole fight", async ({ panel }) => {
     const handed = await readHandedOver(panel);
@@ -70,7 +71,7 @@ test.describe("before any fight has happened", () => {
         await expect(panel.host, "the panel is up").toHaveCount(1);
         await expect(panel.at("[data-shelf]"), "and the bar has its other controls").toHaveCount(1);
         // Not disabled and not inert: absent. A control that does nothing is worse than one that
-        // is not there (`DESIGN.md`), and this one handed over an empty envelope (ADR 0053).
+        // is not there (`DESIGN.md`), and this one handed over an empty envelope (`develop ADR 0053`).
         await expect(panel.at("[data-save]"), "but nothing to save with").toHaveCount(0);
         await panel.expectHonest("a panel that has read no fight");
     });
@@ -79,7 +80,7 @@ test.describe("before any fight has happened", () => {
 test.describe("a fight the panel read back off its own shelf", () => {
     test("is what the file carries, and it says what it could not read", async ({ panel }) => {
         // The fight ends, the reader comes back to a page no fight has started on, and the panel
-        // stands on what it kept — which is where a press hands over nothing (ADR 0053).
+        // stands on what it kept — which is where a press hands over nothing (`develop ADR 0053`).
         await panel.reloadWithNoFightFed();
         await expect(panel.at(".list .row").first(), "drawing the fight it kept").toBeVisible();
 

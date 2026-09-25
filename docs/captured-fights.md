@@ -9,7 +9,7 @@ A recording is evidence and never changes (`captures/AGENTS.md`), so a row here 
 What changes is the set, which is why the numbers below are not written by hand.
 
 **Read off the material, not written from memory**, and held by
-`tests/tools/captured-fight-register.test.ts` — the guard walks every file in the directory and
+`tests/repository/captured-fight-register.test.ts` — the guard walks every file in the directory and
 refuses a row naming a recording that is not there, or a recording no row names. For each it
 re-earns the world, the build, the calls the engine made and the messages they carried, so a line of
 those that stops being true fails the gate.
@@ -134,7 +134,7 @@ than a defect.
   (`tests/ui/panel-reading.test.ts`).
 - **No fight broken off by an escape.** The same again, and for a key the corpus has never carried:
   `flee` is read off the client's own branch and the published help, and the panel's `ucieczka` is
-  drawn from a fight the fabricator writes (`docs/protocol-keys.md`).
+  drawn from a fight the fabricator writes (`develop:docs/protocol-keys.md`).
 - **Three worlds, and one of them once.** Everything but the duel and the recordings from `luvia`
   comes from `tempest`; the duel is the one that happened once.
 
@@ -154,11 +154,11 @@ evidence.
   number, from the format that could hold more than one fight per recording.
 - `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json` — the only duel
   between two players, and the only recording from `experimental`, whose build lags production
-  (`docs/protocol-keys.md` says why production is what a claim is read on). The keys it brought were
-  read the day it arrived (`05d712f`).
+  (`develop:docs/protocol-keys.md` says why production is what a claim is read on). The keys it
+  brought were read the day it arrived (`05d712f`).
 - `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json` — the other recording with a
   player at both ends, and the first written from side 2. It is what settled whom a shout holds
-  (**ADR 0064**) and it is the whole of the evidence for it.
+  (**develop ADR 0064**) and it is the whole of the evidence for it.
 - `captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json` — the first fight the
   game settled by itself, and one of three. Every payload carries `auto`, the whole battle arrives
   in one engine call with no snapshot before it, and the two calls after it carry snapshots and no
@@ -171,7 +171,7 @@ evidence.
   they stand and not how much reached them. A percentage is worth about a point and a half on these
   pools, so five of the eleven land within one of their maximum. That is what caught a defect in the
   reader: one of the five landed a point _over_, and the allowance meant to absorb exactly that was
-  smaller than a health point on their pool (`docs/adr/0010-sizing-a-share-onto-a-side.md`).
+  smaller than a health point on their pool (`develop:docs/adr/0010-sizing-a-share-onto-a-side.md`).
 
 - `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json` — **the first recording naming
   no build**, which is what its build column says. The add-on writes `null` where the page did not
@@ -181,7 +181,7 @@ evidence.
   this recording can settle — the messages, the snapshots and the percentages in it are unaffected.
   All three recordings of that day arrived the same way, and the reason turned out not to be the
   page: the client had started naming its bundle `main.min.53XkBRxF.js`, and the reader knew only
-  ids that were numbers (`src/core/game-build.ts`). It reads both now, so a recording made after
+  ids that were numbers (`src/game/game-build.ts`). It reads both now, so a recording made after
   2026-08-25 carries a build again — these three cannot, being evidence (`captures/AGENTS.md`), and
   their column is a fact about them for good.
 
@@ -191,7 +191,7 @@ evidence.
   rather than declining it. Of the four keys it brought, `+stun2` and `npc_heal` are in one other
   recording each — the Mamlambo fight of 2026-09-06, against the same monster — while `anguish` and
   `+legbon_anguish` arrived here first and are in both Draugr fights of the same day
-  (`docs/protocol-keys.md`).
+  (`develop:docs/protocol-keys.md`).
 
 - `captures/2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json` — the second fight the game
   settled by itself, in the same shape as the first: `auto` on every payload, all 462 messages in
@@ -207,7 +207,7 @@ evidence.
   It is also where a tick's missing figure is worst: two combatants apply the bleed
   `+legbon_anguish` announces to the same victim, and 25 `anguish` ticks come back off it naming
   nobody. And it is where `tcustom`, the second spelling of an announcement, arrived — five of the
-  seven occurrences the material holds (`docs/protocol-keys.md`).
+  seven occurrences the material holds (`develop:docs/protocol-keys.md`).
 
 - `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json` — **the only recording of a fight
   joined in the middle**, and it is the game that restates it: the player reloaded the page
@@ -215,7 +215,7 @@ evidence.
   while `payload.w` states the health as it stands at the reload. 212 of its 487 messages arrive in
   that call, the rest in the one that ends the fight. It is also the first recording to carry a
   build again after the three of 2026-08-25 that name none — `53XkBRxF`, read off a bundle filename
-  that is not a number (`src/core/game-build.ts`).
+  that is not a number (`src/game/game-build.ts`).
 
   ⚠️ **It is the one recording where the game contradicts itself about a combatant's health.** For
   ten of the eleven, the last percentage the opening call states is the percentage the snapshot
@@ -227,7 +227,8 @@ evidence.
 
   It is also where the declarations stopped riding `tspell` only: both its `tcustom` messages state
   effects — `aura-ac_per` with `aura-resall`, and `critval-allies` with `critmval-allies` — and the
-  second pair is what the recording brought in that no other holds (`docs/protocol-keys.md`).
+  second pair is what the recording brought in that no other holds
+  (`develop:docs/protocol-keys.md`).
 
 - `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json` — fought by hand against the
   **only opponent of profession `p`** in the material, and the second recording whose opening call
@@ -244,7 +245,7 @@ evidence.
 
   It brought two keys no other recording carries — `bandage`, a combatant restoring a share of their
   own pool, and `+stun2-c` — and the first `+oth_dmg` whose element is `p`, which the help gives as
-  damage from poison and which the panel had no word for (`docs/protocol-keys.md`,
+  damage from poison and which the panel had no word for (`develop:docs/protocol-keys.md`,
   `src/ui/panel-words.ts`). It is also the first recording carrying `-poison_lowdmg_per` on
   something that is not a blow: seven poison ticks state their own reduction beside them, which is
   what moved that key and `poison` to the weakest placement the register has.
@@ -262,8 +263,8 @@ evidence.
   nobody could place and its two casters were the first rows any recording had marked. The help
   scopes the effect to the caster's opponents and all four occurrences here are declared by one of
   ours at the monster — nothing of ours was reduced, and the three casts are sized
-  (`docs/adr/0010-sizing-a-share-onto-a-side.md`). Two of them stand alone in their engine call,
-  which is where the twenty comparisons that check them against the snapshots come from.
+  (`develop:docs/adr/0010-sizing-a-share-onto-a-side.md`). Two of them stand alone in their engine
+  call, which is where the twenty comparisons that check them against the snapshots come from.
 
   Two more things it settles, both by having a third of something. `+stun2-c` had been read on four
   occurrences in one recording; its five here ride the same monster's blows and are followed
@@ -271,7 +272,7 @@ evidence.
   monster's blows carry `+dmgc` here too, so a second recording still cannot say which variant it
   is. And `active_absorbdest_per` gained a third declared share, `6`: three casters announce in this
   one fight, each says one value and never another, which is the clearest evidence yet that the
-  share belongs to the caster and not to the skill (`docs/protocol-keys.md`).
+  share belongs to the caster and not to the skill (`develop:docs/protocol-keys.md`).
 
 - `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json` — the **smallest party
   in the material**, and the third fight the game settled by itself, in the shape the other two
@@ -282,14 +283,14 @@ evidence.
   ⚠️ **It is the only recording carrying `surpass_bonus_total`**, and it is what that key needed:
   the corpus already held the same monster at the same level met by ten players, so the two together
   say the value is a percentage over the monster's pool rather than a figure of its own
-  (`docs/protocol-keys.md`). Nothing else here is fought by fewer than nine, which is why no earlier
-  recording could carry it.
+  (`develop:docs/protocol-keys.md`). Nothing else here is fought by fewer than nine, which is why no
+  earlier recording could carry it.
 
 - `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` — the first recording on build
   `Cl9U89Zr`, and the first to carry a key the decoder could not read since the corpus last read
   whole. Two of them: `+woundpoison`, which is `+wound`'s announcement with a share stated on it,
   and `+critpierce`, armour destroyed beside `+acdmg` rather than inside it
-  (`docs/protocol-keys.md`).
+  (`develop:docs/protocol-keys.md`).
 
   ⚠️ **`+critpierce` is why this one recording was worth more than its size.** 102 blows in
   `captures/` carry `+crit` and `+pierce` together and this is the only one of them carrying the
@@ -306,7 +307,7 @@ evidence.
   opposite stand at levels 300 to 303 against a corpus whose next highest is 120, and that is what
   the recording is for — at those levels characters carry effects nobody below them does, and four
   protocol keys reach this tree for the first time here: `heal_per-enemies`, `hp_per-allies`,
-  `sunshield_per` and `+actdmg` (`docs/protocol-keys.md`).
+  `sunshield_per` and `+actdmg` (`develop:docs/protocol-keys.md`).
 
   ⚠️ **One of them gains 500 points of health that no message announces**, and the answer is
   `hp_per-allies`. The pool a percentage is read against grows on the initiation layer and the
@@ -331,7 +332,7 @@ evidence.
 
   ⚠️ **It is the only recording carrying `+of_wound`**, and the register had written down that none
   did. It is `+wound`'s twin off the auxiliary weapon, and both occurrences ride blows of one
-  player's (`docs/protocol-keys.md`).
+  player's (`develop:docs/protocol-keys.md`).
 
   It is also the third carrying `npc_heal`, and it re-earns that key's reading rather than resting
   on it: three casts of 1724 against a pool of 43092, four points of it apiece, which is what the
@@ -346,9 +347,9 @@ evidence.
 
 - `captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json` — **the only recording carrying
   `-manadest`**, and the register had written down that none did. Mana is a pool no total here
-  keeps, so the key is read as a declaration beside `-endest` (`docs/protocol-keys.md`). The
+  keeps, so the key is read as a declaration beside `-endest` (`develop:docs/protocol-keys.md`). The
   fabricated fight states it too, and that is never material — it is what stands where `captures/`
-  is silent (`tools/fabricated-fight.ts`).
+  is silent (`develop:tools/fabricated-fight.ts`).
 
   ⚠️ **It carries `-endest` as well, and both keys state one figure for the whole fight** — 10 twice
   and 4 three times — where the published help describes a bonus weakening by 5% of its initial
@@ -360,10 +361,10 @@ evidence.
 - `captures/2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0.json` — **the only recording carrying
   `+superspell-prevented`**, a key the client has always branched on and no recording had ever
   carried, so it had no entry to be written down in. It is `+superspell-dispel`'s sibling: that key
-  breaks a charge already standing, this one states that none began (`docs/protocol-keys.md`). The
-  one occurrence rides `-legbon_glare` on a blow of the boss's, and the boss is the only combatant
-  this recording ever states a charge for — as over `captures/` every charge the game states stands
-  on a monster, 2026-09-21.
+  breaks a charge already standing, this one states that none began
+  (`develop:docs/protocol-keys.md`). The one occurrence rides `-legbon_glare` on a blow of the
+  boss's, and the boss is the only combatant this recording ever states a charge for — as over
+  `captures/` every charge the game states stands on a monster, 2026-09-21.
 
   It also grades more boundaries than any other recording — 122, every one agreeing with the game's
-  own numbering (`docs/turns-taken.md`).
+  own numbering (`develop:docs/turns-taken.md`).

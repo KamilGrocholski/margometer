@@ -1,107 +1,114 @@
 /**
- * What a recording adds up to, per combatant — the table the panel draws, at a terminal.
+ * What a recording adds up to, per combatant, as a terminal table: `develop:tools/fight-figures.ts`
+ * at `DEVELOP_REVISION`, written line for line, so `tools/develop-reports.ts` can hold the two
+ * branches to one text (`docs/design.md` §12). The material and the add-on's reading of it are
+ * `tools/recorded-material.ts`'s; what is this file's own is the text.
  *
  *     deno task fight:figures [recording.json …]
- *
- * It takes what `tools/decoding-status.ts` takes and for the argument written there: the two
- * questions are asked of one file in one sitting, and neither should need intake first. The
- * figures are the replay's, so this and the panel cannot disagree about a fight
- * (`tools/fight-replay.ts`).
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
-import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
+import { formatInteger, parseInteger } from "#/libs/number-text.ts";
+import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
     type CombatantFigures,
+    countUnreadMessages,
     type FightStatistics,
     type FigureCut,
-    getUnreadMessages,
     type SkillFigures,
-} from "@/src/core/fight-statistics.ts";
-import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
-import { getTallyOrder } from "@/libs/tally-order.ts";
-import { composeReplayedMaterial, type FightReplay } from "@/tools/fight-replay.ts";
+} from "#/src/core/fight-statistics.ts";
+import { getRankedOrder } from "#/src/ui/ranked-order.ts";
+import {
+    formatRecordingName,
+    readRecordedMaterial,
+    type RecordedMaterial,
+    type ReplayedFight,
+    replayRecordedMaterial,
+} from "./recorded-material.ts";
 
 /** As many members as the widest cut a card draws: the kinds, the defences, the procs. */
-const MAXIMUM_CUT_PARTS = 64;
-/** What one combatant's own skills are kept inside, measured in `src/ui/panel-reading.ts`. */
-const MAXIMUM_SKILLS = 256;
+const CUT_PARTS_MAXIMUM = 64;
+/** What one combatant's own skills are kept inside, as `develop` bounds them. */
+const SKILLS_MAXIMUM = 256;
 const NAME_WIDTH = 26;
 const NUMBER_WIDTH = 10;
 /** Past the longest caption below, so the column of figures is a column. */
 const CAPTION_WIDTH = 24;
+const COUNT_WIDTH = 6;
 /** What a cut with nothing in it says, so an empty line is never read as a missing one. */
 const NOTHING = "—";
 const HEADINGS = ["raw(blow)", "applied", "taken", "prevented", "restored", "given"];
+const DETAIL_INDENT = "      ";
 
-/** Descending by amount, then by the name, so two runs over one recording read alike. */
-/**
- * A cut on one line. The keys of the two cuts taken by the other end of a blow are combatant ids,
- * so they are put back through the roster — an id in a table nobody can read is a figure nobody
- * can place.
- */
-function composeCutText(cut: FigureCut, roster: CombatantRoster | null): string {
-    assert(cut.size <= MAXIMUM_CUT_PARTS, "a cut stays inside the parts a card draws");
-    if (cut.size === 0) return NOTHING;
-    const written = [...cut].sort(getTallyOrder).map(([key, amount]) => {
-        // Through the owner rather than through `Number`: a key that is not an id — an element,
-        // a protocol key — reads as nothing rather than as `NaN` asking the roster a question.
-        const id = getIntegerFromText(key);
-        const named = roster === null || id === null ? null : roster.byId.get(id);
-        return `${named?.name ?? key} ${composeIntegerText(amount)}`;
-    });
-    assertStrictEquals(written.length, cut.size, "every member of the cut is written down");
-    return written.join("  ");
-}
-
-function composeSkillText(skills: ReadonlyMap<string, SkillFigures>): string {
-    assert(skills.size <= MAXIMUM_SKILLS, "a combatant announces no more than it is bounded to");
-    if (skills.size === 0) return NOTHING;
-    const written = [...skills.values()]
-        .sort((one, other) => other.uses - one.uses)
-        .map((skill) => `${skill.name} ×${composeIntegerText(skill.uses)}`);
-    assertStrictEquals(written.length, skills.size, "every skill announced is written down");
-    return written.join("  ");
-}
-
-/** Kept off the numeric columns: these are not in one unit, and a column would say they were. */
-function composeDetailLines(figures: CombatantFigures, roster: CombatantRoster): string[] {
-    const details: [string, string][] = [
-        ["dealt by element", composeCutText(figures.damageDealtByElement, null)],
-        ["taken by element", composeCutText(figures.damageTakenByElement, null)],
-        ["dealt to", composeCutText(figures.damageDealtByOpponent, roster)],
-        ["taken from", composeCutText(figures.damageTakenByOpponent, roster)],
-        ["restored by", composeCutText(figures.healthRestoredByGiver, roster)],
-        ["given to", composeCutText(figures.healthGivenByReceiver, roster)],
-        ["restored under", composeCutText(figures.healthRestoredBySource, null)],
-        ["prevented by", composeCutText(figures.damagePreventedByDefence, null)],
-        ["destroyed", composeCutText(figures.statisticsDestroyed, null)],
-        ["procs striking", composeCutText(figures.procsWhenStriking, null)],
-        ["procs struck", composeCutText(figures.procsWhenStruck, null)],
-        ["skills announced", composeSkillText(figures.skills)],
+/** The lines `develop` prints for one recording, from the blank line over its heading down. */
+export function formatFigureReport(replayed: ReplayedFight): string[] {
+    const { view, figures } = replayed.reading;
+    const statistics = figures.statistics;
+    const side = view.readerSide;
+    const lines = [
+        "",
+        `=== ${formatRecordingName(replayed.fight.path)} ===`,
+        `  payloads ${formatInteger(view.payloadsApplied)}` +
+        `   reader's side ${side === null ? "(the client never said)" : formatInteger(side)}` +
+        `   ${view.isOver ? "over" : "still going"}` +
+        `${view.hasJoinedInProgress ? "   joined in progress" : ""}`,
+        `    ${"combatant".padEnd(NAME_WIDTH)}` +
+        HEADINGS.map((heading) => heading.padStart(NUMBER_WIDTH)).join(""),
+        ...formatSideLines(statistics, view.roster),
+        "  —— the fight together ——",
+        ...formatRowLines("everybody", statistics.totals, view.roster),
+        ...formatReadingLines(statistics, view.messagesLost),
+        ...formatOutcomeLines(statistics),
     ];
-    const lines = details
-        .filter(([, text]) => text !== NOTHING)
-        .map(([caption, text]) => `      ${caption}: ${text}`);
-    assert(lines.length <= details.length, "a detail is written at most once");
+    assert(view.payloadsApplied > 0, "a report stands over a fight built from something");
     return lines;
 }
 
-/** Blows and the largest of them, which no sum can be read back out of. */
-function composeBlowLines(figures: CombatantFigures): string[] {
-    assert(figures.blowsWithoutSkill <= figures.blowsStruck, "a blow is one of the blows struck");
-    assert(figures.blowsCritical <= figures.blowsStruck, "and so is a critical one");
-    if (figures.blowsStruck === 0) return [];
-    return [
-        `      blows: ${composeIntegerText(figures.blowsStruck)} struck, ` +
-        `${composeIntegerText(figures.blowsWithoutSkill)} behind no announcement, ` +
-        `${composeIntegerText(figures.blowsCritical)} critical`,
-        `      largest blow: ${composeIntegerText(figures.damageDealtBlowLargest)} dealt, ` +
-        `${composeIntegerText(figures.damageTakenBlowLargest)} taken`,
-    ];
+/**
+ * The sides in their own order, and **neither is called ours**: which one the reader was on is
+ * stated once in the heading, and no verdict is drawn from it (`CONTEXT.md`, _Side_).
+ */
+function formatSideLines(statistics: FightStatistics, roster: CombatantRoster): string[] {
+    const lines: string[] = [];
+    const sides = [...indexMembersBySide(statistics, roster)].sort(
+        (one, other) => (one[0] ?? Number.MAX_SAFE_INTEGER) - (other[0] ?? Number.MAX_SAFE_INTEGER),
+    );
+    const readDealt = (id: number): number =>
+        statistics.byCombatantId.get(id)?.damageDealtApplied ?? 0;
+    for (const [side, members] of sides) {
+        const caption = side === null ? "no side the roster gives" : `side ${side}`;
+        lines.push(`  —— ${caption} (${formatInteger(members.length)}) ——`);
+        const ranked = [...members].sort((one, other) => readDealt(other) - readDealt(one));
+        for (const id of ranked) {
+            const figures = statistics.byCombatantId.get(id);
+            const label = roster.byId.get(id)?.name ?? `id ${formatInteger(id)}`;
+            if (figures === undefined) {
+                lines.push(`    ${label.padEnd(NAME_WIDTH)}${NOTHING.padStart(NUMBER_WIDTH)}`);
+            } else lines.push(...formatRowLines(label, figures, roster));
+        }
+    }
+    assert(lines.length >= sides.length, "every side stated has a heading of its own");
+    return lines;
 }
 
-function composeRowLines(
+/** Every combatant a row could be drawn for: the roster's, so nobody is left off at zero. */
+function indexMembersBySide(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+): Map<number | null, number[]> {
+    const bySide = new Map<number | null, number[]>();
+    for (const combatant of roster.byId.values()) {
+        bySide.set(combatant.side, [...(bySide.get(combatant.side) ?? []), combatant.id]);
+    }
+    for (const id of statistics.byCombatantId.keys()) {
+        if (roster.byId.has(id)) continue;
+        bySide.set(null, [...(bySide.get(null) ?? []), id]);
+    }
+    assert(bySide.size <= roster.byId.size + 1, "and on no more than one side each");
+    return bySide;
+}
+
+function formatRowLines(
     label: string,
     figures: CombatantFigures,
     roster: CombatantRoster,
@@ -115,80 +122,69 @@ function composeRowLines(
         figures.damagePrevented,
         figures.healthRestored,
         figures.healthGiven,
-    ].map((amount) => composeIntegerText(amount).padStart(NUMBER_WIDTH)).join("");
+    ].map((amount) => formatInteger(amount).padStart(NUMBER_WIDTH)).join("");
     return [
         `    ${label.slice(0, NAME_WIDTH).padEnd(NAME_WIDTH)}${columns}`,
-        ...composeDetailLines(figures, roster),
-        ...composeBlowLines(figures),
+        ...formatDetailLines(figures, roster),
+        ...formatBlowLines(figures),
     ];
 }
 
-/** Every combatant a row could be drawn for: the roster's, so nobody is left off at zero. */
-function composeMembersBySide(replay: FightReplay): Map<number | null, number[]> {
-    const bySide = new Map<number | null, number[]>();
-    for (const combatant of replay.roster.byId.values()) {
-        bySide.set(combatant.side, [...(bySide.get(combatant.side) ?? []), combatant.id]);
-    }
-    for (const id of replay.statistics.byCombatantId.keys()) {
-        if (replay.roster.byId.has(id)) continue;
-        bySide.set(null, [...(bySide.get(null) ?? []), id]);
-    }
-    assert(bySide.size <= replay.roster.byId.size + 1, "and on no more than one side each");
-    return bySide;
-}
-
-/**
- * The sides in their own order, and **neither is called ours**: which one the reader was on takes
- * the client's own word, so it is stated once as a fact and no verdict is drawn from it
- * (`CONTEXT.md`, *Side*).
- */
-function composeSideLines(replay: FightReplay): string[] {
-    const empty: CombatantFigures[] = [];
-    assertStrictEquals(
-        empty.length,
-        0,
-        "a row nothing named is a row of zeroes, not a missing row",
-    );
-    const lines: string[] = [];
-    const sides = [...composeMembersBySide(replay)].sort(
-        (one, other) => (one[0] ?? Number.MAX_SAFE_INTEGER) - (other[0] ?? Number.MAX_SAFE_INTEGER),
-    );
-    const getRow = (id: number): CombatantFigures | undefined =>
-        replay.statistics.byCombatantId.get(id);
-    for (const [side, members] of sides) {
-        const caption = side === null ? "no side the roster gives" : `side ${side}`;
-        lines.push(`  —— ${caption} (${composeIntegerText(members.length)}) ——`);
-        const ranked = [...members].sort((one, other) =>
-            (getRow(other)?.damageDealtApplied ?? 0) - (getRow(one)?.damageDealtApplied ?? 0)
-        );
-        for (const id of ranked) {
-            const figures = getRow(id);
-            const label = replay.roster.byId.get(id)?.name ?? `id ${composeIntegerText(id)}`;
-            if (figures === undefined) {
-                lines.push(`    ${label.padEnd(NAME_WIDTH)}${"—".padStart(NUMBER_WIDTH)}`);
-            } else lines.push(...composeRowLines(label, figures, replay.roster));
-        }
-    }
-    assert(lines.length >= sides.length, "every side stated has a heading of its own");
+/** Kept off the numeric columns: these are not in one unit, and a column would say they were. */
+function formatDetailLines(figures: CombatantFigures, roster: CombatantRoster): string[] {
+    const details: [string, string][] = [
+        ["dealt by element", formatCutText(figures.damageDealtByElement, null)],
+        ["taken by element", formatCutText(figures.damageTakenByElement, null)],
+        ["dealt to", formatCutText(figures.damageDealtByOpponent, roster)],
+        ["taken from", formatCutText(figures.damageTakenByOpponent, roster)],
+        ["restored by", formatCutText(figures.healthRestoredByGiver, roster)],
+        ["given to", formatCutText(figures.healthGivenByReceiver, roster)],
+        ["restored under", formatCutText(figures.healthRestoredBySource, null)],
+        ["prevented by", formatCutText(figures.damagePreventedByDefence, null)],
+        ["destroyed", formatCutText(figures.statisticsDestroyed, null)],
+        ["procs striking", formatCutText(figures.procsWhenStriking, null)],
+        ["procs struck", formatCutText(figures.procsWhenStruck, null)],
+        ["skills announced", formatSkillText(figures.skills)],
+    ];
+    const lines = details
+        .filter(([, text]) => text !== NOTHING)
+        .map(([caption, text]) => `${DETAIL_INDENT}${caption}: ${text}`);
+    assert(lines.length <= details.length, "a detail is written at most once");
     return lines;
 }
 
+function formatSkillText(skills: ReadonlyMap<string, SkillFigures>): string {
+    assert(skills.size <= SKILLS_MAXIMUM, "a combatant announces no more than it is bounded to");
+    if (skills.size === 0) return NOTHING;
+    const written = [...skills.values()]
+        .sort((one, other) => other.uses - one.uses)
+        .map((skill) => `${skill.name} ×${formatInteger(skill.uses)}`);
+    assertStrictEquals(written.length, skills.size, "every skill announced is written down");
+    return written.join("  ");
+}
+
+/** Blows and the largest of them, which no sum can be read back out of. */
+function formatBlowLines(figures: CombatantFigures): string[] {
+    assert(figures.blowsWithoutSkill <= figures.blowsStruck, "a blow is one of the blows struck");
+    assert(figures.blowsCritical <= figures.blowsStruck, "and so is a critical one");
+    if (figures.blowsStruck === 0) return [];
+    return [
+        `${DETAIL_INDENT}blows: ${formatInteger(figures.blowsStruck)} struck, ` +
+        `${formatInteger(figures.blowsWithoutSkill)} behind no announcement, ` +
+        `${formatInteger(figures.blowsCritical)} critical`,
+        `${DETAIL_INDENT}largest blow: ${formatInteger(figures.damageDealtBlowLargest)} dealt, ` +
+        `${formatInteger(figures.damageTakenBlowLargest)} taken`,
+    ];
+}
+
 /**
- * What the reading could not do, **printed at zero**. A report silent about its reading looks
- * exactly like one that never learned to state it, and most of the corpus reads zero on all of
- * these — so a suppressed line here would be suppressed everywhere.
+ * What the reading could not do, **printed at zero**: most of the corpus reads zero on all of
+ * these, and a report silent about one looks exactly like one that never learned to state it.
  */
-function composeReadingLines(replay: FightReplay): string[] {
-    const statistics = replay.statistics;
-    assert(
-        getUnreadMessages(statistics) >= 0,
-        "a reading states what it could not read, even as none",
-    );
-    assert(replay.reading.messagesLost >= 0, "and what never reached it, even as none");
+function formatReadingLines(statistics: FightStatistics, messagesLost: number): string[] {
+    assert(countUnreadMessages(statistics) >= 0, "a reading states what it could not read");
+    assert(messagesLost >= 0, "and what never reached it, even as none");
     const counts: [string, number][] = [
-        // Three lines rather than one, for the reason `src/game/fight-report.ts` gives about the
-        // two beside them: which of the causes somebody has to go and look at is what a single
-        // number would lose (**ADR 0070**).
         ["unread, key unknown", statistics.unreadMessagesUnknownKey],
         ["unread, no parameter", statistics.unreadMessagesNoParameter],
         ["unread, grammar refused", statistics.unreadMessagesGrammarRefused],
@@ -198,24 +194,22 @@ function composeReadingLines(replay: FightReplay): string[] {
         ["taken by nobody", statistics.takenByNobody],
         ["given by nobody", statistics.givenByNobody],
         ["named neither end", statistics.byNeitherEnd],
-        // Kept apart from what the decoder could not read, for the reason
-        // `src/game/fight-report.ts` gives where it prints the same two.
-        ["messages lost", replay.reading.messagesLost],
+        ["messages lost", messagesLost],
     ];
     return [
         "  —— what the reading could not do ——",
         ...counts.map(([caption, count]) =>
-            `    ${caption.padEnd(CAPTION_WIDTH)}${composeIntegerText(count).padStart(6)}`
+            `    ${caption.padEnd(CAPTION_WIDTH)}${formatInteger(count).padStart(COUNT_WIDTH)}`
         ),
     ];
 }
 
 /** Both sides by name and no verdict: a recording does not record who recorded it. */
-function composeOutcomeLines(statistics: FightStatistics): string[] {
+function formatOutcomeLines(statistics: FightStatistics): string[] {
     const outcome = statistics.outcome;
     if (outcome === null) return ["  —— the fight states no outcome ——"];
-    assert(outcome.wonNames.length <= MAXIMUM_COMBATANTS, "an outcome names a bounded cast");
-    assert(outcome.lostNames.length <= MAXIMUM_COMBATANTS, "at either end of it");
+    assert(outcome.wonNames.length <= COMBATANTS_MAXIMUM, "an outcome names a bounded cast");
+    assert(outcome.lostNames.length <= COMBATANTS_MAXIMUM, "at either end of it");
     return [
         "  —— how it ended ——",
         ...(outcome.isDrawn ? ["    drawn: nobody won this fight"] : []),
@@ -225,31 +219,40 @@ function composeOutcomeLines(statistics: FightStatistics): string[] {
     ];
 }
 
-export function composeFigureReport(replay: FightReplay): string[] {
-    assert(replay.name.length > 0, "a report is headed by the recording it was taken on");
-    assert(replay.reading.payloads > 0, "and over a fight built from something");
-    const side = replay.reading.readerSide;
-    return [
-        "",
-        `=== ${replay.name} ===`,
-        `  payloads ${composeIntegerText(replay.reading.payloads)}` +
-        `   reader's side ${side === null ? "(the client never said)" : composeIntegerText(side)}` +
-        `   ${replay.reading.isOver ? "over" : "still going"}` +
-        `${replay.reading.hasJoinedInProgress ? "   joined in progress" : ""}`,
-        `    ${"combatant".padEnd(NAME_WIDTH)}` +
-        HEADINGS.map((heading) => heading.padStart(NUMBER_WIDTH)).join(""),
-        ...composeSideLines(replay),
-        "  —— the fight together ——",
-        ...composeRowLines("everybody", replay.statistics.totals, replay.roster),
-        ...composeReadingLines(replay),
-        ...composeOutcomeLines(replay.statistics),
-    ];
+/**
+ * A cut on one line, largest first and ties by key. The keys of the cuts taken by the other end of
+ * a blow are combatant ids, put back through the roster: an id nobody can read places nothing.
+ */
+export function formatCutText(cut: FigureCut, roster: CombatantRoster | null): string {
+    assert(cut.size <= CUT_PARTS_MAXIMUM, "a cut stays inside the parts a card draws");
+    if (cut.size === 0) return NOTHING;
+    const written = [...cut]
+        .sort((one, other) => getRankedOrder(one[1], other[1], one[0], other[0]))
+        .map(([key, amount]) => {
+            // Through the reader rather than `Number`: a key that is not an id reads as nothing
+            // rather than as `NaN` asking the roster a question.
+            const id = parseInteger(key);
+            const named = roster === null || id === null ? null : roster.byId.get(id);
+            return `${named?.name ?? key} ${formatInteger(amount)}`;
+        });
+    assertStrictEquals(written.length, cut.size, "every member of the cut is written down");
+    return written.join("  ");
+}
+
+/** Every recording where no path was named, the files named otherwise, as a terminal prints it. */
+export function formatRecordedFigures(paths: readonly string[]): string {
+    return formatMaterialFigures(readRecordedMaterial(paths));
+}
+
+/** The whole report over material already chosen, which is how `fight:develop` narrows it. */
+export function formatMaterialFigures(material: RecordedMaterial): string {
+    const replayed = replayRecordedMaterial(material);
+    const lines = [`material ${material.material}`, ...replayed.flatMap(formatFigureReport)];
+    assert(lines.length > replayed.length, "every recording read is reported");
+    return `${lines.join("\n")}\n`;
 }
 
 if (import.meta.main) {
-    const replayed = composeReplayedMaterial(Deno.args);
-    console.log(`material ${replayed.material}`);
-    for (const replay of replayed.replays) {
-        for (const line of composeFigureReport(replay)) console.log(line);
-    }
+    const text = formatRecordedFigures(Deno.args);
+    await Deno.stdout.write(new TextEncoder().encode(text));
 }

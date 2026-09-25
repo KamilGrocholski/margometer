@@ -2,28 +2,22 @@
  * The published skill table, read off the page and frozen.
  *
  * Every row below is invented. The page is the operator's own writing and none of its sentences
- * enter this repository (NOTICE.md), so what a transcript would prove here — that the reader
+ * enter this repository (`NOTICE.md`), so what a transcript would prove here — that the reader
  * matches the real page — is proved instead by the frozen reading, which is a transcript and is
  * in git: `tests/repository/skill-durations.test.ts` holds it against `captures/`.
  */
 
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import { SkillTableError } from "#/tools/margometer-tool-error.ts";
 import {
     composeAuraSkills,
     composeGrantedBlows,
     composeShoutSkills,
-    readSkillsFromPage,
-} from "@/tools/skill-table.ts";
-import { SkillTableError } from "@/tools/margometer-tool-error.ts";
-
-/** Eight cells, which is what the page serves: id, tags, name, description, prof, levels, … */
-function composeRow(id: string, effects: string): string {
-    return `<tr><td>${id}&nbsp;</td><td> spl</td><td>Nazwa&nbsp;</td><td>Opis&nbsp;</td>` +
-        `<td>4&nbsp;</td><td>10&nbsp;</td><td>${effects}&nbsp;</td><td>reqp=m&nbsp;</td></tr>`;
-}
+    requireSkillsOfPage,
+} from "#/tools/skill-table.ts";
 
 Deno.test("a duration is read off the level it is stated on, and none where none is", () => {
-    const read = readSkillsFromPage(
+    const read = requireSkillsOfPage(
         composeRow("264", "taken_dmg_per-all=6@8,7@8;<br>cooldown=8"),
     );
     assertStrictEquals(read.length, 1, "one row, one skill");
@@ -33,8 +27,14 @@ Deno.test("a duration is read off the level it is stated on, and none where none
     ], "the marked half is the turns, the half in front of it the value, and none is none");
 });
 
+/** Eight cells, which is what the page serves: id, tags, name, description, prof, levels, … */
+function composeRow(id: string, effects: string): string {
+    return `<tr><td>${id}&nbsp;</td><td> spl</td><td>Nazwa&nbsp;</td><td>Opis&nbsp;</td>` +
+        `<td>4&nbsp;</td><td>10&nbsp;</td><td>${effects}&nbsp;</td><td>reqp=m&nbsp;</td></tr>`;
+}
+
 Deno.test("a level stating no duration is passed over rather than read as nothing", () => {
-    const read = readSkillsFromPage(
+    const read = requireSkillsOfPage(
         composeRow("7", "critmval_l=1,2,3;<br>slowfreeze_per=45@2,50@3"),
     );
     assertEquals(read[0]?.effects, [
@@ -45,7 +45,7 @@ Deno.test("a level stating no duration is passed over rather than read as nothin
 
 Deno.test("a value the page writes as arithmetic is read as no duration at all", () => {
     // `mana=0.3*cplvl` and `dmg-target_absolute=10*cplvl` are stated per level and dated nowhere.
-    const read = readSkillsFromPage(composeRow("8", "mana=0.3*cplvl,0.32*cplvl"));
+    const read = requireSkillsOfPage(composeRow("8", "mana=0.3*cplvl,0.32*cplvl"));
     assertEquals(
         read[0]?.effects,
         [{ key: "mana", turns: [], amounts: [], values: [] }],
@@ -59,16 +59,16 @@ Deno.test("a page of another shape is refused rather than read off by one", () =
     const short =
         "<tr><td>264&nbsp;</td><td>Nazwa&nbsp;</td><td>taken_dmg_per-all=6@8&nbsp;</td></tr>";
     assertThrows(
-        () => readSkillsFromPage(short),
+        () => requireSkillsOfPage(short),
         SkillTableError,
         "columns",
         "a row of the wrong width leaves the table with no row it will take",
     );
-    assertThrows(() => readSkillsFromPage(""), SkillTableError, "columns", "and so does no page");
+    assertThrows(() => requireSkillsOfPage(""), SkillTableError, "columns", "and so does no page");
 });
 
 Deno.test("a row whose id is not a number is passed over, not read as one", () => {
-    const read = readSkillsFromPage(
+    const read = requireSkillsOfPage(
         composeRow("id", "aura-sa_per=11@8") + composeRow("89", "aura-sa_per=11@8"),
     );
     assertEquals(read.map((one) => one.id), [89], "the heading row the page opens with");
@@ -80,7 +80,7 @@ Deno.test("a row whose id is not a number is passed over, not read as one", () =
  * values, so this is the only place the count is read off a page shape. **ADR 0063.**
  */
 Deno.test("a shout is carried by its own turns and by the fewest characters it covers", () => {
-    const read = readSkillsFromPage(
+    const read = requireSkillsOfPage(
         composeRow("188", "shout=6@3,7@3,8@3;<br>alllowdmg=1@5;<br>red-sa=6") +
             composeRow("89", "aura-sa_per=11@8;<br>cooldown=6"),
     );
@@ -97,12 +97,12 @@ Deno.test("a shout is carried by its own turns and by the fewest characters it c
 });
 
 Deno.test("a shout the page dates nowhere is carried nowhere", () => {
-    const read = readSkillsFromPage(composeRow("188", "shout=6;<br>alllowdmg=1@5"));
+    const read = requireSkillsOfPage(composeRow("188", "shout=6;<br>alllowdmg=1@5"));
     assertEquals(composeShoutSkills(read), [], "a count with no turns beside it holds nobody");
 });
 
 Deno.test("only the skills reaching a side are carried, at the longest they state", () => {
-    const read = readSkillsFromPage(
+    const read = requireSkillsOfPage(
         composeRow("188", "shout=6@3;<br>alllowdmg=1@5;<br>red-sa=6") +
             composeRow("8", "manaendest=40,45") +
             composeRow("89", "aura-sa_per=11@8;<br>cooldown=6"),
@@ -121,10 +121,10 @@ Deno.test("only the skills reaching a side are carried, at the longest they stat
 /**
  * ⚠️ **This key is stated with no `@` anywhere on the page.** A walk that reads a value only
  * beside a duration reads the key and throws away the one figure it carries — which is what the
- * reader did until **ADR 0078**.
+ * reader did until **develop ADR 0078**.
  */
 Deno.test("a granted blow is read where the page states no duration beside it", () => {
-    const read = readSkillsFromPage(
+    const read = requireSkillsOfPage(
         composeRow("239", "energy=10;<br>add_attacks=1;<br>cooldown=2") +
             composeRow("89", "aura-sa_per=11@8"),
     );
@@ -136,7 +136,7 @@ Deno.test("a granted blow is read where the page states no duration beside it", 
 });
 
 Deno.test("a grant stated per level is carried at the fewest the page states", () => {
-    const read = readSkillsFromPage(composeRow("283", "add_attacks=2,2,3;<br>cooldown=4"));
+    const read = requireSkillsOfPage(composeRow("283", "add_attacks=2,2,3;<br>cooldown=4"));
     assertEquals(
         composeGrantedBlows(read),
         [{ id: 283, blowsGrantedMinimum: 2 }],
@@ -145,6 +145,6 @@ Deno.test("a grant stated per level is carried at the fewest the page states", (
 });
 
 Deno.test("a grant the page writes as arithmetic is carried nowhere", () => {
-    const read = readSkillsFromPage(composeRow("283", "add_attacks=0.5*cplvl"));
+    const read = requireSkillsOfPage(composeRow("283", "add_attacks=0.5*cplvl"));
     assertEquals(composeGrantedBlows(read), [], "a figure nothing could read is not a grant");
 });

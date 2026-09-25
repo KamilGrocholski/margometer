@@ -6,26 +6,28 @@
  * places, and a default chosen in one of them said nothing about the other four.
  */
 
-import type { ShownScreen } from "@/src/ui/panel-element.ts";
-import type { PanelMetric, PanelReading } from "@/src/ui/panel-reading.ts";
+import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
+import type { ShownScreen } from "#/src/ui/panel-element.ts";
+import type { ScreenReading } from "#/src/ui/panel-reading.ts";
+import { PANEL_METRIC, type PanelMetric, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 
 /** The name the panel draws its list under where a test is not asking about the name. */
 export const SHOWN_LIST = "shown";
 
 export function composeShownScreen(
-    reading: PanelReading,
-    metric: PanelMetric = "damageDealtApplied",
+    reading: ScreenReading,
+    metric: PanelMetric = PANEL_METRIC.damageDealtApplied,
 ): ShownScreen {
     return {
         listName: SHOWN_LIST,
         reading,
         current: metric,
-        side: "everyone",
+        side: SIDE_CHOICE.everyone,
         readerSide: null,
         turnHolderId: null,
         shelf: [],
         isOnShelf: false,
-        storage: "local",
+        storage: STORAGE_CHOICE.local,
         hasFightToSave: true,
         shelfAnswers: [],
         defects: [],

@@ -1,1264 +1,182 @@
 /**
- * Where the layers meet: the game is found, the payloads reach a fight underway, and what it
- * holds is drawn.
- *
- * Everything it touches is handed in — the page, the document, the clock, the place a panel goes
- * and the line a failure is written on. Nothing here reaches for a global, which is what keeps a
- * userscript's contact with its browser stated in one file and testable without one.
+ * The add-on standing up (`docs/design.md` §4, §10.1): the page's `window` read into the ports the
+ * runtime is handed, the frozen readings composed into its tables, and the runtime started. It is
+ * the first boundary of `AGENTS.md` E5, so it asserts nothing (A11) and all of it runs under one
+ * `runGuarded`. A page it cannot stand on gets one console line and no panel.
  */
 
+import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
+import { FROZEN_BLOWS_GRANTED } from "#/frozen/blows-granted.ts";
+import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import {
-    type Combatant,
-    type CombatantRoster,
-    composeCombatantRoster,
-} from "@/src/core/combatant-roster.ts";
-import { composeTeamHeals } from "@/src/core/combatant-health.ts";
+    type BrokenInvariant,
+    callForeign,
+    err,
+    type ForeignFailure,
+    ok,
+    type Result,
+    runGuarded,
+} from "#/libs/result.ts";
+import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { indexAuraTurnsBySkillId, indexShoutsBySkillId } from "#/src/core/aura-standing.ts";
+import { indexWitnessedKeyByBit } from "#/src/core/carried-figure.ts";
+import { indexBlowsGrantedBySkillId } from "#/src/core/fight-decoder.ts";
+import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import {
-    composeAuraTurnsBySkillId,
-    composeFightStandings,
-    composeShoutsBySkillId,
-    type FightStandings,
-    type StatedSkills,
-} from "@/src/core/aura-standing.ts";
-import {
-    type CarriedFigure,
-    composeCarriedFigures,
-    composeWitnessedKeyByBit,
-} from "@/src/core/carried-figure.ts";
-import { FROZEN_BUFF_BITS } from "@/frozen/buff-bits.ts";
-import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
-import { FROZEN_BLOWS_GRANTED } from "@/frozen/blows-granted.ts";
-import { composeBlowsGrantedBySkillId } from "@/src/core/fight-decoder.ts";
-import { composeStandingReading, type StandingReading } from "@/src/ui/panel-standing.ts";
-import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
-import { getIntegerFromText } from "@/libs/number-text.ts";
-import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
-import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
-import {
-    addPayloadToFight,
-    composeFightUnderway,
-    type FightReading,
-    type FightUnderway,
-    getReadingFromFight,
-} from "@/src/game/fight-underway.ts";
-import {
-    type AttachmentReport,
-    attachToGame,
-    type GameAttachment,
-    type Scheduler,
-} from "@/src/game/engine-attachment.ts";
-import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
-import { type FightPlace, readPlaceFromPage } from "@/src/game/engine-place.ts";
-import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
-import {
-    type BrowserStore,
-    composeBrowserStore,
-    composeMemoryStore,
+    initMemoryStore,
+    initPageStore,
+    type KeyValueStore,
     type PageStorage,
-} from "@/src/game/browser-store.ts";
+} from "#/src/game/browser-store.ts";
+import { initPageEngine } from "#/src/game/engine-battle.ts";
+import { initPagePlace } from "#/src/game/engine-place.ts";
+import { initPageTooltip } from "#/src/game/engine-tooltip.ts";
+import { initPageBuild, SCRIPTS_MAXIMUM } from "#/src/game/game-build.ts";
+import { initPageDictionary } from "#/src/game/game-dictionary.ts";
+import { initPageClock, type PageDate } from "#/src/game/page-clock.ts";
+import { initPageConsole, type PageConsole } from "#/src/game/page-console.ts";
+import { type DownloadAnchor, initPageFile } from "#/src/game/page-file.ts";
+import { initPageFrames, type PageFrames } from "#/src/game/page-frame.ts";
+import { initPageInterval, type PageTimers } from "#/src/game/page-interval.ts";
+import { initPageSurroundings } from "#/src/game/page-surroundings.ts";
 import {
-    type CaptureReading,
-    type CaptureSurroundings,
-    composeCaptureFileName,
-    composeCaptureText,
-    composeEmptyCapture,
-    composeNextCapture,
-    type FightCapture,
-} from "@/src/game/fight-capture.ts";
-import { type CapturedCombatant, composeSnapshotFromBattle } from "@/src/game/engine-warrior.ts";
-import {
-    composeKeptRotation,
-    getIsEverySlotPinned,
-    type KeptFight,
-    MAXIMUM_KEPT,
-    readKeptFights,
-    type ShelfWriting,
-    writeKeptFights,
-} from "@/src/game/kept-fights.ts";
-import type { ReportSubject } from "@/src/game/fight-report.ts";
-import { readDictionaryFromPage, type TranslateLabel } from "@/src/game/game-dictionary.ts";
-import { composeTooltipWriter, type TooltipWriter } from "@/src/game/engine-tooltip.ts";
-import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
-import { composeDefectKeeper, type KeptDefects } from "@/src/ui/panel-defect.ts";
-import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
-import {
-    composeDrillReading,
-    composeHalfNamedDrillReading,
-    composeHalfNamedReading,
-    composePairReading,
-    composePanelReading,
-    composePartReading,
-    type DrillReading,
-    type FightMoment,
-    type FightSuspicions,
-    getOutcomeForSeat,
-    getPinnedCase,
-    type HalfNamedDrillReading,
-    type HalfNamedOpened,
-    type HalfNamedReading,
-    type PairReading,
-    type PanelOutcome,
-    type PanelReading,
-    type PartReading,
-    type ShelfRow,
-} from "@/src/ui/panel-reading.ts";
-import {
-    composeListName,
-    composeScreenState,
-    getScreenFromName,
-    getSideFromName,
-    getStorageFromName,
-    type PanelStorageChoice,
-    type ScreenState,
-} from "@/src/ui/panel-screen.ts";
-import {
-    composeStoredTextFromPosition,
-    getPositionFromStoredText,
-    type PanelPlacement,
-    type PanelPosition,
-    type PanelViewport,
-} from "@/src/ui/panel-drag.ts";
-import {
-    CHOICE_REFUSED_ANSWER,
-    composePlaceWords,
-    composeTooltipRows,
-    EVERY_SLOT_PINNED_ANSWER,
-    PANEL_WORDS,
-    STORE_MADE_ROOM_ANSWER,
-    STORE_REFUSED_ANSWER,
-    type TooltipReading,
-} from "@/src/ui/panel-words.ts";
+    initRuntime,
+    type Runtime,
+    type RuntimePorts,
+    type RuntimeTables,
+} from "#/src/runtime/margometer-runtime.ts";
+import { STORAGE_CHOICE, type StorageChoice } from "#/src/ui/panel-choice.ts";
+import type { PanelDocument, PanelElement } from "#/src/ui/panel-document.ts";
+import type { PanelViewport } from "#/src/ui/panel-drag.ts";
+import { BUILD_VERSION } from "./build-version.ts";
 
-const FAILURE_LINE = "MargoMeter/Panel";
-/** The one key this add-on writes, named as ours like everything else a reader could meet. */
-const SHELF_KEY = "MargoMeter-fights";
-/**
- * The fold, stored beside the shelf and never inside it: a shelf that reads back broken is
- * dropped whole, and a reader who folded the panel away should not have that undone by it.
- */
-const FOLD_KEY = "MargoMeter-folded";
-/** Anything else reads as unfolded, which is the state a reader who stored nothing is in. */
-const FOLDED = "1";
-const PLACE_KEY = "MargoMeter-place";
-/**
- * The frozen readings, put into the shape `core/` reads once and not per payload: `core` imports
- * no frozen reading, so whoever holds one hands it over (`ARCHITECTURE.md`).
- */
-interface FrozenReadings {
-    statedSkills: StatedSkills;
-    /** Which status a key states a figure for, at the position the client registered it. */
-    witnessedKeyByBit: ReadonlyMap<number, string>;
-    /** The same table, for the other question it answers (**ADR 0078**). */
-    blowsGrantedBySkillId: ReadonlyMap<number, number>;
-}
+/** The part of a page the add-on could not find, named in our words (`AGENTS.md` N13). */
+export const WINDOW_PART = {
+    window: "window",
+    document: "document",
+    console: "console",
+    timers: "timers",
+    frames: "frames",
+    clock: "clock",
+    downloads: "downloads",
+} as const;
+export type WindowPart = VocabularyWord<typeof WINDOW_PART>;
+
+export const BOOT_FAILURE = { windowUnusable: "window-unusable" } as const;
+/** What stops the add-on before it stands: the page, or a broken invariant while it stood up. */
+export type BootFailure =
+    | { kind: typeof BOOT_FAILURE.windowUnusable; missing: WindowPart }
+    | ForeignFailure
+    | BrokenInvariant;
 
 /**
- * ⚠️ **Composed on first use and never while the bundle loads.** The composers assert over the
- * tables, and a module's own initialiser runs before any boundary this add-on has: there, a table
- * past a bound is a raw throw in the game's console with no copy of the add-on standing. Asked for
- * inside each boundary that uses it, a table that will not compose costs what that boundary costs.
+ * The names a browser gives what this needs, and the whole of what it is asked for. That each is
+ * there and callable is all `isUserscriptWindow` says: a signature is not `typeof`'s to give, and
+ * a member of the wrong shape is answered for by the boundary that calls it (`develop ADR 0051`).
  */
-const frozenReadings: { held: FrozenReadings | null } = { held: null };
-
-function getFrozenReadings(): FrozenReadings {
-    if (frozenReadings.held !== null) return frozenReadings.held;
-    frozenReadings.held = {
-        statedSkills: {
-            turnsBySkillId: composeAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
-            shoutsBySkillId: composeShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
-        },
-        witnessedKeyByBit: composeWitnessedKeyByBit(FROZEN_BUFF_BITS.bits),
-        blowsGrantedBySkillId: composeBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills),
-    };
-    return frozenReadings.held;
-}
-
-/**
- * The window beside the panel keeps its own two answers. Two windows, two folds and two corners:
- * folding the panel over a fight a reader is watching would take the other one with it.
- */
-const STANDING_FOLD_KEY = "MargoMeter-pomocnik-folded";
-const STANDING_PLACE_KEY = "MargoMeter-pomocnik-place";
-/**
- * Where the reader asked for the shelf to be kept, and it is kept beside the panel's own state
- * rather than in the store it names: a choice held where it points would be unreadable the moment
- * the reader picks the store that keeps nothing.
- */
-const STORAGE_KEY = "MargoMeter-storage";
-const STORAGE_DEFAULT: PanelStorageChoice = "local";
-
-export interface PanelMount {
-    show(panel: PanelElement): void;
-}
-
-export interface UserscriptEnvironment {
-    page: unknown;
-    readViewport(): PanelViewport | null;
-    document: PanelDocument;
-    schedule: Scheduler;
-    mount: PanelMount;
-    store: BrowserStore | null;
-    /**
-     * Where the shelf goes, by the reader's own answer. Never null: a browser that lends no store
-     * is answered with one that forgets, so the panel is never handed nothing.
-     */
-    composeShelfStore(choice: PanelStorageChoice): BrowserStore;
-    write: ((name: string, text: string, handleFailure: (failure: unknown) => void) => void) | null;
-    /** The moment is asked for: a fight off the shelf states when it was fought. **ADR 0053**. */
-    readSurroundings(atMilliseconds: number): CaptureSurroundings;
-    now(): number;
-    readClock(atMilliseconds: number): FightMoment | null;
-    /** One branded line, and the failure itself, so a console shows whose it is first. */
-    report(line: string, failure: unknown): void;
-}
-
-function getPlaceWords(place: FightPlace | null): string | null {
-    if (place === null) return null;
-    const words = composePlaceWords(place.mapName, place.x, place.y);
-    return words;
-}
-
-function composeShelfSizes(combatants: readonly Combatant[], readerSide: number | null): number[] {
-    const countBySide = new Map<number, number>();
-    combatants = combatants.slice(0, MAXIMUM_COMBATANTS);
-    for (const one of combatants) countBySide.set(one.side, (countBySide.get(one.side) ?? 0) + 1);
-    const sides = [...countBySide].sort(([one], [other]) => {
-        if (readerSide === one) return -1;
-        if (readerSide === other) return 1;
-        return one - other;
-    });
-    return sides.map(([, count]) => count);
-}
-
-interface FightFigures {
-    fight: FightReading;
-    roster: CombatantRoster;
-    statistics: FightStatistics;
-}
-
-interface KeptFigures {
-    read(fight: KeptFight): FightFigures | null;
-    forget(openedAt: number): void;
-    keepOnly(fights: readonly KeptFight[]): void;
-}
-
-/**
- * The figures of a fight on the shelf, derived once and held for as long as the tab is.
- *
- * A row states an outcome and the sizes of the sides, and `draw()` runs on every payload the game
- * delivers — 117 per fight over `captures/`, 2026-08-30. Twenty rows derived cost 34.5 ms there,
- * so a shelf drawn without this is four seconds of decoding per fight. In memory and never in the
- * store: a figure that survives a reload is a figure an older version computed. **ADR 0026.**
- */
-function composeKeptFigureMemo(handleFailure: (failure: unknown) => void): KeptFigures {
-    const held = new Map<number, FightFigures | null>();
-    return {
-        read(fight: KeptFight): FightFigures | null {
-            const before = held.get(fight.openedAt);
-            if (before !== undefined) return before;
-            const figures = composeKeptFiguresOrNothing(fight, handleFailure);
-            // A refusal is held as well: the shelf is walked on every draw, and a fight that will
-            // not replay would otherwise be replayed, and marked, once per payload.
-            if (held.size < MAXIMUM_KEPT) held.set(fight.openedAt, figures);
-            return figures;
-        },
-        forget(openedAt: number): void {
-            held.delete(openedAt);
-        },
-        keepOnly(fights: readonly KeptFight[]): void {
-            for (const openedAt of [...held.keys()]) {
-                if (fights.some((one) => one.openedAt === openedAt)) continue;
-                held.delete(openedAt);
-            }
-        },
-    };
-}
-
-/**
- * The sentences it can say are the ways keeping a fight goes wrong, and each is a different
- * remedy: unpin something, pin what is worth keeping, or nothing at all. A store that took the
- * fight and asked for room is not the same answer as one that took nothing.
- */
-interface ShelfKeeper {
-    fights: KeptFight[];
-    choice: PanelStorageChoice;
-    hasStoreRefused: boolean;
-    hasStoreMadeRoom: boolean;
-    isEverySlotPinned: boolean;
-    hasChoiceRefused: boolean;
-    /**
-     * Derived through the live chain and memoised, never read out of the store. Null for a fight
-     * the payloads no longer read, which is a fight to stand on no longer.
-     */
-    readFigures(fight: KeptFight): FightFigures | null;
-    keep(fight: KeptFight): void;
-    setPinned(openedAt: number): void;
-    setChoice(choice: PanelStorageChoice): void;
-}
-
-/** The four things that can go wrong with a shelf, of which at most three ever hold at once. */
-const MAXIMUM_SHELF_ANSWERS = 3;
-
-/**
- * What the store answered, which is not a suspicion: a refusal is an answer (**E5**), and the
- * figures it stands beside are whole. They share the block and the glyph because both say a thing
- * the reader would otherwise have to notice was missing.
- */
-function composeShelfAnswers(keeper: ShelfKeeper): string[] {
-    const answers: string[] = [];
-    if (keeper.isEverySlotPinned) answers.push(EVERY_SLOT_PINNED_ANSWER);
-    if (keeper.hasStoreRefused) answers.push(STORE_REFUSED_ANSWER);
-    if (keeper.hasStoreMadeRoom) answers.push(STORE_MADE_ROOM_ANSWER);
-    if (keeper.hasChoiceRefused) answers.push(CHOICE_REFUSED_ANSWER);
-    return answers.slice(0, MAXIMUM_SHELF_ANSWERS);
-}
-
-/**
- * The shelf as the browser kept it, or an empty one. `readKeptFights` reads a value nobody here
- * wrote and asserts about it — a shelf past its own bound, a moment before the epoch — so what a
- * store somebody edited costs is the fights that were on it, never the add-on standing up.
- */
-function readShelfOrNothing(store: BrowserStore, defects: KeptDefects): KeptFight[] {
-    try {
-        return readKeptFights(store, SHELF_KEY);
-    } catch (failure) {
-        defects.add("kept", null, failure);
-        return [];
-    }
-}
-
-/** The place the reader dragged it to, or none: the sheet's own corner is a place. */
-function readPlaceOrNothing(
-    store: BrowserStore | null,
-    key: string,
-    defects: KeptDefects,
-): PanelPosition | null {
-    if (store === null) return null;
-    try {
-        return getPositionFromStoredText(store.read(key) ?? "");
-    } catch (failure) {
-        defects.add("kept", null, failure);
-        return null;
-    }
-}
-
-/**
- * What went down is what is drawn: a store that asked for less leaves the panel showing the shelf
- * a reload will find, not the one it was handed.
- */
-function setShelfWritten(
-    keeper: ShelfKeeper,
-    figures: KeptFigures,
-    writing: ShelfWriting,
-    offered: number,
-): void {
-    keeper.hasStoreRefused = !writing.isOk;
-    keeper.hasStoreMadeRoom = writing.isOk && writing.fights.length < offered;
-    if (writing.isOk) keeper.fights = writing.fights;
-    figures.keepOnly(keeper.fights);
-}
-
-function composeShelfKeeper(environment: UserscriptEnvironment, defects: KeptDefects): ShelfKeeper {
-    const settings = environment.store;
-    const answered = settings === null ? "" : settings.read(STORAGE_KEY) ?? "";
-    const choice = getStorageFromName(answered) ?? STORAGE_DEFAULT;
-    let store = environment.composeShelfStore(choice);
-    const figures = composeKeptFigureMemo((failure) => defects.add("kept", null, failure));
-    const setWritten = (writing: ShelfWriting, offered: number): void =>
-        setShelfWritten(keeper, figures, writing, offered);
-    const keeper: ShelfKeeper = {
-        fights: readShelfOrNothing(store, defects),
-        choice,
-        hasStoreRefused: false,
-        hasStoreMadeRoom: false,
-        isEverySlotPinned: false,
-        hasChoiceRefused: false,
-        readFigures: (fight: KeptFight) => figures.read(fight),
-        keep(fight: KeptFight): void {
-            // A fight kept a second time keeps the pin it was given: that is the reader's answer
-            // and not something a later payload may revoke.
-            const before = keeper.fights.find((one) => one.openedAt === fight.openedAt);
-            const held = keeper.fights.filter((one) => one.openedAt !== fight.openedAt);
-            const next = [...held, { ...fight, isPinned: before?.isPinned ?? fight.isPinned }];
-            keeper.isEverySlotPinned = getIsEverySlotPinned(next);
-            if (keeper.isEverySlotPinned) return;
-            keeper.fights = composeKeptRotation(next);
-            // Unreachable while `now()` is monotonic, and kept because keeping the pin above
-            // defends the reader against that very case: two fights under one moment.
-            figures.forget(fight.openedAt);
-            const offered = keeper.fights.length;
-            setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
-        },
-        setPinned(openedAt: number): void {
-            if (!Number.isSafeInteger(openedAt)) return;
-            keeper.fights = keeper.fights.map((one) =>
-                one.openedAt === openedAt ? { ...one, isPinned: !one.isPinned } : one
-            );
-            const offered = keeper.fights.length;
-            setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
-        },
-        setChoice(next: PanelStorageChoice): void {
-            if (next === keeper.choice) return;
-            // The fights go first, the answer second, and the place they came from is emptied
-            // last: a store that refuses them, or a browser that will not keep the answer, leaves
-            // the reader's fights — pinned ones included — where the next page will still look.
-            const moved = environment.composeShelfStore(next);
-            const offered = keeper.fights.length;
-            const writing = writeKeptFights(moved, SHELF_KEY, keeper.fights);
-            if (!writing.isOk) {
-                setWritten(writing, offered);
-                return;
-            }
-            const isWritten = settings !== null && settings.write(STORAGE_KEY, next);
-            keeper.hasChoiceRefused = !isWritten;
-            if (!isWritten) return;
-            // A reader who asks for the store that keeps nothing is saying they want nothing left
-            // behind, and the fights themselves travel because they are the reader's.
-            store.remove(SHELF_KEY);
-            keeper.choice = next;
-            store = moved;
-            setWritten(writing, offered);
-        },
-    };
-    keeper.fights = keeper.fights.slice(0, MAXIMUM_KEPT);
-    return keeper;
-}
-
-/**
- * The live one is always a row, because a shelf that hid it would answer *which fight am I
- * reading* with a list the answer is not on.
- */
-function composeShelfRows(
-    kept: readonly KeptFight[],
-    live: {
-        fight: FightReading;
-        place: FightPlace | null;
-        openedAt: number;
-        outcome: PanelOutcome | null;
-    } | null,
-    chosenId: number | null,
-    readClock: (atMilliseconds: number) => FightMoment | null,
-    readFigures: (fight: KeptFight) => FightFigures | null,
-): ShelfRow[] {
-    kept = kept.slice(0, MAXIMUM_KEPT);
-    const rows: ShelfRow[] = [];
-    // One row for one fight: the one that has just ended is both the live one and a kept one
-    // until the next begins. It keeps the live row's wording and the kept row's pin.
-    const alsoKept = live === null ? undefined : kept.find((one) => one.openedAt === live.openedAt);
-    if (live !== null) {
-        rows.push({
-            openedAt: live.openedAt,
-            at: readClock(live.openedAt),
-            sizes: composeShelfSizes([...live.fight.roster.byId.values()], live.fight.readerSide),
-            place: getPlaceWords(live.place),
-            outcome: live.outcome,
-            isLive: true,
-            isChosen: chosenId === null || chosenId === alsoKept?.openedAt,
-            isPinned: alsoKept?.isPinned ?? false,
-            // Whether a fight can be pinned at all is `ui/panel-reading.ts`'s to say, and why.
-            isPinnable: alsoKept !== undefined,
-        });
-    }
-    for (const one of [...kept].sort((first, other) => other.openedAt - first.openedAt)) {
-        if (one.openedAt === alsoKept?.openedAt) continue;
-        const figures = readFigures(one);
-        // A row for a fight nothing can be read out of would state a headcount and an outcome it
-        // does not have. The shelf is one row shorter instead (**E14**).
-        if (figures === null) continue;
-        rows.push({
-            openedAt: one.openedAt,
-            at: readClock(one.openedAt),
-            sizes: composeShelfSizes(
-                [...figures.roster.byId.values()],
-                figures.fight.readerSide,
-            ),
-            place: getPlaceWords(one.place),
-            outcome: getOutcomeForFigures(figures),
-            isLive: false,
-            isChosen: chosenId === one.openedAt,
-            isPinned: one.isPinned,
-            isPinnable: true,
-        });
-    }
-    return rows;
-}
-
-function getOutcomeForFigures(figures: FightFigures): PanelOutcome | null {
-    const outcome = figures.statistics.outcome;
-    if (outcome === null) return null;
-    return getOutcomeForSeat(outcome, figures.roster, figures.fight.readerSide);
-}
-
-function setFightChosen(screen: ScreenState, openedAt: number | null): void {
-    screen.openFightId = openedAt;
-    screen.isOnShelf = false;
-    screen.openRowId = null;
-    screen.openUnnamedEnd = null;
-    screen.openPairId = null;
-    screen.openPart = null;
-}
-
-function setShelfFromPress(shelf: ShelfKeeper, press: PanelPress): boolean {
-    if (press.kind === "pin") {
-        const openedAt = getIntegerFromText(press.stated);
-        if (openedAt === null) return false;
-        shelf.setPinned(openedAt);
-        return true;
-    }
-    if (press.kind !== "storage") return false;
-    const choice = getStorageFromName(press.name);
-    if (choice === null) return false;
-    shelf.setChoice(choice);
-    return true;
-}
-
-/**
- * Where a press leaves the panel. False for a press that moves nothing, so a stray attribute in
- * the game's own markup never costs a redraw, let alone puts the panel somewhere it cannot draw.
- * ⚠️ **A save asks for a draw though it moves nothing**: the defect it can leave is said on the
- * panel, and answered false it waited for a payload the shelf between fights never gets (**E11**).
- */
-function handlePress(screen: ScreenState, press: PanelPress): boolean {
-    if (press.kind === "save") return true;
-    if (press.kind === "pin") return false;
-    if (press.kind === "storage") return false;
-    if (press.kind === "fold") {
-        screen.isCollapsed = !screen.isCollapsed;
-        return true;
-    }
-    if (press.kind === "shelf") {
-        screen.isOnShelf = !screen.isOnShelf;
-        return true;
-    }
-    if (press.kind === "back") return handlePressBack(screen);
-    if (press.kind === "fight") {
-        setFightChosen(screen, getIntegerFromText(press.stated));
-        return true;
-    }
-    if (press.kind === "part") {
-        screen.openPart = press.part;
-        return true;
-    }
-    if (press.kind === "unnamed") {
-        screen.openUnnamedEnd = press.end;
-        return true;
-    }
-    if (press.kind === "row") {
-        const opened = getIntegerFromText(press.stated);
-        if (opened === null) return false;
-        // Not a toggle, unlike the shelf's control: an opened row covers the screen it was
-        // opened on, so the row that would close it is not on the panel to be pressed twice.
-        // A press inside an opened row is the rung under it — the pair of the two of them.
-        // Three places a person's row stands, and the rung under it is the same field in two of
-        // them: inside somebody's figure it is the pair, under a pinned row it is that person's
-        // own share of what nobody was named for.
-        if (screen.openRowId !== null) screen.openPairId = opened;
-        else if (screen.openUnnamedEnd !== null) screen.openPairId = opened;
-        else screen.openRowId = opened;
-        return true;
-    }
-    if (press.kind === "side") return handlePressSide(screen, press.side);
-    if (press.kind === "standing-fold") {
-        screen.isStandingCollapsed = !screen.isStandingCollapsed;
-        return true;
-    }
-    return handlePressScreen(screen, press.screen);
-}
-
-/**
- * One rung at a time, and the part before the pair: the two are both a press away from the opened
- * row, so a way back that skipped the part left the reader on the ranking while the crumb beside
- * it named the person they had opened. False where there was no rung to leave: the gesture is the
- * whole panel's, so a right press on the ranking redrew the fight for nothing.
- */
-function handlePressBack(screen: ScreenState): boolean {
-    if (screen.isOnShelf) {
-        screen.isOnShelf = false;
-        return true;
-    }
-    if (screen.openPart !== null) {
-        screen.openPart = null;
-        return true;
-    }
-    if (screen.openPairId !== null) {
-        screen.openPairId = null;
-        return true;
-    }
-    if (screen.openRowId === null) {
-        if (screen.openUnnamedEnd === null) return false;
-    }
-    // The two cannot both be open — a pinned row is drawn under the ranking, so a reader inside
-    // somebody's figure has none to press — and closing both says so once.
-    screen.openRowId = null;
-    screen.openUnnamedEnd = null;
-    return true;
-}
-
-function handlePressSide(screen: ScreenState, said: string): boolean {
-    const chosen = getSideFromName(said);
-    if (chosen === null) return false;
-    screen.side = chosen;
-    screen.isOnShelf = false;
-    // A side decides who is on the list, so a row opened before it was narrowed may not be on
-    // the list any more — and a cut standing over a list nobody is on says nothing.
-    screen.openRowId = null;
-    screen.openUnnamedEnd = null;
-    screen.openPairId = null;
-    screen.openPart = null;
-    return true;
-}
-
-function handlePressScreen(screen: ScreenState, said: string): boolean {
-    const reached = getScreenFromName(said);
-    if (reached === null) return false;
-    screen.current = reached;
-    screen.isOnShelf = false;
-    // The person stays and the pair does not: which end of a pair a figure belongs to is the
-    // direction's, so carrying one across the flip would open a pair on the wrong side of it.
-    // A part of a cut goes with it, and for more than that reason: a kind stands on no healing
-    // screen and a key on no damage one, so a mark carried across the flip names a row the
-    // screen it landed on does not draw.
-    screen.openPairId = null;
-    screen.openPart = null;
-    // And so does a pinned row, for the sharper form of the same reason: the four screens pin
-    // five different figures, so `Nieznany sprawca` on one screen is not the row of that name on
-    // the next, and carrying the mark across would answer a question nobody asked.
-    screen.openUnnamedEnd = null;
-    // The opened row stays. A reader who went into somebody is reading **that somebody**, and the
-    // strips are how they ask the next question about them: the combatant exists on every screen,
-    // which is what makes this different from narrowing to a side they may not be on.
-    return true;
-}
-
-/**
- * The same, guarded: everything under it reaches `core/`, which throws (**E7**), over payloads a
- * browser kept for another version of this add-on. A throw out of here reaches every draw, because
- * the shelf is walked on each of them — so one entry that will not replay is the whole panel gone
- * rather than one row, which is the browser-storage row of **E5** read the wrong way round.
- */
-function composeKeptFiguresOrNothing(
-    kept: KeptFight,
-    handleFailure: (failure: unknown) => void,
-): FightFigures | null {
-    try {
-        return composeKeptFigures(kept);
-    } catch (failure) {
-        handleFailure(failure);
-        return null;
-    }
-}
-
-/**
- * A fight off the shelf, through the chain the live one goes through: the payloads were kept, so
- * the figures are this version's rather than the version that watched the fight. **ADR 0026.**
- */
-function composeKeptFigures(kept: KeptFight): FightFigures | null {
-    const underway = composeFightUnderway();
-    for (const payload of kept.payloads) {
-        addPayloadToFight(underway, payload, getFrozenReadings().blowsGrantedBySkillId);
-    }
-    return composeFightFigures(underway);
-}
-
-/**
- * The figures, derived rather than kept: what the fight holds is what the game said, so the two
- * readers of it are never looking at arithmetic one of them did earlier.
- */
-function composeFightFigures(underway: FightUnderway): FightFigures | null {
-    const fight = getReadingFromFight(underway);
-    if (fight === null) return null;
-    const roster = composeCombatantRoster([...fight.roster.byId.values()]);
-    const statistics = composeFightStatistics(fight.events, composeTeamHeals(fight.events, roster));
-    return { fight, roster, statistics };
-}
-
-/** The newest fight on the shelf, or nothing where it holds none. */
-function getNewestKeptFight(fights: readonly KeptFight[]): KeptFight | null {
-    let newest: KeptFight | null = null;
-    for (const one of fights) {
-        if (newest === null) newest = one;
-        else if (one.openedAt > newest.openedAt) newest = one;
-    }
-    return newest;
-}
-
-/**
- * The fight the panel draws, and the kept one it was read off where that is what it is.
- *
- * A page between fights has no live reading and the shelf is what it has instead, which is the
- * whole of why the newest kept one is an answer here. **ADR 0033.**
- */
-function getStandingFight(
-    live: FightFigures | null,
-    screen: ScreenState,
-    shelf: ShelfKeeper,
-): { figures: FightFigures; kept: KeptFight | null } | null {
-    const chosen = screen.openFightId === null
-        ? null
-        : shelf.fights.find((one) => one.openedAt === screen.openFightId) ?? null;
-    const kept = chosen ?? (live === null ? getNewestKeptFight(shelf.fights) : null);
-    if (kept !== null) {
-        const figures = shelf.readFigures(kept);
-        // A fight the payloads no longer read is no fight to stand on, and the panel waits rather
-        // than drawing a shelf row's worth of nothing (**E14**).
-        if (figures === null) return null;
-        return { figures, kept };
-    }
-    if (live === null) return null;
-    return { figures: live, kept: null };
-}
-
-/**
- * Composing a screen out of a fight, guarded. Everything under here reaches `core/`, which throws
- * (**E7**), and the nearest catch was the engine wrap's — so a reading that would not compose
- * stopped the panel updating for the rest of the fight rather than costing it one region, and one
- * console line was all anybody got. **E5**'s render region, applied to composing what it draws.
- * **ADR 0051.**
- *
- * The tally is read again in the `catch`, because the defect this draw just recorded is the one
- * the reader needs now rather than at the next payload. Nothing here asks for a redraw.
- */
-function drawFight(
-    underway: FightUnderway,
-    screen: ScreenState,
-    panel: PanelHandle,
-    shelf: ShelfKeeper,
-    liveFight: LiveFight,
-    readClock: (atMilliseconds: number) => FightMoment | null,
-    defects: KeptDefects,
-): void {
-    drawStanding(underway, screen, panel, defects);
-    // After the window beside the panel, so a defect it just recorded is drawn on this pass.
-    const said = defects.getSaid();
-    // Whether the bar draws its save, asked without decoding anything: a fight that will not
-    // read is still a fight worth handing over, and that is exactly the one nothing else here
-    // can answer for.
-    const hasFightToSave = liveFight.capture.calls.length > 0 || shelf.fights.length > 0;
-    try {
-        if (
-            drawFightOnPanel(
-                underway,
-                screen,
-                panel,
-                shelf,
-                liveFight,
-                readClock,
-                { said, hasFightToSave },
-                defects,
-            )
-        ) {
-            return;
-        }
-        panel.showWaiting(screen.isCollapsed, {
-            defects: said,
-            hasFightToSave,
-            isFightUnread: false,
-        });
-        return;
-    } catch (failure) {
-        defects.add("reading", null, failure);
-    }
-    drawFightUnread(panel, screen.isCollapsed, hasFightToSave, defects);
-}
-
-/**
- * The window beside the panel, drawn on its own before the panel is: the two are two windows and
- * a fight the panel cannot read is not a fight the window has nothing to say about.
- *
- * Guarded here rather than inside, because everything under it reaches `core/`, which throws.
- * A reading that will not compose costs the window its body and nothing else (**ADR 0051**).
- */
-function drawStanding(
-    underway: FightUnderway,
-    screen: ScreenState,
-    panel: PanelHandle,
-    defects: KeptDefects,
-): void {
-    let reading: StandingReading | null = null;
-    try {
-        reading = composeStandingOrNothing(underway);
-    } catch (failure) {
-        defects.add("reading", null, failure);
-    }
-    try {
-        panel.showStanding(reading, screen.isStandingCollapsed);
-    } catch (failure) {
-        defects.add("region", "standing", failure);
-    }
-}
-
-/** Null where no payload has arrived: a fight nobody has seen has nothing standing on it. */
-function composeStandingOrNothing(underway: FightUnderway): StandingReading | null {
-    const fight = getReadingFromFight(underway);
-    if (fight === null) return null;
-    const held = composeFightStandings(
-        fight.events,
-        getFrozenReadings().statedSkills,
-        fight.roster,
-    );
-    return composeStandingReading(
-        held.provocations,
-        fight.chargedSkills,
-        fight.roster,
-        fight.readerSide,
-        { statement: fight.turnStatement, isOver: fight.isOver, isOnAuto: fight.isOnAuto },
-    );
-}
-
-/**
- * The panel standing on a fight it could not read. A failure here has nowhere left to degrade to,
- * so its mark is the console entry the keeper writes and not a line anybody sees — **ADR 0025**.
- */
-function drawFightUnread(
-    panel: PanelHandle,
-    isCollapsed: boolean,
-    hasFightToSave: boolean,
-    defects: KeptDefects,
-): void {
-    try {
-        panel.showWaiting(isCollapsed, {
-            defects: defects.getSaid(),
-            hasFightToSave,
-            isFightUnread: true,
-        });
-    } catch (failure) {
-        defects.add("reading", null, failure);
-    }
-}
-
-/**
- * Whose turn the ranking marks. A fight already over numbers nobody's, and one read off the shelf
- * is a moment that has passed: the mark says what is happening now, or it says nothing at all.
- * **ADR 0066.**
- *
- * ⚠️ **It stands because the function below sits at S4's page**, not because a reader gains a
- * name: measured 2026-09-20, inlined into the literal it draws, that function runs to 73 lines.
- */
-function getTurnHolderId(fight: FightReading): number | null {
-    if (fight.isOver) return null;
-    return fight.turnStatement?.combatantId ?? null;
-}
-
-/**
- * Puts what the fight holds into the panel that is already on the page. False where there is
- * nothing to put there — no fight and an empty shelf — because a panel of zeroes over a game that
- * has not started is a claim.
- */
-function drawFightOnPanel(
-    underway: FightUnderway,
-    screen: ScreenState,
-    panel: PanelHandle,
-    shelf: ShelfKeeper,
-    liveFight: LiveFight,
-    readClock: (atMilliseconds: number) => FightMoment | null,
-    drawn: { said: readonly string[]; hasFightToSave: boolean },
-    keeper: KeptDefects,
-): boolean {
-    const { place, openedAt } = liveFight;
-    const live = composeFightFigures(underway);
-    const standing = getStandingFight(live, screen, shelf);
-    if (standing === null) return false;
-    const { figures, kept } = standing;
-    const { fight, roster, statistics } = figures;
-    const reading = composePanelReading(
-        statistics,
-        roster,
-        screen.current,
-        screen.side,
-        fight.readerSide,
-        getFightSuspicions(fight),
-    );
-    const { drill, pair, part, halfNamed, halfNamedDrill } = composeOpenedReadings(
-        figures,
-        screen,
-    );
-    addFiguresDisagreed(keeper, reading, drill, pair);
-    // The row the panel is actually drawing, which is the kept one wherever there is no live
-    // fight for the shelf to mark instead. The live fight has no row of its own to name, so the
-    // place a reader stands in is named by the moment that fight opened.
-    const chosenFight = screen.openFightId ?? kept?.openedAt ?? null;
-    panel.show({
-        listName: composeListName(screen, chosenFight ?? openedAt),
-        reading,
-        current: screen.current,
-        side: screen.side,
-        // A strip that cannot tell one side from the other is not drawn at all, and neither is
-        // the rule on a row: the protocol never states which side is the reader's own, and the
-        // client does not always either.
-        readerSide: fight.readerSide,
-        turnHolderId: getTurnHolderId(fight),
-        shelf: composeShelfRows(
-            shelf.fights,
-            live === null ? null : {
-                fight: live.fight,
-                place,
-                openedAt,
-                outcome: getOutcomeForFigures(live),
-            },
-            chosenFight,
-            readClock,
-            (one) => shelf.readFigures(one),
-        ),
-        storage: shelf.choice,
-        hasFightToSave: drawn.hasFightToSave,
-        shelfAnswers: composeShelfAnswers(shelf),
-        defects: drawn.said,
-        isOnShelf: screen.isOnShelf,
-        drill,
-        pair,
-        part,
-        halfNamed,
-        halfNamedDrill,
-        place: getPlaceWords(kept === null ? place : kept.place),
-        isCollapsed: screen.isCollapsed,
-    });
-    return true;
-}
-
-/** What is short about the reading itself, which the session states and the statistics cannot. */
-function getFightSuspicions(fight: FightReading): FightSuspicions {
-    return {
-        messagesLost: fight.messagesLost,
-        hasJoinedInProgress: fight.hasJoinedInProgress,
-        messagesRead: fight.messagesRead,
-    };
-}
-
-/**
- * Two counts of one figure came out different, which is the one thing this panel can say about a
- * drawn figure being wrong rather than short. `src/ui/panel-reading.ts` answers it, and answers
- * it as a defect rather than by asserting: an assertion there costs the panel (**ADR 0051**).
- */
-function addFiguresDisagreed(
-    keeper: KeptDefects,
-    reading: PanelReading,
-    drill: DrillReading | null,
-    pair: PairReading | null,
-): void {
-    if (reading.hasFiguresDisagreed) {
-        keeper.add("figures", null, "two counts of one figure came out different");
-    }
-    // The same claim one level down, where the rows of a section came to more than the figure
-    // they are a cut of: the row closing it is a remainder below nothing, drawn at nought because
-    // that is the least a bar can be, and this is the mark that the nought was not the reading.
-    if (drill !== null) {
-        if (drill.hasFiguresDisagreed) {
-            keeper.add("figures", null, "a cut came to more than the figure it is a cut of");
-        }
-    }
-    // And on the last rung, where a pair's parts are the section.
-    if (pair === null) return;
-    if (!pair.hasFiguresDisagreed) return;
-    keeper.add("figures", null, "a pair came to more than the figure it is a cut of");
-}
-
-interface OpenedReadings {
-    drill: DrillReading | null;
-    pair: PairReading | null;
-    part: PartReading | null;
-    halfNamed: HalfNamedReading | null;
-    halfNamedDrill: HalfNamedDrillReading | null;
-}
-
-function composeOpenedReadings(figures: FightFigures, screen: ScreenState): OpenedReadings {
-    const { roster, statistics } = figures;
-    const halfNamed = composeOpenedHalfNamed(figures, screen);
-    const halfNamedDrill = composeOpenedHalfNamedDrill(figures, screen);
-    const drill = screen.openRowId === null
-        ? null
-        : composeDrillReading(statistics, roster, screen.current, screen.openRowId);
-    // A row nobody in the fight is on opens nothing, and nothing under it stands either: the
-    // rungs below a row that could not be read are rungs of no figure.
-    if (drill === null) {
-        return { drill: null, pair: null, part: null, halfNamed, halfNamedDrill };
-    }
-
-    const pair = screen.openPairId === null ? null : composePairReading(
-        statistics,
-        roster,
-        screen.current,
-        drill.combatantId,
-        screen.openPairId,
-    );
-    const part = screen.openPart === null ? null : composePartReading(
-        statistics,
-        roster,
-        screen.current,
-        drill.combatantId,
-        screen.openPart,
-    );
-    return { drill, pair, part, halfNamed, halfNamedDrill };
-}
-
-/**
- * And what stands under one row of that level. Null unless a pinned row is open and a row of it
- * was pressed — the marks are the ranking's and the kind cut's own, so a stale one names nothing
- * here and gets the refusal it deserves.
- */
-function composeOpenedHalfNamedDrill(
-    figures: FightFigures,
-    screen: ScreenState,
-): HalfNamedDrillReading | null {
-    const { roster, statistics, fight } = figures;
-    if (screen.openUnnamedEnd === null) return null;
-    const kase = getPinnedCase(screen.current, screen.openUnnamedEnd);
-    if (kase === null) return null;
-    const opened = getHalfNamedOpened(screen);
-    if (opened === null) return null;
-    return composeHalfNamedDrillReading(
-        statistics,
-        roster,
-        kase,
-        screen.side,
-        fight.readerSide,
-        opened,
-    );
-}
-
-/** A person or a key, and never both: the way back closes the key first, so one of them is null. */
-function getHalfNamedOpened(screen: ScreenState): HalfNamedOpened | null {
-    if (screen.openUnnamedEnd === null) return null;
-    if (screen.openRowId !== null) return null;
-    if (screen.openPart !== null) {
-        if (screen.openPart.kind !== "element") return null;
-        return { kind: "element", element: screen.openPart.element };
-    }
-    if (screen.openPairId === null) return null;
-    return { kind: "person", combatantId: screen.openPairId };
-}
-
-/**
- * What stands under a pinned row the reader opened. Null where the mark names no figure on this
- * screen, which is the answer a mark left over from another one deserves.
- */
-function composeOpenedHalfNamed(
-    figures: FightFigures,
-    screen: ScreenState,
-): HalfNamedReading | null {
-    const { roster, statistics, fight } = figures;
-    if (screen.openUnnamedEnd === null) return null;
-    const kase = getPinnedCase(screen.current, screen.openUnnamedEnd);
-    if (kase === null) return null;
-    return composeHalfNamedReading(statistics, roster, kase, screen.side, fight.readerSide);
-}
-
-/**
- * The names a browser gives what this needs, and the whole of what it is asked for. A `Window`
- * states far more than this, which is why `userscript-boot.ts` casts once at that boundary.
- */
-export interface UserscriptWindow {
+export interface UserscriptWindow extends PageTimers, PageFrames {
     document: UserscriptDocument;
-    innerWidth?: number | undefined;
-    innerHeight?: number | undefined;
-    setInterval(step: () => void, everyMilliseconds: number): number;
-    clearInterval(handle: number): void;
+    console: PageConsole;
+    Date: PageDate;
+    URL: { createObjectURL(blob: unknown): string; revokeObjectURL(url: string): void };
+    Blob: new (parts: readonly string[], options: { type: string }) => unknown;
     setTimeout(step: () => void, afterMilliseconds: number): number;
-    console: { error(line: string, failure: unknown): void };
-    /**
-     * The two a browser lends, and both optional: a private window or a third-party-storage rule
-     * is a page with neither, and that is a page this add-on still works on.
-     */
+    /** Both optional: a private window or a third-party-storage rule is a page with neither. */
     localStorage?: PageStorage | undefined;
     sessionStorage?: PageStorage | undefined;
-    Date: {
-        now(): number;
-        new (atMilliseconds: number): {
-            toISOString(): string;
-            /** Absent on a document that lends no clock of its own, which answers no time. */
-            getDate?(): number;
-            /** Counted from zero, which is the one place this program spells a month that way. */
-            getMonth?(): number;
-            getHours?(): number;
-            getMinutes?(): number;
-        };
-    };
-    location: { hostname?: string | undefined };
-    navigator: { userAgent?: string | undefined };
-    URL: { createObjectURL(part: unknown): string; revokeObjectURL(url: string): void };
-    Blob: new (parts: readonly string[], options: { type: string }) => unknown;
+    innerWidth?: number | undefined;
+    innerHeight?: number | undefined;
 }
 
-/**
- * The document as this file asks for it, which is wider than the panel's own — the panel is
- * handed one and states its own surface.
- *
- * `createElement` answers an anchor for every tag, which is a shape only an anchor really has.
- * Nothing here reads those members off anything but an `a`.
- */
-export interface UserscriptDocument {
-    createElement(tag: string): DownloadAnchor;
-    body: { append(child: PanelElement): void };
+export interface UserscriptDocument extends PanelDocument {
+    createElement(tag: string): PanelElement & DownloadAnchor;
     querySelectorAll(selector: string): ArrayLike<{ src?: unknown }>;
+    body: { append(node: PanelElement | DownloadAnchor): void };
 }
 
-export interface DownloadAnchor extends PanelElement {
-    href: string;
-    download: string;
-    click(): void;
-    remove(): void;
-}
-
-/** The one class a reader could meet outside the panel, so it is named as ours (`SECURITY.md`). */
-const DOWNLOAD_ANCHOR_CLASS = "MargoMeter-download";
-/** A page states a handful; this is far past any page the add-on is installed on. */
-const MAXIMUM_SCRIPTS = 4096;
 const SCRIPT_WITH_SOURCE = "script[src]";
+const ANCHOR_TAG = "a";
 
-/**
- * Which world a recording came from, or the word saying nobody knows.
- *
- * ⚠️ **`?? "unknown"` does not cover the case that happens.** A page with no hostname gives `""`,
- * and `"".split(".")[0]` is `""` — not nullish, so a recording carried a world of nothing and the
- * file was named `margometer--2026-…json`, with a hole where the answer goes. A value nobody
- * wrote must never read as an answer. Seen on a `file://` page, in v1.
- */
-function readWorldFromPage(page: UserscriptWindow): string {
-    const stated = page.location.hostname ?? "";
-    const world = stated.split(".")[0] ?? "";
-    if (world.length === 0) return "unknown";
-    return world;
-}
-
-function readGameBuildFromPage(page: UserscriptWindow): string | null {
-    const scripts = page.document.querySelectorAll(SCRIPT_WITH_SOURCE);
-    const walked = Math.min(scripts.length, MAXIMUM_SCRIPTS);
-    for (let at = 0; at < walked; at += 1) {
-        const source = getTextFromUnknown(scripts[at]?.src) ?? "";
-        const build = getGameBuildFromScriptName(source);
-        if (build !== null) return build;
-    }
+/** Starts the add-on on the page, or leaves one console line where it cannot. Never throws. */
+export function startMargoMeter(page: unknown): Runtime | null {
+    const started = runGuarded(() => startMargoMeterOnPage(page));
+    if (started.ok) return started.value;
+    writeStoodDownLine(page, started.error);
     return null;
 }
 
-/**
- * Hands a file to the browser, which puts it wherever the reader's downloads go.
- *
- * A file rather than the clipboard: a recording runs to hundreds of kilobytes. `@grant none` is
- * no obstacle — a blob and an object URL are ordinary page APIs, not privileges, and nothing
- * leaves the browser.
- *
- * ⚠️ **The anchor goes into the document, and the URL is released on the next tick.** Clicking a
- * detached node and revoking synchronously is tolerated by Chromium and can abort the download in
- * Firefox, which reads the blob after the click returns. That failure is the worst kind available
- * here: nothing throws, the panel looks like it saved, and no file arrives. A fake document
- * exercises none of it — `click()` there does nothing — so it is checked in a browser.
- */
-function writeTextToFile(
-    page: UserscriptWindow,
-    name: string,
-    text: string,
-    handleFailure: (failure: unknown) => void,
-): void {
-    if (name.length === 0) return;
-    if (text.length === 0) return;
-    const url = page.URL.createObjectURL(new page.Blob([text], { type: "application/json" }));
-    const anchor = page.document.createElement("a");
-    anchor.href = url;
-    anchor.download = name;
-    anchor.className = DOWNLOAD_ANCHOR_CLASS;
-    page.document.body.append(anchor);
-    try {
-        anchor.click();
-    } finally {
-        anchor.remove();
-        // The clock is the browser's, so a revoke that throws unwinds into the timer and reaches
-        // nobody (**E12**). A URL nobody released is memory this page keeps until it is left.
-        page.setTimeout(() => {
-            try {
-                page.URL.revokeObjectURL(url);
-            } catch (failure) {
-                handleFailure(failure);
-            }
-        }, 0);
+function startMargoMeterOnPage(page: unknown): Runtime | null {
+    const read = callForeign(() => readUserscriptWindow(page));
+    if (!read.ok) {
+        writeStoodDownLine(page, read.error);
+        return null;
     }
-}
-
-/** The widest a calendar goes, which is what a day and a month read off a clock are held to. */
-const MAXIMUM_DAY = 31;
-const MAXIMUM_MONTH = 12;
-/** `getMonth` counts from zero and the rest of this program counts months the way a person does. */
-const FIRST_MONTH_OFFSET = 1;
-
-/**
- * A moment on the reader's own clock, as the day, the month, the hour and the minute it fell on.
- *
- * Read through the page's own `Date`, which is the one clock a userscript has, and answered as
- * null where it will not read one: a row with no time says nothing rather than saying `00:00`,
- * which is a reading of nothing wearing the shape of one. **The day is held to the same refusal**
- * — a shelf of twenty fights spans days, and a wrong one reads as a fight that happened.
- */
-function readClockFromPage(page: UserscriptWindow, atMilliseconds: number): FightMoment | null {
-    if (!Number.isFinite(atMilliseconds)) return null;
-    const held = new page.Date(atMilliseconds);
-    const day = getNumberFromUnknown(held.getDate?.());
-    const monthFromZero = getNumberFromUnknown(held.getMonth?.());
-    const hour = getNumberFromUnknown(held.getHours?.());
-    const minute = getNumberFromUnknown(held.getMinutes?.());
-    if (day === null || monthFromZero === null) return null;
-    if (hour === null || minute === null) return null;
-    const month = monthFromZero + FIRST_MONTH_OFFSET;
-    if (day < 1 || day > MAXIMUM_DAY) return null;
-    if (month < 1 || month > MAXIMUM_MONTH) return null;
-    if (hour < 0) return null;
-    if (minute < 0) return null;
-    return { day, month, hour, minute };
-}
-
-/**
- * How big the window is, or nothing at all. A page that states one and not the other states no
- * viewport: half a size clamps a panel against a number nobody wrote.
- */
-function readViewportFromPage(page: UserscriptWindow): PanelViewport | null {
-    const width = getNumberFromUnknown(page.innerWidth);
-    const height = getNumberFromUnknown(page.innerHeight);
-    if (width === null || height === null) return null;
-    if (width < 0) return null;
-    if (height < 0) return null;
-    return { width, height };
-}
-
-/**
- * The store the reader asked for, or the one that always works.
- *
- * Falling back to what forgets rather than to the other browser store: a reader who chose to keep
- * fights for good on a browser that lends no store is better served by a panel that forgets
- * between pages than by one that quietly keeps their fights somewhere they did not choose.
- *
- * Reaching the property is itself a read that can throw — a browser forbidding storage does not
- * hand back `undefined`, it throws on the access, before there is anything to call `getItem` on —
- * so the page is asked inside the `try` and not before it.
- */
-function composeStoreForChoice(page: UserscriptWindow, choice: PanelStorageChoice): BrowserStore {
-    if (choice === "memory") return composeMemoryStore();
-    try {
-        const storage = choice === "local" ? page.localStorage : page.sessionStorage;
-        if (storage === undefined) return composeMemoryStore();
-        return composeBrowserStore(storage);
-    } catch {
-        // A browser that will not say whether it has a store has none, which is an answer.
-        return composeMemoryStore();
+    if (!read.value.ok) {
+        writeStoodDownLine(page, read.value.error);
+        return null;
     }
+    return initRuntime(read.value.value, {
+        version: BUILD_VERSION,
+        tables: composeRuntimeTables(),
+        sessionOptions: SESSION_OPTIONS,
+    });
 }
 
 /**
- * Whether the page states the members this add-on **calls**, asked before one of them is reached.
- * It stands here rather than as a cast in `userscript-boot.ts` (**ADR 0051**). **That a member is
- * there and callable
- * is all it says** — a signature is not `typeof`'s to give, and a function of the wrong shape is
- * answered for by every boundary below. What this closes is the start, which has none.
+ * The one mark a page that will not stand the add-on gets. A page with no console of its own has
+ * nowhere to carry it, and the add-on stands down silently there, because nothing is left to say.
  */
-function isUserscriptWindow(value: unknown): value is UserscriptWindow {
-    if (!isRecord(value)) return false;
-    if (typeof value.setInterval !== "function") return false;
-    if (typeof value.clearInterval !== "function") return false;
-    if (typeof value.setTimeout !== "function") return false;
-    if (typeof value.Date !== "function") return false;
-    if (typeof value.Blob !== "function") return false;
-    if (typeof value.URL !== "function") return false;
-    if (!isCallableOn(value.console, "error")) return false;
-    if (!isRecord(value.location)) return false;
-    if (!isRecord(value.navigator)) return false;
-    return isDocumentOfAPage(value.document);
+function writeStoodDownLine(page: unknown, failure: BootFailure): void {
+    const console = callForeign(() => readPageConsole(page));
+    if (!console.ok) return;
+    if (console.value === null) return;
+    initPageConsole(console.value).writeBrandedLine(failure.kind, failure);
+}
+
+function readPageConsole(page: unknown): PageConsole | null {
+    if (!isRecord(page)) return null;
+    const console = page.console;
+    if (!isRecord(console)) return null;
+    const error = console.error;
+    if (typeof error !== "function") return null;
+    return { error: (...values) => void error.apply(console, values) };
+}
+
+/**
+ * The page as the ports the runtime is handed. Reading a member of a page is a call into it, since
+ * a getter is the page's own code, so the caller holds this under `callForeign`.
+ */
+export function readUserscriptWindow(page: unknown): Result<RuntimePorts, BootFailure> {
+    if (!isRecord(page)) return err(composeWindowUnusable(WINDOW_PART.window));
+    if (!isUserscriptWindow(page)) {
+        const missing = lookupWindowPartMissing(page) ?? WINDOW_PART.window;
+        return err(composeWindowUnusable(missing));
+    }
+    return ok(composeRuntimePorts(page));
+}
+
+function composeWindowUnusable(missing: WindowPart): BootFailure {
+    return { kind: BOOT_FAILURE.windowUnusable, missing };
+}
+
+function isUserscriptWindow(page: UnknownRecord): page is UnknownRecord & UserscriptWindow {
+    return lookupWindowPartMissing(page) === null;
+}
+
+/** The first part a page lacks, or null where it states every one the add-on calls. */
+function lookupWindowPartMissing(page: UnknownRecord): WindowPart | null {
+    if (!isDocumentOfAPage(page.document)) return WINDOW_PART.document;
+    if (!isCallableOn(page.console, "error")) return WINDOW_PART.console;
+    if (typeof page.setInterval !== "function") return WINDOW_PART.timers;
+    if (typeof page.clearInterval !== "function") return WINDOW_PART.timers;
+    if (typeof page.setTimeout !== "function") return WINDOW_PART.timers;
+    if (typeof page.requestAnimationFrame !== "function") return WINDOW_PART.frames;
+    if (typeof page.cancelAnimationFrame !== "function") return WINDOW_PART.frames;
+    if (typeof page.Date !== "function") return WINDOW_PART.clock;
+    if (typeof page.Blob !== "function") return WINDOW_PART.downloads;
+    if (typeof page.URL !== "function") return WINDOW_PART.downloads;
+    return null;
 }
 
 function isDocumentOfAPage(value: unknown): boolean {
@@ -1270,656 +188,106 @@ function isDocumentOfAPage(value: unknown): boolean {
 
 /**
  * ⚠️ **A class is not a record.** `typeof` answers `function` of `URL`, `Blob` and `Date`, so
- * `isRecord` refuses all three: they are asked for above by `typeof`, and their members not at
- * all — a missing `URL.createObjectURL` costs the file, which `writeRecording` answers for.
+ * `isRecord` refuses all three: they are asked for by `typeof`, and their members not at all. A
+ * missing `URL.createObjectURL` costs the file, which `initPageFile` answers for.
  */
 function isCallableOn(held: unknown, name: string): boolean {
     if (!isRecord(held)) return false;
     return typeof held[name] === "function";
 }
 
-/** Nothing is done to it, console line included: the console is one of the things that may
- * not be there. `isAttached` says no, which is what a second copy of the add-on also answers. */
-function composeStoodDown(): GameAttachment {
-    return { detach: () => {}, isAttached: () => false };
-}
-
-/**
- * **E5's inbound boundary at the add-on standing up.** The browser runs the built file at the top
- * of `userscript-boot.ts`, so this is the outermost frame there is: a throw here is the userscript
- * dying with a line in the game's own console and nothing else. Standing up reads two things the
- * browser kept and builds a panel, and each of those degrades on its own — this is what is left
- * when one of them cannot.
- */
-export function startFromWindow(page: unknown): GameAttachment {
-    if (!isWindowOrNothing(page)) return composeStoodDown();
-    try {
-        return startFromUserscriptWindow(page);
-    } catch (failure) {
-        reportStoodDown(page, failure);
-        return composeStoodDown();
-    }
-}
-
-/**
- * Asked of a page nothing has checked yet, whose getters are its own: one that throws is a page
- * this cannot stand on, and there is no console yet that it may be trusted to have.
- */
-function isWindowOrNothing(page: unknown): page is UserscriptWindow {
-    try {
-        return isUserscriptWindow(page);
-    } catch {
-        return false;
-    }
-}
-
-/** The console is the only mark left: nothing of ours is on the page to carry one. **E11.** */
-function reportStoodDown(page: UserscriptWindow, failure: unknown): void {
-    try {
-        page.console.error(FAILURE_LINE, failure);
-    } catch {
-        return;
-    }
-}
-
-function startFromUserscriptWindow(page: UserscriptWindow): GameAttachment {
-    let shown: PanelElement | null = null;
-    const report = (line: string, failure: unknown): void => page.console.error(line, failure);
-    return startMargoMeter({
-        page,
-        document: page.document,
-        schedule: {
-            every: (step, everyMilliseconds) => page.setInterval(step, everyMilliseconds),
-            cancel: (handle) => page.clearInterval(handle),
-        },
-        mount: {
-            show: (panel) => {
-                if (panel === shown) return;
-                shown?.replaceWith(panel);
-                if (shown === null) page.document.body.append(panel);
-                shown = panel;
-            },
-        },
-        readViewport: () => readViewportFromPage(page),
-        report,
-        store: composeStoreForChoice(page, STORAGE_DEFAULT),
-        composeShelfStore: (choice) => composeStoreForChoice(page, choice),
-        write: (name, text, handleFailure) => writeTextToFile(page, name, text, handleFailure),
-        readSurroundings: (atMilliseconds) => ({
-            world: readWorldFromPage(page),
-            gameBuild: readGameBuildFromPage(page),
-            capturedAt: new page.Date(atMilliseconds).toISOString(),
-            userAgent: page.navigator.userAgent ?? null,
+function composeRuntimePorts(page: UserscriptWindow): RuntimePorts {
+    return {
+        clock: initPageClock(page.Date),
+        frames: initPageFrames(page),
+        interval: initPageInterval(page),
+        engine: initPageEngine(page),
+        place: initPagePlace(page),
+        dictionary: initPageDictionary(page),
+        build: initPageBuild({ readScriptSources: () => readPageScriptSources(page) }),
+        surroundings: initPageSurroundings(page),
+        tooltip: initPageTooltip(page),
+        settings: initPageStore(readPageStorage(page, STORAGE_CHOICE.local)),
+        initShelfStore: (choice) => initShelfStoreOnPage(page, choice),
+        file: initPageFile({
+            createObjectURL: (blob) => page.URL.createObjectURL(blob),
+            revokeObjectURL: (url) => page.URL.revokeObjectURL(url),
+            createBlob: (text, type) => new page.Blob([text], { type }),
+            createAnchor: () => page.document.createElement(ANCHOR_TAG),
+            appendAnchor: (anchor) => page.document.body.append(anchor),
+            setTimeout: (step, afterMilliseconds) => void page.setTimeout(step, afterMilliseconds),
         }),
-        now: () => page.Date.now(),
-        readClock: (atMilliseconds) => readClockFromPage(page, atMilliseconds),
+        console: initPageConsole(page.console),
+        document: page.document,
+        mountPanel: (panel) => callForeign(() => page.document.body.append(panel)),
+        readViewport: () => readPageViewport(page),
+    };
+}
+
+/** Every script's source the page states, up to the bound the build's reader walks. */
+function readPageScriptSources(page: UserscriptWindow): unknown[] {
+    const scripts = page.document.querySelectorAll(SCRIPT_WITH_SOURCE);
+    const walked = Math.min(scripts.length, SCRIPTS_MAXIMUM);
+    const sources: unknown[] = [];
+    for (let at = 0; at < walked; at += 1) sources.push(scripts[at]?.src);
+    return sources;
+}
+
+/**
+ * The store a browser lends under that name, or null. Reaching the property is itself a read that
+ * can throw: a browser forbidding storage throws on the access, before there is a `getItem`.
+ */
+function readPageStorage(page: UserscriptWindow, choice: StorageChoice): PageStorage | null {
+    const read = callForeign(() => {
+        if (choice === STORAGE_CHOICE.session) return page.sessionStorage;
+        return page.localStorage;
     });
+    if (!read.ok) return null;
+    return read.value ?? null;
 }
 
 /**
- * Puts a finished fight on the shelf, once. What is kept is what the game delivered — the
- * recording's own calls, thinned by the one rule that thins them — so every figure a row states is
- * derived by the code that is running. **ADR 0026.**
+ * The store the reader asked for, or the one that forgets: a reader who chose to keep fights on a
+ * browser that lends no store is better served by a panel that forgets between pages than by one
+ * that keeps their fights somewhere they did not choose.
  */
-function keepFight(
-    underway: FightUnderway,
-    shelf: ShelfKeeper,
-    live: LiveFight,
-    gameBuild: string | null,
-): void {
-    const fight = getReadingFromFight(underway);
-    if (fight === null) return;
-    if (!fight.isOver) return;
-    shelf.keep({
-        openedAt: live.openedAt,
-        payloads: live.capture.calls.map((call) => call.payload),
-        place: live.place,
-        gameBuild,
-        isPinned: false,
-    });
+function initShelfStoreOnPage(page: UserscriptWindow, choice: StorageChoice): KeyValueStore {
+    if (choice === STORAGE_CHOICE.memory) return initMemoryStore();
+    const storage = readPageStorage(page, choice);
+    if (storage === null) return initMemoryStore();
+    return initPageStore(storage);
 }
 
-/** What a file's figures are written from, whichever fight the panel is standing on. */
-function composeReportSubject(figures: FightFigures, place: FightPlace | null): ReportSubject {
+/** A page stating one size and not the other states no viewport, as does one stating nonsense. */
+function readPageViewport(page: UserscriptWindow): PanelViewport | null {
+    const width = page.innerWidth;
+    const height = page.innerHeight;
+    if (typeof width !== "number") return null;
+    if (typeof height !== "number") return null;
+    if (!Number.isFinite(width)) return null;
+    if (!Number.isFinite(height)) return null;
+    if (width < 0) return null;
+    if (height < 0) return null;
+    return { width, height };
+}
+
+/**
+ * The frozen readings in the shape the runtime reads. Composed here, under the start's guard, and
+ * never while the bundle loads: the indexers assert over the tables, and a module's own initialiser
+ * runs before any boundary this add-on has.
+ */
+export function composeRuntimeTables(): RuntimeTables {
     return {
-        statistics: figures.statistics,
-        roster: figures.roster,
-        place,
-        payloads: figures.fight.payloads,
-        messagesLost: figures.fight.messagesLost,
-        isOver: figures.fight.isOver,
-    };
-}
-
-/** A recording and everything its envelope states, ready to be written. */
-interface FightHandover {
-    reading: CaptureReading;
-    subject: ReportSubject | null;
-    surroundings: CaptureSurroundings;
-}
-
-/**
- * A fight off the shelf, as a recording. The calls are the payloads it kept and the messages the
- * decoder took back out of them, so the figures in the file are the figures on screen — the panel
- * derives both through the one chain (**ADR 0026**).
- *
- * ⚠️ **What the shelf never kept is `null`, never an empty list.** A snapshot is read off the
- * engine while a fight is on and there is no engine to ask afterwards; the dropped-call count is a
- * measurement nobody took. Zero and none are different claims (**E10**), and this is what
- * `tools/capture-intake.ts` refuses the file on: `captures/AGENTS.md` says the snapshots are the
- * one independent check the decoder has. **ADR 0053.**
- */
-function composeKeptHandover(
-    kept: KeptFight,
-    figures: FightFigures,
-    surroundings: CaptureSurroundings,
-): FightHandover | null {
-    const messages = figures.fight.messagesByPayload;
-    // One entry per payload replayed, so a disagreement is a chain that stopped reading part way
-    // and a file whose messages belong to other calls. Undrawn beats wrong (**E14**).
-    if (messages.length !== kept.payloads.length) return null;
-    const calls = kept.payloads.map((payload, index) => ({
-        index,
-        payload,
-        messages: messages[index] ?? [],
-        combatantsBefore: null,
-        combatantsAfter: null,
-    }));
-    return {
-        reading: { calls, droppedCalls: null, isTruncated: null },
-        subject: composeReportSubject(figures, kept.place),
-        // The world and the browser are the page's, and that is not a guess: a shelf is read out
-        // of one origin's store, and a world is its own host — a fight kept here was fought here.
-        surroundings: { ...surroundings, gameBuild: kept.gameBuild },
-    };
-}
-
-/**
- * The fight the panel is standing on, as a file: the calls the game made and the figures they came
- * to, unredacted by design, which `game/fight-capture.ts` states along with what deals with that
- * and where.
- *
- * **The fight on screen and not the one going on.** A reader who has walked into a fight off the
- * shelf means that one, and a reader between fights is looking at one that ended — before this
- * followed the screen, both pressed the control and were handed the live recording, which after a
- * reload is an envelope with no call in it. **ADR 0053.**
- */
-function composeHandover(
-    environment: UserscriptEnvironment,
-    underway: FightUnderway,
-    live: LiveFight,
-    screen: ScreenState,
-    shelf: ShelfKeeper,
-): FightHandover | null {
-    const figures = composeFightFigures(underway);
-    const standing = getStandingFight(figures, screen, shelf);
-    if (standing === null) return null;
-    const kept = standing.kept;
-    // A fight that has ended is on the shelf and on the screen at once, and this stays the live
-    // recording through it — the one that carries the snapshots. `getStandingFight` answers a kept
-    // fight only for one the reader walked into, because a live row is pressed by a word rather
-    // than by a moment and no moment matches it. The moment stated is now rather than the fight's
-    // own, because what a live recording says is when it was taken off.
-    if (kept === null) {
-        return {
-            reading: live.capture,
-            subject: composeReportSubject(standing.figures, live.place),
-            surroundings: environment.readSurroundings(environment.now()),
-        };
-    }
-    return composeKeptHandover(
-        kept,
-        standing.figures,
-        environment.readSurroundings(kept.openedAt),
-    );
-}
-
-/**
- * Hands the fight over, or leaves a mark. Everything under here reaches `core/`, which throws
- * (**E7**), and the browser's own `click()` throws where a page is being torn down — neither may
- * reach the press that called it (**E14**).
- */
-function writeRecording(
-    environment: UserscriptEnvironment,
-    underway: FightUnderway,
-    live: LiveFight,
-    screen: ScreenState,
-    shelf: ShelfKeeper,
-    defects: KeptDefects,
-): void {
-    const write = environment.write;
-    if (write === null) return;
-    try {
-        const handover = composeHandover(environment, underway, live, screen, shelf);
-        if (handover === null) {
-            defects.add("file", null, "no fight the panel is standing on to hand over");
-            return;
-        }
-        const text = composeCaptureText(handover.reading, handover.surroundings, handover.subject);
-        if (text === null) {
-            defects.add("file", null, "a recording that would not be written as text");
-            return;
-        }
-        // The release of the file lands on the browser's clock after this `try` has closed, so
-        // its failure is handed the same mark as every other one here rather than the console.
-        write(
-            composeCaptureFileName(handover.surroundings),
-            text,
-            (failure) => defects.add("file", null, failure),
-        );
-    } catch (failure) {
-        defects.add("file", null, failure);
-    }
-}
-
-/**
- * What is true of the fight going on now, and nothing that outlives it.
- *
- * These were five loose bindings the entry closed over, which is what made a payload's bookkeeping
- * a part of the entry rather than a thing of its own — and what put `startMargoMeter` past **S4**
- * where the reader could not see it.
- */
-interface LiveFight {
-    /** The recording, and the state each call is entered with: the same fight, so held together. */
-    capture: FightCapture;
-    combatantsBefore: CapturedCombatant[];
-    /**
-     * Read once, on the payload that opens a fight: the client's own state is where a place is,
-     * the hero does not move while a fight is on, and reading it every payload would ask another
-     * program's object graph a question whose answer cannot have changed.
-     */
-    place: FightPlace | null;
-    openedAt: number;
-    wasOver: boolean;
-    /**
-     * The client's own dictionary, read once for the same reason the place is: it is built with
-     * the page and a page without one never grows one (**ADR 0024**).
-     */
-    translate: TranslateLabel | null;
-    /** Remembers the block it left on each fighter, which is what lets it write every payload. */
-    tooltips: TooltipWriter;
-}
-
-function composeLiveFight(): LiveFight {
-    return {
-        capture: composeEmptyCapture(),
-        combatantsBefore: [],
-        place: null,
-        translate: null,
-        tooltips: composeTooltipWriter(),
-        openedAt: 0,
-        wasOver: false,
-    };
-}
-
-/** Anything but the mark reads as unfolded, which is what a store saying nothing answers. */
-function isFoldedInStore(store: BrowserStore | null, key: string): boolean {
-    if (store === null) return false;
-    return store.read(key) === FOLDED;
-}
-
-/** Each window's fold under its own key: one mark over both would put away the wrong window. */
-function writeFoldFromPress(
-    store: BrowserStore | null,
-    press: PanelPress,
-    screen: ScreenState,
-): void {
-    if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
-    if (press.kind !== "standing-fold") return;
-    store?.write(STANDING_FOLD_KEY, screen.isStandingCollapsed ? FOLDED : "");
-}
-
-/**
- * Where the reader put a window, and where a drag is allowed to put it. One per window: the two
- * corners are two answers, and a key whose meaning changes needs a key of its own
- * (`ARCHITECTURE.md`, stored reader preferences).
- */
-function composePanelPlacement(
-    environment: UserscriptEnvironment,
-    store: BrowserStore | null,
-    defects: KeptDefects,
-    key: string = PLACE_KEY,
-): PanelPlacement {
-    return {
-        position: readPlaceOrNothing(store, key, defects),
-        getViewport: () => environment.readViewport(),
-        // Once per drag rather than once per frame. A refusal to write is an answer here as
-        // wherever this panel writes: the reader's choice stands, and only the next visit is the
-        // poorer for it.
-        handleMoved: (position: PanelPosition) => {
-            const written = composeStoredTextFromPosition(position);
-            if (written === null) return;
-            store?.write(key, written);
+        decoder: {
+            blowsGrantedBySkillId: indexBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills),
         },
-    };
-}
-
-/**
- * A fight that opens puts the panel back on its ranking, and only for a reader on the live fight.
- *
- * ⚠️ **A row left open would find somebody in the next fight.** A row is opened by the game's own
- * combatant id and a party keeps its ids from one fight to the next — ten of them shared between
- * `captures/2026-08-15-tempest-grupa-vs-hildur-1` and `-2`, read 2026-08-31 — so the next fight
- * drew itself opened on a rung nobody asked for. A reader who is on a fight off the shelf is left
- * where they are: what they are reading did not change.
- */
-function setLiveFightOpened(screen: ScreenState): void {
-    if (screen.openFightId !== null) return;
-    screen.openRowId = null;
-    screen.openUnnamedEnd = null;
-    screen.openPairId = null;
-    screen.openPart = null;
-}
-
-/**
- * What one fighter's tooltip would say, gathered from the five readers that know part of it: the
- * envelope says what they are making ready, the mask says what stands on them, the announcements
- * say how much, the clock says how long, and the two legendary bonuses say what is running and
- * what is spent.
- */
-function composeTooltipReadingFor(
-    combatantId: number,
-    fight: FightReading,
-    held: FightStandings,
-    figures: ReadonlyMap<string, CarriedFigure>,
-): TooltipReading {
-    const charging = fight.chargedSkills.filter((one) => one.state === "charging").find((one) =>
-        one.combatantId === combatantId
-    );
-    const legendary = fight.legendaryStandings.find((one) => one.combatantId === combatantId);
-    const provoked = held.provocations.find((one) => one.provokedId === combatantId);
-    const caster = provoked === undefined ? undefined : fight.roster.byId.get(provoked.casterId);
-    return {
-        turnsTaken: fight.turnsByCombatantId.get(combatantId) ?? 0,
-        charge: charging === undefined ? null : {
-            skillName: charging.skillName,
-            turnsElapsed: charging.turnsElapsed,
-            turnsStated: charging.turnsStated,
-        },
-        provokedBy: provoked === undefined ? null : {
-            name: caster?.name ?? PANEL_WORDS.withoutActor,
-            turnsElapsed: provoked.turnsElapsed,
-            turnsStated: provoked.turnsStated,
-        },
-        provokes: held.provocations.filter((one) => one.casterId === combatantId).length,
-        statuses: fight.carriedStatuses.filter((one) => one.combatantId === combatantId).map(
-            (one) => {
-                const figure = figures.get(`${one.combatantId}/${one.bit}`);
-                return { bit: one.bit, percent: figure?.percent ?? null };
+        tooltip: {
+            statedSkills: {
+                turnsBySkillId: indexAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
+                shoutsBySkillId: indexShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
             },
-        ),
-        holytouchHealsGiven: legendary?.holytouchHealsGiven ?? null,
-        hasSpentLastheal: legendary?.hasSpentLastheal ?? false,
-        wasJoinedInProgress: fight.hasJoinedInProgress,
-    };
-}
-
-/**
- * The add-on's own rows onto every fighter the game is already drawing a tooltip for. **After the
- * engine's own call**, which is where the wrap puts us: the game rebuilds tooltips while it takes
- * this payload, so a row written before it would be one the game had just thrown away.
- *
- * Guarded here as well as inside the writer, because this is the panel's own layer reaching into
- * somebody else's program and a throw of theirs must cost a row and never the fight (**E5**).
- *
- * **Cost, measured over `captures/` on 2026-09-23 (S3)**, 1376 payloads through the wrap, three
- * runs each way: 1.570 ms a payload on average without this function and 1.636 ms with it — 0.066
- * ms, 4% of the call, the panel's own drawing included. The worst payload moves less than the runs
- * move each other, 9.5 to 11.4 ms either way. Part of it is a second walk of the same events:
- * `composeStandingOrNothing` composes the same standings again when the panel draws. Composing
- * once and handing both readers the same answer would take that back, and is **deliberately not
- * done**: it is a cache on the newest payload, and 66 microseconds is not worth a thing that can
- * go stale.
- */
-function writeCarriedToTooltips(
-    live: LiveFight,
-    underway: FightUnderway,
-    environment: UserscriptEnvironment,
-    defects: KeptDefects,
-): void {
-    try {
-        const fight = getReadingFromFight(underway);
-        if (fight === null) return;
-        const held = composeFightStandings(
-            fight.events,
-            getFrozenReadings().statedSkills,
-            fight.roster,
-        );
-        const figures = new Map<string, CarriedFigure>();
-        for (
-            const one of composeCarriedFigures({
-                statuses: fight.carriedStatuses,
-                standings: held.standings,
-                roster: fight.roster,
-                turnsByCombatantId: fight.turnsByCombatantId,
-                witnessed: getFrozenReadings().witnessedKeyByBit,
-            })
-        ) {
-            figures.set(`${one.combatantId}/${one.bit}`, one);
-        }
-        const rows = new Map<number, readonly string[]>();
-        for (const combatantId of fight.roster.byId.keys()) {
-            const reading = composeTooltipReadingFor(combatantId, fight, held, figures);
-            rows.set(combatantId, composeTooltipRows(reading, live.translate));
-        }
-        live.tooltips.write(environment.page, rows);
-    } catch (failure) {
-        defects.add("region", null, failure);
-    }
-}
-
-/**
- * One payload, into the fight it belongs to and into the recording beside it. True where the
- * payload is the one that opened a fight.
- */
-function readPayloadIntoLive(
-    live: LiveFight,
-    underway: FightUnderway,
-    shelf: ShelfKeeper,
-    environment: UserscriptEnvironment,
-    stated: { payload: unknown; battle: EngineBattle },
-    defects: KeptDefects,
-): boolean {
-    const isRead = addPayloadOrNothing(underway, stated.payload, defects);
-    // The fight takes a record and nothing else, so only a record left its messages last in the
-    // list: read after anything else, that entry belongs to the call before this one — and so
-    // does it after a payload the fight refused.
-    const messages = isRead && isRecord(stated.payload)
-        ? underway.messagesByPayload.at(-1) ?? []
-        : [];
-    addCallToRecording(live, stated, messages, defects);
-    const fight = getReadingOrNothing(underway, defects);
-    const isOpening = isRead && fight !== null && fight.payloads === 1;
-    if (isOpening) {
-        live.place = readPlaceFromPage(environment.page);
-        live.translate = readDictionaryFromPage(environment.page);
-        live.openedAt = environment.now();
-    }
-    writeCarriedToTooltips(live, underway, environment, defects);
-    // Once, on the call that ends it: a fight put on the shelf twice is two fights.
-    if (fight !== null && fight.isOver && !live.wasOver) {
-        live.wasOver = true;
-        keepFightOrNothing(underway, shelf, live, environment, defects);
-    }
-    if (fight !== null && !fight.isOver) live.wasOver = false;
-    return isOpening;
-}
-
-/**
- * ⚠️ **Each step of a payload is guarded on its own.** Under the engine wrap's guard alone, a
- * snapshot of a battle past the cast's bound, or a payload the decoder refuses, skips the draw
- * behind it: the panel stands on the last payload it read with nothing on it saying so, and the
- * console hears it once while the reader never does (**E11**). The wrap's guard stays under all.
- */
-function addPayloadOrNothing(
-    underway: FightUnderway,
-    payload: unknown,
-    defects: KeptDefects,
-): boolean {
-    try {
-        addPayloadToFight(underway, payload, getFrozenReadings().blowsGrantedBySkillId);
-        return true;
-    } catch (failure) {
-        defects.add("reading", null, failure);
-        return false;
-    }
-}
-
-/** What the recording loses is the file, and the fight on screen goes on being read. */
-function addCallToRecording(
-    live: LiveFight,
-    stated: { payload: unknown; battle: EngineBattle },
-    messages: readonly string[],
-    defects: KeptDefects,
-): void {
-    try {
-        live.capture = composeNextCapture(live.capture, {
-            payload: stated.payload,
-            messages,
-            combatantsBefore: live.combatantsBefore,
-            combatantsAfter: composeSnapshotFromBattle(stated.battle),
-        });
-    } catch (failure) {
-        defects.add("file", null, failure);
-    }
-}
-
-/** `getReadingFromFight` asserts over what the fight holds, and a draw is what it would cost. */
-function getReadingOrNothing(underway: FightUnderway, defects: KeptDefects): FightReading | null {
-    try {
-        return getReadingFromFight(underway);
-    } catch (failure) {
-        defects.add("reading", null, failure);
-        return null;
-    }
-}
-
-/**
- * The shelf's own failure, which is not the store's refusal: a refusal is an answer the shelf
- * states (**E5**), and this is the fight never reaching it.
- */
-function keepFightOrNothing(
-    underway: FightUnderway,
-    shelf: ShelfKeeper,
-    live: LiveFight,
-    environment: UserscriptEnvironment,
-    defects: KeptDefects,
-): void {
-    try {
-        const gameBuild = environment.readSurroundings(environment.now()).gameBuild;
-        keepFight(underway, shelf, live, gameBuild);
-    } catch (failure) {
-        defects.add("keeping", null, failure);
-    }
-}
-
-/** A snapshot that will not read costs the recording its state before this call, and no more. */
-function readSnapshotOrNothing(battle: EngineBattle, defects: KeptDefects): CapturedCombatant[] {
-    try {
-        return composeSnapshotFromBattle(battle);
-    } catch (failure) {
-        defects.add("file", null, failure);
-        return [];
-    }
-}
-
-export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
-    const underway = composeFightUnderway();
-    const defects = composeDefectKeeper((failure) => environment.report(FAILURE_LINE, failure));
-    const store = environment.store;
-    const screen = composeScreenState(
-        isFoldedInStore(store, FOLD_KEY),
-        isFoldedInStore(store, STANDING_FOLD_KEY),
-    );
-    const shelf = composeShelfKeeper(environment, defects);
-    const placement = composePanelPlacement(environment, store, defects);
-    const standingPlacement = composePanelPlacement(
-        environment,
-        store,
-        defects,
-        STANDING_PLACE_KEY,
-    );
-    const live = composeLiveFight();
-    // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
-    // one, and a page with no game on it is left as it was found.
-    let isMounted = false;
-    // A refusal leaves `isMounted` false, so the next payload tries again, and the defect is
-    // read once the panel does stand (**E14**).
-    const mount = (): void => {
-        if (isMounted) return;
-        try {
-            environment.mount.show(panel.element);
-        } catch (failure) {
-            defects.add("mount", null, failure);
-            return;
-        }
-        isMounted = true;
-    };
-    const draw = (): void => {
-        drawFight(underway, screen, panel, shelf, live, environment.readClock, defects);
-    };
-    const showAndMount = (): void => {
-        draw();
-        mount();
-    };
-    const panel = composePanelHost(
-        environment.document,
-        (press) => {
-            if (press.kind === "save") {
-                writeRecording(environment, underway, live, screen, shelf, defects);
-            }
-            const isShelfPress = setShelfFromPress(shelf, press);
-            if (!isShelfPress && !handlePress(screen, press)) return;
-            writeFoldFromPress(store, press, screen);
-            draw();
+            witnessedKeyByBit: indexWitnessedKeyByBit(FROZEN_BUFF_BITS.bits),
+            statusBits: FROZEN_BUFF_BITS.bits,
         },
-        (mark) => defects.add(mark.kind, mark.region, mark.failure),
-        placement,
-        // Once per mount: the dictionary is built with the page and not with the fight, and a page
-        // without one never grows one. Null is the panel drawing its own words (ADR 0024).
-        readDictionaryFromPage(environment.page),
-        standingPlacement,
-    );
-
-    return attachToGame(
-        environment.page,
-        environment.schedule,
-        composeGameReader(environment, underway, shelf, live, screen, showAndMount, defects),
-    );
-}
-
-/** What the wrap hands over, payload by payload, and what each one costs the reading. */
-function composeGameReader(
-    environment: UserscriptEnvironment,
-    underway: FightUnderway,
-    shelf: ShelfKeeper,
-    live: LiveFight,
-    screen: ScreenState,
-    showAndMount: () => void,
-    defects: KeptDefects,
-): AttachmentReport {
-    return {
-        handleAttached: showAndMount,
-        handleBeforeCall: (battle) => {
-            live.combatantsBefore = readSnapshotOrNothing(battle, defects);
-        },
-        handlePayload: (payload, battle) => {
-            const isOpening = readPayloadIntoLive(live, underway, shelf, environment, {
-                payload,
-                battle,
-            }, defects);
-            if (isOpening) setLiveFightOpened(screen);
-            showAndMount();
-        },
-        // The four below are conditions rather than defects: three of them mean no panel goes up
-        // at all, so there is nothing standing for a defect to be drawn on. Every guard the panel
-        // itself holds ends at the keeper `startMargoMeter` makes, which writes the console line
-        // the first time a kind arrives and counts the rest — the once **E11** asks for.
-        // **ADR 0051.**
-        handleFirstFailure: (failure: unknown) => environment.report(FAILURE_LINE, failure),
-        handleAnotherReader: () =>
-            environment.report(FAILURE_LINE, "another reader holds the game"),
-        handleRefusal: () => environment.report(FAILURE_LINE, "the game states no method to read"),
-        handleSearchAbandoned: () => environment.report(FAILURE_LINE, "no game on this page"),
     };
 }

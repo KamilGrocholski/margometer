@@ -31,7 +31,7 @@ MIT licensed. Copyright the Deno authors. The bundle is a combined work of this 
 those modules; the licences of both apply to their own parts.
 
 This is a change from MargoMeter v1, which shipped no third-party code. The reasoning is recorded in
-`docs/adr/0001-deno-instead-of-bun.md`.
+`develop:docs/adr/0001-deno-instead-of-bun.md`.
 
 ## The published preview
 

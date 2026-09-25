@@ -4,7 +4,7 @@
  *
  * The page is served by intercepting requests rather than by standing a server up. The origin is
  * real either way, which is what `localStorage` needs, and a context per test is what makes the
- * store fresh without a profile to take away afterwards. **ADR 0047.**
+ * store fresh without a profile to take away afterwards. **`develop ADR 0047`.**
  */
 
 import { expect, type Locator, type Page, test as base } from "@playwright/test";
@@ -13,22 +13,17 @@ import {
     readBuiltUserscript,
     readBuiltVersion,
     USERSCRIPT_NAME,
-} from "@/tests/e2e/build-once.ts";
+} from "./build-once.ts";
 import {
     composePanelPage,
     type EnginePresence,
     GAME_SCRIPT_NAME,
-    PAGE_ORIGIN,
+    type PanelPageOptions,
     PLACE_NAME,
-    readRecordedCalls,
-} from "@/tests/e2e/panel-page.ts";
+} from "./game-page.ts";
+import { PAGE_ORIGIN, readRecordedCalls, waitForFrame } from "./panel-page.ts";
 
-/** The host the add-on puts in the page, and the marks a test reaches its controls by. */
-export const HOST_SELECTOR = "#MargoMeter-Panel";
-/** What a region that gave way is drawn as. Nowhere in a healthy panel. */
-export const UNDRAWN_SELECTOR = ".undrawn";
-/** What no row a person reads may ever say. */
-const NEVER_SAID = ["undefined", "NaN", "[object"];
+export { expect };
 
 export interface PanelOptions {
     /** The recording replayed, as a path from the repository root. */
@@ -88,76 +83,12 @@ interface PanelWorkerFixtures {
     built: { script: string; version: string };
 }
 
-/** Everything the page asks the network for, answered from memory. */
-async function setPageServed(page: Page, script: string, html: string): Promise<void> {
-    await page.route("**/*", (route) => {
-        const path = new URL(route.request().url()).pathname;
-        if (path === `/${USERSCRIPT_NAME}`) {
-            return route.fulfill({ contentType: "text/javascript", body: script });
-        }
-        // An empty script and never a miss: a host answering one with its own HTML turns the tag
-        // into a syntax error, and only the `src` attribute is ever read.
-        if (path === `/${GAME_SCRIPT_NAME}`) {
-            return route.fulfill({ contentType: "text/javascript", body: "" });
-        }
-        if (path === "/") return route.fulfill({ contentType: "text/html", body: html });
-        return route.fulfill({ status: 404, body: "not here" });
-    });
-}
-
-/** The handle a spec is given, once the page is open on a panel that has drawn something. */
-function composePanelHandle(
-    page: Page,
-    version: string,
-    serveWithNoFightFed: () => Promise<void>,
-): PanelHandle {
-    const at = (selector: string) => page.locator(selector);
-    const said = () =>
-        page.evaluate((selector) => {
-            const host = document.querySelector(selector);
-            return host?.shadowRoot?.textContent ?? "";
-        }, HOST_SELECTOR);
-    return {
-        page,
-        version,
-        host: page.locator(HOST_SELECTOR),
-        at,
-        feed: (count) => page.evaluate((step) => globalThis.margometerE2e.feed(step), count),
-        remaining: () => page.evaluate(() => globalThis.margometerE2e.remaining()),
-        rewind: () => page.evaluate(() => globalThis.margometerE2e.rewind()),
-        reloadWithNoFightFed: async () => {
-            await serveWithNoFightFed();
-            await page.reload();
-            await page.waitForSelector(HOST_SELECTOR);
-        },
-        place: () =>
-            page.evaluate((selector) => {
-                const host = document.querySelector(selector);
-                if (host === null) return { left: -1, top: -1, width: 0, height: 0 };
-                const box = host.getBoundingClientRect();
-                return {
-                    left: Math.round(box.left),
-                    top: Math.round(box.top),
-                    width: Math.round(box.width),
-                    height: Math.round(box.height),
-                };
-            }, HOST_SELECTOR),
-        stored: (key) => page.evaluate((named) => globalThis.localStorage.getItem(named), key),
-        saved: () =>
-            page.evaluate(() => {
-                const kept = globalThis.margometerE2e.saved;
-                return kept.length === 0 ? null : (kept[kept.length - 1] ?? null);
-            }),
-        said,
-        async expectHonest(where) {
-            await expect(at(UNDRAWN_SELECTOR), `${where}: a region gave way`).toHaveCount(0);
-            const drawn = await said();
-            for (const never of NEVER_SAID) {
-                expect(drawn, `${where}: a row reads ${never}`).not.toContain(never);
-            }
-        },
-    };
-}
+/** The host the add-on puts in the page, and the marks a test reaches its controls by. */
+export const HOST_SELECTOR = "#MargoMeter-Panel";
+/** What a region that gave way is drawn as. Nowhere in a healthy panel. */
+export const UNDRAWN_SELECTOR = ".undrawn";
+/** What no row a person reads may ever say. */
+const NEVER_SAID = ["undefined", "NaN", "[object"];
 
 export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixtures>({
     recording: ["captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json", {
@@ -207,13 +138,17 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
             : fedThrough === "none"
             ? 0
             : fedThrough;
-        const html = composePanelPage({
+        const options: PanelPageOptions = {
             calls,
             fedThrough: through,
             engine,
             doesLoadTwice,
             place,
-        });
+            userscriptName: USERSCRIPT_NAME,
+        };
+        expect(calls.length, "a page replays a fight there is something of").toBeGreaterThan(0);
+        expect(through, "and stops somewhere inside it").toBeLessThanOrEqual(calls.length);
+        const html = composePanelPage(options);
         await setPageServed(page, built.script, html);
         if (doesFakeClock) await page.clock.install();
         await page.goto(`${PAGE_ORIGIN}/`);
@@ -221,16 +156,81 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
         // spec is about; every other test starts on a panel that has already drawn.
         if (engine === "before") await page.waitForSelector(HOST_SELECTOR);
         await use(composePanelHandle(page, built.version, async () => {
-            const empty = composePanelPage({
-                calls,
-                fedThrough: 0,
-                engine,
-                doesLoadTwice,
-                place,
-            });
+            const empty = composePanelPage({ ...options, fedThrough: 0 });
             await setPageServed(page, built.script, empty);
         }));
     },
 });
 
-export { expect };
+/** Everything the page asks the network for, answered from memory. */
+async function setPageServed(page: Page, script: string, html: string): Promise<void> {
+    await page.route("**/*", (route) => {
+        const path = new URL(route.request().url()).pathname;
+        if (path === `/${USERSCRIPT_NAME}`) {
+            return route.fulfill({ contentType: "text/javascript", body: script });
+        }
+        // An empty script and never a miss: a host answering one with its own HTML turns the tag
+        // into a syntax error, and only the `src` attribute is ever read.
+        if (path === `/${GAME_SCRIPT_NAME}`) {
+            return route.fulfill({ contentType: "text/javascript", body: "" });
+        }
+        if (path === "/") return route.fulfill({ contentType: "text/html", body: html });
+        return route.fulfill({ status: 404, body: "not here" });
+    });
+}
+
+/** The handle a spec is given, once the page is open on a panel that has drawn something. */
+function composePanelHandle(
+    page: Page,
+    version: string,
+    serveWithNoFightFed: () => Promise<void>,
+): PanelHandle {
+    const at = (selector: string) => page.locator(selector);
+    const said = async () => {
+        await waitForFrame(page);
+        return await page.evaluate((selector) => {
+            const host = document.querySelector(selector);
+            return host?.shadowRoot?.textContent ?? "";
+        }, HOST_SELECTOR);
+    };
+    return {
+        page,
+        version,
+        host: page.locator(HOST_SELECTOR),
+        at,
+        feed: (count) => page.evaluate((step) => globalThis.margometerE2e.feed(step), count),
+        remaining: () => page.evaluate(() => globalThis.margometerE2e.remaining()),
+        rewind: () => page.evaluate(() => globalThis.margometerE2e.rewind()),
+        reloadWithNoFightFed: async () => {
+            await serveWithNoFightFed();
+            await page.reload();
+            await page.waitForSelector(HOST_SELECTOR);
+        },
+        place: () =>
+            page.evaluate((selector) => {
+                const host = document.querySelector(selector);
+                if (host === null) return { left: -1, top: -1, width: 0, height: 0 };
+                const box = host.getBoundingClientRect();
+                return {
+                    left: Math.round(box.left),
+                    top: Math.round(box.top),
+                    width: Math.round(box.width),
+                    height: Math.round(box.height),
+                };
+            }, HOST_SELECTOR),
+        stored: (key) => page.evaluate((named) => globalThis.localStorage.getItem(named), key),
+        saved: () =>
+            page.evaluate(() => {
+                const kept = globalThis.margometerE2e.saved;
+                return kept.length === 0 ? null : (kept[kept.length - 1] ?? null);
+            }),
+        said,
+        async expectHonest(where) {
+            await expect(at(UNDRAWN_SELECTOR), `${where}: a region gave way`).toHaveCount(0);
+            const drawn = await said();
+            for (const never of NEVER_SAID) {
+                expect(drawn, `${where}: a row reads ${never}`).not.toContain(never);
+            }
+        },
+    };
+}

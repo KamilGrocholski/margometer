@@ -4,8 +4,10 @@
  * It runs **inside the page** in one `evaluate`. A press costs well under a millisecond — the
  * panel redrawing itself — and a round trip out to the driver costs milliseconds, so a crawl
  * driven from outside would be hours where this is a minute. The loops are written out rather
- * than recursive (**S1**) and bounded (**S2**). **ADR 0047.**
+ * than recursive (**S1**) and bounded (**S2**). **`develop ADR 0047`.**
  */
+
+import { PROBE_NAME } from "./game-page.ts";
 
 /** Everything the crawl counted, and everything it caught. */
 export interface CrawlReport {
@@ -13,7 +15,7 @@ export interface CrawlReport {
     opened: number;
     second: number;
     deeper: number;
-    /** Presses that changed nothing. **ADR 0034** says there should be none. */
+    /** Presses that changed nothing. `develop ADR 0034` says there should be none. */
     leaves: number;
     closed: number;
     kinds: string[];
@@ -30,13 +32,35 @@ export const DESCENDING = [
     "[data-kind]",
 ];
 /**
- * More presses than any fight can offer. **ADR 0046** measured 6244 on one screen of the deepest
+ * More presses than any fight can offer. `develop ADR 0046` measured 6244 on one screen of the deepest
  * recording, and there are twelve screens — so this stands more than an order of magnitude over
  * the whole of that, and exceeding it is a finding rather than a longer crawl (**S2**).
  */
 const MAXIMUM_PRESSES = 2000000;
 /** More faults than a reader would read. Past this the crawl has found its answer already. */
 const FAULTS_KEPT = 40;
+
+/**
+ * The crawl, as one expression a page can be handed. `isDeep` is what a caller trades: the second
+ * level holds tens of controls per row of the first, so a sweep over every recording asks for the
+ * first alone and a crawl of one recording asks for both.
+ */
+export function composeCrawlScript(isDeep: boolean): string {
+    return `(function crawlThePanel() {
+var DESCENDING = ${JSON.stringify(DESCENDING)};
+var IS_DEEP = ${isDeep ? "true" : "false"};
+${composeCrawlHelpers()}
+${composeCrawlCheck()}
+${composeCrawlSecond()}
+${composeCrawlFirst()}
+${composeCrawlScreens()}
+return {
+  screens: seen.screens, opened: seen.opened, second: seen.second, deeper: seen.deeper,
+  leaves: seen.leaves, closed: seen.closed, kinds: Object.keys(seen.kinds),
+  faults: faults, presses: presses
+};
+})()`;
+}
 
 /** Reaching in, pressing, and the two readings every check is made of. */
 function composeCrawlHelpers(): string {
@@ -55,6 +79,9 @@ var press = function (node) {
   node.dispatchEvent(new PointerEvent("pointerdown", {
     bubbles: true, composed: true, button: 0
   }));
+  // The panel draws once a frame, and a crawl reading after each press cannot wait for thousands
+  // of them: the page's frames are flushed here, which is the crawl's second exception.
+  window.${PROBE_NAME}.flushFrames();
 };`;
 }
 
@@ -98,7 +125,7 @@ var closeTo = function (before, where) {
 
 /**
  * The second level, and the count of what a third would hold. Nothing there is pressed: what is
- * being held is that there is nothing to press, which is `docs/drill-levels.md`'s claim.
+ * being held is that there is nothing to press, which is `develop:docs/drill-levels.md`'s claim.
  */
 function composeCrawlSecond(): string {
     return `var walkSecond = function (where) {
@@ -158,26 +185,4 @@ for (var s = 0; s < screenCount; s += 1) {
     walkScreen("screen " + s + " side " + d);
   }
 }`;
-}
-
-/**
- * The crawl, as one expression a page can be handed. `isDeep` is what a caller trades: the second
- * level holds tens of controls per row of the first, so a sweep over every recording asks for the
- * first alone and a crawl of one recording asks for both.
- */
-export function composeCrawlScript(isDeep: boolean): string {
-    return `(function crawlThePanel() {
-var DESCENDING = ${JSON.stringify(DESCENDING)};
-var IS_DEEP = ${isDeep ? "true" : "false"};
-${composeCrawlHelpers()}
-${composeCrawlCheck()}
-${composeCrawlSecond()}
-${composeCrawlFirst()}
-${composeCrawlScreens()}
-return {
-  screens: seen.screens, opened: seen.opened, second: seen.second, deeper: seen.deeper,
-  leaves: seen.leaves, closed: seen.closed, kinds: Object.keys(seen.kinds),
-  faults: faults, presses: presses
-};
-})()`;
 }

@@ -4,12 +4,12 @@ dist/
 # Game client sources, fetched on demand. Outside git by copyright requirement.
 .cache/
 
-# What `npm ci` installs for the browser suite. `package-lock.json` is what git carries.
+# What npm installs for a browser suite.
 node_modules/
+
+# Fights nobody fought, composed for one machine. Never material, and never in git.
+fabricated/
 
 # Session machinery, not project content.
 .claude/scheduled_tasks.lock
-
-# Fights nobody fought, composed by `deno task fight:fabricate` for one machine.
-# `captures/` is evidence; this is invented, and never enters git.
-fabricated/
+.claude/worktrees/

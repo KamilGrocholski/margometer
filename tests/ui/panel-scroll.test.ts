@@ -6,34 +6,28 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { CLASS } from "@/src/ui/panel-look.ts";
+import { CLASS } from "#/src/ui/panel-look.ts";
 import {
-    composeKeptScrollMemo,
-    getTopOfList,
-    setListRowsDrawn,
-    setTopOfList,
-} from "@/src/ui/panel-scroll.ts";
-import type { PanelElement } from "@/src/ui/panel-element.ts";
-import { composeFakeDocument } from "@/tests/fake-document.ts";
+    initScrollMemo,
+    readTopOfList,
+    renderListRows,
+    writeTopOfList,
+} from "#/src/ui/panel-scroll.ts";
+import type { PanelElement } from "#/src/ui/panel-document.ts";
+import { composeFakeDocument } from "#/tests/fake-document.ts";
 
 /** Past the memo's own maximum, so the bound is met rather than approached. */
 const NAMES_TRIED = 40;
 const SOMEWHERE_DOWN = 240;
 const SOMEWHERE = "damageDealtApplied|everyone";
 
-function composeElementOfClass(className: string): PanelElement {
-    const element = composeFakeDocument().createElement("div");
-    element.className = className;
-    return element;
-}
-
 Deno.test("a list nobody has scrolled stands at the top", () => {
-    const kept = composeKeptScrollMemo();
+    const kept = initScrollMemo();
     assertStrictEquals(kept.getTop("damageDealtApplied|everyone"), 0, "and says so as a zero");
 });
 
 Deno.test("a position comes back under the name it was kept under", () => {
-    const kept = composeKeptScrollMemo();
+    const kept = initScrollMemo();
     kept.setTop("ranking", SOMEWHERE_DOWN);
     kept.setTop("opened", 1);
     assertStrictEquals(kept.getTop("ranking"), SOMEWHERE_DOWN, "the one that was kept");
@@ -42,7 +36,7 @@ Deno.test("a position comes back under the name it was kept under", () => {
 });
 
 Deno.test("the oldest place goes when the maximum is reached", () => {
-    const kept = composeKeptScrollMemo();
+    const kept = initScrollMemo();
     kept.setTop("first", SOMEWHERE_DOWN);
     for (let at = 0; at < NAMES_TRIED; at += 1) kept.setTop(`place ${at}`, at + 1);
     assertStrictEquals(kept.getTop("first"), 0, "the place kept longest ago is gone");
@@ -56,34 +50,40 @@ Deno.test("the oldest place goes when the maximum is reached", () => {
 Deno.test("a position is read off a list and off nothing else", () => {
     const list = composeElementOfClass(CLASS.list);
     list.scrollTop = SOMEWHERE_DOWN;
-    assertStrictEquals(getTopOfList(list), SOMEWHERE_DOWN, "the region answers with its position");
+    assertStrictEquals(readTopOfList(list), SOMEWHERE_DOWN, "the region answers with its position");
     const waiting = composeElementOfClass(`${CLASS.list} ${CLASS.listWaiting}`);
     assertStrictEquals(
-        getTopOfList(waiting),
+        readTopOfList(waiting),
         0,
         "the waiting bar is a list, and stands at its top",
     );
     const slot = composeElementOfClass(CLASS.slot);
     slot.scrollTop = SOMEWHERE_DOWN;
-    assertStrictEquals(getTopOfList(slot), null, "and a slot holds no position at all");
+    assertStrictEquals(readTopOfList(slot), null, "and a slot holds no position at all");
 });
+
+function composeElementOfClass(className: string): PanelElement {
+    const element = composeFakeDocument().createElement("div");
+    element.className = className;
+    return element;
+}
 
 Deno.test("a position is put on a list and never on a slot", () => {
     const list = composeElementOfClass(CLASS.list);
-    setTopOfList(list, SOMEWHERE_DOWN);
+    writeTopOfList(list, SOMEWHERE_DOWN);
     assertStrictEquals(list.scrollTop, SOMEWHERE_DOWN, "the list is put where it was left");
     const slot = composeElementOfClass(CLASS.slot);
-    setTopOfList(slot, SOMEWHERE_DOWN);
+    writeTopOfList(slot, SOMEWHERE_DOWN);
     assertStrictEquals(slot.scrollTop, 0, "and a slot is left exactly as it was");
-    assertEquals(getTopOfList(slot), null, "and is not asked about a position either");
+    assertEquals(readTopOfList(slot), null, "and is not asked about a position either");
 });
 
 /**
  * What a position nobody could use costs is the place a reader was at, and nothing more. It used
- * to cost the draw it arrived in — **E14**, **ADR 0051**.
+ * to cost the draw it arrived in — **E12**, `develop ADR 0051`.
  */
 Deno.test("a position no region could be put at is refused, and the kept one stands", () => {
-    const kept = composeKeptScrollMemo();
+    const kept = initScrollMemo();
     kept.setTop(SOMEWHERE, SOMEWHERE_DOWN);
     kept.setTop(SOMEWHERE, Number.NaN);
     assertStrictEquals(
@@ -100,9 +100,9 @@ Deno.test("a position no region could be put at is refused, and the kept one sta
 Deno.test("a region that answers with no position at all leaves the reader where they were", () => {
     const list = composeElementOfClass(CLASS.list);
     list.scrollTop = Number.NaN;
-    assertStrictEquals(getTopOfList(list), null, "nothing is read off it");
+    assertStrictEquals(readTopOfList(list), null, "nothing is read off it");
     list.scrollTop = SOMEWHERE_DOWN;
-    setTopOfList(list, Number.NaN);
+    writeTopOfList(list, Number.NaN);
     assertStrictEquals(
         list.scrollTop,
         SOMEWHERE_DOWN,
@@ -111,8 +111,9 @@ Deno.test("a region that answers with no position at all leaves the reader where
 });
 
 /**
- * A wheel turn belongs to the element it is turning, so the rows move and the region stays. What
- * a browser then does with the turn is `tests/e2e/panel-scroll.spec.ts`'s to say — **ADR 0052**.
+ * A wheel turn belongs to the element it is turning, so the rows move and the region stays. What a
+ * browser then does with the turn is `tests/e2e/panel-scroll.spec.ts`'s to say — `develop ADR
+ * 0052`.
  */
 Deno.test("the rows are swapped under the reader, and the region they scroll in stays", () => {
     const document = composeFakeDocument();
@@ -125,7 +126,7 @@ Deno.test("the rows are swapped under the reader, and the region they scroll in 
     const row = document.createElement("div");
     next.append(row);
 
-    assertStrictEquals(setListRowsDrawn(standing, next), true, "both are lists, so the rows move");
+    assertStrictEquals(renderListRows(standing, next), true, "both are lists, so the rows move");
     assertEquals(Array.from(standing.children), [row], "the region holds what was drawn for it");
     assertStrictEquals(
         standing.className,
@@ -144,7 +145,7 @@ Deno.test("the region takes the height the list drawn for it was standing at", (
     const next = composeElementOfClass(CLASS.list);
     next.setAttribute("style", "--MargoMeter-rows:22");
 
-    assertStrictEquals(setListRowsDrawn(standing, next), true, "the rows move");
+    assertStrictEquals(renderListRows(standing, next), true, "the rows move");
     assertStrictEquals(
         standing.getAttribute("style"),
         "--MargoMeter-rows:22",
@@ -158,7 +159,7 @@ Deno.test("a list carrying no height takes none from the one it replaced", () =>
     standing.setAttribute("style", "--MargoMeter-rows:11");
     const next = composeElementOfClass(CLASS.list);
 
-    assertStrictEquals(setListRowsDrawn(standing, next), true, "the rows move");
+    assertStrictEquals(renderListRows(standing, next), true, "the rows move");
     assertStrictEquals(standing.getAttribute("style"), "", "and the height goes with them");
 });
 
@@ -171,9 +172,9 @@ Deno.test("a region that is not a list is left for the caller to replace", () =>
     const row = document.createElement("div");
     list.append(row);
 
-    assertStrictEquals(setListRowsDrawn(slot, list), false, "a slot is not swapped into");
+    assertStrictEquals(renderListRows(slot, list), false, "a slot is not swapped into");
     assertEquals(Array.from(slot.children), [], "and nothing was moved into it");
-    assertStrictEquals(setListRowsDrawn(list, slot), false, "and neither is a slot swapped in");
+    assertStrictEquals(renderListRows(list, slot), false, "and neither is a slot swapped in");
     assertEquals(
         Array.from(list.children),
         [row],

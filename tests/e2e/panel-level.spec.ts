@@ -4,11 +4,12 @@
  * walks the levels with nothing arriving, and `panel-scroll.spec.ts` puts the two together only
  * for the place a reader scrolled to.
  *
- * A redraw of the same place keeps the region a reader is scrolling (**ADR 0052**), so what the
+ * A redraw of the same place keeps the region a reader is scrolling (`develop ADR 0052`), so what the
  * level asks for has to reach that region rather than the replacement it never gets.
  */
 
-import { expect, type PanelHandle, test } from "@/tests/e2e/panel-fixture.ts";
+import { expect, type PanelHandle, test } from "./panel-fixture.ts";
+import { waitForFrame } from "./panel-page.ts";
 
 /** A group fight, so an opened row has several cuts to grow. */
 const GROWING = "captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json";
@@ -19,22 +20,6 @@ const AT_A_TIME = 10;
 const STEPS_MOST = 100;
 
 test.use({ recording: GROWING, fedThrough: FED_THROUGH });
-
-/** The region as the browser reports it: what it draws, and how many rows it says it stands. */
-async function readLevel(panel: PanelHandle) {
-    return await panel.page.evaluate(() => {
-        const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
-        const list = root?.querySelector(".list") ?? null;
-        if (list === null) return { drawn: -1, promised: -1, shown: 0, height: 0 };
-        const stated = getComputedStyle(list).getPropertyValue("--MargoMeter-rows");
-        return {
-            drawn: list.children.length,
-            promised: Number(stated),
-            shown: list.clientHeight,
-            height: list.scrollHeight,
-        };
-    });
-}
 
 test("a level open while payloads land grows with the fight under it", async ({ panel }) => {
     await panel.at(".list .row.drillable").first().click();
@@ -65,3 +50,20 @@ test("a level open while payloads land grows with the fight under it", async ({ 
     ).toBeGreaterThanOrEqual(after.drawn);
     await panel.expectHonest("a level open through the rest of a fight");
 });
+
+/** The region as the browser reports it: what it draws, and how many rows it says it stands. */
+async function readLevel(panel: PanelHandle) {
+    await waitForFrame(panel.page);
+    return await panel.page.evaluate(() => {
+        const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
+        const list = root?.querySelector(".list") ?? null;
+        if (list === null) return { drawn: -1, promised: -1, shown: 0, height: 0 };
+        const stated = getComputedStyle(list).getPropertyValue("--MargoMeter-rows");
+        return {
+            drawn: list.children.length,
+            promised: Number(stated),
+            shown: list.clientHeight,
+            height: list.scrollHeight,
+        };
+    });
+}

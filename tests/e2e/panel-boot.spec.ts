@@ -3,20 +3,27 @@
  * build it is, and what it does on a page that offers it no game.
  *
  * Every other suite in this repository imports TypeScript modules, so a bundler that emitted
- * something a browser refuses has nothing to fail. This is where it fails. **ADR 0047.**
+ * something a browser refuses has nothing to fail. This is where it fails. **`develop ADR 0047`.**
  */
 
-import { expect, HOST_SELECTOR, test } from "@/tests/e2e/panel-fixture.ts";
-import { ENGINE_ANSWER } from "@/tests/e2e/panel-page.ts";
+import { expect, HOST_SELECTOR, test } from "./panel-fixture.ts";
+import { ENGINE_ANSWER } from "./game-page.ts";
+import { waitForFrame } from "./panel-page.ts";
 
 /** The line every failure of the add-on's own is branded with, in the one console it holds. */
 const FAILURE_LINE = "MargoMeter/Panel";
+/** `ENGINE_FAILURE`'s words in `src/game/engine-battle.ts`, which a Node suite cannot import. */
+const ENGINE_FAILURE_SEARCH_ABANDONED = "search-abandoned";
+const ENGINE_FAILURE_ANOTHER_READER = "another-reader";
+/** `PANEL_WORDS`' for the "engine" defect, in `src/ui/panel-words.ts`. */
+const NO_GAME_WORDS = "Nie widać walki w grze";
 /** The attach poll gives up after 240 looks of 250 ms. Past that, and nowhere near a real wait. */
 const PAST_THE_SEARCH = 70_000;
 
 test("the file a reader installs runs, and puts a panel on the page", async ({ panel }) => {
     await expect(panel.host, "the bundle ran and put its host in the page").toHaveCount(1);
     await expect(panel.host).toHaveAttribute("data-margometer-version", panel.version);
+    await waitForFrame(panel.page);
     const hasRoot = await panel.page.evaluate((selector) => {
         return document.querySelector(selector)?.shadowRoot !== null;
     }, HOST_SELECTOR);
@@ -34,6 +41,7 @@ test("the banner stands over the bundle a browser runs", async ({ built, panel }
 });
 
 test("the wrap hands the game its own answer back", async ({ panel }) => {
+    await waitForFrame(panel.page);
     const answers = await panel.page.evaluate(() => globalThis.margometerE2e.answers);
     expect(answers.length, "the fight went through the wrapped method").toBeGreaterThan(0);
     const strange = answers.filter((answer) => answer !== ENGINE_ANSWER);
@@ -43,9 +51,9 @@ test("the wrap hands the game its own answer back", async ({ panel }) => {
 test.describe("a page that offers no game", () => {
     test.use({ engine: "none", doesFakeClock: true });
 
-    test("draws no panel, and says so once the search is over", async ({ panel, honesty }) => {
-        honesty.allow("no game on this page");
-        await expect(panel.host, "a page with no game gets no panel").toHaveCount(0);
+    test("draws nothing while it looks, then a panel saying why it waits", async ({ panel, honesty }) => {
+        honesty.allow(ENGINE_FAILURE_SEARCH_ABANDONED);
+        await expect(panel.host, "nothing is drawn while the add-on looks").toHaveCount(0);
         const said: string[] = [];
         panel.page.on("console", (line) => said.push(line.text()));
         // The search is a minute of polling. The clock is moved rather than waited out — the
@@ -57,9 +65,13 @@ test.describe("a page that offers no game", () => {
         await panel.page.clock.runFor(PAST_THE_SEARCH);
         await expect.poll(() => said.join("\n"), {
             message: "the reader is told, in the branded line",
-        }).toContain("no game on this page");
+        }).toContain(ENGINE_FAILURE_SEARCH_ABANDONED);
         expect(said.filter((line) => line.includes(FAILURE_LINE)).length, "once").toBe(1);
-        await expect(panel.host, "and giving up draws nothing after all").toHaveCount(0);
+        // `docs/design.md` §10.1: a game given up on puts the panel up waiting, where `develop`
+        // drew nothing at all, so a reader learns why the panel is empty rather than guessing.
+        await expect(panel.host, "and giving up puts the panel up").toHaveCount(1);
+        await expect.poll(() => panel.said(), { message: "saying there is no fight to see" })
+            .toContain(NO_GAME_WORDS);
     });
 });
 
@@ -79,7 +91,7 @@ test.describe("the same file loaded twice", () => {
     test.use({ doesLoadTwice: true });
 
     test("leaves one panel, and the second copy stands down", async ({ panel, honesty }) => {
-        honesty.allow("another reader holds the game");
+        honesty.allow(ENGINE_FAILURE_ANOTHER_READER);
         await expect(panel.host, "one panel, whatever the page loaded").toHaveCount(1);
         await panel.expectHonest("a page carrying the file twice");
     });

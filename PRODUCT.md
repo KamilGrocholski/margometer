@@ -2,8 +2,8 @@
 
 MargoMeter is a damage meter for [Margonem](https://www.margonem.pl/), shipped as a userscript that
 draws a statistics panel over the running game. This document is the canonical source for what it is
-for. It is a design constraint, not a description of what already works — `ARCHITECTURE.md` says
-what exists.
+for. It is a design constraint, not a description of what already works — `develop:ARCHITECTURE.md`
+says what exists.
 
 ## The product in one line
 
@@ -16,8 +16,8 @@ The **reader**: one person, running the add-on in their own browser, looking at 
 There are no accounts, no groups, no shared state and no server. Everything the panel knows, it read
 off the page a moment ago or off this browser's own storage.
 
-Secondarily, whoever wants to understand the battle protocol: `docs/protocol-keys.md` is a public
-record of what each key means and how we know.
+Secondarily, whoever wants to understand the battle protocol: `develop:docs/protocol-keys.md` is a
+public record of what each key means and how we know.
 
 ## The core problem
 
@@ -35,8 +35,8 @@ like a correct one. Everything below follows from refusing that.
    explicit unknown and reaches the panel. Coverage is measured against `captures/` by the gate,
    never quoted from memory.
 2. **Attribute only what the game named.** A figure is charged to a combatant when the protocol
-   states that end. Where it states one end, the rules in `ARCHITECTURE.md` say exactly when the
-   other may be filled and from what — each narrow, each listed.
+   states that end. Where it states one end, the rules in `develop:ARCHITECTURE.md` say exactly when
+   the other may be filled and from what — each narrow, each listed.
 3. **A number that might be wrong never looks like a number that is right.** Suspect and undrawn are
    visible states, placed next to the figure they concern.
 4. **Be a guest.** The panel is a visitor on somebody else's page, and never costs the reader their
@@ -79,14 +79,14 @@ Three things stand in for metrics:
 - **Protocol coverage** over `captures/`, asserted by the gate rather than reported by a tool.
 - **Agreement with the recordings** — figures the meter computes against health snapshots the
   protocol never states.
-- **The register in `docs/protocol-keys.md`**: how many keys have a verdict backed by evidence
-  rather than a guess.
+- **The register in `develop:docs/protocol-keys.md`**: how many keys have a verdict backed by
+  evidence rather than a guess.
 
 A claim about the add-on in a README or a release note is backed by one of those three, or it is not
 made.
 
-A second host publishes an install count of its own (ADR 0099). It is theirs, it counts one way in
-of two, and it is not a fourth item on that list — no claim here is backed by it.
+A second host publishes an install count of its own (develop ADR 0099). It is theirs, it counts one
+way in of two, and it is not a fourth item on that list — no claim here is backed by it.
 
 ## Non-goals
 
@@ -112,5 +112,5 @@ Everything else — code, comments, tests, this document, commits, ADRs — is E
 ## Governance
 
 The maintainer decides direction. `TODO.md` is their hand-kept list and no tool writes to it. A
-decision that is costly or surprising to reverse gets an ADR (`docs/adr/README.md`); everything else
-lives in the commit that made it.
+decision that is costly or surprising to reverse gets an ADR (`develop:docs/adr/README.md`);
+everything else lives in the commit that made it.

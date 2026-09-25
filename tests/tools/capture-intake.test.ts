@@ -1,24 +1,19 @@
 /**
- * The gate material passes on its way into the repository.
- *
- * Half of these are about what the tool **refuses**, which is the point of it: a recording it
- * cannot redact confidently must stop, because both ways of being wrong are permanent. The last
- * two hold it against the material already here, from both sides — the redaction is a fixed point
- * on every admitted recording, and the shape it depends on is the shape those files have.
+ * Intake on recordings written here, with nobody's real name in them. That it redacts as
+ * `develop`'s intake does was measured over every raw file on the maintainer's machine; these
+ * hold each step on its own and each refusal by what it names.
  */
 
 import {
     assert,
     assertEquals,
-    assertExists,
+    assertStrictEquals,
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
-import { getJsonReading } from "@/libs/json-text.ts";
-import { isRecord } from "@/libs/unknown-reading.ts";
 import {
     composeIntake,
-    composeIntakePath,
+    composeIntakeName,
     composePseudonymisedRecording,
     composeRecordingInEnglish,
     isSlugText,
@@ -27,407 +22,157 @@ import {
     requireCallsCarried,
     requireRecordingIsNew,
     requireSnapshotsCarried,
-} from "@/tools/capture-intake.ts";
-import { getRecordedFights } from "@/tools/recorded-fights.ts";
-import { CaptureIntakeError } from "@/tools/margometer-tool-error.ts";
-import { readRecordingPaths } from "@/tests/recorded-fight.ts";
+} from "#/tools/capture-intake.ts";
+import { CaptureIntakeError } from "#/tools/margometer-tool-error.ts";
+import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
 
-/**
- * A recording in the shape the add-on writes. The names in it are invented for this file: nothing
- * here is anybody's, which is the one thing a test about nicknames must be able to say.
- */
-function composeRecording(
-    warriors: Record<string, unknown>,
-    payload: Record<string, unknown> = {},
-    messages: string[] = [],
-): unknown {
-    return {
-        formatVersion: 3,
-        capturedAt: "2026-08-11T12:00:00.000Z",
+const SHORT = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
+
+Deno.test("an older recording is spelled in English, and an English one passes unchanged", () => {
+    const older = { wersja: 1, swiat: "tempest", wpisy: [{ nr: 0, ladunek: {}, komunikaty: [] }] };
+    assertEquals(composeRecordingInEnglish(older), {
+        formatVersion: 1,
         world: "tempest",
-        gameBuild: "1786514810315",
-        addOnVersion: "0.10.1",
+        calls: [{ index: 0, payload: {}, messages: [] }],
+    });
+    const english = composeFight();
+    assertEquals(composeRecordingInEnglish(english), english, "every name is its own translation");
+});
+
+/** A player, two monsters, and a player whose name holds the first one's. */
+function composeFight(): Record<string, unknown> {
+    return {
+        capturedAt: "2026-09-25T10:00:00.000Z",
+        world: "tempest",
+        gameBuild: "1785244275300",
+        addOnVersion: "0.20.0",
+        report: { dealt: 1 },
         calls: [{
             index: 0,
-            payload: { w: warriors, ...payload },
-            messages,
-            combatantsBefore: [],
-            combatantsAfter: [],
+            messages: ["0;0;txt=Anna hits Wilk", "0;0;txt=Annabelle heals Anna"],
+            payload: {
+                w: {
+                    "7": { id: 7, name: "Anna", npc: 0 },
+                    "-3": { id: -3, name: "Wilk", npc: 1 },
+                    "9": { id: 9, name: "Annabelle", npc: 0 },
+                    "-4": { id: -4, name: "Smok", npc: 2 },
+                },
+                skills: ["1", "Cios", "0", "0", "0", "Prose.", "", "", "", ""],
+            },
+            combatantsAfter: [{ id: 7, name: "Anna" }],
         }],
     };
 }
 
-/** The same recording as an add-on before **ADR 0030** wrote it: the envelope in Polish. */
-function composeRecordingBeforeEnglish(warriors: Record<string, unknown>): unknown {
-    return {
-        wersja: 2,
-        przy: "2026-08-11T12:00:00.000Z",
-        swiat: "tempest",
-        build: "1786514810315",
-        dodatek: "0.10.1",
-        wpisy: [{
-            nr: 0,
-            ladunek: { w: warriors },
-            komunikaty: ["txt=Wiewiorka"],
-            wojownicyPrzed: [],
-            wojownicyPo: [],
-        }],
-    };
-}
-
-Deno.test("a player becomes a numbered label wherever the name is, and a monster does not", () => {
-    const said = composePseudonymisedRecording(composeRecording(
-        {
-            "5": { id: 5, npc: 0, name: "Wiewiorka" },
-            "-9": { id: -9, npc: 1, name: "Locha" },
-        },
-        {},
-        ["winner=Wiewiorka;loser=Locha", "txt=Wiewiorka trafia Locha"],
-    ));
-    const written = JSON.stringify(said.recording);
-    assert(!written.includes("Wiewiorka"), "the player's name is nowhere in the document");
+Deno.test("players are numbered by id, longest name first, and a monster keeps its name", () => {
+    const named = composePseudonymisedRecording(composeFight());
+    assertEquals([...named.substitutions], [["Anna", "Gracz 1"], ["Annabelle", "Gracz 2"]]);
+    const text = JSON.stringify(named.recording);
+    assertStringIncludes(text, "txt=Gracz 1 hits Wilk", "a monster is the game's, not a person");
     assertStringIncludes(
-        written,
-        "Locha",
-        "and the monster's is untouched, because it is nobody's",
+        text,
+        '"name":"Smok"',
+        "and only a zero says person, whatever else is said",
     );
-    assertStringIncludes(written, "Gracz 1", "the label stands where the name did");
-    assertEquals(said.changed, 3, "once in `w` and once in each of the two messages it is in");
-    assertEquals([...said.substitutions], [["Wiewiorka", "Gracz 1"]], "one name, one label");
+    assertStringIncludes(text, "txt=Gracz 2 heals Gracz 1", "and a name inside a name is whole");
+    assert(!text.includes("Anna"), "no player's name is left anywhere");
+    assertStrictEquals(named.changed, 6, "two messages, two roster entries, one snapshot");
 });
 
-Deno.test("a combatant nobody can be told the kind of stops the write", () => {
-    // `npc` rides only in `ladunek.w`. A combatant known only from a snapshot has no `npc`, so
-    // guessing is the only way through — and both guesses are permanent.
-    const recording = composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } });
-    const held = recording as { calls: { combatantsAfter: unknown[] }[] };
-    const call = held.calls[0];
-    assertExists(call, "the recording carries the call this is about");
-    call.combatantsAfter = [{ id: 77, name: "Nieznajomy" }];
+Deno.test("a combatant nobody says is a player or a monster is refused, never guessed", () => {
+    const fight = composeFight();
+    const calls = fight.calls as { combatantsAfter: unknown[] }[];
+    calls[0]!.combatantsAfter.push({ id: 11, name: "Nieznany" });
+    assertThrows(() => composePseudonymisedRecording(fight), CaptureIntakeError, "combatant 11");
+});
+
+Deno.test("two players sharing a name are refused, since a message carries only the text", () => {
+    const fight = composeFight();
+    const payload = (fight.calls as { payload: { w: Record<string, unknown> } }[])[0]!.payload;
+    payload.w["12"] = { id: 12, name: "Anna", npc: 0 };
+    assertThrows(() => composePseudonymisedRecording(fight), CaptureIntakeError, "share the name");
+});
+
+Deno.test("an ability's prose goes, a marker already there stays, and a strange layout stops", () => {
+    const fight = composeFight();
+    const skills = (fight.calls as { payload: { skills: string[] } }[])[0]!.payload.skills;
+    assertStrictEquals(removeSkillDescriptions(fight).removed, 1);
+    assertStrictEquals(skills[5], REMOVED_DESCRIPTION);
+    assertStrictEquals(skills[1], "Cios", "the ability's name is functional and stays");
+    assertStrictEquals(removeSkillDescriptions(fight).removed, 0, "a second pass removes nothing");
+    skills[5] = "(opis z gry — zdjęty, NOTICE.md)";
+    assertStrictEquals(removeSkillDescriptions(fight).removed, 0, "nor does an older marker");
+    skills.push("extra");
     assertThrows(
-        () => composePseudonymisedRecording(recording),
+        () => removeSkillDescriptions(fight),
         CaptureIntakeError,
-        "77",
+        "not whole groups of 10",
     );
 });
 
-Deno.test("two players under one name stop the write, because text cannot separate them", () => {
-    assertThrows(
-        () =>
-            composePseudonymisedRecording(composeRecording({
-                "5": { id: 5, npc: 0, name: "Blizniak" },
-                "6": { id: 6, npc: 0, name: "Blizniak" },
-            })),
-        CaptureIntakeError,
-        "Blizniak",
-    );
+Deno.test("the whole intake drops the report and adds its counts to what the file carried", () => {
+    const first = composeIntake(composeFight());
+    assert(first.wasReportRemoved, "the counted figures go");
+    assertEquals(first.recording, JSON.parse(first.text), "the text is the recording");
+    const written = first.recording as Record<string, unknown>;
+    assertStrictEquals("report" in written, false);
+    assertStrictEquals(written.namesSubstituted, 6);
+    assertStrictEquals(written.descriptionsRemoved, 1);
+    const carried = { ...composeFight(), namesSubstituted: 4, descriptionsRemoved: 2 };
+    const again = composeIntake(carried).recording as Record<string, unknown>;
+    assertStrictEquals(again.namesSubstituted, 10, "a count is added to, never overwritten");
+    const unreadable = { ...composeFight(), namesSubstituted: "4" };
+    assertThrows(() => composeIntake(unreadable), CaptureIntakeError, "not a count");
 });
 
-Deno.test("a name that is also a label stops the write, because the file looks hand-edited", () => {
-    assertThrows(
-        () =>
-            composePseudonymisedRecording(composeRecording({
-                "5": { id: 5, npc: 0, name: "Gracz 2" },
-                "6": { id: 6, npc: 0, name: "Wiewiorka" },
-            })),
-        CaptureIntakeError,
-        "hand-edited",
-    );
-});
-
-Deno.test("a longer name is substituted before the one inside it", () => {
-    const said = composePseudonymisedRecording(composeRecording(
-        {
-            "5": { id: 5, npc: 0, name: "Kot" },
-            "6": { id: 6, npc: 0, name: "KotBury" },
-        },
-        {},
-        ["txt=KotBury trafia Kot"],
-    ));
-    const written = JSON.stringify(said.recording);
-    assert(!written.includes("KotBury"), "the longer name went whole");
-    assert(!written.includes("Kot "), "and the shorter one did too, rather than being eaten");
-    assertStringIncludes(written, "Gracz 2 trafia Gracz 1", "each name reached its own label");
-});
-
-Deno.test("the game's prose comes out and its functional names stay", () => {
-    const abilities = [
-        "239",
-        "Podwójne trafienie",
-        "5",
-        "9",
-        "4",
-        "A sentence the game's authors wrote.",
-        "reqp=t;lvl=25",
-        "1/10",
-        "energy=25",
-        "",
-    ];
-    const recording = composeRecording({}, { skills: abilities });
-    const said = removeSkillDescriptions(recording);
-    assertEquals(said.removed, 1, "one description, which is the one prose field in the group");
-    assertEquals(abilities[5], REMOVED_DESCRIPTION, "replaced by a marker that says what happened");
-    assertEquals(abilities[1], "Podwójne trafienie", "the ability's name is functional and stays");
-    assertEquals(abilities[6], "reqp=t;lvl=25", "and so are its requirements");
-    assertEquals(removeSkillDescriptions(recording).removed, 0, "a second run has nothing to do");
-});
-
-Deno.test("an ability list of an unfamiliar shape stops the write", () => {
-    // Groups of ten is a claim about the game. Cutting field 5 out of some other layout would
-    // remove the wrong thing, on evidence.
-    assertThrows(
-        () => removeSkillDescriptions(composeRecording({}, { skills: ["one", "two", "three"] })),
-        CaptureIntakeError,
-        "groups of 10",
-    );
-});
-
-Deno.test("the counts are written into the file, and a second run adds to them", () => {
-    const first = composeIntake(composeRecording(
-        { "5": { id: 5, npc: 0, name: "Wiewiorka" } },
-        {},
-        ["txt=Wiewiorka"],
-    ));
-    assertEquals(first.changed, 2, "the name in `w` and the name in the message");
-    const firstReading = getJsonReading(first.text);
-    assert(firstReading.isOk, "the intake is written as JSON");
-    const written = firstReading.value;
-    assert(isRecord(written), "the intake is written as a record");
-    assertEquals(written.namesSubstituted, 2, "and states what it substituted");
-    assertEquals(written.descriptionsRemoved, 0, "and that there was no prose to take out");
-
-    const again = composeIntake(written);
-    assertEquals(again.changed, 0, "a redacted recording has no nickname left to substitute");
-    const againReading = getJsonReading(again.text);
-    assert(againReading.isOk, "the second intake is JSON too");
-    const twice = againReading.value;
-    assert(isRecord(twice), "the second intake is a record too");
-    assertEquals(
-        twice.namesSubstituted,
-        2,
-        "and the carried count is kept rather than written over",
-    );
-});
-
-Deno.test("the figures the add-on counted stay out of the material, and the rest stays in", () => {
-    const carrying = composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } });
-    const held = carrying as Record<string, unknown>;
-    held.report = { payloads: 1, roster: [{ id: 5, name: "Wiewiorka" }] };
-    const admitted = composeIntake(carrying);
-    assertEquals(
-        admitted.wasReportRemoved,
-        true,
-        "a recording carrying figures is admitted without",
-    );
-    const reading = getJsonReading(admitted.text);
-    assert(reading.isOk, "what was written reads back as JSON");
-    const written = reading.value;
-    assert(isRecord(written), "and as a recording");
-    assert(!("report" in written), "`captures/` holds raw material and no computed number");
-    assert(!admitted.text.includes("Wiewiorka"), "and the names inside the block go with it");
-    assert(Array.isArray(written.calls), "while the calls it was counted off stay");
-
-    // The other sample, which is what says the step finds its subject rather than everything:
-    // a recording carrying no figures is admitted whole, and says nothing was taken out.
-    const plain = composeIntake(composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } }));
-    assertEquals(plain.wasReportRemoved, false, "a recording carrying none says so");
-    const plainReading = getJsonReading(plain.text);
-    assert(plainReading.isOk, "and it too reads back as JSON");
-    const kept = plainReading.value;
-    assert(isRecord(kept), "and as a recording");
-    const atIntake = ["namesSubstituted", "descriptionsRemoved"];
-    assertEquals(Object.keys(kept).filter((key) => !atIntake.includes(key)), [
-        "formatVersion",
-        "capturedAt",
-        "world",
-        "gameBuild",
-        "addOnVersion",
-        "calls",
-    ], "with every key it arrived with");
-});
-
-Deno.test("a count nobody can read stops the write rather than being read as none", () => {
-    const recording = composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } });
-    const held = recording as Record<string, unknown>;
-    held.namesSubstituted = "kilka";
-    assertThrows(() => composeIntake(recording), CaptureIntakeError, "namesSubstituted");
-});
-
-Deno.test("a path is the day, the world, what a person called it, and both versions", () => {
-    const recording = composeRecording({});
-    assertEquals(
-        composeIntakePath(recording, "grupa-vs-hildur"),
-        "captures/2026-08-11-tempest-grupa-vs-hildur-1786514810315-0.10.1.json",
-        "the day it was recorded, where, the name, the game's build and ours",
-    );
-    const blind = { ...(recording as Record<string, unknown>), gameBuild: null };
-    assertEquals(
-        composeIntakePath(blind, "grupa-vs-hildur"),
-        "captures/2026-08-11-tempest-grupa-vs-hildur-none-0.10.1.json",
-        "a build nobody stated is said to be none, the word the register uses",
-    );
-    assertThrows(() => composeIntakePath(recording, "Grupa"), CaptureIntakeError, "kebab-case");
-    assertThrows(
-        () => composeIntakePath({ world: "tempest" }, "one"),
-        CaptureIntakeError,
-        "capturedAt",
-    );
-    assertThrows(
-        () => composeIntakePath({ capturedAt: "2026-08-11T12:00:00.000Z" }, "one"),
-        CaptureIntakeError,
-        "world",
-    );
-    assertThrows(
-        () =>
-            composeIntakePath({ ...(recording as Record<string, unknown>), gameBuild: "a/b" }, "x"),
-        CaptureIntakeError,
-        "filename",
-    );
-});
-
-/**
- * The one reader that still takes the older spelling, because a reader running an older add-on
- * downloads one today. What comes out is English, whichever went in. **ADR 0030.**
- */
-Deno.test("a recording written before the envelope was English is admitted as English", () => {
-    const older = composeRecordingBeforeEnglish({ "5": { id: 5, npc: 0, name: "Wiewiorka" } });
-    const admitted = composeIntake(older);
-    const reading = getJsonReading(admitted.text);
-    assert(reading.isOk, "what was written reads back as JSON");
-    const written = reading.value;
-    assert(isRecord(written), "and as a recording");
-    assertEquals(Object.keys(written), [
-        "formatVersion",
-        "capturedAt",
-        "world",
-        "gameBuild",
-        "addOnVersion",
-        "calls",
-        "namesSubstituted",
-        "descriptionsRemoved",
-    ], "every envelope field under the name this repository spells it by");
-    assertEquals(written.gameBuild, "1786514810315", "and what each of them held is what it held");
-    assertEquals(admitted.changed, 2, "with the nicknames substituted as in any other recording");
-    assertEquals(
-        composeIntakePath(composeRecordingInEnglish(older), "grupa-vs-hildur"),
-        "captures/2026-08-11-tempest-grupa-vs-hildur-1786514810315-0.10.1.json",
-        "and it is filed under the two versions it stated in Polish",
-    );
-});
-
-Deno.test("a slug is lower-case, and a dash never doubles or ends it", () => {
-    assertEquals(isSlugText("grupa-vs-hildur"), true, "what every recording here is named with");
-    assertEquals(isSlugText("hildur"), true, "one word is a slug");
-    assertEquals(isSlugText(""), false, "nothing is not");
-    assertEquals(isSlugText("Hildur"), false, "and neither is a capital");
-    assertEquals(isSlugText("grupa--vs"), false, "nor a doubled dash");
-    assertEquals(isSlugText("-hildur"), false, "nor one at the front");
-    assertEquals(isSlugText("hildur-"), false, "nor one at the back");
-    assertEquals(isSlugText("grupa vs"), false, "nor a space");
-});
-
-Deno.test("every recording already admitted is a fixed point of this tool", () => {
-    // Both directions at once. That the redaction changes nothing says the material is redacted;
-    // that the tool runs at all over 28 real files says the shapes it depends on are the shapes
-    // those files have. A recording it refused would show up here as a throw.
-    const paths = readRecordingPaths();
-    assert(paths.length > 0, "there is material to hold this against");
-    const moved: string[] = [];
-    for (const path of paths) {
-        const reading = getJsonReading(Deno.readTextFileSync(path));
-        assert(reading.isOk, `${path} is JSON`);
-        const intake = composeIntake(reading.value);
-        if (intake.changed === 0 && intake.removed === 0) continue;
-        moved.push(`${path}: ${intake.changed} names, ${intake.removed} descriptions`);
-    }
-    assertEquals(moved, [], "a recording in this repository that still has something to redact");
-});
-
-Deno.test("a recording carrying no call is refused, because nothing is not evidence", () => {
-    // The envelope of `margometer-luvia-2026-08-28T07-50-36-018Z.json`, which add-on `0.10.1`
-    // wrote with an empty `wpisy` — twice that day, and once on 2026-08-26.
-    const nothing = {
-        formatVersion: 3,
-        capturedAt: "2026-08-28T07:50:36.018Z",
-        world: "luvia",
-        gameBuild: "53XkBRxF",
-        addOnVersion: "0.10.1",
-        calls: [],
-    };
-    assertThrows(() => requireCallsCarried(nothing), CaptureIntakeError, "no call");
-    assertThrows(() => requireCallsCarried({ ...nothing, calls: [1, "two"] }), CaptureIntakeError);
-    // And the sample it must not flag, without which this only says the reader still finds one.
-    requireCallsCarried(composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } }));
-});
-
-Deno.test("a recording with no snapshot is refused, because it checks the decoder", () => {
-    const carried = composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } });
-    // The sample it must not flag first: an admitted recording states both, and `[]` is a
-    // snapshot the engine answered with nobody in it, which is a reading and not a gap.
-    requireSnapshotsCarried(carried);
-    assert(isRecord(carried), "the fixture is a recording");
-    const calls = carried.calls;
-    assert(Array.isArray(calls), "carrying its calls as a list");
-    const stated = calls[0];
-    assert(isRecord(stated), "and each of them as a record");
-
-    // What the panel hands over for a fight it read back off its own shelf: the payload and the
-    // messages, and null where the engine was not there to be asked (ADR 0053).
-    const kept = {
-        ...carried,
-        formatVersion: 4,
-        calls: [{ ...stated, combatantsBefore: null, combatantsAfter: null }],
-    };
-    assertThrows(() => requireSnapshotsCarried(kept), CaptureIntakeError, "read back off its own");
-    // One side is enough: a file stating either is a file the health witness can be read from.
-    requireSnapshotsCarried({
-        ...kept,
-        calls: [{ ...stated, combatantsBefore: null }],
+Deno.test("a file with no call, or with no snapshot on any call, is not material", () => {
+    assertThrows(() => requireCallsCarried({ calls: [] }), CaptureIntakeError, "no call");
+    requireCallsCarried(composeFight());
+    const shelved = { calls: [{ messages: [], payload: {} }] };
+    assertThrows(() => requireSnapshotsCarried("x.json", shelved), CaptureIntakeError);
+    requireSnapshotsCarried("x.json", {
+        calls: [{ messages: [], payload: {}, combatantsBefore: [] }],
     });
 });
 
-/**
- * The replay case, and the reason the envelope cannot answer it: a recording played back through
- * the preview states the day, world and build of the replay, so the path it composes is free.
- */
-Deno.test("a fight already here is refused, whatever day, world and build are claimed", () => {
-    const [admitted] = readRecordingPaths();
-    assertExists(admitted, "there is material to hold this against");
-    const reading = getJsonReading(Deno.readTextFileSync(admitted));
-    assert(reading.isOk, `${admitted} is JSON`);
-    assert(isRecord(reading.value), "and a recording");
-    const replayed = {
-        ...reading.value,
-        capturedAt: "2026-09-01T12:00:00.000Z",
-        world: "localhost",
-        gameBuild: null,
-        addOnVersion: "0.0.0-dev",
+Deno.test("a fight already in the corpus is refused by its payloads, whatever its envelope", () => {
+    const fight = lookupRecordedFight(SHORT);
+    const offered = {
+        world: "elsewhere",
+        calls: fight.updates.map((payload) => ({ messages: [], payload, combatantsAfter: [] })),
     };
-    assertEquals(
-        composeIntakePath(replayed, "podglad"),
-        "captures/2026-09-01-localhost-podglad-none-0.0.0-dev.json",
-        "a path nothing is filed under, which is what lets the copy in",
-    );
-    const refusal = assertThrows(
-        () => requireRecordingIsNew(composeIntake(replayed).recording, getRecordedFights()),
+    assertThrows(
+        () => requireRecordingIsNew("x.json", offered, [fight]),
         CaptureIntakeError,
+        `already material as \`${SHORT}\``,
     );
-    assertStringIncludes(refusal.message, admitted, "and the refusal names the file it is already");
+    const changed = { calls: offered.calls.slice(1) };
+    requireRecordingIsNew("x.json", changed, [fight]);
 });
 
-Deno.test("a fight nobody has admitted passes the door", () => {
-    const fresh = composeRecording({ "7": { id: 7, npc: 0, name: "Wiewiorka" } });
-    requireCallsCarried(fresh);
-    requireRecordingIsNew(composeIntake(fresh).recording, getRecordedFights());
-    // Every admitted recording is a duplicate of itself, which is the reader's other side.
-    const held = getRecordedFights();
-    assert(held.length > 0, "there is material to hold this against");
-    for (const fight of held) {
-        assertThrows(
-            () =>
-                requireRecordingIsNew({ calls: fight.calls.map((payload) => ({ payload })) }, held),
-            CaptureIntakeError,
-            fight.name,
-        );
-    }
+Deno.test("a file is named for its day, world, fight, build and version, or `none`", () => {
+    const fight = composeFight();
+    assertStrictEquals(
+        composeIntakeName(fight, "grupa-vs-wilk"),
+        "2026-09-25-tempest-grupa-vs-wilk-1785244275300-0.20.0.json",
+    );
+    const unstated = { ...fight, gameBuild: "", addOnVersion: undefined };
+    assertStrictEquals(composeIntakeName(unstated, "a"), "2026-09-25-tempest-a-none-none.json");
+    assertThrows(() => composeIntakeName(fight, "Grupa"), CaptureIntakeError, "kebab-case");
+    assertThrows(() => composeIntakeName({ ...fight, gameBuild: "../x" }, "a"), CaptureIntakeError);
+    assertThrows(() => composeIntakeName({ ...fight, world: "a/b" }, "a"), CaptureIntakeError);
+    assertThrows(
+        () => composeIntakeName({ ...fight, capturedAt: "2026-9-25" }, "a"),
+        CaptureIntakeError,
+    );
+});
+
+Deno.test("a slug is lower-case words joined by single dashes", () => {
+    assert(isSlugText("a"));
+    assert(isSlugText("grupa-vs-hildur-1"));
+    assertStrictEquals(isSlugText(""), false);
+    assertStrictEquals(isSlugText("-a"), false);
+    assertStrictEquals(isSlugText("a-"), false);
+    assertStrictEquals(isSlugText("a--b"), false);
+    assertStrictEquals(isSlugText("a_b"), false);
 });

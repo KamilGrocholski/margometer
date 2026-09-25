@@ -4,88 +4,54 @@ Every step of cutting a release, in order. A release happens a few times a year 
 person, which is the interval at which an unwritten sequence is re-derived wrongly.
 
 **Each step names what it is and cites what owns it.** Nothing here restates a rule: where a step
-ends in a pointer, that pointer is where the rule lives, and this file is wrong the moment it says
-the rule again in its own words.
+ends in a pointer, that pointer is where the rule lives.
 
 ## 0. What a release is here
 
-Three files change together — `CHANGELOG.md` gains a section, `deno.json` gains a number,
-`screenshots/` is taken again — and then three pushes go out in an order that matters. What a tag
-turns into is `.github/workflows/release.yml`'s to do, and nothing after the tag is by hand.
+Two files change together — `CHANGELOG.md` moves `[Niewydane]` under a number, and `deno.json` gains
+that number — and then three pushes go out in an order that matters. What a tag turns into is
+`.github/workflows/release.yml`'s to do, and nothing after the tag is by hand but the checks in
+step 5.
 
 Which branch holds what: **G6**. The order the three pushes go in, and where the wait is: **G7**.
 
 ## 1. Before the number moves
 
 - [ ] On `develop`, working tree clean, `deno task check` green, `deno task e2e` green.
+- [ ] `deno task game:readings status` — every reading current (**W10**). A release standing on a
+      table the game has moved past draws figures the game no longer means.
 - [ ] `deno task fight:decoding` — nothing newly unread over `captures/`. A release that decodes
       less than the last one is a finding, not a release.
-- [ ] `deno task panel:drill` — `docs/drill-levels.md` still says what is measured.
-- [ ] Read the accepted decisions **against the tree of the last tag**, never against `develop`:
-      `git show "$(git describe --tags --abbrev=0 main):docs/adr/README.md"`. The tag is asked for
-      rather than spelled, because a number written here is right for one release and wrong for
-      every one after it. An audit run against the working tree reads every record as outstanding,
-      including the ones the last release already shipped. The lifecycle a status may name is
-      `docs/adr/README.md`'s.
-- [ ] `ARCHITECTURE.md`'s known gaps — close what closed, and say what a release running has changed
-      about the list.
-- [ ] Both READMEs, sentence by sentence, and the band the published preview opens with
+- [ ] Both READMEs, sentence by sentence, and the band the published page opens with
       (`tools/preview-site.ts`). Every claim on any of the three is about what a stranger is about
       to install.
+- [ ] `screenshots/` is the set `develop` took at `0.19.0`, and no tool here retakes it. Where the
+      panel's look changed since, the set is retaken by hand before the release commit, and
+      `screenshots/taken-at.json` states the number it was taken at.
 
-## 2. The release commit — the number and the pictures, in one commit
+## 2. The release commit
 
-Move what has accumulated under the new number with its date, bump the declaration, and photograph
-the panel at the number it ships as. All three, **uncommitted**, and then one commit over the lot.
-
-```bash
-# `CHANGELOG.md` and `deno.json` are edited first, and left in the working tree.
-deno task panel:shots --release
-```
-
-How a section is written and what the move is: the header comment of `CHANGELOG.md`. Why the section
-is the body of the release, and why the declaration is in one place: **ADR 0018**. The number itself
-is SemVer, and what `0.x` promises is the warning `CHANGELOG.md` opens with. The flag is what puts
-the release number on the panel in the pictures instead of the mark a build nobody tagged wears —
-**ADR 0037**, standing on **ADR 0035**. Without it the front page shows a version nobody can
-install, and no picture looks wrong.
-
-**Why one commit and not two.** `tests/tools/panel-screenshots.test.ts` holds the sidecar to the
-declaration, so neither half is green alone: bump first and the set still states the release before
-it, shoot first and the set states a number the tree does not declare. **G5** wants every commit
-green on its own, and this is the only order that gives it. The shoot is legal on a tree carrying
-this edit because `tools/panel-screenshots.ts` refuses uncommitted work under `src/` and nowhere
-else — the declaration is not `src/`.
-
-- [ ] **Open every one.** No machine can say whether the state in a picture is reachable, and this
-      is the standing obligation _The Frame Is Not A Screen Rule_ in `DESIGN.md` leaves nobody an
-      exemption from.
-- [ ] The title bar reads the bare number in every one of them.
-- [ ] `screenshots/taken-at.json` states that number unmarked. It is the string
-      `.github/workflows/release.yml` greps for at the tag, and the tag is where a marked set is
-      caught if this is not.
+Move what has accumulated under `[Niewydane]` to the new number with its date, and bump the
+declaration in `deno.json` — both in one commit. How a section is written and what the move is: the
+header comment of `CHANGELOG.md`. Why the section is the body of the release, and why the
+declaration is in one place: **develop ADR 0018**.
 
 ```
 build(release): <the number>, and what it is
 ```
 
-`deno task check` refuses a declaration with no section, so this commit is where a forgotten section
-is caught rather than at the tag.
+`deno task check` refuses a declaration with no section (`tests/repository/changelog.test.ts`), so
+this commit is where a forgotten section is caught rather than at the tag.
 
 ## 3. The gate
 
-- [ ] `git add`, then `deno task check`. Part of the gate lists what it reads with `git ls-files`,
-      so a file written straight to disk is invisible to it — **W2**, and **W1** for when the gate
-      runs at all.
+- [ ] `git add`, then `deno task check` — **W2**, **W1**.
 - [ ] Every commit in the release leaves it green on its own — **G5**.
-- [ ] `deno task e2e` — the built file in a real Chrome. It is not in the gate and CI runs it in a
-      job of its own, so a release is where a hand runs it deliberately — **W9**, **ADR 0047**.
+- [ ] `deno task e2e` — the built file in a real Chrome, outside the gate on purpose — **W9**.
 
 ## 4. Push, in three takts
 
-The branches, the order and the one wait: **G7**. The tag is last, and the reason it is last is in
-that rule and in `.github/workflows/release.yml`'s own comment — branch protection refuses `main`
-while a run is going and that refusal is cheap, where a tag pushed early is not.
+The branches, the order and the one wait: **G7**.
 
 ```bash
 git push origin develop
@@ -95,57 +61,44 @@ git push origin main
 git tag "v${version}" && git push origin "v${version}"
 ```
 
-⚠️ **`main` is advanced before it is pushed, and forgetting it fails silently.** A release is cut
-from `develop`, so the local `main` is still standing on the release before this one.
-`git push
-origin main` pushes **that**, matches what the remote already has, and answers
-`Everything
-up-to-date` — which reads exactly like the push having worked. It is the one step here
-whose omission looks like success, and it cost a takt on `v0.12.0`.
+⚠️ **`main` is advanced before it is pushed, and forgetting it fails silently.** The local `main` is
+still standing on the release before this one, so `git push origin main` pushes that, matches the
+remote, and answers `Everything up-to-date`, which reads exactly like the push having worked. It
+cost a takt on `v0.12.0`.
 
-`git fetch . develop:main` is the advance without a checkout, and it is the spelling to use because
-it **refuses anything but a fast-forward** — which is what **G6** asks of `main` and what nothing
-else on this page checks. Measured on git 2.39.5, 2026-09-01: a rewind prints
-`! [rejected] … (non-fast-forward)`, leaves the ref where it was and exits `1`, so a `&&` chain
-stops there. `git branch -f main develop` moves the same ref, takes that rewind without a word and
-exits `0`. The one thing to know about `git fetch` here is that it refuses to write a branch that is
-**checked out** — which is loud, and never the case on a release, where the tree is on `develop`.
+`git fetch . develop:main` is the advance without a checkout, and it **refuses anything but a
+fast-forward**, which is what **G6** asks of `main`. Measured on git 2.39.5, 2026-09-01: a rewind
+prints `! [rejected] … (non-fast-forward)`, leaves the ref where it was and exits `1`, where
+`git branch -f main develop` takes the same rewind without a word and exits `0`.
 
 Permission for each push is asked for, every time — **G1**.
 
 ## 5. After the tag
 
-`.github/workflows/release.yml` builds again at the tag's version, holds three things level, and
-publishes. Then, by hand:
+`.github/workflows/release.yml` builds again at the tag's version, holds the tag to the declaration
+and to `main`, and publishes. `.github/workflows/pages.yml` publishes the page from `main`. Then, by
+hand:
 
-- [ ] **Both files are attached** — `margometer.user.js` and `margometer.meta.js`. The metadata one
-      is not optional and the workflow's own banner says why: a version in the field polls it for
-      its next version, and a release without it leaves every copy installed from that version
-      checking a 404 for good, silently. The protected contract is in `ARCHITECTURE.md`.
+- [ ] **Both files are attached** — `margometer.user.js` and `margometer.meta.js`. An installed copy
+      polls the second for its next version, and a release without it leaves every copy checking a
+      404 for good, silently.
 - [ ] Install the published file into a browser and open a fight. The panel's title bar states the
       released number.
-- [ ] **The same file is posted to Greasy Fork** — the asset this release attached, as a new version
-      of the listing, never a local build. A copy installed there polls Greasy Fork's own copy and
-      never this repository's: it replaces `@downloadURL` and `@updateURL` when it serves a script,
-      so a release skipped there leaves those copies where they are and says nothing to the person
-      running one. The protected contract is in `ARCHITECTURE.md`; what may be posted at all is
-      **ADR 0099**.
-- [ ] The published preview — `.github/workflows/pages.yml` deploys it from `main` — states the same
-      number, in the band it opens with and in its panel. Its panel is built with the same flag as
-      the pictures.
+- [ ] **The same file is posted to Greasy Fork** — the asset this release attached, never a local
+      build. A copy installed there polls Greasy Fork's own copy and never this repository's, so a
+      release skipped there leaves those copies where they are (**develop ADR 0099**).
+- [ ] The published page states the same number, in its band and in its panel.
 - [ ] The release notes read as the changelog section, with the install note under them.
 
 ## What is held by a machine, and what is not
 
-| Held                                                 | By                                      |
-| ---------------------------------------------------- | --------------------------------------- |
-| the declaration has a section, and it says something | `tests/tools/changelog.test.ts`         |
-| the set was taken at a version this tree is          | `tests/tools/panel-screenshots.test.ts` |
-| the tag and the declaration agree                    | `.github/workflows/release.yml`         |
-| the built files carry the tagged version             | `.github/workflows/release.yml`         |
-| the set was taken at the tagged version, unmarked    | `.github/workflows/release.yml`         |
-| the tag sits on `main`                               | `.github/workflows/release.yml`         |
-| the file stays inside what the second host takes     | `tests/tools/build-userscript.test.ts`  |
+| Held                                                 | By                                     |
+| ---------------------------------------------------- | -------------------------------------- |
+| the declaration has a section, and it says something | `tests/repository/changelog.test.ts`   |
+| the tag and the declaration agree                    | `.github/workflows/release.yml`        |
+| the built files carry the tagged version             | `.github/workflows/release.yml`        |
+| the tag sits on `main`                               | `.github/workflows/release.yml`        |
+| the file stays inside what the second host takes     | `tests/tools/build-userscript.test.ts` |
 
-Everything else on this page is held by somebody reading it: the audits in step 1, the pictures in
-step 2, and the install and the post to the second host in step 5.
+Everything else on this page is held by somebody reading it: the audits in step 1, the pictures, and
+the install and the post to the second host in step 5.

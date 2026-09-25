@@ -1,48 +1,28 @@
 /**
- * Every protocol key the game client branches on, lifted from the production bundle.
+ * Every protocol key the game client branches on, lifted from the production bundle. The client
+ * decides what a message means in one `switch` over each segment's key, so that switch is the only
+ * complete answer to "what does the decoder not know about": the recordings carry only the keys
+ * that happened to occur. Keys only: they are functional names, and the sentences the game
+ * composes from them stay in the cache (`NOTICE.md`).
  *
  *     deno task game:keys [freeze]
- *
- * The client decides what a message means in one `switch` over the key of each segment, so that
- * switch is the only complete answer to "what does the decoder not know about" — the recordings
- * carry only the keys that happened to occur. Keys only: they are functional names, and the
- * sentences the game composes from them stay in the cache (NOTICE.md).
  */
 
 import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
-import { getEndOfRun, getQuotedLiteral, isDigitAt, JAVASCRIPT_QUOTES } from "@/libs/text-walk.ts";
-import { composeJsonWriting } from "@/libs/json-text.ts";
-import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
-import { getCachedBundle, getCachedClientSource } from "@/tools/game-client-source.ts";
-import { ProtocolKeyTableError } from "@/tools/margometer-tool-error.ts";
-
-/**
- * ⚠️ **The subject is matched by shape, and a build is why.** It was the literal `O[0]){` — the
- * name a minifier gave that local in build `1785244275300`. Build `1786441768914` calls it `y`,
- * and the tool refused the whole bundle over one renamed letter. What does not change is the
- * shape: some identifier indexed at zero, then the block.
- */
-const SWITCH_ANCHOR = "manageBattleEffects(";
-const SWITCH_SUBJECT_TAIL = "[0]){";
-const SEGMENT_INDEX = "[0]";
-const CASE_KEYWORD = "case";
-const LABEL_TERMINATOR = ":";
-/** A minified local. Digits are absent because the client never starts a name with one. */
-const NAME_CHARACTERS = "$_";
-const BLOCK_OPEN = "{";
-const BLOCK_CLOSE = "}";
-const ESCAPE = "\\";
-
-/** Past the label count of any switch the client has written, so the walk stays a stated bound. */
-const MAXIMUM_CASE_LABELS = 4096;
-/** Past the number of places `[0]){` or a shape's opening text occurs in three megabytes. */
-const MAXIMUM_LOOKS = 65536;
-
-const FROZEN_PATH = "frozen/protocol-keys.ts";
+import { encodeJson } from "#/libs/json-text.ts";
+import { formatInteger, parseInteger } from "#/libs/number-text.ts";
+import {
+    getEndOfRun,
+    isDigitAt,
+    JAVASCRIPT_QUOTES,
+    lookupQuotedLiteral,
+} from "#/libs/text-walk.ts";
+import { GAME_CHANNEL, readCachedBundle, readCachedClientSource } from "./game-client-source.ts";
+import { ProtocolKeyTableError } from "./margometer-tool-error.ts";
 
 /**
  * Not every key is spelled out. The switch ends in a default branch recognising a whole family by
- * shape — a marker at a fixed offset, and a sign saying whose figure it is.
+ * shape: a marker at a fixed offset, and a sign saying whose figure it is.
  */
 export interface ComputedKeyFamily {
     marker: string;
@@ -54,69 +34,218 @@ export interface ComputedKeyFamily {
 
 type DefaultBranchField = "marker" | "markerAt" | "markerLength" | "dealtSign";
 
-/**
- * One piece of a shape, in the order it is read. A capture carries the name of the field it holds,
- * so the two spellings below need no table of group numbers beside them.
- */
+/** One piece of a shape, in the order it is read; a capture names the field it holds. */
 type ShapeStep =
-    | { kind: "text"; text: string }
+    | { kind: typeof SHAPE_STEP.text; text: string }
     /** The segment, indexed at its first character. Not captured. */
-    | { kind: "segmentKey" }
-    | { kind: "quoted"; field: DefaultBranchField }
-    | { kind: "digits"; field: DefaultBranchField };
+    | { kind: typeof SHAPE_STEP.segmentKey }
+    | { kind: typeof SHAPE_STEP.quoted; field: DefaultBranchField }
+    | { kind: typeof SHAPE_STEP.digits; field: DefaultBranchField };
+
+const SHAPE_STEP = {
+    text: "text",
+    segmentKey: "segment-key",
+    quoted: "quoted",
+    digits: "digits",
+} as const;
 
 /**
+ * ⚠️ **The subject is matched by shape, and a build is why.** It was the literal `O[0]){`, the
+ * name a minifier gave that local in build `1785244275300`; build `1786441768914` calls it `y`,
+ * and the tool refused the whole bundle over one renamed letter. The shape does not change.
+ */
+const SWITCH_ANCHOR = "manageBattleEffects(";
+const SWITCH_SUBJECT_TAIL = "[0]){";
+const SEGMENT_INDEX = "[0]";
+const CASE_KEYWORD = "case";
+const LABEL_TERMINATOR = ":";
+/** A minified local. Digits are absent because the client never starts a name with one. */
+const NAME_CHARACTERS = "$_";
+const BLOCK_OPEN = "{";
+const BLOCK_CLOSE = "}";
+const ESCAPE = "\\";
+/** Past the label count of any switch the client has written, so the walk is a stated bound. */
+const CASE_LABELS_MAXIMUM = 4096;
+/** Past the number of places `[0]){` or a shape's opening text occurs in three megabytes. */
+const LOOKS_MAXIMUM = 65_536;
+const FROZEN_PATH = "frozen/protocol-keys.ts";
+/**
  * The default branch in the two orders the client has written it. Both say the same thing and
- * differ in which side of `==` each operand sits on, which is a bundler's output style: build
- * `1786514810315` wrote the literal first, `53XkBRxF` writes it second.
+ * differ in which side of `==` each operand sits on: build `1786514810315` wrote the literal first,
+ * `53XkBRxF` writes it second.
  */
 const DEFAULT_BRANCH_SHAPES: readonly (readonly ShapeStep[])[] = [
     [
-        { kind: "text", text: "default:" },
-        { kind: "segmentKey" },
-        { kind: "text", text: ".substr(" },
-        { kind: "digits", field: "markerAt" },
-        { kind: "text", text: "," },
-        { kind: "digits", field: "markerLength" },
-        { kind: "text", text: ")==" },
-        { kind: "quoted", field: "marker" },
-        { kind: "text", text: "?" },
-        { kind: "segmentKey" },
-        { kind: "text", text: ".charAt(0)==" },
-        { kind: "quoted", field: "dealtSign" },
+        { kind: SHAPE_STEP.text, text: "default:" },
+        { kind: SHAPE_STEP.segmentKey },
+        { kind: SHAPE_STEP.text, text: ".substr(" },
+        { kind: SHAPE_STEP.digits, field: "markerAt" },
+        { kind: SHAPE_STEP.text, text: "," },
+        { kind: SHAPE_STEP.digits, field: "markerLength" },
+        { kind: SHAPE_STEP.text, text: ")==" },
+        { kind: SHAPE_STEP.quoted, field: "marker" },
+        { kind: SHAPE_STEP.text, text: "?" },
+        { kind: SHAPE_STEP.segmentKey },
+        { kind: SHAPE_STEP.text, text: ".charAt(0)==" },
+        { kind: SHAPE_STEP.quoted, field: "dealtSign" },
     ],
     [
-        { kind: "text", text: "default:" },
-        { kind: "quoted", field: "marker" },
-        { kind: "text", text: "==" },
-        { kind: "segmentKey" },
-        { kind: "text", text: ".substr(" },
-        { kind: "digits", field: "markerAt" },
-        { kind: "text", text: "," },
-        { kind: "digits", field: "markerLength" },
-        { kind: "text", text: ")?" },
-        { kind: "quoted", field: "dealtSign" },
-        { kind: "text", text: "==" },
-        { kind: "segmentKey" },
-        { kind: "text", text: ".charAt(0)" },
+        { kind: SHAPE_STEP.text, text: "default:" },
+        { kind: SHAPE_STEP.quoted, field: "marker" },
+        { kind: SHAPE_STEP.text, text: "==" },
+        { kind: SHAPE_STEP.segmentKey },
+        { kind: SHAPE_STEP.text, text: ".substr(" },
+        { kind: SHAPE_STEP.digits, field: "markerAt" },
+        { kind: SHAPE_STEP.text, text: "," },
+        { kind: SHAPE_STEP.digits, field: "markerLength" },
+        { kind: SHAPE_STEP.text, text: ")?" },
+        { kind: SHAPE_STEP.quoted, field: "dealtSign" },
+        { kind: SHAPE_STEP.text, text: "==" },
+        { kind: SHAPE_STEP.segmentKey },
+        { kind: SHAPE_STEP.text, text: ".charAt(0)" },
     ],
 ];
+/**
+ * What stands over the frozen table, exported so a guard holds the file to its generator without
+ * the cached client a full regeneration needs: the banner once changed here and the file kept the
+ * old one.
+ */
+export const FROZEN_KEY_BANNER =
+    `// Generated by \`deno task game:keys freeze\`. Do not edit by hand.
+//
+// Keys only, and \`tools/protocol-key-table.ts\` says what they are lifted from and why
+// nothing the game composes from them comes with them.
+`;
+
+/** The table written to `frozen/`, dated by the build its bundle was served as. */
+export function writeFrozenKeyTable(): { build: string; count: number } {
+    const build = requireCachedBuild();
+    const bundle = readCachedBundle(GAME_CHANNEL.production);
+    const keys = requireProtocolKeys(bundle);
+    const family = requireComputedKeyFamily(bundle);
+    Deno.writeTextFileSync(FROZEN_PATH, encodeFrozenKeyModule(build, keys, family));
+    assert(keys.length > 0, "a table that was written down counts something");
+    return { build, count: keys.length };
+}
+
+/** The build the table would be lifted from, refusing rather than reading an empty cache. */
+function requireCachedBuild(): string {
+    const cached = readCachedClientSource(GAME_CHANNEL.production);
+    if (cached === null) {
+        throw new ProtocolKeyTableError(
+            "nothing cached for production — run `deno task game:client fetch production`",
+        );
+    }
+    assertStrictEquals(cached.channel, GAME_CHANNEL.production, "the channel the table stands on");
+    return cached.build;
+}
+
+function encodeFrozenKeyModule(build: string, keys: string[], family: ComputedKeyFamily): string {
+    const written = keys.map((key) => `        ${encodeRequiredText(key)},`).join("\n");
+    assert(written.length > 0, "a table that is written down says something");
+    assert(build.length > 0, "and is dated by the build it was lifted from");
+    return `${FROZEN_KEY_BANNER}
+export const FROZEN_PROTOCOL_KEYS = {
+    gameBuild: ${encodeRequiredText(build)},
+    /** Keys the client recognises by shape rather than by name — see the tool. */
+    computedFamily: ${encodeFamilyText(family)},
+    keys: [
+${written}
+    ],
+} as const;
+`;
+}
+
+/** The family on one line, spaced the way this tree writes an object, since it is read here. */
+function encodeFamilyText(family: ComputedKeyFamily): string {
+    const fields = [
+        `${encodeRequiredText("marker")}: ${encodeRequiredText(family.marker)}`,
+        `${encodeRequiredText("markerAt")}: ${formatInteger(family.markerAt)}`,
+        `${encodeRequiredText("markerLength")}: ${formatInteger(family.markerLength)}`,
+        `${encodeRequiredText("dealtSign")}: ${encodeRequiredText(family.dealtSign)}`,
+    ];
+    assert(family.markerLength > 0, "a marker has something in it");
+    return `{ ${fields.join(", ")} }`;
+}
+
+/** A value of the table as the text it is written down as, or a refusal branded as this tool's. */
+function encodeRequiredText(value: unknown): string {
+    const text = encodeJson(value, 0);
+    if (!text.ok) {
+        throw new ProtocolKeyTableError("a value of the table cannot be written", {
+            cause: text.error,
+        });
+    }
+    return text.value;
+}
+
+export function requireProtocolKeys(bundle: string): string[] {
+    const anchor = bundle.indexOf(SWITCH_ANCHOR);
+    if (anchor === -1) {
+        throw new ProtocolKeyTableError(`no ${SWITCH_ANCHOR} in the bundle — it was restructured`);
+    }
+    // Searched from the anchor rather than over the whole bundle: `x[0]){` is an ordinary shape,
+    // and the first one in three megabytes belongs to whatever is earliest, not to this switch.
+    const subject = lookupSwitchSubjectStart(bundle, anchor);
+    if (subject === null) {
+        throw new ProtocolKeyTableError(`${SWITCH_ANCHOR} found but not the switch on the key`);
+    }
+    const distinct = [...new Set(parseCaseLabels(requireBlockBody(bundle, subject)))];
+    if (distinct.length === 0) throw new ProtocolKeyTableError("the switch has no case labels");
+    assert(subject >= anchor, "the switch sits at or after the call that anchors it");
+    return distinct.sort();
+}
+
+/**
+ * Where the switch subject's name begins at or after `from`: found by its tail and walked back,
+ * because the name is what a minifier renames and the tail is what it cannot.
+ */
+function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
+    let at = bundle.indexOf(SWITCH_SUBJECT_TAIL, from);
+    for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
+        if (at === -1) return null;
+        let start = at;
+        while (start > from) {
+            if (!isNameCharacterAt(bundle, start - 1)) break;
+            start -= 1;
+        }
+        if (start < at) return start;
+        at = bundle.indexOf(SWITCH_SUBJECT_TAIL, at + 1);
+    }
+    return null;
+}
 
 function isNameCharacterAt(source: string, index: number): boolean {
     const character = source.charAt(index);
     if (character === "") return false;
-    assertStrictEquals(character.length, 1, "one character is looked at");
-    assert(index >= 0, "and it is looked for inside the source");
     if (character >= "a" && character <= "z") return true;
     if (character >= "A" && character <= "Z") return true;
     return NAME_CHARACTERS.includes(character);
 }
 
+/** Every `case"key":` label in the switch body, in the order it states them. */
+function parseCaseLabels(body: string): string[] {
+    const labels: string[] = [];
+    let from = 0;
+    for (let look = 0; look < CASE_LABELS_MAXIMUM; look += 1) {
+        const at = body.indexOf(CASE_KEYWORD, from);
+        if (at === -1) return labels;
+        const quoted = lookupQuotedLiteral(body, at + CASE_KEYWORD.length);
+        if (quoted === null || body.charAt(quoted.end) !== LABEL_TERMINATOR) {
+            from = at + 1;
+            continue;
+        }
+        labels.push(quoted.text);
+        from = quoted.end + 1;
+    }
+    assert(labels.length <= CASE_LABELS_MAXIMUM, "a switch states no more labels than the bound");
+    return labels;
+}
+
 /** The block starting at the first `{` after `from`, brace-matched, strings skipped. */
-function getBlockBody(source: string, from: number): string {
+function requireBlockBody(source: string, from: number): string {
     const start = source.indexOf(BLOCK_OPEN, from);
     if (start === -1) throw new ProtocolKeyTableError("no block after the switch subject");
-
     let depth = 0;
     let quote = "";
     for (let at = start; at < source.length; at += 1) {
@@ -130,80 +259,16 @@ function getBlockBody(source: string, from: number): string {
         else if (character === BLOCK_OPEN) depth += 1;
         else if (character === BLOCK_CLOSE) {
             depth -= 1;
-            if (depth === 0) {
-                assert(at >= start, "a block closes after it opened");
-                return source.slice(start, at + 1);
-            }
+            if (depth === 0) return source.slice(start, at + 1);
         }
     }
     assertNotStrictEquals(depth, 0, "a block that never closed was walked to the end");
     throw new ProtocolKeyTableError("the switch block never closes");
 }
 
-/** The shape read straight through from `start`, or null at the first piece that does not hold. */
-function getFieldsAt(
-    bundle: string,
-    start: number,
-    steps: readonly ShapeStep[],
-): Map<DefaultBranchField, string> | null {
-    const fields = new Map<DefaultBranchField, string>();
-    let index = start;
-
-    for (const step of steps) {
-        if (step.kind === "text") {
-            if (!bundle.startsWith(step.text, index)) return null;
-            index += step.text.length;
-            continue;
-        }
-        if (step.kind === "segmentKey") {
-            const name = getEndOfRun(bundle, index, isNameCharacterAt);
-            if (name === index) return null;
-            if (!bundle.startsWith(SEGMENT_INDEX, name)) return null;
-            index = name + SEGMENT_INDEX.length;
-            continue;
-        }
-        if (step.kind === "digits") {
-            const digits = getEndOfRun(bundle, index, isDigitAt);
-            if (digits === index) return null;
-            fields.set(step.field, bundle.slice(index, digits));
-            index = digits;
-            continue;
-        }
-        const quoted = getQuotedLiteral(bundle, index);
-        if (quoted === null) return null;
-        fields.set(step.field, quoted.text);
-        index = quoted.end;
-    }
-    assert(fields.size <= steps.length, "a shape reads no more fields than it has pieces");
-    assert(index >= start, "a shape is read forwards");
-    return fields;
-}
-
-/** The first place in the bundle where the shape holds, read whole. */
-function getFieldsFromShape(
-    bundle: string,
-    steps: readonly ShapeStep[],
-): Map<DefaultBranchField, string> | null {
-    const head = steps[0];
-    // Every shape opens with a literal, which is what the search hunts for. One that did not
-    // could still be read at every position, and the cost of that over three megabytes is why
-    // this refuses instead.
-    if (head === undefined || head.kind !== "text") {
-        throw new ProtocolKeyTableError("a default-branch shape has to open with text");
-    }
-    let at = bundle.indexOf(head.text);
-    for (let look = 0; look < MAXIMUM_LOOKS; look += 1) {
-        if (at === -1) return null;
-        const fields = getFieldsAt(bundle, at, steps);
-        if (fields !== null) return fields;
-        at = bundle.indexOf(head.text, at + 1);
-    }
-    return null;
-}
-
-export function getComputedKeyFamily(bundle: string): ComputedKeyFamily {
+export function requireComputedKeyFamily(bundle: string): ComputedKeyFamily {
     const read = DEFAULT_BRANCH_SHAPES
-        .map((steps) => getFieldsFromShape(bundle, steps))
+        .map((steps) => lookupShapeFields(bundle, steps))
         .find((fields): fields is Map<DefaultBranchField, string> => fields !== null);
     if (read === undefined) {
         throw new ProtocolKeyTableError(
@@ -212,177 +277,81 @@ export function getComputedKeyFamily(bundle: string): ComputedKeyFamily {
     }
     const marker = read.get("marker") ?? "";
     const dealtSign = read.get("dealtSign") ?? "";
-    const markerAt = getIntegerFromText(read.get("markerAt") ?? "");
-    const markerLength = getIntegerFromText(read.get("markerLength") ?? "");
-    // That the fields are there is ours to guarantee — the shape read them all or it read none.
-    // What the client wrote inside them is not, so the offsets are refused rather than coerced.
+    const markerAt = parseInteger(read.get("markerAt") ?? "");
+    const markerLength = parseInteger(read.get("markerLength") ?? "");
+    // That the fields are there is ours to guarantee: the shape read them all or none. What the
+    // client wrote inside them is not, so the offsets are refused rather than coerced.
     if (markerAt === null || markerLength === null) {
-        throw new ProtocolKeyTableError(
-            "the default branch's offsets do not read as numbers — the client changed" +
-                " how it routes keys",
-        );
+        throw new ProtocolKeyTableError("the default branch's offsets do not read as numbers");
     }
     assert(marker.length > 0, "a family is recognised by a marker that says something");
     assert(dealtSign.length > 0, "and by a sign saying whose figure it is");
     return { marker, markerAt, markerLength, dealtSign };
 }
 
-/**
- * Where the switch subject's name begins at or after `from`.
- *
- * Found by its tail and walked back, because the name is what a minifier renames and the tail is
- * what it cannot. The walk stops at `from`: a name running in from before the anchor is not this
- * switch's.
- */
-function getSwitchSubjectStart(bundle: string, from: number): number | null {
-    let at = bundle.indexOf(SWITCH_SUBJECT_TAIL, from);
-    for (let look = 0; look < MAXIMUM_LOOKS; look += 1) {
+/** The first place in the bundle where the shape holds, read whole. */
+function lookupShapeFields(
+    bundle: string,
+    steps: readonly ShapeStep[],
+): Map<DefaultBranchField, string> | null {
+    const head = steps[0];
+    // Every shape opens with a literal, which is what the search hunts for; reading at every
+    // position of three megabytes instead is why one that does not is refused.
+    if (head === undefined || head.kind !== SHAPE_STEP.text) {
+        throw new ProtocolKeyTableError("a default-branch shape has to open with text");
+    }
+    let at = bundle.indexOf(head.text);
+    for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
         if (at === -1) return null;
-        let start = at;
-        while (start > from) {
-            assert(start <= bundle.length, "the walk back stays inside its stated bound");
-            if (!isNameCharacterAt(bundle, start - 1)) break;
-            start -= 1;
-        }
-        if (start < at) return start;
-        at = bundle.indexOf(SWITCH_SUBJECT_TAIL, at + 1);
+        const fields = parseShapeFields(bundle, at, steps);
+        if (fields !== null) return fields;
+        at = bundle.indexOf(head.text, at + 1);
     }
     return null;
 }
 
-/** Every `case"key":` label in the switch body, in the order it states them. */
-function getCaseLabels(body: string): string[] {
-    const labels: string[] = [];
-    let from = 0;
-    for (let look = 0; look < MAXIMUM_CASE_LABELS; look += 1) {
-        const at = body.indexOf(CASE_KEYWORD, from);
-        if (at === -1) return labels;
-        const quoted = getQuotedLiteral(body, at + CASE_KEYWORD.length);
-        if (quoted === null || body.charAt(quoted.end) !== LABEL_TERMINATOR) {
-            from = at + 1;
-            continue;
+/** The shape read straight through from `start`, or null at the first piece that does not hold. */
+function parseShapeFields(
+    bundle: string,
+    start: number,
+    steps: readonly ShapeStep[],
+): Map<DefaultBranchField, string> | null {
+    const fields = new Map<DefaultBranchField, string>();
+    let index = start;
+    for (const step of steps) {
+        if (step.kind === SHAPE_STEP.text) {
+            if (!bundle.startsWith(step.text, index)) return null;
+            index += step.text.length;
+        } else if (step.kind === SHAPE_STEP.segmentKey) {
+            const name = getEndOfRun(bundle, index, isNameCharacterAt);
+            if (name === index) return null;
+            if (!bundle.startsWith(SEGMENT_INDEX, name)) return null;
+            index = name + SEGMENT_INDEX.length;
+        } else if (step.kind === SHAPE_STEP.digits) {
+            const digits = getEndOfRun(bundle, index, isDigitAt);
+            if (digits === index) return null;
+            fields.set(step.field, bundle.slice(index, digits));
+            index = digits;
+        } else {
+            const quoted = lookupQuotedLiteral(bundle, index);
+            if (quoted === null) return null;
+            fields.set(step.field, quoted.text);
+            index = quoted.end;
         }
-        labels.push(quoted.text);
-        from = quoted.end + 1;
     }
-    assert(labels.length <= MAXIMUM_CASE_LABELS, "a switch states no more labels than the bound");
-    return labels;
-}
-
-export function getProtocolKeys(bundle: string): string[] {
-    const anchor = bundle.indexOf(SWITCH_ANCHOR);
-    if (anchor === -1) {
-        throw new ProtocolKeyTableError(
-            `no ${SWITCH_ANCHOR} in the bundle — the client was restructured`,
-        );
-    }
-    // Searched from the anchor rather than over the whole bundle: `x[0]){` is an ordinary shape,
-    // and the first one in three megabytes belongs to whatever is earliest, not to this switch.
-    const subject = getSwitchSubjectStart(bundle, anchor);
-    if (subject === null) {
-        throw new ProtocolKeyTableError(
-            `${SWITCH_ANCHOR} found but not the switch on the segment key`,
-        );
-    }
-    const distinct = [...new Set(getCaseLabels(getBlockBody(bundle, subject)))];
-    if (distinct.length === 0) throw new ProtocolKeyTableError("the switch has no case labels");
-    assert(subject >= anchor, "the switch sits at or after the call that anchors it");
-    assert(distinct.length > 0, "a table that was lifted names something");
-    return distinct.sort();
-}
-
-/** The frozen table as the text it is written down as, or a refusal branded as this tool's. */
-function requireWrittenText(value: unknown): string {
-    const writing = composeJsonWriting(value);
-    if (!writing.isOk) {
-        throw new ProtocolKeyTableError("a value of the table cannot be written", {
-            cause: writing.cause,
-        });
-    }
-    assert(writing.text.length > 0, "a value that was written says something");
-    return writing.text;
-}
-
-/** The family on one line, spaced the way this tree writes an object, since it is read here. */
-function composeFamilyText(family: ComputedKeyFamily): string {
-    const fields = [
-        `${requireWrittenText("marker")}: ${requireWrittenText(family.marker)}`,
-        `${requireWrittenText("markerAt")}: ${composeIntegerText(family.markerAt)}`,
-        `${requireWrittenText("markerLength")}: ${composeIntegerText(family.markerLength)}`,
-        `${requireWrittenText("dealtSign")}: ${requireWrittenText(family.dealtSign)}`,
-    ];
-    assertStrictEquals(fields.length, 4, "a family states four things about itself");
-    assert(family.markerLength > 0, "and a marker with something in it");
-    return `{ ${fields.join(", ")} }`;
-}
-
-/**
- * What stands over the frozen table, exported so a guard can hold the file to its generator
- * without the cached client a full regeneration needs — which is the drift nothing caught until
- * the banner was edited here and the file kept the old one.
- */
-export const FROZEN_KEY_BANNER =
-    `// Generated by \`deno task game:keys freeze\`. Do not edit by hand.
-//
-// Keys only, and \`tools/protocol-key-table.ts\` says what they are lifted from and why
-// nothing the game composes from them comes with them.
-`;
-
-function composeFrozenKeyModule(build: string, keys: string[], family: ComputedKeyFamily): string {
-    const stated = composeFamilyText(family);
-    const written = keys.map((key) => `        ${requireWrittenText(key)},`).join("\n");
-    assert(written.length > 0, "a table that is written down says something");
-    assert(build.length > 0, "and is dated by the build it was lifted from");
-    return `${FROZEN_KEY_BANNER}
-export const FROZEN_PROTOCOL_KEYS = {
-    gameBuild: ${requireWrittenText(build)},
-    /** Keys the client recognises by shape rather than by name — see the tool. */
-    computedFamily: ${stated},
-    keys: [
-${written}
-    ],
-} as const;
-`;
-}
-
-/** The build the table would be lifted from, refusing rather than reading an empty cache. */
-function requireCachedBuild(): string {
-    const cached = getCachedClientSource("production");
-    if (cached === null) {
-        throw new ProtocolKeyTableError(
-            "nothing cached for production — run `deno task game:client fetch production`",
-        );
-    }
-    assert(cached.build.length > 0, "a cache that was admitted knows its own build");
-    assertStrictEquals(cached.channel, "production", "and is the channel the table stands on");
-    return cached.build;
-}
-
-/** The table written to `frozen/`, dated by the build its bundle was served as. */
-export function writeFrozenKeyTable(): { build: string; count: number } {
-    const build = requireCachedBuild();
-    const bundle = getCachedBundle("production");
-    const keys = getProtocolKeys(bundle);
-    Deno.writeTextFileSync(
-        FROZEN_PATH,
-        composeFrozenKeyModule(build, keys, getComputedKeyFamily(bundle)),
-    );
-    assert(keys.length > 0, "a table that was written down counts something");
-    assert(build.length > 0, "and says which build it was counted over");
-    return { build, count: keys.length };
+    assert(fields.size <= steps.length, "a shape reads no more fields than it has pieces");
+    return fields;
 }
 
 if (import.meta.main) {
     if (Deno.args.includes("freeze")) {
         const { build, count } = writeFrozenKeyTable();
-        console.log(`froze ${composeIntegerText(count)} keys from build ${build} → ${FROZEN_PATH}`);
+        console.log(`froze ${formatInteger(count)} keys from build ${build} → ${FROZEN_PATH}`);
     } else {
-        const bundle = getCachedBundle("production");
-        const count = composeIntegerText(getProtocolKeys(bundle).length);
-        const family = getComputedKeyFamily(bundle);
-        console.log(
-            `${count} keys plus the ${family.marker} family in build ${requireCachedBuild()}`,
-        );
+        const bundle = readCachedBundle(GAME_CHANNEL.production);
+        const count = formatInteger(requireProtocolKeys(bundle).length);
+        const family = requireComputedKeyFamily(bundle);
+        console.log(`${count} keys plus the ${family.marker} family in ${requireCachedBuild()}`);
         console.log(`run with \`freeze\` to write ${FROZEN_PATH}`);
     }
 }

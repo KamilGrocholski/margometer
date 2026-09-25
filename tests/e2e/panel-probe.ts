@@ -6,7 +6,8 @@
  */
 
 import { expect, type Page } from "@playwright/test";
-import { HOST_SELECTOR } from "@/tests/e2e/panel-fixture.ts";
+import { HOST_SELECTOR } from "./panel-fixture.ts";
+import { waitForFrame } from "./panel-page.ts";
 
 export interface PagePoint {
     x: number;
@@ -19,8 +20,19 @@ export interface BarPoint extends PagePoint {
     onto: string;
 }
 
+/**
+ * The edges rather than the middle. A card that overlaps the panel by less than half its own
+ * width has a centre on the correct side of it, so a claim about where a card stands has to be
+ * made about the edge that would do the covering — which is what a centre let past on 2026-09-15.
+ */
+export interface PanelEdges {
+    left: number;
+    right: number;
+}
+
 /** Read inside the shadow root, which is the only place `elementFromPoint` can see a row. */
 export async function readUnderPoint(page: Page, at: PagePoint): Promise<string> {
+    await waitForFrame(page);
     return await page.evaluate(({ selector, x, y }) => {
         const root = document.querySelector(selector)?.shadowRoot ?? null;
         const under = root === null ? null : root.elementFromPoint(x, y);
@@ -66,16 +78,6 @@ export async function readCentreOf(page: Page, selector: string, at = 0): Promis
     };
 }
 
-/**
- * The edges rather than the middle. A card that overlaps the panel by less than half its own
- * width has a centre on the correct side of it, so a claim about where a card stands has to be
- * made about the edge that would do the covering — which is what a centre let past on 2026-09-15.
- */
-export interface PanelEdges {
-    left: number;
-    right: number;
-}
-
 export async function readEdgesOf(
     page: Page,
     selector: string,
@@ -96,6 +98,7 @@ export async function setDragged(page: Page, from: PagePoint, by: PagePoint): Pr
 }
 
 export async function readHostStyle(page: Page): Promise<string> {
+    await waitForFrame(page);
     return await page.evaluate((selector) => {
         return document.querySelector(selector)?.getAttribute("style") ?? "";
     }, HOST_SELECTOR);
@@ -108,6 +111,7 @@ export async function readHostStyle(page: Page): Promise<string> {
  * so a shape carrying the card would differ for no reason but where the mouse came from.
  */
 export async function readPanelShape(page: Page): Promise<string> {
+    await waitForFrame(page);
     const shape = await page.evaluate((selector) => {
         const root = document.querySelector(selector)?.shadowRoot ?? null;
         const regions = root === null ? [] : [...root.children];

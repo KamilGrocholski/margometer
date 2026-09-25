@@ -12,7 +12,7 @@ import type {
     PanelEvent,
     PanelRoot,
     PanelTarget,
-} from "@/src/ui/panel-element.ts";
+} from "#/src/ui/panel-document.ts";
 
 export interface FakeElement extends PanelElement {
     tag: string;

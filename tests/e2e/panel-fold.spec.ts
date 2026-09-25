@@ -2,10 +2,10 @@
  * The panel folded away and brought back: what goes, what stays, and what the browser is told.
  */
 
-import { expect, test } from "@/tests/e2e/panel-fixture.ts";
-import { readPanelShape } from "@/tests/e2e/panel-probe.ts";
+import { expect, test } from "./panel-fixture.ts";
+import { readPanelShape } from "./panel-probe.ts";
 
-/** The one key the fold is written under, named as `src/userscript-entry.ts` names it. */
+/** The one key the fold is written under, named as `STORE_KEY` in `src/game/browser-store.ts` names it. */
 const FOLD_KEY = "MargoMeter-folded";
 /** What the control reads while the panel is open, and while it is away. */
 const FOLD_MARK = "—";

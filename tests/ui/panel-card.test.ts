@@ -7,18 +7,19 @@
  */
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
-import { composeCardReading } from "@/src/ui/panel-card.ts";
-import type { PanelMetric, PanelSidePart, RowDetail } from "@/src/ui/panel-reading.ts";
-import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
-import type { TipGroup } from "@/src/ui/panel-tip.ts";
+import { presentCard } from "#/src/ui/panel-card.ts";
+import { type PanelSidePart, type RowDetail, SIDE_PART } from "#/src/ui/panel-reading.ts";
+import { PANEL_METRIC, type PanelMetric, SCREEN_ORDER } from "#/src/ui/panel-screen.ts";
+import { TIP_LINE, TIP_NOTE_TONE, type TipGroup } from "#/src/ui/tip-reading.ts";
 import {
     CARD_WORDS,
+    CAVEAT,
     CAVEAT_MARK,
-    composeUnknownKeyRowSuspicion,
+    formatUnknownKeyRowSuspicion,
     getNoteForCaveat,
     PANEL_WORDS,
     SUSPECT_MARK,
-} from "@/src/ui/panel-words.ts";
+} from "#/src/ui/panel-words.ts";
 
 /** A combatant who did every one of the four, and whose log left an end out of three of them. */
 const HILDUR: RowDetail = {
@@ -94,56 +95,24 @@ const NOBODY: RowDetail = {
 
 /**
  * The mark as a reader meets it in a line, in this reader's own spelling. The panel draws a ring
- * around the letter rather than spelling a glyph (**ADR 0092**), so there is no one string to read
- * back off the module — and `i` alone would match any Polish sentence opening with that word.
+ * around the letter rather than spelling a glyph (`develop ADR 0092`), so there is no one string to
+ * read back off the module — and `i` alone would match any Polish sentence opening with that word.
  */
 const CAVEATED = `(${CAVEAT_MARK})`;
 
 /** The sentence a figure of the reduction owes, mark and all, as the card composes it. */
-const REDUCTION_NOTE = `${CAVEATED} ${getNoteForCaveat("reduction")}`;
+const REDUCTION_NOTE = `${CAVEATED} ${getNoteForCaveat(CAVEAT.reduction)}`;
 
 /** And the one a count of turns owes. */
-const TURNS_NOTE = `${CAVEATED} ${getNoteForCaveat("turns")}`;
-
-/**
- * One group as a reader meets it, so an expectation reads like the window does — **the glyph
- * included**. Left out of this reader, a figure that lost its mark would read the same as one that
- * never had it, and every frozen list below would stay green through the loss.
- */
-function readGroup(group: TipGroup): string[] {
-    return group.lines.map((line) => {
-        // The mark a sentence wears is read off its tone, which is where the panel reads it too.
-        if (line.kind === "note") {
-            return line.tone === "caveat" ? `${CAVEATED} ${line.text}` : line.text;
-        }
-        if (line.kind === "heading") return `[${line.text}]`;
-        if (line.kind === "sub") return `  ${line.label} ${line.stated}`;
-        const said = line.caveat === null ? line.label : `${line.label} ${CAVEATED}`;
-        return line.isStrong ? `**${said}** ${line.stated}` : `${said} ${line.stated}`;
-    });
-}
-
-/** One card, flattened, for a test that asks what a card as a whole does and does not say. */
-function readCardOf(detail: RowDetail): string[] {
-    return composeCardReading({
-        name: "Gracz 9",
-        profession: null,
-        sidePart: "nobody" as const,
-        detail,
-        metric: "damageTakenApplied",
-        doesOpen: false,
-        isRowNarrower: false,
-        translate: null,
-    }).groups.flatMap(readGroup);
-}
+const TURNS_NOTE = `${CAVEATED} ${getNoteForCaveat(CAVEAT.turns)}`;
 
 Deno.test("the whole fight is a block of its own, and the screen's figure is in bold", () => {
-    const card = composeCardReading({
+    const card = presentCard({
         name: "Hildur Muza Śmierci",
         profession: "p",
-        sidePart: "nobody" as const,
+        sidePart: SIDE_PART.nobody,
         detail: HILDUR,
-        metric: "damageTakenApplied",
+        metric: PANEL_METRIC.damageTakenApplied,
         doesOpen: true,
         isRowNarrower: false,
         translate: null,
@@ -191,21 +160,39 @@ Deno.test("the whole fight is a block of its own, and the screen's figure is in 
 });
 
 /**
- * **A figure before reduction stands in the run of its own end, and under no figure at all.**
- * The protocol states one on a blow and nowhere else, while an applied figure grows from blows,
- * from damage named against somebody and from health moving outside one — so drawn under the
- * applied figure it read as a part of it and was **smaller** than the number it hung beneath on
- * 296 of the 1,184 cards over `captures/`, and on 172 of those smaller than one and larger than
- * the other on the same card, measured 2026-09-14. In the run there is no figure above it to be
- * read as a part of. **ADR 0087.**
+ * One group as a reader meets it, so an expectation reads like the window does — **the glyph
+ * included**. Left out of this reader, a figure that lost its mark would read the same as one that
+ * never had it, and every frozen list below would stay green through the loss.
+ */
+function readGroup(group: TipGroup): string[] {
+    return group.lines.map((line) => {
+        // The mark a sentence wears is read off its tone, which is where the panel reads it too.
+        if (line.kind === TIP_LINE.note) {
+            return line.tone === TIP_NOTE_TONE.caveat ? `${CAVEATED} ${line.text}` : line.text;
+        }
+        if (line.kind === TIP_LINE.heading) return `[${line.text}]`;
+        if (line.kind === TIP_LINE.sub) return `  ${line.label} ${line.stated}`;
+        const said = line.caveat === null ? line.label : `${line.label} ${CAVEATED}`;
+        return line.isStrong ? `**${said}** ${line.stated}` : `${said} ${line.stated}`;
+    });
+}
+
+/**
+ * **A figure before reduction stands in the run of its own end, and under no figure at all.** The
+ * protocol states one on a blow and nowhere else, while an applied figure grows from blows, from
+ * damage named against somebody and from health moving outside one — so drawn under the applied
+ * figure it read as a part of it and was **smaller** than the number it hung beneath on 296 of the
+ * 1,184 cards over `captures/`, and on 172 of those smaller than one and larger than the
+ * other on the same card, measured 2026-09-14. In the run there is no figure above it to be read as
+ * a part of. `develop ADR 0087`.
  */
 Deno.test("a figure before reduction stands in its own run, under no figure", () => {
-    const card = composeCardReading({
+    const card = presentCard({
         name: "Hildur Muza Śmierci",
         profession: "p",
-        sidePart: "nobody" as const,
+        sidePart: SIDE_PART.nobody,
         detail: HILDUR,
-        metric: "damageTakenApplied",
+        metric: PANEL_METRIC.damageTakenApplied,
         doesOpen: false,
         isRowNarrower: false,
         translate: null,
@@ -258,9 +245,24 @@ Deno.test("a figure before reduction stands in its own run, under no figure", ()
     assert(!without.includes(REDUCTION_NOTE), "and a card with neither owes no sentence about one");
 });
 
+/** One card, flattened, for a test that asks what a card as a whole does and does not say. */
+function readCardOf(detail: RowDetail): string[] {
+    return presentCard({
+        name: "Gracz 9",
+        profession: null,
+        sidePart: SIDE_PART.nobody,
+        detail,
+        metric: PANEL_METRIC.damageTakenApplied,
+        doesOpen: false,
+        isRowNarrower: false,
+        translate: null,
+    }).groups.flatMap(readGroup);
+}
+
 /**
  * The fifth claim `CONTEXT.md` names, and it is not the suspect mark: a caveated figure is
- * complete and answers a narrower question than its label, whatever was recorded. **ADR 0088.**
+ * complete and answers a narrower question than its label, whatever was recorded.
+ * `develop ADR 0088`.
  */
 Deno.test("a figure naming more than it counts wears a mark, and the mark has a sentence", () => {
     const said = readCardOf(HILDUR);
@@ -311,17 +313,18 @@ Deno.test("a caveat and a suspicion stand on one card, each under its own mark",
 });
 
 /**
- * Which end a key belongs to is read per key from `docs/protocol-keys.md` and never off the sign:
- * `+legbon_curse` fires when its holder attacks and `-legbon_cleanse` when its holder is struck,
- * on messages of one shape. The heading is what says whose each line is. **ADR 0032.**
+ * Which end a key belongs to is read per key from `develop:docs/protocol-keys.md` and never off the
+ * sign: `+legbon_curse` fires when its holder attacks and `-legbon_cleanse` when its holder is
+ * struck, on messages of one shape. The heading is what says whose each line is.
+ * `develop ADR 0032`.
  */
 Deno.test("the card says what they did when they struck, and what held when they were", () => {
-    const card = composeCardReading({
+    const card = presentCard({
         name: "Hildur Muza Śmierci",
         profession: "p",
-        sidePart: "nobody" as const,
+        sidePart: SIDE_PART.nobody,
         detail: HILDUR,
-        metric: "damageTakenApplied",
+        metric: PANEL_METRIC.damageTakenApplied,
         doesOpen: true,
         isRowNarrower: false,
         translate: null,
@@ -362,13 +365,13 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
     const subtitleOf = (
         profession: string | null,
         level: number | null,
-        sidePart: PanelSidePart = "nobody",
-    ) => composeCardReading({
+        sidePart: PanelSidePart = SIDE_PART.nobody,
+    ) => presentCard({
         name: "Gracz 9",
         profession,
         sidePart,
         detail: { ...NOBODY, level },
-        metric: "damageDealtApplied",
+        metric: PANEL_METRIC.damageDealtApplied,
         doesOpen: false,
         isRowNarrower: false,
         translate: null,
@@ -377,20 +380,28 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
     assertEquals(subtitleOf("b", null), "Tancerz ostrzy", "a profession with no level beside it");
     assertEquals(subtitleOf(null, 41), "(41)", "and a level with nothing to say what they are");
     assertEquals(subtitleOf(null, null), null, "neither is no line at all");
-    // The word the row's rule is drawn against: colour never carries a meaning alone, and this
-    // is the label it carries (**ADR 0065**). A fight with no seat to read from says none of it.
+    // The word the row's rule is drawn against: colour never carries a meaning alone, and this is
+    // the label it carries (`develop ADR 0065`). A fight with no seat to read from says none of it.
     assertEquals(
-        subtitleOf("b", 41, "reader"),
+        subtitleOf("b", 41, SIDE_PART.reader),
         "Tancerz ostrzy (41) · My",
         "and whose side they stand on, last, because it is the panel's answer and not the game's",
     );
-    assertEquals(subtitleOf("b", 41, "opposing"), "Tancerz ostrzy (41) · Oni", "either way round");
     assertEquals(
-        subtitleOf(null, null, "reader"),
+        subtitleOf("b", 41, SIDE_PART.opposing),
+        "Tancerz ostrzy (41) · Oni",
+        "either way round",
+    );
+    assertEquals(
+        subtitleOf(null, null, SIDE_PART.reader),
         "My",
         "the side alone where nothing else was said",
     );
-    assertEquals(subtitleOf(null, null, "nobody"), null, "and nothing at all where none was");
+    assertEquals(
+        subtitleOf(null, null, SIDE_PART.nobody),
+        null,
+        "and nothing at all where none was",
+    );
     // A letter the table does not hold reaches the reader as the game wrote it, rather than as an
     // invented name or as nothing: the panel colours the six the recordings state, and a seventh
     // would arrive from the game and not from here.
@@ -399,8 +410,8 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
 
 /**
  * The whole path: a key this repository has no word for, through the card, to what a reader sees.
- * `captures/` carries all six — `-tenacity` on 20 blows, 2026-08-30 — so today every one of them
- * stands in a card as raw protocol. **ADR 0024.**
+ * `captures/` carries all six — `-tenacity` on 20 blows, 2026-08-30 — so today every one of
+ * them stands in a card as raw protocol. `develop ADR 0024`.
  */
 Deno.test("a key nothing here words is drawn as the player's own client names it", () => {
     const struck = {
@@ -410,12 +421,12 @@ Deno.test("a key nothing here words is drawn as the player's own client names it
         procsWhenStriking: [{ key: "-tenacity", figure: 1 }],
     };
     const cardWith = (translate: ((id: string) => string | null) | null) =>
-        composeCardReading({
+        presentCard({
             name: "Gracz 9",
             profession: null,
-            sidePart: "nobody" as const,
+            sidePart: SIDE_PART.nobody,
             detail: struck,
-            metric: "damageDealtApplied",
+            metric: PANEL_METRIC.damageDealtApplied,
             doesOpen: false,
             isRowNarrower: false,
             translate,
@@ -437,24 +448,24 @@ Deno.test("a key nothing here words is drawn as the player's own client names it
 
 /**
  * **Zero is an answer, and only to the question that was asked.** A screen showing somebody at
- * nothing has to say nothing — that is what the reader pointed at — while the other three at
- * nought answer nobody and cost three lines. Drawn unconditionally the four printed 580 figures
- * of nought over `captures/` on 2026-09-14, 0.49 to a card; the screen's own alone leaves 145.
- * **ADR 0087.**
+ * nothing has to say nothing — that is what the reader pointed at — while the other three at nought
+ * answer nobody and cost three lines. Drawn unconditionally the four printed 580 figures of nought
+ * over `captures/` on 2026-09-14, 0.49 to a card; the screen's own alone leaves 145.
+ * `develop ADR 0087`.
  */
 Deno.test("a combatant the fight never touched states the figure that was asked, at nought", () => {
     const at = (metric: PanelMetric) =>
-        composeCardReading({
+        presentCard({
             name: "Gracz 9",
             profession: null,
-            sidePart: "nobody" as const,
+            sidePart: SIDE_PART.nobody,
             detail: NOBODY,
             metric,
             doesOpen: false,
             isRowNarrower: false,
             translate: null,
         });
-    const card = at("damageDealtApplied");
+    const card = at(PANEL_METRIC.damageDealtApplied);
     assertEquals(card.subtitle, null, "and a line drawn for neither is a question, not an answer");
     assertEquals(card.groups.length, 1, "and nothing they did is nothing to put under a rule");
     const [figures] = card.groups;
@@ -466,7 +477,7 @@ Deno.test("a combatant the fight never touched states the figure that was asked,
     );
     // The sample that must move: the same combatant on another screen answers that screen.
     assertEquals(
-        readGroup(at("healthRestored").groups[0] ?? { lines: [] }),
+        readGroup(at(PANEL_METRIC.healthRestored).groups[0] ?? { lines: [] }),
         [`[${CARD_WORDS.wholeFight}]`, "**Leczenie otrzymane** 0"],
         "the figure standing at nought is the screen's own, and never a fixed one of the four",
     );
@@ -475,12 +486,12 @@ Deno.test("a combatant the fight never touched states the figure that was asked,
 Deno.test("a part of a figure is drawn from the first point of it, and never below one", () => {
     const at = (figure: number) =>
         readGroup(
-            composeCardReading({
+            presentCard({
                 name: "Gracz 9",
                 profession: null,
-                sidePart: "nobody" as const,
+                sidePart: SIDE_PART.nobody,
                 detail: { ...NOBODY, damageDealtApplied: figure, damageDealtToNobody: figure },
-                metric: "damageDealtApplied",
+                metric: PANEL_METRIC.damageDealtApplied,
                 doesOpen: false,
                 isRowNarrower: false,
                 translate: null,
@@ -495,16 +506,16 @@ Deno.test("a part of a figure is drawn from the first point of it, and never bel
 /**
  * A gap naming nobody stays under the list, where it qualifies every row at once. A card repeating
  * it wrote one sentence once per row, and wrote it twice on the row that was the reason for it.
- * **ADR 0069.**
+ * `develop ADR 0069`.
  */
 Deno.test("a card says the gaps that name its own person, and no others", () => {
     const readNotes = (detail: RowDetail) => {
-        const card = composeCardReading({
+        const card = presentCard({
             name: "Hildur Muza Śmierci",
             profession: "m",
-            sidePart: "nobody" as const,
+            sidePart: SIDE_PART.nobody,
             detail,
-            metric: "healthRestored",
+            metric: PANEL_METRIC.healthRestored,
             doesOpen: false,
             isRowNarrower: false,
             translate: null,
@@ -513,15 +524,15 @@ Deno.test("a card says the gaps that name its own person, and no others", () => 
     };
     const clean = readNotes(NOBODY);
     assertEquals(
-        clean.filter((line) => line.kind === "note" && line.tone === "suspect"),
+        clean.filter((line) => line.kind === TIP_LINE.note && line.tone === TIP_NOTE_TONE.suspect),
         [],
         "a person no gap names carries none, whatever the fight is short of",
     );
     const charged = readNotes({ ...NOBODY, unreadMessagesUnknownKey: 2 })
-        .filter((line) => line.kind === "note" && line.tone === "suspect");
+        .filter((line) => line.kind === TIP_LINE.note && line.tone === TIP_NOTE_TONE.suspect);
     assertEquals(charged.length, 1, "and the person a gap does name carries that one");
     assert(
-        charged[0]?.kind === "note" && charged[0].text.startsWith(SUSPECT_MARK),
+        charged[0]?.kind === TIP_LINE.note && charged[0].text.startsWith(SUSPECT_MARK),
         "drawn as a suspicion, which is a mark as well as a colour",
     );
 });
@@ -531,12 +542,12 @@ Deno.test("a card says the gaps that name its own person, and no others", () => 
  * fight's own: this card is about the person, and the fight's suspicion is about every row at once.
  */
 Deno.test("a card states both of the gaps that can name one person, widest first", () => {
-    const card = composeCardReading({
+    const card = presentCard({
         name: "Hildur Muza Śmierci",
         profession: "m",
-        sidePart: "nobody" as const,
+        sidePart: SIDE_PART.nobody,
         detail: { ...HILDUR, unreadMessagesUnknownKey: 2, castsUnplaced: 1 },
-        metric: "healthGiven",
+        metric: PANEL_METRIC.healthGiven,
         doesOpen: false,
         isRowNarrower: false,
         translate: null,
@@ -550,12 +561,12 @@ Deno.test("a card states both of the gaps that can name one person, widest first
 });
 
 Deno.test("a card on a damage screen says nothing about a cast, which puts back health", () => {
-    const card = composeCardReading({
+    const card = presentCard({
         name: "Hildur Muza Śmierci",
         profession: "m",
-        sidePart: "nobody" as const,
+        sidePart: SIDE_PART.nobody,
         detail: { ...HILDUR, castsUnplaced: 1 },
-        metric: "damageDealtApplied",
+        metric: PANEL_METRIC.damageDealtApplied,
         doesOpen: false,
         isRowNarrower: false,
         translate: null,
@@ -569,14 +580,14 @@ Deno.test("a card on a damage screen says nothing about a cast, which puts back 
 /**
  * The screen picks which of the four figures is bold and nothing else. A reader on _leczenie dane_
  * gets the same two runs as one on _obrażenia zadane_, so "he heals a lot, but how does he fight"
- * needs no strip. **ADR 0032.**
+ * needs no strip. `develop ADR 0032`.
  */
 Deno.test("both runs stand on every screen, and the screen moves only the bold figure", () => {
     const readScreen = (metric: PanelMetric) =>
-        composeCardReading({
+        presentCard({
             name: "Hildur Muza Śmierci",
             profession: "p",
-            sidePart: "nobody" as const,
+            sidePart: SIDE_PART.nobody,
             detail: HILDUR,
             metric,
             doesOpen: false,
@@ -597,10 +608,10 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
         ],
         "somebody who struck and was struck carries both runs, whichever screen they are read on",
     );
-    // **Everything below the first block is the same card on all four.** That is what **ADR 0032**
-    // holds and this change does not touch it: the runs still do not turn on the screen. What the
-    // screen now decides, beside the bold, is which figure of nought is still worth a line — so
-    // the first block is compared on its own, below.
+    // **Everything below the first block is the same card on all four.** That is what
+    // `develop ADR 0032` holds and this change does not touch it: the runs still do not turn on the
+    // screen. What the screen now decides, beside the bold, is which figure of nought is still
+    // worth a line — so the first block is compared on its own, below.
     for (const [at, groups] of rest.entries()) {
         assertEquals(
             groups.slice(1),
@@ -637,12 +648,12 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
 /** A run of nothing is no run: an empty heading would promise a figure the protocol never gave. */
 Deno.test("a run that came to nothing is not drawn, and neither is its heading", () => {
     const readHeadings = (detail: RowDetail) =>
-        composeCardReading({
+        presentCard({
             name: "Gracz 9",
             profession: null,
-            sidePart: "nobody" as const,
+            sidePart: SIDE_PART.nobody,
             detail,
-            metric: "damageDealtApplied",
+            metric: PANEL_METRIC.damageDealtApplied,
             doesOpen: false,
             isRowNarrower: false,
             translate: null,
@@ -680,12 +691,12 @@ Deno.test("a run that came to nothing is not drawn, and neither is its heading",
  */
 Deno.test("a card over a narrower row says its figures are the whole fight's", () => {
     const notesOf = (isRowNarrower: boolean) =>
-        composeCardReading({
+        presentCard({
             name: "Gracz 9",
             profession: null,
-            sidePart: "nobody" as const,
+            sidePart: SIDE_PART.nobody,
             detail: { ...NOBODY, unreadMessagesUnknownKey: 1 },
-            metric: "damageDealtApplied",
+            metric: PANEL_METRIC.damageDealtApplied,
             doesOpen: true,
             isRowNarrower,
             translate: null,
@@ -695,7 +706,7 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
         [
             `[${CARD_WORDS.wholeFight}]`,
             "**Zadane** 0",
-            `${SUSPECT_MARK}${composeUnknownKeyRowSuspicion(1)}`,
+            `${SUSPECT_MARK}${formatUnknownKeyRowSuspicion(1)}`,
             CARD_WORDS.scope,
             CARD_WORDS.gesture,
         ],
@@ -709,12 +720,12 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
 
 Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", () => {
     const critical = (blowsCritical: number, blowsStruck: number) =>
-        composeCardReading({
+        presentCard({
             name: "Gracz 9",
             profession: null,
-            sidePart: "nobody" as const,
+            sidePart: SIDE_PART.nobody,
             detail: { ...NOBODY, blowsCritical, blowsStruck },
-            metric: "damageDealtApplied",
+            metric: PANEL_METRIC.damageDealtApplied,
             doesOpen: false,
             isRowNarrower: false,
             translate: null,
@@ -729,7 +740,7 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
     );
     assertEquals(critical(40, 40), [`${CARD_WORDS.blowsCritical} 40 (100%)`], "as is all of them");
     // More criticals than blows cannot be, and the card draws rather than stopping. A share
-    // above the hundred is a number that is wrong looking like one that is right — **E14**.
+    // above the hundred is a number that is wrong looking like one that is right — **E12**.
     assertEquals(
         critical(41, 40),
         [`${CARD_WORDS.blowsCritical} ×41`],
@@ -739,15 +750,15 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
 
 /**
  * A card with nobody behind it. The name is not asserted: a row the roster cannot place stands
- * with a word for it rather than costing the card — **E14**.
+ * with a word for it rather than costing the card — **E12**.
  */
 Deno.test("a card nobody is named on says so, rather than standing on a blank", () => {
-    const card = composeCardReading({
+    const card = presentCard({
         name: "",
         profession: null,
-        sidePart: "nobody" as const,
+        sidePart: SIDE_PART.nobody,
         detail: NOBODY,
-        metric: "damageDealtApplied",
+        metric: PANEL_METRIC.damageDealtApplied,
         doesOpen: false,
         isRowNarrower: false,
         translate: null,
@@ -759,10 +770,10 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
     // Five stun keys carry one word because they are one event from five sources. Drawn a key at a
     // time they made two lines reading `ogłuszenie` against different counts, and nothing on the
     // card says which stun either line is.
-    const card = composeCardReading({
+    const card = presentCard({
         name: "Amaimon Soploręki",
         profession: "p",
-        sidePart: "nobody" as const,
+        sidePart: SIDE_PART.nobody,
         detail: {
             ...NOBODY,
             blowsStruck: 20,
@@ -772,7 +783,7 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
                 { key: "+freeze", figure: 2 },
             ],
         },
-        metric: "damageDealtApplied",
+        metric: PANEL_METRIC.damageDealtApplied,
         doesOpen: false,
         isRowNarrower: false,
         translate: null,
@@ -787,27 +798,10 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
     );
 });
 
-/** The run about striking, on somebody whose blows carried these and nothing else. */
-function readStrikingProcs(procs: readonly { key: string; figure: number }[]): string[] {
-    const card = composeCardReading({
-        name: "Amaimon Soploręki",
-        profession: "p",
-        sidePart: "nobody" as const,
-        detail: { ...NOBODY, blowsStruck: 20, procsWhenStriking: [...procs] },
-        metric: "damageDealtApplied",
-        doesOpen: false,
-        isRowNarrower: false,
-        translate: null,
-    });
-    const [, , striking] = card.groups;
-    assertExists(striking, "they struck, so the run about striking stands");
-    return readGroup(striking);
-}
-
 /**
- * A wound something weakened is a wound, and it is counted in the wound's own row (**ADR 0095**).
- * A row of its own answers a question nobody asks, and leaves the one a reader does ask — how
- * many wounds did they leave — on no line at all.
+ * A wound something weakened is a wound, and it is counted in the wound's own row
+ * (`develop ADR 0095`). A row of its own answers a question nobody asks, and leaves the one a
+ * reader does ask — how many wounds did they leave — on no line at all.
  */
 Deno.test("every deep wound is counted in one row, and the weakened ones stand under it", () => {
     assertEquals(
@@ -820,6 +814,23 @@ Deno.test("every deep wound is counted in one row, and the weakened ones stand u
         "the row counts all six, and the line under it says how many of them were weakened",
     );
 });
+
+/** The run about striking, on somebody whose blows carried these and nothing else. */
+function readStrikingProcs(procs: readonly { key: string; figure: number }[]): string[] {
+    const card = presentCard({
+        name: "Amaimon Soploręki",
+        profession: "p",
+        sidePart: SIDE_PART.nobody,
+        detail: { ...NOBODY, blowsStruck: 20, procsWhenStriking: [...procs] },
+        metric: PANEL_METRIC.damageDealtApplied,
+        doesOpen: false,
+        isRowNarrower: false,
+        translate: null,
+    });
+    const [, , striking] = card.groups;
+    assertExists(striking, "they struck, so the run about striking stands");
+    return readGroup(striking);
+}
 
 /**
  * Zero is a boundary (**W5**), and this is the zero: the sub-line is not drawn reading nothing,
@@ -848,9 +859,9 @@ Deno.test("one wound weakened out of two draws the sub-line all the same", () =>
 
 /**
  * The card the decision was made on. Combatant `28940` in
- * `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` announced six deep wounds,
- * every one of them weakened by poison, and until **ADR 0095** their card carried no count of
- * wounds at all — the row they could see was a part of one they could not.
+ * `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` announced six deep
+ * wounds, every one of them weakened by poison, and until `develop ADR 0095` their card carried no
+ * count of wounds at all — the row they could see was a part of one they could not.
  */
 Deno.test("a combatant whose every wound was weakened still has a count of wounds", () => {
     assertEquals(
@@ -887,33 +898,33 @@ Deno.test("a sub-line follows the row it narrows, whatever stands around that ro
 });
 
 /**
- * The turn count stands on its own line and is divided into nothing (**ADR 0048**). Zero is a
+ * The turn count stands on its own line and is divided into nothing (`develop ADR 0048`). Zero is a
  * boundary and so is one (**W5**): a combatant who took no turn has no line rather than a line
  * reading nothing, because a fight nobody acted in is not a fight of zero-turn combatants.
  *
- * ⚠️ **The turns lost ride that same line and their nought is drawn** (**ADR 0110**). The line is
- * there either way, so the nought costs the card nothing and says what it is — a turn nobody took
- * away — where a line that vanished said only that the panel had stopped mentioning it.
+ * ⚠️ **The turns lost ride that same line and their nought is drawn** (`develop ADR 0110`). The
+ * line is there either way, so the nought costs the card nothing and says what it is — a turn
+ * nobody took away — where a line that vanished said only that the panel had stopped mentioning it.
  */
 Deno.test("the card says how many turns a combatant took, and only where they took one", () => {
     const subject = {
         name: "Hildur Muza Śmierci",
         profession: "p",
-        sidePart: "nobody" as const,
-        metric: "damageDealtApplied" as const,
+        sidePart: SIDE_PART.nobody,
+        metric: PANEL_METRIC.damageDealtApplied,
         doesOpen: true,
         isRowNarrower: false,
         translate: null,
     };
     const readTurnLines = (detail: RowDetail): string[] =>
-        composeCardReading({ ...subject, detail }).groups
+        presentCard({ ...subject, detail }).groups
             .flatMap((group) => group.lines)
-            .filter((line) => line.kind === "stat")
+            .filter((line) => line.kind === TIP_LINE.stat)
             .filter((line) => {
                 if (line.label === CARD_WORDS.turns) return true;
                 return line.label === CARD_WORDS.turnsWithLost;
             })
-            .map((line) => (line.kind === "stat" ? `${line.label} ${line.stated}` : ""));
+            .map((line) => (line.kind === TIP_LINE.stat ? `${line.label} ${line.stated}` : ""));
     assertEquals(
         readTurnLines(HILDUR),
         [`${CARD_WORDS.turnsWithLost} 37\u00a0/\u00a04`],
@@ -933,9 +944,9 @@ Deno.test("the card says how many turns a combatant took, and only where they to
         [`${CARD_WORDS.turns} 1`],
         "a fight that heard no lost turn at all states the turns taken and no second figure",
     );
-    // Neither half is drawn as a sub-line any more, which is what ADR 0110 took from 0049.
-    const under = composeCardReading({ ...subject, detail: HILDUR }).groups
+    // Neither half is drawn as a sub-line any more, which is what develop ADR 0110 took from 0049.
+    const under = presentCard({ ...subject, detail: HILDUR }).groups
         .flatMap((group) => group.lines)
-        .filter((line) => line.kind === "sub" && line.stated === "4");
+        .filter((line) => line.kind === TIP_LINE.sub && line.stated === "4");
     assertEquals(under, [], "and nothing about turns hangs beneath the line saying them");
 });

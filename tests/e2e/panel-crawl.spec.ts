@@ -5,10 +5,10 @@
  */
 
 import { readdirSync } from "node:fs";
-import { join } from "node:path";
-import process from "node:process";
-import { expect, test } from "@/tests/e2e/panel-fixture.ts";
-import { composeCrawlScript, type CrawlReport } from "@/tests/e2e/panel-crawler.ts";
+import { RECORDINGS_DIRECTORY } from "#/tests/recording-sources.ts";
+import { expect, test } from "./panel-fixture.ts";
+import { waitForFrame } from "./panel-page.ts";
+import { composeCrawlScript, type CrawlReport } from "./panel-crawler.ts";
 
 /** The largest recording there is, which is the one worth walking to the bottom. */
 const DEEPEST = "captures/2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json";
@@ -18,19 +18,6 @@ const SCREENS_ON_A_FIGHT = 12;
 const LEAST_OPENED = 60;
 /** A deep crawl is thousands of presses and one page; it is given room the others do not need. */
 const CRAWL_MILLISECONDS = 300_000;
-
-/**
- * Every recording, read at collection time so each is a test of its own and the workers share them
- * out. Read rather than listed (`captures/AGENTS.md`), and an empty directory is a failure.
- */
-function readRecordingPaths(): string[] {
-    const root = process.cwd();
-    const names = readdirSync(join(root, "captures"))
-        .filter((name) => name.endsWith(".json"))
-        .sort();
-    expect(names.length, `there are recordings under ${join(root, "captures")}`).toBeGreaterThan(0);
-    return names.map((name) => join("captures", name));
-}
 
 test.describe("one recording, walked to the bottom", () => {
     test.use({ recording: DEEPEST });
@@ -50,10 +37,10 @@ test.describe("one recording, walked to the bottom", () => {
             "every level that opened was closed again, and none closed twice",
         ).toBe(report.opened + report.second);
 
-        // **ADR 0034**: a press that changes nothing is a control that should not be drawn.
+        // `develop ADR 0034`: a press that changes nothing is a control that should not be drawn.
         expect(report.leaves, "no control the panel drew is a control that does nothing").toBe(0);
 
-        // `docs/drill-levels.md`: the third level is the last — held by nothing on it to press.
+        // `develop:docs/drill-levels.md`: the third level is the last — held by nothing on it to press.
         expect(report.deeper, "and nothing under it opens onto a fourth").toBe(0);
     });
 });
@@ -70,6 +57,7 @@ test.describe("a panel narrower than what it drew", () => {
     test.use({ recording: DEEPEST });
 
     test("is what the crawl's width check is looking for", async ({ panel }) => {
+        await waitForFrame(panel.page);
         await panel.page.evaluate(() => {
             const root = document.getElementById("MargoMeter-Panel")?.shadowRoot ?? null;
             if (root === null) throw new ReferenceError("no panel to narrow");
@@ -86,6 +74,19 @@ test.describe("a panel narrower than what it drew", () => {
         expect(said, "and the fault says what held more than it had room for").toContain("holds");
     });
 });
+
+/**
+ * Every recording, read at collection time so each is a test of its own and the workers share them
+ * out. Read rather than listed (`captures/AGENTS.md`), and an empty directory is a failure.
+ */
+function readRecordingPaths(): string[] {
+    const paths = readdirSync(RECORDINGS_DIRECTORY)
+        .filter((name) => name.endsWith(".json"))
+        .map((name) => `${RECORDINGS_DIRECTORY}${name}`)
+        .sort();
+    expect(paths.length, `there are recordings under ${RECORDINGS_DIRECTORY}`).toBeGreaterThan(0);
+    return paths;
+}
 
 for (const path of readRecordingPaths()) {
     test.describe(path, () => {

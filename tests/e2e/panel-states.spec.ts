@@ -3,10 +3,10 @@
  *
  * The sentences are written out here rather than imported: a test that reads a string back from
  * the module that writes it holds the two to be the same and neither to be right
- * (`tests/AGENTS.md`).
+ * (`develop:tests/AGENTS.md`).
  */
 
-import { expect, test } from "@/tests/e2e/panel-fixture.ts";
+import { expect, test } from "./panel-fixture.ts";
 
 /** A recording whose fight reaches its end, so there is an outcome to read. */
 const ENDING = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";

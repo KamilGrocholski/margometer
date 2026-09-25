@@ -2,24 +2,19 @@
  * What each combatant is carrying right now, and for how many of **their own** turns.
  *
  * The one channel that answers per combatant, and the only one that witnesses an end: a cast is
- * announced once and never mentioned again (**ADR 0059**), while a mask says what somebody holds
- * in every payload. Nothing here joins a status to the cast that lit it — the game states neither,
- * and **ADR 0061** is why the panel does not guess. **ADR 0104.**
+ * announced once and never mentioned again (`develop ADR 0059`), while a mask says what somebody
+ * holds in every payload. Nothing here joins a status to the cast that lit it; the game states
+ * neither (`develop ADR 0061`, `0104`).
  */
 
 import { assert } from "@std/assert/assert";
-import type { BattleEvent } from "@/src/core/battle-event.ts";
+import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
 import {
     composeTurnStanding,
-    getTurnOpener,
+    lookupTurnOpener,
     NO_TURN_STANDING,
     type TurnStanding,
-} from "@/src/core/fight-statistics.ts";
-
-/** A mask arrives as one integer, so a bit past the thirty-second is not one this reader holds. */
-export const MAXIMUM_STATUS_BITS = 32;
-/** Past the combatants any fight puts on a board, which `core/combatant-roster.ts` also bounds. */
-const MAXIMUM_CARRIERS = 64;
+} from "./turn-clock.ts";
 
 /** One status one combatant is holding, with what has passed of it on their own clock. */
 export interface CarriedStatus {
@@ -30,49 +25,63 @@ export interface CarriedStatus {
     turnsElapsed: number;
 }
 
-interface HeldBit {
-    turnsAtLighting: number;
-}
-
-/** What the walk carries between payloads. Nothing here is read by anybody but the walk. */
+/** What the walk carries between payloads: the clock, and each held bit's turn at lighting. */
 export interface CarriedStatusWalk {
-    standing: TurnStanding;
-    turnsByCombatantId: Map<number, number>;
+    readonly standing: TurnStanding;
+    readonly turnsByCombatantId: ReadonlyMap<number, number>;
     /** Keyed by combatant, then by bit, so a status gone is a key removed and never a zero. */
-    heldByCombatantId: Map<number, Map<number, HeldBit>>;
+    readonly heldByCombatantId: ReadonlyMap<number, ReadonlyMap<number, number>>;
 }
 
-export function composeCarriedStatusWalk(): CarriedStatusWalk {
-    return {
-        standing: NO_TURN_STANDING,
-        turnsByCombatantId: new Map(),
-        heldByCombatantId: new Map(),
-    };
-}
+/** A mask arrives as one integer, so a bit past the thirty-second is not one this reader holds. */
+export const STATUS_BITS_MAXIMUM = 32;
+/** Past the combatants any fight puts on a board: a mask may name a warrior the cast does not. */
+const CARRIERS_MAXIMUM = 64;
 
-function addTurnToWalk(walk: CarriedStatusWalk, combatantId: number | null): void {
-    if (combatantId === null) return;
-    const taken = (walk.turnsByCombatantId.get(combatantId) ?? 0) + 1;
-    assert(taken > 0, "a turn that was counted was counted at least once");
-    walk.turnsByCombatantId.set(combatantId, taken);
-}
+export const NO_CARRIED_STATUS_WALK: CarriedStatusWalk = {
+    standing: NO_TURN_STANDING,
+    turnsByCombatantId: new Map(),
+    heldByCombatantId: new Map(),
+};
 
 /**
- * The turns a payload's own events opened, counted the way a cast's length is — taken and lost
- * both, because a turn granted and spent on nothing still passed for whoever had it.
+ * A payload: the events it carried, then the masks it restated. In that order, because a status
+ * lighting on the turn a combatant just took belongs to that turn and not to the one before it.
+ * The walk handed in is left as it was.
+ *
+ * ⚠️ **A combatant the payload says nothing about keeps what they were holding.** A payload stating
+ * only what moved states no mask for anybody else.
  */
-function addEventsToWalk(walk: CarriedStatusWalk, events: readonly BattleEvent[]): void {
+export function prepareCarriedStatuses(
+    walk: CarriedStatusWalk,
+    events: readonly BattleEvent[],
+    masksByCombatantId: ReadonlyMap<number, number>,
+): CarriedStatusWalk {
+    const turnsByCombatantId = new Map(walk.turnsByCombatantId);
+    let standing = walk.standing;
     for (const event of events) {
-        addTurnToWalk(walk, getTurnOpener(event, walk.standing));
-        if (event.kind === "turn-lost") addTurnToWalk(walk, event.combatantId);
-        walk.standing = composeTurnStanding(event, walk.standing);
+        addTurn(turnsByCombatantId, lookupTurnOpener(event, standing));
+        if (event.kind === BATTLE_EVENT.turnLost) addTurn(turnsByCombatantId, event.combatantId);
+        standing = composeTurnStanding(event, standing);
     }
+    const heldByCombatantId = new Map(walk.heldByCombatantId);
+    for (const [combatantId, mask] of masksByCombatantId) {
+        assert(Number.isSafeInteger(mask), "a mask handed to the walk is a whole count of bits");
+        assert(mask >= 0, "and never a sign");
+        const clock = turnsByCombatantId.get(combatantId) ?? 0;
+        const held = prepareCarriedStatusesHeld(heldByCombatantId.get(combatantId), mask, clock);
+        if (held.size === 0) heldByCombatantId.delete(combatantId);
+        else heldByCombatantId.set(combatantId, held);
+    }
+    assert(heldByCombatantId.size <= CARRIERS_MAXIMUM, "no more carriers than a board holds");
+    return { standing, turnsByCombatantId, heldByCombatantId };
 }
 
-function isBitSet(mask: number, bit: number): boolean {
-    assert(bit >= 0, "a bit is looked for at a position");
-    assert(bit < MAXIMUM_STATUS_BITS, "and inside the integer a mask arrives as");
-    return (mask >> bit & 1) === 1;
+function addTurn(turnsByCombatantId: Map<number, number>, combatantId: number | null): void {
+    if (combatantId === null) return;
+    const taken = (turnsByCombatantId.get(combatantId) ?? 0) + 1;
+    assert(taken > 0, "a turn that was counted was counted at least once");
+    turnsByCombatantId.set(combatantId, taken);
 }
 
 /**
@@ -80,57 +89,32 @@ function isBitSet(mask: number, bit: number): boolean {
  * turn it lit on: a status the game never let go of is one standing, however many casts refreshed
  * it, and re-reading its start would draw a length nobody carried.
  */
-function setHeldFromMask(walk: CarriedStatusWalk, combatantId: number, mask: number): void {
-    const clock = walk.turnsByCombatantId.get(combatantId) ?? 0;
-    const before = walk.heldByCombatantId.get(combatantId) ?? new Map<number, HeldBit>();
-    const held = new Map<number, HeldBit>();
-    for (let bit = 0; bit < MAXIMUM_STATUS_BITS; bit += 1) {
-        if (!isBitSet(mask, bit)) continue;
-        held.set(bit, before.get(bit) ?? { turnsAtLighting: clock });
+function prepareCarriedStatusesHeld(
+    before: ReadonlyMap<number, number> | undefined,
+    mask: number,
+    clock: number,
+): Map<number, number> {
+    assert(clock >= 0, "a clock counts turns from none");
+    const held = new Map<number, number>();
+    for (let bit = 0; bit < STATUS_BITS_MAXIMUM; bit += 1) {
+        if ((mask >> bit & 1) !== 1) continue;
+        held.set(bit, before?.get(bit) ?? clock);
     }
-    assert(held.size <= MAXIMUM_STATUS_BITS, "a combatant holds no more statuses than a mask has");
-    if (held.size === 0) {
-        walk.heldByCombatantId.delete(combatantId);
-        return;
-    }
-    walk.heldByCombatantId.set(combatantId, held);
+    assert(held.size <= STATUS_BITS_MAXIMUM, "a combatant holds no more statuses than a mask has");
+    return held;
 }
 
-/**
- * A payload: the events it carried, then the masks it restated. In that order, because a status
- * lighting on the turn a combatant just took belongs to that turn and not to the one before it.
- *
- * ⚠️ **A combatant the payload says nothing about keeps what they were holding.** A payload
- * stating only what moved states no mask for anybody else, and clearing them on that silence
- * would take a status away every time the game sent a short payload.
- */
-export function addPayloadToCarriedStatuses(
-    walk: CarriedStatusWalk,
-    events: readonly BattleEvent[],
-    masksByCombatantId: ReadonlyMap<number, number>,
-): void {
-    addEventsToWalk(walk, events);
-    for (const [combatantId, mask] of masksByCombatantId) {
-        assert(mask >= 0, "a mask handed to the walk is a count of bits and never a sign");
-        setHeldFromMask(walk, combatantId, mask);
-    }
-    assert(
-        walk.heldByCombatantId.size <= MAXIMUM_CARRIERS,
-        "no more combatants carry something than a fight puts on a board",
-    );
-}
-
-/** What is being carried, one row per status per combatant, in a stated order. */
+/** What is being carried, one row per status per combatant, by combatant and then by bit. */
 export function composeCarriedStatuses(walk: CarriedStatusWalk): CarriedStatus[] {
     const found: CarriedStatus[] = [];
     for (const [combatantId, held] of walk.heldByCombatantId) {
         const clock = walk.turnsByCombatantId.get(combatantId) ?? 0;
-        for (const [bit, one] of held) {
-            const turnsElapsed = clock - one.turnsAtLighting;
+        for (const [bit, turnsAtLighting] of held) {
+            const turnsElapsed = clock - turnsAtLighting;
             assert(turnsElapsed >= 0, "a clock never runs behind the turn a status lit on");
             found.push({ combatantId, bit, turnsElapsed });
         }
     }
-    assert(found.length <= MAXIMUM_CARRIERS * MAXIMUM_STATUS_BITS, "and no more rows than that");
+    assert(found.length <= CARRIERS_MAXIMUM * STATUS_BITS_MAXIMUM, "no more rows than bits");
     return found.sort((one, other) => one.combatantId - other.combatantId || one.bit - other.bit);
 }

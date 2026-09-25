@@ -1,10 +1,10 @@
 # Browser support
 
 What the shipped userscript needs from a browser, measured off the tree rather than assumed.
-`tests/tools/browser-support.test.ts` holds the CSS half to the stylesheet, both halves' rows to the
-files they name, and the floor to the arithmetic over them. A **new** construct is held by something
-else and more coarsely — the bundle is type-checked a second time as a browser program, and the
-section on it says how far that reaches.
+`develop:tests/tools/browser-support.test.ts` holds the CSS half to the stylesheet, both halves'
+rows to the files they name, and the floor to the arithmetic over them. A **new** construct is held
+by something else and more coarsely — the bundle is type-checked a second time as a browser program,
+and the section on it says how far that reaches.
 
 The register exists because nothing else could notice. `tools/build-userscript.ts` bundles with
 `minify: false` and no `target`, so **the ES level of the source is the ES level a player's browser
@@ -101,7 +101,8 @@ reason the tier column is not enough on its own:
   the rows sideways between them, and `.pinned` and `.sides-region` — which draw a bar of their own
   and never scroll — do not walk with them, so a bar means two lengths for as long as the platform
   bar is up. That is the worst degradation on this page, and it is bought deliberately: above the
-  floor no region gives up anything and the rows are inset equally on both sides. **ADR 0031.**
+  floor no region gives up anything and the rows are inset equally on both sides. **develop
+  ADR 0031.**
 
 ### Prefixed
 
@@ -119,9 +120,10 @@ that read this register and fixed by the round after it.
 
 Neither row is a floor on its own, and neither is in the tier arithmetic above. Between them they
 cover every engine in scope; separately they cannot, and one of them says `never`. That `never` is
-why the two sit here rather than in **Settled**: `tests/tools/browser-support.test.ts` requires a
-row carrying one to have a prefixed counterpart spelled by the stylesheet as many times as the bare
-property is, so a third rule reaching for `user-select` cannot quietly leave Safari out again.
+why the two sit here rather than in **Settled**: `develop:tests/tools/browser-support.test.ts`
+requires a row carrying one to have a prefixed counterpart spelled by the stylesheet as many times
+as the bare property is, so a third rule reaching for `user-select` cannot quietly leave Safari out
+again.
 
 ### Settled
 
@@ -185,10 +187,10 @@ this is the one part of the add-on that can fail on a browser that supports it p
 ⚠️ **The quota is not in this register, and its absence is the entry.** How much an origin may keep
 differs by engine, by profile and by how much that origin already holds, and none of it is readable
 from a page. The add-on therefore never predicts one: it writes, catches the refusal, gives up its
-oldest unpinned fight and writes again (`src/game/browser-store.ts`, `src/game/kept-fights.ts`).
-That matters more here than anywhere else in this table, because the origin is shared with the game
-— which keeps everything under one key, rewrites it whole on every change, and catches nothing
-(`git show v0.10.1:docs/specs/a-fight-you-can-go-back-to.md`).
+oldest unpinned fight and writes again (`src/game/browser-store.ts`,
+`develop:src/game/kept-fights.ts`). That matters more here than anywhere else in this table, because
+the origin is shared with the game — which keeps everything under one key, rewrites it whole on
+every change, and catches nothing (`git show v0.10.1:docs/specs/a-fight-you-can-go-back-to.md`).
 
 ⚠️ **This is the half that is not complete, and saying so is the point.** The CSS above is
 enumerable and the JavaScript below is held by a compiler; the DOM is neither. What bounds it
@@ -196,9 +198,9 @@ instead is the discipline `SECURITY.md` states — the panel is handed its docum
 for one: `src/ui/` takes it as an argument and reaches for no browser global at all — `PanelNode`,
 `PanelHost` and `PanelDocument` in `src/ui/panel-element.ts` are the whole slice it uses, and
 `HostPage` in `src/userscript-entry.ts` is the whole slice the entry point uses. That is guarded by
-`tests/repository/sources.test.ts`, so the surface stays declared rather than ambient, and the table
-above stays readable against those declarations by a person. It is not guarded to be exhaustive, and
-nothing here claims it is.
+`develop:tests/repository/sources.test.ts`, so the surface stays declared rather than ambient, and
+the table above stays readable against those declarations by a person. It is not guarded to be
+exhaustive, and nothing here claims it is.
 
 Nothing needing a manager's cooperation is used: no `GM_*`, no `fetch`, `XMLHttpRequest`,
 `WebSocket` or `sendBeacon` (`SECURITY.md` owns that surface), no `innerHTML`, no `eval`, no
@@ -215,14 +217,14 @@ half cannot be pinned at all; and narrowing `lib` from `esnext` to `es2022` stil
 sources are not one enumerable string, so nothing can list what they reach for.
 
 What **is** held is the register going stale, which is the failure that has happened twice:
-`tests/tools/browser-support.test.ts` requires each row below to name a construct the file beside it
-still spells, and re-earns both tiers at the top as the maximum over the rows under them.
-`ARCHITECTURE.md` carries the rest as a known gap. The one construct that decides where the floor
-is:
+`develop:tests/tools/browser-support.test.ts` requires each row below to name a construct the file
+beside it still spells, and re-earns both tiers at the top as the maximum over the rows under them.
+`develop:ARCHITECTURE.md` carries the rest as a known gap. The one construct that decides where the
+floor is:
 
-| Construct      | Where                          | Chrome / Edge | Firefox | Safari |
-| -------------- | ------------------------------ | ------------- | ------- | ------ |
-| `ErrorOptions` | `src/core/margometer-error.ts` | 93            | 91      | 15     |
+| Construct      | Where                                  | Chrome / Edge | Firefox | Safari |
+| -------------- | -------------------------------------- | ------------- | ------- | ------ |
+| `ErrorOptions` | `develop:src/core/margometer-error.ts` | 93            | 91      | 15     |
 
 `ErrorOptions` is why the lib is ES2022 and not ES2021, and it is a **type** dependency rather than
 a runtime one: the base class accepts and forwards `options`, and no shipped caller passes a
@@ -279,7 +281,7 @@ library member the engine lacks fails at the call, which is a place: something r
 the failure is that thing's size. A pattern whose syntax the engine cannot parse is an _early_
 SyntaxError — it is refused while the file is being read, before a line of it has run. The bundle
 never parses, so the reader sees no panel and no console line of ours. `new RegExp` differs only in
-when — `src/core/game-build.ts` builds two at module scope, so those throw while the add-on is
+when — `src/game/game-build.ts` builds two at module scope, so those throw while the add-on is
 starting. There is no degraded state to describe here, which is why the `[ASK]` `AGENTS.md` puts on
 a construct that raises the floor binds with nothing to weigh.
 
@@ -303,10 +305,10 @@ it exists for that browser.
 Three answers, and they are different: _not looked at_, _looked at and clean_, and _a finding_.
 
 - **Only Chrome has ever been run.** Every version above is read from `browser-compat-data`, not
-  observed. The one engine this repository drives is Chrome: `tools/panel-screenshots.ts` looks for
-  it by name and asks for no other, and `deno task e2e` pins the channel (**ADR 0047**). Firefox is
-  on the machine that wrote this and the panel has never been opened in it by anything here; Safari
-  is on no machine this repository has. Both are **not looked at**.
+  observed. The one engine this repository drives is Chrome: `develop:tools/panel-screenshots.ts`
+  looks for it by name and asks for no other, and `deno task e2e` pins the channel (**develop ADR
+  0047**). Firefox is on the machine that wrote this and the panel has never been opened in it by
+  anything here; Safari is on no machine this repository has. Both are **not looked at**.
 - **Three decisions name an engine other than the one that is run**, and each says so where it is
   written: the `user-select` prefix Safari has never shipped without, the glyph width a star was
   measured at in Firefox, and the blob a download is read from after the click returns in Firefox.

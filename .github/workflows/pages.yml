@@ -5,7 +5,7 @@
 # The gate runs first and the deploy is gated on it: a tree that cannot pass `deno task check`
 # must not become the page this repository points people at.
 #
-# The trigger is `main`, and `main` is the latest release (ARCHITECTURE.md), so what is published
+# The trigger is `main`, and `main` is the latest release (AGENTS.md **G6**), so what is published
 # is the panel a visitor can actually install rather than the tip of development.
 #
 # ⚠️ **Pages has to exist before anything can be deployed to it, and it is created once by hand:
@@ -17,7 +17,7 @@
 # on every step. `enablement: true` stays because it costs nothing once a site exists, and for
 # the fork whose owner GitHub does let create one by API.
 #
-# ⚠️ **What gets published is the recordings' own engine calls**, inlined one fight per page.
+# ⚠️ **What gets published is the recordings' own engine calls**, inlined into the one page.
 # `NOTICE.md` says what that carries and on what basis. Nothing generated here is committed.
 name: pages
 
@@ -58,10 +58,10 @@ jobs:
             # no change in the code.
             - uses: denoland/setup-deno@v2
               with:
-                  deno-version: 2.9.6
+                  deno-version: 2.9.7
 
             # The gate typechecks the browser suite, which imports an npm package —
-            # `.github/workflows/check.yml` says what that costs, ADR 0047 why it is paid.
+            # `.github/workflows/check.yml` says what that costs, develop ADR 0047 why it is paid.
             - uses: actions/setup-node@v4
               with:
                   node-version: 24
@@ -71,7 +71,7 @@ jobs:
             - run: deno task check
             # `--release` and not the bare task: this runs on `main`, which is the latest
             # release, and both READMEs tell a reader the page is drawn by the file from that
-            # release. Without it the panel on the published page states `-dev` — ADR 0037.
+            # release. Without it the panel on the published page states `-dev` — develop ADR 0037.
             - run: deno task preview:site --release
 
             # GitHub's own actions, so the only third-party one here is setup-deno.

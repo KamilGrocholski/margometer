@@ -7,20 +7,21 @@
  * about that.
  */
 
-import { expect, HOST_SELECTOR, type PanelHandle, test } from "@/tests/e2e/panel-fixture.ts";
-import { readEdgesOf, readPointsAlongBar, setDragged } from "@/tests/e2e/panel-probe.ts";
+import { expect, HOST_SELECTOR, type PanelHandle, test } from "./panel-fixture.ts";
+import { readEdgesOf, readPointsAlongBar, setDragged } from "./panel-probe.ts";
+import { waitForFrame } from "./panel-page.ts";
 
 /** The card, and the mark it wears while nobody is being told anything. */
 const CARD = ".MargoMeter-tip";
 const CARD_OPEN = ".MargoMeter-tip:not(.tip-hidden)";
 /** The one instruction a row gives, drawn on the card of a row that opens onto a level. */
 const OPENS_NOTE = "LPM — rozwiń wiersz";
-/** The two the crumb gives, and the second is named nowhere else on the panel (**ADR 0086**). */
+/** The two the crumb gives, and the second is named nowhere else on the panel (`develop ADR 0086`). */
 const BACK_NOTE = "LPM tutaj — wróć o krok";
 const BACK_ANYWHERE_NOTE = "PPM gdziekolwiek — wróć o krok";
 /** Far enough left that the card cannot stand on that side of the panel any more. */
 const TO_THE_LEFT = -420;
-/** Far enough right that the widest card there is has room on that window's left (**ADR 0091**). */
+/** Far enough right that the widest card there is has room on that window's left (`develop ADR 0091`). */
 const TO_THE_RIGHT = 420;
 /** Under the 549 px the tallest card this corpus composes needs, measured 2026-09-06. */
 const SHORT_WINDOW = 480;
@@ -30,6 +31,24 @@ const CUT_NOTE = "Nie wszystko się mieści w tym oknie.";
 const BOUND = 250;
 /** `SPACE.small`, which is the air the sheet keeps between a window and the card beside it. */
 const GAP = 4;
+
+/**
+ * ⚠️ **A place too long for its own row is the case the card exists to answer** (`develop ADR 0084`),
+ * and it is the one case no recording can carry: a map name reaches the panel off the game's own
+ * page state, never off a payload. So the suite says where the fight is, and these two say it at
+ * lengths the row cannot hold.
+ *
+ * Long enough to fold to **three** lines and not two. What a mutation to the count has to move is
+ * a card standing 17 px above what it draws, measured over this corpus on 2026-09-06 — one line of
+ * 15 px disappears into that slack and two do not.
+ */
+const LONG_PLACE = "E2E Nieprzebyta Puszcza Grzybiarzy Polnocna Zachodnia Dolina Wschodnia";
+/** One word with nowhere to break, which is what `overflow-wrap:break-word` is bought for. */
+const UNBROKEN_PLACE = "E2E" + "w".repeat(56);
+/** What the stub's own hero stands on, which `composePlaceWords` puts after the name. */
+const TILE = " (1, 1)";
+/** `LINE_HEIGHT`, as the number a drawn name is measured in. */
+const LINE = 15;
 
 test("the card opens under the pointer, and names the row it describes", async ({ panel }) => {
     await expect(panel.at(CARD), "the card is there before anybody is told anything").toHaveCount(
@@ -51,7 +70,7 @@ test("the card opens under the pointer, and names the row it describes", async (
  * `MAXIMUM_LABEL_CHARACTERS` counts a label's letters as a stand-in for the column's width, and
  * the glyph a caveated figure wears is a cell of its own — so the count cannot see what it costs
  * the label beside it. A cut label reads as a shorter label and nothing says it was cut.
- * **ADR 0088.**
+ * **`develop ADR 0088`.**
  */
 test("no label the card draws is cut by the column it is drawn in", async ({ panel }) => {
     const row = panel.at(".list .row").first();
@@ -93,6 +112,7 @@ test("crossing inside a row keeps the card, and leaving takes it away", async ({
     // `pointerout` **and** a `pointermove`, and the move would reopen a card the out had wrongly
     // closed — so the two together cannot tell a listener that reads `relatedTarget` from one
     // that hides on anything. The leaving is delivered on its own for that reason.
+    await waitForFrame(panel.page);
     const stayed = await panel.page.evaluate((selector) => {
         const root = document.querySelector(selector)?.shadowRoot ?? null;
         const name = root?.querySelector(".list .row .row-name") ?? null;
@@ -119,7 +139,7 @@ test("a row that opens says so on its card; one that does not says nothing", asy
         .toContain(OPENS_NOTE);
 
     // A leaf is reached two presses down, on the third level, which is the only one where
-    // nothing opens any more (`docs/drill-levels.md`). Every row on the second one opens.
+    // nothing opens any more (`develop:docs/drill-levels.md`). Every row on the second one opens.
     await panel.at(".row.drillable").first().click();
     await panel.at(".row.drillable").first().click();
     await panel.at(".row.leaf").first().hover();
@@ -191,30 +211,9 @@ test("a card is counted at or above what it draws, and stays on screen", async (
     await panel.expectHonest("every card of a ranking opened");
 });
 
-/**
- * ⚠️ **A window too short for the card must not take the bottom off it in silence.** The box
- * carries `overflow:hidden` and takes no pointer, so an unmarked cut leaves no scrollbar and no
- * way to reach what has gone — a 533 px card in a 480 px window showing 464 of it, measured
- * unmarked on Chrome 152, 2026-09-06. What will not fit is given up at a run's own edge and the
- * card states it, so nothing goes missing without a mark.
- */
-test("a window too short for the card is told about, not cut around", async ({ panel }) => {
-    await panel.page.setViewportSize({ width: 1280, height: SHORT_WINDOW });
-    await panel.at(".list .row").first().hover();
-
-    const seen = await readCardHeight(panel.page);
-    expect(seen, "the card opened").not.toBeNull();
-    if (seen === null) return;
-    expect(seen.drawn, "and the box shows the whole of what it drew").toBeLessThanOrEqual(
-        seen.shown + 1,
-    );
-    expect(seen.bottom, "with its bottom edge on the screen").toBeLessThanOrEqual(seen.viewport);
-    expect(seen.said, "and it says a part of it is not there").toContain(CUT_NOTE);
-    await panel.expectHonest("a card in a window too short for it");
-});
-
 /** The card as the browser has it: what the draw counted, what it drew, and where it ends. */
 async function readCardHeight(page: import("@playwright/test").Page) {
+    await waitForFrame(page);
     return await page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
         const tip = root?.querySelector(".MargoMeter-tip") ?? null;
@@ -237,6 +236,28 @@ async function readCardHeight(page: import("@playwright/test").Page) {
         };
     });
 }
+
+/**
+ * ⚠️ **A window too short for the card must not take the bottom off it in silence.** The box
+ * carries `overflow:hidden` and takes no pointer, so an unmarked cut leaves no scrollbar and no
+ * way to reach what has gone — a 533 px card in a 480 px window showing 464 of it, measured
+ * unmarked on Chrome 152, 2026-09-06. What will not fit is given up at a run's own edge and the
+ * card states it, so nothing goes missing without a mark.
+ */
+test("a window too short for the card is told about, not cut around", async ({ panel }) => {
+    await panel.page.setViewportSize({ width: 1280, height: SHORT_WINDOW });
+    await panel.at(".list .row").first().hover();
+
+    const seen = await readCardHeight(panel.page);
+    expect(seen, "the card opened").not.toBeNull();
+    if (seen === null) return;
+    expect(seen.drawn, "and the box shows the whole of what it drew").toBeLessThanOrEqual(
+        seen.shown + 1,
+    );
+    expect(seen.bottom, "with its bottom edge on the screen").toBeLessThanOrEqual(seen.viewport);
+    expect(seen.said, "and it says a part of it is not there").toContain(CUT_NOTE);
+    await panel.expectHonest("a card in a window too short for it");
+});
 
 test("the card stands on whichever side of the panel it fits", async ({ panel }) => {
     const row = panel.at(".list .row").first();
@@ -287,7 +308,7 @@ test("the way back says both gestures, and only where a level is open", async ({
 
 /**
  * ⚠️ **The one claim a unit test cannot make: how wide the card ends up.** The width is the
- * sheet's — `max-content` under a bound (**ADR 0091**) — so nothing in `src/` knows it and only a
+ * sheet's — `max-content` under a bound (`develop ADR 0091`) — so nothing in `src/` knows it and only a
  * browser laying the card out can answer. Before that decision every card was the bound: the
  * second window's card, a skill name over one instruction, stood at the whole of the bound for
  * sixteen characters.
@@ -315,28 +336,9 @@ test("a card is as wide as what it says, up to the bound", async ({ panel }) => 
 });
 
 /**
- * The air between a window and the card one of its rows opened, on whichever side the card landed
- * — this holds the gap and never the side, which is `composeTipAcross`'s answer and held in
- * `tests/ui/panel-drag.test.ts`. The row is hovered again each time, because a drag in between
- * takes the pointer off it and the card with it.
- */
-async function readGapTo(
-    panel: PanelHandle,
-    rowSelector: string,
-    windowSelector: string,
-): Promise<number> {
-    await panel.at(rowSelector).first().hover();
-    await expect(panel.at(CARD_OPEN), `${rowSelector} opens a card`).toHaveCount(1);
-    const card = await readEdgesOf(panel.page, CARD_OPEN);
-    const window = await readEdgesOf(panel.page, `${HOST_SELECTOR} ${windowSelector}`);
-    if (card.right <= window.left) return window.left - card.right;
-    return card.left - window.right;
-}
-
-/**
  * The half the width change could have broken quietly: a card pinned by a **left** offset worked
  * out from the bound would float the difference away from the window the moment it drew narrower
- * (**ADR 0091**).
+ * (`develop ADR 0091`).
  *
  * ⚠️ **It has to be a narrow card standing to its window's left, and the second window has to be
  * dragged to get one.** Where the card is the bound wide, an offset from the left and one from
@@ -374,49 +376,22 @@ test("a card keeps the edge facing its window, whatever width it draws at", asyn
 });
 
 /**
- * ⚠️ **A place too long for its own row is the case the card exists to answer** (**ADR 0084**),
- * and it is the one case no recording can carry: a map name reaches the panel off the game's own
- * page state, never off a payload. So the suite says where the fight is, and these two say it at
- * lengths the row cannot hold.
- *
- * Long enough to fold to **three** lines and not two. What a mutation to the count has to move is
- * a card standing 17 px above what it draws, measured over this corpus on 2026-09-06 — one line of
- * 15 px disappears into that slack and two do not.
+ * The air between a window and the card one of its rows opened, on whichever side the card landed
+ * — this holds the gap and never the side, which is `composeTipAcross`'s answer and held in
+ * `tests/ui/panel-drag.test.ts`. The row is hovered again each time, because a drag in between
+ * takes the pointer off it and the card with it.
  */
-const LONG_PLACE = "E2E Nieprzebyta Puszcza Grzybiarzy Polnocna Zachodnia Dolina Wschodnia";
-/** One word with nowhere to break, which is what `overflow-wrap:break-word` is bought for. */
-const UNBROKEN_PLACE = "E2E" + "w".repeat(56);
-/** What the stub's own hero stands on, which `composePlaceWords` puts after the name. */
-const TILE = " (1, 1)";
-/** `LINE_HEIGHT`, as the number a drawn name is measured in. */
-const LINE = 15;
-
-/** The name on the open card, as the browser laid it out. */
-async function readCardName(page: import("@playwright/test").Page) {
-    return await page.evaluate(() => {
-        const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
-        const name = root?.querySelector(".MargoMeter-tip:not(.tip-hidden) .tip-name") ?? null;
-        if (name === null) return null;
-        return {
-            said: name.textContent ?? "",
-            height: Math.round(name.getBoundingClientRect().height),
-            // What the box holds against what it shows, both ways: a name cut sideways and a name
-            // cut off the bottom read differently, and neither may happen.
-            scrollWidth: name.scrollWidth,
-            clientWidth: name.clientWidth,
-            scrollHeight: name.scrollHeight,
-            clientHeight: name.clientHeight,
-        };
-    });
-}
-
-/** The shelf, and the card its live row opens — the row that carries the place. */
-async function setShelfCardOpen(panel: PanelHandle): Promise<void> {
-    await panel.at("[data-shelf]").click();
-    await expect(panel.at(".list .row[data-fight]"), "the shelf draws the fight going on")
-        .not.toHaveCount(0);
-    await panel.at(".list .row[data-fight]").first().hover();
-    await expect(panel.at(CARD_OPEN), "which opens a card of its own").toHaveCount(1);
+async function readGapTo(
+    panel: PanelHandle,
+    rowSelector: string,
+    windowSelector: string,
+): Promise<number> {
+    await panel.at(rowSelector).first().hover();
+    await expect(panel.at(CARD_OPEN), `${rowSelector} opens a card`).toHaveCount(1);
+    const card = await readEdgesOf(panel.page, CARD_OPEN);
+    const window = await readEdgesOf(panel.page, `${HOST_SELECTOR} ${windowSelector}`);
+    if (card.right <= window.left) return window.left - card.right;
+    return card.left - window.right;
 }
 
 test.describe("a place too long for its row", () => {
@@ -453,6 +428,35 @@ test.describe("a place too long for its row", () => {
             .toBeLessThanOrEqual(seen.viewport);
     });
 });
+
+/** The shelf, and the card its live row opens — the row that carries the place. */
+async function setShelfCardOpen(panel: PanelHandle): Promise<void> {
+    await panel.at("[data-shelf]").click();
+    await expect(panel.at(".list .row[data-fight]"), "the shelf draws the fight going on")
+        .not.toHaveCount(0);
+    await panel.at(".list .row[data-fight]").first().hover();
+    await expect(panel.at(CARD_OPEN), "which opens a card of its own").toHaveCount(1);
+}
+
+/** The name on the open card, as the browser laid it out. */
+async function readCardName(page: import("@playwright/test").Page) {
+    await waitForFrame(page);
+    return await page.evaluate(() => {
+        const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
+        const name = root?.querySelector(".MargoMeter-tip:not(.tip-hidden) .tip-name") ?? null;
+        if (name === null) return null;
+        return {
+            said: name.textContent ?? "",
+            height: Math.round(name.getBoundingClientRect().height),
+            // What the box holds against what it shows, both ways: a name cut sideways and a name
+            // cut off the bottom read differently, and neither may happen.
+            scrollWidth: name.scrollWidth,
+            clientWidth: name.clientWidth,
+            scrollHeight: name.scrollHeight,
+            clientHeight: name.clientHeight,
+        };
+    });
+}
 
 test.describe("a place with nowhere to break", () => {
     test.use({ place: UNBROKEN_PLACE });

@@ -7,34 +7,38 @@
  */
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
-import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
-import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { getRecordedMessages, readRecordingPaths } from "@/tests/recorded-fight.ts";
+import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
+import { parseProtocolMessage } from "#/src/core/protocol-message.ts";
+import { readRecordedFights } from "#/tests/recorded-fights.ts";
+import { ProtocolKeyTableError } from "#/tools/margometer-tool-error.ts";
 import {
     FROZEN_KEY_BANNER,
-    getComputedKeyFamily,
-    getProtocolKeys,
-} from "@/tools/protocol-key-table.ts";
-import { ProtocolKeyTableError } from "@/tools/margometer-tool-error.ts";
+    requireComputedKeyFamily,
+    requireProtocolKeys,
+} from "#/tools/protocol-key-table.ts";
 
 /** The literal-second spelling, which is how build `53XkBRxF` writes the default branch. */
 const NEWER_BUNDLE =
-    'e.manageBattleEffects(t);switch(q[0]){case"+crit":a();break;case"blok":b();break;' +
+    'e.manageBattleEffects(t);switch(q[0]){case"blok":b();break;case"+crit":a();break;' +
     'default:q[0].substr(1,3)=="dmg"?q[0].charAt(0)=="+"?c():d():e()}';
 
 /** The literal-first spelling of build `1786514810315`, with a local the minifier named `y`. */
 const OLDER_BUNDLE =
-    'x.manageBattleEffects(t);switch(y[0]){case"+crit":a();break;case"blok":b();break;' +
+    'x.manageBattleEffects(t);switch(y[0]){case"blok":b();break;case"+crit":a();break;' +
     'default:"dmg"==y[0].substr(1,3)?"+"==y[0].charAt(0)?c():d():e()}';
 
 /** The same switch bundled with backticks, which is taste and not meaning. */
 const BACKTICK_BUNDLE = NEWER_BUNDLE.split('"').join("`");
 
 Deno.test("the keys come out of the switch, whatever the bundler's taste", () => {
-    assertEquals(getProtocolKeys(NEWER_BUNDLE), ["+crit", "blok"], "quoted and sorted");
-    assertEquals(getProtocolKeys(OLDER_BUNDLE), ["+crit", "blok"], "and a subject named y");
     assertEquals(
-        getProtocolKeys(BACKTICK_BUNDLE),
+        requireProtocolKeys(NEWER_BUNDLE),
+        ["+crit", "blok"],
+        "sorted, not in switch order",
+    );
+    assertEquals(requireProtocolKeys(OLDER_BUNDLE), ["+crit", "blok"], "and a subject named y");
+    assertEquals(
+        requireProtocolKeys(BACKTICK_BUNDLE),
         ["+crit", "blok"],
         "and one written in backticks",
     );
@@ -43,19 +47,23 @@ Deno.test("the keys come out of the switch, whatever the bundler's taste", () =>
 Deno.test("a bundle this no longer recognises stops, rather than shortening the table", () => {
     // The failure that is worth having: a freeze that threw where the switch had been
     // restructured is why the table was never quietly cut down to whatever still parsed.
-    assertThrows(() => getProtocolKeys("var a=1;"), ProtocolKeyTableError, "restructured");
+    assertThrows(() => requireProtocolKeys("var a=1;"), ProtocolKeyTableError, "restructured");
     assertThrows(
-        () => getProtocolKeys("e.manageBattleEffects(t);switch(q[0]){default:f()}"),
+        () => requireProtocolKeys("e.manageBattleEffects(t);switch(q[0]){default:f()}"),
         ProtocolKeyTableError,
         "case labels",
     );
 });
 
 Deno.test("the family the client recognises by shape is read in both orders", () => {
-    const newer = getComputedKeyFamily(NEWER_BUNDLE);
+    const newer = requireComputedKeyFamily(NEWER_BUNDLE);
     assertEquals(newer, { marker: "dmg", markerAt: 1, markerLength: 3, dealtSign: "+" }, "newer");
-    assertEquals(getComputedKeyFamily(OLDER_BUNDLE), newer, "the older order says the same thing");
-    assertThrows(() => getComputedKeyFamily("var a=1;"), ProtocolKeyTableError);
+    assertEquals(
+        requireComputedKeyFamily(OLDER_BUNDLE),
+        newer,
+        "the older order says the same thing",
+    );
+    assertThrows(() => requireComputedKeyFamily("var a=1;"), ProtocolKeyTableError);
 });
 
 Deno.test("the frozen table says which build it came from, and holds no repetition", () => {
@@ -73,11 +81,11 @@ Deno.test("every key a real fight carried is one the client knows", () => {
     const named = new Set<string>(keys);
     const { marker, markerAt, markerLength } = computedFamily;
     const seen = new Set<string>();
-    for (const path of readRecordingPaths()) {
-        for (const message of getRecordedMessages(path)) {
-            for (const parameter of parseProtocolMessage(message).parameters) {
-                seen.add(parameter.key);
-            }
+    for (const fight of readRecordedFights()) {
+        for (const message of fight.messages) {
+            const parsed = parseProtocolMessage(message);
+            if (!parsed.ok) continue;
+            for (const parameter of parsed.value.parameters) seen.add(parameter.key);
         }
     }
     assert(seen.size > 0, "there are keys in the recordings to check");

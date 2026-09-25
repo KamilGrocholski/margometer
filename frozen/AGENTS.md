@@ -25,19 +25,23 @@ that they are evidence, and that no hand edits them.
 skill table, then writes each frozen file from what it has just fetched — in that order, because
 every reading is dated by the fetch above it. `deno task game:readings status` asks the same
 question and changes nothing: it exits `0` where every reading is the game's, `1` where one went
-behind, and `2` where the world could not be asked at all. Neither takes a list of what to count:
-the phrases come from the claims `docs/protocol-keys.md` makes, which is what a count is for.
-**AGENTS.md W10** says when the routine is run.
+behind, and `2` where the world could not be asked at all. Neither takes a list of what to count: a
+freeze counts again every phrase the table already holds, and
+`deno task game:help freeze
+<phrase> …` adds one before anything leans on it. **AGENTS.md W10** says
+when the routine is run.
 
 ## Why they exist
 
-A verdict in `docs/protocol-keys.md` that the help does or does not document a key is checked
-against these counts on every run of the gate. A negative recorded from a search nobody re-runs is
-how four keys once came to be filed as undocumented while the help described all four.
+The words the panel gives the kinds of damage and the defences are checked against these counts on
+every run of the gate (`tests/ui/panel-words.test.ts`): a word the help prints nowhere is an
+invention. A negative recorded from a search nobody re-runs is how four keys once came to be filed
+as undocumented while the help described all four (`develop:docs/protocol-keys.md`).
 
 The durations are here for the same reason and one more: they are the **only** source that says how
-long an effect runs for, so a figure the panel draws beside a counted one rests on them alone (**ADR
-0058**). The bundle carries neither the durations nor the prose beside them, but the two small
-tables derived from them: `frozen/aura-turns.ts`, which is what reaches more than one combatant, and
-`frozen/blows-granted.ts`, which is how many blows an announcement **that names an id** reaches
-(**ADR 0078**). Both are written by the same freeze off the same fetch, so all three date together.
+long an effect runs for, so a figure the panel draws beside a counted one rests on them alone
+(**develop ADR 0058**). The bundle carries neither the durations nor the prose beside them, but the
+two small tables derived from them: `frozen/aura-turns.ts`, which is what reaches more than one
+combatant, and `frozen/blows-granted.ts`, which is how many blows an announcement **that names an
+id** reaches (**develop ADR 0078**). Both are written by the same freeze off the same fetch, so all
+three date together.

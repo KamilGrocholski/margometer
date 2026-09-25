@@ -3,13 +3,8 @@
  * lets it go, and what the browser is told about where it landed.
  */
 
-import { expect, test } from "@/tests/e2e/panel-fixture.ts";
-import {
-    readCentreOf,
-    readHostStyle,
-    readPointsAlongBar,
-    setDragged,
-} from "@/tests/e2e/panel-probe.ts";
+import { expect, test } from "./panel-fixture.ts";
+import { readCentreOf, readHostStyle, readPointsAlongBar, setDragged } from "./panel-probe.ts";
 
 /** In from the bar's left edge, past the grip mark and short of anything the bar draws. */
 const ALONG_THE_BAR = [10, 20, 40, 60, 80, 100, 130, 160, 190, 210, 230, 250];
@@ -20,7 +15,7 @@ const DOWN = 60;
 const VISIBLE_LEAST = 64;
 const WINDOW_WIDTH = 1280;
 const WINDOW_HEIGHT = 900;
-/** The one key a drag writes, named as `src/userscript-entry.ts` names it. */
+/** The one key a drag writes, named as `STORE_KEY` in `src/game/browser-store.ts` names it. */
 const PLACE_KEY = "MargoMeter-place";
 /** Enough of the fight to have drawn a panel, and enough left over to land one mid-drag. */
 const PART_WAY = 20;

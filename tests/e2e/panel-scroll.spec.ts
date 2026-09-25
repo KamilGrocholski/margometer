@@ -6,8 +6,9 @@
  * it than fits. Measured 2026-09-02 on Chrome 152: 491 px of rows in a 437 px region.
  */
 
-import { expect, type PanelHandle, test } from "@/tests/e2e/panel-fixture.ts";
-import { readCentreOf } from "@/tests/e2e/panel-probe.ts";
+import { expect, type PanelHandle, test } from "./panel-fixture.ts";
+import { readCentreOf } from "./panel-probe.ts";
+import { waitForFrame } from "./panel-page.ts";
 
 /** A group fight whose opened row holds more than the region can show. */
 const OVERFLOWING = "captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json";
@@ -25,8 +26,36 @@ const OTHER_SCREEN = "damageTakenApplied";
 
 test.use({ recording: OVERFLOWING, fedThrough: FED_THROUGH });
 
+test("the list is the one region that scrolls, and it hides its bar", async ({ panel }) => {
+    await setOverflowingLevelOpened(panel);
+    const seen = await readScrollers(panel);
+    expect(seen.height, "the level that opened is taller than the region").toBeGreaterThan(
+        seen.shown,
+    );
+    expect(seen.others, "and nothing else in the panel overflows its own box").toEqual([]);
+    expect(seen.bars, "the bar is taken away; a reader scrolls, not drags").toBe("none");
+});
+
+/**
+ * A level with more under it than the region shows, and which ranking row opened it. Which row
+ * has one moves with the fight, so it is looked for rather than named — a row picked by number
+ * would quietly stop overflowing on the next intake and the scroll tests would then measure
+ * nothing.
+ */
+async function setOverflowingLevelOpened(panel: PanelHandle): Promise<number> {
+    for (let at = 0; at < ROWS_TRIED; at += 1) {
+        await panel.at(".list .row.drillable").nth(at).click();
+        const seen = await readScrollers(panel);
+        if (seen.height > seen.shown) return at;
+        await panel.at("[data-back]").click();
+    }
+    expect(false, `no row in the first ${ROWS_TRIED} opens onto a level that overflows`).toBe(true);
+    return -1;
+}
+
 /** The list, as the browser reports it, and whatever else in the panel could scroll beside it. */
 async function readScrollers(panel: PanelHandle) {
+    await waitForFrame(panel.page);
     return await panel.page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
         const list = root?.querySelector(".list") ?? null;
@@ -46,34 +75,8 @@ async function readScrollers(panel: PanelHandle) {
     });
 }
 
-/**
- * A level with more under it than the region shows, and which ranking row opened it. Which row
- * has one moves with the fight, so it is looked for rather than named — a row picked by number
- * would quietly stop overflowing on the next intake and the scroll tests would then measure
- * nothing.
- */
-async function setOverflowingLevelOpened(panel: PanelHandle): Promise<number> {
-    for (let at = 0; at < ROWS_TRIED; at += 1) {
-        await panel.at(".list .row.drillable").nth(at).click();
-        const seen = await readScrollers(panel);
-        if (seen.height > seen.shown) return at;
-        await panel.at("[data-back]").click();
-    }
-    expect(false, `no row in the first ${ROWS_TRIED} opens onto a level that overflows`).toBe(true);
-    return -1;
-}
-
-test("the list is the one region that scrolls, and it hides its bar", async ({ panel }) => {
-    await setOverflowingLevelOpened(panel);
-    const seen = await readScrollers(panel);
-    expect(seen.height, "the level that opened is taller than the region").toBeGreaterThan(
-        seen.shown,
-    );
-    expect(seen.others, "and nothing else in the panel overflows its own box").toEqual([]);
-    expect(seen.bars, "the bar is taken away; a reader scrolls, not drags").toBe("none");
-});
-
 test("a wheel over the list moves it, and the page behind stays where it is", async ({ panel }) => {
+    await waitForFrame(panel.page);
     await panel.page.evaluate((height) => {
         const tall = document.createElement("div");
         tall.style.height = `${height}px`;
@@ -128,7 +131,7 @@ test("a heading stays over the rows it names while they go past", async ({ panel
  * The turn rather than the position, and the difference is the whole test. Chrome animates a
  * wheel turn on its compositor, so a payload landing inside one throws the turn away and writes
  * the position from before it back over the region. Under 50ms wide, and the preview plays a
- * payload every 220ms. **ADR 0052.**
+ * payload every 220ms. **`develop ADR 0052`.**
  */
 test("a payload landing inside a wheel turn does not take the turn away", async ({ panel }) => {
     await setOverflowingLevelOpened(panel);

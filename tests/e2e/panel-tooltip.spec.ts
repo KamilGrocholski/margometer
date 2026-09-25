@@ -7,34 +7,12 @@
  * whether an open tooltip was told they had.
  */
 
-import { expect, test } from "@/tests/e2e/panel-fixture.ts";
+import { expect, test } from "./panel-fixture.ts";
 import type { Page } from "@playwright/test";
+import { waitForFrame } from "./panel-page.ts";
 
 /** The add-on's own name, which the first row carries — `SECURITY.md`'s guest rule. */
 const ADD_ON_NAME = "MargoMeter";
-
-/** What stands in every fighter's tooltip past what the game composed, row by row. */
-async function readTooltips(page: Page): Promise<Record<string, string[]>> {
-    const found = await page.evaluate(() => {
-        const held = (window as unknown as { MARGOMETER_TIPS?: Record<string, string> })
-            .MARGOMETER_TIPS;
-        return held ?? null;
-    });
-    expect(found, "the page collected what was written to its fighters").not.toBeNull();
-    const rows: Record<string, string[]> = {};
-    for (const [id, text] of Object.entries(found ?? {})) rows[id] = text.split("<br>").slice(1);
-    return rows;
-}
-
-/** How many times each fighter's open tooltip was told to draw again. */
-async function readTold(page: Page): Promise<Record<string, number>> {
-    const found = await page.evaluate(() => {
-        return (window as unknown as { MARGOMETER_TOLD?: Record<string, number> })
-            .MARGOMETER_TOLD ?? null;
-    });
-    expect(found, "the page counted what its tooltips were told").not.toBeNull();
-    return found ?? {};
-}
 
 test("the add-on's rows land in the game's own tooltips", async ({ panel }) => {
     const landed = await readTooltips(panel.page);
@@ -54,10 +32,35 @@ test("the add-on's rows land in the game's own tooltips", async ({ panel }) => {
     await panel.expectHonest("rows in the game's tooltips");
 });
 
+/** What stands in every fighter's tooltip past what the game composed, row by row. */
+async function readTooltips(page: Page): Promise<Record<string, string[]>> {
+    await waitForFrame(page);
+    const found = await page.evaluate(() => {
+        const held = (window as unknown as { MARGOMETER_TIPS?: Record<string, string> })
+            .MARGOMETER_TIPS;
+        return held ?? null;
+    });
+    expect(found, "the page collected what was written to its fighters").not.toBeNull();
+    const rows: Record<string, string[]> = {};
+    for (const [id, text] of Object.entries(found ?? {})) rows[id] = text.split("<br>").slice(1);
+    return rows;
+}
+
+/** How many times each fighter's open tooltip was told to draw again. */
+async function readTold(page: Page): Promise<Record<string, number>> {
+    await waitForFrame(page);
+    const found = await page.evaluate(() => {
+        return (window as unknown as { MARGOMETER_TOLD?: Record<string, number> })
+            .MARGOMETER_TOLD ?? null;
+    });
+    expect(found, "the page counted what its tooltips were told").not.toBeNull();
+    return found ?? {};
+}
+
 /**
  * ⚠️ **The rows are separate calls on purpose.** The client's own `concatTip` puts a `<br>`
  * between what is there and what it is handed, so the block's shape costs this add-on no markup —
- * and a row carrying a tag would be markup of ours in somebody else's string (**ADR 0024**).
+ * and a row carrying a tag would be markup of ours in somebody else's string (`develop ADR 0024`).
  */
 test("a row is never markup, and several rows stand on the client's break", async ({ panel }) => {
     await panel.feed(60);

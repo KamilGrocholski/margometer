@@ -7,7 +7,7 @@
 #
 # ⚠️ **Both files, and the metadata one is not optional.** 0.5.0 polls `margometer.meta.js` for its
 # next version; a release without it leaves every copy installed from that version checking a 404
-# for good (ARCHITECTURE.md, protected contracts).
+# for good (`develop:ARCHITECTURE.md`, protected contracts).
 name: release
 
 on:
@@ -49,9 +49,9 @@ jobs:
             # is built by a toolchain that changes one day with no change in the code.
             - uses: denoland/setup-deno@v2
               with:
-                  deno-version: 2.9.6
+                  deno-version: 2.9.7
 
-            # The version being tagged has to be the version this tree declares — ADR 0018. They
+            # The version being tagged has to be the version this tree declares — develop ADR 0018. They
             # come from two places, the tag and `deno.json`, and nothing else compares them.
             - name: the tag and deno.json agree
               run: |
@@ -63,7 +63,7 @@ jobs:
                   fi
 
             # The gate typechecks the browser suite, which imports an npm package —
-            # `.github/workflows/check.yml` says what that costs, ADR 0047 why it is paid.
+            # `.github/workflows/check.yml` says what that costs, develop ADR 0047 why it is paid.
             - uses: actions/setup-node@v4
               with:
                   node-version: 24
@@ -73,7 +73,7 @@ jobs:
             - run: deno task check
 
             # The gate builds at the declaration marked `-dev`, which is what a tree nobody
-            # tagged honestly says (ADR 0035), so `dist/` is written again at the tag's version
+            # tagged honestly says (develop ADR 0035), so `dist/` is written again at the tag's version
             # and both files are read back. A release whose banner names the previous version
             # updates nobody — and the step above has already held the tag and the declaration
             # level, so this is what proves the built file carries what they agreed on.
@@ -84,19 +84,8 @@ jobs:
                   grep -qx "// @version      ${version}" dist/margometer.user.js
                   grep -qx "// @version      ${version}" dist/margometer.meta.js
 
-            # The pictures a README shows are of the panel, and the panel states the version it
-            # was built at. A set taken before the version was bumped, or one taken without
-            # `--release`, puts `0.11.0` or `0.11.0-dev` on the front page of a release that is
-            # neither — and nothing about a PNG looks wrong. `deno task check` holds the set to the
-            # declaration on every push (`tools/panel-screenshots.ts`); this is what holds it to
-            # the tag, which is the only place the mark itself can be caught. ADR 0037.
-            - name: the pictures were taken at the tagged version
-              run: |
-                  version="${GITHUB_REF_NAME#v}"
-                  grep -qF "\"version\": \"${version}\"" screenshots/taken-at.json
-
             # The notes are this version's section of CHANGELOG.md, which is the one document here
-            # written for players — not a generated list of commit subjects, for the reason ADR
+            # written for players — not a generated list of commit subjects, for the reason develop ADR
             # 0018 gives. A version with no section fails here, before anything is public.
             - name: compose the release notes
               run: deno run -A tools/changelog.ts notes "${GITHUB_REF_NAME#v}" > release-notes.md

@@ -6,12 +6,12 @@
  * a reader on a fight that has moved on.
  */
 
-import { expect, test } from "@/tests/e2e/panel-fixture.ts";
-import { readPointsAlongBar, setDragged } from "@/tests/e2e/panel-probe.ts";
+import { expect, test } from "./panel-fixture.ts";
+import { readPointsAlongBar, setDragged } from "./panel-probe.ts";
 
 const ACROSS = 120;
 const DOWN = 60;
-/** The keys a reader's own answers are written under, as `src/userscript-entry.ts` names them. */
+/** The keys a reader's own answers are written under, as `STORE_KEY` in `src/game/browser-store.ts` names them. */
 const PLACE_KEY = "MargoMeter-place";
 const FOLD_KEY = "MargoMeter-folded";
 const STORAGE_KEY = "MargoMeter-storage";

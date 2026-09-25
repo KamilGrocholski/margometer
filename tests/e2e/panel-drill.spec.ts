@@ -1,13 +1,13 @@
 /**
  * The rows that open onto another level, and the two ways back out.
  *
- * `docs/drill-levels.md` says the panel is three levels deep and that nothing on the third opens.
+ * `develop:docs/drill-levels.md` says the panel is three levels deep and that nothing on the third opens.
  * Both claims are held here in a browser rather than taken.
  */
 
-import { expect, test } from "@/tests/e2e/panel-fixture.ts";
-import { DESCENDING } from "@/tests/e2e/panel-crawler.ts";
-import { readPanelShape } from "@/tests/e2e/panel-probe.ts";
+import { expect, test } from "./panel-fixture.ts";
+import { DESCENDING } from "./panel-crawler.ts";
+import { readPanelShape } from "./panel-probe.ts";
 
 test("a ranking row opens onto its own level, and says where the reader is", async ({ panel }) => {
     await expect(panel.at(".crumb-here"), "nothing is open to begin with").toHaveCount(0);
@@ -41,7 +41,7 @@ test("the way back lands exactly where it left, both ways of asking", async ({ p
 
 /**
  * The window beside the panel shares the panel's root, so the gesture that steps back reached it
- * too until **ADR 0071**. Held in a browser because the press has to land on a real node under a
+ * too until `develop ADR 0071`. Held in a browser because the press has to land on a real node under a
  * real pointer, and nothing on that node says which of the two windows drew it.
  */
 test("a right press in the window beside the panel leaves the level open", async ({ panel }) => {

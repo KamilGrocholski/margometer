@@ -2,13 +2,13 @@
  * The card a row opens, read back out of the root it stands in.
  *
  * Shared because two suites open one: the panel's rows and the rows of the window beside it
- * (**ADR 0098**). It reads a drawn card and composes nothing, so what a test asserts against is
- * what a reader would have met.
+ * (`develop ADR 0098`). It reads a drawn card and composes nothing, so what a test asserts against
+ * is what a reader would have met.
  */
 
 import { assertExists } from "@std/assert";
-import { type FakeElement, getElementsWithin, getTextsByClass } from "@/tests/fake-document.ts";
-import { CLASS } from "@/src/ui/panel-look.ts";
+import { type FakeElement, getElementsWithin, getTextsByClass } from "./fake-document.ts";
+import { CLASS } from "#/src/ui/panel-look.ts";
 
 /** One line of the card as a reader meets it: what it is of, what it says, and how it is drawn. */
 export interface TipLineRead {

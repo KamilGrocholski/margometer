@@ -1,22 +1,15 @@
 /**
  * Where the panel stands among the game's own layers: over its interface, and under every window
- * it opens. **ADR 0114.**
+ * it opens. **`develop ADR 0114`.**
  *
  * The game's page is stood in for by two blocks carrying its two numbers, put ahead of the host in
  * `body` as the served page puts its own. Read by paint order, topmost first, and never by a hit
- * test — **ADR 0068** paid for that lesson.
+ * test — `develop ADR 0068` paid for that lesson.
  */
 
 import type { Page } from "@playwright/test";
-import { expect, HOST_SELECTOR, test } from "@/tests/e2e/panel-fixture.ts";
-
-/**
- * Read off `/css/style.BLVAkooC.css`, served beside bundle `Bb28FQty` by `tempest.margonem.pl`,
- * 2026-09-23: `.layer{z-index:10}` is the interface layer's, and 11 is the lowest a layer holding
- * a window, the chat or an alert stands at.
- */
-const GAME_INTERFACE_LAYER = 10;
-const GAME_WINDOW_LAYER_LOWEST = 11;
+import { expect, HOST_SELECTOR, test } from "./panel-fixture.ts";
+import { waitForFrame } from "./panel-page.ts";
 
 interface LayerStack {
     windowAt: number;
@@ -28,6 +21,38 @@ interface LayerStandIn {
     selector: string;
     interfaceLayer: number;
     windowLayer: number;
+}
+
+/**
+ * Read off `/css/style.BLVAkooC.css`, served beside bundle `Bb28FQty` by `tempest.margonem.pl`,
+ * 2026-09-23: `.layer{z-index:10}` is the interface layer's, and 11 is the lowest a layer holding
+ * a window, the chat or an alert stands at.
+ */
+const GAME_INTERFACE_LAYER = 10;
+const GAME_WINDOW_LAYER_LOWEST = 11;
+
+test("a window of the game's stands over the panel", async ({ panel }) => {
+    await expect(panel.host, "the panel is drawn to be covered").toBeVisible();
+    const { covered } = await readStacksUnder(panel.page, GAME_WINDOW_LAYER_LOWEST);
+    expect(covered.windowAt, "the window is in the stack at that point").toBeGreaterThanOrEqual(0);
+    expect(covered.hostAt, "and so is the panel").toBeGreaterThanOrEqual(0);
+    // Topmost first, so what stands over is the smaller index.
+    expect(covered.windowAt, "and the game's window is drawn over the panel").toBeLessThan(
+        covered.hostAt,
+    );
+});
+
+/** The stand-in with a window at `windowLayer`, read once the panel has drawn. */
+async function readStacksUnder(page: Page, windowLayer: number) {
+    const standIn = {
+        selector: HOST_SELECTOR,
+        interfaceLayer: GAME_INTERFACE_LAYER,
+        windowLayer,
+    };
+    await waitForFrame(page);
+    const stacks = await page.evaluate(readLayerStacks, standIn);
+    expect(stacks, "the panel stands on the page to be stood among").not.toBeNull();
+    return stacks!;
 }
 
 /**
@@ -64,29 +89,6 @@ function readLayerStacks(
         clear: readAt(box.left + (box.width * 3) / 4),
     };
 }
-
-/** The stand-in with a window at `windowLayer`, read once the panel has drawn. */
-async function readStacksUnder(page: Page, windowLayer: number) {
-    const standIn = {
-        selector: HOST_SELECTOR,
-        interfaceLayer: GAME_INTERFACE_LAYER,
-        windowLayer,
-    };
-    const stacks = await page.evaluate(readLayerStacks, standIn);
-    expect(stacks, "the panel stands on the page to be stood among").not.toBeNull();
-    return stacks!;
-}
-
-test("a window of the game's stands over the panel", async ({ panel }) => {
-    await expect(panel.host, "the panel is drawn to be covered").toBeVisible();
-    const { covered } = await readStacksUnder(panel.page, GAME_WINDOW_LAYER_LOWEST);
-    expect(covered.windowAt, "the window is in the stack at that point").toBeGreaterThanOrEqual(0);
-    expect(covered.hostAt, "and so is the panel").toBeGreaterThanOrEqual(0);
-    // Topmost first, so what stands over is the smaller index.
-    expect(covered.windowAt, "and the game's window is drawn over the panel").toBeLessThan(
-        covered.hostAt,
-    );
-});
 
 test("the panel stands over the game's interface, map and HUD alike", async ({ panel }) => {
     const { clear } = await readStacksUnder(panel.page, GAME_WINDOW_LAYER_LOWEST);

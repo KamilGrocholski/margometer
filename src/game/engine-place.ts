@@ -1,108 +1,87 @@
 /**
  * Where a fight is happening, asked of the client's own state, because the protocol says none of
- * it — its only candidate, `battleground`, is the picture behind the fight and two worlds share
- * one. Properties, never `getCords()`: calling into somebody else's program is a larger intrusion
- * than reading it, and it can throw for reasons that are none of ours.
+ * it: its only candidate, `battleground`, is the picture behind the fight and two worlds share one.
+ * Properties, never `getCords()`: calling into somebody else's program is a larger intrusion than
+ * reading it.
  */
 
-import { assert } from "@std/assert/assert";
-import { getIntegerFromText } from "@/libs/number-text.ts";
-import { ENGINE_SPELLINGS, readEnginesFromPage } from "@/src/game/engine-attachment.ts";
+import { parseInteger } from "#/libs/number-text.ts";
+import { callForeign, err, ok, type Result } from "#/libs/result.ts";
 import {
-    getNumberFromUnknown,
-    getStatedTextFromUnknown,
-    getTextFromUnknown,
-    isRecord,
-} from "@/libs/unknown-reading.ts";
+    type FieldKeys,
+    getNumberField,
+    getRecordField,
+    getStatedTextField,
+    getTextField,
+    type UnknownRecord,
+} from "#/libs/unknown-value.ts";
+import { readPageEngines } from "./engine-battle.ts";
+import type { FightPlace } from "./fight-place.ts";
+import { PAGE_READ_FAILURE, PAGE_READING, type PageReadFailure } from "./page-reading.ts";
+
+export interface PlacePort {
+    readPlace(): Result<FightPlace, PageReadFailure>;
+}
 
 /**
  * Carried from v1's reading of production build `53XkBRxF` and development build
  * `1781609507010`: the map is `Engine.map.d.name` and the position `Engine.hero.d.x` and `.y`.
  */
-const ENGINE_MAP_FIELD = "map";
-const ENGINE_HERO_FIELD = "hero";
-const ENGINE_DATA_FIELD = "d";
-const MAP_NAME_FIELD = "name";
-const HERO_X_FIELD = "x";
-const HERO_Y_FIELD = "y";
+type EngineField = "map" | "hero";
+type HeldField = "data";
+type PlaceField = "mapName" | "x" | "y";
 
-/** Three fields that fail apart rather than together: a map mid-load has none of them. */
-export interface FightPlace {
-    mapName: string | null;
-    x: number | null;
-    y: number | null;
+const ENGINE_FIELDS: FieldKeys<EngineField> = { map: "map", hero: "hero" };
+const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
+const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "name", x: "x", y: "y" };
+
+/** The first spelling of the game that says anything wins: two spellings are one game. */
+export function initPagePlace(page: unknown): PlacePort {
+    return {
+        readPlace() {
+            const read = callForeign(() => readPageEngines(page).map(readEnginePlace));
+            if (!read.ok) return read;
+            for (const place of read.value) {
+                if (place !== null) return ok(place);
+            }
+            return err({ kind: PAGE_READ_FAILURE.absent, reading: PAGE_READING.place });
+        },
+    };
 }
 
-function readDataFromEngineField(engine: unknown, field: string): Record<string, unknown> | null {
-    assert(field.length > 0, "a field of the client's is named");
-    if (!isRecord(engine)) return null;
-    const held = engine[field];
-    if (!isRecord(held)) return null;
-    const data = held[ENGINE_DATA_FIELD];
-    if (!isRecord(data)) return null;
-    return data;
+/** The three fields fail apart rather than together: a map mid-load has none of them. */
+function readEnginePlace(engine: UnknownRecord): FightPlace | null {
+    const map = readEngineData(engine, "map");
+    const hero = readEngineData(engine, "hero");
+    let mapName: string | null = null;
+    if (map !== null) {
+        const name = getStatedTextField(map, PLACE_FIELDS, "mapName");
+        if (name.ok) mapName = name.value;
+    }
+    const x = hero === null ? null : readCoordinate(hero, "x");
+    const y = hero === null ? null : readCoordinate(hero, "y");
+    if (mapName !== null) return { mapName, x, y };
+    if (x !== null) return { mapName, x, y };
+    if (y === null) return null;
+    return { mapName, x, y };
+}
+
+function readEngineData(engine: UnknownRecord, field: EngineField): UnknownRecord | null {
+    const held = getRecordField(engine, ENGINE_FIELDS, field);
+    if (!held.ok) return null;
+    if (held.value === null) return null;
+    const data = getRecordField(held.value, HELD_FIELDS, "data");
+    if (!data.ok) return null;
+    return data.value;
 }
 
 /** Either spelling, because the client itself does arithmetic on one and compares the other. */
-function readCoordinateFromValue(value: unknown): number | null {
-    const text = getTextFromUnknown(value);
-    if (text !== null) {
-        const written = getIntegerFromText(text);
-        assert(written === null || Number.isSafeInteger(written), "a tile is a whole number");
-        return written;
+function readCoordinate(hero: UnknownRecord, field: "x" | "y"): number | null {
+    const text = getTextField(hero, PLACE_FIELDS, field);
+    if (text.ok) {
+        if (text.value !== null) return parseInteger(text.value);
     }
-    const stated = getNumberFromUnknown(value);
-    assert(stated === null || Number.isFinite(stated), "a tile that was read is a number");
-    return stated;
-}
-
-/**
- * Null where the page said nothing, so *no game here* is not *a game that would not say*. Exported
- * so `tests/game/engine-place.test.ts` asks one engine shape at a time: `readPlaceFromPage` below
- * takes a page, and every shape would need one wrapped around it.
- */
-export function readPlaceFromEngine(engine: unknown): FightPlace | null {
-    try {
-        const map = readDataFromEngineField(engine, ENGINE_MAP_FIELD);
-        const hero = readDataFromEngineField(engine, ENGINE_HERO_FIELD);
-        const place: FightPlace = {
-            mapName: map === null ? null : getStatedTextFromUnknown(map[MAP_NAME_FIELD]),
-            x: hero === null ? null : readCoordinateFromValue(hero[HERO_X_FIELD]),
-            y: hero === null ? null : readCoordinateFromValue(hero[HERO_Y_FIELD]),
-        };
-        assert(place.mapName === null || place.mapName.length > 0, "a name read says something");
-        assert(place.x === null || Number.isFinite(place.x), "a tile read is a number");
-        if (place.mapName !== null) return place;
-        if (place.x !== null) return place;
-        if (place.y === null) return null;
-        return place;
-    } catch {
-        // Reaching into another program's object graph can throw where a page is being torn
-        // down, and this runs inside the engine's own call stack. The mark is the reading
-        // itself: nothing known about the place, which the panel shows as unknown (E5).
-        return null;
-    }
-}
-
-/**
- * The place off whichever spelling of the game the page holds. The first that says anything wins:
- * a page carrying both spellings carries one game behind them, so two answers cannot disagree.
- */
-export function readPlaceFromPage(page: unknown): FightPlace | null {
-    let engines: unknown[] = [];
-    // The page's own `getEngine` is a call into another program, which throws where a page is
-    // being torn down, so it stands inside this file's own guard (**E5**): a throw out of here
-    // reached the entry after the fight had taken the payload, and left the moment it opened at
-    // on the fight before.
-    try {
-        engines = readEnginesFromPage(page);
-    } catch {
-        return null;
-    }
-    assert(engines.length <= ENGINE_SPELLINGS, "a page holds a game in two spellings and no more");
-    for (const engine of engines) {
-        const place = readPlaceFromEngine(engine);
-        if (place !== null) return place;
-    }
-    return null;
+    const stated = getNumberField(hero, PLACE_FIELDS, field);
+    if (!stated.ok) return null;
+    return stated.value;
 }

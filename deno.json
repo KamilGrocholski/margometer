@@ -1,93 +1,59 @@
 {
+    // The last version released. A release commit moves it with `CHANGELOG.md`'s section, and
+    // a build handed none marks it `-dev` (`docs/releasing.md`).
     "version": "0.19.0",
     "tasks": {
-        // The gate. One command, so there is no version of "I ran the tests but not the build".
-        // `build` writes `dist/`, which git does not carry: what ships is checked as a file.
-        // Why no browser is asked for here: W9, and ADR 0047. `tests/e2e/` is Playwright's, named
-        // `.spec.ts` so `deno test` does not look for it, and `e2e` below is where it runs.
+        // The gate. One command, so there is no version of "I ran the tests but not the lint".
+        // `-A`: the recordings are read out of git by a subprocess, `tests/recorded-messages.ts`.
         //
-        // ⚠️ `deno check` is named twice, and today the second call is covered by the first.
-        // Measured 2026-09-03 on Deno 2.9.6: with no argument it checks every file under the tree
-        // minus this file's `exclude` — 159 of them, `playwright.config.ts` and every `.spec.ts`
-        // included — and a spec calling a constant nobody declared reddens it. It stays because
-        // that is a behaviour of the no-argument form and not a promise it makes: a spec is
-        // imported by nothing, so naming the directory is what keeps it checked whatever a later
-        // Deno decides the bare command means.
-        //
-        // ⚠️ **The bundle is checked a second time, as a browser program.** `deno.ns` in the `lib`
-        // above carries the current TypeScript library whatever ES level stands beside it, so a
-        // construct past the browser floor type-checks here and ships. Measured 2026-09-10:
-        // `["deno.ns", "es2021"]` accepts `Array.prototype.findLast`, ES2023, and
-        // `["dom", "dom.iterable", "es2021"]` refuses it. `project/browser-lib.json` is that
-        // second reading — `docs/browser-support.md` says what it holds and what it does not.
-        "check": "deno fmt --check && deno lint && deno check && deno check tests/e2e && deno check --config project/browser-lib.json src/userscript-boot.ts && deno test -A && deno task build",
-        // The same tree in a real browser. Kept out of the gate on purpose — ADR 0047 — and
-        // run by CI and before a release.
-        "e2e": "npx playwright test",
-        // A release passes its version; a build without one takes what `deno.json` declares
-        // and marks it `-dev` — ADR 0035.
+        // ⚠️ **The bundle is checked a second time, as a browser program.** `deno.ns` below
+        // carries the current TypeScript library whatever ES level stands beside it, so a
+        // construct past the browser floor type-checks here and ships; `project/browser-lib.json`
+        // is the reading without it. It keeps a lock of its own and runs `--frozen`: sharing
+        // this one, it rewrote it down to the one package it imports (seen 2026-09-25).
+        "check": "deno fmt --check && deno lint && deno check && deno check --frozen --config project/browser-lib.json src/userscript-boot.ts && deno test -A && deno task build",
+        // A release passes its version; a build without one takes what this file declares, marked
+        // `-dev`. `dist/` is what a release attaches, and git does not carry it.
         "build": "deno run -A tools/build-userscript.ts",
-        // The panel in a browser, rebuilt on a change under `src/`. `--from <path>` opens a
-        // fight beside the recordings, which is how a fabricated one is looked at.
-        "preview": "deno run -A tools/preview-server.ts",
-        // The same server, plus every fight under `fabricated/` — the shapes no recording
-        // carries. That directory is git's to ignore, so this refuses loudly where there is none.
-        "preview:fabricated": "deno run -A tools/preview-server.ts --fabricated",
-        // One page per recording under `dist/preview`, published by
-        // `.github/workflows/pages.yml`, which passes `--release` — ADR 0037.
-        "preview:site": "deno run -A tools/preview-site.ts",
-        // The states a reader meets when a region will not draw, on a bundle built from a copy
-        // of the tree. Nothing it does reaches what a reader installs — ADR 0083.
-        "preview:giveway": "deno run -A tools/panel-giving-way.ts",
-        // The same states, photographed: one picture per region.
-        "panel:giveway": "deno run -A tools/panel-giving-way.ts --shots",
-        // One picture per state a README shows. It refuses a tree whose `src/` is not in a
-        // commit, which is `DESIGN.md`'s rule. A release takes the set again with `--release`.
-        "panel:shots": "deno run -A tools/panel-screenshots.ts",
-        // `docs/drill-levels.md` carries the verdicts; `--cases` states the counts behind them.
-        "panel:drill": "deno run -A tools/drill-report.ts",
-        "panel:cards": "deno run -A tools/card-height.ts",
-        // What the decoder could not read — the question that decides whether an intake is
-        // worth starting.
-        "fight:decoding": "deno run -A tools/decoding-status.ts",
-        // What the figures come to, per combatant, as the panel would draw them.
+        // What a recording adds up to, per combatant, in the text `develop`'s task of this name
+        // prints: with no path, every recording at `tests/recording-revision.ts`'s revision, and
+        // with one, that file on disk.
         "fight:figures": "deno run -A tools/fight-figures.ts",
-        // `docs/turns-taken.md` carries the verdicts; `--cases` states the counts behind them.
-        "fight:turns": "deno run -A tools/turn-count.ts",
-        // Which message a disagreement stands on. `docs/reading-a-turn.md` carries the disputed
-        // openers and, with `--keys`, what each protocol key adds.
-        "fight:openers": "deno run -A tools/turn-reading.ts",
-        // A fight nobody fought, written where git does not look. No recording holds ten on
-        // both sides (`docs/captured-fights.md`), so this is the only ten-a-side the panel can be
-        // looked at on. Never material, and `tools/fabricated-fight.ts` says why.
-        "fight:fabricate": "deno run -A tools/fabricated-fight.ts",
-        // `docs/auras-standing.md` carries what one skill put on a whole side, against the
-        // turns the published table states.
-        "fight:auras": "deno run -A tools/aura-standing.ts",
-        "fight:life": "deno run -A tools/aura-lifetime.ts",
-        "fight:shout": "deno run -A tools/shout-holding.ts",
-        // How a recording the add-on wrote becomes material: two redactions, then a file.
-        "capture:intake": "deno run -A tools/capture-intake.ts",
-        // The client fetched and dated, so a claim about it can name the build it was read on.
-        "game:client": "deno run -A tools/game-client-source.ts",
+        // What the decoder could not read, in `develop`'s text: the question that decides
+        // whether an intake is worth starting, so a path is a file on disk.
+        "fight:decoding": "deno run -A tools/decoding-status.ts",
+        // `docs/design.md` §12's proof: both texts against `develop`'s own, run from its own tree
+        // under `.cache/`. Outside the gate because it runs another branch's program; a
+        // difference exits 1 and is a finding in one of the two, never an expectation to move.
+        "fight:develop": "deno run -A tools/develop-reports.ts",
+        // The panel in a browser over any recording, stepped by hand, rebuilt and reloaded when a
+        // file the bundle reads changes. The page is the one the browser suite drives.
+        "preview": "deno run -A tools/preview-server.ts",
+        // The same page as one file somebody without this repository can open, under
+        // `dist/preview/`, which `.github/workflows/pages.yml` publishes with `--release`.
+        "preview:site": "deno run -A tools/preview-site.ts",
         // Every reading of the game this repository stands on, asked whether it is still the
-        // game's — and made current again. What a work round starts with, because the gate
+        // game's, and made current again. What a work round starts with (W10), because the gate
         // reaches no network and so cannot tell that one went behind: `frozen/AGENTS.md`.
         "game:readings": "deno run -A tools/game-readings.ts",
-        // Every key the client branches on, lifted out of that bundle and frozen beside it.
+        // The client fetched and dated, so a claim about it names the build it was read on.
+        "game:client": "deno run -A tools/game-client-source.ts",
+        // Every key the client branches on, and the bits a status mask is read by.
         "game:keys": "deno run -A tools/protocol-key-table.ts",
-        // The `_Shape:_` lines in `docs/protocol-keys.md` are this written down, and the last
-        // column says which of them the recordings no longer agree with.
-        "game:shape": "deno run -A tools/protocol-key-shape.ts",
-        // Every skill the game publishes, and the turns each effect runs for — the only source
-        // stating a duration at all. What `Co stoi` draws its second half from.
         "game:buffs": "deno run -A tools/buff-bit-table.ts",
+        // Every skill the game publishes, and the turns each effect runs for.
         "game:skills": "deno run -A tools/skill-table.ts",
-        // The published help, cached and searched, and the counts a register claim is held to.
+        // The published help, cached and searched, and the counts the panel's words are held to.
         "game:help": "deno run -A tools/help-article.ts",
-        // The version this tree declares, and the section `CHANGELOG.md` carries for it.
-        // `release.yml` runs it, and so can a hand before a tag.
-        "release:notes": "deno run -A tools/changelog.ts"
+        // How a recording the add-on wrote becomes material: redacted, and written into
+        // `captures/` for a person to read and commit.
+        "capture:intake": "deno run -A tools/capture-intake.ts",
+        // The version this tree declares, and the section `CHANGELOG.md` carries for it, as the
+        // body of its release. A workflow runs it, and so can a hand before a tag.
+        "release:notes": "deno run -A tools/changelog.ts",
+        // The built file in the Chrome this machine has, on Node: outside the gate on purpose
+        // (`develop ADR 0047`), and what W9 asks of a change under `src/` before it is done.
+        "e2e": "npx playwright test"
     },
     "fmt": {
         // 100 columns, so nothing is hidden by a scrollbar.
@@ -97,52 +63,44 @@
         "singleQuote": false,
         "useTabs": false,
         "exclude": [
-            // Evidence. Formatting a recording is editing it.
+            // Evidence. Formatting a recording is editing it (`captures/AGENTS.md`).
             "captures/",
-            // Written by tooling, including their headers. Regenerating is how they change.
+            // Written by their tools, headers and layout included; regenerating is how they
+            // change (`frozen/AGENTS.md`).
             "frozen/protocol-keys.ts",
             "frozen/help-phrases.ts",
-            // Fights nobody fought. Formatting one is harmless; the gate going red over a file
-            // git does not carry is not.
+            // Fights nobody fought, and output nobody hand-writes.
             "fabricated/",
-            // A design canvas writes these files itself, header and layout included — an artboard
-            // and the `canvas.json` placing it. Formatting them starts a fight the canvas wins on
-            // its next save and the gate loses on every run in between. `design/pomocnik/` is in
-            // a commit already reformatted and stays as it is: the exclusion binds from here on,
-            // and rewriting it back would be the same fight in the other direction.
-            "design/",
-            // The maintainer's list. `.claude/settings.json` denies the three tools that edit a
-            // file, and a formatter is not one of them — it rewrote this file once, which is
-            // exactly the trap AGENTS.md warns about: the wall is narrower than the rule.
+            "dist/",
+            ".cache/",
+            "node_modules/",
+            // The maintainer's list. A formatter is a tool that walks the tree and writes, and
+            // AGENTS.md's Never rule wants it walled off before its first run.
             "TODO.md"
         ]
     },
     "lint": {
-        "rules": { "tags": ["recommended"] },
-        "exclude": ["captures/"]
+        "rules": { "tags": ["recommended"] }
     },
-    // `package.json` owns the one npm dependency this repository has, and npm installs it. Deno
-    // reads the same `node_modules` rather than managing one of its own, which is what keeps
-    // `deno check` reading the browser suite instead of skipping it — ADR 0047.
-    "nodeModulesDir": "manual",
     "imports": {
-        "@/": "./",
+        "#/": "./",
         "@std/assert": "jsr:@std/assert@^1",
         // The barrel re-exports every module, and `deno bundle` keeps the top-level
         // `new Set(…)` and `new RegExp(…)` of two it cannot prove pure: 911 dead bytes
-        // measured in `dist/margometer.user.js` on 2026-09-01. What ships takes this one.
+        // measured in `develop:dist/margometer.user.js` on 2026-09-01. What ships takes this one.
         "@std/assert/assert": "jsr:@std/assert@^1/assert",
-        "@std/async": "jsr:@std/async@^1",
-        "@std/cli": "jsr:@std/cli@^1",
         "@std/fs": "jsr:@std/fs@^1",
         "@std/jsonc": "jsr:@std/jsonc@^1",
-        "@std/path": "jsr:@std/path@^1"
+        "@std/random": "jsr:@std/random@^0.1"
     },
+    // The browser suite imports an npm package, and `deno check` resolves it through the
+    // `node_modules` npm installs: `npm ci` first, on any fresh checkout and in CI.
+    "nodeModulesDir": "manual",
     "compilerOptions": {
         "lib": ["deno.ns", "dom", "dom.iterable", "esnext"],
         "strict": true,
         // Standing in for a linter's dead-code rules: unused is a build failure, not something
-        // to read past. This is what stood between v1's tree and accumulated uncalled functions.
+        // to read past.
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         // The decoder lives on indexing. Every access proves itself rather than assuming a hit.
@@ -154,5 +112,8 @@
         "allowUnreachableCode": false,
         "allowUnusedLabels": false
     },
-    "exclude": ["captures/", "dist/", ".cache/", "fabricated/", "node_modules/"]
+    // `.claude/` holds the worktrees Claude Code gives its subagents, each a whole copy of the tree
+    // inside this one: an argument-less `deno check` walked them, and their `#/` resolved against
+    // this root, so a change here reddened the gate with errors from a copy nobody was gating.
+    "exclude": ["captures/", "dist/", ".cache/", "fabricated/", "node_modules/", ".claude/"]
 }

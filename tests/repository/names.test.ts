@@ -1,457 +1,151 @@
 /**
- * The names this repository chooses, in the shapes N1 and N11 require.
- *
- * Every reader is proved on a sample before it is let near the tree, because a naming guard
- * over seven files of one author's code would otherwise pass by having nothing to find.
+ * N1 and N10: file names are kebab-case and name their contents; exported functions are
+ * camelCase and exported types PascalCase.
  */
 
-import { assert, assertEquals } from "@std/assert";
-import { basename } from "@std/path";
-import { getCodeOutsideStrings, isCommentLine } from "@/tests/source-line.ts";
-import { getSourcePaths } from "@/tests/source-paths.ts";
+import { assertEquals } from "@std/assert";
+import {
+    composeSample,
+    formatNodePlace,
+    readAstNodes,
+    readSourceFiles,
+    SOURCE_DIRECTORIES,
+    type SourceFile,
+} from "#/tests/source-tree.ts";
+import { isDigitAt } from "#/libs/text-walk.ts";
 
-const FORBIDDEN_NAMES = ["utils", "helpers", "common", "misc", "index"];
-const TYPE_KEYWORDS = ["interface", "type", "class", "enum"];
-/** Shortened units, in the two spellings a name here is written in — N1. */
-const SHORT_UNITS = ["Ms", "Sec", "Secs", "Px", "Pct", "Hz", "Kb", "Mb"];
-const SHORT_UNITS_SHOUTED = ["_MS", "_SEC", "_SECS", "_PX", "_PCT", "_HZ", "_KB", "_MB"];
-const BOOLEAN_PREFIXES = ["is", "was", "will", "has", "does", "should"];
-/** An index signature names its key by type, and a type is nobody's boolean to prefix. */
-const INDEX_KEYS = ["string", "number", "symbol"];
-/** N3: the two edges a name states, in the two spellings N1 allows. */
-const EDGES = ["MAXIMUM", "MINIMUM"];
-const EDGES_SPELLED = ["Maximum", "Minimum"];
-const NEGATIONS = ["Not", "No"];
-/** Where the game, and nothing else, is reached — ARCHITECTURE.md gives this layer that contact. */
-const CROSSING_PATHS = ["src/game/", "src/userscript-entry.ts"];
-/**
- * Where the file system is reached. `tools/` belongs here too and is ARCHITECTURE.md's gap 9,
- * which stays open until every name in it has had its own judgement.
- */
-const FILE_CROSSING_PATHS = ["project/"];
-/** How a file reaches the world outside this program when no parameter carries it in. */
-const OUTSIDE_OPENER = "Deno.";
-/** A parameter arriving from outside wears one of these, or `unknown` before it is read. */
-const CROSSING_TYPES = ["unknown", "Page", "Window", "Engine", "Storage"];
-const HELD_VERBS = ["get", "set"];
-/** Longer than any parameter list this repository writes, which keeps S2's bound stated. */
-const MAXIMUM_PARAMETER_LENGTH = 4096;
+/** Named for their category rather than their contents (N10). */
+const CATEGORY_STEMS = ["utils", "helpers", "common", "misc", "index"];
+const TYPE_NODES = ["TSTypeAliasDeclaration", "TSInterfaceDeclaration", "ClassDeclaration"];
+const FILE_SUFFIXES = [".test.ts", ".spec.ts", ".ts"];
 
-function isLowerLetter(character: string): boolean {
-    return character >= "a" && character <= "z";
+Deno.test("a file named for its category or out of kebab-case is flagged", () => {
+    assertEquals(lookupMisnamedFile("libs/utils.ts"), ["libs/utils.ts names a category"], "N10");
+    assertEquals(lookupMisnamedFile("src/index.ts"), ["src/index.ts names a category"], "N10");
+    const camel = ["libs/numberText.ts is not kebab-case"];
+    assertEquals(lookupMisnamedFile("libs/numberText.ts"), camel, "camelCase");
+    const snake = ["libs/number_text.ts is not kebab-case"];
+    assertEquals(lookupMisnamedFile("libs/number_text.ts"), snake, "snake_case");
+    const doubled = ["libs/number--text.ts is not kebab-case"];
+    assertEquals(lookupMisnamedFile("libs/number--text.ts"), doubled, "an empty word");
+});
+
+function lookupMisnamedFile(path: string): string[] {
+    const name = path.slice(path.lastIndexOf("/") + 1);
+    const suffix = FILE_SUFFIXES.find((one) => name.endsWith(one));
+    if (suffix === undefined) return [`${path} is not a module`];
+    const stem = name.slice(0, name.length - suffix.length);
+    if (CATEGORY_STEMS.includes(stem)) return [`${path} names a category`];
+    if (!isKebabCase(stem)) return [`${path} is not kebab-case`];
+    return [];
 }
 
-function isUpperLetter(character: string): boolean {
-    return character >= "A" && character <= "Z";
-}
-
-/** A character an identifier is spelled from, which is what a name is walked back over. */
-function isNamePart(character: string): boolean {
-    if (isLowerLetter(character)) return true;
-    if (isUpperLetter(character)) return true;
-    if (character >= "0" && character <= "9") return true;
-    return character === "_";
-}
-
-/** N8: the prefix, followed by the start of the next word rather than by more of this one. */
-function hasBooleanPrefix(name: string, prefix: string): boolean {
-    if (!name.startsWith(prefix)) return false;
-    const after = name.charAt(prefix.length);
-    if (isUpperLetter(after)) return true;
-    return after >= "0" && after <= "9";
-}
-
-function isKebabCase(name: string): boolean {
-    for (const character of name) {
-        const allowed = isLowerLetter(character) || (character >= "0" && character <= "9") ||
-            character === "-" || character === ".";
-        if (!allowed) return false;
+/** Lower-case words of letters and digits, joined by one hyphen each. */
+function isKebabCase(stem: string): boolean {
+    const words = stem.split("-");
+    for (const word of words) {
+        if (!isLowerAt(word, 0)) return false;
+        if (!isEveryCharacter(word, isLowerOrDigitAt)) return false;
     }
-    return name.length > 0 && !name.startsWith("-");
+    return true;
 }
 
-/** The identifier that follows a keyword on an exported declaration, or the empty string. */
-function getExportedName(line: string, keyword: string): string {
-    const code = getCodeOutsideStrings(line).trimStart();
-    const opener = `export ${keyword} `;
-    if (!code.startsWith(opener)) return "";
-    const rest = code.slice(opener.length);
-    let end = 0;
-    while (
-        end < rest.length && (isLowerLetter(rest[end] ?? "") || isUpperLetter(rest[end] ?? ""))
-    ) {
-        end += 1;
+function isLowerAt(text: string, index: number): boolean {
+    const character = text.charAt(index);
+    if (character < "a") return false;
+    return character <= "z";
+}
+
+function isEveryCharacter(text: string, isMember: (text: string, index: number) => boolean) {
+    for (let index = 0; index < text.length; index += 1) {
+        if (!isMember(text, index)) return false;
     }
-    const name = rest.slice(0, end);
-    assert(!name.includes(" "), "a name is one word");
-    assert(name.length <= rest.length, "a name fits inside its line");
-    return name;
+    return true;
 }
 
-function getExportedNames(text: string, keyword: string): string[] {
+function isLowerOrDigitAt(text: string, index: number): boolean {
+    if (isLowerAt(text, index)) return true;
+    return isDigitAt(text, index);
+}
+
+Deno.test("a kebab-case module and its test pass", () => {
+    assertEquals(lookupMisnamedFile("libs/number-text.ts"), [], "a module");
+    assertEquals(lookupMisnamedFile("tests/libs/number-text.test.ts"), [], "and its test");
+    assertEquals(lookupMisnamedFile("src/core/protocol-message2.ts"), [], "a digit is a letter");
+});
+
+Deno.test("an exported function out of camelCase and a type out of PascalCase are flagged", () => {
+    const sample = composeSample([
+        "export function ParseText() {}",
+        "export const read_text = () => 1;",
+        "export interface fightView {}",
+        "export type fight_file = number;",
+        "export function parseText() {}",
+        "export const readText = () => 1;",
+        "export interface FightView {}",
+        "export const ROWS_MAXIMUM = 1;",
+    ]);
+    const flagged = [
+        "sample.ts:1 function ParseText",
+        "sample.ts:2 function read_text",
+        "sample.ts:3 type fightView",
+        "sample.ts:4 type fight_file",
+    ];
+    assertEquals(lookupMisnamedExports(sample), flagged, "and the right spellings are not");
+});
+
+function lookupMisnamedExports(file: SourceFile): string[] {
     const found: string[] = [];
-    for (const line of text.split("\n")) {
-        const name = getExportedName(line, keyword);
-        if (name.length > 0) found.push(name);
-    }
-    assert(found.every((one) => one.length > 0), "an empty name is never collected");
-    assert(new Set(found).size <= found.length, "duplicates are kept, not silently dropped");
-    return found;
-}
-
-Deno.test("every file name is kebab-case and names its contents", () => {
-    assert(isKebabCase("fight-decoder.ts"), "the reader accepts what it should");
-    assert(!isKebabCase("fightDecoder.ts"), "the reader rejects camelCase");
-    const wrong: string[] = [];
-    for (const path of getSourcePaths()) {
-        const name = basename(path);
-        const stem = name.slice(0, name.indexOf("."));
-        if (!isKebabCase(name)) wrong.push(`${path} is not kebab-case`);
-        if (FORBIDDEN_NAMES.includes(stem)) wrong.push(`${path} names a category, not contents`);
-    }
-    assertEquals(wrong, [], "N1 and N11");
-});
-
-Deno.test("every exported function is camelCase", () => {
-    assertEquals(getExportedNames("export function getFightStatistics(", "function"), [
-        "getFightStatistics",
-    ], "the reader works");
-    assertEquals(getExportedNames("function local() {", "function"), [], "unexported is skipped");
-    const wrong: string[] = [];
-    for (const path of getSourcePaths()) {
-        for (const name of getExportedNames(Deno.readTextFileSync(path), "function")) {
-            if (!isLowerLetter(name.charAt(0))) wrong.push(`${path}: ${name}`);
-            if (name.includes("_")) wrong.push(`${path}: ${name} carries an underscore`);
-        }
-    }
-    assertEquals(wrong, [], "N1: a function is camelCase");
-});
-
-Deno.test("every exported type is PascalCase", () => {
-    assertEquals(getExportedNames("export interface CombatantSnapshot {", "interface"), [
-        "CombatantSnapshot",
-    ], "the reader works");
-    const wrong: string[] = [];
-    for (const path of getSourcePaths()) {
-        const text = Deno.readTextFileSync(path);
-        for (const keyword of TYPE_KEYWORDS) {
-            for (const name of getExportedNames(text, keyword)) {
-                if (!isUpperLetter(name.charAt(0))) wrong.push(`${path}: ${keyword} ${name}`);
+    for (const node of readAstNodes(file, ["ExportNamedDeclaration"])) {
+        const declaration = node.declaration;
+        if (declaration === null) continue;
+        if (declaration === undefined) continue;
+        const place = formatNodePlace(file, node);
+        const name = declaration.id?.name;
+        if (declaration.type === "FunctionDeclaration") {
+            if (name !== undefined) {
+                if (!isCamelCase(name)) found.push(`${place} function ${name}`);
             }
         }
-    }
-    assertEquals(wrong, [], "N1: a type is PascalCase");
-});
-
-/** Every identifier in a file's code: comment dropped, string bodies blanked before the walk. */
-function getIdentifiers(text: string): string[] {
-    const found: string[] = [];
-    for (const line of text.split("\n")) {
-        if (isCommentLine(line)) continue;
-        const code = getCodeOutsideStrings(line);
-        let current = "";
-        for (const character of `${code} `) {
-            const isPart = isLowerLetter(character) || isUpperLetter(character) ||
-                (character >= "0" && character <= "9") || character === "_";
-            if (isPart) current += character;
-            else if (current.length > 0) {
-                found.push(current);
-                current = "";
+        if (TYPE_NODES.includes(declaration.type)) {
+            if (name !== undefined) {
+                if (!isPascalCase(name)) found.push(`${place} type ${name}`);
             }
         }
-        assertEquals(current, "", "an identifier run is closed by the space walked in");
+        for (const declarator of declaration.declarations ?? []) {
+            const initType = declarator.init?.type ?? "";
+            if (initType !== "ArrowFunctionExpression") continue;
+            const bound = declarator.id?.name ?? "";
+            if (!isCamelCase(bound)) found.push(`${place} function ${bound}`);
+        }
     }
-    assert(found.every((one) => one.length > 0), "an empty identifier is never collected");
     return found;
 }
 
-/** N14: a unit shortened at the end of a name, in either spelling N1 allows. */
-function hasShortUnit(name: string): boolean {
-    for (const unit of SHORT_UNITS) {
-        if (!name.endsWith(unit)) continue;
-        const before = name.charAt(name.length - unit.length - 1);
-        if (isLowerLetter(before) || (before >= "0" && before <= "9")) return true;
-    }
-    assert(SHORT_UNITS.length === SHORT_UNITS_SHOUTED.length, "one unit is spelled two ways");
-    return SHORT_UNITS_SHOUTED.some((unit) => name.endsWith(unit));
+function isCamelCase(name: string): boolean {
+    if (!isLowerAt(name, 0)) return false;
+    return isEveryCharacter(name, isAlphanumericAt);
 }
 
-/** N15: a boolean prefix with a negation welded behind it, rather than a `!` at the reader. */
-function hasOwnNegation(name: string): boolean {
-    for (const prefix of BOOLEAN_PREFIXES) {
-        if (!name.startsWith(prefix)) continue;
-        const rest = name.slice(prefix.length);
-        for (const negation of NEGATIONS) {
-            if (!rest.startsWith(negation)) continue;
-            const after = rest.charAt(negation.length);
-            if (after === "" || isUpperLetter(after)) return true;
-        }
-    }
-    assert(NEGATIONS.length > 0, "there is a negation to look for");
-    assert(name.length >= 0, "a name is read as it stands");
-    return false;
+function isAlphanumericAt(text: string, index: number): boolean {
+    if (isLowerAt(text, index)) return true;
+    if (isUpperAt(text, index)) return true;
+    return isDigitAt(text, index);
 }
 
-/** The parameter list opening at `from`, read across the lines it wraps onto. */
-function getParameterText(code: string, from: number): string {
-    let depth = 0;
-    let index = from;
-    while (index < code.length && index - from <= MAXIMUM_PARAMETER_LENGTH) {
-        const character = code.charAt(index);
-        if (character === "(") depth += 1;
-        if (character === ")") {
-            depth -= 1;
-            if (depth === 0) return code.slice(from, index + 1);
-        }
-        index += 1;
-    }
-    assert(index - from <= MAXIMUM_PARAMETER_LENGTH, "a parameter list stays inside its bound");
-    assert(depth >= 0, "a list never closes more than it opened");
-    return "";
+function isUpperAt(text: string, index: number): boolean {
+    const character = text.charAt(index);
+    if (character < "A") return false;
+    return character <= "Z";
 }
 
-/** Whether a parameter list names a type that arrives from outside this program. */
-function hasCrossingParameter(parameters: string): boolean {
-    let steps = 0;
-    for (const type of CROSSING_TYPES) {
-        let index = parameters.indexOf(type);
-        while (index !== -1) {
-            steps += 1;
-            assert(steps <= parameters.length, "the scan stays inside the list's bound");
-            const after = parameters.charAt(index + type.length);
-            if (!isLowerLetter(after) && !isUpperLetter(after)) return true;
-            index = parameters.indexOf(type, index + type.length);
-        }
-    }
-    assert(CROSSING_TYPES.length > 1, "there is more than one shape to look for");
-    assert(parameters.length <= MAXIMUM_PARAMETER_LENGTH + 1, "a list was read inside its bound");
-    return false;
+function isPascalCase(name: string): boolean {
+    if (!isUpperAt(name, 0)) return false;
+    return isEveryCharacter(name, isAlphanumericAt);
 }
 
-/** N16: every `get` or `set` in a file whose parameters cross a boundary, which is a finding. */
-function getHeldVerbsOverCrossings(text: string): string[] {
-    const lines = text.split("\n").filter((line) => !isCommentLine(line));
-    const code = lines.map((line) => getCodeOutsideStrings(line)).join("\n");
-    const opener = "function ";
-    const found: string[] = [];
-    let index = code.indexOf(opener);
-    let steps = 0;
-    while (index !== -1) {
-        steps += 1;
-        assert(steps <= code.length, "the walk stays inside the file's bound");
-        const start = index + opener.length;
-        let end = start;
-        while (
-            end < code.length &&
-            (isLowerLetter(code.charAt(end)) || isUpperLetter(code.charAt(end)))
-        ) {
-            end += 1;
-        }
-        const name = code.slice(start, end);
-        const held = HELD_VERBS.some((verb) =>
-            name.startsWith(verb) && isUpperLetter(name.charAt(verb.length))
-        );
-        const opened = code.indexOf("(", end);
-        if (held && opened !== -1 && hasCrossingParameter(getParameterText(code, opened))) {
-            found.push(name);
-        }
-        index = code.indexOf(opener, start);
-    }
-    assert(found.every((one) => one.length > 0), "a finding names a function");
-    assert(found.length <= lines.length, "no more findings than lines to hold them");
-    return found;
-}
-
-Deno.test("no name shortens the unit it carries", () => {
-    assert(hasShortUnit("everyMs"), "the reader finds a shortened unit");
-    assert(hasShortUnit("LOOK_EVERY_MS"), "and finds the shouted spelling");
-    assert(!hasShortUnit("everyMilliseconds"), "and leaves the word alone");
-    assert(!hasShortUnit("healthPercent"), "and leaves a unit already spelled out alone");
-    assertEquals(getIdentifiers('const held = "atMs";'), ["const", "held"], "a string is not code");
-    const wrong: string[] = [];
-    for (const path of getSourcePaths()) {
-        for (const name of getIdentifiers(Deno.readTextFileSync(path))) {
-            if (hasShortUnit(name)) wrong.push(`${path}: ${name}`);
-        }
-    }
-    assertEquals(wrong, [], "N14: a unit is spelled in full");
-});
-
-Deno.test("no name carries its own negation", () => {
-    assert(hasOwnNegation("isNotDrawn"), "the reader finds a welded negation");
-    assert(hasOwnNegation("hasNoRows"), "and finds the shorter weld");
-    assert(!hasOwnNegation("isNotable"), "and leaves a word that merely opens with one");
-    assert(!hasOwnNegation("isUnread"), "and leaves CONTEXT.md's own word alone");
-    const wrong: string[] = [];
-    for (const path of getSourcePaths()) {
-        for (const name of getIdentifiers(Deno.readTextFileSync(path))) {
-            if (hasOwnNegation(name)) wrong.push(`${path}: ${name}`);
-        }
-    }
-    assertEquals(wrong, [], "N15: a boolean is negated where it is read");
-});
-
-Deno.test("what crosses to the game is read, never got", () => {
-    const crossing = "function getPlaceFromPage(page: unknown): FightPlace | null {";
-    assertEquals(getHeldVerbsOverCrossings(crossing), ["getPlaceFromPage"], "the reader works");
-    const held = "function getReadingFromFight(one: FightUnderway): FightReading | null {";
-    assertEquals(getHeldVerbsOverCrossings(held), [], "a value this program holds is not one");
-    const read = "function readPlaceFromPage(page: unknown): FightPlace | null {";
-    assertEquals(getHeldVerbsOverCrossings(read), [], "and the verb N16 asks for passes");
-    const wrong: string[] = [];
-    for (const path of getSourcePaths()) {
-        if (!CROSSING_PATHS.some((one) => path.startsWith(one))) continue;
-        for (const name of getHeldVerbsOverCrossings(Deno.readTextFileSync(path))) {
-            wrong.push(`${path}: ${name}`);
-        }
-    }
-    assertEquals(wrong, [], "N16: a value from outside this program is read");
-});
-
-/**
- * N16 over a crossing no parameter shows: a `get` or `set` in a file that reaches `Deno.`.
- *
- * **What a name takes is not what it reaches**, and `readRecordingNames()` takes nothing at all,
- * so the parameter reader above is blind to it. This one is read at file granularity on purpose:
- * matching a name to the body it owns needs the braces, and a return type spelled as an object
- * literal opens the walk one brace early — a reader that quietly finds too little. At this
- * granularity it can only find too much, and a file that both holds values and crosses is one
- * C10 would split anyway.
- */
-function getHeldVerbsOverFileCrossing(text: string): string[] {
-    if (!text.includes(OUTSIDE_OPENER)) return [];
-    const found: string[] = [];
-    for (const line of text.split("\n")) {
-        if (isCommentLine(line)) continue;
-        for (const verb of HELD_VERBS) {
-            const name = getExportedName(line, "function");
-            if (!name.startsWith(verb)) continue;
-            if (!isUpperLetter(name.charAt(verb.length))) continue;
-            found.push(name);
-        }
-    }
-    assert(found.every((one) => one.length > 0), "a finding names a function");
-    assert(found.length <= text.length, "no more findings than there is text to hold them");
-    return found;
-}
-
-Deno.test("what crosses to the file system is read, never got", () => {
-    const crossing = 'const held = Deno.readDirSync(".");\nexport function getRecordingNames() {';
-    assertEquals(getHeldVerbsOverFileCrossing(crossing), ["getRecordingNames"], "the reader works");
-    const read = 'const held = Deno.readDirSync(".");\nexport function readRecordingNames() {';
-    assertEquals(getHeldVerbsOverFileCrossing(read), [], "and the verb N16 asks for passes");
-    const held = "export function getRecordingNames() {";
-    assertEquals(getHeldVerbsOverFileCrossing(held), [], "a file that reaches nothing is not one");
-    const wrong: string[] = [];
-    for (const path of getSourcePaths()) {
-        if (!FILE_CROSSING_PATHS.some((one) => path.startsWith(one))) continue;
-        for (const name of getHeldVerbsOverFileCrossing(Deno.readTextFileSync(path))) {
-            wrong.push(`${path}: ${name}`);
-        }
-    }
-    assertEquals(wrong, [], "N16: a value from outside this program is read");
-});
-
-/**
- * N8 over every boolean this tree annotates: a field, a parameter or a variable whose type is
- * spelled `boolean` and whose name opens with none of the six tenses.
- *
- * **It reads what is annotated and nothing else.** A `const held = true` wears no type for a
- * reader over text to find, and a function's own `: boolean` is a return rather than a name — a
- * `get`, `set` or `add` that answers yes or no is an action with an answer, which is why
- * `getIsEverySlotPinned` stands (**ADR 0042**). What N8 binds here is the name of the value.
- */
-function getBooleansWithoutPrefix(text: string): string[] {
-    const opener = ": boolean";
-    const found: string[] = [];
-    for (const line of text.split("\n")) {
-        if (isCommentLine(line)) continue;
-        const code = getCodeOutsideStrings(line);
-        let index = code.indexOf(opener);
-        let steps = 0;
-        while (index !== -1) {
-            steps += 1;
-            assert(steps <= code.length, "the walk stays inside the line's bound");
-            let start = index;
-            if (code.charAt(start - 1) === "?") start -= 1;
-            let first = start;
-            let walked = 0;
-            while (first > 0) {
-                walked += 1;
-                assert(walked <= code.length, "a name is walked back inside the line's bound");
-                if (!isNamePart(code.charAt(first - 1))) break;
-                first -= 1;
-            }
-            const name = code.slice(first, start);
-            if (name.length > 0) {
-                if (!INDEX_KEYS.includes(name)) {
-                    if (!BOOLEAN_PREFIXES.some((prefix) => hasBooleanPrefix(name, prefix))) {
-                        found.push(name);
-                    }
-                }
-            }
-            index = code.indexOf(opener, index + opener.length);
-        }
-    }
-    assert(found.every((one) => one.length > 0), "a finding names a value");
-    assert(found.length <= text.length, "no more findings than there is text to hold them");
-    return found;
-}
-
-Deno.test("every boolean says which state holds", () => {
-    assertEquals(getBooleansWithoutPrefix("    opens: boolean;"), ["opens"], "the reader works");
-    assertEquals(getBooleansWithoutPrefix("    isOpen?: boolean;"), [], "an optional passes");
-    assertEquals(getBooleansWithoutPrefix("(one: boolean)"), ["one"], "a parameter is read too");
-    assertEquals(getBooleansWithoutPrefix("Record<string, boolean>"), [], "a type argument is not");
-    assertEquals(getBooleansWithoutPrefix("function isBlow(): boolean {"), [], "a return is not");
-    const wrong: string[] = [];
-    for (const path of getSourcePaths()) {
-        for (const name of getBooleansWithoutPrefix(Deno.readTextFileSync(path))) {
-            wrong.push(`${path}: ${name}`);
-        }
-    }
-    assertEquals(wrong, [], "N8: a boolean carries the prefix its tense asks for");
-});
-
-/**
- * N3 over an edge: a shouted constant states it **first** and a camelCase name states it **last**.
- *
- * The split is the rule's own, and the two halves need one reader each because each is the other's
- * mistake. `ROWS_MAXIMUM` and `maximumHealth` are both wrong, and neither reader can see the one
- * the other is for.
- */
-function getEdgesOutOfPlace(text: string): string[] {
-    const found: string[] = [];
-    for (const name of getIdentifiers(text)) {
-        for (const edge of EDGES) {
-            if (name.endsWith(`_${edge}`)) found.push(name);
-        }
-        for (const edge of EDGES_SPELLED) {
-            if (!name.startsWith(edge.toLowerCase())) continue;
-            const after = name.charAt(edge.length);
-            if (isUpperLetter(after)) found.push(name);
-        }
-    }
-    assert(found.every((one) => one.length > 0), "a finding names an identifier");
-    assert(found.length <= text.length, "no more findings than there is text to hold them");
-    return found;
-}
-
-Deno.test("an edge is stated first when it is shouted and last when it is not", () => {
-    assertEquals(getEdgesOutOfPlace("const ROWS_MAXIMUM = 4;"), ["ROWS_MAXIMUM"], "shouted last");
-    assertEquals(
-        getEdgesOutOfPlace("const maximumRows = 4;"),
-        ["maximumRows"],
-        "and spelled first",
-    );
-    assertEquals(getEdgesOutOfPlace("const MAXIMUM_ROWS = 4;"), [], "the shouted form N3 asks for");
-    assertEquals(getEdgesOutOfPlace("const rowsMaximum = 4;"), [], "and the spelled one");
-    assertEquals(getEdgesOutOfPlace("const maximum = 4;"), [], "a bare edge names no subject");
-    const wrong: string[] = [];
-    for (const path of getSourcePaths()) {
-        for (const name of getEdgesOutOfPlace(Deno.readTextFileSync(path))) {
-            wrong.push(`${path}: ${name}`);
-        }
-    }
-    assertEquals(wrong, [], "N3: an edge goes where the spelling puts it");
+Deno.test("every file in the tree is named as N1 and N10 ask", () => {
+    const files = readSourceFiles(SOURCE_DIRECTORIES);
+    assertEquals(files.flatMap((file) => lookupMisnamedFile(file.path)), [], "N10");
+    assertEquals(files.flatMap(lookupMisnamedExports), [], "N1");
 });

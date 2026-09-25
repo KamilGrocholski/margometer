@@ -2,167 +2,149 @@
  * The widest fight the panel can draw: a full cast, with both unnamed rows beside it.
  *
  * No recording states this. The corpus is ten against one, and none of it carries a blow the
- * protocol gave no target, so twenty rows with `Nieznany sprawca` and `Nieznany cel` drawn
- * beside them has never been on a screen. The material is the fabricated ten-a-side — the only
- * twenty-person fight there is — with the one blow its script does not state added through the
- * decoder, and the whole of it drawn, because a bound that fails inside a region says nothing.
+ * protocol gave no target, so twenty rows with `Nieznany sprawca` and `Nieznany cel` drawn beside
+ * them has never been on a screen. `develop` draws it off the fabricated ten-a-side, which this
+ * branch does not carry; the cast here is built from messages instead, and the whole of it drawn,
+ * because a bound that fails inside a region says nothing.
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { composeTeamHeals } from "@/src/core/combatant-health.ts";
-import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
+import { indexTeamHeals } from "#/src/core/combatant-health.ts";
 import {
-    composeFightStatistics,
+    type CombatantRoster,
+    COMBATANTS_MAXIMUM,
+    indexCombatantRoster,
+} from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
+import {
+    countUnreadMessages,
     type FightStatistics,
-    getUnreadMessages,
-} from "@/src/core/fight-statistics.ts";
-import { composePanelHost, type ShownScreen } from "@/src/ui/panel-element.ts";
+    tallyFightStatistics,
+} from "#/src/core/fight-statistics.ts";
+import type { ShownScreen } from "#/src/ui/panel-element.ts";
+import { NOTHING_SUSPECT, type ScreenReading } from "#/src/ui/panel-reading.ts";
+import { presentScreen, UNNAMED_END } from "#/src/ui/panel-reading.ts";
 import {
-    composePanelReading,
-    NOTHING_SUSPECT,
+    PANEL_METRIC,
     type PanelMetric,
-    type PanelReading,
-} from "@/src/ui/panel-reading.ts";
-import type { PanelSideChoice } from "@/src/ui/panel-screen.ts";
-import { composeFakeDocument, type FakeElement, getTextsByClass } from "@/tests/fake-document.ts";
-import { composeFabricatedFight } from "@/tools/fabricated-fight.ts";
-import { composeFightReplay } from "@/tools/fight-replay.ts";
-import { composeShownScreen } from "@/tests/shown-screen.ts";
+    type PanelSideChoice,
+    SCREEN_ORDER,
+    SIDE_CHOICE,
+    SIDE_CHOICES,
+} from "#/src/ui/panel-screen.ts";
+import { composeFakeDocument, type FakeElement, getTextsByClass } from "#/tests/fake-document.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { initTestView } from "#/tests/panel-view.ts";
+import { composeShownScreen } from "#/tests/shown-screen.ts";
 
 /** The screen that pins two figures at once, which is what puts two unnamed rows on one list. */
-const BOTH_ENDS_SCREEN: PanelMetric = "damageTakenApplied";
-const SCREENS: PanelMetric[] = [
-    "damageDealtApplied",
-    "damageTakenApplied",
-    "healthGiven",
-    "healthRestored",
-];
-const CHOICES: PanelSideChoice[] = ["everyone", "reader", "opposing"];
+const BOTH_ENDS_SCREEN: PanelMetric = PANEL_METRIC.damageTakenApplied;
 /**
  * What the words say, spelled out rather than read back off the module that writes them: a test
  * taking `PANEL_WORDS` for its expectation passes just as well when the panel says nothing.
  */
 const WITHOUT_ACTOR = "Nieznany sprawca";
 const WITHOUT_TARGET = "Nieznany cel";
-/** An id no combatant in the fabricated fight answers to, so the roster names nobody for it. */
-const ONE_TOO_MANY = 999999;
+const OURS = 1;
+const THEIRS = 2;
+
+Deno.test("the widest fight built here fields a full cast, with both ends left out", () => {
+    const { roster, statistics } = composeWidestFight();
+    assertStrictEquals(roster.byId.size, COMBATANTS_MAXIMUM, "ten a side is the widest roster");
+    assertStrictEquals(countUnreadMessages(statistics), 0, "and nothing in it went unread");
+    assert(statistics.dealtByNobody > 0, "a blow the protocol gave no striker");
+    assert(statistics.takenByNobody > 0, "and one it gave no target");
+});
 
 /**
- * The fabricated fight states both ends left out on its own — a blow with no striker and one with
- * no target — so the screen that pins two figures has two to pin without anything added here.
+ * Ten a side, every one of them striking the first of the other side, and three blows that leave
+ * an end out: no striker, no target, and neither. `0` is the segment that names nobody.
  */
 function composeWidestFight(): {
     roster: CombatantRoster;
     statistics: FightStatistics;
     readerSide: number | null;
 } {
-    const fabricated = composeFabricatedFight();
-    const replay = composeFightReplay({
-        name: "fabricated",
-        calls: fabricated.calls.map((call) => call.payload),
-        hasSnapshot: false,
+    const combatants = Array.from({ length: COMBATANTS_MAXIMUM }, (_, at) => ({
+        id: at + 1,
+        name: `Gracz ${at + 1}`,
+        side: at % 2 === 0 ? OURS : THEIRS,
+        profession: "w",
+        level: 40,
+        healthMaximum: 1000,
+    }));
+    const roster = indexCombatantRoster(combatants);
+    const messages = combatants.map((one) => {
+        const target = one.side === OURS ? 2 : 1;
+        return `${one.id}=90.00;${target}=80.00;+dmg=${100 + one.id};-dmg=${100 + one.id}`;
     });
-    const events = replay.reading.events;
-    return {
-        roster: replay.roster,
-        statistics: composeFightStatistics(events, composeTeamHeals(events, replay.roster)),
-        readerSide: replay.reading.readerSide,
-    };
+    messages.push("0;2=50.00;+dmg=10;-dmg=10", "1=90.00;0;+dmg=20;-dmg=20", "0;0;+dmg=30;-dmg=30");
+    const context = { roster, standing: null, tables: BLOWS_GRANTED };
+    const events = decodePayloadMessages(messages, context).events;
+    const statistics = tallyFightStatistics(events, indexTeamHeals(events, roster));
+    return { roster, statistics, readerSide: OURS };
 }
-
-function composeFullCastScreen(reading: PanelReading, metric: PanelMetric, side: PanelSideChoice) {
-    return { ...composeShownScreen(reading, metric), side, readerSide: 1 };
-}
-
-/** The panel with that view on it, and whatever a region refused to draw while it went up. */
-function drawShownView(shown: ShownScreen): { host: FakeElement; failures: unknown[] } {
-    const failures: unknown[] = [];
-    const panel = composePanelHost(
-        composeFakeDocument(),
-        () => {},
-        (failure) => failures.push(failure),
-    );
-    panel.show(shown);
-    return { host: panel.element as FakeElement, failures };
-}
-
-Deno.test("the widest fight there is fields a full cast, with both ends left out", () => {
-    const { roster, statistics } = composeWidestFight();
-    assertStrictEquals(roster.byId.size, MAXIMUM_COMBATANTS, "ten a side is the widest roster");
-    assertStrictEquals(getUnreadMessages(statistics), 0, "and nothing in it went unread");
-    assert(statistics.dealtByNobody > 0, "a blow the protocol gave no striker");
-    assert(statistics.takenByNobody > 0, "and one it gave no target");
-    assert(statistics.byNeitherEnd > 0, "and health that went out with both ends left out");
-});
-
-/**
- * A cast wider than the widest there is. `composeCombatantRoster` refuses one, so this drives the
- * reading past its own bound the only way anything can — by handing it figures for somebody the
- * roster does not hold, which is what the exported surface allows. The list is what it costs, and
- * the strip under it still totals everybody. **S11**, **ADR 0051**.
- */
-Deno.test("a cast past the bound costs the smallest figures, and never the list", () => {
-    const { roster, statistics, readerSide } = composeWidestFight();
-    const byCombatantId = new Map(statistics.byCombatantId);
-    const [smallest] = [...byCombatantId.values()];
-    assert(smallest !== undefined, "the fight states figures to copy the shape of");
-    byCombatantId.set(ONE_TOO_MANY, { ...smallest, damageDealtApplied: 1 });
-    const reading = composePanelReading(
-        { ...statistics, byCombatantId },
-        roster,
-        "damageDealtApplied",
-        "everyone",
-        readerSide,
-        NOTHING_SUSPECT,
-    );
-    assertStrictEquals(reading.rows.length, MAXIMUM_COMBATANTS, "the list stays at its bound");
-    assert(
-        !reading.rows.some((one) => one.combatantId === ONE_TOO_MANY),
-        "and what it drops is the smallest figure, not whichever row arrived last",
-    );
-});
 
 Deno.test("a full cast with both ends unknown draws its rows and both unnamed ones", () => {
     const { roster, statistics, readerSide } = composeWidestFight();
-    const reading = composePanelReading(
+    const reading = presentScreen(
         statistics,
         roster,
         BOTH_ENDS_SCREEN,
-        "everyone",
+        SIDE_CHOICE.everyone,
         readerSide,
         NOTHING_SUSPECT,
     );
-    assertStrictEquals(reading.rows.length, MAXIMUM_COMBATANTS, "a row for everybody in it");
+    assertStrictEquals(reading.rows.length, COMBATANTS_MAXIMUM, "a row for everybody in it");
     assertEquals(
         reading.pinned.map((one) => one.end),
-        ["actor", "target"],
+        [UNNAMED_END.actor, UNNAMED_END.target],
         "and both ends the protocol can leave out are pinned beside them",
     );
     assert(reading.rows.every((one) => one.shareText.length > 0), "every row states its share");
 
     const { host, failures } = drawShownView(
-        composeFullCastScreen(reading, BOTH_ENDS_SCREEN, "everyone"),
+        composeFullCastScreen(reading, BOTH_ENDS_SCREEN, SIDE_CHOICE.everyone),
     );
     assertEquals(failures, [], "the widest screen there is costs the reader no region");
     assertEquals(getTextsByClass(host, "undrawn"), [], "and leaves no region standing undrawn");
     const names = getTextsByClass(host, "row-name");
     assertStrictEquals(
         names.length,
-        MAXIMUM_COMBATANTS + reading.pinned.length,
+        COMBATANTS_MAXIMUM + reading.pinned.length,
         "a name for everybody in the fight, and one for each end the game left out",
     );
     assertEquals(
-        names.slice(MAXIMUM_COMBATANTS),
+        names.slice(COMBATANTS_MAXIMUM),
         [WITHOUT_ACTOR, WITHOUT_TARGET],
         "which say, in words, which end the game left out",
     );
 });
 
+/** The panel with that view on it, and whatever a region refused to draw while it went up. */
+function drawShownView(shown: ShownScreen): { host: FakeElement; failures: unknown[] } {
+    const failures: unknown[] = [];
+    const panel = initTestView(composeFakeDocument(), {
+        onFailure: (failure) => failures.push(failure),
+    });
+    failures.push(...panel.render(shown).undrawn);
+    return { host: panel.element as FakeElement, failures };
+}
+
+function composeFullCastScreen(
+    reading: ScreenReading,
+    metric: PanelMetric,
+    side: PanelSideChoice,
+): ShownScreen {
+    return { ...composeShownScreen(reading, metric), side, readerSide: OURS };
+}
+
 Deno.test("no screen and no side of the widest fight costs the reader a region", () => {
     const { roster, statistics, readerSide } = composeWidestFight();
-    for (const metric of SCREENS) {
-        for (const side of CHOICES) {
-            const reading = composePanelReading(
+    let drawn = 0;
+    for (const metric of SCREEN_ORDER) {
+        for (const side of SIDE_CHOICES) {
+            const reading = presentScreen(
                 statistics,
                 roster,
                 metric,
@@ -170,20 +152,21 @@ Deno.test("no screen and no side of the widest fight costs the reader a region",
                 readerSide,
                 NOTHING_SUSPECT,
             );
-            assert(reading.rows.length <= MAXIMUM_COMBATANTS, `${metric} ${side}: inside the cast`);
+            assert(reading.rows.length <= COMBATANTS_MAXIMUM, `${metric} ${side}: inside the cast`);
             const { host, failures } = drawShownView(composeFullCastScreen(reading, metric, side));
             assertEquals(failures, [], `${metric} ${side}: a region the reader was not shown`);
             assertEquals(getTextsByClass(host, "undrawn"), [], `${metric} ${side}: undrawn`);
-            // ⚠️ **The section under the list is a drawn row and is in neither list.** It is
-            // the screen counted a second time (**ADR 0082**), so a count taken from the rows
-            // alone is short by it wherever it draws — and nothing drew it until the script
-            // stated health coming back to nobody.
+            // ⚠️ **The section under the list is a drawn row and is in neither list.** It is the
+            // screen counted a second time (`develop ADR 0082`), so a count taken from the rows
+            // alone is short by it wherever it draws.
             const outside = reading.outsideRanking === null ? 0 : 1;
             assertStrictEquals(
                 getTextsByClass(host, "row-name").length,
                 reading.rows.length + reading.pinned.length + outside,
                 `${metric} ${side}: every row of the reading is a row on the screen`,
             );
+            drawn += 1;
         }
     }
+    assertStrictEquals(drawn, SCREEN_ORDER.length * SIDE_CHOICES.length, "every view was drawn");
 });

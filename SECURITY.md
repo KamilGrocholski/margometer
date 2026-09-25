@@ -57,8 +57,8 @@ whole security model, and everything else is a consequence.
   `tipupdate`, the event the client's own `tip` triggers, and the client's own code draws an open
   tooltip again. The game rewrites a fighter's entry whenever it updates them, so a detach leaves
   the last block only until then. It is the only thing this add-on puts outside itself,
-  `src/game/engine-tooltip.ts` is the only file that does it, and **ADR 0105**, **ADR 0107** and
-  **ADR 0111** carry what it cost to decide.
+  `src/game/engine-tooltip.ts` is the only file that does it, and **develop ADR 0105**, **develop
+  ADR 0107** and **develop ADR 0111** carry what it cost to decide.
 
 ## Being a guest on the page
 
@@ -84,7 +84,7 @@ whole security model, and everything else is a consequence.
   fingerprint, no counter.
 - A kept fight stores the **payloads the game delivered** and never a computed number, so a reading
   is always re-derived by the current code rather than restored from an older version's arithmetic.
-  **ADR 0026.**
+  **develop ADR 0026.**
 - A shelf that will not fit asks for less: the oldest fight nobody pinned goes and the same shelf is
   offered again, rather than a size chosen against a quota nothing here assumes.
 - **The shelf therefore holds the game's own prose and real nicknames** for as long as it holds a

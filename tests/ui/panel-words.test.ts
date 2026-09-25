@@ -14,46 +14,45 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
-import { isCommentLine } from "@/tests/source-line.ts";
-import type { ChargedSkillState } from "@/src/core/charged-skill.ts";
-import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
-import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
+import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import {
     CARD_WORDS,
+    CAVEAT,
     CAVEATS,
     CHOICE_REFUSED_ANSWER,
-    composeCardSubtitleText,
-    composeChargedRowsText,
-    composeChargedSkillSubtitle,
-    composeCountedNoun,
-    composeCounterText,
-    composeDefectText,
-    composeDestroyedText,
-    composeFigureText,
-    composeGrammarRefusedSuspicion,
-    composeJoinedInProgressSuspicion,
-    composeLostMessageSuspicion,
-    composeNoParameterRowSuspicion,
-    composeNoParameterSuspicion,
-    composePlaceWords,
-    composeShareText,
-    composeShareTexts,
-    composeShelfSizeText,
-    composeSideCountsText,
-    composeTooltipRows,
-    composeTurnOrdinalText,
-    composeUndrawnText,
-    composeUnknownKeyRowSuspicion,
-    composeUnknownKeySuspicion,
-    composeUnplacedHealRowSuspicion,
-    composeUnplacedHealSuspicion,
-    composeUsesText,
     COUNTED_NOUNS,
-    DEFECT_KINDS,
     DEFENCE_WORD_BY_KEY,
     DESTROYED_WORD_BY_KEY,
     ELEMENT_WORD_BY_KEY,
     EVERY_SLOT_PINNED_ANSWER,
+    formatCardSubtitle,
+    formatChargedRows,
+    formatChargedSkillSubtitle,
+    formatCountedNoun,
+    formatCounter,
+    formatDefect,
+    formatDestroyed,
+    formatFigure,
+    formatGrammarRefusedSuspicion,
+    formatJoinedInProgressSuspicion,
+    formatKeptUnread,
+    formatLostMessageSuspicion,
+    formatNoParameterRowSuspicion,
+    formatNoParameterSuspicion,
+    formatPlace,
+    formatShare,
+    formatShares,
+    formatShelfSize,
+    formatSideCounts,
+    formatTurnOrdinal,
+    formatUndrawn,
+    formatUnknownKeyRowSuspicion,
+    formatUnknownKeySuspicion,
+    formatUnplacedHealRowSuspicion,
+    formatUnplacedHealSuspicion,
+    formatUses,
+    formatWhole,
+    getCaveatForUnannounced,
     getNoteForCaveat,
     getWordsForCardMetric,
     getWordsForChargedSkill,
@@ -75,26 +74,31 @@ import {
     getWordsForUnnamedEnd,
     HEALTH_LOSS_WORD_BY_KEY,
     HEALTH_SOURCE_WORD_BY_KEY,
-    MAXIMUM_TOOLTIP_ROWS,
     NEITHER_END_WORDS,
+    PANEL_DEFECT_KIND,
+    PANEL_REGION,
     PANEL_WORDS,
-    type PanelRegion,
+    presentTooltipRows,
     PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
     PROFESSION_WORD_BY_KEY,
     REGION_WORDS,
+    ROWS_BESIDE_THE_STATUSES,
     STANDING_WORDS,
     STORE_MADE_ROOM_ANSWER,
     STORE_REFUSED_ANSWER,
-} from "@/src/ui/panel-words.ts";
-import {
-    type PanelNoun,
-    SCREEN_ORDER,
-    SIDE_CHOICES,
-    STORAGE_CHOICES,
-} from "@/src/ui/panel-screen.ts";
-import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
-import { type PanelOutcome, type PanelUnnamedEnd, PINNED_CASES } from "@/src/ui/panel-reading.ts";
+} from "#/src/ui/panel-words.ts";
+import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
+import { STORAGE_CHOICES } from "#/src/ui/panel-choice.ts";
+import { PINNED_CASES, SIDE_PART, UNNAMED_END } from "#/src/ui/panel-reading.ts";
+import { PANEL_NOUN, SCREEN_ORDER, SIDE_CHOICES } from "#/src/ui/panel-screen.ts";
+import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
+import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
+import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
+
+/** What a block may run to: a row per status the client names, and the rows beside them. */
+const TOOLTIP_ROWS_MAXIMUM = FROZEN_BUFF_BITS.bits.length + ROWS_BESIDE_THE_STATUSES;
 
 /** Words this repository chose for itself. A reader is told what is missing, never our reason. */
 const OUR_VOCABULARY = [
@@ -127,19 +131,6 @@ const HAND_KEPT_KEYS = [
     "oth_dmg",
     "endbattle",
 ];
-
-function getUnmistakableKeys(): string[] {
-    const found = new Set<string>(HAND_KEPT_KEYS);
-    for (const stated of FROZEN_PROTOCOL_KEYS.keys) {
-        const key = stated.replace("+", "").replace("-", "");
-        if (key.length < 4) continue;
-        const isShaped = key.includes("_") || key !== key.toLowerCase() ||
-            [...key].some((one) => one >= "0" && one <= "9");
-        if (!isShaped) continue;
-        found.add(key.toLowerCase());
-    }
-    return [...found];
-}
 const GAME_KEYS = getUnmistakableKeys();
 /** What a count in these sentences is stated out of. Any figure past the counts below will do. */
 const SAID_OUT_OF = 412;
@@ -164,32 +155,73 @@ const TABLES = {
     STANDING_WORDS,
 };
 
-/**
- * Every member of a closed set, with the compiler counting them: a literal list of four states
- * goes on reading four the day a fifth arrives, and the words behind the new one would be read
- * by nothing. The `Record` is exhaustive in both directions.
- */
-function getEveryKey<Key extends string>(held: Record<Key, true>): Key[] {
-    return Object.keys(held) as Key[];
-}
+/** Every member of each closed set, read off its vocabulary, so a fifth state is read too. */
+const PANEL_NOUNS = Object.values(PANEL_NOUN);
+const TURN_STATES = Object.values(STANDING_TURN_STATE);
+const PANEL_OUTCOMES = Object.values(OUTCOME_RESULT);
+const CHARGED_STATES = Object.values(CHARGED_SKILL_STATE);
 
-const PANEL_NOUNS = getEveryKey<PanelNoun>({ damage: true, healing: true });
-const TURN_STATES = getEveryKey<StandingTurnState>({
-    held: true,
-    unread: true,
-    afterFight: true,
-    onAuto: true,
-});
-const PANEL_OUTCOMES = getEveryKey<PanelOutcome>({
-    won: true,
-    lost: true,
-    drawn: true,
-    fled: true,
-});
-const CHARGED_STATES = getEveryKey<ChargedSkillState>({
-    charging: true,
-    struck: true,
-    broken: true,
+/** The calendar the shelf's dates are counted over, which is nobody's constant to share. */
+const FIRST_MONTH = 1;
+const MONTHS_IN_YEAR = 12;
+
+/** A fighter with nothing standing on them, so a test says only what it is about. */
+const NOTHING_CARRIED = {
+    turnsTaken: 0,
+    charge: null,
+    provokedBy: null,
+    provokes: 0,
+    statuses: [],
+    holytouchHealsGiven: null,
+    hasSpentLastheal: false,
+    wasJoinedInProgress: false,
+};
+
+/**
+ * ⚠️ **A hand-kept list of sentences falls behind the module it lists, and this one had.** Nine
+ * of the twenty word tables in `src/ui/panel-words.ts` stood outside both checks above, measured
+ * 2026-09-11 — about forty sentences, the card's whole vocabulary among them. So the module is
+ * read for every declaration holding text, and each is held to putting one of its own words into
+ * `getSentences`. What is registered below holds text no reader reads.
+ */
+const HOLDS_NO_WORD: Record<string, string> = {
+    CLIENT_ID_BY_UNWORDED_KEY: "ids the running client answers to, spelled by it",
+    THOUSAND_SEPARATOR: "the space a figure groups on, written as its escape",
+    PANEL_DEFECT_KIND: "what the defects are called here, which the panel never says",
+    PANEL_REGION: "what the regions are called here; their words are in `REGION_WORDS`",
+    CAVEAT: "what the caveats are called here; the sentences are in `CAVEAT_NOTES`",
+    UNANNOUNCED_CAVEATS: "which of those a closing row owes, which is a key and not a word",
+    formatDefect: "the branch a region takes, and a branch is not a word",
+    formatCardSubtitle: "the default for a card nobody is a side of",
+    STATUS_CATEGORY: "the client's own filing for a status id, which is a category and not a word",
+};
+
+const QUOTES = "\"'`";
+const HOLDER_OPENERS = ["export const ", "const ", "export function ", "function "];
+const HOLDER_CLOSERS = ["type ", "export type ", "interface ", "export interface "];
+
+/** Everything one fighter can be at once, so a test about order has every row to order. */
+const CARRYING_EVERYTHING = {
+    turnsTaken: 14,
+    charge: { skillName: "Pożoga", turnsElapsed: 2, turnsStated: 4 },
+    provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
+    provokes: 10,
+    statuses: [
+        { bit: 3, percent: null },
+        { bit: 5, percent: 14 },
+        { bit: 6, percent: 20 },
+    ],
+    holytouchHealsGiven: 1,
+    hasSpentLastheal: true,
+    wasJoinedInProgress: false,
+};
+
+Deno.test("every word the panel says says something", () => {
+    const sentences = getSentences();
+    assert(sentences.length > 10, "the panel has words to say");
+    for (const sentence of sentences) {
+        assertEquals(sentence.trim(), sentence, `${sentence} carries space it does not need`);
+    }
 });
 
 function getSentences(): string[] {
@@ -199,9 +231,9 @@ function getSentences(): string[] {
     }
     // What a half-named row says, for the same reason: the tables behind these are keyed and a
     // walk over `PANEL_WORDS` reaches none of them.
-    for (const end of ["actor", "target"] as readonly PanelUnnamedEnd[]) {
-        found.push(getWordsForUnnamedEnd(end, "damage"));
-        found.push(getWordsForUnnamedEnd(end, "healing"));
+    for (const end of Object.values(UNNAMED_END)) {
+        found.push(getWordsForUnnamedEnd(end, PANEL_NOUN.damage));
+        found.push(getWordsForUnnamedEnd(end, PANEL_NOUN.healing));
     }
     for (const kase of PINNED_CASES) {
         found.push(getWordsForPinnedStanding(kase));
@@ -215,10 +247,10 @@ function getSentences(): string[] {
     // docblock cites **L3** for. `PANEL_WORDS` does not hold them and a walk over it reached
     // none: measured 2026-09-11 by putting `oth_dmg` into one, which the checks below read past.
     // The region kind takes a region, so every one of those is asked as well.
-    for (const kind of DEFECT_KINDS) {
-        found.push(composeDefectText(kind, null, 1));
-        for (const region of Object.keys(REGION_WORDS)) {
-            found.push(composeDefectText(kind, region as PanelRegion, 2));
+    for (const kind of Object.values(PANEL_DEFECT_KIND)) {
+        found.push(formatDefect(kind, null, 1));
+        for (const region of Object.values(PANEL_REGION)) {
+            found.push(formatDefect(kind, region, 2));
         }
     }
     found.push(...getSentencesFromSuspicions());
@@ -227,16 +259,17 @@ function getSentences(): string[] {
     // `src/ui/panel-words.ts` and running this file: all but one lit, and the one that did not
     // is `CLIENT_ID_BY_UNWORDED_KEY`, which `HOLDS_NO_WORD` excuses by name.
     for (const table of Object.values(TABLES)) {
-        for (const words of Object.values(table)) found.push(String(words));
+        const words = table instanceof Map ? [...table.values()] : Object.values(table);
+        for (const one of words) found.push(String(one));
     }
-    for (const [statistic, held] of Object.entries(DESTROYED_WORD_BY_KEY)) {
-        found.push(held.name, held.unit, composeDestroyedText(statistic, 12));
+    for (const [statistic, held] of DESTROYED_WORD_BY_KEY) {
+        found.push(held.name, held.unit, formatDestroyed(statistic, 12));
     }
     found.push(STORE_REFUSED_ANSWER, STORE_MADE_ROOM_ANSWER);
     found.push(EVERY_SLOT_PINNED_ANSWER, CHOICE_REFUSED_ANSWER);
     found.push(...getSentencesFromChoices());
-    for (const region of Object.keys(REGION_WORDS)) {
-        found.push(composeUndrawnText(region as PanelRegion));
+    for (const region of Object.values(PANEL_REGION)) {
+        found.push(formatUndrawn(region));
     }
     // A word that says nothing where there is nothing to say is not a sentence: `held` is the
     // state with a turn to draw, and a shelf neither live nor ended has no word to stand under.
@@ -245,26 +278,22 @@ function getSentences(): string[] {
 
 /** Every sentence a suspicion is said in, the fight's and a row's both. */
 function getSentencesFromSuspicions(): string[] {
-    const found: string[] = [composeJoinedInProgressSuspicion()];
+    const found: string[] = [formatJoinedInProgressSuspicion()];
     for (const count of [1, 2, 5]) {
-        const whom = composeChargedRowsText(["Gracz 1", "Gracz 2"], 2);
-        found.push(composeLostMessageSuspicion(count, SAID_OUT_OF));
-        found.push(composeUnknownKeySuspicion(count, SAID_OUT_OF, whom));
-        found.push(composeNoParameterSuspicion(count, SAID_OUT_OF, whom));
-        found.push(composeGrammarRefusedSuspicion(count, SAID_OUT_OF));
-        found.push(composeUnplacedHealSuspicion(count, SAID_OUT_OF, whom));
-        found.push(composeUnknownKeyRowSuspicion(count));
-        found.push(composeNoParameterRowSuspicion(count));
-        found.push(composeUnplacedHealRowSuspicion(count));
+        const whom = formatChargedRows(["Gracz 1", "Gracz 2"], 2);
+        found.push(formatLostMessageSuspicion(count, SAID_OUT_OF));
+        found.push(formatUnknownKeySuspicion(count, SAID_OUT_OF, whom));
+        found.push(formatNoParameterSuspicion(count, SAID_OUT_OF, whom));
+        found.push(formatGrammarRefusedSuspicion(count, SAID_OUT_OF));
+        found.push(formatUnplacedHealSuspicion(count, SAID_OUT_OF, whom));
+        found.push(formatUnknownKeyRowSuspicion(count));
+        found.push(formatNoParameterRowSuspicion(count));
+        found.push(formatUnplacedHealRowSuspicion(count));
         // And the other shape of the same words: a gap reaching more rows than a sentence lists.
-        found.push(composeUnknownKeySuspicion(count, SAID_OUT_OF, composeChargedRowsText([], 7)));
+        found.push(formatUnknownKeySuspicion(count, SAID_OUT_OF, formatChargedRows([], 7)));
     }
     return found;
 }
-
-/** The calendar the shelf's dates are counted over, which is nobody's constant to share. */
-const FIRST_MONTH = 1;
-const MONTHS_IN_YEAR = 12;
 
 /** Every word handed out per screen, side, noun, choice, state or ending. */
 function getSentencesFromChoices(): string[] {
@@ -287,21 +316,21 @@ function getSentencesFromChoices(): string[] {
     found.push(getWordsForPin(true), getWordsForPin(false));
     // What is composed rather than held: a word spelled into a template is reached by no walk
     // over the tables above, and `tura` and `teraz` are both spelled that way.
-    found.push(composeTurnOrdinalText(3), getWordsForShelfTime(null, true));
+    found.push(formatTurnOrdinal(3), getWordsForShelfTime(null, true));
     // Every month, because the twelve are spelled into the same template and a walk over the
     // tables reaches none of them either.
     for (let month = FIRST_MONTH; month <= MONTHS_IN_YEAR; month += 1) {
         found.push(getWordsForShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
     }
-    found.push(composeSideCountsText([4, 4], 2), composeShelfSizeText([4, 4]));
-    found.push(String(composeCardSubtitleText("w", 120, "reader")));
+    found.push(formatSideCounts([4, 4], 2), formatShelfSize([4, 4]));
+    found.push(String(formatCardSubtitle("w", 120, SIDE_PART.reader)));
     found.push(...getSentencesFromTooltip());
     // ⚠️ **Both ends of a charge, because one of them hid behind the card.** `przerwane` reached
     // no check at all and `wykonane` passed as a tail of `Tury wykonane`, which is the shape the
-    // holder check below no longer accepts (**ADR 0109**).
+    // holder check below no longer accepts (`develop ADR 0109`).
     for (const state of CHARGED_STATES) {
         found.push(getWordsForChargedSkill(state));
-        found.push(composeChargedSkillSubtitle("Cios", state));
+        found.push(formatChargedSkillSubtitle("Cios", state));
     }
     return found;
 }
@@ -314,34 +343,30 @@ function getSentencesFromChoices(): string[] {
  * less.
  *
  * **The client is stubbed rather than left null.** Asked nothing, a row falls back to the key as
- * the game wrote it — **ADR 0024**'s third rung — and a key is exactly what the check below
+ * the game wrote it — `develop ADR 0024`'s third rung — and a key is exactly what the check below
  * forbids, so a null here would flag the one thing this module is allowed to do.
  */
 function getSentencesFromTooltip(): string[] {
     const said = (id: string): string => (id.length > 0 ? "Efekt" : "");
     const found: string[] = [];
     for (const bit of [3, 4]) {
-        found.push(...composeTooltipRows({
-            ...NOTHING_CARRIED,
-            turnsTaken: 14,
-            charge: { skillName: "Cios", turnsElapsed: bit - 3, turnsStated: 1 },
-            provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
-            provokes: 2,
-            statuses: [{ bit, percent: 39 }],
-            holytouchHealsGiven: 1,
-            hasSpentLastheal: true,
-        }, said));
+        found.push(...presentTooltipRows(
+            {
+                ...NOTHING_CARRIED,
+                turnsTaken: 14,
+                charge: { skillName: "Cios", turnsElapsed: bit - 3, turnsStated: 1 },
+                provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
+                provokes: 2,
+                statuses: [{ bit, percent: 39 }],
+                holytouchHealsGiven: 1,
+                hasSpentLastheal: true,
+            },
+            said,
+            FROZEN_BUFF_BITS.bits,
+        ));
     }
     return found;
 }
-
-Deno.test("every word the panel says says something", () => {
-    const sentences = getSentences();
-    assert(sentences.length > 10, "the panel has words to say");
-    for (const sentence of sentences) {
-        assertEquals(sentence.trim(), sentence, `${sentence} carries space it does not need`);
-    }
-});
 
 /**
  * The four words are written out here rather than read back, which is what the docblock above
@@ -351,7 +376,7 @@ Deno.test("every word the panel says says something", () => {
  * won, so `REMIS` and `UCIECZKA` are in its list without ever being drawn.
  */
 Deno.test("each way a fight can end has its own word, and no two share one", () => {
-    const said: Record<PanelOutcome, string> = {
+    const said: Record<OutcomeResult, string> = {
         won: "wygrana",
         lost: "przegrana",
         drawn: "remis",
@@ -359,7 +384,7 @@ Deno.test("each way a fight can end has its own word, and no two share one", () 
     };
     for (const [outcome, word] of Object.entries(said)) {
         assertEquals(
-            getWordsForOutcome(outcome as PanelOutcome),
+            getWordsForOutcome(outcome as OutcomeResult),
             word,
             `${outcome} is the word a reader reads for it`,
         );
@@ -368,27 +393,19 @@ Deno.test("each way a fight can end has its own word, and no two share one", () 
     assertEquals(new Set(words).size, words.length, "and no ending borrows another's word");
 });
 
-/** A fighter with nothing standing on them, so a test says only what it is about. */
-const NOTHING_CARRIED = {
-    turnsTaken: 0,
-    charge: null,
-    provokedBy: null,
-    provokes: 0,
-    statuses: [],
-    holytouchHealsGiven: null,
-    hasSpentLastheal: false,
-    wasJoinedInProgress: false,
-};
-
 /**
  * The rows the add-on puts outside its own root, so they are read here twice over: L3 holds them
  * like every other sentence, and this holds the things only they have to answer for.
  */
 Deno.test("the block handed to the game says whose it is, and carries no markup", () => {
-    const said = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        statuses: [{ bit: 6, percent: null }],
-    }, null);
+    const said = presentTooltipRows(
+        {
+            ...NOTHING_CARRIED,
+            statuses: [{ bit: 6, percent: null }],
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     const first = said[0];
     assertExists(first, "a status carried composes a row");
     assertEquals(first, "MargoMeter", "the name stands alone, over the rows and not inside one");
@@ -403,11 +420,15 @@ Deno.test("the block handed to the game says whose it is, and carries no markup"
  * another inside one tooltip, so repeating it would say it once per row to the same reader.
  */
 Deno.test("the add-on names itself once, however many rows it has", () => {
-    const said = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        turnsTaken: 14,
-        statuses: [{ bit: 6, percent: null }],
-    }, null);
+    const said = presentTooltipRows(
+        {
+            ...NOTHING_CARRIED,
+            turnsTaken: 14,
+            statuses: [{ bit: 6, percent: null }],
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertEquals(said.length, 3, "the name, a status and a count of turns");
     assertEquals(said.filter((row) => row.includes("MargoMeter")).length, 1, "named once");
 });
@@ -417,45 +438,54 @@ Deno.test("the add-on names itself once, however many rows it has", () => {
  * answer, and the row is then the status with whatever length may be said of it.
  */
 Deno.test("a status with no figure to its name says no share beside it", () => {
-    const bare = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        statuses: [{ bit: 6, percent: null }],
-    }, null);
+    const bare = presentTooltipRows(
+        {
+            ...NOTHING_CARRIED,
+            statuses: [{ bit: 6, percent: null }],
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertEquals(bare[1]?.includes("%"), false, "no figure where none may be said");
-    const figured = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        statuses: [{ bit: 6, percent: 39 }],
-    }, null);
+    const figured = presentTooltipRows(
+        {
+            ...NOTHING_CARRIED,
+            statuses: [{ bit: 6, percent: 39 }],
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertStringIncludes(figured[1] ?? "", "39%", "and the figure where one may");
 });
 
 /**
- * The one pair every counter draws since **ADR 0116**, up or down, and the two ends it refuses. A
- * figure **below** nought and one past what is stated are both a subtraction somebody got
- * backwards — neither is a figure, so neither is drawn as one. Nought itself is drawn: a shout
+ * The one pair every counter draws since `develop ADR 0116`, up or down, and the two ends it
+ * refuses. A figure **below** nought and one past what is stated are both a subtraction somebody
+ * got backwards — neither is a figure, so neither is drawn as one. Nought itself is drawn: a shout
  * holds somebody through the turn its length runs out on, and a charge opens on none passed.
  */
 Deno.test("a counter is a bare pair, and refuses what is not inside it", () => {
-    assertEquals(composeCounterText(1, 5), "1 z 5", "one of five, and no noun");
-    assertEquals(composeCounterText(5, 5), "5 z 5", "and the whole of it");
-    assertEquals(composeCounterText(0, 5), "0 z 5", "and none is drawn");
-    assertEquals(composeCounterText(-1, 5), PANEL_WORDS.unknown, "below none is not");
-    assertEquals(composeCounterText(6, 5), PANEL_WORDS.unknown, "nor more than there was");
-    assertEquals(composeCounterText(1.5, 5), PANEL_WORDS.unknown, "nor half a turn");
+    assertEquals(formatCounter(1, 5), "1 z 5", "one of five, and no noun");
+    assertEquals(formatCounter(5, 5), "5 z 5", "and the whole of it");
+    assertEquals(formatCounter(0, 5), "0 z 5", "and none is drawn");
+    assertEquals(formatCounter(-1, 5), PANEL_WORDS.unknown, "below none is not");
+    assertEquals(formatCounter(6, 5), PANEL_WORDS.unknown, "nor more than there was");
+    assertEquals(formatCounter(1.5, 5), PANEL_WORDS.unknown, "nor half a turn");
 });
 
 /**
- * ⚠️ **No status row counts turns** (**ADR 0112**). The mask says a status stands and never since
- * when; a count off it read `38 tur` beside a five-turn poison, a length from the help sat at a
- * floor while hits the payload never announces renewed it, and one from a cast named a moment the
+ * ⚠️ **No status row counts turns** (`develop ADR 0112`). The mask says a status stands and never
+ * since when; a count off it read `38 tur` beside a five-turn poison, a length from the help sat at
+ * a floor while hits the payload never announces renewed it, and one from a cast named a moment the
  * bit does not. What stands is said, with the figure a cast over the bearer comes to.
  */
 Deno.test("a status says that it stands, and never for how long", () => {
     for (let bit = 0; bit < 9; bit += 1) {
         for (const percent of [null, 20]) {
-            const said = composeTooltipRows(
+            const said = presentTooltipRows(
                 { ...NOTHING_CARRIED, statuses: [{ bit, percent }] },
                 null,
+                FROZEN_BUFF_BITS.bits,
             );
             assertEquals(said.length, 2, "the name, and the status under it");
             assertEquals(said[1]?.includes("tur"), false, `bit ${bit} carries no count of turns`);
@@ -471,10 +501,14 @@ Deno.test("a status says that it stands, and never for how long", () => {
  * the status and stops.
  */
 Deno.test("a status nothing dates, just lit, says no length at all", () => {
-    const said = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        statuses: [{ bit: 6, percent: null }],
-    }, null);
+    const said = presentTooltipRows(
+        {
+            ...NOTHING_CARRIED,
+            statuses: [{ bit: 6, percent: null }],
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertEquals(said.length, 2, "the name, and the status still said under it");
     assertEquals(said[1]?.includes("0"), false, "and no count of nought is said beside it");
 });
@@ -486,14 +520,18 @@ Deno.test("a status nothing dates, just lit, says no length at all", () => {
  * the only place they stand together.
  */
 Deno.test("every row that names a thing and qualifies it is punctuated alike", () => {
-    const said = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        charge: { skillName: "Pożoga", turnsElapsed: 2, turnsStated: 4 },
-        provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
-        statuses: [{ bit: 3, percent: null }],
-        holytouchHealsGiven: 1,
-        hasSpentLastheal: true,
-    }, null);
+    const said = presentTooltipRows(
+        {
+            ...NOTHING_CARRIED,
+            charge: { skillName: "Pożoga", turnsElapsed: 2, turnsStated: 4 },
+            provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
+            statuses: [{ bit: 3, percent: null }],
+            holytouchHealsGiven: 1,
+            hasSpentLastheal: true,
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     const carrying = said.filter((row) => row.includes(" z ") || row.includes("wykorzystany"));
     assertEquals(
         carrying.length,
@@ -507,17 +545,21 @@ Deno.test("every row that names a thing and qualifies it is punctuated alike", (
 
 /** The okrzyk from either end: what holds somebody, and how many somebody holds. */
 Deno.test("a provocation is said at the end it is read from", () => {
-    const held = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
-    }, null);
+    const held = presentTooltipRows(
+        {
+            ...NOTHING_CARRIED,
+            provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertEquals(
         held[1],
         "Sprowokowany przez Gracz 2 · 2 z 3",
         "the held fighter is told who holds them, and how many of their turns it still has",
     );
     const shouting = (provokes: number) =>
-        composeTooltipRows({ ...NOTHING_CARRIED, provokes }, null)[1];
+        presentTooltipRows({ ...NOTHING_CARRIED, provokes }, null, FROZEN_BUFF_BITS.bits)[1];
     assertEquals(shouting(10), "Prowokuje 10 postaci", "the shouter is told how many, not whom");
     assertEquals(shouting(1), "Prowokuje 1 postać", "one is one, in the noun's own form");
     assertEquals(shouting(2), "Prowokuje 2 postacie", "two to four take the second");
@@ -528,12 +570,16 @@ Deno.test("a provocation is said at the end it is read from", () => {
 
 /**
  * ⚠️ **The provocation counts down in turns and Dotyk anioła counts up in heals**, in one tooltip
- * (**ADR 0113**), and neither fraction carries a noun (**ADR 0116**) — so the row is asserted
- * whole, at nought — a row lit and not yet healed — and one under the bound.
+ * (`develop ADR 0113`), and neither fraction carries a noun (`develop ADR 0116`) — so the row is
+ * asserted whole, at nought — a row lit and not yet healed — and one under the bound.
  */
 Deno.test("Dotyk anioła says the heals it has given, out of the three it gives", () => {
     const row = (healsGiven: number) =>
-        composeTooltipRows({ ...NOTHING_CARRIED, holytouchHealsGiven: healsGiven }, null)[1];
+        presentTooltipRows(
+            { ...NOTHING_CARRIED, holytouchHealsGiven: healsGiven },
+            null,
+            FROZEN_BUFF_BITS.bits,
+        )[1];
     assertEquals(row(0), "Dotyk anioła · 0 z 3", "lit, and nothing healed yet");
     assertEquals(row(1), "Dotyk anioła · 1 z 3", "one heal is one");
     assertEquals(row(2), "Dotyk anioła · 2 z 3", "and the last before it goes");
@@ -542,10 +588,14 @@ Deno.test("Dotyk anioła says the heals it has given, out of the three it gives"
 Deno.test("a label the client answers with markup is refused rather than escaped", () => {
     const speak = (id: string) => id === "speed_up" ? "<b>szybko</b>" : null;
     assertEquals(
-        composeTooltipRows({
-            ...NOTHING_CARRIED,
-            statuses: [{ bit: 6, percent: null }],
-        }, speak),
+        presentTooltipRows(
+            {
+                ...NOTHING_CARRIED,
+                statuses: [{ bit: 6, percent: null }],
+            },
+            speak,
+            FROZEN_BUFF_BITS.bits,
+        ),
         [],
         "the answer is the client's, and one this repository cannot use is left alone",
     );
@@ -553,17 +603,21 @@ Deno.test("a label the client answers with markup is refused rather than escaped
 
 /**
  * ⚠️ **The charge restates the client's pair, counting up**, where the provocation a row below it
- * counts down (**ADR 0115**): Pomocnik draws the same pair for the same charge, and a remainder
- * here would be a second number for it. The missing noun is what tells the two fractions apart,
- * so the row is asserted whole — at nought, a charge just begun, and at the whole, the turn it
- * lands on.
+ * counts down (`develop ADR 0115`): Pomocnik draws the same pair for the same charge, and a
+ * remainder here would be a second number for it. The missing noun is what tells the two fractions
+ * apart, so the row is asserted whole — at nought, a charge just begun, and at the whole, the turn
+ * it lands on.
  */
 Deno.test("a charge says the blow and how much of it has passed, as the client states it", () => {
     const row = (turnsElapsed: number, turnsStated: number) =>
-        composeTooltipRows({
-            ...NOTHING_CARRIED,
-            charge: { skillName: "Pożoga", turnsElapsed, turnsStated },
-        }, null)[1];
+        presentTooltipRows(
+            {
+                ...NOTHING_CARRIED,
+                charge: { skillName: "Pożoga", turnsElapsed, turnsStated },
+            },
+            null,
+            FROZEN_BUFF_BITS.bits,
+        )[1];
     assertEquals(row(0, 4), "Cios specjalny · Pożoga · 0 z 4", "just begun");
     assertEquals(row(2, 4), "Cios specjalny · Pożoga · 2 z 4", "half through");
     assertEquals(row(4, 4), "Cios specjalny · Pożoga · 4 z 4", "and on the last turn");
@@ -575,16 +629,24 @@ Deno.test("a charge says the blow and how much of it has passed, as the client s
 
 /** A blow's name is the client's, so one carrying markup is refused like any label of theirs. */
 Deno.test("a charge whose name carries markup puts no row in", () => {
-    const said = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        charge: { skillName: "<b>Pożoga</b>", turnsElapsed: 0, turnsStated: 2 },
-    }, null);
+    const said = presentTooltipRows(
+        {
+            ...NOTHING_CARRIED,
+            charge: { skillName: "<b>Pożoga</b>", turnsElapsed: 0, turnsStated: 2 },
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertEquals(said, [], "nothing else to say, so the tooltip is left as the game made it");
 });
 
 /** **W5: zero is a boundary.** Nothing carried composes no row, which is not an empty one. */
 Deno.test("a fighter carrying nothing composes no row at all", () => {
-    assertEquals(composeTooltipRows(NOTHING_CARRIED, null), [], "the game's tooltip is untouched");
+    assertEquals(
+        presentTooltipRows(NOTHING_CARRIED, null, FROZEN_BUFF_BITS.bits),
+        [],
+        "the game's tooltip is untouched",
+    );
 });
 
 Deno.test("no sentence carries our vocabulary", () => {
@@ -611,27 +673,49 @@ Deno.test("no sentence carries a key of the game's", () => {
     assertEquals(wrong, [], "a key is how a message was assembled, not what happened in a fight");
 });
 
-/**
- * ⚠️ **A hand-kept list of sentences falls behind the module it lists, and this one had.** Nine
- * of the twenty word tables in `src/ui/panel-words.ts` stood outside both checks above, measured
- * 2026-09-11 — about forty sentences, the card's whole vocabulary among them. So the module is
- * read for every declaration holding text, and each is held to putting one of its own words into
- * `getSentences`. What is registered below holds text no reader reads.
- */
-const HOLDS_NO_WORD: Record<string, string> = {
-    CLIENT_ID_BY_UNWORDED_KEY: "ids the running client answers to, spelled by it",
-    THOUSAND_SEPARATOR: "the space a figure groups on, written as its escape",
-    DEFECT_KINDS: "what the defects are called here, which the panel never says",
-    CAVEATS: "what the caveats are called here; the sentences are in `CAVEAT_NOTES`",
-    UNANNOUNCED_CAVEATS: "which of those a closing row owes, which is a key and not a word",
-    composeDefectText: "the branch a region takes, and a branch is not a word",
-    composeCardSubtitleText: "the default for a card nobody is a side of",
-    STATUS_CATEGORY: "the client's own filing for a status id, which is a category and not a word",
-};
+Deno.test("every word the module holds reaches the checks above, or says why it does not", () => {
+    const holders = getWordHolders(Deno.readTextFileSync("src/ui/panel-words.ts"));
+    const said = getSentences().join("\n");
+    const unread: string[] = [];
+    for (const [name, texts] of holders) {
+        if (texts.length === 0) continue;
+        if (name in HOLDS_NO_WORD) continue;
+        if (texts.every((text) => said.includes(text))) continue;
+        unread.push(name);
+    }
+    // ⚠️ **The reader is held by name and not by a count.** A floor said the module holds more
+    // than forty declarations of words, and it held fifty-eight — so a reader that had stopped
+    // finding a third of them was still above it. Every table this file walks is a declaration
+    // the reader must have found, and a reader that loses one is named for the one it lost.
+    const missing = Object.keys(TABLES).filter((name) => !holders.has(name));
+    assertEquals(missing, [], "a table this file walks is a declaration the source reader missed");
+    assertEquals(unread, [], "a word neither check reads is a word neither check holds");
+    // The other way round: a register that outlives what it excuses goes on excusing something.
+    for (const name of Object.keys(HOLDS_NO_WORD)) {
+        assert(holders.has(name), `${name} is excused above and the module no longer has it`);
+    }
+});
 
-const QUOTES = "\"'`";
-const HOLDER_OPENERS = ["export const ", "const ", "export function ", "function "];
-const HOLDER_CLOSERS = ["type ", "export type ", "interface ", "export interface "];
+/** Every module-level declaration holding text, and the texts it holds. */
+function getWordHolders(source: string): Map<string, string[]> {
+    const found = new Map<string, string[]>();
+    let holder = "";
+    for (const line of source.split("\n")) {
+        if (HOLDER_CLOSERS.some((closer) => line.startsWith(closer))) holder = "";
+        const opened = getHolderName(line);
+        if (opened !== "") {
+            holder = opened;
+            if (!found.has(holder)) found.set(holder, []);
+        }
+        const held = found.get(holder);
+        if (held === undefined) continue;
+        if (isCommentLine(line)) continue;
+        for (const text of getLineTexts(line)) {
+            if (isReadableText(text)) held.push(text);
+        }
+    }
+    return found;
+}
 
 /** The name a module-level declaration opens, or empty where the line opens none. */
 function getHolderName(line: string): string {
@@ -647,6 +731,12 @@ function getHolderName(line: string): string {
         return name;
     }
     return "";
+}
+
+/** Whether a line is comment, which the source walk below skips rather than reads for words. */
+function isCommentLine(line: string): boolean {
+    const trimmed = line.trimStart();
+    return ["//", "/*", "*/", "*"].some((opener) => trimmed.startsWith(opener));
 }
 
 /**
@@ -719,50 +809,6 @@ function isReadableText(text: string): boolean {
     return false;
 }
 
-/** Every module-level declaration holding text, and the texts it holds. */
-function getWordHolders(source: string): Map<string, string[]> {
-    const found = new Map<string, string[]>();
-    let holder = "";
-    for (const line of source.split("\n")) {
-        if (HOLDER_CLOSERS.some((closer) => line.startsWith(closer))) holder = "";
-        const opened = getHolderName(line);
-        if (opened !== "") {
-            holder = opened;
-            if (!found.has(holder)) found.set(holder, []);
-        }
-        const held = found.get(holder);
-        if (held === undefined) continue;
-        if (isCommentLine(line)) continue;
-        for (const text of getLineTexts(line)) {
-            if (isReadableText(text)) held.push(text);
-        }
-    }
-    return found;
-}
-
-Deno.test("every word the module holds reaches the checks above, or says why it does not", () => {
-    const holders = getWordHolders(Deno.readTextFileSync("src/ui/panel-words.ts"));
-    const said = getSentences().join("\n");
-    const unread: string[] = [];
-    for (const [name, texts] of holders) {
-        if (texts.length === 0) continue;
-        if (name in HOLDS_NO_WORD) continue;
-        if (texts.every((text) => said.includes(text))) continue;
-        unread.push(name);
-    }
-    // ⚠️ **The reader is held by name and not by a count.** A floor said the module holds more
-    // than forty declarations of words, and it held fifty-eight — so a reader that had stopped
-    // finding a third of them was still above it. Every table this file walks is a declaration
-    // the reader must have found, and a reader that loses one is named for the one it lost.
-    const missing = Object.keys(TABLES).filter((name) => !holders.has(name));
-    assertEquals(missing, [], "a table this file walks is a declaration the source reader missed");
-    assertEquals(unread, [], "a word neither check reads is a word neither check holds");
-    // The other way round: a register that outlives what it excuses goes on excusing something.
-    for (const name of Object.keys(HOLDS_NO_WORD)) {
-        assert(holders.has(name), `${name} is excused above and the module no longer has it`);
-    }
-});
-
 /**
  * The reader that tells a key from a value, proved by a sample it must skip **and** a sample it
  * must not — the second is the one that matters, because a reader skipping too much would drop
@@ -782,21 +828,21 @@ Deno.test("a quoted key is skipped and the value beside it is not", () => {
 
 Deno.test("a count is spelled the three ways Polish spells one", () => {
     const noun = COUNTED_NOUNS.messages;
-    assertEquals(composeCountedNoun(1, noun), "1 wiadomość", "one takes the first form");
-    assertEquals(composeCountedNoun(2, noun), "2 wiadomości", "two takes the second");
-    assertEquals(composeCountedNoun(4, noun), "4 wiadomości", "and so does four");
-    assertEquals(composeCountedNoun(5, noun), "5 wiadomości", "five takes the third");
-    assertEquals(composeCountedNoun(0, noun), "0 wiadomości", "and so does nothing at all");
+    assertEquals(formatCountedNoun(1, noun), "1 wiadomość", "one takes the first form");
+    assertEquals(formatCountedNoun(2, noun), "2 wiadomości", "two takes the second");
+    assertEquals(formatCountedNoun(4, noun), "4 wiadomości", "and so does four");
+    assertEquals(formatCountedNoun(5, noun), "5 wiadomości", "five takes the third");
+    assertEquals(formatCountedNoun(0, noun), "0 wiadomości", "and so does nothing at all");
 });
 
 Deno.test("the teens take the third form and the twenties do not", () => {
     const noun = COUNTED_NOUNS.fights;
-    assertEquals(composeCountedNoun(12, noun), "12 walk", "twelve is not two");
-    assertEquals(composeCountedNoun(14, noun), "14 walk", "nor is fourteen four");
-    assertEquals(composeCountedNoun(22, noun), "22 walki", "but twenty-two is");
-    assertEquals(composeCountedNoun(24, noun), "24 walki", "and so is twenty-four");
-    assertEquals(composeCountedNoun(25, noun), "25 walk", "while twenty-five is not");
-    assertEquals(composeCountedNoun(112, noun), "112 walk", "a hundred and twelve is a teen too");
+    assertEquals(formatCountedNoun(12, noun), "12 walk", "twelve is not two");
+    assertEquals(formatCountedNoun(14, noun), "14 walk", "nor is fourteen four");
+    assertEquals(formatCountedNoun(22, noun), "22 walki", "but twenty-two is");
+    assertEquals(formatCountedNoun(24, noun), "24 walki", "and so is twenty-four");
+    assertEquals(formatCountedNoun(25, noun), "25 walk", "while twenty-five is not");
+    assertEquals(formatCountedNoun(112, noun), "112 walk", "a hundred and twelve is a teen too");
 });
 
 Deno.test("every noun states its three forms, and they are not one form thrice", () => {
@@ -809,28 +855,28 @@ Deno.test("every noun states its three forms, and they are not one form thrice",
 });
 
 Deno.test("a place is said with as much of it as was known, and nothing where none was", () => {
-    assertEquals(composePlaceWords("Mapa", 12, 34), "Mapa (12, 34)", "both, the map first");
-    assertEquals(composePlaceWords("Mapa", null, null), "Mapa", "the map alone stands alone");
-    assertEquals(composePlaceWords(null, 12, 34), "(12, 34)", "and so does the tile");
+    assertEquals(formatPlace("Mapa", 12, 34), "Mapa (12, 34)", "both, the map first");
+    assertEquals(formatPlace("Mapa", null, null), "Mapa", "the map alone stands alone");
+    assertEquals(formatPlace(null, 12, 34), "(12, 34)", "and so does the tile");
     // Half a tile is not a tile: a pair with one number missing states a place that is not one.
-    assertEquals(composePlaceWords("Mapa", 12, null), "Mapa", "half a tile is left unsaid");
-    assertEquals(composePlaceWords(null, null, 34), null, "and half a tile alone says nothing");
-    assertEquals(composePlaceWords(null, null, null), null, "nothing known is said as nothing");
-    assertEquals(composePlaceWords("Mapa", 0, 0), "Mapa (0, 0)", "the corner of a map is a tile");
+    assertEquals(formatPlace("Mapa", 12, null), "Mapa", "half a tile is left unsaid");
+    assertEquals(formatPlace(null, null, 34), null, "and half a tile alone says nothing");
+    assertEquals(formatPlace(null, null, null), null, "nothing known is said as nothing");
+    assertEquals(formatPlace("Mapa", 0, 0), "Mapa (0, 0)", "the corner of a map is a tile");
 });
 
 Deno.test("a share is spelled in whole points, and a figure too small to round says so", () => {
-    assertEquals(composeShareText(0.516), "52%", "whole points, the way every row prints one");
-    assertEquals(composeShareText(0), "0%", "zero happened and measured nothing");
-    assertEquals(composeShareText(1), "100%", "and the whole of a fight is the whole of it");
+    assertEquals(formatShare(0.516), "52%", "whole points, the way every row prints one");
+    assertEquals(formatShare(0), "0%", "zero happened and measured nothing");
+    assertEquals(formatShare(1), "100%", "and the whole of a fight is the whole of it");
     // The floor and the measurement stand apart: one says too small to print, the other says none.
-    assertEquals(composeShareText(0.0004), "<1%", "a share too small to print is not zero");
+    assertEquals(formatShare(0.0004), "<1%", "a share too small to print is not zero");
     // A share outside the whole must not stop the panel: it is held to the ends instead, and one
-    // that is not a number at all says so — **E14**, ADR 0051.
-    assertEquals(composeShareText(1.5), "100%", "more than the whole is drawn as the whole");
-    assertEquals(composeShareText(-1), "0%", "and below nothing is drawn as nothing");
+    // that is not a number at all says so — **E12**, develop ADR 0051.
+    assertEquals(formatShare(1.5), "100%", "more than the whole is drawn as the whole");
+    assertEquals(formatShare(-1), "0%", "and below nothing is drawn as nothing");
     assertEquals(
-        composeShareText(Number.NaN),
+        formatShare(Number.NaN),
         PANEL_WORDS.unknown,
         "while a share that is not a number is said as not known, which is not zero",
     );
@@ -839,49 +885,49 @@ Deno.test("a share is spelled in whole points, and a figure too small to round s
 /**
  * The figure every reader sees, and what it does with one that is not a figure. It must not stop
  * the panel; the word for *not known* is what the panel already has, and zero is not it —
- * `CONTEXT.md` keeps those apart. **E14**, ADR 0051.
+ * `CONTEXT.md` keeps those apart. **E12**, develop ADR 0051.
  */
 Deno.test("a figure that is not one is said as not known, and never as a number", () => {
     for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, 1e21]) {
-        assertEquals(composeFigureText(value), PANEL_WORDS.unknown, `${value} is not a figure`);
+        assertEquals(formatFigure(value), PANEL_WORDS.unknown, `${value} is not a figure`);
     }
-    assertEquals(composeFigureText(0), "0", "while zero happened, and is written as it was");
+    assertEquals(formatFigure(0), "0", "while zero happened, and is written as it was");
 });
 
 Deno.test("a count of things that is not a count says so, and still says what of", () => {
     assertStringIncludes(
-        composeUsesText(Number.NaN),
+        formatUses(Number.NaN),
         PANEL_WORDS.unknown,
         "a count that is not one is not drawn as a number",
     );
     assertStringIncludes(
-        composeUsesText(-1),
+        formatUses(-1),
         PANEL_WORDS.unknown,
         "and neither is one below nothing, which no announcement could come to",
     );
-    assertEquals(composeUsesText(3), "×3", "and one that is is drawn as it stands");
+    assertEquals(formatUses(3), "×3", "and one that is is drawn as it stands");
 });
 
 Deno.test("a figure is spaced the way the game spaces one, from three digits up", () => {
-    assertEquals(composeFigureText(0), "0", "zero is one digit and stays one");
-    assertEquals(composeFigureText(999), "999", "three digits are a group already");
-    assertEquals(composeFigureText(1000), "1\u00a0000", "and the fourth is what opens a gap");
+    assertEquals(formatFigure(0), "0", "zero is one digit and stays one");
+    assertEquals(formatFigure(999), "999", "three digits are a group already");
+    assertEquals(formatFigure(1000), "1\u00a0000", "and the fourth is what opens a gap");
     assertEquals(
-        composeFigureText(141710),
+        formatFigure(141710),
         "141\u00a0710",
         "the figure the panel was photographed on",
     );
     assertEquals(
-        composeFigureText(1234567),
+        formatFigure(1234567),
         "1\u00a0234\u00a0567",
         "two gaps, at every third digit",
     );
     assertEquals(
-        composeFigureText(-1000),
+        formatFigure(-1000),
         "-1\u00a0000",
         "a sign never joins the digits behind it",
     );
-    assertEquals(composeFigureText(1000.4), "1\u00a0000", "a figure is drawn as a whole number");
+    assertEquals(formatFigure(1000.4), "1\u00a0000", "a figure is drawn as a whole number");
 });
 
 /**
@@ -890,15 +936,25 @@ Deno.test("a figure is spaced the way the game spaces one, from three digits up"
  * no gap at all — a separator that stopped grouping would pass the first half on its own.
  */
 Deno.test("a figure never offers a place to break, and never spaces what it should not", () => {
-    assert(!composeFigureText(1000).includes(" "), "a figure that groups carries no plain space");
+    assert(!formatFigure(1000).includes(" "), "a figure that groups carries no plain space");
     assertStringIncludes(
-        composeFigureText(1000),
+        formatFigure(1000),
         "\u00a0",
         "and groups on the one that does not break",
     );
-    assert(!composeFigureText(999).includes(" "), "three digits are one group and stay one word");
-    assert(!composeFigureText(999).includes("\u00a0"), "with no gap opened inside them");
-    assert(!composeFigureText(0).includes("\u00a0"), "and zero is a digit, not a group of them");
+    assert(!formatFigure(999).includes(" "), "three digits are one group and stay one word");
+    assert(!formatFigure(999).includes("\u00a0"), "with no gap opened inside them");
+    assert(!formatFigure(0).includes("\u00a0"), "and zero is a digit, not a group of them");
+});
+
+Deno.test("a set of shares adds to the whole it is a share of", () => {
+    // Rounded a row at a time these print 33%, 33% and 33%, which is a column that does not sum.
+    const thirds = formatShares([1, 1, 1], 3);
+    assertEquals(getPointsFromShares(thirds), 100, "the points left over are handed out");
+    assertEquals(formatShares([1, 0], 1), ["100%", "0%"], "a figure of nothing takes none");
+    assertEquals(formatShares([1, 1], 0), ["0%", "0%"], "a whole of nothing states no share");
+    // A whole holding a figure the screen does not draw: the shares are right to add to less.
+    assertEquals(getPointsFromShares(formatShares([1, 1], 4)), 50, "half a whole is half");
 });
 
 /** What the reader adds up, as the reader adds it up: the points, without the sign. */
@@ -912,28 +968,18 @@ function getPointsFromShares(texts: readonly string[]): number {
     return total;
 }
 
-Deno.test("a set of shares adds to the whole it is a share of", () => {
-    // Rounded a row at a time these print 33%, 33% and 33%, which is a column that does not sum.
-    const thirds = composeShareTexts([1, 1, 1], 3);
-    assertEquals(getPointsFromShares(thirds), 100, "the points left over are handed out");
-    assertEquals(composeShareTexts([1, 0], 1), ["100%", "0%"], "a figure of nothing takes none");
-    assertEquals(composeShareTexts([1, 1], 0), ["0%", "0%"], "a whole of nothing states no share");
-    // A whole holding a figure the screen does not draw: the shares are right to add to less.
-    assertEquals(getPointsFromShares(composeShareTexts([1, 1], 4)), 50, "half a whole is half");
-});
-
 Deno.test("two of a figure print one share, and the column still adds up", () => {
     // The three equal figures hold the largest discarded fraction and there are only two points
     // to hand out, so the group is passed over and two smaller remainders are paid instead. Row
     // by row the first two of the three would take a point each and print 6% beside 5%.
-    const tie = composeShareTexts([1, 1, 1, 2, 13], 18);
+    const tie = formatShares([1, 1, 1, 2, 13], 18);
     assertEquals(tie, ["5%", "5%", "5%", "12%", "73%"], "equal figures print equal shares");
     assertEquals(getPointsFromShares(tie), 100, "and the column still comes to the whole");
     // A group that fits is paid whole: two points left, two members, both take one.
-    assertEquals(composeShareTexts([1, 1, 4], 6), ["17%", "17%", "66%"], "a group that fits");
+    assertEquals(formatShares([1, 1, 4], 6), ["17%", "17%", "66%"], "a group that fits");
     // Three equal thirds: the group of three cannot be paid out of the one point left, so the
     // column adding up wins over the evenness and the earliest row takes it.
-    const split = composeShareTexts([1, 1, 1], 3);
+    const split = formatShares([1, 1, 1], 3);
     assertEquals(getPointsFromShares(split), 100, "a tie is split where nothing else can pay");
     assertEquals(split, ["34%", "33%", "33%"], "earliest row first, so nothing flickers");
 });
@@ -948,20 +994,20 @@ Deno.test("a key health moved under is worded, and one nobody named travels as w
     // What the game sends and nobody here has named is shown as the game wrote it: a row that
     // vanished or read "nieznane" would hide a real figure behind our own ignorance.
     assertEquals(getWordsForHealthSource("heal_of_2027"), "heal_of_2027", "a key nobody has named");
-    for (const [key, words] of Object.entries(HEALTH_SOURCE_WORD_BY_KEY)) {
+    for (const [key, words] of HEALTH_SOURCE_WORD_BY_KEY) {
         assert(words.length > 0, `${key}: a key the table holds is worded`);
         assert(!words.includes("%"), `${key}: a hole in a sentence is not a word for a column`);
     }
 });
 
 Deno.test("a suspicion about what never arrived counts in all three Polish forms", () => {
-    const lost = (count: number) => composeLostMessageSuspicion(count, count);
+    const lost = (count: number) => formatLostMessageSuspicion(count, count);
     assertStringIncludes(lost(1), "1 wiadomość", "one takes the first form");
     assertStringIncludes(lost(2), "2 wiadomości", "two takes the second");
     assertStringIncludes(lost(5), "5 wiadomości", "and five the third");
     // Nothing to warn about is nothing said. The empty sentence is dropped where it is drawn,
-    // rather than stopping the draw it arrived in — **E14**, ADR 0051.
-    assertEquals(composeLostMessageSuspicion(0, SAID_OUT_OF), "", "nothing lost is nothing to say");
+    // rather than stopping the draw it arrived in — **E12**, develop ADR 0051.
+    assertEquals(formatLostMessageSuspicion(0, SAID_OUT_OF), "", "nothing lost is nothing to say");
 });
 
 /**
@@ -970,19 +1016,19 @@ Deno.test("a suspicion about what never arrived counts in all three Polish forms
  */
 Deno.test("a suspicion states its count against what that count is out of", () => {
     assertStringIncludes(
-        composeUnknownKeySuspicion(2, 412, ""),
+        formatUnknownKeySuspicion(2, 412, ""),
         "2 z 412 wiadomości",
         "the count, then what it is out of",
     );
     // A denominator smaller than the count is a reading that disagrees with itself. The sentence
-    // states the count alone rather than a fraction nobody can read (**E14**: it clamps in place).
+    // states the count alone rather than a fraction nobody can read (**E12**: it clamps in place).
     assertStringIncludes(
-        composeUnknownKeySuspicion(2, 1, ""),
+        formatUnknownKeySuspicion(2, 1, ""),
         "2 wiadomości",
         "and never a share bigger than one",
     );
     assert(
-        !composeUnknownKeySuspicion(2, 1, "").includes(" z "),
+        !formatUnknownKeySuspicion(2, 1, "").includes(" z "),
         "which is said by leaving the denominator out, not by mending it",
     );
 });
@@ -991,23 +1037,23 @@ Deno.test("a suspicion states its count against what that count is out of", () =
  * ⚠️ **`z` and `dotyczy` govern the genitive, and a counted noun's own forms are not it.** Polish
  * takes a third form after two to four — `3 uleczenia` standing alone, `z 3 uleczeń` under `z` —
  * and the panel was writing the standing form in both places. The many form is the genitive
- * plural, and it is what every count past one takes there. **ADR 0070.**
+ * plural, and it is what every count past one takes there. `develop ADR 0070`.
  */
 Deno.test("a count under a word governing the genitive takes the genitive", () => {
     assertStringIncludes(
-        composeUnplacedHealSuspicion(1, 3, ""),
+        formatUnplacedHealSuspicion(1, 3, ""),
         "1 z 3 uleczeń",
         "never `3 uleczenia`, which is the form nothing governs",
     );
     assertStringIncludes(
-        composeUnplacedHealSuspicion(2, 5, ""),
+        formatUnplacedHealSuspicion(2, 5, ""),
         "2 z 5 uleczeń",
         "and past four the two forms agree, which is what hid this",
     );
     // A denominator of one wants the genitive singular, which this vocabulary does not carry —
     // and says nothing the count has not, so the sentence states the count alone.
     assertStringIncludes(
-        composeUnplacedHealSuspicion(1, 1, ""),
+        formatUnplacedHealSuspicion(1, 1, ""),
         "1 uleczenie bez podziału",
         "one out of one is one, said once",
     );
@@ -1015,15 +1061,15 @@ Deno.test("a count under a word governing the genitive takes the genitive", () =
 
 /**
  * A row's own sentence states its count bare, and that is not an oversight: what it would be
- * counted out of is the messages naming that person, which nothing counts. **ADR 0070.**
+ * counted out of is the messages naming that person, which nothing counts. `develop ADR 0070`.
  */
 Deno.test("a suspicion about one person states its count out of nothing", () => {
-    for (const said of [composeUnknownKeyRowSuspicion(2), composeNoParameterRowSuspicion(2)]) {
+    for (const said of [formatUnknownKeyRowSuspicion(2), formatNoParameterRowSuspicion(2)]) {
         assertStringIncludes(said, "2 wiadomości bez odczytu", "the count, and straight to what");
         assert(!said.includes(`z ${SAID_OUT_OF}`), "and never out of the fight's own total");
     }
     assertStringIncludes(
-        composeUnplacedHealRowSuspicion(2),
+        formatUnplacedHealRowSuspicion(2),
         "2 uleczenia bez podziału",
         "and the cast says the same, in its own noun",
     );
@@ -1035,34 +1081,51 @@ Deno.test("a suspicion about one person states its count out of nothing", () => 
  * would be a second ranking drawn in a paragraph.
  */
 Deno.test("a suspicion names whom it reaches while they are few, counting them past that", () => {
-    assertEquals(composeChargedRowsText([], 0), "", "a gap naming nobody names nobody");
+    assertEquals(formatChargedRows([], 0), "", "a gap naming nobody names nobody");
     assertEquals(
-        composeChargedRowsText(["Gracz 1", "Gracz 2"], 2),
+        formatChargedRows(["Gracz 1", "Gracz 2"], 2),
         " (Gracz 1, Gracz 2)",
         "two are read faster as names than as a number",
     );
     assertEquals(
-        composeChargedRowsText(["Gracz 1", "Gracz 2", "Gracz 3"], 3),
+        formatChargedRows(["Gracz 1", "Gracz 2", "Gracz 3"], 3),
         " (Gracz 1, Gracz 2, Gracz 3)",
         "and three is what still fits beside a count",
     );
     assertStringIncludes(
-        composeChargedRowsText(["Gracz 1", "Gracz 2", "Gracz 3"], 4),
+        formatChargedRows(["Gracz 1", "Gracz 2", "Gracz 3"], 4),
         "dotyczy 4 postaci",
         "the fourth turns the list into a count, and the names are dropped whole",
     );
     assertEquals(
-        composeChargedRowsText([], 7),
+        formatChargedRows([], 7),
         " (dotyczy 7 postaci)",
         "rows the roster could not name are counted, never guessed at",
     );
 });
 
+Deno.test("the reader knows a word the article prints from one it does not", () => {
+    // The sample that must flag, so the reader is known to be looking, and the one that must not,
+    // so it is known not to find too much. Both words are real: `blok` the frozen table counts,
+    // `wchłonięcie` the word this repository drew until develop ADR 0077 and the article carries
+    // not once.
+    assertEquals(
+        getWordsTheArticleDoesNotPrint(new Map([["blok", "blok"]])),
+        [],
+        "a word the frozen reading counted is one this reader passes",
+    );
+    assertEquals(
+        getWordsTheArticleDoesNotPrint(new Map([["absorb", "wchłonięcie"]])),
+        ['"wchłonięcie" was never asked about'],
+        "and a word nothing counted is one it flags",
+    );
+});
+
 /**
- * The two tables the published help words, re-earned against the frozen counts: the kinds of
- * damage (**ADR 0073**) and the defences (**ADR 0077**). The client has no case label for either
- * family's keys, so the article is the only source a name could come from and an invention is
- * indistinguishable from a reading.
+ * The two tables the published help words, re-earned against the frozen counts: the kinds of damage
+ * (`develop ADR 0073`) and the defences (`develop ADR 0077`). The client has no case label for
+ * either family's keys, so the article is the only source a name could come from and an invention
+ * is indistinguishable from a reading.
  *
  * ⚠️ **A count proves the article carries the word, not that it carries it as this thing's name.**
  * That half is a person's reading, the way **V1**'s citation rule is — `globalne` occurred once
@@ -1070,10 +1133,10 @@ Deno.test("a suspicion names whom it reaches while they are few, counting them p
  * blessed it. The register's own header draws the same line: the line states an occurrence, the
  * prose states what it means.
  */
-function getWordsTheArticleDoesNotPrint(worded: Record<string, string>): string[] {
+function getWordsTheArticleDoesNotPrint(worded: ReadonlyMap<string, string>): string[] {
     const counts: Record<string, number> = FROZEN_HELP_PHRASES.counts;
     const unprinted: string[] = [];
-    for (const word of Object.values(worded)) {
+    for (const word of worded.values()) {
         const carried = counts[word];
         if (carried === undefined) {
             unprinted.push(`"${word}" was never asked about`);
@@ -1085,24 +1148,8 @@ function getWordsTheArticleDoesNotPrint(worded: Record<string, string>): string[
     return unprinted;
 }
 
-Deno.test("the reader knows a word the article prints from one it does not", () => {
-    // The sample that must flag, so the reader is known to be looking, and the one that must not,
-    // so it is known not to find too much. Both words are real: `blok` the frozen table counts,
-    // `wchłonięcie` the word this repository drew until ADR 0077 and the article carries not once.
-    assertEquals(
-        getWordsTheArticleDoesNotPrint({ blok: "blok" }),
-        [],
-        "a word the frozen reading counted is one this reader passes",
-    );
-    assertEquals(
-        getWordsTheArticleDoesNotPrint({ absorb: "wchłonięcie" }),
-        ['"wchłonięcie" was never asked about'],
-        "and a word nothing counted is one it flags",
-    );
-});
-
 Deno.test("every word the element column draws is one the game prints", () => {
-    assert(Object.values(ELEMENT_WORD_BY_KEY).length > 0, "the column words something");
+    assert(ELEMENT_WORD_BY_KEY.size > 0, "the column words something");
     assertEquals(
         getWordsTheArticleDoesNotPrint(ELEMENT_WORD_BY_KEY),
         [],
@@ -1111,13 +1158,13 @@ Deno.test("every word the element column draws is one the game prints", () => {
 });
 
 /**
- * The same for the defences, and for the same reason: the card draws these under `Zatrzymane`
- * where a player is reading the game's own vocabulary everywhere around them. **ADR 0077**
- * extends **ADR 0073**'s decision to this table; `docs/protocol-keys.md` carries the measurement
- * key by key, and `blok` is both the client's token and a word the article prints.
+ * The same for the defences, and for the same reason: the card draws these under `Zatrzymane` where
+ * a player is reading the game's own vocabulary everywhere around them. `develop ADR 0077` extends
+ * `develop ADR 0073`'s decision to this table; `develop:docs/protocol-keys.md` carries the
+ * measurement key by key, and `blok` is both the client's token and a word the article prints.
  */
 Deno.test("every word a defence is drawn under is one the game prints", () => {
-    assert(Object.values(DEFENCE_WORD_BY_KEY).length > 0, "the card words something");
+    assert(DEFENCE_WORD_BY_KEY.size > 0, "the card words something");
     assertEquals(
         getWordsTheArticleDoesNotPrint(DEFENCE_WORD_BY_KEY),
         [],
@@ -1126,29 +1173,29 @@ Deno.test("every word a defence is drawn under is one the game prints", () => {
 });
 
 /**
- * ⚠️ **One pool, two tables, and they drifted for four releases.** `ADR 0077` moved the defence
- * line to the article's own `absorpcja` and `absorpcja magiczna`, and left `DESTROYED_WORD_BY_KEY`
- * saying `wchłanianie` — the same pool under two names in one panel, and nothing red. The article
- * check above cannot reach this table: the frozen reading was never asked about `pancerz` or
- * `odporność: ogień`, so a blanket count over it would flag the rows that are right. What is
- * mechanical is that the two tables agree about the pool they share (**N13**).
+ * ⚠️ **One pool, two tables, and they drifted for four releases.** `develop ADR 0077` moved the
+ * defence line to the article's own `absorpcja` and `absorpcja magiczna`, and left
+ * `DESTROYED_WORD_BY_KEY` saying `wchłanianie` — the same pool under two names in one panel, and
+ * nothing red. The article check above cannot reach this table: the frozen reading was never asked
+ * about `pancerz` or `odporność: ogień`, so a blanket count over it would flag the rows that are
+ * right. What is mechanical is that the two tables agree about the pool they share (**N13**).
  */
 Deno.test("what destroys absorption is named as the defence line names it", () => {
     assertStrictEquals(
-        DESTROYED_WORD_BY_KEY.abdest_per?.name,
-        DEFENCE_WORD_BY_KEY.absorb,
+        DESTROYED_WORD_BY_KEY.get("abdest_per")?.name,
+        DEFENCE_WORD_BY_KEY.get("absorb"),
         "the pool a blow empties wears the name the pool itself wears",
     );
     assertStrictEquals(
-        DESTROYED_WORD_BY_KEY.abmdest_per?.name,
-        DEFENCE_WORD_BY_KEY.absorbm,
+        DESTROYED_WORD_BY_KEY.get("abmdest_per")?.name,
+        DEFENCE_WORD_BY_KEY.get("absorbm"),
         "and the magical pool the same, so neither surface teaches a second word",
     );
 });
 
 Deno.test("a kind the help does not name is left out rather than invented", () => {
     assertEquals(
-        ELEMENT_WORD_BY_KEY.dmgg,
+        ELEMENT_WORD_BY_KEY.get("dmgg"),
         undefined,
         "the one kind no source names carries no word",
     );
@@ -1231,20 +1278,28 @@ Deno.test("the live row says when it is without a date", () => {
 
 /**
  * ⚠️ **The turns are the one row counted from the fight's own start**, so a panel that walked in
- * late has a figure short by an amount nothing states (`docs/turns-taken.md`). The panel says so
- * over its own figures; this block has no room for that sentence, so the row goes rather than
- * standing unqualified — a **Suspect** is marked beside the figure it concerns, or it is not a
+ * late has a figure short by an amount nothing states (`develop:docs/turns-taken.md`). The panel
+ * says so over its own figures; this block has no room for that sentence, so the row goes rather
+ * than standing unqualified — a **Suspect** is marked beside the figure it concerns, or it is not a
  * suspect but a wrong number (`CONTEXT.md`).
  */
 Deno.test("a fight the panel walked into says nothing about turns taken", () => {
-    const whole = composeTooltipRows({ ...NOTHING_CARRIED, turnsTaken: 14 }, null);
+    const whole = presentTooltipRows(
+        { ...NOTHING_CARRIED, turnsTaken: 14 },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertEquals(whole.length, 2, "seen whole, the count stands under the name");
     assertStringIncludes(whole[1] ?? "", "14", "and it is the count");
-    const late = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        turnsTaken: 14,
-        wasJoinedInProgress: true,
-    }, null);
+    const late = presentTooltipRows(
+        {
+            ...NOTHING_CARRIED,
+            turnsTaken: 14,
+            wasJoinedInProgress: true,
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertEquals(late, [], "walked into, there is nothing to say and no block at all");
 });
 
@@ -1254,40 +1309,28 @@ Deno.test("a fight the panel walked into says nothing about turns taken", () => 
  * for one who did not.
  */
 Deno.test("walking in late costs the turns and nothing else", () => {
-    const late = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        turnsTaken: 9,
-        wasJoinedInProgress: true,
-        statuses: [{ bit: 6, percent: 20 }],
-    }, null);
+    const late = presentTooltipRows(
+        {
+            ...NOTHING_CARRIED,
+            turnsTaken: 9,
+            wasJoinedInProgress: true,
+            statuses: [{ bit: 6, percent: 20 }],
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertEquals(late.length, 2, "the name and the status it still knows");
     assertStringIncludes(late[1] ?? "", "20%", "the figure stands, because now is now");
 });
 
-/** Everything one fighter can be at once, so a test about order has every row to order. */
-const CARRYING_EVERYTHING = {
-    turnsTaken: 14,
-    charge: { skillName: "Pożoga", turnsElapsed: 2, turnsStated: 4 },
-    provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
-    provokes: 10,
-    statuses: [
-        { bit: 3, percent: null },
-        { bit: 5, percent: 14 },
-        { bit: 6, percent: 20 },
-    ],
-    holytouchHealsGiven: 1,
-    hasSpentLastheal: true,
-    wasJoinedInProgress: false,
-};
-
 /**
- * ⚠️ **The order is fixed, whatever a fighter carries** (**ADR 0116**), so a row is found where it
- * was last time. Nothing else holds it: the rows are pushed by six calls in a row, and swapping two
- * of them reddens no other test. The statuses arrive in mask order, poison first, so the slow and
- * the haste standing above the poison is the order doing it and not the mask.
+ * ⚠️ **The order is fixed, whatever a fighter carries** (`develop ADR 0116`), so a row is found
+ * where it was last time. Nothing else holds it: the rows are pushed by six calls in a row, and
+ * swapping two of them reddens no other test. The statuses arrive in mask order, poison first, so
+ * the slow and the haste standing above the poison is the order doing it and not the mask.
  */
 Deno.test("the rows stand in the one order the maintainer set", () => {
-    assertEquals(composeTooltipRows(CARRYING_EVERYTHING, null), [
+    assertEquals(presentTooltipRows(CARRYING_EVERYTHING, null, FROZEN_BUFF_BITS.bits), [
         "MargoMeter",
         "Tury wykonane 14",
         "Cios specjalny · Pożoga · 2 z 4",
@@ -1310,15 +1353,118 @@ Deno.test("the rows stand in the one order the maintainer set", () => {
 Deno.test("a block past its stated maximum is cut to it, and one at it is drawn whole", () => {
     const many = (count: number) =>
         Array.from({ length: count }, (_, at) => ({ bit: at, percent: null }));
-    const atTheBound = composeTooltipRows({
-        ...CARRYING_EVERYTHING,
-        statuses: many(MAXIMUM_TOOLTIP_ROWS - 7),
-    }, null);
-    assertEquals(atTheBound.length, MAXIMUM_TOOLTIP_ROWS, "every row it was allowed stands");
-    const past = composeTooltipRows({
-        ...CARRYING_EVERYTHING,
-        statuses: many(MAXIMUM_TOOLTIP_ROWS),
-    }, null);
-    assertEquals(past.length, MAXIMUM_TOOLTIP_ROWS, "and one row more is cut to the same length");
+    const atTheBound = presentTooltipRows(
+        {
+            ...CARRYING_EVERYTHING,
+            statuses: many(TOOLTIP_ROWS_MAXIMUM - 7),
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
+    assertEquals(atTheBound.length, TOOLTIP_ROWS_MAXIMUM, "every row it was allowed stands");
+    const past = presentTooltipRows(
+        {
+            ...CARRYING_EVERYTHING,
+            statuses: many(TOOLTIP_ROWS_MAXIMUM),
+        },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
+    assertEquals(past.length, TOOLTIP_ROWS_MAXIMUM, "and one row more is cut to the same length");
     assertEquals(past[0], "MargoMeter", "the name is never what the cut takes");
 });
+
+/**
+ * The defect block's words, from `develop:tests/ui/panel-defect.test.ts`: the keeper that tallies
+ * them is not here, and what it draws for one kind is this.
+ */
+Deno.test("every defect kind says something of its own, as a sentence, tallied past one", () => {
+    const said = Object.values(PANEL_DEFECT_KIND).map((kind) => formatDefect(kind, null, 1));
+    assertStrictEquals(new Set(said).size, said.length, "no two kinds worded alike");
+    for (const one of said) {
+        assert(one.length > 1, "a defect that is drawn says something");
+        assert(one.endsWith("."), "and says it as a sentence");
+        assert(!one.includes("("), "and once is not a tally");
+    }
+    const region = formatDefect(PANEL_DEFECT_KIND.region, "list", 1);
+    assertStringIncludes(region, REGION_WORDS.list, "a region names the part that is missing");
+    const header = formatDefect(PANEL_DEFECT_KIND.region, "header", 1);
+    assert(header !== region, "and two regions are two sentences");
+    assertStringIncludes(formatDefect(PANEL_DEFECT_KIND.region, "list", 3), "3", "a tally counts");
+});
+
+/**
+ * A probe for **W4**: the closing row of a damage section owes the third caveat, and the cases
+ * above read the sentence without ever asking which noun owes it — so a table that owed it nowhere
+ * went green.
+ */
+Deno.test("the closing row of a damage section owes a caveat, and a healing one owes none", () => {
+    assertStrictEquals(
+        getCaveatForUnannounced(PANEL_NOUN.damage),
+        CAVEAT.unannounced,
+        "damage closes against the blows, and what no blow names is caveated",
+    );
+    assertStrictEquals(
+        getCaveatForUnannounced(PANEL_NOUN.healing),
+        null,
+        "healing closes against nothing at all",
+    );
+});
+
+/**
+ * A probe for **W4**: the bound above is derived from the two constants, so moving the rows beside
+ * the statuses moved the bound with it and nothing went red. What holds the constant is the block
+ * it bounds: a fighter carrying everything, under every status the client names, fits it exactly.
+ */
+Deno.test("a fighter carrying everything under every status fits the block exactly", () => {
+    const statuses = FROZEN_BUFF_BITS.bits.map((_, bit) => ({ bit, percent: null }));
+    const said = presentTooltipRows(
+        { ...CARRYING_EVERYTHING, statuses },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
+    assertStrictEquals(said.length, TOOLTIP_ROWS_MAXIMUM, "every row it has to say fits");
+    const unclamped = presentTooltipRows(
+        { ...CARRYING_EVERYTHING, statuses },
+        null,
+        [...FROZEN_BUFF_BITS.bits, "one_more"],
+    );
+    assertStrictEquals(unclamped.length, said.length, "and a wider bound finds no row it cut");
+});
+
+Deno.test("a whole number is written as it is, and anything else degrades, never throws", () => {
+    assertEquals(formatWhole(0), "0", "nothing is a figure");
+    assertEquals(formatWhole(1), "1", "and so is its neighbour");
+    assertEquals(formatWhole(-161518), "-161518", "and one below nothing");
+    assertEquals(formatWhole(1.5), "2", "a fraction rounds");
+    assertEquals(formatWhole(Number.NaN), PANEL_WORDS.unknown, "what is no number is unknown");
+    assertEquals(formatWhole(Number.POSITIVE_INFINITY), PANEL_WORDS.unknown, "and so is no end");
+    assertEquals(formatWhole(2 ** 60), PANEL_WORDS.unknown, "and a number past what is held");
+});
+
+Deno.test("a panel waiting for a game says what it cannot see", () => {
+    assertEquals(formatDefect(PANEL_DEFECT_KIND.engine, null, 1), "Nie widać walki w grze.");
+    assertEquals(formatDefect(PANEL_DEFECT_KIND.engine, null, 3), "Nie widać walki w grze (3×).");
+});
+
+Deno.test("a kept fight that will not read is placed by what the shelf knows of it", () => {
+    const at = { day: 13, month: 9, hour: 21, minute: 5 };
+    const time = getWordsForShelfTime(at, false);
+    assertEquals(formatKeptUnread(at, "Grota (34, 12)"), `${time} · Grota (34, 12)`, "both");
+    assertEquals(formatKeptUnread(at, null), time, "a place unstated is left out, not guessed");
+    assertEquals(formatKeptUnread(null, "Grota"), "Grota", "and so is a moment unread");
+    assertEquals(formatKeptUnread(null, null), "", "which leaves nothing to say at all");
+});
+
+function getUnmistakableKeys(): string[] {
+    const found = new Set<string>(HAND_KEPT_KEYS);
+    for (const stated of FROZEN_PROTOCOL_KEYS.keys) {
+        const key = stated.replace("+", "").replace("-", "");
+        if (key.length < 4) continue;
+        const isShaped = key.includes("_") || key !== key.toLowerCase() ||
+            [...key].some((one) => one >= "0" && one <= "9");
+        if (!isShaped) continue;
+        found.add(key.toLowerCase());
+    }
+    return [...found];
+}

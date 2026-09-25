@@ -4,8 +4,8 @@
 
 **A specification, not a description.** The tokens below are carried from the panel v1 shipped
 (`git show v0.10.1:src/ui/panel-look.ts`) and the rules from what that panel had to satisfy. Nothing
-here is evidence that anything is drawn yet — `ARCHITECTURE.md` carries what exists, and what of
-this document the tree does not yet meet.
+here is evidence that anything is drawn yet — `develop:ARCHITECTURE.md` carries what exists, and
+what of this document the tree does not yet meet.
 
 ## North star
 
@@ -141,7 +141,7 @@ scale.
 - **A row centres its ink, not its box.** Centring the line box leaves the ink high, because a
   face's ascent is taller than its descent, so a row carries the difference as padding above its
   contents. `text-box` would answer it too and is rejected: it clips the descenders off a Polish
-  nickname. **ADR 0015.**
+  nickname. **develop ADR 0015.**
 - **A count is spelled the way Polish spells it**, which is three ways, and that belongs to the
   words module rather than to a formatter.
 
@@ -172,7 +172,7 @@ the panel is the thing they came for, so it is put where they are already lookin
 corner they have to find. It is centred on `maxHeightShare` and not on the height it happens to
 have: a panel centred on its waiting bar walks down the screen as the rows arrive. Dragged once, it
 is wherever they left it, and that is what is kept. Where the page states no size there is nothing
-to centre against, and the sheet's own corner at `panelInset` stands instead. **ADR 0029.**
+to centre against, and the sheet's own corner at `panelInset` stands instead. **develop ADR 0029.**
 
 **The `66vh` cap is real and binds in play.** It is lifted only for a screenshot, and that is the
 whole of the licence — see _The Frame Is Not A Screen Rule_.
@@ -231,20 +231,20 @@ with in the quiet ink, and the cast's turns. The name is sized by its own text, 
 fold, and the **okrzyk** is what shrinks — down to a floor it never goes under, because a cut that
 leaves nothing says less than no okrzyk at all. The panel's ordinary rule gives the name whatever is
 left over instead, which on this row drew a nickname at three pixels. The measurements and the floor
-are `src/ui/panel-look.ts`'s, beside the rule they set. **ADR 0097.**
+are `src/ui/panel-look.ts`'s, beside the rule they set. **develop ADR 0097.**
 
 The rule is colour, so it carries a word: the card names the side in full — `Mag (120) · My` — which
 is what _Colour Never Alone_ asks and what the strip under the list already anchors the two inks to.
 The lightness of the name was measured and refused instead: a row's name sits over its own bar, and
 over the worst bar in the palette the plain ink clears the AA floor at 6.12 while the quiet ink
 reaches 2.84 against 4.5, with the last neutral grey that clears it indistinguishable from plain
-(measured over the whole palette, 2026-09-15). **ADR 0065.**
+(measured over the whole palette, 2026-09-15). **develop ADR 0065.**
 
 ⚠️ **The row says a profession in its hue and in nothing else, and that is a decision.** Six
 professions cannot be made mutually distinguishable by hue on this background, so the hue is a hint
 and the card a reader opens by pointing is the answer — it names the profession in words. A second
 channel in the row was tried and removed on 2026-08-29: a letter beside every name took width from
-the one cell that has to shorten, to say a thing the card already said. **ADR 0023.**
+the one cell that has to shorten, to say a thing the card already said. **develop ADR 0023.**
 
 ⚠️ **What that refusal measures is _every row_, and until 2026-09-15 nothing here measured it.** The
 three marks below stand on the exemption it grants, and each says it reaches some rows rather than
@@ -258,14 +258,14 @@ channel the paragraph above refuses, which would stand on every row to say a thi
 says. `▸` measures 9.53px in Chrome 152 on 2026-09-15, against 13.88 for the suspect mark the panel
 already carries — and it toggles against nothing, which is what ★/☆ failed at. A fight already over
 numbers nobody's turn and a fight read off the shelf is a moment that has passed, so both draw no
-mark at all. **ADR 0066.**
+mark at all. **develop ADR 0066.**
 
 **A row whose figure means less than its label wears the caveat mark**, in the same place and on the
 same argument, and the two stand together where a row earns both. It costs a row 14px in Chrome 152
 on 2026-09-15 — a 10px ring and the air after it — against 13.88 for the suspect mark and 9.53 for
 the turn mark, and it is the one mark whose cost is held rather than reasoned about: what every row
 wearing it takes off a level's longest skill name is `tests/e2e/panel-marks.spec.ts`'s to say.
-**ADR 0089.**
+**develop ADR 0089.**
 
 **And it is the one mark this panel draws rather than spells.** `ⓘ` was a codepoint until
 2026-09-15, when it was measured at 5.5px of ink against 8.67 for `O` at the panel's own 11px — and
@@ -274,7 +274,7 @@ Segoe UI, Cantarell and Ubuntu alike, none of them carrying U+24D8 and every one
 single condensed face. What a reader met beside a figure was a vertical sliver. A ring with a border
 is a circle wherever the panel is opened, which a codepoint is not — and the figure this page had
 been quoting all along was the **cell**, which kept its width whatever shape stood inside it.
-**ADR 0092.**
+**develop ADR 0092.**
 
 **A row whose own figure is short wears the suspect mark**, before the name and drawn only there. It
 is not the second channel the paragraph above refuses: that one would stand on every row to say a
@@ -292,7 +292,7 @@ one of them and not the only one: rows stand _inside_ the list with a number cel
 blank cell is not an accent — it is read as the next place in the order. So the hatch follows the
 claim rather than the region: `person`, `skill`, `source`, `kind` and `closing` rows take a place
 and keep a solid bar; `half-named`, `no kind` and `neither end` take none and are hatched, as is the
-row summing what a bound left out. `docs/drill-levels.md` owns which kinds those are.
+row summing what a bound left out. `develop:docs/drill-levels.md` owns which kinds those are.
 
 **A row takes a place when it names something the game named.** That is the whole of the test, and
 it is why `closing` changed sides on 2026-09-12: the row holds the blows the game numbered a turn
@@ -300,12 +300,12 @@ for and named no skill to, which is the default action its own help describes �
 could not place. What earns the hatch is a claim about **absence** (`half-named`, `neither end`), a
 remainder its own cut does not explain (`no kind`), or a **sum of several** rows a bound would not
 draw, whose figure grows with how many we could not fit rather than with what any one of them did.
-**ADR 0079**, and what it costs is there: over `captures/` on 2026-09-12 the closing row stands
-first in **145 of the 289** sections that draw one.
+**develop ADR 0079**, and what it costs is there: over `captures/` on 2026-09-12 the closing row
+stands first in **145 of the 289** sections that draw one.
 
 It spends nothing to say it — no height, no width, no hue, and no second glyph the row would have to
-shorten a name for (**ADR 0023**). It is a shape, so _Colour Never Alone_ is satisfied twice over:
-every one of these rows is already labelled in words.
+shorten a name for (**develop ADR 0023**). It is a shape, so _Colour Never Alone_ is satisfied twice
+over: every one of these rows is already labelled in words.
 
 **Outside the ranking.** A section under the pinned rows, over the summary bar, standing under the
 same dashed rule they do — because it says the same thing about itself: what is below the rule is
@@ -330,7 +330,7 @@ in two digits, so the cell is one width whichever day it falls on. A shelf holds
 pinned one outlives the rotation, so a column of bare times is several days reading as one evening.
 The place is what pays for the width, on every row and not only on the rows that span days, and it
 pays enough that **on a dated row the place is a hint and the tip is the answer** — the name the
-cell had to cut is drawn whole there. **ADR 0084** carries the measurement.
+cell had to cut is drawn whole there. **develop ADR 0084** carries the measurement.
 
 **The pin is inside the row and is not part of it.** It is the one control that outranks the row it
 sits in, and it does so structurally: a press lands on the innermost element, and the pin is left
@@ -355,9 +355,9 @@ deep. Nothing on the third opens: the protocol states no further cut of it.
 **A pinned row opens too, onto its own second level.** It stands under the ranking rather than on
 it, so what it opens is a branch beside the one a person's row opens: two sections, and nothing
 under either. The first is the end the game **did** name, person by person, headed by the row and
-not by the screen — so `Otrzymane` heads its two pinned rows differently (**ADR 0038**). The second
-is what the figure was dealt with, headed like any kind cut, and it is the section a reader came
-for: the row names nobody, and this is the question it can still answer (**ADR 0039**).
+not by the screen — so `Otrzymane` heads its two pinned rows differently (**develop ADR 0038**). The
+second is what the figure was dealt with, headed like any kind cut, and it is the section a reader
+came for: the row names nobody, and this is the question it can still answer (**develop ADR 0039**).
 
 **Both of its sections open, and onto each other.** A person there opens onto the keys their own
 share moved under, a key onto the people carrying it — one fold read both ways round, so neither is
@@ -368,8 +368,8 @@ branch's it opens no further.
 not a repetition to be spared: it states what the figure over it was made of, which the heading
 never does. What decides the answer is whether the statistics keep a second cut of that row — and
 where they do not, the row wears the leaf's cursor and its card promises nothing. Which kind of row
-that comes to on each screen is `docs/drill-levels.md`'s to say, and it is measured rather than
-claimed. **ADR 0034.**
+that comes to on each screen is `develop:docs/drill-levels.md`'s to say, and it is measured rather
+than claimed. **develop ADR 0034.**
 
 **A row that opens says so, and a row that does not stays silent about it.** Half the rows of one
 section leading somewhere and none of them saying which is a panel that teaches a reader to stop
@@ -383,17 +383,17 @@ on the crumb or by a press of the other button anywhere on the panel, and the se
 of the two because it needs no aiming. The crumb is drawn only where a level is open, so a card
 standing on it is read at a moment when both do something — which is the condition above, met where
 a row on the ranking cannot meet it. That is why the right press is named there and on no row's
-card. **ADR 0086.**
+card. **develop ADR 0086.**
 
 **Every column of shares comes to a hundred.** A section that is drawn accounts for the whole of the
 figure over it, and a reader who adds a column and gets ninety-four cannot tell a missing figure
 from a figure that was never there — telling those two apart is what this panel is for. What the
 named rows do not hold is accounted for in one of two ways, and which one turns on whether the game
-said anything about it, and **both ways are on every screen** since **ADR 0080**. Health that moved
-outside an announcement moved under a key the game named, so the section lists those keys by name;
-what is left over is blows the game granted no skill to, which is all the game says about them, and
-on the damage screens that closes into `Zwykły cios`. A row saying the game had not told us, where
-the game had, is a claim.
+said anything about it, and **both ways are on every screen** since **develop ADR 0080**. Health
+that moved outside an announcement moved under a key the game named, so the section lists those keys
+by name; what is left over is blows the game granted no skill to, which is all the game says about
+them, and on the damage screens that closes into `Zwykły cios`. A row saying the game had not told
+us, where the game had, is a claim.
 
 ⚠️ **A key stands in two sections of one screen, and that is the price.** It is named here, among
 what a figure was dealt **with**, and again a section lower among what it was **made of** — the same
@@ -412,7 +412,7 @@ seat and rung.
 figure over it a second time and states what that figure was made of: `Zwykły cios` says how many
 blows where the heading says none, a lone announcement says which skill it was, and a lone key says
 the game's own word for what moved the health. The heading carries a figure and never a name, so the
-one row under it is the answer and not an echo. **ADR 0034.**
+one row under it is the answer and not an echo. **develop ADR 0034.**
 
 **Section heading.** Over each cut of an opened figure, carrying the figure it stands over, and
 stuck to the top of the list while its own section scrolls: a figure read under the wrong heading is
@@ -455,7 +455,7 @@ drawing a scrollbar, so it gives up no width to one, and neither does either reg
 outside it: a row is inset equally on both sides and a bar means the same length in all three. **ADR
 0031.** And it keeps the place a reader scrolled to: a payload arriving, a fold, or a level opened
 and left behind all give the list back where they found it, and a level opened for the first time
-starts at its top. **ADR 0050.**
+starts at its top. **develop ADR 0050.**
 
 **Tooltip.** `surfaceRaised`, **as wide as what it says up to a stated bound**, opens on hover and
 follows the cursor's vertical position. It states its own type and its own ink, because
@@ -467,9 +467,9 @@ is not. **The side is decided by the bound and never by this card's own width**,
 words would find room where the card before it found none and a reader crossing two rows would watch
 it jump the window. What is pinned is the edge **facing** that window, so a card stands the same gap
 from the rows it explains at whatever width it draws. Neither window reads where the other is
-standing. **ADR 0090**, **ADR 0091.** Its vertical position is clamped between the inset and the
-viewport's foot, and where the two cross the top edge wins: a window hanging off the bottom beats
-one whose first line is off the top.
+standing. **develop ADR 0090**, **develop ADR 0091.** Its vertical position is clamped between the
+inset and the viewport's foot, and where the two cross the top edge wins: a window hanging off the
+bottom beats one whose first line is off the top.
 
 **Nothing here is measured off the document.** The page states its own size, the pointer states
 where it is, and the height is arithmetic — the lines the draw counted times what a line costs, plus
@@ -481,14 +481,14 @@ higher up the screen, which is the direction that keeps it on one.
 content's own width under the bound, so what decides it is the browser's own type metrics — which
 differ by the machine the reader is on, and which no arithmetic in this tree could stand in for. The
 height arithmetic survives it: a card is narrower than the bound only where every line on it already
-fits one, so the floor above is never counting a wrap the card no longer has. **ADR 0091.**
+fits one, so the floor above is never counting a wrap the card no longer has. **develop ADR 0091.**
 
 **A card taller than the window gives up a run rather than being cut around.** The block of the
 fight's own figures stands whatever the window, and so do the notes — a suspicion is a claim about a
 figure above it — so what goes is the counters and the runs between them, the last one first, at a
 run's own edge and never inside one. A card that gave anything up says so, in one sentence. Nothing
-scrolls: the card takes no pointer, because a press on it belongs to the row underneath.
-**ADR 0054.**
+scrolls: the card takes no pointer, because a press on it belongs to the row underneath. **develop
+ADR 0054.**
 
 **Wherever a person's row stands in the panel, the tooltip is a card.** The name in full, then what
 they are and how far along on one line under it — which is where the hue on the bar is finally said
@@ -497,8 +497,8 @@ scope — every one they have rather than the one the screen is showing, with th
 the screen's own standing even at nought while the others do not: a screen showing somebody at
 nothing has to say nothing, and the rest at nought answer nobody. Under each, the part of it the
 protocol named only that row's end of; then how they fought at each end, and last what qualifies
-every figure above — **the gaps naming this person, and no others** (**ADR 0069**): one naming
-nobody is said under the ranking, once.
+every figure above — **the gaps naming this person, and no others** (**develop ADR 0069**): one
+naming nobody is said under the ranking, once.
 
 **Every block is cut by what its figures are a sum over, and its heading names that.** A figure
 stated before reduction stands in the run of the end it belongs to and never under a figure of the
@@ -508,38 +508,41 @@ It is worded as what the protocol **stated** rather than as a scope, because a s
 claim about coverage the protocol does not keep. The sentence it still carries names no pair of
 figures — it states what the game does not report and leaves every subtraction a reader might try
 void at once, because one named pair licenses the rest by omission. A count sharing a block with a
-figure of damage wears the sign that marks it a count. **ADR 0087.** **A card whose row states a
-narrower figure says so**, in one sentence under the suspicions and over the instruction: the card
-is about the person and its figures are the fight's, while the row it stands over is one cut of
-them. Nowhere else is it a card, because nowhere else is there a fight's worth of figures to compose
-one from: a skill, a kind, a fight on the shelf and every person standing in the window beside the
-panel each get the name their own cell had to cut, whole and over as many lines as it takes.
+figure of damage wears the sign that marks it a count. **develop ADR 0087.** **A card whose row
+states a narrower figure says so**, in one sentence under the suspicions and over the instruction:
+the card is about the person and its figures are the fight's, while the row it stands over is one
+cut of them. Nowhere else is it a card, because nowhere else is there a fight's worth of figures to
+compose one from: a skill, a kind, a fight on the shelf and every person standing in the window
+beside the panel each get the name their own cell had to cut, whole and over as many lines as it
+takes.
 
 **A row in the window beside the panel is answered by what it cut, and not by a card.** That
 window's reading carries no figure of the fight, so there is no card to compose there — what stands
 instead is the name whole, the okrzyk or the skill the row is about under it, and the turns the row
 states. It reaches **every row that window draws** and not its person rows alone: a rule about the
 kind of thing a row names is held by whoever remembers it, while a rule about its rows is held by a
-walk over them. **ADR 0098**, widened by **ADR 0100**.
+walk over them. **develop ADR 0098**, widened by **develop ADR 0100**.
 
 **A blow being made ready is a row like any other, so it answers the same way.** Its name folds
 whole, and under it stands whoever is making it ready — which is the one place that person is named
 in words, the row having only their hue — with what became of the blow beside them at either end.
 Then the turns the client's own envelope states, under the word a cast's card uses. The band's
-heading says what became of the first charge; each card says what became of its own. **ADR 0100.**
+heading says what became of the first charge; each card says what became of its own. **develop
+ADR 0100.**
 
 **A row the protocol left an end of says which end, and where its figure stands.** It is not a card
 and names nobody — that is what the row is — but the two lines every leaf gets are not an answer to
 what a reader is looking at. Under the ranking it says three things: what the game did not state,
 whether the figure is already counted in the list above it, and — only where a side is showing —
 what the shown team is to it. Inside an opened figure and under an opened part it says the first
-alone: the other two are about a ranking and a side, and neither level has one. **ADR 0038.**
+alone: the other two are about a ranking and a side, and neither level has one. **develop
+ADR 0038.**
 
 **And under the ranking it also states what that figure was dealt with**, in a run of its own
 between the figure and the sentences: the same rows the level under the row draws, ranked the same
 way and worded by the same table, so the card is that level seen early rather than a second reading
 of it. What will not fit on the card is summed into one line rather than dropped, because a run
-short of the figure over it is a run that misstates it. **ADR 0041.**
+short of the figure over it is a run that misstates it. **develop ADR 0041.**
 
 **Both runs stand, on every screen, each under the heading naming its end.** The run about striking
 states what the protocol stated before reduction, the criticals as a share of the blows struck, what
@@ -548,16 +551,16 @@ points of armour and percentage points of resistance are two quantities and neve
 about being struck states the same figure before reduction, what a defence stopped with the defences
 it is made of under it, and what fired on that combatant's side of somebody else's blow. **Neither
 run states a hardest figure**: the one the aggregate holds is not scoped to blows, and a heading
-naming blows over it was a claim the figure does not keep (**ADR 0088**). Which end a key belongs to
-is read per key and never off its sign, so the heading is what says whose each line is. A run that
-came to nothing is not drawn, and neither is its heading. **ADR 0032.**
+naming blows over it was a claim the figure does not keep (**develop ADR 0088**). Which end a key
+belongs to is read per key and never off its sign, so the heading is what says whose each line is. A
+run that came to nothing is not drawn, and neither is its heading. **develop ADR 0032.**
 
 **A count a second key narrows is one row, with the narrower count under it.** The row states what
 the mechanic came to and the line below it says how much of that was the narrower thing — the
 criticals with the ones off the auxiliary weapon under them, the deep wounds with the weakened ones.
 Two rows in place of that made a reader add them to answer the question the mechanic's own name
 asks, and on a combatant whose every wound was weakened the row answering it was not drawn at all.
-**ADR 0095.**
+**develop ADR 0095.**
 
 **A figure's line never folds, and the words a card opens with always do.** The height is
 arithmetic, and what decides which way a line goes is whether the arithmetic counts it: a stat line
@@ -566,7 +569,7 @@ than wrapped, and `MAXIMUM_LABEL_CHARACTERS` is where that bound sits. The name,
 and the sentences at the foot are counted at the lines they fold to, so they fold — the name on a
 **lower** floor than the rest, because it alone is drawn bold and bold is wider. A line that folds
 uncounted is what stands a card lower on the screen than it is tall, which is the one direction that
-takes it off the bottom. **ADR 0096.**
+takes it off the bottom. **develop ADR 0096.**
 
 **The panel is moved by its bar.** The grip says so before anybody tries it, and the whole bar is
 the handle — except its controls, where a press is that control's. A title bar's worth of the panel
@@ -584,15 +587,15 @@ goes on the line a figure states and never on a sub-line under it, which is read
 above it. Its sentence stands at the foot of the card, **once however many figures there wear that
 mark**, and the sentences are composed from the marks rather than worked out a second time — so a
 glyph pointing at nothing, or a sentence nothing points at, is not something this panel can draw.
-**ADR 0088**, and its ink is **ADR 0089**'s.
+**develop ADR 0088**, and its ink is **develop ADR 0089**'s.
 
 **It rides a row of the list too**, where that row's own figure is the narrower one — the row
 closing a damage section, and nothing else today. It is the same glyph, the same ink and the same
 sentence, read off one field, so a row cannot wear a mark its card does not explain. What earns it
-the exemption **ADR 0023** grants is measured rather than argued: over `captures/` on 2026-09-15 it
-reaches **274 of the 7,903 rows** the panel draws over 1,312 levels, which is 3.5% of them, and the
-label it stands before is eleven characters the game never lengthens. A mark on every row was
-measured too, and refused — `tests/e2e/panel-marks.spec.ts` holds the cost that decided it.
+the exemption **develop ADR 0023** grants is measured rather than argued: over `captures/` on
+2026-09-15 it reaches **274 of the 7,903 rows** the panel draws over 1,312 levels, which is 3.5% of
+them, and the label it stands before is eleven characters the game never lengthens. A mark on every
+row was measured too, and refused — `tests/e2e/panel-marks.spec.ts` holds the cost that decided it.
 
 **Undrawn marker.** Replaces one section in place, at that section's size, in `textQuiet`. It is the
 least interesting thing on screen on purpose.

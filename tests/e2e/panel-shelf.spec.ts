@@ -3,9 +3,9 @@
  * and the three places a reader can ask for it to be kept.
  */
 
-import { expect, type PanelHandle, test } from "@/tests/e2e/panel-fixture.ts";
+import { expect, type PanelHandle, test } from "./panel-fixture.ts";
 
-/** The keys the shelf and the choice are written under, as `src/userscript-entry.ts` names them. */
+/** The keys the shelf and the choice are written under, as `STORE_KEY` in `src/game/browser-store.ts` names them. */
 const SHELF_KEY = "MargoMeter-fights";
 const STORAGE_KEY = "MargoMeter-storage";
 /** What the row of the fight going on right now states, rather than a time it opened at. */
@@ -18,16 +18,6 @@ const LIVE = "live";
 const ENDING = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";
 
 test.use({ recording: ENDING });
-
-/**
- * Two fights on one shelf. A recording holds one fight, so the second is the same page opened
- * again: the fight that ended is in the browser's store, and the reload starts a new live one.
- */
-async function setSecondFightKept(panel: PanelHandle): Promise<void> {
-    expect(await panel.stored(SHELF_KEY), "the first fight reached its end").not.toBeNull();
-    await panel.page.reload();
-    await expect(panel.host, "and the page came back up on a fight of its own").toHaveCount(1);
-}
 
 test("the shelf carries the fight being read, and the one that ended", async ({ panel }) => {
     await panel.at("[data-shelf]").click();
@@ -44,6 +34,16 @@ test("the shelf carries the fight being read, and the one that ended", async ({ 
         .toHaveCount(2);
     await panel.expectHonest("a shelf carrying two");
 });
+
+/**
+ * Two fights on one shelf. A recording holds one fight, so the second is the same page opened
+ * again: the fight that ended is in the browser's store, and the reload starts a new live one.
+ */
+async function setSecondFightKept(panel: PanelHandle): Promise<void> {
+    expect(await panel.stored(SHELF_KEY), "the first fight reached its end").not.toBeNull();
+    await panel.page.reload();
+    await expect(panel.host, "and the page came back up on a fight of its own").toHaveCount(1);
+}
 
 test("pressing a row reads that fight, and pressing the live one comes back", async ({ panel }) => {
     await setSecondFightKept(panel);
@@ -76,8 +76,11 @@ test("a pin marks a fight, and the fights travel to wherever they are kept", asy
 
     await pin.click();
 
-    const after = await panel.at(".row-pin[data-pin]").first().innerText();
-    expect(after, "and pressing it changes what the star says").not.toBe(before);
+    await expect(
+        panel.at(".row-pin[data-pin]").first(),
+        "and pressing it changes what the star says",
+    )
+        .not.toHaveText(before);
     await expect(panel.at(".list .row[data-fight]"), "the shelf is no shorter for it")
         .not.toHaveCount(0);
 

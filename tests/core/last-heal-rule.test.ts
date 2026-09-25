@@ -3,53 +3,23 @@
  *
  * The health witness cannot see this key: the recording that carried it first arrives as one
  * engine call with no snapshot before its messages, so the replay produces no comparison. The
- * arithmetic is held here instead (`docs/protocol-keys.md`).
+ * arithmetic is held here instead (`develop:docs/protocol-keys.md`).
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import {
-    getRecordedCombatants,
-    getRecordedMessages,
-    readRecordingPaths,
-} from "@/tests/recorded-fight.ts";
+import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
+import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
-const HEAL_KEY = "legbon_lastheal";
-const NAMED_DAMAGE_KEY = "+oth_dmg";
-/** A share stated about a whole side, which moves health nothing else in the protocol states. */
-const UNSIZED_SHARE_KEY = "healall_per";
-/** The share of the pool the help documents the bonus firing under. */
-const THRESHOLD = 0.18;
-/** Two places of a percentage over the largest pool here, which is what the client rounds to. */
-const TOLERANCE = 0.01;
-/** Where a percentage stated to two places can differ and still be the same percentage. */
-const SAME_PERCENT = 0.005;
-
-/**
- * ⚠️ The member layout is restated here rather than read off the decoder: a test that asks the
- * decoder how it splits a value holds it to itself (`tests/AGENTS.md`). The healing states
- * `amount,name(percent%)` and the named damage `amount,element,name(percent%)`, so the name and
- * the percentage are the last member in both and the element is what differs.
- */
-function readNamed(value: string): { amount: number; name: string; percent: number } {
-    const members = value.split(",");
-    const last = members[members.length - 1];
-    assertExists(last, "a value that split has a last member");
-    const open = last.lastIndexOf("(");
-    const close = last.lastIndexOf("%)");
-    assert(open > 0, "the name is followed by the percentage it was left on");
-    assert(close > open, "and that percentage is closed");
-    return {
-        amount: Number(members[0]),
-        name: last.slice(0, open),
-        percent: Number(last.slice(open + 1, close)),
-    };
+interface NamedFigure {
+    amount: number;
+    name: string;
+    percent: number;
 }
 
 interface Occurrence {
     path: string;
-    heal: { amount: number; name: string; percent: number };
+    heal: NamedFigure;
     healthMaximum: number;
     /** Segments naming the healed combatant at the bonus's own percentage. */
     paired: number[];
@@ -64,70 +34,28 @@ interface Occurrence {
     isChainBroken: boolean;
 }
 
-function getOccurrences(): Occurrence[] {
-    const found: Occurrence[] = [];
-    for (const path of readRecordingPaths()) {
-        const roster = composeCombatantRoster(getRecordedCombatants(path));
-        // The running statement, because the blow that fired the bonus is not always a segment of
-        // the bonus's own message: where it is not, the percentage before it is the last one the
-        // protocol stated about that combatant at all.
-        const percentByName = new Map<string, number>();
-        const sinceUnsized = new Set<string>();
-        for (const message of getRecordedMessages(path)) {
-            const parsed = parseProtocolMessage(message);
-            const stated = new Map(percentByName);
-            const broken = new Set(sinceUnsized);
-            for (const side of [parsed.actor, parsed.target]) {
-                if (side === null) continue;
-                if (side.healthPercent === null) continue;
-                const named = roster.byId.get(side.combatantId)?.name;
-                if (named === undefined) continue;
-                percentByName.set(named, side.healthPercent);
-                sinceUnsized.delete(named);
-            }
-            for (const other of parsed.parameters) {
-                if (other.key !== NAMED_DAMAGE_KEY) continue;
-                const hit = readNamed(String(other.value));
-                percentByName.set(hit.name, hit.percent);
-                sinceUnsized.delete(hit.name);
-            }
-            for (const [at, one] of parsed.parameters.entries()) {
-                if (one.key !== HEAL_KEY) continue;
-                assertExists(one.value, `${path}: a bonus stating nothing`);
-                const heal = readNamed(one.value);
-                const id = roster.idByName.get(heal.name) ?? null;
-                assertExists(id, `${path}: the bonus names somebody in the fight`);
-                const healthMaximum = roster.byId.get(id)?.healthMaximum ?? null;
-                assertExists(healthMaximum, `${path}: and the snapshot states their pool`);
-                const named = (from: number, to: number) =>
-                    parsed.parameters.slice(from, to)
-                        .filter((other) => other.key === NAMED_DAMAGE_KEY)
-                        .map((other) => readNamed(String(other.value)))
-                        .filter((other) => other.name === heal.name);
-                const here = named(0, parsed.parameters.length);
-                const isSame = (percent: number) => Math.abs(percent - heal.percent) < SAME_PERCENT;
-                const before = named(0, at).filter((other) => !isSame(other.percent));
-                found.push({
-                    path,
-                    heal,
-                    healthMaximum,
-                    paired: here.filter((other) => isSame(other.percent)).map((o) => o.amount),
-                    past: here.filter((other) => !isSame(other.percent)).map((o) => o.amount),
-                    percentBefore: before[before.length - 1]?.percent ??
-                        stated.get(heal.name) ?? null,
-                    // A segment of this message is stated after any earlier share, so only a
-                    // percentage taken from the running statement can be older than one.
-                    isChainBroken: before.length === 0 && broken.has(heal.name),
-                });
-                percentByName.set(heal.name, heal.percent);
-                sinceUnsized.delete(heal.name);
-            }
-            if (!parsed.parameters.some((one) => one.key === UNSIZED_SHARE_KEY)) continue;
-            for (const one of roster.byId.values()) sinceUnsized.add(one.name);
-        }
-    }
-    return found;
+/**
+ * The running statement, because the blow that fired the bonus is not always a segment of the
+ * bonus's own message: where it is not, the percentage before it is the last one the protocol
+ * stated about that combatant at all.
+ */
+interface RunningStatement {
+    path: string;
+    roster: CombatantRoster;
+    percentByName: Map<string, number>;
+    sinceUnsized: Set<string>;
 }
+
+const HEAL_KEY = "legbon_lastheal";
+const NAMED_DAMAGE_KEY = "+oth_dmg";
+/** A share stated about a whole side, which moves health nothing else in the protocol states. */
+const UNSIZED_SHARE_KEY = "healall_per";
+/** The share of the pool the help documents the bonus firing under. */
+const THRESHOLD = 0.18;
+/** Two places of a percentage over the largest pool here, which is what the client rounds to. */
+const TOLERANCE = 0.01;
+/** Where a percentage stated to two places can differ and still be the same percentage. */
+const SAME_PERCENT = 0.005;
 
 Deno.test("the bonus fires under the share of the pool the help documents", () => {
     const occurrences = getOccurrences();
@@ -144,6 +72,111 @@ Deno.test("the bonus fires under the share of the pool the help documents", () =
     // A bound nothing approaches is a bound this material cannot see. Two sit just under it.
     assert(closest > 0.16, "the material reaches the threshold rather than staying clear of it");
 });
+
+function getOccurrences(): Occurrence[] {
+    const found: Occurrence[] = [];
+    for (const fight of readRecordedFights()) {
+        const running: RunningStatement = {
+            path: fight.path,
+            roster: indexCombatantRoster(fight.combatants),
+            percentByName: new Map(),
+            sinceUnsized: new Set(),
+        };
+        for (const message of fight.messages) {
+            const parsed = parseProtocolMessage(message);
+            assert(parsed.ok, `${fight.path}: a recorded message parses`);
+            found.push(...getOccurrencesOfMessage(running, parsed.value));
+        }
+    }
+    return found;
+}
+
+function getOccurrencesOfMessage(running: RunningStatement, parsed: ProtocolMessage): Occurrence[] {
+    const stated = new Map(running.percentByName);
+    const broken = new Set(running.sinceUnsized);
+    for (const side of [parsed.actor, parsed.target]) {
+        if (side === null) continue;
+        if (side.healthPercent === null) continue;
+        const named = running.roster.byId.get(side.combatantId)?.name;
+        if (named === undefined) continue;
+        running.percentByName.set(named, side.healthPercent);
+        running.sinceUnsized.delete(named);
+    }
+    for (const other of parsed.parameters) {
+        if (other.key !== NAMED_DAMAGE_KEY) continue;
+        const hit = readNamed(String(other.value));
+        running.percentByName.set(hit.name, hit.percent);
+        running.sinceUnsized.delete(hit.name);
+    }
+    const found: Occurrence[] = [];
+    for (const [at, one] of parsed.parameters.entries()) {
+        if (one.key !== HEAL_KEY) continue;
+        assertExists(one.value, `${running.path}: a bonus stating nothing`);
+        const heal = readNamed(one.value);
+        found.push(getOccurrence(running, parsed, at, heal, stated, broken));
+        running.percentByName.set(heal.name, heal.percent);
+        running.sinceUnsized.delete(heal.name);
+    }
+    if (parsed.parameters.some((one) => one.key === UNSIZED_SHARE_KEY)) {
+        for (const one of running.roster.byId.values()) running.sinceUnsized.add(one.name);
+    }
+    return found;
+}
+
+/**
+ * ⚠️ The member layout is restated here rather than read off the decoder: a test that asks the
+ * decoder how it splits a value holds it to itself (`develop:tests/AGENTS.md`). The healing
+ * states `amount,name(percent%)` and the named damage `amount,element,name(percent%)`, so the
+ * name and the percentage are the last member in both and the element is what differs.
+ */
+function readNamed(value: string): NamedFigure {
+    const members = value.split(",");
+    const last = members[members.length - 1];
+    assertExists(last, "a value that split has a last member");
+    const open = last.lastIndexOf("(");
+    const close = last.lastIndexOf("%)");
+    assert(open > 0, "the name is followed by the percentage it was left on");
+    assert(close > open, "and that percentage is closed");
+    return {
+        amount: Number(members[0]),
+        name: last.slice(0, open),
+        percent: Number(last.slice(open + 1, close)),
+    };
+}
+
+function getOccurrence(
+    running: RunningStatement,
+    parsed: ProtocolMessage,
+    at: number,
+    heal: NamedFigure,
+    stated: ReadonlyMap<string, number>,
+    broken: ReadonlySet<string>,
+): Occurrence {
+    const path = running.path;
+    const id = running.roster.idByName.get(heal.name) ?? null;
+    assertExists(id, `${path}: the bonus names somebody in the fight`);
+    const healthMaximum = running.roster.byId.get(id)?.healthMaximum ?? null;
+    assertExists(healthMaximum, `${path}: and the snapshot states their pool`);
+    const named = (from: number, to: number) =>
+        parsed.parameters.slice(from, to)
+            .filter((other) => other.key === NAMED_DAMAGE_KEY)
+            .map((other) => readNamed(String(other.value)))
+            .filter((other) => other.name === heal.name);
+    const here = named(0, parsed.parameters.length);
+    const isSame = (percent: number) => Math.abs(percent - heal.percent) < SAME_PERCENT;
+    const before = named(0, at).filter((other) => !isSame(other.percent));
+    return {
+        path,
+        heal,
+        healthMaximum,
+        paired: here.filter((other) => isSame(other.percent)).map((o) => o.amount),
+        past: here.filter((other) => !isSame(other.percent)).map((o) => o.amount),
+        percentBefore: before[before.length - 1]?.percent ?? stated.get(heal.name) ?? null,
+        // A segment of this message is stated after any earlier share, so only a percentage
+        // taken from the running statement can be older than one.
+        isChainBroken: before.length === 0 ? broken.has(heal.name) : false,
+    };
+}
 
 Deno.test("the damage that pairs with the bonus is the segments stating its own percentage", () => {
     let closed = 0;
@@ -172,9 +205,7 @@ Deno.test("the damage that pairs with the bonus is the segments stating its own 
  * Charging that later hit to the bonus's own gap is what this refuses.
  */
 Deno.test("a segment past the bonus's percentage is another blow, and breaks the chain", () => {
-    const struckAgain = getOccurrences().filter((one) =>
-        one.past.length > 0 && one.paired.length > 0 && one.percentBefore !== null
-    );
+    const struckAgain = getOccurrences().filter(isStruckAgain);
     assert(struckAgain.length > 0, "the material carries one, or this rule is about nothing");
     for (const one of struckAgain) {
         const left = (one.heal.percent * one.healthMaximum) / 100 - one.heal.amount;
@@ -185,3 +216,9 @@ Deno.test("a segment past the bonus's percentage is another blow, and breaks the
         assert(wrong > TOLERANCE, `${one.path}: taking every segment closed anyway`);
     }
 });
+
+function isStruckAgain(one: Occurrence): boolean {
+    if (one.past.length === 0) return false;
+    if (one.paired.length === 0) return false;
+    return one.percentBefore !== null;
+}

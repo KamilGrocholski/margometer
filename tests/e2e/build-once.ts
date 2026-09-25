@@ -1,7 +1,7 @@
 /**
  * The file a reader installs, built once for the whole run. Every other suite here imports
  * TypeScript modules; this one drives what `deno task build` writes, so a bundler that emitted
- * something a browser refuses has somewhere to fail. **ADR 0047.**
+ * something a browser refuses has somewhere to fail. **`develop ADR 0047`.**
  */
 
 import { execFileSync } from "node:child_process";
@@ -13,7 +13,7 @@ import { expect, type FullConfig } from "@playwright/test";
 export const USERSCRIPT_NAME = "margometer.user.js";
 export const METADATA_NAME = "margometer.meta.js";
 const BUILT_DIRECTORY = "dist";
-/** The banner line stating which build this is, as `composeUserscriptBanner` writes it. */
+/** The banner line stating which build this is, as `encodeUserscriptBanner` writes it. */
 const VERSION_OPENER = "// @version";
 
 /** Not `rootDir`: Playwright answers that with the common root of the test directories. */
@@ -32,7 +32,7 @@ export function readBuiltUserscript(rootDirectory: string): string {
 
 /**
  * The version the **banner** states, and not the constant the bundle carries: two code paths —
- * `composeUserscriptBanner` writes one and `setVersionInBundle` the other.
+ * `encodeUserscriptBanner` writes one and `stampBundleVersion` the other.
  */
 export function readBuiltVersion(rootDirectory: string): string {
     const banner = readFileSync(join(rootDirectory, BUILT_DIRECTORY, METADATA_NAME), "utf8");

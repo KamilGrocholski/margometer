@@ -1,28 +1,43 @@
 /**
- * The store a browser lends, wrapped so a refusal is an answer.
+ * The store a browser lends, wrapped so a refusal is an answer (`docs/design.md` §5).
  *
- * Reading can throw for no reason of ours — a browser set to forbid it does — and writing can
- * throw for quota, so both are wrapped once here rather than at every caller. What it asks of a
- * page is stated as the two calls it makes and never as a `Storage`, which keeps a userscript's
- * contact with its browser declared.
+ * Reading can throw for no reason of ours (a browser set to forbid it does) and writing can throw
+ * for quota, so each call into the page stands inside `callForeign`, once, here. What this asks of
+ * a page is the three calls it makes and never a `Storage`, which keeps the contact declared.
  */
 
 import { assert } from "@std/assert/assert";
+import { callForeign, err, ok, type Result } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 
-/**
- * What one write may run to, and past it the store **refuses** rather than asserting (**S11**,
- * the browser-storage row of **E5**): a shelf that will not fit is answered by asking for less.
- * Measured 2026-09-21 over `captures/`: the widest kept fight is 219,128 characters as the shelf
- * writes it, so twenty of them are past this — an assertion here stopped the reading exactly
- * there, and the rotation never got to drop the oldest.
- */
-export const MAXIMUM_VALUE_LENGTH = 4194304;
+/** Every key this add-on writes, named as ours like everything else a reader could meet. */
+export const STORE_KEY = {
+    fights: "MargoMeter-fights",
+    panelFolded: "MargoMeter-folded",
+    panelPlace: "MargoMeter-place",
+    helperFolded: "MargoMeter-pomocnik-folded",
+    helperPlace: "MargoMeter-pomocnik-place",
+    storage: "MargoMeter-storage",
+} as const;
+export type StoreKey = VocabularyWord<typeof STORE_KEY>;
 
-export interface BrowserStore {
-    read(key: string): string | null;
-    /** False where the browser refused, which is an answer and not a failure. */
-    write(key: string, value: string): boolean;
-    remove(key: string): void;
+export const STORE_FAILURE = {
+    unavailable: "store-unavailable",
+    refused: "store-refused",
+    valueTooLong: "store-value-too-long",
+} as const;
+
+export type StoreFailure =
+    | { kind: typeof STORE_FAILURE.unavailable }
+    /** A quota refusal is an answer. */
+    | { kind: typeof STORE_FAILURE.refused; cause: unknown }
+    | { kind: typeof STORE_FAILURE.valueTooLong; length: number; maximum: number };
+
+export interface KeyValueStore {
+    /** `null`: no such key, which is a fact. */
+    read(key: StoreKey): Result<string | null, StoreFailure>;
+    write(key: StoreKey, value: string): Result<void, StoreFailure>;
+    remove(key: StoreKey): Result<void, StoreFailure>;
 }
 
 /** The whole of what this asks a page for. A browser's `localStorage` satisfies it. */
@@ -32,63 +47,72 @@ export interface PageStorage {
     removeItem(key: string): void;
 }
 
-export function composeBrowserStore(storage: PageStorage): BrowserStore {
-    assert(typeof storage.getItem === "function", "a page states the reading this asks for");
-    assert(typeof storage.setItem === "function", "and the writing");
-    assert(typeof storage.removeItem === "function", "and the taking back out");
+const STORE_KEYS = Object.values(STORE_KEY);
+
+/**
+ * What one write may run to; past it the store **refuses**. The widest kept fight over
+ * `captures/` is 219,128 characters as the shelf writes it (2026-09-21), so twenty of
+ * them are past this, and the refusal is what lets the rotation drop the oldest.
+ */
+export const STORE_VALUE_LENGTH_MAXIMUM = 4194304;
+
+/** A store over the page's own; `null` where the page lent none, which every call then answers. */
+export function initPageStore(storage: PageStorage | null): KeyValueStore {
     return {
-        read: (key) => {
-            assert(key.length > 0, "what is read is asked for by name");
-            try {
-                return storage.getItem(key);
-            } catch {
-                return null;
-            }
+        read(key) {
+            if (storage === null) return err({ kind: STORE_FAILURE.unavailable });
+            const read = callForeign(() => storage.getItem(key));
+            if (!read.ok) return err({ kind: STORE_FAILURE.refused, cause: read.error.cause });
+            if (typeof read.value !== "string") return ok(null);
+            return ok(read.value);
         },
-        write: (key, value) => {
-            assert(key.length > 0, "what is written is written by name");
-            if (value.length > MAXIMUM_VALUE_LENGTH) return false;
-            try {
-                storage.setItem(key, value);
-                return true;
-            } catch {
-                return false;
+        write(key, value) {
+            if (storage === null) return err({ kind: STORE_FAILURE.unavailable });
+            const tooLong = prepareStoreWrite(value);
+            if (!tooLong.ok) return tooLong;
+            const written = callForeign(() => storage.setItem(key, value));
+            if (!written.ok) {
+                return err({ kind: STORE_FAILURE.refused, cause: written.error.cause });
             }
+            return ok(undefined);
         },
-        remove: (key) => {
-            assert(key.length > 0, "what is taken out is named");
-            try {
-                storage.removeItem(key);
-            } catch {
-                return;
+        remove(key) {
+            if (storage === null) return err({ kind: STORE_FAILURE.unavailable });
+            const removed = callForeign(() => storage.removeItem(key));
+            if (!removed.ok) {
+                return err({ kind: STORE_FAILURE.refused, cause: removed.error.cause });
             }
+            return ok(undefined);
         },
     };
 }
 
+function prepareStoreWrite(value: string): Result<void, StoreFailure> {
+    if (value.length <= STORE_VALUE_LENGTH_MAXIMUM) return ok(undefined);
+    const maximum = STORE_VALUE_LENGTH_MAXIMUM;
+    return err({ kind: STORE_FAILURE.valueTooLong, length: value.length, maximum });
+}
+
 /**
- * A store of this session's own, for a reader who wants the shelf gone when the tab is.
- *
- * It is a store like the two a browser lends, and it refuses nothing: what it holds lives in this
- * page's memory, so there is no quota to be past and nothing to be forbidden. What it costs is
- * stated by its own name — a reload is a browser that never had it.
+ * A store of this page's own, for a reader who wants the shelf gone when the tab is. It refuses
+ * nothing but a value past the bound: there is no quota to be past and nothing to be forbidden.
  */
-export function composeMemoryStore(): BrowserStore {
-    const held = new Map<string, string>();
+export function initMemoryStore(): KeyValueStore {
+    const held = new Map<StoreKey, string>();
     return {
-        read: (key) => {
-            assert(key.length > 0, "what is read is asked for by name");
-            return held.get(key) ?? null;
+        read(key) {
+            return ok(held.get(key) ?? null);
         },
-        write: (key, value) => {
-            assert(key.length > 0, "what is written is written by name");
-            if (value.length > MAXIMUM_VALUE_LENGTH) return false;
+        write(key, value) {
+            const tooLong = prepareStoreWrite(value);
+            if (!tooLong.ok) return tooLong;
             held.set(key, value);
-            return true;
+            assert(held.size <= STORE_KEYS.length, "a store holds no more than the keys it has");
+            return ok(undefined);
         },
-        remove: (key) => {
-            assert(key.length > 0, "what is taken out is named");
+        remove(key) {
             held.delete(key);
+            return ok(undefined);
         },
     };
 }

@@ -1,34 +1,30 @@
 /**
- * The base every failure that runs in a terminal wears, disjoint from the browser's so a `catch`
- * there cannot swallow it, and abstract so no base is ever thrown. **ADR 0009.**
+ * The base every failure that runs in a terminal wears, disjoint from the browser's so nothing in
+ * the bundle can meet it, and abstract so no base is ever thrown (`AGENTS.md` E13).
  */
 
-export type MargoMeterToolErrorCode =
-    | "UserscriptBuild"
-    | "PreviewBuild"
-    | "CaptureIntake"
-    | "FabricatedFight"
-    | "RecordingRead"
-    | "PanelShot"
-    | "GameSource"
-    | "GameUnreachable"
-    | "ProtocolKeyTable"
-    | "ProtocolKeyShape"
-    | "BuffBitTable"
-    | "SkillTable"
-    | "HelpArticle"
-    | "DeclaredVersion"
-    | "Changelog"
-    | "DrillReport"
-    | "TurnCount"
-    | "TurnReading"
-    | "AuraLifetime"
-    | "CardHeight";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+
+export const TOOL_ERROR_CODE = {
+    userscriptBuild: "UserscriptBuild",
+    declaredVersion: "DeclaredVersion",
+    recordingRead: "RecordingRead",
+    developReport: "DevelopReport",
+    changelog: "Changelog",
+    captureIntake: "CaptureIntake",
+    gameSource: "GameSource",
+    gameUnreachable: "GameUnreachable",
+    protocolKeyTable: "ProtocolKeyTable",
+    buffBitTable: "BuffBitTable",
+    skillTable: "SkillTable",
+    helpArticle: "HelpArticle",
+} as const;
+export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
 export abstract class MargoMeterToolError extends Error {
-    readonly code: MargoMeterToolErrorCode;
+    readonly code: ToolErrorCode;
 
-    protected constructor(code: MargoMeterToolErrorCode, reason: string, options?: ErrorOptions) {
+    protected constructor(code: ToolErrorCode, reason: string, options?: ErrorOptions) {
         super(reason, options);
         this.code = code;
         this.name = `MargoMeterTool/${code}`;
@@ -37,166 +33,84 @@ export abstract class MargoMeterToolError extends Error {
 
 /** The build refused: a bundler that would not run, a file saying nothing, or a way out. */
 export class UserscriptBuildError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("UserscriptBuild", reason);
-    }
-}
-
-/** The preview refused: no recording, or a bundle it could not put into a page. */
-export class PreviewBuildError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super("PreviewBuild", reason, options);
+        super(TOOL_ERROR_CODE.userscriptBuild, reason, options);
     }
 }
 
-/**
- * Intake refused: a recording it will not redact confidently. Both ways of being wrong are
- * permanent — a nickname in a history nobody rewrites, or corrupted evidence.
- */
-export class CaptureIntakeError extends MargoMeterToolError {
+/** A configuration that declares no version to build at, or is no configuration. */
+export class DeclaredVersionError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super("CaptureIntake", reason, options);
+        super(TOOL_ERROR_CODE.declaredVersion, reason, options);
     }
 }
 
-/**
- * A recording refused: a path that is not there, a file that is not JSON, or one carrying no call
- * the add-on would have seen. The reader's own rather than each caller's — every tool that opens a
- * recording fails the same way, and **E2** asks for a class per failure, not a class per caller.
- */
+/** A recording asked for that is not there, or that states no fight the add-on would read. */
 export class RecordingReadError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super("RecordingRead", reason, options);
+        super(TOOL_ERROR_CODE.recordingRead, reason, options);
     }
 }
 
-/**
- * A photograph refused: no browser to take it with, a tree whose `src/` is not in a commit, or a
- * run that produced fewer pictures than the set names. `DESIGN.md` owns the first two.
- */
-export class PanelShotError extends MargoMeterToolError {
+/** `develop`'s tree that would not come out of git, or its report that would not run. */
+export class DevelopReportError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super("PanelShot", reason, options);
+        super(TOOL_ERROR_CODE.developReport, reason, options);
     }
 }
 
-/** The client refused: a page naming no build, a bundle unserved, or a manifest with no date. */
+/** A release with no section to say what it is, or a changelog that cannot be read. */
+export class ChangelogError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.changelog, reason, options);
+    }
+}
+
+/** A recording intake will not admit, or cannot redact with certainty. */
+export class CaptureIntakeError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.captureIntake, reason, options);
+    }
+}
+
+/** The client's page or bundle could not be read the way this tool expects, or its cache is broken. */
 export class GameSourceError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super("GameSource", reason, options);
+        super(TOOL_ERROR_CODE.gameSource, reason, options);
     }
 }
 
-/**
- * A world that did not answer: nothing came back, or what came back was a status rather than a
- * page. Its own class and not `GameSource`'s, because a caller has to tell "the game moved on"
- * from "nobody could ask" — a reading is judged against the first and not against the second.
- */
+/** A world that did not answer. Its own class, because "the game moved on" and "nobody could ask" lead to different verdicts. */
 export class GameUnreachableError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super("GameUnreachable", reason, options);
+        super(TOOL_ERROR_CODE.gameUnreachable, reason, options);
     }
 }
 
-/** The key table refused: a bundle the walks no longer recognise as the client's own switch. */
+/** The client's key table could not be lifted out of its bundle. */
 export class ProtocolKeyTableError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super("ProtocolKeyTable", reason, options);
+        super(TOOL_ERROR_CODE.protocolKeyTable, reason, options);
     }
 }
 
-/** The shape register refused: a claim written in a vocabulary this reader does not hold. */
-export class ProtocolKeyShapeError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("ProtocolKeyShape", reason);
-    }
-}
-
-/** The bit table refused: a bundle that no longer registers the statuses a mask is read by. */
+/** The client's status bits could not be lifted out of its bundle. */
 export class BuffBitTableError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super("BuffBitTable", reason, options);
+        super(TOOL_ERROR_CODE.buffBitTable, reason, options);
     }
 }
 
-/**
- * The skill table refused: a page that is no longer the shape this reader takes columns at. Read
- * off by one it would freeze a description where the effects were, so it stops instead.
- */
+/** The published skill table could not be read, or no longer holds its shape. */
 export class SkillTableError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super("SkillTable", reason, options);
+        super(TOOL_ERROR_CODE.skillTable, reason, options);
     }
 }
 
-/** The help refused: an article id that is not one, an unfetched dump, or an undated manifest. */
+/** The published help could not be read, or a phrase it is asked for is not a phrase. */
 export class HelpArticleError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super("HelpArticle", reason, options);
-    }
-}
-
-/** The tree declares no version: nothing to build at, and nothing to release. */
-export class DeclaredVersionError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("DeclaredVersion", reason);
-    }
-}
-
-/** The release notes refused: a version the changelog says nothing about. */
-export class ChangelogError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("Changelog", reason);
-    }
-}
-
-/** The drill report refused: a screen named on the command line that the panel does not draw. */
-export class DrillReportError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("DrillReport", reason);
-    }
-}
-
-/** The action count refused: an argument that is not a path to a recording. */
-export class TurnCountError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("TurnCount", reason);
-    }
-}
-
-/** The message reading refused, for the same reason and against a different register. */
-export class TurnReadingError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("TurnReading", reason);
-    }
-}
-
-/**
- * A fabricated fight refused: a shape the panel could not hold, an output path outside the
- * directory git ignores, or a file the tool could not write. The second is the failure that
- * matters — a fight nobody fought landing in `captures/` would be evidence of nothing,
- * indistinguishable from evidence of something.
- */
-export class FabricatedFightError extends MargoMeterToolError {
-    constructor(reason: string, options?: ErrorOptions) {
-        super("FabricatedFight", reason, options);
-    }
-}
-
-/** The lifetime walk refused: a recording whose masks or turns it cannot read straight. */
-export class AuraLifetimeError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("AuraLifetime", reason);
-    }
-}
-
-/**
- * A card measured over more material than the run states a bound for. The bound is the loud half
- * of **S11** here: a walk that quietly stopped counting would report a median over the cards it
- * happened to reach, which reads exactly like a median over all of them.
- */
-export class CardHeightError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("CardHeight", reason);
+        super(TOOL_ERROR_CODE.helpArticle, reason, options);
     }
 }

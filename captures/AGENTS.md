@@ -23,10 +23,10 @@ whitespace. There is no such thing as a cosmetic edit to evidence.
 ## Always
 
 - **The envelope is English and the payload is the game's** — `capturedAt`, `gameBuild`,
-  `calls` and the rest are this repository's own words (`src/game/fight-capture.ts`),
+  `calls` and the rest are this repository's own words (`src/runtime/fight-file.ts`),
   while everything inside `payload` is the client's and is never renamed. The one reader
   that still takes the Polish envelope an older add-on writes is `tools/capture-intake.ts`.
-  **ADR 0030.**
+  **develop ADR 0030.**
 - **A file is named for the two versions it states** — the build of the game it came off
   and the build of the add-on that wrote it, both read off the file at intake.
 - **Recordings are discovered by reading this directory**, never by a hand-maintained list
@@ -39,11 +39,11 @@ whitespace. There is no such thing as a cosmetic edit to evidence.
 - **The intake tool refuses what it cannot redact.** A recording it cannot fully process is
   rejected, not admitted with a warning.
 - **The intake tool refuses a recording of a fight already here**, whatever day, world and build
-  its envelope states, and one carrying no call at all. **ADR 0045.**
+  its envelope states, and one carrying no call at all. **develop ADR 0045.**
 - **The intake tool refuses a recording whose calls carry no snapshot.** The panel hands one over
   for a fight it read back off its own shelf, which keeps payloads and no snapshot. That file is a
   report and answers what a reader asks of one; it is not evidence, for the reason below.
-  **ADR 0053.**
+  **develop ADR 0053.**
 
 ## Why the snapshots matter
 

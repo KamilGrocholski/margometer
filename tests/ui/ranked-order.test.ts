@@ -6,7 +6,7 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { getRankedOrder } from "@/src/ui/ranked-order.ts";
+import { getRankedOrder } from "#/src/ui/ranked-order.ts";
 
 Deno.test("the bigger figure is drawn first, whichever side it arrived on", () => {
     assertEquals(getRankedOrder(9, 4, "a", "b") < 0, true, "the bigger figure comes first");
@@ -33,7 +33,7 @@ Deno.test("two rows nothing tells apart are drawn in the order they arrived", ()
 /**
  * A figure that is not a number must not stop the ranking. It sorts last, which is a place: a
  * comparator answering `NaN` orders by nothing at all, so the same fight would draw its rows in a
- * different order every time it was drawn. **E14**.
+ * different order every time it was drawn. **E12**.
  */
 Deno.test("a figure that is not a number sorts last, and the sort stays decided", () => {
     assertStrictEquals(getRankedOrder(10, Number.NaN, "a", "b"), -1, "a stated figure comes first");

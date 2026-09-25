@@ -1,5 +1,5 @@
-/** The page handed over as it was found: what a window must state is checked in the entry. */
+/** The page handed over as it was found: what a window must state is read in the entry. */
 
-import { startFromWindow } from "@/src/userscript-entry.ts";
+import { startMargoMeter } from "./userscript-entry.ts";
 
-startFromWindow(window);
+void startMargoMeter(window);

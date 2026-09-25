@@ -1,104 +1,61 @@
 /**
- * The table, read back out of the lines it is composed as.
- *
- * Read rather than run: the report is this repository's own text, so a guard over it holds the
- * composition and never parses another program's output (**W6**).
+ * The figures report, over a recording and over cuts handed to it. That it prints what `develop`
+ * prints is `deno task fight:develop`'s to show; these hold what the text says on its own.
  */
 
-import { assert, assertArrayIncludes, assertExists } from "@std/assert";
-import { composeFigureReport } from "@/tools/fight-figures.ts";
-import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
-import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
+import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { formatCutText, formatFigureReport, formatRecordedFigures } from "#/tools/fight-figures.ts";
+import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
+import { replayRecordedMaterial } from "#/tools/recorded-material.ts";
+import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
 
-const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
-/** A fight of one call, so a report over a fight with nothing in it is still a report. */
-const EMPTY = {
-    name: "a fight nobody recorded",
-    calls: [{ init: 1, m: [] }],
-    hasSnapshot: false,
-};
+/** Four calls, one fighter against three boars, and an outcome: the shortest there is to read. */
+const SHORT = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
 
-function getReportOf(path: string): string[] {
-    return composeFigureReport(composeFightReplay(getRecordedFightAt(path)));
-}
-
-Deno.test("the report is headed by the recording and states both sides", () => {
-    const lines = getReportOf(HILDUR);
-    assert(
-        lines.includes("=== 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none ==="),
-        "named for its file",
-    );
-    assert(lines.some((line) => line.includes("—— side 1 (10) ——")), "one side, with its count");
-    assert(lines.some((line) => line.includes("—— side 2 (1) ——")), "and the other");
-    // Neither side is called ours: the reader's own is stated once, as the client's answer.
-    assert(lines.some((line) => line.includes("reader's side 1")), "stated as a fact");
-    assert(!lines.some((line) => line.includes("our side")), "and never worded as a verdict");
+Deno.test("a recording's report is headed by it and says what the reading could not do", () => {
+    const material = { material: SHORT, fights: [lookupRecordedFight(SHORT)] };
+    const [replayed] = replayRecordedMaterial(material);
+    const lines = formatFigureReport(replayed!);
+    assertStrictEquals(lines[0], "", "a report opens on a blank line, as develop's does");
+    assertStrictEquals(lines[1], "=== 2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none ===");
+    assertStrictEquals(lines[2], "  payloads 4   reader's side 1   over");
+    assert(lines.includes("  —— side 1 (1) ——"), "the reader's side is stated with its count");
+    assert(lines.includes("  —— side 2 (3) ——"), "and so is the other");
+    assert(lines.includes("    unread, key unknown          0"), "a count of none is printed");
+    assert(lines.includes("    messages lost                0"), "and so is what never arrived");
+    assertEquals(lines.slice(-3), [
+        "  —— how it ended ——",
+        "    won:  Gracz 1",
+        "    lost: Odyniec, Odyniec, Locha",
+    ], "and it ends on who won and who lost, by name");
 });
 
-Deno.test("everybody the roster holds gets a row, and the fight gets its totals", () => {
-    const replay = composeFightReplay(getRecordedFightAt(HILDUR));
-    const lines = getReportOf(HILDUR);
-    for (const combatant of replay.roster.byId.values()) {
-        assert(
-            lines.some((line) => line.trim().startsWith(combatant.name)),
-            `${combatant.name} is on the table`,
-        );
-    }
-    const totals = lines.find((line) => line.trim().startsWith("everybody"));
-    assertExists(totals, "the fight's own sums close the table");
-    assert(
-        totals.includes(`${replay.statistics.totals.damageDealtApplied}`),
-        "and they are the aggregate's, not this tool's",
-    );
+Deno.test("an empty cut says so, and a cut is written largest first, ties by key", () => {
+    assertStrictEquals(formatCutText(new Map(), null), "—", "an empty cut is not a missing line");
+    const cut = new Map([["fire", 5], ["cold", 5], ["dmg", 9]]);
+    assertStrictEquals(formatCutText(cut, null), "dmg 9  cold 5  fire 5");
+    assertStrictEquals(formatCutText(new Map([["dmg", 1]]), null), "dmg 1", "one part is one");
 });
 
-/**
- * **W5**: zero is a boundary. A report silent about its reading reads exactly like one that never
- * learned to state it, which is the fault this block exists to have fixed.
- */
-Deno.test("the reading block prints at zero, on a fight where nothing went wrong", () => {
-    const lines = composeFigureReport(composeFightReplay(EMPTY));
-    assert(
-        lines.some((line) => line.includes("what the reading could not do")),
-        "the block is there",
+Deno.test("an id in a cut is named through the roster, and a key that is no id is not", () => {
+    const roster = indexCombatantRoster([
+        { id: 7, name: "Odyniec", side: 2, profession: "", level: 1, healthMaximum: 10 },
+    ]);
+    const cut = new Map([["7", 3], ["dmg", 2], ["8", 1]]);
+    assertStrictEquals(
+        formatCutText(cut, roster),
+        "Odyniec 3  dmg 2  8 1",
+        "an id the roster holds is its name, and one it does not stays the id",
     );
-    const captions = [
-        "unread, key unknown",
-        "unread, no parameter",
-        "unread, grammar refused",
-        "casts unplaced",
-        "messages lost",
-    ];
-    for (const caption of captions) {
-        const line = lines.find((one) => one.trim().startsWith(caption));
-        assertExists(line, `${caption} is stated`);
-        assert(line.trim().endsWith("0"), `${caption} is stated at zero rather than dropped`);
-    }
+    assertStrictEquals(formatCutText(cut, null), "7 3  dmg 2  8 1", "and no roster asks none");
 });
 
-Deno.test("a fight the protocol never closed says so instead of inventing an end", () => {
-    const lines = composeFigureReport(composeFightReplay(EMPTY));
-    assert(
-        lines.some((one) => one.includes("the fight states no outcome")),
-        "no winner is guessed",
-    );
-    assert(!lines.some((one) => one.includes("won:")), "and no side is named");
-
-    const closed = getReportOf(HILDUR);
-    assert(closed.some((one) => one.includes("won:  Gracz")), "a fight that ended names its sides");
-    assert(closed.some((one) => one.includes("lost: Hildur")), "both of them");
-});
-
-Deno.test("every recording composes a report", () => {
-    const replayed = composeReplayedMaterial([]);
-    assert(replayed.replays.length > 1, "there is material to report on");
-    for (const replay of replayed.replays) {
-        const lines = composeFigureReport(replay);
-        assert(lines.length > 5, `${replay.name} composes a table`);
-        assertArrayIncludes(
-            lines,
-            [`=== ${replay.name} ===`],
-            `${replay.name} heads its own report`,
-        );
-    }
+Deno.test("a file on disk is reported under its path, and one that is not there is refused", () => {
+    const text = formatRecordedFigures([SHORT]);
+    assert(text.startsWith(`material ${SHORT}\n\n=== `), "the material is the path it was handed");
+    assertStrictEquals(text.split("\n=== ").length, 2, "and one file is one report");
+    const missing = `${SHORT}.missing`;
+    const error = assertThrows(() => formatRecordedFigures([missing]), RecordingReadError);
+    assertStrictEquals(error.name, "MargoMeterTool/RecordingRead");
 });

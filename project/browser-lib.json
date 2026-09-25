@@ -19,8 +19,8 @@
         "allowUnusedLabels": false
     },
     "imports": {
-        "@/": "../",
+        "#/": "../",
         "@std/assert/assert": "jsr:@std/assert@^1/assert"
     },
-    "lock": "../deno.lock"
+    "lock": "browser-lib.lock"
 }
