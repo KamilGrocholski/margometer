@@ -6,15 +6,6 @@
  * `src/ui/panel-element.ts`), and a count that stopped agreeing with the drawing is a section cut
  * off mid-way. And a card is looked up by a key each row states for itself, so two rows stating
  * one key is a row wearing its neighbour's card — the register refuses the second quietly.
- *
- * Held over every recording rather than over the screen a change was made on, because the
- * arithmetic and the keys both differ per rung, and any one test exercises one of six.
- *
- * ⚠️ **No recording collides two keys**, so the walk proves the key half only by finding one that
- * a writer put on every row — measured 2026-09-06 by giving the ranking one key for all of them,
- * which lit it. The pair of samples at the end is what proves the reader itself, and it has to
- * be: the convergence this file was written after is between two spellings a screen cannot draw
- * at once today.
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";
@@ -524,7 +515,14 @@ Deno.test("a figure a reader cannot read is found, and one they can is left alon
     );
 });
 
-/** And the same both ways for the keys: one row per key passes, two rows under one does not. */
+/**
+ * And the same both ways for the keys: one row per key passes, two rows under one does not.
+ *
+ * ⚠️ **No recording collides two keys**, so the walk over every level proves the key half only by
+ * finding one that a writer put on every row — measured 2026-09-06 by giving the ranking one key
+ * for all of them, which lit it. This pair is what proves the reader itself, and it has to be: the
+ * convergence the file was written after is between two spellings a screen cannot draw at once.
+ */
 Deno.test("a key stated by two rows is read as shared, and one stated by one is not", () => {
     const whole = { ...NOTHING_DRAWN, promised: 22, drawn: 22 };
     assertEquals(
