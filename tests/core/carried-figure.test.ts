@@ -69,7 +69,7 @@ function composeCast(over: Partial<AuraStanding> & { key: string; amount: number
 /**
  * ⚠️ **The failure this file was written for.** A standing is dropped on the **caster's** turns
  * (`develop ADR 0101`), so a cast whose caster stops taking them stands on for ever — and a row
- * dated from it read `21 z 8 tur` over `develop:captures/`. Held to the bearer's clock it goes when
+ * dated from it read `21 z 8 tur` over `captures/`. Held to the bearer's clock it goes when
  * it should, and takes its figure with it rather than leaving one the clock will not back.
  */
 Deno.test("a cast the bearer has outrun says nothing", () => {

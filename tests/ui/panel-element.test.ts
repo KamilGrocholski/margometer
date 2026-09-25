@@ -522,7 +522,7 @@ Deno.test("a pinned row on a healing screen heads its run with the key, not the 
 /**
  * The card is a preview and the level is the whole of it, so what will not fit on the card is
  * summed rather than dropped: a run short of the figure over it is a run that lies about it. No
- * recording reaches this — the widest pinned row over `develop:captures/` states four keys on
+ * recording reaches this — the widest pinned row over `captures/` states four keys on
  * 2026-09-01 — so the seven are built here. `develop ADR 0041`.
  */
 Deno.test("a pinned row with more kinds than the card holds sums the rest into one line", () => {
@@ -789,7 +789,7 @@ Deno.test("a suspicion about the reading is said under the strip, in words and o
 /**
  * A defect is a claim about the add-on and a suspicion is a claim about the fight, so the panel
  * keeps them in two blocks. Collapsing them is how a reader learns to skip both —
- * `develop:CONTEXT.md`.
+ * `CONTEXT.md`.
  */
 Deno.test("what the panel could not do stands apart from what the reading leaves suspect", () => {
     const reading = readFight();
@@ -877,7 +877,7 @@ Deno.test("a region the document will not replace is kept as it was, and said", 
 /**
  * A suspicion about one person goes on their row and nowhere else: a sentence under the list
  * qualifies every row on it, and a reader looking at one of them could not tell whether it meant
- * theirs. `develop:DESIGN.md` — put a suspicion where its consequence is.
+ * theirs. `DESIGN.md` — put a suspicion where its consequence is.
  */
 Deno.test("a suspicion about one person is a mark on their row, and on nobody else's", () => {
     const reading = readFight();
@@ -1187,7 +1187,7 @@ Deno.test("a ranking row's bar is its profession's, and colourless without one",
         (one.children.find((part) => part.className === "bar")?.attributes.get("style") ?? "")
             .includes(nobody)
     );
-    // Every combatant in `develop:captures/` states a profession, measured 2026-08-29, so the
+    // Every combatant in `captures/` states a profession, measured 2026-08-29, so the
     // colourless bar is reachable only through a roster that says nothing — which is what the next
     // line does.
     assertEquals(colourless, [], "this fight names a profession for everybody in it");
@@ -2156,7 +2156,7 @@ Deno.test("a lone row of a section names what the heading over it never does", (
  * ⚠️ **A heading is two cells and a constant, at every level.** Both were class-less spans until
  * 2026-09-01, so nothing held the figure beside a heading to one line and nothing stopped a heading
  * growing a name out of the recording — which is how `111111` came to be read as `111` over `111`.
- * `develop:DESIGN.md` owns the rule; this holds the DOM to it, `tests/ui/panel-look.test.ts` the
+ * `DESIGN.md` owns the rule; this holds the DOM to it, `tests/ui/panel-look.test.ts` the
  * sheet.
  */
 Deno.test("a heading is its words and a figure, and says only what its level is cut by", () => {

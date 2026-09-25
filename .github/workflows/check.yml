@@ -1,0 +1,77 @@
+# The repository gate, on every push and every pull request. Same command a hand runs:
+# `deno task check` is formatting, lint, types, the tests and the build, and the build is in it
+# because it assembles the userscript and can fail on its own.
+#
+# ⚠️ **This is the run G7 waits for.** A release pushes `develop`, waits for this to go green, then
+# pushes `main` and only then the tag. Branch protection on `main` refuses a push while this is
+# going, and that refusal is cheap — the tag going out first is not.
+name: check
+
+on:
+    # Every branch, not a list. A named list is a claim about how this repository is worked on, and
+    # v1's outlived the branch it named by a month — it still said `rewrite/2026-08` is where the
+    # work happens long after that branch had been merged.
+    # `pull_request` stays: it is the only thing that runs the gate on a fork.
+    push:
+    pull_request:
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        steps:
+            # ⚠️ **The whole history.** The gate reads this repository's past:
+            # `tests/ui/panel-look.test.ts` holds the sheet to `git show fa1dcce:…`, the `develop`
+            # this rewrite reproduces (`tests/recording-sources.ts`). A `--depth 1` clone has no
+            # such commit and reddens that test. `0` takes every branch and tag, in seconds.
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            # Pinned, and to the same version `pages.yml` and `release.yml` pin: "latest" means the
+            # gate turns red one day with no change in the code, and then nobody knows whether it
+            # is a regression or a new Deno.
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: 2.9.7
+
+            # ⚠️ The gate typechecks the browser suite, and that suite imports an npm package, so
+            # `deno check` resolves it through the `node_modules` npm installs — develop ADR 0047, and
+            # `deno.json` says `"nodeModulesDir": "manual"` for the same reason. Without this step
+            # the gate is red on a fresh checkout with `Could not resolve "@playwright/test"`,
+            # which is how it was found. No browser is installed here: this is the package, not
+            # the engine, and `deno task check` still runs on a machine with no Chrome.
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+
+            - run: npm ci
+
+            - run: deno task check
+
+    browser:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: 2.9.7
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+
+            - run: npm ci
+
+            # The browser layer, which the gate deliberately does not carry — develop ADR 0047. No install
+            # step and no download: this image ships Google Chrome, and Playwright is pointed at it
+            # by `channel`. A runner that stopped shipping one fails here rather than quietly
+            # running nothing.
+            - run: deno task e2e
+
+            - uses: actions/upload-artifact@v4
+              if: failure()
+              with:
+                  name: playwright-report
+                  path: dist/e2e/report
+                  retention-days: 7

@@ -41,7 +41,7 @@ interface Bearer {
 /**
  * How many sources one effect adds up from: _Efekt ulega kumulacji do maksymalnie dwóch źródeł od
  * różnych Graczy_, and `taken_dmg_per-all` sharper, _do dwóch najwyższych źródeł_. ⚠️ **The two
- * highest, not the two latest**: where three or more stood at once over `develop:captures/`
+ * highest, not the two latest**: where three or more stood at once over `captures/`
  * (2026-09-21) the two sets differ in 258 moments of 755 for `speed_up`, 13 of 94 for `swow_down`.
  */
 const SOURCES_COUNTED = 2;
@@ -145,7 +145,7 @@ function doesReachCoverBearer(key: string, casterSide: number, bearerSide: numbe
 
 /**
  * What one status comes to on one bearer, or null. ⚠️ **Null is the common answer**: over
- * `develop:captures/` 2026-09-21 a combatant carrying `swow_down` had no cast of `allslow_per`
+ * `captures/` 2026-09-21 a combatant carrying `swow_down` had no cast of `allslow_per`
  * standing over them in 2211 moments of 3308. An item's own bonus adds to the same total and is
  * announced nowhere, so the figure would be a part passing itself off as the whole.
  */

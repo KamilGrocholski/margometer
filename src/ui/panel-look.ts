@@ -4,7 +4,7 @@
  * A class is spelled here and imported by the file that wears it: when two spellings drift the
  * failure is an unstyled row rather than anything a compiler sees.
  *
- * `develop:DESIGN.md` owns what these values are for; this file owns what they are.
+ * `DESIGN.md` owns what these values are for; this file owns what they are.
  */
 
 import { clamp } from "#/libs/number-range.ts";
@@ -238,12 +238,12 @@ const FONT_TITLE = `${FONT_SIZE_PIXELS}px/${LINE_HEIGHT_TITLE_PIXELS}px ${FONT_S
 /**
  * A press that leaves text selected behind it is an accident, which is why the bar and the
  * strips refuse one too. Safari has never shipped `user-select` unprefixed
- * (`develop:docs/browser-support.md`), so both spellings stand.
+ * (`docs/browser-support.md`), so both spellings stand.
  */
 const NO_SELECTION = "-webkit-user-select:none;user-select:none;";
 
 /**
- * **No production caller**: this and the two bar readings below are what hold `develop:DESIGN.md`'s
+ * **No production caller**: this and the two bar readings below are what hold `DESIGN.md`'s
  * contrast floor, measured by `tests/ui/panel-look.test.ts` over the tokens and the palette.
  */
 export function getContrastRatio(one: Colour, other: Colour): number {
@@ -270,7 +270,7 @@ function getLuminance(colour: Colour): number {
  * **Nothing draws a bar through this pair.** The shipped bar takes its hue from
  * `lookupColourForProfession` and its tint from the stylesheet, which spells
  * `opacity:var(--MargoMeter-bar-tint)` over the same `BAR_TINT`. What the two compute is the ink a
- * bar *would* take, which is the pair `develop:DESIGN.md` names as the proof that the tint keeps
+ * bar *would* take, which is the pair `DESIGN.md` names as the proof that the tint keeps
  * every hue readable — see its text tokens, which own that decision.
  */
 export function composeBarColour(hue: Colour): Colour {
@@ -365,7 +365,7 @@ function composeFrameRules(): string {
         `box-sizing:border-box;width:${PLACE.widthPixels}px;` +
         `cursor:move;` +
         // Safari has never shipped `user-select` unprefixed, so without this a drag by the bar
-        // selects the text under the cursor (`develop:docs/browser-support.md`).
+        // selects the text under the cursor (`docs/browser-support.md`).
         `-webkit-user-select:none;user-select:none;touch-action:none;}` +
         `.${CLASS.titleVersion}{opacity:0.7;font-size:10px;}` +
         `.${CLASS.control}{padding:0 var(${VARIABLE_PREFIX}small);` +
@@ -475,7 +475,7 @@ function composeListRules(): string {
         // The background and the layer are not decoration: a row's bar is positioned and comes
         // later in the tree, so without both the bars paint over the sticky heading. A figure is
         // one word and its cell never gives way; the words beside it are what shortens.
-        // `develop:DESIGN.md` owns the rule, and every region that draws a figure wears this.
+        // `DESIGN.md` owns the rule, and every region that draws a figure wears this.
         `.${CLASS.figure}{flex:none;white-space:nowrap;}` +
         `.${CLASS.sectionWords}{min-width:0;overflow:hidden;text-overflow:ellipsis;` +
         `white-space:nowrap;}` +
@@ -558,17 +558,17 @@ function composeRowRules(): string {
         `white-space:nowrap;flex:1;}` +
         // Before the name and never in place of it: the name is the cell that shortens, and a mark
         // taking width from it every row would be the cost develop ADR 0023 refused. This one is
-        // drawn on the rows a suspicion reaches, which is none of the rows in `develop:captures/`.
+        // drawn on the rows a suspicion reaches, which is none of the rows in `captures/`.
         `.${CLASS.rowSuspect}{position:relative;color:var(${VARIABLE_PREFIX}suspect);flex:none;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
         // Beside the suspect mark and under the same argument: it reaches the row closing a damage
-        // section and no other. A mark on every row was measured and refused: `develop:DESIGN.md`
+        // section and no other. A mark on every row was measured and refused: `DESIGN.md`
         // has the share, `develop ADR 0089` the decision. The ring is drawn once for both places
         // it stands, below; margin and not padding, because the ring is this box's border.
         `.${CLASS.rowCaveat}{position:relative;` +
         `margin-right:var(${VARIABLE_PREFIX}small);}` +
         // Beside the suspect mark and under the same argument: it reaches the one row whose turn
-        // the game is numbering, never every row. `develop:DESIGN.md` owns the rule,
+        // the game is numbering, never every row. `DESIGN.md` owns the rule,
         // `develop ADR 0066` the cost.
         `.${CLASS.rowTurn}{position:relative;color:var(${VARIABLE_PREFIX}quiet);flex:none;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
@@ -593,7 +593,7 @@ function composeRowRules(): string {
         // Worn by the row and not by the region under the list, because the rows that earn it stand
         // inside a section too: a sum a bound left undrawn stands there, and a solid bar on it
         // would read as a place in an order it holds none of. Which rows those are, and the figure
-        // that earned them the accent, are `develop:DESIGN.md`'s — spelled there and not again
+        // that earned them the accent, are `DESIGN.md`'s — spelled there and not again
         // here, because the two copies of that figure had already drifted apart once (**C15**).
         `.${CLASS.row}.${CLASS.rowApart} .${CLASS.bar}{opacity:0.4;` +
         `mask-image:repeating-linear-gradient(` +
@@ -640,7 +640,7 @@ function composeTipRules(): string {
         `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};}` +
         `.${CLASS.tipHidden}{display:none;}` +
         // The one cell on this panel that folds rather than shortening: it is the answer to
-        // the name a row had to cut, and an answer cut again is no answer (`develop:DESIGN.md`).
+        // the name a row had to cut, and an answer cut again is no answer (`DESIGN.md`).
         // `break-word` and not `break-all`, which splits a word where a space was free, nor
         // `anywhere`, which shrinks the min-content width the card is laid out against
         // (`develop ADR 0091`). ⚠️ The lines it folds to are counted in `src/ui/panel-tip.ts`, and
@@ -658,14 +658,14 @@ function composeTipRules(): string {
         // `LABEL_CHARACTERS_MAXIMUM` in `src/ui/panel-words.ts` is where that arithmetic is.
         // `flex:1` and not `auto`: the mark a caveated figure wears sits between this and the
         // value, and a label at its natural width leaves it stranded mid-line, beside the words
-        // rather than beside the figure it is about (`develop:DESIGN.md`). Grown, the label pushes
+        // rather than beside the figure it is about (`DESIGN.md`). Grown, the label pushes
         // the mark against the value wherever the label is short.
         `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);flex:1;min-width:0;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}` +
         composeCaveatMarkRule() +
         // The same letters a cut's heading wears down the panel, so a run of parts under one
-        // reads as the same kind of thing in both places. `develop:DESIGN.md` owns the look.
+        // reads as the same kind of thing in both places. `DESIGN.md` owns the look.
         `.${CLASS.tipHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
         `font-size:10px;text-transform:uppercase;overflow:hidden;` +
         `text-overflow:ellipsis;white-space:nowrap;}` +
@@ -714,7 +714,7 @@ function composeCaveatMarkRule(): string {
         `align-items:center;justify-content:center;align-self:center;flex:none;` +
         `width:${MARK_SIZE_PIXELS}px;height:${MARK_SIZE_PIXELS}px;` +
         // An ink of its own, as the other three severities have: drawn in the label's colour it was
-        // invisible against the label it qualifies. `develop:DESIGN.md` owns the rule and carries
+        // invisible against the label it qualifies. `DESIGN.md` owns the rule and carries
         // the measured distance to every other hue the panel spends.
         `color:var(${VARIABLE_PREFIX}caveat);` +
         `border:1px solid currentColor;border-radius:50%;` +

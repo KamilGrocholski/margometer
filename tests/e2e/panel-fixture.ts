@@ -110,7 +110,7 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
         await use({ script: readBuiltUserscript(root), version: readBuiltVersion(root) });
     }, { scope: "worker" }],
 
-    // Automatic, so `develop:PRODUCT.md`'s fourth pillar — the panel never costs the reader an exception —
+    // Automatic, so `PRODUCT.md`'s fourth pillar — the panel never costs the reader an exception —
     // is asserted by every test in this suite rather than by the one that remembered to ask.
     honesty: [async ({ page }, use) => {
         const allowed: string[] = [];

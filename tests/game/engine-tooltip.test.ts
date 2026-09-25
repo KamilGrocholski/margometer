@@ -109,7 +109,7 @@ function composeWarrior(id: number, name: string, registry: Registry, over: {
 /**
  * ⚠️ **One call per row, and the client's own `<br>` is the break between them.** This is what
  * buys the block its shape without this add-on writing a tag — so a writer that joined the rows
- * itself would be writing markup, which is exactly what `develop:SECURITY.md` says it does not do.
+ * itself would be writing markup, which is exactly what `SECURITY.md` says it does not do.
  */
 Deno.test("every row goes over on a call of its own, and an open tooltip is told once", () => {
     const { registry, writer } = composeOne();

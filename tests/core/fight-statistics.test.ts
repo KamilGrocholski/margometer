@@ -124,7 +124,7 @@ const STRIKER_POISON = "-10000544=98.62;0;poison=204,20";
 
 /**
  * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the game announcing a turn its
- * holder spent on nothing. The nicknames in `develop:captures/` are the recording's own anonymised
+ * holder spent on nothing. The nicknames in `captures/` are the recording's own anonymised
  * ones (`Gracz 5`), and the other name here is an NPC's.
  */
 const TURN_LOST = "0;0;txt=Hildur Muza Śmierci - utrata tury (redukcja ogłuszenia 50%)";

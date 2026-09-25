@@ -142,7 +142,7 @@ function getPositionWithin(value: number, limit: number): number {
 }
 
 /**
- * The middle of the window, where a panel nobody has moved opens (`develop:DESIGN.md`). It is
+ * The middle of the window, where a panel nobody has moved opens (`DESIGN.md`). It is
  * centred on the **tallest** body the sheet allows rather than the one it has: a panel centred on
  * its waiting bar walks down the screen as rows arrive, and this one stands still.
  *
@@ -179,7 +179,7 @@ export function composePositionStyle(
 /**
  * Where a card opens: beside **the window whose row it names**, and that window alone. The other
  * one under this root is not consulted — a card that stepped past it as well left the window it
- * came from and stood where the reader was not pointing (`develop ADR 0090`). `develop:DESIGN.md`
+ * came from and stood where the reader was not pointing (`develop ADR 0090`). `DESIGN.md`
  * owns the rule.
  *
  * ⚠️ **The side is decided by the widest a card may be, never by the width of this one.** A card

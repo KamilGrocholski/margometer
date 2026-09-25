@@ -105,7 +105,7 @@ const SIDE_CHOICES: readonly PanelSideChoice[] = ["everyone", "reader", "opposin
 /**
  * The rows that hold no place, by the words a reader sees on them. Read by name because that is
  * what the panel draws: the reading's own kinds never reach the sheet, and a check standing on
- * them would be asking the same layer twice. `develop:DESIGN.md` owns which kinds these are.
+ * them would be asking the same layer twice. `DESIGN.md` owns which kinds these are.
  */
 const WORDS_HOLDING_NO_PLACE: readonly string[] = [
     PANEL_WORDS.restOfKinds,
@@ -306,7 +306,7 @@ function getKeysShared(seen: RegionDrawn): string[] {
 
 /**
  * A figure a reader cannot read: one that is not a number, or one below nothing. Zero is neither —
- * it is a measurement (`develop:CONTEXT.md`) — and a bar whose width went below nothing is the same
+ * it is a measurement (`CONTEXT.md`) — and a bar whose width went below nothing is the same
  * defect one step later, as a declaration the browser drops without saying so.
  */
 function getFiguresUnreadable(seen: RegionDrawn): string[] {
@@ -325,7 +325,7 @@ function getFiguresUnreadable(seen: RegionDrawn): string[] {
  * A row whose bar and whose number disagree about the same thing. The blank cell and the hatch
  * are one claim said twice — no place in the ranking — so a row stating a number while drawn
  * apart is a hatch over an order, and one stating nothing while drawn in the order is the row
- * `develop:DESIGN.md` says must not look like a place it does not hold.
+ * `DESIGN.md` says must not look like a place it does not hold.
  */
 function getPlacesMismarked(seen: RegionDrawn): string[] {
     const found: string[] = [];

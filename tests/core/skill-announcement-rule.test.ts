@@ -107,7 +107,7 @@ Deno.test("a declaration rides a name the game did not take from its own table",
 /**
  * ⚠️ **An announcement is not always the message before.** These three state their figure on the
  * announcement itself, so a reading that only carried one message forward left every point of
- * them with no giver and no name: 353,990 over `develop:captures/`, until 2026-08-30.
+ * them with no giver and no name: 353,990 over `captures/`, until 2026-08-30.
  */
 Deno.test("three keys state their figure on the announcement itself, and name an actor", () => {
     const counted = new Map<string, number>();

@@ -77,7 +77,7 @@ test.describe("a panel narrower than what it drew", () => {
 
 /**
  * Every recording, read at collection time so each is a test of its own and the workers share them
- * out. Read rather than listed (`develop:captures/AGENTS.md`), and an empty directory is a failure.
+ * out. Read rather than listed (`captures/AGENTS.md`), and an empty directory is a failure.
  */
 function readRecordingPaths(): string[] {
     const paths = readdirSync(RECORDINGS_DIRECTORY)

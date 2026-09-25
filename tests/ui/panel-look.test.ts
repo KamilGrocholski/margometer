@@ -2,7 +2,7 @@
  * The tokens, and the two things they cannot state on their own.
  *
  * Contrast is checked by arithmetic rather than by eye, over every pairing the panel can put on
- * screen — which is what `develop:DESIGN.md` asks for and what a screenshot cannot show.
+ * screen — which is what `DESIGN.md` asks for and what a screenshot cannot show.
  */
 
 import {
@@ -41,7 +41,7 @@ import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "#/tests/style-she
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
 const AA_TEXT_RATIO = 4.5;
 const AA_MARK_RATIO = 3;
-/** Every profession the recordings state, measured over `develop:captures/` on 2026-08-29. */
+/** Every profession the recordings state, measured over `captures/` on 2026-08-29. */
 const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];
 const LONGEST_DECLARATION = 200;
 
@@ -66,7 +66,7 @@ const WHITE: Colour = [255, 255, 255];
 const AA_GRAPHIC_RATIO = 3;
 
 /**
- * ⚠️ **`develop:DESIGN.md` says AA holds on every text-over-colour pairing, and the checks above
+ * ⚠️ **`DESIGN.md` says AA holds on every text-over-colour pairing, and the checks above
  * reach three of them.** The sheet prints words in five inks and the signal ones were in none,
  * which is why the ground each ink is drawn on is named rather than assumed. Measured 2026-09-15,
  * the thinnest pairing registered here is `heading` over `surface` at 5.22, and the thinnest of the
@@ -102,7 +102,7 @@ const SHORTENING = ["min-width", "overflow", "text-overflow", "white-space"] as 
  * their rows under one class, and the panel already refuses selection where it is dragged — the
  * bar and the strips. A row was the one press target that did not, which is what a reader met in
  * the window beside the panel. The prefixed spelling stands beside the plain one because Safari
- * has never shipped it unprefixed (`develop:docs/browser-support.md`).
+ * has never shipped it unprefixed (`docs/browser-support.md`).
  */
 Deno.test("a row refuses to have its text selected, in either window", () => {
     const sheet = composeStyleSheet();

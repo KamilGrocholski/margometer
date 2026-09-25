@@ -327,7 +327,7 @@ export const CARD_WORDS = {
      * scope, and the scope was not true: `-dmga` — *obrażenia nieuchronne* — never carries a
      * `+dmga` half, because nothing reduces it (`develop:docs/protocol-keys.md`), so the figure
      * sits below the blows' own applied total on 5 of the 113 rows stating one, measured over
-     * `develop:captures/` on 2026-09-14. Worded as what was **stated** it claims nothing about
+     * `captures/` on 2026-09-14. Worded as what was **stated** it claims nothing about
      * coverage, which is the register the rest of this file's sentences are written in (**L3**).
      */
     raw: "Podane przed redukcją",
@@ -363,7 +363,7 @@ export const CARD_WORDS = {
     destroyed: "Zniszczone",
     /**
      * The instruction a row gives, and it stands wherever pressing leads somewhere —
-     * `develop:DESIGN.md` owns that rule. The right press is not named beside it: a reader on the
+     * `DESIGN.md` owns that rule. The right press is not named beside it: a reader on the
      * ranking has nowhere to go back to, so a row's card would promise a gesture that does nothing
      * there.
      */
@@ -459,7 +459,7 @@ export const PROC_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entr
 /**
  * Counted in the row above rather than beside it, and named under it: the qualifier, never the
  * mechanic. A wound something weakened is a wound, so a reader counting the ones they left reads
- * every one of them off one line — over `develop:captures/` on 2026-09-18 one combatant announced
+ * every one of them off one line — over `captures/` on 2026-09-18 one combatant announced
  * six deep wounds, all of them weakened, and their card stated no deep-wound count at all.
  * `develop ADR 0095`.
  *
@@ -677,7 +677,7 @@ const TOOLTIP_WORDS = {
     /**
      * ⚠️ **Two skills put a fighter here, so the row names the state and never either of them.**
      * `Wyzywający okrzyk` and `Prowokujący okrzyk` announce the one key — 118 casts against 48 over
-     * `develop:captures/`, 2026-09-22 — so a row reading `Wyzwany` named one of the two while the
+     * `captures/`, 2026-09-22 — so a row reading `Wyzwany` named one of the two while the
      * state had come from either.
      */
     provokedBy: "Sprowokowany przez",
@@ -694,7 +694,7 @@ const TOOLTIP_WORDS = {
  * reaches the default dictionary and answers nothing. Read on development build `1781609507010`.
  */
 const STATUS_CATEGORY = "buff";
-/** What a reader meets outside the panel says whose it is — `develop:SECURITY.md`'s guest rule. */
+/** What a reader meets outside the panel says whose it is — `SECURITY.md`'s guest rule. */
 const ADD_ON_NAME = "MargoMeter";
 const LEADING_STATUS_NAMES: readonly string[] = [SLOW_BIT_NAME, HASTE_BIT_NAME];
 /** The two characters that would make a row of ours part of somebody else's markup. */
@@ -706,7 +706,7 @@ const MARKUP_ENTITY = "&";
  * taken, and one row per status the client registers.
  *
  * ⚠️ **A figure taken off the corpus was the wrong figure here.** The tallest block over
- * `develop:captures/` is seven (`design/dziesiec/measured.json`), and a fabricated ten-a-side
+ * `captures/` is seven (`design/dziesiec/measured.json`), and a fabricated ten-a-side
  * already stands eleven — so a bound set at what had been seen was one row above what was
  * happening. It clamps rather than asserts, because a fighter with one thing more to say is not a
  * reason to stop drawing (**A11**, `develop ADR 0051`).
@@ -916,7 +916,7 @@ function getClientWordsForKey(key: string, translate: TranslateLabel | null): st
     const label = translate(id);
     if (label === null) return null;
     // ⚠️ **The client's bound and not ours.** At 22 this refused three of the seven — their keys
-    // land 56 times over `develop:captures/` — and drew `+superspell-prevented` at a reader who has
+    // land 56 times over `captures/` — and drew `+superspell-prevented` at a reader who has
     // a dictionary saying `Zapobiegnięto ładowaniu ciosu specjalnego.`
     if (label.length > CLIENT_LABEL_CHARACTERS_MAXIMUM) return null;
     if (label.length === 0) return null;
@@ -1004,7 +1004,7 @@ export function formatCountedNoun(count: number, noun: CountedNoun): string {
  * What the add-on adds to the game's tooltip for one fighter: one row per thing to say, empty where
  * there is nothing. Rows go one at a time: `concatTip` puts a `<br>` of its own between them
  * (production build `Bb28FQty`, read 2026-09-21; `develop ADR 0111`). The first row is the add-on's
- * name alone, the guest rule of `develop:SECURITY.md`. ⚠️ Each row lands in HTML somebody else
+ * name alone, the guest rule of `SECURITY.md`. ⚠️ Each row lands in HTML somebody else
  * composed, so a row carrying markup is refused rather than escaped (`develop ADR 0024`). The order
  * is fixed, so a row is found where it was last time (`develop ADR 0116`).
  */
@@ -1033,7 +1033,7 @@ export function presentTooltipRows(
  * ⚠️ **A figure that may be short is drawn where it can be marked, and nowhere else.** The panel
  * draws these on a fight it walked into and says over them that every number may be understated
  * (`formatJoinedInProgressSuspicion`). This block has no room for that sentence and no mark of its
- * own, so the row it cannot qualify is the row it does not draw — `develop:CONTEXT.md`'s
+ * own, so the row it cannot qualify is the row it does not draw — `CONTEXT.md`'s
  * **Suspect** is marked beside the figure it concerns or it is not a suspect, it is a wrong number.
  */
 function addTurnsRow(said: string[], reading: TooltipReading): void {
@@ -1224,7 +1224,7 @@ export function getWordsForStorage(choice: StorageChoice): string {
  * day where nothing says which. Empty where the moment does not read back — `00:00` is a reading,
  * and so is a day nobody stated.
  *
- * The place is what pays for the width, on every row (`develop:DESIGN.md`, `develop ADR 0084`).
+ * The place is what pays for the width, on every row (`DESIGN.md`, `develop ADR 0084`).
  */
 /** When and where a kept fight that would not read was fought: what the shelf row would say. */
 export function formatKeptUnread(at: FightMoment | null, place: string | null): string {
@@ -1444,7 +1444,7 @@ export function formatSideCounts(sizes: readonly number[], unplaced: number): st
  * ⚠️ **Divided and never added**: the sum is not the turns anybody was granted
  * (`develop ADR 0110`). Spaced on the space that never breaks, for the reason `formatFigure` spaces
  * thousands on — a figure folded across two lines reads as a number half its size
- * (`develop:DESIGN.md`).
+ * (`DESIGN.md`).
  */
 export function formatTurns(taken: number, lost: number): string {
     const divider = `${THOUSAND_SEPARATOR}/${THOUSAND_SEPARATOR}`;
@@ -1452,9 +1452,9 @@ export function formatTurns(taken: number, lost: number): string {
 }
 
 /**
- * Thousands spaced as the game spaces them, on a space that never breaks — `develop:DESIGN.md`. A
+ * Thousands spaced as the game spaces them, on a space that never breaks — `DESIGN.md`. A
  * figure that is not one is drawn as *not known*, never as `0`: they are different claims
- * (`develop:CONTEXT.md`).
+ * (`CONTEXT.md`).
  */
 export function formatFigure(value: number): string {
     // ⚠️ One check, not two, and every caller relies on it: rounding what is not a number answers
@@ -1478,7 +1478,7 @@ export function formatFigure(value: number): string {
 /**
  * Every share of one whole, written so what the reader adds up comes to what the panel says it is a
  * share of. Rounding each on its own loses up to half a point per row in the same direction: of the
- * 312 screens drawing a figure over `develop:captures/` on 2026-08-29, 106 would print a set that
+ * 312 screens drawing a figure over `captures/` on 2026-08-29, 106 would print a set that
  * did not add to a hundred. The largest remainder decides who takes the points that are left; a
  * second decimal place does not close it, because `33,3%` three times adds to `99,9%` and the
  * column still does not sum.
@@ -1516,7 +1516,7 @@ export function formatShares(amounts: readonly number[], whole: number): string[
 /**
  * A share in whole points, with the floor spent where it is owed. A figure under half a point
  * rounds to `0%`, and on a panel that keeps zero and unknown apart that is a third thing neither
- * of them means: something happened, and it was too small to round to. Over `develop:captures/` on
+ * of them means: something happened, and it was too small to round to. Over `captures/` on
  * 2026-08-29, across the four screens and the three side choices, 55 rows print this floor — and
  * without it every one of them would read `0%` beside a figure that is not one.
  */
@@ -1540,7 +1540,7 @@ function composeSharesInPoints(amounts: readonly number[], whole: number): Share
  * row of a tie, and two identical numbers with different shares beside them read as a panel that
  * cannot add up. So a group of equal figures is one candidate costing as many points as it has
  * members, and where the points left will not cover it a smaller remainder is paid instead. Over
- * `develop:captures/` on 2026-08-29 that is 12 groups of equal figures across the four screens and
+ * `captures/` on 2026-08-29 that is 12 groups of equal figures across the four screens and
  * the three side choices.
  */
 function composeShareGroups(shares: readonly ShareInPoints[]): ShareInPoints[][] {

@@ -658,7 +658,7 @@ Deno.test("every message in every recording decodes, and the pairs hold", () => 
     assert(tally.unsized > 0, "and a share stated about a whole side, which no row can carry");
     assert(tally.declared > 0, "and messages that state something and report nothing");
     assert(tally.resolved > tally.byName / 2, "most of which a roster can put on somebody");
-    // Every key `develop:captures/` carries is read now, so the panel says nothing is missing:
+    // Every key `captures/` carries is read now, so the panel says nothing is missing:
     // a claim about the material rather than about the decoder, and the probes above are what
     // hold the other half.
     assertEquals(tally.unread, 0, "and nothing in the recordings goes unread any more");
@@ -873,7 +873,7 @@ Deno.test("a movement standing behind a reach takes no skill from it", () => {
 
 /**
  * ⚠️ **A bound nothing ever reaches is a number rather than a bound.** The longest run of an
- * announcer's own blows over `develop:captures/` is two, so the material never meets
+ * announcer's own blows over `captures/` is two, so the material never meets
  * `MAXIMUM_BLOWS_GRANTED` and only a payload written by hand can show it binding at all.
  */
 Deno.test("a reach the table could not bound still stops where the bound says", () => {
@@ -906,7 +906,7 @@ Deno.test("a blow past what the table granted takes no skill, and opens no turn"
 
 /**
  * Probes, every one: no recording states any of these shapes (measured 2026-09-21, 0 of every
- * value over `develop:captures/`), and each once reached an assertion instead of the unread row,
+ * value over `captures/`), and each once reached an assertion instead of the unread row,
  * which on the fight's last message left it never over, and on any other lost the payload whole.
  */
 Deno.test("a value the game's own text can spell goes unread, and never into an assertion", () => {

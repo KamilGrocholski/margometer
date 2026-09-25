@@ -3,7 +3,7 @@
  * a shout is holding (`docs/design.md` §6.6).
  *
  * The protocol announces the cast and never mentions it again: no confirmation, no refresh and no
- * expiry anywhere in `develop:captures/`. So the length a cast runs for is the published table's
+ * expiry anywhere in `captures/`. So the length a cast runs for is the published table's
  * word and never a reading, and the table is handed in by whoever holds it.
  */
 
@@ -342,7 +342,7 @@ function replayFightStandingsOnSides(walk: AuraWalk): AuraStanding[] {
 
 /**
  * Whom a shout is holding, one row per character, and only the shout that holds them now. **Counted
- * on the held character's own turns**: over `develop:captures/` the provoked strike whoever shouted
+ * on the held character's own turns**: over `captures/` the provoked strike whoever shouted
  * on their first three turns and fall back on the fourth (`develop:docs/auras-standing.md`).
  */
 function replayFightStandingsProvoked(walk: AuraWalk): ProvocationStanding[] {

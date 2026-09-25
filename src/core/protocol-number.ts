@@ -9,7 +9,7 @@ import { assert } from "@std/assert/assert";
 import { formatDecimal, parseDecimal } from "#/libs/number-text.ts";
 import { isDigitRun } from "#/libs/text-walk.ts";
 
-/** Every percentage in `develop:captures/` is written to two places, 18215 of them, 2026-08-28. */
+/** Every percentage in `captures/` is written to two places, 18215 of them, 2026-08-28. */
 export const HEALTH_PERCENT_PLACES = 2;
 
 const POINT = ".";

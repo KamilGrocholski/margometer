@@ -22,7 +22,7 @@ const AT_A_TIME = 10;
 const STEPS_MOST = 1000;
 /**
  * How a fight can end, in the words a **reader** sees. The panel composes them in lower case and
- * the sheet puts them in upper (`develop:DESIGN.md` owns the look), so this is what is on the screen and
+ * the sheet puts them in upper (`DESIGN.md` owns the look), so this is what is on the screen and
  * `innerText` is what reports it.
  */
 const OUTCOMES = ["WYGRANA", "PRZEGRANA", "REMIS", "UCIECZKA"];

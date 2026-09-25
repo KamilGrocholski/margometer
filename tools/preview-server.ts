@@ -3,7 +3,7 @@
  * changes: `deno task check` cannot see a panel, and the gate can be green while the thing a player
  * looks at is broken. The page is `tests/e2e/game-page.ts`, the one the browser suite drives, with
  * a strip under it that steps the fight; the bundle is `tools/build-userscript.ts`'s. Nothing here
- * ships, and `develop:SECURITY.md`'s rule against the network binds `src/`, not this.
+ * ships, and `SECURITY.md`'s rule against the network binds `src/`, not this.
  *
  *     deno task preview        # then open http://127.0.0.1:8000/
  */

@@ -4,7 +4,7 @@
  * file is the one place its field names are spelled.
  *
  * ⚠️ **Nothing is redacted here, and that is the design.** The file carries real nicknames and the
- * game's own prose, and never enters git: intake deals with both, once (`develop:SECURITY.md`).
+ * game's own prose, and never enters git: intake deals with both, once (`SECURITY.md`).
  */
 
 import { assert } from "@std/assert/assert";

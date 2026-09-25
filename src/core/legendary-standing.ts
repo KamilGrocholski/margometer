@@ -45,7 +45,7 @@ export const NO_LEGENDARY_WALK: LegendaryWalk = {
 /**
  * One payload's events onto the walk, in order: a heal in the same payload as its lighting belongs
  * to the run that lighting opened. ⚠️ **A second declaration restarts the run**: over
- * `develop:captures/` on 2026-09-23, nine runs were cut short this way after one or two heals. A
+ * `captures/` on 2026-09-23, nine runs were cut short this way after one or two heals. A
  * heal with no run open is dropped rather than opening one: none of the 171 heals there did.
  */
 export function prepareLegendaryWalk(
@@ -88,7 +88,7 @@ function addHeal(healsByHolder: Map<number, number>, holderId: number | null): v
 /**
  * What stands now, one row per combatant either bonus has anything to say about. A run that has
  * given its stated heals leaves on the payload that carried the last of them. ⚠️ **A run the game
- * stops short stands until the fight ends**: no run over `develop:captures/` outlived its heals, so
+ * stops short stands until the fight ends**: no run over `captures/` outlived its heals, so
  * a turn bound would be a guess.
  */
 export function composeLegendaryStandings(walk: LegendaryWalk): LegendaryStanding[] {

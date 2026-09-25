@@ -104,7 +104,7 @@ export interface CombatantFigures {
     /** Turns granted and spent on nothing, which the game announces itself (`develop ADR 0049`). */
     turnsLost: number;
     /**
-     * Blows, not keys: 20 of the 955 critical blows over `develop:captures/` state both keys,
+     * Blows, not keys: 20 of the 955 critical blows over `captures/` state both keys,
      * 2026-08-30, so a count of keys would overstate the rate.
      */
     blowsCritical: number;
@@ -195,11 +195,11 @@ interface StatisticsBuild extends UnreadMessageCounts {
     outcome: FightOutcome | null;
 }
 
-/** The largest cut in `develop:captures/` holds ten elements against twenty people, 2026-08-28. */
+/** The largest cut in `captures/` holds ten elements against twenty people, 2026-08-28. */
 const CUT_MAXIMUM = 64;
-/** The most one blow fires in `develop:captures/` is 3, 2026-08-30. */
+/** The most one blow fires in `captures/` is 3, 2026-08-30. */
 const PROCS_MAXIMUM = 32;
-/** 81 skills are named across `develop:captures/`, 2026-08-29. */
+/** 81 skills are named across `captures/`, 2026-08-29. */
 const SKILLS_MAXIMUM = 256;
 
 export function countUnreadMessages(counted: UnreadMessageCounts): number {
@@ -505,7 +505,7 @@ function addSkillRestored(
 
 /**
  * A skill is kept under its **name** rather than its id: 346 of the 3,349 announcements over
- * `develop:captures/` on 2026-08-29 carry no id, and a row keyed by nothing merges two skills.
+ * `captures/` on 2026-08-29 carry no id, and a row keyed by nothing merges two skills.
  */
 function getSkillFigures(
     skills: Map<string, TallyingSkillFigures>,
@@ -742,7 +742,7 @@ function addBlowTaken(struck: TallyingFigures, event: AttackEvent, applied: numb
 
 /**
  * Already reduced where it is stated, so it has no raw half. It weighs into the hardest blow at
- * both ends and into no count of blows: of the 249 rows that took damage over `develop:captures/`
+ * both ends and into no count of blows: of the 249 rows that took damage over `captures/`
  * on 2026-08-30, 149 are named by nothing else. ⚠️ **Where nothing announced the blow it rode, it
  * reaches the closing row's cut as well** (`develop ADR 0081`); 0 of 1,175 such figures stand
  * under no announcement there, 2026-09-13.
@@ -793,7 +793,7 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
 
 /**
  * The wound a blow announced, kept against whoever carries it. Only a blow naming both ends and a
- * figure is kept: all 84 in `develop:captures/` do, 2026-09-11 (`develop ADR 0022`).
+ * figure is kept: all 84 in `captures/` do, 2026-09-11 (`develop ADR 0022`).
  */
 function addWoundAnnouncement(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== BATTLE_EVENT.attack) return;
@@ -864,7 +864,7 @@ function addRestoredToNobody(build: StatisticsBuild, amount: number): void {
 
 /**
  * Who put the health back: whoever announced it, or the one healed where the key is theirs on the
- * published help's word. No point of the 3,755,729 restored across `develop:captures/` on
+ * published help's word. No point of the 3,755,729 restored across `captures/` on
  * 2026-08-30 is left without a giver.
  */
 function lookupGiverId(

@@ -95,7 +95,7 @@ const CALL_BEFORE_ENGLISH: Readonly<Record<string, string>> = {
     wojownicyPo: FILE_FIELD.combatantsAfter,
 };
 const INDENT_SPACES = 2;
-/** The largest recording in `develop:captures/` holds 55,095 values, measured 2026-08-29. */
+/** The largest recording in `captures/` holds 55,095 values, measured 2026-08-29. */
 const VALUES_MAXIMUM = 4_194_304;
 /** A fight holds twenty, and each is named at most a handful of times. */
 const NAMES_MAXIMUM = 4096;
@@ -112,7 +112,7 @@ const RECORDING_SUFFIX = ".json";
 export const REMOVED_DESCRIPTION = "(description from the game — removed, NOTICE.md)";
 /**
  * Every marker meaning a description already came out. ⚠️ The second is Polish on purpose: an
- * older tool wrote it into `develop:captures/2026-08-06-tempest-grupa-vs-hildur-…`, and knowing
+ * older tool wrote it into `captures/2026-08-06-tempest-grupa-vs-hildur-…`, and knowing
  * only the current one would remove it as the game's prose and rewrite evidence to today's word.
  */
 const REMOVED_DESCRIPTIONS: readonly string[] = [
@@ -329,7 +329,7 @@ function indexNameSubstitutions(roll: CombatantRoll): Map<string, string> {
         .sort((one, other) => one - other);
     for (const [order, id] of players.entries()) {
         // A digit rather than a letter: `Gracz A`…`Gracz G` name fixed people in the repository's
-        // prose (`develop:NOTICE.md`), while a label here means something in one file only.
+        // prose (`NOTICE.md`), while a label here means something in one file only.
         const label = `Gracz ${order + 1}`;
         for (const name of roll.namesById.get(id) ?? []) {
             const standing = substitutions.get(name);

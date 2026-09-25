@@ -280,7 +280,7 @@ const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([
     [HEALING_REDUCER_KEY, KEY_REACH.otherSide],
     ["active_decblock_per-enemies", KEY_REACH.otherSide],
     ["poison_lowdmg_per-enemies", KEY_REACH.otherSide],
-    // ⚠️ The one the register does not settle. Measured over `develop:captures/` 2026-09-09: after
+    // ⚠️ The one the register does not settle. Measured over `captures/` 2026-09-09: after
     // a `Szadź` the opposing combatant carries `swow_down` in 77 casts of 77.
     [SLOW_ALL_KEY, KEY_REACH.otherSide],
     ["aura-adddmg2_per-meele", KEY_REACH.castersSide],
@@ -293,7 +293,7 @@ const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([
     ["removeslow-allies", KEY_REACH.castersSide],
     ["removestun-allies", KEY_REACH.castersSide],
     // The affected are forced to attack _Postaci, która użyła umiejętności_: you do not force an
-    // ally to strike you. Over `develop:captures/` 2026-09-22, 168 of 168 characters named across
+    // ally to strike you. Over `captures/` 2026-09-22, 168 of 168 characters named across
     // 166 announcements stand opposite the caster.
     [PROVOCATION_KEY, KEY_REACH.otherSide],
 ]);

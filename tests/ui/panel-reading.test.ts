@@ -90,7 +90,7 @@ const SCREENS: PanelMetric[] = [
  * A fight where a pair says more than the row above it **and** one where it says exactly that. Most
  * recordings hold only the first: a boss that both strikes and wounds puts a second kind under
  * every opponent (`src/core/fight-statistics.ts`, develop ADR 0022), and an announcement opens a
- * pair that has only one. Over `develop:captures/` on 2026-08-31 this recording is the widest of
+ * pair that has only one. Over `captures/` on 2026-08-31 this recording is the widest of
  * the four that hold both, at 18 pairs that open against 1 that does not.
  */
 const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json";
@@ -713,7 +713,7 @@ Deno.test("every screen opens, and a row belonging to nobody in the fight opens 
 
     // Every row of a ranking opens, including a combatant nothing has named yet: they stand on
     // the list at zero, and a press that drew nothing would read as a press that did not land —
-    // which is the state every fight is in for its first payloads. Over `develop:captures/` on
+    // which is the state every fight is in for its first payloads. Over `captures/` on
     // 2026-08-29 every recording names everybody before it ends, so the fight is stood up here.
     const opening = tallyFightStatistics([], new Map());
     assertEquals(opening.byCombatantId.size, 0, "a fight nothing has happened in names nobody");
@@ -787,7 +787,7 @@ Deno.test("every point a kind cut is made of states its kind, on every recording
     // never cut, so the count it reached is stated beside what it found.
     assertEquals(cut, 1974, "the kind rows the corpus draws, 2026-09-21");
     // What a blow never carried, and what the cut would have had to call unknown before the key
-    // it moved under was read as a kind: 639,400 over `develop:captures/`, measured 2026-09-06.
+    // it moved under was read as a kind: 639,400 over `captures/`, measured 2026-09-06.
     assertEquals(byKey, 693577, "and the health that moved outside a blow is named by its key");
 });
 
@@ -942,7 +942,7 @@ Deno.test("a list narrowed to one side stands at the height of one", () => {
 
 /**
  * What names **neither** end is the one figure no side can be charged with, and no recording holds
- * any of it — `byNeitherEnd` is zero on all of `develop:captures/`, 2026-08-31 — so the fight is
+ * any of it — `byNeitherEnd` is zero on all of `captures/`, 2026-08-31 — so the fight is
  * built by hand. A blow whose striker and target are both nobody is inside `dealtByNobody` and on
  * no row, which is what makes it a refusal rather than a third side.
  */
@@ -1465,7 +1465,7 @@ Deno.test("a side charged with a point states it, one charged with none draws no
 /**
  * Healing does not cross, so the giver a message left out is charged to the side of whoever it
  * reached — and both screens of one side say the same figure, one apart and one as a cut. No
- * recording states restored health with no giver (`givenByNobody` is zero over `develop:captures/`,
+ * recording states restored health with no giver (`givenByNobody` is zero over `captures/`,
  * 2026-08-31), so the figure is built rather than looked for.
  */
 Deno.test("a giver the protocol left out is charged to the side the health reached", () => {
@@ -1626,7 +1626,7 @@ Deno.test("what reached somebody is cut by the skill's name, whoever announced i
 /**
  * ⚠️ **A section is a cut of the figure over it, so a skill stands in it by what it did.** An
  * announcement on its own once put every aura, shout and heal under `Zadane` at nothing — 285 of
- * the 685 skill rows over `develop:captures/` on 2026-08-30 — and a reader could not tell a skill
+ * the 685 skill rows over `captures/` on 2026-08-30 — and a reader could not tell a skill
  * that dealt nothing from one that was never going to deal anything.
  */
 Deno.test("a skill under damage dealt states damage, or a swing that landed none", () => {
@@ -1657,7 +1657,7 @@ Deno.test("a skill under damage dealt states damage, or a swing that landed none
 /**
  * The other side of the same rule, and the material carries no fight where a skill's every swing
  * was stopped — so the sample is the two messages that shape one. `deno task panel:drill` over
- * `develop:captures/` on 2026-08-30: 53 of the 81 skills announced deal something, and none of the
+ * `captures/` on 2026-08-30: 53 of the 81 skills announced deal something, and none of the
  * other 28 ever swung.
  */
 Deno.test("a skill whose swings all landed nothing still stands, at nothing", () => {
@@ -1950,7 +1950,7 @@ Deno.test("every person row inside an opened row opens onto the pair under it", 
  *
  * Health somebody put into themselves is health they gave, and it is inside the figure on the skill
  * row — so a level that left the caster out stated a smaller number than the row just pressed and
- * said nothing about the difference. Over `develop:captures/` on 2026-08-30 that was 31 of the 74
+ * said nothing about the difference. Over `captures/` on 2026-08-30 that was 31 of the 74
  * levels a reader could then reach, 143,888 points, the largest single drop 13,167.
  *
  * Asked of every kind of part and every screen: a skill, a key and a kind open onto the same shape
@@ -2027,7 +2027,7 @@ Deno.test("a part opened states the figure of the row that opened it, self-casts
  * What no announcement covered is named by the key the game stated it under, so a healing section
  * has nothing left to close against.
  *
- * A row there saying the game had not told us is wrong: the game had. Over `develop:captures/` on
+ * A row there saying the game had not told us is wrong: the game had. Over `captures/` on
  * 2026-08-30 the whole of it is `heal`, `legbon_lastheal` and `legbon_holytouch_heal`, and the
  * help calls the first of those an effect that fires in a turn the combatant stands below the
  * health they started with (article `view,372`, read 2026-08-26) — a regeneration, not a silence.
@@ -2226,7 +2226,7 @@ Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announce
 /**
  * A shape the recordings do not carry, held by a fight built by hand.
  *
- * Measured over `develop:captures/` on 2026-08-29: one announced heal restores anything at all, and
+ * Measured over `captures/` on 2026-08-29: one announced heal restores anything at all, and
  * it restores it to the combatant who announced it. So an announcement reaching somebody **else**
  * is written out here rather than waiting for a recording of it.
  */
@@ -2247,7 +2247,7 @@ function composeAnnouncedHeal(
 }
 
 /**
- * Another shape the recordings do not carry: over `develop:captures/` on 2026-08-31 no kind of
+ * Another shape the recordings do not carry: over `captures/` on 2026-08-31 no kind of
  * damage taken is both dealt by somebody named and ticked with nobody named — the 58 kind rows that
  * open onto nothing are bare movements and nothing else. So the level closing against the row
  * rather than against its own rows is written out here.
@@ -2674,7 +2674,7 @@ Deno.test("a row's card states the turns the figures hold, and not a count besid
  * screen reads `Zwykły cios`: the game announced the blow, and the panel said it had not.
  *
  * The fight is built by hand because no recording reaches the bound: 81 announcement names over
- * `develop:captures/` on 2026-08-30, against a bound of 256. `develop ADR 0055`.
+ * `captures/` on 2026-08-30, against a bound of 256. `develop ADR 0055`.
  */
 Deno.test("a section past its own bound sums what is left, and never calls it unannounced", () => {
     const receiverId = 1;
@@ -2754,7 +2754,7 @@ function composeStatisticsWithSkills(receiverId: number, names: number): FightSt
  * an over-count arrives there as a figure below nothing — and a bar has no length below nothing,
  * so the panel clamps it. What is held here is that the clamp is not the whole answer.
  *
- * `develop:captures/` carries none of this and cannot: `src/core/fight-statistics.ts` asserts the
+ * `captures/` carries none of this and cannot: `src/core/fight-statistics.ts` asserts the
  * balance it is composed under. So the section is made to disagree by taking the figure down under
  * rows that already stood, which is the disagreement rather than a figure that quietly changed.
  */
@@ -2789,7 +2789,7 @@ Deno.test("a section coming to more than its figure is drawn at nought, and answ
 });
 
 /**
- * **The second count, proved by making the two disagree.** `develop:captures/` cannot show this:
+ * **The second count, proved by making the two disagree.** `captures/` cannot show this:
  * every figure the corpus holds reaches a row, which is why a whole summed out of the rows being
  * shared came to a hundred for as long as it did and said nothing.
  *

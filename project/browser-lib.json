@@ -1,6 +1,6 @@
 {
     "//": "The bundle type-checked as what it is: a program in a browser, not in Deno.",
-    "//floor": "`develop:docs/browser-support.md` owns the floor and says what this can and cannot hold.",
+    "//floor": "`docs/browser-support.md` owns the floor and says what this can and cannot hold.",
     "compilerOptions": {
         "lib": [
             "dom",

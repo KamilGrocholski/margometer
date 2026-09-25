@@ -78,7 +78,7 @@ function composeHeal(combatantId: number, amount = 976): BattleEvent {
 }
 
 /**
- * ⚠️ **Seven runs over `develop:captures/` gave all three heals inside the payload that lit
+ * ⚠️ **Seven runs over `captures/` gave all three heals inside the payload that lit
  * them**, so the order inside one payload is what places them: a heal after the lighting is that
  * run's.
  */

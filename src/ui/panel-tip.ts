@@ -85,7 +85,7 @@ const NOTE_MARK_CHARACTERS = 2;
  * The same floor for the name a card opens with, which is lower because the name is the one thing
  * on a card drawn bold and bold is wider. Measured in Chrome 152 on 2026-09-18 at **240 pixels** of
  * type — the 250px bound less the card's padding and its border — over the 31 names
- * `develop:captures/` carries, composed into the place shape a shelf row states (`Nazwa (x, y)`)
+ * `captures/` carries, composed into the place shape a shelf row states (`Nazwa (x, y)`)
  * and read at every prefix length: 2,211 readings, and 27 is the **largest** floor that
  * under-counts none of them. Twenty-eight under-counts four.
  *
@@ -99,7 +99,7 @@ const NAME_CHARACTERS_PER_LINE = 27;
  * Past every card this panel composes: four figures and their parts, the counters, both runs — the
  * criticals, the defences, the procs and what a blow destroyed — and the notes. The tallest card
  * any recording composes is 31 lines and the median 24, over the 1,208 cards the ranking of
- * `develop:captures/` opens on 2026-09-18 — `deno task panel:cards` is what measures it, and this
+ * `captures/` opens on 2026-09-18 — `deno task panel:cards` is what measures it, and this
  * is headroom rather than a limit anything meets.
  */
 const TIP_LINES_MAXIMUM = 64;

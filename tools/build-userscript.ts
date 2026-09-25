@@ -2,7 +2,7 @@
  * The file a reader installs: the bundle under the metadata block a script manager reads
  * (`docs/design.md` §12, step 7). Two checks stand over the built text rather than over the tree,
  * because what ships is the file: it names the version it was built at, and it carries no way of
- * leaving the browser (`develop:SECURITY.md` owns that rule).
+ * leaving the browser (`SECURITY.md` owns that rule).
  *
  *     deno task build            # the version deno.json declares, marked -dev
  *     deno task build 1.2.3      # a release

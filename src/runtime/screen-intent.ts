@@ -125,7 +125,7 @@ function setScreenFight(screen: ScreenState, openedAt: number | null): void {
 /**
  * A fight that opens puts the panel back on its ranking, and only for a reader on the live fight.
  * ⚠️ **A row left open would find somebody in the next fight**: a party keeps its ids from one
- * fight to the next, ten of them shared between `develop:captures/2026-08-15-tempest-grupa-vs-
+ * fight to the next, ten of them shared between `captures/2026-08-15-tempest-grupa-vs-
  * hildur-1` and `-2`, read 2026-08-31.
  */
 export function resetScreenOnOpening(screen: ScreenState): void {

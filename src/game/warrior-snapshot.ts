@@ -14,7 +14,7 @@ import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 
 /**
  * One combatant as the running fight holds them. The keys are the client's own and are the file's
- * as well (`develop:captures/`), which is why this record is spelled in them.
+ * as well (`captures/`), which is why this record is spelled in them.
  */
 export interface CapturedCombatant {
     id: number | null;

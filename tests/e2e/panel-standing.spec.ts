@@ -183,7 +183,7 @@ test("the name is drawn whole, and the cast gives way to a floor", async ({ pane
  * ellipsis, hiding the very name it was drawn to say — and this window has no gesture to reach the
  * rest with. So: **a sentence is never cut, and a row is the only thing allowed to.**
  *
- * A row cuts its words on purpose, because the figure beside them may not fold (`develop:DESIGN.md`), and
+ * A row cuts its words on purpose, because the figure beside them may not fold (`DESIGN.md`), and
  * that is why the exemption is by name rather than by silence.
  */
 test("no sentence is cut, and a row is the only thing that may be", async ({ panel }) => {
@@ -199,7 +199,7 @@ test("no sentence is cut, and a row is the only thing that may be", async ({ pan
  * Every sentence of the window standing wider than the box it is drawn in.
  *
  * A **row** is exempt and by name: it cuts its words on purpose, because the figure beside them
- * may not fold (`develop:DESIGN.md`). Everything else in this window is a sentence, and a sentence a
+ * may not fold (`DESIGN.md`). Everything else in this window is a sentence, and a sentence a
  * reader cannot finish is one this window has no gesture to reach the rest of.
  */
 async function readCutSentences(page: Page): Promise<string[]> {

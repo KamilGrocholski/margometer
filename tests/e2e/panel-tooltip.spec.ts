@@ -11,7 +11,7 @@ import { expect, test } from "./panel-fixture.ts";
 import type { Page } from "@playwright/test";
 import { waitForFrame } from "./panel-page.ts";
 
-/** The add-on's own name, which the first row carries — `develop:SECURITY.md`'s guest rule. */
+/** The add-on's own name, which the first row carries — `SECURITY.md`'s guest rule. */
 const ADD_ON_NAME = "MargoMeter";
 
 test("the add-on's rows land in the game's own tooltips", async ({ panel }) => {

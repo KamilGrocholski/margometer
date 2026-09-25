@@ -125,7 +125,7 @@ export function presentCard(subject: CardSubject): TipReading {
  * **The screen's own figure stands whatever it is, and the other three only above nought.** A
  * screen showing somebody at nothing has to say nothing — that is the answer to what was asked —
  * while the other three at nought are three lines answering nobody. Drawing all four
- * unconditionally printed 580 figures of nought over `develop:captures/` on 2026-09-14, 0.49 to a
+ * unconditionally printed 580 figures of nought over `captures/` on 2026-09-14, 0.49 to a
  * card; this leaves 145, each of them the one a reader pointed at.
  */
 function presentCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine[] {
@@ -242,7 +242,7 @@ function presentCardTurnLine(detail: RowDetail): TipLine {
  * The two runs, each under the heading naming its end, and a run that came to nothing is not
  * drawn at all. **Neither of them turns on the screen**: a reader asking what held has the same
  * card as one asking what landed, and the screen decides only which of the four figures is bold.
- * `develop:DESIGN.md` owns the rest of the card's shape.
+ * `DESIGN.md` owns the rest of the card's shape.
  */
 function presentCardRunGroups(detail: RowDetail, translate: TranslateLabel | null): TipGroup[] {
     const runs = [
@@ -262,7 +262,7 @@ function presentCardRunGroups(detail: RowDetail, translate: TranslateLabel | nul
  * How they struck: what the protocol stated before reduction, how much of it landed critically,
  * what else fired, and what their blows took off the other side. The share is of **blows** and
  * never of the turns the line above states: nothing on this card is divided by a turn
- * (`develop:PRODUCT.md`, `develop ADR 0048`).
+ * (`PRODUCT.md`, `develop ADR 0048`).
  */
 function presentCardStrikingLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
     const lines: TipLine[] = [...presentCardRawLine(detail.damageDealtRaw)];
@@ -296,7 +296,7 @@ function presentCardStrikingLines(detail: RowDetail, translate: TranslateLabel |
  * part of the figure over it, and it is a sum over a narrower set of messages: a blow states a
  * figure before reduction, while damage stated against a name arrives already reduced and health
  * moving outside a blow states no such figure at all (`src/core/fight-statistics.ts`). Over
- * `develop:captures/` on 2026-09-14 it stood **below** the figure it hung under on 296 of 1,184
+ * `captures/` on 2026-09-14 it stood **below** the figure it hung under on 296 of 1,184
  * cards, and on 172 of them below one figure and above the other on the same card.
  * `develop ADR 0087`.
  */
@@ -386,7 +386,7 @@ function presentCardProcLines(
  *
  * **Sliced where `presentCardWordedParts` slices**, so the two walks see one list and no sub-line
  * can count a part the row above it dropped. Pushed inside that row's own turn rather than sorted
- * with the rest, because a sub-line is read through the line above it (`develop:DESIGN.md`).
+ * with the rest, because a sub-line is read through the line above it (`DESIGN.md`).
  */
 function presentCardProcSubParts(
     parts: readonly CutPart[],

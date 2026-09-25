@@ -125,7 +125,7 @@ interface MessageReading {
  * ⚠️ **One payload can carry a whole fight**: a fight joined underway delivers its log in the
  * opening call. The cost is paid inside the game's own `updateData`: a little over two
  * microseconds a message, best of 20 over the 627-message payload of
- * `develop:captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`, 2026-09-11.
+ * `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`, 2026-09-11.
  */
 export const MESSAGES_MAXIMUM = 32768;
 /**
@@ -135,14 +135,14 @@ export const MESSAGES_MAXIMUM = 32768;
  * `develop:docs/unannounced-damage.md` carries the measurement, `develop ADR 0078` the rule.
  */
 const BLOWS_GRANTED_MAXIMUM = 4;
-/** A skill's name is a phrase; the longest in `develop:captures/` is far short, 2026-09-01. */
+/** A skill's name is a phrase; the longest in `captures/` is far short, 2026-09-01. */
 export const NAME_LENGTH_MAXIMUM = 4096;
 
 /** This family may state a second member after the health figure. It is not health. */
 const MEMBER_SEPARATOR = ",";
 /**
  * `amount,element,name(percent%)`. A blank middle member is the plain element, not one of its own:
- * 314 of the 1131 occurrences in `develop:captures/` write it blank, 2026-08-28.
+ * 314 of the 1131 occurrences in `captures/` write it blank, 2026-08-28.
  */
 const NAMED_DAMAGE_MEMBERS = 3;
 /** `amount,name(percent%)`: the figure first, the opposite order from `+oth_dmg`. */
@@ -155,7 +155,7 @@ const NO_WINNER = "?";
 /**
  * What the game puts between the combatant it is talking about and what it has to say, and how it
  * ends a sentence about something other than a turn. 319 of 319 turns lost over
- * `develop:captures/` on 2026-09-03 have this shape, with nothing else matching
+ * `captures/` on 2026-09-03 have this shape, with nothing else matching
  * (`develop ADR 0049`).
  */
 const TURN_LOST_SEPARATOR = " - ";
@@ -279,7 +279,7 @@ function composeStandingAfterMessage(
 
 /**
  * The table's count where the announcement names an id; the bound where it names none. Every id any
- * announcement carried over `develop:captures/` is one the table carries (0 exceptions of 3129,
+ * announcement carried over `captures/` is one the table carries (0 exceptions of 3129,
  * 2026-09-12), and 364 of the 371 announcements without one are an NPC's.
  */
 function getBlowsForAnnouncement(announced: AnnouncedSkill, tables: DecoderTables): number {
@@ -405,7 +405,7 @@ function addValuedKey(
 
 /**
  * A figure of the blow, or the key unread: a value that is no number, and one below nothing. No
- * key of these families has stated one over `develop:captures/` (0 of every value, 2026-09-21), and
+ * key of these families has stated one over `captures/` (0 of every value, 2026-09-21), and
  * a total taking it would go down.
  */
 function addFigure(
@@ -503,7 +503,7 @@ function decodeFightOutcome(
     return { kind: BATTLE_EVENT.fightOutcome, result, combatantNames };
 }
 
-/** A share written with or without a fraction: `30` and `22.5` are both in `develop:captures/`. */
+/** A share written with or without a fraction: `30` and `22.5` are both in `captures/`. */
 function decodeUnaccountedShare(
     key: string,
     value: string,
@@ -664,7 +664,7 @@ function decodeMessageEvents(
         events.push({
             kind: BATTLE_EVENT.unaccountedHealth,
             source: unaccounted.source,
-            // The actor, always: 8 of the 115 in `develop:captures/` name somebody else in the
+            // The actor, always: 8 of the 115 in `captures/` name somebody else in the
             // target, and reading that slot would credit the wrong combatant with the cast.
             combatantId: message.actor?.combatantId ?? null,
             declaredShare: unaccounted.declaredShare,

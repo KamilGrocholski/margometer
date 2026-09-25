@@ -1,7 +1,7 @@
 /**
  * What a mark before a name costs the name, in the browser that draws both.
  *
- * `develop:DESIGN.md` lets a mark ride a row on one argument, and it is about width: `develop ADR 0023` removed
+ * `DESIGN.md` lets a mark ride a row on one argument, and it is about width: `develop ADR 0023` removed
  * a profession letter because it took the one cell allowed to shorten. Nothing in the tree held
  * that — a name the panel shortens is cut with an ellipsis, which overflows no box and reads the
  * same to every other check here, so the cost was invisible to the gate and to this suite alike.

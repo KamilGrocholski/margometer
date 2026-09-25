@@ -1,6 +1,7 @@
 {
-    // The version the rewrite ships as, after `develop`'s 0.19.0; a build handed none marks it `-dev`.
-    "version": "0.20.0",
+    // The last version released. A release commit moves it with `CHANGELOG.md`'s section, and
+    // a build handed none marks it `-dev` (`docs/releasing.md`).
+    "version": "0.19.0",
     "tasks": {
         // The gate. One command, so there is no version of "I ran the tests but not the lint".
         // `-A`: the recordings are read out of git by a subprocess, `tests/recorded-messages.ts`.
@@ -28,6 +29,9 @@
         // The panel in a browser over any recording, stepped by hand, rebuilt and reloaded when a
         // file the bundle reads changes. The page is the one the browser suite drives.
         "preview": "deno run -A tools/preview-server.ts",
+        // The same page as one file somebody without this repository can open, under
+        // `dist/preview/`, which `.github/workflows/pages.yml` publishes with `--release`.
+        "preview:site": "deno run -A tools/preview-site.ts",
         // Every reading of the game this repository stands on, asked whether it is still the
         // game's, and made current again. What a work round starts with (W10), because the gate
         // reaches no network and so cannot tell that one went behind: `frozen/AGENTS.md`.
@@ -89,6 +93,9 @@
         "@std/jsonc": "jsr:@std/jsonc@^1",
         "@std/random": "jsr:@std/random@^0.1"
     },
+    // The browser suite imports an npm package, and `deno check` resolves it through the
+    // `node_modules` npm installs: `npm ci` first, on any fresh checkout and in CI.
+    "nodeModulesDir": "manual",
     "compilerOptions": {
         "lib": ["deno.ns", "dom", "dom.iterable", "esnext"],
         "strict": true,

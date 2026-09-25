@@ -186,7 +186,7 @@ function getStandingTurnState(turn: StandingTurn, hasHolder: boolean): StandingT
  *
  * ⚠️ **The fold takes the cast and not the caster**, because the group is drawn under the okrzyk's
  * name: one caster shouting both of them would otherwise be one group under one name, and the name
- * would be wrong for half of it. No moment in `develop:captures/` shows that, so what this holds is
+ * would be wrong for half of it. No moment in `captures/` shows that, so what this holds is
  * the label rather than a reading anything has seen go wrong. `develop ADR 0097`.
  */
 function presentStandingProvocations(

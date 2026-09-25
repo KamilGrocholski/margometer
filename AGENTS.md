@@ -29,11 +29,19 @@ The documents this branch carries:
 
 - [`docs/design.md`](docs/design.md) — layers, ports, types, the process, the failure map, the
   boundaries, the file format, the build order.
+- [`PRODUCT.md`](PRODUCT.md) — what the add-on is for.
+- [`CONTEXT.md`](CONTEXT.md) — the canonical domain terms.
+- [`SECURITY.md`](SECURITY.md) — the game client, the network, stored data and captured material.
+- [`DESIGN.md`](DESIGN.md) — the panel's look.
+- [`NOTICE.md`](NOTICE.md) — what of somebody else's this repository and its published page hold.
+- [`CHANGELOG.md`](CHANGELOG.md) — what a player is told changed, release by release.
+- [`docs/releasing.md`](docs/releasing.md) — every step of cutting a release.
+- [`docs/browser-support.md`](docs/browser-support.md) — the browser floor and what holds it.
+- [`docs/captured-fights.md`](docs/captured-fights.md) — what each recording holds.
 
-A document joins this list in the commit that creates it (**C9**). Until this branch carries its
-own, `develop:PRODUCT.md` is what the add-on is for, `develop:CONTEXT.md` the canonical domain
-terms, `develop:SECURITY.md` the rules for the game client, the network, stored data and captured
-material, and `develop:DESIGN.md` the panel's look. They bind here as they bind there.
+A document joins this list in the commit that creates it (**C9**). **`develop:path` and
+`develop ADR NNNN` name `develop` as it stood at `fa1dcce`**, before this rewrite replaced it:
+`git show fa1dcce:<path>` reads either. What was carried over from there no longer wears the prefix.
 
 **Target is not proof.** `docs/design.md` is a design constraint, not evidence that a feature
 exists. Do not describe target behaviour as implemented until code and verification agree.
@@ -258,8 +266,8 @@ TypeScript idiom, with the naming rules stated here.
 - **N10.** Files are named for their contents, never their category. `utils.ts`, `helpers.ts`,
   `common.ts`, `misc.ts` and `index.ts` are never created here.
 - **N11.** Types name the thing, not its shape: `CombatantSnapshot`, not `CombatantData`.
-- **N12.** Use the term `develop:CONTEXT.md` gives, and never one it lists under `_Avoid_`.
-  _(`by-reading` whether a word names the concept it is forbidden for)_
+- **N12.** Use the term `CONTEXT.md` gives, and never one it lists under `_Avoid_`. _(`by-reading`
+  whether a word names the concept it is forbidden for)_
 - **N13. A name this repository did not choose is spelled once**, in the map of the adapter that
   reads it (`ENVELOPE_KEYS`, `WARRIOR_FIELDS`), keyed by a name of ours. Everything past the adapter
   — a record, a failure, a defect, a console line — carries our name. Where two files must spell
@@ -350,7 +358,7 @@ TypeScript idiom, with the naming rules stated here.
 ## Evidence and claims
 
 - **V1.** Cite the source for any claim about the game — its documentation, a client asset, or a
-  measurement over the recordings (`develop:captures/`). Negative claims included.
+  measurement over the recordings (`captures/`). Negative claims included.
 - **V2.** A quotation from the client carries its build id; a claim from the published help carries
   the date it was read.
 - **V3.** A claim about a browser names the engine, the version and the date it was read. The
@@ -413,7 +421,7 @@ TypeScript idiom, with the naming rules stated here.
 
 ## Never
 
-- **Send anything over the network from the userscript** (`develop:SECURITY.md` owns the surface).
+- **Send anything over the network from the userscript** (`SECURITY.md` owns the surface).
 - **Automate the game or change how a fight plays out.**
 - **Edit captured material to make a test pass.**
 - **Copy the game's own prose into this repository.** Keys and identifiers are functional and may be

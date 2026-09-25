@@ -123,7 +123,7 @@ function indexBrokenIds(events: readonly BattleEvent[]): Set<number> {
 }
 
 /**
- * ⚠️ **One turn is one payload**: over `develop:captures/` 2026-09-11 the game's own turn number
+ * ⚠️ **One turn is one payload**: over `captures/` 2026-09-11 the game's own turn number
  * moves by one on the very next payload, 24 times out of 24. Where it numbers no turn at all, the
  * mark lasts the payload it was made on and no longer.
  */

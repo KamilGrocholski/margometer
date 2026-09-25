@@ -71,7 +71,7 @@ test.describe("before any fight has happened", () => {
         await expect(panel.host, "the panel is up").toHaveCount(1);
         await expect(panel.at("[data-shelf]"), "and the bar has its other controls").toHaveCount(1);
         // Not disabled and not inert: absent. A control that does nothing is worse than one that
-        // is not there (`develop:DESIGN.md`), and this one handed over an empty envelope (`develop ADR 0053`).
+        // is not there (`DESIGN.md`), and this one handed over an empty envelope (`develop ADR 0053`).
         await expect(panel.at("[data-save]"), "but nothing to save with").toHaveCount(0);
         await panel.expectHonest("a panel that has read no fight");
     });

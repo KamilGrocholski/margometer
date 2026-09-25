@@ -2,7 +2,7 @@
  * The recording a reader hands over, written and read back.
  *
  * The shape is a contract: what this writes has to be the shape every file in
- * `develop:captures/` already is, or new material cannot be set beside admitted material. So the
+ * `captures/` already is, or new material cannot be set beside admitted material. So the
  * test that matters reads a recording out of git and checks the envelope against it, key by key.
  */
 
@@ -34,7 +34,7 @@ import { readRecordedFights, replayRecordedFight } from "#/tests/recorded-fights
 
 /**
  * The newest envelope. `formatVersion` does not identify the shape (every recording of
- * `develop:captures/` states 1, and four envelopes exist among them), so the contract is the
+ * `captures/` states 1, and four envelopes exist among them), so the contract is the
  * newest, named rather than found.
  */
 const NEWEST = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";

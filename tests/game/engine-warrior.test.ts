@@ -63,7 +63,7 @@ Deno.test("a pool of nothing is a pool nobody stated, never an assertion", () =>
 
 /**
  * ⚠️ **A combatant who has fallen carries nothing, whatever their mask still says.** The payload
- * goes on stating one (44 entries of 113 at zero health carry a lit mask over `develop:captures/`,
+ * goes on stating one (44 entries of 113 at zero health carry a lit mask over `captures/`,
  * 2026-09-22), and the client takes the icons down at exactly that point.
  */
 Deno.test("a combatant at nothing carries nothing, whatever their mask states", () => {

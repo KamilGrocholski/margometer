@@ -153,7 +153,7 @@ export interface PayloadCommitted {
 }
 
 /**
- * The longest fight in `develop:captures/` decodes to 811 events, 2026-08-28. The event bound stays
+ * The longest fight in `captures/` decodes to 811 events, 2026-08-28. The event bound stays
  * above the decoder's bound on one payload, because every message leaves at least one event: a
  * bound equal to that one could never be the one that fires.
  */
@@ -243,7 +243,7 @@ function preparePayloadStanding(
     combatants: readonly Combatant[],
 ): SessionStanding {
     // Kept once seen: a payload saying nothing about it would otherwise end the auto fight a reader
-    // is watching. No payload states an auto fight and a queue at once (`develop:captures/`
+    // is watching. No payload states an auto fight and a queue at once (`captures/`
     // 2026-09-09), so what the game stated before it took the fight over is not the turn in hand.
     const isOnAuto = record.isOnAuto ?? before?.isOnAuto ?? false;
     const turnStatement = isOnAuto ? null : (record.turnStatement ?? before?.turnStatement ?? null);

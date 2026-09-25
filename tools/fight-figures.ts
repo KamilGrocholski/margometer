@@ -66,7 +66,7 @@ export function formatFigureReport(replayed: ReplayedFight): string[] {
 
 /**
  * The sides in their own order, and **neither is called ours**: which one the reader was on is
- * stated once in the heading, and no verdict is drawn from it (`develop:CONTEXT.md`, _Side_).
+ * stated once in the heading, and no verdict is drawn from it (`CONTEXT.md`, _Side_).
  */
 function formatSideLines(statistics: FightStatistics, roster: CombatantRoster): string[] {
     const lines: string[] = [];

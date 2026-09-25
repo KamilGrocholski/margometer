@@ -319,7 +319,7 @@ export interface ShownScreen {
     /**
      * Which side the client marks as the reader's own, and null where it named none. It answers
      * two questions at once: whether the strips that narrow to a side are offered at all, and
-     * which side each person's row stands on — `develop:CONTEXT.md`, *Reader's side*.
+     * which side each person's row stands on — `CONTEXT.md`, *Reader's side*.
      */
     readerSide: number | null;
     /**
@@ -517,7 +517,7 @@ const ROWS_SHELF = 11;
 const WAITING_LIST_NAME = "waiting";
 /**
  * How many kinds a pinned row's card states before what is left of them is summed into one line.
- * Measured over `develop:captures/` with `deno task panel:drill` on 2026-09-01: the widest pinned
+ * Measured over `captures/` with `deno task panel:drill` on 2026-09-01: the widest pinned
  * row states four kinds, and 27 of the 28 state three or fewer. Six is headroom rather than a bound
  * anything meets — and a reachable one, because `takenWithNoTarget` folds the ten keys a blow
  * carries in with the seven a bare movement does.
@@ -849,7 +849,7 @@ function renderTipInPlace(
 }
 
 /**
- * The window beside the panel, as one element under the same root — `develop:SECURITY.md`'s
+ * The window beside the panel, as one element under the same root — `SECURITY.md`'s
  * guest rule puts everything a reader meets inside one shadow root under one name.
  */
 function renderStandingWindow(
@@ -1024,7 +1024,7 @@ function renderFold(held: PanelDrawing, isCollapsed: boolean, hasFightToSave: bo
 
 /**
  * The save is drawn only where there is a fight to hand over. A control that does nothing is worse
- * than one that is not there (`develop:DESIGN.md`), and an envelope with no call in it is a file
+ * than one that is not there (`DESIGN.md`), and an envelope with no call in it is a file
  * that looks like a saved fight and is not. `develop ADR 0053`.
  */
 function renderTitle(
@@ -1042,7 +1042,7 @@ function renderTitle(
     const label = renderElement(document, "span", CLASS.titleVersion);
     label.textContent = version;
     // Marked as well as the bar under it. The bar wears `cursor:move` and every child inherits it,
-    // so a label that starts no drag is an affordance that lies (`develop:DESIGN.md`) — and this
+    // so a label that starts no drag is an affordance that lies (`DESIGN.md`) — and this
     // one sits between the name and the controls, where a hand aiming for the bar lands.
     setGripMark(label, PANEL_WINDOW.panel);
     bar.append(label);
@@ -1496,7 +1496,7 @@ function renderSection(
  * The card a person's row opens, and **the same card at every level a person stands on** — the
  * ranking, the ends an opened figure reached, and whom one skill reached. A row with nobody
  * behind it has no card to compose: a skill, a kind and an end the protocol left out fall back
- * on `presentRowTip`. `develop:DESIGN.md` owns the rule; `develop ADR 0032` owns why.
+ * on `presentRowTip`. `DESIGN.md` owns the rule; `develop ADR 0032` owns why.
  */
 function composePersonCard(
     row: RankingRow | OpponentRow,
@@ -1608,7 +1608,7 @@ function renderSideRules(
  * gives. A skill, a kind, an end the protocol left out and a fight on the shelf get this.
  *
  * ⚠️ **A row that opens says so, at every level and not only on the ranking.** Where the note is
- * the card's alone, the 1,576 rows inside an opened one that open (`develop:captures/`, 2026-08-30)
+ * the card's alone, the 1,576 rows inside an opened one that open (`captures/`, 2026-08-30)
  * are told apart from the 588 that do not by the cursor and by nothing else. Half a section being
  * pressable and silent about it teaches a reader that none of it is.
  */
@@ -2184,7 +2184,7 @@ function renderSkillSectionPlain(
     // ⚠️ **Asked once per row and once after the last, so a place past the rows still draws.** A
     // section answering a place it did not reach by drawing nothing would take a figure off the
     // column and leave the shares adding to ninety-something, which is the one thing
-    // `develop:DESIGN.md` says a reader must never be handed.
+    // `DESIGN.md` says a reader must never be handed.
     if (plain.place !== drawn + 1) {
         if (!isLast) return drawn;
         if (plain.place <= drawn) return drawn;
@@ -2403,7 +2403,7 @@ function renderPanelBodyFoot(
             ),
     );
     // Last, and drawn on every screen: what the panel could not do is not about the fight, so it
-    // does not go away when the reader switches to another one — `develop:DESIGN.md`.
+    // does not go away when the reader switches to another one — `DESIGN.md`.
     regions.defects = redraw(
         regions.defects,
         PANEL_REGION.defects,
@@ -2436,7 +2436,7 @@ function renderOutside(
         colour: lookupColourForProfession(null),
         profession: null,
         // No place, so the hatch: its figure is what reached no row rather than what anybody did
-        // — `develop:DESIGN.md`, and `develop ADR 0079`'s test for which kind of row takes one.
+        // — `DESIGN.md`, and `develop ADR 0079`'s test for which kind of row takes one.
         rank: null,
     };
     const tip = {

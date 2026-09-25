@@ -1,6 +1,6 @@
 /**
  * The colours a reading names: the signal inks and the palette professions are drawn in. The rest
- * of the look is the stylesheet's, and it builds on these. `develop:DESIGN.md` owns what they are
+ * of the look is the stylesheet's, and it builds on these. `DESIGN.md` owns what they are
  * for; this file owns what they are.
  */
 
@@ -33,7 +33,7 @@ export const PALETTE_COLOURS: readonly Colour[] = [
 ];
 
 /**
- * The codes are the game's own letters. Every one of the six is stated in `develop:captures/`: 262
+ * The codes are the game's own letters. Every one of the six is stated in `captures/`: 262
  * combatants over the corpus as it stood on 2026-08-29, none without a profession, `w` 91 of them
  * and `b` 17.
  */

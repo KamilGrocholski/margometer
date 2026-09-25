@@ -4,7 +4,7 @@
  * The protocol never puts a skill on a blow: a skill that strikes twice announces once and sends
  * two blow messages, and nothing in the message charges the second. What decides how far an
  * announcement reaches is the table rather than the shape of the payload, and this is where that
- * is re-earned over `develop:captures/` (`develop ADR 0078`).
+ * is re-earned over `captures/` (`develop ADR 0078`).
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";

@@ -1,0 +1,968 @@
+<!--
+  What a player is told changed, release by release. SemVer, and `0.x` promises nothing.
+
+  How an entry is written:
+  - Newest at the top. `[Niewydane]` collects what has not gone out yet.
+  - One flat list per version. Every entry opens with its kind — **Nowość**, **Zmiana** or
+    **Poprawka** — and the kinds run in that order inside a version.
+  - **One sentence, and it is the whole entry.** A player reads a section to decide whether to
+    update, and stops at the first line that is not about that. Whoever wants the detail has the
+    history. The rule is younger than the file: `0.17.0` and every section below it were written
+    under the old one.
+  - From the player's side, in what they can see in the game and in the panel. Never a word of
+    ours and never a key of the game's (AGENTS.md **L3**). The test: would somebody who plays
+    Margonem and has never seen the code understand it?
+  - What a player cannot see — a refactor, a test, a tool — is not an entry. That work is in the
+    commit that did it, and in `docs/adr/` where it was costly to decide.
+  - Written against the last released number, never against the last state of the branch. A
+    regression this cycle opened and closed before the release is not an entry — nobody outside
+    ever had it, so its fix is not a change anybody can see.
+  - At a release: move `[Niewydane]` under the new number with its date, bump `version` in
+    `deno.json`, and push in the order AGENTS.md **G7** states. The rest is
+    `.github/workflows/release.yml`, which takes this version's section as the body of the
+    release (`tools/changelog.ts`) and attaches the built files.
+
+  A section past its tag is not touched — somebody already has that release.
+
+  This file is Polish because a player reads it, which is AGENTS.md **L2**'s exception. This
+  comment is not read by a player, so it is English like everything else here.
+-->
+
+# Zmiany
+
+Wszystkie istotne zmiany w tym dodatku są tu notowane.
+
+> ⚠️ **Wczesna faza (alpha).** Numery `0.x` nie obiecują zgodności — układ panelu, nazwy i zapisane
+> ustawienia mogą się zmienić między wydaniami. Zgodnie z SemVer: przy zerowej wersji głównej
+> wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
+> przed aktualizacją.
+
+## [Niewydane]
+
+- **Poprawka** — Gdy panel nie zdoła odczytać jakiejś chwili walki albo przygotować jej zapisu,
+  dalej ją liczy i mówi, czego nie zrobił, zamiast po cichu przestać się odświeżać.
+- **Poprawka** — Zapisana walka, której panel nie umie już odczytać, jest nazwana dniem i miejscem,
+  zamiast udawać, że żadnej walki nie było.
+
+## [0.19.0] — 2026-09-23
+
+- **Nowość** — Najeżdżając na postać w walce zobaczysz w dymku gry, jaki cios specjalny ładuje i ile
+  tur ładowania już minęło, jakie stany na niej stoją, ile tur wykonała, kto ją sprowokował i na ile
+  jeszcze tur, ile z trzech uleczeń dał jej już dotyk anioła i czy wykorzystała ostatni ratunek.
+- **Nowość** — Przy spowolnieniu i przyspieszeniu dymek podaje też, o ile procent, a tam, gdzie tego
+  nie widać, nie podaje nic.
+- **Nowość** — Strona z podglądem pokazuje obok panelu, co dodatek dopisuje w dymku każdej postaci,
+  i zmienia to razem z odtwarzaną walką.
+- **Zmiana** — Licznik tur prowokacji stoi teraz przy każdej sprowokowanej postaci osobno, a nie raz
+  przy tym, kto krzyknął.
+- **Zmiana** — Tury wykonane i tury utracone stoją teraz obok siebie w jednej linii, rozdzielone
+  ukośnikiem, a zero utraconych jest wypisane zamiast znikać; w walce, w której nikt nie stracił
+  tury, zostaje sama liczba tur wykonanych.
+- **Zmiana** — Licznik tur prowokacji pokazuje teraz, ile tur **zostało**, a nie ile minęło, i to
+  samą parą liczb, na przykład „1 z 3”; pasek ładowanego ciosu zostaje bez zmian, bo to liczby samej
+  gry.
+- **Zmiana** — Z Pomocnika znika lista efektów rzuconych na drużynę: licznik tur przy niej liczył
+  tury rzucającego, a efekt schodzi każdemu z osobna — to, co stoi na danej postaci, powie ci teraz
+  dymek gry po najechaniu na nią.
+- **Zmiana** — Kiedy nikt nie ładuje ciosu i nikt nie jest sprowokowany, Pomocnik pisze „Nic się nie
+  dzieje." zamiast „Nic nie stoi.".
+- **Poprawka** — Prowokacja liczy się teraz turami tego, kogo sprowokowano, a nie rzucającego, więc
+  schodzi z niego wtedy, kiedy naprawdę schodzi.
+- **Poprawka** — Trzy efekty, które panel pokazywał surowym zapisem z protokołu, nazywają się w
+  kartach tak, jak nazywa je twój własny klient gry.
+- **Poprawka** — Zniszczona absorpcja nazywa się na karcie „absorpcja" i „absorpcja magiczna", tak
+  jak wszędzie indziej w panelu i w grze — wcześniej stało tam „wchłanianie".
+- **Poprawka** — Kliknięcie w wiersz panelu albo Pomocnika nie zaznacza już jego tekstu.
+- **Poprawka** — W dużej walce Pomocnik pokazuje wszystkich wyzwanych, a nie pierwszych dwunastu.
+- **Poprawka** — Okna, dymki i menu gry otwierają się teraz nad panelem, a nie pod nim.
+
+## [0.18.0] — 2026-09-21
+
+- **Nowość** — MargoMeter instaluje się teraz jednym kliknięciem ze strony z podglądem, która
+  najpierw prowadzi przez to, bez czego nic nie ruszy: menedżer skryptów i przełącznik w Chrome i
+  Edge.
+- **Nowość** — W Pomocniku przy osobie, która rzuciła okrzyk, stoi teraz jego nazwa, bo te dwa
+  okrzyki nie robią tego samego.
+- **Nowość** — To, co okrzyk robi poza trzymaniem, stoi teraz w „Co stoi" i liczy własne tury.
+- **Zmiana** — Wszystkie głębokie rany liczą się teraz na karcie ciosu w jednym wierszu, a pod nim
+  stoi, ile z nich coś osłabiło.
+- **Zmiana** — Strona z podglądem pokazuje teraz jedną walkę, która odtwarza się sama zaraz po
+  wejściu, zamiast listy nagrań do wybrania.
+- **Poprawka** — Zapisana walka, której nie da się odtworzyć, nie zabiera już całego panelu —
+  zostaje bez liczb tylko ona sama.
+- **Poprawka** — Bardzo długa walka nie zatrzymuje już panelu w trakcie zapisywania, tylko nie
+  mieści się na półce.
+- **Poprawka** — Nietypowa liczba albo nazwa w wiadomości z gry nie gasi już panelu do końca walki.
+- **Poprawka** — Każdy wiersz w Pomocniku ma teraz okienko: cały nick albo pełną nazwę ciosu
+  specjalnego, kto go szykuje, i tury.
+- **Poprawka** — Okienko z opisem łamie teraz długą nazwę na kolejne wiersze, zamiast uciąć ją drugi
+  raz.
+- **Poprawka** — Sześć rzeczy, które robią postacie z najwyższych poziomów, jest już rozpoznawanych,
+  a zniszczenie odporności na truciznę ma własny wiersz na karcie ciosu.
+- **Poprawka** — Rana osłabiona mrozem lub magią i obie osłabione rany zadane bronią pomocniczą są
+  już rozpoznawane i liczą się jak rana osłabiona trucizną.
+- **Poprawka** — Obniżenie odporności na ogień, zimno i błyskawice jest już rozpoznawane, a każdy z
+  trzech żywiołów ma na karcie ciosu własny wiersz.
+- **Poprawka** — Ogłuszenie w ognistej i błyskawicznej odmianie jest już rozpoznawane i staje przy
+  ciosie tak samo jak pozostałe odmiany.
+- **Poprawka** — Niszczenie many przeciwnika jest już rozpoznawane, więc panel nie ostrzega już o
+  nieodczytanej wiadomości, choć sama mana nie wchodzi do żadnej liczby na karcie.
+- **Poprawka** — Udaremnienie ładowania ciosu specjalnego jest już rozpoznawane, więc panel nie
+  ostrzega już o nieodczytanej wiadomości, choć nie zapisuje go żadnej ze stron.
+
+## [0.17.0] — 2026-09-15
+
+- **Nowość** — Liczba, która znaczy mniej, niż mówi jej nazwa, ma teraz obok siebie niebieski znak,
+  a pod kartą jedno zdanie mówiące, czego gra nie podaje. Dotyczy to trzech rzeczy: liczb sprzed
+  redukcji i tego, co zatrzymała obrona — gra nie podaje pancerza ani odporności, więc z tych liczb
+  nie wyjdzie cała redukcja — tur, bo gra nie mówi, ile tur ktoś dostał, tylko co w nich zrobił,
+  oraz wiersza „Zwykły cios", bo gra nie mówi, czym te ciosy zadano. Ten ostatni nosi znak na samym
+  wierszu, więc widać go bez najeżdżania. Znak jest inny niż ostrzeżenie o nieodczytanej wiadomości:
+  tamto mówi, że liczba może być zaniżona w tej walce, a ten, że liczba jest pełna i odpowiada na
+  węższe pytanie, niż się wydaje.
+
+- **Nowość** — Panel mówi teraz, jak się z rozwiniętego wiersza wychodzi. Po najechaniu na ścieżkę
+  nad listą staje okienko z dwoma sposobami: kliknięciem w samą ścieżkę i kliknięciem prawym
+  przyciskiem w dowolnym miejscu panelu. Ten drugi działał od początku i nie było skąd się o nim
+  dowiedzieć.
+
+- **Nowość** — Wiersze w Pomocniku mówią wreszcie, że da się je rozwinąć i zobaczyć, kto rzucił.
+  Rozwijały się i wcześniej, ale nic o tym nie mówiły — wyglądały jak zwykły spis.
+
+- **Nowość** — Wiersz „Zwykły cios" da się teraz rozwinąć i zobaczyć, komu — albo od kogo — te ciosy
+  poszły. Wcześniej trzeba było obejść wszystkich przeciwników po kolei i zbierać liczby z osobnych
+  okienek.
+
+- **Nowość** — Każda zapisana walka mówi teraz, którego dnia się odbyła: przed godziną stoi data, na
+  przykład „13 wrz 21:05". Wcześniej widać było samą godzinę, więc walka sprzed tygodnia wyglądała
+  na półce tak samo jak dzisiejsza. Trwająca walka dalej stoi jako „teraz". Na nazwę miejsca zostaje
+  przez to mniej miejsca i dłuższa bywa ucięta — pełną widać w okienku wiersza.
+
+- **Zmiana** — Okienko wiersza jest teraz tak szerokie, jak to, co w nim stoi. Do tej pory każde
+  miało jedną szerokość, więc okienko z Pomocnika — nazwa umiejętności i jedno zdanie — było równie
+  szerokie co pełna karta postaci i zasłaniało wiersze, po które się na nie najeżdżało. Karta
+  postaci wygląda tak samo jak dotąd: ona tę szerokość wypełnia.
+
+- **Zmiana** — Nowe kolory. Tło panelu jest ciemniejsze i chłodniejsze, a wszystkie barwy —
+  profesji, stron i znaków — rozsunięte tak, żeby żadne dwie nie wyglądały tak samo. Wcześniej
+  ostrzeżenie o niepełnej liczbie miało co do bitu ten sam kolor co Tropiciel, a znak awarii panelu
+  nie odcinał się dość mocno od paska pod nim.
+
+- **Zmiana** — Karta postaci nie pokazuje już największego ciosu, ani zadanego, ani przyjętego. Ta
+  liczba stała pod nagłówkiem o ciosach, a podnosiły ją też obrażenia, których gra nigdy ciosem nie
+  nazwała — bywała więc większa od najmocniejszego ciosu, jaki w walce padł. Zostaje w pliku
+  zapisanej walki, więc nic nie przepadło. Karta jest przy okazji o linię krótsza.
+
+- **Zmiana** — Podpowiedź w okienku wiersza mówi teraz wprost, co się stanie: zamiast „LPM —
+  rozbicie" stoi tam „LPM — rozwiń wiersz". Poprzednie brzmienie trzeba było znać, żeby zrozumieć.
+
+- **Zmiana** — „Zwykły cios" stoi teraz w kolejności jak każdy inny wiersz — z numerem i pełnym
+  paskiem, na miejscu, które daje mu jego liczba. Bardzo często jest to miejsce pierwsze, bo zwykłe
+  ciosy bywają większą częścią obrażeń niż którakolwiek umiejętność.
+
+- **Zmiana** — Wiersze, które naprawdę nie mają swojego miejsca w kolejności — te, o których gra nie
+  powiedziała, kto albo komu — mają teraz skośne kreskowanie na pasku. Wcześniej wyglądały dokładnie
+  jak wiersze z numerem, więc czytało się je jako kolejne miejsce. Kreskowanie znał już wiersz
+  stojący pod listą; teraz noszą je wszystkie wiersze o tym samym znaczeniu, gdziekolwiek stoją.
+
+- **Zmiana** — Udziały na liście sumują się teraz do stu wobec całej walki, a nie wobec tego, co
+  panel zdążył narysować. Gdyby jakaś część nie trafiła na żaden wiersz, stoi pod listą jako „Poza
+  rankingiem" — z kreskowaniem i bez miejsca w kolejności. Wcześniej po cichu podnosiła wszystkie
+  pozostałe udziały.
+
+- **Zmiana** — Karta postaci jest teraz podzielona na części, a każda ma nagłówek mówiący, czego
+  dotyczą stojące pod nim liczby: całej walki, ciosów zadanych albo ciosów przyjętych. Liczba
+  obrażeń przed redukcją przeniosła się pod nagłówek ciosów. Stała wcięta pod sumą z całej walki i
+  bywała od niej mniejsza, bo obejmuje tylko te ciosy, przy których gra taką liczbę podała —
+  wyglądało to na błąd, a było zestawieniem dwóch liczb liczonych z czegoś innego. Zdanie pod
+  liczbami mówi teraz wprost, czego gra nie podaje: ile obrażeń zjadł pancerz i odporność.
+
+- **Zmiana** — Karta nie pokazuje już liczb, które dla danej postaci są zerem. Zostaje ta, o którą
+  pytasz ekranem, nawet gdy wynosi zero — bo to jest odpowiedź na twoje pytanie.
+
+- **Zmiana** — Liczniki na karcie, na przykład ile razy zadziałało przebicie, mają teraz przed sobą
+  `×`. Stały w tej samej kolumnie co obrażenia i nic nie mówiło, które są czym.
+
+- **Poprawka** — W Pomocniku kliknięcie w same liczby przy nazwie — te po obu stronach kreski,
+  mówiące, ile stoi po twojej stronie, a ile po przeciwnej — nie robiło nic, choć kursor nad całym
+  wierszem mówił, że da się go rozwinąć. Trzeba było trafić w nazwę. Teraz odpowiada cały wiersz.
+
+- **Poprawka** — Okienko wiersza z Pomocnika staje teraz obok Pomocnika, a nie na nim. Wcześniej
+  stawało dokładnie na tym oknie i przykrywało wiersze poniżej tego, na który najechałeś — a to
+  właśnie one są tym, co chciałeś zobaczyć. Każde z dwóch okien odpowiada odtąd za swoje okienka
+  samo: stają z jego boku, gdziekolwiek przesuniesz to drugie.
+
+- **Poprawka** — Głęboka rana zadana bronią pomocniczą trafia teraz na kartę postaci, tak samo jak
+  ta z broni głównej i pod tą samą nazwą. Wcześniej cios, który ją zostawił, wyglądał na karcie tak,
+  jakby nic przy nim nie zaszło, a panel stawiał przy takiej walce wątpliwość, że czegoś nie
+  zrozumiał.
+
+- **Poprawka** — Rana, którą coś osłabiło, pokazuje się wreszcie na karcie postaci — obok zwykłej
+  głębokiej rany, jako „osłabiona rana". Wcześniej znikała: panel czytał tylko te zapowiedzi, przy
+  których gra nie podaje żadnej liczby, a przy tej podaje.
+
+- **Poprawka** — Kolejne uderzenia jednej umiejętności liczą się wreszcie do niej, a nie do „Zwykły
+  cios". Gra zapowiada taki cios raz, a zadaje kilka razy — panel widział tylko pierwszy. Dotyczy
+  „Podwójnego trafienia" i „Podwójnego strzału", a także ciosów, które przeciwnicy zadają seriami.
+  Przy kilku postaciach wiersz „Zwykły cios" znika teraz zupełnie, bo nie została pod nim ani jedna
+  liczba.
+
+- **Poprawka** — „Zwykły cios" trzyma wreszcie same ciosy. Trucizna, podpalenie, zranienie i reszta
+  tego, co zabiera życie poza ciosem, stoją teraz pod własnymi nazwami — tak jak od dawna stoją na
+  leczeniu. Na zakładce „otrzymane" prawie ćwierć tego wiersza nigdy nie była ciosem.
+
+- **Poprawka** — Bardzo duża walka — dziesięciu na dziesięciu — czyta się teraz do końca. Kiedy gra
+  podawała w jej trakcie obsadę drugi raz, panel przestawał ją od tego miejsca czytać: liczby
+  stawały i nie ruszały się już do końca walki.
+
+## [0.16.0] — 2026-09-11
+
+- **Nowość** — Pomocnik pokazuje, kto szykuje cios specjalny. Nad tym, co stoi na walce, staje wtedy
+  jeden wiersz: nazwa ciosu tak, jak nazywa go gra, kropka na każdą turę ładowania — zapalona do
+  tego, ile już minęło — i dwie liczby, które rozdziela sam klient gry. Kiedy nikt nic nie szykuje,
+  wiersza nie ma wcale.
+- **Nowość** — Po fakcie ten sam wiersz stoi jeszcze jedną turę i mówi, czym się skończyło:
+  „wykonane" albo „przerwane". Nigdy nie napisze, ile tur ładowania zostało — to wynika z dwóch
+  liczb obok, a gra sama tego nie podaje.
+- **Zmiana** — Typy obrażeń nazywają się teraz słowami z poradnika gry, nie naszymi: „pomocnicze"
+  zamiast „broń pomocnicza", „błyskawice" zamiast „błyskawica" i „trzeci cios" zamiast „trzeci
+  atak". Jednego typu poradnik nie nazywa wcale — ten stoi w panelu surowym słowem gry, tak jak ona
+  je zapisuje, zamiast dawnego „globalne".
+- **Zmiana** — To, co zatrzymało część ciosu, też mówi słowami gry: „absorpcja" i „absorpcja
+  magiczna" zamiast „wchłonięcie" i „wchłonięcie magiczne". „Blok" zostaje bez zmiany.
+- **Poprawka** — W szybkiej walce Pomocnik nie pokazuje już tury sprzed jej włączenia. Gra przestaje
+  numerować tury, kiedy prowadzi walkę za ciebie, więc okno mówi „Szybka walka — gra nie podaje
+  tur.", a po skończonej walce — „Walka się skończyła.". Wcześniej stała tam ostatnia tura, jaką gra
+  zdążyła podać.
+- **Poprawka** — Dwie rzeczy z logu walki były dla panelu nieczytelne i stawiał przy nich
+  wątpliwość: głęboka rana osłabiona trucizną oraz dodatkowe zniszczenie pancerza, kiedy w jednej
+  turze wypadnie i cios krytyczny, i przebicie. Teraz panel czyta jedno i drugie, a ten dodatkowy
+  pancerz stoi w karcie osobno — jako „pancerz z przebicia".
+- **Poprawka** — Długa walka, którą gra oddaje w jednym kawałku — dołączona w trakcie albo
+  prowadzona za ciebie — czyta się teraz w całości. Wcześniej, powyżej pewnej długości, panel
+  przestawał ją czytać w połowie i liczby stawały w miejscu, nic o tym nie mówiąc.
+
+## [0.15.0] — 2026-09-09
+
+- **Nowość** — Obok panelu stoi drugie, mniejsze okno: „Pomocnik". Widać w nim, czyja jest tura, i
+  co w tej chwili stoi na walce: umiejętności rzucone na całą stronę — twoją albo przeciwnika, na
+  przykład Piętno bestii albo Szadź — z liczbą tych, które trwają, po każdej stronie. Naciśnięcie
+  wiersza pokazuje, kto je rzucił i ile tur minęło z tych, które podaje gra: „3 z 8 tur". Drugie
+  naciśnięcie chowa to z powrotem.
+- **Nowość** — Pomocnik nigdy nie napisze „zostało 5 tur". Gra nie mówi, kiedy taka rzecz schodzi,
+  więc stoi tam to, co minęło, i to, ile ma trwać — odjąć możesz sam. Wiersz znika, gdy minie tyle
+  tur, ile gra podaje dla tej umiejętności.
+- **Nowość** — Pomocnika przesuwasz i zwijasz osobno od panelu, za jego własny pasek; możesz go
+  nasunąć na panel, a to, co pokażesz kursorem, i tak narysuje się na wierzchu. Gdzie go postawisz i
+  czy jest zwinięty, zostaje na następną walkę — niezależnie od tego, gdzie stoi panel. Zwinięty
+  zostaje samym paskiem, a kiedy nic nie stoi, pisze o tym jedną linią.
+- **Nowość** — Okrzyki mają w Pomocniku własną sekcję: „Prowokacja". Stoi w niej wiersz na tego, kto
+  rzucił, z liczbą tur, które minęły z tych, jakie podaje gra — a pod nim, z wcięciem, każdy, kogo
+  ten okrzyk trzyma, bo jeden okrzyk potrafi ściągnąć kilka osób naraz. Nowy okrzyk przejmuje po
+  poprzednim, obojętne kto go rzucił i który to z dwóch okrzyków.
+- **Nowość** — Każdy wiersz mówi teraz, po której stronie stoi ta postać: przy prawej krawędzi stoi
+  wąski pasek, zielony po twojej stronie i czerwony po przeciwnej, a dymek dopisuje stronę słowem,
+  obok profesji i poziomu: „Mag (120) · My". Widać go na każdym poziomie i w oknie obok, a przy
+  wierszu, za którym nikogo nie ma, nie ma paska. Na walce, na której gra nie powiedziała, która
+  strona jest twoja, nie ma go nigdzie — dodatek nie zgaduje.
+- **Nowość** — Na liście widać, czyja jest tura: przed imieniem tej jednej postaci stoi „▸". Znika,
+  kiedy walka się kończy, i nie pokazuje się przy walkach odczytanych z zapisanych.
+- **Nowość** — Walka, z której ktoś uciekł, ma teraz swój wynik: obok wygranej, przegranej i remisu
+  panel pisze „ucieczka". Wcześniej takiej walki nie umiał nazwać, a zdanie o ucieczce zaliczał do
+  tego, czego nie odczytał.
+- **Zmiana** — Ostrzeżenie pod listą mówi, jak duże jest i kogo dotyczy: ilu wiadomości z ilu nie
+  udało się odczytać i czyje liczby mogą być przez to zaniżone — do trzech imion, a przy większej
+  liczbie postaci sama ich liczba. Mówi też, czego dokładnie nie wiadomo: czy nie wiadomo, co
+  znaczyła część tego, co powiedziała gra, czy część nie niosła żadnej liczby, czy nie dało się jej
+  rozłożyć na słowa. Wcześniej wszystkie trzy kończyły się tym samym zdaniem, z gołą liczbą bez
+  tego, z ilu.
+- **Zmiana** — Karta postaci pisze tylko o brakach, które dotyczą tej postaci. Wcześniej powtarzała
+  pod nimi ostrzeżenia całej walki — te same, które stoją pod listą — więc w walce dziesięciu na
+  jednego to samo zdanie stało na jedenastu kartach, a na karcie tej postaci, przez którą brak
+  powstał, dwa razy pod rząd.
+- **Zmiana** — Przycisk zapisu pokazuje się tylko wtedy, gdy jest co zapisać. Na świeżo otwartej
+  grze, zanim panel zobaczy jakąkolwiek walkę, nie ma go na belce.
+- **Poprawka** — Licznik tur nie dolicza już tury za przygotowanie ciosu. Kiedy postać uderzała
+  kilku przeciwników naraz, a zaraz potem gra pokazywała, że szykuje umiejętność, panel liczył to
+  jako osobną turę — czasem dwie. Teraz to jedna tura, ta sama, w której padł cios.
+- **Poprawka** — Zapis do pliku bierze tę walkę, którą widzisz. Wcześniej brał tylko tę, którą panel
+  czytał na bieżąco, więc po odświeżeniu strony — kiedy panel pokazuje walkę z zapisanych — pobierał
+  się plik bez niczego w środku. Teraz pobiera się ta walka, na którą patrzysz.
+- **Poprawka** — Walka w mniejszej drużynie nie kończy się już ostrzeżeniem. Kiedy potwór dostaje
+  wzmocnienie za to, że staje przeciw małej grupie, gra mówi o tym na początku walki — panel tego
+  nie rozumiał i zaliczał to zdanie do rzeczy, których nie odczytał. Teraz je odczytuje, a liczby i
+  tak się nie zmieniają: wzmocnienie widać już w życiu potwora i w jego ciosach.
+- **Poprawka** — Blok strzały nie był wcześniej czytany: cios, który się o niego rozbił, panel
+  oznaczał jako wiadomość, której nie rozumie. Teraz stoi przy nim tak samo jak unik i kontra.
+- **Poprawka** — Rozwinięty wiersz nie dopisuje już nadmiaru do „Zwykłego ciosu". Kiedy pozycji było
+  więcej, niż panel rysuje, reszta wpadała do wiersza zamykającego sekcję — a ten mówi o ciosach,
+  których gra nie zapowiedziała, więc panel twierdził coś, co nieprawda. Teraz nadmiar stoi w
+  osobnym wierszu „pozostałe", z kartą mówiącą, że pozycji było za dużo, żeby pokazać każdą — tak
+  samo w cięciu po typie obrażeń, gdzie lądował wcześniej w „Bez podanego typu".
+- **Poprawka** — Karta, która nie mieści się w oknie, oddaje to, co ma najmniej wagi, i mówi o tym
+  jedną linią: „Nie wszystko się mieści w tym oknie." Wcześniej dół karty po prostu ucinało — bez
+  paska, bez znaku i bez sposobu, żeby do niego dojść. Cztery liczby i ostrzeżenia zostają na niej
+  zawsze.
+- **Poprawka** — Rozwinięty poziom rośnie razem z walką. Wcześniej zostawał przy wysokości, jaką
+  miał w chwili otwarcia, więc w trwającej walce sekcja urywała się w połowie.
+- **Poprawka** — Karta pokazuje się też przy dalszych wierszach długich list. Panel liczył, ile kart
+  może być potrzebnych, po samym rankingu, więc w głębi rozwiniętego wiersza dalsze wiersze
+  przestawały ją mieć i nic o tym nie mówiło.
+- **Poprawka** — Półka i lista stoją na własnej wysokości. Półka rysowała się o wiersz krótsza,
+  jeśli ostatnio patrzyłeś na jedną stronę walki — choć na półce stron nie ma — a walka, w której
+  gra stron nie podała, rysowała się na wysokości liczonej dla jednej z nich, jeśli podawała je
+  poprzednia.
+- **Poprawka** — Pasek „My / Oni" mówi, czego dotyczy, także na poziomie otwartym z wiersza
+  „Nieznany sprawca" albo „Nieznany cel": stoi przy nim „Cała walka", bo strony przełączają listę
+  pod spodem, a nie to, co jest otwarte.
+- **Poprawka** — Nieudany zapis mówi o tym od razu. Kiedy panel nie umiał złożyć pliku, przycisk
+  wyglądał na martwy, a wiadomość o tym czekała na kolejną turę walki — więc na półce, między
+  walkami, nie przychodziła wcale.
+- **Poprawka** — Panel nie idzie już za kursorem, kiedy nikt go nie trzyma. Zostały dwie takie
+  drogi: puszczenie przycisku poza panelem tam, gdzie przeglądarka nie mówi o tym panelowi, i
+  naciśnięcie, o którym strona nie powiedziała, gdzie padło.
+
+## [0.14.0] — 2026-09-05
+
+- **Nowość** — Panel mówi, czego nie zdołał pokazać. Pod ostrzeżeniami stoi lista brakujących
+  fragmentów: po jednym wpisie na rodzaj, a przy powtórkach z liczbą, ile razy to się zdarzyło.
+  Wcześniej taki fragment po prostu znikał i nic o nim nie mówiło.
+- **Poprawka** — Dodatek nie przerwie już walki w grze. W rzadkim wypadku, gdy dodatek raz za razem
+  nie umiał odczytać tego, co przychodzi z walki, potrafił zabrać ze sobą samą walkę. Teraz nie ma
+  takiej drogi: cokolwiek się w nim popsuje, gra toczy się dalej.
+- **Poprawka** — Walka, której panel nie umie pokazać, mówi o tym wprost. Wcześniej panel przestawał
+  się odświeżać i zostawiał na ekranie ostatnie liczby, które do końca walki wyglądały na aktualne.
+  Teraz stoi na nim zdanie, że tej walki nie da się pokazać.
+- **Poprawka** — Panel wstaje też wtedy, gdy coś przy starcie pójdzie nie tak — gdy strona nie daje
+  się odczytać za pierwszym razem albo gdy zapisane na półce walki są uszkodzone. Wcześniej w takim
+  wypadku panel nie pojawiał się wcale i nic o tym nie mówiło; teraz jest, z pustą półką, i sam
+  wypisuje, czego mu zabrakło.
+- **Poprawka** — Panel nie wyrywa się już z ręki w trakcie walki. Od pierwszej tury, która doszła w
+  czasie przeciągania, panel zatrzymywał się w chwili, gdy kursor wyszedł poza jego obrys, zostawał
+  w pół drogi i nie zapamiętywał nowego miejsca — a następny ruch myszy nad panelem przesuwał go,
+  choć nikt go już nie trzymał.
+- **Poprawka** — Belkę panelu można złapać na całej długości. Nad numerem wersji kursor obiecywał
+  chwyt, ale panel w tym miejscu nie ruszał się z miejsca — a napis stoi dokładnie tam, gdzie ręka
+  celująca w belkę ląduje. Przyciski po prawej jak dotąd nie przesuwają panelu.
+- **Poprawka** — Kółko myszy dokręca listę do końca. Gdy w trakcie obrotu doszła kolejna tura walki,
+  przewinięcie wracało tam, gdzie się zaczęło, i lista wyglądała, jakby nie chciała się ruszyć.
+
+## [0.13.0] — 2026-09-05
+
+- **Nowość** — Karta postaci mówi, ile tur ta postać wykonała, a pod spodem ile straciła. Tura to
+  jedna akcja: zwykły atak, krok do przodu, użycie umiejętności albo jej przygotowanie — a wszystkie
+  ciosy jednej umiejętności liczą się jako jedna tura, tak jak liczy je gra. Tura, w której postać
+  nic nie zrobiła, bo była ogłuszona, stoi osobno jako „utracone" i gra sama ogłasza je w logu
+  walki. Obie liczby stoją na własnych liniach i panel niczego przez nie nie dzieli.
+- **Poprawka** — Lista zostaje tam, gdzie ją przewinąłeś. Wcześniej każda tura walki przesuwała ją z
+  powrotem na początek, a po wyjściu z rozwiniętego wiersza znów oglądałeś jego górę. Teraz panel
+  wraca w to samo miejsce — także po zwinięciu go do belki i rozwinięciu z powrotem — a wiersz
+  otwierany pierwszy raz zaczyna się od góry.
+- **Poprawka** — Panel nie gubi już listy, kiedy półka jest pełna. Jeśli miałeś na półce komplet
+  zapisanych walk i zaczynała się nowa, lista znikała i zostawał w jej miejscu komunikat o
+  nienarysowanym fragmencie. Teraz trwająca walka mieści się na półce obok wszystkich zapisanych.
+
+## [0.12.1] — 2026-09-01
+
+- **Poprawka** — Przyciski „My" i „Oni" nad listą znów przełączają. Gdy po jednej ze stron walki
+  stała tylko jedna postać — grupa przeciw jednemu bossowi albo ty sam przeciw kilku — naciśnięcie
+  ich nie robiło nic, a panel zostawał na tym, co narysował wcześniej, i do końca walki nie
+  dopisywał już kolejnych ciosów. Wracał do siebie dopiero przy następnej walce.
+
+## [0.12.0] — 2026-09-01
+
+- **Nowość** — Wiersze „Nieznany sprawca" i „Nieznany cel" znów mówią, z czego są. Po najechaniu
+  stoi tam, czego gra nie podała, i — co ważniejsze — czy tę liczbę masz doliczyć do listy nad nią,
+  czy jest w niej już policzona. Przy wybranej drużynie dochodzi trzecie zdanie: z której strony ta
+  liczba jest.
+
+- **Nowość** — W te wiersze można teraz wejść. Pod „Nieznanym sprawcą" stoi lista tych, którym ubyło
+  albo przybyło życia, a pod „Nieznanym celem" — lista tych, którzy uderzyli. To ten koniec ciosu,
+  który gra podała: drugiego dodatek dalej nie zgaduje i nie poda żadnego imienia.
+
+- **Nowość** — I widać w nich, **czym** to poszło. Pod listą osób stoi druga: typy obrażeń, z
+  udziałami, sumujące się do tej samej liczby. Na nagraniach z testów prawie dziewięć dziesiątych
+  tego, czego nikt nie zadał, to trucizna — czyli liczba, która wyglądała na zgubioną, jest zwykłym
+  zatruciem tykającym poza ciosami.
+
+- **Nowość** — Obie te listy da się otworzyć. Naciśnij osobę, żeby zobaczyć, czym ubyło jej życia;
+  naciśnij typ obrażeń, żeby zobaczyć, komu. To ta sama liczba oglądana z dwóch stron, więc jedna
+  lista zawsze zgadza się z drugą.
+
+- **Nowość** — Typy obrażeń widać już po samym najechaniu, bez wchodzenia w wiersz. Karta nad
+  „Nieznanym sprawcą" i „Nieznanym celem" wypisuje je z liczbami i udziałami — te same wiersze i w
+  tej samej kolejności co lista w środku, więc naciśnięcie tylko potwierdza to, co już widać. Gdy
+  typów jest więcej, niż się mieści, ostatni wiersz zbiera resztę, żeby lista zawsze sumowała się do
+  liczby nad nią.
+
+## [0.11.0] — 2026-08-31
+
+Dodatek jest napisany **od zera**, drugi raz po `0.6.0`. Z wersji `0.10.1` nie zostało nic poza
+nagraniami walk, na których sprawdzane są liczby: panel, odczyt walki i to, co dodatek trzyma w
+przeglądarce, są nowe. Kilku rzeczy, które były w `0.10.1`, tu po prostu nie ma — stoją niżej wśród
+**Zmian** i warto je przeczytać przed aktualizacją.
+
+Wszystko, co dodatek zapamiętał, zaczyna się od zera: zapisane walki, położenie panelu, to, czy był
+zwinięty, i wybór miejsca, w którym walki są trzymane. Trzyma to teraz pod innymi nazwami, więc
+starego nie znajdzie, a zapisanych wcześniej walk nie da się już odzyskać.
+
+- **Nowość** — Każdy wiersz, pod którym cokolwiek stoi, da się teraz otworzyć. Wejście w postać
+  prowadzi do tego, co między wami padło — również wtedy, gdy leczyła sama siebie i gdy stoi tam
+  jeden wiersz. Wejście w umiejętność, w rodzaj obrażeń albo w to, czym gra nazwała leczenie,
+  pokazuje, kogo to dosięgło, osoba po osobie. Wcześniej połowa tych wierszy nie robiła nic, a
+  jedynym znakiem, że nie robi, był kursor.
+
+- **Nowość** — Na leczeniu widać wreszcie, czym kto leczył — także wtedy, gdy leczył wyłącznie
+  siebie. Lista tego, czym poszło zdrowie, stoi teraz zawsze, nawet jeśli jest na niej jedna pozycja
+  i jedna osoba.
+
+- **Nowość** — Na zakładce „otrzymane" widać wreszcie, czym cię trafili. Pod postacią, która ci
+  zadała obrażenia, stoi teraz lista jej umiejętności z liczbami, a to, czego gra niczym nie
+  zapowiedziała, zbiera się na dole w jednym wierszu „Zwykły cios". Dotąd ta zakładka mówiła tylko
+  kto i jakim typem obrażeń.
+
+- **Nowość** — Karta postaci mówi teraz, ile obrażeń padło przed redukcją, obok liczby, która
+  naprawdę weszła. Pod liczbami stoi zdanie, czego z tych dwóch nie da się wyliczyć: różnicy nie
+  zatrzymała sama obrona, bo pancerza ani odporności gra nie podaje.
+
+- **Nowość** — Karta mówi też, co padło, kiedy to ciebie trafiali — uniki, kontry, zatrzymane ciosy
+  — obok tego, co padło przy Twoich własnych. Każda z tych połówek stoi pod własnym nagłówkiem, a
+  doszły do nich najmocniejszy przyjęty cios i to, ile z każdej liczby postaci padło pod nieznanym
+  końcem.
+
+- **Zmiana** — Zapisane walki są od teraz trzymane tak, jak przysłała je gra, a nie jako gotowe
+  liczby. Dzięki temu poprawka w odczycie sięga też walk sprzed niej: stara walka z listy pokazuje
+  liczby policzone przez wersję, którą masz teraz, a nie przez tę, która ją zapisała.
+
+- **Zmiana** — Kiedy w przeglądarce brakuje miejsca, najstarsze walki ustępują nowej, zamiast nowej
+  nie zapisać w ogóle. Przypięte zostają, a panel mówi wprost, że musiał zrobić miejsce, i
+  przypomina, żeby przypiąć te, których nie chcesz stracić.
+
+- **Zmiana** — Na belce jest teraz jeden przycisk `⭳` zamiast dwóch. Wcześniej stały tam osobno:
+  jeden kopiował same liczby do schowka, drugi zapisywał surowy zapis walki do pliku — teraz jeden
+  plik niesie jedno i drugie, a w jego nazwie stoi wersja gry i wersja dodatku. Do zgłoszeń
+  wystarczy go załączyć.
+
+- **Zmiana** — Panel otwiera się na środku ekranu, a nie w prawym górnym rogu. Przeciągnięty raz
+  zostaje tam, gdzie go postawisz — tak samo jak dotąd.
+
+- **Zmiana** — Lista w panelu nie ma już paska przewijania przy prawej krawędzi. Przewija się
+  dokładnie tak samo, kółkiem i palcem, a miejsce po pasku dostały nazwy postaci — mieści się ich
+  więcej, zanim zostaną ucięte. To, że lista sięga dalej w dół, widać dopiero po przewinięciu.
+
+- **Zmiana** — Przy nazwie postaci nie stoi już litera profesji. Profesję niesie sam kolor wiersza,
+  a jej nazwę — „Wojownik", „Mag" — razem z poziomem mówi karta, która otwiera się po najechaniu na
+  wiersz. Dwie profesje o zbliżonym kolorze trudniej teraz rozróżnić na samej liście.
+
+- **Zmiana** — To, co pada przy ciosie, nazywa się krócej i naszymi słowami: „krytyk" zamiast „cios
+  krytyczny", „kontra" zamiast „kontratak", „blok" zamiast „zablokowane", „trzeci atak" zamiast
+  „trzeci cios". Dotąd dodatek pytał najpierw Twój własny klient gry i brał nazwę, którą widzisz w
+  oknie walki; teraz pyta go tylko tam, gdzie własnej nazwy nie ma — przy czterech bonusach
+  legendarnych i dwóch rzeczach, o których poradnik gry milczy.
+
+- **Zmiana** — Ostrzeżenia stoją teraz w dwóch miejscach naraz. Znak ⚠ przy nazwie postaci działa
+  jak dotąd: po najechaniu karta mówi, czego przy tej jednej postaci nie dało się odczytać. Pod tym
+  zdaniem stoi jeszcze to, co dotyczy całej walki — to samo, co pod listą — więc widać obie
+  odpowiedzi bez odrywania wzroku od wiersza.
+
+- **Zmiana** — Wiersze „Nieznany sprawca" i „Nieznany cel" mówią mniej. Nie tłumaczą już w karcie,
+  czego gra nie podała ani czy ta liczba jest już policzona w liście nad nimi, i nie da się w nie
+  wejść, żeby zobaczyć, co w tej puli siedzi. Zniknął też trzeci taki wiersz, „Nie do przypisania".
+  Same wiersze stoją tak jak dotąd — również wtedy, gdy patrzysz tylko na swoją albo tylko na drugą
+  stronę, z liczbą po tej stronie, którą gra podała po drugim końcu ciosu. To, czego nie przypisała
+  żadnej ze stron, dalej widać wyłącznie pod „Wszyscy".
+
+- **Zmiana** — Karta postaci nie rozdziela już liczby na „z ciosów" i „poza ciosem". Trucizna, ogień
+  i zranienie liczą się do tej samej liczby co ciosy, ale nie widać już, ile z niej padło bez ciosu.
+
+- **Zmiana** — Karta nie mówi już o prawym przycisku myszy. Kończy się linijką „LPM — rozbicie" i
+  stoi ona tylko tam, gdzie naciśnięcie faktycznie coś otwiera — prawy przycisk wraca tak jak dotąd,
+  tylko nic o tym nie mówi.
+
+- **Zmiana** — Umiejętność, którą ktoś uderzył, a cios został w całości zatrzymany, stoi teraz w
+  rozbiciu przy zerze i mówi, ile razy poszła w ruch. Wcześniej znikała z listy, więc wyglądało to
+  tak, jakby nikt jej nie użył.
+
+- **Zmiana** — Po odświeżeniu strony panel otwiera się na najnowszej zapisanej walce, a nie na tej,
+  którą miałeś wtedy na ekranie. Kiedy zaczyna się następna walka, panel przechodzi na nią — tak jak
+  dotąd.
+
+- **Poprawka** — Naciśnięcie nazwy albo liczby w wierszu z umiejętnością działa tak samo jak
+  naciśnięcie samego wiersza. Dotąd trafienie w napis nie robiło nic.
+
+- **Poprawka** — Cofanie z listy „kogo dosięgła" wraca do postaci, z której się w nią weszło, a nie
+  na sam początek zakładki.
+
+## [0.10.1] — 2026-08-28
+
+- **Poprawka** — Górna belka panelu, ta z nazwą i przyciskami, znów mieści się w jednej linii. W
+  `0.10.0` rozjeżdżała się na dwie, a przycisk `{ }` pękał na pół — panel zabierał przez to trochę
+  więcej miejsca na ekranie, niż powinien.
+
+## [0.10.0] — 2026-08-28
+
+- **Nowość** — Po odświeżeniu strony panel wraca do walki, którą miałeś na ekranie, zamiast napisu,
+  że walki jeszcze nie było; jeśli żadnej nie wybierałeś, pokazuje ostatnią zapisaną. Na liście `☰`
+  ta walka jest zaznaczona, żeby było widać, którą oglądasz. Kiedy wejdziesz w następną walkę, panel
+  sam przechodzi na nią.
+
+- **Nowość** — Panel mówi, gdzie toczyła się walka: nazwa mapy i pole, na którym stałeś, stoją w
+  nagłówku, a na liście `☰` każdy wiersz nosi nazwę mapy. Dwie podobne walki o tej samej godzinie
+  da się wreszcie od siebie odróżnić.
+
+- **Nowość** — Napis, który się nie mieści i jest ucięty, pokazuje się w całości po najechaniu myszą
+  — nazwa umiejętności, imię przeciwnika, mapa czy wiersz na liście walk.
+
+- **Nowość** — Panel czyta trzy rzeczy, które dotąd pokazywał tak, jak zapisała je gra: bandażowanie
+  ran, potężne ogłuszenie mrozem oraz obrażenia od trucizny zadane komuś obok głównego celu. Liczby
+  były i wcześniej — teraz mają nazwy.
+
+- **Zmiana** — Przycisk `☰` działa teraz w obie strony. Pierwsze kliknięcie pokazuje listę
+  zapisanych walk, drugie wraca dokładnie do tego, co miałeś na ekranie — ta sama zakładka i ten sam
+  wiersz, który miałeś otwarty. Napis `‹ wróć` działa jak dotąd.
+
+- **Zmiana** — Tykająca trucizna nazywa się w panelu „zatrucie". Słowo „trucizna" należy teraz do
+  rodzaju obrażeń, tak jak „ogień" należy do niego obok „podpalenia": to dwie różne liczby i nie
+  mogą stać pod jedną nazwą.
+
+- **Poprawka** — Kiedy w walce pada umiejętność osłabiająca leczenie przeciwnej drużyny, panel nie
+  twierdzi już, że czegoś nie zdołał odczytać, i nie zaniża leczenia. Takie osłabienie działa na
+  drugą drużynę, więc leczenie rzucone na całą twoją drużynę jest liczone tak samo jak zwykle. Panel
+  przestaje je liczyć tylko wtedy, kiedy osłabienie poszło w twoją stronę — i mówi to przy wierszu
+  osoby, która leczyła.
+
+- **Poprawka** — Wybór `Trzymaj: tylko teraz` naprawdę nie zostawia już niczego po sobie. Panel
+  przestał pamiętać, którą walkę miałeś otwartą — po odświeżeniu strony wita cię tak, jakby żadnej
+  nie było, bo żadnej nie ma.
+
+## [0.9.0] — 2026-08-26
+
+- **Nowość** — Skończone walki zostają. Przycisk `☰` na belce otwiera listę ostatnich dwudziestu
+  walk: ta, która trwa, i te, które już się skończyły — z godziną, wielkością i tym, jak się
+  skończyły. Kliknięcie wiersza pokazuje tamtą walkę w panelu tak samo, jak pokazuje bieżącą; prawy
+  przycisk myszy wraca. Gwiazdką przypniesz walkę, żeby nie zniknęła, kiedy zrobi się miejsce dla
+  nowych.
+
+- **Nowość** — Na tej samej liście wybierasz, gdzie walki mają być trzymane — na stałe, do
+  zamknięcia karty, albo tylko teraz. Zmiana miejsca przenosi to, co już masz, i czyści poprzednie.
+  Jeśli przeglądarka nie przyjmie walki, panel to napisze zamiast po cichu jej nie zapisać.
+
+- **Nowość** — Panel liczy teraz obrażenia i leczenie, które wcześniej mu umykały: porażenie,
+  głęboką ranę, krwawienie i regenerację potwora — życie, które przeciwnik przywraca sam sobie. Te
+  punkty nie trafiały dotąd do żadnej liczby, więc sumy potrafiły być zaniżone, a panel jedynie
+  ostrzegał, że czegoś nie umie odczytać. Rozpoznaje też potężne ogłuszenie, które potrafi paść przy
+  ciosie przeciwnika.
+
+- **Nowość** — Ostrzeżenie stoi teraz przy tym, kogo dotyczy. Jeśli przy konkretnej postaci czegoś
+  nie dało się odczytać, obok jej nazwy pojawia się ⚠, a szczegóły są w okienku, które otwiera ten
+  wiersz. Wcześniej takie ostrzeżenie wisiało pod całą listą i nie było wiadomo, czyich liczb
+  dotyczy. Pod listą zostaje to, czego nie da się przypisać nikomu.
+
+- **Nowość** — Plik zapisywany przyciskiem `{ }` — ten do zgłoszeń — mówi teraz, która wersja
+  MargoMeter go zapisała i w jakiej przeglądarce działała. Wcześniej opisywał samą walkę, więc
+  zgłoszenie przysłane bez słowa komentarza nie mówiło nic o tym, u kogo się to zdarzyło.
+
+- **Nowość** — Zwinięty panel zostaje zwinięty. Jeśli schowasz go przyciskiem `—` na belce, następne
+  wejście do gry zastanie go schowanym — dotąd wracał rozwinięty po każdym odświeżeniu strony.
+  Rozwinięcie zapamiętuje się tak samo.
+
+- **Zmiana** — Panel nazywa teraz leczenie tak, jak nazywa je gra, i rozdziela dwie rzeczy, które
+  wcześniej stały pod jednym słowem. „Przywracanie życia" to własna statystyka postaci — leczy co
+  turę wyłącznie ją samą i słabnie z każdym wyzwoleniem. „Uleczenie wskazanego" i „uleczenie
+  sojuszników" to ktoś, kto uleczył kogoś innego. Wcześniej wszystkie trzy były „leczeniem".
+
+- **Zmiana** — Wiersz „ujemne leczenie" nazywa się teraz „ujemne przywracanie życia". To ta sama
+  statystyka, tylko zeszła poniżej zera — wtedy zamiast dodawać życie, zabiera je co turę.
+
+- **Poprawka** — Leczenie całej drużyny nie przepada już przez ułamek punktu życia. Gra podaje życie
+  w procentach, więc odtworzona liczba potrafi wypaść o pół punktu ponad maksimum postaci — panel
+  uznawał wtedy, że nie wie, z jakim życiem ta postać weszła do walki, i razem z nią przestawał
+  liczyć każde drużynowe leczenie po tej stronie. Teraz mieści się w tej niedokładności i liczy
+  dalej.
+
+- **Poprawka** — W rozbiciu „Leczenie" zniknął wiersz „Nie wiadomo, czym". Leczenie, którego nic nie
+  zapowiedziało, stoi teraz pod własnymi nazwami — gra je nazywa, tylko panel tego nie pokazywał i
+  wrzucał wszystko do jednego worka.
+
+- **Poprawka** — Panel nie ostrzega już, że nie umie policzyć drużynowego leczenia, w walkach, w
+  których policzył je i wyszło zero. Ostrzeżenie zostaje tam, gdzie odpowiedzi naprawdę nie ma.
+
+- **Poprawka** — Cios, przy którym gra podała liczbę z przecinkiem, nie gubi już wszystkich swoich
+  obrażeń. Wystarczyła jedna taka wartość obok, żeby pięć liczb z tego samego ciosu nie trafiło do
+  żadnej sumy.
+
+- **Poprawka** — Kilka zdarzeń, których panel nie rozumiał, jest już czytanych: umiejętności nazwane
+  przez grę po swojemu, zdejmowanie efektów z sojuszników, drużynowe wzmocnienia ciosów krytycznych
+  i odnowiona absorpcja. Każde z nich stawiało wcześniej ostrzeżenie, że liczby mogą być zaniżone,
+  choć żadne z nich niczego nie zaniżało.
+
+- **Poprawka** — Liczebniki w zdaniach panelu odmieniają się poprawnie: „3 zdarzenia" zamiast „3
+  zdarzeń".
+
+- **Poprawka** — Okienko ze szczegółami zamyka się, kiedy kursor zjedzie z panelu. Potrafiło zostać
+  nad grą i czekało, aż najedziesz na coś innego — najczęściej wtedy, gdy walka już się skończyła i
+  panel nic nie przerysowywał.
+
+- **Poprawka** — Wszystkie paski mają jedną szerokość. Pasek „Nieznany sprawca" i pasek podsumowania
+  na dole rysowały się szersze od pasków postaci nad nimi, więc ta sama liczba wychodziła na nich
+  dłuższa, niż powinna.
+
+- **Poprawka** — Wybór miejsca, w którym trzymane są walki, nie przepada już po cichu. Jeśli
+  przeglądarka nie przyjmie takiego ustawienia, panel zostawia wszystko tak, jak było, i napisze o
+  tym. Wcześniej zaznaczał nowy wybór jako przyjęty, a po wejściu do gry następnym razem walki
+  potrafiły zniknąć z listy.
+
+- **Poprawka** — Rozbicie otwarte na skończonej walce zostaje otwarte, kiedy zaczyna się nowa. Panel
+  wracał na górę listy również komuś, kto oglądał walkę sprzed godziny — a wiersze pod spodem i tak
+  należały do tamtej walki.
+
+## [0.8.1] — 2026-08-22
+
+- **Poprawka** — Procenty w nawiasach sumują się teraz do 100. Wcześniej każdy z nich zaokrąglał się
+  osobno i cała kolumna potrafiła wyjść 97 albo 102 — liczby obok były poprawne, mylił tylko sam
+  procent. Dotyczy zarówno listy postaci, jak i sekcji, które otwierają się po kliknięciu w wiersz.
+
+- **Poprawka** — W rozbiciu „Leczenie" sekcja „OD CZEGO" jest teraz ułożona od największej liczby do
+  najmniejszej, tak jak każda inna lista w panelu. Wcześniej pozycje stały w kolejności przypadkowej
+  i mniejsza liczba potrafiła stać nad większą.
+
+## [0.8.0] — 2026-08-19
+
+- **Nowość** — Leczenie całej drużyny trafia teraz do liczb. Wcześniej panel tylko ostrzegał, że
+  takie leczenie się wydarzyło i że liczby są przez to zaniżone — teraz pokazuje, ile życia wróciło
+  każdej postaci i komu to zawdzięcza. Ostrzeżenie zostaje tylko dla walk, w których nie da się tego
+  policzyć: gdy panel wpiął się w trakcie walki i nie wie, z jakim życiem ktoś do niej wszedł.
+
+- **Nowość** — Nagłówek panelu mówi teraz „remis", gdy walka skończyła się bez zwycięzcy — tak
+  kończy się walka, która dobiła do limitu tur. Wcześniej w takiej walce nagłówek nie mówił nic.
+  Remis widać niezależnie od tego, po której stronie się stało.
+
+- **Zmiana** — Wiersz „Bez sprawcy" rozdzielił się na dwa, bo mówił naraz o dwóch różnych rzeczach.
+  „Nieznany sprawca" to punkty, przy których gra nie podaje, kto je zadał albo kto leczył; „Nieznany
+  cel" — takie, przy których nie podaje, kogo spotkały. Oba liczą teraz wybrany zespół i oba stoją z
+  procentem mówiącym, jaka to część tego, co widać nad nimi.
+
+- **Zmiana** — Pasek pod listą nie wrzuca już do „Bez strony" punktów, które stronę mają. Trucizna,
+  ogień czy ubytek życia bez podanego sprawcy liczą się teraz tej drużynie, której dotyczą —
+  obrażenia w poprzek stron, leczenie po swojej. „Bez strony" zostaje wyłącznie na to, przy czym gra
+  nie nazywa żadnego z końców, więc w praktyce nie widać go wcale.
+
+- **Zmiana** — Okienko postaci dzieli teraz „Zadane" i „Otrzymane" na „z ciosów" i „poza ciosem" —
+  to drugie to trucizna, ogień i zranienie, czyli życie, które ubywa bez ciosu. Wcześniej ta druga
+  linijka nazywała się „bez sprawcy", a to już nieprawda: sprawca części z tych punktów jest znany.
+  Zranienie ma też własny wiersz w rozbiciu na umiejętności, pod nazwą, którą daje mu gra.
+
+- **Zmiana** — Nowa walka wraca na główną listę tej zakładki, w której akurat stoisz. Wcześniej,
+  jeśli panel był wtedy wejściem w postać albo w umiejętność, następna walka rysowała się od razu w
+  tym rozbiciu — na poziomie, o który nikt nie prosił. Wybrana zakładka, zespół i zwinięcie panelu
+  zostają takie, jak je ustawisz.
+
+- **Poprawka** — Panel odpowiada teraz za pierwszym razem, także w środku walki. Wcześniej
+  kliknięcie w zakładkę albo w wiersz często przepadało, jeśli akurat w tej samej chwili z walki
+  przychodziły nowe informacje — trzeba było klikać po kilka razy, żeby cokolwiek się przełączyło.
+  Teraz zmiana zakładki, wejście w postać i cofnięcie się łapią się od razu, niezależnie od tego, co
+  dzieje się w walce.
+
+- **Poprawka** — W Safari przeciąganie panelu nie zaznacza już tekstu pod kursorem. Wcześniej
+  złapanie panelu za belkę tytułową albo pociągnięcie myszką po zakładkach zaznaczało napisy zamiast
+  przesunąć panel. W pozostałych przeglądarkach tego problemu nie było.
+
+- **Poprawka** — Regeneracja, „Dotyk anioła" i „Ostatni ratunek" trafiają wreszcie do postaci, którą
+  leczą. Gra nie podaje przy nich, kto leczy, bo leczą tego, na kim stoją — a panel zostawiał te
+  punkty w wierszu „Nieznany sprawca", choć nie było tu czego zgadywać. W każdej walce, na której to
+  sprawdzono, takie leczenie się pojawiało.
+
+- **Poprawka** — Zranienie, które sączy się przez kolejne tury, trafia teraz do tego, kto je zadał,
+  i liczy się do jego „Zadane". Gra przy samym ubywaniu życia nie podaje napastnika, ale podaje go
+  cios, który to zranienie założył — panel łączy jedno z drugim. Tam, gdzie nie da się tego
+  rozstrzygnąć, punkty zostają w wierszu „Nieznany sprawca".
+
+- **Poprawka** — Leczenie zapowiedziane z imienia trafia do tego, kto leczył, nawet jeśli panel nie
+  potrafi rozpoznać leczonej postaci. Wcześniej takie punkty nie stały w żadnym wierszu ani w żadnej
+  sumie, a panel pisał przy nich, że nic ich nie zapowiedziało — chociaż gra zapowiedziała.
+
+- **Poprawka** — Wiersz, pod którym nie ma nic nowego, nie otwiera się już wcale. Wcześniej wejście
+  w niektóre wiersze — najczęściej w zakładkach z leczeniem — pokazywało jeden wiersz powtarzający
+  dokładnie tę liczbę, w którą się kliknęło.
+
+## [0.7.0] — 2026-08-18
+
+- **Nowość** — Okienko z opisem postaci otwiera się teraz wszędzie tam, gdzie postać stoi na liście,
+  a nie tylko na głównym rankingu. Wejdź w kogoś i najedź na wiersz w „KOMU" albo „OD KOGO" —
+  zobaczysz to samo, co na liście głównej: kto to jest, ile zadał i dostał, jak bił, co mu weszło.
+  Liczby w okienku dotyczą całej walki, nie tylko tego jednego wiersza, i okienko mówi to wprost.
+
+- **Zmiana** — Na liście stoją wszyscy, którzy biorą udział w walce, od pierwszej chwili. Wcześniej
+  postać pojawiała się dopiero wtedy, gdy coś zrobiła albo coś ją spotkało, więc na początku dużej
+  walki lista potrafiła mieć dwa wiersze zamiast jedenastu — a brak wiersza wygląda tak, jakby kogoś
+  w ogóle w tej walce nie było. Teraz każdy stoi na zerze i wychodzi w górę, kiedy zacznie. Na
+  starcie kolejność jest ta, w której gra wypisuje walczących. Liczba nad listą liczy dokładnie
+  tych, których widać, i to samo widać w skopiowanym zgłoszeniu.
+- **Poprawka** — Panel mówi teraz, kiedy część walki do niego nie dotarła, zamiast pokazywać resztę
+  tak, jakby to była całość. Gdy gra przyśle coś w postaci, której dodatek już nie rozpoznaje, na
+  górze pojawia się zdanie o tym, że liczby są zaniżone — wcześniej taka walka po prostu wychodziła
+  na zero i nic tego nie sygnalizowało.
+- **Poprawka** — Dwie zainstalowane kopie dodatku nie policzą już walki dwa razy. Jeśli któraś kopia
+  jest szybsza, druga odsuwa się i mówi o tym w konsoli, zamiast dokładać drugi panel liczący to
+  samo.
+- **Poprawka** — To samo dla składu: jeśli którejś postaci nie da się odczytać, panel to napisze.
+  Wcześniej taka postać znikała po cichu, a obrażenia zadane jej z imienia lądowały w wierszu „bez
+  sprawcy".
+- **Poprawka** — Wiersz „Bez sprawcy" pokazuje wreszcie to, co masz wybrane: liczy ten zespół —
+  „Wszyscy", „My" albo „Oni" — i tę zakładkę, na której stoisz. Wcześniej stała w nim jedna liczba z
+  całej walki, ta sama wszędzie, więc przy przełączaniu zespołu zmieniała się cała lista, a ona nie
+  — a procent obok niej potrafił wyjść większy niż sto. Podpis pod liczbą mówi teraz wprost, czyjego
+  życia dotyczy: komu ubyło albo komu przybyło.
+- **Zmiana** — Efekty w ciosach nazywają się tak, jak nazywa je Twoja własna gra. Dodatek pyta o
+  nazwę klienta, w którym grasz, więc pojawia się dokładnie to słowo, które widzisz w oknie walki —
+  i w tym języku, w którym grasz. Tam, gdzie gra nazwy nie ma, dodatek nadal podaje własną.
+- **Poprawka** — Kilka nazw było po prostu nie z tej beczki. `contra` to **kontratak**, a nie
+  „kontra"; przerwanie ciosu specjalnego opisywaliśmy jako „rozproszenie zaklęcia", czyli coś
+  zupełnie innego; niszczona **absorpcja** chodziła jako „osłona".
+- **Poprawka** — Dwie różne rzeczy przestały się nazywać tak samo: niszczenie pancerza (w punktach)
+  i zniszczenie pancerza do końca stały jedna nad drugą pod jednym podpisem i nie dało się ich
+  rozróżnić.
+- **Poprawka** — Obrażenia fizyczne zadane komuś, kogo gra wskazuje z imienia, trafiały czasem do
+  osobnego wiersza wyglądającego identycznie jak ten obok. To jeden wiersz, tak jak w grze.
+- **Poprawka** — Trzeci cios ma wreszcie nazwę; wcześniej stał w panelu jako surowe słowo z
+  protokołu.
+- **Zmiana** — Okno dodatku ma wreszcie własną nazwę na stronie. Wcześniej było na niej zwykłym
+  kawałkiem bez nazwy, nie do odróżnienia od reszty strony — teraz widać, że należy do dodatku, i
+  widać przy nim numer wersji. Żadna z tych nazw nie może się już zderzyć z niczym, co gra nazywa po
+  swojemu. Tego, co pokazuje samo okno, to nie zmienia.
+
+## [0.6.0] — 2026-08-12
+
+Dodatek jest napisany **od zera**. Z poprzedniej wersji nie zostało nic poza nagraniami walk, na
+których sprawdzane są liczby. Kilku rzeczy, które były w 0.5.0, tu po prostu nie ma — stoją niżej
+wśród **Zmian** i warto je przeczytać przed aktualizacją. Kto ma zainstalowaną 0.5.0, dostanie tę
+wersję sam.
+
+- **Nowość** — Wejście w postać pokazuje, z kim się biła, a wejście w przeciwnika — **czym** w niego
+  biła i jakimi rodzajami obrażeń. Każdy poziom zamyka się w liczbie, z której się w niego weszło,
+  więc widać, gdzie idzie reszta.
+- **Nowość** — Wiersz **„Bez sprawcy"** stoi na każdym ekranie, nie tylko na jednym. To, czego nie
+  da się nikomu przypisać — trucizna, tykające rany, leczenie bez podanego uzdrowiciela — jest wtedy
+  widoczne wszędzie tam, gdzie wpływa na wynik, zamiast po cichu podnosić czyjś udział.
+- **Nowość** — Pasek pod listą podsumowuje walkę: ile zrobili moi, ile oni i ile nie należy do
+  żadnej strony. Dzieli tę samą całość co ranking nad nim, więc udziały na obu zgadzają się co do
+  punktu.
+- **Nowość** — Leczenie czyta się w dwie strony. Postać ma osobno to, co **dostała**, i to, co
+  **dała** — a to są dwie różne liczby, których wcześniej nie dało się zestawić.
+- **Nowość** — Przycisk, który zrzuca do pliku stan **tej jednej walki**, na którą patrzysz, tak jak
+  przyszedł z serwera. To nie jest nagrywanie: nic się nie zbiera, nic nie zostaje w przeglądarce i
+  nie ma czego przeglądać później. Plik jest po to, żeby dołączyć go do zgłoszenia — bez niego
+  zgłoszenie mówi „liczba wygląda źle" i nic więcej. Obok stoi drugi przycisk, który kopiuje same
+  liczby razem z numerem wersji.
+- **Zmiana** — **Archiwum walk, nagrywanie i odtwarzanie zniknęły**, i nic ich nie zastępuje. Panel
+  pokazuje walkę, która trwa, i zostaje na niej do początku następnej — po niej nie ma do czego
+  wracać. Nagrania zrobione w 0.5.0 staną się nie do otwarcia: jeśli któreś jest Ci potrzebne,
+  skopiuj je z archiwum, **zanim** zaktualizujesz dodatek.
+- **Zmiana** — Dodatek nie trzyma w przeglądarce żadnej walki. Odświeżenie strony przeżywa jedno:
+  **położenie panelu**. Wybrana zakładka i filtr składu wracają do domyślnych.
+- **Zmiana** — **Trybu „na turę" nie ma.** W szybkiej walce gra numeruje kilka akcji jednym numerem
+  tury, więc liczba dzielona przez tury bywała nieprawdziwa i nic tego nie zdradzało. Panel pokazuje
+  sumy.
+- **Zmiana** — Dymek ze skrótem statystyk zniknął; to samo, i więcej, pokazuje wejście w postać.
+- **Zmiana** — Skalowanie okna za róg zniknęło. Panel sam nie przekracza wysokości okna, a gdy
+  brakuje miejsca, ustępuje lista, nie nagłówek.
+- **Zmiana** — Zamiast trzech zakładek są dwie — **Obrażenia** i **Leczenie** — a „zadane /
+  otrzymane" jest przełącznikiem obok. Ten sam ranking na dwóch osiach zamiast dwóch osobnych
+  ekranów.
+- **Zmiana** — Efekt, dla którego dodatek nie ma jeszcze polskiej nazwy, pokazuje się tak, jak
+  nazywa go gra. Brzydko i prawdziwie — poprzednio takie rzeczy potrafiły nie pokazać się wcale.
+- **Poprawka** — Gdy jakiegoś fragmentu panelu nie da się narysować, znika sam ten fragment i mówi o
+  tym wprost. Reszta liczb zostaje na ekranie; wcześniej awaria potrafiła zabrać ze sobą całość.
+
+## [0.5.0] — 2026-08-05
+
+- **Zmiana** — Panel liczy z tego, co gra dostaje z serwera w trakcie walki, a nie ze zdań
+  wypisanych w oknie walki. Liczby są te same, ale nazwy efektów biorą się wprost z gry, więc
+  zgadzają się z tym, co widać w oknie — także po aktualizacji Margonema.
+- **Zmiana** — Archiwum zapisuje walki w nowym formacie i **nagrania sprzed tej wersji przepadają**.
+  Lista zaczyna się od zera; jeśli zależy Ci na starych walkach, skopiuj je z archiwum, zanim
+  zaktualizujesz dodatek.
+- **Zmiana** — Zniknęło ręczne wklejanie logu do archiwum. Panel czyta dziś walkę wprost z gry, a
+  tekst spod przycisku **„Kopiuj logi" w oknie walki Margonema** nie jest już dla niego czytelny.
+  Przycisk „kopiuj logi" na pasku nagrywania **w panelu** to co innego i działa jak dotąd — to on
+  kopiuje nagrane walki i to jego wynik przydaje się w zgłoszeniu.
+- **Zmiana** — Gdy licznik nie zdąży podpiąć się do walki, mówi o tym wyraźnym ostrzeżeniem pod
+  statystykami. Bez podpięcia w panelu stoją same zera, które bez tej informacji wyglądałyby jak
+  wynik walki. Zdarza się to przy walkach zaczynających się natychmiast po wejściu na mapę.
+- **Poprawka** — W nagraniach lista postaci po obu stronach jest znów pełna: podział „moi /
+  przeciwnicy" i postacie, które nic nie zdążyły zrobić, pokazują się tak samo jak w trwającej
+  walce.
+- **Poprawka** — Postacie o tej samej nazwie dostają w panelu SWOJE liczby. Dotąd panel zgadywał,
+  która to która, po spadku życia — a gdy obie stały na tyle samo, cała kwota lądowała na jednej z
+  nich. Gra podaje tę informację wprost, więc znika też gwiazdka „liczba niepewna" przy takich
+  wierszach, a przy tej samej nazwie po obu stronach widać wreszcie, kto jest czyj.
+- **Poprawka** — Leczenie rzucone na kogoś innego trafiało w całości do puli „bez sprawcy", choć gra
+  podaje, kto leczył. Teraz zapisuje się leczącemu, a przypis w stopce liczy już tylko to, czego
+  naprawdę nie da się nikomu przypisać — samo „Przywrócono N punktów życia" i tykające efekty. W
+  drużynie z uzdrowicielem ta różnica potrafi iść w setki tysięcy punktów.
+
+## [0.4.0] — 2026-08-04
+
+- **Nowość** — Panel pokazuje numer wersji dodatku, a skopiowane statystyki niosą go razem z
+  liczbami. Zgłaszając, że coś nie zagrało, nie trzeba już zgadywać, której wersji to dotyczy —
+  zwłaszcza że dodatek aktualizuje się sam.
+- **Nowość** — Najechanie na postać pokazuje w dymku trzy jej najsilniejsze pozycje wraz z udziałem
+  — komu zadała, od kogo obrywa albo z czego się leczy, zależnie od wybranej zakładki. Na pytanie
+  „co go tak boli?" odpowiada teraz samo najechanie, bez wchodzenia w postać i wracania. Gdy pozycji
+  jest więcej, dymek mówi, ile zostało na pełnej liście.
+- **Zmiana** — Odznaka z literą profesji stoi teraz przy nazwie postaci wszędzie: na liście składu,
+  w rozbiciu „komu" i „od kogo", w ścieżce powrotu i w dymkach. Sam kolor nie wystarczał, bo dwie
+  postacie tej samej profesji mają go wspólny.
+- **Zmiana** — Panel i okno archiwum wyglądają jak jedno narzędzie: to samo tło, ta sama ramka, to
+  samo podświetlenie pod kursorem.
+- **Zmiana** — Skopiowane statystyki opisują już tylko tę jedną walkę, na którą patrzysz. Wcześniej
+  doklejała się do nich suma wszystkich walk od włączenia gry — liczba, której panel nigdzie nie
+  pokazywał i o której nie było jak się dowiedzieć inaczej niż wklejając skopiowany tekst gdzieś
+  indziej.
+- **Poprawka** — Gdy okno walki napisze linię obrażeń w kształcie, którego licznik nie rozumie,
+  panel mówi o tym wprost zamiast pokazywać liczbę wziętą z sąsiedniej linii albo cios „za zero". Do
+  tej pory taka linia potrafiła przejść bez ostrzeżenia, a w statystykach zostawała wartość, której
+  w logu nie było.
+- **Poprawka** — Zablokowane obrażenia liczą się także wtedy, gdy gra napisze o nich poza opisem
+  ciosu, a gdy licznik nie potrafi ich przypisać do żadnego ciosu — mówi o tym zamiast po cichu je
+  pominąć.
+- **Poprawka** — Ostrzeżenie o nieznanym rodzaju obrażeń zapala się także wtedy, gdy gra oznaczy go
+  cyfrą, a nie literą. Do tej pory taki rodzaj pojawiał się w rozbiciu jako „Nieznany", ale panel o
+  nim nie uprzedzał.
+- **Poprawka** — Zamknięcie okna archiwum kończy liczenie podsumowań. Wcześniej liczyły się dalej, w
+  tle, choć okna nie było już na ekranie — a robiły to kosztem płynności gry.
+- **Poprawka** — Usunięcie jednego nagrania nie każe liczyć od nowa wszystkich pozostałych.
+- **Poprawka** — Dodatek nie uruchamia się już na stronie głównej Margonema (adres bez „www") ani na
+  forum i commonsach w domenie `.com`.
+- **Poprawka** — Ubytki życia, które nie pochodzą od niczyjego ciosu, wchodzą teraz do obrażeń
+  przyjętych zamiast zapalać ostrzeżenie. W walkach, w których ktoś z drużyny rzucał trującą mgłę,
+  panel pokazywał tym postaciom mniej obrażeń, niż naprawdę oberwały. Przy takim ubytku panel pisze
+  **„Bez sprawcy"** — nie zgaduje, że zadał go przeciwnik.
+- **Poprawka** — Kilka komunikatów z walk drużynowych przestaje być niezrozumiałych dla licznika:
+  okrzyk wzmacniający całą drużynę, czar rzucony na siebie i utrata energii. Ostrzeżenie „nieznane
+  linie" zapalało się wtedy bez powodu.
+- **Poprawka** — Trzeci cios tancerza ostrzy ma w rozbiciu własną pozycję. Wcześniej jego obrażenia
+  były liczone, ale nie dało się zobaczyć, skąd pochodzą.
+- **Poprawka** — Nazwa postaci, w którą się weszło, nie mruga już przy przełączaniu zakładek ani w
+  trakcie walki. Wcześniej podświetlenie pod kursorem gasło kilka razy na sekundę, właśnie na tym
+  napisie, który ma dawać znać, że panel trzyma wybraną postać.
+- **Poprawka** — Energia, którą postać sama zyskuje przy ciosie, nie jest już wypisywana w dymku
+  jako efekt sprzętu. Stała tam obok klątw i niszczenia pancerza, czyli obok rzeczy, które cios robi
+  przeciwnikowi — a to jest zysk własny. Zabranie energii lub many przeciwnikowi zostaje, bo efektem
+  jest.
+
+## [0.3.0] — 2026-08-01
+
+Pierwsze wydanie, które **da się pobrać i które samo się aktualizuje**. Wcześniejsze numery istniały
+tylko w repozytorium — jedyną drogą było zbudowanie pliku u siebie.
+
+- **Nowość** — Instalacja jednym kliknięciem i automatyczne aktualizacje. Dodatek ma stały adres
+  pobierania, a rozszerzenie samo proponuje nowszą wersję.
+- **Nowość** — Odznaka z literą profesji przy nazwie postaci. Sam kolor nie wystarczał przy dłuższej
+  liście ani przy wadach wzroku.
+- **Nowość** — Rozbicie według umiejętności, bez względu na cel. Sekcja „CZYM (ŁĄCZNIE)" odpowiada,
+  która umiejętność faktycznie robi robotę — wcześniej trzeba było obejść wszystkie cele i dodać w
+  głowie.
+- **Nowość** — Klik w umiejętność pokazuje, komu zadała. Ten sam gest z przeciwnej strony ciosu;
+  działa też dla obrażeń otrzymanych.
+- **Nowość** — Zablokowane obrażenia i ciosy bardzo krytyczne widać w dymku, a osłabione obrażenia
+  od trucizny nie zaniżają już sumy.
+- **Nowość** — Panel nazywa już wszystkie rodzaje obrażeń, jakie widział. Doszły **broń pomocnicza**
+  (drugie ostrze tancerza) i **globalne** (ciosy bijące we wszystkich naraz).
+- **Zmiana** — Rodzaje obrażeń zwinęły się w rodziny: dziewięć wierszy w rozbiciu zrobiło się
+  siedem.
+- **Zmiana** — Paski są jaśniejsze, żeby tekst na nich dało się przeczytać. Pełną barwę trzyma teraz
+  nasadka na końcu paska.
+- **Zmiana** — Pozycje bez sprawcy zeszły do jednego wiersza na końcu rankingu, zamiast udawać
+  postać wśród postaci. Klik mówi, co w tej puli siedzi.
+- **Zmiana** — Panel pamięta też ustawienia, nie tylko położenie. Wybrana zakładka, filtr składu i
+  tryb „na turę" wracają po odświeżeniu strony.
+- **Zmiana** — Długa sesja przestała rosnąć w pamięci: po 195 walkach **21× mniej zajętej pamięci**
+  i **59× szybsze** liczenie sumy, przy tym samym wyniku.
+- **Zmiana** — Nagrywanie mniej obciąża grę: około **48× mniej zapisów** w trakcie walki.
+- **Poprawka** — Otwarcie archiwum zacinało grę. Przy 190 nagraniach było to ćwierć sekundy
+  zamrożonej gry za każdym razem; teraz panel liczy tylko to, co widać, a reszta dolicza się w tle.
+- **Poprawka** — Uniki pełne i częściowe liczyły się razem, więc licznik uników pokazywał więcej,
+  niż się wydarzyło.
+- **Poprawka** — Dwie postacie o tej samej nazwie po obu stronach wypadały z podziału na zespoły.
+- **Poprawka** — Obrażenia od zranienia nie miały właściciela, choć walka podaje sprawcę wprost. W
+  starciu z Hildur wracają dzięki temu 3 380 punktów dla łowcy.
+- **Poprawka** — Przypis o truciźnie nazywał tak również ogień i rany. Teraz wypisuje, co w tej puli
+  faktycznie jest.
+- **Poprawka** — Leczenia bez sprawcy nie było widać nigdzie — w starciu z Hildur 133 867 punktów.
+  Teraz stoi w stopce, obok trucizny.
+- **Poprawka** — Walki z bossami meldowały nierozpoznane linie, a leczenie drużyny znikało.
+  „Uleczono X o N punktów życia" nie było w ogóle rozumiane, więc kilkadziesiąt tysięcy wyleczonych
+  punktów po prostu nie istniało.
+- **Poprawka** — Leczenie cudzą ręką dopisywało się leczonemu. Teraz jako własne liczy się tylko to,
+  co postać rzuciła na siebie.
+- **Poprawka** — Cios o trzech liczbach potrafił trafić w niewłaściwy rodzaj obrażeń: gdy przeciwnik
+  wytłumił jedną z nich do zera, obrażenia od zimna lądowały pod ogniem. Suma się zgadzała, więc nic
+  tego nie zdradzało.
+- **Poprawka** — Nagrania potrafiły zajmować miejsce mimo skasowania.
+- **Poprawka** — Nagrywanie wracało włączone po komunikacie o braku miejsca.
+- **Poprawka** — Jedna walka trafiała do archiwum jako dwa nagrania, w tym jedno puste.
+- **Poprawka** — Awaria licznika zabierała ze sobą nagrywanie, czyli jedyny zapis, z którego dałoby
+  się ją odtworzyć.
+- **Poprawka** — Kopiowanie meldowało sukces nad pustym schowkiem. Teraz przy odmowie mówi „✕".
+- **Poprawka** — „wyczyść" wyglądał na zepsuty: pytanie „na pewno?" wygasało po pięciu sekundach,
+  ale napis na przycisku zostawał.
+- **Poprawka** — Pytanie o skasowanie nagrania nie wygasało wcale. Wystarczyło kliknąć ✕, odejść i
+  wrócić po godzinie, żeby skasować bez pytania.
+- **Poprawka** — Kopiowanie w podglądzie dawało co innego, niż widać na ekranie.
+- **Poprawka** — Zwinięty panel udawał, że pokazuje bieżącą walkę, choć leciało odtwarzanie
+  nagrania.
+- **Poprawka** — Trzy kliknięcia nie dawały żadnej odpowiedzi: „wczytaj" przy pustym polu, wiersz
+  nagrania, którego już nie ma, i wiersz w rozbiciu leczenia.
+
+## [0.2.0] — 2026-07-30
+
+- **Nowość** — Drążenie obrażeń zadanych według celu: wejście w postać pokazuje, komu zadała, a
+  wejście w cel — czym.
+- **Nowość** — Skalowanie okna za róg w prawym dolnym rogu, jak w polu tekstowym. Rozmiar
+  zapamiętuje się między sesjami, tak jak pozycja.
+- **Nowość** — Kopiowanie statystyk przyciskiem ⧉: bieżąca walka i cała sesja trafiają do schowka.
+- **Nowość** — Nagrywanie walk przyciskiem ⏺ (domyślnie wyłączone). Pasek pod nagłówkiem pokazuje,
+  ile walk i ile miejsca zajmują; nagrywanie przeżywa odświeżenie gry, a limit 1 MB pilnuje, żeby
+  nie zabrakło miejsca samej grze.
+- **Nowość** — Okno archiwum przyciskiem ▤: lista nagranych walk ze składem, godziną, liczbą tur,
+  sumą obrażeń i wynikiem. Kliknięcie wczytuje walkę do panelu z pełnym drążeniem i filtrami, tak
+  jak na żywo.
+- **Nowość** — Odtwarzanie walki przyciskiem ▶: linia po linii, z pauzą, przewijaniem i prędkością
+  1×/2×/4×. Widać, jak ranking przestawiał się w trakcie starcia.
+- **Nowość** — Ręczne wklejenie zapisu walki w archiwum. Liczy się tak samo jak nagranie, ale nie
+  zajmuje miejsca w pamięci przeglądarki.
+- **Nowość** — Żółty pasek PODGLĄD mówi wprost, skąd dane i czyja to walka. Licznik na żywo leci w
+  tle bez przerwy, a „na żywo" wraca do bieżącej walki.
+- **Nowość** — Rozbicie obrażeń według rodzaju (ogień, zimno, błyskawice, trucizna, krwawienie…)
+  jako drugi przekrój obok „czym zadane".
+- **Nowość** — Kolor paska według profesji. Postać poznaje się po barwie, a nie po miejscu na
+  liście.
+- **Zmiana** — Rozbicie leczenia nazwane „OD CZEGO", spójnie z „OD KOGO / KOMU" przy obrażeniach.
+- **Zmiana** — Dodatek nie uruchamia się poza grą: podstrony w rodzaju pomocy są wykluczone, a tam,
+  gdzie nie widać ani gry, ani okna walki, panel się nie rysuje.
+- **Zmiana** — Zakładka „Tury" wycofana z opisu wydania 0.1.0 — nigdy nie dało się jej wybrać.
+  Średnia „na turę" jest za to w każdym wierszu.
+- **Poprawka** — Walki grupowe gubiły część statystyk. Leczenie potworów, utrata tury z powodem,
+  wzmocnienie za małą grupę, ładowanie ciosów specjalnych i „Ostatni ratunek" są już rozumiane.
+- **Poprawka** — Dymek nad wierszem wczytanego nagrania znów się pokazuje. Wcześniej nie pojawiał
+  się wcale, a przy walce z postacią o tej samej nazwie pokazywał cudze liczby.
+- **Poprawka** — Kliknięcia w trakcie odtwarzania nie giną. Przy prędkości 4× nie dało się wcześniej
+  nawet wyjść z podglądu bez pauzy.
+- **Poprawka** — Okna nie da się już zgubić za krawędzią ekranu, także po zmianie rozdzielczości.
+- **Poprawka** — Prawy przycisk w polu wklejania otwiera normalne menu przeglądarki zamiast cofać
+  widok. Bez tego nie dało się wkleić myszą.
+- **Poprawka** — Wpisany tekst nie znika po zakończeniu walki w tle, a lista archiwum nie przewija
+  się sama na górę.
+- **Poprawka** — Dymek rysuje się nad panelem i nad archiwum, a nie pod nimi.
+- **Poprawka** — Suma sesji liczy poprawnie rozbicie „komu zadał". Dotąd zatrzymywała się na
+  pierwszej walce.
+
+## [0.1.0] — pierwsze wydanie
+
+- **Nowość** — Nakładka z licznikiem obrażeń nad grą, czytana na żywo z okna walki.
+- **Nowość** — Zakładki: **Zadane**, **Otrzymane**, **Leczenie**.
+- **Nowość** — Filtr składu **Wszyscy / Mój zespół / Przeciwnicy** oraz przełącznik **na turę**.
+- **Nowość** — Dymek ze skrótem statystyk postaci; przeciąganie i zwijanie nakładki z zapamiętaną
+  pozycją.
+- **Nowość** — Obsługa światów `*.margonem.pl` i `*.margonem.com`.

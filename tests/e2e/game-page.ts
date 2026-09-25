@@ -43,6 +43,13 @@ export interface PanelPageOptions {
     userscriptName: string;
     /** What stands after the driver: nothing for a test, the stepping strip for `deno task preview`. */
     afterDriver?: string;
+    /** What runs before the bundle does: the published page seeds where the windows stand. */
+    beforeBundle?: string;
+    /** The published page is read by players, in Polish (L2); a test's is read by nobody. */
+    title?: string;
+    language?: string;
+    /** Where the scripts are asked for: the root when served, beside the page when published. */
+    scriptDirectory?: string;
 }
 
 /**
@@ -66,7 +73,9 @@ const ENGINE_LATE_MILLISECONDS = 700;
 
 /**
  * The whole page, and the order of its tags is the mechanism: probe, game, decoy, bundle, settings,
- * driver. Nothing here touches storage — the browser's own is what the reload tests are about.
+ * driver. Nothing here touches storage — the browser's own is what the reload tests are about — and
+ * only a caller's `beforeBundle` does, the published page seeding where its windows stand. The
+ * empty icon keeps a browser from asking the host for one, whose miss is a line on the console.
  */
 export function composePanelPage(options: PanelPageOptions): string {
     const settings = JSON.stringify({ calls: options.calls, fedThrough: options.fedThrough })
@@ -76,16 +85,19 @@ export function composePanelPage(options: PanelPageOptions): string {
         : options.engine === "late"
         ? composeGameLate(options.place)
         : composeGame(options.place);
-    const bundle = `<script src="/${options.userscriptName}"></script>\n`;
+    const directory = options.scriptDirectory ?? "/";
+    const bundle = `<script src="${directory}${options.userscriptName}"></script>\n`;
     const second = options.doesLoadTwice ? bundle : "";
+    const before = options.beforeBundle ?? "";
     return `<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><title>MargoMeter end to end</title></head>
+<html lang="${options.language ?? "en"}">
+<head><meta charset="utf-8"><link rel="icon" href="data:,">
+<title>${options.title ?? "MargoMeter end to end"}</title></head>
 <body>
 <script>${composeProbe()}</script>
 <script>${game}</script>
-<script src="/${GAME_SCRIPT_NAME}"></script>
-${bundle}${second}<script id="${SETTINGS_ID}" type="application/json">${settings}</script>
+<script src="${directory}${GAME_SCRIPT_NAME}"></script>
+${before}${bundle}${second}<script id="${SETTINGS_ID}" type="application/json">${settings}</script>
 <script>${composeDriver()}</script>
 ${options.afterDriver ?? ""}</body>
 </html>

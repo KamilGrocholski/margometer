@@ -45,7 +45,7 @@ export type GrammarRefusal =
     | { kind: typeof GRAMMAR_REFUSAL.sideUnreadable; end: MessageEnd }
     | { kind: typeof GRAMMAR_REFUSAL.parameterKeyEmpty; index: number };
 
-/** The longest message in `develop:captures/` carries 42 segments, 2026-08-28. */
+/** The longest message in `captures/` carries 42 segments, 2026-08-28. */
 export const SEGMENTS_MAXIMUM = 512;
 
 const SEGMENT_SEPARATOR = ";";

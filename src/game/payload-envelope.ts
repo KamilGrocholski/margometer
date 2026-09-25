@@ -69,7 +69,7 @@ export const ENVELOPE_KEYS: FieldKeys<EnvelopeField> = {
     combatants: "w",
 };
 
-/** Ten entries wide in all 1022 payloads of `develop:captures/` stating a queue, 2026-09-02. */
+/** Ten entries wide in all 1022 payloads of `captures/` stating a queue, 2026-09-02. */
 const QUEUE_ENTRIES_MAXIMUM = 1024;
 
 export function readPayloadEnvelope(payload: unknown): Result<PayloadRecord, EnvelopeFailure> {
@@ -159,7 +159,7 @@ function readPayloadEnvelopeInteger(
 
 /**
  * The turn in progress: the queue's least ordinal, and whose it is. ⚠️ **Only its least entry is a
- * statement.** The rest are the client's forecast: over `develop:captures/` (2026-09-08) the step
+ * statement.** The rest are the client's forecast: over `captures/` (2026-09-08) the step
  * one ahead is wrong 11 times in 451, and the ninth 100 times in 277.
  */
 function readPayloadEnvelopeTurn(
@@ -198,7 +198,7 @@ function readPayloadEnvelopeTurn(
 
 /**
  * The warrior entries, as a list. The client keys its warriors by id in every payload of
- * `develop:captures/` carrying any; a list of them is the same people in order, and is read so.
+ * `captures/` carrying any; a list of them is the same people in order, and is read so.
  */
 function readPayloadEnvelopeWarriors(payload: UnknownRecord): Result<unknown[], EnvelopeFailure> {
     const keyed = getRecordField(payload, ENVELOPE_KEYS, "combatants");

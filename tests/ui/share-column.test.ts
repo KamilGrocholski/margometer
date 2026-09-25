@@ -1,5 +1,5 @@
 /**
- * Every column of shares the panel draws comes to a hundred (`develop:DESIGN.md`).
+ * Every column of shares the panel draws comes to a hundred (`DESIGN.md`).
  *
  * A section short of the whole is the failure this repository exists to prevent, one rung down: a
  * reader adds the rows, gets ninety-four, and has no way of knowing whether six points went

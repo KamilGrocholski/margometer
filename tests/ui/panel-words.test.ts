@@ -885,7 +885,7 @@ Deno.test("a share is spelled in whole points, and a figure too small to round s
 /**
  * The figure every reader sees, and what it does with one that is not a figure. It must not stop
  * the panel; the word for *not known* is what the panel already has, and zero is not it —
- * `develop:CONTEXT.md` keeps those apart. **E12**, develop ADR 0051.
+ * `CONTEXT.md` keeps those apart. **E12**, develop ADR 0051.
  */
 Deno.test("a figure that is not one is said as not known, and never as a number", () => {
     for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, 1e21]) {
@@ -1281,7 +1281,7 @@ Deno.test("the live row says when it is without a date", () => {
  * late has a figure short by an amount nothing states (`develop:docs/turns-taken.md`). The panel
  * says so over its own figures; this block has no room for that sentence, so the row goes rather
  * than standing unqualified — a **Suspect** is marked beside the figure it concerns, or it is not a
- * suspect but a wrong number (`develop:CONTEXT.md`).
+ * suspect but a wrong number (`CONTEXT.md`).
  */
 Deno.test("a fight the panel walked into says nothing about turns taken", () => {
     const whole = presentTooltipRows(

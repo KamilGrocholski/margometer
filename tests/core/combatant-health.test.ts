@@ -1,7 +1,7 @@
 /**
  * The health arithmetic, against the client's own three figures.
  *
- * Every snapshot in `develop:captures/` states health, its maximum and the percentage the protocol
+ * Every snapshot in `captures/` states health, its maximum and the percentage the protocol
  * would carry, so the reading can be checked against the client rather than against itself.
  */
 
@@ -34,7 +34,7 @@ Deno.test("a wider pool is read less exactly, and says so", () => {
         deriveHealthTolerance(325584) > deriveHealthTolerance(745),
         "the band a percentage stands for is a share of the pool",
     );
-    assertEquals(deriveHealthTolerance(325584), 17, "the widest pool in `develop:captures/`");
+    assertEquals(deriveHealthTolerance(325584), 17, "the widest pool in `captures/`");
 });
 
 Deno.test("the client's own percentage is its health rounded to two places", () => {

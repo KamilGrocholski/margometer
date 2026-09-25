@@ -182,7 +182,7 @@ function readGroup(group: TipGroup): string[] {
  * protocol states one on a blow and nowhere else, while an applied figure grows from blows, from
  * damage named against somebody and from health moving outside one — so drawn under the applied
  * figure it read as a part of it and was **smaller** than the number it hung beneath on 296 of the
- * 1,184 cards over `develop:captures/`, and on 172 of those smaller than one and larger than the
+ * 1,184 cards over `captures/`, and on 172 of those smaller than one and larger than the
  * other on the same card, measured 2026-09-14. In the run there is no figure above it to be read as
  * a part of. `develop ADR 0087`.
  */
@@ -222,7 +222,7 @@ Deno.test("a figure before reduction stands in its own run, under no figure", ()
         "and the sentence saying not to subtract one from the other is still owed",
     );
     // Raw is gone and what a defence stopped is not, and that figure is one component of the
-    // reduction too (`develop:CONTEXT.md`) — so the sentence is still owed by the other figure.
+    // reduction too (`CONTEXT.md`) — so the sentence is still owed by the other figure.
     const stopped = readCardOf({ ...HILDUR, damageDealtRaw: 0, damageTakenRaw: 0 });
     assertEquals(
         stopped.filter((line) => line.includes(CARD_WORDS.raw)),
@@ -260,7 +260,7 @@ function readCardOf(detail: RowDetail): string[] {
 }
 
 /**
- * The fifth claim `develop:CONTEXT.md` names, and it is not the suspect mark: a caveated figure is
+ * The fifth claim `CONTEXT.md` names, and it is not the suspect mark: a caveated figure is
  * complete and answers a narrower question than its label, whatever was recorded.
  * `develop ADR 0088`.
  */
@@ -290,7 +290,7 @@ Deno.test("a figure naming more than it counts wears a mark, and the mark has a 
 /**
  * Two claims, and a reader meets both on one card: a figure that answers a narrower question than
  * its label, and a figure that may be short because a message went unread. Collapsing them is
- * `develop:CONTEXT.md`'s own failure case — the permanent reads as temporary and the temporary as
+ * `CONTEXT.md`'s own failure case — the permanent reads as temporary and the temporary as
  * permanent — so the test is over the composed card and not over the two constants, which the
  * compiler already tells apart (**A12**).
  */
@@ -410,7 +410,7 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
 
 /**
  * The whole path: a key this repository has no word for, through the card, to what a reader sees.
- * `develop:captures/` carries all six — `-tenacity` on 20 blows, 2026-08-30 — so today every one of
+ * `captures/` carries all six — `-tenacity` on 20 blows, 2026-08-30 — so today every one of
  * them stands in a card as raw protocol. `develop ADR 0024`.
  */
 Deno.test("a key nothing here words is drawn as the player's own client names it", () => {
@@ -450,7 +450,7 @@ Deno.test("a key nothing here words is drawn as the player's own client names it
  * **Zero is an answer, and only to the question that was asked.** A screen showing somebody at
  * nothing has to say nothing — that is what the reader pointed at — while the other three at nought
  * answer nobody and cost three lines. Drawn unconditionally the four printed 580 figures of nought
- * over `develop:captures/` on 2026-09-14, 0.49 to a card; the screen's own alone leaves 145.
+ * over `captures/` on 2026-09-14, 0.49 to a card; the screen's own alone leaves 145.
  * `develop ADR 0087`.
  */
 Deno.test("a combatant the fight never touched states the figure that was asked, at nought", () => {
@@ -859,7 +859,7 @@ Deno.test("one wound weakened out of two draws the sub-line all the same", () =>
 
 /**
  * The card the decision was made on. Combatant `28940` in
- * `develop:captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` announced six deep
+ * `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` announced six deep
  * wounds, every one of them weakened by poison, and until `develop ADR 0095` their card carried no
  * count of wounds at all — the row they could see was a part of one they could not.
  */
@@ -872,7 +872,7 @@ Deno.test("a combatant whose every wound was weakened still has a count of wound
 });
 
 /**
- * A sub-line is read through the line above it (`develop:DESIGN.md`), so it rides with that line.
+ * A sub-line is read through the line above it (`DESIGN.md`), so it rides with that line.
  *
  * **A row stands on either side of the narrowed one**, because a wound row drawn last reads the
  * same whether its sub-line rides with it or is pushed after every row on the card: moving the

@@ -48,7 +48,7 @@ const DATED: StatedSkills = STATED_SKILLS;
 const OURS = 1;
 const THEIRS = 2;
 
-/** Two on the reader's side and one against, which is every recording in `develop:captures/`. */
+/** Two on the reader's side and one against, which is every recording in `captures/`. */
 const ROSTER = composeRoster(2, 1);
 
 /** Both skills as the published table states them: three turns, and six characters covered. */
@@ -58,7 +58,7 @@ const SHOUTS = [
 ];
 
 /**
- * `develop:captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`: a Wojownik and a
+ * `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`: a Wojownik and a
  * Paladyn shout at one monster, interleaved — the only shape in the corpus where the overwrite is
  * observable.
  */
@@ -274,7 +274,7 @@ Deno.test("a skill whose keys disagree reaches both sides, which is not a failed
 /**
  * ⚠️ **This pair used to be the one above, on a reading that was backwards.** `shout` was held to
  * reach the caster's side — the help has the affected attacking whoever cast it, and over
- * `develop:captures/` 168 of 168 named characters stand opposite the caster — so `Wyzywający
+ * `captures/` 168 of 168 named characters stand opposite the caster — so `Wyzywający
  * okrzyk`, whose every key faces the other side, reaches only that side and never both.
  */
 Deno.test("a skill whose keys all face the other side reaches that side alone", () => {

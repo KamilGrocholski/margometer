@@ -203,7 +203,7 @@ interface PinnedShape {
 
 /**
  * The part of a screen's figure that reached no row at all. It takes no place in the ranking and
- * wears the hatch every such row wears (`develop:DESIGN.md`), and it has no card of its own to
+ * wears the hatch every such row wears (`DESIGN.md`), and it has no card of its own to
  * open: what it is made of is the one thing nobody can state, which is what makes it this row.
  */
 export interface OutsideRankingRow {
@@ -322,7 +322,7 @@ export interface ScreenReading {
     pinned: PinnedRow[];
     /**
      * What the screen's own count holds that no row of it does. Null where there is none, which is
-     * every reading `develop:captures/` produces — it is drawn by a probe and by nothing else
+     * every reading `captures/` produces — it is drawn by a probe and by nothing else
      * today.
      */
     outsideRanking: OutsideRankingRow | null;
@@ -603,12 +603,12 @@ const ROWS_MAXIMUM = COMBATANTS_MAXIMUM;
 /** As many parts as the widest cut a card draws: the kinds, the defences, the procs. */
 export const CUT_PARTS_MAXIMUM = 64;
 /**
- * What one combatant's own skills are kept inside: 81 names over `develop:captures/`, 2026-08-29.
+ * What one combatant's own skills are kept inside: 81 names over `captures/`, 2026-08-29.
  */
 export const SKILLS_MAXIMUM = 256;
 /**
  * The ranking's height, in bars. Ten is the most one side fields and eleven the most a whole fight
- * does, measured over `develop:captures/`, where a group fight is ten of ours against one. A bigger
+ * does, measured over `captures/`, where a group fight is ten of ours against one. A bigger
  * fight scrolls rather than growing the window: a ranking is watched while a fight is on, and a
  * height that changed as combatants joined would move it under the reader's hand.
  */
@@ -1137,7 +1137,7 @@ function addFoldedCut(folded: Map<string, number>, held: FigureCut): number {
  * writer of a figure in `src/core/fight-statistics.ts` writes the kind it moved under in the same
  * breath — a blow's elements beside its applied damage, a bare movement's key beside the health it
  * took, a restoring key beside what it put back — so a kind cut comes to the figure it is a cut
- * of. Measured over `develop:captures/` on 2026-08-30: 0 of 1,060 combatant-and-screen readings.
+ * of. Measured over `captures/` on 2026-08-30: 0 of 1,060 combatant-and-screen readings.
  *
  * It stays as a row rather than becoming a check of any kind: this is four call sites agreeing,
  * and a fifth that forgot the cut should leave a reader a row saying so.
@@ -1724,7 +1724,7 @@ export function getTextForNamedPart(part: OpenedPart): string {
  * themselves is health they gave, and it stands inside the figure on the row that was pressed: a
  * level narrowed against the caster closed against a smaller number and said nothing about the
  * difference — 31 of the 74 levels a reader could then reach, 143,888 points, the largest single
- * drop 13,167, over `develop:captures/` on 2026-08-30.
+ * drop 13,167, over `captures/` on 2026-08-30.
  */
 export function presentPart(
     statistics: FightStatistics,
@@ -1902,7 +1902,7 @@ function getTotalFromCut(cut: FigureCut): number {
 /**
  * The remainder is a figure whose other end the protocol never named: health that moved down
  * outside a blow carries the movement and no attacker, so there is nobody to charge it to. Over
- * `develop:captures/` on 2026-08-30 that is 45 of 1,060 combatant-and-screen readings, in 28 of the
+ * `captures/` on 2026-08-30 that is 45 of 1,060 combatant-and-screen readings, in 28 of the
  * recordings, and every one of them on damage taken — which is where the protocol states a bare
  * movement and the dealing side never is.
  */
@@ -2293,7 +2293,7 @@ function composeSkillCut(
 /**
  * ⚠️ **A section is a cut of the figure over it, so a skill stands in it by what it did and never
  * by having been announced.** An announcement alone let auras, shouts and heals stand under
- * `Zadane` at nothing: 285 of the 685 skill rows over `develop:captures/` on 2026-08-30, and 28 of
+ * `Zadane` at nothing: 285 of the 685 skill rows over `captures/` on 2026-08-30, and 28 of
  * the 81 skills the corpus announces never deal anything at all.
  *
  * A swing that landed nothing still stands, which is what `blows` is for — cast eight times and
@@ -2431,7 +2431,7 @@ function composeFoldedTogether(one: FoldedParts, other: FoldedParts): FoldedPart
  * health they started the fight with and weakening by a twentieth of its opening value each time
  * (article `view,372`, read 2026-08-26): what is missing over it is an **announcement**, not a
  * name, and a player reads a row saying otherwise as the panel having lost the figure. Over
- * `develop:captures/` on 2026-08-30 the whole of it is three keys — `heal` 89.1%, `legbon_lastheal`
+ * `captures/` on 2026-08-30 the whole of it is three keys — `heal` 89.1%, `legbon_lastheal`
  * 7.9% and `legbon_holytouch_heal` 3.0%, of 1,429,693 points — and the last two are legendary
  * bonuses rather than a regeneration, which is why the section names each and not the lot.
  */

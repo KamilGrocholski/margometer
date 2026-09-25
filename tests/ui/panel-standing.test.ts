@@ -185,7 +185,7 @@ Deno.test("one caster shouting both okrzyki is two groups, each under its own na
 });
 
 Deno.test("one cast holding two characters states a length for each of them", () => {
-    // The case the fold exists for. `develop:captures/` holds it once, in the fight written from
+    // The case the fold exists for. `captures/` holds it once, in the fight written from
     // side 2: one shout naming two players, measured 2026-09-09.
     const reading = presentStanding(
         [composeProvocation(11, 21), composeProvocation(12, 21)],
