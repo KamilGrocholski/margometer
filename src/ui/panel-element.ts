@@ -3,7 +3,7 @@
  * the surface this asks of a browser declared rather than assumed.
  */
 
-import { formatDecimal, parseInteger } from "@/libs/number-text.ts";
+import { formatDecimal } from "@/libs/number-text.ts";
 import { callForeign, runGuarded } from "@/libs/result.ts";
 import type { VocabularyWord } from "@/libs/vocabulary.ts";
 import {
@@ -2506,20 +2506,17 @@ function initTipBeside(
         return { position, windowName };
     };
     const composeAcross = (key: string): TipAcross | null => {
-        // `TIP.widthMaximum` is read rather than restated: the two spellings drifted on 2026-09-15
+        // The sheet's own token and never a copy of it: the two spellings drifted on 2026-09-15
         // and the card, drawn at one width and placed as if it were the other, stood 43px over the
         // rows it explains. It decides the **side** a card opens on and nothing else (`develop ADR
-        // 0091`), and is read under the gesture's guard: a bound nothing could be read from leaves
-        // the card where the sheet puts it, and never at a width of nought.
-        const widthMaximum = parseInteger(TIP.widthMaximum.slice(0, -2));
-        if (widthMaximum === null) return null;
+        // 0091`).
         const viewport = placement?.readViewport() ?? null;
         if (key.startsWith(STANDING_TIP_PREFIX)) {
             const standing = composePlace(windows.getStanding(), PANEL_WINDOW.helper);
-            return composeTipAcross(standing, viewport, widthMaximum);
+            return composeTipAcross(standing, viewport, TIP.widthPixelsMaximum);
         }
         const panel = composePlace(windows.getPanel(), PANEL_WINDOW.panel);
-        return composeTipAcross(panel, viewport, widthMaximum);
+        return composeTipAcross(panel, viewport, TIP.widthPixelsMaximum);
     };
     return initTipHandle(
         document,

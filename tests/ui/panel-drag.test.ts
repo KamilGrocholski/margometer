@@ -13,6 +13,7 @@ import {
     type TipAcross,
     type TipWindowPlace,
 } from "@/src/ui/panel-drag.ts";
+import { SPACE_PIXELS } from "@/src/ui/panel-look.ts";
 
 const WINDOW = { width: 1280, height: 900 };
 
@@ -105,8 +106,8 @@ Deno.test("what puts the panel there releases the corner it was anchored to", ()
  * card opens on, and the only thing about a card this arithmetic knows (`develop ADR 0091`).
  */
 const MAXIMUM_TIP_WIDTH = 250;
-/** The air between a window and the card beside it, which is `SPACE.small` written as a number. */
-const GAP = 4;
+/** The air between a window and the card beside it. */
+const GAP = SPACE_PIXELS.small;
 /** The screen's right edge, which is what a card standing left of its window is measured from. */
 function composeFromRight(windowWidth: number, windowLeft: number): TipAcross {
     return { edge: "right", at: windowWidth - windowLeft + GAP };

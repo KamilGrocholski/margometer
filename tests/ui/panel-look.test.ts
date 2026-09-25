@@ -20,9 +20,10 @@ import {
     composeStyleSheet,
     getContrastRatio,
     getInkForBar,
+    getTipRoom,
     LAYER,
     PLACE,
-    SPACE,
+    SPACE_PIXELS,
     SURFACE,
     TEXT,
 } from "@/src/ui/panel-look.ts";
@@ -325,16 +326,17 @@ Deno.test("a folded panel is drawn by the one region the fold hides", () => {
 /** A token or a length, which is the whole of what a term can be. */
 function getTermPixels(stated: string): number {
     assert(stated.length > 0, "a term says something");
-    let written = stated;
     if (stated.startsWith("var(")) {
         const name = stated.slice("var(--MargoMeter-".length, stated.length - 1);
-        const held = Object.entries(SPACE).find(([token]) => getTokenSpelling(token) === name);
-        assertExists(held, `${stated} spends a token SPACE does not hold`);
-        written = held[1];
+        const held = Object.entries(SPACE_PIXELS).find(([token]) =>
+            getTokenSpelling(token) === name
+        );
+        assertExists(held, `${stated} spends a token SPACE_PIXELS does not hold`);
+        return held[1];
     }
-    if (written === "0") return 0;
-    assert(written.endsWith("px"), `${stated} is a length this panel does not measure in`);
-    const value = Number(written.slice(0, -"px".length));
+    if (stated === "0") return 0;
+    assert(stated.endsWith("px"), `${stated} is a length this panel does not measure in`);
+    const value = Number(stated.slice(0, -"px".length));
     assert(Number.isFinite(value), `${stated} is not a number`);
     return value;
 }
@@ -543,11 +545,24 @@ Deno.test("a row drops its ink onto its middle and stays the height the list cou
     assert(above > 0, "which is a length a reader can see");
     const height = getDeclaration(body, "height");
     assertExists(height, "a row states a height rather than taking one from its contents");
-    assertEquals(getPixels(height), getPixels(SPACE.rowHeight), "and it is the one a row costs");
+    assertEquals(getPixels(height), SPACE_PIXELS.rowHeight, "and it is the one a row costs");
     const line = getLineHeights(getRuleBody(sheet, `.${CLASS.panel}`));
     assertExists(line[0], "the panel states the line a row's cells are drawn on");
-    const spare = getPixels(SPACE.rowHeight) - (above ?? 0) - getPixels(line[0]);
+    const spare = SPACE_PIXELS.rowHeight - (above ?? 0) - getPixels(line[0]);
     assertEquals(spare % 2, 0, `a row centres its cells onto half a pixel: ${spare}px to share`);
+});
+
+Deno.test("a card is trimmed to the room the sheet leaves it, the window less its air", () => {
+    const stated = getDeclaration(getRuleBody(composeStyleSheet(), `.${CLASS.tip}`), "max-height");
+    assertExists(stated, "the sheet holds a card inside the window");
+    const opener = "calc(100vh - ";
+    assert(stated.startsWith(opener), `${stated} is a bound on the window's height`);
+    const terms = stated.slice(opener.length, stated.length - 1).split(" - ");
+    const air = terms.reduce((sum, term) => sum + getPixels(term), 0);
+    assertEquals(getTipRoom(900), 900 - air, "the trim spends the air the sheet spends");
+    assertEquals(getTipRoom(air), null, "a window no taller than the air has no room");
+    assertEquals(getTipRoom(air + 1), 1, "and a pixel past it has that pixel");
+    assertEquals(getTipRoom(null), null, "a page stating no height has no room to reason about");
 });
 
 /** What a cell has to state to hold a run of text on one line and give way to its neighbour. */

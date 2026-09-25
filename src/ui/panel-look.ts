@@ -125,19 +125,20 @@ export const CLASS = {
     standingPipLit: "standing-pip-lit",
 } as const;
 
-export const SPACE = {
-    half: "2px",
-    small: "4px",
-    regionDown: "5px",
-    regionAcross: "7px",
-    wide: "8px",
-    rowHeight: "18px",
-    heightShareMaximum: "66vh",
+export const SPACE_PIXELS = {
+    half: 2,
+    small: 4,
+    regionDown: 5,
+    regionAcross: 7,
+    wide: 8,
+    rowHeight: 18,
 } as const;
+/** The tallest the panel stands, as a share of the window's height. */
+export const PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM = 66;
 
 export const PLACE = {
-    inset: "8px",
-    width: "260px",
+    insetPixels: 8,
+    widthPixels: 260,
     /**
      * The host against the game's own page, and nothing inside the root: the game's interface
      * layer, won by standing after it in `body`, and under every window of theirs —
@@ -164,7 +165,7 @@ export const LAYER = {
  * draws are `tests/e2e/panel-tip.spec.ts`'s.
  */
 export const TIP = {
-    widthMaximum: "250px",
+    widthPixelsMaximum: 250,
 } as const;
 
 /**
@@ -172,11 +173,11 @@ export const TIP = {
  * and never a rank or a share, and it is the second thing standing over somebody else's game.
  */
 export const STANDING = {
-    width: "210px",
+    widthPixels: 210,
 } as const;
 
 /** A dot small enough that four of them and a figure fit the window's own width. */
-const PIP_SIZE = "5px";
+const PIP_SIZE_PIXELS = 5;
 /**
  * The least an okrzyk's name is drawn at, so a long nickname on the same row cannot erase it.
  *
@@ -184,28 +185,28 @@ const PIP_SIZE = "5px";
  * and the two okrzyki differ from their first letter — so this shows enough of either to say
  * which. Without it a 25-character nickname left the cast 4px, which is the feature gone.
  */
-const CAST_WIDTH_MINIMUM = "48px";
+const CAST_WIDTH_PIXELS_MINIMUM = 48;
 /**
  * The caveat mark's ring, across and down. Ten against an 11px body and an 18px row: smaller
  * reads as a speck beside a figure, larger sits taller than the digits it stands next to — and
  * nine carries no letter at all, measured in Chrome 152 on 2026-09-15.
  */
-const MARK_SIZE = "10px";
+const MARK_SIZE_PIXELS = 10;
 /** What drops the ring onto the first line of a sentence: the line box less the ring, halved. */
-const MARK_DROP = "2px";
+const MARK_DROP_PIXELS = 2;
 
 export const SHAPE = {
-    radius: "8px",
-    radiusSmall: "3px",
+    radiusPixels: 8,
+    radiusSmallPixels: 3,
     windowShadow: "0 6px 20px rgb(0 0 0 / 55%)",
 } as const;
 
 /** Two digits and a stop: 17.50px in Chrome 152, 2026-09-15, and a fight holds twenty. */
-const RANK_WIDTH = "22px";
+const RANK_WIDTH_PIXELS = 22;
 /**
  * What a row carries over its contents and not under, so its ink lands even. `develop ADR 0015`.
  */
-const ROW_INK_DROP = "1px";
+const ROW_INK_DROP_PIXELS = 1;
 const BAR_TINT = 0.55;
 /**
  * Pure black, and only ever as a mask. A `mask-image` reads alpha and throws the hue away, so
@@ -383,14 +384,14 @@ function composeColourOver(top: string, bottom: string, alpha: number): string {
 const VARIABLE_PREFIX = "--MargoMeter-";
 const ROWS_BY_DEFAULT = 11;
 const FONT_STACK = "system-ui, sans-serif";
-const FONT_SIZE = "11px";
+const FONT_SIZE_PIXELS = 11;
 /** Whole pixels: a fractional line box puts every box under it off the grid. `develop ADR 0015`. */
-const LINE_HEIGHT = "15px";
-/** The two characters a length in pixels ends in, taken off before the number is read. */
-const PIXELS_SUFFIX = 2;
+const LINE_HEIGHT_PIXELS = 15;
 /** What a border costs the box it is on, at the one width this panel draws one. */
 const RULE_WIDTH = 1;
-const LINE_HEIGHT_TITLE = "13px";
+const LINE_HEIGHT_TITLE_PIXELS = 13;
+const FONT_BODY = `${FONT_SIZE_PIXELS}px/${LINE_HEIGHT_PIXELS}px ${FONT_STACK}`;
+const FONT_TITLE = `${FONT_SIZE_PIXELS}px/${LINE_HEIGHT_TITLE_PIXELS}px ${FONT_STACK}`;
 
 function composeVariable(name: string, value: string): string {
     return `${VARIABLE_PREFIX}${name}:${value};`;
@@ -413,14 +414,14 @@ function composeVariables(): string {
         composeVariable("heading", composeColourOver(TEXT.quiet, SURFACE.panel, HEADING_TINT)),
         composeVariable("mask", MASK_INK),
         composeVariable("bar-tint", `${BAR_TINT}`),
-        composeVariable("half", SPACE.half),
-        composeVariable("small", SPACE.small),
-        composeVariable("region-down", SPACE.regionDown),
-        composeVariable("region-across", SPACE.regionAcross),
-        composeVariable("wide", SPACE.wide),
-        composeVariable("row-height", SPACE.rowHeight),
-        composeVariable("radius", SHAPE.radius),
-        composeVariable("radius-small", SHAPE.radiusSmall),
+        composeVariable("half", `${SPACE_PIXELS.half}px`),
+        composeVariable("small", `${SPACE_PIXELS.small}px`),
+        composeVariable("region-down", `${SPACE_PIXELS.regionDown}px`),
+        composeVariable("region-across", `${SPACE_PIXELS.regionAcross}px`),
+        composeVariable("wide", `${SPACE_PIXELS.wide}px`),
+        composeVariable("row-height", `${SPACE_PIXELS.rowHeight}px`),
+        composeVariable("radius", `${SHAPE.radiusPixels}px`),
+        composeVariable("radius-small", `${SHAPE.radiusSmallPixels}px`),
     ].join("");
     return stated;
 }
@@ -433,24 +434,24 @@ function composeVariables(): string {
  * survive the line above it, and what the panel is moved by.
  */
 function composeFrameRules(): string {
-    const ceiling = `min(calc(100vh - var(${VARIABLE_PREFIX}panel-top) - ${PLACE.inset}),` +
-        `${SPACE.heightShareMaximum})`;
+    const ceiling = `min(calc(100vh - var(${VARIABLE_PREFIX}panel-top) - ${PLACE.insetPixels}px),` +
+        `${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh)`;
     return `:host{all:initial;${composeVariables()}` +
-        `${VARIABLE_PREFIX}panel-top:${PLACE.inset};` +
-        `position:fixed;top:var(${VARIABLE_PREFIX}panel-top);right:${PLACE.inset};` +
+        `${VARIABLE_PREFIX}panel-top:${PLACE.insetPixels}px;` +
+        `position:fixed;top:var(${VARIABLE_PREFIX}panel-top);right:${PLACE.insetPixels}px;` +
         `z-index:${PLACE.layer};display:flex;flex-direction:column;` +
         `max-height:${ceiling};}` +
         `.${CLASS.title}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
-        `font:${FONT_SIZE}/${LINE_HEIGHT_TITLE} ${FONT_STACK};letter-spacing:0.06em;` +
+        `font:${FONT_TITLE};letter-spacing:0.06em;` +
         `color:var(${VARIABLE_PREFIX}quiet);` +
         // One line whatever the version says: no guard here lays anything out, so a wrap is
         // invisible to the gate.
         `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
-        `box-sizing:border-box;width:${PLACE.width};` +
+        `box-sizing:border-box;width:${PLACE.widthPixels}px;` +
         `cursor:move;` +
         // Safari has never shipped `user-select` unprefixed, so without this a drag by the bar
         // selects the text under the cursor (`develop:docs/browser-support.md`).
@@ -469,7 +470,7 @@ function composeFrameRules(): string {
         // Two classes in the selector, so the outcome does not depend on where the rule is
         // written: a bare `.folded` ties with the region's own rule and loses on source order.
         `.${CLASS.frame}.${CLASS.folded}{display:none;}` +
-        `.${CLASS.panel}{font:${FONT_SIZE}/${LINE_HEIGHT} ${FONT_STACK};width:${PLACE.width};` +
+        `.${CLASS.panel}{font:${FONT_BODY};width:${PLACE.widthPixels}px;` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
@@ -602,7 +603,7 @@ function composeRowRules(): string {
     const cap = `${capRight} 0 0 ${capRight}`;
     return `.${CLASS.row}{position:relative;display:flex;justify-content:space-between;` +
         `align-items:center;box-sizing:border-box;height:var(${VARIABLE_PREFIX}row-height);` +
-        `padding:${ROW_INK_DROP} var(${VARIABLE_PREFIX}wide) 0;` +
+        `padding:${ROW_INK_DROP_PIXELS}px var(${VARIABLE_PREFIX}wide) 0;` +
         `margin-bottom:var(${VARIABLE_PREFIX}half);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
         `background:var(${VARIABLE_PREFIX}track);overflow:hidden;` +
@@ -616,7 +617,7 @@ function composeRowRules(): string {
         `.${CLASS.rowRank},.${CLASS.rowName},.${CLASS.rowValue}{position:relative;}` +
         `.${CLASS.rowRank}{color:var(${VARIABLE_PREFIX}quiet);` +
         `font-variant-numeric:tabular-nums;flex:none;box-sizing:border-box;` +
-        `width:${RANK_WIDTH};text-align:right;` +
+        `width:${RANK_WIDTH_PIXELS}px;text-align:right;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.rowTime}{color:var(${VARIABLE_PREFIX}quiet);` +
         `font-variant-numeric:tabular-nums;flex:none;` +
@@ -692,7 +693,7 @@ function composeRowRules(): string {
 function composeCaveatMarkRule(): string {
     return `.${CLASS.rowCaveat},.${CLASS.tipCaveat}{box-sizing:border-box;display:inline-flex;` +
         `align-items:center;justify-content:center;align-self:center;flex:none;` +
-        `width:${MARK_SIZE};height:${MARK_SIZE};` +
+        `width:${MARK_SIZE_PIXELS}px;height:${MARK_SIZE_PIXELS}px;` +
         // An ink of its own, as the other three severities have: drawn in the label's colour it was
         // invisible against the label it qualifies. `develop:DESIGN.md` owns the rule and carries
         // the measured distance to every other hue the panel spends.
@@ -708,20 +709,23 @@ function composeTipRules(): string {
     // Where a card stands before any window has been moved: against the panel's own corner. It is
     // a distance from the **right** edge, and every placement across is, because a card narrower
     // than the bound has to keep the edge facing its window and not float the difference away.
-    const right = `var(${VARIABLE_PREFIX}tip-right,calc(${PLACE.inset} + ${PLACE.width} + ` +
-        `${SPACE.small}))`;
+    const right =
+        `var(${VARIABLE_PREFIX}tip-right,calc(${PLACE.insetPixels}px + ${PLACE.widthPixels}px + ` +
+        `${SPACE_PIXELS.small}px))`;
     return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
         `left:var(${VARIABLE_PREFIX}tip-left,auto);right:${right};` +
         `top:${composeTipTop()};z-index:${LAYER.tip};` +
         // As wide as what it says, up to the bound — and never wider than the screen it stands
         // on, which is the case the bound on its own does not answer.
         `width:max-content;` +
-        `max-width:min(${TIP.widthMaximum},calc(100vw - ${PLACE.inset} - ${PLACE.inset}));` +
+        `max-width:min(${TIP.widthPixelsMaximum}px,` +
+        `calc(100vw - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px));` +
         // A card taller than the screen has no position showing all of it, and the clamp keeps
         // the top edge over the bottom.
-        `max-height:calc(100vh - ${PLACE.inset} - ${PLACE.inset});overflow:hidden;` +
+        `max-height:calc(100vh - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px);` +
+        `overflow:hidden;` +
         `padding:var(${VARIABLE_PREFIX}small);` +
-        `font:${FONT_SIZE}/${LINE_HEIGHT} ${FONT_STACK};` +
+        `font:${FONT_BODY};` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};}` +
@@ -765,7 +769,7 @@ function composeTipRules(): string {
         `gap:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.tipNote} .${CLASS.tipCaveat}{order:-1;align-self:flex-start;` +
         // Onto the optical centre of the first line: a 15px line box less a 10px ring, halved.
-        `margin-top:${MARK_DROP};}` +
+        `margin-top:${MARK_DROP_PIXELS}px;}` +
         `.${CLASS.tipNote}.${CLASS.tipSuspect}{color:var(${VARIABLE_PREFIX}suspect);}` +
         `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{color:var(${VARIABLE_PREFIX}caveat);}`;
 }
@@ -773,7 +777,7 @@ function composeTipRules(): string {
 /**
  * How tall a card of so many lines and runs stands: the lines times what a line costs, the air and
  * the rule each run spends over itself, and the padding and border the box reserves inside its own
- * height. Null where a token stopped reading as pixels, which is the caller's to answer for.
+ * height. Null where the counts handed in are no whole numbers.
  *
  * ⚠️ **One arithmetic, where there were two.** The sheet worked this out again from the counts the
  * draw wrote, which was enough while nothing else needed the number. The panel needs it now — a
@@ -782,10 +786,8 @@ function composeTipRules(): string {
  * that fitted, or leave one that did not without it.
  */
 export function getTipHeight(size: { lines: number; groups: number }): number | null {
-    const line = parseInteger(LINE_HEIGHT.slice(0, -PIXELS_SUFFIX));
-    const air = parseInteger(SPACE.small.slice(0, -PIXELS_SUFFIX));
-    if (line === null) return null;
-    if (air === null) return null;
+    const line = LINE_HEIGHT_PIXELS;
+    const air = SPACE_PIXELS.small;
     if (!Number.isSafeInteger(size.lines)) return null;
     if (!Number.isSafeInteger(size.groups)) return null;
     const runs = size.groups * (2 * air + RULE_WIDTH);
@@ -799,16 +801,14 @@ export function getTipHeight(size: { lines: number; groups: number }): number | 
 export function getTipRoom(viewportHeight: number | null): number | null {
     if (viewportHeight === null) return null;
     if (!Number.isFinite(viewportHeight)) return null;
-    const inset = parseInteger(PLACE.inset.slice(0, -PIXELS_SUFFIX));
-    if (inset === null) return null;
-    const room = viewportHeight - 2 * inset;
+    const room = viewportHeight - 2 * PLACE.insetPixels;
     if (room <= 0) return null;
     return room;
 }
 
 function composeTipTop(): string {
-    return `clamp(${PLACE.inset},var(${VARIABLE_PREFIX}tip-top,${PLACE.inset}),` +
-        `calc(100vh - var(${VARIABLE_PREFIX}tip-height,0px) - ${PLACE.inset}))`;
+    return `clamp(${PLACE.insetPixels}px,var(${VARIABLE_PREFIX}tip-top,${PLACE.insetPixels}px),` +
+        `calc(100vh - var(${VARIABLE_PREFIX}tip-height,0px) - ${PLACE.insetPixels}px))`;
 }
 
 /**
@@ -822,20 +822,21 @@ function composeTipTop(): string {
  * take its press. The layer is stated rather than left to chance.
  */
 function composeStandingRules(): string {
-    const top = `clamp(${PLACE.inset},var(${VARIABLE_PREFIX}standing-top,${PLACE.inset}),` +
-        `calc(100vh - ${PLACE.inset}))`;
-    const left = `var(${VARIABLE_PREFIX}standing-left,calc(100vw - ${PLACE.inset} - ` +
-        `${PLACE.width} - ${STANDING.width} - ${SPACE.small}))`;
+    const top =
+        `clamp(${PLACE.insetPixels}px,var(${VARIABLE_PREFIX}standing-top,${PLACE.insetPixels}px),` +
+        `calc(100vh - ${PLACE.insetPixels}px))`;
+    const left = `var(${VARIABLE_PREFIX}standing-left,calc(100vw - ${PLACE.insetPixels}px - ` +
+        `${PLACE.widthPixels}px - ${STANDING.widthPixels}px - ${SPACE_PIXELS.small}px))`;
     return `.${CLASS.standing}{position:fixed;box-sizing:border-box;` +
         `left:${left};top:${top};z-index:${LAYER.standing};` +
-        `width:${STANDING.width};display:flex;flex-direction:column;` +
-        `max-height:calc(100vh - ${PLACE.inset} - ${PLACE.inset});` +
-        `font:${FONT_SIZE}/${LINE_HEIGHT} ${FONT_STACK};` +
+        `width:${STANDING.widthPixels}px;display:flex;flex-direction:column;` +
+        `max-height:calc(100vh - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px);` +
+        `font:${FONT_BODY};` +
         `color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.standingBar}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
-        `font:${FONT_SIZE}/${LINE_HEIGHT_TITLE} ${FONT_STACK};letter-spacing:0.06em;` +
+        `font:${FONT_TITLE};letter-spacing:0.06em;` +
         `color:var(${VARIABLE_PREFIX}quiet);white-space:nowrap;` +
         `background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
@@ -867,7 +868,7 @@ function composeStandingRules(): string {
         // this window has two cells and wants the panel's rule (`develop ADR 0097`).
         `.${CLASS.standingHolding} .${CLASS.rowName}{flex:0 1 auto;}` +
         `.${CLASS.standingCast}{color:var(${VARIABLE_PREFIX}quiet);flex:1 1 0;` +
-        `min-width:min(${CAST_WIDTH_MINIMUM},100%);` +
+        `min-width:min(${CAST_WIDTH_PIXELS_MINIMUM}px,100%);` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;` +
         `padding-left:var(${VARIABLE_PREFIX}small);}` +
         // One dot per turn of the charge, which is how the game's own bar is cut: it draws
@@ -875,7 +876,8 @@ function composeStandingRules(): string {
         // else in the panel is round, so the shape means this and nothing else.
         `.${CLASS.standingPips}{position:relative;flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}half);padding-left:var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.standingPip}{width:${PIP_SIZE};height:${PIP_SIZE};border-radius:50%;` +
+        `.${CLASS.standingPip}{width:${PIP_SIZE_PIXELS}px;height:${PIP_SIZE_PIXELS}px;` +
+        `border-radius:50%;` +
         `flex:none;background:var(${VARIABLE_PREFIX}border);}` +
         `.${CLASS.standingPip}.${CLASS.standingPipLit}{background:currentColor;}`;
 }

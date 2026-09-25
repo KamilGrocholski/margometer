@@ -5,7 +5,6 @@
  */
 
 import { clamp } from "@/libs/number-range.ts";
-import { parseInteger } from "@/libs/number-text.ts";
 import { callForeign, runGuarded } from "@/libs/result.ts";
 import { PANEL_WINDOW, type PanelPosition, type PanelWindow } from "@/src/ui/panel-choice.ts";
 import {
@@ -16,7 +15,12 @@ import {
     STYLE_ATTRIBUTE,
 } from "@/src/ui/panel-document.ts";
 import { addGuardedListener } from "@/src/ui/panel-listener.ts";
-import { PLACE, SPACE, STANDING } from "@/src/ui/panel-look.ts";
+import {
+    PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM,
+    PLACE,
+    SPACE_PIXELS,
+    STANDING,
+} from "@/src/ui/panel-look.ts";
 import { formatWhole } from "@/src/ui/panel-words.ts";
 import {
     PANEL_LISTENER,
@@ -59,9 +63,9 @@ const TOP_VARIABLES: { readonly [Window in PanelWindow]: string } = {
 };
 
 /** How wide each window stands, which is what a card opening beside one has to step over. */
-const WINDOW_WIDTHS: { readonly [Window in PanelWindow]: string } = {
-    [PANEL_WINDOW.panel]: PLACE.width,
-    [PANEL_WINDOW.helper]: STANDING.width,
+const WINDOW_WIDTHS_PIXELS: { readonly [Window in PanelWindow]: number } = {
+    [PANEL_WINDOW.panel]: PLACE.widthPixels,
+    [PANEL_WINDOW.helper]: STANDING.widthPixels,
 };
 
 /** A window a card stands beside: where its left edge is, and which one it is. */
@@ -70,11 +74,8 @@ export interface TipWindowPlace {
     windowName: PanelWindow;
 }
 
-/** Where a window ends, or null where the token it is drawn at stopped reading as pixels. */
-function composeWindowRight(place: TipWindowPlace): number | null {
-    const width = parseInteger(WINDOW_WIDTHS[place.windowName].slice(0, -2));
-    if (width === null) return null;
-    return place.position.left + width;
+function composeWindowRight(place: TipWindowPlace): number {
+    return place.position.left + WINDOW_WIDTHS_PIXELS[place.windowName];
 }
 
 /**
@@ -119,15 +120,9 @@ export function clampPosition(
  */
 export function composeDefaultPosition(viewport: PanelViewport | null): PanelPosition | null {
     if (viewport === null) return null;
-    const width = parseInteger(PLACE.width.slice(0, -2));
-    const share = parseInteger(SPACE.heightShareMaximum.slice(0, -2));
-    // A token that stopped reading as pixels leaves the sheet's own corner standing, which the
-    // docblock above says is a place and not a guess (**E12**).
-    if (width === null) return null;
-    if (share === null) return null;
-    const height = viewport.height * share / 100;
+    const height = viewport.height * PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM / 100;
     return clampPosition({
-        left: (viewport.width - width) / 2,
+        left: (viewport.width - PLACE.widthPixels) / 2,
         top: (viewport.height - height) / 2,
     }, viewport);
 }
@@ -169,16 +164,11 @@ export function composePositionStyle(
 function composeStandingPosition(viewport: PanelViewport | null): PanelPosition | null {
     const panel = composeDefaultPosition(viewport);
     if (panel === null) return null;
-    const width = parseInteger(STANDING.width.slice(0, -2));
-    const panelWidth = parseInteger(PLACE.width.slice(0, -2));
-    const gap = parseInteger(SPACE.small.slice(0, -2));
-    if (width === null) return null;
-    if (panelWidth === null) return null;
-    if (gap === null) return null;
-    const beside = panel.left - width - gap;
+    const gap = SPACE_PIXELS.small;
+    const beside = panel.left - STANDING.widthPixels - gap;
     if (beside >= 0) return clampPosition({ left: beside, top: panel.top }, viewport);
     // No room on the left, so the other side — the same answer the card gives (`develop ADR 0090`).
-    const other = { left: panel.left + panelWidth + gap, top: panel.top };
+    const other = { left: panel.left + PLACE.widthPixels + gap, top: panel.top };
     return clampPosition(other, viewport);
 }
 
@@ -214,15 +204,11 @@ export function composeTipAcross(
     if (tipWidthMaximum <= 0) return null;
     if (anchor === null) return null;
     if (viewport === null) return null;
-    // This panel's own token, so a reading that fails is a token that changed shape rather than
-    // anything a page did — zero would place the window against the wrong edge.
-    const gap = parseInteger(SPACE.small.slice(0, -2));
-    if (gap === null) return null;
+    const gap = SPACE_PIXELS.small;
     if (anchor.position.left - tipWidthMaximum - gap >= 0) {
         return { edge: "right", at: viewport.width - anchor.position.left + gap };
     }
     const right = composeWindowRight(anchor);
-    if (right === null) return null;
     // The clamp is the screen and it is spent on the bound, because what the card draws at is not
     // known here. A card narrower than the bound near the right edge therefore stands a little
     // further left than it had to — on the screen, which is what this line is for.
