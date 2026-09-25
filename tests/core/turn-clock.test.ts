@@ -57,6 +57,13 @@ Deno.test("a plain blow opens a turn, and an extra attack straight after it does
     assertEquals(struck, [1, 2], "two combatants, two turns");
     const extra = lookupOpeners([ANNOUNCEMENT, composeBlow(1, true), composeBlow(1, false)]);
     assertEquals(extra, [1, null, null], "the unannounced blow after its own skill is its extra");
+    const extras = lookupOpeners([
+        ANNOUNCEMENT,
+        composeBlow(1, true),
+        composeBlow(1, false),
+        composeBlow(1, false),
+    ]);
+    assertEquals(extras, [1, null, null, null], "and so is each extra after it, however many");
     const again = lookupOpeners([composeBlow(1, false), composeBlow(1, false)]);
     assertEquals(again, [1, 1], "and a plain blow after a plain blow is a turn of its own");
 });

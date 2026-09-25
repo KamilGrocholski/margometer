@@ -1143,6 +1143,16 @@ Deno.test("a blow naming no striker is taken from nobody on its target's row", (
     assertEquals(statistics.byNeitherEnd, 0, "and the target was named, so it is not both");
 });
 
+Deno.test("damage stated by name with no striker is taken from nobody on the named row", () => {
+    const roster = indexCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
+    ]);
+    const statistics = tally(decode(["0;2=50.00;+oth_dmg=5,g,Gracz 1(40.00%)"], roster), new Map());
+    assertEquals(statistics.byCombatantId.get(1)?.damageTakenFromNobody, 5, "the named row's");
+    assertEquals(statistics.dealtByNobody, 5, "dealt by nobody the protocol named");
+});
+
 Deno.test("a blow naming neither end is counted apart, and on nobody's row", () => {
     const statistics = tally(decode(["0;0;+dmgf=10;-dmgf=10"], null), new Map());
     assertEquals(statistics.byNeitherEnd, 10, "what names neither end");
