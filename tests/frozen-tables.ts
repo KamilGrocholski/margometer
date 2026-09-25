@@ -1,27 +1,18 @@
 /**
  * The published tables the tests read. The three the bundle carries stand in `frozen/`, and are
- * composed here as the entry composes them; the rest are read out of `develop:frozen/` in git.
+ * taken from the entry's `composeRuntimeTables`; the rest are read out of `develop:frozen/` in git.
  */
 
 import { assert } from "@std/assert";
-import {
-    indexAuraTurnsBySkillId,
-    indexShoutsBySkillId,
-    type StatedSkills,
-} from "#/src/core/aura-standing.ts";
-import { type DecoderTables, indexBlowsGrantedBySkillId } from "#/src/core/fight-decoder.ts";
-import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
-import { FROZEN_BLOWS_GRANTED } from "#/frozen/blows-granted.ts";
+import type { StatedSkills } from "#/src/core/aura-standing.ts";
+import type { DecoderTables } from "#/src/core/fight-decoder.ts";
+import { composeRuntimeTables } from "#/src/userscript-entry.ts";
 import { RECORDINGS_REVISION } from "./recording-revision.ts";
 
-export const BLOWS_GRANTED: DecoderTables = {
-    blowsGrantedBySkillId: indexBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills),
-};
-
-export const STATED_SKILLS: StatedSkills = {
-    turnsBySkillId: indexAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
-    shoutsBySkillId: indexShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
-};
+/** The entry's own composition, so a test reads the tables the add-on reads, composed once. */
+const TABLES = composeRuntimeTables();
+export const BLOWS_GRANTED: DecoderTables = TABLES.decoder;
+export const STATED_SKILLS: StatedSkills = TABLES.tooltip.statedSkills;
 
 /**
  * A `develop:frozen/` module too wide to copy by hand, read out of git at the revision the

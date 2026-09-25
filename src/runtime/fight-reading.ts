@@ -59,10 +59,23 @@ export function replayKeptFight(
     options: SessionOptions,
 ): Result<KeptReading | null, ReplayFailure> {
     assert(fight.payloads.length > 0, "a fight kept was kept from something");
-    assert(fight.payloads.length <= CALLS_MAXIMUM, "and inside a recording's bound");
+    return replayFightPayloads(fight.payloads, tables, options);
+}
+
+/**
+ * Calls as the engine was handed them, thinned as a file and the shelf keep them, walked through
+ * the chain the live fight goes through. A tool reading a recording comes in here too, so there is
+ * one way a call becomes a fight.
+ */
+export function replayFightPayloads(
+    payloads: readonly unknown[],
+    tables: DecoderTables,
+    options: SessionOptions,
+): Result<KeptReading | null, ReplayFailure> {
+    assert(payloads.length <= CALLS_MAXIMUM, "a fight replayed is inside a recording's bound");
     const session = initFightSession(options);
     const messagesByPayload: (readonly string[])[] = [];
-    for (const payload of fight.payloads) {
+    for (const payload of payloads) {
         const record = readPayloadEnvelope(payload);
         if (!record.ok) return err(record.error);
         const prepared = preparePayload(session, record.value, tables);

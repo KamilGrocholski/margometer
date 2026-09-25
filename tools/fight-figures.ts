@@ -1,8 +1,8 @@
 /**
  * What a recording adds up to, per combatant, as a terminal table: `develop:tools/fight-figures.ts`
  * at `RECORDINGS_REVISION`, written line for line, so `tools/develop-figures.ts` can hold the two
- * branches to one text (`docs/design.md` §12). The fight is the add-on's own reading of it, every
- * call through the envelope and the session, and a path names a recording at that revision.
+ * branches to one text (`docs/design.md` §12). The fight is read by `replayFightPayloads`, the
+ * runtime's own chain, and a path names a recording at that revision.
  *
  *     deno task fight:figures [captures/<recording>.json …]
  */
@@ -10,8 +10,7 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
-import { tallyFightFigures } from "#/src/core/fight-figures.ts";
-import { getFightView } from "#/src/core/fight-session.ts";
+import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import {
     type CombatantFigures,
     countUnreadMessages,
@@ -19,12 +18,10 @@ import {
     type FigureCut,
     type SkillFigures,
 } from "#/src/core/fight-statistics.ts";
+import { replayFightPayloads } from "#/src/runtime/fight-reading.ts";
 import { getRankedOrder } from "#/src/ui/ranked-order.ts";
-import {
-    readRecordedFights,
-    type RecordedFight,
-    replayRecordedFight,
-} from "#/tests/recorded-fights.ts";
+import { composeRuntimeTables } from "#/src/userscript-entry.ts";
+import { readRecordedFights, type RecordedFight } from "#/tests/recorded-fights.ts";
 import { RECORDINGS_DIRECTORY, RECORDINGS_REVISION } from "#/tests/recording-revision.ts";
 import { RecordingReadError } from "./margometer-tool-error.ts";
 
@@ -44,14 +41,22 @@ const HEADINGS = ["raw(blow)", "applied", "taken", "prevented", "restored", "giv
 const RECORDING_SUFFIX = ".json";
 const PATH_SEPARATOR = "/";
 const DETAIL_INDENT = "      ";
+/** The add-on's own tables, composed as its start composes them rather than a second time here. */
+const DECODER_TABLES = composeRuntimeTables().decoder;
 
 /** The lines `develop` prints for one recording, from the blank line over its heading down. */
 export function formatFigureReport(fight: RecordedFight): string[] {
-    const view = getFightView(replayRecordedFight(fight));
-    if (view === null) {
+    const replayed = replayFightPayloads(fight.updates, DECODER_TABLES, SESSION_OPTIONS);
+    if (!replayed.ok) {
+        throw new RecordingReadError(
+            `${fight.path}: the add-on refused a call, ${replayed.error.kind}`,
+        );
+    }
+    if (replayed.value === null) {
         throw new RecordingReadError(`${fight.path} carries no payload the add-on would read`);
     }
-    const statistics = tallyFightFigures(view).statistics;
+    const { view, figures } = replayed.value;
+    const statistics = figures.statistics;
     const side = view.readerSide;
     const lines = [
         "",
