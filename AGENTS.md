@@ -474,5 +474,6 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/broad-catches.test.ts`           | E4                        |
 | `tests/repository/handed-callbacks.test.ts`        | E10                       |
 | `tests/repository/type-assertions.test.ts`         | C13                       |
+| `tests/repository/control-flow.test.ts`            | S1                        |
 | `deno check --config project/browser-lib.json`     | the browser floor         |
 | `requireBundleInBrowser` in the build              | Never: the network        |

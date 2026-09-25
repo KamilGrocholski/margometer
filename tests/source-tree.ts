@@ -35,7 +35,10 @@ export interface AstNode {
     params?: AstNode[];
     typeAnnotation?: AstNode | null;
     typeName?: AstNode;
-    parent?: AstNode;
+    parent?: AstNode | null;
+    specifiers?: AstNode[];
+    local?: AstNode;
+    imported?: AstNode;
 }
 type AstVisitor = Record<string, (node: AstNode) => void>;
 interface AstComment {
