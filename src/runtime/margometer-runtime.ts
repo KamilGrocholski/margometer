@@ -187,10 +187,12 @@ function initRuntimeState(
         onFightOpened: () => resetScreenOnOpening(screen),
         markStale: () => markStale(state),
     });
+    // The view reports a window it cannot place while it is being built, before `state` exists.
+    let builtState: RuntimeState | null = null;
     const view = initPanelView(ports.document, {
         version: options.version,
         onIntent: (intent) => onRuntimeIntent(state, intent),
-        onFailure: (failure) => addViewFailure(defects, failure),
+        onFailure: (failure) => onViewFailure(defects, failure, builtState),
         placement: readRuntimePlacement(ports, defects, PANEL_WINDOW.panel),
         standingPlacement: readRuntimePlacement(ports, defects, PANEL_WINDOW.helper),
         translate: parts.translate,
@@ -210,6 +212,7 @@ function initRuntimeState(
         isMounted: false,
         isStoodDown: false,
     };
+    builtState = state;
     state.search = startEngineSearch(ports.engine, ports.interval, listener, {
         onAttached: (wrap) => {
             state.wrap = wrap;
@@ -288,6 +291,23 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
         defects: state.defects,
     };
     if (executeRuntimeIntent(parts, intent)) markStale(state);
+}
+
+/**
+ * A failure the view met, counted; and one met outside a frame — a gesture dropped, a card that
+ * would not draw under a pointer — asks for the frame that says it, or a reader who only hovers
+ * never sees the line.
+ */
+function onViewFailure(
+    defects: DefectLedger,
+    failure: ViewFailure,
+    state: RuntimeState | null,
+): void {
+    addViewFailure(defects, failure);
+    // Met while the runtime is still being stood up: the first frame says it. Inside a frame the
+    // view's report collects instead, so nothing arrives here while one is drawing.
+    if (state === null) return;
+    markStale(state);
 }
 
 function addViewFailure(defects: DefectLedger, failure: ViewFailure): void {

@@ -1148,6 +1148,22 @@ Deno.test("a mark nothing of ours writes drops the gesture, and the next frame s
     );
 });
 
+/**
+ * A failure met outside a frame — a gesture dropped, a card that would not draw under a pointer —
+ * asks for the frame that says it. Without that ask a reader who only hovers never sees the line.
+ */
+Deno.test("a gesture dropped with nothing pressed after it is said on the frame it asks for", () => {
+    const world = playRecordedFight();
+    const stray = world.ports.document.createElement("div") as FakeElement;
+    stray.setAttribute("data-screen", "whateverTheGameCalls");
+    world.press(stray);
+    assertEquals(
+        getTextsByClass(world.getHost(), CLASS.defect),
+        [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.gesture, null, 1)}`],
+        "said at once, without waiting for another press",
+    );
+});
+
 Deno.test("two calls before a frame falls ask for one frame, and it draws both", () => {
     let requested = 0;
     const battle: Record<string, unknown> = { updateData: () => 1 };
