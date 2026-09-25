@@ -20,6 +20,8 @@ export const TOOL_ERROR_CODE = {
     helpArticle: "HelpArticle",
     panelShot: "PanelShot",
     previewServe: "PreviewServe",
+    drillReport: "DrillReport",
+    cardHeight: "CardHeight",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -128,5 +130,19 @@ export class PanelShotError extends MargoMeterToolError {
 export class PreviewServeError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.previewServe, reason, options);
+    }
+}
+
+/** A drill walk asked for something it cannot walk: a screen nobody draws, or no screen at all. */
+export class DrillReportError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.drillReport, reason, options);
+    }
+}
+
+/** A card measurement asked for past its bound, or handed a recording by number. */
+export class CardHeightError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.cardHeight, reason, options);
     }
 }

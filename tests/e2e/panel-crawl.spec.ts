@@ -40,7 +40,7 @@ test.describe("one recording, walked to the bottom", () => {
         // `develop ADR 0034`: a press that changes nothing is a control that should not be drawn.
         expect(report.leaves, "no control the panel drew is a control that does nothing").toBe(0);
 
-        // `develop:docs/drill-levels.md`: the third level is the last — held by nothing on it to press.
+        // `docs/drill-levels.md`: the third level is the last — held by nothing on it to press.
         expect(report.deeper, "and nothing under it opens onto a fourth").toBe(0);
     });
 });

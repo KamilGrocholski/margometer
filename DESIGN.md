@@ -292,7 +292,7 @@ one of them and not the only one: rows stand _inside_ the list with a number cel
 blank cell is not an accent — it is read as the next place in the order. So the hatch follows the
 claim rather than the region: `person`, `skill`, `source`, `kind` and `closing` rows take a place
 and keep a solid bar; `half-named`, `no kind` and `neither end` take none and are hatched, as is the
-row summing what a bound left out. `develop:docs/drill-levels.md` owns which kinds those are.
+row summing what a bound left out. `docs/drill-levels.md` owns which kinds those are.
 
 **A row takes a place when it names something the game named.** That is the whole of the test, and
 it is why `closing` changed sides on 2026-09-12: the row holds the blows the game numbered a turn
@@ -368,8 +368,8 @@ branch's it opens no further.
 not a repetition to be spared: it states what the figure over it was made of, which the heading
 never does. What decides the answer is whether the statistics keep a second cut of that row — and
 where they do not, the row wears the leaf's cursor and its card promises nothing. Which kind of row
-that comes to on each screen is `develop:docs/drill-levels.md`'s to say, and it is measured rather
-than claimed. **develop ADR 0034.**
+that comes to on each screen is `docs/drill-levels.md`'s to say, and it is measured rather than
+claimed. **develop ADR 0034.**
 
 **A row that opens says so, and a row that does not stays silent about it.** Half the rows of one
 section leading somewhere and none of them saying which is a panel that teaches a reader to stop

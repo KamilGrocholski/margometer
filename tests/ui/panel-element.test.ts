@@ -1611,7 +1611,7 @@ Deno.test("a person inside an opened row opens the card the ranking opens", () =
 
 /**
  * The other rung a person stands on, and the last: whom one skill reached. Nothing there opens
- * (`develop:docs/drill-levels.md`), so the card carries the figures and not the instruction.
+ * (`docs/drill-levels.md`), so the card carries the figures and not the instruction.
  */
 Deno.test("a person under an opened skill opens a card promising no gesture", () => {
     const { roster, statistics } = tallyRecordedFight(HILDUR);

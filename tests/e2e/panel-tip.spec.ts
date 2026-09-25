@@ -140,7 +140,7 @@ test("a row that opens says so on its card; one that does not says nothing", asy
         .toContain(OPENS_NOTE);
 
     // A leaf is reached two presses down, on the third level, which is the only one where
-    // nothing opens any more (`develop:docs/drill-levels.md`). Every row on the second one opens.
+    // nothing opens any more (`docs/drill-levels.md`). Every row on the second one opens.
     await panel.at(".row.drillable").first().click();
     await panel.at(".row.drillable").first().click();
     await panel.at(".row.leaf").first().hover();

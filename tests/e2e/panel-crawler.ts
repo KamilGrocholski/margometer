@@ -125,7 +125,7 @@ var closeTo = function (before, where) {
 
 /**
  * The second level, and the count of what a third would hold. Nothing there is pressed: what is
- * being held is that there is nothing to press, which is `develop:docs/drill-levels.md`'s claim.
+ * being held is that there is nothing to press, which is `docs/drill-levels.md`'s claim.
  */
 function composeCrawlSecond(): string {
     return `var walkSecond = function (where) {

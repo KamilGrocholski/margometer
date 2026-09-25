@@ -1305,7 +1305,7 @@ Deno.test("a blow with nobody at the far end opens onto whoever struck it", () =
 /**
  * What named neither end is inside the count and on nobody's row, so the level closes against it or
  * falls short of the figure over it. `byNeitherEnd` is zero over every recording, so the fight is
- * built here — `develop:docs/drill-levels.md` says as much under what the recordings do not carry.
+ * built here — `docs/drill-levels.md` says as much under what the recordings do not carry.
  */
 Deno.test("what named neither end closes the level it is inside", () => {
     const { roster } = tallyRecordedFight(HILDUR);

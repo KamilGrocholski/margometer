@@ -39,6 +39,7 @@ The documents this tree carries:
 - [`docs/releasing.md`](docs/releasing.md) — every step of cutting a release.
 - [`docs/browser-support.md`](docs/browser-support.md) — the browser floor and what holds it.
 - [`docs/captured-fights.md`](docs/captured-fights.md) — what each recording holds.
+- [`docs/drill-levels.md`](docs/drill-levels.md) — which rows of the panel open, level by level.
 
 A document joins this list in the commit that creates it (**C9**). **`develop:path` and
 `develop ADR NNNN` name `develop` as it stood at `fa1dcce`**, before this rewrite replaced it:
@@ -101,6 +102,7 @@ joins it in the commit that creates the file.
   much protocol
 - `docs/design.md` — the architecture: layers, ports, types, the process, the failure map, the file
   format
+- `docs/drill-levels.md` — every kind of row the panel draws, and whether pressing it opens anything
 - `docs/releasing.md` — every step of cutting a release, in order
 
 - `docs/adr/0001-a-vocabulary-is-an-object.md` — a closed set of our own strings is an object, its
@@ -271,12 +273,16 @@ joins it in the commit that creates the file.
   `build`
 - `tools/capture-intake.ts` — turns a recording the add-on wrote into material in `captures/`:
   `capture:intake`
+- `tools/card-height.ts` — how tall the card a ranking row opens stands, over the recordings:
+  `panel:cards`
 - `tools/changelog.ts` — a version's `CHANGELOG.md` section as release notes, and the declared
   version: `release:notes`
 - `tools/decoding-status.ts` — how much of the protocol the decoder reads, in `develop`'s text:
   `fight:decoding`
 - `tools/develop-reports.ts` — this tree's reports held against `develop`'s at the pinned revision:
   `fight:develop`
+- `tools/drill-report.ts` — which rows of the panel open onto another level, over the recordings:
+  `panel:drill`
 - `tools/fight-figures.ts` — what a recording adds up to per combatant, as a terminal table:
   `fight:figures`
 - `tools/game-client-source.ts` — fetches and dates the game client's JavaScript into `.cache/`:

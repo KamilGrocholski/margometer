@@ -32,6 +32,10 @@
         // suite drives. It refuses a tree whose `src/` is not in a commit (`DESIGN.md`); a release
         // takes the set with `--release` (`docs/releasing.md`).
         "panel:shots": "deno run -A tools/panel-shots.ts",
+        // `docs/drill-levels.md` carries the verdicts; `--cases` states the counts behind them.
+        "panel:drill": "deno run -A tools/drill-report.ts",
+        // How tall the card a ranking row opens stands, in lines, over the recordings.
+        "panel:cards": "deno run -A tools/card-height.ts",
         // The same page as one file somebody without this repository can open, under
         // `dist/preview/`, which `.github/workflows/pages.yml` publishes with `--release`.
         "preview:site": "deno run -A tools/preview-site.ts",

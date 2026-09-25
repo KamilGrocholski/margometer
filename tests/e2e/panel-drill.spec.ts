@@ -1,7 +1,7 @@
 /**
  * The rows that open onto another level, and the two ways back out.
  *
- * `develop:docs/drill-levels.md` says the panel is three levels deep and that nothing on the third opens.
+ * `docs/drill-levels.md` says the panel is three levels deep and that nothing on the third opens.
  * Both claims are held here in a browser rather than taken.
  */
 
