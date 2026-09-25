@@ -517,10 +517,10 @@ const ROWS_SHELF = 11;
 const WAITING_LIST_NAME = "waiting";
 /**
  * How many kinds a pinned row's card states before what is left of them is summed into one line.
- * Measured over `captures/` with `deno task panel:drill` on 2026-09-01: the widest pinned
- * row states four kinds, and 27 of the 28 state three or fewer. Six is headroom rather than a bound
- * anything meets — and a reachable one, because `takenWithNoTarget` folds the ten keys a blow
- * carries in with the seven a bare movement does.
+ * Measured over `captures/` with `develop`'s `deno task panel:drill` on 2026-09-01: the widest
+ * pinned row states four kinds, and 27 of the 28 state three or fewer. Six is headroom rather than
+ * a bound anything meets — and a reachable one, because `takenWithNoTarget` folds the ten keys a
+ * blow carries in with the seven a bare movement does.
  */
 const TIP_CUT_PARTS_MAXIMUM = 6;
 /** A bar is written to one place: a tenth of a 260-pixel row is a quarter of a pixel. */

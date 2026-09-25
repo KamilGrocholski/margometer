@@ -15,7 +15,7 @@ import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
 
-/** Spelled here rather than read off the key table: `tests/AGENTS.md` on `develop` says why. */
+/** Spelled here rather than read off the key table: `develop:tests/AGENTS.md` says why. */
 const TICK_KEY = "anguish";
 const ANNOUNCEMENT_KEY = "+legbon_anguish";
 /**

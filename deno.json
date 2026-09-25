@@ -4,7 +4,7 @@
     "version": "0.19.0",
     "tasks": {
         // The gate. One command, so there is no version of "I ran the tests but not the lint".
-        // `-A`: the recordings are read out of git by a subprocess, `tests/recorded-messages.ts`.
+        // `-A`: the guards ask git what it tracks and what `develop` held, by a subprocess.
         //
         // ⚠️ **The bundle is checked a second time, as a browser program.** `deno.ns` below
         // carries the current TypeScript library whatever ES level stands beside it, so a
@@ -16,8 +16,7 @@
         // `-dev`. `dist/` is what a release attaches, and git does not carry it.
         "build": "deno run -A tools/build-userscript.ts",
         // What a recording adds up to, per combatant, in the text `develop`'s task of this name
-        // prints: with no path, every recording at `tests/recording-revision.ts`'s revision, and
-        // with one, that file on disk.
+        // prints: with no path, every recording under `captures/`, and with one, that file on disk.
         "fight:figures": "deno run -A tools/fight-figures.ts",
         // What the decoder could not read, in `develop`'s text: the question that decides
         // whether an intake is worth starting, so a path is a file on disk.

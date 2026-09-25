@@ -32,9 +32,17 @@ export interface AstNode {
     superClass?: AstNode | null;
 }
 type AstVisitor = Record<string, (node: AstNode) => void>;
+interface AstComment {
+    type: string;
+    range: [number, number];
+    value: string;
+}
+interface LintContext {
+    sourceCode: { getAllComments(): AstComment[] };
+}
 interface LintPlugin {
     name: string;
-    rules: Record<string, { create: () => AstVisitor }>;
+    rules: Record<string, { create: (context: LintContext) => AstVisitor }>;
 }
 
 export interface SourceFile {
@@ -125,6 +133,18 @@ export function readAstNodes(file: SourceFile, kinds: readonly string[]): AstNod
         file.path,
         file.text,
     );
+    return found;
+}
+
+/** The text of every comment in a file, without its marks, in the order the file states them. */
+export function readCommentTexts(file: SourceFile): string[] {
+    const found: string[] = [];
+    const visitors = (context: LintContext): AstVisitor => ({
+        Program: () => {
+            for (const comment of context.sourceCode.getAllComments()) found.push(comment.value);
+        },
+    });
+    lint.runPlugin({ name: "read", rules: { walk: { create: visitors } } }, file.path, file.text);
     return found;
 }
 

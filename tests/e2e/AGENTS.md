@@ -28,8 +28,8 @@ The root's rules apply in full and are not repeated. What follows is only what i
 - **A reading of the page waits for a frame first** (`waitForFrame`, in `panel-page.ts`). The panel
   draws once a frame (`docs/design.md` §10.4), so a reading taken straight after a gesture or a
   payload reads the panel as it stood before them. A locator's `expect` retries and needs none.
-- **The recordings are read out of git**, at `tests/recording-revision.ts`'s revision, as the Deno
-  suites read them: this branch carries no `captures/`.
+- **The recordings are read off `captures/`**, at `RECORDINGS_DIRECTORY` in
+  `tests/recording-sources.ts`, as the Deno suites read them.
 - **A gesture goes through the browser's own pointer.** `page.mouse`, `locator.click`,
   `locator.hover` — never a dispatched `PointerEvent`. `setPointerCapture` throws for a pointerId no
   real pointer owns and the guarded handler swallows the gesture, so a synthetic drag reports a

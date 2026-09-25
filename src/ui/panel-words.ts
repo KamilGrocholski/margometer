@@ -706,7 +706,7 @@ const MARKUP_ENTITY = "&";
  * taken, and one row per status the client registers.
  *
  * ⚠️ **A figure taken off the corpus was the wrong figure here.** The tallest block over
- * `captures/` is seven (`design/dziesiec/measured.json`), and a fabricated ten-a-side
+ * `captures/` is seven (`develop:design/dziesiec/measured.json`), and a fabricated ten-a-side
  * already stands eleven — so a bound set at what had been seen was one row above what was
  * happening. It clamps rather than asserts, because a fighter with one thing more to say is not a
  * reason to stop drawing (**A11**, `develop ADR 0051`).

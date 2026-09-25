@@ -94,7 +94,7 @@ const TIP_ATTRIBUTE = "data-tip";
 /**
  * What a figure reads when it is not one. Spelled out rather than imported: a test reading the
  * word back from the module that writes it holds the two to be the same and neither to be right
- * (`tests/AGENTS.md`).
+ * (`develop:tests/AGENTS.md`).
  */
 const NOT_KNOWN = "Nie wiadomo";
 /** The sign a figure below nothing opens with, which is the one thing no drawn figure may be. */

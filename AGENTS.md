@@ -470,5 +470,6 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/skill-durations.test.ts`         | ADR 0005                  |
 | `tests/repository/redacted-names.test.ts`          | `captures/AGENTS.md`      |
 | `tests/repository/captured-fight-register.test.ts` | `docs/captured-fights.md` |
+| `tests/repository/cited-paths.test.ts`             | C3, C15                   |
 | `deno check --config project/browser-lib.json`     | the browser floor         |
 | `requireBundleInBrowser` in the build              | Never: the network        |
