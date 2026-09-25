@@ -45,7 +45,7 @@ const lint = (Deno as unknown as {
     lint: { runPlugin(plugin: LintPlugin, filename: string, source: string): unknown };
 }).lint;
 
-export const SOURCE_DIRECTORIES = ["libs", "src", "tests", "tools"] as const;
+export const SOURCE_DIRECTORIES = ["frozen", "libs", "src", "tests", "tools"] as const;
 export const FUNCTION_NODES = [
     "FunctionDeclaration",
     "FunctionExpression",

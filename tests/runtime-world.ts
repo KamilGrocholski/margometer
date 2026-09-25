@@ -7,7 +7,6 @@
 
 import { assert, assertExists } from "@std/assert";
 import { ok, type Result } from "#/libs/result.ts";
-import { indexWitnessedKeyByBit } from "#/src/core/carried-figure.ts";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { initPageStore, type KeyValueStore } from "#/src/game/browser-store.ts";
 import { initPageEngine } from "#/src/game/engine-battle.ts";
@@ -21,9 +20,9 @@ import {
     type RuntimeTables,
 } from "#/src/runtime/margometer-runtime.ts";
 import { type KeptFight, openShelf } from "#/src/runtime/shelf.ts";
+import { composeRuntimeTables } from "#/src/userscript-entry.ts";
 import type { PanelElement } from "#/src/ui/panel-document.ts";
 import { composeFakeDocument, type FakeElement, pressElement } from "./fake-document.ts";
-import { BLOWS_GRANTED, BUFF_BITS, STATED_SKILLS } from "./frozen-tables.ts";
 import { TEST_VERSION } from "./panel-view.ts";
 
 export interface RuntimeWorld {
@@ -44,14 +43,7 @@ export interface RuntimeWorld {
     getHost(): FakeElement;
 }
 
-export const RUNTIME_TABLES: RuntimeTables = {
-    decoder: BLOWS_GRANTED,
-    tooltip: {
-        statedSkills: STATED_SKILLS,
-        witnessedKeyByBit: indexWitnessedKeyByBit(BUFF_BITS),
-        statusBits: BUFF_BITS,
-    },
-};
+export const RUNTIME_TABLES: RuntimeTables = composeRuntimeTables();
 
 /** The moment every file a test is handed was taken at. */
 export const CAPTURED_AT = "2026-08-29T10:00:00.000Z";

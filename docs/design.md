@@ -192,6 +192,7 @@ What is deliberately **not** here:
 ## 4. Layers
 
 ```
+frozen/                   the game's published tables, as `develop` @ `fa1dcce` froze them
 libs/                     result, vocabulary, readers of text, numbers, JSON, unknown values
 src/core/                 grammar → decoder → session → figures → standings (pure, deterministic)
 src/game/                 ports over the page: engine, warriors, envelope, store, place,
@@ -202,7 +203,8 @@ src/userscript-entry.ts   composing the ports and starting; nothing else
 ```
 
 Dependencies point one way: `core → libs`; `game → core (types), libs`; `ui → core (types), libs`;
-`runtime → everything below it`; the entry → `runtime`, `game`, `ui`. `libs/` imports no layer.
+`runtime → everything below it`; the entry → `runtime`, `game`, `ui`, `core` and `frozen/`, which is
+the one layer holding a frozen reading and handing it on. `libs/` and `frozen/` import no layer.
 
 ## 5. Ports
 
@@ -916,8 +918,11 @@ literals stand in the variants here only so the document reads; §7 shows the bu
 ### 10.1 Start
 
 ```
-window ─ readUserscriptWindow ─▶ Result<Ports, BootFailure>     (the entry, step 7)
-   err → one console line → stand down
+window ─ readUserscriptWindow ─▶ Result<RuntimePorts, BootFailure>, under callForeign
+   window-unusable: the first part missing (document, console, timers, frames, clock, downloads)
+   a member whose getter threw, a broken invariant while standing up
+   err → one console line where the page has a console → stand down, no panel
+composeRuntimeTables     the frozen readings indexed, under the start's guard, never at load
 initRuntime(ports, options)
    ─▶ readStorageChoice, readWindowFold × 2    err → the default, and a "kept" defect
    ─▶ openShelf               err → an empty shelf, and a "kept" defect

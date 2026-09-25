@@ -14,11 +14,22 @@ import {
 
 /** What each layer may import from this repository, by path prefix. */
 const IMPORTS_ALLOWED: readonly (readonly [string, readonly string[]])[] = [
+    ["frozen/", []],
     ["libs/", ["libs/"]],
     ["src/core/", ["libs/", "src/core/"]],
     ["src/game/", ["libs/", "src/core/", "src/game/"]],
     ["src/runtime/", ["libs/", "src/core/", "src/game/", "src/ui/", "src/runtime/"]],
     ["src/ui/", ["libs/", "src/core/", "src/ui/"]],
+    ["src/userscript-", [
+        "frozen/",
+        "libs/",
+        "src/core/",
+        "src/game/",
+        "src/runtime/",
+        "src/ui/",
+        "src/build-version.ts",
+        "src/userscript-",
+    ]],
 ];
 
 Deno.test("an import from above a layer is flagged, and one from below it is not", () => {
@@ -59,7 +70,7 @@ function lookupLayerReach(path: string): readonly string[] | null {
     return layer === undefined ? null : layer[1];
 }
 
-Deno.test("no file in libs/ or src/ imports from a layer above its own", () => {
-    const found = readSourceFiles(["libs", "src"]).flatMap(lookupImportsUpward);
+Deno.test("no file in frozen/, libs/ or src/ imports from a layer above its own", () => {
+    const found = readSourceFiles(["frozen", "libs", "src"]).flatMap(lookupImportsUpward);
     assertEquals(found, [], "docs/design.md §4");
 });

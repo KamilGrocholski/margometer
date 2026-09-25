@@ -38,6 +38,8 @@ export interface PageDownloads {
     revokeObjectURL(url: string): void;
     createBlob(text: string, type: string): unknown;
     createAnchor(): DownloadAnchor | null;
+    /** Into the document: Firefox reads the blob after the click returns, off a node it finds. */
+    appendAnchor(anchor: DownloadAnchor): void;
     setTimeout(step: () => void, afterMilliseconds: number): void;
 }
 
@@ -45,7 +47,6 @@ export interface DownloadAnchor {
     href: string;
     download: string;
     className: string;
-    append(): void;
     click(): void;
     remove(): void;
 }
@@ -87,7 +88,7 @@ function writePageFileAnchor(downloads: PageDownloads, url: string, name: string
     anchor.href = url;
     anchor.download = name;
     anchor.className = DOWNLOAD_ANCHOR_CLASS;
-    anchor.append();
+    downloads.appendAnchor(anchor);
     try {
         anchor.click();
     } finally {

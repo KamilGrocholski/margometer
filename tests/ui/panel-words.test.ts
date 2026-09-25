@@ -92,10 +92,11 @@ import { STORAGE_CHOICES } from "#/src/ui/panel-choice.ts";
 import { PINNED_CASES, SIDE_PART, UNNAMED_END } from "#/src/ui/panel-reading.ts";
 import { PANEL_NOUN, SCREEN_ORDER, SIDE_CHOICES } from "#/src/ui/panel-screen.ts";
 import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
-import { BUFF_BITS, readFrozenModule } from "#/tests/frozen-tables.ts";
+import { readFrozenModule } from "#/tests/frozen-tables.ts";
+import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 
 /** What a block may run to: a row per status the client names, and the rows beside them. */
-const TOOLTIP_ROWS_MAXIMUM = BUFF_BITS.length + ROWS_BESIDE_THE_STATUSES;
+const TOOLTIP_ROWS_MAXIMUM = FROZEN_BUFF_BITS.bits.length + ROWS_BESIDE_THE_STATUSES;
 
 const { FROZEN_PROTOCOL_KEYS } = await readFrozenModule("protocol-keys") as {
     FROZEN_PROTOCOL_KEYS: { keys: readonly string[] };
@@ -366,7 +367,7 @@ function getSentencesFromTooltip(): string[] {
                 hasSpentLastheal: true,
             },
             said,
-            BUFF_BITS,
+            FROZEN_BUFF_BITS.bits,
         ));
     }
     return found;
@@ -408,7 +409,7 @@ Deno.test("the block handed to the game says whose it is, and carries no markup"
             statuses: [{ bit: 6, percent: null }],
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     const first = said[0];
     assertExists(first, "a status carried composes a row");
@@ -431,7 +432,7 @@ Deno.test("the add-on names itself once, however many rows it has", () => {
             statuses: [{ bit: 6, percent: null }],
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     assertEquals(said.length, 3, "the name, a status and a count of turns");
     assertEquals(said.filter((row) => row.includes("MargoMeter")).length, 1, "named once");
@@ -448,7 +449,7 @@ Deno.test("a status with no figure to its name says no share beside it", () => {
             statuses: [{ bit: 6, percent: null }],
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     assertEquals(bare[1]?.includes("%"), false, "no figure where none may be said");
     const figured = presentTooltipRows(
@@ -457,7 +458,7 @@ Deno.test("a status with no figure to its name says no share beside it", () => {
             statuses: [{ bit: 6, percent: 39 }],
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     assertStringIncludes(figured[1] ?? "", "39%", "and the figure where one may");
 });
@@ -489,7 +490,7 @@ Deno.test("a status says that it stands, and never for how long", () => {
             const said = presentTooltipRows(
                 { ...NOTHING_CARRIED, statuses: [{ bit, percent }] },
                 null,
-                BUFF_BITS,
+                FROZEN_BUFF_BITS.bits,
             );
             assertEquals(said.length, 2, "the name, and the status under it");
             assertEquals(said[1]?.includes("tur"), false, `bit ${bit} carries no count of turns`);
@@ -511,7 +512,7 @@ Deno.test("a status nothing dates, just lit, says no length at all", () => {
             statuses: [{ bit: 6, percent: null }],
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     assertEquals(said.length, 2, "the name, and the status still said under it");
     assertEquals(said[1]?.includes("0"), false, "and no count of nought is said beside it");
@@ -534,7 +535,7 @@ Deno.test("every row that names a thing and qualifies it is punctuated alike", (
             hasSpentLastheal: true,
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     const carrying = said.filter((row) => row.includes(" z ") || row.includes("wykorzystany"));
     assertEquals(
@@ -555,7 +556,7 @@ Deno.test("a provocation is said at the end it is read from", () => {
             provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     assertEquals(
         held[1],
@@ -563,7 +564,7 @@ Deno.test("a provocation is said at the end it is read from", () => {
         "the held fighter is told who holds them, and how many of their turns it still has",
     );
     const shouting = (provokes: number) =>
-        presentTooltipRows({ ...NOTHING_CARRIED, provokes }, null, BUFF_BITS)[1];
+        presentTooltipRows({ ...NOTHING_CARRIED, provokes }, null, FROZEN_BUFF_BITS.bits)[1];
     assertEquals(shouting(10), "Prowokuje 10 postaci", "the shouter is told how many, not whom");
     assertEquals(shouting(1), "Prowokuje 1 postać", "one is one, in the noun's own form");
     assertEquals(shouting(2), "Prowokuje 2 postacie", "two to four take the second");
@@ -582,7 +583,7 @@ Deno.test("Dotyk anioła says the heals it has given, out of the three it gives"
         presentTooltipRows(
             { ...NOTHING_CARRIED, holytouchHealsGiven: healsGiven },
             null,
-            BUFF_BITS,
+            FROZEN_BUFF_BITS.bits,
         )[1];
     assertEquals(row(0), "Dotyk anioła · 0 z 3", "lit, and nothing healed yet");
     assertEquals(row(1), "Dotyk anioła · 1 z 3", "one heal is one");
@@ -598,7 +599,7 @@ Deno.test("a label the client answers with markup is refused rather than escaped
                 statuses: [{ bit: 6, percent: null }],
             },
             speak,
-            BUFF_BITS,
+            FROZEN_BUFF_BITS.bits,
         ),
         [],
         "the answer is the client's, and one this repository cannot use is left alone",
@@ -620,7 +621,7 @@ Deno.test("a charge says the blow and how much of it has passed, as the client s
                 charge: { skillName: "Pożoga", turnsElapsed, turnsStated },
             },
             null,
-            BUFF_BITS,
+            FROZEN_BUFF_BITS.bits,
         )[1];
     assertEquals(row(0, 4), "Cios specjalny · Pożoga · 0 z 4", "just begun");
     assertEquals(row(2, 4), "Cios specjalny · Pożoga · 2 z 4", "half through");
@@ -639,7 +640,7 @@ Deno.test("a charge whose name carries markup puts no row in", () => {
             charge: { skillName: "<b>Pożoga</b>", turnsElapsed: 0, turnsStated: 2 },
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     assertEquals(said, [], "nothing else to say, so the tooltip is left as the game made it");
 });
@@ -647,7 +648,7 @@ Deno.test("a charge whose name carries markup puts no row in", () => {
 /** **W5: zero is a boundary.** Nothing carried composes no row, which is not an empty one. */
 Deno.test("a fighter carrying nothing composes no row at all", () => {
     assertEquals(
-        presentTooltipRows(NOTHING_CARRIED, null, BUFF_BITS),
+        presentTooltipRows(NOTHING_CARRIED, null, FROZEN_BUFF_BITS.bits),
         [],
         "the game's tooltip is untouched",
     );
@@ -1288,7 +1289,11 @@ Deno.test("the live row says when it is without a date", () => {
  * suspect but a wrong number (`develop:CONTEXT.md`).
  */
 Deno.test("a fight the panel walked into says nothing about turns taken", () => {
-    const whole = presentTooltipRows({ ...NOTHING_CARRIED, turnsTaken: 14 }, null, BUFF_BITS);
+    const whole = presentTooltipRows(
+        { ...NOTHING_CARRIED, turnsTaken: 14 },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertEquals(whole.length, 2, "seen whole, the count stands under the name");
     assertStringIncludes(whole[1] ?? "", "14", "and it is the count");
     const late = presentTooltipRows(
@@ -1298,7 +1303,7 @@ Deno.test("a fight the panel walked into says nothing about turns taken", () => 
             wasJoinedInProgress: true,
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     assertEquals(late, [], "walked into, there is nothing to say and no block at all");
 });
@@ -1317,7 +1322,7 @@ Deno.test("walking in late costs the turns and nothing else", () => {
             statuses: [{ bit: 6, percent: 20 }],
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     assertEquals(late.length, 2, "the name and the status it still knows");
     assertStringIncludes(late[1] ?? "", "20%", "the figure stands, because now is now");
@@ -1330,7 +1335,7 @@ Deno.test("walking in late costs the turns and nothing else", () => {
  * the slow and the haste standing above the poison is the order doing it and not the mask.
  */
 Deno.test("the rows stand in the one order the maintainer set", () => {
-    assertEquals(presentTooltipRows(CARRYING_EVERYTHING, null, BUFF_BITS), [
+    assertEquals(presentTooltipRows(CARRYING_EVERYTHING, null, FROZEN_BUFF_BITS.bits), [
         "MargoMeter",
         "Tury wykonane 14",
         "Cios specjalny · Pożoga · 2 z 4",
@@ -1359,7 +1364,7 @@ Deno.test("a block past its stated maximum is cut to it, and one at it is drawn 
             statuses: many(TOOLTIP_ROWS_MAXIMUM - 7),
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     assertEquals(atTheBound.length, TOOLTIP_ROWS_MAXIMUM, "every row it was allowed stands");
     const past = presentTooltipRows(
@@ -1368,7 +1373,7 @@ Deno.test("a block past its stated maximum is cut to it, and one at it is drawn 
             statuses: many(TOOLTIP_ROWS_MAXIMUM),
         },
         null,
-        BUFF_BITS,
+        FROZEN_BUFF_BITS.bits,
     );
     assertEquals(past.length, TOOLTIP_ROWS_MAXIMUM, "and one row more is cut to the same length");
     assertEquals(past[0], "MargoMeter", "the name is never what the cut takes");
@@ -1417,13 +1422,17 @@ Deno.test("the closing row of a damage section owes a caveat, and a healing one 
  * it bounds: a fighter carrying everything, under every status the client names, fits it exactly.
  */
 Deno.test("a fighter carrying everything under every status fits the block exactly", () => {
-    const statuses = BUFF_BITS.map((_, bit) => ({ bit, percent: null }));
-    const said = presentTooltipRows({ ...CARRYING_EVERYTHING, statuses }, null, BUFF_BITS);
+    const statuses = FROZEN_BUFF_BITS.bits.map((_, bit) => ({ bit, percent: null }));
+    const said = presentTooltipRows(
+        { ...CARRYING_EVERYTHING, statuses },
+        null,
+        FROZEN_BUFF_BITS.bits,
+    );
     assertStrictEquals(said.length, TOOLTIP_ROWS_MAXIMUM, "every row it has to say fits");
     const unclamped = presentTooltipRows(
         { ...CARRYING_EVERYTHING, statuses },
         null,
-        [...BUFF_BITS, "one_more"],
+        [...FROZEN_BUFF_BITS.bits, "one_more"],
     );
     assertStrictEquals(unclamped.length, said.length, "and a wider bound finds no row it cut");
 });

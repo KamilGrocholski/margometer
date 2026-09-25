@@ -30,7 +30,6 @@ function composeDownloads(over: Partial<PageDownloads> = {}, click = () => {}) {
         href: "",
         download: "",
         className: "",
-        append: () => void calls.push("append"),
         click: () => {
             calls.push("click");
             click();
@@ -45,6 +44,7 @@ function composeDownloads(over: Partial<PageDownloads> = {}, click = () => {}) {
         revokeObjectURL: (url) => void calls.push(`revoke ${url}`),
         createBlob: (text, type) => ({ text, type }),
         createAnchor: () => anchor,
+        appendAnchor: () => void calls.push("append"),
         setTimeout: (step) => void timers.push(step),
         ...over,
     };

@@ -29,7 +29,7 @@ const SCRIPT_NAME_TAIL = ".js";
 const OPTIONAL_SEPARATOR = ".";
 /** A page states a handful of scripts, and a source names the bundle at most a few times. */
 const LOOKS_MAXIMUM = 256;
-const SCRIPTS_MAXIMUM = 4096;
+export const SCRIPTS_MAXIMUM = 4096;
 
 export function initPageBuild(scripts: PageScripts): BuildPort {
     return {
