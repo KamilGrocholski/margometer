@@ -107,45 +107,46 @@ Two readings side by side. `steps` and `agreed` are the boundary reading — eve
 statements of the game's that it graded, and how many of those counted as many turns as the game
 numbered. `granted`, `taken` and `short` are the whole-fight one, over the stretch between the
 game's first statement of an ordinal and its last. A recording it never numbered twice has neither,
-and that is written as a dash rather than as a zero (**E6**).
+and that is written as a dash rather than as a zero (**E6**). `opened` is the first ordinal the game
+stated, and every turn before it is one the span never saw.
 
-| recording                                                         | the game agrees | steps | agreed | granted | taken | short | lost |
-| ----------------------------------------------------------------- | --------------- | ----- | ------ | ------- | ----- | ----- | ---- |
-| 2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none            | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none             | `always`        | 97    | 97     | 298     | 275   | 23    | 11   |
-| 2026-08-11-tempest-tancerz-vs-wermont-1786441768914-none          | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none    | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 36    | 36     | 197     | 190   | 7     | 7    |
-| 2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 76    | 76     | 217     | 204   | 13    | 13   |
-| 2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none           | `always`        | 107   | 107    | 281     | 269   | 12    | 12   |
-| 2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 50    | 50     | 230     | 226   | 4     | 4    |
-| 2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 58    | 58     | 186     | 178   | 8     | 8    |
-| 2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 46    | 46     | 218     | 203   | 15    | 15   |
-| 2026-08-14-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 86    | 86     | 242     | 230   | 12    | 12   |
-| 2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 14    | 14     | 59      | 57    | 2     | 2    |
-| 2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 40    | 40     | 216     | 201   | 15    | 15   |
-| 2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none           | `sometimes`     | 14    | 13     | 56      | 53    | 3     | 2    |
-| 2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 80    | 80     | 239     | 226   | 13    | 13   |
-| 2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none           | `always`        | 47    | 47     | 214     | 205   | 9     | 9    |
-| 2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none           | `always`        | 47    | 47     | 214     | 205   | 9     | 9    |
-| 2026-08-17-tempest-grupa-vs-hildur-1786514810315-none             | `sometimes`     | 30    | 29     | 123     | 114   | 9     | 8    |
-| 2026-08-23-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 18    | 18     | 186     | 180   | 6     | 6    |
-| 2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none        | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none        | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1 | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-25-luvia-grupa-vs-draugr-auto-none-none                   | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-25-luvia-grupa-vs-draugr-none-none                        | `always`        | 34    | 34     | 45      | 44    | 1     | 1    |
-| 2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1                | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1                   | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0                | `always`        | 107   | 107    | 305     | 277   | 28    | 28   |
-| 2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0                  | `sometimes`     | 11    | 10     | 26      | 23    | 3     | 2    |
-| 2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0         | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0               | `always`        | 20    | 20     | 47      | 42    | 5     | 5    |
-| 2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0                 | `always`        | 96    | 96     | 200     | 184   | 16    | 16   |
-| 2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0           | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0               | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0                 | `always`        | 8     | 8      | 13      | 12    | 1     | 1    |
-| 2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0                 | `always`        | 122   | 122    | 238     | 226   | 12    | 12   |
+| recording                                                         | the game agrees | steps | agreed | granted | taken | short | lost | opened |
+| ----------------------------------------------------------------- | --------------- | ----- | ------ | ------- | ----- | ----- | ---- | ------ |
+| 2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none            | `in a lump`     | —     | —      | —       | —     | —     | —    | 1      |
+| 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none             | `always`        | 97    | 97     | 298     | 275   | 23    | 11   | 2      |
+| 2026-08-11-tempest-tancerz-vs-wermont-1786441768914-none          | `in a lump`     | —     | —      | —       | —     | —     | —    | 1      |
+| 2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none    | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
+| 2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 36    | 36     | 197     | 190   | 7     | 7    | 2      |
+| 2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 76    | 76     | 217     | 204   | 13    | 13   | 4      |
+| 2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none           | `always`        | 107   | 107    | 281     | 269   | 12    | 12   | 2      |
+| 2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 50    | 50     | 230     | 226   | 4     | 4    | 2      |
+| 2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 58    | 58     | 186     | 178   | 8     | 8    | 2      |
+| 2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 46    | 46     | 218     | 203   | 15    | 15   | 3      |
+| 2026-08-14-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 86    | 86     | 242     | 230   | 12    | 12   | 2      |
+| 2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 14    | 14     | 59      | 57    | 2     | 2    | 136    |
+| 2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 40    | 40     | 216     | 201   | 15    | 15   | 3      |
+| 2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none           | `sometimes`     | 14    | 13     | 56      | 53    | 3     | 2    | 164    |
+| 2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 80    | 80     | 239     | 226   | 13    | 13   | 2      |
+| 2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none           | `always`        | 47    | 47     | 214     | 205   | 9     | 9    | 2      |
+| 2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none           | `always`        | 47    | 47     | 214     | 205   | 9     | 9    | 2      |
+| 2026-08-17-tempest-grupa-vs-hildur-1786514810315-none             | `sometimes`     | 30    | 29     | 123     | 114   | 9     | 8    | 70     |
+| 2026-08-23-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 18    | 18     | 186     | 180   | 6     | 6    | 2      |
+| 2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none        | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
+| 2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none        | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
+| 2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1 | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
+| 2026-08-25-luvia-grupa-vs-draugr-auto-none-none                   | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
+| 2026-08-25-luvia-grupa-vs-draugr-none-none                        | `always`        | 34    | 34     | 45      | 44    | 1     | 1    | 260    |
+| 2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1                | `in a lump`     | —     | —      | —       | —     | —     | —    | 2      |
+| 2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1                   | `in a lump`     | —     | —      | —       | —     | —     | —    | 119    |
+| 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0                | `always`        | 107   | 107    | 305     | 277   | 28    | 28   | 3      |
+| 2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0                  | `sometimes`     | 11    | 10     | 26      | 23    | 3     | 2    | 241    |
+| 2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0         | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
+| 2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0               | `always`        | 20    | 20     | 47      | 42    | 5     | 5    | 1      |
+| 2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0                 | `always`        | 96    | 96     | 200     | 184   | 16    | 16   | 2      |
+| 2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0           | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
+| 2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0               | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
+| 2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0                 | `always`        | 8     | 8      | 13      | 12    | 1     | 1    | 3      |
+| 2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0                 | `always`        | 122   | 122    | 238     | 226   | 12    | 12   | 2      |
 
 ## What the register says
 
@@ -277,19 +278,21 @@ reading `a01bf11` refused, and it is not what `grooove.pl` does either.
 
 ## What this cannot answer
 
-- **How many turns a fight ran.** The ordinal span would say, and it is not drawn: five recordings
-  join a fight already in progress, so the span is short by an amount nothing states, and a fight
-  the game numbered once has no span at all. No figure on the panel is a fight's turn count.
+- **How many turns a fight ran.** The ordinal span would say, and it is not drawn: 24 of the 27
+  recordings the game numbered open on an ordinal past 1, as far as 260 (`opened` above), so the
+  span is short by the turns before it, an amount nothing states where the recording joined a fight
+  already in progress, and a fight the game numbered once has no span at all. No figure on the panel
+  is a fight's turn count.
 - **How many turns somebody was granted.** `taken` plus `lost` is what was seen, not what was
   scheduled, and the two readings do not come to the same figure over the corpus. How far apart they
   stand is read off the register rather than written here (**V5**).
 - **Whether a world worded differently is being read.** Where the announcement has another shape the
   count is zero on everybody, and the card states no second figure at all rather than a nought — so
   nothing on screen becomes false. What it still cannot say is **which** of the two a quiet fight
-  is: a fight where nobody was stunned and a world this reading cannot hear draw the same card. Four
-  of the 35 recordings are quiet that way, 2026-09-25. That is the cost of reading a shape rather
-  than a key (**develop ADR 0110**), and it is carried rather than closed — the stun keys above make
-  the failure loud without making the quiet fight legible.
+  is: a fight where nobody was stunned and a world this reading cannot hear draw the same card. 4 of
+  the 35 recordings are quiet that way. That is the cost of reading a shape rather than a key
+  (**develop ADR 0110**), and it is carried rather than closed — the stun keys above make the
+  failure loud without making the quiet fight legible.
 
   ⚠️ **The ordinal span is the obvious third road and it is shut on every recording that would ask
   it.** It is language-free and `short` says outright how many turns went missing, so a quiet fight

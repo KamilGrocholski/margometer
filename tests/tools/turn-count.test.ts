@@ -52,6 +52,7 @@ interface RegisterRow {
     taken: string;
     short: string;
     lost: string;
+    opened: string;
 }
 
 const REGISTER_PATH = "docs/turns-taken.md";
@@ -73,19 +74,19 @@ let gradesHeld: TurnGrade[] | null = null;
 
 Deno.test("the register reader finds the register, and nothing else in the file", () => {
     const sample = "## The register\n\n| recording | the game agrees | steps | agreed | granted " +
-        "| taken | short | lost |\n| - | - | - | - | - | - | - | - |\n" +
-        "| 2026-08-04-tempest-lowca-vs-odyncze | `in a lump` | — | — | — | — | — | — |\n";
+        "| taken | short | lost | opened |\n| - | - | - | - | - | - | - | - | - |\n" +
+        "| 2026-08-04-tempest-lowca-vs-odyncze | `in a lump` | — | — | — | — | — | — | 1 |\n";
     assertEquals(
         parseRegisterRows(sample).map(formatRegisterKey),
-        ["2026-08-04-tempest-lowca-vs-odyncze | in a lump | — | — | — | — | — | —"],
+        ["2026-08-04-tempest-lowca-vs-odyncze | in a lump | — | — | — | — | — | — | 1"],
         "the reader works",
     );
     // The sample it must not flag: a register row standing before the heading, and a row of the
     // vocabulary tables, whose second cell is a sentence rather than a verdict.
-    const elsewhere = "| 2026-08-04-lowca | `in a lump` | — | — | — | — | — | — |\n" +
+    const elsewhere = "| 2026-08-04-lowca | `in a lump` | — | — | — | — | — | — | 1 |\n" +
         "## The register\n" +
         "| `always` | the game's numbering agreed at every step it could be asked |\n" +
-        "| recording | the game agrees | steps | agreed | granted | taken | short | lost |\n";
+        "| recording | the game agrees | steps | agreed | granted | taken | short | lost | opened |\n";
     assertEquals(parseRegisterRows(elsewhere), [], "a table outside the register is not one");
 });
 
@@ -104,8 +105,10 @@ function parseRegisterRows(text: string): RegisterRow[] {
         }
         if (!isInside) continue;
         if (!line.startsWith("| ")) continue;
-        const [name, verdict, steps, agreed, granted, taken, short, lost] = parseTableCells(line);
-        if (lost === undefined) continue;
+        const [name, verdict, steps, agreed, granted, taken, short, lost, opened] = parseTableCells(
+            line,
+        );
+        if (opened === undefined) continue;
         if (!isOneOf(TURN_VERDICTS, verdict)) continue;
         found.push({
             name: name!,
@@ -115,7 +118,8 @@ function parseRegisterRows(text: string): RegisterRow[] {
             granted: granted!,
             taken: taken!,
             short: short!,
-            lost,
+            lost: lost!,
+            opened,
         });
     }
     return found;
@@ -123,7 +127,7 @@ function parseRegisterRows(text: string): RegisterRow[] {
 
 function formatRegisterKey(one: RegisterRow): string {
     return `${one.name} | ${one.verdict} | ${one.steps} | ${one.agreed} | ${one.granted} | ` +
-        `${one.taken} | ${one.short} | ${one.lost}`;
+        `${one.taken} | ${one.short} | ${one.lost} | ${one.opened}`;
 }
 
 Deno.test("the register names every recording graded, and no recording that is not", () => {
@@ -153,7 +157,8 @@ function formatMeasuredKey(grade: TurnGrade): string {
     const wider = stretch === null
         ? [NO_STRETCH, NO_STRETCH, NO_STRETCH, NO_STRETCH]
         : [`${stretch.granted}`, `${stretch.taken}`, `${stretch.short}`, `${stretch.lost}`];
-    return `${grade.name} | ${grade.verdict} | ${[...bounded, ...wider].join(" | ")}`;
+    const opened = grade.openedAt === null ? NO_STRETCH : `${grade.openedAt}`;
+    return `${grade.name} | ${grade.verdict} | ${[...bounded, ...wider, opened].join(" | ")}`;
 }
 
 /**
@@ -275,6 +280,12 @@ Deno.test("no recording states a stun while reading no lost turn at all", () => 
     // Both ways, so a reader that had stopped finding either half cannot pass on the empty list.
     assert(stunned > 0, "some recording states a stun, or the key reader found nothing");
     assert(heard > 0, "and some recording reads a lost turn, or the shape reader found nothing");
+    const total = readRecordedFights().length;
+    assertStringIncludes(
+        parseUnwrappedText(Deno.readTextFileSync(REGISTER_PATH)),
+        `${total - heard} of the ${total} recordings are quiet that way`,
+        `${REGISTER_PATH}: the fights reading no lost turn, as the tree counts them`,
+    );
 });
 
 /** Walked rather than matched (C7), and opened at the plus so the letters elsewhere are not one. */
@@ -376,6 +387,14 @@ Deno.test("the sentences summing the register carry the figures the tree produce
         register,
         `exact on ${total.level} of the ${total.asked} recordings that can be asked`,
         `${REGISTER_PATH}: how many of them meet`,
+    );
+    const opened = getGrades().flatMap((grade) => grade.openedAt === null ? [] : [grade.openedAt]);
+    const late = opened.filter((one) => one > 1);
+    assertStringIncludes(
+        register,
+        `${late.length} of the ${opened.length} recordings the game numbered open on an ordinal ` +
+            `past 1, as far as ${Math.max(...opened)}`,
+        `${REGISTER_PATH}: how many recordings miss turns before the first ordinal, and how many`,
     );
 });
 

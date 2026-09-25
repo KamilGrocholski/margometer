@@ -85,6 +85,8 @@ export interface TurnGrade {
     elsewhere: number;
     /** Null where the game never numbered twice: no stretch, which is not one of none (E6). */
     stretch: TurnStretch | null;
+    /** The first ordinal the game stated, which the span misses every turn before; null for none. */
+    openedAt: number | null;
 }
 
 /**
@@ -173,6 +175,8 @@ function composeTurnGrade(fight: RecordedFight, steps: readonly ReplayedStep[]):
         placed,
         elsewhere,
         stretch: composeTurnStretch(steps),
+        openedAt: steps.find((step) => step.record.turnStatement !== null)?.record.turnStatement
+            ?.ordinal ?? null,
     };
 }
 
@@ -473,13 +477,17 @@ export function formatCaseReport(grades: readonly TurnGrade[]): string[] {
  */
 export function formatGradeRegister(grades: readonly TurnGrade[]): string[] {
     assert(grades.length > 0, "a register states the grades it was handed");
-    const headings = ["steps", "agreed", "granted", "taken", "short", "lost"];
+    const headings = ["steps", "agreed", "granted", "taken", "short", "lost", "opened"];
     const lines = [
         `  ${"recording".padEnd(NAME_WIDTH)}${"the game agrees".padEnd(VERDICT_WIDTH)}` +
         headings.map((one) => one.padStart(COLUMN_WIDTH)).join(""),
     ];
     for (const grade of grades) {
-        const cells = [...formatGradeRegisterBounded(grade), ...formatGradeRegisterStretch(grade)];
+        const cells = [
+            ...formatGradeRegisterBounded(grade),
+            ...formatGradeRegisterStretch(grade),
+            grade.openedAt === null ? NO_STRETCH : formatInteger(grade.openedAt),
+        ];
         lines.push(
             `  ${grade.name.padEnd(NAME_WIDTH)}${grade.verdict.padEnd(VERDICT_WIDTH)}` +
                 cells.map((one) => one.padStart(COLUMN_WIDTH)).join(""),
