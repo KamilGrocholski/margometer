@@ -19,6 +19,7 @@ export const TOOL_ERROR_CODE = {
     skillTable: "SkillTable",
     helpArticle: "HelpArticle",
     panelShot: "PanelShot",
+    previewServe: "PreviewServe",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -120,5 +121,12 @@ export class HelpArticleError extends MargoMeterToolError {
 export class PanelShotError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.panelShot, reason, options);
+    }
+}
+
+/** A preview that cannot start as asked: a flag it does not read, or a fight it cannot open. */
+export class PreviewServeError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.previewServe, reason, options);
     }
 }

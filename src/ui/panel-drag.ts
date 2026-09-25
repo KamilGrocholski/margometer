@@ -90,9 +90,9 @@ export interface PanelDragOptions {
  * A title bar's worth stays on screen each way.
  */
 const VISIBLE_MINIMUM = 64;
-const GRIP_ATTRIBUTE = "data-grip";
+export const GRIP_ATTRIBUTE = "data-grip";
 /** What a grip states. The helper's is `develop`'s word for it, which the drawn panel keeps. */
-const GRIP_MARK_BY_WINDOW: { readonly [Window in PanelWindow]: string } = {
+export const GRIP_MARK_BY_WINDOW: { readonly [Window in PanelWindow]: string } = {
     [PANEL_WINDOW.panel]: "panel",
     [PANEL_WINDOW.helper]: "standing",
 };

@@ -289,9 +289,13 @@ joins it in the commit that creates the file.
   extends
 - `tools/panel-shots.ts` — photographs the panel in each state worth showing into `screenshots/`:
   `panel:shots`
-- `tools/preview-server.ts` — serves the panel over a recording, rebuilt and reloaded on change:
-  `preview`
-- `tools/preview-site.ts` — builds the one-page preview GitHub Pages publishes: `preview:site`
+- `tools/preview-page.ts` — the page both previews draw: the game page, the bar, the tooltips
+  column, a store that forgets, and the install band
+- `tools/preview-server.ts` — serves the preview with a picker, rebuilt and reloaded on change,
+  saying a failed build: `preview`
+- `tools/preview-site.ts` — builds the one-page preview GitHub Pages publishes, which keeps nothing
+  and plays its fight once: `preview:site`
+- `tools/preview-state.ts` — what `deno task preview` carries in its address across a reload
 - `tools/protocol-key-table.ts` — lifts every protocol key the game client branches on from its
   bundle: `game:keys`
 - `tools/recorded-material.ts` — the recordings a tool reports on, each fight replayed through the

@@ -1,189 +1,347 @@
 /**
- * The panel in a browser over a recording, rebuilt and reloaded when a file the bundle reads
- * changes: `deno task check` cannot see a panel, and the gate can be green while the thing a player
- * looks at is broken. The page is `tests/e2e/game-page.ts`, the one the browser suite drives, with
- * a strip under it that steps the fight; the bundle is `tools/build-userscript.ts`'s. Nothing here
- * ships, and `SECURITY.md`'s rule against the network binds `src/`, not this.
+ * The panel in a browser over a recording, rebuilt and reloaded while you edit it: `deno task
+ * check` cannot see a panel, and the gate can be green while the thing a player looks at is broken.
+ * It serves `tools/preview-page.ts` over the landing fight with a picker for the rest, carries the
+ * entry, the screen and the store through a reload (`tools/preview-state.ts`), and says a failed
+ * build where the panel is. Nothing here ships, and `SECURITY.md`'s rule against the network binds
+ * `src/`, not this. `--from` opens a recording at any path beside the rest.
  *
- *     deno task preview        # then open http://127.0.0.1:8000/
+ *     deno task preview [--port N] [--fight NAME] [--from PATH]…
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
+import { parseJson } from "#/libs/json-text.ts";
+import { clamp } from "#/libs/number-range.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import { callForeign } from "#/libs/result.ts";
-import { composePanelPage, GAME_SCRIPT_NAME, PLACE_NAME } from "#/tests/e2e/game-page.ts";
-import { readRecordedFights, type RecordedFight } from "#/tests/recorded-fights.ts";
+import { GAME_SCRIPT_NAME } from "#/tests/e2e/game-page.ts";
+import {
+    lookupRecordedFight,
+    readRecordedFight,
+    readRecordedFights,
+    type RecordedFight,
+} from "#/tests/recorded-fights.ts";
 import {
     readDevelopmentVersion,
     readUserscriptFiles,
     USERSCRIPT_NAME,
 } from "./build-userscript.ts";
-import { UserscriptBuildError } from "./margometer-tool-error.ts";
+import { PreviewServeError, UserscriptBuildError } from "./margometer-tool-error.ts";
+import { composePreviewPage, type PreviewFightLink, type PreviewWords } from "./preview-page.ts";
+import { LANDING_RECORDING } from "./preview-site.ts";
 import { formatRecordingName } from "./recorded-material.ts";
 
-/** What the server answers from: the last bundle that built, and why the newest did not. */
-export interface PreviewState {
-    script: string;
-    /** The first line of what the bundler said, while the tree does not build; null once it does. */
-    failure: string | null;
-    fights: readonly RecordedFight[];
+/** A fight the server offers, under the name the picker and the address carry. */
+export interface ServedFight {
+    name: string;
+    calls: readonly unknown[];
 }
 
-/** Each page open on the preview holds one stream. */
-export type PreviewListeners = Set<ReadableStreamDefaultController<Uint8Array>>;
+export interface PreviewServerOptions {
+    port?: number;
+    /** Off in a test, so no watcher outlives it. */
+    shouldWatch?: boolean;
+    /** Injected in a test, so holding the routes costs no bundler run. */
+    readBundle?: () => Promise<string>;
+    /** What the page runs after its own driver. Null turns reloading off. */
+    appendedScript?: string | null;
+    /** Fights opened at a path, beside the recordings; a name the recordings carry is refused. */
+    fromPaths?: readonly string[];
+}
+
+export interface PreviewServer {
+    url: string;
+    port: number;
+    stop(): Promise<void>;
+}
+
+/** A reload stream still open, and the way to say something into it. */
+export interface ReloadListener {
+    send(event: string, data: string): void;
+    close(): void;
+}
+
+/** Everything one running server holds, so no helper below closes over a variable of its own. */
+export interface PreviewState {
+    fights: readonly ServedFight[];
+    listeners: Set<ReloadListener>;
+    /** The last bundle that built, so a failed rebuild costs nothing on screen. */
+    script: string | null;
+    readBundle(): Promise<string>;
+    appendedScript: string | null;
+}
 
 const PREVIEW_HOSTNAME = "127.0.0.1";
-const PREVIEW_PORT = 8000;
+const DEFAULT_PORT = 4173;
 /** A preview is watched by the pages one person has open; this is far past that (S11). */
 export const LISTENERS_MAXIMUM = 64;
-/** What a build reads. A change anywhere else leaves the bundle as it was. */
+/** What a build reads. `tools/` is not here: this process imported it, so a rebuild cannot. */
 const WATCHED_DIRECTORIES = ["src", "libs", "frozen"];
-/** An editor saves in bursts; one rebuild answers the burst rather than each file in it. */
-const REBUILD_QUIET_MILLISECONDS = 150;
-const FIGHT_PREFIX = "/fight/";
-const EVENTS_PATH = "/events";
-const FAVICON_PATH = "/favicon.ico";
-const THROUGH_PARAMETER = "through";
-const RELOAD_SAID = "reload";
+/** Collapses the pair of events one save fires, and a format-on-save touching several files. */
+const REBUILD_QUIET_MILLISECONDS = 60;
+/** So a proxy between the browser and this process cannot close an idle stream on its own. */
+const KEEP_ALIVE_EVERY_MILLISECONDS = 15000;
+const FAILURE_LINE = "MargoMeterTool/Preview";
+const FLAG_PORT = "--port";
+const FLAG_FIGHT = "--fight";
+const FLAG_FROM = "--from";
+/** Past every shape a person makes to look at one (S11). */
+const FROM_PATHS_MAXIMUM = 64;
 const TEXT_ENCODER = new TextEncoder();
 const HTML_TYPE = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" };
-const SCRIPT_TYPE = { "content-type": "text/javascript", "cache-control": "no-store" };
+const SCRIPT_TYPE = {
+    "content-type": "text/javascript; charset=utf-8",
+    "cache-control": "no-store",
+};
 
-/** Every request but the event stream, which holds a connection open and is the server's own. */
-export function answerPreviewRequest(url: URL, state: PreviewState): Response {
-    assert(url.pathname.length > 0, "a request names a path");
-    if (url.pathname === "/") {
-        return new Response(composePreviewIndex(state.fights), { headers: HTML_TYPE });
+/** English, where the published page draws Polish over the same page: nobody plays through this. */
+const PREVIEW_WORDS: PreviewWords = {
+    language: "en",
+    title: "MargoMeter preview",
+    placeName: "Preview",
+    start: "to start",
+    backHint: "Replays the fight up to the previous entry",
+    end: "to end",
+    play: "play",
+    pause: "pause",
+    entry: "entry",
+    playing: "playing",
+    tooltips: "tooltips",
+};
+
+/**
+ * The half of the driver only a server can answer, so a published page never says `build ok` about
+ * a build nobody ran. A rebuild that fails does not reload — the page would go blank mid-keystroke
+ * — and says so with the whole log; one that succeeds reloads onto the address the page composed.
+ */
+export const RELOAD_SCRIPT = `var buildLabel = getPreviewElement("preview-build");
+var buildLog = getPreviewElement("preview-log");
+
+var renderBuild = function (text, isGood) {
+  buildLabel.textContent = text;
+  buildLabel.className = "preview-build " + (isGood ? "preview-ok" : "preview-bad");
+};
+
+var renderBuildLog = function (text) {
+  buildLog.textContent = text;
+  buildLog.setAttribute("data-shown", text === "" ? "no" : "yes");
+};
+
+renderBuild("build ok", true);
+
+var reloads = new EventSource("/reload");
+// An address differing only in its fragment is a navigation inside the document, which reloads
+// nothing: the second rebuild of a page already at its own address would never arrive.
+reloads.addEventListener("rebuilt", function handleRebuilt() {
+  var name = shownFight === null ? PREVIEW.fightName : shownFight.name;
+  var next = "/?fight=" + encodeURIComponent(name) + composePreviewStateHash();
+  var here = window.location.pathname + window.location.search + window.location.hash;
+  if (next === here) window.location.reload();
+  else window.location.href = next;
+});
+reloads.addEventListener("failed", function handleFailed(event) {
+  renderBuild("build failed", false);
+  renderBuildLog(event.data);
+});`;
+
+/** Serves the panel and reloads it, and hands back the way to stop both. */
+export function initPreviewServer(options: PreviewServerOptions = {}): PreviewServer {
+    const state: PreviewState = {
+        fights: composeServedFights(options.fromPaths ?? []),
+        listeners: new Set<ReloadListener>(),
+        script: null,
+        readBundle: options.readBundle ?? readPreviewBundle,
+        appendedScript: options.appendedScript === undefined
+            ? RELOAD_SCRIPT
+            : options.appendedScript,
+    };
+    const server = Deno.serve(
+        { hostname: PREVIEW_HOSTNAME, port: options.port ?? DEFAULT_PORT, onListen: () => {} },
+        (request) => answerPreviewRequest(state, new URL(request.url)),
+    );
+    const watcher = (options.shouldWatch ?? true) ? Deno.watchFs(WATCHED_DIRECTORIES) : null;
+    // The drain answers a promise nobody awaits, so its rejection needs a reader (E11).
+    if (watcher !== null) {
+        readFileEvents(watcher, state).then(() => {}, (failure: unknown) => {
+            console.error(FAILURE_LINE, failure);
+        });
     }
-    if (url.pathname === `/${USERSCRIPT_NAME}`) {
-        return new Response(state.script, { headers: SCRIPT_TYPE });
+    const keepAlive = watcher === null ? null : setInterval(
+        () => tellPreviewListeners(state.listeners, "ping", ""),
+        KEEP_ALIVE_EVERY_MILLISECONDS,
+    );
+    const port = server.addr.port;
+    assert(port > 0, "a server that started is one a browser can be pointed at");
+    return {
+        url: `http://${PREVIEW_HOSTNAME}:${port}`,
+        port,
+        stop: async () => {
+            watcher?.close();
+            if (keepAlive !== null) clearInterval(keepAlive);
+            for (const listener of state.listeners) callForeign(() => listener.close());
+            state.listeners.clear();
+            await server.shutdown();
+        },
+    };
+}
+
+/** The recordings, and whatever `--from` named after them. */
+function composeServedFights(fromPaths: readonly string[]): ServedFight[] {
+    assert(fromPaths.length <= FROM_PATHS_MAXIMUM, "a preview opens no more than the bound");
+    const fights = readRecordedFights().map(composeServedFight);
+    for (const path of fromPaths) {
+        const opened = composeServedFight(readFromPath(path));
+        if (fights.some((fight) => fight.name === opened.name)) {
+            throw new PreviewServeError(`${opened.name} is a name the recordings already carry`);
+        }
+        fights.push(opened);
     }
+    assert(fights.length > 0, "a server draws at least one fight");
+    return fights;
+}
+
+function composeServedFight(fight: RecordedFight): ServedFight {
+    assert(fight.updates.length > 0, "a fight served has something to play");
+    return { name: formatRecordingName(fight.path), calls: fight.updates };
+}
+
+function readFromPath(path: string): RecordedFight {
+    const parsed = parseJson(Deno.readTextFileSync(path));
+    if (!parsed.ok) throw new PreviewServeError(`${path} is not a recording: ${parsed.error.kind}`);
+    return readRecordedFight(path, parsed.value);
+}
+
+function readPreviewBundle(): Promise<string> {
+    return readUserscriptFiles(readDevelopmentVersion()).then((files) => files.script);
+}
+
+/** Drains the watcher until it is closed, which is what `stop` does to end this. */
+async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Promise<void> {
+    let pending: ReturnType<typeof setTimeout> | null = null;
+    for await (const event of watcher) {
+        if (event.kind === "access") continue;
+        if (pending !== null) clearTimeout(pending);
+        pending = setTimeout(() => {
+            pending = null;
+            readRebuilt(state).then(() => {}, (failure: unknown) => {
+                console.error(FAILURE_LINE, failure);
+            });
+        }, REBUILD_QUIET_MILLISECONDS);
+    }
+    if (pending !== null) clearTimeout(pending);
+}
+
+async function readRebuilt(state: PreviewState): Promise<void> {
+    try {
+        state.script = await state.readBundle();
+        console.log(`rebuilt, ${state.listeners.size} page(s) told to reload`);
+        tellPreviewListeners(state.listeners, "rebuilt", "ok");
+    } catch (failure) {
+        if (!(failure instanceof UserscriptBuildError)) throw failure;
+        console.log(`the tree does not build: ${failure.message.split("\n")[0]}`);
+        tellPreviewListeners(state.listeners, "failed", failure.message);
+    }
+}
+
+/** Every request; the event stream holds its connection open and is the server's own. */
+export function answerPreviewRequest(
+    state: PreviewState,
+    url: URL,
+): Promise<Response> | Response {
+    assert(url.pathname.startsWith("/"), "a request names a path");
+    if (url.pathname === "/reload") return openPreviewEvents(state.listeners);
+    if (url.pathname === `/${USERSCRIPT_NAME}`) return answerScript(state);
+    if (url.pathname === "/calls") return answerCalls(state, url);
+    if (url.pathname === "/") return answerPage(state, url);
     // An empty script and never a miss: only the tag's `src` is ever read, for the build id.
     if (url.pathname === `/${GAME_SCRIPT_NAME}`) return new Response("", { headers: SCRIPT_TYPE });
-    // Asked for by every browser on its own, and a miss is a line on the console a reader checks.
-    if (url.pathname === FAVICON_PATH) return new Response(null, { status: 204 });
-    if (url.pathname.startsWith(FIGHT_PREFIX)) {
-        const name = decodeURIComponent(url.pathname.slice(FIGHT_PREFIX.length));
-        const fight = state.fights.find((one) => formatRecordingName(one.path) === name);
-        if (fight !== undefined) {
-            const through = readPreviewThrough(url, fight.updates.length);
-            return new Response(composePreviewPage(fight, through), { headers: HTML_TYPE });
-        }
-    }
     return new Response("not here", { status: 404 });
 }
 
-/**
- * How far into the fight the page opens: the address's count where it states one inside the fight,
- * the whole fight otherwise. The strip writes it back as it steps, so a rebuild reopens there.
- */
-function readPreviewThrough(url: URL, calls: number): number {
-    assert(calls > 0, "a recording replays at least one call");
-    const stated = url.searchParams.get(THROUGH_PARAMETER);
-    const through = stated === null ? null : parseInteger(stated);
-    if (through === null) return calls;
-    if (through < 0) return calls;
-    return Math.min(through, calls);
-}
-
-/** Every recording, linked, with how many calls each one replays. */
-export function composePreviewIndex(fights: readonly RecordedFight[]): string {
-    const items = fights.map((fight) => {
-        const name = formatRecordingName(fight.path);
-        const calls = fight.updates.length;
-        return `<li><a href="${FIGHT_PREFIX}${
-            encodeURIComponent(name)
-        }">${name}</a> (${calls})</li>`;
-    });
-    assertStrictEquals(items.length, fights.length, "every recording is linked");
-    return `<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><title>MargoMeter preview</title></head>
-<body style="font: 14px system-ui; margin: 24px">
-<h1 style="font-size: 18px">Recordings at the revision the tests read</h1>
-<ul>
-${items.join("\n")}
-</ul>
-</body>
-</html>
-`;
-}
-
-/** The game page the browser suite drives, over one recording, with the strip after its driver. */
-export function composePreviewPage(fight: RecordedFight, through: number): string {
-    assert(through >= 0, "a page opens somewhere inside the fight");
-    assert(through <= fight.updates.length, "and never past its end");
-    return composePanelPage({
-        calls: fight.updates,
-        fedThrough: through,
-        engine: "before",
-        doesLoadTwice: false,
-        place: PLACE_NAME,
-        userscriptName: USERSCRIPT_NAME,
-        afterDriver: composePreviewStrip(formatRecordingName(fight.path)),
-    });
-}
-
-/**
- * The strip that steps the fight, written for whoever is editing `src/` and so in English (L2).
- * It reads and feeds through the page's probe, which is how the browser suite feeds it too.
- */
-function composePreviewStrip(name: string): string {
-    assert(name.length > 0, "a strip names the recording it steps");
-    return `<div id="preview-strip" style="position: fixed; left: 8px; bottom: 8px; z-index: 2147483647;
-  display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-radius: 4px;
-  font: 12px system-ui; background: #222; color: #eee">
-<a href="/" style="color: #9cf">recordings</a>
-<span>${name}</span>
-<span id="preview-fed"></span>
-<button data-step="1">+1</button>
-<button data-step="10">+10</button>
-<button data-step="all">all</button>
-<button data-restart="">restart</button>
-<span id="preview-said" style="color: #f96"></span>
-</div>
-<script>
-(function setPreviewStrip() {
-  var probe = window.margometerE2e;
-  var fed = document.getElementById("preview-fed");
-  var said = document.getElementById("preview-said");
-  var show = function () {
-    fed.textContent = probe.fed + " / " + (probe.fed + probe.remaining());
-    var address = new URL(location.href);
-    address.searchParams.set(${JSON.stringify(THROUGH_PARAMETER)}, String(probe.fed));
-    history.replaceState(null, "", address);
-  };
-  document.getElementById("preview-strip").addEventListener("click", function (event) {
-    var pressed = event.target;
-    if (pressed.hasAttribute("data-restart")) {
-      location.search = "?" + ${JSON.stringify(THROUGH_PARAMETER)} + "=0";
-      return;
+/** The bundle, built on first asking; a tree that does not build answers 500 and the log. */
+async function answerScript(state: PreviewState): Promise<Response> {
+    try {
+        if (state.script === null) state.script = await state.readBundle();
+        return new Response(state.script, { headers: SCRIPT_TYPE });
+    } catch (failure) {
+        if (!(failure instanceof UserscriptBuildError)) throw failure;
+        return new Response(failure.message, { status: 500 });
     }
-    var step = pressed.getAttribute("data-step");
-    if (step === null) return;
-    probe.feed(step === "all" ? probe.remaining() : Number(step));
-    show();
-  });
-  show();
-  var events = new EventSource(${JSON.stringify(EVENTS_PATH)});
-  events.onmessage = function (event) {
-    if (event.data === ${JSON.stringify(RELOAD_SAID)}) location.reload();
-    else said.textContent = event.data;
-  };
-})();
-</script>
-`;
+}
+
+/** A name is required, where the page route reads a missing one as the fight to open on. */
+function answerCalls(state: PreviewState, url: URL): Response {
+    const asked = url.searchParams.get("fight");
+    const fight = asked === null ? null : lookupServedFight(state.fights, asked);
+    if (fight === null) return new Response("no such recording", { status: 404 });
+    return new Response(JSON.stringify(fight.calls), {
+        headers: { "content-type": "application/json; charset=utf-8" },
+    });
+}
+
+/** The landing fight where the address names none. */
+function lookupServedFight(
+    fights: readonly ServedFight[],
+    name: string | null,
+): ServedFight | null {
+    const wanted = name ?? formatRecordingName(lookupRecordedFight(LANDING_RECORDING).path);
+    return fights.find((fight) => fight.name === wanted) ?? null;
+}
+
+/**
+ * The finished fight where nothing says otherwise, as the published page opens: the empty panel is
+ * worth reaching and `to start` reaches it, but it is not what somebody starting this came to see.
+ */
+function answerPage(state: PreviewState, url: URL): Response {
+    const fight = lookupServedFight(state.fights, url.searchParams.get("fight"));
+    if (fight === null) return new Response("no such recording", { status: 404 });
+    const stated = url.searchParams.get("entry");
+    const asked = stated === null ? fight.calls.length : parseInteger(stated);
+    if (asked === null) return new Response("entry is not a number", { status: 400 });
+    const entryIndex = clamp(asked, 0, fight.calls.length);
+    const page = composePreviewPage({
+        fightName: fight.name,
+        entryIndex,
+        calls: fight.calls,
+        fights: composeFightLinks(state.fights),
+        scriptDirectory: "/",
+        words: PREVIEW_WORDS,
+        introduction: null,
+        doesAddressCarryState: true,
+        doesStartFromEmpty: true,
+        install: null,
+        appendedScript: state.appendedScript,
+    });
+    return new Response(page, { headers: HTML_TYPE });
+}
+
+/** Every fight offered once; having a process is why each can be fetched rather than navigated to. */
+function composeFightLinks(fights: readonly ServedFight[]): PreviewFightLink[] {
+    const links = fights.map((fight) => ({
+        name: fight.name,
+        address: `/?fight=${encodeURIComponent(fight.name)}`,
+        callsAddress: `/calls?fight=${encodeURIComponent(fight.name)}`,
+    }));
+    assertStrictEquals(links.length, fights.length, "every fight is offered once");
+    return links;
 }
 
 /** A stream the page listens on for a rebuild; refused past the bound rather than held. */
-export function openPreviewEvents(listeners: PreviewListeners): Response {
+export function openPreviewEvents(listeners: Set<ReloadListener>): Response {
     if (listeners.size >= LISTENERS_MAXIMUM) return new Response("too many", { status: 503 });
-    let held: ReadableStreamDefaultController<Uint8Array> | null = null;
+    let held: ReloadListener | null = null;
     const body = new ReadableStream<Uint8Array>({
         start(controller) {
-            held = controller;
-            listeners.add(controller);
-            controller.enqueue(TEXT_ENCODER.encode(": open\n\n"));
+            held = {
+                // One `data:` line per line: a bare newline ends the event, and a log is many.
+                send: (event, data) => {
+                    const lines = data.split("\n").map((line) => `data: ${line}`).join("\n");
+                    controller.enqueue(TEXT_ENCODER.encode(`event: ${event}\n${lines}\n\n`));
+                },
+                close: () => controller.close(),
+            };
+            listeners.add(held);
+            controller.enqueue(TEXT_ENCODER.encode("retry: 500\n\n"));
         },
         cancel() {
             if (held !== null) listeners.delete(held);
@@ -195,67 +353,57 @@ export function openPreviewEvents(listeners: PreviewListeners): Response {
     });
 }
 
-/** One line to every page listening; a page gone since is dropped rather than written to. */
-export function tellPreviewListeners(listeners: PreviewListeners, said: string): void {
-    assert(said.length > 0, "a page is told something");
-    assert(!said.includes("\n"), "on one line, which is what an event's data carries");
-    const chunk = TEXT_ENCODER.encode(`data: ${said}\n\n`);
+/** One event to every page listening; a page gone since is dropped rather than written to. */
+export function tellPreviewListeners(
+    listeners: Set<ReloadListener>,
+    event: string,
+    data: string,
+): void {
+    assert(event.length > 0, "a page is told something");
     for (const listener of [...listeners]) {
-        const told = callForeign(() => listener.enqueue(chunk));
+        const told = callForeign(() => listener.send(event, data));
         if (!told.ok) listeners.delete(listener);
     }
     assert(listeners.size <= LISTENERS_MAXIMUM, "the listeners stay inside their bound");
 }
 
-async function servePreview(): Promise<void> {
-    const built = await readPreviewScript();
-    if (!("script" in built)) throw new UserscriptBuildError(built.failure);
-    const state: PreviewState = {
-        script: built.script,
-        failure: null,
-        fights: readRecordedFights(),
-    };
-    const listeners: PreviewListeners = new Set();
-    Deno.serve({ hostname: PREVIEW_HOSTNAME, port: PREVIEW_PORT }, (request) => {
-        const url = new URL(request.url);
-        if (url.pathname === EVENTS_PATH) return openPreviewEvents(listeners);
-        return answerPreviewRequest(url, state);
-    });
-    let pending: ReturnType<typeof setTimeout> | null = null;
-    const rebuild = async () => {
-        pending = null;
-        const rebuilt = await readPreviewScript();
-        if ("script" in rebuilt) {
-            state.script = rebuilt.script;
-            state.failure = null;
-            console.log(`rebuilt, ${listeners.size} page(s) told to reload`);
-            tellPreviewListeners(listeners, RELOAD_SAID);
-        } else {
-            state.failure = rebuilt.failure;
-            console.log(`the tree does not build: ${rebuilt.failure}`);
-            tellPreviewListeners(listeners, `build failed: ${rebuilt.failure}`);
-        }
-    };
-    for await (const _event of Deno.watchFs(WATCHED_DIRECTORIES)) {
-        if (pending !== null) clearTimeout(pending);
-        pending = setTimeout(() => {
-            rebuild().catch((failure) => console.error(failure));
-        }, REBUILD_QUIET_MILLISECONDS);
+/** The flags, walked: `--port N`, `--fight NAME`, and `--from PATH` as often as it is given. */
+export function readPreviewFlags(args: readonly string[]): {
+    port: number;
+    fight: string | null;
+    fromPaths: string[];
+} {
+    let port = DEFAULT_PORT;
+    let fight: string | null = null;
+    const fromPaths: string[] = [];
+    for (let at = 0; at < args.length; at += 1) {
+        const value = args[at + 1];
+        if (value === undefined) throw new PreviewServeError(`${args[at]} takes a value`);
+        if (args[at] === FLAG_PORT) port = parseInteger(value) ?? DEFAULT_PORT;
+        else if (args[at] === FLAG_FIGHT) fight = value;
+        else if (args[at] === FLAG_FROM) fromPaths.push(value);
+        else throw new PreviewServeError(`${args[at]} is not a flag this reads`);
+        at += 1;
     }
-}
-
-/** The bundle, or the bundler's first line where the tree does not build. */
-async function readPreviewScript(): Promise<{ script: string } | { failure: string }> {
-    try {
-        const files = await readUserscriptFiles(readDevelopmentVersion());
-        return { script: files.script };
-    } catch (failure) {
-        if (!(failure instanceof UserscriptBuildError)) throw failure;
-        const first = failure.message.split("\n").find((line) => line.trim().length > 0);
-        return { failure: first ?? failure.message };
-    }
+    assert(fromPaths.length <= args.length, "no more paths than were given");
+    return { port, fight, fromPaths };
 }
 
 if (import.meta.main) {
-    await servePreview();
+    const flags = readPreviewFlags(Deno.args);
+    const preview = initPreviewServer({ port: flags.port, fromPaths: flags.fromPaths });
+    const opening = flags.fight === null
+        ? preview.url
+        : `${preview.url}/?fight=${encodeURIComponent(flags.fight)}`;
+    console.log(`preview  ${opening}`);
+    console.log(`watching ${WATCHED_DIRECTORIES.join(", ")}: a change there rebuilds and reloads`);
+    console.log("a change in tools/ does not, because this process already imported it: restart");
+    for (const signal of ["SIGINT", "SIGTERM"] as const) {
+        Deno.addSignalListener(signal, () => {
+            preview.stop().then(() => Deno.exit(0), (failure: unknown) => {
+                console.error(FAILURE_LINE, failure);
+                Deno.exit(1);
+            });
+        });
+    }
 }

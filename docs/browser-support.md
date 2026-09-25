@@ -51,9 +51,9 @@ two systems. A layout figure taken on an engine nobody plays on answers a questi
 What follows from it:
 
 - A measurement of how the panel lays out is taken in Chrome, and carries its version and the date
-  it was taken on, as **V3** asks of any claim about a browser. `deno task preview` writes
-  `dist/preview.html`, which stands the add-on up against a recording with no game and no network;
-  headless Chrome reads it from disk.
+  it was taken on, as **V3** asks of any claim about a browser. `deno task preview` serves the
+  add-on over a recording with no game and no network, on the page the browser suite drives Chrome
+  over (`tests/e2e/game-page.ts`).
 - A measurement already in the tree that names another engine stays as it was taken. It was true of
   that engine on that date, and rewriting it would be inventing a reading nobody took.
 - Being the target buys Chrome nothing in the tables below. A construct still needs an entry with

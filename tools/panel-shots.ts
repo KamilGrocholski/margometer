@@ -3,7 +3,7 @@
  * `taken-at.json` naming the commit, version, recording and moment of the set. `DESIGN.md` owns the
  * rule this obeys, _The Frame Is Not A Screen Rule_: it refuses to shoot while `src/` carries
  * anything no commit holds. The page is `tests/e2e/game-page.ts`, driven in Chrome by Playwright
- * as the browser suite drives it, with the windows seeded where the published page seeds them.
+ * as the browser suite drives it, with both windows seeded in the corner the READMEs show.
  * Whether a state shown is reachable no picture says: opening every one before committing stays.
  *
  *     deno task panel:shots [--release]
@@ -14,7 +14,8 @@ import { encodeJson } from "#/libs/json-text.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { TIP_ATTRIBUTE } from "#/src/ui/panel-element.ts";
 import { PANEL_MARK, type PanelMark } from "#/src/ui/panel-intent.ts";
-import { CLASS, PLACE } from "#/src/ui/panel-look.ts";
+import { STORE_KEY } from "#/src/game/browser-store.ts";
+import { CLASS, PLACE, SPACE_PIXELS, STANDING } from "#/src/ui/panel-look.ts";
 import { composePanelPage } from "#/tests/e2e/game-page.ts";
 import {
     closePanelPage,
@@ -27,7 +28,7 @@ import {
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
 import { readUserscriptFiles, USERSCRIPT_NAME } from "./build-userscript.ts";
 import { PanelShotError } from "./margometer-tool-error.ts";
-import { composeWindowsSeeded, LANDING_RECORDING, readSiteVersion } from "./preview-site.ts";
+import { LANDING_RECORDING, readSiteVersion } from "./preview-site.ts";
 import { formatRecordingName } from "./recorded-material.ts";
 
 /**
@@ -167,6 +168,28 @@ export async function writePanelShots(version: string): Promise<PanelShotRecord>
         await browser.close();
         await Deno.remove(staging, { recursive: true });
     }
+}
+
+/**
+ * Both windows put in the top right corner before the add-on reads where they stand, by the same
+ * stored place a reader's drag writes, so every picture frames them where the READMEs show them.
+ */
+function composeWindowsSeeded(): string {
+    const helperOffset = PLACE.insetPixels + PLACE.widthPixels + SPACE_PIXELS.wide +
+        STANDING.widthPixels;
+    return `(function setWindowsSeeded() {
+  try {
+    var top = ${PLACE.insetPixels};
+    var panelLeft = Math.max(0, window.innerWidth - ${PLACE.insetPixels + PLACE.widthPixels});
+    var helperLeft = Math.max(0, window.innerWidth - ${helperOffset});
+    localStorage.setItem(${JSON.stringify(STORE_KEY.panelPlace)},
+      JSON.stringify({ left: panelLeft, top: top }));
+    localStorage.setItem(${JSON.stringify(STORE_KEY.helperPlace)},
+      JSON.stringify({ left: helperLeft, top: top }));
+  } catch (reason) {
+    console.warn("MargoMeter/Preview", reason);
+  }
+})();`;
 }
 
 /** The Chrome the browser suite drives, or a refusal naming the variable that points at another. */

@@ -13,6 +13,10 @@ export interface PanelProbe {
     feed(count: number): number;
     remaining(): number;
     rewind(): void;
+    /** Another fight in the same page, from its first call, which is how a preview picks one. */
+    load(calls: readonly unknown[]): void;
+    /** The call fed last, which the preview reads the reader's side off; null before any. */
+    lastCall: unknown;
 }
 
 declare global {
@@ -222,12 +226,19 @@ function composeDriver(): string {
   probe.feed = function feed(count) {
     for (var step = 0; step < count; step += 1) {
       if (probe.fed >= settings.calls.length) return probe.fed;
-      probe.answers.push(window.Engine.battle.updateData(settings.calls[probe.fed]));
+      probe.lastCall = settings.calls[probe.fed];
+      probe.answers.push(window.Engine.battle.updateData(probe.lastCall));
       probe.fed += 1;
     }
     return probe.fed;
   };
   probe.remaining = function remaining() { return settings.calls.length - probe.fed; };
+  probe.lastCall = null;
+  probe.load = function load(calls) {
+    settings.calls = calls;
+    probe.fed = 0;
+    probe.lastCall = null;
+  };
   // The same fight delivered again, which the game answers with a second \`init\` — the only way
   // a page holding one recording can put a second fight in front of the panel.
   probe.rewind = function rewind() { probe.fed = 0; };
