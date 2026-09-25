@@ -8,19 +8,19 @@
  */
 
 import { assert, assertEquals, assertExists, AssertionError, assertThrows } from "@std/assert";
-import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
-import { indexTeamHeals, type TeamHeal } from "@/src/core/combatant-health.ts";
-import { type CombatantRoster, indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
+import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
+import { indexTeamHeals, type TeamHeal } from "#/src/core/combatant-health.ts";
+import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     type CombatantFigures,
     countUnreadMessages,
     type FightStatistics,
     tallyFightStatistics,
     verifyFightStatistics,
-} from "@/src/core/fight-statistics.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
-import { readRecordedFights } from "@/tests/recorded-fights.ts";
+} from "#/src/core/fight-statistics.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 /** One payload decoded from no standing, as the session decodes one. */
 function decode(messages: readonly string[], roster: CombatantRoster | null): BattleEvent[] {

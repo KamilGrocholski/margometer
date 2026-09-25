@@ -10,7 +10,7 @@ import {
     readImportSources,
     readSourceFiles,
     type SourceFile,
-} from "@/tests/source-tree.ts";
+} from "#/tests/source-tree.ts";
 
 const ASSERT_PACKAGE = "@std/assert";
 const READER_FILES = ["src/userscript-entry.ts", "src/userscript-boot.ts"];

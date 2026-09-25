@@ -26,9 +26,9 @@ import {
     SPACE_PIXELS,
     SURFACE,
     TEXT,
-} from "@/src/ui/panel-look.ts";
-import { lookupColourForProfession, PALETTE_COLOURS, SIGNAL } from "@/src/ui/panel-palette.ts";
-import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "@/tests/style-sheet.ts";
+} from "#/src/ui/panel-look.ts";
+import { lookupColourForProfession, PALETTE_COLOURS, SIGNAL } from "#/src/ui/panel-palette.ts";
+import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "#/tests/style-sheet.ts";
 
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
 const AA_TEXT_RATIO = 4.5;

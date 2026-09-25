@@ -8,18 +8,18 @@
  */
 
 import { assert } from "@std/assert/assert";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import { BATTLE_EVENT, type BattleEvent, type DeclaredEffect } from "@/src/core/battle-event.ts";
-import { type CombatantRoster, lookupCombatantIdByName } from "@/src/core/combatant-roster.ts";
-import type { FightView } from "@/src/core/fight-session.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { BATTLE_EVENT, type BattleEvent, type DeclaredEffect } from "./battle-event.ts";
+import { type CombatantRoster, lookupCombatantIdByName } from "./combatant-roster.ts";
+import type { FightView } from "./fight-session.ts";
 import {
     isTeamWideKey,
     KEY_REACH,
     lookupKeyReach,
     NAME_SEPARATOR,
     PROVOCATION_KEY,
-} from "@/src/core/protocol-key.ts";
-import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "@/src/core/turn-clock.ts";
+} from "./protocol-key.ts";
+import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "./turn-clock.ts";
 
 /** A cast reaches what its keys reach, and both sides where its keys disagree. */
 export const AURA_REACH = { ...KEY_REACH, bothSides: "both-sides" } as const;

@@ -11,15 +11,15 @@ import {
     type ForeignFailure,
     RESULT_FAILURE,
     runGuarded,
-} from "@/libs/result.ts";
+} from "#/libs/result.ts";
 import {
     ENGINE_FAILURE,
     type EngineFailure,
     type EnginePort,
     type PayloadListener,
     type WrapHandle,
-} from "@/src/game/engine-battle.ts";
-import type { IntervalHandle, IntervalScheduler } from "@/src/game/page-interval.ts";
+} from "#/src/game/engine-battle.ts";
+import type { IntervalHandle, IntervalScheduler } from "#/src/game/page-interval.ts";
 
 const LOOK_EVERY_MILLISECONDS = 250;
 /** Four looks a second for a minute. A game that has not arrived by then is not arriving. */

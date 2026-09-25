@@ -10,7 +10,7 @@ import {
     readSourceFiles,
     SOURCE_DIRECTORIES,
     type SourceFile,
-} from "@/tests/source-tree.ts";
+} from "#/tests/source-tree.ts";
 
 const CONSTRUCTOR_NAME = "RegExp";
 

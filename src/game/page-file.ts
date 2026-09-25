@@ -16,8 +16,8 @@ import {
     ok,
     type Result,
     runGuarded,
-} from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
+} from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 
 export interface FileSink {
     /** The release lands on the browser's clock later, so its failure is handed back apart. */

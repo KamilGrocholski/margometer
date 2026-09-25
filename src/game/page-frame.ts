@@ -13,7 +13,7 @@ import {
     ok,
     type Result,
     runGuarded,
-} from "@/libs/result.ts";
+} from "#/libs/result.ts";
 
 export interface FrameScheduler {
     requestFrame(

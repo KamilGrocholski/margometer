@@ -7,10 +7,10 @@
  */
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
-import { presentCard } from "@/src/ui/panel-card.ts";
-import { type PanelSidePart, type RowDetail, SIDE_PART } from "@/src/ui/panel-reading.ts";
-import { PANEL_METRIC, type PanelMetric, SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
-import { TIP_LINE, TIP_NOTE_TONE, type TipGroup } from "@/src/ui/tip-reading.ts";
+import { presentCard } from "#/src/ui/panel-card.ts";
+import { type PanelSidePart, type RowDetail, SIDE_PART } from "#/src/ui/panel-reading.ts";
+import { PANEL_METRIC, type PanelMetric, SCREEN_ORDER } from "#/src/ui/panel-screen.ts";
+import { TIP_LINE, TIP_NOTE_TONE, type TipGroup } from "#/src/ui/tip-reading.ts";
 import {
     CARD_WORDS,
     CAVEAT,
@@ -19,7 +19,7 @@ import {
     getNoteForCaveat,
     PANEL_WORDS,
     SUSPECT_MARK,
-} from "@/src/ui/panel-words.ts";
+} from "#/src/ui/panel-words.ts";
 
 /** A combatant who did every one of the four, and whose log left an end out of three of them. */
 const HILDUR: RowDetail = {

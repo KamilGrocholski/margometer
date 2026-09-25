@@ -7,22 +7,17 @@
  * `develop ADR 0011`.
  */
 
-import { clamp } from "@/libs/number-range.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import { formatInteger } from "@/libs/number-text.ts";
-import type { OutcomeResult } from "@/src/core/battle-event.ts";
-import type {
-    FightMoment,
-    PanelSidePart,
-    PanelUnnamedEnd,
-    PinnedCase,
-} from "@/src/ui/panel-reading.ts";
-import type { StorageChoice } from "@/src/ui/panel-choice.ts";
-import type { PanelMetric, PanelNoun, PanelSideChoice } from "@/src/ui/panel-screen.ts";
-import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
-import type { ChargedSkillState } from "@/src/core/charged-skill.ts";
-import { HASTE_BIT_NAME, SLOW_BIT_NAME } from "@/src/core/carried-figure.ts";
-import { HOLYTOUCH_HEALS_STATED } from "@/src/core/legendary-standing.ts";
+import { clamp } from "#/libs/number-range.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { formatInteger } from "#/libs/number-text.ts";
+import type { OutcomeResult } from "#/src/core/battle-event.ts";
+import type { FightMoment, PanelSidePart, PanelUnnamedEnd, PinnedCase } from "./panel-reading.ts";
+import type { StorageChoice } from "./panel-choice.ts";
+import type { PanelMetric, PanelNoun, PanelSideChoice } from "./panel-screen.ts";
+import type { StandingTurnState } from "./panel-standing.ts";
+import type { ChargedSkillState } from "#/src/core/charged-skill.ts";
+import { HASTE_BIT_NAME, SLOW_BIT_NAME } from "#/src/core/carried-figure.ts";
+import { HOLYTOUCH_HEALS_STATED } from "#/src/core/legendary-standing.ts";
 
 export interface CountedNoun {
     one: string;

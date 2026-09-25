@@ -7,8 +7,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { BATTLE_EVENT, type BattleEvent, type DeclarationEvent } from "@/src/core/battle-event.ts";
-import { PREPARE_KEY, STEP_KEY } from "@/src/core/protocol-key.ts";
+import { BATTLE_EVENT, type BattleEvent, type DeclarationEvent } from "./battle-event.ts";
+import { PREPARE_KEY, STEP_KEY } from "./protocol-key.ts";
 
 /**
  * The extra attacks of one skill are all one turn (published help, article 372 §2.1 and the

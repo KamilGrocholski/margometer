@@ -5,9 +5,9 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import { isRecord } from "@/libs/unknown-value.ts";
-import { lookupRecordedFight, readRecordedFights } from "@/tests/recorded-fights.ts";
-import { initRuntimeWorld } from "@/tests/runtime-world.ts";
+import { isRecord } from "#/libs/unknown-value.ts";
+import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
+import { initRuntimeWorld } from "#/tests/runtime-world.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** Two people focusing one opponent, which is what the focus pass needs to have anybody to do. */

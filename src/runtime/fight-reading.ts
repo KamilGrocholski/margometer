@@ -6,13 +6,13 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, ok, type Result } from "@/libs/result.ts";
-import type { DecoderTables } from "@/src/core/fight-decoder.ts";
+import { err, ok, type Result } from "#/libs/result.ts";
+import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import {
     type FightFigures,
     tallyFightFigures,
     verifyFightFigures,
-} from "@/src/core/fight-figures.ts";
+} from "#/src/core/fight-figures.ts";
 import {
     commitPayload,
     type FightView,
@@ -21,10 +21,10 @@ import {
     type PayloadRejected,
     preparePayload,
     type SessionOptions,
-} from "@/src/core/fight-session.ts";
-import { type EnvelopeFailure, readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
-import { CALLS_MAXIMUM } from "@/src/game/fight-capture.ts";
-import { KEPT_MAXIMUM, type KeptFight } from "@/src/runtime/shelf.ts";
+} from "#/src/core/fight-session.ts";
+import { type EnvelopeFailure, readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
+import { KEPT_MAXIMUM, type KeptFight } from "./shelf.ts";
 
 export interface FightReading {
     view: FightView;

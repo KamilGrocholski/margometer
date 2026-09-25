@@ -15,8 +15,8 @@ import {
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
-import type { Combatant } from "@/src/core/combatant-roster.ts";
-import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
+import type { Combatant } from "#/src/core/combatant-roster.ts";
+import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
     commitPayload,
     type FightSession,
@@ -30,8 +30,8 @@ import {
     SESSION_FAILURE,
     SESSION_OPTIONS,
     SESSION_PHASE,
-} from "@/src/core/fight-session.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+} from "#/src/core/fight-session.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 
 const NOTHING: PayloadRecord = {
     isInit: false,

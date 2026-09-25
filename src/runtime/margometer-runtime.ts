@@ -6,50 +6,50 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { type ForeignFailure, ok, type Result } from "@/libs/result.ts";
-import type { DecoderTables } from "@/src/core/fight-decoder.ts";
-import type { SessionOptions } from "@/src/core/fight-session.ts";
-import type { KeyValueStore } from "@/src/game/browser-store.ts";
+import { type ForeignFailure, ok, type Result } from "#/libs/result.ts";
+import type { DecoderTables } from "#/src/core/fight-decoder.ts";
+import type { SessionOptions } from "#/src/core/fight-session.ts";
+import type { KeyValueStore } from "#/src/game/browser-store.ts";
 import {
     ENGINE_FAILURE,
     type EngineFailure,
     type EnginePort,
     type WrapHandle,
-} from "@/src/game/engine-battle.ts";
-import type { PlacePort } from "@/src/game/engine-place.ts";
-import { ROWS_WRITTEN_MAXIMUM, type TooltipPort } from "@/src/game/engine-tooltip.ts";
-import type { DictionaryPort } from "@/src/game/game-dictionary.ts";
-import type { BuildPort } from "@/src/game/game-build.ts";
-import type { Clock } from "@/src/game/page-clock.ts";
-import type { ConsolePort } from "@/src/game/page-console.ts";
-import type { FileSink } from "@/src/game/page-file.ts";
-import type { FrameHandle, FrameScheduler } from "@/src/game/page-frame.ts";
-import type { IntervalScheduler } from "@/src/game/page-interval.ts";
-import type { SurroundingsPort } from "@/src/game/page-surroundings.ts";
-import type { TooltipTables } from "@/src/runtime/carried-tooltip.ts";
-import { DEFECT_KIND, type DefectLedger, initDefectLedger } from "@/src/runtime/defect-ledger.ts";
-import { type EngineSearch, startEngineSearch } from "@/src/runtime/engine-search.ts";
-import { executeRuntimeIntent, type IntentParts } from "@/src/runtime/runtime-intent.ts";
-import { initLiveFight, type LiveFight } from "@/src/runtime/live-fight.ts";
-import { renderFrame } from "@/src/runtime/panel-frame.ts";
-import { resetScreenOnOpening } from "@/src/runtime/screen-intent.ts";
+} from "#/src/game/engine-battle.ts";
+import type { PlacePort } from "#/src/game/engine-place.ts";
+import { ROWS_WRITTEN_MAXIMUM, type TooltipPort } from "#/src/game/engine-tooltip.ts";
+import type { DictionaryPort } from "#/src/game/game-dictionary.ts";
+import type { BuildPort } from "#/src/game/game-build.ts";
+import type { Clock } from "#/src/game/page-clock.ts";
+import type { ConsolePort } from "#/src/game/page-console.ts";
+import type { FileSink } from "#/src/game/page-file.ts";
+import type { FrameHandle, FrameScheduler } from "#/src/game/page-frame.ts";
+import type { IntervalScheduler } from "#/src/game/page-interval.ts";
+import type { SurroundingsPort } from "#/src/game/page-surroundings.ts";
+import type { TooltipTables } from "./carried-tooltip.ts";
+import { DEFECT_KIND, type DefectLedger, initDefectLedger } from "./defect-ledger.ts";
+import { type EngineSearch, startEngineSearch } from "./engine-search.ts";
+import { executeRuntimeIntent, type IntentParts } from "./runtime-intent.ts";
+import { initLiveFight, type LiveFight } from "./live-fight.ts";
+import { renderFrame } from "./panel-frame.ts";
+import { resetScreenOnOpening } from "./screen-intent.ts";
 import {
     readStorageChoice,
     readWindowFold,
     readWindowPosition,
     type SettingFailure,
     STORAGE_DEFAULT,
-} from "@/src/runtime/settings.ts";
-import { initShelfKeeper, type ShelfKeeper } from "@/src/runtime/shelf-keeper.ts";
-import { KEPT_MAXIMUM } from "@/src/runtime/shelf.ts";
-import { PANEL_WINDOW, type PanelWindow, type StorageChoice } from "@/src/ui/panel-choice.ts";
-import type { PanelDocument, PanelElement } from "@/src/ui/panel-document.ts";
-import type { PanelPlacement, PanelViewport } from "@/src/ui/panel-drag.ts";
-import { initPanelView, type PanelView } from "@/src/ui/panel-element.ts";
-import type { PanelIntent } from "@/src/ui/panel-intent.ts";
-import { createScreenState, type ScreenState } from "@/src/ui/panel-screen.ts";
-import { ROWS_BESIDE_THE_STATUSES, type TranslateLabel } from "@/src/ui/panel-words.ts";
-import { VIEW_FAILURE, type ViewFailure } from "@/src/ui/view-failure.ts";
+} from "./settings.ts";
+import { initShelfKeeper, type ShelfKeeper } from "./shelf-keeper.ts";
+import { KEPT_MAXIMUM } from "./shelf.ts";
+import { PANEL_WINDOW, type PanelWindow, type StorageChoice } from "#/src/ui/panel-choice.ts";
+import type { PanelDocument, PanelElement } from "#/src/ui/panel-document.ts";
+import type { PanelPlacement, PanelViewport } from "#/src/ui/panel-drag.ts";
+import { initPanelView, type PanelView } from "#/src/ui/panel-element.ts";
+import type { PanelIntent } from "#/src/ui/panel-intent.ts";
+import { createScreenState, type ScreenState } from "#/src/ui/panel-screen.ts";
+import { ROWS_BESIDE_THE_STATUSES, type TranslateLabel } from "#/src/ui/panel-words.ts";
+import { VIEW_FAILURE, type ViewFailure } from "#/src/ui/view-failure.ts";
 
 export interface RuntimePorts {
     clock: Clock;

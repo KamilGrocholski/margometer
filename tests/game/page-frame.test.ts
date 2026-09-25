@@ -4,8 +4,8 @@
  */
 
 import { assert, assertEquals, AssertionError, assertStrictEquals } from "@std/assert";
-import { type BrokenInvariant, RESULT_FAILURE } from "@/libs/result.ts";
-import { initPageFrames, type PageFrames } from "@/src/game/page-frame.ts";
+import { type BrokenInvariant, RESULT_FAILURE } from "#/libs/result.ts";
+import { initPageFrames, type PageFrames } from "#/src/game/page-frame.ts";
 
 /** Frames the test lets fall by hand: the step each holds runs only when `fall` is called. */
 function composeFrames() {

@@ -14,7 +14,7 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
-import { CHARGED_SKILL_STATE } from "@/src/core/charged-skill.ts";
+import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import {
     CARD_WORDS,
     CAVEAT,
@@ -86,13 +86,13 @@ import {
     STANDING_WORDS,
     STORE_MADE_ROOM_ANSWER,
     STORE_REFUSED_ANSWER,
-} from "@/src/ui/panel-words.ts";
-import { OUTCOME_RESULT, type OutcomeResult } from "@/src/core/battle-event.ts";
-import { STORAGE_CHOICES } from "@/src/ui/panel-choice.ts";
-import { PINNED_CASES, SIDE_PART, UNNAMED_END } from "@/src/ui/panel-reading.ts";
-import { PANEL_NOUN, SCREEN_ORDER, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
-import { STANDING_TURN_STATE } from "@/src/ui/panel-standing.ts";
-import { BUFF_BITS, readFrozenModule } from "@/tests/frozen-tables.ts";
+} from "#/src/ui/panel-words.ts";
+import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
+import { STORAGE_CHOICES } from "#/src/ui/panel-choice.ts";
+import { PINNED_CASES, SIDE_PART, UNNAMED_END } from "#/src/ui/panel-reading.ts";
+import { PANEL_NOUN, SCREEN_ORDER, SIDE_CHOICES } from "#/src/ui/panel-screen.ts";
+import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
+import { BUFF_BITS, readFrozenModule } from "#/tests/frozen-tables.ts";
 
 /** What a block may run to: a row per status the client names, and the rows beside them. */
 const TOOLTIP_ROWS_MAXIMUM = BUFF_BITS.length + ROWS_BESIDE_THE_STATUSES;

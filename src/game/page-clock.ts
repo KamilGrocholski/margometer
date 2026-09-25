@@ -5,7 +5,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, type ForeignFailure, ok, type Result } from "@/libs/result.ts";
+import { callForeign, type ForeignFailure, ok, type Result } from "#/libs/result.ts";
 
 /** A moment on the reader's own clock. The month counts from one, as a person counts them. */
 export interface PageMoment {

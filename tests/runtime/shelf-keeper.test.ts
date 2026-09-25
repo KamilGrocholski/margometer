@@ -5,14 +5,14 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { SESSION_OPTIONS } from "@/src/core/fight-session.ts";
-import { initPageStore, type KeyValueStore, STORE_KEY } from "@/src/game/browser-store.ts";
-import { DEFECT_KIND, initDefectLedger } from "@/src/runtime/defect-ledger.ts";
-import { initShelfKeeper, type ShelfKeeperOptions } from "@/src/runtime/shelf-keeper.ts";
-import { KEPT_MAXIMUM, type KeptFight } from "@/src/runtime/shelf.ts";
-import { STORAGE_CHOICE, type StorageChoice } from "@/src/ui/panel-choice.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
-import { initHeldStore, initRefusingStore } from "@/tests/runtime-world.ts";
+import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
+import { initPageStore, type KeyValueStore, STORE_KEY } from "#/src/game/browser-store.ts";
+import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
+import { initShelfKeeper, type ShelfKeeperOptions } from "#/src/runtime/shelf-keeper.ts";
+import { KEPT_MAXIMUM, type KeptFight } from "#/src/runtime/shelf.ts";
+import { STORAGE_CHOICE, type StorageChoice } from "#/src/ui/panel-choice.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { initHeldStore, initRefusingStore } from "#/tests/runtime-world.ts";
 
 /** A fight of one payload that opens and closes it, which is the least a shelf keeps. */
 function composeFight(openedAt: number, isPinned = false): KeptFight {

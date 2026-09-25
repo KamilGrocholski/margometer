@@ -6,15 +6,15 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { err } from "@/libs/result.ts";
+import { err } from "#/libs/result.ts";
 import {
     encodeProtocolMessage,
     GRAMMAR_REFUSAL,
     MESSAGE_END,
     parseProtocolMessage,
     SEGMENTS_MAXIMUM,
-} from "@/src/core/protocol-message.ts";
-import { readRecordedFights } from "@/tests/recorded-fights.ts";
+} from "#/src/core/protocol-message.ts";
+import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 /** `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`, the samples' own fight. */
 const HIT = "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223";

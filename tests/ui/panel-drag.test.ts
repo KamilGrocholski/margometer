@@ -4,7 +4,7 @@
  */
 
 import { assertEquals, assertExists, assertStringIncludes } from "@std/assert";
-import { PANEL_WINDOW, type PanelWindow } from "@/src/ui/panel-choice.ts";
+import { PANEL_WINDOW, type PanelWindow } from "#/src/ui/panel-choice.ts";
 import {
     clampPosition,
     composeDefaultPosition,
@@ -12,8 +12,8 @@ import {
     composeTipAcross,
     type TipAcross,
     type TipWindowPlace,
-} from "@/src/ui/panel-drag.ts";
-import { SPACE_PIXELS } from "@/src/ui/panel-look.ts";
+} from "#/src/ui/panel-drag.ts";
+import { SPACE_PIXELS } from "#/src/ui/panel-look.ts";
 
 const WINDOW = { width: 1280, height: 900 };
 

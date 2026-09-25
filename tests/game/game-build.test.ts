@@ -7,9 +7,9 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { err, ok, RESULT_FAILURE } from "@/libs/result.ts";
-import { initPageBuild, parseGameBuild } from "@/src/game/game-build.ts";
-import { PAGE_READ_FAILURE, PAGE_READING } from "@/src/game/page-reading.ts";
+import { err, ok, RESULT_FAILURE } from "#/libs/result.ts";
+import { initPageBuild, parseGameBuild } from "#/src/game/game-build.ts";
+import { PAGE_READ_FAILURE, PAGE_READING } from "#/src/game/page-reading.ts";
 
 Deno.test("both names the client has served give up their build", () => {
     assertEquals(

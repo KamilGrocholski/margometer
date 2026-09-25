@@ -6,7 +6,7 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { clamp } from "@/libs/number-range.ts";
+import { clamp } from "#/libs/number-range.ts";
 
 Deno.test("a value inside its range is the value, and outside it is the end it passed", () => {
     assertEquals(clamp(5, 0, 10), 5, "a value between two ends is itself");

@@ -8,8 +8,8 @@ import {
     type PanelView,
     type PanelViewOptions,
     type WaitingReading,
-} from "@/src/ui/panel-element.ts";
-import type { PanelDocument } from "@/src/ui/panel-document.ts";
+} from "#/src/ui/panel-element.ts";
+import type { PanelDocument } from "#/src/ui/panel-document.ts";
 
 /** The build a test's panel says drew it. */
 export const TEST_VERSION = "0.0.0-test";

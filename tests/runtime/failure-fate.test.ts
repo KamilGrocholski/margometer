@@ -4,7 +4,7 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { FAILURE_FATE, FAILURE_FATES } from "@/src/runtime/failure-fate.ts";
+import { FAILURE_FATE, FAILURE_FATES } from "#/src/runtime/failure-fate.ts";
 
 Deno.test("every fate the vocabulary names is the fate of some failure", () => {
     const used = new Set(Object.values(FAILURE_FATES));

@@ -7,13 +7,13 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
+import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import {
     type CarriedStatusWalk,
     composeCarriedStatuses,
     NO_CARRIED_STATUS_WALK,
     prepareCarriedStatuses,
-} from "@/src/core/carried-status.ts";
+} from "#/src/core/carried-status.ts";
 
 const SPEED_UP = 6;
 const POISONED = 3;

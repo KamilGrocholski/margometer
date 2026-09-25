@@ -5,13 +5,13 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import type { PanelDefect } from "@/src/ui/panel-element.ts";
-import { INTENT_FAILURE, PANEL_INTENT, PANEL_MARK } from "@/src/ui/panel-intent.ts";
-import { NOTHING_SUSPECT, presentScreen, type ScreenReading } from "@/src/ui/panel-reading.ts";
-import { PANEL_METRIC, SIDE_CHOICE } from "@/src/ui/panel-screen.ts";
-import { PANEL_DEFECT_KIND, PANEL_REGION } from "@/src/ui/panel-words.ts";
-import { PANEL_WINDOW } from "@/src/ui/panel-choice.ts";
-import { PANEL_LISTENER, VIEW_FAILURE, type ViewFailure } from "@/src/ui/view-failure.ts";
+import type { PanelDefect } from "#/src/ui/panel-element.ts";
+import { INTENT_FAILURE, PANEL_INTENT, PANEL_MARK } from "#/src/ui/panel-intent.ts";
+import { NOTHING_SUSPECT, presentScreen, type ScreenReading } from "#/src/ui/panel-reading.ts";
+import { PANEL_METRIC, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
+import { PANEL_DEFECT_KIND, PANEL_REGION } from "#/src/ui/panel-words.ts";
+import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
+import { PANEL_LISTENER, VIEW_FAILURE, type ViewFailure } from "#/src/ui/view-failure.ts";
 import {
     composeFakeDocument,
     type FakeElement,
@@ -19,10 +19,10 @@ import {
     getTextsByClass,
     pointAtElement,
     pressElement,
-} from "@/tests/fake-document.ts";
-import { initTestView, NOTHING_WAITING } from "@/tests/panel-view.ts";
-import { tallyRecordedFight } from "@/tests/recorded-fights.ts";
-import { composeShownScreen } from "@/tests/shown-screen.ts";
+} from "#/tests/fake-document.ts";
+import { initTestView, NOTHING_WAITING } from "#/tests/panel-view.ts";
+import { tallyRecordedFight } from "#/tests/recorded-fights.ts";
+import { composeShownScreen } from "#/tests/shown-screen.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 

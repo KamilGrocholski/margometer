@@ -7,15 +7,15 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { ok, RESULT_FAILURE } from "@/libs/result.ts";
-import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
+import { ok, RESULT_FAILURE } from "#/libs/result.ts";
+import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
     initPageTooltip,
     ROWS_WRITTEN_MAXIMUM,
     type TooltipPort,
-} from "@/src/game/engine-tooltip.ts";
-import { ROWS_BESIDE_THE_STATUSES } from "@/src/ui/panel-words.ts";
-import { BUFF_BITS } from "@/tests/frozen-tables.ts";
+} from "#/src/game/engine-tooltip.ts";
+import { ROWS_BESIDE_THE_STATUSES } from "#/src/ui/panel-words.ts";
+import { BUFF_BITS } from "#/tests/frozen-tables.ts";
 
 /** The most rows the composer hands over for one fighter: a row per status, and the rest. */
 const TOOLTIP_ROWS_MAXIMUM = BUFF_BITS.length + ROWS_BESIDE_THE_STATUSES;

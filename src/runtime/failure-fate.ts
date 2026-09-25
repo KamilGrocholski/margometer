@@ -4,22 +4,22 @@
  * Which defect a failure leaves is the step's that met it; whether it leaves one is this table's.
  */
 
-import { type BrokenInvariant, type ForeignFailure, RESULT_FAILURE } from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import { DECODE_FAILURE, type UnreadMessage } from "@/src/core/fight-decoder.ts";
-import { type PayloadRejected, SESSION_FAILURE } from "@/src/core/fight-session.ts";
-import { STORE_FAILURE, type StoreFailure } from "@/src/game/browser-store.ts";
-import { ENGINE_FAILURE, type EngineFailure } from "@/src/game/engine-battle.ts";
-import { PAGE_READ_FAILURE, type PageReadFailure } from "@/src/game/page-reading.ts";
-import { ENVELOPE_FAILURE, type EnvelopeFailure } from "@/src/game/payload-envelope.ts";
-import { WARRIOR_FAILURE, type WarriorFailure } from "@/src/game/warrior-snapshot.ts";
-import { FILE_SINK_FAILURE } from "@/src/game/page-file.ts";
-import { type ExportFailure, HANDOVER_FAILURE } from "@/src/runtime/fight-handover.ts";
-import { FRAME_FAILURE, type FrameFailure } from "@/src/runtime/panel-frame.ts";
-import { VIEW_FAILURE, type ViewFailure } from "@/src/ui/view-failure.ts";
-import { FILE_FAILURE, type FileEncodingFailure } from "@/src/runtime/fight-file.ts";
-import { SETTING_FAILURE, type SettingFailure } from "@/src/runtime/settings.ts";
-import { SHELF_FAILURE, type ShelfFailure } from "@/src/runtime/shelf.ts";
+import { type BrokenInvariant, type ForeignFailure, RESULT_FAILURE } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { DECODE_FAILURE, type UnreadMessage } from "#/src/core/fight-decoder.ts";
+import { type PayloadRejected, SESSION_FAILURE } from "#/src/core/fight-session.ts";
+import { STORE_FAILURE, type StoreFailure } from "#/src/game/browser-store.ts";
+import { ENGINE_FAILURE, type EngineFailure } from "#/src/game/engine-battle.ts";
+import { PAGE_READ_FAILURE, type PageReadFailure } from "#/src/game/page-reading.ts";
+import { ENVELOPE_FAILURE, type EnvelopeFailure } from "#/src/game/payload-envelope.ts";
+import { WARRIOR_FAILURE, type WarriorFailure } from "#/src/game/warrior-snapshot.ts";
+import { FILE_SINK_FAILURE } from "#/src/game/page-file.ts";
+import { type ExportFailure, HANDOVER_FAILURE } from "./fight-handover.ts";
+import { FRAME_FAILURE, type FrameFailure } from "./panel-frame.ts";
+import { VIEW_FAILURE, type ViewFailure } from "#/src/ui/view-failure.ts";
+import { FILE_FAILURE, type FileEncodingFailure } from "./fight-file.ts";
+import { SETTING_FAILURE, type SettingFailure } from "./settings.ts";
+import { SHELF_FAILURE, type ShelfFailure } from "./shelf.ts";
 
 export type RuntimeFailure =
     | EngineFailure

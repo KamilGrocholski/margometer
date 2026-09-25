@@ -8,13 +8,13 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { runGuarded } from "@/libs/result.ts";
-import type { DecoderTables } from "@/src/core/fight-decoder.ts";
-import type { SessionOptions } from "@/src/core/fight-session.ts";
-import type { KeyValueStore } from "@/src/game/browser-store.ts";
-import { DEFECT_KIND, type DefectLedger } from "@/src/runtime/defect-ledger.ts";
-import { type KeptReading, replayKeptFight } from "@/src/runtime/fight-reading.ts";
-import { writeStorageChoice } from "@/src/runtime/settings.ts";
+import { runGuarded } from "#/libs/result.ts";
+import type { DecoderTables } from "#/src/core/fight-decoder.ts";
+import type { SessionOptions } from "#/src/core/fight-session.ts";
+import type { KeyValueStore } from "#/src/game/browser-store.ts";
+import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
+import { type KeptReading, replayKeptFight } from "./fight-reading.ts";
+import { writeStorageChoice } from "./settings.ts";
 import {
     deleteShelf,
     keepFight,
@@ -26,8 +26,8 @@ import {
     SHELF_FAILURE,
     type ShelfContents,
     writeShelfContents,
-} from "@/src/runtime/shelf.ts";
-import type { StorageChoice } from "@/src/ui/panel-choice.ts";
+} from "./shelf.ts";
+import type { StorageChoice } from "#/src/ui/panel-choice.ts";
 
 /** The four things that can go wrong with a shelf, of which at most three ever hold at once. */
 export interface ShelfAnswers {

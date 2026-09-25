@@ -8,9 +8,9 @@
  */
 
 import { assert } from "@std/assert/assert";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
-import { CHARGE_BROKEN_KEY } from "@/src/core/protocol-key.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
+import { CHARGE_BROKEN_KEY } from "./protocol-key.ts";
 
 /**
  * Past every charge the corpus has held at once, which is **one**, in every payload of every

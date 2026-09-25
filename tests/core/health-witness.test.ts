@@ -7,17 +7,17 @@
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";
-import type { BattleEvent } from "@/src/core/battle-event.ts";
+import type { BattleEvent } from "#/src/core/battle-event.ts";
 import {
     deriveHealthFromPercent,
     deriveHealthTolerance,
     getStatedHealthsFromEvent,
     indexTeamHeals,
-} from "@/src/core/combatant-health.ts";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
-import { readRecordedFights, type RecordedFight } from "@/tests/recorded-fights.ts";
+} from "#/src/core/combatant-health.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { readRecordedFights, type RecordedFight } from "#/tests/recorded-fights.ts";
 
 /** The one key the decoder still names unread, and the reason health can appear from nowhere. */
 const UNSIZED_SHARE_KEY = "healall_per";

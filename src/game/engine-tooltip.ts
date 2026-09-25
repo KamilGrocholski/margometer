@@ -7,11 +7,11 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, type ForeignFailure, ok, type Result } from "@/libs/result.ts";
-import { isRecord, type UnknownRecord } from "@/libs/unknown-value.ts";
-import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
-import { readPageBattle } from "@/src/game/engine-battle.ts";
-import { readNamedWarriors, WARRIOR_ID_KEY } from "@/src/game/warrior-snapshot.ts";
+import { callForeign, type ForeignFailure, ok, type Result } from "#/libs/result.ts";
+import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
+import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
+import { readPageBattle } from "./engine-battle.ts";
+import { readNamedWarriors, WARRIOR_ID_KEY } from "./warrior-snapshot.ts";
 
 export interface TooltipPort {
     /** Every fighter the page draws, each with the rows they should carry now, empty or not. */

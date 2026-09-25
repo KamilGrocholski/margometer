@@ -8,9 +8,9 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, ok, type Result } from "@/libs/result.ts";
-import { isRecord, type UnknownRecord } from "@/libs/unknown-value.ts";
-import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
+import { err, ok, type Result } from "#/libs/result.ts";
+import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
+import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 
 /**
  * One combatant as the running fight holds them. The keys are the client's own and are the file's

@@ -13,14 +13,14 @@ import {
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
-import { parseJson } from "@/libs/json-text.ts";
-import { isRecord, type UnknownRecord } from "@/libs/unknown-value.ts";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
-import { tallyFightFigures } from "@/src/core/fight-figures.ts";
-import { getFightView } from "@/src/core/fight-session.ts";
-import { initCombatantFigures, tallyFightStatistics } from "@/src/core/fight-statistics.ts";
-import { NO_CAPTURE } from "@/src/game/fight-capture.ts";
+import { parseJson } from "#/libs/json-text.ts";
+import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
+import { tallyFightFigures } from "#/src/core/fight-figures.ts";
+import { getFightView } from "#/src/core/fight-session.ts";
+import { initCombatantFigures, tallyFightStatistics } from "#/src/core/fight-statistics.ts";
+import { NO_CAPTURE } from "#/src/game/fight-capture.ts";
 import {
     encodeFightFile,
     encodeFightReport,
@@ -28,13 +28,13 @@ import {
     type FileCalls,
     type FileSubject,
     type FileSurroundings,
-} from "@/src/runtime/fight-file.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+} from "#/src/runtime/fight-file.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import {
     readRecordedFights,
     RECORDINGS_REVISION,
     replayRecordedFight,
-} from "@/tests/recorded-fights.ts";
+} from "#/tests/recorded-fights.ts";
 
 /**
  * The newest envelope. `formatVersion` does not identify the shape (every recording of

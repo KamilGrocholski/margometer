@@ -6,9 +6,9 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { err, ok, RESULT_FAILURE } from "@/libs/result.ts";
-import { initPageDictionary, parseLabel } from "@/src/game/game-dictionary.ts";
-import { PAGE_READ_FAILURE, PAGE_READING } from "@/src/game/page-reading.ts";
+import { err, ok, RESULT_FAILURE } from "#/libs/result.ts";
+import { initPageDictionary, parseLabel } from "#/src/game/game-dictionary.ts";
+import { PAGE_READ_FAILURE, PAGE_READING } from "#/src/game/page-reading.ts";
 
 const CRITICAL_ID = "msg_+crit";
 const ABSENT = err({ kind: PAGE_READ_FAILURE.absent, reading: PAGE_READING.label });

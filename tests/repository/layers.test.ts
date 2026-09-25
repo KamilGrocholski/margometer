@@ -6,12 +6,11 @@
 import { assertEquals } from "@std/assert";
 import {
     composeSample,
+    lookupImportedPath,
     readImportSources,
     readSourceFiles,
     type SourceFile,
-} from "@/tests/source-tree.ts";
-
-const ROOT_PREFIX = "@/";
+} from "#/tests/source-tree.ts";
 
 /** What each layer may import from this repository, by path prefix. */
 const IMPORTS_ALLOWED: readonly (readonly [string, readonly string[]])[] = [
@@ -32,8 +31,8 @@ function lookupImportsUpward(file: SourceFile): string[] {
     if (allowed === null) return [];
     const found: string[] = [];
     for (const source of readImportSources(file)) {
-        if (!source.startsWith(ROOT_PREFIX)) continue;
-        const target = source.slice(ROOT_PREFIX.length);
+        const target = lookupImportedPath(file, source);
+        if (target === null) continue;
         if (!allowed.some((prefix) => target.startsWith(prefix))) {
             found.push(`${file.path} imports ${target}`);
         }
@@ -43,9 +42,10 @@ function lookupImportsUpward(file: SourceFile): string[] {
 
 Deno.test("an import from above a layer is flagged, and one from below it is not", () => {
     const upward = composeSample([
-        'import { a } from "@/src/game/payload-envelope.ts";',
-        'import { b } from "@/libs/result.ts";',
+        'import { a } from "#/src/game/payload-envelope.ts";',
+        'import { b } from "#/libs/result.ts";',
         'import { c } from "@std/assert/assert";',
+        'import { d } from "./sibling.ts";',
     ]);
     const core = { ...upward, path: "src/core/sample.ts" };
     assertEquals(lookupImportsUpward(core), [
@@ -54,7 +54,7 @@ Deno.test("an import from above a layer is flagged, and one from below it is not
     const library = { ...upward, path: "libs/sample.ts" };
     assertEquals(lookupImportsUpward(library), [
         "libs/sample.ts imports src/game/payload-envelope.ts",
-    ], "a library imports no layer, and other libraries are not one");
+    ], "a library imports no layer, and other libraries and its sibling are not one");
     const game = { ...upward, path: "src/game/sample.ts" };
     assertEquals(lookupImportsUpward(game), [], "and game may import from core and libs both");
 });

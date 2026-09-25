@@ -8,14 +8,14 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { KEPT_MAXIMUM } from "@/src/runtime/shelf.ts";
-import { SHELF_ROWS_MAXIMUM } from "@/src/ui/panel-element.ts";
-import { NOTHING_SUSPECT, presentScreen, type ShelfRow } from "@/src/ui/panel-reading.ts";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { tallyFightStatistics } from "@/src/core/fight-statistics.ts";
-import { composeFakeDocument } from "@/tests/fake-document.ts";
-import { composeShownScreen } from "@/tests/shown-screen.ts";
-import { initTestView } from "@/tests/panel-view.ts";
+import { KEPT_MAXIMUM } from "#/src/runtime/shelf.ts";
+import { SHELF_ROWS_MAXIMUM } from "#/src/ui/panel-element.ts";
+import { NOTHING_SUSPECT, presentScreen, type ShelfRow } from "#/src/ui/panel-reading.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { tallyFightStatistics } from "#/src/core/fight-statistics.ts";
+import { composeFakeDocument } from "#/tests/fake-document.ts";
+import { composeShownScreen } from "#/tests/shown-screen.ts";
+import { initTestView } from "#/tests/panel-view.ts";
 
 /** One row of the shelf, with only the fields a list reads off it. */
 function composeShelfRow(openedAt: number, isLive: boolean): ShelfRow {

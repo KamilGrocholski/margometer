@@ -7,8 +7,8 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { lookupColourForProfession, PALETTE_COLOURS, SIGNAL } from "@/src/ui/panel-palette.ts";
-import { getWordsForProfession, PROFESSION_WORD_BY_KEY } from "@/src/ui/panel-words.ts";
+import { lookupColourForProfession, PALETTE_COLOURS, SIGNAL } from "#/src/ui/panel-palette.ts";
+import { getWordsForProfession, PROFESSION_WORD_BY_KEY } from "#/src/ui/panel-words.ts";
 
 /** Every profession the recordings state, measured over `develop:captures/` on 2026-08-29. */
 const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];

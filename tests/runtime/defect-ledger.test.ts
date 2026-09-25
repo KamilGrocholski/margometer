@@ -4,9 +4,9 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { RESULT_FAILURE } from "@/libs/result.ts";
-import { DEFECT_KIND, initDefectLedger } from "@/src/runtime/defect-ledger.ts";
-import { PANEL_DEFECT_KIND, PANEL_REGION } from "@/src/ui/panel-words.ts";
+import { RESULT_FAILURE } from "#/libs/result.ts";
+import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
+import { PANEL_DEFECT_KIND, PANEL_REGION } from "#/src/ui/panel-words.ts";
 
 /** Past this the ledger stops counting, restated here on purpose: it is not exported. */
 const COUNT_STATED = 1048576;

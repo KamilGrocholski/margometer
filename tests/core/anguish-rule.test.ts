@@ -7,13 +7,13 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import { BATTLE_EVENT } from "@/src/core/battle-event.ts";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
-import { tallyFightStatistics, verifyFightStatistics } from "@/src/core/fight-statistics.ts";
-import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
-import { lookupRecordedFight, readRecordedFights } from "@/tests/recorded-fights.ts";
+import { BATTLE_EVENT } from "#/src/core/battle-event.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
+import { tallyFightStatistics, verifyFightStatistics } from "#/src/core/fight-statistics.ts";
+import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
 
 /** Spelled here rather than read off the key table: `tests/AGENTS.md` on `develop` says why. */
 const TICK_KEY = "anguish";

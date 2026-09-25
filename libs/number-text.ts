@@ -7,7 +7,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { isDigitRun } from "@/libs/text-walk.ts";
+import { isDigitRun } from "./text-walk.ts";
 
 const MINUS = "-";
 const POINT = ".";

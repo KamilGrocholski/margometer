@@ -7,14 +7,14 @@
  */
 
 import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
-import { err, ok } from "@/libs/result.ts";
+import { err, ok } from "#/libs/result.ts";
 import {
     initMemoryStore,
     initPageStore,
     type KeyValueStore,
     STORE_FAILURE,
     STORE_KEY,
-} from "@/src/game/browser-store.ts";
+} from "#/src/game/browser-store.ts";
 import {
     readStorageChoice,
     readWindowFold,
@@ -25,8 +25,8 @@ import {
     writeStorageChoice,
     writeWindowFold,
     writeWindowPosition,
-} from "@/src/runtime/settings.ts";
-import { PANEL_WINDOW, STORAGE_CHOICE } from "@/src/ui/panel-choice.ts";
+} from "#/src/runtime/settings.ts";
+import { PANEL_WINDOW, STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 
 const REFUSAL = new DOMException("this browser forbids storage", "SecurityError");
 

@@ -9,12 +9,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
-import {
-    HOLYTOUCH_DECLARATION_KEY,
-    HOLYTOUCH_HEAL_KEY,
-    LASTHEAL_KEY,
-} from "@/src/core/protocol-key.ts";
+import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
+import { HOLYTOUCH_DECLARATION_KEY, HOLYTOUCH_HEAL_KEY, LASTHEAL_KEY } from "./protocol-key.ts";
 
 /**
  * _Postać aplikuje na siebie efekt rozłożony na **3 tury**, którego każde wyzwolenie leczy Postaci

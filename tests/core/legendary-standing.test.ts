@@ -10,14 +10,14 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
+import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import {
     composeLegendaryStandings,
     HOLYTOUCH_HEALS_STATED,
     type LegendaryWalk,
     NO_LEGENDARY_WALK,
     prepareLegendaryWalk,
-} from "@/src/core/legendary-standing.ts";
+} from "#/src/core/legendary-standing.ts";
 
 const HOLDER = 11;
 const SOMEBODY_ELSE = 12;

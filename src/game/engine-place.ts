@@ -5,8 +5,8 @@
  * reading it.
  */
 
-import { parseInteger } from "@/libs/number-text.ts";
-import { callForeign, err, ok, type Result } from "@/libs/result.ts";
+import { parseInteger } from "#/libs/number-text.ts";
+import { callForeign, err, ok, type Result } from "#/libs/result.ts";
 import {
     type FieldKeys,
     getNumberField,
@@ -14,10 +14,10 @@ import {
     getStatedTextField,
     getTextField,
     type UnknownRecord,
-} from "@/libs/unknown-value.ts";
-import { readPageEngines } from "@/src/game/engine-battle.ts";
-import type { FightPlace } from "@/src/game/fight-place.ts";
-import { PAGE_READ_FAILURE, PAGE_READING, type PageReadFailure } from "@/src/game/page-reading.ts";
+} from "#/libs/unknown-value.ts";
+import { readPageEngines } from "./engine-battle.ts";
+import type { FightPlace } from "./fight-place.ts";
+import { PAGE_READ_FAILURE, PAGE_READING, type PageReadFailure } from "./page-reading.ts";
 
 export interface PlacePort {
     readPlace(): Result<FightPlace, PageReadFailure>;

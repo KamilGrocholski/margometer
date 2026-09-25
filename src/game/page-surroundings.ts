@@ -5,8 +5,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign } from "@/libs/result.ts";
-import { isRecord } from "@/libs/unknown-value.ts";
+import { callForeign } from "#/libs/result.ts";
+import { isRecord } from "#/libs/unknown-value.ts";
 
 export interface SurroundingsPort {
     readWorld(): string;

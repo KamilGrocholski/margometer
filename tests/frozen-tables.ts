@@ -9,9 +9,9 @@ import {
     indexAuraTurnsBySkillId,
     indexShoutsBySkillId,
     type StatedSkills,
-} from "@/src/core/aura-standing.ts";
-import { type DecoderTables, indexBlowsGrantedBySkillId } from "@/src/core/fight-decoder.ts";
-import { RECORDINGS_REVISION } from "@/tests/recorded-fights.ts";
+} from "#/src/core/aura-standing.ts";
+import { type DecoderTables, indexBlowsGrantedBySkillId } from "#/src/core/fight-decoder.ts";
+import { RECORDINGS_REVISION } from "./recorded-fights.ts";
 
 /** `develop:frozen/blows-granted.ts`, fetched 2026-09-23T08:58:25.997Z. */
 export const BLOWS_GRANTED: DecoderTables = {

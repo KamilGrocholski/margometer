@@ -5,8 +5,8 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { ok, RESULT_FAILURE } from "@/libs/result.ts";
-import { initPageClock, type PageDate } from "@/src/game/page-clock.ts";
+import { ok, RESULT_FAILURE } from "#/libs/result.ts";
+import { initPageClock, type PageDate } from "#/src/game/page-clock.ts";
 
 /** A page clock answering whatever the test says, for every moment asked about. */
 function composeDate(parts: Record<string, number | undefined>): PageDate {

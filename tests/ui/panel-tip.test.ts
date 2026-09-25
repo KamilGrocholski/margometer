@@ -15,16 +15,16 @@ import {
     setTipHidden,
     setTipPlace,
     tallyTipSize,
-} from "@/src/ui/panel-tip.ts";
-import type { TipNoteTone, TipReading } from "@/src/ui/tip-reading.ts";
-import { CLASS, getTipHeight } from "@/src/ui/panel-look.ts";
-import { CARD_WORDS } from "@/src/ui/panel-words.ts";
+} from "#/src/ui/panel-tip.ts";
+import type { TipNoteTone, TipReading } from "#/src/ui/tip-reading.ts";
+import { CLASS, getTipHeight } from "#/src/ui/panel-look.ts";
+import { CARD_WORDS } from "#/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
     type FakeElement,
     getElementsWithin,
     getTextsByClass,
-} from "@/tests/fake-document.ts";
+} from "#/tests/fake-document.ts";
 
 /** Thirty-two characters, which is the one line a note is counted as holding. */
 const ONE_LINE_NOTE = "Surowe to obrazenia przed red...";

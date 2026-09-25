@@ -5,9 +5,9 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { PANEL_WINDOW } from "@/src/ui/panel-choice.ts";
-import { PANEL_INTENT, type PanelIntent } from "@/src/ui/panel-intent.ts";
-import type { ScreenState } from "@/src/ui/panel-screen.ts";
+import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
+import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
+import type { ScreenState } from "#/src/ui/panel-screen.ts";
 
 export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): boolean {
     switch (intent.kind) {

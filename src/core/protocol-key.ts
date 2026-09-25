@@ -7,8 +7,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import { OUTCOME_RESULT } from "@/src/core/battle-event.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { OUTCOME_RESULT } from "./battle-event.ts";
 
 export const KEY_FAMILY = {
     damage: "damage",

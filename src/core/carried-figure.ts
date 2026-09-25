@@ -8,15 +8,10 @@
  */
 
 import { assert } from "@std/assert/assert";
-import type { AuraStanding } from "@/src/core/aura-standing.ts";
-import type { CarriedStatus } from "@/src/core/carried-status.ts";
-import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
-import {
-    HASTE_AURA_KEY,
-    KEY_REACH,
-    lookupKeyReach,
-    SLOW_ALL_KEY,
-} from "@/src/core/protocol-key.ts";
+import type { AuraStanding } from "./aura-standing.ts";
+import type { CarriedStatus } from "./carried-status.ts";
+import type { CombatantRoster } from "./combatant-roster.ts";
+import { HASTE_AURA_KEY, KEY_REACH, lookupKeyReach, SLOW_ALL_KEY } from "./protocol-key.ts";
 
 /**
  * How many sources one effect adds up from: _Efekt ulega kumulacji do maksymalnie dwóch źródeł od

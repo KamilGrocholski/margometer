@@ -6,10 +6,10 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { BATTLE_EVENT } from "@/src/core/battle-event.ts";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
-import { decodeRecordedFight, readRecordedFights } from "@/tests/recorded-fights.ts";
+import { BATTLE_EVENT } from "#/src/core/battle-event.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { decodeRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
 
 Deno.test("every variant the union holds is produced by the recordings", () => {
     const produced = new Set<string>();

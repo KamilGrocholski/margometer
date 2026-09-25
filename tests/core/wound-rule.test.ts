@@ -8,11 +8,11 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { getStatedHealthsFromEvent } from "@/src/core/combatant-health.ts";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
-import { lookupRecordedFight } from "@/tests/recorded-fights.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { getStatedHealthsFromEvent } from "#/src/core/combatant-health.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
 
 const WOUND = "captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json";
 const TICK_KEY = "wound";

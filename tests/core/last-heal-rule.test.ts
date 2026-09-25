@@ -7,9 +7,9 @@
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";
-import { type CombatantRoster, indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
-import { readRecordedFights } from "@/tests/recorded-fights.ts";
+import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
+import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 const HEAL_KEY = "legbon_lastheal";
 const NAMED_DAMAGE_KEY = "+oth_dmg";

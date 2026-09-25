@@ -8,14 +8,14 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodePayloadMessages, type DecoderTables } from "@/src/core/fight-decoder.ts";
-import { tallyFightStatistics, verifyFightStatistics } from "@/src/core/fight-statistics.ts";
-import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
-import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "@/src/core/turn-clock.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
-import { readRecordedFights, type RecordedFight } from "@/tests/recorded-fights.ts";
+import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages, type DecoderTables } from "#/src/core/fight-decoder.ts";
+import { tallyFightStatistics, verifyFightStatistics } from "#/src/core/fight-statistics.ts";
+import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
+import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { readRecordedFights, type RecordedFight } from "#/tests/recorded-fights.ts";
 
 /**
  * The keys are the game's, restated here on purpose: a test reading the decoder's own table back

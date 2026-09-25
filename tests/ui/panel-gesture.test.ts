@@ -4,17 +4,17 @@
  */
 
 import { assertEquals, assertExists } from "@std/assert";
-import { PANEL_WINDOW, type PanelPosition } from "@/src/ui/panel-choice.ts";
-import type { PanelEvent } from "@/src/ui/panel-document.ts";
-import { PANEL_INTENT, type PanelIntent } from "@/src/ui/panel-intent.ts";
-import { PANEL_LISTENER, VIEW_FAILURE, type ViewFailure } from "@/src/ui/view-failure.ts";
+import { PANEL_WINDOW, type PanelPosition } from "#/src/ui/panel-choice.ts";
+import type { PanelEvent } from "#/src/ui/panel-document.ts";
+import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
+import { PANEL_LISTENER, VIEW_FAILURE, type ViewFailure } from "#/src/ui/view-failure.ts";
 import {
     composeFakeDocument,
     dragOnElement,
     type FakeElement,
     getElementsWithin,
-} from "@/tests/fake-document.ts";
-import { initTestView, NOTHING_WAITING } from "@/tests/panel-view.ts";
+} from "#/tests/fake-document.ts";
+import { initTestView, NOTHING_WAITING } from "#/tests/panel-view.ts";
 
 const VIEWPORT = { width: 1280, height: 900 };
 /** The button a browser states for a press of the second one, which opens a menu. */

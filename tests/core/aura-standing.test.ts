@@ -13,7 +13,7 @@ import {
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
-import type { BattleEvent } from "@/src/core/battle-event.ts";
+import type { BattleEvent } from "#/src/core/battle-event.ts";
 import {
     type FightStandings,
     indexAuraTurnsBySkillId,
@@ -21,21 +21,21 @@ import {
     lookupReachOfEffects,
     replayFightStandings,
     type StatedSkills,
-} from "@/src/core/aura-standing.ts";
+} from "#/src/core/aura-standing.ts";
 import {
     type Combatant,
     type CombatantRoster,
     indexCombatantRoster,
-} from "@/src/core/combatant-roster.ts";
-import type { FightView } from "@/src/core/fight-session.ts";
-import * as protocolKeys from "@/src/core/protocol-key.ts";
-import { isTeamWideKey, PROVOCATION_KEY } from "@/src/core/protocol-key.ts";
-import { STATED_SKILLS } from "@/tests/frozen-tables.ts";
+} from "#/src/core/combatant-roster.ts";
+import type { FightView } from "#/src/core/fight-session.ts";
+import * as protocolKeys from "#/src/core/protocol-key.ts";
+import { isTeamWideKey, PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
+import { STATED_SKILLS } from "#/tests/frozen-tables.ts";
 import {
     decodeRecordedFight,
     lookupRecordedFight,
     readRecordedFights,
-} from "@/tests/recorded-fights.ts";
+} from "#/tests/recorded-fights.ts";
 
 const DATED: StatedSkills = STATED_SKILLS;
 

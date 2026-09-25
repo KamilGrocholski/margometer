@@ -7,7 +7,7 @@
  * the reading behind it, and the panel would stand on the last payload with nothing saying so.
  */
 
-import { type Result, runGuarded } from "@/libs/result.ts";
+import { type Result, runGuarded } from "#/libs/result.ts";
 import {
     commitPayload,
     type FightSession,
@@ -16,19 +16,19 @@ import {
     type PayloadRecord,
     preparePayload,
     type SessionOptions,
-} from "@/src/core/fight-session.ts";
-import type { DecoderTables } from "@/src/core/fight-decoder.ts";
-import type { EngineBattle, EnginePort, PayloadListener } from "@/src/game/engine-battle.ts";
-import type { PlacePort } from "@/src/game/engine-place.ts";
-import { type CaptureStanding, NO_CAPTURE, prepareCapture } from "@/src/game/fight-capture.ts";
-import type { FightPlace } from "@/src/game/fight-place.ts";
-import type { BuildPort } from "@/src/game/game-build.ts";
-import type { Clock } from "@/src/game/page-clock.ts";
-import { PAGE_READ_FAILURE, type PageReadFailure } from "@/src/game/page-reading.ts";
-import { readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
-import { WARRIOR_FAILURE, type WarriorSnapshot } from "@/src/game/warrior-snapshot.ts";
-import { DEFECT_KIND, type DefectKind, type DefectLedger } from "@/src/runtime/defect-ledger.ts";
-import type { KeptFight } from "@/src/runtime/shelf.ts";
+} from "#/src/core/fight-session.ts";
+import type { DecoderTables } from "#/src/core/fight-decoder.ts";
+import type { EngineBattle, EnginePort, PayloadListener } from "#/src/game/engine-battle.ts";
+import type { PlacePort } from "#/src/game/engine-place.ts";
+import { type CaptureStanding, NO_CAPTURE, prepareCapture } from "#/src/game/fight-capture.ts";
+import type { FightPlace } from "#/src/game/fight-place.ts";
+import type { BuildPort } from "#/src/game/game-build.ts";
+import type { Clock } from "#/src/game/page-clock.ts";
+import { PAGE_READ_FAILURE, type PageReadFailure } from "#/src/game/page-reading.ts";
+import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import { WARRIOR_FAILURE, type WarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
+import { DEFECT_KIND, type DefectKind, type DefectLedger } from "./defect-ledger.ts";
+import type { KeptFight } from "./shelf.ts";
 
 export interface LiveFightOptions {
     engine: EnginePort;

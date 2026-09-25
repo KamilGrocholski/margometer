@@ -7,8 +7,8 @@
  */
 
 import { assertExists } from "@std/assert";
-import { type FakeElement, getElementsWithin, getTextsByClass } from "@/tests/fake-document.ts";
-import { CLASS } from "@/src/ui/panel-look.ts";
+import { type FakeElement, getElementsWithin, getTextsByClass } from "./fake-document.ts";
+import { CLASS } from "#/src/ui/panel-look.ts";
 
 /** One line of the card as a reader meets it: what it is of, what it says, and how it is drawn. */
 export interface TipLineRead {

@@ -52,7 +52,8 @@ export const FUNCTION_NODES = [
 
 const FILES_MAXIMUM = 2000;
 const IMPORT_NODES = ["ImportDeclaration", "ExportNamedDeclaration", "ExportAllDeclaration"];
-const ROOT_PREFIX = "@/";
+const ROOT_PREFIX = "#/";
+const SIBLING_PREFIX = "./";
 const LIBS_PREFIX = "libs/";
 
 /** Every `.ts` file under the directories asked for that exist, by repository-relative path. */
@@ -77,8 +78,9 @@ export function readBundleFiles(): SourceFile[] {
         assert(index < FILES_MAXIMUM, "the bundle stays inside the bound a walk states");
         const file = bundle[index]!;
         for (const imported of readImportSources(file)) {
-            if (!imported.startsWith(ROOT_PREFIX + LIBS_PREFIX)) continue;
-            const path = imported.slice(ROOT_PREFIX.length);
+            const path = lookupImportedPath(file, imported);
+            if (path === null) continue;
+            if (!path.startsWith(LIBS_PREFIX)) continue;
             if (reached.has(path)) continue;
             const library = libs.get(path);
             assert(library !== undefined, `${file.path} imports ${path}, which exists`);
@@ -96,6 +98,17 @@ export function readImportSources(file: SourceFile): string[] {
         if (typeof value === "string") sources.push(value);
     }
     return sources;
+}
+
+/**
+ * The repository path an import names, or null where it names no file of ours: `#/` is read from
+ * the root and `./` from the importing file's directory (C8).
+ */
+export function lookupImportedPath(file: SourceFile, source: string): string | null {
+    if (source.startsWith(ROOT_PREFIX)) return source.slice(ROOT_PREFIX.length);
+    if (!source.startsWith(SIBLING_PREFIX)) return null;
+    const directory = file.path.slice(0, file.path.lastIndexOf("/") + 1);
+    return directory + source.slice(SIBLING_PREFIX.length);
 }
 
 /** Every node of the kinds asked for, in the order the parser meets them. */

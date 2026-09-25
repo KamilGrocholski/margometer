@@ -6,23 +6,23 @@
  */
 
 import { assert } from "@std/assert/assert";
-import type { ForeignFailure, Result } from "@/libs/result.ts";
+import type { ForeignFailure, Result } from "#/libs/result.ts";
 import {
     type FightStandings,
     replayFightStandings,
     type StatedSkills,
-} from "@/src/core/aura-standing.ts";
-import { type CarriedFigure, tallyCarriedFigures } from "@/src/core/carried-figure.ts";
-import { CHARGED_SKILL_STATE } from "@/src/core/charged-skill.ts";
-import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
-import type { FightView } from "@/src/core/fight-session.ts";
-import type { TooltipPort, TooltipWritten } from "@/src/game/engine-tooltip.ts";
+} from "#/src/core/aura-standing.ts";
+import { type CarriedFigure, tallyCarriedFigures } from "#/src/core/carried-figure.ts";
+import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
+import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
+import type { FightView } from "#/src/core/fight-session.ts";
+import type { TooltipPort, TooltipWritten } from "#/src/game/engine-tooltip.ts";
 import {
     PANEL_WORDS,
     presentTooltipRows,
     type TooltipReading,
     type TranslateLabel,
-} from "@/src/ui/panel-words.ts";
+} from "#/src/ui/panel-words.ts";
 
 /** The frozen readings a tooltip's rows are worded and figured from, handed in by their holder. */
 export interface TooltipTables {

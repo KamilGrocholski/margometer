@@ -6,7 +6,7 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     commitPayload,
     type FightSession,
@@ -15,15 +15,15 @@ import {
     initFightSession,
     preparePayload,
     SESSION_OPTIONS,
-} from "@/src/core/fight-session.ts";
-import { readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+} from "#/src/core/fight-session.ts";
+import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import {
     lookupRecordedFight,
     readRecordedFights,
     type RecordedFight,
     replayRecordedFight,
-} from "@/tests/recorded-fights.ts";
+} from "#/tests/recorded-fights.ts";
 
 /** A recording whose calls carry no snapshot, so its cast can only come from a payload. */
 const NO_SNAPSHOTS =

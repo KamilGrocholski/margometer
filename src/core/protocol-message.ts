@@ -9,10 +9,10 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, ok, type Result } from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import { formatInteger, parseInteger } from "@/libs/number-text.ts";
-import { encodeHealthPercent, parseHealthPercent } from "@/src/core/protocol-number.ts";
+import { err, ok, type Result } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { formatInteger, parseInteger } from "#/libs/number-text.ts";
+import { encodeHealthPercent, parseHealthPercent } from "./protocol-number.ts";
 
 export interface MessageSide {
     readonly combatantId: number;

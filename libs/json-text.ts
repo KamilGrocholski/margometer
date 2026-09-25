@@ -7,7 +7,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, err, ok, type Result } from "@/libs/result.ts";
+import { callForeign, err, ok, type Result } from "./result.ts";
 
 export const JSON_FAILURE = {
     unreadable: "json-unreadable",

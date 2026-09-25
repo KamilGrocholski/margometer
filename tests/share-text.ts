@@ -7,7 +7,7 @@
  */
 
 import { assert } from "@std/assert";
-import { SHARE_FLOOR } from "@/src/ui/panel-words.ts";
+import { SHARE_FLOOR } from "#/src/ui/panel-words.ts";
 
 export function parseSharePoints(text: string): number {
     assert(text.length > 0, `a row that was drawn states a share, and this one states "${text}"`);

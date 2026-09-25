@@ -6,7 +6,7 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { err } from "@/libs/result.ts";
+import { err } from "#/libs/result.ts";
 import {
     initMemoryStore,
     initPageStore,
@@ -14,7 +14,7 @@ import {
     STORE_FAILURE,
     STORE_KEY,
     STORE_VALUE_LENGTH_MAXIMUM,
-} from "@/src/game/browser-store.ts";
+} from "#/src/game/browser-store.ts";
 
 function composeAnsweringStorage(): PageStorage {
     const held = new Map<string, string>();

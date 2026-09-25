@@ -7,18 +7,18 @@
  * left out.
  */
 
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import type { ProvocationStanding } from "@/src/core/aura-standing.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import type { ProvocationStanding } from "#/src/core/aura-standing.ts";
 import {
     CHARGED_SKILL_STATE,
     type ChargedSkillStanding,
     type ChargedSkillState,
-} from "@/src/core/charged-skill.ts";
-import { type CombatantRoster, COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
-import type { TurnStatement } from "@/src/core/fight-session.ts";
-import { lookupColourForProfession, SIGNAL } from "@/src/ui/panel-palette.ts";
-import { getPartOfSide, type PanelSidePart } from "@/src/ui/panel-reading.ts";
-import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
+} from "#/src/core/charged-skill.ts";
+import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
+import type { TurnStatement } from "#/src/core/fight-session.ts";
+import { lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
+import { getPartOfSide, type PanelSidePart } from "./panel-reading.ts";
+import { PANEL_WORDS } from "./panel-words.ts";
 
 /**
  * Every character on the board, because **both sides may be shouting and nobody is held twice**:

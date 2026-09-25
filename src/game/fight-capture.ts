@@ -8,9 +8,9 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { encodeJson, parseJson } from "@/libs/json-text.ts";
-import { isRecord } from "@/libs/unknown-value.ts";
-import type { WarriorSnapshot } from "@/src/game/warrior-snapshot.ts";
+import { encodeJson, parseJson } from "#/libs/json-text.ts";
+import { isRecord } from "#/libs/unknown-value.ts";
+import type { WarriorSnapshot } from "./warrior-snapshot.ts";
 
 /**
  * Where collecting stops. It **stops** rather than dropping the oldest: a recording without the

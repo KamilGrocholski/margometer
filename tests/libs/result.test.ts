@@ -4,7 +4,7 @@
 
 import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { assert } from "@std/assert/assert";
-import { callForeign, err, ok, RESULT_FAILURE, runGuarded } from "@/libs/result.ts";
+import { callForeign, err, ok, RESULT_FAILURE, runGuarded } from "#/libs/result.ts";
 
 Deno.test("a value and a failure are records with a discriminant", () => {
     assertEquals(ok(0), { ok: true, value: 0 }, "zero is a value like any other");

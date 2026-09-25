@@ -3,23 +3,23 @@
  * the surface this asks of a browser declared rather than assumed.
  */
 
-import { formatDecimal } from "@/libs/number-text.ts";
-import { callForeign, runGuarded } from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
+import { formatDecimal } from "#/libs/number-text.ts";
+import { callForeign, runGuarded } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     PANEL_WINDOW,
     type PanelPosition,
     type PanelWindow,
     STORAGE_CHOICES,
     type StorageChoice,
-} from "@/src/ui/panel-choice.ts";
+} from "./panel-choice.ts";
 import {
     EVENT_TYPE,
     type PanelDocument,
     type PanelElement,
     type PanelRoot,
     STYLE_ATTRIBUTE,
-} from "@/src/ui/panel-document.ts";
+} from "./panel-document.ts";
 import {
     composeTipAcross,
     initPanelDrag,
@@ -28,7 +28,7 @@ import {
     setGripMark,
     type TipAcross,
     type TipWindowPlace,
-} from "@/src/ui/panel-drag.ts";
+} from "./panel-drag.ts";
 import {
     LIVE_FIGHT_MARK,
     PANEL_INTENT,
@@ -36,11 +36,11 @@ import {
     type PanelIntent,
     PLAIN_MARK,
     readPanelIntent,
-} from "@/src/ui/panel-intent.ts";
-import { addGuardedListener } from "@/src/ui/panel-listener.ts";
-import { CLASS, composeStyleSheet, TIP } from "@/src/ui/panel-look.ts";
-import { lookupColourForProfession, SIGNAL } from "@/src/ui/panel-palette.ts";
-import { presentCard, presentCaveatNoteLines } from "@/src/ui/panel-card.ts";
+} from "./panel-intent.ts";
+import { addGuardedListener } from "./panel-listener.ts";
+import { CLASS, composeStyleSheet, TIP } from "./panel-look.ts";
+import { lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
+import { presentCard, presentCaveatNoteLines } from "./panel-card.ts";
 import {
     type ClosingRow,
     type DrillReading,
@@ -70,7 +70,7 @@ import {
     type SkillRow,
     UNNAMED_END,
     type UnnamedRow,
-} from "@/src/ui/panel-reading.ts";
+} from "./panel-reading.ts";
 import {
     getDirectionForMetric,
     getNounForMetric,
@@ -88,14 +88,9 @@ import {
     presentSideStrips,
     type ScreenStrip,
     SIDE_CHOICE,
-} from "@/src/ui/panel-screen.ts";
-import {
-    initScrollMemo,
-    readTopOfList,
-    renderListRows,
-    writeTopOfList,
-} from "@/src/ui/panel-scroll.ts";
-import { type StandingChargedSkill, type StandingReading } from "@/src/ui/panel-standing.ts";
+} from "./panel-screen.ts";
+import { initScrollMemo, readTopOfList, renderListRows, writeTopOfList } from "./panel-scroll.ts";
+import { type StandingChargedSkill, type StandingReading } from "./panel-standing.ts";
 import {
     initTipHandle,
     initTipRegister,
@@ -104,7 +99,7 @@ import {
     type TipHandle,
     type TipLookup,
     type TipRegister,
-} from "@/src/ui/panel-tip.ts";
+} from "./panel-tip.ts";
 import {
     CARD_WORDS,
     type Caveat,
@@ -145,14 +140,14 @@ import {
     SUSPECT_MARK,
     type TranslateLabel,
     TURN_MARK,
-} from "@/src/ui/panel-words.ts";
+} from "./panel-words.ts";
 import {
     TIP_LINE,
     TIP_NOTE_TONE,
     type TipGroup,
     type TipLine,
     type TipReading,
-} from "@/src/ui/tip-reading.ts";
+} from "./tip-reading.ts";
 import {
     PANEL_LISTENER,
     type RenderFailure,
@@ -160,7 +155,7 @@ import {
     reportViewFailure,
     VIEW_FAILURE,
     type ViewFailure,
-} from "@/src/ui/view-failure.ts";
+} from "./view-failure.ts";
 
 const HOST_NAME = "MargoMeter-Panel";
 /**

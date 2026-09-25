@@ -9,10 +9,10 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { type AuraStanding } from "@/src/core/aura-standing.ts";
-import { indexWitnessedKeyByBit, tallyCarriedFigures } from "@/src/core/carried-figure.ts";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { BUFF_BITS } from "@/tests/frozen-tables.ts";
+import { type AuraStanding } from "#/src/core/aura-standing.ts";
+import { indexWitnessedKeyByBit, tallyCarriedFigures } from "#/src/core/carried-figure.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { BUFF_BITS } from "#/tests/frozen-tables.ts";
 
 const OURS = 1;
 const THEIRS = 2;

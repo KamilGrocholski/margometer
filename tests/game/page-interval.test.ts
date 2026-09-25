@@ -10,8 +10,8 @@ import {
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
-import { type BrokenInvariant, RESULT_FAILURE } from "@/libs/result.ts";
-import { initPageInterval, type PageTimers } from "@/src/game/page-interval.ts";
+import { type BrokenInvariant, RESULT_FAILURE } from "#/libs/result.ts";
+import { initPageInterval, type PageTimers } from "#/src/game/page-interval.ts";
 
 interface Wound {
     timers: PageTimers;

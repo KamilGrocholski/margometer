@@ -7,26 +7,26 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import { err, ok } from "@/libs/result.ts";
-import { getFightView, SESSION_OPTIONS } from "@/src/core/fight-session.ts";
-import { initMemoryStore, initPageStore, type KeyValueStore } from "@/src/game/browser-store.ts";
-import { initPageEngine } from "@/src/game/engine-battle.ts";
-import type { PlacePort } from "@/src/game/engine-place.ts";
-import { NO_CAPTURE, prepareCapture } from "@/src/game/fight-capture.ts";
-import type { BuildPort } from "@/src/game/game-build.ts";
-import { PAGE_READ_FAILURE, PAGE_READING } from "@/src/game/page-reading.ts";
-import { readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
-import type { WarriorSnapshot } from "@/src/game/warrior-snapshot.ts";
-import { DEFECT_KIND, initDefectLedger } from "@/src/runtime/defect-ledger.ts";
-import { initLiveFight, type LiveFightOptions } from "@/src/runtime/live-fight.ts";
-import { initShelfKeeper } from "@/src/runtime/shelf-keeper.ts";
-import { STORAGE_CHOICE } from "@/src/ui/panel-choice.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+import { err, ok } from "#/libs/result.ts";
+import { getFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
+import { initMemoryStore, initPageStore, type KeyValueStore } from "#/src/game/browser-store.ts";
+import { initPageEngine } from "#/src/game/engine-battle.ts";
+import type { PlacePort } from "#/src/game/engine-place.ts";
+import { NO_CAPTURE, prepareCapture } from "#/src/game/fight-capture.ts";
+import type { BuildPort } from "#/src/game/game-build.ts";
+import { PAGE_READ_FAILURE, PAGE_READING } from "#/src/game/page-reading.ts";
+import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import type { WarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
+import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
+import { initLiveFight, type LiveFightOptions } from "#/src/runtime/live-fight.ts";
+import { initShelfKeeper } from "#/src/runtime/shelf-keeper.ts";
+import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import {
     readRecordedFights,
     type RecordedFight,
     replayRecordedFight,
-} from "@/tests/recorded-fights.ts";
+} from "#/tests/recorded-fights.ts";
 
 const PLACE = { mapName: "Mapa", x: 12, y: 34 };
 const OPENED_AT = 1000;

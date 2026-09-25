@@ -4,7 +4,7 @@
  * `develop:docs/protocol-keys.md`.
  */
 
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 
 export const BATTLE_EVENT = {
     attack: "attack",

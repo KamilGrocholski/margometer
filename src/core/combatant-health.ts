@@ -7,11 +7,11 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { clamp } from "@/libs/number-range.ts";
-import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
-import { type CombatantRoster, COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
-import { HEALING_REDUCER_KEY } from "@/src/core/protocol-key.ts";
-import { HEALTH_PERCENT_PLACES } from "@/src/core/protocol-number.ts";
+import { clamp } from "#/libs/number-range.ts";
+import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
+import { type CombatantRoster, COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
+import { HEALING_REDUCER_KEY } from "./protocol-key.ts";
+import { HEALTH_PERCENT_PLACES } from "./protocol-number.ts";
 
 /** What each combatant held when the fight began. Missing where nothing ever stated them. */
 export type FightEntryHealth = ReadonlyMap<number, number>;

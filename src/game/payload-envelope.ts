@@ -8,8 +8,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { parseInteger } from "@/libs/number-text.ts";
-import { err, ok, type Result } from "@/libs/result.ts";
+import { parseInteger } from "#/libs/number-text.ts";
+import { err, ok, type Result } from "#/libs/result.ts";
 import {
     FIELD_FAILURE,
     type FieldFailure,
@@ -20,11 +20,11 @@ import {
     getTextField,
     isRecord,
     type UnknownRecord,
-} from "@/libs/unknown-value.ts";
-import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
-import { MESSAGES_MAXIMUM } from "@/src/core/fight-decoder.ts";
-import type { PayloadRecord, TurnStatement } from "@/src/core/fight-session.ts";
-import { readWarriorEntries } from "@/src/game/engine-warrior.ts";
+} from "#/libs/unknown-value.ts";
+import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
+import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
+import type { PayloadRecord, TurnStatement } from "#/src/core/fight-session.ts";
+import { readWarriorEntries } from "./engine-warrior.ts";
 
 /** Record fields read straight off one envelope key; `Pick` admits no name outside the record. */
 export type EnvelopeField = keyof Pick<

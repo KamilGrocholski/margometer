@@ -3,21 +3,21 @@
  * and not only the one the screen is showing, and both runs and not only the screen's.
  */
 
-import { getRankedOrder } from "@/src/ui/ranked-order.ts";
+import { getRankedOrder } from "./ranked-order.ts";
 import {
     type CutPart,
     formatRowSuspicions,
     type PanelSidePart,
     type RowDetail,
-} from "@/src/ui/panel-reading.ts";
-import { PANEL_METRIC, type PanelMetric } from "@/src/ui/panel-screen.ts";
+} from "./panel-reading.ts";
+import { PANEL_METRIC, type PanelMetric } from "./panel-screen.ts";
 import {
     TIP_LINE,
     TIP_NOTE_TONE,
     type TipGroup,
     type TipLine,
     type TipReading,
-} from "@/src/ui/tip-reading.ts";
+} from "./tip-reading.ts";
 import {
     CARD_WORDS,
     CAVEAT,
@@ -37,8 +37,8 @@ import {
     PANEL_WORDS,
     SUSPECT_MARK,
     type TranslateLabel,
-} from "@/src/ui/panel-words.ts";
-import { CRITICAL_PROC_KEYS } from "@/src/core/protocol-key.ts";
+} from "./panel-words.ts";
+import { CRITICAL_PROC_KEYS } from "#/src/core/protocol-key.ts";
 
 export interface CardSubject {
     name: string;

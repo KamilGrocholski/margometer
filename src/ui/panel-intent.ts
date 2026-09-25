@@ -5,25 +5,25 @@
  * attribute per control, so the listener never reads a class.
  */
 
-import { parseInteger } from "@/libs/number-text.ts";
-import { err, ok, type Result } from "@/libs/result.ts";
-import { isOneOf, type VocabularyWord } from "@/libs/vocabulary.ts";
+import { parseInteger } from "#/libs/number-text.ts";
+import { err, ok, type Result } from "#/libs/result.ts";
+import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     PANEL_WINDOW,
     type PanelPosition,
     type PanelWindow,
     STORAGE_CHOICES,
     type StorageChoice,
-} from "@/src/ui/panel-choice.ts";
-import type { PanelTarget } from "@/src/ui/panel-document.ts";
-import { type OpenedPart, type PanelUnnamedEnd, UNNAMED_END } from "@/src/ui/panel-reading.ts";
+} from "./panel-choice.ts";
+import type { PanelTarget } from "./panel-document.ts";
+import { type OpenedPart, type PanelUnnamedEnd, UNNAMED_END } from "./panel-reading.ts";
 import {
     OPENED_PART,
     type PanelMetric,
     type PanelSideChoice,
     SCREEN_ORDER,
     SIDE_CHOICES,
-} from "@/src/ui/panel-screen.ts";
+} from "./panel-screen.ts";
 
 export const PANEL_MARK = {
     fold: "data-fold",

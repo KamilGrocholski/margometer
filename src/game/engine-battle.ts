@@ -14,14 +14,14 @@ import {
     ok,
     type Result,
     runGuarded,
-} from "@/libs/result.ts";
-import { isRecord } from "@/libs/unknown-value.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
+} from "#/libs/result.ts";
+import { isRecord } from "#/libs/unknown-value.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     readWarriorSnapshot,
     type WarriorFailure,
     type WarriorSnapshot,
-} from "@/src/game/warrior-snapshot.ts";
+} from "./warrior-snapshot.ts";
 
 export const ENGINE_FAILURE = {
     engineAbsent: "engine-absent",

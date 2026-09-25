@@ -10,7 +10,7 @@ import {
     encodeHealthPercent,
     HEALTH_PERCENT_PLACES,
     parseHealthPercent,
-} from "@/src/core/protocol-number.ts";
+} from "#/src/core/protocol-number.ts";
 
 Deno.test("a percentage is read at the width the recordings state and no other", () => {
     assertStrictEquals(parseHealthPercent("70.07"), 70.07, "two places is what was measured");

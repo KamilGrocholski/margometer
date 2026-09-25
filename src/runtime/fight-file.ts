@@ -8,17 +8,17 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { encodeJson } from "@/libs/json-text.ts";
-import { formatInteger } from "@/libs/number-text.ts";
-import { err, ok, type Result } from "@/libs/result.ts";
-import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
+import { encodeJson } from "#/libs/json-text.ts";
+import { formatInteger } from "#/libs/number-text.ts";
+import { err, ok, type Result } from "#/libs/result.ts";
+import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
 import type {
     CombatantFigures,
     FightStatistics,
     SkillFigures,
-} from "@/src/core/fight-statistics.ts";
-import type { CapturedCall } from "@/src/game/fight-capture.ts";
-import type { FightPlace } from "@/src/game/fight-place.ts";
+} from "#/src/core/fight-statistics.ts";
+import type { CapturedCall } from "#/src/game/fight-capture.ts";
+import type { FightPlace } from "#/src/game/fight-place.ts";
 
 /**
  * 4 states what it could not read as `null`; 3 was the envelope in English, 2 Polish and carrying

@@ -14,18 +14,18 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
-import { type BattleEvent, OUTCOME_RESULT } from "@/src/core/battle-event.ts";
-import { indexTeamHeals } from "@/src/core/combatant-health.ts";
-import { COMBATANTS_MAXIMUM, indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
+import { type BattleEvent, OUTCOME_RESULT } from "#/src/core/battle-event.ts";
+import { indexTeamHeals } from "#/src/core/combatant-health.ts";
+import { COMBATANTS_MAXIMUM, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     type CombatantFigures,
     countUnreadMessages,
     initCombatantFigures,
     tallyFightStatistics,
-} from "@/src/core/fight-statistics.ts";
-import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
-import type { FightStatistics } from "@/src/core/fight-statistics.ts";
+} from "#/src/core/fight-statistics.ts";
+import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
+import type { FightStatistics } from "#/src/core/fight-statistics.ts";
 import {
     OPENED_PART,
     PANEL_METRIC,
@@ -34,16 +34,16 @@ import {
     SCREEN_ORDER,
     SIDE_CHOICE,
     SIDE_CHOICES,
-} from "@/src/ui/panel-screen.ts";
-import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
-import { parseSharePoints } from "@/tests/share-text.ts";
+} from "#/src/ui/panel-screen.ts";
+import { PANEL_WORDS } from "#/src/ui/panel-words.ts";
+import { parseSharePoints } from "#/tests/share-text.ts";
 import type {
     ElementRow,
     HalfNamedOpened,
     HalfNamedReading,
     NamedPart,
     OpponentRow,
-} from "@/src/ui/panel-reading.ts";
+} from "#/src/ui/panel-reading.ts";
 import {
     formatRowSuspicions,
     getOutcomeForSeat,
@@ -62,19 +62,19 @@ import {
     presentScreen,
     SKILLS_MAXIMUM,
     UNNAMED_END,
-} from "@/src/ui/panel-reading.ts";
+} from "#/src/ui/panel-reading.ts";
 import {
     formatNoParameterRowSuspicion,
     formatUnknownKeyRowSuspicion,
     getWordsForDamageKind,
     HEALTH_LOSS_WORD_BY_KEY,
-} from "@/src/ui/panel-words.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+} from "#/src/ui/panel-words.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import {
     lookupRecordedFight,
     readRecordedFights,
     tallyRecordedFight,
-} from "@/tests/recorded-fights.ts";
+} from "#/tests/recorded-fights.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** What a count of what could not be read is stated out of. Any figure past it will do here. */

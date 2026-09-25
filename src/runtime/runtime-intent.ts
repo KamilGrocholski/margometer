@@ -5,20 +5,20 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { runGuarded } from "@/libs/result.ts";
-import { getFightView } from "@/src/core/fight-session.ts";
-import { DEFECT_KIND, type DefectLedger } from "@/src/runtime/defect-ledger.ts";
-import type { RuntimeFailure } from "@/src/runtime/failure-fate.ts";
-import { type HandoverPorts, writeFightHandover } from "@/src/runtime/fight-handover.ts";
-import { lookupStandingFight, tallyFightReading } from "@/src/runtime/fight-reading.ts";
-import type { LiveFight } from "@/src/runtime/live-fight.ts";
-import { executeScreenIntent } from "@/src/runtime/screen-intent.ts";
-import { writeWindowFold, writeWindowPosition } from "@/src/runtime/settings.ts";
-import type { ShelfKeeper } from "@/src/runtime/shelf-keeper.ts";
-import type { KeyValueStore } from "@/src/game/browser-store.ts";
-import { PANEL_WINDOW } from "@/src/ui/panel-choice.ts";
-import { PANEL_INTENT, type PanelIntent } from "@/src/ui/panel-intent.ts";
-import type { ScreenState } from "@/src/ui/panel-screen.ts";
+import { runGuarded } from "#/libs/result.ts";
+import { getFightView } from "#/src/core/fight-session.ts";
+import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
+import type { RuntimeFailure } from "./failure-fate.ts";
+import { type HandoverPorts, writeFightHandover } from "./fight-handover.ts";
+import { lookupStandingFight, tallyFightReading } from "./fight-reading.ts";
+import type { LiveFight } from "./live-fight.ts";
+import { executeScreenIntent } from "./screen-intent.ts";
+import { writeWindowFold, writeWindowPosition } from "./settings.ts";
+import type { ShelfKeeper } from "./shelf-keeper.ts";
+import type { KeyValueStore } from "#/src/game/browser-store.ts";
+import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
+import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
+import type { ScreenState } from "#/src/ui/panel-screen.ts";
 
 export interface IntentParts {
     ports: Omit<HandoverPorts, "version"> & { settings: KeyValueStore };

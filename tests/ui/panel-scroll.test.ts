@@ -6,15 +6,15 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { CLASS } from "@/src/ui/panel-look.ts";
+import { CLASS } from "#/src/ui/panel-look.ts";
 import {
     initScrollMemo,
     readTopOfList,
     renderListRows,
     writeTopOfList,
-} from "@/src/ui/panel-scroll.ts";
-import type { PanelElement } from "@/src/ui/panel-document.ts";
-import { composeFakeDocument } from "@/tests/fake-document.ts";
+} from "#/src/ui/panel-scroll.ts";
+import type { PanelElement } from "#/src/ui/panel-document.ts";
+import { composeFakeDocument } from "#/tests/fake-document.ts";
 
 /** Past the memo's own maximum, so the bound is met rather than approached. */
 const NAMES_TRIED = 40;

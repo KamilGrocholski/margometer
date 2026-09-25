@@ -20,9 +20,9 @@ import {
     presentHalfNamedDrill,
     presentPair,
     presentPart,
-} from "@/src/ui/panel-reading.ts";
-import { OPENED_PART, type ScreenState } from "@/src/ui/panel-screen.ts";
-import type { FightReading } from "@/src/runtime/fight-reading.ts";
+} from "#/src/ui/panel-reading.ts";
+import { OPENED_PART, type ScreenState } from "#/src/ui/panel-screen.ts";
+import type { FightReading } from "./fight-reading.ts";
 
 export interface OpenedReadings {
     drill: DrillReading | null;

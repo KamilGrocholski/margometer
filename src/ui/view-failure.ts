@@ -5,10 +5,10 @@
  * the view was handed, because nothing called by the runtime was running when they failed.
  */
 
-import { runGuarded } from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import type { PanelWindow } from "@/src/ui/panel-choice.ts";
-import type { PanelRegion } from "@/src/ui/panel-words.ts";
+import { runGuarded } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import type { PanelWindow } from "./panel-choice.ts";
+import type { PanelRegion } from "./panel-words.ts";
 
 export const VIEW_FAILURE = {
     regionUndrawn: "region-undrawn",

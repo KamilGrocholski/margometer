@@ -4,14 +4,14 @@
  * gesture does nothing and no mark reaches anybody. The guard turns it into a dropped gesture.
  */
 
-import { runGuarded } from "@/libs/result.ts";
-import type { PanelEvent, PanelRoot } from "@/src/ui/panel-document.ts";
+import { runGuarded } from "#/libs/result.ts";
+import type { PanelEvent, PanelRoot } from "./panel-document.ts";
 import {
     type PanelListener,
     reportViewFailure,
     VIEW_FAILURE,
     type ViewFailure,
-} from "@/src/ui/view-failure.ts";
+} from "./view-failure.ts";
 
 export function addGuardedListener(
     root: PanelRoot,

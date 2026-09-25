@@ -12,7 +12,7 @@ import {
     readSourceFiles,
     SOURCE_DIRECTORIES,
     type SourceFile,
-} from "@/tests/source-tree.ts";
+} from "#/tests/source-tree.ts";
 
 const TOOL_ERROR_PATH = "tools/margometer-tool-error.ts";
 const ERROR_NAME = "Error";

@@ -11,7 +11,7 @@ import {
     readAstNodes,
     readBundleFiles,
     type SourceFile,
-} from "@/tests/source-tree.ts";
+} from "#/tests/source-tree.ts";
 
 const PROMISE_NAME = "Promise";
 const THEN_NAME = "then";

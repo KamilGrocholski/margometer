@@ -7,15 +7,15 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
+import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import {
     CHARGED_SKILL_STATE,
     CHARGED_SKILLS_MAXIMUM,
     type ChargedSkillStanding,
     type ChargedSkillStatement,
     prepareChargedSkills,
-} from "@/src/core/charged-skill.ts";
-import { CHARGE_BROKEN_KEY } from "@/src/core/protocol-key.ts";
+} from "#/src/core/charged-skill.ts";
+import { CHARGE_BROKEN_KEY } from "#/src/core/protocol-key.ts";
 
 const MONSTER = -10000249;
 const PLAYER = 441419;

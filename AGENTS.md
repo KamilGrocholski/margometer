@@ -309,8 +309,9 @@ TypeScript idiom, with the naming rules stated here.
   colon when they introduce what follows. An end-of-line comment may be a phrase.
 - **C7. No regular expressions**, in either spelling. Text is read by walking it. A new exception is
   `[ASK]`. `develop ADR 0006`.
-- **C8. Every import is written from the repository root**, with `@/` and the file's extension,
-  never a relative path — not at any depth, not even for a sibling.
+- **C8. An import from the file's own directory is `./name.ts`; every other one is written from the
+  repository root, `#/path.ts`.** Never `../`, never `./` into a subdirectory, never `#/` for a
+  sibling, and always the file's extension. ADR 0002.
 - **C9.** Nothing exists before it is needed — files, directories, modules, tools, guards and
   documents alike. A shared module appears at the **second** consumer.
 - **C10.** A file holds one subject, however long that subject runs. What forces a split is a

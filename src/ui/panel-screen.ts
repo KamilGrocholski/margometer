@@ -6,14 +6,14 @@
  * expressed at all and the compiler counts the rows.
  */
 
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import type { OpenedPart, PanelUnnamedEnd } from "@/src/ui/panel-reading.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import type { OpenedPart, PanelUnnamedEnd } from "./panel-reading.ts";
 import {
     getWordsForDirection,
     getWordsForNoun,
     getWordsForSide,
     PANEL_WORDS,
-} from "@/src/ui/panel-words.ts";
+} from "./panel-words.ts";
 
 /** The words are the figures' own fields, so a screen names the figure it draws. */
 export const PANEL_METRIC = {

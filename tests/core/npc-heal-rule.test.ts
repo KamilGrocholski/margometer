@@ -7,15 +7,15 @@
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
-import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
+import { parseProtocolMessage } from "#/src/core/protocol-message.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import {
     lookupRecordedFight,
     readRecordedFights,
     type RecordedFight,
-} from "@/tests/recorded-fights.ts";
+} from "#/tests/recorded-fights.ts";
 
 const KEY = "npc_heal";
 const NPC_HEAL = "captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json";

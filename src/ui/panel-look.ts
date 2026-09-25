@@ -7,9 +7,9 @@
  * `develop:DESIGN.md` owns what these values are for; this file owns what they are.
  */
 
-import { clamp } from "@/libs/number-range.ts";
-import { parseInteger } from "@/libs/number-text.ts";
-import { SIGNAL } from "@/src/ui/panel-palette.ts";
+import { clamp } from "#/libs/number-range.ts";
+import { parseInteger } from "#/libs/number-text.ts";
+import { SIGNAL } from "./panel-palette.ts";
 
 export const SURFACE = {
     panel: "#0f161d",

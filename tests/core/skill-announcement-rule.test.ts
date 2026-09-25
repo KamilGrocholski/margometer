@@ -7,8 +7,8 @@
  */
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
-import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
-import { readRecordedFights } from "@/tests/recorded-fights.ts";
+import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
+import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 const TABLE_NAME_KEY = "tspell";
 const CUSTOM_NAME_KEY = "tcustom";

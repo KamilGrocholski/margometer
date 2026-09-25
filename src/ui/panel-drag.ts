@@ -4,31 +4,31 @@
  * **Two windows share this root, and a grip says which.** `develop ADR 0060`.
  */
 
-import { clamp } from "@/libs/number-range.ts";
-import { callForeign, runGuarded } from "@/libs/result.ts";
-import { PANEL_WINDOW, type PanelPosition, type PanelWindow } from "@/src/ui/panel-choice.ts";
+import { clamp } from "#/libs/number-range.ts";
+import { callForeign, runGuarded } from "#/libs/result.ts";
+import { PANEL_WINDOW, type PanelPosition, type PanelWindow } from "./panel-choice.ts";
 import {
     EVENT_TYPE,
     type PanelElement,
     type PanelEvent,
     type PanelRoot,
     STYLE_ATTRIBUTE,
-} from "@/src/ui/panel-document.ts";
-import { addGuardedListener } from "@/src/ui/panel-listener.ts";
+} from "./panel-document.ts";
+import { addGuardedListener } from "./panel-listener.ts";
 import {
     PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM,
     PLACE,
     SPACE_PIXELS,
     STANDING,
-} from "@/src/ui/panel-look.ts";
-import { formatWhole } from "@/src/ui/panel-words.ts";
+} from "./panel-look.ts";
+import { formatWhole } from "./panel-words.ts";
 import {
     PANEL_LISTENER,
     type PanelListener,
     reportViewFailure,
     VIEW_FAILURE,
     type ViewFailure,
-} from "@/src/ui/view-failure.ts";
+} from "./view-failure.ts";
 
 export interface PanelViewport {
     width: number;

@@ -7,7 +7,7 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { err, ok } from "@/libs/result.ts";
+import { err, ok } from "#/libs/result.ts";
 import {
     FIELD_FAILURE,
     getListField,
@@ -16,7 +16,7 @@ import {
     getStatedTextField,
     getTextField,
     isRecord,
-} from "@/libs/unknown-value.ts";
+} from "#/libs/unknown-value.ts";
 
 const KEYS = {
     figure: "f",

@@ -1,6 +1,6 @@
 /** What a reader chooses about the panel and the runtime keeps; the panel imports nothing above. */
 
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 
 /** Where the shelf is kept: the browser's two stores, or this page's memory alone. */
 export const STORAGE_CHOICE = { local: "local", session: "session", memory: "memory" } as const;

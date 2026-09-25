@@ -7,8 +7,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, err, ok, type Result } from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
+import { callForeign, err, ok, type Result } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 
 /** Every key this add-on writes, named as ours like everything else a reader could meet. */
 export const STORE_KEY = {

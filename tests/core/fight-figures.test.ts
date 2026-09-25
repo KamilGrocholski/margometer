@@ -14,9 +14,9 @@ import {
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
-import { indexTeamHeals } from "@/src/core/combatant-health.ts";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { tallyFightFigures, verifyFightFigures } from "@/src/core/fight-figures.ts";
+import { indexTeamHeals } from "#/src/core/combatant-health.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { tallyFightFigures, verifyFightFigures } from "#/src/core/fight-figures.ts";
 import {
     commitPayload,
     type FightView,
@@ -25,14 +25,14 @@ import {
     type PayloadRecord,
     preparePayload,
     SESSION_OPTIONS,
-} from "@/src/core/fight-session.ts";
-import { tallyFightStatistics } from "@/src/core/fight-statistics.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+} from "#/src/core/fight-session.ts";
+import { tallyFightStatistics } from "#/src/core/fight-statistics.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import {
     decodeRecordedFight,
     readRecordedFights,
     type RecordedFight,
-} from "@/tests/recorded-fights.ts";
+} from "#/tests/recorded-fights.ts";
 
 const NOTHING: PayloadRecord = {
     isInit: false,

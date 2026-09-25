@@ -14,8 +14,8 @@ import {
     assertNotStrictEquals,
     assertThrows,
 } from "@std/assert";
-import { SHARE_FLOOR } from "@/src/ui/panel-words.ts";
-import { parseSharePoints } from "@/tests/share-text.ts";
+import { SHARE_FLOOR } from "#/src/ui/panel-words.ts";
+import { parseSharePoints } from "#/tests/share-text.ts";
 import {
     NOTHING_SUSPECT,
     PINNED_STANDING,
@@ -23,15 +23,15 @@ import {
     presentPair,
     presentPart,
     presentScreen,
-} from "@/src/ui/panel-reading.ts";
+} from "#/src/ui/panel-reading.ts";
 import {
     OPENED_PART,
     type PanelMetric,
     type PanelSideChoice,
     SCREEN_ORDER,
     SIDE_CHOICE,
-} from "@/src/ui/panel-screen.ts";
-import { readRecordedFights, tallyRecordedFight } from "@/tests/recorded-fights.ts";
+} from "#/src/ui/panel-screen.ts";
+import { readRecordedFights, tallyRecordedFight } from "#/tests/recorded-fights.ts";
 
 const HUNDRED = 100;
 /** What a row holding something too small to state a point prints, in place of a share. */

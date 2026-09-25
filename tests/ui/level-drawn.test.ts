@@ -18,7 +18,7 @@
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";
-import type { ShownScreen } from "@/src/ui/panel-element.ts";
+import type { ShownScreen } from "#/src/ui/panel-element.ts";
 import {
     type DrillReading,
     getMetricForPinned,
@@ -33,17 +33,17 @@ import {
     presentPart,
     presentScreen,
     type ScreenReading,
-} from "@/src/ui/panel-reading.ts";
-import { getWordsForUnannounced, NEITHER_END_WORDS, PANEL_WORDS } from "@/src/ui/panel-words.ts";
-import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
-import type { FightStatistics } from "@/src/core/fight-statistics.ts";
-import { type PanelMetric, type PanelSideChoice, SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
-import { CLASS } from "@/src/ui/panel-look.ts";
-import { readRecordedFights, tallyRecordedFight } from "@/tests/recorded-fights.ts";
-import { initTestView } from "@/tests/panel-view.ts";
-import { parseInteger } from "@/libs/number-text.ts";
-import { composeFakeDocument, type FakeElement, getElementsWithin } from "@/tests/fake-document.ts";
-import { composeShownScreen } from "@/tests/shown-screen.ts";
+} from "#/src/ui/panel-reading.ts";
+import { getWordsForUnannounced, NEITHER_END_WORDS, PANEL_WORDS } from "#/src/ui/panel-words.ts";
+import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
+import type { FightStatistics } from "#/src/core/fight-statistics.ts";
+import { type PanelMetric, type PanelSideChoice, SCREEN_ORDER } from "#/src/ui/panel-screen.ts";
+import { CLASS } from "#/src/ui/panel-look.ts";
+import { readRecordedFights, tallyRecordedFight } from "#/tests/recorded-fights.ts";
+import { initTestView } from "#/tests/panel-view.ts";
+import { parseInteger } from "#/libs/number-text.ts";
+import { composeFakeDocument, type FakeElement, getElementsWithin } from "#/tests/fake-document.ts";
+import { composeShownScreen } from "#/tests/shown-screen.ts";
 
 /** The property a list states its height in, and the whole of what a list writes on its style. */
 const ROWS_VARIABLE = "--MargoMeter-rows";

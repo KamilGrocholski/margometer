@@ -7,14 +7,14 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { ENGINE_FAILURE, initPageEngine, type WrapHandle } from "@/src/game/engine-battle.ts";
-import { initPageInterval, type PageTimers } from "@/src/game/page-interval.ts";
+import { ENGINE_FAILURE, initPageEngine, type WrapHandle } from "#/src/game/engine-battle.ts";
+import { initPageInterval, type PageTimers } from "#/src/game/page-interval.ts";
 import {
     type EngineSearch,
     LOOKS_MAXIMUM,
     type SearchReport,
     startEngineSearch,
-} from "@/src/runtime/engine-search.ts";
+} from "#/src/runtime/engine-search.ts";
 
 interface Told {
     payloads: unknown[];

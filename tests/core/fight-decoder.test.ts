@@ -14,22 +14,22 @@ import {
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
-import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
-import { type CombatantRoster, indexCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
+import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import {
     decodeMessage,
     decodePayloadMessages,
     type DecoderTables,
     MESSAGES_MAXIMUM,
     NAME_LENGTH_MAXIMUM,
-} from "@/src/core/fight-decoder.ts";
-import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "@/src/core/turn-clock.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+} from "#/src/core/fight-decoder.ts";
+import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import {
     decodeRecordedFight,
     lookupRecordedFight,
     readRecordedFights,
-} from "@/tests/recorded-fights.ts";
+} from "#/tests/recorded-fights.ts";
 
 const NO_GRANTS: DecoderTables = { blowsGrantedBySkillId: new Map() };
 

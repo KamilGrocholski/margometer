@@ -6,25 +6,25 @@
  */
 
 import { assert, assertExists } from "@std/assert";
-import { ok, type Result } from "@/libs/result.ts";
-import { indexWitnessedKeyByBit } from "@/src/core/carried-figure.ts";
-import { SESSION_OPTIONS } from "@/src/core/fight-session.ts";
-import { initPageStore, type KeyValueStore } from "@/src/game/browser-store.ts";
-import { initPageEngine } from "@/src/game/engine-battle.ts";
-import { initPagePlace } from "@/src/game/engine-place.ts";
-import { initPageTooltip } from "@/src/game/engine-tooltip.ts";
-import { initPageDictionary } from "@/src/game/game-dictionary.ts";
+import { ok, type Result } from "#/libs/result.ts";
+import { indexWitnessedKeyByBit } from "#/src/core/carried-figure.ts";
+import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
+import { initPageStore, type KeyValueStore } from "#/src/game/browser-store.ts";
+import { initPageEngine } from "#/src/game/engine-battle.ts";
+import { initPagePlace } from "#/src/game/engine-place.ts";
+import { initPageTooltip } from "#/src/game/engine-tooltip.ts";
+import { initPageDictionary } from "#/src/game/game-dictionary.ts";
 import {
     initRuntime,
     type Runtime,
     type RuntimePorts,
     type RuntimeTables,
-} from "@/src/runtime/margometer-runtime.ts";
-import { type KeptFight, openShelf } from "@/src/runtime/shelf.ts";
-import type { PanelElement } from "@/src/ui/panel-document.ts";
-import { composeFakeDocument, type FakeElement, pressElement } from "@/tests/fake-document.ts";
-import { BLOWS_GRANTED, BUFF_BITS, STATED_SKILLS } from "@/tests/frozen-tables.ts";
-import { TEST_VERSION } from "@/tests/panel-view.ts";
+} from "#/src/runtime/margometer-runtime.ts";
+import { type KeptFight, openShelf } from "#/src/runtime/shelf.ts";
+import type { PanelElement } from "#/src/ui/panel-document.ts";
+import { composeFakeDocument, type FakeElement, pressElement } from "./fake-document.ts";
+import { BLOWS_GRANTED, BUFF_BITS, STATED_SKILLS } from "./frozen-tables.ts";
+import { TEST_VERSION } from "./panel-view.ts";
 
 export const RUNTIME_TABLES: RuntimeTables = {
     decoder: BLOWS_GRANTED,

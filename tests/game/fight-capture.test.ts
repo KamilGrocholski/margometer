@@ -6,15 +6,15 @@
  */
 
 import { assert, assertEquals, assertFalse, assertStrictEquals } from "@std/assert";
-import { isRecord } from "@/libs/unknown-value.ts";
+import { isRecord } from "#/libs/unknown-value.ts";
 import {
     CALLS_MAXIMUM,
     type CaptureStanding,
     type EngineCall,
     NO_CAPTURE,
     prepareCapture,
-} from "@/src/game/fight-capture.ts";
-import type { CapturedCombatant } from "@/src/game/warrior-snapshot.ts";
+} from "#/src/game/fight-capture.ts";
+import type { CapturedCombatant } from "#/src/game/warrior-snapshot.ts";
 
 const NOBODY = { combatantsBefore: [], combatantsAfter: [] };
 

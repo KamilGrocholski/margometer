@@ -4,9 +4,9 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { err, ok } from "@/libs/result.ts";
-import { PANEL_WINDOW, STORAGE_CHOICE } from "@/src/ui/panel-choice.ts";
-import type { PanelTarget } from "@/src/ui/panel-document.ts";
+import { err, ok } from "#/libs/result.ts";
+import { PANEL_WINDOW, STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
+import type { PanelTarget } from "#/src/ui/panel-document.ts";
 import {
     INTENT_FAILURE,
     LIVE_FIGHT_MARK,
@@ -14,9 +14,9 @@ import {
     PANEL_MARK,
     PLAIN_MARK,
     readPanelIntent,
-} from "@/src/ui/panel-intent.ts";
-import { UNNAMED_END } from "@/src/ui/panel-reading.ts";
-import { OPENED_PART, PANEL_METRIC, SIDE_CHOICE } from "@/src/ui/panel-screen.ts";
+} from "#/src/ui/panel-intent.ts";
+import { UNNAMED_END } from "#/src/ui/panel-reading.ts";
+import { OPENED_PART, PANEL_METRIC, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 
 function composeTarget(marks: Record<string, string>): PanelTarget {
     return { getAttribute: (name) => marks[name] ?? null };

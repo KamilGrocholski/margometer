@@ -6,7 +6,7 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { getRankedOrder } from "@/src/ui/ranked-order.ts";
+import { getRankedOrder } from "#/src/ui/ranked-order.ts";
 
 Deno.test("the bigger figure is drawn first, whichever side it arrived on", () => {
     assertEquals(getRankedOrder(9, 4, "a", "b") < 0, true, "the bigger figure comes first");

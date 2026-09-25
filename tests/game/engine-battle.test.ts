@@ -7,7 +7,7 @@
  */
 
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
-import { err, RESULT_FAILURE } from "@/libs/result.ts";
+import { err, RESULT_FAILURE } from "#/libs/result.ts";
 import {
     ENGINE_FAILURE,
     type EngineBattle,
@@ -15,8 +15,8 @@ import {
     type PayloadListener,
     readPageEngines,
     type WrapHandle,
-} from "@/src/game/engine-battle.ts";
-import { WARRIOR_FAILURE } from "@/src/game/warrior-snapshot.ts";
+} from "#/src/game/engine-battle.ts";
+import { WARRIOR_FAILURE } from "#/src/game/warrior-snapshot.ts";
 
 /** A listener that does nothing, so each test states only the half it is about. */
 function composeListener(said: Partial<PayloadListener>): PayloadListener {

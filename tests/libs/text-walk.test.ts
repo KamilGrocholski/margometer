@@ -3,7 +3,7 @@
  */
 
 import { assertStrictEquals } from "@std/assert";
-import { getEndOfRun, isDigitAt, isDigitRun } from "@/libs/text-walk.ts";
+import { getEndOfRun, isDigitAt, isDigitRun } from "#/libs/text-walk.ts";
 
 Deno.test("a digit is told from its neighbours in the character table", () => {
     assertStrictEquals(isDigitAt("0", 0), true, "the lowest digit is one");

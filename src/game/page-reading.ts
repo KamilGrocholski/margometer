@@ -3,8 +3,8 @@
  * fate is to be shown as unknown, never guessed at.
  */
 
-import type { ForeignFailure } from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
+import type { ForeignFailure } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 
 export const PAGE_READING = { place: "place", label: "label", build: "build" } as const;
 export type PageReading = VocabularyWord<typeof PAGE_READING>;

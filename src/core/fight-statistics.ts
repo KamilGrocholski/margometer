@@ -17,9 +17,9 @@ import {
     OUTCOME_RESULT,
     type UnknownMessageEvent,
     UNREAD_CAUSE,
-} from "@/src/core/battle-event.ts";
-import type { TeamHeal } from "@/src/core/combatant-health.ts";
-import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
+} from "./battle-event.ts";
+import type { TeamHeal } from "./combatant-health.ts";
+import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
 import {
     CRITICAL_PROC_KEYS,
     getKeyReading,
@@ -28,13 +28,13 @@ import {
     SELF_SOURCED_HEALING_KEYS,
     WOUND_ANNOUNCEMENT_KEY,
     WOUND_TICK_KEY,
-} from "@/src/core/protocol-key.ts";
+} from "./protocol-key.ts";
 import {
     composeTurnStanding,
     lookupTurnOpener,
     NO_TURN_STANDING,
     type TurnStanding,
-} from "@/src/core/turn-clock.ts";
+} from "./turn-clock.ts";
 
 /** A figure cut by something the protocol named: an element, or the other end of the blow. */
 export type FigureCut = ReadonlyMap<string, number>;

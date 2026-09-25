@@ -12,8 +12,8 @@ import {
     COMBATANTS_MAXIMUM,
     indexCombatantRoster,
     lookupCombatantIdByName,
-} from "@/src/core/combatant-roster.ts";
-import { lookupRecordedFight, readRecordedFights } from "@/tests/recorded-fights.ts";
+} from "#/src/core/combatant-roster.ts";
+import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
 
 /** Two boars called `Odyniec`, and one player nobody shares a name with. */
 const TWO_OF_A_NAME = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";

@@ -8,41 +8,41 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, ok, type Result } from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import { type BattleEvent, UNREAD_CAUSE, type UnreadCause } from "@/src/core/battle-event.ts";
+import { err, ok, type Result } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { type BattleEvent, UNREAD_CAUSE, type UnreadCause } from "./battle-event.ts";
 import {
     type Combatant,
     type CombatantRoster,
     COMBATANTS_MAXIMUM,
     indexCombatantRoster,
-} from "@/src/core/combatant-roster.ts";
+} from "./combatant-roster.ts";
 import {
     decodePayloadMessages,
     type DecoderTables,
     MESSAGES_MAXIMUM,
     type PayloadDecoded,
-} from "@/src/core/fight-decoder.ts";
+} from "./fight-decoder.ts";
 import {
     type CarriedStatus,
     type CarriedStatusWalk,
     composeCarriedStatuses,
     NO_CARRIED_STATUS_WALK,
     prepareCarriedStatuses,
-} from "@/src/core/carried-status.ts";
+} from "./carried-status.ts";
 import {
     composeLegendaryStandings,
     type LegendaryStanding,
     type LegendaryWalk,
     NO_LEGENDARY_WALK,
     prepareLegendaryWalk,
-} from "@/src/core/legendary-standing.ts";
+} from "./legendary-standing.ts";
 import {
     CHARGED_SKILLS_MAXIMUM,
     type ChargedSkillStanding,
     type ChargedSkillStatement,
     prepareChargedSkills,
-} from "@/src/core/charged-skill.ts";
+} from "./charged-skill.ts";
 
 /** The turn in progress as the envelope states it: the queue's least ordinal, and whose it is. */
 export interface TurnStatement {

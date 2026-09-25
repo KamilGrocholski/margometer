@@ -4,8 +4,8 @@
  * decision where nothing can check it. The drawing is `panel-tip`'s.
  */
 
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import type { Caveat } from "@/src/ui/panel-words.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import type { Caveat } from "./panel-words.ts";
 
 export const TIP_LINE = { stat: "stat", sub: "sub", heading: "heading", note: "note" } as const;
 

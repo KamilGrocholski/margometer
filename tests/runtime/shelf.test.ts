@@ -13,16 +13,16 @@ import {
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
-import { encodeJson } from "@/libs/json-text.ts";
-import { err, ok } from "@/libs/result.ts";
+import { encodeJson } from "#/libs/json-text.ts";
+import { err, ok } from "#/libs/result.ts";
 import {
     initMemoryStore,
     initPageStore,
     type KeyValueStore,
     STORE_FAILURE,
     STORE_KEY,
-} from "@/src/game/browser-store.ts";
-import { getFightView } from "@/src/core/fight-session.ts";
+} from "#/src/game/browser-store.ts";
+import { getFightView } from "#/src/core/fight-session.ts";
 import {
     keepFight,
     KEPT_MAXIMUM,
@@ -32,8 +32,8 @@ import {
     removeKeptFight,
     SHELF_FAILURE,
     type ShelfContents,
-} from "@/src/runtime/shelf.ts";
-import { readRecordedFights, replayRecordedFight } from "@/tests/recorded-fights.ts";
+} from "#/src/runtime/shelf.ts";
+import { readRecordedFights, replayRecordedFight } from "#/tests/recorded-fights.ts";
 
 const EMPTY: ShelfContents = { fights: [] };
 

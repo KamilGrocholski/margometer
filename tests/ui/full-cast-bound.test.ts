@@ -9,21 +9,21 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { indexTeamHeals } from "@/src/core/combatant-health.ts";
+import { indexTeamHeals } from "#/src/core/combatant-health.ts";
 import {
     type CombatantRoster,
     COMBATANTS_MAXIMUM,
     indexCombatantRoster,
-} from "@/src/core/combatant-roster.ts";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
+} from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     countUnreadMessages,
     type FightStatistics,
     tallyFightStatistics,
-} from "@/src/core/fight-statistics.ts";
-import type { ShownScreen } from "@/src/ui/panel-element.ts";
-import { NOTHING_SUSPECT, type ScreenReading } from "@/src/ui/panel-reading.ts";
-import { presentScreen, UNNAMED_END } from "@/src/ui/panel-reading.ts";
+} from "#/src/core/fight-statistics.ts";
+import type { ShownScreen } from "#/src/ui/panel-element.ts";
+import { NOTHING_SUSPECT, type ScreenReading } from "#/src/ui/panel-reading.ts";
+import { presentScreen, UNNAMED_END } from "#/src/ui/panel-reading.ts";
 import {
     PANEL_METRIC,
     type PanelMetric,
@@ -31,11 +31,11 @@ import {
     SCREEN_ORDER,
     SIDE_CHOICE,
     SIDE_CHOICES,
-} from "@/src/ui/panel-screen.ts";
-import { composeFakeDocument, type FakeElement, getTextsByClass } from "@/tests/fake-document.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
-import { initTestView } from "@/tests/panel-view.ts";
-import { composeShownScreen } from "@/tests/shown-screen.ts";
+} from "#/src/ui/panel-screen.ts";
+import { composeFakeDocument, type FakeElement, getTextsByClass } from "#/tests/fake-document.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { initTestView } from "#/tests/panel-view.ts";
+import { composeShownScreen } from "#/tests/shown-screen.ts";
 
 /** The screen that pins two figures at once, which is what puts two unnamed rows on one list. */
 const BOTH_ENDS_SCREEN: PanelMetric = PANEL_METRIC.damageTakenApplied;

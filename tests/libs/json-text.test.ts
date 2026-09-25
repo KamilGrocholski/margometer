@@ -6,7 +6,7 @@
  */
 
 import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
-import { encodeJson, JSON_FAILURE, parseJson } from "@/libs/json-text.ts";
+import { encodeJson, JSON_FAILURE, parseJson } from "#/libs/json-text.ts";
 
 Deno.test("text that carried null read, and text that would not read, are told apart", () => {
     const carried = parseJson("null");

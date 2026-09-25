@@ -9,22 +9,22 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, type ForeignFailure, ok, type Result } from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import type { CaptureStanding } from "@/src/game/fight-capture.ts";
-import type { FightPlace } from "@/src/game/fight-place.ts";
-import type { BuildPort } from "@/src/game/game-build.ts";
-import type { Clock } from "@/src/game/page-clock.ts";
-import type { FileFailure, FileSink } from "@/src/game/page-file.ts";
-import type { SurroundingsPort } from "@/src/game/page-surroundings.ts";
+import { err, type ForeignFailure, ok, type Result } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import type { CaptureStanding } from "#/src/game/fight-capture.ts";
+import type { FightPlace } from "#/src/game/fight-place.ts";
+import type { BuildPort } from "#/src/game/game-build.ts";
+import type { Clock } from "#/src/game/page-clock.ts";
+import type { FileFailure, FileSink } from "#/src/game/page-file.ts";
+import type { SurroundingsPort } from "#/src/game/page-surroundings.ts";
 import {
     encodeFightFile,
     type FileCalls,
     type FileEncodingFailure,
     type FileSubject,
     type FileSurroundings,
-} from "@/src/runtime/fight-file.ts";
-import type { FightReading, StandingFight } from "@/src/runtime/fight-reading.ts";
+} from "./fight-file.ts";
+import type { FightReading, StandingFight } from "./fight-reading.ts";
 
 export const HANDOVER_FAILURE = { noFightOnScreen: "no-fight-on-screen" } as const;
 export type HandoverFailureKind = VocabularyWord<typeof HANDOVER_FAILURE>;

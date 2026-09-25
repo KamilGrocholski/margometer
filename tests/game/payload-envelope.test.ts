@@ -6,23 +6,23 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { err } from "@/libs/result.ts";
-import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
-import { MESSAGES_MAXIMUM } from "@/src/core/fight-decoder.ts";
+import { err } from "#/libs/result.ts";
+import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
+import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
 import {
     ENVELOPE_FAILURE,
     type EnvelopeField,
     readPayloadEnvelope,
-} from "@/src/game/payload-envelope.ts";
+} from "#/src/game/payload-envelope.ts";
 import {
     commitPayload,
     getFightView,
     initFightSession,
     preparePayload,
     SESSION_OPTIONS,
-} from "@/src/core/fight-session.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
-import { readRecordedFights } from "@/tests/recorded-fights.ts";
+} from "#/src/core/fight-session.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 const QUEUE_ENTRIES_MAXIMUM = 1024;
 

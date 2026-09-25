@@ -6,10 +6,10 @@
  */
 
 import { assert } from "@std/assert/assert";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import type { ConsolePort } from "@/src/game/page-console.ts";
-import type { RuntimeFailure } from "@/src/runtime/failure-fate.ts";
-import { PANEL_REGION, type PanelRegion } from "@/src/ui/panel-words.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import type { ConsolePort } from "#/src/game/page-console.ts";
+import type { RuntimeFailure } from "./failure-fate.ts";
+import { PANEL_REGION, type PanelRegion } from "#/src/ui/panel-words.ts";
 
 export const DEFECT_KIND = {
     kept: "kept",

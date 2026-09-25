@@ -8,14 +8,14 @@
  */
 
 import { assert } from "@std/assert/assert";
-import type { BattleEvent } from "@/src/core/battle-event.ts";
-import { indexTeamHeals, type TeamHeal } from "@/src/core/combatant-health.ts";
-import type { FightView } from "@/src/core/fight-session.ts";
+import type { BattleEvent } from "./battle-event.ts";
+import { indexTeamHeals, type TeamHeal } from "./combatant-health.ts";
+import type { FightView } from "./fight-session.ts";
 import {
     type FightStatistics,
     tallyFightStatistics,
     verifyFightStatistics,
-} from "@/src/core/fight-statistics.ts";
+} from "./fight-statistics.ts";
 
 export interface FightFigures {
     statistics: FightStatistics;

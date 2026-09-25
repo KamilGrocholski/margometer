@@ -5,9 +5,9 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, err, ok, type Result } from "@/libs/result.ts";
-import { getEndOfRun } from "@/libs/text-walk.ts";
-import { PAGE_READ_FAILURE, PAGE_READING, type PageReadFailure } from "@/src/game/page-reading.ts";
+import { callForeign, err, ok, type Result } from "#/libs/result.ts";
+import { getEndOfRun } from "#/libs/text-walk.ts";
+import { PAGE_READ_FAILURE, PAGE_READING, type PageReadFailure } from "./page-reading.ts";
 
 export interface BuildPort {
     readBuildId(): Result<string, PageReadFailure>;

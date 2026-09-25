@@ -15,9 +15,9 @@ import {
     getStatedTextField,
     isRecord,
     type UnknownRecord,
-} from "@/libs/unknown-value.ts";
-import type { ChargedSkillStatement } from "@/src/core/charged-skill.ts";
-import { type Combatant, COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
+} from "#/libs/unknown-value.ts";
+import type { ChargedSkillStatement } from "#/src/core/charged-skill.ts";
+import { type Combatant, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 
 type WarriorField =
     | "id"

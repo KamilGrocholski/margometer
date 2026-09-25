@@ -9,7 +9,7 @@ import {
     readAstNodes,
     readSourceFiles,
     type SourceFile,
-} from "@/tests/source-tree.ts";
+} from "#/tests/source-tree.ts";
 
 function lookupNonNullAssertions(file: SourceFile): string[] {
     const nodes = readAstNodes(file, ["TSNonNullExpression"]);

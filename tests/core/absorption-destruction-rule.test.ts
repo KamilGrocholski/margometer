@@ -7,8 +7,8 @@
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";
-import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
-import { readRecordedFights } from "@/tests/recorded-fights.ts";
+import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
+import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 const KEY = "active_absorbdest_per";
 const ANNOUNCEMENT_KEY = "tspell";

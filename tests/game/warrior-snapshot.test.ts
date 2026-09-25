@@ -12,10 +12,10 @@ import {
     assertNotStrictEquals,
     assertStrictEquals,
 } from "@std/assert";
-import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
-import { readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
-import { readWarriorSnapshot, WARRIOR_FAILURE } from "@/src/game/warrior-snapshot.ts";
-import { readRecordedFights } from "@/tests/recorded-fights.ts";
+import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
+import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import { readWarriorSnapshot, WARRIOR_FAILURE } from "#/src/game/warrior-snapshot.ts";
+import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 /** The fields every recording's snapshot carries, in the order it carries them. */
 const RECORDED_KEYS = ["id", "name", "team", "prof", "lvl", "hp", "mana", "energy", "ac"];

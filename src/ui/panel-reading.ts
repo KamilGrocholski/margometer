@@ -8,14 +8,14 @@
  * one-side list would be measured against a whole the list does not show.
  */
 
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import { OUTCOME_RESULT, type OutcomeResult } from "@/src/core/battle-event.ts";
-import { getRankedOrder } from "@/src/ui/ranked-order.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
+import { getRankedOrder } from "./ranked-order.ts";
 import {
     type CombatantRoster,
     COMBATANTS_MAXIMUM,
     lookupCombatantIdByName,
-} from "@/src/core/combatant-roster.ts";
+} from "#/src/core/combatant-roster.ts";
 import {
     type CombatantFigures,
     type FightOutcome,
@@ -23,8 +23,8 @@ import {
     type FigureCut,
     initCombatantFigures,
     type SkillFigures,
-} from "@/src/core/fight-statistics.ts";
-import { parseInteger } from "@/libs/number-text.ts";
+} from "#/src/core/fight-statistics.ts";
+import { parseInteger } from "#/libs/number-text.ts";
 import {
     getDirectionForMetric,
     getNounForMetric,
@@ -35,7 +35,7 @@ import {
     type PanelMetric,
     type PanelSideChoice,
     SIDE_CHOICE,
-} from "@/src/ui/panel-screen.ts";
+} from "./panel-screen.ts";
 import {
     formatChargedRows,
     formatGrammarRefusedSuspicion,
@@ -50,7 +50,7 @@ import {
     formatUnplacedHealRowSuspicion,
     formatUnplacedHealSuspicion,
     NAMED_ROWS_MAXIMUM,
-} from "@/src/ui/panel-words.ts";
+} from "./panel-words.ts";
 
 /**
  * A row for everybody a fight holds, counted off the roster rather than typed beside it: the

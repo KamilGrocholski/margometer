@@ -6,7 +6,7 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { formatDecimal, formatInteger, parseDecimal, parseInteger } from "@/libs/number-text.ts";
+import { formatDecimal, formatInteger, parseDecimal, parseInteger } from "#/libs/number-text.ts";
 
 Deno.test("an integer is read where digits were written, and nowhere else", () => {
     assertStrictEquals(parseInteger("0"), 0, "zero is a reading like any other");

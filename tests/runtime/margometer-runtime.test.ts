@@ -12,29 +12,29 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
-import { err, ok, RESULT_FAILURE } from "@/libs/result.ts";
-import { parseJson } from "@/libs/json-text.ts";
-import { isRecord } from "@/libs/unknown-value.ts";
-import { MESSAGES_MAXIMUM } from "@/src/core/fight-decoder.ts";
-import { STORE_KEY } from "@/src/game/browser-store.ts";
-import { LOOKS_MAXIMUM } from "@/src/runtime/engine-search.ts";
-import { CLASS } from "@/src/ui/panel-look.ts";
-import { STANDING_TURN_STATE } from "@/src/ui/panel-standing.ts";
+import { err, ok, RESULT_FAILURE } from "#/libs/result.ts";
+import { parseJson } from "#/libs/json-text.ts";
+import { isRecord } from "#/libs/unknown-value.ts";
+import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
+import { STORE_KEY } from "#/src/game/browser-store.ts";
+import { LOOKS_MAXIMUM } from "#/src/runtime/engine-search.ts";
+import { CLASS } from "#/src/ui/panel-look.ts";
+import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
 import {
     DEFECT_MARK,
     formatDefect,
     getWordsForTurnState,
     PANEL_DEFECT_KIND,
     PANEL_WORDS,
-} from "@/src/ui/panel-words.ts";
+} from "#/src/ui/panel-words.ts";
 import {
     type FakeElement,
     getElementsWithin,
     getPanelWithin,
     getTextsByClass,
-} from "@/tests/fake-document.ts";
-import { TEST_VERSION } from "@/tests/panel-view.ts";
-import { lookupRecordedFight, readRecordedFights } from "@/tests/recorded-fights.ts";
+} from "#/tests/fake-document.ts";
+import { TEST_VERSION } from "#/tests/panel-view.ts";
+import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
 import {
     CAPTURED_AT,
     GAME_BUILD,
@@ -44,7 +44,7 @@ import {
     readKeptFights,
     type RuntimeWorld,
     WORLD,
-} from "@/tests/runtime-world.ts";
+} from "#/tests/runtime-world.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** Another fight, so a shelf and a session can hold different figures at the same moment. */

@@ -4,8 +4,8 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { type AttackEvent, BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
-import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "@/src/core/turn-clock.ts";
+import { type AttackEvent, BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
+import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
 
 function composeBlow(actorId: number, isAnnounced: boolean): AttackEvent {
     const announced = isAnnounced ? { skillName: "Cios", skillId: null, actorId } : null;

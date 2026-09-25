@@ -8,13 +8,13 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
+import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
 import {
     composeTurnStanding,
     lookupTurnOpener,
     NO_TURN_STANDING,
     type TurnStanding,
-} from "@/src/core/turn-clock.ts";
+} from "./turn-clock.ts";
 
 /** A mask arrives as one integer, so a bit past the thirty-second is not one this reader holds. */
 export const STATUS_BITS_MAXIMUM = 32;

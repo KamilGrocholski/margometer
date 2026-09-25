@@ -7,8 +7,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, type Fault, ok, type Result } from "@/libs/result.ts";
-import { parseDecimal, parseInteger } from "@/libs/number-text.ts";
+import { err, type Fault, ok, type Result } from "#/libs/result.ts";
+import { parseDecimal, parseInteger } from "#/libs/number-text.ts";
 import {
     type AnnouncedSkill,
     type AttackEvent,
@@ -23,14 +23,14 @@ import {
     type UnknownMessageEvent,
     UNREAD_CAUSE,
     type UnreadCause,
-} from "@/src/core/battle-event.ts";
+} from "./battle-event.ts";
 import {
     type CombatantRoster,
     COMBATANTS_MAXIMUM,
     lookupCombatantIdByName,
-} from "@/src/core/combatant-roster.ts";
-import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
-import { parseHealthPercent } from "@/src/core/protocol-number.ts";
+} from "./combatant-roster.ts";
+import { parseProtocolMessage, type ProtocolMessage } from "./protocol-message.ts";
+import { parseHealthPercent } from "./protocol-number.ts";
 import {
     APPLIED_SIGN,
     getKeyReading,
@@ -40,7 +40,7 @@ import {
     RAW_SIGN,
     SKILL_ID_KEY,
     TEXT_KEY,
-} from "@/src/core/protocol-key.ts";
+} from "./protocol-key.ts";
 
 export interface DecoderTables {
     blowsGrantedBySkillId: ReadonlyMap<number, number>;

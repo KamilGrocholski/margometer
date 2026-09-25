@@ -7,8 +7,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, ok, type Result } from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
+import { err, ok, type Result } from "./result.ts";
+import type { VocabularyWord } from "./vocabulary.ts";
 
 /** Read-only: a write into somebody else's object through this type does not compile. */
 export interface UnknownRecord {

@@ -4,13 +4,13 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { type ForeignFailure, ok, RESULT_FAILURE } from "@/libs/result.ts";
+import { type ForeignFailure, ok, RESULT_FAILURE } from "#/libs/result.ts";
 import {
     type DownloadAnchor,
     FILE_SINK_FAILURE,
     initPageFile,
     type PageDownloads,
-} from "@/src/game/page-file.ts";
+} from "#/src/game/page-file.ts";
 
 function composeDownloads(over: Partial<PageDownloads> = {}, click = () => {}) {
     const calls: string[] = [];

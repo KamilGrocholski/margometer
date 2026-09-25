@@ -8,8 +8,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { encodeJson, parseJson } from "@/libs/json-text.ts";
-import { err, ok, type Result } from "@/libs/result.ts";
+import { encodeJson, parseJson } from "#/libs/json-text.ts";
+import { err, ok, type Result } from "#/libs/result.ts";
 import {
     type FieldKeys,
     getListField,
@@ -18,15 +18,15 @@ import {
     getStatedTextField,
     isRecord,
     type UnknownRecord,
-} from "@/libs/unknown-value.ts";
+} from "#/libs/unknown-value.ts";
 import {
     type KeyValueStore,
     STORE_FAILURE,
     STORE_KEY,
     type StoreFailure,
-} from "@/src/game/browser-store.ts";
-import { CALLS_MAXIMUM } from "@/src/game/fight-capture.ts";
-import type { FightPlace } from "@/src/game/fight-place.ts";
+} from "#/src/game/browser-store.ts";
+import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
+import type { FightPlace } from "#/src/game/fight-place.ts";
 
 /** A shelf holds this many fights and no more, the oldest nobody pinned dropped first. */
 export const KEPT_MAXIMUM = 20;

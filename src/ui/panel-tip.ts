@@ -6,10 +6,10 @@
  * and the sheet multiplies.
  */
 
-import { type PanelDocument, type PanelElement, STYLE_ATTRIBUTE } from "@/src/ui/panel-document.ts";
-import type { TipAcross } from "@/src/ui/panel-drag.ts";
-import { CLASS, getTipHeight, getTipRoom } from "@/src/ui/panel-look.ts";
-import { CARD_WORDS, CAVEAT_MARK } from "@/src/ui/panel-words.ts";
+import { type PanelDocument, type PanelElement, STYLE_ATTRIBUTE } from "./panel-document.ts";
+import type { TipAcross } from "./panel-drag.ts";
+import { CLASS, getTipHeight, getTipRoom } from "./panel-look.ts";
+import { CARD_WORDS, CAVEAT_MARK } from "./panel-words.ts";
 import {
     TIP_LINE,
     TIP_NOTE_TONE,
@@ -17,7 +17,7 @@ import {
     type TipLine,
     type TipNoteTone,
     type TipReading,
-} from "@/src/ui/tip-reading.ts";
+} from "./tip-reading.ts";
 
 /**
  * A **way to compose the card** rather than the card: a fight redraws every few seconds and

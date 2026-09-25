@@ -3,7 +3,7 @@
  * The kind arrives as text, because this layer imports nothing above it.
  */
 
-import { callForeign } from "@/libs/result.ts";
+import { callForeign } from "#/libs/result.ts";
 
 export interface ConsolePort {
     writeBrandedLine(kind: string, detail: unknown): void;

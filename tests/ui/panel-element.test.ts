@@ -13,14 +13,14 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
-import { tallyFightStatistics } from "@/src/core/fight-statistics.ts";
-import { isOneOf } from "@/libs/vocabulary.ts";
-import { PANEL_WINDOW } from "@/src/ui/panel-choice.ts";
-import type { PanelDefect, PanelView, ShownScreen } from "@/src/ui/panel-element.ts";
-import { PANEL_INTENT, type PanelIntent } from "@/src/ui/panel-intent.ts";
-import { composeShownScreen, SHOWN_LIST } from "@/tests/shown-screen.ts";
-import { initTestView, NOTHING_WAITING, TEST_VERSION } from "@/tests/panel-view.ts";
-import { readTip } from "@/tests/drawn-card.ts";
+import { tallyFightStatistics } from "#/src/core/fight-statistics.ts";
+import { isOneOf } from "#/libs/vocabulary.ts";
+import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
+import type { PanelDefect, PanelView, ShownScreen } from "#/src/ui/panel-element.ts";
+import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
+import { composeShownScreen, SHOWN_LIST } from "#/tests/shown-screen.ts";
+import { initTestView, NOTHING_WAITING, TEST_VERSION } from "#/tests/panel-view.ts";
+import { readTip } from "#/tests/drawn-card.ts";
 import {
     NOTHING_SUSPECT,
     type PinnedRow,
@@ -32,9 +32,9 @@ import {
     type ScreenReading,
     SIDE_PART,
     UNNAMED_END,
-} from "@/src/ui/panel-reading.ts";
-import { CLASS, composeStyleSheet } from "@/src/ui/panel-look.ts";
-import { lookupColourForProfession, SIGNAL } from "@/src/ui/panel-palette.ts";
+} from "#/src/ui/panel-reading.ts";
+import { CLASS, composeStyleSheet } from "#/src/ui/panel-look.ts";
+import { lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
 import {
     getNounForMetric,
     getWordsForMetric,
@@ -45,7 +45,7 @@ import {
     presentNounStrips,
     presentSideStrips,
     SCREEN_ORDER,
-} from "@/src/ui/panel-screen.ts";
+} from "#/src/ui/panel-screen.ts";
 import {
     CARD_WORDS,
     formatCardSubtitle,
@@ -68,7 +68,7 @@ import {
     PANEL_WORDS,
     SUSPECT_MARK,
     TURN_MARK,
-} from "@/src/ui/panel-words.ts";
+} from "#/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
     dragOnElement,
@@ -77,9 +77,9 @@ import {
     getTextsByClass,
     pointAtElement,
     pressElement,
-} from "@/tests/fake-document.ts";
-import { tallyRecordedFight } from "@/tests/recorded-fights.ts";
-import { getDeclaration, getRuleBody } from "@/tests/style-sheet.ts";
+} from "#/tests/fake-document.ts";
+import { tallyRecordedFight } from "#/tests/recorded-fights.ts";
+import { getDeclaration, getRuleBody } from "#/tests/style-sheet.ts";
 
 /**
  * The place these views stand in. Every test here reads what was drawn rather than where the

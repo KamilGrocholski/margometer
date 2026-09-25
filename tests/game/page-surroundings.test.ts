@@ -1,7 +1,7 @@
 /** What a recording says about where it was taken: the world, and the browser in its own words. */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { initPageSurroundings, parseWorld, WORLD_UNKNOWN } from "@/src/game/page-surroundings.ts";
+import { initPageSurroundings, parseWorld, WORLD_UNKNOWN } from "#/src/game/page-surroundings.ts";
 
 Deno.test("the world is the first label of the host, and a page with none is nobody's", () => {
     assertEquals(parseWorld("tempest.margonem.pl"), "tempest", "the first label");

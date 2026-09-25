@@ -8,38 +8,38 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { runGuarded } from "@/libs/result.ts";
-import type { VocabularyWord } from "@/libs/vocabulary.ts";
-import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
-import { replayFightStandings } from "@/src/core/aura-standing.ts";
-import type { OutcomeResult } from "@/src/core/battle-event.ts";
-import { type FightView, getFightView } from "@/src/core/fight-session.ts";
-import type { TooltipPort } from "@/src/game/engine-tooltip.ts";
-import type { FightPlace } from "@/src/game/fight-place.ts";
-import type { Clock } from "@/src/game/page-clock.ts";
-import { type TooltipTables, writeCarriedTooltips } from "@/src/runtime/carried-tooltip.ts";
-import { DEFECT_KIND, type DefectLedger } from "@/src/runtime/defect-ledger.ts";
+import { runGuarded } from "#/libs/result.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
+import { replayFightStandings } from "#/src/core/aura-standing.ts";
+import type { OutcomeResult } from "#/src/core/battle-event.ts";
+import { type FightView, getFightView } from "#/src/core/fight-session.ts";
+import type { TooltipPort } from "#/src/game/engine-tooltip.ts";
+import type { FightPlace } from "#/src/game/fight-place.ts";
+import type { Clock } from "#/src/game/page-clock.ts";
+import { type TooltipTables, writeCarriedTooltips } from "./carried-tooltip.ts";
+import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
 import {
     type FightReading,
     lookupStandingFight,
     type StandingFight,
     tallyFightReading,
-} from "@/src/runtime/fight-reading.ts";
-import type { LiveFight } from "@/src/runtime/live-fight.ts";
-import type { RuntimeFailure } from "@/src/runtime/failure-fate.ts";
-import type { ShelfAnswers, ShelfKeeper } from "@/src/runtime/shelf-keeper.ts";
-import { KEPT_MAXIMUM, type KeptFight } from "@/src/runtime/shelf.ts";
-import type { PanelDefect, PanelView, ShownScreen } from "@/src/ui/panel-element.ts";
-import type { RenderReport } from "@/src/ui/view-failure.ts";
+} from "./fight-reading.ts";
+import type { LiveFight } from "./live-fight.ts";
+import type { RuntimeFailure } from "./failure-fate.ts";
+import type { ShelfAnswers, ShelfKeeper } from "./shelf-keeper.ts";
+import { KEPT_MAXIMUM, type KeptFight } from "./shelf.ts";
+import type { PanelDefect, PanelView, ShownScreen } from "#/src/ui/panel-element.ts";
+import type { RenderReport } from "#/src/ui/view-failure.ts";
 import {
     type FightSuspicions,
     getOutcomeForSeat,
     presentScreen,
     type ScreenReading,
     type ShelfRow,
-} from "@/src/ui/panel-reading.ts";
-import { composeListName, type ScreenState } from "@/src/ui/panel-screen.ts";
-import { presentStanding, type StandingReading } from "@/src/ui/panel-standing.ts";
+} from "#/src/ui/panel-reading.ts";
+import { composeListName, type ScreenState } from "#/src/ui/panel-screen.ts";
+import { presentStanding, type StandingReading } from "#/src/ui/panel-standing.ts";
 import {
     CHOICE_REFUSED_ANSWER,
     EVERY_SLOT_PINNED_ANSWER,
@@ -47,8 +47,8 @@ import {
     STORE_MADE_ROOM_ANSWER,
     STORE_REFUSED_ANSWER,
     type TranslateLabel,
-} from "@/src/ui/panel-words.ts";
-import { type OpenedReadings, presentOpenedReadings } from "@/src/runtime/opened-reading.ts";
+} from "#/src/ui/panel-words.ts";
+import { type OpenedReadings, presentOpenedReadings } from "./opened-reading.ts";
 
 export const FRAME_FAILURE = { figuresDisagreed: "figures-disagreed" } as const;
 /** Which level of the panel two counts of one figure came out different on. */

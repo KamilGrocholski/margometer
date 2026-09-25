@@ -4,8 +4,8 @@
  * onto whichever list stands next under the same name. `develop ADR 0050`.
  */
 
-import { type PanelElement, STYLE_ATTRIBUTE } from "@/src/ui/panel-document.ts";
-import { CLASS } from "@/src/ui/panel-look.ts";
+import { type PanelElement, STYLE_ATTRIBUTE } from "./panel-document.ts";
+import { CLASS } from "./panel-look.ts";
 
 /** Headroom rather than a bound anything meets: a reader comes back to a handful of places. */
 const LISTS_KEPT_MAXIMUM = 32;

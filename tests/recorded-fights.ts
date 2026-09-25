@@ -7,13 +7,13 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import type { BattleEvent } from "@/src/core/battle-event.ts";
+import type { BattleEvent } from "#/src/core/battle-event.ts";
 import {
     type Combatant,
     type CombatantRoster,
     indexCombatantRoster,
-} from "@/src/core/combatant-roster.ts";
-import { decodePayloadMessages, type UnreadMessage } from "@/src/core/fight-decoder.ts";
+} from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages, type UnreadMessage } from "#/src/core/fight-decoder.ts";
 import {
     commitPayload,
     type FightSession,
@@ -22,12 +22,12 @@ import {
     initFightSession,
     preparePayload,
     SESSION_OPTIONS,
-} from "@/src/core/fight-session.ts";
-import { tallyFightFigures } from "@/src/core/fight-figures.ts";
-import type { FightStatistics } from "@/src/core/fight-statistics.ts";
-import { readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
-import { FILE_FIELD } from "@/src/runtime/fight-file.ts";
-import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+} from "#/src/core/fight-session.ts";
+import { tallyFightFigures } from "#/src/core/fight-figures.ts";
+import type { FightStatistics } from "#/src/core/fight-statistics.ts";
+import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
+import { BLOWS_GRANTED } from "./frozen-tables.ts";
 
 export const RECORDINGS_REVISION = "fa1dcce";
 

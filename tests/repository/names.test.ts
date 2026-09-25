@@ -11,8 +11,8 @@ import {
     readSourceFiles,
     SOURCE_DIRECTORIES,
     type SourceFile,
-} from "@/tests/source-tree.ts";
-import { isDigitAt } from "@/libs/text-walk.ts";
+} from "#/tests/source-tree.ts";
+import { isDigitAt } from "#/libs/text-walk.ts";
 
 /** Named for their category rather than their contents (N10). */
 const CATEGORY_STEMS = ["utils", "helpers", "common", "misc", "index"];

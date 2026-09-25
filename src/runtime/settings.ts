@@ -8,17 +8,17 @@
  * read back is a failure, and the runtime falls back to the default and marks it.
  */
 
-import { formatInteger } from "@/libs/number-text.ts";
-import { parseJson } from "@/libs/json-text.ts";
-import { err, ok, type Result } from "@/libs/result.ts";
-import { type FieldKeys, getNumberField, isRecord } from "@/libs/unknown-value.ts";
-import { isOneOf, type VocabularyWord } from "@/libs/vocabulary.ts";
+import { formatInteger } from "#/libs/number-text.ts";
+import { parseJson } from "#/libs/json-text.ts";
+import { err, ok, type Result } from "#/libs/result.ts";
+import { type FieldKeys, getNumberField, isRecord } from "#/libs/unknown-value.ts";
+import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     type KeyValueStore,
     STORE_KEY,
     type StoreFailure,
     type StoreKey,
-} from "@/src/game/browser-store.ts";
+} from "#/src/game/browser-store.ts";
 import {
     PANEL_WINDOW,
     type PanelPosition,
@@ -26,7 +26,7 @@ import {
     STORAGE_CHOICE,
     STORAGE_CHOICES,
     type StorageChoice,
-} from "@/src/ui/panel-choice.ts";
+} from "#/src/ui/panel-choice.ts";
 
 export const SETTING_KEY = {
     storage: "storage",

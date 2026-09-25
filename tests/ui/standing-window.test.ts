@@ -6,15 +6,15 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import type { ProvocationStanding } from "@/src/core/aura-standing.ts";
-import type { ChargedSkillStanding, ChargedSkillState } from "@/src/core/charged-skill.ts";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import type { TurnStatement } from "@/src/core/fight-session.ts";
-import { PANEL_WINDOW } from "@/src/ui/panel-choice.ts";
-import { PANEL_INTENT, type PanelIntent } from "@/src/ui/panel-intent.ts";
-import { lookupColourForProfession, SIGNAL } from "@/src/ui/panel-palette.ts";
-import { presentStanding, PROVOKED_MAXIMUM, type StandingTurn } from "@/src/ui/panel-standing.ts";
-import { getWordsForTurnState, PANEL_WORDS, STANDING_WORDS } from "@/src/ui/panel-words.ts";
+import type { ProvocationStanding } from "#/src/core/aura-standing.ts";
+import type { ChargedSkillStanding, ChargedSkillState } from "#/src/core/charged-skill.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import type { TurnStatement } from "#/src/core/fight-session.ts";
+import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
+import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
+import { lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
+import { presentStanding, PROVOKED_MAXIMUM, type StandingTurn } from "#/src/ui/panel-standing.ts";
+import { getWordsForTurnState, PANEL_WORDS, STANDING_WORDS } from "#/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
     type FakeElement,
@@ -23,9 +23,9 @@ import {
     getTextsByClass,
     pointAtElement,
     pressElement,
-} from "@/tests/fake-document.ts";
-import { readTip } from "@/tests/drawn-card.ts";
-import { initTestView, NOTHING_WAITING } from "@/tests/panel-view.ts";
+} from "#/tests/fake-document.ts";
+import { readTip } from "#/tests/drawn-card.ts";
+import { initTestView, NOTHING_WAITING } from "#/tests/panel-view.ts";
 
 const OURS = 1;
 const THEIRS = 2;

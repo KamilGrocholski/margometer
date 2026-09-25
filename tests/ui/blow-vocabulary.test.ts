@@ -8,9 +8,9 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
-import { getKeyReading, KEY_FAMILY, PROC_END, type ProcEnd } from "@/src/core/protocol-key.ts";
+import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
+import { getKeyReading, KEY_FAMILY, PROC_END, type ProcEnd } from "#/src/core/protocol-key.ts";
 import {
     CARD_WORDS,
     CLIENT_ID_BY_UNWORDED_KEY,
@@ -24,9 +24,9 @@ import {
     LABEL_CHARACTERS_MAXIMUM,
     PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
-} from "@/src/ui/panel-words.ts";
-import { BLOWS_GRANTED, readFrozenModule } from "@/tests/frozen-tables.ts";
-import { readRecordedFights } from "@/tests/recorded-fights.ts";
+} from "#/src/ui/panel-words.ts";
+import { BLOWS_GRANTED, readFrozenModule } from "#/tests/frozen-tables.ts";
+import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 const { FROZEN_PROTOCOL_KEYS } = await readFrozenModule("protocol-keys") as {
     FROZEN_PROTOCOL_KEYS: { keys: readonly string[] };
