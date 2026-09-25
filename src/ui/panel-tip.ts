@@ -98,8 +98,8 @@ const NAME_CHARACTERS_PER_LINE = 27;
 /**
  * Past every card this panel composes: four figures and their parts, the counters, both runs — the
  * criticals, the defences, the procs and what a blow destroyed — and the notes. The tallest card
- * any recording composes is 31 lines and the median 24, over the 1,208 cards the ranking of
- * `captures/` opens on 2026-09-18 — `develop`'s `deno task panel:cards` is what measures it, and
+ * any recording composes is 31 lines and the median 23, over the 1,260 cards the ranking of
+ * `captures/` opens on 2026-09-25 — `deno task panel:cards` is what measures it, and
  * this is headroom rather than a limit anything meets.
  */
 const TIP_LINES_MAXIMUM = 64;

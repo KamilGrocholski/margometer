@@ -1437,7 +1437,7 @@ function renderPart(
     list.append(renderSection(document, heading, part.total));
     const share = PANEL_WORDS.shareOfFigure;
     // Nothing on this rung opens, so no card here promises a gesture
-    // (`develop:docs/drill-levels.md`).
+    // (`docs/drill-levels.md`).
     const place: CardPlace = {
         metric: shown.current,
         translate,
