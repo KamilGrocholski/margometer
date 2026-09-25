@@ -1,8 +1,9 @@
 /**
  * `AGENTS.md`, checked against itself and against the tree it describes: its rules are numbered
  * without a gap and every reference to one resolves, its register names exactly the guards that
- * exist, its list of documents names exactly the documents that exist, and the two walls in front
- * of `TODO.md` still stand. Text is walked rather than matched (C7).
+ * exist, its list of documents names exactly the documents that exist, its structure names every
+ * tracked file, and the two walls in front of `TODO.md` still stand. Text is walked rather than
+ * matched (C7).
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";
@@ -30,6 +31,15 @@ const ROOT_DOCUMENTS_OTHER = ["AGENTS.md", "CLAUDE.md", "README.en.md", "README.
 const HAND_KEPT_LIST = "TODO.md";
 const DENIED_TOOLS = ["Edit", "Write"];
 const NESTED_RULES_NAME = "/AGENTS.md";
+const STRUCTURE_HEADING = "## Structure";
+const STRUCTURE_OPENER = "- `";
+const SECTION_OPENER = "## ";
+/** Where the structure takes a directory rather than its files, and how deep: a suite apiece. */
+const STRUCTURE_DEPTH_BY_ROOT: ReadonlyMap<string, number> = new Map([
+    ["tests", 2],
+    ["captures", 1],
+    ["screenshots", 1],
+]);
 
 Deno.test("a rule is read off the line that opens it, and a sentence naming one is not", () => {
     assertEquals(readRuleName("- **S1.** Only simple control flow."), { prefix: "S", number: 1 });
@@ -189,6 +199,63 @@ function isCanonicalPlace(path: string): boolean {
     if (!path.includes("/")) return true;
     return path.startsWith("docs/") ? !path.slice("docs/".length).includes("/") : false;
 }
+
+Deno.test("the structure is read off its own section, one path to a line", () => {
+    const sample = [
+        STRUCTURE_HEADING,
+        "",
+        "- `a.ts` — one",
+        "  wrapped onto a second line, `b.ts`",
+        "- `tests/core/` — two",
+        "",
+        "## Safety",
+        "- `c.ts` — past the section",
+    ].join("\n");
+    assertEquals(readStructurePaths(sample), ["a.ts", "tests/core/"], "the two lines it opens");
+});
+
+/** The paths the section's lines open with, up to the next section. */
+function readStructurePaths(text: string): string[] {
+    const lines = text.split("\n");
+    const heading = lines.indexOf(STRUCTURE_HEADING);
+    assert(heading !== -1, "the rules map the tree");
+    const found: string[] = [];
+    for (const line of lines.slice(heading + 1)) {
+        if (line.startsWith(SECTION_OPENER)) break;
+        if (!line.startsWith(STRUCTURE_OPENER)) continue;
+        const from = STRUCTURE_OPENER.length;
+        found.push(line.slice(from, line.indexOf(QUOTE, from)));
+    }
+    return found;
+}
+
+Deno.test("a file is mapped by itself, or by the directory the structure takes whole", () => {
+    const tracked = ["src/a.ts", "tests/fake.ts", "tests/core/b.test.ts", "captures/x/y.json"];
+    assertEquals(
+        tracked.map(composeStructureEntry),
+        ["src/a.ts", "tests/", "tests/core/", "captures/"],
+        "a file, the directory of tests, one under it, and the recordings",
+    );
+});
+
+/** The line a tracked file stands under: its own, or its directory's where one is taken whole. */
+function composeStructureEntry(path: string): string {
+    const parts = path.split("/");
+    for (const [root, depth] of STRUCTURE_DEPTH_BY_ROOT) {
+        if (parts[0] !== root) continue;
+        const directories = parts.slice(0, -1).slice(0, depth);
+        return `${directories.join("/")}/`;
+    }
+    return path;
+}
+
+Deno.test("the structure names every file in the tree, and nothing else", () => {
+    const listed = readStructurePaths(Deno.readTextFileSync(RULES_PATH));
+    assert(listed.length > 0, "the structure was read");
+    const entries = [...new Set(readTrackedPaths([]).map(composeStructureEntry))];
+    assertEquals(listed.filter((path) => !entries.includes(path)), [], "a line naming nothing");
+    assertEquals(entries.filter((path) => !listed.includes(path)), [], "a file unlisted");
+});
 
 Deno.test("the maintainer's list stands behind both walls the Never names", () => {
     const configuration = parseJsonc(Deno.readTextFileSync("deno.json"));
