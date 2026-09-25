@@ -80,6 +80,7 @@ export function readKeptFights(held: Map<string, string>): readonly KeptFight[] 
 export function initRuntimeWorld(
     page: Record<string, unknown>,
     overrides: (world: RuntimeWorld, base: RuntimePorts) => Partial<RuntimePorts> = () => ({}),
+    tables: RuntimeTables = RUNTIME_TABLES,
 ): RuntimeWorld {
     const frames: (() => void)[] = [];
     const shelves = new Map<string, Map<string, string>>();
@@ -93,7 +94,7 @@ export function initRuntimeWorld(
     world.ports = { ...base, ...overrides(world, base) };
     world.runtime = initRuntime(world.ports, {
         version: TEST_VERSION,
-        tables: RUNTIME_TABLES,
+        tables,
         sessionOptions: SESSION_OPTIONS,
     });
     world.flush();

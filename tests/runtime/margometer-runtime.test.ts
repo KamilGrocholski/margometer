@@ -12,20 +12,26 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
-import { err, ok, RESULT_FAILURE } from "#/libs/result.ts";
+import { err, type ForeignFailure, ok, RESULT_FAILURE } from "#/libs/result.ts";
 import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
-import { STORE_KEY } from "#/src/game/browser-store.ts";
+import { initPageStore, type KeyValueStore, STORE_KEY } from "#/src/game/browser-store.ts";
+import { initPageFrames } from "#/src/game/page-frame.ts";
 import { LOOKS_MAXIMUM } from "#/src/runtime/engine-search.ts";
+import type { RuntimeTables } from "#/src/runtime/margometer-runtime.ts";
+import { KEPT_MAXIMUM } from "#/src/runtime/shelf.ts";
 import { CLASS } from "#/src/ui/panel-look.ts";
 import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
 import {
     DEFECT_MARK,
+    EVERY_SLOT_PINNED_ANSWER,
     formatDefect,
     getWordsForTurnState,
     PANEL_DEFECT_KIND,
     PANEL_WORDS,
+    STORE_MADE_ROOM_ANSWER,
+    STORE_REFUSED_ANSWER,
 } from "#/src/ui/panel-words.ts";
 import {
     type FakeElement,
@@ -42,6 +48,7 @@ import {
     initRefusingStore,
     initRuntimeWorld,
     readKeptFights,
+    RUNTIME_TABLES,
     type RuntimeWorld,
     WORLD,
 } from "#/tests/runtime-world.ts";
@@ -54,6 +61,18 @@ const THIRD = "captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-no
 /** Two fights of one party: ten combatants are shared between them, read 2026-08-31. */
 const FIRST_OF_A_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json";
 const SECOND_OF_A_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none.json";
+
+/** Stated skills that date a cast for no turns, which the walk refuses on the first team cast. */
+const TABLES_DATING_NOTHING: RuntimeTables = {
+    ...RUNTIME_TABLES,
+    tooltip: {
+        ...RUNTIME_TABLES.tooltip,
+        statedSkills: {
+            ...RUNTIME_TABLES.tooltip.statedSkills,
+            turnsBySkillId: { get: () => 0 } as unknown as ReadonlyMap<number, number>,
+        },
+    },
+};
 
 Deno.test("a recording played through the add-on ends on the panel a reader would see", () => {
     const battle: Record<string, unknown> = { updateData: () => "the engine's own answer" };
@@ -859,6 +878,11 @@ Deno.test("a store that will not take the fights leaves them where they were", (
         ["na stałe"],
         "which the strip says",
     );
+    assert(
+        getTextsByClass(world.getHost(), CLASS.suspicion)
+            .some((one) => one.includes(STORE_REFUSED_ANSWER)),
+        "and the shelf says the store would not take them",
+    );
 });
 
 Deno.test("a fight off the shelf is read back, and the live one is a press away", () => {
@@ -1282,4 +1306,288 @@ Deno.test("a key under a pinned row opens whom it reached, and the way back is o
     assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, key.textContent, "opened by key");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
     assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, PANEL_WORDS.withoutActor, "back");
+});
+
+/** A copy that stood down holds no panel, so an intent reaching it is somebody else's mistake. */
+Deno.test("a copy that stood down answers an intent with nothing drawn and nothing kept", () => {
+    const page = composeBattlePage();
+    initRuntimeWorld(page);
+    const second = initRuntimeWorld(page);
+    second.runtime.onIntent({ kind: "fold", window: "panel" });
+    second.flush();
+    assertEquals(second.shown, [], "no panel goes up for it");
+    assertEquals(second.held.get(STORE_KEY.panelFolded), undefined, "and nothing is written down");
+});
+
+Deno.test("each window goes back where the reader left it, and never where the other was", () => {
+    const world = initRuntimeWorld(composeBattlePage(), (built) => {
+        built.held.set(STORE_KEY.panelPlace, '{"left":40,"top":60}');
+        built.held.set(STORE_KEY.helperPlace, '{"left":300,"top":400}');
+        return {};
+    });
+    const styles = getElementsWithin(world.getHost()).map((one) => ({
+        className: one.className.split(" ")[0],
+        style: one.attributes.get("style") ?? "",
+    }));
+    const standing = styles.find((one) => one.className === CLASS.standing);
+    assertStringIncludes(standing?.style ?? "", "left:300px", "the window beside the panel");
+    const placed = styles.filter((one) => one.style.includes("left:40px"));
+    assertStrictEquals(placed.length, 1, "and the panel, each at its own");
+});
+
+/** `AGENTS.md` E10: the frame is handed to the page, so a throw out of it is caught there. */
+Deno.test("a frame that breaks is said on the panel at the next one, and not thrown", () => {
+    const queue: (() => void)[] = [];
+    let mounts = 0;
+    const world = initRuntimeWorld(composeBattlePage(), (_, base) => ({
+        frames: initPageFrames({
+            requestAnimationFrame: (step) => queue.push(step),
+            cancelAnimationFrame: () => {},
+        }),
+        mountPanel: (panel) => {
+            mounts += 1;
+            if (mounts === 1) throw new RangeError("a document torn down under the frame");
+            return base.mountPanel(panel);
+        },
+    }));
+    queue.shift()?.();
+    assertEquals(world.shown, [], "the frame that broke put nothing up");
+    const [opening] = readUpdates(HILDUR);
+    world.update(opening);
+    queue.shift()?.();
+    assertEquals(
+        getTextsByClass(world.getHost(), CLASS.defect),
+        [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.region, null, 1)}`],
+        "the next frame says one was lost",
+    );
+});
+
+Deno.test("a standing that will not replay costs the tooltips and the window, and says both", () => {
+    const world = initRuntimeWorld(composeBattlePage(), undefined, TABLES_DATING_NOTHING);
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    assertStrictEquals(countRows(findList(world.getHost())), 11, "the panel draws the fight");
+    assertEquals(
+        [...world.lines].sort(),
+        [PANEL_DEFECT_KIND.reading, PANEL_DEFECT_KIND.region],
+        "while the tooltips and the window beside it each leave a mark",
+    );
+});
+
+Deno.test("a tooltip the client will not take is said on the panel, and the fight is drawn", () => {
+    const world = initRuntimeWorld(composeBattlePage(), () => ({
+        tooltip: { writeRows: () => err({ kind: RESULT_FAILURE.foreignThrew, cause: "gone" }) },
+    }));
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    assertStrictEquals(countRows(findList(world.getHost())), 11, "the panel draws the fight");
+    assertEquals(world.lines, [PANEL_DEFECT_KIND.region], "and the tooltips are said, once");
+});
+
+Deno.test("a kept fight opens at its own top, whatever place the live one was left at", () => {
+    const world = initRuntimeWorld(composeBattlePage());
+    for (const path of [HILDUR, ANOTHER]) {
+        for (const payload of readUpdates(path)) world.update(payload);
+    }
+    const host = world.getHost();
+    findList(host).scrollTop = 240;
+    world.press(findKeptShelfRow(world));
+    assertStrictEquals(findList(host).scrollTop, 0, "a fight nobody scrolled stands at its top");
+});
+
+/** The row of the fight before the one going on, found on the shelf screen it opens. */
+function findKeptShelfRow(world: RuntimeWorld): FakeElement {
+    openShelfScreen(world);
+    const kept = getElementsWithin(getPanelWithin(world.getHost())).find((one) => {
+        if (one.className.split(" ")[0] !== CLASS.row) return false;
+        return one.attributes.get("data-fight") !== "live";
+    });
+    assertExists(kept, "the shelf holds the fight before this one");
+    return kept;
+}
+
+Deno.test("a store that made room for the fight says so on the shelf", () => {
+    const held = new Map([[STORE_KEY.fights as string, composeSmallShelf(1, false)]]);
+    const world = initRuntimeWorld(composeBattlePage(), () => ({
+        initShelfStore: () => initStoreRefusingOnce(held),
+    }));
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    const said = readShelfAnswers(world);
+    assert(said.some((one) => one.includes(STORE_MADE_ROOM_ANSWER)), "the older fight went");
+});
+
+/** A shelf of the smallest fights there are, kept from moments before any a test plays. */
+function composeSmallShelf(count: number, isPinned: boolean): string {
+    const fights = [];
+    for (let at = 1; at <= count; at += 1) {
+        const payloads = [{ init: 1, m: ["0;0;winner=Gracz 1"], endBattle: 1 }];
+        fights.push({ openedAt: at, payloads, isPinned });
+    }
+    return JSON.stringify({ version: 3, fights });
+}
+
+/** A store that refuses once, as a quota does until the rotation has dropped a fight. */
+function initStoreRefusingOnce(held: Map<string, string>): KeyValueStore {
+    let refusals = 1;
+    return initPageStore({
+        getItem: (key) => held.get(key) ?? null,
+        setItem: (key, value) => {
+            if (refusals > 0) {
+                refusals -= 1;
+                throw new DOMException("full", "QuotaExceededError");
+            }
+            held.set(key, value);
+        },
+        removeItem: (key) => void held.delete(key),
+    });
+}
+
+function readShelfAnswers(world: RuntimeWorld): string[] {
+    openShelfScreen(world);
+    return getTextsByClass(world.getHost(), CLASS.suspicion);
+}
+
+Deno.test("a shelf of pins says the fight had nowhere to go", () => {
+    const world = initRuntimeWorld(composeBattlePage(), (built) => {
+        built.getShelf("local").set(STORE_KEY.fights, composeSmallShelf(KEPT_MAXIMUM, true));
+        return {};
+    });
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    const said = readShelfAnswers(world);
+    assert(said.some((one) => one.includes(EVERY_SLOT_PINNED_ANSWER)), "every slot is a pin");
+});
+
+Deno.test("the window beside the panel folds on its own, and is kept folded apart from it", () => {
+    const world = playRecordedFight();
+    const host = world.getHost();
+    const control = findByMark(host, "data-standing-fold");
+    assertExists(control, "the window carries a fold of its own");
+    world.press(control);
+    assertEquals(world.held.get(STORE_KEY.helperFolded), "1", "written where a reload looks");
+    assertEquals(world.held.get(STORE_KEY.panelFolded), undefined, "and the panel's left alone");
+    const standing = getElementsWithin(host)
+        .find((one) => one.className.split(" ")[0] === CLASS.standing);
+    assertExists(standing, "the window stands beside the panel");
+    assert(standing.className.split(" ").includes(CLASS.standingFolded), "folded to its bar");
+    assert(countRows(getPanelWithin(host)) > 0, "while the panel goes on drawing the fight");
+});
+
+Deno.test("a file writer that throws costs the file, and the panel says so", () => {
+    const world = initRuntimeWorld(composeBattlePage(), () => ({
+        file: {
+            writeFile: () => {
+                throw new RangeError("a sink broken under the press");
+            },
+        },
+    }));
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    pressSave(world);
+    assertEquals(
+        getTextsByClass(world.getHost(), CLASS.defect),
+        [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.file, null, 1)}`],
+        "one line for the file",
+    );
+});
+
+Deno.test("a window let go of is written down, and costs no frame", () => {
+    let requested = 0;
+    const world = initRuntimeWorld(composeBattlePage(), (_, base) => ({
+        frames: {
+            requestFrame: (step, onStepFailure) => {
+                requested += 1;
+                return base.frames.requestFrame(step, onStepFailure);
+            },
+        },
+    }));
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    const before = requested;
+    world.runtime.onIntent({ kind: "move", window: "panel", position: { left: 40, top: 60 } });
+    assertStrictEquals(requested, before, "the panel already stands where it was let go");
+});
+
+Deno.test("a file the browser lets go of badly later is said at the next frame", () => {
+    const late: ((failure: ForeignFailure) => void)[] = [];
+    const world = initRuntimeWorld(composeBattlePage(), () => ({
+        file: {
+            writeFile: (_name, _text, onLateFailure) => {
+                late.push(onLateFailure);
+                return ok(undefined);
+            },
+        },
+    }));
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    pressSave(world);
+    assertEquals(getTextsByClass(world.getHost(), CLASS.defect), [], "the file went, so far");
+    late[0]?.({ kind: RESULT_FAILURE.foreignThrew, cause: "a URL the page would not release" });
+    openShelfScreen(world);
+    assertEquals(
+        getTextsByClass(world.getHost(), CLASS.defect),
+        [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.file, null, 1)}`],
+        "and what the browser said after is said on the panel",
+    );
+});
+
+Deno.test("a change of screen keeps the person opened, and lets go of the pair", () => {
+    const world = playRecordedFight();
+    const host = world.getHost();
+    const name = getRegion(host, CLASS.rowName);
+    assertExists(name, "a row to open");
+    world.press(name);
+    const person = getRegion(host, CLASS.crumbHere)?.textContent;
+    const other = getElementsWithin(getPanelWithin(host)).find((one) => {
+        if (one.className !== CLASS.rowName) return false;
+        return one.attributes.get("data-row") !== undefined;
+    });
+    assertExists(other, "somebody inside it to open");
+    world.press(other);
+    assertNotStrictEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "a pair opened");
+    const taken = findByMark(host, "data-screen", "damageTakenApplied");
+    assertExists(taken, "another screen to reach for");
+    world.press(taken);
+    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "the person, alone");
+    world.press(getRegion(host, CLASS.crumbBack) ?? host);
+    assertEquals(getRegion(host, CLASS.crumb), undefined, "so one way back closes the row");
+});
+
+Deno.test("a screen chosen while the shelf is up takes the panel off the shelf", () => {
+    const world = playRecordedFight();
+    openShelfScreen(world);
+    world.runtime.onIntent({ kind: "metric", metric: "damageTakenApplied" });
+    world.flush();
+    const host = world.getHost();
+    assertEquals(getTextsByClass(host, CLASS.crumbHere), [], "the shelf gives way to the screen");
+    assert(countRows(findList(host)) > 1, "which draws the fight's rows");
+});
+
+Deno.test("a fight that opens leaves a reader on a kept fight where they were", () => {
+    const world = initRuntimeWorld(composeBattlePage());
+    for (const path of [HILDUR, ANOTHER]) {
+        for (const payload of readUpdates(path)) world.update(payload);
+    }
+    const host = world.getHost();
+    world.press(findKeptShelfRow(world));
+    const name = getRegion(host, CLASS.rowName);
+    assertExists(name, "a row of the kept fight to open");
+    world.press(name);
+    const person = getRegion(host, CLASS.crumbHere)?.textContent;
+    assertExists(person, "open");
+    const [opening] = readUpdates(THIRD);
+    world.update(opening);
+    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "and still open");
+});
+
+Deno.test("a kept fight's file says which client it was fought under, and where", () => {
+    const world = initRuntimeWorld(composePlacedPage());
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    const again = reloadRuntimeWorld(world);
+    pressSave(again);
+    const written = readSavedFile(again);
+    assertEquals(written.gameBuild, GAME_BUILD, "the build kept beside the fight");
+    const report = written.report;
+    assert(isRecord(report), "with the report beside the calls");
+    assertEquals(report.place, { mapName: "Mapa Testowa", x: 12, y: 34 }, "and its place");
+});
+
+Deno.test("a file says which browser wrote it, in the browser's own words", () => {
+    const world = playRecordedFight();
+    pressSave(world);
+    assertEquals(readSavedFile(world).userAgent, "a browser that said so", "as it said");
 });

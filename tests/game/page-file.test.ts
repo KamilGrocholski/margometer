@@ -72,6 +72,17 @@ Deno.test("a click that throws takes the anchor off all the same, as the page's 
     assertStrictEquals(page.timers.length, 1, "and the address is still released");
 });
 
+Deno.test("a page whose clock will not take the release says so, rather than say it saved", () => {
+    const page = composeDownloads({
+        setTimeout: () => {
+            throw new TypeError("a page being torn down");
+        },
+    });
+    const written = initPageFile(page.downloads).writeFile("fight.json", "{}", () => {});
+    assertStrictEquals(written.ok, false, "the refusal is answered");
+    if (!written.ok) assertStrictEquals(written.error.kind, RESULT_FAILURE.foreignThrew);
+});
+
 /** The release lands on the browser's clock, after the write has returned. */
 Deno.test("a release that throws later is handed to the sink, never to the page's clock", () => {
     const late: ForeignFailure[] = [];

@@ -73,6 +73,8 @@ function composeWarrior(id: number, name: string, registry: Registry, over: {
     doesThrowOnFind?: boolean;
     hasMethods?: boolean;
     hasElement?: boolean;
+    /** One method of the four the client lends, left off. */
+    lacking?: string;
 } = {}) {
     const targets = {
         getTipData: () => registry.text,
@@ -92,6 +94,11 @@ function composeWarrior(id: number, name: string, registry: Registry, over: {
         find: () => {
             if (over.doesThrowOnFind === true) throw new TypeError("a page being torn down");
             if (over.hasMethods === false) return { concatTip: targets.concatTip };
+            if (over.lacking !== undefined) {
+                return Object.fromEntries(
+                    Object.entries(targets).filter(([method]) => method !== over.lacking),
+                );
+            }
             return targets;
         },
     };
@@ -227,6 +234,74 @@ Deno.test("a fighter with no way to take a line costs their own line and nobody 
         [[], ["b"], ["c"]],
         "and the walk went on past the one that could not",
     );
+});
+
+Deno.test("any one of the four methods gone costs that fighter's line, and nobody else's", () => {
+    for (const method of ["getTipData", "tip", "concatTip", "trigger"]) {
+        const first = composeRegistry();
+        const second = composeRegistry();
+        const page = composePage([
+            composeWarrior(11, "Gracz 1", first, { lacking: method }),
+            composeWarrior(21, "Renegat 1", second),
+        ]);
+        const writing = initPageTooltip(page).writeRows(new Map([[11, ["a"]], [21, ["b"]]]));
+        assertEquals(writing, ok({ written: 1, asked: 2 }), `without ${method}, one of two`);
+        assertEquals([first.appended, second.appended], [[], ["b"]], `past the one without it`);
+    }
+});
+
+/**
+ * A fighter the client holds no tooltip for on one payload — its element or its string not there —
+ * is left as it was, and so is the block remembered on them: forgotten, the block still standing
+ * would not be looked for when the tooltip answers again, and a second one would go on beside it.
+ */
+Deno.test("a fighter out of reach for a payload keeps the block remembered on them", () => {
+    const registry = composeRegistry();
+    let isAnswering = true;
+    const warrior = composeWarrior(11, "Gracz 1", registry) as Record<string, unknown>;
+    const element = warrior.$;
+    const answering = {
+        find: () => {
+            const targets = (element as { find: () => Record<string, unknown> }).find();
+            return { ...targets, getTipData: () => isAnswering ? registry.text : undefined };
+        },
+    };
+    warrior.$ = answering;
+    const writer = initPageTooltip(composePage([warrior]));
+    writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
+    isAnswering = false;
+    writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
+    isAnswering = true;
+    writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
+    const one = `${THEIRS}<br>MargoMeter<br>Tury wykonane 4`;
+    assertEquals(registry.text, one, "a tooltip that answered nothing once");
+    warrior.$ = undefined;
+    writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 5"]]]));
+    warrior.$ = answering;
+    writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 5"]]]));
+    const two = `${THEIRS}<br>MargoMeter<br>Tury wykonane 5`;
+    assertEquals(registry.text, two, "and a fighter drawn without an element once");
+});
+
+/** A block taken off is forgotten, so what is looked for next is never words that are not ours. */
+Deno.test("the same words appended by somebody else after ours came off are theirs", () => {
+    const { registry, writer } = composeOne();
+    writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
+    writer.writeRows(new Map([[11, []]]));
+    registry.text = `${registry.text}<br>MargoMeter<br>Tury wykonane 3`;
+    const theirs = registry.text;
+    writer.writeRows(new Map([[11, []]]));
+    assertEquals(registry.text, theirs, "left where they stand");
+});
+
+/** Ours went on last, so the last copy of its words is the one that is ours. */
+Deno.test("a block the game's own text repeats is taken off where ours went on", () => {
+    const own = `${THEIRS}<br>MargoMeter<br>Tury wykonane 3<br>theirs after`;
+    const registry = composeRegistry(own);
+    const writer = initPageTooltip(composePage([composeWarrior(11, "Gracz 1", registry)]));
+    writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
+    writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
+    assertEquals(registry.text, `${own}<br>MargoMeter<br>Tury wykonane 4`, "theirs stands whole");
 });
 
 Deno.test("a fighter the page has not drawn is stepped over, not thrown on", () => {

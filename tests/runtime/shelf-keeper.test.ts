@@ -134,6 +134,46 @@ Deno.test("a choice moves the fights, then the answer, and empties the old place
     assertStrictEquals(settings.get(STORE_KEY.storage), STORAGE_CHOICE.session, "answered");
     keeper.choose(STORAGE_CHOICE.session);
     assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.session, "choosing it again is nothing");
+    assert(getShelf(STORAGE_CHOICE.session).has(STORE_KEY.fights), "and empties nothing either");
+});
+
+/** A clock that only goes forward never states two fights under one moment. */
+Deno.test("a fight kept twice under one moment is kept once, and a defect", () => {
+    const { keeper, lines } = initKeeper();
+    keeper.keep(composeFight(1));
+    keeper.keep(composeFight(1));
+    assertEquals(keeper.getFights().map((one) => one.openedAt), [1], "one fight on the shelf");
+    assertEquals(lines, [DEFECT_KIND.keeping], "and the second said as ours to answer for");
+});
+
+Deno.test("a store that took the next fight takes back the answer that it refused one", () => {
+    const held = new Map<string, string>();
+    let isRefusing = true;
+    const store = initPageStore({
+        getItem: (key) => held.get(key) ?? null,
+        setItem: (key, value) => {
+            if (isRefusing) throw new DOMException("full", "QuotaExceededError");
+            held.set(key, value);
+        },
+        removeItem: (key) => void held.delete(key),
+    });
+    const { keeper } = initKeeper({ initShelfStore: () => store });
+    keeper.keep(composeFight(1));
+    assert(keeper.getAnswers().hasStoreRefused, "the first fight was refused");
+    isRefusing = false;
+    keeper.keep(composeFight(2));
+    assert(!keeper.getAnswers().hasStoreRefused, "and the answer goes once the store takes one");
+});
+
+Deno.test("a reading is held for every fight on the shelf, however many went before", () => {
+    const { keeper } = initKeeper();
+    for (let at = 1; at <= KEPT_MAXIMUM + 1; at += 1) {
+        const fight = composeFight(at);
+        keeper.keep(fight);
+        const read = keeper.lookupReading(fight);
+        assert(read !== null, "a fight that reads is read");
+        assertStrictEquals(keeper.lookupReading(fight), read, `fight ${at} is held, not replayed`);
+    }
 });
 
 Deno.test("a choice the browser will not keep moves nothing, and says so", () => {

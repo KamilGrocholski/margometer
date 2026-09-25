@@ -123,7 +123,6 @@ function lookupKeptReading(state: KeeperState, fight: KeptFight): KeptReading | 
 
 function keepShelfFight(state: KeeperState, fight: KeptFight): void {
     const next = [...state.fights, fight];
-    state.readings.delete(fight.openedAt);
     const kept = keepFight(state.store, { fights: state.fights }, fight);
     state.answers.isEverySlotPinned = false;
     if (kept.ok) {

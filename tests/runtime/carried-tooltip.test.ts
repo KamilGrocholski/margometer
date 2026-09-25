@@ -6,6 +6,7 @@
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { isRecord } from "#/libs/unknown-value.ts";
+import { PANEL_WORDS } from "#/src/ui/panel-words.ts";
 import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
 import { initRuntimeWorld } from "#/tests/runtime-world.ts";
 
@@ -19,6 +20,8 @@ interface TooltipRegistry {
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** Two people focusing one opponent, which is what the focus pass needs to have anybody to do. */
 const DUET = "captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json";
+/** A fight carrying `legbon_lastheal`, read 2026-09-25 with `git grep` at `fa1dcce`. */
+const LAST_RESCUED = "captures/2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json";
 const ADD_ON_ROW = "MargoMeter";
 
 /**
@@ -236,6 +239,66 @@ Deno.test("a status row carries the client's own word for it, asked under its ca
         if (worded > 0) break;
     }
     assert(worded > 0, "the recordings carry statuses, and the client's words reached their rows");
+});
+
+/**
+ * Both ends of a shout, frame by frame: whoever is held names who holds them, and whoever holds
+ * counts the people held — so the counts on the holders add up to the held.
+ */
+Deno.test("a shout is said on both ends of it, and the two ends agree", () => {
+    const wrong: string[] = [];
+    let held = 0;
+    for (const fight of readRecordedFights()) {
+        const { page, registries } = composeRebuildingBattle();
+        const world = initRuntimeWorld(page);
+        for (const [index, payload] of fight.updates.entries()) {
+            world.update(payload);
+            const rows = [...registries.values()].flatMap((one) => one.text.split("<br>"));
+            const provoked = rows.filter((row) => row.startsWith("Sprowokowany przez "));
+            const counted = rows
+                .filter((row) => row.startsWith("Prowokuje "))
+                .reduce((sum, row) => sum + Number(row.split(" ")[1]), 0);
+            if (counted !== provoked.length) wrong.push(`${fight.path} #${index}: ${counted}`);
+            const unnamed = provoked.filter((row) => row.includes(PANEL_WORDS.withoutActor));
+            if (unnamed.length > 0) wrong.push(`${fight.path} #${index}: ${unnamed[0]}`);
+            held += provoked.length;
+        }
+    }
+    assertEquals(wrong.slice(0, 5), [], `the two ends of a shout disagreed ${wrong.length}×`);
+    assert(held > 0, "the recordings carry shouts, and their rows were read");
+});
+
+/** The bonus fires once a fight, so once it has, every payload after says it is spent. */
+Deno.test("a last rescue that fired is said spent on its holder to the end of the fight", () => {
+    const { page, registries } = composeRebuildingBattle();
+    const world = initRuntimeWorld(page);
+    const spentBy = new Set<number>();
+    for (const payload of lookupRecordedFight(LAST_RESCUED).updates) {
+        world.update(payload);
+        for (const [id, registry] of registries) {
+            const isSpent = registry.text.split("<br>").some((row) => {
+                return row.startsWith("Ostatni ratunek") && row.endsWith("wykorzystany");
+            });
+            if (isSpent) spentBy.add(id);
+            else assert(!spentBy.has(id), `${id} said it spent, and then did not`);
+        }
+    }
+    assert(spentBy.size > 0, "the fight carries a last rescue, and a row says it fired");
+});
+
+/** `formatJoinedInProgressSuspicion` stands on the panel only, so the tooltip draws no count. */
+Deno.test("a fight walked into says no count of turns on anybody", () => {
+    const { page, registries } = composeRebuildingBattle();
+    const world = initRuntimeWorld(page);
+    const [opening, ...rest] = lookupRecordedFight(HILDUR).updates;
+    assert(isRecord(opening), "the recording opens on a payload");
+    // The roster as the opening states it, without the mark that says the fight opened there.
+    const joined: Record<string, unknown> = { ...opening };
+    delete joined.init;
+    for (const payload of [joined, ...rest]) world.update(payload);
+    const rows = [...registries.values()].flatMap((one) => one.text.split("<br>"));
+    assert(rows.includes(ADD_ON_ROW), "the fighters carry rows of ours");
+    assertEquals(rows.filter((row) => row.startsWith("Tury wykonane")), [], "and none of turns");
 });
 
 /** The figure a status row states is the bearer's own, off the casts standing over them. */
