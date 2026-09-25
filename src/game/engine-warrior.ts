@@ -130,8 +130,8 @@ function readWarriorEntriesHealth(entry: UnknownRecord, field: HealthField): num
  * The one integer the payload restates for a combatant every time, read by bit position. An entry
  * stating no mask is absent rather than clear. ⚠️ **A combatant who has fallen carries nothing,
  * whatever their mask still says**: 44 entries of 113 at zero health carry a lit mask over
- * `captures/` (2026-09-22), and the client takes the icons down at exactly that point
- * (`hasZeroHpp() && ($(".buff", this.$).remove(), …)`, production build `Bb28FQty`).
+ * `captures/` (2026-09-22), and the client removes a fighter's status icons at exactly that point,
+ * once their health reads zero (production build `Bb28FQty`).
  */
 function readWarriorEntriesMask(entry: UnknownRecord): number | null {
     const now = readWarriorEntriesHealth(entry, "now");

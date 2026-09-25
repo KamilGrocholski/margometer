@@ -4,8 +4,8 @@
  *
  * Neither rides a `skillId`, so the published skill table dates neither. The first is counted by
  * its own heals, each of which the payload carries; the second fires once (`develop ADR 0113`).
- * The lighting rides the **holder's own** blow: _Zdarzenie może zajść wyłącznie podczas wykonania
- * ataku przez posiadacza bonusu_ (article `view,372`, read 2026-09-21).
+ * The lighting rides the **holder's own** blow: the help lets it happen only while the bonus's
+ * holder is attacking (article `view,372`, read 2026-09-21).
  */
 
 import { assert } from "@std/assert/assert";
@@ -28,9 +28,9 @@ export interface LegendaryStanding {
 }
 
 /**
- * _Postać aplikuje na siebie efekt rozłożony na **3 tury**, którego każde wyzwolenie leczy Postaci
- * 6% puli punktów zdrowia_ (article `view,372`, read 2026-09-21). ⚠️ **Counted in heals and never
- * in the holder's turns**, which the heals do not keep to.
+ * The holder puts an effect on themselves spread over **three** firings, each healing 6% of their
+ * health pool (article `view,372`, read 2026-09-21). ⚠️ **Counted in heals and never in the
+ * holder's turns**, which the heals do not keep to.
  */
 export const HOLYTOUCH_HEALS_STATED = 3;
 

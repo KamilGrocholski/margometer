@@ -42,11 +42,11 @@ end that is not the bearer, and `develop ADR 0010` measured what reading it cost
 a combatant other than the caster.
 
 **`shout` names bearers, and the target slot is one of them.** The help's effect table settles it,
-read 2026-09-22: the effect _zmusza Postacie, na które nałożony jest efekt, do obierania za cel
-ataku Postaci, która użyła umiejętności_, and it lands on _Gracza, będącego celem umiejętności oraz
-losowo na pozostałą liczbę Graczy_. So the provoked strike **whoever cast it** — there is no target
-the caster's side is pointed at — and the announcement's target slot names one of the provoked,
-which is why it resolves against the roster and agrees with the value (`develop ADR 0061`,
+read 2026-09-22: the effect forces whoever carries it to pick the character who used the skill as
+the target of their attacks, and it lands on the skill's own target and on randomly chosen
+characters up to its count. So the provoked strike **whoever cast it** — there is no target the
+caster's side is pointed at — and the announcement's target slot names one of the provoked, which is
+why it resolves against the roster and agrees with the value (`develop ADR 0061`,
 `develop ADR 0064`).
 
 ⚠️ **This paragraph said the opposite for a while, and the section below always said it right.**
@@ -206,12 +206,12 @@ two skills (`develop ADR 0112` carries what that reading came to):
 what joins that bit to the attribute the help dates; nothing joins `deep_wound`, so it is dated by
 neither source and the table above leaves it out.
 
-⚠️ **The refresh above is why `own` is the right column to read them against, and 38 is not.**
-Trucizna carries `Nadpisywanie: NIE` in the help's own table — _kolejne zaaplikowanie obrażeń tylko
-przedłuża ich czas trwania_ — so a bit held for far longer than five is a run of applications and
-never an effect that outlived its length. A reader was shown `38 tur` beside a five-turn trucizna
-before `develop ADR 0109` took the mask's count off the row, and `develop ADR 0112` took every count
-off it.
+⚠️ **The refresh above is why `own` is the right column to read them against, and 38 is not.** The
+help's own table marks trucizna as not overwritten: a further application only lengthens how long
+the damage runs. So a bit held for far longer than five is a run of applications and never an effect
+that outlived its length. A reader was shown `38 tur` beside a five-turn trucizna before
+`develop ADR 0109` took the mask's count off the row, and `develop ADR 0112` took every count off
+it.
 
 ⚠️ **`swow_down` does not land on a published figure, and the register already said so.**
 `allslow_per` is the one key this document does not settle, and the mask does not name which cast
@@ -237,21 +237,20 @@ percentage there either (`develop ADR 0063`).
 **Three different units, and they are not interchangeable.** The help's effect dictionary gives each
 one (article `view,372`, read 2026-09-03):
 
-| what the help says            | keys                                                                                                                           | how it reads                                      |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
-| _część posiadanej wartości_   | `aura-ac_per`, `aura-sa_per`, `allslow_per`, `alllowdmg`, `aura-adddmg2_per-meele`, `lowheal_per-enemies`, `taken_dmg_per-all` | a share of what the character has                 |
-| _liczba punktów procentowych_ | `aura-resall`, `active_decblock_per-enemies`                                                                                   | points added to a statistic                       |
-| _liczba dodatkowych punktów_  | `critval-allies`, `critmval-allies`                                                                                            | points of critical force, not a percentage at all |
+| the help's unit        | keys                                                                                                                           | how it reads                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| a part of what is held | `aura-ac_per`, `aura-sa_per`, `allslow_per`, `alllowdmg`, `aura-adddmg2_per-meele`, `lowheal_per-enemies`, `taken_dmg_per-all` | a share of what the character has                 |
+| percentage points      | `aura-resall`, `active_decblock_per-enemies`                                                                                   | points added to a statistic                       |
+| extra points           | `critval-allies`, `critmval-allies`                                                                                            | points of critical force, not a percentage at all |
 
 **A standing effect caps at two sources, and they are the two highest.** Eight of the keys carry the
-same sentence — _Efekt ulega kumulacji do maksymalnie dwóch źródeł od różnych Graczy_ — and
-`taken_dmg_per-all` states it sharper: _Efekt kumuluje się do dwóch najwyższych źródeł od różnych
-Graczy_. So two sources **add**, and a third is dropped: three `Szadź` at 14, 14 and 12 come to 28,
-not 40 and not 14.
+same sentence, that the effect stacks from at most two sources belonging to different characters,
+and `taken_dmg_per-all` states it sharper: the two **highest** such sources. So two sources **add**,
+and a third is dropped: three `Szadź` at 14, 14 and 12 come to 28, not 40 and not 14.
 
-⚠️ **A source is a combatant, not a cast.** The help counts sources _od różnych Graczy_, so two
-casts by one character are one source — which is what the window already does by refreshing rather
-than adding a row.
+⚠️ **A source is a combatant, not a cast.** The help counts sources from different characters, so
+two casts by one character are one source — which is what the window already does by refreshing
+rather than adding a row.
 
 ⚠️ **Two keys carry no such sentence at all** — `active_decblock_per-enemies` and
 `lowheal_per-enemies`. That is a gap in the source, not a licence to add without end.
@@ -259,16 +258,16 @@ than adding a row.
 **Different keys on one statistic add.** The help names each set where it names any. Attack speed is
 the one that matters here, and it is worth reading twice:
 
-> Przyspieszenie łączy się w sposób addytywny z efektami `critsa_per`, `sa_per`, `sa2_per`,
-> `aura-sa_per`, `adrenalin_sa_per`, `allslow_per`, `critslow_per`, `lightshield_per`.
+The help adds attack speed up with `critsa_per`, `sa_per`, `sa2_per`, `aura-sa_per`,
+`adrenalin_sa_per`, `allslow_per`, `critslow_per` and `lightshield_per`.
 
 `sa_per` and `sa2_per` are **pasywny** in the same dictionary — bonuses off items. So a skill's aura
 and an item's bonus land in one figure, `Szadź` subtracts from the same running total as
 `Podwójny dech` adds to, and **the panel can only ever know the part the announcements carried**.
 Block has its own set: `blok_per`, `decblock_per`, `active_block_per`, `active_decblock_per`.
 
-⚠️ **The caster of `aura-sa_per` gets half.** _Na Postać rzucającą efekt, wartość przyspieszenia
-jest o połowę niższa._ So one cast is not one figure for the whole team.
+⚠️ **The caster of `aura-sa_per` gets half.** The help gives the character who cast it half the
+speed-up everybody else gets. So one cast is not one figure for the whole team.
 
 ⚠️ **The payload's own `ac` is not the answer.** Every combatant states an `ac` each payload, and it
 would be a better figure than a sum of shares — but measured over
@@ -303,8 +302,9 @@ this document: `Szadź` and `Podwójny dech` both stand past two sources, so a p
 cast would draw a figure the game does not have. `captures/2026-08-12-tempest-grupa-vs-draugr-1-…`
 holds the plainest one — three `Szadź` at 14, 14 and 12.
 
-⚠️ **No key was ever held twice by one combatant**, so the _od różnych Graczy_ clause has cost
-nothing so far. It is shape rather than measurement until a recording contradicts it.
+⚠️ **No key was ever held twice by one combatant**, so the clause about sources from different
+characters has cost nothing so far. It is shape rather than measurement until a recording
+contradicts it.
 
 ## The register
 
@@ -325,7 +325,7 @@ claim — were the okrzyki one shape, skill 25 would read five here rather than 
 
 ⚠️ **Both `reaches` verdicts moved on 2026-09-22, and the shout is why.**
 `src/core/aura-standing.ts` had `shout` reaching the **caster's** side, which is backwards: the
-help's effect table forces the affected to attack _Postaci, która użyła umiejętności_, and over
+help's effect table forces the affected to attack the character who used the skill, and over
 `captures/` **168 of 168 characters named across 166 announcements stand opposite the caster**, none
 on their own side. So `Prowokujący okrzyk` reaches both — it provokes the other side and raises its
 own — and `Wyzywający okrzyk` reaches only the other, its `both` having come from nothing but that
@@ -354,10 +354,10 @@ state the game has: a later shout replaces whatever held them, from any caster a
 
 **Its table value is a count of characters, where every other key here states a share.** Both skills
 publish `shout=6@3,7@3,7@3,8@3,8@3,9@3,9@3,10@3,10@3,10@3` — six characters at skill level 1 rising
-to ten at level 10 — and the table carries the game's own comment beside skill 25:
-`# shout to ilość przeciwników (randomowych) których zmusza się do ataku na siebie` (read
-2026-09-08). The protocol carries no skill level, so `covers` below is the **fewest** stated, which
-is what holds whatever the caster's level is.
+to ten at level 10 — and the table's own comment beside skill 25 calls the figure the number of
+random opponents the shout forces to attack its caster (read 2026-09-08). The protocol carries no
+skill level, so `covers` below is the **fewest** stated, which is what holds whatever the caster's
+level is.
 
 **The value names every provoked character**, separated by a comma and a space — the grammar
 `winner` and `loser` use, and `docs/protocol-keys.md` has it at `winner`. So the panel reads them

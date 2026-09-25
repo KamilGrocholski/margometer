@@ -26,8 +26,8 @@ export interface CombatantRoster {
 }
 
 /**
- * The published help states it outright: _do 20 Graczy, po 10 Graczy w każdej z drużyn_ (article
- * `view,372`, read 2026-09-15).
+ * The published help states it outright: a fight holds up to twenty characters, ten on each side
+ * (article `view,372`, read 2026-09-15).
  */
 export const COMBATANTS_MAXIMUM = 20;
 

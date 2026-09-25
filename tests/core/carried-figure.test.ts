@@ -115,8 +115,8 @@ Deno.test("a cast reaching the other side is not read as standing on this one", 
 });
 
 /**
- * The published help: _Na Postać rzucającą efekt, wartość przyspieszenia jest o połowę niższa._
- * What the half rounds to is stated nowhere, so the caster's own row carries no figure.
+ * The published help gives whoever cast it half the speed-up. What the half rounds to is stated
+ * nowhere, so the caster's own row carries no figure.
  */
 Deno.test("the caster of a key the help halves for them gets no figure", () => {
     const standings = [composeCast({ key: "aura-sa_per", amount: 20, casterId: 12 })];

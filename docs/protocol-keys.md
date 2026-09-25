@@ -415,12 +415,11 @@ there as weapons and skills that apply poison, and a weapon doing it is stated n
 protocol.
 
 ⚠️ **The same article states how long an application runs, and the panel draws none of it.** Under
-the weapon attributes `poison1, of_poison1`: _Są aplikowane na 5 tur po trafieniu przeciwnika
-obrażeniami o niezerowej wartości_, and _Wyzwalają się przed turą przeciwnika, na którego zostały
-zaaplikowane_ — five turns, on the bearer's own clock (read 2026-09-22). A skill's
-`poisonbon_poison-perw` applies the same five, and a weapon's application is announced nowhere, so a
-hit renewing the poison can be invisible; a tooltip row says the poison stands and never for how
-long (**develop ADR 0112**).
+the weapon attributes `poison1, of_poison1` the article gives an application five turns once a hit
+deals the opponent any damage at all, each firing before the turn of the opponent it was applied to
+— five turns, on the bearer's own clock (read 2026-09-22). A skill's `poisonbon_poison-perw` applies
+the same five, and a weapon's application is announced nowhere, so a hit renewing the poison can be
+invisible; a tooltip row says the poison stands and never for how long (**develop ADR 0112**).
 
 ### `fire` — decoded
 
@@ -1187,11 +1186,11 @@ _Shape:_ 1 occurrences; on a blow; no value
 _Help:_ names `arrowblock`
 
 _Evidence:_ article view,372 (read 2026-09-09) at `Blok strzały ( arrowblock )`, which gives it as a
-chance event triggered while taking damage from a character fighting at range, whose effect is
-_zniwelowanie przychodzących obrażeń od broni głównej na jedną turę, wprowadzając efekt chybienia_.
-The same article names it beside `evade` and `parry` among the events that stop a blow. The one
-occurrence is in `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`, on a blow
-whose 829 of dark damage landed as zero.
+chance event triggered while taking damage from a character fighting at range, whose effect cancels
+the incoming damage of the main weapon for one turn by making it miss. The same article names it
+beside `evade` and `parry` among the events that stop a blow. The one occurrence is in
+`captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`, on a blow whose 829 of dark
+damage landed as zero.
 
 ### `-evade` — decoded
 
@@ -1209,8 +1208,8 @@ _Shape:_ 63 occurrences; on a blow; no value
 
 _Help:_ names `evade`
 
-_Evidence:_ article view,372 (read 2026-08-09) at the engine name `evade` — `Unik ( evade )`,
-"zdarzenie zachodzi podczas obrony", with the chance given as
+_Evidence:_ article view,372 (read 2026-08-09) at the engine name `evade` — `Unik ( evade )`, an
+event the help places during defence, with the chance given as
 `evade points * 20 / min(lvl enemy, 300)`. Production build `1786514810315`: `case"-evade"` composes
 `_t("msg_-evade")` with no `%val%`, against the `msg_-blok %val%` branch two cases away — the client
 itself separates the flag from the figure.
@@ -1346,7 +1345,7 @@ before.
 
 More of the target's armour destroyed by this blow, in the **points `+acdmg` uses** and beside that
 figure rather than inside it. The client's own sentence for it names the effect and the unit at
-once: _Destrukcyjna strzała_, and a destruction of so many points of armour.
+once: the ability's name, Destrukcyjna strzała, and a destruction of so many points of armour.
 
 ⚠️ **It is not the coincidence the help describes, and the corpus is what says so.** The help
 documents `critpierce_per` as an active effect raising a character's armour destruction by a share
@@ -1675,11 +1674,11 @@ _Shape:_ 11 occurrences; on a blow; a whole number
 
 _Help:_ names `endest`
 
-_Evidence:_ article view,372 at the engine name `endest` (read 2026-08-12): _słabnące niszczenie
-energii przeciwnika_, a withdrawn equipment bonus that takes a fixed number of the opponent's energy
-points on their turn, weakening by 5% of its initial value each turn and floored at zero. Production
-build `1786514810315` composes it through the shared `msg_<key> %val%` branch it shares with
-`+endest`, with a second form for a two-member value.
+_Evidence:_ article view,372 at the engine name `endest` (read 2026-08-12): a weakening destruction
+of the opponent's energy, a withdrawn equipment bonus that takes a fixed number of the opponent's
+energy points on their turn, weakening by 5% of its initial value each turn and floored at zero.
+Production build `1786514810315` composes it through the shared `msg_<key> %val%` branch it shares
+with `+endest`, with a second form for a two-member value.
 
 ⚠️ **The decay the help describes is not visible here, on either recording that carries it.** On
 `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`, all 8 occurrences
@@ -1699,12 +1698,12 @@ _Shape:_ 2 occurrences; on a blow; a whole number
 
 _Help:_ names `manadest`
 
-_Evidence:_ article view,372 at the engine name `manadest` (read 2026-09-15): _słabnące niszczenie
-many przeciwnika_, a withdrawn equipment bonus that takes a fixed number of the opponent's mana
-points on their turn, weakening by 5% of its initial value each turn and floored at zero — the same
-rule the article gives for `endest` above. Production build `Bb28FQty` composes it through the
-shared `msg_<key> %val%` branch it shares with `+manadest`, with a second form for a two-member
-value.
+_Evidence:_ article view,372 at the engine name `manadest` (read 2026-09-15): a weakening
+destruction of the opponent's mana, a withdrawn equipment bonus that takes a fixed number of the
+opponent's mana points on their turn, weakening by 5% of its initial value each turn and floored at
+zero — the same rule the article gives for `endest` above. Production build `Bb28FQty` composes it
+through the shared `msg_<key> %val%` branch it shares with `+manadest`, with a second form for a
+two-member value.
 
 ⚠️ **One recording carries it, and the decay the help describes is not visible on it.** Both
 occurrences state 10, on two blows struck by one combatant in
@@ -1914,16 +1913,16 @@ not damage, not a prevention, and not a statistic destroyed.
 where the attacker is named on one side and the absorbing combatant on the other, and the slot
 settles nothing — which combatant a figure belongs to comes from the help and never from the sign
 (this section's own preamble). Asked again on 2026-09-22 it answers twice over: absorption is
-generated _z każdym **wykonanym** ciosem … na skutek efektu umiejętności (`absagain_per`)_, and the
-effect table gives that effect as _przywrócenie części absorpcji … **po trafionym ataku**_. A blow
+generated with every blow **performed**, as the effect of a skill (`absagain_per`), and the effect
+table gives that effect as restoring part of the absorption **after an attack that hit**. A blow
 **performed** is the holder's own, so the pool that refills is the **striker's**.
 
-⚠️ **The second clause alone would not have settled it.** _Po trafionym ataku_ reads both ways in
-Polish — an attack they landed, or one that landed on them — and the first clause is what makes it
-one. An earlier reading of this entry had the help going only half way and left the question open;
-it was open for want of asking, not for want of an answer. **What is now a decision rather than an
-unknown** is whether a row carries this figure: it is still read and totalled by nothing here, and
-moving it out of a declaration is a change to what the decoder hands over.
+⚠️ **The second clause alone would not have settled it.** An attack that hit reads both ways in the
+help's Polish — an attack they landed, or one that landed on them — and the first clause is what
+makes it one. An earlier reading of this entry had the help going only half way and left the
+question open; it was open for want of asking, not for want of an answer. **What is now a decision
+rather than an unknown** is whether a row carries this figure: it is still read and totalled by
+nothing here, and moving it out of a declaration is a change to what the decoder hands over.
 
 _Shape:_ 18 occurrences; on a blow; a whole number
 
@@ -2272,12 +2271,10 @@ that combatant's **name**, so it is read at run time and never stored here — t
 
 **The published table states the same key as a count of characters**, which every other key here
 states as a share: `shout=6@3,7@3,7@3,8@3,8@3,9@3,9@3,10@3,10@3,10@3` for both skills carrying it,
-with the table's own comment
-`# shout to ilość przeciwników (randomowych) których zmusza się do
-ataku na siebie` (read
-2026-09-08). So one key has two readings — names on the wire, a count in the table — and only the
-first is drawn: **develop ADR 0064** removed the arithmetic the count fed. `docs/auras-standing.md`
-carries what follows.
+with the table's own comment calling it the number of random opponents the shout forces to attack
+its caster (read 2026-09-08). So one key has two readings — names on the wire, a count in the table
+— and only the first is drawn: **develop ADR 0064** removed the arithmetic the count fed.
+`docs/auras-standing.md` carries what follows.
 
 **The value is a list of names**, separated by a comma and a space — the grammar `winner` above
 uses, and the one the panel reads the provoked off (**develop ADR 0064**).
@@ -2285,10 +2282,10 @@ uses, and the one the panel reads the provoked off (**develop ADR 0064**).
 `shout=Gracz 3, Gracz 2`, both of the opposing side, and ends with `winner=Gracz 2, Gracz 3` in the
 same shape. Every other recording is N against one and names one.
 
-The client agrees without settling it: it interpolates the value **whole** into `msg_shout %name%` —
-_Uwaga %name2% została skupiona na %name%._ — where the neighbouring `frost` branch splits its own
-on commas first (production build `1785244275300`, read 2026-09-09). So it prints a list unsplit
-rather than refusing one.
+The client agrees without settling it: it interpolates the value **whole** into `msg_shout`'s
+`%name%`, the sentence saying whose attention was drawn to whom, where the neighbouring `frost`
+branch splits its own on commas first (production build `1785244275300`, read 2026-09-09). So it
+prints a list unsplit rather than refusing one.
 
 _Shape:_ 166 occurrences; on a skill announcement; text
 

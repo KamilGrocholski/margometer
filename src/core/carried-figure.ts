@@ -39,9 +39,9 @@ interface Bearer {
 }
 
 /**
- * How many sources one effect adds up from: _Efekt ulega kumulacji do maksymalnie dwóch źródeł od
- * różnych Graczy_, and `taken_dmg_per-all` sharper, _do dwóch najwyższych źródeł_. ⚠️ **The two
- * highest, not the two latest**: where three or more stood at once over `captures/`
+ * How many sources one effect adds up from: the help stacks it from at most two sources belonging
+ * to different characters, and `taken_dmg_per-all` says the two highest (`docs/auras-standing.md`).
+ * ⚠️ **The two highest, not the two latest**: where three or more stood at once over `captures/`
  * (2026-09-21) the two sets differ in 258 moments of 755 for `speed_up`, 13 of 94 for `swow_down`.
  */
 const SOURCES_COUNTED = 2;
@@ -50,9 +50,9 @@ const SOURCES_COUNTED = 2;
 const SOURCES_MAXIMUM = 32;
 
 /**
- * The keys whose published help gives the caster a different amount from everybody else:
- * _Na Postać rzucającą efekt, wartość przyspieszenia jest o połowę niższa._ What the half rounds to
- * is stated nowhere, so the caster's own row carries **no figure** rather than an invented one.
+ * The keys whose published help gives the caster a different amount from everybody else: half the
+ * speed-up for whoever cast it (`docs/auras-standing.md`). What the half rounds to is stated
+ * nowhere, so the caster's own row carries **no figure** rather than an invented one.
  */
 const HALVED_FOR_THE_CASTER = [HASTE_AURA_KEY];
 

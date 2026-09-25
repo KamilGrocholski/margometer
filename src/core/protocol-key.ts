@@ -296,7 +296,7 @@ const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([
     ["removedot-allies", KEY_REACH.castersSide],
     ["removeslow-allies", KEY_REACH.castersSide],
     ["removestun-allies", KEY_REACH.castersSide],
-    // The affected are forced to attack _Postaci, która użyła umiejętności_: you do not force an
+    // The affected are forced to attack the character who used the skill: you do not force an
     // ally to strike you. Over `captures/` 2026-09-22, 168 of 168 characters named across
     // 166 announcements stand opposite the caster.
     [PROVOCATION_KEY, KEY_REACH.otherSide],
