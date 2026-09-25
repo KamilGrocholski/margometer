@@ -1,21 +1,18 @@
 /**
- * How long a status really stands on a combatant, read off the mask each payload restates. It asks
- * one question: when one moment lights a status on several combatants at once, do they all lose it
- * at one moment, or each at their own Nth turn. The clock is the figures' own, turns taken and
- * lost both; `docs/auras-standing.md` is this report written down.
+ * How long a status really stands on a combatant, read off the mask each payload restates as the
+ * add-on reads it, so a combatant who has fallen carries nothing (`src/game/engine-warrior.ts`).
+ * It asks one question: when one moment lights a status on several combatants at once, do they all
+ * lose it at one moment, or each at their own Nth turn. The clock is the figures' own, turns taken
+ * and lost both; `docs/auras-standing.md` is this report written down.
  *
  *     deno task fight:life [--cases] [recording.json …]
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
-import { getNumberField, getRecordField, isRecord } from "#/libs/unknown-value.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
-import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import type { FightStatistics } from "#/src/core/fight-statistics.ts";
-import { WARRIOR_FIELDS } from "#/src/game/engine-warrior.ts";
-import { ENVELOPE_KEYS } from "#/src/game/payload-envelope.ts";
 import {
     formatRecordingName,
     readRecordedMaterial,
@@ -64,6 +61,8 @@ export interface BitRow {
     /** The run length most bearers carried, in their own turns, and how many carried it. */
     ownTurnsCommon: number;
     ownTurnsCommonRuns: number;
+    /** The longest one bearer carried it, in their own turns: nought where it never went out. */
+    ownTurnsLongest: number;
 }
 
 interface OpenRun {
@@ -110,7 +109,7 @@ function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
     assert(steps.length <= STEPS_MAXIMUM, "a recording carries no more payloads than the bound");
     for (const [at, step] of steps.entries()) {
         const turnsByCombatantId = indexTurnsByCombatantId(step.reading.figures.statistics);
-        for (const [combatantId, mask] of readMaskByCombatantId(step.update)) {
+        for (const [combatantId, mask] of step.record.statusMasksByCombatantId) {
             addStatusRunStep({ at, combatantId, mask, turnsByCombatantId, open, held, closed });
         }
     }
@@ -130,33 +129,6 @@ function indexTurnsByCombatantId(statistics: FightStatistics): Map<number, numbe
         found.set(combatantId, figures.turnsTaken + figures.turnsLost);
     }
     assert(found.size <= statistics.byCombatantId.size, "no more clocks than combatants");
-    return found;
-}
-
-/**
- * The mask each combatant states in this payload. ⚠️ **Off the wire, and not the envelope's
- * reading**, which takes a combatant at zero health as carrying nothing whether or not the entry
- * states a mask. Over `captures/` on 2026-09-25 that reading lights `poisoned` 38 times where the
- * wire lights it 21, and the lengths it adds are about who fell holding a status.
- */
-function readMaskByCombatantId(payload: unknown): Map<number, number> {
-    const found = new Map<number, number>();
-    if (!isRecord(payload)) return found;
-    const warriors = getRecordField(payload, ENVELOPE_KEYS, "combatants");
-    if (!warriors.ok) return found;
-    for (const stated of Object.values(warriors.value ?? {})) {
-        if (!isRecord(stated)) continue;
-        const combatantId = getNumberField(stated, WARRIOR_FIELDS, "id");
-        if (!combatantId.ok) continue;
-        if (combatantId.value === null) continue;
-        const mask = getNumberField(stated, WARRIOR_FIELDS, "statuses");
-        if (!mask.ok) continue;
-        if (mask.value === null) continue;
-        assert(mask.value >= 0, "a mask the game states is a count of bits and never a sign");
-        assert(Number.isSafeInteger(mask.value), "and an integer, because it is read bit by bit");
-        found.set(combatantId.value, mask.value);
-    }
-    assert(found.size <= COMBATANTS_MAXIMUM, "a payload states no more masks than warriors");
     return found;
 }
 
@@ -255,6 +227,7 @@ export function tallyBitRows(lightings: readonly LightingRow[]): BitRow[] {
             apartAgreeing: apart.filter(isLightingAgreeing).length,
             ownTurnsCommon: common.length,
             ownTurnsCommonRuns: common.runs,
+            ownTurnsLongest: Math.max(0, ...mine.flatMap((row) => row.ownTurnsEach)),
         });
     }
     assertStrictEquals(found.length, FROZEN_BUFF_BITS.bits.length, "every frozen bit has a row");
@@ -292,7 +265,7 @@ function isLightingAgreeing(row: LightingRow): boolean {
 export function formatBitReport(rows: readonly BitRow[]): string[] {
     assert(rows.length > 0, "a report stands on at least one status");
     const heading = `${"status".padEnd(NAME_WIDTH)}` +
-        "  lit  shared  together  apart  agreeing  apart+agree  own  runs";
+        "  lit  shared  together  apart  agreeing  apart+agree  own  runs  longest";
     return [
         heading,
         ...rows.map((row) => {
@@ -305,6 +278,7 @@ export function formatBitReport(rows: readonly BitRow[]): string[] {
                 formatInteger(row.apartAgreeing).padStart(11),
                 formatInteger(row.ownTurnsCommon).padStart(3),
                 formatInteger(row.ownTurnsCommonRuns).padStart(4),
+                formatInteger(row.ownTurnsLongest).padStart(7),
             ];
             return `${row.bitName.padEnd(NAME_WIDTH)}  ${cells.join("  ")}`;
         }),

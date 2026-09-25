@@ -113,16 +113,16 @@ after the cast where they were not restated at the time — and it goes on burni
 because a second cast into a lit bit makes no 0→1 edge.
 
 **So it can carry no denominator of its own**, and its own length is what shows that: the longest
-the mask holds one bearer reaches **46** of their turns for `swow_down` and **20** for `speed_up`
-(`captures/`, 2026-09-22), where the table gives the skills behind them eight. That is no
-disagreement with the `own` column above — that one counts what a **run** usually comes to, and this
-is the longest one ever ran.
+the mask holds one bearer reaches **56** of their turns for `swow_down` and **23** for `speed_up`
+(the `longest` column below, `captures/`, 2026-09-25), where the table gives the skills behind them
+eight. That is no disagreement with the `own` column — that one counts what a **run** usually comes
+to, and this is the longest one ever ran.
 
-⚠️ **Those two figures moved on 2026-09-22 and the reason is worth keeping.** They were 56 and 20,
-taken while a combatant at zero health still carried whatever their mask last said; the fallen now
-carry nothing (`src/game/engine-warrior.ts`), so the longest run is shorter by the turns a corpse
-was being counted for. `develop:design/dziesiec/measured.json` holds the older pair, as the dated
-reading of a round that was taken before the fix.
+⚠️ **The mask is read as the add-on reads it** (`src/game/engine-warrior.ts`): a combatant who has
+fallen carries nothing, because the client takes the icons down at that point. Read off the wire
+instead, as `develop`'s tool read it, a run whose bearer fell holding it never goes out and so is
+never counted: over `captures/` on 2026-09-25 that reading lit `poisoned` 21 times where the
+add-on's lights it 38, and `swow_down` 46 where the add-on's lights it 71.
 
 **The two numbers a reader saw for one effect are now one.** The window beside the panel drew a
 cast's length on the caster's clock and, beside it, the mask's bare count on the bearer's — so
@@ -159,19 +159,20 @@ deno task fight:life --cases          # every lighting that reached more than on
 `lit` counts the lightings seen at all, `shared` the ones reaching more than one bearer, `together`
 those whose bearers went out at one step and `apart` those who did not. `agreeing` counts the shared
 lightings every bearer carried for the same count of **their own** turns, and `apart+agree` the ones
-that did both. `own` is the length most runs came to, over `runs` of them.
+that did both. `own` is the length most runs came to, over `runs` of them, and `longest` the longest
+one bearer carried it.
 
-| status                | lit | shared | together | apart | agreeing | apart+agree | own | runs |
-| --------------------- | --: | -----: | -------: | ----: | -------: | ----------: | --: | ---: |
-| `deep_wound`          |   6 |      0 |        0 |     0 |        0 |           0 |   9 |    2 |
-| `wound`               |  40 |      0 |        0 |     0 |        0 |           0 |   3 |   15 |
-| `critical_deep_wound` |   0 |      0 |        0 |     0 |        0 |           0 |   0 |    0 |
-| `poisoned`            |  21 |      1 |        0 |     1 |        1 |           1 |   5 |    5 |
-| `fire`                |  17 |      0 |        0 |     0 |        0 |           0 |   2 |    9 |
-| `swow_down`           |  46 |      9 |        1 |     8 |        3 |           2 |   3 |   23 |
-| `speed_up`            |  80 |     18 |        3 |    15 |        7 |           6 |   8 |   28 |
-| `frostbite`           |   0 |      0 |        0 |     0 |        0 |           0 |   0 |    0 |
-| `shock`               |  10 |      0 |        0 |     0 |        0 |           0 |   3 |    4 |
+| status                | lit | shared | together | apart | agreeing | apart+agree | own | runs | longest |
+| --------------------- | --: | -----: | -------: | ----: | -------: | ----------: | --: | ---: | ------: |
+| `deep_wound`          |   7 |      0 |        0 |     0 |        0 |           0 |   9 |    2 |       9 |
+| `wound`               |  43 |      0 |        0 |     0 |        0 |           0 |   3 |   16 |      17 |
+| `critical_deep_wound` |   0 |      0 |        0 |     0 |        0 |           0 |   0 |    0 |       0 |
+| `poisoned`            |  38 |      1 |        0 |     1 |        1 |           1 |   5 |    6 |      53 |
+| `fire`                |  19 |      0 |        0 |     0 |        0 |           0 |   2 |   10 |       6 |
+| `swow_down`           |  71 |     12 |        1 |    11 |        2 |           2 |   3 |   24 |      56 |
+| `speed_up`            |  84 |     18 |        3 |    15 |        7 |           6 |   8 |   29 |      23 |
+| `frostbite`           |   0 |      0 |        0 |     0 |        0 |           0 |   0 |    0 |       0 |
+| `shock`               |  11 |      0 |        0 |     0 |        0 |           0 |   3 |    4 |      20 |
 
 ⚠️ **`apart+agree` is the column that settles it.** One moment lights several bearers, each carries
 it for the same count of their own turns, and they go out at different moments. A clock on the

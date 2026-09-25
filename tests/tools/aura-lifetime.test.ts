@@ -24,7 +24,7 @@ const REGISTER_PATH = "docs/auras-standing.md";
  */
 const KEY_REGISTER_PATH = "docs/protocol-keys.md";
 const HEADING = "## Whose turns a length is counted in";
-const BIT_CELLS = 9;
+const BIT_CELLS = 10;
 const CLAUSE_CELLS = 3;
 /** The help's own wording for whose turns a length runs on, as the clause table quotes it. */
 const CLAUSE_OPENERS = ["wykonanych", "od tur", "tur ukończonych"];
@@ -59,6 +59,7 @@ function parseBitRows(text: string): BitRow[] {
             apartAgreeing: parseTableInteger(cells[6]),
             ownTurnsCommon: parseTableInteger(cells[7]),
             ownTurnsCommonRuns: parseTableInteger(cells[8]),
+            ownTurnsLongest: parseTableInteger(cells[9]),
         });
     }
     return rows;
@@ -154,13 +155,14 @@ function lookupHelpLine(register: string, key: string): string | null {
 }
 
 Deno.test("the readers take the row they must and leave the row they must not", () => {
-    const flagged = `${HEADING}\n\n| \`speed_up\` | 1 | 1 | 0 | 1 | 1 | 1 | 8 | 2 |\n`;
+    const flagged = `${HEADING}\n\n| \`speed_up\` | 1 | 1 | 0 | 1 | 1 | 1 | 8 | 2 | 23 |\n`;
     const taken = parseBitRows(flagged);
-    assertStrictEquals(taken.length, 1, "a row stating nine figures is read");
+    assertStrictEquals(taken.length, 1, "a row stating ten figures is read");
     assertStrictEquals(taken[0]?.ownTurnsCommon, 8, "and is read by its own columns");
+    assertStrictEquals(taken[0]?.ownTurnsLongest, 23, "the last of them the longest run");
 
     const heading =
-        `${HEADING}\n\n| status | lit | shared | together | apart | a | b | own | runs |\n`;
+        `${HEADING}\n\n| status | lit | shared | together | apart | a | b | own | runs | l |\n`;
     assertStrictEquals(parseBitRows(heading).length, 0, "a heading row is not a reading");
 
     const narrow = `${HEADING}\n\n| \`speed_up\` | 1 | 1 | 0 | 1 |\n`;
