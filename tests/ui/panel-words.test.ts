@@ -1278,7 +1278,7 @@ Deno.test("the live row says when it is without a date", () => {
 
 /**
  * ⚠️ **The turns are the one row counted from the fight's own start**, so a panel that walked in
- * late has a figure short by an amount nothing states (`develop:docs/turns-taken.md`). The panel
+ * late has a figure short by an amount nothing states (`docs/turns-taken.md`). The panel
  * says so over its own figures; this block has no room for that sentence, so the row goes rather
  * than standing unqualified — a **Suspect** is marked beside the figure it concerns, or it is not a
  * suspect but a wrong number (`CONTEXT.md`).

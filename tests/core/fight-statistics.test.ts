@@ -1025,7 +1025,7 @@ Deno.test("the game's other lines about a combatant are not turns anybody lost",
 });
 
 /**
- * What the corpus holds, which is also what `develop:docs/turns-taken.md` measures against the
+ * What the corpus holds, which is also what `docs/turns-taken.md` measures against the
  * game's own numbering. Every one of them is placed on a row: no recording states a name the
  * roster cannot.
  */

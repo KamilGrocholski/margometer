@@ -1,0 +1,315 @@
+# Turns taken
+
+How many turns each combatant took, and how that count stands against the game's own numbering of
+them.
+
+**The game defines the word, and this document does not.** The published help says a turn is a
+numbered action — numbered from 1 upward, held by one character at a time, and taken automatically
+by the server where the player lets the clock run out (article 372 §2.1 and §2.2, read 2026-09-02).
+So a count of what each combatant did on their turn is a count of their turns, and **develop ADR
+0048** carries why that is now stated rather than avoided.
+
+**Read off the recordings, not written from memory.** `tests/tools/turn-count.test.ts` composes
+every verdict below through `tools/turn-count.ts` and refuses a row naming a recording that is not
+there, a recording no row names, or a verdict the tree does not produce. A line here that stops
+being true fails the gate.
+
+**No counts.** How many turns a recording holds changes with the next one, so it is measured rather
+than written down (**V5**):
+
+```bash
+deno task fight:turns                        # the register below
+deno task fight:turns --cases                # the counts behind each verdict
+deno task fight:turns captures/<file>.json   # one recording, boundary by boundary
+```
+
+## What opens a turn
+
+The count lives in `src/core/fight-statistics.ts` as `turnsTaken`, opened by the rule in
+`src/core/turn-clock.ts`, so what a row draws and what is graded here are one number. Four things
+open a turn, and two of them are the game's own default actions — an attack and a step forward
+(§2.3):
+
+| opens a turn                | which is                                                 |
+| --------------------------- | -------------------------------------------------------- |
+| a skill announcement        | the combatant used something they had learned            |
+| a blow standing behind none | the default attack, announced as nothing                 |
+| a `step` declaration        | the other default action: the combatant moved and struck |
+| a `prepare` declaration     | the turn went on making a skill ready and nothing else   |
+
+Two things look like a turn and are not. Each is an exception the material produced, not one
+somebody expected:
+
+- **An extra attack of an announcement still running.** The help says the additional attacks of a
+  skill are all one turn (§2.1, and the `add_attacks` effect in §3.7, read 2026-09-02). The decoder
+  glues an announcement to the message after it and no further, so the second blow of a two-hit
+  skill arrives announced as nothing and would read as a turn of its own. The shape occurs
+  throughout the corpus.
+- **A preparation stated beside its own combatant's action.** Where a `prepare` follows an action of
+  the same combatant it is part of that turn; where it stands alone, the turn went on it. Which
+  events are that combatant's action is `docs/reading-a-turn.md`'s to state, and the damage a blow
+  reports **by name** is one of them: reading it as nobody's action opened 16 turns the game never
+  numbered (**develop ADR 0057**). Both shapes occur throughout the corpus.
+
+Neither suppression is counted here any more. Both were, under a grading that reached one boundary
+in three; the register below reaches all of them, and what stands in place of those two figures is
+its list of the boundaries where a suppression failing open is what a disagreement would look like.
+
+`step` and `prepare` are `develop:docs/protocol-keys.md`'s to explain. The help documents the first
+and says nothing of the second, so what `prepare` costs a combatant is measured here rather than
+cited.
+
+## What the game states, and where it can be checked
+
+**The turn number is in the envelope, not in a message.** `turns_warriors` is the queue the client
+draws as its prediction list (§1.1): a turn number to the combatant who will hold it. Its least
+entry is the turn in progress, and the payload's `current` names that same combatant in every
+payload carrying both — asserted rather than reported, because a disagreement would be this reader
+breaking rather than the game moving.
+
+⚠️ **The game states nothing at all while it is running the fight itself**, which is what an auto
+fight is. Nothing here is graded differently for it — the grading stands on every statement the game
+ever made — but the panel draws no turn there, and **develop ADR 0072** carries the measurement.
+
+⚠️ **Only the least entry is a statement.** The nine above it are a forecast of who will hold turns
+not yet taken, and `a01bf11` measured that forecast contradicted by the game's own later statements
+3% of the time one turn ahead and 28% at nine. Nothing here reads them.
+
+**Two questions are asked of a boundary, and they are tallied apart.** The first is the **count**:
+between two statements of the game's, did as many turns get counted as the game numbered? Both
+halves of what was seen answer it — a turn taken and a turn announced as spent on nothing are both
+turns the game numbered — and it can be asked of every boundary, however far the ordinal moved. The
+second is the **placing**: was the one turn charged to the combatant the queue names? That one needs
+a boundary of exactly one turn, because across a wider one the only source for who held the ordinals
+in between is the forecast above. So a wide boundary grades the count and states nothing about the
+row, rather than filling the gap from a forecast that is wrong often enough to matter.
+
+⚠️ **A boundary the game did not narrate is graded by nothing.** The payload's `mi` is a running
+index over the fight's own messages, and where it breaks the game numbered messages it never sent
+here. The turns inside such a stretch were told to nobody, so a count held against them would be
+graded against silence. The register counts those boundaries and refuses to grade them.
+
+## The verdicts
+
+| verdict     | means                                                            |
+| ----------- | ---------------------------------------------------------------- |
+| `always`    | every boundary graded counted as many turns as the game numbered |
+| `sometimes` | some of them did                                                 |
+| `never`     | none of them did                                                 |
+| `in a lump` | nothing to grade: the game never stated a second ordinal         |
+
+A verdict outside that list is refused rather than read as silence. A count comes to one of three —
+`exact`, `over`, `under` — and a placing to one of two — `exact`, `elsewhere`.
+`deno task fight:turns --cases` states both, beside the boundaries it refused to grade at all.
+
+## The register
+
+Two readings side by side. `steps` and `agreed` are the boundary reading — every stretch between two
+statements of the game's that it graded, and how many of those counted as many turns as the game
+numbered. `granted`, `taken` and `short` are the whole-fight one, over the stretch between the
+game's first statement of an ordinal and its last. A recording it never numbered twice has neither,
+and that is written as a dash rather than as a zero (**E6**).
+
+| recording                                                         | the game agrees | steps | agreed | granted | taken | short | lost |
+| ----------------------------------------------------------------- | --------------- | ----- | ------ | ------- | ----- | ----- | ---- |
+| 2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none            | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none             | `always`        | 97    | 97     | 298     | 275   | 23    | 11   |
+| 2026-08-11-tempest-tancerz-vs-wermont-1786441768914-none          | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none    | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 36    | 36     | 197     | 190   | 7     | 7    |
+| 2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 76    | 76     | 217     | 204   | 13    | 13   |
+| 2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none           | `always`        | 107   | 107    | 281     | 269   | 12    | 12   |
+| 2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 50    | 50     | 230     | 226   | 4     | 4    |
+| 2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 58    | 58     | 186     | 178   | 8     | 8    |
+| 2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 46    | 46     | 218     | 203   | 15    | 15   |
+| 2026-08-14-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 86    | 86     | 242     | 230   | 12    | 12   |
+| 2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 14    | 14     | 59      | 57    | 2     | 2    |
+| 2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 40    | 40     | 216     | 201   | 15    | 15   |
+| 2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none           | `sometimes`     | 14    | 13     | 56      | 53    | 3     | 2    |
+| 2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 80    | 80     | 239     | 226   | 13    | 13   |
+| 2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none           | `always`        | 47    | 47     | 214     | 205   | 9     | 9    |
+| 2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none           | `always`        | 47    | 47     | 214     | 205   | 9     | 9    |
+| 2026-08-17-tempest-grupa-vs-hildur-1786514810315-none             | `sometimes`     | 30    | 29     | 123     | 114   | 9     | 8    |
+| 2026-08-23-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 18    | 18     | 186     | 180   | 6     | 6    |
+| 2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none        | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none        | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1 | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-08-25-luvia-grupa-vs-draugr-auto-none-none                   | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-08-25-luvia-grupa-vs-draugr-none-none                        | `always`        | 34    | 34     | 45      | 44    | 1     | 1    |
+| 2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1                | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1                   | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0                | `always`        | 107   | 107    | 305     | 277   | 28    | 28   |
+| 2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0                  | `sometimes`     | 11    | 10     | 26      | 23    | 3     | 2    |
+| 2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0         | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0               | `always`        | 20    | 20     | 47      | 42    | 5     | 5    |
+| 2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0                 | `always`        | 96    | 96     | 200     | 184   | 16    | 16   |
+| 2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0           | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0               | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0                 | `always`        | 8     | 8      | 13      | 12    | 1     | 1    |
+| 2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0                 | `always`        | 122   | 122    | 238     | 226   | 12    | 12   |
+
+## What the register says
+
+**Where the game numbers a single turn, this count is charged to the combatant the game names, every
+time it can be asked.** No boundary of one turn is placed `elsewhere`, on any recording. That is the
+sharp test and it is unbeaten; what it is not is most of the evidence, because a boundary of one
+turn is the minority case.
+
+**Where the game numbers several, the count agrees on all but three boundaries in the corpus.** 1241
+of the 1244 graded agree, 2026-09-25. The three that do not are a short list rather than a tendency:
+each is short by a single turn, and `deno task fight:turns captures/<file>.json` names each by its
+two ordinals. A recording carrying one is `sometimes`, which is what the verdict is for.
+
+⚠️ **The direction was the finding, and it has been answered once.** Every disagreement ran one way
+— 16 boundaries counting one **over** the game's own numbering, against 2 under — and the shape
+behind them was a suppression failing open: a preparation stated after the damage its own
+combatant's blow reported by name. Counting that damage as its striker's action costs the corpus 33
+turns and takes the over-count to nothing (**develop ADR 0057**).
+
+⚠️ **One of the three that remain was `exact` before that change**, on
+`2026-08-27-luvia-grupa-vs-amaimon`: a turn opened where the game numbered none stood against a turn
+the game numbered and this reading opens nothing for, and removing the first exposed the second. Two
+errors cancelling is what a boundary reading `exact` can also be. Nothing has been changed to answer
+the three, and the register is what such a change would have to be measured against.
+
+**`in a lump` is not a failure of the reading.** It is a recording the game numbered once, which is
+the case `a01bf11` withdrew the whole feature over: a fast fight delivers its log in one payload and
+states its numbering once, so there is no second statement for a count to stand against. Both solo
+recordings and every `auto` recording sit there, and no grading change reaches them. The count is
+still drawn on those fights, because it comes from what the combatants did and not from the
+numbering — which is the difference between this and the divisor that was withdrawn.
+
+**No combatant enters a fight by stepping or preparing alone**, 2026-09-02: counting the two
+declarations adds turns to rows that exist and creates none, so the fights `tools/fight-figures.ts`
+prints hold exactly the rows they held before. Taking 33 of those turns away deleted none either,
+2026-09-07 — the same tool prints the same rows on both sides of **develop ADR 0057**.
+
+## Taken, and lost
+
+⚠️ **The two counts do not meet, and the gap is the point of carrying them both.** `short` is never
+zero on most of the corpus, never negative anywhere, and the sharp verdict cannot see it: a step the
+game numbers one turn apart is a step where nothing goes missing.
+
+**The difference is a turn the game granted and nobody spent.** A stunned combatant is given their
+turn, does nothing with it, and the game announces it in a line naming them. `lost` counts those
+lines, per combatant, and the card draws the count beside the turns that combatant took, on the same
+line and divided from them by a slash.
+
+**It is read by shape and never by words**, which is what makes it survive a world that speaks
+another language: the line opens with the combatant's own name and the separator the game puts after
+it, and it does not end in the full stop the game's other lines about a combatant end in. Measured
+over `captures/` on 2026-09-03 with no other condition: **319 matches, all 319 a turn nobody spent,
+nothing missed, nothing else caught.** The corpus states 391 of them now, 2026-09-21; what the
+recordings admitted since have not had is the second half of that reading, which is a person going
+through every match. The three lines about striking a target already dead end in a full stop; loot
+lines put a colon after the name. **develop ADR 0049** carries the rest, including why the stun keys
+cannot do this job — 118 applications against the 319 announcements that reading was taken over,
+both figures of 2026-09-03 and neither re-earned since.
+
+**They cannot count them and they can watch them.** The keys say nothing in anybody's language, so
+what they still answer is the other direction: over `captures/` on 2026-09-25, **25** of the 35
+recordings state a stun and every one of them reads a lost turn as well, the closest being four lost
+against five stuns. A recording stating a stun and reading nothing would be this reading having
+stopped working — the one failure the shape fails **silently** at — so
+`tests/tools/turn-count.test.ts` refuses that pair and a red there is a question about the
+recording, never a licence to bend either figure. It licenses no figure either way: the corpus
+carries 140 stuns against 410 lost turns, and six recordings read lost turns with no stun at all.
+
+**The two columns are close and are not held to be equal.** Over the corpus the ordinal says 226
+turns went missing where the game announces 211: exact on 19 of the 23 recordings that can be asked,
+one turn apart on three more, and one that is not. Before **develop ADR 0057** they were exact on
+nine, and on nine others the game announced **more** lost turns than the ordinal had room for —
+which is the over-count seen from the other side. The gate holds both as numbers rather than forcing
+them together, because a guard that demanded agreement would one day be satisfied by bending one of
+them.
+
+⚠️ **`2026-08-06-tempest-grupa-vs-hildur` is the one that is not, and the boundary grading says
+why.** The ordinal says 23 went missing and the game announces 11, all of them the boss's, on the
+oldest build in the corpus. The other twelve are one stretch: between ordinals 235 and 248 the game
+numbered thirteen turns and sent one message for them, and its own message index skips 26 across the
+same gap — the only break in the whole corpus, 2026-09-03. Twelve turns nobody was told about is the
+difference exactly. The register grades that boundary by nothing and counts it apart, because a
+stretch the game did not narrate is silence rather than evidence.
+
+**So the card states turns _taken_ and turns _lost_ side by side on one line**, divided by a slash
+and never added, and neither of them is the turns somebody was granted: `Tury wykonane/utracone` is
+the label, and `wykonane` is the game's own wording for the first — the published help counts a
+combatant's turns with the same verb (article 372 §2.1, read 2026-09-02). The nought is drawn where
+a combatant lost nothing, because the line stands either way and a half that vanished read as a
+figure the panel had dropped rather than as none.
+
+**And the second figure stands only where this reading was heard at all.** `lost` is read by the
+shape of a sentence, so a world wording the announcement otherwise yields nought for everybody —
+there the half is unread rather than none, and a nought drawn on it would be a figure nobody
+measured. The witness is the fight: where anybody in it lost a turn the reading works on this world,
+and every other nought on that fight is a measurement. Where nobody did, the card falls back to
+`Tury wykonane` and the one figure it has. **develop ADR 0110.**
+
+## Who else counts this
+
+Two independent readings were looked at before this one was settled, and neither is a source this
+repository can lean on — but what they do says which figure is the one to show.
+
+**The game's client does not count turns at all.** `newTurn(data.current)` decides whether it is the
+reader's move and sets a sound; `updateTurnPredictions(turns)` walks the queue with
+`for (let i in
+turns)` and reads only its values, never its keys. Development build `1781609507010`,
+read 2026-09-02. The turn-loss sentence is in neither the client nor its dictionary, so the server
+composes it.
+
+**`grooove.pl` counts blows, not turns.** Its fight viewer keeps one `X.Xtury` per combatant and
+increments it in three kinds of place: a block firing after any log entry that carried a dealt
+damage key, which is once per blow and once for a blow that missed too; a skill announcement whose
+name is one of fifteen written into the file, which are the announcements drawing no blow; and a
+scatter of effect keys. An announcement by a combatant the fight states as an NPC counts on top of
+its blows. `battle_engine.js?v=7` at site version `12-05-2021-1`, read 2026-09-03; the site
+documents none of it, its `Panel Walk` help answering four questions and none of them this one.
+
+So a two-hit skill charges two, which is the first of the two shapes above that look like a turn and
+are not, and the figure stated is turns taken plus every extra strike. Battle `84840475` states 18
+and 16 where its log carries 13 announcements for each combatant and one further blow standing
+behind none — a difference of 4 and 3, which is exactly the extra strikes of its multi-hit skills.
+The turn-loss sentence is displayed and never counted, so nothing there states a turn nobody spent.
+
+The effect keys were checked against `captures/` on 2026-09-02: each arrives on a skill announcement
+this reading already counts as one turn, and the only one standing alone is a declaration in the
+opening payload of a fight, which is a passive effect rather than an action. A list of keys is the
+reading `a01bf11` refused, and it is not what `grooove.pl` does either.
+
+## What this cannot answer
+
+- **How many turns a fight ran.** The ordinal span would say, and it is not drawn: five recordings
+  join a fight already in progress, so the span is short by an amount nothing states, and a fight
+  the game numbered once has no span at all. No figure on the panel is a fight's turn count.
+- **How many turns somebody was granted.** `taken` plus `lost` is what was seen, not what was
+  scheduled, and the two readings do not come to the same figure over the corpus. How far apart they
+  stand is read off the register rather than written here (**V5**).
+- **Whether a world worded differently is being read.** Where the announcement has another shape the
+  count is zero on everybody, and the card states no second figure at all rather than a nought — so
+  nothing on screen becomes false. What it still cannot say is **which** of the two a quiet fight
+  is: a fight where nobody was stunned and a world this reading cannot hear draw the same card. Four
+  of the 35 recordings are quiet that way, 2026-09-25. That is the cost of reading a shape rather
+  than a key (**develop ADR 0110**), and it is carried rather than closed — the stun keys above make
+  the failure loud without making the quiet fight legible.
+
+  ⚠️ **The ordinal span is the obvious third road and it is shut on every recording that would ask
+  it.** It is language-free and `short` says outright how many turns went missing, so a quiet fight
+  answering nought there would be a quiet fight the card could draw a nought on. The register cannot
+  be asked it on a single one of them: every quiet recording is one the game numbered **in a lump**,
+  2026-09-25, so `granted`, `short` and `lost` all stand as dashes in the table above. Shortness
+  goes with that and does not decide it — the quiet ones run 7 to 18 turns, four of the five
+  shortest fights in the corpus, but the fifth takes 15, loses one and is numbered `always`
+  (`2026-09-19-luvia-tropiciel-vs-mag`). A short fight the game numbers throughout can be recorded,
+  so the road is shut by the material and not by the game. It answers _not known_ exactly where it
+  would be asked today, so nothing is built on it (**C9**).
+
+  This is held by reading and not by a guard on purpose: a recording arriving that is both quiet and
+  numbered would mean the road had opened, and a gate going red on that would be a gate reporting
+  good news as a failure.
+- **Whose turn it was, across a boundary of more than one.** The count is held against the game's
+  numbering there and the row it went onto is not, because the only source for who held the ordinals
+  in between is a forecast this document refuses to lean on. Most boundaries are that shape, so most
+  of the evidence is about how many and not about who.
+- **Whether anything divides by a turn.** Nothing does, and **develop ADR 0048** is why.
+- **Whether the count is right in a fight nobody recorded.** Every verdict here is a claim about
+  `captures/` and about nothing else (**V4**).

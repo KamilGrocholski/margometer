@@ -23,6 +23,8 @@ export const TOOL_ERROR_CODE = {
     drillReport: "DrillReport",
     cardHeight: "CardHeight",
     givingWay: "GivingWay",
+    turnCount: "TurnCount",
+    turnReading: "TurnReading",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -152,5 +154,19 @@ export class CardHeightError extends MargoMeterToolError {
 export class GivingWayError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.givingWay, reason, options);
+    }
+}
+
+/** A turn count asked for in a way it cannot read: a recording named by anything but a path. */
+export class TurnCountError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.turnCount, reason, options);
+    }
+}
+
+/** The same refusal, from the reading of each message. */
+export class TurnReadingError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.turnReading, reason, options);
     }
 }

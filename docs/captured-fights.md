@@ -367,4 +367,4 @@ evidence.
   `captures/` every charge the game states stands on a monster, 2026-09-21.
 
   It also grades more boundaries than any other recording — 122, every one agreeing with the game's
-  own numbering (`develop:docs/turns-taken.md`).
+  own numbering (`docs/turns-taken.md`).

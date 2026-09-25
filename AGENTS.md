@@ -42,6 +42,10 @@ The documents this tree carries:
 - [`docs/drill-levels.md`](docs/drill-levels.md) — which rows of the panel open, level by level.
 - [`docs/auras-standing.md`](docs/auras-standing.md) — what stands on a side, whom a shout holds,
   and for how long, re-earned off the recordings.
+- [`docs/turns-taken.md`](docs/turns-taken.md) — the turns each combatant took, against the game's
+  numbering of them.
+- [`docs/reading-a-turn.md`](docs/reading-a-turn.md) — how a message becomes a turn, and where that
+  reading and the game disagree.
 
 A document joins this list in the commit that creates it (**C9**). **`develop:path` and
 `develop ADR NNNN` name `develop` as it stood at `fa1dcce`**, before this rewrite replaced it:
@@ -107,7 +111,11 @@ joins it in the commit that creates the file.
 - `docs/design.md` — the architecture: layers, ports, types, the process, the failure map, the file
   format
 - `docs/drill-levels.md` — every kind of row the panel draws, and whether pressing it opens anything
+- `docs/reading-a-turn.md` — how a message becomes a turn, and every message where that and the
+  game's numbering disagree
 - `docs/releasing.md` — every step of cutting a release, in order
+- `docs/turns-taken.md` — the turns each combatant took, graded recording by recording against the
+  game's numbering
 
 - `docs/adr/0001-a-vocabulary-is-an-object.md` — a closed set of our own strings is an object, its
   list the object's values
@@ -319,9 +327,13 @@ joins it in the commit that creates the file.
 - `tools/shout-holding.ts` — whom a character a shout named strikes, turn by turn after it:
   `fight:shout`
 - `tools/skill-table.ts` — every published skill and the turns its effects run for: `game:skills`
+- `tools/turn-count.ts` — the turns each recording's combatants took, graded against the game's
+  numbering: `fight:turns`
+- `tools/turn-reading.ts` — what each message came to under the turn rule, and the openers in
+  dispute: `fight:openers`
 
-- `tests/` — shared test support (fake window and document, simulator, recording readers) and the
-  entry and simulation suites
+- `tests/` — shared test support (fake window and document, simulator, recording readers, a
+  register's table reader) and the entry and simulation suites
 - `tests/core/` — the suites of `src/core/`, and the decoding rules held over the recordings
 - `tests/e2e/` — the browser suite: Playwright on Node driving the built userscript in Chrome,
   outside the gate

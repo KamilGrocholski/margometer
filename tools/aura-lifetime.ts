@@ -110,7 +110,7 @@ function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
     assert(steps.length <= STEPS_MAXIMUM, "a recording carries no more payloads than the bound");
     for (const [at, step] of steps.entries()) {
         const turnsByCombatantId = indexTurnsByCombatantId(step.reading.figures.statistics);
-        for (const [combatantId, mask] of readMaskByCombatantId(step.payload)) {
+        for (const [combatantId, mask] of readMaskByCombatantId(step.update)) {
             addStatusRunStep({ at, combatantId, mask, turnsByCombatantId, open, held, closed });
         }
     }

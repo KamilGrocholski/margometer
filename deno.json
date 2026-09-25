@@ -30,6 +30,11 @@
         "fight:auras": "deno run -A tools/aura-standing.ts",
         "fight:life": "deno run -A tools/aura-lifetime.ts",
         "fight:shout": "deno run -A tools/shout-holding.ts",
+        // How many turns each combatant took, graded against the game's own numbering of them,
+        // and which message a disagreement stands on: `docs/turns-taken.md` and
+        // `docs/reading-a-turn.md` carry what each reports.
+        "fight:turns": "deno run -A tools/turn-count.ts",
+        "fight:openers": "deno run -A tools/turn-reading.ts",
         // The panel in a browser over any recording, stepped by hand, rebuilt and reloaded when a
         // file the bundle reads changes. The page is the one the browser suite drives.
         "preview": "deno run -A tools/preview-server.ts",
