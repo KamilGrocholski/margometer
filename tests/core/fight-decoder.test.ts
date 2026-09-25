@@ -220,7 +220,7 @@ function decode(
  * reaches the card as a proc; this one carries a percentage, and a reader taking only valueless
  * keys left a weakened wound off the card while an unweakened one stood on it — a hole in what a
  * player sees that turned on something they cannot see. The figure itself is **not** read: what
- * the percentage is taken off is unsettled (`develop:docs/protocol-keys.md`).
+ * the percentage is taken off is unsettled (`docs/protocol-keys.md`).
  */
 Deno.test("a wound something weakened reaches the card, and its share does not", () => {
     const event = getOnlyAttack(decode([WEAKENED_WOUND]));
@@ -308,7 +308,7 @@ Deno.test("the one key of the family that means the target", () => {
 
 /**
  * The announcement is in the same breath as the figure, and reading only the message before loses
- * it: `heal_target` is charged to the announcement's actor (`develop:docs/protocol-keys.md`), so an
+ * it: `heal_target` is charged to the announcement's actor (`docs/protocol-keys.md`), so an
  * announcement nothing picks up leaves the health with no giver and no name.
  */
 Deno.test("a figure stated on an announcement rides that announcement, not the one before", () => {
@@ -561,7 +561,7 @@ Deno.test("an escape beside a stated winner is still what the fight came to", ()
 });
 
 /**
- * What stands behind the entry in `develop:docs/protocol-keys.md`: the escape is read off the
+ * What stands behind the entry in `docs/protocol-keys.md`: the escape is read off the
  * client's own branch and the published help, and the material says nothing either way. A
  * recording of one would turn this red, which is the point: it is the day the entry gets a
  * measurement.
@@ -581,7 +581,7 @@ Deno.test("no recording carries an escape, which is why the register cites the c
 });
 
 /**
- * The claim `develop:docs/protocol-keys.md` files `-dmga` under, and the one the panel's word
+ * The claim `docs/protocol-keys.md` files `-dmga` under, and the one the panel's word
  * rests on: the published help says the ordinary reductions do not reach this damage, and a
  * protocol that reports no reduction has no raw side to report either. A `+dmga` is therefore a
  * finding rather than a gap: it would mean something reduces the key after all.

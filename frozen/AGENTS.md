@@ -26,17 +26,17 @@ skill table, then writes each frozen file from what it has just fetched — in t
 every reading is dated by the fetch above it. `deno task game:readings status` asks the same
 question and changes nothing: it exits `0` where every reading is the game's, `1` where one went
 behind, and `2` where the world could not be asked at all. Neither takes a list of what to count: a
-freeze counts again every phrase the table already holds, and
-`deno task game:help freeze
-<phrase> …` adds one before anything leans on it. **AGENTS.md W10** says
-when the routine is run.
+freeze counts every phrase a `_Help:_` line of `docs/protocol-keys.md` cites, and
+`deno task game:help freeze <phrase> …` adds one before a claim leans on it (ADR 0007). **AGENTS.md
+W10** says when the routine is run.
 
 ## Why they exist
 
-The words the panel gives the kinds of damage and the defences are checked against these counts on
-every run of the gate (`tests/ui/panel-words.test.ts`): a word the help prints nowhere is an
-invention. A negative recorded from a search nobody re-runs is how four keys once came to be filed
-as undocumented while the help described all four (`develop:docs/protocol-keys.md`).
+What `docs/protocol-keys.md` claims of the help, and the words the panel gives the kinds of damage
+and the defences, are checked against these counts on every run of the gate
+(`tests/repository/protocol-keys.test.ts`, `tests/ui/panel-words.test.ts`): a word the help prints
+nowhere is an invention. A negative recorded from a search nobody re-runs is how four keys once came
+to be filed as undocumented while the help described all four (`docs/protocol-keys.md`).
 
 The durations are here for the same reason and one more: they are the **only** source that says how
 long an effect runs for, so a figure the panel draws beside a counted one rests on them alone

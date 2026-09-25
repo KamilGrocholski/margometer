@@ -67,9 +67,8 @@ const CITED_WHILE_ABSENT = [
     "tests/repository/frozen-readings.test.ts",
     "docs/adr/0004-the-frozen-readings-are-develops-at-the-revision.md → " +
     "tests/recording-revision.ts",
-    // The pin this decision removed, and `develop`'s register, which it declined to port.
+    // The pin this decision removed.
     "docs/adr/0005-the-readings-are-refreshed-here.md → tests/repository/frozen-readings.test.ts",
-    "docs/adr/0005-the-readings-are-refreshed-here.md → docs/protocol-keys.md",
 ];
 
 /**

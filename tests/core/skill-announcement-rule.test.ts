@@ -3,7 +3,7 @@
  *
  * Two spellings announce a skill: the game's own table, and a name it did not take from there. A
  * reading that expects only the first misses the declarations riding the second
- * (`develop:docs/protocol-keys.md`).
+ * (`docs/protocol-keys.md`).
  */
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";

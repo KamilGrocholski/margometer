@@ -3,7 +3,7 @@
  *
  * A key read only where it states a figure passes every arithmetic check the witness makes and
  * still loses a restoration the game reported. The zero is what this file is here for
- * (`develop:docs/protocol-keys.md`).
+ * (`docs/protocol-keys.md`).
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";

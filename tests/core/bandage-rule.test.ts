@@ -3,7 +3,7 @@
  *
  * The figure is health in this protocol's units and not a share of anything, which the one
  * occurrence settles by arithmetic: it raises its subject's stated percentage by what that many
- * points of their pool comes to (`develop:docs/protocol-keys.md`).
+ * points of their pool comes to (`docs/protocol-keys.md`).
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";

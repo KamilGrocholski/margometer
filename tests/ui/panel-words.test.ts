@@ -1160,7 +1160,7 @@ Deno.test("every word the element column draws is one the game prints", () => {
 /**
  * The same for the defences, and for the same reason: the card draws these under `Zatrzymane` where
  * a player is reading the game's own vocabulary everywhere around them. `develop ADR 0077` extends
- * `develop ADR 0073`'s decision to this table; `develop:docs/protocol-keys.md` carries the
+ * `develop ADR 0073`'s decision to this table; `docs/protocol-keys.md` carries the
  * measurement key by key, and `blok` is both the client's token and a word the article prints.
  */
 Deno.test("every word a defence is drawn under is one the game prints", () => {

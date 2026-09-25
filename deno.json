@@ -65,8 +65,12 @@
         "game:buffs": "deno run -A tools/buff-bit-table.ts",
         // Every skill the game publishes, and the turns each effect runs for.
         "game:skills": "deno run -A tools/skill-table.ts",
-        // The published help, cached and searched, and the counts the panel's words are held to.
+        // The published help, cached and searched, and the counts `docs/protocol-keys.md`'s claims
+        // and the panel's words are held to. A freeze counts what the register cites.
         "game:help": "deno run -A tools/help-article.ts",
+        // What every key states about itself over `captures/`, beside the `_Shape:_` line
+        // `docs/protocol-keys.md` writes for it: where a count in the register comes from.
+        "game:shape": "deno run -A tools/protocol-key-shape.ts",
         // How a recording the add-on wrote becomes material: redacted, and written into
         // `captures/` for a person to read and commit.
         "capture:intake": "deno run -A tools/capture-intake.ts",

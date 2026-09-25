@@ -3,7 +3,7 @@
  *
  * The tick names its victim and nothing else, and the announcement carries no figure, so a tick
  * cannot be matched to an application, and the reading that charges one to whoever applied it has
- * nothing to stand on (`develop:docs/protocol-keys.md`).
+ * nothing to stand on (`docs/protocol-keys.md`).
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";

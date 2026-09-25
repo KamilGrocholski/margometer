@@ -46,6 +46,8 @@ The documents this tree carries:
   numbering of them.
 - [`docs/reading-a-turn.md`](docs/reading-a-turn.md) — how a message becomes a turn, and where that
   reading and the game disagree.
+- [`docs/protocol-keys.md`](docs/protocol-keys.md) — what each protocol key means, and how that is
+  known.
 
 A document joins this list in the commit that creates it (**C9**). **`develop:path` and
 `develop ADR NNNN` name `develop` as it stood at `fa1dcce`**, before this rewrite replaced it:
@@ -111,6 +113,8 @@ joins it in the commit that creates the file.
 - `docs/design.md` — the architecture: layers, ports, types, the process, the failure map, the file
   format
 - `docs/drill-levels.md` — every kind of row the panel draws, and whether pressing it opens anything
+- `docs/protocol-keys.md` — every protocol key looked into: its verdict, its shape over the
+  recordings, and the evidence
 - `docs/reading-a-turn.md` — how a message becomes a turn, and every message where that and the
   game's numbering disagree
 - `docs/releasing.md` — every step of cutting a release, in order
@@ -129,6 +133,8 @@ joins it in the commit that creates the file.
   refreshed by this tree's own tools
 - `docs/adr/0006-an-if-that-does-not-leave-has-an-else.md` — an `if` that does not leave has an
   `else`, and a guard is exempt
+- `docs/adr/0007-the-protocol-key-register-is-carried-and-a-help-freeze-counts-what-it-cites.md` —
+  `develop`'s key register carried, and the help counts taken from its claims
 
 - `frozen/AGENTS.md` — the rules for the dated readings of the game: written by tooling, never by
   hand
@@ -307,6 +313,8 @@ joins it in the commit that creates the file.
   `game:readings`
 - `tools/help-article.ts` — the published help, cached, searched and its phrase counts frozen:
   `game:help`
+- `tools/help-claim-register.ts` — the claims `docs/protocol-keys.md` makes of the published help,
+  read back into phrases
 - `tools/margometer-tool-error.ts` — `MargoMeterToolError`, the abstract base every tool failure
   extends
 - `tools/panel-giving-way.ts` — the panel with a region that will not draw, built from a copy of the
@@ -320,6 +328,8 @@ joins it in the commit that creates the file.
 - `tools/preview-site.ts` — builds the one-page preview GitHub Pages publishes, which keeps nothing
   and plays its fight once: `preview:site`
 - `tools/preview-state.ts` — what `deno task preview` carries in its address across a reload
+- `tools/protocol-key-shape.ts` — what each key states about itself over the recordings, beside the
+  register's line: `game:shape`
 - `tools/protocol-key-table.ts` — lifts every protocol key the game client branches on from its
   bundle: `game:keys`
 - `tools/recorded-material.ts` — the recordings a tool reports on, each fight replayed through the
@@ -772,6 +782,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/skill-durations.test.ts`         | ADR 0005                  |
 | `tests/repository/redacted-names.test.ts`          | `captures/AGENTS.md`      |
 | `tests/repository/captured-fight-register.test.ts` | `docs/captured-fights.md` |
+| `tests/repository/protocol-keys.test.ts`           | `docs/protocol-keys.md`   |
 | `tests/repository/cited-paths.test.ts`             | C3, C15                   |
 | `tests/repository/broad-catches.test.ts`           | E4                        |
 | `tests/repository/handed-callbacks.test.ts`        | E10                       |

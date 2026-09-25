@@ -3,7 +3,7 @@
  *
  * The health witness cannot see this key: the recording that carried it first arrives as one
  * engine call with no snapshot before its messages, so the replay produces no comparison. The
- * arithmetic is held here instead (`develop:docs/protocol-keys.md`).
+ * arithmetic is held here instead (`docs/protocol-keys.md`).
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";

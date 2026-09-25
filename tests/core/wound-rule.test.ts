@@ -4,7 +4,7 @@
  * The health witness cannot judge the one fight carrying this key: it arrives as a single engine
  * call with no opening snapshot, so the replay seeds no running total. The evidence chains from a
  * stated percentage instead, and this is where that chain is walked
- * (`develop:docs/protocol-keys.md`).
+ * (`docs/protocol-keys.md`).
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";

@@ -16,8 +16,8 @@ The **reader**: one person, running the add-on in their own browser, looking at 
 There are no accounts, no groups, no shared state and no server. Everything the panel knows, it read
 off the page a moment ago or off this browser's own storage.
 
-Secondarily, whoever wants to understand the battle protocol: `develop:docs/protocol-keys.md` is a
-public record of what each key means and how we know.
+Secondarily, whoever wants to understand the battle protocol: `docs/protocol-keys.md` is a public
+record of what each key means and how we know.
 
 ## The core problem
 
@@ -79,8 +79,8 @@ Three things stand in for metrics:
 - **Protocol coverage** over `captures/`, asserted by the gate rather than reported by a tool.
 - **Agreement with the recordings** — figures the meter computes against health snapshots the
   protocol never states.
-- **The register in `develop:docs/protocol-keys.md`**: how many keys have a verdict backed by
-  evidence rather than a guess.
+- **The register in `docs/protocol-keys.md`**: how many keys have a verdict backed by evidence
+  rather than a guess.
 
 A claim about the add-on in a README or a release note is backed by one of those three, or it is not
 made.

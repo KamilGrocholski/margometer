@@ -15,6 +15,7 @@ export const TOOL_ERROR_CODE = {
     gameSource: "GameSource",
     gameUnreachable: "GameUnreachable",
     protocolKeyTable: "ProtocolKeyTable",
+    protocolKeyShape: "ProtocolKeyShape",
     buffBitTable: "BuffBitTable",
     skillTable: "SkillTable",
     helpArticle: "HelpArticle",
@@ -98,6 +99,13 @@ export class GameUnreachableError extends MargoMeterToolError {
 export class ProtocolKeyTableError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.protocolKeyTable, reason, options);
+    }
+}
+
+/** A key stated in a shape no phrase says, or a register line this tool cannot read. */
+export class ProtocolKeyShapeError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.protocolKeyShape, reason, options);
     }
 }
 

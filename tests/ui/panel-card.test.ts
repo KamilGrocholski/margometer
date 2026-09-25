@@ -313,7 +313,7 @@ Deno.test("a caveat and a suspicion stand on one card, each under its own mark",
 });
 
 /**
- * Which end a key belongs to is read per key from `develop:docs/protocol-keys.md` and never off the
+ * Which end a key belongs to is read per key from `docs/protocol-keys.md` and never off the
  * sign: `+legbon_curse` fires when its holder attacks and `-legbon_cleanse` when its holder is
  * struck, on messages of one shape. The heading is what says whose each line is.
  * `develop ADR 0032`.

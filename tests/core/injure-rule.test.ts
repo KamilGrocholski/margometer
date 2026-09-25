@@ -4,7 +4,7 @@
  * The help says a victim carries one wound at a time and the freshest overwrites it, so the
  * freshest `+injure` against a victim is whose wound is ticking and the figure says which one it
  * is. This file holds that over the material, and pins where the reading stops
- * (`develop:docs/protocol-keys.md`).
+ * (`docs/protocol-keys.md`).
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";

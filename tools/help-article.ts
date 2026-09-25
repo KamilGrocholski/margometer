@@ -14,7 +14,7 @@ import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import { callForeign } from "#/libs/result.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
-import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
+import { parseCitedHelpPhrases, REGISTER_PATH } from "./help-claim-register.ts";
 import { GameUnreachableError, HelpArticleError } from "./margometer-tool-error.ts";
 
 export interface CachedHelpArticle {
@@ -54,16 +54,19 @@ export const FROZEN_HELP_BANNER =
 
 /**
  * The counts written to `frozen/`, dated by the dump they were taken over. The phrases are the
- * ones the table already counts, and any named besides: a re-freeze needs no list retyped, and a
- * phrase is counted before anything cites it. `develop:docs/protocol-keys.md` is what cited them.
+ * ones `docs/protocol-keys.md` cites, and any named besides: a re-freeze needs no list retyped, a
+ * phrase is counted before a claim cites it, and one no claim cites any more is dropped.
  */
 export function writeFrozenHelpCounts(
     article: string,
     named: readonly string[],
 ): { fetchedAt: string; counts: [string, number][] } {
     const { cached, text } = requireCachedArticleText(article);
-    const phrases = [...Object.keys(FROZEN_HELP_PHRASES.counts), ...named];
-    const counts = countPhrases(text, phrases);
+    const cited = parseCitedHelpPhrases(Deno.readTextFileSync(REGISTER_PATH));
+    if (cited.length === 0) {
+        throw new HelpArticleError(`${REGISTER_PATH} cites no phrase, and freeze counts nothing`);
+    }
+    const counts = countPhrases(text, [...cited, ...named]);
     Deno.writeTextFileSync(FROZEN_PATH, encodeFrozenHelpModule(article, cached.fetchedAt, counts));
     assert(counts.length > 0, "a table that was written down counts something");
     return { fetchedAt: cached.fetchedAt, counts };

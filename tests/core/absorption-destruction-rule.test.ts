@@ -3,7 +3,7 @@
  *
  * A reading off one recording finds one value and concludes the key states it. The corpus does
  * not: casters disagree, and each is consistent with themselves across fights, which is what makes
- * the share the caster's (`develop:docs/protocol-keys.md`).
+ * the share the caster's (`docs/protocol-keys.md`).
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";

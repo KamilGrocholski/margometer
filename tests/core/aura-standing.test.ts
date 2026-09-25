@@ -243,7 +243,7 @@ Deno.test("every recording answers, and nothing stands longer than the table giv
 });
 
 Deno.test("which side a cast reaches is the register's word, and never a guess", () => {
-    // `develop:docs/protocol-keys.md` records each of these against the published help.
+    // `docs/protocol-keys.md` records each of these against the published help.
     assertStrictEquals(
         lookupReachOfEffects([{ effect: "+spell-taken_dmg-all" }]),
         "other-side",

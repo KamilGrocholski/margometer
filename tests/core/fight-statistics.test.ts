@@ -109,7 +109,7 @@ const PREPARE_BESIDE = "-10124094=23.21;0;prepare=Osobisty rozrachunek(0%)";
 /**
  * `2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json`, payload 0: an announcement, the
  * damage it landed on five combatants **by name**, and the two preparations stated after it. The
- * damage is that same combatant striking (`develop:docs/protocol-keys.md` reads `+oth_dmg`'s cause
+ * damage is that same combatant striking (`docs/protocol-keys.md` reads `+oth_dmg`'s cause
  * off the message actor), so nothing between the announcement and the preparations is anybody
  * else's.
  */
@@ -281,7 +281,7 @@ Deno.test("health restored is not damage, and its own key says who gave it", () 
     assertEquals(healed?.healthRestored, 99, "the health the protocol says came back");
     assertEquals(healed?.damageTakenApplied, 0, "no total of damage moved");
     assertEquals(statistics.dealtByNobody, 0, "and no attacker was invented to balance it");
-    // `heal` carries `_Cause:_ the subject's own` in `develop:docs/protocol-keys.md`, so the giver
+    // `heal` carries `_Cause:_ the subject's own` in `docs/protocol-keys.md`, so the giver
     // is the one healed: on the published help's word, not because the grammar names one end.
     assertEquals(healed?.healthGiven, 99, "the same combatant is credited with giving it");
     assertEquals(statistics.givenByNobody, 0, "so none of it is left charged to nobody");
@@ -306,7 +306,7 @@ Deno.test("a restoring key nothing announced and no help claims is charged to no
 
 /**
  * The same key with the announcement it was stated on, which is where the giver comes from
- * (`develop:docs/protocol-keys.md`, `_Cause:_ the announcement's actor`). The healer is not the
+ * (`docs/protocol-keys.md`, `_Cause:_ the announcement's actor`). The healer is not the
  * healed here, so a reading that took the message's own slots would credit the wrong person.
  */
 Deno.test("a restoring key credits whoever announced it, and names the skill on their row", () => {

@@ -46,7 +46,7 @@ const UNSIZED_SHARE_KEY = "healall_per";
  * The key that raises the pool a percentage is read against, once, on the initiation layer. The
  * snapshots state the maximum **after** the raise and the protocol never restates one, so a
  * percentage stated before it is read against a maximum that had not grown yet
- * (`develop:docs/protocol-keys.md`).
+ * (`docs/protocol-keys.md`).
  */
 const POOL_RAISE_KEY = "hp_per-allies";
 /** Two readings, each standing for a band of its own, so the distance between them is doubled. */
@@ -71,7 +71,7 @@ Deno.test("what was read agrees with the health the protocol states about itself
     assert(reading.died > 0, "a killing blow lands more than the health that was left");
     assert(reading.appeared > 0, "and health still appears where a cast could not be sized");
     // The pool raise, which one recording carries: `hp_per-allies` grows the maximum the two
-    // percentages either side of it are read against (`develop:docs/protocol-keys.md`).
+    // percentages either side of it are read against (`docs/protocol-keys.md`).
     assert(reading.raised > 0, "and a pool that grew is read as a maximum that moved");
 });
 
