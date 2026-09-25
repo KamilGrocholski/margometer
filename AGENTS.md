@@ -476,5 +476,6 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/type-assertions.test.ts`         | C13                       |
 | `tests/repository/control-flow.test.ts`            | S1                        |
 | `tests/repository/comment-share.test.ts`           | C4, C16                   |
+| `tests/repository/design-tokens.test.ts`           | `DESIGN.md`               |
 | `deno check --config project/browser-lib.json`     | the browser floor         |
 | `requireBundleInBrowser` in the build              | Never: the network        |
