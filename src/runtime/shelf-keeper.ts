@@ -142,6 +142,32 @@ function keepShelfFight(state: KeeperState, fight: KeptFight): void {
     setShelfRefused(state, rotateShelf(next));
 }
 
+/** What went down is what is drawn: a store that asked for less leaves the shelf a reload finds. */
+function setShelfWritten(state: KeeperState, contents: ShelfContents, offered: number): void {
+    assert(contents.fights.length <= offered, "a store never keeps more than it was offered");
+    assert(offered <= KEPT_MAXIMUM, "and was offered a shelf inside its bound");
+    state.answers.hasStoreRefused = false;
+    state.answers.hasStoreMadeRoom = contents.fights.length < offered;
+    state.fights = contents.fights;
+    keepShelfReadings(state);
+}
+
+function keepShelfReadings(state: KeeperState): void {
+    for (const openedAt of [...state.readings.keys()]) {
+        if (state.fights.some((one) => one.openedAt === openedAt)) continue;
+        state.readings.delete(openedAt);
+    }
+    assert(state.readings.size <= KEPT_MAXIMUM, "a reading is held for a fight on the shelf");
+}
+
+function setShelfRefused(state: KeeperState, asked: readonly KeptFight[]): void {
+    assert(asked.length <= KEPT_MAXIMUM, "what a reader asked for is inside the shelf's bound");
+    state.answers.hasStoreRefused = true;
+    state.answers.hasStoreMadeRoom = false;
+    state.fights = asked;
+    keepShelfReadings(state);
+}
+
 function pinShelfFight(state: KeeperState, openedAt: number): void {
     const held = state.fights.find((one) => one.openedAt === openedAt);
     // A pin on a fight no longer kept asks for nothing: the next frame shows the shelf as it is.
@@ -180,30 +206,4 @@ function chooseShelfStore(state: KeeperState, choice: StorageChoice): void {
     state.choice = choice;
     state.store = moved;
     setShelfWritten(state, written.value.contents, offered);
-}
-
-/** What went down is what is drawn: a store that asked for less leaves the shelf a reload finds. */
-function setShelfWritten(state: KeeperState, contents: ShelfContents, offered: number): void {
-    assert(contents.fights.length <= offered, "a store never keeps more than it was offered");
-    assert(offered <= KEPT_MAXIMUM, "and was offered a shelf inside its bound");
-    state.answers.hasStoreRefused = false;
-    state.answers.hasStoreMadeRoom = contents.fights.length < offered;
-    state.fights = contents.fights;
-    keepShelfReadings(state);
-}
-
-function setShelfRefused(state: KeeperState, asked: readonly KeptFight[]): void {
-    assert(asked.length <= KEPT_MAXIMUM, "what a reader asked for is inside the shelf's bound");
-    state.answers.hasStoreRefused = true;
-    state.answers.hasStoreMadeRoom = false;
-    state.fights = asked;
-    keepShelfReadings(state);
-}
-
-function keepShelfReadings(state: KeeperState): void {
-    for (const openedAt of [...state.readings.keys()]) {
-        if (state.fights.some((one) => one.openedAt === openedAt)) continue;
-        state.readings.delete(openedAt);
-    }
-    assert(state.readings.size <= KEPT_MAXIMUM, "a reading is held for a fight on the shelf");
 }

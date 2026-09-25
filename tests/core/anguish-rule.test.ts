@@ -25,19 +25,6 @@ const ANNOUNCEMENT_KEY = "+legbon_anguish";
  */
 const TWO_APPLIERS = "captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json";
 
-function parseOrFail(text: string, path: string): ProtocolMessage {
-    const parsed = parseProtocolMessage(text);
-    assert(parsed.ok, `${path}: every recorded message parses`);
-    return parsed.value;
-}
-
-function decodeTwoAppliers() {
-    const fight = lookupRecordedFight(TWO_APPLIERS);
-    const roster = indexCombatantRoster(fight.combatants);
-    const context = { roster, standing: null, tables: BLOWS_GRANTED };
-    return decodePayloadMessages(fight.messages, context).events;
-}
-
 Deno.test("every tick names its victim in the actor slot and nobody at the other end", () => {
     let ticks = 0;
     for (const fight of readRecordedFights()) {
@@ -52,6 +39,12 @@ Deno.test("every tick names its victim in the actor slot and nobody at the other
     }
     assertEquals(ticks, 73, "every tick the material carries was read, 2026-09-19");
 });
+
+function parseOrFail(text: string, path: string): ProtocolMessage {
+    const parsed = parseProtocolMessage(text);
+    assert(parsed.ok, `${path}: every recorded message parses`);
+    return parsed.value;
+}
 
 Deno.test("the announcement carries no figure, so nothing says which application ticks", () => {
     let announcements = 0;
@@ -96,6 +89,13 @@ Deno.test("a tick is charged to its victim, and to nobody who applied the bleed"
         assert(!victims.has(applier), "and never on whoever applied it");
     }
 });
+
+function decodeTwoAppliers() {
+    const fight = lookupRecordedFight(TWO_APPLIERS);
+    const roster = indexCombatantRoster(fight.combatants);
+    const context = { roster, standing: null, tables: BLOWS_GRANTED };
+    return decodePayloadMessages(fight.messages, context).events;
+}
 
 Deno.test("the bleed reaches the victim's own figures and credits nobody with dealing it", () => {
     const bled = decodeTwoAppliers().filter((event) =>

@@ -22,6 +22,7 @@ export interface AstNode {
     computed?: boolean;
     source?: { value?: unknown } | null;
     regex?: { pattern: string } | null;
+    body?: AstNode[] | AstNode | null;
     declaration?: AstNode | null;
     declarations?: AstNode[];
     id?: AstNode | null;
@@ -34,14 +35,15 @@ interface LintPlugin {
     name: string;
     rules: Record<string, { create: () => AstVisitor }>;
 }
-const lint = (Deno as unknown as {
-    lint: { runPlugin(plugin: LintPlugin, filename: string, source: string): unknown };
-}).lint;
 
 export interface SourceFile {
     path: string;
     text: string;
 }
+
+const lint = (Deno as unknown as {
+    lint: { runPlugin(plugin: LintPlugin, filename: string, source: string): unknown };
+}).lint;
 
 export const SOURCE_DIRECTORIES = ["libs", "src", "tests", "tools"] as const;
 export const FUNCTION_NODES = [

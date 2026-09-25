@@ -20,36 +20,6 @@ import type {
 import type { CapturedCall } from "#/src/game/fight-capture.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
 
-/**
- * 4 states what it could not read as `null`; 3 was the envelope in English, 2 Polish and carrying
- * `raport`, 1 Polish without it. Intake takes every one of them (`develop ADR 0030`, `0053`).
- */
-const FILE_FORMAT_VERSION = 4;
-
-/** The file's own field names, read back by whatever reads a recording (N13). */
-export const FILE_FIELD = {
-    formatVersion: "formatVersion",
-    addOnVersion: "addOnVersion",
-    capturedAt: "capturedAt",
-    world: "world",
-    gameBuild: "gameBuild",
-    userAgent: "userAgent",
-    report: "report",
-    droppedCalls: "droppedCalls",
-    isTruncated: "isTruncated",
-    calls: "calls",
-    index: "index",
-    payload: "payload",
-    messages: "messages",
-    combatantsBefore: "combatantsBefore",
-    combatantsAfter: "combatantsAfter",
-} as const;
-
-/** So a difference between two recordings is something a person can read. */
-const INDENT_SPACES = 2;
-/** In a name, where a sentence would write `none stated`. */
-const NOTHING_STATED = "none";
-
 /** What a recording states, however it was come by. Null is what nobody measured. */
 export interface FileCalls {
     calls: readonly CapturedCall[];
@@ -105,6 +75,36 @@ type ReportRow = {
             ? Record<string, Record<string, number>>
         : Record<string, ReportSkill>;
 };
+
+/**
+ * 4 states what it could not read as `null`; 3 was the envelope in English, 2 Polish and carrying
+ * `raport`, 1 Polish without it. Intake takes every one of them (`develop ADR 0030`, `0053`).
+ */
+const FILE_FORMAT_VERSION = 4;
+
+/** The file's own field names, read back by whatever reads a recording (N13). */
+export const FILE_FIELD = {
+    formatVersion: "formatVersion",
+    addOnVersion: "addOnVersion",
+    capturedAt: "capturedAt",
+    world: "world",
+    gameBuild: "gameBuild",
+    userAgent: "userAgent",
+    report: "report",
+    droppedCalls: "droppedCalls",
+    isTruncated: "isTruncated",
+    calls: "calls",
+    index: "index",
+    payload: "payload",
+    messages: "messages",
+    combatantsBefore: "combatantsBefore",
+    combatantsAfter: "combatantsAfter",
+} as const;
+
+/** So a difference between two recordings is something a person can read. */
+const INDENT_SPACES = 2;
+/** In a name, where a sentence would write `none stated`. */
+const NOTHING_STATED = "none";
 
 /**
  * The recording as the file on disk. Two fields are about the reader rather than the fight, and
@@ -255,6 +255,23 @@ function encodeReportRow(figures: CombatantFigures): ReportRow {
     };
 }
 
+/** A cut as an object, because JSON holds no map and a report is read as text. */
+function encodeReportCut(cut: ReadonlyMap<string, number>): Record<string, number> {
+    const written: Record<string, number> = {};
+    for (const [key, amount] of cut) written[key] = amount;
+    assert(Object.keys(written).length === cut.size, "every cut is written down");
+    return written;
+}
+
+function encodeReportPairCut(
+    cut: ReadonlyMap<string, ReadonlyMap<string, number>>,
+): Record<string, Record<string, number>> {
+    const written: Record<string, Record<string, number>> = {};
+    for (const [key, held] of cut) written[key] = encodeReportCut(held);
+    assert(Object.keys(written).length === cut.size, "every cut of a cut is written down");
+    return written;
+}
+
 function encodeReportSkills(
     skills: ReadonlyMap<string, SkillFigures>,
 ): Record<string, ReportSkill> {
@@ -272,22 +289,5 @@ function encodeReportSkills(
         };
     }
     assert(Object.keys(written).length === skills.size, "and every one of them is written down");
-    return written;
-}
-
-function encodeReportPairCut(
-    cut: ReadonlyMap<string, ReadonlyMap<string, number>>,
-): Record<string, Record<string, number>> {
-    const written: Record<string, Record<string, number>> = {};
-    for (const [key, held] of cut) written[key] = encodeReportCut(held);
-    assert(Object.keys(written).length === cut.size, "every cut of a cut is written down");
-    return written;
-}
-
-/** A cut as an object, because JSON holds no map and a report is read as text. */
-function encodeReportCut(cut: ReadonlyMap<string, number>): Record<string, number> {
-    const written: Record<string, number> = {};
-    for (const [key, amount] of cut) written[key] = amount;
-    assert(Object.keys(written).length === cut.size, "every cut is written down");
     return written;
 }

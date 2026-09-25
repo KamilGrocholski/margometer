@@ -12,12 +12,6 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
 import { CHARGE_BROKEN_KEY } from "./protocol-key.ts";
 
-/**
- * Past every charge the corpus has held at once, which is **one**, in every payload of every
- * recording, 2026-09-11. A clamp rather than a bound: a fight holding more draws the first of them.
- */
-export const CHARGED_SKILLS_MAXIMUM = 4;
-
 /** Charging, or one of the two ends the protocol names. The other endings state nothing. */
 export const CHARGED_SKILL_STATE = {
     charging: "charging",
@@ -43,6 +37,12 @@ export interface ChargedSkillStanding {
     /** The turn the game numbered when it ended. Null while charging, and where it numbers none. */
     endedAtOrdinal: number | null;
 }
+
+/**
+ * Past every charge the corpus has held at once, which is **one**, in every payload of every
+ * recording, 2026-09-11. A clamp rather than a bound: a fight holding more draws the first of them.
+ */
+export const CHARGED_SKILLS_MAXIMUM = 4;
 
 /**
  * What stands after this payload: every charge the envelope states, and every one that ended under
@@ -123,6 +123,17 @@ function indexBrokenIds(events: readonly BattleEvent[]): Set<number> {
 }
 
 /**
+ * ⚠️ **One turn is one payload**: over `develop:captures/` 2026-09-11 the game's own turn number
+ * moves by one on the very next payload, 24 times out of 24. Where it numbers no turn at all, the
+ * mark lasts the payload it was made on and no longer.
+ */
+function isPastItsTurn(standing: ChargedSkillStanding, ordinal: number | null): boolean {
+    if (standing.endedAtOrdinal === null) return true;
+    if (ordinal === null) return true;
+    return ordinal > standing.endedAtOrdinal;
+}
+
+/**
  * Which of the two ends this charge came to, or null where the protocol names neither: the
  * combatant fell, or the charge went away under nothing this reader can see.
  */
@@ -137,17 +148,6 @@ function lookupEndedState(
     }
     if (broken.has(standing.combatantId)) return CHARGED_SKILL_STATE.broken;
     return null;
-}
-
-/**
- * ⚠️ **One turn is one payload**: over `develop:captures/` 2026-09-11 the game's own turn number
- * moves by one on the very next payload, 24 times out of 24. Where it numbers no turn at all, the
- * mark lasts the payload it was made on and no longer.
- */
-function isPastItsTurn(standing: ChargedSkillStanding, ordinal: number | null): boolean {
-    if (standing.endedAtOrdinal === null) return true;
-    if (ordinal === null) return true;
-    return ordinal > standing.endedAtOrdinal;
 }
 
 function prepareChargedSkillsCharging(

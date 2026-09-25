@@ -106,38 +106,6 @@ const REDUCTION_NOTE = `${CAVEATED} ${getNoteForCaveat(CAVEAT.reduction)}`;
 /** And the one a count of turns owes. */
 const TURNS_NOTE = `${CAVEATED} ${getNoteForCaveat(CAVEAT.turns)}`;
 
-/**
- * One group as a reader meets it, so an expectation reads like the window does — **the glyph
- * included**. Left out of this reader, a figure that lost its mark would read the same as one that
- * never had it, and every frozen list below would stay green through the loss.
- */
-function readGroup(group: TipGroup): string[] {
-    return group.lines.map((line) => {
-        // The mark a sentence wears is read off its tone, which is where the panel reads it too.
-        if (line.kind === TIP_LINE.note) {
-            return line.tone === TIP_NOTE_TONE.caveat ? `${CAVEATED} ${line.text}` : line.text;
-        }
-        if (line.kind === TIP_LINE.heading) return `[${line.text}]`;
-        if (line.kind === TIP_LINE.sub) return `  ${line.label} ${line.stated}`;
-        const said = line.caveat === null ? line.label : `${line.label} ${CAVEATED}`;
-        return line.isStrong ? `**${said}** ${line.stated}` : `${said} ${line.stated}`;
-    });
-}
-
-/** One card, flattened, for a test that asks what a card as a whole does and does not say. */
-function readCardOf(detail: RowDetail): string[] {
-    return presentCard({
-        name: "Gracz 9",
-        profession: null,
-        sidePart: SIDE_PART.nobody,
-        detail,
-        metric: PANEL_METRIC.damageTakenApplied,
-        doesOpen: false,
-        isRowNarrower: false,
-        translate: null,
-    }).groups.flatMap(readGroup);
-}
-
 Deno.test("the whole fight is a block of its own, and the screen's figure is in bold", () => {
     const card = presentCard({
         name: "Hildur Muza Śmierci",
@@ -190,6 +158,24 @@ Deno.test("the whole fight is a block of its own, and the screen's figure is in 
         "each figure whose label names more than it counts is owed its own sentence, in order",
     );
 });
+
+/**
+ * One group as a reader meets it, so an expectation reads like the window does — **the glyph
+ * included**. Left out of this reader, a figure that lost its mark would read the same as one that
+ * never had it, and every frozen list below would stay green through the loss.
+ */
+function readGroup(group: TipGroup): string[] {
+    return group.lines.map((line) => {
+        // The mark a sentence wears is read off its tone, which is where the panel reads it too.
+        if (line.kind === TIP_LINE.note) {
+            return line.tone === TIP_NOTE_TONE.caveat ? `${CAVEATED} ${line.text}` : line.text;
+        }
+        if (line.kind === TIP_LINE.heading) return `[${line.text}]`;
+        if (line.kind === TIP_LINE.sub) return `  ${line.label} ${line.stated}`;
+        const said = line.caveat === null ? line.label : `${line.label} ${CAVEATED}`;
+        return line.isStrong ? `**${said}** ${line.stated}` : `${said} ${line.stated}`;
+    });
+}
 
 /**
  * **A figure before reduction stands in the run of its own end, and under no figure at all.** The
@@ -258,6 +244,20 @@ Deno.test("a figure before reduction stands in its own run, under no figure", ()
     });
     assert(!without.includes(REDUCTION_NOTE), "and a card with neither owes no sentence about one");
 });
+
+/** One card, flattened, for a test that asks what a card as a whole does and does not say. */
+function readCardOf(detail: RowDetail): string[] {
+    return presentCard({
+        name: "Gracz 9",
+        profession: null,
+        sidePart: SIDE_PART.nobody,
+        detail,
+        metric: PANEL_METRIC.damageTakenApplied,
+        doesOpen: false,
+        isRowNarrower: false,
+        translate: null,
+    }).groups.flatMap(readGroup);
+}
 
 /**
  * The fifth claim `develop:CONTEXT.md` names, and it is not the suspect mark: a caveated figure is
@@ -798,23 +798,6 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
     );
 });
 
-/** The run about striking, on somebody whose blows carried these and nothing else. */
-function readStrikingProcs(procs: readonly { key: string; figure: number }[]): string[] {
-    const card = presentCard({
-        name: "Amaimon Soploręki",
-        profession: "p",
-        sidePart: SIDE_PART.nobody,
-        detail: { ...NOBODY, blowsStruck: 20, procsWhenStriking: [...procs] },
-        metric: PANEL_METRIC.damageDealtApplied,
-        doesOpen: false,
-        isRowNarrower: false,
-        translate: null,
-    });
-    const [, , striking] = card.groups;
-    assertExists(striking, "they struck, so the run about striking stands");
-    return readGroup(striking);
-}
-
 /**
  * A wound something weakened is a wound, and it is counted in the wound's own row
  * (`develop ADR 0095`). A row of its own answers a question nobody asks, and leaves the one a
@@ -831,6 +814,23 @@ Deno.test("every deep wound is counted in one row, and the weakened ones stand u
         "the row counts all six, and the line under it says how many of them were weakened",
     );
 });
+
+/** The run about striking, on somebody whose blows carried these and nothing else. */
+function readStrikingProcs(procs: readonly { key: string; figure: number }[]): string[] {
+    const card = presentCard({
+        name: "Amaimon Soploręki",
+        profession: "p",
+        sidePart: SIDE_PART.nobody,
+        detail: { ...NOBODY, blowsStruck: 20, procsWhenStriking: [...procs] },
+        metric: PANEL_METRIC.damageDealtApplied,
+        doesOpen: false,
+        isRowNarrower: false,
+        translate: null,
+    });
+    const [, , striking] = card.groups;
+    assertExists(striking, "they struck, so the run about striking stands");
+    return readGroup(striking);
+}
 
 /**
  * Zero is a boundary (**W5**), and this is the zero: the sub-line is not drawn reading nothing,

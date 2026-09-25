@@ -11,14 +11,6 @@ import { PANEL_DEFECT_KIND, PANEL_REGION } from "#/src/ui/panel-words.ts";
 /** Past this the ledger stops counting, restated here on purpose: it is not exported. */
 const COUNT_STATED = 1048576;
 
-function composeLedger() {
-    const lines: [string, unknown][] = [];
-    const ledger = initDefectLedger({
-        writeBrandedLine: (kind, detail) => void lines.push([kind, detail]),
-    });
-    return { ledger, lines };
-}
-
 const FIRST = { kind: RESULT_FAILURE.invariantBroken, cause: "first" } as const;
 const SECOND = { kind: RESULT_FAILURE.invariantBroken, cause: "second" } as const;
 
@@ -33,6 +25,14 @@ Deno.test("the first defect of a kind writes one line, and the rest are counted"
     const row = { kind: DEFECT_KIND.reading, region: null, count: 3, first: FIRST };
     assertEquals(counts, [row], "three, and the first");
 });
+
+function composeLedger() {
+    const lines: [string, unknown][] = [];
+    const ledger = initDefectLedger({
+        writeBrandedLine: (kind, detail) => void lines.push([kind, detail]),
+    });
+    return { ledger, lines };
+}
 
 Deno.test("counts are kept per kind, and each kind has its own line", () => {
     const { ledger, lines } = composeLedger();

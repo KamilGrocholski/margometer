@@ -50,27 +50,27 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
 }
 
 /**
- * A fight that opens puts the panel back on its ranking, and only for a reader on the live fight.
- * ⚠️ **A row left open would find somebody in the next fight**: a party keeps its ids from one
- * fight to the next, ten of them shared between `develop:captures/2026-08-15-tempest-grupa-vs-
- * hildur-1` and `-2`, read 2026-08-31.
+ * The person stays, since they exist on every screen; the pair, the part and a pinned row go, since
+ * each names a figure of one direction or one noun that the next screen does not draw.
  */
-export function resetScreenOnOpening(screen: ScreenState): void {
-    if (screen.openFightId !== null) return;
-    screen.openRowId = null;
-    screen.openUnnamedEnd = null;
+function setScreenMetric(screen: ScreenState, metric: ScreenState["current"]): boolean {
+    screen.current = metric;
+    screen.isOnShelf = false;
     screen.openPairId = null;
     screen.openPart = null;
+    screen.openUnnamedEnd = null;
+    return true;
 }
 
-function setScreenFight(screen: ScreenState, openedAt: number | null): void {
-    if (openedAt !== null) assert(Number.isSafeInteger(openedAt), "a fight is chosen by a moment");
-    screen.openFightId = openedAt;
+/** A side decides who is on the list, so whatever was opened before may not be on it any more. */
+function setScreenSide(screen: ScreenState, side: ScreenState["side"]): boolean {
+    screen.side = side;
     screen.isOnShelf = false;
     screen.openRowId = null;
     screen.openUnnamedEnd = null;
     screen.openPairId = null;
     screen.openPart = null;
+    return true;
 }
 
 /**
@@ -112,26 +112,26 @@ function closeScreenRung(screen: ScreenState): boolean {
     return true;
 }
 
-/** A side decides who is on the list, so whatever was opened before may not be on it any more. */
-function setScreenSide(screen: ScreenState, side: ScreenState["side"]): boolean {
-    screen.side = side;
+function setScreenFight(screen: ScreenState, openedAt: number | null): void {
+    if (openedAt !== null) assert(Number.isSafeInteger(openedAt), "a fight is chosen by a moment");
+    screen.openFightId = openedAt;
     screen.isOnShelf = false;
     screen.openRowId = null;
     screen.openUnnamedEnd = null;
     screen.openPairId = null;
     screen.openPart = null;
-    return true;
 }
 
 /**
- * The person stays, since they exist on every screen; the pair, the part and a pinned row go, since
- * each names a figure of one direction or one noun that the next screen does not draw.
+ * A fight that opens puts the panel back on its ranking, and only for a reader on the live fight.
+ * ⚠️ **A row left open would find somebody in the next fight**: a party keeps its ids from one
+ * fight to the next, ten of them shared between `develop:captures/2026-08-15-tempest-grupa-vs-
+ * hildur-1` and `-2`, read 2026-08-31.
  */
-function setScreenMetric(screen: ScreenState, metric: ScreenState["current"]): boolean {
-    screen.current = metric;
-    screen.isOnShelf = false;
+export function resetScreenOnOpening(screen: ScreenState): void {
+    if (screen.openFightId !== null) return;
+    screen.openRowId = null;
+    screen.openUnnamedEnd = null;
     screen.openPairId = null;
     screen.openPart = null;
-    screen.openUnnamedEnd = null;
-    return true;
 }

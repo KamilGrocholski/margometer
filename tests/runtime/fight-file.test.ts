@@ -54,56 +54,6 @@ const SURROUNDINGS: FileSurroundings = {
 
 const LIVE_EMPTY: FileCalls = NO_CAPTURE;
 
-/** A fight read from one payload with nobody in it: the smallest subject there is. */
-function composeEmptySubject(): FileSubject {
-    const roster = indexCombatantRoster([]);
-    return {
-        statistics: tallyFightStatistics([], new Map()),
-        roster,
-        place: null,
-        payloads: 1,
-        messagesLost: 0,
-        isOver: false,
-    };
-}
-
-/** Two combatants, a skill announced and its blow, and a blow glued to it landing nothing. */
-function composeFoughtSubject(): FileSubject {
-    const roster = indexCombatantRoster([
-        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
-        { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
-    ]);
-    const messages = [
-        "1=90.00;2=80.00;tspell=Cios;skillId=1;+dmg=100;-dmg=100",
-        "1=90.00;2=80.00;+dmg=100;-blok=100;-dmg=0",
-    ];
-    const events =
-        decodePayloadMessages(messages, { roster, standing: null, tables: BLOWS_GRANTED })
-            .events;
-    const statistics = tallyFightStatistics(events, new Map());
-    return { statistics, roster, place: null, payloads: 1, messagesLost: 0, isOver: false };
-}
-
-function writeFile(calls: FileCalls, subject: FileSubject | null, around = SURROUNDINGS) {
-    const file = encodeFightFile(calls, subject, around);
-    assert(file.ok, "a recording is written as text");
-    return file.value;
-}
-
-function readFile(text: string): UnknownRecord {
-    const parsed = parseJson(text);
-    assert(parsed.ok, "a recording written as text reads back as JSON");
-    assert(isRecord(parsed.value), "and reads back as a record");
-    return parsed.value;
-}
-
-function readRecordingText(path: string): string {
-    const args = ["show", `${RECORDINGS_REVISION}:${path}`];
-    const output = new Deno.Command("git", { args, stdout: "piped" }).outputSync();
-    assert(output.success, `${path} is a recording at ${RECORDINGS_REVISION}`);
-    return new TextDecoder().decode(output.stdout);
-}
-
 Deno.test("the envelope is the one every admitted recording already carries", () => {
     const admitted = readFile(readRecordingText(NEWEST));
     const written = readFile(writeFile(LIVE_EMPTY, null).text);
@@ -124,6 +74,26 @@ Deno.test("the envelope is the one every admitted recording already carries", ()
     assertEquals(written.gameBuild, "53XkBRxF", "the client's own build");
     assertEquals(written.isTruncated, false, "and a tail nothing was cut off");
 });
+
+function readFile(text: string): UnknownRecord {
+    const parsed = parseJson(text);
+    assert(parsed.ok, "a recording written as text reads back as JSON");
+    assert(isRecord(parsed.value), "and reads back as a record");
+    return parsed.value;
+}
+
+function readRecordingText(path: string): string {
+    const args = ["show", `${RECORDINGS_REVISION}:${path}`];
+    const output = new Deno.Command("git", { args, stdout: "piped" }).outputSync();
+    assert(output.success, `${path} is a recording at ${RECORDINGS_REVISION}`);
+    return new TextDecoder().decode(output.stdout);
+}
+
+function writeFile(calls: FileCalls, subject: FileSubject | null, around = SURROUNDINGS) {
+    const file = encodeFightFile(calls, subject, around);
+    assert(file.ok, "a recording is written as text");
+    return file.value;
+}
 
 Deno.test("a recording nobody measured says null, where one measured says a number", () => {
     const call = {
@@ -183,6 +153,19 @@ Deno.test("the figures travel with the calls, and nothing is written where none 
     assert(!text.includes('MargoMeter"'), "so the add-on's name is not in the file twice");
 });
 
+/** A fight read from one payload with nobody in it: the smallest subject there is. */
+function composeEmptySubject(): FileSubject {
+    const roster = indexCombatantRoster([]);
+    return {
+        statistics: tallyFightStatistics([], new Map()),
+        roster,
+        place: null,
+        payloads: 1,
+        messagesLost: 0,
+        isOver: false,
+    };
+}
+
 Deno.test("a file is named for the world, both versions and the moment", () => {
     const name = writeFile(LIVE_EMPTY, null).name;
     assertEquals(
@@ -236,6 +219,23 @@ Deno.test("every figure of a row is written, for each combatant and for the tota
     assertEquals(dealer.damageDealtByOpponentAndKind, { "2": { dmg: 100 } }, "a pair cut too");
     assertEquals(dealer.procsWhenStriking, {}, "and an empty cut is an empty object");
 });
+
+/** Two combatants, a skill announced and its blow, and a blow glued to it landing nothing. */
+function composeFoughtSubject(): FileSubject {
+    const roster = indexCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
+    ]);
+    const messages = [
+        "1=90.00;2=80.00;tspell=Cios;skillId=1;+dmg=100;-dmg=100",
+        "1=90.00;2=80.00;+dmg=100;-blok=100;-dmg=0",
+    ];
+    const events =
+        decodePayloadMessages(messages, { roster, standing: null, tables: BLOWS_GRANTED })
+            .events;
+    const statistics = tallyFightStatistics(events, new Map());
+    return { statistics, roster, place: null, payloads: 1, messagesLost: 0, isOver: false };
+}
 
 /** Two swings under one name, which is the row the panel draws for it (`develop ADR 0078`). */
 Deno.test("a skill row in the file carries its blows, which is what the panel drew it for", () => {

@@ -293,8 +293,12 @@ TypeScript idiom, with the naming rules stated here.
 
 ## Code
 
-- **C1.** Order matters even where it does not change semantics. Important things near the top;
-  within a module, types, then constants, then the exported entry, then its helpers.
+- **C1. A module reads top-down, in TigerBeetle's order: imports, types, constants, then functions,
+  the entry first.** A constant a type is derived from (`typeof`), a vocabulary above all, stands
+  with the types. A function the module does not export stands under the first function that calls
+  it and before the next exported one, so a helper is read after its caller and inside its caller's
+  run; in a test file each case opens a run as an export does. ADR 0003. _(`by-reading` which export
+  is the entry)_
 - **C2. A comment earns its place by carrying one of four things, and nothing else:** a measurement,
   with the material and date it was taken on; a constraint somebody else's system imposes; a
   rejected alternative and why it lost; a trap that will otherwise be fallen into twice.
@@ -435,6 +439,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | Guard                                            | Holds               |
 | ------------------------------------------------ | ------------------- |
 | `deno check`, strict, with unused names an error | S7                  |
+| `tests/repository/declaration-order.test.ts`     | C1                  |
 | `tests/repository/function-length.test.ts`       | S4                  |
 | `tests/repository/regular-expressions.test.ts`   | C7                  |
 | `tests/repository/import-paths.test.ts`          | C8                  |

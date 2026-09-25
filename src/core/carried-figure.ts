@@ -13,6 +13,31 @@ import type { CarriedStatus } from "./carried-status.ts";
 import type { CombatantRoster } from "./combatant-roster.ts";
 import { HASTE_AURA_KEY, KEY_REACH, lookupKeyReach, SLOW_ALL_KEY } from "./protocol-key.ts";
 
+/** One status, with what the announcements standing over its bearer come to. */
+export interface CarriedFigure {
+    combatantId: number;
+    bit: number;
+    /** A share of what the bearer has, or null where no cast over them may be read as theirs. */
+    percent: number | null;
+}
+
+/** What a reading of the fight hands over, so this file reads no walk of its own. */
+export interface CarriedFigureReading {
+    statuses: readonly CarriedStatus[];
+    standings: readonly AuraStanding[];
+    roster: CombatantRoster;
+    /** Turns taken per combatant, the clock a cast is held to while it stands on a bearer. */
+    turnsByCombatantId: ReadonlyMap<number, number>;
+    /** Which key moves which bit, handed over by whoever holds the frozen list of bits. */
+    witnessed: ReadonlyMap<number, string>;
+}
+
+interface Bearer {
+    combatantId: number;
+    side: number;
+    turnsTaken: number;
+}
+
 /**
  * How many sources one effect adds up from: _Efekt ulega kumulacji do maksymalnie dwóch źródeł od
  * różnych Graczy_, and `taken_dmg_per-all` sharper, _do dwóch najwyższych źródeł_. ⚠️ **The two
@@ -43,31 +68,6 @@ const KEY_BY_BIT_NAME: ReadonlyMap<string, string> = new Map([
     [SLOW_BIT_NAME, SLOW_ALL_KEY],
     [HASTE_BIT_NAME, HASTE_AURA_KEY],
 ]);
-
-/** One status, with what the announcements standing over its bearer come to. */
-export interface CarriedFigure {
-    combatantId: number;
-    bit: number;
-    /** A share of what the bearer has, or null where no cast over them may be read as theirs. */
-    percent: number | null;
-}
-
-/** What a reading of the fight hands over, so this file reads no walk of its own. */
-export interface CarriedFigureReading {
-    statuses: readonly CarriedStatus[];
-    standings: readonly AuraStanding[];
-    roster: CombatantRoster;
-    /** Turns taken per combatant, the clock a cast is held to while it stands on a bearer. */
-    turnsByCombatantId: ReadonlyMap<number, number>;
-    /** Which key moves which bit, handed over by whoever holds the frozen list of bits. */
-    witnessed: ReadonlyMap<number, string>;
-}
-
-interface Bearer {
-    combatantId: number;
-    side: number;
-    turnsTaken: number;
-}
 
 /** The two bits above at the positions the client registered them. */
 export function indexWitnessedKeyByBit(bits: readonly string[]): Map<number, string> {

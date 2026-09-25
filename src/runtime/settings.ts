@@ -47,6 +47,8 @@ export type SettingFailure =
     | { kind: typeof SETTING_FAILURE.unreadable; key: SettingKey }
     | { kind: typeof SETTING_FAILURE.tooLong; key: SettingKey };
 
+type PositionField = "left" | "top";
+
 /**
  * The fold and the place are stored beside the shelf and never inside it: a shelf that reads back
  * broken is dropped whole, and a reader who folded the panel should not have that undone by it.
@@ -74,8 +76,6 @@ const FOLDED = "1";
 const UNFOLDED = "";
 /** A position is two numbers written as JSON; text longer than this is not one. */
 const POSITION_LENGTH_MAXIMUM = 4096;
-
-type PositionField = "left" | "top";
 const POSITION_FIELDS: FieldKeys<PositionField> = { left: "left", top: "top" };
 
 export function readStorageChoice(store: KeyValueStore): Result<StorageChoice, SettingFailure> {
@@ -137,17 +137,6 @@ export function readWindowPosition(
     return ok(position);
 }
 
-/** A position that is not two whole numbers is the caller's bug, which `formatInteger` asserts. */
-export function writeWindowPosition(
-    store: KeyValueStore,
-    window: PanelWindow,
-    position: PanelPosition,
-): Result<void, SettingFailure> {
-    const key = POSITION_SETTING_BY_WINDOW[window];
-    const text = `{"left":${formatInteger(position.left)},"top":${formatInteger(position.top)}}`;
-    return store.write(STORE_KEY_BY_SETTING[key], text);
-}
-
 function parseWindowPosition(text: string): PanelPosition | null {
     const parsed = parseJson(text);
     if (!parsed.ok) return null;
@@ -161,4 +150,15 @@ function parseWindowPosition(text: string): PanelPosition | null {
     if (!Number.isSafeInteger(left.value)) return null;
     if (!Number.isSafeInteger(top.value)) return null;
     return { left: left.value, top: top.value };
+}
+
+/** A position that is not two whole numbers is the caller's bug, which `formatInteger` asserts. */
+export function writeWindowPosition(
+    store: KeyValueStore,
+    window: PanelWindow,
+    position: PanelPosition,
+): Result<void, SettingFailure> {
+    const key = POSITION_SETTING_BY_WINDOW[window];
+    const text = `{"left":${formatInteger(position.left)},"top":${formatInteger(position.top)}}`;
+    return store.write(STORE_KEY_BY_SETTING[key], text);
 }

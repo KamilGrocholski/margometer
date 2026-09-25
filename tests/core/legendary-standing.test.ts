@@ -22,53 +22,6 @@ import {
 const HOLDER = 11;
 const SOMEBODY_ELSE = 12;
 
-/** The blow that declares the effect. It rides the **holder's own** attack — article `view,372`. */
-function composeDeclaringBlow(actorId: number): BattleEvent {
-    return {
-        kind: BATTLE_EVENT.attack,
-        actorId,
-        targetId: 21,
-        actorHealthPercent: 100,
-        targetHealthPercent: 90,
-        raw: [{ element: "physical", amount: 10 }],
-        applied: [{ element: "physical", amount: 10 }],
-        prevented: [],
-        destroyed: [],
-        procs: [],
-        declared: [{ effect: "+legbon_holytouch", amount: null, text: null }],
-        announced: null,
-    };
-}
-
-/** The bonus that heals once a fight, read off the value and never off a slot. */
-function composeLastheal(targetId: number): BattleEvent {
-    return {
-        kind: BATTLE_EVENT.healingToNamedCombatant,
-        targetName: "Gracz 1",
-        targetId,
-        targetHealthPercent: 40,
-        amount: 5000,
-        source: "legbon_lastheal",
-    };
-}
-
-/** One heal under the effect. A full holder is healed for nought, and that is still a heal. */
-function composeHeal(combatantId: number, amount = 976): BattleEvent {
-    return {
-        kind: BATTLE_EVENT.healthChange,
-        combatantId,
-        amount,
-        healthPercent: 100,
-        source: "legbon_holytouch_heal",
-        declared: [],
-        announced: null,
-    };
-}
-
-function readStanding(walk: LegendaryWalk, combatantId: number) {
-    return composeLegendaryStandings(walk).find((one) => one.combatantId === combatantId);
-}
-
 Deno.test("the effect stands for the heals the help gives it, and goes with the last", () => {
     let walk = NO_LEGENDARY_WALK;
     walk = prepareLegendaryWalk(walk, [composeDeclaringBlow(HOLDER)]);
@@ -88,6 +41,41 @@ Deno.test("the effect stands for the heals the help gives it, and goes with the 
         "and gone on the payload of the last",
     );
 });
+
+/** The blow that declares the effect. It rides the **holder's own** attack — article `view,372`. */
+function composeDeclaringBlow(actorId: number): BattleEvent {
+    return {
+        kind: BATTLE_EVENT.attack,
+        actorId,
+        targetId: 21,
+        actorHealthPercent: 100,
+        targetHealthPercent: 90,
+        raw: [{ element: "physical", amount: 10 }],
+        applied: [{ element: "physical", amount: 10 }],
+        prevented: [],
+        destroyed: [],
+        procs: [],
+        declared: [{ effect: "+legbon_holytouch", amount: null, text: null }],
+        announced: null,
+    };
+}
+
+function readStanding(walk: LegendaryWalk, combatantId: number) {
+    return composeLegendaryStandings(walk).find((one) => one.combatantId === combatantId);
+}
+
+/** One heal under the effect. A full holder is healed for nought, and that is still a heal. */
+function composeHeal(combatantId: number, amount = 976): BattleEvent {
+    return {
+        kind: BATTLE_EVENT.healthChange,
+        combatantId,
+        amount,
+        healthPercent: 100,
+        source: "legbon_holytouch_heal",
+        declared: [],
+        announced: null,
+    };
+}
 
 /**
  * ⚠️ **Seven runs over `develop:captures/` gave all three heals inside the payload that lit
@@ -143,6 +131,18 @@ Deno.test("a bonus that fires once stays fired, and says nothing of any length",
     assertStrictEquals(spent?.holytouchHealsGiven, null, "and the other bonus says nothing");
 });
 
+/** The bonus that heals once a fight, read off the value and never off a slot. */
+function composeLastheal(targetId: number): BattleEvent {
+    return {
+        kind: BATTLE_EVENT.healingToNamedCombatant,
+        targetName: "Gracz 1",
+        targetId,
+        targetHealthPercent: 40,
+        amount: 5000,
+        source: "legbon_lastheal",
+    };
+}
+
 /** The two are one row where one combatant carries both, and the row states each of them. */
 Deno.test("a holder of both is one row, and it says both", () => {
     let walk = NO_LEGENDARY_WALK;
@@ -177,10 +177,6 @@ Deno.test("the blow's own thrower is the holder, and not whoever it was thrown a
     assertEquals(standings.map((one) => one.combatantId), [SOMEBODY_ELSE], "it lit on the thrower");
 });
 
-function copyWalk(walk: LegendaryWalk) {
-    return { heals: [...walk.holytouchHealsByHolder], spent: [...walk.spentLastheal] };
-}
-
 /** Preparing touches nothing, which is what lets a session drop a payload that failed halfway. */
 Deno.test("the walk handed in is left as it was, and the same input prepares the same walk", () => {
     const before = prepareLegendaryWalk(NO_LEGENDARY_WALK, [composeDeclaringBlow(HOLDER)]);
@@ -192,3 +188,7 @@ Deno.test("the walk handed in is left as it was, and the same input prepares the
     assertEquals(copyWalk(before), kept, "and the walk it was prepared from is unchanged");
     assertEquals(copyWalk(NO_LEGENDARY_WALK), { heals: [], spent: [] }, "as is the empty walk");
 });
+
+function copyWalk(walk: LegendaryWalk) {
+    return { heals: [...walk.holytouchHealsByHolder], spent: [...walk.spentLastheal] };
+}

@@ -31,20 +31,22 @@ import {
     readRecordedFights,
 } from "#/tests/recorded-fights.ts";
 
+interface CorpusTally {
+    attacks: number;
+    moved: number;
+    announced: number;
+    byName: number;
+    resolved: number;
+    restored: number;
+    unsized: number;
+    declared: number;
+    turnsLost: number;
+    outcomes: number;
+    glued: number;
+    unread: number;
+}
+
 const NO_GRANTS: DecoderTables = { blowsGrantedBySkillId: new Map() };
-
-/** One payload, decoded from no standing: the events a panel reads, unread messages included. */
-function decode(
-    messages: readonly string[],
-    roster: CombatantRoster | null = null,
-    tables: DecoderTables = BLOWS_GRANTED,
-): BattleEvent[] {
-    return [...decodePayloadMessages(messages, { roster, standing: null, tables }).events];
-}
-
-function indexRecordedRoster(path: string): CombatantRoster {
-    return indexCombatantRoster(lookupRecordedFight(path).combatants);
-}
 
 /**
  * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a blow absorption stood in front
@@ -92,13 +94,97 @@ const WEAKENED_WOUND =
     "28940=98.72;-10016678=97.30;+dmgd=1139;+acdmg=16;+woundpoison=50;+taken_dmg=239;" +
     "-dmgd=272;-dmga=239";
 
-function getOnlyAttack(events: readonly BattleEvent[]): BattleEvent {
-    assertEquals(events.length, 1, "the message decoded to one event");
-    const event = events[0];
-    assertExists(event, "a list of one has a first member");
-    assertEquals(event.kind, "attack", "and that event is a blow");
-    return event;
-}
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: an announcement with no id, and the
+ * blow after it.
+ */
+const ANNOUNCEMENT = "-10000249;0;tspell=Struna płomienna";
+const BLOW_AFTER = "-10000249=100.00;445202=87.34;+dmgf=2471;+dmgc=4967;+acdmg=50;-blok=2231;" +
+    "-legbon_facade=20;-dmgf=829;-dmgc=2193";
+/** The same recording: an announcement whose next message is somebody else's blow entirely. */
+const ANNOUNCEMENT_ELSEWHERE = "441390=100.00;441390=100.00;tspell=Podwójny dech;skillId=89;" +
+    "aura-sa_per=20";
+const BLOW_BY_ANOTHER = "467968=100.00;-10000249=99.41;+dmgd=1553;-absorb=354;+injure=98;-dmgd=658";
+/**
+ * `2026-08-25-luvia-grupa-vs-draugr-none-none.json`: a name the game did not take from its skill
+ * table.
+ */
+const CUSTOM = "47010=100.00;47010=100.00;tcustom=Przelotna elfia kołysanka;healall_per=10";
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the announcement of a skill the
+ * published table grants an attack to, and the two blows it sent.
+ */
+const GRANTED_ANNOUNCEMENT = "441390=100.00;-10000249=99.60;tspell=Podwójne trafienie;skillId=239";
+const GRANTED_FIRST = "441390=100.00;-10000249=99.57;+dmgd=926;+dmgf=138;+dmgc=799;+resdmg=2;" +
+    "-absorb=44;-absorbm=294;-dmgd=81;-dmgc=8";
+const GRANTED_SECOND = "441390=100.00;-10000249=99.40;+pierce;+dmgd=809;+dmgf=105;+dmgc=799;" +
+    "+resdmg=2;-absorb=283;-absorbm=814;-dmgd=526;-dmgf=7;-dmgc=21";
+/** The same recording: the message the game sent straight after the pair, which is not a blow. */
+const STEP_AFTER = "459132=98.49;0;step";
+/**
+ * ⚠️ **No recording carries the one skill the table grants two attacks to.** Its announcement is
+ * written out here because only a grant of two puts a blow this decoder must refuse *inside* what
+ * a standing still has left to spend — at a grant of one the budget runs out first, and the
+ * condition being probed is never reached. The id is `develop:frozen/blows-granted.ts`'s.
+ */
+const GRANTED_TWICE = "441390=100.00;-10000249=99.60;tspell=Demoniczne cięcie;skillId=283";
+/**
+ * `2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none.json`: an announcement the table cannot
+ * be asked about, its one blow, and the announcer's own poison ticking straight after it.
+ */
+const UNBOUNDED_ANNOUNCEMENT = "-10000243;0;tspell=Kosa zastępcy";
+const UNBOUNDED_BLOW = "-10000243=25.19;439807=69.90;-poison_lowdmg_per=13;+dmg=2385;" +
+    "-blok=716;-dmg=1111";
+const TICK_ON_THE_ANNOUNCER = "-10000243=25.11;0;poison=136,20";
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: one blow stating ten figures
+ * against ten names. The
+ * message's own target is `Gracz 4`; the other nine are named here and nowhere else.
+ */
+const AGAINST_NAMES = "-10000249=99.57;445202=36.65;-poison_lowdmg_per=10;" +
+    "+oth_dmg=8570,g,Gracz 4(36.65%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 10(70.85%)";
+/**
+ * `2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none.json`: the element member written blank.
+ */
+const BLANK_ELEMENT = "-10000542=2.12;439807=0.00;+oth_dmg=2579, ,Gracz 1(8.97%)";
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
+
+/**
+ * `2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json`: a blow with a figure no total
+ * counts beside it.
+ */
+const DECLARED_ON_BLOW = "477718=100.00;-10000234=95.59;+dmgd=924;+dmgc=766;+acdmg=18;" +
+    "+taken_dmg=254;-dmgd=291;-dmgc=295;-dmga=254";
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: what an announcement states about
+ * its skill.
+ */
+const DECLARED_ON_SKILL = "445202=81.04;445202=81.04;tspell=Osłona tarczą;skillId=206;" +
+    "active_block_per=15;heal_target=334;combo-max=1";
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: a line for the client's own log,
+ * and a step.
+ */
+const LOG_LINE = "0;0;txt=Locha: zdobyto Skóra z dzika";
+const STEP_TAKEN = "-255967=100.00;0;step";
+
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: how that fight ended, on the two
+ * keys it takes.
+ */
+const WON = "0;0;winner=Gracz 1";
+const LOST = "0;0;loser=Odyniec, Odyniec, Locha";
+
+/**
+ * `2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json`: one group blow dropping two
+ * holders below the
+ * threshold at once. A reader counting messages rather than segments loses the second.
+ */
+const TWO_HEALED = "-10005001=74.30;466747=0.00;legbon_lastheal=10564,Gracz 8(42.00%);" +
+    "+oth_dmg=9315,g,Gracz 8(42.00%);legbon_lastheal=10550,Gracz 5(44.00%);" +
+    "+oth_dmg=9613,g,Gracz 5(44.00%);+oth_dmg=9613,g,Gracz 9(0.00%)";
+const AUTO = "captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json";
 
 Deno.test("a blow reads as raw, applied, and what a defence stopped", () => {
     const event = getOnlyAttack(decode([ABSORBED]));
@@ -111,6 +197,23 @@ Deno.test("a blow reads as raw, applied, and what a defence stopped", () => {
     assertEquals(event.destroyed, [{ statistic: "acdmg", amount: 16 }], "armour is not damage");
     assertEquals(event.procs, ["+pierce"], "a proc states no figure");
 });
+
+function getOnlyAttack(events: readonly BattleEvent[]): BattleEvent {
+    assertEquals(events.length, 1, "the message decoded to one event");
+    const event = events[0];
+    assertExists(event, "a list of one has a first member");
+    assertEquals(event.kind, "attack", "and that event is a blow");
+    return event;
+}
+
+/** One payload, decoded from no standing: the events a panel reads, unread messages included. */
+function decode(
+    messages: readonly string[],
+    roster: CombatantRoster | null = null,
+    tables: DecoderTables = BLOWS_GRANTED,
+): BattleEvent[] {
+    return [...decodePayloadMessages(messages, { roster, standing: null, tables }).events];
+}
 
 /**
  * ⚠️ **A wound is a wound whether or not something weakened it.** `+wound` carries no figure and
@@ -227,49 +330,6 @@ Deno.test("a figure on a message that announces nothing rides nothing", () => {
     assertEquals(restored.announced, null, "and states no skill, because the message states none");
 });
 
-/**
- * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: an announcement with no id, and the
- * blow after it.
- */
-const ANNOUNCEMENT = "-10000249;0;tspell=Struna płomienna";
-const BLOW_AFTER = "-10000249=100.00;445202=87.34;+dmgf=2471;+dmgc=4967;+acdmg=50;-blok=2231;" +
-    "-legbon_facade=20;-dmgf=829;-dmgc=2193";
-/** The same recording: an announcement whose next message is somebody else's blow entirely. */
-const ANNOUNCEMENT_ELSEWHERE = "441390=100.00;441390=100.00;tspell=Podwójny dech;skillId=89;" +
-    "aura-sa_per=20";
-const BLOW_BY_ANOTHER = "467968=100.00;-10000249=99.41;+dmgd=1553;-absorb=354;+injure=98;-dmgd=658";
-/**
- * `2026-08-25-luvia-grupa-vs-draugr-none-none.json`: a name the game did not take from its skill
- * table.
- */
-const CUSTOM = "47010=100.00;47010=100.00;tcustom=Przelotna elfia kołysanka;healall_per=10";
-/**
- * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the announcement of a skill the
- * published table grants an attack to, and the two blows it sent.
- */
-const GRANTED_ANNOUNCEMENT = "441390=100.00;-10000249=99.60;tspell=Podwójne trafienie;skillId=239";
-const GRANTED_FIRST = "441390=100.00;-10000249=99.57;+dmgd=926;+dmgf=138;+dmgc=799;+resdmg=2;" +
-    "-absorb=44;-absorbm=294;-dmgd=81;-dmgc=8";
-const GRANTED_SECOND = "441390=100.00;-10000249=99.40;+pierce;+dmgd=809;+dmgf=105;+dmgc=799;" +
-    "+resdmg=2;-absorb=283;-absorbm=814;-dmgd=526;-dmgf=7;-dmgc=21";
-/** The same recording: the message the game sent straight after the pair, which is not a blow. */
-const STEP_AFTER = "459132=98.49;0;step";
-/**
- * ⚠️ **No recording carries the one skill the table grants two attacks to.** Its announcement is
- * written out here because only a grant of two puts a blow this decoder must refuse *inside* what
- * a standing still has left to spend — at a grant of one the budget runs out first, and the
- * condition being probed is never reached. The id is `develop:frozen/blows-granted.ts`'s.
- */
-const GRANTED_TWICE = "441390=100.00;-10000249=99.60;tspell=Demoniczne cięcie;skillId=283";
-/**
- * `2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none.json`: an announcement the table cannot
- * be asked about, its one blow, and the announcer's own poison ticking straight after it.
- */
-const UNBOUNDED_ANNOUNCEMENT = "-10000243;0;tspell=Kosa zastępcy";
-const UNBOUNDED_BLOW = "-10000243=25.19;439807=69.90;-poison_lowdmg_per=13;+dmg=2385;" +
-    "-blok=716;-dmg=1111";
-const TICK_ON_THE_ANNOUNCER = "-10000243=25.11;0;poison=136,20";
-
 Deno.test("an announcement is an event, and its id may be missing", () => {
     const events = decode([ANNOUNCEMENT]);
     const used = events.filter((event) => event.kind === "skill-used");
@@ -349,19 +409,6 @@ Deno.test("a name the game did not take from its table is read where one is name
     assertEquals(unread.unreadKeys, ["tcustom"], "naming the key, so the panel can say which");
 });
 
-/**
- * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: one blow stating ten figures
- * against ten names. The
- * message's own target is `Gracz 4`; the other nine are named here and nowhere else.
- */
-const AGAINST_NAMES = "-10000249=99.57;445202=36.65;-poison_lowdmg_per=10;" +
-    "+oth_dmg=8570,g,Gracz 4(36.65%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 10(70.85%)";
-/**
- * `2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none.json`: the element member written blank.
- */
-const BLANK_ELEMENT = "-10000542=2.12;439807=0.00;+oth_dmg=2579, ,Gracz 1(8.97%)";
-const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
-
 Deno.test("damage stated against a name reaches the person it names", () => {
     const roster = indexRecordedRoster(HILDUR);
     const events = decode([AGAINST_NAMES], roster);
@@ -384,6 +431,10 @@ Deno.test("damage stated against a name reaches the person it names", () => {
     assertEquals(hits[1].damage, { element: "dmgg", amount: 8868 }, "already reduced, no pair");
 });
 
+function indexRecordedRoster(path: string): CombatantRoster {
+    return indexCombatantRoster(lookupRecordedFight(path).combatants);
+}
+
 Deno.test("a name nothing can resolve keeps its figure and says whose it is not", () => {
     const events = decode([AGAINST_NAMES]);
     const hits = events.filter((event) => event.kind === "damage-to-named-combatant");
@@ -402,25 +453,6 @@ Deno.test("a blank element is the plain one, not an element of its own", () => {
     assertStrictEquals(hits[0]?.kind, "damage-to-named-combatant", "the figure is read");
     assertEquals(hits[0].damage.element, "dmg", "the same element the family's own keys carry");
 });
-
-/**
- * `2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json`: a blow with a figure no total
- * counts beside it.
- */
-const DECLARED_ON_BLOW = "477718=100.00;-10000234=95.59;+dmgd=924;+dmgc=766;+acdmg=18;" +
-    "+taken_dmg=254;-dmgd=291;-dmgc=295;-dmga=254";
-/**
- * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: what an announcement states about
- * its skill.
- */
-const DECLARED_ON_SKILL = "445202=81.04;445202=81.04;tspell=Osłona tarczą;skillId=206;" +
-    "active_block_per=15;heal_target=334;combo-max=1";
-/**
- * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: a line for the client's own log,
- * and a step.
- */
-const LOG_LINE = "0;0;txt=Locha: zdobyto Skóra z dzika";
-const STEP_TAKEN = "-255967=100.00;0;step";
 
 Deno.test("what no total counts rides the blow it was stated on", () => {
     const events = decode([DECLARED_ON_BLOW]);
@@ -471,13 +503,6 @@ Deno.test("a key read only while it states nothing goes unread once it states so
     assertStrictEquals(unread?.kind, "unknown-message", "a figure arriving there is not read");
     assertEquals(unread.unreadKeys, ["+legbon_holytouch"], "it is reported, loudly");
 });
-
-/**
- * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: how that fight ended, on the two
- * keys it takes.
- */
-const WON = "0;0;winner=Gracz 1";
-const LOST = "0;0;loser=Odyniec, Odyniec, Locha";
 
 Deno.test("a fight ends on two keys, each naming its own side", () => {
     const won = decode([WON]);
@@ -600,19 +625,74 @@ Deno.test("the extra attack rides an ordinary blow and never arrives as one", ()
     assert(carried > 0, "the corpus rolls the extra attack at all");
 });
 
-interface CorpusTally {
-    attacks: number;
-    moved: number;
-    announced: number;
-    byName: number;
-    resolved: number;
-    restored: number;
-    unsized: number;
-    declared: number;
-    turnsLost: number;
-    outcomes: number;
-    glued: number;
-    unread: number;
+Deno.test("healing stated by name is read from the value, never from a slot", () => {
+    const roster = indexRecordedRoster(AUTO);
+    const events = decode([TWO_HEALED], roster);
+    const restored = events.filter((event) => event.kind === "healing-to-named-combatant");
+    assertEquals(restored.length, 2, "both holders are healed in the one message");
+    assertStrictEquals(restored[0]?.kind, "healing-to-named-combatant", "the first is read");
+    assertEquals(restored[0].amount, 10564, "with the figure the value states first");
+    assertEquals(restored[0].targetName, "Gracz 8", "and the name it states second");
+    assertEquals(restored[0].targetHealthPercent, 42, "where that combatant stands after it");
+    assertExists(restored[0].targetId, "which the roster resolves");
+    assertStrictEquals(
+        restored[1]?.kind,
+        "healing-to-named-combatant",
+        "and the second is not lost",
+    );
+    assertEquals(restored[1].targetName, "Gracz 5", "who is somebody else again");
+    assert(
+        restored[0].targetId !== 466747 && restored[1].targetId !== 466747,
+        "neither is the combatant either slot of the message names",
+    );
+});
+
+Deno.test("every message in every recording decodes, and the pairs hold", () => {
+    const tally = getCorpusTally();
+    assert(tally.attacks > 0, "the recordings carry blows");
+    assert(tally.moved > 0, "and health moving outside them");
+    assert(tally.announced > 0, "and skills announced beside both");
+    assert(tally.glued > 0, "and blows the game itself glued to a skill");
+    assert(tally.byName > 0, "and damage stated against a name");
+    assert(tally.restored > 0, "and healing stated the same way");
+    assert(tally.unsized > 0, "and a share stated about a whole side, which no row can carry");
+    assert(tally.declared > 0, "and messages that state something and report nothing");
+    assert(tally.resolved > tally.byName / 2, "most of which a roster can put on somebody");
+    // Every key `develop:captures/` carries is read now, so the panel says nothing is missing:
+    // a claim about the material rather than about the decoder, and the probes above are what
+    // hold the other half.
+    assertEquals(tally.unread, 0, "and nothing in the recordings goes unread any more");
+    assertEquals(
+        tally.outcomes,
+        readRecordedFights().length * 2,
+        "each fight ends once, twice over",
+    );
+});
+
+function getCorpusTally(): CorpusTally {
+    const tally: CorpusTally = {
+        attacks: 0,
+        moved: 0,
+        announced: 0,
+        byName: 0,
+        resolved: 0,
+        restored: 0,
+        unsized: 0,
+        declared: 0,
+        turnsLost: 0,
+        outcomes: 0,
+        glued: 0,
+        unread: 0,
+    };
+    for (const fight of readRecordedFights()) {
+        const events = decodeRecordedFight(fight).events;
+        assert(
+            events.length >= fight.messages.length,
+            `${fight.path}: a message decoded to nothing`,
+        );
+        for (const event of events) countEvent(tally, event, fight.path);
+    }
+    return tally;
 }
 
 /** What must hold of one event, whatever it is, asserted where the event is counted. */
@@ -676,86 +756,6 @@ function countEvent(tally: CorpusTally, event: BattleEvent, path: string): void 
     assertEquals(event.raw.length > 0, event.applied.length > 0, `${path}: raw alone`);
     if (event.procs.length > 0) assert(event.raw.length > 0, `${path}: a proc rode nothing`);
 }
-
-function getCorpusTally(): CorpusTally {
-    const tally: CorpusTally = {
-        attacks: 0,
-        moved: 0,
-        announced: 0,
-        byName: 0,
-        resolved: 0,
-        restored: 0,
-        unsized: 0,
-        declared: 0,
-        turnsLost: 0,
-        outcomes: 0,
-        glued: 0,
-        unread: 0,
-    };
-    for (const fight of readRecordedFights()) {
-        const events = decodeRecordedFight(fight).events;
-        assert(
-            events.length >= fight.messages.length,
-            `${fight.path}: a message decoded to nothing`,
-        );
-        for (const event of events) countEvent(tally, event, fight.path);
-    }
-    return tally;
-}
-
-/**
- * `2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json`: one group blow dropping two
- * holders below the
- * threshold at once. A reader counting messages rather than segments loses the second.
- */
-const TWO_HEALED = "-10005001=74.30;466747=0.00;legbon_lastheal=10564,Gracz 8(42.00%);" +
-    "+oth_dmg=9315,g,Gracz 8(42.00%);legbon_lastheal=10550,Gracz 5(44.00%);" +
-    "+oth_dmg=9613,g,Gracz 5(44.00%);+oth_dmg=9613,g,Gracz 9(0.00%)";
-const AUTO = "captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json";
-
-Deno.test("healing stated by name is read from the value, never from a slot", () => {
-    const roster = indexRecordedRoster(AUTO);
-    const events = decode([TWO_HEALED], roster);
-    const restored = events.filter((event) => event.kind === "healing-to-named-combatant");
-    assertEquals(restored.length, 2, "both holders are healed in the one message");
-    assertStrictEquals(restored[0]?.kind, "healing-to-named-combatant", "the first is read");
-    assertEquals(restored[0].amount, 10564, "with the figure the value states first");
-    assertEquals(restored[0].targetName, "Gracz 8", "and the name it states second");
-    assertEquals(restored[0].targetHealthPercent, 42, "where that combatant stands after it");
-    assertExists(restored[0].targetId, "which the roster resolves");
-    assertStrictEquals(
-        restored[1]?.kind,
-        "healing-to-named-combatant",
-        "and the second is not lost",
-    );
-    assertEquals(restored[1].targetName, "Gracz 5", "who is somebody else again");
-    assert(
-        restored[0].targetId !== 466747 && restored[1].targetId !== 466747,
-        "neither is the combatant either slot of the message names",
-    );
-});
-
-Deno.test("every message in every recording decodes, and the pairs hold", () => {
-    const tally = getCorpusTally();
-    assert(tally.attacks > 0, "the recordings carry blows");
-    assert(tally.moved > 0, "and health moving outside them");
-    assert(tally.announced > 0, "and skills announced beside both");
-    assert(tally.glued > 0, "and blows the game itself glued to a skill");
-    assert(tally.byName > 0, "and damage stated against a name");
-    assert(tally.restored > 0, "and healing stated the same way");
-    assert(tally.unsized > 0, "and a share stated about a whole side, which no row can carry");
-    assert(tally.declared > 0, "and messages that state something and report nothing");
-    assert(tally.resolved > tally.byName / 2, "most of which a roster can put on somebody");
-    // Every key `develop:captures/` carries is read now, so the panel says nothing is missing:
-    // a claim about the material rather than about the decoder, and the probes above are what
-    // hold the other half.
-    assertEquals(tally.unread, 0, "and nothing in the recordings goes unread any more");
-    assertEquals(
-        tally.outcomes,
-        readRecordedFights().length * 2,
-        "each fight ends once, twice over",
-    );
-});
 
 /**
  * The bound both ways, which nothing drove until the constant was exported. A payload carrying a
@@ -904,15 +904,6 @@ Deno.test("a blow past what the table granted takes no skill, and opens no turn"
     assertStrictEquals(openers.at(-1), null, "and it opens no turn, so the two readings disagree");
 });
 
-/** The one event of a message, which is left unread, and the keys it names as unread. */
-function getOnlyUnread(events: readonly BattleEvent[]): readonly string[] {
-    assertEquals(events.length, 1, "the message decoded to one event");
-    const event = events[0];
-    assertExists(event, "a list of one has a first member");
-    assertStrictEquals(event.kind, "unknown-message", "and that event is a message unread");
-    return event.unreadKeys;
-}
-
 /**
  * Probes, every one: no recording states any of these shapes (measured 2026-09-21, 0 of every
  * value over `develop:captures/`), and each once reached an assertion instead of the unread row,
@@ -952,6 +943,15 @@ Deno.test("a value the game's own text can spell goes unread, and never into an 
         "and a blow's own figures below nothing, which leave no blow behind them",
     );
 });
+
+/** The one event of a message, which is left unread, and the keys it names as unread. */
+function getOnlyUnread(events: readonly BattleEvent[]): readonly string[] {
+    assertEquals(events.length, 1, "the message decoded to one event");
+    const event = events[0];
+    assertExists(event, "a list of one has a first member");
+    assertStrictEquals(event.kind, "unknown-message", "and that event is a message unread");
+    return event.unreadKeys;
+}
 
 /**
  * A key spelled like a member every object carries. Indexed straight, the tables answered with

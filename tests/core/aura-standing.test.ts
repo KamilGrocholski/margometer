@@ -37,29 +37,75 @@ import {
     readRecordedFights,
 } from "#/tests/recorded-fights.ts";
 
+interface ReachEntries {
+    entries: number;
+    bare: string[];
+}
+
 const DATED: StatedSkills = STATED_SKILLS;
 
 const OURS = 1;
 const THEIRS = 2;
 
-/** As many on each side as a sample asks for, so the count has a side to be read against. */
-function composeRoster(ours: number, theirs: number) {
-    const combatants: Combatant[] = [];
-    for (let at = 0; at < ours; at += 1) {
-        combatants.push(composeCombatant(1 + at, OURS));
-    }
-    for (let at = 0; at < theirs; at += 1) {
-        combatants.push(composeCombatant(9 - at, THEIRS));
-    }
-    return indexCombatantRoster(combatants);
-}
-
-function composeCombatant(id: number, side: number): Combatant {
-    return { id, name: `Ktoś ${id}`, side, profession: "w", level: 40, healthMaximum: 100 };
-}
-
 /** Two on the reader's side and one against, which is every recording in `develop:captures/`. */
 const ROSTER = composeRoster(2, 1);
+
+/** Both skills as the published table states them: three turns, and six characters covered. */
+const SHOUTS = [
+    { id: 25, turns: 3, coverageMinimum: 6 },
+    { id: 188, turns: 3, coverageMinimum: 6 },
+];
+
+/**
+ * `develop:captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`: a Wojownik and a
+ * Paladyn shout at one monster, interleaved — the only shape in the corpus where the overwrite is
+ * observable.
+ */
+const BOTH_OKRZYKI = "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0";
+
+/** The first fight between players in the corpus, and the first shout naming more than one. */
+const AGAINST_TWO = "2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0";
+
+/** The names that state a side by themselves, so a reader needs nothing beside them. */
+const SIDE_IN_THE_NAME = ["-enemies", "-all", "-allies", "aura-"];
+/** Where the table lives, read as text because what is checked is the comment beside a value. */
+const REACH_SOURCE = "src/core/protocol-key.ts";
+const REACH_OPENER =
+    "const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([";
+const REACH_CLOSER = "]);";
+const COMMENT_OPENER = "//";
+
+Deno.test("a key reaches a side by its opening, its ending, or by being one of the three", () => {
+    assert(isTeamWideKey("aura-sa_per"), "the opening the table and the wire share");
+    assert(isTeamWideKey("taken_dmg_per-all"), "the table's spelling of what the wire calls -all");
+    assert(isTeamWideKey("+spell-taken_dmg-all"), "and the wire's own");
+    assert(isTeamWideKey("lowheal_per-enemies"), "an ending reaching the other side");
+    assert(isTeamWideKey("shout"), "and a name carrying neither shape");
+    assert(!isTeamWideKey("cooldown"), "a skill's own cooldown reaches nobody");
+    assert(!isTeamWideKey("healall_per"), "and healing is health rather than something standing");
+});
+
+Deno.test("a cast stands from its own turn, and leaves when its turns have passed", () => {
+    const dated = composeStated([{ id: 264, turns: 2 }]);
+    const cast = composeCast(1, 264, "+spell-taken_dmg-all");
+    assertEquals(
+        replayStandings([cast], dated, ROSTER).standings.map((one) => one.turnsElapsed),
+        [0],
+        "nothing has passed on the turn it was cast",
+    );
+    assertEquals(
+        replayStandings([cast, composeBlow(1)], dated, ROSTER).standings.map((one) =>
+            one.turnsElapsed
+        ),
+        [1],
+        "and one turn of the caster's later, one has",
+    );
+    assertEquals(
+        replayStandings([cast, composeBlow(1), composeBlow(1)], dated, ROSTER).standings,
+        [],
+        "at the turns it was given it is no longer standing",
+    );
+});
 
 /** What a sample dates, as the two frozen readings would. */
 function composeStated(
@@ -99,29 +145,13 @@ function composeCast(
     };
 }
 
-/** As many of that caster's own turns as a sample needs to pass, each opened by a blow. */
-function composeTurns(actorId: number, turns: number): BattleEvent[] {
-    const found: BattleEvent[] = [];
-    for (let at = 0; at < turns; at += 1) found.push(composeBlow(actorId));
-    return found;
-}
-
-/** A blow standing behind no announcement, which is what opens the caster's next turn. */
-function composeBlow(actorId: number): BattleEvent {
-    return {
-        kind: "attack",
-        actorId,
-        targetId: 2,
-        actorHealthPercent: 100,
-        targetHealthPercent: 90,
-        raw: [{ element: "physical", amount: 10 }],
-        applied: [{ element: "physical", amount: 10 }],
-        prevented: [],
-        destroyed: [],
-        procs: [],
-        declared: [],
-        announced: null,
-    };
+/** develop's `composeFightStandings`, which took the events and the cast apart. */
+function replayStandings(
+    events: readonly BattleEvent[],
+    stated: StatedSkills,
+    roster: CombatantRoster,
+): FightStandings {
+    return replayFightStandings(composeView(events, roster), stated);
 }
 
 /** A view holding the events and the cast a sample states, and nothing the walk does not read. */
@@ -145,46 +175,23 @@ function composeView(events: readonly BattleEvent[], roster: CombatantRoster): F
     };
 }
 
-/** develop's `composeFightStandings`, which took the events and the cast apart. */
-function replayStandings(
-    events: readonly BattleEvent[],
-    stated: StatedSkills,
-    roster: CombatantRoster,
-): FightStandings {
-    return replayFightStandings(composeView(events, roster), stated);
+/** A blow standing behind no announcement, which is what opens the caster's next turn. */
+function composeBlow(actorId: number): BattleEvent {
+    return {
+        kind: "attack",
+        actorId,
+        targetId: 2,
+        actorHealthPercent: 100,
+        targetHealthPercent: 90,
+        raw: [{ element: "physical", amount: 10 }],
+        applied: [{ element: "physical", amount: 10 }],
+        prevented: [],
+        destroyed: [],
+        procs: [],
+        declared: [],
+        announced: null,
+    };
 }
-
-Deno.test("a key reaches a side by its opening, its ending, or by being one of the three", () => {
-    assert(isTeamWideKey("aura-sa_per"), "the opening the table and the wire share");
-    assert(isTeamWideKey("taken_dmg_per-all"), "the table's spelling of what the wire calls -all");
-    assert(isTeamWideKey("+spell-taken_dmg-all"), "and the wire's own");
-    assert(isTeamWideKey("lowheal_per-enemies"), "an ending reaching the other side");
-    assert(isTeamWideKey("shout"), "and a name carrying neither shape");
-    assert(!isTeamWideKey("cooldown"), "a skill's own cooldown reaches nobody");
-    assert(!isTeamWideKey("healall_per"), "and healing is health rather than something standing");
-});
-
-Deno.test("a cast stands from its own turn, and leaves when its turns have passed", () => {
-    const dated = composeStated([{ id: 264, turns: 2 }]);
-    const cast = composeCast(1, 264, "+spell-taken_dmg-all");
-    assertEquals(
-        replayStandings([cast], dated, ROSTER).standings.map((one) => one.turnsElapsed),
-        [0],
-        "nothing has passed on the turn it was cast",
-    );
-    assertEquals(
-        replayStandings([cast, composeBlow(1)], dated, ROSTER).standings.map((one) =>
-            one.turnsElapsed
-        ),
-        [1],
-        "and one turn of the caster's later, one has",
-    );
-    assertEquals(
-        replayStandings([cast, composeBlow(1), composeBlow(1)], dated, ROSTER).standings,
-        [],
-        "at the turns it was given it is no longer standing",
-    );
-});
 
 Deno.test("another's turn moves nothing, and a second cast refreshes rather than adds", () => {
     const dated = composeStated([{ id: 264, turns: 8 }]);
@@ -277,12 +284,6 @@ Deno.test("a skill whose keys all face the other side reaches that side alone", 
     );
 });
 
-/** Both skills as the published table states them: three turns, and six characters covered. */
-const SHOUTS = [
-    { id: 25, turns: 3, coverageMinimum: 6 },
-    { id: 188, turns: 3, coverageMinimum: 6 },
-];
-
 Deno.test("a shout holds every character its value names, and nobody else", () => {
     const dated = composeStated([{ id: 188, turns: 5 }], SHOUTS);
     const held = replayStandings(
@@ -297,6 +298,22 @@ Deno.test("a shout holds every character its value names, and nobody else", () =
     );
     assert(held.every((one) => one.casterId === 1), "all held by whoever shouted");
 });
+
+/** As many on each side as a sample asks for, so the count has a side to be read against. */
+function composeRoster(ours: number, theirs: number) {
+    const combatants: Combatant[] = [];
+    for (let at = 0; at < ours; at += 1) {
+        combatants.push(composeCombatant(1 + at, OURS));
+    }
+    for (let at = 0; at < theirs; at += 1) {
+        combatants.push(composeCombatant(9 - at, THEIRS));
+    }
+    return indexCombatantRoster(combatants);
+}
+
+function composeCombatant(id: number, side: number): Combatant {
+    return { id, name: `Ktoś ${id}`, side, profession: "w", level: 40, healthMaximum: 100 };
+}
 
 Deno.test("a value naming one holds one, which is every recording before this round", () => {
     const dated = composeStated([{ id: 188, turns: 5 }], SHOUTS);
@@ -396,16 +413,6 @@ Deno.test("an okrzyk dated on neither half is no cast at all", () => {
     assertEquals(held.standings, [], "and nothing stands");
 });
 
-/**
- * `develop:captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`: a Wojownik and a
- * Paladyn shout at one monster, interleaved — the only shape in the corpus where the overwrite is
- * observable.
- */
-const BOTH_OKRZYKI = "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0";
-
-/** The first fight between players in the corpus, and the first shout naming more than one. */
-const AGAINST_TWO = "2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0";
-
 Deno.test("one shout holds a character, and the last of them is the one that does", () => {
     const dated = composeStated([{ id: 25, turns: 3 }, { id: 188, turns: 5 }], SHOUTS);
     const wojownik = composeCast(1, 188, "shout alllowdmg", 9, "Ktoś 9");
@@ -483,6 +490,13 @@ Deno.test("an okrzyk's two halves run out apart, and on two different clocks", (
     assertEquals(over.standings, [], "and at five the debuff has run out too");
 });
 
+/** As many of that caster's own turns as a sample needs to pass, each opened by a blow. */
+function composeTurns(actorId: number, turns: number): BattleEvent[] {
+    const found: BattleEvent[] = [];
+    for (let at = 0; at < turns; at += 1) found.push(composeBlow(actorId));
+    return found;
+}
+
 Deno.test("a target slot nobody shouted at holds nobody", () => {
     const dated = composeStated([{ id: 188, turns: 5 }, { id: 264, turns: 8 }], SHOUTS);
     // Every cast reaching a side names one end that is not the bearer: reading it would credit
@@ -493,6 +507,27 @@ Deno.test("a target slot nobody shouted at holds nobody", () => {
         composeRoster(2, 3),
     ).provocations;
     assertEquals(aimed, [], "and no whole-team cast becomes a provocation by having a target");
+});
+
+Deno.test(`${AGAINST_TWO}: one shout holds both players it named`, () => {
+    const path = `captures/${AGAINST_TWO}.json`;
+    const { roster, events, lastShout } = composeEventsAndShout(path);
+    const announced = events.slice(0, lastShout + 1);
+    const held = replayStandings(announced, DATED, roster).provocations;
+    assertStrictEquals(held.length, 2, "the value named two characters, so two are held");
+    assertEquals(
+        held.map((one) => roster.byId.get(one.provokedId)?.name).sort(),
+        ["Gracz 2", "Gracz 3"],
+        "both of the opposing side, by the names the announcement carried",
+    );
+    assert(
+        held.every((one) => one.turnsStated === 3),
+        "each dated by the shout's own row rather than the skill's longest",
+    );
+    // `develop ADR 0103`: two characters held by one shout run out on two clocks, so by the end of
+    // this fight they are not both still held — which the caster's clock could never have shown.
+    const ended = replayStandings(events, DATED, roster).provocations;
+    assert(ended.length < held.length, "and by the end the game has let go of at least one");
 });
 
 /**
@@ -516,27 +551,6 @@ function composeEventsAndShout(path: string): {
     assert(lastShout >= 0, `${path} carries a shout to read`);
     return { roster, events, lastShout };
 }
-
-Deno.test(`${AGAINST_TWO}: one shout holds both players it named`, () => {
-    const path = `captures/${AGAINST_TWO}.json`;
-    const { roster, events, lastShout } = composeEventsAndShout(path);
-    const announced = events.slice(0, lastShout + 1);
-    const held = replayStandings(announced, DATED, roster).provocations;
-    assertStrictEquals(held.length, 2, "the value named two characters, so two are held");
-    assertEquals(
-        held.map((one) => roster.byId.get(one.provokedId)?.name).sort(),
-        ["Gracz 2", "Gracz 3"],
-        "both of the opposing side, by the names the announcement carried",
-    );
-    assert(
-        held.every((one) => one.turnsStated === 3),
-        "each dated by the shout's own row rather than the skill's longest",
-    );
-    // `develop ADR 0103`: two characters held by one shout run out on two clocks, so by the end of
-    // this fight they are not both still held — which the caster's clock could never have shown.
-    const ended = replayStandings(events, DATED, roster).provocations;
-    assert(ended.length < held.length, "and by the end the game has let go of at least one");
-});
 
 Deno.test(`${BOTH_OKRZYKI}: two casters at one monster leave one provocation standing`, () => {
     const path = `captures/${BOTH_OKRZYKI}.json`;
@@ -588,19 +602,26 @@ Deno.test("a table naming one skill twice is refused rather than folded", () => 
     );
 });
 
-/** The names that state a side by themselves, so a reader needs nothing beside them. */
-const SIDE_IN_THE_NAME = ["-enemies", "-all", "-allies", "aura-"];
-/** Where the table lives, read as text because what is checked is the comment beside a value. */
-const REACH_SOURCE = "src/core/protocol-key.ts";
-const REACH_OPENER =
-    "const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([";
-const REACH_CLOSER = "]);";
-const COMMENT_OPENER = "//";
-
-interface ReachEntries {
-    entries: number;
-    bare: string[];
-}
+Deno.test("the entry reader flags a bare key, and passes one with a reason or a side", () => {
+    const sample = [
+        REACH_OPENER,
+        '    ["plainkey", "other-side"],',
+        "    // Measured, and cited here.",
+        '    ["explained", "other-side"],',
+        '    ["heal-allies", "casters-side"],',
+        '    [NAMED_KEY, "other-side"],',
+        '    [LEFT_ALONE, "other-side"],',
+        REACH_CLOSER,
+        '    ["after", "other-side"],',
+    ].join("\n");
+    const read = lookupBareReachEntries(sample, { NAMED_KEY: "debuff-enemies" });
+    assertStrictEquals(read.entries, 5, "every entry inside the table, and none after it");
+    assertEquals(
+        read.bare,
+        ["plainkey", "LEFT_ALONE"],
+        "and only the two with nothing beside them",
+    );
+});
 
 /**
  * The entries of the table in `source`, and the ones standing with neither a side in their name
@@ -643,27 +664,6 @@ function readReachEntryKey(trimmed: string, keys: Readonly<Record<string, unknow
     const held = keys[inside];
     return typeof held === "string" ? held : inside;
 }
-
-Deno.test("the entry reader flags a bare key, and passes one with a reason or a side", () => {
-    const sample = [
-        REACH_OPENER,
-        '    ["plainkey", "other-side"],',
-        "    // Measured, and cited here.",
-        '    ["explained", "other-side"],',
-        '    ["heal-allies", "casters-side"],',
-        '    [NAMED_KEY, "other-side"],',
-        '    [LEFT_ALONE, "other-side"],',
-        REACH_CLOSER,
-        '    ["after", "other-side"],',
-    ].join("\n");
-    const read = lookupBareReachEntries(sample, { NAMED_KEY: "debuff-enemies" });
-    assertStrictEquals(read.entries, 5, "every entry inside the table, and none after it");
-    assertEquals(
-        read.bare,
-        ["plainkey", "LEFT_ALONE"],
-        "and only the two with nothing beside them",
-    );
-});
 
 /**
  * ⚠️ **A key with no side in its name carries a citation or a measurement** (`develop ADR 0106`),

@@ -16,21 +16,6 @@ import {
 const PROMISE_NAME = "Promise";
 const THEN_NAME = "then";
 
-function lookupAsynchronousCode(file: SourceFile): string[] {
-    const found: string[] = [];
-    for (const node of readAstNodes(file, [...FUNCTION_NODES, "AwaitExpression", "Identifier"])) {
-        const place = formatNodePlace(file, node);
-        if (node.async === true) found.push(`${place} async`);
-        if (node.type === "AwaitExpression") found.push(`${place} await`);
-        if (node.name === PROMISE_NAME) found.push(`${place} Promise`);
-    }
-    for (const node of readAstNodes(file, ["MemberExpression"])) {
-        if (node.computed === true) continue;
-        if (node.property?.name === THEN_NAME) found.push(`${formatNodePlace(file, node)} .then`);
-    }
-    return found;
-}
-
 Deno.test("every spelling of a promise is flagged, and a word in a string is not", () => {
     const sample = composeSample([
         "async function load() {",
@@ -49,6 +34,21 @@ Deno.test("every spelling of a promise is flagged, and a word in a string is not
     const synchronous = composeSample(["function load() {", "    return read(1);", "}"]);
     assertEquals(lookupAsynchronousCode(synchronous), [], "a synchronous call is not");
 });
+
+function lookupAsynchronousCode(file: SourceFile): string[] {
+    const found: string[] = [];
+    for (const node of readAstNodes(file, [...FUNCTION_NODES, "AwaitExpression", "Identifier"])) {
+        const place = formatNodePlace(file, node);
+        if (node.async === true) found.push(`${place} async`);
+        if (node.type === "AwaitExpression") found.push(`${place} await`);
+        if (node.name === PROMISE_NAME) found.push(`${place} Promise`);
+    }
+    for (const node of readAstNodes(file, ["MemberExpression"])) {
+        if (node.computed === true) continue;
+        if (node.property?.name === THEN_NAME) found.push(`${formatNodePlace(file, node)} .then`);
+    }
+    return found;
+}
 
 Deno.test("nothing the bundle carries waits for anything", () => {
     assertEquals(readBundleFiles().flatMap(lookupAsynchronousCode), [], "S13");

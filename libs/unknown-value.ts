@@ -56,6 +56,13 @@ export function getNumberField<Field extends string>(
     return ok(value);
 }
 
+/** `undefined` where the record does not hold the key itself, whatever its prototype holds. */
+function getOwnValue(record: UnknownRecord, key: string): unknown {
+    assert(key.length > 0, "a key read is a key somebody spelled");
+    if (!Object.hasOwn(record, key)) return undefined;
+    return record[key];
+}
+
 /** Text, empty text included: text saying nothing is text. */
 export function getTextField<Field extends string>(
     record: UnknownRecord,
@@ -118,11 +125,4 @@ export function getListField<Field extends string>(
         return err({ kind: FIELD_FAILURE.tooLong, field, count: value.length, maximum });
     }
     return ok(value);
-}
-
-/** `undefined` where the record does not hold the key itself, whatever its prototype holds. */
-function getOwnValue(record: UnknownRecord, key: string): unknown {
-    assert(key.length > 0, "a key read is a key somebody spelled");
-    if (!Object.hasOwn(record, key)) return undefined;
-    return record[key];
 }

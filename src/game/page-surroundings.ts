@@ -41,6 +41,18 @@ export function initPageSurroundings(page: unknown): SurroundingsPort {
     };
 }
 
+/** Null where the page holds no such text, or holds it empty: nothing stated is no answer. */
+function readPageText(page: unknown, held: string, field: string): string | null {
+    assert(held.length > 0, "a field of the page is asked for by name");
+    if (!isRecord(page)) return null;
+    const record = page[held];
+    if (!isRecord(record)) return null;
+    const text = record[field];
+    if (typeof text !== "string") return null;
+    if (text.length === 0) return null;
+    return text;
+}
+
 /**
  * ⚠️ **A page with no hostname gives `""`**, and the first label of `""` is `""` — not nullish, so
  * a recording carried a world of nothing and a file named with a hole where the answer goes. Seen
@@ -52,16 +64,4 @@ export function parseWorld(host: string): string {
     assert(world.length <= host.length, "a world is part of the host it was read off");
     if (world.length === 0) return WORLD_UNKNOWN;
     return world;
-}
-
-/** Null where the page holds no such text, or holds it empty: nothing stated is no answer. */
-function readPageText(page: unknown, held: string, field: string): string | null {
-    assert(held.length > 0, "a field of the page is asked for by name");
-    if (!isRecord(page)) return null;
-    const record = page[held];
-    if (!isRecord(record)) return null;
-    const text = record[field];
-    if (typeof text !== "string") return null;
-    if (text.length === 0) return null;
-    return text;
 }

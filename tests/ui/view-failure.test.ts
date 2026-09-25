@@ -26,24 +26,6 @@ import { composeShownScreen } from "#/tests/shown-screen.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 
-function readFight(): ScreenReading {
-    const { roster, statistics } = tallyRecordedFight(HILDUR);
-    return presentScreen(
-        statistics,
-        roster,
-        PANEL_METRIC.damageDealtApplied,
-        SIDE_CHOICE.everyone,
-        null,
-        NOTHING_SUSPECT,
-    );
-}
-
-function findMarked(host: FakeElement, mark: string): FakeElement {
-    const found = getElementsWithin(host).find((one) => one.attributes.has(mark));
-    assertExists(found, `the panel draws something marked ${mark}`);
-    return found;
-}
-
 Deno.test("a press whose handler throws is a dropped gesture, and the next one lands", () => {
     const failures: ViewFailure[] = [];
     const asked: unknown[] = [];
@@ -67,6 +49,12 @@ Deno.test("a press whose handler throws is a dropped gesture, and the next one l
     assertEquals(asked, [{ kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel }], "then lands");
     assertStrictEquals(failures.length, 1, "and the one that landed is no failure");
 });
+
+function findMarked(host: FakeElement, mark: string): FakeElement {
+    const found = getElementsWithin(host).find((one) => one.attributes.has(mark));
+    assertExists(found, `the panel draws something marked ${mark}`);
+    return found;
+}
 
 Deno.test("a mark with a value nothing of ours writes drops the gesture and asks nothing", () => {
     const failures: ViewFailure[] = [];
@@ -127,6 +115,18 @@ Deno.test("a render reports every region it left undrawn, and nothing where all 
     );
     assert(report.undrawn.every((one) => one.cause instanceof RangeError), "with its cause");
 });
+
+function readFight(): ScreenReading {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    return presentScreen(
+        statistics,
+        roster,
+        PANEL_METRIC.damageDealtApplied,
+        SIDE_CHOICE.everyone,
+        null,
+        NOTHING_SUSPECT,
+    );
+}
 
 Deno.test("a card that will not draw under the pointer is told to the sink as the card", () => {
     const document = composeFakeDocument();

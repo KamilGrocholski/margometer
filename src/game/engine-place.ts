@@ -28,10 +28,11 @@ export interface PlacePort {
  * `1781609507010`: the map is `Engine.map.d.name` and the position `Engine.hero.d.x` and `.y`.
  */
 type EngineField = "map" | "hero";
-const ENGINE_FIELDS: FieldKeys<EngineField> = { map: "map", hero: "hero" };
 type HeldField = "data";
-const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 type PlaceField = "mapName" | "x" | "y";
+
+const ENGINE_FIELDS: FieldKeys<EngineField> = { map: "map", hero: "hero" };
+const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "name", x: "x", y: "y" };
 
 /** The first spelling of the game that says anything wins: two spellings are one game. */

@@ -12,13 +12,6 @@ import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import type { WarriorSnapshot } from "./warrior-snapshot.ts";
 
-/**
- * Where collecting stops. It **stops** rather than dropping the oldest: a recording without the
- * start of the fight is useless, one without the end still carries material.
- */
-export const CALLS_MAXIMUM = 2000;
-const SHAPE_KEYS_MAXIMUM = 256;
-
 export interface CapturedCall {
     index: number;
     payload: unknown;
@@ -44,6 +37,13 @@ export interface CaptureStanding {
     readonly shapesSeen: ReadonlySet<string>;
     readonly statesSeen: ReadonlySet<string>;
 }
+
+/**
+ * Where collecting stops. It **stops** rather than dropping the oldest: a recording without the
+ * start of the fight is useless, one without the end still carries material.
+ */
+export const CALLS_MAXIMUM = 2000;
+const SHAPE_KEYS_MAXIMUM = 256;
 
 export const NO_CAPTURE: CaptureStanding = {
     calls: [],

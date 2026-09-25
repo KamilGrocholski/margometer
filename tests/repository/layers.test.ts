@@ -21,25 +21,6 @@ const IMPORTS_ALLOWED: readonly (readonly [string, readonly string[]])[] = [
     ["src/ui/", ["libs/", "src/core/", "src/ui/"]],
 ];
 
-function lookupLayerReach(path: string): readonly string[] | null {
-    const layer = IMPORTS_ALLOWED.find(([prefix]) => path.startsWith(prefix));
-    return layer === undefined ? null : layer[1];
-}
-
-function lookupImportsUpward(file: SourceFile): string[] {
-    const allowed = lookupLayerReach(file.path);
-    if (allowed === null) return [];
-    const found: string[] = [];
-    for (const source of readImportSources(file)) {
-        const target = lookupImportedPath(file, source);
-        if (target === null) continue;
-        if (!allowed.some((prefix) => target.startsWith(prefix))) {
-            found.push(`${file.path} imports ${target}`);
-        }
-    }
-    return found;
-}
-
 Deno.test("an import from above a layer is flagged, and one from below it is not", () => {
     const upward = composeSample([
         'import { a } from "#/src/game/payload-envelope.ts";',
@@ -58,6 +39,25 @@ Deno.test("an import from above a layer is flagged, and one from below it is not
     const game = { ...upward, path: "src/game/sample.ts" };
     assertEquals(lookupImportsUpward(game), [], "and game may import from core and libs both");
 });
+
+function lookupImportsUpward(file: SourceFile): string[] {
+    const allowed = lookupLayerReach(file.path);
+    if (allowed === null) return [];
+    const found: string[] = [];
+    for (const source of readImportSources(file)) {
+        const target = lookupImportedPath(file, source);
+        if (target === null) continue;
+        if (!allowed.some((prefix) => target.startsWith(prefix))) {
+            found.push(`${file.path} imports ${target}`);
+        }
+    }
+    return found;
+}
+
+function lookupLayerReach(path: string): readonly string[] | null {
+    const layer = IMPORTS_ALLOWED.find(([prefix]) => path.startsWith(prefix));
+    return layer === undefined ? null : layer[1];
+}
 
 Deno.test("no file in libs/ or src/ imports from a layer above its own", () => {
     const found = readSourceFiles(["libs", "src"]).flatMap(lookupImportsUpward);

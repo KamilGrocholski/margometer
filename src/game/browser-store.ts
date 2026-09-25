@@ -20,14 +20,6 @@ export const STORE_KEY = {
     storage: "MargoMeter-storage",
 } as const;
 export type StoreKey = VocabularyWord<typeof STORE_KEY>;
-const STORE_KEYS = Object.values(STORE_KEY);
-
-/**
- * What one write may run to; past it the store **refuses**. The widest kept fight over
- * `develop:captures/` is 219,128 characters as the shelf writes it (2026-09-21), so twenty of
- * them are past this, and the refusal is what lets the rotation drop the oldest.
- */
-export const STORE_VALUE_LENGTH_MAXIMUM = 4194304;
 
 export const STORE_FAILURE = {
     unavailable: "store-unavailable",
@@ -54,6 +46,15 @@ export interface PageStorage {
     setItem(key: string, value: string): void;
     removeItem(key: string): void;
 }
+
+const STORE_KEYS = Object.values(STORE_KEY);
+
+/**
+ * What one write may run to; past it the store **refuses**. The widest kept fight over
+ * `develop:captures/` is 219,128 characters as the shelf writes it (2026-09-21), so twenty of
+ * them are past this, and the refusal is what lets the rotation drop the oldest.
+ */
+export const STORE_VALUE_LENGTH_MAXIMUM = 4194304;
 
 /** A store over the page's own; `null` where the page lent none, which every call then answers. */
 export function initPageStore(storage: PageStorage | null): KeyValueStore {
@@ -86,6 +87,12 @@ export function initPageStore(storage: PageStorage | null): KeyValueStore {
     };
 }
 
+function prepareStoreWrite(value: string): Result<void, StoreFailure> {
+    if (value.length <= STORE_VALUE_LENGTH_MAXIMUM) return ok(undefined);
+    const maximum = STORE_VALUE_LENGTH_MAXIMUM;
+    return err({ kind: STORE_FAILURE.valueTooLong, length: value.length, maximum });
+}
+
 /**
  * A store of this page's own, for a reader who wants the shelf gone when the tab is. It refuses
  * nothing but a value past the bound: there is no quota to be past and nothing to be forbidden.
@@ -108,10 +115,4 @@ export function initMemoryStore(): KeyValueStore {
             return ok(undefined);
         },
     };
-}
-
-function prepareStoreWrite(value: string): Result<void, StoreFailure> {
-    if (value.length <= STORE_VALUE_LENGTH_MAXIMUM) return ok(undefined);
-    const maximum = STORE_VALUE_LENGTH_MAXIMUM;
-    return err({ kind: STORE_FAILURE.valueTooLong, length: value.length, maximum });
 }

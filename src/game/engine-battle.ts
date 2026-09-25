@@ -65,6 +65,8 @@ export interface EnginePort {
     readBattle(): Result<EngineBattle, EngineFailure | ForeignFailure>;
 }
 
+type Wrapper = ((this: unknown, ...args: unknown[]) => unknown) & { [WRAP_MARKER]?: number };
+
 /** Both spellings are in the wild, and a client renaming either breaks both readers at once. */
 const ENGINE_FIELD = "Engine";
 const ENGINE_CALL_FIELD = "getEngine";
@@ -76,8 +78,6 @@ const WRAP_MARKER = "__margometerBattleWrap";
 const WRAP_VERSION = 1;
 /** Past anything a fight produces: a wrap failing this often has stopped working. */
 const FAILURES_MAXIMUM = 1048576;
-
-type Wrapper = ((this: unknown, ...args: unknown[]) => unknown) & { [WRAP_MARKER]?: number };
 
 /** The page's game, in whichever spelling answers. A call into the page may throw: theirs. */
 export function initPageEngine(page: unknown): EnginePort {
@@ -91,20 +91,6 @@ export function initPageEngine(page: unknown): EnginePort {
             return ok(initBattle(battle));
         },
     };
-}
-
-/** Both spellings of the game a page holds, in the order tried; a call into the page is theirs. */
-export function readPageEngines(page: unknown): Record<string, unknown>[] {
-    if (!isRecord(page)) return [];
-    const found: unknown[] = [page[ENGINE_FIELD]];
-    const stated = page[ENGINE_CALL_FIELD];
-    if (typeof stated === "function") found.push(Reflect.apply(stated, page, []));
-    return found.filter(isWritableRecord);
-}
-
-/** The battle a page's game holds, or null; a call into the page may throw, and it is theirs. */
-export function readPageBattle(page: unknown): Record<string, unknown> | null {
-    return lookupEngineBattle(readPageEngines(page));
 }
 
 function lookupEngineBattle(engines: readonly Record<string, unknown>[]) {
@@ -129,11 +115,6 @@ function initBattle(battle: Record<string, unknown>): EngineBattle {
             return read.value;
         },
     };
-}
-
-function isOurWrap(value: unknown): boolean {
-    if (typeof value !== "function") return false;
-    return WRAP_MARKER in value;
 }
 
 function wrapBattle(
@@ -173,4 +154,23 @@ function wrapBattle(
         getFailureCount: () => failures.count,
         getFirstFailure: () => failures.first,
     });
+}
+
+function isOurWrap(value: unknown): boolean {
+    if (typeof value !== "function") return false;
+    return WRAP_MARKER in value;
+}
+
+/** Both spellings of the game a page holds, in the order tried; a call into the page is theirs. */
+export function readPageEngines(page: unknown): Record<string, unknown>[] {
+    if (!isRecord(page)) return [];
+    const found: unknown[] = [page[ENGINE_FIELD]];
+    const stated = page[ENGINE_CALL_FIELD];
+    if (typeof stated === "function") found.push(Reflect.apply(stated, page, []));
+    return found.filter(isWritableRecord);
+}
+
+/** The battle a page's game holds, or null; a call into the page may throw, and it is theirs. */
+export function readPageBattle(page: unknown): Record<string, unknown> | null {
+    return lookupEngineBattle(readPageEngines(page));
 }

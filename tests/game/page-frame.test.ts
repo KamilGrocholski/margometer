@@ -7,17 +7,6 @@ import { assert, assertEquals, AssertionError, assertStrictEquals } from "@std/a
 import { type BrokenInvariant, RESULT_FAILURE } from "#/libs/result.ts";
 import { initPageFrames, type PageFrames } from "#/src/game/page-frame.ts";
 
-/** Frames the test lets fall by hand: the step each holds runs only when `fall` is called. */
-function composeFrames() {
-    const held: (() => void)[] = [];
-    const cancelled: number[] = [];
-    const frames: PageFrames = {
-        requestAnimationFrame: (step) => held.push(step) + 40,
-        cancelAnimationFrame: (handle) => void cancelled.push(handle),
-    };
-    return { frames, cancelled, fall: () => held.shift()?.() };
-}
-
 Deno.test("a step runs when its frame falls, and a cancel hands back the page's own handle", () => {
     const wound = composeFrames();
     let ran = 0;
@@ -29,6 +18,17 @@ Deno.test("a step runs when its frame falls, and a cancel hands back the page's 
     requested.value.cancel();
     assertEquals(wound.cancelled, [41], "with the handle the page gave");
 });
+
+/** Frames the test lets fall by hand: the step each holds runs only when `fall` is called. */
+function composeFrames() {
+    const held: (() => void)[] = [];
+    const cancelled: number[] = [];
+    const frames: PageFrames = {
+        requestAnimationFrame: (step) => held.push(step) + 40,
+        cancelAnimationFrame: (handle) => void cancelled.push(handle),
+    };
+    return { frames, cancelled, fall: () => held.shift()?.() };
+}
 
 Deno.test("a step that breaks is handed over as a failure and never reaches the frame loop", () => {
     const wound = composeFrames();

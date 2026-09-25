@@ -20,16 +20,6 @@ const VIEWPORT = { width: 1280, height: 900 };
 /** The button a browser states for a press of the second one, which opens a menu. */
 const SECONDARY_BUTTON = 2;
 
-function findGrip(host: FakeElement, grip: string): FakeElement {
-    const found = getElementsWithin(host).find((one) => one.attributes.get("data-grip") === grip);
-    assertExists(found, `the ${grip} window draws a bar to drag it by`);
-    return found;
-}
-
-function dispatch(host: FakeElement, type: string, event: PanelEvent): void {
-    for (const handle of host.rootListeners.get(type) ?? []) handle(event);
-}
-
 Deno.test("only the primary button opens anything, and a press stating none is that button", () => {
     const asked: PanelIntent[] = [];
     const panel = initTestView(composeFakeDocument(), { onIntent: (one) => asked.push(one) });
@@ -44,6 +34,10 @@ Deno.test("only the primary button opens anything, and a press stating none is t
     const folding = { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel };
     assertEquals(asked, [folding, folding], "the first does, stated or not");
 });
+
+function dispatch(host: FakeElement, type: string, event: PanelEvent): void {
+    for (const handle of host.rootListeners.get(type) ?? []) handle(event);
+}
 
 Deno.test("each window is moved by its own bar, and reported moved under its own name", () => {
     const asked: PanelIntent[] = [];
@@ -66,6 +60,12 @@ Deno.test("each window is moved by its own bar, and reported moved under its own
         "the helper's bar moves the helper, and says so",
     );
 });
+
+function findGrip(host: FakeElement, grip: string): FakeElement {
+    const found = getElementsWithin(host).find((one) => one.attributes.get("data-grip") === grip);
+    assertExists(found, `the ${grip} window draws a bar to drag it by`);
+    return found;
+}
 
 Deno.test("a pointer stating no place starts no drag, and the panel stays where it stood", () => {
     const panel = initTestView(composeFakeDocument(), {

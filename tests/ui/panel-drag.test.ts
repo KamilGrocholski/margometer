@@ -17,6 +17,15 @@ import { SPACE_PIXELS } from "#/src/ui/panel-look.ts";
 
 const WINDOW = { width: 1280, height: 900 };
 
+/**
+ * A round stand-in for the sheet's own bound, so the arithmetic below reads without one. It is the
+ * **widest a card may be** and never the width of any one card — which is what decides the side a
+ * card opens on, and the only thing about a card this arithmetic knows (`develop ADR 0091`).
+ */
+const MAXIMUM_TIP_WIDTH = 250;
+/** The air between a window and the card beside it. */
+const GAP = SPACE_PIXELS.small;
+
 Deno.test("a position is kept inside the window, with the grab area still on screen", () => {
     assertEquals(
         clampPosition({ left: 100, top: 200 }, WINDOW),
@@ -100,29 +109,6 @@ Deno.test("what puts the panel there releases the corner it was anchored to", ()
     );
 });
 
-/**
- * A round stand-in for the sheet's own bound, so the arithmetic below reads without one. It is the
- * **widest a card may be** and never the width of any one card — which is what decides the side a
- * card opens on, and the only thing about a card this arithmetic knows (`develop ADR 0091`).
- */
-const MAXIMUM_TIP_WIDTH = 250;
-/** The air between a window and the card beside it. */
-const GAP = SPACE_PIXELS.small;
-/** The screen's right edge, which is what a card standing left of its window is measured from. */
-function composeFromRight(windowWidth: number, windowLeft: number): TipAcross {
-    return { edge: "right", at: windowWidth - windowLeft + GAP };
-}
-
-/** The screen's left edge, which is what a card flipped to the other side is measured from. */
-function composeFromLeft(at: number): TipAcross {
-    return { edge: "left", at };
-}
-
-/** A window to open a card beside, written the way the panel hands one over. */
-function composePlace(left: number, windowName: PanelWindow = PANEL_WINDOW.panel): TipWindowPlace {
-    return { position: { left, top: 8 }, windowName };
-}
-
 Deno.test("the detail opens on the side of the panel that has room for it", () => {
     // Where the sheet puts the panel, which is where it stays until somebody drags it: the whole
     // right-hand side of the window is behind it, so the detail opens to its left — pinned by its
@@ -160,6 +146,21 @@ Deno.test("the detail opens on the side of the panel that has room for it", () =
         "by the sheet, and so is one in a page that will not say how big it is",
     );
 });
+
+/** A window to open a card beside, written the way the panel hands one over. */
+function composePlace(left: number, windowName: PanelWindow = PANEL_WINDOW.panel): TipWindowPlace {
+    return { position: { left, top: 8 }, windowName };
+}
+
+/** The screen's right edge, which is what a card standing left of its window is measured from. */
+function composeFromRight(windowWidth: number, windowLeft: number): TipAcross {
+    return { edge: "right", at: windowWidth - windowLeft + GAP };
+}
+
+/** The screen's left edge, which is what a card flipped to the other side is measured from. */
+function composeFromLeft(at: number): TipAcross {
+    return { edge: "left", at };
+}
 
 /**
  * ⚠️ **The side is the bound's answer, not this card's.** A card is drawn at `max-content` since

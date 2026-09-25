@@ -12,6 +12,21 @@ import { assert } from "@std/assert/assert";
 import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
 import { HOLYTOUCH_DECLARATION_KEY, HOLYTOUCH_HEAL_KEY, LASTHEAL_KEY } from "./protocol-key.ts";
 
+/** What one fight's bonuses have come to so far, carried payload to payload. */
+export interface LegendaryWalk {
+    /** The heals the holder's current run has given them so far. */
+    readonly holytouchHealsByHolder: ReadonlyMap<number, number>;
+    readonly spentLastheal: ReadonlySet<number>;
+}
+
+/** One combatant, and what the two bonuses say about them now. */
+export interface LegendaryStanding {
+    combatantId: number;
+    /** The heals their current run has given them, or null where it is not standing on them. */
+    holytouchHealsGiven: number | null;
+    hasSpentLastheal: boolean;
+}
+
 /**
  * _Postać aplikuje na siebie efekt rozłożony na **3 tury**, którego każde wyzwolenie leczy Postaci
  * 6% puli punktów zdrowia_ (article `view,372`, read 2026-09-21). ⚠️ **Counted in heals and never
@@ -22,25 +37,10 @@ export const HOLYTOUCH_HEALS_STATED = 3;
 /** As many holders as a board has combatants. */
 const HOLDERS_MAXIMUM = 64;
 
-/** What one fight's bonuses have come to so far, carried payload to payload. */
-export interface LegendaryWalk {
-    /** The heals the holder's current run has given them so far. */
-    readonly holytouchHealsByHolder: ReadonlyMap<number, number>;
-    readonly spentLastheal: ReadonlySet<number>;
-}
-
 export const NO_LEGENDARY_WALK: LegendaryWalk = {
     holytouchHealsByHolder: new Map(),
     spentLastheal: new Set(),
 };
-
-/** One combatant, and what the two bonuses say about them now. */
-export interface LegendaryStanding {
-    combatantId: number;
-    /** The heals their current run has given them, or null where it is not standing on them. */
-    holytouchHealsGiven: number | null;
-    hasSpentLastheal: boolean;
-}
 
 /**
  * One payload's events onto the walk, in order: a heal in the same payload as its lighting belongs

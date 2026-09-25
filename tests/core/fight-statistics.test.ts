@@ -22,22 +22,6 @@ import {
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
-/** One payload decoded from no standing, as the session decodes one. */
-function decode(messages: readonly string[], roster: CombatantRoster | null): BattleEvent[] {
-    const context = { roster, standing: null, tables: BLOWS_GRANTED };
-    return [...decodePayloadMessages(messages, context).events];
-}
-
-/** Tallied, and held to its balances, which is the pair a caller always runs. */
-function tally(
-    events: readonly BattleEvent[],
-    heals: ReadonlyMap<BattleEvent, TeamHeal>,
-): FightStatistics {
-    const statistics = tallyFightStatistics(events, heals);
-    verifyFightStatistics(statistics);
-    return statistics;
-}
-
 /**
  * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a blow absorption stood in front
  * of.
@@ -50,6 +34,120 @@ const ABSORBED =
  */
 const POISON = "-255967=19.27;0;poison=140,14";
 const HEAL = "482845=100.00;0;heal=99";
+
+/**
+ * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: damage stated against a
+ * name, on the
+ * announcement that dealt it. The name is resolved through a roster, so the sample carries one.
+ */
+const NAMED_DAMAGE =
+    "195782=96.83;114881=80.61;tspell=Zdruzgotanie;skillId=39;+oth_dmg=1529,a,Gracz 1(80.61%);" +
+    "combo-max=3";
+
+/**
+ * The same transcript with its announcement taken away and an ordinary damage pair put in, which
+ * is the one shape `captures/` does not carry: 0 of the 1,175 figures stated against a name stand
+ * under no announcement, 2026-09-13. Written by hand for that reason — **W4**.
+ */
+const NAMED_DAMAGE_UNANNOUNCED = "195782=96.83;114881=80.61;+dmg=917;-dmg=760;" +
+    "+oth_dmg=1529,a,Gracz 3(80.61%)";
+
+/** An announcement of the game's own that nothing of the damage family follows. */
+const AURA =
+    "466476=94.30;466476=94.30;tspell=Aura ochrony;skillId=76;aura-ac_per=20;aura-resall=15";
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the announcement `ABSORBED` swings
+ * under.
+ */
+const ANNOUNCED = "467968=100.00;-10000249=100.00;tspell=Zatruta strzała;skillId=232";
+/**
+ * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: the same shape with a
+ * block in front of it,
+ * so the swing went out and landed nothing.
+ */
+const BLOCKED = [
+    "114881=95.35;195782=96.83;tspell=Błyskawiczny cios;skillId=209",
+    "114881=95.35;195782=96.83;+dmg=1259;+dmgo=839;+acdmg=17;-blok=378;-dmg=0",
+];
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a critical blow that pierced and
+ * destroyed armour.
+ */
+const CRITICAL = "467968=100.00;-10000249=99.69;+crit;+pierce;+dmgd=1557;+acdmg=16;-dmgd=1012";
+/** The same shape with the defending side's own flag on it, which is not the striker's. */
+const EVADED = "467968=100.00;-10000249=99.69;-evade;+dmgd=900;-dmgd=0";
+/** A key the register refuses an end: decoded, and charged to nobody until somebody knows. */
+const UNSETTLED = "467968=100.00;-10000249=99.69;-tenacity;+dmgd=100;-dmgd=100";
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: an announcement and the two blows
+ * it went out as. The published help says every attack of one skill is one turn (article 372
+ * §2.1, read 2026-09-02), and the second blow arrives announced as nothing.
+ */
+const TWO_HIT_ANNOUNCEMENT = "441390=100.00;-10000249=99.60;tspell=Podwójne trafienie;skillId=239";
+const TWO_HIT_FIRST = "441390=100.00;-10000249=99.57;+dmgd=926;+dmgf=138;+dmgc=799;+resdmg=2;" +
+    "-absorb=44;-absorbm=294;-dmgd=81;-dmgc=8";
+const TWO_HIT_SECOND = "441390=100.00;-10000249=99.40;+pierce;+dmgd=809;+dmgf=105;+dmgc=799;" +
+    "+resdmg=2;-absorb=283;-absorbm=814;-dmgd=526;-dmgf=7;-dmgc=21";
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: two default attacks by one
+ * combatant, one after the other. The queue hands a fast combatant consecutive turns, so these
+ * are two of them and not one struck twice.
+ */
+const BARE_BLOW = "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223";
+const BARE_BLOW_AGAIN = "482845=100.00;-161518=21.34;+crit;+dmgd=612;+acdmg=5;-dmgd=363";
+/** The same recording: the other default action, which strikes nothing (§2.3). */
+const STEP = "-255967=100.00;0;step";
+/**
+ * `2026-08-25-luvia-grupa-vs-draugr-none-none.json`: a turn that went on making a skill ready,
+ * and the same key stated beside its own combatant's blow, where it rides that blow's turn.
+ */
+const PREPARE_ALONE = "-10124094=21.17;0;prepare=Osobisty rozrachunek(100%)";
+const PREPARE_BLOW = "-10124094=23.21;22914=43.63;+dmg=3275;+acdmg=96;-absorb=136;-dmg=2365";
+const PREPARE_BESIDE = "-10124094=23.21;0;prepare=Osobisty rozrachunek(0%)";
+/**
+ * `2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json`, payload 0: an announcement, the
+ * damage it landed on five combatants **by name**, and the two preparations stated after it. The
+ * damage is that same combatant striking (`develop:docs/protocol-keys.md` reads `+oth_dmg`'s cause
+ * off the message actor), so nothing between the announcement and the preparations is anybody
+ * else's.
+ */
+const NAMED_BLOW_ANNOUNCEMENT = "-10000544;0;tspell=Szarża zastępcy";
+const NAMED_BLOW = "-10000544=100.00;466475=79.85;+oth_dmg=2581, ,Gracz 1(83.52%);" +
+    "+oth_dmg=3004, ,Gracz 5(76.78%);+oth_dmg=2609, ,Gracz 6(86.06%);" +
+    "+oth_dmg=2750, ,Gracz 7(79.85%);+oth_dmg=3139, ,Gracz 8(74.82%)";
+const NAMED_BLOW_PREPARE = "-10000544=100.00;0;prepare=Osobisty rozrachunek(0%)";
+const NAMED_BLOW_PREPARE_READY = "-10000544=100.00;0;prepare=Osobisty rozrachunek(100%)";
+/** The same recording: health moving on the combatant who struck, which is nobody's action. */
+const STRIKER_POISON = "-10000544=98.62;0;poison=204,20";
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the game announcing a turn its
+ * holder spent on nothing. The nicknames in `develop:captures/` are the recording's own anonymised
+ * ones (`Gracz 5`), and the other name here is an NPC's.
+ */
+const TURN_LOST = "0;0;txt=Hildur Muza Śmierci - utrata tury (redukcja ogłuszenia 50%)";
+/** The same shape, ending in a full stop, which is how the game writes its other lines. */
+const DEAD_TARGET = "0;0;txt=Gracz 5 - atak w martwego przeciwnika.";
+const LOOT = "0;0;txt=Hildur Muza Śmierci: zdobyto Stalowa kosa";
+
+/**
+ * Health the protocol says came back, to nobody it named. **`captures/` carries neither shape**,
+ * so both are written by hand — which is also why the figure went uncounted for as long as it
+ * did: nothing in the material could have shown it missing.
+ */
+const RESTORED_TO_NOBODY = "0;0;heal=99";
+const RESTORED_TO_A_STRANGER = "1=50.00;0;legbon_lastheal=40,Nieznajoma(50.00%)";
+
+/**
+ * Probes, every one: the recordings never reach these branches, and each was a mutation of
+ * `src/core/fight-statistics.ts` that lit nothing until it was written out here.
+ */
+const PROBE_ROSTER_TWO_SIDES = [
+    { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+    { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
+];
 
 Deno.test("a blow lands on both of its ends, and raw stays apart from applied", () => {
     const statistics = tally(
@@ -66,14 +164,21 @@ Deno.test("a blow lands on both of its ends, and raw stays apart from applied", 
     assertEquals(countUnreadMessages(statistics), 0, "nothing about this blow went unread");
 });
 
-/**
- * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: damage stated against a
- * name, on the
- * announcement that dealt it. The name is resolved through a roster, so the sample carries one.
- */
-const NAMED_DAMAGE =
-    "195782=96.83;114881=80.61;tspell=Zdruzgotanie;skillId=39;+oth_dmg=1529,a,Gracz 1(80.61%);" +
-    "combo-max=3";
+/** Tallied, and held to its balances, which is the pair a caller always runs. */
+function tally(
+    events: readonly BattleEvent[],
+    heals: ReadonlyMap<BattleEvent, TeamHeal>,
+): FightStatistics {
+    const statistics = tallyFightStatistics(events, heals);
+    verifyFightStatistics(statistics);
+    return statistics;
+}
+
+/** One payload decoded from no standing, as the session decodes one. */
+function decode(messages: readonly string[], roster: CombatantRoster | null): BattleEvent[] {
+    const context = { roster, standing: null, tables: BLOWS_GRANTED };
+    return [...decodePayloadMessages(messages, context).events];
+}
 
 /**
  * A figure stated against a name is damage its announcement dealt, and the skill row is the only
@@ -96,14 +201,6 @@ Deno.test("damage stated against a name is charged to the skill that announced i
     assertEquals(dealer?.blowsWithoutSkill, 0, "so no blow is counted as standing behind nothing");
     assertEquals(skill?.blows, 0, "and the skill's own count of swings holds none either");
 });
-
-/**
- * The same transcript with its announcement taken away and an ordinary damage pair put in, which
- * is the one shape `captures/` does not carry: 0 of the 1,175 figures stated against a name stand
- * under no announcement, 2026-09-13. Written by hand for that reason — **W4**.
- */
-const NAMED_DAMAGE_UNANNOUNCED = "195782=96.83;114881=80.61;+dmg=917;-dmg=760;" +
-    "+oth_dmg=1529,a,Gracz 3(80.61%)";
 
 /**
  * The closing row's figure is a remainder and the level under it is a second walk, so a figure
@@ -130,24 +227,6 @@ Deno.test("damage stated against a name with nothing announcing it reaches the c
     const named = statistics.byCombatantId.get(300001);
     assertEquals(named?.damageTakenWithoutSkillByOpponent.get("195782"), 1529, "and at the other");
 });
-
-/** An announcement of the game's own that nothing of the damage family follows. */
-const AURA =
-    "466476=94.30;466476=94.30;tspell=Aura ochrony;skillId=76;aura-ac_per=20;aura-resall=15";
-/**
- * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the announcement `ABSORBED` swings
- * under.
- */
-const ANNOUNCED = "467968=100.00;-10000249=100.00;tspell=Zatruta strzała;skillId=232";
-/**
- * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: the same shape with a
- * block in front of it,
- * so the swing went out and landed nothing.
- */
-const BLOCKED = [
-    "114881=95.35;195782=96.83;tspell=Błyskawiczny cios;skillId=209",
-    "114881=95.35;195782=96.83;+dmg=1259;+dmgo=839;+acdmg=17;-blok=378;-dmg=0",
-];
 
 /**
  * The two counts a skill row keeps apart, and the panel reads the second: an announcement that
@@ -676,16 +755,6 @@ Deno.test("what one gave another is the skills announced for it plus the keys, e
     assert(stated > 0, "and some on a key the game named with nothing announced in front of it");
 });
 
-/**
- * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a critical blow that pierced and
- * destroyed armour.
- */
-const CRITICAL = "467968=100.00;-10000249=99.69;+crit;+pierce;+dmgd=1557;+acdmg=16;-dmgd=1012";
-/** The same shape with the defending side's own flag on it, which is not the striker's. */
-const EVADED = "467968=100.00;-10000249=99.69;-evade;+dmgd=900;-dmgd=0";
-/** A key the register refuses an end: decoded, and charged to nobody until somebody knows. */
-const UNSETTLED = "467968=100.00;-10000249=99.69;-tenacity;+dmgd=100;-dmgd=100";
-
 Deno.test("what fired beside a blow lands on the row of whoever it belongs to", () => {
     const statistics = tally(
         decode([CRITICAL], null),
@@ -814,47 +883,12 @@ Deno.test("every recording places what a blow carried, and places none of it twi
     }
 });
 
-/**
- * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: an announcement and the two blows
- * it went out as. The published help says every attack of one skill is one turn (article 372
- * §2.1, read 2026-09-02), and the second blow arrives announced as nothing.
- */
-const TWO_HIT_ANNOUNCEMENT = "441390=100.00;-10000249=99.60;tspell=Podwójne trafienie;skillId=239";
-const TWO_HIT_FIRST = "441390=100.00;-10000249=99.57;+dmgd=926;+dmgf=138;+dmgc=799;+resdmg=2;" +
-    "-absorb=44;-absorbm=294;-dmgd=81;-dmgc=8";
-const TWO_HIT_SECOND = "441390=100.00;-10000249=99.40;+pierce;+dmgd=809;+dmgf=105;+dmgc=799;" +
-    "+resdmg=2;-absorb=283;-absorbm=814;-dmgd=526;-dmgf=7;-dmgc=21";
-/**
- * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: two default attacks by one
- * combatant, one after the other. The queue hands a fast combatant consecutive turns, so these
- * are two of them and not one struck twice.
- */
-const BARE_BLOW = "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223";
-const BARE_BLOW_AGAIN = "482845=100.00;-161518=21.34;+crit;+dmgd=612;+acdmg=5;-dmgd=363";
-/** The same recording: the other default action, which strikes nothing (§2.3). */
-const STEP = "-255967=100.00;0;step";
-/**
- * `2026-08-25-luvia-grupa-vs-draugr-none-none.json`: a turn that went on making a skill ready,
- * and the same key stated beside its own combatant's blow, where it rides that blow's turn.
- */
-const PREPARE_ALONE = "-10124094=21.17;0;prepare=Osobisty rozrachunek(100%)";
-const PREPARE_BLOW = "-10124094=23.21;22914=43.63;+dmg=3275;+acdmg=96;-absorb=136;-dmg=2365";
-const PREPARE_BESIDE = "-10124094=23.21;0;prepare=Osobisty rozrachunek(0%)";
-/**
- * `2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json`, payload 0: an announcement, the
- * damage it landed on five combatants **by name**, and the two preparations stated after it. The
- * damage is that same combatant striking (`develop:docs/protocol-keys.md` reads `+oth_dmg`'s cause
- * off the message actor), so nothing between the announcement and the preparations is anybody
- * else's.
- */
-const NAMED_BLOW_ANNOUNCEMENT = "-10000544;0;tspell=Szarża zastępcy";
-const NAMED_BLOW = "-10000544=100.00;466475=79.85;+oth_dmg=2581, ,Gracz 1(83.52%);" +
-    "+oth_dmg=3004, ,Gracz 5(76.78%);+oth_dmg=2609, ,Gracz 6(86.06%);" +
-    "+oth_dmg=2750, ,Gracz 7(79.85%);+oth_dmg=3139, ,Gracz 8(74.82%)";
-const NAMED_BLOW_PREPARE = "-10000544=100.00;0;prepare=Osobisty rozrachunek(0%)";
-const NAMED_BLOW_PREPARE_READY = "-10000544=100.00;0;prepare=Osobisty rozrachunek(100%)";
-/** The same recording: health moving on the combatant who struck, which is nobody's action. */
-const STRIKER_POISON = "-10000544=98.62;0;poison=204,20";
+Deno.test("a skill and every attack it goes out as are one turn", () => {
+    const whole = [TWO_HIT_ANNOUNCEMENT, TWO_HIT_FIRST, TWO_HIT_SECOND];
+    assertEquals(getTurnsTaken(whole, 441390), 1, "the announcement, and both of its blows");
+    assertEquals(getTurnsTaken([TWO_HIT_ANNOUNCEMENT], 441390), 1, "the announcement alone");
+    assertEquals(getTurnsTaken(whole, -10000249), 0, "and the end it landed on took none of it");
+});
 
 function getTurnsTaken(messages: readonly string[], combatantId: number): number {
     const statistics = tally(
@@ -863,13 +897,6 @@ function getTurnsTaken(messages: readonly string[], combatantId: number): number
     );
     return statistics.byCombatantId.get(combatantId)?.turnsTaken ?? 0;
 }
-
-Deno.test("a skill and every attack it goes out as are one turn", () => {
-    const whole = [TWO_HIT_ANNOUNCEMENT, TWO_HIT_FIRST, TWO_HIT_SECOND];
-    assertEquals(getTurnsTaken(whole, 441390), 1, "the announcement, and both of its blows");
-    assertEquals(getTurnsTaken([TWO_HIT_ANNOUNCEMENT], 441390), 1, "the announcement alone");
-    assertEquals(getTurnsTaken(whole, -10000249), 0, "and the end it landed on took none of it");
-});
 
 Deno.test("two default attacks by one combatant are two turns, not one struck twice", () => {
     assertEquals(getTurnsTaken([BARE_BLOW], 482845), 1, "one attack is one turn");
@@ -953,15 +980,18 @@ Deno.test("every recording charges a turn to somebody who was already in the fig
     assertEquals(turns, 5897, "the turns the recordings hold, 2026-09-21");
 });
 
-/**
- * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the game announcing a turn its
- * holder spent on nothing. The nicknames in `develop:captures/` are the recording's own anonymised
- * ones (`Gracz 5`), and the other name here is an NPC's.
- */
-const TURN_LOST = "0;0;txt=Hildur Muza Śmierci - utrata tury (redukcja ogłuszenia 50%)";
-/** The same shape, ending in a full stop, which is how the game writes its other lines. */
-const DEAD_TARGET = "0;0;txt=Gracz 5 - atak w martwego przeciwnika.";
-const LOOT = "0;0;txt=Hildur Muza Śmierci: zdobyto Stalowa kosa";
+Deno.test("a turn the game says was spent on nothing lands on the row it names", () => {
+    assertEquals(getTurnsLost([TURN_LOST], -10000249), 1, "the combatant the sentence opens with");
+    assertEquals(getTurnsLost([TURN_LOST], 445202), 0, "and nobody else in the fight");
+    assertEquals(getTurnsLost([TURN_LOST, TURN_LOST], -10000249), 2, "twice is two");
+});
+
+function getTurnsLost(messages: readonly string[], combatantId: number): number {
+    const roster = composeTwoSided();
+    const events = decode(messages, roster);
+    const statistics = tally(events, new Map());
+    return statistics.byCombatantId.get(combatantId)?.turnsLost ?? 0;
+}
 
 function composeTwoSided(): CombatantRoster {
     return indexCombatantRoster([
@@ -983,19 +1013,6 @@ function composeTwoSided(): CombatantRoster {
         },
     ]);
 }
-
-function getTurnsLost(messages: readonly string[], combatantId: number): number {
-    const roster = composeTwoSided();
-    const events = decode(messages, roster);
-    const statistics = tally(events, new Map());
-    return statistics.byCombatantId.get(combatantId)?.turnsLost ?? 0;
-}
-
-Deno.test("a turn the game says was spent on nothing lands on the row it names", () => {
-    assertEquals(getTurnsLost([TURN_LOST], -10000249), 1, "the combatant the sentence opens with");
-    assertEquals(getTurnsLost([TURN_LOST], 445202), 0, "and nobody else in the fight");
-    assertEquals(getTurnsLost([TURN_LOST, TURN_LOST], -10000249), 2, "twice is two");
-});
 
 /**
  * The two shapes the reading must refuse, and the second is the one that keeps it honest: the
@@ -1044,21 +1061,6 @@ Deno.test("a name that opens another does not take its line", () => {
     assertEquals(statistics.byCombatantId.get(1)?.turnsLost, undefined, "and the shorter has none");
 });
 
-/**
- * Health the protocol says came back, to nobody it named. **`captures/` carries neither shape**,
- * so both are written by hand — which is also why the figure went uncounted for as long as it
- * did: nothing in the material could have shown it missing.
- */
-const RESTORED_TO_NOBODY = "0;0;heal=99";
-const RESTORED_TO_A_STRANGER = "1=50.00;0;legbon_lastheal=40,Nieznajoma(50.00%)";
-
-/** One person, so a name the value carries is a name this roster cannot place. */
-function composeOneCombatantRoster(): CombatantRoster {
-    return indexCombatantRoster([
-        { id: 1, name: "Alfa", side: 1, profession: "w", level: 10, healthMaximum: 100 },
-    ]);
-}
-
 Deno.test("health that came back to nobody is counted, under the key it came back on", () => {
     const roster = composeOneCombatantRoster();
     const statistics = tally(
@@ -1070,6 +1072,13 @@ Deno.test("health that came back to nobody is counted, under the key it came bac
     assertEquals(countUnreadMessages(statistics), 0, "and the message was read, not skipped");
     assertEquals(statistics.totals.healthRestored, 0, "no combatant's total holds it");
 });
+
+/** One person, so a name the value carries is a name this roster cannot place. */
+function composeOneCombatantRoster(): CombatantRoster {
+    return indexCombatantRoster([
+        { id: 1, name: "Alfa", side: 1, profession: "w", level: 10, healthMaximum: 100 },
+    ]);
+}
 
 Deno.test("healing aimed at a name the roster cannot place is counted rather than dropped", () => {
     const roster = composeOneCombatantRoster();
@@ -1126,15 +1135,6 @@ Deno.test("a cast nobody could place is charged to the caster the message names"
     assertEquals(unsized.castsUnplaced, 1, "the fight counts the cast it could not place");
     assertEquals(unsized.byCombatantId.get(1)?.castsUnplaced, 1, "on the row the actor slot named");
 });
-
-/**
- * Probes, every one: the recordings never reach these branches, and each was a mutation of
- * `src/core/fight-statistics.ts` that lit nothing until it was written out here.
- */
-const PROBE_ROSTER_TWO_SIDES = [
-    { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
-    { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
-];
 
 Deno.test("a blow naming no striker is taken from nobody on its target's row", () => {
     const statistics = tally(decode(["0;2=50.00;+dmg=10;-dmg=10"], null), new Map());
@@ -1226,6 +1226,23 @@ Deno.test("an unread message naming one end twice charges that row once", () => 
     assertEquals(statistics.byCombatantId.get(1)?.unreadMessagesUnknownKey, 1, "once");
 });
 
+Deno.test("every balance refuses a fight one point off in its own figure", () => {
+    const offs: [string, (row: CombatantFigures) => Partial<CombatantFigures>][] = [
+        ["applied", (row) => ({ damageTakenApplied: row.damageTakenApplied + 1 })],
+        ["restored", (row) => ({ healthRestored: row.healthRestored + 1 })],
+        ["prevented", () => ({ damagePreventedByDefence: new Map([["absorb", 6]]) })],
+        ["half-named", (row) => ({
+            healthRestoredByNobody: row.healthRestoredByNobody + 1,
+            healthRestoredByNobodyBySource: new Map([["heal", 1]]),
+        })],
+        ["half-named kind", () => ({ damageDealtToNobodyByElement: new Map([["dmg", 1]]) })],
+    ];
+    for (const [balance, change] of offs) {
+        const unbalanced = composeUnbalanced(change);
+        assertThrows(() => verifyFightStatistics(unbalanced), AssertionError, undefined, balance);
+    }
+});
+
 /** A tally of two combatants, one blow and one heal, then one figure moved out of balance. */
 function composeUnbalanced(
     change: (row: CombatantFigures) => Partial<CombatantFigures>,
@@ -1243,20 +1260,3 @@ function composeUnbalanced(
     byCombatantId.set(2, { ...row, ...change(row) });
     return { ...statistics, byCombatantId };
 }
-
-Deno.test("every balance refuses a fight one point off in its own figure", () => {
-    const offs: [string, (row: CombatantFigures) => Partial<CombatantFigures>][] = [
-        ["applied", (row) => ({ damageTakenApplied: row.damageTakenApplied + 1 })],
-        ["restored", (row) => ({ healthRestored: row.healthRestored + 1 })],
-        ["prevented", () => ({ damagePreventedByDefence: new Map([["absorb", 6]]) })],
-        ["half-named", (row) => ({
-            healthRestoredByNobody: row.healthRestoredByNobody + 1,
-            healthRestoredByNobodyBySource: new Map([["heal", 1]]),
-        })],
-        ["half-named kind", () => ({ damageDealtToNobodyByElement: new Map([["dmg", 1]]) })],
-    ];
-    for (const [balance, change] of offs) {
-        const unbalanced = composeUnbalanced(change);
-        assertThrows(() => verifyFightStatistics(unbalanced), AssertionError, undefined, balance);
-    }
-});

@@ -33,10 +33,6 @@ import {
 } from "#/src/ui/panel-screen.ts";
 import { readRecordedFights, tallyRecordedFight } from "#/tests/recorded-fights.ts";
 
-const HUNDRED = 100;
-/** What a row holding something too small to state a point prints, in place of a share. */
-const NO_SHARE = "0%";
-
 /** As a row is drawn: what it holds, beside the share it printed for it. */
 interface ShareRow {
     figure: number;
@@ -49,32 +45,81 @@ interface Section {
     total: number;
 }
 
-/** Null where the column is not drawn at all: a section nobody sees makes no claim. */
-function getShareSum(section: Section): number | null {
-    if (section.total <= 0) return null;
-    if (section.rows.length === 0) return null;
-    return section.rows.reduce((sum, one) => sum + parseSharePoints(one.shareText), 0);
-}
+const HUNDRED = 100;
+/** What a row holding something too small to state a point prints, in place of a share. */
+const NO_SHARE = "0%";
 
-/**
- * Nothing prints `0%` and something below a point prints `<1%`, and the two are never swapped: a
- * row saying nought where a figure stands is the panel losing it, and one saying `<1%` where none
- * does is the panel inventing it. A `<1%` row costs the column no point, so a column carrying one
- * still comes to a hundred in the numbers it prints.
- */
-function expectShareTellsNothingFromSomething(where: string, row: ShareRow): void {
-    assert(row.figure >= 0, `${where}: a row drawn holds no less than nothing`);
-    if (row.figure === 0) {
-        assertEquals(row.shareText, NO_SHARE, `${where}: a row holding nothing states a share`);
-        return;
+Deno.test("every column of shares the panel draws comes to a hundred", () => {
+    let drawn = 0;
+    for (const path of readRecordedFights().map((one) => one.path)) {
+        const fight = tallyRecordedFight(path);
+        const seats = [...new Set([...fight.roster.byId.values()].map((one) => one.side))];
+        for (const readerSide of [null, ...seats]) {
+            for (
+                const side of [
+                    SIDE_CHOICE.everyone,
+                    SIDE_CHOICE.reader,
+                    SIDE_CHOICE.opposing,
+                ] as const
+            ) {
+                if (readerSide === null && side !== SIDE_CHOICE.everyone) continue;
+                for (const metric of SCREEN_ORDER) {
+                    for (
+                        const section of composeSectionsForScreen(fight, metric, side, readerSide)
+                    ) {
+                        const sum = getShareSum(section);
+                        if (sum === null) continue;
+                        drawn += 1;
+                        assertEquals(sum, HUNDRED, `${path}: ${section.where} comes to ${sum}`);
+                        for (const row of section.rows) {
+                            expectShareTellsNothingFromSomething(
+                                `${path}: ${section.where}`,
+                                row,
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
-    assertNotStrictEquals(
-        row.shareText,
-        NO_SHARE,
-        `${where}: ${row.figure} printed as none of the whole`,
+    // The reader is proved by what it found as well as by what it passed: a sweep that stopped
+    // reaching the rungs would agree with every screen it never opened.
+    assertEquals(drawn, 48_735, "every column the corpus draws, 2026-09-21");
+});
+
+/** The ranking of one screen for one seat, and every rung the rows on it open onto. */
+function composeSectionsForScreen(
+    fight: ReturnType<typeof tallyRecordedFight>,
+    metric: PanelMetric,
+    side: PanelSideChoice,
+    readerSide: number | null,
+): Section[] {
+    const { roster, statistics } = fight;
+    const reading = presentScreen(
+        statistics,
+        roster,
+        metric,
+        side,
+        readerSide,
+        NOTHING_SUSPECT,
     );
-    if (row.shareText === SHARE_FLOOR) return;
-    assert(parseSharePoints(row.shareText) > 0, `${where}: a share of nought is not a share`);
+    const found: Section[] = [{
+        where: `${metric}/ranking`,
+        // A pinned figure standing as a cut is already inside the rows; only one standing apart
+        // joins the whole, which is the arithmetic `presentScreen` shares them by. The
+        // section under the list joins it too: it is what the screen counts and no row above it
+        // holds, so a column read without it is the shortfall itself.
+        rows: [
+            ...reading.rows,
+            ...reading.pinned.filter((one) => one.standing === PINNED_STANDING.apart),
+            ...(reading.outsideRanking === null ? [] : [reading.outsideRanking]),
+        ],
+        total: reading.total,
+    }];
+    for (const row of reading.rows) {
+        found.push(...composeSectionsForScreenRow(fight, metric, row.combatantId));
+    }
+    return found;
 }
 
 /**
@@ -139,41 +184,6 @@ function composeSectionsForScreenRow(
     return found;
 }
 
-/** The ranking of one screen for one seat, and every rung the rows on it open onto. */
-function composeSectionsForScreen(
-    fight: ReturnType<typeof tallyRecordedFight>,
-    metric: PanelMetric,
-    side: PanelSideChoice,
-    readerSide: number | null,
-): Section[] {
-    const { roster, statistics } = fight;
-    const reading = presentScreen(
-        statistics,
-        roster,
-        metric,
-        side,
-        readerSide,
-        NOTHING_SUSPECT,
-    );
-    const found: Section[] = [{
-        where: `${metric}/ranking`,
-        // A pinned figure standing as a cut is already inside the rows; only one standing apart
-        // joins the whole, which is the arithmetic `presentScreen` shares them by. The
-        // section under the list joins it too: it is what the screen counts and no row above it
-        // holds, so a column read without it is the shortfall itself.
-        rows: [
-            ...reading.rows,
-            ...reading.pinned.filter((one) => one.standing === PINNED_STANDING.apart),
-            ...(reading.outsideRanking === null ? [] : [reading.outsideRanking]),
-        ],
-        total: reading.total,
-    }];
-    for (const row of reading.rows) {
-        found.push(...composeSectionsForScreenRow(fight, metric, row.combatantId));
-    }
-    return found;
-}
-
 function composeCutShares(
     rows: readonly ShareRow[],
     closing: ShareRow | null,
@@ -183,46 +193,32 @@ function composeCutShares(
     return [...shares, { figure: closing.figure, shareText: closing.shareText }];
 }
 
-Deno.test("every column of shares the panel draws comes to a hundred", () => {
-    let drawn = 0;
-    for (const path of readRecordedFights().map((one) => one.path)) {
-        const fight = tallyRecordedFight(path);
-        const seats = [...new Set([...fight.roster.byId.values()].map((one) => one.side))];
-        for (const readerSide of [null, ...seats]) {
-            for (
-                const side of [
-                    SIDE_CHOICE.everyone,
-                    SIDE_CHOICE.reader,
-                    SIDE_CHOICE.opposing,
-                ] as const
-            ) {
-                if (readerSide === null && side !== SIDE_CHOICE.everyone) continue;
-                for (const metric of SCREEN_ORDER) {
-                    for (
-                        const section of composeSectionsForScreen(fight, metric, side, readerSide)
-                    ) {
-                        const sum = getShareSum(section);
-                        if (sum === null) continue;
-                        drawn += 1;
-                        assertEquals(sum, HUNDRED, `${path}: ${section.where} comes to ${sum}`);
-                        for (const row of section.rows) {
-                            expectShareTellsNothingFromSomething(
-                                `${path}: ${section.where}`,
-                                row,
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
-    // The reader is proved by what it found as well as by what it passed: a sweep that stopped
-    // reaching the rungs would agree with every screen it never opened.
-    assertEquals(drawn, 48_735, "every column the corpus draws, 2026-09-21");
-});
+/** Null where the column is not drawn at all: a section nobody sees makes no claim. */
+function getShareSum(section: Section): number | null {
+    if (section.total <= 0) return null;
+    if (section.rows.length === 0) return null;
+    return section.rows.reduce((sum, one) => sum + parseSharePoints(one.shareText), 0);
+}
 
-function composeSection(where: string, rows: ShareRow[], total: number): Section {
-    return { where, rows, total };
+/**
+ * Nothing prints `0%` and something below a point prints `<1%`, and the two are never swapped: a
+ * row saying nought where a figure stands is the panel losing it, and one saying `<1%` where none
+ * does is the panel inventing it. A `<1%` row costs the column no point, so a column carrying one
+ * still comes to a hundred in the numbers it prints.
+ */
+function expectShareTellsNothingFromSomething(where: string, row: ShareRow): void {
+    assert(row.figure >= 0, `${where}: a row drawn holds no less than nothing`);
+    if (row.figure === 0) {
+        assertEquals(row.shareText, NO_SHARE, `${where}: a row holding nothing states a share`);
+        return;
+    }
+    assertNotStrictEquals(
+        row.shareText,
+        NO_SHARE,
+        `${where}: ${row.figure} printed as none of the whole`,
+    );
+    if (row.shareText === SHARE_FLOOR) return;
+    assert(parseSharePoints(row.shareText) > 0, `${where}: a share of nought is not a share`);
 }
 
 /** The sample it must flag, so a green run is the columns adding up and not the reader stopping. */
@@ -242,6 +238,10 @@ Deno.test("a column short of the whole is read as short", () => {
     const whole: ShareRow[] = [{ figure: 1, shareText: "100%" }];
     assertEquals(getShareSum(composeSection("made up", whole, 0)), null, "or one of nothing");
 });
+
+function composeSection(where: string, rows: ShareRow[], total: number): Section {
+    return { where, rows, total };
+}
 
 /** And the two the other reader must flag, which are the ways a row can misword what it holds. */
 Deno.test("a row wording nothing as something, or the reverse, is read as wrong", () => {

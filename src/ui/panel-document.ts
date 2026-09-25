@@ -3,18 +3,6 @@
  * for a document of its own, and is handed one that answers exactly this.
  */
 
-export const STYLE_ATTRIBUTE = "style";
-
-/** The browser's names for the events the panel listens to, spelled here and nowhere else. */
-export const EVENT_TYPE = {
-    press: "pointerdown",
-    back: "contextmenu",
-    move: "pointermove",
-    leave: "pointerout",
-    release: "pointerup",
-    cancel: "pointercancel",
-} as const;
-
 export interface PanelDocument {
     createElement(tag: string): PanelElement;
 }
@@ -71,3 +59,15 @@ export interface PanelRoot {
     append(child: PanelElement): void;
     addEventListener(type: string, handle: (event: PanelEvent) => void): void;
 }
+
+export const STYLE_ATTRIBUTE = "style";
+
+/** The browser's names for the events the panel listens to, spelled here and nowhere else. */
+export const EVENT_TYPE = {
+    press: "pointerdown",
+    back: "contextmenu",
+    move: "pointermove",
+    leave: "pointerout",
+    release: "pointerup",
+    cancel: "pointercancel",
+} as const;

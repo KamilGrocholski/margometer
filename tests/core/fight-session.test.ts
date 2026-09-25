@@ -47,6 +47,15 @@ const NOTHING: PayloadRecord = {
 };
 const OPENING: PayloadRecord = { ...NOTHING, isInit: true };
 
+Deno.test("a fight nobody has seen is not a fight holding nothing", () => {
+    const session = initFightSession(SESSION_OPTIONS);
+    assertStrictEquals(getFightView(session), null, "there is no fight to read");
+    assertStrictEquals(getSessionPhase(session), SESSION_PHASE.waiting, "it waits");
+    apply(session, OPENING);
+    assertEquals(view(session).events, [], "a fight that opened on nothing holds nothing");
+    assertStrictEquals(getSessionPhase(session), SESSION_PHASE.underway, "and is underway");
+});
+
 function apply(session: FightSession, record: PayloadRecord): PayloadCommitted {
     const prepared = preparePayload(session, record, BLOWS_GRANTED);
     assert(prepared.ok, "a payload inside every bound is prepared");
@@ -58,19 +67,6 @@ function view(session: FightSession): FightView {
     assertExists(found, "a fight stands");
     return found;
 }
-
-function composeCombatant(id: number, name: string, side: number): Combatant {
-    return { id, name, side, profession: "w", level: 100, healthMaximum: 1000 };
-}
-
-Deno.test("a fight nobody has seen is not a fight holding nothing", () => {
-    const session = initFightSession(SESSION_OPTIONS);
-    assertStrictEquals(getFightView(session), null, "there is no fight to read");
-    assertStrictEquals(getSessionPhase(session), SESSION_PHASE.waiting, "it waits");
-    apply(session, OPENING);
-    assertEquals(view(session).events, [], "a fight that opened on nothing holds nothing");
-    assertStrictEquals(getSessionPhase(session), SESSION_PHASE.underway, "and is underway");
-});
 
 Deno.test("preparing touches nothing, and a payload lands once", () => {
     const session = initFightSession(SESSION_OPTIONS);
@@ -212,14 +208,6 @@ Deno.test("a fight past its bound on events is refused at the bound and not befo
     assertStrictEquals(past.error.kind, SESSION_FAILURE.eventsExceeded, "as too many events");
 });
 
-/** A cast the game would field: ten a side, keyed by id as the client keys its own warriors. */
-function composeFullCast(): Combatant[] {
-    return Array.from(
-        { length: COMBATANTS_MAXIMUM },
-        (_, at) => composeCombatant(at + 1, `Postac${at + 1}`, at < COMBATANTS_MAXIMUM / 2 ? 1 : 2),
-    );
-}
-
 Deno.test("a cast stated twice is one cast, and a fight of twenty survives the restatement", () => {
     const session = initFightSession(SESSION_OPTIONS);
     apply(session, { ...OPENING, combatants: composeFullCast() });
@@ -235,6 +223,18 @@ Deno.test("a cast stated twice is one cast, and a fight of twenty survives the r
         maximum: COMBATANTS_MAXIMUM,
     }, "and says so");
 });
+
+/** A cast the game would field: ten a side, keyed by id as the client keys its own warriors. */
+function composeFullCast(): Combatant[] {
+    return Array.from(
+        { length: COMBATANTS_MAXIMUM },
+        (_, at) => composeCombatant(at + 1, `Postac${at + 1}`, at < COMBATANTS_MAXIMUM / 2 ? 1 : 2),
+    );
+}
+
+function composeCombatant(id: number, name: string, side: number): Combatant {
+    return { id, name, side, profession: "w", level: 100, healthMaximum: 1000 };
+}
 
 Deno.test("a name stated by two people resolves to nobody, however often each is stated", () => {
     const cast = [composeCombatant(1, "Odyniec", 1), composeCombatant(2, "Odyniec", 2)];

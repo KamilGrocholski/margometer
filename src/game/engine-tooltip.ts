@@ -29,6 +29,14 @@ export interface TooltipWritten {
     asked: number;
 }
 
+/** The client's jQuery set of one fighter's tooltip holders, narrowed to the calls made of it. */
+interface TooltipTargets {
+    getTipData(): unknown;
+    tip(content: string): unknown;
+    concatTip(row: string): unknown;
+    trigger(event: string): unknown;
+}
+
 /**
  * What the client calls the things this file uses, spelled here and nowhere else (N13). Read on
  * production build `Bb28FQty`, 2026-09-21 and 2026-09-23: a warrior keeps its own element under
@@ -112,26 +120,6 @@ function encodeBlock(rows: readonly string[]): string {
     return text;
 }
 
-/** The client's jQuery set of one fighter's tooltip holders, narrowed to the calls made of it. */
-interface TooltipTargets {
-    getTipData(): unknown;
-    tip(content: string): unknown;
-    concatTip(row: string): unknown;
-    trigger(event: string): unknown;
-}
-
-/**
- * ⚠️ **The methods are checked rather than left to throw**: a throw ends the walk, and every
- * fighter after the one that could not take a line would lose theirs.
- */
-function isTooltipTargets(value: unknown): value is TooltipTargets {
-    if (!isRecord(value)) return false;
-    if (typeof value[READ_METHOD] !== "function") return false;
-    if (typeof value[REPLACE_METHOD] !== "function") return false;
-    if (typeof value[APPEND_METHOD] !== "function") return false;
-    return typeof value[TELL_METHOD] === "function";
-}
-
 /**
  * True where the block now stands, false where none of ours does, and null where the fighter has
  * no tooltip this file can reach — whatever stood there before is left as it was.
@@ -161,4 +149,16 @@ function writeBlockToWarrior(warrior: UnknownRecord, was: string, block: string)
     for (const row of block.split(CLIENT_BREAK).slice(1)) targets.concatTip(row);
     targets.trigger(TELL_EVENT);
     return true;
+}
+
+/**
+ * ⚠️ **The methods are checked rather than left to throw**: a throw ends the walk, and every
+ * fighter after the one that could not take a line would lose theirs.
+ */
+function isTooltipTargets(value: unknown): value is TooltipTargets {
+    if (!isRecord(value)) return false;
+    if (typeof value[READ_METHOD] !== "function") return false;
+    if (typeof value[REPLACE_METHOD] !== "function") return false;
+    if (typeof value[APPEND_METHOD] !== "function") return false;
+    return typeof value[TELL_METHOD] === "function";
 }

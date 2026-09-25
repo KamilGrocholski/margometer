@@ -47,21 +47,6 @@ const NOTHING: PayloadRecord = {
     chargeStatements: [],
 };
 
-function replayRecordedFight(fight: RecordedFight): FightView {
-    const session = initFightSession(SESSION_OPTIONS);
-    fight.payloads.forEach((messages, index) => {
-        const isInit = index === 0;
-        const combatants = isInit ? fight.combatants : [];
-        const record = { ...NOTHING, isInit, messages, combatants };
-        const prepared = preparePayload(session, record, BLOWS_GRANTED);
-        assert(prepared.ok, `${fight.path}: a recorded call is inside every bound`);
-        commitPayload(session, prepared.value);
-    });
-    const view = getFightView(session);
-    assert(view !== null, `${fight.path}: the replay produced a fight`);
-    return view;
-}
-
 Deno.test("a fight run through the session tallies what its events tally, everywhere", () => {
     let fights = 0;
     let sized = 0;
@@ -79,6 +64,21 @@ Deno.test("a fight run through the session tallies what its events tally, everyw
     assert(fights > 0, "the recordings were there to run");
     assert(sized > 0, "and some of them carry a cast sized onto a side");
 });
+
+function replayRecordedFight(fight: RecordedFight): FightView {
+    const session = initFightSession(SESSION_OPTIONS);
+    fight.payloads.forEach((messages, index) => {
+        const isInit = index === 0;
+        const combatants = isInit ? fight.combatants : [];
+        const record = { ...NOTHING, isInit, messages, combatants };
+        const prepared = preparePayload(session, record, BLOWS_GRANTED);
+        assert(prepared.ok, `${fight.path}: a recorded call is inside every bound`);
+        commitPayload(session, prepared.value);
+    });
+    const view = getFightView(session);
+    assert(view !== null, `${fight.path}: the replay produced a fight`);
+    return view;
+}
 
 Deno.test("figures are tallied from a fight that exists, and say what they stand on", () => {
     const session = initFightSession(SESSION_OPTIONS);

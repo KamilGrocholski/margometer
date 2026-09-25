@@ -38,6 +38,12 @@ export function lookupTurnOpener(event: BattleEvent, standing: TurnStanding): nu
     return event.combatantId;
 }
 
+function hasDeclaredEffect(event: DeclarationEvent, effect: string): boolean {
+    assert(effect.length > 0, "a declaration is looked up under a key");
+    assert(event.declared.length > 0, "a declaration states something");
+    return event.declared.some((declared) => declared.effect === effect);
+}
+
 /**
  * The same standing, one event on. A blow keeps the announcement going only while it is that
  * announcement's own; anything else ends it, and an event that is nobody's action ends both
@@ -60,10 +66,4 @@ export function composeTurnStanding(event: BattleEvent, standing: TurnStanding):
         return { strikingId: null, actingId: standing.actingId };
     }
     return NO_TURN_STANDING;
-}
-
-function hasDeclaredEffect(event: DeclarationEvent, effect: string): boolean {
-    assert(effect.length > 0, "a declaration is looked up under a key");
-    assert(event.declared.length > 0, "a declaration states something");
-    return event.declared.some((declared) => declared.effect === effect);
 }

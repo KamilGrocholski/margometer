@@ -12,18 +12,18 @@ import { PAGE_READ_FAILURE, PAGE_READING } from "#/src/game/page-reading.ts";
 
 const ABSENT = err({ kind: PAGE_READ_FAILURE.absent, reading: PAGE_READING.place });
 
-function composeEngine(mapName: unknown, x: unknown, y: unknown): Record<string, unknown> {
-    return { map: { d: { name: mapName } }, hero: { d: { x, y } } };
-}
+Deno.test("the map and the tile are read off the client's own state", () => {
+    const place = readPlaceOf(composeEngine("Tempest", 12, 34));
+    assertEquals(place, ok({ mapName: "Tempest", x: 12, y: 34 }), "all three, as the page holds");
+});
 
 function readPlaceOf(engine: unknown) {
     return initPagePlace({ Engine: engine }).readPlace();
 }
 
-Deno.test("the map and the tile are read off the client's own state", () => {
-    const place = readPlaceOf(composeEngine("Tempest", 12, 34));
-    assertEquals(place, ok({ mapName: "Tempest", x: 12, y: 34 }), "all three, as the page holds");
-});
+function composeEngine(mapName: unknown, x: unknown, y: unknown): Record<string, unknown> {
+    return { map: { d: { name: mapName } }, hero: { d: { x, y } } };
+}
 
 Deno.test("a tile arrives as text as readily as a number", () => {
     const place = readPlaceOf(composeEngine("Tempest", "12", "34"));

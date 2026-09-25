@@ -59,6 +59,13 @@ export type KeyReading =
     | { kind: typeof KEY_FAMILY.namedDamage }
     | { kind: typeof KEY_FAMILY.namedHealing };
 
+/**
+ * Which side a cast reaches, relative to its caster: not which side is the reader's, which is the
+ * panel's to say. A key absent from the table reaches **nothing stated**.
+ */
+export const KEY_REACH = { castersSide: "casters-side", otherSide: "other-side" } as const;
+export type KeyReach = VocabularyWord<typeof KEY_REACH>;
+
 /** The client's default branch reads characters 1 to 3 of a key: `+` is raw, the rest applied. */
 const DAMAGE_MARKER = "dmg";
 const DAMAGE_MARKER_AT = 1;
@@ -263,13 +270,6 @@ const VALUELESS_DECLARATION_KEYS = [
     STEP_KEY,
     "sunshield_per",
 ];
-
-/**
- * Which side a cast reaches, relative to its caster: not which side is the reader's, which is the
- * panel's to say. A key absent from the table reaches **nothing stated**.
- */
-export const KEY_REACH = { castersSide: "casters-side", otherSide: "other-side" } as const;
-export type KeyReach = VocabularyWord<typeof KEY_REACH>;
 
 /** Cited in `develop:docs/auras-standing.md`, which cites the register, which cites the help. */
 const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([

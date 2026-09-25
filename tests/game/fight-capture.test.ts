@@ -30,10 +30,6 @@ const SOMEBODY: CapturedCombatant = {
     ac: null,
 };
 
-function capture(standing: CaptureStanding, call: Partial<EngineCall>, isOpening = false) {
-    return prepareCapture(standing, { payload: {}, messages: [], ...NOBODY, ...call }, isOpening);
-}
-
 Deno.test("every call carrying messages is kept, and a call saying nothing new is dropped", () => {
     const opening = capture(NO_CAPTURE, { payload: { init: "1" } }, true);
     assertEquals(opening.calls.length, 1, "the call that opens a fight is a shape nobody has seen");
@@ -50,6 +46,10 @@ Deno.test("every call carrying messages is kept, and a call saying nothing new i
     const repeatedSaid = capture(repeated, { payload: { m: ["x"] }, messages: ["y"] });
     assertEquals(repeatedSaid.calls.length, 3, "while a repeat that carries a message is kept");
 });
+
+function capture(standing: CaptureStanding, call: Partial<EngineCall>, isOpening = false) {
+    return prepareCapture(standing, { payload: {}, messages: [], ...NOBODY, ...call }, isOpening);
+}
 
 Deno.test("a shape nobody has seen is kept even where the call says nothing", () => {
     const opened = capture(NO_CAPTURE, { payload: { poll: 1 } });

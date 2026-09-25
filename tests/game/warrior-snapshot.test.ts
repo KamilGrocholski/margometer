@@ -20,6 +20,18 @@ import { readRecordedFights } from "#/tests/recorded-fights.ts";
 /** The fields every recording's snapshot carries, in the order it carries them. */
 const RECORDED_KEYS = ["id", "name", "team", "prof", "lvl", "hp", "mana", "energy", "ac"];
 
+Deno.test("the list the client fills is asked first, and the other where it says nothing", () => {
+    const listed = {
+        warriorsList: { 1: composeWarrior(1, "A") },
+        warriors: { 2: composeWarrior(2, "B") },
+    };
+    assertEquals(readNames(listed), ["A"], "`warriorsList` answers first");
+    const empty = { warriorsList: {}, warriors: { 2: composeWarrior(2, "B") } };
+    assertEquals(readNames(empty), ["B"], "and `warriors` where the first holds nobody");
+    const unnamed = { warriorsList: { 1: { id: 1 } }, warriors: { 2: composeWarrior(2, "B") } };
+    assertEquals(readNames(unnamed), ["B"], "and where the first holds nobody named");
+});
+
 function composeWarrior(id: number, name: string): Record<string, unknown> {
     return {
         id,
@@ -41,18 +53,6 @@ function readNames(battle: unknown): unknown[] {
     assert(snapshot.ok, "the battle states a collection of warriors");
     return snapshot.value.map((one) => one.name);
 }
-
-Deno.test("the list the client fills is asked first, and the other where it says nothing", () => {
-    const listed = {
-        warriorsList: { 1: composeWarrior(1, "A") },
-        warriors: { 2: composeWarrior(2, "B") },
-    };
-    assertEquals(readNames(listed), ["A"], "`warriorsList` answers first");
-    const empty = { warriorsList: {}, warriors: { 2: composeWarrior(2, "B") } };
-    assertEquals(readNames(empty), ["B"], "and `warriors` where the first holds nobody");
-    const unnamed = { warriorsList: { 1: { id: 1 } }, warriors: { 2: composeWarrior(2, "B") } };
-    assertEquals(readNames(unnamed), ["B"], "and where the first holds nobody named");
-});
 
 Deno.test("a warrior with no name is passed over, and the rest of the fight is read", () => {
     const battle = {

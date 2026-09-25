@@ -49,11 +49,6 @@ export const PANEL_MARK = {
 } as const;
 export type PanelMark = VocabularyWord<typeof PANEL_MARK>;
 
-/** The plain row names nothing, so its mark states the same word and the press reads the key. */
-export const PLAIN_MARK = "closing";
-/** The shelf's row for the fight going on, which no moment of opening names yet. */
-export const LIVE_FIGHT_MARK = "live";
-
 export const PANEL_INTENT = {
     metric: "metric",
     side: "side",
@@ -93,6 +88,11 @@ export const INTENT_FAILURE = { markUnknown: "mark-unknown" } as const;
 export type IntentFailure = { kind: typeof INTENT_FAILURE.markUnknown; mark: PanelMark };
 
 type IntentReading = Result<PanelIntent | null, IntentFailure>;
+
+/** The plain row names nothing, so its mark states the same word and the press reads the key. */
+export const PLAIN_MARK = "closing";
+/** The shelf's row for the fight going on, which no moment of opening names yet. */
+export const LIVE_FIGHT_MARK = "live";
 
 const UNNAMED_ENDS = Object.values(UNNAMED_END);
 
@@ -137,6 +137,10 @@ function readPanelIntentOfScreen(target: PanelTarget): IntentReading {
         return ok({ kind: PANEL_INTENT.openUnnamed, end });
     }
     return ok(null);
+}
+
+function failMark(mark: PanelMark): IntentReading {
+    return err({ kind: INTENT_FAILURE.markUnknown, mark });
 }
 
 /** A part names itself, whatever it names: the game's own keys and names are open sets. */
@@ -191,8 +195,4 @@ function readPanelIntentOfControl(target: PanelTarget): PanelIntent | null {
     }
     if (target.getAttribute(PANEL_MARK.back) !== null) return { kind: PANEL_INTENT.close };
     return null;
-}
-
-function failMark(mark: PanelMark): IntentReading {
-    return err({ kind: INTENT_FAILURE.markUnknown, mark });
 }

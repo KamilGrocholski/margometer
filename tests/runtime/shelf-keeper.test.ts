@@ -14,23 +14,19 @@ import { STORAGE_CHOICE, type StorageChoice } from "#/src/ui/panel-choice.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { initHeldStore, initRefusingStore } from "#/tests/runtime-world.ts";
 
-/** A fight of one payload that opens and closes it, which is the least a shelf keeps. */
-function composeFight(openedAt: number, isPinned = false): KeptFight {
-    const payload = { init: 1, m: ["0;0;winner=Gracz 1"], endBattle: 1 };
-    return { openedAt, payloads: [payload], place: null, gameBuild: null, isPinned };
-}
-
-/** A store taking text up to a ceiling, which is the shape a quota answers in. */
-function initCeilingStore(held: Map<string, string>, lengthMaximum: number): KeyValueStore {
-    return initPageStore({
-        getItem: (key) => held.get(key) ?? null,
-        setItem: (key, value) => {
-            if (value.length > lengthMaximum) throw new DOMException("full", "QuotaExceededError");
-            held.set(key, value);
-        },
-        removeItem: (key) => void held.delete(key),
-    });
-}
+Deno.test("a fight kept is on the shelf and in the store, and the answers say nothing", () => {
+    const { keeper, getShelf } = initKeeper();
+    keeper.keep(composeFight(1));
+    assertEquals(keeper.getFights().map((one) => one.openedAt), [1], "the fight stands");
+    assert(getShelf(STORAGE_CHOICE.local).has(STORE_KEY.fights), "where a reload will look");
+    const quiet = {
+        isEverySlotPinned: false,
+        hasStoreRefused: false,
+        hasStoreMadeRoom: false,
+        hasChoiceRefused: false,
+    };
+    assertEquals(keeper.getAnswers(), quiet, "and nothing needed saying");
+});
 
 function initKeeper(over: Partial<ShelfKeeperOptions> = {}) {
     const lines: string[] = [];
@@ -54,19 +50,11 @@ function initKeeper(over: Partial<ShelfKeeperOptions> = {}) {
     return { keeper, lines, getShelf, settings, defects };
 }
 
-Deno.test("a fight kept is on the shelf and in the store, and the answers say nothing", () => {
-    const { keeper, getShelf } = initKeeper();
-    keeper.keep(composeFight(1));
-    assertEquals(keeper.getFights().map((one) => one.openedAt), [1], "the fight stands");
-    assert(getShelf(STORAGE_CHOICE.local).has(STORE_KEY.fights), "where a reload will look");
-    const quiet = {
-        isEverySlotPinned: false,
-        hasStoreRefused: false,
-        hasStoreMadeRoom: false,
-        hasChoiceRefused: false,
-    };
-    assertEquals(keeper.getAnswers(), quiet, "and nothing needed saying");
-});
+/** A fight of one payload that opens and closes it, which is the least a shelf keeps. */
+function composeFight(openedAt: number, isPinned = false): KeptFight {
+    const payload = { init: 1, m: ["0;0;winner=Gracz 1"], endBattle: 1 };
+    return { openedAt, payloads: [payload], place: null, gameBuild: null, isPinned };
+}
 
 Deno.test("a fight the store refuses stays a row, beside the answer that it was not saved", () => {
     const { keeper, lines } = initKeeper({ initShelfStore: () => initRefusingStore() });
@@ -87,6 +75,18 @@ Deno.test("a store that asks for room takes the newest, and the answer says room
     assertStrictEquals(keeper.getFights().at(-1)?.openedAt, 3, "the newest is what stayed");
     assert(!keeper.getAnswers().hasStoreRefused, "which is not the same answer as a refusal");
 });
+
+/** A store taking text up to a ceiling, which is the shape a quota answers in. */
+function initCeilingStore(held: Map<string, string>, lengthMaximum: number): KeyValueStore {
+    return initPageStore({
+        getItem: (key) => held.get(key) ?? null,
+        setItem: (key, value) => {
+            if (value.length > lengthMaximum) throw new DOMException("full", "QuotaExceededError");
+            held.set(key, value);
+        },
+        removeItem: (key) => void held.delete(key),
+    });
+}
 
 /** The rotation on a full shelf is not the store asking for room, and is not said as it. */
 Deno.test("a shelf past its bound drops its oldest quietly, as the rotation it is", () => {

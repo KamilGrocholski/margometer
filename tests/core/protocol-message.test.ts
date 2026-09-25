@@ -24,12 +24,6 @@ const OUTCOME = "0;0;winner=Gracz 1";
 /** `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a side without a percentage. */
 const ANNOUNCEMENT = "-10000249;0;tspell=Struna płomienna";
 
-function parseOrFail(text: string) {
-    const parsed = parseProtocolMessage(text);
-    assert(parsed.ok, `"${text}" parses`);
-    return parsed.value;
-}
-
 Deno.test("both ends are read, with the health each states", () => {
     const hit = parseOrFail(HIT);
     assertEquals(hit.actor, { combatantId: 482845, healthPercent: 100 }, "the actor is read");
@@ -37,6 +31,12 @@ Deno.test("both ends are read, with the health each states", () => {
     assertStrictEquals(hit.parameters.length, 3, "every segment past the ends is a parameter");
     assertEquals(hit.parameters[0], { key: "+dmgd", value: "466" }, "a parameter keeps its text");
 });
+
+function parseOrFail(text: string) {
+    const parsed = parseProtocolMessage(text);
+    assert(parsed.ok, `"${text}" parses`);
+    return parsed.value;
+}
 
 Deno.test("a health of nothing is a reading, and nobody is not", () => {
     const killing = parseOrFail(KILLING_HIT);

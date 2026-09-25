@@ -49,6 +49,12 @@ export interface LiveHandover {
     place: FightPlace | null;
 }
 
+interface Handover {
+    calls: FileCalls;
+    subject: FileSubject;
+    surroundings: FileSurroundings;
+}
+
 export function writeFightHandover(
     standing: StandingFight | null,
     live: LiveHandover,
@@ -66,12 +72,6 @@ export function writeFightHandover(
     );
     if (!encoded.ok) return encoded;
     return ports.file.writeFile(encoded.value.name, encoded.value.text, onLateFailure);
-}
-
-interface Handover {
-    calls: FileCalls;
-    subject: FileSubject;
-    surroundings: FileSurroundings;
 }
 
 /**
@@ -113,26 +113,6 @@ function prepareHandover(
     });
 }
 
-function prepareHandoverSubject(reading: FightReading, place: FightPlace | null): FileSubject {
-    assert(reading.view.payloadsApplied > 0, "a fight handed over was read from something");
-    return {
-        statistics: reading.figures.statistics,
-        roster: reading.view.roster,
-        place,
-        payloads: reading.view.payloadsApplied,
-        messagesLost: reading.view.messagesLost,
-        isOver: reading.view.isOver,
-    };
-}
-
-/** A build the page will not state is absent from the file, and no failure of the file's. */
-function readLiveBuild(build: BuildPort): string | null {
-    const read = build.readBuildId();
-    if (!read.ok) return null;
-    assert(read.value.length > 0, "a build the page stated says something");
-    return read.value;
-}
-
 function readHandoverSurroundings(
     ports: HandoverPorts,
     atMilliseconds: number,
@@ -149,4 +129,24 @@ function readHandoverSurroundings(
         userAgent: ports.surroundings.readUserAgent(),
         addOnVersion: ports.version,
     });
+}
+
+/** A build the page will not state is absent from the file, and no failure of the file's. */
+function readLiveBuild(build: BuildPort): string | null {
+    const read = build.readBuildId();
+    if (!read.ok) return null;
+    assert(read.value.length > 0, "a build the page stated says something");
+    return read.value;
+}
+
+function prepareHandoverSubject(reading: FightReading, place: FightPlace | null): FileSubject {
+    assert(reading.view.payloadsApplied > 0, "a fight handed over was read from something");
+    return {
+        statistics: reading.figures.statistics,
+        roster: reading.view.roster,
+        place,
+        payloads: reading.view.payloadsApplied,
+        messagesLost: reading.view.messagesLost,
+        isOver: reading.view.isOver,
+    };
 }

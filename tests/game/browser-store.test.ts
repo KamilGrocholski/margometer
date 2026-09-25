@@ -16,28 +16,11 @@ import {
     STORE_VALUE_LENGTH_MAXIMUM,
 } from "#/src/game/browser-store.ts";
 
-function composeAnsweringStorage(): PageStorage {
-    const held = new Map<string, string>();
-    return {
-        getItem: (key) => held.get(key) ?? null,
-        setItem: (key, value) => {
-            held.set(key, value);
-        },
-        removeItem: (key) => void held.delete(key),
-    };
-}
-
 /**
  * A browser that refuses, throwing what one set to forbid storage actually throws: a
  * `SecurityError`, and never anything of ours.
  */
 const REFUSAL = new DOMException("this browser forbids storage", "SecurityError");
-function composeRefusingStorage(): PageStorage {
-    const refuse = (): never => {
-        throw REFUSAL;
-    };
-    return { getItem: refuse, setItem: refuse, removeItem: refuse };
-}
 
 Deno.test("a store that answers reads back what was written to it", () => {
     const store = initPageStore(composeAnsweringStorage());
@@ -50,6 +33,17 @@ Deno.test("a store that answers reads back what was written to it", () => {
     assertEquals(store.read(STORE_KEY.panelFolded), { ok: true, value: null }, "and gone");
 });
 
+function composeAnsweringStorage(): PageStorage {
+    const held = new Map<string, string>();
+    return {
+        getItem: (key) => held.get(key) ?? null,
+        setItem: (key, value) => {
+            held.set(key, value);
+        },
+        removeItem: (key) => void held.delete(key),
+    };
+}
+
 Deno.test("a browser that refuses is answered with its own cause, not thrown out of", () => {
     const store = initPageStore(composeRefusingStorage());
     const refused = err({ kind: STORE_FAILURE.refused, cause: REFUSAL });
@@ -57,6 +51,13 @@ Deno.test("a browser that refuses is answered with its own cause, not thrown out
     assertEquals(store.write(STORE_KEY.fights, "{}"), refused, "and so is a refused write");
     assertEquals(store.remove(STORE_KEY.fights), refused, "and a refused removal");
 });
+
+function composeRefusingStorage(): PageStorage {
+    const refuse = (): never => {
+        throw REFUSAL;
+    };
+    return { getItem: refuse, setItem: refuse, removeItem: refuse };
+}
 
 Deno.test("a page that lends no store says so on every call", () => {
     const store = initPageStore(null);

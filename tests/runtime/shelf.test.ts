@@ -37,54 +37,6 @@ import { readRecordedFights, replayRecordedFight } from "#/tests/recorded-fights
 
 const EMPTY: ShelfContents = { fights: [] };
 
-/** A store with a ceiling on the text it takes, which is the shape a quota answers in. */
-function composeStoreWithCeiling(lengthMaximum: number): KeyValueStore {
-    const held = new Map<string, string>();
-    return initPageStore({
-        getItem: (key) => held.get(key) ?? null,
-        setItem: (key, value) => {
-            if (value.length > lengthMaximum) throw new DOMException("full", "QuotaExceededError");
-            held.set(key, value);
-        },
-        removeItem: (key) => void held.delete(key),
-    });
-}
-
-function composeStoreHolding(text: string): KeyValueStore {
-    const store = initMemoryStore();
-    store.write(STORE_KEY.fights, text);
-    return store;
-}
-
-function composeFight(openedAt: number, isPinned = false): KeptFight {
-    return {
-        openedAt,
-        payloads: [{ init: 1, w: { 1: { id: 1, name: "Gracz 1", team: 1 } } }, {
-            m: ["1=100.00;0;heal=99"],
-        }],
-        place: { mapName: "Mapa", x: 12, y: 34 },
-        gameBuild: "1786441768914",
-        isPinned,
-    };
-}
-
-/** Every fight kept in turn onto one shelf, as the runtime keeps them. */
-function keepAll(store: KeyValueStore, fights: readonly KeptFight[]): ShelfContents {
-    let shelf = EMPTY;
-    for (const fight of fights) {
-        const kept = keepFight(store, shelf, fight);
-        assert(kept.ok, `fight ${fight.openedAt} is kept`);
-        shelf = kept.value.contents;
-    }
-    return shelf;
-}
-
-function readOpenedAt(store: KeyValueStore): number[] {
-    const opened = openShelf(store);
-    assert(opened.ok, "the shelf reads back");
-    return opened.value.fights.map((one) => one.openedAt);
-}
-
 /** `develop`'s `writeKeptFights` of `composeFight(7)`, as it stood in a store on 2026-09-24. */
 const DEVELOP_SHELF = '{"version":3,"fights":[{"openedAt":7,"payloads":[{"init":1,"w":{"1":' +
     '{"id":1,"name":"Gracz 1","team":1}}},{"m":["1=100.00;0;heal=99"]}],"place":{"mapName":' +
@@ -100,6 +52,24 @@ Deno.test("what is written comes back as it went on, in develop's own text", () 
     assertEquals(openShelf(fromDevelop), ok({ fights: [composeFight(7)] }), "a develop shelf too");
 });
 
+function composeFight(openedAt: number, isPinned = false): KeptFight {
+    return {
+        openedAt,
+        payloads: [{ init: 1, w: { 1: { id: 1, name: "Gracz 1", team: 1 } } }, {
+            m: ["1=100.00;0;heal=99"],
+        }],
+        place: { mapName: "Mapa", x: 12, y: 34 },
+        gameBuild: "1786441768914",
+        isPinned,
+    };
+}
+
+function composeStoreHolding(text: string): KeyValueStore {
+    const store = initMemoryStore();
+    store.write(STORE_KEY.fights, text);
+    return store;
+}
+
 Deno.test("a store that will not have it says so, rather than throwing", () => {
     const refusing = composeStoreWithCeiling(0);
     const kept = keepFight(refusing, EMPTY, composeFight(1));
@@ -111,6 +81,19 @@ Deno.test("a store that will not have it says so, rather than throwing", () => {
     assertEquals(keepFight(absent, EMPTY, composeFight(1)), unavailable, "no store is an answer");
     assertEquals(openShelf(absent), unavailable, "on reading as on writing");
 });
+
+/** A store with a ceiling on the text it takes, which is the shape a quota answers in. */
+function composeStoreWithCeiling(lengthMaximum: number): KeyValueStore {
+    const held = new Map<string, string>();
+    return initPageStore({
+        getItem: (key) => held.get(key) ?? null,
+        setItem: (key, value) => {
+            if (value.length > lengthMaximum) throw new DOMException("full", "QuotaExceededError");
+            held.set(key, value);
+        },
+        removeItem: (key) => void held.delete(key),
+    });
+}
 
 Deno.test("a shelf nobody can read is refused, never trusted into a figure", () => {
     const broken = composeStoreHolding("{ this is not json");
@@ -145,6 +128,12 @@ Deno.test("a fight is kept from one payload and dropped where it has none", () =
     assertEquals(readOpenedAt(composeStoreHolding(holed)), [], "a payload nobody reads takes it");
 });
 
+function readOpenedAt(store: KeyValueStore): number[] {
+    const opened = openShelf(store);
+    assert(opened.ok, "the shelf reads back");
+    return opened.value.fights.map((one) => one.openedAt);
+}
+
 Deno.test("one fight nobody can read costs that fight and not the shelf", () => {
     const half = '{"version":3,"fights":[{"openedAt":1,"payloads":[{"init":1}]},' +
         '{"openedAt":2,"payloads":"none"},{"openedAt":"soon","payloads":[{"init":1}]},' +
@@ -162,6 +151,17 @@ Deno.test("the shelf holds its stated maximum, oldest dropped first, and says wh
     assertEquals(readOpenedAt(store)[0], 1, "as a reload finds");
     assertEquals(readOpenedAt(store).length, KEPT_MAXIMUM, "at the bound");
 });
+
+/** Every fight kept in turn onto one shelf, as the runtime keeps them. */
+function keepAll(store: KeyValueStore, fights: readonly KeptFight[]): ShelfContents {
+    let shelf = EMPTY;
+    for (const fight of fights) {
+        const kept = keepFight(store, shelf, fight);
+        assert(kept.ok, `fight ${fight.openedAt} is kept`);
+        shelf = kept.value.contents;
+    }
+    return shelf;
+}
 
 Deno.test("a pin outranks the rotation, and the oldest unpinned goes instead", () => {
     const store = initMemoryStore();

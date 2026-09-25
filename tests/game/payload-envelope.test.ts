@@ -26,16 +26,6 @@ import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 const QUEUE_ENTRIES_MAXIMUM = 1024;
 
-function readOk(payload: unknown) {
-    const record = readPayloadEnvelope(payload);
-    assert(record.ok, "the payload is read");
-    return record.value;
-}
-
-function malformed(field: EnvelopeField) {
-    return err({ kind: ENVELOPE_FAILURE.payloadFieldMalformed, field });
-}
-
 Deno.test("what is not a keyed object is not a payload", () => {
     const refused = err({ kind: ENVELOPE_FAILURE.payloadNotRecord });
     assertEquals(readPayloadEnvelope(null), refused, "nothing is not one");
@@ -57,6 +47,10 @@ Deno.test("a field of the wrong shape refuses the payload, and says which field 
     assertEquals(readPayloadEnvelope(whose), malformed("turnStatement"), "and nobody's turn");
     assertEquals(readPayloadEnvelope({ w: "one" }), malformed("combatants"), "text is no cast");
 });
+
+function malformed(field: EnvelopeField) {
+    return err({ kind: ENVELOPE_FAILURE.payloadFieldMalformed, field });
+}
 
 Deno.test("a list past its bound refuses the payload, and one at it does not", () => {
     const full = new Array(MESSAGES_MAXIMUM).fill(0);
@@ -107,6 +101,12 @@ Deno.test("a cast is read up to a full fight, and one warrior past it is refused
     const keyedPast = Object.fromEntries(warriors.map((one) => [`${one.id}`, one]));
     assertEquals(readPayloadEnvelope({ w: keyedPast }), past, "and so is a keyed one");
 });
+
+function readOk(payload: unknown) {
+    const record = readPayloadEnvelope(payload);
+    assert(record.ok, "the payload is read");
+    return record.value;
+}
 
 Deno.test("a combatant stated twice in one payload refuses it", () => {
     const one = { id: 3, name: "Gracz 3", team: 1 };

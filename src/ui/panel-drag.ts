@@ -44,6 +44,47 @@ interface PanelGrab {
     pointerId: number | undefined;
 }
 
+/** A window a card stands beside: where its left edge is, and which one it is. */
+export interface TipWindowPlace {
+    position: PanelPosition;
+    windowName: PanelWindow;
+}
+
+/**
+ * Which edge of the screen a card is measured from, and how far. **Never a left offset for a card
+ * standing left of its window**: the card is as wide as what it says (`develop ADR 0091`), so a
+ * left offset worked out from the bound would leave a card of two words floating the difference
+ * away from the window it belongs to. The edge facing the window is the one that is pinned.
+ */
+export interface TipAcross {
+    edge: "left" | "right";
+    at: number;
+}
+
+/** What the panel keeps of a drag once the listeners are on. */
+export interface PanelDragHandle {
+    /**
+     * A getter rather than the value: a drag outlives the call that wired it, and whoever draws
+     * beside the panel needs where it is **now** rather than where it was then.
+     */
+    getPosition(): PanelPosition | null;
+    /** The bar has been drawn again; take hold of the one standing. */
+    onDrawn(): void;
+}
+
+export interface PanelPlacement {
+    position: PanelPosition | null;
+    /** The page's size, asked as it is needed: a window resize moves the edges. */
+    readViewport(): PanelViewport | null;
+}
+
+/** Who the drag tells. Where they let go is told once per drag: a write per frame is too many. */
+export interface PanelDragOptions {
+    window: PanelWindow;
+    onMoved: (position: PanelPosition) => void;
+    onFailure: (failure: ViewFailure) => void;
+}
+
 /**
  * A panel dragged off the edge cannot be dragged back, because the grab area goes with it.
  * A title bar's worth stays on screen each way.
@@ -68,28 +109,6 @@ const WINDOW_WIDTHS_PIXELS: { readonly [Window in PanelWindow]: number } = {
     [PANEL_WINDOW.helper]: STANDING.widthPixels,
 };
 
-/** A window a card stands beside: where its left edge is, and which one it is. */
-export interface TipWindowPlace {
-    position: PanelPosition;
-    windowName: PanelWindow;
-}
-
-function composeWindowRight(place: TipWindowPlace): number {
-    return place.position.left + WINDOW_WIDTHS_PIXELS[place.windowName];
-}
-
-/**
- * A whole pixel, on the screen, and a number a style can be written from. `clamp` refuses
- * anything else, so what is not one is answered before it is handed over (**E12**).
- */
-function getPositionWithin(value: number, limit: number): number {
-    if (!Number.isFinite(value)) return 0;
-    if (!Number.isFinite(limit)) return Math.round(value);
-    const held = Math.round(clamp(value, 0, limit));
-    if (!Number.isSafeInteger(held)) return 0;
-    return held;
-}
-
 /**
  * **Every position downstream of this is whole, finite and safe to write into a style.** A null
  * viewport clamps nothing: a width read as zero would look exactly like one that works.
@@ -111,6 +130,18 @@ export function clampPosition(
 }
 
 /**
+ * A whole pixel, on the screen, and a number a style can be written from. `clamp` refuses
+ * anything else, so what is not one is answered before it is handed over (**E12**).
+ */
+function getPositionWithin(value: number, limit: number): number {
+    if (!Number.isFinite(value)) return 0;
+    if (!Number.isFinite(limit)) return Math.round(value);
+    const held = Math.round(clamp(value, 0, limit));
+    if (!Number.isSafeInteger(held)) return 0;
+    return held;
+}
+
+/**
  * The middle of the window, where a panel nobody has moved opens (`develop:DESIGN.md`). It is
  * centred on the **tallest** body the sheet allows rather than the one it has: a panel centred on
  * its waiting bar walks down the screen as rows arrive, and this one stands still.
@@ -124,17 +155,6 @@ export function composeDefaultPosition(viewport: PanelViewport | null): PanelPos
     return clampPosition({
         left: (viewport.width - PLACE.widthPixels) / 2,
         top: (viewport.height - height) / 2,
-    }, viewport);
-}
-
-function composeDraggedPosition(
-    grab: PanelGrab,
-    pointer: PanelPosition,
-    viewport: PanelViewport | null,
-): PanelPosition {
-    return clampPosition({
-        left: grab.panelLeft + (pointer.left - grab.pointerLeft),
-        top: grab.panelTop + (pointer.top - grab.pointerTop),
     }, viewport);
 }
 
@@ -154,33 +174,6 @@ export function composePositionStyle(
     const left = formatWhole(position.left);
     const top = formatWhole(position.top);
     return `left:${left}px;top:${top}px;${TOP_VARIABLES[windowName]}:${top}px;right:auto`;
-}
-
-/**
- * Where the second window opens: **beside** the panel and level with it, never centred.
- * `composeDefaultPosition` centres what it is given, so centring both puts this one exactly under
- * the panel — where the panel paints over it and a reader sees nothing at all. `develop ADR 0060`.
- */
-function composeStandingPosition(viewport: PanelViewport | null): PanelPosition | null {
-    const panel = composeDefaultPosition(viewport);
-    if (panel === null) return null;
-    const gap = SPACE_PIXELS.small;
-    const beside = panel.left - STANDING.widthPixels - gap;
-    if (beside >= 0) return clampPosition({ left: beside, top: panel.top }, viewport);
-    // No room on the left, so the other side — the same answer the card gives (`develop ADR 0090`).
-    const other = { left: panel.left + PLACE.widthPixels + gap, top: panel.top };
-    return clampPosition(other, viewport);
-}
-
-/**
- * Which edge of the screen a card is measured from, and how far. **Never a left offset for a card
- * standing left of its window**: the card is as wide as what it says (`develop ADR 0091`), so a
- * left offset worked out from the bound would leave a card of two words floating the difference
- * away from the window it belongs to. The edge facing the window is the one that is pinned.
- */
-export interface TipAcross {
-    edge: "left" | "right";
-    at: number;
 }
 
 /**
@@ -218,88 +211,12 @@ export function composeTipAcross(
     };
 }
 
-/** What the panel keeps of a drag once the listeners are on. */
-export interface PanelDragHandle {
-    /**
-     * A getter rather than the value: a drag outlives the call that wired it, and whoever draws
-     * beside the panel needs where it is **now** rather than where it was then.
-     */
-    getPosition(): PanelPosition | null;
-    /** The bar has been drawn again; take hold of the one standing. */
-    onDrawn(): void;
-}
-
-export interface PanelPlacement {
-    position: PanelPosition | null;
-    /** The page's size, asked as it is needed: a window resize moves the edges. */
-    readViewport(): PanelViewport | null;
-}
-
-/** Who the drag tells. Where they let go is told once per drag: a write per frame is too many. */
-export interface PanelDragOptions {
-    window: PanelWindow;
-    onMoved: (position: PanelPosition) => void;
-    onFailure: (failure: ViewFailure) => void;
+function composeWindowRight(place: TipWindowPlace): number {
+    return place.position.left + WINDOW_WIDTHS_PIXELS[place.windowName];
 }
 
 export function setGripMark(grip: PanelElement, window: PanelWindow): void {
     grip.setAttribute(GRIP_ATTRIBUTE, GRIP_MARK_BY_WINDOW[window]);
-}
-
-function readPointerFromEvent(event: PanelEvent): PanelPosition | null {
-    const left = readCoordinate(event.clientX);
-    const top = readCoordinate(event.clientY);
-    if (left === null) return null;
-    if (top === null) return null;
-    return { left, top };
-}
-
-/** A browser states a coordinate, and a document standing in for one may state anything. */
-function readCoordinate(value: unknown): number | null {
-    if (typeof value !== "number") return null;
-    if (!Number.isFinite(value)) return null;
-    return value;
-}
-
-/** Where a window nobody has moved opens, which is not the same place for both of them. */
-function composeOpeningPosition(
-    windowName: PanelWindow,
-    viewport: PanelViewport | null,
-): PanelPosition | null {
-    if (windowName === PANEL_WINDOW.helper) return composeStandingPosition(viewport);
-    return composeDefaultPosition(viewport);
-}
-
-/**
- * What a press on the bar starts, or null where it starts nothing: a press somewhere else, a
- * pointer the event does not state, or a page that has not said how wide it is — a drag from a
- * guessed origin jumps under the hand.
- */
-function composePanelDragGrab(
-    event: PanelEvent,
-    position: PanelPosition | null,
-    placement: PanelPlacement,
-    windowName: PanelWindow,
-): PanelGrab | null {
-    // `undefined` is not `null`: as one comparison, a press stating no target fell through and
-    // started a drag from wherever the pointer was.
-    const grip = event.target?.getAttribute(GRIP_ATTRIBUTE) ?? null;
-    if (grip === null) return null;
-    // Both listener sets see every press, so the other window's bar reaches here too.
-    if (grip !== GRIP_MARK_BY_WINDOW[windowName]) return null;
-    const pointer = readPointerFromEvent(event);
-    if (pointer === null) return null;
-    const from = position ?? composeDefaultPosition(placement.readViewport());
-    if (from === null) return null;
-    // Without this the browser starts its own text or image drag from the bar.
-    event.preventDefault?.();
-    return {
-        pointerLeft: pointer.left,
-        pointerTop: pointer.top,
-        panelLeft: from.left,
-        panelTop: from.top,
-        pointerId: event.pointerId,
-    };
 }
 
 /**
@@ -406,18 +323,76 @@ function initPanelDragOpening(
     return null;
 }
 
+/** Where a window nobody has moved opens, which is not the same place for both of them. */
+function composeOpeningPosition(
+    windowName: PanelWindow,
+    viewport: PanelViewport | null,
+): PanelPosition | null {
+    if (windowName === PANEL_WINDOW.helper) return composeStandingPosition(viewport);
+    return composeDefaultPosition(viewport);
+}
+
 /**
- * Every draw replaces the bar, and a browser drops the capture with the node it was on. What is
- * missed then is the release: the drag would go on armed, and the panel follow the next pointer to
- * cross it with nobody holding it.
+ * Where the second window opens: **beside** the panel and level with it, never centred.
+ * `composeDefaultPosition` centres what it is given, so centring both puts this one exactly under
+ * the panel — where the panel paints over it and a reader sees nothing at all. `develop ADR 0060`.
  */
-function setPointerHeldAgain(
-    grab: PanelGrab | null,
-    bar: PanelElement,
-    options: PanelDragOptions,
-): void {
-    if (grab === null) return;
-    setPointerHeld(bar, true, grab.pointerId, options);
+function composeStandingPosition(viewport: PanelViewport | null): PanelPosition | null {
+    const panel = composeDefaultPosition(viewport);
+    if (panel === null) return null;
+    const gap = SPACE_PIXELS.small;
+    const beside = panel.left - STANDING.widthPixels - gap;
+    if (beside >= 0) return clampPosition({ left: beside, top: panel.top }, viewport);
+    // No room on the left, so the other side — the same answer the card gives (`develop ADR 0090`).
+    const other = { left: panel.left + PLACE.widthPixels + gap, top: panel.top };
+    return clampPosition(other, viewport);
+}
+
+/**
+ * What a press on the bar starts, or null where it starts nothing: a press somewhere else, a
+ * pointer the event does not state, or a page that has not said how wide it is — a drag from a
+ * guessed origin jumps under the hand.
+ */
+function composePanelDragGrab(
+    event: PanelEvent,
+    position: PanelPosition | null,
+    placement: PanelPlacement,
+    windowName: PanelWindow,
+): PanelGrab | null {
+    // `undefined` is not `null`: as one comparison, a press stating no target fell through and
+    // started a drag from wherever the pointer was.
+    const grip = event.target?.getAttribute(GRIP_ATTRIBUTE) ?? null;
+    if (grip === null) return null;
+    // Both listener sets see every press, so the other window's bar reaches here too.
+    if (grip !== GRIP_MARK_BY_WINDOW[windowName]) return null;
+    const pointer = readPointerFromEvent(event);
+    if (pointer === null) return null;
+    const from = position ?? composeDefaultPosition(placement.readViewport());
+    if (from === null) return null;
+    // Without this the browser starts its own text or image drag from the bar.
+    event.preventDefault?.();
+    return {
+        pointerLeft: pointer.left,
+        pointerTop: pointer.top,
+        panelLeft: from.left,
+        panelTop: from.top,
+        pointerId: event.pointerId,
+    };
+}
+
+function readPointerFromEvent(event: PanelEvent): PanelPosition | null {
+    const left = readCoordinate(event.clientX);
+    const top = readCoordinate(event.clientY);
+    if (left === null) return null;
+    if (top === null) return null;
+    return { left, top };
+}
+
+/** A browser states a coordinate, and a document standing in for one may state anything. */
+function readCoordinate(value: unknown): number | null {
+    if (typeof value !== "number") return null;
+    if (!Number.isFinite(value)) return null;
+    return value;
 }
 
 /**
@@ -443,4 +418,29 @@ function setPointerHeld(
         listener: PANEL_LISTENER.capture,
         cause: held.error.cause,
     });
+}
+
+function composeDraggedPosition(
+    grab: PanelGrab,
+    pointer: PanelPosition,
+    viewport: PanelViewport | null,
+): PanelPosition {
+    return clampPosition({
+        left: grab.panelLeft + (pointer.left - grab.pointerLeft),
+        top: grab.panelTop + (pointer.top - grab.pointerTop),
+    }, viewport);
+}
+
+/**
+ * Every draw replaces the bar, and a browser drops the capture with the node it was on. What is
+ * missed then is the release: the drag would go on armed, and the panel follow the next pointer to
+ * cross it with nobody holding it.
+ */
+function setPointerHeldAgain(
+    grab: PanelGrab | null,
+    bar: PanelElement,
+    options: PanelDragOptions,
+): void {
+    if (grab === null) return;
+    setPointerHeld(bar, true, grab.pointerId, options);
 }

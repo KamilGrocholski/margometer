@@ -10,14 +10,25 @@ import { assert, assertEquals, assertExists } from "@std/assert";
 import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
-const KEY = "active_absorbdest_per";
-const ANNOUNCEMENT_KEY = "tspell";
-
 interface ShareReport {
     path: string;
     caster: number;
     share: string;
 }
+
+const KEY = "active_absorbdest_per";
+const ANNOUNCEMENT_KEY = "tspell";
+
+Deno.test("the share stands on a skill announcement and never on a blow", () => {
+    let reports = 0;
+    for (const { path, parsed } of getParsedMessages()) {
+        if (!parsed.parameters.some((one) => one.key === KEY)) continue;
+        reports += 1;
+        const announced = parsed.parameters.some((one) => one.key === ANNOUNCEMENT_KEY);
+        assert(announced, `${path}: a share on a message announcing no skill`);
+    }
+    assert(reports > 0, "an empty reading of the material is a finding, not a pass");
+});
 
 /** Every message of every recording, parsed, beside the recording it came from. */
 function getParsedMessages(): { path: string; parsed: ProtocolMessage }[] {
@@ -31,31 +42,6 @@ function getParsedMessages(): { path: string; parsed: ProtocolMessage }[] {
     }
     return found;
 }
-
-/** Every report of the share, as the material states it: who declared it, where, and what. */
-function getReports(): ShareReport[] {
-    const found: ShareReport[] = [];
-    for (const { path, parsed } of getParsedMessages()) {
-        for (const one of parsed.parameters) {
-            if (one.key !== KEY) continue;
-            assertExists(one.value, `${path}: a share that states nothing`);
-            assertExists(parsed.actor, `${path}: a share nobody declared`);
-            found.push({ path, caster: parsed.actor.combatantId, share: one.value });
-        }
-    }
-    return found;
-}
-
-Deno.test("the share stands on a skill announcement and never on a blow", () => {
-    let reports = 0;
-    for (const { path, parsed } of getParsedMessages()) {
-        if (!parsed.parameters.some((one) => one.key === KEY)) continue;
-        reports += 1;
-        const announced = parsed.parameters.some((one) => one.key === ANNOUNCEMENT_KEY);
-        assert(announced, `${path}: a share on a message announcing no skill`);
-    }
-    assert(reports > 0, "an empty reading of the material is a finding, not a pass");
-});
 
 Deno.test("a caster never reports two different shares, in a fight or across them", () => {
     const shareByCaster = new Map<number, string>();
@@ -73,6 +59,20 @@ Deno.test("a caster never reports two different shares, in a fight or across the
     }
     assert(shareByCaster.size > 1, "the corpus carries more than one caster to compare");
 });
+
+/** Every report of the share, as the material states it: who declared it, where, and what. */
+function getReports(): ShareReport[] {
+    const found: ShareReport[] = [];
+    for (const { path, parsed } of getParsedMessages()) {
+        for (const one of parsed.parameters) {
+            if (one.key !== KEY) continue;
+            assertExists(one.value, `${path}: a share that states nothing`);
+            assertExists(parsed.actor, `${path}: a share nobody declared`);
+            found.push({ path, caster: parsed.actor.combatantId, share: one.value });
+        }
+    }
+    return found;
+}
 
 /**
  * ⚠️ **The register's sentence is older than the material.** It names one combatant declaring `8`

@@ -37,6 +37,41 @@ const AA_MARK_RATIO = 3;
 const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];
 const LONGEST_DECLARATION = 200;
 
+const VARIABLE_OPENER = "--MargoMeter-";
+const AA_GRAPHIC_RATIO = 3;
+
+/**
+ * ⚠️ **`develop:DESIGN.md` says AA holds on every text-over-colour pairing, and the checks above
+ * reach three of them.** The sheet prints words in five inks and the signal ones were in none,
+ * which is why the ground each ink is drawn on is named rather than assumed. Measured 2026-09-15,
+ * the thinnest pairing registered here is `heading` over `surface` at 5.22, and the thinnest of the
+ * signal inks is `defect` over `track` at 6.61 — so `defect` names all three grounds.
+ */
+const INK_GROUNDS: Record<string, readonly string[]> = {
+    text: ["surface", "raised", "track"],
+    quiet: ["surface", "raised", "track"],
+    suspect: ["surface", "raised", "track"],
+    caveat: ["surface", "raised", "track"],
+    heading: ["surface"],
+    // The defects block stands in the panel body under a rule of its own, and on no row.
+    defect: ["surface", "raised", "track"],
+};
+
+/**
+ * ⚠️ **The sheet spells `color:` for two jobs, and the property cannot tell them apart.** A
+ * segment of the sides bar takes its ink from `currentColor`, so the rule filling it looks exactly
+ * like a rule printing words. These three are that — held at the graphical floor rather than
+ * exempted, because an exemption says nothing on the day one of them prints a word.
+ */
+const FILL_GROUNDS: Record<string, readonly string[]> = {
+    ours: ["track"],
+    theirs: ["track"],
+    nobody: ["track"],
+};
+
+/** What a cell has to state to hold a run of text on one line and give way to its neighbour. */
+const SHORTENING = ["min-width", "overflow", "text-overflow", "white-space"] as const;
+
 /**
  * ⚠️ **A row is pressed, so a press must not leave text selected behind it.** Both windows draw
  * their rows under one class, and the panel already refuses selection where it is dragged — the
@@ -69,8 +104,37 @@ Deno.test("a ratio is read from the colours, and refuses what it cannot read", (
     );
 });
 
-const VARIABLE_OPENER = "--MargoMeter-";
-const AA_GRAPHIC_RATIO = 3;
+Deno.test("every ink the sheet paints with clears its floor over the ground it is drawn on", () => {
+    const sheet = composeStyleSheet();
+    const values = readSheetVariables(sheet);
+    assertEquals(
+        values.get("surface"),
+        SURFACE.panel,
+        "the sheet ships the surface it is read for",
+    );
+
+    const painted = readNamesUsedBy(sheet, "color");
+    const grounds = readNamesUsedBy(sheet, "background");
+    assert(painted.size > 0, "the sheet paints with something");
+    let checked = 0;
+    for (const name of painted) {
+        const fills = FILL_GROUNDS[name];
+        if (fills !== undefined) {
+            checked += countPairingsClearing(values, name, fills, AA_GRAPHIC_RATIO);
+            continue;
+        }
+        const over = INK_GROUNDS[name];
+        assertExists(over, `${name}: the sheet paints with it and the register omits it`);
+        checked += countPairingsClearing(values, name, over, AA_TEXT_RATIO);
+        for (const where of over) {
+            assertArrayIncludes([...grounds], [where], `${where}: a ground nothing paints`);
+        }
+    }
+    assert(checked > 0, "some pairing was asked");
+    for (const name of Object.keys({ ...INK_GROUNDS, ...FILL_GROUNDS })) {
+        assertArrayIncludes([...painted], [name], `${name}: registered, and painted with never`);
+    }
+});
 
 /** Every `--MargoMeter-x:y;` the sheet declares, as the name and the value it ships. */
 function readSheetVariables(sheet: string): Map<string, string> {
@@ -105,35 +169,6 @@ function readNamesUsedBy(sheet: string, property: string): Set<string> {
     return found;
 }
 
-/**
- * ⚠️ **`develop:DESIGN.md` says AA holds on every text-over-colour pairing, and the checks above
- * reach three of them.** The sheet prints words in five inks and the signal ones were in none,
- * which is why the ground each ink is drawn on is named rather than assumed. Measured 2026-09-15,
- * the thinnest pairing registered here is `heading` over `surface` at 5.22, and the thinnest of the
- * signal inks is `defect` over `track` at 6.61 — so `defect` names all three grounds.
- */
-const INK_GROUNDS: Record<string, readonly string[]> = {
-    text: ["surface", "raised", "track"],
-    quiet: ["surface", "raised", "track"],
-    suspect: ["surface", "raised", "track"],
-    caveat: ["surface", "raised", "track"],
-    heading: ["surface"],
-    // The defects block stands in the panel body under a rule of its own, and on no row.
-    defect: ["surface", "raised", "track"],
-};
-
-/**
- * ⚠️ **The sheet spells `color:` for two jobs, and the property cannot tell them apart.** A
- * segment of the sides bar takes its ink from `currentColor`, so the rule filling it looks exactly
- * like a rule printing words. These three are that — held at the graphical floor rather than
- * exempted, because an exemption says nothing on the day one of them prints a word.
- */
-const FILL_GROUNDS: Record<string, readonly string[]> = {
-    ours: ["track"],
-    theirs: ["track"],
-    nobody: ["track"],
-};
-
 /** Each ink-over-ground pairing held to its floor, and how many were asked. */
 function countPairingsClearing(
     values: ReadonlyMap<string, string>,
@@ -153,38 +188,6 @@ function countPairingsClearing(
     }
     return counted;
 }
-
-Deno.test("every ink the sheet paints with clears its floor over the ground it is drawn on", () => {
-    const sheet = composeStyleSheet();
-    const values = readSheetVariables(sheet);
-    assertEquals(
-        values.get("surface"),
-        SURFACE.panel,
-        "the sheet ships the surface it is read for",
-    );
-
-    const painted = readNamesUsedBy(sheet, "color");
-    const grounds = readNamesUsedBy(sheet, "background");
-    assert(painted.size > 0, "the sheet paints with something");
-    let checked = 0;
-    for (const name of painted) {
-        const fills = FILL_GROUNDS[name];
-        if (fills !== undefined) {
-            checked += countPairingsClearing(values, name, fills, AA_GRAPHIC_RATIO);
-            continue;
-        }
-        const over = INK_GROUNDS[name];
-        assertExists(over, `${name}: the sheet paints with it and the register omits it`);
-        checked += countPairingsClearing(values, name, over, AA_TEXT_RATIO);
-        for (const where of over) {
-            assertArrayIncludes([...grounds], [where], `${where}: a ground nothing paints`);
-        }
-    }
-    assert(checked > 0, "some pairing was asked");
-    for (const name of Object.keys({ ...INK_GROUNDS, ...FILL_GROUNDS })) {
-        assertArrayIncludes([...painted], [name], `${name}: registered, and painted with never`);
-    }
-});
 
 Deno.test("text over every surface clears AA", () => {
     for (const surface of Object.values(SURFACE)) {
@@ -323,6 +326,41 @@ Deno.test("a folded panel is drawn by the one region the fold hides", () => {
     assertStringIncludes(sheet, "display:none", "what a folded region does is stop being drawn");
 });
 
+Deno.test("what stands over a region's first bar is what stands under its last", () => {
+    // The bug this catches was photographed rather than reasoned, twice over. The list asked for
+    // its two paddings a second time inside a `height` that `content-box` had already put them
+    // outside of, and both regions holding rows asked for `regionAcross` underneath while asking
+    // for a shorter step above — so the ranking stood 5px under its top edge and 21px over its
+    // bottom one, measured in Chrome 152 on 2026-08-29. Every guard stayed green: none of them
+    // lays anything out, and none of them adds up what a rule spends either.
+    const sheet = composeStyleSheet();
+    const margin = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "margin-bottom");
+    assertExists(margin, "a row carries its own margin, which the last row carries too");
+    const carried = getPixels(margin);
+    assert(carried > 0, "and that margin is a length a reader can see");
+    for (const region of [CLASS.list, CLASS.pinned]) {
+        const selector = `.${region}`;
+        const body = getRuleBody(sheet, selector);
+        const [above, below] = getEdgesDown(body, selector, "padding");
+        assertEquals(
+            above,
+            (below ?? 0) + carried,
+            `${selector}: ${above}px over the first bar against ${(below ?? 0) + carried}px ` +
+                `under the last`,
+        );
+    }
+});
+
+/** A term, or one subtraction of two — which is every arithmetic an inset here spends. */
+function getPixels(stated: string): number {
+    assert(stated.length > 0, "a length says something");
+    if (!stated.startsWith("calc(")) return getTermPixels(stated);
+    const inside = stated.slice("calc(".length, stated.length - 1);
+    const parts = inside.split(" - ");
+    assertEquals(parts.length, 2, `${stated} is not the one subtraction this reader knows`);
+    return getTermPixels(parts[0] ?? "") - getTermPixels(parts[1] ?? "");
+}
+
 /** A token or a length, which is the whole of what a term can be. */
 function getTermPixels(stated: string): number {
     assert(stated.length > 0, "a term says something");
@@ -341,16 +379,6 @@ function getTermPixels(stated: string): number {
     return value;
 }
 
-/** A term, or one subtraction of two — which is every arithmetic an inset here spends. */
-function getPixels(stated: string): number {
-    assert(stated.length > 0, "a length says something");
-    if (!stated.startsWith("calc(")) return getTermPixels(stated);
-    const inside = stated.slice("calc(".length, stated.length - 1);
-    const parts = inside.split(" - ");
-    assertEquals(parts.length, 2, `${stated} is not the one subtraction this reader knows`);
-    return getTermPixels(parts[0] ?? "") - getTermPixels(parts[1] ?? "");
-}
-
 /** `regionDown` is spelled `region-down` in a rule, and the guard must cross that spelling once. */
 function getTokenSpelling(token: string): string {
     assert(token.length > 0, "a token is named before it is spelled");
@@ -361,6 +389,19 @@ function getTokenSpelling(token: string): string {
         spelled += lower === character ? character : `-${lower}`;
     }
     return spelled;
+}
+
+/** Top, then bottom, out of whichever spellings the rule uses, the longhand winning. */
+function getEdgesDown(body: string, selector: string, property: string): number[] {
+    const shorthand = getDeclaration(body, property);
+    if (shorthand === null) return [0, 0];
+    const parts = getShorthandParts(shorthand);
+    const above = parts[0] ?? "";
+    // One part is every side, two are down and across, and three or four state the bottom third.
+    const below = parts.length >= 3 ? parts[2] ?? "" : above;
+    const longhand = getDeclaration(body, `${property}-bottom`);
+    assert(selector.startsWith("."), "an edge is read off a rule of a class");
+    return [getPixels(above), getPixels(longhand === null ? below : longhand)];
 }
 
 /** Split on the spaces a shorthand puts between its parts, not on the ones inside a `calc`. */
@@ -387,74 +428,6 @@ function getShorthandParts(stated: string): string[] {
     return parts;
 }
 
-/** Top, then bottom, out of whichever spellings the rule uses, the longhand winning. */
-function getEdgesDown(body: string, selector: string, property: string): number[] {
-    const shorthand = getDeclaration(body, property);
-    if (shorthand === null) return [0, 0];
-    const parts = getShorthandParts(shorthand);
-    const above = parts[0] ?? "";
-    // One part is every side, two are down and across, and three or four state the bottom third.
-    const below = parts.length >= 3 ? parts[2] ?? "" : above;
-    const longhand = getDeclaration(body, `${property}-bottom`);
-    assert(selector.startsWith("."), "an edge is read off a rule of a class");
-    return [getPixels(above), getPixels(longhand === null ? below : longhand)];
-}
-
-/** What a reader sees above a region's first bar and below its last, the row's own margin in. */
-function getAirAround(sheet: string, selector: string, margin: number): number[] {
-    const body = getRuleBody(sheet, selector);
-    const [insetAbove, insetBelow] = getEdgesDown(body, selector, "padding");
-    const [marginAbove, marginBelow] = getEdgesDown(body, selector, "margin");
-    assertExists(insetAbove, `${selector} states what insets it`);
-    return [
-        (marginAbove ?? 0) + (insetAbove ?? 0),
-        (insetBelow ?? 0) + margin + (marginBelow ?? 0),
-    ];
-}
-
-/** The operators a `calc` spends outside its own groups, which is where a stray term sits. */
-function getOperatorsAtDepth(stated: string): string[] {
-    assert(stated.startsWith("calc("), "a height is arithmetic before it is read as any");
-    assert(stated.length <= LONGEST_DECLARATION, "a height stays inside its stated bound");
-    const found: string[] = [];
-    let depth = 0;
-    for (const character of stated.slice("calc(".length, stated.length - 1)) {
-        if (character === "(") depth += 1;
-        if (character === ")") depth -= 1;
-        if (depth > 0) continue;
-        if (character === "*") found.push(character);
-        if (character === "+") found.push(character);
-        if (character === "-") found.push(character);
-    }
-    assertStrictEquals(depth, 0, "a height closes every group it opens");
-    return found;
-}
-
-Deno.test("what stands over a region's first bar is what stands under its last", () => {
-    // The bug this catches was photographed rather than reasoned, twice over. The list asked for
-    // its two paddings a second time inside a `height` that `content-box` had already put them
-    // outside of, and both regions holding rows asked for `regionAcross` underneath while asking
-    // for a shorter step above — so the ranking stood 5px under its top edge and 21px over its
-    // bottom one, measured in Chrome 152 on 2026-08-29. Every guard stayed green: none of them
-    // lays anything out, and none of them adds up what a rule spends either.
-    const sheet = composeStyleSheet();
-    const margin = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "margin-bottom");
-    assertExists(margin, "a row carries its own margin, which the last row carries too");
-    const carried = getPixels(margin);
-    assert(carried > 0, "and that margin is a length a reader can see");
-    for (const region of [CLASS.list, CLASS.pinned]) {
-        const selector = `.${region}`;
-        const body = getRuleBody(sheet, selector);
-        const [above, below] = getEdgesDown(body, selector, "padding");
-        assertEquals(
-            above,
-            (below ?? 0) + carried,
-            `${selector}: ${above}px over the first bar against ${(below ?? 0) + carried}px ` +
-                `under the last`,
-        );
-    }
-});
-
 Deno.test("a rule between two regions has the same air on either side of it", () => {
     // The one this catches was the last one standing, and every region was already even inside
     // itself: the pinned block carried a `margin-top` of its own on top of the list's bottom
@@ -480,6 +453,18 @@ Deno.test("a rule between two regions has the same air on either side of it", ()
     );
 });
 
+/** What a reader sees above a region's first bar and below its last, the row's own margin in. */
+function getAirAround(sheet: string, selector: string, margin: number): number[] {
+    const body = getRuleBody(sheet, selector);
+    const [insetAbove, insetBelow] = getEdgesDown(body, selector, "padding");
+    const [marginAbove, marginBelow] = getEdgesDown(body, selector, "margin");
+    assertExists(insetAbove, `${selector} states what insets it`);
+    return [
+        (marginAbove ?? 0) + (insetAbove ?? 0),
+        (insetBelow ?? 0) + margin + (marginBelow ?? 0),
+    ];
+}
+
 Deno.test("a list is as tall as the rows it promises, and carries no term besides", () => {
     const sheet = composeStyleSheet();
     const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.list}`), "height");
@@ -494,6 +479,36 @@ Deno.test("a list is as tall as the rows it promises, and carries no term beside
         `the list reserves something besides the rows it promises: ${stated}`,
     );
     assertStringIncludes(stated, "row-height", "and what it reserves is what a row costs");
+});
+
+/** The operators a `calc` spends outside its own groups, which is where a stray term sits. */
+function getOperatorsAtDepth(stated: string): string[] {
+    assert(stated.startsWith("calc("), "a height is arithmetic before it is read as any");
+    assert(stated.length <= LONGEST_DECLARATION, "a height stays inside its stated bound");
+    const found: string[] = [];
+    let depth = 0;
+    for (const character of stated.slice("calc(".length, stated.length - 1)) {
+        if (character === "(") depth += 1;
+        if (character === ")") depth -= 1;
+        if (depth > 0) continue;
+        if (character === "*") found.push(character);
+        if (character === "+") found.push(character);
+        if (character === "-") found.push(character);
+    }
+    assertStrictEquals(depth, 0, "a height closes every group it opens");
+    return found;
+}
+
+Deno.test("the panel's rhythm is whole pixels, so a bar and its ink round together", () => {
+    // A line height stated as a factor is a fractional line box — 11px at 1.35 is 14.85 — and
+    // every box under it stands off the pixel grid by a different fraction on every screen. The
+    // browser then snaps a bar one way and the glyphs inside it another: the ranking read 5
+    // device rows over the figures and 5 under, while the same rows one level down read 4 and 6,
+    // in Chrome 152 on 2026-08-29 against `dist/preview.html`. `develop ADR 0015`.
+    const sheet = composeStyleSheet();
+    const stated = getLineHeights(sheet);
+    const factors = stated.filter((height) => !height.endsWith("px"));
+    assertEquals(factors, [], "a line height stated as a factor puts every box under it off grid");
 });
 
 /** Every line height the sheet states, which is the term after the slash in a `font` shorthand. */
@@ -514,18 +529,6 @@ function getLineHeights(sheet: string): string[] {
     assert(found.length > 0, "the panel states the type it prints");
     return found;
 }
-
-Deno.test("the panel's rhythm is whole pixels, so a bar and its ink round together", () => {
-    // A line height stated as a factor is a fractional line box — 11px at 1.35 is 14.85 — and
-    // every box under it stands off the pixel grid by a different fraction on every screen. The
-    // browser then snaps a bar one way and the glyphs inside it another: the ranking read 5
-    // device rows over the figures and 5 under, while the same rows one level down read 4 and 6,
-    // in Chrome 152 on 2026-08-29 against `dist/preview.html`. `develop ADR 0015`.
-    const sheet = composeStyleSheet();
-    const stated = getLineHeights(sheet);
-    const factors = stated.filter((height) => !height.endsWith("px"));
-    assertEquals(factors, [], "a line height stated as a factor puts every box under it off grid");
-});
 
 Deno.test("a row drops its ink onto its middle and stays the height the list counts", () => {
     // A face carries more ascent than descent, so the ink inside a centred line box sits high by
@@ -564,21 +567,6 @@ Deno.test("a card is trimmed to the room the sheet leaves it, the window less it
     assertEquals(getTipRoom(air + 1), 1, "and a pixel past it has that pixel");
     assertEquals(getTipRoom(null), null, "a page stating no height has no room to reason about");
 });
-
-/** What a cell has to state to hold a run of text on one line and give way to its neighbour. */
-const SHORTENING = ["min-width", "overflow", "text-overflow", "white-space"] as const;
-
-/** Which of the four a rule leaves unsaid, so a failure names the declaration that is missing. */
-function getShorteningMissing(sheet: string, selector: string): string[] {
-    const body = getRuleBody(sheet, selector);
-    const missing: string[] = [];
-    for (const property of SHORTENING) {
-        if (getDeclaration(body, property) === null) {
-            missing.push(`${selector} states no ${property}`);
-        }
-    }
-    return missing;
-}
 
 /**
  * A figure is one word and its cell never gives way; the words beside it are what shortens. The
@@ -620,6 +608,18 @@ Deno.test("the name a card opens with folds rather than shortening", () => {
         "and a word with no space to break at breaks rather than running off the card",
     );
 });
+
+/** Which of the four a rule leaves unsaid, so a failure names the declaration that is missing. */
+function getShorteningMissing(sheet: string, selector: string): string[] {
+    const body = getRuleBody(sheet, selector);
+    const missing: string[] = [];
+    for (const property of SHORTENING) {
+        if (getDeclaration(body, property) === null) {
+            missing.push(`${selector} states no ${property}`);
+        }
+    }
+    return missing;
+}
 
 Deno.test("a cell carrying a figure refuses to fold, and its neighbour shortens", () => {
     // A reader is proved by a sample it must flag and one it must not.

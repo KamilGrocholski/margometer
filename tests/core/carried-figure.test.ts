@@ -27,20 +27,14 @@ const ROSTER = indexCombatantRoster([
     { id: 21, name: "Renegat 1", side: THEIRS, profession: "m", level: 40, healthMaximum: 100 },
 ]);
 
-function composeCast(over: Partial<AuraStanding> & { key: string; amount: number }): AuraStanding {
-    return {
-        skillId: 89,
-        skillName: "Podwójny dech",
-        casterId: 11,
-        turnsElapsed: 0,
-        turnsStated: 8,
-        reach: "casters-side",
-        chosenTargetId: null,
-        amountByKey: new Map([[over.key, over.amount]]),
-        turnsAtCastByCombatantId: new Map([[11, 0], [12, 0], [13, 0], [21, 0]]),
-        ...over,
-    };
-}
+Deno.test("a cast reaching their side stands on the bearer while their own turns allow", () => {
+    const figure = readFigure(
+        [composeCast({ key: "aura-sa_per", amount: 20 })],
+        SPEED_BIT,
+        new Map([[12, 3]]),
+    );
+    assertStrictEquals(figure?.percent, 20, "one source, one figure, three of their turns in");
+});
 
 function readFigure(
     standings: readonly AuraStanding[],
@@ -57,14 +51,20 @@ function readFigure(
     return found[0];
 }
 
-Deno.test("a cast reaching their side stands on the bearer while their own turns allow", () => {
-    const figure = readFigure(
-        [composeCast({ key: "aura-sa_per", amount: 20 })],
-        SPEED_BIT,
-        new Map([[12, 3]]),
-    );
-    assertStrictEquals(figure?.percent, 20, "one source, one figure, three of their turns in");
-});
+function composeCast(over: Partial<AuraStanding> & { key: string; amount: number }): AuraStanding {
+    return {
+        skillId: 89,
+        skillName: "Podwójny dech",
+        casterId: 11,
+        turnsElapsed: 0,
+        turnsStated: 8,
+        reach: "casters-side",
+        chosenTargetId: null,
+        amountByKey: new Map([[over.key, over.amount]]),
+        turnsAtCastByCombatantId: new Map([[11, 0], [12, 0], [13, 0], [21, 0]]),
+        ...over,
+    };
+}
 
 /**
  * ⚠️ **The failure this file was written for.** A standing is dropped on the **caster's** turns

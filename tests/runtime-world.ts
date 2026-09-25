@@ -26,20 +26,6 @@ import { composeFakeDocument, type FakeElement, pressElement } from "./fake-docu
 import { BLOWS_GRANTED, BUFF_BITS, STATED_SKILLS } from "./frozen-tables.ts";
 import { TEST_VERSION } from "./panel-view.ts";
 
-export const RUNTIME_TABLES: RuntimeTables = {
-    decoder: BLOWS_GRANTED,
-    tooltip: {
-        statedSkills: STATED_SKILLS,
-        witnessedKeyByBit: indexWitnessedKeyByBit(BUFF_BITS),
-        statusBits: BUFF_BITS,
-    },
-};
-
-/** The moment every file a test is handed was taken at. */
-export const CAPTURED_AT = "2026-08-29T10:00:00.000Z";
-export const WORLD = "tempest";
-export const GAME_BUILD = "53XkBRxF";
-
 export interface RuntimeWorld {
     runtime: Runtime;
     ports: RuntimePorts;
@@ -57,6 +43,20 @@ export interface RuntimeWorld {
     flush(): void;
     getHost(): FakeElement;
 }
+
+export const RUNTIME_TABLES: RuntimeTables = {
+    decoder: BLOWS_GRANTED,
+    tooltip: {
+        statedSkills: STATED_SKILLS,
+        witnessedKeyByBit: indexWitnessedKeyByBit(BUFF_BITS),
+        statusBits: BUFF_BITS,
+    },
+};
+
+/** The moment every file a test is handed was taken at. */
+export const CAPTURED_AT = "2026-08-29T10:00:00.000Z";
+export const WORLD = "tempest";
+export const GAME_BUILD = "53XkBRxF";
 
 /** A store over a map somebody else holds, so a test can look in the place it wrote to. */
 export function initHeldStore(held: Map<string, string>): KeyValueStore {
@@ -151,6 +151,14 @@ function composeRuntimeWorld(
     return world;
 }
 
+function readTestBattle(page: Record<string, unknown>): Record<string, unknown> {
+    const engine = page.Engine as Record<string, unknown> | undefined;
+    assertExists(engine, "the page holds a game");
+    const battle = engine.battle as Record<string, unknown> | undefined;
+    assertExists(battle, "and the game a battle");
+    return battle;
+}
+
 /** Every port over the page and the world's own maps, which is what a test looks into. */
 function composeRuntimePorts(
     world: RuntimeWorld,
@@ -198,12 +206,4 @@ function composeRuntimePorts(
         },
         readViewport: () => ({ width: 1280, height: 900 }),
     };
-}
-
-function readTestBattle(page: Record<string, unknown>): Record<string, unknown> {
-    const engine = page.Engine as Record<string, unknown> | undefined;
-    assertExists(engine, "the page holds a game");
-    const battle = engine.battle as Record<string, unknown> | undefined;
-    assertExists(battle, "and the game a battle");
-    return battle;
 }

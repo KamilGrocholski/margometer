@@ -36,50 +36,24 @@ const ROSTER = indexCombatantRoster([
     { id: 21, name: "Renegat 1", side: THEIRS, profession: "t", level: 40, healthMaximum: 100 },
 ]);
 
-function composeProvocation(
-    provokedId: number,
-    casterId: number,
-    over: Partial<ProvocationStanding> = {},
-): ProvocationStanding {
-    return {
-        provokedId,
-        skillId: 188,
-        skillName: "Wyzywający okrzyk",
-        casterId,
-        turnsElapsed: 2,
-        // The shout's own three and not the five its debuff runs: one okrzyk states both, and a
-        // fixture carrying the wrong one of them reads as the bug `develop ADR 0097` was about.
-        turnsStated: 3,
-        ...over,
-    };
-}
+/**
+ * Both cells of a person's row shorten — the name by the panel's own rule, the okrzyk down to the
+ * floor `develop ADR 0097` gave it — and until `develop ADR 0098` no row here carried a card, so
+ * what either of them cut was cut for good. A nickname past the 27 characters a card's name folds
+ * at is what makes the claim mean something: the row states a prefix, the card states the lot.
+ */
+const CUT_NAME = "NajdluzszyNickJakiPrzeszedl";
 
-/** A fight underway, numbered or not — what the window is handed wherever the turn is not it. */
-function composeTurn(
-    statement: TurnStatement | null,
-    over: Partial<StandingTurn> = {},
-): StandingTurn {
-    return { statement, isOver: false, isOnAuto: false, ...over };
-}
+const CUT_ROSTER = indexCombatantRoster([
+    { id: 11, name: CUT_NAME, side: OURS, profession: "m", level: 40, healthMaximum: 100 },
+    { id: 21, name: "Renegat 1", side: THEIRS, profession: "t", level: 40, healthMaximum: 100 },
+]);
 
-function draw(reading: ReturnType<typeof presentStanding> | null): {
-    host: FakeElement;
-    pressed: PanelIntent[];
-} {
-    const document = composeFakeDocument();
-    const pressed: PanelIntent[] = [];
-    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
-    panel.renderStanding(reading, false);
-    return { host: panel.element as FakeElement, pressed };
-}
-
-function getWindow(host: FakeElement): FakeElement {
-    // Folded, the frame wears a second class — which is how it says so.
-    const found = getElementsWithin(host)
-        .find((one) => one.className.split(" ")[0] === "MargoMeter-standing");
-    assertExists(found, "the window stands beside the panel, under the same root");
-    return found;
-}
+/**
+ * A blow long enough that the name cell has to cut it, so the card's claim means something: the
+ * row states a prefix and the card states the lot. `CUT_NAME` does the same for a person's row.
+ */
+const CUT_BLOW = "Lodowe Pandemonium Obrońcy Pustkowi";
 
 Deno.test("whoever holds the turn is drawn as a person, hue, side and all", () => {
     // ⚠️ The `Teraz` row drew a bare name: no cap and no rule, so the one character a reader is
@@ -124,6 +98,33 @@ Deno.test("whoever holds the turn is drawn as a person, hue, side and all", () =
     assertEquals(alone.filter((one) => one.className === "bar-cap").length, 1, "the cap stands");
     assertEquals(alone.filter((one) => one.className === "row-side"), [], "and no rule does");
 });
+
+/** A fight underway, numbered or not — what the window is handed wherever the turn is not it. */
+function composeTurn(
+    statement: TurnStatement | null,
+    over: Partial<StandingTurn> = {},
+): StandingTurn {
+    return { statement, isOver: false, isOnAuto: false, ...over };
+}
+
+function draw(reading: ReturnType<typeof presentStanding> | null): {
+    host: FakeElement;
+    pressed: PanelIntent[];
+} {
+    const document = composeFakeDocument();
+    const pressed: PanelIntent[] = [];
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.renderStanding(reading, false);
+    return { host: panel.element as FakeElement, pressed };
+}
+
+function getWindow(host: FakeElement): FakeElement {
+    // Folded, the frame wears a second class — which is how it says so.
+    const found = getElementsWithin(host)
+        .find((one) => one.className.split(" ")[0] === "MargoMeter-standing");
+    assertExists(found, "the window stands beside the panel, under the same root");
+    return found;
+}
 
 /**
  * `develop ADR 0072`. Both halves of the boundary: the same statement stands while the fight is
@@ -214,6 +215,24 @@ Deno.test("a right press in the window moves nothing, and one on the panel steps
         "and one on the panel is still the way back",
     );
 });
+
+function composeProvocation(
+    provokedId: number,
+    casterId: number,
+    over: Partial<ProvocationStanding> = {},
+): ProvocationStanding {
+    return {
+        provokedId,
+        skillId: 188,
+        skillName: "Wyzywający okrzyk",
+        casterId,
+        turnsElapsed: 2,
+        // The shout's own three and not the five its debuff runs: one okrzyk states both, and a
+        // fixture carrying the wrong one of them reads as the bug `develop ADR 0097` was about.
+        turnsStated: 3,
+        ...over,
+    };
+}
 
 Deno.test("a fight with nothing standing says so, and one with no turn says that too", () => {
     const reading = presentStanding([], [], ROSTER, OURS, composeTurn(null));
@@ -435,20 +454,6 @@ Deno.test("the provoked stop at their stated maximum, and one under it is drawn 
     assertStrictEquals(countHeld(under), PROVOKED_MAXIMUM - 1, "one below it, all of them");
 });
 
-function composeCharge(
-    over: Partial<ChargedSkillStanding> = {},
-): ChargedSkillStanding {
-    return {
-        combatantId: 21,
-        skillName: "Lodowe Pandemonium",
-        turnsElapsed: 2,
-        turnsStated: 4,
-        state: "charging",
-        endedAtOrdinal: null,
-        ...over,
-    };
-}
-
 Deno.test("a charge wears the hue of whoever is making it, and one dot per turn", () => {
     const reading = presentStanding(
         [],
@@ -476,6 +481,20 @@ Deno.test("a charge wears the hue of whoever is making it, and one dot per turn"
     const lit = pips.filter((one) => one.className.includes("standing-pip-lit"));
     assertStrictEquals(lit.length, 2, "and the ones that have passed are the ones lit");
 });
+
+function composeCharge(
+    over: Partial<ChargedSkillStanding> = {},
+): ChargedSkillStanding {
+    return {
+        combatantId: 21,
+        skillName: "Lodowe Pandemonium",
+        turnsElapsed: 2,
+        turnsStated: 4,
+        state: "charging",
+        endedAtOrdinal: null,
+        ...over,
+    };
+}
 
 Deno.test("a charge that is over wears no hue, and the heading says which end it came to", () => {
     for (const [state, said] of [["struck", "wykonane"], ["broken", "przerwane"]] as const) {
@@ -523,28 +542,6 @@ Deno.test("a charge names the figures the game states, and never a percentage", 
     assertEquals(figures.some((one) => one.includes("%")), false, "and no share of anything");
 });
 
-/**
- * Both cells of a person's row shorten — the name by the panel's own rule, the okrzyk down to the
- * floor `develop ADR 0097` gave it — and until `develop ADR 0098` no row here carried a card, so
- * what either of them cut was cut for good. A nickname past the 27 characters a card's name folds
- * at is what makes the claim mean something: the row states a prefix, the card states the lot.
- */
-const CUT_NAME = "NajdluzszyNickJakiPrzeszedl";
-
-const CUT_ROSTER = indexCombatantRoster([
-    { id: 11, name: CUT_NAME, side: OURS, profession: "m", level: 40, healthMaximum: 100 },
-    { id: 21, name: "Renegat 1", side: THEIRS, profession: "t", level: 40, healthMaximum: 100 },
-]);
-
-/** Every row a person stands on, in the order the window draws them. */
-function getPersonRows(host: FakeElement): FakeElement[] {
-    return getElementsWithin(getWindow(host)).filter((one) => {
-        const classes = one.className.split(" ");
-        if (classes[0] !== "row") return false;
-        return classes.includes("leaf");
-    });
-}
-
 Deno.test("every person's row in the window carries a card, and no two share one", () => {
     // One cast holding two characters, because that is the shape where the ids in a key have to
     // carry whoever is held: both rows stand under one caster and one okrzyk.
@@ -566,6 +563,15 @@ Deno.test("every person's row in the window carries a card, and no two share one
         "and no row wears its neighbour's, which the register would refuse in silence",
     );
 });
+
+/** Every row a person stands on, in the order the window draws them. */
+function getPersonRows(host: FakeElement): FakeElement[] {
+    return getElementsWithin(getWindow(host)).filter((one) => {
+        const classes = one.className.split(" ");
+        if (classes[0] !== "row") return false;
+        return classes.includes("leaf");
+    });
+}
 
 Deno.test("the card of a row holding somebody hands back the name and the okrzyk whole", () => {
     const reading = presentStanding(
@@ -643,35 +649,6 @@ Deno.test("the row under `Teraz` carries a card of the name alone", () => {
     assertStrictEquals(card.groups, 0, "and no figure, because the row states none");
 });
 
-/**
- * Every row this window draws, whether it names a person or a blow. Read off the class the sheet
- * styles a row with, so a row builder nobody remembered to look at is in the walk the day it is
- * written — which is the whole of what `develop ADR 0100` asks of this file.
- */
-function getRowsWithoutCard(host: FakeElement): string[] {
-    const without: string[] = [];
-    for (const one of getElementsWithin(getWindow(host))) {
-        if (one.className.split(" ")[0] !== "row") continue;
-        if (one.attributes.get("data-tip") !== undefined) continue;
-        without.push(`${one.className}:${one.textContent}`);
-    }
-    return without;
-}
-
-/**
- * A blow long enough that the name cell has to cut it, so the card's claim means something: the
- * row states a prefix and the card states the lot. `CUT_NAME` does the same for a person's row.
- */
-const CUT_BLOW = "Lodowe Pandemonium Obrońcy Pustkowi";
-
-function composeCutCharge(state: ChargedSkillState = "charging"): ChargedSkillStanding {
-    return composeCharge({
-        skillName: CUT_BLOW,
-        state,
-        endedAtOrdinal: state === "charging" ? null : 12,
-    });
-}
-
 Deno.test("every row the window draws carries a card, the charge band included", () => {
     const reading = presentStanding(
         [composeProvocation(21, 11), composeProvocation(12, 11)],
@@ -697,6 +674,21 @@ Deno.test("every row the window draws carries a card, the charge band included",
         "and no row wears its neighbour's, which the register would refuse in silence",
     );
 });
+
+/**
+ * Every row this window draws, whether it names a person or a blow. Read off the class the sheet
+ * styles a row with, so a row builder nobody remembered to look at is in the walk the day it is
+ * written — which is the whole of what `develop ADR 0100` asks of this file.
+ */
+function getRowsWithoutCard(host: FakeElement): string[] {
+    const without: string[] = [];
+    for (const one of getElementsWithin(getWindow(host))) {
+        if (one.className.split(" ")[0] !== "row") continue;
+        if (one.attributes.get("data-tip") !== undefined) continue;
+        without.push(`${one.className}:${one.textContent}`);
+    }
+    return without;
+}
 
 /**
  * The sample the walk must flag. A reader proved only on a window where everything is marked
@@ -773,6 +765,14 @@ Deno.test("the card of a charge names the blow whole, whoever is making it, and 
         "under the word a cast's card states its own turns under",
     );
 });
+
+function composeCutCharge(state: ChargedSkillState = "charging"): ChargedSkillStanding {
+    return composeCharge({
+        skillName: CUT_BLOW,
+        state,
+        endedAtOrdinal: state === "charging" ? null : 12,
+    });
+}
 
 Deno.test("a charge that is over says on its own card which end it came to", () => {
     for (const [state, said] of [["struck", "wykonane"], ["broken", "przerwane"]] as const) {

@@ -75,17 +75,6 @@ export interface SessionOptions {
     combatantsMaximum: number;
 }
 
-/**
- * The longest fight in `develop:captures/` decodes to 811 events, 2026-08-28. The event bound stays
- * above the decoder's bound on one payload, because every message leaves at least one event: a
- * bound equal to that one could never be the one that fires.
- */
-export const SESSION_OPTIONS: SessionOptions = {
-    eventsMaximum: MESSAGES_MAXIMUM * 2,
-    payloadsMaximum: MESSAGES_MAXIMUM * 2,
-    combatantsMaximum: COMBATANTS_MAXIMUM,
-};
-
 export type UnreadCounts = { readonly [Cause in UnreadCause]: number };
 
 /** `develop`'s `FightReading`, same content, less the messages kept for the file. */
@@ -162,6 +151,17 @@ export interface PayloadCommitted {
     eventsAdded: number;
     unreadAdded: number;
 }
+
+/**
+ * The longest fight in `develop:captures/` decodes to 811 events, 2026-08-28. The event bound stays
+ * above the decoder's bound on one payload, because every message leaves at least one event: a
+ * bound equal to that one could never be the one that fires.
+ */
+export const SESSION_OPTIONS: SessionOptions = {
+    eventsMaximum: MESSAGES_MAXIMUM * 2,
+    payloadsMaximum: MESSAGES_MAXIMUM * 2,
+    combatantsMaximum: COMBATANTS_MAXIMUM,
+};
 
 const NO_UNREAD: UnreadCounts = {
     [UNREAD_CAUSE.unknownKey]: 0,
@@ -274,6 +274,13 @@ function preparePayloadStanding(
     };
 }
 
+function preparePayloadUnread(before: UnreadCounts, decoded: PayloadDecoded): UnreadCounts {
+    const counts = { ...before };
+    for (const unread of decoded.unread) counts[unread.cause] += 1;
+    assert(decoded.unread.length <= decoded.events.length, "an unread message is an event too");
+    return counts;
+}
+
 /**
  * An envelope that stated no count is nothing to measure the reading against, so nothing is
  * counted lost: which is not the same claim as a count of zero.
@@ -284,13 +291,6 @@ function countMessagesLost(record: PayloadRecord): number {
     assert(record.messagesStated <= MESSAGES_MAXIMUM, "the envelope bounded what it stated");
     if (lost <= 0) return 0;
     return lost;
-}
-
-function preparePayloadUnread(before: UnreadCounts, decoded: PayloadDecoded): UnreadCounts {
-    const counts = { ...before };
-    for (const unread of decoded.unread) counts[unread.cause] += 1;
-    assert(decoded.unread.length <= decoded.events.length, "an unread message is an event too");
-    return counts;
 }
 
 /** Phase two: the write alone. Nothing here can fail but an assertion. */

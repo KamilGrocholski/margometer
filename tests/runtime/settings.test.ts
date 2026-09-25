@@ -30,13 +30,6 @@ import { PANEL_WINDOW, STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 
 const REFUSAL = new DOMException("this browser forbids storage", "SecurityError");
 
-function composeRefusingStore(): KeyValueStore {
-    const refuse = (): never => {
-        throw REFUSAL;
-    };
-    return initPageStore({ getItem: refuse, setItem: refuse, removeItem: refuse });
-}
-
 Deno.test("the store a reader chose reads back, and nothing chosen is the default", () => {
     const store = initMemoryStore();
     assertEquals(readStorageChoice(store), ok(STORAGE_DEFAULT), "nothing stored is the default");
@@ -60,6 +53,13 @@ Deno.test("a choice nobody here wrote is refused by name, and a store's refusal 
     const written = writeStorageChoice(composeRefusingStore(), STORAGE_CHOICE.session);
     assertEquals(written, refused, "on writing too");
 });
+
+function composeRefusingStore(): KeyValueStore {
+    const refuse = (): never => {
+        throw REFUSAL;
+    };
+    return initPageStore({ getItem: refuse, setItem: refuse, removeItem: refuse });
+}
 
 Deno.test("a fold is the one mark, and anything else stored there is not read as one", () => {
     const store = initMemoryStore();

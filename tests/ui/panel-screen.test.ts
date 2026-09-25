@@ -25,6 +25,9 @@ import {
     SIDE_CHOICES,
 } from "#/src/ui/panel-screen.ts";
 
+/** A fight of its own, so a name never comes back as the live one's by accident. */
+const FIGHT = 1786514810315;
+
 Deno.test("every screen names a figure a reading can be composed for", () => {
     const statistics = tallyFightStatistics([], new Map());
     const roster = indexCombatantRoster([]);
@@ -155,9 +158,6 @@ Deno.test("the side strip offers every choice there is, one of them marked", () 
         "worded apart",
     );
 });
-
-/** A fight of its own, so a name never comes back as the live one's by accident. */
-const FIGHT = 1786514810315;
 
 Deno.test("a place a reader stands in is named, and every field of it counts", () => {
     const screen = createScreenState(false);

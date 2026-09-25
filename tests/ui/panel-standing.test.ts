@@ -31,44 +31,6 @@ const ROSTER = indexCombatantRoster([
     { id: 21, name: "Renegat 1", side: THEIRS, profession: "t", level: 40, healthMaximum: 100 },
 ]);
 
-function composeProvocation(
-    provokedId: number,
-    casterId: number,
-    over: Partial<ProvocationStanding> = {},
-): ProvocationStanding {
-    return {
-        provokedId,
-        skillId: 188,
-        skillName: "Wyzywający okrzyk",
-        casterId,
-        turnsElapsed: 2,
-        // The shout's own three and not the five its debuff runs: one okrzyk states both, and a
-        // fixture carrying the wrong one of them reads as the bug `develop ADR 0097` was about.
-        turnsStated: 3,
-        ...over,
-    };
-}
-
-/** A fight underway, numbered or not — what the window is handed wherever the turn is not it. */
-function composeTurn(
-    statement: TurnStatement | null,
-    over: Partial<StandingTurn> = {},
-): StandingTurn {
-    return { statement, isOver: false, isOnAuto: false, ...over };
-}
-
-function composeCharge(over: Partial<ChargedSkillStanding> = {}): ChargedSkillStanding {
-    return {
-        combatantId: 21,
-        skillName: "Lodowe Pandemonium",
-        turnsElapsed: 2,
-        turnsStated: 4,
-        state: CHARGED_SKILL_STATE.charging,
-        endedAtOrdinal: null,
-        ...over,
-    };
-}
-
 Deno.test("whoever holds the turn is a person, hue, side and all", () => {
     // ⚠️ The `Teraz` row drew a bare name: no cap and no rule, so the one character a reader is
     // watching hardest was the one the window said least about (`develop ADR 0065`).
@@ -96,6 +58,14 @@ Deno.test("whoever holds the turn is a person, hue, side and all", () => {
     assertStrictEquals(seatless.holder?.colour, lookupColourForProfession("t"), "the hue stands");
     assertStrictEquals(seatless.holder?.sidePart, SIDE_PART.nobody, "and no side does");
 });
+
+/** A fight underway, numbered or not — what the window is handed wherever the turn is not it. */
+function composeTurn(
+    statement: TurnStatement | null,
+    over: Partial<StandingTurn> = {},
+): StandingTurn {
+    return { statement, isOver: false, isOnAuto: false, ...over };
+}
 
 /**
  * `develop ADR 0072`. Both halves of the boundary: the same statement stands while the fight is
@@ -174,6 +144,24 @@ Deno.test("a shout stands under whoever is holding it, and the turns are the hel
         }],
     }], "whoever is holding, named with the okrzyk, and under them whom, with the length");
 });
+
+function composeProvocation(
+    provokedId: number,
+    casterId: number,
+    over: Partial<ProvocationStanding> = {},
+): ProvocationStanding {
+    return {
+        provokedId,
+        skillId: 188,
+        skillName: "Wyzywający okrzyk",
+        casterId,
+        turnsElapsed: 2,
+        // The shout's own three and not the five its debuff runs: one okrzyk states both, and a
+        // fixture carrying the wrong one of them reads as the bug `develop ADR 0097` was about.
+        turnsStated: 3,
+        ...over,
+    };
+}
 
 /**
  * The corpus holds no moment where one caster shouted both okrzyki — `develop ADR 0067` measured
@@ -292,6 +280,18 @@ Deno.test("a charge wears the hue of whoever is making it, and says which side",
     assertStrictEquals(charged.name, "Renegat 1", "and who, for the card");
     assertEquals([charged.turnsElapsed, charged.turnsStated], [2, 4], "and the game's figures");
 });
+
+function composeCharge(over: Partial<ChargedSkillStanding> = {}): ChargedSkillStanding {
+    return {
+        combatantId: 21,
+        skillName: "Lodowe Pandemonium",
+        turnsElapsed: 2,
+        turnsStated: 4,
+        state: CHARGED_SKILL_STATE.charging,
+        endedAtOrdinal: null,
+        ...over,
+    };
+}
 
 Deno.test("a charge that is over wears no hue, and states which end it came to", () => {
     for (const state of [CHARGED_SKILL_STATE.struck, CHARGED_SKILL_STATE.broken]) {

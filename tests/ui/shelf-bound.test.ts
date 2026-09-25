@@ -17,30 +17,6 @@ import { composeFakeDocument } from "#/tests/fake-document.ts";
 import { composeShownScreen } from "#/tests/shown-screen.ts";
 import { initTestView } from "#/tests/panel-view.ts";
 
-/** One row of the shelf, with only the fields a list reads off it. */
-function composeShelfRow(openedAt: number, isLive: boolean): ShelfRow {
-    return {
-        openedAt,
-        at: { day: 13, month: 9, hour: 12, minute: 0 },
-        sizes: [1, 1],
-        place: null,
-        outcome: null,
-        isLive,
-        isChosen: isLive,
-        isPinned: false,
-        isPinnable: !isLive,
-    };
-}
-
-/** A full shelf with the fight that is still running on top of it — the reported case. */
-function composeFullShelf(): ShelfRow[] {
-    const rows = [composeShelfRow(KEPT_MAXIMUM + 1, true)];
-    for (let at = 0; at < KEPT_MAXIMUM; at += 1) {
-        rows.push(composeShelfRow(at + 1, false));
-    }
-    return rows;
-}
-
 Deno.test("the shelf list draws exactly one row more than the shelf keeps", () => {
     assertStrictEquals(
         SHELF_ROWS_MAXIMUM,
@@ -80,3 +56,27 @@ Deno.test("a full shelf with a fight still running draws, rather than going undr
 
     assertEquals(failures, [], "a full shelf with a live fight on it costs the reader no region");
 });
+
+/** A full shelf with the fight that is still running on top of it — the reported case. */
+function composeFullShelf(): ShelfRow[] {
+    const rows = [composeShelfRow(KEPT_MAXIMUM + 1, true)];
+    for (let at = 0; at < KEPT_MAXIMUM; at += 1) {
+        rows.push(composeShelfRow(at + 1, false));
+    }
+    return rows;
+}
+
+/** One row of the shelf, with only the fields a list reads off it. */
+function composeShelfRow(openedAt: number, isLive: boolean): ShelfRow {
+    return {
+        openedAt,
+        at: { day: 13, month: 9, hour: 12, minute: 0 },
+        sizes: [1, 1],
+        place: null,
+        outcome: null,
+        isLive,
+        isChosen: isLive,
+        isPinned: false,
+        isPinnable: !isLive,
+    };
+}

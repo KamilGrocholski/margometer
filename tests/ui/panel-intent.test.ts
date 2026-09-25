@@ -18,14 +18,6 @@ import {
 import { UNNAMED_END } from "#/src/ui/panel-reading.ts";
 import { OPENED_PART, PANEL_METRIC, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 
-function composeTarget(marks: Record<string, string>): PanelTarget {
-    return { getAttribute: (name) => marks[name] ?? null };
-}
-
-function readMark(name: string, value: string) {
-    return readPanelIntent(composeTarget({ [name]: value }));
-}
-
 Deno.test("every mark the panel writes states the intent the runtime is handed", () => {
     const cases = [
         [PANEL_MARK.screen, PANEL_METRIC.healthGiven, {
@@ -79,6 +71,14 @@ Deno.test("every mark the panel writes states the intent the runtime is handed",
     // **W5**: the first id there is reads as one, and is not taken for nothing.
     assertEquals(readMark(PANEL_MARK.row, "0"), ok({ kind: PANEL_INTENT.openRow, combatantId: 0 }));
 });
+
+function readMark(name: string, value: string) {
+    return readPanelIntent(composeTarget({ [name]: value }));
+}
+
+function composeTarget(marks: Record<string, string>): PanelTarget {
+    return { getAttribute: (name) => marks[name] ?? null };
+}
 
 Deno.test("a value no mark of ours writes is a failure naming the mark, never a default", () => {
     const strays = [

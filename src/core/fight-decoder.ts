@@ -85,6 +85,42 @@ export interface PayloadDecoded {
     standing: AnnouncementStanding;
 }
 
+interface HealthChangeReading {
+    source: string;
+    amount: number;
+    isOnTarget: boolean;
+    declared: DeclaredEffect[];
+}
+
+interface NamedTargetReading {
+    targetName: string;
+    targetHealthPercent: number | null;
+}
+
+interface AnnouncementReading {
+    skillName: string;
+    skillId: number | null;
+}
+
+interface MessageReading {
+    raw: DamageFigure[];
+    applied: DamageFigure[];
+    prevented: PreventedDamage[];
+    destroyed: DestroyedStatistic[];
+    procs: string[];
+    healthChanges: HealthChangeReading[];
+    namedDamage: (NamedTargetReading & { damage: DamageFigure })[];
+    namedHealing: (NamedTargetReading & { amount: number; source: string })[];
+    unaccounted: { source: string; declaredShare: number }[];
+    outcomes: FightOutcomeEvent[];
+    declared: DeclaredEffect[];
+    skill: AnnouncementReading | null;
+    skillName: string | null;
+    skillId: number | null;
+    skillKeys: number;
+    unreadKeys: string[];
+}
+
 /**
  * ⚠️ **One payload can carry a whole fight**: a fight joined underway delivers its log in the
  * opening call. The cost is paid inside the game's own `updateData`: a little over two
@@ -125,42 +161,6 @@ const NO_WINNER = "?";
 const TURN_LOST_SEPARATOR = " - ";
 const SENTENCE_STOP = ".";
 const ENDS_MAXIMUM = 2;
-
-interface HealthChangeReading {
-    source: string;
-    amount: number;
-    isOnTarget: boolean;
-    declared: DeclaredEffect[];
-}
-
-interface NamedTargetReading {
-    targetName: string;
-    targetHealthPercent: number | null;
-}
-
-interface AnnouncementReading {
-    skillName: string;
-    skillId: number | null;
-}
-
-interface MessageReading {
-    raw: DamageFigure[];
-    applied: DamageFigure[];
-    prevented: PreventedDamage[];
-    destroyed: DestroyedStatistic[];
-    procs: string[];
-    healthChanges: HealthChangeReading[];
-    namedDamage: (NamedTargetReading & { damage: DamageFigure })[];
-    namedHealing: (NamedTargetReading & { amount: number; source: string })[];
-    unaccounted: { source: string; declaredShare: number }[];
-    outcomes: FightOutcomeEvent[];
-    declared: DeclaredEffect[];
-    skill: AnnouncementReading | null;
-    skillName: string | null;
-    skillId: number | null;
-    skillKeys: number;
-    unreadKeys: string[];
-}
 
 /** The counts the published table states, keyed by the id an announcement carries. */
 export function indexBlowsGrantedBySkillId(
@@ -250,6 +250,46 @@ export function decodeMessage(
     return ok({ events, standing });
 }
 
+/**
+ * How far an announcement still reaches, one message on. ⚠️ **The chain breaks on anything that is
+ * not the announcer's own blow**: a message that decoded no blow ends it, and so does another
+ * combatant's.
+ */
+function composeStandingAfterMessage(
+    context: DecodeContext,
+    events: readonly BattleEvent[],
+    announced: AnnouncedSkill | null,
+): AnnouncementStanding {
+    if (announced !== null) {
+        const blowsRemaining = getBlowsForAnnouncement(announced, context.tables);
+        return { announced, blowsRemaining, isGlued: true };
+    }
+    const standing = context.standing;
+    if (standing === null) return null;
+    const struck = events.find((event) => event.kind === BATTLE_EVENT.attack);
+    if (struck === undefined) return null;
+    if (struck.kind !== BATTLE_EVENT.attack) return null;
+    if (struck.actorId !== standing.announced.actorId) return null;
+    assert(standing.blowsRemaining > 0, "a standing handed on has a blow left to spend");
+    const blowsRemaining = standing.blowsRemaining - 1;
+    assert(blowsRemaining >= 0, "a standing spends no more blows than it was given");
+    if (blowsRemaining === 0) return null;
+    return { announced: standing.announced, blowsRemaining, isGlued: false };
+}
+
+/**
+ * The table's count where the announcement names an id; the bound where it names none. Every id any
+ * announcement carried over `develop:captures/` is one the table carries (0 exceptions of 3129,
+ * 2026-09-12), and 364 of the 371 announcements without one are an NPC's.
+ */
+function getBlowsForAnnouncement(announced: AnnouncedSkill, tables: DecoderTables): number {
+    if (announced.skillId === null) return BLOWS_GRANTED_MAXIMUM;
+    const granted = tables.blowsGrantedBySkillId.get(announced.skillId) ?? 0;
+    assert(granted >= 0, "a table grants nothing or more");
+    assert(1 + granted <= BLOWS_GRANTED_MAXIMUM, "a reach stays inside its stated bound");
+    return 1 + granted;
+}
+
 /** Every parameter is read, or named unread, and none twice. */
 function decodeMessageReading(message: ProtocolMessage): MessageReading {
     const reading: MessageReading = {
@@ -300,6 +340,21 @@ function addValuelessKey(reading: MessageReading, key: string, keyReading: KeyRe
     }
 }
 
+function addDecoded<Decoded>(found: Decoded[], decoded: Decoded | null): boolean {
+    if (decoded === null) return false;
+    const count = found.push(decoded);
+    assert(count > 0, "what was decoded is held");
+    return true;
+}
+
+/**
+ * The escape's own value is never read by the client, which takes the actor slot instead
+ * (production build `ne0iTNdg`), so it arrives bare or valued and both read the same.
+ */
+function decodeFledOutcome(): FightOutcomeEvent {
+    return { kind: BATTLE_EVENT.fightOutcome, result: OUTCOME_RESULT.fled, combatantNames: [] };
+}
+
 /** One branch per family; a value a family cannot read leaves the key unread, never asserted. */
 function addValuedKey(
     reading: MessageReading,
@@ -348,13 +403,6 @@ function addValuedKey(
     }
 }
 
-function addDecoded<Decoded>(found: Decoded[], decoded: Decoded | null): boolean {
-    if (decoded === null) return false;
-    const count = found.push(decoded);
-    assert(count > 0, "what was decoded is held");
-    return true;
-}
-
 /**
  * A figure of the blow, or the key unread: a value that is no number, and one below nothing. No
  * key of these families has stated one over `develop:captures/` (0 of every value, 2026-09-21), and
@@ -388,6 +436,24 @@ function getTokenFromKey(key: string): string {
     return token;
 }
 
+/** The figure, then whatever the key stated beside it. */
+function decodeHealthChange(
+    key: string,
+    value: string,
+    keyReading: { sign: 1 | -1; isOnTarget: boolean },
+): HealthChangeReading | null {
+    const members = value.split(MEMBER_SEPARATOR);
+    const magnitude = parseInteger(members[0] ?? "");
+    if (magnitude === null) return null;
+    const declared: DeclaredEffect[] = [];
+    for (const member of members.slice(1)) {
+        declared.push({ effect: key, amount: parseInteger(member), text: member });
+    }
+    assert(declared.length < members.length, "the health figure is not a declaration");
+    const amount = keyReading.sign * magnitude;
+    return { source: key, amount, isOnTarget: keyReading.isOnTarget, declared };
+}
+
 /**
  * A name saying nothing or running past the bound goes unread, as a value that is no number does.
  * `tcustom` names its user in the target slot, so it is read only where one combatant is named.
@@ -409,107 +475,11 @@ function addSkillName(
     return true;
 }
 
-/** A share written with or without a fraction: `30` and `22.5` are both in `develop:captures/`. */
-function decodeUnaccountedShare(
-    key: string,
-    value: string,
-): { source: string; declaredShare: number } | null {
-    const declaredShare = parseDecimal(value);
-    if (declaredShare === null) return null;
-    assert(declaredShare >= 0, "a share read is never below nothing");
-    return { source: key, declaredShare };
-}
-
-/** An id with no name is a skill nothing can put on screen, and the protocol has never sent one. */
-function closeAnnouncement(reading: MessageReading): void {
-    assert(reading.skill === null, "a reading's announcement is closed once");
-    assert(reading.skillKeys >= 0, "a key is counted once");
-    if (reading.skillName !== null) {
-        reading.skill = { skillName: reading.skillName, skillId: reading.skillId };
-        return;
-    }
-    if (reading.skillKeys === 0) return;
-    reading.unreadKeys.push(SKILL_ID_KEY);
-    reading.skillKeys -= 1;
-}
-
-function tallyParametersRead(reading: MessageReading): number {
-    return reading.raw.length + reading.applied.length + reading.prevented.length +
-        reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
-        reading.namedDamage.length + reading.namedHealing.length + reading.unaccounted.length +
-        reading.outcomes.length + reading.declared.length +
-        reading.skillKeys + reading.unreadKeys.length;
-}
-
-/** The figure, then whatever the key stated beside it. */
-function decodeHealthChange(
-    key: string,
-    value: string,
-    keyReading: { sign: 1 | -1; isOnTarget: boolean },
-): HealthChangeReading | null {
-    const members = value.split(MEMBER_SEPARATOR);
-    const magnitude = parseInteger(members[0] ?? "");
-    if (magnitude === null) return null;
-    const declared: DeclaredEffect[] = [];
-    for (const member of members.slice(1)) {
-        declared.push({ effect: key, amount: parseInteger(member), text: member });
-    }
-    assert(declared.length < members.length, "the health figure is not a declaration");
-    const amount = keyReading.sign * magnitude;
-    return { source: key, amount, isOnTarget: keyReading.isOnTarget, declared };
-}
-
-/** `Gracz 1(63.00%)`: the name runs to the last opener, so a name may hold one of its own. */
-function parseNamedTarget(text: string): NamedTargetReading | null {
-    if (!text.endsWith(PERCENT_CLOSER)) return null;
-    const opener = text.lastIndexOf(PERCENT_OPENER);
-    if (opener <= 0) return null;
-    const targetName = text.slice(0, opener);
-    const percentText = text.slice(opener + PERCENT_OPENER.length, -PERCENT_CLOSER.length);
-    assert(targetName.length > 0, "a stated name says something");
-    assert(percentText.length < text.length, "a percentage is shorter than what carried it");
-    return { targetName, targetHealthPercent: parseHealthPercent(percentText) };
-}
-
-function decodeNamedDamage(value: string): (NamedTargetReading & { damage: DamageFigure }) | null {
-    const members = value.split(MEMBER_SEPARATOR);
-    if (members.length !== NAMED_DAMAGE_MEMBERS) return null;
-    const [amountText = "", element = "", stated = ""] = members;
-    const amount = parseInteger(amountText);
-    if (amount === null) return null;
-    if (amount < 0) return null;
-    const named = parseNamedTarget(stated);
-    if (named === null) return null;
-    const damage = { element: `${DAMAGE_ELEMENT_PREFIX}${element.trim()}`, amount };
-    assert(damage.element.startsWith(DAMAGE_ELEMENT_PREFIX), "an element named is of the family");
-    assert(named.targetName.length > 0, "a figure stated against a name has a name");
-    return { ...named, damage };
-}
-
-/** Healing that took health away would be this reader misreading its key, not a loss reported. */
-function decodeNamedHealing(
-    key: string,
-    value: string,
-): (NamedTargetReading & { amount: number; source: string }) | null {
-    const members = value.split(MEMBER_SEPARATOR);
-    if (members.length !== NAMED_HEALING_MEMBERS) return null;
-    const [amountText = "", stated = ""] = members;
-    const amount = parseInteger(amountText);
-    if (amount === null) return null;
-    if (amount < 0) return null;
-    const named = parseNamedTarget(stated);
-    if (named === null) return null;
-    assert(named.targetName.length > 0, "the healed is named inside the value");
-    assert(Number.isSafeInteger(amount), "healing read from digits is held exactly");
-    return { ...named, amount, source: key };
-}
-
-/**
- * The escape's own value is never read by the client, which takes the actor slot instead
- * (production build `ne0iTNdg`), so it arrives bare or valued and both read the same.
- */
-function decodeFledOutcome(): FightOutcomeEvent {
-    return { kind: BATTLE_EVENT.fightOutcome, result: OUTCOME_RESULT.fled, combatantNames: [] };
+/** Both ends the same, or one end unstated: there was never a second name to get wrong. */
+function doesNameOneCombatant(message: ProtocolMessage): boolean {
+    if (message.actor === null) return message.target !== null;
+    if (message.target === null) return true;
+    return message.actor.combatantId === message.target.combatantId;
 }
 
 /** `loser=?` is not a side of that name, so it is left unread rather than read as a draw. */
@@ -533,6 +503,83 @@ function decodeFightOutcome(
     return { kind: BATTLE_EVENT.fightOutcome, result, combatantNames };
 }
 
+/** A share written with or without a fraction: `30` and `22.5` are both in `develop:captures/`. */
+function decodeUnaccountedShare(
+    key: string,
+    value: string,
+): { source: string; declaredShare: number } | null {
+    const declaredShare = parseDecimal(value);
+    if (declaredShare === null) return null;
+    assert(declaredShare >= 0, "a share read is never below nothing");
+    return { source: key, declaredShare };
+}
+
+function decodeNamedDamage(value: string): (NamedTargetReading & { damage: DamageFigure }) | null {
+    const members = value.split(MEMBER_SEPARATOR);
+    if (members.length !== NAMED_DAMAGE_MEMBERS) return null;
+    const [amountText = "", element = "", stated = ""] = members;
+    const amount = parseInteger(amountText);
+    if (amount === null) return null;
+    if (amount < 0) return null;
+    const named = parseNamedTarget(stated);
+    if (named === null) return null;
+    const damage = { element: `${DAMAGE_ELEMENT_PREFIX}${element.trim()}`, amount };
+    assert(damage.element.startsWith(DAMAGE_ELEMENT_PREFIX), "an element named is of the family");
+    assert(named.targetName.length > 0, "a figure stated against a name has a name");
+    return { ...named, damage };
+}
+
+/** `Gracz 1(63.00%)`: the name runs to the last opener, so a name may hold one of its own. */
+function parseNamedTarget(text: string): NamedTargetReading | null {
+    if (!text.endsWith(PERCENT_CLOSER)) return null;
+    const opener = text.lastIndexOf(PERCENT_OPENER);
+    if (opener <= 0) return null;
+    const targetName = text.slice(0, opener);
+    const percentText = text.slice(opener + PERCENT_OPENER.length, -PERCENT_CLOSER.length);
+    assert(targetName.length > 0, "a stated name says something");
+    assert(percentText.length < text.length, "a percentage is shorter than what carried it");
+    return { targetName, targetHealthPercent: parseHealthPercent(percentText) };
+}
+
+/** Healing that took health away would be this reader misreading its key, not a loss reported. */
+function decodeNamedHealing(
+    key: string,
+    value: string,
+): (NamedTargetReading & { amount: number; source: string }) | null {
+    const members = value.split(MEMBER_SEPARATOR);
+    if (members.length !== NAMED_HEALING_MEMBERS) return null;
+    const [amountText = "", stated = ""] = members;
+    const amount = parseInteger(amountText);
+    if (amount === null) return null;
+    if (amount < 0) return null;
+    const named = parseNamedTarget(stated);
+    if (named === null) return null;
+    assert(named.targetName.length > 0, "the healed is named inside the value");
+    assert(Number.isSafeInteger(amount), "healing read from digits is held exactly");
+    return { ...named, amount, source: key };
+}
+
+/** An id with no name is a skill nothing can put on screen, and the protocol has never sent one. */
+function closeAnnouncement(reading: MessageReading): void {
+    assert(reading.skill === null, "a reading's announcement is closed once");
+    assert(reading.skillKeys >= 0, "a key is counted once");
+    if (reading.skillName !== null) {
+        reading.skill = { skillName: reading.skillName, skillId: reading.skillId };
+        return;
+    }
+    if (reading.skillKeys === 0) return;
+    reading.unreadKeys.push(SKILL_ID_KEY);
+    reading.skillKeys -= 1;
+}
+
+function tallyParametersRead(reading: MessageReading): number {
+    return reading.raw.length + reading.applied.length + reading.prevented.length +
+        reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
+        reading.namedDamage.length + reading.namedHealing.length + reading.unaccounted.length +
+        reading.outcomes.length + reading.declared.length +
+        reading.skillKeys + reading.unreadKeys.length;
+}
+
 function hasAttackFigure(reading: MessageReading): boolean {
     if (reading.raw.length > 0) return true;
     if (reading.applied.length > 0) return true;
@@ -540,22 +587,40 @@ function hasAttackFigure(reading: MessageReading): boolean {
     return reading.destroyed.length > 0;
 }
 
-/** Both ends the same, or one end unstated: there was never a second name to get wrong. */
-function doesNameOneCombatant(message: ProtocolMessage): boolean {
-    if (message.actor === null) return message.target !== null;
-    if (message.target === null) return true;
-    return message.actor.combatantId === message.target.combatantId;
+/**
+ * The announcement an effect rides: the message's own where it carries one, the one before it
+ * otherwise and only for its own actor. ⚠️ **Past the message the client glues it to, a standing
+ * reaches a blow and nothing else**: a poison tick on the announcer picked up `Kosa zastępcy` in
+ * `2026-08-12-tempest-grupa-vs-draugr-2`, and a heal there would have been credited to it.
+ */
+function lookupAnnouncedForMessage(
+    message: ProtocolMessage,
+    skill: AnnouncementReading | null,
+    standing: AnnouncementStanding,
+    isBlow: boolean,
+): AnnouncedSkill | null {
+    const own = getAnnouncedSkill(message, skill);
+    if (own !== null) return own;
+    if (standing === null) return null;
+    const announced = standing.announced;
+    if (announced.actorId === null) return null;
+    if (message.actor === null) return null;
+    if (message.actor.combatantId !== announced.actorId) return null;
+    assert(standing.blowsRemaining > 0, "a standing announcement has a message left to reach");
+    if (standing.isGlued) return announced;
+    if (isBlow) return announced;
+    return null;
 }
 
-function getNamedCombatantIds(message: ProtocolMessage): number[] {
-    const found: number[] = [];
-    if (message.actor !== null) found.push(message.actor.combatantId);
-    if (message.target !== null) {
-        if (!found.includes(message.target.combatantId)) found.push(message.target.combatantId);
-    }
-    assert(found.length <= ENDS_MAXIMUM, "a message names at most two ends");
-    assert(new Set(found).size === found.length, "an end named twice is named once here");
-    return found;
+function getAnnouncedSkill(
+    message: ProtocolMessage,
+    skill: AnnouncementReading | null,
+): AnnouncedSkill | null {
+    if (skill === null) return null;
+    assert(skill.skillName.length > 0, "an announcement names something");
+    const actorId = message.actor?.combatantId ?? message.target?.combatantId ?? null;
+    if (actorId === null) assert(message.actor === null, "an announcer is read off a named end");
+    return { skillName: skill.skillName, skillId: skill.skillId, actorId };
 }
 
 /**
@@ -625,11 +690,6 @@ function decodeMessageEvents(
     return events;
 }
 
-function lookupNamedId(roster: CombatantRoster | null, name: string): number | null {
-    if (roster === null) return null;
-    return lookupCombatantIdByName(roster, name);
-}
-
 function decodeAttackEvent(
     message: ProtocolMessage,
     reading: MessageReading,
@@ -651,6 +711,11 @@ function decodeAttackEvent(
         declared: reading.declared,
         announced,
     };
+}
+
+function lookupNamedId(roster: CombatantRoster | null, name: string): number | null {
+    if (roster === null) return null;
+    return lookupCombatantIdByName(roster, name);
 }
 
 /** What an announcement states about its skill rides it, unless a blow already carries it. */
@@ -728,78 +793,13 @@ function lookupTurnLostBy(
     return { combatantId: lookupCombatantIdByName(roster, longest) };
 }
 
-function getAnnouncedSkill(
-    message: ProtocolMessage,
-    skill: AnnouncementReading | null,
-): AnnouncedSkill | null {
-    if (skill === null) return null;
-    assert(skill.skillName.length > 0, "an announcement names something");
-    const actorId = message.actor?.combatantId ?? message.target?.combatantId ?? null;
-    if (actorId === null) assert(message.actor === null, "an announcer is read off a named end");
-    return { skillName: skill.skillName, skillId: skill.skillId, actorId };
-}
-
-/**
- * The announcement an effect rides: the message's own where it carries one, the one before it
- * otherwise and only for its own actor. ⚠️ **Past the message the client glues it to, a standing
- * reaches a blow and nothing else**: a poison tick on the announcer picked up `Kosa zastępcy` in
- * `2026-08-12-tempest-grupa-vs-draugr-2`, and a heal there would have been credited to it.
- */
-function lookupAnnouncedForMessage(
-    message: ProtocolMessage,
-    skill: AnnouncementReading | null,
-    standing: AnnouncementStanding,
-    isBlow: boolean,
-): AnnouncedSkill | null {
-    const own = getAnnouncedSkill(message, skill);
-    if (own !== null) return own;
-    if (standing === null) return null;
-    const announced = standing.announced;
-    if (announced.actorId === null) return null;
-    if (message.actor === null) return null;
-    if (message.actor.combatantId !== announced.actorId) return null;
-    assert(standing.blowsRemaining > 0, "a standing announcement has a message left to reach");
-    if (standing.isGlued) return announced;
-    if (isBlow) return announced;
-    return null;
-}
-
-/**
- * How far an announcement still reaches, one message on. ⚠️ **The chain breaks on anything that is
- * not the announcer's own blow**: a message that decoded no blow ends it, and so does another
- * combatant's.
- */
-function composeStandingAfterMessage(
-    context: DecodeContext,
-    events: readonly BattleEvent[],
-    announced: AnnouncedSkill | null,
-): AnnouncementStanding {
-    if (announced !== null) {
-        const blowsRemaining = getBlowsForAnnouncement(announced, context.tables);
-        return { announced, blowsRemaining, isGlued: true };
+function getNamedCombatantIds(message: ProtocolMessage): number[] {
+    const found: number[] = [];
+    if (message.actor !== null) found.push(message.actor.combatantId);
+    if (message.target !== null) {
+        if (!found.includes(message.target.combatantId)) found.push(message.target.combatantId);
     }
-    const standing = context.standing;
-    if (standing === null) return null;
-    const struck = events.find((event) => event.kind === BATTLE_EVENT.attack);
-    if (struck === undefined) return null;
-    if (struck.kind !== BATTLE_EVENT.attack) return null;
-    if (struck.actorId !== standing.announced.actorId) return null;
-    assert(standing.blowsRemaining > 0, "a standing handed on has a blow left to spend");
-    const blowsRemaining = standing.blowsRemaining - 1;
-    assert(blowsRemaining >= 0, "a standing spends no more blows than it was given");
-    if (blowsRemaining === 0) return null;
-    return { announced: standing.announced, blowsRemaining, isGlued: false };
-}
-
-/**
- * The table's count where the announcement names an id; the bound where it names none. Every id any
- * announcement carried over `develop:captures/` is one the table carries (0 exceptions of 3129,
- * 2026-09-12), and 364 of the 371 announcements without one are an NPC's.
- */
-function getBlowsForAnnouncement(announced: AnnouncedSkill, tables: DecoderTables): number {
-    if (announced.skillId === null) return BLOWS_GRANTED_MAXIMUM;
-    const granted = tables.blowsGrantedBySkillId.get(announced.skillId) ?? 0;
-    assert(granted >= 0, "a table grants nothing or more");
-    assert(1 + granted <= BLOWS_GRANTED_MAXIMUM, "a reach stays inside its stated bound");
-    return 1 + granted;
+    assert(found.length <= ENDS_MAXIMUM, "a message names at most two ends");
+    assert(new Set(found).size === found.length, "an end named twice is named once here");
+    return found;
 }

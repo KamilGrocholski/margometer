@@ -48,6 +48,14 @@ const WITHOUT_TARGET = "Nieznany cel";
 const OURS = 1;
 const THEIRS = 2;
 
+Deno.test("the widest fight built here fields a full cast, with both ends left out", () => {
+    const { roster, statistics } = composeWidestFight();
+    assertStrictEquals(roster.byId.size, COMBATANTS_MAXIMUM, "ten a side is the widest roster");
+    assertStrictEquals(countUnreadMessages(statistics), 0, "and nothing in it went unread");
+    assert(statistics.dealtByNobody > 0, "a blow the protocol gave no striker");
+    assert(statistics.takenByNobody > 0, "and one it gave no target");
+});
+
 /**
  * Ten a side, every one of them striking the first of the other side, and three blows that leave
  * an end out: no striker, no target, and neither. `0` is the segment that names nobody.
@@ -76,32 +84,6 @@ function composeWidestFight(): {
     const statistics = tallyFightStatistics(events, indexTeamHeals(events, roster));
     return { roster, statistics, readerSide: OURS };
 }
-
-function composeFullCastScreen(
-    reading: ScreenReading,
-    metric: PanelMetric,
-    side: PanelSideChoice,
-): ShownScreen {
-    return { ...composeShownScreen(reading, metric), side, readerSide: OURS };
-}
-
-/** The panel with that view on it, and whatever a region refused to draw while it went up. */
-function drawShownView(shown: ShownScreen): { host: FakeElement; failures: unknown[] } {
-    const failures: unknown[] = [];
-    const panel = initTestView(composeFakeDocument(), {
-        onFailure: (failure) => failures.push(failure),
-    });
-    failures.push(...panel.render(shown).undrawn);
-    return { host: panel.element as FakeElement, failures };
-}
-
-Deno.test("the widest fight built here fields a full cast, with both ends left out", () => {
-    const { roster, statistics } = composeWidestFight();
-    assertStrictEquals(roster.byId.size, COMBATANTS_MAXIMUM, "ten a side is the widest roster");
-    assertStrictEquals(countUnreadMessages(statistics), 0, "and nothing in it went unread");
-    assert(statistics.dealtByNobody > 0, "a blow the protocol gave no striker");
-    assert(statistics.takenByNobody > 0, "and one it gave no target");
-});
 
 Deno.test("a full cast with both ends unknown draws its rows and both unnamed ones", () => {
     const { roster, statistics, readerSide } = composeWidestFight();
@@ -138,6 +120,24 @@ Deno.test("a full cast with both ends unknown draws its rows and both unnamed on
         "which say, in words, which end the game left out",
     );
 });
+
+/** The panel with that view on it, and whatever a region refused to draw while it went up. */
+function drawShownView(shown: ShownScreen): { host: FakeElement; failures: unknown[] } {
+    const failures: unknown[] = [];
+    const panel = initTestView(composeFakeDocument(), {
+        onFailure: (failure) => failures.push(failure),
+    });
+    failures.push(...panel.render(shown).undrawn);
+    return { host: panel.element as FakeElement, failures };
+}
+
+function composeFullCastScreen(
+    reading: ScreenReading,
+    metric: PanelMetric,
+    side: PanelSideChoice,
+): ShownScreen {
+    return { ...composeShownScreen(reading, metric), side, readerSide: OURS };
+}
 
 Deno.test("no screen and no side of the widest fight costs the reader a region", () => {
     const { roster, statistics, readerSide } = composeWidestFight();

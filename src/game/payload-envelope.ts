@@ -39,18 +39,6 @@ export type EnvelopeField = keyof Pick<
     | "combatants"
 >;
 
-/** The only place the game's envelope keys are spelled; the compiler holds it complete. */
-const ENVELOPE_KEYS: FieldKeys<EnvelopeField> = {
-    isInit: "init",
-    isEnd: "endBattle",
-    messages: "m",
-    messagesStated: "mi",
-    readerSide: "myteam",
-    isOnAuto: "auto",
-    turnStatement: "turns_warriors",
-    combatants: "w",
-};
-
 export const ENVELOPE_FAILURE = {
     payloadNotRecord: "payload-not-record",
     payloadFieldMalformed: "payload-field-malformed",
@@ -68,6 +56,18 @@ export type EnvelopeFailure =
         maximum: number;
     }
     | { kind: typeof ENVELOPE_FAILURE.payloadCombatantRepeated; combatantId: number };
+
+/** The only place the game's envelope keys are spelled; the compiler holds it complete. */
+const ENVELOPE_KEYS: FieldKeys<EnvelopeField> = {
+    isInit: "init",
+    isEnd: "endBattle",
+    messages: "m",
+    messagesStated: "mi",
+    readerSide: "myteam",
+    isOnAuto: "auto",
+    turnStatement: "turns_warriors",
+    combatants: "w",
+};
 
 /** Ten entries wide in all 1022 payloads of `develop:captures/` stating a queue, 2026-09-02. */
 const QUEUE_ENTRIES_MAXIMUM = 1024;
@@ -111,16 +111,6 @@ export function readPayloadEnvelope(payload: unknown): Result<PayloadRecord, Env
     });
 }
 
-/** Our field, never their key: the failure a field reader returned, in the envelope's terms. */
-function readPayloadEnvelopeFailure(failure: FieldFailure<EnvelopeField>): EnvelopeFailure {
-    if (failure.kind === FIELD_FAILURE.wrongType) {
-        return { kind: ENVELOPE_FAILURE.payloadFieldMalformed, field: failure.field };
-    }
-    const { field, count, maximum } = failure;
-    assert(count > maximum, "a list refused for its length is past the bound");
-    return { kind: ENVELOPE_FAILURE.payloadFieldTooLong, field, count, maximum };
-}
-
 /**
  * The messages, copied. An empty one is passed over and so counts as lost against `mi`, as
  * `develop` reads it; anything but text is a list this reader cannot place a message in.
@@ -137,6 +127,16 @@ function readPayloadEnvelopeMessages(payload: UnknownRecord): Result<string[], E
     }
     assert(messages.length <= MESSAGES_MAXIMUM, "a payload's messages stay inside the bound");
     return ok(messages);
+}
+
+/** Our field, never their key: the failure a field reader returned, in the envelope's terms. */
+function readPayloadEnvelopeFailure(failure: FieldFailure<EnvelopeField>): EnvelopeFailure {
+    if (failure.kind === FIELD_FAILURE.wrongType) {
+        return { kind: ENVELOPE_FAILURE.payloadFieldMalformed, field: failure.field };
+    }
+    const { field, count, maximum } = failure;
+    assert(count > maximum, "a list refused for its length is past the bound");
+    return { kind: ENVELOPE_FAILURE.payloadFieldTooLong, field, count, maximum };
 }
 
 /**

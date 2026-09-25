@@ -7,13 +7,13 @@
 import { type PanelElement, STYLE_ATTRIBUTE } from "./panel-document.ts";
 import { CLASS } from "./panel-look.ts";
 
-/** Headroom rather than a bound anything meets: a reader comes back to a handful of places. */
-const LISTS_KEPT_MAXIMUM = 32;
-
 export interface ScrollMemo {
     getTop(name: string): number;
     setTop(name: string, top: number): void;
 }
+
+/** Headroom rather than a bound anything meets: a reader comes back to a handful of places. */
+const LISTS_KEPT_MAXIMUM = 32;
 
 /** In memory: a position that outlived a reload would open on a fight the page no longer holds. */
 export function initScrollMemo(): ScrollMemo {
@@ -40,10 +40,6 @@ export function initScrollMemo(): ScrollMemo {
     };
 }
 
-function isRegionList(region: PanelElement): boolean {
-    return region.className.includes(CLASS.list);
-}
-
 /** Null where what stands in the region is a slot, which does not scroll and holds no position. */
 export function readTopOfList(region: PanelElement): number | null {
     if (!isRegionList(region)) return null;
@@ -51,6 +47,10 @@ export function readTopOfList(region: PanelElement): number | null {
     if (!Number.isFinite(top)) return null;
     if (top < 0) return null;
     return top;
+}
+
+function isRegionList(region: PanelElement): boolean {
+    return region.className.includes(CLASS.list);
 }
 
 /**

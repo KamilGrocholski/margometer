@@ -9,17 +9,48 @@ import { isRecord } from "#/libs/unknown-value.ts";
 import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
 import { initRuntimeWorld } from "#/tests/runtime-world.ts";
 
-const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
-/** Two people focusing one opponent, which is what the focus pass needs to have anybody to do. */
-const DUET = "captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json";
-const ADD_ON_ROW = "MargoMeter";
-
 /** One fighter's entry in the client's registry of tooltips, and what an open one was told. */
 interface TooltipRegistry {
     text: string;
     appended: number;
     told: number;
 }
+
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
+/** Two people focusing one opponent, which is what the focus pass needs to have anybody to do. */
+const DUET = "captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json";
+const ADD_ON_ROW = "MargoMeter";
+
+/**
+ * ⚠️ **The failure this was written for, and a reader saw it**: rows in a fighter's tooltip on one
+ * hover, gone on the next, back on the one after. Nobody holds two blocks, and a fighter holding
+ * one keeps it through the next payload.
+ */
+Deno.test("every fighter keeps one block through every payload, whoever was rebuilt", () => {
+    const lost: string[] = [];
+    const doubled: string[] = [];
+    let kept = 0;
+    for (const fight of readRecordedFights()) {
+        const { page, registries } = composeRebuildingBattle();
+        const world = initRuntimeWorld(page);
+        for (const [index, payload] of fight.updates.entries()) {
+            const before = new Map(
+                [...registries].map(([id, one]) => [id, countBlocksInText(one.text)]),
+            );
+            world.update(payload);
+            for (const [id, registry] of registries) {
+                const blocks = countBlocksInText(registry.text);
+                if (blocks > 1) doubled.push(`${fight.path} #${index}: ${id}`);
+                if ((before.get(id) ?? 0) === 0) continue;
+                if (blocks === 0) lost.push(`${fight.path} #${index}: ${id}`);
+                else kept += 1;
+            }
+        }
+    }
+    assertEquals(lost.slice(0, 5), [], `a fighter lost their block, ${lost.length} times`);
+    assertEquals(doubled.slice(0, 5), [], `a fighter took two blocks, ${doubled.length} times`);
+    assert(kept > 0, "the recordings carry fighters whose blocks were kept");
+});
 
 /**
  * A battle holding its fighters the way the client does, as far as a tooltip goes: a restated
@@ -95,37 +126,6 @@ function composeTipHolder(registries: Map<number, TooltipRegistry>, combatantId:
 function countBlocksInText(text: string): number {
     return text.split("<br>").filter((row) => row === ADD_ON_ROW).length;
 }
-
-/**
- * ⚠️ **The failure this was written for, and a reader saw it**: rows in a fighter's tooltip on one
- * hover, gone on the next, back on the one after. Nobody holds two blocks, and a fighter holding
- * one keeps it through the next payload.
- */
-Deno.test("every fighter keeps one block through every payload, whoever was rebuilt", () => {
-    const lost: string[] = [];
-    const doubled: string[] = [];
-    let kept = 0;
-    for (const fight of readRecordedFights()) {
-        const { page, registries } = composeRebuildingBattle();
-        const world = initRuntimeWorld(page);
-        for (const [index, payload] of fight.updates.entries()) {
-            const before = new Map(
-                [...registries].map(([id, one]) => [id, countBlocksInText(one.text)]),
-            );
-            world.update(payload);
-            for (const [id, registry] of registries) {
-                const blocks = countBlocksInText(registry.text);
-                if (blocks > 1) doubled.push(`${fight.path} #${index}: ${id}`);
-                if ((before.get(id) ?? 0) === 0) continue;
-                if (blocks === 0) lost.push(`${fight.path} #${index}: ${id}`);
-                else kept += 1;
-            }
-        }
-    }
-    assertEquals(lost.slice(0, 5), [], `a fighter lost their block, ${lost.length} times`);
-    assertEquals(doubled.slice(0, 5), [], `a fighter took two blocks, ${doubled.length} times`);
-    assert(kept > 0, "the recordings carry fighters whose blocks were kept");
-});
 
 /** ⚠️ **`concatTip` triggers nothing**, so an open tooltip is told whenever rows went on. */
 Deno.test("an open tooltip is told to draw again exactly when rows went on", () => {

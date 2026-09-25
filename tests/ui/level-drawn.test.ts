@@ -45,22 +45,6 @@ import { parseInteger } from "#/libs/number-text.ts";
 import { composeFakeDocument, type FakeElement, getElementsWithin } from "#/tests/fake-document.ts";
 import { composeShownScreen } from "#/tests/shown-screen.ts";
 
-/** The property a list states its height in, and the whole of what a list writes on its style. */
-const ROWS_VARIABLE = "--MargoMeter-rows";
-const STYLE_ATTRIBUTE = "style";
-/** What a row states its own card under. Spelled here, as every mark a test presses by is. */
-const TIP_ATTRIBUTE = "data-tip";
-/**
- * What a figure reads when it is not one. Spelled out rather than imported: a test reading the
- * word back from the module that writes it holds the two to be the same and neither to be right
- * (`tests/AGENTS.md`).
- */
-const NOT_KNOWN = "Nie wiadomo";
-/** The sign a figure below nothing opens with, which is the one thing no drawn figure may be. */
-const MINUS_SIGN = "-";
-/** The three the strip offers, and the two that need a seat to mean anything. */
-const SIDE_CHOICES: readonly PanelSideChoice[] = ["everyone", "reader", "opposing"];
-
 /** A region as it was drawn: how many rows it promised to stand, and how many it holds. */
 interface RegionDrawn {
     promised: number;
@@ -83,6 +67,143 @@ interface RowPlace {
     name: string;
     /** Not a row at all: the heading a section opens with, where the numbering starts again. */
     isSectionOpened: boolean;
+}
+
+/** A recording as the walk reads it: its name, and the fight tallied off it. */
+interface FightReplay {
+    name: string;
+    roster: CombatantRoster;
+    statistics: FightStatistics;
+    readerSide: number | null;
+}
+
+interface LevelWalk {
+    replay: FightReplay;
+    metric: PanelMetric;
+    side: PanelSideChoice;
+    readerSide: number | null;
+    base: ShownScreen;
+    short: string[];
+}
+
+/** The property a list states its height in, and the whole of what a list writes on its style. */
+const ROWS_VARIABLE = "--MargoMeter-rows";
+const STYLE_ATTRIBUTE = "style";
+/** What a row states its own card under. Spelled here, as every mark a test presses by is. */
+const TIP_ATTRIBUTE = "data-tip";
+/**
+ * What a figure reads when it is not one. Spelled out rather than imported: a test reading the
+ * word back from the module that writes it holds the two to be the same and neither to be right
+ * (`tests/AGENTS.md`).
+ */
+const NOT_KNOWN = "Nie wiadomo";
+/** The sign a figure below nothing opens with, which is the one thing no drawn figure may be. */
+const MINUS_SIGN = "-";
+/** The three the strip offers, and the two that need a seat to mean anything. */
+const SIDE_CHOICES: readonly PanelSideChoice[] = ["everyone", "reader", "opposing"];
+
+/**
+ * The rows that hold no place, by the words a reader sees on them. Read by name because that is
+ * what the panel draws: the reading's own kinds never reach the sheet, and a check standing on
+ * them would be asking the same layer twice. `develop:DESIGN.md` owns which kinds these are.
+ */
+const WORDS_HOLDING_NO_PLACE: readonly string[] = [
+    PANEL_WORDS.restOfKinds,
+    PANEL_WORDS.withoutActor,
+    PANEL_WORDS.withoutTarget,
+    PANEL_WORDS.withoutKind,
+    NEITHER_END_WORDS.label,
+];
+
+/**
+ * The samples it must flag, and the one it must not. Without the first two the walk above would
+ * stay green on a reader that had stopped comparing anything; without the third, on one that
+ * called every region short.
+ */
+/** A region with nothing wrong with it, so a sample states only what it is changing. */
+const NOTHING_DRAWN: RegionDrawn = {
+    promised: 0,
+    drawn: 0,
+    failures: 0,
+    saidByKey: new Map(),
+    figures: [],
+    widths: [],
+    places: [],
+};
+
+Deno.test("every level stands as tall as it drew, with one card per row and no two alike", () => {
+    const replays: FightReplay[] = readRecordedFights().map((one) => {
+        const { view, roster, statistics } = tallyRecordedFight(one.path);
+        return { name: one.path, roster, statistics, readerSide: view.readerSide };
+    });
+    assert(replays.length > 0, "there is material to walk");
+    const short: string[] = [];
+    let walked = 0;
+    for (const replay of replays) {
+        const { roster, statistics } = replay;
+        const readerSide = replay.readerSide;
+        for (const metric of SCREEN_ORDER) {
+            for (const side of SIDE_CHOICES) {
+                // The two narrowed lists say nothing without a seat to narrow from, and the
+                // reading answers `everyone` for both — walking them would be one view thrice.
+                if (readerSide === null && side !== "everyone") continue;
+                const reading = presentScreen(
+                    statistics,
+                    roster,
+                    metric,
+                    side,
+                    readerSide,
+                    NOTHING_SUSPECT,
+                );
+                const base = composeLevelScreen(reading, metric, side, readerSide);
+                const walk: LevelWalk = { replay, metric, side, readerSide, base, short };
+                walked += addLevel(walk, "ranking", {});
+                walked += addOpenedRungs(walk, statistics, roster);
+                walked += addPinnedRungs(walk, statistics, roster);
+            }
+        }
+    }
+    assertEquals(
+        short,
+        [],
+        "a region shorter than what it drew cuts a section off mid-way, and a key on two rows " +
+            "puts one row's card over another",
+    );
+    // The reader is proved by what it reached as well as by what it passed: a walk that stopped
+    // opening rows would agree with every level it never drew.
+    assertEquals(walked, 15_676, "every level the corpus draws, 2026-09-21");
+});
+
+/** One screen of one recording, with nothing open — the view every level is reached from. */
+function composeLevelScreen(
+    reading: ScreenReading,
+    metric: PanelMetric,
+    side: PanelSideChoice,
+    readerSide: number | null,
+): ShownScreen {
+    return { ...composeShownScreen(reading, metric), listName: "one place", side, readerSide };
+}
+
+function addLevel(walk: LevelWalk, rung: string, over: Partial<ShownScreen>): number {
+    const where = `${walk.replay.name} ${walk.metric}/${walk.side}/${rung}`;
+    const found = getRegionShortfall(where, { ...walk.base, ...over });
+    if (found !== null) walk.short.push(found);
+    return 1;
+}
+
+/** What a level was found wrong in, or nothing. Named, so a failure says which rung it was. */
+function getRegionShortfall(where: string, shown: ShownScreen): string | null {
+    const seen = readRegionDrawn(shown);
+    const shared = [
+        ...getKeysShared(seen),
+        ...getFiguresUnreadable(seen),
+        ...getPlacesMismarked(seen),
+        ...getPlacesWrongfullyHeld(seen, getWordsForUnannounced(shown.current)),
+        ...getPlacesOutOfOrder(seen),
+    ];
+    if (shared.length > 0) return `${where}: ${shared.join(", ")}`;
+    if (!getIsRegionShort(seen)) return null;
+    return `${where}: promised ${seen.promised}, drew ${seen.drawn}, ${seen.failures} undrawn`;
 }
 
 function readRegionDrawn(shown: ShownScreen): RegionDrawn {
@@ -108,6 +229,26 @@ function readRegionDrawn(shown: ShownScreen): RegionDrawn {
         places: readRowPlaces(host),
         ...readFiguresDrawn(host),
     };
+}
+
+/**
+ * What each row on the screen says, gathered under the key its card is looked up by. Read off the
+ * whole host and not off the list: the two pinned rows stand outside it and are drawn beside
+ * every level, so a key of theirs meeting one of the list's is a collision a list-only walk
+ * cannot see.
+ */
+function readRowKeys(host: FakeElement): Map<string, Set<string>> {
+    const saidByKey = new Map<string, Set<string>>();
+    for (const one of getElementsWithin(host)) {
+        if (one.className.split(" ")[0] !== CLASS.row) continue;
+        const key = one.attributes.get(TIP_ATTRIBUTE);
+        if (key === undefined) continue;
+        const said = getElementsWithin(one).map((part) => part.textContent).join("|");
+        const held = saidByKey.get(key) ?? new Set<string>();
+        held.add(said);
+        saidByKey.set(key, held);
+    }
+    return saidByKey;
 }
 
 /**
@@ -152,46 +293,6 @@ function readFiguresDrawn(host: FakeElement): { figures: string[]; widths: strin
         if (one.className.split(" ").includes(CLASS.figure)) figures.push(one.textContent);
     }
     return { figures, widths };
-}
-
-/**
- * What each row on the screen says, gathered under the key its card is looked up by. Read off the
- * whole host and not off the list: the two pinned rows stand outside it and are drawn beside
- * every level, so a key of theirs meeting one of the list's is a collision a list-only walk
- * cannot see.
- */
-function readRowKeys(host: FakeElement): Map<string, Set<string>> {
-    const saidByKey = new Map<string, Set<string>>();
-    for (const one of getElementsWithin(host)) {
-        if (one.className.split(" ")[0] !== CLASS.row) continue;
-        const key = one.attributes.get(TIP_ATTRIBUTE);
-        if (key === undefined) continue;
-        const said = getElementsWithin(one).map((part) => part.textContent).join("|");
-        const held = saidByKey.get(key) ?? new Set<string>();
-        held.add(said);
-        saidByKey.set(key, held);
-    }
-    return saidByKey;
-}
-
-/** One screen of one recording, with nothing open — the view every level is reached from. */
-function composeLevelScreen(
-    reading: ScreenReading,
-    metric: PanelMetric,
-    side: PanelSideChoice,
-    readerSide: number | null,
-): ShownScreen {
-    return { ...composeShownScreen(reading, metric), listName: "one place", side, readerSide };
-}
-
-/**
- * Whether a region was drawn short. Its own function because the walk below cannot prove it: a
- * comparison that answered "no" to everything would agree with all 12,814 levels, so this is what
- * the sample at the end is handed.
- */
-function getIsRegionShort(seen: RegionDrawn): boolean {
-    if (seen.failures > 0) return true;
-    return seen.promised < seen.drawn;
 }
 
 /** The keys two different rows both stated, which is a row wearing its neighbour's card. */
@@ -242,19 +343,6 @@ function getPlacesMismarked(seen: RegionDrawn): string[] {
 }
 
 /**
- * The rows that hold no place, by the words a reader sees on them. Read by name because that is
- * what the panel draws: the reading's own kinds never reach the sheet, and a check standing on
- * them would be asking the same layer twice. `develop:DESIGN.md` owns which kinds these are.
- */
-const WORDS_HOLDING_NO_PLACE: readonly string[] = [
-    PANEL_WORDS.restOfKinds,
-    PANEL_WORDS.withoutActor,
-    PANEL_WORDS.withoutTarget,
-    PANEL_WORDS.withoutKind,
-    NEITHER_END_WORDS.label,
-];
-
-/**
  * A row that took the wrong shape for what it claims. ⚠️ **This is the half
  * `getPlacesMismarked` cannot see**: that one asks whether a row's number and its bar agree with
  * each other, and both come from one branch, so it passes whichever kinds the panel places. This
@@ -299,56 +387,14 @@ function getPlacesOutOfOrder(seen: RegionDrawn): string[] {
     return found;
 }
 
-/** What a level was found wrong in, or nothing. Named, so a failure says which rung it was. */
-function getRegionShortfall(where: string, shown: ShownScreen): string | null {
-    const seen = readRegionDrawn(shown);
-    const shared = [
-        ...getKeysShared(seen),
-        ...getFiguresUnreadable(seen),
-        ...getPlacesMismarked(seen),
-        ...getPlacesWrongfullyHeld(seen, getWordsForUnannounced(shown.current)),
-        ...getPlacesOutOfOrder(seen),
-    ];
-    if (shared.length > 0) return `${where}: ${shared.join(", ")}`;
-    if (!getIsRegionShort(seen)) return null;
-    return `${where}: promised ${seen.promised}, drew ${seen.drawn}, ${seen.failures} undrawn`;
-}
-
 /**
- * The parts of an opened figure that open onto a level of their own, every kind at once.
- *
- * ⚠️ **The closing row is one of them, and it is the one a reader over `NamedPart` walks past.** It
- * is an `OpenedPart` and nothing else (`develop ADR 0081`), so a walk taking the two lists of named
- * rows takes every level but the one that row opens, and says nothing about what it missed.
+ * Whether a region was drawn short. Its own function because the walk below cannot prove it: a
+ * comparison that answered "no" to everything would agree with all 12,814 levels, so this is what
+ * the sample at the end is handed.
  */
-function composeOpenedParts(drill: DrillReading): OpenedPart[] {
-    const skills = drill.bySkill.rows.filter((one) => one.doesOpenPart).map((one) => one.part);
-    const kinds = drill.byElement.rows.filter((one) => one.doesOpenPart).map((
-        one,
-    ): NamedPart => ({ kind: "element", element: one.element }));
-    const parts: OpenedPart[] = [...skills, ...kinds];
-    const closing = drill.bySkill.plain;
-    if (closing === null) return parts;
-    if (!closing.doesOpenPart) return parts;
-    parts.push({ kind: "plain" });
-    return parts;
-}
-
-/** A recording as the walk reads it: its name, and the fight tallied off it. */
-interface FightReplay {
-    name: string;
-    roster: CombatantRoster;
-    statistics: FightStatistics;
-    readerSide: number | null;
-}
-
-interface LevelWalk {
-    replay: FightReplay;
-    metric: PanelMetric;
-    side: PanelSideChoice;
-    readerSide: number | null;
-    base: ShownScreen;
-    short: string[];
+function getIsRegionShort(seen: RegionDrawn): boolean {
+    if (seen.failures > 0) return true;
+    return seen.promised < seen.drawn;
 }
 
 /** The rungs reached by opening a row: the figure itself, a pair inside it, and a part of it. */
@@ -375,6 +421,26 @@ function addOpenedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
         }
     }
     return walked;
+}
+
+/**
+ * The parts of an opened figure that open onto a level of their own, every kind at once.
+ *
+ * ⚠️ **The closing row is one of them, and it is the one a reader over `NamedPart` walks past.** It
+ * is an `OpenedPart` and nothing else (`develop ADR 0081`), so a walk taking the two lists of named
+ * rows takes every level but the one that row opens, and says nothing about what it missed.
+ */
+function composeOpenedParts(drill: DrillReading): OpenedPart[] {
+    const skills = drill.bySkill.rows.filter((one) => one.doesOpenPart).map((one) => one.part);
+    const kinds = drill.byElement.rows.filter((one) => one.doesOpenPart).map((
+        one,
+    ): NamedPart => ({ kind: "element", element: one.element }));
+    const parts: OpenedPart[] = [...skills, ...kinds];
+    const closing = drill.bySkill.plain;
+    if (closing === null) return parts;
+    if (!closing.doesOpenPart) return parts;
+    parts.push({ kind: "plain" });
+    return parts;
 }
 
 /** And the branch off the ranking: a pinned row, and the two shapes of the level under it. */
@@ -413,72 +479,6 @@ function addPinnedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
     }
     return walked;
 }
-
-function addLevel(walk: LevelWalk, rung: string, over: Partial<ShownScreen>): number {
-    const where = `${walk.replay.name} ${walk.metric}/${walk.side}/${rung}`;
-    const found = getRegionShortfall(where, { ...walk.base, ...over });
-    if (found !== null) walk.short.push(found);
-    return 1;
-}
-
-Deno.test("every level stands as tall as it drew, with one card per row and no two alike", () => {
-    const replays: FightReplay[] = readRecordedFights().map((one) => {
-        const { view, roster, statistics } = tallyRecordedFight(one.path);
-        return { name: one.path, roster, statistics, readerSide: view.readerSide };
-    });
-    assert(replays.length > 0, "there is material to walk");
-    const short: string[] = [];
-    let walked = 0;
-    for (const replay of replays) {
-        const { roster, statistics } = replay;
-        const readerSide = replay.readerSide;
-        for (const metric of SCREEN_ORDER) {
-            for (const side of SIDE_CHOICES) {
-                // The two narrowed lists say nothing without a seat to narrow from, and the
-                // reading answers `everyone` for both — walking them would be one view thrice.
-                if (readerSide === null && side !== "everyone") continue;
-                const reading = presentScreen(
-                    statistics,
-                    roster,
-                    metric,
-                    side,
-                    readerSide,
-                    NOTHING_SUSPECT,
-                );
-                const base = composeLevelScreen(reading, metric, side, readerSide);
-                const walk: LevelWalk = { replay, metric, side, readerSide, base, short };
-                walked += addLevel(walk, "ranking", {});
-                walked += addOpenedRungs(walk, statistics, roster);
-                walked += addPinnedRungs(walk, statistics, roster);
-            }
-        }
-    }
-    assertEquals(
-        short,
-        [],
-        "a region shorter than what it drew cuts a section off mid-way, and a key on two rows " +
-            "puts one row's card over another",
-    );
-    // The reader is proved by what it reached as well as by what it passed: a walk that stopped
-    // opening rows would agree with every level it never drew.
-    assertEquals(walked, 15_676, "every level the corpus draws, 2026-09-21");
-});
-
-/**
- * The samples it must flag, and the one it must not. Without the first two the walk above would
- * stay green on a reader that had stopped comparing anything; without the third, on one that
- * called every region short.
- */
-/** A region with nothing wrong with it, so a sample states only what it is changing. */
-const NOTHING_DRAWN: RegionDrawn = {
-    promised: 0,
-    drawn: 0,
-    failures: 0,
-    saidByKey: new Map(),
-    figures: [],
-    widths: [],
-    places: [],
-};
 
 Deno.test("a region shorter than what it drew is read as short, and a whole one is not", () => {
     const whole = { ...NOTHING_DRAWN, promised: 22, drawn: 22 };

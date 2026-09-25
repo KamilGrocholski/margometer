@@ -98,6 +98,26 @@ function guard<Value>(
     return fallback;
 }
 
+/**
+ * The warriors the battle holds. A battle holding none is a reading of an empty fight, `[]`, as
+ * `develop` records it; a snapshot that could not be read is `null`, and a defect.
+ */
+function readSnapshot(live: LiveFight, options: LiveFightOptions): WarriorSnapshot | null {
+    if (live.battle === null) {
+        const battle = options.engine.readBattle();
+        if (!battle.ok) {
+            options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: battle.error });
+            return null;
+        }
+        live.battle = battle.value;
+    }
+    const read = live.battle.readWarriors();
+    if (read.ok) return read.value;
+    if (read.error.kind === WARRIOR_FAILURE.warriorsAbsent) return [];
+    options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: read.error });
+    return null;
+}
+
 function readPayload(live: LiveFight, options: LiveFightOptions, payload: unknown): void {
     const record = guard(options, DEFECT_KIND.reading, null, () => {
         const read = readPayloadEnvelope(payload);
@@ -141,30 +161,22 @@ function commitRecord(
     return commitPayload(live.session, prepared.value);
 }
 
-/**
- * The warriors the battle holds. A battle holding none is a reading of an empty fight, `[]`, as
- * `develop` records it; a snapshot that could not be read is `null`, and a defect.
- */
-function readSnapshot(live: LiveFight, options: LiveFightOptions): WarriorSnapshot | null {
-    if (live.battle === null) {
-        const battle = options.engine.readBattle();
-        if (!battle.ok) {
-            options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: battle.error });
-            return null;
-        }
-        live.battle = battle.value;
-    }
-    const read = live.battle.readWarriors();
-    if (read.ok) return read.value;
-    if (read.error.kind === WARRIOR_FAILURE.warriorsAbsent) return [];
-    options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: read.error });
-    return null;
-}
-
 function openFight(live: LiveFight, options: LiveFightOptions): void {
     live.openedAt = options.clock.readNowMilliseconds();
     live.place = readPageValue(options, options.place.readPlace());
     options.onFightOpened();
+}
+
+/** Absent is shown as unknown and is no defect; a page that threw while asked is one. */
+function readPageValue<Value>(
+    options: LiveFightOptions,
+    read: Result<Value, PageReadFailure>,
+): Value | null {
+    if (read.ok) return read.value;
+    if (read.error.kind !== PAGE_READ_FAILURE.absent) {
+        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read.error });
+    }
+    return null;
 }
 
 /** Once, on the call that ends it: a fight put on the shelf twice is two fights. */
@@ -178,16 +190,4 @@ function keepClosedFight(live: LiveFight, options: LiveFightOptions): void {
         isPinned: false,
     };
     options.keepFight(fight);
-}
-
-/** Absent is shown as unknown and is no defect; a page that threw while asked is one. */
-function readPageValue<Value>(
-    options: LiveFightOptions,
-    read: Result<Value, PageReadFailure>,
-): Value | null {
-    if (read.ok) return read.value;
-    if (read.error.kind !== PAGE_READ_FAILURE.absent) {
-        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read.error });
-    }
-    return null;
 }

@@ -25,9 +25,6 @@ import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "./turn-
 export const AURA_REACH = { ...KEY_REACH, bothSides: "both-sides" } as const;
 export type AuraReach = VocabularyWord<typeof AURA_REACH>;
 
-/** Past every cast the corpus holds in one fight, so the walk carries a stated maximum. */
-export const STANDINGS_MAXIMUM = 256;
-
 /** What the table states about one shout: its wire value is a name, its table value a count. */
 export interface ShoutStated {
     turns: number;
@@ -118,6 +115,9 @@ interface AuraWalk {
     byProvoked: Map<number, HeldByShout>;
     turnsByCombatantId: Map<number, number>;
 }
+
+/** Past every cast the corpus holds in one fight, so the walk carries a stated maximum. */
+export const STANDINGS_MAXIMUM = 256;
 
 /**
  * What the keys on one cast say it reaches. ⚠️ **Keys that disagree are a skill reaching both

@@ -13,10 +13,6 @@ import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 const WHOLE = { id: 1, name: "Gracz 1", team: 2, prof: "w", lvl: 40, hp: { max: 745 } };
 
-function readOne(entry: unknown) {
-    return readWarriorEntries([entry]).combatants[0] ?? null;
-}
-
 Deno.test("a warrior missing what a row needs is passed over, not filled in", () => {
     assertEquals(readOne(WHOLE)?.healthMaximum, 745, "a whole warrior reads");
     assertEquals(readOne({ ...WHOLE, team: undefined }), null, "no side, no row");
@@ -29,6 +25,10 @@ Deno.test("a warrior missing what a row needs is passed over, not filled in", ()
     assertEquals(bare?.level, null, "rather than standing in as a zero");
     assertEquals(bare?.profession, null, "and a profession nobody stated is none");
 });
+
+function readOne(entry: unknown) {
+    return readWarriorEntries([entry]).combatants[0] ?? null;
+}
 
 Deno.test("a cast is a cast, keyed by id or listed in order", () => {
     const keyed = readPayloadEnvelope({ w: { "1": WHOLE } });
@@ -61,12 +61,6 @@ Deno.test("a pool of nothing is a pool nobody stated, never an assertion", () =>
     assertEquals(readOne({ ...WHOLE, hp: { max: 1 } })?.healthMaximum, 1, "and one is a pool");
 });
 
-/** A payload's own entry for one combatant, in the shape every recording carries. */
-function readMasks(health: unknown, mask: unknown): [number, number][] {
-    const entry = { id: 11, name: "Gracz 1", team: 1, hp: health, buffs: mask };
-    return [...readWarriorEntries([entry]).statusMasksByCombatantId];
-}
-
 /**
  * ⚠️ **A combatant who has fallen carries nothing, whatever their mask still says.** The payload
  * goes on stating one (44 entries of 113 at zero health carry a lit mask over `develop:captures/`,
@@ -75,6 +69,12 @@ function readMasks(health: unknown, mask: unknown): [number, number][] {
 Deno.test("a combatant at nothing carries nothing, whatever their mask states", () => {
     assertEquals(readMasks({ cur: 0, max: 500 }, 64), [[11, 0]], "clear rather than lit");
 });
+
+/** A payload's own entry for one combatant, in the shape every recording carries. */
+function readMasks(health: unknown, mask: unknown): [number, number][] {
+    const entry = { id: 11, name: "Gracz 1", team: 1, hp: health, buffs: mask };
+    return [...readWarriorEntries([entry]).statusMasksByCombatantId];
+}
 
 /** W5: zero is a boundary. One point left is somebody standing, and they keep what they hold. */
 Deno.test("a combatant on their last point is standing, and keeps what they carry", () => {
@@ -93,13 +93,6 @@ Deno.test("a mask that is no whole count of bits is no mask", () => {
     assertEquals(readMasks(undefined, 0), [[11, 0]], "while nothing lit is a mask");
 });
 
-function readCharge(stated: unknown) {
-    const entry = { id: 5, super_cast: stated };
-    const [statement] = readWarriorEntries([entry]).chargeStatements;
-    assert(statement !== undefined, "every entry with an id states a charge or none");
-    return statement;
-}
-
 Deno.test("a charge is read in full, or as none", () => {
     const full = { name: "Cios", turn: 1, total_turns: 3 };
     assertEquals(readCharge(full), {
@@ -115,6 +108,13 @@ Deno.test("a charge is read in full, or as none", () => {
     assertEquals(readCharge({ ...full, turn: 3 }).charge?.turnsElapsed, 3, "the whole is not");
     assertEquals(readCharge({ ...full, turn: 0 }).charge?.turnsElapsed, 0, "nor is none elapsed");
 });
+
+function readCharge(stated: unknown) {
+    const entry = { id: 5, super_cast: stated };
+    const [statement] = readWarriorEntries([entry]).chargeStatements;
+    assert(statement !== undefined, "every entry with an id states a charge or none");
+    return statement;
+}
 
 Deno.test("an entry naming nobody by id states nothing about anybody", () => {
     const nameless = { name: "Gracz 1", team: 1, buffs: 4, super_cast: { name: "Cios" } };

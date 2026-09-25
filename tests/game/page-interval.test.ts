@@ -20,6 +20,19 @@ interface Wound {
     cleared: number[];
 }
 
+Deno.test("a step runs when the timer fires, and a cancel hands back the page's own handle", () => {
+    const wound = composeTimers();
+    let ran = 0;
+    const started = initPageInterval(wound.timers).every(() => void (ran += 1), 250, () => {});
+    assert(started.ok, "the timer took the step");
+    assertEquals(wound.started, [250], "at the interval asked for");
+    wound.fire();
+    wound.fire();
+    assertStrictEquals(ran, 2, "and it runs each time the timer fires");
+    assert(started.value.cancel().ok, "the cancel is answered");
+    assertEquals(wound.cleared, [41], "with the handle the page gave");
+});
+
 /** A clock the test winds by hand: the step it holds runs only when `fire` is called. */
 function composeTimers(): Wound {
     let held: (() => void) | null = null;
@@ -42,19 +55,6 @@ function composeTimers(): Wound {
         },
     };
 }
-
-Deno.test("a step runs when the timer fires, and a cancel hands back the page's own handle", () => {
-    const wound = composeTimers();
-    let ran = 0;
-    const started = initPageInterval(wound.timers).every(() => void (ran += 1), 250, () => {});
-    assert(started.ok, "the timer took the step");
-    assertEquals(wound.started, [250], "at the interval asked for");
-    wound.fire();
-    wound.fire();
-    assertStrictEquals(ran, 2, "and it runs each time the timer fires");
-    assert(started.value.cancel().ok, "the cancel is answered");
-    assertEquals(wound.cleared, [41], "with the handle the page gave");
-});
 
 Deno.test("a step that throws is handed over as a failure and never reaches the timer", () => {
     const wound = composeTimers();

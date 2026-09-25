@@ -113,31 +113,30 @@ const BLOCKED = [
 ];
 
 /**
- * The panel's own cross-check, over the material rather than over one fight.
+ * Kinds the recordings state that **no source names**, and which therefore reach a reader as the
+ * game's own token. One place rather than the same reason wherever somebody trips over it.
  *
- * `hasFiguresDisagreed` is raised where a side's total and the whole come out different, which is a
- * drawn figure that is **wrong** rather than short — the entry turns it into a defect a reader sees
- * (`develop ADR 0051`). It was proved reachable on one hand-built fight and false on one recording;
- * nothing asked the corpus. Measured 2026-09-11: 360 readings, thirty recordings against four
- * screens and three side choices, and not one of them contradicts itself.
+ * ⚠️ **This register is why the guard below is not "every kind has a word".** That is what it used
+ * to say, and a rule demanding a word for every kind, in a repository whose rule is that a guessed
+ * name is a claim about the protocol, produces exactly one thing: a guessed name. `globalne` was
+ * it — `dmgg` is real and drawn, and no source has ever named it, so somebody made a word up to
+ * get this green. `develop ADR 0073`.
+ *
+ * `dmgg` reaches the panel through `+oth_dmg`'s middle member, which the client appends to `dmg`
+ * to build a class attribute, and the corpus produces it from one skill only — `Śpiew zagłady`,
+ * which article view,372 does not carry and the frozen skill table does not hold (read
+ * 2026-09-10). An entry leaves here the day a source names it.
  */
-/** Each payload's messages decoded against a roster, as the session hands the decoder a payload. */
-function decodeFightMessages(
-    messages: readonly string[],
-    roster: CombatantRoster,
-    tables: typeof BLOWS_GRANTED,
-): readonly BattleEvent[] {
-    return decodePayloadMessages(messages, { roster, standing: null, tables }).events;
-}
+const UNNAMED_KINDS: readonly string[] = ["dmgg"];
 
-/** Every recording, tallied, under the name of the file it came from. */
-function tallyEveryRecording() {
-    const replays = readRecordedFights().map((fight) => ({
-        name: fight.path,
-        ...tallyRecordedFight(fight.path),
-    }));
-    return { replays };
-}
+/** Two people, one apiece, so a side can be charged with something or with nothing. */
+const TWO_SIDES = indexCombatantRoster([
+    { id: 1, name: "Gracz 1", side: 1, profession: "t", level: 100, healthMaximum: 5000 },
+    { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 100, healthMaximum: 5000 },
+]);
+
+/** One name past the bound, so the sum is one and the arithmetic is checkable by eye. */
+const NAMES_PAST_THE_BOUND = SKILLS_MAXIMUM + 1;
 
 /**
  * `develop ADR 0055`: a bound that drops a part makes the panel lie. The cut by kind is asserted
@@ -182,6 +181,15 @@ Deno.test("the kinds a row is cut into come to the figure, on every recording", 
     assert(opened > 0, "some row was cut by kind");
     assertEquals(short, [], "a kind counted and not drawn is a panel that lies");
 });
+
+/** Every recording, tallied, under the name of the file it came from. */
+function tallyEveryRecording() {
+    const replays = readRecordedFights().map((fight) => ({
+        name: fight.path,
+        ...tallyRecordedFight(fight.path),
+    }));
+    return { replays };
+}
 
 /**
  * The seam the two layers on either side of it each pass alone: the card is handed the witness and
@@ -435,6 +443,24 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
     }
 });
 
+/**
+ * The panel's own cross-check, over the material rather than over one fight.
+ *
+ * `hasFiguresDisagreed` is raised where a side's total and the whole come out different, which is a
+ * drawn figure that is **wrong** rather than short — the entry turns it into a defect a reader sees
+ * (`develop ADR 0051`). It was proved reachable on one hand-built fight and false on one recording;
+ * nothing asked the corpus. Measured 2026-09-11: 360 readings, thirty recordings against four
+ * screens and three side choices, and not one of them contradicts itself.
+ */
+/** Each payload's messages decoded against a roster, as the session hands the decoder a payload. */
+function decodeFightMessages(
+    messages: readonly string[],
+    roster: CombatantRoster,
+    tables: typeof BLOWS_GRANTED,
+): readonly BattleEvent[] {
+    return decodePayloadMessages(messages, { roster, standing: null, tables }).events;
+}
+
 Deno.test("a cast nobody could place shortens the healing, and says so only there", () => {
     const { roster, statistics } = tallyRecordedFight(HILDUR);
     // The same fight with none of its casts sized, which is how a cast nobody could place reaches
@@ -597,23 +623,6 @@ Deno.test("the same figure is cut a second time, by the kind of damage each blow
         assert(above.figure >= row.figure, "the larger kind is drawn first");
     }
 });
-
-/**
- * Kinds the recordings state that **no source names**, and which therefore reach a reader as the
- * game's own token. One place rather than the same reason wherever somebody trips over it.
- *
- * ⚠️ **This register is why the guard below is not "every kind has a word".** That is what it used
- * to say, and a rule demanding a word for every kind, in a repository whose rule is that a guessed
- * name is a claim about the protocol, produces exactly one thing: a guessed name. `globalne` was
- * it — `dmgg` is real and drawn, and no source has ever named it, so somebody made a word up to
- * get this green. `develop ADR 0073`.
- *
- * `dmgg` reaches the panel through `+oth_dmg`'s middle member, which the client appends to `dmg`
- * to build a class attribute, and the corpus produces it from one skill only — `Śpiew zagłady`,
- * which article view,372 does not carry and the frozen skill table does not hold (read
- * 2026-09-10). An entry leaves here the day a source names it.
- */
-const UNNAMED_KINDS: readonly string[] = ["dmgg"];
 
 Deno.test("every kind is worded from a source, or registered as one nobody names", () => {
     const kinds = new Set<string>();
@@ -967,60 +976,6 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
     }
 });
 
-/**
- * The invariant the level exists to keep: a pinned row is the sum of what stands under it — **of
- * each of its two sections separately**, which is what makes them two cuts of one number rather
- * than two numbers. The people and the kinds are folded from one walk in `src/ui/panel-reading.ts`,
- * so this holds that walk to the figure the row draws beside it, over every recording, every screen
- * and every choice of side. `develop ADR 0038`, `develop ADR 0039`.
- */
-/**
- * And the level under each row of it. Both shapes come off one fold, so what is checked here is
- * that neither reading of it loses a point: a person's keys total their own figure, a key's people
- * total the key's — the part naming neither end among them, because the row above counted it in.
- */
-function assertHalfNamedCutTotals(
-    statistics: FightStatistics,
-    roster: CombatantRoster,
-    held: HalfNamedReading,
-    choice: PanelSideChoice,
-    readerSide: number | null,
-): void {
-    const open = (opened: HalfNamedOpened) =>
-        presentHalfNamedDrill(statistics, roster, held.case, choice, readerSide, opened);
-    for (const person of held.rows) {
-        const under = open({ kind: HALF_NAMED_OPENED.person, combatantId: person.combatantId });
-        assertExists(under, `${held.case}: a person on the level opens`);
-        assertStrictEquals(
-            under.opened,
-            HALF_NAMED_OPENED.person,
-            "onto what their own share was dealt with",
-        );
-        assertEquals(under.total, person.figure, "at their own figure and no other");
-        const dealt = under.kinds.rows.reduce((sum, one) => sum + one.figure, 0);
-        assertEquals(dealt, person.figure, "which its keys come to exactly");
-        assertEquals(under.kinds.unnamed, null, "with nothing of it outside a key");
-    }
-    for (const kind of held.kinds.rows) {
-        const under = open({ kind: HALF_NAMED_OPENED.element, element: kind.element });
-        assertEquals(
-            under !== null,
-            kind.doesOpenPart,
-            `${kind.element}: opens where a row holds it`,
-        );
-        if (under === null) continue;
-        assertStrictEquals(
-            under.opened,
-            HALF_NAMED_OPENED.element,
-            "a key opens onto whoever carries it",
-        );
-        assertEquals(under.total, kind.figure, "at the key's own figure");
-        const carried = under.rows.reduce((sum, one) => sum + one.figure, 0) +
-            (under.neither?.figure ?? 0);
-        assertEquals(carried, kind.figure, "which its people come to exactly");
-    }
-}
-
 Deno.test("a pinned row is the whole of what stands under it, on every list", () => {
     let opened = 0;
     let people = 0;
@@ -1081,6 +1036,60 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
     assert(people > 0, "and somebody stands under them");
     assert(kinds > 0, "and the material says what each was dealt with");
 });
+
+/**
+ * The invariant the level exists to keep: a pinned row is the sum of what stands under it — **of
+ * each of its two sections separately**, which is what makes them two cuts of one number rather
+ * than two numbers. The people and the kinds are folded from one walk in `src/ui/panel-reading.ts`,
+ * so this holds that walk to the figure the row draws beside it, over every recording, every screen
+ * and every choice of side. `develop ADR 0038`, `develop ADR 0039`.
+ */
+/**
+ * And the level under each row of it. Both shapes come off one fold, so what is checked here is
+ * that neither reading of it loses a point: a person's keys total their own figure, a key's people
+ * total the key's — the part naming neither end among them, because the row above counted it in.
+ */
+function assertHalfNamedCutTotals(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    held: HalfNamedReading,
+    choice: PanelSideChoice,
+    readerSide: number | null,
+): void {
+    const open = (opened: HalfNamedOpened) =>
+        presentHalfNamedDrill(statistics, roster, held.case, choice, readerSide, opened);
+    for (const person of held.rows) {
+        const under = open({ kind: HALF_NAMED_OPENED.person, combatantId: person.combatantId });
+        assertExists(under, `${held.case}: a person on the level opens`);
+        assertStrictEquals(
+            under.opened,
+            HALF_NAMED_OPENED.person,
+            "onto what their own share was dealt with",
+        );
+        assertEquals(under.total, person.figure, "at their own figure and no other");
+        const dealt = under.kinds.rows.reduce((sum, one) => sum + one.figure, 0);
+        assertEquals(dealt, person.figure, "which its keys come to exactly");
+        assertEquals(under.kinds.unnamed, null, "with nothing of it outside a key");
+    }
+    for (const kind of held.kinds.rows) {
+        const under = open({ kind: HALF_NAMED_OPENED.element, element: kind.element });
+        assertEquals(
+            under !== null,
+            kind.doesOpenPart,
+            `${kind.element}: opens where a row holds it`,
+        );
+        if (under === null) continue;
+        assertStrictEquals(
+            under.opened,
+            HALF_NAMED_OPENED.element,
+            "a key opens onto whoever carries it",
+        );
+        assertEquals(under.total, kind.figure, "at the key's own figure");
+        const carried = under.rows.reduce((sum, one) => sum + one.figure, 0) +
+            (under.neither?.figure ?? 0);
+        assertEquals(carried, kind.figure, "which its people come to exactly");
+    }
+}
 
 /**
  * The end the game did name, and it is the **other** end from the one the row is named for: a
@@ -1412,12 +1421,6 @@ Deno.test("what one side dealt with no striker named is what the other took from
     assertEquals(seats, 70, "every seat of the corpus reads the mirror");
     assertEquals(together, 663314, "and this is what it comes to over all of them");
 });
-
-/** Two people, one apiece, so a side can be charged with something or with nothing. */
-const TWO_SIDES = indexCombatantRoster([
-    { id: 1, name: "Gracz 1", side: 1, profession: "t", level: 100, healthMaximum: 5000 },
-    { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 100, healthMaximum: 5000 },
-]);
 
 /**
  * Zero at the boundary, and one beside it: a side charged with a single point says so, and the
@@ -2169,29 +2172,6 @@ Deno.test("a healing pair opens whatever its level holds, one key included", () 
     assert(keys > 0, "and some of those name a key, which is the row this level was opened for");
 });
 
-/**
- * A shape the recordings do not carry, held by a fight built by hand.
- *
- * Measured over `develop:captures/` on 2026-08-29: one announced heal restores anything at all, and
- * it restores it to the combatant who announced it. So an announcement reaching somebody **else**
- * is written out here rather than waiting for a recording of it.
- */
-/** The movement an announcement put behind it, aimed wherever the case being written needs it. */
-function composeAnnouncedHeal(
-    announced: { skillName: string; skillId: number; actorId: number },
-    combatantId: number,
-): BattleEvent {
-    return {
-        kind: "health-change",
-        combatantId,
-        amount: 500,
-        healthPercent: null,
-        source: "heal_target",
-        declared: [],
-        announced,
-    };
-}
-
 Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announced it", () => {
     const { roster } = tallyRecordedFight(HILDUR);
     const [healer, healed] = [...roster.byId.keys()];
@@ -2242,6 +2222,29 @@ Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announce
     assertEquals(cast.byOpponent.rows.length, 1, "onto the one person it reached");
     assertEquals(cast.byOpponent.rows[0]?.combatantId, healer, "who is the one who announced it");
 });
+
+/**
+ * A shape the recordings do not carry, held by a fight built by hand.
+ *
+ * Measured over `develop:captures/` on 2026-08-29: one announced heal restores anything at all, and
+ * it restores it to the combatant who announced it. So an announcement reaching somebody **else**
+ * is written out here rather than waiting for a recording of it.
+ */
+/** The movement an announcement put behind it, aimed wherever the case being written needs it. */
+function composeAnnouncedHeal(
+    announced: { skillName: string; skillId: number; actorId: number },
+    combatantId: number,
+): BattleEvent {
+    return {
+        kind: "health-change",
+        combatantId,
+        amount: 500,
+        healthPercent: null,
+        source: "heal_target",
+        declared: [],
+        announced,
+    };
+}
 
 /**
  * Another shape the recordings do not carry: over `develop:captures/` on 2026-08-31 no kind of
@@ -2702,9 +2705,6 @@ Deno.test("a section past its own bound sums what is left, and never calls it un
         "the rows and the sum under them come to the figure over them",
     );
 });
-
-/** One name past the bound, so the sum is one and the arithmetic is checkable by eye. */
-const NAMES_PAST_THE_BOUND = SKILLS_MAXIMUM + 1;
 
 /**
  * A fight in which one combatant was reached by many announcements, each for a point. Built here

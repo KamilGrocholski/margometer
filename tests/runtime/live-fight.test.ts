@@ -28,13 +28,71 @@ import {
     replayRecordedFight,
 } from "#/tests/recorded-fights.ts";
 
-const PLACE = { mapName: "Mapa", x: 12, y: 34 };
-const OPENED_AT = 1000;
-
 interface FakeGame {
     page: { Engine: { battle: Record<string, unknown> } };
     /** The warriors the engine's own call leaves behind it, one list per call. */
     after: readonly WarriorSnapshot[];
+}
+
+const PLACE = { mapName: "Mapa", x: 12, y: 34 };
+const OPENED_AT = 1000;
+
+/** A clock standing at one moment, which is the moment every fight here opens at. */
+const STILL_CLOCK = {
+    readNowMilliseconds: () => OPENED_AT,
+    readMoment: () => null,
+    readTimestampText: () => ok("2026-09-25T10:00:00.000Z"),
+};
+
+Deno.test("every recording played through the wrap is the fight, the file and the shelf", () => {
+    let fights = 0;
+    for (const fight of readRecordedFights()) {
+        const after = readRecordedAfter(fight);
+        const game = composeGame(after);
+        const { options, lines, stale, keeper, opened } = composeOptions(game);
+        const { live } = playInto(game, options, fight.updates);
+        const view = getFightView(live.session);
+        const expected = getFightView(replayRecordedFight(fight));
+        assertEquals(view, expected, `${fight.path}: the session is the fight`);
+        let capture = NO_CAPTURE;
+        // The fight is kept on the call that ends it, so the shelf holds the calls up to that one.
+        let keptCalls: unknown[] | null = null;
+        fight.updates.forEach((payload, at) => {
+            const record = readPayloadEnvelope(payload);
+            assert(record.ok, `${fight.path}: a recorded call reads`);
+            const combatantsBefore = at === 0 ? [] : after[at - 1] ?? [];
+            const call = { payload, messages: record.value.messages, combatantsBefore };
+            capture = prepareCapture(
+                capture,
+                { ...call, combatantsAfter: after[at] ?? [] },
+                record.value.isInit,
+            );
+            if (record.value.isEnd) keptCalls ??= capture.calls.map((one) => one.payload);
+        });
+        assertEquals(live.capture, capture, `${fight.path}: the file holds what was captured`);
+        assertStrictEquals(keeper.getFights().length, 1, `${fight.path}: the fight is kept once`);
+        const kept = keeper.getFights()[0];
+        assertExists(kept, `${fight.path}: and stands on the shelf`);
+        assertEquals(kept.payloads, keptCalls, `${fight.path}: its calls, up to the end`);
+        assertEquals([kept.openedAt, kept.place, kept.gameBuild], [OPENED_AT, PLACE, "Bb28FQty"]);
+        assertEquals(lines, [], `${fight.path}: and nothing went wrong on the way`);
+        assertStrictEquals(stale.count, fight.updates.length, "each call asks for a frame");
+        assertStrictEquals(opened.count, 1, `${fight.path}: and the fight opened once`);
+        fights += 1;
+    }
+    assert(fights > 0, "the recordings were there to play");
+});
+
+/** The recording's own snapshots after each call, which the fake engine moves its warriors to. */
+function readRecordedAfter(fight: RecordedFight): WarriorSnapshot[] {
+    const text = new Deno.Command("git", {
+        args: ["show", `fa1dcce:${fight.path}`],
+        stdout: "piped",
+    }).outputSync().stdout;
+    const document = JSON.parse(new TextDecoder().decode(text));
+    return document.calls.map((call: { combatantsAfter?: WarriorSnapshot | null }) =>
+        call.combatantsAfter ?? []
+    );
 }
 
 /** A battle whose own call moves its warriors to what the recording says it left. */
@@ -49,13 +107,6 @@ function composeGame(after: readonly WarriorSnapshot[]): FakeGame {
     };
     return { page: { Engine: { battle } }, after };
 }
-
-/** A clock standing at one moment, which is the moment every fight here opens at. */
-const STILL_CLOCK = {
-    readNowMilliseconds: () => OPENED_AT,
-    readMoment: () => null,
-    readTimestampText: () => ok("2026-09-25T10:00:00.000Z"),
-};
 
 function composeOptions(
     game: FakeGame,
@@ -107,57 +158,6 @@ function playInto(game: FakeGame, options: LiveFightOptions, payloads: readonly 
     for (const payload of payloads) Reflect.apply(updateData, game.page.Engine.battle, [payload]);
     return { live, wrapped: wrapped.value };
 }
-
-/** The recording's own snapshots after each call, which the fake engine moves its warriors to. */
-function readRecordedAfter(fight: RecordedFight): WarriorSnapshot[] {
-    const text = new Deno.Command("git", {
-        args: ["show", `fa1dcce:${fight.path}`],
-        stdout: "piped",
-    }).outputSync().stdout;
-    const document = JSON.parse(new TextDecoder().decode(text));
-    return document.calls.map((call: { combatantsAfter?: WarriorSnapshot | null }) =>
-        call.combatantsAfter ?? []
-    );
-}
-
-Deno.test("every recording played through the wrap is the fight, the file and the shelf", () => {
-    let fights = 0;
-    for (const fight of readRecordedFights()) {
-        const after = readRecordedAfter(fight);
-        const game = composeGame(after);
-        const { options, lines, stale, keeper, opened } = composeOptions(game);
-        const { live } = playInto(game, options, fight.updates);
-        const view = getFightView(live.session);
-        const expected = getFightView(replayRecordedFight(fight));
-        assertEquals(view, expected, `${fight.path}: the session is the fight`);
-        let capture = NO_CAPTURE;
-        // The fight is kept on the call that ends it, so the shelf holds the calls up to that one.
-        let keptCalls: unknown[] | null = null;
-        fight.updates.forEach((payload, at) => {
-            const record = readPayloadEnvelope(payload);
-            assert(record.ok, `${fight.path}: a recorded call reads`);
-            const combatantsBefore = at === 0 ? [] : after[at - 1] ?? [];
-            const call = { payload, messages: record.value.messages, combatantsBefore };
-            capture = prepareCapture(
-                capture,
-                { ...call, combatantsAfter: after[at] ?? [] },
-                record.value.isInit,
-            );
-            if (record.value.isEnd) keptCalls ??= capture.calls.map((one) => one.payload);
-        });
-        assertEquals(live.capture, capture, `${fight.path}: the file holds what was captured`);
-        assertStrictEquals(keeper.getFights().length, 1, `${fight.path}: the fight is kept once`);
-        const kept = keeper.getFights()[0];
-        assertExists(kept, `${fight.path}: and stands on the shelf`);
-        assertEquals(kept.payloads, keptCalls, `${fight.path}: its calls, up to the end`);
-        assertEquals([kept.openedAt, kept.place, kept.gameBuild], [OPENED_AT, PLACE, "Bb28FQty"]);
-        assertEquals(lines, [], `${fight.path}: and nothing went wrong on the way`);
-        assertStrictEquals(stale.count, fight.updates.length, "each call asks for a frame");
-        assertStrictEquals(opened.count, 1, `${fight.path}: and the fight opened once`);
-        fights += 1;
-    }
-    assert(fights > 0, "the recordings were there to play");
-});
 
 Deno.test("a call the envelope refuses is a defect, and the file still keeps the call", () => {
     const game = composeGame([[], []]);

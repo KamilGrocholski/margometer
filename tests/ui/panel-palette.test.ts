@@ -43,30 +43,6 @@ Deno.test("a profession wears the hue develop drew it in", () => {
     );
 });
 
-/** Every letter the panel gives a hue to, asked of the palette rather than listed a second time. */
-function getColouredProfessions(): string[] {
-    const found: string[] = [];
-    for (const letter of ALPHABET) {
-        if (lookupColourForProfession(letter) !== SIGNAL.unknown) found.push(letter);
-    }
-    return found;
-}
-
-/** Which letters one side of the pairing holds and the other does not, in either direction. */
-function getUnpairedProfessions(
-    worded: ReadonlyMap<string, string>,
-    coloured: readonly string[],
-): string[] {
-    const found: string[] = [];
-    for (const code of coloured) {
-        if (!worded.has(code)) found.push(code);
-    }
-    for (const code of worded.keys()) {
-        if (!coloured.includes(code)) found.push(code);
-    }
-    return found.sort();
-}
-
 Deno.test("a profession the panel colours is one it can name, and the other way round", () => {
     // N13: the game's own letters are spelled in two files, so the failure is quiet — a card
     // reading `b` where the bar beside it is drawn, or a hue nobody can say the name of.
@@ -97,6 +73,30 @@ Deno.test("a profession the panel colours is one it can name, and the other way 
         "a letter both sides hold is paired",
     );
 });
+
+/** Every letter the panel gives a hue to, asked of the palette rather than listed a second time. */
+function getColouredProfessions(): string[] {
+    const found: string[] = [];
+    for (const letter of ALPHABET) {
+        if (lookupColourForProfession(letter) !== SIGNAL.unknown) found.push(letter);
+    }
+    return found;
+}
+
+/** Which letters one side of the pairing holds and the other does not, in either direction. */
+function getUnpairedProfessions(
+    worded: ReadonlyMap<string, string>,
+    coloured: readonly string[],
+): string[] {
+    const found: string[] = [];
+    for (const code of coloured) {
+        if (!worded.has(code)) found.push(code);
+    }
+    for (const code of worded.keys()) {
+        if (!coloured.includes(code)) found.push(code);
+    }
+    return found.sort();
+}
 
 Deno.test("a profession the table does not word travels as the game wrote it", () => {
     assertEquals(getWordsForProfession("p"), "Paladyn", "a letter the table holds is worded");

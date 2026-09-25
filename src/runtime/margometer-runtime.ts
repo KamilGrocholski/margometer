@@ -109,6 +109,13 @@ interface RuntimeState {
     isStoodDown: boolean;
 }
 
+interface RuntimeParts {
+    defects: DefectLedger;
+    keeper: ShelfKeeper;
+    screen: ScreenState;
+    translate: TranslateLabel;
+}
+
 export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runtime {
     assert(options.version.length > 0, "a runtime names the build it runs");
     const statusBits = options.tables.tooltip.statusBits.length;
@@ -146,11 +153,19 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
     };
 }
 
-interface RuntimeParts {
-    defects: DefectLedger;
-    keeper: ShelfKeeper;
-    screen: ScreenState;
-    translate: TranslateLabel;
+/** A value the reader stored that does not read back costs that value, and says so. */
+function readRuntimeSetting<Value>(
+    defects: DefectLedger,
+    read: Result<Value, SettingFailure>,
+    fallback: Value,
+): Value {
+    if (read.ok) return read.value;
+    defects.add({ kind: DEFECT_KIND.kept, region: null, failure: read.error });
+    return fallback;
+}
+
+function readRuntimeFold(ports: RuntimePorts, defects: DefectLedger, window: PanelWindow): boolean {
+    return readRuntimeSetting(defects, readWindowFold(ports.settings, window), false);
 }
 
 function initRuntimeState(
@@ -211,74 +226,6 @@ function initRuntimeState(
     return state;
 }
 
-/** A value the reader stored that does not read back costs that value, and says so. */
-function readRuntimeSetting<Value>(
-    defects: DefectLedger,
-    read: Result<Value, SettingFailure>,
-    fallback: Value,
-): Value {
-    if (read.ok) return read.value;
-    defects.add({ kind: DEFECT_KIND.kept, region: null, failure: read.error });
-    return fallback;
-}
-
-function readRuntimeFold(ports: RuntimePorts, defects: DefectLedger, window: PanelWindow): boolean {
-    return readRuntimeSetting(defects, readWindowFold(ports.settings, window), false);
-}
-
-function readRuntimePlacement(
-    ports: RuntimePorts,
-    defects: DefectLedger,
-    window: PanelWindow,
-): PanelPlacement {
-    const position = readRuntimeSetting(defects, readWindowPosition(ports.settings, window), null);
-    if (position !== null) {
-        assert(Number.isSafeInteger(position.left), "a window is put back at a whole column");
-        assert(Number.isSafeInteger(position.top), "and a whole row");
-    }
-    return { position, readViewport: ports.readViewport };
-}
-
-function addViewFailure(defects: DefectLedger, failure: ViewFailure): void {
-    switch (failure.kind) {
-        case VIEW_FAILURE.regionUndrawn:
-            defects.add({ kind: DEFECT_KIND.region, region: failure.region, failure });
-            return;
-        case VIEW_FAILURE.gestureDropped:
-            defects.add({ kind: DEFECT_KIND.gesture, region: null, failure });
-            return;
-        case VIEW_FAILURE.windowUnplaced:
-            defects.add({ kind: DEFECT_KIND.mount, region: null, failure });
-            return;
-    }
-}
-
-function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
-    // A panel left on the page by a copy that was stopped answers no press.
-    if (state.isStoodDown) return;
-    const parts: IntentParts = {
-        ports: state.ports,
-        version: state.options.version,
-        screen: state.screen,
-        keeper: state.keeper,
-        live: state.live,
-        defects: state.defects,
-    };
-    if (executeRuntimeIntent(parts, intent)) markStale(state);
-}
-
-function failRuntimeSearch(state: RuntimeState, failure: EngineFailure): void {
-    assert(failure.kind !== ENGINE_FAILURE.anotherReader, "a copy that stands down shows nothing");
-    assert(state.wrap === null, "and one holding the game is not looking for it");
-    state.defects.add({ kind: DEFECT_KIND.engine, region: null, failure });
-    showRuntimePanel(state);
-}
-
-function showRuntimePanel(state: RuntimeState): void {
-    assert(!state.isStoodDown, "a copy that stood down puts no panel up");
-    markStale(state);
-}
-
 /**
  * The first mark asks for a frame; later marks before it arrives do nothing. A page that lends no
  * frame is drawn at once, as `develop` draws, and says so once.
@@ -327,6 +274,59 @@ function onRuntimeFrame(state: RuntimeState): void {
     if (mounted.ok) state.isMounted = true;
     else state.defects.add({ kind: DEFECT_KIND.mount, region: null, failure: mounted.error });
     assert(!state.isStale, "a frame asks for no second frame of its own");
+}
+
+function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
+    // A panel left on the page by a copy that was stopped answers no press.
+    if (state.isStoodDown) return;
+    const parts: IntentParts = {
+        ports: state.ports,
+        version: state.options.version,
+        screen: state.screen,
+        keeper: state.keeper,
+        live: state.live,
+        defects: state.defects,
+    };
+    if (executeRuntimeIntent(parts, intent)) markStale(state);
+}
+
+function addViewFailure(defects: DefectLedger, failure: ViewFailure): void {
+    switch (failure.kind) {
+        case VIEW_FAILURE.regionUndrawn:
+            defects.add({ kind: DEFECT_KIND.region, region: failure.region, failure });
+            return;
+        case VIEW_FAILURE.gestureDropped:
+            defects.add({ kind: DEFECT_KIND.gesture, region: null, failure });
+            return;
+        case VIEW_FAILURE.windowUnplaced:
+            defects.add({ kind: DEFECT_KIND.mount, region: null, failure });
+            return;
+    }
+}
+
+function readRuntimePlacement(
+    ports: RuntimePorts,
+    defects: DefectLedger,
+    window: PanelWindow,
+): PanelPlacement {
+    const position = readRuntimeSetting(defects, readWindowPosition(ports.settings, window), null);
+    if (position !== null) {
+        assert(Number.isSafeInteger(position.left), "a window is put back at a whole column");
+        assert(Number.isSafeInteger(position.top), "and a whole row");
+    }
+    return { position, readViewport: ports.readViewport };
+}
+
+function showRuntimePanel(state: RuntimeState): void {
+    assert(!state.isStoodDown, "a copy that stood down puts no panel up");
+    markStale(state);
+}
+
+function failRuntimeSearch(state: RuntimeState, failure: EngineFailure): void {
+    assert(failure.kind !== ENGINE_FAILURE.anotherReader, "a copy that stands down shows nothing");
+    assert(state.wrap === null, "and one holding the game is not looking for it");
+    state.defects.add({ kind: DEFECT_KIND.engine, region: null, failure });
+    showRuntimePanel(state);
 }
 
 function deinitRuntimeState(state: RuntimeState): Result<void, EngineFailure> {

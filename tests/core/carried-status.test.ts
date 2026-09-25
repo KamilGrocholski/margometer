@@ -19,30 +19,6 @@ const SPEED_UP = 6;
 const POISONED = 3;
 const SWOW_DOWN = 5;
 
-function composeBlow(actorId: number): BattleEvent {
-    return {
-        kind: BATTLE_EVENT.attack,
-        actorId,
-        targetId: 99,
-        actorHealthPercent: 100,
-        targetHealthPercent: 90,
-        raw: [{ element: "physical", amount: 10 }],
-        applied: [{ element: "physical", amount: 10 }],
-        prevented: [],
-        destroyed: [],
-        procs: [],
-        declared: [],
-        announced: null,
-    };
-}
-
-/** A mask with those bits lit, which is how the payload states one. */
-function composeMask(...bits: number[]): number {
-    let mask = 0;
-    for (const bit of bits) mask |= 1 << bit;
-    return mask;
-}
-
 Deno.test("a status states the turns its carrier took, and nobody else's", () => {
     let walk = NO_CARRIED_STATUS_WALK;
     walk = prepareCarriedStatuses(walk, [], new Map([[1, composeMask(SPEED_UP)], [2, 0]]));
@@ -63,6 +39,30 @@ Deno.test("a status states the turns its carrier took, and nobody else's", () =>
         "two turns of their own passed, and the blow of another combatant did not",
     );
 });
+
+/** A mask with those bits lit, which is how the payload states one. */
+function composeMask(...bits: number[]): number {
+    let mask = 0;
+    for (const bit of bits) mask |= 1 << bit;
+    return mask;
+}
+
+function composeBlow(actorId: number): BattleEvent {
+    return {
+        kind: BATTLE_EVENT.attack,
+        actorId,
+        targetId: 99,
+        actorHealthPercent: 100,
+        targetHealthPercent: 90,
+        raw: [{ element: "physical", amount: 10 }],
+        applied: [{ element: "physical", amount: 10 }],
+        prevented: [],
+        destroyed: [],
+        procs: [],
+        declared: [],
+        announced: null,
+    };
+}
 
 /**
  * ⚠️ The trap this walk exists to avoid: a cast landing on a status already standing refreshes
@@ -138,14 +138,6 @@ Deno.test("a mask with nothing lit carries nothing, which is a reading and not a
     assert(Array.isArray(found), "and the answer is a list rather than nothing at all");
 });
 
-function copyWalk(walk: CarriedStatusWalk) {
-    return {
-        standing: { ...walk.standing },
-        turns: [...walk.turnsByCombatantId],
-        held: [...walk.heldByCombatantId].map(([id, held]) => [id, [...held]]),
-    };
-}
-
 /** Preparing touches nothing, which is what lets a session drop a payload that failed halfway. */
 Deno.test("the walk handed in is left as it was, and the same input prepares the same walk", () => {
     const before = prepareCarriedStatuses(
@@ -162,6 +154,14 @@ Deno.test("the walk handed in is left as it was, and the same input prepares the
     assertEquals(copyWalk(before), kept, "and the walk it was prepared from is unchanged");
     assertEquals(copyWalk(NO_CARRIED_STATUS_WALK).turns, [], "as is the walk nothing started");
 });
+
+function copyWalk(walk: CarriedStatusWalk) {
+    return {
+        standing: { ...walk.standing },
+        turns: [...walk.turnsByCombatantId],
+        held: [...walk.heldByCombatantId].map(([id, held]) => [id, [...held]]),
+    };
+}
 
 /** A status gone is a key removed and never an empty entry, which the carrier bound counts. */
 Deno.test("a combatant whose mask lets everything go is no longer held at all", () => {

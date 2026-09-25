@@ -25,6 +25,34 @@ interface Told {
     wraps: WrapHandle[];
 }
 
+interface Clock {
+    timers: PageTimers;
+    tick: (times: number) => void;
+    starts: () => number;
+    cancels: () => number;
+}
+
+/**
+ * Four looks a second for a minute, as `docs/design.md` §10.1 states it: restated here on purpose,
+ * because every other case reads the bound off the module and would pass whatever it said.
+ */
+const LOOKS_STATED = 240;
+
+Deno.test("a game already on the page is wrapped at the first look, with no clock started", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { report, told } = composeReport();
+    const clock = composeClock();
+    const seen: unknown[] = [];
+    const search = start({ Engine: { battle } }, clock, report, seen);
+    assert(search.isDone(), "the search is over at the first look");
+    assertStrictEquals(told.wraps.length, 1, "the caller was told the reading had started");
+    assertStrictEquals(clock.starts(), 0, "and no timer was ever asked for");
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap left a function behind it");
+    update({ m: [] });
+    assertEquals(seen, [{ m: [] }], "and the payload reached the reader");
+});
+
 function composeReport(): { report: SearchReport; told: Told } {
     const told: Told = {
         payloads: [],
@@ -44,13 +72,6 @@ function composeReport(): { report: SearchReport; told: Told } {
             onLookFailed: (failure) => void told.failures.push(failure),
         },
     };
-}
-
-interface Clock {
-    timers: PageTimers;
-    tick: (times: number) => void;
-    starts: () => number;
-    cancels: () => number;
 }
 
 /** A clock the test winds by hand: nothing runs until `tick` is called. */
@@ -92,21 +113,6 @@ function start(
         report,
     );
 }
-
-Deno.test("a game already on the page is wrapped at the first look, with no clock started", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    const { report, told } = composeReport();
-    const clock = composeClock();
-    const seen: unknown[] = [];
-    const search = start({ Engine: { battle } }, clock, report, seen);
-    assert(search.isDone(), "the search is over at the first look");
-    assertStrictEquals(told.wraps.length, 1, "the caller was told the reading had started");
-    assertStrictEquals(clock.starts(), 0, "and no timer was ever asked for");
-    const update = battle.updateData;
-    assert(typeof update === "function", "the wrap left a function behind it");
-    update({ m: [] });
-    assertEquals(seen, [{ m: [] }], "and the payload reached the reader");
-});
 
 Deno.test("a game that arrives late is waited for, and the timer stops when it is found", () => {
     const page: Record<string, unknown> = {};
@@ -203,15 +209,6 @@ Deno.test("a method that arrives after a refusal is wrapped on the next look", (
     assertStrictEquals(told.wraps.length, 1, "and the method is wrapped once it is there");
 });
 
-/** A page tearing down throws out of its own `getEngine`, and it does so on every look. */
-function composeThrowingPage(): Record<string, unknown> {
-    return {
-        getEngine: (): unknown => {
-            throw new RangeError("a page being torn down");
-        },
-    };
-}
-
 Deno.test("a look that throws is marked once, and the search runs out where it would have", () => {
     const { report, told } = composeReport();
     const clock = composeClock();
@@ -222,6 +219,15 @@ Deno.test("a look that throws is marked once, and the search runs out where it w
     assertStrictEquals(told.abandoned.length, 1, "the search ended at its bound, and said so once");
     assertStrictEquals(told.wraps.length, 0, "and nothing was wrapped");
 });
+
+/** A page tearing down throws out of its own `getEngine`, and it does so on every look. */
+function composeThrowingPage(): Record<string, unknown> {
+    return {
+        getEngine: (): unknown => {
+            throw new RangeError("a page being torn down");
+        },
+    };
+}
 
 Deno.test("a look of ours that throws is marked once, and the timer never sees it", () => {
     const { report, told } = composeReport();
@@ -274,12 +280,6 @@ Deno.test("a search stopped from outside stops its timer, and looks no more", ()
     clock.tick(5);
     assertStrictEquals(told.wraps.length, 0, "so a game arriving later is not wrapped");
 });
-
-/**
- * Four looks a second for a minute, as `docs/design.md` §10.1 states it: restated here on purpose,
- * because every other case reads the bound off the module and would pass whatever it said.
- */
-const LOOKS_STATED = 240;
 
 Deno.test("the search gives up on the two hundred and fortieth look, as the design states", () => {
     const { report, told } = composeReport();

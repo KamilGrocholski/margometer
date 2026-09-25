@@ -29,6 +29,16 @@ type WarriorField =
     | "statuses"
     | "charge";
 
+type HealthField = "maximum" | "now";
+
+type ChargeField = "name" | "turnsElapsed" | "turnsStated";
+
+export interface WarriorReading {
+    combatants: Combatant[];
+    statusMasksByCombatantId: Map<number, number>;
+    chargeStatements: ChargedSkillStatement[];
+}
+
 /** The client's own keys for one warrior entry, spelled here and nowhere else (N13). */
 export const WARRIOR_FIELDS: FieldKeys<WarriorField> = {
     id: "id",
@@ -40,11 +50,7 @@ export const WARRIOR_FIELDS: FieldKeys<WarriorField> = {
     statuses: "buffs",
     charge: "super_cast",
 };
-
-type HealthField = "maximum" | "now";
 const HEALTH_FIELDS: FieldKeys<HealthField> = { maximum: "max", now: "cur" };
-
-type ChargeField = "name" | "turnsElapsed" | "turnsStated";
 const CHARGE_FIELDS: FieldKeys<ChargeField> = {
     name: "name",
     turnsElapsed: "turn",
@@ -53,12 +59,6 @@ const CHARGE_FIELDS: FieldKeys<ChargeField> = {
 
 /** The mask a fallen combatant is read at, which clears whatever they were holding. */
 const NOTHING_CARRIED = 0;
-
-export interface WarriorReading {
-    combatants: Combatant[];
-    statusMasksByCombatantId: Map<number, number>;
-    chargeStatements: ChargedSkillStatement[];
-}
 
 /** The entries of one payload, read once each. The caller has bounded their count. */
 export function readWarriorEntries(entries: readonly unknown[]): WarriorReading {

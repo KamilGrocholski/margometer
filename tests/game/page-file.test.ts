@@ -12,6 +12,17 @@ import {
     type PageDownloads,
 } from "#/src/game/page-file.ts";
 
+Deno.test("a file goes to the browser through an anchor in the page, released a tick later", () => {
+    const page = composeDownloads();
+    const written = initPageFile(page.downloads).writeFile("fight.json", "{}", () => {});
+    assertEquals(written, ok(undefined), "the browser took it");
+    assertEquals(page.calls, ["url", "append", "click", "remove"], "clicked where it stands");
+    assertEquals([page.anchor.download, page.anchor.href], ["fight.json", "blob:1"], "named");
+    assertStrictEquals(page.anchor.className, "MargoMeter-download", "under a class of ours");
+    page.timers.shift()?.();
+    assertEquals(page.calls.at(-1), "revoke blob:1", "and the address released after the click");
+});
+
 function composeDownloads(over: Partial<PageDownloads> = {}, click = () => {}) {
     const calls: string[] = [];
     const timers: (() => void)[] = [];
@@ -39,17 +50,6 @@ function composeDownloads(over: Partial<PageDownloads> = {}, click = () => {}) {
     };
     return { downloads, calls, timers, anchor };
 }
-
-Deno.test("a file goes to the browser through an anchor in the page, released a tick later", () => {
-    const page = composeDownloads();
-    const written = initPageFile(page.downloads).writeFile("fight.json", "{}", () => {});
-    assertEquals(written, ok(undefined), "the browser took it");
-    assertEquals(page.calls, ["url", "append", "click", "remove"], "clicked where it stands");
-    assertEquals([page.anchor.download, page.anchor.href], ["fight.json", "blob:1"], "named");
-    assertStrictEquals(page.anchor.className, "MargoMeter-download", "under a class of ours");
-    page.timers.shift()?.();
-    assertEquals(page.calls.at(-1), "revoke blob:1", "and the address released after the click");
-});
 
 Deno.test("a page that lends nothing to download with is answered, and nothing is clicked", () => {
     const written = initPageFile(null).writeFile("fight.json", "{}", () => {});

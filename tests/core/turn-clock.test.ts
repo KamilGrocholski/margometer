@@ -7,6 +7,33 @@ import { assertEquals, assertStrictEquals } from "@std/assert";
 import { type AttackEvent, BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
 
+const ANNOUNCEMENT: BattleEvent = {
+    kind: BATTLE_EVENT.skillUsed,
+    actorId: 1,
+    targetId: 9,
+    actorHealthPercent: null,
+    targetHealthPercent: null,
+    skillName: "Cios",
+    skillId: null,
+    declared: [],
+};
+
+Deno.test("an announcement opens a turn, and the blows it sends open none", () => {
+    const openers = lookupOpeners([ANNOUNCEMENT, composeBlow(1, true), composeBlow(1, true)]);
+    assertEquals(openers, [1, null, null], "one turn, however many blows the skill sent");
+});
+
+/** Every event walked in order, with the turn each one opened. */
+function lookupOpeners(events: readonly BattleEvent[]): (number | null)[] {
+    let standing = NO_TURN_STANDING;
+    const openers: (number | null)[] = [];
+    for (const event of events) {
+        openers.push(lookupTurnOpener(event, standing));
+        standing = composeTurnStanding(event, standing);
+    }
+    return openers;
+}
+
 function composeBlow(actorId: number, isAnnounced: boolean): AttackEvent {
     const announced = isAnnounced ? { skillName: "Cios", skillId: null, actorId } : null;
     return {
@@ -24,38 +51,6 @@ function composeBlow(actorId: number, isAnnounced: boolean): AttackEvent {
         announced,
     };
 }
-
-function composeDeclaration(combatantId: number, effect: string): BattleEvent {
-    const declared = [{ effect, amount: null, text: null }];
-    return { kind: BATTLE_EVENT.declaration, combatantId, healthPercent: null, declared };
-}
-
-const ANNOUNCEMENT: BattleEvent = {
-    kind: BATTLE_EVENT.skillUsed,
-    actorId: 1,
-    targetId: 9,
-    actorHealthPercent: null,
-    targetHealthPercent: null,
-    skillName: "Cios",
-    skillId: null,
-    declared: [],
-};
-
-/** Every event walked in order, with the turn each one opened. */
-function lookupOpeners(events: readonly BattleEvent[]): (number | null)[] {
-    let standing = NO_TURN_STANDING;
-    const openers: (number | null)[] = [];
-    for (const event of events) {
-        openers.push(lookupTurnOpener(event, standing));
-        standing = composeTurnStanding(event, standing);
-    }
-    return openers;
-}
-
-Deno.test("an announcement opens a turn, and the blows it sends open none", () => {
-    const openers = lookupOpeners([ANNOUNCEMENT, composeBlow(1, true), composeBlow(1, true)]);
-    assertEquals(openers, [1, null, null], "one turn, however many blows the skill sent");
-});
 
 Deno.test("a plain blow opens a turn, and an extra attack straight after it does not", () => {
     const struck = lookupOpeners([composeBlow(1, false), composeBlow(2, false)]);
@@ -75,6 +70,11 @@ Deno.test("a step opens a turn, and a preparation only where its combatant has n
     assertEquals(other, [4, 3], "and one after somebody else's is a turn");
     assertEquals(lookupOpeners([composeDeclaration(3, "txt")]), [null], "a log line is none");
 });
+
+function composeDeclaration(combatantId: number, effect: string): BattleEvent {
+    const declared = [{ effect, amount: null, text: null }];
+    return { kind: BATTLE_EVENT.declaration, combatantId, healthPercent: null, declared };
+}
 
 Deno.test("an event that is nobody's action ends both halves of the standing", () => {
     const outcome: BattleEvent = {

@@ -18,26 +18,6 @@ const ROOT_PREFIX = "#/";
 const SIBLING_PREFIX = "./";
 const STANDARD_PREFIX = "@std/";
 
-function lookupMisspeltImports(file: SourceFile): string[] {
-    const directory = file.path.slice(0, file.path.lastIndexOf("/") + 1);
-    const sources = readImportSources(file).filter((source) => {
-        return !isImportSpeltForItsPlace(source, directory);
-    });
-    return sources.map((source) => `${file.path} imports "${source}"`);
-}
-
-function isImportSpeltForItsPlace(source: string, directory: string): boolean {
-    if (source.startsWith(STANDARD_PREFIX)) return true;
-    const name = source.slice(source.lastIndexOf("/") + 1);
-    if (!name.includes(".")) return false;
-    if (source.startsWith(SIBLING_PREFIX)) {
-        return !source.slice(SIBLING_PREFIX.length).includes("/");
-    }
-    if (!source.startsWith(ROOT_PREFIX)) return false;
-    const path = source.slice(ROOT_PREFIX.length);
-    return path.slice(0, path.lastIndexOf("/") + 1) !== directory;
-}
-
 Deno.test("a sibling from the root, a cousin by a relative path, a bare URL and no extension are flagged", () => {
     const sample = composeSample([
         'import { a } from "#/src/ui/a.ts";',
@@ -66,6 +46,26 @@ Deno.test("a sibling from the root, a cousin by a relative path, a bare URL and 
         "and another directory from the root, a sibling by ./ and the standard library are not",
     );
 });
+
+function lookupMisspeltImports(file: SourceFile): string[] {
+    const directory = file.path.slice(0, file.path.lastIndexOf("/") + 1);
+    const sources = readImportSources(file).filter((source) => {
+        return !isImportSpeltForItsPlace(source, directory);
+    });
+    return sources.map((source) => `${file.path} imports "${source}"`);
+}
+
+function isImportSpeltForItsPlace(source: string, directory: string): boolean {
+    if (source.startsWith(STANDARD_PREFIX)) return true;
+    const name = source.slice(source.lastIndexOf("/") + 1);
+    if (!name.includes(".")) return false;
+    if (source.startsWith(SIBLING_PREFIX)) {
+        return !source.slice(SIBLING_PREFIX.length).includes("/");
+    }
+    if (!source.startsWith(ROOT_PREFIX)) return false;
+    const path = source.slice(ROOT_PREFIX.length);
+    return path.slice(0, path.lastIndexOf("/") + 1) !== directory;
+}
 
 Deno.test("a file at the root imports its sibling by ./ and nothing else from the root", () => {
     const sample = composeSample(['import { a } from "#/a.ts";', 'import { b } from "./b.ts";']);

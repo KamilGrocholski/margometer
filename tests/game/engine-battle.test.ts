@@ -18,47 +18,17 @@ import {
 } from "#/src/game/engine-battle.ts";
 import { WARRIOR_FAILURE } from "#/src/game/warrior-snapshot.ts";
 
-/** A listener that does nothing, so each test states only the half it is about. */
-function composeListener(said: Partial<PayloadListener>): PayloadListener {
-    return {
-        onBeforeCall: said.onBeforeCall ?? (() => {}),
-        onPayload: said.onPayload ?? (() => {}),
-    };
-}
-
 interface Held {
     battle: Record<string, unknown>;
     calls: { thisArg: unknown; args: unknown[] }[];
 }
 
-function composeHeld(answer: unknown): Held {
-    const calls: { thisArg: unknown; args: unknown[] }[] = [];
-    const battle: Record<string, unknown> = {
-        updateData: function (this: unknown, ...args: unknown[]): unknown {
-            calls.push({ thisArg: this, args });
-            return answer;
-        },
-    };
-    return { battle, calls };
-}
-
-function readBattleOn(battle: Record<string, unknown>): EngineBattle {
-    const read = initPageEngine({ Engine: { battle } }).readBattle();
-    assert(read.ok, "the page holds a battle");
-    return read.value;
-}
-
-function wrapOn(battle: Record<string, unknown>, listener: PayloadListener): WrapHandle {
-    const wrapped = readBattleOn(battle).wrap(listener);
-    assert(wrapped.ok, "the wrap went on");
-    return wrapped.value;
-}
-
-function callUpdate(battle: Record<string, unknown>, thisArg: unknown, args: unknown[]): unknown {
-    const update = battle.updateData;
-    assert(typeof update === "function", "the battle holds a function to call");
-    return Reflect.apply(update, thisArg, args);
-}
+/**
+ * The wrap's own bound on the failures it counts, restated here on purpose: a stated maximum
+ * nothing reads is not a bound (`AGENTS.md` S11). Primitives are thrown, because a million errors
+ * with a stack each take seconds, and two per call halve the calls.
+ */
+const WRAP_FAILURES_MAXIMUM = 1048576;
 
 Deno.test("the engine's own call runs first, and its value comes back untouched", () => {
     const held = composeHeld("the engine's own answer");
@@ -76,6 +46,43 @@ Deno.test("the engine's own call runs first, and its value comes back untouched"
         "with every argument passed straight through",
     );
 });
+
+function composeHeld(answer: unknown): Held {
+    const calls: { thisArg: unknown; args: unknown[] }[] = [];
+    const battle: Record<string, unknown> = {
+        updateData: function (this: unknown, ...args: unknown[]): unknown {
+            calls.push({ thisArg: this, args });
+            return answer;
+        },
+    };
+    return { battle, calls };
+}
+
+function wrapOn(battle: Record<string, unknown>, listener: PayloadListener): WrapHandle {
+    const wrapped = readBattleOn(battle).wrap(listener);
+    assert(wrapped.ok, "the wrap went on");
+    return wrapped.value;
+}
+
+function readBattleOn(battle: Record<string, unknown>): EngineBattle {
+    const read = initPageEngine({ Engine: { battle } }).readBattle();
+    assert(read.ok, "the page holds a battle");
+    return read.value;
+}
+
+/** A listener that does nothing, so each test states only the half it is about. */
+function composeListener(said: Partial<PayloadListener>): PayloadListener {
+    return {
+        onBeforeCall: said.onBeforeCall ?? (() => {}),
+        onPayload: said.onPayload ?? (() => {}),
+    };
+}
+
+function callUpdate(battle: Record<string, unknown>, thisArg: unknown, args: unknown[]): unknown {
+    const update = battle.updateData;
+    assert(typeof update === "function", "the battle holds a function to call");
+    return Reflect.apply(update, thisArg, args);
+}
 
 Deno.test("the order is ours before, the engine's call, then ours, and nothing between", () => {
     const order: string[] = [];
@@ -215,13 +222,6 @@ Deno.test("the warriors are read off the live battle, and a battle holding none 
     const empty = readBattleOn({ updateData: () => 1 }).readWarriors();
     assertEquals(empty, err({ kind: WARRIOR_FAILURE.warriorsAbsent }), "and none is a failure");
 });
-
-/**
- * The wrap's own bound on the failures it counts, restated here on purpose: a stated maximum
- * nothing reads is not a bound (`AGENTS.md` S11). Primitives are thrown, because a million errors
- * with a stack each take seconds, and two per call halve the calls.
- */
-const WRAP_FAILURES_MAXIMUM = 1048576;
 
 Deno.test("the failures a wrap counts stop at its bound, and not before", () => {
     const held = composeHeld(1);

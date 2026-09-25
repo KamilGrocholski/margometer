@@ -11,6 +11,15 @@ import { clamp } from "#/libs/number-range.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import { SIGNAL } from "./panel-palette.ts";
 
+/**
+ * ⚠️ **Three, held by the compiler rather than by a check.** Everything here writes its answers
+ * straight into a rule, and a list one short puts the word `undefined` inside `rgb(…)` — which a
+ * browser drops, leaving the element on whatever it inherits with nothing saying so. A guard at
+ * each writer was the first answer and it was dead code: nothing could reach it.
+ * `develop ADR 0051`.
+ */
+type ColourChannels = readonly [number, number, number];
+
 export const SURFACE = {
     panel: "#0f161d",
     raised: "#171e25",
@@ -231,22 +240,54 @@ const LOW_SLOPE = 12.92;
 const CHANNEL_OFFSET = 0.055;
 const CHANNEL_EXPONENT = 2.4;
 const LUMINANCE_OFFSET = 0.05;
-/**
- * ⚠️ **Three, held by the compiler rather than by a check.** Everything here writes its answers
- * straight into a rule, and a list one short puts the word `undefined` inside `rgb(…)` — which a
- * browser drops, leaving the element on whatever it inherits with nothing saying so. A guard at
- * each writer was the first answer and it was dead code: nothing could reach it.
- * `develop ADR 0051`.
- */
-type ColourChannels = readonly [number, number, number];
 
 const INK_DARK_CHANNELS: ColourChannels = [0x0d, 0x13, 0x19];
 const INK_LIGHT_CHANNELS: ColourChannels = [0xff, 0xff, 0xff];
 
-function parseHexDigit(character: string): number | null {
-    const at = HEX_DIGITS.indexOf(character.toLowerCase());
-    if (at === -1) return null;
-    return at;
+const VARIABLE_PREFIX = "--MargoMeter-";
+const ROWS_BY_DEFAULT = 11;
+const FONT_STACK = "system-ui, sans-serif";
+const FONT_SIZE_PIXELS = 11;
+/** Whole pixels: a fractional line box puts every box under it off the grid. `develop ADR 0015`. */
+const LINE_HEIGHT_PIXELS = 15;
+/** What a border costs the box it is on, at the one width this panel draws one. */
+const RULE_WIDTH = 1;
+const LINE_HEIGHT_TITLE_PIXELS = 13;
+const FONT_BODY = `${FONT_SIZE_PIXELS}px/${LINE_HEIGHT_PIXELS}px ${FONT_STACK}`;
+const FONT_TITLE = `${FONT_SIZE_PIXELS}px/${LINE_HEIGHT_TITLE_PIXELS}px ${FONT_STACK}`;
+
+/**
+ * A press that leaves text selected behind it is an accident, which is why the bar and the
+ * strips refuse one too. Safari has never shipped `user-select` unprefixed
+ * (`develop:docs/browser-support.md`), so both spellings stand.
+ */
+const NO_SELECTION = "-webkit-user-select:none;user-select:none;";
+
+/**
+ * One where a colour could not be read, so an unreadable pairing never passes for a good one.
+ * **No production caller**: this and the two bar readings below are what hold `develop:DESIGN.md`'s
+ * contrast floor, measured by `tests/ui/panel-look.test.ts` over the tokens and the palette.
+ */
+export function getContrastRatio(one: string, other: string): number {
+    const first = parseColourChannels(one);
+    const second = parseColourChannels(other);
+    if (first === null || second === null) return 1;
+    return getContrastFromChannels(first, second);
+}
+
+/** Null for anything that is neither spelling, because a colour nobody wrote is not a colour. */
+function parseColourChannels(colour: string): ColourChannels | null {
+    if (colour.startsWith(RGB_OPENER)) return parseRgbChannels(colour);
+    if (!colour.startsWith("#")) return null;
+    if (colour.length !== HEX_COLOUR_LENGTH) return null;
+    const channels: number[] = [];
+    for (let at = 1; at < colour.length; at += HEX_DIGITS_PER_CHANNEL) {
+        const high = parseHexDigit(colour.charAt(at));
+        const low = parseHexDigit(colour.charAt(at + 1));
+        if (high === null || low === null) return null;
+        channels.push(high * HEX_BASE + low);
+    }
+    return composeChannels(channels);
 }
 
 /** The other spelling, because a bar is composed as one and its ink is read back off it. */
@@ -265,21 +306,6 @@ function parseRgbChannels(colour: string): ColourChannels | null {
     return composeChannels(channels);
 }
 
-/** Null for anything that is neither spelling, because a colour nobody wrote is not a colour. */
-function parseColourChannels(colour: string): ColourChannels | null {
-    if (colour.startsWith(RGB_OPENER)) return parseRgbChannels(colour);
-    if (!colour.startsWith("#")) return null;
-    if (colour.length !== HEX_COLOUR_LENGTH) return null;
-    const channels: number[] = [];
-    for (let at = 1; at < colour.length; at += HEX_DIGITS_PER_CHANNEL) {
-        const high = parseHexDigit(colour.charAt(at));
-        const low = parseHexDigit(colour.charAt(at + 1));
-        if (high === null || low === null) return null;
-        channels.push(high * HEX_BASE + low);
-    }
-    return composeChannels(channels);
-}
-
 /** The one place a list becomes three channels, so no writer downstream has to ask again. */
 function composeChannels(read: readonly number[]): ColourChannels | null {
     if (read.length !== CHANNELS_IN_A_COLOUR) return null;
@@ -288,6 +314,19 @@ function composeChannels(read: readonly number[]): ColourChannels | null {
     if (green === undefined) return null;
     if (blue === undefined) return null;
     return [red, green, blue];
+}
+
+function parseHexDigit(character: string): number | null {
+    const at = HEX_DIGITS.indexOf(character.toLowerCase());
+    if (at === -1) return null;
+    return at;
+}
+
+function getContrastFromChannels(one: ColourChannels, other: ColourChannels): number {
+    const bright = Math.max(getLuminanceFromChannels(one), getLuminanceFromChannels(other));
+    const dim = Math.min(getLuminanceFromChannels(one), getLuminanceFromChannels(other));
+    const ratio = (bright + LUMINANCE_OFFSET) / (dim + LUMINANCE_OFFSET);
+    return ratio;
 }
 
 function getLuminanceFromChannels(channels: ColourChannels): number {
@@ -303,30 +342,17 @@ function getLuminanceFromChannels(channels: ColourChannels): number {
     return luminance;
 }
 
-function getContrastFromChannels(one: ColourChannels, other: ColourChannels): number {
-    const bright = Math.max(getLuminanceFromChannels(one), getLuminanceFromChannels(other));
-    const dim = Math.min(getLuminanceFromChannels(one), getLuminanceFromChannels(other));
-    const ratio = (bright + LUMINANCE_OFFSET) / (dim + LUMINANCE_OFFSET);
-    return ratio;
-}
-
 /**
- * One where a colour could not be read, so an unreadable pairing never passes for a good one.
- * **No production caller**: this and the two bar readings below are what hold `develop:DESIGN.md`'s
- * contrast floor, measured by `tests/ui/panel-look.test.ts` over the tokens and the palette.
+ * A bar drawn in its own track states its length and says nothing about whose it is.
+ *
+ * **Nothing draws a bar through this pair.** The shipped bar takes its hue from
+ * `lookupColourForProfession` and its tint from the stylesheet, which spells
+ * `opacity:var(--MargoMeter-bar-tint)` over the same `BAR_TINT`. What the two compute is the ink a
+ * bar *would* take, which is the pair `develop:DESIGN.md` names as the proof that the tint keeps
+ * every hue readable — see its text tokens, which own that decision.
  */
-export function getContrastRatio(one: string, other: string): number {
-    const first = parseColourChannels(one);
-    const second = parseColourChannels(other);
-    if (first === null || second === null) return 1;
-    return getContrastFromChannels(first, second);
-}
-
-function getInkForChannels(channels: ColourChannels): string {
-    const onDark = getContrastFromChannels(channels, INK_DARK_CHANNELS);
-    const onLight = getContrastFromChannels(channels, INK_LIGHT_CHANNELS);
-    if (onDark >= onLight) return TEXT.inkDark;
-    return TEXT.inkLight;
+export function composeBarColour(hue: string): string {
+    return composeRgbText(composeBarChannels(hue));
 }
 
 /** A colour nothing could be read from is the track, which is a colour and not a dropped rule. */
@@ -349,81 +375,55 @@ function composeBarChannels(hue: string): ColourChannels | null {
     );
 }
 
-/**
- * A bar drawn in its own track states its length and says nothing about whose it is.
- *
- * **Nothing draws a bar through this pair.** The shipped bar takes its hue from
- * `lookupColourForProfession` and its tint from the stylesheet, which spells
- * `opacity:var(--MargoMeter-bar-tint)` over the same `BAR_TINT`. What the two compute is the ink a
- * bar *would* take, which is the pair `develop:DESIGN.md` names as the proof that the tint keeps
- * every hue readable — see its text tokens, which own that decision.
- */
-export function composeBarColour(hue: string): string {
-    return composeRgbText(composeBarChannels(hue));
-}
-
 export function getInkForBar(hue: string): string {
     const mixed = composeBarChannels(hue);
     if (mixed === null) return TEXT.inkLight;
     return getInkForChannels(mixed);
 }
 
-/** One colour over another at an alpha, in sRGB because that is what the browser does here. */
-function composeColourOver(top: string, bottom: string, alpha: number): string {
-    const above = parseColourChannels(top);
-    const below = parseColourChannels(bottom);
-    // Nothing to lay over anything: what is underneath stands, which is a colour and not a rule
-    // the browser will drop.
-    if (above === null) return bottom;
-    if (below === null) return bottom;
-    const share = clamp(alpha, 0, 1);
-    const mixed = above.map((one, at) => Math.round(share * one + (1 - share) * (below[at] ?? 0)));
-    return composeRgbText(composeChannels(mixed));
+function getInkForChannels(channels: ColourChannels): string {
+    const onDark = getContrastFromChannels(channels, INK_DARK_CHANNELS);
+    const onLight = getContrastFromChannels(channels, INK_LIGHT_CHANNELS);
+    if (onDark >= onLight) return TEXT.inkDark;
+    return TEXT.inkLight;
 }
 
-const VARIABLE_PREFIX = "--MargoMeter-";
-const ROWS_BY_DEFAULT = 11;
-const FONT_STACK = "system-ui, sans-serif";
-const FONT_SIZE_PIXELS = 11;
-/** Whole pixels: a fractional line box puts every box under it off the grid. `develop ADR 0015`. */
-const LINE_HEIGHT_PIXELS = 15;
-/** What a border costs the box it is on, at the one width this panel draws one. */
-const RULE_WIDTH = 1;
-const LINE_HEIGHT_TITLE_PIXELS = 13;
-const FONT_BODY = `${FONT_SIZE_PIXELS}px/${LINE_HEIGHT_PIXELS}px ${FONT_STACK}`;
-const FONT_TITLE = `${FONT_SIZE_PIXELS}px/${LINE_HEIGHT_TITLE_PIXELS}px ${FONT_STACK}`;
-
-function composeVariable(name: string, value: string): string {
-    return `${VARIABLE_PREFIX}${name}:${value};`;
+/**
+ * How tall a card of so many lines and runs stands: the lines times what a line costs, the air and
+ * the rule each run spends over itself, and the padding and border the box reserves inside its own
+ * height. Null where the counts handed in are no whole numbers.
+ *
+ * ⚠️ **One arithmetic, where there were two.** The sheet worked this out again from the counts the
+ * draw wrote, which was enough while nothing else needed the number. The panel needs it now — a
+ * card taller than the window is cut to the room there is rather than clipped
+ * (`src/ui/panel-tip.ts`) — and a trim and a clamp at two heights would put the notice on a card
+ * that fitted, or leave one that did not without it.
+ */
+export function getTipHeight(size: { lines: number; groups: number }): number | null {
+    const line = LINE_HEIGHT_PIXELS;
+    const air = SPACE_PIXELS.small;
+    if (!Number.isSafeInteger(size.lines)) return null;
+    if (!Number.isSafeInteger(size.groups)) return null;
+    const runs = size.groups * (2 * air + RULE_WIDTH);
+    return size.lines * line + runs + 2 * air + 2 * RULE_WIDTH;
 }
 
-function composeVariables(): string {
-    const stated = [
-        composeVariable("surface", SURFACE.panel),
-        composeVariable("raised", SURFACE.raised),
-        composeVariable("track", SURFACE.track),
-        composeVariable("border", SURFACE.border),
-        composeVariable("text", TEXT.plain),
-        composeVariable("quiet", TEXT.quiet),
-        composeVariable("suspect", SIGNAL.suspect),
-        composeVariable("caveat", SIGNAL.caveat),
-        composeVariable("defect", SIGNAL.defect),
-        composeVariable("ours", SIGNAL.ours),
-        composeVariable("theirs", SIGNAL.theirs),
-        composeVariable("nobody", SIGNAL.unknown),
-        composeVariable("heading", composeColourOver(TEXT.quiet, SURFACE.panel, HEADING_TINT)),
-        composeVariable("mask", MASK_INK),
-        composeVariable("bar-tint", `${BAR_TINT}`),
-        composeVariable("half", `${SPACE_PIXELS.half}px`),
-        composeVariable("small", `${SPACE_PIXELS.small}px`),
-        composeVariable("region-down", `${SPACE_PIXELS.regionDown}px`),
-        composeVariable("region-across", `${SPACE_PIXELS.regionAcross}px`),
-        composeVariable("wide", `${SPACE_PIXELS.wide}px`),
-        composeVariable("row-height", `${SPACE_PIXELS.rowHeight}px`),
-        composeVariable("radius", `${SHAPE.radiusPixels}px`),
-        composeVariable("radius-small", `${SHAPE.radiusSmallPixels}px`),
-    ].join("");
-    return stated;
+/**
+ * What a card has to stand in: the window, less the air the sheet keeps at either end of it. Null
+ * where the page states no height, which is a window nothing here may reason about.
+ */
+export function getTipRoom(viewportHeight: number | null): number | null {
+    if (viewportHeight === null) return null;
+    if (!Number.isFinite(viewportHeight)) return null;
+    const room = viewportHeight - 2 * PLACE.insetPixels;
+    if (room <= 0) return null;
+    return room;
+}
+
+export function composeStyleSheet(): string {
+    return `${composeFrameRules()}${composeRegionRules()}${composeListRules()}` +
+        `${composeRowRules()}${composeUnderListRules()}` +
+        `${composeTipRules()}${composeStandingRules()}`;
 }
 
 /**
@@ -480,6 +480,52 @@ function composeFrameRules(): string {
         `.${CLASS.slot}{display:none;}`;
 }
 
+function composeVariables(): string {
+    const stated = [
+        composeVariable("surface", SURFACE.panel),
+        composeVariable("raised", SURFACE.raised),
+        composeVariable("track", SURFACE.track),
+        composeVariable("border", SURFACE.border),
+        composeVariable("text", TEXT.plain),
+        composeVariable("quiet", TEXT.quiet),
+        composeVariable("suspect", SIGNAL.suspect),
+        composeVariable("caveat", SIGNAL.caveat),
+        composeVariable("defect", SIGNAL.defect),
+        composeVariable("ours", SIGNAL.ours),
+        composeVariable("theirs", SIGNAL.theirs),
+        composeVariable("nobody", SIGNAL.unknown),
+        composeVariable("heading", composeColourOver(TEXT.quiet, SURFACE.panel, HEADING_TINT)),
+        composeVariable("mask", MASK_INK),
+        composeVariable("bar-tint", `${BAR_TINT}`),
+        composeVariable("half", `${SPACE_PIXELS.half}px`),
+        composeVariable("small", `${SPACE_PIXELS.small}px`),
+        composeVariable("region-down", `${SPACE_PIXELS.regionDown}px`),
+        composeVariable("region-across", `${SPACE_PIXELS.regionAcross}px`),
+        composeVariable("wide", `${SPACE_PIXELS.wide}px`),
+        composeVariable("row-height", `${SPACE_PIXELS.rowHeight}px`),
+        composeVariable("radius", `${SHAPE.radiusPixels}px`),
+        composeVariable("radius-small", `${SHAPE.radiusSmallPixels}px`),
+    ].join("");
+    return stated;
+}
+
+function composeVariable(name: string, value: string): string {
+    return `${VARIABLE_PREFIX}${name}:${value};`;
+}
+
+/** One colour over another at an alpha, in sRGB because that is what the browser does here. */
+function composeColourOver(top: string, bottom: string, alpha: number): string {
+    const above = parseColourChannels(top);
+    const below = parseColourChannels(bottom);
+    // Nothing to lay over anything: what is underneath stands, which is a colour and not a rule
+    // the browser will drop.
+    if (above === null) return bottom;
+    if (below === null) return bottom;
+    const share = clamp(alpha, 0, 1);
+    const mixed = above.map((one, at) => Math.round(share * one + (1 - share) * (below[at] ?? 0)));
+    return composeRgbText(composeChannels(mixed));
+}
+
 function composeRegionRules(): string {
     const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
     return `.${CLASS.header}{display:block;padding:${region};padding-bottom:0;}` +
@@ -508,14 +554,6 @@ function composeRegionRules(): string {
         `.${CLASS.crumbBack}:hover{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.crumbHere}{font-weight:600;overflow:hidden;text-overflow:ellipsis;` +
         `white-space:nowrap;}`;
-}
-
-/**
- * What insets a region under its rows, less the margin its last row carries. `develop ADR 0014`.
- */
-function composeInsetUnderRows(inset: string): string {
-    const written = `calc(var(${inset}) - var(${VARIABLE_PREFIX}half))`;
-    return written;
 }
 
 /** The list's height is the rows it promises times what a row costs. `develop ADR 0014`. */
@@ -579,24 +617,12 @@ function composeListRules(): string {
 }
 
 /**
- * The two regions standing under the list, which wear one rule because they say one thing: what is
- * below the dashed line is outside it. The section carries a heading where the pinned rows do not,
- * so a reader meeting a figure belonging to nobody is told what it is before they read it.
+ * What insets a region under its rows, less the margin its last row carries. `develop ADR 0014`.
  */
-function composeUnderListRules(): string {
-    const inset = composeInsetUnderRows(VARIABLE_PREFIX + "region-down");
-    const shape = `margin:0 var(${VARIABLE_PREFIX}region-across);` +
-        `padding:var(${VARIABLE_PREFIX}region-down) 0 ${inset};` +
-        `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;`;
-    return `.${CLASS.pinned}{${shape}}` + `.${CLASS.outside}{${shape}}`;
+function composeInsetUnderRows(inset: string): string {
+    const written = `calc(var(${inset}) - var(${VARIABLE_PREFIX}half))`;
+    return written;
 }
-
-/**
- * A press that leaves text selected behind it is an accident, which is why the bar and the
- * strips refuse one too. Safari has never shipped `user-select` unprefixed
- * (`develop:docs/browser-support.md`), so both spellings stand.
- */
-const NO_SELECTION = "-webkit-user-select:none;user-select:none;";
 
 function composeRowRules(): string {
     const capRight = `var(${VARIABLE_PREFIX}radius-small)`;
@@ -670,39 +696,16 @@ function composeRowRules(): string {
 }
 
 /**
- * **It states its own type and its own ink**, because `:host{all:initial}` reaches it and nothing
- * else does: the tip hangs off the root beside the frame, so `.panel`'s never arrive. Without the
- * two the card is drawn in the browser's serif at `medium` in black on `raised` — figures nobody
- * can read, seen in Chrome 152 on 2026-08-29.
- *
- * `position:fixed` puts its containing block at the viewport, so the host's `overflow:hidden`
- * cannot clip it: the host creates none, having no transform, filter or containment.
+ * The two regions standing under the list, which wear one rule because they say one thing: what is
+ * below the dashed line is outside it. The section carries a heading where the pinned rows do not,
+ * so a reader meeting a figure belonging to nobody is told what it is before they read it.
  */
-/**
- * The caveat mark, **drawn and not spelled**, in the one rule both places it stands read from.
- *
- * ⚠️ **No font can be relied on for this shape.** Measured in Chrome 152 on 2026-09-15: `ⓘ` comes
- * to 5.5px against 8.67 for `O` at the panel's own 11px. No family this machine offers carries
- * U+24D8, so every one falls back to a single condensed face, and `develop ADR 0092` carries that
- * sweep and the nine it was taken over. A ring with a border is a circle wherever the panel is
- * opened, which a codepoint is not.
- *
- * `align-self` because both parents are flex rows that stretch a child by default, and a ring
- * stretched to the line box is the ellipse this rule exists to stop being.
- */
-function composeCaveatMarkRule(): string {
-    return `.${CLASS.rowCaveat},.${CLASS.tipCaveat}{box-sizing:border-box;display:inline-flex;` +
-        `align-items:center;justify-content:center;align-self:center;flex:none;` +
-        `width:${MARK_SIZE_PIXELS}px;height:${MARK_SIZE_PIXELS}px;` +
-        // An ink of its own, as the other three severities have: drawn in the label's colour it was
-        // invisible against the label it qualifies. `develop:DESIGN.md` owns the rule and carries
-        // the measured distance to every other hue the panel spends.
-        `color:var(${VARIABLE_PREFIX}caveat);` +
-        `border:1px solid currentColor;border-radius:50%;` +
-        // The letter inside the ring, and it is the only type on the panel below the body size:
-        // an `i` at the body's own 11px leaves no ring to draw around it. Seven is the largest
-        // that leaves the ring untouched: at eight the stem meets it at the top.
-        `font-size:7px;font-weight:600;font-style:normal;line-height:1;}`;
+function composeUnderListRules(): string {
+    const inset = composeInsetUnderRows(VARIABLE_PREFIX + "region-down");
+    const shape = `margin:0 var(${VARIABLE_PREFIX}region-across);` +
+        `padding:var(${VARIABLE_PREFIX}region-down) 0 ${inset};` +
+        `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;`;
+    return `.${CLASS.pinned}{${shape}}` + `.${CLASS.outside}{${shape}}`;
 }
 
 function composeTipRules(): string {
@@ -774,41 +777,45 @@ function composeTipRules(): string {
         `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{color:var(${VARIABLE_PREFIX}caveat);}`;
 }
 
-/**
- * How tall a card of so many lines and runs stands: the lines times what a line costs, the air and
- * the rule each run spends over itself, and the padding and border the box reserves inside its own
- * height. Null where the counts handed in are no whole numbers.
- *
- * ⚠️ **One arithmetic, where there were two.** The sheet worked this out again from the counts the
- * draw wrote, which was enough while nothing else needed the number. The panel needs it now — a
- * card taller than the window is cut to the room there is rather than clipped
- * (`src/ui/panel-tip.ts`) — and a trim and a clamp at two heights would put the notice on a card
- * that fitted, or leave one that did not without it.
- */
-export function getTipHeight(size: { lines: number; groups: number }): number | null {
-    const line = LINE_HEIGHT_PIXELS;
-    const air = SPACE_PIXELS.small;
-    if (!Number.isSafeInteger(size.lines)) return null;
-    if (!Number.isSafeInteger(size.groups)) return null;
-    const runs = size.groups * (2 * air + RULE_WIDTH);
-    return size.lines * line + runs + 2 * air + 2 * RULE_WIDTH;
-}
-
-/**
- * What a card has to stand in: the window, less the air the sheet keeps at either end of it. Null
- * where the page states no height, which is a window nothing here may reason about.
- */
-export function getTipRoom(viewportHeight: number | null): number | null {
-    if (viewportHeight === null) return null;
-    if (!Number.isFinite(viewportHeight)) return null;
-    const room = viewportHeight - 2 * PLACE.insetPixels;
-    if (room <= 0) return null;
-    return room;
-}
-
 function composeTipTop(): string {
     return `clamp(${PLACE.insetPixels}px,var(${VARIABLE_PREFIX}tip-top,${PLACE.insetPixels}px),` +
         `calc(100vh - var(${VARIABLE_PREFIX}tip-height,0px) - ${PLACE.insetPixels}px))`;
+}
+
+/**
+ * **It states its own type and its own ink**, because `:host{all:initial}` reaches it and nothing
+ * else does: the tip hangs off the root beside the frame, so `.panel`'s never arrive. Without the
+ * two the card is drawn in the browser's serif at `medium` in black on `raised` — figures nobody
+ * can read, seen in Chrome 152 on 2026-08-29.
+ *
+ * `position:fixed` puts its containing block at the viewport, so the host's `overflow:hidden`
+ * cannot clip it: the host creates none, having no transform, filter or containment.
+ */
+/**
+ * The caveat mark, **drawn and not spelled**, in the one rule both places it stands read from.
+ *
+ * ⚠️ **No font can be relied on for this shape.** Measured in Chrome 152 on 2026-09-15: `ⓘ` comes
+ * to 5.5px against 8.67 for `O` at the panel's own 11px. No family this machine offers carries
+ * U+24D8, so every one falls back to a single condensed face, and `develop ADR 0092` carries that
+ * sweep and the nine it was taken over. A ring with a border is a circle wherever the panel is
+ * opened, which a codepoint is not.
+ *
+ * `align-self` because both parents are flex rows that stretch a child by default, and a ring
+ * stretched to the line box is the ellipse this rule exists to stop being.
+ */
+function composeCaveatMarkRule(): string {
+    return `.${CLASS.rowCaveat},.${CLASS.tipCaveat}{box-sizing:border-box;display:inline-flex;` +
+        `align-items:center;justify-content:center;align-self:center;flex:none;` +
+        `width:${MARK_SIZE_PIXELS}px;height:${MARK_SIZE_PIXELS}px;` +
+        // An ink of its own, as the other three severities have: drawn in the label's colour it was
+        // invisible against the label it qualifies. `develop:DESIGN.md` owns the rule and carries
+        // the measured distance to every other hue the panel spends.
+        `color:var(${VARIABLE_PREFIX}caveat);` +
+        `border:1px solid currentColor;border-radius:50%;` +
+        // The letter inside the ring, and it is the only type on the panel below the body size:
+        // an `i` at the body's own 11px leaves no ring to draw around it. Seven is the largest
+        // that leaves the ring untouched: at eight the stem meets it at the top.
+        `font-size:7px;font-weight:600;font-style:normal;line-height:1;}`;
 }
 
 /**
@@ -880,10 +887,4 @@ function composeStandingRules(): string {
         `border-radius:50%;` +
         `flex:none;background:var(${VARIABLE_PREFIX}border);}` +
         `.${CLASS.standingPip}.${CLASS.standingPipLit}{background:currentColor;}`;
-}
-
-export function composeStyleSheet(): string {
-    return `${composeFrameRules()}${composeRegionRules()}${composeListRules()}` +
-        `${composeRowRules()}${composeUnderListRules()}` +
-        `${composeTipRules()}${composeStandingRules()}`;
 }

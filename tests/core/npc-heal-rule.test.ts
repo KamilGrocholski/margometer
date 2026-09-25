@@ -20,17 +20,6 @@ import {
 const KEY = "npc_heal";
 const NPC_HEAL = "captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json";
 
-function isCarryingKey(message: string): boolean {
-    const parsed = parseProtocolMessage(message);
-    if (!parsed.ok) return false;
-    return parsed.value.parameters.some((one) => one.key === KEY);
-}
-
-/** Every recording carrying the key, so a rule about it is read on all of them and not on one. */
-function getRecordingsCarryingKey(): RecordedFight[] {
-    return readRecordedFights().filter((fight) => fight.messages.some(isCarryingKey));
-}
-
 Deno.test("the key is read wherever it stands, including where it states nothing", () => {
     const fight = lookupRecordedFight(NPC_HEAL);
     const roster = indexCombatantRoster(fight.combatants);
@@ -85,6 +74,17 @@ Deno.test("the restoration is the actor's, whichever combatant the other slot na
         }
     }
 });
+
+/** Every recording carrying the key, so a rule about it is read on all of them and not on one. */
+function getRecordingsCarryingKey(): RecordedFight[] {
+    return readRecordedFights().filter((fight) => fight.messages.some(isCarryingKey));
+}
+
+function isCarryingKey(message: string): boolean {
+    const parsed = parseProtocolMessage(message);
+    if (!parsed.ok) return false;
+    return parsed.value.parameters.some((one) => one.key === KEY);
+}
 
 /**
  * Which recordings the reading rests on. Named rather than counted, so one more arriving is a

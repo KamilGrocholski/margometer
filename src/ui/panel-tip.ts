@@ -48,6 +48,14 @@ export interface TipSize {
     groups: number;
 }
 
+export type TipRedraw = (standing: PanelElement, compose: () => PanelElement) => PanelElement;
+
+export interface TipHandle {
+    element: PanelElement;
+    onHover(key: string | null, clientY: number): void;
+    renderOpen(): void;
+}
+
 /**
  * Counted off **an opened row**, the widest screen the panel has: its three sections, each with
  * an unnamed row and a heading, and the two pinned rows. Counted off the ranking it was 128,
@@ -129,6 +137,22 @@ export function initTipRegister(): TipRegister {
     };
 }
 
+export function tallyTipSize(reading: TipReading | null): TipSize {
+    if (reading === null) return { lines: 1, groups: 0 };
+    let lines = getTipLinesForCharacters(reading.name.length, NAME_CHARACTERS_PER_LINE);
+    if (reading.subtitle !== null) {
+        lines += getTipLinesForCharacters(reading.subtitle.length, NOTE_CHARACTERS_PER_LINE);
+    }
+    for (const group of reading.groups) {
+        for (const line of group.lines) {
+            lines += getTipLineCost(line);
+        }
+    }
+    // The bound is on where the card is placed, never on what it holds: every line is drawn.
+    if (lines > TIP_LINES_MAXIMUM) lines = TIP_LINES_MAXIMUM;
+    return { lines, groups: reading.groups.length };
+}
+
 /**
  * What a run of text costs the height, on the floor its face is counted at. A floor of nought
  * answers infinity, and a text of nothing stands on a line all the same.
@@ -155,38 +179,56 @@ function getTipLineCost(line: TipLine): number {
     return getTipLinesForCharacters(line.text.length + marked, NOTE_CHARACTERS_PER_LINE);
 }
 
-export function tallyTipSize(reading: TipReading | null): TipSize {
-    if (reading === null) return { lines: 1, groups: 0 };
-    let lines = getTipLinesForCharacters(reading.name.length, NAME_CHARACTERS_PER_LINE);
+export function renderTip(
+    document: PanelDocument,
+    reading: TipReading | null,
+): PanelElement {
+    const tip = document.createElement("div");
+    tip.className = reading === null ? `${CLASS.tip} ${CLASS.tipHidden}` : CLASS.tip;
+    if (reading === null) return tip;
+    // A block rather than a span, because the name folds and an inline box would fold around
+    // whatever stood beside it. What its lines cost is `tallyTipSize` above.
+    const name = document.createElement("div");
+    name.className = CLASS.tipName;
+    name.textContent = reading.name;
+    tip.append(name);
     if (reading.subtitle !== null) {
-        lines += getTipLinesForCharacters(reading.subtitle.length, NOTE_CHARACTERS_PER_LINE);
+        const subtitle = document.createElement("div");
+        subtitle.className = CLASS.tipSubtitle;
+        subtitle.textContent = reading.subtitle;
+        tip.append(subtitle);
     }
-    for (const group of reading.groups) {
-        for (const line of group.lines) {
-            lines += getTipLineCost(line);
-        }
-    }
-    // The bound is on where the card is placed, never on what it holds: every line is drawn.
-    if (lines > TIP_LINES_MAXIMUM) lines = TIP_LINES_MAXIMUM;
-    return { lines, groups: reading.groups.length };
+    for (const group of reading.groups) tip.append(renderTipGroup(document, group));
+    return tip;
 }
 
-function renderTipHeading(
-    document: PanelDocument,
-    line: Extract<TipLine, { kind: typeof TIP_LINE.heading }>,
-): PanelElement {
+function renderTipGroup(document: PanelDocument, group: TipGroup): PanelElement {
     const element = document.createElement("div");
-    element.className = CLASS.tipHeading;
-    element.textContent = line.text;
+    element.className = CLASS.tipGroup;
+    for (const line of group.lines) element.append(renderTipLine(document, line));
     return element;
 }
 
-function composeTipLineClass(line: TipLine): string {
-    if (line.kind === TIP_LINE.sub) return `${CLASS.tipLine} ${CLASS.tipSub}`;
+function renderTipLine(document: PanelDocument, line: TipLine): PanelElement {
+    if (line.kind === TIP_LINE.note) return renderTipNote(document, line);
+    if (line.kind === TIP_LINE.heading) return renderTipHeading(document, line);
+    const element = document.createElement("div");
+    element.className = composeTipLineClass(line);
+    const label = document.createElement("span");
+    label.className = CLASS.tipLabel;
+    label.textContent = line.label;
+    const value = document.createElement("span");
+    value.className = CLASS.tipValue;
+    value.textContent = line.stated;
+    element.append(label);
+    // Before the value and never after it: the value column is right-aligned in `tabular-nums`,
+    // and a glyph behind it would offset the figures of the lines carrying one against those that
+    // do not. Before it, the column stays aligned and the glyph still stands at the figure.
     if (line.kind === TIP_LINE.stat) {
-        if (line.isStrong) return `${CLASS.tipLine} ${CLASS.tipStrong}`;
+        if (line.caveat !== null) element.append(renderTipCaveat(document));
     }
-    return CLASS.tipLine;
+    element.append(value);
+    return element;
 }
 
 /**
@@ -216,28 +258,6 @@ function composeTipNoteToneClass(tone: TipNoteTone): string {
     return "";
 }
 
-function renderTipLine(document: PanelDocument, line: TipLine): PanelElement {
-    if (line.kind === TIP_LINE.note) return renderTipNote(document, line);
-    if (line.kind === TIP_LINE.heading) return renderTipHeading(document, line);
-    const element = document.createElement("div");
-    element.className = composeTipLineClass(line);
-    const label = document.createElement("span");
-    label.className = CLASS.tipLabel;
-    label.textContent = line.label;
-    const value = document.createElement("span");
-    value.className = CLASS.tipValue;
-    value.textContent = line.stated;
-    element.append(label);
-    // Before the value and never after it: the value column is right-aligned in `tabular-nums`,
-    // and a glyph behind it would offset the figures of the lines carrying one against those that
-    // do not. Before it, the column stays aligned and the glyph still stands at the figure.
-    if (line.kind === TIP_LINE.stat) {
-        if (line.caveat !== null) element.append(renderTipCaveat(document));
-    }
-    element.append(value);
-    return element;
-}
-
 /**
  * The glyph a figure wears where its label names more than the figure counts. It takes its width
  * from the label beside it, which the sheet cuts rather than folds — `LABEL_CHARACTERS_MAXIMUM` in
@@ -250,34 +270,22 @@ function renderTipCaveat(document: PanelDocument): PanelElement {
     return element;
 }
 
-function renderTipGroup(document: PanelDocument, group: TipGroup): PanelElement {
+function renderTipHeading(
+    document: PanelDocument,
+    line: Extract<TipLine, { kind: typeof TIP_LINE.heading }>,
+): PanelElement {
     const element = document.createElement("div");
-    element.className = CLASS.tipGroup;
-    for (const line of group.lines) element.append(renderTipLine(document, line));
+    element.className = CLASS.tipHeading;
+    element.textContent = line.text;
     return element;
 }
 
-export function renderTip(
-    document: PanelDocument,
-    reading: TipReading | null,
-): PanelElement {
-    const tip = document.createElement("div");
-    tip.className = reading === null ? `${CLASS.tip} ${CLASS.tipHidden}` : CLASS.tip;
-    if (reading === null) return tip;
-    // A block rather than a span, because the name folds and an inline box would fold around
-    // whatever stood beside it. What its lines cost is `tallyTipSize` above.
-    const name = document.createElement("div");
-    name.className = CLASS.tipName;
-    name.textContent = reading.name;
-    tip.append(name);
-    if (reading.subtitle !== null) {
-        const subtitle = document.createElement("div");
-        subtitle.className = CLASS.tipSubtitle;
-        subtitle.textContent = reading.subtitle;
-        tip.append(subtitle);
+function composeTipLineClass(line: TipLine): string {
+    if (line.kind === TIP_LINE.sub) return `${CLASS.tipLine} ${CLASS.tipSub}`;
+    if (line.kind === TIP_LINE.stat) {
+        if (line.isStrong) return `${CLASS.tipLine} ${CLASS.tipStrong}`;
     }
-    for (const group of reading.groups) tip.append(renderTipGroup(document, group));
-    return tip;
+    return CLASS.tipLine;
 }
 
 export function setTipHidden(tip: PanelElement, isHidden: boolean): void {
@@ -322,45 +330,6 @@ function composeTipAcrossStyle(across: TipAcross | null): string {
     return `;${LEFT_VARIABLE}:${EDGE_RELEASED};${RIGHT_VARIABLE}:${at}`;
 }
 
-/** A run of nothing but notes, which is what a card puts last and what a trim never takes. */
-function isNoteGroup(group: TipGroup): boolean {
-    if (group.lines.length === 0) return false;
-    return group.lines.every((one) => one.kind === TIP_LINE.note);
-}
-
-function isTipWithin(reading: TipReading, room: number): boolean {
-    const height = getTipHeight(tallyTipSize(reading));
-    if (height === null) return true;
-    return height <= room;
-}
-
-/**
- * The card with its last sacrificeable run gone, or null where there is none left. The four
- * figures are what a card is for and the notes carry the suspicions — a claim that a figure above
- * may be wrong outranks how somebody fought — so what goes is between them, the last one first.
- */
-function composeGroupsWithout(groups: readonly TipGroup[]): TipGroup[] | null {
-    const last = groups.length - 1;
-    if (last < 1) return null;
-    const at = isNoteGroup(groups[last] ?? { lines: [] }) ? last - 1 : last;
-    if (at < 1) return null;
-    return [...groups.slice(0, at), ...groups.slice(at + 1)];
-}
-
-/** The card once something was given up: it says so, where a figure's qualifiers are read. */
-function composeTipCut(reading: TipReading, kept: readonly TipGroup[]): TipReading {
-    if (kept.length === reading.groups.length) return reading;
-    const said: TipLine = { kind: TIP_LINE.note, text: CARD_WORDS.cut, tone: TIP_NOTE_TONE.plain };
-    const last = kept[kept.length - 1];
-    if (last !== undefined) {
-        if (isNoteGroup(last)) {
-            const groups = [...kept.slice(0, -1), { lines: [...last.lines, said] }];
-            return { ...reading, groups };
-        }
-    }
-    return { ...reading, groups: [...kept, { lines: [said] }] };
-}
-
 /**
  * The card cut to the room there is, with a line saying so wherever anything was given up.
  *
@@ -384,12 +353,43 @@ export function composeTipWithin(reading: TipReading, room: number | null): TipR
     return composeTipCut(reading, kept);
 }
 
-export type TipRedraw = (standing: PanelElement, compose: () => PanelElement) => PanelElement;
+function isTipWithin(reading: TipReading, room: number): boolean {
+    const height = getTipHeight(tallyTipSize(reading));
+    if (height === null) return true;
+    return height <= room;
+}
 
-export interface TipHandle {
-    element: PanelElement;
-    onHover(key: string | null, clientY: number): void;
-    renderOpen(): void;
+/**
+ * The card with its last sacrificeable run gone, or null where there is none left. The four
+ * figures are what a card is for and the notes carry the suspicions — a claim that a figure above
+ * may be wrong outranks how somebody fought — so what goes is between them, the last one first.
+ */
+function composeGroupsWithout(groups: readonly TipGroup[]): TipGroup[] | null {
+    const last = groups.length - 1;
+    if (last < 1) return null;
+    const at = isNoteGroup(groups[last] ?? { lines: [] }) ? last - 1 : last;
+    if (at < 1) return null;
+    return [...groups.slice(0, at), ...groups.slice(at + 1)];
+}
+
+/** A run of nothing but notes, which is what a card puts last and what a trim never takes. */
+function isNoteGroup(group: TipGroup): boolean {
+    if (group.lines.length === 0) return false;
+    return group.lines.every((one) => one.kind === TIP_LINE.note);
+}
+
+/** The card once something was given up: it says so, where a figure's qualifiers are read. */
+function composeTipCut(reading: TipReading, kept: readonly TipGroup[]): TipReading {
+    if (kept.length === reading.groups.length) return reading;
+    const said: TipLine = { kind: TIP_LINE.note, text: CARD_WORDS.cut, tone: TIP_NOTE_TONE.plain };
+    const last = kept[kept.length - 1];
+    if (last !== undefined) {
+        if (isNoteGroup(last)) {
+            const groups = [...kept.slice(0, -1), { lines: [...last.lines, said] }];
+            return { ...reading, groups };
+        }
+    }
+    return { ...reading, groups: [...kept, { lines: [said] }] };
 }
 
 /**

@@ -16,17 +16,6 @@ const ASSERT_PACKAGE = "@std/assert";
 const READER_FILES = ["src/userscript-entry.ts", "src/userscript-boot.ts"];
 const READER_DIRECTORY = "src/ui/";
 
-function isReaderLayer(path: string): boolean {
-    if (path.startsWith(READER_DIRECTORY)) return true;
-    return READER_FILES.includes(path);
-}
-
-function lookupReaderAsserts(file: SourceFile): string[] {
-    if (!isReaderLayer(file.path)) return [];
-    const sources = readImportSources(file).filter((one) => one.startsWith(ASSERT_PACKAGE));
-    return sources.map((source) => `${file.path} imports "${source}"`);
-}
-
 Deno.test("an assertion the reader's layer imports is flagged, and one elsewhere is not", () => {
     const sample = composeSample(['import { assert } from "@std/assert/assert";']);
     const ui = { ...sample, path: "src/ui/panel-sample.ts" };
@@ -38,6 +27,17 @@ Deno.test("an assertion the reader's layer imports is flagged, and one elsewhere
     const core = { ...sample, path: "src/core/sample.ts" };
     assertEquals(lookupReaderAsserts(core), [], "while core asserts as it should");
 });
+
+function lookupReaderAsserts(file: SourceFile): string[] {
+    if (!isReaderLayer(file.path)) return [];
+    const sources = readImportSources(file).filter((one) => one.startsWith(ASSERT_PACKAGE));
+    return sources.map((source) => `${file.path} imports "${source}"`);
+}
+
+function isReaderLayer(path: string): boolean {
+    if (path.startsWith(READER_DIRECTORY)) return true;
+    return READER_FILES.includes(path);
+}
 
 Deno.test("nothing a reader touches imports an assertion", () => {
     assertEquals(readSourceFiles(["src"]).flatMap(lookupReaderAsserts), [], "A11");

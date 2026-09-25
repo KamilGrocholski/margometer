@@ -29,29 +29,6 @@ import {
 const NO_SNAPSHOTS =
     "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json";
 
-function view(session: FightSession, path: string): FightView {
-    const found = getFightView(session);
-    assertExists(found, `${path}: the replay produced a fight`);
-    return found;
-}
-
-function apply(session: FightSession, update: unknown, path: string): void {
-    const record = readPayloadEnvelope(update);
-    assert(record.ok, `${path}: a call is read by the envelope`);
-    const prepared = preparePayload(session, record.value, BLOWS_GRANTED);
-    assert(prepared.ok, `${path}: and is inside every bound`);
-    commitPayload(session, prepared.value);
-}
-
-/** The fight after every call, in order, as the panel would have read it. */
-function replayEach(fight: RecordedFight, visit: (view: FightView) => void): void {
-    const session = initFightSession(SESSION_OPTIONS);
-    for (const update of fight.updates) {
-        apply(session, update, fight.path);
-        visit(view(session, fight.path));
-    }
-}
-
 Deno.test("a recording replayed call by call reads as the whole of itself", () => {
     for (const fight of readRecordedFights()) {
         const replayed = view(replayRecordedFight(fight), fight.path);
@@ -62,6 +39,12 @@ Deno.test("a recording replayed call by call reads as the whole of itself", () =
         assert(replayed.isOver, `${fight.path}: every recording carries the end of its fight`);
     }
 });
+
+function view(session: FightSession, path: string): FightView {
+    const found = getFightView(session);
+    assertExists(found, `${path}: the replay produced a fight`);
+    return found;
+}
 
 Deno.test("a fight that opens replaces the one standing before it", () => {
     const [first, second] = readRecordedFights();
@@ -74,6 +57,14 @@ Deno.test("a fight that opens replaces the one standing before it", () => {
     const alone = view(replayRecordedFight(second), second.path);
     assertEquals(replaced.events, alone.events, "and it reads as it would alone");
 });
+
+function apply(session: FightSession, update: unknown, path: string): void {
+    const record = readPayloadEnvelope(update);
+    assert(record.ok, `${path}: a call is read by the envelope`);
+    const prepared = preparePayload(session, record.value, BLOWS_GRANTED);
+    assert(prepared.ok, `${path}: and is inside every bound`);
+    commitPayload(session, prepared.value);
+}
 
 Deno.test("every recording is read whole, by the count the payloads themselves state", () => {
     for (const fight of readRecordedFights()) {
@@ -188,6 +179,15 @@ Deno.test("Dotyk anioła counts the heals the decoder reads, over every recordin
     }
     assertEquals([...counts].sort(), [0, 1, 2], "every count under three, and three never");
 });
+
+/** The fight after every call, in order, as the panel would have read it. */
+function replayEach(fight: RecordedFight, visit: (view: FightView) => void): void {
+    const session = initFightSession(SESSION_OPTIONS);
+    for (const update of fight.updates) {
+        apply(session, update, fight.path);
+        visit(view(session, fight.path));
+    }
+}
 
 /**
  * What is held is the **shape**: a charge never runs past what the game says it runs for, a mark

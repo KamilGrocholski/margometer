@@ -17,18 +17,55 @@ import {
 import { ROWS_BESIDE_THE_STATUSES } from "#/src/ui/panel-words.ts";
 import { BUFF_BITS } from "#/tests/frozen-tables.ts";
 
-/** The most rows the composer hands over for one fighter: a row per status, and the rest. */
-const TOOLTIP_ROWS_MAXIMUM = BUFF_BITS.length + ROWS_BESIDE_THE_STATUSES;
-
-/** What the game composes for a fighter before anybody adds to it. */
-const THEIRS = '<div class="nick">Gracz</div>';
-
 /** One fighter's registry entry, and every call the writer made of it. */
 interface Registry {
     text: string;
     appended: string[];
     replaced: string[];
     told: number;
+}
+
+/** The most rows the composer hands over for one fighter: a row per status, and the rest. */
+const TOOLTIP_ROWS_MAXIMUM = BUFF_BITS.length + ROWS_BESIDE_THE_STATUSES;
+
+/** What the game composes for a fighter before anybody adds to it. */
+const THEIRS = '<div class="nick">Gracz</div>';
+
+/**
+ * ⚠️ **One bound, two spellings, and only a guard keeps them level.** `game/` reaches into no
+ * `ui/` module, so the writer states the maximum a second time — and a block composed up to the
+ * composer's bound must be one the writer will still take, or the assertion at the crossing
+ * fires on a fighter with a lot to say.
+ */
+Deno.test("the writer takes every row the composer is allowed to compose", () => {
+    assert(
+        ROWS_WRITTEN_MAXIMUM >= TOOLTIP_ROWS_MAXIMUM,
+        `the writer stops at ${ROWS_WRITTEN_MAXIMUM} and the composer may hand it ` +
+            `${TOOLTIP_ROWS_MAXIMUM}`,
+    );
+});
+
+Deno.test("a block lands on the fighter it was composed for, and on nobody else", () => {
+    const first = composeRegistry();
+    const second = composeRegistry();
+    const page = composePage([
+        composeWarrior(11, "Gracz 1", first),
+        composeWarrior(21, "Renegat 1", second),
+    ]);
+    const writing = initPageTooltip(page).writeRows(new Map([[11, ["MargoMeter"]]]));
+    assertEquals(writing, ok({ written: 1, asked: 1 }), "one block asked for, one landed");
+    assertEquals(first.text, `${THEIRS}<br>MargoMeter`, "under what the game composed");
+    assertEquals(second.text, THEIRS, "and the fighter it was not composed for got nothing");
+});
+
+function composeRegistry(text: string = THEIRS): Registry {
+    return { text, appended: [], replaced: [], told: 0 };
+}
+
+function composePage(warriors: unknown[]) {
+    const warriorsList: Record<string, unknown> = {};
+    for (const [at, warrior] of warriors.entries()) warriorsList[`${at}`] = warrior;
+    return { Engine: { battle: { warriorsList } } };
 }
 
 /** A warrior as the client holds one: an id, a name, and its own jQuery object under `$`. */
@@ -62,50 +99,6 @@ function composeWarrior(id: number, name: string, registry: Registry, over: {
     return { id, name, $: element };
 }
 
-function composeRegistry(text: string = THEIRS): Registry {
-    return { text, appended: [], replaced: [], told: 0 };
-}
-
-function composePage(warriors: unknown[]) {
-    const warriorsList: Record<string, unknown> = {};
-    for (const [at, warrior] of warriors.entries()) warriorsList[`${at}`] = warrior;
-    return { Engine: { battle: { warriorsList } } };
-}
-
-/** One fighter, a writer, and the page they stand on — what most of these tests start from. */
-function composeOne(): { registry: Registry; writer: TooltipPort } {
-    const registry = composeRegistry();
-    const page = composePage([composeWarrior(11, "Gracz 1", registry)]);
-    return { registry, writer: initPageTooltip(page) };
-}
-
-/**
- * ⚠️ **One bound, two spellings, and only a guard keeps them level.** `game/` reaches into no
- * `ui/` module, so the writer states the maximum a second time — and a block composed up to the
- * composer's bound must be one the writer will still take, or the assertion at the crossing
- * fires on a fighter with a lot to say.
- */
-Deno.test("the writer takes every row the composer is allowed to compose", () => {
-    assert(
-        ROWS_WRITTEN_MAXIMUM >= TOOLTIP_ROWS_MAXIMUM,
-        `the writer stops at ${ROWS_WRITTEN_MAXIMUM} and the composer may hand it ` +
-            `${TOOLTIP_ROWS_MAXIMUM}`,
-    );
-});
-
-Deno.test("a block lands on the fighter it was composed for, and on nobody else", () => {
-    const first = composeRegistry();
-    const second = composeRegistry();
-    const page = composePage([
-        composeWarrior(11, "Gracz 1", first),
-        composeWarrior(21, "Renegat 1", second),
-    ]);
-    const writing = initPageTooltip(page).writeRows(new Map([[11, ["MargoMeter"]]]));
-    assertEquals(writing, ok({ written: 1, asked: 1 }), "one block asked for, one landed");
-    assertEquals(first.text, `${THEIRS}<br>MargoMeter`, "under what the game composed");
-    assertEquals(second.text, THEIRS, "and the fighter it was not composed for got nothing");
-});
-
 /**
  * ⚠️ **One call per row, and the client's own `<br>` is the break between them.** This is what
  * buys the block its shape without this add-on writing a tag — so a writer that joined the rows
@@ -119,6 +112,13 @@ Deno.test("every row goes over on a call of its own, and an open tooltip is told
     assertEquals(registry.replaced, [], "and nothing of theirs was replaced to get there");
     assertStrictEquals(registry.told, 1, "and the tooltip was told to draw again, once");
 });
+
+/** One fighter, a writer, and the page they stand on — what most of these tests start from. */
+function composeOne(): { registry: Registry; writer: TooltipPort } {
+    const registry = composeRegistry();
+    const page = composePage([composeWarrior(11, "Gracz 1", registry)]);
+    return { registry, writer: initPageTooltip(page) };
+}
 
 /**
  * ⚠️ **The failure this writer exists for.** It is handed every fighter on every payload, so a

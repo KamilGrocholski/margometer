@@ -16,6 +16,18 @@ import {
 
 const FUNCTION_LINES_MAXIMUM = 70;
 
+Deno.test("a function of seventy lines passes, and one of seventy-one is flagged", () => {
+    const atMaximum = composeFunctionSample(FUNCTION_LINES_MAXIMUM - 2);
+    assertEquals(lookupLongFunctions(atMaximum), [], "seventy lines is one page");
+    const pastMaximum = composeFunctionSample(FUNCTION_LINES_MAXIMUM - 1);
+    assertEquals(lookupLongFunctions(pastMaximum), ["sample.ts:1 runs 71 lines"], "one past it");
+});
+
+function composeFunctionSample(bodyLines: number): SourceFile {
+    const body = Array.from({ length: bodyLines }, (_, index) => `    const a${index} = ${index};`);
+    return composeSample(["function sample() {", ...body, "}"]);
+}
+
 function lookupLongFunctions(file: SourceFile): string[] {
     const found: string[] = [];
     for (const node of readAstNodes(file, FUNCTION_NODES)) {
@@ -27,18 +39,6 @@ function lookupLongFunctions(file: SourceFile): string[] {
     }
     return found;
 }
-
-function composeFunctionSample(bodyLines: number): SourceFile {
-    const body = Array.from({ length: bodyLines }, (_, index) => `    const a${index} = ${index};`);
-    return composeSample(["function sample() {", ...body, "}"]);
-}
-
-Deno.test("a function of seventy lines passes, and one of seventy-one is flagged", () => {
-    const atMaximum = composeFunctionSample(FUNCTION_LINES_MAXIMUM - 2);
-    assertEquals(lookupLongFunctions(atMaximum), [], "seventy lines is one page");
-    const pastMaximum = composeFunctionSample(FUNCTION_LINES_MAXIMUM - 1);
-    assertEquals(lookupLongFunctions(pastMaximum), ["sample.ts:1 runs 71 lines"], "one past it");
-});
 
 Deno.test("no function in the tree runs past seventy lines", () => {
     const found = readSourceFiles(SOURCE_DIRECTORIES).flatMap(lookupLongFunctions);

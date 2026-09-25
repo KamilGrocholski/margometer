@@ -21,12 +21,6 @@ const NAMES_TRIED = 40;
 const SOMEWHERE_DOWN = 240;
 const SOMEWHERE = "damageDealtApplied|everyone";
 
-function composeElementOfClass(className: string): PanelElement {
-    const element = composeFakeDocument().createElement("div");
-    element.className = className;
-    return element;
-}
-
 Deno.test("a list nobody has scrolled stands at the top", () => {
     const kept = initScrollMemo();
     assertStrictEquals(kept.getTop("damageDealtApplied|everyone"), 0, "and says so as a zero");
@@ -67,6 +61,12 @@ Deno.test("a position is read off a list and off nothing else", () => {
     slot.scrollTop = SOMEWHERE_DOWN;
     assertStrictEquals(readTopOfList(slot), null, "and a slot holds no position at all");
 });
+
+function composeElementOfClass(className: string): PanelElement {
+    const element = composeFakeDocument().createElement("div");
+    element.className = className;
+    return element;
+}
 
 Deno.test("a position is put on a list and never on a slot", () => {
     const list = composeElementOfClass(CLASS.list);

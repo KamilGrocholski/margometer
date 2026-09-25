@@ -16,11 +16,6 @@ import {
     type TurnStanding,
 } from "./turn-clock.ts";
 
-/** A mask arrives as one integer, so a bit past the thirty-second is not one this reader holds. */
-export const STATUS_BITS_MAXIMUM = 32;
-/** Past the combatants any fight puts on a board: a mask may name a warrior the cast does not. */
-const CARRIERS_MAXIMUM = 64;
-
 /** One status one combatant is holding, with what has passed of it on their own clock. */
 export interface CarriedStatus {
     combatantId: number;
@@ -37,6 +32,11 @@ export interface CarriedStatusWalk {
     /** Keyed by combatant, then by bit, so a status gone is a key removed and never a zero. */
     readonly heldByCombatantId: ReadonlyMap<number, ReadonlyMap<number, number>>;
 }
+
+/** A mask arrives as one integer, so a bit past the thirty-second is not one this reader holds. */
+export const STATUS_BITS_MAXIMUM = 32;
+/** Past the combatants any fight puts on a board: a mask may name a warrior the cast does not. */
+const CARRIERS_MAXIMUM = 64;
 
 export const NO_CARRIED_STATUS_WALK: CarriedStatusWalk = {
     standing: NO_TURN_STANDING,

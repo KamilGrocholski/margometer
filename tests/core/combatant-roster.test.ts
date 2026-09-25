@@ -20,14 +20,6 @@ const TWO_OF_A_NAME = "captures/2026-08-04-tempest-lowca-vs-odyncze-178524427530
 /** One entry, no snapshot, and so no roster: the fight the panel can say nothing about. */
 const NOBODY = "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json";
 
-function composeTestCombatant(id: number, name: string): Combatant {
-    return { id, name, side: 1, profession: "w", level: 40, healthMaximum: 745 };
-}
-
-function composeTestCast(count: number): Combatant[] {
-    return Array.from({ length: count }, (_, index) => composeTestCombatant(index + 1, "Gracz"));
-}
-
 Deno.test("a name two combatants answer to resolves to nobody", () => {
     const roster = indexCombatantRoster(lookupRecordedFight(TWO_OF_A_NAME).combatants);
     assertEquals(lookupCombatantIdByName(roster, "Odyniec"), null, "a shared name names nobody");
@@ -43,6 +35,10 @@ Deno.test("a roster of nothing holds nobody, and a roster of one holds one", () 
     assertEquals(one.byId.size, 1, "one combatant is a roster");
     assertEquals(lookupCombatantIdByName(one, "Gracz 1"), 1, "and answers to their own name");
 });
+
+function composeTestCombatant(id: number, name: string): Combatant {
+    return { id, name, side: 1, profession: "w", level: 40, healthMaximum: 745 };
+}
 
 Deno.test("a cast naming one combatant twice is a broken invariant, not a second sighting", () => {
     const twice = [composeTestCombatant(1, "Gracz 1"), composeTestCombatant(1, "Gracz 1")];
@@ -64,6 +60,10 @@ Deno.test("a cast is held up to its stated bound, and refused one past it", () =
         "a cast stays inside its stated bound",
     );
 });
+
+function composeTestCast(count: number): Combatant[] {
+    return Array.from({ length: count }, (_, index) => composeTestCombatant(index + 1, "Gracz"));
+}
 
 Deno.test("a name that has gone ambiguous never comes back", () => {
     const listed = [

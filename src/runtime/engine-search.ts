@@ -21,10 +21,6 @@ import {
 } from "#/src/game/engine-battle.ts";
 import type { IntervalHandle, IntervalScheduler } from "#/src/game/page-interval.ts";
 
-const LOOK_EVERY_MILLISECONDS = 250;
-/** Four looks a second for a minute. A game that has not arrived by then is not arriving. */
-export const LOOKS_MAXIMUM = 240;
-
 /** How a search ends, and the one thing it says on the way. Each is said once. */
 export interface SearchReport {
     onAttached(wrap: WrapHandle): void;
@@ -50,6 +46,10 @@ interface Search {
     hasFailed: boolean;
     handle: IntervalHandle | null;
 }
+
+const LOOK_EVERY_MILLISECONDS = 250;
+/** Four looks a second for a minute. A game that has not arrived by then is not arriving. */
+export const LOOKS_MAXIMUM = 240;
 
 export function startEngineSearch(
     engine: EnginePort,
@@ -89,6 +89,39 @@ export function startEngineSearch(
     };
 }
 
+/** A look that failed is still a look, so the search runs out where one finding nothing does. */
+function failLook(
+    search: Search,
+    report: SearchReport,
+    failure: BrokenInvariant | ForeignFailure,
+): void {
+    if (!search.hasFailed) {
+        search.hasFailed = true;
+        report.onLookFailed(failure);
+    }
+    abandonAtBound(search, report);
+}
+
+function abandonAtBound(search: Search, report: SearchReport): void {
+    if (search.looks < LOOKS_MAXIMUM) return;
+    if (search.isDone) return;
+    stopLooking(search);
+    const looks = search.looks;
+    report.onAbandoned({ kind: ENGINE_FAILURE.searchAbandoned, looks, maximum: LOOKS_MAXIMUM });
+}
+
+/**
+ * ⚠️ The clock is the page's, and a cancel it refuses leaves a search that is done and a timer that
+ * finds it done at every tick, which is the one thing the refusal can cost; so it is not reported.
+ */
+function stopLooking(search: Search): void {
+    search.isDone = true;
+    const handle = search.handle;
+    search.handle = null;
+    if (handle === null) return;
+    void handle.cancel();
+}
+
 function look(
     search: Search,
     engine: EnginePort,
@@ -122,37 +155,4 @@ function look(
     if (search.hasRefused) return;
     search.hasRefused = true;
     report.onRefused(wrapped.error);
-}
-
-/** A look that failed is still a look, so the search runs out where one finding nothing does. */
-function failLook(
-    search: Search,
-    report: SearchReport,
-    failure: BrokenInvariant | ForeignFailure,
-): void {
-    if (!search.hasFailed) {
-        search.hasFailed = true;
-        report.onLookFailed(failure);
-    }
-    abandonAtBound(search, report);
-}
-
-function abandonAtBound(search: Search, report: SearchReport): void {
-    if (search.looks < LOOKS_MAXIMUM) return;
-    if (search.isDone) return;
-    stopLooking(search);
-    const looks = search.looks;
-    report.onAbandoned({ kind: ENGINE_FAILURE.searchAbandoned, looks, maximum: LOOKS_MAXIMUM });
-}
-
-/**
- * ⚠️ The clock is the page's, and a cancel it refuses leaves a search that is done and a timer that
- * finds it done at every tick, which is the one thing the refusal can cost; so it is not reported.
- */
-function stopLooking(search: Search): void {
-    search.isDone = true;
-    const handle = search.handle;
-    search.handle = null;
-    if (handle === null) return;
-    void handle.cancel();
 }

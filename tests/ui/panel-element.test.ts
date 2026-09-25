@@ -100,83 +100,34 @@ const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1-178651
 /** The widest spread of keys behind a half-named figure in the corpus: four of them. */
 const FOUR_KINDS = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";
 
-function readFight(): ScreenReading {
-    const { roster, statistics } = tallyRecordedFight(HILDUR);
-    return presentScreen(
-        statistics,
-        roster,
-        "damageDealtApplied",
-        "everyone",
-        null,
-        NOTHING_SUSPECT,
-    );
-}
+/** Every heading a level may draw, and there is no sixth: none of them is a name out of a fight. */
+const CUT_HEADINGS: string[] = [
+    PANEL_WORDS.dealtTo,
+    PANEL_WORDS.takenFrom,
+    PANEL_WORDS.skills,
+    PANEL_WORDS.damageKind,
+    PANEL_WORDS.healthSource,
+];
 
-function openFirstRow() {
-    const { roster, statistics } = tallyRecordedFight(HILDUR);
-    const reading = presentScreen(
-        statistics,
-        roster,
-        "damageDealtApplied",
-        "everyone",
-        null,
-        NOTHING_SUSPECT,
-    );
-    const first = reading.rows[0];
-    assertExists(first, "there is a row to open");
-    const drill = presentDrill(statistics, roster, "damageDealtApplied", first.combatantId);
-    assertExists(drill, "and the screen it sits on cuts further");
-    return { reading, drill, opened: first };
-}
+/**
+ * The marks a row may wear before its name, each drawn only on the rows it reaches. They are named
+ * here rather than filtered by shape: a cell appearing before a name for any other reason is the
+ * bug the check below was written for, and a filter that could not tell the two apart would let
+ * it back in.
+ */
+const ROW_MARK_CELLS = ["row-suspect", "row-caveat", "row-turn"];
 
-/** The fight the pinned tests are read from, on the screen each of them asks about. */
-function readPinnedFight(
-    metric: PanelMetric,
-    choice: PanelSideChoice = "everyone",
-    path: string = HILDUR,
-) {
-    const { roster, statistics } = tallyRecordedFight(path);
-    const readerSide = [...roster.byId.values()][0]?.side ?? null;
-    const reading = presentScreen(
-        statistics,
-        roster,
-        metric,
-        choice,
-        readerSide,
-        NOTHING_SUSPECT,
+Deno.test("the panel goes into a shadow root, under a name of ours", () => {
+    const host = draw(readFight());
+    assertEquals(host.attributes.get("id"), "MargoMeter-Panel", "the host is named as ours");
+    assertExists(host.shadow, "and everything else is behind a root of its own");
+    assertEquals(host.children.length, 0, "nothing is put beside the root");
+    assertEquals(
+        host.shadow.length,
+        5,
+        "the look, the bar, the panel, the detail, and the window beside it",
     );
-    return { reading, statistics, roster, readerSide };
-}
-
-/** A pinned row on one screen and one choice of side, with the card a pointer opens on it. */
-function readPinned(
-    metric: PanelMetric,
-    choice: PanelSideChoice,
-    path: string = HILDUR,
-): { pinned: PinnedRow; card: ReturnType<typeof readTip> } {
-    const { reading } = readPinnedFight(metric, choice, path);
-    return readPinnedCard(reading, metric, choice);
-}
-
-/** The same, off a reading built by hand: no recording pins a figure on either healing screen. */
-function readPinnedCard(
-    reading: ScreenReading,
-    metric: PanelMetric,
-    choice: PanelSideChoice,
-): { pinned: PinnedRow; card: ReturnType<typeof readTip> } {
-    const pinned = reading.pinned[0];
-    assertExists(pinned, `${metric} ${choice}: this fight pins a figure`);
-    const document = composeFakeDocument();
-    const panel = initTestView(document);
-    panel.render({ ...composeShownScreen(reading, metric), side: choice });
-    const host = panel.element as FakeElement;
-    const part = getElementsWithin(host).find(
-        (one) => one.attributes.get("data-tip") === `pinned:${pinned.end}`,
-    );
-    assertExists(part, `${metric} ${choice}: the pinned row is drawn`);
-    pointAtElement(host, "pointermove", part, 300);
-    return { pinned, card: readTip(host) };
-}
+});
 
 function draw(
     reading: ScreenReading,
@@ -197,17 +148,17 @@ function draw(
     return panel.element as FakeElement;
 }
 
-Deno.test("the panel goes into a shadow root, under a name of ours", () => {
-    const host = draw(readFight());
-    assertEquals(host.attributes.get("id"), "MargoMeter-Panel", "the host is named as ours");
-    assertExists(host.shadow, "and everything else is behind a root of its own");
-    assertEquals(host.children.length, 0, "nothing is put beside the root");
-    assertEquals(
-        host.shadow.length,
-        5,
-        "the look, the bar, the panel, the detail, and the window beside it",
+function readFight(): ScreenReading {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    return presentScreen(
+        statistics,
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
     );
-});
+}
 
 Deno.test("every name a reader meets before the panel's contents is ours", () => {
     const host = draw(readFight());
@@ -347,6 +298,25 @@ Deno.test("the shelf stands at its own height, whatever the side strip was last 
     assertEquals(readShelfHeight("opposing"), everyone, "and neither does the other one");
 });
 
+/** The fight the pinned tests are read from, on the screen each of them asks about. */
+function readPinnedFight(
+    metric: PanelMetric,
+    choice: PanelSideChoice = "everyone",
+    path: string = HILDUR,
+) {
+    const { roster, statistics } = tallyRecordedFight(path);
+    const readerSide = [...roster.byId.values()][0]?.side ?? null;
+    const reading = presentScreen(
+        statistics,
+        roster,
+        metric,
+        choice,
+        readerSide,
+        NOTHING_SUSPECT,
+    );
+    return { reading, statistics, roster, readerSide };
+}
+
 Deno.test("a fight draws a row for everybody in it, named", () => {
     const reading = readFight();
     const host = draw(reading);
@@ -440,6 +410,36 @@ Deno.test("a pinned row says what the game left out, and where its figure stands
     );
     assertEquals(narrowed.card.notes.length, 4, "which is the third sentence and the last");
 });
+
+/** A pinned row on one screen and one choice of side, with the card a pointer opens on it. */
+function readPinned(
+    metric: PanelMetric,
+    choice: PanelSideChoice,
+    path: string = HILDUR,
+): { pinned: PinnedRow; card: ReturnType<typeof readTip> } {
+    const { reading } = readPinnedFight(metric, choice, path);
+    return readPinnedCard(reading, metric, choice);
+}
+
+/** The same, off a reading built by hand: no recording pins a figure on either healing screen. */
+function readPinnedCard(
+    reading: ScreenReading,
+    metric: PanelMetric,
+    choice: PanelSideChoice,
+): { pinned: PinnedRow; card: ReturnType<typeof readTip> } {
+    const pinned = reading.pinned[0];
+    assertExists(pinned, `${metric} ${choice}: this fight pins a figure`);
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading, metric), side: choice });
+    const host = panel.element as FakeElement;
+    const part = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-tip") === `pinned:${pinned.end}`,
+    );
+    assertExists(part, `${metric} ${choice}: the pinned row is drawn`);
+    pointAtElement(host, "pointermove", part, 300);
+    return { pinned, card: readTip(host) };
+}
 
 /**
  * The sentence a screen showing a cut owes, and the one it must not repeat: the figure there is
@@ -667,6 +667,23 @@ Deno.test("an end left out inside an opened figure says what was left out, and n
         "one sentence, and it is the one about what the game did not say",
     );
 });
+
+function openFirstRow() {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const reading = presentScreen(
+        statistics,
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const first = reading.rows[0];
+    assertExists(first, "there is a row to open");
+    const drill = presentDrill(statistics, roster, "damageDealtApplied", first.combatantId);
+    assertExists(drill, "and the screen it sits on cuts further");
+    return { reading, drill, opened: first };
+}
 
 Deno.test("the fight is totalled in two figures, and a suspicion is said under them", () => {
     const reading = readFight();
@@ -1030,18 +1047,6 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
     );
 });
 
-/** How many rows an opened figure draws, over all three of its cuts. */
-function countDrillRows(drill: {
-    byOpponent: { rows: unknown[]; unnamed: unknown };
-    bySkill: { rows: unknown[]; plain: unknown };
-    byElement: { rows: unknown[]; unnamed: unknown };
-}): number {
-    const held = (rows: unknown[], extra: unknown) => rows.length + (extra === null ? 0 : 1);
-    return held(drill.byOpponent.rows, drill.byOpponent.unnamed) +
-        held(drill.bySkill.rows, drill.bySkill.plain) +
-        held(drill.byElement.rows, drill.byElement.unnamed);
-}
-
 Deno.test("an opened row stands over the screen, and states whose it is", () => {
     const { reading, drill, opened } = openFirstRow();
     const document = composeFakeDocument();
@@ -1088,6 +1093,18 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     const crumb = within.filter((one) => one.className === "crumb");
     assertEquals(crumb.length, 1, "and one way back");
 });
+
+/** How many rows an opened figure draws, over all three of its cuts. */
+function countDrillRows(drill: {
+    byOpponent: { rows: unknown[]; unnamed: unknown };
+    bySkill: { rows: unknown[]; plain: unknown };
+    byElement: { rows: unknown[]; unnamed: unknown };
+}): number {
+    const held = (rows: unknown[], extra: unknown) => rows.length + (extra === null ? 0 : 1);
+    return held(drill.byOpponent.rows, drill.byOpponent.unnamed) +
+        held(drill.bySkill.rows, drill.bySkill.plain) +
+        held(drill.byElement.rows, drill.byElement.unnamed);
+}
 
 Deno.test("a ranking row says which side it stands on, on the edge opposite the cap", () => {
     const reading = readFight();
@@ -1374,41 +1391,6 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
     );
 });
 
-/** Whether a `font` shorthand states the whole-pixel line the rest of the panel is drawn on. */
-function getIsLineWhole(font: string): boolean {
-    const slash = font.indexOf("/");
-    if (slash === -1) return false;
-    const ends = font.indexOf(" ", slash);
-    if (ends === -1) return false;
-    return font.slice(slash + 1, ends).endsWith("px");
-}
-
-/**
- * Which regions are undressed for the ground they paint.
- *
- * `:host{all:initial}` reaches every child of the root and nothing else does, so a region hanging
- * there is drawn in the browser's own serif at `medium`, in `canvastext`, unless it says
- * otherwise. A box painting no ground of its own puts no text on one either, so it is exempt.
- */
-function getUndressedRegions(sheet: string, classNames: readonly string[]): string[] {
-    const found: string[] = [];
-    for (const className of classNames) {
-        const body = getRuleBody(sheet, `.${className}`);
-        if (getDeclaration(body, "background") === null) continue;
-        const font = getDeclaration(body, "font");
-        if (font === null) {
-            found.push(className);
-            continue;
-        }
-        if (!getIsLineWhole(font)) {
-            found.push(className);
-            continue;
-        }
-        if (getDeclaration(body, "color") === null) found.push(className);
-    }
-    return found;
-}
-
 Deno.test("a region hanging off the root states its own type and its own ink", () => {
     // The detail window stated neither, and was drawn in the browser's serif at `medium` in black
     // on `raised` — figures nobody could read. Seen in Chrome 152 on 2026-08-29.
@@ -1440,6 +1422,41 @@ Deno.test("a region hanging off the root states its own type and its own ink", (
     );
     assertEquals(getUndressedRegions(".a{display:flex;}", ["a"]), [], "and one painting no ground");
 });
+
+/**
+ * Which regions are undressed for the ground they paint.
+ *
+ * `:host{all:initial}` reaches every child of the root and nothing else does, so a region hanging
+ * there is drawn in the browser's own serif at `medium`, in `canvastext`, unless it says
+ * otherwise. A box painting no ground of its own puts no text on one either, so it is exempt.
+ */
+function getUndressedRegions(sheet: string, classNames: readonly string[]): string[] {
+    const found: string[] = [];
+    for (const className of classNames) {
+        const body = getRuleBody(sheet, `.${className}`);
+        if (getDeclaration(body, "background") === null) continue;
+        const font = getDeclaration(body, "font");
+        if (font === null) {
+            found.push(className);
+            continue;
+        }
+        if (!getIsLineWhole(font)) {
+            found.push(className);
+            continue;
+        }
+        if (getDeclaration(body, "color") === null) found.push(className);
+    }
+    return found;
+}
+
+/** Whether a `font` shorthand states the whole-pixel line the rest of the panel is drawn on. */
+function getIsLineWhole(font: string): boolean {
+    const slash = font.indexOf("/");
+    if (slash === -1) return false;
+    const ends = font.indexOf(" ", slash);
+    if (ends === -1) return false;
+    return font.slice(slash + 1, ends).endsWith("px");
+}
 
 Deno.test("every row a reader can point at says which detail is its own", () => {
     const host = draw(readFight());
@@ -2135,25 +2152,6 @@ Deno.test("a lone row of a section names what the heading over it never does", (
     assertEquals(headings(keyed), [PANEL_WORDS.skills], "and so is a lone key row");
 });
 
-/** Every heading a level may draw, and there is no sixth: none of them is a name out of a fight. */
-const CUT_HEADINGS: string[] = [
-    PANEL_WORDS.dealtTo,
-    PANEL_WORDS.takenFrom,
-    PANEL_WORDS.skills,
-    PANEL_WORDS.damageKind,
-    PANEL_WORDS.healthSource,
-];
-
-/** What each heading is made of: the words it wears, and the classes of its two cells. */
-function getHeadingCells(host: FakeElement): Array<[string, string[]]> {
-    return getElementsWithin(host)
-        .filter((one) => one.className === CLASS.section)
-        .map((one) => [
-            one.children[0]?.textContent ?? "",
-            one.children.map((cell) => cell.className),
-        ]);
-}
-
 /**
  * ⚠️ **A heading is two cells and a constant, at every level.** Both were class-less spans until
  * 2026-09-01, so nothing held the figure beside a heading to one line and nothing stopped a heading
@@ -2210,6 +2208,16 @@ Deno.test("a heading is its words and a figure, and says only what its level is 
     }
     assert(counted >= levels.length, "and every level drawn was measured, not skipped");
 });
+
+/** What each heading is made of: the words it wears, and the classes of its two cells. */
+function getHeadingCells(host: FakeElement): Array<[string, string[]]> {
+    return getElementsWithin(host)
+        .filter((one) => one.className === CLASS.section)
+        .map((one) => [
+            one.children[0]?.textContent ?? "",
+            one.children.map((cell) => cell.className),
+        ]);
+}
 
 /** The figures under the list are cells like any other, and the class is what says so. */
 Deno.test("both totals and what belongs to neither side are drawn as figures", () => {
@@ -2404,30 +2412,6 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
     }
 });
 
-/**
- * The marks a row may wear before its name, each drawn only on the rows it reaches. They are named
- * here rather than filtered by shape: a cell appearing before a name for any other reason is the
- * bug the check below was written for, and a filter that could not tell the two apart would let
- * it back in.
- */
-const ROW_MARK_CELLS = ["row-suspect", "row-caveat", "row-turn"];
-
-/** Where a row's name starts, which is the sum of every cell drawn before it. */
-function getCellsBeforeName(row: FakeElement): string[] {
-    const before: string[] = [];
-    for (const part of row.children) {
-        const named = part.className.split(" ")[0] ?? "";
-        if (named === "row-name") return before;
-        before.push(named);
-    }
-    return before;
-}
-
-/** The same cells with the marks taken out, which is the shape every row keeps whatever it says. */
-function getCellsBeforeMarks(row: FakeElement): string[] {
-    return getCellsBeforeName(row).filter((one) => !ROW_MARK_CELLS.includes(one));
-}
-
 Deno.test("every row in a list draws the same cells before its name", () => {
     // The bug this catches was photographed. A ranking row's place held the space before its
     // name and a drilled row had a profession badge holding the same space; when the badge went,
@@ -2465,6 +2449,22 @@ Deno.test("every row in a list draws the same cells before its name", () => {
         assertArrayIncludes(ROW_MARK_CELLS, [cell], `${cell}: a cell before a name and no mark`);
     }
 });
+
+/** The same cells with the marks taken out, which is the shape every row keeps whatever it says. */
+function getCellsBeforeMarks(row: FakeElement): string[] {
+    return getCellsBeforeName(row).filter((one) => !ROW_MARK_CELLS.includes(one));
+}
+
+/** Where a row's name starts, which is the sum of every cell drawn before it. */
+function getCellsBeforeName(row: FakeElement): string[] {
+    const before: string[] = [];
+    for (const part of row.children) {
+        const named = part.className.split(" ")[0] ?? "";
+        if (named === "row-name") return before;
+        before.push(named);
+    }
+    return before;
+}
 
 /**
  * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, the healer at 469657: two announced
@@ -2624,6 +2624,29 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
     }
 });
 
+/** The other mark, on the sections that open by it: a part states the same instruction. */
+Deno.test("a part that opens says so under the same words a person does", () => {
+    const given = composeNotesForOpenedRow("healthGiven", 469657);
+    assertEquals(
+        given.get("Zdrowa atmosfera"),
+        [CARD_WORDS.gesture],
+        "an announcement says pressing it opens",
+    );
+    assertEquals(
+        given.get(getWordsForHealthSource("heal")),
+        [CARD_WORDS.gesture],
+        "and so does the key beside it, which opens onto whom the health reached",
+    );
+    // The same key on the screen about what reached this combatant: a key names whoever received
+    // the health, so the receiving side keeps no giver to list and the row promises nothing.
+    const restored = composeNotesForOpenedRow("healthRestored", 469657);
+    assertEquals(
+        restored.get(getWordsForHealthSource("heal")),
+        [],
+        "the key promises nothing where the statistics keep no cut of it",
+    );
+});
+
 /**
  * The notes on the rows of one opened figure, read off the drawn panel: the name a row is drawn
  * under, and what its detail says about pressing it.
@@ -2657,46 +2680,6 @@ function composeNotesForOpenedRow(
     return found;
 }
 
-/** The other mark, on the sections that open by it: a part states the same instruction. */
-Deno.test("a part that opens says so under the same words a person does", () => {
-    const given = composeNotesForOpenedRow("healthGiven", 469657);
-    assertEquals(
-        given.get("Zdrowa atmosfera"),
-        [CARD_WORDS.gesture],
-        "an announcement says pressing it opens",
-    );
-    assertEquals(
-        given.get(getWordsForHealthSource("heal")),
-        [CARD_WORDS.gesture],
-        "and so does the key beside it, which opens onto whom the health reached",
-    );
-    // The same key on the screen about what reached this combatant: a key names whoever received
-    // the health, so the receiving side keeps no giver to list and the row promises nothing.
-    const restored = composeNotesForOpenedRow("healthRestored", 469657);
-    assertEquals(
-        restored.get(getWordsForHealthSource("heal")),
-        [],
-        "the key promises nothing where the statistics keep no cut of it",
-    );
-});
-
-/** The one region that scrolls, as it stands in the panel right now. */
-function readList(host: FakeElement): FakeElement {
-    const list = getElementsWithin(host).find((one) => one.className.includes(CLASS.list));
-    assertExists(list, "the panel draws the one region that scrolls");
-    return list;
-}
-
-/** A panel with a fight on it, and the reading its views are drawn from. */
-function composeScrolledPanel(): {
-    panel: PanelView;
-    shown: ShownScreen;
-} {
-    const document = composeFakeDocument();
-    const panel = initTestView(document);
-    return { panel, shown: { ...composeShownScreen(readFight()), listName: "ranking" } };
-}
-
 Deno.test("a redraw of the same place puts the region back where the reader left it", () => {
     const { panel, shown } = composeScrolledPanel();
     panel.render(shown);
@@ -2713,6 +2696,23 @@ Deno.test("a redraw of the same place puts the region back where the reader left
     );
     assert(after.replacedBy === null, "and it is the region that was just drawn");
 });
+
+/** A panel with a fight on it, and the reading its views are drawn from. */
+function composeScrolledPanel(): {
+    panel: PanelView;
+    shown: ShownScreen;
+} {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    return { panel, shown: { ...composeShownScreen(readFight()), listName: "ranking" } };
+}
+
+/** The one region that scrolls, as it stands in the panel right now. */
+function readList(host: FakeElement): FakeElement {
+    const list = getElementsWithin(host).find((one) => one.className.includes(CLASS.list));
+    assertExists(list, "the panel draws the one region that scrolls");
+    return list;
+}
 
 Deno.test("a place nobody has been starts at the top, and the one left keeps its position", () => {
     const { panel, shown } = composeScrolledPanel();

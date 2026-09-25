@@ -68,6 +68,12 @@ export interface FrameParts {
     translate: TranslateLabel;
 }
 
+interface LiveRow {
+    reading: FightReading;
+    place: FightPlace | null;
+    openedAt: number;
+}
+
 /** The four answers a shelf can give, of which at most three ever hold at once. */
 const SHELF_ANSWERS_MAXIMUM = 3;
 
@@ -108,6 +114,10 @@ function renderFrameTooltips(parts: FrameParts): void {
         );}
 }
 
+function addRegionDefect(parts: FrameParts, failure: RuntimeFailure): void {
+    parts.defects.add({ kind: DEFECT_KIND.region, region: null, failure });
+}
+
 /**
  * The window beside the panel, before the panel: a fight the panel cannot read is not a fight the
  * window has nothing to say about. A reading that will not compose costs the window its body.
@@ -135,6 +145,12 @@ function presentFrameStanding(live: LiveFight, tables: TooltipTables): StandingR
         view.readerSide,
         turn,
     );
+}
+
+function addUndrawn(defects: DefectLedger, report: RenderReport): void {
+    for (const failure of report.undrawn) {
+        defects.add({ kind: DEFECT_KIND.region, region: failure.region, failure });
+    }
 }
 
 /**
@@ -211,10 +227,33 @@ function presentFrameScreen(
     };
 }
 
-interface LiveRow {
-    reading: FightReading;
-    place: FightPlace | null;
-    openedAt: number;
+/** What is short about the reading itself, which the session states and the figures cannot. */
+function getFightSuspicions(view: FightView): FightSuspicions {
+    assert(view.messagesLost >= 0, "a reading lost no fewer than none of what it was handed");
+    assert(view.messagesRead >= 0, "and read no fewer than none");
+    return {
+        messagesLost: view.messagesLost,
+        hasJoinedInProgress: view.hasJoinedInProgress,
+        messagesRead: view.messagesRead,
+    };
+}
+
+/**
+ * Two counts of one figure came out different: the one thing the panel can say about a drawn
+ * figure being wrong rather than short, and a defect rather than an assertion (`develop ADR 0051`).
+ */
+function addFiguresDisagreed(
+    defects: DefectLedger,
+    reading: ScreenReading,
+    opened: OpenedReadings,
+): void {
+    const add = (cut: FiguresCut): void => {
+        const failure = { kind: FRAME_FAILURE.figuresDisagreed, cut };
+        defects.add({ kind: DEFECT_KIND.figures, region: null, failure });
+    };
+    if (reading.hasFiguresDisagreed) add(FIGURES_CUT.screen);
+    if (opened.drill?.hasFiguresDisagreed === true) add(FIGURES_CUT.drill);
+    if (opened.pair?.hasFiguresDisagreed === true) add(FIGURES_CUT.pair);
 }
 
 /**
@@ -256,6 +295,34 @@ function presentShelfRows(
     return rows;
 }
 
+/** The reader's side first, then the rest in the game's own order. */
+function presentShelfSizes(view: FightView): number[] {
+    const countBySide = new Map<number, number>();
+    const combatants = [...view.roster.byId.values()].slice(0, COMBATANTS_MAXIMUM);
+    for (const one of combatants) countBySide.set(one.side, (countBySide.get(one.side) ?? 0) + 1);
+    const readerSide = view.readerSide;
+    const sides = [...countBySide].sort(([one], [other]) => {
+        if (readerSide === one) return -1;
+        if (readerSide === other) return 1;
+        return one - other;
+    });
+    const sizes = sides.map(([, count]) => count);
+    assert(sizes.every((count) => count > 0), "a side on the shelf holds somebody");
+    assert(sizes.reduce((sum, count) => sum + count, 0) === combatants.length, "everybody, once");
+    return sizes;
+}
+
+function formatFightPlace(place: FightPlace | null): string | null {
+    if (place === null) return null;
+    return formatPlace(place.mapName, place.x, place.y);
+}
+
+function presentOutcome(reading: FightReading): OutcomeResult | null {
+    const outcome = reading.figures.statistics.outcome;
+    if (outcome === null) return null;
+    return getOutcomeForSeat(outcome, reading.view.roster, reading.view.readerSide);
+}
+
 function presentKeptShelfRow(
     parts: FrameParts,
     fight: KeptFight,
@@ -277,45 +344,6 @@ function presentKeptShelfRow(
     };
 }
 
-/** The reader's side first, then the rest in the game's own order. */
-function presentShelfSizes(view: FightView): number[] {
-    const countBySide = new Map<number, number>();
-    const combatants = [...view.roster.byId.values()].slice(0, COMBATANTS_MAXIMUM);
-    for (const one of combatants) countBySide.set(one.side, (countBySide.get(one.side) ?? 0) + 1);
-    const readerSide = view.readerSide;
-    const sides = [...countBySide].sort(([one], [other]) => {
-        if (readerSide === one) return -1;
-        if (readerSide === other) return 1;
-        return one - other;
-    });
-    const sizes = sides.map(([, count]) => count);
-    assert(sizes.every((count) => count > 0), "a side on the shelf holds somebody");
-    assert(sizes.reduce((sum, count) => sum + count, 0) === combatants.length, "everybody, once");
-    return sizes;
-}
-
-function presentOutcome(reading: FightReading): OutcomeResult | null {
-    const outcome = reading.figures.statistics.outcome;
-    if (outcome === null) return null;
-    return getOutcomeForSeat(outcome, reading.view.roster, reading.view.readerSide);
-}
-
-function formatFightPlace(place: FightPlace | null): string | null {
-    if (place === null) return null;
-    return formatPlace(place.mapName, place.x, place.y);
-}
-
-/** What is short about the reading itself, which the session states and the figures cannot. */
-function getFightSuspicions(view: FightView): FightSuspicions {
-    assert(view.messagesLost >= 0, "a reading lost no fewer than none of what it was handed");
-    assert(view.messagesRead >= 0, "and read no fewer than none");
-    return {
-        messagesLost: view.messagesLost,
-        hasJoinedInProgress: view.hasJoinedInProgress,
-        messagesRead: view.messagesRead,
-    };
-}
-
 /** A refusal is an answer, and the figures it stands beside are whole. */
 function presentShelfAnswers(answers: ShelfAnswers): string[] {
     const said: string[] = [];
@@ -329,34 +357,6 @@ function presentShelfAnswers(answers: ShelfAnswers): string[] {
     return said;
 }
 
-/**
- * Two counts of one figure came out different: the one thing the panel can say about a drawn
- * figure being wrong rather than short, and a defect rather than an assertion (`develop ADR 0051`).
- */
-function addFiguresDisagreed(
-    defects: DefectLedger,
-    reading: ScreenReading,
-    opened: OpenedReadings,
-): void {
-    const add = (cut: FiguresCut): void => {
-        const failure = { kind: FRAME_FAILURE.figuresDisagreed, cut };
-        defects.add({ kind: DEFECT_KIND.figures, region: null, failure });
-    };
-    if (reading.hasFiguresDisagreed) add(FIGURES_CUT.screen);
-    if (opened.drill?.hasFiguresDisagreed === true) add(FIGURES_CUT.drill);
-    if (opened.pair?.hasFiguresDisagreed === true) add(FIGURES_CUT.pair);
-}
-
 export function getPanelDefects(defects: DefectLedger): PanelDefect[] {
     return defects.getCounts().map(({ kind, region, count }) => ({ kind, region, count }));
-}
-
-function addUndrawn(defects: DefectLedger, report: RenderReport): void {
-    for (const failure of report.undrawn) {
-        defects.add({ kind: DEFECT_KIND.region, region: failure.region, failure });
-    }
-}
-
-function addRegionDefect(parts: FrameParts, failure: RuntimeFailure): void {
-    parts.defects.add({ kind: DEFECT_KIND.region, region: null, failure });
 }

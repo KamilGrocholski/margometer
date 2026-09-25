@@ -10,6 +10,12 @@ import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/as
 import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
+interface ParsedRecorded {
+    path: string;
+    parsed: ProtocolMessage;
+    keys: string[];
+}
+
 const TABLE_NAME_KEY = "tspell";
 const CUSTOM_NAME_KEY = "tcustom";
 const COUNT_KEY = "combo-max";
@@ -22,11 +28,15 @@ const REDUCER_KEY = "lowheal_per-enemies";
  */
 const QUANTITY_FLOOR = 100;
 
-interface ParsedRecorded {
-    path: string;
-    parsed: ProtocolMessage;
-    keys: string[];
-}
+Deno.test("what a skill spends stands on its announcement and nowhere else", () => {
+    let stated = 0;
+    for (const { path, keys } of getParsedMessages()) {
+        if (!keys.includes(COUNT_KEY)) continue;
+        stated += 1;
+        assert(isAnnouncement(keys), `${path}: a count on a message announcing no skill`);
+    }
+    assert(stated > 0, "an empty reading of the material is a finding, not a pass");
+});
 
 /** Every message of every recording, parsed, with its keys and the recording it came from. */
 function getParsedMessages(): ParsedRecorded[] {
@@ -46,16 +56,6 @@ function isAnnouncement(keys: readonly string[]): boolean {
     if (keys.includes(TABLE_NAME_KEY)) return true;
     return keys.includes(CUSTOM_NAME_KEY);
 }
-
-Deno.test("what a skill spends stands on its announcement and nowhere else", () => {
-    let stated = 0;
-    for (const { path, keys } of getParsedMessages()) {
-        if (!keys.includes(COUNT_KEY)) continue;
-        stated += 1;
-        assert(isAnnouncement(keys), `${path}: a count on a message announcing no skill`);
-    }
-    assert(stated > 0, "an empty reading of the material is a finding, not a pass");
-});
 
 /**
  * ⚠️ **The register names the values 1, 2 and 3**, read 2026-08-19. The material has carried a 4

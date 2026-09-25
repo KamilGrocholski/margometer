@@ -23,7 +23,6 @@ export const PANEL_METRIC = {
     healthRestored: "healthRestored",
 } as const;
 export type PanelMetric = VocabularyWord<typeof PANEL_METRIC>;
-export const SCREEN_ORDER = Object.values(PANEL_METRIC);
 
 export const PANEL_NOUN = { damage: "damage", healing: "healing" } as const;
 export type PanelNoun = VocabularyWord<typeof PANEL_NOUN>;
@@ -36,22 +35,6 @@ interface ScreenAxes {
     direction: PanelDirection;
 }
 
-/** A pair with no row here is a screen that does not exist: healing has no prevented half. */
-const SCREEN_AXES: Record<PanelMetric, ScreenAxes> = {
-    damageDealtApplied: { noun: PANEL_NOUN.damage, direction: PANEL_DIRECTION.given },
-    damageTakenApplied: { noun: PANEL_NOUN.damage, direction: PANEL_DIRECTION.received },
-    healthGiven: { noun: PANEL_NOUN.healing, direction: PANEL_DIRECTION.given },
-    healthRestored: { noun: PANEL_NOUN.healing, direction: PANEL_DIRECTION.received },
-};
-
-/** The kinds of part a reader can open: the three a game names, and the row closing a section. */
-export const OPENED_PART = {
-    skill: "skill",
-    source: "source",
-    element: "element",
-    plain: "plain",
-} as const;
-
 /** Never one of the game's own sides, which are bare numbers belonging to a single fight. */
 export const SIDE_CHOICE = {
     everyone: "everyone",
@@ -59,25 +42,6 @@ export const SIDE_CHOICE = {
     opposing: "opposing",
 } as const;
 export type PanelSideChoice = VocabularyWord<typeof SIDE_CHOICE>;
-export const SIDE_CHOICES = Object.values(SIDE_CHOICE);
-
-const OPPONENT_WORDS: Record<PanelMetric, string> = {
-    damageDealtApplied: PANEL_WORDS.dealtTo,
-    damageTakenApplied: PANEL_WORDS.takenFrom,
-    healthGiven: PANEL_WORDS.dealtTo,
-    healthRestored: PANEL_WORDS.takenFrom,
-};
-
-/**
- * Healing given has no cut by key and its entry is never read. It stays: an exhaustive table
- * makes a fifth screen a question the compiler asks.
- */
-const KIND_WORDS: Record<PanelMetric, string> = {
-    damageDealtApplied: PANEL_WORDS.damageKind,
-    damageTakenApplied: PANEL_WORDS.damageKind,
-    healthGiven: PANEL_WORDS.healthSource,
-    healthRestored: PANEL_WORDS.healthSource,
-};
 
 export interface ScreenState {
     current: PanelMetric;
@@ -98,6 +62,49 @@ export interface ScreenState {
     /** The window beside the panel, which folds apart from it — `develop ADR 0060`. */
     isStandingCollapsed: boolean;
 }
+
+export interface ScreenStrip {
+    name: string;
+    words: string;
+    isCurrent: boolean;
+}
+
+export const SCREEN_ORDER = Object.values(PANEL_METRIC);
+
+/** A pair with no row here is a screen that does not exist: healing has no prevented half. */
+const SCREEN_AXES: Record<PanelMetric, ScreenAxes> = {
+    damageDealtApplied: { noun: PANEL_NOUN.damage, direction: PANEL_DIRECTION.given },
+    damageTakenApplied: { noun: PANEL_NOUN.damage, direction: PANEL_DIRECTION.received },
+    healthGiven: { noun: PANEL_NOUN.healing, direction: PANEL_DIRECTION.given },
+    healthRestored: { noun: PANEL_NOUN.healing, direction: PANEL_DIRECTION.received },
+};
+
+/** The kinds of part a reader can open: the three a game names, and the row closing a section. */
+export const OPENED_PART = {
+    skill: "skill",
+    source: "source",
+    element: "element",
+    plain: "plain",
+} as const;
+export const SIDE_CHOICES = Object.values(SIDE_CHOICE);
+
+const OPPONENT_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: PANEL_WORDS.dealtTo,
+    damageTakenApplied: PANEL_WORDS.takenFrom,
+    healthGiven: PANEL_WORDS.dealtTo,
+    healthRestored: PANEL_WORDS.takenFrom,
+};
+
+/**
+ * Healing given has no cut by key and its entry is never read. It stays: an exhaustive table
+ * makes a fifth screen a question the compiler asks.
+ */
+const KIND_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: PANEL_WORDS.damageKind,
+    damageTakenApplied: PANEL_WORDS.damageKind,
+    healthGiven: PANEL_WORDS.healthSource,
+    healthRestored: PANEL_WORDS.healthSource,
+};
 
 export function createScreenState(
     isCollapsed: boolean,
@@ -179,15 +186,13 @@ export function getWordsForMetric(metric: PanelMetric): string {
     return `${getWordsForNoun(axes.noun)} ${getWordsForDirection(metric)}`;
 }
 
-export interface ScreenStrip {
-    name: string;
-    words: string;
-    isCurrent: boolean;
-}
-
-function getScreensForNoun(noun: PanelNoun): PanelMetric[] {
-    const found = SCREEN_ORDER.filter((screen) => SCREEN_AXES[screen].noun === noun);
-    return found;
+export function presentNounStrips(current: PanelMetric): ScreenStrip[] {
+    const strips = Object.values(PANEL_NOUN).map((noun) => ({
+        name: getScreenAfterNoun(noun, current),
+        words: getWordsForNoun(noun),
+        isCurrent: noun === SCREEN_AXES[current].noun,
+    }));
+    return strips;
 }
 
 /**
@@ -202,13 +207,9 @@ function getScreenAfterNoun(noun: PanelNoun, current: PanelMetric): PanelMetric 
     return reached;
 }
 
-export function presentNounStrips(current: PanelMetric): ScreenStrip[] {
-    const strips = Object.values(PANEL_NOUN).map((noun) => ({
-        name: getScreenAfterNoun(noun, current),
-        words: getWordsForNoun(noun),
-        isCurrent: noun === SCREEN_AXES[current].noun,
-    }));
-    return strips;
+function getScreensForNoun(noun: PanelNoun): PanelMetric[] {
+    const found = SCREEN_ORDER.filter((screen) => SCREEN_AXES[screen].noun === noun);
+    return found;
 }
 
 export function presentDirectionStrips(current: PanelMetric): ScreenStrip[] {

@@ -8,6 +8,15 @@ import { assertEquals, assertStrictEquals } from "@std/assert";
 import { ok, RESULT_FAILURE } from "#/libs/result.ts";
 import { initPageClock, type PageDate } from "#/src/game/page-clock.ts";
 
+const SEPTEMBER = { day: 13, month: 8, hour: 21, minute: 5 };
+
+Deno.test("a moment is read as the reader's own day and time, the month counted from one", () => {
+    const clock = initPageClock(composeDate(SEPTEMBER));
+    assertEquals(clock.readMoment(0), { day: 13, month: 9, hour: 21, minute: 5 }, "as a person");
+    assertStrictEquals(clock.readNowMilliseconds(), 1234, "and now is the page's own now");
+    assertEquals(clock.readTimestampText(0), ok("2026-09-13T21:05:00.000Z"), "a file's moment");
+});
+
 /** A page clock answering whatever the test says, for every moment asked about. */
 function composeDate(parts: Record<string, number | undefined>): PageDate {
     return class {
@@ -23,15 +32,6 @@ function composeDate(parts: Record<string, number | undefined>): PageDate {
         }
     } as unknown as PageDate;
 }
-
-const SEPTEMBER = { day: 13, month: 8, hour: 21, minute: 5 };
-
-Deno.test("a moment is read as the reader's own day and time, the month counted from one", () => {
-    const clock = initPageClock(composeDate(SEPTEMBER));
-    assertEquals(clock.readMoment(0), { day: 13, month: 9, hour: 21, minute: 5 }, "as a person");
-    assertStrictEquals(clock.readNowMilliseconds(), 1234, "and now is the page's own now");
-    assertEquals(clock.readTimestampText(0), ok("2026-09-13T21:05:00.000Z"), "a file's moment");
-});
 
 Deno.test("a clock answering a day outside the calendar answers no moment at all", () => {
     const read = (parts: Record<string, number | undefined>) =>

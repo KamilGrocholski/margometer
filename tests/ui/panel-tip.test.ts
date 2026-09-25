@@ -52,6 +52,14 @@ const HILDUR: TipReading = {
     ],
 };
 
+/**
+ * ⚠️ **The floors are spelled here rather than imported, and that is deliberate.** A test reading
+ * the constant it is checking would pass at any value of it, including the one that stands a card
+ * off the bottom of the screen. The numbers are `src/ui/panel-tip.ts`'s, measured in Chrome.
+ */
+const NAME_ON_ONE_LINE = 27;
+const SUBTITLE_ON_ONE_LINE = 32;
+
 Deno.test("a row is looked up by the name it stated, and by no other", () => {
     const register = initTipRegister();
     const compose = () => HILDUR;
@@ -170,19 +178,6 @@ Deno.test("how tall a card stands is counted, and a note as the lines it wraps t
 });
 
 /**
- * ⚠️ **The floors are spelled here rather than imported, and that is deliberate.** A test reading
- * the constant it is checking would pass at any value of it, including the one that stands a card
- * off the bottom of the screen. The numbers are `src/ui/panel-tip.ts`'s, measured in Chrome.
- */
-const NAME_ON_ONE_LINE = 27;
-const SUBTITLE_ON_ONE_LINE = 32;
-
-/** A card of a name alone, which is the shape the shelf's own row opens (`develop ADR 0084`). */
-function composeNamed(length: number): TipReading {
-    return { name: "x".repeat(length), subtitle: null, groups: [] };
-}
-
-/**
  * The name is the one cell on this panel that folds rather than shortening, so it is the one the
  * height arithmetic has to count. A count reserving one line for a name drawn on two puts the card
  * that much lower than it is tall, and the clamp in `composeTipTop` then hangs its last line off
@@ -209,6 +204,11 @@ Deno.test("a name too long for one line is counted as the lines it folds to", ()
     assertEquals(tallyTipSize(composeNamed(0)).lines, 1, "a name of nothing is still a line");
     assertEquals(tallyTipSize(composeNamed(1)).lines, 1, "and so is a name of one letter");
 });
+
+/** A card of a name alone, which is the shape the shelf's own row opens (`develop ADR 0084`). */
+function composeNamed(length: number): TipReading {
+    return { name: "x".repeat(length), subtitle: null, groups: [] };
+}
 
 /**
  * The name is drawn at `font-weight:600` and the sentences under it are not, so the same number of
@@ -416,27 +416,6 @@ Deno.test("a window too short for even the figures still draws them, and says so
     );
 });
 
-/** The panel's own way of putting one region in the place of another, small enough to read. */
-function composeSwap(): (standing: FakeElement, compose: () => FakeElement) => FakeElement {
-    return (standing, compose) => {
-        const next = compose();
-        standing.replaceWith(next);
-        return next;
-    };
-}
-
-function composeHandleUnderTest() {
-    const document = composeFakeDocument();
-    const register = initTipRegister();
-    const swap = composeSwap();
-    const handle = initTipHandle(
-        document,
-        register,
-        (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
-    );
-    return { register, handle, first: handle.element as FakeElement };
-}
-
 Deno.test("the detail follows the pointer, and lets go of a row that stopped being drawn", () => {
     const { register, handle, first } = composeHandleUnderTest();
     assertEquals(first.className, `${CLASS.tip} ${CLASS.tipHidden}`, "a panel starts saying none");
@@ -487,6 +466,27 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
     assertEquals(later.className, `${CLASS.tip} ${CLASS.tipHidden}`, "a row gone takes its detail");
     assertEquals(later.replacedBy, null, "which is hidden in place rather than drawn again");
 });
+
+function composeHandleUnderTest() {
+    const document = composeFakeDocument();
+    const register = initTipRegister();
+    const swap = composeSwap();
+    const handle = initTipHandle(
+        document,
+        register,
+        (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
+    );
+    return { register, handle, first: handle.element as FakeElement };
+}
+
+/** The panel's own way of putting one region in the place of another, small enough to read. */
+function composeSwap(): (standing: FakeElement, compose: () => FakeElement) => FakeElement {
+    return (standing, compose) => {
+        const next = compose();
+        standing.replaceWith(next);
+        return next;
+    };
+}
 
 Deno.test("a move inside one pixel writes nothing, because there is nowhere new to stand", () => {
     const { register, handle, first } = composeHandleUnderTest();

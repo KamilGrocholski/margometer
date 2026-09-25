@@ -62,6 +62,26 @@ export function readWarriorSnapshot(battle: unknown): Result<WarriorSnapshot, Wa
     return ok(snapshot);
 }
 
+/** Never `structuredClone` of the warrior, which carries references to the page and the engine. */
+function readWarriorSnapshotCombatant(warrior: UnknownRecord): CapturedCombatant {
+    let id: number | null = null;
+    for (const key of IDENTITY_KEYS) {
+        if (id !== null) break;
+        const stated = warrior[key];
+        if (typeof stated !== "number") continue;
+        if (Number.isFinite(stated)) id = stated;
+    }
+    const copied: Record<string, unknown> = {};
+    for (const key of COPIED_KEYS) copied[key] = warrior[key] ?? null;
+    for (const key of SHALLOW_COPIED_KEYS) {
+        const value = warrior[key];
+        copied[key] = isRecord(value) ? { ...value } : value ?? null;
+    }
+    assert(Object.keys(copied).length === COPIED_KEYS.length + SHALLOW_COPIED_KEYS.length, "all");
+    const { name, team, prof, lvl, hp, mana, energy, ac } = copied;
+    return { id, name, team, prof, lvl, hp, mana, energy, ac };
+}
+
 /**
  * The warriors themselves, out of whichever collection answers first: the objects the game goes on
  * drawing, so the one other reader of them, the tooltip, writes through their own methods.
@@ -88,24 +108,4 @@ function isNamedWarrior(value: unknown): value is UnknownRecord {
     const name = value[NAME_KEY];
     if (typeof name !== "string") return false;
     return name.length > 0;
-}
-
-/** Never `structuredClone` of the warrior, which carries references to the page and the engine. */
-function readWarriorSnapshotCombatant(warrior: UnknownRecord): CapturedCombatant {
-    let id: number | null = null;
-    for (const key of IDENTITY_KEYS) {
-        if (id !== null) break;
-        const stated = warrior[key];
-        if (typeof stated !== "number") continue;
-        if (Number.isFinite(stated)) id = stated;
-    }
-    const copied: Record<string, unknown> = {};
-    for (const key of COPIED_KEYS) copied[key] = warrior[key] ?? null;
-    for (const key of SHALLOW_COPIED_KEYS) {
-        const value = warrior[key];
-        copied[key] = isRecord(value) ? { ...value } : value ?? null;
-    }
-    assert(Object.keys(copied).length === COPIED_KEYS.length + SHALLOW_COPIED_KEYS.length, "all");
-    const { name, team, prof, lvl, hp, mana, energy, ac } = copied;
-    return { id, name, team, prof, lvl, hp, mana, energy, ac };
 }

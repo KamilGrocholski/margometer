@@ -28,41 +28,51 @@ import {
 import { BLOWS_GRANTED, readFrozenModule } from "#/tests/frozen-tables.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
-const { FROZEN_PROTOCOL_KEYS } = await readFrozenModule("protocol-keys") as {
-    FROZEN_PROTOCOL_KEYS: { keys: readonly string[] };
-};
-
-/** The end the key register settles a proc at, or undefined where it holds no such proc. */
-function lookupProcEnd(key: string): ProcEnd | undefined {
-    const reading = getKeyReading(key);
-    if (reading?.kind !== KEY_FAMILY.proc) return undefined;
-    return reading.end;
-}
-
 interface BlowKeys {
     procs: Set<string>;
     defences: Set<string>;
     destroyed: Set<string>;
 }
 
-/** Every key the recordings actually carried, read through the decoder rather than off the text. */
-function getBlowKeysFromRecordings(): BlowKeys {
-    const found: BlowKeys = { procs: new Set(), defences: new Set(), destroyed: new Set() };
-    for (const fight of readRecordedFights()) {
-        const roster = indexCombatantRoster(fight.combatants);
-        const context = { roster, standing: null, tables: BLOWS_GRANTED };
-        for (const event of decodePayloadMessages(fight.payloads.flat(), context).events) {
-            if (event.kind !== "attack") continue;
-            for (const key of event.procs) found.procs.add(key);
-            for (const stopped of event.prevented) found.defences.add(stopped.defence);
-            for (const destroyed of event.destroyed) found.destroyed.add(destroyed.statistic);
-        }
-    }
-    assert(found.procs.size > 0, "an empty reading of the material is a finding, not a pass");
-    return found;
-}
+const { FROZEN_PROTOCOL_KEYS } = await readFrozenModule("protocol-keys") as {
+    FROZEN_PROTOCOL_KEYS: { keys: readonly string[] };
+};
 
 const CARRIED = getBlowKeysFromRecordings();
+
+/**
+ * Which of `CARD_WORDS` is drawn in the column the sheet cuts, and which is a sentence that wraps.
+ * Held both ways below, so an entry added to the table lands in one list or the other rather than
+ * in neither — which is how the one label over the bound went four releases unnoticed.
+ *
+ * ⚠️ **A caveated label is not held tighter here.** The glyph beside it is a cell of its own, so
+ * what it costs is pixels rather than characters, and this count cannot see it. `panel-tip.spec.ts`
+ * holds that, in the browser, over every label a card draws. `develop ADR 0088`.
+ */
+const CARD_LABEL_KEYS = [
+    "raw",
+    "blows",
+    "blowsWithoutSkill",
+    "skillUses",
+    "turns",
+    "turnsWithLost",
+    "prevented",
+    "blowsCritical",
+    "blowsCriticalOffhand",
+] as const satisfies readonly (keyof typeof CARD_WORDS)[];
+
+/** The rest of the table: headings the sheet also cuts, and sentences that wrap instead. */
+const CARD_OTHER_KEYS = [
+    "wholeFight",
+    "striking",
+    "struck",
+    "destroyed",
+    "scope",
+    "gesture",
+    "gestureBack",
+    "gestureBackAnywhere",
+    "cut",
+] as const satisfies readonly (keyof typeof CARD_WORDS)[];
 
 Deno.test("every defence and every statistic a recording states is one the panel words", () => {
     const unworded: string[] = [];
@@ -224,39 +234,12 @@ Deno.test("every proc the decoder places is placed at an end the register settle
     assertEquals(lookupProcEnd("-evade"), PROC_END.target, "and an evade of whoever was swung at");
 });
 
-/**
- * Which of `CARD_WORDS` is drawn in the column the sheet cuts, and which is a sentence that wraps.
- * Held both ways below, so an entry added to the table lands in one list or the other rather than
- * in neither — which is how the one label over the bound went four releases unnoticed.
- *
- * ⚠️ **A caveated label is not held tighter here.** The glyph beside it is a cell of its own, so
- * what it costs is pixels rather than characters, and this count cannot see it. `panel-tip.spec.ts`
- * holds that, in the browser, over every label a card draws. `develop ADR 0088`.
- */
-const CARD_LABEL_KEYS = [
-    "raw",
-    "blows",
-    "blowsWithoutSkill",
-    "skillUses",
-    "turns",
-    "turnsWithLost",
-    "prevented",
-    "blowsCritical",
-    "blowsCriticalOffhand",
-] as const satisfies readonly (keyof typeof CARD_WORDS)[];
-
-/** The rest of the table: headings the sheet also cuts, and sentences that wrap instead. */
-const CARD_OTHER_KEYS = [
-    "wholeFight",
-    "striking",
-    "struck",
-    "destroyed",
-    "scope",
-    "gesture",
-    "gestureBack",
-    "gestureBackAnywhere",
-    "cut",
-] as const satisfies readonly (keyof typeof CARD_WORDS)[];
+/** The end the key register settles a proc at, or undefined where it holds no such proc. */
+function lookupProcEnd(key: string): ProcEnd | undefined {
+    const reading = getKeyReading(key);
+    if (reading?.kind !== KEY_FAMILY.proc) return undefined;
+    return reading.end;
+}
 
 Deno.test("no label a card draws is longer than the column it is drawn in", () => {
     const overlong: string[] = [];
@@ -324,3 +307,20 @@ Deno.test("a key naming a sub-line is a key a row already counts", () => {
     // And the one that must: a weakened wound says so under the row it was counted in.
     assertEquals(getSubWordsForBlowKey("+woundpoison"), "osłabiona", "a weakened one does");
 });
+
+/** Every key the recordings actually carried, read through the decoder rather than off the text. */
+function getBlowKeysFromRecordings(): BlowKeys {
+    const found: BlowKeys = { procs: new Set(), defences: new Set(), destroyed: new Set() };
+    for (const fight of readRecordedFights()) {
+        const roster = indexCombatantRoster(fight.combatants);
+        const context = { roster, standing: null, tables: BLOWS_GRANTED };
+        for (const event of decodePayloadMessages(fight.payloads.flat(), context).events) {
+            if (event.kind !== "attack") continue;
+            for (const key of event.procs) found.procs.add(key);
+            for (const stopped of event.prevented) found.defences.add(stopped.defence);
+            for (const destroyed of event.destroyed) found.destroyed.add(destroyed.statistic);
+        }
+    }
+    assert(found.procs.size > 0, "an empty reading of the material is a finding, not a pass");
+    return found;
+}

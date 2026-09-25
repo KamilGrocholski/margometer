@@ -55,66 +55,6 @@ const THIRD = "captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-no
 const FIRST_OF_A_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json";
 const SECOND_OF_A_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none.json";
 
-function readUpdates(path: string): readonly unknown[] {
-    return lookupRecordedFight(path).updates;
-}
-
-function composeBattlePage(battle: Record<string, unknown> = { updateData: () => 1 }) {
-    return { Engine: { battle } };
-}
-
-/** The add-on stood up on a page of its own, with a recording replayed through its wrap. */
-function playRecordedFight(path: string = HILDUR): RuntimeWorld {
-    const world = initRuntimeWorld(composeBattlePage());
-    for (const payload of readUpdates(path)) world.update(payload);
-    return world;
-}
-
-function findByMark(host: FakeElement, mark: string, value?: string): FakeElement | undefined {
-    return getElementsWithin(host).find((one) => {
-        const stated = one.attributes.get(mark);
-        if (stated === undefined) return false;
-        return value === undefined ? true : stated === value;
-    });
-}
-
-function countRows(within: FakeElement): number {
-    return getElementsWithin(within).filter((one) => one.className.split(" ")[0] === CLASS.row)
-        .length;
-}
-
-function findList(host: FakeElement): FakeElement {
-    const list = getElementsWithin(host).find((one) => one.className === CLASS.list);
-    assertExists(list, "the panel drew its list");
-    return list;
-}
-
-/** Every row of the ranking as a reader reads it, name and figure, in the order drawn. */
-function getRankingTexts(host: FakeElement): string[] {
-    return getElementsWithin(findList(host))
-        .filter((one) => one.className.split(" ")[0] === CLASS.row)
-        .map((row) => row.children.map((one) => one.textContent).join(" | "));
-}
-
-function getRegion(host: FakeElement, className: string): FakeElement | undefined {
-    return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
-}
-
-/** One more fighter than a fight holds, which every reader of a cast refuses. */
-function composeCastPastItsBound(): Record<string, unknown> {
-    const warriors: Record<string, unknown> = {};
-    for (let id = 1; id <= 21; id += 1) {
-        warriors[id] = { id, name: `fighter ${id}`, team: 1, prof: "w", lvl: 60, hp: { max: 1 } };
-    }
-    return warriors;
-}
-
-function openShelfScreen(world: RuntimeWorld): void {
-    const strip = findByMark(world.getHost(), "data-shelf");
-    assertExists(strip, "the bar carries the way onto the shelf");
-    world.press(strip);
-}
-
 Deno.test("a recording played through the add-on ends on the panel a reader would see", () => {
     const battle: Record<string, unknown> = { updateData: () => "the engine's own answer" };
     const engineOwn = battle.updateData;
@@ -149,6 +89,20 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
     assertStrictEquals(battle.updateData, engineOwn, "and the game's own method is back");
 });
 
+function composeBattlePage(battle: Record<string, unknown> = { updateData: () => 1 }) {
+    return { Engine: { battle } };
+}
+
+function readUpdates(path: string): readonly unknown[] {
+    return lookupRecordedFight(path).updates;
+}
+
+function findList(host: FakeElement): FakeElement {
+    const list = getElementsWithin(host).find((one) => one.className === CLASS.list);
+    assertExists(list, "the panel drew its list");
+    return list;
+}
+
 Deno.test("every recording plays through without a word of failure", () => {
     for (const fight of readRecordedFights()) {
         const world = initRuntimeWorld(composeBattlePage());
@@ -172,6 +126,11 @@ Deno.test("a panel goes up when the reading starts, saying there has been no fig
     assertEquals(world.shown.length, 1, "the same panel is still the one on the page");
     assert(countRows(findList(host)) > 0, "which now draws the fight");
 });
+
+function countRows(within: FakeElement): number {
+    return getElementsWithin(within).filter((one) => one.className.split(" ")[0] === CLASS.row)
+        .length;
+}
 
 Deno.test("the ranking marks whose turn it is, and stops the moment the fight is over", () => {
     const world = initRuntimeWorld(composeBattlePage());
@@ -302,6 +261,21 @@ Deno.test("a reader presses a screen and the panel goes there, and nowhere else"
     assertEquals(current(), "damageTakenApplied", "and a screen nobody has moves nothing");
 });
 
+/** The add-on stood up on a page of its own, with a recording replayed through its wrap. */
+function playRecordedFight(path: string = HILDUR): RuntimeWorld {
+    const world = initRuntimeWorld(composeBattlePage());
+    for (const payload of readUpdates(path)) world.update(payload);
+    return world;
+}
+
+function findByMark(host: FakeElement, mark: string, value?: string): FakeElement | undefined {
+    return getElementsWithin(host).find((one) => {
+        const stated = one.attributes.get(mark);
+        if (stated === undefined) return false;
+        return value === undefined ? true : stated === value;
+    });
+}
+
 Deno.test("a reader presses the other side of a fight against one, and the panel answers", () => {
     const world = playRecordedFight();
     const host = world.getHost();
@@ -324,19 +298,6 @@ Deno.test("a reader presses the other side of a fight against one, and the panel
     assertEquals(world.lines, [], "with nothing of ours failing either way");
 });
 
-/** The reader comes back: a second start over the stores the first one left behind. */
-function reloadRuntimeWorld(first: RuntimeWorld, page = composeBattlePage()): RuntimeWorld {
-    return initRuntimeWorld(page, (second) => {
-        for (const [key, value] of first.held) second.held.set(key, value);
-        for (const choice of ["local", "session"]) {
-            for (const [key, value] of first.getShelf(choice)) {
-                second.getShelf(choice).set(key, value);
-            }
-        }
-        return {};
-    });
-}
-
 Deno.test("a fight that ends goes on the shelf, once, and comes back after a reload", () => {
     const world = playRecordedFight();
     const kept = readKeptFights(world.getShelf("local"));
@@ -354,6 +315,32 @@ Deno.test("a fight that ends goes on the shelf, once, and comes back after a rel
         "which draws the same fight, read again off what the game delivered",
     );
 });
+
+/** The reader comes back: a second start over the stores the first one left behind. */
+function reloadRuntimeWorld(first: RuntimeWorld, page = composeBattlePage()): RuntimeWorld {
+    return initRuntimeWorld(page, (second) => {
+        for (const [key, value] of first.held) second.held.set(key, value);
+        for (const choice of ["local", "session"]) {
+            for (const [key, value] of first.getShelf(choice)) {
+                second.getShelf(choice).set(key, value);
+            }
+        }
+        return {};
+    });
+}
+
+function openShelfScreen(world: RuntimeWorld): void {
+    const strip = findByMark(world.getHost(), "data-shelf");
+    assertExists(strip, "the bar carries the way onto the shelf");
+    world.press(strip);
+}
+
+/** Every row of the ranking as a reader reads it, name and figure, in the order drawn. */
+function getRankingTexts(host: FakeElement): string[] {
+    return getElementsWithin(findList(host))
+        .filter((one) => one.className.split(" ")[0] === CLASS.row)
+        .map((row) => row.children.map((one) => one.textContent).join(" | "));
+}
 
 /** Three fights, because the newest is the live row and never looked up on the shelf. */
 Deno.test("each fight on the shelf says its own size, not the one before it", () => {
@@ -389,35 +376,6 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
     assertEquals(again.held.get(STORE_KEY.panelFolded), "", "and stores the unfolding too");
 });
 
-/**
- * A battle carrying what a running fight carries: combatants whose health the game moves **in
- * place** while its own call runs, which is what makes a recording's two snapshots independent.
- */
-function composeRecordingBattle(): Record<string, unknown> {
-    const health: Record<string, unknown> = { max: 100, value: 100 };
-    const warriors = { 1: { id: 1, name: "somebody", team: 1, prof: "w", lvl: 60, hp: health } };
-    return {
-        warriorsList: warriors,
-        updateData: () => {
-            health.value = 90;
-            return 1;
-        },
-    };
-}
-
-function readSavedFile(world: RuntimeWorld, at = 0): Record<string, unknown> {
-    const parsed = parseJson(world.saved[at]?.text ?? "");
-    assert(parsed.ok, "what it handed over reads back as JSON");
-    assert(isRecord(parsed.value), "and as a recording");
-    return parsed.value;
-}
-
-function pressSave(world: RuntimeWorld): void {
-    const control = findByMark(world.getHost(), "data-save");
-    assertExists(control, "the bar carries the control that offers the fight");
-    world.press(control);
-}
-
 Deno.test("the fight is handed over counted as well as raw, and the two agree", () => {
     const world = initRuntimeWorld(composeBattlePage(composeRecordingBattle()));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
@@ -439,6 +397,35 @@ Deno.test("the fight is handed over counted as well as raw, and the two agree", 
     }, 0);
     assertEquals(totals.damageDealtApplied, summed, "which come to what the rows come to");
 });
+
+/**
+ * A battle carrying what a running fight carries: combatants whose health the game moves **in
+ * place** while its own call runs, which is what makes a recording's two snapshots independent.
+ */
+function composeRecordingBattle(): Record<string, unknown> {
+    const health: Record<string, unknown> = { max: 100, value: 100 };
+    const warriors = { 1: { id: 1, name: "somebody", team: 1, prof: "w", lvl: 60, hp: health } };
+    return {
+        warriorsList: warriors,
+        updateData: () => {
+            health.value = 90;
+            return 1;
+        },
+    };
+}
+
+function pressSave(world: RuntimeWorld): void {
+    const control = findByMark(world.getHost(), "data-save");
+    assertExists(control, "the bar carries the control that offers the fight");
+    world.press(control);
+}
+
+function readSavedFile(world: RuntimeWorld, at = 0): Record<string, unknown> {
+    const parsed = parseJson(world.saved[at]?.text ?? "");
+    assert(parsed.ok, "what it handed over reads back as JSON");
+    assert(isRecord(parsed.value), "and as a recording");
+    return parsed.value;
+}
 
 Deno.test("a reader asks for the fight, and gets the recording the intake tool reads", () => {
     const world = initRuntimeWorld(composeBattlePage(composeRecordingBattle()));
@@ -540,6 +527,10 @@ Deno.test("the shelf has a screen of its own, and its control toggles", () => {
     assertEquals(rows(), figures, "and so does the control that put the shelf up");
 });
 
+function getRegion(host: FakeElement, className: string): FakeElement | undefined {
+    return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
+}
+
 Deno.test("a browser that will not have the shelf is answered, not argued with", () => {
     const world = initRuntimeWorld(composeBattlePage(), () => ({
         settings: initRefusingStore(),
@@ -565,18 +556,6 @@ Deno.test("a second copy of the add-on stands down and never draws", () => {
     assertEquals(second.shown, [], "while it never puts a panel on the page");
     assertEquals(first.shown.length, 1, "and the first has the one panel there is");
 });
-
-function countRowsThatOpen(host: FakeElement): number {
-    return getElementsWithin(getPanelWithin(host)).filter((one) => {
-        if (one.className.split(" ")[0] !== CLASS.row) return false;
-        return one.attributes.get("data-row") !== undefined;
-    }).length;
-}
-
-function countListRows(host: FakeElement): number {
-    const list = getRegion(host, CLASS.list);
-    return list === undefined ? 0 : countRows(list);
-}
 
 Deno.test("a reader opens a row, and every way out of it leads back to the screen", () => {
     const world = playRecordedFight();
@@ -619,6 +598,18 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     world.press(side);
     assertEquals(getRegion(host, CLASS.crumb), undefined, "which closes it: it may not hold them");
 });
+
+function countListRows(host: FakeElement): number {
+    const list = getRegion(host, CLASS.list);
+    return list === undefined ? 0 : countRows(list);
+}
+
+function countRowsThatOpen(host: FakeElement): number {
+    return getElementsWithin(getPanelWithin(host)).filter((one) => {
+        if (one.className.split(" ")[0] !== CLASS.row) return false;
+        return one.attributes.get("data-row") !== undefined;
+    }).length;
+}
 
 /** The way back is the whole panel's, so it lands on the ranking as readily as on a level. */
 Deno.test("a way back with no rung to leave moves nothing, and redraws nothing", () => {
@@ -719,11 +710,6 @@ Deno.test("a row belonging to nobody in the fight opens nothing", () => {
     assertEquals(getRegion(host, CLASS.crumb), undefined, "and neither does one nobody holds");
 });
 
-function composePlacedPage(hero: Record<string, unknown> = { x: 12, y: 34 }) {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    return { Engine: { battle, map: { d: { name: "Mapa Testowa" } }, hero: { d: hero } } };
-}
-
 Deno.test("the place a fight is fought reaches the bar, and goes on the shelf with it", () => {
     const world = initRuntimeWorld(composePlacedPage());
     for (const payload of readUpdates(HILDUR)) world.update(payload);
@@ -735,6 +721,11 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
     assertExists(row, "the shelf drew the fight that ended");
     assertEquals(getTextsByClass(row, CLASS.rowName), ["Mapa Testowa (12, 34)"], "and its row");
 });
+
+function composePlacedPage(hero: Record<string, unknown> = { x: 12, y: 34 }) {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    return { Engine: { battle, map: { d: { name: "Mapa Testowa" } }, hero: { d: hero } } };
+}
 
 Deno.test("a client that says nothing about the place leaves the bar saying nothing", () => {
     const world = playRecordedFight();
@@ -809,12 +800,6 @@ Deno.test("a pin is the reader's own answer, and the shelf keeps it", () => {
     assertEquals(readKeptFights(world.getShelf("local"))[0]?.isPinned, false, "written as readily");
 });
 
-function chooseStorage(world: RuntimeWorld, name: string): void {
-    const found = findByMark(world.getHost(), "data-storage", name);
-    assertExists(found, `the strip offers ${name}`);
-    world.press(found);
-}
-
 Deno.test("where the shelf is kept is the reader's answer, and the fights travel with it", () => {
     const world = playRecordedFight();
     const host = world.getHost();
@@ -833,6 +818,12 @@ Deno.test("where the shelf is kept is the reader's answer, and the fights travel
     assertEquals(world.getShelf("session").has(STORE_KEY.fights), false, "what was there is gone");
     assertEquals(countRows(getPanelWithin(host)), 1, "and the fight is still on screen");
 });
+
+function chooseStorage(world: RuntimeWorld, name: string): void {
+    const found = findByMark(world.getHost(), "data-storage", name);
+    assertExists(found, `the strip offers ${name}`);
+    world.press(found);
+}
 
 Deno.test("a browser that will not keep the answer moves nothing, and says so", () => {
     const world = initRuntimeWorld(composeBattlePage(), () => ({ settings: initRefusingStore() }));
@@ -977,6 +968,15 @@ Deno.test("a battle that cannot be snapshotted costs the file, and the panel rea
     assertStrictEquals(world.lines.length, 1, "E9: the console hears it once");
 });
 
+/** One more fighter than a fight holds, which every reader of a cast refuses. */
+function composeCastPastItsBound(): Record<string, unknown> {
+    const warriors: Record<string, unknown> = {};
+    for (let id = 1; id <= 21; id += 1) {
+        warriors[id] = { id, name: `fighter ${id}`, team: 1, prof: "w", lvl: 60, hp: { max: 1 } };
+    }
+    return warriors;
+}
+
 Deno.test("a payload the fight refuses is said on the panel, and the next one is read", () => {
     const clean = playRecordedFight();
     const world = initRuntimeWorld(composeBattlePage());
@@ -1009,6 +1009,21 @@ Deno.test("a window that will not say its size costs the panel its place, and no
     );
 });
 
+/** `docs/design.md` §10.5: a panel waiting for a game says what it cannot see. */
+Deno.test("a game that never comes puts the panel up saying so, once the looking stops", () => {
+    const { world, fire } = initSearchingWorld({});
+    fire(LOOKS_MAXIMUM - 2);
+    assertEquals(world.shown, [], "no panel while the looking goes on");
+    fire(1);
+    assertStrictEquals(world.shown.length, 1, "and one when it gives up");
+    assertEquals(
+        getTextsByClass(world.getHost(), CLASS.defect),
+        [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.engine, null, 1)}`],
+        "saying the game cannot be seen",
+    );
+    assertEquals(world.lines, [PANEL_DEFECT_KIND.engine], "and the console heard it once");
+});
+
 /** A search that runs to its bound: the step the page's timer holds, fired by the test. */
 function initSearchingWorld(page: Record<string, unknown>) {
     const steps: (() => void)[] = [];
@@ -1026,21 +1041,6 @@ function initSearchingWorld(page: Record<string, unknown>) {
     };
     return { world, fire };
 }
-
-/** `docs/design.md` §10.5: a panel waiting for a game says what it cannot see. */
-Deno.test("a game that never comes puts the panel up saying so, once the looking stops", () => {
-    const { world, fire } = initSearchingWorld({});
-    fire(LOOKS_MAXIMUM - 2);
-    assertEquals(world.shown, [], "no panel while the looking goes on");
-    fire(1);
-    assertStrictEquals(world.shown.length, 1, "and one when it gives up");
-    assertEquals(
-        getTextsByClass(world.getHost(), CLASS.defect),
-        [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.engine, null, 1)}`],
-        "saying the game cannot be seen",
-    );
-    assertEquals(world.lines, [PANEL_DEFECT_KIND.engine], "and the console heard it once");
-});
 
 Deno.test("a game whose method is gone puts the panel up waiting, and the looking goes on", () => {
     const { world } = initSearchingWorld(composeBattlePage({}));

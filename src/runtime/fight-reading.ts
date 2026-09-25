@@ -39,6 +39,11 @@ export interface KeptReading extends FightReading {
 /** A kept payload the chain will not read costs the whole fight: a gap mid-fight reads as whole. */
 export type ReplayFailure = EnvelopeFailure | PayloadRejected;
 
+/** The fight the panel stands on, and the kept one it was read off where that is what it is. */
+export type StandingFight =
+    | { kept: null; reading: FightReading }
+    | { kept: KeptFight; reading: KeptReading };
+
 /** The figures, derived rather than kept, and verified in the one place they are balanced. */
 export function tallyFightReading(view: FightView): FightReading {
     const figures = tallyFightFigures(view);
@@ -69,11 +74,6 @@ export function replayKeptFight(
     if (view === null) return ok(null);
     return ok({ ...tallyFightReading(view), messagesByPayload });
 }
-
-/** The fight the panel stands on, and the kept one it was read off where that is what it is. */
-export type StandingFight =
-    | { kept: null; reading: FightReading }
-    | { kept: KeptFight; reading: KeptReading };
 
 /**
  * The kept fight the reader chose, else the live one; a page between fights has no live reading,

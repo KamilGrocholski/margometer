@@ -179,15 +179,6 @@ Deno.test("the first statement is the one that counts, whatever came after", () 
     assertEquals(getStatedHealthsFromEvent(events[0] ?? events[1] ?? events[0]!)[0]?.[1], 80, "80");
 });
 
-/** A side of two and an opponent, so a cast has somebody to reach and somebody to miss. */
-function composeSideRoster() {
-    return indexCombatantRoster([
-        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 23874 },
-        { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 10000 },
-        { id: 3, name: "Potwór", side: 2, profession: "w", level: 40, healthMaximum: 50000 },
-    ]);
-}
-
 Deno.test("a share is of the maximum, floored, and reaches the caster's own side", () => {
     const roster = composeSideRoster();
     const events = decodePayloadMessages(
@@ -211,6 +202,15 @@ Deno.test("a share is of the maximum, floored, and reaches the caster's own side
     assertEquals(heals[0]?.restoredByCombatantId.has(3), false, "the other side is not reached");
     assertEquals(heals[0]?.isWhole, true, "and every member of the side was sized");
 });
+
+/** A side of two and an opponent, so a cast has somebody to reach and somebody to miss. */
+function composeSideRoster() {
+    return indexCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 23874 },
+        { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 10000 },
+        { id: 3, name: "Potwór", side: 2, profession: "w", level: 40, healthMaximum: 50000 },
+    ]);
+}
 
 Deno.test("a cast cannot put back more than a combatant walked in with", () => {
     const roster = composeSideRoster();

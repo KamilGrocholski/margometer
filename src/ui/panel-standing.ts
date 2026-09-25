@@ -21,23 +21,6 @@ import { getPartOfSide, type PanelSidePart } from "./panel-reading.ts";
 import { PANEL_WORDS } from "./panel-words.ts";
 
 /**
- * Every character on the board, because **both sides may be shouting and nobody is held twice**:
- * a later shout replaces whatever held somebody (`develop ADR 0062`), so the most that can stand at
- * once is one row each. The corpus cannot show it — every recording in it is ten against one and
- * two is the most it ever held — and a fabricated ten-a-side stands 20 at once, which the bound
- * this replaced clamped to 12.
- */
-export const PROVOKED_MAXIMUM = COMBATANTS_MAXIMUM;
-/**
- * Past every charge the corpus has ever held at once, which is one — and past the bound
- * `core/charged-skill.ts` already clamps to, so this one only ever repeats that answer.
- *
- * Every row this window draws carries a card, so the band joins the arithmetic
- * `develop:tests/ui/share-bound.test.ts` holds the card register to (`develop ADR 0100`).
- */
-const CHARGED_ROWS_MAXIMUM = 4;
-
-/**
  * One character a shout is holding. A person, so drawn as one — hue and side, like any row — and
  * **with a length of their own**, because a shout runs on the turns of whoever it holds and two
  * characters held by one cast are not the same number of turns in. `develop ADR 0103`.
@@ -127,21 +110,69 @@ export interface StandingReading {
     chargedSkills: StandingChargedSkill[];
 }
 
-/** A provoked character is a person, so their row wears their own profession's hue. */
-function presentStandingProvoked(
-    standing: ProvocationStanding,
+/**
+ * Every character on the board, because **both sides may be shouting and nobody is held twice**:
+ * a later shout replaces whatever held somebody (`develop ADR 0062`), so the most that can stand at
+ * once is one row each. The corpus cannot show it — every recording in it is ten against one and
+ * two is the most it ever held — and a fabricated ten-a-side stands 20 at once, which the bound
+ * this replaced clamped to 12.
+ */
+export const PROVOKED_MAXIMUM = COMBATANTS_MAXIMUM;
+/**
+ * Past every charge the corpus has ever held at once, which is one — and past the bound
+ * `core/charged-skill.ts` already clamps to, so this one only ever repeats that answer.
+ *
+ * Every row this window draws carries a card, so the band joins the arithmetic
+ * `develop:tests/ui/share-bound.test.ts` holds the card register to (`develop ADR 0100`).
+ */
+const CHARGED_ROWS_MAXIMUM = 4;
+
+export function presentStanding(
+    provocations: readonly ProvocationStanding[],
+    chargedSkills: readonly ChargedSkillStanding[],
     roster: CombatantRoster,
     readerSide: number | null,
-): StandingProvoked {
-    const provoked = roster.byId.get(standing.provokedId);
+    turn: StandingTurn,
+): StandingReading {
+    // Clamped before the fold, so the whole section stays inside the one stated bound and the
+    // groups are bounded by what is left of it (**S11**).
+    const held = provocations.slice(0, PROVOKED_MAXIMUM);
+    const now = getStandingTurnNow(turn);
+    const holder = now === null ? undefined : roster.byId.get(now.combatantId);
     return {
-        provokedId: standing.provokedId,
-        name: provoked?.name ?? PANEL_WORDS.withoutTarget,
-        colour: lookupColourForProfession(provoked?.profession ?? null),
-        sidePart: getPartOfSide(provoked?.side ?? null, readerSide),
-        turnsElapsed: standing.turnsElapsed,
-        turnsStated: standing.turnsStated,
+        turnState: getStandingTurnState(turn, holder !== undefined),
+        turnOrdinal: now?.ordinal ?? null,
+        holder: holder === undefined ? null : {
+            name: holder.name,
+            colour: lookupColourForProfession(holder.profession),
+            sidePart: getPartOfSide(holder.side, readerSide),
+        },
+        provoked: presentStandingProvocations(held, roster, readerSide),
+        chargedSkills: presentStandingChargedSkills(chargedSkills, roster, readerSide),
     };
+}
+
+/**
+ * The turn the game is numbering **now**, which is none once it has stopped numbering: a fight that
+ * is over numbers nobody's (`develop ADR 0066`) and neither does one the game is running itself,
+ * where the statement standing is one from before it started (`develop ADR 0072`).
+ */
+function getStandingTurnNow(turn: StandingTurn): TurnStatement | null {
+    if (turn.isOnAuto) return null;
+    if (turn.isOver) return null;
+    return turn.statement;
+}
+
+/**
+ * Which sentence the window has to say. A fight the game is running itself outranks one that has
+ * ended, because both are true of every fight fought on the auto key and only the first says why
+ * there is no turn to draw. `develop ADR 0072`.
+ */
+function getStandingTurnState(turn: StandingTurn, hasHolder: boolean): StandingTurnState {
+    if (turn.isOnAuto) return STANDING_TURN_STATE.onAuto;
+    if (turn.isOver) return STANDING_TURN_STATE.afterFight;
+    if (hasHolder) return STANDING_TURN_STATE.held;
+    return STANDING_TURN_STATE.unread;
 }
 
 /**
@@ -182,14 +213,35 @@ function presentStandingProvocations(
     return [...byCast.values()];
 }
 
-/**
- * The hue a charge is drawn in. Only one that is still running wears a profession: the two ends
- * are drawn quiet, so the row reads as something that has stopped happening without the colour
- * having to carry that by itself (**The Colour Never Alone Rule**).
- */
-function getColourForCharge(state: ChargedSkillState, profession: string | null): string {
-    if (state !== CHARGED_SKILL_STATE.charging) return SIGNAL.unknown;
-    return lookupColourForProfession(profession);
+/** A provoked character is a person, so their row wears their own profession's hue. */
+function presentStandingProvoked(
+    standing: ProvocationStanding,
+    roster: CombatantRoster,
+    readerSide: number | null,
+): StandingProvoked {
+    const provoked = roster.byId.get(standing.provokedId);
+    return {
+        provokedId: standing.provokedId,
+        name: provoked?.name ?? PANEL_WORDS.withoutTarget,
+        colour: lookupColourForProfession(provoked?.profession ?? null),
+        sidePart: getPartOfSide(provoked?.side ?? null, readerSide),
+        turnsElapsed: standing.turnsElapsed,
+        turnsStated: standing.turnsStated,
+    };
+}
+
+function presentStandingChargedSkills(
+    standings: readonly ChargedSkillStanding[],
+    roster: CombatantRoster,
+    readerSide: number | null,
+): StandingChargedSkill[] {
+    const composed: StandingChargedSkill[] = [];
+    for (const standing of standings) {
+        if (composed.length >= CHARGED_ROWS_MAXIMUM) break;
+        if (standing.skillName.length === 0) continue;
+        composed.push(presentStandingChargedSkill(standing, roster, readerSide));
+    }
+    return composed;
 }
 
 function presentStandingChargedSkill(
@@ -210,64 +262,12 @@ function presentStandingChargedSkill(
     };
 }
 
-function presentStandingChargedSkills(
-    standings: readonly ChargedSkillStanding[],
-    roster: CombatantRoster,
-    readerSide: number | null,
-): StandingChargedSkill[] {
-    const composed: StandingChargedSkill[] = [];
-    for (const standing of standings) {
-        if (composed.length >= CHARGED_ROWS_MAXIMUM) break;
-        if (standing.skillName.length === 0) continue;
-        composed.push(presentStandingChargedSkill(standing, roster, readerSide));
-    }
-    return composed;
-}
-
 /**
- * The turn the game is numbering **now**, which is none once it has stopped numbering: a fight that
- * is over numbers nobody's (`develop ADR 0066`) and neither does one the game is running itself,
- * where the statement standing is one from before it started (`develop ADR 0072`).
+ * The hue a charge is drawn in. Only one that is still running wears a profession: the two ends
+ * are drawn quiet, so the row reads as something that has stopped happening without the colour
+ * having to carry that by itself (**The Colour Never Alone Rule**).
  */
-function getStandingTurnNow(turn: StandingTurn): TurnStatement | null {
-    if (turn.isOnAuto) return null;
-    if (turn.isOver) return null;
-    return turn.statement;
-}
-
-/**
- * Which sentence the window has to say. A fight the game is running itself outranks one that has
- * ended, because both are true of every fight fought on the auto key and only the first says why
- * there is no turn to draw. `develop ADR 0072`.
- */
-function getStandingTurnState(turn: StandingTurn, hasHolder: boolean): StandingTurnState {
-    if (turn.isOnAuto) return STANDING_TURN_STATE.onAuto;
-    if (turn.isOver) return STANDING_TURN_STATE.afterFight;
-    if (hasHolder) return STANDING_TURN_STATE.held;
-    return STANDING_TURN_STATE.unread;
-}
-
-export function presentStanding(
-    provocations: readonly ProvocationStanding[],
-    chargedSkills: readonly ChargedSkillStanding[],
-    roster: CombatantRoster,
-    readerSide: number | null,
-    turn: StandingTurn,
-): StandingReading {
-    // Clamped before the fold, so the whole section stays inside the one stated bound and the
-    // groups are bounded by what is left of it (**S11**).
-    const held = provocations.slice(0, PROVOKED_MAXIMUM);
-    const now = getStandingTurnNow(turn);
-    const holder = now === null ? undefined : roster.byId.get(now.combatantId);
-    return {
-        turnState: getStandingTurnState(turn, holder !== undefined),
-        turnOrdinal: now?.ordinal ?? null,
-        holder: holder === undefined ? null : {
-            name: holder.name,
-            colour: lookupColourForProfession(holder.profession),
-            sidePart: getPartOfSide(holder.side, readerSide),
-        },
-        provoked: presentStandingProvocations(held, roster, readerSide),
-        chargedSkills: presentStandingChargedSkills(chargedSkills, roster, readerSide),
-    };
+function getColourForCharge(state: ChargedSkillState, profession: string | null): string {
+    if (state !== CHARGED_SKILL_STATE.charging) return SIGNAL.unknown;
+    return lookupColourForProfession(profession);
 }
