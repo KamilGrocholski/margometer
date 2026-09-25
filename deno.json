@@ -14,6 +14,13 @@
         // A release passes its version; a build without one takes what this file declares, marked
         // `-dev`. `dist/` is what a release attaches, and git does not carry it.
         "build": "deno run -A tools/build-userscript.ts",
+        // What a recording adds up to, per combatant, in the text `develop`'s task of this name
+        // prints: with no path, every recording at `tests/recording-revision.ts`'s revision.
+        "fight:figures": "deno run -A tools/fight-figures.ts",
+        // `docs/design.md` §12's proof: that text against `develop`'s own, run from its own tree
+        // under `.cache/`. Outside the gate because it runs another branch's program; a
+        // difference exits 1 and is a finding in one of the two, never an expectation to move.
+        "fight:develop": "deno run -A tools/develop-figures.ts",
         // The built file in the Chrome this machine has, on Node: outside the gate on purpose
         // (`develop ADR 0047`), and what W9 asks of a change under `src/` before it is done.
         "e2e": "npx playwright test"

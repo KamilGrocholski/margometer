@@ -8,6 +8,8 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 export const TOOL_ERROR_CODE = {
     userscriptBuild: "UserscriptBuild",
     declaredVersion: "DeclaredVersion",
+    recordingRead: "RecordingRead",
+    developReport: "DevelopReport",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -32,5 +34,19 @@ export class UserscriptBuildError extends MargoMeterToolError {
 export class DeclaredVersionError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.declaredVersion, reason, options);
+    }
+}
+
+/** A recording asked for that is not there, or that states no fight the add-on would read. */
+export class RecordingReadError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.recordingRead, reason, options);
+    }
+}
+
+/** `develop`'s tree that would not come out of git, or its report that would not run. */
+export class DevelopReportError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.developReport, reason, options);
     }
 }
