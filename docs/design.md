@@ -1085,7 +1085,9 @@ value to move (`AGENTS.md` W8).
 
 ## 13. Open
 
-- The most messages one payload carried: 627, over the 36 files of `captures/` on 2026-09-24. That
-  is also the bound on the work `preparePayload` does in the game's stack.
+- The most messages one payload carried: 627, in
+  `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`, over the 35 recordings of
+  `captures/` on 2026-09-25. That is also the bound on the work `preparePayload` does in the game's
+  stack.
 - Drawing once per frame moves the moment the panel is current: the frame after a payload rather
   than the payload itself. `tests/e2e/AGENTS.md` says how the browser suite waits for it.
