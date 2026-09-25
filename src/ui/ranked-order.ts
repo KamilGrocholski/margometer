@@ -16,8 +16,7 @@ export function getRankedOrder(
     if (isOneStated) {
         if (!isOtherStated) return -1;
         if (otherFigure !== oneFigure) return otherFigure - oneFigure;
-    }
-    if (!isOneStated) {
+    } else {
         if (isOtherStated) return 1;
     }
     if (oneText === otherText) return 0;

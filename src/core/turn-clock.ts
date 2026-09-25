@@ -54,8 +54,9 @@ export function composeTurnStanding(event: BattleEvent, standing: TurnStanding):
         assert(standing.strikingId === standing.actingId, "whoever is mid-blow acted last");
     }
     if (event.kind === BATTLE_EVENT.attack) {
-        let isStriking = event.announced !== null;
-        if (!isStriking) isStriking = standing.strikingId === event.actorId;
+        let isStriking: boolean;
+        if (event.announced !== null) isStriking = true;
+        else isStriking = standing.strikingId === event.actorId;
         return { strikingId: isStriking ? event.actorId : null, actingId: event.actorId };
     }
     if (event.kind === BATTLE_EVENT.skillUsed) return { strikingId: null, actingId: event.actorId };

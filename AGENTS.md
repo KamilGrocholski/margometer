@@ -95,6 +95,13 @@ this language does not have would be**; each states what binds instead.
   `src/`, or in the `libs/` modules it reaches. A promise at the wrapped engine call answers the
   game before the fight is read, and the `try` around a synchronous call catches no rejection
   arriving after it. `develop ADR 0043`.
+- **S14. An `if` that does not leave has an `else`.** An `if` whose body ends by leaving — `return`,
+  `continue`, `break`, `throw` — is a guard, and what follows it is its `else`. Any other `if`
+  handles in its `else` the case it did not take, or asserts there what holds (**A2**): a value set
+  before the `if` for that case is set in the `else`, and two `if` over a condition and its negation
+  are one `if` and its `else`. An `if` stands alone only where its negative space is empty — nothing
+  happens there, and nothing holds there but the negation of its own condition. ADR 0006.
+  _(`by-reading` whether the negative space had something to say)_
 
 ## Assertions
 

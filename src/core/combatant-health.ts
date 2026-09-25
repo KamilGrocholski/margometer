@@ -101,7 +101,8 @@ export function indexFightEntryHealth(
             const maximum = roster.byId.get(combatantId)?.healthMaximum ?? null;
             const health = deriveHealthFromPercent(percent, maximum);
             if (health === null) continue;
-            if (maximum !== null) assert(health <= maximum, "nobody enters above their own pool");
+            assert(maximum !== null, "a health read off a percentage was read against a pool");
+            assert(health <= maximum, "nobody enters above their own pool");
             entered.set(combatantId, health);
         }
     }
@@ -126,9 +127,8 @@ export function indexTeamHeals(
         const heal = deriveTeamHeal(event, roster, entered, held);
         if (heal !== null) {
             const casterSide = roster.byId.get(heal.casterId)?.side;
-            let isReduced = false;
-            if (casterSide !== undefined) isReduced = reduced.has(casterSide);
-            if (!isReduced) {
+            assert(casterSide !== undefined, "a cast is sized only on a side its caster stands on");
+            if (!reduced.has(casterSide)) {
                 heals.set(event, heal);
                 // What a cast put back is health the next one cannot put back again.
                 for (const [combatantId, amount] of heal.restoredByCombatantId) {

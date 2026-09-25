@@ -132,5 +132,6 @@ function lookupNewestFight(fights: readonly KeptFight[]): KeptFight | undefined 
         else if (one.openedAt > newest.openedAt) newest = one;
     }
     if (newest !== undefined) assert(fights.includes(newest), "the newest is one of the shelf's");
+    else assert(fights.length === 0, "only an empty shelf names no newest");
     return newest;
 }

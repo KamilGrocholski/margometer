@@ -544,16 +544,15 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
         return;
     }
     const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
-    if (event.actorId === null) {
-        target.damageTakenFromNobody += applied;
-        addKindsToCut(target.damageTakenFromNobodyByElement, event.applied);
-    }
     target.damageTakenRaw += raw;
     target.damageTakenApplied += applied;
     for (const figure of event.applied) {
         addToCut(target.damageTakenByElement, figure.element, figure.amount);
     }
-    if (event.actorId !== null) {
+    if (event.actorId === null) {
+        target.damageTakenFromNobody += applied;
+        addKindsToCut(target.damageTakenFromNobodyByElement, event.applied);
+    } else {
         addToCut(target.damageTakenByOpponent, `${event.actorId}`, applied);
         addToPairCut(target.damageTakenByOpponentAndKind, `${event.actorId}`, event.applied);
         if (event.announced === null) {
@@ -775,14 +774,13 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
         return;
     }
     const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
-    if (event.actorId === null) {
-        target.damageTakenFromNobody += amount;
-        addToCut(target.damageTakenFromNobodyByElement, event.damage.element, amount);
-    }
     target.damageTakenApplied += amount;
     target.damageTakenBlowLargest = getLargerBlow(target.damageTakenBlowLargest, amount);
     addToCut(target.damageTakenByElement, event.damage.element, amount);
-    if (event.actorId !== null) {
+    if (event.actorId === null) {
+        target.damageTakenFromNobody += amount;
+        addToCut(target.damageTakenFromNobodyByElement, event.damage.element, amount);
+    } else {
         addToCut(target.damageTakenByOpponent, `${event.actorId}`, amount);
         addToPairCut(target.damageTakenByOpponentAndKind, `${event.actorId}`, [event.damage]);
         if (event.announced === null) {

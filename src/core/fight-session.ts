@@ -307,8 +307,9 @@ export function commitPayload(session: FightSession, prepared: PreparedPayload):
     assert(session.events.length + events.length <= session.options.eventsMaximum, "bounded");
     for (const event of events) session.events.push(event);
     session.standing = prepared.next;
-    let hasClosed = false;
+    let hasClosed: boolean;
     if (prepared.next.isOver) hasClosed = prepared.isOpening || !wasOver;
+    else hasClosed = false;
     return {
         hasOpened: prepared.isOpening,
         hasClosed,

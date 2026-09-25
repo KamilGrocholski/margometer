@@ -69,9 +69,10 @@ export function prepareCapture(
     }
     const shape = encodeCaptureShape(call.payload);
     const state = encodeCaptureState(call.combatantsAfter);
-    let isKept = call.messages.length > 0;
-    if (!isKept) isKept = !previous.shapesSeen.has(shape);
-    if (!isKept) isKept = !previous.statesSeen.has(state);
+    let isKept: boolean;
+    if (call.messages.length > 0) isKept = true;
+    else if (!previous.shapesSeen.has(shape)) isKept = true;
+    else isKept = !previous.statesSeen.has(state);
     if (!isKept) return { ...previous, droppedCalls: previous.droppedCalls + 1 };
     const kept: CapturedCall = {
         index: previous.calls.length,
