@@ -32,10 +32,22 @@ export function lookupTurnOpener(event: BattleEvent, standing: TurnStanding): nu
         return event.actorId;
     }
     if (event.kind !== BATTLE_EVENT.declaration) return null;
-    if (hasDeclaredEffect(event, STEP_KEY)) return event.combatantId;
-    if (!hasDeclaredEffect(event, PREPARE_KEY)) return null;
+    const key = lookupDeclarationOpenerKey(event);
+    if (key === STEP_KEY) return event.combatantId;
+    if (key === null) return null;
     if (standing.actingId === event.combatantId) return null;
     return event.combatantId;
+}
+
+/**
+ * The key a declaration would open its turn on: a step before a preparation, since a step is a
+ * turn whoever acted before it. Null where it states neither. `tools/turn-reading.ts` names a
+ * turn's opener by this, so the report and the clock cannot read one declaration two ways.
+ */
+export function lookupDeclarationOpenerKey(event: DeclarationEvent): string | null {
+    if (hasDeclaredEffect(event, STEP_KEY)) return STEP_KEY;
+    if (hasDeclaredEffect(event, PREPARE_KEY)) return PREPARE_KEY;
+    return null;
 }
 
 function hasDeclaredEffect(event: DeclarationEvent, effect: string): boolean {

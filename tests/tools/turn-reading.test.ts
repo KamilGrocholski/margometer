@@ -68,6 +68,8 @@ const DISPUTED = "captures/2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-no
 const ANNOUNCEMENT = "1=100.00;2=100.00;tspell=Coś;skillId=1";
 /** And making something ready, which rides a turn of theirs still standing. */
 const PREPARATION = "1=100.00;0;prepare=Coś";
+/** A step and a preparation in one declaration, which no recording carries. */
+const STEP_AND_PREPARATION = "1=100.00;0;step;prepare=Coś";
 let walksHeld: FightMessages[] | null = null;
 
 Deno.test("the register reader finds the register, and nothing else in the file", () => {
@@ -394,3 +396,16 @@ function composeUnfoughtFight(payloads: readonly (readonly string[])[]): Recorde
     });
     return readRecordedFight("unfought.json", { [FILE_FIELD.calls]: calls });
 }
+
+Deno.test("a declaration stating a step and a preparation is read off the step, as the clock", () => {
+    const fight = composeUnfoughtFight([[ANNOUNCEMENT], [STEP_AND_PREPARATION]]);
+    const walk = composeFightMessages([fight])[0]!;
+    assertEquals(
+        walk.readings.map((one) => [one.openerId, one.openerKey]),
+        [[1, null], [1, "step"]],
+        "the step opens a turn whoever acted before it, and it is the key the turn is named by",
+    );
+    const drawn = replayRecordedMaterial({ material: fight.path, fights: [fight] })[0]!;
+    const figures = drawn.reading.figures.statistics.byCombatantId.get(1)!;
+    assertStrictEquals(figures.turnsTaken, 2, "and the panel draws both turns the reading counts");
+});

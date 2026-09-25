@@ -3,9 +3,19 @@
  * against. The events are written out in the shape the decoder hands over.
  */
 
-import { assertEquals, assertStrictEquals } from "@std/assert";
-import { type AttackEvent, BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
-import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import {
+    type AttackEvent,
+    BATTLE_EVENT,
+    type BattleEvent,
+    type DeclarationEvent,
+} from "#/src/core/battle-event.ts";
+import {
+    composeTurnStanding,
+    lookupDeclarationOpenerKey,
+    lookupTurnOpener,
+    NO_TURN_STANDING,
+} from "#/src/core/turn-clock.ts";
 
 const ANNOUNCEMENT: BattleEvent = {
     kind: BATTLE_EVENT.skillUsed,
@@ -82,6 +92,27 @@ function composeDeclaration(combatantId: number, effect: string): BattleEvent {
     const declared = [{ effect, amount: null, text: null }];
     return { kind: BATTLE_EVENT.declaration, combatantId, healthPercent: null, declared };
 }
+
+Deno.test("a declaration opens on its step before its preparation, and on neither otherwise", () => {
+    const both: DeclarationEvent = {
+        kind: BATTLE_EVENT.declaration,
+        combatantId: 3,
+        healthPercent: null,
+        declared: [
+            { effect: "prepare", amount: null, text: null },
+            { effect: "step", amount: null, text: null },
+        ],
+    };
+    assertStrictEquals(lookupDeclarationOpenerKey(both), "step", "the step, whatever the order");
+    const alone = composeDeclaration(3, "prepare");
+    assert(alone.kind === BATTLE_EVENT.declaration, "a declaration was composed");
+    assertStrictEquals(lookupDeclarationOpenerKey(alone), "prepare", "a preparation alone");
+    const neither = composeDeclaration(3, "txt");
+    assert(neither.kind === BATTLE_EVENT.declaration, "a declaration was composed");
+    assertStrictEquals(lookupDeclarationOpenerKey(neither), null, "and a log line opens nothing");
+    const acted = lookupOpeners([composeBlow(3, false), both]);
+    assertEquals(acted, [3, 3], "so a step beside a preparation is a turn even after an action");
+});
 
 Deno.test("an event that is nobody's action ends both halves of the standing", () => {
     const outcome: BattleEvent = {

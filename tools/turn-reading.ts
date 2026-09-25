@@ -25,6 +25,7 @@ import { PREPARE_KEY } from "#/src/core/protocol-key.ts";
 import { encodeProtocolMessage, parseProtocolMessage } from "#/src/core/protocol-message.ts";
 import {
     composeTurnStanding,
+    lookupDeclarationOpenerKey,
     lookupTurnOpener,
     NO_TURN_STANDING,
     type TurnStanding,
@@ -251,14 +252,11 @@ function readMessageTurn(events: readonly BattleEvent[], standing: TurnStanding)
     return turn;
 }
 
-/** The opener's key where a declaration opened the turn; `prepare` first, as the register asks. */
+/** The opener's key where a declaration opened the turn, as the turn clock itself reads it. */
 function readMessageTurnKey(event: BattleEvent): string | null {
     if (event.kind !== BATTLE_EVENT.declaration) return null;
     assert(event.declared.length > 0, "a declaration states something");
-    for (const declared of event.declared) {
-        if (declared.effect === PREPARE_KEY) return PREPARE_KEY;
-    }
-    return event.declared[0]?.effect ?? null;
+    return lookupDeclarationOpenerKey(event) ?? event.declared[0]?.effect ?? null;
 }
 
 /**
