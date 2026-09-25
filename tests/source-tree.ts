@@ -26,6 +26,7 @@ export interface AstNode {
     declaration?: AstNode | null;
     declarations?: AstNode[];
     id?: AstNode | null;
+    value?: unknown;
     init?: AstNode | null;
     property?: AstNode;
     superClass?: AstNode | null;
