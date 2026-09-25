@@ -56,7 +56,8 @@ const FILES_MAXIMUM = 2000;
 const IMPORT_NODES = ["ImportDeclaration", "ExportNamedDeclaration", "ExportAllDeclaration"];
 const ROOT_PREFIX = "#/";
 const SIBLING_PREFIX = "./";
-const LIBS_PREFIX = "libs/";
+/** What `src/` reaches outside itself and ships with it. */
+const BUNDLED_PREFIXES = ["frozen/", "libs/"];
 
 /** Every `.ts` file under the directories asked for that exist, by repository-relative path. */
 export function readSourceFiles(directories: readonly string[]): SourceFile[] {
@@ -71,9 +72,9 @@ export function readSourceFiles(directories: readonly string[]): SourceFile[] {
     return files.sort((one, other) => one.path < other.path ? -1 : 1);
 }
 
-/** What ships: `src/`, and every `libs/` module it reaches through an import. */
+/** What ships: `src/`, and every `frozen/` and `libs/` module it reaches through an import. */
 export function readBundleFiles(): SourceFile[] {
-    const libs = new Map(readSourceFiles(["libs"]).map((file) => [file.path, file]));
+    const libs = new Map(readSourceFiles(["frozen", "libs"]).map((file) => [file.path, file]));
     const bundle = readSourceFiles(["src"]);
     const reached = new Set<string>();
     for (let index = 0; index < bundle.length; index += 1) {
@@ -82,7 +83,7 @@ export function readBundleFiles(): SourceFile[] {
         for (const imported of readImportSources(file)) {
             const path = lookupImportedPath(file, imported);
             if (path === null) continue;
-            if (!path.startsWith(LIBS_PREFIX)) continue;
+            if (!BUNDLED_PREFIXES.some((prefix) => path.startsWith(prefix))) continue;
             if (reached.has(path)) continue;
             const library = libs.get(path);
             assert(library !== undefined, `${file.path} imports ${path}, which exists`);

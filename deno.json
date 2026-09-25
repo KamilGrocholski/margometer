@@ -1,8 +1,19 @@
 {
+    // The version the rewrite ships as, after `develop`'s 0.19.0; a build handed none marks it `-dev`.
+    "version": "0.20.0",
     "tasks": {
         // The gate. One command, so there is no version of "I ran the tests but not the lint".
         // `-A`: the recordings are read out of git by a subprocess, `tests/recorded-messages.ts`.
-        "check": "deno fmt --check && deno lint && deno check && deno test -A"
+        //
+        // ⚠️ **The bundle is checked a second time, as a browser program.** `deno.ns` below
+        // carries the current TypeScript library whatever ES level stands beside it, so a
+        // construct past the browser floor type-checks here and ships; `project/browser-lib.json`
+        // is the reading without it. It keeps a lock of its own and runs `--frozen`: sharing
+        // this one, it rewrote it down to the one package it imports (seen 2026-09-25).
+        "check": "deno fmt --check && deno lint && deno check && deno check --frozen --config project/browser-lib.json src/userscript-boot.ts && deno test -A && deno task build",
+        // A release passes its version; a build without one takes what this file declares, marked
+        // `-dev`. `dist/` is what a release attaches, and git does not carry it.
+        "build": "deno run -A tools/build-userscript.ts"
     },
     "fmt": {
         // 100 columns, so nothing is hidden by a scrollbar.
@@ -32,7 +43,8 @@
         // `new Set(…)` and `new RegExp(…)` of two it cannot prove pure: 911 dead bytes
         // measured in `develop:dist/margometer.user.js` on 2026-09-01. What ships takes this one.
         "@std/assert/assert": "jsr:@std/assert@^1/assert",
-        "@std/fs": "jsr:@std/fs@^1"
+        "@std/fs": "jsr:@std/fs@^1",
+        "@std/jsonc": "jsr:@std/jsonc@^1"
     },
     "compilerOptions": {
         "lib": ["deno.ns", "dom", "dom.iterable", "esnext"],
