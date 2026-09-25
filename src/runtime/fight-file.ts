@@ -104,7 +104,7 @@ export const FILE_FIELD = {
 /** So a difference between two recordings is something a person can read. */
 const INDENT_SPACES = 2;
 /** In a name, where a sentence would write `none stated`. */
-const NOTHING_STATED = "none";
+export const NOTHING_STATED = "none";
 
 /**
  * The recording as the file on disk. Two fields are about the reader rather than the fight, and

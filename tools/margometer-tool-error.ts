@@ -10,6 +10,8 @@ export const TOOL_ERROR_CODE = {
     declaredVersion: "DeclaredVersion",
     recordingRead: "RecordingRead",
     developReport: "DevelopReport",
+    changelog: "Changelog",
+    captureIntake: "CaptureIntake",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -48,5 +50,19 @@ export class RecordingReadError extends MargoMeterToolError {
 export class DevelopReportError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.developReport, reason, options);
+    }
+}
+
+/** A release with no section to say what it is, or a changelog that cannot be read. */
+export class ChangelogError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.changelog, reason, options);
+    }
+}
+
+/** A recording intake will not admit, or cannot redact with certainty. */
+export class CaptureIntakeError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.captureIntake, reason, options);
     }
 }

@@ -58,7 +58,7 @@ export type EnvelopeFailure =
     | { kind: typeof ENVELOPE_FAILURE.payloadCombatantRepeated; combatantId: number };
 
 /** The only place the game's envelope keys are spelled; the compiler holds it complete. */
-const ENVELOPE_KEYS: FieldKeys<EnvelopeField> = {
+export const ENVELOPE_KEYS: FieldKeys<EnvelopeField> = {
     isInit: "init",
     isEnd: "endBattle",
     messages: "m",

@@ -28,6 +28,12 @@
         // The panel in a browser over any recording, stepped by hand, rebuilt and reloaded when a
         // file the bundle reads changes. The page is the one the browser suite drives.
         "preview": "deno run -A tools/preview-server.ts",
+        // How a recording the add-on wrote becomes material: redacted, and written under
+        // `dist/intake/` for a person to move into `develop:captures/`.
+        "capture:intake": "deno run -A tools/capture-intake.ts",
+        // The version this tree declares, and the section `CHANGELOG.md` carries for it, as the
+        // body of its release. A workflow runs it, and so can a hand before a tag.
+        "release:notes": "deno run -A tools/changelog.ts",
         // The built file in the Chrome this machine has, on Node: outside the gate on purpose
         // (`develop ADR 0047`), and what W9 asks of a change under `src/` before it is done.
         "e2e": "npx playwright test"
