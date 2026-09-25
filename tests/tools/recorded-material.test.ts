@@ -8,6 +8,7 @@ import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
 import {
     formatRecordingName,
     readRecordedMaterial,
+    replayMaterialSteps,
     replayRecordedMaterial,
 } from "#/tools/recorded-material.ts";
 import { readRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
@@ -59,6 +60,31 @@ Deno.test("a file with a call the add-on refuses is refused, naming why", () => 
         RecordingReadError,
         "the add-on refused a call",
     );
+});
+
+Deno.test("a fight stepped call by call ends where the whole replay stands", () => {
+    const material = readRecordedMaterial([]);
+    const whole = replayRecordedMaterial(material);
+    for (const [at, { fight, steps }] of replayMaterialSteps(material).entries()) {
+        assert(steps.length > 0, `${fight.path}: a recording read is stepped at least once`);
+        assert(steps.length <= fight.updates.length, `${fight.path}: at most once per call`);
+        assertEquals(
+            steps.at(-1)?.reading.view,
+            whole[at]?.reading.view,
+            `${fight.path}: the last step is the fight the whole replay reads`,
+        );
+        assertStrictEquals(steps.at(-1)?.payload, fight.updates.at(-1), "after the last call");
+        const counts = steps.map((step) => step.reading.view.payloadsApplied);
+        assertEquals(counts, [...counts].sort((one, other) => one - other), "one call at a time");
+    }
+});
+
+Deno.test("a file whose calls open no fight is refused when stepped as when replayed", () => {
+    const path = Deno.makeTempFileSync({ suffix: ".json" });
+    Deno.writeTextFileSync(path, '{"calls": []}');
+    const material = readRecordedMaterial([path]);
+    Deno.removeSync(path);
+    assertThrows(() => replayMaterialSteps(material), RecordingReadError, "carries no payload");
 });
 
 Deno.test("a cast of nobody is a snapshot, and a call stating none is not", () => {

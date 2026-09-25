@@ -25,6 +25,11 @@
         // under `.cache/`. Outside the gate because it runs another branch's program; a
         // difference exits 1 and is a finding in one of the two, never an expectation to move.
         "fight:develop": "deno run -A tools/develop-reports.ts",
+        // What stands on a side and whom a shout holds, how long a status stands on the mask, and
+        // whom the held strike: the three registers of `docs/auras-standing.md`, re-earned.
+        "fight:auras": "deno run -A tools/aura-standing.ts",
+        "fight:life": "deno run -A tools/aura-lifetime.ts",
+        "fight:shout": "deno run -A tools/shout-holding.ts",
         // The panel in a browser over any recording, stepped by hand, rebuilt and reloaded when a
         // file the bundle reads changes. The page is the one the browser suite drives.
         "preview": "deno run -A tools/preview-server.ts",

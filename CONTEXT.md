@@ -115,8 +115,8 @@ bleed
 
 **Aura**: What one skill put on more than one combatant. Announced **once** and never mentioned
 again, so how far through one is comes from the published table and never from the protocol
-(`develop:docs/auras-standing.md`). A cast reaching a side says nothing about whom it reached.
-_Avoid_: Buff, area effect, team buff
+(`docs/auras-standing.md`). A cast reaching a side says nothing about whom it reached. _Avoid_:
+Buff, area effect, team buff
 
 **Shout**: The cast that forces the characters it names to attack whoever made it — the one cast
 that says whom it reached, by name. The state it leaves somebody in is a **provocation**, and it is

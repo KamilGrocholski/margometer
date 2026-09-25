@@ -40,6 +40,8 @@ The documents this tree carries:
 - [`docs/browser-support.md`](docs/browser-support.md) — the browser floor and what holds it.
 - [`docs/captured-fights.md`](docs/captured-fights.md) — what each recording holds.
 - [`docs/drill-levels.md`](docs/drill-levels.md) — which rows of the panel open, level by level.
+- [`docs/auras-standing.md`](docs/auras-standing.md) — what stands on a side, whom a shout holds,
+  and for how long, re-earned off the recordings.
 
 A document joins this list in the commit that creates it (**C9**). **`develop:path` and
 `develop ADR NNNN` name `develop` as it stood at `fa1dcce`**, before this rewrite replaced it:
@@ -97,6 +99,8 @@ joins it in the commit that creates the file.
 - `.github/workflows/release.yml` — turns a tag into a release carrying the userscript and its
   metadata file
 
+- `docs/auras-standing.md` — what one skill stood on a side, whom a shout held, how long either
+  stood, over `captures/`
 - `docs/browser-support.md` — the browser floor the shipped userscript needs, measured off the tree
 - `docs/captured-fights.md` — what each recording in `captures/` holds: who fought, where, and how
   much protocol
@@ -267,6 +271,10 @@ joins it in the commit that creates the file.
 - `src/ui/tip-reading.ts` — what a card says, as a shape of figure, sub-line, heading and note
 - `src/ui/view-failure.ts` — what the panel could not do, as records the runtime counts
 
+- `tools/aura-lifetime.ts` — how long a status stands on the mask, and whether one lighting goes out
+  together: `fight:life`
+- `tools/aura-standing.ts` — what stands on a side, whom a shout holds, how many sources stand at
+  once: `fight:auras`
 - `tools/buff-bit-table.ts` — lifts the statuses the `buffs` mask is read by from the client bundle:
   `game:buffs`
 - `tools/build-userscript.ts` — builds the userscript a reader installs, and checks the built text:
@@ -307,7 +315,9 @@ joins it in the commit that creates the file.
 - `tools/protocol-key-table.ts` — lifts every protocol key the game client branches on from its
   bundle: `game:keys`
 - `tools/recorded-material.ts` — the recordings a tool reports on, each fight replayed through the
-  runtime's chain
+  runtime's chain, whole or call by call
+- `tools/shout-holding.ts` — whom a character a shout named strikes, turn by turn after it:
+  `fight:shout`
 - `tools/skill-table.ts` — every published skill and the turns its effects run for: `game:skills`
 
 - `tests/` — shared test support (fake window and document, simulator, recording readers) and the

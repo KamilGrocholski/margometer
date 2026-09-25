@@ -34,6 +34,18 @@ export interface ReplayedFight {
     reading: KeptReading;
 }
 
+/** The fight as it stood after one call, beside the call that put it there. */
+export interface ReplayedStep {
+    payload: unknown;
+    reading: KeptReading;
+}
+
+/** A recording beside every state the add-on read it in, call by call. */
+export interface SteppedFight {
+    fight: RecordedFight;
+    steps: readonly ReplayedStep[];
+}
+
 const RECORDINGS_MAXIMUM = 1_000;
 const RECORDING_SUFFIX = ".json";
 const PATH_SEPARATOR = "/";
@@ -87,6 +99,40 @@ export function replayRecordedMaterial(material: RecordedMaterial): ReplayedFigh
     });
     assertStrictEquals(replayed.length, material.fights.length, "every fight read is replayed");
     return replayed;
+}
+
+/**
+ * The same chain stopped after each call, for a reading graded against what the game restates
+ * call by call. A call before any fight opened yields no step. ⚠️ **Every step is a replay of the
+ * calls up to it**, rather than one session read as it grows: a view hands out the session's own
+ * event list, so a step held beside the next would grow with it. Measured over `captures/` on
+ * 2026-09-25, the whole material is stepped this way in about two seconds (S3).
+ */
+export function replayMaterialSteps(material: RecordedMaterial): SteppedFight[] {
+    const stepped = material.fights.map((fight) => {
+        return { fight, steps: replayMaterialStepsOfFight(fight) };
+    });
+    assertStrictEquals(stepped.length, material.fights.length, "every fight read is stepped");
+    return stepped;
+}
+
+function replayMaterialStepsOfFight(fight: RecordedFight): ReplayedStep[] {
+    const steps: ReplayedStep[] = [];
+    for (const [at, payload] of fight.updates.entries()) {
+        const calls = fight.updates.slice(0, at + 1);
+        const reading = replayFightPayloads(calls, DECODER_TABLES, SESSION_OPTIONS);
+        if (!reading.ok) {
+            throw new RecordingReadError(
+                `${fight.path}: the add-on refused a call, ${reading.error.kind}`,
+            );
+        }
+        if (reading.value !== null) steps.push({ payload, reading: reading.value });
+    }
+    assert(steps.length <= fight.updates.length, "a call leaves the fight in one state, not two");
+    if (steps.length === 0) {
+        throw new RecordingReadError(`${fight.path} carries no payload the add-on would read`);
+    }
+    return steps;
 }
 
 /** The heading a report stands under: the file's own name, the directory and suffix off. */
