@@ -8,7 +8,7 @@
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import {
-    AnotherReader,
+    EngineAlreadyWrapped,
     type EngineFailure,
     type EnginePort,
     type PayloadListener,
@@ -138,7 +138,7 @@ function look(
         report.onAttached(wrapped);
         return;
     }
-    if (wrapped instanceof AnotherReader) {
+    if (wrapped instanceof EngineAlreadyWrapped) {
         stopLooking(search);
         report.onStoodDown(wrapped);
         return;

@@ -11,7 +11,7 @@ import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import type { SessionOptions } from "#/src/core/fight-session.ts";
 import type { KeyValueStore } from "#/src/game/browser-store.ts";
 import {
-    AnotherReader,
+    EngineAlreadyWrapped,
     type EngineFailure,
     type EnginePort,
     type WrapHandle,
@@ -340,7 +340,7 @@ function showRuntimePanel(state: RuntimeState): void {
 }
 
 function failRuntimeSearch(state: RuntimeState, failure: EngineFailure): void {
-    assert(!(failure instanceof AnotherReader), "a copy that stands down shows nothing");
+    assert(!(failure instanceof EngineAlreadyWrapped), "a copy that stands down shows nothing");
     assert(state.wrap === null, "and one holding the game is not looking for it");
     state.defects.add({ kind: DEFECT_KIND.engine, region: null, failure });
     showRuntimePanel(state);

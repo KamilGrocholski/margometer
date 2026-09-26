@@ -8,7 +8,7 @@ import { PANEL_WINDOW, STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import type { PanelTarget } from "#/src/ui/panel-document.ts";
 import {
     LIVE_FIGHT_MARK,
-    MarkUnknown,
+    MarkValueUnknown,
     PANEL_INTENT,
     PANEL_MARK,
     PLAIN_MARK,
@@ -91,7 +91,7 @@ Deno.test("a value no mark of ours writes is a failure naming the mark, never a 
     ] as const;
     for (const [mark, value] of strays) {
         const read = readMark(mark, value);
-        assertInstanceOf(read, MarkUnknown, `${mark}="${value}"`);
+        assertInstanceOf(read, MarkValueUnknown, `${mark}="${value}"`);
         assertStrictEquals(read.mark, mark, `${mark}="${value}" names the mark`);
     }
 });

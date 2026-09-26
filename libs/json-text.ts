@@ -25,8 +25,8 @@ export class JsonUnreadable extends Error {
 }
 
 /** A function, a symbol, `undefined`: written as no JSON text rather than refused. */
-export class JsonNothing extends Error {
-    override readonly name = "JsonNothing";
+export class JsonTextAbsent extends Error {
+    override readonly name = "JsonTextAbsent";
 }
 
 export class JsonUnwritable extends Error {
@@ -59,14 +59,14 @@ function readJsonValue(value: unknown): JsonValue {
 export function encodeJson(
     value: unknown,
     indentSpaces: number,
-): string | JsonNothing | JsonUnwritable {
+): string | JsonTextAbsent | JsonUnwritable {
     assert(Number.isSafeInteger(indentSpaces), "text is indented by a whole count of spaces");
     assert(indentSpaces >= 0, "of none or more");
     const written = errors.attempt((): string | undefined =>
         JSON.stringify(value, null, indentSpaces)
     );
     if (written instanceof Error) return new JsonUnwritable(written);
-    if (written === undefined) return new JsonNothing();
+    if (written === undefined) return new JsonTextAbsent();
     assert(written.length > 0, "a value written as text says something");
     return written;
 }

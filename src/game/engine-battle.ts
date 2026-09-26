@@ -27,8 +27,8 @@ export class MethodAbsent extends Error {
 }
 
 /** A wrap of ours already stands: another copy of the add-on is reading this fight. */
-export class AnotherReader extends Error {
-    override readonly name = "AnotherReader";
+export class EngineAlreadyWrapped extends Error {
+    override readonly name = "EngineAlreadyWrapped";
 }
 
 export class SearchAbandoned extends Error {
@@ -43,17 +43,17 @@ export class SearchAbandoned extends Error {
     }
 }
 
-export class DetachForeignLayer extends Error {
-    override readonly name = "DetachForeignLayer";
+export class WrapCovered extends Error {
+    override readonly name = "WrapCovered";
 }
 
 export type EngineFailure =
     | EngineAbsent
     | BattleAbsent
     | MethodAbsent
-    | AnotherReader
+    | EngineAlreadyWrapped
     | SearchAbandoned
-    | DetachForeignLayer;
+    | WrapCovered;
 
 /** Called in the game's stack. */
 export interface PayloadListener {
@@ -134,7 +134,7 @@ function wrapBattle(
 ): WrapHandle | EngineFailure {
     const original = battle[WRAPPED_METHOD];
     if (typeof original !== "function") return new MethodAbsent();
-    if (isOurWrap(original)) return new AnotherReader();
+    if (isOurWrap(original)) return new EngineAlreadyWrapped();
     const failures: { count: number; first: errors.Caught | null } = { count: 0, first: null };
     const count = (failure: errors.Caught): void => {
         if (failures.count >= FAILURES_MAXIMUM) return;
@@ -156,7 +156,7 @@ function wrapBattle(
     assert(battle[WRAPPED_METHOD] !== original, "and stands where the engine's own stood");
     return {
         detach() {
-            if (battle[WRAPPED_METHOD] !== wrapper) return new DetachForeignLayer();
+            if (battle[WRAPPED_METHOD] !== wrapper) return new WrapCovered();
             battle[WRAPPED_METHOD] = original;
             return undefined;
         },

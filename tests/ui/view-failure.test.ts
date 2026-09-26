@@ -13,7 +13,7 @@ import {
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import type { PanelDefect } from "#/src/ui/panel-element.ts";
-import { MarkUnknown, PANEL_INTENT, PANEL_MARK } from "#/src/ui/panel-intent.ts";
+import { MarkValueUnknown, PANEL_INTENT, PANEL_MARK } from "#/src/ui/panel-intent.ts";
 import { NOTHING_SUSPECT, presentScreen, type ScreenReading } from "#/src/ui/panel-reading.ts";
 import { PANEL_METRIC, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import { PANEL_DEFECT_KIND, PANEL_REGION } from "#/src/ui/panel-words.ts";
@@ -86,7 +86,7 @@ Deno.test("a mark with a value nothing of ours writes drops the gesture and asks
     const [dropped] = failures;
     assertInstanceOf(dropped, GestureDropped, "as a dropped gesture");
     assertStrictEquals(dropped.listener, PANEL_LISTENER.press, "of the press");
-    assertInstanceOf(dropped.cause, MarkUnknown, "and the drop names the mark that strayed");
+    assertInstanceOf(dropped.cause, MarkValueUnknown, "and the drop names the mark that strayed");
     assertStrictEquals(dropped.cause.mark, PANEL_MARK.screen, "which is the screen's");
 });
 

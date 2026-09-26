@@ -13,7 +13,7 @@ Deno.test("every fate the vocabulary names is the fate of some failure", () => {
 });
 
 Deno.test("the fates §10.5 names outright are the ones the table holds", () => {
-    assertStrictEquals(FAILURE_FATES.AnotherReader, FAILURE_FATE.standDown, "a second copy");
+    assertStrictEquals(FAILURE_FATES.EngineAlreadyWrapped, FAILURE_FATE.standDown, "a second copy");
     assertStrictEquals(
         FAILURE_FATES.UnreadMessage,
         FAILURE_FATE.shownAsSuspect,

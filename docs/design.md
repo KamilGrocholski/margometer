@@ -137,8 +137,8 @@ export class JsonUnreadable extends Error {
     override readonly name = "JsonUnreadable";
 }
 /** A function, a symbol, `undefined`: no JSON text. */
-export class JsonNothing extends Error {
-    override readonly name = "JsonNothing";
+export class JsonTextAbsent extends Error {
+    override readonly name = "JsonTextAbsent";
 }
 /** The `Caught` of `JSON.stringify` as its `cause`. */
 export class JsonUnwritable extends Error {
@@ -148,7 +148,7 @@ export function parseJson(text: string): JsonValue | JsonUnreadable;
 export function encodeJson(
     value: unknown,
     indentSpaces: number,
-): string | JsonNothing | JsonUnwritable;
+): string | JsonTextAbsent | JsonUnwritable;
 
 // libs/number-text.ts — one reason to fail each, so `null`
 export function parseInteger(text: string): number | null; // digits, optional minus, safe integer
@@ -263,9 +263,9 @@ export type EngineFailure =
     | EngineAbsent // neither spelling answered
     | BattleAbsent
     | MethodAbsent // the method's name is spelled by the adapter alone
-    | AnotherReader // another copy's wrap marker is present
+    | EngineAlreadyWrapped // another copy's wrap marker is present
     | SearchAbandoned // `looks` and `maximum`
-    | DetachForeignLayer; // somebody wrapped over us; only ours comes off
+    | WrapCovered; // somebody wrapped over us; only ours comes off
 
 // The game's page state, read
 export interface PlacePort {
@@ -717,7 +717,7 @@ export type ShelfFailure =
     | ShelfUnwritable
     | ShelfVersionUnknown // `version`, null where none was stated
     | EverySlotPinned // `maximum`
-    | RefusedAfterRotation // `attempts`; the store's last refusal as its `cause`
+    | RotationRefused // `attempts`; the store's last refusal as its `cause`
     | FightAlreadyKept // `openedAt`
     | FightNotKept; // `openedAt`
 
@@ -733,7 +733,7 @@ export function encodeFightFile(
     surroundings: FileSurroundings,
 ): FightFile | FileUnserializable; // the JSON failure as its `cause`
 /** Which fight the file is of is the intent's question, and its refusal is the runtime's. */
-export type ExportFailure = NoFightOnScreen | FileUnserializable | FileFailure;
+export type ExportFailure = StandingFightAbsent | FileUnserializable | FileFailure;
 
 // The shelf as the running add-on holds it: the fights, the store, and what the store answered
 export interface ShelfKeeper {
@@ -884,9 +884,9 @@ export type PanelIntent =
 The intents are `develop`'s presses, one for one: `pin` toggles, as `develop`'s does, so it carries
 no state, and there is no `remove-kept`, because `develop` has no such press. A press is read off
 one `data-*` mark per control (`PANEL_MARK`), never a class; a mark stating a value nothing of ours
-writes is `MarkUnknown`, which the listener reports as a dropped gesture, with it as the `cause`. A
-`PanelDefect` the panel states is `{ kind, region, count }`, one per row of the ledger: a kind
-leaving two regions undrawn is two lines, each naming its region (null where a kind is none's).
+writes is `MarkValueUnknown`, which the listener reports as a dropped gesture, with it as the
+`cause`. A `PanelDefect` the panel states is `{ kind, region, count }`, one per row of the ledger: a
+kind leaving two regions undrawn is two lines, each naming its region (null where a kind is none's).
 
 The UI returns failures beside its values, and a `RenderReport`, and neither throws nor asserts. An
 exception out of the DOM is caught by `errors.attempt` inside its region. A listener reads an intent
@@ -912,7 +912,7 @@ initRuntime(ports, options)
    ─▶ openShelf               a failure → an empty shelf, and a "kept" defect
    ─▶ initPanelView           readWindowPosition × 2: a failure → the sheet's corner, a "kept" defect
    ─▶ look for the engine every 250 ms, at most 240 times
-        AnotherReader               → stand down, one console line, no panel
+        EngineAlreadyWrapped        → stand down, one console line, no panel
         MethodAbsent, abandoned     → an "engine" defect, markStale: the panel waits
         a look that threw           → one console line; the looking goes on
         found                       → engine.wrap(listener), markStale
@@ -991,7 +991,7 @@ goes without a mark.
 | a tooltip write that threw                   | `defect` "region"      | the game's tooltip without our rows                    |
 | a setting write refused                      | none                   | the reader's choice stands; the next visit is poorer   |
 | `PageReadFailure`                            | `shown-as-unknown`     | no place line; our word instead of the game's          |
-| `AnotherReader`, `BootFailure`               | `stand-down`           | no panel, one console line                             |
+| `EngineAlreadyWrapped`, `BootFailure`        | `stand-down`           | no panel, one console line                             |
 | `SearchAbandoned`, `MethodAbsent`            | `defect` "engine"      | the panel waits, one console line                      |
 
 ### 10.6 Where a broad catch stands

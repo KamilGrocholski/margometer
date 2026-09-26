@@ -137,6 +137,8 @@ joins it in the commit that creates the file.
   `develop`'s key register carried, and the help counts taken from its claims
 - `docs/adr/0008-a-failure-is-an-error-returned-beside-the-value.md` — a failure is an `Error` class
   returned beside the value, and `attempt` the one catch
+- `docs/adr/0009-a-failure-is-named-for-what-failed-and-how.md` — a failure class is a subject and
+  its state, never `…Error`, and `attempt` keeps its name
 
 - `frozen/AGENTS.md` — the rules for the dated readings of the game: written by tooling, never by
   hand
@@ -562,6 +564,7 @@ TypeScript idiom, with the naming rules stated here.
   | `reset`             | Restores to the initial state                                               |
   | `require`           | A value narrowed to a type, or throws — `tools/` only (**E1**)              |
   | `expect`            | Fails a test unless something holds — a test's action and nobody else's     |
+  | `attempt`           | Calls what may throw, answering its value or a `Caught` (**E4**)            |
   | `compose`           | A new value made of several, where no verb above fits                       |
 
   `compose` is the residue, not the default. Other verbs are allowed where they are more precise,
@@ -618,6 +621,11 @@ TypeScript idiom, with the naming rules stated here.
   `const OPENED_PART = { skill: "skill", source: "source" } as const` and
   `{ kind: typeof OPENED_PART.skill }`. The key is the name for code; the value is what reaches a
   console or a file. A failure is a class (**E3**), never a union with a `kind`.
+- **N20. A failure class is named for what failed and how**, a subject and its state:
+  `EngineAbsent`, `StoreRefused`, `PayloadsExceeded`. A union of them that a function answers is
+  `…Failure`, and a tool's thrown class is `…Error` (**E13**). A failure of the bundle never ends in
+  `Error`, which names the mechanism `extends Error` already states. ADR 0009. _(`by-reading`
+  whether a name says what failed and how)_
 
 ## Code
 

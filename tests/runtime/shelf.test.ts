@@ -32,8 +32,8 @@ import {
     type KeptFight,
     openShelf,
     pinFight,
-    RefusedAfterRotation,
     removeKeptFight,
+    RotationRefused,
     type ShelfContents,
     ShelfUnreadable,
     ShelfVersionUnknown,
@@ -78,7 +78,7 @@ function composeStoreHolding(text: string): KeyValueStore {
 Deno.test("a store that will not have it says so, rather than throwing", () => {
     const refusing = composeStoreWithCeiling(0);
     const kept = keepFight(refusing, EMPTY, composeFight(1));
-    assertInstanceOf(kept, RefusedAfterRotation, "room for nothing keeps nothing");
+    assertInstanceOf(kept, RotationRefused, "room for nothing keeps nothing");
     assertStrictEquals(kept.attempts, 2, "not even an empty shelf");
     assertEquals(openShelf(refusing), EMPTY, "and the shelf reads back empty");
     const absent = initPageStore(null);
@@ -235,7 +235,7 @@ Deno.test("a pin outranks the store's refusal, and a shelf of pins too long is r
     const pins = keepFight(cramped, first.contents, composeFight(3, true));
     assertInstanceOf(
         pins,
-        RefusedAfterRotation,
+        RotationRefused,
         "only pins are left to offer, so the store's refusal stands",
     );
     assertStrictEquals(pins.attempts, 1, "after the one offer");

@@ -14,7 +14,7 @@ import {
 import * as errors from "#/libs/errors.ts";
 import {
     encodeJson,
-    JsonNothing,
+    JsonTextAbsent,
     JsonUnreadable,
     JsonUnwritable,
     parseJson,
@@ -42,10 +42,10 @@ Deno.test("a reading answers the value it read, zero and false included", () => 
 
 Deno.test("a value with no JSON text and a writer that threw are told apart", () => {
     const nothing = encodeJson(undefined, 0);
-    assertInstanceOf(nothing, JsonNothing, "a value with no JSON text says which of the two");
+    assertInstanceOf(nothing, JsonTextAbsent, "a value with no JSON text says which of the two");
 
     const behaviour = encodeJson(() => 1, 0);
-    assertInstanceOf(behaviour, JsonNothing, "a function has no JSON text either");
+    assertInstanceOf(behaviour, JsonTextAbsent, "a function has no JSON text either");
 
     assertStrictEquals(encodeJson(null, 0), "null", "while null is a value that writes");
 

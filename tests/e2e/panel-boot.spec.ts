@@ -14,7 +14,7 @@ import { waitForFrame } from "./panel-page.ts";
 const FAILURE_LINE = "MargoMeter/Panel";
 /** The `name` of two failures in `src/game/engine-battle.ts`, which a Node suite cannot import. */
 const ENGINE_FAILURE_SEARCH_ABANDONED = "SearchAbandoned";
-const ENGINE_FAILURE_ANOTHER_READER = "AnotherReader";
+const ENGINE_FAILURE_ALREADY_WRAPPED = "EngineAlreadyWrapped";
 /** `PANEL_WORDS`' for the "engine" defect, in `src/ui/panel-words.ts`. */
 const NO_GAME_WORDS = "Nie widać walki w grze";
 /** The attach poll gives up after 240 looks of 250 ms. Past that, and nowhere near a real wait. */
@@ -91,7 +91,7 @@ test.describe("the same file loaded twice", () => {
     test.use({ doesLoadTwice: true });
 
     test("leaves one panel, and the second copy stands down", async ({ panel, honesty }) => {
-        honesty.allow(ENGINE_FAILURE_ANOTHER_READER);
+        honesty.allow(ENGINE_FAILURE_ALREADY_WRAPPED);
         await expect(panel.host, "one panel, whatever the page loaded").toHaveCount(1);
         await panel.expectHonest("a page carrying the file twice");
     });

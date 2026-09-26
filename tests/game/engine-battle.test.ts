@@ -16,15 +16,15 @@ import {
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import {
-    AnotherReader,
     BattleAbsent,
-    DetachForeignLayer,
     EngineAbsent,
+    EngineAlreadyWrapped,
     type EngineBattle,
     initPageEngine,
     MethodAbsent,
     type PayloadListener,
     readPageEngines,
+    WrapCovered,
     type WrapHandle,
 } from "#/src/game/engine-battle.ts";
 import { WarriorsAbsent } from "#/src/game/warrior-snapshot.ts";
@@ -171,7 +171,7 @@ Deno.test("a second copy of the add-on stands down, as does a battle with nothin
     const held = composeHeld(1);
     wrapOn(held.battle, composeListener({}));
     const second = readBattleOn(held.battle).wrap(composeListener({}));
-    assertInstanceOf(second, AnotherReader, "the second stands down");
+    assertInstanceOf(second, EngineAlreadyWrapped, "the second stands down");
     const empty = readBattleOn({}).wrap(composeListener({}));
     assertInstanceOf(empty, MethodAbsent, "and one with no method");
     const notMethod = readBattleOn({ updateData: 5 }).wrap(composeListener({}));
@@ -182,7 +182,7 @@ Deno.test("a second copy of the add-on stands down, as does a battle with nothin
 Deno.test("another build's wrap is recognised by its marker alone", () => {
     const foreign = Object.assign(() => 1, { __margometerBattleWrap: 99 });
     const wrapped = readBattleOn({ updateData: foreign }).wrap(composeListener({}));
-    assertInstanceOf(wrapped, AnotherReader, "a second count refused");
+    assertInstanceOf(wrapped, EngineAlreadyWrapped, "a second count refused");
     const unmarked = readBattleOn({ updateData: () => 1 }).wrap(composeListener({}));
     assertNotInstanceOf(unmarked, Error, "while a function carrying no marker is wrapped");
 });
@@ -200,7 +200,7 @@ Deno.test("a detach puts back what was there, and only where ours is outermost",
     const somebodyElse = () => 2;
     second.battle.updateData = somebodyElse;
     const refused = layered.detach();
-    assertInstanceOf(refused, DetachForeignLayer, "is refused");
+    assertInstanceOf(refused, WrapCovered, "is refused");
     assertStrictEquals(second.battle.updateData, somebodyElse, "and leaves the layer where it is");
 });
 

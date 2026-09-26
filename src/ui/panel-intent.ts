@@ -82,8 +82,8 @@ export type PanelIntent =
     | { kind: typeof PANEL_INTENT.pin; openedAt: number };
 
 /** A mark of ours stating a value nothing of ours writes: a stray, and never the first choice. */
-export class MarkUnknown extends Error {
-    override readonly name = "MarkUnknown";
+export class MarkValueUnknown extends Error {
+    override readonly name = "MarkValueUnknown";
     readonly mark: PanelMark;
 
     constructor(mark: PanelMark) {
@@ -92,7 +92,7 @@ export class MarkUnknown extends Error {
     }
 }
 
-type IntentReading = PanelIntent | null | MarkUnknown;
+type IntentReading = PanelIntent | null | MarkValueUnknown;
 
 /** The plain row names nothing, so its mark states the same word and the press reads the key. */
 export const PLAIN_MARK = "closing";
@@ -120,23 +120,23 @@ export function readPanelIntent(target: PanelTarget): IntentReading {
 function readPanelIntentOfScreen(target: PanelTarget): IntentReading {
     const metric = target.getAttribute(PANEL_MARK.screen);
     if (metric !== null) {
-        if (!isOneOf(SCREEN_ORDER, metric)) return new MarkUnknown(PANEL_MARK.screen);
+        if (!isOneOf(SCREEN_ORDER, metric)) return new MarkValueUnknown(PANEL_MARK.screen);
         return { kind: PANEL_INTENT.metric, metric };
     }
     const side = target.getAttribute(PANEL_MARK.side);
     if (side !== null) {
-        if (!isOneOf(SIDE_CHOICES, side)) return new MarkUnknown(PANEL_MARK.side);
+        if (!isOneOf(SIDE_CHOICES, side)) return new MarkValueUnknown(PANEL_MARK.side);
         return { kind: PANEL_INTENT.side, side };
     }
     const row = target.getAttribute(PANEL_MARK.row);
     if (row !== null) {
         const combatantId = parseInteger(row);
-        if (combatantId === null) return new MarkUnknown(PANEL_MARK.row);
+        if (combatantId === null) return new MarkValueUnknown(PANEL_MARK.row);
         return { kind: PANEL_INTENT.openRow, combatantId };
     }
     const end = target.getAttribute(PANEL_MARK.unnamed);
     if (end !== null) {
-        if (!isOneOf(UNNAMED_ENDS, end)) return new MarkUnknown(PANEL_MARK.unnamed);
+        if (!isOneOf(UNNAMED_ENDS, end)) return new MarkValueUnknown(PANEL_MARK.unnamed);
         return { kind: PANEL_INTENT.openUnnamed, end };
     }
     return null;
@@ -165,18 +165,18 @@ function readPanelIntentOfShelf(target: PanelTarget): IntentReading {
     if (fight !== null) {
         if (fight === LIVE_FIGHT_MARK) return { kind: PANEL_INTENT.showLive };
         const openedAt = parseInteger(fight);
-        if (openedAt === null) return new MarkUnknown(PANEL_MARK.fight);
+        if (openedAt === null) return new MarkValueUnknown(PANEL_MARK.fight);
         return { kind: PANEL_INTENT.showKept, openedAt };
     }
     const pinned = target.getAttribute(PANEL_MARK.pin);
     if (pinned !== null) {
         const openedAt = parseInteger(pinned);
-        if (openedAt === null) return new MarkUnknown(PANEL_MARK.pin);
+        if (openedAt === null) return new MarkValueUnknown(PANEL_MARK.pin);
         return { kind: PANEL_INTENT.pin, openedAt };
     }
     const choice = target.getAttribute(PANEL_MARK.storage);
     if (choice !== null) {
-        if (!isOneOf(STORAGE_CHOICES, choice)) return new MarkUnknown(PANEL_MARK.storage);
+        if (!isOneOf(STORAGE_CHOICES, choice)) return new MarkValueUnknown(PANEL_MARK.storage);
         return { kind: PANEL_INTENT.storage, choice };
     }
     return null;

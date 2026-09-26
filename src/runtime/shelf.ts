@@ -86,8 +86,8 @@ export class EverySlotPinned extends Error {
 }
 
 /** The store refused every shelf the rotation offered it; the last refusal is the cause. */
-export class RefusedAfterRotation extends Error {
-    override readonly name = "RefusedAfterRotation";
+export class RotationRefused extends Error {
+    override readonly name = "RotationRefused";
     readonly attempts: number;
 
     constructor(attempts: number, options?: ErrorOptions) {
@@ -122,7 +122,7 @@ export type ShelfFailure =
     | ShelfUnwritable
     | ShelfVersionUnknown
     | EverySlotPinned
-    | RefusedAfterRotation
+    | RotationRefused
     | FightAlreadyKept
     | FightNotKept;
 
@@ -257,11 +257,11 @@ function writeShelf(
         if (written instanceof StoreUnavailable) return written;
         refused = written;
         const shorter = dropOldestUnpinned(held);
-        if (shorter === null) return new RefusedAfterRotation(attempts, { cause: refused });
+        if (shorter === null) return new RotationRefused(attempts, { cause: refused });
         held = shorter;
     }
     assert(held.length === 0, "a shelf offered once per fight it holds has nothing left to drop");
-    return new RefusedAfterRotation(KEPT_MAXIMUM + 1, { cause: refused });
+    return new RotationRefused(KEPT_MAXIMUM + 1, { cause: refused });
 }
 
 /** What was offered and did not go down: the rotation, stated rather than silent. */

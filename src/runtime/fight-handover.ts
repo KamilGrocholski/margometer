@@ -25,12 +25,12 @@ import {
 } from "./fight-file.ts";
 import type { FightReading, StandingFight } from "./fight-reading.ts";
 
-export class NoFightOnScreen extends Error {
-    override readonly name = "NoFightOnScreen";
+export class StandingFightAbsent extends Error {
+    override readonly name = "StandingFightAbsent";
 }
 
 /** Which fight the file is of is the intent's question, and its refusal is the runtime's. */
-export type ExportFailure = NoFightOnScreen | FileUnserializable | FileFailure;
+export type ExportFailure = StandingFightAbsent | FileUnserializable | FileFailure;
 
 export interface HandoverPorts {
     clock: Clock;
@@ -59,7 +59,7 @@ export function writeFightHandover(
     onLateFailure: (failure: errors.Caught) => void,
 ): undefined | ExportFailure {
     assert(ports.version.length > 0, "a file names the build that wrote it");
-    if (standing === null) return new NoFightOnScreen();
+    if (standing === null) return new StandingFightAbsent();
     const prepared = prepareHandover(standing, live, ports);
     if (prepared instanceof Error) return prepared;
     const encoded = encodeFightFile(prepared.calls, prepared.subject, prepared.surroundings);
