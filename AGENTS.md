@@ -93,13 +93,15 @@ joins it in the commit that creates the file.
 | `package.json`         | npm's manifest for the browser suite alone: Playwright and its one task                         |
 | `playwright.config.ts` | the browser suite's settings: where it looks, which engine it drives, what it leaves            |
 
-| Path                             | For                                                                           |
-| -------------------------------- | ----------------------------------------------------------------------------- |
-| `.agents/skills/verify/SKILL.md` | the skill for running the built userscript over a recording in a real browser |
+| Path                             | For                                                                                       |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| `.agents/skills/commit/SKILL.md` | the skill for making a commit: the process, and the checklist of what must hold before it |
+| `.agents/skills/verify/SKILL.md` | the skill for running the built userscript over a recording in a real browser             |
 
-| Path                    | For                                                               |
-| ----------------------- | ----------------------------------------------------------------- |
-| `.claude/settings.json` | Claude Code's permissions: the deny list that walls off `TODO.md` |
+| Path                    | For                                                                     |
+| ----------------------- | ----------------------------------------------------------------------- |
+| `.claude/settings.json` | Claude Code's permissions: the deny list that walls off `TODO.md`       |
+| `.claude/skills`        | a link to `.agents/skills/`, through which Claude Code finds the skills |
 
 | Path                            | For                                                                      |
 | ------------------------------- | ------------------------------------------------------------------------ |
