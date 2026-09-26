@@ -32,7 +32,7 @@ const HAND_KEPT_LIST = "TODO.md";
 const DENIED_TOOLS = ["Edit", "Write"];
 const NESTED_RULES_NAME = "/AGENTS.md";
 const STRUCTURE_HEADING = "## Structure";
-const STRUCTURE_OPENER = "- `";
+const STRUCTURE_OPENER = "| `";
 const SECTION_OPENER = "## ";
 /** Where the structure takes a directory rather than its files, and how deep: a suite apiece. */
 const STRUCTURE_DEPTH_BY_ROOT: ReadonlyMap<string, number> = new Map([
@@ -200,21 +200,25 @@ function isCanonicalPlace(path: string): boolean {
     return path.startsWith("docs/") ? !path.slice("docs/".length).includes("/") : false;
 }
 
-Deno.test("the structure is read off its own section, one path to a line", () => {
+Deno.test("the structure is read off its own section, one path to a row", () => {
     const sample = [
         STRUCTURE_HEADING,
         "",
-        "- `a.ts` — one",
-        "  wrapped onto a second line, `b.ts`",
-        "- `tests/core/` — two",
+        "| Path   | For                |",
+        "| ------ | ------------------ |",
+        "| `a.ts` | one, beside `b.ts` |",
+        "",
+        "| Path          | For |",
+        "| ------------- | --- |",
+        "| `tests/core/` | two |",
         "",
         "## Safety",
-        "- `c.ts` — past the section",
+        "| `c.ts` | past the section |",
     ].join("\n");
-    assertEquals(readStructurePaths(sample), ["a.ts", "tests/core/"], "the two lines it opens");
+    assertEquals(readStructurePaths(sample), ["a.ts", "tests/core/"], "the two rows it opens");
 });
 
-/** The paths the section's lines open with, up to the next section. */
+/** The paths the section's rows open with, up to the next section. */
 function readStructurePaths(text: string): string[] {
     const lines = text.split("\n");
     const heading = lines.indexOf(STRUCTURE_HEADING);
