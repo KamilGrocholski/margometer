@@ -1,9 +1,9 @@
 /**
  * `AGENTS.md`, checked against itself and against the tree it describes: its rules are numbered
  * without a gap and every reference to one resolves, its register names exactly the guards that
- * exist, its list of documents names exactly the documents that exist, its structure names every
- * tracked file, and the two walls in front of `TODO.md` still stand. Text is walked rather than
- * matched (C7).
+ * exist, its list of documents names exactly the documents that exist, `docs/structure.md` names
+ * every tracked file, and the two walls in front of `TODO.md` still stand. Text is walked rather
+ * than matched (C7).
  */
 
 import { assert, assertEquals, assertExists } from "@std/assert";
@@ -31,7 +31,8 @@ const ROOT_DOCUMENTS_OTHER = ["AGENTS.md", "CLAUDE.md", "README.en.md", "README.
 const HAND_KEPT_LIST = "TODO.md";
 const DENIED_TOOLS = ["Edit", "Write"];
 const NESTED_RULES_NAME = "/AGENTS.md";
-const STRUCTURE_HEADING = "## Structure";
+const STRUCTURE_PATH = "docs/structure.md";
+const STRUCTURE_HEADING = "# Structure";
 const STRUCTURE_OPENER = "| `";
 const SECTION_OPENER = "## ";
 /** Where the structure takes a directory rather than its files, and how deep: a suite apiece. */
@@ -222,7 +223,7 @@ Deno.test("the structure is read off its own section, one path to a row", () => 
 function readStructurePaths(text: string): string[] {
     const lines = text.split("\n");
     const heading = lines.indexOf(STRUCTURE_HEADING);
-    assert(heading !== -1, "the rules map the tree");
+    assert(heading !== -1, "the document maps the tree");
     const found: string[] = [];
     for (const line of lines.slice(heading + 1)) {
         if (line.startsWith(SECTION_OPENER)) break;
@@ -254,7 +255,7 @@ function composeStructureEntry(path: string): string {
 }
 
 Deno.test("the structure names every file in the tree, and nothing else", () => {
-    const listed = readStructurePaths(Deno.readTextFileSync(RULES_PATH));
+    const listed = readStructurePaths(Deno.readTextFileSync(STRUCTURE_PATH));
     assert(listed.length > 0, "the structure was read");
     const entries = [...new Set(readTrackedPaths([]).map(composeStructureEntry))];
     assertEquals(listed.filter((path) => !entries.includes(path)), [], "a line naming nothing");

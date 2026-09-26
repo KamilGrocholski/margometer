@@ -43,7 +43,7 @@ below points at the rule it checks, and the rule's owner is where to read it in 
 
 ### What the change drags along
 
-- [ ] A file added, moved or deleted has its row in the Structure of `AGENTS.md` (**C9**).
+- [ ] A file added, moved or deleted has its row in `docs/structure.md` (**C9**).
 - [ ] A new canonical document joins the list in `AGENTS.md`, in this commit (**C9**).
 - [ ] A new guard joins the register, in the commit that makes it pass (Guard register).
 - [ ] A rule changed has its decision record in `docs/adr/`, numbered next (`AGENTS.md` intro).
