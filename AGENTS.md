@@ -479,37 +479,38 @@ compute, and stays out of this table for good.
 **A reader is proved by a sample it must flag and a sample it must not.** The first catches a reader
 that has stopped finding its subject; only the second catches one that finds too much.
 
-| Guard                                              | Holds                     |
-| -------------------------------------------------- | ------------------------- |
-| `deno check`, strict, with unused names an error   | S7                        |
-| `tests/repository/declaration-order.test.ts`       | C1                        |
-| `tests/repository/function-length.test.ts`         | S4                        |
-| `tests/repository/regular-expressions.test.ts`     | C7                        |
-| `tests/repository/import-paths.test.ts`            | C8                        |
-| `tests/repository/non-null-assertions.test.ts`     | C12                       |
-| `tests/repository/synchronous-bundle.test.ts`      | S13                       |
-| `tests/repository/assert-imports.test.ts`          | A6, A10                   |
-| `tests/repository/throws.test.ts`                  | E1, E3, E13               |
-| `tests/repository/names.test.ts`                   | N1, N10                   |
-| `tests/repository/layers.test.ts`                  | `docs/design.md` §4       |
-| `tests/repository/browser-suite-keys.test.ts`      | N13                       |
-| `tests/repository/reader-layer.test.ts`            | A11                       |
-| `tests/repository/skill-durations.test.ts`         | ADR 0005                  |
-| `tests/repository/redacted-names.test.ts`          | `captures/AGENTS.md`      |
-| `tests/repository/captured-fight-register.test.ts` | `docs/captured-fights.md` |
-| `tests/repository/fabricated-fights.test.ts`       | `captures/AGENTS.md`      |
-| `tests/repository/protocol-keys.test.ts`           | `docs/protocol-keys.md`   |
-| `tests/repository/cited-paths.test.ts`             | C3, C15                   |
-| `tests/repository/broad-catches.test.ts`           | E4                        |
-| `tests/repository/handed-callbacks.test.ts`        | E10                       |
-| `tests/repository/type-assertions.test.ts`         | C13                       |
-| `tests/repository/control-flow.test.ts`            | S1                        |
-| `tests/repository/comment-share.test.ts`           | C4, C16                   |
-| `tests/repository/design-tokens.test.ts`           | `DESIGN.md`               |
-| `tests/repository/changelog.test.ts`               | `CHANGELOG.md`            |
-| `tests/repository/documents.test.ts`               | this file                 |
-| `tests/repository/decisions.test.ts`               | `docs/adr/`               |
-| `tests/repository/workflows.test.ts`               | `.github/workflows/`      |
-| `tests/repository/readmes.test.ts`                 | the two READMEs           |
-| `deno check --config project/browser-lib.json`     | the browser floor         |
-| `requireBundleInBrowser` in the build              | Never: the network        |
+| Guard                                              | Holds                                                  |
+| -------------------------------------------------- | ------------------------------------------------------ |
+| `deno check`, strict, with unused names an error   | S7                                                     |
+| `tests/repository/declaration-order.test.ts`       | C1                                                     |
+| `tests/repository/function-length.test.ts`         | S4                                                     |
+| `tests/repository/regular-expressions.test.ts`     | C7                                                     |
+| `tests/repository/import-paths.test.ts`            | C8                                                     |
+| `tests/repository/non-null-assertions.test.ts`     | C12                                                    |
+| `tests/repository/synchronous-bundle.test.ts`      | S13                                                    |
+| `tests/repository/assert-imports.test.ts`          | A6, A10                                                |
+| `tests/repository/throws.test.ts`                  | E1, E3, E13                                            |
+| `tests/repository/names.test.ts`                   | N1, N10                                                |
+| `tests/repository/layers.test.ts`                  | `docs/design.md` §4                                    |
+| `tests/repository/browser-suite-keys.test.ts`      | N13                                                    |
+| `tests/repository/reader-layer.test.ts`            | A11                                                    |
+| `tests/repository/skill-durations.test.ts`         | ADR 0005                                               |
+| `tests/repository/redacted-names.test.ts`          | `captures/AGENTS.md`                                   |
+| `tests/repository/captured-fight-register.test.ts` | `docs/captured-fights.md`                              |
+| `tests/repository/fabricated-fights.test.ts`       | `captures/AGENTS.md`                                   |
+| `tests/repository/protocol-keys.test.ts`           | `docs/protocol-keys.md`                                |
+| `tests/repository/cited-paths.test.ts`             | C3, C15                                                |
+| `tests/repository/broad-catches.test.ts`           | E4                                                     |
+| `tests/repository/handed-callbacks.test.ts`        | E10                                                    |
+| `tests/repository/type-assertions.test.ts`         | C13                                                    |
+| `tests/repository/control-flow.test.ts`            | S1                                                     |
+| `tests/repository/comment-share.test.ts`           | C4, C16                                                |
+| `tests/repository/design-tokens.test.ts`           | `DESIGN.md`                                            |
+| `tests/repository/changelog.test.ts`               | `CHANGELOG.md`                                         |
+| `tests/repository/documents.test.ts`               | this file                                              |
+| `tests/repository/decisions.test.ts`               | `docs/adr/`                                            |
+| `tests/repository/workflows.test.ts`               | `.github/workflows/`                                   |
+| `tests/repository/readmes.test.ts`                 | the two READMEs                                        |
+| `deno check --config project/browser-lib.json`     | the browser floor                                      |
+| `requireBundleInBrowser` in the build              | Never: the network                                     |
+| `.claude/settings.json`, for Claude Code alone     | G1, G8, W2, Ask first: `captures/`, `frozen/AGENTS.md` |

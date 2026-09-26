@@ -32,10 +32,10 @@ file comes or goes (ADR 0010).
 | `.agents/skills/commit/SKILL.md` | the skill for making a commit: the process, and the checklist of what must hold before it |
 | `.agents/skills/verify/SKILL.md` | the skill for running the built userscript over a recording in a real browser             |
 
-| Path                    | For                                                                     |
-| ----------------------- | ----------------------------------------------------------------------- |
-| `.claude/settings.json` | Claude Code's permissions: the deny list that walls off `TODO.md`       |
-| `.claude/skills`        | a link to `.agents/skills/`, through which Claude Code finds the skills |
+| Path                    | For                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `.claude/settings.json` | Claude Code's permissions and hooks, holding what the guard register says of them |
+| `.claude/skills`        | a link to `.agents/skills/`, through which Claude Code finds the skills           |
 
 | Path                            | For                                                                      |
 | ------------------------------- | ------------------------------------------------------------------------ |
