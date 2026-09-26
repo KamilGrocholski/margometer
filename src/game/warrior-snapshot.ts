@@ -8,7 +8,6 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, ok, type Result } from "#/libs/result.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 
@@ -30,14 +29,23 @@ export interface CapturedCombatant {
 
 export type WarriorSnapshot = readonly CapturedCombatant[];
 
-export const WARRIOR_FAILURE = {
-    warriorsAbsent: "warriors-absent",
-    warriorsExceeded: "warriors-exceeded",
-} as const;
+export class WarriorsAbsent extends Error {
+    override readonly name = "WarriorsAbsent";
+}
 
-export type WarriorFailure =
-    | { kind: typeof WARRIOR_FAILURE.warriorsAbsent }
-    | { kind: typeof WARRIOR_FAILURE.warriorsExceeded; count: number; maximum: number };
+export class WarriorsExceeded extends Error {
+    override readonly name = "WarriorsExceeded";
+    readonly count: number;
+    readonly maximum: number;
+
+    constructor(count: number, maximum: number) {
+        super();
+        this.count = count;
+        this.maximum = maximum;
+    }
+}
+
+export type WarriorFailure = WarriorsAbsent | WarriorsExceeded;
 
 /**
  * Where the running fight keeps its combatants, in the order tried. Each receives every field of a
@@ -54,12 +62,12 @@ const COPIED_KEYS = ["name", "team", "prof", "lvl", "mana", "energy"] as const;
 const SHALLOW_COPIED_KEYS = ["hp", "ac"] as const;
 const NAME_KEY = "name";
 
-export function readWarriorSnapshot(battle: unknown): Result<WarriorSnapshot, WarriorFailure> {
+export function readWarriorSnapshot(battle: unknown): WarriorSnapshot | WarriorFailure {
     const named = readNamedWarriors(battle);
-    if (!named.ok) return named;
-    const snapshot = named.value.map(readWarriorSnapshotCombatant);
-    assert(snapshot.length === named.value.length, "every named warrior is copied once");
-    return ok(snapshot);
+    if (named instanceof Error) return named;
+    const snapshot = named.map(readWarriorSnapshotCombatant);
+    assert(snapshot.length === named.length, "every named warrior is copied once");
+    return snapshot;
 }
 
 /** Never `structuredClone` of the warrior, which carries references to the page and the engine. */
@@ -86,21 +94,19 @@ function readWarriorSnapshotCombatant(warrior: UnknownRecord): CapturedCombatant
  * The warriors themselves, out of whichever collection answers first: the objects the game goes on
  * drawing, so the one other reader of them, the tooltip, writes through their own methods.
  */
-export function readNamedWarriors(battle: unknown): Result<UnknownRecord[], WarriorFailure> {
-    if (!isRecord(battle)) return err({ kind: WARRIOR_FAILURE.warriorsAbsent });
+export function readNamedWarriors(battle: unknown): UnknownRecord[] | WarriorFailure {
+    if (!isRecord(battle)) return new WarriorsAbsent();
     for (const collection of WARRIOR_COLLECTIONS) {
         const held = battle[collection];
         if (!isRecord(held)) continue;
         const named = Object.values(held).filter(isNamedWarrior);
         if (named.length === 0) continue;
         if (named.length > COMBATANTS_MAXIMUM) {
-            const count = named.length;
-            const maximum = COMBATANTS_MAXIMUM;
-            return err({ kind: WARRIOR_FAILURE.warriorsExceeded, count, maximum });
+            return new WarriorsExceeded(named.length, COMBATANTS_MAXIMUM);
         }
-        return ok(named);
+        return named;
     }
-    return err({ kind: WARRIOR_FAILURE.warriorsAbsent });
+    return new WarriorsAbsent();
 }
 
 function isNamedWarrior(value: unknown): value is UnknownRecord {

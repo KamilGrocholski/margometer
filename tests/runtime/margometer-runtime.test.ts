@@ -8,11 +8,12 @@ import {
     assert,
     assertEquals,
     assertExists,
+    assertInstanceOf,
     assertNotStrictEquals,
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
-import { err, type ForeignFailure, ok, RESULT_FAILURE } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
@@ -106,7 +107,7 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
         row.children.find((one) => one.className === CLASS.rowName)?.textContent ?? ""
     );
     assertStrictEquals(new Set(names).size, names.length, "each row is somebody of their own");
-    assertEquals(world.runtime.deinit(), ok(undefined), "the wrap comes off");
+    assertStrictEquals(world.runtime.deinit(), undefined, "the wrap comes off");
     assertStrictEquals(battle.updateData, engineOwn, "and the game's own method is back");
 });
 
@@ -216,7 +217,7 @@ Deno.test("a document that will not take the panel is tried again, and said once
     const world = initRuntimeWorld(composeBattlePage(), (_, base) => ({
         mountPanel: (panel) => {
             refusals += 1;
-            if (refusals === 1) return err({ kind: RESULT_FAILURE.foreignThrew, cause: "torn" });
+            if (refusals === 1) return new errors.Caught("torn");
             return base.mountPanel(panel);
         },
     }));
@@ -239,7 +240,7 @@ Deno.test("a page that throws when it is looked at leaves the add-on standing, a
     const world = initRuntimeWorld(page);
     assertStrictEquals(world.shown.length, 0, "no panel went up over a game nobody found");
     assertStrictEquals(world.lines.length, 1, "the failure was said once, rather than thrown");
-    assertEquals(world.runtime.deinit(), ok(undefined), "and there is no wrap to take off");
+    assertStrictEquals(world.runtime.deinit(), undefined, "and there is no wrap to take off");
 });
 
 /**
@@ -443,9 +444,9 @@ function pressSave(world: RuntimeWorld): void {
 
 function readSavedFile(world: RuntimeWorld, at = 0): Record<string, unknown> {
     const parsed = parseJson(world.saved[at]?.text ?? "");
-    assert(parsed.ok, "what it handed over reads back as JSON");
-    assert(isRecord(parsed.value), "and as a recording");
-    return parsed.value;
+    assert(!(parsed instanceof Error), "what it handed over reads back as JSON");
+    assert(isRecord(parsed), "and as a recording");
+    return parsed;
 }
 
 Deno.test("a reader asks for the fight, and gets the recording the intake tool reads", () => {
@@ -1083,7 +1084,7 @@ function initSearchingWorld(page: Record<string, unknown>) {
         interval: {
             every: (step) => {
                 steps.push(step);
-                return ok({ cancel: () => ok(undefined) });
+                return { cancel: () => undefined };
             },
         },
     }));
@@ -1102,7 +1103,7 @@ Deno.test("a game whose method is gone puts the panel up waiting, and the lookin
 
 Deno.test("a page that lends no frame is drawn at once, and says so once", () => {
     const world = initRuntimeWorld(composeBattlePage(), () => ({
-        frames: { requestFrame: () => err({ kind: RESULT_FAILURE.foreignThrew, cause: "none" }) },
+        frames: { requestFrame: () => new errors.Caught("none") },
     }));
     assertStrictEquals(world.shown.length, 1, "the panel went up without a frame");
     for (const payload of readUpdates(HILDUR)) world.update(payload);
@@ -1122,7 +1123,7 @@ Deno.test("a stopped add-on takes its wrap off and draws no frame it had asked f
     const wrapped = battle.updateData;
     assert(typeof wrapped === "function", "the wrap went on");
     wrapped(opening);
-    assertEquals(world.runtime.deinit(), ok(undefined), "the wrap came off");
+    assertStrictEquals(world.runtime.deinit(), undefined, "the wrap came off");
     world.flush();
     assertStrictEquals(battle.updateData, engineOwn, "the game's own method is back");
     assertEquals(
@@ -1197,7 +1198,7 @@ Deno.test("a stopped copy answers no press, and draws no call that still reaches
     battle.updateData = (payload: unknown) => Reflect.apply(theirs, battle, [payload]);
     const folding = findByMark(world.getHost(), "data-fold");
     assertExists(folding, "there is a control to press");
-    assertStrictEquals(world.runtime.deinit().ok, false, "ours cannot come off from under theirs");
+    assertInstanceOf(world.runtime.deinit(), Error, "ours cannot come off from under theirs");
     world.press(folding);
     assertEquals(world.held.get(STORE_KEY.panelFolded), undefined, "the press kept nothing");
     world.update({ init: 1, m: ["0;0;txt=a"] });
@@ -1239,7 +1240,7 @@ Deno.test("where a reader lets go of a window is kept where a reload will look f
 
 Deno.test("a file the browser will not take is said on the panel at once", () => {
     const world = initRuntimeWorld(composeBattlePage(), () => ({
-        file: { writeFile: () => err({ kind: RESULT_FAILURE.foreignThrew, cause: "no room" }) },
+        file: { writeFile: () => new errors.Caught("no room") },
     }));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     pressSave(world);
@@ -1419,7 +1420,7 @@ Deno.test("a standing that will not replay costs the tooltips and the window, an
 
 Deno.test("a tooltip the client will not take is said on the panel, and the fight is drawn", () => {
     const world = initRuntimeWorld(composeBattlePage(), () => ({
-        tooltip: { writeRows: () => err({ kind: RESULT_FAILURE.foreignThrew, cause: "gone" }) },
+        tooltip: { writeRows: () => new errors.Caught("gone") },
     }));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     assertStrictEquals(countRows(findList(world.getHost())), 11, "the panel draws the fight");
@@ -1548,19 +1549,19 @@ Deno.test("a window let go of is written down, and costs no frame", () => {
 });
 
 Deno.test("a file the browser lets go of badly later is said at the next frame", () => {
-    const late: ((failure: ForeignFailure) => void)[] = [];
+    const late: ((failure: errors.Caught) => void)[] = [];
     const world = initRuntimeWorld(composeBattlePage(), () => ({
         file: {
             writeFile: (_name, _text, onLateFailure) => {
                 late.push(onLateFailure);
-                return ok(undefined);
+                return undefined;
             },
         },
     }));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     pressSave(world);
     assertEquals(getTextsByClass(world.getHost(), CLASS.defect), [], "the file went, so far");
-    late[0]?.({ kind: RESULT_FAILURE.foreignThrew, cause: "a URL the page would not release" });
+    late[0]?.(new errors.Caught("a URL the page would not release"));
     openShelfScreen(world);
     assertEquals(
         getTextsByClass(world.getHost(), CLASS.defect),

@@ -75,10 +75,10 @@ ${written}
 /** One bit's name as the text it is written down as, or a refusal branded as this tool's. */
 function encodeRequiredText(value: string): string {
     const text = encodeJson(value, 0);
-    if (!text.ok) {
-        throw new BuffBitTableError("a name of the table cannot be written", { cause: text.error });
+    if (text instanceof Error) {
+        throw new BuffBitTableError("a name of the table cannot be written", { cause: text });
     }
-    return text.value;
+    return text;
 }
 
 /**

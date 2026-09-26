@@ -12,7 +12,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { decodeHtmlText } from "#/libs/html-text.ts";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import {
     indexAuraTurnsBySkillId,
@@ -176,11 +176,11 @@ function encodeFrozenSkills(skills: readonly SkillReading[]): string {
 
 /** Null where nothing is cached, which is a state and not a failure. */
 export function readCachedSkillTable(): CachedSkillTable | null {
-    const text = callForeign(() => Deno.readTextFileSync(`${CACHE_ROOT}${MANIFEST_NAME}`));
-    if (!text.ok) return null;
-    const parsed = parseJson(text.value);
-    if (!parsed.ok) throw new SkillTableError("the skill manifest is not JSON");
-    return requireCachedSkillTable(parsed.value);
+    const text = errors.attempt(() => Deno.readTextFileSync(`${CACHE_ROOT}${MANIFEST_NAME}`));
+    if (text instanceof Error) return null;
+    const parsed = parseJson(text);
+    if (parsed instanceof Error) throw new SkillTableError("the skill manifest is not JSON");
+    return requireCachedSkillTable(parsed);
 }
 
 function requireCachedSkillTable(value: unknown): CachedSkillTable {
@@ -339,8 +339,10 @@ export async function writeSkillTableCache(): Promise<CachedSkillTable> {
     const fetchedAt = new Date().toISOString();
     const cached = { url: SKILLS_ADDRESS, fetchedAt, pagePath, pageLength: html.length };
     const written = encodeJson(cached, INDENT_SPACES);
-    if (!written.ok) throw new SkillTableError("the skill manifest could not be written");
-    Deno.writeTextFileSync(`${CACHE_ROOT}${MANIFEST_NAME}`, `${written.value}\n`);
+    if (written instanceof Error) {
+        throw new SkillTableError("the skill manifest could not be written");
+    }
+    Deno.writeTextFileSync(`${CACHE_ROOT}${MANIFEST_NAME}`, `${written}\n`);
     assert(html.length > 0, "a page that was fetched says something");
     return cached;
 }

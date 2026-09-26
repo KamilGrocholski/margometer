@@ -178,8 +178,9 @@ _Avoid_: Crashed, broken, failed
 Every term above is a claim about the fight. This one is a claim about us, and it is kept apart for
 that reason.
 
-**Failure**: What a `catch` holds — a call that threw, or an expectation that did not hold. The word
-for the thing while it is still being handled, which is the sense `AGENTS.md`'s error rules use
+**Failure**: What went wrong, while it is still being handled: an instance of one of our `Error`
+classes, returned beside the value where one was expected, or what a `catch` held — a call that
+threw, or an expectation that did not hold. That is the sense `AGENTS.md`'s error rules use
 throughout. It is ours and nobody else's: a failure never reaches a player under any name. _Avoid_:
 Exception, crash, throw
 

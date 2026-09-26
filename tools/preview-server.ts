@@ -15,7 +15,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
 import { clamp } from "#/libs/number-range.ts";
 import { parseInteger } from "#/libs/number-text.ts";
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { GAME_SCRIPT_NAME } from "#/tests/e2e/game-page.ts";
 import {
     lookupRecordedFight,
@@ -183,7 +183,7 @@ export function initPreviewServer(options: PreviewServerOptions = {}): PreviewSe
         stop: async () => {
             watcher?.close();
             if (keepAlive !== null) clearInterval(keepAlive);
-            for (const listener of state.listeners) callForeign(() => listener.close());
+            for (const listener of state.listeners) errors.attempt(() => listener.close());
             state.listeners.clear();
             await server.shutdown();
         },
@@ -212,8 +212,12 @@ function composeServedFight(fight: RecordedFight): ServedFight {
 
 function readFromPath(path: string): RecordedFight {
     const parsed = parseJson(Deno.readTextFileSync(path));
-    if (!parsed.ok) throw new PreviewServeError(`${path} is not a recording: ${parsed.error.kind}`);
-    return readRecordedFight(path, parsed.value);
+    if (parsed instanceof Error) {
+        throw new PreviewServeError(`${path} is not a recording: ${parsed.name}`, {
+            cause: parsed,
+        });
+    }
+    return readRecordedFight(path, parsed);
 }
 
 function readPreviewBundle(): Promise<string> {
@@ -366,8 +370,8 @@ export function tellPreviewListeners(
 ): void {
     assert(event.length > 0, "a page is told something");
     for (const listener of [...listeners]) {
-        const told = callForeign(() => listener.send(event, data));
-        if (!told.ok) listeners.delete(listener);
+        const told = errors.attempt(() => listener.send(event, data));
+        if (told instanceof Error) listeners.delete(listener);
     }
     assert(listeners.size <= LISTENERS_MAXIMUM, "the listeners stay inside their bound");
 }
@@ -412,16 +416,16 @@ export function readPreviewFlags(args: readonly string[]): {
  */
 export function readFabricatedPaths(directory: string): string[] {
     assert(directory.length > 0, "fabricated fights are read from somewhere");
-    const listed = callForeign(() => [...Deno.readDirSync(directory)]);
-    if (!listed.ok) {
-        const cause = listed.error.cause;
-        const reason = cause instanceof Deno.errors.NotFound ? "is not here" : "cannot be read";
+    const listed = errors.attempt(() => [...Deno.readDirSync(directory)]);
+    if (listed instanceof Error) {
+        const isAbsent = listed.cause instanceof Deno.errors.NotFound;
+        const reason = isAbsent ? "is not here" : "cannot be read";
         throw new PreviewServeError(
             `${directory}/ ${reason}: \`deno task fight:fabricate\` writes one`,
-            { cause },
+            { cause: listed },
         );
     }
-    const paths = listed.value
+    const paths = listed
         .filter((entry) => entry.isFile)
         .filter((entry) => entry.name.endsWith(RECORDING_SUFFIX))
         .map((entry) => `${directory}/${entry.name}`)

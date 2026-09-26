@@ -101,9 +101,9 @@ function encodeCaptureShape(payload: unknown): string {
 /** A cast that would not be written is no key at all, and every such state then keys the same. */
 function encodeCaptureState(combatants: WarriorSnapshot | null): string {
     const written = encodeJson(combatants ?? [], 0);
-    if (!written.ok) return "";
-    assert(written.value.length > 0, "a key that was written says something");
-    return written.value;
+    if (written instanceof Error) return "";
+    assert(written.length > 0, "a key that was written says something");
+    return written;
 }
 
 /**
@@ -113,8 +113,8 @@ function encodeCaptureState(combatants: WarriorSnapshot | null): string {
  */
 function prepareCaptureCopy(value: unknown): unknown {
     const written = encodeJson(value, 0);
-    if (!written.ok) return null;
-    const read = parseJson(written.value);
-    assert(read.ok, "text this writer produced is text this reader takes back");
-    return read.value;
+    if (written instanceof Error) return null;
+    const read = parseJson(written);
+    assert(!(read instanceof Error), "text this writer produced is text this reader takes back");
+    return read;
 }

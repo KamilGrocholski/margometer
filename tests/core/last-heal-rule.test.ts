@@ -84,8 +84,8 @@ function getOccurrences(): Occurrence[] {
         };
         for (const message of fight.messages) {
             const parsed = parseProtocolMessage(message);
-            assert(parsed.ok, `${fight.path}: a recorded message parses`);
-            found.push(...getOccurrencesOfMessage(running, parsed.value));
+            assert(!(parsed instanceof Error), `${fight.path}: a recorded message parses`);
+            found.push(...getOccurrencesOfMessage(running, parsed));
         }
     }
     return found;

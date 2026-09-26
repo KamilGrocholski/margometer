@@ -6,26 +6,18 @@
  */
 
 import { assert } from "@std/assert/assert";
-import {
-    type BrokenInvariant,
-    callForeign,
-    err,
-    type ForeignFailure,
-    ok,
-    type Result,
-    runGuarded,
-} from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 
 export interface IntervalHandle {
-    cancel(): Result<void, ForeignFailure>;
+    cancel(): void | errors.Caught;
 }
 
 export interface IntervalScheduler {
     every(
         step: () => void,
         everyMilliseconds: number,
-        onStepFailure: (failure: BrokenInvariant) => void,
-    ): Result<IntervalHandle, ForeignFailure>;
+        onStepFailure: (failure: errors.Caught) => void,
+    ): IntervalHandle | errors.Caught;
 }
 
 /** The whole of what this asks a page for. A browser's `window` satisfies it. */
@@ -43,22 +35,17 @@ export function initPageInterval(timers: PageTimers): IntervalScheduler {
             );
             assert(everyMilliseconds > 0, "and some time passes between two of them");
             const guarded = (): void => {
-                const ran = runGuarded(step);
-                if (ran.ok) return;
+                const ran = errors.attempt(step);
+                if (!(ran instanceof Error)) return;
                 // ⚠️ The report is the mark (E9). One that throws has nowhere further to go, and
                 // the browser's timer is not a place for it, so its own failure is discarded here.
-                void runGuarded(() => onStepFailure(ran.error));
+                void errors.attempt(() => onStepFailure(ran));
             };
-            const started = callForeign(() => timers.setInterval(guarded, everyMilliseconds));
-            if (!started.ok) return started;
-            const handle = started.value;
-            return ok({
-                cancel() {
-                    const cancelled = callForeign(() => timers.clearInterval(handle));
-                    if (!cancelled.ok) return err(cancelled.error);
-                    return ok(undefined);
-                },
-            });
+            const handle = errors.attempt(() => timers.setInterval(guarded, everyMilliseconds));
+            if (handle instanceof Error) return handle;
+            return {
+                cancel: () => errors.attempt(() => timers.clearInterval(handle)),
+            };
         },
     };
 }

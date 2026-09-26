@@ -8,9 +8,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { encodeJson } from "#/libs/json-text.ts";
+import { encodeJson, type JsonNothing, type JsonUnwritable } from "#/libs/json-text.ts";
 import { formatInteger } from "#/libs/number-text.ts";
-import { err, ok, type Result } from "#/libs/result.ts";
 import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
 import type {
     CombatantFigures,
@@ -55,8 +54,13 @@ export interface FightFile {
     text: string;
 }
 
-export const FILE_FAILURE = { unserializable: "export-unserializable" } as const;
-export type FileEncodingFailure = { kind: typeof FILE_FAILURE.unserializable; cause: unknown };
+export class FileUnserializable extends Error {
+    override readonly name = "FileUnserializable";
+
+    constructor(cause: JsonNothing | JsonUnwritable) {
+        super(undefined, { cause });
+    }
+}
 
 type ReportSkill = {
     [Key in keyof SkillFigures]: SkillFigures[Key] extends number ? number
@@ -115,7 +119,7 @@ export function encodeFightFile(
     calls: FileCalls,
     subject: FileSubject | null,
     surroundings: FileSurroundings,
-): Result<FightFile, FileEncodingFailure> {
+): FightFile | FileUnserializable {
     assert(surroundings.world.length > 0, "a recording names the world it was taken on");
     assert(surroundings.capturedAt.length > 0, "and the moment it was taken at");
     assert(surroundings.gameBuild !== "", "a build it could not read is absent, never empty");
@@ -140,11 +144,8 @@ export function encodeFightFile(
             [FILE_FIELD.combatantsAfter]: call.combatantsAfter,
         })),
     }, INDENT_SPACES);
-    if (!written.ok) {
-        const cause = "cause" in written.error ? written.error.cause : null;
-        return err({ kind: FILE_FAILURE.unserializable, cause });
-    }
-    return ok({ name: encodeFightFileName(surroundings), text: written.value });
+    if (written instanceof Error) return new FileUnserializable(written);
+    return { name: encodeFightFileName(surroundings), text: written };
 }
 
 /**

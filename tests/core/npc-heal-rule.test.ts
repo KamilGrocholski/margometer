@@ -52,14 +52,14 @@ Deno.test("the restoration is the actor's, whichever combatant the other slot na
         const targets = new Set<number>();
         for (const message of messages) {
             const parsed = parseProtocolMessage(message);
-            assert(parsed.ok, `${path}: a message carrying the key parses`);
-            assertExists(parsed.value.actor, `${path}: each names an actor`);
+            assert(!(parsed instanceof Error), `${path}: a message carrying the key parses`);
+            assertExists(parsed.actor, `${path}: each names an actor`);
             assertExists(
-                parsed.value.target,
+                parsed.target,
                 `${path}: and a target, which makes the slot a choice`,
             );
-            actors.add(parsed.value.actor.combatantId);
-            targets.add(parsed.value.target.combatantId);
+            actors.add(parsed.actor.combatantId);
+            targets.add(parsed.target.combatantId);
         }
         assertEquals(actors.size, 1, `${path}: one combatant is restored throughout`);
         assert(targets.size > 1, `${path}: the other slot names several, so neither is the other`);
@@ -82,8 +82,8 @@ function getRecordingsCarryingKey(): RecordedFight[] {
 
 function isCarryingKey(message: string): boolean {
     const parsed = parseProtocolMessage(message);
-    if (!parsed.ok) return false;
-    return parsed.value.parameters.some((one) => one.key === KEY);
+    if (parsed instanceof Error) return false;
+    return parsed.parameters.some((one) => one.key === KEY);
 }
 
 /**

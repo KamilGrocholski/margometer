@@ -6,7 +6,6 @@
  */
 
 import { parseInteger } from "#/libs/number-text.ts";
-import { err, ok, type Result } from "#/libs/result.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     PANEL_WINDOW,
@@ -82,12 +81,18 @@ export type PanelIntent =
     | { kind: typeof PANEL_INTENT.showLive }
     | { kind: typeof PANEL_INTENT.pin; openedAt: number };
 
-export const INTENT_FAILURE = { markUnknown: "mark-unknown" } as const;
-
 /** A mark of ours stating a value nothing of ours writes: a stray, and never the first choice. */
-export type IntentFailure = { kind: typeof INTENT_FAILURE.markUnknown; mark: PanelMark };
+export class MarkUnknown extends Error {
+    override readonly name = "MarkUnknown";
+    readonly mark: PanelMark;
 
-type IntentReading = Result<PanelIntent | null, IntentFailure>;
+    constructor(mark: PanelMark) {
+        super();
+        this.mark = mark;
+    }
+}
+
+type IntentReading = PanelIntent | null | MarkUnknown;
 
 /** The plain row names nothing, so its mark states the same word and the press reads the key. */
 export const PLAIN_MARK = "closing";
@@ -102,45 +107,39 @@ const UNNAMED_ENDS = Object.values(UNNAMED_END);
  */
 export function readPanelIntent(target: PanelTarget): IntentReading {
     // A text node or the root itself: nothing to read a mark off, and nothing asked for.
-    if (typeof target.getAttribute !== "function") return ok(null);
+    if (typeof target.getAttribute !== "function") return null;
     const screen = readPanelIntentOfScreen(target);
-    if (!screen.ok) return screen;
-    if (screen.value !== null) return screen;
+    if (screen !== null) return screen;
     const part = readPanelIntentOfPart(target);
-    if (part !== null) return ok(part);
+    if (part !== null) return part;
     const shelf = readPanelIntentOfShelf(target);
-    if (!shelf.ok) return shelf;
-    if (shelf.value !== null) return shelf;
-    return ok(readPanelIntentOfControl(target));
+    if (shelf !== null) return shelf;
+    return readPanelIntentOfControl(target);
 }
 
 function readPanelIntentOfScreen(target: PanelTarget): IntentReading {
     const metric = target.getAttribute(PANEL_MARK.screen);
     if (metric !== null) {
-        if (!isOneOf(SCREEN_ORDER, metric)) return failMark(PANEL_MARK.screen);
-        return ok({ kind: PANEL_INTENT.metric, metric });
+        if (!isOneOf(SCREEN_ORDER, metric)) return new MarkUnknown(PANEL_MARK.screen);
+        return { kind: PANEL_INTENT.metric, metric };
     }
     const side = target.getAttribute(PANEL_MARK.side);
     if (side !== null) {
-        if (!isOneOf(SIDE_CHOICES, side)) return failMark(PANEL_MARK.side);
-        return ok({ kind: PANEL_INTENT.side, side });
+        if (!isOneOf(SIDE_CHOICES, side)) return new MarkUnknown(PANEL_MARK.side);
+        return { kind: PANEL_INTENT.side, side };
     }
     const row = target.getAttribute(PANEL_MARK.row);
     if (row !== null) {
         const combatantId = parseInteger(row);
-        if (combatantId === null) return failMark(PANEL_MARK.row);
-        return ok({ kind: PANEL_INTENT.openRow, combatantId });
+        if (combatantId === null) return new MarkUnknown(PANEL_MARK.row);
+        return { kind: PANEL_INTENT.openRow, combatantId };
     }
     const end = target.getAttribute(PANEL_MARK.unnamed);
     if (end !== null) {
-        if (!isOneOf(UNNAMED_ENDS, end)) return failMark(PANEL_MARK.unnamed);
-        return ok({ kind: PANEL_INTENT.openUnnamed, end });
+        if (!isOneOf(UNNAMED_ENDS, end)) return new MarkUnknown(PANEL_MARK.unnamed);
+        return { kind: PANEL_INTENT.openUnnamed, end };
     }
-    return ok(null);
-}
-
-function failMark(mark: PanelMark): IntentReading {
-    return err({ kind: INTENT_FAILURE.markUnknown, mark });
+    return null;
 }
 
 /** A part names itself, whatever it names: the game's own keys and names are open sets. */
@@ -164,23 +163,23 @@ function openPart(part: OpenedPart): PanelIntent {
 function readPanelIntentOfShelf(target: PanelTarget): IntentReading {
     const fight = target.getAttribute(PANEL_MARK.fight);
     if (fight !== null) {
-        if (fight === LIVE_FIGHT_MARK) return ok({ kind: PANEL_INTENT.showLive });
+        if (fight === LIVE_FIGHT_MARK) return { kind: PANEL_INTENT.showLive };
         const openedAt = parseInteger(fight);
-        if (openedAt === null) return failMark(PANEL_MARK.fight);
-        return ok({ kind: PANEL_INTENT.showKept, openedAt });
+        if (openedAt === null) return new MarkUnknown(PANEL_MARK.fight);
+        return { kind: PANEL_INTENT.showKept, openedAt };
     }
     const pinned = target.getAttribute(PANEL_MARK.pin);
     if (pinned !== null) {
         const openedAt = parseInteger(pinned);
-        if (openedAt === null) return failMark(PANEL_MARK.pin);
-        return ok({ kind: PANEL_INTENT.pin, openedAt });
+        if (openedAt === null) return new MarkUnknown(PANEL_MARK.pin);
+        return { kind: PANEL_INTENT.pin, openedAt };
     }
     const choice = target.getAttribute(PANEL_MARK.storage);
     if (choice !== null) {
-        if (!isOneOf(STORAGE_CHOICES, choice)) return failMark(PANEL_MARK.storage);
-        return ok({ kind: PANEL_INTENT.storage, choice });
+        if (!isOneOf(STORAGE_CHOICES, choice)) return new MarkUnknown(PANEL_MARK.storage);
+        return { kind: PANEL_INTENT.storage, choice };
     }
-    return ok(null);
+    return null;
 }
 
 /** The controls whose mark states nothing: that it stands is the whole of what it says. */

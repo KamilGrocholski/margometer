@@ -19,7 +19,7 @@ import { normalize } from "@std/path";
 import { encodeJson } from "#/libs/json-text.ts";
 import { clamp } from "#/libs/number-range.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
@@ -1684,12 +1684,12 @@ export function encodeFabricatedFight(fight: FabricatedFight): string {
             [FILE_FIELD.combatantsAfter]: call.combatantsAfter,
         })),
     }, INDENT_SPACES);
-    if (!written.ok) {
+    if (written instanceof Error) {
         throw new FabricatedFightError(`a fabricated fight this tool cannot write as JSON`, {
-            cause: written.error,
+            cause: written,
         });
     }
-    return written.value;
+    return written;
 }
 
 /**
@@ -1711,13 +1711,13 @@ function writeFabricatedFight(path: string, text: string): void {
     if (!path.endsWith(FILE_SUFFIX)) {
         throw new FabricatedFightError(`${path} is not named as the file a reader opens it as`);
     }
-    const written = callForeign(() => {
+    const written = errors.attempt(() => {
         Deno.mkdirSync(FABRICATED_DIRECTORY, { recursive: true });
         Deno.writeTextFileSync(normalize(path), text);
     });
-    if (!written.ok) {
+    if (written instanceof Error) {
         throw new FabricatedFightError(`${path} is not a file this tool can write`, {
-            cause: written.error.cause,
+            cause: written,
         });
     }
 }

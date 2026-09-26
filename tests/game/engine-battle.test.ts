@@ -6,17 +6,28 @@
  * (`develop:tests/game/engine-battle-wrap.test.ts`).
  */
 
-import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
-import { err, RESULT_FAILURE } from "#/libs/result.ts";
 import {
-    ENGINE_FAILURE,
+    assert,
+    assertEquals,
+    assertInstanceOf,
+    assertNotInstanceOf,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
+import * as errors from "#/libs/errors.ts";
+import {
+    AnotherReader,
+    BattleAbsent,
+    DetachForeignLayer,
+    EngineAbsent,
     type EngineBattle,
     initPageEngine,
+    MethodAbsent,
     type PayloadListener,
     readPageEngines,
     type WrapHandle,
 } from "#/src/game/engine-battle.ts";
-import { WARRIOR_FAILURE } from "#/src/game/warrior-snapshot.ts";
+import { WarriorsAbsent } from "#/src/game/warrior-snapshot.ts";
 
 interface Held {
     battle: Record<string, unknown>;
@@ -25,8 +36,9 @@ interface Held {
 
 /**
  * The wrap's own bound on the failures it counts, restated here on purpose: a stated maximum
- * nothing reads is not a bound (`AGENTS.md` S11). Primitives are thrown, because a million errors
- * with a stack each take seconds, and two per call halve the calls.
+ * nothing reads is not a bound (`AGENTS.md` S11). Two failures a call halve the calls. ⚠️ **A
+ * primitive thrown saves no stack**: `attempt` wraps each in a `Caught` that captures one, and the
+ * test runs four seconds on Deno 2.9.7 (2026-09-26).
  */
 const WRAP_FAILURES_MAXIMUM = 1048576;
 
@@ -60,14 +72,14 @@ function composeHeld(answer: unknown): Held {
 
 function wrapOn(battle: Record<string, unknown>, listener: PayloadListener): WrapHandle {
     const wrapped = readBattleOn(battle).wrap(listener);
-    assert(wrapped.ok, "the wrap went on");
-    return wrapped.value;
+    assertNotInstanceOf(wrapped, Error, "the wrap went on");
+    return wrapped;
 }
 
 function readBattleOn(battle: Record<string, unknown>): EngineBattle {
     const read = initPageEngine({ Engine: { battle } }).readBattle();
-    assert(read.ok, "the page holds a battle");
-    return read.value;
+    assertNotInstanceOf(read, Error, "the page holds a battle");
+    return read;
 }
 
 /** A listener that does nothing, so each test states only the half it is about. */
@@ -119,7 +131,7 @@ Deno.test("a failure of ours never reaches the page, and every one is counted", 
     assertStrictEquals(callUpdate(held.battle, null, [{}]), 1, "and again");
     assertStrictEquals(wrap.getFailureCount(), 2, "while every failure is counted");
     const first = wrap.getFirstFailure();
-    assertStrictEquals(first?.kind, RESULT_FAILURE.invariantBroken, "and the first one is kept");
+    assertInstanceOf(first, errors.Caught, "and the first one is kept");
     assert(first?.cause instanceof RangeError, "with what it threw");
 });
 
@@ -159,20 +171,20 @@ Deno.test("a second copy of the add-on stands down, as does a battle with nothin
     const held = composeHeld(1);
     wrapOn(held.battle, composeListener({}));
     const second = readBattleOn(held.battle).wrap(composeListener({}));
-    assertEquals(second, err({ kind: ENGINE_FAILURE.anotherReader }), "the second stands down");
+    assertInstanceOf(second, AnotherReader, "the second stands down");
     const empty = readBattleOn({}).wrap(composeListener({}));
-    assertEquals(empty, err({ kind: ENGINE_FAILURE.methodAbsent }), "and one with no method");
+    assertInstanceOf(empty, MethodAbsent, "and one with no method");
     const notMethod = readBattleOn({ updateData: 5 }).wrap(composeListener({}));
-    assertEquals(notMethod, err({ kind: ENGINE_FAILURE.methodAbsent }), "or a value that is none");
+    assertInstanceOf(notMethod, MethodAbsent, "or a value that is none");
 });
 
 /** By the marker's presence, whatever its value: any MargoMeter is a second count. */
 Deno.test("another build's wrap is recognised by its marker alone", () => {
     const foreign = Object.assign(() => 1, { __margometerBattleWrap: 99 });
     const wrapped = readBattleOn({ updateData: foreign }).wrap(composeListener({}));
-    assertEquals(wrapped, err({ kind: ENGINE_FAILURE.anotherReader }), "a second count refused");
+    assertInstanceOf(wrapped, AnotherReader, "a second count refused");
     const unmarked = readBattleOn({ updateData: () => 1 }).wrap(composeListener({}));
-    assert(unmarked.ok, "while a function carrying no marker is wrapped");
+    assertNotInstanceOf(unmarked, Error, "while a function carrying no marker is wrapped");
 });
 
 Deno.test("a detach puts back what was there, and only where ours is outermost", () => {
@@ -180,7 +192,7 @@ Deno.test("a detach puts back what was there, and only where ours is outermost",
     const original = held.battle.updateData;
     const wrap = wrapOn(held.battle, composeListener({}));
     assert(held.battle.updateData !== original, "the wrap stands where the engine's stood");
-    assert(wrap.detach().ok, "the wrap comes off");
+    assertStrictEquals(wrap.detach(), undefined, "the wrap comes off");
     assertStrictEquals(held.battle.updateData, original, "and puts back what it replaced");
 
     const second = composeHeld(1);
@@ -188,7 +200,7 @@ Deno.test("a detach puts back what was there, and only where ours is outermost",
     const somebodyElse = () => 2;
     second.battle.updateData = somebodyElse;
     const refused = layered.detach();
-    assertEquals(refused, err({ kind: ENGINE_FAILURE.detachForeignLayer }), "is refused");
+    assertInstanceOf(refused, DetachForeignLayer, "is refused");
     assertStrictEquals(second.battle.updateData, somebodyElse, "and leaves the layer where it is");
 });
 
@@ -198,17 +210,17 @@ Deno.test("the page is asked for a game in both spellings, and a call may throw"
     assertEquals(readPageEngines({ getEngine: () => ({ battle }) }), [{ battle }], "the call");
     assertEquals(readPageEngines(null), [], "and a page that is not one is asked nothing");
     const engine = initPageEngine({});
-    assertEquals(engine.readBattle(), err({ kind: ENGINE_FAILURE.engineAbsent }), "no engine");
+    assertInstanceOf(engine.readBattle(), EngineAbsent, "no engine");
     const idle = initPageEngine({ Engine: { battle: null } });
-    assertEquals(idle.readBattle(), err({ kind: ENGINE_FAILURE.battleAbsent }), "no battle");
+    assertInstanceOf(idle.readBattle(), BattleAbsent, "no battle");
     const tearing = initPageEngine({
         getEngine: () => {
             throw new RangeError("a page being torn down");
         },
     });
     const read = tearing.readBattle();
-    assert(!read.ok, "a call that throws answers no battle");
-    assertStrictEquals(read.error.kind, RESULT_FAILURE.foreignThrew, "and says it was theirs");
+    assertInstanceOf(read, Error, "a call that throws answers no battle");
+    assertInstanceOf(read, errors.Caught, "and says it was theirs");
 });
 
 Deno.test("the warriors are read off the live battle, and a battle holding none says so", () => {
@@ -217,10 +229,10 @@ Deno.test("the warriors are read off the live battle, and a battle holding none 
         warriorsList: { 7: { id: 7, name: "Gracz 1", team: 1, hp: { cur: 5, max: 9 } } },
     });
     const read = live.readWarriors();
-    assert(read.ok, "the warriors are read");
-    assertEquals(read.value.map((one) => one.id), [7], "the one the fight holds");
+    assertNotInstanceOf(read, Error, "the warriors are read");
+    assertEquals(read.map((one) => one.id), [7], "the one the fight holds");
     const empty = readBattleOn({ updateData: () => 1 }).readWarriors();
-    assertEquals(empty, err({ kind: WARRIOR_FAILURE.warriorsAbsent }), "and none is a failure");
+    assertInstanceOf(empty, WarriorsAbsent, "and none is a failure");
 });
 
 Deno.test("the failures a wrap counts stop at its bound, and not before", () => {
@@ -274,6 +286,6 @@ Deno.test("a battle that throws as its warriors are read answers a failure of it
         },
     });
     const read = readBattleOn(battle).readWarriors();
-    assert(!read.ok, "the warriors are not read");
-    assertStrictEquals(read.error.kind, RESULT_FAILURE.foreignThrew, "and it was theirs");
+    assertInstanceOf(read, Error, "the warriors are not read");
+    assertInstanceOf(read, errors.Caught, "and it was theirs");
 });

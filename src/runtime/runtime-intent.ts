@@ -5,7 +5,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { runGuarded } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { getFightView } from "#/src/core/fight-session.ts";
 import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
@@ -33,8 +33,8 @@ export function executeRuntimeIntent(parts: IntentParts, intent: PanelIntent): b
     switch (intent.kind) {
         case PANEL_INTENT.saveFile: {
             // Everything under a file reaches `core/`, whose assertion costs the file alone.
-            const saved = runGuarded(() => writeIntentFile(parts));
-            if (!saved.ok) addFileDefect(parts.defects, saved.error);
+            const saved = errors.attempt(() => writeIntentFile(parts));
+            if (saved instanceof Error) addFileDefect(parts.defects, saved);
             return executeScreenIntent(parts.screen, intent);
         }
         case PANEL_INTENT.pin:
@@ -85,7 +85,7 @@ function writeIntentFile(parts: IntentParts): void {
     const written = writeFightHandover(standing, live, ports, (failure) => {
         addFileDefect(defects, failure);
     });
-    if (!written.ok) addFileDefect(defects, written.error);
+    if (written instanceof Error) addFileDefect(defects, written);
 }
 
 function addFileDefect(defects: DefectLedger, failure: RuntimeFailure): void {

@@ -2,12 +2,12 @@
  * The store a browser lends, wrapped so a refusal is an answer (`docs/design.md` §5).
  *
  * Reading can throw for no reason of ours (a browser set to forbid it does) and writing can throw
- * for quota, so each call into the page stands inside `callForeign`, once, here. What this asks of
+ * for quota, so each call into the page stands inside `errors.attempt`, once, here. What this asks of
  * a page is the three calls it makes and never a `Storage`, which keeps the contact declared.
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, err, ok, type Result } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 
 /** Every key this add-on writes, named as ours like everything else a reader could meet. */
@@ -21,23 +21,38 @@ export const STORE_KEY = {
 } as const;
 export type StoreKey = VocabularyWord<typeof STORE_KEY>;
 
-export const STORE_FAILURE = {
-    unavailable: "store-unavailable",
-    refused: "store-refused",
-    valueTooLong: "store-value-too-long",
-} as const;
+export class StoreUnavailable extends Error {
+    override readonly name = "StoreUnavailable";
+}
 
-export type StoreFailure =
-    | { kind: typeof STORE_FAILURE.unavailable }
-    /** A quota refusal is an answer. */
-    | { kind: typeof STORE_FAILURE.refused; cause: unknown }
-    | { kind: typeof STORE_FAILURE.valueTooLong; length: number; maximum: number };
+/** A quota refusal is an answer. */
+export class StoreRefused extends Error {
+    override readonly name = "StoreRefused";
+
+    constructor(cause: errors.Caught) {
+        super(undefined, { cause });
+    }
+}
+
+export class StoreValueTooLong extends Error {
+    override readonly name = "StoreValueTooLong";
+    readonly length: number;
+    readonly maximum: number;
+
+    constructor(length: number, maximum: number) {
+        super();
+        this.length = length;
+        this.maximum = maximum;
+    }
+}
+
+export type StoreFailure = StoreUnavailable | StoreRefused | StoreValueTooLong;
 
 export interface KeyValueStore {
     /** `null`: no such key, which is a fact. */
-    read(key: StoreKey): Result<string | null, StoreFailure>;
-    write(key: StoreKey, value: string): Result<void, StoreFailure>;
-    remove(key: StoreKey): Result<void, StoreFailure>;
+    read(key: StoreKey): string | null | StoreFailure;
+    write(key: StoreKey, value: string): undefined | StoreFailure;
+    remove(key: StoreKey): undefined | StoreFailure;
 }
 
 /** The whole of what this asks a page for. A browser's `localStorage` satisfies it. */
@@ -60,37 +75,32 @@ export const STORE_VALUE_LENGTH_MAXIMUM = 4194304;
 export function initPageStore(storage: PageStorage | null): KeyValueStore {
     return {
         read(key) {
-            if (storage === null) return err({ kind: STORE_FAILURE.unavailable });
-            const read = callForeign(() => storage.getItem(key));
-            if (!read.ok) return err({ kind: STORE_FAILURE.refused, cause: read.error.cause });
-            if (typeof read.value !== "string") return ok(null);
-            return ok(read.value);
+            if (storage === null) return new StoreUnavailable();
+            const read = errors.attempt(() => storage.getItem(key));
+            if (read instanceof Error) return new StoreRefused(read);
+            if (typeof read !== "string") return null;
+            return read;
         },
         write(key, value) {
-            if (storage === null) return err({ kind: STORE_FAILURE.unavailable });
+            if (storage === null) return new StoreUnavailable();
             const tooLong = prepareStoreWrite(value);
-            if (!tooLong.ok) return tooLong;
-            const written = callForeign(() => storage.setItem(key, value));
-            if (!written.ok) {
-                return err({ kind: STORE_FAILURE.refused, cause: written.error.cause });
-            }
-            return ok(undefined);
+            if (tooLong instanceof Error) return tooLong;
+            const written = errors.attempt(() => storage.setItem(key, value));
+            if (written instanceof Error) return new StoreRefused(written);
+            return undefined;
         },
         remove(key) {
-            if (storage === null) return err({ kind: STORE_FAILURE.unavailable });
-            const removed = callForeign(() => storage.removeItem(key));
-            if (!removed.ok) {
-                return err({ kind: STORE_FAILURE.refused, cause: removed.error.cause });
-            }
-            return ok(undefined);
+            if (storage === null) return new StoreUnavailable();
+            const removed = errors.attempt(() => storage.removeItem(key));
+            if (removed instanceof Error) return new StoreRefused(removed);
+            return undefined;
         },
     };
 }
 
-function prepareStoreWrite(value: string): Result<void, StoreFailure> {
-    if (value.length <= STORE_VALUE_LENGTH_MAXIMUM) return ok(undefined);
-    const maximum = STORE_VALUE_LENGTH_MAXIMUM;
-    return err({ kind: STORE_FAILURE.valueTooLong, length: value.length, maximum });
+function prepareStoreWrite(value: string): undefined | StoreValueTooLong {
+    if (value.length <= STORE_VALUE_LENGTH_MAXIMUM) return undefined;
+    return new StoreValueTooLong(value.length, STORE_VALUE_LENGTH_MAXIMUM);
 }
 
 /**
@@ -101,18 +111,18 @@ export function initMemoryStore(): KeyValueStore {
     const held = new Map<StoreKey, string>();
     return {
         read(key) {
-            return ok(held.get(key) ?? null);
+            return held.get(key) ?? null;
         },
         write(key, value) {
             const tooLong = prepareStoreWrite(value);
-            if (!tooLong.ok) return tooLong;
+            if (tooLong instanceof Error) return tooLong;
             held.set(key, value);
             assert(held.size <= STORE_KEYS.length, "a store holds no more than the keys it has");
-            return ok(undefined);
+            return undefined;
         },
         remove(key) {
             held.delete(key);
-            return ok(undefined);
+            return undefined;
         },
     };
 }

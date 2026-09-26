@@ -84,8 +84,8 @@ Deno.test("every key a real fight carried is one the client knows", () => {
     for (const fight of readRecordedFights()) {
         for (const message of fight.messages) {
             const parsed = parseProtocolMessage(message);
-            if (!parsed.ok) continue;
-            for (const parameter of parsed.value.parameters) seen.add(parameter.key);
+            if (parsed instanceof Error) continue;
+            for (const parameter of parsed.parameters) seen.add(parameter.key);
         }
     }
     assert(seen.size > 0, "there are keys in the recordings to check");

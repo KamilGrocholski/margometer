@@ -6,12 +6,12 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { type ForeignFailure, ok, type Result } from "#/libs/result.ts";
+import type * as errors from "#/libs/errors.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import type { SessionOptions } from "#/src/core/fight-session.ts";
 import type { KeyValueStore } from "#/src/game/browser-store.ts";
 import {
-    ENGINE_FAILURE,
+    AnotherReader,
     type EngineFailure,
     type EnginePort,
     type WrapHandle,
@@ -49,7 +49,7 @@ import { initPanelView, type PanelView } from "#/src/ui/panel-element.ts";
 import type { PanelIntent } from "#/src/ui/panel-intent.ts";
 import { createScreenState, type ScreenState } from "#/src/ui/panel-screen.ts";
 import { ROWS_BESIDE_THE_STATUSES, type TranslateLabel } from "#/src/ui/panel-words.ts";
-import { VIEW_FAILURE, type ViewFailure } from "#/src/ui/view-failure.ts";
+import { GestureDropped, RegionUndrawn, type ViewFailure } from "#/src/ui/view-failure.ts";
 
 export interface RuntimePorts {
     clock: Clock;
@@ -68,7 +68,7 @@ export interface RuntimePorts {
     file: FileSink;
     console: ConsolePort;
     document: PanelDocument;
-    mountPanel: (panel: PanelElement) => Result<void, ForeignFailure>;
+    mountPanel: (panel: PanelElement) => void | errors.Caught;
     readViewport: () => PanelViewport | null;
 }
 
@@ -88,7 +88,7 @@ export interface RuntimeOptions {
 export interface Runtime {
     onIntent(intent: PanelIntent): void;
     /** Stops looking, takes the wrap off and cancels the frame asked for. */
-    deinit(): Result<void, EngineFailure>;
+    deinit(): undefined | EngineFailure;
 }
 
 interface RuntimeState {
@@ -142,9 +142,9 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
     const translate: TranslateLabel = (id, category) => {
         assert(id.length > 0, "a label is asked for by an id the panel named");
         const read = ports.dictionary.readLabel(id, category);
-        if (!read.ok) return null;
-        assert(read.value.length > 0, "a label the client answered says something");
-        return read.value;
+        if (read instanceof Error) return null;
+        assert(read.length > 0, "a label the client answered says something");
+        return read;
     };
     const state = initRuntimeState(ports, options, { defects, keeper, screen, translate });
     return {
@@ -156,11 +156,11 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
 /** A value the reader stored that does not read back costs that value, and says so. */
 function readRuntimeSetting<Value>(
     defects: DefectLedger,
-    read: Result<Value, SettingFailure>,
+    read: Value | SettingFailure,
     fallback: Value,
 ): Value {
-    if (read.ok) return read.value;
-    defects.add({ kind: DEFECT_KIND.kept, region: null, failure: read.error });
+    if (!(read instanceof Error)) return read;
+    defects.add({ kind: DEFECT_KIND.kept, region: null, failure: read });
     return fallback;
 }
 
@@ -220,11 +220,11 @@ function initRuntimeState(
         },
         onStoodDown: (failure) => {
             state.isStoodDown = true;
-            ports.console.writeBrandedLine(failure.kind, failure);
+            ports.console.writeBrandedLine(failure.name, failure);
         },
         onRefused: (failure) => failRuntimeSearch(state, failure),
         onAbandoned: (failure) => failRuntimeSearch(state, failure),
-        onLookFailed: (failure) => ports.console.writeBrandedLine(failure.kind, failure),
+        onLookFailed: (failure) => ports.console.writeBrandedLine(failure.name, failure),
     });
     return state;
 }
@@ -241,13 +241,13 @@ function markStale(state: RuntimeState): void {
         () => onRuntimeFrame(state),
         (failure) => state.defects.add({ kind: DEFECT_KIND.region, region: null, failure }),
     );
-    if (requested.ok) {
-        state.frame = requested.value;
+    if (!(requested instanceof Error)) {
+        state.frame = requested;
         return;
     }
     if (!state.hasFrameRefused) {
         state.hasFrameRefused = true;
-        state.defects.add({ kind: DEFECT_KIND.region, region: null, failure: requested.error });
+        state.defects.add({ kind: DEFECT_KIND.region, region: null, failure: requested });
     }
     assert(state.frame === null, "a draw without a frame holds none it asked for");
     onRuntimeFrame(state);
@@ -274,8 +274,9 @@ function onRuntimeFrame(state: RuntimeState): void {
     });
     if (state.isMounted) return;
     const mounted = state.ports.mountPanel(state.view.element);
-    if (mounted.ok) state.isMounted = true;
-    else state.defects.add({ kind: DEFECT_KIND.mount, region: null, failure: mounted.error });
+    if (mounted instanceof Error) {
+        state.defects.add({ kind: DEFECT_KIND.mount, region: null, failure: mounted });
+    } else state.isMounted = true;
     assert(!state.isStale, "a frame asks for no second frame of its own");
 }
 
@@ -311,16 +312,12 @@ function onViewFailure(
 }
 
 function addViewFailure(defects: DefectLedger, failure: ViewFailure): void {
-    switch (failure.kind) {
-        case VIEW_FAILURE.regionUndrawn:
-            defects.add({ kind: DEFECT_KIND.region, region: failure.region, failure });
-            return;
-        case VIEW_FAILURE.gestureDropped:
-            defects.add({ kind: DEFECT_KIND.gesture, region: null, failure });
-            return;
-        case VIEW_FAILURE.windowUnplaced:
-            defects.add({ kind: DEFECT_KIND.mount, region: null, failure });
-            return;
+    if (failure instanceof RegionUndrawn) {
+        defects.add({ kind: DEFECT_KIND.region, region: failure.region, failure });
+    } else if (failure instanceof GestureDropped) {
+        defects.add({ kind: DEFECT_KIND.gesture, region: null, failure });
+    } else {
+        defects.add({ kind: DEFECT_KIND.mount, region: null, failure });
     }
 }
 
@@ -343,13 +340,13 @@ function showRuntimePanel(state: RuntimeState): void {
 }
 
 function failRuntimeSearch(state: RuntimeState, failure: EngineFailure): void {
-    assert(failure.kind !== ENGINE_FAILURE.anotherReader, "a copy that stands down shows nothing");
+    assert(!(failure instanceof AnotherReader), "a copy that stands down shows nothing");
     assert(state.wrap === null, "and one holding the game is not looking for it");
     state.defects.add({ kind: DEFECT_KIND.engine, region: null, failure });
     showRuntimePanel(state);
 }
 
-function deinitRuntimeState(state: RuntimeState): Result<void, EngineFailure> {
+function deinitRuntimeState(state: RuntimeState): undefined | EngineFailure {
     state.search?.stop();
     state.frame?.cancel();
     state.frame = null;
@@ -357,6 +354,6 @@ function deinitRuntimeState(state: RuntimeState): Result<void, EngineFailure> {
     if (state.search !== null) assert(state.search.isDone(), "a stopped add-on looks no further");
     const wrap = state.wrap;
     state.wrap = null;
-    if (wrap === null) return ok(undefined);
+    if (wrap === null) return undefined;
     return wrap.detach();
 }

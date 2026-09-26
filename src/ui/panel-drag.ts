@@ -5,7 +5,7 @@
  */
 
 import { clamp } from "#/libs/number-range.ts";
-import { callForeign, runGuarded } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { PANEL_WINDOW, type PanelPosition, type PanelWindow } from "./panel-choice.ts";
 import {
     EVENT_TYPE,
@@ -23,11 +23,12 @@ import {
 } from "./panel-look.ts";
 import { formatWhole } from "./panel-words.ts";
 import {
+    GestureDropped,
     PANEL_LISTENER,
     type PanelListener,
     reportViewFailure,
-    VIEW_FAILURE,
     type ViewFailure,
+    WindowUnplaced,
 } from "./view-failure.ts";
 
 export interface PanelViewport {
@@ -304,7 +305,7 @@ function initPanelDragOpening(
     placement: PanelPlacement,
     options: PanelDragOptions,
 ): PanelPosition | null {
-    const opened = runGuarded(() => {
+    const opened = errors.attempt(() => {
         const opening = placement.position ??
             composeOpeningPosition(options.window, placement.readViewport());
         if (opening === null) return null;
@@ -314,12 +315,8 @@ function initPanelDragOpening(
         host.setAttribute(STYLE_ATTRIBUTE, style);
         return clamped;
     });
-    if (opened.ok) return opened.value;
-    reportViewFailure(options.onFailure, {
-        kind: VIEW_FAILURE.windowUnplaced,
-        window: options.window,
-        cause: opened.error.cause,
-    });
+    if (!(opened instanceof Error)) return opened;
+    reportViewFailure(options.onFailure, new WindowUnplaced(options.window, opened));
     return null;
 }
 
@@ -408,16 +405,12 @@ function setPointerHeld(
     options: PanelDragOptions,
 ): void {
     if (pointerId === undefined) return;
-    const held = callForeign(() => {
+    const held = errors.attempt(() => {
         if (isHeld) bar.setPointerCapture?.(pointerId);
         else bar.releasePointerCapture?.(pointerId);
     });
-    if (held.ok) return;
-    reportViewFailure(options.onFailure, {
-        kind: VIEW_FAILURE.gestureDropped,
-        listener: PANEL_LISTENER.capture,
-        cause: held.error.cause,
-    });
+    if (!(held instanceof Error)) return;
+    reportViewFailure(options.onFailure, new GestureDropped(PANEL_LISTENER.capture, held));
 }
 
 function composeDraggedPosition(

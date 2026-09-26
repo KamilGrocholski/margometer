@@ -4,28 +4,34 @@
  * stand on gets. That a real browser stands it up is the end-to-end suite's to hold.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertInstanceOf,
+    assertNotInstanceOf,
+    assertStrictEquals,
+} from "@std/assert";
 import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { FROZEN_BLOWS_GRANTED } from "#/frozen/blows-granted.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import { STORE_KEY } from "#/src/game/browser-store.ts";
 import { CLASS } from "#/src/ui/panel-look.ts";
-import { ok } from "#/libs/result.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import {
-    BOOT_FAILURE,
     composeRuntimeTables,
     readUserscriptWindow,
     startMargoMeter,
     WINDOW_PART,
     type WindowPart,
+    WindowUnusable,
 } from "#/src/userscript-entry.ts";
 import { getElementsWithin } from "./fake-document.ts";
 import { composeFakeWindow, type FakeWindow, flushFakeFrames } from "./fake-window.ts";
 import { lookupRecordedFight } from "./recorded-fights.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
-const BRANDED_STOOD_DOWN = `MargoMeter/Panel ${BOOT_FAILURE.windowUnusable}`;
+const BRANDED_STOOD_DOWN = "MargoMeter/Panel WindowUnusable";
 /** The members a page lacking one part does not state, by the part the entry names. */
 const MEMBERS_BY_PART: readonly (readonly [WindowPart, readonly string[]])[] = [
     [WINDOW_PART.document, ["document"]],
@@ -72,10 +78,11 @@ Deno.test("a page lacking a part the add-on calls stands it down, naming the par
         const window = composeFakeWindow();
         for (const member of members) delete window.page[member];
         assertStrictEquals(startMargoMeter(window.page), null, `${members}: no add-on`);
-        assertEquals(window.lines, [[
-            BRANDED_STOOD_DOWN,
-            { kind: BOOT_FAILURE.windowUnusable, missing: part },
-        ]], `${members}: one line, naming the ${part}`);
+        assertStrictEquals(window.lines.length, 1, `${members}: one line, naming the ${part}`);
+        const [said, failure] = window.lines[0] ?? [];
+        assertStrictEquals(said, BRANDED_STOOD_DOWN, `${members}: one line, naming the ${part}`);
+        assertInstanceOf(failure, WindowUnusable, `${members}: one line, naming the ${part}`);
+        assertStrictEquals(failure.missing, part, `${members}: one line, naming the ${part}`);
         assertEquals([window.frames, window.shown], [[], []], `${members}: and nothing drawn`);
     }
 });
@@ -99,7 +106,7 @@ Deno.test("a page that throws when a member is read stands the add-on down, with
     });
     assertStrictEquals(startMargoMeter(window.page), null, "nothing stood up");
     assertStrictEquals(window.lines.length, 1, "one line");
-    assertStrictEquals(window.lines[0]?.[0], "MargoMeter/Panel foreign-threw", "saying it threw");
+    assertStrictEquals(window.lines[0]?.[0], "MargoMeter/Panel Caught", "saying it threw");
 });
 
 Deno.test("a store the browser forbids reading costs the store, and not the add-on", () => {
@@ -182,27 +189,27 @@ Deno.test("the page's size is read whole or not at all, and nought is a size", (
         const window = composeFakeWindow();
         Object.assign(window.page, { innerWidth: width, innerHeight: height });
         const read = readUserscriptWindow(window.page);
-        assert(read.ok, "the page stands the add-on");
-        assertEquals(read.value.readViewport(), expected, `${width} by ${height}`);
+        assertNotInstanceOf(read, Error, "the page stands the add-on");
+        assertEquals(read.readViewport(), expected, `${width} by ${height}`);
     }
 });
 
 Deno.test("the game's build is read off the page's own script, and nothing else is", () => {
     const window = composeFakeWindow();
     const read = readUserscriptWindow(window.page);
-    assert(read.ok, "the page stands the add-on");
-    assertEquals(read.value.build.readBuildId(), ok("53XkBRxF"), "the bundle's name states it");
+    assertNotInstanceOf(read, Error, "the page stands the add-on");
+    assertStrictEquals(read.build.readBuildId(), "53XkBRxF", "the bundle's name states it");
     const document = window.page.document as Record<string, unknown>;
     document.querySelectorAll = () => [{ src: { toString: () => "/js/main.min.53XkBRxF.js" } }];
-    assertStrictEquals(read.value.build.readBuildId().ok, false, "a source that is not text");
+    assertInstanceOf(read.build.readBuildId(), Error, "a source that is not text");
 });
 
 Deno.test("a file goes to the page's downloads through an anchor standing in its body", () => {
     const window = composeFakeWindow();
     const read = readUserscriptWindow(window.page);
-    assert(read.ok, "the page stands the add-on");
-    const written = read.value.file.writeFile("fight.json", "{}", () => {});
-    assertEquals(written, ok(undefined), "the page took it");
+    assertNotInstanceOf(read, Error, "the page stands the add-on");
+    const written = read.file.writeFile("fight.json", "{}", () => {});
+    assertStrictEquals(written, undefined, "the page took it");
     assertEquals(window.blobs, [["{}"]], "as one blob of the text");
     const anchor = window.anchors[0];
     assertExists(anchor, "through an anchor the page made");

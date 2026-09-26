@@ -11,6 +11,7 @@ import {
     assertEquals,
     assertExists,
     assertFalse,
+    assertInstanceOf,
     AssertionError,
     assertStrictEquals,
     assertThrows,
@@ -18,7 +19,9 @@ import {
 import type { Combatant } from "#/src/core/combatant-roster.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
+    CastExceeded,
     commitPayload,
+    EventsExceeded,
     type FightSession,
     type FightView,
     getFightView,
@@ -26,8 +29,8 @@ import {
     initFightSession,
     type PayloadCommitted,
     type PayloadRecord,
+    PayloadsExceeded,
     preparePayload,
-    SESSION_FAILURE,
     SESSION_OPTIONS,
     SESSION_PHASE,
 } from "#/src/core/fight-session.ts";
@@ -58,8 +61,8 @@ Deno.test("a fight nobody has seen is not a fight holding nothing", () => {
 
 function apply(session: FightSession, record: PayloadRecord): PayloadCommitted {
     const prepared = preparePayload(session, record, BLOWS_GRANTED);
-    assert(prepared.ok, "a payload inside every bound is prepared");
-    return commitPayload(session, prepared.value);
+    assert(!(prepared instanceof Error), "a payload inside every bound is prepared");
+    return commitPayload(session, prepared);
 }
 
 function view(session: FightSession): FightView {
@@ -76,13 +79,13 @@ Deno.test("preparing touches nothing, and a payload lands once", () => {
         { ...NOTHING, messages: ["0;0;txt=b"] },
         BLOWS_GRANTED,
     );
-    assert(prepared.ok, "the payload is prepared");
+    assert(!(prepared instanceof Error), "the payload is prepared");
     assertEquals(view(session).events.length, 1, "and the fight has not moved");
     assertEquals(view(session).payloadsApplied, 1, "not by a payload either");
-    commitPayload(session, prepared.value);
+    commitPayload(session, prepared);
     assertEquals(view(session).events.length, 2, "until it is committed");
     assertThrows(
-        () => commitPayload(session, prepared.value),
+        () => commitPayload(session, prepared),
         AssertionError,
         "and on the payload it was read against",
     );
@@ -184,16 +187,16 @@ Deno.test("a payload past a bound moves nothing, and closes no fight", () => {
     const session = initFightSession(options);
     apply(session, { ...OPENING, messages: ["0;0;txt=a"] });
     const refused = preparePayload(session, { ...NOTHING, isEnd: true }, BLOWS_GRANTED);
-    assert(!refused.ok, "a second payload is past a bound of one");
-    assertEquals(refused.error, {
-        kind: SESSION_FAILURE.payloadsExceeded,
-        count: 2,
-        maximum: 1,
-    }, "and says which bound, by how much");
+    assertInstanceOf(refused, PayloadsExceeded, "a second payload is past a bound of one");
+    assertEquals(
+        [refused.count, refused.maximum],
+        [2, 1],
+        "and says which bound, by how much",
+    );
     assertEquals(view(session).payloadsApplied, 1, "the fight stands on the one it had");
     assertFalse(view(session).isOver, "and the end it carried closed nothing");
     const reopened = preparePayload(session, OPENING, BLOWS_GRANTED);
-    assert(reopened.ok, "a fight that opens is counted from none, so it fits");
+    assert(!(reopened instanceof Error), "a fight that opens is counted from none, so it fits");
 });
 
 Deno.test("a fight past its bound on events is refused at the bound and not before", () => {
@@ -204,8 +207,8 @@ Deno.test("a fight past its bound on events is refused at the bound and not befo
     apply(session, { ...NOTHING, messages: full });
     assertEquals(view(session).events.length, options.eventsMaximum, "a fight at the bound stands");
     const past = preparePayload(session, { ...NOTHING, messages: ["0;0;txt=b"] }, BLOWS_GRANTED);
-    assert(!past.ok, "one event past it is refused");
-    assertStrictEquals(past.error.kind, SESSION_FAILURE.eventsExceeded, "as too many events");
+    assert(past instanceof Error, "one event past it is refused");
+    assertInstanceOf(past, EventsExceeded, "as too many events");
 });
 
 Deno.test("a cast stated twice is one cast, and a fight of twenty survives the restatement", () => {
@@ -216,12 +219,12 @@ Deno.test("a cast stated twice is one cast, and a fight of twenty survives the r
     assertEquals(view(session).roster.byId.size, COMBATANTS_MAXIMUM, "and the same people");
     const newcomer = [composeCombatant(COMBATANTS_MAXIMUM + 1, "Nowy", 1)];
     const past = preparePayload(session, { ...NOTHING, combatants: newcomer }, BLOWS_GRANTED);
-    assert(!past.ok, "a twenty-first person is past the cast's bound");
-    assertEquals(past.error, {
-        kind: SESSION_FAILURE.castExceeded,
-        count: COMBATANTS_MAXIMUM + 1,
-        maximum: COMBATANTS_MAXIMUM,
-    }, "and says so");
+    assertInstanceOf(past, CastExceeded, "a twenty-first person is past the cast's bound");
+    assertEquals(
+        [past.count, past.maximum],
+        [COMBATANTS_MAXIMUM + 1, COMBATANTS_MAXIMUM],
+        "and says so",
+    );
 });
 
 /** A cast the game would field: ten a side, keyed by id as the client keys its own warriors. */
@@ -250,7 +253,7 @@ Deno.test("a fight that opens past a bound leaves the one standing, whole", () =
     apply(session, { ...OPENING, messages: ["0;0;txt=a"] });
     const cast = [composeCombatant(1, "Gracz 1", 1), composeCombatant(2, "Gracz 2", 2)];
     const refused = preparePayload(session, { ...OPENING, combatants: cast }, BLOWS_GRANTED);
-    assert(!refused.ok, "a fight opening on two people is past a bound of one");
+    assert(refused instanceof Error, "a fight opening on two people is past a bound of one");
     assertEquals(view(session).events.length, 1, "the fight that stood keeps its events");
     assertFalse(view(session).hasJoinedInProgress, "and was not made a fight joined late");
 });

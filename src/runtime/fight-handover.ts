@@ -9,8 +9,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, type ForeignFailure, ok, type Result } from "#/libs/result.ts";
-import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import type * as errors from "#/libs/errors.ts";
 import type { CaptureStanding } from "#/src/game/fight-capture.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
@@ -20,20 +19,18 @@ import type { SurroundingsPort } from "#/src/game/page-surroundings.ts";
 import {
     encodeFightFile,
     type FileCalls,
-    type FileEncodingFailure,
     type FileSubject,
     type FileSurroundings,
+    type FileUnserializable,
 } from "./fight-file.ts";
 import type { FightReading, StandingFight } from "./fight-reading.ts";
 
-export const HANDOVER_FAILURE = { noFightOnScreen: "no-fight-on-screen" } as const;
-export type HandoverFailureKind = VocabularyWord<typeof HANDOVER_FAILURE>;
+export class NoFightOnScreen extends Error {
+    override readonly name = "NoFightOnScreen";
+}
 
 /** Which fight the file is of is the intent's question, and its refusal is the runtime's. */
-export type ExportFailure =
-    | { kind: typeof HANDOVER_FAILURE.noFightOnScreen }
-    | FileEncodingFailure
-    | FileFailure;
+export type ExportFailure = NoFightOnScreen | FileUnserializable | FileFailure;
 
 export interface HandoverPorts {
     clock: Clock;
@@ -59,19 +56,15 @@ export function writeFightHandover(
     standing: StandingFight | null,
     live: LiveHandover,
     ports: HandoverPorts,
-    onLateFailure: (failure: ForeignFailure) => void,
-): Result<void, ExportFailure> {
+    onLateFailure: (failure: errors.Caught) => void,
+): undefined | ExportFailure {
     assert(ports.version.length > 0, "a file names the build that wrote it");
-    if (standing === null) return err({ kind: HANDOVER_FAILURE.noFightOnScreen });
+    if (standing === null) return new NoFightOnScreen();
     const prepared = prepareHandover(standing, live, ports);
-    if (!prepared.ok) return prepared;
-    const encoded = encodeFightFile(
-        prepared.value.calls,
-        prepared.value.subject,
-        prepared.value.surroundings,
-    );
-    if (!encoded.ok) return encoded;
-    return ports.file.writeFile(encoded.value.name, encoded.value.text, onLateFailure);
+    if (prepared instanceof Error) return prepared;
+    const encoded = encodeFightFile(prepared.calls, prepared.subject, prepared.surroundings);
+    if (encoded instanceof Error) return encoded;
+    return ports.file.writeFile(encoded.name, encoded.text, onLateFailure);
 }
 
 /**
@@ -83,13 +76,13 @@ function prepareHandover(
     standing: StandingFight,
     live: LiveHandover,
     ports: HandoverPorts,
-): Result<Handover, ExportFailure> {
+): Handover | ExportFailure {
     if (standing.kept === null) {
         const now = ports.clock.readNowMilliseconds();
         const surroundings = readHandoverSurroundings(ports, now, readLiveBuild(ports.build));
-        if (!surroundings.ok) return surroundings;
+        if (surroundings instanceof Error) return surroundings;
         const subject = prepareHandoverSubject(standing.reading, live.place);
-        return ok({ calls: live.capture, subject, surroundings: surroundings.value });
+        return { calls: live.capture, subject, surroundings };
     }
     const { kept, reading } = standing;
     // A replay refuses the whole fight at the first payload it will not read, so every kept
@@ -105,38 +98,38 @@ function prepareHandover(
     }));
     // The world and the browser are the page's: a shelf is read out of one origin's store.
     const surroundings = readHandoverSurroundings(ports, kept.openedAt, kept.gameBuild);
-    if (!surroundings.ok) return surroundings;
-    return ok({
+    if (surroundings instanceof Error) return surroundings;
+    return {
         calls: { calls, droppedCalls: null, isTruncated: null },
         subject: prepareHandoverSubject(reading, kept.place),
-        surroundings: surroundings.value,
-    });
+        surroundings,
+    };
 }
 
 function readHandoverSurroundings(
     ports: HandoverPorts,
     atMilliseconds: number,
     gameBuild: string | null,
-): Result<FileSurroundings, ForeignFailure> {
+): FileSurroundings | errors.Caught {
     const capturedAt = ports.clock.readTimestampText(atMilliseconds);
-    if (!capturedAt.ok) return capturedAt;
+    if (capturedAt instanceof Error) return capturedAt;
     const world = ports.surroundings.readWorld();
     assert(world.length > 0, "a world is named, or named unknown, and never left empty");
-    return ok({
+    return {
         world,
         gameBuild,
-        capturedAt: capturedAt.value,
+        capturedAt,
         userAgent: ports.surroundings.readUserAgent(),
         addOnVersion: ports.version,
-    });
+    };
 }
 
 /** A build the page will not state is absent from the file, and no failure of the file's. */
 function readLiveBuild(build: BuildPort): string | null {
     const read = build.readBuildId();
-    if (!read.ok) return null;
-    assert(read.value.length > 0, "a build the page stated says something");
-    return read.value;
+    if (read instanceof Error) return null;
+    assert(read.length > 0, "a build the page stated says something");
+    return read;
 }
 
 function prepareHandoverSubject(reading: FightReading, place: FightPlace | null): FileSubject {

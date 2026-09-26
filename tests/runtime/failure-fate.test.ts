@@ -13,13 +13,17 @@ Deno.test("every fate the vocabulary names is the fate of some failure", () => {
 });
 
 Deno.test("the fates §10.5 names outright are the ones the table holds", () => {
-    assertStrictEquals(FAILURE_FATES["another-reader"], FAILURE_FATE.standDown, "a second copy");
-    assertStrictEquals(FAILURE_FATES["unread"], FAILURE_FATE.shownAsSuspect, "an unread message");
+    assertStrictEquals(FAILURE_FATES.AnotherReader, FAILURE_FATE.standDown, "a second copy");
     assertStrictEquals(
-        FAILURE_FATES["page-reading-absent"],
+        FAILURE_FATES.UnreadMessage,
+        FAILURE_FATE.shownAsSuspect,
+        "an unread message",
+    );
+    assertStrictEquals(
+        FAILURE_FATES.PageReadingAbsent,
         FAILURE_FATE.shownAsUnknown,
         "a reading the page did not give",
     );
-    assertStrictEquals(FAILURE_FATES["invariant-broken"], FAILURE_FATE.defect, "a bug of ours");
-    assertStrictEquals(FAILURE_FATES["every-slot-pinned"], FAILURE_FATE.shelfAnswer, "a shelf");
+    assertStrictEquals(FAILURE_FATES.Caught, FAILURE_FATE.defect, "a bug of ours");
+    assertStrictEquals(FAILURE_FATES.EverySlotPinned, FAILURE_FATE.shelfAnswer, "a shelf");
 });

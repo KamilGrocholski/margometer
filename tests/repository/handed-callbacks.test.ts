@@ -1,7 +1,7 @@
 /**
- * E10: a callback the bundle hands to a listener, a timer or a frame calls nothing but `runGuarded`,
- * `callForeign`, or a function of ours that calls nothing but those. A closure it writes stands
- * only as the step one of the two is handed. A parameter handed straight on is a port passing the
+ * E10: a callback the bundle hands to a listener, a timer or a frame calls nothing but
+ * `errors.attempt`, or a function of ours that calls nothing but that. A closure it writes stands
+ * only as the step `attempt` is handed. A parameter handed straight on is a port passing the
  * callback through, and the call handing it to the port is read here in its turn.
  *
  * ⚠️ **The wrapped engine call is the one handover this does not read**: it is an assignment over
@@ -27,18 +27,18 @@ const CALLBACK_INDEX_BY_METHOD: Record<string, number> = {
     setInterval: 0,
     setTimeout: 0,
 };
-const GUARDS = ["runGuarded", "callForeign"];
+const GUARDS = ["attempt"];
 
 Deno.test("a guarded callback passes, and an unguarded one is flagged in each spelling", () => {
     const sample = composeSample([
-        "root.addEventListener('click', (event) => { runGuarded(() => handle(event)); });",
+        "root.addEventListener('click', (event) => { errors.attempt(() => handle(event)); });",
         "root.addEventListener('wheel', (event) => handle(event));",
-        "const guarded = () => { const ran = runGuarded(step); if (!ran.ok) report(ran.error); };",
+        "const guarded = () => { const ran = errors.attempt(step); if (ran instanceof Error) report(ran); };",
         "frames.requestAnimationFrame(guarded);",
-        "function report(failure) { void runGuarded(() => say(failure)); }",
+        "function report(failure) { void errors.attempt(() => say(failure)); }",
         "setTimeout(later, 0);",
         "const pass = (step, after) => void page.setTimeout(step, after);",
-        "timers.setInterval(() => { const hand = () => draw(); runGuarded(hand); }, 1);",
+        "timers.setInterval(() => { const hand = () => draw(); errors.attempt(hand); }, 1);",
     ]);
     assertEquals(
         lookupUnguardedCallbacks(sample, lookupGuardingNames([sample])),
@@ -74,13 +74,20 @@ function isGuardedBody(
 ): boolean {
     for (const call of calls) {
         if (!isOwnNode(body, functions, call)) continue;
-        if (!guarding.has(call.callee?.name ?? "")) return false;
+        if (!guarding.has(readCalleeName(call))) return false;
     }
     for (const closure of functions) {
         if (!isOwnNode(body, functions, closure)) continue;
-        if (!GUARDS.includes(closure.parent?.callee?.name ?? "")) return false;
+        const parent = closure.parent;
+        if (parent === null || parent === undefined) return false;
+        if (!GUARDS.includes(readCalleeName(parent))) return false;
     }
     return true;
+}
+
+/** `attempt` is called through its module, `errors.attempt`, and a function of ours by its name. */
+function readCalleeName(call: AstNode): string {
+    return call.callee?.property?.name ?? call.callee?.name ?? "";
 }
 
 /** A node the body stands around, and no closure inside it stands closer. */

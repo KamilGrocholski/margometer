@@ -5,7 +5,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, type ForeignFailure, ok, type Result } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 
 /** A moment on the reader's own clock. The month counts from one, as a person counts them. */
 export interface PageMoment {
@@ -19,7 +19,7 @@ export interface Clock {
     readNowMilliseconds(): number;
     readMoment(atMilliseconds: number): PageMoment | null;
     /** The moment as a file states it, in the page's own ISO 8601. */
-    readTimestampText(atMilliseconds: number): Result<string, ForeignFailure>;
+    readTimestampText(atMilliseconds: number): string | errors.Caught;
 }
 
 /** The whole of what this asks a page for. A browser's `Date` satisfies it. */
@@ -50,15 +50,15 @@ export function initPageClock(date: PageDate): Clock {
         readNowMilliseconds: () => date.now(),
         readMoment(atMilliseconds) {
             if (!Number.isFinite(atMilliseconds)) return null;
-            const read = callForeign(() => readPageMoment(new date(atMilliseconds)));
-            if (!read.ok) return null;
-            return read.value;
+            const read = errors.attempt(() => readPageMoment(new date(atMilliseconds)));
+            if (read instanceof Error) return null;
+            return read;
         },
         readTimestampText(atMilliseconds) {
             assert(Number.isFinite(atMilliseconds), "a moment written down is one on the clock");
-            const read = callForeign(() => new date(atMilliseconds).toISOString());
-            if (!read.ok) return read;
-            return ok(String(read.value));
+            const read = errors.attempt(() => new date(atMilliseconds).toISOString());
+            if (read instanceof Error) return read;
+            return String(read);
         },
     };
 }

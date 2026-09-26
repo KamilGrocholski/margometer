@@ -8,7 +8,7 @@
 
 import { assert, assertStrictEquals } from "@std/assert";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { parseGameBuild, parseGameBundleName } from "#/src/game/game-build.ts";
@@ -70,15 +70,15 @@ export function requirePageBundleAddress(html: string, host: string): string {
 
 /** What is cached right now, or null. Absence is an answer; an unreadable manifest is not. */
 export function readCachedClientSource(channel: GameChannel): CachedClientSource | null {
-    const text = callForeign(() => Deno.readTextFileSync(composeManifestPath(channel)));
-    if (!text.ok) return null;
-    const parsed = parseJson(text.value);
-    if (!parsed.ok) {
+    const text = errors.attempt(() => Deno.readTextFileSync(composeManifestPath(channel)));
+    if (text instanceof Error) return null;
+    const parsed = parseJson(text);
+    if (parsed instanceof Error) {
         throw new GameSourceError(`cache manifest for ${channel} is unreadable`, {
-            cause: parsed.error,
+            cause: parsed,
         });
     }
-    return requireCachedClientSource(parsed.value, channel);
+    return requireCachedClientSource(parsed, channel);
 }
 
 function composeManifestPath(channel: GameChannel): string {
@@ -147,12 +147,12 @@ export async function writeClientSourceCache(channel: GameChannel): Promise<Cach
     const fetchedAt = new Date().toISOString();
     const cached: CachedClientSource = { channel, build, host, fetchedAt, bundlePath };
     const text = encodeJson(cached, INDENT_SPACES);
-    if (!text.ok) {
+    if (text instanceof Error) {
         throw new GameSourceError(`provenance for ${channel} cannot be written`, {
-            cause: text.error,
+            cause: text,
         });
     }
-    Deno.writeTextFileSync(composeManifestPath(channel), `${text.value}\n`);
+    Deno.writeTextFileSync(composeManifestPath(channel), `${text}\n`);
     return cached;
 }
 

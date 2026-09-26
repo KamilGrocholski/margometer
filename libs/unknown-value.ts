@@ -2,12 +2,11 @@
  * Reading a value nobody typed, one field at a time (`docs/design.md` §3). The keys are somebody
  * else's and the fields are ours: a failure names our field, never their key (N13).
  *
- * An absent field is `ok(null)`, which is a fact. A field of the wrong type is `err`. Only own
+ * An absent field is `null`, which is a fact. A field of the wrong type is a failure. Only own
  * properties are read, so `constructor` or `toString` off the prototype is never an answer.
  */
 
 import { assert } from "@std/assert/assert";
-import { err, ok, type Result } from "./result.ts";
 import type { VocabularyWord } from "./vocabulary.ts";
 
 /** Read-only: a write into somebody else's object through this type does not compile. */
@@ -27,10 +26,33 @@ export const FIELD_TYPE = {
 } as const;
 export type FieldType = VocabularyWord<typeof FIELD_TYPE>;
 
-export const FIELD_FAILURE = { wrongType: "field-wrong-type", tooLong: "field-too-long" } as const;
-export type FieldFailure<Field extends string> =
-    | { kind: typeof FIELD_FAILURE.wrongType; field: Field; expected: FieldType }
-    | { kind: typeof FIELD_FAILURE.tooLong; field: Field; count: number; maximum: number };
+export class FieldWrongType<Field extends string> extends Error {
+    override readonly name = "FieldWrongType";
+    readonly field: Field;
+    readonly expected: FieldType;
+
+    constructor(field: Field, expected: FieldType) {
+        super();
+        this.field = field;
+        this.expected = expected;
+    }
+}
+
+export class FieldTooLong<Field extends string> extends Error {
+    override readonly name = "FieldTooLong";
+    readonly field: Field;
+    readonly count: number;
+    readonly maximum: number;
+
+    constructor(field: Field, count: number, maximum: number) {
+        super();
+        this.field = field;
+        this.count = count;
+        this.maximum = maximum;
+    }
+}
+
+export type FieldFailure<Field extends string> = FieldWrongType<Field> | FieldTooLong<Field>;
 
 /** `typeof` alone admits `null` and arrays here, and the answer must be read-only. */
 export function isRecord(value: unknown): value is UnknownRecord {
@@ -44,16 +66,16 @@ export function getNumberField<Field extends string>(
     record: UnknownRecord,
     keys: FieldKeys<Field>,
     field: Field,
-): Result<number | null, FieldFailure<Field>> {
+): number | null | FieldWrongType<Field> {
     const value = getOwnValue(record, keys[field]);
-    if (value === undefined) return ok(null);
+    if (value === undefined) return null;
     if (typeof value !== "number") {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.number });
+        return new FieldWrongType(field, FIELD_TYPE.number);
     }
     if (!Number.isFinite(value)) {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.number });
+        return new FieldWrongType(field, FIELD_TYPE.number);
     }
-    return ok(value);
+    return value;
 }
 
 /** `undefined` where the record does not hold the key itself, whatever its prototype holds. */
@@ -68,13 +90,13 @@ export function getTextField<Field extends string>(
     record: UnknownRecord,
     keys: FieldKeys<Field>,
     field: Field,
-): Result<string | null, FieldFailure<Field>> {
+): string | null | FieldWrongType<Field> {
     const value = getOwnValue(record, keys[field]);
-    if (value === undefined) return ok(null);
+    if (value === undefined) return null;
     if (typeof value !== "string") {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.text });
+        return new FieldWrongType(field, FIELD_TYPE.text);
     }
-    return ok(value);
+    return value;
 }
 
 /** Text that says something. Empty text is the wrong type here, and is asked for by name. */
@@ -82,14 +104,12 @@ export function getStatedTextField<Field extends string>(
     record: UnknownRecord,
     keys: FieldKeys<Field>,
     field: Field,
-): Result<string | null, FieldFailure<Field>> {
+): string | null | FieldWrongType<Field> {
     const text = getTextField(record, keys, field);
-    if (!text.ok) {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.statedText });
-    }
-    if (text.value === null) return text;
-    if (text.value.length === 0) {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.statedText });
+    if (text instanceof Error) return new FieldWrongType(field, FIELD_TYPE.statedText);
+    if (text === null) return text;
+    if (text.length === 0) {
+        return new FieldWrongType(field, FIELD_TYPE.statedText);
     }
     return text;
 }
@@ -98,13 +118,13 @@ export function getRecordField<Field extends string>(
     record: UnknownRecord,
     keys: FieldKeys<Field>,
     field: Field,
-): Result<UnknownRecord | null, FieldFailure<Field>> {
+): UnknownRecord | null | FieldWrongType<Field> {
     const value = getOwnValue(record, keys[field]);
-    if (value === undefined) return ok(null);
+    if (value === undefined) return null;
     if (!isRecord(value)) {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.record });
+        return new FieldWrongType(field, FIELD_TYPE.record);
     }
-    return ok(value);
+    return value;
 }
 
 /** A longer list is a failure, never a truncation. */
@@ -113,16 +133,16 @@ export function getListField<Field extends string>(
     keys: FieldKeys<Field>,
     field: Field,
     maximum: number,
-): Result<readonly unknown[] | null, FieldFailure<Field>> {
+): readonly unknown[] | null | FieldFailure<Field> {
     assert(Number.isSafeInteger(maximum), "a list is bounded by a whole count");
     assert(maximum >= 0, "of none or more");
     const value = getOwnValue(record, keys[field]);
-    if (value === undefined) return ok(null);
+    if (value === undefined) return null;
     if (!Array.isArray(value)) {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.list });
+        return new FieldWrongType(field, FIELD_TYPE.list);
     }
     if (value.length > maximum) {
-        return err({ kind: FIELD_FAILURE.tooLong, field, count: value.length, maximum });
+        return new FieldTooLong(field, value.length, maximum);
     }
-    return ok(value);
+    return value;
 }

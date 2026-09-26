@@ -5,7 +5,13 @@
  * is the difference that matters for the one recording whose calls carry no snapshot at all.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertNotInstanceOf,
+    assertStrictEquals,
+} from "@std/assert";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     commitPayload,
@@ -60,10 +66,10 @@ Deno.test("a fight that opens replaces the one standing before it", () => {
 
 function apply(session: FightSession, update: unknown, path: string): void {
     const record = readPayloadEnvelope(update);
-    assert(record.ok, `${path}: a call is read by the envelope`);
-    const prepared = preparePayload(session, record.value, BLOWS_GRANTED);
-    assert(prepared.ok, `${path}: and is inside every bound`);
-    commitPayload(session, prepared.value);
+    assertNotInstanceOf(record, Error, `${path}: a call is read by the envelope`);
+    const prepared = preparePayload(session, record, BLOWS_GRANTED);
+    assertNotInstanceOf(prepared, Error, `${path}: and is inside every bound`);
+    commitPayload(session, prepared);
 }
 
 Deno.test("every recording is read whole, by the count the payloads themselves state", () => {
@@ -94,8 +100,8 @@ Deno.test("every recording states its reader's side, on the payload that opens t
     const sides = new Set<number>();
     for (const fight of readRecordedFights()) {
         const opening = readPayloadEnvelope(fight.updates[0]);
-        assert(opening.ok, `${fight.path}: the opening call is read`);
-        const readerSide = opening.value.readerSide;
+        assertNotInstanceOf(opening, Error, `${fight.path}: the opening call is read`);
+        const readerSide = opening.readerSide;
         assertExists(readerSide, `${fight.path}: the opening payload states the reader's own side`);
         assert(readerSide === 1 || readerSide === 2, `${fight.path}: one of the two sides`);
         sides.add(readerSide);
@@ -110,13 +116,13 @@ Deno.test("no recording states a fight the game runs itself and a turn at once",
     for (const fight of readRecordedFights()) {
         for (const update of fight.updates) {
             const record = readPayloadEnvelope(update);
-            assert(record.ok, `${fight.path}: a call is read`);
-            if (record.value.isOnAuto !== true) {
-                if (record.value.turnStatement !== null) numbered += 1;
+            assertNotInstanceOf(record, Error, `${fight.path}: a call is read`);
+            if (record.isOnAuto !== true) {
+                if (record.turnStatement !== null) numbered += 1;
                 continue;
             }
             running += 1;
-            assertEquals(record.value.turnStatement, null, `${fight.path}: numbers no turn`);
+            assertEquals(record.turnStatement, null, `${fight.path}: numbers no turn`);
         }
     }
     assert(running > 0, "the corpus carries payloads stating a fight the game ran itself");

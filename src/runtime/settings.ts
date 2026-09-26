@@ -10,7 +10,6 @@
 
 import { formatInteger } from "#/libs/number-text.ts";
 import { parseJson } from "#/libs/json-text.ts";
-import { err, ok, type Result } from "#/libs/result.ts";
 import { type FieldKeys, getNumberField, isRecord } from "#/libs/unknown-value.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import {
@@ -37,15 +36,27 @@ export const SETTING_KEY = {
 } as const;
 export type SettingKey = VocabularyWord<typeof SETTING_KEY>;
 
-export const SETTING_FAILURE = {
-    unreadable: "setting-unreadable",
-    tooLong: "setting-too-long",
-} as const;
+export class SettingUnreadable extends Error {
+    override readonly name = "SettingUnreadable";
+    readonly key: SettingKey;
 
-export type SettingFailure =
-    | StoreFailure
-    | { kind: typeof SETTING_FAILURE.unreadable; key: SettingKey }
-    | { kind: typeof SETTING_FAILURE.tooLong; key: SettingKey };
+    constructor(key: SettingKey) {
+        super();
+        this.key = key;
+    }
+}
+
+export class SettingTooLong extends Error {
+    override readonly name = "SettingTooLong";
+    readonly key: SettingKey;
+
+    constructor(key: SettingKey) {
+        super();
+        this.key = key;
+    }
+}
+
+export type SettingFailure = StoreFailure | SettingUnreadable | SettingTooLong;
 
 type PositionField = "left" | "top";
 
@@ -78,41 +89,39 @@ const UNFOLDED = "";
 const POSITION_LENGTH_MAXIMUM = 4096;
 const POSITION_FIELDS: FieldKeys<PositionField> = { left: "left", top: "top" };
 
-export function readStorageChoice(store: KeyValueStore): Result<StorageChoice, SettingFailure> {
+export function readStorageChoice(store: KeyValueStore): StorageChoice | SettingFailure {
     const read = store.read(STORE_KEY_BY_SETTING.storage);
-    if (!read.ok) return read;
-    if (read.value === null) return ok(STORAGE_DEFAULT);
-    if (!isOneOf(STORAGE_CHOICES, read.value)) {
-        return err({ kind: SETTING_FAILURE.unreadable, key: SETTING_KEY.storage });
-    }
-    return ok(read.value);
+    if (read instanceof Error) return read;
+    if (read === null) return STORAGE_DEFAULT;
+    if (!isOneOf(STORAGE_CHOICES, read)) return new SettingUnreadable(SETTING_KEY.storage);
+    return read;
 }
 
 export function writeStorageChoice(
     store: KeyValueStore,
     choice: StorageChoice,
-): Result<void, SettingFailure> {
+): undefined | SettingFailure {
     return store.write(STORE_KEY_BY_SETTING.storage, choice);
 }
 
 export function readWindowFold(
     store: KeyValueStore,
     window: PanelWindow,
-): Result<boolean, SettingFailure> {
+): boolean | SettingFailure {
     const key = FOLD_SETTING_BY_WINDOW[window];
     const read = store.read(STORE_KEY_BY_SETTING[key]);
-    if (!read.ok) return read;
-    if (read.value === null) return ok(false);
-    if (read.value === FOLDED) return ok(true);
-    if (read.value === UNFOLDED) return ok(false);
-    return err({ kind: SETTING_FAILURE.unreadable, key });
+    if (read instanceof Error) return read;
+    if (read === null) return false;
+    if (read === FOLDED) return true;
+    if (read === UNFOLDED) return false;
+    return new SettingUnreadable(key);
 }
 
 export function writeWindowFold(
     store: KeyValueStore,
     window: PanelWindow,
     isCollapsed: boolean,
-): Result<void, SettingFailure> {
+): undefined | SettingFailure {
     const key = FOLD_SETTING_BY_WINDOW[window];
     return store.write(STORE_KEY_BY_SETTING[key], isCollapsed ? FOLDED : UNFOLDED);
 }
@@ -124,32 +133,30 @@ export function writeWindowFold(
 export function readWindowPosition(
     store: KeyValueStore,
     window: PanelWindow,
-): Result<PanelPosition | null, SettingFailure> {
+): PanelPosition | null | SettingFailure {
     const key = POSITION_SETTING_BY_WINDOW[window];
     const read = store.read(STORE_KEY_BY_SETTING[key]);
-    if (!read.ok) return read;
-    if (read.value === null) return ok(null);
-    if (read.value.length > POSITION_LENGTH_MAXIMUM) {
-        return err({ kind: SETTING_FAILURE.tooLong, key });
-    }
-    const position = parseWindowPosition(read.value);
-    if (position === null) return err({ kind: SETTING_FAILURE.unreadable, key });
-    return ok(position);
+    if (read instanceof Error) return read;
+    if (read === null) return null;
+    if (read.length > POSITION_LENGTH_MAXIMUM) return new SettingTooLong(key);
+    const position = parseWindowPosition(read);
+    if (position === null) return new SettingUnreadable(key);
+    return position;
 }
 
 function parseWindowPosition(text: string): PanelPosition | null {
     const parsed = parseJson(text);
-    if (!parsed.ok) return null;
-    if (!isRecord(parsed.value)) return null;
-    const left = getNumberField(parsed.value, POSITION_FIELDS, "left");
-    const top = getNumberField(parsed.value, POSITION_FIELDS, "top");
-    if (!left.ok) return null;
-    if (!top.ok) return null;
-    if (left.value === null) return null;
-    if (top.value === null) return null;
-    if (!Number.isSafeInteger(left.value)) return null;
-    if (!Number.isSafeInteger(top.value)) return null;
-    return { left: left.value, top: top.value };
+    if (parsed instanceof Error) return null;
+    if (!isRecord(parsed)) return null;
+    const left = getNumberField(parsed, POSITION_FIELDS, "left");
+    const top = getNumberField(parsed, POSITION_FIELDS, "top");
+    if (left instanceof Error) return null;
+    if (top instanceof Error) return null;
+    if (left === null) return null;
+    if (top === null) return null;
+    if (!Number.isSafeInteger(left)) return null;
+    if (!Number.isSafeInteger(top)) return null;
+    return { left, top };
 }
 
 /** A position that is not two whole numbers is the caller's bug, which `formatInteger` asserts. */
@@ -157,7 +164,7 @@ export function writeWindowPosition(
     store: KeyValueStore,
     window: PanelWindow,
     position: PanelPosition,
-): Result<void, SettingFailure> {
+): undefined | SettingFailure {
     const key = POSITION_SETTING_BY_WINDOW[window];
     const text = `{"left":${formatInteger(position.left)},"top":${formatInteger(position.top)}}`;
     return store.write(STORE_KEY_BY_SETTING[key], text);

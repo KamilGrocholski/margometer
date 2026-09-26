@@ -6,8 +6,8 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { RESULT_FAILURE } from "#/libs/result.ts";
-import { STORE_FAILURE } from "#/src/game/browser-store.ts";
+import * as errors from "#/libs/errors.ts";
+import { StoreRefused } from "#/src/game/browser-store.ts";
 import { readRecordedFights } from "./recorded-fights.ts";
 import { FAULT_FREE, type FaultPlan, runSimulation } from "./simulation.ts";
 
@@ -39,7 +39,7 @@ Deno.test("under every plan, on every recording, the game never meets a throw of
             assertEquals(faulted.ranking, alone.ranking, `${where}: the figures moved`);
             assertEquals(faulted.unhandledKinds, [], `${where}: a failure met no fate`);
             assert(
-                !faulted.kindsSaid.includes(RESULT_FAILURE.invariantBroken),
+                !faulted.hasInvariantBroken,
                 `${where}: a fault of the page's was met as a broken invariant of ours`,
             );
             for (const kind of faulted.kindsSaid) kinds.add(kind);
@@ -50,7 +50,7 @@ Deno.test("under every plan, on every recording, the game never meets a throw of
     assert(faults > 0, "faults were injected");
     assertEquals(
         [...kinds].sort(),
-        [RESULT_FAILURE.foreignThrew, STORE_FAILURE.refused].sort(),
+        [errors.Caught.name, StoreRefused.name].sort(),
         "and both kinds of fault the plans draw reached the console",
     );
 });

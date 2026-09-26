@@ -5,13 +5,21 @@
  * the game sent is checked here and nowhere past it, so here is where it has to be seen to bite.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { err } from "#/libs/result.ts";
+import {
+    assert,
+    assertEquals,
+    assertInstanceOf,
+    assertNotInstanceOf,
+    assertStrictEquals,
+} from "@std/assert";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
 import {
-    ENVELOPE_FAILURE,
     type EnvelopeField,
+    PayloadCombatantRepeated,
+    PayloadFieldMalformed,
+    PayloadFieldTooLong,
+    PayloadNotRecord,
     readPayloadEnvelope,
 } from "#/src/game/payload-envelope.ts";
 import {
@@ -27,59 +35,68 @@ import { readRecordedFights } from "#/tests/recorded-fights.ts";
 const QUEUE_ENTRIES_MAXIMUM = 1024;
 
 Deno.test("what is not a keyed object is not a payload", () => {
-    const refused = err({ kind: ENVELOPE_FAILURE.payloadNotRecord });
-    assertEquals(readPayloadEnvelope(null), refused, "nothing is not one");
-    assertEquals(readPayloadEnvelope(["0;0;txt=a"]), refused, "and a list of messages is not one");
-    assertEquals(readPayloadEnvelope("m"), refused, "nor is text");
-    assert(readPayloadEnvelope({}).ok, "while a payload stating nothing is one");
+    assertInstanceOf(readPayloadEnvelope(null), PayloadNotRecord, "nothing is not one");
+    const listed = readPayloadEnvelope(["0;0;txt=a"]);
+    assertInstanceOf(listed, PayloadNotRecord, "and a list of messages is not one");
+    assertInstanceOf(readPayloadEnvelope("m"), PayloadNotRecord, "nor is text");
+    assertNotInstanceOf(readPayloadEnvelope({}), Error, "while a payload stating nothing is one");
 });
 
 Deno.test("a field of the wrong shape refuses the payload, and says which field is ours", () => {
-    assertEquals(readPayloadEnvelope({ m: "0;0;txt=a" }), malformed("messages"), "`m` no list");
-    assertEquals(readPayloadEnvelope({ m: ["0;0;txt=a", 5] }), malformed("messages"), "no text");
-    assertEquals(readPayloadEnvelope({ mi: 3 }), malformed("messagesStated"), "`mi` no list");
-    assertEquals(readPayloadEnvelope({ myteam: true }), malformed("readerSide"), "a flag side");
-    assertEquals(readPayloadEnvelope({ myteam: "one" }), malformed("readerSide"), "a word side");
-    assertEquals(readPayloadEnvelope({ auto: [] }), malformed("isOnAuto"), "a list for auto");
+    expectMalformed(readPayloadEnvelope({ m: "0;0;txt=a" }), "messages", "`m` no list");
+    expectMalformed(readPayloadEnvelope({ m: ["0;0;txt=a", 5] }), "messages", "no text");
+    expectMalformed(readPayloadEnvelope({ mi: 3 }), "messagesStated", "`mi` no list");
+    expectMalformed(readPayloadEnvelope({ myteam: true }), "readerSide", "a flag side");
+    expectMalformed(readPayloadEnvelope({ myteam: "one" }), "readerSide", "a word side");
+    expectMalformed(readPayloadEnvelope({ auto: [] }), "isOnAuto", "a list for auto");
     const queue = { turns_warriors: { x: 1 } };
-    assertEquals(readPayloadEnvelope(queue), malformed("turnStatement"), "an unnumbered queue");
+    expectMalformed(readPayloadEnvelope(queue), "turnStatement", "an unnumbered queue");
     const whose = { turns_warriors: { 7: "11" } };
-    assertEquals(readPayloadEnvelope(whose), malformed("turnStatement"), "and nobody's turn");
-    assertEquals(readPayloadEnvelope({ w: "one" }), malformed("combatants"), "text is no cast");
+    expectMalformed(readPayloadEnvelope(whose), "turnStatement", "and nobody's turn");
+    expectMalformed(readPayloadEnvelope({ w: "one" }), "combatants", "text is no cast");
 });
 
-function malformed(field: EnvelopeField) {
-    return err({ kind: ENVELOPE_FAILURE.payloadFieldMalformed, field });
+function expectMalformed(read: unknown, field: EnvelopeField, message: string): void {
+    assertInstanceOf(read, PayloadFieldMalformed, message);
+    assertStrictEquals(read.field, field, `${message}: our field`);
 }
 
 Deno.test("a list past its bound refuses the payload, and one at it does not", () => {
     const full = new Array(MESSAGES_MAXIMUM).fill(0);
-    assert(readPayloadEnvelope({ mi: full }).ok, "a count at the bound is read");
-    assertEquals(
+    assertNotInstanceOf(readPayloadEnvelope({ mi: full }), Error, "a count at the bound is read");
+    expectTooLong(
         readPayloadEnvelope({ mi: [...full, 0] }),
-        err({
-            kind: ENVELOPE_FAILURE.payloadFieldTooLong,
-            field: "messagesStated",
-            count: MESSAGES_MAXIMUM + 1,
-            maximum: MESSAGES_MAXIMUM,
-        }),
+        { field: "messagesStated", count: MESSAGES_MAXIMUM + 1, maximum: MESSAGES_MAXIMUM },
         "and one past it is refused, not cut",
     );
     const queue: Record<string, number> = {};
     for (let ordinal = 1; ordinal <= QUEUE_ENTRIES_MAXIMUM; ordinal += 1) queue[ordinal] = 1;
-    assert(readPayloadEnvelope({ turns_warriors: queue }).ok, "a queue at its bound is read");
-    queue[QUEUE_ENTRIES_MAXIMUM + 1] = 1;
-    assertEquals(
+    assertNotInstanceOf(
         readPayloadEnvelope({ turns_warriors: queue }),
-        err({
-            kind: ENVELOPE_FAILURE.payloadFieldTooLong,
+        Error,
+        "a queue at its bound is read",
+    );
+    queue[QUEUE_ENTRIES_MAXIMUM + 1] = 1;
+    expectTooLong(
+        readPayloadEnvelope({ turns_warriors: queue }),
+        {
             field: "turnStatement",
             count: QUEUE_ENTRIES_MAXIMUM + 1,
             maximum: QUEUE_ENTRIES_MAXIMUM,
-        }),
+        },
         "and one past it is refused",
     );
 });
+
+function expectTooLong(
+    read: unknown,
+    expected: { field: EnvelopeField; count: number; maximum: number },
+    message: string,
+): void {
+    assertInstanceOf(read, PayloadFieldTooLong, message);
+    const { field, count, maximum } = read;
+    assertEquals({ field, count, maximum }, expected, `${message}, saying by how much`);
+}
 
 Deno.test("a cast is read up to a full fight, and one warrior past it is refused", () => {
     const warriors = Array.from({ length: COMBATANTS_MAXIMUM + 1 }, (_, at) => ({
@@ -91,35 +108,33 @@ Deno.test("a cast is read up to a full fight, and one warrior past it is refused
     assertStrictEquals(readOk({ w: full }).combatants.length, COMBATANTS_MAXIMUM, "twenty");
     const keyed = Object.fromEntries(full.map((one) => [`${one.id}`, one]));
     assertStrictEquals(readOk({ w: keyed }).combatants.length, COMBATANTS_MAXIMUM, "keyed too");
-    const past = err({
-        kind: ENVELOPE_FAILURE.payloadFieldTooLong,
+    const past = {
         field: "combatants" as const,
         count: COMBATANTS_MAXIMUM + 1,
         maximum: COMBATANTS_MAXIMUM,
-    });
-    assertEquals(readPayloadEnvelope({ w: warriors }), past, "a listed twenty-first is refused");
+    };
+    expectTooLong(readPayloadEnvelope({ w: warriors }), past, "a listed twenty-first is refused");
     const keyedPast = Object.fromEntries(warriors.map((one) => [`${one.id}`, one]));
-    assertEquals(readPayloadEnvelope({ w: keyedPast }), past, "and so is a keyed one");
+    expectTooLong(readPayloadEnvelope({ w: keyedPast }), past, "and so is a keyed one");
 });
 
 function readOk(payload: unknown) {
     const record = readPayloadEnvelope(payload);
-    assert(record.ok, "the payload is read");
-    return record.value;
+    assertNotInstanceOf(record, Error, "the payload is read");
+    return record;
 }
 
 Deno.test("a combatant stated twice in one payload refuses it", () => {
     const one = { id: 3, name: "Gracz 3", team: 1 };
-    assertEquals(
-        readPayloadEnvelope({ w: [one, { ...one, name: "Gracz 4" }] }),
-        err({
-            kind: ENVELOPE_FAILURE.payloadCombatantRepeated,
-            combatantId: 3,
-        }),
-        "one id, two combatants",
-    );
+    const repeated = readPayloadEnvelope({ w: [one, { ...one, name: "Gracz 4" }] });
+    assertInstanceOf(repeated, PayloadCombatantRepeated, "one id, two combatants");
+    assertStrictEquals(repeated.combatantId, 3, "and says whose");
     const partial = { id: 3, buffs: 1 };
-    assert(readPayloadEnvelope({ w: [one, partial] }).ok, "a partial entry beside it is no second");
+    assertNotInstanceOf(
+        readPayloadEnvelope({ w: [one, partial] }),
+        Error,
+        "a partial entry beside it is no second",
+    );
 });
 
 Deno.test("the reader's side and the game's own running are read as text or as a number", () => {
@@ -151,8 +166,8 @@ Deno.test("an empty message is passed over, and counts as lost against what was 
     assertStrictEquals(record.messagesStated, 3, "out of three stated");
     const session = initFightSession(SESSION_OPTIONS);
     const prepared = preparePayload(session, { ...record, isInit: true }, BLOWS_GRANTED);
-    assert(prepared.ok, "the payload is prepared");
-    commitPayload(session, prepared.value);
+    assertNotInstanceOf(prepared, Error, "the payload is prepared");
+    commitPayload(session, prepared);
     assertStrictEquals(getFightView(session)?.messagesLost, 1, "and the empty one is lost");
     assertStrictEquals(readOk({ m: [] }).messagesStated, null, "no `mi` states no count");
     assertStrictEquals(readOk({ mi: [] }).messagesStated, 0, "while an empty one states none");
@@ -172,7 +187,7 @@ Deno.test("every recorded call is read, and none refused", () => {
     for (const fight of readRecordedFights()) {
         for (const update of fight.updates) {
             const record = readPayloadEnvelope(update);
-            assert(record.ok, `${fight.path}: call ${calls} is read`);
+            assertNotInstanceOf(record, Error, `${fight.path}: call ${calls} is read`);
             calls += 1;
         }
     }

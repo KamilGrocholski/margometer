@@ -53,7 +53,7 @@ export const PANEL_FILE = "src/ui/panel-element.ts";
  * leaving a sentence. Each is held once in `PANEL_FILE` by the test beside this, because a reader
  * over source that stops finding its subject builds a panel that gives nothing way.
  */
-export const REGION_ANCHOR = "    const rendered = runGuarded(render);\n";
+export const REGION_ANCHOR = "    const rendered = errors.attempt(render);\n";
 export const TIP_ANCHOR = "        const next = render();\n        standing.replaceWith(next);\n";
 /** Everything the bundle entry reaches, and the lock its imports resolve by. */
 const COPIED = ["src", "libs", "frozen", "deno.json", "deno.lock"];
@@ -115,7 +115,7 @@ export function composeGivingWaySource(source: string, regions: readonly PanelRe
         }
     }
     const named = JSON.stringify(regions);
-    const region = `    const rendered = runGuarded(() => {
+    const region = `    const rendered = errors.attempt(() => {
         if (${named}.includes(region)) throw "${GIVING_WAY_MARKER}";
         return render();
     });

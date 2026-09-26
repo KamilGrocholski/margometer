@@ -4,14 +4,27 @@
  * window that would not open where it was told — reaches the sink the view was handed.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertInstanceOf,
+    assertStrictEquals,
+} from "@std/assert";
+import * as errors from "#/libs/errors.ts";
 import type { PanelDefect } from "#/src/ui/panel-element.ts";
-import { INTENT_FAILURE, PANEL_INTENT, PANEL_MARK } from "#/src/ui/panel-intent.ts";
+import { MarkUnknown, PANEL_INTENT, PANEL_MARK } from "#/src/ui/panel-intent.ts";
 import { NOTHING_SUSPECT, presentScreen, type ScreenReading } from "#/src/ui/panel-reading.ts";
 import { PANEL_METRIC, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import { PANEL_DEFECT_KIND, PANEL_REGION } from "#/src/ui/panel-words.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
-import { PANEL_LISTENER, VIEW_FAILURE, type ViewFailure } from "#/src/ui/view-failure.ts";
+import {
+    GestureDropped,
+    PANEL_LISTENER,
+    RegionUndrawn,
+    type ViewFailure,
+    WindowUnplaced,
+} from "#/src/ui/view-failure.ts";
 import {
     composeFakeDocument,
     type FakeElement,
@@ -41,9 +54,9 @@ Deno.test("a press whose handler throws is a dropped gesture, and the next one l
     const host = panel.element as FakeElement;
     pressElement(host, "pointerdown", findMarked(host, PANEL_MARK.fold));
     assertStrictEquals(failures.length, 1, "the gesture is dropped, and said once");
-    assertEquals(failures[0]?.kind, VIEW_FAILURE.gestureDropped, "as a gesture");
-    assert(failures[0]?.kind === VIEW_FAILURE.gestureDropped, "and one that names its listener");
-    assertEquals(failures[0].listener, PANEL_LISTENER.press, "which is the press");
+    const [dropped] = failures;
+    assertInstanceOf(dropped, GestureDropped, "as a gesture, and one that names its listener");
+    assertEquals(dropped.listener, PANEL_LISTENER.press, "which is the press");
     isRefusing = false;
     pressElement(host, "pointerdown", findMarked(host, PANEL_MARK.fold));
     assertEquals(asked, [{ kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel }], "then lands");
@@ -69,11 +82,12 @@ Deno.test("a mark with a value nothing of ours writes drops the gesture and asks
     fold.setAttribute(PANEL_MARK.screen, "nowhere");
     pressElement(host, "pointerdown", fold);
     assertEquals(asked, [], "a stray mark is never read as the first screen there is");
-    assertEquals(failures, [{
-        kind: VIEW_FAILURE.gestureDropped,
-        listener: PANEL_LISTENER.press,
-        cause: { kind: INTENT_FAILURE.markUnknown, mark: PANEL_MARK.screen },
-    }], "and the drop names the mark that strayed");
+    assertStrictEquals(failures.length, 1, "and the drop is said once");
+    const [dropped] = failures;
+    assertInstanceOf(dropped, GestureDropped, "as a dropped gesture");
+    assertStrictEquals(dropped.listener, PANEL_LISTENER.press, "of the press");
+    assertInstanceOf(dropped.cause, MarkUnknown, "and the drop names the mark that strayed");
+    assertStrictEquals(dropped.cause.mark, PANEL_MARK.screen, "which is the screen's");
 });
 
 Deno.test("a sink that throws is not the browser's to hear", () => {
@@ -106,15 +120,21 @@ Deno.test("a render reports every region it left undrawn, and nothing where all 
     };
     const report = panel.render(composeShownScreen(broken));
     assertEquals(
-        report.undrawn.map((one) => [one.kind, one.region]),
+        report.undrawn.map((one) => [one.name, one.region]),
         [
-            [VIEW_FAILURE.regionUndrawn, PANEL_REGION.sides],
-            [VIEW_FAILURE.regionUndrawn, PANEL_REGION.suspicions],
+            ["RegionUndrawn", PANEL_REGION.sides],
+            ["RegionUndrawn", PANEL_REGION.suspicions],
         ],
         "each region it cost, in the order it was drawn",
     );
-    assert(report.undrawn.every((one) => one.cause instanceof RangeError), "with its cause");
+    assert(report.undrawn.every(isCaughtRangeError), "with its cause");
 });
+
+/** What a region cost, caught at its guard: a throw of ours, carried as the cause. */
+function isCaughtRangeError(one: RegionUndrawn): boolean {
+    if (!(one.cause instanceof errors.Caught)) return false;
+    return one.cause.cause instanceof RangeError;
+}
 
 function readFight(): ScreenReading {
     const { roster, statistics } = tallyRecordedFight(HILDUR);
@@ -143,7 +163,7 @@ Deno.test("a card that will not draw under the pointer is told to the sink as th
     pointAtElement(host, "pointermove", row, 200);
     document.createElement = createElement;
     assertEquals(
-        failures.map((one) => one.kind === VIEW_FAILURE.regionUndrawn ? one.region : one.kind),
+        failures.map((one) => one instanceof RegionUndrawn ? one.region : one.name),
         [PANEL_REGION.tip],
         "no render was running, so the card is the sink's to hear of",
     );
@@ -184,7 +204,7 @@ Deno.test("a window that will not open where told stays on the sheet's corner, a
     const host = panel.element as FakeElement;
     assertEquals(host.attributes.get("style"), undefined, "the sheet's corner, which is a place");
     assertEquals(
-        failures.map((one) => one.kind === VIEW_FAILURE.windowUnplaced ? one.window : one.kind),
+        failures.map((one) => one instanceof WindowUnplaced ? one.window : one.name),
         [PANEL_WINDOW.panel],
         "and the window that did not open where it was told is named",
     );

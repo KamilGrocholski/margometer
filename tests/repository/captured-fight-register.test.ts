@@ -96,9 +96,9 @@ Deno.test("a recording is filed under the two versions it states", () => {
 /** A field of the envelope as text, or the register's words for a field it does not state. */
 function readEnvelopeText(path: string, field: string): string {
     const parsed = parseJson(Deno.readTextFileSync(path));
-    assert(parsed.ok, `${path}: a recording is JSON`);
-    assert(isRecord(parsed.value), `${path}: a recording is a record`);
-    const value = parsed.value[field];
+    assert(!(parsed instanceof Error), `${path}: a recording is JSON`);
+    assert(isRecord(parsed), `${path}: a recording is a record`);
+    const value = parsed[field];
     if (value === undefined) return NO_BUILD;
     if (value === null) return NO_BUILD;
     assert(typeof value === "string", `${path}: ${field} is stated as text or as nothing`);

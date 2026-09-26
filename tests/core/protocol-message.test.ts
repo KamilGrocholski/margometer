@@ -5,14 +5,16 @@
  * the protocol's own text would be a claim about the game.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { err } from "#/libs/result.ts";
+import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import {
     encodeProtocolMessage,
-    GRAMMAR_REFUSAL,
     MESSAGE_END,
+    type MessageEnd,
+    ParameterKeyEmpty,
     parseProtocolMessage,
     SEGMENTS_MAXIMUM,
+    SegmentsExceeded,
+    SideUnreadable,
 } from "#/src/core/protocol-message.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
@@ -34,8 +36,8 @@ Deno.test("both ends are read, with the health each states", () => {
 
 function parseOrFail(text: string) {
     const parsed = parseProtocolMessage(text);
-    assert(parsed.ok, `"${text}" parses`);
-    return parsed.value;
+    assert(!(parsed instanceof Error), `"${text}" parses`);
+    return parsed;
 }
 
 Deno.test("a health of nothing is a reading, and nobody is not", () => {
@@ -61,37 +63,51 @@ Deno.test("a segment with no value is a key on its own", () => {
 });
 
 Deno.test("what the grammar does not cover is refused, and says which end", () => {
-    const actor = err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_END.actor });
-    const target = err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_END.target });
-    assertEquals(parseProtocolMessage("482845"), target, "a message with no target");
-    assertEquals(parseProtocolMessage(""), actor, "empty text names no actor");
-    assertEquals(parseProtocolMessage("gracz;0;step"), actor, "an id that is not a number");
-    assertEquals(parseProtocolMessage("0;1=70.7;step"), target, "a health one place wide");
-    assertEquals(parseProtocolMessage("1=70.070;0;step"), actor, "a health three places wide");
-    const keyless = err({ kind: GRAMMAR_REFUSAL.parameterKeyEmpty, index: 1 });
-    assertEquals(parseProtocolMessage("0;0;step;=5"), keyless, "a value with no key");
+    const { actor, target } = MESSAGE_END;
+    expectSideUnreadable(parseProtocolMessage("482845"), target, "a message with no target");
+    expectSideUnreadable(parseProtocolMessage(""), actor, "empty text names no actor");
+    expectSideUnreadable(parseProtocolMessage("gracz;0;step"), actor, "an id that is not a number");
+    expectSideUnreadable(parseProtocolMessage("0;1=70.7;step"), target, "a health one place wide");
+    expectSideUnreadable(
+        parseProtocolMessage("1=70.070;0;step"),
+        actor,
+        "a health three places wide",
+    );
+    const keyless = parseProtocolMessage("0;0;step;=5");
+    assertInstanceOf(keyless, ParameterKeyEmpty, "a value with no key");
+    assertStrictEquals(keyless.index, 1, "a value with no key");
 });
+
+function expectSideUnreadable(read: unknown, end: MessageEnd, message: string): void {
+    assertInstanceOf(read, SideUnreadable, message);
+    assertStrictEquals(read.end, end, message);
+}
 
 Deno.test("an id past what a number holds exactly is refused, not rounded", () => {
     const highest = parseOrFail("9007199254740991;0;step");
     assertEquals(highest.actor, { combatantId: 9007199254740991, healthPercent: null }, "the last");
-    const refused = err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_END.actor });
-    assertEquals(parseProtocolMessage("9007199254740992;0;step"), refused, "and the first past it");
+    const refused = parseProtocolMessage("9007199254740992;0;step");
+    expectSideUnreadable(refused, MESSAGE_END.actor, "and the first past it");
 });
 
 Deno.test("a message is read up to its bound, and refused one segment past it", () => {
     const parameters = Array.from({ length: SEGMENTS_MAXIMUM - 2 }, () => "step");
     const atBound = ["0", "0", ...parameters].join(";");
     assertStrictEquals(parseOrFail(atBound).parameters.length, SEGMENTS_MAXIMUM - 2, "all read");
-    const exceeded = err({
-        kind: GRAMMAR_REFUSAL.segmentsExceeded,
-        segments: SEGMENTS_MAXIMUM + 1,
-        maximum: SEGMENTS_MAXIMUM,
-    });
-    assertEquals(parseProtocolMessage(`${atBound};step`), exceeded, "one past is counted");
+    const exceeded = parseProtocolMessage(`${atBound};step`);
+    assertInstanceOf(exceeded, SegmentsExceeded, "one past is counted");
+    assertEquals(
+        [exceeded.segments, exceeded.maximum],
+        [SEGMENTS_MAXIMUM + 1, SEGMENTS_MAXIMUM],
+        "one past is counted",
+    );
     const further = parseProtocolMessage(`${atBound};step;step`);
-    assert(!further.ok, "two past is refused too");
-    assertEquals(further.error, { ...exceeded.error, segments: SEGMENTS_MAXIMUM + 2 }, "counted");
+    assertInstanceOf(further, SegmentsExceeded, "two past is refused too");
+    assertEquals(
+        [further.segments, further.maximum],
+        [SEGMENTS_MAXIMUM + 2, SEGMENTS_MAXIMUM],
+        "counted",
+    );
 });
 
 Deno.test("every message in every recording parses and writes back unchanged", () => {
@@ -102,9 +118,9 @@ Deno.test("every message in every recording parses and writes back unchanged", (
         for (const message of recording.messages) {
             read += 1;
             const parsed = parseProtocolMessage(message);
-            assert(parsed.ok, `${recording.path}: "${message}" is refused`);
-            assertStrictEquals(encodeProtocolMessage(parsed.value), message, recording.path);
-            if (parsed.value.actor === null) nobodyNamed += 1;
+            assert(!(parsed instanceof Error), `${recording.path}: "${message}" is refused`);
+            assertStrictEquals(encodeProtocolMessage(parsed), message, recording.path);
+            if (parsed.actor === null) nobodyNamed += 1;
         }
     }
     assert(read > recordings.length, "the recordings carry messages, not just files");

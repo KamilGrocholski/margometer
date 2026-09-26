@@ -5,14 +5,13 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { ok } from "#/libs/result.ts";
 import { initFightSession, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { NO_CAPTURE } from "#/src/game/fight-capture.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
 import { type KeptReading, replayKeptFight } from "#/src/runtime/fight-reading.ts";
 import {
     FIGURES_CUT,
-    FRAME_FAILURE,
+    FiguresDisagreed,
     type FrameParts,
     renderFrame,
 } from "#/src/runtime/panel-frame.ts";
@@ -35,20 +34,20 @@ Deno.test("a ranking whose two counts disagree is drawn, and said as the screen'
         isPinned: false,
     };
     const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);
-    assert(replayed.ok, "the recording replays");
-    assert(replayed.value !== null, "into a fight");
-    const whole = composeFrameWorld(fight, replayed.value);
+    assert(!(replayed instanceof Error), "the recording replays");
+    assert(replayed !== null, "into a fight");
+    const whole = composeFrameWorld(fight, replayed);
     renderFrame(whole.parts);
     assertStrictEquals(whole.shown.length, 1, "a fight whose counts agree is drawn");
     assertEquals(whole.readFiguresSaid(), [], "and says nothing of its figures");
 
     // The screen's own count taken to nothing, so the rows hold more than it: the one way a
     // drawn figure is wrong rather than short, which `presentScreen` owns.
-    const { statistics } = replayed.value.figures;
+    const { statistics } = replayed.figures;
     const broken = composeFrameWorld(fight, {
-        ...replayed.value,
+        ...replayed,
         figures: {
-            ...replayed.value.figures,
+            ...replayed.figures,
             statistics: {
                 ...statistics,
                 totals: { ...statistics.totals, [PANEL_METRIC.damageDealtApplied]: 0 },
@@ -62,9 +61,11 @@ Deno.test("a ranking whose two counts disagree is drawn, and said as the screen'
         1,
         "a fight whose counts disagree is drawn all the same",
     );
-    assertEquals(broken.readFiguresSaid(), [
-        { kind: FRAME_FAILURE.figuresDisagreed, cut: FIGURES_CUT.screen },
-    ], "and the disagreement is said, once, as the screen's");
+    assertEquals(
+        broken.readFiguresSaid(),
+        [FIGURES_CUT.screen],
+        "and the disagreement is said, once, as the screen's",
+    );
 });
 
 /** Every part of a frame over one kept fight standing, with a view that keeps what it is handed. */
@@ -108,15 +109,16 @@ function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
         clock: {
             readNowMilliseconds: () => 1,
             readMoment: () => null,
-            readTimestampText: () => ok(""),
+            readTimestampText: () => "",
         },
-        tooltip: { writeRows: () => ok({ written: 0, asked: 0 }) },
+        tooltip: { writeRows: () => ({ written: 0, asked: 0 }) },
         tables: RUNTIME_TABLES.tooltip,
         translate: () => null,
     };
+    /** The cut each disagreement was said as, or the class of anything else said under figures. */
     const readFiguresSaid = () =>
         defects.getCounts().filter((one) => one.kind === DEFECT_KIND.figures).map((one) =>
-            one.first
+            one.first instanceof FiguresDisagreed ? one.first.cut : one.first.name
         );
     return { parts, shown, readFiguresSaid };
 }

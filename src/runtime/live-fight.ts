@@ -7,7 +7,7 @@
  * the reading behind it, and the panel would stand on the last payload with nothing saying so.
  */
 
-import { type Result, runGuarded } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import {
     commitPayload,
     type FightSession,
@@ -24,9 +24,9 @@ import { type CaptureStanding, NO_CAPTURE, prepareCapture } from "#/src/game/fig
 import type { FightPlace } from "#/src/game/fight-place.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
 import type { Clock } from "#/src/game/page-clock.ts";
-import { PAGE_READ_FAILURE, type PageReadFailure } from "#/src/game/page-reading.ts";
+import { type PageReadFailure, PageReadingAbsent } from "#/src/game/page-reading.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
-import { WARRIOR_FAILURE, type WarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
+import { WarriorsAbsent, type WarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
 import { DEFECT_KIND, type DefectKind, type DefectLedger } from "./defect-ledger.ts";
 import type { KeptFight } from "./shelf.ts";
 
@@ -92,9 +92,9 @@ function guard<Value>(
     fallback: Value,
     step: () => Value,
 ): Value {
-    const ran = runGuarded(step);
-    if (ran.ok) return ran.value;
-    options.defects.add({ kind, region: null, failure: ran.error });
+    const ran = errors.attempt(step);
+    if (!(ran instanceof errors.Caught)) return ran;
+    options.defects.add({ kind, region: null, failure: ran });
     return fallback;
 }
 
@@ -105,24 +105,24 @@ function guard<Value>(
 function readSnapshot(live: LiveFight, options: LiveFightOptions): WarriorSnapshot | null {
     if (live.battle === null) {
         const battle = options.engine.readBattle();
-        if (!battle.ok) {
-            options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: battle.error });
+        if (battle instanceof Error) {
+            options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: battle });
             return null;
         }
-        live.battle = battle.value;
+        live.battle = battle;
     }
     const read = live.battle.readWarriors();
-    if (read.ok) return read.value;
-    if (read.error.kind === WARRIOR_FAILURE.warriorsAbsent) return [];
-    options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: read.error });
+    if (!(read instanceof Error)) return read;
+    if (read instanceof WarriorsAbsent) return [];
+    options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: read });
     return null;
 }
 
 function readPayload(live: LiveFight, options: LiveFightOptions, payload: unknown): void {
     const record = guard(options, DEFECT_KIND.reading, null, () => {
         const read = readPayloadEnvelope(payload);
-        if (read.ok) return read.value;
-        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read.error });
+        if (!(read instanceof Error)) return read;
+        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
         return null;
     });
     const after = guard(options, DEFECT_KIND.file, null, () => readSnapshot(live, options));
@@ -154,11 +154,11 @@ function commitRecord(
     record: PayloadRecord,
 ): PayloadCommitted | null {
     const prepared = preparePayload(live.session, record, options.tables);
-    if (!prepared.ok) {
-        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: prepared.error });
+    if (prepared instanceof Error) {
+        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: prepared });
         return null;
     }
-    return commitPayload(live.session, prepared.value);
+    return commitPayload(live.session, prepared);
 }
 
 function openFight(live: LiveFight, options: LiveFightOptions): void {
@@ -170,13 +170,14 @@ function openFight(live: LiveFight, options: LiveFightOptions): void {
 /** Absent is shown as unknown and is no defect; a page that threw while asked is one. */
 function readPageValue<Value>(
     options: LiveFightOptions,
-    read: Result<Value, PageReadFailure>,
+    read: Value | PageReadFailure,
 ): Value | null {
-    if (read.ok) return read.value;
-    if (read.error.kind !== PAGE_READ_FAILURE.absent) {
-        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read.error });
+    if (read instanceof PageReadingAbsent) return null;
+    if (read instanceof errors.Caught) {
+        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
+        return null;
     }
-    return null;
+    return read;
 }
 
 /** Once, on the call that ends it: a fight put on the shelf twice is two fights. */

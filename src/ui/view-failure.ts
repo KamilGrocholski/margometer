@@ -5,16 +5,10 @@
  * the view was handed, because nothing called by the runtime was running when they failed.
  */
 
-import { runGuarded } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import type { PanelWindow } from "./panel-choice.ts";
 import type { PanelRegion } from "./panel-words.ts";
-
-export const VIEW_FAILURE = {
-    regionUndrawn: "region-undrawn",
-    gestureDropped: "gesture-dropped",
-    windowUnplaced: "window-unplaced",
-} as const;
 
 /** Which of the view's listeners dropped a gesture. */
 export const PANEL_LISTENER = {
@@ -30,29 +24,41 @@ export const PANEL_LISTENER = {
 } as const;
 export type PanelListener = VocabularyWord<typeof PANEL_LISTENER>;
 
-export type RenderFailure = {
-    kind: typeof VIEW_FAILURE.regionUndrawn;
-    region: PanelRegion;
-    cause: unknown;
-};
+export class RegionUndrawn extends Error {
+    override readonly name = "RegionUndrawn";
+    readonly region: PanelRegion;
 
-export type GestureFailure = {
-    kind: typeof VIEW_FAILURE.gestureDropped;
-    listener: PanelListener;
-    cause: unknown;
-};
+    constructor(region: PanelRegion, cause: unknown) {
+        super(undefined, { cause });
+        this.region = region;
+    }
+}
 
-export type PlacementFailure = {
-    kind: typeof VIEW_FAILURE.windowUnplaced;
-    window: PanelWindow;
-    cause: unknown;
-};
+export class GestureDropped extends Error {
+    override readonly name = "GestureDropped";
+    readonly listener: PanelListener;
 
-export type ViewFailure = RenderFailure | GestureFailure | PlacementFailure;
+    constructor(listener: PanelListener, cause: unknown) {
+        super(undefined, { cause });
+        this.listener = listener;
+    }
+}
+
+export class WindowUnplaced extends Error {
+    override readonly name = "WindowUnplaced";
+    readonly window: PanelWindow;
+
+    constructor(window: PanelWindow, cause: unknown) {
+        super(undefined, { cause });
+        this.window = window;
+    }
+}
+
+export type ViewFailure = RegionUndrawn | GestureDropped | WindowUnplaced;
 
 /** A region that could not draw stands undrawn in place. */
 export interface RenderReport {
-    undrawn: readonly RenderFailure[];
+    undrawn: readonly RegionUndrawn[];
 }
 
 /** The sink the runtime hands the view. A sink that throws has nobody left to tell. */
@@ -60,5 +66,5 @@ export function reportViewFailure(
     onFailure: (failure: ViewFailure) => void,
     failure: ViewFailure,
 ): void {
-    void runGuarded(() => onFailure(failure));
+    void errors.attempt(() => onFailure(failure));
 }

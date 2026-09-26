@@ -36,8 +36,8 @@ function getParsedMessages(): { path: string; parsed: ProtocolMessage }[] {
     for (const fight of readRecordedFights()) {
         for (const message of fight.messages) {
             const parsed = parseProtocolMessage(message);
-            assert(parsed.ok, `${fight.path}: a recorded message parses`);
-            found.push({ path: fight.path, parsed: parsed.value });
+            assert(!(parsed instanceof Error), `${fight.path}: a recorded message parses`);
+            found.push({ path: fight.path, parsed: parsed });
         }
     }
     return found;

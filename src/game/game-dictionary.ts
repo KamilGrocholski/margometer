@@ -5,13 +5,13 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, err, ok, type Result } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
-import { PAGE_READ_FAILURE, PAGE_READING, type PageReadFailure } from "./page-reading.ts";
+import { PAGE_READING, type PageReadFailure, PageReadingAbsent } from "./page-reading.ts";
 
 export interface DictionaryPort {
     /** The category is the client's own filing: an id filed outside `default` needs its name. */
-    readLabel(labelId: string, category?: string): Result<string, PageReadFailure>;
+    readLabel(labelId: string, category?: string): string | PageReadFailure;
 }
 
 /**
@@ -32,29 +32,29 @@ export function initPageDictionary(page: unknown): DictionaryPort {
         readLabel(labelId, category) {
             assert(labelId.length > 0, "an id asked of the client is one the panel named");
             if (category !== undefined) assert(category.length > 0, "and filed somewhere");
-            const entry = callForeign(() => readPageDictionaryEntry(page, labelId, category));
-            if (!entry.ok) return entry;
-            if (typeof entry.value !== "string") return failLabel();
+            const entry = errors.attempt(() => readPageDictionaryEntry(page, labelId, category));
+            if (entry instanceof Error) return entry;
+            if (entry === null) return new PageReadingAbsent(PAGE_READING.label);
             // An answer past the bound is no label, and the answer is the game's: refused, never
             // asserted against, from inside a card the panel is composing.
-            if (entry.value.length > ENTRY_LENGTH_MAXIMUM) return failLabel();
-            const label = parseLabel(entry.value);
-            if (label === null) return failLabel();
-            return ok(label);
+            if (entry.length > ENTRY_LENGTH_MAXIMUM) {
+                return new PageReadingAbsent(PAGE_READING.label);
+            }
+            const label = parseLabel(entry);
+            if (label === null) return new PageReadingAbsent(PAGE_READING.label);
+            return label;
         },
     };
 }
 
-/** Undefined where no lookup stands on the page, which is every page but the game's. */
-function readPageDictionaryEntry(page: unknown, labelId: string, category?: string): unknown {
-    if (!isRecord(page)) return undefined;
+/** Null where no lookup stands on the page, which is every page but the game's, or no text came. */
+function readPageDictionaryEntry(page: unknown, labelId: string, category?: string): string | null {
+    if (!isRecord(page)) return null;
     const translate = page[TRANSLATE_FIELD];
-    if (typeof translate !== "function") return undefined;
-    return Reflect.apply(translate, page, [labelId, null, category]);
-}
-
-function failLabel(): Result<string, PageReadFailure> {
-    return err({ kind: PAGE_READ_FAILURE.absent, reading: PAGE_READING.label });
+    if (typeof translate !== "function") return null;
+    const entry: unknown = Reflect.apply(translate, page, [labelId, null, category]);
+    if (typeof entry !== "string") return null;
+    return entry;
 }
 
 /** Exported because it is the only place the rule can be checked: the dictionary is not here. */

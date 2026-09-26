@@ -7,7 +7,7 @@ import { assertEquals, assertExists } from "@std/assert";
 import { PANEL_WINDOW, type PanelPosition } from "#/src/ui/panel-choice.ts";
 import type { PanelEvent } from "#/src/ui/panel-document.ts";
 import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
-import { PANEL_LISTENER, VIEW_FAILURE, type ViewFailure } from "#/src/ui/view-failure.ts";
+import { GestureDropped, PANEL_LISTENER, type ViewFailure } from "#/src/ui/view-failure.ts";
 import {
     composeFakeDocument,
     dragOnElement,
@@ -95,7 +95,7 @@ Deno.test("a pointer the bar will not hold drops that hold, and the drag still m
     dragOnElement(host, "pointerdown", bar, { clientX: 100, clientY: 50 });
     dragOnElement(host, "pointermove", bar, { clientX: 200, clientY: 150 });
     assertEquals(
-        failures.map((one) => one.kind === VIEW_FAILURE.gestureDropped ? one.listener : one.kind),
+        failures.map((one) => one instanceof GestureDropped ? one.listener : one.name),
         [PANEL_LISTENER.capture],
         "the hold is what was dropped",
     );

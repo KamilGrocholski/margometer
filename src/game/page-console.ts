@@ -3,7 +3,7 @@
  * The kind arrives as text, because this layer imports nothing above it.
  */
 
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 
 export interface ConsolePort {
     writeBrandedLine(kind: string, detail: unknown): void;
@@ -21,7 +21,7 @@ export function initPageConsole(console: PageConsole): ConsolePort {
         writeBrandedLine(kind, detail) {
             // ⚠️ The line is the mark. A console that refuses it has nowhere further to send it,
             // and the defect it stands for is counted by the ledger either way.
-            void callForeign(() => console.error(`${BRAND} ${kind}`, detail));
+            void errors.attempt(() => console.error(`${BRAND} ${kind}`, detail));
         },
     };
 }

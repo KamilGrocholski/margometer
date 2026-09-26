@@ -74,8 +74,8 @@ Deno.test("no recording in the evidence directory is a fight nobody fought", () 
     const marked: string[] = [];
     for (const path of paths) {
         const reading = parseJson(Deno.readTextFileSync(path));
-        assert(reading.ok, `${path} is JSON`);
-        if (isFabricatedEnvelope(reading.value)) marked.push(path);
+        assert(!(reading instanceof Error), `${path} is JSON`);
+        if (isFabricatedEnvelope(reading)) marked.push(path);
     }
     assertEquals(marked, [], "a fabricated fight is sitting in the evidence directory");
 });

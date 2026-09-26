@@ -1,42 +1,72 @@
 /**
  * JSON text read into a value, and a value written back out as text.
  *
- * Both directions answer whether they worked, because `null` cannot say it: JSON carries `null` as
- * a value of its own, and `undefined` has no JSON text at all (`develop ADR 0021`). The two calls
- * are the platform's, so they stand inside `callForeign` (`AGENTS.md` E4).
+ * Both directions answer with a failure of their own, because `null` cannot say it: JSON carries
+ * `null` as a value of its own, and `undefined` has no JSON text at all (`develop ADR 0021`). The
+ * two calls are the platform's, so they stand inside `attempt` (`AGENTS.md` E4).
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, err, ok, type Result } from "./result.ts";
+import * as errors from "./errors.ts";
+import { isRecord, type UnknownRecord } from "./unknown-value.ts";
 
-export const JSON_FAILURE = {
-    unreadable: "json-unreadable",
-    nothing: "json-nothing",
-    unwritable: "json-unwritable",
-} as const;
+/**
+ * What `JSON.parse` answers, read one level deep: the level a caller branches on, and one an
+ * `Error` does not fit, so a failure beside it is still asked about.
+ */
+export type JsonValue = null | boolean | number | string | readonly unknown[] | UnknownRecord;
 
-export type JsonFailure =
-    | { kind: typeof JSON_FAILURE.unreadable; cause: unknown }
-    /** A function, a symbol, `undefined`: written as no JSON text rather than refused. */
-    | { kind: typeof JSON_FAILURE.nothing }
-    | { kind: typeof JSON_FAILURE.unwritable; cause: unknown };
+export class JsonUnreadable extends Error {
+    override readonly name = "JsonUnreadable";
 
-export function parseJson(text: string): Result<unknown, JsonFailure> {
-    const parsed = callForeign((): unknown => JSON.parse(text));
-    if (!parsed.ok) return err({ kind: JSON_FAILURE.unreadable, cause: parsed.error.cause });
+    constructor(cause: errors.Caught) {
+        super(undefined, { cause });
+    }
+}
+
+/** A function, a symbol, `undefined`: written as no JSON text rather than refused. */
+export class JsonNothing extends Error {
+    override readonly name = "JsonNothing";
+}
+
+export class JsonUnwritable extends Error {
+    override readonly name = "JsonUnwritable";
+
+    constructor(cause: errors.Caught) {
+        super(undefined, { cause });
+    }
+}
+
+export function parseJson(text: string): JsonValue | JsonUnreadable {
+    const parsed = errors.attempt(() => readJsonValue(JSON.parse(text)));
+    if (parsed instanceof Error) return new JsonUnreadable(parsed);
     assert(text.length > 0, "text that parsed says something");
-    return ok(parsed.value);
+    return parsed;
+}
+
+/** Without a reviver, `JSON.parse` answers nothing but these (ECMA-262 §25.5.1). */
+function readJsonValue(value: unknown): JsonValue {
+    if (value === null) return value;
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value;
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) return value;
+    assert(isRecord(value), "JSON text parses into a value JSON has");
+    return value;
 }
 
 /** `indentSpaces` where a person will read the result; none where only a reader will. */
-export function encodeJson(value: unknown, indentSpaces: number): Result<string, JsonFailure> {
+export function encodeJson(
+    value: unknown,
+    indentSpaces: number,
+): string | JsonNothing | JsonUnwritable {
     assert(Number.isSafeInteger(indentSpaces), "text is indented by a whole count of spaces");
     assert(indentSpaces >= 0, "of none or more");
-    const written = callForeign((): string | undefined =>
+    const written = errors.attempt((): string | undefined =>
         JSON.stringify(value, null, indentSpaces)
     );
-    if (!written.ok) return err({ kind: JSON_FAILURE.unwritable, cause: written.error.cause });
-    if (written.value === undefined) return err({ kind: JSON_FAILURE.nothing });
-    assert(written.value.length > 0, "a value written as text says something");
-    return ok(written.value);
+    if (written instanceof Error) return new JsonUnwritable(written);
+    if (written === undefined) return new JsonNothing();
+    assert(written.length > 0, "a value written as text says something");
+    return written;
 }

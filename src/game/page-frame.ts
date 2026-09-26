@@ -6,20 +6,13 @@
  * E10): a throw out of it would land in the browser's frame loop, which drops it silently.
  */
 
-import {
-    type BrokenInvariant,
-    callForeign,
-    type ForeignFailure,
-    ok,
-    type Result,
-    runGuarded,
-} from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 
 export interface FrameScheduler {
     requestFrame(
         step: () => void,
-        onStepFailure: (failure: BrokenInvariant) => void,
-    ): Result<FrameHandle, ForeignFailure>;
+        onStepFailure: (failure: errors.Caught) => void,
+    ): FrameHandle | errors.Caught;
 }
 
 export interface FrameHandle {
@@ -37,19 +30,18 @@ export function initPageFrames(frames: PageFrames): FrameScheduler {
     return {
         requestFrame(step, onStepFailure) {
             const guarded = (): void => {
-                const ran = runGuarded(step);
-                if (ran.ok) return;
+                const ran = errors.attempt(step);
+                if (!(ran instanceof Error)) return;
                 // ⚠️ The report is the mark (E9). One that throws has nowhere further to go.
-                void runGuarded(() => onStepFailure(ran.error));
+                void errors.attempt(() => onStepFailure(ran));
             };
-            const requested = callForeign(() => frames.requestAnimationFrame(guarded));
-            if (!requested.ok) return requested;
-            const handle = requested.value;
-            return ok({
+            const handle = errors.attempt(() => frames.requestAnimationFrame(guarded));
+            if (handle instanceof Error) return handle;
+            return {
                 cancel() {
-                    void callForeign(() => frames.cancelAnimationFrame(handle));
+                    void errors.attempt(() => frames.cancelAnimationFrame(handle));
                 },
-            });
+            };
         },
     };
 }

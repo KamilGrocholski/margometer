@@ -6,7 +6,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import type { ForeignFailure, Result } from "#/libs/result.ts";
+import type * as errors from "#/libs/errors.ts";
 import {
     type FightStandings,
     replayFightStandings,
@@ -36,7 +36,7 @@ export function writeCarriedTooltips(
     tables: TooltipTables,
     translate: TranslateLabel | null,
     tooltip: TooltipPort,
-): Result<TooltipWritten, ForeignFailure> {
+): TooltipWritten | errors.Caught {
     const held = replayFightStandings(view, tables.statedSkills);
     const figures = new Map<string, CarriedFigure>();
     const carried = tallyCarriedFigures({

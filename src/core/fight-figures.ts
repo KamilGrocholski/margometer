@@ -1,7 +1,7 @@
 /**
  * The figures of one fight, tallied from its view and verified in one place (`docs/design.md`
- * §6.5). Tallying returns figures, not a `Result`: every way it could fail ends where a broken
- * invariant ends, in the defect `runGuarded` leaves, so a failure type would change no outcome.
+ * §6.5). Tallying returns figures, never a failure: every way it could fail ends where a broken
+ * invariant ends, in the defect `errors.attempt` leaves, so a failure type would change no outcome.
  *
  * Team heals are sized over the whole fight, because sizing one reads messages from later payloads,
  * so figures are tallied from the view rather than folded in as payloads arrive.

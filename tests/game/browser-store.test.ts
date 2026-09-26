@@ -5,15 +5,17 @@
  * already spent), and none is a failure of this add-on's, so each comes back as an answer.
  */
 
-import { assertEquals, assertStrictEquals } from "@std/assert";
-import { err } from "#/libs/result.ts";
+import { assertInstanceOf, assertNotInstanceOf, assertStrictEquals } from "@std/assert";
+import * as errors from "#/libs/errors.ts";
 import {
     initMemoryStore,
     initPageStore,
     type PageStorage,
-    STORE_FAILURE,
     STORE_KEY,
     STORE_VALUE_LENGTH_MAXIMUM,
+    StoreRefused,
+    StoreUnavailable,
+    StoreValueTooLong,
 } from "#/src/game/browser-store.ts";
 
 /**
@@ -24,13 +26,13 @@ const REFUSAL = new DOMException("this browser forbids storage", "SecurityError"
 
 Deno.test("a store that answers reads back what was written to it", () => {
     const store = initPageStore(composeAnsweringStorage());
-    assertEquals(store.read(STORE_KEY.panelFolded), { ok: true, value: null }, "nothing written");
-    assertEquals(store.write(STORE_KEY.panelFolded, "1"), { ok: true, value: undefined }, "taken");
-    assertEquals(store.read(STORE_KEY.panelFolded), { ok: true, value: "1" }, "and read back");
+    assertStrictEquals(store.read(STORE_KEY.panelFolded), null, "nothing written");
+    assertStrictEquals(store.write(STORE_KEY.panelFolded, "1"), undefined, "taken");
+    assertStrictEquals(store.read(STORE_KEY.panelFolded), "1", "and read back");
     store.write(STORE_KEY.panelFolded, "");
-    assertEquals(store.read(STORE_KEY.panelFolded), { ok: true, value: "" }, "empty is not none");
-    assertEquals(store.remove(STORE_KEY.panelFolded), { ok: true, value: undefined }, "removed");
-    assertEquals(store.read(STORE_KEY.panelFolded), { ok: true, value: null }, "and gone");
+    assertStrictEquals(store.read(STORE_KEY.panelFolded), "", "empty is not none");
+    assertStrictEquals(store.remove(STORE_KEY.panelFolded), undefined, "removed");
+    assertStrictEquals(store.read(STORE_KEY.panelFolded), null, "and gone");
 });
 
 function composeAnsweringStorage(): PageStorage {
@@ -46,11 +48,16 @@ function composeAnsweringStorage(): PageStorage {
 
 Deno.test("a browser that refuses is answered with its own cause, not thrown out of", () => {
     const store = initPageStore(composeRefusingStorage());
-    const refused = err({ kind: STORE_FAILURE.refused, cause: REFUSAL });
-    assertEquals(store.read(STORE_KEY.fights), refused, "a reading that threw is a refusal");
-    assertEquals(store.write(STORE_KEY.fights, "{}"), refused, "and so is a refused write");
-    assertEquals(store.remove(STORE_KEY.fights), refused, "and a refused removal");
+    expectRefused(store.read(STORE_KEY.fights), "a reading that threw is a refusal");
+    expectRefused(store.write(STORE_KEY.fights, "{}"), "and so is a refused write");
+    expectRefused(store.remove(STORE_KEY.fights), "and a refused removal");
 });
+
+function expectRefused(answer: unknown, message: string): void {
+    assertInstanceOf(answer, StoreRefused, message);
+    assertInstanceOf(answer.cause, errors.Caught, `${message}, caught at the call`);
+    assertStrictEquals(answer.cause.cause, REFUSAL, `${message}, with the browser's own cause`);
+}
 
 function composeRefusingStorage(): PageStorage {
     const refuse = (): never => {
@@ -61,10 +68,10 @@ function composeRefusingStorage(): PageStorage {
 
 Deno.test("a page that lends no store says so on every call", () => {
     const store = initPageStore(null);
-    const unavailable = err({ kind: STORE_FAILURE.unavailable });
-    assertEquals(store.read(STORE_KEY.storage), unavailable, "nothing to read from");
-    assertEquals(store.write(STORE_KEY.storage, "local"), unavailable, "nothing to write to");
-    assertEquals(store.remove(STORE_KEY.storage), unavailable, "nothing to remove from");
+    assertInstanceOf(store.read(STORE_KEY.storage), StoreUnavailable, "nothing to read from");
+    const written = store.write(STORE_KEY.storage, "local");
+    assertInstanceOf(written, StoreUnavailable, "nothing to write to");
+    assertInstanceOf(store.remove(STORE_KEY.storage), StoreUnavailable, "nothing to remove from");
 });
 
 /**
@@ -74,33 +81,32 @@ Deno.test("a page that lends no store says so on every call", () => {
 Deno.test("a value past the bound is refused, and one at the bound is taken", () => {
     const store = initPageStore(composeAnsweringStorage());
     const atBound = "x".repeat(STORE_VALUE_LENGTH_MAXIMUM);
-    assertStrictEquals(store.write(STORE_KEY.fights, atBound).ok, true, "the bound is written");
-    const past = store.write(STORE_KEY.fights, `${atBound}x`);
-    const tooLong = {
-        kind: STORE_FAILURE.valueTooLong,
-        length: STORE_VALUE_LENGTH_MAXIMUM + 1,
-        maximum: STORE_VALUE_LENGTH_MAXIMUM,
-    };
-    assertEquals(past, err(tooLong), "one past it is refused, by how much");
-    assertEquals(store.read(STORE_KEY.fights), { ok: true, value: atBound }, "and wrote nothing");
+    assertStrictEquals(store.write(STORE_KEY.fights, atBound), undefined, "the bound is written");
+    expectTooLong(
+        store.write(STORE_KEY.fights, `${atBound}x`),
+        "one past it is refused, by how much",
+    );
+    assertStrictEquals(store.read(STORE_KEY.fights), atBound, "and wrote nothing");
     const memory = initMemoryStore();
-    assertEquals(memory.write(STORE_KEY.fights, `${atBound}x`), past, "in memory as well");
-    assertEquals(memory.read(STORE_KEY.fights), { ok: true, value: null }, "which kept nothing");
-    assertStrictEquals(memory.write(STORE_KEY.fights, atBound).ok, true, "and takes the bound");
+    expectTooLong(memory.write(STORE_KEY.fights, `${atBound}x`), "in memory as well");
+    assertStrictEquals(memory.read(STORE_KEY.fights), null, "which kept nothing");
+    assertStrictEquals(memory.write(STORE_KEY.fights, atBound), undefined, "and takes the bound");
 });
+
+function expectTooLong(answer: unknown, message: string): void {
+    assertInstanceOf(answer, StoreValueTooLong, message);
+    assertStrictEquals(answer.length, STORE_VALUE_LENGTH_MAXIMUM + 1, `${message}: its length`);
+    assertStrictEquals(answer.maximum, STORE_VALUE_LENGTH_MAXIMUM, `${message}: the bound`);
+}
 
 Deno.test("a store of this page's own reads back what it was given, and forgets on removal", () => {
     const memory = initMemoryStore();
-    assertEquals(memory.read(STORE_KEY.storage), { ok: true, value: null }, "never written");
+    assertStrictEquals(memory.read(STORE_KEY.storage), null, "never written");
     memory.write(STORE_KEY.storage, "memory");
-    assertEquals(memory.read(STORE_KEY.storage), { ok: true, value: "memory" }, "read back");
-    assertEquals(
-        memory.read(STORE_KEY.fights),
-        { ok: true, value: null },
-        "one key is not another",
-    );
+    assertStrictEquals(memory.read(STORE_KEY.storage), "memory", "read back");
+    assertStrictEquals(memory.read(STORE_KEY.fights), null, "one key is not another");
     memory.remove(STORE_KEY.storage);
-    assertEquals(memory.read(STORE_KEY.storage), { ok: true, value: null }, "and removed");
+    assertStrictEquals(memory.read(STORE_KEY.storage), null, "and removed");
 });
 
 Deno.test("a page answering something other than text for a key has nothing under it", () => {
@@ -112,5 +118,7 @@ Deno.test("a page answering something other than text for a key has nothing unde
         setItem: () => {},
         removeItem: () => {},
     };
-    assertEquals(initPageStore(odd).read(STORE_KEY.storage), { ok: true, value: null }, "none");
+    const read = initPageStore(odd).read(STORE_KEY.storage);
+    assertNotInstanceOf(read, Error, "an odd answer is no failure");
+    assertStrictEquals(read, null, "none");
 });

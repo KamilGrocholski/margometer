@@ -12,7 +12,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { decodeHtmlText } from "#/libs/html-text.ts";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { parseCitedHelpPhrases, REGISTER_PATH } from "./help-claim-register.ts";
 import { GameUnreachableError, HelpArticleError } from "./margometer-tool-error.ts";
@@ -113,25 +113,25 @@ ${written}
 
 function encodeRequiredText(value: unknown): string {
     const text = encodeJson(value, 0);
-    if (!text.ok) {
+    if (text instanceof Error) {
         throw new HelpArticleError("a phrase of the table cannot be written", {
-            cause: text.error,
+            cause: text,
         });
     }
-    return text.value;
+    return text;
 }
 
 /** What is cached for this article, or null. Absence is an answer; an unreadable file is not. */
 export function readCachedHelpArticle(article: string): CachedHelpArticle | null {
-    const text = callForeign(() => Deno.readTextFileSync(composeManifestPath(article)));
-    if (!text.ok) return null;
-    const parsed = parseJson(text.value);
-    if (!parsed.ok) {
+    const text = errors.attempt(() => Deno.readTextFileSync(composeManifestPath(article)));
+    if (text instanceof Error) return null;
+    const parsed = parseJson(text);
+    if (parsed instanceof Error) {
         throw new HelpArticleError(`cache manifest for ${article} is unreadable`, {
-            cause: parsed.error,
+            cause: parsed,
         });
     }
-    return requireCachedHelpArticle(parsed.value, article);
+    return requireCachedHelpArticle(parsed, article);
 }
 
 function composeManifestPath(article: string): string {
@@ -247,12 +247,12 @@ export async function writeHelpArticleCache(article: string): Promise<CachedHelp
     const fetchedAt = new Date().toISOString();
     const cached = { article, url, fetchedAt, textPath, textLength: text.length };
     const written = encodeJson(cached, INDENT_SPACES);
-    if (!written.ok) {
+    if (written instanceof Error) {
         throw new HelpArticleError(`provenance for ${article} cannot be written`, {
-            cause: written.error,
+            cause: written,
         });
     }
-    Deno.writeTextFileSync(composeManifestPath(article), `${written.value}\n`);
+    Deno.writeTextFileSync(composeManifestPath(article), `${written}\n`);
     return cached;
 }
 

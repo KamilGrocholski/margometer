@@ -6,10 +6,10 @@
  * from 2026-08-25 carry `build: null` for good because of it.
  */
 
-import { assertEquals, assertStrictEquals } from "@std/assert";
-import { err, ok, RESULT_FAILURE } from "#/libs/result.ts";
+import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
+import * as errors from "#/libs/errors.ts";
 import { initPageBuild, parseGameBuild, parseGameBundleName } from "#/src/game/game-build.ts";
-import { PAGE_READ_FAILURE, PAGE_READING } from "#/src/game/page-reading.ts";
+import { PAGE_READING, PageReadingAbsent } from "#/src/game/page-reading.ts";
 
 Deno.test("both names the client has served give up their build", () => {
     assertEquals(
@@ -57,18 +57,18 @@ Deno.test("the search goes past a name whose tail does not hold", () => {
 Deno.test("the first script naming a build is the page's build", () => {
     const sources = ["/js/jquery.js", "/js/main.min.53XkBRxF.js", "/js/main.min.Bb28FQty.js"];
     const build = initPageBuild({ readScriptSources: () => sources }).readBuildId();
-    assertEquals(build, ok("53XkBRxF"), "the first that names one, and not a later one");
+    assertEquals(build, "53XkBRxF", "the first that names one, and not a later one");
 });
 
 Deno.test("a page naming no build says so, and a source that is not text is passed over", () => {
     const none = initPageBuild({ readScriptSources: () => ["/js/jquery.js"] }).readBuildId();
-    const absent = err({ kind: PAGE_READ_FAILURE.absent, reading: PAGE_READING.build });
-    assertEquals(none, absent, "no build is absent, never a guess");
+    assertInstanceOf(none, PageReadingAbsent, "no build is absent, never a guess");
+    assertStrictEquals(none.reading, PAGE_READING.build, "and names the reading");
     const empty = initPageBuild({ readScriptSources: () => [] }).readBuildId();
-    assertEquals(empty, absent, "and a page with no scripts names none either");
+    assertInstanceOf(empty, PageReadingAbsent, "and a page with no scripts names none either");
     const mixed = [null, 7, { src: "x" }, "/js/main.min.53XkBRxF.js"];
     const passed = initPageBuild({ readScriptSources: () => mixed }).readBuildId();
-    assertEquals(passed, ok("53XkBRxF"), "what is not text is passed over, not refused");
+    assertEquals(passed, "53XkBRxF", "what is not text is passed over, not refused");
 });
 
 Deno.test("a page whose scripts will not be read is a failure of theirs", () => {
@@ -79,7 +79,8 @@ Deno.test("a page whose scripts will not be read is a failure of theirs", () => 
         },
     };
     const read = initPageBuild(scripts).readBuildId();
-    assertEquals(read, err({ kind: RESULT_FAILURE.foreignThrew, cause: thrown }), "with its cause");
+    assertInstanceOf(read, errors.Caught, "a failure of theirs");
+    assertStrictEquals(read.cause, thrown, "with its cause");
 });
 
 /** Probe: an id long enough under a tail that does not hold is passed, and the search goes on. */

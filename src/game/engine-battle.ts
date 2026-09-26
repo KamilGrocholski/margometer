@@ -6,41 +6,54 @@
  */
 
 import { assert } from "@std/assert/assert";
-import {
-    type BrokenInvariant,
-    callForeign,
-    err,
-    type ForeignFailure,
-    ok,
-    type Result,
-    runGuarded,
-} from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
-import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     readWarriorSnapshot,
     type WarriorFailure,
     type WarriorSnapshot,
 } from "./warrior-snapshot.ts";
 
-export const ENGINE_FAILURE = {
-    engineAbsent: "engine-absent",
-    battleAbsent: "battle-absent",
-    methodAbsent: "method-absent",
-    anotherReader: "another-reader",
-    searchAbandoned: "search-abandoned",
-    detachForeignLayer: "detach-foreign-layer",
-} as const;
+export class EngineAbsent extends Error {
+    override readonly name = "EngineAbsent";
+}
+
+export class BattleAbsent extends Error {
+    override readonly name = "BattleAbsent";
+}
+
+export class MethodAbsent extends Error {
+    override readonly name = "MethodAbsent";
+}
+
+/** A wrap of ours already stands: another copy of the add-on is reading this fight. */
+export class AnotherReader extends Error {
+    override readonly name = "AnotherReader";
+}
+
+export class SearchAbandoned extends Error {
+    override readonly name = "SearchAbandoned";
+    readonly looks: number;
+    readonly maximum: number;
+
+    constructor(looks: number, maximum: number) {
+        super();
+        this.looks = looks;
+        this.maximum = maximum;
+    }
+}
+
+export class DetachForeignLayer extends Error {
+    override readonly name = "DetachForeignLayer";
+}
 
 export type EngineFailure =
-    | { kind: typeof ENGINE_FAILURE.engineAbsent }
-    | { kind: typeof ENGINE_FAILURE.battleAbsent }
-    | { kind: typeof ENGINE_FAILURE.methodAbsent }
-    | { kind: typeof ENGINE_FAILURE.anotherReader }
-    | { kind: typeof ENGINE_FAILURE.searchAbandoned; looks: number; maximum: number }
-    | { kind: typeof ENGINE_FAILURE.detachForeignLayer };
-
-export type EngineFailureKind = VocabularyWord<typeof ENGINE_FAILURE>;
+    | EngineAbsent
+    | BattleAbsent
+    | MethodAbsent
+    | AnotherReader
+    | SearchAbandoned
+    | DetachForeignLayer;
 
 /** Called in the game's stack. */
 export interface PayloadListener {
@@ -50,19 +63,19 @@ export interface PayloadListener {
 
 export interface WrapHandle {
     /** Puts back what was there, and only where ours is still the outermost layer. */
-    detach(): Result<void, EngineFailure>;
+    detach(): undefined | EngineFailure;
     /** Failures of ours the wrap caught: the listener guards itself, so this is what escaped. */
     getFailureCount(): number;
-    getFirstFailure(): BrokenInvariant | null;
+    getFirstFailure(): errors.Caught | null;
 }
 
 export interface EngineBattle {
-    wrap(listener: PayloadListener): Result<WrapHandle, EngineFailure>;
-    readWarriors(): Result<WarriorSnapshot, WarriorFailure | ForeignFailure>;
+    wrap(listener: PayloadListener): WrapHandle | EngineFailure;
+    readWarriors(): WarriorSnapshot | WarriorFailure | errors.Caught;
 }
 
 export interface EnginePort {
-    readBattle(): Result<EngineBattle, EngineFailure | ForeignFailure>;
+    readBattle(): EngineBattle | EngineFailure | errors.Caught;
 }
 
 type Wrapper = ((this: unknown, ...args: unknown[]) => unknown) & { [WRAP_MARKER]?: number };
@@ -83,12 +96,12 @@ const FAILURES_MAXIMUM = 1048576;
 export function initPageEngine(page: unknown): EnginePort {
     return {
         readBattle() {
-            const engines = callForeign(() => readPageEngines(page));
-            if (!engines.ok) return engines;
-            if (engines.value.length === 0) return err({ kind: ENGINE_FAILURE.engineAbsent });
-            const battle = lookupEngineBattle(engines.value);
-            if (battle === null) return err({ kind: ENGINE_FAILURE.battleAbsent });
-            return ok(initBattle(battle));
+            const engines = errors.attempt(() => readPageEngines(page));
+            if (engines instanceof Error) return engines;
+            if (engines.length === 0) return new EngineAbsent();
+            const battle = lookupEngineBattle(engines);
+            if (battle === null) return new BattleAbsent();
+            return initBattle(battle);
         },
     };
 }
@@ -110,9 +123,7 @@ function initBattle(battle: Record<string, unknown>): EngineBattle {
     return {
         wrap: (listener) => wrapBattle(battle, listener),
         readWarriors() {
-            const read = callForeign(() => readWarriorSnapshot(battle));
-            if (!read.ok) return read;
-            return read.value;
+            return errors.attempt(() => readWarriorSnapshot(battle));
         },
     };
 }
@@ -120,40 +131,38 @@ function initBattle(battle: Record<string, unknown>): EngineBattle {
 function wrapBattle(
     battle: Record<string, unknown>,
     listener: PayloadListener,
-): Result<WrapHandle, EngineFailure> {
+): WrapHandle | EngineFailure {
     const original = battle[WRAPPED_METHOD];
-    if (typeof original !== "function") return err({ kind: ENGINE_FAILURE.methodAbsent });
-    if (isOurWrap(original)) return err({ kind: ENGINE_FAILURE.anotherReader });
-    const failures: { count: number; first: BrokenInvariant | null } = { count: 0, first: null };
-    const count = (failure: BrokenInvariant): void => {
+    if (typeof original !== "function") return new MethodAbsent();
+    if (isOurWrap(original)) return new AnotherReader();
+    const failures: { count: number; first: errors.Caught | null } = { count: 0, first: null };
+    const count = (failure: errors.Caught): void => {
         if (failures.count >= FAILURES_MAXIMUM) return;
         failures.count += 1;
         if (failures.first === null) failures.first = failure;
     };
     // Two guards and not one: a throw before the call must not skip the reading after it.
     const wrapper: Wrapper = function (this: unknown, ...args: unknown[]): unknown {
-        const before = runGuarded(() => listener.onBeforeCall());
-        if (!before.ok) count(before.error);
+        const before = errors.attempt(() => listener.onBeforeCall());
+        if (before instanceof Error) count(before);
         const answer: unknown = Reflect.apply(original, this, args);
-        const after = runGuarded(() => listener.onPayload(args[0]));
-        if (!after.ok) count(after.error);
+        const after = errors.attempt(() => listener.onPayload(args[0]));
+        if (after instanceof Error) count(after);
         return answer;
     };
     wrapper[WRAP_MARKER] = WRAP_VERSION;
     battle[WRAPPED_METHOD] = wrapper;
     assert(isOurWrap(battle[WRAPPED_METHOD]), "the wrap that went on says whose it is");
     assert(battle[WRAPPED_METHOD] !== original, "and stands where the engine's own stood");
-    return ok({
+    return {
         detach() {
-            if (battle[WRAPPED_METHOD] !== wrapper) {
-                return err({ kind: ENGINE_FAILURE.detachForeignLayer });
-            }
+            if (battle[WRAPPED_METHOD] !== wrapper) return new DetachForeignLayer();
             battle[WRAPPED_METHOD] = original;
-            return ok(undefined);
+            return undefined;
         },
         getFailureCount: () => failures.count,
         getFirstFailure: () => failures.first,
-    });
+    };
 }
 
 function isOurWrap(value: unknown): boolean {

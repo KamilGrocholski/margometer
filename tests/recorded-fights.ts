@@ -202,10 +202,16 @@ export function replayRecordedFight(fight: RecordedFight): FightSession {
     const session = initFightSession(SESSION_OPTIONS);
     for (const update of fight.updates) {
         const record = readPayloadEnvelope(update);
-        assert(record.ok, `${fight.path}: a recorded call is read by the envelope`);
-        const prepared = preparePayload(session, record.value, BLOWS_GRANTED);
-        assert(prepared.ok, `${fight.path}: and is inside every bound the session states`);
-        commitPayload(session, prepared.value);
+        assert(
+            !(record instanceof Error),
+            `${fight.path}: a recorded call is read by the envelope`,
+        );
+        const prepared = preparePayload(session, record, BLOWS_GRANTED);
+        assert(
+            !(prepared instanceof Error),
+            `${fight.path}: and is inside every bound the session states`,
+        );
+        commitPayload(session, prepared);
     }
     return session;
 }

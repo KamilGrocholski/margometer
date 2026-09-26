@@ -69,9 +69,9 @@ Deno.test("whatever is in the directory agrees with the sidecar standing beside 
 
 function readSidecar(): Record<string, unknown> {
     const parsed = parseJson(Deno.readTextFileSync(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`));
-    assert(parsed.ok, "the sidecar beside the set is JSON");
-    assert(isRecord(parsed.value), "and is a record");
-    return { ...parsed.value };
+    assert(!(parsed instanceof Error), "the sidecar beside the set is JSON");
+    assert(isRecord(parsed), "and is a record");
+    return { ...parsed };
 }
 
 Deno.test("the set was taken at a version this tree is", () => {
@@ -92,9 +92,9 @@ Deno.test("the moment the underway pictures are taken at is one a fight is going
     const at = (entry: number) => {
         const tables = composeRuntimeTables().decoder;
         const read = replayFightPayloads(fight.updates.slice(0, entry), tables, SESSION_OPTIONS);
-        assert(read.ok, "the recording replays through the runtime's chain");
-        assert(read.value !== null, "and opens a fight");
-        return read.value.view;
+        assert(!(read instanceof Error), "the recording replays through the runtime's chain");
+        assert(read !== null, "and opens a fight");
+        return read.view;
     };
     assertEquals(
         lookupUnderwayObjections(at(UNDERWAY_ENTRY)),

@@ -54,8 +54,8 @@ Deno.test("one recording carries it, and a second would have to be read as well"
     const carrying = readRecordedFights().filter((fight) =>
         fight.messages.some((message) => {
             const parsed = parseProtocolMessage(message);
-            if (!parsed.ok) return false;
-            return parsed.value.parameters.some((one) => one.key === KEY);
+            if (parsed instanceof Error) return false;
+            return parsed.parameters.some((one) => one.key === KEY);
         })
     ).map((fight) => fight.path);
     assertEquals(carrying, [BANDAGE], "one, and the reading rests on it");

@@ -35,7 +35,7 @@ const IMPORTS_ALLOWED: readonly (readonly [string, readonly string[]])[] = [
 Deno.test("an import from above a layer is flagged, and one from below it is not", () => {
     const upward = composeSample([
         'import { a } from "#/src/game/payload-envelope.ts";',
-        'import { b } from "#/libs/result.ts";',
+        'import * as b from "#/libs/errors.ts";',
         'import { c } from "@std/assert/assert";',
         'import { d } from "./sibling.ts";',
     ]);

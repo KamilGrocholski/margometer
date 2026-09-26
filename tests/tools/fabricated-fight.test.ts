@@ -87,8 +87,8 @@ Deno.test("what the fabricator writes states every key the register calls decode
 /** The keys one message states, off the grammar the decoder reads it by. */
 function readMessageKeys(message: string): string[] {
     const parsed = parseProtocolMessage(message);
-    assert(parsed.ok, `${message} is a message the grammar reads`);
-    return parsed.value.parameters.map((parameter) => parameter.key);
+    assert(!(parsed instanceof Error), `${message} is a message the grammar reads`);
+    return parsed.parameters.map((parameter) => parameter.key);
 }
 
 Deno.test("every exemption names a key the register really carries", () => {
@@ -154,13 +154,13 @@ Deno.test("every key the fabricator spells on its own is one a reader here takes
         assertStrictEquals(read.healthMaximum, warrior.healthMaximum, "at the maximum it states");
     }
     const opening = replayFightPayloads([FIGHT.calls[0]!.payload], DECODER_TABLES, SESSION_OPTIONS);
-    assert(opening.ok, "the opening is a call the chain reads");
-    assertExists(opening.value, "and opens a fight");
-    assertStrictEquals(opening.value.view.chargedSkills.length, 1, "with one skill charging");
+    assert(!(opening instanceof Error), "the opening is a call the chain reads");
+    assertExists(opening, "and opens a fight");
+    assertStrictEquals(opening.view.chargedSkills.length, 1, "with one skill charging");
     // A payload naming no holder is passed over by the grading, so the witness is counted here.
     const witnessed = DUEL.calls.filter((call) => {
         const holder = getNumberField(call.payload, WITNESS_KEYS, "holder");
-        return holder.ok && holder.value !== null;
+        return !(holder instanceof Error) && holder !== null;
     });
     assertStrictEquals(witnessed.length, DUEL.calls.length - 1, "each call but the last names one");
     const [grade] = composeTurnGrades([readFabricatedFight(DUEL, "duel")]);
@@ -171,8 +171,8 @@ Deno.test("every key the fabricator spells on its own is one a reader here takes
 /** The fight as the file a reader would open, read back the way a tool reads a recording. */
 function readFabricatedFight(fight: FabricatedFight, name: string): RecordedFight {
     const document = parseJson(encodeFabricatedFight(fight));
-    assert(document.ok, "a fabricated fight is written as JSON");
-    return readRecordedFight(`${FABRICATED_DIRECTORY}/${name}.json`, document.value);
+    assert(!(document instanceof Error), "a fabricated fight is written as JSON");
+    return readRecordedFight(`${FABRICATED_DIRECTORY}/${name}.json`, document);
 }
 
 Deno.test("a fabricated fight is written only where git is told not to look", () => {
@@ -184,9 +184,9 @@ Deno.test("a fabricated fight is written only where git is told not to look", ()
 
 Deno.test("the file a fabricated fight is written as says so three times over", () => {
     const document = parseJson(encodeFabricatedFight(FIGHT));
-    assert(document.ok, "the file is JSON");
-    assert(isRecord(document.value), "and an envelope");
-    const envelope = document.value;
+    assert(!(document instanceof Error), "the file is JSON");
+    assert(isRecord(document), "and an envelope");
+    const envelope = document;
     assertStrictEquals(envelope[FABRICATION_FIELDS.isFabricated], true, "the envelope says so");
     assertStrictEquals(envelope[FILE_FIELD.world], FABRICATED_WORLD, "the world it states says so");
     assert(`${envelope[FABRICATION_FIELDS.fabricatedBy]}`.length > 0, "and what wrote it is named");

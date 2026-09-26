@@ -5,12 +5,12 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, err, ok, type Result } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { getEndOfRun } from "#/libs/text-walk.ts";
-import { PAGE_READ_FAILURE, PAGE_READING, type PageReadFailure } from "./page-reading.ts";
+import { PAGE_READING, type PageReadFailure, PageReadingAbsent } from "./page-reading.ts";
 
 export interface BuildPort {
-    readBuildId(): Result<string, PageReadFailure>;
+    readBuildId(): string | PageReadFailure;
 }
 
 /** The whole of what this asks a page for: the sources of its scripts. */
@@ -34,16 +34,16 @@ export const SCRIPTS_MAXIMUM = 4096;
 export function initPageBuild(scripts: PageScripts): BuildPort {
     return {
         readBuildId() {
-            const sources = callForeign(() => scripts.readScriptSources());
-            if (!sources.ok) return sources;
-            const walked = Math.min(sources.value.length, SCRIPTS_MAXIMUM);
+            const sources = errors.attempt(() => scripts.readScriptSources());
+            if (sources instanceof Error) return sources;
+            const walked = Math.min(sources.length, SCRIPTS_MAXIMUM);
             for (let at = 0; at < walked; at += 1) {
-                const source = sources.value[at];
+                const source = sources[at];
                 if (typeof source !== "string") continue;
                 const build = parseGameBuild(source);
-                if (build !== null) return ok(build);
+                if (build !== null) return build;
             }
-            return err({ kind: PAGE_READ_FAILURE.absent, reading: PAGE_READING.build });
+            return new PageReadingAbsent(PAGE_READING.build);
         },
     };
 }

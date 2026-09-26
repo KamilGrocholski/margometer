@@ -29,6 +29,7 @@ export interface AstNode {
     value?: unknown;
     init?: AstNode | null;
     property?: AstNode;
+    key?: AstNode;
     superClass?: AstNode | null;
     callee?: AstNode;
     arguments?: AstNode[];

@@ -7,7 +7,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign, type ForeignFailure, ok, type Result } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { readPageBattle } from "./engine-battle.ts";
@@ -17,7 +17,7 @@ export interface TooltipPort {
     /** Every fighter the page draws, each with the rows they should carry now, empty or not. */
     writeRows(
         rowsByCombatantId: ReadonlyMap<number, readonly string[]>,
-    ): Result<TooltipWritten, ForeignFailure>;
+    ): TooltipWritten | errors.Caught;
 }
 
 /**
@@ -73,13 +73,13 @@ export function initPageTooltip(page: unknown): TooltipPort {
             const asked = [...rowsByCombatantId.values()].filter((rows) => rows.length > 0).length;
             assert(asked <= COMBATANTS_MAXIMUM, "no more blocks than a fight puts on a board");
             const next = new Map(blocksById);
-            const walked = callForeign(() => writeBlocks(page, rowsByCombatantId, next));
+            const walked = errors.attempt(() => writeBlocks(page, rowsByCombatantId, next));
             // ⚠️ Kept whatever the walk came to: a block that went on before a throw of theirs,
             // forgotten, would be looked for as the old one and put on a second time.
             blocksById = next;
-            if (!walked.ok) return walked;
-            assert(walked.value <= asked, "no more blocks landed than were composed");
-            return ok({ written: walked.value, asked });
+            if (walked instanceof Error) return walked;
+            assert(walked <= asked, "no more blocks landed than were composed");
+            return { written: walked, asked };
         },
     };
 }
@@ -91,10 +91,10 @@ function writeBlocks(
     blocksById: Map<number, string>,
 ): number {
     const warriors = readNamedWarriors(readPageBattle(page));
-    if (!warriors.ok) return 0;
+    if (warriors instanceof Error) return 0;
     let written = 0;
     const drawn = new Set<number>();
-    for (const warrior of warriors.value) {
+    for (const warrior of warriors) {
         const id = warrior[WARRIOR_ID_KEY];
         if (typeof id !== "number") continue;
         drawn.add(id);

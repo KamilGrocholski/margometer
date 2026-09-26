@@ -9,7 +9,6 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, ok, type Result } from "#/libs/result.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import { encodeHealthPercent, parseHealthPercent } from "./protocol-number.ts";
@@ -34,16 +33,39 @@ export interface ProtocolMessage {
 export const MESSAGE_END = { actor: "actor", target: "target" } as const;
 export type MessageEnd = VocabularyWord<typeof MESSAGE_END>;
 
-export const GRAMMAR_REFUSAL = {
-    segmentsExceeded: "segments-exceeded",
-    sideUnreadable: "side-unreadable",
-    parameterKeyEmpty: "parameter-key-empty",
-} as const;
+export class SegmentsExceeded extends Error {
+    override readonly name = "SegmentsExceeded";
+    readonly segments: number;
+    readonly maximum: number;
 
-export type GrammarRefusal =
-    | { kind: typeof GRAMMAR_REFUSAL.segmentsExceeded; segments: number; maximum: number }
-    | { kind: typeof GRAMMAR_REFUSAL.sideUnreadable; end: MessageEnd }
-    | { kind: typeof GRAMMAR_REFUSAL.parameterKeyEmpty; index: number };
+    constructor(segments: number, maximum: number) {
+        super();
+        this.segments = segments;
+        this.maximum = maximum;
+    }
+}
+
+export class SideUnreadable extends Error {
+    override readonly name = "SideUnreadable";
+    readonly end: MessageEnd;
+
+    constructor(end: MessageEnd) {
+        super();
+        this.end = end;
+    }
+}
+
+export class ParameterKeyEmpty extends Error {
+    override readonly name = "ParameterKeyEmpty";
+    readonly index: number;
+
+    constructor(index: number) {
+        super();
+        this.index = index;
+    }
+}
+
+export type GrammarRefusal = SegmentsExceeded | SideUnreadable | ParameterKeyEmpty;
 
 /** The longest message in `captures/` carries 42 segments, 2026-08-28. */
 export const SEGMENTS_MAXIMUM = 512;
@@ -53,35 +75,31 @@ const VALUE_SEPARATOR = "=";
 const NO_COMBATANT = "0";
 const SIDE_SEGMENTS = 2;
 
-export function parseProtocolMessage(text: string): Result<ProtocolMessage, GrammarRefusal> {
+export function parseProtocolMessage(text: string): ProtocolMessage | GrammarRefusal {
     const segments = parseProtocolMessageSegments(text);
-    if (!segments.ok) return segments;
-    const [actorSegment, targetSegment] = segments.value;
+    if (segments instanceof Error) return segments;
+    const [actorSegment, targetSegment] = segments;
     assert(actorSegment !== undefined, "text always splits into at least one segment");
     const actor = parseProtocolMessageSide(actorSegment, MESSAGE_END.actor);
-    if (!actor.ok) return actor;
-    if (targetSegment === undefined) {
-        return err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_END.target });
-    }
+    if (actor instanceof Error) return actor;
+    if (targetSegment === undefined) return new SideUnreadable(MESSAGE_END.target);
     const target = parseProtocolMessageSide(targetSegment, MESSAGE_END.target);
-    if (!target.ok) return target;
+    if (target instanceof Error) return target;
 
     const parameters: MessageParameter[] = [];
-    for (const segment of segments.value.slice(SIDE_SEGMENTS)) {
+    for (const segment of segments.slice(SIDE_SEGMENTS)) {
         const separator = segment.indexOf(VALUE_SEPARATOR);
         const key = separator === -1 ? segment : segment.slice(0, separator);
-        if (key.length === 0) {
-            return err({ kind: GRAMMAR_REFUSAL.parameterKeyEmpty, index: parameters.length });
-        }
+        if (key.length === 0) return new ParameterKeyEmpty(parameters.length);
         const value = separator === -1 ? null : segment.slice(separator + 1);
         parameters.push({ key, value });
     }
-    assert(parameters.length + SIDE_SEGMENTS === segments.value.length, "no segment is dropped");
-    return ok({ actor: actor.value, target: target.value, parameters });
+    assert(parameters.length + SIDE_SEGMENTS === segments.length, "no segment is dropped");
+    return { actor, target, parameters };
 }
 
 /** Walked rather than `split`, so a message past the bound is refused before it is allocated. */
-function parseProtocolMessageSegments(text: string): Result<string[], GrammarRefusal> {
+function parseProtocolMessageSegments(text: string): string[] | SegmentsExceeded {
     const segments: string[] = [];
     let from = 0;
     for (let look = 0; look < SEGMENTS_MAXIMUM; look += 1) {
@@ -89,18 +107,14 @@ function parseProtocolMessageSegments(text: string): Result<string[], GrammarRef
         if (separator === -1) {
             segments.push(text.slice(from));
             assert(segments.length <= SEGMENTS_MAXIMUM, "a message kept is one inside the bound");
-            return ok(segments);
+            return segments;
         }
         segments.push(text.slice(from, separator));
         from = separator + SEGMENT_SEPARATOR.length;
     }
     const count = parseProtocolMessageSegmentsCount(text, from);
     assert(count > SEGMENTS_MAXIMUM, "a message refused for its length is past the bound");
-    return err({
-        kind: GRAMMAR_REFUSAL.segmentsExceeded,
-        segments: count,
-        maximum: SEGMENTS_MAXIMUM,
-    });
+    return new SegmentsExceeded(count, SEGMENTS_MAXIMUM);
 }
 
 /** Counts without allocating: the walk is bounded by the text, one separator per step. */
@@ -124,18 +138,18 @@ function parseProtocolMessageSegmentsCount(text: string, from: number): number {
 function parseProtocolMessageSide(
     segment: string,
     end: MessageEnd,
-): Result<MessageSide | null, GrammarRefusal> {
-    if (segment === NO_COMBATANT) return ok(null);
+): MessageSide | null | SideUnreadable {
+    if (segment === NO_COMBATANT) return null;
     const separator = segment.indexOf(VALUE_SEPARATOR);
     const idText = separator === -1 ? segment : segment.slice(0, separator);
     const combatantId = parseInteger(idText);
-    if (combatantId === null) return err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end });
+    if (combatantId === null) return new SideUnreadable(end);
     assert(Number.isSafeInteger(combatantId), "an id read is one held exactly");
-    if (separator === -1) return ok({ combatantId, healthPercent: null });
+    if (separator === -1) return { combatantId, healthPercent: null };
     const healthPercent = parseHealthPercent(segment.slice(separator + 1));
-    if (healthPercent === null) return err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end });
+    if (healthPercent === null) return new SideUnreadable(end);
     assert(healthPercent >= 0, "a percentage the grammar accepted is never below nothing");
-    return ok({ combatantId, healthPercent });
+    return { combatantId, healthPercent };
 }
 
 /**

@@ -6,7 +6,6 @@
  */
 
 import { assert, assertExists } from "@std/assert";
-import { ok, type Result } from "#/libs/result.ts";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { initPageStore, type KeyValueStore } from "#/src/game/browser-store.ts";
 import { initPageEngine } from "#/src/game/engine-battle.ts";
@@ -72,8 +71,8 @@ export function initRefusingStore(): KeyValueStore {
 
 export function readKeptFights(held: Map<string, string>): readonly KeptFight[] {
     const opened = openShelf(initHeldStore(held));
-    assert(opened.ok, "a shelf the add-on wrote reads back");
-    return opened.value.fights;
+    assert(!(opened instanceof Error), "a shelf the add-on wrote reads back");
+    return opened.fights;
 }
 
 /** Stood up and handed its first frame, which is what a browser gives it next. */
@@ -107,7 +106,7 @@ function composeRuntimeWorld(
     getShelf: (choice: string) => Map<string, string>,
 ): RuntimeWorld {
     const world: RuntimeWorld = {
-        runtime: { onIntent: () => {}, deinit: () => ok(undefined) },
+        runtime: { onIntent: () => {}, deinit: () => undefined },
         shown: [],
         lines: [],
         held: new Map(),
@@ -168,19 +167,19 @@ function composeRuntimePorts(
             },
             // A clock that answers the same moment every time, so a row's time is a fact of a test.
             readMoment: () => ({ day: 13, month: 9, hour: 21, minute: 5 }),
-            readTimestampText: () => ok(CAPTURED_AT),
+            readTimestampText: () => CAPTURED_AT,
         },
         frames: {
             requestFrame: (step) => {
                 frames.push(step);
-                return ok({ cancel: () => void frames.splice(0, frames.length) });
+                return { cancel: () => void frames.splice(0, frames.length) };
             },
         },
-        interval: { every: () => ok({ cancel: () => ok(undefined) }) },
+        interval: { every: () => ({ cancel: () => undefined }) },
         engine: initPageEngine(page),
         place: initPagePlace(page),
         dictionary: initPageDictionary(page),
-        build: { readBuildId: () => ok(GAME_BUILD) },
+        build: { readBuildId: () => GAME_BUILD },
         surroundings: { readWorld: () => WORLD, readUserAgent: () => "a browser that said so" },
         tooltip: initPageTooltip(page),
         settings: initHeldStore(world.held),
@@ -188,14 +187,13 @@ function composeRuntimePorts(
         file: {
             writeFile: (name, text) => {
                 world.saved.push({ name, text });
-                return ok(undefined);
+                return undefined;
             },
         },
         console: { writeBrandedLine: (kind) => void world.lines.push(kind) },
         document: composeFakeDocument(),
-        mountPanel: (panel: PanelElement): Result<void, never> => {
+        mountPanel: (panel: PanelElement): void => {
             world.shown.push(panel as FakeElement);
-            return ok(undefined);
         },
         readViewport: () => ({ width: 1280, height: 900 }),
     };

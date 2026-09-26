@@ -68,8 +68,8 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
 
 function parseOrFail(text: string, path: string): ProtocolMessage {
     const parsed = parseProtocolMessage(text);
-    assert(parsed.ok, `${path}: every recorded message parses`);
-    return parsed.value;
+    assert(!(parsed instanceof Error), `${path}: every recorded message parses`);
+    return parsed;
 }
 
 Deno.test("a victim carries one wound at a time, however many attackers wounded them", () => {

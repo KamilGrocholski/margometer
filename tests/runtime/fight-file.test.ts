@@ -9,11 +9,13 @@
 import {
     assert,
     assertEquals,
+    assertInstanceOf,
     AssertionError,
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
-import { parseJson } from "#/libs/json-text.ts";
+import * as errors from "#/libs/errors.ts";
+import { JsonUnwritable, parseJson } from "#/libs/json-text.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
@@ -24,10 +26,10 @@ import { NO_CAPTURE } from "#/src/game/fight-capture.ts";
 import {
     encodeFightFile,
     encodeFightReport,
-    FILE_FAILURE,
     type FileCalls,
     type FileSubject,
     type FileSurroundings,
+    FileUnserializable,
 } from "#/src/runtime/fight-file.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { readRecordedFights, replayRecordedFight } from "#/tests/recorded-fights.ts";
@@ -73,9 +75,9 @@ Deno.test("the envelope is the one every admitted recording already carries", ()
 
 function readFile(text: string): UnknownRecord {
     const parsed = parseJson(text);
-    assert(parsed.ok, "a recording written as text reads back as JSON");
-    assert(isRecord(parsed.value), "and reads back as a record");
-    return parsed.value;
+    assert(!(parsed instanceof Error), "a recording written as text reads back as JSON");
+    assert(isRecord(parsed), "and reads back as a record");
+    return parsed;
 }
 
 function readRecordingText(path: string): string {
@@ -84,8 +86,8 @@ function readRecordingText(path: string): string {
 
 function writeFile(calls: FileCalls, subject: FileSubject | null, around = SURROUNDINGS) {
     const file = encodeFightFile(calls, subject, around);
-    assert(file.ok, "a recording is written as text");
-    return file.value;
+    assert(!(file instanceof Error), "a recording is written as text");
+    return file;
 }
 
 Deno.test("a recording nobody measured says null, where one measured says a number", () => {
@@ -263,9 +265,10 @@ Deno.test("a value JSON has no text for is refused as unserializable, with its c
         null,
         SURROUNDINGS,
     );
-    assert(!file.ok, "a payload the writer cannot write is no file");
-    assertEquals(file.error.kind, FILE_FAILURE.unserializable, "said as unserializable");
-    assert(file.error.cause instanceof TypeError, "with what the writer threw");
+    assertInstanceOf(file, FileUnserializable, "a payload the writer cannot write is no file");
+    assertInstanceOf(file.cause, JsonUnwritable, "said as unserializable");
+    assertInstanceOf(file.cause.cause, errors.Caught, "caught where the writer threw");
+    assertInstanceOf(file.cause.cause.cause, TypeError, "with what the writer threw");
 });
 
 Deno.test("every recording, replayed and written, reads back whole", () => {

@@ -8,7 +8,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { runGuarded } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { replayFightStandings } from "#/src/core/aura-standing.ts";
@@ -51,11 +51,19 @@ import {
 } from "#/src/ui/panel-words.ts";
 import { type OpenedReadings, presentOpenedReadings } from "./opened-reading.ts";
 
-export const FRAME_FAILURE = { figuresDisagreed: "figures-disagreed" } as const;
 /** Which level of the panel two counts of one figure came out different on. */
 export const FIGURES_CUT = { screen: "screen", drill: "drill", pair: "pair" } as const;
 export type FiguresCut = VocabularyWord<typeof FIGURES_CUT>;
-export type FrameFailure = { kind: typeof FRAME_FAILURE.figuresDisagreed; cut: FiguresCut };
+
+export class FiguresDisagreed extends Error {
+    override readonly name = "FiguresDisagreed";
+    readonly cut: FiguresCut;
+
+    constructor(cut: FiguresCut) {
+        super();
+        this.cut = cut;
+    }
+}
 
 export interface FrameParts {
     screen: ScreenState;
@@ -83,16 +91,16 @@ export function renderFrame(parts: FrameParts): void {
         parts.keeper.getFights().length <= KEPT_MAXIMUM,
         "a frame draws a shelf inside its bound",
     );
-    const tooltips = runGuarded(() => renderFrameTooltips(parts));
-    if (!tooltips.ok) addRegionDefect(parts, tooltips.error);
+    const tooltips = errors.attempt(() => renderFrameTooltips(parts));
+    if (tooltips instanceof Error) addRegionDefect(parts, tooltips);
     renderFrameStanding(parts);
     const said = getPanelDefects(parts.defects);
     // Asked without decoding anything: a fight that will not read is still worth handing over.
     const hasFightToSave = parts.live.capture.calls.length > 0 ||
         parts.keeper.getFights().length > 0;
-    const drawn = runGuarded(() => renderFramePanel(parts, said, hasFightToSave));
-    if (drawn.ok) return;
-    parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: drawn.error });
+    const drawn = errors.attempt(() => renderFramePanel(parts, said, hasFightToSave));
+    if (!(drawn instanceof Error)) return;
+    parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: drawn });
     const waiting = {
         isCollapsed: parts.screen.isCollapsed,
         defects: getPanelDefects(parts.defects),
@@ -109,11 +117,8 @@ function renderFrameTooltips(parts: FrameParts): void {
     const view = getFightView(parts.live.session);
     if (view === null) return;
     const written = writeCarriedTooltips(view, parts.tables, parts.translate, parts.tooltip);
-    if (!written.ok) addRegionDefect(parts, written.error);
-    else {assert(
-            written.value.written <= written.value.asked,
-            "no block lands that was not composed",
-        );}
+    if (written instanceof Error) addRegionDefect(parts, written);
+    else assert(written.written <= written.asked, "no block lands that was not composed");
 }
 
 function addRegionDefect(parts: FrameParts, failure: RuntimeFailure): void {
@@ -125,11 +130,11 @@ function addRegionDefect(parts: FrameParts, failure: RuntimeFailure): void {
  * window has nothing to say about. A reading that will not compose costs the window its body.
  */
 function renderFrameStanding(parts: FrameParts): void {
-    const read = runGuarded(() => presentFrameStanding(parts.live, parts.tables));
-    if (!read.ok) {
-        parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read.error });
+    const read = errors.attempt(() => presentFrameStanding(parts.live, parts.tables));
+    if (read instanceof Error) {
+        parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
     }
-    const reading = read.ok ? read.value : null;
+    const reading = read instanceof Error ? null : read;
     addUndrawn(parts.defects, parts.view.renderStanding(reading, parts.screen.isStandingCollapsed));
 }
 
@@ -263,8 +268,11 @@ function addFiguresDisagreed(
     opened: OpenedReadings,
 ): void {
     const add = (cut: FiguresCut): void => {
-        const failure = { kind: FRAME_FAILURE.figuresDisagreed, cut };
-        defects.add({ kind: DEFECT_KIND.figures, region: null, failure });
+        defects.add({
+            kind: DEFECT_KIND.figures,
+            region: null,
+            failure: new FiguresDisagreed(cut),
+        });
     };
     if (reading.hasFiguresDisagreed) add(FIGURES_CUT.screen);
     if (opened.drill?.hasFiguresDisagreed === true) add(FIGURES_CUT.drill);

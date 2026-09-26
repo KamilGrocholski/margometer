@@ -11,7 +11,7 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { emptyDirSync } from "@std/fs";
 import { formatInteger } from "#/libs/number-text.ts";
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { DEVELOP_REVISION } from "#/tests/recording-sources.ts";
 import { formatMaterialStatus } from "./decoding-status.ts";
 import { formatMaterialFigures } from "./fight-figures.ts";
@@ -205,10 +205,10 @@ export function readDevelopReport(revision: string, task: string): string {
 
 function isTreeComplete(directory: string): boolean {
     assert(directory.length > 0, "a tree is looked for somewhere");
-    const mark = callForeign(() => Deno.statSync(`${directory}/${COMPLETE_MARK}`));
-    if (mark.ok) return mark.value.isFile;
-    if (mark.error.cause instanceof Deno.errors.NotFound) return false;
-    throw new DevelopReportError(`${directory} cannot be looked at`, { cause: mark.error.cause });
+    const mark = errors.attempt(() => Deno.statSync(`${directory}/${COMPLETE_MARK}`));
+    if (!(mark instanceof Error)) return mark.isFile;
+    if (mark.cause instanceof Deno.errors.NotFound) return false;
+    throw new DevelopReportError(`${directory} cannot be looked at`, { cause: mark });
 }
 
 /** Taken out afresh, so nothing a half-finished run left behind is read. */

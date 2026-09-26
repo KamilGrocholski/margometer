@@ -4,12 +4,12 @@
  * gesture does nothing and no mark reaches anybody. The guard turns it into a dropped gesture.
  */
 
-import { runGuarded } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import type { PanelEvent, PanelRoot } from "./panel-document.ts";
 import {
+    GestureDropped,
     type PanelListener,
     reportViewFailure,
-    VIEW_FAILURE,
     type ViewFailure,
 } from "./view-failure.ts";
 
@@ -21,9 +21,8 @@ export function addGuardedListener(
     onFailure: (failure: ViewFailure) => void,
 ): void {
     root.addEventListener(type, (event) => {
-        const handled = runGuarded(() => handle(event));
-        if (handled.ok) return;
-        const cause = handled.error.cause;
-        reportViewFailure(onFailure, { kind: VIEW_FAILURE.gestureDropped, listener, cause });
+        const handled = errors.attempt(() => handle(event));
+        if (!(handled instanceof Error)) return;
+        reportViewFailure(onFailure, new GestureDropped(listener, handled));
     });
 }

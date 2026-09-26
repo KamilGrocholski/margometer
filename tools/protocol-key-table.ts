@@ -171,12 +171,10 @@ function encodeFamilyText(family: ComputedKeyFamily): string {
 /** A value of the table as the text it is written down as, or a refusal branded as this tool's. */
 function encodeRequiredText(value: unknown): string {
     const text = encodeJson(value, 0);
-    if (!text.ok) {
-        throw new ProtocolKeyTableError("a value of the table cannot be written", {
-            cause: text.error,
-        });
+    if (text instanceof Error) {
+        throw new ProtocolKeyTableError("a value of the table cannot be written", { cause: text });
     }
-    return text.value;
+    return text;
 }
 
 export function requireProtocolKeys(bundle: string): string[] {

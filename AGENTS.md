@@ -135,6 +135,8 @@ joins it in the commit that creates the file.
   `else`, and a guard is exempt
 - `docs/adr/0007-the-protocol-key-register-is-carried-and-a-help-freeze-counts-what-it-cites.md` —
   `develop`'s key register carried, and the help counts taken from its claims
+- `docs/adr/0008-a-failure-is-an-error-returned-beside-the-value.md` — a failure is an `Error` class
+  returned beside the value, and `attempt` the one catch
 
 - `frozen/AGENTS.md` — the rules for the dated readings of the game: written by tooling, never by
   hand
@@ -154,7 +156,7 @@ joins it in the commit that creates the file.
   it worked
 - `libs/number-range.ts` — a number held between two ends, where the bottom wins when the ends cross
 - `libs/number-text.ts` — numbers read out of text by walking it, and written back into it
-- `libs/result.ts` — the `Result` shape, and the two broad catches: `callForeign` and `runGuarded`
+- `libs/errors.ts` — the one broad catch, `attempt`, and `Caught`, the failure it answers
 - `libs/text-walk.ts` — walking text one character at a time against a caller's predicate
 - `libs/unknown-value.ts` — reading a value nobody typed, one field at a time, naming our field on
   failure
@@ -392,7 +394,7 @@ this language does not have would be**; each states what binds instead.
 - **S10.** Zero warnings, from the first day. A warning fails the gate.
 - **S11.** Every collection that grows with input carries a **stated maximum**, and the maximum
   binds. **How it binds is the layer's**: an assertion, where **A11** allows one; a clamp and a
-  defect in the layer a reader touches; a `Result` failure where exceeding it is expected (**E1**);
+  defect in the layer a reader touches; a returned failure where exceeding it is expected (**E1**);
   a throw in `tools/`; or a bound another layer already enforces, tied to this one by a test rather
   than restated. A stated maximum nothing reads is not a bound, and a new unbounded collection is
   `[ASK]`.
@@ -421,10 +423,11 @@ this language does not have would be**; each states what binds instead.
   names the invariant or the condition)_
 - **A5.** Assertions are live in the shipped build. They are not removed for production.
 - **A6.** Use `@std/assert`. There is no assertion module of our own.
-- **A7. A failed assertion becomes state at the nearest boundary**, through `runGuarded` (**E4**). A
+- **A7. A failed assertion becomes state at the nearest boundary**, through `attempt` (**E4**). A
   programmer error degrades to a missing section; it never reaches the game's call stack.
 - **A8. An assertion is not a failure.** `assert` is for what must never happen. A failure you know
-  can occur is a `Result` (**E1**), and an `AssertionError` is never matched on by kind.
+  can occur is returned (**E1**), and an `AssertionError` is never matched by `instanceof`:
+  `attempt` wraps it in a `Caught` like any other throw.
 - **A9. Where a failure is read, the assertion that reports more is the one used.** In `tools/` and
   `tests/` a `@std/assert` function that says what `assert` cannot — the value, the diff, the
   narrowed type — is what stands there; where it discards the message naming the invariant, `assert`
@@ -444,24 +447,27 @@ this language does not have would be**; each states what binds instead.
 The shapes are `docs/design.md` §3; the fate of each failure is its §10.5.
 
 - **E1. Two kinds of failure, and they never share a mechanism.** A failure that can happen — the
-  game did not send a field, storage refused, a message does not parse — is **returned** as a
-  `Result`, never thrown. A broken invariant is an **assertion**. Nothing the bundle carries throws
-  on purpose except an assertion; the only other exceptions it meets are thrown by code it did not
+  game did not send a field, storage refused, a message does not parse — is **returned** beside the
+  value, never thrown. A broken invariant is an **assertion**. Nothing the bundle carries throws on
+  purpose except an assertion; the only other exceptions it meets are thrown by code it did not
   write. **A bound on what arrives from outside is checked once, at the edge that reads it**, and
-  fails as a `Result` there; past the edge the same bound is an assertion, because only a bug of
-  ours can break it. A `Result` travels only where its reason changes what happens next — a failure
-  that would end in the same defect as a broken invariant is not given a type of its own.
-- **E2. A `Result` is `{ ok: true, value } | { ok: false, error }`, and nothing else.** It has no
-  combinators: every call site branches with `if (!result.ok)`, which is **S1**'s explicit control
-  flow. `ok` carries no boolean prefix; that exception to **N8** is stated there.
-- **E3. A failure is a record with a `kind`, never a class and never a sentence.** Its `kind` comes
-  from a vocabulary (**N19**). A bound in it is `maximum: number`, filled from the constant that
-  owns the number — a literal in the type is a second copy. A name the game chose never appears in
-  it: a failure names **our** field (**N13**).
-- **E4. A broad catch stands in exactly two functions**: `callForeign`, whose `try` holds only a
-  call into code this project did not write, and `runGuarded`, which turns an assertion into
-  `BrokenInvariant`. Each call to either sits at one of **E5**'s boundaries. Any other `catch` is a
-  bug.
+  fails as a returned failure there; past the edge the same bound is an assertion, because only a
+  bug of ours can break it. A failure class exists only where its reason changes what happens next —
+  a failure that would end in the same defect as a broken invariant is not given a class of its own.
+- **E2. What can fail answers `Value | SomeFailure`, and nothing else.** There is no box and no
+  combinator: every call site branches with `if (value instanceof Error)`, or on the class it
+  expects, which is **S1**'s explicit control flow. `unknown` beside a failure is `unknown`, so a
+  call reading a value nobody typed narrows it inside `attempt`, which refuses `unknown` by its
+  type. ADR 0008.
+- **E3. A failure is a class extending `Error`, one per reason, never a record and never a
+  sentence.** Its `name` is a literal spelled as its class is, which **E7**'s table is keyed by, and
+  its `message` stays empty. A failure met below it is its `cause`. A bound in it is
+  `maximum: number`, filled from the constant that owns the number — a literal in the type is a
+  second copy. A name the game chose never appears in it: a failure names **our** field (**N13**).
+- **E4. A broad catch stands in exactly one function**: `attempt` in `libs/errors.ts`, whose `try`
+  holds a call into code this project did not write or our own at a boundary, and which answers what
+  the call returned or a `Caught` carrying what was thrown. Each call to it sits at one of **E5**'s
+  boundaries. Any other `catch` is a bug.
 - **E5. There are six boundaries in the add-on, and they are enumerable.** A new one is `[ASK]`,
   because an unlisted broad catch is indistinguishable from a swallowed bug. Where each stands is
   `docs/design.md` §10.6.
@@ -476,14 +482,14 @@ The shapes are `docs/design.md` §3; the fate of each failure is its §10.5.
   | a callback somebody else calls | inbound   | that gesture or frame dropped, marked |
 
   In `tools/` the boundaries are the network and a subprocess.
-- **E6. `null` or `Result`: the reason decides.** `T | null` in a domain type means the protocol did
-  not state it, which is a fact. A reading returns `T | null` where it has **one** reason to fail
-  and its name already says it (`parseInteger`); it returns a `Result` where it has more than one,
-  or where the reason must travel on (which field failed). **Never substitute `0` for a failed
+- **E6. `null` or a failure: the reason decides.** `T | null` in a domain type means the protocol
+  did not state it, which is a fact. A reading returns `T | null` where it has **one** reason to
+  fail and its name already says it (`parseInteger`); it returns a failure where it has more than
+  one, or where the reason must travel on (which field failed). **Never substitute `0` for a failed
   read.** Zero is a measurement. `develop ADR 0021`.
-- **E7. Every failure meets a fate, and the compiler holds the table.** `FAILURE_FATES` maps every
-  `kind` of `RuntimeFailure` to one fate; a new `kind` without an entry fails `deno check`.
-  Branching on `kind` is what a failure record is for.
+- **E7. Every failure meets a fate, and the compiler holds the table.** `FAILURE_FATES` maps the
+  `name` of every class in `RuntimeFailure` to one fate; a new class without an entry fails
+  `deno check`. Branching on the class is what a failure class is for.
 - **E8. Writing asserts, because the number is ours.** A writer (`format…`, `encode…`) asserts its
   input; a reader never throws.
 - **E9. No failure is discarded silently.** Every failure leaves the mark **E5**'s table names for
@@ -503,8 +509,8 @@ The shapes are `docs/design.md` §3; the fate of each failure is its §10.5.
 - **E13. A tool fails loudly, with a class of its own.** `tools/` throws subclasses of the abstract
   `MargoMeterToolError`, each passing its own `code`, with the original in `cause` when wrapping.
   The brand goes in `name` (`MargoMeterTool/…`), because a console shows it first. Never a bare
-  `new Error`, never `extends Error` outside that one file. The bundle has no error class at all.
-  `develop ADR 0009`.
+  `new Error`, and outside the bundle never `extends Error` but in that one file. The bundle's
+  failure classes are returned, never thrown (**E1**). `develop ADR 0009`.
 
 ## Interfaces
 
@@ -574,8 +580,7 @@ TypeScript idiom, with the naming rules stated here.
 - **N7.** Names follow A/HC/LC — `prefix? + action + high context + low context?`.
 - **N8.** Booleans carry a prefix, in the tense that fits: `is`, `was`, `will` for a state, `has`
   for what is held, `does` for what a thing can do, `should` for a condition with an action behind
-  it. **One exception, and it is stated here:** the discriminant `ok` of `Ok` and `Err` (**E2**),
-  and nothing else.
+  it.
 - **N9.** Do not overload a name with context-dependent meanings, and do not duplicate the context a
   name already sits in.
 - **N10.** Files are named for their contents, never their category. `utils.ts`, `helpers.ts`,
@@ -610,9 +615,9 @@ TypeScript idiom, with the naming rules stated here.
   never a type error.
 - **N19. Every union with a `kind` has a vocabulary object**, so the string stands once and every
   variant, construction and `case` reaches it by symbol:
-  `const ENVELOPE_FAILURE = { payloadNotRecord: "payload-not-record" } as const` and
-  `{ kind: typeof ENVELOPE_FAILURE.payloadNotRecord }`. The key is the name for code; the value is
-  what reaches a console or a file.
+  `const OPENED_PART = { skill: "skill", source: "source" } as const` and
+  `{ kind: typeof OPENED_PART.skill }`. The key is the name for code; the value is what reaches a
+  console or a file. A failure is a class (**E3**), never a union with a `kind`.
 
 ## Code
 
@@ -776,7 +781,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/non-null-assertions.test.ts`     | C12                       |
 | `tests/repository/synchronous-bundle.test.ts`      | S13                       |
 | `tests/repository/assert-imports.test.ts`          | A6, A10                   |
-| `tests/repository/throws.test.ts`                  | E1, E13                   |
+| `tests/repository/throws.test.ts`                  | E1, E3, E13               |
 | `tests/repository/names.test.ts`                   | N1, N10                   |
 | `tests/repository/layers.test.ts`                  | `docs/design.md` §4       |
 | `tests/repository/browser-suite-keys.test.ts`      | N13                       |

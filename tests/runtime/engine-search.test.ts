@@ -6,8 +6,8 @@
  * something a test can state rather than wait for.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { ENGINE_FAILURE, initPageEngine, type WrapHandle } from "#/src/game/engine-battle.ts";
+import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
+import { initPageEngine, SearchAbandoned, type WrapHandle } from "#/src/game/engine-battle.ts";
 import { initPageInterval, type PageTimers } from "#/src/game/page-interval.ts";
 import {
     type EngineSearch,
@@ -137,11 +137,10 @@ Deno.test("a page that never brings a game is given up on at the bound, once", (
     clock.tick(LOOKS_MAXIMUM - 2);
     assertEquals(told.abandoned, [], "a look short of the bound is still a look");
     clock.tick(1);
-    assertEquals(told.abandoned, [{
-        kind: ENGINE_FAILURE.searchAbandoned,
-        looks: LOOKS_MAXIMUM,
-        maximum: LOOKS_MAXIMUM,
-    }], "and the last look ends it, saying how many it took");
+    const [abandoned] = told.abandoned;
+    assertInstanceOf(abandoned, SearchAbandoned, "and the last look ends it");
+    assertStrictEquals(abandoned.looks, LOOKS_MAXIMUM, "saying how many it took");
+    assertStrictEquals(abandoned.maximum, LOOKS_MAXIMUM, "against the bound it stops at");
     clock.tick(1000);
     assertStrictEquals(told.abandoned.length, 1, "exactly once");
     assertStrictEquals(clock.cancels(), 1, "and the timer is let go of");

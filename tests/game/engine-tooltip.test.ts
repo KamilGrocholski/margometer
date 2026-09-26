@@ -6,8 +6,8 @@
  * and never the fight, because this runs inside the engine's own call stack.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { ok, RESULT_FAILURE } from "#/libs/result.ts";
+import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
+import * as errors from "#/libs/errors.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
     initPageTooltip,
@@ -53,7 +53,7 @@ Deno.test("a block lands on the fighter it was composed for, and on nobody else"
         composeWarrior(21, "Renegat 1", second),
     ]);
     const writing = initPageTooltip(page).writeRows(new Map([[11, ["MargoMeter"]]]));
-    assertEquals(writing, ok({ written: 1, asked: 1 }), "one block asked for, one landed");
+    assertEquals(writing, { written: 1, asked: 1 }, "one block asked for, one landed");
     assertEquals(first.text, `${THEIRS}<br>MargoMeter`, "under what the game composed");
     assertEquals(second.text, THEIRS, "and the fighter it was not composed for got nothing");
 });
@@ -190,7 +190,7 @@ Deno.test("a fighter left with nothing to say is left with what the game compose
     const { registry, writer } = composeOne();
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
     const writing = writer.writeRows(new Map([[11, []]]));
-    assertEquals(writing, ok({ written: 0, asked: 0 }), "nothing asked for, nothing standing");
+    assertEquals(writing, { written: 0, asked: 0 }, "nothing asked for, nothing standing");
     assertEquals(registry.text, THEIRS, "and the tooltip is the game's again");
     const fresh = composeOne();
     fresh.writer.writeRows(new Map([[11, []]]));
@@ -207,7 +207,7 @@ Deno.test("a client with no way to add to a tooltip takes no line, and says so",
     const page = composePage([composeWarrior(11, "Gracz 1", registry, { hasMethods: false })]);
     assertEquals(
         initPageTooltip(page).writeRows(new Map([[11, ["cokolwiek"]]])),
-        ok({ written: 0, asked: 1 }),
+        { written: 0, asked: 1 },
         "asked for one and landed none",
     );
     assertEquals(registry.text, THEIRS, "and nothing was written anywhere");
@@ -228,7 +228,7 @@ Deno.test("a fighter with no way to take a line costs their own line and nobody 
     const writing = initPageTooltip(page).writeRows(
         new Map([[11, ["a"]], [21, ["b"]], [31, ["c"]]]),
     );
-    assertEquals(writing, ok({ written: 2, asked: 3 }), "the two that could take one did");
+    assertEquals(writing, { written: 2, asked: 3 }, "the two that could take one did");
     assertEquals(
         registries.map((one) => one.appended),
         [[], ["b"], ["c"]],
@@ -245,7 +245,7 @@ Deno.test("any one of the four methods gone costs that fighter's line, and nobod
             composeWarrior(21, "Renegat 1", second),
         ]);
         const writing = initPageTooltip(page).writeRows(new Map([[11, ["a"]], [21, ["b"]]]));
-        assertEquals(writing, ok({ written: 1, asked: 2 }), `without ${method}, one of two`);
+        assertEquals(writing, { written: 1, asked: 2 }, `without ${method}, one of two`);
         assertEquals([first.appended, second.appended], [[], ["b"]], `past the one without it`);
     }
 });
@@ -312,7 +312,7 @@ Deno.test("a fighter the page has not drawn is stepped over, not thrown on", () 
         composeWarrior(21, "Renegat 1", second),
     ]);
     const writing = initPageTooltip(page).writeRows(new Map([[11, ["a"]], [21, ["b"]]]));
-    assertEquals(writing, ok({ written: 1, asked: 2 }), "the one that is drawn takes its line");
+    assertEquals(writing, { written: 1, asked: 2 }, "the one that is drawn takes its line");
     assertEquals(second.appended, ["b"], "and the other costs nothing");
 });
 
@@ -322,15 +322,15 @@ Deno.test("a call of theirs that throws costs the lines and never the fight", ()
         composeWarrior(11, "Gracz 1", registry, { doesThrowOnFind: true }),
     ]);
     const writing = initPageTooltip(page).writeRows(new Map([[11, ["cokolwiek"]]]));
-    assertStrictEquals(writing.ok, false, "the throw came back as the page's failure");
-    if (!writing.ok) assertStrictEquals(writing.error.kind, RESULT_FAILURE.foreignThrew);
+    assertInstanceOf(writing, Error, "the throw came back as the page's failure");
+    assertInstanceOf(writing, errors.Caught, "as the page's failure");
     assertEquals(registry.appended, [], "and did not leave this file with a line half written");
 });
 
 Deno.test("a page with no fight on it takes nothing, which is not a failure", () => {
     const rows = new Map([[11, ["a"]]]);
-    assertEquals(initPageTooltip({}).writeRows(rows), ok({ written: 0, asked: 1 }), "no game");
-    assertEquals(initPageTooltip(null).writeRows(rows), ok({ written: 0, asked: 1 }), "no page");
+    assertEquals(initPageTooltip({}).writeRows(rows), { written: 0, asked: 1 }, "no game");
+    assertEquals(initPageTooltip(null).writeRows(rows), { written: 0, asked: 1 }, "no page");
 });
 
 /**
@@ -362,7 +362,7 @@ Deno.test("the writer remembers one board's worth of fighters, however many figh
         );
         page.Engine.battle = board.Engine.battle;
         const writing = writer.writeRows(new Map(ids.map((id) => [id, ["MargoMeter"]])));
-        const whole = ok({ written: COMBATANTS_MAXIMUM, asked: COMBATANTS_MAXIMUM });
+        const whole = { written: COMBATANTS_MAXIMUM, asked: COMBATANTS_MAXIMUM };
         assertEquals(writing, whole, `fight ${fight} is written whole`);
     }
 });
@@ -370,7 +370,7 @@ Deno.test("the writer remembers one board's worth of fighters, however many figh
 /** **W5: zero is a boundary.** Nothing asked for is nothing written, and it is not an absence. */
 Deno.test("no block asked for is no block written, and the counts say both", () => {
     const { registry, writer } = composeOne();
-    assertEquals(writer.writeRows(new Map()), ok({ written: 0, asked: 0 }), "asked nothing");
+    assertEquals(writer.writeRows(new Map()), { written: 0, asked: 0 }, "asked nothing");
     assert(registry.appended.length === 0, "and wrote nothing");
     assertStrictEquals(registry.told, 0, "and told nothing");
 });
@@ -400,7 +400,7 @@ Deno.test("a throw part way through remembers every block that went on before it
     const page = composePage([composeWarrior(11, "Gracz 1", first), second]);
     const writer = initPageTooltip(page);
     const rows = new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]);
-    assertStrictEquals(writer.writeRows(rows).ok, false, "the walk stopped on the throw");
+    assertInstanceOf(writer.writeRows(rows), errors.Caught, "the walk stopped on the throw");
     assertEquals(first.appended.length, 2, "after the first fighter's block went on");
     isThrowing = false;
     writer.writeRows(rows);

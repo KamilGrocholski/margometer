@@ -4,26 +4,28 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { RESULT_FAILURE } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
 import { PANEL_DEFECT_KIND, PANEL_REGION } from "#/src/ui/panel-words.ts";
 
 /** Past this the ledger stops counting, restated here on purpose: it is not exported. */
 const COUNT_STATED = 1048576;
 
-const FIRST = { kind: RESULT_FAILURE.invariantBroken, cause: "first" } as const;
-const SECOND = { kind: RESULT_FAILURE.invariantBroken, cause: "second" } as const;
+const FIRST = new errors.Caught("first");
+const SECOND = new errors.Caught("second");
 
 Deno.test("the first defect of a kind writes one line, and the rest are counted", () => {
     const { ledger, lines } = composeLedger();
     ledger.add({ kind: DEFECT_KIND.reading, region: null, failure: FIRST });
-    assertEquals(lines, [[DEFECT_KIND.reading, FIRST]], "one line, with the failure beside it");
+    assertEquals(lines.map(([kind]) => kind), [DEFECT_KIND.reading], "one line");
+    assertStrictEquals(lines[0]?.[1], FIRST, "with the failure beside it");
     ledger.add({ kind: DEFECT_KIND.reading, region: null, failure: SECOND });
     ledger.add({ kind: DEFECT_KIND.reading, region: null, failure: SECOND });
     assertStrictEquals(lines.length, 1, "and no second line for the same kind");
     const counts = ledger.getCounts();
-    const row = { kind: DEFECT_KIND.reading, region: null, count: 3, first: FIRST };
-    assertEquals(counts, [row], "three, and the first");
+    const rows = counts.map(({ kind, region, count }) => ({ kind, region, count }));
+    assertEquals(rows, [{ kind: DEFECT_KIND.reading, region: null, count: 3 }], "three");
+    assertStrictEquals(counts[0]?.first, FIRST, "and the first");
 });
 
 function composeLedger() {
@@ -79,7 +81,8 @@ Deno.test("a kind drawn in two regions is two rows, and one line", () => {
     ledger.add({ kind: DEFECT_KIND.region, region: PANEL_REGION.list, failure: SECOND });
     const rows = ledger.getCounts().map((one) => [one.region, one.count]);
     assertEquals(rows, [[PANEL_REGION.list, 2], [PANEL_REGION.tip, 1]], "a row per region");
-    assertEquals(lines, [[DEFECT_KIND.region, FIRST]], "and the kind said once");
+    assertEquals(lines.map(([kind]) => kind), [DEFECT_KIND.region], "and the kind said once");
+    assertStrictEquals(lines[0]?.[1], FIRST, "with the first failure beside it");
 });
 
 /**

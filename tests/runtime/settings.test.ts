@@ -6,21 +6,29 @@
  * field. The stored text is the one `develop` writes, so a reader moving between the two keeps it.
  */
 
-import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
-import { err, ok } from "#/libs/result.ts";
+import {
+    assertEquals,
+    assertInstanceOf,
+    AssertionError,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
+import * as errors from "#/libs/errors.ts";
 import {
     initMemoryStore,
     initPageStore,
     type KeyValueStore,
-    STORE_FAILURE,
     STORE_KEY,
+    StoreRefused,
 } from "#/src/game/browser-store.ts";
 import {
     readStorageChoice,
     readWindowFold,
     readWindowPosition,
-    SETTING_FAILURE,
     SETTING_KEY,
+    type SettingKey,
+    SettingTooLong,
+    SettingUnreadable,
     STORAGE_DEFAULT,
     writeStorageChoice,
     writeWindowFold,
@@ -32,27 +40,37 @@ const REFUSAL = new DOMException("this browser forbids storage", "SecurityError"
 
 Deno.test("the store a reader chose reads back, and nothing chosen is the default", () => {
     const store = initMemoryStore();
-    assertEquals(readStorageChoice(store), ok(STORAGE_DEFAULT), "nothing stored is the default");
+    assertEquals(readStorageChoice(store), STORAGE_DEFAULT, "nothing stored is the default");
     assertStrictEquals(STORAGE_DEFAULT, STORAGE_CHOICE.local, "which is the browser's own store");
     for (const choice of Object.values(STORAGE_CHOICE)) {
         writeStorageChoice(store, choice);
-        assertEquals(readStorageChoice(store), ok(choice), `${choice} reads back as itself`);
-        assertEquals(store.read(STORE_KEY.storage), ok(choice), "and is stored as its own word");
+        assertEquals(readStorageChoice(store), choice, `${choice} reads back as itself`);
+        assertEquals(store.read(STORE_KEY.storage), choice, "and is stored as its own word");
     }
 });
 
 Deno.test("a choice nobody here wrote is refused by name, and a store's refusal passes on", () => {
     const store = initMemoryStore();
     store.write(STORE_KEY.storage, "cloud");
-    const unreadable = err({ kind: SETTING_FAILURE.unreadable, key: SETTING_KEY.storage });
-    assertEquals(readStorageChoice(store), unreadable, "a word outside the vocabulary");
+    const key = SETTING_KEY.storage;
+    expectSettingUnreadable(readStorageChoice(store), key, "a word outside the vocabulary");
     store.write(STORE_KEY.storage, "");
-    assertEquals(readStorageChoice(store), unreadable, "and the empty word is not one either");
-    const refused = err({ kind: STORE_FAILURE.refused, cause: REFUSAL });
-    assertEquals(readStorageChoice(composeRefusingStore()), refused, "the store's answer is kept");
+    expectSettingUnreadable(readStorageChoice(store), key, "and the empty word is not one either");
+    expectStoreRefused(readStorageChoice(composeRefusingStore()), "the store's answer is kept");
     const written = writeStorageChoice(composeRefusingStore(), STORAGE_CHOICE.session);
-    assertEquals(written, refused, "on writing too");
+    expectStoreRefused(written, "on writing too");
 });
+
+function expectSettingUnreadable(read: unknown, key: SettingKey, message: string): void {
+    assertInstanceOf(read, SettingUnreadable, message);
+    assertStrictEquals(read.key, key, `${message}, naming our field`);
+}
+
+function expectStoreRefused(read: unknown, message: string): void {
+    assertInstanceOf(read, StoreRefused, message);
+    assertInstanceOf(read.cause, errors.Caught, `${message}, as a throw caught`);
+    assertStrictEquals(read.cause.cause, REFUSAL, `${message}, carrying what the store threw`);
+}
 
 function composeRefusingStore(): KeyValueStore {
     const refuse = (): never => {
@@ -63,37 +81,36 @@ function composeRefusingStore(): KeyValueStore {
 
 Deno.test("a fold is the one mark, and anything else stored there is not read as one", () => {
     const store = initMemoryStore();
-    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), ok(false), "nothing stored: unfolded");
+    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), false, "nothing stored: unfolded");
     writeWindowFold(store, PANEL_WINDOW.panel, true);
-    assertEquals(store.read(STORE_KEY.panelFolded), ok("1"), "a fold is stored as the mark");
-    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), ok(true), "and reads back folded");
+    assertEquals(store.read(STORE_KEY.panelFolded), "1", "a fold is stored as the mark");
+    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), true, "and reads back folded");
     writeWindowFold(store, PANEL_WINDOW.panel, false);
-    assertEquals(store.read(STORE_KEY.panelFolded), ok(""), "an unfolding leaves empty text");
-    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), ok(false), "which reads unfolded");
+    assertEquals(store.read(STORE_KEY.panelFolded), "", "an unfolding leaves empty text");
+    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), false, "which reads unfolded");
     store.write(STORE_KEY.panelFolded, "yes");
-    assertEquals(
+    expectSettingUnreadable(
         readWindowFold(store, PANEL_WINDOW.panel),
-        err({ kind: SETTING_FAILURE.unreadable, key: SETTING_KEY.panelFolded }),
+        SETTING_KEY.panelFolded,
         "a word nobody here wrote is refused, naming the panel's fold",
     );
-    const refused = err({ kind: STORE_FAILURE.refused, cause: REFUSAL });
-    assertEquals(readWindowFold(composeRefusingStore(), PANEL_WINDOW.helper), refused, "passed on");
+    expectStoreRefused(readWindowFold(composeRefusingStore(), PANEL_WINDOW.helper), "passed on");
 });
 
 /** Two windows, two folds: one mark over both would put away the wrong window. */
 Deno.test("each window's fold and place are under keys of their own", () => {
     const store = initMemoryStore();
     writeWindowFold(store, PANEL_WINDOW.helper, true);
-    assertEquals(store.read(STORE_KEY.helperFolded), ok("1"), "the helper's fold is its own key");
-    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), ok(false), "the panel stays open");
-    assertEquals(readWindowFold(store, PANEL_WINDOW.helper), ok(true), "the helper is folded");
+    assertEquals(store.read(STORE_KEY.helperFolded), "1", "the helper's fold is its own key");
+    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), false, "the panel stays open");
+    assertEquals(readWindowFold(store, PANEL_WINDOW.helper), true, "the helper is folded");
     writeWindowPosition(store, PANEL_WINDOW.helper, { left: 5, top: 6 });
-    assertEquals(store.read(STORE_KEY.helperPlace), ok('{"left":5,"top":6}'), "its own place");
-    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), ok(null), "and not the panel's");
+    assertEquals(store.read(STORE_KEY.helperPlace), '{"left":5,"top":6}', "its own place");
+    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), null, "and not the panel's");
     store.write(STORE_KEY.helperFolded, "?");
-    assertEquals(
+    expectSettingUnreadable(
         readWindowFold(store, PANEL_WINDOW.helper),
-        err({ kind: SETTING_FAILURE.unreadable, key: SETTING_KEY.helperFolded }),
+        SETTING_KEY.helperFolded,
         "a failure names the helper's own fold",
     );
 });
@@ -101,11 +118,10 @@ Deno.test("each window's fold and place are under keys of their own", () => {
 Deno.test("a position survives a reload, and nothing else is read as one", () => {
     const store = initMemoryStore();
     writeWindowPosition(store, PANEL_WINDOW.panel, { left: 12, top: 34 });
-    assertEquals(store.read(STORE_KEY.panelPlace), ok('{"left":12,"top":34}'), "as develop does");
-    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), ok({ left: 12, top: 34 }), "back");
+    assertEquals(store.read(STORE_KEY.panelPlace), '{"left":12,"top":34}', "as develop does");
+    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), { left: 12, top: 34 }, "back");
     writeWindowPosition(store, PANEL_WINDOW.panel, { left: -3, top: 0 });
-    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), ok({ left: -3, top: 0 }), "zero");
-    const unreadable = err({ kind: SETTING_FAILURE.unreadable, key: SETTING_KEY.panelPosition });
+    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), { left: -3, top: 0 }, "zero");
     const samples: [string, string][] = [
         ["", "nothing stored as empty text is no position"],
         ["{", "and neither is text that was cut short"],
@@ -117,7 +133,8 @@ Deno.test("a position survives a reload, and nothing else is read as one", () =>
     ];
     for (const [text, message] of samples) {
         store.write(STORE_KEY.panelPlace, text);
-        assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), unreadable, message);
+        const read = readWindowPosition(store, PANEL_WINDOW.panel);
+        expectSettingUnreadable(read, SETTING_KEY.panelPosition, message);
     }
 });
 
@@ -128,13 +145,11 @@ Deno.test("a position is refused past its length, and read up to it", () => {
         return `${body}${" ".repeat(length - body.length)}`;
     };
     store.write(STORE_KEY.panelPlace, padded(4096));
-    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), ok({ left: 1, top: 2 }), "at it");
+    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), { left: 1, top: 2 }, "at it");
     store.write(STORE_KEY.panelPlace, padded(4097));
-    assertEquals(
-        readWindowPosition(store, PANEL_WINDOW.panel),
-        err({ kind: SETTING_FAILURE.tooLong, key: SETTING_KEY.panelPosition }),
-        "one past it is too long, and is not parsed",
-    );
+    const past = readWindowPosition(store, PANEL_WINDOW.panel);
+    assertInstanceOf(past, SettingTooLong, "one past it is too long, and is not parsed");
+    assertStrictEquals(past.key, SETTING_KEY.panelPosition, "naming the panel's place");
 });
 
 /** A position that is not two whole numbers is the caller's bug, never text nobody can read. */
@@ -144,5 +159,5 @@ Deno.test("a position that is not two whole numbers is never written down", () =
     assertThrows(() => writeWindowPosition(store, PANEL_WINDOW.panel, fraction), AssertionError);
     const notANumber = { left: 0, top: Number.NaN };
     assertThrows(() => writeWindowPosition(store, PANEL_WINDOW.panel, notANumber), AssertionError);
-    assertEquals(store.read(STORE_KEY.panelPlace), ok(null), "and nothing reached the store");
+    assertEquals(store.read(STORE_KEY.panelPlace), null, "and nothing reached the store");
 });

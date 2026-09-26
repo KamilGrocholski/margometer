@@ -7,7 +7,6 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, type Fault, ok, type Result } from "#/libs/result.ts";
 import { parseDecimal, parseInteger } from "#/libs/number-text.ts";
 import {
     type AnnouncedSkill,
@@ -66,17 +65,34 @@ export interface MessageDecoded {
     standing: AnnouncementStanding;
 }
 
-export const DECODE_FAILURE = { unread: "unread" } as const;
-
-export interface UnreadMessage extends Fault {
-    kind: typeof DECODE_FAILURE.unread;
-    cause: UnreadCause;
+export interface UnreadReading {
+    unreadCause: UnreadCause;
     keys: readonly string[];
     combatantIds: readonly number[];
     text: string;
     /** What was read beside the unread keys: a blow with a new proc keeps its damage. */
     events: readonly BattleEvent[];
     standing: AnnouncementStanding;
+}
+
+export class UnreadMessage extends Error implements UnreadReading {
+    override readonly name = "UnreadMessage";
+    readonly unreadCause: UnreadCause;
+    readonly keys: readonly string[];
+    readonly combatantIds: readonly number[];
+    readonly text: string;
+    readonly events: readonly BattleEvent[];
+    readonly standing: AnnouncementStanding;
+
+    constructor(reading: UnreadReading) {
+        super();
+        this.unreadCause = reading.unreadCause;
+        this.keys = reading.keys;
+        this.combatantIds = reading.combatantIds;
+        this.text = reading.text;
+        this.events = reading.events;
+        this.standing = reading.standing;
+    }
 }
 
 export interface PayloadDecoded {
@@ -191,14 +207,13 @@ export function decodePayloadMessages(
     let standing = context.standing;
     for (const text of texts) {
         const decoded = decodeMessage(text, { ...context, standing });
-        if (decoded.ok) {
-            events.push(...decoded.value.events);
-            standing = decoded.value.standing;
-            continue;
+        if (decoded instanceof Error) {
+            events.push(...decoded.events, decodePayloadMessagesUnknown(decoded));
+            unread.push(decoded);
+        } else {
+            events.push(...decoded.events);
         }
-        events.push(...decoded.error.events, decodePayloadMessagesUnknown(decoded.error));
-        unread.push(decoded.error);
-        standing = decoded.error.standing;
+        standing = decoded.standing;
     }
     assert(events.length >= texts.length, "every message leaves at least one event behind");
     assert(unread.length <= texts.length, "and at most one unread record");
@@ -211,7 +226,7 @@ function decodePayloadMessagesUnknown(unread: UnreadMessage): UnknownMessageEven
     return {
         kind: BATTLE_EVENT.unknownMessage,
         message: unread.text,
-        unreadCause: unread.cause,
+        unreadCause: unread.unreadCause,
         unreadKeys: unread.keys,
         combatantIds: unread.combatantIds,
     };
@@ -220,15 +235,20 @@ function decodePayloadMessagesUnknown(unread: UnreadMessage): UnknownMessageEven
 export function decodeMessage(
     text: string,
     context: DecodeContext,
-): Result<MessageDecoded, UnreadMessage> {
-    const parsed = parseProtocolMessage(text);
-    if (!parsed.ok) {
+): MessageDecoded | UnreadMessage {
+    const message = parseProtocolMessage(text);
+    if (message instanceof Error) {
         const standing = composeStandingAfterMessage(context, [], null);
-        const cause: UnreadCause = UNREAD_CAUSE.grammarRefused;
-        const refused = { cause, keys: [], combatantIds: [], text, events: [], standing };
-        return err({ kind: DECODE_FAILURE.unread, ...refused });
+        const unreadCause: UnreadCause = UNREAD_CAUSE.grammarRefused;
+        return new UnreadMessage({
+            unreadCause,
+            keys: [],
+            combatantIds: [],
+            text,
+            events: [],
+            standing,
+        });
     }
-    const message = parsed.value;
     const reading = decodeMessageReading(message);
     const isBlow = hasAttackFigure(reading);
     const announced = lookupAnnouncedForMessage(message, reading.skill, context.standing, isBlow);
@@ -239,15 +259,16 @@ export function decodeMessage(
     assert(events.length <= message.parameters.length, "a message stays inside its bound");
     if (reading.unreadKeys.length > 0) {
         const combatantIds = getNamedCombatantIds(message);
-        const unread = { cause: UNREAD_CAUSE.unknownKey, keys: reading.unreadKeys, combatantIds };
-        return err({ kind: DECODE_FAILURE.unread, ...unread, text, events, standing });
+        const unreadCause = UNREAD_CAUSE.unknownKey;
+        const keys = reading.unreadKeys;
+        return new UnreadMessage({ unreadCause, keys, combatantIds, text, events, standing });
     }
     if (events.length === 0) {
         const combatantIds = getNamedCombatantIds(message);
-        const empty = { cause: UNREAD_CAUSE.noParameter, keys: [], combatantIds, events };
-        return err({ kind: DECODE_FAILURE.unread, ...empty, text, standing });
+        const unreadCause = UNREAD_CAUSE.noParameter;
+        return new UnreadMessage({ unreadCause, keys: [], combatantIds, text, events, standing });
     }
-    return ok({ events, standing });
+    return { events, standing };
 }
 
 /**

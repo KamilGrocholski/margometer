@@ -1,7 +1,7 @@
 /**
- * E4: what the bundle carries catches broadly in `callForeign` and `runGuarded` and nowhere else,
- * and each of the two still does. Read both ways, because a reader proved only on what it must flag
- * calls the tree clean once the two have moved. `tools/` catches at the network and at a
+ * E4: what the bundle carries catches broadly in `attempt` and nowhere else, and `attempt` still
+ * does. Read both ways, because a reader proved only on what it must flag calls the tree clean once
+ * the catch has moved. `tools/` catches at the network and at a
  * subprocess (E5), which is a judgement of what a `try` holds, and no reader here makes it.
  */
 
@@ -15,13 +15,13 @@ import {
     type SourceFile,
 } from "#/tests/source-tree.ts";
 
-const GUARD_PATH = "libs/result.ts";
-const BROAD_CATCHES = [`${GUARD_PATH} callForeign`, `${GUARD_PATH} runGuarded`];
+const GUARD_PATH = "libs/errors.ts";
+const BROAD_CATCHES = [`${GUARD_PATH} attempt`];
 const ANONYMOUS = "(a function with no name)";
 
 Deno.test("a catch is read as the function it stands in, and a finally is not a catch", () => {
     const sample = composeSample([
-        "function callForeign(call) {",
+        "function attempt(call) {",
         "    try { return call(); } catch (cause) { return cause; }",
         "}",
         "function draw() { try { paint(); } finally { done(); } }",
@@ -29,7 +29,7 @@ Deno.test("a catch is read as the function it stands in, and a finally is not a 
     ]);
     assertEquals(
         lookupCatchPlaces(sample),
-        ["sample.ts callForeign", `sample.ts ${ANONYMOUS}`],
+        ["sample.ts attempt", `sample.ts ${ANONYMOUS}`],
         "the named one, and the closure rather than the function holding it",
     );
 });
@@ -42,6 +42,6 @@ function lookupCatchPlaces(file: SourceFile): string[] {
     });
 }
 
-Deno.test("the bundle catches broadly in the two functions E4 names, and each still does", () => {
+Deno.test("the bundle catches broadly in the one function E4 names, and it still does", () => {
     assertEquals(readBundleFiles().flatMap(lookupCatchPlaces), BROAD_CATCHES, "E4");
 });

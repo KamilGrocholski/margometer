@@ -6,7 +6,7 @@
  */
 
 import { parseInteger } from "#/libs/number-text.ts";
-import { callForeign, err, ok, type Result } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import {
     type FieldKeys,
     getNumberField,
@@ -17,10 +17,10 @@ import {
 } from "#/libs/unknown-value.ts";
 import { readPageEngines } from "./engine-battle.ts";
 import type { FightPlace } from "./fight-place.ts";
-import { PAGE_READ_FAILURE, PAGE_READING, type PageReadFailure } from "./page-reading.ts";
+import { PAGE_READING, type PageReadFailure, PageReadingAbsent } from "./page-reading.ts";
 
 export interface PlacePort {
-    readPlace(): Result<FightPlace, PageReadFailure>;
+    readPlace(): FightPlace | PageReadFailure;
 }
 
 /**
@@ -39,12 +39,12 @@ const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "name", x: "x", y: "y" };
 export function initPagePlace(page: unknown): PlacePort {
     return {
         readPlace() {
-            const read = callForeign(() => readPageEngines(page).map(readEnginePlace));
-            if (!read.ok) return read;
-            for (const place of read.value) {
-                if (place !== null) return ok(place);
+            const read = errors.attempt(() => readPageEngines(page).map(readEnginePlace));
+            if (read instanceof Error) return read;
+            for (const place of read) {
+                if (place !== null) return place;
             }
-            return err({ kind: PAGE_READ_FAILURE.absent, reading: PAGE_READING.place });
+            return new PageReadingAbsent(PAGE_READING.place);
         },
     };
 }
@@ -56,7 +56,7 @@ function readEnginePlace(engine: UnknownRecord): FightPlace | null {
     let mapName: string | null = null;
     if (map !== null) {
         const name = getStatedTextField(map, PLACE_FIELDS, "mapName");
-        if (name.ok) mapName = name.value;
+        if (!(name instanceof Error)) mapName = name;
     }
     const x = hero === null ? null : readCoordinate(hero, "x");
     const y = hero === null ? null : readCoordinate(hero, "y");
@@ -68,20 +68,20 @@ function readEnginePlace(engine: UnknownRecord): FightPlace | null {
 
 function readEngineData(engine: UnknownRecord, field: EngineField): UnknownRecord | null {
     const held = getRecordField(engine, ENGINE_FIELDS, field);
-    if (!held.ok) return null;
-    if (held.value === null) return null;
-    const data = getRecordField(held.value, HELD_FIELDS, "data");
-    if (!data.ok) return null;
-    return data.value;
+    if (held instanceof Error) return null;
+    if (held === null) return null;
+    const data = getRecordField(held, HELD_FIELDS, "data");
+    if (data instanceof Error) return null;
+    return data;
 }
 
 /** Either spelling, because the client itself does arithmetic on one and compares the other. */
 function readCoordinate(hero: UnknownRecord, field: "x" | "y"): number | null {
     const text = getTextField(hero, PLACE_FIELDS, field);
-    if (text.ok) {
-        if (text.value !== null) return parseInteger(text.value);
+    if (!(text instanceof Error)) {
+        if (text !== null) return parseInteger(text);
     }
     const stated = getNumberField(hero, PLACE_FIELDS, field);
-    if (!stated.ok) return null;
-    return stated.value;
+    if (stated instanceof Error) return null;
+    return stated;
 }

@@ -8,7 +8,6 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, ok, type Result } from "#/libs/result.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { type BattleEvent, UNREAD_CAUSE, type UnreadCause } from "./battle-event.ts";
 import {
@@ -101,17 +100,44 @@ export interface FightView {
     turnsByCombatantId: ReadonlyMap<number, number>;
 }
 
-export const SESSION_FAILURE = {
-    castExceeded: "cast-exceeded",
-    eventsExceeded: "events-exceeded",
-    payloadsExceeded: "payloads-exceeded",
-} as const;
+export class CastExceeded extends Error {
+    override readonly name = "CastExceeded";
+    readonly count: number;
+    readonly maximum: number;
+
+    constructor(count: number, maximum: number) {
+        super();
+        this.count = count;
+        this.maximum = maximum;
+    }
+}
+
+export class EventsExceeded extends Error {
+    override readonly name = "EventsExceeded";
+    readonly count: number;
+    readonly maximum: number;
+
+    constructor(count: number, maximum: number) {
+        super();
+        this.count = count;
+        this.maximum = maximum;
+    }
+}
+
+export class PayloadsExceeded extends Error {
+    override readonly name = "PayloadsExceeded";
+    readonly count: number;
+    readonly maximum: number;
+
+    constructor(count: number, maximum: number) {
+        super();
+        this.count = count;
+        this.maximum = maximum;
+    }
+}
 
 /** A fight past a bound the options state. What stands is left whole. */
-export type PayloadRejected =
-    | { kind: typeof SESSION_FAILURE.castExceeded; count: number; maximum: number }
-    | { kind: typeof SESSION_FAILURE.eventsExceeded; count: number; maximum: number }
-    | { kind: typeof SESSION_FAILURE.payloadsExceeded; count: number; maximum: number };
+export type PayloadRejected = CastExceeded | EventsExceeded | PayloadsExceeded;
 
 /** Everything a payload leaves standing, but the events, which are appended rather than copied. */
 interface SessionStanding {
@@ -188,32 +214,28 @@ export function preparePayload(
     session: FightSession,
     record: PayloadRecord,
     tables: DecoderTables,
-): Result<PreparedPayload, PayloadRejected> {
+): PreparedPayload | PayloadRejected {
     const before = record.isInit ? null : session.standing;
     const eventsBefore = before === null ? 0 : session.events.length;
     const payloadsApplied = (before?.payloadsApplied ?? 0) + 1;
     const options = session.options;
     if (payloadsApplied > options.payloadsMaximum) {
-        const maximum = options.payloadsMaximum;
-        return err({ kind: SESSION_FAILURE.payloadsExceeded, count: payloadsApplied, maximum });
+        return new PayloadsExceeded(payloadsApplied, options.payloadsMaximum);
     }
     const combatants = preparePayloadCast(before?.combatants ?? [], record.combatants);
     if (combatants.length > options.combatantsMaximum) {
-        const count = combatants.length;
-        const maximum = options.combatantsMaximum;
-        return err({ kind: SESSION_FAILURE.castExceeded, count, maximum });
+        return new CastExceeded(combatants.length, options.combatantsMaximum);
     }
     const roster = indexCombatantRoster(combatants);
     const decoded = decodePayloadMessages(record.messages, { roster, standing: null, tables });
     const eventsAfter = eventsBefore + decoded.events.length;
     if (eventsAfter > options.eventsMaximum) {
-        const maximum = options.eventsMaximum;
-        return err({ kind: SESSION_FAILURE.eventsExceeded, count: eventsAfter, maximum });
+        return new EventsExceeded(eventsAfter, options.eventsMaximum);
     }
     const next = preparePayloadStanding(before, record, decoded, combatants);
     assert(next.payloadsApplied === payloadsApplied, "a payload prepared is counted once");
     const payloadIndex = before?.payloadsApplied ?? 0;
-    return ok({ payloadIndex, isOpening: before === null, decoded, next });
+    return { payloadIndex, isOpening: before === null, decoded, next };
 }
 
 /**
@@ -276,7 +298,7 @@ function preparePayloadStanding(
 
 function preparePayloadUnread(before: UnreadCounts, decoded: PayloadDecoded): UnreadCounts {
     const counts = { ...before };
-    for (const unread of decoded.unread) counts[unread.cause] += 1;
+    for (const unread of decoded.unread) counts[unread.unreadCause] += 1;
     assert(decoded.unread.length <= decoded.events.length, "an unread message is an event too");
     return counts;
 }

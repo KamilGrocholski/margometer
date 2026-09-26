@@ -6,7 +6,7 @@
  * frame drew, and every kind of failure the console heard.
  */
 
-import { assert } from "@std/assert";
+import { assert, AssertionError } from "@std/assert";
 import { randomSeeded } from "@std/random";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { FAILURE_FATES } from "#/src/runtime/failure-fate.ts";
@@ -37,8 +37,10 @@ export interface SimulationReport {
     hasThrownIntoGame: boolean;
     /** What the ranking says after the last frame, which is what a fault must never move. */
     ranking: string;
-    /** Every kind of failure the console was told, once each, in the order it was first told. */
+    /** Every kind of failure the console was told, by its class's `name`, once each, in order. */
     kindsSaid: string[];
+    /** Whether a failure the console was told stands, anywhere down its causes, on an assertion. */
+    hasInvariantBroken: boolean;
     /** Those kinds `FAILURE_FATES` holds no fate for: a failure that met none. */
     unhandledKinds: string[];
     faultsInjected: number;
@@ -54,6 +56,8 @@ export const FAULT_FREE: Omit<FaultPlan, "seed"> = {
 const PERCENT = 100;
 const FAILURE_KINDS: readonly string[] = Object.keys(FAILURE_FATES);
 const NO_KIND = "no kind stated";
+/** Deeper than any failure of ours wraps another: a page's throw sits two causes down at most. */
+const CAUSES_MAXIMUM = 8;
 
 export function runSimulation(plan: FaultPlan, updates: readonly unknown[]): SimulationReport {
     assert(Number.isSafeInteger(plan.seed), "a simulation is drawn from a whole seed");
@@ -86,6 +90,7 @@ export function runSimulation(plan: FaultPlan, updates: readonly unknown[]): Sim
         hasThrownIntoGame,
         ranking: readSimulationRanking(window),
         kindsSaid,
+        hasInvariantBroken: window.lines.some((line) => isInvariantBroken(line[1])),
         unhandledKinds: kindsSaid.filter((kind) => !FAILURE_KINDS.includes(kind)),
         faultsInjected,
     };
@@ -119,16 +124,26 @@ function callSimulationGame(window: FakeWindow, payload: unknown): void {
     Reflect.apply(updateData, battle, [payload]);
 }
 
-/** The failure each console line carried, by its `kind`; a line with none is its own finding. */
+/** The failure each console line carried, by its `name`; a line with none is its own finding. */
 function readSimulationKinds(window: FakeWindow): string[] {
     const kinds: string[] = [];
     for (const line of window.lines) {
         const detail = line[1];
-        const kind = isRecord(detail) ? detail.kind : undefined;
-        const said = typeof kind === "string" ? kind : NO_KIND;
+        const said = detail instanceof Error ? detail.name : NO_KIND;
         if (!kinds.includes(said)) kinds.push(said);
     }
     return kinds;
+}
+
+/** An assertion of ours, found by walking the failure's causes down to what was thrown. */
+function isInvariantBroken(detail: unknown): boolean {
+    let cause = detail;
+    for (let depth = 0; depth < CAUSES_MAXIMUM; depth += 1) {
+        if (cause instanceof AssertionError) return true;
+        if (!(cause instanceof Error)) return false;
+        cause = cause.cause;
+    }
+    assert(false, "a failure wraps no deeper than its stated bound");
 }
 
 /** The panel is the node offered to the body, whether the body took it on that frame or not. */

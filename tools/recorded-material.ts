@@ -8,7 +8,7 @@
 
 import { assert, assertStrictEquals } from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import { type PayloadRecord, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
@@ -70,21 +70,21 @@ export function readRecordedMaterial(paths: readonly string[]): RecordedMaterial
 
 function readRecordingFile(path: string): RecordedFight {
     assert(path.length > 0, "a recording is opened from somewhere");
-    const text = callForeign(() => Deno.readTextFileSync(path));
-    if (!text.ok) {
+    const text = errors.attempt(() => Deno.readTextFileSync(path));
+    if (text instanceof Error) {
         throw new RecordingReadError(`${path} is not a file this tool can open`, {
-            cause: text.error.cause,
+            cause: text,
         });
     }
-    const document = parseJson(text.value);
-    if (!document.ok) {
-        throw new RecordingReadError(`${path} is not JSON`, { cause: document.error });
+    const document = parseJson(text);
+    if (document instanceof Error) {
+        throw new RecordingReadError(`${path} is not JSON`, { cause: document });
     }
-    if (!isRecord(document.value)) throw new RecordingReadError(`${path} is not a record`);
-    if (!Array.isArray(document.value[FILE_FIELD.calls])) {
+    if (!isRecord(document)) throw new RecordingReadError(`${path} is not a record`);
+    if (!Array.isArray(document[FILE_FIELD.calls])) {
         throw new RecordingReadError(`${path} lists no calls`);
     }
-    return readRecordedFight(path, document.value);
+    return readRecordedFight(path, document);
 }
 
 /** Every fight of the material, read as the add-on reads it, or a refusal naming the file. */
@@ -102,15 +102,16 @@ function replayRecordedCalls(fight: RecordedFight, count: number): KeptReading {
     assert(count <= fight.updates.length, "and from no call the recording does not carry");
     const updates = fight.updates.slice(0, count);
     const reading = replayFightPayloads(updates, DECODER_TABLES, SESSION_OPTIONS);
-    if (!reading.ok) {
+    if (reading instanceof Error) {
         throw new RecordingReadError(
-            `${fight.path}: the add-on refused a call, ${reading.error.kind}`,
+            `${fight.path}: the add-on refused a call, ${reading.name}`,
+            { cause: reading },
         );
     }
-    if (reading.value === null) {
+    if (reading === null) {
         throw new RecordingReadError(`${fight.path} carries no payload the add-on would read`);
     }
-    return reading.value;
+    return reading;
 }
 
 /**
@@ -141,11 +142,11 @@ export function replayRecordedSteps(fight: RecordedFight): ReplayedStep[] {
     const steps: ReplayedStep[] = [];
     for (const [index, update] of fight.updates.entries()) {
         const record = readPayloadEnvelope(update);
-        if (!record.ok) {
+        if (record instanceof Error) {
             throw new RecordingReadError(`${fight.path}: the envelope refused call ${index}`);
         }
         const reading = replayRecordedCalls(fight, index + 1);
-        steps.push({ update, record: record.value, reading });
+        steps.push({ update, record: record, reading });
     }
     assertStrictEquals(steps.length, fight.updates.length, "every call is a step");
     return steps;

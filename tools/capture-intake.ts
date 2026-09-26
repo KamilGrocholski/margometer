@@ -13,7 +13,7 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { parseInteger } from "#/libs/number-text.ts";
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { WARRIOR_FIELDS } from "#/src/game/engine-warrior.ts";
 import { ENVELOPE_KEYS } from "#/src/game/payload-envelope.ts";
@@ -145,13 +145,13 @@ export function composeIntake(recording: unknown): Intake {
         [REMOVED_COUNT]: readCarriedCount(described.recording, REMOVED_COUNT) + described.removed,
     };
     const text = encodeJson(written, INDENT_SPACES);
-    if (!text.ok) {
+    if (text instanceof Error) {
         throw new CaptureIntakeError("the redacted recording would not be written as text", {
-            cause: text.error,
+            cause: text,
         });
     }
     return {
-        text: `${text.value}\n`,
+        text: `${text}\n`,
         recording: written,
         changed: named.changed,
         removed: described.removed,
@@ -469,12 +469,12 @@ export function requireRecordingIsNew(
 
 function encodeRequiredJson(value: unknown): string {
     const text = encodeJson(value, 0);
-    if (!text.ok) {
+    if (text instanceof Error) {
         throw new CaptureIntakeError("a payload cannot be written as text to compare", {
-            cause: text.error,
+            cause: text,
         });
     }
-    return text.value;
+    return text;
 }
 
 /** The name the material is filed under: day, world, slug, game build and add-on version. */
@@ -564,21 +564,25 @@ export function isSlugText(text: string): boolean {
 /** Read, checked, redacted and written; what was substituted goes to the screen and nowhere else. */
 export function writeIntake(source: string, slug: string): string {
     assert(source.length > 0, "a recording is read from somewhere");
-    const text = callForeign(() => Deno.readTextFileSync(source));
-    if (!text.ok) {
-        throw new CaptureIntakeError(`${source} cannot be read`, { cause: text.error.cause });
+    const text = errors.attempt(() => Deno.readTextFileSync(source));
+    if (text instanceof Error) {
+        throw new CaptureIntakeError(`${source} cannot be read`, { cause: text });
     }
-    const parsed = parseJson(text.value);
-    if (!parsed.ok) throw new CaptureIntakeError(`${source} is not JSON`, { cause: parsed.error });
+    const parsed = parseJson(text);
+    if (parsed instanceof Error) {
+        throw new CaptureIntakeError(`${source} is not JSON`, { cause: parsed });
+    }
     // Spelled in English before anything is asked of it, and refused for carrying nothing before
     // it is refused for a world it never got as far as stating.
-    const recording = composeRecordingInEnglish(parsed.value);
+    const recording = composeRecordingInEnglish(parsed);
     requireCallsCarried(recording);
     requireSnapshotsCarried(source, recording);
     const target = `${RECORDINGS_DIRECTORY}${composeIntakeName(recording, slug)}`;
     // Material is never overwritten: a recording already here is evidence a test stands on.
-    const standing = callForeign(() => Deno.statSync(target));
-    if (standing.ok) throw new CaptureIntakeError(`${target} already exists — nothing overwritten`);
+    const standing = errors.attempt(() => Deno.statSync(target));
+    if (!(standing instanceof Error)) {
+        throw new CaptureIntakeError(`${target} already exists — nothing overwritten`);
+    }
     const intake = composeIntake(recording);
     requireRecordingIsNew(source, intake.recording, readRecordedFights());
     Deno.writeTextFileSync(target, intake.text);

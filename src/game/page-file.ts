@@ -9,28 +9,22 @@
  */
 
 import { assert } from "@std/assert/assert";
-import {
-    callForeign,
-    err,
-    type ForeignFailure,
-    ok,
-    type Result,
-    runGuarded,
-} from "#/libs/result.ts";
-import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import * as errors from "#/libs/errors.ts";
 
 export interface FileSink {
     /** The release lands on the browser's clock later, so its failure is handed back apart. */
     writeFile(
         name: string,
         text: string,
-        onLateFailure: (failure: ForeignFailure) => void,
-    ): Result<void, FileFailure>;
+        onLateFailure: (failure: errors.Caught) => void,
+    ): undefined | FileFailure;
 }
 
-export const FILE_SINK_FAILURE = { apiAbsent: "file-api-absent" } as const;
-export type FileSinkFailureKind = VocabularyWord<typeof FILE_SINK_FAILURE>;
-export type FileFailure = { kind: typeof FILE_SINK_FAILURE.apiAbsent } | ForeignFailure;
+export class FileApiAbsent extends Error {
+    override readonly name = "FileApiAbsent";
+}
+
+export type FileFailure = FileApiAbsent | errors.Caught;
 
 /** The whole of what this asks a page for. A browser's `window` and `document` satisfy it. */
 export interface PageDownloads {
@@ -60,22 +54,22 @@ export function initPageFile(downloads: PageDownloads | null): FileSink {
         writeFile(name, text, onLateFailure) {
             assert(name.length > 0, "a file handed over is named");
             assert(text.length > 0, "and says something");
-            if (downloads === null) return err({ kind: FILE_SINK_FAILURE.apiAbsent });
-            const url = callForeign(() => {
+            if (downloads === null) return new FileApiAbsent();
+            const url = errors.attempt(() => {
                 return downloads.createObjectURL(downloads.createBlob(text, FILE_TYPE));
             });
-            if (!url.ok) return url;
-            const clicked = callForeign(() => writePageFileAnchor(downloads, url.value, name));
+            if (url instanceof Error) return url;
+            const clicked = errors.attempt(() => writePageFileAnchor(downloads, url, name));
             // The clock is the browser's, so the release is guarded where it is handed over (E10).
             const release = (): void => {
-                const revoked = callForeign(() => downloads.revokeObjectURL(url.value));
-                if (!revoked.ok) void runGuarded(() => onLateFailure(revoked.error));
+                const revoked = errors.attempt(() => downloads.revokeObjectURL(url));
+                if (revoked instanceof Error) void errors.attempt(() => onLateFailure(revoked));
             };
-            const scheduled = callForeign(() => downloads.setTimeout(release, 0));
-            if (!scheduled.ok) return scheduled;
-            if (!clicked.ok) return clicked;
-            if (!clicked.value) return err({ kind: FILE_SINK_FAILURE.apiAbsent });
-            return ok(undefined);
+            const scheduled = errors.attempt(() => downloads.setTimeout(release, 0));
+            if (scheduled instanceof Error) return scheduled;
+            if (clicked instanceof Error) return clicked;
+            if (!clicked) return new FileApiAbsent();
+            return undefined;
         },
     };
 }

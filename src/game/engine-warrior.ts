@@ -74,14 +74,14 @@ export function readWarriorEntries(entries: readonly unknown[]): WarriorReading 
     for (const entry of entries) {
         if (!isRecord(entry)) continue;
         const id = getNumberField(entry, WARRIOR_FIELDS, "id");
-        if (!id.ok) continue;
-        if (id.value === null) continue;
-        const combatant = readWarriorEntriesCombatant(entry, id.value);
+        if (id instanceof Error) continue;
+        if (id === null) continue;
+        const combatant = readWarriorEntriesCombatant(entry, id);
         if (combatant !== null) reading.combatants.push(combatant);
         const mask = readWarriorEntriesMask(entry);
-        if (mask !== null) reading.statusMasksByCombatantId.set(id.value, mask);
+        if (mask !== null) reading.statusMasksByCombatantId.set(id, mask);
         const charge = readWarriorEntriesCharge(entry);
-        reading.chargeStatements.push({ combatantId: id.value, charge });
+        reading.chargeStatements.push({ combatantId: id, charge });
     }
     assert(reading.combatants.length <= entries.length, "a combatant is one entry");
     return reading;
@@ -90,19 +90,19 @@ export function readWarriorEntries(entries: readonly unknown[]): WarriorReading 
 /** A combatant stated in full: an id, a name and a side. The rest may be absent. */
 function readWarriorEntriesCombatant(entry: UnknownRecord, id: number): Combatant | null {
     const name = getStatedTextField(entry, WARRIOR_FIELDS, "name");
-    if (!name.ok) return null;
-    if (name.value === null) return null;
+    if (name instanceof Error) return null;
+    if (name === null) return null;
     const side = getNumberField(entry, WARRIOR_FIELDS, "side");
-    if (!side.ok) return null;
-    if (side.value === null) return null;
+    if (side instanceof Error) return null;
+    if (side === null) return null;
     const profession = getStatedTextField(entry, WARRIOR_FIELDS, "profession");
     const level = getNumberField(entry, WARRIOR_FIELDS, "level");
     const combatant = {
         id,
-        name: name.value,
-        side: side.value,
-        profession: profession.ok ? profession.value : null,
-        level: level.ok ? level.value : null,
+        name,
+        side,
+        profession: profession instanceof Error ? null : profession,
+        level: level instanceof Error ? null : level,
         healthMaximum: readWarriorEntriesHealth(entry, "maximum"),
     };
     assert(combatant.name.length > 0, "a name that was read says something");
@@ -115,15 +115,15 @@ function readWarriorEntriesCombatant(entry: UnknownRecord, id: number): Combatan
  */
 function readWarriorEntriesHealth(entry: UnknownRecord, field: HealthField): number | null {
     const health = getRecordField(entry, WARRIOR_FIELDS, "health");
-    if (!health.ok) return null;
-    if (health.value === null) return null;
-    const figure = getNumberField(health.value, HEALTH_FIELDS, field);
-    if (!figure.ok) return null;
-    if (figure.value === null) return null;
+    if (health instanceof Error) return null;
+    if (health === null) return null;
+    const figure = getNumberField(health, HEALTH_FIELDS, field);
+    if (figure instanceof Error) return null;
+    if (figure === null) return null;
     if (field === "maximum") {
-        if (figure.value <= 0) return null;
+        if (figure <= 0) return null;
     }
-    return figure.value;
+    return figure;
 }
 
 /**
@@ -139,11 +139,11 @@ function readWarriorEntriesMask(entry: UnknownRecord): number | null {
         if (now <= 0) return NOTHING_CARRIED;
     }
     const mask = getNumberField(entry, WARRIOR_FIELDS, "statuses");
-    if (!mask.ok) return null;
-    if (mask.value === null) return null;
-    if (mask.value < 0) return null;
-    if (!Number.isSafeInteger(mask.value)) return null;
-    return mask.value;
+    if (mask instanceof Error) return null;
+    if (mask === null) return null;
+    if (mask < 0) return null;
+    if (!Number.isSafeInteger(mask)) return null;
+    return mask;
 }
 
 /**
@@ -153,19 +153,19 @@ function readWarriorEntriesMask(entry: UnknownRecord): number | null {
  */
 function readWarriorEntriesCharge(entry: UnknownRecord): ChargedSkillStatement["charge"] {
     const stated = getRecordField(entry, WARRIOR_FIELDS, "charge");
-    if (!stated.ok) return null;
-    if (stated.value === null) return null;
-    const skillName = getStatedTextField(stated.value, CHARGE_FIELDS, "name");
-    const turnsElapsed = getNumberField(stated.value, CHARGE_FIELDS, "turnsElapsed");
-    const turnsStated = getNumberField(stated.value, CHARGE_FIELDS, "turnsStated");
-    if (!skillName.ok) return null;
-    if (!turnsElapsed.ok) return null;
-    if (!turnsStated.ok) return null;
-    if (skillName.value === null) return null;
-    if (turnsElapsed.value === null) return null;
-    if (turnsStated.value === null) return null;
-    if (turnsElapsed.value < 0) return null;
-    if (turnsStated.value < turnsElapsed.value) return null;
-    const charge = { skillName: skillName.value, turnsElapsed: turnsElapsed.value };
-    return { ...charge, turnsStated: turnsStated.value };
+    if (stated instanceof Error) return null;
+    if (stated === null) return null;
+    const skillName = getStatedTextField(stated, CHARGE_FIELDS, "name");
+    const turnsElapsed = getNumberField(stated, CHARGE_FIELDS, "turnsElapsed");
+    const turnsStated = getNumberField(stated, CHARGE_FIELDS, "turnsStated");
+    if (skillName instanceof Error) return null;
+    if (turnsElapsed instanceof Error) return null;
+    if (turnsStated instanceof Error) return null;
+    if (skillName === null) return null;
+    if (turnsElapsed === null) return null;
+    if (turnsStated === null) return null;
+    if (turnsElapsed < 0) return null;
+    if (turnsStated < turnsElapsed) return null;
+    const charge = { skillName, turnsElapsed };
+    return { ...charge, turnsStated };
 }

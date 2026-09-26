@@ -5,7 +5,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 
 export interface SurroundingsPort {
@@ -29,14 +29,16 @@ const HOST_SEPARATOR = ".";
 export function initPageSurroundings(page: unknown): SurroundingsPort {
     return {
         readWorld() {
-            const read = callForeign(() => readPageText(page, LOCATION_FIELD, HOST_FIELD));
-            if (!read.ok) return WORLD_UNKNOWN;
-            return parseWorld(read.value ?? "");
+            const read = errors.attempt(() => readPageText(page, LOCATION_FIELD, HOST_FIELD));
+            if (read instanceof Error) return WORLD_UNKNOWN;
+            return parseWorld(read ?? "");
         },
         readUserAgent() {
-            const read = callForeign(() => readPageText(page, NAVIGATOR_FIELD, USER_AGENT_FIELD));
-            if (!read.ok) return null;
-            return read.value;
+            const read = errors.attempt(() =>
+                readPageText(page, NAVIGATOR_FIELD, USER_AGENT_FIELD)
+            );
+            if (read instanceof Error) return null;
+            return read;
         },
     };
 }

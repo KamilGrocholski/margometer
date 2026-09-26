@@ -9,7 +9,7 @@
  */
 
 import { assert } from "@std/assert";
-import { callForeign } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { METADATA_NAME, parseDeclaredVersion, USERSCRIPT_NAME } from "./build-userscript.ts";
 import { ChangelogError } from "./margometer-tool-error.ts";
 
@@ -71,11 +71,9 @@ export function lookupChangelogSection(changelog: string, version: string): stri
 /** A file this tool reads, or a refusal naming it: a missing changelog is a release unwritten. */
 function readReleaseFile(path: string): string {
     assert(path.length > 0, "a file is read from somewhere");
-    const read = callForeign(() => Deno.readTextFileSync(path));
-    if (!read.ok) {
-        throw new ChangelogError(`${path} cannot be read`, { cause: read.error.cause });
-    }
-    return read.value;
+    const read = errors.attempt(() => Deno.readTextFileSync(path));
+    if (read instanceof Error) throw new ChangelogError(`${path} cannot be read`, { cause: read });
+    return read;
 }
 
 if (import.meta.main) {

@@ -3,11 +3,11 @@
  * refusals; that a real browser starts the download is `develop`'s end-to-end suite's to hold.
  */
 
-import { assertEquals, assertStrictEquals } from "@std/assert";
-import { type ForeignFailure, ok, RESULT_FAILURE } from "#/libs/result.ts";
+import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
+import * as errors from "#/libs/errors.ts";
 import {
     type DownloadAnchor,
-    FILE_SINK_FAILURE,
+    FileApiAbsent,
     initPageFile,
     type PageDownloads,
 } from "#/src/game/page-file.ts";
@@ -15,7 +15,7 @@ import {
 Deno.test("a file goes to the browser through an anchor in the page, released a tick later", () => {
     const page = composeDownloads();
     const written = initPageFile(page.downloads).writeFile("fight.json", "{}", () => {});
-    assertEquals(written, ok(undefined), "the browser took it");
+    assertStrictEquals(written, undefined, "the browser took it");
     assertEquals(page.calls, ["url", "append", "click", "remove"], "clicked where it stands");
     assertEquals([page.anchor.download, page.anchor.href], ["fight.json", "blob:1"], "named");
     assertStrictEquals(page.anchor.className, "MargoMeter-download", "under a class of ours");
@@ -53,10 +53,10 @@ function composeDownloads(over: Partial<PageDownloads> = {}, click = () => {}) {
 
 Deno.test("a page that lends nothing to download with is answered, and nothing is clicked", () => {
     const written = initPageFile(null).writeFile("fight.json", "{}", () => {});
-    assertEquals(written, { ok: false, error: { kind: FILE_SINK_FAILURE.apiAbsent } }, "absent");
+    assertInstanceOf(written, FileApiAbsent, "absent");
     const anchorless = composeDownloads({ createAnchor: () => null });
     const refused = initPageFile(anchorless.downloads).writeFile("fight.json", "{}", () => {});
-    assertEquals(refused, { ok: false, error: { kind: FILE_SINK_FAILURE.apiAbsent } }, "no anchor");
+    assertInstanceOf(refused, FileApiAbsent, "no anchor");
     anchorless.timers.shift()?.();
     assertEquals(anchorless.calls.at(-1), "revoke blob:1", "and the address it took is released");
 });
@@ -66,8 +66,8 @@ Deno.test("a click that throws takes the anchor off all the same, as the page's 
         throw new TypeError("a page being torn down");
     });
     const written = initPageFile(page.downloads).writeFile("fight.json", "{}", () => {});
-    assertStrictEquals(written.ok, false, "the click's throw is answered");
-    if (!written.ok) assertStrictEquals(written.error.kind, RESULT_FAILURE.foreignThrew);
+    assertInstanceOf(written, Error, "the click's throw is answered");
+    assertInstanceOf(written, errors.Caught, "as the page's failure");
     assertEquals(page.calls, ["url", "append", "click", "remove"], "and the anchor came off");
     assertStrictEquals(page.timers.length, 1, "and the address is still released");
 });
@@ -79,13 +79,13 @@ Deno.test("a page whose clock will not take the release says so, rather than say
         },
     });
     const written = initPageFile(page.downloads).writeFile("fight.json", "{}", () => {});
-    assertStrictEquals(written.ok, false, "the refusal is answered");
-    if (!written.ok) assertStrictEquals(written.error.kind, RESULT_FAILURE.foreignThrew);
+    assertInstanceOf(written, Error, "the refusal is answered");
+    assertInstanceOf(written, errors.Caught, "as the page's failure");
 });
 
 /** The release lands on the browser's clock, after the write has returned. */
 Deno.test("a release that throws later is handed to the sink, never to the page's clock", () => {
-    const late: ForeignFailure[] = [];
+    const late: errors.Caught[] = [];
     const page = composeDownloads({
         revokeObjectURL: () => {
             throw new TypeError("a page being torn down");

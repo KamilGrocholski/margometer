@@ -3,19 +3,25 @@
  * browser's frame loop, which drops it silently, so the step is guarded where it is handed over.
  */
 
-import { assert, assertEquals, AssertionError, assertStrictEquals } from "@std/assert";
-import { type BrokenInvariant, RESULT_FAILURE } from "#/libs/result.ts";
+import {
+    assertEquals,
+    assertInstanceOf,
+    AssertionError,
+    assertNotInstanceOf,
+    assertStrictEquals,
+} from "@std/assert";
+import * as errors from "#/libs/errors.ts";
 import { initPageFrames, type PageFrames } from "#/src/game/page-frame.ts";
 
 Deno.test("a step runs when its frame falls, and a cancel hands back the page's own handle", () => {
     const wound = composeFrames();
     let ran = 0;
     const requested = initPageFrames(wound.frames).requestFrame(() => void (ran += 1), () => {});
-    assert(requested.ok, "the page took the step");
+    assertNotInstanceOf(requested, Error, "the page took the step");
     assertStrictEquals(ran, 0, "and ran nothing before the frame fell");
     wound.fall();
     assertStrictEquals(ran, 1, "then once");
-    requested.value.cancel();
+    requested.cancel();
     assertEquals(wound.cancelled, [41], "with the handle the page gave");
 });
 
@@ -32,14 +38,14 @@ function composeFrames() {
 
 Deno.test("a step that breaks is handed over as a failure and never reaches the frame loop", () => {
     const wound = composeFrames();
-    const failures: BrokenInvariant[] = [];
+    const failures: errors.Caught[] = [];
     const requested = initPageFrames(wound.frames).requestFrame(() => {
         throw new AssertionError("a frame of ours broke");
     }, (failure) => failures.push(failure));
-    assert(requested.ok, "the page took the step");
+    assertNotInstanceOf(requested, Error, "the page took the step");
     wound.fall();
     assertStrictEquals(failures.length, 1, "the failure was handed to the sink");
-    assertStrictEquals(failures[0]?.kind, RESULT_FAILURE.invariantBroken, "as a broken invariant");
+    assertInstanceOf(failures[0], errors.Caught, "as a broken invariant");
 });
 
 Deno.test("a sink that throws in its turn has nobody left to tell, and reaches nobody", () => {
@@ -60,8 +66,8 @@ Deno.test("a page that will not give a frame says so, and one that won't cancel 
         cancelAnimationFrame: () => {},
     };
     const requested = initPageFrames(refusing).requestFrame(() => {}, () => {});
-    assertStrictEquals(requested.ok, false, "a refusal is answered, never thrown");
-    if (!requested.ok) assertStrictEquals(requested.error.kind, RESULT_FAILURE.foreignThrew);
+    assertInstanceOf(requested, Error, "a refusal is answered, never thrown");
+    assertInstanceOf(requested, errors.Caught, "as the page's failure");
     const stubborn: PageFrames = {
         requestAnimationFrame: () => 1,
         cancelAnimationFrame: () => {
@@ -69,6 +75,6 @@ Deno.test("a page that will not give a frame says so, and one that won't cancel 
         },
     };
     const held = initPageFrames(stubborn).requestFrame(() => {}, () => {});
-    assert(held.ok, "the frame was given");
-    held.value.cancel();
+    assertNotInstanceOf(held, Error, "the frame was given");
+    held.cancel();
 });

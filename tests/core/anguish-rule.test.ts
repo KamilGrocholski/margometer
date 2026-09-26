@@ -42,8 +42,8 @@ Deno.test("every tick names its victim in the actor slot and nobody at the other
 
 function parseOrFail(text: string, path: string): ProtocolMessage {
     const parsed = parseProtocolMessage(text);
-    assert(parsed.ok, `${path}: every recorded message parses`);
-    return parsed.value;
+    assert(!(parsed instanceof Error), `${path}: every recorded message parses`);
+    return parsed;
 }
 
 Deno.test("the announcement carries no figure, so nothing says which application ticks", () => {

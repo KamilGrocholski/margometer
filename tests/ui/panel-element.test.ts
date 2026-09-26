@@ -830,11 +830,11 @@ Deno.test("a region that throws is marked in place, and said once however often 
     };
     for (let time = 0; time < 2; time += 1) {
         const report = panel.render({ ...composeShownScreen(broken) });
-        marks.push(...report.undrawn.map((one) => `${one.kind}/${one.region}`));
+        marks.push(...report.undrawn.map((one) => `${one.name}/${one.region}`));
     }
     assertEquals(
         marks,
-        ["region-undrawn/sides", "region-undrawn/sides"],
+        ["RegionUndrawn/sides", "RegionUndrawn/sides"],
         "the failure says which part of the panel it cost, every time it happens",
     );
     const host = panel.element as FakeElement;
@@ -864,10 +864,10 @@ Deno.test("a region the document will not replace is kept as it was, and said", 
         };
     }
     const report = panel.render({ ...composeShownScreen(reading) });
-    const marks = report.undrawn.map((one) => `${one.kind}/${one.region}`);
+    const marks = report.undrawn.map((one) => `${one.name}/${one.region}`);
     assertEquals(
         marks,
-        ["region-undrawn/header"],
+        ["RegionUndrawn/header"],
         "the failure names the region it cost, and only that",
     );
     assertStrictEquals(standing[0]?.replacedBy, null, "and the header a reader had stays put");

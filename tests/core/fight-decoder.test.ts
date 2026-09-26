@@ -9,8 +9,10 @@ import {
     assert,
     assertEquals,
     assertExists,
+    assertInstanceOf,
     AssertionError,
     assertLess,
+    assertNotInstanceOf,
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
@@ -22,6 +24,7 @@ import {
     type DecoderTables,
     MESSAGES_MAXIMUM,
     NAME_LENGTH_MAXIMUM,
+    UnreadMessage,
 } from "#/src/core/fight-decoder.ts";
 import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
@@ -978,11 +981,11 @@ Deno.test("a key spelled like what every object carries is unread, not an inheri
  */
 Deno.test("an unread message is a failure that keeps what it read", () => {
     const decoded = decodeMessage(UNREAD, { roster: null, standing: null, tables: BLOWS_GRANTED });
-    assert(!decoded.ok, "a message with a key nobody reads is a failure");
-    assertStrictEquals(decoded.error.cause, "unknown-key", "under the cause that left it so");
-    assertEquals(decoded.error.keys, ["whatever_per"], "naming the key");
-    assertEquals(decoded.error.events.map((one) => one.kind), ["skill-used"], "and what was read");
-    assertExists(decoded.error.standing, "the announcement it made still stands for the next one");
+    assertInstanceOf(decoded, UnreadMessage, "a message with a key nobody reads is a failure");
+    assertStrictEquals(decoded.unreadCause, "unknown-key", "under the cause that left it so");
+    assertEquals(decoded.keys, ["whatever_per"], "naming the key");
+    assertEquals(decoded.events.map((one) => one.kind), ["skill-used"], "and what was read");
+    assertExists(decoded.standing, "the announcement it made still stands for the next one");
 
     const payload = decodePayloadMessages([UNREAD], {
         roster: null,
@@ -996,11 +999,11 @@ Deno.test("an unread message is a failure that keeps what it read", () => {
 
 Deno.test("a message read whole is no failure, and one of no parameters is", () => {
     const context = { roster: null, standing: null, tables: BLOWS_GRANTED };
-    assert(decodeMessage(ABSORBED, context).ok, "a blow read whole");
+    assertNotInstanceOf(decodeMessage(ABSORBED, context), Error, "a blow read whole");
     const empty = decodeMessage("0;0", context);
-    assert(!empty.ok, "a message stating nothing is read as nothing");
-    assertStrictEquals(empty.error.cause, "no-parameter", "and says why");
-    assertEquals(empty.error.events, [], "carrying nothing read");
+    assertInstanceOf(empty, UnreadMessage, "a message stating nothing is read as nothing");
+    assertStrictEquals(empty.unreadCause, "no-parameter", "and says why");
+    assertEquals(empty.events, [], "carrying nothing read");
 });
 
 Deno.test("a message the grammar refuses ends a standing, as no blow does", () => {

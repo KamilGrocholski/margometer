@@ -80,8 +80,8 @@ Deno.test("every key every recording carries means something", () => {
     for (const fight of readRecordedFights()) {
         for (const text of fight.messages) {
             const parsed = parseProtocolMessage(text);
-            if (!parsed.ok) continue;
-            for (const parameter of parsed.value.parameters) {
+            if (parsed instanceof Error) continue;
+            for (const parameter of parsed.parameters) {
                 keys += 1;
                 if (getKeyReading(parameter.key) === null) unknown.add(parameter.key);
             }

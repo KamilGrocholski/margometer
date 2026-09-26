@@ -9,7 +9,6 @@
 
 import { assert } from "@std/assert/assert";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
-import { err, ok, type Result } from "#/libs/result.ts";
 import {
     type FieldKeys,
     getListField,
@@ -21,9 +20,9 @@ import {
 } from "#/libs/unknown-value.ts";
 import {
     type KeyValueStore,
-    STORE_FAILURE,
     STORE_KEY,
     type StoreFailure,
+    StoreUnavailable,
 } from "#/src/game/browser-store.ts";
 import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
@@ -50,25 +49,82 @@ export interface ShelfWritten {
     droppedOpenedAt: readonly number[];
 }
 
-export const SHELF_FAILURE = {
-    unreadable: "shelf-unreadable",
-    unwritable: "shelf-unwritable",
-    versionUnknown: "shelf-version-unknown",
-    everySlotPinned: "every-slot-pinned",
-    refusedAfterRotation: "store-refused-after-rotation",
-    fightAlreadyKept: "fight-already-kept",
-    fightNotKept: "fight-not-kept",
-} as const;
+export class ShelfUnreadable extends Error {
+    override readonly name = "ShelfUnreadable";
+
+    constructor(options?: ErrorOptions) {
+        super(undefined, options);
+    }
+}
+
+export class ShelfUnwritable extends Error {
+    override readonly name = "ShelfUnwritable";
+
+    constructor(options?: ErrorOptions) {
+        super(undefined, options);
+    }
+}
+
+export class ShelfVersionUnknown extends Error {
+    override readonly name = "ShelfVersionUnknown";
+    readonly version: number | null;
+
+    constructor(version: number | null, options?: ErrorOptions) {
+        super(undefined, options);
+        this.version = version;
+    }
+}
+
+export class EverySlotPinned extends Error {
+    override readonly name = "EverySlotPinned";
+    readonly maximum: number;
+
+    constructor(maximum: number, options?: ErrorOptions) {
+        super(undefined, options);
+        this.maximum = maximum;
+    }
+}
+
+/** The store refused every shelf the rotation offered it; the last refusal is the cause. */
+export class RefusedAfterRotation extends Error {
+    override readonly name = "RefusedAfterRotation";
+    readonly attempts: number;
+
+    constructor(attempts: number, options?: ErrorOptions) {
+        super(undefined, options);
+        this.attempts = attempts;
+    }
+}
+
+export class FightAlreadyKept extends Error {
+    override readonly name = "FightAlreadyKept";
+    readonly openedAt: number;
+
+    constructor(openedAt: number, options?: ErrorOptions) {
+        super(undefined, options);
+        this.openedAt = openedAt;
+    }
+}
+
+export class FightNotKept extends Error {
+    override readonly name = "FightNotKept";
+    readonly openedAt: number;
+
+    constructor(openedAt: number, options?: ErrorOptions) {
+        super(undefined, options);
+        this.openedAt = openedAt;
+    }
+}
 
 export type ShelfFailure =
     | StoreFailure
-    | { kind: typeof SHELF_FAILURE.unreadable }
-    | { kind: typeof SHELF_FAILURE.unwritable }
-    | { kind: typeof SHELF_FAILURE.versionUnknown; version: number | null }
-    | { kind: typeof SHELF_FAILURE.everySlotPinned; maximum: number }
-    | { kind: typeof SHELF_FAILURE.refusedAfterRotation; attempts: number }
-    | { kind: typeof SHELF_FAILURE.fightAlreadyKept; openedAt: number }
-    | { kind: typeof SHELF_FAILURE.fightNotKept; openedAt: number };
+    | ShelfUnreadable
+    | ShelfUnwritable
+    | ShelfVersionUnknown
+    | EverySlotPinned
+    | RefusedAfterRotation
+    | FightAlreadyKept
+    | FightNotKept;
 
 type ShelfField = "version" | "fights";
 type FightField = "openedAt" | "payloads" | "place" | "gameBuild" | "isPinned";
@@ -97,27 +153,25 @@ const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "mapName", x: "x", y: "y"
  * At start: durable state into memory. A fight that does not read back is dropped, and the rest of
  * the shelf stands; a shelf that does not read back at all is a failure the reader is told about.
  */
-export function openShelf(store: KeyValueStore): Result<ShelfContents, ShelfFailure> {
+export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
     const stored = store.read(SHELF_KEY);
-    if (!stored.ok) return stored;
-    if (stored.value === null) return ok({ fights: [] });
-    const parsed = parseJson(stored.value);
-    if (!parsed.ok) return err({ kind: SHELF_FAILURE.unreadable });
-    if (!isRecord(parsed.value)) return err({ kind: SHELF_FAILURE.unreadable });
-    const version = getNumberField(parsed.value, SHELF_FIELDS, "version");
-    const stated = version.ok ? version.value : null;
-    if (stated !== SHELF_VERSION) {
-        return err({ kind: SHELF_FAILURE.versionUnknown, version: stated });
-    }
-    const listed = getListField(parsed.value, SHELF_FIELDS, "fights", KEPT_MAXIMUM);
-    if (!listed.ok) return err({ kind: SHELF_FAILURE.unreadable });
+    if (stored instanceof Error) return stored;
+    if (stored === null) return { fights: [] };
+    const parsed = parseJson(stored);
+    if (parsed instanceof Error) return new ShelfUnreadable({ cause: parsed });
+    if (!isRecord(parsed)) return new ShelfUnreadable();
+    const version = getNumberField(parsed, SHELF_FIELDS, "version");
+    const stated = version instanceof Error ? null : version;
+    if (stated !== SHELF_VERSION) return new ShelfVersionUnknown(stated);
+    const listed = getListField(parsed, SHELF_FIELDS, "fights", KEPT_MAXIMUM);
+    if (listed instanceof Error) return new ShelfUnreadable({ cause: listed });
     const fights: KeptFight[] = [];
-    for (const value of listed.value ?? []) {
+    for (const value of listed ?? []) {
         const fight = readKeptFight(value);
         if (fight !== null) fights.push(fight);
     }
     assert(fights.length <= KEPT_MAXIMUM, "a shelf read back stays inside its stated bound");
-    return ok({ fights });
+    return { fights };
 }
 
 /**
@@ -127,20 +181,20 @@ export function openShelf(store: KeyValueStore): Result<ShelfContents, ShelfFail
 function readKeptFight(value: unknown): KeptFight | null {
     if (!isRecord(value)) return null;
     const openedAt = getNumberField(value, FIGHT_FIELDS, "openedAt");
-    if (!openedAt.ok) return null;
-    if (openedAt.value === null) return null;
-    if (openedAt.value < 0) return null;
+    if (openedAt instanceof Error) return null;
+    if (openedAt === null) return null;
+    if (openedAt < 0) return null;
     const payloads = getListField(value, FIGHT_FIELDS, "payloads", CALLS_MAXIMUM);
-    if (!payloads.ok) return null;
-    if (payloads.value === null) return null;
-    if (payloads.value.length === 0) return null;
-    if (!payloads.value.every(isRecord)) return null;
+    if (payloads instanceof Error) return null;
+    if (payloads === null) return null;
+    if (payloads.length === 0) return null;
+    if (!payloads.every(isRecord)) return null;
     const gameBuild = getStatedTextField(value, FIGHT_FIELDS, "gameBuild");
     return {
-        openedAt: openedAt.value,
-        payloads: [...payloads.value],
+        openedAt,
+        payloads: [...payloads],
         place: readKeptPlace(value),
-        gameBuild: gameBuild.ok ? gameBuild.value : null,
+        gameBuild: gameBuild instanceof Error ? null : gameBuild,
         isPinned: value[FIGHT_FIELDS.isPinned] === true,
     };
 }
@@ -148,15 +202,15 @@ function readKeptFight(value: unknown): KeptFight | null {
 /** A place that does not read back is nobody's place, not a fight dropped. */
 function readKeptPlace(fight: UnknownRecord): FightPlace | null {
     const place = getRecordField(fight, FIGHT_FIELDS, "place");
-    if (!place.ok) return null;
-    if (place.value === null) return null;
-    const mapName = getStatedTextField(place.value, PLACE_FIELDS, "mapName");
-    const x = getNumberField(place.value, PLACE_FIELDS, "x");
-    const y = getNumberField(place.value, PLACE_FIELDS, "y");
+    if (place instanceof Error) return null;
+    if (place === null) return null;
+    const mapName = getStatedTextField(place, PLACE_FIELDS, "mapName");
+    const x = getNumberField(place, PLACE_FIELDS, "x");
+    const y = getNumberField(place, PLACE_FIELDS, "y");
     const read = {
-        mapName: mapName.ok ? mapName.value : null,
-        x: x.ok ? x.value : null,
-        y: y.ok ? y.value : null,
+        mapName: mapName instanceof Error ? null : mapName,
+        x: x instanceof Error ? null : x,
+        y: y instanceof Error ? null : y,
     };
     if (read.mapName !== null) return read;
     if (read.x !== null) return read;
@@ -169,18 +223,16 @@ export function keepFight(
     store: KeyValueStore,
     shelf: ShelfContents,
     fight: KeptFight,
-): Result<ShelfWritten, ShelfFailure> {
+): ShelfWritten | ShelfFailure {
     assert(fight.payloads.length > 0, "a fight kept was kept from something");
     assert(fight.payloads.length <= CALLS_MAXIMUM, "and stays inside a recording's bound");
     if (shelf.fights.some((one) => one.openedAt === fight.openedAt)) {
-        return err({ kind: SHELF_FAILURE.fightAlreadyKept, openedAt: fight.openedAt });
+        return new FightAlreadyKept(fight.openedAt);
     }
     const next = [...shelf.fights, fight];
     const pinned = next.filter((one) => one.isPinned).length;
     if (pinned >= KEPT_MAXIMUM) {
-        if (next.length > KEPT_MAXIMUM) {
-            return err({ kind: SHELF_FAILURE.everySlotPinned, maximum: KEPT_MAXIMUM });
-        }
+        if (next.length > KEPT_MAXIMUM) return new EverySlotPinned(KEPT_MAXIMUM);
     }
     return writeShelf(store, shelf, next);
 }
@@ -194,20 +246,22 @@ function writeShelf(
     store: KeyValueStore,
     before: ShelfContents,
     fights: readonly KeptFight[],
-): Result<ShelfWritten, ShelfFailure> {
+): ShelfWritten | ShelfFailure {
     let held = rotateShelf(fights);
+    let refused: StoreFailure | null = null;
     for (let attempts = 1; attempts <= KEPT_MAXIMUM + 1; attempts += 1) {
         const text = encodeJson({ version: SHELF_VERSION, fights: held }, 0);
-        if (!text.ok) return err({ kind: SHELF_FAILURE.unwritable });
-        const written = store.write(SHELF_KEY, text.value);
-        if (written.ok) return ok(writeShelfDropped(before, fights, held));
-        if (written.error.kind === STORE_FAILURE.unavailable) return written;
+        if (text instanceof Error) return new ShelfUnwritable({ cause: text });
+        const written = store.write(SHELF_KEY, text);
+        if (!(written instanceof Error)) return writeShelfDropped(before, fights, held);
+        if (written instanceof StoreUnavailable) return written;
+        refused = written;
         const shorter = dropOldestUnpinned(held);
-        if (shorter === null) return err({ kind: SHELF_FAILURE.refusedAfterRotation, attempts });
+        if (shorter === null) return new RefusedAfterRotation(attempts, { cause: refused });
         held = shorter;
     }
     assert(held.length === 0, "a shelf offered once per fight it holds has nothing left to drop");
-    return err({ kind: SHELF_FAILURE.refusedAfterRotation, attempts: KEPT_MAXIMUM + 1 });
+    return new RefusedAfterRotation(KEPT_MAXIMUM + 1, { cause: refused });
 }
 
 /** What was offered and did not go down: the rotation, stated rather than silent. */
@@ -240,10 +294,8 @@ export function pinFight(
     shelf: ShelfContents,
     openedAt: number,
     isPinned: boolean,
-): Result<ShelfWritten, ShelfFailure> {
-    if (!shelf.fights.some((one) => one.openedAt === openedAt)) {
-        return err({ kind: SHELF_FAILURE.fightNotKept, openedAt });
-    }
+): ShelfWritten | ShelfFailure {
+    if (!shelf.fights.some((one) => one.openedAt === openedAt)) return new FightNotKept(openedAt);
     const next = shelf.fights.map((one) => one.openedAt === openedAt ? { ...one, isPinned } : one);
     return writeShelf(store, shelf, next);
 }
@@ -252,11 +304,9 @@ export function removeKeptFight(
     store: KeyValueStore,
     shelf: ShelfContents,
     openedAt: number,
-): Result<ShelfWritten, ShelfFailure> {
+): ShelfWritten | ShelfFailure {
     const next = shelf.fights.filter((one) => one.openedAt !== openedAt);
-    if (next.length === shelf.fights.length) {
-        return err({ kind: SHELF_FAILURE.fightNotKept, openedAt });
-    }
+    if (next.length === shelf.fights.length) return new FightNotKept(openedAt);
     return writeShelf(store, shelf, next);
 }
 
@@ -267,13 +317,13 @@ export function removeKeptFight(
 export function writeShelfContents(
     store: KeyValueStore,
     shelf: ShelfContents,
-): Result<ShelfWritten, ShelfFailure> {
+): ShelfWritten | ShelfFailure {
     assert(shelf.fights.length <= KEPT_MAXIMUM, "a shelf moved is inside its stated bound");
     return writeShelf(store, shelf, shelf.fights);
 }
 
 /** The key the shelf is under, gone: a reader who moved it wants nothing left behind. */
-export function deleteShelf(store: KeyValueStore): Result<void, StoreFailure> {
+export function deleteShelf(store: KeyValueStore): undefined | StoreFailure {
     return store.remove(SHELF_KEY);
 }
 

@@ -222,15 +222,16 @@ beside it still spells, and re-earns both tiers at the top as the maximum over t
 `develop:ARCHITECTURE.md` carries the rest as a known gap. The one construct that decides where the
 floor is:
 
-| Construct      | Where                                  | Chrome / Edge | Firefox | Safari |
-| -------------- | -------------------------------------- | ------------- | ------- | ------ |
-| `ErrorOptions` | `develop:src/core/margometer-error.ts` | 93            | 91      | 15     |
+| Construct      | Where            | Chrome / Edge | Firefox | Safari |
+| -------------- | ---------------- | ------------- | ------- | ------ |
+| `ErrorOptions` | `libs/errors.ts` | 93            | 91      | 15     |
 
-`ErrorOptions` is why the lib is ES2022 and not ES2021, and it is a **type** dependency rather than
-a runtime one: the base class accepts and forwards `options`, and no shipped caller passes a
-`cause`. An engine below 93 does not throw on the two-argument `new Error(...)` — it ignores the
-second argument. The floor is stated at what has to be there rather than at what currently happens
-to work, because the first is a promise and the second is an accident.
+`ErrorOptions` is why the lib is ES2022 and not ES2021, and it is a **runtime** dependency: every
+failure met below another is handed to it as `{ cause }` (ADR 0008). An engine below 93 does not
+throw on the two-argument `new Error(...)` — it ignores the second argument, so a failure there
+still meets its fate and loses only the chain its console line would show. The floor is stated at
+what has to be there rather than at what happens to work below it, because the first is a promise
+and the second is an accident.
 
 ### Patterns, and the part no compiler holds
 

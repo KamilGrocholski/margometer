@@ -1,25 +1,24 @@
 /**
  * Every failure meets a fate, and the compiler holds the table complete (`AGENTS.md` E7,
- * `docs/design.md` §10.5): a `kind` added to `RuntimeFailure` without an entry fails `deno check`.
+ * `docs/design.md` §10.5): a class added to `RuntimeFailure` without an entry fails `deno check`.
  * Which defect a failure leaves is the step's that met it; whether it leaves one is this table's.
  */
 
-import { type BrokenInvariant, type ForeignFailure, RESULT_FAILURE } from "#/libs/result.ts";
+import type * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
-import { DECODE_FAILURE, type UnreadMessage } from "#/src/core/fight-decoder.ts";
-import { type PayloadRejected, SESSION_FAILURE } from "#/src/core/fight-session.ts";
-import { STORE_FAILURE, type StoreFailure } from "#/src/game/browser-store.ts";
-import { ENGINE_FAILURE, type EngineFailure } from "#/src/game/engine-battle.ts";
-import { PAGE_READ_FAILURE, type PageReadFailure } from "#/src/game/page-reading.ts";
-import { ENVELOPE_FAILURE, type EnvelopeFailure } from "#/src/game/payload-envelope.ts";
-import { WARRIOR_FAILURE, type WarriorFailure } from "#/src/game/warrior-snapshot.ts";
-import { FILE_SINK_FAILURE } from "#/src/game/page-file.ts";
-import { type ExportFailure, HANDOVER_FAILURE } from "./fight-handover.ts";
-import { FRAME_FAILURE, type FrameFailure } from "./panel-frame.ts";
-import { VIEW_FAILURE, type ViewFailure } from "#/src/ui/view-failure.ts";
-import { FILE_FAILURE, type FileEncodingFailure } from "./fight-file.ts";
-import { SETTING_FAILURE, type SettingFailure } from "./settings.ts";
-import { SHELF_FAILURE, type ShelfFailure } from "./shelf.ts";
+import type { UnreadMessage } from "#/src/core/fight-decoder.ts";
+import type { PayloadRejected } from "#/src/core/fight-session.ts";
+import type { StoreFailure } from "#/src/game/browser-store.ts";
+import type { EngineFailure } from "#/src/game/engine-battle.ts";
+import type { PageReadFailure } from "#/src/game/page-reading.ts";
+import type { EnvelopeFailure } from "#/src/game/payload-envelope.ts";
+import type { WarriorFailure } from "#/src/game/warrior-snapshot.ts";
+import type { ExportFailure } from "./fight-handover.ts";
+import type { FiguresDisagreed } from "./panel-frame.ts";
+import type { ViewFailure } from "#/src/ui/view-failure.ts";
+import type { FileUnserializable } from "./fight-file.ts";
+import type { SettingFailure } from "./settings.ts";
+import type { ShelfFailure } from "./shelf.ts";
 
 export type RuntimeFailure =
     | EngineFailure
@@ -29,14 +28,13 @@ export type RuntimeFailure =
     | StoreFailure
     | ShelfFailure
     | SettingFailure
-    | FileEncodingFailure
+    | FileUnserializable
     | ExportFailure
-    | FrameFailure
+    | FiguresDisagreed
     | ViewFailure
     | WarriorFailure
     | PageReadFailure
-    | ForeignFailure
-    | BrokenInvariant;
+    | errors.Caught;
 
 export const FAILURE_FATE = {
     shownAsUnknown: "shown-as-unknown",
@@ -48,43 +46,43 @@ export const FAILURE_FATE = {
 } as const;
 export type FailureFate = VocabularyWord<typeof FAILURE_FATE>;
 
-export const FAILURE_FATES: { readonly [Kind in RuntimeFailure["kind"]]: FailureFate } = {
-    [ENGINE_FAILURE.engineAbsent]: FAILURE_FATE.defect,
-    [ENGINE_FAILURE.battleAbsent]: FAILURE_FATE.defect,
-    [ENGINE_FAILURE.methodAbsent]: FAILURE_FATE.defect,
-    [ENGINE_FAILURE.anotherReader]: FAILURE_FATE.standDown,
-    [ENGINE_FAILURE.searchAbandoned]: FAILURE_FATE.defect,
-    [ENGINE_FAILURE.detachForeignLayer]: FAILURE_FATE.defect,
-    [ENVELOPE_FAILURE.payloadNotRecord]: FAILURE_FATE.defect,
-    [ENVELOPE_FAILURE.payloadFieldMalformed]: FAILURE_FATE.defect,
-    [ENVELOPE_FAILURE.payloadFieldTooLong]: FAILURE_FATE.defect,
-    [ENVELOPE_FAILURE.payloadCombatantRepeated]: FAILURE_FATE.defect,
-    [SESSION_FAILURE.castExceeded]: FAILURE_FATE.defect,
-    [SESSION_FAILURE.eventsExceeded]: FAILURE_FATE.defect,
-    [SESSION_FAILURE.payloadsExceeded]: FAILURE_FATE.defect,
-    [DECODE_FAILURE.unread]: FAILURE_FATE.shownAsSuspect,
-    [STORE_FAILURE.unavailable]: FAILURE_FATE.fallbackWithDefect,
-    [STORE_FAILURE.refused]: FAILURE_FATE.fallbackWithDefect,
-    [STORE_FAILURE.valueTooLong]: FAILURE_FATE.fallbackWithDefect,
-    [SHELF_FAILURE.unreadable]: FAILURE_FATE.fallbackWithDefect,
-    [SHELF_FAILURE.unwritable]: FAILURE_FATE.shelfAnswer,
-    [SHELF_FAILURE.versionUnknown]: FAILURE_FATE.fallbackWithDefect,
-    [SHELF_FAILURE.everySlotPinned]: FAILURE_FATE.shelfAnswer,
-    [SHELF_FAILURE.refusedAfterRotation]: FAILURE_FATE.shelfAnswer,
-    [SHELF_FAILURE.fightAlreadyKept]: FAILURE_FATE.defect,
-    [SHELF_FAILURE.fightNotKept]: FAILURE_FATE.shelfAnswer,
-    [SETTING_FAILURE.unreadable]: FAILURE_FATE.fallbackWithDefect,
-    [SETTING_FAILURE.tooLong]: FAILURE_FATE.fallbackWithDefect,
-    [FILE_FAILURE.unserializable]: FAILURE_FATE.defect,
-    [FILE_SINK_FAILURE.apiAbsent]: FAILURE_FATE.defect,
-    [HANDOVER_FAILURE.noFightOnScreen]: FAILURE_FATE.defect,
-    [FRAME_FAILURE.figuresDisagreed]: FAILURE_FATE.defect,
-    [VIEW_FAILURE.regionUndrawn]: FAILURE_FATE.defect,
-    [VIEW_FAILURE.gestureDropped]: FAILURE_FATE.defect,
-    [VIEW_FAILURE.windowUnplaced]: FAILURE_FATE.fallbackWithDefect,
-    [WARRIOR_FAILURE.warriorsAbsent]: FAILURE_FATE.shownAsUnknown,
-    [WARRIOR_FAILURE.warriorsExceeded]: FAILURE_FATE.defect,
-    [PAGE_READ_FAILURE.absent]: FAILURE_FATE.shownAsUnknown,
-    [RESULT_FAILURE.foreignThrew]: FAILURE_FATE.defect,
-    [RESULT_FAILURE.invariantBroken]: FAILURE_FATE.defect,
+/** Keyed by each class's literal `name`, which is what holds the table complete (ADR 0008). */
+export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: FailureFate } = {
+    EngineAbsent: FAILURE_FATE.defect,
+    BattleAbsent: FAILURE_FATE.defect,
+    MethodAbsent: FAILURE_FATE.defect,
+    AnotherReader: FAILURE_FATE.standDown,
+    SearchAbandoned: FAILURE_FATE.defect,
+    DetachForeignLayer: FAILURE_FATE.defect,
+    PayloadNotRecord: FAILURE_FATE.defect,
+    PayloadFieldMalformed: FAILURE_FATE.defect,
+    PayloadFieldTooLong: FAILURE_FATE.defect,
+    PayloadCombatantRepeated: FAILURE_FATE.defect,
+    CastExceeded: FAILURE_FATE.defect,
+    EventsExceeded: FAILURE_FATE.defect,
+    PayloadsExceeded: FAILURE_FATE.defect,
+    UnreadMessage: FAILURE_FATE.shownAsSuspect,
+    StoreUnavailable: FAILURE_FATE.fallbackWithDefect,
+    StoreRefused: FAILURE_FATE.fallbackWithDefect,
+    StoreValueTooLong: FAILURE_FATE.fallbackWithDefect,
+    ShelfUnreadable: FAILURE_FATE.fallbackWithDefect,
+    ShelfUnwritable: FAILURE_FATE.shelfAnswer,
+    ShelfVersionUnknown: FAILURE_FATE.fallbackWithDefect,
+    EverySlotPinned: FAILURE_FATE.shelfAnswer,
+    RefusedAfterRotation: FAILURE_FATE.shelfAnswer,
+    FightAlreadyKept: FAILURE_FATE.defect,
+    FightNotKept: FAILURE_FATE.shelfAnswer,
+    SettingUnreadable: FAILURE_FATE.fallbackWithDefect,
+    SettingTooLong: FAILURE_FATE.fallbackWithDefect,
+    FileUnserializable: FAILURE_FATE.defect,
+    FileApiAbsent: FAILURE_FATE.defect,
+    NoFightOnScreen: FAILURE_FATE.defect,
+    FiguresDisagreed: FAILURE_FATE.defect,
+    RegionUndrawn: FAILURE_FATE.defect,
+    GestureDropped: FAILURE_FATE.defect,
+    WindowUnplaced: FAILURE_FATE.fallbackWithDefect,
+    WarriorsAbsent: FAILURE_FATE.shownAsUnknown,
+    WarriorsExceeded: FAILURE_FATE.defect,
+    PageReadingAbsent: FAILURE_FATE.shownAsUnknown,
+    Caught: FAILURE_FATE.defect,
 };

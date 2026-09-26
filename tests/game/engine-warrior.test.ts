@@ -6,7 +6,7 @@
  * that is how the game writes, and never a fault in what it wrote.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertNotInstanceOf } from "@std/assert";
 import { readWarriorEntries } from "#/src/game/engine-warrior.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
@@ -33,10 +33,14 @@ function readOne(entry: unknown) {
 Deno.test("a cast is a cast, keyed by id or listed in order", () => {
     const keyed = readPayloadEnvelope({ w: { "1": WHOLE } });
     const listed = readPayloadEnvelope({ w: [WHOLE] });
-    assert(keyed.ok, "the client keys them by id, which is what every payload does");
-    assert(listed.ok, "and a list of the same people is read");
-    assertEquals(keyed.value.combatants.length, 1, "one combatant");
-    assertEquals(listed.value.combatants, keyed.value.combatants, "the same cast either way");
+    assertNotInstanceOf(
+        keyed,
+        Error,
+        "the client keys them by id, which is what every payload does",
+    );
+    assertNotInstanceOf(listed, Error, "and a list of the same people is read");
+    assertEquals(keyed.combatants.length, 1, "one combatant");
+    assertEquals(listed.combatants, keyed.combatants, "the same cast either way");
 });
 
 Deno.test("a payload states the whole cast or none of it", () => {
@@ -46,8 +50,8 @@ Deno.test("a payload states the whole cast or none of it", () => {
     for (const fight of fights) {
         for (const update of fight.updates) {
             const record = readPayloadEnvelope(update);
-            assert(record.ok, `${fight.path}: a recorded call is read`);
-            if (record.value.combatants.length > 0) whole += 1;
+            assertNotInstanceOf(record, Error, `${fight.path}: a recorded call is read`);
+            if (record.combatants.length > 0) whole += 1;
             else moved += 1;
         }
     }

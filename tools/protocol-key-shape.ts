@@ -166,12 +166,12 @@ function tallyKeyShapesMessage(
 ): void {
     assert(tallies.size <= KEYS_MAXIMUM, "a tally stays inside its stated bound");
     const parsed = parseProtocolMessage(message);
-    if (!parsed.ok) {
-        throw new ProtocolKeyShapeError(
-            `${path}: the grammar refused a message, ${parsed.error.kind}`,
-        );
+    if (parsed instanceof Error) {
+        throw new ProtocolKeyShapeError(`${path}: the grammar refused a message, ${parsed.name}`, {
+            cause: parsed,
+        });
     }
-    const parameters = parsed.value.parameters;
+    const parameters = parsed.parameters;
     const placements = tallyKeyShapesMessagePlacements(new Set(parameters.map((one) => one.key)));
     for (const parameter of parameters) {
         const value = tallyKeyShapesMessageValue(parameter.value);

@@ -12,9 +12,9 @@ import { waitForFrame } from "./panel-page.ts";
 
 /** The line every failure of the add-on's own is branded with, in the one console it holds. */
 const FAILURE_LINE = "MargoMeter/Panel";
-/** `ENGINE_FAILURE`'s words in `src/game/engine-battle.ts`, which a Node suite cannot import. */
-const ENGINE_FAILURE_SEARCH_ABANDONED = "search-abandoned";
-const ENGINE_FAILURE_ANOTHER_READER = "another-reader";
+/** The `name` of two failures in `src/game/engine-battle.ts`, which a Node suite cannot import. */
+const ENGINE_FAILURE_SEARCH_ABANDONED = "SearchAbandoned";
+const ENGINE_FAILURE_ANOTHER_READER = "AnotherReader";
 /** `PANEL_WORDS`' for the "engine" defect, in `src/ui/panel-words.ts`. */
 const NO_GAME_WORDS = "Nie widać walki w grze";
 /** The attach poll gives up after 240 looks of 250 ms. Past that, and nowhere near a real wait. */

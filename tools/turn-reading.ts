@@ -198,8 +198,8 @@ function composeMessageReadingsOfStep(
         const decoded = decodePayloadMessages([message], context);
         const turn = readMessageTurn(decoded.events, standing);
         const parsed = parseProtocolMessage(message);
-        const keys = parsed.ok ? parsed.value.parameters.map((one) => one.key) : [];
-        const actorId = parsed.ok ? (parsed.value.actor?.combatantId ?? null) : null;
+        const keys = parsed instanceof Error ? [] : parsed.parameters.map((one) => one.key);
+        const actorId = parsed instanceof Error ? null : (parsed.actor?.combatantId ?? null);
         const openerId = turn.openerId;
         readings.push({
             payload,
@@ -272,12 +272,12 @@ function composeKeysAddingTurn(
     openerId: number,
 ): string[] {
     const parsed = parseProtocolMessage(message);
-    assert(parsed.ok, "a message the grammar refused opens no turn");
-    const parameters = parsed.value.parameters;
+    assert(!(parsed instanceof Error), "a message the grammar refused opens no turn");
+    const parameters = parsed.parameters;
     const adding: string[] = [];
     for (const key of new Set(parameters.map((one) => one.key))) {
         const kept = parameters.filter((one) => one.key !== key);
-        const without = encodeProtocolMessage({ ...parsed.value, parameters: kept });
+        const without = encodeProtocolMessage({ ...parsed, parameters: kept });
         const opened = readMessageTurn(decodePayloadMessages([without], context).events, standing);
         if (opened.openerId !== openerId) adding.push(key);
     }

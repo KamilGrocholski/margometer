@@ -62,9 +62,9 @@ Deno.test("the two show the pictures the shot set names, in the same order", () 
 /** Every picture the sidecar says the last run took, as a path a README would show it at. */
 function readShotPaths(): string[] {
     const parsed = parseJson(Deno.readTextFileSync(SHOTS_PATH));
-    assert(parsed.ok, "the sidecar is JSON");
-    assert(isRecord(parsed.value), "and a record");
-    const shots = parsed.value.shots;
+    assert(!(parsed instanceof Error), "the sidecar is JSON");
+    assert(isRecord(parsed), "and a record");
+    const shots = parsed.shots;
     assert(Array.isArray(shots), "naming the shots");
     const directory = SHOTS_PATH.slice(0, SHOTS_PATH.lastIndexOf("/") + 1);
     return shots.map((shot) => {

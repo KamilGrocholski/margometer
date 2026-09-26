@@ -3,17 +3,16 @@
  * §7). This runs in the game's stack: it is bounded by the message count, and it builds arrays and
  * records of its own, so nothing reads the game's object after it returns.
  *
- * Every bound on what the game sent is checked here, once, and refused as a `Result`; past this
+ * Every bound on what the game sent is checked here, once, and refused as a failure; past this
  * file the same bounds are assertions (`AGENTS.md` E1).
  */
 
 import { assert } from "@std/assert/assert";
 import { parseInteger } from "#/libs/number-text.ts";
-import { err, ok, type Result } from "#/libs/result.ts";
 import {
-    FIELD_FAILURE,
     type FieldFailure,
     type FieldKeys,
+    FieldWrongType,
     getListField,
     getNumberField,
     getRecordField,
@@ -39,23 +38,49 @@ export type EnvelopeField = keyof Pick<
     | "combatants"
 >;
 
-export const ENVELOPE_FAILURE = {
-    payloadNotRecord: "payload-not-record",
-    payloadFieldMalformed: "payload-field-malformed",
-    payloadFieldTooLong: "payload-field-too-long",
-    payloadCombatantRepeated: "payload-combatant-repeated",
-} as const;
+export class PayloadNotRecord extends Error {
+    override readonly name = "PayloadNotRecord";
+}
+
+export class PayloadFieldMalformed extends Error {
+    override readonly name = "PayloadFieldMalformed";
+    readonly field: EnvelopeField;
+
+    constructor(field: EnvelopeField, options?: ErrorOptions) {
+        super(undefined, options);
+        this.field = field;
+    }
+}
+
+export class PayloadFieldTooLong extends Error {
+    override readonly name = "PayloadFieldTooLong";
+    readonly field: EnvelopeField;
+    readonly count: number;
+    readonly maximum: number;
+
+    constructor(field: EnvelopeField, count: number, maximum: number, options?: ErrorOptions) {
+        super(undefined, options);
+        this.field = field;
+        this.count = count;
+        this.maximum = maximum;
+    }
+}
+
+export class PayloadCombatantRepeated extends Error {
+    override readonly name = "PayloadCombatantRepeated";
+    readonly combatantId: number;
+
+    constructor(combatantId: number) {
+        super();
+        this.combatantId = combatantId;
+    }
+}
 
 export type EnvelopeFailure =
-    | { kind: typeof ENVELOPE_FAILURE.payloadNotRecord }
-    | { kind: typeof ENVELOPE_FAILURE.payloadFieldMalformed; field: EnvelopeField }
-    | {
-        kind: typeof ENVELOPE_FAILURE.payloadFieldTooLong;
-        field: EnvelopeField;
-        count: number;
-        maximum: number;
-    }
-    | { kind: typeof ENVELOPE_FAILURE.payloadCombatantRepeated; combatantId: number };
+    | PayloadNotRecord
+    | PayloadFieldMalformed
+    | PayloadFieldTooLong
+    | PayloadCombatantRepeated;
 
 /** The only place the game's envelope keys are spelled; the compiler holds it complete. */
 export const ENVELOPE_KEYS: FieldKeys<EnvelopeField> = {
@@ -72,71 +97,64 @@ export const ENVELOPE_KEYS: FieldKeys<EnvelopeField> = {
 /** Ten entries wide in all 1022 payloads of `captures/` stating a queue, 2026-09-02. */
 const QUEUE_ENTRIES_MAXIMUM = 1024;
 
-export function readPayloadEnvelope(payload: unknown): Result<PayloadRecord, EnvelopeFailure> {
-    if (!isRecord(payload)) return err({ kind: ENVELOPE_FAILURE.payloadNotRecord });
+export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeFailure {
+    if (!isRecord(payload)) return new PayloadNotRecord();
     const messages = readPayloadEnvelopeMessages(payload);
-    if (!messages.ok) return messages;
+    if (messages instanceof Error) return messages;
     const stated = getListField(payload, ENVELOPE_KEYS, "messagesStated", MESSAGES_MAXIMUM);
-    if (!stated.ok) return err(readPayloadEnvelopeFailure(stated.error));
+    if (stated instanceof Error) return readPayloadEnvelopeFailure(stated);
     const readerSide = readPayloadEnvelopeInteger(payload, "readerSide");
-    if (!readerSide.ok) return readerSide;
+    if (readerSide instanceof Error) return readerSide;
     const auto = readPayloadEnvelopeInteger(payload, "isOnAuto");
-    if (!auto.ok) return auto;
+    if (auto instanceof Error) return auto;
     const turnStatement = readPayloadEnvelopeTurn(payload);
-    if (!turnStatement.ok) return turnStatement;
+    if (turnStatement instanceof Error) return turnStatement;
     const warriors = readPayloadEnvelopeWarriors(payload);
-    if (!warriors.ok) return warriors;
-    const reading = readWarriorEntries(warriors.value);
+    if (warriors instanceof Error) return warriors;
+    const reading = readWarriorEntries(warriors);
     const ids = new Set<number>();
     for (const combatant of reading.combatants) {
-        if (ids.has(combatant.id)) {
-            return err({
-                kind: ENVELOPE_FAILURE.payloadCombatantRepeated,
-                combatantId: combatant.id,
-            });
-        }
+        if (ids.has(combatant.id)) return new PayloadCombatantRepeated(combatant.id);
         ids.add(combatant.id);
     }
-    return ok({
+    return {
         isInit: Object.hasOwn(payload, ENVELOPE_KEYS.isInit),
         isEnd: Object.hasOwn(payload, ENVELOPE_KEYS.isEnd),
-        messages: messages.value,
-        messagesStated: stated.value === null ? null : stated.value.length,
-        readerSide: readerSide.value,
-        isOnAuto: auto.value === null ? null : auto.value !== 0,
-        turnStatement: turnStatement.value,
+        messages,
+        messagesStated: stated === null ? null : stated.length,
+        readerSide,
+        isOnAuto: auto === null ? null : auto !== 0,
+        turnStatement,
         combatants: reading.combatants,
         statusMasksByCombatantId: reading.statusMasksByCombatantId,
         chargeStatements: reading.chargeStatements,
-    });
+    };
 }
 
 /**
  * The messages, copied. An empty one is passed over and so counts as lost against `mi`, as
  * `develop` reads it; anything but text is a list this reader cannot place a message in.
  */
-function readPayloadEnvelopeMessages(payload: UnknownRecord): Result<string[], EnvelopeFailure> {
+function readPayloadEnvelopeMessages(payload: UnknownRecord): string[] | EnvelopeFailure {
     const listed = getListField(payload, ENVELOPE_KEYS, "messages", MESSAGES_MAXIMUM);
-    if (!listed.ok) return err(readPayloadEnvelopeFailure(listed.error));
+    if (listed instanceof Error) return readPayloadEnvelopeFailure(listed);
     const messages: string[] = [];
-    for (const message of listed.value ?? []) {
-        if (typeof message !== "string") {
-            return err({ kind: ENVELOPE_FAILURE.payloadFieldMalformed, field: "messages" });
-        }
+    for (const message of listed ?? []) {
+        if (typeof message !== "string") return new PayloadFieldMalformed("messages");
         if (message.length > 0) messages.push(message);
     }
     assert(messages.length <= MESSAGES_MAXIMUM, "a payload's messages stay inside the bound");
-    return ok(messages);
+    return messages;
 }
 
 /** Our field, never their key: the failure a field reader returned, in the envelope's terms. */
 function readPayloadEnvelopeFailure(failure: FieldFailure<EnvelopeField>): EnvelopeFailure {
-    if (failure.kind === FIELD_FAILURE.wrongType) {
-        return { kind: ENVELOPE_FAILURE.payloadFieldMalformed, field: failure.field };
+    if (failure instanceof FieldWrongType) {
+        return new PayloadFieldMalformed(failure.field, { cause: failure });
     }
     const { field, count, maximum } = failure;
     assert(count > maximum, "a list refused for its length is past the bound");
-    return { kind: ENVELOPE_FAILURE.payloadFieldTooLong, field, count, maximum };
+    return new PayloadFieldTooLong(field, count, maximum, { cause: failure });
 }
 
 /**
@@ -146,15 +164,15 @@ function readPayloadEnvelopeFailure(failure: FieldFailure<EnvelopeField>): Envel
 function readPayloadEnvelopeInteger(
     payload: UnknownRecord,
     field: "readerSide" | "isOnAuto",
-): Result<number | null, EnvelopeFailure> {
+): number | null | PayloadFieldMalformed {
     const asNumber = getNumberField(payload, ENVELOPE_KEYS, field);
-    if (asNumber.ok) return asNumber;
+    if (!(asNumber instanceof Error)) return asNumber;
     const asText = getTextField(payload, ENVELOPE_KEYS, field);
-    if (!asText.ok) return err({ kind: ENVELOPE_FAILURE.payloadFieldMalformed, field });
-    assert(asText.value !== null, "a field of the wrong type for a number is present");
-    const value = parseInteger(asText.value);
-    if (value === null) return err({ kind: ENVELOPE_FAILURE.payloadFieldMalformed, field });
-    return ok(value);
+    if (asText instanceof Error) return new PayloadFieldMalformed(field, { cause: asText });
+    assert(asText !== null, "a field of the wrong type for a number is present");
+    const value = parseInteger(asText);
+    if (value === null) return new PayloadFieldMalformed(field, { cause: asNumber });
+    return value;
 }
 
 /**
@@ -162,63 +180,43 @@ function readPayloadEnvelopeInteger(
  * statement.** The rest are the client's forecast: over `captures/` (2026-09-08) the step
  * one ahead is wrong 11 times in 451, and the ninth 100 times in 277.
  */
-function readPayloadEnvelopeTurn(
-    payload: UnknownRecord,
-): Result<TurnStatement | null, EnvelopeFailure> {
+function readPayloadEnvelopeTurn(payload: UnknownRecord): TurnStatement | null | EnvelopeFailure {
     const queue = getRecordField(payload, ENVELOPE_KEYS, "turnStatement");
-    if (!queue.ok) return err(readPayloadEnvelopeFailure(queue.error));
-    if (queue.value === null) return ok(null);
-    const ordinals = Object.keys(queue.value);
+    if (queue instanceof Error) return readPayloadEnvelopeFailure(queue);
+    if (queue === null) return null;
+    const ordinals = Object.keys(queue);
     if (ordinals.length > QUEUE_ENTRIES_MAXIMUM) {
-        const count = ordinals.length;
-        const maximum = QUEUE_ENTRIES_MAXIMUM;
-        return err({
-            kind: ENVELOPE_FAILURE.payloadFieldTooLong,
-            field: "turnStatement",
-            count,
-            maximum,
-        });
+        return new PayloadFieldTooLong("turnStatement", ordinals.length, QUEUE_ENTRIES_MAXIMUM);
     }
     let least: number | null = null;
     for (const stated of ordinals) {
         const ordinal = parseInteger(stated);
-        if (ordinal === null) {
-            return err({ kind: ENVELOPE_FAILURE.payloadFieldMalformed, field: "turnStatement" });
-        }
+        if (ordinal === null) return new PayloadFieldMalformed("turnStatement");
         if (least === null) least = ordinal;
         else if (ordinal < least) least = ordinal;
     }
-    if (least === null) return ok(null);
-    const combatantId = queue.value[`${least}`];
-    if (typeof combatantId !== "number") {
-        return err({ kind: ENVELOPE_FAILURE.payloadFieldMalformed, field: "turnStatement" });
-    }
-    return ok({ ordinal: least, combatantId });
+    if (least === null) return null;
+    const combatantId = queue[`${least}`];
+    if (typeof combatantId !== "number") return new PayloadFieldMalformed("turnStatement");
+    return { ordinal: least, combatantId };
 }
 
 /**
  * The warrior entries, as a list. The client keys its warriors by id in every payload of
  * `captures/` carrying any; a list of them is the same people in order, and is read so.
  */
-function readPayloadEnvelopeWarriors(payload: UnknownRecord): Result<unknown[], EnvelopeFailure> {
+function readPayloadEnvelopeWarriors(payload: UnknownRecord): unknown[] | EnvelopeFailure {
     const keyed = getRecordField(payload, ENVELOPE_KEYS, "combatants");
     let entries: unknown[] = [];
-    if (keyed.ok) {
-        if (keyed.value !== null) entries = Object.values(keyed.value);
-    } else {
+    if (keyed instanceof Error) {
         const listed = getListField(payload, ENVELOPE_KEYS, "combatants", COMBATANTS_MAXIMUM);
-        if (!listed.ok) return err(readPayloadEnvelopeFailure(listed.error));
-        entries = [...(listed.value ?? [])];
+        if (listed instanceof Error) return readPayloadEnvelopeFailure(listed);
+        entries = [...(listed ?? [])];
+    } else if (keyed !== null) {
+        entries = Object.values(keyed);
     }
     if (entries.length > COMBATANTS_MAXIMUM) {
-        const count = entries.length;
-        const maximum = COMBATANTS_MAXIMUM;
-        return err({
-            kind: ENVELOPE_FAILURE.payloadFieldTooLong,
-            field: "combatants",
-            count,
-            maximum,
-        });
+        return new PayloadFieldTooLong("combatants", entries.length, COMBATANTS_MAXIMUM);
     }
-    return ok(entries);
+    return entries;
 }

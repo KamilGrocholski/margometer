@@ -2,21 +2,13 @@
  * The add-on standing up (`docs/design.md` §4, §10.1): the page's `window` read into the ports the
  * runtime is handed, the frozen readings composed into its tables, and the runtime started. It is
  * the first boundary of `AGENTS.md` E5, so it asserts nothing (A11) and all of it runs under one
- * `runGuarded`. A page it cannot stand on gets one console line and no panel.
+ * `errors.attempt`. A page it cannot stand on gets one console line and no panel.
  */
 
 import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { FROZEN_BLOWS_GRANTED } from "#/frozen/blows-granted.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
-import {
-    type BrokenInvariant,
-    callForeign,
-    err,
-    type ForeignFailure,
-    ok,
-    type Result,
-    runGuarded,
-} from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { indexAuraTurnsBySkillId, indexShoutsBySkillId } from "#/src/core/aura-standing.ts";
@@ -63,12 +55,18 @@ export const WINDOW_PART = {
 } as const;
 export type WindowPart = VocabularyWord<typeof WINDOW_PART>;
 
-export const BOOT_FAILURE = { windowUnusable: "window-unusable" } as const;
-/** What stops the add-on before it stands: the page, or a broken invariant while it stood up. */
-export type BootFailure =
-    | { kind: typeof BOOT_FAILURE.windowUnusable; missing: WindowPart }
-    | ForeignFailure
-    | BrokenInvariant;
+export class WindowUnusable extends Error {
+    override readonly name = "WindowUnusable";
+    readonly missing: WindowPart;
+
+    constructor(missing: WindowPart) {
+        super();
+        this.missing = missing;
+    }
+}
+
+/** What stops the add-on before it stands: the page, or a throw while it stood up. */
+export type BootFailure = WindowUnusable | errors.Caught;
 
 /**
  * The names a browser gives what this needs, and the whole of what it is asked for. That each is
@@ -100,23 +98,19 @@ const ANCHOR_TAG = "a";
 
 /** Starts the add-on on the page, or leaves one console line where it cannot. Never throws. */
 export function startMargoMeter(page: unknown): Runtime | null {
-    const started = runGuarded(() => startMargoMeterOnPage(page));
-    if (started.ok) return started.value;
-    writeStoodDownLine(page, started.error);
+    const started = errors.attempt(() => startMargoMeterOnPage(page));
+    if (!(started instanceof Error)) return started;
+    writeStoodDownLine(page, started);
     return null;
 }
 
 function startMargoMeterOnPage(page: unknown): Runtime | null {
-    const read = callForeign(() => readUserscriptWindow(page));
-    if (!read.ok) {
-        writeStoodDownLine(page, read.error);
+    const read = errors.attempt(() => readUserscriptWindow(page));
+    if (read instanceof Error) {
+        writeStoodDownLine(page, read);
         return null;
     }
-    if (!read.value.ok) {
-        writeStoodDownLine(page, read.value.error);
-        return null;
-    }
-    return initRuntime(read.value.value, {
+    return initRuntime(read, {
         version: BUILD_VERSION,
         tables: composeRuntimeTables(),
         sessionOptions: SESSION_OPTIONS,
@@ -128,10 +122,10 @@ function startMargoMeterOnPage(page: unknown): Runtime | null {
  * nowhere to carry it, and the add-on stands down silently there, because nothing is left to say.
  */
 function writeStoodDownLine(page: unknown, failure: BootFailure): void {
-    const console = callForeign(() => readPageConsole(page));
-    if (!console.ok) return;
-    if (console.value === null) return;
-    initPageConsole(console.value).writeBrandedLine(failure.kind, failure);
+    const console = errors.attempt(() => readPageConsole(page));
+    if (console instanceof Error) return;
+    if (console === null) return;
+    initPageConsole(console).writeBrandedLine(failure.name, failure);
 }
 
 function readPageConsole(page: unknown): PageConsole | null {
@@ -145,19 +139,14 @@ function readPageConsole(page: unknown): PageConsole | null {
 
 /**
  * The page as the ports the runtime is handed. Reading a member of a page is a call into it, since
- * a getter is the page's own code, so the caller holds this under `callForeign`.
+ * a getter is the page's own code, so the caller holds this under `errors.attempt`.
  */
-export function readUserscriptWindow(page: unknown): Result<RuntimePorts, BootFailure> {
-    if (!isRecord(page)) return err(composeWindowUnusable(WINDOW_PART.window));
+export function readUserscriptWindow(page: unknown): RuntimePorts | WindowUnusable {
+    if (!isRecord(page)) return new WindowUnusable(WINDOW_PART.window);
     if (!isUserscriptWindow(page)) {
-        const missing = lookupWindowPartMissing(page) ?? WINDOW_PART.window;
-        return err(composeWindowUnusable(missing));
+        return new WindowUnusable(lookupWindowPartMissing(page) ?? WINDOW_PART.window);
     }
-    return ok(composeRuntimePorts(page));
-}
-
-function composeWindowUnusable(missing: WindowPart): BootFailure {
-    return { kind: BOOT_FAILURE.windowUnusable, missing };
+    return composeRuntimePorts(page);
 }
 
 function isUserscriptWindow(page: UnknownRecord): page is UnknownRecord & UserscriptWindow {
@@ -219,7 +208,7 @@ function composeRuntimePorts(page: UserscriptWindow): RuntimePorts {
         }),
         console: initPageConsole(page.console),
         document: page.document,
-        mountPanel: (panel) => callForeign(() => page.document.body.append(panel)),
+        mountPanel: (panel) => errors.attempt(() => page.document.body.append(panel)),
         readViewport: () => readPageViewport(page),
     };
 }
@@ -238,12 +227,12 @@ function readPageScriptSources(page: UserscriptWindow): unknown[] {
  * can throw: a browser forbidding storage throws on the access, before there is a `getItem`.
  */
 function readPageStorage(page: UserscriptWindow, choice: StorageChoice): PageStorage | null {
-    const read = callForeign(() => {
+    const read = errors.attempt(() => {
         if (choice === STORAGE_CHOICE.session) return page.sessionStorage;
         return page.localStorage;
     });
-    if (!read.ok) return null;
-    return read.value ?? null;
+    if (read instanceof Error) return null;
+    return read ?? null;
 }
 
 /**

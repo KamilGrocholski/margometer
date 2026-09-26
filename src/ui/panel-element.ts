@@ -4,7 +4,7 @@
  */
 
 import { formatDecimal } from "#/libs/number-text.ts";
-import { callForeign, runGuarded } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     PANEL_WINDOW,
@@ -151,11 +151,11 @@ import {
     type TipReading,
 } from "./tip-reading.ts";
 import {
+    GestureDropped,
     PANEL_LISTENER,
-    type RenderFailure,
+    RegionUndrawn,
     type RenderReport,
     reportViewFailure,
-    VIEW_FAILURE,
     type ViewFailure,
 } from "./view-failure.ts";
 
@@ -386,7 +386,7 @@ export interface PanelViewOptions {
  * or to the sink where none was — a card opened under the pointer draws between two frames.
  */
 interface UndrawnReport {
-    add(region: PanelRegion, cause: unknown): void;
+    add(region: PanelRegion, cause: errors.Caught): void;
     collect(render: () => void): RenderReport;
 }
 
@@ -667,10 +667,10 @@ function renderPanelFrame(document: PanelDocument, regions: PanelRegions): Panel
 }
 
 function initUndrawnReport(onFailure: (failure: ViewFailure) => void): UndrawnReport {
-    let collected: RenderFailure[] | null = null;
+    let collected: RegionUndrawn[] | null = null;
     return {
-        add(region: PanelRegion, cause: unknown): void {
-            const failure = { kind: VIEW_FAILURE.regionUndrawn, region, cause };
+        add(region, cause) {
+            const failure = new RegionUndrawn(region, cause);
             if (collected === null) {
                 reportViewFailure(onFailure, failure);
                 return;
@@ -680,7 +680,7 @@ function initUndrawnReport(onFailure: (failure: ViewFailure) => void): UndrawnRe
         // ⚠️ Every step of a render stands under a guard of its own, so nothing leaves `render`
         // with the report still collecting. A step added unguarded would take the sink with it.
         collect(render: () => void): RenderReport {
-            const undrawn: RenderFailure[] = [];
+            const undrawn: RegionUndrawn[] = [];
             collected = undrawn;
             render();
             collected = null;
@@ -700,9 +700,9 @@ function renderRegionInPlace(
     if (next === null) return standing;
     // The document's own call, and a region's to lose rather than the whole draw's: what stands
     // is the region as it was, which a reader has already read once.
-    const replaced = callForeign(() => standing.replaceWith(next));
-    if (replaced.ok) return next;
-    report.add(region, replaced.error.cause);
+    const replaced = errors.attempt(() => standing.replaceWith(next));
+    if (!(replaced instanceof Error)) return next;
+    report.add(region, replaced);
     return standing;
 }
 
@@ -716,15 +716,15 @@ function renderRegion(
     render: () => PanelElement,
     report: UndrawnReport,
 ): PanelElement | null {
-    const rendered = runGuarded(render);
-    if (rendered.ok) return rendered.value;
-    report.add(region, rendered.error.cause);
-    const undrawn = callForeign(() => {
+    const rendered = errors.attempt(render);
+    if (!(rendered instanceof Error)) return rendered;
+    report.add(region, rendered);
+    const undrawn = errors.attempt(() => {
         const mark = renderElement(document, "div", CLASS.undrawn);
         mark.textContent = formatUndrawn(region);
         return mark;
     });
-    return undrawn.ok ? undrawn.value : null;
+    return undrawn instanceof Error ? null : undrawn;
 }
 
 function initListDrawing(
@@ -745,9 +745,9 @@ function initListDrawing(
         // kept under its own name is what they land on.
         isRegionKept = name === shownName && renderListRows(regions.list, next);
         if (!isRegionKept) {
-            const replaced = callForeign(() => regions.list.replaceWith(next));
-            if (replaced.ok) regions.list = next;
-            else report.add(PANEL_REGION.list, replaced.error.cause);
+            const replaced = errors.attempt(() => regions.list.replaceWith(next));
+            if (replaced instanceof Error) report.add(PANEL_REGION.list, replaced);
+            else regions.list = next;
         }
         shownName = name;
     };
@@ -837,13 +837,13 @@ function renderTipInPlace(
     render: () => PanelElement,
     report: UndrawnReport,
 ): PanelElement {
-    const rendered = runGuarded(() => {
+    const rendered = errors.attempt(() => {
         const next = render();
         standing.replaceWith(next);
         return next;
     });
-    if (rendered.ok) return rendered.value;
-    report.add(PANEL_REGION.tip, rendered.error.cause);
+    if (!(rendered instanceof Error)) return rendered;
+    report.add(PANEL_REGION.tip, rendered);
     setTipHidden(standing, true);
     return standing;
 }
@@ -914,13 +914,11 @@ function addPanelRootListeners(
         const target = event.target;
         if (target === null) return;
         const intent = readPanelIntent(target);
-        if (!intent.ok) {
-            const cause = intent.error;
-            const failure = { kind: VIEW_FAILURE.gestureDropped, listener: PANEL_LISTENER.press };
-            reportViewFailure(options.onFailure, { ...failure, cause });
+        if (intent instanceof Error) {
+            reportViewFailure(options.onFailure, new GestureDropped(PANEL_LISTENER.press, intent));
             return;
         }
-        if (intent.value !== null) options.onIntent(intent.value);
+        if (intent !== null) options.onIntent(intent);
     }, options.onFailure);
     // One gesture in, one gesture out, and the way out works from anywhere on the panel: a back
     // control alone would make the cheapest gesture the one that needs aiming. The window beside
@@ -1006,8 +1004,8 @@ function composePanelView(held: PanelDrawing): PanelView {
 
 /** A step of a draw that is not a region's own, charged to the region it stands for. */
 function renderStep(report: UndrawnReport, region: PanelRegion, step: () => void): void {
-    const ran = runGuarded(step);
-    if (!ran.ok) report.add(region, ran.error.cause);
+    const ran = errors.attempt(step);
+    if (ran instanceof Error) report.add(region, ran);
 }
 
 /** The bar, which says what it will do, and the frame it folds. Drawn on every draw there is. */

@@ -198,8 +198,8 @@ function verifyQueueHolders(steps: readonly ReplayedStep[]): void {
 function readCurrentHolder(update: unknown): number | null {
     if (!isRecord(update)) return null;
     const holder = getNumberField(update, WITNESS_KEYS, "holder");
-    if (!holder.ok) return null;
-    return holder.value;
+    if (holder instanceof Error) return null;
+    return holder;
 }
 
 /**
@@ -332,15 +332,15 @@ function isPayloadNarrated(update: unknown, expected: number | null): boolean {
 function readMessageIndices(update: unknown): number[] | null {
     if (!isRecord(update)) return null;
     const stated = getListField(update, ENVELOPE_KEYS, "messagesStated", MESSAGES_MAXIMUM);
-    if (!stated.ok) return null;
-    if (stated.value === null) return null;
+    if (stated instanceof Error) return null;
+    if (stated === null) return null;
     const indices: number[] = [];
-    for (const one of stated.value) {
+    for (const one of stated) {
         if (typeof one !== "number") return null;
         if (!Number.isFinite(one)) return null;
         indices.push(one);
     }
-    assertStrictEquals(indices.length, stated.value.length, "every index stated is an index read");
+    assertStrictEquals(indices.length, stated.length, "every index stated is an index read");
     return indices;
 }
 

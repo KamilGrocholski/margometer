@@ -90,8 +90,8 @@ function readRunsFromPayload(payload: readonly string[]): RecordedRun[] {
 
 function parseOrFail(text: string): ProtocolMessage {
     const parsed = parseProtocolMessage(text);
-    assert(parsed.ok, `"${text}" parses`);
-    return parsed.value;
+    assert(!(parsed instanceof Error), `"${text}" parses`);
+    return parsed;
 }
 
 function isAnnouncement(keys: readonly string[]): boolean {

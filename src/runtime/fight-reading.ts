@@ -6,7 +6,6 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { err, ok, type Result } from "#/libs/result.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import {
     type FightFigures,
@@ -57,7 +56,7 @@ export function replayKeptFight(
     fight: KeptFight,
     tables: DecoderTables,
     options: SessionOptions,
-): Result<KeptReading | null, ReplayFailure> {
+): KeptReading | null | ReplayFailure {
     assert(fight.payloads.length > 0, "a fight kept was kept from something");
     return replayFightPayloads(fight.payloads, tables, options);
 }
@@ -71,21 +70,21 @@ export function replayFightPayloads(
     payloads: readonly unknown[],
     tables: DecoderTables,
     options: SessionOptions,
-): Result<KeptReading | null, ReplayFailure> {
+): KeptReading | null | ReplayFailure {
     assert(payloads.length <= CALLS_MAXIMUM, "a fight replayed is inside a recording's bound");
     const session = initFightSession(options);
     const messagesByPayload: (readonly string[])[] = [];
     for (const payload of payloads) {
         const record = readPayloadEnvelope(payload);
-        if (!record.ok) return err(record.error);
-        const prepared = preparePayload(session, record.value, tables);
-        if (!prepared.ok) return err(prepared.error);
-        commitPayload(session, prepared.value);
-        messagesByPayload.push(record.value.messages);
+        if (record instanceof Error) return record;
+        const prepared = preparePayload(session, record, tables);
+        if (prepared instanceof Error) return prepared;
+        commitPayload(session, prepared);
+        messagesByPayload.push(record.messages);
     }
     const view = getFightView(session);
-    if (view === null) return ok(null);
-    return ok({ ...tallyFightReading(view), messagesByPayload });
+    if (view === null) return null;
+    return { ...tallyFightReading(view), messagesByPayload };
 }
 
 /**

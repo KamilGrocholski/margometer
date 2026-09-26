@@ -190,8 +190,10 @@ async function moveShotsIn(staging: string, record: PanelShotRecord): Promise<vo
         await Deno.copyFile(`${staging}/${shot.name}`, `${SHOT_DIRECTORY}/${shot.name}`);
     }
     const text = encodeJson(record, SIDECAR_INDENT_SPACES);
-    if (!text.ok) throw new PanelShotError("the sidecar naming the set cannot be written");
-    await Deno.writeTextFile(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`, `${text.value}\n`);
+    if (text instanceof Error) {
+        throw new PanelShotError("the sidecar naming the set cannot be written", { cause: text });
+    }
+    await Deno.writeTextFile(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`, `${text}\n`);
 }
 
 /** The page a picture is taken of: the fight fed through `entry`, both windows in the corner. */

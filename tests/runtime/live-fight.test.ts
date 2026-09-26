@@ -7,14 +7,14 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import { err, ok } from "#/libs/result.ts";
+import * as errors from "#/libs/errors.ts";
 import { getFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { initMemoryStore, initPageStore, type KeyValueStore } from "#/src/game/browser-store.ts";
 import { initPageEngine } from "#/src/game/engine-battle.ts";
 import type { PlacePort } from "#/src/game/engine-place.ts";
 import { NO_CAPTURE, prepareCapture } from "#/src/game/fight-capture.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
-import { PAGE_READ_FAILURE, PAGE_READING } from "#/src/game/page-reading.ts";
+import { PAGE_READING, PageReadingAbsent } from "#/src/game/page-reading.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
 import type { WarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
@@ -41,7 +41,7 @@ const OPENED_AT = 1000;
 const STILL_CLOCK = {
     readNowMilliseconds: () => OPENED_AT,
     readMoment: () => null,
-    readTimestampText: () => ok("2026-09-25T10:00:00.000Z"),
+    readTimestampText: () => "2026-09-25T10:00:00.000Z",
 };
 
 Deno.test("every recording played through the wrap is the fight, the file and the shelf", () => {
@@ -59,15 +59,15 @@ Deno.test("every recording played through the wrap is the fight, the file and th
         let keptCalls: unknown[] | null = null;
         fight.updates.forEach((payload, at) => {
             const record = readPayloadEnvelope(payload);
-            assert(record.ok, `${fight.path}: a recorded call reads`);
+            assert(!(record instanceof Error), `${fight.path}: a recorded call reads`);
             const combatantsBefore = at === 0 ? [] : after[at - 1] ?? [];
-            const call = { payload, messages: record.value.messages, combatantsBefore };
+            const call = { payload, messages: record.messages, combatantsBefore };
             capture = prepareCapture(
                 capture,
                 { ...call, combatantsAfter: after[at] ?? [] },
-                record.value.isInit,
+                record.isInit,
             );
-            if (record.value.isEnd) keptCalls ??= capture.calls.map((one) => one.payload);
+            if (record.isEnd) keptCalls ??= capture.calls.map((one) => one.payload);
         });
         assertEquals(live.capture, capture, `${fight.path}: the file holds what was captured`);
         assertStrictEquals(keeper.getFights().length, 1, `${fight.path}: the fight is kept once`);
@@ -112,8 +112,8 @@ function composeOptions(
     const lines: string[] = [];
     const stale = { count: 0 };
     const opened = { count: 0 };
-    const place: PlacePort = { readPlace: () => ok(PLACE) };
-    const build: BuildPort = { readBuildId: () => ok("Bb28FQty") };
+    const place: PlacePort = { readPlace: () => PLACE };
+    const build: BuildPort = { readBuildId: () => "Bb28FQty" };
     const defects = initDefectLedger({ writeBrandedLine: (kind) => lines.push(kind) });
     const keeper = initShelfKeeper({
         settings: initMemoryStore(),
@@ -146,13 +146,13 @@ function composeOptions(
 function playInto(game: FakeGame, options: LiveFightOptions, payloads: readonly unknown[]) {
     const { live, listener } = initLiveFight(options);
     const battle = options.engine.readBattle();
-    assert(battle.ok, "the fake page holds a battle");
-    const wrapped = battle.value.wrap(listener);
-    assert(wrapped.ok, "and the listener is wrapped onto it");
+    assert(!(battle instanceof Error), "the fake page holds a battle");
+    const wrapped = battle.wrap(listener);
+    assert(!(wrapped instanceof Error), "and the listener is wrapped onto it");
     const updateData = game.page.Engine.battle.updateData;
     assert(typeof updateData === "function", "the wrap stands where the engine's call stood");
     for (const payload of payloads) Reflect.apply(updateData, game.page.Engine.battle, [payload]);
-    return { live, wrapped: wrapped.value };
+    return { live, wrapped };
 }
 
 Deno.test("a call the envelope refuses is a defect, and the file still keeps the call", () => {
@@ -191,13 +191,13 @@ Deno.test("a shelf the store refuses is the shelf's answer, and the fight still 
 
 Deno.test("a place the page does not state is unknown, and one it throws on is a defect", () => {
     const absent: PlacePort = {
-        readPlace: () => err({ kind: PAGE_READ_FAILURE.absent, reading: PAGE_READING.place }),
+        readPlace: () => new PageReadingAbsent(PAGE_READING.place),
     };
     const quiet = composeGame([[]]);
     const unknown = composeOptions(quiet, { place: absent });
     assertStrictEquals(playInto(quiet, unknown.options, [{ init: 1 }]).live.place, null, "none");
     assertEquals(unknown.lines, [], "and no defect");
-    const thrown: PlacePort = { readPlace: () => err({ kind: "foreign-threw", cause: "torn" }) };
+    const thrown: PlacePort = { readPlace: () => new errors.Caught("torn") };
     const loud = composeGame([[]]);
     const failed = composeOptions(loud, { place: thrown });
     playInto(loud, failed.options, [{ init: 1 }]);

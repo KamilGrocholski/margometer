@@ -72,8 +72,11 @@ function replayRecordedFight(fight: RecordedFight): FightView {
         const combatants = isInit ? fight.combatants : [];
         const record = { ...NOTHING, isInit, messages, combatants };
         const prepared = preparePayload(session, record, BLOWS_GRANTED);
-        assert(prepared.ok, `${fight.path}: a recorded call is inside every bound`);
-        commitPayload(session, prepared.value);
+        assert(
+            !(prepared instanceof Error),
+            `${fight.path}: a recorded call is inside every bound`,
+        );
+        commitPayload(session, prepared);
     });
     const view = getFightView(session);
     assert(view !== null, `${fight.path}: the replay produced a fight`);
@@ -83,8 +86,8 @@ function replayRecordedFight(fight: RecordedFight): FightView {
 Deno.test("figures are tallied from a fight that exists, and say what they stand on", () => {
     const session = initFightSession(SESSION_OPTIONS);
     const opened = preparePayload(session, { ...NOTHING, isInit: true }, BLOWS_GRANTED);
-    assert(opened.ok, "a fight opens on nothing");
-    commitPayload(session, opened.value);
+    assert(!(opened instanceof Error), "a fight opens on nothing");
+    commitPayload(session, opened);
     const view = getFightView(session);
     assert(view !== null, "and stands");
     const figures = tallyFightFigures(view);
