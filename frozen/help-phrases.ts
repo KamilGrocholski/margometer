@@ -5,7 +5,7 @@
 export const FROZEN_HELP_PHRASES = {
     article: "372",
     /** When the dump these counts were taken from was fetched, not when it was read. */
-    fetchedAt: "2026-09-23T08:58:25.604Z",
+    fetchedAt: "2026-09-27T08:53:05.002Z",
     counts: {
         "( fire )": 2,
         "( heal )": 3,
@@ -100,6 +100,9 @@ export const FROZEN_HELP_PHRASES = {
         "removeslow-allies": 3,
         "removestun-allies": 1,
         "resdmg": 3,
+        "resfire_per": 1,
+        "resfrost_per": 1,
+        "reslight_per": 1,
         "shout": 3,
         "skillId": 0,
         "step": 4,

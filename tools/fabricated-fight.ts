@@ -1403,6 +1403,9 @@ function executeStance(turn: FabricatedTurn): string[] {
         encodeFigure("active_block_per", composeSmall(turn, 24)),
         encodeFigure("active_decblock_per", composeSmall(turn, 18)),
         encodeFigure("active_absorbdest_per", composeSmall(turn, 13)),
+        encodeFigure("resfire_per", composeSmall(turn, 13)),
+        encodeFigure("resfrost_per", composeSmall(turn, 13)),
+        encodeFigure("reslight_per", composeSmall(turn, 13)),
     ])];
 }
 

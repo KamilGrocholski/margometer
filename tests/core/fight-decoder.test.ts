@@ -166,6 +166,12 @@ const DECLARED_ON_BLOW = "477718=100.00;-10000234=95.59;+dmgd=924;+dmgc=766;+acd
 const DECLARED_ON_SKILL = "445202=81.04;445202=81.04;tspell=Osłona tarczą;skillId=206;" +
     "active_block_per=15;heal_target=334;combo-max=1";
 /**
+ * A fight file a player saved on build `Bb28FQty` on 2026-09-27, off the shelf and so outside
+ * `captures/`: a bandage that raises its caster's resistances as well.
+ */
+const RESISTANCES_ON_SKILL = "10295=86.96;10295=86.96;tspell=Opatrywanie ran;skillId=237;" +
+    "bandage=0;resfire_per=13;resfrost_per=13;reslight_per=13";
+/**
  * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: a line for the client's own log,
  * and a step.
  */
@@ -472,6 +478,18 @@ Deno.test("what an announcement states about its skill rides the announcement", 
     assertEquals(used.declared.map((one) => one.effect), ["active_block_per", "combo-max"], "both");
     assertEquals(used.declared[0]?.amount, 15, "with the figure the protocol stated");
     assertEquals(events.filter((one) => one.kind === "unknown-message").length, 0, "nothing left");
+});
+
+Deno.test("a bandage that also raises its caster's resistances is read whole", () => {
+    const events = decode([RESISTANCES_ON_SKILL]);
+    assertEquals(events.filter((one) => one.kind === "unknown-message").length, 0, "nothing left");
+    const used = events.find((event) => event.kind === "skill-used");
+    assertStrictEquals(used?.kind, "skill-used", "the announcement is the event");
+    assertEquals(used.declared, [
+        { effect: "resfire_per", amount: 13, text: "13" },
+        { effect: "resfrost_per", amount: 13, text: "13" },
+        { effect: "reslight_per", amount: 13, text: "13" },
+    ], "each resistance with the figure the protocol stated");
 });
 
 Deno.test("a message about nobody's health is a declaration of its own", () => {

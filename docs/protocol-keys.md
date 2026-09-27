@@ -2110,6 +2110,41 @@ layer and fired on the damage layer. Production build `Bb28FQty` composes it and
 `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json`, announced at the caster
 themselves in both slots of its message.
 
+### `resfire_per` — decoded
+
+A rise in the **fire** resistance of the character a skill is cast on, in percentage points,
+declared on that skill's announcement. No total here keeps a resistance, so the declaration is
+counted on nobody, as the team-wide `aura-resall` above is.
+
+⚠️ **No recording carries it.** `captures/` holds the resistances only as a snapshot's stat, never
+as this key, so the entry states no `_Shape:_` line. It is read because a fight file a player saved
+on 2026-09-27, off the shelf and so outside `captures/`, carries it beside `bandage` on skill 237,
+and `tests/core/fight-decoder.test.ts` holds that message.
+
+_Help:_ names `resfire_per`
+
+_Evidence:_ article view,372 at the engine name `resfire_per` (read 2026-09-27) gives it as a
+passive effect raising the fire resistance of the character the skill is cast on, the variable being
+the percentage points it rises by, applied on the initiation layer. Production build `Bb28FQty`
+composes `msg_resfire_per %val%`, `msg_resfrost_per %val%` and `msg_reslight_per %val%` on cases of
+their own, each taking a figure (read 2026-09-27), and the dictionary of build `1785244275300`
+spells each figure as a percentage. The published table gives the effect a run of turns on skills
+34, 43, 217 and 237 (`frozen/skill-durations.ts`); on skill 237 it reaches the caster alone, so that
+cast is not one `docs/auras-standing.md` follows.
+
+### `resfrost_per` — decoded
+
+The same, narrowed to the **cold** resistance. `_Shape:_` is absent for the reason `resfire_per`
+above gives, and the evidence is that entry's.
+
+_Help:_ names `resfrost_per`
+
+### `reslight_per` — decoded
+
+The same, narrowed to the **lightning** resistance. Evidence as above.
+
+_Help:_ names `reslight_per`
+
 ### `lowheal_per-enemies` — decoded
 
 The share by which the **opposing** side's healing from active skills is reduced, declared on the

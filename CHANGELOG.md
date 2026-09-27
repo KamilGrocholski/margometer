@@ -43,6 +43,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   dalej ją liczy i mówi, czego nie zrobił, zamiast po cichu przestać się odświeżać.
 - **Poprawka** — Zapisana walka, której panel nie umie już odczytać, jest nazwana dniem i miejscem,
   zamiast udawać, że żadnej walki nie było.
+- **Poprawka** — Opatrywanie ran podnoszące odporność na ogień, zimno i błyskawice jest już
+  rozpoznawane, więc panel nie ostrzega już o nieodczytanej wiadomości, choć odporności nie wchodzą
+  do żadnej liczby na karcie.
 
 ## [0.19.0] — 2026-09-23
 
