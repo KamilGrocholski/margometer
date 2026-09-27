@@ -37,7 +37,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.20.0] — 2026-09-27
 
 - **Zmiana** — Gdy dodatek nie zdoła połączyć się z grą, panel i tak się pojawia i mówi, że nie
   widzi walki, zamiast w ogóle się nie pokazać.
