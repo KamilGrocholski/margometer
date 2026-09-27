@@ -15,6 +15,7 @@ import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { parseCitedHelpPhrases, REGISTER_PATH } from "./help-claim-register.ts";
+import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { GameUnreachableError, HelpArticleError } from "./margometer-tool-error.ts";
 
 export interface CachedHelpArticle {
@@ -23,6 +24,11 @@ export interface CachedHelpArticle {
     fetchedAt: string;
     textPath: string;
     textLength: number;
+}
+
+/** A freeze of the counts, with the counts themselves, so a zero can be said aloud. */
+export interface FrozenHelpCounts extends FrozenFiles {
+    counts: readonly [string, number][];
 }
 
 const HELP_HOST = "https://pomoc.margonem.pl";
@@ -37,6 +43,8 @@ export const CACHE_ROOT = ".cache/help/";
 const MANIFEST_NAME = "provenance.json";
 const TEXT_NAME = "text.txt";
 const FROZEN_PATH = "frozen/help-phrases.ts";
+/** The field the reading is dated by, exported so a test holds the frozen file to it. */
+export const FROZEN_DATE_FIELD = "fetchedAt";
 const INDENT_SPACES = 2;
 const MILLISECONDS_PER_DAY = 86_400_000;
 /** A week: past it an entry reading "the help is silent" is a false negative wearing a date. */
@@ -53,23 +61,36 @@ export const FROZEN_HELP_BANNER =
 `;
 
 /**
- * The counts written to `frozen/`, dated by the dump they were taken over. The phrases are the
+ * The counts written to `frozen/`, where they moved. The phrases are the
  * ones `docs/protocol-keys.md` cites, and any named besides: a re-freeze needs no list retyped, a
  * phrase is counted before a claim cites it, and one no claim cites any more is dropped.
  */
-export function writeFrozenHelpCounts(
+export function writeFrozenHelpCounts(article: string, named: readonly string[]): FrozenHelpCounts {
+    const frozen = prepareFrozenHelpCounts(article, named);
+    writeFrozenFiles(frozen);
+    return frozen;
+}
+
+/** The counts the cached dump gives, dated by the first dump that gave them (ADR 0011). */
+export function prepareFrozenHelpCounts(
     article: string,
     named: readonly string[],
-): { fetchedAt: string; counts: [string, number][] } {
+): FrozenHelpCounts {
     const { cached, text } = requireCachedArticleText(article);
     const cited = parseCitedHelpPhrases(Deno.readTextFileSync(REGISTER_PATH));
     if (cited.length === 0) {
         throw new HelpArticleError(`${REGISTER_PATH} cites no phrase, and freeze counts nothing`);
     }
     const counts = countPhrases(text, [...cited, ...named]);
-    Deno.writeTextFileSync(FROZEN_PATH, encodeFrozenHelpModule(article, cached.fetchedAt, counts));
-    assert(counts.length > 0, "a table that was written down counts something");
-    return { fetchedAt: cached.fetchedAt, counts };
+    assert(counts.length > 0, "a table that is frozen counts something");
+    const frozen = prepareFrozenFiles(
+        [FROZEN_PATH],
+        FROZEN_DATE_FIELD,
+        cached.fetchedAt,
+        counts.length,
+        (date) => [encodeFrozenHelpModule(article, date, counts)],
+    );
+    return { ...frozen, counts };
 }
 
 /** Refuses rather than fetching behind the caller's back: a claim is dated by its dump. */
@@ -87,10 +108,10 @@ function requireCachedArticleText(article: string): { cached: CachedHelpArticle;
 
 /**
  * Counts, and deliberately nothing else: the help is the operator's own writing, and a count is
- * our measurement of the article rather than a piece of it (`NOTICE.md`). `fetchedAt` says which
- * dump the counts came from, not the day a person read it.
+ * our measurement of the article rather than a piece of it (`NOTICE.md`). `fetchedAt` names the
+ * first dump that gave these counts, not the day a person read it.
  */
-function encodeFrozenHelpModule(
+export function encodeFrozenHelpModule(
     article: string,
     fetchedAt: string,
     counts: readonly [string, number][],
@@ -103,7 +124,7 @@ function encodeFrozenHelpModule(
 export const FROZEN_HELP_PHRASES = {
     article: ${encodeRequiredText(article)},
     /** When the dump these counts were taken from was fetched, not when it was read. */
-    fetchedAt: ${encodeRequiredText(fetchedAt)},
+    ${FROZEN_DATE_FIELD}: ${encodeRequiredText(fetchedAt)},
     counts: {
 ${written}
     },
@@ -300,9 +321,10 @@ if (import.meta.main) {
         // A non-zero exit is the point: a negative claim needs evidence as much as a positive one.
         if (writeHelpSearchReport(article, phrases) > 0) Deno.exitCode = 1;
     } else if (command === "freeze") {
-        const { fetchedAt, counts } = writeFrozenHelpCounts(article, phrases);
-        const age = formatDumpAge(fetchedAt, Date.now());
-        console.log(`froze ${formatInteger(counts.length)} phrases (${age}) → ${FROZEN_PATH}`);
+        const { date, counts, hasMoved } = writeFrozenHelpCounts(article, phrases);
+        const age = formatDumpAge(date, Date.now());
+        const moved = hasMoved ? "froze" : "unchanged:";
+        console.log(`${moved} ${formatInteger(counts.length)} phrases (${age}) → ${FROZEN_PATH}`);
         // A zero is the answer that gets written down as "not documented", so it is said aloud.
         const silent = counts.filter(([, found]) => found === 0).map(([phrase]) => phrase);
         if (silent.length > 0) console.log(`found nothing for: ${silent.join(", ")}`);

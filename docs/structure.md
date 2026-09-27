@@ -33,6 +33,7 @@ file comes or goes (ADR 0010).
 | `.agents/skills/gate/SKILL.md`            | the skill for running the gate and turning a red one into a fix                           |
 | `.agents/skills/intake/SKILL.md`          | the skill for taking a recording into `captures/` and what follows it                     |
 | `.agents/skills/mutate/SKILL.md`          | the skill for proving a test can fail, and reporting one that cannot                      |
+| `.agents/skills/readings/SKILL.md`        | the skill for starting a round on current readings of the game, and keeping them so       |
 | `.agents/skills/record-decision/SKILL.md` | the skill for writing a decision record under `docs/adr/`                                 |
 | `.agents/skills/release/SKILL.md`         | the skill for a release run from a session: pushes handed over, states read back          |
 | `.agents/skills/review/SKILL.md`          | the skill for reviewing a change: the checklist, the levels, the one format               |
@@ -63,18 +64,19 @@ file comes or goes (ADR 0010).
 | `docs/structure.md`       | this map of the tree, one row per file                                                       |
 | `docs/turns-taken.md`     | the turns each combatant took, graded recording by recording against the game's numbering    |
 
-| Path                                                                                           | For                                                                                       |
-| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `docs/adr/0001-a-vocabulary-is-an-object.md`                                                   | a closed set of our own strings is an object, its list the object's values                |
-| `docs/adr/0002-a-sibling-is-imported-by-dot-and-the-rest-from-the-root.md`                     | a sibling is imported by `./`, everything else from the root by `#/`                      |
-| `docs/adr/0003-a-module-reads-top-down-in-tigerbeetles-order.md`                               | a module reads top-down: imports, types, constants, then functions, entry first           |
-| `docs/adr/0004-the-frozen-readings-are-develops-at-the-revision.md`                            | superseded by ADR 0005: `frozen/` pinned to `develop`'s readings                          |
-| `docs/adr/0005-the-readings-are-refreshed-here.md`                                             | the readings of the game in `frozen/` are refreshed by this tree's own tools              |
-| `docs/adr/0006-an-if-that-does-not-leave-has-an-else.md`                                       | an `if` that does not leave has an `else`, and a guard is exempt                          |
-| `docs/adr/0007-the-protocol-key-register-is-carried-and-a-help-freeze-counts-what-it-cites.md` | `develop`'s key register carried, and the help counts taken from its claims               |
-| `docs/adr/0008-a-failure-is-an-error-returned-beside-the-value.md`                             | a failure is an `Error` class returned beside the value, and `attempt` the one catch      |
-| `docs/adr/0009-a-failure-is-named-for-what-failed-and-how.md`                                  | a failure class is a subject and its state, never `…Error`, and `attempt` keeps its name  |
-| `docs/adr/0010-the-structure-is-a-document-of-its-own.md`                                      | the map of the tree stands in a document of its own, out of the rules every session reads |
+| Path                                                                                           | For                                                                                           |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `docs/adr/0001-a-vocabulary-is-an-object.md`                                                   | a closed set of our own strings is an object, its list the object's values                    |
+| `docs/adr/0002-a-sibling-is-imported-by-dot-and-the-rest-from-the-root.md`                     | a sibling is imported by `./`, everything else from the root by `#/`                          |
+| `docs/adr/0003-a-module-reads-top-down-in-tigerbeetles-order.md`                               | a module reads top-down: imports, types, constants, then functions, entry first               |
+| `docs/adr/0004-the-frozen-readings-are-develops-at-the-revision.md`                            | superseded by ADR 0005: `frozen/` pinned to `develop`'s readings                              |
+| `docs/adr/0005-the-readings-are-refreshed-here.md`                                             | the readings of the game in `frozen/` are refreshed by this tree's own tools                  |
+| `docs/adr/0006-an-if-that-does-not-leave-has-an-else.md`                                       | an `if` that does not leave has an `else`, and a guard is exempt                              |
+| `docs/adr/0007-the-protocol-key-register-is-carried-and-a-help-freeze-counts-what-it-cites.md` | `develop`'s key register carried, and the help counts taken from its claims                   |
+| `docs/adr/0008-a-failure-is-an-error-returned-beside-the-value.md`                             | a failure is an `Error` class returned beside the value, and `attempt` the one catch          |
+| `docs/adr/0009-a-failure-is-named-for-what-failed-and-how.md`                                  | a failure class is a subject and its state, never `…Error`, and `attempt` keeps its name      |
+| `docs/adr/0010-the-structure-is-a-document-of-its-own.md`                                      | the map of the tree stands in a document of its own, out of the rules every session reads     |
+| `docs/adr/0011-a-reading-is-re-dated-only-when-its-content-moves.md`                           | a frozen reading carries the first fetch that gave its content, and experimental is previewed |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
@@ -202,8 +204,9 @@ file comes or goes (ADR 0010).
 | `tools/drill-report.ts`          | which rows of the panel open onto another level, over the recordings: `panel:drill`                                      |
 | `tools/fabricated-fight.ts`      | a fight nobody fought, ten a side, written under `fabricated/` outside git: `fight:fabricate`                            |
 | `tools/fight-figures.ts`         | what a recording adds up to per combatant, as a terminal table: `fight:figures`                                          |
+| `tools/frozen-files.ts`          | what a freeze leaves in `frozen/`: a file re-dated only where its content moved                                          |
 | `tools/game-client-source.ts`    | fetches and dates the game client's JavaScript into `.cache/`: `game:client`                                             |
-| `tools/game-readings.ts`         | whether the readings in `frozen/` are current, and the refresh: `game:readings`                                          |
+| `tools/game-readings.ts`         | whether the readings in `frozen/` are current, the refresh, and the development preview: `game:readings`                 |
 | `tools/help-article.ts`          | the published help, cached, searched and its phrase counts frozen: `game:help`                                           |
 | `tools/help-claim-register.ts`   | the claims `docs/protocol-keys.md` makes of the published help, read back into phrases                                   |
 | `tools/margometer-tool-error.ts` | `MargoMeterToolError`, the abstract base every tool failure extends                                                      |

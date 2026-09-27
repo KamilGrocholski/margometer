@@ -1,38 +1,31 @@
 /**
- * Whether a reading is still the game's, decided over manifests rather than over a cache. Every
+ * Whether a reading is still the game's, decided over manifests and over what a freeze would
+ * write rather than over a cache, and what a preview says of the development client. Every
  * verdict here is taken on a value handed in, so the gate needs no `.cache/` and no network to
  * prove the comparison. Each row is proved on a sample it must call stale and one it must not:
  * only the second catches a reader that has stopped comparing anything.
  */
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
-import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
 import type { CachedClientSource } from "#/tools/game-client-source.ts";
+import type { FrozenFiles } from "#/tools/frozen-files.ts";
 import {
-    type BuildReading,
-    composeBuildState,
+    composeBitShifts,
     composeClientState,
     composeDumpState,
-    composeFetchState,
+    composeFrozenState,
+    composeKeyDifference,
     composeUnaskedClientState,
+    EXIT_AHEAD,
     EXIT_STALE,
     EXIT_UNASKED,
-    type FetchReading,
     formatReadingLine,
+    formatRefreshLine,
     READING_VERDICT,
-    readLoadedReadings,
 } from "#/tools/game-readings.ts";
 
-const OTHER_BUILD = "notTheBuild";
-const FROZEN_KEYS: BuildReading = {
-    build: FROZEN_PROTOCOL_KEYS.gameBuild,
-    count: FROZEN_PROTOCOL_KEYS.keys.length,
-};
-const FROZEN_HELP: FetchReading = {
-    fetchedAt: FROZEN_HELP_PHRASES.fetchedAt,
-    count: Object.keys(FROZEN_HELP_PHRASES.counts).length,
-};
+const HELD_BUILD = "heldBuild";
+const READ_BUILD = "readBuild";
 const READ_AT = "2026-08-09T12:00:00.000Z";
 const READ_AT_MILLISECONDS = Date.parse(READ_AT);
 const MILLISECONDS_PER_DAY = 86_400_000;
@@ -67,16 +60,32 @@ function composeCachedClient(build: string): CachedClientSource {
     };
 }
 
-Deno.test("a table lifted from the client is dated by the bundle it was lifted from", () => {
-    const cached = composeCachedClient(FROZEN_PROTOCOL_KEYS.gameBuild);
-    const current = composeBuildState("frozen keys", "keys", FROZEN_KEYS, cached);
-    assertEquals(current.verdict, "current", "the build it was frozen from");
-    const other = composeCachedClient(OTHER_BUILD);
-    const behind = composeBuildState("frozen keys", "keys", FROZEN_KEYS, other);
-    assertEquals(behind.verdict, "stale", "a bundle fetched since, and never re-frozen");
-    assertStringIncludes(behind.says, FROZEN_PROTOCOL_KEYS.gameBuild, "the row states both builds");
-    assertStringIncludes(behind.says, OTHER_BUILD, "so a reader can see which way it drifted");
-    assertEquals(composeBuildState("frozen keys", "keys", FROZEN_KEYS, null).verdict, "stale");
+Deno.test("a frozen reading is current where a freeze off the cache would leave it standing", () => {
+    const kept = composeDecidedFreeze({ hasMoved: false, heldDate: HELD_BUILD, date: HELD_BUILD });
+    const current = composeFrozenState("frozen keys", "keys", kept);
+    assertEquals(current.verdict, "current", "a newer build that gave the same keys");
+    assertStringIncludes(current.says, READ_BUILD, "the row states the build it read");
+    assertStringIncludes(current.says, HELD_BUILD, "and the one the table is still dated by");
+    const moved = composeDecidedFreeze({ hasMoved: true, heldDate: HELD_BUILD, date: READ_BUILD });
+    assertEquals(composeFrozenState("frozen keys", "keys", moved).verdict, "stale", "keys moved");
+    const absent = composeFrozenState("frozen keys", "keys", null);
+    assertEquals(absent.verdict, "stale", "a cache nobody filled is not current either");
+    assertStringIncludes(absent.says, "nothing cached", "which the row says rather than implies");
+});
+
+function composeDecidedFreeze(
+    decided: Pick<FrozenFiles, "hasMoved" | "heldDate" | "date">,
+): FrozenFiles {
+    return { paths: ["frozen/a.ts"], texts: ["a"], readDate: READ_BUILD, count: 3, ...decided };
+}
+
+Deno.test("a refresh says whether it rewrote a reading or left it standing", () => {
+    const moved = composeDecidedFreeze({ hasMoved: true, heldDate: HELD_BUILD, date: READ_BUILD });
+    assertStringIncludes(formatRefreshLine("frozen keys", "keys", moved), `moved to ${READ_BUILD}`);
+    const kept = composeDecidedFreeze({ hasMoved: false, heldDate: HELD_BUILD, date: HELD_BUILD });
+    const line = formatRefreshLine("frozen keys", "keys", kept);
+    assertStringIncludes(line, `unchanged since ${HELD_BUILD}`, "the date it still stands on");
+    assert(!line.includes("moved"), "and never both");
 });
 
 Deno.test("a fetched page goes stale on a floor, and the day before it does not", () => {
@@ -87,34 +96,6 @@ Deno.test("a fetched page goes stale on a floor, and the day before it does not"
     assertEquals(composeDumpState("help dump", "v", null, at(7)).verdict, "stale", "none cached");
 });
 
-Deno.test("frozen counts are dated by the page they name, not by their own age", () => {
-    const named = FROZEN_HELP_PHRASES.fetchedAt;
-    const current = composeFetchState("frozen help", "phrases", FROZEN_HELP, named);
-    assertEquals(current.verdict, "current", "the page they were counted over");
-    // A page fetched since is the case the routine exists for: the counts still describe the old
-    // one, and nothing about them looks wrong until the two dates stand side by side.
-    const refetched = composeFetchState("frozen help", "phrases", FROZEN_HELP, READ_AT);
-    assertEquals(refetched.verdict, "stale", "a page fetched since, and never re-counted");
-    assertStringIncludes(refetched.says, READ_AT, "the row states the page on disk");
-    assertEquals(composeFetchState("frozen help", "phrases", FROZEN_HELP, null).verdict, "stale");
-});
-
-Deno.test("a status asks what was loaded, and a table written from the cache reads current", () => {
-    // The modules are bound once, at import; a refresh rewrites the files under them, so what
-    // `readLoadedReadings` answers is right for a status and wrong after a refresh.
-    const loaded = readLoadedReadings();
-    assertEquals(loaded.keys, FROZEN_KEYS, "the build the table names and how many it counts");
-    assertEquals(loaded.help, FROZEN_HELP, "the page the counts name and how many stand under it");
-    const written: BuildReading = { build: OTHER_BUILD, count: 1 };
-    const state = composeBuildState(
-        "frozen keys",
-        "keys",
-        written,
-        composeCachedClient(OTHER_BUILD),
-    );
-    assertEquals(state.verdict, "current", "a table written from the cached bundle reads current");
-});
-
 Deno.test("a world that did not answer is said as that, and never as a stale reading", () => {
     // The fix for one is to wait and for the other to refresh, so the row a person reads names it.
     const unasked = composeUnaskedClientState("https://tempest.margonem.pl did not answer");
@@ -123,4 +104,30 @@ Deno.test("a world that did not answer is said as that, and never as a stale rea
     assert(!formatReadingLine(unasked).includes("STALE"), "never wearing the other verdict");
     assert(EXIT_STALE > 0, "a reading that went behind never ends a work round quietly");
     assert(EXIT_UNASKED > 0, "and neither does a world that could not be asked");
+});
+
+Deno.test("a preview names the keys development adds and drops, and nothing it shares", () => {
+    const same = composeKeyDifference(["a", "b"], ["b", "a"]);
+    assertEquals(same, { added: [], removed: [] }, "order is not a difference in a set of keys");
+    const moved = composeKeyDifference(["a", "b", "c"], ["d", "b", "a"]);
+    assertEquals(moved, { added: ["d"], removed: ["c"] }, "one added, one dropped");
+    assert(EXIT_AHEAD > 0, "a development client ahead of the frozen one is said by the exit");
+});
+
+Deno.test("a preview names every bit that moved, since a mask is read by position", () => {
+    assertEquals(composeBitShifts(["a", "b"], ["a", "b"]), [], "the same order moves nothing");
+    assertEquals(
+        composeBitShifts(["a", "b"], ["x", "a", "b"]),
+        [
+            { bit: 0, frozen: "a", lifted: "x" },
+            { bit: 1, frozen: "b", lifted: "a" },
+            { bit: 2, frozen: null, lifted: "b" },
+        ],
+        "one status inserted ahead renames every bit after it",
+    );
+    assertEquals(
+        composeBitShifts(["a", "b"], ["a"]),
+        [{ bit: 1, frozen: "b", lifted: null }],
+        "and one dropped from the end is the last bit gone",
+    );
 });

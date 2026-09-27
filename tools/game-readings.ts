@@ -2,22 +2,29 @@
  * Whether the dated readings of the game are current, and the routine that makes them so. A
  * reading in `frozen/` is evidence a guard and the bundle stand on, and the gate reaches no network
  * and so cannot tell one has gone behind the game: here staleness is an exit code, and a world
- * that did not answer is a different one. `frozen/AGENTS.md` says when it is run (W10).
+ * that did not answer is a different one. A preview reads the development channel's client against
+ * what production froze, and writes nothing under `frozen/`. `frozen/AGENTS.md` says when each is
+ * run (W10).
  *
- *     deno task game:readings status | refresh
+ *     deno task game:readings status | refresh | preview
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
-import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
-import { FROZEN_SKILL_DURATIONS } from "#/frozen/skill-durations.ts";
-import { writeFrozenBuffBits } from "./buff-bit-table.ts";
+import {
+    prepareFrozenBuffBits,
+    requireBuffBits,
+    STATUS_BITS_MAXIMUM,
+    writeFrozenBuffBits,
+} from "./buff-bit-table.ts";
+import type { FrozenFiles } from "./frozen-files.ts";
 import {
     type CachedClientSource,
     GAME_CHANNEL,
+    readCachedBundle,
     readCachedClientSource,
     readServedBuild,
     writeClientSourceCache,
@@ -26,37 +33,23 @@ import {
     formatDumpAge,
     isDumpStale,
     MECHANICS_ARTICLE,
+    prepareFrozenHelpCounts,
     readCachedHelpArticle,
     writeFrozenHelpCounts,
     writeHelpArticleCache,
 } from "./help-article.ts";
 import { GameUnreachableError } from "./margometer-tool-error.ts";
-import { writeFrozenKeyTable } from "./protocol-key-table.ts";
 import {
+    prepareFrozenKeyTable,
+    requireProtocolKeys,
+    writeFrozenKeyTable,
+} from "./protocol-key-table.ts";
+import {
+    prepareFrozenSkillTable,
     readCachedSkillTable,
     writeFrozenSkillTable,
     writeSkillTableCache,
 } from "./skill-table.ts";
-
-/** A table lifted from the client, dated by the build it was lifted from. */
-export interface BuildReading {
-    build: string;
-    count: number;
-}
-
-/** A table taken over a fetched page, dated by the fetch. */
-export interface FetchReading {
-    fetchedAt: string;
-    count: number;
-}
-
-/** What the frozen modules held when this process started, in the order a refresh writes them. */
-export interface LoadedReadings {
-    keys: BuildReading;
-    buffs: BuildReading;
-    help: FetchReading;
-    skills: FetchReading;
-}
 
 /** `unknown` is not a third shade of stale: it stands where nobody could ask (W10 tells them apart). */
 export const READING_VERDICT = { current: "current", stale: "stale", unknown: "unknown" } as const;
@@ -68,16 +61,33 @@ export interface ReadingState {
     says: string;
 }
 
+/** Keys one list has and the other lacks, each sorted. */
+export interface KeyDifference {
+    added: string[];
+    removed: string[];
+}
+
+/** A position whose status differs between two bit orders; null where one order is shorter. */
+export interface BitShift {
+    bit: number;
+    frozen: string | null;
+    lifted: string | null;
+}
+
 /** Production only: production decides, and every frozen reading was lifted from what it serves. */
 const CHANNEL = GAME_CHANNEL.production;
+/** The channel a preview reads: it serves what production has not shipped yet. */
+const PREVIEW_CHANNEL = GAME_CHANNEL.development;
 const NOTHING_CACHED = "nothing cached";
 /** What a script reads off a status: a reading behind the game, and a world nobody could ask. */
 export const EXIT_STALE = 1;
 export const EXIT_UNASKED = 2;
+/** What a script reads off a preview: the development client differs from what is frozen. */
+export const EXIT_AHEAD = 1;
 /** Every reading this routine reports on, so a row quietly dropped fails rather than hides. */
 export const READINGS_REPORTED = 7;
 const NAME_COLUMN = 14;
-const SAYS_COLUMN = 66;
+const SAYS_COLUMN = 80;
 /** The loud ones end a work round; `current` is the quiet one. */
 const VERDICT_WORDS: Readonly<Record<ReadingVerdict, string>> = {
     [READING_VERDICT.current]: "current",
@@ -90,8 +100,8 @@ const VERDICT_WORDS: Readonly<Record<ReadingVerdict, string>> = {
  * game is invisible to the gate, so it is visible here; and a world that did not answer is its own
  * exit, because an outage is not evidence that anything moved.
  */
-async function writeReadingsStatus(frozen: LoadedReadings): Promise<void> {
-    const states = await readReadingStates(Date.now(), frozen);
+async function writeReadingsStatus(): Promise<void> {
+    const states = await readReadingStates(Date.now());
     for (const state of states) console.log(formatReadingLine(state));
     const stale = states.filter((one) => one.verdict === READING_VERDICT.stale).length;
     const unasked = states.filter((one) => one.verdict === READING_VERDICT.unknown).length;
@@ -100,19 +110,34 @@ async function writeReadingsStatus(frozen: LoadedReadings): Promise<void> {
     else if (unasked > 0) Deno.exitCode = EXIT_UNASKED;
 }
 
-/** Every reading, in the order a refresh does them: each one dates the one after it. */
-async function readReadingStates(now: number, frozen: LoadedReadings): Promise<ReadingState[]> {
+/**
+ * Every reading, in the order a refresh does them: each one dates the one after it. A frozen row
+ * asks what a freeze off the cache would write, so it is current where that is what stands.
+ */
+async function readReadingStates(now: number): Promise<ReadingState[]> {
     const client = readCachedClientSource(CHANNEL);
     const dump = readCachedHelpArticle(MECHANICS_ARTICLE);
     const table = readCachedSkillTable();
     const states = [
         await readClientState(client),
-        composeBuildState("frozen keys", "keys", frozen.keys, client),
-        composeBuildState("frozen buffs", "bits", frozen.buffs, client),
+        composeFrozenState("frozen keys", "keys", client === null ? null : prepareFrozenKeyTable()),
+        composeFrozenState(
+            "frozen buffs",
+            "bits",
+            client === null ? null : prepareFrozenBuffBits(),
+        ),
         composeDumpState("help dump", `view,${MECHANICS_ARTICLE}`, dump?.fetchedAt ?? null, now),
-        composeFetchState("frozen help", "phrases", frozen.help, dump?.fetchedAt ?? null),
+        composeFrozenState(
+            "frozen help",
+            "phrases",
+            dump === null ? null : prepareFrozenHelpCounts(MECHANICS_ARTICLE, []),
+        ),
         composeDumpState("skill dump", "skills", table?.fetchedAt ?? null, now),
-        composeFetchState("frozen skills", "skills", frozen.skills, table?.fetchedAt ?? null),
+        composeFrozenState(
+            "frozen skills",
+            "skills",
+            table === null ? null : prepareFrozenSkillTable(),
+        ),
     ];
     assertStrictEquals(states.length, READINGS_REPORTED, "every reading was reported on");
     return states;
@@ -152,33 +177,20 @@ export function composeUnaskedClientState(said: string): ReadingState {
 }
 
 /**
- * A table lifted from the bundle, against the bundle it would be lifted from, not against what is
- * served: a table dated by a build nobody fetched is a claim about a bundle not on this machine.
- * The bits are held the same way because a mask is read by position, so a bit inserted ahead of
- * another renames every status after it without changing a count.
+ * A frozen reading against what a freeze off the cache would write. Its date is not the question:
+ * a later fetch that gave the same content leaves the date where it was (ADR 0011).
  */
-export function composeBuildState(
+export function composeFrozenState(
     name: string,
     unit: string,
-    frozen: BuildReading,
-    cached: CachedClientSource | null,
+    frozen: FrozenFiles | null,
 ): ReadingState {
-    assert(frozen.build.length > 0, "a frozen table is dated by a build");
-    assert(frozen.count > 0, "and counts something");
-    if (cached === null) {
-        return {
-            name,
-            verdict: READING_VERDICT.stale,
-            says: `frozen ${frozen.build}, ${NOTHING_CACHED}`,
-        };
-    }
-    const verdict = frozen.build === cached.build ? READING_VERDICT.current : READING_VERDICT.stale;
+    assert(name.length > 0, "a row names its reading");
+    if (frozen === null) return { name, verdict: READING_VERDICT.stale, says: NOTHING_CACHED };
+    const verdict = frozen.hasMoved ? READING_VERDICT.stale : READING_VERDICT.current;
+    const held = frozen.heldDate ?? "nothing";
     const count = formatInteger(frozen.count);
-    return {
-        name,
-        verdict,
-        says: `cached ${cached.build}  frozen ${frozen.build}  ${count} ${unit}`,
-    };
+    return { name, verdict, says: `read ${frozen.readDate}  frozen ${held}  ${count} ${unit}` };
 }
 
 /** A fetched page in `.cache/`, against the week `tools/help-article.ts` states as its floor. */
@@ -196,28 +208,6 @@ export function composeDumpState(
     return { name, verdict, says: formatDumpAge(fetchedAt, now) };
 }
 
-/** Counts or durations taken over a page, against the page they name. */
-export function composeFetchState(
-    name: string,
-    unit: string,
-    frozen: FetchReading,
-    fetchedAt: string | null,
-): ReadingState {
-    assert(frozen.fetchedAt.length > 0, "a frozen reading is dated by the page it came off");
-    assert(frozen.count > 0, "and counts something");
-    if (fetchedAt === null) {
-        return {
-            name,
-            verdict: READING_VERDICT.stale,
-            says: `frozen ${frozen.fetchedAt}, ${NOTHING_CACHED}`,
-        };
-    }
-    const verdict = frozen.fetchedAt === fetchedAt
-        ? READING_VERDICT.current
-        : READING_VERDICT.stale;
-    return { name, verdict, says: `page ${fetchedAt}  ${formatInteger(frozen.count)} ${unit}` };
-}
-
 /** One row, in the shape the report prints it. */
 export function formatReadingLine(state: ReadingState): string {
     assert(state.name.length > 0, "a row names the reading it is about");
@@ -227,60 +217,122 @@ export function formatReadingLine(state: ReadingState): string {
 }
 
 /**
- * What the frozen modules held when this process started. ⚠️ **A refresh rewrites those files and
- * these bindings do not move with them**, so a refresh reports what it has just written instead
- * of asking again: a status composed from here after one called a current table STALE (2026-09-03).
- */
-export function readLoadedReadings(): LoadedReadings {
-    return {
-        keys: { build: FROZEN_PROTOCOL_KEYS.gameBuild, count: FROZEN_PROTOCOL_KEYS.keys.length },
-        buffs: { build: FROZEN_BUFF_BITS.gameBuild, count: FROZEN_BUFF_BITS.bits.length },
-        help: {
-            fetchedAt: FROZEN_HELP_PHRASES.fetchedAt,
-            count: Object.keys(FROZEN_HELP_PHRASES.counts).length,
-        },
-        skills: {
-            fetchedAt: FROZEN_SKILL_DURATIONS.fetchedAt,
-            count: FROZEN_SKILL_DURATIONS.skills.length,
-        },
-    };
-}
-
-/**
  * Each in the order that makes it meaningful: a table is frozen from the bundle fetched the line
  * above it, counts from the dump fetched above them, and durations from the page above those.
  */
-async function writeRefreshedReadings(): Promise<LoadedReadings> {
+async function writeRefreshedReadings(): Promise<void> {
     const client = await writeClientSourceCache(CHANNEL);
-    console.log(`client        build ${client.build} → ${client.bundlePath}`);
-    const keys = writeFrozenKeyTable();
-    console.log(`frozen keys   ${formatInteger(keys.count)} keys from build ${keys.build}`);
-    const buffs = writeFrozenBuffBits();
-    console.log(`frozen buffs  ${formatInteger(buffs.count)} bits from build ${buffs.build}`);
+    console.log(`${"client".padEnd(NAME_COLUMN)} build ${client.build} → ${client.bundlePath}`);
+    console.log(formatRefreshLine("frozen keys", "keys", writeFrozenKeyTable()));
+    console.log(formatRefreshLine("frozen buffs", "bits", writeFrozenBuffBits()));
     const dump = await writeHelpArticleCache(MECHANICS_ARTICLE);
-    console.log(`help dump     ${formatInteger(dump.textLength)} characters → ${dump.textPath}`);
-    const help = writeFrozenHelpCounts(MECHANICS_ARTICLE, []);
+    const dumped = `${formatInteger(dump.textLength)} characters → ${dump.textPath}`;
+    console.log(`${"help dump".padEnd(NAME_COLUMN)} ${dumped}`);
     console.log(
-        `frozen help   ${formatInteger(help.counts.length)} phrases over ${help.fetchedAt}`,
+        formatRefreshLine("frozen help", "phrases", writeFrozenHelpCounts(MECHANICS_ARTICLE, [])),
     );
     const table = await writeSkillTableCache();
-    console.log(`skill dump    ${formatInteger(table.pageLength)} characters → ${table.pagePath}`);
+    const paged = `${formatInteger(table.pageLength)} characters → ${table.pagePath}`;
+    console.log(`${"skill dump".padEnd(NAME_COLUMN)} ${paged}`);
     const skills = writeFrozenSkillTable();
+    console.log(formatRefreshLine("frozen skills", "skills", skills));
+    console.log(`${"".padEnd(NAME_COLUMN)} ${formatInteger(skills.auras)} reaching a side\n`);
+}
+
+/** What a freeze did: rewrote its files under a new date, or left them standing under the old. */
+export function formatRefreshLine(name: string, unit: string, frozen: FrozenFiles): string {
+    assert(name.length > 0, "a row names its reading");
+    assert(frozen.count > 0, "and a reading counts something");
+    const did = frozen.hasMoved ? `moved to ${frozen.date}` : `unchanged since ${frozen.date}`;
+    return `${name.padEnd(NAME_COLUMN)} ${did}, ${formatInteger(frozen.count)} ${unit}`;
+}
+
+/**
+ * The development client against what production froze: the keys and the bit order the next
+ * release may bring. Nothing is written under `frozen/`, because production decides.
+ */
+async function writeDevelopmentPreview(): Promise<void> {
+    let cached: CachedClientSource;
+    try {
+        cached = await writeClientSourceCache(PREVIEW_CHANNEL);
+    } catch (failure) {
+        if (!(failure instanceof GameUnreachableError)) throw failure;
+        console.log(`${PREVIEW_CHANNEL.padEnd(NAME_COLUMN)} not asked: ${failure.message}`);
+        Deno.exitCode = EXIT_UNASKED;
+        return;
+    }
+    const bundle = readCachedBundle(PREVIEW_CHANNEL);
+    const keys = composeKeyDifference(FROZEN_PROTOCOL_KEYS.keys, requireProtocolKeys(bundle));
+    const bits = composeBitShifts(FROZEN_BUFF_BITS.bits, requireBuffBits(bundle));
+    const frozenBuild = FROZEN_PROTOCOL_KEYS.gameBuild;
     console.log(
-        `frozen skills ${formatInteger(skills.skills)} skills, ` +
-            `${formatInteger(skills.auras)} reaching a side\n`,
+        `${PREVIEW_CHANNEL.padEnd(NAME_COLUMN)} build ${cached.build}, frozen ${frozenBuild}`,
     );
-    return {
-        keys: { build: keys.build, count: keys.count },
-        buffs: { build: buffs.build, count: buffs.count },
-        help: { fetchedAt: help.fetchedAt, count: help.counts.length },
-        skills: { fetchedAt: skills.fetchedAt, count: skills.skills },
-    };
+    console.log(formatPreviewKeys(keys));
+    for (const key of keys.added) console.log(`  + ${key}`);
+    for (const key of keys.removed) console.log(`  - ${key}`);
+    console.log(`${"bits".padEnd(NAME_COLUMN)} ${bits.length === 0 ? "same order" : "reordered"}`);
+    for (const shift of bits) console.log(formatBitShift(shift));
+    const isAhead = keys.added.length + keys.removed.length + bits.length > 0;
+    if (isAhead) Deno.exitCode = EXIT_AHEAD;
+}
+
+function formatPreviewKeys(keys: KeyDifference): string {
+    const added = formatInteger(keys.added.length);
+    const removed = formatInteger(keys.removed.length);
+    assert(keys.added.every((key) => key.length > 0), "an added key is named");
+    return `${"keys".padEnd(NAME_COLUMN)} ${added} added, ${removed} removed`;
+}
+
+function formatBitShift(shift: BitShift): string {
+    assert(shift.bit >= 0, "a bit is a position");
+    assert(shift.frozen !== shift.lifted, "a shift is a position that differs");
+    const bit = formatInteger(shift.bit);
+    return `  bit ${bit}  frozen ${shift.frozen ?? "-"}  development ${shift.lifted ?? "-"}`;
+}
+
+/** Keys the development client branches on that production does not, and the other way round. */
+export function composeKeyDifference(
+    frozen: readonly string[],
+    lifted: readonly string[],
+): KeyDifference {
+    const frozenKeys = new Set(frozen);
+    const liftedKeys = new Set(lifted);
+    const added = lifted.filter((key) => !frozenKeys.has(key)).sort();
+    const removed = frozen.filter((key) => !liftedKeys.has(key)).sort();
+    assert(added.length <= lifted.length, "no more keys added than were lifted");
+    assert(removed.length <= frozen.length, "no more keys removed than were frozen");
+    return { added, removed };
+}
+
+/** Every position a status differs at. A bit is read by position, so one inserted moves the rest. */
+export function composeBitShifts(
+    frozen: readonly string[],
+    lifted: readonly string[],
+): BitShift[] {
+    assert(frozen.length <= STATUS_BITS_MAXIMUM, "a frozen mask fits an integer");
+    assert(lifted.length <= STATUS_BITS_MAXIMUM, "and so does a lifted one");
+    const shifts: BitShift[] = [];
+    const length = Math.max(frozen.length, lifted.length);
+    for (let bit = 0; bit < length; bit += 1) {
+        const held = frozen[bit] ?? null;
+        const read = lifted[bit] ?? null;
+        if (held === read) continue;
+        shifts.push({ bit, frozen: held, lifted: read });
+    }
+    return shifts;
 }
 
 if (import.meta.main) {
     const [command] = Deno.args;
-    if (command === "refresh") await writeReadingsStatus(await writeRefreshedReadings());
-    else if (command === "status") await writeReadingsStatus(readLoadedReadings());
-    else console.log("usage: deno task game:readings status | refresh");
+    if (command === "refresh") {
+        await writeRefreshedReadings();
+        await writeReadingsStatus();
+    } else if (command === "status") {
+        await writeReadingsStatus();
+    } else if (command === "preview") {
+        await writeDevelopmentPreview();
+    } else {
+        console.log("usage: deno task game:readings status | refresh | preview");
+    }
 }

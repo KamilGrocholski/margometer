@@ -14,10 +14,12 @@ import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import {
     getEndOfRun,
     isDigitAt,
+    isWhitespaceAt,
     JAVASCRIPT_QUOTES,
     lookupQuotedLiteral,
 } from "#/libs/text-walk.ts";
 import { GAME_CHANNEL, readCachedBundle, readCachedClientSource } from "./game-client-source.ts";
+import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { ProtocolKeyTableError } from "./margometer-tool-error.ts";
 
 /**
@@ -55,7 +57,7 @@ const SHAPE_STEP = {
  * and the tool refused the whole bundle over one renamed letter. The shape does not change.
  */
 const SWITCH_ANCHOR = "manageBattleEffects(";
-const SWITCH_SUBJECT_TAIL = "[0]){";
+const SWITCH_SUBJECT_TAIL = "[0])";
 const SEGMENT_INDEX = "[0]";
 const CASE_KEYWORD = "case";
 const LABEL_TERMINATOR = ":";
@@ -69,6 +71,8 @@ const CASE_LABELS_MAXIMUM = 4096;
 /** Past the number of places `[0]){` or a shape's opening text occurs in three megabytes. */
 const LOOKS_MAXIMUM = 65_536;
 const FROZEN_PATH = "frozen/protocol-keys.ts";
+/** The field the reading is dated by, exported so a test holds the frozen file to it. */
+export const FROZEN_DATE_FIELD = "gameBuild";
 /**
  * The default branch in the two orders the client has written it. Both say the same thing and
  * differ in which side of `==` each operand sits on: build `1786514810315` wrote the literal first,
@@ -117,15 +121,27 @@ export const FROZEN_KEY_BANNER =
 // nothing the game composes from them comes with them.
 `;
 
-/** The table written to `frozen/`, dated by the build its bundle was served as. */
-export function writeFrozenKeyTable(): { build: string; count: number } {
+/** The table written to `frozen/`, where it moved. */
+export function writeFrozenKeyTable(): FrozenFiles {
+    const frozen = prepareFrozenKeyTable();
+    writeFrozenFiles(frozen);
+    return frozen;
+}
+
+/** The table the cached bundle gives, dated by the first build that gave it (ADR 0011). */
+export function prepareFrozenKeyTable(): FrozenFiles {
     const build = requireCachedBuild();
     const bundle = readCachedBundle(GAME_CHANNEL.production);
     const keys = requireProtocolKeys(bundle);
     const family = requireComputedKeyFamily(bundle);
-    Deno.writeTextFileSync(FROZEN_PATH, encodeFrozenKeyModule(build, keys, family));
-    assert(keys.length > 0, "a table that was written down counts something");
-    return { build, count: keys.length };
+    assert(keys.length > 0, "a table that is frozen counts something");
+    return prepareFrozenFiles(
+        [FROZEN_PATH],
+        FROZEN_DATE_FIELD,
+        build,
+        keys.length,
+        (date) => [encodeFrozenKeyModule(date, keys, family)],
+    );
 }
 
 /** The build the table would be lifted from, refusing rather than reading an empty cache. */
@@ -140,13 +156,17 @@ function requireCachedBuild(): string {
     return cached.build;
 }
 
-function encodeFrozenKeyModule(build: string, keys: string[], family: ComputedKeyFamily): string {
+export function encodeFrozenKeyModule(
+    build: string,
+    keys: string[],
+    family: ComputedKeyFamily,
+): string {
     const written = keys.map((key) => `        ${encodeRequiredText(key)},`).join("\n");
     assert(written.length > 0, "a table that is written down says something");
     assert(build.length > 0, "and is dated by the build it was lifted from");
     return `${FROZEN_KEY_BANNER}
 export const FROZEN_PROTOCOL_KEYS = {
-    gameBuild: ${encodeRequiredText(build)},
+    ${FROZEN_DATE_FIELD}: ${encodeRequiredText(build)},
     /** Keys the client recognises by shape rather than by name — see the tool. */
     computedFamily: ${encodeFamilyText(family)},
     keys: [
@@ -196,7 +216,8 @@ export function requireProtocolKeys(bundle: string): string[] {
 
 /**
  * Where the switch subject's name begins at or after `from`: found by its tail and walked back,
- * because the name is what a minifier renames and the tail is what it cannot.
+ * because the name is what a minifier renames and the tail is what it cannot. Space may stand
+ * before the block, because the development channel serves the client unminified.
  */
 function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
     let at = bundle.indexOf(SWITCH_SUBJECT_TAIL, from);
@@ -207,7 +228,10 @@ function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
             if (!isNameCharacterAt(bundle, start - 1)) break;
             start -= 1;
         }
-        if (start < at) return start;
+        const block = getEndOfRun(bundle, at + SWITCH_SUBJECT_TAIL.length, isWhitespaceAt);
+        if (start < at) {
+            if (bundle.charAt(block) === BLOCK_OPEN) return start;
+        }
         at = bundle.indexOf(SWITCH_SUBJECT_TAIL, at + 1);
     }
     return null;
@@ -221,20 +245,26 @@ function isNameCharacterAt(source: string, index: number): boolean {
     return NAME_CHARACTERS.includes(character);
 }
 
-/** Every `case"key":` label in the switch body, in the order it states them. */
+/**
+ * Every `case"key":` label in the switch body, in the order it states them. Space may stand on
+ * either side of the key, as it does in the unminified client, but not in front of `case` inside
+ * a longer name.
+ */
 function parseCaseLabels(body: string): string[] {
     const labels: string[] = [];
     let from = 0;
     for (let look = 0; look < CASE_LABELS_MAXIMUM; look += 1) {
         const at = body.indexOf(CASE_KEYWORD, from);
         if (at === -1) return labels;
-        const quoted = lookupQuotedLiteral(body, at + CASE_KEYWORD.length);
-        if (quoted === null || body.charAt(quoted.end) !== LABEL_TERMINATOR) {
-            from = at + 1;
-            continue;
-        }
+        from = at + 1;
+        if (isNameCharacterAt(body, at - 1)) continue;
+        const open = getEndOfRun(body, at + CASE_KEYWORD.length, isWhitespaceAt);
+        const quoted = lookupQuotedLiteral(body, open);
+        if (quoted === null) continue;
+        const terminator = getEndOfRun(body, quoted.end, isWhitespaceAt);
+        if (body.charAt(terminator) !== LABEL_TERMINATOR) continue;
         labels.push(quoted.text);
-        from = quoted.end + 1;
+        from = terminator + 1;
     }
     assert(labels.length <= CASE_LABELS_MAXIMUM, "a switch states no more labels than the bound");
     return labels;
@@ -343,8 +373,10 @@ function parseShapeFields(
 
 if (import.meta.main) {
     if (Deno.args.includes("freeze")) {
-        const { build, count } = writeFrozenKeyTable();
-        console.log(`froze ${formatInteger(count)} keys from build ${build} → ${FROZEN_PATH}`);
+        const frozen = writeFrozenKeyTable();
+        const count = formatInteger(frozen.count);
+        const moved = frozen.hasMoved ? "froze" : "unchanged:";
+        console.log(`${moved} ${count} keys from build ${frozen.date} → ${FROZEN_PATH}`);
     } else {
         const bundle = readCachedBundle(GAME_CHANNEL.production);
         const count = formatInteger(requireProtocolKeys(bundle).length);

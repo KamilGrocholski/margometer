@@ -5,13 +5,12 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { getEndOfRun } from "./text-walk.ts";
+import { getEndOfRun, isWhitespaceAt } from "./text-walk.ts";
 
 const TAG_OPEN = "<";
 const TAG_CLOSE = ">";
 const TAG_TERMINATOR = "/";
 const LOWER_CASE_OFFSET = 32;
-const WHITESPACE = " \t\r\n\f\v";
 /** Elements whose body is text to a browser and machinery to a reader. */
 const RAW_TEXT_ELEMENTS = ["script", "style"];
 /** Past the tag count of any page these hosts serve, so each walk carries a stated bound. */
@@ -149,10 +148,4 @@ function composeCollapsedWhitespace(text: string): string {
     }
     assert(index >= text.length, "every character was walked, which is what the bound is for");
     return `${collapsed}${text.slice(from)}`.trim();
-}
-
-function isWhitespaceAt(text: string, index: number): boolean {
-    const character = text.charAt(index);
-    if (character === "") return false;
-    return WHITESPACE.includes(character);
 }

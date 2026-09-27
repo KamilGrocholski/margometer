@@ -30,6 +30,11 @@ const OLDER_BUNDLE =
 /** The same switch bundled with backticks, which is taste and not meaning. */
 const BACKTICK_BUNDLE = NEWER_BUNDLE.split('"').join("`");
 
+/** The shape the development channel serves: unminified, spaced and on lines of its own. */
+const UNMINIFIED_BUNDLE = "x.manageBattleEffects(m[0], m[1]);\n\tswitch (m[0]) {\n" +
+    '\t\tcase "blok":\n\t\t\tb();\n\t\t\tbreak;\n\t\tcase  "+crit" :\n\t\t\ta();\n' +
+    "\t\t\tbreak;\n\t\tdefault: e();\n\t}";
+
 Deno.test("the keys come out of the switch, whatever the bundler's taste", () => {
     assertEquals(
         requireProtocolKeys(NEWER_BUNDLE),
@@ -42,6 +47,17 @@ Deno.test("the keys come out of the switch, whatever the bundler's taste", () =>
         ["+crit", "blok"],
         "and one written in backticks",
     );
+    assertEquals(
+        requireProtocolKeys(UNMINIFIED_BUNDLE),
+        ["+crit", "blok"],
+        "and one the development channel serves unminified",
+    );
+});
+
+Deno.test("a word ending in case, or a key closing on something else, is not a label", () => {
+    const bundle = 'e.manageBattleEffects(t);switch(q[0]){case"blok":b();showcase"x":c();' +
+        'case"open"+"y":d();case "spaced" :f()}';
+    assertEquals(requireProtocolKeys(bundle), ["blok", "spaced"], "only labels of this switch");
 });
 
 Deno.test("a bundle this no longer recognises stops, rather than shortening the table", () => {

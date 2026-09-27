@@ -21,6 +21,8 @@ export const JAVASCRIPT_QUOTES = "\"'`";
 
 /** Past the longest literal any bundle read here states, so the walk stays a stated bound. */
 const LITERAL_CHARACTERS_MAXIMUM = 65_536;
+/** What HTML and JavaScript both treat as space between the things that mean something. */
+const WHITESPACE = " \t\r\n\f\v";
 
 export function isDigitAt(text: string, index: number): boolean {
     assert(Number.isSafeInteger(index), "a character is looked for at a whole position");
@@ -28,6 +30,13 @@ export function isDigitAt(text: string, index: number): boolean {
     const character = text.charAt(index);
     if (character < "0") return false;
     return character <= "9";
+}
+
+export function isWhitespaceAt(text: string, index: number): boolean {
+    assert(index >= 0, "a character is looked for inside the text");
+    const character = text.charAt(index);
+    if (character === "") return false;
+    return WHITESPACE.includes(character);
 }
 
 /** Answers `from` where nothing matched, which is how a caller tells a run from none. */

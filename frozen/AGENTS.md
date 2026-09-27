@@ -15,18 +15,23 @@ that they are evidence, and that no hand edits them.
 ## Always
 
 - **A reading carries what it was read on** — the build id for the client's key list, the date for
-  the published help. A count with no provenance is a number nobody can re-earn.
+  the published help — and it is the **first** read that gave this content (ADR 0011). A count with
+  no provenance is a number nobody can re-earn.
 - **The tool that writes a reading is the only thing that writes it**, and it writes here rather
   than into `tests/`: a guard reads this directory, and so does a tool.
 
 ## How a reading is refreshed
 
 `deno task game:readings refresh` fetches the client bundle, the published help and the published
-skill table, then writes each frozen file from what it has just fetched — in that order, because
-every reading is dated by the fetch above it. `deno task game:readings status` asks the same
-question and changes nothing: it exits `0` where every reading is the game's, `1` where one went
-behind, and `2` where the world could not be asked at all. Neither takes a list of what to count: a
-freeze counts every phrase a `_Help:_` line of `docs/protocol-keys.md` cites, and
+skill table, then freezes each reading from what it has just fetched — in that order, because every
+reading is dated by the fetch above it. A file whose content did not move stays as it stands, date
+and all, so `git diff frozen/` after a refresh shows only what the game changed (ADR 0011).
+`deno task game:readings status` asks the same question and changes nothing: it exits `0` where
+every reading is the game's, `1` where one went behind, and `2` where the world could not be asked
+at all. `deno task game:readings preview` reads the development channel's client against what is
+frozen and names the keys and the bits it adds, drops or moves; it exits `1` where there are any,
+and writes nothing here. A refresh and a status take no list of what to count: a freeze counts every
+phrase a `_Help:_` line of `docs/protocol-keys.md` cites, and
 `deno task game:help freeze <phrase> …` adds one before a claim leans on it (ADR 0007). **AGENTS.md
 W10** says when the routine is run.
 

@@ -20,6 +20,7 @@ import {
     type SkillEffectTurns,
 } from "#/src/core/aura-standing.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
+import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { GameUnreachableError, SkillTableError } from "./margometer-tool-error.ts";
 
 export interface CachedSkillTable {
@@ -42,6 +43,26 @@ export interface SkillReading {
     effects: readonly SkillEffectReading[];
 }
 
+export interface AuraSkill {
+    id: number;
+    turns: number;
+}
+
+export interface ShoutSkill extends AuraSkill {
+    coverageMinimum: number;
+}
+
+export interface GrantedBlows {
+    id: number;
+    blowsGrantedMinimum: number;
+}
+
+/** A freeze of the three readings, with what the two smaller ones count. */
+export interface FrozenSkillTable extends FrozenFiles {
+    auras: number;
+    granted: number;
+}
+
 const SKILLS_ADDRESS = "https://public-api.margonem.pl/we_get/skills/";
 /** Ignored by git, and exported for the reason `tools/game-client-source.ts` gives for its own. */
 export const CACHE_ROOT = ".cache/skills/";
@@ -50,6 +71,8 @@ const PAGE_NAME = "skills.html";
 export const FROZEN_PATH = "frozen/skill-durations.ts";
 export const FROZEN_AURA_PATH = "frozen/aura-turns.ts";
 export const FROZEN_BLOWS_PATH = "frozen/blows-granted.ts";
+/** The field the reading is dated by, exported so a test holds the frozen file to it. */
+export const FROZEN_DATE_FIELD = "fetchedAt";
 const ROW_OPEN = "<tr>";
 const CELL_OPEN = "<td>";
 const CELL_CLOSE = "</td>";
@@ -91,52 +114,31 @@ const FROZEN_AURA_BANNER =
     "//\n// A shout states a count of characters where the others state a share, so it is\n" +
     "// frozen apart: its own turns, and the fewest it covers at any level.\n";
 
-/** The three frozen readings, written off one cached page so they date together. */
-export function writeFrozenSkillTable(): {
-    fetchedAt: string;
-    skills: number;
-    auras: number;
-    granted: number;
-} {
+/** The three frozen readings, written where they moved. */
+export function writeFrozenSkillTable(): FrozenSkillTable {
+    const frozen = prepareFrozenSkillTable();
+    writeFrozenFiles(frozen);
+    return frozen;
+}
+
+/**
+ * The three readings off one cached page, dated by the first page that gave all three (ADR 0011):
+ * one of them moving re-dates the others, because they date together.
+ */
+export function prepareFrozenSkillTable(): FrozenSkillTable {
     const { cached, skills } = requireCachedSkills();
     const auras = composeAuraSkills(skills);
     const shouts = composeShoutSkills(skills);
     const granted = composeGrantedBlows(skills);
-    const dated = `${DATE_NOTE}\n    fetchedAt: ${JSON.stringify(cached.fetchedAt)},\n`;
-    Deno.writeTextFileSync(
-        FROZEN_PATH,
-        `${FROZEN_SKILL_BANNER}\nexport const FROZEN_SKILL_DURATIONS = {\n${dated}` +
-            `    skills: [\n${encodeFrozenSkills(skills)}\n    ],\n} as const;\n`,
-    );
-    const rows = auras.map((one) =>
-        `        { id: ${formatInteger(one.id)}, turns: ${one.turns} },`
-    );
-    const shouted = shouts.map((one) =>
-        `        { id: ${formatInteger(one.id)}, turns: ${one.turns}, ` +
-        `coverageMinimum: ${one.coverageMinimum} },`
-    );
-    Deno.writeTextFileSync(
-        FROZEN_AURA_PATH,
-        `${FROZEN_AURA_BANNER}\nexport const FROZEN_AURA_TURNS = {\n${dated}    skills: [\n` +
-            `${rows.join("\n")}\n    ],\n    shouts: [\n${
-                shouted.join("\n")
-            }\n    ],\n} as const;\n`,
-    );
-    const blows = granted.map((one) =>
-        `        { id: ${formatInteger(one.id)}, blowsGrantedMinimum: ${one.blowsGrantedMinimum} },`
-    );
-    Deno.writeTextFileSync(
-        FROZEN_BLOWS_PATH,
-        `${FROZEN_BLOWS_BANNER}\nexport const FROZEN_BLOWS_GRANTED = {\n${dated}` +
-            `    skills: [\n${blows.join("\n")}\n    ],\n} as const;\n`,
-    );
     assert(shouts.length <= auras.length, "a shout reaches a side, so it is among them");
-    return {
-        fetchedAt: cached.fetchedAt,
-        skills: skills.length,
-        auras: auras.length,
-        granted: granted.length,
-    };
+    const frozen = prepareFrozenFiles(
+        [FROZEN_PATH, FROZEN_AURA_PATH, FROZEN_BLOWS_PATH],
+        FROZEN_DATE_FIELD,
+        cached.fetchedAt,
+        skills.length,
+        (date) => encodeFrozenSkillTexts(date, skills, auras, shouts, granted),
+    );
+    return { ...frozen, auras: auras.length, granted: granted.length };
 }
 
 /** The page as it was cached, refused rather than guessed at where nothing is. */
@@ -148,6 +150,37 @@ function requireCachedSkills(): { cached: CachedSkillTable; skills: SkillReading
     const html = Deno.readTextFileSync(cached.pagePath);
     assert(html.length > 0, "a cached page says something");
     return { cached, skills: requireSkillsOfPage(html) };
+}
+
+export function encodeFrozenSkillTexts(
+    date: string,
+    skills: readonly SkillReading[],
+    auras: readonly AuraSkill[],
+    shouts: readonly ShoutSkill[],
+    granted: readonly GrantedBlows[],
+): string[] {
+    assert(date.length > 0, "a reading is dated");
+    const dated = `${DATE_NOTE}\n    ${FROZEN_DATE_FIELD}: ${JSON.stringify(date)},\n`;
+    const durations = `${FROZEN_SKILL_BANNER}\nexport const FROZEN_SKILL_DURATIONS = {\n${dated}` +
+        `    skills: [\n${encodeFrozenSkills(skills)}\n    ],\n} as const;\n`;
+    const rows = auras.map((one) =>
+        `        { id: ${formatInteger(one.id)}, turns: ${one.turns} },`
+    );
+    const shouted = shouts.map((one) =>
+        `        { id: ${formatInteger(one.id)}, turns: ${one.turns}, ` +
+        `coverageMinimum: ${one.coverageMinimum} },`
+    );
+    const aurasText = `${FROZEN_AURA_BANNER}\nexport const FROZEN_AURA_TURNS = {\n${dated}` +
+        `    skills: [\n${rows.join("\n")}\n    ],\n    shouts: [\n${
+            shouted.join("\n")
+        }\n    ],\n} as const;\n`;
+    const blows = granted.map((one) =>
+        `        { id: ${formatInteger(one.id)}, blowsGrantedMinimum: ${one.blowsGrantedMinimum} },`
+    );
+    const blowsText = `${FROZEN_BLOWS_BANNER}\nexport const FROZEN_BLOWS_GRANTED = {\n${dated}` +
+        `    skills: [\n${blows.join("\n")}\n    ],\n} as const;\n`;
+    assert(rows.length >= shouted.length, "a shout is among the skills reaching a side");
+    return [durations, aurasText, blowsText];
 }
 
 /**
@@ -270,8 +303,8 @@ export function parseEffect(text: string): SkillEffectReading | null {
 /** The small table the bundle carries: the skills reaching a side, and nothing else. */
 export function composeAuraSkills(
     skills: readonly SkillReading[],
-): { id: number; turns: number }[] {
-    const found: { id: number; turns: number }[] = [];
+): AuraSkill[] {
+    const found: AuraSkill[] = [];
     for (const skill of skills) {
         const turns = lookupStatedTurns(skill.effects);
         if (turns !== null) found.push({ id: skill.id, turns });
@@ -288,8 +321,8 @@ export function composeAuraSkills(
  */
 export function composeShoutSkills(
     skills: readonly SkillReading[],
-): { id: number; turns: number; coverageMinimum: number }[] {
-    const found: { id: number; turns: number; coverageMinimum: number }[] = [];
+): ShoutSkill[] {
+    const found: ShoutSkill[] = [];
     for (const skill of skills) {
         const shout = skill.effects.find((one) => one.key === PROVOCATION_KEY);
         if (shout === undefined) continue;
@@ -308,8 +341,8 @@ export function composeShoutSkills(
  */
 export function composeGrantedBlows(
     skills: readonly SkillReading[],
-): { id: number; blowsGrantedMinimum: number }[] {
-    const found: { id: number; blowsGrantedMinimum: number }[] = [];
+): GrantedBlows[] {
+    const found: GrantedBlows[] = [];
     for (const skill of skills) {
         const granted = skill.effects.find((one) => one.key === BLOWS_GRANTED_KEY);
         if (granted === undefined) continue;
@@ -362,8 +395,9 @@ if (import.meta.main) {
         console.log(`cached ${cached.url} — ${length} characters → ${cached.pagePath}`);
     } else if (command === "freeze") {
         const frozen = writeFrozenSkillTable();
+        const moved = frozen.hasMoved ? "froze" : "unchanged:";
         console.log(
-            `froze ${formatInteger(frozen.skills)} skills → ${FROZEN_PATH}, ` +
+            `${moved} ${formatInteger(frozen.count)} skills → ${FROZEN_PATH}, ` +
                 `${formatInteger(frozen.auras)} reaching a side → ${FROZEN_AURA_PATH}, and ` +
                 `${formatInteger(frozen.granted)} granting a blow → ${FROZEN_BLOWS_PATH}`,
         );

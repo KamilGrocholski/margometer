@@ -20,11 +20,14 @@ Deno.test("the statuses are the entries filed as a buff, in the order they are r
         ["wound", "poisoned", "fire"],
         "source order is bit order",
     );
+    const unminified = 'var buffNames = [\n\t_t("wound", null, "buff"),\n\t_t( "fire" , null ,' +
+        ' "buff" ),\n\t_t("stun", null, "debuff")\n];';
+    assertEquals(requireBuffBits(unminified), ["wound", "fire"], "and spaced, as development is");
 });
 
 Deno.test("an entry that is not a registration is passed over, not read as a bit", () => {
-    const bundle = 'x("wound",null,"buff");y("spaced" ,null,"buff");z(,null,"buff");' +
-        'w("",null,"buff");v("open,null,"buff")';
+    const bundle = 'x("wound",null,"buff");y("glued"x,null,"buff");z(,null,"buff");' +
+        'w("",null,"buff");v("open,null,"buff");u("a",nullish,"buff");t("b",null,"buff"x)';
     assertEquals(requireBuffBits(bundle), ["wound"], "only a name closing on the arguments");
 });
 
