@@ -92,6 +92,6 @@ discards.
   nothing else, moved them.
 - A player sees a different ranking wherever a pool stood, which is a **Zmiana** in the changelog.
 - `+absorb` and `+absorbm`, the pool being refilled, are still read and counted by nothing.
-- A figure the game tied to no end still says in Polish that health went down (`UNNAMED_END_NOTES`
-  in `src/ui/panel-words.ts`). No recording has a pool on such a blow, so the sentence is true of
-  all the material. Whether to reword it before one arrives is the maintainer's call.
+- The Polish notes on damage the game tied to no attacker say who took it, not that health went down
+  (`UNNAMED_END_NOTES` and the two `takenWithNoActor` notes in `src/ui/panel-words.ts`), so they
+  stay true of a pool on such a blow. No recording holds one yet.

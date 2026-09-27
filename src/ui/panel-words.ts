@@ -257,7 +257,7 @@ const CARD_METRIC_WORDS: Record<PanelMetric, string> = {
  */
 const UNNAMED_END_NOTES: Record<PanelUnnamedEnd, Record<PanelNoun, string>> = {
     actor: {
-        damage: "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.",
+        damage: "Gra nie mówi, kto to zadał — wiadomo tylko, kto to otrzymał.",
         healing: "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
     },
     target: {
@@ -287,7 +287,7 @@ const PINNED_STANDING_NOTES: Record<PinnedCase, string> = {
     dealtWithNoActor: APART_NOTE,
     givenWithNoActor: APART_NOTE,
     takenWithNoTarget: APART_NOTE,
-    takenWithNoActor: "Te obrażenia są już policzone wyżej, u tych, którym ubyło życia.",
+    takenWithNoActor: "Te obrażenia są już policzone wyżej, u tych, którzy je otrzymali.",
     restoredWithNoActor: "To leczenie jest już policzone wyżej, u tych, którzy je dostali.",
 };
 
@@ -300,7 +300,7 @@ const PINNED_STANDING_NOTES: Record<PinnedCase, string> = {
 const PINNED_SCOPE_NOTES: Record<PinnedCase, string> = {
     dealtWithNoActor: "Tylko z pokazanej drużyny — to ona to zadała, choć gra nie mówi kto.",
     givenWithNoActor: "Tylko z pokazanej drużyny — to ona to wyleczyła, choć gra nie mówi kto.",
-    takenWithNoActor: "Tylko z pokazanej drużyny — liczone po tym, komu ubyło życia.",
+    takenWithNoActor: "Tylko z pokazanej drużyny — liczone po tym, kto je otrzymał.",
     takenWithNoTarget: "Tylko z pokazanej drużyny — gra nie mówi, kogo z niej.",
     restoredWithNoActor: "Tylko z pokazanej drużyny — liczone po tym, komu przybyło życia.",
 };
