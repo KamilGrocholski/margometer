@@ -14,7 +14,7 @@ import type { OutcomeResult } from "#/src/core/battle-event.ts";
 import type { FightMoment, PanelSidePart, PanelUnnamedEnd, PinnedCase } from "./panel-reading.ts";
 import type { StorageChoice } from "./panel-choice.ts";
 import type { PanelMetric, PanelNoun, PanelSideChoice } from "./panel-screen.ts";
-import type { StandingTurnState } from "./panel-standing.ts";
+import type { StandingAbsence, StandingTurnState } from "./panel-standing.ts";
 import type { ChargedSkillState } from "#/src/core/charged-skill.ts";
 import { HASTE_BIT_NAME, SLOW_BIT_NAME } from "#/src/core/carried-figure.ts";
 import { HOLYTOUCH_HEALS_STATED } from "#/src/core/legendary-standing.ts";
@@ -740,6 +740,13 @@ const TURN_STATE_WORDS: Record<StandingTurnState, string> = {
     onAuto: "Szybka walka — gra nie podaje tur.",
 };
 
+/** The panel's own sentences where they fit, so the two windows never disagree on a fight. */
+const STANDING_ABSENCE_WORDS: Record<StandingAbsence, string> = {
+    noFightYet: PANEL_WORDS.noFightYet,
+    betweenFights: STANDING_WORDS.nothingHappens,
+    fightUnread: PANEL_WORDS.fightUnread,
+};
+
 const STORAGE_WORDS: Record<StorageChoice, string> = {
     local: "na stałe",
     session: "do zamknięcia karty",
@@ -1200,6 +1207,11 @@ export function formatCounter(figure: number, stated: number): string {
 
 export function getWordsForTurnState(state: StandingTurnState): string {
     const words = TURN_STATE_WORDS[state];
+    return words;
+}
+
+export function getWordsForStandingAbsence(absence: StandingAbsence): string {
+    const words = STANDING_ABSENCE_WORDS[absence];
     return words;
 }
 

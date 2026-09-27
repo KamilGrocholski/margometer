@@ -85,6 +85,18 @@ export const STANDING_TURN_STATE = {
 } as const;
 export type StandingTurnState = VocabularyWord<typeof STANDING_TURN_STATE>;
 
+/**
+ * Why the window has no live reading to draw: no fight has arrived, a kept fight stands on the
+ * panel but none is going on, or one arrived and its reading would not compose. Never "no fight
+ * yet" for the last two, which the panel beside it would contradict.
+ */
+export const STANDING_ABSENCE = {
+    noFightYet: "noFightYet",
+    betweenFights: "betweenFights",
+    fightUnread: "fightUnread",
+} as const;
+export type StandingAbsence = VocabularyWord<typeof STANDING_ABSENCE>;
+
 /** What the fight says about the turn in hand, which is more than the statement itself. */
 export interface StandingTurn {
     statement: TurnStatement | null;

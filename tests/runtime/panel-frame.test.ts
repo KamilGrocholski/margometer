@@ -5,6 +5,7 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import type { StatedSkills } from "#/src/core/aura-standing.ts";
 import { initFightSession, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { NO_CAPTURE } from "#/src/game/fight-capture.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
@@ -19,8 +20,13 @@ import type { KeptFight } from "#/src/runtime/shelf.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import type { ShownScreen } from "#/src/ui/panel-element.ts";
 import { createScreenState, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
+import {
+    STANDING_ABSENCE,
+    type StandingAbsence,
+    type StandingReading,
+} from "#/src/ui/panel-standing.ts";
 import { composeFakeDocument } from "#/tests/fake-document.ts";
-import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
+import { lookupRecordedFight, replayRecordedFight } from "#/tests/recorded-fights.ts";
 import { RUNTIME_TABLES } from "#/tests/runtime-world.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
@@ -71,6 +77,7 @@ Deno.test("a ranking whose two counts disagree is drawn, and said as the screen'
 /** Every part of a frame over one kept fight standing, with a view that keeps what it is handed. */
 function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
     const shown: ShownScreen[] = [];
+    const standings: (StandingReading | StandingAbsence)[] = [];
     const defects = initDefectLedger({ writeBrandedLine: () => {} });
     const parts: FrameParts = {
         screen: createScreenState(false),
@@ -104,7 +111,10 @@ function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
                 return { undrawn: [] };
             },
             renderWaiting: () => ({ undrawn: [] }),
-            renderStanding: () => ({ undrawn: [] }),
+            renderStanding: (standing) => {
+                standings.push(standing);
+                return { undrawn: [] };
+            },
         },
         clock: {
             readNowMilliseconds: () => 1,
@@ -120,5 +130,51 @@ function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
         defects.getCounts().filter((one) => one.kind === DEFECT_KIND.figures).map((one) =>
             one.first instanceof FiguresDisagreed ? one.first.cut : one.first.name
         );
-    return { parts, shown, readFiguresSaid };
+    return { parts, shown, standings, defects, readFiguresSaid };
 }
+
+Deno.test("the window beside the panel says which reason leaves it nothing live to read", () => {
+    const fight: KeptFight = {
+        openedAt: 1,
+        payloads: lookupRecordedFight(HILDUR).updates,
+        place: null,
+        gameBuild: null,
+        isPinned: false,
+    };
+    const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);
+    assert(!(replayed instanceof Error), "the recording replays");
+    assert(replayed !== null, "into a fight");
+    const waiting = composeFrameWorld(fight, replayed);
+    waiting.parts.keeper = { ...waiting.parts.keeper, getFights: () => [] };
+    renderFrame(waiting.parts);
+    assertEquals(
+        waiting.standings,
+        [STANDING_ABSENCE.noFightYet],
+        "no payload over an empty shelf is no fight yet",
+    );
+
+    const between = composeFrameWorld(fight, replayed);
+    renderFrame(between.parts);
+    assertEquals(
+        between.standings,
+        [STANDING_ABSENCE.betweenFights],
+        "and over a kept fight the panel draws, never no fight at all",
+    );
+
+    const broken = composeFrameWorld(fight, replayed);
+    broken.parts.live.session = replayRecordedFight(lookupRecordedFight(HILDUR));
+    broken.parts.tables = {
+        ...RUNTIME_TABLES.tooltip,
+        get statedSkills(): StatedSkills {
+            throw new Error("a reading that will not compose");
+        },
+    };
+    renderFrame(broken.parts);
+    assertEquals(
+        broken.standings,
+        [STANDING_ABSENCE.fightUnread],
+        "a fight that arrived and would not read is never said to be no fight",
+    );
+    const readings = broken.defects.getCounts().filter((one) => one.kind === DEFECT_KIND.reading);
+    assertStrictEquals(readings.length, 1, "and what would not compose is a defect");
+});

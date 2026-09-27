@@ -42,6 +42,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Zadane i otrzymane obrażenia liczą też to, co przyjęła na siebie absorpcja i
   absorpcja magiczna, więc ranking walki z przeciwnikiem, który ją ma, może ułożyć się inaczej, a
   „Zatrzymane" pokazuje już tylko blok.
+- **Poprawka** — Pomocnik przed pierwszą walką mówi, że walki jeszcze nie było, zamiast stać samym
+  paskiem.
 
 ## [0.20.0] — 2026-09-27
 

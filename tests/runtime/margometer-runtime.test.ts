@@ -33,6 +33,7 @@ import {
     getWordsForTurnState,
     PANEL_DEFECT_KIND,
     PANEL_WORDS,
+    STANDING_WORDS,
     STORE_MADE_ROOM_ANSWER,
     STORE_REFUSED_ANSWER,
 } from "#/src/ui/panel-words.ts";
@@ -120,7 +121,7 @@ function readUpdates(path: string): readonly unknown[] {
 }
 
 function findList(host: FakeElement): FakeElement {
-    const list = getElementsWithin(host).find((one) => one.className === CLASS.list);
+    const list = getElementsWithin(host).find((one) => one.className.split(" ")[0] === CLASS.list);
     assertExists(list, "the panel drew its list");
     return list;
 }
@@ -138,7 +139,11 @@ Deno.test("a panel goes up when the reading starts, saying there has been no fig
     const world = initRuntimeWorld(composeBattlePage());
     assertEquals(world.shown.length, 1, "one panel, put up the moment the reading started");
     const host = world.getHost();
-    assertEquals(getTextsByClass(host, CLASS.empty), [PANEL_WORDS.noFightYet], "waiting, said");
+    assertEquals(
+        getTextsByClass(findList(host), CLASS.empty),
+        [PANEL_WORDS.noFightYet],
+        "waiting, said",
+    );
     assertEquals(
         getElementsWithin(host).filter((one) => one.className === CLASS.strips),
         [],
@@ -782,7 +787,11 @@ Deno.test("a panel reloaded between fights opens on the shelf rather than on not
     assert(world.getShelf("local").size > 0, "the fight was kept where a reload will look");
     const again = reloadRuntimeWorld(world);
     const host = again.getHost();
-    assertEquals(getTextsByClass(host, CLASS.empty), [], "the panel does not say there was none");
+    assertEquals(
+        getTextsByClass(host, CLASS.empty),
+        [STANDING_WORDS.nothingHappens],
+        "neither window says there was none, and the one beside it says nothing is going on",
+    );
     assert(countRows(findList(host)) > 0, "it draws the newest fight it kept");
     openShelfScreen(again);
     assertEquals(getTextsByClass(host, CLASS.rowSize), ["10×1"], "which opens onto the fight kept");
@@ -807,7 +816,7 @@ Deno.test("a reload onto a kept fight that no longer reads says so, and when and
             return {};
         });
         const moment = world.ports.clock.readMoment(1);
-        assertEquals(getTextsByClass(world.getHost(), CLASS.empty), [
+        assertEquals(getTextsByClass(findList(world.getHost()), CLASS.empty), [
             PANEL_WORDS.keptUnread,
             formatKeptUnread(moment, where),
         ], `${where}: the fight is named, not denied`);
@@ -1138,7 +1147,7 @@ Deno.test("a stopped add-on takes its wrap off and draws no frame it had asked f
     world.flush();
     assertStrictEquals(battle.updateData, engineOwn, "the game's own method is back");
     assertEquals(
-        getTextsByClass(world.getHost(), CLASS.empty),
+        getTextsByClass(findList(world.getHost()), CLASS.empty),
         [PANEL_WORDS.noFightYet],
         "unmoved",
     );

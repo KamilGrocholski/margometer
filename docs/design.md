@@ -852,7 +852,7 @@ export interface PanelView {
     element: PanelElement;
     render(shown: ShownScreen): RenderReport;
     renderWaiting(waiting: WaitingReading): RenderReport;
-    renderStanding(standing: StandingReading | null, isCollapsed: boolean): RenderReport;
+    renderStanding(standing: StandingReading | StandingAbsence, isCollapsed: boolean): RenderReport;
 }
 /** A region that could not draw stands undrawn in place. */
 export interface RenderReport {

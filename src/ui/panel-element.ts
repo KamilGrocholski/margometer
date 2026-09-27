@@ -91,7 +91,11 @@ import {
     SIDE_CHOICE,
 } from "./panel-screen.ts";
 import { initScrollMemo, readTopOfList, renderListRows, writeTopOfList } from "./panel-scroll.ts";
-import { type StandingChargedSkill, type StandingReading } from "./panel-standing.ts";
+import {
+    type StandingAbsence,
+    type StandingChargedSkill,
+    type StandingReading,
+} from "./panel-standing.ts";
 import {
     initTipHandle,
     initTipRegister,
@@ -128,6 +132,7 @@ import {
     getWordsForPinnedStanding,
     getWordsForShelfOutcome,
     getWordsForShelfTime,
+    getWordsForStandingAbsence,
     getWordsForStorage,
     getWordsForTurnState,
     getWordsForUnannounced,
@@ -358,10 +363,10 @@ export interface PanelView {
      */
     renderWaiting(waiting: WaitingReading): RenderReport;
     /**
-     * The window beside the panel, drawn on the same frame. Null is a fight with nothing standing
-     * and no turn stated, which is a reading and not a failure.
+     * The window beside the panel, drawn on the same frame. An absence is why there is no live
+     * reading, said in one sentence where the reading would stand.
      */
-    renderStanding(reading: StandingReading | null, isCollapsed: boolean): RenderReport;
+    renderStanding(reading: StandingReading | StandingAbsence, isCollapsed: boolean): RenderReport;
 }
 
 export interface PanelViewOptions {
@@ -997,7 +1002,10 @@ function composePanelView(held: PanelDrawing): PanelView {
                 renderPanelWaiting(document, regions, waiting, redraw, drawing);
                 renderPanelSettled(held);
             }),
-        renderStanding: (reading: StandingReading | null, isCollapsed: boolean): RenderReport =>
+        renderStanding: (
+            reading: StandingReading | StandingAbsence,
+            isCollapsed: boolean,
+        ): RenderReport =>
             report.collect(() => renderStandingWindowInPlace(held, reading, isCollapsed)),
     };
 }
@@ -2597,7 +2605,7 @@ function renderWaitingList(document: PanelDocument, waiting: WaitingReading): Pa
 
 function renderStandingWindowInPlace(
     held: PanelDrawing,
-    reading: StandingReading | null,
+    reading: StandingReading | StandingAbsence,
     isCollapsed: boolean,
 ): void {
     const { document, redraw } = held;
@@ -2639,15 +2647,23 @@ function renderStandingWindowInPlace(
 function renderStandingBodyInPlace(
     document: PanelDocument,
     standing: PanelElement,
-    reading: StandingReading | null,
+    reading: StandingReading | StandingAbsence,
     isCollapsed: boolean,
     redraw: PanelRedraw,
     register: TipRegister,
 ): PanelElement {
     const region = PANEL_REGION.standing;
-    if (reading === null) return redraw(standing, region, () => renderSlot(document));
     if (isCollapsed) return redraw(standing, region, () => renderSlot(document));
+    if (typeof reading === "string") {
+        return redraw(standing, region, () => renderStandingAbsence(document, reading));
+    }
     return redraw(standing, region, () => renderStandingBody(document, reading, register));
+}
+
+function renderStandingAbsence(document: PanelDocument, absence: StandingAbsence): PanelElement {
+    const body = renderElement(document, "div", CLASS.standingBody);
+    body.append(renderEmpty(document, getWordsForStandingAbsence(absence)));
+    return body;
 }
 
 /**

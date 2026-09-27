@@ -13,7 +13,12 @@ import type { TurnStatement } from "#/src/core/fight-session.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
 import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
 import { formatColour, lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
-import { presentStanding, PROVOKED_MAXIMUM, type StandingTurn } from "#/src/ui/panel-standing.ts";
+import {
+    presentStanding,
+    PROVOKED_MAXIMUM,
+    STANDING_ABSENCE,
+    type StandingTurn,
+} from "#/src/ui/panel-standing.ts";
 import { getWordsForTurnState, PANEL_WORDS, STANDING_WORDS } from "#/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
@@ -107,7 +112,7 @@ function composeTurn(
     return { statement, isOver: false, isOnAuto: false, ...over };
 }
 
-function draw(reading: ReturnType<typeof presentStanding> | null): {
+function draw(reading: ReturnType<typeof presentStanding>): {
     host: FakeElement;
     pressed: PanelIntent[];
 } {
@@ -245,7 +250,7 @@ Deno.test("a fight with nothing standing says so, and one with no turn says that
     );
 });
 
-Deno.test("a folded window is its bar, and a fight it knows nothing about draws no body", () => {
+Deno.test("a folded window is its bar, whether or not there is a fight under it", () => {
     const document = composeFakeDocument();
     const panel = initTestView(document);
     const host = panel.element as FakeElement;
@@ -267,8 +272,38 @@ Deno.test("a folded window is its bar, and a fight it knows nothing about draws 
         "standing",
         "wearing its own window's name",
     );
-    panel.renderStanding(null, false);
-    assertEquals(getTextsByClass(getWindow(host), "row-name"), [], "and a fight nobody has seen");
+    panel.renderStanding(STANDING_ABSENCE.noFightYet, true);
+    assertEquals(getTextsByClass(getWindow(host), "empty"), [], "folded, no sentence either");
+});
+
+Deno.test("before a fight the window says what the panel says, and never an empty box", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const host = panel.element as FakeElement;
+    panel.renderStanding(STANDING_ABSENCE.noFightYet, false);
+    const window = getWindow(host);
+    assertEquals(
+        getTextsByClass(window, "empty"),
+        [PANEL_WORDS.noFightYet],
+        "a fight nobody has seen is said, once",
+    );
+    assertEquals(getTextsByClass(window, "row-name"), [], "with nobody drawn under it");
+    const body = getElementsWithin(window).find((one) => one.className === "standing-body");
+    assertExists(body, "in the body that closes the box under the bar");
+
+    panel.renderStanding(STANDING_ABSENCE.betweenFights, false);
+    assertEquals(
+        getTextsByClass(getWindow(host), "empty"),
+        [STANDING_WORDS.nothingHappens],
+        "between fights nothing is going on, while the panel draws the one it kept",
+    );
+
+    panel.renderStanding(STANDING_ABSENCE.fightUnread, false);
+    assertEquals(
+        getTextsByClass(getWindow(host), "empty"),
+        [PANEL_WORDS.fightUnread],
+        "a fight that would not read is never said to be no fight",
+    );
 });
 
 Deno.test("the window's fold is its own, and never the panel's", () => {

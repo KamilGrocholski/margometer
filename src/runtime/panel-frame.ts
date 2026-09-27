@@ -40,7 +40,12 @@ import {
     type ShelfRow,
 } from "#/src/ui/panel-reading.ts";
 import { composeListName, type ScreenState } from "#/src/ui/panel-screen.ts";
-import { presentStanding, type StandingReading } from "#/src/ui/panel-standing.ts";
+import {
+    presentStanding,
+    STANDING_ABSENCE,
+    type StandingAbsence,
+    type StandingReading,
+} from "#/src/ui/panel-standing.ts";
 import {
     CHOICE_REFUSED_ANSWER,
     EVERY_SLOT_PINNED_ANSWER,
@@ -127,21 +132,32 @@ function addRegionDefect(parts: FrameParts, failure: RuntimeFailure): void {
 
 /**
  * The window beside the panel, before the panel: a fight the panel cannot read is not a fight the
- * window has nothing to say about. A reading that will not compose costs the window its body.
+ * window has nothing to say about. A reading that will not compose is said as a fight that would
+ * not read, and never as no fight.
  */
 function renderFrameStanding(parts: FrameParts): void {
-    const read = errors.attempt(() => presentFrameStanding(parts.live, parts.tables));
+    const isShelfEmpty = parts.keeper.getFights().length === 0;
+    const read = errors.attempt(() => presentFrameStanding(parts.live, parts.tables, isShelfEmpty));
     if (read instanceof Error) {
         parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
     }
-    const reading = read instanceof Error ? null : read;
+    const reading = read instanceof Error ? STANDING_ABSENCE.fightUnread : read;
     addUndrawn(parts.defects, parts.view.renderStanding(reading, parts.screen.isStandingCollapsed));
 }
 
-/** Null where no payload has arrived: a fight nobody has seen has nothing standing on it. */
-function presentFrameStanding(live: LiveFight, tables: TooltipTables): StandingReading | null {
+/**
+ * An absence where no payload has arrived: a fight nobody has seen has nothing standing on it, and
+ * where the shelf keeps one the panel draws it, so "no fight yet" is said only over an empty shelf.
+ */
+function presentFrameStanding(
+    live: LiveFight,
+    tables: TooltipTables,
+    isShelfEmpty: boolean,
+): StandingReading | StandingAbsence {
     const view = getFightView(live.session);
-    if (view === null) return null;
+    if (view === null) {
+        return isShelfEmpty ? STANDING_ABSENCE.noFightYet : STANDING_ABSENCE.betweenFights;
+    }
     const held = replayFightStandings(view, tables.statedSkills);
     assert(held.provocations.length <= COMBATANTS_MAXIMUM, "a shout holds people of this fight");
     const turn = { statement: view.turnStatement, isOver: view.isOver, isOnAuto: view.isOnAuto };
