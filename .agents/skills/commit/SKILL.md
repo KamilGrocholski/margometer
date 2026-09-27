@@ -21,8 +21,8 @@ below points at the rule it checks, and the rule's owner is where to read it in 
    and read the list against step 3.
 5. **The checklist** below, over the staged diff. An item that fails is fixed or asked about, never
    noted in the body and committed anyway.
-6. **The gate.** `deno task check` after staging (**W1**). Where the commit touches `src/`,
-   `deno task e2e` as well (**W9**). Note the test count and whether e2e ran.
+6. **The gate.** `deno task check` after staging (**W1**), read through the `gate` skill. Where the
+   commit touches `src/`, `deno task e2e` as well (**W9**). Note the test count and whether e2e ran.
 7. **The message**, written to a file in the scratchpad: the header (**G2**), the body (**G3**), the
    gate line, the attribution trailer. Then `git commit -F <file>`, with no `--no-verify` (**G8**).
 8. **Read back.** `git log -1 --stat` and `git status`: the commit holds what step 4 staged and the
@@ -62,7 +62,8 @@ below points at the rule it checks, and the rule's owner is where to read it in 
 
 ### Evidence
 
-- [ ] Every new test was seen red under a mutation and restored from a copy (**W3**).
+- [ ] Every new test was seen red under a mutation and restored from a copy (**W3**), by the
+      `mutate` skill.
 - [ ] A mutation that lit nothing is reported, not dropped (**W4**).
 - [ ] No golden expectation moved to make a behaviour change pass (**W8**).
 - [ ] The frozen readings were current, if the round relied on them (**W10**).
