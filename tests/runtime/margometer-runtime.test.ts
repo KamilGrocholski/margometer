@@ -871,7 +871,7 @@ Deno.test("a pin is the reader's own answer, and the shelf keeps it", () => {
 Deno.test("where the shelf is kept is the reader's answer, and the fights travel with it", () => {
     const world = playRecordedFight();
     const host = world.getHost();
-    openShelfScreen(world);
+    openOptions(world);
     assert(world.getShelf("local").has(STORE_KEY.fights), "the fight is where nothing was asked");
     chooseStorage(world, "session");
     assertEquals(readKeptFights(world.getShelf("session")).length, 1, "where the reader asked");
@@ -884,7 +884,8 @@ Deno.test("where the shelf is kept is the reader's answer, and the fights travel
     );
     chooseStorage(world, "memory");
     assertEquals(world.getShelf("session").has(STORE_KEY.fights), false, "what was there is gone");
-    assertEquals(countRows(getPanelWithin(host)), 1, "and the fight is still on screen");
+    openShelfScreen(world);
+    assertEquals(countRows(getPanelWithin(host)), 1, "and the fight is still on the shelf");
 });
 
 function chooseStorage(world: RuntimeWorld, name: string): void {
@@ -893,11 +894,17 @@ function chooseStorage(world: RuntimeWorld, name: string): void {
     world.press(found);
 }
 
+function openOptions(world: RuntimeWorld): void {
+    const control = findByMark(world.getHost(), "data-options");
+    assertExists(control, "the bar carries the way into the options");
+    world.press(control);
+}
+
 Deno.test("a browser that will not keep the answer moves nothing, and says so", () => {
     const world = initRuntimeWorld(composeBattlePage(), () => ({ settings: initRefusingStore() }));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const host = world.getHost();
-    openShelfScreen(world);
+    openOptions(world);
     chooseStorage(world, "memory");
     assertEquals(world.getShelf("local").has(STORE_KEY.fights), true, "the fights stay put");
     assertEquals(
@@ -908,7 +915,7 @@ Deno.test("a browser that will not keep the answer moves nothing, and says so", 
     assertEquals(
         getTextsByClass(host, CLASS.suspicion),
         ["⚠ Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było."],
-        "which the shelf says outright rather than drawing a choice as taken",
+        "which the options say outright rather than drawing a choice as taken",
     );
 });
 
@@ -918,7 +925,7 @@ Deno.test("a store that will not take the fights leaves them where they were", (
             choice === "session" ? initRefusingStore() : initHeldStore(built.getShelf(choice)),
     }));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
-    openShelfScreen(world);
+    openOptions(world);
     chooseStorage(world, "session");
     assertEquals(world.getShelf("local").has(STORE_KEY.fights), true, "where the next page looks");
     assertEquals(world.held.get(STORE_KEY.storage), undefined, "and so does the answer");
@@ -930,7 +937,40 @@ Deno.test("a store that will not take the fights leaves them where they were", (
     assert(
         getTextsByClass(world.getHost(), CLASS.suspicion)
             .some((one) => one.includes(STORE_REFUSED_ANSWER)),
-        "and the shelf says the store would not take them",
+        "and the options say the store would not take them",
+    );
+});
+
+Deno.test("the options open from the bar, and every way off a screen leaves them", () => {
+    const world = playRecordedFight();
+    const host = world.getHost();
+    const here = () => getTextsByClass(host, CLASS.crumbHere);
+    openOptions(world);
+    assertEquals(here(), [PANEL_WORDS.options], "the options cover the screen");
+    assertEquals(countRows(getPanelWithin(host)), 0, "with no row of the fight's beside them");
+    openShelfScreen(world);
+    assertEquals(here(), [PANEL_WORDS.fights], "the shelf takes their place rather than stacking");
+    openOptions(world);
+    assertEquals(here(), [PANEL_WORDS.options], "and they take the shelf's");
+    openOptions(world);
+    assertEquals(here(), [], "their own control puts them away");
+    openOptions(world);
+    world.press(host, "contextmenu");
+    assertEquals(here(), [], "and so does the way back, from anywhere on the panel");
+    assert(countRows(getPanelWithin(host)) > 1, "onto the ranking they covered");
+});
+
+Deno.test("the options answer before any fight has come, and the answer is kept", () => {
+    const world = initRuntimeWorld(composeBattlePage());
+    const host = world.getHost();
+    openOptions(world);
+    assertEquals(getTextsByClass(host, CLASS.crumbHere), [PANEL_WORDS.options], "they stand");
+    chooseStorage(world, "memory");
+    assertEquals(world.held.get(STORE_KEY.storage), "memory", "and a choice made there is kept");
+    assertEquals(
+        getTextsByClass(host, `${CLASS.strip} ${CLASS.stripCurrent}`),
+        ["tylko teraz"],
+        "which the strip marks",
     );
 });
 

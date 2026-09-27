@@ -21,6 +21,7 @@ export const NOTHING_WAITING: WaitingReading = {
     hasFightToSave: false,
     isFightUnread: false,
     keptUnread: null,
+    options: null,
 };
 
 export function initTestView(

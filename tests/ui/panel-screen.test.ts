@@ -211,6 +211,19 @@ Deno.test("the shelf is a place of its own, whatever screen stands under it", ()
     assert(composeListName(screen, FIGHT) !== shelf, "and the screen under it is somewhere else");
 });
 
+Deno.test("the options are a place of their own, and not the shelf's", () => {
+    const screen = createScreenState(false);
+    screen.isOnShelf = true;
+    const shelf = composeListName(screen, FIGHT);
+    screen.isOnShelf = false;
+    screen.isOnOptions = true;
+    const options = composeListName(screen, FIGHT);
+    assert(options !== shelf, "two covers, two places");
+    screen.current = PANEL_METRIC.healthGiven;
+    screen.openRowId = 469657;
+    assertEquals(composeListName(screen, FIGHT), options, "whatever screen stands under them");
+});
+
 Deno.test("a fight is part of the place, so a new one is nobody's position", () => {
     const screen = createScreenState(false);
     const first = composeListName(screen, FIGHT);

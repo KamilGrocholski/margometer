@@ -877,6 +877,7 @@ export type PanelIntent =
     | { kind: "save-file" }
     | { kind: "storage"; choice: StorageChoice }
     | { kind: "shelf" }
+    | { kind: "options" }
     | { kind: "show-kept"; openedAt: number }
     | { kind: "show-live" }
     | { kind: "pin"; openedAt: number };
@@ -945,8 +946,9 @@ end: no DOM; cost bounded by the message count; a JSON copy only of a call thinn
 
 ```
 listener ─ reads a PanelIntent off data-* (isOneOf; unknown → GestureDropped)
-   executeRuntimeIntent: the screen moves; the keeper pins and moves the shelf; a fold is
-      written; a move is written and asks for no frame; a save writes the file or a "file" defect
+   executeRuntimeIntent: the screen moves, and the options and the shelf never cover it together;
+      the keeper pins and moves the shelf; a fold is written; a move is written and asks for no
+      frame; a save writes the file or a "file" defect
    true → markStale
 ```
 
@@ -980,7 +982,7 @@ goes without a mark.
 | `EnvelopeFailure`                            | `defect` "reading"     | the defects section: what could not be done, how often |
 | `Caught`                                     | `defect` of its step   | as above; one console line per kind                    |
 | `hasFiguresDisagreed` (data, not a failure)  | `defect` "figures"     | as above                                               |
-| `StoreFailure` on choosing a store           | `fallback-with-defect` | memory; the storage strip says it was refused          |
+| `StoreFailure` on choosing a store           | `fallback-with-defect` | memory; the options say it was refused                 |
 | `ShelfFailure` on a write                    | `shelf-answer`         | the shelf's answer row                                 |
 | `ShelfUnreadable`, `ShelfVersionUnknown`     | `fallback-with-defect` | an empty shelf; a "kept" defect                        |
 | `FightAlreadyKept`                           | `defect` "keeping"     | the fight is not kept twice                            |

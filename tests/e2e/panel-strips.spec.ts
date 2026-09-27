@@ -60,9 +60,11 @@ test("the audiences are three, and each draws a ranking of its own", async ({ pa
         .toBeGreaterThan(1);
 });
 
-test("the strip that says where a shelf is kept belongs to the shelf", async ({ panel }) => {
+test("the strip that says where a shelf is kept belongs to the options", async ({ panel }) => {
     await expect(panel.at("[data-storage]"), "no such strip over a ranking").toHaveCount(0);
     await panel.at("[data-shelf]").click();
+    await expect(panel.at("[data-storage]"), "nor over the shelf (ADR 0013)").toHaveCount(0);
+    await panel.at("[data-options]").click();
     await expect(panel.at("[data-storage]"), "local, session and memory, and nothing else")
         .toHaveCount(PLACES_TO_KEEP);
     await expect(panel.at("[data-screen].selected"), "and no screen is marked while it is up")
@@ -78,11 +80,11 @@ test("the strip that says where a shelf is kept belongs to the shelf", async ({ 
         const named = await choice.getAttribute("data-storage");
         await choice.click();
         expect(await panel.stored(STORAGE_KEY), `${named} was written down`).toBe(named);
-        await expect(panel.at("[data-fight]"), "and the live fight is on every shelf")
-            .not.toHaveCount(0);
+        await expect(panel.at(`[data-storage="${named}"].selected`), "and the strip marks it")
+            .toHaveCount(1);
         await panel.expectHonest(`the shelf kept in ${named}`);
     }
 
-    await panel.at("[data-shelf]").click();
-    await expect(panel.at("[data-storage]"), "the strip leaves with the shelf").toHaveCount(0);
+    await panel.at("[data-options]").click();
+    await expect(panel.at("[data-storage]"), "the strip leaves with the options").toHaveCount(0);
 });

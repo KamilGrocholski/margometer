@@ -15,7 +15,7 @@ import {
 } from "@std/assert";
 import { tallyFightStatistics } from "#/src/core/fight-statistics.ts";
 import { isOneOf } from "#/libs/vocabulary.ts";
-import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
+import { PANEL_WINDOW, STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import type { PanelDefect, PanelView, ShownScreen } from "#/src/ui/panel-element.ts";
 import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
 import { composeShownScreen, SHOWN_LIST } from "#/tests/shown-screen.ts";
@@ -48,6 +48,7 @@ import {
 } from "#/src/ui/panel-screen.ts";
 import {
     CARD_WORDS,
+    CHOICE_REFUSED_ANSWER,
     formatCardSubtitle,
     formatFigure,
     formatUndrawn,
@@ -238,24 +239,10 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
     });
     const host = panel.element as FakeElement;
     // A header saying how this fight went, over a list of other fights, answers a question
-    // nobody asked of that list; a strip picking a figure of it is the same thing twice. The one
-    // strip here is the shelf's own, and it asks about the list rather than about a fight.
+    // nobody asked of that list; a strip picking a figure of it is the same thing twice. Where
+    // the shelf is kept is asked in the options (ADR 0013), so no strip stands here at all.
     const strips = getElementsWithin(host).filter((one) => one.className === "strips");
-    assertEquals(strips.length, 1, "one strip, and it is not one of the fight's");
-    assertEquals(getTextsByClass(host, "strips-label"), [PANEL_WORDS.storage], "what it asks");
-    assertEquals(
-        getElementsWithin(host).filter((one) => one.attributes.get("data-storage") !== undefined)
-            .map((one) => one.attributes.get("data-storage")),
-        ["local", "session", "memory"],
-        "the three places a shelf can be kept, in the order they keep longest",
-    );
-    assertEquals(
-        getElementsWithin(host).filter((one) => one.className === "strip selected").map((one) =>
-            one.textContent
-        ),
-        [getWordsForStorage("local")],
-        "with the reader's own answer marked as more than a colour",
-    );
+    assertEquals(strips.length, 0, "no strip, neither the fight's nor the storage's");
     assertEquals(getTextsByClass(host, "header-place"), [], "and no header of the fight's");
     assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.fights], "the shelf says so");
     assertEquals(
@@ -269,6 +256,71 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
     );
     assertEquals(shelf.length, 1, "the shelf is reached by one control, on the bar");
     assert(shelf[0]?.className.startsWith("titlebar-button"), "a control and not a strip");
+});
+
+Deno.test("the options cover the screen, with where the shelf is kept and the way back", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(readFight()),
+        readerSide: 1,
+        place: "Mapa (1, 2)",
+        options: { storage: STORAGE_CHOICE.session, answers: [CHOICE_REFUSED_ANSWER] },
+    });
+    const host = panel.element as FakeElement;
+    const strips = getElementsWithin(host).filter((one) => one.className === "strips");
+    assertEquals(strips.length, 1, "one strip, and it is not one of the fight's");
+    assertEquals(getTextsByClass(host, "strips-label"), [PANEL_WORDS.storage], "what it asks");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.attributes.get("data-storage") !== undefined)
+            .map((one) => one.attributes.get("data-storage")),
+        ["local", "session", "memory"],
+        "the three places a shelf can be kept, in the order they keep longest",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "strip selected").map((one) =>
+            one.textContent
+        ),
+        [getWordsForStorage("session")],
+        "with the reader's own answer marked as more than a colour",
+    );
+    assertEquals(getTextsByClass(host, "header-place"), [], "no header of the fight's");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className.startsWith("row")),
+        [],
+        "and no row of it",
+    );
+    assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.options], "the cover says so");
+    assertEquals(
+        getTextsByClass(host, "crumb-back"),
+        [`‹ ${PANEL_WORDS.backFromOptions}`],
+        "and carries the way off it",
+    );
+    assertEquals(
+        getTextsByClass(host, "suspicion"),
+        [`⚠ ${CHOICE_REFUSED_ANSWER}`],
+        "with what the store answered standing under the strip that asked it",
+    );
+});
+
+Deno.test("the options stand before any fight, since the choices in them are not a fight's", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.renderWaiting({
+        ...NOTHING_WAITING,
+        options: { storage: STORAGE_CHOICE.local, answers: [] },
+    });
+    const host = panel.element as FakeElement;
+    assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.options], "the cover stands");
+    assertEquals(
+        getTextsByClass(host, "strip selected"),
+        [getWordsForStorage("local")],
+        "with its strip",
+    );
+    assertEquals(getTextsByClass(host, "empty"), [], "and not the sentence saying nothing came");
+    panel.renderWaiting(NOTHING_WAITING);
+    assertEquals(getTextsByClass(host, "crumb-here"), [], "closed, the cover is gone");
+    assertEquals(getTextsByClass(host, "empty"), [PANEL_WORDS.noFightYet], "and waiting says so");
 });
 
 /**
@@ -1338,9 +1390,15 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     };
     assertEquals(
         controls().map((one) => [...one.attributes.keys()].find((key) => key.startsWith("data-"))),
-        ["data-shelf", "data-save", "data-fold"],
-        "the bar carries the three controls, in that order",
+        ["data-options", "data-shelf", "data-save", "data-fold"],
+        "the bar carries the four controls, the options first so the rest keep their places",
     );
+    assertEquals(
+        controls().filter((one) => one.className.includes(CLASS.controlLead)).length,
+        1,
+        "and one of them leads the rest to the far end of the bar",
+    );
+    assert(controls()[0]?.className.includes(CLASS.controlLead), "which is the first");
     const control = controls().find((one) => one.attributes.has("data-fold"));
     assertExists(control, "an unfolded panel carries the control that folds it");
     assertEquals(control.textContent, "\u2014", "which says what a press would do");

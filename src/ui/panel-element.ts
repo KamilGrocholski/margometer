@@ -304,6 +304,14 @@ export interface WaitingReading {
     isFightUnread: boolean;
     /** The kept fight the panel stands on, where it no longer reads: when and where it was. */
     keptUnread: KeptUnread | null;
+    /** A reader may want the options before any fight has come, and they are drawn then too. */
+    options: OptionsReading | null;
+}
+
+/** What the options draw: the reader's answers, and what the shelf said about the last one. */
+export interface OptionsReading {
+    storage: StorageChoice;
+    answers: readonly string[];
 }
 
 export interface KeptUnread {
@@ -333,7 +341,8 @@ export interface ShownScreen {
      */
     turnHolderId: number | null;
     shelf: readonly ShelfRow[];
-    storage: StorageChoice;
+    /** Null while the options are away, which is every screen but the one cover. */
+    options: OptionsReading | null;
     /** Whether the bar draws its save. False leaves no control rather than a dead one. */
     hasFightToSave: boolean;
     shelfAnswers: readonly string[];
@@ -401,7 +410,7 @@ interface PanelRegions {
     nouns: PanelElement;
     directions: PanelElement;
     crumb: PanelElement;
-    storage: PanelElement;
+    options: PanelElement;
     list: PanelElement;
     pinnedActor: PanelElement;
     pinnedTarget: PanelElement;
@@ -493,6 +502,8 @@ const ROWS_VARIABLE = "--MargoMeter-rows";
  */
 const SAVE_MARK = "⭳";
 const SHELF_MARK = "☰";
+/** Carried by the face ☰ is drawn in: `fc-list :charset=2699` on 2026-09-27 named DejaVu Sans. */
+const OPTIONS_MARK = "⚙";
 const FOLD_MARK = "—";
 const UNFOLD_MARK = "+";
 const BACK_MARK = "‹ ";
@@ -520,6 +531,8 @@ const ROWS_WAITING = 11;
 const ROWS_SHELF = 11;
 /** The place a panel with no fight stands in. Nothing to scroll, and nobody's position. */
 const WAITING_LIST_NAME = "waiting";
+/** The options draw no list, and the name keeps nobody's place: there is nothing to scroll. */
+const OPTIONS_LIST_NAME = "options";
 /**
  * How many kinds a pinned row's card states before what is left of them is summed into one line.
  * Measured over `captures/` with `develop`'s `deno task panel:drill` on 2026-09-01: the widest
@@ -629,7 +642,7 @@ function renderPanelRegions(document: PanelDocument): PanelRegions {
         nouns: renderSlot(document),
         directions: renderSlot(document),
         crumb: renderSlot(document),
-        storage: renderSlot(document),
+        options: renderSlot(document),
         list: renderSlot(document),
         pinnedActor: renderSlot(document),
         pinnedTarget: renderSlot(document),
@@ -659,7 +672,7 @@ function renderPanelFrame(document: PanelDocument, regions: PanelRegions): Panel
     for (const region of [regions.header, regions.nouns, regions.directions, regions.crumb]) {
         panel.append(region);
     }
-    panel.append(regions.storage);
+    panel.append(regions.options);
     for (const region of [regions.list, regions.pinnedActor, regions.pinnedTarget]) {
         panel.append(region);
     }
@@ -999,7 +1012,7 @@ function composePanelView(held: PanelDrawing): PanelView {
                 renderStep(report, PANEL_REGION.list, () => drawing.keep());
                 register.reset();
                 renderFold(held, waiting.isCollapsed, waiting.hasFightToSave);
-                renderPanelWaiting(document, regions, waiting, redraw, drawing);
+                renderPanelWaiting(document, regions, waiting, redraw, drawing, register);
                 renderPanelSettled(held);
             }),
         renderStanding: (
@@ -1052,8 +1065,16 @@ function renderTitle(
     // one sits between the name and the controls, where a hand aiming for the bar lands.
     setGripMark(label, PANEL_WINDOW.panel);
     bar.append(label);
+    // First of the controls, so the three a reader already knew keep their places: the save comes
+    // and goes, and a control standing after it would walk along the bar with it.
     bar.append(renderBarControl(document, {
-        className: `${CLASS.control} ${CLASS.controlFights}`,
+        className: `${CLASS.control} ${CLASS.controlLead}`,
+        mark: OPTIONS_MARK,
+        attribute: PANEL_MARK.options,
+        words: PANEL_WORDS.openOptions,
+    }));
+    bar.append(renderBarControl(document, {
+        className: CLASS.control,
         mark: SHELF_MARK,
         attribute: PANEL_MARK.shelf,
         words: PANEL_WORDS.openFights,
@@ -1085,7 +1106,7 @@ function renderPanelFolded(
     regions.nouns = redraw(regions.nouns, PANEL_REGION.strips, slot);
     regions.directions = redraw(regions.directions, PANEL_REGION.strips, slot);
     regions.crumb = redraw(regions.crumb, PANEL_REGION.crumb, slot);
-    regions.storage = redraw(regions.storage, PANEL_REGION.strips, slot);
+    regions.options = redraw(regions.options, PANEL_REGION.strips, slot);
     regions.list = redraw(regions.list, PANEL_REGION.list, slot);
     regions.pinnedActor = redraw(regions.pinnedActor, PANEL_REGION.pinned, slot);
     regions.pinnedTarget = redraw(regions.pinnedTarget, PANEL_REGION.pinned, slot);
@@ -1103,6 +1124,15 @@ function renderPanelBody(
     redraw: PanelRedraw,
     drawing: ListDrawing,
 ): void {
+    if (shown.options !== null) {
+        renderPanelOptions(document, { regions, redraw, drawing, register }, shown.options);
+        regions.defects = redraw(
+            regions.defects,
+            PANEL_REGION.defects,
+            () => renderDefects(document, shown.defects),
+        );
+        return;
+    }
     const isFight = !shown.isOnShelf;
     const slot = () => renderSlot(document);
     regions.header = redraw(
@@ -1125,11 +1155,7 @@ function renderPanelBody(
         PANEL_REGION.crumb,
         () => renderCrumbRegion(document, shown, register),
     );
-    regions.storage = redraw(
-        regions.storage,
-        PANEL_REGION.strips,
-        isFight ? slot : () => renderStorageStrips(document, shown),
-    );
+    regions.options = redraw(regions.options, PANEL_REGION.strips, slot);
     drawing.draw(shown.listName, () => renderShownList(document, shown, register, translate));
     renderPinnedRegions(document, regions, shown, register, redraw);
     renderPanelBodyFoot(document, regions, shown, register, redraw);
@@ -1305,13 +1331,64 @@ function getWordsForNamedPart(part: OpenedPart, metric: PanelMetric): string {
         : getWordsForHealthSource(named);
 }
 
-function renderStorageStrips(document: PanelDocument, shown: ShownScreen): PanelElement {
+/**
+ * The options, over every region the screens draw into: they cover the screens as the shelf does,
+ * so nothing of the fight stands beside them to be mistaken for what they change.
+ */
+function renderPanelOptions(
+    document: PanelDocument,
+    drawn: {
+        regions: PanelRegions;
+        redraw: PanelRedraw;
+        drawing: ListDrawing;
+        register: TipRegister;
+    },
+    options: OptionsReading,
+): void {
+    const { regions, redraw, drawing, register } = drawn;
+    const slot = () => renderSlot(document);
+    regions.header = redraw(regions.header, PANEL_REGION.header, slot);
+    regions.nouns = redraw(regions.nouns, PANEL_REGION.strips, slot);
+    regions.directions = redraw(regions.directions, PANEL_REGION.strips, slot);
+    regions.crumb = redraw(
+        regions.crumb,
+        PANEL_REGION.crumb,
+        () =>
+            renderCrumb(document, register, {
+                said: PANEL_WORDS.options,
+                from: PANEL_WORDS.backFromOptions,
+            }),
+    );
+    regions.options = redraw(
+        regions.options,
+        PANEL_REGION.strips,
+        () => renderOptionsRegion(document, options),
+    );
+    drawing.draw(OPTIONS_LIST_NAME, slot);
+    regions.pinnedActor = redraw(regions.pinnedActor, PANEL_REGION.pinned, slot);
+    regions.pinnedTarget = redraw(regions.pinnedTarget, PANEL_REGION.pinned, slot);
+    regions.outside = redraw(regions.outside, PANEL_REGION.outside, slot);
+    regions.sides = redraw(regions.sides, PANEL_REGION.sides, slot);
+    regions.suspicions = redraw(
+        regions.suspicions,
+        PANEL_REGION.suspicions,
+        () => renderSuspicions(document, options.answers),
+    );
+}
+
+function renderOptionsRegion(document: PanelDocument, options: OptionsReading): PanelElement {
+    const region = renderElement(document, "div", "");
+    region.append(renderStorageStrips(document, options.storage));
+    return region;
+}
+
+function renderStorageStrips(document: PanelDocument, current: StorageChoice): PanelElement {
     const strips = renderElement(document, "div", CLASS.strips);
     const label = renderElement(document, "span", CLASS.stripsLabel);
     label.textContent = PANEL_WORDS.storage;
     strips.append(label);
     for (const choice of STORAGE_CHOICES) {
-        const marked = choice === shown.storage ? ` ${CLASS.stripCurrent}` : "";
+        const marked = choice === current ? ` ${CLASS.stripCurrent}` : "";
         const one = renderElement(document, "div", `${CLASS.strip}${marked}`);
         one.textContent = getWordsForStorage(choice);
         one.setAttribute(PANEL_MARK.storage, choice);
@@ -2577,10 +2654,13 @@ function renderPanelWaiting(
     waiting: WaitingReading,
     redraw: PanelRedraw,
     drawing: ListDrawing,
+    register: TipRegister,
 ): void {
     renderPanelFolded(document, regions, redraw);
     if (waiting.isCollapsed) return;
-    drawing.draw(WAITING_LIST_NAME, () => renderWaitingList(document, waiting));
+    if (waiting.options !== null) {
+        renderPanelOptions(document, { regions, redraw, drawing, register }, waiting.options);
+    } else drawing.draw(WAITING_LIST_NAME, () => renderWaitingList(document, waiting));
     regions.defects = redraw(
         regions.defects,
         PANEL_REGION.defects,

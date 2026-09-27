@@ -202,8 +202,10 @@ Where the fight is being fought is **not** on it: that is the header's, on a lin
 sentence both change with the state — where it has one. Folded, the panel is this bar and nothing
 else: what stands under it is composed empty rather than composed and hidden, because a fight
 redraws every few seconds. The fold is the outermost thing on the bar in every window a reader has
-met, so the other two stand left of it: the shelf, then the one that hands the fight over. Those two
-have no state to say, so their marks read the same always.
+met, so the others stand left of it: the options, the shelf, then the one that hands the fight over.
+The options stand first so the other three keep the places a reader already knew them in: the
+hand-over comes and goes, and a control standing after it would walk along the bar with it. Those
+three have no state to say, so their marks read the same always.
 
 **Header.** What the fight is, as a headcount, and how it went. Where it is being fought goes on a
 second line and nowhere else: beside the headcount a map's name plus a tile had about thirty
@@ -340,10 +342,12 @@ just pressed it is what a box fixes. A pin is drawn only where there is somethin
 nothing has written down yet is not in the rotation, and a control that does nothing is worse than
 one that is not there.
 
-**Where the shelf is kept is a strip, under the way back and over the list.** The three answers
-stand in the order they keep longest, behind a word that says what they answer, because three
-choices side by side are three words nobody can order without being told what they are about. It is
-the only strip drawn while the shelf is up, and it is about the list rather than about a fight.
+**The options cover the screens as the shelf does**, and never stand open beside it (ADR 0013). They
+are reached before any fight has come, because nothing in them is a fight's. Under the way back,
+each question is a strip behind a word that says what it answers, and what the browser answered back
+stands under the strips. **Where the shelf is kept is one of them**: the three answers stand in the
+order they keep longest, because three choices side by side are three words nobody can order without
+being told what they are about.
 
 **Three levels, and the third has two shapes.** The ranking lists people; pressing one opens their
 own figure cut by the other end of each movement, by what it was announced with, and by what it was

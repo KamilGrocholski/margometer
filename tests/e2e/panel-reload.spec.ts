@@ -35,9 +35,9 @@ test("the panel comes back where it was left, after a reload nobody staged", asy
 test("everything a reader chose is still chosen, all of it at once", async ({ panel }) => {
     const bar = await readPointsAlongBar(panel.page, [20]);
     await setDragged(panel.page, { x: bar[0]?.x ?? 0, y: bar[0]?.y ?? 0 }, { x: ACROSS, y: DOWN });
-    await panel.at("[data-shelf]").click();
+    await panel.at("[data-options]").click();
     await panel.at('[data-storage="session"]').click();
-    await panel.at("[data-shelf]").click();
+    await panel.at("[data-options]").click();
     await panel.at("[data-fold]").click();
     const place = await panel.stored(PLACE_KEY);
 
@@ -48,8 +48,8 @@ test("everything a reader chose is still chosen, all of it at once", async ({ pa
     expect(await panel.stored(STORAGE_KEY), "and where the shelf is kept").toBe("session");
     await expect(panel.at(".MargoMeter-body.folded"), "the panel comes back folded").toHaveCount(1);
     await panel.at("[data-fold]").click();
-    await panel.at("[data-shelf]").click();
-    await expect(panel.at('[data-storage="session"].selected'), "on the shelf it was asked for")
+    await panel.at("[data-options]").click();
+    await expect(panel.at('[data-storage="session"].selected'), "in the options it was asked for")
         .toHaveCount(1);
 });
 

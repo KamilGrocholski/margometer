@@ -61,6 +61,7 @@ Deno.test("every mark the panel writes states the intent the runtime is handed",
         [PANEL_MARK.helperFold, "", { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.helper }],
         [PANEL_MARK.save, "", { kind: PANEL_INTENT.saveFile }],
         [PANEL_MARK.shelf, "", { kind: PANEL_INTENT.shelf }],
+        [PANEL_MARK.options, "", { kind: PANEL_INTENT.options }],
         [PANEL_MARK.fold, "", { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel }],
         [PANEL_MARK.back, "", { kind: PANEL_INTENT.close }],
     ] as const;

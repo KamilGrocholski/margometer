@@ -30,7 +30,12 @@ import type { LiveFight } from "./live-fight.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
 import type { ShelfAnswers, ShelfKeeper } from "./shelf-keeper.ts";
 import { KEPT_MAXIMUM, type KeptFight } from "./shelf.ts";
-import type { PanelDefect, PanelView, ShownScreen } from "#/src/ui/panel-element.ts";
+import type {
+    OptionsReading,
+    PanelDefect,
+    PanelView,
+    ShownScreen,
+} from "#/src/ui/panel-element.ts";
 import type { RenderReport } from "#/src/ui/view-failure.ts";
 import {
     type FightSuspicions,
@@ -112,6 +117,7 @@ export function renderFrame(parts: FrameParts): void {
         hasFightToSave,
         isFightUnread: true,
         keptUnread: null,
+        options: presentOptions(parts),
     };
     assert(waiting.defects.length > 0, "a panel that could not be drawn says why");
     addUndrawn(parts.defects, parts.view.renderWaiting(waiting));
@@ -203,7 +209,12 @@ function renderFramePanel(
             place: formatFightPlace(unread.place),
         };
         const waiting = { isCollapsed: screen.isCollapsed, defects: said, hasFightToSave };
-        const drawn = parts.view.renderWaiting({ ...waiting, isFightUnread: false, keptUnread });
+        const drawn = parts.view.renderWaiting({
+            ...waiting,
+            isFightUnread: false,
+            keptUnread,
+            options: presentOptions(parts),
+        });
         addUndrawn(parts.defects, drawn);
         return;
     }
@@ -252,7 +263,7 @@ function presentFrameScreen(
         // A fight already over numbers nobody's turn, and one read off the shelf has passed.
         turnHolderId: view.isOver ? null : view.turnStatement?.combatantId ?? null,
         shelf: presentShelfRows(parts, liveRow, chosenFight),
-        storage: keeper.getChoice(),
+        options: presentOptions(parts),
         hasFightToSave,
         shelfAnswers: presentShelfAnswers(keeper.getAnswers()),
         defects: said,
@@ -375,6 +386,15 @@ function presentKeptShelfRow(
         isChosen: chosenId === fight.openedAt,
         isPinned: fight.isPinned,
         isPinnable: true,
+    };
+}
+
+/** The options where the reader has them open, and null on every other screen. */
+function presentOptions(parts: FrameParts): OptionsReading | null {
+    if (!parts.screen.isOnOptions) return null;
+    return {
+        storage: parts.keeper.getChoice(),
+        answers: presentShelfAnswers(parts.keeper.getAnswers()),
     };
 }
 

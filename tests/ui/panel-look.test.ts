@@ -36,7 +36,19 @@ import {
 } from "#/src/ui/panel-palette.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import { DEVELOP_REVISION } from "#/tests/recording-sources.ts";
-import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "#/tests/style-sheet.ts";
+import {
+    getDeclaration,
+    getRuleBody,
+    readRules,
+    RULES_IN_A_SHEET,
+    type SheetRule,
+} from "#/tests/style-sheet.ts";
+
+/** A rule `develop` wrote that this sheet does not, and the rule written in its place, if any. */
+interface SheetDeparture {
+    develop: string | null;
+    here: string | null;
+}
 
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
 const AA_TEXT_RATIO = 4.5;
@@ -61,6 +73,12 @@ const DEVELOP_SHEET_FILES = [
     "libs/text-walk.ts",
 ];
 const DEVELOP_ROOT_PREFIX = '"@/';
+
+/** ADR 0013: the rules the options and the sizing move, and nothing else departs. */
+const SHEET_DEPARTURES: readonly SheetDeparture[] = [
+    // The options control stands first on the bar and leads the rest to its far end.
+    { develop: ".titlebar-fights", here: ".titlebar-lead" },
+];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
 const AA_GRAPHIC_RATIO = 3;
@@ -319,14 +337,56 @@ Deno.test("the two sides are told apart by more than a hue", () => {
 });
 
 /**
- * The sheet is `develop`'s, to the byte (**W8**): every token, every colour and every rule. A
- * token written in another spelling here has to write the same text, and a value that moved is a
- * finding in one of the two.
+ * The sheet is `develop`'s, rule for rule and to the byte (**W8**), but for the rules a decision
+ * record names: every token, every colour and every other rule, in the order `develop` writes them.
+ * A token written in another spelling here has to write the same text, and a value that moved
+ * without a record naming it is a finding in one of the two.
  */
-Deno.test("the style sheet is the one develop ships, byte for byte", async () => {
+Deno.test("the style sheet is develop's, but for the rules ADR 0013 moves", async () => {
     const develop = await readDevelopStyleSheet();
-    assertEquals(composeStyleSheet(), develop, `the sheet develop @ ${DEVELOP_REVISION} ships`);
+    assertEquals(
+        findSheetDepartures(develop, composeStyleSheet(), SHEET_DEPARTURES),
+        [],
+        `the sheet develop @ ${DEVELOP_REVISION} ships, but for what a record names`,
+    );
 });
+
+/**
+ * Where the sheet differs from `develop`'s, one finding per difference, and nothing where each one
+ * is a departure a record names. After the named rules are set aside, the rest compare in order,
+ * and the first rule that differs is the one reported: every rule after it would differ too.
+ */
+function findSheetDepartures(
+    develop: string,
+    here: string,
+    departures: readonly SheetDeparture[],
+): string[] {
+    const found: string[] = [];
+    const developRules = readRules(develop);
+    const hereRules = readRules(here);
+    for (const departure of departures) {
+        const { develop: was, here: is } = departure;
+        if (was !== null) {
+            if (!developRules.some((one) => one.selector === was)) found.push(`${was} unknown`);
+        }
+        if (is !== null) {
+            if (!hereRules.some((one) => one.selector === is)) found.push(`${is} not written`);
+        }
+    }
+    const kept = (rules: readonly SheetRule[], set: readonly (string | null)[]) =>
+        rules.filter((one) => !set.includes(one.selector)).map((one) =>
+            `${one.selector}{${one.body}}`
+        );
+    const developKept = kept(developRules, departures.map((one) => one.develop));
+    const hereKept = kept(hereRules, departures.map((one) => one.here));
+    const length = Math.max(developKept.length, hereKept.length);
+    for (let at = 0; at < length; at += 1) {
+        if (developKept[at] === hereKept[at]) continue;
+        found.push(`rule ${at}: develop ${developKept[at]} against ${hereKept[at]}`);
+        break;
+    }
+    return found;
+}
 
 /** `develop`'s modules written out of git into a directory of their own, and the sheet asked for. */
 async function readDevelopStyleSheet(): Promise<string> {
@@ -351,6 +411,34 @@ async function readDevelopStyleSheet(): Promise<string> {
     assert(typeof sheet === "string", "and what it composes is text");
     return sheet;
 }
+
+/** What the comparison with `develop` answers, proved on a sheet small enough to read whole. */
+Deno.test("a rule moved away from develop's is found, and one a record names is not", () => {
+    const develop = ".a{x:1}.b{y:2}.c{z:3}";
+    const renamed = [{ develop: ".b", here: ".d" }];
+    assertEquals(findSheetDepartures(develop, develop, []), [], "the same sheet is no departure");
+    assertEquals(findSheetDepartures(develop, ".a{x:1}.d{y:2}.c{z:3}", renamed), [], "named");
+    assertEquals(
+        findSheetDepartures(develop, ".a{x:1}.b{y:9}.c{z:3}", []).length,
+        1,
+        "a value moved with no record naming it",
+    );
+    assertEquals(
+        findSheetDepartures(develop, ".a{x:1}.c{z:3}.b{y:2}", []).length,
+        1,
+        "two rules written in another order",
+    );
+    assertEquals(
+        findSheetDepartures(develop, `${develop}.e{w:4}`, []).length,
+        1,
+        "a rule written that develop never wrote",
+    );
+    assertArrayIncludes(
+        findSheetDepartures(develop, develop, renamed),
+        [".d not written"],
+        "a record naming a rule the sheet no longer writes, which is a record gone stale",
+    );
+});
 
 Deno.test("the sheet shuts the game out, and every class it selects is one the panel wears", () => {
     const sheet = composeStyleSheet();

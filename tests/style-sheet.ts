@@ -5,6 +5,11 @@
 
 import { assert, assertNotStrictEquals } from "@std/assert";
 
+export interface SheetRule {
+    selector: string;
+    body: string;
+}
+
 /**
  * What the sheet holds at its widest, measured over `composeStyleSheet()` on 2026-08-29: 78 rules,
  * the longest of them `:host` at 790 characters, which is the tokens and the frame together.
@@ -45,4 +50,21 @@ export function getDeclaration(body: string, property: string): string | null {
         found = stated.slice(at + 1).trim();
     }
     return found;
+}
+
+/** Every rule in the order it is written. The sheet nests nothing, so a rule ends at its first `}`. */
+export function readRules(sheet: string): SheetRule[] {
+    const rules: SheetRule[] = [];
+    let from = 0;
+    for (let step = 0; step < RULES_IN_A_SHEET; step += 1) {
+        if (from >= sheet.length) break;
+        const opened = sheet.indexOf("{", from);
+        assertNotStrictEquals(opened, -1, "what follows the last rule is another rule");
+        const closed = sheet.indexOf("}", opened);
+        assertNotStrictEquals(closed, -1, "every rule the sheet opens is closed");
+        rules.push({ selector: sheet.slice(from, opened), body: sheet.slice(opened + 1, closed) });
+        from = closed + 1;
+    }
+    assert(from >= sheet.length, "the sheet holds no more rules than its stated bound");
+    return rules;
 }

@@ -32,7 +32,8 @@ export const CLASS = {
     title: "MargoMeter-titlebar",
     titleVersion: "titlebar-version",
     control: "titlebar-button",
-    controlFights: "titlebar-fights",
+    /** The first control on the bar, which pushes every control after it to the far end. */
+    controlLead: "titlebar-lead",
     frame: "MargoMeter-body",
     folded: "folded",
     panel: "panel",
@@ -374,7 +375,7 @@ function composeFrameRules(): string {
         `color:var(${VARIABLE_PREFIX}quiet);background:var(${VARIABLE_PREFIX}surface);` +
         `cursor:pointer;}` +
         `.${CLASS.control}:hover{color:var(${VARIABLE_PREFIX}text);}` +
-        `.${CLASS.controlFights}{margin-left:auto;}` +
+        `.${CLASS.controlLead}{margin-left:auto;}` +
         // A flex item whose overflow is visible refuses to shrink below its own content, so
         // without `min-height:0` the ceiling on the host stops here and never reaches the list.
         `.${CLASS.frame}{display:flex;flex-direction:column;min-height:0;}` +

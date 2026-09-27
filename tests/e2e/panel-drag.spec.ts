@@ -86,7 +86,7 @@ test("nothing the bar draws starts a drag, and neither does a row", async ({ pan
     expect(afterRow.left - before.left, "a row in the ranking is not a handle").toBe(0);
     expect(afterRow.top - before.top, "on either axis").toBe(0);
 
-    for (const selector of ["[data-shelf]", "[data-save]", "[data-fold]"]) {
+    for (const selector of ["[data-options]", "[data-shelf]", "[data-save]", "[data-fold]"]) {
         const standing = await panel.place();
         await setDragged(panel.page, await readCentreOf(panel.page, selector), { x: 40, y: 20 });
         const after = await panel.place();

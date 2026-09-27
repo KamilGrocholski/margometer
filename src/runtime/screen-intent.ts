@@ -10,6 +10,12 @@ import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
 import type { ScreenState } from "#/src/ui/panel-screen.ts";
 
 export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): boolean {
+    const hasMoved = executeScreenIntentOnce(screen, intent);
+    verifyScreenState(screen);
+    return hasMoved;
+}
+
+function executeScreenIntentOnce(screen: ScreenState, intent: PanelIntent): boolean {
     switch (intent.kind) {
         case PANEL_INTENT.metric:
             return setScreenMetric(screen, intent.metric);
@@ -31,6 +37,11 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
             return true;
         case PANEL_INTENT.shelf:
             screen.isOnShelf = !screen.isOnShelf;
+            screen.isOnOptions = false;
+            return true;
+        case PANEL_INTENT.options:
+            screen.isOnOptions = !screen.isOnOptions;
+            screen.isOnShelf = false;
             return true;
         case PANEL_INTENT.showKept:
             setScreenFight(screen, intent.openedAt);
@@ -49,6 +60,11 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
     }
 }
 
+/** The two covers never stand open together: each one's control closes the other. */
+function verifyScreenState(screen: ScreenState): void {
+    if (screen.isOnOptions) assert(!screen.isOnShelf, "the options and the shelf are one cover");
+}
+
 /**
  * The person stays, since they exist on every screen; the pair, the part and a pinned row go, since
  * each names a figure of one direction or one noun that the next screen does not draw.
@@ -56,6 +72,7 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
 function setScreenMetric(screen: ScreenState, metric: ScreenState["current"]): boolean {
     screen.current = metric;
     screen.isOnShelf = false;
+    screen.isOnOptions = false;
     screen.openPairId = null;
     screen.openPart = null;
     screen.openUnnamedEnd = null;
@@ -66,6 +83,7 @@ function setScreenMetric(screen: ScreenState, metric: ScreenState["current"]): b
 function setScreenSide(screen: ScreenState, side: ScreenState["side"]): boolean {
     screen.side = side;
     screen.isOnShelf = false;
+    screen.isOnOptions = false;
     screen.openRowId = null;
     screen.openUnnamedEnd = null;
     screen.openPairId = null;
@@ -91,6 +109,10 @@ function setScreenRow(screen: ScreenState, combatantId: number): boolean {
  * gesture is the whole panel's, so a press on the ranking would otherwise redraw it for nothing.
  */
 function closeScreenRung(screen: ScreenState): boolean {
+    if (screen.isOnOptions) {
+        screen.isOnOptions = false;
+        return true;
+    }
     if (screen.isOnShelf) {
         screen.isOnShelf = false;
         return true;
@@ -116,6 +138,7 @@ function setScreenFight(screen: ScreenState, openedAt: number | null): void {
     if (openedAt !== null) assert(Number.isSafeInteger(openedAt), "a fight is chosen by a moment");
     screen.openFightId = openedAt;
     screen.isOnShelf = false;
+    screen.isOnOptions = false;
     screen.openRowId = null;
     screen.openUnnamedEnd = null;
     screen.openPairId = null;

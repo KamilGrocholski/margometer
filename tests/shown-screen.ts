@@ -6,7 +6,6 @@
  * places, and a default chosen in one of them said nothing about the other four.
  */
 
-import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import type { ShownScreen } from "#/src/ui/panel-element.ts";
 import type { ScreenReading } from "#/src/ui/panel-reading.ts";
 import { PANEL_METRIC, type PanelMetric, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
@@ -27,7 +26,7 @@ export function composeShownScreen(
         turnHolderId: null,
         shelf: [],
         isOnShelf: false,
-        storage: STORAGE_CHOICE.local,
+        options: null,
         hasFightToSave: true,
         shelfAnswers: [],
         defects: [],

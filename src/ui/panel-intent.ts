@@ -28,6 +28,7 @@ export const PANEL_MARK = {
     fold: "data-fold",
     save: "data-save",
     shelf: "data-shelf",
+    options: "data-options",
     screen: "data-screen",
     side: "data-side",
     row: "data-row",
@@ -60,6 +61,7 @@ export const PANEL_INTENT = {
     saveFile: "save-file",
     storage: "storage",
     shelf: "shelf",
+    options: "options",
     showKept: "show-kept",
     showLive: "show-live",
     pin: "pin",
@@ -77,6 +79,7 @@ export type PanelIntent =
     | { kind: typeof PANEL_INTENT.saveFile }
     | { kind: typeof PANEL_INTENT.storage; choice: StorageChoice }
     | { kind: typeof PANEL_INTENT.shelf }
+    | { kind: typeof PANEL_INTENT.options }
     | { kind: typeof PANEL_INTENT.showKept; openedAt: number }
     | { kind: typeof PANEL_INTENT.showLive }
     | { kind: typeof PANEL_INTENT.pin; openedAt: number };
@@ -114,6 +117,8 @@ export function readPanelIntent(target: PanelTarget): IntentReading {
     if (part !== null) return part;
     const shelf = readPanelIntentOfShelf(target);
     if (shelf !== null) return shelf;
+    const options = readPanelIntentOfOptions(target);
+    if (options !== null) return options;
     return readPanelIntentOfControl(target);
 }
 
@@ -174,6 +179,11 @@ function readPanelIntentOfShelf(target: PanelTarget): IntentReading {
         if (openedAt === null) return new MarkValueUnknown(PANEL_MARK.pin);
         return { kind: PANEL_INTENT.pin, openedAt };
     }
+    return null;
+}
+
+/** What the options offer: each strip states the answer it gives. */
+function readPanelIntentOfOptions(target: PanelTarget): IntentReading {
     const choice = target.getAttribute(PANEL_MARK.storage);
     if (choice !== null) {
         if (!isOneOf(STORAGE_CHOICES, choice)) return new MarkValueUnknown(PANEL_MARK.storage);
@@ -189,6 +199,7 @@ function readPanelIntentOfControl(target: PanelTarget): PanelIntent | null {
     }
     if (target.getAttribute(PANEL_MARK.save) !== null) return { kind: PANEL_INTENT.saveFile };
     if (target.getAttribute(PANEL_MARK.shelf) !== null) return { kind: PANEL_INTENT.shelf };
+    if (target.getAttribute(PANEL_MARK.options) !== null) return { kind: PANEL_INTENT.options };
     if (target.getAttribute(PANEL_MARK.fold) !== null) {
         return { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel };
     }

@@ -47,6 +47,8 @@ export interface ScreenState {
     current: PanelMetric;
     side: PanelSideChoice;
     isOnShelf: boolean;
+    /** The options cover the screens as the shelf does, and the two never stand open together. */
+    isOnOptions: boolean;
     openRowId: number | null;
     /**
      * Which pinned row stands open, and it is never open beside `openRowId`: a pinned row is drawn
@@ -114,6 +116,7 @@ export function createScreenState(
         current: PANEL_METRIC.damageDealt,
         side: SIDE_CHOICE.everyone,
         isOnShelf: false,
+        isOnOptions: false,
         openRowId: null,
         openUnnamedEnd: null,
         openPairId: null,
@@ -127,12 +130,13 @@ export function createScreenState(
 
 /**
  * The name a reader's place is kept under, which is every field that decides which list is drawn.
- * The shelf answers alone: it covers the screens rather than being one of them.
+ * The options and the shelf answer alone: they cover the screens rather than being any of them.
  *
  * The fight is the moment it opened, so a new fight is a place nobody has been rather than the
  * last one's ranking with somebody else's position on it. `develop ADR 0050`.
  */
 export function composeListName(screen: ScreenState, fightId: number | null): string {
+    if (screen.isOnOptions) return "options";
     if (screen.isOnShelf) return "shelf";
     const part = screen.openPart === null ? "" : composeNameForPart(screen.openPart);
     const name = [

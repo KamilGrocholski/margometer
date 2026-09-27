@@ -55,7 +55,8 @@ test("pressing a row reads that fight, and pressing the live one comes back", as
     expect(second, "and they are not the same fight twice").not.toBe(first);
 
     await rows.nth(1).click();
-    await expect(panel.at("[data-storage]"), "the shelf steps aside for the fight").toHaveCount(0);
+    await expect(panel.at(".list .row[data-fight]"), "the shelf steps aside for the fight")
+        .toHaveCount(0);
     await expect(panel.at(".list .row"), "and that fight is drawn").not.toHaveCount(0);
     await panel.expectHonest("a fight read off the shelf");
 
@@ -86,10 +87,12 @@ test("a pin marks a fight, and the fights travel to wherever they are kept", asy
 
     const kept = await panel.at(".list .row[data-fight]").count();
     for (const at of [1, 2, 0]) {
+        await panel.at("[data-options]").click();
         const choice = panel.at("[data-storage]").nth(at);
         const named = await choice.getAttribute("data-storage");
         await choice.click();
         expect(await panel.stored(STORAGE_KEY), `${named} is where the reader asked`).toBe(named);
+        await panel.at("[data-shelf]").click();
         await expect(panel.at(".list .row[data-fight]"), `and the fights came to ${named}`)
             .toHaveCount(kept);
     }
@@ -100,6 +103,7 @@ test("what a reader keeps only for now is gone when they come back", async ({ pa
     await setSecondFightKept(panel);
     await panel.at("[data-shelf]").click();
     await expect(panel.at(".list .row[data-fight]"), "there is a fight to lose").toHaveCount(2);
+    await panel.at("[data-options]").click();
     await panel.at('[data-storage="memory"]').click();
     expect(await panel.stored(SHELF_KEY), "nothing is left in the browser's own store").toBeNull();
 
