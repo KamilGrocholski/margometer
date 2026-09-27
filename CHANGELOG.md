@@ -39,6 +39,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — Gdy dodatek nie zdoła połączyć się z grą, panel i tak się pojawia i mówi, że nie
+  widzi walki, zamiast w ogóle się nie pokazać.
 - **Poprawka** — Gdy panel nie zdoła odczytać jakiejś chwili walki albo przygotować jej zapisu,
   dalej ją liczy i mówi, czego nie zrobił, zamiast po cichu przestać się odświeżać.
 - **Poprawka** — Zapisana walka, której panel nie umie już odczytać, jest nazwana dniem i miejscem,
