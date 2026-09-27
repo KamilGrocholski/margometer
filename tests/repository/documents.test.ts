@@ -2,17 +2,22 @@
  * `AGENTS.md`, checked against itself and against the tree it describes: its rules are numbered
  * without a gap and every reference to one resolves, its register names exactly the guards that
  * exist, its list of documents names exactly the documents that exist, `docs/structure.md` names
- * every tracked file, and the two walls in front of `TODO.md` still stand. Text is walked rather
- * than matched (C7).
+ * every tracked file, every skill is named for its directory, and the two walls in front of
+ * `TODO.md` still stand. Text is walked rather than matched (C7).
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { parse as parseJsonc } from "@std/jsonc";
 import { isRecord } from "#/libs/unknown-value.ts";
 
 interface RuleName {
     prefix: string;
     number: number;
+}
+
+interface SkillHeader {
+    name: string;
+    description: string;
 }
 
 const RULES_PATH = "AGENTS.md";
@@ -35,6 +40,13 @@ const STRUCTURE_PATH = "docs/structure.md";
 const STRUCTURE_HEADING = "# Structure";
 const STRUCTURE_OPENER = "| `";
 const SECTION_OPENER = "## ";
+const SKILLS_DIRECTORY = ".agents/skills/";
+const SKILL_FILE_NAME = "/SKILL.md";
+const SKILLS_LINK = ".claude/skills";
+const SKILLS_LINK_TARGET = "../.agents/skills";
+const FRONTMATTER_MARK = "---";
+const SKILL_NAME_OPENER = "name: ";
+const SKILL_DESCRIPTION_OPENER = "description: ";
 /** Where the structure takes a directory rather than its files, and how deep: a suite apiece. */
 const STRUCTURE_DEPTH_BY_ROOT: ReadonlyMap<string, number> = new Map([
     ["tests", 2],
@@ -260,6 +272,57 @@ Deno.test("the structure names every file in the tree, and nothing else", () => 
     const entries = [...new Set(readTrackedPaths([]).map(composeStructureEntry))];
     assertEquals(listed.filter((path) => !entries.includes(path)), [], "a line naming nothing");
     assertEquals(entries.filter((path) => !listed.includes(path)), [], "a file unlisted");
+});
+
+Deno.test("a skill's header is read off its frontmatter, and a line of its body is not", () => {
+    const sample = ["---", "name: gate", "description: Run it.", "---", "", "name: other"];
+    assertEquals(readSkillHeader(sample.join("\n")), {
+        name: "gate",
+        description: "Run it.",
+    }, "the two fields the frontmatter states");
+    assertEquals(readSkillHeader(sample.slice(4).join("\n")), null, "a body with no frontmatter");
+    assertEquals(
+        readSkillHeader(sample.slice(0, 3).join("\n")),
+        null,
+        "a frontmatter never closed",
+    );
+});
+
+/** The name and description a skill's frontmatter states, or null where it opens with none. */
+function readSkillHeader(text: string): SkillHeader | null {
+    const lines = text.split("\n");
+    if (lines[0] !== FRONTMATTER_MARK) return null;
+    const closed = lines.indexOf(FRONTMATTER_MARK, 1);
+    if (closed === -1) return null;
+    const header = lines.slice(1, closed);
+    return {
+        name: readSkillHeaderField(header, SKILL_NAME_OPENER),
+        description: readSkillHeaderField(header, SKILL_DESCRIPTION_OPENER),
+    };
+}
+
+/** The rest of the line a field opens; empty where the frontmatter does not state it. */
+function readSkillHeaderField(header: string[], opener: string): string {
+    const line = header.find((one) => one.startsWith(opener)) ?? opener;
+    return line.slice(opener.length);
+}
+
+Deno.test("every skill is named for its directory, says when it is used, and is found", () => {
+    const paths = readTrackedPaths([SKILLS_DIRECTORY])
+        .filter((path) => path.endsWith(SKILL_FILE_NAME));
+    assert(paths.length > 0, "the tree carries skills");
+    for (const path of paths) {
+        const directory = path.slice(SKILLS_DIRECTORY.length, -SKILL_FILE_NAME.length);
+        const header = readSkillHeader(Deno.readTextFileSync(path));
+        assertExists(header, `${path} opens on its frontmatter`);
+        assertStrictEquals(header.name, directory, `${path} is named for its directory`);
+        assert(header.description.length > 0, `${path} says when it is used`);
+    }
+    assertStrictEquals(
+        Deno.readLinkSync(SKILLS_LINK),
+        SKILLS_LINK_TARGET,
+        "Claude Code finds them",
+    );
 });
 
 Deno.test("the maintainer's list stands behind both walls the Never names", () => {
