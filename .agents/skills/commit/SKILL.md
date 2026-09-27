@@ -20,7 +20,8 @@ below points at the rule it checks, and the rule's owner is where to read it in 
 4. **Stage by path** (**W2**), never `git add -A` or `git add .`. Then `git diff --cached --stat`,
    and read the list against step 3.
 5. **The checklist** below, over the staged diff. An item that fails is fixed or asked about, never
-   noted in the body and committed anyway.
+   noted in the body and committed anyway. A change wider than one file goes through the `review`
+   skill first.
 6. **The gate.** `deno task check` after staging (**W1**), read through the `gate` skill. Where the
    commit touches `src/`, `deno task e2e` as well (**W9**). Note the test count and whether e2e ran.
 7. **The message**, written to a file in the scratchpad: the header (**G2**), the body (**G3**), the

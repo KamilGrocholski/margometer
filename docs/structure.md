@@ -35,6 +35,7 @@ file comes or goes (ADR 0010).
 | `.agents/skills/mutate/SKILL.md`          | the skill for proving a test can fail, and reporting one that cannot                      |
 | `.agents/skills/record-decision/SKILL.md` | the skill for writing a decision record under `docs/adr/`                                 |
 | `.agents/skills/release/SKILL.md`         | the skill for a release run from a session: pushes handed over, states read back          |
+| `.agents/skills/review/SKILL.md`          | the skill for reviewing a change: the checklist, the levels, the one format               |
 | `.agents/skills/verify/SKILL.md`          | the skill for running the built userscript over a recording in a real browser             |
 | `.agents/skills/write-document/SKILL.md`  | the skill for writing a Markdown document in this tree                                    |
 
