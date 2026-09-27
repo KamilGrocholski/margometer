@@ -18,7 +18,7 @@ Deno.test("a person's row and a pinned row open at once is a bug met as one, not
     const view = getFightView(replayRecordedFight(lookupRecordedFight(HILDUR)));
     assertExists(view, "the recording opens a fight");
     const reading = tallyFightReading(view);
-    const metric = PANEL_METRIC.damageDealtApplied;
+    const metric = PANEL_METRIC.damageDealt;
     const end = UNNAMED_END.actor;
     assertExists(lookupPinnedCase(metric, end), "this screen has a pinned row to open");
     const person = [...view.roster.byId.keys()][0];

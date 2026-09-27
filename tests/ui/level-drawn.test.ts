@@ -162,7 +162,7 @@ Deno.test("every level stands as tall as it drew, with one card per row and no t
     );
     // The reader is proved by what it reached as well as by what it passed: a walk that stopped
     // opening rows would agree with every level it never drew.
-    assertEquals(walked, 15_676, "every level the corpus draws, 2026-09-21");
+    assertEquals(walked, 16_054, "every level the corpus draws, 2026-09-27");
 });
 
 /** One screen of one recording, with nothing open — the view every level is reached from. */
@@ -587,7 +587,7 @@ Deno.test("a row stating no place is read as apart, and one stating a place is n
  * that placed none. `develop ADR 0079`.
  */
 Deno.test("the closing row is read as holding a place, and the row summing a bound is not", () => {
-    const closing = getWordsForUnannounced("damageDealtApplied");
+    const closing = getWordsForUnannounced("damageDealt");
     assertEquals(
         getPlacesWrongfullyHeld({
             ...NOTHING_DRAWN,
@@ -652,7 +652,7 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
     for (const path of readRecordedFights().map((one) => one.path)) {
         const { statistics, roster } = tallyRecordedFight(path);
         for (const [combatantId] of statistics.byCombatantId) {
-            for (const metric of ["damageDealtApplied", "damageTakenApplied"] as const) {
+            for (const metric of ["damageDealt", "damageTaken"] as const) {
                 const drill = presentDrill(statistics, roster, metric, combatantId);
                 if (drill === null) continue;
                 const plain = drill.bySkill.plain;
@@ -667,8 +667,8 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
     }
     assertEquals(
         [...places.entries()].sort((one, other) => one[0] - other[0]),
-        [[1, 155], [2, 60], [3, 46], [4, 18], [5, 6], [6, 1], [8, 1]],
-        "every section the corpus draws one in, 2026-09-21",
+        [[1, 152], [2, 63], [3, 46], [4, 18], [5, 5], [6, 3]],
+        "every section the corpus draws one in, 2026-09-27",
     );
 });
 
@@ -684,7 +684,7 @@ Deno.test("a pair states its parts largest first, the closing row among them", (
     for (const path of readRecordedFights().map((one) => one.path)) {
         const { statistics, roster } = tallyRecordedFight(path);
         for (const [combatantId] of statistics.byCombatantId) {
-            for (const metric of ["damageDealtApplied", "damageTakenApplied"] as const) {
+            for (const metric of ["damageDealt", "damageTaken"] as const) {
                 const drill = presentDrill(statistics, roster, metric, combatantId);
                 if (drill === null) continue;
                 for (const other of drill.byOpponent.rows) {

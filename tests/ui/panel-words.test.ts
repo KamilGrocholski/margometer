@@ -1202,6 +1202,11 @@ Deno.test("a kind the help does not name is left out rather than invented", () =
     assertEquals(getWordsForDamageKind("dmgg"), "dmgg", "and reaches a reader as the game's token");
 });
 
+Deno.test("a pool among the kinds of damage is the defence's own word", () => {
+    assertEquals(getWordsForDamageKind("absorb"), "absorpcja", "the physical pool");
+    assertEquals(getWordsForDamageKind("absorbm"), "absorpcja magiczna", "and the magical one");
+});
+
 /**
  * The twelve are what makes a dated row readable, and a shelf of twenty spans months. Written out
  * here rather than read back off the table, which is what this file's docblock asks of every

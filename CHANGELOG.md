@@ -37,6 +37,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Zmiana** — Zadane i otrzymane obrażenia liczą też to, co przyjęła na siebie absorpcja i
+  absorpcja magiczna, więc ranking walki z przeciwnikiem, który ją ma, może ułożyć się inaczej, a
+  „Zatrzymane" pokazuje już tylko blok.
+
 ## [0.20.0] — 2026-09-27
 
 - **Zmiana** — Gdy dodatek nie zdoła połączyć się z grą, panel i tak się pojawia i mówi, że nie

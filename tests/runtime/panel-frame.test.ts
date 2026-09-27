@@ -50,7 +50,7 @@ Deno.test("a ranking whose two counts disagree is drawn, and said as the screen'
             ...replayed.figures,
             statistics: {
                 ...statistics,
-                totals: { ...statistics.totals, [PANEL_METRIC.damageDealtApplied]: 0 },
+                totals: { ...statistics.totals, [PANEL_METRIC.damageDealt]: 0 },
                 dealtByNobody: 0,
             },
         },

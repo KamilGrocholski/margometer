@@ -41,7 +41,7 @@ Deno.test("a full shelf with a fight still running draws, rather than going undr
     const reading = presentScreen(
         statistics,
         roster,
-        "damageDealtApplied",
+        "damageDealt",
         "everyone",
         null,
         NOTHING_SUSPECT,

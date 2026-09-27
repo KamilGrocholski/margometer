@@ -70,13 +70,24 @@ kind spells it `attack`: that is the data contract's word (`core/battle-event.ts
 
 **Hit**: A single damage number inside a blow. One blow can carry several. _Avoid_: Strike, instance
 
-**Raw / applied**: Damage before and after reduction. Their difference is **not** what a defence
-stopped. _Avoid_: Gross/net, base/final
+**Dealt / taken**: What a combatant's blows spent on somebody: the health taken off, plus what an
+absorption pool took. The figure `Zadane` and `Otrzymane` draw, and what every cut of them sums to
+(ADR 0012). _Avoid_: Total damage, effective damage
 
-**Prevented**: Damage the protocol says a defence stopped — absorption, magic absorption, a block.
-One component of the reduction and never the whole: armour and resistance also reduce and are not
-reported. Taken over damage whose raw side the protocol states. _Avoid_: Blocked, mitigated,
-absorbed
+**Raw / applied**: Damage before and after reduction. Applied is health alone, the figure the
+protocol's own percentages witness, so it leaves out what a pool absorbed. Their difference is
+**not** what a defence stopped. _Avoid_: Gross/net, base/final
+
+**Absorbed**: Damage an absorption pool — physical or magical — took instead of health. The pool is
+one the character began the fight with, so an absorbed point is part of what was dealt and taken. It
+is a kind of its own beside the elements, never a share of one, because the protocol states one
+figure per pool and not per element. _Avoid_: Shielded, soaked
+
+**Prevented**: Damage the protocol says a defence stopped that drains nothing — a block. One
+component of the reduction and never the whole: armour and resistance also reduce and are not
+reported. Taken over damage whose raw side the protocol states. The decoder's event keeps the data
+contract's word `prevented` for absorption as well (`core/battle-event.ts`), and the figures sort
+the two apart. _Avoid_: Blocked, mitigated
 
 **Destroyed**: A statistic of the target that an attack reduced — armour and absorption in points,
 resistance in percentage points. Not damage, never totalled with it, and its own members are not in

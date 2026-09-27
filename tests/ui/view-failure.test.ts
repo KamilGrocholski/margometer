@@ -141,7 +141,7 @@ function readFight(): ScreenReading {
     return presentScreen(
         statistics,
         roster,
-        PANEL_METRIC.damageDealtApplied,
+        PANEL_METRIC.damageDealt,
         SIDE_CHOICE.everyone,
         null,
         NOTHING_SUSPECT,

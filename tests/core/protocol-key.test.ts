@@ -12,7 +12,7 @@ import {
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
-import { getKeyReading, KEY_FAMILY } from "#/src/core/protocol-key.ts";
+import { getDefenceMechanism, getKeyReading, KEY_FAMILY } from "#/src/core/protocol-key.ts";
 import { parseProtocolMessage } from "#/src/core/protocol-message.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
@@ -40,6 +40,23 @@ Deno.test("a proc's end is the table's, never the sign's", () => {
     assertEquals(tenacity, { kind: KEY_FAMILY.proc, end: "unsettled", doesTakeValue: false }, "?");
     const weakened = getKeyReading("+woundpoison");
     assertEquals(weakened, { kind: KEY_FAMILY.proc, end: "actor", doesTakeValue: true }, "valued");
+});
+
+Deno.test("absorption is a pool the blow drains, and a block is a chance", () => {
+    assertStrictEquals(getDefenceMechanism("absorb"), "pool", "physical absorption");
+    assertStrictEquals(getDefenceMechanism("absorbm"), "pool", "magical absorption");
+    assertStrictEquals(getDefenceMechanism("blok"), "chance", "a block");
+    assertEquals(getKeyReading("-absorb"), { kind: KEY_FAMILY.prevented }, "still prevented");
+    assertThrows(() => getDefenceMechanism("-absorb"), AssertionError, "one this table reads");
+    assertThrows(() => getDefenceMechanism("dmgc"), AssertionError, "one this table reads");
+});
+
+Deno.test("a pool's defence shares no token with an element or a health change", () => {
+    for (const defence of ["absorb", "absorbm"]) {
+        assertStrictEquals(getKeyReading(`-${defence}`)?.kind, KEY_FAMILY.prevented, defence);
+        assertStrictEquals(defence.startsWith("dmg"), false, `${defence} is no element`);
+        assertStrictEquals(getKeyReading(defence), null, `${defence} is no health change`);
+    }
 });
 
 Deno.test("a key spelled like what every object carries means nothing", () => {

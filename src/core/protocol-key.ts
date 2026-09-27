@@ -36,6 +36,14 @@ export const KEY_FAMILY = {
 export const PROC_END = { actor: "actor", target: "target", unsettled: "unsettled" } as const;
 export type ProcEnd = VocabularyWord<typeof PROC_END>;
 
+/**
+ * How a defence stops damage. A `pool` is one the character begins the fight with, and what it
+ * stops is drained from it point for point, so that damage was spent on the target the way health
+ * is; a `chance` is a roll on each blow and takes nothing (ADR 0012).
+ */
+export const DEFENCE_MECHANISM = { pool: "pool", chance: "chance" } as const;
+export type DefenceMechanism = VocabularyWord<typeof DEFENCE_MECHANISM>;
+
 export const DAMAGE_HALF = { raw: "raw", applied: "applied" } as const;
 export type DamageHalf = VocabularyWord<typeof DAMAGE_HALF>;
 
@@ -123,7 +131,15 @@ export const SELF_SOURCED_HEALING_KEYS: readonly string[] = [
 
 /** The one pair the family rule cannot reach, because the key carries no marker. */
 const DAMAGE_KEYS = ["+thirdatt", "-thirdatt"];
-const PREVENTED_KEYS = ["-absorb", "-absorbm", "-blok"];
+/**
+ * The mechanism is the published help's, article view,372 (read 2026-09-27): absorption and magical
+ * absorption are drawn from the pool the character entered the fight with; a block is a chance.
+ */
+const DEFENCE_MECHANISM_BY_KEY: ReadonlyMap<string, DefenceMechanism> = new Map([
+    ["-absorb", DEFENCE_MECHANISM.pool],
+    ["-absorbm", DEFENCE_MECHANISM.pool],
+    ["-blok", DEFENCE_MECHANISM.chance],
+]);
 const DESTROYED_KEYS = [
     "+acdmg",
     "+critpierce",
@@ -314,6 +330,9 @@ const TEAM_WIDE_ENDINGS = ["-all", "-allies", "-enemies"];
 const TEAM_WIDE_KEYS = [PROVOCATION_KEY, SLOW_ALL_KEY, "alllowdmg"];
 
 const KEY_READING_BY_KEY: ReadonlyMap<string, KeyReading> = indexKeyReadings();
+/** Keyed by the defence an event names, which is the key with its sign taken off. */
+const DEFENCE_MECHANISM_BY_DEFENCE: ReadonlyMap<string, DefenceMechanism> =
+    indexDefenceMechanisms();
 
 /** `null`: the key reaches no side anybody has stated. */
 export function lookupKeyReach(key: string): KeyReach | null {
@@ -348,6 +367,14 @@ export function getKeyReading(key: string): KeyReading | null {
     return { kind: KEY_FAMILY.damage, half };
 }
 
+/** How the defence an event names stopped its damage. Only this table's keys reach an event. */
+export function getDefenceMechanism(defence: string): DefenceMechanism {
+    assert(defence.length > 0, "a defence asked about is one an event named");
+    const mechanism = DEFENCE_MECHANISM_BY_DEFENCE.get(defence);
+    assert(mechanism !== undefined, "every defence an event names is one this table reads");
+    return mechanism;
+}
+
 function indexKeyReadings(): Map<string, KeyReading> {
     const found = new Map<string, KeyReading>();
     const add = (key: string, reading: KeyReading) => {
@@ -360,7 +387,7 @@ function indexKeyReadings(): Map<string, KeyReading> {
             half: key.startsWith(RAW_SIGN) ? DAMAGE_HALF.raw : DAMAGE_HALF.applied,
         });
     }
-    for (const key of PREVENTED_KEYS) add(key, { kind: KEY_FAMILY.prevented });
+    for (const key of DEFENCE_MECHANISM_BY_KEY.keys()) add(key, { kind: KEY_FAMILY.prevented });
     for (const key of DESTROYED_KEYS) add(key, { kind: KEY_FAMILY.destroyed });
     for (const [key, end] of PROC_END_BY_KEY) {
         add(key, { kind: KEY_FAMILY.proc, end, doesTakeValue: PROCS_WITH_VALUE.includes(key) });
@@ -382,5 +409,17 @@ function indexKeyReadings(): Map<string, KeyReading> {
     add("+oth_dmg", { kind: KEY_FAMILY.namedDamage });
     add(LASTHEAL_KEY, { kind: KEY_FAMILY.namedHealing });
     assert(found.size > PROC_END_BY_KEY.size, "every family is indexed, not only the procs");
+    return found;
+}
+
+function indexDefenceMechanisms(): Map<string, DefenceMechanism> {
+    const found = new Map<string, DefenceMechanism>();
+    for (const [key, mechanism] of DEFENCE_MECHANISM_BY_KEY) {
+        assert(key.startsWith(APPLIED_SIGN), "a defence stops damage on the applied side");
+        const defence = key.slice(APPLIED_SIGN.length);
+        assert(!found.has(defence), "a defence is named by one key");
+        found.set(defence, mechanism);
+    }
+    assert(found.size === DEFENCE_MECHANISM_BY_KEY.size, "every defence key is indexed");
     return found;
 }

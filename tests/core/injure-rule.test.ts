@@ -109,7 +109,7 @@ Deno.test("every tick stands against the attacker whose wound was ticking", () =
         const figures = statistics.byCombatantId.get(attackerId);
         assertExists(figures, "an attacker whose wound ticked has a row");
         assertEquals(
-            figures.damageDealtByElement.get(TICK_KEY),
+            figures.damageDealtByKind.get(TICK_KEY),
             amount,
             "holding what their own wound ticked for, and nothing anybody else's did",
         );
@@ -148,7 +148,7 @@ Deno.test("a tick stating what the wound announced is charged to whoever left it
     const victim = statistics.byCombatantId.get(VICTIM);
     assertExists(attacker, "the attacker has a row");
     assertExists(victim, "and so does the victim");
-    assertEquals(attacker.damageDealtByElement.get(TICK_KEY), 98, "the tick is dealt by them");
+    assertEquals(attacker.damageDealtByKind.get(TICK_KEY), 98, "the tick is dealt by them");
     const pair = victim.damageTakenByOpponentAndKind.get(`${ATTACKER}`);
     assertExists(pair, "and the pair holds what passed between the two");
     assertEquals(pair.get(TICK_KEY), 98, "the tick standing apart from the blow that left it");
@@ -175,7 +175,7 @@ Deno.test("a tick stating anything else is charged to nobody, not to the nearest
     assertExists(attacker, "the attacker still has a row, from the blow");
     assertExists(victim, "and so does the victim");
     assertEquals(
-        attacker.damageDealtByElement.get(TICK_KEY),
+        attacker.damageDealtByKind.get(TICK_KEY),
         undefined,
         "nothing is dealt by them",
     );

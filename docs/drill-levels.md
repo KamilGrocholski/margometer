@@ -72,56 +72,56 @@ A verdict outside that list is refused rather than read as silence.
 
 ## The register
 
-| screen               | level         | row          | opens       |
-| -------------------- | ------------- | ------------ | ----------- |
-| `damageDealtApplied` | `ranking`     | `person`     | `always`    |
-| `damageDealtApplied` | `ranking`     | `half-named` | `always`    |
-| `damageDealtApplied` | `opened`      | `person`     | `always`    |
-| `damageDealtApplied` | `opened`      | `skill`      | `always`    |
-| `damageDealtApplied` | `opened`      | `source`     | `never`     |
-| `damageDealtApplied` | `opened`      | `closing`    | `sometimes` |
-| `damageDealtApplied` | `opened`      | `kind`       | `always`    |
-| `damageDealtApplied` | `pair`        | `skill`      | `never`     |
-| `damageDealtApplied` | `pair`        | `source`     | `never`     |
-| `damageDealtApplied` | `pair`        | `closing`    | `never`     |
-| `damageDealtApplied` | `pair`        | `kind`       | `never`     |
-| `damageDealtApplied` | `part`        | `person`     | `never`     |
-| `damageDealtApplied` | `unnamed`     | `person`     | `always`    |
-| `damageDealtApplied` | `unnamed`     | `kind`       | `always`    |
-| `damageDealtApplied` | `unnamed cut` | `person`     | `never`     |
-| `damageDealtApplied` | `unnamed cut` | `kind`       | `never`     |
-| `damageTakenApplied` | `ranking`     | `person`     | `always`    |
-| `damageTakenApplied` | `ranking`     | `half-named` | `always`    |
-| `damageTakenApplied` | `opened`      | `person`     | `always`    |
-| `damageTakenApplied` | `opened`      | `half-named` | `never`     |
-| `damageTakenApplied` | `opened`      | `skill`      | `always`    |
-| `damageTakenApplied` | `opened`      | `source`     | `never`     |
-| `damageTakenApplied` | `opened`      | `closing`    | `always`    |
-| `damageTakenApplied` | `opened`      | `kind`       | `sometimes` |
-| `damageTakenApplied` | `pair`        | `skill`      | `never`     |
-| `damageTakenApplied` | `pair`        | `source`     | `never`     |
-| `damageTakenApplied` | `pair`        | `closing`    | `never`     |
-| `damageTakenApplied` | `pair`        | `kind`       | `never`     |
-| `damageTakenApplied` | `part`        | `person`     | `never`     |
-| `damageTakenApplied` | `unnamed`     | `person`     | `always`    |
-| `damageTakenApplied` | `unnamed`     | `kind`       | `always`    |
-| `damageTakenApplied` | `unnamed cut` | `person`     | `never`     |
-| `damageTakenApplied` | `unnamed cut` | `kind`       | `never`     |
-| `healthGiven`        | `ranking`     | `person`     | `always`    |
-| `healthGiven`        | `opened`      | `person`     | `always`    |
-| `healthGiven`        | `opened`      | `skill`      | `always`    |
-| `healthGiven`        | `opened`      | `source`     | `always`    |
-| `healthGiven`        | `pair`        | `skill`      | `never`     |
-| `healthGiven`        | `pair`        | `source`     | `never`     |
-| `healthGiven`        | `part`        | `person`     | `never`     |
-| `healthRestored`     | `ranking`     | `person`     | `always`    |
-| `healthRestored`     | `opened`      | `person`     | `always`    |
-| `healthRestored`     | `opened`      | `skill`      | `always`    |
-| `healthRestored`     | `opened`      | `source`     | `never`     |
-| `healthRestored`     | `opened`      | `kind`       | `never`     |
-| `healthRestored`     | `pair`        | `skill`      | `never`     |
-| `healthRestored`     | `pair`        | `source`     | `never`     |
-| `healthRestored`     | `part`        | `person`     | `never`     |
+| screen           | level         | row          | opens       |
+| ---------------- | ------------- | ------------ | ----------- |
+| `damageDealt`    | `ranking`     | `person`     | `always`    |
+| `damageDealt`    | `ranking`     | `half-named` | `always`    |
+| `damageDealt`    | `opened`      | `person`     | `always`    |
+| `damageDealt`    | `opened`      | `skill`      | `always`    |
+| `damageDealt`    | `opened`      | `source`     | `never`     |
+| `damageDealt`    | `opened`      | `closing`    | `sometimes` |
+| `damageDealt`    | `opened`      | `kind`       | `always`    |
+| `damageDealt`    | `pair`        | `skill`      | `never`     |
+| `damageDealt`    | `pair`        | `source`     | `never`     |
+| `damageDealt`    | `pair`        | `closing`    | `never`     |
+| `damageDealt`    | `pair`        | `kind`       | `never`     |
+| `damageDealt`    | `part`        | `person`     | `never`     |
+| `damageDealt`    | `unnamed`     | `person`     | `always`    |
+| `damageDealt`    | `unnamed`     | `kind`       | `always`    |
+| `damageDealt`    | `unnamed cut` | `person`     | `never`     |
+| `damageDealt`    | `unnamed cut` | `kind`       | `never`     |
+| `damageTaken`    | `ranking`     | `person`     | `always`    |
+| `damageTaken`    | `ranking`     | `half-named` | `always`    |
+| `damageTaken`    | `opened`      | `person`     | `always`    |
+| `damageTaken`    | `opened`      | `half-named` | `never`     |
+| `damageTaken`    | `opened`      | `skill`      | `always`    |
+| `damageTaken`    | `opened`      | `source`     | `never`     |
+| `damageTaken`    | `opened`      | `closing`    | `always`    |
+| `damageTaken`    | `opened`      | `kind`       | `sometimes` |
+| `damageTaken`    | `pair`        | `skill`      | `never`     |
+| `damageTaken`    | `pair`        | `source`     | `never`     |
+| `damageTaken`    | `pair`        | `closing`    | `never`     |
+| `damageTaken`    | `pair`        | `kind`       | `never`     |
+| `damageTaken`    | `part`        | `person`     | `never`     |
+| `damageTaken`    | `unnamed`     | `person`     | `always`    |
+| `damageTaken`    | `unnamed`     | `kind`       | `always`    |
+| `damageTaken`    | `unnamed cut` | `person`     | `never`     |
+| `damageTaken`    | `unnamed cut` | `kind`       | `never`     |
+| `healthGiven`    | `ranking`     | `person`     | `always`    |
+| `healthGiven`    | `opened`      | `person`     | `always`    |
+| `healthGiven`    | `opened`      | `skill`      | `always`    |
+| `healthGiven`    | `opened`      | `source`     | `always`    |
+| `healthGiven`    | `pair`        | `skill`      | `never`     |
+| `healthGiven`    | `pair`        | `source`     | `never`     |
+| `healthGiven`    | `part`        | `person`     | `never`     |
+| `healthRestored` | `ranking`     | `person`     | `always`    |
+| `healthRestored` | `opened`      | `person`     | `always`    |
+| `healthRestored` | `opened`      | `skill`      | `always`    |
+| `healthRestored` | `opened`      | `source`     | `never`     |
+| `healthRestored` | `opened`      | `kind`       | `never`     |
+| `healthRestored` | `pair`        | `skill`      | `never`     |
+| `healthRestored` | `pair`        | `source`     | `never`     |
+| `healthRestored` | `part`        | `person`     | `never`     |
 
 ## The cells that say `sometimes`
 
@@ -132,7 +132,7 @@ section said _the one cell_ until 2026-09-13, while the register had held two si
 `develop ADR 0081`, and the figures it carried beside that had gone stale by a whole release of new
 material.
 
-### `damageTakenApplied` · `kind`
+### `damageTaken` · `kind`
 
 The level under it lists who dealt the figure that kind, read by turning the cut of a cut round: it
 opens where the protocol named the other end of at least one blow that carried it, and stays shut
@@ -140,21 +140,21 @@ where it named none.
 
 The shut ones are the bare movement, and nothing else — a key the game states against the combatant
 it happened to, with nobody at the other end of it, so `damageTakenByOpponentAndKind` holds nothing
-under that name while `damageTakenByElement` holds the figure. The dealing screen has no such row,
+under that name while `damageTakenByKind` holds the figure. The dealing screen has no such row,
 because a figure this combatant dealt was dealt to somebody, and it opens every kind row it draws.
 
-### `damageDealtApplied` · `closing`
+### `damageDealt` · `closing`
 
 It opens onto whoever stood at the other end of the blows it holds (`develop ADR 0081`), and stays
 shut where that cut holds nobody.
 
 **The asymmetry with the receiving screen is this panel's own, not the protocol's.** A closing row
-is drawn on `damageDealtApplied` where the combatant swung and landed nothing — `composeSkillCut`
-draws it on a figure of nought as long as blows stood behind it, because a section that skipped them
-would say the combatant never swung — and a figure of nought was dealt to nobody, so there is no cut
-under it. `damageTakenApplied` draws no such row at all: there the row needs a figure, and a figure
-somebody lost was taken off somebody. Measured over `captures/` on 2026-09-25, one row in the corpus
-is shut, and it is that case exactly: nought, with seven blows behind it.
+is drawn on `damageDealt` where the combatant swung and landed nothing — `composeSkillCut` draws it
+on a figure of nought as long as blows stood behind it, because a section that skipped them would
+say the combatant never swung — and a figure of nought was dealt to nobody, so there is no cut under
+it. `damageTaken` draws no such row at all: there the row needs a figure, and a figure somebody lost
+was taken off somebody. Measured over `captures/` on 2026-09-25, one row in the corpus is shut, and
+it is that case exactly: nought, with seven blows behind it.
 
 ## What stays shut, and why
 
@@ -191,13 +191,13 @@ and that is a thing the game names. It is also the one row of a list wearing the
 because what the game names there is that the blows landed and not what they were dealt with
 (`develop ADR 0089`). Since `develop ADR 0080` it holds nothing else: health that went out under a
 key, without a blow carrying it, stands under that key here as it always did on healing. Under
-`damageDealtApplied` that row also carries how many blows — the question a plain attack raises, and
-a number the figure alone cannot state. The count is that screen's alone: the protocol states no
-number of anything against one opponent rather than another, and on `damageTakenApplied` the
-announcement was somebody else's, so a count read off the reader's own row would be their own swings
-under somebody else's heading. **On the healing screens nothing closes at all**: health that moved
-outside an announcement still moved under a key the game named, so the section lists those keys as
-`source` rows. `DESIGN.md` owns that rule; `docs/protocol-keys.md` owns what each key means.
+`damageDealt` that row also carries how many blows — the question a plain attack raises, and a
+number the figure alone cannot state. The count is that screen's alone: the protocol states no
+number of anything against one opponent rather than another, and on `damageTaken` the announcement
+was somebody else's, so a count read off the reader's own row would be their own swings under
+somebody else's heading. **On the healing screens nothing closes at all**: health that moved outside
+an announcement still moved under a key the game named, so the section lists those keys as `source`
+rows. `DESIGN.md` owns that rule; `docs/protocol-keys.md` owns what each key means.
 
 ## An announcement is kept on the row that made it
 
@@ -205,15 +205,15 @@ outside an announcement still moved under a key the game named, so the section l
 along.** It read: _nothing announces a blow you take; the protocol names what hit you and never what
 the other side chose_ — which was a claim about the protocol standing on a fact about our own
 aggregation. The protocol does announce, on both sides: 32 of the 39 combatants on side 2 across
-`captures/` announce something, Amaimon, Hildur, Draugr, Centaur and Mamlambo among them, and 79.7%
-of all applied damage in the corpus stands under an announcement — 8,983,254 of 11,268,312, read
-2026-09-25. `develop ADR 0078` was worth 147,082 of that figure when it was read on 2026-09-12, and
-that share has not been re-earned since.
+`captures/` announce something, Amaimon, Hildur, Draugr, Centaur and Mamlambo among them, and 80.5%
+of all damage dealt in the corpus stands under an announcement — 10,252,941 of 12,740,622, read
+2026-09-27, what a pool took counted in as ADR 0012 counts it. `develop ADR 0078` was worth 147,082
+of the health alone when it was read on 2026-09-12, and that share has not been re-earned since.
 
 What is true is narrower. `SkillFigures` hangs off the record of whoever **made** the announcement,
-so a figure somebody received carries no announcement of its own. `damageTakenApplied` therefore
-reads its `skill` rows off the striker's row and closes the rest against `Zwykły cios` — the same
-walk `healthRestored` has always made over `restoredByOpponent`, `getPairGivingEnd` turning on the
+so a figure somebody received carries no announcement of its own. `damageTaken` therefore reads its
+`skill` rows off the striker's row and closes the rest against `Zwykły cios` — the same walk
+`healthRestored` has always made over `restoredByOpponent`, `getPairGivingEnd` turning on the
 direction rather than on the noun.
 
 **Which is what a received skill row opens onto.** A section folds every caster's announcement under
@@ -254,8 +254,8 @@ rather than a gap in the material:
 Shapes the code would draw, absent from `captures/`, so no verdict is claimed. Each would be a
 `never` — a row naming nobody has nobody to open — but that is reasoning and not a measurement:
 
-- a `half-named` row on either healing screen, at either level, and on `damageDealtApplied` inside
-  an opened row;
+- a `half-named` row on either healing screen, at either level, and on `damageDealt` inside an
+  opened row;
 - a `no kind` row on any level that could hold one. Under a pinned row it is not absent but
   impossible, which is the bullet above rather than this one;
 - a `half-named` row on the third level, under a part;

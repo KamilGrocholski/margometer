@@ -133,14 +133,18 @@ function formatRowLines(
 /** Kept off the numeric columns: these are not in one unit, and a column would say they were. */
 function formatDetailLines(figures: CombatantFigures, roster: CombatantRoster): string[] {
     const details: [string, string][] = [
-        ["dealt by element", formatCutText(figures.damageDealtByElement, null)],
-        ["taken by element", formatCutText(figures.damageTakenByElement, null)],
+        // `develop`'s caption, kept so a recording no pool stood in holds to its report; a pool
+        // stands in this cut under the defence's name (ADR 0012).
+        ["dealt by element", formatCutText(figures.damageDealtByKind, null)],
+        ["taken by element", formatCutText(figures.damageTakenByKind, null)],
         ["dealt to", formatCutText(figures.damageDealtByOpponent, roster)],
         ["taken from", formatCutText(figures.damageTakenByOpponent, roster)],
         ["restored by", formatCutText(figures.healthRestoredByGiver, roster)],
         ["given to", formatCutText(figures.healthGivenByReceiver, roster)],
         ["restored under", formatCutText(figures.healthRestoredBySource, null)],
         ["prevented by", formatCutText(figures.damagePreventedByDefence, null)],
+        ["absorbed dealing", formatCutText(figures.damageDealtAbsorbedByDefence, null)],
+        ["absorbed struck", formatCutText(figures.damageTakenAbsorbedByDefence, null)],
         ["destroyed", formatCutText(figures.statisticsDestroyed, null)],
         ["procs striking", formatCutText(figures.procsWhenStriking, null)],
         ["procs struck", formatCutText(figures.procsWhenStruck, null)],

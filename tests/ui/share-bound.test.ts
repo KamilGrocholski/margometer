@@ -14,7 +14,7 @@ import { parseSharePoints } from "#/tests/share-text.ts";
 const HUNDRED = 100;
 
 /**
- * The widest section, which is the skills section on `damageTakenApplied`: every striker's names at
+ * The widest section, which is the skills section on `damageTaken`: every striker's names at
  * `SKILLS_MAXIMUM`, the keys no announcement covered, and **two** rows closing it — what the bound
  * would not give a row to, and what no announcement covered at all (`develop ADR 0055`).
  */

@@ -62,6 +62,8 @@ interface CardFigure {
     metric: PanelMetric;
     figure: number;
     halfNamed: { label: string; figure: number } | null;
+    /** The part a pool took rather than health, per pool, drawn under the figure it is part of. */
+    absorbed: readonly CutPart[];
 }
 
 /** Past the widest cut a card draws: fourteen worded procs, four destroyed, three defences. */
@@ -100,7 +102,7 @@ export function presentCaveatNoteLines(groups: readonly TipGroup[]): TipLine[] {
 
 export function presentCard(subject: CardSubject): TipReading {
     const groups: TipGroup[] = [
-        { lines: presentCardFigureLines(subject.detail, subject.metric) },
+        { lines: presentCardFigureLines(subject.detail, subject.metric, subject.translate) },
     ];
     const counters = presentCardCounterLines(subject.detail);
     if (counters.length > 0) groups.push({ lines: counters });
@@ -128,7 +130,11 @@ export function presentCard(subject: CardSubject): TipReading {
  * unconditionally printed 580 figures of nought over `captures/` on 2026-09-14, 0.49 to a
  * card; this leaves 145, each of them the one a reader pointed at.
  */
-function presentCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine[] {
+function presentCardFigureLines(
+    detail: RowDetail,
+    metric: PanelMetric,
+    translate: TranslateLabel | null,
+): TipLine[] {
     const lines: TipLine[] = [{ kind: TIP_LINE.heading, text: CARD_WORDS.wholeFight }];
     for (const one of presentCardFigures(detail)) {
         if (one.metric !== metric) {
@@ -145,6 +151,9 @@ function presentCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine
         if (one.halfNamed !== null) {
             lines.push(...presentCardSubLine(one.halfNamed.label, one.halfNamed.figure));
         }
+        for (const part of presentCardWordedParts(one.absorbed, translate)) {
+            lines.push(...presentCardSubLine(part.label, part.figure));
+        }
     }
     return lines;
 }
@@ -157,20 +166,28 @@ function presentCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine
 function presentCardFigures(detail: RowDetail): CardFigure[] {
     const figures: CardFigure[] = [
         {
-            metric: PANEL_METRIC.damageDealtApplied,
-            figure: detail.damageDealtApplied,
+            metric: PANEL_METRIC.damageDealt,
+            figure: detail.damageDealt,
             halfNamed: { label: PANEL_WORDS.withoutTarget, figure: detail.damageDealtToNobody },
+            absorbed: detail.damageDealtAbsorbedByDefence,
         },
         {
-            metric: PANEL_METRIC.damageTakenApplied,
-            figure: detail.damageTakenApplied,
+            metric: PANEL_METRIC.damageTaken,
+            figure: detail.damageTaken,
             halfNamed: { label: PANEL_WORDS.withoutActor, figure: detail.damageTakenFromNobody },
+            absorbed: detail.damageTakenAbsorbedByDefence,
         },
-        { metric: PANEL_METRIC.healthGiven, figure: detail.healthGiven, halfNamed: null },
+        {
+            metric: PANEL_METRIC.healthGiven,
+            figure: detail.healthGiven,
+            halfNamed: null,
+            absorbed: [],
+        },
         {
             metric: PANEL_METRIC.healthRestored,
             figure: detail.healthRestored,
             halfNamed: { label: PANEL_WORDS.withoutActor, figure: detail.healthRestoredByNobody },
+            absorbed: [],
         },
     ];
     return figures;

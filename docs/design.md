@@ -527,9 +527,10 @@ list past its bound — ends where a broken invariant ends, in the "reading" def
 leaves, so a failure class would add code on every path and change no outcome. The bounds are
 asserted.
 
-The six balances — applied, restored, half-named and the rest — stay assertions, because they are
-invariants rather than failures. A disagreement that _can_ happen (`hasFiguresDisagreed`) stays
-data.
+The balances — dealt, dealt against its two parts, restored, half-named and the rest — stay
+assertions, because they are invariants rather than failures. The two parts are health and what a
+pool absorbed, and a defence's pool or chance is `src/core/protocol-key.ts`'s to say (ADR 0012). A
+disagreement that _can_ happen (`hasFiguresDisagreed`) stays data.
 
 Figures are tallied once per frame, and only when something changed, memoised on `payloadsApplied`.
 They are not folded in as payloads arrive: sizing a team heal reads messages from later payloads.
@@ -1065,8 +1066,9 @@ What `tests/simulation.test.ts` holds, on every recording and every seed:
 - a fault of the page's is met as the page's, and never as a broken invariant of ours.
 
 **The rewrite is proven against `develop`.** On every recording, the figures this branch draws equal
-the figures `develop` @ `fa1dcce` draws. A difference is a finding in one of the two, never a golden
-value to move (`AGENTS.md` W8).
+the figures `develop` @ `fa1dcce` draws, except where a decision record names a departure: ADR 0012
+counts what an absorption pool took, and states which lines of the report that moves. Any other
+difference is a finding in one of the two, never a golden value to move (`AGENTS.md` W8).
 
 ## 13. Open
 

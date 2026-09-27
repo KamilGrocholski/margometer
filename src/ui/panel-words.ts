@@ -197,8 +197,8 @@ const OUTCOME_WORDS: Record<OutcomeResult, string> = {
 };
 
 const NOTHING_WORDS: Record<PanelMetric, string> = {
-    damageDealtApplied: "Nie zadała nikomu obrażeń.",
-    damageTakenApplied: "Nic jej nie ubyło.",
+    damageDealt: "Nie zadała nikomu obrażeń.",
+    damageTaken: "Nic jej nie ubyło.",
     healthGiven: "Nikogo nie leczyła.",
     healthRestored: "Nikt jej nie leczył.",
 };
@@ -213,8 +213,8 @@ const NOTHING_WORDS: Record<PanelMetric, string> = {
  * becomes a question the compiler asks rather than one inheriting whichever wording came first.
  */
 const UNANNOUNCED_WORDS: Record<PanelMetric, string> = {
-    damageDealtApplied: "Zwykły cios",
-    damageTakenApplied: "Zwykły cios",
+    damageDealt: "Zwykły cios",
+    damageTaken: "Zwykły cios",
     healthGiven: "Bez podanej umiejętności",
     healthRestored: "Bez podanej umiejętności",
 };
@@ -229,8 +229,8 @@ const NOUN_WORDS: Record<PanelNoun, string> = {
  * for healing given, and a label covering both would be ours rather than the language's.
  */
 const DIRECTION_WORDS: Record<PanelMetric, string> = {
-    damageDealtApplied: "zadane",
-    damageTakenApplied: "otrzymane",
+    damageDealt: "zadane",
+    damageTaken: "otrzymane",
     healthGiven: "dane",
     healthRestored: "otrzymane",
 };
@@ -243,8 +243,8 @@ const SIDE_WORDS: Record<PanelSideChoice, string> = {
 
 /** Spelled both ways round: `Leczenie` alone means either, and here the two stand together. */
 const CARD_METRIC_WORDS: Record<PanelMetric, string> = {
-    damageDealtApplied: "Zadane",
-    damageTakenApplied: "Otrzymane",
+    damageDealt: "Zadane",
+    damageTaken: "Otrzymane",
     healthGiven: "Leczenie dane",
     healthRestored: "Leczenie otrzymane",
 };
@@ -400,7 +400,8 @@ const CAVEAT_NOTES: Record<Caveat, string> = {
 
 /**
  * The defence that stopped part of a blow, in the game's own word (`develop ADR 0077`), drawn as
- * sub-lines under `Zatrzymane`; each word is held to the frozen counts by its test. Keyed by the
+ * sub-lines under `Zatrzymane` and, for a pool, under `Zadane` and `Otrzymane` and among the kinds
+ * of damage (ADR 0012); each word is held to the frozen counts by its test. Keyed by the
  * client's token with no sign, the way an element is: the sign says which half of the blow it was,
  * not which defence.
  */
@@ -978,9 +979,10 @@ export function getWordsForHealthSource(source: string): string {
     return words;
 }
 
-/** What a figure was made of, whether a blow carried it or health went out under it. */
+/** What a figure was made of: an element, a key health went out under, or a pool it drained. */
 export function getWordsForDamageKind(kind: string): string {
-    const words = ELEMENT_WORD_BY_KEY.get(kind) ?? HEALTH_LOSS_WORD_BY_KEY.get(kind);
+    const words = ELEMENT_WORD_BY_KEY.get(kind) ?? HEALTH_LOSS_WORD_BY_KEY.get(kind) ??
+        DEFENCE_WORD_BY_KEY.get(kind);
     if (words === undefined) return kind;
     return words;
 }

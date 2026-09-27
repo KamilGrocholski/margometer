@@ -496,9 +496,10 @@ in words, and the only place it is. Then the figures of the whole fight under a 
 scope — every one they have rather than the one the screen is showing, with that one in bold, and
 the screen's own standing even at nought while the others do not: a screen showing somebody at
 nothing has to say nothing, and the rest at nought answer nobody. Under each, the part of it the
-protocol named only that row's end of; then how they fought at each end, and last what qualifies
-every figure above — **the gaps naming this person, and no others** (**develop ADR 0069**): one
-naming nobody is said under the ranking, once.
+protocol named only that row's end of, and under a damage figure the part each absorption pool took
+rather than health, larger first (ADR 0012); then how they fought at each end, and last what
+qualifies every figure above — **the gaps naming this person, and no others** (**develop ADR
+0069**): one naming nobody is said under the ranking, once.
 
 **Every block is cut by what its figures are a sum over, and its heading names that.** A figure
 stated before reduction stands in the run of the end it belongs to and never under a figure of the

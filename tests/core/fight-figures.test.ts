@@ -110,7 +110,7 @@ Deno.test("figures one point off their own balance are refused where they are ve
     assert(id !== undefined, "a fight with a row to move");
     assert(row !== undefined, "and the row itself");
     const moved = new Map(figures.statistics.byCombatantId);
-    moved.set(id, { ...row, damageTakenApplied: row.damageTakenApplied + 1 });
+    moved.set(id, { ...row, damageTaken: row.damageTaken + 1 });
     const skewed = { ...figures, statistics: { ...figures.statistics, byCombatantId: moved } };
     assertThrows(() => verifyFightFigures(skewed), AssertionError, "counted once at each end");
 });

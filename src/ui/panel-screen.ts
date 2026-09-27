@@ -17,8 +17,8 @@ import {
 
 /** The words are the figures' own fields, so a screen names the figure it draws. */
 export const PANEL_METRIC = {
-    damageDealtApplied: "damageDealtApplied",
-    damageTakenApplied: "damageTakenApplied",
+    damageDealt: "damageDealt",
+    damageTaken: "damageTaken",
     healthGiven: "healthGiven",
     healthRestored: "healthRestored",
 } as const;
@@ -73,8 +73,8 @@ export const SCREEN_ORDER = Object.values(PANEL_METRIC);
 
 /** A pair with no row here is a screen that does not exist: healing has no prevented half. */
 const SCREEN_AXES: Record<PanelMetric, ScreenAxes> = {
-    damageDealtApplied: { noun: PANEL_NOUN.damage, direction: PANEL_DIRECTION.given },
-    damageTakenApplied: { noun: PANEL_NOUN.damage, direction: PANEL_DIRECTION.received },
+    damageDealt: { noun: PANEL_NOUN.damage, direction: PANEL_DIRECTION.given },
+    damageTaken: { noun: PANEL_NOUN.damage, direction: PANEL_DIRECTION.received },
     healthGiven: { noun: PANEL_NOUN.healing, direction: PANEL_DIRECTION.given },
     healthRestored: { noun: PANEL_NOUN.healing, direction: PANEL_DIRECTION.received },
 };
@@ -89,8 +89,8 @@ export const OPENED_PART = {
 export const SIDE_CHOICES = Object.values(SIDE_CHOICE);
 
 const OPPONENT_WORDS: Record<PanelMetric, string> = {
-    damageDealtApplied: PANEL_WORDS.dealtTo,
-    damageTakenApplied: PANEL_WORDS.takenFrom,
+    damageDealt: PANEL_WORDS.dealtTo,
+    damageTaken: PANEL_WORDS.takenFrom,
     healthGiven: PANEL_WORDS.dealtTo,
     healthRestored: PANEL_WORDS.takenFrom,
 };
@@ -100,8 +100,8 @@ const OPPONENT_WORDS: Record<PanelMetric, string> = {
  * makes a fifth screen a question the compiler asks.
  */
 const KIND_WORDS: Record<PanelMetric, string> = {
-    damageDealtApplied: PANEL_WORDS.damageKind,
-    damageTakenApplied: PANEL_WORDS.damageKind,
+    damageDealt: PANEL_WORDS.damageKind,
+    damageTaken: PANEL_WORDS.damageKind,
     healthGiven: PANEL_WORDS.healthSource,
     healthRestored: PANEL_WORDS.healthSource,
 };
@@ -111,7 +111,7 @@ export function createScreenState(
     isStandingCollapsed = false,
 ): ScreenState {
     const state: ScreenState = {
-        current: PANEL_METRIC.damageDealtApplied,
+        current: PANEL_METRIC.damageDealt,
         side: SIDE_CHOICE.everyone,
         isOnShelf: false,
         openRowId: null,

@@ -843,7 +843,9 @@ file accepts for a key that moves health.
 
 ### `-absorb` — decoded
 
-Damage physical absorption stopped before it reached the target.
+Damage physical absorption stopped before it reached the target's health. It is drawn from a pool
+the character began the fight with, so it is counted as dealt and taken, under a kind of its own
+(ADR 0012).
 
 _Shape:_ 630 occurrences; on a blow; a whole number
 
@@ -879,7 +881,8 @@ it carries the kind and the physical one does not (**develop ADR 0077**).
 ### `-blok` — decoded
 
 Damage a block stopped. The help ties the event to defending and to carrying a shield, so unlike the
-two above it can be absent from a combatant entirely.
+two above it can be absent from a combatant entirely. A block is a chance and drains no pool, so it
+stays prevented rather than dealt (ADR 0012).
 
 _Shape:_ 270 occurrences; on a blow; a whole number
 
@@ -1906,8 +1909,8 @@ refuses (**V5**).
 
 Magical absorption **returned to the pool** by this blow, and the only key in the register whose
 name it shares with a figure a statistic here does count. `-absorbm`, two segments away on the same
-message, is damage that pool stopped and reaches `prevented`. This one is the pool being refilled:
-not damage, not a prevention, and not a statistic destroyed.
+message, is damage that pool stopped and is counted as dealt and taken (ADR 0012). This one is the
+pool being refilled: not damage, not a prevention, and not a statistic destroyed.
 
 ⚠️ **Whose pool refilled is the help's answer, and it gives one.** Every occurrence rides a blow
 where the attacker is named on one side and the absorbing combatant on the other, and the slot
@@ -1953,8 +1956,8 @@ does, and the unit is what makes the figure safe to show and impossible to total
 ### `+absorb` — decoded
 
 Absorption **returned to the pool** by this blow: the physical twin of the key above, trap included.
-`-absorb` is damage absorption stopped and reaches `prevented`; this one is the pool being refilled,
-so adding it to the key it resembles would count points of absorption as points of damage.
+`-absorb` is damage absorption stopped and is counted as dealt and taken; this one is the pool being
+refilled, so adding it to the key it resembles would count points of absorption as points of damage.
 
 ⚠️ **The help documents the effect and still does not settle whose pool gained.** `absagain_per` is
 the article's name for it and `+absorbm` above carries what it says. What it does not say is whether

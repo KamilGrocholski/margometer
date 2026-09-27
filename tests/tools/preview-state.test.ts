@@ -21,10 +21,10 @@ interface PreviewStateReading {
 
 Deno.test("what the harness writes into the address is what it reads back out of it", () => {
     const held = { place: `{"left":10,"top":20}`, folded: "1" };
-    const hash = composeHashOfShown(held, { entry: 7, screen: "damageTakenApplied" });
+    const hash = composeHashOfShown(held, { entry: 7, screen: "damageTaken" });
     const read = readStateFromHash(hash);
     assertEquals(read.entry, 7, "the entry the replay stopped at");
-    assertEquals(read.screen, "damageTakenApplied", "the screen the panel was on");
+    assertEquals(read.screen, "damageTaken", "the screen the panel was on");
     assertEquals(read.store, held, "and every value the add-on had put in the store");
 });
 

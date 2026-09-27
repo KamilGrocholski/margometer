@@ -157,10 +157,15 @@ Deno.test("a blow lands on both of its ends, and raw stays apart from applied", 
     const dealer = statistics.byCombatantId.get(467968);
     assertEquals(dealer?.damageDealtRaw, 1557, "what the attacker put out");
     assertEquals(dealer?.damageDealtApplied, 1012, "and what of it landed");
+    assertEquals(dealer?.damageDealtAbsorbed, 545, "and what a pool took of it");
+    assertEquals(dealer?.damageDealt, 1557, "which together are what they dealt");
     assertEquals(dealer?.damageTakenApplied, 0, "the attacker took nothing here");
+    assertEquals(dealer?.damageTaken, 0, "nothing at all");
     const target = statistics.byCombatantId.get(-10000249);
     assertEquals(target?.damageTakenApplied, 1012, "the target lost what landed");
-    assertEquals(target?.damagePrevented, 545, "and a defence stopped this much of it");
+    assertEquals(target?.damageTakenAbsorbed, 545, "and their pool this much of it");
+    assertEquals(target?.damageTaken, 1557, "which together are what they took");
+    assertEquals(target?.damagePrevented, 0, "so no defence is said to have stopped it");
     assertEquals(countUnreadMessages(statistics), 0, "nothing about this blow went unread");
 });
 
@@ -179,6 +184,33 @@ function decode(messages: readonly string[], roster: CombatantRoster | null): Ba
     const context = { roster, standing: null, tables: BLOWS_GRANTED };
     return [...decodePayloadMessages(messages, context).events];
 }
+
+/**
+ * `ABSORBED` states a raw figure equal to what landed and what a pool took, so a total read off
+ * the raw half would pass there. This blow's raw is four times either.
+ */
+Deno.test("what was dealt is what landed and what a pool took, and never the raw", () => {
+    const statistics = tally(decode([TWO_HIT_FIRST], null), new Map());
+    const dealer = statistics.byCombatantId.get(441390);
+    assertEquals(dealer?.damageDealtRaw, 1863, "what the attacker put out");
+    assertEquals(dealer?.damageDealtApplied, 89, "what reached health");
+    assertEquals(dealer?.damageDealtAbsorbed, 338, "what the two pools took");
+    assertEquals(dealer?.damageDealt, 427, "and what they dealt is the last two together");
+    assertEquals(dealer?.damageDealtBlowLargest, 427, "which is the hardest blow they struck");
+    const struck = statistics.byCombatantId.get(-10000249);
+    assertEquals(struck?.damageTakenBlowLargest, 427, "and the hardest one taken");
+    assertEquals(
+        [...dealer?.damageDealtAbsorbedByDefence ?? []],
+        [["absorb", 44], ["absorbm", 294]],
+        "under the pool each part drained",
+    );
+    const kinds = [...statistics.byCombatantId.get(-10000249)?.damageTakenByKind ?? []];
+    assertEquals(
+        kinds,
+        [["dmgd", 81], ["dmgc", 8], ["absorb", 44], ["absorbm", 294]],
+        "and a pool is a kind of its own beside the elements, never shared out among them",
+    );
+});
 
 /**
  * A figure stated against a name is damage its announcement dealt, and the skill row is the only
@@ -248,7 +280,7 @@ Deno.test("an announcement counts a use, and a swing only where one went out", (
     const arrow = struck.byCombatantId.get(467968)?.skills.get("Zatruta strzała");
     assertEquals(arrow?.uses, 1, "the same one announcement");
     assertEquals(arrow?.blows, 1, "with one swing behind it");
-    assertEquals(arrow?.dealt, 1012, "landing what that blow landed");
+    assertEquals(arrow?.dealt, 1557, "dealing what that blow landed and what a pool took");
 });
 
 Deno.test("a swing that landed nothing is still a swing under its announcement", () => {
@@ -570,11 +602,13 @@ Deno.test("a blow is cut by what it was dealt with and by whom it reached", () =
         new Map(),
     );
     const dealer = statistics.byCombatantId.get(467968);
-    assertEquals(dealer?.damageDealtByElement.get("dmgd"), 1012, "the element the key names");
-    assertEquals(dealer?.damageDealtByOpponent.get("-10000249"), 1012, "and the end it reached");
+    assertEquals(dealer?.damageDealtByKind.get("dmgd"), 1012, "the element the key names");
+    assertEquals(dealer?.damageDealtByKind.get("absorb"), 545, "and the pool that took the rest");
+    assertEquals(dealer?.damageDealtByOpponent.get("-10000249"), 1557, "and the end it reached");
     const target = statistics.byCombatantId.get(-10000249);
-    assertEquals(target?.damageTakenByElement.get("dmgd"), 1012, "the same figure, the other way");
-    assertEquals(target?.damageTakenByOpponent.get("467968"), 1012, "and from whom");
+    assertEquals(target?.damageTakenByKind.get("dmgd"), 1012, "the same figure, the other way");
+    assertEquals(target?.damageTakenByKind.get("absorb"), 545, "the pool as well");
+    assertEquals(target?.damageTakenByOpponent.get("467968"), 1557, "and from whom");
 });
 
 Deno.test("every cut of a combatant comes to that combatant's own total", () => {
@@ -583,18 +617,20 @@ Deno.test("every cut of a combatant comes to that combatant's own total", () => 
         const events = payloads.flatMap((one) => decode(one, roster));
         const statistics = tally(events, indexTeamHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
-            let byElement = 0;
-            for (const amount of figures.damageDealtByElement.values()) byElement += amount;
-            assertEquals(
-                byElement,
-                figures.damageDealtApplied,
-                `${path}: ${combatantId} by element`,
-            );
-            let byOpponent = 0;
-            for (const amount of figures.damageDealtByOpponent.values()) byOpponent += amount;
-            // Not every blow names its target, so what the cuts hold is at most the total: what
-            // is missing from this one is damage nobody could be charged with taking.
-            assert(byOpponent <= figures.damageDealtApplied, `${path}: ${combatantId} by opponent`);
+            let dealtByKind = 0;
+            for (const amount of figures.damageDealtByKind.values()) dealtByKind += amount;
+            assertEquals(dealtByKind, figures.damageDealt, `${path}: ${combatantId} dealt by kind`);
+            let takenByKind = 0;
+            for (const amount of figures.damageTakenByKind.values()) takenByKind += amount;
+            assertEquals(takenByKind, figures.damageTaken, `${path}: ${combatantId} taken by kind`);
+            // What no end was named for stands beside the cut by the other end, and the two make
+            // the whole: a blow with no target is damage nobody could be charged with taking.
+            let dealtByOpponent = figures.damageDealtToNobody;
+            for (const amount of figures.damageDealtByOpponent.values()) dealtByOpponent += amount;
+            assertEquals(dealtByOpponent, figures.damageDealt, `${path}: ${combatantId} to whom`);
+            let takenByOpponent = figures.damageTakenFromNobody;
+            for (const amount of figures.damageTakenByOpponent.values()) takenByOpponent += amount;
+            assertEquals(takenByOpponent, figures.damageTaken, `${path}: ${combatantId} from whom`);
         }
     }
 });
@@ -631,7 +667,7 @@ Deno.test("a cut by both ends comes to the same figure as the cut by one", () =>
                 dealt += skill.dealt;
                 restored += skill.restored;
             }
-            assert(dealt <= figures.damageDealtApplied, `${where}: a skill dealt more than they`);
+            assert(dealt <= figures.damageDealt, `${where}: a skill dealt more than they`);
             assert(restored <= figures.healthGiven, `${where}: a skill put back more than they`);
             assert(
                 figures.blowsWithoutSkill <= figures.blowsStruck,
@@ -831,12 +867,49 @@ Deno.test("what a defence stopped is kept as the sum and as the defences it is m
         new Map(),
     );
     const target = statistics.byCombatantId.get(-10000249);
-    assertEquals(target?.damagePrevented, 545, "the one number a counter states");
+    assertEquals(target?.damageTakenAbsorbed, 545, "the one number a counter states");
     assertEquals(
-        [...target?.damagePreventedByDefence ?? []],
+        [...target?.damageTakenAbsorbedByDefence ?? []],
         [["absorb", 545]],
         "and which of them",
     );
+    const blocked = tally(decode(BLOCKED, null), new Map()).byCombatantId.get(195782);
+    assertEquals(blocked?.damagePrevented, 378, "a block drains nothing, so it is prevented");
+    assertEquals([...blocked?.damagePreventedByDefence ?? []], [["blok", 378]], "by the block");
+    assertEquals(blocked?.damageTakenAbsorbed, 0, "and no pool took a point of it");
+    assertEquals(blocked?.damageTaken, 0, "so the blow cost them nothing at all");
+});
+
+/**
+ * Probes: no recording carries a pool on a blow missing an end, 2026-09-27. What the pool took
+ * stands wherever the blow's health does, so the half-named counts balance either way.
+ */
+Deno.test("what a pool took on a blow missing an end is counted where its health is", () => {
+    const roster = indexCombatantRoster(PROBE_ROSTER_TWO_SIDES);
+    const fromNobody = tally(decode(["0;2=80.00;+dmg=100;-absorb=5;-dmg=60"], roster), new Map());
+    const struck = fromNobody.byCombatantId.get(2);
+    assertEquals(fromNobody.dealtByNobody, 65, "nobody dealt what landed and what the pool took");
+    assertEquals(struck?.damageTakenFromNobody, 65, "and the one struck took it from nobody");
+    assertEquals(struck?.damageTakenFromNobodyByKind.get("absorb"), 5, "the pool as its own kind");
+    const toNobody = tally(decode(["1=90.00;0;+dmg=100;-absorb=5;-dmg=60"], roster), new Map());
+    const striker = toNobody.byCombatantId.get(1);
+    assertEquals(toNobody.takenByNobody, 65, "nobody took what landed and what the pool took");
+    assertEquals(striker?.damageDealtToNobody, 65, "and the striker dealt it to nobody");
+    assertEquals(striker?.damageDealtToNobodyByKind.get("absorb"), 5, "the pool as its own kind");
+    assertEquals(striker?.damageDealtAbsorbed, 5, "a pool's part charged to whoever drained it");
+});
+
+/** Zero is a boundary (**W5**): a block alone leaves nothing absorbed, and one point is one. */
+Deno.test("one point a pool took is one point dealt, and a block alone is none", () => {
+    const blow = (defences: string) => `1=90.00;2=80.00;+dmg=100;${defences}-dmg=50`;
+    const roster = indexCombatantRoster(PROBE_ROSTER_TWO_SIDES);
+    const blocked = tally(decode([blow("-blok=4;")], roster), new Map()).byCombatantId;
+    assertEquals(blocked.get(1)?.damageDealtAbsorbed, 0, "a block drained no pool");
+    assertEquals(blocked.get(1)?.damageDealt, 50, "so what was dealt is what landed");
+    const drained = tally(decode([blow("-absorb=1;")], roster), new Map()).byCombatantId;
+    assertEquals(drained.get(1)?.damageDealtAbsorbed, 1, "one point drained");
+    assertEquals(drained.get(1)?.damageDealt, 51, "is one point dealt");
+    assertEquals(drained.get(2)?.damageTaken, 51, "and one point taken");
 });
 
 Deno.test("the hardest blow is the hardest blow, and no total can be read back to one", () => {
@@ -872,8 +945,12 @@ Deno.test("every recording places what a blow carried, and places none of it twi
             for (const [, amount] of figures.damagePreventedByDefence) cut += amount;
             assertEquals(cut, figures.damagePrevented, `${path} ${id} stops what its defences did`);
             assert(
-                figures.damageDealtBlowLargest <= figures.damageDealtApplied,
+                figures.damageDealtBlowLargest <= figures.damageDealt,
                 `${path} ${id}: one blow is never more than every blow`,
+            );
+            assert(
+                figures.damageTakenBlowLargest <= figures.damageTaken,
+                `${path} ${id}: one blow taken is never more than every blow taken`,
             );
             assert(
                 figures.blowsCritical <= figures.blowsStruck,
@@ -1157,7 +1234,7 @@ Deno.test("a blow naming neither end is counted apart, and on nobody's row", () 
     const statistics = tally(decode(["0;0;+dmgf=10;-dmgf=10"], null), new Map());
     assertEquals(statistics.byNeitherEnd, 10, "what names neither end");
     assertEquals(
-        [...statistics.byNeitherEndByElement],
+        [...statistics.byNeitherEndByKind],
         [["dmgf", 10]],
         "under what it was made of",
     );
@@ -1184,7 +1261,7 @@ Deno.test("a wound announced at nothing leaves the wound before it ticking", () 
         "2=70.00;0;injure=50",
     ];
     const statistics = tally(decode(messages, null), new Map());
-    const dealt = statistics.byCombatantId.get(1)?.damageDealtByElement.get("injure");
+    const dealt = statistics.byCombatantId.get(1)?.damageDealtByKind.get("injure");
     assertEquals(dealt, 50, "the tick is the first wound's, which nothing replaced");
 });
 
@@ -1192,7 +1269,7 @@ Deno.test("a loss under another key is no wound's tick, whatever figure it state
     const messages = ["1=90.00;2=80.00;+dmg=100;+injure=50;-dmg=100", "2=75.00;0;poison=50"];
     const statistics = tally(decode(messages, null), new Map());
     assertEquals(statistics.byCombatantId.get(2)?.damageTakenFromNobody, 50, "poison is nobody's");
-    const dealt = statistics.byCombatantId.get(1)?.damageDealtByElement.get("poison");
+    const dealt = statistics.byCombatantId.get(1)?.damageDealtByKind.get("poison");
     assertEquals(dealt, undefined, "and nothing of it is dealt by whoever left the wound");
 });
 
@@ -1239,13 +1316,27 @@ Deno.test("an unread message naming one end twice charges that row once", () => 
 Deno.test("every balance refuses a fight one point off in its own figure", () => {
     const offs: [string, (row: CombatantFigures) => Partial<CombatantFigures>][] = [
         ["applied", (row) => ({ damageTakenApplied: row.damageTakenApplied + 1 })],
+        ["dealt", (row) => ({
+            damageTaken: row.damageTaken + 1,
+            damageTakenApplied: row.damageTakenApplied + 1,
+        })],
         ["restored", (row) => ({ healthRestored: row.healthRestored + 1 })],
-        ["prevented", () => ({ damagePreventedByDefence: new Map([["absorb", 6]]) })],
+        ["prevented", () => ({ damagePreventedByDefence: new Map([["blok", 5]]) })],
+        ["absorbed", () => ({ damageTakenAbsorbedByDefence: new Map([["absorb", 6]]) })],
+        ["a pool prevented", () => ({
+            damagePrevented: 9,
+            damagePreventedByDefence: new Map([["blok", 4], ["absorb", 5]]),
+        })],
+        ["a chance absorbed", (row) => ({
+            damageTakenApplied: row.damageTakenApplied - 4,
+            damageTakenAbsorbed: 9,
+            damageTakenAbsorbedByDefence: new Map([["absorb", 5], ["blok", 4]]),
+        })],
         ["half-named", (row) => ({
             healthRestoredByNobody: row.healthRestoredByNobody + 1,
             healthRestoredByNobodyBySource: new Map([["heal", 1]]),
         })],
-        ["half-named kind", () => ({ damageDealtToNobodyByElement: new Map([["dmg", 1]]) })],
+        ["half-named kind", () => ({ damageDealtToNobodyByKind: new Map([["dmg", 1]]) })],
     ];
     for (const [balance, change] of offs) {
         const unbalanced = composeUnbalanced(change);
@@ -1259,7 +1350,7 @@ function composeUnbalanced(
 ): FightStatistics {
     const roster = indexCombatantRoster(PROBE_ROSTER_TWO_SIDES);
     const events = decode(
-        ["1=90.00;2=80.00;+dmg=100;-absorb=5;-dmg=100", "2=85.00;0;heal=50"],
+        ["1=90.00;2=80.00;+dmg=100;-absorb=5;-blok=4;-dmg=100", "2=85.00;0;heal=50"],
         roster,
     );
     const statistics = tallyFightStatistics(events, new Map());

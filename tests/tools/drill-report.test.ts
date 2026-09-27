@@ -245,7 +245,7 @@ Deno.test("a recording walked row by row names whom each level was opened from",
     // The receiving side keeps a key flat, with nobody beside it, so its rows open onto nothing.
     assert(lines.some((line) => line.includes("source leaf")), "and some do not");
     assert(
-        !lines.some((line) => line.includes("--- damageDealtApplied ---")),
+        !lines.some((line) => line.includes("--- damageDealt ---")),
         "a screen nobody asked for is not walked",
     );
 });
@@ -349,7 +349,7 @@ function readKindsSaidShut(text: string): string[] {
  * reading as though it were measured.
  */
 Deno.test("what stands under an announcement is what the register says it is", () => {
-    let appliedTotal = 0;
+    let dealtTotal = 0;
     let underAnnouncement = 0;
     let onSide = 0;
     let announcingOnSide = 0;
@@ -357,17 +357,17 @@ Deno.test("what stands under an announcement is what the register says it is", (
         const { statistics } = replayed.reading.figures;
         const { roster } = replayed.reading.view;
         for (const [combatantId, figures] of statistics.byCombatantId) {
-            appliedTotal += figures.damageDealtApplied;
+            dealtTotal += figures.damageDealt;
             for (const skill of figures.skills.values()) underAnnouncement += skill.dealt;
             if (roster.byId.get(combatantId)?.side !== SIDE_COUNTED) continue;
             onSide += 1;
             if (figures.skills.size > 0) announcingOnSide += 1;
         }
     }
-    assert(appliedTotal > 0, "the corpus holds applied damage to take a share of");
+    assert(dealtTotal > 0, "the corpus holds damage dealt to take a share of");
     assert(onSide > 0, "and combatants on the side the paragraph is about");
     const register = readUnwrapped(Deno.readTextFileSync(REGISTER_PATH));
-    const share = ((underAnnouncement / appliedTotal) * 100).toFixed(1);
+    const share = ((underAnnouncement / dealtTotal) * 100).toFixed(1);
     assertStringIncludes(
         register,
         `${announcingOnSide} of the ${onSide} combatants on side ${SIDE_COUNTED}`,
@@ -375,12 +375,12 @@ Deno.test("what stands under an announcement is what the register says it is", (
     );
     assertStringIncludes(
         register,
-        `${share}% of all applied damage`,
+        `${share}% of all damage dealt`,
         `${REGISTER_PATH}: the share standing under an announcement`,
     );
     assertStringIncludes(
         register,
-        `${formatGrouped(underAnnouncement)} of ${formatGrouped(appliedTotal)}`,
+        `${formatGrouped(underAnnouncement)} of ${formatGrouped(dealtTotal)}`,
         `${REGISTER_PATH}: the two figures that share is taken between`,
     );
 });

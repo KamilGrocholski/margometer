@@ -38,7 +38,7 @@ import { initTestView } from "#/tests/panel-view.ts";
 import { composeShownScreen } from "#/tests/shown-screen.ts";
 
 /** The screen that pins two figures at once, which is what puts two unnamed rows on one list. */
-const BOTH_ENDS_SCREEN: PanelMetric = PANEL_METRIC.damageTakenApplied;
+const BOTH_ENDS_SCREEN: PanelMetric = PANEL_METRIC.damageTaken;
 /**
  * What the words say, spelled out rather than read back off the module that writes them: a test
  * taking `PANEL_WORDS` for its expectation passes just as well when the panel says nothing.

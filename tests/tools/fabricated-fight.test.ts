@@ -133,6 +133,7 @@ Deno.test("the fabricated fight puts something in every part of the panel", () =
     assert(figures.some((one) => one.blowsCritical > 0), "and somebody struck a critical blow");
     assert(figures.some((one) => one.skills.size > 0), "and somebody was named under a skill");
     assert(statistics.totals.damagePrevented > 0, "the fight prevented something");
+    assert(statistics.totals.damageTakenAbsorbed > 0, "and a pool took something");
     // The four the corpus cannot show. Two of them reach a pinned row, and two reach no row at
     // all — which is the only place they can be looked at (`develop ADR 0082`, `CONTEXT.md`).
     assert(statistics.dealtByNobody > 0, "somebody was struck by nobody the game named");

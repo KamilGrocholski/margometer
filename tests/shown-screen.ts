@@ -16,7 +16,7 @@ export const SHOWN_LIST = "shown";
 
 export function composeShownScreen(
     reading: ScreenReading,
-    metric: PanelMetric = PANEL_METRIC.damageDealtApplied,
+    metric: PanelMetric = PANEL_METRIC.damageDealt,
 ): ShownScreen {
     return {
         listName: SHOWN_LIST,

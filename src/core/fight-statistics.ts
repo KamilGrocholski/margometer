@@ -15,6 +15,7 @@ import {
     type DamageFigure,
     type HealthChangeEvent,
     OUTCOME_RESULT,
+    type PreventedDamage,
     type UnknownMessageEvent,
     UNREAD_CAUSE,
 } from "./battle-event.ts";
@@ -22,6 +23,8 @@ import type { TeamHeal } from "./combatant-health.ts";
 import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
 import {
     CRITICAL_PROC_KEYS,
+    DEFENCE_MECHANISM,
+    getDefenceMechanism,
     getKeyReading,
     KEY_FAMILY,
     PROC_END,
@@ -56,10 +59,18 @@ export interface SkillFigures {
 }
 
 export interface CombatantFigures {
+    /** Applied and absorbed: the damage a panel draws, and what every cut of it sums to. */
+    damageDealt: number;
+    damageTaken: number;
     damageDealtRaw: number;
+    /** Health alone: the figure the protocol's own percentages witness. */
     damageDealtApplied: number;
     damageTakenRaw: number;
     damageTakenApplied: number;
+    /** Drained from a pool the target began the fight with (ADR 0012). */
+    damageDealtAbsorbed: number;
+    damageTakenAbsorbed: number;
+    /** Stopped by a defence that drains nothing: a block. */
     damagePrevented: number;
     healthRestored: number;
     /** Health this combatant put back, into anybody, themselves included. */
@@ -68,8 +79,8 @@ export interface CombatantFigures {
     damageTakenFromNobody: number;
     damageDealtToNobody: number;
     healthRestoredByNobody: number;
-    damageTakenFromNobodyByElement: ReadonlyMap<string, number>;
-    damageDealtToNobodyByElement: ReadonlyMap<string, number>;
+    damageTakenFromNobodyByKind: ReadonlyMap<string, number>;
+    damageDealtToNobodyByKind: ReadonlyMap<string, number>;
     healthRestoredByNobodyBySource: ReadonlyMap<string, number>;
     /**
      * There is no flat cut of what a combatant **gave** by key: the keys the protocol names belong
@@ -89,8 +100,8 @@ export interface CombatantFigures {
     damageDealtWithoutSkillByOpponent: ReadonlyMap<string, number>;
     damageTakenWithoutSkillByOpponent: ReadonlyMap<string, number>;
     healthGivenWithoutSkillByReceiverAndSource: ReadonlyMap<string, ReadonlyMap<string, number>>;
-    damageDealtByElement: ReadonlyMap<string, number>;
-    damageTakenByElement: ReadonlyMap<string, number>;
+    damageDealtByKind: ReadonlyMap<string, number>;
+    damageTakenByKind: ReadonlyMap<string, number>;
     damageDealtByOpponent: ReadonlyMap<string, number>;
     damageTakenByOpponent: ReadonlyMap<string, number>;
     /** A cut of a cut is what an opened pair is; neither flat cut can be folded into it. */
@@ -118,6 +129,8 @@ export interface CombatantFigures {
     procsWhenStriking: ReadonlyMap<string, number>;
     procsWhenStruck: ReadonlyMap<string, number>;
     damagePreventedByDefence: ReadonlyMap<string, number>;
+    damageDealtAbsorbedByDefence: ReadonlyMap<string, number>;
+    damageTakenAbsorbedByDefence: ReadonlyMap<string, number>;
     /** **Never totalled**: points and percentage points, `src/core/battle-event.ts`. */
     statisticsDestroyed: ReadonlyMap<string, number>;
     /**
@@ -155,7 +168,7 @@ export interface FightStatistics extends UnreadMessageCounts {
     restoredToNobody: number;
     /** What the protocol named **neither** end of: in both counts above, and on nobody's row. */
     byNeitherEnd: number;
-    byNeitherEndByElement: ReadonlyMap<string, number>;
+    byNeitherEndByKind: ReadonlyMap<string, number>;
     castsUnplaced: number;
     /** Every cast stated about a side, sized or not: what the count above is out of. */
     castsStated: number;
@@ -174,6 +187,19 @@ type Tallying<Held> = Held extends ReadonlyMap<infer Key, infer Value> ? Map<Key
 type TallyingFigures = Tallying<CombatantFigures>;
 type TallyingSkillFigures = Tallying<SkillFigures>;
 
+/** A blow's figures, read once: what it put out, what reached health, and what a pool took. */
+interface BlowFigures {
+    raw: number;
+    applied: number;
+    absorbed: number;
+    /** Applied and absorbed together: what the blow spent on its target. */
+    amount: number;
+    /** The elements it landed in and each pool that took part of it, as members of one cut. */
+    kinds: DamageFigure[];
+    absorbedParts: PreventedDamage[];
+    preventedParts: PreventedDamage[];
+}
+
 /** The wound standing against a victim: the freshest overwrites it, so one entry per victim. */
 interface WoundStanding {
     attackerId: number;
@@ -190,7 +216,7 @@ interface StatisticsBuild extends UnreadMessageCounts {
     givenByNobody: number;
     restoredToNobody: number;
     byNeitherEnd: number;
-    byNeitherEndByElement: Map<string, number>;
+    byNeitherEndByKind: Map<string, number>;
     turnStanding: TurnStanding;
     outcome: FightOutcome | null;
 }
@@ -212,18 +238,22 @@ export function countUnreadMessages(counted: UnreadMessageCounts): number {
 
 export function initCombatantFigures(): TallyingFigures {
     return {
+        damageDealt: 0,
+        damageTaken: 0,
         damageDealtRaw: 0,
         damageDealtApplied: 0,
         damageTakenRaw: 0,
         damageTakenApplied: 0,
+        damageDealtAbsorbed: 0,
+        damageTakenAbsorbed: 0,
         damagePrevented: 0,
         healthRestored: 0,
         healthGiven: 0,
         damageTakenFromNobody: 0,
         damageDealtToNobody: 0,
         healthRestoredByNobody: 0,
-        damageTakenFromNobodyByElement: new Map(),
-        damageDealtToNobodyByElement: new Map(),
+        damageTakenFromNobodyByKind: new Map(),
+        damageDealtToNobodyByKind: new Map(),
         healthRestoredByNobodyBySource: new Map(),
         healthRestoredByGiver: new Map(),
         healthGivenByReceiver: new Map(),
@@ -235,8 +265,8 @@ export function initCombatantFigures(): TallyingFigures {
         damageDealtWithoutSkillByOpponent: new Map(),
         damageTakenWithoutSkillByOpponent: new Map(),
         healthGivenWithoutSkillByReceiverAndSource: new Map(),
-        damageDealtByElement: new Map(),
-        damageTakenByElement: new Map(),
+        damageDealtByKind: new Map(),
+        damageTakenByKind: new Map(),
         damageDealtByOpponent: new Map(),
         damageTakenByOpponent: new Map(),
         damageDealtByOpponentAndKind: new Map(),
@@ -252,6 +282,8 @@ export function initCombatantFigures(): TallyingFigures {
         procsWhenStriking: new Map(),
         procsWhenStruck: new Map(),
         damagePreventedByDefence: new Map(),
+        damageDealtAbsorbedByDefence: new Map(),
+        damageTakenAbsorbedByDefence: new Map(),
         statisticsDestroyed: new Map(),
         unreadMessagesUnknownKey: 0,
         unreadMessagesNoParameter: 0,
@@ -276,7 +308,7 @@ export function tallyFightStatistics(
         givenByNobody: 0,
         restoredToNobody: 0,
         byNeitherEnd: 0,
-        byNeitherEndByElement: new Map(),
+        byNeitherEndByKind: new Map(),
         unreadMessagesUnknownKey: 0,
         unreadMessagesNoParameter: 0,
         unreadMessagesGrammarRefused: 0,
@@ -312,7 +344,7 @@ export function tallyFightStatistics(
         givenByNobody: build.givenByNobody,
         restoredToNobody: build.restoredToNobody,
         byNeitherEnd: build.byNeitherEnd,
-        byNeitherEndByElement: build.byNeitherEndByElement,
+        byNeitherEndByKind: build.byNeitherEndByKind,
         unreadMessagesUnknownKey: build.unreadMessagesUnknownKey,
         unreadMessagesNoParameter: build.unreadMessagesNoParameter,
         unreadMessagesGrammarRefused: build.unreadMessagesGrammarRefused,
@@ -528,40 +560,52 @@ function getSkillFigures(
 
 function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== BATTLE_EVENT.attack) return;
-    const raw = tallyFigures(event.raw);
-    const applied = tallyFigures(event.applied);
-    assert(raw >= 0, "a blow puts out no less than nothing");
-    assert(applied >= 0, "and lands no less than nothing");
-    if (event.actorId === null) build.dealtByNobody += applied;
+    const blow = tallyBlowFigures(event);
+    if (event.actorId === null) build.dealtByNobody += blow.amount;
     else {
         const dealer = getFiguresForCombatant(build.byCombatantId, event.actorId);
-        addAttackDealt(dealer, event, raw, applied);
+        addAttackDealt(dealer, event, blow);
     }
     const striker = getStrikerFigures(build, event.actorId);
     if (event.targetId === null) {
         addBlowProcs(striker, null, event.procs);
-        addBlowWithNoTarget(build, event.actorId, applied, event.applied);
+        addBlowWithNoTarget(build, event.actorId, blow.amount, blow.kinds);
         return;
     }
     const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
-    target.damageTakenRaw += raw;
-    target.damageTakenApplied += applied;
-    for (const figure of event.applied) {
-        addToCut(target.damageTakenByElement, figure.element, figure.amount);
-    }
-    if (event.actorId === null) {
-        target.damageTakenFromNobody += applied;
-        addKindsToCut(target.damageTakenFromNobodyByElement, event.applied);
-    } else {
-        addToCut(target.damageTakenByOpponent, `${event.actorId}`, applied);
-        addToPairCut(target.damageTakenByOpponentAndKind, `${event.actorId}`, event.applied);
-        if (event.announced === null) {
-            addToCut(target.damageTakenWithoutSkillByOpponent, `${event.actorId}`, applied);
-        }
-    }
-    addBlowTaken(target, event, applied);
+    addAttackTaken(target, event, blow);
     addBlowProcs(striker, target, event.procs);
-    assert(target.damageTakenApplied >= 0, "a total of applied damage never falls below nothing");
+}
+
+/**
+ * A pool's part joins the kind cut under the defence's own name, beside the elements: one blow
+ * lands in several elements and the protocol states one figure per pool, so no element is ever
+ * credited with any of it (ADR 0012).
+ */
+function tallyBlowFigures(event: AttackEvent): BlowFigures {
+    const raw = tallyFigures(event.raw);
+    const applied = tallyFigures(event.applied);
+    assert(raw >= 0, "a blow puts out no less than nothing");
+    assert(applied >= 0, "and lands no less than nothing");
+    assert(event.prevented.length <= CUT_MAXIMUM, "and is stopped inside its stated bound");
+    const kinds = [...event.applied];
+    const absorbedParts: PreventedDamage[] = [];
+    const preventedParts: PreventedDamage[] = [];
+    let absorbed = 0;
+    for (const stopped of event.prevented) {
+        if (getDefenceMechanism(stopped.defence) === DEFENCE_MECHANISM.pool) {
+            absorbedParts.push(stopped);
+            kinds.push({ element: stopped.defence, amount: stopped.amount });
+            absorbed += stopped.amount;
+        } else preventedParts.push(stopped);
+    }
+    assert(Number.isSafeInteger(absorbed), "a total stays inside what a number holds exactly");
+    assert(
+        absorbedParts.length + preventedParts.length === event.prevented.length,
+        "every defence either drained a pool or drained nothing",
+    );
+    const amount = applied + absorbed;
+    return { raw, applied, absorbed, amount, kinds, absorbedParts, preventedParts };
 }
 
 function tallyFigures(figures: readonly DamageFigure[]): number {
@@ -575,34 +619,32 @@ function tallyFigures(figures: readonly DamageFigure[]): number {
 }
 
 /** The dealing half of a blow, on the row of whoever struck it. */
-function addAttackDealt(
-    dealer: TallyingFigures,
-    event: AttackEvent,
-    raw: number,
-    applied: number,
-): void {
-    assert(raw >= 0, "a blow puts out no less than nothing");
-    assert(applied >= 0, "and lands no less than nothing");
-    dealer.damageDealtRaw += raw;
-    dealer.damageDealtApplied += applied;
+function addAttackDealt(dealer: TallyingFigures, event: AttackEvent, blow: BlowFigures): void {
+    assert(blow.amount >= blow.applied, "a pool adds to what landed and never takes from it");
+    dealer.damageDealtRaw += blow.raw;
+    dealer.damageDealtApplied += blow.applied;
+    dealer.damageDealtAbsorbed += blow.absorbed;
+    dealer.damageDealt += blow.amount;
     dealer.blowsStruck += 1;
     if (event.announced === null) {
         dealer.blowsWithoutSkill += 1;
         if (event.targetId !== null) {
-            addToCut(dealer.damageDealtWithoutSkillByOpponent, `${event.targetId}`, applied);
+            addToCut(dealer.damageDealtWithoutSkillByOpponent, `${event.targetId}`, blow.amount);
         }
     } else {
-        addSkillDealt(dealer.skills, event.announced, applied, getOtherEndKey(event.targetId));
+        const other = getOtherEndKey(event.targetId);
+        addSkillDealt(dealer.skills, event.announced, blow.amount, other);
         addSkillBlow(dealer.skills, event.announced);
     }
-    for (const figure of event.applied) {
-        addToCut(dealer.damageDealtByElement, figure.element, figure.amount);
+    addKindsToCut(dealer.damageDealtByKind, blow.kinds);
+    for (const part of blow.absorbedParts) {
+        addToCut(dealer.damageDealtAbsorbedByDefence, part.defence, part.amount);
     }
     if (event.targetId !== null) {
-        addToCut(dealer.damageDealtByOpponent, `${event.targetId}`, applied);
-        addToPairCut(dealer.damageDealtByOpponentAndKind, `${event.targetId}`, event.applied);
+        addToCut(dealer.damageDealtByOpponent, `${event.targetId}`, blow.amount);
+        addToPairCut(dealer.damageDealtByOpponentAndKind, `${event.targetId}`, blow.kinds);
     }
-    addBlowStruck(dealer, event, applied);
+    addBlowStruck(dealer, event, blow.amount);
 }
 
 function addSkillDealt(
@@ -643,10 +685,10 @@ function addToPairCut(
 }
 
 /** Everything a blow says about who **struck** it, beyond the damage itself. */
-function addBlowStruck(striker: TallyingFigures, event: AttackEvent, applied: number): void {
-    assert(applied >= 0, "a blow lands no less than nothing");
+function addBlowStruck(striker: TallyingFigures, event: AttackEvent, amount: number): void {
+    assert(amount >= 0, "a blow lands no less than nothing");
     assert(event.destroyed.length <= CUT_MAXIMUM, "and destroys inside its stated bound");
-    striker.damageDealtBlowLargest = getLargerBlow(striker.damageDealtBlowLargest, applied);
+    striker.damageDealtBlowLargest = getLargerBlow(striker.damageDealtBlowLargest, amount);
     if (isBlowCritical(event.procs)) striker.blowsCritical += 1;
     for (const destroyed of event.destroyed) {
         addToCut(striker.statisticsDestroyed, destroyed.statistic, destroyed.amount);
@@ -654,10 +696,10 @@ function addBlowStruck(striker: TallyingFigures, event: AttackEvent, applied: nu
 }
 
 /** Two blows of five thousand and one of nine total the same and are not the same fight. */
-function getLargerBlow(standing: number, applied: number): number {
+function getLargerBlow(standing: number, amount: number): number {
     assert(standing >= 0, "the hardest blow so far landed no less than nothing");
-    assert(applied >= 0, "and neither did the one being weighed against it");
-    return Math.max(standing, applied);
+    assert(amount >= 0, "and neither did the one being weighed against it");
+    return Math.max(standing, amount);
 }
 
 function isBlowCritical(procs: readonly string[]): boolean {
@@ -712,12 +754,12 @@ function addBlowWithNoTarget(
     build.takenByNobody += amount;
     if (actorId === null) {
         build.byNeitherEnd += amount;
-        addKindsToCut(build.byNeitherEndByElement, kinds);
+        addKindsToCut(build.byNeitherEndByKind, kinds);
         return;
     }
     const striker = getFiguresForCombatant(build.byCombatantId, actorId);
     striker.damageDealtToNobody += amount;
-    addKindsToCut(striker.damageDealtToNobodyByElement, kinds);
+    addKindsToCut(striker.damageDealtToNobodyByKind, kinds);
 }
 
 function addKindsToCut(cut: Map<string, number>, kinds: readonly DamageFigure[]): void {
@@ -728,14 +770,38 @@ function addKindsToCut(cut: Map<string, number>, kinds: readonly DamageFigure[])
     }
 }
 
+/** The taking half of a blow, on the row of whoever it struck. */
+function addAttackTaken(target: TallyingFigures, event: AttackEvent, blow: BlowFigures): void {
+    assert(blow.amount >= blow.applied, "a pool adds to what landed and never takes from it");
+    target.damageTakenRaw += blow.raw;
+    target.damageTakenApplied += blow.applied;
+    target.damageTaken += blow.amount;
+    addKindsToCut(target.damageTakenByKind, blow.kinds);
+    if (event.actorId === null) {
+        target.damageTakenFromNobody += blow.amount;
+        addKindsToCut(target.damageTakenFromNobodyByKind, blow.kinds);
+    } else {
+        addToCut(target.damageTakenByOpponent, `${event.actorId}`, blow.amount);
+        addToPairCut(target.damageTakenByOpponentAndKind, `${event.actorId}`, blow.kinds);
+        if (event.announced === null) {
+            addToCut(target.damageTakenWithoutSkillByOpponent, `${event.actorId}`, blow.amount);
+        }
+    }
+    addBlowTaken(target, blow);
+    assert(target.damageTaken >= 0, "a total of damage taken never falls below nothing");
+}
+
 /** The same for who **took** it: the sum a counter states and the cut a card draws, together. */
-function addBlowTaken(struck: TallyingFigures, event: AttackEvent, applied: number): void {
-    assert(applied >= 0, "a blow lands no less than nothing");
-    assert(event.prevented.length <= CUT_MAXIMUM, "and is stopped inside its stated bound");
-    struck.damageTakenBlowLargest = getLargerBlow(struck.damageTakenBlowLargest, applied);
-    for (const stopped of event.prevented) {
-        struck.damagePrevented += stopped.amount;
-        addToCut(struck.damagePreventedByDefence, stopped.defence, stopped.amount);
+function addBlowTaken(struck: TallyingFigures, blow: BlowFigures): void {
+    assert(blow.amount >= 0, "a blow lands no less than nothing");
+    struck.damageTakenBlowLargest = getLargerBlow(struck.damageTakenBlowLargest, blow.amount);
+    for (const part of blow.absorbedParts) {
+        struck.damageTakenAbsorbed += part.amount;
+        addToCut(struck.damageTakenAbsorbedByDefence, part.defence, part.amount);
+    }
+    for (const part of blow.preventedParts) {
+        struck.damagePrevented += part.amount;
+        addToCut(struck.damagePreventedByDefence, part.defence, part.amount);
     }
 }
 
@@ -754,9 +820,9 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.actorId === null) build.dealtByNobody += amount;
     else {
         const dealer = getFiguresForCombatant(build.byCombatantId, event.actorId);
-        dealer.damageDealtApplied += amount;
+        addDealtHealth(dealer, amount);
         dealer.damageDealtBlowLargest = getLargerBlow(dealer.damageDealtBlowLargest, amount);
-        addToCut(dealer.damageDealtByElement, event.damage.element, amount);
+        addToCut(dealer.damageDealtByKind, event.damage.element, amount);
         // The announcement is spent and the count of blows is not: a swing is a swing.
         if (event.announced !== null) {
             addSkillDealt(dealer.skills, event.announced, amount, getOtherEndKey(event.targetId));
@@ -774,12 +840,12 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
         return;
     }
     const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
-    target.damageTakenApplied += amount;
+    addTakenHealth(target, amount);
     target.damageTakenBlowLargest = getLargerBlow(target.damageTakenBlowLargest, amount);
-    addToCut(target.damageTakenByElement, event.damage.element, amount);
+    addToCut(target.damageTakenByKind, event.damage.element, amount);
     if (event.actorId === null) {
         target.damageTakenFromNobody += amount;
-        addToCut(target.damageTakenFromNobodyByElement, event.damage.element, amount);
+        addToCut(target.damageTakenFromNobodyByKind, event.damage.element, amount);
     } else {
         addToCut(target.damageTakenByOpponent, `${event.actorId}`, amount);
         addToPairCut(target.damageTakenByOpponentAndKind, `${event.actorId}`, [event.damage]);
@@ -787,6 +853,21 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
             addToCut(target.damageTakenWithoutSkillByOpponent, `${event.actorId}`, amount);
         }
     }
+}
+
+/** Health taken off outside a pool: into the figure drawn and the one the percentages witness. */
+function addDealtHealth(dealer: TallyingFigures, amount: number): void {
+    assert(amount >= 0, "health taken off is never below nothing");
+    dealer.damageDealtApplied += amount;
+    dealer.damageDealt += amount;
+    assert(dealer.damageDealt >= dealer.damageDealtApplied, "health is a part of what was dealt");
+}
+
+function addTakenHealth(target: TallyingFigures, amount: number): void {
+    assert(amount >= 0, "health taken off is never below nothing");
+    target.damageTakenApplied += amount;
+    target.damageTaken += amount;
+    assert(target.damageTaken >= target.damageTakenApplied, "health is a part of what was taken");
 }
 
 /**
@@ -818,7 +899,7 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
         build.takenByNobody += lost;
         build.dealtByNobody += lost;
         build.byNeitherEnd += lost;
-        addToCut(build.byNeitherEndByElement, event.source, lost);
+        addToCut(build.byNeitherEndByKind, event.source, lost);
         return;
     }
     const figures = getFiguresForCombatant(build.byCombatantId, event.combatantId);
@@ -833,15 +914,15 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
         addGivenHealth(build, giverId, event.amount, event.combatantId, stated);
         return;
     }
-    figures.damageTakenApplied += lost;
-    // The key joins the element cut, because a tick of poison is a kind of damage taken; and the
+    addTakenHealth(figures, lost);
+    // The key joins the kind cut, because a tick of poison is a kind of damage taken; and the
     // cut the skills section closes against, which is a different question.
-    addToCut(figures.damageTakenByElement, event.source, lost);
+    addToCut(figures.damageTakenByKind, event.source, lost);
     addToCut(figures.damageTakenWithoutSkillBySource, event.source, lost);
     const attackerId = lookupWoundAttackerId(build, event);
     if (attackerId === null) {
         figures.damageTakenFromNobody += lost;
-        addToCut(figures.damageTakenFromNobodyByElement, event.source, lost);
+        addToCut(figures.damageTakenFromNobodyByKind, event.source, lost);
         build.dealtByNobody += lost;
     } else {
         addWoundTick(build, event.combatantId, attackerId, lost);
@@ -903,8 +984,8 @@ function addWoundTick(
     assert(Number.isSafeInteger(amount), "a figure totalled is a whole number");
     const kind: DamageFigure[] = [{ element: WOUND_TICK_KEY, amount }];
     const attacker = getFiguresForCombatant(build.byCombatantId, attackerId);
-    attacker.damageDealtApplied += amount;
-    addToCut(attacker.damageDealtByElement, WOUND_TICK_KEY, amount);
+    addDealtHealth(attacker, amount);
+    addToCut(attacker.damageDealtByKind, WOUND_TICK_KEY, amount);
     addToCut(attacker.damageDealtWithoutSkillBySource, WOUND_TICK_KEY, amount);
     addToCut(
         getPairCut(attacker.damageDealtWithoutSkillByOpponentAndSource, `${victimId}`),
@@ -986,6 +1067,10 @@ function addTurnLost(build: StatisticsBuild, event: BattleEvent): void {
 function tallyTotals(byCombatantId: ReadonlyMap<number, TallyingFigures>): TallyingFigures {
     const totals = initCombatantFigures();
     for (const figures of byCombatantId.values()) {
+        totals.damageDealt += figures.damageDealt;
+        totals.damageTaken += figures.damageTaken;
+        totals.damageDealtAbsorbed += figures.damageDealtAbsorbed;
+        totals.damageTakenAbsorbed += figures.damageTakenAbsorbed;
         totals.damageDealtRaw += figures.damageDealtRaw;
         totals.damageDealtApplied += figures.damageDealtApplied;
         totals.damageTakenRaw += figures.damageTakenRaw;
@@ -994,16 +1079,17 @@ function tallyTotals(byCombatantId: ReadonlyMap<number, TallyingFigures>): Tally
         totals.healthRestored += figures.healthRestored;
         totals.healthGiven += figures.healthGiven;
     }
-    assert(totals.damageDealtApplied >= 0, "a total of applied damage never falls below nothing");
+    assert(totals.damageDealt >= totals.damageDealtApplied, "health is a part of what was dealt");
     assert(totals.healthRestored >= 0, "and neither does a total of health restored");
     return totals;
 }
 
 /** The balances in one place: assertions only. */
 export function verifyFightStatistics(statistics: FightStatistics): void {
+    assert(tallyDealtBalance(statistics) === 0, "every point dealt is counted once at each end");
     assert(
-        tallyAppliedBalance(statistics) === 0,
-        "every point applied is counted once at each end",
+        tallyDealtPartsBalance(statistics) === 0,
+        "and every point dealt or taken reached health or drained a pool",
     );
     assert(
         tallyRestoredBalance(statistics) === 0,
@@ -1018,22 +1104,51 @@ export function verifyFightStatistics(statistics: FightStatistics): void {
         tallyPreventedBalance(statistics) === 0,
         "and what the defences stopped is stopped by one of them",
     );
+    for (const figures of statistics.byCombatantId.values()) verifyDefenceMechanisms(figures);
+}
+
+/** The negative space of the defence cuts: a pool is never prevented, a chance never absorbed. */
+function verifyDefenceMechanisms(figures: CombatantFigures): void {
+    for (const defence of figures.damagePreventedByDefence.keys()) {
+        const mechanism = getDefenceMechanism(defence);
+        assert(mechanism === DEFENCE_MECHANISM.chance, "what was prevented drained no pool");
+    }
+    for (const defence of figures.damageDealtAbsorbedByDefence.keys()) {
+        const mechanism = getDefenceMechanism(defence);
+        assert(mechanism === DEFENCE_MECHANISM.pool, "what was absorbed drained a pool");
+    }
+    for (const defence of figures.damageTakenAbsorbedByDefence.keys()) {
+        const mechanism = getDefenceMechanism(defence);
+        assert(mechanism === DEFENCE_MECHANISM.pool, "what was absorbed drained a pool");
+    }
 }
 
 /**
- * Applied damage is stated once and lands twice, on whoever dealt it and on whoever took it, so
- * the two sides must come out equal, with what the log tied to nobody standing in on either.
+ * Damage is stated once and lands twice, on whoever dealt it and on whoever took it, so the two
+ * sides must come out equal, with what the log tied to nobody standing in on either.
  */
-function tallyAppliedBalance(statistics: FightStatistics): number {
+function tallyDealtBalance(statistics: FightStatistics): number {
     let dealt = statistics.dealtByNobody;
     let taken = statistics.takenByNobody;
     for (const figures of statistics.byCombatantId.values()) {
-        dealt += figures.damageDealtApplied;
-        taken += figures.damageTakenApplied;
+        dealt += figures.damageDealt;
+        taken += figures.damageTaken;
     }
     assert(Number.isSafeInteger(dealt), "a total stays inside what a number holds exactly");
     assert(Number.isSafeInteger(taken), "a total stays inside what a number holds exactly");
     return dealt - taken;
+}
+
+/** Each row's damage against the two things it is made of: health, and what a pool took. */
+function tallyDealtPartsBalance(statistics: FightStatistics): number {
+    let apart = 0;
+    for (const figures of statistics.byCombatantId.values()) {
+        const dealt = figures.damageDealtApplied + figures.damageDealtAbsorbed;
+        const taken = figures.damageTakenApplied + figures.damageTakenAbsorbed;
+        apart += Math.abs(figures.damageDealt - dealt) + Math.abs(figures.damageTaken - taken);
+    }
+    assert(Number.isSafeInteger(apart), "a total stays inside what a number holds exactly");
+    return apart;
 }
 
 /** The same equation on health put back: once stated, landing on giver and receiver. */
@@ -1071,10 +1186,10 @@ function tallyHalfNamedBalance(statistics: FightStatistics): number {
 
 /** What each half-named figure was made of, against the figure itself. */
 function tallyHalfNamedKindBalance(statistics: FightStatistics): number {
-    let apart = tallyCutApart(statistics.byNeitherEnd, statistics.byNeitherEndByElement);
+    let apart = tallyCutApart(statistics.byNeitherEnd, statistics.byNeitherEndByKind);
     for (const figures of statistics.byCombatantId.values()) {
-        const takenCut = figures.damageTakenFromNobodyByElement;
-        const dealtCut = figures.damageDealtToNobodyByElement;
+        const takenCut = figures.damageTakenFromNobodyByKind;
+        const dealtCut = figures.damageDealtToNobodyByKind;
         const restoredCut = figures.healthRestoredByNobodyBySource;
         apart += tallyCutApart(figures.damageTakenFromNobody, takenCut);
         apart += tallyCutApart(figures.damageDealtToNobody, dealtCut);
@@ -1093,11 +1208,13 @@ function tallyCutApart(figure: number, cut: ReadonlyMap<string, number>): number
     return Math.abs(figure - held);
 }
 
-/** What the defences stopped, against the one number a counter states for the lot. */
+/** What the defences stopped, against the one number a counter states for each kind of them. */
 function tallyPreventedBalance(statistics: FightStatistics): number {
     let apart = 0;
     for (const figures of statistics.byCombatantId.values()) {
         apart += tallyCutApart(figures.damagePrevented, figures.damagePreventedByDefence);
+        apart += tallyCutApart(figures.damageDealtAbsorbed, figures.damageDealtAbsorbedByDefence);
+        apart += tallyCutApart(figures.damageTakenAbsorbed, figures.damageTakenAbsorbedByDefence);
     }
     assert(apart >= 0, "a difference counted as a distance is never below nothing");
     return apart;

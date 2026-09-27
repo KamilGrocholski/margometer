@@ -52,7 +52,7 @@ Deno.test("every screen has words of its own, and no two share them", () => {
 });
 
 Deno.test("a name no screen answers to moves nothing", () => {
-    assert(isOneOf(SCREEN_ORDER, "damageDealtApplied"), "a screen is read");
+    assert(isOneOf(SCREEN_ORDER, "damageDealt"), "a screen is read");
     assert(isOneOf(SCREEN_ORDER, "healthRestored"), "and so is another");
     assert(!isOneOf(SCREEN_ORDER, "whatever"), "a stray name is nobody's screen");
     assert(!isOneOf(SCREEN_ORDER, ""), "and neither is nothing at all");
@@ -61,7 +61,7 @@ Deno.test("a name no screen answers to moves nothing", () => {
 Deno.test("a panel opens on a screen it can draw, folded as the reader last left it", () => {
     const state = createScreenState(false);
     assertArrayIncludes(SCREEN_ORDER, [state.current], "the opening screen is one of them");
-    assertEquals(state.current, PANEL_METRIC.damageDealtApplied, "and it is what the reader did");
+    assertEquals(state.current, PANEL_METRIC.damageDealt, "and it is what the reader did");
     assertEquals(
         state.side,
         SIDE_CHOICE.everyone,
@@ -74,7 +74,7 @@ Deno.test("a panel opens on a screen it can draw, folded as the reader last left
 Deno.test("a name no side answers to moves nothing either", () => {
     assert(isOneOf(SIDE_CHOICES, "reader"), "a choice is read");
     assert(isOneOf(SIDE_CHOICES, "opposing"), "and so is another");
-    assert(!isOneOf(SIDE_CHOICES, "damageDealtApplied"), "a screen is not a side");
+    assert(!isOneOf(SIDE_CHOICES, "damageDealt"), "a screen is not a side");
     assert(!isOneOf(SIDE_CHOICES, ""), "and neither is nothing at all");
 });
 
@@ -105,17 +105,13 @@ Deno.test("one strip is marked on each row, and it is the screen the panel is on
  * was a noun with no direction. Crossing the nouns keeps the direction the reader is reading in.
  */
 Deno.test("crossing between the nouns keeps the direction, or says there is none to keep", () => {
-    const fromDealt = presentNounStrips(PANEL_METRIC.damageDealtApplied).find((one) =>
-        !one.isCurrent
-    );
+    const fromDealt = presentNounStrips(PANEL_METRIC.damageDealt).find((one) => !one.isCurrent);
     assertEquals(
         fromDealt?.name,
         PANEL_METRIC.healthGiven,
         "damage given crosses to healing given",
     );
-    const fromTaken = presentNounStrips(PANEL_METRIC.damageTakenApplied).find((one) =>
-        !one.isCurrent
-    );
+    const fromTaken = presentNounStrips(PANEL_METRIC.damageTaken).find((one) => !one.isCurrent);
     assertEquals(
         fromTaken?.name,
         PANEL_METRIC.healthRestored,
@@ -124,16 +120,16 @@ Deno.test("crossing between the nouns keeps the direction, or says there is none
     const back = presentNounStrips(PANEL_METRIC.healthGiven).find((one) => !one.isCurrent);
     assertEquals(
         back?.name,
-        PANEL_METRIC.damageDealtApplied,
+        PANEL_METRIC.damageDealt,
         "and the crossing goes back the way it came",
     );
 });
 
 Deno.test("the direction strip draws the noun's own screens and nobody else's", () => {
-    const damage = presentDirectionStrips(PANEL_METRIC.damageDealtApplied).map((one) => one.name);
+    const damage = presentDirectionStrips(PANEL_METRIC.damageDealt).map((one) => one.name);
     assertEquals(
         damage,
-        [PANEL_METRIC.damageDealtApplied, PANEL_METRIC.damageTakenApplied],
+        [PANEL_METRIC.damageDealt, PANEL_METRIC.damageTaken],
         "damage both ways round",
     );
     const healing = presentDirectionStrips(PANEL_METRIC.healthRestored).map((one) => one.name);

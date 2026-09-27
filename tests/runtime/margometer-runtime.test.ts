@@ -272,15 +272,15 @@ Deno.test("a reader presses a screen and the panel goes there, and nowhere else"
         getElementsWithin(host)
             .find((one) => one.className.includes(CLASS.stripCurrent))
             ?.attributes.get("data-screen");
-    assertEquals(current(), "damageDealtApplied", "the panel opens on what the reader did");
-    const taken = findByMark(host, "data-screen", "damageTakenApplied");
+    assertEquals(current(), "damageDealt", "the panel opens on what the reader did");
+    const taken = findByMark(host, "data-screen", "damageTaken");
     assertExists(taken, "there is a screen to press");
     world.press(taken);
-    assertEquals(current(), "damageTakenApplied", "and pressing it takes the panel there");
+    assertEquals(current(), "damageTaken", "and pressing it takes the panel there");
     const stray = world.ports.document.createElement("div") as FakeElement;
     stray.setAttribute("data-screen", "whateverTheGameCalls");
     world.press(stray);
-    assertEquals(current(), "damageTakenApplied", "and a screen nobody has moves nothing");
+    assertEquals(current(), "damageTaken", "and a screen nobody has moves nothing");
 });
 
 /** The add-on stood up on a page of its own, with a recording replayed through its wrap. */
@@ -418,6 +418,17 @@ Deno.test("the fight is handed over counted as well as raw, and the two agree", 
         return sum + (typeof row.damageDealtApplied === "number" ? row.damageDealtApplied : 0);
     }, 0);
     assertEquals(totals.damageDealtApplied, summed, "which come to what the rows come to");
+    // Each row's dealt is its health and what a pool took, which this fight holds a row of.
+    let drained = 0;
+    for (const row of Object.values(counted)) {
+        if (!isRecord(row)) continue;
+        const { damageDealt, damageDealtApplied, damageDealtAbsorbed } = row;
+        assert(typeof damageDealtAbsorbed === "number", "a row states what a pool took");
+        assert(typeof damageDealtApplied === "number", "and the health");
+        assertEquals(damageDealt, damageDealtApplied + damageDealtAbsorbed, "which are its dealt");
+        drained += damageDealtAbsorbed;
+    }
+    assert(drained > 0, "and a pool took part of what somebody dealt in it");
 });
 
 /**
@@ -611,7 +622,7 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     assertExists(again, "a row opens a second time");
     world.press(again);
     const opened = getRegion(host, CLASS.crumbHere)?.textContent;
-    const taken = findByMark(host, "data-screen", "damageTakenApplied");
+    const taken = findByMark(host, "data-screen", "damageTaken");
     assertExists(taken, "there is another screen to reach for");
     world.press(taken);
     assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, opened, "the same person stays");
@@ -686,7 +697,7 @@ Deno.test("a reader opens a pinned row, and it does not follow them to the next 
     const reopened = pinnedName();
     assertExists(reopened, "and puts the pinned row back under the ranking");
     world.press(reopened);
-    const taken = findByMark(host, "data-screen", "damageTakenApplied");
+    const taken = findByMark(host, "data-screen", "damageTaken");
     assertExists(taken, "there is another screen to reach for");
     world.press(taken);
     assertEquals(getRegion(host, CLASS.crumb), undefined, "a change of screen closes it");
@@ -1139,7 +1150,7 @@ Deno.test("a mark nothing of ours writes drops the gesture, and the next frame s
     const stray = world.ports.document.createElement("div") as FakeElement;
     stray.setAttribute("data-screen", "whateverTheGameCalls");
     world.press(stray);
-    const taken = findByMark(world.getHost(), "data-screen", "damageTakenApplied");
+    const taken = findByMark(world.getHost(), "data-screen", "damageTaken");
     assertExists(taken, "there is a screen to press");
     world.press(taken);
     assertEquals(
@@ -1310,11 +1321,11 @@ Deno.test("a region the document will not draw is said on the next frame, and na
     document.createElement = () => {
         throw new RangeError("a document being torn down");
     };
-    const taken = findByMark(world.getHost(), "data-screen", "damageTakenApplied");
+    const taken = findByMark(world.getHost(), "data-screen", "damageTaken");
     assertExists(taken, "there is a screen to press");
     world.press(taken);
     document.createElement = createElement;
-    const back = findByMark(world.getHost(), "data-screen", "damageDealtApplied");
+    const back = findByMark(world.getHost(), "data-screen", "damageDealt");
     assertExists(back, "and a screen to press after the document recovers");
     world.press(back);
     const said = getTextsByClass(world.getHost(), CLASS.defect);
@@ -1584,7 +1595,7 @@ Deno.test("a change of screen keeps the person opened, and lets go of the pair",
     assertExists(other, "somebody inside it to open");
     world.press(other);
     assertNotStrictEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "a pair opened");
-    const taken = findByMark(host, "data-screen", "damageTakenApplied");
+    const taken = findByMark(host, "data-screen", "damageTaken");
     assertExists(taken, "another screen to reach for");
     world.press(taken);
     assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "the person, alone");
@@ -1595,7 +1606,7 @@ Deno.test("a change of screen keeps the person opened, and lets go of the pair",
 Deno.test("a screen chosen while the shelf is up takes the panel off the shelf", () => {
     const world = playRecordedFight();
     openShelfScreen(world);
-    world.runtime.onIntent({ kind: "metric", metric: "damageTakenApplied" });
+    world.runtime.onIntent({ kind: "metric", metric: "damageTaken" });
     world.flush();
     const host = world.getHost();
     assertEquals(getTextsByClass(host, CLASS.crumbHere), [], "the shelf gives way to the screen");

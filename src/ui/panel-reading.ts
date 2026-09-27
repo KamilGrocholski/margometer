@@ -66,17 +66,17 @@ export interface PanelRow {
  * **Numbers, and not one word.** A card is composed when a pointer opens it, so a fight redrawing
  * every few seconds pays for the twenty it draws rather than for twenty cards nobody looks at.
  *
- * Raw stands beside applied and is never taken from it: their difference is not what a defence
- * stopped, and the protocol reports neither armour nor resistance
+ * Raw stands beside what was dealt and taken and is never taken from it: their difference is not
+ * what a defence stopped, and the protocol reports neither armour nor resistance
  * (`src/core/fight-statistics.ts`).
  */
 export interface RowDetail {
     level: number | null;
-    damageDealtApplied: number;
-    damageTakenApplied: number;
+    damageDealt: number;
+    damageTaken: number;
     /**
      * **The raw of the blows, and never the raw of the figure beside it.** The protocol states a
-     * figure before reduction on a blow and nowhere else, while an applied figure grows from
+     * figure before reduction on a blow and nowhere else, while the figure beside it grows from
      * blows, from damage named against somebody and from health moving outside one. What the card
      * owes for drawing these is the label saying what they are a sum of (`src/ui/panel-words.ts`).
      */
@@ -117,6 +117,9 @@ export interface RowDetail {
     procsWhenStriking: readonly CutPart[];
     procsWhenStruck: readonly CutPart[];
     damagePreventedByDefence: readonly CutPart[];
+    /** The part of `damageDealt` and `damageTaken` a pool took rather than health (ADR 0012). */
+    damageDealtAbsorbedByDefence: readonly CutPart[];
+    damageTakenAbsorbedByDefence: readonly CutPart[];
     statisticsDestroyed: readonly CutPart[];
     /**
      * This person's own share of the fight's two suspicions, which is what puts a mark on their row
@@ -187,8 +190,8 @@ type HalfNamedField = VocabularyWord<typeof HALF_NAMED_FIELD>;
 
 /** And the same figure cut by the key it was stated under, which is what it was dealt with. */
 const HALF_NAMED_KIND_FIELD = {
-    damageTakenFromNobodyByElement: "damageTakenFromNobodyByElement",
-    damageDealtToNobodyByElement: "damageDealtToNobodyByElement",
+    damageTakenFromNobodyByKind: "damageTakenFromNobodyByKind",
+    damageDealtToNobodyByKind: "damageDealtToNobodyByKind",
     healthRestoredByNobodyBySource: "healthRestoredByNobodyBySource",
 } as const;
 type HalfNamedKindField = VocabularyWord<typeof HALF_NAMED_KIND_FIELD>;
@@ -627,11 +630,11 @@ const SIDE_ROWS = 10;
  */
 const PINNED_SHAPES: Record<PinnedCase, PinnedShape> = {
     dealtWithNoActor: {
-        metric: PANEL_METRIC.damageDealtApplied,
+        metric: PANEL_METRIC.damageDealt,
         end: UNNAMED_END.actor,
         standing: PINNED_STANDING.apart,
         field: HALF_NAMED_FIELD.damageTakenFromNobody,
-        kinds: HALF_NAMED_KIND_FIELD.damageTakenFromNobodyByElement,
+        kinds: HALF_NAMED_KIND_FIELD.damageTakenFromNobodyByKind,
     },
     givenWithNoActor: {
         metric: PANEL_METRIC.healthGiven,
@@ -641,18 +644,18 @@ const PINNED_SHAPES: Record<PinnedCase, PinnedShape> = {
         kinds: HALF_NAMED_KIND_FIELD.healthRestoredByNobodyBySource,
     },
     takenWithNoActor: {
-        metric: PANEL_METRIC.damageTakenApplied,
+        metric: PANEL_METRIC.damageTaken,
         end: UNNAMED_END.actor,
         standing: PINNED_STANDING.cut,
         field: HALF_NAMED_FIELD.damageTakenFromNobody,
-        kinds: HALF_NAMED_KIND_FIELD.damageTakenFromNobodyByElement,
+        kinds: HALF_NAMED_KIND_FIELD.damageTakenFromNobodyByKind,
     },
     takenWithNoTarget: {
-        metric: PANEL_METRIC.damageTakenApplied,
+        metric: PANEL_METRIC.damageTaken,
         end: UNNAMED_END.target,
         standing: PINNED_STANDING.apart,
         field: HALF_NAMED_FIELD.damageDealtToNobody,
-        kinds: HALF_NAMED_KIND_FIELD.damageDealtToNobodyByElement,
+        kinds: HALF_NAMED_KIND_FIELD.damageDealtToNobodyByKind,
     },
     restoredWithNoActor: {
         metric: PANEL_METRIC.healthRestored,
@@ -1010,8 +1013,8 @@ function composeRowDetail(
 ): RowDetail {
     return {
         level,
-        damageDealtApplied: figures.damageDealtApplied,
-        damageTakenApplied: figures.damageTakenApplied,
+        damageDealt: figures.damageDealt,
+        damageTaken: figures.damageTaken,
         damageDealtRaw: figures.damageDealtRaw,
         damageTakenRaw: figures.damageTakenRaw,
         healthGiven: figures.healthGiven,
@@ -1030,6 +1033,8 @@ function composeRowDetail(
         procsWhenStriking: composeCutParts(figures.procsWhenStriking),
         procsWhenStruck: composeCutParts(figures.procsWhenStruck),
         damagePreventedByDefence: composeCutParts(figures.damagePreventedByDefence),
+        damageDealtAbsorbedByDefence: composeCutParts(figures.damageDealtAbsorbedByDefence),
+        damageTakenAbsorbedByDefence: composeCutParts(figures.damageTakenAbsorbedByDefence),
         statisticsDestroyed: composeCutParts(figures.statisticsDestroyed),
         unreadMessagesUnknownKey: figures.unreadMessagesUnknownKey,
         unreadMessagesNoParameter: figures.unreadMessagesNoParameter,
@@ -1104,7 +1109,7 @@ function composeHalfNamedKinds(
         if (figures === undefined) continue;
         rest += addFoldedCut(folded, figures[shape.kinds]);
     }
-    if (neither > 0) rest += addFoldedCut(folded, statistics.byNeitherEndByElement);
+    if (neither > 0) rest += addFoldedCut(folded, statistics.byNeitherEndByKind);
     // A key standing only for what named neither end has nobody's row to open onto, and a level
     // holding one refusal says nothing the row above it did not.
     return composeElementCut(folded, total, (element) => {
@@ -1135,9 +1140,9 @@ function addFoldedCut(folded: Map<string, number>, held: FigureCut): number {
 /**
  * ⚠️ **The remainder here is nothing, on every screen, and the row for it is unreached.** Each
  * writer of a figure in `src/core/fight-statistics.ts` writes the kind it moved under in the same
- * breath — a blow's elements beside its applied damage, a bare movement's key beside the health it
- * took, a restoring key beside what it put back — so a kind cut comes to the figure it is a cut
- * of. Measured over `captures/` on 2026-08-30: 0 of 1,060 combatant-and-screen readings.
+ * breath — a blow's elements and pools beside what it dealt, a bare movement's key beside the
+ * health it took, a restoring key beside what it put back — so a kind cut comes to the figure it
+ * is a cut of. Measured over `captures/` on 2026-08-30: 0 of 1,060 combatant-and-screen readings.
  *
  * It stays as a row rather than becoming a check of any kind: this is four call sites agreeing,
  * and a fifth that forgot the cut should leave a reader a row saying so.
@@ -1279,7 +1284,7 @@ function composeHalfNamedForKind(
     const found = getHalfNamedByKind(statistics, shape.kinds, listing.parts, opened.element);
     if (found.length === 0) return null;
     const apart = getNeitherEndForPinned(statistics, kase, listing.part);
-    const neither = apart <= 0 ? 0 : statistics.byNeitherEndByElement.get(opened.element) ?? 0;
+    const neither = apart <= 0 ? 0 : statistics.byNeitherEndByKind.get(opened.element) ?? 0;
     let total = neither;
     for (const one of found) total += one.figure;
     if (total <= 0) return null;
@@ -1478,16 +1483,16 @@ function composePanelSides(
 }
 
 function getHalfNamed(figures: CombatantFigures, metric: PanelMetric): number {
-    if (metric === PANEL_METRIC.damageDealtApplied) return figures.damageTakenFromNobody;
-    if (metric === PANEL_METRIC.damageTakenApplied) return figures.damageDealtToNobody;
+    if (metric === PANEL_METRIC.damageDealt) return figures.damageTakenFromNobody;
+    if (metric === PANEL_METRIC.damageTaken) return figures.damageDealtToNobody;
     if (metric === PANEL_METRIC.healthGiven) return figures.healthRestoredByNobody;
     return 0;
 }
 
 /** What names neither end, which belongs to no side at all and is only ever damage. */
 function getWithNeitherEnd(statistics: FightStatistics, metric: PanelMetric): number {
-    if (metric === PANEL_METRIC.damageDealtApplied) return statistics.byNeitherEnd;
-    if (metric === PANEL_METRIC.damageTakenApplied) return statistics.byNeitherEnd;
+    if (metric === PANEL_METRIC.damageDealt) return statistics.byNeitherEnd;
+    if (metric === PANEL_METRIC.damageTaken) return statistics.byNeitherEnd;
     return 0;
 }
 
@@ -1525,8 +1530,8 @@ function getCountedTotal(
  * The fourth reaches no row at all, which is what the section under the list is for.
  */
 function getNobodyForMetric(statistics: FightStatistics, metric: PanelMetric): number {
-    if (metric === PANEL_METRIC.damageDealtApplied) return statistics.dealtByNobody;
-    if (metric === PANEL_METRIC.damageTakenApplied) return statistics.takenByNobody;
+    if (metric === PANEL_METRIC.damageDealt) return statistics.dealtByNobody;
+    if (metric === PANEL_METRIC.damageTaken) return statistics.takenByNobody;
     if (metric === PANEL_METRIC.healthGiven) return statistics.givenByNobody;
     return statistics.restoredToNobody;
 }
@@ -1778,10 +1783,10 @@ function composePartCut(
             part.source,
         );
     }
-    if (metric === PANEL_METRIC.damageDealtApplied) {
+    if (metric === PANEL_METRIC.damageDealt) {
         return composePartCutFromPairs(figures.damageDealtByOpponentAndKind, part.element);
     }
-    if (metric === PANEL_METRIC.damageTakenApplied) {
+    if (metric === PANEL_METRIC.damageTaken) {
         return composePartCutFromPairs(figures.damageTakenByOpponentAndKind, part.element);
     }
     // A key the health moved under is the receiver's, and the giver is not kept beside it.
@@ -1872,16 +1877,16 @@ function getPartTotal(
 /** Healing given has no cut by key, and the empty map says so outright — whose those keys are
  * is `core/fight-statistics.ts`'s to state, and it does. */
 function getCutsForMetric(figures: CombatantFigures, metric: PanelMetric): MetricCuts {
-    if (metric === PANEL_METRIC.damageDealtApplied) {
+    if (metric === PANEL_METRIC.damageDealt) {
         return {
             byOpponent: figures.damageDealtByOpponent,
-            byElement: figures.damageDealtByElement,
+            byElement: figures.damageDealtByKind,
         };
     }
-    if (metric === PANEL_METRIC.damageTakenApplied) {
+    if (metric === PANEL_METRIC.damageTaken) {
         return {
             byOpponent: figures.damageTakenByOpponent,
-            byElement: figures.damageTakenByElement,
+            byElement: figures.damageTakenByKind,
         };
     }
     if (metric === PANEL_METRIC.healthGiven) {
@@ -2018,10 +2023,10 @@ function getPairKinds(
     metric: PanelMetric,
     otherId: number,
 ): FigureCut | null {
-    if (metric === PANEL_METRIC.damageDealtApplied) {
+    if (metric === PANEL_METRIC.damageDealt) {
         return figures.damageDealtByOpponentAndKind.get(`${otherId}`) ?? null;
     }
-    if (metric === PANEL_METRIC.damageTakenApplied) {
+    if (metric === PANEL_METRIC.damageTaken) {
         return figures.damageTakenByOpponentAndKind.get(`${otherId}`) ?? null;
     }
     return null;
@@ -2251,7 +2256,7 @@ function composeSkillCut(
     // as a defect like the two `presentScreen` answers for, because those two are invisible
     // — a share divided by the wrong whole — and this one is not: a remainder draws a row of its
     // own, with the figure on it, where a reader can see it and add it up.
-    const isCounted = metric === PANEL_METRIC.damageDealtApplied;
+    const isCounted = metric === PANEL_METRIC.damageDealt;
     const hasPlain = plain > 0 || (isCounted && figures.blowsWithoutSkill > 0);
     const hasRest = folded.rest > 0;
     // ⚠️ **The shares are composed from the clamped figure, never from the bare remainder.** A
@@ -2339,7 +2344,7 @@ function composeSkillRowsStated(
     // twice; what moved health **outside** a blow reached no skill at all, and leaving it out
     // closed it into a row named for a swing. `src/ui/panel-words.ts` keeps the two vocabularies
     // apart for the same reason. `develop ADR 0080`.
-    if (metric === PANEL_METRIC.damageTakenApplied) {
+    if (metric === PANEL_METRIC.damageTaken) {
         const named = composeSkillRowsReceived(
             statistics,
             combatantId,

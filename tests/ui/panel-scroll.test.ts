@@ -19,11 +19,11 @@ import { composeFakeDocument } from "#/tests/fake-document.ts";
 /** Past the memo's own maximum, so the bound is met rather than approached. */
 const NAMES_TRIED = 40;
 const SOMEWHERE_DOWN = 240;
-const SOMEWHERE = "damageDealtApplied|everyone";
+const SOMEWHERE = "damageDealt|everyone";
 
 Deno.test("a list nobody has scrolled stands at the top", () => {
     const kept = initScrollMemo();
-    assertStrictEquals(kept.getTop("damageDealtApplied|everyone"), 0, "and says so as a zero");
+    assertStrictEquals(kept.getTop("damageDealt|everyone"), 0, "and says so as a zero");
 });
 
 Deno.test("a position comes back under the name it was kept under", () => {

@@ -21,8 +21,8 @@ const WHEEL_DOWN = 400;
 /** A page taller than the window, so there is something behind the panel that could scroll. */
 const PAGE_HEIGHT = 4000;
 /** The screen a panel opens on, and the one beside it on the strip that says which way round. */
-const HOME_SCREEN = "damageDealtApplied";
-const OTHER_SCREEN = "damageTakenApplied";
+const HOME_SCREEN = "damageDealt";
+const OTHER_SCREEN = "damageTaken";
 
 test.use({ recording: OVERFLOWING, fedThrough: FED_THROUGH });
 
