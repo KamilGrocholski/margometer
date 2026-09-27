@@ -20,8 +20,8 @@ the entry that completes a partial implementation, which is a different and late
 
 |                       | Chrome / Edge | Firefox | Safari |
 | --------------------- | ------------- | ------- | ------ |
-| **Runs correctly**    | 93            | 91      | 16     |
-| **Looks as designed** | 121           | 91      | 18.2   |
+| **Runs correctly**    | 93            | 92      | 16     |
+| **Looks as designed** | 121           | 92      | 18.2   |
 
 Two tiers because they answer different questions and one number would lose a true fact either way.
 Between the rows the panel counts correctly, draws every figure and every warning, and differs only
@@ -29,7 +29,7 @@ in the scrollbar and one hatch — so calling those browsers unsupported would b
 them fully supported would be too.
 
 Every current desktop release clears both. In Firefox the two rows are now one number: nothing
-cosmetic asks for more than `ErrorOptions` already does, so there is no Firefox where the panel
+cosmetic asks for more than `Object.hasOwn` already does, so there is no Firefox where the panel
 counts correctly and draws wrongly. Chrome's upper row is `scrollbar-width` at 121 and Safari's is
 the same property at 18.2; below either, the list draws the platform scrollbar and pays its width
 out of the rows.
@@ -219,12 +219,13 @@ sources are not one enumerable string, so nothing can list what they reach for.
 What **is** held is the register going stale, which is the failure that has happened twice:
 `develop:tests/tools/browser-support.test.ts` requires each row below to name a construct the file
 beside it still spells, and re-earns both tiers at the top as the maximum over the rows under them.
-`develop:ARCHITECTURE.md` carries the rest as a known gap. The one construct that decides where the
+`develop:ARCHITECTURE.md` carries the rest as a known gap. The two constructs that decide where the
 floor is:
 
-| Construct      | Where            | Chrome / Edge | Firefox | Safari |
-| -------------- | ---------------- | ------------- | ------- | ------ |
-| `ErrorOptions` | `libs/errors.ts` | 93            | 91      | 15     |
+| Construct       | Where                   | Chrome / Edge | Firefox | Safari |
+| --------------- | ----------------------- | ------------- | ------- | ------ |
+| `ErrorOptions`  | `libs/errors.ts`        | 93            | 91      | 15     |
+| `Object.hasOwn` | `libs/unknown-value.ts` | 93            | 92      | 15.4   |
 
 `ErrorOptions` is why the lib is ES2022 and not ES2021, and it is a **runtime** dependency: every
 failure met below another is handed to it as `{ cause }` (ADR 0008). An engine below 93 does not
@@ -232,6 +233,11 @@ throw on the two-argument `new Error(...)` — it ignores the second argument, s
 still meets its fate and loses only the chain its console line would show. The floor is stated at
 what has to be there rather than at what happens to work below it, because the first is a promise
 and the second is an accident.
+
+`Object.hasOwn` is the Firefox number, read on **2026-09-27** from the same source, and it has no
+state below its floor: every field of a payload is read through it (`libs/unknown-value.ts`,
+`src/game/payload-envelope.ts`), so an engine without it throws on the first read of every payload
+and counts nothing.
 
 ### Patterns, and the part no compiler holds
 
@@ -263,10 +269,10 @@ carries the current TypeScript definitions whatever ES level is named. Measured 
 construct an engine shipped after the floor still passes and still has to be caught by reading. What
 it does hold is the drift that costs nothing to write: a construct from a later year, spelled
 without noticing. The bundle sits at exactly ES2022, and at `es2021` the compiler refuses three
-things and only three — `ErrorOptions`, `new Error(…, { cause })` and `Array.prototype.at`, which
-are the constructs the floor is built on. So of the pattern constructs above this floor a compiler
-that had a target would catch the `v` flag and miss two. First release with support, from
-`browser-compat-data`, read 2026-08-27:
+things and only three — `ErrorOptions`, `new Error(…, { cause })` and `Object.hasOwn`, which are the
+constructs the floor is built on (measured 2026-09-27 on `fea6da2`). So of the pattern constructs
+above this floor a compiler that had a target would catch the `v` flag and miss two. First release
+with support, from `browser-compat-data`, read 2026-08-27:
 
 - **lookbehind**, `(?<=…)` — Chrome 62, Firefox 78, Safari 16.4. This is the cheap mistake: a couple
   of characters, and the other two engines have had it since long before the floor, so only Safari
