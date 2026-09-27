@@ -31,8 +31,10 @@ file comes or goes (ADR 0010).
 | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `.agents/skills/commit/SKILL.md`          | the skill for making a commit: the process, and the checklist of what must hold before it |
 | `.agents/skills/gate/SKILL.md`            | the skill for running the gate and turning a red one into a fix                           |
+| `.agents/skills/intake/SKILL.md`          | the skill for taking a recording into `captures/` and what follows it                     |
 | `.agents/skills/mutate/SKILL.md`          | the skill for proving a test can fail, and reporting one that cannot                      |
 | `.agents/skills/record-decision/SKILL.md` | the skill for writing a decision record under `docs/adr/`                                 |
+| `.agents/skills/release/SKILL.md`         | the skill for a release run from a session: pushes handed over, states read back          |
 | `.agents/skills/verify/SKILL.md`          | the skill for running the built userscript over a recording in a real browser             |
 | `.agents/skills/write-document/SKILL.md`  | the skill for writing a Markdown document in this tree                                    |
 
