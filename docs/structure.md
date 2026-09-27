@@ -79,6 +79,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0010-the-structure-is-a-document-of-its-own.md`                                      | the map of the tree stands in a document of its own, out of the rules every session reads     |
 | `docs/adr/0011-a-reading-is-re-dated-only-when-its-content-moves.md`                           | a frozen reading carries the first fetch that gave its content, and experimental is previewed |
 | `docs/adr/0012-damage-dealt-and-taken-count-what-an-absorption-pool-took.md`                   | damage dealt and taken are health plus what an absorption pool took, and a block stays apart  |
+| `docs/adr/0013-a-reader-chooses-the-type-size-and-the-size-of-each-window.md`                  | a reader picks one of three measured type steps and sizes each window by its corner           |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
