@@ -147,17 +147,19 @@ Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: c
 · `all: initial` · `background: currentColor` · `background: transparent` · `border: currentColor` ·
 `border: solid` · `border-bottom: none` · `border-top: dashed` · `border-top: solid` ·
 `box-shadow: inset` · `box-sizing: border-box` · `color: inherit` · `cursor: help` · `cursor: move`
-· `cursor: pointer` · `display: block` · `display: flex` · `display: inline-flex` · `display: none`
-· `flex: auto` · `flex: none` · `flex-direction: column` · `flex-wrap: wrap` · `font: sans-serif` ·
-`font: system-ui` · `font-style: italic` · `font-style: normal` ·
-`font-variant-numeric: tabular-nums` · `justify-content: center` · `justify-content: space-between`
-· `margin-left: auto` · `mask-image: transparent` · `overflow: hidden` · `overflow-wrap: break-word`
-· `overflow-x: hidden` · `overflow-y: auto` · `pointer-events: none` · `position: absolute` ·
-`position: fixed` · `position: relative` · `position: sticky` · `scrollbar-width: none` ·
-`text-align: center` · `text-align: right` · `text-overflow: ellipsis` · `text-transform: uppercase`
-· `touch-action: none` · `user-select: none` · `white-space: nowrap` · `width: max-content`
+· `cursor: nwse-resize` · `cursor: pointer` · `display: block` · `display: flex` ·
+`display: inline-flex` · `display: none` · `flex: auto` · `flex: none` · `flex-direction: column` ·
+`flex-wrap: wrap` · `font: sans-serif` · `font: system-ui` · `font-style: italic` ·
+`font-style: normal` · `font-variant-numeric: tabular-nums` · `justify-content: center` ·
+`justify-content: space-between` · `margin-left: auto` · `mask-image: transparent` ·
+`overflow: hidden` · `overflow-wrap: break-word` · `overflow-x: hidden` · `overflow-y: auto` ·
+`pointer-events: none` · `position: absolute` · `position: fixed` · `position: relative` ·
+`position: sticky` · `scrollbar-width: none` · `text-align: center` · `text-align: right` ·
+`text-overflow: ellipsis` · `text-transform: uppercase` · `touch-action: none` · `user-select: none`
+· `white-space: nowrap` · `width: max-content`
 
-Functions: `calc` · `clamp` · `min` · `repeating-linear-gradient` · `rgb` · `var`
+Functions: `calc` · `clamp` · `linear-gradient` · `max` · `min` · `repeating-linear-gradient` ·
+`rgb` · `var`
 
 Selectors: `host` · `hover`
 
@@ -168,6 +170,7 @@ Selectors: `host` · `hover`
 | `replaceChildren`       | `src/ui/panel-element.ts`   | 86            | 78      | 14     |
 | `attachShadow`          | `src/ui/panel-element.ts`   | 53            | 63      | 10     |
 | `setPointerCapture`     | `src/ui/panel-element.ts`   | 55            | 59      | 13     |
+| `offsetX`, `offsetY`    | `src/ui/panel-drag.ts`      | 1             | 39      | 1      |
 | `getBoundingClientRect` | `src/ui/panel-element.ts`   | 2             | 3       | 4      |
 | `contains`              | `src/ui/panel-element.ts`   | 16            | 9       | 1.1    |
 | `scrollTop`             | `src/ui/panel-scroll.ts`    | 1             | 1       | 1      |
@@ -179,10 +182,11 @@ Selectors: `host` · `hover`
 | `setItem`               | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
 | `removeItem`            | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
 
-The five storage rows were read on **2026-08-26** and `contains` on **2026-09-09**, from the same
-source as the rest; every other row carries the date at the top of this document. All five sit so
-far below both tiers that they cannot move the floor, and they are listed for the opposite reason —
-this is the one part of the add-on that can fail on a browser that supports it perfectly.
+The five storage rows were read on **2026-08-26**, `contains` on **2026-09-09** and the offsets on
+**2026-09-28**, from the same source as the rest; every other row carries the date at the top of
+this document. All five sit so far below both tiers that they cannot move the floor, and they are
+listed for the opposite reason — this is the one part of the add-on that can fail on a browser that
+supports it perfectly.
 
 ⚠️ **The quota is not in this register, and its absence is the entry.** How much an origin may keep
 differs by engine, by profile and by how much that origin already holds, and none of it is readable

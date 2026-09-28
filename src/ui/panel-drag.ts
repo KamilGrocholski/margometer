@@ -6,7 +6,13 @@
 
 import { clamp } from "#/libs/number-range.ts";
 import * as errors from "#/libs/errors.ts";
-import { PANEL_WINDOW, type PanelPosition, type PanelWindow } from "./panel-choice.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import {
+    PANEL_WINDOW,
+    type PanelPosition,
+    type PanelWindow,
+    type WindowSize,
+} from "./panel-choice.ts";
 import {
     EVENT_TYPE,
     type PanelElement,
@@ -16,7 +22,11 @@ import {
 } from "./panel-document.ts";
 import { addGuardedListener } from "./panel-listener.ts";
 import {
+    getBarHeight,
     PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM,
+    PLACE,
+    SIZE_GRIP,
+    SIZE_VARIABLES,
     SPACE_PIXELS,
     type TypeTokens,
 } from "./panel-look.ts";
@@ -35,13 +45,43 @@ export interface PanelViewport {
     height: number;
 }
 
+/** A bar moves a window and a corner sizes it, on the same four listeners. */
+const GRAB_KIND = { move: "move", size: "size" } as const;
+type GrabKind = VocabularyWord<typeof GRAB_KIND>;
+
 interface PanelGrab {
+    kind: GrabKind;
     pointerLeft: number;
     pointerTop: number;
-    panelLeft: number;
-    panelTop: number;
+    /** Where the window stood, for a move; how big it stood, for a size. */
+    fromLeft: number;
+    fromTop: number;
     /** The pointer taken hold of, so the hold and the release are asked of the same one. */
     pointerId: number | undefined;
+}
+
+/** How wide the two windows stand, which a change of type moves unless a reader sized them. */
+export interface WindowWidths {
+    panel: number;
+    standing: number;
+}
+
+/** The least and the most a window may be made, for the type it is drawn in and where it stands. */
+export interface SizeBounds {
+    widthMinimum: number;
+    widthMaximum: number;
+    heightMinimum: number;
+    heightMaximum: number;
+}
+
+/** What a drag holds between its listeners: where the window is, how big, and what is held. */
+interface PanelDragState {
+    position: PanelPosition | null;
+    /** The size the reader chose, before the window and the type bound it. */
+    size: WindowSize | null;
+    grab: PanelGrab | null;
+    /** The style last written, so a frame that changes nothing writes nothing. */
+    written: string | null;
 }
 
 /** A window a card stands beside: where its left edge is, and how wide it stands. */
@@ -72,10 +112,15 @@ export interface PanelDragHandle {
     onDrawn(): void;
     /** Stand the window here as a drag would leave it, and tell whoever a drag tells. */
     setPosition(next: PanelPosition): void;
+    /** How wide the window stands now: its size where it has one, its type's where it has none. */
+    getWidthPixels(): number;
+    /** The size a frame hands in. A frame landing while the corner is held is not the hand's. */
+    setSize(next: WindowSize | null): void;
 }
 
 export interface PanelPlacement {
     position: PanelPosition | null;
+    size: WindowSize | null;
     /** The page's size, asked as it is needed: a window resize moves the edges. */
     readViewport(): PanelViewport | null;
 }
@@ -86,7 +131,11 @@ export interface PanelDragOptions {
     /** The type a reader chose decides how wide each window stands, and it can change. */
     getTypeTokens: () => TypeTokens;
     onMoved: (position: PanelPosition) => void;
+    /** Told once, on release, as a move is. */
+    onResized: (size: WindowSize) => void;
     onFailure: (failure: ViewFailure) => void;
+    /** The corner the window is sized by. It is built once and stays, unlike the bar. */
+    grip: PanelElement | null;
 }
 
 /**
@@ -95,6 +144,18 @@ export interface PanelDragOptions {
  */
 const VISIBLE_MINIMUM = 64;
 export const GRIP_ATTRIBUTE = "data-grip";
+/** The corner's mark, stating the window the way `GRIP_ATTRIBUTE` does. */
+export const SIZE_GRIP_ATTRIBUTE = "data-size-grip";
+/** How much wider than its type a window may be made: twice, past any name a row has to cut. */
+const WIDTH_TIMES_TYPE_MAXIMUM = 2;
+/**
+ * The fewest rows' height a sized window keeps: the panel its header, its strips and a few rows,
+ * which the list then scrolls; the window beside it a heading and the row under it.
+ */
+const ROWS_BY_WINDOW_MINIMUM: { readonly [Window in PanelWindow]: number } = {
+    [PANEL_WINDOW.panel]: 6,
+    [PANEL_WINDOW.helper]: 3,
+};
 /** What a grip states. The helper's is `develop`'s word for it, which the drawn panel keeps. */
 export const GRIP_MARK_BY_WINDOW: { readonly [Window in PanelWindow]: string } = {
     [PANEL_WINDOW.panel]: "panel",
@@ -178,6 +239,76 @@ export function composePositionStyle(
 }
 
 /**
+ * The window's style: where it stands, and how big where it was made so. Null where neither can be
+ * written, which leaves it on the sheet's own corner at its type's size.
+ */
+export function composeHostStyle(
+    position: PanelPosition | null,
+    size: WindowSize | null,
+    windowName: PanelWindow,
+): string | null {
+    const placed = position === null ? null : composePositionStyle(position, windowName);
+    if (size === null) return placed;
+    if (!Number.isSafeInteger(size.width)) return placed;
+    if (!Number.isSafeInteger(size.height)) return placed;
+    const variables = SIZE_VARIABLES[windowName];
+    const width = formatWhole(size.width);
+    const height = formatWhole(size.height);
+    const sized = `${variables.width}:${width}px;${variables.height}:${height}px`;
+    return placed === null ? sized : `${placed};${sized}`;
+}
+
+/** How wide a window stands at its type, which is also the narrowest it may be made. */
+export function getWindowWidthPixels(windowName: PanelWindow, tokens: TypeTokens): number {
+    if (windowName === PANEL_WINDOW.helper) return tokens.standingWidthPixels;
+    return tokens.panelWidthPixels;
+}
+
+/**
+ * The narrowest is the type's own width, because the bar holds its controls at that width and not
+ * a pixel less; the widest is twice it and on the screen. The shortest keeps a few rows; the
+ * tallest reaches the bottom of the screen. A screen too small for the least is given the least.
+ */
+export function composeSizeBounds(
+    windowName: PanelWindow,
+    tokens: TypeTokens,
+    position: PanelPosition | null,
+    viewport: PanelViewport | null,
+): SizeBounds {
+    const widthMinimum = getWindowWidthPixels(windowName, tokens);
+    const rowCost = tokens.rowHeightPixels + SPACE_PIXELS.half;
+    const heightMinimum = ROWS_BY_WINDOW_MINIMUM[windowName] * rowCost;
+    let widthMaximum = widthMinimum * WIDTH_TIMES_TYPE_MAXIMUM;
+    let heightMaximum = Number.POSITIVE_INFINITY;
+    if (viewport !== null) {
+        if (position !== null) {
+            widthMaximum = Math.min(
+                widthMaximum,
+                viewport.width - position.left - PLACE.insetPixels,
+            );
+            heightMaximum = viewport.height - position.top - getBarHeight(tokens) -
+                PLACE.insetPixels;
+        }
+    }
+    return {
+        widthMinimum,
+        widthMaximum: Math.max(widthMinimum, widthMaximum),
+        heightMinimum,
+        heightMaximum: Math.max(heightMinimum, heightMaximum),
+    };
+}
+
+/** **Every size downstream of this is whole and inside its bounds**, and one not stated is the least. */
+export function clampSize(size: WindowSize, bounds: SizeBounds): WindowSize {
+    const width = Number.isFinite(size.width) ? size.width : bounds.widthMinimum;
+    const height = Number.isFinite(size.height) ? size.height : bounds.heightMinimum;
+    return {
+        width: Math.round(clamp(width, bounds.widthMinimum, bounds.widthMaximum)),
+        height: Math.round(clamp(height, bounds.heightMinimum, bounds.heightMaximum)),
+    };
+}
+
+/**
  * Where a card opens: beside **the window whose row it names**, and that window alone. The other
  * one under this root is not consulted — a card that stepped past it as well left the window it
  * came from and stood where the reader was not pointing (`develop ADR 0090`). `DESIGN.md`
@@ -230,17 +361,15 @@ export function setGripMark(grip: PanelElement, window: PanelWindow): void {
 export function composeStandingAfterStep(
     panel: PanelPosition,
     standing: PanelPosition,
-    before: TypeTokens,
-    after: TypeTokens,
+    before: WindowWidths,
+    after: WindowWidths,
 ): PanelPosition | null {
-    const standingRight = standing.left + before.standingWidthPixels;
+    const standingRight = standing.left + before.standing;
     if (standingRight <= panel.left) {
-        const grown = after.standingWidthPixels - before.standingWidthPixels;
-        return { left: standing.left - grown, top: standing.top };
+        return { left: standing.left - (after.standing - before.standing), top: standing.top };
     }
-    if (standing.left >= panel.left + before.panelWidthPixels) {
-        const grown = after.panelWidthPixels - before.panelWidthPixels;
-        return { left: standing.left + grown, top: standing.top };
+    if (standing.left >= panel.left + before.panel) {
+        return { left: standing.left + (after.panel - before.panel), top: standing.top };
     }
     return null;
 }
@@ -248,7 +377,8 @@ export function composeStandingAfterStep(
 /**
  * The drag, as four listeners at the root and one style attribute on the host. `getBar` answers
  * with the bar **as it stands now**: a bar is replaced on every payload, so a captured pointer
- * would be asked of a node that has left the tree.
+ * would be asked of a node that has left the tree. The corner that sizes the window is held on the
+ * same listeners, and its grab is a second kind of the same thing.
  */
 export function initPanelDrag(
     root: PanelRoot,
@@ -257,45 +387,120 @@ export function initPanelDrag(
     placement: PanelPlacement,
     options: PanelDragOptions,
 ): PanelDragHandle {
-    const windowName = options.window;
-    let position = initPanelDragOpening(host, placement, options);
-    let grab: PanelGrab | null = null;
-    // A position that writes no style leaves the host on the sheet's own corner, which is a place
-    // — and the panel is still there to be grabbed (**E12**).
-    const setHostPosition = (next: PanelPosition): void => {
-        const style = composePositionStyle(next, windowName);
-        if (style === null) return;
-        position = next;
-        host.setAttribute(STYLE_ATTRIBUTE, style);
+    const state: PanelDragState = {
+        position: initPanelDragOpening(host, placement, options),
+        size: placement.size,
+        grab: null,
+        written: null,
     };
-    const addDragListener = (
-        type: string,
-        listener: PanelListener,
-        handle: (event: PanelEvent) => void,
-    ): void => {
+    const write = () => writePanelDragStyle(host, state, placement, options);
+    write();
+    addPanelDragListeners(root, getBar, placement, options, { state, write });
+    return {
+        getPosition: () => state.position,
+        onDrawn: () => {
+            if (state.grab?.kind === GRAB_KIND.move) {
+                setPointerHeldAgain(state.grab, getBar(), options);
+            }
+        },
+        setPosition: (next: PanelPosition) => {
+            setPanelDragPosition(state, clampPosition(next, placement.readViewport()), write);
+            if (state.position !== null) options.onMoved(state.position);
+        },
+        getWidthPixels: () => {
+            const applied = getPanelDragSize(state, placement, options);
+            return applied?.width ?? getWindowWidthPixels(options.window, options.getTypeTokens());
+        },
+        setSize: (next: WindowSize | null) => {
+            if (state.grab?.kind === GRAB_KIND.size) return;
+            state.size = next;
+            write();
+        },
+    };
+}
+
+/**
+ * The style the window stands in now. A position that writes no style leaves the host on the
+ * sheet's own corner, which is a place — and the window is still there to be grabbed (**E12**).
+ */
+function writePanelDragStyle(
+    host: PanelElement,
+    state: PanelDragState,
+    placement: PanelPlacement,
+    options: PanelDragOptions,
+): void {
+    const applied = getPanelDragSize(state, placement, options);
+    const style = composeHostStyle(state.position, applied, options.window);
+    if (style === null) return;
+    if (style === state.written) return;
+    state.written = style;
+    host.setAttribute(STYLE_ATTRIBUTE, style);
+}
+
+/** The size the reader chose, bound by the type the window is drawn in and where it stands now. */
+function getPanelDragSize(
+    state: PanelDragState,
+    placement: PanelPlacement,
+    options: PanelDragOptions,
+): WindowSize | null {
+    if (state.size === null) return null;
+    const viewport = placement.readViewport();
+    const tokens = options.getTypeTokens();
+    return clampSize(
+        state.size,
+        composeSizeBounds(options.window, tokens, state.position, viewport),
+    );
+}
+
+function setPanelDragPosition(
+    state: PanelDragState,
+    next: PanelPosition,
+    write: () => void,
+): void {
+    if (!Number.isSafeInteger(next.left)) return;
+    if (!Number.isSafeInteger(next.top)) return;
+    state.position = next;
+    write();
+}
+
+function addPanelDragListeners(
+    root: PanelRoot,
+    getBar: () => PanelElement,
+    placement: PanelPlacement,
+    options: PanelDragOptions,
+    held: { state: PanelDragState; write: () => void },
+): void {
+    const { state, write } = held;
+    const add = (type: string, listener: PanelListener, handle: (event: PanelEvent) => void) => {
         addGuardedListener(root, type, listener, handle, (failure) => {
-            // A grab left standing after a failure moves the panel under the next pointer that
+            // A grab left standing after a failure moves the window under the next pointer that
             // crosses it, with nobody having pressed the bar.
-            grab = null;
+            state.grab = null;
             reportViewFailure(options.onFailure, failure);
         });
     };
-    addDragListener(EVENT_TYPE.press, PANEL_LISTENER.grab, (event) => {
-        const started = composePanelDragGrab(event, position, placement, options);
+    const getHeld = (grab: PanelGrab): PanelElement => {
+        if (grab.kind === GRAB_KIND.size) return options.grip ?? getBar();
+        return getBar();
+    };
+    add(EVENT_TYPE.press, PANEL_LISTENER.grab, (event) => {
+        const started = composePanelDragGrab(event, state, placement, options);
         if (started === null) return;
-        grab = started;
-        setPointerHeld(getBar(), true, event.pointerId, options);
+        state.grab = started;
+        setPointerHeld(getHeld(started), true, event.pointerId, options);
     });
     const onDragEnd = (): void => {
-        const held = grab;
-        if (held === null) return;
-        grab = null;
-        setPointerHeld(getBar(), false, held.pointerId, options);
-        if (position !== null) options.onMoved(position);
+        const grab = state.grab;
+        if (grab === null) return;
+        state.grab = null;
+        setPointerHeld(getHeld(grab), false, grab.pointerId, options);
+        if (grab.kind === GRAB_KIND.size) {
+            if (state.size !== null) options.onResized(state.size);
+        } else if (state.position !== null) options.onMoved(state.position);
     };
-    addDragListener(EVENT_TYPE.move, PANEL_LISTENER.drag, (event) => {
-        const held = grab;
-        if (held === null) return;
+    add(EVENT_TYPE.move, PANEL_LISTENER.drag, (event) => {
+        const grab = state.grab;
+        if (grab === null) return;
         // A release the root never saw. Without capture — the forgiving part of a drag,
         // `setPointerHeld` — a hand letting go outside the panel reports its `pointerup`
         // elsewhere, and the grab left standing follows the next pointer to cross the panel.
@@ -307,18 +512,16 @@ export function initPanelDrag(
         }
         const pointer = readPointerFromEvent(event);
         if (pointer === null) return;
-        setHostPosition(composeDraggedPosition(held, pointer, placement.readViewport()));
+        const viewport = placement.readViewport();
+        if (grab.kind === GRAB_KIND.move) {
+            setPanelDragPosition(state, composeDraggedPosition(grab, pointer, viewport), write);
+            return;
+        }
+        state.size = composeDraggedSize(grab, pointer, state, placement, options);
+        write();
     });
-    addDragListener(EVENT_TYPE.release, PANEL_LISTENER.release, onDragEnd);
-    addDragListener(EVENT_TYPE.cancel, PANEL_LISTENER.cancel, onDragEnd);
-    return {
-        getPosition: () => position,
-        onDrawn: () => setPointerHeldAgain(grab, getBar(), options),
-        setPosition: (next: PanelPosition) => {
-            setHostPosition(clampPosition(next, placement.readViewport()));
-            if (position !== null) options.onMoved(position);
-        },
-    };
+    add(EVENT_TYPE.release, PANEL_LISTENER.release, onDragEnd);
+    add(EVENT_TYPE.cancel, PANEL_LISTENER.cancel, onDragEnd);
 }
 
 /**
@@ -383,36 +586,76 @@ function composeStandingPosition(
 }
 
 /**
- * What a press on the bar starts, or null where it starts nothing: a press somewhere else, a
- * pointer the event does not state, or a page that has not said how wide it is — a drag from a
- * guessed origin jumps under the hand.
+ * What a press starts, or null where it starts nothing: a press somewhere else, a pointer the
+ * event does not state, or a page that has not said how wide it is — a drag from a guessed origin
+ * jumps under the hand.
  */
 function composePanelDragGrab(
     event: PanelEvent,
-    position: PanelPosition | null,
+    state: PanelDragState,
     placement: PanelPlacement,
     options: PanelDragOptions,
 ): PanelGrab | null {
     // `undefined` is not `null`: as one comparison, a press stating no target fell through and
     // started a drag from wherever the pointer was.
     const grip = event.target?.getAttribute(GRIP_ATTRIBUTE) ?? null;
-    if (grip === null) return null;
+    const corner = event.target?.getAttribute(SIZE_GRIP_ATTRIBUTE) ?? null;
     // Both listener sets see every press, so the other window's bar reaches here too.
-    if (grip !== GRIP_MARK_BY_WINDOW[options.window]) return null;
+    const mark = GRIP_MARK_BY_WINDOW[options.window];
+    const kind = grip === mark ? GRAB_KIND.move : corner === mark ? GRAB_KIND.size : null;
+    if (kind === null) return null;
     const pointer = readPointerFromEvent(event);
     if (pointer === null) return null;
-    const from = position ??
-        composeDefaultPosition(placement.readViewport(), options.getTypeTokens().panelWidthPixels);
+    const tokens = options.getTypeTokens();
+    const from = state.position ??
+        composeDefaultPosition(placement.readViewport(), tokens.panelWidthPixels);
     if (from === null) return null;
     // Without this the browser starts its own text or image drag from the bar.
     event.preventDefault?.();
-    return {
+    const grab = {
+        kind,
         pointerLeft: pointer.left,
         pointerTop: pointer.top,
-        panelLeft: from.left,
-        panelTop: from.top,
         pointerId: event.pointerId,
     };
+    if (kind === GRAB_KIND.move) return { ...grab, fromLeft: from.left, fromTop: from.top };
+    // Nothing on the page is measured: the window's corner is the grip's, where the press landed on
+    // the grip carried to its edge.
+    const inside = SIZE_GRIP.sizePixels;
+    const right = pointer.left + inside - readOffset(event.offsetX, inside);
+    const bottom = pointer.top + inside - readOffset(event.offsetY, inside);
+    return {
+        ...grab,
+        fromLeft: right - from.left,
+        fromTop: bottom - from.top - getBarHeight(tokens),
+    };
+}
+
+/** Where on the grip a press landed, and the corner itself where the event does not say. */
+function readOffset(value: number | undefined, corner: number): number {
+    const read = readCoordinate(value);
+    return read === null ? corner : read;
+}
+
+function composeDraggedSize(
+    grab: PanelGrab,
+    pointer: PanelPosition,
+    state: PanelDragState,
+    placement: PanelPlacement,
+    options: PanelDragOptions,
+): WindowSize {
+    const size = {
+        width: grab.fromLeft + (pointer.left - grab.pointerLeft),
+        height: grab.fromTop + (pointer.top - grab.pointerTop),
+    };
+    const tokens = options.getTypeTokens();
+    const bounds = composeSizeBounds(
+        options.window,
+        tokens,
+        state.position,
+        placement.readViewport(),
+    );
+    return clampSize(size, bounds);
 }
 
 function readPointerFromEvent(event: PanelEvent): PanelPosition | null {
@@ -457,8 +700,8 @@ function composeDraggedPosition(
     viewport: PanelViewport | null,
 ): PanelPosition {
     return clampPosition({
-        left: grab.panelLeft + (pointer.left - grab.pointerLeft),
-        top: grab.panelTop + (pointer.top - grab.pointerTop),
+        left: grab.fromLeft + (pointer.left - grab.pointerLeft),
+        top: grab.fromTop + (pointer.top - grab.pointerTop),
     }, viewport);
 }
 

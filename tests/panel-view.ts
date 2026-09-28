@@ -10,7 +10,7 @@ import {
     type WaitingReading,
 } from "#/src/ui/panel-element.ts";
 import type { PanelDocument } from "#/src/ui/panel-document.ts";
-import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
+import { NO_WINDOW_SIZES, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 
 /** The build a test's panel says drew it. */
 export const TEST_VERSION = "0.0.0-test";
@@ -24,6 +24,7 @@ export const NOTHING_WAITING: WaitingReading = {
     keptUnread: null,
     options: null,
     typeStep: TYPE_STEP_DEFAULT,
+    windowSizes: NO_WINDOW_SIZES,
 };
 
 export function initTestView(

@@ -7,7 +7,12 @@
  */
 
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
-import { TYPE_STEP_DEFAULT, type TypeStep } from "./panel-choice.ts";
+import {
+    NO_WINDOW_SIZES,
+    TYPE_STEP_DEFAULT,
+    type TypeStep,
+    type WindowSizes,
+} from "./panel-choice.ts";
 import type { OpenedPart, PanelUnnamedEnd } from "./panel-reading.ts";
 import {
     getWordsForDirection,
@@ -66,6 +71,8 @@ export interface ScreenState {
     isStandingCollapsed: boolean;
     /** The size the type is drawn at, which a reader chose once for both windows (ADR 0013). */
     typeStep: TypeStep;
+    /** How big a reader made each window by its corner, kept beside the folds (ADR 0013). */
+    windowSizes: WindowSizes;
 }
 
 export interface ScreenStrip {
@@ -115,6 +122,7 @@ export function createScreenState(
     isCollapsed: boolean,
     isStandingCollapsed = false,
     typeStep: TypeStep = TYPE_STEP_DEFAULT,
+    windowSizes: WindowSizes = NO_WINDOW_SIZES,
 ): ScreenState {
     const state: ScreenState = {
         current: PANEL_METRIC.damageDealt,
@@ -129,6 +137,7 @@ export function createScreenState(
         isCollapsed,
         isStandingCollapsed,
         typeStep,
+        windowSizes,
     };
     return state;
 }

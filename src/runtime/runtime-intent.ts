@@ -13,7 +13,13 @@ import { type HandoverPorts, writeFightHandover } from "./fight-handover.ts";
 import { lookupStandingFight, tallyFightReading } from "./fight-reading.ts";
 import type { LiveFight } from "./live-fight.ts";
 import { executeScreenIntent } from "./screen-intent.ts";
-import { writeTypeStep, writeWindowFold, writeWindowPosition } from "./settings.ts";
+import {
+    removeWindowSize,
+    writeTypeStep,
+    writeWindowFold,
+    writeWindowPosition,
+    writeWindowSize,
+} from "./settings.ts";
 import type { ShelfKeeper } from "./shelf-keeper.ts";
 import type { KeyValueStore } from "#/src/game/browser-store.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
@@ -49,6 +55,18 @@ export function executeRuntimeIntent(parts: IntentParts, intent: PanelIntent): b
         case PANEL_INTENT.move:
             void writeWindowPosition(parts.ports.settings, intent.window, intent.position);
             return false;
+        // Once per release, as a move is, and for the same reason no frame.
+        case PANEL_INTENT.resize: {
+            const hasMoved = executeScreenIntent(parts.screen, intent);
+            void writeWindowSize(parts.ports.settings, intent.window, intent.size);
+            assert(!hasMoved, "a window sized already stands at that size");
+            return hasMoved;
+        }
+        case PANEL_INTENT.resetSize: {
+            const hasMoved = executeScreenIntent(parts.screen, intent);
+            if (hasMoved) void removeWindowSize(parts.ports.settings, intent.window);
+            return hasMoved;
+        }
         case PANEL_INTENT.typeStep: {
             const hasMoved = executeScreenIntent(parts.screen, intent);
             if (hasMoved) void writeTypeStep(parts.ports.settings, parts.screen.typeStep);

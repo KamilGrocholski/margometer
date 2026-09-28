@@ -8,12 +8,13 @@ import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     PANEL_WINDOW,
-    type PanelPosition,
+    PANEL_WINDOWS,
     type PanelWindow,
     STORAGE_CHOICES,
     type StorageChoice,
     TYPE_STEPS,
     type TypeStep,
+    type WindowSizes,
 } from "./panel-choice.ts";
 import {
     EVENT_TYPE,
@@ -25,12 +26,15 @@ import {
 import {
     composeStandingAfterStep,
     composeTipAcross,
+    GRIP_MARK_BY_WINDOW,
     initPanelDrag,
     type PanelDragHandle,
     type PanelPlacement,
     setGripMark,
+    SIZE_GRIP_ATTRIBUTE,
     type TipAcross,
     type TipWindowPlace,
+    type WindowWidths,
 } from "./panel-drag.ts";
 import {
     LIVE_FIGHT_MARK,
@@ -41,7 +45,7 @@ import {
     readPanelIntent,
 } from "./panel-intent.ts";
 import { addGuardedListener } from "./panel-listener.ts";
-import { CLASS, composeStyleSheet, TYPE_TOKENS, type TypeTokens } from "./panel-look.ts";
+import { CLASS, composeStyleSheet, TYPE_TOKENS } from "./panel-look.ts";
 import { type Colour, formatColour, lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
 import { presentCard, presentCaveatNoteLines } from "./panel-card.ts";
 import {
@@ -135,6 +139,7 @@ import {
     getWordsForPinnedStanding,
     getWordsForShelfOutcome,
     getWordsForShelfTime,
+    getWordsForSizeReset,
     getWordsForStandingAbsence,
     getWordsForStorage,
     getWordsForTurnState,
@@ -311,6 +316,7 @@ export interface WaitingReading {
     /** A reader may want the options before any fight has come, and they are drawn then too. */
     options: OptionsReading | null;
     typeStep: TypeStep;
+    windowSizes: WindowSizes;
 }
 
 /** What the options draw: the reader's answers, and what the shelf said about the last one. */
@@ -350,6 +356,8 @@ export interface ShownScreen {
     options: OptionsReading | null;
     /** The size the type is drawn at, both windows at once. */
     typeStep: TypeStep;
+    /** How big a reader made each window by its corner, which a frame hands to both. */
+    windowSizes: WindowSizes;
     /** Whether the bar draws its save. False leaves no control rather than a dead one. */
     hasFightToSave: boolean;
     shelfAnswers: readonly string[];
@@ -429,11 +437,11 @@ interface PanelRegions {
     defects: PanelElement;
 }
 
-/** The two windows a card may open beside, each asked for where it stands **now**. */
+/** The two windows a card may open beside, each asked for where and how wide it stands **now**. */
 interface TipWindows {
-    getPanel(): PanelPosition | null;
-    getStanding(): PanelPosition | null;
-    /** How wide each stands, and what a card may be, both follow the type. */
+    getPanel(): PanelDragHandle | null;
+    getStanding(): PanelDragHandle | null;
+    /** What a card may be follows the type. */
     getTypeStep(): TypeStep;
 }
 
@@ -569,7 +577,8 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     let typeStep = options.typeStep;
     const { host, root, sheet } = renderPanelShadow(document, options.version, typeStep);
     const regions = renderPanelRegions(document);
-    const frame = renderPanelFrame(document, regions);
+    const panelGrip = renderSizeGrip(document, PANEL_WINDOW.panel);
+    const frame = renderPanelFrame(document, regions, panelGrip);
     const report = initUndrawnReport(options.onFailure);
     const redraw = (standing: PanelElement, region: PanelRegion, render: () => PanelElement) => {
         return renderRegionInPlace(document, standing, region, render, report);
@@ -580,10 +589,11 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     let drag: PanelDragHandle | null = null;
     let standingDrag: PanelDragHandle | null = null;
     const cards = composeTipLookup(register, standingRegister);
+    const getTypeStep = () => typeStep;
     const tip = initTipBeside(document, cards, options.placement, report, {
-        getPanel: () => drag?.getPosition() ?? null,
-        getStanding: () => standingDrag?.getPosition() ?? null,
-        getTypeStep: () => typeStep,
+        getPanel: () => drag,
+        getStanding: () => standingDrag,
+        getTypeStep,
     });
     const standing = renderStandingWindow(document);
     let standingBar = standing.bar;
@@ -591,23 +601,18 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     addPanelRootChildren(root, [regions.title, frame, tip.element, standing.element]);
     addPanelRootListeners(root, options, tip.onHover, standing.element);
     // After the listeners that read a press, and on the same root: a drag is four more of them.
-    const panelWindow = PANEL_WINDOW.panel;
-    const getTypeStep = () => typeStep;
-    drag = initDragOrNothing(root, host, () => regions.title, options.placement, {
-        window: panelWindow,
-        view: options,
-        getTypeStep,
-    });
+    const wired = { view: options, getTypeStep };
+    const panelWired = { ...wired, window: PANEL_WINDOW.panel, grip: panelGrip };
+    drag = initDragOrNothing(root, host, () => regions.title, options.placement, panelWired);
+    const helperWired = { ...wired, window: PANEL_WINDOW.helper, grip: standing.grip };
+    const standingBarNow = () => standingBar;
+    const helperPlacement = options.standingPlacement;
     standingDrag = initDragOrNothing(
         root,
         standing.element,
-        () => standingBar,
-        options.standingPlacement,
-        {
-            window: PANEL_WINDOW.helper,
-            view: options,
-            getTypeStep,
-        },
+        standingBarNow,
+        helperPlacement,
+        helperWired,
     );
     return composePanelView({
         host,
@@ -688,7 +693,11 @@ function renderSlot(document: PanelDocument): PanelElement {
 }
 
 /** Every region in the order it is drawn in, inside the frame the fold collapses. */
-function renderPanelFrame(document: PanelDocument, regions: PanelRegions): PanelElement {
+function renderPanelFrame(
+    document: PanelDocument,
+    regions: PanelRegions,
+    grip: PanelElement,
+): PanelElement {
     const frame = renderElement(document, "div", CLASS.frame);
     const panel = renderElement(document, "div", CLASS.panel);
     for (const region of [regions.header, regions.nouns, regions.directions, regions.crumb]) {
@@ -702,8 +711,17 @@ function renderPanelFrame(document: PanelDocument, regions: PanelRegions): Panel
     panel.append(regions.sides);
     panel.append(regions.suspicions);
     panel.append(regions.defects);
+    panel.append(grip);
     frame.append(panel);
     return frame;
+}
+
+/** The corner a window is sized by. Built once, as the frame is, and no redraw replaces it. */
+function renderSizeGrip(document: PanelDocument, window: PanelWindow): PanelElement {
+    const grip = renderElement(document, "div", CLASS.sizeGrip);
+    grip.setAttribute(SIZE_GRIP_ATTRIBUTE, GRIP_MARK_BY_WINDOW[window]);
+    grip.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.resizeGrip);
+    return grip;
 }
 
 function initUndrawnReport(onFailure: (failure: ViewFailure) => void): UndrawnReport {
@@ -837,12 +855,11 @@ function initTipBeside(
     report: UndrawnReport,
     windows: TipWindows,
 ): TipHandle {
-    const composePlace = (
-        position: PanelPosition | null,
-        widthPixels: number,
-    ): TipWindowPlace | null => {
+    const composePlace = (drag: PanelDragHandle | null): TipWindowPlace | null => {
+        const position = drag?.getPosition() ?? null;
+        if (drag === null) return null;
         if (position === null) return null;
-        return { position, widthPixels };
+        return { position, widthPixels: drag.getWidthPixels() };
     };
     const composeAcross = (key: string): TipAcross | null => {
         // The sheet's own token and never a copy of it: the two spellings drifted on 2026-09-15
@@ -852,10 +869,10 @@ function initTipBeside(
         const viewport = placement?.readViewport() ?? null;
         const tokens = TYPE_TOKENS[windows.getTypeStep()];
         if (key.startsWith(STANDING_TIP_PREFIX)) {
-            const standing = composePlace(windows.getStanding(), tokens.standingWidthPixels);
+            const standing = composePlace(windows.getStanding());
             return composeTipAcross(standing, viewport, tokens.tipWidthPixelsMaximum);
         }
-        const panel = composePlace(windows.getPanel(), tokens.panelWidthPixels);
+        const panel = composePlace(windows.getPanel());
         return composeTipAcross(panel, viewport, tokens.tipWidthPixelsMaximum);
     };
     return initTipHandle(
@@ -896,13 +913,15 @@ function renderTipInPlace(
  */
 function renderStandingWindow(
     document: PanelDocument,
-): { element: PanelElement; bar: PanelElement; body: PanelElement } {
+): { element: PanelElement; bar: PanelElement; body: PanelElement; grip: PanelElement } {
     const element = renderElement(document, "div", CLASS.standing);
     const bar = renderStandingBar(document, false);
     const body = renderSlot(document);
+    const grip = renderSizeGrip(document, PANEL_WINDOW.helper);
     element.append(bar);
     element.append(body);
-    return { element, bar, body };
+    element.append(grip);
+    return { element, bar, body, grip };
 }
 
 /** The window's own bar: its own grip, its own fold, and no control that would close it. */
@@ -999,7 +1018,12 @@ function initDragOrNothing(
     host: PanelElement,
     getBar: () => PanelElement,
     placement: PanelPlacement | null,
-    wired: { window: PanelWindow; view: PanelViewOptions; getTypeStep: () => TypeStep },
+    wired: {
+        window: PanelWindow;
+        view: PanelViewOptions;
+        getTypeStep: () => TypeStep;
+        grip: PanelElement;
+    },
 ): PanelDragHandle | null {
     if (placement === null) return null;
     const { window, view } = wired;
@@ -1007,7 +1031,9 @@ function initDragOrNothing(
         window,
         getTypeTokens: () => TYPE_TOKENS[wired.getTypeStep()],
         onMoved: (position) => view.onIntent({ kind: PANEL_INTENT.move, window, position }),
+        onResized: (size) => view.onIntent({ kind: PANEL_INTENT.resize, window, size }),
         onFailure: view.onFailure,
+        grip: wired.grip,
     });
 }
 
@@ -1060,19 +1086,30 @@ function renderStep(report: UndrawnReport, region: PanelRegion, step: () => void
  */
 function renderFold(
     held: PanelDrawing,
-    drawn: { isCollapsed: boolean; hasFightToSave: boolean; typeStep: TypeStep },
+    drawn: {
+        isCollapsed: boolean;
+        hasFightToSave: boolean;
+        typeStep: TypeStep;
+        windowSizes: WindowSizes;
+    },
 ): void {
     const { isCollapsed, hasFightToSave, typeStep } = drawn;
     if (typeStep !== held.getTypeStep()) {
-        const before = TYPE_TOKENS[held.getTypeStep()];
+        const before = getWindowWidths(held);
         renderStep(held.report, PANEL_REGION.header, () => {
             held.sheet.textContent = composeStyleSheet(typeStep);
             held.setTypeStep(typeStep);
         });
         renderStep(held.report, PANEL_REGION.standing, () => {
-            setStandingBeside(held, before, TYPE_TOKENS[typeStep]);
+            setStandingBeside(held, before, getWindowWidths(held));
         });
     }
+    renderStep(held.report, PANEL_REGION.header, () => {
+        held.getDrag()?.setSize(drawn.windowSizes.panel);
+    });
+    renderStep(held.report, PANEL_REGION.standing, () => {
+        held.standingDrag?.setSize(drawn.windowSizes.helper);
+    });
     held.regions.title = held.redraw(
         held.regions.title,
         PANEL_REGION.header,
@@ -1138,8 +1175,17 @@ function renderTitle(
     return bar;
 }
 
+/** How wide each window stands now, which a change of type moves and a size may not. */
+function getWindowWidths(held: PanelDrawing): WindowWidths {
+    const tokens = TYPE_TOKENS[held.getTypeStep()];
+    return {
+        panel: held.getDrag()?.getWidthPixels() ?? tokens.panelWidthPixels,
+        standing: held.standingDrag?.getWidthPixels() ?? tokens.standingWidthPixels,
+    };
+}
+
 /** The window beside the panel keeps the side it stood on as both change size. */
-function setStandingBeside(held: PanelDrawing, before: TypeTokens, after: TypeTokens): void {
+function setStandingBeside(held: PanelDrawing, before: WindowWidths, after: WindowWidths): void {
     const panel = held.getDrag()?.getPosition() ?? null;
     const standing = held.standingDrag?.getPosition() ?? null;
     if (panel === null) return;
@@ -1181,7 +1227,7 @@ function renderPanelBody(
             document,
             { regions, redraw, drawing, register },
             shown.options,
-            shown.typeStep,
+            { typeStep: shown.typeStep, windowSizes: shown.windowSizes },
         );
         regions.defects = redraw(
             regions.defects,
@@ -1401,7 +1447,7 @@ function renderPanelOptions(
         register: TipRegister;
     },
     options: OptionsReading,
-    typeStep: TypeStep,
+    chosen: { typeStep: TypeStep; windowSizes: WindowSizes },
 ): void {
     const { regions, redraw, drawing, register } = drawn;
     const slot = () => renderSlot(document);
@@ -1420,7 +1466,7 @@ function renderPanelOptions(
     regions.options = redraw(
         regions.options,
         PANEL_REGION.strips,
-        () => renderOptionsRegion(document, options, typeStep),
+        () => renderOptionsRegion(document, options, chosen),
     );
     drawing.draw(OPTIONS_LIST_NAME, slot);
     regions.pinnedActor = redraw(regions.pinnedActor, PANEL_REGION.pinned, slot);
@@ -1437,12 +1483,38 @@ function renderPanelOptions(
 function renderOptionsRegion(
     document: PanelDocument,
     options: OptionsReading,
-    typeStep: TypeStep,
+    chosen: { typeStep: TypeStep; windowSizes: WindowSizes },
 ): PanelElement {
     const region = renderElement(document, "div", "");
-    region.append(renderTypeStrips(document, typeStep));
+    region.append(renderTypeStrips(document, chosen.typeStep));
+    region.append(renderSizeStrips(document, chosen.windowSizes));
     region.append(renderStorageStrips(document, options.storage));
     return region;
+}
+
+/**
+ * A way back for each window a reader sized, and none for one they did not: a control that does
+ * nothing is worse than none (`DESIGN.md`). With neither sized, it says how a window is sized.
+ */
+function renderSizeStrips(document: PanelDocument, sizes: WindowSizes): PanelElement {
+    const strips = renderElement(document, "div", CLASS.strips);
+    const label = renderElement(document, "span", CLASS.stripsLabel);
+    label.textContent = PANEL_WORDS.windowSize;
+    strips.append(label);
+    const sized = PANEL_WINDOWS.filter((window) => sizes[window] !== null);
+    if (sized.length === 0) {
+        const hint = renderElement(document, "span", CLASS.stripsLabel);
+        hint.textContent = PANEL_WORDS.resizeHint;
+        strips.append(hint);
+        return strips;
+    }
+    for (const window of sized) {
+        const one = renderElement(document, "div", CLASS.strip);
+        one.textContent = getWordsForSizeReset(window);
+        one.setAttribute(PANEL_MARK.resetSize, window);
+        strips.append(one);
+    }
+    return strips;
 }
 
 function renderTypeStrips(document: PanelDocument, current: TypeStep): PanelElement {
@@ -2741,7 +2813,7 @@ function renderPanelWaiting(
             document,
             { regions, redraw, drawing, register },
             waiting.options,
-            waiting.typeStep,
+            { typeStep: waiting.typeStep, windowSizes: waiting.windowSizes },
         );
     } else drawing.draw(WAITING_LIST_NAME, () => renderWaitingList(document, waiting));
     regions.defects = redraw(

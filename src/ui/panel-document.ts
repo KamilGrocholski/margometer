@@ -21,6 +21,9 @@ export interface PanelEvent {
     relatedTarget?: PanelTarget | null | undefined;
     clientY: number;
     clientX?: number | undefined;
+    /** Where on the pressed element the press landed, which a grip starts a size from. */
+    offsetX?: number | undefined;
+    offsetY?: number | undefined;
     pointerId?: number | undefined;
     button?: number | undefined;
     /** Which buttons are down now, on a move. Zero is a hand that let go; absent is not zero. */

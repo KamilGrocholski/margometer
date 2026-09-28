@@ -66,6 +66,7 @@ import {
     getWordsForOutcome,
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
+    getWordsForSizeReset,
     getWordsForStorage,
     getWordsForTypeStep,
     getWordsForUnannounced,
@@ -275,11 +276,18 @@ Deno.test("the options cover the screen, with where the shelf is kept and the wa
     });
     const host = panel.element as FakeElement;
     const strips = getElementsWithin(host).filter((one) => one.className === "strips");
-    assertEquals(strips.length, 2, "two strips, and neither is one of the fight's");
+    assertEquals(strips.length, 3, "three strips, and none is one of the fight's");
     assertEquals(
         getTextsByClass(host, "strips-label"),
-        [PANEL_WORDS.typeSize, PANEL_WORDS.storage],
-        "what each asks: the size of type, then where the shelf is kept",
+        [PANEL_WORDS.typeSize, PANEL_WORDS.windowSize, PANEL_WORDS.resizeHint, PANEL_WORDS.storage],
+        "what each asks — the type, the size, where the shelf is kept — and how a window is sized",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) =>
+            one.attributes.get("data-reset-size") !== undefined
+        ),
+        [],
+        "no window was sized, so there is none to give back",
     );
     assertEquals(
         getElementsWithin(host).filter((one) => one.attributes.get("data-type-step") !== undefined)
@@ -1862,7 +1870,11 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         onIntent: (intent) => {
             if (intent.kind === PANEL_INTENT.move) moved.push(intent.position);
         },
-        placement: { position: null, readViewport: () => ({ width: 1280, height: 900 }) },
+        placement: {
+            position: null,
+            size: null,
+            readViewport: () => ({ width: 1280, height: 900 }),
+        },
     });
     const host = panel.element as FakeElement;
     panel.render(composeShownScreen(readFight()));
@@ -1908,8 +1920,8 @@ Deno.test("a size of type moves the window beside the panel off it, and says whe
                 moved.push({ window: intent.window, left: intent.position.left });
             }
         },
-        placement: { position: null, readViewport: viewport },
-        standingPlacement: { position: null, readViewport: viewport },
+        placement: { position: null, size: null, readViewport: viewport },
+        standingPlacement: { position: null, size: null, readViewport: viewport },
     });
     const host = panel.element as FakeElement;
     const standing = () =>
@@ -1932,11 +1944,103 @@ Deno.test("a size of type moves the window beside the panel off it, and says whe
     assertEquals(moved.length, 1, "the same size drawn again moves nothing");
 });
 
+Deno.test("a window is sized by its corner, told once, and held through a frame", () => {
+    const document = composeFakeDocument();
+    const sized: PanelIntent[] = [];
+    const panel = initTestView(document, {
+        onIntent: (intent) => {
+            if (intent.kind === PANEL_INTENT.resize) sized.push(intent);
+        },
+        placement: {
+            position: { left: 40, top: 40 },
+            size: null,
+            readViewport: () => ({ width: 1280, height: 900 }),
+        },
+    });
+    const host = panel.element as FakeElement;
+    const shown = composeShownScreen(readFight());
+    panel.render(shown);
+    const grip = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-size-grip") === "panel"
+    );
+    assertExists(grip, "the panel carries its corner");
+    // The corner stands where the press lands when the event says nothing more: a panel 260 wide
+    // at 40, and a body of 300 under a bar of 24 at 40.
+    dragOnElement(host, "pointerdown", grip, { clientX: 300, clientY: 364 });
+    dragOnElement(host, "pointermove", grip, { clientX: 360, clientY: 414 });
+    const style = () => host.attributes.get("style") ?? "";
+    assertStringIncludes(style(), "--MargoMeter-panel-width:320px", "the corner widens it");
+    assertStringIncludes(style(), "--MargoMeter-panel-height:350px", "and lengthens its body");
+    assertEquals(sized, [], "and nothing is told while the hand is on it");
+    panel.render(shown);
+    assertStringIncludes(
+        style(),
+        "--MargoMeter-panel-width:320px",
+        "a frame does not undo the hand",
+    );
+    dragOnElement(host, "pointerup", grip, { clientX: 360, clientY: 414 });
+    assertEquals(
+        sized,
+        [{
+            kind: PANEL_INTENT.resize,
+            window: PANEL_WINDOW.panel,
+            size: { width: 320, height: 350 },
+        }],
+        "let go, the size is told once",
+    );
+    panel.render({ ...shown, windowSizes: { panel: { width: 320, height: 350 }, helper: null } });
+    assertStringIncludes(
+        style(),
+        "--MargoMeter-panel-width:320px",
+        "and a frame carrying it keeps it",
+    );
+    panel.render(shown);
+    assertEquals(
+        style().includes("--MargoMeter-panel-width"),
+        false,
+        "one without it gives it back",
+    );
+    dragOnElement(host, "pointerdown", grip, { clientX: 300, clientY: 364 });
+    dragOnElement(host, "pointermove", grip, { clientX: 100, clientY: 100 });
+    assertStringIncludes(style(), "--MargoMeter-panel-width:260px", "never narrower than its bar");
+    dragOnElement(host, "pointerup", grip, { clientX: 100, clientY: 100 });
+});
+
+Deno.test("the options give back only a window a reader sized, and name which", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const options = { storage: STORAGE_CHOICE.local, answers: [] };
+    panel.render({
+        ...composeShownScreen(readFight()),
+        options,
+        windowSizes: { panel: null, helper: { width: 300, height: 200 } },
+    });
+    const host = panel.element as FakeElement;
+    const resets = () =>
+        getElementsWithin(host).filter((one) =>
+            one.attributes.get("data-reset-size") !== undefined
+        );
+    assertEquals(resets().map((one) => one.attributes.get("data-reset-size")), ["helper"], "one");
+    assertEquals(resets()[0]?.textContent, getWordsForSizeReset("helper"), "named for its window");
+    assertEquals(
+        getTextsByClass(host, "strips-label").includes(PANEL_WORDS.resizeHint),
+        false,
+        "no hint",
+    );
+    panel.render({
+        ...composeShownScreen(readFight()),
+        options,
+        windowSizes: { panel: { width: 300, height: 400 }, helper: { width: 300, height: 200 } },
+    });
+    assertEquals(resets().length, 2, "and both where both were");
+});
+
 Deno.test("the version label on the bar is a handle, like the bar around it", () => {
     const document = composeFakeDocument();
     const panel = initTestView(document, {
         placement: {
             position: { left: 40, top: 40 },
+            size: null,
             readViewport: () => ({ width: 1280, height: 900 }),
         },
     });
@@ -1960,6 +2064,7 @@ Deno.test("a press on a control is not a drag, whatever the pointer does next", 
     const panel = initTestView(document, {
         placement: {
             position: { left: 40, top: 40 },
+            size: null,
             readViewport: () => ({ width: 1280, height: 900 }),
         },
     });
@@ -1990,6 +2095,7 @@ Deno.test("a draw landing mid-drag does not take the panel out of the hand", () 
         },
         placement: {
             position: { left: 40, top: 40 },
+            size: null,
             readViewport: () => ({ width: 1280, height: 900 }),
         },
     });

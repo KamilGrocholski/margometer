@@ -26,6 +26,8 @@ import {
     readTypeStep,
     readWindowFold,
     readWindowPosition,
+    readWindowSize,
+    removeWindowSize,
     SETTING_KEY,
     type SettingKey,
     SettingTooLong,
@@ -35,6 +37,7 @@ import {
     writeTypeStep,
     writeWindowFold,
     writeWindowPosition,
+    writeWindowSize,
 } from "#/src/runtime/settings.ts";
 import {
     PANEL_WINDOW,
@@ -110,6 +113,64 @@ Deno.test("the size of type a reader chose reads back, and nothing chosen is the
     expectSettingUnreadable(readTypeStep(store), SETTING_KEY.typeStep, "nor the empty word");
     expectStoreRefused(readTypeStep(composeRefusingStore()), "the store's answer is kept");
     expectStoreRefused(writeTypeStep(composeRefusingStore(), TYPE_STEP.large), "on writing too");
+});
+
+Deno.test("a window's size reads back per window, and goes when it is given back", () => {
+    const store = initMemoryStore();
+    for (const window of [PANEL_WINDOW.panel, PANEL_WINDOW.helper]) {
+        assertEquals(readWindowSize(store, window), null, `${window}: nothing stored is no size`);
+    }
+    writeWindowSize(store, PANEL_WINDOW.panel, { width: 320, height: 350 });
+    assertEquals(store.read(STORE_KEY.panelSize), '{"width":320,"height":350}', "as two numbers");
+    assertEquals(readWindowSize(store, PANEL_WINDOW.panel), { width: 320, height: 350 }, "back");
+    assertEquals(
+        readWindowSize(store, PANEL_WINDOW.helper),
+        null,
+        "and the other window's is its own",
+    );
+    writeWindowSize(store, PANEL_WINDOW.helper, { width: 1, height: 1 });
+    assertEquals(
+        readWindowSize(store, PANEL_WINDOW.helper),
+        { width: 1, height: 1 },
+        "one is a size",
+    );
+    removeWindowSize(store, PANEL_WINDOW.panel);
+    assertEquals(store.read(STORE_KEY.panelSize), null, "given back, it is gone");
+    assertEquals(
+        readWindowSize(store, PANEL_WINDOW.helper),
+        { width: 1, height: 1 },
+        "not the other",
+    );
+    assertThrows(
+        () => writeWindowSize(store, PANEL_WINDOW.panel, { width: 0, height: 10 }),
+        AssertionError,
+        "narrower than nothing",
+    );
+});
+
+Deno.test("a size that is not two whole numbers above nought is refused by name", () => {
+    const store = initMemoryStore();
+    const key = SETTING_KEY.panelSize;
+    const unread = [
+        '{"width":0,"height":350}',
+        '{"width":320,"height":-1}',
+        '{"width":320.5,"height":350}',
+        '{"width":"320","height":350}',
+        '{"width":320}',
+        "320x350",
+    ];
+    for (const text of unread) {
+        store.write(STORE_KEY.panelSize, text);
+        expectSettingUnreadable(readWindowSize(store, PANEL_WINDOW.panel), key, text);
+    }
+    store.write(STORE_KEY.panelSize, `{"width":320,"height":${"0".repeat(4096)}}`);
+    assertInstanceOf(
+        readWindowSize(store, PANEL_WINDOW.panel),
+        SettingTooLong,
+        "and text too long",
+    );
+    expectStoreRefused(readWindowSize(composeRefusingStore(), PANEL_WINDOW.panel), "a refusal");
+    expectStoreRefused(removeWindowSize(composeRefusingStore(), PANEL_WINDOW.panel), "on removing");
 });
 
 Deno.test("a fold is the one mark, and anything else stored there is not read as one", () => {

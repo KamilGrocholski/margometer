@@ -38,6 +38,7 @@ import {
     readTypeStep,
     readWindowFold,
     readWindowPosition,
+    readWindowSize,
     type SettingFailure,
     STORAGE_DEFAULT,
 } from "./settings.ts";
@@ -48,6 +49,7 @@ import {
     type PanelWindow,
     type StorageChoice,
     TYPE_STEP_DEFAULT,
+    type WindowSize,
 } from "#/src/ui/panel-choice.ts";
 import type { PanelDocument, PanelElement } from "#/src/ui/panel-document.ts";
 import type { PanelPlacement, PanelViewport } from "#/src/ui/panel-drag.ts";
@@ -144,6 +146,10 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
         readRuntimeFold(ports, defects, PANEL_WINDOW.panel),
         readRuntimeFold(ports, defects, PANEL_WINDOW.helper),
         readRuntimeSetting(defects, readTypeStep(ports.settings), TYPE_STEP_DEFAULT),
+        {
+            panel: readRuntimeSize(ports, defects, PANEL_WINDOW.panel),
+            helper: readRuntimeSize(ports, defects, PANEL_WINDOW.helper),
+        },
     );
     // The raw key is the mark where the client cannot be asked (`develop ADR 0024`).
     const translate: TranslateLabel = (id, category) => {
@@ -175,6 +181,19 @@ function readRuntimeFold(ports: RuntimePorts, defects: DefectLedger, window: Pan
     return readRuntimeSetting(defects, readWindowFold(ports.settings, window), false);
 }
 
+function readRuntimeSize(
+    ports: RuntimePorts,
+    defects: DefectLedger,
+    window: PanelWindow,
+): WindowSize | null {
+    const size = readRuntimeSetting(defects, readWindowSize(ports.settings, window), null);
+    if (size !== null) {
+        assert(size.width > 0, "a window is put back at a width it can stand at");
+        assert(size.height > 0, "and a height");
+    }
+    return size;
+}
+
 function initRuntimeState(
     ports: RuntimePorts,
     options: RuntimeOptions,
@@ -201,8 +220,8 @@ function initRuntimeState(
         typeStep: screen.typeStep,
         onIntent: (intent) => onRuntimeIntent(state, intent),
         onFailure: (failure) => onViewFailure(defects, failure, builtState),
-        placement: readRuntimePlacement(ports, defects, PANEL_WINDOW.panel),
-        standingPlacement: readRuntimePlacement(ports, defects, PANEL_WINDOW.helper),
+        placement: readRuntimePlacement(ports, defects, PANEL_WINDOW.panel, screen),
+        standingPlacement: readRuntimePlacement(ports, defects, PANEL_WINDOW.helper, screen),
         translate: parts.translate,
     });
     assert(keeper.getFights().length <= KEPT_MAXIMUM, "the shelf opened stays inside its bound");
@@ -333,13 +352,14 @@ function readRuntimePlacement(
     ports: RuntimePorts,
     defects: DefectLedger,
     window: PanelWindow,
+    screen: ScreenState,
 ): PanelPlacement {
     const position = readRuntimeSetting(defects, readWindowPosition(ports.settings, window), null);
     if (position !== null) {
         assert(Number.isSafeInteger(position.left), "a window is put back at a whole column");
         assert(Number.isSafeInteger(position.top), "and a whole row");
     }
-    return { position, readViewport: ports.readViewport };
+    return { position, size: screen.windowSizes[window], readViewport: ports.readViewport };
 }
 
 function showRuntimePanel(state: RuntimeState): void {

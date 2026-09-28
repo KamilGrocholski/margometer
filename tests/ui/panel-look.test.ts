@@ -23,6 +23,7 @@ import {
     getTipRoom,
     LAYER,
     PLACE,
+    SIZE_VARIABLES,
     SPACE_PIXELS,
     SURFACE,
     TEXT,
@@ -46,10 +47,15 @@ import {
     type SheetRule,
 } from "#/tests/style-sheet.ts";
 
-/** A rule `develop` wrote that this sheet does not, and the rule written in its place, if any. */
+/**
+ * A rule `develop` wrote that this sheet does not, and the rule written in its place, if any. Where
+ * both name one selector and `moved` names properties, the rule stays held to `develop`'s but for
+ * those properties, and the rest of it is still compared to the byte.
+ */
 interface SheetDeparture {
     develop: string | null;
     here: string | null;
+    moved?: readonly string[];
 }
 
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
@@ -80,6 +86,19 @@ const DEVELOP_ROOT_PREFIX = '"@/';
 const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // The options control stands first on the bar and leads the rest to its far end.
     { develop: ".titlebar-fights", here: ".titlebar-lead" },
+    // A window sized by its corner: its width and its body's height are the reader's, a sized
+    // panel stands past the share of the window, and its list takes the room it is given.
+    { develop: ":host", here: ":host", moved: ["max-height"] },
+    { develop: ".MargoMeter-titlebar", here: ".MargoMeter-titlebar", moved: ["width"] },
+    { develop: ".panel", here: ".panel", moved: ["width", "height", "position"] },
+    { develop: ".panel>.list", here: ".panel>.list", moved: ["flex"] },
+    { develop: ".MargoMeter-tip", here: ".MargoMeter-tip", moved: ["right"] },
+    { develop: ".MargoMeter-standing", here: ".MargoMeter-standing", moved: ["left", "width"] },
+    { develop: ".standing-body", here: ".standing-body", moved: ["box-sizing", "height"] },
+    { develop: null, here: ".MargoMeter-standing.standing-folded .size-grip" },
+    { develop: null, here: ".size-grip" },
+    { develop: null, here: ".panel>.size-grip" },
+    { develop: null, here: ".size-grip:hover" },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
@@ -378,6 +397,7 @@ function findSheetDepartures(
     const found: string[] = [];
     const developRules = readRules(develop);
     const hereRules = readRules(here);
+    const movedBySelector = new Map<string, readonly string[]>();
     for (const departure of departures) {
         const { develop: was, here: is } = departure;
         if (was !== null) {
@@ -386,13 +406,25 @@ function findSheetDepartures(
         if (is !== null) {
             if (!hereRules.some((one) => one.selector === is)) found.push(`${is} not written`);
         }
+        if (departure.moved !== undefined) {
+            if (was !== null) movedBySelector.set(was, departure.moved);
+        }
     }
-    const kept = (rules: readonly SheetRule[], set: readonly (string | null)[]) =>
-        rules.filter((one) => !set.includes(one.selector)).map((one) =>
-            `${one.selector}{${one.body}}`
-        );
-    const developKept = kept(developRules, departures.map((one) => one.develop));
-    const hereKept = kept(hereRules, departures.map((one) => one.here));
+    const isWhole = (one: SheetDeparture) => one.moved === undefined;
+    const set = (pick: (one: SheetDeparture) => string | null) =>
+        departures.filter(isWhole).map(pick);
+    const kept = (rules: readonly SheetRule[], gone: readonly (string | null)[]) =>
+        rules.filter((one) => !gone.includes(one.selector)).map((one) => {
+            const moved = movedBySelector.get(one.selector) ?? [];
+            return `${one.selector}{${composeBodyWithout(one.body, moved)}}`;
+        });
+    const developKept = kept(developRules, set((one) => one.develop));
+    const hereKept = kept(hereRules, set((one) => one.here));
+    for (const [selector, moved] of movedBySelector) {
+        const was = developRules.find((one) => one.selector === selector)?.body;
+        const is = hereRules.find((one) => one.selector === selector)?.body;
+        if (was === is) found.push(`${selector} moved nothing of ${moved.join(", ")}`);
+    }
     const length = Math.max(developKept.length, hereKept.length);
     for (let at = 0; at < length; at += 1) {
         if (developKept[at] === hereKept[at]) continue;
@@ -400,6 +432,15 @@ function findSheetDepartures(
         break;
     }
     return found;
+}
+
+/** A rule's declarations but those a record names, in the order they were written. */
+function composeBodyWithout(body: string, moved: readonly string[]): string {
+    if (moved.length === 0) return body;
+    return body.split(";").filter((stated) => {
+        const at = stated.indexOf(":");
+        return at === -1 || !moved.includes(stated.slice(0, at));
+    }).join(";");
 }
 
 /** `develop`'s modules written out of git into a directory of their own, and the sheet asked for. */
@@ -451,6 +492,18 @@ Deno.test("a rule moved away from develop's is found, and one a record names is 
         findSheetDepartures(develop, develop, renamed),
         [".d not written"],
         "a record naming a rule the sheet no longer writes, which is a record gone stale",
+    );
+    const moved = [{ develop: ".b", here: ".b", moved: ["y"] }];
+    assertEquals(findSheetDepartures(develop, ".a{x:1}.b{y:9}.c{z:3}", moved), [], "a named value");
+    assertEquals(
+        findSheetDepartures(develop, ".a{x:1}.b{y:9;w:4}.c{z:3}", moved).length,
+        1,
+        "and one beside it that no record names",
+    );
+    assertArrayIncludes(
+        findSheetDepartures(develop, develop, moved),
+        [".b moved nothing of y"],
+        "and a record naming a value that did not move",
     );
 });
 
@@ -831,18 +884,13 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
             const font = getDeclaration(getRuleBody(sheet, `.${drawn}`), "font");
             assert(font?.startsWith(body), `${step}: ${drawn} prints ${font}, not ${body}`);
         }
-        const widths = [
-            [CLASS.panel, "width", tokens.panelWidthPixels],
-            [CLASS.title, "width", tokens.panelWidthPixels],
-            [CLASS.standing, "width", tokens.standingWidthPixels],
-        ] as const;
-        for (const [drawn, property, pixels] of widths) {
-            const stated = getDeclaration(getRuleBody(sheet, `.${drawn}`), property);
-            assertEquals(
-                stated,
-                `${pixels}px`,
-                `${step}: ${drawn} stands as wide as the step says`,
-            );
+        // As wide as the step says, until a reader sizes the window by its corner.
+        const panel = `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px)`;
+        const standing = `var(${SIZE_VARIABLES.helper.width},${tokens.standingWidthPixels}px)`;
+        const widths = [[CLASS.panel, panel], [CLASS.title, panel], [CLASS.standing, standing]];
+        for (const [drawn, width] of widths) {
+            const stated = getDeclaration(getRuleBody(sheet, `.${drawn}`), "width");
+            assertEquals(stated, width, `${step}: ${drawn} stands as wide as the step says`);
         }
         const tip = getDeclaration(getRuleBody(sheet, `.${CLASS.tip}`), "max-width");
         assertStringIncludes(tip ?? "", `${tokens.tipWidthPixelsMaximum}px`, `${step}: the card`);

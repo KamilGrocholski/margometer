@@ -12,7 +12,7 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { formatInteger } from "#/libs/number-text.ts";
 import type { OutcomeResult } from "#/src/core/battle-event.ts";
 import type { FightMoment, PanelSidePart, PanelUnnamedEnd, PinnedCase } from "./panel-reading.ts";
-import type { StorageChoice, TypeStep } from "./panel-choice.ts";
+import type { PanelWindow, StorageChoice, TypeStep } from "./panel-choice.ts";
 import type { PanelMetric, PanelNoun, PanelSideChoice } from "./panel-screen.ts";
 import type { StandingAbsence, StandingTurnState } from "./panel-standing.ts";
 import type { ChargedSkillState } from "#/src/core/charged-skill.ts";
@@ -155,6 +155,9 @@ export const PANEL_WORDS = {
     backFromOptions: "wróć",
     storage: "Trzymaj walki",
     typeSize: "Pismo",
+    windowSize: "Rozmiar",
+    resizeHint: "przeciągnij prawy dolny róg okna",
+    resizeGrip: "Przeciągnij, żeby zmienić rozmiar",
     ourSide: "My",
     theirSide: "Oni",
     withoutSide: "Bez strony",
@@ -757,6 +760,12 @@ const STORAGE_WORDS: Record<StorageChoice, string> = {
     memory: "tylko teraz",
 };
 
+/** Named after the window, so a reader sizing only one is told which one goes back. */
+const SIZE_RESET_WORDS: Record<PanelWindow, string> = {
+    panel: "przywróć panel",
+    helper: "przywróć Pomocnika",
+};
+
 const TYPE_STEP_WORDS: Record<TypeStep, string> = {
     small: "małe",
     medium: "średnie",
@@ -1239,6 +1248,11 @@ export function getWordsForPin(isPinned: boolean): string {
 
 export function getWordsForStorage(choice: StorageChoice): string {
     const words = STORAGE_WORDS[choice];
+    return words;
+}
+
+export function getWordsForSizeReset(window: PanelWindow): string {
+    const words = SIZE_RESET_WORDS[window];
     return words;
 }
 

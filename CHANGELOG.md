@@ -39,6 +39,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Panel i Pomocnika można powiększyć, ciągnąc za prawy dolny róg; rozmiar zostaje po
+  odświeżeniu strony, a w opcjach pod ⚙ można go przywrócić.
 - **Nowość** — W opcjach pod ⚙ można wybrać wielkość pisma — małe, średnie albo duże — i panel razem
   z Pomocnikiem rysują się w niej, także po odświeżeniu strony.
 - **Zmiana** — Wybór, gdzie trzymać zapisane walki, przeniósł się z listy walk do opcji pod

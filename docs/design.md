@@ -311,6 +311,8 @@ export const STORE_KEY = {
     helperPlace: "MargoMeter-pomocnik-place",
     storage: "MargoMeter-storage",
     typeStep: "MargoMeter-type",
+    panelSize: "MargoMeter-size",
+    helperSize: "MargoMeter-pomocnik-size",
 } as const;
 export type StoreKey = VocabularyWord<typeof STORE_KEY>;
 export type StoreFailure =
@@ -676,6 +678,7 @@ export interface Settings {
 export interface WindowSetting {
     position: PanelPosition | null;
     isCollapsed: boolean;
+    size: WindowSize | null; // the width and the body's height a reader gave it by its corner
 }
 /**
  * One reader and one writer per field rather than a generic pair: a value typed by its key needs a
@@ -688,7 +691,12 @@ export function readWindowPosition(
     store: KeyValueStore,
     window: PanelWindow,
 ): PanelPosition | null | SettingFailure; // null: the reader put it nowhere
-// and `writeStorageChoice`, `writeTypeStep`, `writeWindowFold`, `writeWindowPosition` beside them
+export function readWindowSize(
+    store: KeyValueStore,
+    window: PanelWindow,
+): WindowSize | null | SettingFailure; // null: the window stands as its type draws it
+// and `writeStorageChoice`, `writeTypeStep`, `writeWindowFold`, `writeWindowPosition`,
+// `writeWindowSize` and `removeWindowSize` beside them
 export type SettingFailure = StoreFailure | SettingUnreadable | SettingTooLong; // each names its `key`
 
 // The shelf
@@ -878,6 +886,8 @@ export type PanelIntent =
     | { kind: "close" }
     | { kind: "fold"; window: PanelWindow }
     | { kind: "move"; window: PanelWindow; position: PanelPosition }
+    | { kind: "resize"; window: PanelWindow; size: WindowSize }
+    | { kind: "reset-size"; window: PanelWindow }
     | { kind: "save-file" }
     | { kind: "storage"; choice: StorageChoice }
     | { kind: "type-step"; step: TypeStep }
@@ -915,7 +925,8 @@ window ─ readUserscriptWindow ─▶ RuntimePorts | BootFailure, under errors.
    a failure → one console line where the page has a console → stand down, no panel
 composeRuntimeTables     the frozen readings indexed, under the start's guard, never at load
 initRuntime(ports, options)
-   ─▶ readStorageChoice, readTypeStep, readWindowFold × 2    a failure → the default, a "kept" defect
+   ─▶ readStorageChoice, readTypeStep, readWindowFold × 2, readWindowSize × 2
+                              a failure → the default, and a "kept" defect
    ─▶ openShelf               a failure → an empty shelf, and a "kept" defect
    ─▶ initPanelView           readWindowPosition × 2: a failure → the sheet's corner, a "kept" defect
    ─▶ look for the engine every 250 ms, at most 240 times
@@ -953,8 +964,8 @@ end: no DOM; cost bounded by the message count; a JSON copy only of a call thinn
 listener ─ reads a PanelIntent off data-* (isOneOf; unknown → GestureDropped)
    executeRuntimeIntent: the screen moves, and the options and the shelf never cover it together;
       the keeper pins and moves the shelf; a fold is written; a size of type is written, and asks
-      for a frame only where it moved; a move is written and asks for no frame; a save writes the
-      file or a "file" defect
+      for a frame only where it moved; a move and a resize are written and ask for no frame; a
+      size given back is removed and asks for one; a save writes the file or a "file" defect
    true → markStale
 ```
 
@@ -992,7 +1003,7 @@ goes without a mark.
 | `ShelfFailure` on a write                    | `shelf-answer`         | the shelf's answer row                                 |
 | `ShelfUnreadable`, `ShelfVersionUnknown`     | `fallback-with-defect` | an empty shelf; a "kept" defect                        |
 | `FightAlreadyKept`                           | `defect` "keeping"     | the fight is not kept twice                            |
-| `SettingFailure`                             | `fallback-with-defect` | the default position or fold; a "kept" defect          |
+| `SettingFailure`                             | `fallback-with-defect` | the default place, fold, size or type; a "kept" defect |
 | `RegionUndrawn`                              | `defect` "region"      | an undrawn mark where the region stands                |
 | `GestureDropped`                             | `defect` "gesture"     | nothing happened, marked once                          |
 | `WindowUnplaced`                             | `fallback-with-defect` | the sheet's corner; a "mount" defect                   |

@@ -9,12 +9,14 @@ import { parseInteger } from "#/libs/number-text.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     PANEL_WINDOW,
+    PANEL_WINDOWS,
     type PanelPosition,
     type PanelWindow,
     STORAGE_CHOICES,
     type StorageChoice,
     TYPE_STEPS,
     type TypeStep,
+    type WindowSize,
 } from "./panel-choice.ts";
 import type { PanelTarget } from "./panel-document.ts";
 import { type OpenedPart, type PanelUnnamedEnd, UNNAMED_END } from "./panel-reading.ts";
@@ -47,6 +49,8 @@ export const PANEL_MARK = {
     unnamed: "data-unnamed",
     storage: "data-storage",
     typeStep: "data-type-step",
+    /** Which window a reset gives back to its type, named as `PANEL_WINDOW` names it. */
+    resetSize: "data-reset-size",
     /** The helper's own fold: one mark over both would put away the window being watched. */
     helperFold: "data-standing-fold",
 } as const;
@@ -61,6 +65,8 @@ export const PANEL_INTENT = {
     close: "close",
     fold: "fold",
     move: "move",
+    resize: "resize",
+    resetSize: "reset-size",
     saveFile: "save-file",
     storage: "storage",
     typeStep: "type-step",
@@ -80,6 +86,8 @@ export type PanelIntent =
     | { kind: typeof PANEL_INTENT.close }
     | { kind: typeof PANEL_INTENT.fold; window: PanelWindow }
     | { kind: typeof PANEL_INTENT.move; window: PanelWindow; position: PanelPosition }
+    | { kind: typeof PANEL_INTENT.resize; window: PanelWindow; size: WindowSize }
+    | { kind: typeof PANEL_INTENT.resetSize; window: PanelWindow }
     | { kind: typeof PANEL_INTENT.saveFile }
     | { kind: typeof PANEL_INTENT.storage; choice: StorageChoice }
     | { kind: typeof PANEL_INTENT.typeStep; step: TypeStep }
@@ -198,6 +206,11 @@ function readPanelIntentOfOptions(target: PanelTarget): IntentReading {
     if (step !== null) {
         if (!isOneOf(TYPE_STEPS, step)) return new MarkValueUnknown(PANEL_MARK.typeStep);
         return { kind: PANEL_INTENT.typeStep, step };
+    }
+    const window = target.getAttribute(PANEL_MARK.resetSize);
+    if (window !== null) {
+        if (!isOneOf(PANEL_WINDOWS, window)) return new MarkValueUnknown(PANEL_MARK.resetSize);
+        return { kind: PANEL_INTENT.resetSize, window };
     }
     return null;
 }

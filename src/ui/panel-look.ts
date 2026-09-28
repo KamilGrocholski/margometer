@@ -8,7 +8,7 @@
  */
 
 import { clamp } from "#/libs/number-range.ts";
-import { TYPE_STEP, type TypeStep } from "./panel-choice.ts";
+import { PANEL_WINDOW, type PanelWindow, TYPE_STEP, type TypeStep } from "./panel-choice.ts";
 import { type Colour, formatColour, SIGNAL } from "./panel-palette.ts";
 
 /**
@@ -165,6 +165,8 @@ export const CLASS = {
     standingPips: "standing-pips",
     standingPip: "standing-pip",
     standingPipLit: "standing-pip-lit",
+    /** The corner a window is sized by, in either window (ADR 0013). */
+    sizeGrip: "size-grip",
 } as const;
 
 export const SPACE_PIXELS = {
@@ -295,6 +297,28 @@ const ROWS_BY_DEFAULT = 11;
 const FONT_STACK = "system-ui, sans-serif";
 /** What a border costs the box it is on, at the one width this panel draws one. */
 const RULE_WIDTH = 1;
+/**
+ * The corner a window is sized by, drawn inside the window's own corner. Inside, because a box
+ * standing past the window is overflow the window then reports, measured in Chrome 154 on
+ * 2026-09-28; and at twelve it covers the air under the sides' figures at the panel's foot, and in
+ * the window beside it the stripe and the air at the side of the last row, and no figure.
+ */
+export const SIZE_GRIP = {
+    sizePixels: 12,
+} as const;
+/** Where a window's size is written, on the window, and read by the sheet with a fallback. */
+export const SIZE_VARIABLES: {
+    readonly [Window in PanelWindow]: { readonly width: string; readonly height: string };
+} = {
+    [PANEL_WINDOW.panel]: {
+        width: "--MargoMeter-panel-width",
+        height: "--MargoMeter-panel-height",
+    },
+    [PANEL_WINDOW.helper]: {
+        width: "--MargoMeter-standing-width",
+        height: "--MargoMeter-standing-height",
+    },
+};
 
 /**
  * A press that leaves text selected behind it is an accident, which is why the bar and the
@@ -395,6 +419,15 @@ export function getTipRoom(viewportHeight: number | null): number | null {
     return room;
 }
 
+/**
+ * How tall a window's bar stands: its line, the rules its controls carry over and under it — a
+ * control is the tallest thing on the bar — the air over and under that, and the bar's top rule.
+ */
+export function getBarHeight(tokens: TypeTokens): number {
+    const control = tokens.lineHeightTitlePixels + 2 * RULE_WIDTH;
+    return control + 2 * SPACE_PIXELS.small + RULE_WIDTH;
+}
+
 export function composeStyleSheet(step: TypeStep): string {
     const tokens = TYPE_TOKENS[step];
     return `${composeFrameRules(tokens)}${composeRegionRules(tokens)}` +
@@ -410,8 +443,12 @@ export function composeStyleSheet(step: TypeStep): string {
  * survive the line above it, and what the panel is moved by.
  */
 function composeFrameRules(tokens: TypeTokens): string {
+    // The share binds a panel nobody sized; one sized stands as tall as the reader made it, and the
+    // window's own height still bounds it (ADR 0013).
+    const sized = `calc(var(${SIZE_VARIABLES.panel.height},0px) + ${getBarHeight(tokens)}px)`;
     const ceiling = `min(calc(100vh - var(${VARIABLE_PREFIX}panel-top) - ${PLACE.insetPixels}px),` +
-        `${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh)`;
+        `max(${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh,${sized}))`;
+    const width = `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px)`;
     return `:host{all:initial;${composeVariables(tokens)}` +
         `${VARIABLE_PREFIX}panel-top:${PLACE.insetPixels}px;` +
         `position:fixed;top:var(${VARIABLE_PREFIX}panel-top);right:${PLACE.insetPixels}px;` +
@@ -427,7 +464,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
-        `box-sizing:border-box;width:${tokens.panelWidthPixels}px;` +
+        `box-sizing:border-box;width:${width};` +
         `cursor:move;` +
         // Safari has never shipped `user-select` unprefixed, so without this a drag by the bar
         // selects the text under the cursor (`docs/browser-support.md`).
@@ -446,13 +483,15 @@ function composeFrameRules(tokens: TypeTokens): string {
         // Two classes in the selector, so the outcome does not depend on where the rule is
         // written: a bare `.folded` ties with the region's own rule and loses on source order.
         `.${CLASS.frame}.${CLASS.folded}{display:none;}` +
-        `.${CLASS.panel}{font:${composeFontBody(tokens)};width:${tokens.panelWidthPixels}px;` +
+        `.${CLASS.panel}{font:${composeFontBody(tokens)};width:${width};` +
+        `height:var(${SIZE_VARIABLES.panel.height},auto);position:relative;` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
         `box-sizing:border-box;display:flex;flex-direction:column;min-height:0;}` +
         `.${CLASS.panel}>*{flex:none;}` +
-        `.${CLASS.panel}>.${CLASS.list}{flex:0 1 auto;}` +
+        // Grown into whatever room a sized panel has, and a panel nobody sized has none to give.
+        `.${CLASS.panel}>.${CLASS.list}{flex:1 1 auto;}` +
         `.${CLASS.slot}{display:none;}`;
 }
 
@@ -694,8 +733,8 @@ function composeTipRules(tokens: TypeTokens): string {
     // Where a card stands before any window has been moved: against the panel's own corner. It is
     // a distance from the **right** edge, and every placement across is, because a card narrower
     // than the bound has to keep the edge facing its window and not float the difference away.
-    const right =
-        `var(${VARIABLE_PREFIX}tip-right,calc(${PLACE.insetPixels}px + ${tokens.panelWidthPixels}px + ` +
+    const right = `var(${VARIABLE_PREFIX}tip-right,calc(${PLACE.insetPixels}px + ` +
+        `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px) + ` +
         `${SPACE_PIXELS.small}px))`;
     return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
         `left:var(${VARIABLE_PREFIX}tip-left,auto);right:${right};` +
@@ -815,11 +854,13 @@ function composeStandingRules(tokens: TypeTokens): string {
         `clamp(${PLACE.insetPixels}px,var(${VARIABLE_PREFIX}standing-top,${PLACE.insetPixels}px),` +
         `calc(100vh - ${PLACE.insetPixels}px))`;
     const left = `var(${VARIABLE_PREFIX}standing-left,calc(100vw - ${PLACE.insetPixels}px - ` +
-        `${tokens.panelWidthPixels}px - ${tokens.standingWidthPixels}px - ` +
+        `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px) - ` +
+        `var(${SIZE_VARIABLES.helper.width},${tokens.standingWidthPixels}px) - ` +
         `${SPACE_PIXELS.small}px))`;
     return `.${CLASS.standing}{position:fixed;box-sizing:border-box;` +
         `left:${left};top:${top};z-index:${LAYER.standing};` +
-        `width:${tokens.standingWidthPixels}px;display:flex;flex-direction:column;` +
+        `width:var(${SIZE_VARIABLES.helper.width},${tokens.standingWidthPixels}px);` +
+        `display:flex;flex-direction:column;` +
         `max-height:calc(100vh - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px);` +
         `font:${composeFontBody(tokens)};` +
         `color:var(${VARIABLE_PREFIX}text);}` +
@@ -834,6 +875,7 @@ function composeStandingRules(tokens: TypeTokens): string {
         `cursor:move;-webkit-user-select:none;user-select:none;touch-action:none;}` +
         `.${CLASS.standingBar} .${CLASS.control}{margin-left:auto;}` +
         `.${CLASS.standingBody}{min-height:0;overflow-y:auto;overflow-x:hidden;` +
+        `box-sizing:border-box;height:var(${SIZE_VARIABLES.helper.height},auto);` +
         `overscroll-behavior:contain;scrollbar-width:none;` +
         `padding:var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across);` +
         `padding-bottom:calc(var(${VARIABLE_PREFIX}region-down) - ` +
@@ -869,5 +911,27 @@ function composeStandingRules(tokens: TypeTokens): string {
         `.${CLASS.standingPip}{width:${tokens.pipSizePixels}px;height:${tokens.pipSizePixels}px;` +
         `border-radius:50%;` +
         `flex:none;background:var(${VARIABLE_PREFIX}border);}` +
-        `.${CLASS.standingPip}.${CLASS.standingPipLit}{background:currentColor;}`;
+        `.${CLASS.standingPip}.${CLASS.standingPipLit}{background:currentColor;}` +
+        `.${CLASS.standing}.${CLASS.standingFolded} .${CLASS.sizeGrip}{display:none;}` +
+        composeSizeGripRules();
+}
+
+/**
+ * The corner, drawn as the two strokes a text box's own corner is drawn with, in the ink that
+ * says a control is there; a finer drawing reads as a speck at twelve pixels.
+ */
+function composeSizeGripRules(): string {
+    const strokes = "transparent 0 50%,currentColor 50% 60%,transparent 60% 72%," +
+        "currentColor 72% 82%,transparent 82%";
+    // A box is placed against its parent's padding edge, inside the border: the panel draws one and
+    // the window beside it does not, so the panel's corner stands a rule further out to meet the
+    // window's edge. Measured in Chrome 154 on 2026-09-28, where at one offset a 60px drag made
+    // the panel 59px wider.
+    const panelOutside = `-${RULE_WIDTH}px`;
+    return `.${CLASS.sizeGrip}{position:absolute;right:0;bottom:0;` +
+        `width:${SIZE_GRIP.sizePixels}px;height:${SIZE_GRIP.sizePixels}px;z-index:1;` +
+        `color:var(${VARIABLE_PREFIX}quiet);background:linear-gradient(135deg,${strokes});` +
+        `cursor:nwse-resize;touch-action:none;-webkit-user-select:none;user-select:none;}` +
+        `.${CLASS.panel}>.${CLASS.sizeGrip}{right:${panelOutside};bottom:${panelOutside};}` +
+        `.${CLASS.sizeGrip}:hover{color:var(${VARIABLE_PREFIX}text);}`;
 }

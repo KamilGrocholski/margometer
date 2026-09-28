@@ -6,7 +6,7 @@
  * places, and a default chosen in one of them said nothing about the other four.
  */
 
-import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
+import { NO_WINDOW_SIZES, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import type { ShownScreen } from "#/src/ui/panel-element.ts";
 import type { ScreenReading } from "#/src/ui/panel-reading.ts";
 import { PANEL_METRIC, type PanelMetric, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
@@ -29,6 +29,7 @@ export function composeShownScreen(
         isOnShelf: false,
         options: null,
         typeStep: TYPE_STEP_DEFAULT,
+        windowSizes: NO_WINDOW_SIZES,
         hasFightToSave: true,
         shelfAnswers: [],
         defects: [],

@@ -179,8 +179,9 @@ have: a panel centred on its waiting bar walks down the screen as the rows arriv
 is wherever they left it, and that is what is kept. Where the page states no size there is nothing
 to centre against, and the sheet's own corner at `panelInset` stands instead. **develop ADR 0029.**
 
-**The `66vh` cap is real and binds in play.** It is lifted only for a screenshot, and that is the
-whole of the licence — see _The Frame Is Not A Screen Rule_.
+**The `66vh` cap is real and binds in play, for a panel nobody sized.** It is lifted for a
+screenshot, and for a panel a reader made taller by its corner, which stands as tall as they made it
+and no taller than the window (ADR 0013) — see _The Frame Is Not A Screen Rule_.
 
 ## Shape and depth
 
@@ -459,12 +460,14 @@ ranking it was opened from, so pressing a row cannot shorten the window under th
 region says the same thing at any height, so there is nothing to take off them. Its height is
 arithmetic — the rows it promises times what a row costs — so changing the type size cannot quietly
 break the promise: eleven bars under everybody, ten under a side, and never fewer once a row is
-opened, because pressing a row must not shorten the window under the hand. It scrolls without
-drawing a scrollbar, so it gives up no width to one, and neither does either region that draws a bar
-outside it: a row is inset equally on both sides and a bar means the same length in all three. **ADR
-0031.** And it keeps the place a reader scrolled to: a payload arriving, a fold, or a level opened
-and left behind all give the list back where they found it, and a level opened for the first time
-starts at its top. **develop ADR 0050.**
+opened, because pressing a row must not shorten the window under the hand. A panel sized by its
+corner keeps the height the reader gave it at every level, and the list takes whatever room that
+leaves, rows at its top and empty track under them, so the count of bars is the reader's. It scrolls
+without drawing a scrollbar, so it gives up no width to one, and neither does either region that
+draws a bar outside it: a row is inset equally on both sides and a bar means the same length in all
+three. **ADR 0031.** And it keeps the place a reader scrolled to: a payload arriving, a fold, or a
+level opened and left behind all give the list back where they found it, and a level opened for the
+first time starts at its top. **develop ADR 0050.**
 
 **Tooltip.** `surfaceRaised`, **as wide as what it says up to a stated bound**, opens on hover and
 follows the cursor's vertical position. It states its own type and its own ink, because
@@ -588,6 +591,13 @@ remedy left would be clearing storage. Where the reader put it survives a reload
 not say how big it is is not dragged from a guessed origin at all. Both windows grow rightwards from
 where they stand when the type changes size, so the window beside the panel keeps the side it stood
 on by moving: to the left it keeps its right edge, to the right its distance from the panel.
+
+**A window is sized by its corner**, both of them, the way a text box is: two strokes in `textQuiet`
+inside the bottom right corner, over the air under the last line and never over a figure. The width
+and the body's height are the reader's, from the type's own width — the bar holds its controls at
+that and not a pixel less — to twice it, and never past the screen. The size is kept on release, as
+a place is, comes back after a reload, and is given back in the options, one window at a time.
+**ADR 0013.**
 
 **Suspect mark.** Rides the row it was named for, at every drill level, in `suspect` plus a glyph.
 It says a figure may be short and never says by how much.

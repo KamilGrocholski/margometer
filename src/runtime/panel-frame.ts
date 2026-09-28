@@ -119,6 +119,7 @@ export function renderFrame(parts: FrameParts): void {
         keptUnread: null,
         options: presentOptions(parts),
         typeStep: parts.screen.typeStep,
+        windowSizes: parts.screen.windowSizes,
     };
     assert(waiting.defects.length > 0, "a panel that could not be drawn says why");
     addUndrawn(parts.defects, parts.view.renderWaiting(waiting));
@@ -216,6 +217,7 @@ function renderFramePanel(
             keptUnread,
             options: presentOptions(parts),
             typeStep: screen.typeStep,
+            windowSizes: screen.windowSizes,
         });
         addUndrawn(parts.defects, drawn);
         return;
@@ -267,6 +269,7 @@ function presentFrameScreen(
         shelf: presentShelfRows(parts, liveRow, chosenFight),
         options: presentOptions(parts),
         typeStep: screen.typeStep,
+        windowSizes: screen.windowSizes,
         hasFightToSave,
         shelfAnswers: presentShelfAnswers(keeper.getAnswers()),
         defects: said,

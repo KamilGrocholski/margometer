@@ -62,6 +62,10 @@ Deno.test("every mark the panel writes states the intent the runtime is handed",
             kind: PANEL_INTENT.typeStep,
             step: TYPE_STEP.medium,
         }],
+        [PANEL_MARK.resetSize, PANEL_WINDOW.helper, {
+            kind: PANEL_INTENT.resetSize,
+            window: PANEL_WINDOW.helper,
+        }],
         [PANEL_MARK.helperFold, "", { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.helper }],
         [PANEL_MARK.save, "", { kind: PANEL_INTENT.saveFile }],
         [PANEL_MARK.shelf, "", { kind: PANEL_INTENT.shelf }],
@@ -94,6 +98,7 @@ Deno.test("a value no mark of ours writes is a failure naming the mark, never a 
         [PANEL_MARK.pin, ""],
         [PANEL_MARK.storage, "disk"],
         [PANEL_MARK.typeStep, "12"],
+        [PANEL_MARK.resetSize, "standing"],
     ] as const;
     for (const [mark, value] of strays) {
         const read = readMark(mark, value);

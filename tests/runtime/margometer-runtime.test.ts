@@ -1324,6 +1324,79 @@ Deno.test("a size of type the browser kept unreadable costs that size, and says 
     );
 });
 
+Deno.test("a window sized is kept with no frame, comes back after a reload, and goes back", () => {
+    const world = playRecordedFight();
+    const host = world.getHost();
+    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    const size = { width: 320, height: 350 };
+    world.runtime.onIntent({ kind: "resize", window: "panel", size });
+    assertEquals(world.held.get(STORE_KEY.panelSize), '{"width":320,"height":350}', "kept");
+    world.flush();
+    assertStrictEquals(
+        bar?.replacedBy,
+        null,
+        "and the window already standing that size is not redrawn",
+    );
+    const reloaded = reloadRuntimeWorld(world);
+    const style = () => reloaded.getHost().attributes.get("style") ?? "";
+    assertStringIncludes(style(), "--MargoMeter-panel-width:320px", "it comes back that wide");
+    assertStringIncludes(style(), "--MargoMeter-panel-height:350px", "and that tall");
+    openOptions(reloaded);
+    const reset = findByMark(reloaded.getHost(), "data-reset-size", "panel");
+    assertExists(reset, "the options offer the size back");
+    reloaded.press(reset);
+    assertEquals(reloaded.held.get(STORE_KEY.panelSize), undefined, "given back, nothing is kept");
+    assertEquals(style().includes("--MargoMeter-panel-width"), false, "and it stands at its type");
+    assertEquals(
+        findByMark(reloaded.getHost(), "data-reset-size", "panel"),
+        undefined,
+        "with nothing left to give back",
+    );
+});
+
+Deno.test("a window sized stays that size through the frames after it, and can be given back", () => {
+    const battle = composeBattlePage();
+    const world = initRuntimeWorld(battle);
+    const updates = readUpdates(HILDUR);
+    const half = Math.floor(updates.length / 2);
+    for (const payload of updates.slice(0, half)) world.update(payload);
+    world.runtime.onIntent({ kind: "resize", window: "panel", size: { width: 320, height: 350 } });
+    for (const payload of updates.slice(half)) world.update(payload);
+    const style = world.getHost().attributes.get("style") ?? "";
+    assertStringIncludes(
+        style,
+        "--MargoMeter-panel-width:320px",
+        "the next payload keeps the size",
+    );
+    openOptions(world);
+    assertExists(
+        findByMark(world.getHost(), "data-reset-size", "panel"),
+        "and the options offer it back without a reload",
+    );
+});
+
+Deno.test("a window's size the browser kept unreadable costs the size, and says so", () => {
+    const world = initRuntimeWorld(composeBattlePage(), (built) => {
+        built.held.set(STORE_KEY.helperSize, '{"width":-3,"height":200}');
+        return {};
+    });
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    const host = world.getHost();
+    const standing = getElementsWithin(host).find((one) =>
+        one.className.startsWith(CLASS.standing)
+    );
+    assertEquals(
+        (standing?.attributes.get("style") ?? "").includes("--MargoMeter-standing-width"),
+        false,
+        "the window stands at its type",
+    );
+    assertEquals(
+        getTextsByClass(host, CLASS.defect),
+        [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.kept, null, 1)}`],
+        "and the panel says what it had kept could not be read",
+    );
+});
+
 Deno.test("a window's fold the browser kept unreadable costs the fold, and says so", () => {
     const world = initRuntimeWorld(composeBattlePage(), (built) => {
         built.held.set(STORE_KEY.panelFolded, "folded, perhaps");

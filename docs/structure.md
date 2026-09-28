@@ -177,7 +177,7 @@ file comes or goes (ADR 0010).
 | `src/ui/panel-card.ts`     | what a row's card says on demand: every figure a combatant has, at any level         |
 | `src/ui/panel-choice.ts`   | what a reader chooses about the panel, which the runtime keeps                       |
 | `src/ui/panel-document.ts` | the surface the panel asks of a browser's document, declared rather than assumed     |
-| `src/ui/panel-drag.ts`     | where a window sits, and how a reader moves it by its grip                           |
+| `src/ui/panel-drag.ts`     | where a window sits, how a reader moves it by its bar and sizes it by its corner     |
 | `src/ui/panel-element.ts`  | the panel, drawn into a document it is handed                                        |
 | `src/ui/panel-intent.ts`   | what the reader asked for, read off the element they pressed                         |
 | `src/ui/panel-listener.ts` | the one listener handed to the browser, and the guard on it                          |

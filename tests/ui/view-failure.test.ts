@@ -196,6 +196,7 @@ Deno.test("a window that will not open where told stays on the sheet's corner, a
         onFailure: (failure) => failures.push(failure),
         placement: {
             position: null,
+            size: null,
             readViewport: () => {
                 throw new RangeError("a page that will not state its size");
             },
