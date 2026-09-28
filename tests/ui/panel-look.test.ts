@@ -90,8 +90,8 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // panel stands past the share of the window, and its list takes the room it is given.
     { develop: ":host", here: ":host", moved: ["max-height"] },
     { develop: ".MargoMeter-titlebar", here: ".MargoMeter-titlebar", moved: ["width"] },
-    { develop: ".panel", here: ".panel", moved: ["width", "height", "position"] },
-    { develop: ".panel>.list", here: ".panel>.list", moved: ["flex"] },
+    { develop: ".panel", here: ".panel", moved: ["width", "position", "min-height"] },
+    { develop: ".panel>.list", here: ".panel>.list", moved: ["flex", "min-height"] },
     { develop: ".MargoMeter-tip", here: ".MargoMeter-tip", moved: ["right"] },
     { develop: ".MargoMeter-standing", here: ".MargoMeter-standing", moved: ["left", "width"] },
     { develop: ".standing-body", here: ".standing-body", moved: ["box-sizing", "height"] },

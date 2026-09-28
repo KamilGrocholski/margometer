@@ -99,6 +99,28 @@ test("neither corner stands over a figure or a mark a reader reads", async ({ pa
     }
 });
 
+test("a panel made shorter than its regions grows to hold them, on its own ground", async ({ panel }) => {
+    await setDragged(panel.page, await readCentreOf(panel.page, PANEL_GRIP), { x: 0, y: -400 });
+    const drawn = await panel.page.evaluate(() => {
+        const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot;
+        const ground = root?.querySelector(".panel");
+        const summary = root?.querySelector(".MargoMeter-sides");
+        const list = root?.querySelector(".list");
+        return {
+            overflow: (ground?.scrollHeight ?? 0) - (ground?.clientHeight ?? 0),
+            foot: ground?.getBoundingClientRect().bottom ?? 0,
+            summary: summary?.getBoundingClientRect().bottom ?? 0,
+            rows: list?.querySelectorAll(".row").length ?? 0,
+            shown: list?.clientHeight ?? 0,
+        };
+    });
+    expect(drawn.overflow, "nothing stands past the panel's own box").toBeLessThanOrEqual(1);
+    expect(drawn.summary, "the summary stands on the panel's ground").toBeLessThanOrEqual(
+        drawn.foot,
+    );
+    expect(drawn.shown, "and the list keeps rows to read").toBeGreaterThan(40);
+});
+
 test("a smaller window keeps a sized panel on the screen", async ({ panel }) => {
     await setDragged(panel.page, await readCentreOf(panel.page, PANEL_GRIP), { x: WIDER, y: 200 });
     await panel.page.setViewportSize({ width: 1280, height: 500 });

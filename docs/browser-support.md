@@ -158,8 +158,8 @@ Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: c
 `text-overflow: ellipsis` · `text-transform: uppercase` · `touch-action: none` · `user-select: none`
 · `white-space: nowrap` · `width: max-content`
 
-Functions: `calc` · `clamp` · `linear-gradient` · `max` · `min` · `repeating-linear-gradient` ·
-`rgb` · `var`
+Functions: `calc` · `clamp` · `linear-gradient` · `min` · `repeating-linear-gradient` · `rgb` ·
+`var`
 
 Selectors: `host` · `hover`
 

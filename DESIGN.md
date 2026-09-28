@@ -180,8 +180,8 @@ is wherever they left it, and that is what is kept. Where the page states no siz
 to centre against, and the sheet's own corner at `panelInset` stands instead. **develop ADR 0029.**
 
 **The `66vh` cap is real and binds in play, for a panel nobody sized.** It is lifted for a
-screenshot, and for a panel a reader made taller by its corner, which stands as tall as they made it
-and no taller than the window (ADR 0013) — see _The Frame Is Not A Screen Rule_.
+screenshot, and for a panel a reader sized by its corner, which the window alone bounds (ADR 0013) —
+see _The Frame Is Not A Screen Rule_.
 
 ## Shape and depth
 
@@ -461,13 +461,15 @@ region says the same thing at any height, so there is nothing to take off them. 
 arithmetic — the rows it promises times what a row costs — so changing the type size cannot quietly
 break the promise: eleven bars under everybody, ten under a side, and never fewer once a row is
 opened, because pressing a row must not shorten the window under the hand. A panel sized by its
-corner keeps the height the reader gave it at every level, and the list takes whatever room that
-leaves, rows at its top and empty track under them, so the count of bars is the reader's. It scrolls
-without drawing a scrollbar, so it gives up no width to one, and neither does either region that
-draws a bar outside it: a row is inset equally on both sides and a bar means the same length in all
-three. **ADR 0031.** And it keeps the place a reader scrolled to: a payload arriving, a fold, or a
-level opened and left behind all give the list back where they found it, and a level opened for the
-first time starts at its top. **develop ADR 0050.**
+corner is at least as tall as the reader made it at every level, and taller only where the regions
+over and under the list need it — they never give way, and a panel shorter than they are would draw
+them past its own foot. The list takes whatever room is left, never fewer than three rows, rows at
+its top and empty track under them, so the count of bars is the reader's. It scrolls without drawing
+a scrollbar, so it gives up no width to one, and neither does either region that draws a bar outside
+it: a row is inset equally on both sides and a bar means the same length in all three. **ADR 0031.**
+And it keeps the place a reader scrolled to: a payload arriving, a fold, or a level opened and left
+behind all give the list back where they found it, and a level opened for the first time starts at
+its top. **develop ADR 0050.**
 
 **Tooltip.** `surfaceRaised`, **as wide as what it says up to a stated bound**, opens on hover and
 follows the cursor's vertical position. It states its own type and its own ink, because

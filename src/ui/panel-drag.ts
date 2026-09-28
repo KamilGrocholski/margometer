@@ -22,6 +22,7 @@ import {
 } from "./panel-document.ts";
 import { addGuardedListener } from "./panel-listener.ts";
 import {
+    composeSizedPanelStyle,
     getBarHeight,
     PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM,
     PLACE,
@@ -254,7 +255,8 @@ export function composeHostStyle(
     const variables = SIZE_VARIABLES[windowName];
     const width = formatWhole(size.width);
     const height = formatWhole(size.height);
-    const sized = `${variables.width}:${width}px;${variables.height}:${height}px`;
+    const both = `${variables.width}:${width}px;${variables.height}:${height}px`;
+    const sized = windowName === PANEL_WINDOW.panel ? `${both};${composeSizedPanelStyle()}` : both;
     return placed === null ? sized : `${placed};${sized}`;
 }
 

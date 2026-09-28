@@ -376,8 +376,9 @@ Deno.test("a window's style states its size beside its place, and each alone", (
     assertEquals(
         composeHostStyle(place, size, PANEL_WINDOW.panel),
         "left:40px;top:60px;--MargoMeter-panel-top:60px;right:auto;" +
-            "--MargoMeter-panel-width:320px;--MargoMeter-panel-height:350px",
-        "both, in the panel's own properties",
+            "--MargoMeter-panel-width:320px;--MargoMeter-panel-height:350px;" +
+            "--MargoMeter-list-basis:0px;--MargoMeter-list-rows-least:3;--MargoMeter-panel-share:100vh",
+        "both, in the panel's own properties, with the list and the ceiling a sized panel states",
     );
     assertEquals(
         composeHostStyle(null, size, PANEL_WINDOW.helper),

@@ -306,6 +306,17 @@ const RULE_WIDTH = 1;
 export const SIZE_GRIP = {
     sizePixels: 12,
 } as const;
+/**
+ * What a sized panel states beside its size, and what the sheet reads to lay it out that way: its
+ * list starts from nothing and keeps a few rows, and its ceiling is the window's alone.
+ */
+const SIZED_PANEL_VARIABLES = {
+    listBasis: "--MargoMeter-list-basis",
+    listRowsLeast: "--MargoMeter-list-rows-least",
+    share: "--MargoMeter-panel-share",
+} as const;
+const LIST_ROWS_SIZED_MINIMUM = 3;
+
 /** Where a window's size is written, on the window, and read by the sheet with a fallback. */
 export const SIZE_VARIABLES: {
     readonly [Window in PanelWindow]: { readonly width: string; readonly height: string };
@@ -419,6 +430,12 @@ export function getTipRoom(viewportHeight: number | null): number | null {
     return room;
 }
 
+/** The properties a panel states once a reader sized it, written beside the size itself. */
+export function composeSizedPanelStyle(): string {
+    const { listBasis, listRowsLeast, share } = SIZED_PANEL_VARIABLES;
+    return `${listBasis}:0px;${listRowsLeast}:${LIST_ROWS_SIZED_MINIMUM};${share}:100vh`;
+}
+
 /**
  * How tall a window's bar stands: its line, the rules its controls carry over and under it — a
  * control is the tallest thing on the bar — the air over and under that, and the bar's top rule.
@@ -443,11 +460,10 @@ export function composeStyleSheet(step: TypeStep): string {
  * survive the line above it, and what the panel is moved by.
  */
 function composeFrameRules(tokens: TypeTokens): string {
-    // The share binds a panel nobody sized; one sized stands as tall as the reader made it, and the
-    // window's own height still bounds it (ADR 0013).
-    const sized = `calc(var(${SIZE_VARIABLES.panel.height},0px) + ${getBarHeight(tokens)}px)`;
+    // The share binds a panel nobody sized; one sized is bound by the window alone (ADR 0013).
+    const share = `var(${SIZED_PANEL_VARIABLES.share},${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh)`;
     const ceiling = `min(calc(100vh - var(${VARIABLE_PREFIX}panel-top) - ${PLACE.insetPixels}px),` +
-        `max(${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh,${sized}))`;
+        `${share})`;
     const width = `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px)`;
     return `:host{all:initial;${composeVariables(tokens)}` +
         `${VARIABLE_PREFIX}panel-top:${PLACE.insetPixels}px;` +
@@ -483,15 +499,21 @@ function composeFrameRules(tokens: TypeTokens): string {
         // Two classes in the selector, so the outcome does not depend on where the rule is
         // written: a bare `.folded` ties with the region's own rule and loses on source order.
         `.${CLASS.frame}.${CLASS.folded}{display:none;}` +
-        `.${CLASS.panel}{font:${composeFontBody(tokens)};width:${width};` +
-        `height:var(${SIZE_VARIABLES.panel.height},auto);position:relative;` +
+        `.${CLASS.panel}{font:${composeFontBody(tokens)};width:${width};position:relative;` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
-        `box-sizing:border-box;display:flex;flex-direction:column;min-height:0;}` +
+        // As tall as a reader made it **at least**: a height is a floor and never a box, because the
+        // regions over and under the list do not give way, and a panel shorter than they are drew
+        // them past its own foot with no ground under them.
+        `box-sizing:border-box;display:flex;flex-direction:column;` +
+        `min-height:var(${SIZE_VARIABLES.panel.height},0);}` +
         `.${CLASS.panel}>*{flex:none;}` +
-        // Grown into whatever room a sized panel has, and a panel nobody sized has none to give.
-        `.${CLASS.panel}>.${CLASS.list}{flex:1 1 auto;}` +
+        // In a sized panel the list takes the room the rest leave it, and never fewer than a few
+        // rows; in one nobody sized it is as tall as the rows it promises, and there is no room.
+        `.${CLASS.panel}>.${CLASS.list}{flex:1 1 var(${SIZED_PANEL_VARIABLES.listBasis},auto);` +
+        `min-height:calc(var(${SIZED_PANEL_VARIABLES.listRowsLeast},0) * ` +
+        `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half)));}` +
         `.${CLASS.slot}{display:none;}`;
 }
 
