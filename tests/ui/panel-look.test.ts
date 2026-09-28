@@ -26,7 +26,9 @@ import {
     SPACE_PIXELS,
     SURFACE,
     TEXT,
+    TYPE_TOKENS,
 } from "#/src/ui/panel-look.ts";
+import { TYPE_STEP, TYPE_STEP_DEFAULT, TYPE_STEPS } from "#/src/ui/panel-choice.ts";
 import {
     type Colour,
     formatColour,
@@ -123,11 +125,17 @@ const SHORTENING = ["min-width", "overflow", "text-overflow", "white-space"] as 
  * has never shipped it unprefixed (`docs/browser-support.md`).
  */
 Deno.test("a row refuses to have its text selected, in either window", () => {
-    const sheet = composeStyleSheet();
-    const rule = sheet.slice(sheet.indexOf(`.${CLASS.row}{`));
-    const own = rule.slice(0, rule.indexOf("}"));
-    assertStringIncludes(own, "user-select:none", "a press leaves no selection behind it");
-    assertStringIncludes(own, "-webkit-user-select:none", "and Safari is told in its own words");
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const rule = sheet.slice(sheet.indexOf(`.${CLASS.row}{`));
+        const own = rule.slice(0, rule.indexOf("}"));
+        assertStringIncludes(own, "user-select:none", "a press leaves no selection behind it");
+        assertStringIncludes(
+            own,
+            "-webkit-user-select:none",
+            "and Safari is told in its own words",
+        );
+    }
 });
 
 Deno.test("a colour the sheet writes is read back in either spelling, and nothing else is", () => {
@@ -189,34 +197,40 @@ Deno.test("a ratio runs from one, for a colour on itself, to twenty-one", () => 
 });
 
 Deno.test("every ink the sheet paints with clears its floor over the ground it is drawn on", () => {
-    const sheet = composeStyleSheet();
-    const values = readSheetVariables(sheet);
-    assertEquals(
-        values.get("surface"),
-        formatColour(SURFACE.panel),
-        "the sheet ships the surface it is read for",
-    );
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const values = readSheetVariables(sheet);
+        assertEquals(
+            values.get("surface"),
+            formatColour(SURFACE.panel),
+            "the sheet ships the surface it is read for",
+        );
 
-    const painted = readNamesUsedBy(sheet, "color");
-    const grounds = readNamesUsedBy(sheet, "background");
-    assert(painted.size > 0, "the sheet paints with something");
-    let checked = 0;
-    for (const name of painted) {
-        const fills = FILL_GROUNDS[name];
-        if (fills !== undefined) {
-            checked += countPairingsClearing(values, name, fills, AA_GRAPHIC_RATIO);
-            continue;
+        const painted = readNamesUsedBy(sheet, "color");
+        const grounds = readNamesUsedBy(sheet, "background");
+        assert(painted.size > 0, "the sheet paints with something");
+        let checked = 0;
+        for (const name of painted) {
+            const fills = FILL_GROUNDS[name];
+            if (fills !== undefined) {
+                checked += countPairingsClearing(values, name, fills, AA_GRAPHIC_RATIO);
+                continue;
+            }
+            const over = INK_GROUNDS[name];
+            assertExists(over, `${name}: the sheet paints with it and the register omits it`);
+            checked += countPairingsClearing(values, name, over, AA_TEXT_RATIO);
+            for (const where of over) {
+                assertArrayIncludes([...grounds], [where], `${where}: a ground nothing paints`);
+            }
         }
-        const over = INK_GROUNDS[name];
-        assertExists(over, `${name}: the sheet paints with it and the register omits it`);
-        checked += countPairingsClearing(values, name, over, AA_TEXT_RATIO);
-        for (const where of over) {
-            assertArrayIncludes([...grounds], [where], `${where}: a ground nothing paints`);
+        assert(checked > 0, "some pairing was asked");
+        for (const name of Object.keys({ ...INK_GROUNDS, ...FILL_GROUNDS })) {
+            assertArrayIncludes(
+                [...painted],
+                [name],
+                `${name}: registered, and painted with never`,
+            );
         }
-    }
-    assert(checked > 0, "some pairing was asked");
-    for (const name of Object.keys({ ...INK_GROUNDS, ...FILL_GROUNDS })) {
-        assertArrayIncludes([...painted], [name], `${name}: registered, and painted with never`);
     }
 });
 
@@ -345,7 +359,7 @@ Deno.test("the two sides are told apart by more than a hue", () => {
 Deno.test("the style sheet is develop's, but for the rules ADR 0013 moves", async () => {
     const develop = await readDevelopStyleSheet();
     assertEquals(
-        findSheetDepartures(develop, composeStyleSheet(), SHEET_DEPARTURES),
+        findSheetDepartures(develop, composeStyleSheet(TYPE_STEP.small), SHEET_DEPARTURES),
         [],
         `the sheet develop @ ${DEVELOP_REVISION} ships, but for what a record names`,
     );
@@ -441,74 +455,104 @@ Deno.test("a rule moved away from develop's is found, and one a record names is 
 });
 
 Deno.test("the sheet shuts the game out, and every class it selects is one the panel wears", () => {
-    const sheet = composeStyleSheet();
-    assert(sheet.startsWith(":host{all:initial;"), "the reset comes before anything of ours");
-    for (const [name, spelling] of Object.entries(CLASS)) {
-        assertStringIncludes(sheet, `.${spelling}`, `${name} is a class no rule selects`);
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        assert(sheet.startsWith(":host{all:initial;"), "the reset comes before anything of ours");
+        for (const [name, spelling] of Object.entries(CLASS)) {
+            assertStringIncludes(sheet, `.${spelling}`, `${name} is a class no rule selects`);
+        }
+        const opened = [...sheet].filter((one) => one === "{").length;
+        const closed = [...sheet].filter((one) => one === "}").length;
+        assertEquals(opened, closed, "every rule the sheet opens is closed");
+        assert(opened > 1, "and the sheet holds more than the host's own rule");
     }
-    const opened = [...sheet].filter((one) => one === "{").length;
-    const closed = [...sheet].filter((one) => one === "}").length;
-    assertEquals(opened, closed, "every rule the sheet opens is closed");
-    assert(opened > 1, "and the sheet holds more than the host's own rule");
 });
 
 Deno.test("a value is written once, and every rule spends it by name", () => {
-    const sheet = composeStyleSheet();
-    // A value stated twice is the bug this catches, wherever the second one sits: the host's own
-    // declarations spend tokens like any other rule, so one occurrence is the whole allowance.
-    const twice: string[] = [];
-    const signals = [SIGNAL.suspect, SIGNAL.caveat, SIGNAL.defect];
-    const colours = [...Object.values(SURFACE), ...Object.values(TEXT), ...signals];
-    for (const value of colours.map(formatColour)) {
-        const written = sheet.split(value).length - 1;
-        if (written > 1) twice.push(`${value} written ${written} times`);
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        // A value stated twice is the bug this catches, wherever the second one sits: the host's own
+        // declarations spend tokens like any other rule, so one occurrence is the whole allowance.
+        const twice: string[] = [];
+        const signals = [SIGNAL.suspect, SIGNAL.caveat, SIGNAL.defect];
+        const colours = [...Object.values(SURFACE), ...Object.values(TEXT), ...signals];
+        for (const value of colours.map(formatColour)) {
+            const written = sheet.split(value).length - 1;
+            if (written > 1) twice.push(`${value} written ${written} times`);
+        }
+        assertEquals(twice, [], "a value the sheet writes more than once");
+        assertStringIncludes(
+            sheet,
+            formatColour(SURFACE.panel),
+            "and the values it does write are the tokens",
+        );
+        assertStringIncludes(sheet, "var(--MargoMeter-", "which a rule reaches by our own name");
+        assert(sheet.split("var(--MargoMeter-").length > 10, "and reaches by name many times over");
     }
-    assertEquals(twice, [], "a value the sheet writes more than once");
-    assertStringIncludes(
-        sheet,
-        formatColour(SURFACE.panel),
-        "and the values it does write are the tokens",
-    );
-    assertStringIncludes(sheet, "var(--MargoMeter-", "which a rule reaches by our own name");
-    assert(sheet.split("var(--MargoMeter-").length > 10, "and reaches by name many times over");
 });
 
 Deno.test("the card stands over the window beside the panel, and both over the frame", () => {
     // ⚠️ The window carried the host's own layer and the card carried none, so a window dragged
     // over the panel covered the card a reader had just pointed at. `develop ADR 0068`.
-    const sheet = composeStyleSheet();
-    const layerOf = (selector: string) => {
-        const at = sheet.indexOf(selector);
-        assert(at >= 0, `the sheet spells ${selector}`);
-        const rule = sheet.slice(at, sheet.indexOf("}", at));
-        const written = rule.split("z-index:")[1] ?? "";
-        return Number(written.split(";")[0]);
-    };
-    const standing = layerOf(`.${CLASS.standing}{`);
-    const tip = layerOf(`.${CLASS.tip}{`);
-    assertStrictEquals(standing, Number(LAYER.standing), "the window takes the layer it is given");
-    assertStrictEquals(tip, Number(LAYER.tip), "and so does the card");
-    assert(tip > standing, "a card is what a reader pointed at, so nothing else covers it");
-    // The frame takes none of its own: it is what both of the others may be dragged over.
-    const frame = sheet.slice(sheet.indexOf(":host{"), sheet.indexOf("}", sheet.indexOf(":host{")));
-    assertStringIncludes(frame, `z-index:${PLACE.layer}`, "the host takes its layer on the page");
-    // A positioned host with a layer is a stacking context of its own, which is what keeps the
-    // numbers inside the root from ever meeting the game's (`develop ADR 0114`).
-    assertStringIncludes(frame, "position:fixed", "and what stands inside it stands in it alone");
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const layerOf = (selector: string) => {
+            const at = sheet.indexOf(selector);
+            assert(at >= 0, `the sheet spells ${selector}`);
+            const rule = sheet.slice(at, sheet.indexOf("}", at));
+            const written = rule.split("z-index:")[1] ?? "";
+            return Number(written.split(";")[0]);
+        };
+        const standing = layerOf(`.${CLASS.standing}{`);
+        const tip = layerOf(`.${CLASS.tip}{`);
+        assertStrictEquals(
+            standing,
+            Number(LAYER.standing),
+            "the window takes the layer it is given",
+        );
+        assertStrictEquals(tip, Number(LAYER.tip), "and so does the card");
+        assert(tip > standing, "a card is what a reader pointed at, so nothing else covers it");
+        // The frame takes none of its own: it is what both of the others may be dragged over.
+        const frame = sheet.slice(
+            sheet.indexOf(":host{"),
+            sheet.indexOf("}", sheet.indexOf(":host{")),
+        );
+        assertStringIncludes(
+            frame,
+            `z-index:${PLACE.layer}`,
+            "the host takes its layer on the page",
+        );
+        // A positioned host with a layer is a stacking context of its own, which is what keeps the
+        // numbers inside the root from ever meeting the game's (`develop ADR 0114`).
+        assertStringIncludes(
+            frame,
+            "position:fixed",
+            "and what stands inside it stands in it alone",
+        );
+    }
 });
 
 Deno.test("a folded panel is drawn by the one region the fold hides", () => {
-    const sheet = composeStyleSheet();
-    // The bug this catches was photographed rather than reasoned: a bare `.folded` ties with the
-    // region's own rule at one class apiece, and the region wins on source order, so a folded
-    // panel stood 49 pixels tall against the bar's 23. Two classes in the selector is what makes
-    // the outcome independent of where the rule is written.
-    assert(
-        sheet.includes(`.${CLASS.frame}.${CLASS.folded}`),
-        "the frame folds by a selector that outranks its own rule",
-    );
-    assert(!sheet.includes(`;}.${CLASS.folded}{`), "and never by the bare class, which would tie");
-    assertStringIncludes(sheet, "display:none", "what a folded region does is stop being drawn");
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        // The bug this catches was photographed rather than reasoned: a bare `.folded` ties with the
+        // region's own rule at one class apiece, and the region wins on source order, so a folded
+        // panel stood 49 pixels tall against the bar's 23. Two classes in the selector is what makes
+        // the outcome independent of where the rule is written.
+        assert(
+            sheet.includes(`.${CLASS.frame}.${CLASS.folded}`),
+            "the frame folds by a selector that outranks its own rule",
+        );
+        assert(
+            !sheet.includes(`;}.${CLASS.folded}{`),
+            "and never by the bare class, which would tie",
+        );
+        assertStringIncludes(
+            sheet,
+            "display:none",
+            "what a folded region does is stop being drawn",
+        );
+    }
 });
 
 Deno.test("what stands over a region's first bar is what stands under its last", () => {
@@ -518,21 +562,23 @@ Deno.test("what stands over a region's first bar is what stands under its last",
     // for a shorter step above — so the ranking stood 5px under its top edge and 21px over its
     // bottom one, measured in Chrome 152 on 2026-08-29. Every guard stayed green: none of them
     // lays anything out, and none of them adds up what a rule spends either.
-    const sheet = composeStyleSheet();
-    const margin = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "margin-bottom");
-    assertExists(margin, "a row carries its own margin, which the last row carries too");
-    const carried = getPixels(margin);
-    assert(carried > 0, "and that margin is a length a reader can see");
-    for (const region of [CLASS.list, CLASS.pinned]) {
-        const selector = `.${region}`;
-        const body = getRuleBody(sheet, selector);
-        const [above, below] = getEdgesDown(body, selector, "padding");
-        assertEquals(
-            above,
-            (below ?? 0) + carried,
-            `${selector}: ${above}px over the first bar against ${(below ?? 0) + carried}px ` +
-                `under the last`,
-        );
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const margin = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "margin-bottom");
+        assertExists(margin, "a row carries its own margin, which the last row carries too");
+        const carried = getPixels(margin);
+        assert(carried > 0, "and that margin is a length a reader can see");
+        for (const region of [CLASS.list, CLASS.pinned]) {
+            const selector = `.${region}`;
+            const body = getRuleBody(sheet, selector);
+            const [above, below] = getEdgesDown(body, selector, "padding");
+            assertEquals(
+                above,
+                (below ?? 0) + carried,
+                `${selector}: ${above}px over the first bar against ${(below ?? 0) + carried}px ` +
+                    `under the last`,
+            );
+        }
     }
 });
 
@@ -619,23 +665,29 @@ Deno.test("a rule between two regions has the same air on either side of it", ()
     // inset, so the dashed rule sat 9px under the ranking and 4px over the block it opened —
     // measured in Chrome 152 on 2026-08-29. A region being even says nothing about the seam
     // between two of them, and the seam is what a reader sees as a line drawn off centre.
-    const sheet = composeStyleSheet();
-    const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "margin-bottom");
-    assertExists(stated, "a row carries its own margin into the space under the last bar");
-    const margin = getPixels(stated);
-    const list = getAirAround(sheet, `.${CLASS.list}`, margin);
-    const pinned = getAirAround(sheet, `.${CLASS.pinned}`, margin);
-    const sides = getEdgesDown(getRuleBody(sheet, `.${CLASS.sides}`), `.${CLASS.sides}`, "padding");
-    assertEquals(
-        list[1],
-        pinned[0],
-        `the dashed rule stands under ${list[1]}px of the ranking and over ${pinned[0]}px`,
-    );
-    assertEquals(
-        pinned[1],
-        sides[0],
-        `the summary's rule stands under ${pinned[1]}px of the block and over ${sides[0]}px`,
-    );
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "margin-bottom");
+        assertExists(stated, "a row carries its own margin into the space under the last bar");
+        const margin = getPixels(stated);
+        const list = getAirAround(sheet, `.${CLASS.list}`, margin);
+        const pinned = getAirAround(sheet, `.${CLASS.pinned}`, margin);
+        const sides = getEdgesDown(
+            getRuleBody(sheet, `.${CLASS.sides}`),
+            `.${CLASS.sides}`,
+            "padding",
+        );
+        assertEquals(
+            list[1],
+            pinned[0],
+            `the dashed rule stands under ${list[1]}px of the ranking and over ${pinned[0]}px`,
+        );
+        assertEquals(
+            pinned[1],
+            sides[0],
+            `the summary's rule stands under ${pinned[1]}px of the block and over ${sides[0]}px`,
+        );
+    }
 });
 
 /** What a reader sees above a region's first bar and below its last, the row's own margin in. */
@@ -651,19 +703,21 @@ function getAirAround(sheet: string, selector: string, margin: number): number[]
 }
 
 Deno.test("a list is as tall as the rows it promises, and carries no term besides", () => {
-    const sheet = composeStyleSheet();
-    const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.list}`), "height");
-    assertExists(stated, "the list states a height rather than taking one");
-    // `:host` resets `box-sizing` to `content-box` and this rule does not set it, so a term added
-    // for the padding is reserved twice over and lands as dead space under the last bar. What the
-    // guard reads is the operators the height spends at its own depth — a row's cost is one
-    // parenthesised group and carries a `+` of its own, which is not the term this is about.
-    assertEquals(
-        getOperatorsAtDepth(stated),
-        ["*"],
-        `the list reserves something besides the rows it promises: ${stated}`,
-    );
-    assertStringIncludes(stated, "row-height", "and what it reserves is what a row costs");
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.list}`), "height");
+        assertExists(stated, "the list states a height rather than taking one");
+        // `:host` resets `box-sizing` to `content-box` and this rule does not set it, so a term added
+        // for the padding is reserved twice over and lands as dead space under the last bar. What the
+        // guard reads is the operators the height spends at its own depth — a row's cost is one
+        // parenthesised group and carries a `+` of its own, which is not the term this is about.
+        assertEquals(
+            getOperatorsAtDepth(stated),
+            ["*"],
+            `the list reserves something besides the rows it promises: ${stated}`,
+        );
+        assertStringIncludes(stated, "row-height", "and what it reserves is what a row costs");
+    }
 });
 
 /** The operators a `calc` spends outside its own groups, which is where a stray term sits. */
@@ -690,10 +744,16 @@ Deno.test("the panel's rhythm is whole pixels, so a bar and its ink round togeth
     // browser then snaps a bar one way and the glyphs inside it another: the ranking read 5
     // device rows over the figures and 5 under, while the same rows one level down read 4 and 6,
     // in Chrome 152 on 2026-08-29 against `dist/preview.html`. `develop ADR 0015`.
-    const sheet = composeStyleSheet();
-    const stated = getLineHeights(sheet);
-    const factors = stated.filter((height) => !height.endsWith("px"));
-    assertEquals(factors, [], "a line height stated as a factor puts every box under it off grid");
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const stated = getLineHeights(sheet);
+        const factors = stated.filter((height) => !height.endsWith("px"));
+        assertEquals(
+            factors,
+            [],
+            "a line height stated as a factor puts every box under it off grid",
+        );
+    }
 });
 
 /** Every line height the sheet states, which is the term after the slash in a `font` shorthand. */
@@ -720,28 +780,95 @@ Deno.test("a row drops its ink onto its middle and stays the height the list cou
     // half the difference — 4.503px over the caps against 5.497px under the baseline, Chrome 152
     // on 2026-08-29. The drop answers that, and the parity below is what keeps the answer whole:
     // a cell that lands on a half pixel is a cell the browser rounds. `develop ADR 0015`.
-    const sheet = composeStyleSheet();
-    const body = getRuleBody(sheet, `.${CLASS.row}`);
-    assertEquals(
-        getDeclaration(body, "box-sizing"),
-        "border-box",
-        "a row reserving its drop outside its height is a row taller than the list counts",
-    );
-    const [above, below] = getEdgesDown(body, `.${CLASS.row}`, "padding");
-    assertEquals(below, 0, "a row carries the drop over its contents and nothing under them");
-    assertExists(above, "and states what it carries over them");
-    assert(above > 0, "which is a length a reader can see");
-    const height = getDeclaration(body, "height");
-    assertExists(height, "a row states a height rather than taking one from its contents");
-    assertEquals(getPixels(height), SPACE_PIXELS.rowHeight, "and it is the one a row costs");
-    const line = getLineHeights(getRuleBody(sheet, `.${CLASS.panel}`));
-    assertExists(line[0], "the panel states the line a row's cells are drawn on");
-    const spare = SPACE_PIXELS.rowHeight - (above ?? 0) - getPixels(line[0]);
-    assertEquals(spare % 2, 0, `a row centres its cells onto half a pixel: ${spare}px to share`);
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const body = getRuleBody(sheet, `.${CLASS.row}`);
+        assertEquals(
+            getDeclaration(body, "box-sizing"),
+            "border-box",
+            "a row reserving its drop outside its height is a row taller than the list counts",
+        );
+        const [above, below] = getEdgesDown(body, `.${CLASS.row}`, "padding");
+        assertEquals(below, 0, "a row carries the drop over its contents and nothing under them");
+        assertExists(above, "and states what it carries over them");
+        assert(above > 0, "which is a length a reader can see");
+        const height = getDeclaration(body, "height");
+        assertExists(height, "a row states a height rather than taking one from its contents");
+        assertEquals(
+            height,
+            `var(${VARIABLE_OPENER}row-height)`,
+            "and it is the one the list counts",
+        );
+        const rowHeight = getPixels(readSheetVariable(sheet, "row-height"));
+        assertEquals(rowHeight, TYPE_TOKENS[step].rowHeightPixels, "which is the step's own");
+        const line = getLineHeights(getRuleBody(sheet, `.${CLASS.panel}`));
+        assertExists(line[0], "the panel states the line a row's cells are drawn on");
+        const spare = rowHeight - (above ?? 0) - getPixels(line[0]);
+        assertEquals(
+            spare % 2,
+            0,
+            `a row centres its cells onto half a pixel: ${spare}px to share`,
+        );
+    }
+});
+
+/** A token the host declares, as the sheet spells its value. */
+function readSheetVariable(sheet: string, name: string): string {
+    const host = readRules(sheet).find((one) => one.selector === ":host");
+    assertExists(host, "the sheet declares its tokens on the host");
+    const value = getDeclaration(host.body, `${VARIABLE_OPENER}${name}`);
+    assertExists(value, `the host declares ${name}`);
+    return value;
+}
+
+/** A step moves both windows and the card at once: one size of type, never two beside each other. */
+Deno.test("every step draws both windows and the card in its own type, at its own widths", () => {
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const tokens = TYPE_TOKENS[step];
+        const body = `${tokens.fontPixels}px/${tokens.lineHeightPixels}px`;
+        for (const drawn of [CLASS.panel, CLASS.standing, CLASS.tip]) {
+            const font = getDeclaration(getRuleBody(sheet, `.${drawn}`), "font");
+            assert(font?.startsWith(body), `${step}: ${drawn} prints ${font}, not ${body}`);
+        }
+        const widths = [
+            [CLASS.panel, "width", tokens.panelWidthPixels],
+            [CLASS.title, "width", tokens.panelWidthPixels],
+            [CLASS.standing, "width", tokens.standingWidthPixels],
+        ] as const;
+        for (const [drawn, property, pixels] of widths) {
+            const stated = getDeclaration(getRuleBody(sheet, `.${drawn}`), property);
+            assertEquals(
+                stated,
+                `${pixels}px`,
+                `${step}: ${drawn} stands as wide as the step says`,
+            );
+        }
+        const tip = getDeclaration(getRuleBody(sheet, `.${CLASS.tip}`), "max-width");
+        assertStringIncludes(tip ?? "", `${tokens.tipWidthPixelsMaximum}px`, `${step}: the card`);
+        // Every smaller type the sheet spells is the step's own, and the ring's letter is its own.
+        const letter = `${tokens.markLetterPixels}px`;
+        const ring = readRules(sheet).find((one) =>
+            one.selector === `.${CLASS.rowCaveat},.${CLASS.tipCaveat}`
+        );
+        assertExists(ring, `${step}: the ring is one rule for both places it stands`);
+        assertEquals(getDeclaration(ring.body, "font-size"), letter, `${step}: the ring's letter`);
+        const small = readRules(sheet)
+            .map((one) => getDeclaration(one.body, "font-size"))
+            .filter((stated) => stated !== null)
+            .filter((stated) => stated !== letter);
+        assert(small.length > 0, `${step}: the sheet spells a smaller type`);
+        assertEquals(
+            [...new Set(small)],
+            [`${tokens.fontSmallPixels}px`],
+            `${step}: and every rule spelling one spells the step's`,
+        );
+    }
 });
 
 Deno.test("a card is trimmed to the room the sheet leaves it, the window less its air", () => {
-    const stated = getDeclaration(getRuleBody(composeStyleSheet(), `.${CLASS.tip}`), "max-height");
+    const sheet = composeStyleSheet(TYPE_STEP_DEFAULT);
+    const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.tip}`), "max-height");
     assertExists(stated, "the sheet holds a card inside the window");
     const opener = "calc(100vh - ";
     assert(stated.startsWith(opener), `${stated} is a bound on the window's height`);
@@ -780,18 +907,20 @@ Deno.test("the name a card opens with folds rather than shortening", () => {
         "and one stating all four still reads as a cell that shortens",
     );
 
-    const sheet = composeStyleSheet();
-    assertEquals(
-        getShorteningMissing(sheet, `.${CLASS.tipName}`).length,
-        SHORTENING.length,
-        "the name states none of them, so nothing cuts it",
-    );
-    const body = getRuleBody(sheet, `.${CLASS.tipName}`);
-    assertEquals(
-        getDeclaration(body, "overflow-wrap"),
-        "break-word",
-        "and a word with no space to break at breaks rather than running off the card",
-    );
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        assertEquals(
+            getShorteningMissing(sheet, `.${CLASS.tipName}`).length,
+            SHORTENING.length,
+            "the name states none of them, so nothing cuts it",
+        );
+        const body = getRuleBody(sheet, `.${CLASS.tipName}`);
+        assertEquals(
+            getDeclaration(body, "overflow-wrap"),
+            "break-word",
+            "and a word with no space to break at breaks rather than running off the card",
+        );
+    }
 });
 
 /** Which of the four a rule leaves unsaid, so a failure names the declaration that is missing. */
@@ -823,15 +952,17 @@ Deno.test("a cell carrying a figure refuses to fold, and its neighbour shortens"
         "and one short of them is named for what it left out",
     );
 
-    const sheet = composeStyleSheet();
-    for (const selector of [`.${CLASS.figure}`, `.${CLASS.rowValue}`]) {
-        const body = getRuleBody(sheet, selector);
-        assertEquals(getDeclaration(body, "white-space"), "nowrap", `${selector} folds`);
-        assertEquals(getDeclaration(body, "flex"), "none", `${selector} gives way`);
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        for (const selector of [`.${CLASS.figure}`, `.${CLASS.rowValue}`]) {
+            const body = getRuleBody(sheet, selector);
+            assertEquals(getDeclaration(body, "white-space"), "nowrap", `${selector} folds`);
+            assertEquals(getDeclaration(body, "flex"), "none", `${selector} gives way`);
+        }
+        const beside = [CLASS.sectionWords, CLASS.sidesLabel, CLASS.rowName, CLASS.tipLabel];
+        const short = beside.flatMap((className) => getShorteningMissing(sheet, `.${className}`));
+        assertEquals(short, [], "the words beside a figure are the cell that shortens");
     }
-    const beside = [CLASS.sectionWords, CLASS.sidesLabel, CLASS.rowName, CLASS.tipLabel];
-    const short = beside.flatMap((className) => getShorteningMissing(sheet, `.${className}`));
-    assertEquals(short, [], "the words beside a figure are the cell that shortens");
 });
 
 Deno.test("the reader adds up a rule rather than matching one", () => {
@@ -857,23 +988,28 @@ Deno.test("the reader adds up a rule rather than matching one", () => {
 });
 
 Deno.test("the hatch is worn by the row standing apart, and spelled once", () => {
-    const sheet = composeStyleSheet();
-    const bar = getRuleBody(sheet, `.${CLASS.row}.${CLASS.rowApart} .${CLASS.bar}`);
-    const hatch = getDeclaration(bar, "mask-image");
-    assertExists(hatch, "a row with no place in the ranking hatches its bar");
-    assertStringIncludes(hatch, "repeating-linear-gradient", "and the hatch is the gradient");
-    assertExists(getDeclaration(bar, "opacity"), "which is drawn back from the ranking's strength");
-    // The region is where a pinned row stands, never what draws its bar: the rows that earn the
-    // hatch stand inside the list too, and a second copy of the gradient is a second thing to
-    // move. `.bar` itself keeps a solid one, which is what a named row draws.
-    assertEquals(
-        sheet.split("repeating-linear-gradient").length - 1,
-        1,
-        "the gradient is written once, whatever wears it",
-    );
-    assertEquals(
-        getDeclaration(getRuleBody(sheet, `.${CLASS.bar}`), "mask-image"),
-        null,
-        "and a row that holds a place in the ranking draws its bar solid",
-    );
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const bar = getRuleBody(sheet, `.${CLASS.row}.${CLASS.rowApart} .${CLASS.bar}`);
+        const hatch = getDeclaration(bar, "mask-image");
+        assertExists(hatch, "a row with no place in the ranking hatches its bar");
+        assertStringIncludes(hatch, "repeating-linear-gradient", "and the hatch is the gradient");
+        assertExists(
+            getDeclaration(bar, "opacity"),
+            "which is drawn back from the ranking's strength",
+        );
+        // The region is where a pinned row stands, never what draws its bar: the rows that earn the
+        // hatch stand inside the list too, and a second copy of the gradient is a second thing to
+        // move. `.bar` itself keeps a solid one, which is what a named row draws.
+        assertEquals(
+            sheet.split("repeating-linear-gradient").length - 1,
+            1,
+            "the gradient is written once, whatever wears it",
+        );
+        assertEquals(
+            getDeclaration(getRuleBody(sheet, `.${CLASS.bar}`), "mask-image"),
+            null,
+            "and a row that holds a place in the ranking draws its bar solid",
+        );
+    }
 });

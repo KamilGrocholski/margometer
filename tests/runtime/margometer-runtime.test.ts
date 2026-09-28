@@ -22,7 +22,8 @@ import { initPageFrames } from "#/src/game/page-frame.ts";
 import { LOOKS_MAXIMUM } from "#/src/runtime/engine-search.ts";
 import type { RuntimeTables } from "#/src/runtime/margometer-runtime.ts";
 import { KEPT_MAXIMUM } from "#/src/runtime/shelf.ts";
-import { CLASS } from "#/src/ui/panel-look.ts";
+import { CLASS, composeStyleSheet } from "#/src/ui/panel-look.ts";
+import { TYPE_STEP, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
 import {
     DEFECT_MARK,
@@ -878,7 +879,7 @@ Deno.test("where the shelf is kept is the reader's answer, and the fights travel
     assertEquals(world.getShelf("local").has(STORE_KEY.fights), false, "and the old place emptied");
     assertEquals(world.held.get(STORE_KEY.storage), "session", "the answer itself is kept");
     assertEquals(
-        getTextsByClass(host, `${CLASS.strip} ${CLASS.stripCurrent}`),
+        getStorageChosen(host),
         ["do zamknięcia karty"],
         "and the strip marks it",
     );
@@ -892,6 +893,14 @@ function chooseStorage(world: RuntimeWorld, name: string): void {
     const found = findByMark(world.getHost(), "data-storage", name);
     assertExists(found, `the strip offers ${name}`);
     world.press(found);
+}
+
+/** The storage strip's answer, read by its mark: the options carry the type's strip beside it. */
+function getStorageChosen(host: FakeElement): string[] {
+    return getElementsWithin(host)
+        .filter((one) => one.attributes.get("data-storage") !== undefined)
+        .filter((one) => one.className.includes(CLASS.stripCurrent))
+        .map((one) => one.textContent);
 }
 
 function openOptions(world: RuntimeWorld): void {
@@ -908,7 +917,7 @@ Deno.test("a browser that will not keep the answer moves nothing, and says so", 
     chooseStorage(world, "memory");
     assertEquals(world.getShelf("local").has(STORE_KEY.fights), true, "the fights stay put");
     assertEquals(
-        getTextsByClass(host, `${CLASS.strip} ${CLASS.stripCurrent}`),
+        getStorageChosen(host),
         ["na stałe"],
         "and the strip goes on saying where they are",
     );
@@ -930,7 +939,7 @@ Deno.test("a store that will not take the fights leaves them where they were", (
     assertEquals(world.getShelf("local").has(STORE_KEY.fights), true, "where the next page looks");
     assertEquals(world.held.get(STORE_KEY.storage), undefined, "and so does the answer");
     assertEquals(
-        getTextsByClass(world.getHost(), `${CLASS.strip} ${CLASS.stripCurrent}`),
+        getStorageChosen(world.getHost()),
         ["na stałe"],
         "which the strip says",
     );
@@ -968,7 +977,7 @@ Deno.test("the options answer before any fight has come, and the answer is kept"
     chooseStorage(world, "memory");
     assertEquals(world.held.get(STORE_KEY.storage), "memory", "and a choice made there is kept");
     assertEquals(
-        getTextsByClass(host, `${CLASS.strip} ${CLASS.stripCurrent}`),
+        getStorageChosen(host),
         ["tylko teraz"],
         "which the strip marks",
     );
@@ -1271,6 +1280,49 @@ function playRecordedFightOn(battle: Record<string, unknown>): RuntimeWorld {
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     return world;
 }
+
+Deno.test("a size of type chosen redraws both windows in it, and comes back after a reload", () => {
+    const world = playRecordedFight();
+    const host = world.getHost();
+    const sheet = () => getElementsWithin(host).find((one) => one.tag === "style")?.textContent;
+    const drawn = sheet();
+    assertStrictEquals(drawn, composeStyleSheet(TYPE_STEP_DEFAULT), "it opens at the default");
+    assertEquals(world.held.get(STORE_KEY.typeStep), undefined, "with nothing stored");
+    openOptions(world);
+    const large = findByMark(host, "data-type-step", TYPE_STEP.large);
+    assertExists(large, "the options offer the largest step");
+    world.press(large);
+    assertStrictEquals(sheet(), composeStyleSheet(TYPE_STEP.large), "the sheet is that step's");
+    assertEquals(world.held.get(STORE_KEY.typeStep), TYPE_STEP.large, "and the choice is kept");
+    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    const again = findByMark(host, "data-type-step", TYPE_STEP.large);
+    assertExists(again, "the step stands marked where it was pressed");
+    world.press(again);
+    assertStrictEquals(bar?.replacedBy, null, "the same step again redraws nothing");
+    const reloaded = reloadRuntimeWorld(world);
+    const style = getElementsWithin(reloaded.getHost()).find((one) => one.tag === "style");
+    assertStrictEquals(
+        style?.textContent,
+        composeStyleSheet(TYPE_STEP.large),
+        "a reader who comes back reads at the step they chose",
+    );
+});
+
+Deno.test("a size of type the browser kept unreadable costs that size, and says so", () => {
+    const world = initRuntimeWorld(composeBattlePage(), (built) => {
+        built.held.set(STORE_KEY.typeStep, "enormous");
+        return {};
+    });
+    const host = world.getHost();
+    const style = getElementsWithin(host).find((one) => one.tag === "style");
+    assertStrictEquals(style?.textContent, composeStyleSheet(TYPE_STEP_DEFAULT), "the default");
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    assertEquals(
+        getTextsByClass(host, CLASS.defect),
+        [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.kept, null, 1)}`],
+        "and the panel says what it had kept could not be read",
+    );
+});
 
 Deno.test("a window's fold the browser kept unreadable costs the fold, and says so", () => {
     const world = initRuntimeWorld(composeBattlePage(), (built) => {

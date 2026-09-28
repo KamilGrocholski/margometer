@@ -35,6 +35,7 @@ import { renderFrame } from "./panel-frame.ts";
 import { resetScreenOnOpening } from "./screen-intent.ts";
 import {
     readStorageChoice,
+    readTypeStep,
     readWindowFold,
     readWindowPosition,
     type SettingFailure,
@@ -42,7 +43,12 @@ import {
 } from "./settings.ts";
 import { initShelfKeeper, type ShelfKeeper } from "./shelf-keeper.ts";
 import { KEPT_MAXIMUM } from "./shelf.ts";
-import { PANEL_WINDOW, type PanelWindow, type StorageChoice } from "#/src/ui/panel-choice.ts";
+import {
+    PANEL_WINDOW,
+    type PanelWindow,
+    type StorageChoice,
+    TYPE_STEP_DEFAULT,
+} from "#/src/ui/panel-choice.ts";
 import type { PanelDocument, PanelElement } from "#/src/ui/panel-document.ts";
 import type { PanelPlacement, PanelViewport } from "#/src/ui/panel-drag.ts";
 import { initPanelView, type PanelView } from "#/src/ui/panel-element.ts";
@@ -137,6 +143,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
     const screen = createScreenState(
         readRuntimeFold(ports, defects, PANEL_WINDOW.panel),
         readRuntimeFold(ports, defects, PANEL_WINDOW.helper),
+        readRuntimeSetting(defects, readTypeStep(ports.settings), TYPE_STEP_DEFAULT),
     );
     // The raw key is the mark where the client cannot be asked (`develop ADR 0024`).
     const translate: TranslateLabel = (id, category) => {
@@ -191,6 +198,7 @@ function initRuntimeState(
     let builtState: RuntimeState | null = null;
     const view = initPanelView(ports.document, {
         version: options.version,
+        typeStep: screen.typeStep,
         onIntent: (intent) => onRuntimeIntent(state, intent),
         onFailure: (failure) => onViewFailure(defects, failure, builtState),
         placement: readRuntimePlacement(ports, defects, PANEL_WINDOW.panel),

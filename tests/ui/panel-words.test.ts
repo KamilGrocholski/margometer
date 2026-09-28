@@ -70,6 +70,7 @@ import {
     getWordsForSide,
     getWordsForStorage,
     getWordsForTurnState,
+    getWordsForTypeStep,
     getWordsForUnannounced,
     getWordsForUnnamedEnd,
     HEALTH_LOSS_WORD_BY_KEY,
@@ -89,7 +90,7 @@ import {
     STORE_REFUSED_ANSWER,
 } from "#/src/ui/panel-words.ts";
 import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
-import { STORAGE_CHOICES } from "#/src/ui/panel-choice.ts";
+import { STORAGE_CHOICES, TYPE_STEPS } from "#/src/ui/panel-choice.ts";
 import { PINNED_CASES, SIDE_PART, UNNAMED_END } from "#/src/ui/panel-reading.ts";
 import { PANEL_NOUN, SCREEN_ORDER, SIDE_CHOICES } from "#/src/ui/panel-screen.ts";
 import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
@@ -307,6 +308,7 @@ function getSentencesFromChoices(): string[] {
     for (const noun of PANEL_NOUNS) found.push(getWordsForNoun(noun));
     for (const choice of SIDE_CHOICES) found.push(getWordsForSide(choice));
     for (const choice of STORAGE_CHOICES) found.push(getWordsForStorage(choice));
+    for (const step of TYPE_STEPS) found.push(getWordsForTypeStep(step));
     for (const state of TURN_STATES) found.push(getWordsForTurnState(state));
     for (const outcome of PANEL_OUTCOMES) {
         found.push(getWordsForOutcome(outcome));

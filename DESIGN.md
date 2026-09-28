@@ -129,8 +129,11 @@ worst pairing across the palette becomes 6.12:1. Past 0.77 the blue fails again.
 ## Typography
 
 The panel inherits nothing and asks for nothing: no web font, no download, no layout shift. It uses
-the reader's system UI stack, at one size, with weight and colour carrying the hierarchy instead of
-scale.
+the reader's system UI stack, with weight and colour carrying the hierarchy instead of scale, at one
+of three sizes the reader chooses in the options: 11px, which is the size the panel shipped at and
+the default, 12px or 13px. Both windows and the card are drawn at the one size chosen. Each size is
+a row of its own measurements and none is another scaled (ADR 0013), so a figure this page quotes in
+pixels is the small size's unless it says which.
 
 - **Figures** — the reader's eye target. Full `text`, tabular where columns must align.
 - **Names** — same size, same weight, `text`.
@@ -150,19 +153,21 @@ scale.
 A 2-pixel base, because the panel is dense and a 4-pixel base doubles its height for no gain in
 legibility.
 
-| Token            | Value                                                              |
-| ---------------- | ------------------------------------------------------------------ |
-| `spaceHalf`      | `2px`                                                              |
-| `spaceSmall`     | `4px` — the base step                                              |
-| `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region       |
-| `spaceWide`      | `8px`, which is also the inset the panel sits at                   |
-| `rowHeight`      | `18px`                                                             |
-| `maxHeightShare` | `66vh`                                                             |
-| `tipWidth`       | `250px` — a maximum, and a card is as wide as what it says         |
-| `lineHeight`     | `15px` — whole pixels, and what a counted card is multiplied by    |
-| `panelWidth`     | `260px` — narrow on purpose: the panel is a guest                  |
-| `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against    |
-| `panelLayer`     | `10` — the game's interface layer, and under every window it opens |
+| Token            | Value                                                                             |
+| ---------------- | --------------------------------------------------------------------------------- |
+| `spaceHalf`      | `2px`                                                                             |
+| `spaceSmall`     | `4px` — the base step                                                             |
+| `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region                      |
+| `spaceWide`      | `8px`, which is also the inset the panel sits at                                  |
+| `fontSize`       | `11px` · `12px` · `13px` — the three steps of type, small first                   |
+| `rowHeight`      | `18px` · `19px` · `21px`                                                          |
+| `maxHeightShare` | `66vh`                                                                            |
+| `tipWidth`       | `250px` · `272px` · `296px` — a maximum, and a card is as wide as what it says    |
+| `lineHeight`     | `15px` · `16px` · `18px` — whole pixels, and what a counted card is multiplied by |
+| `panelWidth`     | `260px` · `272px` · `306px` — narrow on purpose: the panel is a guest             |
+| `standingWidth`  | `210px` · `228px` · `248px` — the window beside the panel                         |
+| `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against                   |
+| `panelLayer`     | `10` — the game's interface layer, and under every window it opens                |
 
 **Every row is the same height**, accent included. A row whose background is taller than its
 neighbour reads as a different kind of row, and it is not one.
@@ -580,7 +585,9 @@ takes it off the bottom. **develop ADR 0096.**
 the handle — except its controls, where a press is that control's. A title bar's worth of the panel
 always stays on screen, because what goes off the edge with it is the thing you grab, and the only
 remedy left would be clearing storage. Where the reader put it survives a reload; a page that will
-not say how big it is is not dragged from a guessed origin at all.
+not say how big it is is not dragged from a guessed origin at all. Both windows grow rightwards from
+where they stand when the type changes size, so the window beside the panel keeps the side it stood
+on by moving: to the left it keeps its right edge, to the right its distance from the panel.
 
 **Suspect mark.** Rides the row it was named for, at every drill level, in `suspect` plus a glyph.
 It says a figure may be short and never says by how much.

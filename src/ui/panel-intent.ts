@@ -13,6 +13,8 @@ import {
     type PanelWindow,
     STORAGE_CHOICES,
     type StorageChoice,
+    TYPE_STEPS,
+    type TypeStep,
 } from "./panel-choice.ts";
 import type { PanelTarget } from "./panel-document.ts";
 import { type OpenedPart, type PanelUnnamedEnd, UNNAMED_END } from "./panel-reading.ts";
@@ -44,6 +46,7 @@ export const PANEL_MARK = {
     /** Which end a pinned row leaves out, which is the whole of what opening it asks for. */
     unnamed: "data-unnamed",
     storage: "data-storage",
+    typeStep: "data-type-step",
     /** The helper's own fold: one mark over both would put away the window being watched. */
     helperFold: "data-standing-fold",
 } as const;
@@ -60,6 +63,7 @@ export const PANEL_INTENT = {
     move: "move",
     saveFile: "save-file",
     storage: "storage",
+    typeStep: "type-step",
     shelf: "shelf",
     options: "options",
     showKept: "show-kept",
@@ -78,6 +82,7 @@ export type PanelIntent =
     | { kind: typeof PANEL_INTENT.move; window: PanelWindow; position: PanelPosition }
     | { kind: typeof PANEL_INTENT.saveFile }
     | { kind: typeof PANEL_INTENT.storage; choice: StorageChoice }
+    | { kind: typeof PANEL_INTENT.typeStep; step: TypeStep }
     | { kind: typeof PANEL_INTENT.shelf }
     | { kind: typeof PANEL_INTENT.options }
     | { kind: typeof PANEL_INTENT.showKept; openedAt: number }
@@ -188,6 +193,11 @@ function readPanelIntentOfOptions(target: PanelTarget): IntentReading {
     if (choice !== null) {
         if (!isOneOf(STORAGE_CHOICES, choice)) return new MarkValueUnknown(PANEL_MARK.storage);
         return { kind: PANEL_INTENT.storage, choice };
+    }
+    const step = target.getAttribute(PANEL_MARK.typeStep);
+    if (step !== null) {
+        if (!isOneOf(TYPE_STEPS, step)) return new MarkValueUnknown(PANEL_MARK.typeStep);
+        return { kind: PANEL_INTENT.typeStep, step };
     }
     return null;
 }

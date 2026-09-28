@@ -11,7 +11,8 @@ import { isRecord } from "#/libs/unknown-value.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { type FightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { replayFightPayloads } from "#/src/runtime/fight-reading.ts";
-import { PLACE } from "#/src/ui/panel-look.ts";
+import { PLACE, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
+import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
 import { parseDeclaredVersion } from "#/tools/build-userscript.ts";
@@ -136,8 +137,14 @@ Deno.test("the set is taken at both moments, and the shelf at only the end", () 
 });
 
 Deno.test("a frame holds the windows and their card, from the leftmost to the corner", () => {
-    const panelLeft = VIEWPORT_WIDTH - PLACE.insetPixels - PLACE.widthPixels;
-    const panel = { x: panelLeft, y: 8, width: PLACE.widthPixels, height: 400 };
+    const panelLeft = VIEWPORT_WIDTH - PLACE.insetPixels -
+        TYPE_TOKENS[TYPE_STEP_DEFAULT].panelWidthPixels;
+    const panel = {
+        x: panelLeft,
+        y: 8,
+        width: TYPE_TOKENS[TYPE_STEP_DEFAULT].panelWidthPixels,
+        height: 400,
+    };
     const standing = { x: panelLeft - 220, y: 8, width: 210, height: 120 };
     const card = { x: panelLeft - 260, y: 120, width: 250, height: 520 };
     assertEquals(composeShotClip([panel, standing], VIEWPORT_WIDTH), {
@@ -152,7 +159,12 @@ Deno.test("a frame holds the windows and their card, from the leftmost to the co
 });
 
 Deno.test("a panel that never reached its corner is refused, not photographed", () => {
-    const astray = { x: 500, y: 8, width: PLACE.widthPixels, height: 400 };
+    const astray = {
+        x: 500,
+        y: 8,
+        width: TYPE_TOKENS[TYPE_STEP_DEFAULT].panelWidthPixels,
+        height: 400,
+    };
     assertThrows(() => composeShotClip([astray], VIEWPORT_WIDTH), PanelShotError, "corner");
     assertThrows(() => composeShotClip([], VIEWPORT_WIDTH), PanelShotError, "of the panel");
 });

@@ -39,6 +39,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — W opcjach pod ⚙ można wybrać wielkość pisma — małe, średnie albo duże — i panel razem
+  z Pomocnikiem rysują się w niej, także po odświeżeniu strony.
 - **Zmiana** — Wybór, gdzie trzymać zapisane walki, przeniósł się z listy walk do opcji pod
   przyciskiem ⚙ na pasku panelu.
 - **Zmiana** — Zadane i otrzymane obrażenia liczą też to, co przyjęła na siebie absorpcja i

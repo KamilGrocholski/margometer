@@ -4,7 +4,7 @@
  */
 
 import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
-import { PANEL_WINDOW, STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
+import { PANEL_WINDOW, STORAGE_CHOICE, TYPE_STEP } from "#/src/ui/panel-choice.ts";
 import type { PanelTarget } from "#/src/ui/panel-document.ts";
 import {
     LIVE_FIGHT_MARK,
@@ -58,6 +58,10 @@ Deno.test("every mark the panel writes states the intent the runtime is handed",
             kind: PANEL_INTENT.storage,
             choice: STORAGE_CHOICE.session,
         }],
+        [PANEL_MARK.typeStep, TYPE_STEP.medium, {
+            kind: PANEL_INTENT.typeStep,
+            step: TYPE_STEP.medium,
+        }],
         [PANEL_MARK.helperFold, "", { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.helper }],
         [PANEL_MARK.save, "", { kind: PANEL_INTENT.saveFile }],
         [PANEL_MARK.shelf, "", { kind: PANEL_INTENT.shelf }],
@@ -89,6 +93,7 @@ Deno.test("a value no mark of ours writes is a failure naming the mark, never a 
         [PANEL_MARK.fight, "yesterday"],
         [PANEL_MARK.pin, ""],
         [PANEL_MARK.storage, "disk"],
+        [PANEL_MARK.typeStep, "12"],
     ] as const;
     for (const [mark, value] of strays) {
         const read = readMark(mark, value);

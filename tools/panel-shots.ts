@@ -15,7 +15,8 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { TIP_ATTRIBUTE } from "#/src/ui/panel-element.ts";
 import { PANEL_MARK, type PanelMark } from "#/src/ui/panel-intent.ts";
 import { STORE_KEY } from "#/src/game/browser-store.ts";
-import { CLASS, PLACE, SPACE_PIXELS, STANDING } from "#/src/ui/panel-look.ts";
+import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
+import { CLASS, PLACE, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { composePanelPage } from "#/tests/e2e/game-page.ts";
 import {
     closePanelPage,
@@ -217,12 +218,14 @@ export function composeShotPage(calls: readonly unknown[], entry: number): strin
  * stored place a reader's drag writes, so every picture frames them where the READMEs show them.
  */
 function composeWindowsSeeded(): string {
-    const helperOffset = PLACE.insetPixels + PLACE.widthPixels + SPACE_PIXELS.wide +
-        STANDING.widthPixels;
+    // The shots are taken at the size a reader who chose none reads.
+    const drawn = TYPE_TOKENS[TYPE_STEP_DEFAULT];
+    const helperOffset = PLACE.insetPixels + drawn.panelWidthPixels + SPACE_PIXELS.wide +
+        drawn.standingWidthPixels;
     return `(function setWindowsSeeded() {
   try {
     var top = ${PLACE.insetPixels};
-    var panelLeft = Math.max(0, window.innerWidth - ${PLACE.insetPixels + PLACE.widthPixels});
+    var panelLeft = Math.max(0, window.innerWidth - ${PLACE.insetPixels + drawn.panelWidthPixels});
     var helperLeft = Math.max(0, window.innerWidth - ${helperOffset});
     localStorage.setItem(${JSON.stringify(STORE_KEY.panelPlace)},
       JSON.stringify({ left: panelLeft, top: top }));

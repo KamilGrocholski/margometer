@@ -23,6 +23,7 @@ import {
 } from "#/src/game/browser-store.ts";
 import {
     readStorageChoice,
+    readTypeStep,
     readWindowFold,
     readWindowPosition,
     SETTING_KEY,
@@ -31,10 +32,17 @@ import {
     SettingUnreadable,
     STORAGE_DEFAULT,
     writeStorageChoice,
+    writeTypeStep,
     writeWindowFold,
     writeWindowPosition,
 } from "#/src/runtime/settings.ts";
-import { PANEL_WINDOW, STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
+import {
+    PANEL_WINDOW,
+    STORAGE_CHOICE,
+    TYPE_STEP,
+    TYPE_STEP_DEFAULT,
+    TYPE_STEPS,
+} from "#/src/ui/panel-choice.ts";
 
 const REFUSAL = new DOMException("this browser forbids storage", "SecurityError");
 
@@ -78,6 +86,31 @@ function composeRefusingStore(): KeyValueStore {
     };
     return initPageStore({ getItem: refuse, setItem: refuse, removeItem: refuse });
 }
+
+Deno.test("the size of type a reader chose reads back, and nothing chosen is the default", () => {
+    const store = initMemoryStore();
+    assertEquals(readTypeStep(store), TYPE_STEP_DEFAULT, "nothing stored is the default");
+    assertStrictEquals(
+        TYPE_STEP_DEFAULT,
+        TYPE_STEP.small,
+        "which is the size the panel shipped at",
+    );
+    for (const step of TYPE_STEPS) {
+        writeTypeStep(store, step);
+        assertEquals(readTypeStep(store), step, `${step} reads back as itself`);
+        assertEquals(store.read(STORE_KEY.typeStep), step, "and is stored as its own word");
+    }
+    store.write(STORE_KEY.typeStep, "13");
+    expectSettingUnreadable(
+        readTypeStep(store),
+        SETTING_KEY.typeStep,
+        "a size is not a pixel count",
+    );
+    store.write(STORE_KEY.typeStep, "");
+    expectSettingUnreadable(readTypeStep(store), SETTING_KEY.typeStep, "nor the empty word");
+    expectStoreRefused(readTypeStep(composeRefusingStore()), "the store's answer is kept");
+    expectStoreRefused(writeTypeStep(composeRefusingStore(), TYPE_STEP.large), "on writing too");
+});
 
 Deno.test("a fold is the one mark, and anything else stored there is not read as one", () => {
     const store = initMemoryStore();

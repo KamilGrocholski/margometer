@@ -211,6 +211,9 @@ view, mode
 **Collapsed**: The panel folded to its title bar, drawing no screen at all. It is a state the reader
 chose, so it outlives a reload. _Avoid_: Minimized, hidden, closed, docked
 
+**Type step**: One of the three sizes both windows are drawn at, which the reader chooses in the
+options, each measured at its own size rather than scaled from another. _Avoid_: Zoom, scale, theme
+
 **Row**: One combatant's line in a ranking, or a pinned line standing apart from it. _Avoid_: Item,
 entry, bar
 

@@ -6,9 +6,10 @@
  * and the sheet multiplies.
  */
 
+import { TYPE_STEP, TYPE_STEP_DEFAULT, type TypeStep } from "./panel-choice.ts";
 import { type PanelDocument, type PanelElement, STYLE_ATTRIBUTE } from "./panel-document.ts";
 import type { TipAcross } from "./panel-drag.ts";
-import { CLASS, getTipHeight, getTipRoom } from "./panel-look.ts";
+import { CLASS, getTipHeight, getTipRoom, TYPE_TOKENS } from "./panel-look.ts";
 import { CARD_WORDS, CAVEAT_MARK } from "./panel-words.ts";
 import {
     TIP_LINE,
@@ -50,6 +51,28 @@ export interface TipSize {
 
 export type TipRedraw = (standing: PanelElement, compose: () => PanelElement) => PanelElement;
 
+/**
+ * How many characters of a card stand on one of its lines, as **floors** rather than a measurement
+ * of any one text: counting low leaves the card standing higher up the screen than it had to, which
+ * is the direction that keeps it on the screen.
+ */
+interface CharactersPerLine {
+    /**
+     * A note, and the line under the name too: it is drawn in the same face at the same size in
+     * the same box, so what a sentence costs is what it costs.
+     */
+    note: number;
+    /**
+     * The name a card opens with, which is lower because the name is drawn bold and bold is wider.
+     *
+     * ⚠️ **A floor over characters cannot see where a line broke.** What it is short by is a name
+     * whose last word is long, and the margin is what absorbs that; the one case measured past the
+     * margin is an unbroken run of capitals — 60 of them draw four lines and count three. A real
+     * name is not that, and the card carries the air to survive one line of it.
+     */
+    name: number;
+}
+
 export interface TipHandle {
     element: PanelElement;
     onHover(key: string | null, clientY: number): void;
@@ -66,35 +89,29 @@ export interface TipHandle {
  */
 export const TIPS_MAXIMUM = 512;
 /**
- * How many characters of a note stand on one line of the card, and it is a **floor** rather than
- * a measurement of any one sentence. At 242 pixels of type — the window less its padding — in
- * Chrome on 2026-08-29, the longest note this panel composes ran 104 characters over three lines
- * and the shortest 31 over one. Counting low leaves the window standing higher up the screen than
- * it had to, which is the direction that keeps a card on it.
+ * One row per type step. The small one: notes at 242 pixels of type — the window less its padding —
+ * in Chrome on 2026-08-29, where the longest note this panel composes ran 104 characters over three
+ * lines and the shortest 31 over one; names in Chrome 152 on 2026-09-18 at 240 pixels of type, over
+ * the 31 names `captures/` carries composed into the place shape a shelf row states (`Nazwa (x, y)`)
+ * and read at every prefix length: 2,211 readings, and 27 is the **largest** floor that
+ * under-counts none of them.
  *
- * **The line under the name is counted on this floor too**, and not on the name's: it is drawn in
- * the same face at the same size in the same box, so what a sentence costs is what it costs.
+ * **The other two steps keep the small one's floors**, because the card's bound grows with its
+ * type. Measured in Chrome 154 on 2026-09-28 at each step's own bound, over every prefix of the 112
+ * notes the ranking cards of `captures/` compose and of its 20 names in the place shape, drawn
+ * bold as a name: the largest floor under-counting none is 36 for a name and 42 for a note at
+ * all three, so no step reads a line as holding more than the small one does.
  */
-const NOTE_CHARACTERS_PER_LINE = 32;
+const CHARACTERS_PER_LINE_BY_STEP: { readonly [Step in TypeStep]: CharactersPerLine } = {
+    [TYPE_STEP.small]: { note: 32, name: 27 },
+    [TYPE_STEP.medium]: { note: 32, name: 27 },
+    [TYPE_STEP.large]: { note: 32, name: 27 },
+};
 /**
  * What the drawn mark opening a caveated note takes off that note's first line, as the characters
  * it stands in the room of: the ring and the air after it, against a body character's own width.
  */
 const NOTE_MARK_CHARACTERS = 2;
-/**
- * The same floor for the name a card opens with, which is lower because the name is the one thing
- * on a card drawn bold and bold is wider. Measured in Chrome 152 on 2026-09-18 at **240 pixels** of
- * type — the 250px bound less the card's padding and its border — over the 31 names
- * `captures/` carries, composed into the place shape a shelf row states (`Nazwa (x, y)`)
- * and read at every prefix length: 2,211 readings, and 27 is the **largest** floor that
- * under-counts none of them. Twenty-eight under-counts four.
- *
- * ⚠️ **A floor over characters cannot see where a line broke.** What it is short by is a name whose
- * last word is long, and the margin is what absorbs that; the one case measured past the margin is
- * an unbroken run of capitals — 60 of them draw four lines and count three. A real name is not
- * that, and the card carries the air to survive one line of it.
- */
-const NAME_CHARACTERS_PER_LINE = 27;
 /**
  * Past every card this panel composes: four figures and their parts, the counters, both runs — the
  * criticals, the defences, the procs and what a blow destroyed — and the notes. The tallest card
@@ -137,15 +154,16 @@ export function initTipRegister(): TipRegister {
     };
 }
 
-export function tallyTipSize(reading: TipReading | null): TipSize {
+export function tallyTipSize(reading: TipReading | null, step: TypeStep): TipSize {
     if (reading === null) return { lines: 1, groups: 0 };
-    let lines = getTipLinesForCharacters(reading.name.length, NAME_CHARACTERS_PER_LINE);
+    const floors = CHARACTERS_PER_LINE_BY_STEP[step];
+    let lines = getTipLinesForCharacters(reading.name.length, floors.name);
     if (reading.subtitle !== null) {
-        lines += getTipLinesForCharacters(reading.subtitle.length, NOTE_CHARACTERS_PER_LINE);
+        lines += getTipLinesForCharacters(reading.subtitle.length, floors.note);
     }
     for (const group of reading.groups) {
         for (const line of group.lines) {
-            lines += getTipLineCost(line);
+            lines += getTipLineCost(line, floors);
         }
     }
     // The bound is on where the card is placed, never on what it holds: every line is drawn.
@@ -173,10 +191,10 @@ function getTipLinesForCharacters(characters: number, charactersPerLine: number)
  * notes by a mark the card still draws — which is the trap the glyph sat inside the sentence to
  * avoid while it was a codepoint.
  */
-function getTipLineCost(line: TipLine): number {
+function getTipLineCost(line: TipLine, floors: CharactersPerLine): number {
     if (line.kind !== TIP_LINE.note) return 1;
     const marked = line.tone === TIP_NOTE_TONE.caveat ? NOTE_MARK_CHARACTERS : 0;
-    return getTipLinesForCharacters(line.text.length + marked, NOTE_CHARACTERS_PER_LINE);
+    return getTipLinesForCharacters(line.text.length + marked, floors.note);
 }
 
 export function renderTip(
@@ -303,6 +321,7 @@ export function setTipPlace(
     clientY: number,
     across: TipAcross | null,
     size: TipSize,
+    step: TypeStep,
 ): void {
     // A pointer that states no position puts the card at the top rather than nowhere: `Math.round`
     // of a figure that is not one is not one either, and a card placed at it is off the screen.
@@ -311,7 +330,7 @@ export function setTipPlace(
     const sideways = composeTipAcrossStyle(across);
     // The height rather than the counts it came from: the trim and the sheet's clamp spend one
     // number. A height nothing could be read for leaves the property off (**E12**).
-    const height = getTipHeight(size);
+    const height = getTipHeight(size, TYPE_TOKENS[step]);
     const tall = height === null ? "" : `;${HEIGHT_VARIABLE}:${height}px`;
     tip.setAttribute(STYLE_ATTRIBUTE, `${TOP_VARIABLE}:${top}px${tall}${sideways}`);
 }
@@ -338,23 +357,27 @@ function composeTipAcrossStyle(across: TipAcross | null): string {
  * 480 px window shows 464 of it and loses the rest without a mark. So what will not fit is given
  * up at a run's own edge and the card states it. Unchanged where the page states no height.
  */
-export function composeTipWithin(reading: TipReading, room: number | null): TipReading {
+export function composeTipWithin(
+    reading: TipReading,
+    room: number | null,
+    typeStep: TypeStep,
+): TipReading {
     if (room === null) return reading;
     if (!Number.isFinite(room)) return reading;
     if (room <= 0) return reading;
-    if (isTipWithin(reading, room)) return reading;
+    if (isTipWithin(reading, room, typeStep)) return reading;
     let kept: readonly TipGroup[] = reading.groups;
     for (let step = 0; step < TIP_GROUPS_MAXIMUM; step += 1) {
         const shorter = composeGroupsWithout(kept);
         if (shorter === null) break;
         kept = shorter;
-        if (isTipWithin(composeTipCut(reading, kept), room)) break;
+        if (isTipWithin(composeTipCut(reading, kept), room, typeStep)) break;
     }
     return composeTipCut(reading, kept);
 }
 
-function isTipWithin(reading: TipReading, room: number): boolean {
-    const height = getTipHeight(tallyTipSize(reading));
+function isTipWithin(reading: TipReading, room: number, step: TypeStep): boolean {
+    const height = getTipHeight(tallyTipSize(reading, step), TYPE_TOKENS[step]);
     if (height === null) return true;
     return height <= room;
 }
@@ -408,18 +431,19 @@ export function initTipHandle(
     getAcross: (key: string) => TipAcross | null = () => null,
     /** Asked as a card opens, never as the panel is built. Null is a page stating no height. */
     getViewportHeight: () => number | null = () => null,
+    getTypeStep: () => TypeStep = () => TYPE_STEP_DEFAULT,
 ): TipHandle {
     let standing = renderTip(document, null);
     let openKey: string | null = null;
     let openTop = 0;
-    let openSize: TipSize = tallyTipSize(null);
+    let openSize: TipSize = tallyTipSize(null, getTypeStep());
     const setTo = (key: string, reading: TipReading): void => {
         // Cut here rather than where a card is composed: the one place that knows both it and the
         // window, and on the way in for a card opened and for one a redraw put up again.
-        const shown = composeTipWithin(reading, getTipRoom(getViewportHeight()));
-        openSize = tallyTipSize(shown);
+        const shown = composeTipWithin(reading, getTipRoom(getViewportHeight()), getTypeStep());
+        openSize = tallyTipSize(shown, getTypeStep());
         standing = redraw(standing, () => renderTip(document, shown));
-        setTipPlace(standing, openTop, getAcross(key), openSize);
+        setTipPlace(standing, openTop, getAcross(key), openSize, getTypeStep());
     };
     const hide = (): void => {
         if (openKey === null) return;
@@ -444,7 +468,7 @@ export function initTipHandle(
                     // and a move inside one pixel would rewrite the same declaration.
                     if (top === openTop) return;
                     openTop = top;
-                    setTipPlace(standing, openTop, getAcross(key), openSize);
+                    setTipPlace(standing, openTop, getAcross(key), openSize, getTypeStep());
                     return;
                 }
             }

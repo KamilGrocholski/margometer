@@ -15,7 +15,12 @@ import {
 } from "@std/assert";
 import { tallyFightStatistics } from "#/src/core/fight-statistics.ts";
 import { isOneOf } from "#/libs/vocabulary.ts";
-import { PANEL_WINDOW, STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
+import {
+    PANEL_WINDOW,
+    STORAGE_CHOICE,
+    TYPE_STEP,
+    TYPE_STEP_DEFAULT,
+} from "#/src/ui/panel-choice.ts";
 import type { PanelDefect, PanelView, ShownScreen } from "#/src/ui/panel-element.ts";
 import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
 import { composeShownScreen, SHOWN_LIST } from "#/tests/shown-screen.ts";
@@ -33,7 +38,7 @@ import {
     SIDE_PART,
     UNNAMED_END,
 } from "#/src/ui/panel-reading.ts";
-import { CLASS, composeStyleSheet } from "#/src/ui/panel-look.ts";
+import { CLASS, composeStyleSheet, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { formatColour, lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
 import {
     getNounForMetric,
@@ -62,6 +67,7 @@ import {
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
     getWordsForStorage,
+    getWordsForTypeStep,
     getWordsForUnannounced,
     getWordsForUnnamedEnd,
     PANEL_DEFECT_KIND,
@@ -269,8 +275,18 @@ Deno.test("the options cover the screen, with where the shelf is kept and the wa
     });
     const host = panel.element as FakeElement;
     const strips = getElementsWithin(host).filter((one) => one.className === "strips");
-    assertEquals(strips.length, 1, "one strip, and it is not one of the fight's");
-    assertEquals(getTextsByClass(host, "strips-label"), [PANEL_WORDS.storage], "what it asks");
+    assertEquals(strips.length, 2, "two strips, and neither is one of the fight's");
+    assertEquals(
+        getTextsByClass(host, "strips-label"),
+        [PANEL_WORDS.typeSize, PANEL_WORDS.storage],
+        "what each asks: the size of type, then where the shelf is kept",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.attributes.get("data-type-step") !== undefined)
+            .map((one) => one.attributes.get("data-type-step")),
+        ["small", "medium", "large"],
+        "the three steps of type, smallest first",
+    );
     assertEquals(
         getElementsWithin(host).filter((one) => one.attributes.get("data-storage") !== undefined)
             .map((one) => one.attributes.get("data-storage")),
@@ -281,8 +297,8 @@ Deno.test("the options cover the screen, with where the shelf is kept and the wa
         getElementsWithin(host).filter((one) => one.className === "strip selected").map((one) =>
             one.textContent
         ),
-        [getWordsForStorage("session")],
-        "with the reader's own answer marked as more than a colour",
+        [getWordsForTypeStep(TYPE_STEP_DEFAULT), getWordsForStorage("session")],
+        "with the reader's own answers marked as more than a colour",
     );
     assertEquals(getTextsByClass(host, "header-place"), [], "no header of the fight's");
     assertEquals(
@@ -314,8 +330,8 @@ Deno.test("the options stand before any fight, since the choices in them are not
     assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.options], "the cover stands");
     assertEquals(
         getTextsByClass(host, "strip selected"),
-        [getWordsForStorage("local")],
-        "with its strip",
+        [getWordsForTypeStep(TYPE_STEP_DEFAULT), getWordsForStorage("local")],
+        "with its strips",
     );
     assertEquals(getTextsByClass(host, "empty"), [], "and not the sentence saying nothing came");
     panel.renderWaiting(NOTHING_WAITING);
@@ -1462,7 +1478,7 @@ Deno.test("a region hanging off the root states its own type and its own ink", (
         "the detail window hangs there with the rest of them",
     );
     assertEquals(
-        getUndressedRegions(composeStyleSheet(), regions),
+        getUndressedRegions(composeStyleSheet(TYPE_STEP_DEFAULT), regions),
         [],
         "`all: initial` reaches a root's children, so a ground of its own needs an ink of its own",
     );
@@ -1880,6 +1896,40 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
         "and a pointer moving with nothing held moves nothing",
     );
+});
+
+Deno.test("a size of type moves the window beside the panel off it, and says where", () => {
+    const document = composeFakeDocument();
+    const moved: { window: string; left: number }[] = [];
+    const viewport = () => ({ width: 1280, height: 900 });
+    const panel = initTestView(document, {
+        onIntent: (intent) => {
+            if (intent.kind === PANEL_INTENT.move) {
+                moved.push({ window: intent.window, left: intent.position.left });
+            }
+        },
+        placement: { position: null, readViewport: viewport },
+        standingPlacement: { position: null, readViewport: viewport },
+    });
+    const host = panel.element as FakeElement;
+    const standing = () =>
+        getElementsWithin(host).find((one) => one.className.startsWith(CLASS.standing));
+    const small = TYPE_TOKENS[TYPE_STEP_DEFAULT];
+    const large = TYPE_TOKENS[TYPE_STEP.large];
+    // Nobody moved either window: the panel is centred and the other opens against its left.
+    const panelLeft = (1280 - small.panelWidthPixels) / 2;
+    const opened = panelLeft - small.standingWidthPixels - SPACE_PIXELS.small;
+    assertStringIncludes(standing()?.attributes.get("style") ?? "", `left:${opened}px`, "beside");
+    panel.render({ ...composeShownScreen(readFight()), typeStep: TYPE_STEP.large });
+    const shifted = opened - (large.standingWidthPixels - small.standingWidthPixels);
+    assertStringIncludes(
+        standing()?.attributes.get("style") ?? "",
+        `left:${shifted}px`,
+        "the window grown by the larger type keeps its right edge off the panel",
+    );
+    assertEquals(moved, [{ window: PANEL_WINDOW.helper, left: shifted }], "and the move is told");
+    panel.render({ ...composeShownScreen(readFight()), typeStep: TYPE_STEP.large });
+    assertEquals(moved.length, 1, "the same size drawn again moves nothing");
 });
 
 Deno.test("the version label on the bar is a handle, like the bar around it", () => {

@@ -53,6 +53,11 @@ function executeScreenIntentOnce(screen: ScreenState, intent: PanelIntent): bool
         // on the panel, and the shelf between fights has no payload coming to draw it.
         case PANEL_INTENT.saveFile:
             return true;
+        // The same size asked for again moves nothing, and a frame for it would redraw nothing.
+        case PANEL_INTENT.typeStep:
+            if (screen.typeStep === intent.step) return false;
+            screen.typeStep = intent.step;
+            return true;
         case PANEL_INTENT.move:
         case PANEL_INTENT.storage:
         case PANEL_INTENT.pin:

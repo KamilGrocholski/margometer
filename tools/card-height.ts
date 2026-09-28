@@ -20,6 +20,7 @@ import {
     type RankingRow,
 } from "#/src/ui/panel-reading.ts";
 import { type PanelMetric, SCREEN_ORDER, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
+import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { tallyTipSize } from "#/src/ui/panel-tip.ts";
 import { TIP_LINE } from "#/src/ui/tip-reading.ts";
 import { PANEL_WORDS } from "#/src/ui/panel-words.ts";
@@ -107,7 +108,7 @@ function tallyCardHeight(
         isRowNarrower: false,
         translate: null,
     });
-    const size = tallyTipSize(reading);
+    const size = tallyTipSize(reading, TYPE_STEP_DEFAULT);
     assert(size.lines > 0, "a card drawn at all stands at least one line");
     const notes = reading.groups
         .flatMap((group) => group.lines)

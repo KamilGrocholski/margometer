@@ -18,6 +18,7 @@ export const STORE_KEY = {
     helperFolded: "MargoMeter-pomocnik-folded",
     helperPlace: "MargoMeter-pomocnik-place",
     storage: "MargoMeter-storage",
+    typeStep: "MargoMeter-type",
 } as const;
 export type StoreKey = VocabularyWord<typeof STORE_KEY>;
 

@@ -13,7 +13,7 @@ import { type HandoverPorts, writeFightHandover } from "./fight-handover.ts";
 import { lookupStandingFight, tallyFightReading } from "./fight-reading.ts";
 import type { LiveFight } from "./live-fight.ts";
 import { executeScreenIntent } from "./screen-intent.ts";
-import { writeWindowFold, writeWindowPosition } from "./settings.ts";
+import { writeTypeStep, writeWindowFold, writeWindowPosition } from "./settings.ts";
 import type { ShelfKeeper } from "./shelf-keeper.ts";
 import type { KeyValueStore } from "#/src/game/browser-store.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
@@ -49,6 +49,11 @@ export function executeRuntimeIntent(parts: IntentParts, intent: PanelIntent): b
         case PANEL_INTENT.move:
             void writeWindowPosition(parts.ports.settings, intent.window, intent.position);
             return false;
+        case PANEL_INTENT.typeStep: {
+            const hasMoved = executeScreenIntent(parts.screen, intent);
+            if (hasMoved) void writeTypeStep(parts.ports.settings, parts.screen.typeStep);
+            return hasMoved;
+        }
         case PANEL_INTENT.fold: {
             const hasMoved = executeScreenIntent(parts.screen, intent);
             const isCollapsed = intent.window === PANEL_WINDOW.panel

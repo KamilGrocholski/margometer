@@ -7,6 +7,7 @@
  */
 
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { TYPE_STEP_DEFAULT, type TypeStep } from "./panel-choice.ts";
 import type { OpenedPart, PanelUnnamedEnd } from "./panel-reading.ts";
 import {
     getWordsForDirection,
@@ -63,6 +64,8 @@ export interface ScreenState {
     isCollapsed: boolean;
     /** The window beside the panel, which folds apart from it — `develop ADR 0060`. */
     isStandingCollapsed: boolean;
+    /** The size the type is drawn at, which a reader chose once for both windows (ADR 0013). */
+    typeStep: TypeStep;
 }
 
 export interface ScreenStrip {
@@ -111,6 +114,7 @@ const KIND_WORDS: Record<PanelMetric, string> = {
 export function createScreenState(
     isCollapsed: boolean,
     isStandingCollapsed = false,
+    typeStep: TypeStep = TYPE_STEP_DEFAULT,
 ): ScreenState {
     const state: ScreenState = {
         current: PANEL_METRIC.damageDealt,
@@ -124,6 +128,7 @@ export function createScreenState(
         openFightId: null,
         isCollapsed,
         isStandingCollapsed,
+        typeStep,
     };
     return state;
 }

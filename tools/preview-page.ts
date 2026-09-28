@@ -10,7 +10,8 @@
 import { assert, assertStringIncludes } from "@std/assert";
 import { ENVELOPE_KEYS } from "#/src/game/payload-envelope.ts";
 import { WARRIOR_FIELDS } from "#/src/game/engine-warrior.ts";
-import { PLACE, SHAPE, SPACE_PIXELS, STANDING, SURFACE, TEXT } from "#/src/ui/panel-look.ts";
+import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
+import { PLACE, SHAPE, SPACE_PIXELS, SURFACE, TEXT, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { formatColour, SIGNAL } from "#/src/ui/panel-palette.ts";
 import { composePanelPage, PROBE_NAME } from "#/tests/e2e/game-page.ts";
 import { USERSCRIPT_NAME } from "./build-userscript.ts";
@@ -95,8 +96,9 @@ export const PREVIEW_STRIP_SELECTOR = ".preview-strip";
 export const PREVIEW_SPLIT_SELECTOR = ".preview-split";
 export const PREVIEW_SAID_SELECTOR = ".preview-said";
 /** What the two windows take across: inset, panel, the gap between, and the window beside it. */
-export const WINDOWS_ACROSS_PIXELS = PLACE.insetPixels + PLACE.widthPixels + SPACE_PIXELS.small +
-    STANDING.widthPixels;
+export const WINDOWS_ACROSS_PIXELS = PLACE.insetPixels +
+    TYPE_TOKENS[TYPE_STEP_DEFAULT].panelWidthPixels + SPACE_PIXELS.small +
+    TYPE_TOKENS[TYPE_STEP_DEFAULT].standingWidthPixels;
 /** Air past the windows, so the text never runs up against them. */
 const COLUMN_AIR_PIXELS = 58;
 /**

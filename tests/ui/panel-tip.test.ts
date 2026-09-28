@@ -17,7 +17,8 @@ import {
     tallyTipSize,
 } from "#/src/ui/panel-tip.ts";
 import type { TipNoteTone, TipReading } from "#/src/ui/tip-reading.ts";
-import { CLASS, getTipHeight } from "#/src/ui/panel-look.ts";
+import { CLASS, getTipHeight, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
+import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { CARD_WORDS } from "#/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
@@ -26,6 +27,9 @@ import {
     getTextsByClass,
 } from "#/tests/fake-document.ts";
 
+/** The size a reader who chose none reads at, which every count below is taken at. */
+const STEP = TYPE_STEP_DEFAULT;
+const TOKENS = TYPE_TOKENS[STEP];
 /** Thirty-two characters, which is the one line a note is counted as holding. */
 const ONE_LINE_NOTE = "Surowe to obrazenia przed red...";
 /** And one past it, which is the first note that costs two. */
@@ -148,14 +152,18 @@ Deno.test("a suspicion on the card wears the mark as well as the colour", () => 
 });
 
 Deno.test("how tall a card stands is counted, and a note as the lines it wraps to", () => {
-    assertEquals(tallyTipSize(null), { lines: 1, groups: 0 }, "a window nobody opened is one line");
     assertEquals(
-        tallyTipSize(HILDUR),
+        tallyTipSize(null, STEP),
+        { lines: 1, groups: 0 },
+        "a window nobody opened is one line",
+    );
+    assertEquals(
+        tallyTipSize(HILDUR, STEP),
         { lines: 6, groups: 2 },
         "a name, who they are, three figures and a note that fits on one line",
     );
     assertEquals(
-        tallyTipSize({ ...HILDUR, subtitle: null }),
+        tallyTipSize({ ...HILDUR, subtitle: null }, STEP),
         { lines: 5, groups: 2 },
         "and a card that could not say who they are is a line shorter",
     );
@@ -166,12 +174,12 @@ Deno.test("how tall a card stands is counted, and a note as the lines it wraps t
         }],
     };
     assertEquals(
-        tallyTipSize(wrapped),
+        tallyTipSize(wrapped, STEP),
         { lines: 4, groups: 1 },
         "one character past what a line holds costs the whole of the next one",
     );
     assertEquals(
-        tallyTipSize({ ...wrapped, groups: [] }),
+        tallyTipSize({ ...wrapped, groups: [] }, STEP),
         { lines: 2, groups: 0 },
         "and a card with no run of lines spends nothing on the rules between them",
     );
@@ -186,23 +194,23 @@ Deno.test("how tall a card stands is counted, and a note as the lines it wraps t
  */
 Deno.test("a name too long for one line is counted as the lines it folds to", () => {
     assertEquals(
-        tallyTipSize(composeNamed(NAME_ON_ONE_LINE)).lines,
+        tallyTipSize(composeNamed(NAME_ON_ONE_LINE), STEP).lines,
         1,
         "what a line holds stands on one",
     );
     assertEquals(
-        tallyTipSize(composeNamed(NAME_ON_ONE_LINE + 1)).lines,
+        tallyTipSize(composeNamed(NAME_ON_ONE_LINE + 1), STEP).lines,
         2,
         "and one character past it costs the whole of the next line",
     );
     assertEquals(
-        tallyTipSize(composeNamed(NAME_ON_ONE_LINE * 2 + 1)).lines,
+        tallyTipSize(composeNamed(NAME_ON_ONE_LINE * 2 + 1), STEP).lines,
         3,
         "which goes on holding past the second line as well",
     );
     // Zero is a boundary, and a card with no name to draw still stands on the line it is drawn on.
-    assertEquals(tallyTipSize(composeNamed(0)).lines, 1, "a name of nothing is still a line");
-    assertEquals(tallyTipSize(composeNamed(1)).lines, 1, "and so is a name of one letter");
+    assertEquals(tallyTipSize(composeNamed(0), STEP).lines, 1, "a name of nothing is still a line");
+    assertEquals(tallyTipSize(composeNamed(1), STEP).lines, 1, "and so is a name of one letter");
 });
 
 /** A card of a name alone, which is the shape the shelf's own row opens (`develop ADR 0084`). */
@@ -220,7 +228,7 @@ Deno.test("a name is counted on a lower floor than a sentence, because it is dra
     const between = NAME_ON_ONE_LINE + 1;
     assert(between <= SUBTITLE_ON_ONE_LINE, "there is a length the two floors answer differently");
     assertEquals(
-        tallyTipSize(composeNamed(between)).lines,
+        tallyTipSize(composeNamed(between), STEP).lines,
         2,
         "a name of that length has folded",
     );
@@ -229,7 +237,7 @@ Deno.test("a name is counted on a lower floor than a sentence, because it is dra
             name: "x",
             subtitle: null,
             groups: [{ lines: [{ kind: "note", text: "x".repeat(between), tone: "plain" }] }],
-        }).lines - 1,
+        }, STEP).lines - 1,
         1,
         "while a sentence of the same length has not",
     );
@@ -243,7 +251,8 @@ Deno.test("a name is counted on a lower floor than a sentence, because it is dra
 Deno.test("the line under the name is counted as the lines it folds to", () => {
     const named = composeNamed(1);
     const cost = (length: number): number =>
-        tallyTipSize({ ...named, subtitle: "x".repeat(length) }).lines - tallyTipSize(named).lines;
+        tallyTipSize({ ...named, subtitle: "x".repeat(length) }, STEP).lines -
+        tallyTipSize(named, STEP).lines;
     assertEquals(cost(SUBTITLE_ON_ONE_LINE), 1, "what a line holds costs one");
     assertEquals(cost(SUBTITLE_ON_ONE_LINE + 1), 2, "and one character past it costs two");
     assertEquals(cost(0), 1, "a line saying nothing is still drawn, so it still costs one");
@@ -266,23 +275,23 @@ Deno.test("hiding and showing write the class, and nothing else moves", () => {
 Deno.test("where the detail sits and how tall it is are written together, in whole pixels", () => {
     const document = composeFakeDocument();
     const tip = renderTip(document, HILDUR) as FakeElement;
-    const size = tallyTipSize(HILDUR);
-    setTipPlace(tip, 292.33333333333, null, size);
+    const size = tallyTipSize(HILDUR, STEP);
+    setTipPlace(tip, 292.33333333333, null, size, STEP);
     assertEquals(
         tip.attributes.get("style"),
         "--MargoMeter-tip-top:292px;--MargoMeter-tip-height:118px",
         "a fractional `clientY` on a scaled display is not a place anybody can see",
     );
-    setTipPlace(tip, 0, null, size);
+    setTipPlace(tip, 0, null, size, STEP);
     assert(
         tip.attributes.get("style")?.startsWith("--MargoMeter-tip-top:0px;"),
         "the screen's top",
     );
-    setTipPlace(tip, -4, null, size);
+    setTipPlace(tip, -4, null, size, STEP);
     assert(tip.attributes.get("style")?.startsWith("--MargoMeter-tip-top:0px;"), "and never above");
     // A panel that has never been dragged keeps the side the sheet states, so nothing is written
     // across: the one written here is the panel saying it has moved.
-    setTipPlace(tip, 100, { edge: "left", at: 42.6 }, size);
+    setTipPlace(tip, 100, { edge: "left", at: 42.6 }, size, STEP);
     assertEquals(
         tip.attributes.get("style"),
         "--MargoMeter-tip-top:100px;--MargoMeter-tip-height:118px;" +
@@ -300,23 +309,23 @@ Deno.test("where the detail sits and how tall it is are written together, in who
 Deno.test("a card pinned by one edge releases the other, whichever way round it opens", () => {
     const document = composeFakeDocument();
     const tip = renderTip(document, HILDUR) as FakeElement;
-    const size = tallyTipSize(HILDUR);
+    const size = tallyTipSize(HILDUR, STEP);
 
-    setTipPlace(tip, 0, { edge: "right", at: 272 }, size);
+    setTipPlace(tip, 0, { edge: "right", at: 272 }, size, STEP);
     assertStringIncludes(
         tip.attributes.get("style") ?? "",
         "--MargoMeter-tip-left:auto;--MargoMeter-tip-right:272px",
         "a card standing left of its window is measured from the screen's right edge",
     );
 
-    setTipPlace(tip, 0, { edge: "left", at: 330 }, size);
+    setTipPlace(tip, 0, { edge: "left", at: 330 }, size, STEP);
     assertStringIncludes(
         tip.attributes.get("style") ?? "",
         "--MargoMeter-tip-left:330px;--MargoMeter-tip-right:auto",
         "and one flipped to the other side is measured from the left, the right let go",
     );
 
-    setTipPlace(tip, 0, null, size);
+    setTipPlace(tip, 0, null, size, STEP);
     const sheets = tip.attributes.get("style") ?? "";
     assertEquals(sheets.includes("tip-left"), false, "a panel nobody moved writes no edge at all");
     assertEquals(sheets.includes("tip-right"), false, "and the sheet's own corner stands");
@@ -355,14 +364,22 @@ Deno.test("a card too tall for the window gives up its runs, and says that it di
             { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "suspect" }] },
         ],
     };
-    const whole = getTipHeight(tallyTipSize(tall));
+    const whole = getTipHeight(tallyTipSize(tall, STEP), TOKENS);
     assertExists(whole, "the panel can say how tall its own card stands");
 
-    assertEquals(composeTipWithin(tall, whole), tall, "a card with room for it is left alone");
-    assertEquals(composeTipWithin(tall, null), tall, "and so is one in a window nobody sized");
+    assertEquals(
+        composeTipWithin(tall, whole, STEP),
+        tall,
+        "a card with room for it is left alone",
+    );
+    assertEquals(
+        composeTipWithin(tall, null, STEP),
+        tall,
+        "and so is one in a window nobody sized",
+    );
 
     // Room for one run less than the card holds, which is what a short window comes to.
-    const cut = composeTipWithin(tall, whole - 1);
+    const cut = composeTipWithin(tall, whole - 1, STEP);
     const said = cut.groups.flatMap((one) => one.lines);
     assertEquals(cut.groups[0], tall.groups[0], "the four figures are what a card is for");
     assert(
@@ -406,7 +423,7 @@ Deno.test("a window too short for even the figures still draws them, and says so
             { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "plain" }] },
         ],
     };
-    const cut = composeTipWithin(tall, 1);
+    const cut = composeTipWithin(tall, 1, STEP);
     assertEquals(cut.groups[0], tall.groups[0], "the figures are drawn whatever the room");
     assert(
         cut.groups.flatMap((one) => one.lines).some((one) =>
@@ -606,14 +623,14 @@ Deno.test("a caveated sentence is counted with the mark the card draws before it
     // of the count too, and a test stating the total would move with the card rather than with
     // the thing it is about.
     const cost = (length: number): number =>
-        tallyTipSize(compose(length, "caveat")).lines -
-        tallyTipSize(compose(length, "plain")).lines;
+        tallyTipSize(compose(length, "caveat"), STEP).lines -
+        tallyTipSize(compose(length, "plain"), STEP).lines;
 
     assertEquals(cost(31), 1, "thirty-one characters and a mark run to a second line");
     assertEquals(cost(30), 0, "thirty and a mark still stand on one, which is the other side");
     assertEquals(
-        tallyTipSize(compose(31, "plain")).lines,
-        tallyTipSize(compose(30, "plain")).lines,
+        tallyTipSize(compose(31, "plain"), STEP).lines,
+        tallyTipSize(compose(30, "plain"), STEP).lines,
         "and neither length wraps on its own, so the line the mark bought is the mark's",
     );
 });

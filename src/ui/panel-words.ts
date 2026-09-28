@@ -12,7 +12,7 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { formatInteger } from "#/libs/number-text.ts";
 import type { OutcomeResult } from "#/src/core/battle-event.ts";
 import type { FightMoment, PanelSidePart, PanelUnnamedEnd, PinnedCase } from "./panel-reading.ts";
-import type { StorageChoice } from "./panel-choice.ts";
+import type { StorageChoice, TypeStep } from "./panel-choice.ts";
 import type { PanelMetric, PanelNoun, PanelSideChoice } from "./panel-screen.ts";
 import type { StandingAbsence, StandingTurnState } from "./panel-standing.ts";
 import type { ChargedSkillState } from "#/src/core/charged-skill.ts";
@@ -154,6 +154,7 @@ export const PANEL_WORDS = {
     options: "Opcje",
     backFromOptions: "wróć",
     storage: "Trzymaj walki",
+    typeSize: "Pismo",
     ourSide: "My",
     theirSide: "Oni",
     withoutSide: "Bez strony",
@@ -756,6 +757,12 @@ const STORAGE_WORDS: Record<StorageChoice, string> = {
     memory: "tylko teraz",
 };
 
+const TYPE_STEP_WORDS: Record<TypeStep, string> = {
+    small: "małe",
+    medium: "średnie",
+    large: "duże",
+};
+
 export const STORE_REFUSED_ANSWER = "Przeglądarka nie przyjęła tej walki — nie została zapisana. " +
     "Odepnij którąś, żeby zrobić miejsce.";
 
@@ -1232,6 +1239,11 @@ export function getWordsForPin(isPinned: boolean): string {
 
 export function getWordsForStorage(choice: StorageChoice): string {
     const words = STORAGE_WORDS[choice];
+    return words;
+}
+
+export function getWordsForTypeStep(step: TypeStep): string {
+    const words = TYPE_STEP_WORDS[step];
     return words;
 }
 

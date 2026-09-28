@@ -14,8 +14,10 @@ import {
     SPACE_PIXELS,
     SURFACE,
     TEXT,
-    TIP,
+    TYPE_TOKENS,
+    type TypeTokens,
 } from "#/src/ui/panel-look.ts";
+import { TYPE_STEPS, type TypeStep } from "#/src/ui/panel-choice.ts";
 import { formatColour, PALETTE_COLOURS, SIGNAL } from "#/src/ui/panel-palette.ts";
 import { getDeclaration, getRuleBody } from "#/tests/style-sheet.ts";
 
@@ -133,11 +135,13 @@ function readTokensSpent(): Record<string, readonly string[]> {
         spaceSmall: [`${SPACE_PIXELS.small}px`],
         spaceRegion: [`${SPACE_PIXELS.regionDown}px`, `${SPACE_PIXELS.regionAcross}px`],
         spaceWide: [`${SPACE_PIXELS.wide}px`],
-        rowHeight: [`${SPACE_PIXELS.rowHeight}px`],
+        fontSize: readStepPixels((tokens) => tokens.fontPixels),
+        rowHeight: readStepPixels((tokens) => tokens.rowHeightPixels),
         maxHeightShare: [`${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh`],
-        tipWidth: [`${TIP.widthPixelsMaximum}px`],
-        lineHeight: [readLineHeightDrawn()],
-        panelWidth: [`${PLACE.widthPixels}px`],
+        tipWidth: readStepPixels((tokens) => tokens.tipWidthPixelsMaximum),
+        lineHeight: TYPE_STEPS.map(readLineHeightDrawn),
+        panelWidth: readStepPixels((tokens) => tokens.panelWidthPixels),
+        standingWidth: readStepPixels((tokens) => tokens.standingWidthPixels),
         panelInset: [`${PLACE.insetPixels}px`],
         panelLayer: [PLACE.layer],
         radius: [`${SHAPE.radiusPixels}px`],
@@ -146,9 +150,14 @@ function readTokensSpent(): Record<string, readonly string[]> {
     };
 }
 
+/** A token of the type's, one value per step in the order the steps run, small first. */
+function readStepPixels(read: (tokens: TypeTokens) => number): string[] {
+    return TYPE_STEPS.map((step) => `${read(TYPE_TOKENS[step])}px`);
+}
+
 /** The line height the panel prints at. No export states it: it is the sheet's own, and private. */
-function readLineHeightDrawn(): string {
-    const font = getDeclaration(getRuleBody(composeStyleSheet(), `.${CLASS.panel}`), "font");
+function readLineHeightDrawn(step: TypeStep): string {
+    const font = getDeclaration(getRuleBody(composeStyleSheet(step), `.${CLASS.panel}`), "font");
     assertExists(font, "the panel states the type it prints");
     const slash = font.indexOf("/");
     assertNotStrictEquals(slash, -1, "and states it as a size over a line height");

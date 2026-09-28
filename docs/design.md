@@ -310,6 +310,7 @@ export const STORE_KEY = {
     helperFolded: "MargoMeter-pomocnik-folded",
     helperPlace: "MargoMeter-pomocnik-place",
     storage: "MargoMeter-storage",
+    typeStep: "MargoMeter-type",
 } as const;
 export type StoreKey = VocabularyWord<typeof STORE_KEY>;
 export type StoreFailure =
@@ -668,6 +669,7 @@ export interface DefectCount {
 // Settings: field by field; a failure falls back to the default and leaves a defect
 export interface Settings {
     storage: StorageChoice;
+    typeStep: TypeStep; // the screen state carries it, as it carries the folds
     panel: WindowSetting;
     helper: WindowSetting;
 }
@@ -680,12 +682,13 @@ export interface WindowSetting {
  * conditional type, and narrowing into one needs a cast, which C13 refuses in `src/`.
  */
 export function readStorageChoice(store: KeyValueStore): StorageChoice | SettingFailure;
+export function readTypeStep(store: KeyValueStore): TypeStep | SettingFailure;
 export function readWindowFold(store: KeyValueStore, window: PanelWindow): boolean | SettingFailure;
 export function readWindowPosition(
     store: KeyValueStore,
     window: PanelWindow,
 ): PanelPosition | null | SettingFailure; // null: the reader put it nowhere
-// and `writeStorageChoice`, `writeWindowFold`, `writeWindowPosition` beside them
+// and `writeStorageChoice`, `writeTypeStep`, `writeWindowFold`, `writeWindowPosition` beside them
 export type SettingFailure = StoreFailure | SettingUnreadable | SettingTooLong; // each names its `key`
 
 // The shelf
@@ -841,6 +844,7 @@ export function presentStanding(
 export function initPanelView(document: PanelDocument, options: PanelViewOptions): PanelView;
 export interface PanelViewOptions {
     version: string;
+    typeStep: TypeStep; // the first sheet, and where a window nobody moved opens
     onIntent: (intent: PanelIntent) => void;
     /** What failed while no render was running: a gesture, a card, a window's opening place. */
     onFailure: (failure: ViewFailure) => void;
@@ -876,6 +880,7 @@ export type PanelIntent =
     | { kind: "move"; window: PanelWindow; position: PanelPosition }
     | { kind: "save-file" }
     | { kind: "storage"; choice: StorageChoice }
+    | { kind: "type-step"; step: TypeStep }
     | { kind: "shelf" }
     | { kind: "options" }
     | { kind: "show-kept"; openedAt: number }
@@ -910,7 +915,7 @@ window ─ readUserscriptWindow ─▶ RuntimePorts | BootFailure, under errors.
    a failure → one console line where the page has a console → stand down, no panel
 composeRuntimeTables     the frozen readings indexed, under the start's guard, never at load
 initRuntime(ports, options)
-   ─▶ readStorageChoice, readWindowFold × 2    a failure → the default, and a "kept" defect
+   ─▶ readStorageChoice, readTypeStep, readWindowFold × 2    a failure → the default, a "kept" defect
    ─▶ openShelf               a failure → an empty shelf, and a "kept" defect
    ─▶ initPanelView           readWindowPosition × 2: a failure → the sheet's corner, a "kept" defect
    ─▶ look for the engine every 250 ms, at most 240 times
@@ -947,8 +952,9 @@ end: no DOM; cost bounded by the message count; a JSON copy only of a call thinn
 ```
 listener ─ reads a PanelIntent off data-* (isOneOf; unknown → GestureDropped)
    executeRuntimeIntent: the screen moves, and the options and the shelf never cover it together;
-      the keeper pins and moves the shelf; a fold is written; a move is written and asks for no
-      frame; a save writes the file or a "file" defect
+      the keeper pins and moves the shelf; a fold is written; a size of type is written, and asks
+      for a frame only where it moved; a move is written and asks for no frame; a save writes the
+      file or a "file" defect
    true → markStale
 ```
 

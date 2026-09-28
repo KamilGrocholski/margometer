@@ -1,7 +1,7 @@
 /**
  * What a reader chose about the panel, kept in the store field by field (`docs/design.md` §8):
- * where the shelf is kept, and for each of the two windows where it stands and whether it is
- * folded.
+ * where the shelf is kept, the size the type is drawn at, and for each of the two windows where it
+ * stands and whether it is folded.
  *
  * Each field is its own key, so one that reads back broken costs that field alone. An absent field
  * is the reader having chosen nothing, which is the default and no failure; a field that does not
@@ -25,10 +25,14 @@ import {
     STORAGE_CHOICE,
     STORAGE_CHOICES,
     type StorageChoice,
+    TYPE_STEP_DEFAULT,
+    TYPE_STEPS,
+    type TypeStep,
 } from "#/src/ui/panel-choice.ts";
 
 export const SETTING_KEY = {
     storage: "storage",
+    typeStep: "type-step",
     panelPosition: "panel-position",
     panelFolded: "panel-folded",
     helperPosition: "helper-position",
@@ -67,6 +71,7 @@ type PositionField = "left" | "top";
  */
 const STORE_KEY_BY_SETTING: { readonly [Key in SettingKey]: StoreKey } = {
     [SETTING_KEY.storage]: STORE_KEY.storage,
+    [SETTING_KEY.typeStep]: STORE_KEY.typeStep,
     [SETTING_KEY.panelPosition]: STORE_KEY.panelPlace,
     [SETTING_KEY.panelFolded]: STORE_KEY.panelFolded,
     [SETTING_KEY.helperPosition]: STORE_KEY.helperPlace,
@@ -102,6 +107,18 @@ export function writeStorageChoice(
     choice: StorageChoice,
 ): undefined | SettingFailure {
     return store.write(STORE_KEY_BY_SETTING.storage, choice);
+}
+
+export function readTypeStep(store: KeyValueStore): TypeStep | SettingFailure {
+    const read = store.read(STORE_KEY_BY_SETTING[SETTING_KEY.typeStep]);
+    if (read instanceof Error) return read;
+    if (read === null) return TYPE_STEP_DEFAULT;
+    if (!isOneOf(TYPE_STEPS, read)) return new SettingUnreadable(SETTING_KEY.typeStep);
+    return read;
+}
+
+export function writeTypeStep(store: KeyValueStore, step: TypeStep): undefined | SettingFailure {
+    return store.write(STORE_KEY_BY_SETTING[SETTING_KEY.typeStep], step);
 }
 
 export function readWindowFold(

@@ -8,7 +8,49 @@
  */
 
 import { clamp } from "#/libs/number-range.ts";
+import { TYPE_STEP, type TypeStep } from "./panel-choice.ts";
 import { type Colour, formatColour, SIGNAL } from "./panel-palette.ts";
+
+/**
+ * What follows the type: every length the sheet and the panel spend that a step of type moves.
+ * Each step is its own row of measurements, never another row scaled (ADR 0013): a ring of nine
+ * pixels carries no letter although the ratio says it would (`develop ADR 0092`).
+ */
+export interface TypeTokens {
+    fontPixels: number;
+    /** Whole pixels: a fractional line box puts every box under it off the grid. `develop ADR 0015`. */
+    lineHeightPixels: number;
+    lineHeightTitlePixels: number;
+    /** The one smaller type: the version, the place, an outcome, a section's heading. */
+    fontSmallPixels: number;
+    /** What a row carries over its line, less the drop, is even: its ink lands mid-row. */
+    rowHeightPixels: number;
+    /** Two digits and a stop, and a fight holds twenty. */
+    rankWidthPixels: number;
+    /** A dot small enough that four of them and a figure fit the window's own width. */
+    pipSizePixels: number;
+    /**
+     * The least an okrzyk's name is drawn at, so a long nickname on the same row cannot erase it:
+     * the two okrzyki differ from their first letter, so this shows enough of either to say which.
+     */
+    castWidthPixelsMinimum: number;
+    /** The caveat mark's ring, across and down, and the letter inside it. */
+    markSizePixels: number;
+    markLetterPixels: number;
+    panelWidthPixels: number;
+    /**
+     * How wide a card may stand — **a maximum and not a width**. The card is drawn at `max-content`
+     * and this clamps it, so one saying two words is as wide as two words, and a ranking card fills
+     * the bound. What that was measured to cost is `develop ADR 0091`'s, and the widths a browser
+     * really draws are `tests/e2e/panel-tip.spec.ts`'s.
+     */
+    tipWidthPixelsMaximum: number;
+    /**
+     * The window beside the panel. Narrower than the panel because it carries a name and a figure
+     * and never a rank or a share, and it is the second thing standing over somebody else's game.
+     */
+    standingWidthPixels: number;
+}
 
 export const SURFACE = {
     panel: [0x0f, 0x16, 0x1d],
@@ -131,14 +173,12 @@ export const SPACE_PIXELS = {
     regionDown: 5,
     regionAcross: 7,
     wide: 8,
-    rowHeight: 18,
 } as const;
 /** The tallest the panel stands, as a share of the window's height. */
 export const PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM = 66;
 
 export const PLACE = {
     insetPixels: 8,
-    widthPixels: 260,
     /**
      * The host against the game's own page, and nothing inside the root: the game's interface
      * layer, won by standing after it in `body`, and under every window of theirs —
@@ -159,41 +199,69 @@ export const LAYER = {
 } as const;
 
 /**
- * How wide a card may stand — **a maximum and not a width**. The card is drawn at `max-content` and
- * this clamps it, so one saying two words is as wide as two words, and a ranking card fills the
- * bound. What that was measured to cost is `develop ADR 0091`'s, and the widths a browser really
- * draws are `tests/e2e/panel-tip.spec.ts`'s.
- */
-export const TIP = {
-    widthPixelsMaximum: 250,
-} as const;
-
-/**
- * The window beside the panel. Narrower than the panel because it carries a name and a figure
- * and never a rank or a share, and it is the second thing standing over somebody else's game.
- */
-export const STANDING = {
-    widthPixels: 210,
-} as const;
-
-/** A dot small enough that four of them and a figure fit the window's own width. */
-const PIP_SIZE_PIXELS = 5;
-/**
- * The least an okrzyk's name is drawn at, so a long nickname on the same row cannot erase it.
+ * One row per step. The small one is the size the panel shipped at, and every figure in it was
+ * measured in Chrome 152: the rank cell's `20.` at 17.50px on 2026-09-15; the cast floor on
+ * 2026-09-18, where `Wyzywa` is 49px and `Prowok` 44px, and a 25-character nickname left a cast
+ * with no floor 4px; the ring on 2026-09-15, where a smaller one reads as a speck beside a figure
+ * and nine carries no letter at all, and seven is the largest letter that leaves it untouched.
  *
- * Measured in Chrome at the panel's own size on 2026-09-18: `Wyzywa` is 49px and `Prowok` 44px,
- * and the two okrzyki differ from their first letter — so this shows enough of either to say
- * which. Without it a 25-character nickname left the cast 4px, which is the feature gone.
+ * The other two were measured in Chrome 154 on 2026-09-28 through this sheet, the method first
+ * reproducing the small row: `20.` at 17.50px, 19.09 and 20.69, each cell that plus its 4px of air
+ * and rounded up; `Wyzywa` at 49.33px and 53.44, each floor the whole word (the same Chrome reads
+ * it 45.22px at the small step, against the 49 above); and the largest letter whose ink stands a
+ * clear pixel inside the ring, which is seven in a ring of ten and eight meets it — the small row
+ * again — and seven in a ring of twelve at both. A ring of eleven holds only six: an odd ring sets
+ * the letter off the half pixel. The widest step's panel is `596f95f`'s; the middle one is what its
+ * bar asks, the name, `0.20.0-dev` and four controls on one line at 270px, where the small bar
+ * holds them in its 258 and the widest in its 304.
  */
-const CAST_WIDTH_PIXELS_MINIMUM = 48;
-/**
- * The caveat mark's ring, across and down. Ten against an 11px body and an 18px row: smaller
- * reads as a speck beside a figure, larger sits taller than the digits it stands next to — and
- * nine carries no letter at all, measured in Chrome 152 on 2026-09-15.
- */
-const MARK_SIZE_PIXELS = 10;
-/** What drops the ring onto the first line of a sentence: the line box less the ring, halved. */
-const MARK_DROP_PIXELS = 2;
+export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
+    [TYPE_STEP.small]: {
+        fontPixels: 11,
+        lineHeightPixels: 15,
+        lineHeightTitlePixels: 13,
+        fontSmallPixels: 10,
+        rowHeightPixels: 18,
+        rankWidthPixels: 22,
+        pipSizePixels: 5,
+        castWidthPixelsMinimum: 48,
+        markSizePixels: 10,
+        markLetterPixels: 7,
+        panelWidthPixels: 260,
+        tipWidthPixelsMaximum: 250,
+        standingWidthPixels: 210,
+    },
+    [TYPE_STEP.medium]: {
+        fontPixels: 12,
+        lineHeightPixels: 16,
+        lineHeightTitlePixels: 14,
+        fontSmallPixels: 11,
+        rowHeightPixels: 19,
+        rankWidthPixels: 24,
+        pipSizePixels: 5,
+        castWidthPixelsMinimum: 50,
+        markSizePixels: 12,
+        markLetterPixels: 7,
+        panelWidthPixels: 272,
+        tipWidthPixelsMaximum: 272,
+        standingWidthPixels: 228,
+    },
+    [TYPE_STEP.large]: {
+        fontPixels: 13,
+        lineHeightPixels: 18,
+        lineHeightTitlePixels: 15,
+        fontSmallPixels: 12,
+        rowHeightPixels: 21,
+        rankWidthPixels: 25,
+        pipSizePixels: 6,
+        castWidthPixelsMinimum: 54,
+        markSizePixels: 12,
+        markLetterPixels: 7,
+        panelWidthPixels: 306,
+        tipWidthPixelsMaximum: 296,
+        standingWidthPixels: 248,
+    },
+};
 
 export const SHAPE = {
     radiusPixels: 8,
@@ -201,8 +269,6 @@ export const SHAPE = {
     windowShadow: "0 6px 20px rgb(0 0 0 / 55%)",
 } as const;
 
-/** Two digits and a stop: 17.50px in Chrome 152, 2026-09-15, and a fight holds twenty. */
-const RANK_WIDTH_PIXELS = 22;
 /**
  * What a row carries over its contents and not under, so its ink lands even. `develop ADR 0015`.
  */
@@ -227,14 +293,8 @@ const LUMINANCE_OFFSET = 0.05;
 const VARIABLE_PREFIX = "--MargoMeter-";
 const ROWS_BY_DEFAULT = 11;
 const FONT_STACK = "system-ui, sans-serif";
-const FONT_SIZE_PIXELS = 11;
-/** Whole pixels: a fractional line box puts every box under it off the grid. `develop ADR 0015`. */
-const LINE_HEIGHT_PIXELS = 15;
 /** What a border costs the box it is on, at the one width this panel draws one. */
 const RULE_WIDTH = 1;
-const LINE_HEIGHT_TITLE_PIXELS = 13;
-const FONT_BODY = `${FONT_SIZE_PIXELS}px/${LINE_HEIGHT_PIXELS}px ${FONT_STACK}`;
-const FONT_TITLE = `${FONT_SIZE_PIXELS}px/${LINE_HEIGHT_TITLE_PIXELS}px ${FONT_STACK}`;
 
 /**
  * A press that leaves text selected behind it is an accident, which is why the bar and the
@@ -311,8 +371,11 @@ export function getInkForBar(hue: Colour): Colour {
  * (`src/ui/panel-tip.ts`) — and a trim and a clamp at two heights would put the notice on a card
  * that fitted, or leave one that did not without it.
  */
-export function getTipHeight(size: { lines: number; groups: number }): number | null {
-    const line = LINE_HEIGHT_PIXELS;
+export function getTipHeight(
+    size: { lines: number; groups: number },
+    tokens: TypeTokens,
+): number | null {
+    const line = tokens.lineHeightPixels;
     const air = SPACE_PIXELS.small;
     if (!Number.isSafeInteger(size.lines)) return null;
     if (!Number.isSafeInteger(size.groups)) return null;
@@ -332,10 +395,11 @@ export function getTipRoom(viewportHeight: number | null): number | null {
     return room;
 }
 
-export function composeStyleSheet(): string {
-    return `${composeFrameRules()}${composeRegionRules()}${composeListRules()}` +
-        `${composeRowRules()}${composeUnderListRules()}` +
-        `${composeTipRules()}${composeStandingRules()}`;
+export function composeStyleSheet(step: TypeStep): string {
+    const tokens = TYPE_TOKENS[step];
+    return `${composeFrameRules(tokens)}${composeRegionRules(tokens)}` +
+        `${composeListRules(tokens)}${composeRowRules(tokens)}${composeUnderListRules()}` +
+        `${composeTipRules(tokens)}${composeStandingRules(tokens)}`;
 }
 
 /**
@@ -345,10 +409,10 @@ export function composeStyleSheet(): string {
  * property a page can set except a custom one — which is what lets a default declared here
  * survive the line above it, and what the panel is moved by.
  */
-function composeFrameRules(): string {
+function composeFrameRules(tokens: TypeTokens): string {
     const ceiling = `min(calc(100vh - var(${VARIABLE_PREFIX}panel-top) - ${PLACE.insetPixels}px),` +
         `${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh)`;
-    return `:host{all:initial;${composeVariables()}` +
+    return `:host{all:initial;${composeVariables(tokens)}` +
         `${VARIABLE_PREFIX}panel-top:${PLACE.insetPixels}px;` +
         `position:fixed;top:var(${VARIABLE_PREFIX}panel-top);right:${PLACE.insetPixels}px;` +
         `z-index:${PLACE.layer};display:flex;flex-direction:column;` +
@@ -356,19 +420,19 @@ function composeFrameRules(): string {
         `.${CLASS.title}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
-        `font:${FONT_TITLE};letter-spacing:0.06em;` +
+        `font:${composeFontTitle(tokens)};letter-spacing:0.06em;` +
         `color:var(${VARIABLE_PREFIX}quiet);` +
         // One line whatever the version says: no guard here lays anything out, so a wrap is
         // invisible to the gate.
         `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
-        `box-sizing:border-box;width:${PLACE.widthPixels}px;` +
+        `box-sizing:border-box;width:${tokens.panelWidthPixels}px;` +
         `cursor:move;` +
         // Safari has never shipped `user-select` unprefixed, so without this a drag by the bar
         // selects the text under the cursor (`docs/browser-support.md`).
         `-webkit-user-select:none;user-select:none;touch-action:none;}` +
-        `.${CLASS.titleVersion}{opacity:0.7;font-size:10px;}` +
+        `.${CLASS.titleVersion}{opacity:0.7;font-size:${tokens.fontSmallPixels}px;}` +
         `.${CLASS.control}{padding:0 var(${VARIABLE_PREFIX}small);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);` +
@@ -382,7 +446,7 @@ function composeFrameRules(): string {
         // Two classes in the selector, so the outcome does not depend on where the rule is
         // written: a bare `.folded` ties with the region's own rule and loses on source order.
         `.${CLASS.frame}.${CLASS.folded}{display:none;}` +
-        `.${CLASS.panel}{font:${FONT_BODY};width:${PLACE.widthPixels}px;` +
+        `.${CLASS.panel}{font:${composeFontBody(tokens)};width:${tokens.panelWidthPixels}px;` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
@@ -392,7 +456,15 @@ function composeFrameRules(): string {
         `.${CLASS.slot}{display:none;}`;
 }
 
-function composeVariables(): string {
+function composeFontBody(tokens: TypeTokens): string {
+    return `${tokens.fontPixels}px/${tokens.lineHeightPixels}px ${FONT_STACK}`;
+}
+
+function composeFontTitle(tokens: TypeTokens): string {
+    return `${tokens.fontPixels}px/${tokens.lineHeightTitlePixels}px ${FONT_STACK}`;
+}
+
+function composeVariables(tokens: TypeTokens): string {
     const stated = [
         composeVariable("surface", formatColour(SURFACE.panel)),
         composeVariable("raised", formatColour(SURFACE.raised)),
@@ -417,7 +489,7 @@ function composeVariables(): string {
         composeVariable("region-down", `${SPACE_PIXELS.regionDown}px`),
         composeVariable("region-across", `${SPACE_PIXELS.regionAcross}px`),
         composeVariable("wide", `${SPACE_PIXELS.wide}px`),
-        composeVariable("row-height", `${SPACE_PIXELS.rowHeight}px`),
+        composeVariable("row-height", `${tokens.rowHeightPixels}px`),
         composeVariable("radius", `${SHAPE.radiusPixels}px`),
         composeVariable("radius-small", `${SHAPE.radiusSmallPixels}px`),
     ].join("");
@@ -433,16 +505,17 @@ function formatRgbColour(colour: Colour): string {
     return `rgb(${colour[0]} ${colour[1]} ${colour[2]})`;
 }
 
-function composeRegionRules(): string {
+function composeRegionRules(tokens: TypeTokens): string {
     const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
     return `.${CLASS.header}{display:block;padding:${region};padding-bottom:0;}` +
         `.${CLASS.headerLine}{display:flex;justify-content:space-between;align-items:baseline;}` +
-        `.${CLASS.headerPlace}{color:var(${VARIABLE_PREFIX}quiet);font-size:10px;` +
+        `.${CLASS.headerPlace}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `font-size:${tokens.fontSmallPixels}px;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         // The upper case belongs to this rule rather than to a word: the shelf says the same
         // word a row at a time, in the case it was composed in.
         `.${CLASS.headerOutcome}{color:var(${VARIABLE_PREFIX}quiet);text-transform:uppercase;` +
-        `font-size:10px;}` +
+        `font-size:${tokens.fontSmallPixels}px;}` +
         `.${CLASS.strips}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
         `padding:${region};padding-bottom:0;}` +
         `.${CLASS.strips}+.${CLASS.strips}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
@@ -464,7 +537,7 @@ function composeRegionRules(): string {
 }
 
 /** The list's height is the rows it promises times what a row costs. `develop ADR 0014`. */
-function composeListRules(): string {
+function composeListRules(tokens: TypeTokens): string {
     const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
     const belowRows = composeInsetUnderRows(VARIABLE_PREFIX + "region-down");
     const rowCost = `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half))`;
@@ -483,7 +556,8 @@ function composeListRules(): string {
         `.${CLASS.section}{position:sticky;` +
         `top:calc(0px - var(${VARIABLE_PREFIX}region-down));z-index:1;` +
         `background:var(${VARIABLE_PREFIX}surface);display:flex;justify-content:space-between;` +
-        `color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;font-size:10px;` +
+        `color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
+        `font-size:${tokens.fontSmallPixels}px;` +
         // Deliberately unequal, against develop ADR 0014's rule for every other region: the air
         // under a heading belongs to the rows it names.
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}half) ` +
@@ -501,7 +575,8 @@ function composeListRules(): string {
         `font-variant-numeric:tabular-nums;font-weight:600;}` +
         `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;opacity:0.8;` +
         `min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
-        `.${CLASS.sidesSpare}{margin-top:var(${VARIABLE_PREFIX}small);font-size:10px;}` +
+        `.${CLASS.sidesSpare}{margin-top:var(${VARIABLE_PREFIX}small);` +
+        `font-size:${tokens.fontSmallPixels}px;}` +
         `.${CLASS.sidesSpare} .${CLASS.sidesLabel}{color:inherit;}` +
         `.${CLASS.sidesTrack}{display:flex;height:4px;` +
         `margin-top:var(${VARIABLE_PREFIX}small);` +
@@ -531,7 +606,7 @@ function composeInsetUnderRows(inset: string): string {
     return written;
 }
 
-function composeRowRules(): string {
+function composeRowRules(tokens: TypeTokens): string {
     const capRight = `var(${VARIABLE_PREFIX}radius-small)`;
     const cap = `${capRight} 0 0 ${capRight}`;
     return `.${CLASS.row}{position:relative;display:flex;justify-content:space-between;` +
@@ -550,7 +625,7 @@ function composeRowRules(): string {
         `.${CLASS.rowRank},.${CLASS.rowName},.${CLASS.rowValue}{position:relative;}` +
         `.${CLASS.rowRank}{color:var(${VARIABLE_PREFIX}quiet);` +
         `font-variant-numeric:tabular-nums;flex:none;box-sizing:border-box;` +
-        `width:${RANK_WIDTH_PIXELS}px;text-align:right;` +
+        `width:${tokens.rankWidthPixels}px;text-align:right;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.rowTime}{color:var(${VARIABLE_PREFIX}quiet);` +
         `font-variant-numeric:tabular-nums;flex:none;` +
@@ -615,12 +690,12 @@ function composeUnderListRules(): string {
     return `.${CLASS.pinned}{${shape}}` + `.${CLASS.outside}{${shape}}`;
 }
 
-function composeTipRules(): string {
+function composeTipRules(tokens: TypeTokens): string {
     // Where a card stands before any window has been moved: against the panel's own corner. It is
     // a distance from the **right** edge, and every placement across is, because a card narrower
     // than the bound has to keep the edge facing its window and not float the difference away.
     const right =
-        `var(${VARIABLE_PREFIX}tip-right,calc(${PLACE.insetPixels}px + ${PLACE.widthPixels}px + ` +
+        `var(${VARIABLE_PREFIX}tip-right,calc(${PLACE.insetPixels}px + ${tokens.panelWidthPixels}px + ` +
         `${SPACE_PIXELS.small}px))`;
     return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
         `left:var(${VARIABLE_PREFIX}tip-left,auto);right:${right};` +
@@ -628,14 +703,14 @@ function composeTipRules(): string {
         // As wide as what it says, up to the bound — and never wider than the screen it stands
         // on, which is the case the bound on its own does not answer.
         `width:max-content;` +
-        `max-width:min(${TIP.widthPixelsMaximum}px,` +
+        `max-width:min(${tokens.tipWidthPixelsMaximum}px,` +
         `calc(100vw - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px));` +
         // A card taller than the screen has no position showing all of it, and the clamp keeps
         // the top edge over the bottom.
         `max-height:calc(100vh - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px);` +
         `overflow:hidden;` +
         `padding:var(${VARIABLE_PREFIX}small);` +
-        `font:${FONT_BODY};` +
+        `font:${composeFontBody(tokens)};` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};}` +
@@ -664,11 +739,11 @@ function composeTipRules(): string {
         `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);flex:1;min-width:0;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}` +
-        composeCaveatMarkRule() +
+        composeCaveatMarkRule(tokens) +
         // The same letters a cut's heading wears down the panel, so a run of parts under one
         // reads as the same kind of thing in both places. `DESIGN.md` owns the look.
         `.${CLASS.tipHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
-        `font-size:10px;text-transform:uppercase;overflow:hidden;` +
+        `font-size:${tokens.fontSmallPixels}px;text-transform:uppercase;overflow:hidden;` +
         `text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
         // The sentence is this box's own text and the ring is a child appended after it, so the
@@ -678,8 +753,8 @@ function composeTipRules(): string {
         `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{display:flex;align-items:flex-start;` +
         `gap:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.tipNote} .${CLASS.tipCaveat}{order:-1;align-self:flex-start;` +
-        // Onto the optical centre of the first line: a 15px line box less a 10px ring, halved.
-        `margin-top:${MARK_DROP_PIXELS}px;}` +
+        // Onto the optical centre of the first line: the line box less the ring, halved.
+        `margin-top:${Math.floor((tokens.lineHeightPixels - tokens.markSizePixels) / 2)}px;}` +
         `.${CLASS.tipNote}.${CLASS.tipSuspect}{color:var(${VARIABLE_PREFIX}suspect);}` +
         `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{color:var(${VARIABLE_PREFIX}caveat);}`;
 }
@@ -710,47 +785,48 @@ function composeTipTop(): string {
  * `align-self` because both parents are flex rows that stretch a child by default, and a ring
  * stretched to the line box is the ellipse this rule exists to stop being.
  */
-function composeCaveatMarkRule(): string {
+function composeCaveatMarkRule(tokens: TypeTokens): string {
     return `.${CLASS.rowCaveat},.${CLASS.tipCaveat}{box-sizing:border-box;display:inline-flex;` +
         `align-items:center;justify-content:center;align-self:center;flex:none;` +
-        `width:${MARK_SIZE_PIXELS}px;height:${MARK_SIZE_PIXELS}px;` +
+        `width:${tokens.markSizePixels}px;height:${tokens.markSizePixels}px;` +
         // An ink of its own, as the other three severities have: drawn in the label's colour it was
         // invisible against the label it qualifies. `DESIGN.md` owns the rule and carries
         // the measured distance to every other hue the panel spends.
         `color:var(${VARIABLE_PREFIX}caveat);` +
         `border:1px solid currentColor;border-radius:50%;` +
-        // The letter inside the ring, and it is the only type on the panel below the body size:
-        // an `i` at the body's own 11px leaves no ring to draw around it. Seven is the largest
-        // that leaves the ring untouched: at eight the stem meets it at the top.
-        `font-size:7px;font-weight:600;font-style:normal;line-height:1;}`;
+        // The letter inside the ring, and the smallest type on the panel: an `i` at the body's own
+        // size leaves no ring to draw around it, and one a pixel too large meets it at the top.
+        `font-size:${tokens.markLetterPixels}px;font-weight:600;font-style:normal;` +
+        `line-height:1;}`;
 }
 
 /**
  * The second window under the one root. It states its own type and its own ink for the reason the
  * card does — `:host{all:initial}` reaches it and `.panel`'s rules never do — and it is
- * `position:fixed` for the same reason too: the host is a flex column 260px wide, and a plain
+ * `position:fixed` for the same reason too: the host is a flex column as wide as the panel, and a plain
  * child of it would stand inside that column and ride the panel's own drag.
  *
  * ⚠️ **Positioned, and deliberately so.** A positioned element paints over a static one whatever
  * the tree order, so a window laid out any other way could cover a control of the panel's and
  * take its press. The layer is stated rather than left to chance.
  */
-function composeStandingRules(): string {
+function composeStandingRules(tokens: TypeTokens): string {
     const top =
         `clamp(${PLACE.insetPixels}px,var(${VARIABLE_PREFIX}standing-top,${PLACE.insetPixels}px),` +
         `calc(100vh - ${PLACE.insetPixels}px))`;
     const left = `var(${VARIABLE_PREFIX}standing-left,calc(100vw - ${PLACE.insetPixels}px - ` +
-        `${PLACE.widthPixels}px - ${STANDING.widthPixels}px - ${SPACE_PIXELS.small}px))`;
+        `${tokens.panelWidthPixels}px - ${tokens.standingWidthPixels}px - ` +
+        `${SPACE_PIXELS.small}px))`;
     return `.${CLASS.standing}{position:fixed;box-sizing:border-box;` +
         `left:${left};top:${top};z-index:${LAYER.standing};` +
-        `width:${STANDING.widthPixels}px;display:flex;flex-direction:column;` +
+        `width:${tokens.standingWidthPixels}px;display:flex;flex-direction:column;` +
         `max-height:calc(100vh - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px);` +
-        `font:${FONT_BODY};` +
+        `font:${composeFontBody(tokens)};` +
         `color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.standingBar}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
-        `font:${FONT_TITLE};letter-spacing:0.06em;` +
+        `font:${composeFontTitle(tokens)};letter-spacing:0.06em;` +
         `color:var(${VARIABLE_PREFIX}quiet);white-space:nowrap;` +
         `background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
@@ -782,7 +858,7 @@ function composeStandingRules(): string {
         // this window has two cells and wants the panel's rule (`develop ADR 0097`).
         `.${CLASS.standingHolding} .${CLASS.rowName}{flex:0 1 auto;}` +
         `.${CLASS.standingCast}{color:var(${VARIABLE_PREFIX}quiet);flex:1 1 0;` +
-        `min-width:min(${CAST_WIDTH_PIXELS_MINIMUM}px,100%);` +
+        `min-width:min(${tokens.castWidthPixelsMinimum}px,100%);` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;` +
         `padding-left:var(${VARIABLE_PREFIX}small);}` +
         // One dot per turn of the charge, which is how the game's own bar is cut: it draws
@@ -790,7 +866,7 @@ function composeStandingRules(): string {
         // else in the panel is round, so the shape means this and nothing else.
         `.${CLASS.standingPips}{position:relative;flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}half);padding-left:var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.standingPip}{width:${PIP_SIZE_PIXELS}px;height:${PIP_SIZE_PIXELS}px;` +
+        `.${CLASS.standingPip}{width:${tokens.pipSizePixels}px;height:${tokens.pipSizePixels}px;` +
         `border-radius:50%;` +
         `flex:none;background:var(${VARIABLE_PREFIX}border);}` +
         `.${CLASS.standingPip}.${CLASS.standingPipLit}{background:currentColor;}`;

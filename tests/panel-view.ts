@@ -10,6 +10,7 @@ import {
     type WaitingReading,
 } from "#/src/ui/panel-element.ts";
 import type { PanelDocument } from "#/src/ui/panel-document.ts";
+import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 
 /** The build a test's panel says drew it. */
 export const TEST_VERSION = "0.0.0-test";
@@ -22,6 +23,7 @@ export const NOTHING_WAITING: WaitingReading = {
     isFightUnread: false,
     keptUnread: null,
     options: null,
+    typeStep: TYPE_STEP_DEFAULT,
 };
 
 export function initTestView(
@@ -30,6 +32,7 @@ export function initTestView(
 ): PanelView {
     return initPanelView(document, {
         version: TEST_VERSION,
+        typeStep: TYPE_STEP_DEFAULT,
         onIntent: () => {},
         onFailure: () => {},
         placement: null,

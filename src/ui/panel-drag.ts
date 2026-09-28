@@ -17,9 +17,8 @@ import {
 import { addGuardedListener } from "./panel-listener.ts";
 import {
     PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM,
-    PLACE,
     SPACE_PIXELS,
-    STANDING,
+    type TypeTokens,
 } from "./panel-look.ts";
 import { formatWhole } from "./panel-words.ts";
 import {
@@ -45,10 +44,10 @@ interface PanelGrab {
     pointerId: number | undefined;
 }
 
-/** A window a card stands beside: where its left edge is, and which one it is. */
+/** A window a card stands beside: where its left edge is, and how wide it stands. */
 export interface TipWindowPlace {
     position: PanelPosition;
-    windowName: PanelWindow;
+    widthPixels: number;
 }
 
 /**
@@ -71,6 +70,8 @@ export interface PanelDragHandle {
     getPosition(): PanelPosition | null;
     /** The bar has been drawn again; take hold of the one standing. */
     onDrawn(): void;
+    /** Stand the window here as a drag would leave it, and tell whoever a drag tells. */
+    setPosition(next: PanelPosition): void;
 }
 
 export interface PanelPlacement {
@@ -82,6 +83,8 @@ export interface PanelPlacement {
 /** Who the drag tells. Where they let go is told once per drag: a write per frame is too many. */
 export interface PanelDragOptions {
     window: PanelWindow;
+    /** The type a reader chose decides how wide each window stands, and it can change. */
+    getTypeTokens: () => TypeTokens;
     onMoved: (position: PanelPosition) => void;
     onFailure: (failure: ViewFailure) => void;
 }
@@ -102,12 +105,6 @@ export const GRIP_MARK_BY_WINDOW: { readonly [Window in PanelWindow]: string } =
 const TOP_VARIABLES: { readonly [Window in PanelWindow]: string } = {
     [PANEL_WINDOW.panel]: "--MargoMeter-panel-top",
     [PANEL_WINDOW.helper]: "--MargoMeter-standing-top",
-};
-
-/** How wide each window stands, which is what a card opening beside one has to step over. */
-const WINDOW_WIDTHS_PIXELS: { readonly [Window in PanelWindow]: number } = {
-    [PANEL_WINDOW.panel]: PLACE.widthPixels,
-    [PANEL_WINDOW.helper]: STANDING.widthPixels,
 };
 
 /**
@@ -150,11 +147,14 @@ function getPositionWithin(value: number, limit: number): number {
  * Null where the page states no size, because a position derived from a guess snatches the panel
  * out from under the hand — the sheet's own corner then stands, which is a place and not a guess.
  */
-export function composeDefaultPosition(viewport: PanelViewport | null): PanelPosition | null {
+export function composeDefaultPosition(
+    viewport: PanelViewport | null,
+    panelWidthPixels: number,
+): PanelPosition | null {
     if (viewport === null) return null;
     const height = viewport.height * PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM / 100;
     return clampPosition({
-        left: (viewport.width - PLACE.widthPixels) / 2,
+        left: (viewport.width - panelWidthPixels) / 2,
         top: (viewport.height - height) / 2,
     }, viewport);
 }
@@ -213,11 +213,36 @@ export function composeTipAcross(
 }
 
 function composeWindowRight(place: TipWindowPlace): number {
-    return place.position.left + WINDOW_WIDTHS_PIXELS[place.windowName];
+    return place.position.left + place.widthPixels;
 }
 
 export function setGripMark(grip: PanelElement, window: PanelWindow): void {
     grip.setAttribute(GRIP_ATTRIBUTE, GRIP_MARK_BY_WINDOW[window]);
+}
+
+/**
+ * Where the window beside the panel stands once the type both are drawn in has changed size, or
+ * null where it should stay. **Both windows grow rightwards from where they stand**, so a window
+ * beside the panel keeps its side by moving: one standing to the left keeps its right edge, one to
+ * the right keeps its distance from the panel's. One standing over or under the panel is not beside
+ * it, and stays. Without this, a larger step stood the window over the panel's own ranks.
+ */
+export function composeStandingAfterStep(
+    panel: PanelPosition,
+    standing: PanelPosition,
+    before: TypeTokens,
+    after: TypeTokens,
+): PanelPosition | null {
+    const standingRight = standing.left + before.standingWidthPixels;
+    if (standingRight <= panel.left) {
+        const grown = after.standingWidthPixels - before.standingWidthPixels;
+        return { left: standing.left - grown, top: standing.top };
+    }
+    if (standing.left >= panel.left + before.panelWidthPixels) {
+        const grown = after.panelWidthPixels - before.panelWidthPixels;
+        return { left: standing.left + grown, top: standing.top };
+    }
+    return null;
 }
 
 /**
@@ -256,7 +281,7 @@ export function initPanelDrag(
         });
     };
     addDragListener(EVENT_TYPE.press, PANEL_LISTENER.grab, (event) => {
-        const started = composePanelDragGrab(event, position, placement, windowName);
+        const started = composePanelDragGrab(event, position, placement, options);
         if (started === null) return;
         grab = started;
         setPointerHeld(getBar(), true, event.pointerId, options);
@@ -289,6 +314,10 @@ export function initPanelDrag(
     return {
         getPosition: () => position,
         onDrawn: () => setPointerHeldAgain(grab, getBar(), options),
+        setPosition: (next: PanelPosition) => {
+            setHostPosition(clampPosition(next, placement.readViewport()));
+            if (position !== null) options.onMoved(position);
+        },
     };
 }
 
@@ -307,7 +336,11 @@ function initPanelDragOpening(
 ): PanelPosition | null {
     const opened = errors.attempt(() => {
         const opening = placement.position ??
-            composeOpeningPosition(options.window, placement.readViewport());
+            composeOpeningPosition(
+                options.window,
+                placement.readViewport(),
+                options.getTypeTokens(),
+            );
         if (opening === null) return null;
         const clamped = clampPosition(opening, placement.readViewport());
         const style = composePositionStyle(clamped, options.window);
@@ -324,9 +357,10 @@ function initPanelDragOpening(
 function composeOpeningPosition(
     windowName: PanelWindow,
     viewport: PanelViewport | null,
+    tokens: TypeTokens,
 ): PanelPosition | null {
-    if (windowName === PANEL_WINDOW.helper) return composeStandingPosition(viewport);
-    return composeDefaultPosition(viewport);
+    if (windowName === PANEL_WINDOW.helper) return composeStandingPosition(viewport, tokens);
+    return composeDefaultPosition(viewport, tokens.panelWidthPixels);
 }
 
 /**
@@ -334,14 +368,17 @@ function composeOpeningPosition(
  * `composeDefaultPosition` centres what it is given, so centring both puts this one exactly under
  * the panel — where the panel paints over it and a reader sees nothing at all. `develop ADR 0060`.
  */
-function composeStandingPosition(viewport: PanelViewport | null): PanelPosition | null {
-    const panel = composeDefaultPosition(viewport);
+function composeStandingPosition(
+    viewport: PanelViewport | null,
+    tokens: TypeTokens,
+): PanelPosition | null {
+    const panel = composeDefaultPosition(viewport, tokens.panelWidthPixels);
     if (panel === null) return null;
     const gap = SPACE_PIXELS.small;
-    const beside = panel.left - STANDING.widthPixels - gap;
+    const beside = panel.left - tokens.standingWidthPixels - gap;
     if (beside >= 0) return clampPosition({ left: beside, top: panel.top }, viewport);
     // No room on the left, so the other side — the same answer the card gives (`develop ADR 0090`).
-    const other = { left: panel.left + PLACE.widthPixels + gap, top: panel.top };
+    const other = { left: panel.left + tokens.panelWidthPixels + gap, top: panel.top };
     return clampPosition(other, viewport);
 }
 
@@ -354,17 +391,18 @@ function composePanelDragGrab(
     event: PanelEvent,
     position: PanelPosition | null,
     placement: PanelPlacement,
-    windowName: PanelWindow,
+    options: PanelDragOptions,
 ): PanelGrab | null {
     // `undefined` is not `null`: as one comparison, a press stating no target fell through and
     // started a drag from wherever the pointer was.
     const grip = event.target?.getAttribute(GRIP_ATTRIBUTE) ?? null;
     if (grip === null) return null;
     // Both listener sets see every press, so the other window's bar reaches here too.
-    if (grip !== GRIP_MARK_BY_WINDOW[windowName]) return null;
+    if (grip !== GRIP_MARK_BY_WINDOW[options.window]) return null;
     const pointer = readPointerFromEvent(event);
     if (pointer === null) return null;
-    const from = position ?? composeDefaultPosition(placement.readViewport());
+    const from = position ??
+        composeDefaultPosition(placement.readViewport(), options.getTypeTokens().panelWidthPixels);
     if (from === null) return null;
     // Without this the browser starts its own text or image drag from the bar.
     event.preventDefault?.();
