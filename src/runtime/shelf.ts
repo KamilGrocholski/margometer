@@ -284,8 +284,6 @@ function writeShelf(
     return new RotationRefused(KEPT_MAXIMUM + 1, { cause: refused });
 }
 
-/** What was offered and did not go down: the rotation, stated rather than silent. */
-
 /**
  * The id only where there is one, so a fight kept without it is written as `develop` wrote it and a
  * shelf round-trips through either (ADR 0014).
@@ -297,6 +295,8 @@ function encodeKeptFight(fight: KeptFight): Record<string, unknown> {
     assert(readerId > 0, "an id written is one the page stated");
     return { ...rest, readerId };
 }
+
+/** What was offered and did not go down: the rotation, stated rather than silent. */
 function writeShelfDropped(
     before: ShelfContents,
     offered: readonly KeptFight[],
