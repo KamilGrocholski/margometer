@@ -1616,36 +1616,6 @@ function getOutcomeForReader(
 }
 
 /**
- * The fight as a headcount, and it counts the people the list draws rather than the ones the
- * statistics measured: the two are the same list only once everybody has acted, so a header
- * reading off the other set says `2 vs 1` over eleven rows for the opening payloads of a group
- * fight. Sides in the order the panel puts them in everywhere: the reader's own first.
- */
-function composeHeadcount(
-    statistics: FightStatistics,
-    roster: CombatantRoster,
-    readerSide: number | null,
-): { sizes: number[]; unplaced: number } {
-    const countBySide = new Map<number, number>();
-    let unplaced = 0;
-    const everybody = new Set<number>([...statistics.byCombatantId.keys(), ...roster.byId.keys()]);
-    for (const combatantId of everybody) {
-        const side = roster.byId.get(combatantId)?.side ?? null;
-        if (side === null) unplaced += 1;
-        else countBySide.set(side, (countBySide.get(side) ?? 0) + 1);
-    }
-    const sides = [...countBySide].sort(([one], [other]) => {
-        if (readerSide === one) return -1;
-        if (readerSide === other) return 1;
-        return one - other;
-    });
-    const sizes = sides.map(([, count]) => count);
-    // No relation to the rows is held here: a ranking is filtered by the side strip and the
-    // headcount never is, so a fight of ten against one draws one row beside two sizes.
-    return { sizes, unplaced };
-}
-
-/**
  * The pinned rows, each with the share its standing gives it: one apportioned with the ranking,
  * one rounded on its own, because a cut and the rows it is a cut of overlap on purpose.
  */
@@ -1728,6 +1698,36 @@ function formatCharged(
         names.push(held.name);
     }
     return formatChargedRows(names, charged);
+}
+
+/**
+ * The fight as a headcount, and it counts the people the list draws rather than the ones the
+ * statistics measured: the two are the same list only once everybody has acted, so a header
+ * reading off the other set says `2 vs 1` over eleven rows for the opening payloads of a group
+ * fight. Sides in the order the panel puts them in everywhere: the reader's own first.
+ */
+export function composeHeadcount(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    readerSide: number | null,
+): { sizes: number[]; unplaced: number } {
+    const countBySide = new Map<number, number>();
+    let unplaced = 0;
+    const everybody = new Set<number>([...statistics.byCombatantId.keys(), ...roster.byId.keys()]);
+    for (const combatantId of everybody) {
+        const side = roster.byId.get(combatantId)?.side ?? null;
+        if (side === null) unplaced += 1;
+        else countBySide.set(side, (countBySide.get(side) ?? 0) + 1);
+    }
+    const sides = [...countBySide].sort(([one], [other]) => {
+        if (readerSide === one) return -1;
+        if (readerSide === other) return 1;
+        return one - other;
+    });
+    const sizes = sides.map(([, count]) => count);
+    // No relation to the rows is held here: a ranking is filtered by the side strip and the
+    // headcount never is, so a fight of ten against one draws one row beside two sizes.
+    return { sizes, unplaced };
 }
 
 export function getPartOfSide(side: number | null, readerSide: number | null): PanelSidePart {

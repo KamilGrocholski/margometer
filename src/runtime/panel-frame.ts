@@ -38,6 +38,7 @@ import type {
 } from "#/src/ui/panel-element.ts";
 import type { RenderReport } from "#/src/ui/view-failure.ts";
 import {
+    composeHeadcount,
     type FightCardReading,
     type FightReader,
     type FightSuspicions,
@@ -390,7 +391,7 @@ function presentShelfRows(
     const rows: ShelfRow[] = [];
     const alsoKept = live === null ? undefined : kept.find((one) => one.openedAt === live.openedAt);
     if (live !== null) {
-        const sizes = presentShelfSizes(live.reading.view);
+        const { sizes, unplaced } = presentShelfHeadcount(live.reading);
         const outcome = presentOutcome(live.reading);
         rows.push({
             openedAt: live.openedAt,
@@ -405,7 +406,7 @@ function presentShelfRows(
             isPinnable: alsoKept !== undefined,
             card: presentFightCardReading(parts, {
                 sizes,
-                unplaced: 0,
+                unplaced,
                 outcome,
                 isLive: true,
                 openedAt: live.openedAt,
@@ -427,21 +428,14 @@ function presentShelfRows(
     return rows;
 }
 
-/** The reader's side first, then the rest in the game's own order. */
-function presentShelfSizes(view: FightView): number[] {
-    const countBySide = new Map<number, number>();
-    const combatants = [...view.roster.byId.values()].slice(0, COMBATANTS_MAXIMUM);
-    for (const one of combatants) countBySide.set(one.side, (countBySide.get(one.side) ?? 0) + 1);
-    const readerSide = view.readerSide;
-    const sides = [...countBySide].sort(([one], [other]) => {
-        if (readerSide === one) return -1;
-        if (readerSide === other) return 1;
-        return one - other;
-    });
-    const sizes = sides.map(([, count]) => count);
-    assert(sizes.every((count) => count > 0), "a side on the shelf holds somebody");
-    assert(sizes.reduce((sum, count) => sum + count, 0) === combatants.length, "everybody, once");
-    return sizes;
+/** Counted as the fight's line counts it, so a row's card says what the line's card says. */
+function presentShelfHeadcount(reading: FightReading): { sizes: number[]; unplaced: number } {
+    const { roster, readerSide } = reading.view;
+    const headcount = composeHeadcount(reading.figures.statistics, roster, readerSide);
+    const counted = headcount.sizes.reduce((sum, count) => sum + count, 0);
+    assert(headcount.sizes.every((count) => count > 0), "a side on the shelf holds somebody");
+    assert(counted === roster.byId.size, "everybody the roster seats, once");
+    return headcount;
 }
 
 function presentOutcome(reading: FightReading): OutcomeResult | null {
@@ -458,7 +452,7 @@ function presentKeptShelfRow(
 ): ShelfRow {
     assert(reading.view.payloadsApplied > 0, "a kept row states a fight read from something");
     assert(fight.payloads.length > 0, "and kept from something");
-    const sizes = presentShelfSizes(reading.view);
+    const { sizes, unplaced } = presentShelfHeadcount(reading);
     const outcome = presentOutcome(reading);
     return {
         openedAt: fight.openedAt,
@@ -472,7 +466,7 @@ function presentKeptShelfRow(
         isPinnable: true,
         card: presentFightCardReading(parts, {
             sizes,
-            unplaced: 0,
+            unplaced,
             outcome,
             isLive: false,
             openedAt: fight.openedAt,
