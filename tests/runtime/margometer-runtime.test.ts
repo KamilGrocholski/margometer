@@ -1535,11 +1535,7 @@ Deno.test("the fight's line and its shelf row say who the reader was, and it out
         character,
         "a kept fight names the reader it was read with, with no fight going on to ask",
     );
-    openShelfScreen(again);
-    const row = getElementsWithin(getPanelWithin(again.getHost()))
-        .find((one) => one.className.split(" ")[0] === CLASS.row);
-    assertExists(row, "the shelf drew the fight");
-    pointAtElement(again.getHost(), "pointermove", row, 120);
+    openShelfRowCard(again);
     const card = readTip(again.getHost());
     assertEquals(
         new Map(card.stated.map((one) => [one.label, one.value])).get(FIGHT_CARD_WORDS.character),
@@ -1555,6 +1551,15 @@ function readFightCard(world: RuntimeWorld): Map<string, string> {
     assertExists(line, "the fight's line is drawn");
     pointAtElement(host, "pointermove", line, 20);
     return new Map(readTip(host).stated.map((one) => [one.label, one.value]));
+}
+
+/** Points at the shelf's first row, which opens its card. */
+function openShelfRowCard(world: RuntimeWorld): void {
+    openShelfScreen(world);
+    const row = getElementsWithin(getPanelWithin(world.getHost()))
+        .find((one) => one.className.split(" ")[0] === CLASS.row);
+    assertExists(row, "the shelf drew the fight");
+    pointAtElement(world.getHost(), "pointermove", row, 120);
 }
 
 /** A blow from somebody the roster never seated, so the line counts one unplaced. */
@@ -1578,19 +1583,23 @@ Deno.test("a shelf row's card counts the unplaced the fight's line counts, live 
     assertEquals(readCardCounts(again), counted, "as does the kept row's, after a reload");
 });
 
-/** Points at the shelf's first row, which opens its card. */
-function openShelfRowCard(world: RuntimeWorld): void {
-    openShelfScreen(world);
-    const row = getElementsWithin(getPanelWithin(world.getHost()))
-        .find((one) => one.className.split(" ")[0] === CLASS.row);
-    assertExists(row, "the shelf drew the fight");
-    pointAtElement(world.getHost(), "pointermove", row, 120);
-}
-
 /** The headcount the open card names, without how the fight went. */
 function readCardCounts(world: RuntimeWorld): string | undefined {
     return readTip(world.getHost()).name[0]?.split(" · ")[0];
 }
+
+Deno.test("a shelf row's card counts nobody unplaced where the fight's line counts none", () => {
+    const world = initRuntimeWorld(composeBattlePage());
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    readFightCard(world);
+    const counted = readCardCounts(world);
+    assertEquals(counted, "10 vs 1", "the line's card counts everybody seated, and nobody else");
+    openShelfRowCard(world);
+    assertEquals(readCardCounts(world), counted, "and so does the live row's card");
+    const again = reloadRuntimeWorld(world);
+    openShelfRowCard(again);
+    assertEquals(readCardCounts(again), counted, "as does the kept row's, after a reload");
+});
 
 Deno.test("a page stating no hero leaves the card with no character, and says nothing of it", () => {
     const world = initRuntimeWorld(composePlacedPage());
