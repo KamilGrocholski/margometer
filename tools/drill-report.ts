@@ -16,6 +16,7 @@ import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
 import type { FightStatistics } from "#/src/core/fight-statistics.ts";
 import {
+    type DrillReading,
     getMetricForPinned,
     getTextForNamedPart,
     HALF_NAMED_OPENED,
@@ -29,6 +30,7 @@ import {
     presentDrill,
     presentHalfNamed,
     presentHalfNamedDrill,
+    presentOpenedUnnamed,
     presentPair,
     presentPart,
     presentScreen,
@@ -44,15 +46,16 @@ import {
 import { DrillReportError } from "./margometer-tool-error.ts";
 
 /**
- * The views, named by what a reader did to get there. `pair` and `part` are two shapes of the
- * third level rather than one under the other, and `unnamed` is opened from a pinned row under the
- * ranking rather than from a row on it (`develop ADR 0038`).
+ * The views, named by what a reader did to get there. `pair`, `part` and `unnamed pair` are three
+ * shapes of the third level rather than one under the other, and `unnamed` is opened from a pinned
+ * row under the ranking rather than from a row on it (`develop ADR 0038`).
  */
 export const DRILL_RUNG = {
     ranking: "ranking",
     opened: "opened",
     pair: "pair",
     part: "part",
+    unnamedPair: "unnamed pair",
     unnamed: "unnamed",
     unnamedCut: "unnamed cut",
 } as const;
@@ -352,8 +355,11 @@ function addSectionsToTally(
     const drill = presentDrill(fight.statistics, fight.roster, screen, combatantId);
     if (drill === null) return;
     const opened = DRILL_RUNG.opened;
-    if (drill.byOpponent.unnamed !== null) {
-        addCaseToTally(tally, screen, { rung: opened, row: DRILL_ROW.halfNamed }, false);
+    const unnamed = drill.byOpponent.unnamed;
+    if (unnamed !== null) {
+        const place = { rung: opened, row: DRILL_ROW.halfNamed };
+        addCaseToTally(tally, screen, place, unnamed.doesOpenPair);
+        if (unnamed.doesOpenPair) addUnnamedPairToTally(tally, fight, screen, combatantId);
     }
     for (const skill of drill.bySkill.rows) {
         const row = getRowForPart(skill.part);
@@ -376,6 +382,28 @@ function addSectionsToTally(
     }
     if (drill.byElement.unnamed !== null) {
         addCaseToTally(tally, screen, { rung: opened, row: DRILL_ROW.noKind }, false);
+    }
+}
+
+/** The end an opened figure left out, opened: that person's own keys, and nothing under them. */
+function addUnnamedPairToTally(
+    tally: DrillTally,
+    fight: PanelFight,
+    screen: PanelMetric,
+    combatantId: number,
+): void {
+    const held = presentOpenedUnnamed(fight.statistics, fight.roster, screen, combatantId);
+    assertExists(held, "a row that opens has a level under it");
+    assert(held.opened === HALF_NAMED_OPENED.person, "and the level is one person's own keys");
+    const place = { rung: DRILL_RUNG.unnamedPair, row: DRILL_ROW.kind };
+    for (const one of held.kinds.rows) addCaseToTally(tally, screen, place, one.doesOpenPart);
+    if (held.kinds.unnamed !== null) {
+        addCaseToTally(
+            tally,
+            screen,
+            { rung: DRILL_RUNG.unnamedPair, row: DRILL_ROW.noKind },
+            false,
+        );
     }
 }
 
@@ -465,7 +493,7 @@ function formatOpenedLines(fight: PanelFight, screen: PanelMetric, combatantId: 
         const named = other.name ?? NOBODY_NAMED;
         lines.push(`      person  ${opens}  ${named} ${formatInteger(other.figure)}`);
     }
-    if (drill.byOpponent.unnamed !== null) lines.push("      half-named  leaf");
+    lines.push(...formatUnnamedPairLines(fight, screen, drill));
     for (const skill of drill.bySkill.rows) {
         const opens = skill.doesOpenPart ? OPENS_WORD : LEAF_WORD;
         const row = getRowForPart(skill.part).padEnd(PART_WIDTH);
@@ -481,6 +509,25 @@ function formatOpenedLines(fight: PanelFight, screen: PanelMetric, combatantId: 
         lines.push(`      kind    ${opens}  ${kind.element} ${formatInteger(kind.figure)}`);
     }
     if (drill.byElement.unnamed !== null) lines.push("      no kind  leaf");
+    return lines;
+}
+
+/** The end an opened figure left out, and the keys it opens onto where it opens. */
+function formatUnnamedPairLines(
+    fight: PanelFight,
+    screen: PanelMetric,
+    drill: DrillReading,
+): string[] {
+    const unnamed = drill.byOpponent.unnamed;
+    if (unnamed === null) return [];
+    if (!unnamed.doesOpenPair) return ["      half-named  leaf"];
+    const lines = [`      half-named  opens  ${formatInteger(unnamed.figure)}`];
+    const held = presentOpenedUnnamed(fight.statistics, fight.roster, screen, drill.combatantId);
+    assertExists(held, "a row that opens has a level under it");
+    if (held.opened !== HALF_NAMED_OPENED.person) return lines;
+    for (const kind of held.kinds.rows) {
+        lines.push(`        kind    leaf   ${kind.element} ${formatInteger(kind.figure)}`);
+    }
     return lines;
 }
 

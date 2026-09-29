@@ -57,8 +57,8 @@ export interface ScreenState {
     isOnOptions: boolean;
     openRowId: number | null;
     /**
-     * Which pinned row stands open, and it is never open beside `openRowId`: a pinned row is drawn
-     * under the ranking, so a reader inside somebody's figure has none to press.
+     * Which end the protocol left out stands open: a pinned row under the ranking, or beside
+     * `openRowId` that person's own row for it, which is the rung under their figure.
      */
     openUnnamedEnd: PanelUnnamedEnd | null;
     openPairId: number | null;

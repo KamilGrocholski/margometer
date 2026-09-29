@@ -237,8 +237,8 @@ export type HalfNamedRow = PersonRow;
  * What stands under a pinned row — the end the game **did** name, person by person, and the part
  * of the figure naming neither end where there is one.
  *
- * Nothing on it opens. A pair between somebody and nobody is not a pair, and a kind under it
- * would be a cut of a cut the statistics do not keep.
+ * Every row on it opens onto the other cut of the same fold, and what opens is
+ * `docs/drill-levels.md`'s to state.
  */
 export interface HalfNamedReading {
     case: PinnedCase;
@@ -513,7 +513,12 @@ export interface OpponentRow extends PersonRow {
 
 export interface OpponentCut {
     rows: OpponentRow[];
-    unnamed: UnnamedRow | null;
+    unnamed: OpponentUnnamedRow | null;
+}
+
+/** The end the protocol left out of an opened figure, which opens onto that person's own keys. */
+export interface OpponentUnnamedRow extends UnnamedRow {
+    doesOpenPair: boolean;
 }
 
 export interface ElementCut {
@@ -691,6 +696,18 @@ const PINNED_SHAPES: Record<PinnedCase, PinnedShape> = {
 
 /** In the order the screens pin them, which is the order a screen's two are drawn in. */
 export const PINNED_CASES = Object.values(PINNED_CASE);
+
+/**
+ * Which of the five an opened row's own end-left-out is a part of: the figure stands on that
+ * person's row, cut by key, whichever screen pins it. Healing given keeps no health given to
+ * nobody, so its row stays shut.
+ */
+const OPENED_UNNAMED_CASES: Record<PanelMetric, PinnedCase | null> = {
+    damageDealt: PINNED_CASE.takenWithNoTarget,
+    damageTaken: PINNED_CASE.takenWithNoActor,
+    healthGiven: null,
+    healthRestored: PINNED_CASE.restoredWithNoActor,
+};
 
 export const NOTHING_SUSPECT: FightSuspicions = {
     messagesLost: 0,
@@ -1329,6 +1346,41 @@ function composeHalfNamedForKind(
     };
 }
 
+/**
+ * What stands under the end an opened figure left out: that person's own part of a half-named
+ * figure, cut by the key it was stated under — the level a pinned row reaches through the same
+ * person. Null where nothing of it is kept, which leaves the row shut.
+ */
+export function presentOpenedUnnamed(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    metric: PanelMetric,
+    combatantId: number,
+): HalfNamedDrillReading | null {
+    const kase = OPENED_UNNAMED_CASES[metric];
+    if (kase === null) return null;
+    const figures = statistics.byCombatantId.get(combatantId);
+    if (figures === undefined) return null;
+    const shape = PINNED_SHAPES[kase];
+    const figure = figures[shape.field];
+    if (figure <= 0) return null;
+    const [row] = composeHalfNamedRows(
+        statistics,
+        roster,
+        [{ combatantId, figure }],
+        ["100%"],
+        figure,
+    );
+    if (row === undefined) return null;
+    return {
+        opened: HALF_NAMED_OPENED.person,
+        case: kase,
+        row,
+        total: figure,
+        kinds: composeElementCut(figures[shape.kinds], figure, () => false),
+    };
+}
+
 export function getOutcomeForSeat(
     outcome: FightOutcome,
     roster: CombatantRoster,
@@ -1769,7 +1821,13 @@ export function presentPart(
     return {
         part,
         total,
-        byOpponent: composeOpponentCut(cut, statistics, roster, total, () => false),
+        byOpponent: composeOpponentCut(
+            cut,
+            statistics,
+            roster,
+            { figure: total, unnamedOpened: null },
+            () => false,
+        ),
     };
 }
 
@@ -1933,14 +1991,19 @@ function getTotalFromCut(cut: FigureCut): number {
  * `captures/` on 2026-08-30 that is 45 of 1,060 combatant-and-screen readings, in 28 of the
  * recordings, and every one of them on damage taken — which is where the protocol states a bare
  * movement and the dealing side never is.
+ *
+ * That row opens where the level under it, `unnamedOpened`, totals it and nowhere else: the
+ * statistics assert the half-named balance over a fight and not per person. Over `captures/` on
+ * 2026-09-29 it did in 64 rows of 64.
  */
 function composeOpponentCut(
     cut: FigureCut,
     statistics: FightStatistics,
     roster: CombatantRoster,
-    total: number,
+    totals: { figure: number; unnamedOpened: number | null },
     doesOpen: (otherId: number) => boolean,
 ): OpponentCut {
+    const total = totals.figure;
     const stated: UnsharedRow[] = [];
     let held = 0;
     for (const [named, figure] of cut) {
@@ -1975,6 +2038,7 @@ function composeOpponentCut(
                 figure: unnamed,
                 fill: getFill(unnamed, largest),
                 shareText: shares[stated.length] ?? "",
+                doesOpenPair: totals.unnamedOpened === unnamed,
             }
             : null,
     };
@@ -2226,11 +2290,12 @@ export function presentDrill(
     if (figures === undefined) return null;
     const cuts = getCutsForMetric(figures, metric);
     const total = getFigure(figures, metric);
+    const unnamedOpened = presentOpenedUnnamed(statistics, roster, metric, combatantId);
     const byOpponent = composeOpponentCut(
         cuts.byOpponent,
         statistics,
         roster,
-        total,
+        { figure: total, unnamedOpened: unnamedOpened?.total ?? null },
         (otherId) => getPairTotal(figures, metric, otherId) !== null,
     );
     const byElement = cuts.byElement === null

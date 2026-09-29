@@ -376,6 +376,7 @@ export interface ShownScreen {
     part: PartReading | null;
     /** What stands under a pinned row, where a reader has opened one. Never open beside `drill`. */
     halfNamed: HalfNamedReading | null;
+    /** A row under a pinned one, or beside `drill` the end that person's figure left out. */
     halfNamedDrill: HalfNamedDrillReading | null;
     place: PlaceWords | null;
     /** What the fight's line opens, as a shelf row's opens the same (ADR 0014). */
@@ -1373,9 +1374,17 @@ function renderCrumbRegion(
         });
     }
     if (shown.halfNamedDrill !== null) {
+        const unnamed = getWordsForUnnamedRow(getEndForPinned(shown.halfNamedDrill.case));
+        // Under an opened person the level is their end left out, and the way back is to them.
+        if (shown.drill !== null) {
+            return renderCrumb(document, register, {
+                said: unnamed,
+                from: shown.drill.name ?? PANEL_WORDS.unknown,
+            });
+        }
         return renderCrumb(document, register, {
             said: getWordsForHalfNamedDrill(shown.halfNamedDrill, shown.current),
-            from: getWordsForUnnamedRow(getEndForPinned(shown.halfNamedDrill.case)),
+            from: unnamed,
         });
     }
     if (shown.halfNamed !== null) {
@@ -2412,7 +2421,8 @@ function renderOpponentSection(
         notes: [getWordsForUnnamedEnd(end, getNounForMetric(stated.metric))],
     };
     const reading = presentUnnamedRow(cut.unnamed, getWordsForUnnamedRow(end));
-    list.append(renderRow(document, reading, null, tip));
+    const mark = cut.unnamed.doesOpenPair ? { attribute: PANEL_MARK.unnamed, stated: end } : null;
+    list.append(renderRow(document, reading, mark, tip));
 }
 
 function renderSkillSection(

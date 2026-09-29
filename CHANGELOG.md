@@ -45,6 +45,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   z Pomocnikiem rysują się w niej, także po odświeżeniu strony.
 - **Nowość** — Po najechaniu na linię walki nad rankingiem albo na walkę na liście walk dymek mówi,
   kiedy się zaczęła, gdzie, na jakim świecie i na której postaci.
+- **Nowość** — Wiersz „Nieznany sprawca" albo „Nieznany cel" w rozwiniętej postaci otwiera się, tak
+  jak ten przypięty pod rankingiem, i rozbija tę część na rodzaje obrażeń albo leczenia.
 - **Zmiana** — Miejsce walki stoi w tej samej linii co liczebność i wynik, więc nad rankingiem jest
   o jedną linię mniej; gdy się nie mieści, skraca się nazwa mapy, a współrzędne zostają całe.
 - **Zmiana** — Wybór, gdzie trzymać zapisane walki, przeniósł się z listy walk do opcji pod

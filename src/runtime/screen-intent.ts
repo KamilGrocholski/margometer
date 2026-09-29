@@ -7,6 +7,7 @@
 import { assert } from "@std/assert/assert";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
 import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
+import type { PanelUnnamedEnd } from "#/src/ui/panel-reading.ts";
 import type { ScreenState } from "#/src/ui/panel-screen.ts";
 
 export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): boolean {
@@ -24,8 +25,7 @@ function executeScreenIntentOnce(screen: ScreenState, intent: PanelIntent): bool
         case PANEL_INTENT.openRow:
             return setScreenRow(screen, intent.combatantId);
         case PANEL_INTENT.openUnnamed:
-            screen.openUnnamedEnd = intent.end;
-            return true;
+            return setScreenUnnamed(screen, intent.end);
         case PANEL_INTENT.openPart:
             screen.openPart = intent.part;
             return true;
@@ -74,9 +74,16 @@ function executeScreenIntentOnce(screen: ScreenState, intent: PanelIntent): bool
     }
 }
 
-/** The two covers never stand open together: each one's control closes the other. */
+/**
+ * The two covers never stand open together: each one's control closes the other. An end left out
+ * beside an opened person is a rung of its own, so neither a pair nor a part stands beside it.
+ */
 function verifyScreenState(screen: ScreenState): void {
     if (screen.isOnOptions) assert(!screen.isOnShelf, "the options and the shelf are one cover");
+    if (screen.openRowId === null) return;
+    if (screen.openUnnamedEnd === null) return;
+    assert(screen.openPairId === null, "a person's end left out is not a pair with somebody");
+    assert(screen.openPart === null, "and no part of their figure is open under it");
 }
 
 /**
@@ -119,6 +126,17 @@ function setScreenRow(screen: ScreenState, combatantId: number): boolean {
 }
 
 /**
+ * Under an opened person it is the rung under their figure, as a pair is; on the ranking it is the
+ * pinned row. Either way it is pressed from a level with no pair and no part open under it.
+ */
+function setScreenUnnamed(screen: ScreenState, end: PanelUnnamedEnd): boolean {
+    assert(screen.openPairId === null, "an end left out is pressed from the level over it");
+    assert(screen.openPart === null, "and never from a part's level");
+    screen.openUnnamedEnd = end;
+    return true;
+}
+
+/**
  * One rung at a time, and the part before the pair. False where there was no rung to leave: the
  * gesture is the whole panel's, so a press on the ranking would otherwise redraw it for nothing.
  */
@@ -139,11 +157,13 @@ function closeScreenRung(screen: ScreenState): boolean {
         screen.openPairId = null;
         return true;
     }
-    if (screen.openRowId === null) {
-        if (screen.openUnnamedEnd === null) return false;
+    // The end a person left out is the rung under their figure, so it closes before they do.
+    if (screen.openRowId !== null) {
+        if (screen.openUnnamedEnd !== null) screen.openUnnamedEnd = null;
+        else screen.openRowId = null;
+        return true;
     }
-    // The two are never both open, since a pinned row is drawn under the ranking.
-    screen.openRowId = null;
+    if (screen.openUnnamedEnd === null) return false;
     screen.openUnnamedEnd = null;
     return true;
 }

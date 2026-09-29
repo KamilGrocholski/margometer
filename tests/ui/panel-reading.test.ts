@@ -58,6 +58,7 @@ import {
     presentDrill,
     presentHalfNamed,
     presentHalfNamedDrill,
+    presentOpenedUnnamed,
     presentPair,
     presentPart,
     presentScreen,
@@ -2370,6 +2371,130 @@ Deno.test("a kind opened states the whole of the row, nobody's share included", 
         part.byOpponent.unnamed?.figure,
         200,
         "and the tick nobody was named for stands beside them, so the column comes to a hundred",
+    );
+});
+
+/**
+ * The end an opened figure left out opens onto that person's own keys, which are kept beside the
+ * figure rather than cut back out of it — and only where they total the row, so a part's level,
+ * which cuts a cut, keeps its row shut.
+ */
+Deno.test("an end an opened figure left out opens onto that person's own keys", () => {
+    const { roster } = tallyRecordedFight(HILDUR);
+    const [striker, struck] = [...roster.byId.keys()];
+    assert(striker !== undefined, "the fight holds somebody striking");
+    assert(struck !== undefined, "and somebody struck");
+    const statistics = tallyFightStatistics([
+        {
+            kind: "attack",
+            actorId: striker,
+            targetId: struck,
+            actorHealthPercent: null,
+            targetHealthPercent: null,
+            raw: [{ element: "poison", amount: 300 }],
+            applied: [{ element: "poison", amount: 300 }],
+            prevented: [],
+            destroyed: [],
+            procs: [],
+            declared: [],
+            announced: null,
+        },
+        {
+            kind: "health-change",
+            combatantId: struck,
+            amount: -200,
+            healthPercent: null,
+            source: "poison",
+            declared: [],
+            announced: null,
+        },
+    ], new Map());
+    const metric = PANEL_METRIC.damageTaken;
+    const drill = presentDrill(statistics, roster, metric, struck);
+    assertExists(drill, "the struck combatant's row opens");
+    assertEquals(drill.byOpponent.unnamed?.figure, 200, "the end left out is the bare tick");
+    assert(drill.byOpponent.unnamed?.doesOpenPair, "and it opens");
+    const held = presentOpenedUnnamed(statistics, roster, metric, struck);
+    assertExists(held, "onto a level");
+    assert(held.opened === HALF_NAMED_OPENED.person, "which is one person's own keys");
+    assertEquals(held.case, PINNED_CASE.takenWithNoActor, "of the figure no striker was named for");
+    assertEquals(held.row.combatantId, struck, "and theirs");
+    assertEquals(held.total, 200, "at the figure the row stated");
+    assertEquals(
+        held.kinds.rows.map((one) => [one.element, one.figure, one.doesOpenPart]),
+        [["poison", 200, false]],
+        "under the key it moved with, and nothing on it opens",
+    );
+    assertEquals(held.kinds.unnamed, null, "the keys come to the whole of it");
+    const part = presentPart(statistics, roster, metric, struck, {
+        kind: OPENED_PART.element,
+        element: "poison",
+    });
+    assertExists(part, "a part of the figure opens as well");
+    assertEquals(part.byOpponent.unnamed?.doesOpenPair, false, "but its end left out stays shut");
+    assertEquals(
+        presentOpenedUnnamed(statistics, roster, metric, striker),
+        null,
+        "and somebody whose figure left nothing out has no such level",
+    );
+});
+
+/**
+ * Neither of these reaches a row over `captures/` on 2026-09-29, so both are held on figures
+ * built for them: a blow the protocol named no target for, and health back from nobody named.
+ */
+Deno.test("the other two ends left out open onto keys as well, and healing given has none", () => {
+    const { roster } = tallyRecordedFight(HILDUR);
+    const [striker] = [...roster.byId.keys()];
+    assert(striker !== undefined, "the fight holds somebody striking");
+    const statistics = tallyFightStatistics([
+        {
+            kind: "attack",
+            actorId: striker,
+            targetId: null,
+            actorHealthPercent: null,
+            targetHealthPercent: null,
+            raw: [{ element: "fire", amount: 70 }],
+            applied: [{ element: "fire", amount: 70 }],
+            prevented: [],
+            destroyed: [],
+            procs: [],
+            declared: [],
+            announced: null,
+        },
+        {
+            kind: "health-change",
+            combatantId: striker,
+            amount: 400,
+            healthPercent: null,
+            source: "bandage",
+            declared: [],
+            announced: null,
+        },
+    ], new Map());
+    const cases = [
+        [PANEL_METRIC.damageDealt, PINNED_CASE.takenWithNoTarget, "fire", 70],
+        [PANEL_METRIC.healthRestored, PINNED_CASE.restoredWithNoActor, "bandage", 400],
+    ] as const;
+    for (const [metric, kase, key, figure] of cases) {
+        const drill = presentDrill(statistics, roster, metric, striker);
+        assertExists(drill, `${metric}: the row opens`);
+        assertEquals(drill.byOpponent.unnamed?.figure, figure, `${metric}: onto an end left out`);
+        assert(drill.byOpponent.unnamed?.doesOpenPair, `${metric}: which opens`);
+        const held = presentOpenedUnnamed(statistics, roster, metric, striker);
+        assertExists(held, `${metric}: onto a level`);
+        assert(held.opened === HALF_NAMED_OPENED.person, `${metric}: of their own keys`);
+        assertEquals(held.case, kase, `${metric}: of the figure that end belongs to`);
+        assertEquals(
+            held.kinds.rows.map((one) => [one.element, one.figure]),
+            [[key, figure]],
+            `${metric}: under the key it moved with`,
+        );
+    }
+    assertEquals(
+        presentOpenedUnnamed(statistics, roster, PANEL_METRIC.healthGiven, striker),
+        null,
+        "health given to nobody is kept nowhere, so that row has no level",
     );
 });
 

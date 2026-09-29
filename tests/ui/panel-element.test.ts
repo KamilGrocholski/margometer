@@ -31,6 +31,7 @@ import {
     type PinnedRow,
     presentDrill,
     presentHalfNamed,
+    presentOpenedUnnamed,
     presentPair,
     presentPart,
     presentScreen,
@@ -771,7 +772,7 @@ Deno.test("an end left out inside an opened figure says what was left out, and n
             ...drill,
             byOpponent: {
                 ...drill.byOpponent,
-                unnamed: { figure: 120, fill: 0.1, shareText: "<1%" },
+                unnamed: { figure: 120, fill: 0.1, shareText: "<1%", doesOpenPair: false },
             },
         },
     });
@@ -780,6 +781,8 @@ Deno.test("an end left out inside an opened figure says what was left out, and n
         (one) => one.attributes.get("data-tip") === "to:nobody",
     );
     assertExists(part, "the row for the end nobody was named at is drawn");
+    assertStringIncludes(part.className, "leaf", "and one with no level under it opens nothing");
+    assertEquals(part.attributes.get("data-unnamed"), undefined, "so it carries no mark");
     pointAtElement(host, "pointermove", part, 300);
     const card = readTip(host);
     assertEquals(
@@ -805,6 +808,85 @@ function openFirstRow() {
     assertExists(drill, "and the screen it sits on cuts further");
     return { reading, drill, opened: first };
 }
+
+/**
+ * Where the level under it totals it, the same row opens, and it is pressed as a pinned row is: by
+ * the end it leaves out, from any cell of it.
+ */
+Deno.test("an end left out inside an opened figure is pressed by that end, from any part of it", () => {
+    const { reading, drill } = openFirstRow();
+    const pressed: PanelIntent[] = [];
+    const document = composeFakeDocument();
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.render({
+        ...composeShownScreen(reading),
+        drill: {
+            ...drill,
+            byOpponent: {
+                ...drill.byOpponent,
+                unnamed: { figure: 120, fill: 0.1, shareText: "<1%", doesOpenPair: true },
+            },
+        },
+    });
+    const host = panel.element as FakeElement;
+    const row = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-tip") === "to:nobody",
+    );
+    assertExists(row, "the row for the end nobody was named at is drawn");
+    assertStringIncludes(row.className, "drillable", "and wears the cursor of a row that opens");
+    for (const part of [row, ...row.children]) {
+        assertEquals(part.attributes.get("data-unnamed"), "target", "every cell carries the mark");
+    }
+    pointAtElement(host, "pointermove", row, 300);
+    assertArrayIncludes(readTip(host).notes, [CARD_WORDS.gesture], "its card says it opens");
+    const name = row.children.find((one) => one.className === "row-name");
+    assertExists(name, "the row names what it stands for");
+    pressElement(host, "pointerdown", name);
+    assertEquals(
+        pressed,
+        [{ kind: PANEL_INTENT.openUnnamed, end: UNNAMED_END.target }],
+        "and a press asks for that end",
+    );
+});
+
+/**
+ * The level under it is the person's own keys, and the way back is to the person: the level is
+ * about the end their figure left out, so that is what the crumb says is open.
+ */
+Deno.test("an end left out inside an opened figure opens onto its keys, and back to the person", () => {
+    const { reading, statistics, roster } = readPinnedFight("damageTaken");
+    const opened = reading.rows
+        .map((row) => presentDrill(statistics, roster, "damageTaken", row.combatantId))
+        .find((drill) => drill?.byOpponent.unnamed?.doesOpenPair === true);
+    assertExists(opened, "somebody on the screen lost health nobody was named for");
+    const under = presentOpenedUnnamed(statistics, roster, "damageTaken", opened.combatantId);
+    assertExists(under, "and the level under that row is composed");
+    assert(under.opened === "person", "as that person's own keys");
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading, "damageTaken"),
+        drill: opened,
+        halfNamedDrill: under,
+    });
+    const host = panel.element as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "row-name"),
+        under.kinds.rows.map((one) => getWordsForDamageKind(one.element)),
+        "the level lists the keys, each in the order the reading ranked it",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "row drillable"),
+        [],
+        "and nothing on it opens",
+    );
+    assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.withoutActor], "it says what");
+    assertEquals(
+        getTextsByClass(host, "crumb-back").map((one) => one.includes(opened.name ?? "")),
+        [true],
+        "and the way back names the person it was opened from",
+    );
+});
 
 Deno.test("the fight is totalled in two figures, and a suspicion is said under them", () => {
     const reading = readFight();
