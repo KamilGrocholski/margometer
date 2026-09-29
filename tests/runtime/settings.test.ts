@@ -95,8 +95,8 @@ Deno.test("the size of type a reader chose reads back, and nothing chosen is the
     assertEquals(readTypeStep(store), TYPE_STEP_DEFAULT, "nothing stored is the default");
     assertStrictEquals(
         TYPE_STEP_DEFAULT,
-        TYPE_STEP.small,
-        "which is the size the panel shipped at",
+        TYPE_STEP.medium,
+        "which is the middle step",
     );
     for (const step of TYPE_STEPS) {
         writeTypeStep(store, step);

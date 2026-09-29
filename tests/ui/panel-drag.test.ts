@@ -4,7 +4,7 @@
  */
 
 import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
-import { PANEL_WINDOW, TYPE_STEP, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
+import { PANEL_WINDOW, TYPE_STEP } from "#/src/ui/panel-choice.ts";
 import {
     clampPosition,
     clampSize,
@@ -21,8 +21,8 @@ import { getBarHeight, PLACE, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-l
 
 const WINDOW = { width: 1280, height: 900 };
 /** The windows as a reader who chose no size of type sees them. */
-const PANEL_WIDTH = TYPE_TOKENS[TYPE_STEP_DEFAULT].panelWidthPixels;
-const STANDING_WIDTH = TYPE_TOKENS[TYPE_STEP_DEFAULT].standingWidthPixels;
+const PANEL_WIDTH = TYPE_TOKENS[TYPE_STEP.small].panelWidthPixels;
+const STANDING_WIDTH = TYPE_TOKENS[TYPE_STEP.small].standingWidthPixels;
 
 /**
  * A round stand-in for the sheet's own bound, so the arithmetic below reads without one. It is the
@@ -308,7 +308,7 @@ Deno.test("the window beside the panel keeps its side as the type changes size",
 });
 
 Deno.test("a window is made no narrower than its type and no wider than twice it, on the screen", () => {
-    const tokens = TYPE_TOKENS[TYPE_STEP_DEFAULT];
+    const tokens = TYPE_TOKENS[TYPE_STEP.small];
     const at = { left: 40, top: 40 };
     const bounds = composeSizeBounds(PANEL_WINDOW.panel, tokens, at, WINDOW);
     assertEquals(

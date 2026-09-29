@@ -18,7 +18,7 @@ import {
 } from "#/src/ui/panel-tip.ts";
 import type { TipNoteTone, TipReading } from "#/src/ui/tip-reading.ts";
 import { CLASS, getTipHeight, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
-import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
+import { TYPE_STEP } from "#/src/ui/panel-choice.ts";
 import { CARD_WORDS } from "#/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
@@ -27,8 +27,8 @@ import {
     getTextsByClass,
 } from "#/tests/fake-document.ts";
 
-/** The size a reader who chose none reads at, which every count below is taken at. */
-const STEP = TYPE_STEP_DEFAULT;
+/** The step every count below is taken at. */
+const STEP = TYPE_STEP.small;
 const TOKENS = TYPE_TOKENS[STEP];
 /** Thirty-two characters, which is the one line a note is counted as holding. */
 const ONE_LINE_NOTE = "Surowe to obrazenia przed red...";
@@ -492,6 +492,9 @@ function composeHandleUnderTest() {
         document,
         register,
         (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
+        undefined,
+        undefined,
+        () => STEP,
     );
     return { register, handle, first: handle.element as FakeElement };
 }

@@ -35,5 +35,5 @@ export const STORAGE_CHOICES = Object.values(STORAGE_CHOICE);
 export const PANEL_WINDOWS = Object.values(PANEL_WINDOW);
 export const NO_WINDOW_SIZES: WindowSizes = { panel: null, helper: null };
 export const TYPE_STEPS = Object.values(TYPE_STEP);
-/** The size the panel shipped at, which a reader who chose none still reads. */
-export const TYPE_STEP_DEFAULT: TypeStep = TYPE_STEP.small;
+/** What a reader who chose no size reads (ADR 0017). */
+export const TYPE_STEP_DEFAULT: TypeStep = TYPE_STEP.medium;

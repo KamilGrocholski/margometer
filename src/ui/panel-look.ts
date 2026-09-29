@@ -232,9 +232,11 @@ export const LAYER = {
  * it 45.22px at the small step, against the 49 above); and the largest letter whose ink stands a
  * clear pixel inside the ring, which is seven in a ring of ten and eight meets it — the small row
  * again — and seven in a ring of twelve at both. A ring of eleven holds only six: an odd ring sets
- * the letter off the half pixel. The widest step's panel is `596f95f`'s; the middle one is what its
- * bar asks, the name, `0.20.0-dev` and four controls on one line at 270px, where the small bar
- * holds them in its 258 and the widest in its 304.
+ * the letter off the half pixel. The widest step's panel is `596f95f`'s. The middle one's bar asks
+ * 270px for the name, `0.20.0-dev` and four controls on one line, where the small bar holds them
+ * in its 258 and the widest in its 304; the panel is 274 because at 272 `Zwykły cios` behind a
+ * caveat mark was drawn in 69.25px of the 70 it needs (Chrome 154, 2026-09-29, the browser suite's
+ * recording).
  */
 export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
     [TYPE_STEP.small]: {
@@ -263,7 +265,7 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         castWidthPixelsMinimum: 50,
         markSizePixels: 12,
         markLetterPixels: 7,
-        panelWidthPixels: 272,
+        panelWidthPixels: 274,
         tipWidthPixelsMaximum: 272,
         standingWidthPixels: 228,
     },

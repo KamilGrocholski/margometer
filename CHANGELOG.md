@@ -41,12 +41,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 - **Nowość** — Panel i Pomocnika można powiększyć, ciągnąc za prawy dolny róg; rozmiar zostaje po
   odświeżeniu strony, a w opcjach pod ⚙ można go przywrócić.
-- **Nowość** — W opcjach pod ⚙ można wybrać wielkość pisma — małe, średnie albo duże — i panel razem
-  z Pomocnikiem rysują się w niej, także po odświeżeniu strony.
+- **Nowość** — W opcjach pod ⚙ można wybrać rozmiar czcionki panelu i Pomocnika — mały, średni albo
+  duży — i zostaje on po odświeżeniu strony.
 - **Nowość** — Po najechaniu na linię walki nad rankingiem albo na walkę na liście walk dymek mówi,
   kiedy się zaczęła, gdzie, na jakim świecie i na której postaci.
 - **Nowość** — Wiersz „Nieznany sprawca" albo „Nieznany cel" w rozwiniętej postaci otwiera się, tak
   jak ten przypięty pod rankingiem, i rozbija tę część na rodzaje obrażeń albo leczenia.
+- **Zmiana** — Panel i Pomocnik piszą domyślnie trochę większą czcionką i są przez to nieco szersze;
+  mniejszą, taką jak dotąd, można wybrać w opcjach pod ⚙.
 - **Zmiana** — Miejsce walki stoi w tej samej linii co liczebność i wynik, więc nad rankingiem jest
   o jedną linię mniej; gdy się nie mieści, skraca się nazwa mapy, a współrzędne zostają całe.
 - **Zmiana** — Wybór, gdzie trzymać zapisane walki, przeniósł się z listy walk do opcji pod

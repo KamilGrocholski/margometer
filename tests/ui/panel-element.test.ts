@@ -2088,6 +2088,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     const document = composeFakeDocument();
     const moved: Array<{ left: number; top: number }> = [];
     const panel = initTestView(document, {
+        typeStep: TYPE_STEP.small,
         onIntent: (intent) => {
             if (intent.kind === PANEL_INTENT.move) moved.push(intent.position);
         },
@@ -2098,7 +2099,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         },
     });
     const host = panel.element as FakeElement;
-    panel.render(composeShownScreen(readFight()));
+    panel.render({ ...composeShownScreen(readFight()), typeStep: TYPE_STEP.small });
     const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
     assertExists(bar, "the bar is drawn");
     assertEquals(bar.attributes.get("data-grip"), "panel", "and it says which window it drags");
@@ -2147,14 +2148,14 @@ Deno.test("a size of type moves the window beside the panel off it, and says whe
     const host = panel.element as FakeElement;
     const standing = () =>
         getElementsWithin(host).find((one) => one.className.startsWith(CLASS.standing));
-    const small = TYPE_TOKENS[TYPE_STEP_DEFAULT];
+    const standard = TYPE_TOKENS[TYPE_STEP_DEFAULT];
     const large = TYPE_TOKENS[TYPE_STEP.large];
     // Nobody moved either window: the panel is centred and the other opens against its left.
-    const panelLeft = (1280 - small.panelWidthPixels) / 2;
-    const opened = panelLeft - small.standingWidthPixels - SPACE_PIXELS.small;
+    const panelLeft = (1280 - standard.panelWidthPixels) / 2;
+    const opened = panelLeft - standard.standingWidthPixels - SPACE_PIXELS.small;
     assertStringIncludes(standing()?.attributes.get("style") ?? "", `left:${opened}px`, "beside");
     panel.render({ ...composeShownScreen(readFight()), typeStep: TYPE_STEP.large });
-    const shifted = opened - (large.standingWidthPixels - small.standingWidthPixels);
+    const shifted = opened - (large.standingWidthPixels - standard.standingWidthPixels);
     assertStringIncludes(
         standing()?.attributes.get("style") ?? "",
         `left:${shifted}px`,
@@ -2169,6 +2170,7 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
     const document = composeFakeDocument();
     const sized: PanelIntent[] = [];
     const panel = initTestView(document, {
+        typeStep: TYPE_STEP.small,
         onIntent: (intent) => {
             if (intent.kind === PANEL_INTENT.resize) sized.push(intent);
         },
@@ -2179,7 +2181,7 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
         },
     });
     const host = panel.element as FakeElement;
-    const shown = composeShownScreen(readFight());
+    const shown = { ...composeShownScreen(readFight()), typeStep: TYPE_STEP.small };
     panel.render(shown);
     const grip = getElementsWithin(host).find((one) =>
         one.attributes.get("data-size-grip") === "panel"

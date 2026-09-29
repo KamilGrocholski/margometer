@@ -163,7 +163,7 @@ export const PANEL_WORDS = {
     options: "Opcje",
     backFromOptions: "wróć",
     storage: "Zapisane walki",
-    typeSize: "Pismo",
+    typeSize: "Rozmiar czcionki",
     windowSize: "Rozmiar okien",
     resizeHint: "Rozmiar zmienisz, ciągnąc prawy dolny róg okna.",
     sizeOwn: "własny",
@@ -789,9 +789,9 @@ const WINDOW_WORDS: Record<PanelWindow, string> = {
 };
 
 const TYPE_STEP_WORDS: Record<TypeStep, string> = {
-    small: "małe",
-    medium: "średnie",
-    large: "duże",
+    small: "mały",
+    medium: "średni",
+    large: "duży",
 };
 
 export const STORE_REFUSED_ANSWER = "Przeglądarka nie przyjęła tej walki — nie została zapisana. " +

@@ -28,8 +28,8 @@ const TO_THE_RIGHT = 420;
 const SHORT_WINDOW = 480;
 /** What the card says where a run of it was given up. Read in words, as every sentence is. */
 const CUT_NOTE = "Nie wszystko się mieści w tym oknie.";
-/** `TIP.widthMaximum`, as the number a measurement is compared against. */
-const BOUND = 250;
+/** `tipWidthPixelsMaximum` at the default step (ADR 0017), as the number a measurement is compared against. */
+const BOUND = 272;
 /** `SPACE.small`, which is the air the sheet keeps between a window and the card beside it. */
 const GAP = 4;
 
@@ -48,8 +48,8 @@ const LONG_PLACE = "E2E Nieprzebyta Puszcza Grzybiarzy Polnocna Zachodnia Dolina
 const UNBROKEN_PLACE = "E2E" + "w".repeat(56);
 /** What the stub's own hero stands on, which `composePlaceWords` puts after the name. */
 const TILE = " (1, 1)";
-/** `LINE_HEIGHT`, as the number a drawn name is measured in. */
-const LINE = 15;
+/** `lineHeightPixels` at the default step, as the number a drawn name is measured in. */
+const LINE = 16;
 
 test("the card opens under the pointer, and names the row it describes", async ({ panel }) => {
     await expect(panel.at(CARD), "the card is there before anybody is told anything").toHaveCount(
@@ -474,7 +474,10 @@ test.describe("a place too long for the fight's line", () => {
         expect(line.tileRight, "standing against the line's end")
             .toBeGreaterThan(line.lineRight - 1);
         expect(line.spaceBeforeTile, "a space apart from the name it follows").toBeGreaterThan(1);
-        expect(line.height, "on the one line the headcount stands on").toBeLessThanOrEqual(LINE);
+        // A pixel over, where two sizes of type share the line's baseline (ADR 0017).
+        expect(line.height, "on the one line the headcount stands on").toBeLessThanOrEqual(
+            LINE + 1,
+        );
         await panel.at(".header-line").hover();
         await expect(panel.at(CARD_OPEN), "which opens the fight's card").toHaveCount(1);
         const name = await readCardName(panel.page);

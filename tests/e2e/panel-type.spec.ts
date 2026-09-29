@@ -21,7 +21,7 @@ test("every size of type draws its own row, keeps the bar whole, and reaches bot
         await panel.at(`[data-type-step="${step}"]`).click();
         await panel.at("[data-options]").click();
         expect(await panel.stored(TYPE_KEY), `${step} is kept`).toBe(
-            step === "small" ? null : step,
+            step,
         );
         const drawn = await panel.at(".list .row").first().boundingBox();
         expect(drawn?.height, `${step}: a row is the height the list counts`).toBe(row);

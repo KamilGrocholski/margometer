@@ -130,10 +130,10 @@ worst pairing across the palette becomes 6.12:1. Past 0.77 the blue fails again.
 
 The panel inherits nothing and asks for nothing: no web font, no download, no layout shift. It uses
 the reader's system UI stack, with weight and colour carrying the hierarchy instead of scale, at one
-of three sizes the reader chooses in the options: 11px, which is the size the panel shipped at and
-the default, 12px or 13px. Both windows and the card are drawn at the one size chosen. Each size is
-a row of its own measurements and none is another scaled (ADR 0013), so a figure this page quotes in
-pixels is the small size's unless it says which.
+of three sizes the reader chooses in the options: 11px, which is the size the panel shipped at,
+12px, which a reader who chose none reads (ADR 0017), or 13px. Both windows and the card are drawn
+at the one size chosen. Each size is a row of its own measurements and none is another scaled (ADR
+0013), so a figure this page quotes in pixels is the small size's unless it says which.
 
 - **Figures** — the reader's eye target. Full `text`, tabular where columns must align.
 - **Names** — same size, same weight, `text`.
@@ -164,7 +164,7 @@ legibility.
 | `maxHeightShare` | `66vh`                                                                            |
 | `tipWidth`       | `250px` · `272px` · `296px` — a maximum, and a card is as wide as what it says    |
 | `lineHeight`     | `15px` · `16px` · `18px` — whole pixels, and what a counted card is multiplied by |
-| `panelWidth`     | `260px` · `272px` · `306px` — narrow on purpose: the panel is a guest             |
+| `panelWidth`     | `260px` · `274px` · `306px` — narrow on purpose: the panel is a guest             |
 | `standingWidth`  | `210px` · `228px` · `248px` — the window beside the panel                         |
 | `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against                   |
 | `panelLayer`     | `10` — the game's interface layer, and under every window it opens                |

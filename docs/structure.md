@@ -83,6 +83,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0014-the-fight-line-holds-the-place-and-a-card-says-which-fight-it-was.md`                 | the place joins the fight's line and gives way first, and a card says which fight it was      |
 | `docs/adr/0015-each-question-in-the-options-stands-under-a-heading-in-the-shape-its-answers-need.md` | each question in the options stands under a heading, its answers in the shape they need       |
 | `docs/adr/0016-the-end-an-opened-figure-left-out-opens-onto-that-persons-keys.md`                    | the end an opened figure left out opens onto that person's own keys                           |
+| `docs/adr/0017-the-middle-type-step-is-what-a-reader-who-chose-none-reads.md`                        | a reader who chose no type step reads the middle one, 12px                                    |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
