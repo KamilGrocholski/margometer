@@ -83,6 +83,8 @@ export const CLASS = {
     header: "header",
     headerLine: "header-line",
     headerPlace: "header-place",
+    headerPlaceName: "header-place-name",
+    headerPlaceTile: "header-place-tile",
     headerOutcome: "header-outcome",
     strips: "strips",
     stripsGap: "strips-gap",
@@ -569,10 +571,16 @@ function formatRgbColour(colour: Colour): string {
 function composeRegionRules(tokens: TypeTokens): string {
     const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
     return `.${CLASS.header}{display:block;padding:${region};padding-bottom:0;}` +
-        `.${CLASS.headerLine}{display:flex;justify-content:space-between;align-items:baseline;}` +
-        `.${CLASS.headerPlace}{color:var(${VARIABLE_PREFIX}quiet);` +
-        `font-size:${tokens.fontSmallPixels}px;` +
-        `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
+        // One line holds what the fight was and where, and only the map's name gives way on it
+        // (ADR 0014): the headcount and the outcome keep their width, the tile keeps its own.
+        `.${CLASS.headerLine}{display:flex;align-items:baseline;gap:var(${VARIABLE_PREFIX}wide);}` +
+        `.${CLASS.headerLine}>*{flex:none;}` +
+        `.${CLASS.headerPlace}{flex:1 1 auto;min-width:0;display:flex;justify-content:flex-end;` +
+        `color:var(${VARIABLE_PREFIX}quiet);font-size:${tokens.fontSmallPixels}px;` +
+        `white-space:nowrap;}` +
+        // `pre` keeps the space the tile opens with, which a line starting a box would drop.
+        `.${CLASS.headerPlaceName}{overflow:hidden;text-overflow:ellipsis;}` +
+        `.${CLASS.headerPlaceTile}{white-space:pre;}` +
         // The upper case belongs to this rule rather than to a word: the shelf says the same
         // word a row at a time, in the case it was composed in.
         `.${CLASS.headerOutcome}{color:var(${VARIABLE_PREFIX}quiet);text-transform:uppercase;` +

@@ -271,6 +271,10 @@ export type EngineFailure =
 export interface PlacePort {
     readPlace(): FightPlace | PageReadFailure;
 }
+/** The hero's id, which is how the client keys its own warrior in a fight (ADR 0014). */
+export interface HeroPort {
+    readHeroId(): number | PageReadFailure;
+}
 export interface DictionaryPort {
     /** The category is the client's own filing: a status is filed under `buff`. */
     readLabel(labelId: string, category?: string): string | PageReadFailure;
@@ -780,6 +784,7 @@ export interface RuntimePorts {
     interval: IntervalScheduler;
     engine: EnginePort;
     place: PlacePort;
+    hero: HeroPort;
     dictionary: DictionaryPort;
     build: BuildPort;
     surroundings: SurroundingsPort;
@@ -1016,14 +1021,14 @@ goes without a mark.
 
 ### 10.6 Where a broad catch stands
 
-| Boundary                       | Where                                                                                   |
-| ------------------------------ | --------------------------------------------------------------------------------------- |
-| the add-on standing up         | `readUserscriptWindow` and `initRuntime` under `errors.attempt`, in the entry           |
-| the wrapped engine call        | `PayloadListener.onBeforeCall` and `onPayload`                                          |
-| one render region              | `errors.attempt` per region in `PanelView.render`                                       |
-| browser storage                | `errors.attempt` inside the `KeyValueStore` implementation                              |
-| the game's own page state      | `errors.attempt` in `PlacePort`, `DictionaryPort`, `BuildPort`, `TooltipPort`, warriors |
-| a callback somebody else calls | a DOM listener and `onFrame`, under `errors.attempt`                                    |
+| Boundary                       | Where                                                                                               |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| the add-on standing up         | `readUserscriptWindow` and `initRuntime` under `errors.attempt`, in the entry                       |
+| the wrapped engine call        | `PayloadListener.onBeforeCall` and `onPayload`                                                      |
+| one render region              | `errors.attempt` per region in `PanelView.render`                                                   |
+| browser storage                | `errors.attempt` inside the `KeyValueStore` implementation                                          |
+| the game's own page state      | `errors.attempt` in `PlacePort`, `HeroPort`, `DictionaryPort`, `BuildPort`, `TooltipPort`, warriors |
+| a callback somebody else calls | a DOM listener and `onFrame`, under `errors.attempt`                                                |
 
 ## 11. Recorded material and the file format
 

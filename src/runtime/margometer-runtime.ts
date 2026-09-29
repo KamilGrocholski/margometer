@@ -16,6 +16,7 @@ import {
     type EnginePort,
     type WrapHandle,
 } from "#/src/game/engine-battle.ts";
+import type { HeroPort } from "#/src/game/engine-hero.ts";
 import type { PlacePort } from "#/src/game/engine-place.ts";
 import { ROWS_WRITTEN_MAXIMUM, type TooltipPort } from "#/src/game/engine-tooltip.ts";
 import type { DictionaryPort } from "#/src/game/game-dictionary.ts";
@@ -25,7 +26,7 @@ import type { ConsolePort } from "#/src/game/page-console.ts";
 import type { FileSink } from "#/src/game/page-file.ts";
 import type { FrameHandle, FrameScheduler } from "#/src/game/page-frame.ts";
 import type { IntervalScheduler } from "#/src/game/page-interval.ts";
-import type { SurroundingsPort } from "#/src/game/page-surroundings.ts";
+import { type SurroundingsPort, WORLD_UNKNOWN } from "#/src/game/page-surroundings.ts";
 import type { TooltipTables } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger, initDefectLedger } from "./defect-ledger.ts";
 import { type EngineSearch, startEngineSearch } from "./engine-search.ts";
@@ -65,6 +66,7 @@ export interface RuntimePorts {
     interval: IntervalScheduler;
     engine: EnginePort;
     place: PlacePort;
+    hero: HeroPort;
     dictionary: DictionaryPort;
     build: BuildPort;
     surroundings: SurroundingsPort;
@@ -205,6 +207,7 @@ function initRuntimeState(
         engine: ports.engine,
         clock: ports.clock,
         place: ports.place,
+        hero: ports.hero,
         build: ports.build,
         tables: options.tables.decoder,
         sessionOptions: options.sessionOptions,
@@ -298,6 +301,7 @@ function onRuntimeFrame(state: RuntimeState): void {
         tooltip: state.ports.tooltip,
         tables: state.options.tables.tooltip,
         translate: state.translate,
+        world: readRuntimeWorld(state.ports.surroundings),
     });
     if (state.isMounted) return;
     const mounted = state.ports.mountPanel(state.view.element);
@@ -305,6 +309,13 @@ function onRuntimeFrame(state: RuntimeState): void {
         state.defects.add({ kind: DEFECT_KIND.mount, region: null, failure: mounted });
     } else state.isMounted = true;
     assert(!state.isStale, "a frame asks for no second frame of its own");
+}
+
+/** The page's world, or nothing where the page named none: the card leaves the line off. */
+function readRuntimeWorld(surroundings: SurroundingsPort): string | null {
+    const world = surroundings.readWorld();
+    if (world === WORLD_UNKNOWN) return null;
+    return world;
 }
 
 function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {

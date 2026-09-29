@@ -202,7 +202,7 @@ something of ours.
 it, carrying the top two corners while the panel carries the bottom two, and it holds the name, the
 version and the controls. It stays one line as the version number grows — a bar that wraps moves
 everything below it, and `0.10.1` exists because one character of a version number did exactly that.
-Where the fight is being fought is **not** on it: that is the header's, on a line of its own.
+Where the fight is being fought is **not** on it: that is the header's.
 
 **A control says what a press would do**, never what the panel already is, so its mark and its
 sentence both change with the state — where it has one. Folded, the panel is this bar and nothing
@@ -213,9 +213,12 @@ The options stand first so the other three keep the places a reader already knew
 hand-over comes and goes, and a control standing after it would walk along the bar with it. Those
 three have no state to say, so their marks read the same always.
 
-**Header.** What the fight is, as a headcount, and how it went. Where it is being fought goes on a
-second line and nowhere else: beside the headcount a map's name plus a tile had about thirty
-characters of a 260-pixel panel, so the one thing answering _where_ was the one thing being cut.
+**Header.** One line: what the fight is, as a headcount, how it went, and where it is being fought,
+against the line's far end. **The map's name is the one thing on it that gives way**, and the tile
+after it never does: the headcount and the outcome say what the fight was, and the tile is what
+changes from one square to the next. Pointing at the line opens the fight's card — the place whole,
+the headcount under it, when it opened, the world and the reader's character — which is the card a
+shelf row opens too. **ADR 0014.**
 
 **Ranking row.** A place in the ranking, a name, a figure and its share. The bar is an element
 behind the text at `barTint`, with a three-pixel cap at full strength on the edge it starts from:

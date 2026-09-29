@@ -82,7 +82,7 @@ const DEVELOP_SHEET_FILES = [
 ];
 const DEVELOP_ROOT_PREFIX = '"@/';
 
-/** ADR 0013: the rules the options and the sizing move, and nothing else departs. */
+/** ADR 0013 and ADR 0014: the rules the options, the sizing and the fight's line move. */
 const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // The options control stands first on the bar and leads the rest to its far end.
     { develop: ".titlebar-fights", here: ".titlebar-lead" },
@@ -99,6 +99,16 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: null, here: ".size-grip" },
     { develop: null, here: ".panel>.size-grip" },
     { develop: null, here: ".size-grip:hover" },
+    // The place joins the fight's line, and only the map's name gives way on it (ADR 0014).
+    { develop: ".header-line", here: ".header-line", moved: ["justify-content", "gap"] },
+    {
+        develop: ".header-place",
+        here: ".header-place",
+        moved: ["flex", "min-width", "display", "justify-content", "overflow", "text-overflow"],
+    },
+    { develop: null, here: ".header-line>*" },
+    { develop: null, here: ".header-place-name" },
+    { develop: null, here: ".header-place-tile" },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
@@ -375,7 +385,7 @@ Deno.test("the two sides are told apart by more than a hue", () => {
  * A token written in another spelling here has to write the same text, and a value that moved
  * without a record naming it is a finding in one of the two.
  */
-Deno.test("the style sheet is develop's, but for the rules ADR 0013 moves", async () => {
+Deno.test("the style sheet is develop's, but for the rules ADR 0013 and 0014 move", async () => {
     const develop = await readDevelopStyleSheet();
     assertEquals(
         findSheetDepartures(develop, composeStyleSheet(TYPE_STEP.small), SHEET_DEPARTURES),

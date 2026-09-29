@@ -11,6 +11,7 @@ import * as errors from "#/libs/errors.ts";
 import { getFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { initMemoryStore, initPageStore, type KeyValueStore } from "#/src/game/browser-store.ts";
 import { initPageEngine } from "#/src/game/engine-battle.ts";
+import type { HeroPort } from "#/src/game/engine-hero.ts";
 import type { PlacePort } from "#/src/game/engine-place.ts";
 import { NO_CAPTURE, prepareCapture } from "#/src/game/fight-capture.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
@@ -35,6 +36,8 @@ interface FakeGame {
 }
 
 const PLACE = { mapName: "Mapa", x: 12, y: 34 };
+/** The hero's id the page states, which the fight keeps beside its place. */
+const READER_ID = 7;
 const OPENED_AT = 1000;
 
 /** A clock standing at one moment, which is the moment every fight here opens at. */
@@ -74,7 +77,10 @@ Deno.test("every recording played through the wrap is the fight, the file and th
         const kept = keeper.getFights()[0];
         assertExists(kept, `${fight.path}: and stands on the shelf`);
         assertEquals(kept.payloads, keptCalls, `${fight.path}: its calls, up to the end`);
-        assertEquals([kept.openedAt, kept.place, kept.gameBuild], [OPENED_AT, PLACE, "Bb28FQty"]);
+        assertEquals(
+            [kept.openedAt, kept.place, kept.readerId, kept.gameBuild],
+            [OPENED_AT, PLACE, READER_ID, "Bb28FQty"],
+        );
         assertEquals(lines, [], `${fight.path}: and nothing went wrong on the way`);
         assertStrictEquals(stale.count, fight.updates.length, "each call asks for a frame");
         assertStrictEquals(opened.count, 1, `${fight.path}: and the fight opened once`);
@@ -113,6 +119,7 @@ function composeOptions(
     const stale = { count: 0 };
     const opened = { count: 0 };
     const place: PlacePort = { readPlace: () => PLACE };
+    const hero: HeroPort = { readHeroId: () => READER_ID };
     const build: BuildPort = { readBuildId: () => "Bb28FQty" };
     const defects = initDefectLedger({ writeBrandedLine: (kind) => lines.push(kind) });
     const keeper = initShelfKeeper({
@@ -127,6 +134,7 @@ function composeOptions(
         engine: initPageEngine(game.page),
         clock: STILL_CLOCK,
         place,
+        hero,
         build,
         tables: BLOWS_GRANTED,
         sessionOptions: SESSION_OPTIONS,
@@ -202,6 +210,37 @@ Deno.test("a place the page does not state is unknown, and one it throws on is a
     const failed = composeOptions(loud, { place: thrown });
     playInto(loud, failed.options, [{ init: 1 }]);
     assertEquals(failed.lines, [DEFECT_KIND.reading], "a page that threw leaves a mark");
+});
+
+Deno.test("a hero the page does not state is nobody, and one it throws on is a defect", () => {
+    const absent: HeroPort = { readHeroId: () => new PageReadingAbsent(PAGE_READING.hero) };
+    const quiet = composeGame([[], []]);
+    const unknown = composeOptions(quiet, { hero: absent });
+    const { live } = playInto(quiet, unknown.options, [{ init: 1 }, { endBattle: 1 }]);
+    assertStrictEquals(live.readerId, null, "none");
+    assertStrictEquals(unknown.keeper.getFights()[0]?.readerId, null, "and none is kept");
+    assertEquals(unknown.lines, [], "and no defect");
+    const thrown: HeroPort = { readHeroId: () => new errors.Caught("torn") };
+    const loud = composeGame([[]]);
+    const failed = composeOptions(loud, { hero: thrown });
+    playInto(loud, failed.options, [{ init: 1 }]);
+    assertEquals(failed.lines, [DEFECT_KIND.reading], "a page that threw leaves a mark");
+});
+
+Deno.test("a second fight is asked who the reader is, not told who they were", () => {
+    const game = composeGame([[], [], []]);
+    let asked = 0;
+    const hero: HeroPort = {
+        readHeroId: () => {
+            asked += 1;
+            return asked;
+        },
+    };
+    const { options } = composeOptions(game, { hero });
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const { live } = playInto(game, options, [{ init: 1 }, end, { init: 1 }]);
+    assertStrictEquals(asked, 2, "once as each fight opens, and never on a call inside one");
+    assertStrictEquals(live.readerId, 2, "the second fight's own answer");
 });
 
 Deno.test("a step of ours that breaks costs that step, and the call goes on", () => {

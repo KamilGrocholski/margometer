@@ -459,6 +459,61 @@ async function readCardName(page: import("@playwright/test").Page) {
     });
 }
 
+test.describe("a place too long for the fight's line", () => {
+    test.use({ place: LONG_PLACE });
+
+    test("gives way by its name, keeps its tile whole, and stays one line", async ({ panel }) => {
+        await waitForFrame(panel.page);
+        const line = await readFightLine(panel.page);
+        expect(line, "the fight's line is drawn").not.toBeNull();
+        if (line === null) return;
+        expect(line.name.scrollWidth, "the map's name is what the line cuts (ADR 0014)")
+            .toBeGreaterThan(line.name.clientWidth + 1);
+        expect(line.tile.scrollWidth, "and the tile is never cut")
+            .toBeLessThanOrEqual(line.tile.clientWidth + 1);
+        expect(line.tileRight, "standing against the line's end")
+            .toBeGreaterThan(line.lineRight - 1);
+        expect(line.spaceBeforeTile, "a space apart from the name it follows").toBeGreaterThan(1);
+        expect(line.height, "on the one line the headcount stands on").toBeLessThanOrEqual(LINE);
+        await panel.at(".header-line").hover();
+        await expect(panel.at(CARD_OPEN), "which opens the fight's card").toHaveCount(1);
+        const name = await readCardName(panel.page);
+        expect(name?.said, "naming the whole place the line had to cut")
+            .toBe(`${LONG_PLACE}${TILE}`);
+        await panel.expectHonest("a fight's line with a place too long for it");
+    });
+});
+
+/** The name and the tile on the fight's line, as the browser laid them out. */
+async function readFightLine(page: import("@playwright/test").Page) {
+    return await page.evaluate(() => {
+        const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
+        const line = root?.querySelector(".header-line") ?? null;
+        const name = root?.querySelector(".header-place-name") ?? null;
+        const tile = root?.querySelector(".header-place-tile") ?? null;
+        if (line === null) return null;
+        if (name === null) return null;
+        if (tile === null) return null;
+        const measure = (one: Element) => ({
+            scrollWidth: one.scrollWidth,
+            clientWidth: Math.ceil(one.getBoundingClientRect().width),
+        });
+        // Where the tile's first character after its space is drawn, against the tile's own edge.
+        const text = tile.firstChild;
+        const range = document.createRange();
+        if (text !== null) range.setStart(text, 1);
+        if (text !== null) range.setEnd(text, 2);
+        return {
+            name: measure(name),
+            tile: measure(tile),
+            spaceBeforeTile: range.getBoundingClientRect().left - tile.getBoundingClientRect().left,
+            tileRight: tile.getBoundingClientRect().right,
+            lineRight: line.getBoundingClientRect().right,
+            height: Math.round(line.getBoundingClientRect().height),
+        };
+    });
+}
+
 test.describe("a place with nowhere to break", () => {
     test.use({ place: UNBROKEN_PLACE });
 

@@ -188,3 +188,33 @@ export function getTextsByClass(element: FakeElement, className: string): string
         .filter((one) => one.className === className)
         .map((one) => one.textContent);
 }
+
+/**
+ * Each element's text as a browser reads it — its own, then everything under it — for an element
+ * built of parts. `getTextsByClass` reads the element's own text alone, which a figure beside its
+ * share relies on.
+ */
+export function getWholeTextsByClass(element: FakeElement, className: string): string[] {
+    return getElementsWithin(element)
+        .filter((one) => one.className === className)
+        .map(readTextWithin);
+}
+
+/** Depth first, as a document is read: a walk across would put a cousin before a child's child. */
+function readTextWithin(element: FakeElement): string {
+    const waiting: FakeElement[] = [element];
+    let text = "";
+    let walked = 0;
+    while (waiting.length > 0) {
+        const next = waiting.pop();
+        if (next === undefined) break;
+        text += next.textContent;
+        for (let at = next.children.length - 1; at >= 0; at -= 1) {
+            const child = next.children[at];
+            if (child !== undefined) waiting.push(child);
+        }
+        walked += 1;
+        assert(walked <= 4096, "the walk stays inside its bound");
+    }
+    return text;
+}

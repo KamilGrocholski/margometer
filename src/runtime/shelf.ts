@@ -33,6 +33,11 @@ export interface KeptFight {
     /** One payload per call the game made, thinned as a recording is thinned. */
     payloads: readonly unknown[];
     place: FightPlace | null;
+    /**
+     * The hero's id as the client stated it when the fight opened, which is how its own warrior is
+     * keyed (ADR 0014). Null on a fight kept before the id was, and on a page that stated none.
+     */
+    readerId: number | null;
     /** Which client it was read off, so a fight re-read later says what it was recorded on. */
     gameBuild: string | null;
     /** Kept by the reader against the rotation. */
@@ -127,7 +132,7 @@ export type ShelfFailure =
     | FightNotKept;
 
 type ShelfField = "version" | "fights";
-type FightField = "openedAt" | "payloads" | "place" | "gameBuild" | "isPinned";
+type FightField = "openedAt" | "payloads" | "place" | "readerId" | "gameBuild" | "isPinned";
 type PlaceField = "mapName" | "x" | "y";
 
 /** A shelf holds this many fights and no more, the oldest nobody pinned dropped first. */
@@ -144,6 +149,7 @@ const FIGHT_FIELDS: FieldKeys<FightField> = {
     openedAt: "openedAt",
     payloads: "payloads",
     place: "place",
+    readerId: "readerId",
     gameBuild: "gameBuild",
     isPinned: "isPinned",
 };
@@ -194,9 +200,20 @@ function readKeptFight(value: unknown): KeptFight | null {
         openedAt,
         payloads: [...payloads],
         place: readKeptPlace(value),
+        readerId: readKeptReaderId(value),
         gameBuild: gameBuild instanceof Error ? null : gameBuild,
         isPinned: value[FIGHT_FIELDS.isPinned] === true,
     };
+}
+
+/** An id that does not read back is nobody's, not a fight dropped: the figures stand without it. */
+function readKeptReaderId(fight: UnknownRecord): number | null {
+    const id = getNumberField(fight, FIGHT_FIELDS, "readerId");
+    if (id instanceof Error) return null;
+    if (id === null) return null;
+    if (!Number.isSafeInteger(id)) return null;
+    if (id <= 0) return null;
+    return id;
 }
 
 /** A place that does not read back is nobody's place, not a fight dropped. */
@@ -250,7 +267,10 @@ function writeShelf(
     let held = rotateShelf(fights);
     let refused: StoreFailure | null = null;
     for (let attempts = 1; attempts <= KEPT_MAXIMUM + 1; attempts += 1) {
-        const text = encodeJson({ version: SHELF_VERSION, fights: held }, 0);
+        const text = encodeJson(
+            { version: SHELF_VERSION, fights: held.map(encodeKeptFight) },
+            0,
+        );
         if (text instanceof Error) return new ShelfUnwritable({ cause: text });
         const written = store.write(SHELF_KEY, text);
         if (!(written instanceof Error)) return writeShelfDropped(before, fights, held);
@@ -265,6 +285,18 @@ function writeShelf(
 }
 
 /** What was offered and did not go down: the rotation, stated rather than silent. */
+
+/**
+ * The id only where there is one, so a fight kept without it is written as `develop` wrote it and a
+ * shelf round-trips through either (ADR 0014).
+ */
+function encodeKeptFight(fight: KeptFight): Record<string, unknown> {
+    assert(fight.payloads.length > 0, "a fight written was kept from something");
+    const { readerId, ...rest } = fight;
+    if (readerId === null) return rest;
+    assert(readerId > 0, "an id written is one the page stated");
+    return { ...rest, readerId };
+}
 function writeShelfDropped(
     before: ShelfContents,
     offered: readonly KeptFight[],

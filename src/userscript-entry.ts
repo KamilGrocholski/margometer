@@ -22,6 +22,7 @@ import {
     type PageStorage,
 } from "#/src/game/browser-store.ts";
 import { initPageEngine } from "#/src/game/engine-battle.ts";
+import { initPageHero } from "#/src/game/engine-hero.ts";
 import { initPagePlace } from "#/src/game/engine-place.ts";
 import { initPageTooltip } from "#/src/game/engine-tooltip.ts";
 import { initPageBuild, SCRIPTS_MAXIMUM } from "#/src/game/game-build.ts";
@@ -192,6 +193,7 @@ function composeRuntimePorts(page: UserscriptWindow): RuntimePorts {
         interval: initPageInterval(page),
         engine: initPageEngine(page),
         place: initPagePlace(page),
+        hero: initPageHero(page),
         dictionary: initPageDictionary(page),
         build: initPageBuild({ readScriptSources: () => readPageScriptSources(page) }),
         surroundings: initPageSurroundings(page),

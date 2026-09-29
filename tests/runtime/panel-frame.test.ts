@@ -36,6 +36,7 @@ Deno.test("a ranking whose two counts disagree is drawn, and said as the screen'
         openedAt: 1,
         payloads: lookupRecordedFight(HILDUR).updates,
         place: null,
+        readerId: null,
         gameBuild: null,
         isPinned: false,
     };
@@ -100,6 +101,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
             capture: NO_CAPTURE,
             snapshotBefore: null,
             place: null,
+            readerId: null,
             openedAt: 0,
             battle: null,
         },
@@ -124,6 +126,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
         tooltip: { writeRows: () => ({ written: 0, asked: 0 }) },
         tables: RUNTIME_TABLES.tooltip,
         translate: () => null,
+        world: null,
     };
     /** The cut each disagreement was said as, or the class of anything else said under figures. */
     const readFiguresSaid = () =>
@@ -138,6 +141,7 @@ Deno.test("the window beside the panel says which reason leaves it nothing live 
         openedAt: 1,
         payloads: lookupRecordedFight(HILDUR).updates,
         place: null,
+        readerId: null,
         gameBuild: null,
         isPinned: false,
     };

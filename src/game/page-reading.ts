@@ -6,7 +6,12 @@
 import type * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 
-export const PAGE_READING = { place: "place", label: "label", build: "build" } as const;
+export const PAGE_READING = {
+    place: "place",
+    hero: "hero",
+    label: "label",
+    build: "build",
+} as const;
 export type PageReading = VocabularyWord<typeof PAGE_READING>;
 
 export class PageReadingAbsent extends Error {

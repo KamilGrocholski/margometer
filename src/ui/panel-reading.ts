@@ -298,6 +298,28 @@ export interface FightMoment {
     minute: number;
 }
 
+/** The reader's own character, as the fight's combatant keyed by the hero's id states it. */
+export interface FightReader {
+    name: string;
+    profession: string | null;
+    level: number | null;
+}
+
+/**
+ * What pointing at a fight says, over the ranking or on a shelf row (ADR 0014): the runtime reads
+ * it once for both, and a field it could not read is null rather than a word saying so.
+ */
+export interface FightCardReading {
+    sizes: readonly number[];
+    unplaced: number;
+    outcome: OutcomeResult | null;
+    isLive: boolean;
+    at: FightMoment | null;
+    place: string | null;
+    world: string | null;
+    reader: FightReader | null;
+}
+
 export interface ShelfRow {
     openedAt: number;
     at: FightMoment | null;
@@ -314,6 +336,7 @@ export interface ShelfRow {
      * both for as long as the gap between it ending and the next one starting.
      */
     isPinnable: boolean;
+    card: FightCardReading;
 }
 
 export interface ScreenReading {

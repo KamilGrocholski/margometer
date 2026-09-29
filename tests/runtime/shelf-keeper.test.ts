@@ -53,7 +53,14 @@ function initKeeper(over: Partial<ShelfKeeperOptions> = {}) {
 /** A fight of one payload that opens and closes it, which is the least a shelf keeps. */
 function composeFight(openedAt: number, isPinned = false): KeptFight {
     const payload = { init: 1, m: ["0;0;winner=Gracz 1"], endBattle: 1 };
-    return { openedAt, payloads: [payload], place: null, gameBuild: null, isPinned };
+    return {
+        openedAt,
+        payloads: [payload],
+        place: null,
+        readerId: null,
+        gameBuild: null,
+        isPinned,
+    };
 }
 
 Deno.test("a fight the store refuses stays a row, beside the answer that it was not saved", () => {

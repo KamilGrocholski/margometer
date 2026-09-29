@@ -17,6 +17,7 @@ import * as errors from "#/libs/errors.ts";
 import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
+import { getFightView } from "#/src/core/fight-session.ts";
 import { initPageStore, type KeyValueStore, STORE_KEY } from "#/src/game/browser-store.ts";
 import { initPageFrames } from "#/src/game/page-frame.ts";
 import { LOOKS_MAXIMUM } from "#/src/runtime/engine-search.ts";
@@ -28,6 +29,7 @@ import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
 import {
     DEFECT_MARK,
     EVERY_SLOT_PINNED_ANSWER,
+    FIGHT_CARD_WORDS,
     formatDefect,
     formatKeptUnread,
     formatPlace,
@@ -43,9 +45,16 @@ import {
     getElementsWithin,
     getPanelWithin,
     getTextsByClass,
+    getWholeTextsByClass,
+    pointAtElement,
 } from "#/tests/fake-document.ts";
+import { readTip } from "#/tests/drawn-card.ts";
 import { TEST_VERSION } from "#/tests/panel-view.ts";
-import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
+import {
+    lookupRecordedFight,
+    readRecordedFights,
+    replayRecordedFight,
+} from "#/tests/recorded-fights.ts";
 import {
     CAPTURED_AT,
     GAME_BUILD,
@@ -753,7 +762,11 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
     const world = initRuntimeWorld(composePlacedPage());
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const host = world.getHost();
-    assertEquals(getTextsByClass(host, CLASS.headerPlace), ["Mapa Testowa (12, 34)"], "the bar");
+    assertEquals(
+        getWholeTextsByClass(host, CLASS.headerPlace),
+        ["Mapa Testowa (12, 34)"],
+        "the bar",
+    );
     openShelfScreen(world);
     const row = getElementsWithin(getPanelWithin(host))
         .find((one) => one.className.split(" ")[0] === CLASS.row);
@@ -768,7 +781,11 @@ function composePlacedPage(hero: Record<string, unknown> = { x: 12, y: 34 }) {
 
 Deno.test("a client that says nothing about the place leaves the bar saying nothing", () => {
     const world = playRecordedFight();
-    assertEquals(getTextsByClass(world.getHost(), CLASS.headerPlace), [], "nothing, as nothing");
+    assertEquals(
+        getWholeTextsByClass(world.getHost(), CLASS.headerPlace),
+        [],
+        "nothing, as nothing",
+    );
 });
 
 Deno.test("a second fight is asked where it is, not told where the one before it was", () => {
@@ -776,11 +793,19 @@ Deno.test("a second fight is asked where it is, not told where the one before it
     const world = initRuntimeWorld(composePlacedPage(hero));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const host = world.getHost();
-    assertEquals(getTextsByClass(host, CLASS.headerPlace), ["Mapa Testowa (12, 34)"], "the first");
+    assertEquals(
+        getWholeTextsByClass(host, CLASS.headerPlace),
+        ["Mapa Testowa (12, 34)"],
+        "the first",
+    );
     hero.x = 7;
     hero.y = 8;
     for (const payload of readUpdates(HILDUR)) world.update(payload);
-    assertEquals(getTextsByClass(host, CLASS.headerPlace), ["Mapa Testowa (7, 8)"], "the second");
+    assertEquals(
+        getWholeTextsByClass(host, CLASS.headerPlace),
+        ["Mapa Testowa (7, 8)"],
+        "the second",
+    );
 });
 
 Deno.test("a panel reloaded between fights opens on the shelf rather than on nothing", () => {
@@ -1472,10 +1497,60 @@ Deno.test("a fight read back off the shelf says where it was fought, not where t
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const again = reloadRuntimeWorld(world);
     assertEquals(
-        getTextsByClass(again.getHost(), CLASS.headerPlace),
+        getWholeTextsByClass(again.getHost(), CLASS.headerPlace),
         ["Mapa Testowa (12, 34)"],
         "the bar says the kept fight's place, with no fight going on to ask",
     );
+});
+
+Deno.test("the fight's line and its shelf row say who the reader was, and it outlives a reload", () => {
+    const view = getFightView(replayRecordedFight(lookupRecordedFight(HILDUR)));
+    assertExists(view, "the recording is a fight");
+    const reader = [...view.roster.byId.values()].find((one) => one.side === view.readerSide);
+    assertExists(reader, "with somebody on the reader's side");
+    const world = initRuntimeWorld(composePlacedPage({ x: 12, y: 34, id: reader.id }));
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    const said = readFightCard(world);
+    assertEquals(readTip(world.getHost()).name, ["Mapa Testowa (12, 34)"], "where, whole");
+    assertEquals(said.get(FIGHT_CARD_WORDS.world), WORLD, "on the world the page is on");
+    const character = said.get(FIGHT_CARD_WORDS.character);
+    assertEquals(character, reader.name, "as the combatant the hero's id keys");
+    assert(said.has(FIGHT_CARD_WORDS.profession), "with their profession and level under it");
+    assert(said.has(FIGHT_CARD_WORDS.when), "and when it opened");
+    const again = reloadRuntimeWorld(world);
+    assertEquals(
+        readFightCard(again).get(FIGHT_CARD_WORDS.character),
+        character,
+        "a kept fight names the reader it was read with, with no fight going on to ask",
+    );
+    openShelfScreen(again);
+    const row = getElementsWithin(getPanelWithin(again.getHost()))
+        .find((one) => one.className.split(" ")[0] === CLASS.row);
+    assertExists(row, "the shelf drew the fight");
+    pointAtElement(again.getHost(), "pointermove", row, 120);
+    const card = readTip(again.getHost());
+    assertEquals(
+        new Map(card.stated.map((one) => [one.label, one.value])).get(FIGHT_CARD_WORDS.character),
+        character,
+        "and its row opens the same card",
+    );
+});
+
+/** The card the fight's line opens, as label to value. */
+function readFightCard(world: RuntimeWorld): Map<string, string> {
+    const host = world.getHost();
+    const line = getElementsWithin(host).find((one) => one.className === CLASS.headerLine);
+    assertExists(line, "the fight's line is drawn");
+    pointAtElement(host, "pointermove", line, 20);
+    return new Map(readTip(host).stated.map((one) => [one.label, one.value]));
+}
+
+Deno.test("a page stating no hero leaves the card with no character, and says nothing of it", () => {
+    const world = initRuntimeWorld(composePlacedPage());
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    const said = readFightCard(world);
+    assertEquals(said.has(FIGHT_CARD_WORDS.character), false, "no line for nobody");
+    assertEquals(world.lines, [], "and no defect");
 });
 
 Deno.test("a panel reloaded after two fights stands on the newer of them", () => {

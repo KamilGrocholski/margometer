@@ -19,6 +19,7 @@ import {
 } from "#/src/core/fight-session.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import type { EngineBattle, EnginePort, PayloadListener } from "#/src/game/engine-battle.ts";
+import type { HeroPort } from "#/src/game/engine-hero.ts";
 import type { PlacePort } from "#/src/game/engine-place.ts";
 import { type CaptureStanding, NO_CAPTURE, prepareCapture } from "#/src/game/fight-capture.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
@@ -34,6 +35,7 @@ export interface LiveFightOptions {
     engine: EnginePort;
     clock: Clock;
     place: PlacePort;
+    hero: HeroPort;
     build: BuildPort;
     tables: DecoderTables;
     sessionOptions: SessionOptions;
@@ -52,6 +54,8 @@ export interface LiveFight {
     snapshotBefore: WarriorSnapshot | null;
     /** Read once, on the payload that opens a fight: the hero does not move while one is on. */
     place: FightPlace | null;
+    /** Read with the place: which combatant the reader is, as the client keys its own warrior. */
+    readerId: number | null;
     openedAt: number;
     /** Read once: the game builds its battle while its engine starts, and never again. */
     battle: EngineBattle | null;
@@ -66,6 +70,7 @@ export function initLiveFight(options: LiveFightOptions): {
         capture: NO_CAPTURE,
         snapshotBefore: null,
         place: null,
+        readerId: null,
         openedAt: 0,
         battle: null,
     };
@@ -164,6 +169,7 @@ function commitRecord(
 function openFight(live: LiveFight, options: LiveFightOptions): void {
     live.openedAt = options.clock.readNowMilliseconds();
     live.place = readPageValue(options, options.place.readPlace());
+    live.readerId = readPageValue(options, options.hero.readHeroId());
     options.onFightOpened();
 }
 
@@ -187,6 +193,7 @@ function keepClosedFight(live: LiveFight, options: LiveFightOptions): void {
         openedAt: live.openedAt,
         payloads,
         place: live.place,
+        readerId: live.readerId,
         gameBuild: readPageValue(options, options.build.readBuildId()),
         isPinned: false,
     };

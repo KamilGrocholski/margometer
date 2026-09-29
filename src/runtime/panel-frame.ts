@@ -10,7 +10,7 @@
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
-import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
+import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { replayFightStandings } from "#/src/core/aura-standing.ts";
 import type { OutcomeResult } from "#/src/core/battle-event.ts";
 import { type FightView, getFightView } from "#/src/core/fight-session.ts";
@@ -38,6 +38,8 @@ import type {
 } from "#/src/ui/panel-element.ts";
 import type { RenderReport } from "#/src/ui/view-failure.ts";
 import {
+    type FightCardReading,
+    type FightReader,
     type FightSuspicions,
     getOutcomeForSeat,
     presentScreen,
@@ -55,6 +57,8 @@ import {
     CHOICE_REFUSED_ANSWER,
     EVERY_SLOT_PINNED_ANSWER,
     formatPlace,
+    formatPlaceWords,
+    type PlaceWords,
     STORE_MADE_ROOM_ANSWER,
     STORE_REFUSED_ANSWER,
     type TranslateLabel,
@@ -85,12 +89,27 @@ export interface FrameParts {
     tooltip: TooltipPort;
     tables: TooltipTables;
     translate: TranslateLabel;
+    /** The world the page is on, which is every kept fight's: a shelf is one origin's store. */
+    world: string | null;
 }
 
 interface LiveRow {
     reading: FightReading;
     place: FightPlace | null;
+    readerId: number | null;
     openedAt: number;
+}
+
+/** What a fight's card is read from, whichever of the live fight or a kept one it is. */
+interface FightCardSource {
+    sizes: readonly number[];
+    unplaced: number;
+    outcome: OutcomeResult | null;
+    isLive: boolean;
+    openedAt: number;
+    place: FightPlace | null;
+    readerId: number | null;
+    roster: CombatantRoster;
 }
 
 /** The four answers a shelf can give, of which at most three ever hold at once. */
@@ -255,9 +274,12 @@ function presentFrameScreen(
     const chosenFight = screen.openFightId ?? standing.kept?.openedAt ?? null;
     if (standing.kept !== null) assert(chosenFight !== null, "a kept fight on screen is one named");
     assert(reading.rows.length <= COMBATANTS_MAXIMUM, "a ranking holds the fight's cast at most");
-    const liveRow = liveReading === null
-        ? null
-        : { reading: liveReading, place: live.place, openedAt: live.openedAt };
+    const liveRow = liveReading === null ? null : {
+        reading: liveReading,
+        place: live.place,
+        readerId: live.readerId,
+        openedAt: live.openedAt,
+    };
     return {
         reading,
         listName: composeListName(screen, chosenFight ?? live.openedAt),
@@ -275,9 +297,51 @@ function presentFrameScreen(
         defects: said,
         isOnShelf: screen.isOnShelf,
         ...opened,
-        place: formatFightPlace(standing.kept === null ? live.place : standing.kept.place),
+        place: formatFightPlaceWords(standing.kept === null ? live.place : standing.kept.place),
+        card: presentFightCardReading(parts, {
+            sizes: reading.sizes,
+            unplaced: reading.unplaced,
+            outcome: reading.outcome,
+            isLive: standing.kept === null,
+            openedAt: standing.kept?.openedAt ?? live.openedAt,
+            place: standing.kept === null ? live.place : standing.kept.place,
+            readerId: standing.kept === null ? live.readerId : standing.kept.readerId,
+            roster: view.roster,
+        }),
         isCollapsed: screen.isCollapsed,
     };
+}
+
+function formatFightPlaceWords(place: FightPlace | null): PlaceWords | null {
+    if (place === null) return null;
+    return formatPlaceWords(place.mapName, place.x, place.y);
+}
+
+/** The card a fight's line or its shelf row opens (ADR 0014). */
+function presentFightCardReading(parts: FrameParts, source: FightCardSource): FightCardReading {
+    assert(source.unplaced >= 0, "a card counts nobody fewer than none unplaced");
+    return {
+        sizes: source.sizes,
+        unplaced: source.unplaced,
+        outcome: source.outcome,
+        isLive: source.isLive,
+        at: parts.clock.readMoment(source.openedAt),
+        place: formatFightPlace(source.place),
+        world: parts.world,
+        reader: lookupFightReader(source.roster, source.readerId),
+    };
+}
+
+/**
+ * The combatant the client keys by its hero's id, and nobody where the id matches nobody: a
+ * reader watching somebody else's fight is in none of its sides.
+ */
+function lookupFightReader(roster: CombatantRoster, readerId: number | null): FightReader | null {
+    if (readerId === null) return null;
+    const found = roster.byId.get(readerId);
+    if (found === undefined) return null;
+    assert(found.id === readerId, "a combatant found by an id is the one it names");
+    return { name: found.name, profession: found.profession, level: found.level };
 }
 
 /** What is short about the reading itself, which the session states and the figures cannot. */
@@ -326,17 +390,29 @@ function presentShelfRows(
     const rows: ShelfRow[] = [];
     const alsoKept = live === null ? undefined : kept.find((one) => one.openedAt === live.openedAt);
     if (live !== null) {
+        const sizes = presentShelfSizes(live.reading.view);
+        const outcome = presentOutcome(live.reading);
         rows.push({
             openedAt: live.openedAt,
             at: parts.clock.readMoment(live.openedAt),
-            sizes: presentShelfSizes(live.reading.view),
+            sizes,
             place: formatFightPlace(live.place),
-            outcome: presentOutcome(live.reading),
+            outcome,
             isLive: true,
             // Nothing chosen is the live fight: a kept row's moment is never the live one's.
             isChosen: chosenId === null,
             isPinned: alsoKept?.isPinned ?? false,
             isPinnable: alsoKept !== undefined,
+            card: presentFightCardReading(parts, {
+                sizes,
+                unplaced: 0,
+                outcome,
+                isLive: true,
+                openedAt: live.openedAt,
+                place: live.place,
+                readerId: live.readerId,
+                roster: live.reading.view.roster,
+            }),
         });
     }
     for (const one of [...kept].sort((first, other) => other.openedAt - first.openedAt)) {
@@ -382,16 +458,28 @@ function presentKeptShelfRow(
 ): ShelfRow {
     assert(reading.view.payloadsApplied > 0, "a kept row states a fight read from something");
     assert(fight.payloads.length > 0, "and kept from something");
+    const sizes = presentShelfSizes(reading.view);
+    const outcome = presentOutcome(reading);
     return {
         openedAt: fight.openedAt,
         at: parts.clock.readMoment(fight.openedAt),
-        sizes: presentShelfSizes(reading.view),
+        sizes,
         place: formatFightPlace(fight.place),
-        outcome: presentOutcome(reading),
+        outcome,
         isLive: false,
         isChosen: chosenId === fight.openedAt,
         isPinned: fight.isPinned,
         isPinnable: true,
+        card: presentFightCardReading(parts, {
+            sizes,
+            unplaced: 0,
+            outcome,
+            isLive: false,
+            openedAt: fight.openedAt,
+            place: fight.place,
+            readerId: fight.readerId,
+            roster: reading.view.roster,
+        }),
     };
 }
 

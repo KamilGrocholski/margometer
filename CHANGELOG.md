@@ -43,6 +43,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   odświeżeniu strony, a w opcjach pod ⚙ można go przywrócić.
 - **Nowość** — W opcjach pod ⚙ można wybrać wielkość pisma — małe, średnie albo duże — i panel razem
   z Pomocnikiem rysują się w niej, także po odświeżeniu strony.
+- **Nowość** — Po najechaniu na linię walki nad rankingiem albo na walkę na liście walk dymek mówi,
+  kiedy się zaczęła, gdzie, na jakim świecie i na której postaci.
+- **Zmiana** — Miejsce walki stoi w tej samej linii co liczebność i wynik, więc nad rankingiem jest
+  o jedną linię mniej; gdy się nie mieści, skraca się nazwa mapy, a współrzędne zostają całe.
 - **Zmiana** — Wybór, gdzie trzymać zapisane walki, przeniósł się z listy walk do opcji pod
   przyciskiem ⚙ na pasku panelu.
 - **Zmiana** — Zadane i otrzymane obrażenia liczą też to, co przyjęła na siebie absorpcja i

@@ -78,5 +78,15 @@ function composeShelfRow(openedAt: number, isLive: boolean): ShelfRow {
         isChosen: isLive,
         isPinned: false,
         isPinnable: !isLive,
+        card: {
+            sizes: [1, 1],
+            unplaced: 0,
+            outcome: null,
+            isLive,
+            at: null,
+            place: null,
+            world: null,
+            reader: null,
+        },
     };
 }

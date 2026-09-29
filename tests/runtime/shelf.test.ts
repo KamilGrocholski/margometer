@@ -64,6 +64,7 @@ function composeFight(openedAt: number, isPinned = false): KeptFight {
             m: ["1=100.00;0;heal=99"],
         }],
         place: { mapName: "Mapa", x: 12, y: 34 },
+        readerId: null,
         gameBuild: "1786441768914",
         isPinned,
     };
@@ -74,6 +75,31 @@ function composeStoreHolding(text: string): KeyValueStore {
     store.write(STORE_KEY.fights, text);
     return store;
 }
+
+Deno.test("the reader's id goes on beside the fight and comes back, and only where it was read", () => {
+    const store = initMemoryStore();
+    const read = { ...composeFight(7), readerId: 1 };
+    keepFight(store, EMPTY, read);
+    const text = store.read(STORE_KEY.fights);
+    assert(typeof text === "string", "the shelf is written");
+    assertStrictEquals(
+        text,
+        `${DEVELOP_SHELF.slice(0, -3)},"readerId":1}]}`,
+        "after everything develop wrote, so a develop shelf is this one less a field (ADR 0014)",
+    );
+    assertEquals(openShelf(store), { fights: [read] }, "and it comes back with the fight");
+});
+
+Deno.test("an id that does not read back is nobody's, and the fight stands without it", () => {
+    for (const stated of ["0", "-1", "1.5", '"1"', "null", "true"]) {
+        const text = `${DEVELOP_SHELF.slice(0, -3)},"readerId":${stated}}]}`;
+        assertEquals(
+            openShelf(composeStoreHolding(text)),
+            { fights: [composeFight(7)] },
+            `${stated} is no id, and costs the fight nothing`,
+        );
+    }
+});
 
 Deno.test("a store that will not have it says so, rather than throwing", () => {
     const refusing = composeStoreWithCeiling(0);
@@ -207,7 +233,7 @@ Deno.test("a shelf with every slot pinned refuses the newest rather than droppin
 /** No quota is assumed, so a shelf that will not fit asks for less. */
 Deno.test("a store with no room takes fewer fights, and says what it took", () => {
     const four = [0, 1, 2, 3].map((one) => composeFight(one));
-    const two = encodeJson({ version: 3, fights: four.slice(2) }, 0);
+    const two = encodeWrittenShelf(four.slice(2));
     assert(!(two instanceof Error), "the newest two of four are text");
     const store = composeStoreWithCeiling(two.length);
     const shelf = keepAll(store, four.slice(0, 3));
@@ -217,9 +243,17 @@ Deno.test("a store with no room takes fewer fights, and says what it took", () =
     assertEquals(readOpenedAt(store), [2, 3], "and what a reload finds is what the answer said");
 });
 
+/** Fights as the shelf writes them: an id nobody stated is left out, as `develop` wrote a fight. */
+function encodeWrittenShelf(fights: readonly KeptFight[]): string | Error {
+    const written = fights.map(({ readerId, ...rest }) =>
+        readerId === null ? rest : { ...rest, readerId }
+    );
+    return encodeJson({ version: 3, fights: written }, 0);
+}
+
 Deno.test("a pin outranks the store's refusal, and a shelf of pins too long is refused", () => {
     const four = [0, 1, 2, 3].map((one) => composeFight(one, one === 0));
-    const room = encodeJson({ version: 3, fights: [four[0], four[3]] }, 0);
+    const room = encodeWrittenShelf([four[0] ?? composeFight(0), four[3] ?? composeFight(3)]);
     assert(!(room instanceof Error), "a pinned fight beside the newest is text");
     const store = composeStoreWithCeiling(room.length);
     const shelf = keepAll(store, four.slice(0, 3));
@@ -227,7 +261,7 @@ Deno.test("a pin outranks the store's refusal, and a shelf of pins too long is r
     assert(!(kept instanceof Error), "and it is what fits");
     assertEquals(kept.contents.fights.map((one) => one.openedAt), [0, 3], "pinned stayed");
     const both = [composeFight(0, true), composeFight(3, true)];
-    const pinnedText = encodeJson({ version: 3, fights: both }, 0);
+    const pinnedText = encodeWrittenShelf(both);
     assert(!(pinnedText instanceof Error), "two pinned fights are text");
     const cramped = composeStoreWithCeiling(pinnedText.length - 1);
     const first = keepFight(cramped, EMPTY, composeFight(0, true));

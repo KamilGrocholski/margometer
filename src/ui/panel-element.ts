@@ -48,11 +48,13 @@ import { addGuardedListener } from "./panel-listener.ts";
 import { CLASS, composeStyleSheet, TYPE_TOKENS } from "./panel-look.ts";
 import { type Colour, formatColour, lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
 import { presentCard, presentCaveatNoteLines } from "./panel-card.ts";
+import { presentFightCard } from "./fight-card.ts";
 import {
     type ClosingRow,
     type DrillReading,
     type ElementCut,
     type ElementRow,
+    type FightCardReading,
     type FightMoment,
     getEndForPinned,
     getPartOfSide,
@@ -152,6 +154,7 @@ import {
     PANEL_WORDS,
     type PanelDefectKind,
     type PanelRegion,
+    type PlaceWords,
     STANDING_WORDS,
     SUSPECT_MARK,
     type TranslateLabel,
@@ -373,7 +376,9 @@ export interface ShownScreen {
     /** What stands under a pinned row, where a reader has opened one. Never open beside `drill`. */
     halfNamed: HalfNamedReading | null;
     halfNamedDrill: HalfNamedDrillReading | null;
-    place: string | null;
+    place: PlaceWords | null;
+    /** What the fight's line opens, as a shelf row's opens the same (ADR 0014). */
+    card: FightCardReading;
     isCollapsed: boolean;
 }
 
@@ -502,6 +507,8 @@ export const TIP_ATTRIBUTE = "data-tip";
  * level it leaves.
  */
 const CRUMB_TIP_KEY = "crumb:back";
+/** The fight's line: one is drawn at a time, and its card is the fight on screen. */
+const FIGHT_TIP_KEY = "fight";
 const STANDING_TIP_PREFIX = "standing:";
 /** The one person's row there is only ever one of, whoever is standing on it. */
 const STANDING_NOW_TIP_KEY = `${STANDING_TIP_PREFIX}now`;
@@ -1241,7 +1248,7 @@ function renderPanelBody(
     regions.header = redraw(
         regions.header,
         PANEL_REGION.header,
-        isFight ? () => renderHeader(document, shown) : slot,
+        isFight ? () => renderHeader(document, shown, register) : slot,
     );
     regions.nouns = redraw(
         regions.nouns,
@@ -1264,12 +1271,18 @@ function renderPanelBody(
     renderPanelBodyFoot(document, regions, shown, register, redraw);
 }
 
-function renderHeader(document: PanelDocument, shown: ShownScreen): PanelElement {
+function renderHeader(
+    document: PanelDocument,
+    shown: ShownScreen,
+    register: TipRegister,
+): PanelElement {
     const header = renderElement(document, "div", CLASS.header);
     const line = renderElement(document, "div", CLASS.headerLine);
     const who = renderElement(document, "span", "");
     who.textContent = formatSideCounts(shown.reading.sizes, shown.reading.unplaced);
     line.append(who);
+    // Every part carries the key, because a pointer lands on the innermost one.
+    const marked = [line, who];
     // Absent rather than empty where the reading says nothing, and `ui/panel-reading.ts` says
     // when it does and why the header may not fill the silence in.
     const outcome = shown.reading.outcome;
@@ -1277,14 +1290,36 @@ function renderHeader(document: PanelDocument, shown: ShownScreen): PanelElement
         const said = renderElement(document, "span", CLASS.headerOutcome);
         said.textContent = getWordsForOutcome(outcome);
         line.append(said);
+        marked.push(said);
+    }
+    if (shown.place !== null) {
+        const place = renderHeaderPlace(document, shown.place);
+        line.append(place);
+        marked.push(place, ...Array.from(place.children));
     }
     header.append(line);
-    if (shown.place === null) return header;
-    const place = renderElement(document, "div", CLASS.headerPlace);
-    place.textContent = shown.place;
-    place.setAttribute(TITLE_ATTRIBUTE, shown.place);
-    header.append(place);
+    register.add(FIGHT_TIP_KEY, () => presentFightCard(shown.card));
+    setRowMarks(marked, TIP_ATTRIBUTE, FIGHT_TIP_KEY);
     return header;
+}
+
+/**
+ * The name gives way and the tile never does (ADR 0014). The tile carries its own space, so the
+ * place reads as one text to anything that reads its text, and the card states it whole.
+ */
+function renderHeaderPlace(document: PanelDocument, place: PlaceWords): PanelElement {
+    const held = renderElement(document, "span", CLASS.headerPlace);
+    if (place.name !== null) {
+        const name = renderElement(document, "span", CLASS.headerPlaceName);
+        name.textContent = place.name;
+        held.append(name);
+    }
+    if (place.tile !== null) {
+        const tile = renderElement(document, "span", CLASS.headerPlaceTile);
+        tile.textContent = place.name === null ? place.tile : ` ${place.tile}`;
+        held.append(tile);
+    }
+    return held;
 }
 
 function renderNounStrips(document: PanelDocument, shown: ShownScreen): PanelElement {
@@ -1622,11 +1657,7 @@ function renderShelfRow(
     outcome.textContent = getWordsForShelfOutcome(fight.outcome, fight.isLive);
     for (const part of [time, size, where, outcome]) row.append(part);
     const parts = [row, time, size, where, outcome];
-    register.add(`shelf:${fight.openedAt}`, () => ({
-        name: fight.place ?? PANEL_WORDS.unknown,
-        subtitle: null,
-        groups: [],
-    }));
+    register.add(`shelf:${fight.openedAt}`, () => presentFightCard(fight.card));
     setRowMarks(parts, TIP_ATTRIBUTE, `shelf:${fight.openedAt}`);
     // A moment would have to be one no kept fight could carry, and there is no such moment.
     setRowMarks(parts, PANEL_MARK.fight, fight.isLive ? LIVE_FIGHT_MARK : `${fight.openedAt}`);

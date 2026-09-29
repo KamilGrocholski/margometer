@@ -25,6 +25,7 @@ import {
     DESTROYED_WORD_BY_KEY,
     ELEMENT_WORD_BY_KEY,
     EVERY_SLOT_PINNED_ANSWER,
+    FIGHT_CARD_WORDS,
     formatCardSubtitle,
     formatChargedRows,
     formatChargedSkillSubtitle,
@@ -147,6 +148,7 @@ const SAID_OUT_OF = 412;
  */
 const TABLES = {
     CARD_WORDS,
+    FIGHT_CARD_WORDS,
     DEFENCE_WORD_BY_KEY,
     ELEMENT_WORD_BY_KEY,
     HEALTH_LOSS_WORD_BY_KEY,

@@ -54,8 +54,10 @@ import {
 import {
     CARD_WORDS,
     CHOICE_REFUSED_ANSWER,
+    FIGHT_CARD_WORDS,
     formatCardSubtitle,
     formatFigure,
+    formatSideCounts,
     formatUndrawn,
     getCaveatForUnannounced,
     getNoteForCaveat,
@@ -66,6 +68,7 @@ import {
     getWordsForOutcome,
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
+    getWordsForProfession,
     getWordsForSizeReset,
     getWordsForStorage,
     getWordsForTypeStep,
@@ -83,6 +86,7 @@ import {
     type FakeElement,
     getElementsWithin,
     getTextsByClass,
+    getWholeTextsByClass,
     pointAtElement,
     pressElement,
 } from "#/tests/fake-document.ts";
@@ -242,7 +246,7 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
         ...composeShownScreen(readFight()),
         readerSide: 1,
         isOnShelf: true,
-        place: "Mapa (1, 2)",
+        place: { name: "Mapa", tile: "(1, 2)" },
     });
     const host = panel.element as FakeElement;
     // A header saying how this fight went, over a list of other fights, answers a question
@@ -250,7 +254,7 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
     // the shelf is kept is asked in the options (ADR 0013), so no strip stands here at all.
     const strips = getElementsWithin(host).filter((one) => one.className === "strips");
     assertEquals(strips.length, 0, "no strip, neither the fight's nor the storage's");
-    assertEquals(getTextsByClass(host, "header-place"), [], "and no header of the fight's");
+    assertEquals(getWholeTextsByClass(host, "header-place"), [], "and no header of the fight's");
     assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.fights], "the shelf says so");
     assertEquals(
         getTextsByClass(host, "crumb-back"),
@@ -271,7 +275,7 @@ Deno.test("the options cover the screen, with where the shelf is kept and the wa
     panel.render({
         ...composeShownScreen(readFight()),
         readerSide: 1,
-        place: "Mapa (1, 2)",
+        place: { name: "Mapa", tile: "(1, 2)" },
         options: { storage: STORAGE_CHOICE.session, answers: [CHOICE_REFUSED_ANSWER] },
     });
     const host = panel.element as FakeElement;
@@ -308,7 +312,7 @@ Deno.test("the options cover the screen, with where the shelf is kept and the wa
         [getWordsForTypeStep(TYPE_STEP_DEFAULT), getWordsForStorage("session")],
         "with the reader's own answers marked as more than a colour",
     );
-    assertEquals(getTextsByClass(host, "header-place"), [], "no header of the fight's");
+    assertEquals(getWholeTextsByClass(host, "header-place"), [], "no header of the fight's");
     assertEquals(
         getElementsWithin(host).filter((one) => one.className.startsWith("row")),
         [],
@@ -1371,29 +1375,103 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
     );
 });
 
-Deno.test("the bar says where the fight is being fought, and stays a bar without it", () => {
+Deno.test("the fight's line says where it is fought, after how it went, and stands without it", () => {
     const document = composeFakeDocument();
     const panel = initTestView(document);
-    const shown = composeShownScreen(readFight());
-    panel.render({ ...shown, place: "Mapa (12, 34)" });
+    const shown = composeShownScreen({ ...readFight(), outcome: "won" });
+    panel.render({ ...shown, place: { name: "Mapa", tile: "(12, 34)" } });
     const host = panel.element as FakeElement;
-    // A line of its own under the headcount, because it is the one thing on the header whose
-    // length this panel does not choose.
     assertEquals(
-        getTextsByClass(host, "header-place"),
+        getWholeTextsByClass(host, "header-place"),
         ["Mapa (12, 34)"],
-        "the place, its own line",
+        "the place, reading as one text",
+    );
+    const line = getElementsWithin(host).find((one) => one.className === "header-line");
+    assertEquals(
+        Array.from(line?.children ?? []).map((one) => one.className),
+        ["", "header-outcome", "header-place"],
+        "on the line saying what the fight was, after how it went (ADR 0014)",
+    );
+    assertEquals(getTextsByClass(host, "header-place-name"), ["Mapa"], "the name that gives way");
+    assertEquals(
+        getTextsByClass(host, "header-place-tile"),
+        [" (12, 34)"],
+        "the tile that does not",
     );
     const header = getElementsWithin(host).find((one) => one.className === "header");
-    assertEquals(header?.children.length, 2, "under the line that says what the fight is");
+    assertEquals(header?.children.length, 1, "and the header is that one line");
 
-    panel.render({ ...shown, place: null });
-    assertEquals(getTextsByClass(host, "header-place"), [], "and nothing where nothing was said");
+    panel.render({ ...shown, place: { name: null, tile: "(12, 34)" } });
     assertEquals(
-        getElementsWithin(host).find((one) => one.className === "header")?.children.length,
-        1,
-        "the header standing on, at the size it always has",
+        getWholeTextsByClass(host, "header-place"),
+        ["(12, 34)"],
+        "a tile alone has no space",
     );
+    panel.render({ ...shown, place: null });
+    assertEquals(
+        getWholeTextsByClass(host, "header-place"),
+        [],
+        "and nothing where nothing was said",
+    );
+    assertEquals(
+        getElementsWithin(host).find((one) => one.className === "header-line")?.children.length,
+        2,
+        "the line standing on without it",
+    );
+});
+
+Deno.test("pointing at the fight's line opens the card saying which fight it was", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const shown = composeShownScreen({ ...readFight(), outcome: "won" });
+    panel.render({
+        ...shown,
+        place: { name: "Mapa", tile: "(12, 34)" },
+        card: {
+            ...shown.card,
+            at: { day: 13, month: 9, hour: 21, minute: 5 },
+            place: "Mapa (12, 34)",
+            world: "tempest",
+            reader: { name: "Gracz 1", profession: "m", level: 64 },
+        },
+    });
+    const host = panel.element as FakeElement;
+    const tile = getElementsWithin(host).find((one) => one.className === "header-place-tile");
+    assertExists(tile, "the tile is drawn");
+    pointAtElement(host, "pointermove", tile, 20);
+    const card = readTip(host);
+    assertEquals(card.name, ["Mapa (12, 34)"], "named by the place, whole, as a name may wrap");
+    assertEquals(
+        card.subtitle,
+        [`${formatSideCounts(shown.reading.sizes, shown.reading.unplaced)} · wygrana`],
+        "under it the line itself",
+    );
+    assertEquals(
+        card.stated.map((one) => [one.label, one.value]),
+        [
+            [FIGHT_CARD_WORDS.when, "13 wrz 21:05"],
+            [FIGHT_CARD_WORDS.world, "tempest"],
+            [FIGHT_CARD_WORDS.character, "Gracz 1"],
+            [FIGHT_CARD_WORDS.profession, `${getWordsForProfession("m")} (64)`],
+        ],
+        "when, the world and the reader's character, from the innermost part pointed at",
+    );
+});
+
+Deno.test("a fight's card with no place is named by its line, and states only what was read", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const shown = composeShownScreen({ ...readFight(), outcome: null });
+    panel.render({ ...shown, card: { ...shown.card, isLive: true } });
+    const host = panel.element as FakeElement;
+    const line = getElementsWithin(host).find((one) => one.className === "header-line");
+    assertExists(line, "the line is drawn");
+    pointAtElement(host, "pointermove", line, 20);
+    const card = readTip(host);
+    const counted = formatSideCounts(shown.reading.sizes, shown.reading.unplaced);
+    assertEquals(card.name, [`${counted} · trwa`], "a fight going on, said as the shelf says it");
+    assertEquals(card.subtitle, [], "with nothing under it to repeat");
+    assertEquals(card.groups, 0, "and no line for anything nobody read");
 });
 
 Deno.test("a folded panel is its bar and nothing else, and offers the way back", () => {
@@ -1460,14 +1538,17 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         TEST_VERSION,
         "the host states it where anything outside the root can read it",
     );
-    panel.render({ ...composeShownScreen(readFight()), place: "Mapa (12, 34)" });
+    panel.render({
+        ...composeShownScreen(readFight()),
+        place: { name: "Mapa", tile: "(12, 34)" },
+    });
     assertEquals(
         getTextsByClass(host, "titlebar-version"),
         [TEST_VERSION],
         "and the bar says it once, beside the name",
     );
     assertEquals(
-        getTextsByClass(host, "header-place"),
+        getWholeTextsByClass(host, "header-place"),
         ["Mapa (12, 34)"],
         "with the place still drawn, on the header where it belongs",
     );
@@ -1770,7 +1851,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
     assertEquals(readTip(host).groups, 1, "and a row with no cut kept for it says it in one run");
 });
 
-Deno.test("a shelf row opens the place its own cell had to cut", () => {
+Deno.test("a shelf row opens the fight's card, with the place its own cell had to cut", () => {
     const document = composeFakeDocument();
     const panel = initTestView(document);
     panel.render({
@@ -1785,6 +1866,16 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
             isChosen: false,
             isPinned: false,
             isPinnable: true,
+            card: {
+                sizes: [10, 1],
+                unplaced: 0,
+                outcome: "lost",
+                isLive: false,
+                at: { day: 13, month: 9, hour: 21, minute: 5 },
+                place: "Bagno Wisielców (128, 74)",
+                world: null,
+                reader: null,
+            },
         }],
         isOnShelf: true,
     });
@@ -1800,10 +1891,17 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
     );
     assertEquals(getTextsByClass(host, "row-value")[0], "przegrana", "and how it went, last");
     pointAtElement(host, "pointermove", row, 120);
+    const card = readTip(host);
     assertEquals(
-        readTip(host).lines,
+        card.name,
         ["Bagno Wisielców (128, 74)"],
-        "and the place whole, which is the half the row loses to an ellipsis",
+        "the place whole, which is the half the row loses to an ellipsis",
+    );
+    assertEquals(card.subtitle, ["10 vs 1 · przegrana"], "under it the fight, as its line says");
+    assertEquals(
+        card.stated.map((one) => [one.label, one.value]),
+        [[FIGHT_CARD_WORDS.when, "13 wrz 21:05"]],
+        "and no line for anything nobody could read",
     );
 });
 

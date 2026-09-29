@@ -1,7 +1,7 @@
 /**
  * The add-on stood up over a page of a test's own, the way a browser stands it up: every port the
  * runtime is handed, over maps a test can look into, and a frame that falls when the test says so.
- * The engine, the place, the dictionary and the tooltip are the page adapters themselves, over the
+ * The engine, the place, the hero, the dictionary and the tooltip are the page adapters themselves, over the
  * page handed in, so a recording played through the wrap reaches every layer the game's would.
  */
 
@@ -9,6 +9,7 @@ import { assert, assertExists } from "@std/assert";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { initPageStore, type KeyValueStore } from "#/src/game/browser-store.ts";
 import { initPageEngine } from "#/src/game/engine-battle.ts";
+import { initPageHero } from "#/src/game/engine-hero.ts";
 import { initPagePlace } from "#/src/game/engine-place.ts";
 import { initPageTooltip } from "#/src/game/engine-tooltip.ts";
 import { initPageDictionary } from "#/src/game/game-dictionary.ts";
@@ -178,6 +179,7 @@ function composeRuntimePorts(
         interval: { every: () => ({ cancel: () => undefined }) },
         engine: initPageEngine(page),
         place: initPagePlace(page),
+        hero: initPageHero(page),
         dictionary: initPageDictionary(page),
         build: { readBuildId: () => GAME_BUILD },
         surroundings: { readWorld: () => WORLD, readUserAgent: () => "a browser that said so" },

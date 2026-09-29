@@ -39,6 +39,16 @@ export function composeShownScreen(
         halfNamed: null,
         halfNamedDrill: null,
         place: null,
+        card: {
+            sizes: reading.sizes,
+            unplaced: reading.unplaced,
+            outcome: reading.outcome,
+            isLive: false,
+            at: null,
+            place: null,
+            world: null,
+            reader: null,
+        },
         isCollapsed: false,
     };
 }

@@ -115,6 +115,15 @@ export const PANEL_DEFECT_KIND = {
 } as const;
 export type PanelDefectKind = VocabularyWord<typeof PANEL_DEFECT_KIND>;
 
+/**
+ * A place in the two parts that give way differently on the fight's line: the map's name shortens
+ * and the tile never does (ADR 0014). Either may be missing, never both.
+ */
+export interface PlaceWords {
+    name: string | null;
+    tile: string | null;
+}
+
 interface ShareInPoints {
     index: number;
     amount: number;
@@ -784,6 +793,14 @@ export const EVERY_SLOT_PINNED_ANSWER =
 
 export const CHOICE_REFUSED_ANSWER =
     "Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było.";
+
+/** The labels on the card a fight opens, from its line or its shelf row (ADR 0014). */
+export const FIGHT_CARD_WORDS = {
+    when: "Kiedy",
+    world: "Świat",
+    character: "Postać",
+    profession: "Profesja",
+} as const;
 
 const LIVE_FIGHT_TIME = "teraz";
 const LIVE_FIGHT_OUTCOME = "trwa";
@@ -1620,9 +1637,22 @@ export function formatPlace(
     x: number | null,
     y: number | null,
 ): string | null {
-    const named = mapName !== null && mapName.length > 0 ? mapName : null;
+    const words = formatPlaceWords(mapName, x, y);
+    if (words === null) return null;
+    if (words.name === null) return words.tile;
+    if (words.tile === null) return words.name;
+    return `${words.name} ${words.tile}`;
+}
+
+export function formatPlaceWords(
+    mapName: string | null,
+    x: number | null,
+    y: number | null,
+): PlaceWords | null {
+    const name = mapName !== null && mapName.length > 0 ? mapName : null;
     const tile = x === null || y === null ? null : `(${x}, ${y})`;
-    if (named === null) return tile;
-    if (tile === null) return named;
-    return `${named} ${tile}`;
+    if (name === null) {
+        if (tile === null) return null;
+    }
+    return { name, tile };
 }
