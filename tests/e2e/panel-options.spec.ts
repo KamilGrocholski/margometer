@@ -8,6 +8,14 @@ import { expect, test } from "./panel-fixture.ts";
 /** Named as `STORE_KEY` in `src/game/browser-store.ts` names it. */
 const STORAGE_KEY = "MargoMeter-storage";
 const CONTROLS = ["[data-options]", "[data-shelf]", "[data-save]", "[data-fold]"];
+/** Each step and the row it draws: `TYPE_TOKENS` in `src/ui/panel-look.ts`. */
+const STEPS = [
+    { step: "small", row: 18 },
+    { step: "medium", row: 19 },
+    { step: "large", row: 21 },
+];
+/** What in the options is one row of answer, and so must never fold (ADR 0015). */
+const ANSWERS = [".options-step", ".options-answer", ".options-window"];
 
 test("every control the bar carries stands inside the bar", async ({ panel }) => {
     // The bar is one line whatever it holds, so a control pushed past its end is cut off rather
@@ -33,6 +41,35 @@ test("the options cover the ranking, and a right press anywhere puts them away",
     await expect(panel.at(".crumb-here"), "the way back leaves them").toHaveCount(0);
     await expect(panel.at(".list .row"), "onto the ranking they covered").not.toHaveCount(0);
     await panel.expectHonest("the ranking after the options");
+});
+
+test("every answer in the options stands on one line inside the panel, at every step", async ({ panel }) => {
+    // Where the shelf is kept has the longest words, and three abreast they do not fit the small
+    // step's width: that is why they stand a row each, and what this holds.
+    await panel.at("[data-options]").click();
+    for (const { step, row } of STEPS) {
+        await panel.at(`[data-type-step="${step}"]`).click();
+        await expect(panel.at(`[data-type-step="${step}"].selected`), `${step} is taken`)
+            .toHaveCount(1);
+        const edge = await panel.at(".panel").evaluate((one) => one.getBoundingClientRect().right);
+        for (const selector of ANSWERS) {
+            const drawn = await panel.at(selector).evaluateAll((all) =>
+                all.map((one) => ({
+                    height: one.getBoundingClientRect().height,
+                    right: one.getBoundingClientRect().right,
+                    spill: one.scrollWidth - one.clientWidth,
+                }))
+            );
+            expect(drawn.length, `${step}: ${selector} is drawn`).toBeGreaterThan(0);
+            for (const one of drawn) {
+                expect(one.height, `${step}: ${selector} is one row`).toBe(row);
+                expect(one.spill, `${step}: ${selector} holds its words`).toBeLessThanOrEqual(0);
+                expect(one.right, `${step}: ${selector} ends inside the panel`)
+                    .toBeLessThanOrEqual(edge);
+            }
+        }
+    }
+    await panel.expectHonest("the options at every step");
 });
 
 test.describe("before any fight", () => {

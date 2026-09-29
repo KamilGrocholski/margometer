@@ -65,22 +65,23 @@ file comes or goes (ADR 0010).
 | `docs/structure.md`       | this map of the tree, one row per file                                                       |
 | `docs/turns-taken.md`     | the turns each combatant took, graded recording by recording against the game's numbering    |
 
-| Path                                                                                           | For                                                                                           |
-| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `docs/adr/0001-a-vocabulary-is-an-object.md`                                                   | a closed set of our own strings is an object, its list the object's values                    |
-| `docs/adr/0002-a-sibling-is-imported-by-dot-and-the-rest-from-the-root.md`                     | a sibling is imported by `./`, everything else from the root by `#/`                          |
-| `docs/adr/0003-a-module-reads-top-down-in-tigerbeetles-order.md`                               | a module reads top-down: imports, types, constants, then functions, entry first               |
-| `docs/adr/0004-the-frozen-readings-are-develops-at-the-revision.md`                            | superseded by ADR 0005: `frozen/` pinned to `develop`'s readings                              |
-| `docs/adr/0005-the-readings-are-refreshed-here.md`                                             | the readings of the game in `frozen/` are refreshed by this tree's own tools                  |
-| `docs/adr/0006-an-if-that-does-not-leave-has-an-else.md`                                       | an `if` that does not leave has an `else`, and a guard is exempt                              |
-| `docs/adr/0007-the-protocol-key-register-is-carried-and-a-help-freeze-counts-what-it-cites.md` | `develop`'s key register carried, and the help counts taken from its claims                   |
-| `docs/adr/0008-a-failure-is-an-error-returned-beside-the-value.md`                             | a failure is an `Error` class returned beside the value, and `attempt` the one catch          |
-| `docs/adr/0009-a-failure-is-named-for-what-failed-and-how.md`                                  | a failure class is a subject and its state, never `…Error`, and `attempt` keeps its name      |
-| `docs/adr/0010-the-structure-is-a-document-of-its-own.md`                                      | the map of the tree stands in a document of its own, out of the rules every session reads     |
-| `docs/adr/0011-a-reading-is-re-dated-only-when-its-content-moves.md`                           | a frozen reading carries the first fetch that gave its content, and experimental is previewed |
-| `docs/adr/0012-damage-dealt-and-taken-count-what-an-absorption-pool-took.md`                   | damage dealt and taken are health plus what an absorption pool took, and a block stays apart  |
-| `docs/adr/0013-a-reader-chooses-the-type-size-and-the-size-of-each-window.md`                  | a reader picks one of three measured type steps and sizes each window by its corner           |
-| `docs/adr/0014-the-fight-line-holds-the-place-and-a-card-says-which-fight-it-was.md`           | the place joins the fight's line and gives way first, and a card says which fight it was      |
+| Path                                                                                                 | For                                                                                           |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `docs/adr/0001-a-vocabulary-is-an-object.md`                                                         | a closed set of our own strings is an object, its list the object's values                    |
+| `docs/adr/0002-a-sibling-is-imported-by-dot-and-the-rest-from-the-root.md`                           | a sibling is imported by `./`, everything else from the root by `#/`                          |
+| `docs/adr/0003-a-module-reads-top-down-in-tigerbeetles-order.md`                                     | a module reads top-down: imports, types, constants, then functions, entry first               |
+| `docs/adr/0004-the-frozen-readings-are-develops-at-the-revision.md`                                  | superseded by ADR 0005: `frozen/` pinned to `develop`'s readings                              |
+| `docs/adr/0005-the-readings-are-refreshed-here.md`                                                   | the readings of the game in `frozen/` are refreshed by this tree's own tools                  |
+| `docs/adr/0006-an-if-that-does-not-leave-has-an-else.md`                                             | an `if` that does not leave has an `else`, and a guard is exempt                              |
+| `docs/adr/0007-the-protocol-key-register-is-carried-and-a-help-freeze-counts-what-it-cites.md`       | `develop`'s key register carried, and the help counts taken from its claims                   |
+| `docs/adr/0008-a-failure-is-an-error-returned-beside-the-value.md`                                   | a failure is an `Error` class returned beside the value, and `attempt` the one catch          |
+| `docs/adr/0009-a-failure-is-named-for-what-failed-and-how.md`                                        | a failure class is a subject and its state, never `…Error`, and `attempt` keeps its name      |
+| `docs/adr/0010-the-structure-is-a-document-of-its-own.md`                                            | the map of the tree stands in a document of its own, out of the rules every session reads     |
+| `docs/adr/0011-a-reading-is-re-dated-only-when-its-content-moves.md`                                 | a frozen reading carries the first fetch that gave its content, and experimental is previewed |
+| `docs/adr/0012-damage-dealt-and-taken-count-what-an-absorption-pool-took.md`                         | damage dealt and taken are health plus what an absorption pool took, and a block stays apart  |
+| `docs/adr/0013-a-reader-chooses-the-type-size-and-the-size-of-each-window.md`                        | a reader picks one of three measured type steps and sizes each window by its corner           |
+| `docs/adr/0014-the-fight-line-holds-the-place-and-a-card-says-which-fight-it-was.md`                 | the place joins the fight's line and gives way first, and a card says which fight it was      |
+| `docs/adr/0015-each-question-in-the-options-stands-under-a-heading-in-the-shape-its-answers-need.md` | each question in the options stands under a heading, its answers in the shape they need       |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

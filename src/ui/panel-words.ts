@@ -162,10 +162,13 @@ export const PANEL_WORDS = {
     backFromFights: "wróć",
     options: "Opcje",
     backFromOptions: "wróć",
-    storage: "Trzymaj walki",
+    storage: "Zapisane walki",
     typeSize: "Pismo",
-    windowSize: "Rozmiar",
-    resizeHint: "przeciągnij prawy dolny róg okna",
+    windowSize: "Rozmiar okien",
+    resizeHint: "Rozmiar zmienisz, ciągnąc prawy dolny róg okna.",
+    sizeOwn: "własny",
+    sizeDefault: "domyślny",
+    sizeReset: "przywróć",
     resizeGrip: "Przeciągnij, żeby zmienić rozmiar",
     ourSide: "My",
     theirSide: "Oni",
@@ -769,10 +772,20 @@ const STORAGE_WORDS: Record<StorageChoice, string> = {
     memory: "tylko teraz",
 };
 
-/** Named after the window, so a reader sizing only one is told which one goes back. */
-const SIZE_RESET_WORDS: Record<PanelWindow, string> = {
-    panel: "przywróć panel",
-    helper: "przywróć Pomocnika",
+/**
+ * What each answer means to the fights already kept, said under the answers: the three words alone
+ * do not say that a reload is survived by one and not by another.
+ */
+const STORAGE_MEANING_WORDS: Record<StorageChoice, string> = {
+    local: "Zostają też po zamknięciu przeglądarki.",
+    session: "Przetrwają odświeżenie strony, znikną z zamknięciem karty.",
+    memory: "Znikną przy odświeżeniu strony.",
+};
+
+/** A line per window in the options, so a reader who sized one is told which goes back. */
+const WINDOW_WORDS: Record<PanelWindow, string> = {
+    panel: "Panel",
+    helper: STANDING_WORDS.title,
 };
 
 const TYPE_STEP_WORDS: Record<TypeStep, string> = {
@@ -1268,8 +1281,13 @@ export function getWordsForStorage(choice: StorageChoice): string {
     return words;
 }
 
-export function getWordsForSizeReset(window: PanelWindow): string {
-    const words = SIZE_RESET_WORDS[window];
+export function getWordsForStorageMeaning(choice: StorageChoice): string {
+    const words = STORAGE_MEANING_WORDS[choice];
+    return words;
+}
+
+export function getWordsForWindow(window: PanelWindow): string {
+    const words = WINDOW_WORDS[window];
     return words;
 }
 

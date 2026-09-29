@@ -17,6 +17,7 @@ import {
 import {
     CLASS,
     composeBarColour,
+    composeOptionsStepClass,
     composeStyleSheet,
     getContrastRatio,
     getInkForBar,
@@ -82,7 +83,7 @@ const DEVELOP_SHEET_FILES = [
 ];
 const DEVELOP_ROOT_PREFIX = '"@/';
 
-/** ADR 0013 and ADR 0014: the rules the options, the sizing and the fight's line move. */
+/** ADR 0013, 0014 and 0015: the rules the options, the sizing and the fight's line move. */
 const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // The options control stands first on the bar and leads the rest to its far end.
     { develop: ".titlebar-fights", here: ".titlebar-lead" },
@@ -109,6 +110,27 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: null, here: ".header-line>*" },
     { develop: null, here: ".header-place-name" },
     { develop: null, here: ".header-place-tile" },
+    // Each question of the options under a heading, its answers in the shape they need (ADR 0015).
+    { develop: ".strips-label", here: null },
+    { develop: null, here: ".options-question" },
+    { develop: null, here: ".options-heading" },
+    { develop: null, here: ".options-steps" },
+    { develop: null, here: ".options-step" },
+    { develop: null, here: ".options-step:first-child" },
+    { develop: null, here: ".options-step-small" },
+    { develop: null, here: ".options-step-medium" },
+    { develop: null, here: ".options-step-large" },
+    { develop: null, here: ".options-window" },
+    { develop: null, here: ".options-window-name" },
+    { develop: null, here: ".options-window-state" },
+    { develop: null, here: ".options-window-state.options-window-own" },
+    { develop: null, here: ".options-reset" },
+    { develop: null, here: ".options-answer" },
+    { develop: null, here: ".options-answer::before" },
+    { develop: null, here: ".options-answer.selected::before" },
+    { develop: null, here: ".options-step:hover,.options-answer:hover" },
+    { develop: null, here: ".options-step.selected,.options-answer.selected" },
+    { develop: null, here: ".options-meaning" },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
@@ -385,7 +407,7 @@ Deno.test("the two sides are told apart by more than a hue", () => {
  * A token written in another spelling here has to write the same text, and a value that moved
  * without a record naming it is a finding in one of the two.
  */
-Deno.test("the style sheet is develop's, but for the rules ADR 0013 and 0014 move", async () => {
+Deno.test("the style sheet is develop's, but for the rules ADR 0013, 0014 and 0015 move", async () => {
     const develop = await readDevelopStyleSheet();
     assertEquals(
         findSheetDepartures(develop, composeStyleSheet(TYPE_STEP.small), SHEET_DEPARTURES),
@@ -911,7 +933,19 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
         );
         assertExists(ring, `${step}: the ring is one rule for both places it stands`);
         assertEquals(getDeclaration(ring.body, "font-size"), letter, `${step}: the ring's letter`);
+        // The one exception is the options' three steps, each written in the size it gives, in
+        // every sheet (ADR 0015): held to those sizes here and left out of the rule below.
+        const samples = TYPE_STEPS.map((sample) => `.${composeOptionsStepClass(sample)}`);
+        for (const sample of TYPE_STEPS) {
+            const sampled = getRuleBody(sheet, `.${composeOptionsStepClass(sample)}`);
+            assertEquals(
+                getDeclaration(sampled, "font-size"),
+                `${TYPE_TOKENS[sample].fontPixels}px`,
+                `${step}: the step ${sample} in the options is written in its own size`,
+            );
+        }
         const small = readRules(sheet)
+            .filter((one) => !samples.includes(one.selector))
             .map((one) => getDeclaration(one.body, "font-size"))
             .filter((stated) => stated !== null)
             .filter((stated) => stated !== letter);

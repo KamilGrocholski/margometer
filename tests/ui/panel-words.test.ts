@@ -69,12 +69,13 @@ import {
     getWordsForShelfOutcome,
     getWordsForShelfTime,
     getWordsForSide,
-    getWordsForSizeReset,
     getWordsForStorage,
+    getWordsForStorageMeaning,
     getWordsForTurnState,
     getWordsForTypeStep,
     getWordsForUnannounced,
     getWordsForUnnamedEnd,
+    getWordsForWindow,
     HEALTH_LOSS_WORD_BY_KEY,
     HEALTH_SOURCE_WORD_BY_KEY,
     NEITHER_END_WORDS,
@@ -312,7 +313,8 @@ function getSentencesFromChoices(): string[] {
     for (const choice of SIDE_CHOICES) found.push(getWordsForSide(choice));
     for (const choice of STORAGE_CHOICES) found.push(getWordsForStorage(choice));
     for (const step of TYPE_STEPS) found.push(getWordsForTypeStep(step));
-    for (const window of PANEL_WINDOWS) found.push(getWordsForSizeReset(window));
+    for (const choice of STORAGE_CHOICES) found.push(getWordsForStorageMeaning(choice));
+    for (const window of PANEL_WINDOWS) found.push(getWordsForWindow(window));
     for (const state of TURN_STATES) found.push(getWordsForTurnState(state));
     for (const outcome of PANEL_OUTCOMES) {
         found.push(getWordsForOutcome(outcome));

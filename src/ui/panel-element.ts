@@ -45,7 +45,7 @@ import {
     readPanelIntent,
 } from "./panel-intent.ts";
 import { addGuardedListener } from "./panel-listener.ts";
-import { CLASS, composeStyleSheet, TYPE_TOKENS } from "./panel-look.ts";
+import { CLASS, composeOptionsStepClass, composeStyleSheet, TYPE_TOKENS } from "./panel-look.ts";
 import { type Colour, formatColour, lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
 import { presentCard, presentCaveatNoteLines } from "./panel-card.ts";
 import { presentFightCard } from "./fight-card.ts";
@@ -141,13 +141,14 @@ import {
     getWordsForPinnedStanding,
     getWordsForShelfOutcome,
     getWordsForShelfTime,
-    getWordsForSizeReset,
     getWordsForStandingAbsence,
     getWordsForStorage,
+    getWordsForStorageMeaning,
     getWordsForTurnState,
     getWordsForTypeStep,
     getWordsForUnannounced,
     getWordsForUnnamedEnd,
+    getWordsForWindow,
     NEITHER_END_WORDS,
     PANEL_DEFECT_KIND,
     PANEL_REGION,
@@ -1521,65 +1522,80 @@ function renderOptionsRegion(
     chosen: { typeStep: TypeStep; windowSizes: WindowSizes },
 ): PanelElement {
     const region = renderElement(document, "div", "");
-    region.append(renderTypeStrips(document, chosen.typeStep));
-    region.append(renderSizeStrips(document, chosen.windowSizes));
-    region.append(renderStorageStrips(document, options.storage));
+    region.append(renderOptionsType(document, chosen.typeStep));
+    region.append(renderOptionsSize(document, chosen.windowSizes));
+    region.append(renderOptionsStorage(document, options.storage));
     return region;
 }
 
-/**
- * A way back for each window a reader sized, and none for one they did not: a control that does
- * nothing is worse than none (`DESIGN.md`). With neither sized, it says how a window is sized.
- */
-function renderSizeStrips(document: PanelDocument, sizes: WindowSizes): PanelElement {
-    const strips = renderElement(document, "div", CLASS.strips);
-    const label = renderElement(document, "span", CLASS.stripsLabel);
-    label.textContent = PANEL_WORDS.windowSize;
-    strips.append(label);
-    const sized = PANEL_WINDOWS.filter((window) => sizes[window] !== null);
-    if (sized.length === 0) {
-        const hint = renderElement(document, "span", CLASS.stripsLabel);
-        hint.textContent = PANEL_WORDS.resizeHint;
-        strips.append(hint);
-        return strips;
-    }
-    for (const window of sized) {
-        const one = renderElement(document, "div", CLASS.strip);
-        one.textContent = getWordsForSizeReset(window);
-        one.setAttribute(PANEL_MARK.resetSize, window);
-        strips.append(one);
-    }
-    return strips;
-}
-
-function renderTypeStrips(document: PanelDocument, current: TypeStep): PanelElement {
-    const strips = renderElement(document, "div", CLASS.strips);
-    const label = renderElement(document, "span", CLASS.stripsLabel);
-    label.textContent = PANEL_WORDS.typeSize;
-    strips.append(label);
+/** The three steps side by side, each word written in the size it gives (ADR 0015). */
+function renderOptionsType(document: PanelDocument, current: TypeStep): PanelElement {
+    const question = renderOptionsQuestion(document, PANEL_WORDS.typeSize);
+    const steps = renderElement(document, "div", CLASS.optionsSteps);
     for (const step of TYPE_STEPS) {
         const marked = step === current ? ` ${CLASS.stripCurrent}` : "";
-        const one = renderElement(document, "div", `${CLASS.strip}${marked}`);
+        const className = `${CLASS.optionsStep} ${composeOptionsStepClass(step)}${marked}`;
+        const one = renderElement(document, "div", className);
         one.textContent = getWordsForTypeStep(step);
         one.setAttribute(PANEL_MARK.typeStep, step);
-        strips.append(one);
+        steps.append(one);
     }
-    return strips;
+    question.append(steps);
+    return question;
 }
 
-function renderStorageStrips(document: PanelDocument, current: StorageChoice): PanelElement {
-    const strips = renderElement(document, "div", CLASS.strips);
-    const label = renderElement(document, "span", CLASS.stripsLabel);
-    label.textContent = PANEL_WORDS.storage;
-    strips.append(label);
+function renderOptionsQuestion(document: PanelDocument, said: string): PanelElement {
+    const question = renderElement(document, "div", CLASS.optionsQuestion);
+    const heading = renderElement(document, "div", CLASS.optionsHeading);
+    heading.textContent = said;
+    question.append(heading);
+    return question;
+}
+
+/**
+ * A line per window saying whether it keeps a size of the reader's, and a way back on the one that
+ * does and on no other: a control that does nothing is worse than none (`DESIGN.md`).
+ */
+function renderOptionsSize(document: PanelDocument, sizes: WindowSizes): PanelElement {
+    const question = renderOptionsQuestion(document, PANEL_WORDS.windowSize);
+    for (const window of PANEL_WINDOWS) {
+        const isSized = sizes[window] !== null;
+        const line = renderElement(document, "div", CLASS.optionsWindow);
+        const name = renderElement(document, "span", CLASS.optionsWindowName);
+        name.textContent = getWordsForWindow(window);
+        const own = isSized ? ` ${CLASS.optionsWindowOwn}` : "";
+        const state = renderElement(document, "span", `${CLASS.optionsWindowState}${own}`);
+        state.textContent = isSized ? PANEL_WORDS.sizeOwn : PANEL_WORDS.sizeDefault;
+        line.append(name);
+        line.append(state);
+        if (isSized) {
+            const reset = renderElement(document, "span", CLASS.optionsReset);
+            reset.textContent = PANEL_WORDS.sizeReset;
+            reset.setAttribute(PANEL_MARK.resetSize, window);
+            line.append(reset);
+        }
+        question.append(line);
+    }
+    const hint = renderElement(document, "div", CLASS.optionsMeaning);
+    hint.textContent = PANEL_WORDS.resizeHint;
+    question.append(hint);
+    return question;
+}
+
+/** A row per answer, in the order they keep longest, and under them what the one taken means. */
+function renderOptionsStorage(document: PanelDocument, current: StorageChoice): PanelElement {
+    const question = renderOptionsQuestion(document, PANEL_WORDS.storage);
     for (const choice of STORAGE_CHOICES) {
         const marked = choice === current ? ` ${CLASS.stripCurrent}` : "";
-        const one = renderElement(document, "div", `${CLASS.strip}${marked}`);
+        const one = renderElement(document, "div", `${CLASS.optionsAnswer}${marked}`);
         one.textContent = getWordsForStorage(choice);
         one.setAttribute(PANEL_MARK.storage, choice);
-        strips.append(one);
+        question.append(one);
     }
-    return strips;
+    const meaning = renderElement(document, "div", CLASS.optionsMeaning);
+    meaning.textContent = getWordsForStorageMeaning(current);
+    question.append(meaning);
+    return question;
 }
 
 function renderShownList(

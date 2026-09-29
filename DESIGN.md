@@ -353,10 +353,19 @@ one that is not there.
 
 **The options cover the screens as the shelf does**, and never stand open beside it (ADR 0013). They
 are reached before any fight has come, because nothing in them is a fight's. Under the way back,
-each question is a strip behind a word that says what it answers, and what the browser answered back
-stands under the strips. **Where the shelf is kept is one of them**: the three answers stand in the
-order they keep longest, because three choices side by side are three words nobody can order without
-being told what they are about.
+**each question stands under a heading lettered as a section of the list is, and its answers take
+the shape they need** (ADR 0015):
+
+- the three steps of type stand side by side in one framed segment, each written in the size it
+  gives;
+- the windows get a line each, saying whether the size is the reader's, and a way back on the one
+  that is;
+- where the shelf is kept gets a row per answer, in the order they keep longest, and a sentence
+  under them saying what the answer taken means for the fights kept.
+
+The answer taken stands in `text`, in weight, on `track`, and a row answer carries a ✓ besides.
+Every answer is one row inside the panel at every step. What the browser answered back stands under
+the questions.
 
 **Three levels, and the third has two shapes.** The ranking lists people; pressing one opens their
 own figure cut by the other end of each movement, by what it was announced with, and by what it was

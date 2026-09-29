@@ -8,7 +8,13 @@
  */
 
 import { clamp } from "#/libs/number-range.ts";
-import { PANEL_WINDOW, type PanelWindow, TYPE_STEP, type TypeStep } from "./panel-choice.ts";
+import {
+    PANEL_WINDOW,
+    type PanelWindow,
+    TYPE_STEP,
+    TYPE_STEPS,
+    type TypeStep,
+} from "./panel-choice.ts";
 import { type Colour, formatColour, SIGNAL } from "./panel-palette.ts";
 
 /**
@@ -88,12 +94,23 @@ export const CLASS = {
     headerOutcome: "header-outcome",
     strips: "strips",
     stripsGap: "strips-gap",
-    stripsLabel: "strips-label",
     strip: "strip",
     stripCurrent: "selected",
     crumb: "crumb",
     crumbBack: "crumb-back",
     crumbHere: "crumb-here",
+    /** One question of the options: a heading, then its answers in the shape they need. */
+    optionsQuestion: "options-question",
+    optionsHeading: "options-heading",
+    optionsSteps: "options-steps",
+    optionsStep: "options-step",
+    optionsWindow: "options-window",
+    optionsWindowName: "options-window-name",
+    optionsWindowState: "options-window-state",
+    optionsWindowOwn: "options-window-own",
+    optionsReset: "options-reset",
+    optionsAnswer: "options-answer",
+    optionsMeaning: "options-meaning",
     list: "list",
     listWaiting: "list-waiting",
     section: "section-heading",
@@ -447,9 +464,15 @@ export function getBarHeight(tokens: TypeTokens): number {
     return control + 2 * SPACE_PIXELS.small + RULE_WIDTH;
 }
 
+/** The class a step of type wears in the options, so each is written in the size it gives. */
+export function composeOptionsStepClass(step: TypeStep): string {
+    return `${CLASS.optionsStep}-${step}`;
+}
+
 export function composeStyleSheet(step: TypeStep): string {
     const tokens = TYPE_TOKENS[step];
     return `${composeFrameRules(tokens)}${composeRegionRules(tokens)}` +
+        `${composeOptionsRules(tokens)}` +
         `${composeListRules(tokens)}${composeRowRules(tokens)}${composeUnderListRules()}` +
         `${composeTipRules(tokens)}${composeStandingRules(tokens)}`;
 }
@@ -589,8 +612,6 @@ function composeRegionRules(tokens: TypeTokens): string {
         `padding:${region};padding-bottom:0;}` +
         `.${CLASS.strips}+.${CLASS.strips}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
         `.${CLASS.stripsGap}{flex:1;}` +
-        `.${CLASS.stripsLabel}{color:var(${VARIABLE_PREFIX}quiet);align-self:center;` +
-        `padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.strip}{white-space:nowrap;padding:1px var(${VARIABLE_PREFIX}small);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);color:var(${VARIABLE_PREFIX}quiet);` +
         `background:transparent;cursor:pointer;` +
@@ -603,6 +624,64 @@ function composeRegionRules(tokens: TypeTokens): string {
         `.${CLASS.crumbBack}:hover{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.crumbHere}{font-weight:600;overflow:hidden;text-overflow:ellipsis;` +
         `white-space:nowrap;}`;
+}
+
+/**
+ * Each question of the options under a heading lettered as a section of the list is, and its
+ * answers in the shape they need (ADR 0015): the three steps of type side by side, each in its
+ * own size; a line per window; a row per place a shelf is kept, since those words are too long to
+ * stand three abreast at the small step. The answer taken is marked by more than colour.
+ */
+function composeOptionsRules(tokens: TypeTokens): string {
+    const chosen = CLASS.stripCurrent;
+    const stepSizes = TYPE_STEPS.map((step) =>
+        `.${composeOptionsStepClass(step)}{font-size:${TYPE_TOKENS[step].fontPixels}px;}`
+    ).join("");
+    return `.${CLASS.optionsQuestion}{padding:var(${VARIABLE_PREFIX}wide) ` +
+        `var(${VARIABLE_PREFIX}region-across) 0;}` +
+        `.${CLASS.optionsHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
+        `font-size:${tokens.fontSmallPixels}px;text-transform:uppercase;}` +
+        `.${CLASS.optionsSteps}{display:flex;margin-top:var(${VARIABLE_PREFIX}half);` +
+        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);overflow:hidden;}` +
+        `.${CLASS.optionsStep}{flex:1 1 0;height:var(${VARIABLE_PREFIX}row-height);` +
+        `line-height:var(${VARIABLE_PREFIX}row-height);text-align:center;white-space:nowrap;` +
+        `color:var(${VARIABLE_PREFIX}quiet);border-left:1px solid var(${VARIABLE_PREFIX}border);` +
+        `cursor:pointer;-webkit-user-select:none;user-select:none;}` +
+        `.${CLASS.optionsStep}:first-child{border-left:none;}` +
+        stepSizes +
+        `.${CLASS.optionsWindow}{display:flex;align-items:center;gap:var(${VARIABLE_PREFIX}small);` +
+        `height:var(${VARIABLE_PREFIX}row-height);margin-top:var(${VARIABLE_PREFIX}half);` +
+        `padding-left:var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.optionsWindowName}{flex:1;min-width:0;overflow:hidden;` +
+        `text-overflow:ellipsis;white-space:nowrap;}` +
+        `.${CLASS.optionsWindowState}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.optionsWindowState}.${CLASS.optionsWindowOwn}{color:var(${VARIABLE_PREFIX}text);}` +
+        `.${CLASS.optionsReset}{padding:0 var(${VARIABLE_PREFIX}small);` +
+        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
+        `background:var(${VARIABLE_PREFIX}raised);color:var(${VARIABLE_PREFIX}text);` +
+        `font-size:${tokens.fontSmallPixels}px;` +
+        `line-height:calc(var(${VARIABLE_PREFIX}row-height) - var(${VARIABLE_PREFIX}small));` +
+        `cursor:pointer;-webkit-user-select:none;user-select:none;}` +
+        `.${CLASS.optionsAnswer}{display:flex;align-items:center;` +
+        `height:var(${VARIABLE_PREFIX}row-height);margin-top:var(${VARIABLE_PREFIX}half);` +
+        `padding:0 var(${VARIABLE_PREFIX}small) 0 var(${VARIABLE_PREFIX}half);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);color:var(${VARIABLE_PREFIX}quiet);` +
+        `white-space:nowrap;cursor:pointer;-webkit-user-select:none;user-select:none;}` +
+        // The mark is drawn by the sheet rather than written into the row, so the row stays one
+        // node carrying its answer's mark, and a press on the tick is a press on the answer.
+        `.${CLASS.optionsAnswer}::before{content:"";flex:none;text-align:center;` +
+        `width:calc(var(${VARIABLE_PREFIX}wide) + var(${VARIABLE_PREFIX}small));}` +
+        `.${CLASS.optionsAnswer}.${chosen}::before{content:"✓";}` +
+        `.${CLASS.optionsStep}:hover,.${CLASS.optionsAnswer}:hover` +
+        `{color:var(${VARIABLE_PREFIX}text);}` +
+        `.${CLASS.optionsStep}.${chosen},.${CLASS.optionsAnswer}.${chosen}` +
+        `{color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}track);` +
+        `font-weight:600;}` +
+        `.${CLASS.optionsMeaning}{margin-top:var(${VARIABLE_PREFIX}small);` +
+        `padding:0 var(${VARIABLE_PREFIX}half);color:var(${VARIABLE_PREFIX}quiet);` +
+        `font-size:${tokens.fontSmallPixels}px;}`;
 }
 
 /** The list's height is the rows it promises times what a row costs. `develop ADR 0014`. */

@@ -69,11 +69,12 @@ import {
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
     getWordsForProfession,
-    getWordsForSizeReset,
     getWordsForStorage,
+    getWordsForStorageMeaning,
     getWordsForTypeStep,
     getWordsForUnannounced,
     getWordsForUnnamedEnd,
+    getWordsForWindow,
     PANEL_DEFECT_KIND,
     PANEL_REGION,
     PANEL_WORDS,
@@ -269,7 +270,7 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
     assert(shelf[0]?.className.startsWith("titlebar-button"), "a control and not a strip");
 });
 
-Deno.test("the options cover the screen, with where the shelf is kept and the way back", () => {
+Deno.test("the options cover the screen, a heading over each question, with the way back", () => {
     const document = composeFakeDocument();
     const panel = initTestView(document);
     panel.render({
@@ -279,38 +280,15 @@ Deno.test("the options cover the screen, with where the shelf is kept and the wa
         options: { storage: STORAGE_CHOICE.session, answers: [CHOICE_REFUSED_ANSWER] },
     });
     const host = panel.element as FakeElement;
-    const strips = getElementsWithin(host).filter((one) => one.className === "strips");
-    assertEquals(strips.length, 3, "three strips, and none is one of the fight's");
     assertEquals(
-        getTextsByClass(host, "strips-label"),
-        [PANEL_WORDS.typeSize, PANEL_WORDS.windowSize, PANEL_WORDS.resizeHint, PANEL_WORDS.storage],
-        "what each asks — the type, the size, where the shelf is kept — and how a window is sized",
-    );
-    assertEquals(
-        getElementsWithin(host).filter((one) =>
-            one.attributes.get("data-reset-size") !== undefined
-        ),
+        getElementsWithin(host).filter((one) => one.className === "strips"),
         [],
-        "no window was sized, so there is none to give back",
+        "no strip, and so none of the fight's",
     );
     assertEquals(
-        getElementsWithin(host).filter((one) => one.attributes.get("data-type-step") !== undefined)
-            .map((one) => one.attributes.get("data-type-step")),
-        ["small", "medium", "large"],
-        "the three steps of type, smallest first",
-    );
-    assertEquals(
-        getElementsWithin(host).filter((one) => one.attributes.get("data-storage") !== undefined)
-            .map((one) => one.attributes.get("data-storage")),
-        ["local", "session", "memory"],
-        "the three places a shelf can be kept, in the order they keep longest",
-    );
-    assertEquals(
-        getElementsWithin(host).filter((one) => one.className === "strip selected").map((one) =>
-            one.textContent
-        ),
-        [getWordsForTypeStep(TYPE_STEP_DEFAULT), getWordsForStorage("session")],
-        "with the reader's own answers marked as more than a colour",
+        getTextsByClass(host, "options-heading"),
+        [PANEL_WORDS.typeSize, PANEL_WORDS.windowSize, PANEL_WORDS.storage],
+        "a heading over each question — the type, the size, where the shelf is kept",
     );
     assertEquals(getWholeTextsByClass(host, "header-place"), [], "no header of the fight's");
     assertEquals(
@@ -331,6 +309,68 @@ Deno.test("the options cover the screen, with where the shelf is kept and the wa
     );
 });
 
+Deno.test("the options answer each question in the shape its answers need", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(readFight()),
+        options: { storage: STORAGE_CHOICE.session, answers: [] },
+    });
+    const host = panel.element as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "options-window-name"),
+        [getWordsForWindow("panel"), getWordsForWindow("helper")],
+        "a line for each window",
+    );
+    assertEquals(
+        getTextsByClass(host, "options-window-state"),
+        [PANEL_WORDS.sizeDefault, PANEL_WORDS.sizeDefault],
+        "and neither was sized, which each line says",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) =>
+            one.attributes.get("data-reset-size") !== undefined
+        ),
+        [],
+        "so there is none to give back",
+    );
+    assertEquals(
+        getTextsByClass(host, "options-meaning"),
+        [PANEL_WORDS.resizeHint, getWordsForStorageMeaning("session")],
+        "how a window is sized, and what the answer taken means for the fights kept",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.attributes.get("data-type-step") !== undefined)
+            .map((one) => one.attributes.get("data-type-step")),
+        ["small", "medium", "large"],
+        "the three steps of type, smallest first",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.attributes.get("data-storage") !== undefined)
+            .map((one) => one.attributes.get("data-storage")),
+        ["local", "session", "memory"],
+        "the three places a shelf can be kept, in the order they keep longest",
+    );
+    assertEquals(
+        getChosenTexts(host, "data-type-step"),
+        [getWordsForTypeStep(TYPE_STEP_DEFAULT)],
+        "with the reader's own step marked",
+    );
+    assertEquals(
+        getChosenTexts(host, "data-storage"),
+        [getWordsForStorage("session")],
+        "and the reader's own place",
+    );
+});
+
+/** The words of the answers carrying `mark` that stand marked as the reader's own. */
+function getChosenTexts(host: FakeElement, mark: string): string[] {
+    return getElementsWithin(host)
+        .filter((one) => one.attributes.get(mark) !== undefined)
+        .filter((one) => one.className.split(" ").includes("selected"))
+        .map((one) => one.textContent);
+}
+
 Deno.test("the options stand before any fight, since the choices in them are not a fight's", () => {
     const document = composeFakeDocument();
     const panel = initTestView(document);
@@ -341,10 +381,11 @@ Deno.test("the options stand before any fight, since the choices in them are not
     const host = panel.element as FakeElement;
     assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.options], "the cover stands");
     assertEquals(
-        getTextsByClass(host, "strip selected"),
-        [getWordsForTypeStep(TYPE_STEP_DEFAULT), getWordsForStorage("local")],
-        "with its strips",
+        getChosenTexts(host, "data-type-step"),
+        [getWordsForTypeStep(TYPE_STEP_DEFAULT)],
+        "with its answers",
     );
+    assertEquals(getChosenTexts(host, "data-storage"), [getWordsForStorage("local")], "both");
     assertEquals(getTextsByClass(host, "empty"), [], "and not the sentence saying nothing came");
     panel.renderWaiting(NOTHING_WAITING);
     assertEquals(getTextsByClass(host, "crumb-here"), [], "closed, the cover is gone");
@@ -2119,11 +2160,11 @@ Deno.test("the options give back only a window a reader sized, and name which", 
             one.attributes.get("data-reset-size") !== undefined
         );
     assertEquals(resets().map((one) => one.attributes.get("data-reset-size")), ["helper"], "one");
-    assertEquals(resets()[0]?.textContent, getWordsForSizeReset("helper"), "named for its window");
+    assertEquals(resets()[0]?.textContent, PANEL_WORDS.sizeReset, "on the helper's own line");
     assertEquals(
-        getTextsByClass(host, "strips-label").includes(PANEL_WORDS.resizeHint),
-        false,
-        "no hint",
+        getTextsByClass(host, "options-window-state options-window-own"),
+        [PANEL_WORDS.sizeOwn],
+        "which says the size is the reader's",
     );
     panel.render({
         ...composeShownScreen(readFight()),
