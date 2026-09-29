@@ -87,6 +87,13 @@ const DEVELOP_ROOT_PREFIX = '"@/';
 const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // The options control stands first on the bar and leads the rest to its far end.
     { develop: ".titlebar-fights", here: ".titlebar-lead" },
+    // Each step's width is its bar measured in one font; where a reader's asks more, the version
+    // gives way and no control does.
+    {
+        develop: ".titlebar-version",
+        here: ".titlebar-version",
+        moved: ["min-width", "overflow", "text-overflow"],
+    },
     // A window sized by its corner: its width and its body's height are the reader's, a sized
     // panel stands past the share of the window, and its list takes the room it is given.
     { develop: ":host", here: ":host", moved: ["max-height"] },

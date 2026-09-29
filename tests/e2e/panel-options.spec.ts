@@ -8,6 +8,8 @@ import { expect, test } from "./panel-fixture.ts";
 /** Named as `STORE_KEY` in `src/game/browser-store.ts` names it. */
 const STORAGE_KEY = "MargoMeter-storage";
 const CONTROLS = ["[data-options]", "[data-shelf]", "[data-save]", "[data-fold]"];
+/** Named as `SIZE_VARIABLES` in `src/ui/panel-look.ts` names the panel's width. */
+const PANEL_WIDTH_VARIABLE = "--MargoMeter-panel-width";
 /** Each step and the row it draws: `TYPE_TOKENS` in `src/ui/panel-look.ts`. */
 const STEPS = [
     { step: "small", row: 18 },
@@ -31,6 +33,26 @@ test("every control the bar carries stands inside the bar", async ({ panel }) =>
             bar?.y ?? 0,
         );
     }
+});
+
+test("a bar too short for what it holds cuts the version, never a control", async ({ panel }) => {
+    // Set past the clamp a corner drag meets, which never goes under the width of the type: this
+    // stands in for a reader's font that asks more of the bar than the one it was measured in.
+    await panel.host.evaluate((host, variable) => {
+        (host as HTMLElement).style.setProperty(variable, "220px");
+    }, PANEL_WIDTH_VARIABLE);
+    const bar = await panel.at(".MargoMeter-titlebar").boundingBox();
+    expect(bar?.width, "the bar is as narrow as it was made").toBe(220);
+    for (const selector of CONTROLS) {
+        const box = await panel.at(selector).boundingBox();
+        expect((box?.x ?? 0) + (box?.width ?? 0), `${selector} ends inside the bar`)
+            .toBeLessThanOrEqual((bar?.x ?? 0) + (bar?.width ?? 0));
+    }
+    const version = await panel.at(".titlebar-version").evaluate((one) => ({
+        drawn: one.clientWidth,
+        asked: one.scrollWidth,
+    }));
+    expect(version.drawn, "the version is what gave way").toBeLessThan(version.asked);
 });
 
 test("the options cover the ranking, and a right press anywhere puts them away", async ({ panel }) => {

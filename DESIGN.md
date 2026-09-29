@@ -202,7 +202,9 @@ something of ours.
 it, carrying the top two corners while the panel carries the bottom two, and it holds the name, the
 version and the controls. It stays one line as the version number grows — a bar that wraps moves
 everything below it, and `0.10.1` exists because one character of a version number did exactly that.
-Where the fight is being fought is **not** on it: that is the header's.
+Where the line is shorter than what it holds, the version is cut with an ellipsis and a control
+never is: a control pushed off the bar is one a reader cannot press. Where the fight is being fought
+is **not** on it: that is the header's.
 
 **A control says what a press would do**, never what the panel already is, so its mark and its
 sentence both change with the state — where it has one. Folded, the panel is this bar and nothing

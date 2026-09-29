@@ -510,7 +510,12 @@ function composeFrameRules(tokens: TypeTokens): string {
         // Safari has never shipped `user-select` unprefixed, so without this a drag by the bar
         // selects the text under the cursor (`docs/browser-support.md`).
         `-webkit-user-select:none;user-select:none;touch-action:none;}` +
-        `.${CLASS.titleVersion}{opacity:0.7;font-size:${tokens.fontSmallPixels}px;}` +
+        // Every width in `TYPE_TOKENS` is a bar measured in one font, and a reader's may ask more:
+        // on CI's Ubuntu runner on 2026-09-29 the middle step's bar asked 0.44px past its width and
+        // pushed the fold off it.
+        // The version is what gives way, because a control cut off is one a reader cannot press.
+        `.${CLASS.titleVersion}{opacity:0.7;font-size:${tokens.fontSmallPixels}px;` +
+        `min-width:0;overflow:hidden;text-overflow:ellipsis;}` +
         `.${CLASS.control}{padding:0 var(${VARIABLE_PREFIX}small);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);` +
