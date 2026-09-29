@@ -12,7 +12,6 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { encodeJson } from "#/libs/json-text.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
-import { TIP_ATTRIBUTE } from "#/src/ui/panel-element.ts";
 import { PANEL_MARK, type PanelMark } from "#/src/ui/panel-intent.ts";
 import { STORE_KEY } from "#/src/game/browser-store.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
@@ -43,7 +42,7 @@ export type ShotMoment = VocabularyWord<typeof SHOT_MOMENT>;
 /** A real press or a real hover, on the `at`th element carrying a mark of the panel's own. */
 export interface ShotStep {
     doesHover: boolean;
-    mark: PanelMark | typeof TIP_ATTRIBUTE;
+    mark: PanelMark;
     at: number;
 }
 
@@ -113,7 +112,8 @@ export function composePanelShots(): PanelShot[] {
         {
             name: "panel-card.png",
             moment: SHOT_MOMENT.underway,
-            steps: [taken, { doesHover: true, mark: TIP_ATTRIBUTE, at: 0 }],
+            // A person's row and not the first mark wearing a card: the fight's line wears one too.
+            steps: [taken, { doesHover: true, mark: PANEL_MARK.row, at: 0 }],
         },
         // The one picture of a fight that ended: a fight is kept where it reaches its end.
         {

@@ -16,7 +16,6 @@ import { copy } from "@std/fs";
 import { relative, resolve } from "@std/path";
 import { parseInteger } from "#/libs/number-text.ts";
 import { isOneOf } from "#/libs/vocabulary.ts";
-import { TIP_ATTRIBUTE } from "#/src/ui/panel-element.ts";
 import { PANEL_MARK } from "#/src/ui/panel-intent.ts";
 import { PANEL_REGION, type PanelRegion } from "#/src/ui/panel-words.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
@@ -156,7 +155,7 @@ export async function readGivingWayBundle(regions: readonly PanelRegion[]): Prom
  * card is drawn only under a pointer, so its picture hovers the first row that opens one first.
  */
 export function composeGivingWayShot(region: PanelRegion): PanelShot {
-    const hover: ShotStep = { doesHover: true, mark: TIP_ATTRIBUTE, at: 0 };
+    const hover: ShotStep = { doesHover: true, mark: PANEL_MARK.row, at: 0 };
     const shown: ShotStep = { doesHover: false, mark: PANEL_MARK.screen, at: 0 };
     const fold: ShotStep = { doesHover: false, mark: PANEL_MARK.helperFold, at: 0 };
     const redraw = region === PANEL_REGION.strips ? [fold, fold] : [shown];

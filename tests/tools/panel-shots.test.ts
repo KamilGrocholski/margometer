@@ -5,12 +5,13 @@
  * is `deno task panel:shots`'s, and needs Chrome.
  */
 
-import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals, assertThrows } from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { type FightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { replayFightPayloads } from "#/src/runtime/fight-reading.ts";
+import { PANEL_MARK } from "#/src/ui/panel-intent.ts";
 import { PLACE, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
@@ -134,6 +135,16 @@ Deno.test("the set is taken at both moments, and the shelf at only the end", () 
     const over = shots.filter((shot) => shot.moment === SHOT_MOMENT.over).map((one) => one.name);
     assertEquals(over, ["panel-shelf.png"], "a fight is kept where it reaches its end");
     assert(shots.some((shot) => shot.moment === SHOT_MOMENT.underway), "and five are of it going");
+});
+
+Deno.test("the card is photographed over a person's row, never over the fight's line", () => {
+    const card = composePanelShots().find((shot) => shot.name === "panel-card.png");
+    assertExists(card, "the set has a picture of a card");
+    assertEquals(
+        card.steps.at(-1),
+        { doesHover: true, mark: PANEL_MARK.row, at: 0 },
+        "the first row's, as the READMEs show a person's card (ADR 0014 gave the line one)",
+    );
 });
 
 Deno.test("a frame holds the windows and their card, from the leftmost to the corner", () => {
