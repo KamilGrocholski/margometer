@@ -61,8 +61,8 @@ export function executeRuntimeIntent(parts: IntentParts, intent: PanelIntent): b
             const hasMoved = executeScreenIntent(parts.screen, intent);
             void writeWindowSize(parts.ports.settings, intent.window, intent.size);
             assert(
-                hasMoved === parts.screen.isOnOptions,
-                "a window sized is redrawn only where the options say which is sized",
+                parts.screen.windowSizes[intent.window] === intent.size,
+                "a window sized is the size the frames to come draw it",
             );
             return hasMoved;
         }
