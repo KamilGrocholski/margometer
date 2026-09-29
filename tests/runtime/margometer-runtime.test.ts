@@ -1379,6 +1379,18 @@ Deno.test("a window sized is kept with no frame, comes back after a reload, and 
     );
 });
 
+Deno.test("a window sized while the options stand open is offered back in the same frame", () => {
+    const world = playRecordedFight();
+    openOptions(world);
+    assertEquals(findByMark(world.getHost(), "data-reset-size", "panel"), undefined, "unsized");
+    world.runtime.onIntent({ kind: "resize", window: "panel", size: { width: 320, height: 350 } });
+    world.flush();
+    assertExists(
+        findByMark(world.getHost(), "data-reset-size", "panel"),
+        "the options redrawn on release offer the size back",
+    );
+});
+
 Deno.test("a window sized stays that size through the frames after it, and can be given back", () => {
     const battle = composeBattlePage();
     const world = initRuntimeWorld(battle);

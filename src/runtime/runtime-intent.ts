@@ -55,11 +55,15 @@ export function executeRuntimeIntent(parts: IntentParts, intent: PanelIntent): b
         case PANEL_INTENT.move:
             void writeWindowPosition(parts.ports.settings, intent.window, intent.position);
             return false;
-        // Once per release, as a move is, and for the same reason no frame.
+        // Once per release, as a move is, and for the same reason no frame, but where the options
+        // stand open: they say which window is sized, and would otherwise say it wrong.
         case PANEL_INTENT.resize: {
             const hasMoved = executeScreenIntent(parts.screen, intent);
             void writeWindowSize(parts.ports.settings, intent.window, intent.size);
-            assert(!hasMoved, "a window sized already stands at that size");
+            assert(
+                hasMoved === parts.screen.isOnOptions,
+                "a window sized is redrawn only where the options say which is sized",
+            );
             return hasMoved;
         }
         case PANEL_INTENT.resetSize: {

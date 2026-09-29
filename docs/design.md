@@ -969,8 +969,9 @@ end: no DOM; cost bounded by the message count; a JSON copy only of a call thinn
 listener ─ reads a PanelIntent off data-* (isOneOf; unknown → GestureDropped)
    executeRuntimeIntent: the screen moves, and the options and the shelf never cover it together;
       the keeper pins and moves the shelf; a fold is written; a size of type is written, and asks
-      for a frame only where it moved; a move and a resize are written and ask for no frame; a
-      size given back is removed and asks for one; a save writes the file or a "file" defect
+      for a frame only where it moved; a move is written and asks for no frame, and a resize
+      asks for one only while the options stand open; a size given back is removed and asks for
+      one; a save writes the file or a "file" defect
    true → markStale
 ```
 

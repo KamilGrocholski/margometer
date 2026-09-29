@@ -52,6 +52,22 @@ test("a size comes back after a reload, and the options give it back", async ({ 
     expect((await panel.place()).width, "and it stands as wide as its type").toBe(before.width);
 });
 
+test("a window sized is offered back at once, with the options shut or open", async ({ panel }) => {
+    await setDragged(panel.page, await readCentreOf(panel.page, PANEL_GRIP), {
+        x: WIDER,
+        y: TALLER,
+    });
+    await panel.at("[data-options]").click();
+    await expect(panel.at('[data-reset-size="panel"]'), "sized before the options opened")
+        .toHaveCount(1);
+    await setDragged(panel.page, await readCentreOf(panel.page, HELPER_GRIP), {
+        x: -40,
+        y: TALLER,
+    });
+    await expect(panel.at('[data-reset-size="helper"]'), "and sized while they stood open")
+        .toHaveCount(1);
+});
+
 test("the window beside the panel is sized by its own corner, under its own key", async ({ panel }) => {
     const before = await panel.at(".MargoMeter-standing").boundingBox();
     await setDragged(panel.page, await readCentreOf(panel.page, HELPER_GRIP), {

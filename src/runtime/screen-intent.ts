@@ -58,10 +58,11 @@ function executeScreenIntentOnce(screen: ScreenState, intent: PanelIntent): bool
             if (screen.typeStep === intent.step) return false;
             screen.typeStep = intent.step;
             return true;
-        // Kept for the frames to come and no frame now: the window already stands that size.
+        // Kept for the frames to come, and no frame now unless the options stand open: the window
+        // already stands that size, and the options are the one place that says which is sized.
         case PANEL_INTENT.resize:
             screen.windowSizes = { ...screen.windowSizes, [intent.window]: intent.size };
-            return false;
+            return screen.isOnOptions;
         case PANEL_INTENT.resetSize:
             if (screen.windowSizes[intent.window] === null) return false;
             screen.windowSizes = { ...screen.windowSizes, [intent.window]: null };
