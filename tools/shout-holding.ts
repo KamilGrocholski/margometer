@@ -72,8 +72,45 @@ export function tallyHoldingReading(replayed: readonly ReplayedFight[]): Holding
         for (const episode of replayEpisodes(reading.view, clocks)) {
             episodes += 1;
             assert(episodes <= EPISODES_MAXIMUM, "a corpus holds no more episodes than its bound");
-            addEpisodeByTurn(events, clocks, episode, byTurn);
-            addEpisodeBaseline(events, episode, baseline);
+            // Add the episode's blows, by how many of the held character's own turns had opened.
+            {
+                // It stops at the next shout of any kind: a later one replaces whatever held them
+                // (`develop ADR 0062`), so a blow past that belongs to the shout that arrived.
+                assert(
+                    episode.at < events.length,
+                    "an episode stands at a place inside the recording",
+                );
+                assert(
+                    episode.turnsAtShout >= 0,
+                    "and on a clock the held character had already reached",
+                );
+                for (const [later, next] of events.slice(episode.at + 1).entries()) {
+                    if (isShoutAnnouncement(next)) break;
+                    if (next.kind !== BATTLE_EVENT.attack) continue;
+                    if (next.actorId !== episode.provokedId) continue;
+                    if (next.targetId === null) continue;
+                    const now = clocks[episode.at + 1 + later];
+                    const elapsed = (now?.get(episode.provokedId) ?? 0) - episode.turnsAtShout;
+                    if (elapsed < 0) continue;
+                    if (elapsed > TURNS_REPORTED_MAXIMUM) continue;
+                    const tally = byTurn.get(elapsed) ?? { atShouter: 0, atSomebodyElse: 0 };
+                    addStruck(tally, next.targetId === episode.casterId);
+                    byTurn.set(elapsed, tally);
+                }
+            }
+            // Add the same pair before the shout landed, which is what a turn's share has to beat.
+            {
+                assert(
+                    episode.at <= events.length,
+                    "a baseline is read from before the shout landed",
+                );
+                for (const past of events.slice(0, episode.at)) {
+                    if (past.kind !== BATTLE_EVENT.attack) continue;
+                    if (past.actorId !== episode.provokedId) continue;
+                    if (past.targetId === null) continue;
+                    addStruck(baseline, past.targetId === episode.casterId);
+                }
+            }
         }
     }
     const rows = [...byTurn.keys()].sort((one, other) => one - other).map((turnsElapsed) => {
@@ -132,54 +169,11 @@ function isShoutAnnouncement(event: BattleEvent): boolean {
     return event.declared.some((one) => one.effect === PROVOCATION_KEY);
 }
 
-/**
- * One episode's blows, counted by how many of the held character's own turns had opened. It stops
- * at the next shout of any kind: a later one replaces whatever held them (`develop ADR 0062`), so
- * a blow past that belongs to the shout that arrived.
- */
-function addEpisodeByTurn(
-    events: readonly BattleEvent[],
-    clocks: readonly Map<number, number>[],
-    episode: Episode,
-    byTurn: Map<number, StruckTally>,
-): void {
-    assert(episode.at < events.length, "an episode stands at a place inside the recording");
-    assert(episode.turnsAtShout >= 0, "and on a clock the held character had already reached");
-    for (const [later, next] of events.slice(episode.at + 1).entries()) {
-        if (isShoutAnnouncement(next)) break;
-        if (next.kind !== BATTLE_EVENT.attack) continue;
-        if (next.actorId !== episode.provokedId) continue;
-        if (next.targetId === null) continue;
-        const now = clocks[episode.at + 1 + later];
-        const elapsed = (now?.get(episode.provokedId) ?? 0) - episode.turnsAtShout;
-        if (elapsed < 0) continue;
-        if (elapsed > TURNS_REPORTED_MAXIMUM) continue;
-        const tally = byTurn.get(elapsed) ?? { atShouter: 0, atSomebodyElse: 0 };
-        addStruck(tally, next.targetId === episode.casterId);
-        byTurn.set(elapsed, tally);
-    }
-}
-
 function addStruck(tally: StruckTally, isAtShouter: boolean): void {
     if (isAtShouter) tally.atShouter += 1;
     else tally.atSomebodyElse += 1;
     assert(tally.atShouter >= 0, "a count of blows at the shouter is not negative");
     assert(tally.atSomebodyElse >= 0, "and neither is a count of the blows elsewhere");
-}
-
-/** The same pair before the shout landed, which is what a turn's share has to beat. */
-function addEpisodeBaseline(
-    events: readonly BattleEvent[],
-    episode: Episode,
-    tally: StruckTally,
-): void {
-    assert(episode.at <= events.length, "a baseline is read from before the shout landed");
-    for (const past of events.slice(0, episode.at)) {
-        if (past.kind !== BATTLE_EVENT.attack) continue;
-        if (past.actorId !== episode.provokedId) continue;
-        if (past.targetId === null) continue;
-        addStruck(tally, past.targetId === episode.casterId);
-    }
 }
 
 /** A share as whole percent, which is what a register states and a guard re-earns. */

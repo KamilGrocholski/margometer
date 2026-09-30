@@ -138,12 +138,274 @@ const LEAF_WORD = "leaf ";
  * Every case the material produces. A kind of row no recording carries is absent rather than
  * `never`: a verdict nobody has seen is a guess, and `docs/drill-levels.md` says so in prose.
  */
-export function tallyDrillCases(replayed: readonly ReplayedFight[]): DrillCase[] {
+export function tallyDrillCases(
+    replayed: readonly ReplayedFight[],
+): DrillCase[] {
     assert(replayed.length > 0, "a register is measured over something");
     const tally: DrillTally = new Map();
-    for (const one of replayed) {
-        const fight = getPanelFight(one);
-        for (const screen of SCREEN_ORDER) addScreenToTally(tally, fight, screen);
+    for (const walked of replayed) {
+        const fight = getPanelFight(walked);
+        for (const screen of SCREEN_ORDER) {
+            // Add every case one screen of the fight draws.
+            const reading = presentScreenForEveryone(fight, screen);
+            // The one verdict no reading can answer: a ranking row's mark is written by the
+            // element layer without asking anybody, so it is stated here and held against the
+            // drawn panel by `tests/tools/drill-report.test.ts`.
+            for (const row of reading.rows) {
+                assert(
+                    Number.isSafeInteger(row.combatantId),
+                    "a ranking row names somebody by number",
+                );
+                addCaseToTally(tally, screen, {
+                    rung: DRILL_RUNG.ranking,
+                    row: DRILL_ROW.person,
+                }, true);
+            }
+            for (const pinned of reading.pinned) {
+                assert(
+                    pinned.figure > 0,
+                    "a figure is pinned because there is one to pin",
+                );
+                addCaseToTally(tally, screen, {
+                    rung: DRILL_RUNG.ranking,
+                    row: DRILL_ROW.halfNamed,
+                }, true);
+                // Add what a pinned row opens onto: the named end, and what named neither.
+                {
+                    const kase = pinned.case;
+                    const pinnedScreen = getMetricForPinned(kase);
+                    const held = presentHalfNamedForEveryone(fight, kase);
+                    assertExists(
+                        held,
+                        "a pinned row that is drawn has a level under it",
+                    );
+                    for (const one of held.rows) {
+                        assert(
+                            one.figure > 0,
+                            "a person under a pinned row carries some of its figure",
+                        );
+                        // Always: their share of the figure is keyed throughout, which
+                        // `src/core/` asserts.
+                        addCaseToTally(tally, pinnedScreen, {
+                            rung: DRILL_RUNG.unnamed,
+                            row: DRILL_ROW.person,
+                        }, true);
+                    }
+                    if (held.neither !== null) {
+                        const place = {
+                            rung: DRILL_RUNG.unnamed,
+                            row: DRILL_ROW.neitherEnd,
+                        };
+                        addCaseToTally(tally, pinnedScreen, place, false);
+                    }
+                    for (const one of held.kinds.rows) {
+                        assert(
+                            one.figure > 0,
+                            "and a kind under it carries some of it too",
+                        );
+                        const place = { rung: DRILL_RUNG.unnamed, row: DRILL_ROW.kind };
+                        addCaseToTally(tally, pinnedScreen, place, one.doesOpenPart);
+                    }
+                    if (held.kinds.unnamed !== null) {
+                        const place = { rung: DRILL_RUNG.unnamed, row: DRILL_ROW.noKind };
+                        addCaseToTally(tally, pinnedScreen, place, false);
+                    }
+                    // Add the level under each row of that one, the fold read both ways.
+                    {
+                        const cut = DRILL_RUNG.unnamedCut;
+                        for (const person of held.rows) {
+                            const opened = {
+                                kind: HALF_NAMED_OPENED.person,
+                                combatantId: person.combatantId,
+                            };
+                            const under = presentUnnamedCut(fight, kase, opened);
+                            if (under === null) continue;
+                            assert(
+                                under.opened === HALF_NAMED_OPENED.person,
+                                "a person opens onto their own keys",
+                            );
+                            for (const one of under.kinds.rows) {
+                                addCaseToTally(tally, pinnedScreen, {
+                                    rung: cut,
+                                    row: DRILL_ROW.kind,
+                                }, one.doesOpenPart);
+                            }
+                        }
+                        for (const kind of held.kinds.rows) {
+                            if (!kind.doesOpenPart) continue;
+                            const opened = {
+                                kind: HALF_NAMED_OPENED.element,
+                                element: kind.element,
+                            };
+                            const under = presentUnnamedCut(fight, kase, opened);
+                            if (under === null) continue;
+                            assert(
+                                under.opened === HALF_NAMED_OPENED.element,
+                                "and a key onto whoever carries it",
+                            );
+                            for (const one of under.rows) {
+                                assert(one.figure > 0, "each carrying some of that key");
+                                addCaseToTally(tally, pinnedScreen, {
+                                    rung: cut,
+                                    row: DRILL_ROW.person,
+                                }, false);
+                            }
+                            if (under.neither !== null) {
+                                addCaseToTally(tally, pinnedScreen, {
+                                    rung: cut,
+                                    row: DRILL_ROW.neitherEnd,
+                                }, false);
+                            }
+                        }
+                    }
+                }
+            }
+            for (const row of reading.rows) {
+                // Add the third level, walked only where the row above it opened.
+                // A level nobody can reach makes no claim about what a reader sees, and
+                // counting it would put verdicts in the register for rows the panel never
+                // draws.
+                const combatantId = row.combatantId;
+                const { roster, statistics } = fight;
+                const drill = presentDrill(statistics, roster, screen, combatantId);
+                if (drill === null) continue;
+                for (const other of drill.byOpponent.rows) {
+                    const place = { rung: DRILL_RUNG.opened, row: DRILL_ROW.person };
+                    addCaseToTally(tally, screen, place, other.doesOpenPair);
+                    if (!other.doesOpenPair) continue;
+                    const pair = presentPair(
+                        statistics,
+                        roster,
+                        screen,
+                        combatantId,
+                        other.combatantId,
+                    );
+                    if (pair === null) continue;
+                    for (const part of pair.parts) {
+                        const partRow = part.part.kind === OPENED_PART.plain
+                            ? DRILL_ROW.closing
+                            : getRowForPart(part.part);
+                        addCaseToTally(tally, screen, {
+                            rung: DRILL_RUNG.pair,
+                            row: partRow,
+                        }, false);
+                    }
+                    for (const kind of pair.byElement.rows) {
+                        assert(
+                            kind.figure >= 0,
+                            "a kind drawn in a pair holds no less than nothing",
+                        );
+                        addCaseToTally(tally, screen, {
+                            rung: DRILL_RUNG.pair,
+                            row: DRILL_ROW.kind,
+                        }, false);
+                    }
+                    if (pair.byElement.unnamed !== null) {
+                        addCaseToTally(tally, screen, {
+                            rung: DRILL_RUNG.pair,
+                            row: DRILL_ROW.noKind,
+                        }, false);
+                    }
+                }
+                // Add the two cross-sections of the opened row, and a part's level under.
+                {
+                    const opened = DRILL_RUNG.opened;
+                    const unnamed = drill.byOpponent.unnamed;
+                    if (unnamed !== null) {
+                        const place = { rung: opened, row: DRILL_ROW.halfNamed };
+                        addCaseToTally(tally, screen, place, unnamed.doesOpenPair);
+                        if (unnamed.doesOpenPair) {
+                            // Add the end the opened figure left out: their own keys.
+                            const held = presentOpenedUnnamed(
+                                statistics,
+                                roster,
+                                screen,
+                                combatantId,
+                            );
+                            assertExists(held, "a row that opens has a level under it");
+                            assert(
+                                held.opened === HALF_NAMED_OPENED.person,
+                                "and the level is one person's own keys",
+                            );
+                            const kindPlace = {
+                                rung: DRILL_RUNG.unnamedPair,
+                                row: DRILL_ROW.kind,
+                            };
+                            for (const one of held.kinds.rows) {
+                                addCaseToTally(
+                                    tally,
+                                    screen,
+                                    kindPlace,
+                                    one.doesOpenPart,
+                                );
+                            }
+                            if (held.kinds.unnamed !== null) {
+                                addCaseToTally(
+                                    tally,
+                                    screen,
+                                    {
+                                        rung: DRILL_RUNG.unnamedPair,
+                                        row: DRILL_ROW.noKind,
+                                    },
+                                    false,
+                                );
+                            }
+                        }
+                    }
+                    for (const skill of drill.bySkill.rows) {
+                        const skillRow = getRowForPart(skill.part);
+                        addCaseToTally(
+                            tally,
+                            screen,
+                            { rung: opened, row: skillRow },
+                            skill.doesOpenPart,
+                        );
+                        if (skill.doesOpenPart) {
+                            addPartRungToTally(
+                                tally,
+                                fight,
+                                screen,
+                                combatantId,
+                                skill.part,
+                            );
+                        }
+                    }
+                    const closing = drill.bySkill.plain;
+                    if (closing !== null) {
+                        const place = { rung: opened, row: DRILL_ROW.closing };
+                        addCaseToTally(tally, screen, place, closing.doesOpenPart);
+                        if (closing.doesOpenPart) {
+                            addPartRungToTally(tally, fight, screen, combatantId, {
+                                kind: OPENED_PART.plain,
+                            });
+                        }
+                    }
+                    for (const kind of drill.byElement.rows) {
+                        assert(
+                            kind.figure >= 0,
+                            "a kind drawn in a section holds no less than nothing",
+                        );
+                        const part = {
+                            kind: OPENED_PART.element,
+                            element: kind.element,
+                        };
+                        addCaseToTally(tally, screen, {
+                            rung: opened,
+                            row: DRILL_ROW.kind,
+                        }, kind.doesOpenPart);
+                        if (kind.doesOpenPart) {
+                            addPartRungToTally(tally, fight, screen, combatantId, part);
+                        }
+                    }
+                    if (drill.byElement.unnamed !== null) {
+                        addCaseToTally(tally, screen, {
+                            rung: opened,
+                            row: DRILL_ROW.noKind,
+                        }, false);
+                    }
+                }
+            }
+        }
     }
     const cases = [...tally.values()].map((one): DrillCase => ({
         screen: one.screen,
@@ -154,13 +416,20 @@ export function tallyDrillCases(replayed: readonly ReplayedFight[]): DrillCase[]
         shut: one.shut,
     }));
     cases.sort(compareCases);
-    assertStrictEquals(cases.length, tally.size, "every case counted is stated once");
+    assertStrictEquals(
+        cases.length,
+        tally.size,
+        "every case counted is stated once",
+    );
     return cases;
 }
 
 function getPanelFight(replayed: ReplayedFight): PanelFight {
     const { view, figures } = replayed.reading;
-    assert(view.payloadsApplied > 0, "a fight walked was replayed from something");
+    assert(
+        view.payloadsApplied > 0,
+        "a fight walked was replayed from something",
+    );
     return {
         name: formatRecordingName(replayed.fight.path),
         statistics: figures.statistics,
@@ -169,26 +438,11 @@ function getPanelFight(replayed: ReplayedFight): PanelFight {
     };
 }
 
-function addScreenToTally(tally: DrillTally, fight: PanelFight, screen: PanelMetric): void {
-    const reading = presentScreenForEveryone(fight, screen);
-    // The one verdict no reading can answer: a ranking row's mark is written by the element layer
-    // without asking anybody, so it is stated here and held against the drawn panel by
-    // `tests/tools/drill-report.test.ts`.
-    for (const row of reading.rows) {
-        assert(Number.isSafeInteger(row.combatantId), "a ranking row names somebody by number");
-        addCaseToTally(tally, screen, { rung: DRILL_RUNG.ranking, row: DRILL_ROW.person }, true);
-    }
-    for (const pinned of reading.pinned) {
-        assert(pinned.figure > 0, "a figure is pinned because there is one to pin");
-        const place = { rung: DRILL_RUNG.ranking, row: DRILL_ROW.halfNamed };
-        addCaseToTally(tally, screen, place, true);
-        addUnnamedRungToTally(tally, fight, pinned.case);
-    }
-    for (const row of reading.rows) addDeepRungsToTally(tally, fight, screen, row.combatantId);
-}
-
 /** The ranking as it stands under `Wszyscy`, with nothing suspect: the rows a reader can press. */
-function presentScreenForEveryone(fight: PanelFight, screen: PanelMetric): ScreenReading {
+function presentScreenForEveryone(
+    fight: PanelFight,
+    screen: PanelMetric,
+): ScreenReading {
     assert(fight.name.length > 0, "a screen is read off a recording with a name");
     return presentScreen(
         fight.statistics,
@@ -207,41 +461,25 @@ function addCaseToTally(
     doesOpen: boolean,
 ): void {
     const key = [screen, place.rung, place.row].join(CASE_KEY_SEPARATOR);
-    const held = tally.get(key) ?? { screen, rung: place.rung, row: place.row, opens: 0, shut: 0 };
+    const held = tally.get(key) ??
+        { screen, rung: place.rung, row: place.row, opens: 0, shut: 0 };
     if (doesOpen) held.opens += 1;
     else held.shut += 1;
     tally.set(key, held);
-    assert(held.opens + held.shut > 0, "a case counted was counted at least once");
+    assert(
+        held.opens + held.shut > 0,
+        "a case counted was counted at least once",
+    );
 }
 
-/** What a pinned row opens onto: the end the game did name, and what named neither. */
-function addUnnamedRungToTally(tally: DrillTally, fight: PanelFight, kase: PinnedCase): void {
-    const screen = getMetricForPinned(kase);
-    const held = presentHalfNamedForEveryone(fight, kase);
-    assertExists(held, "a pinned row that is drawn has a level under it");
-    for (const one of held.rows) {
-        assert(one.figure > 0, "a person under a pinned row carries some of its figure");
-        // Always: their share of the figure is keyed throughout, which `src/core/` asserts.
-        addCaseToTally(tally, screen, { rung: DRILL_RUNG.unnamed, row: DRILL_ROW.person }, true);
-    }
-    if (held.neither !== null) {
-        const place = { rung: DRILL_RUNG.unnamed, row: DRILL_ROW.neitherEnd };
-        addCaseToTally(tally, screen, place, false);
-    }
-    for (const one of held.kinds.rows) {
-        assert(one.figure > 0, "and a kind under it carries some of it too");
-        const place = { rung: DRILL_RUNG.unnamed, row: DRILL_ROW.kind };
-        addCaseToTally(tally, screen, place, one.doesOpenPart);
-    }
-    if (held.kinds.unnamed !== null) {
-        const place = { rung: DRILL_RUNG.unnamed, row: DRILL_ROW.noKind };
-        addCaseToTally(tally, screen, place, false);
-    }
-    addUnnamedCutToTally(tally, fight, kase, held);
-}
-
-function presentHalfNamedForEveryone(fight: PanelFight, kase: PinnedCase): HalfNamedReading | null {
-    assert(fight.name.length > 0, "a pinned level is read off a recording with a name");
+function presentHalfNamedForEveryone(
+    fight: PanelFight,
+    kase: PinnedCase,
+): HalfNamedReading | null {
+    assert(
+        fight.name.length > 0,
+        "a pinned level is read off a recording with a name",
+    );
     return presentHalfNamed(
         fight.statistics,
         fight.roster,
@@ -249,40 +487,6 @@ function presentHalfNamedForEveryone(fight: PanelFight, kase: PinnedCase): HalfN
         SIDE_CHOICE.everyone,
         fight.readerSide,
     );
-}
-
-/** And the level under each row of that one, which is the same fold read both ways round. */
-function addUnnamedCutToTally(
-    tally: DrillTally,
-    fight: PanelFight,
-    kase: PinnedCase,
-    held: HalfNamedReading,
-): void {
-    const screen = getMetricForPinned(kase);
-    const cut = DRILL_RUNG.unnamedCut;
-    for (const person of held.rows) {
-        const opened = { kind: HALF_NAMED_OPENED.person, combatantId: person.combatantId };
-        const under = presentUnnamedCut(fight, kase, opened);
-        if (under === null) continue;
-        assert(under.opened === HALF_NAMED_OPENED.person, "a person opens onto their own keys");
-        for (const one of under.kinds.rows) {
-            addCaseToTally(tally, screen, { rung: cut, row: DRILL_ROW.kind }, one.doesOpenPart);
-        }
-    }
-    for (const kind of held.kinds.rows) {
-        if (!kind.doesOpenPart) continue;
-        const opened = { kind: HALF_NAMED_OPENED.element, element: kind.element };
-        const under = presentUnnamedCut(fight, kase, opened);
-        if (under === null) continue;
-        assert(under.opened === HALF_NAMED_OPENED.element, "and a key onto whoever carries it");
-        for (const one of under.rows) {
-            assert(one.figure > 0, "each carrying some of that key");
-            addCaseToTally(tally, screen, { rung: cut, row: DRILL_ROW.person }, false);
-        }
-        if (under.neither !== null) {
-            addCaseToTally(tally, screen, { rung: cut, row: DRILL_ROW.neitherEnd }, false);
-        }
-    }
 }
 
 function presentUnnamedCut(
@@ -301,110 +505,11 @@ function presentUnnamedCut(
     );
 }
 
-/**
- * The third level, walked only where the row above it opened. A level nobody can reach makes no
- * claim about what a reader sees, and counting it would put verdicts in the register for rows the
- * panel never draws.
- */
-function addDeepRungsToTally(
-    tally: DrillTally,
-    fight: PanelFight,
-    screen: PanelMetric,
-    combatantId: number,
-): void {
-    const { roster, statistics } = fight;
-    const drill = presentDrill(statistics, roster, screen, combatantId);
-    if (drill === null) return;
-    for (const other of drill.byOpponent.rows) {
-        const place = { rung: DRILL_RUNG.opened, row: DRILL_ROW.person };
-        addCaseToTally(tally, screen, place, other.doesOpenPair);
-        if (!other.doesOpenPair) continue;
-        const pair = presentPair(statistics, roster, screen, combatantId, other.combatantId);
-        if (pair === null) continue;
-        for (const part of pair.parts) {
-            const row = part.part.kind === OPENED_PART.plain
-                ? DRILL_ROW.closing
-                : getRowForPart(part.part);
-            addCaseToTally(tally, screen, { rung: DRILL_RUNG.pair, row }, false);
-        }
-        for (const kind of pair.byElement.rows) {
-            assert(kind.figure >= 0, "a kind drawn in a pair holds no less than nothing");
-            addCaseToTally(tally, screen, { rung: DRILL_RUNG.pair, row: DRILL_ROW.kind }, false);
-        }
-        if (pair.byElement.unnamed !== null) {
-            addCaseToTally(tally, screen, { rung: DRILL_RUNG.pair, row: DRILL_ROW.noKind }, false);
-        }
-    }
-    addSectionsToTally(tally, fight, screen, combatantId);
-}
-
 /** What the register calls a part, which is the reader's word for it and not the type's. */
 function getRowForPart(part: NamedPart): DrillRow {
     if (part.kind === OPENED_PART.skill) return DRILL_ROW.skill;
     if (part.kind === OPENED_PART.source) return DRILL_ROW.source;
     return DRILL_ROW.kind;
-}
-
-/** The two cross-sections of an opened row, and the level a part of it opens onto. */
-function addSectionsToTally(
-    tally: DrillTally,
-    fight: PanelFight,
-    screen: PanelMetric,
-    combatantId: number,
-): void {
-    const drill = presentDrill(fight.statistics, fight.roster, screen, combatantId);
-    if (drill === null) return;
-    const opened = DRILL_RUNG.opened;
-    const unnamed = drill.byOpponent.unnamed;
-    if (unnamed !== null) {
-        const place = { rung: opened, row: DRILL_ROW.halfNamed };
-        addCaseToTally(tally, screen, place, unnamed.doesOpenPair);
-        if (unnamed.doesOpenPair) addUnnamedPairToTally(tally, fight, screen, combatantId);
-    }
-    for (const skill of drill.bySkill.rows) {
-        const row = getRowForPart(skill.part);
-        addCaseToTally(tally, screen, { rung: opened, row }, skill.doesOpenPart);
-        if (skill.doesOpenPart) addPartRungToTally(tally, fight, screen, combatantId, skill.part);
-    }
-    const closing = drill.bySkill.plain;
-    if (closing !== null) {
-        const place = { rung: opened, row: DRILL_ROW.closing };
-        addCaseToTally(tally, screen, place, closing.doesOpenPart);
-        if (closing.doesOpenPart) {
-            addPartRungToTally(tally, fight, screen, combatantId, { kind: OPENED_PART.plain });
-        }
-    }
-    for (const kind of drill.byElement.rows) {
-        assert(kind.figure >= 0, "a kind drawn in a section holds no less than nothing");
-        const part = { kind: OPENED_PART.element, element: kind.element };
-        addCaseToTally(tally, screen, { rung: opened, row: DRILL_ROW.kind }, kind.doesOpenPart);
-        if (kind.doesOpenPart) addPartRungToTally(tally, fight, screen, combatantId, part);
-    }
-    if (drill.byElement.unnamed !== null) {
-        addCaseToTally(tally, screen, { rung: opened, row: DRILL_ROW.noKind }, false);
-    }
-}
-
-/** The end an opened figure left out, opened: that person's own keys, and nothing under them. */
-function addUnnamedPairToTally(
-    tally: DrillTally,
-    fight: PanelFight,
-    screen: PanelMetric,
-    combatantId: number,
-): void {
-    const held = presentOpenedUnnamed(fight.statistics, fight.roster, screen, combatantId);
-    assertExists(held, "a row that opens has a level under it");
-    assert(held.opened === HALF_NAMED_OPENED.person, "and the level is one person's own keys");
-    const place = { rung: DRILL_RUNG.unnamedPair, row: DRILL_ROW.kind };
-    for (const one of held.kinds.rows) addCaseToTally(tally, screen, place, one.doesOpenPart);
-    if (held.kinds.unnamed !== null) {
-        addCaseToTally(
-            tally,
-            screen,
-            { rung: DRILL_RUNG.unnamedPair, row: DRILL_ROW.noKind },
-            false,
-        );
-    }
 }
 
 /** The level a part of an opened figure opens onto: people, and the end the protocol left out. */
@@ -415,11 +520,23 @@ function addPartRungToTally(
     combatantId: number,
     part: OpenedPart,
 ): void {
-    const held = presentPart(fight.statistics, fight.roster, screen, combatantId, part);
+    const held = presentPart(
+        fight.statistics,
+        fight.roster,
+        screen,
+        combatantId,
+        part,
+    );
     if (held === null) return;
     for (const one of held.byOpponent.rows) {
-        assert(one.figure >= 0, "a person a part reached holds no less than nothing");
-        addCaseToTally(tally, screen, { rung: DRILL_RUNG.part, row: DRILL_ROW.person }, false);
+        assert(
+            one.figure >= 0,
+            "a person a part reached holds no less than nothing",
+        );
+        addCaseToTally(tally, screen, {
+            rung: DRILL_RUNG.part,
+            row: DRILL_ROW.person,
+        }, false);
     }
     if (held.byOpponent.unnamed !== null) {
         const place = { rung: DRILL_RUNG.part, row: DRILL_ROW.halfNamed };

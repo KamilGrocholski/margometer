@@ -99,18 +99,74 @@ const QUEUE_ENTRIES_MAXIMUM = 1024;
 
 export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeFailure {
     if (!isRecord(payload)) return new PayloadNotRecord();
-    const messages = readPayloadEnvelopeMessages(payload);
-    if (messages instanceof Error) return messages;
+    const messages: string[] = [];
+    // Copy the messages: an empty one is passed over, and so counts as lost against `mi`.
+    {
+        // `develop` reads it so, and anything but text is a list no message can be placed in.
+        const listed = getListField(payload, ENVELOPE_KEYS, "messages", MESSAGES_MAXIMUM);
+        if (listed instanceof Error) return readPayloadEnvelopeFailure(listed);
+        for (const message of listed ?? []) {
+            if (typeof message !== "string") return new PayloadFieldMalformed("messages");
+            if (message.length > 0) messages.push(message);
+        }
+        assert(messages.length <= MESSAGES_MAXIMUM, "a payload's messages stay inside the bound");
+    }
     const stated = getListField(payload, ENVELOPE_KEYS, "messagesStated", MESSAGES_MAXIMUM);
     if (stated instanceof Error) return readPayloadEnvelopeFailure(stated);
     const readerSide = readPayloadEnvelopeInteger(payload, "readerSide");
     if (readerSide instanceof Error) return readerSide;
     const auto = readPayloadEnvelopeInteger(payload, "isOnAuto");
     if (auto instanceof Error) return auto;
-    const turnStatement = readPayloadEnvelopeTurn(payload);
-    if (turnStatement instanceof Error) return turnStatement;
-    const warriors = readPayloadEnvelopeWarriors(payload);
-    if (warriors instanceof Error) return warriors;
+    let turnStatement: TurnStatement | null;
+    // Read the turn in progress: the queue's least ordinal, and whose it is.
+    readTurn: {
+        // ⚠️ **Only its least entry is a statement.** The rest are the client's forecast: over
+        // `captures/` (2026-09-08) the step one ahead is wrong 11 times in 451, and the ninth 100
+        // times in 277.
+        const queue = getRecordField(payload, ENVELOPE_KEYS, "turnStatement");
+        if (queue instanceof Error) return readPayloadEnvelopeFailure(queue);
+        if (queue === null) {
+            turnStatement = null;
+            break readTurn;
+        }
+        const ordinals = Object.keys(queue);
+        if (ordinals.length > QUEUE_ENTRIES_MAXIMUM) {
+            return new PayloadFieldTooLong("turnStatement", ordinals.length, QUEUE_ENTRIES_MAXIMUM);
+        }
+        let least: number | null = null;
+        for (const ordinalText of ordinals) {
+            const ordinal = parseInteger(ordinalText);
+            if (ordinal === null) return new PayloadFieldMalformed("turnStatement");
+            if (least === null) least = ordinal;
+            else if (ordinal < least) least = ordinal;
+        }
+        if (least === null) {
+            turnStatement = null;
+            break readTurn;
+        }
+        const combatantId = queue[`${least}`];
+        if (typeof combatantId !== "number") return new PayloadFieldMalformed("turnStatement");
+        turnStatement = { ordinal: least, combatantId };
+    }
+    let warriors: unknown[];
+    // Read the warrior entries, as a list.
+    {
+        // The client keys its warriors by id in every payload of `captures/` carrying any; a list
+        // of them is the same people in order, and is read so.
+        const keyed = getRecordField(payload, ENVELOPE_KEYS, "combatants");
+        if (keyed instanceof Error) {
+            const listed = getListField(payload, ENVELOPE_KEYS, "combatants", COMBATANTS_MAXIMUM);
+            if (listed instanceof Error) return readPayloadEnvelopeFailure(listed);
+            warriors = [...(listed ?? [])];
+        } else if (keyed !== null) {
+            warriors = Object.values(keyed);
+        } else {
+            warriors = [];
+        }
+        if (warriors.length > COMBATANTS_MAXIMUM) {
+            return new PayloadFieldTooLong("combatants", warriors.length, COMBATANTS_MAXIMUM);
+        }
+    }
     const reading = readWarriorEntries(warriors);
     const ids = new Set<number>();
     for (const combatant of reading.combatants) {
@@ -129,22 +185,6 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
         statusMasksByCombatantId: reading.statusMasksByCombatantId,
         chargeStatements: reading.chargeStatements,
     };
-}
-
-/**
- * The messages, copied. An empty one is passed over and so counts as lost against `mi`, as
- * `develop` reads it; anything but text is a list this reader cannot place a message in.
- */
-function readPayloadEnvelopeMessages(payload: UnknownRecord): string[] | EnvelopeFailure {
-    const listed = getListField(payload, ENVELOPE_KEYS, "messages", MESSAGES_MAXIMUM);
-    if (listed instanceof Error) return readPayloadEnvelopeFailure(listed);
-    const messages: string[] = [];
-    for (const message of listed ?? []) {
-        if (typeof message !== "string") return new PayloadFieldMalformed("messages");
-        if (message.length > 0) messages.push(message);
-    }
-    assert(messages.length <= MESSAGES_MAXIMUM, "a payload's messages stay inside the bound");
-    return messages;
 }
 
 /** Our field, never their key: the failure a field reader returned, in the envelope's terms. */
@@ -173,50 +213,4 @@ function readPayloadEnvelopeInteger(
     const value = parseInteger(asText);
     if (value === null) return new PayloadFieldMalformed(field, { cause: asNumber });
     return value;
-}
-
-/**
- * The turn in progress: the queue's least ordinal, and whose it is. ⚠️ **Only its least entry is a
- * statement.** The rest are the client's forecast: over `captures/` (2026-09-08) the step
- * one ahead is wrong 11 times in 451, and the ninth 100 times in 277.
- */
-function readPayloadEnvelopeTurn(payload: UnknownRecord): TurnStatement | null | EnvelopeFailure {
-    const queue = getRecordField(payload, ENVELOPE_KEYS, "turnStatement");
-    if (queue instanceof Error) return readPayloadEnvelopeFailure(queue);
-    if (queue === null) return null;
-    const ordinals = Object.keys(queue);
-    if (ordinals.length > QUEUE_ENTRIES_MAXIMUM) {
-        return new PayloadFieldTooLong("turnStatement", ordinals.length, QUEUE_ENTRIES_MAXIMUM);
-    }
-    let least: number | null = null;
-    for (const stated of ordinals) {
-        const ordinal = parseInteger(stated);
-        if (ordinal === null) return new PayloadFieldMalformed("turnStatement");
-        if (least === null) least = ordinal;
-        else if (ordinal < least) least = ordinal;
-    }
-    if (least === null) return null;
-    const combatantId = queue[`${least}`];
-    if (typeof combatantId !== "number") return new PayloadFieldMalformed("turnStatement");
-    return { ordinal: least, combatantId };
-}
-
-/**
- * The warrior entries, as a list. The client keys its warriors by id in every payload of
- * `captures/` carrying any; a list of them is the same people in order, and is read so.
- */
-function readPayloadEnvelopeWarriors(payload: UnknownRecord): unknown[] | EnvelopeFailure {
-    const keyed = getRecordField(payload, ENVELOPE_KEYS, "combatants");
-    let entries: unknown[] = [];
-    if (keyed instanceof Error) {
-        const listed = getListField(payload, ENVELOPE_KEYS, "combatants", COMBATANTS_MAXIMUM);
-        if (listed instanceof Error) return readPayloadEnvelopeFailure(listed);
-        entries = [...(listed ?? [])];
-    } else if (keyed !== null) {
-        entries = Object.values(keyed);
-    }
-    if (entries.length > COMBATANTS_MAXIMUM) {
-        return new PayloadFieldTooLong("combatants", entries.length, COMBATANTS_MAXIMUM);
-    }
-    return entries;
 }

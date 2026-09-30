@@ -50,7 +50,25 @@ export function initPageClock(date: PageDate): Clock {
         readNowMilliseconds: () => date.now(),
         readMoment(atMilliseconds) {
             if (!Number.isFinite(atMilliseconds)) return null;
-            const read = errors.attempt(() => readPageMoment(new date(atMilliseconds)));
+            // Read the moment: a day, a month, an hour and a minute, or null for any one refused.
+            const read = errors.attempt((): PageMoment | null => {
+                // ⚠️ **The day is held to the same refusal as the time**: a shelf of twenty fights
+                // spans days, and a wrong one reads as a fight that happened.
+                const held: PageDateValue = new date(atMilliseconds);
+                const day = readWhole(held.getDate?.(), 1, DAY_MAXIMUM);
+                const monthFromZero = readWhole(
+                    held.getMonth?.(),
+                    0,
+                    MONTH_MAXIMUM - FIRST_MONTH_OFFSET,
+                );
+                const hour = readWhole(held.getHours?.(), 0, HOUR_MAXIMUM);
+                const minute = readWhole(held.getMinutes?.(), 0, MINUTE_MAXIMUM);
+                if (day === null) return null;
+                if (monthFromZero === null) return null;
+                if (hour === null) return null;
+                if (minute === null) return null;
+                return { day, month: monthFromZero + FIRST_MONTH_OFFSET, hour, minute };
+            });
             if (read instanceof Error) return null;
             return read;
         },
@@ -61,22 +79,6 @@ export function initPageClock(date: PageDate): Clock {
             return String(read);
         },
     };
-}
-
-/**
- * ⚠️ **The day is held to the same refusal as the time**: a shelf of twenty fights spans days, and
- * a wrong one reads as a fight that happened.
- */
-function readPageMoment(held: PageDateValue): PageMoment | null {
-    const day = readWhole(held.getDate?.(), 1, DAY_MAXIMUM);
-    const monthFromZero = readWhole(held.getMonth?.(), 0, MONTH_MAXIMUM - FIRST_MONTH_OFFSET);
-    const hour = readWhole(held.getHours?.(), 0, HOUR_MAXIMUM);
-    const minute = readWhole(held.getMinutes?.(), 0, MINUTE_MAXIMUM);
-    if (day === null) return null;
-    if (monthFromZero === null) return null;
-    if (hour === null) return null;
-    if (minute === null) return null;
-    return { day, month: monthFromZero + FIRST_MONTH_OFFSET, hour, minute };
 }
 
 function readWhole(value: unknown, minimum: number, maximum: number): number | null {

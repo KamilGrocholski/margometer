@@ -13,7 +13,6 @@ import {
     createFightSession,
     type FightSession,
     type PayloadCommitted,
-    type PayloadRecord,
     preparePayload,
     type SessionOptions,
 } from "#/src/core/fight-session.ts";
@@ -84,7 +83,69 @@ export function initLiveFight(options: LiveFightOptions): {
             );
         },
         onPayload(payload) {
-            readPayload(live, options, payload);
+            // Read the payload, each step under its own guard.
+            const record = guard(options, DEFECT_KIND.reading, null, () => {
+                const read = readPayloadEnvelope(payload);
+                if (!(read instanceof Error)) return read;
+                options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
+                return null;
+            });
+            const after = guard(
+                options,
+                DEFECT_KIND.file,
+                null,
+                () => readSnapshot(live, options),
+            );
+            guard(options, DEFECT_KIND.file, undefined, () => {
+                const messages = record === null ? [] : record.messages;
+                const call = {
+                    payload,
+                    messages,
+                    combatantsBefore: live.snapshotBefore,
+                    combatantsAfter: after,
+                };
+                live.capture = prepareCapture(live.capture, call, record?.isInit ?? false);
+            });
+            // Commit the record, or leave a defect where it will not prepare.
+            const committed = record === null
+                ? null
+                : guard(options, DEFECT_KIND.reading, null, (): PayloadCommitted | null => {
+                    const prepared = preparePayload(live.session, record, options.tables);
+                    if (prepared instanceof Error) {
+                        options.defects.add({
+                            kind: DEFECT_KIND.reading,
+                            region: null,
+                            failure: prepared,
+                        });
+                        return null;
+                    }
+                    return commitPayload(live.session, prepared);
+                });
+            if (committed?.hasOpened === true) {
+                // Open the fight: its moment, its place and who the reader is.
+                guard(options, DEFECT_KIND.reading, undefined, () => {
+                    live.openedAt = options.clock.readNowMilliseconds();
+                    live.place = readPageValue(options, options.place.readPlace());
+                    live.readerId = readPageValue(options, options.hero.readHeroId());
+                    options.onFightOpened();
+                });
+            }
+            if (committed?.hasClosed === true) {
+                // Keep the closed fight on the shelf.
+                guard(options, DEFECT_KIND.keeping, undefined, () => {
+                    const payloads = live.capture.calls.map((call) => call.payload);
+                    const fight = {
+                        openedAt: live.openedAt,
+                        payloads,
+                        place: live.place,
+                        readerId: live.readerId,
+                        gameBuild: readPageValue(options, options.build.readBuildId()),
+                        isPinned: false,
+                    };
+                    options.keepFight(fight);
+                });
+            }
+            guard(options, DEFECT_KIND.reading, undefined, () => options.markStale());
         },
     };
     return { live, listener };
@@ -123,56 +184,6 @@ function readSnapshot(live: LiveFight, options: LiveFightOptions): WarriorSnapsh
     return null;
 }
 
-function readPayload(live: LiveFight, options: LiveFightOptions, payload: unknown): void {
-    const record = guard(options, DEFECT_KIND.reading, null, () => {
-        const read = readPayloadEnvelope(payload);
-        if (!(read instanceof Error)) return read;
-        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
-        return null;
-    });
-    const after = guard(options, DEFECT_KIND.file, null, () => readSnapshot(live, options));
-    guard(options, DEFECT_KIND.file, undefined, () => {
-        const messages = record === null ? [] : record.messages;
-        const call = {
-            payload,
-            messages,
-            combatantsBefore: live.snapshotBefore,
-            combatantsAfter: after,
-        };
-        live.capture = prepareCapture(live.capture, call, record?.isInit ?? false);
-    });
-    const committed = record === null
-        ? null
-        : guard(options, DEFECT_KIND.reading, null, () => commitRecord(live, options, record));
-    if (committed?.hasOpened === true) {
-        guard(options, DEFECT_KIND.reading, undefined, () => openFight(live, options));
-    }
-    if (committed?.hasClosed === true) {
-        guard(options, DEFECT_KIND.keeping, undefined, () => keepClosedFight(live, options));
-    }
-    guard(options, DEFECT_KIND.reading, undefined, () => options.markStale());
-}
-
-function commitRecord(
-    live: LiveFight,
-    options: LiveFightOptions,
-    record: PayloadRecord,
-): PayloadCommitted | null {
-    const prepared = preparePayload(live.session, record, options.tables);
-    if (prepared instanceof Error) {
-        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: prepared });
-        return null;
-    }
-    return commitPayload(live.session, prepared);
-}
-
-function openFight(live: LiveFight, options: LiveFightOptions): void {
-    live.openedAt = options.clock.readNowMilliseconds();
-    live.place = readPageValue(options, options.place.readPlace());
-    live.readerId = readPageValue(options, options.hero.readHeroId());
-    options.onFightOpened();
-}
-
 /** Absent is shown as unknown and is no defect; a page that threw while asked is one. */
 function readPageValue<Value>(
     options: LiveFightOptions,
@@ -184,18 +195,4 @@ function readPageValue<Value>(
         return null;
     }
     return read;
-}
-
-/** Once, on the call that ends it: a fight put on the shelf twice is two fights. */
-function keepClosedFight(live: LiveFight, options: LiveFightOptions): void {
-    const payloads = live.capture.calls.map((call) => call.payload);
-    const fight = {
-        openedAt: live.openedAt,
-        payloads,
-        place: live.place,
-        readerId: live.readerId,
-        gameBuild: readPageValue(options, options.build.readBuildId()),
-        isPinned: false,
-    };
-    options.keepFight(fight);
 }

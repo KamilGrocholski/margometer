@@ -34,36 +34,57 @@ const ENTITIES: readonly (readonly [string, string])[] = [
 
 /** HTML to text, in the order the steps have to run in. */
 export function decodeHtmlText(html: string): string {
-    let text = removeTags(removeRawTextElements(html));
+    let withoutRawText: string;
+    // Take script and style bodies out, tag and contents together.
+    {
+        // They go first because stripping the tags before their contents leaves the code in the
+        // output, where a search reports machinery as prose.
+        let kept = "";
+        let from = 0;
+        let open = html.indexOf(TAG_OPEN);
+        for (let look = 0; look < TAGS_MAXIMUM; look += 1) {
+            if (open === -1) break;
+            const opening = lookupRawTextOpening(html, open);
+            const end = opening === null
+                ? null
+                : lookupRawTextClosing(html, opening.end, opening.name);
+            // An opening with no closing is not an element, so the search resumes one character in.
+            if (end === null) {
+                kept += html.slice(from, open + 1);
+                from = open + 1;
+            } else {
+                kept += `${html.slice(from, open)} `;
+                from = end;
+            }
+            open = html.indexOf(TAG_OPEN, from);
+        }
+        assert(open === -1, "every element was walked, which is what the bound is for");
+        withoutRawText = kept + html.slice(from);
+    }
+    let text: string;
+    // Take every remaining tag out. `<>` is not one: there has to be a character in it.
+    {
+        let kept = "";
+        let from = 0;
+        let open = withoutRawText.indexOf(TAG_OPEN);
+        for (let look = 0; look < TAGS_MAXIMUM; look += 1) {
+            if (open === -1) break;
+            const close = withoutRawText.indexOf(TAG_CLOSE, open + 1);
+            if (close === -1 || close === open + 1) {
+                kept += withoutRawText.slice(from, open + 1);
+                from = open + 1;
+            } else {
+                kept += `${withoutRawText.slice(from, open)} `;
+                from = close + 1;
+            }
+            open = withoutRawText.indexOf(TAG_OPEN, from);
+        }
+        assert(open === -1, "every tag was walked, which is what the bound is for");
+        text = kept + withoutRawText.slice(from);
+    }
     for (const [entity, character] of ENTITIES) text = text.split(entity).join(character);
     assert(text.length <= html.length, "text is never longer than the markup it was read from");
     return composeCollapsedWhitespace(text);
-}
-
-/**
- * Script and style bodies out, tag and contents together. They go first because stripping the tags
- * before their contents leaves the code in the output, where a search reports machinery as prose.
- */
-function removeRawTextElements(html: string): string {
-    let kept = "";
-    let from = 0;
-    let open = html.indexOf(TAG_OPEN);
-    for (let look = 0; look < TAGS_MAXIMUM; look += 1) {
-        if (open === -1) break;
-        const opening = lookupRawTextOpening(html, open);
-        const end = opening === null ? null : lookupRawTextClosing(html, opening.end, opening.name);
-        // An opening with no closing is not an element, so the search resumes one character in.
-        if (end === null) {
-            kept += html.slice(from, open + 1);
-            from = open + 1;
-        } else {
-            kept += `${html.slice(from, open)} `;
-            from = end;
-        }
-        open = html.indexOf(TAG_OPEN, from);
-    }
-    assert(open === -1, "every element was walked, which is what the bound is for");
-    return kept + html.slice(from);
 }
 
 /** Which raw-text element opens at `open`, and where its opening tag ends. */
@@ -107,27 +128,6 @@ function lookupRawTextClosing(html: string, from: number, name: string): number 
         return index + 2 + name.length + 1;
     }
     return null;
-}
-
-/** Every remaining tag out. `<>` is not one: there has to be a character in it. */
-function removeTags(html: string): string {
-    let kept = "";
-    let from = 0;
-    let open = html.indexOf(TAG_OPEN);
-    for (let look = 0; look < TAGS_MAXIMUM; look += 1) {
-        if (open === -1) break;
-        const close = html.indexOf(TAG_CLOSE, open + 1);
-        if (close === -1 || close === open + 1) {
-            kept += html.slice(from, open + 1);
-            from = open + 1;
-        } else {
-            kept += `${html.slice(from, open)} `;
-            from = close + 1;
-        }
-        open = html.indexOf(TAG_OPEN, from);
-    }
-    assert(open === -1, "every tag was walked, which is what the bound is for");
-    return kept + html.slice(from);
 }
 
 /** Every run of whitespace down to one space, and none at either end. */

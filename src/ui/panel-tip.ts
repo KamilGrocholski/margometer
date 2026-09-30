@@ -216,58 +216,61 @@ export function renderTip(
         subtitle.textContent = reading.subtitle;
         tip.append(subtitle);
     }
-    for (const group of reading.groups) tip.append(renderTipGroup(document, group));
-    return tip;
-}
-
-function renderTipGroup(document: PanelDocument, group: TipGroup): PanelElement {
-    const element = document.createElement("div");
-    element.className = CLASS.tipGroup;
-    for (const line of group.lines) element.append(renderTipLine(document, line));
-    return element;
-}
-
-function renderTipLine(document: PanelDocument, line: TipLine): PanelElement {
-    if (line.kind === TIP_LINE.note) return renderTipNote(document, line);
-    if (line.kind === TIP_LINE.heading) return renderTipHeading(document, line);
-    const element = document.createElement("div");
-    element.className = composeTipLineClass(line);
-    const label = document.createElement("span");
-    label.className = CLASS.tipLabel;
-    label.textContent = line.label;
-    const value = document.createElement("span");
-    value.className = CLASS.tipValue;
-    value.textContent = line.stated;
-    element.append(label);
-    // Before the value and never after it: the value column is right-aligned in `tabular-nums`,
-    // and a glyph behind it would offset the figures of the lines carrying one against those that
-    // do not. Before it, the column stays aligned and the glyph still stands at the figure.
-    if (line.kind === TIP_LINE.stat) {
-        if (line.caveat !== null) element.append(renderTipCaveat(document));
+    for (const group of reading.groups) {
+        // Render one group of the card's lines.
+        const drawnGroup = document.createElement("div");
+        drawnGroup.className = CLASS.tipGroup;
+        for (const line of group.lines) {
+            // Render one line of the group.
+            if (line.kind === TIP_LINE.note) {
+                // Render a sentence at the foot of the card, its caveat's ring before it.
+                // The suspect and the defect marks stay inside their own text: both are
+                // drawn by a codepoint that every face carries at a width its own height
+                // (`develop ADR 0092` carries the measurement), and only the circled
+                // letter had to be built.
+                const note = document.createElement("div");
+                const tone = composeTipNoteToneClass(line.tone);
+                note.className = `${CLASS.tipNote}${tone}`;
+                note.textContent = line.text;
+                // ⚠️ **Appended after the sentence and stood before it by the sheet.**
+                // `textContent` replaces every child, so a ring written first is wiped
+                // by the line it belongs to — and wrapping the sentence in a span of its
+                // own instead would leave this element's own `textContent` empty, which
+                // is what every reader of a drawn note asks it for.
+                if (line.tone === TIP_NOTE_TONE.caveat) {
+                    note.append(renderTipCaveat(document));
+                }
+                drawnGroup.append(note);
+            } else if (line.kind === TIP_LINE.heading) {
+                // Render a heading over the lines below it.
+                const heading = document.createElement("div");
+                heading.className = CLASS.tipHeading;
+                heading.textContent = line.text;
+                drawnGroup.append(heading);
+            } else {
+                const drawnLine = document.createElement("div");
+                drawnLine.className = composeTipLineClass(line);
+                const label = document.createElement("span");
+                label.className = CLASS.tipLabel;
+                label.textContent = line.label;
+                const value = document.createElement("span");
+                value.className = CLASS.tipValue;
+                value.textContent = line.stated;
+                drawnLine.append(label);
+                // Before the value and never after it: the value column is right-aligned
+                // in `tabular-nums`, and a glyph behind it would offset the figures of the
+                // lines carrying one against those that do not. Before it, the column
+                // stays aligned and the glyph still stands at the figure.
+                if (line.kind === TIP_LINE.stat) {
+                    if (line.caveat !== null) drawnLine.append(renderTipCaveat(document));
+                }
+                drawnLine.append(value);
+                drawnGroup.append(drawnLine);
+            }
+        }
+        tip.append(drawnGroup);
     }
-    element.append(value);
-    return element;
-}
-
-/**
- * A sentence at the foot of a card, with the caveat's ring standing before it where it wears one.
- * The suspect and the defect marks stay inside their own text: both are drawn by a codepoint that
- * every face carries at a width its own height (`develop ADR 0092` carries the measurement), and
- * only the circled letter had to be built.
- */
-function renderTipNote(
-    document: PanelDocument,
-    line: Extract<TipLine, { kind: typeof TIP_LINE.note }>,
-): PanelElement {
-    const element = document.createElement("div");
-    element.className = `${CLASS.tipNote}${composeTipNoteToneClass(line.tone)}`;
-    element.textContent = line.text;
-    // ⚠️ **Appended after the sentence and stood before it by the sheet.** `textContent` replaces
-    // every child, so a ring written first is wiped by the line it belongs to — and wrapping the
-    // sentence in a span of its own instead would leave this element's own `textContent` empty,
-    // which is what every reader of a drawn note asks it for.
-    if (line.tone === TIP_NOTE_TONE.caveat) element.append(renderTipCaveat(document));
-    return element;
+    return tip;
 }
 
 function composeTipNoteToneClass(tone: TipNoteTone): string {
@@ -285,16 +288,6 @@ function renderTipCaveat(document: PanelDocument): PanelElement {
     const element = document.createElement("span");
     element.className = CLASS.tipCaveat;
     element.textContent = CAVEAT_MARK;
-    return element;
-}
-
-function renderTipHeading(
-    document: PanelDocument,
-    line: Extract<TipLine, { kind: typeof TIP_LINE.heading }>,
-): PanelElement {
-    const element = document.createElement("div");
-    element.className = CLASS.tipHeading;
-    element.textContent = line.text;
     return element;
 }
 

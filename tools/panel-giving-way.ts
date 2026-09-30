@@ -53,7 +53,10 @@ export const PANEL_FILE = "src/ui/panel-element.ts";
  * over source that stops finding its subject builds a panel that gives nothing way.
  */
 export const REGION_ANCHOR = "    const rendered = errors.attempt(render);\n";
-export const TIP_ANCHOR = "        const next = render();\n        standing.replaceWith(next);\n";
+export const TIP_ANCHOR =
+    "                    const next = render();\n                    standing.replaceWith(next);\n";
+/** The card's guard stands as deep as its anchor, so the line written into it does too. */
+const TIP_INDENT = TIP_ANCHOR.slice(0, TIP_ANCHOR.indexOf("const"));
 /** Everything the bundle entry reaches, and the lock its imports resolve by. */
 const COPIED = ["src", "libs", "frozen", "deno.json", "deno.lock"];
 /** Past the regions there are, which is what a person may ask for at once (S11). */
@@ -119,7 +122,7 @@ export function composeGivingWaySource(source: string, regions: readonly PanelRe
         return render();
     });
 `;
-    const tip = `        if (${named}.includes(PANEL_REGION.tip)) throw "${GIVING_WAY_MARKER}";
+    const tip = `${TIP_INDENT}if (${named}.includes(PANEL_REGION.tip)) throw "${GIVING_WAY_MARKER}";
 ${TIP_ANCHOR}`;
     const written = source.replace(REGION_ANCHOR, region).replace(TIP_ANCHOR, tip);
     assertStrictEquals(written.split(GIVING_WAY_MARKER).length, 3, "both guards carry the line");

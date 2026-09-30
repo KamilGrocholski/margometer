@@ -139,7 +139,16 @@ export function lookupShotEntry(moment: ShotMoment, calls: number): number {
  */
 export async function writePanelShots(version: string): Promise<PanelShotRecord> {
     assert(version.length > 0, "a set is taken at a version the panel in it will state");
-    const commit = readShotCommit();
+    let commit: string;
+    // Read the commit the set comes from, or refuse: a set over uncommitted work names no build.
+    {
+        const carried = readGitText(["status", "--porcelain", "--", "src"]);
+        if (carried.length > 0) {
+            throw new PanelShotError(`src/ carries what no commit holds:\n${carried}`);
+        }
+        commit = readGitText(["rev-parse", "HEAD"]);
+        assert(!commit.includes("\n"), "a set names one commit");
+    }
     const fight = lookupRecordedFight(LANDING_RECORDING);
     const bundle = (await readUserscriptFiles(version)).script;
     const staging = await Deno.makeTempDir({ prefix: "margometer-shots-" });
@@ -155,7 +164,24 @@ export async function writePanelShots(version: string): Promise<PanelShotRecord>
         const fightName = formatRecordingName(fight.path);
         const takenAt = new Date().toISOString();
         const record = { commit, version, fight: fightName, takenAt, shots: taken };
-        await moveShotsIn(staging, record);
+        // Move in what the set names and nothing else: a leftover picture must not look current.
+        {
+            assert(record.shots.length > 0, "a set that is moved in has pictures in it");
+            const kept = new Set<string>([...record.shots.map((shot) => shot.name), SIDECAR_NAME]);
+            for (const held of Deno.readDirSync(SHOT_DIRECTORY)) {
+                if (!kept.has(held.name)) await Deno.remove(`${SHOT_DIRECTORY}/${held.name}`);
+            }
+            for (const shot of record.shots) {
+                await Deno.copyFile(`${staging}/${shot.name}`, `${SHOT_DIRECTORY}/${shot.name}`);
+            }
+            const text = encodeJson(record, SIDECAR_INDENT_SPACES);
+            if (text instanceof Error) {
+                throw new PanelShotError("the sidecar naming the set cannot be written", {
+                    cause: text,
+                });
+            }
+            await Deno.writeTextFile(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`, `${text}\n`);
+        }
         return record;
     } finally {
         await browser.close();
@@ -163,38 +189,10 @@ export async function writePanelShots(version: string): Promise<PanelShotRecord>
     }
 }
 
-/** The commit the set comes from, or a refusal: a set over uncommitted work names no build. */
-function readShotCommit(): string {
-    const carried = readGitText(["status", "--porcelain", "--", "src"]);
-    if (carried.length > 0) {
-        throw new PanelShotError(`src/ carries what no commit holds:\n${carried}`);
-    }
-    const commit = readGitText(["rev-parse", "HEAD"]);
-    assert(!commit.includes("\n"), "a set names one commit");
-    return commit;
-}
-
 function readGitText(args: readonly string[]): string {
     const asked = new Deno.Command("git", { args: [...args], stderr: "piped" }).outputSync();
     if (!asked.success) throw new PanelShotError(`git would not answer ${args.join(" ")}`);
     return new TextDecoder().decode(asked.stdout).trim();
-}
-
-/** Everything the set names, and nothing else: a leftover picture must not look current. */
-async function moveShotsIn(staging: string, record: PanelShotRecord): Promise<void> {
-    assert(record.shots.length > 0, "a set that is moved in has pictures in it");
-    const kept = new Set<string>([...record.shots.map((shot) => shot.name), SIDECAR_NAME]);
-    for (const held of Deno.readDirSync(SHOT_DIRECTORY)) {
-        if (!kept.has(held.name)) await Deno.remove(`${SHOT_DIRECTORY}/${held.name}`);
-    }
-    for (const shot of record.shots) {
-        await Deno.copyFile(`${staging}/${shot.name}`, `${SHOT_DIRECTORY}/${shot.name}`);
-    }
-    const text = encodeJson(record, SIDECAR_INDENT_SPACES);
-    if (text instanceof Error) {
-        throw new PanelShotError("the sidecar naming the set cannot be written", { cause: text });
-    }
-    await Deno.writeTextFile(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`, `${text}\n`);
 }
 
 /** The page a picture is taken of: the fight fed through `entry`, both windows in the corner. */

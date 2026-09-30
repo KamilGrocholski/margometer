@@ -242,7 +242,14 @@ function readMessageTurn(events: readonly BattleEvent[], standing: TurnStanding)
         turn.standing = composeTurnStanding(event, turn.standing);
         if (opened !== null) {
             turn.openerId = opened;
-            turn.openerKey = readMessageTurnKey(event);
+            // Read the opener's key where a declaration opened it, as the turn clock reads it.
+            {
+                if (event.kind === BATTLE_EVENT.declaration) {
+                    assert(event.declared.length > 0, "a declaration states something");
+                    turn.openerKey = lookupDeclarationOpenerKey(event) ??
+                        event.declared[0]?.effect ?? null;
+                } else turn.openerKey = null;
+            }
             turn.openerKind = event.kind;
         }
         if (event.kind !== BATTLE_EVENT.turnLost) continue;
@@ -250,13 +257,6 @@ function readMessageTurn(events: readonly BattleEvent[], standing: TurnStanding)
     }
     assert(events.length > 0, "every message leaves at least one event behind");
     return turn;
-}
-
-/** The opener's key where a declaration opened the turn, as the turn clock itself reads it. */
-function readMessageTurnKey(event: BattleEvent): string | null {
-    if (event.kind !== BATTLE_EVENT.declaration) return null;
-    assert(event.declared.length > 0, "a declaration states something");
-    return lookupDeclarationOpenerKey(event) ?? event.declared[0]?.effect ?? null;
 }
 
 /**

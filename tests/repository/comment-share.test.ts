@@ -2,7 +2,7 @@
  * C4 and C16: a file's docblock runs to eight lines of prose at most, and no directory of the
  * program or its tools is past its share of comment. A comment line counts where it carries a
  * word: a docblock's marks and the blank line between its paragraphs are punctuation, and the
- * heading P2 writes over a block stands where a function's name stood.
+ * heading S4 writes over a block's own brace stands where a function's name stood.
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";

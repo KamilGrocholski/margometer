@@ -34,7 +34,6 @@ import {
     APPLIED_SIGN,
     getKeyReading,
     KEY_FAMILY,
-    type KeyReading,
     NAME_SEPARATOR,
     RAW_SIGN,
     SKILL_ID_KEY,
@@ -334,10 +333,137 @@ function decodeMessageReading(message: ProtocolMessage): MessageReading {
     for (const parameter of message.parameters) {
         const key = parameter.key;
         const keyReading = getKeyReading(key);
-        let isRead = false;
+        const value = parameter.value;
+        let isRead: boolean;
         if (keyReading === null) isRead = false;
-        else if (parameter.value === null) isRead = addValuelessKey(reading, key, keyReading);
-        else isRead = addValuedKey(reading, key, parameter.value, keyReading, message);
+        else if (value === null) {
+            // Read a key that stands bare, or leave it unread.
+            assert(key.length > 0, "a key is never empty");
+            switch (keyReading.kind) {
+                case KEY_FAMILY.proc:
+                    isRead = addDecoded(reading.procs, key);
+                    break;
+                case KEY_FAMILY.fled:
+                    isRead = addDecoded(reading.outcomes, decodeFledOutcome());
+                    break;
+                case KEY_FAMILY.valuelessDeclaration:
+                    isRead = addDecoded(reading.declared, {
+                        effect: key,
+                        amount: null,
+                        text: null,
+                    });
+                    break;
+                default:
+                    isRead = false;
+            }
+        } else {
+            // Read a valued key: a value its family cannot read leaves it unread, not asserted.
+            assert(key.length > 0, "a key is never empty");
+            assert(
+                message.parameters.length > 0,
+                "a valued key stands in a message that has parameters",
+            );
+            switch (keyReading.kind) {
+                case KEY_FAMILY.damage:
+                case KEY_FAMILY.prevented:
+                case KEY_FAMILY.destroyed:
+                    // Read a figure of the blow: no number, or one below nothing, goes unread.
+                    {
+                        // No key of these families has stated one below nothing over
+                        // `captures/` (0 of every value, 2026-09-21), and a total taking it
+                        // would go down.
+                        const amount = parseInteger(value);
+                        if (amount === null) isRead = false;
+                        else if (amount < 0) isRead = false;
+                        else {
+                            assert(
+                                Number.isSafeInteger(amount),
+                                "a figure read from digits is held exactly",
+                            );
+                            const token = getTokenFromKey(key);
+                            const family = keyReading.kind;
+                            if (family === KEY_FAMILY.prevented) {
+                                reading.prevented.push({ defence: token, amount });
+                            } else if (family === KEY_FAMILY.destroyed) {
+                                reading.destroyed.push({ statistic: token, amount });
+                            } else if (key.startsWith(RAW_SIGN)) {
+                                reading.raw.push({ element: token, amount });
+                            } else reading.applied.push({ element: token, amount });
+                            isRead = true;
+                        }
+                    }
+                    break;
+                case KEY_FAMILY.proc:
+                    if (keyReading.doesTakeValue) isRead = addDecoded(reading.procs, key);
+                    else isRead = false;
+                    break;
+                case KEY_FAMILY.healthChange:
+                    isRead = addDecoded(
+                        reading.healthChanges,
+                        decodeHealthChange(key, value, keyReading),
+                    );
+                    break;
+                case KEY_FAMILY.declaration:
+                    isRead = addDecoded(reading.declared, {
+                        effect: key,
+                        amount: parseInteger(value),
+                        text: value,
+                    });
+                    break;
+                case KEY_FAMILY.skillName:
+                case KEY_FAMILY.customSkillName:
+                    // Read the skill's name: one empty or past the bound goes unread.
+                    {
+                        // `tcustom` names its user in the target slot, so it is read only where
+                        // one combatant is named.
+                        const isUserNamed = keyReading.kind === KEY_FAMILY.customSkillName
+                            ? doesNameOneCombatant(message)
+                            : true;
+                        if (value.length === 0) isRead = false;
+                        else if (value.length > NAME_LENGTH_MAXIMUM) isRead = false;
+                        else if (!isUserNamed) isRead = false;
+                        else {
+                            reading.skillName = value;
+                            reading.skillKeys += 1;
+                            assert(
+                                reading.skillKeys <= message.parameters.length,
+                                "a skill key is one of the message's",
+                            );
+                            isRead = true;
+                        }
+                    }
+                    break;
+                case KEY_FAMILY.skillId:
+                    reading.skillId = parseInteger(value);
+                    reading.skillKeys += 1;
+                    isRead = true;
+                    break;
+                case KEY_FAMILY.outcome:
+                    isRead = addDecoded(
+                        reading.outcomes,
+                        decodeFightOutcome(value, keyReading.result),
+                    );
+                    break;
+                case KEY_FAMILY.fled:
+                    isRead = addDecoded(reading.outcomes, decodeFledOutcome());
+                    break;
+                case KEY_FAMILY.unaccountedHealth:
+                    isRead = addDecoded(
+                        reading.unaccounted,
+                        decodeUnaccountedShare(key, value),
+                    );
+                    break;
+                case KEY_FAMILY.namedDamage:
+                    isRead = addDecoded(reading.namedDamage, decodeNamedDamage(value));
+                    break;
+                case KEY_FAMILY.namedHealing:
+                    isRead = addDecoded(reading.namedHealing, decodeNamedHealing(key, value));
+                    break;
+                case KEY_FAMILY.valuelessDeclaration:
+                    isRead = false;
+                    break;
+            }
+        }
         if (!isRead) reading.unreadKeys.push(key);
     }
     // Close the announcement: an id with no name is a skill nothing can put on screen.
@@ -356,21 +482,6 @@ function decodeMessageReading(message: ProtocolMessage): MessageReading {
     return reading;
 }
 
-/** `false`: the key was not read, and the caller names it unread. */
-function addValuelessKey(reading: MessageReading, key: string, keyReading: KeyReading): boolean {
-    assert(key.length > 0, "a key is never empty");
-    switch (keyReading.kind) {
-        case KEY_FAMILY.proc:
-            return addDecoded(reading.procs, key);
-        case KEY_FAMILY.fled:
-            return addDecoded(reading.outcomes, decodeFledOutcome());
-        case KEY_FAMILY.valuelessDeclaration:
-            return addDecoded(reading.declared, { effect: key, amount: null, text: null });
-        default:
-            return false;
-    }
-}
-
 function addDecoded<Decoded>(found: Decoded[], decoded: Decoded | null): boolean {
     if (decoded === null) return false;
     const count = found.push(decoded);
@@ -384,77 +495,6 @@ function addDecoded<Decoded>(found: Decoded[], decoded: Decoded | null): boolean
  */
 function decodeFledOutcome(): FightOutcomeEvent {
     return { kind: BATTLE_EVENT.fightOutcome, result: OUTCOME_RESULT.fled, combatantNames: [] };
-}
-
-/** One branch per family; a value a family cannot read leaves the key unread, never asserted. */
-function addValuedKey(
-    reading: MessageReading,
-    key: string,
-    value: string,
-    keyReading: KeyReading,
-    message: ProtocolMessage,
-): boolean {
-    assert(key.length > 0, "a key is never empty");
-    assert(message.parameters.length > 0, "a valued key stands in a message that has parameters");
-    switch (keyReading.kind) {
-        case KEY_FAMILY.damage:
-        case KEY_FAMILY.prevented:
-        case KEY_FAMILY.destroyed:
-            return addFigure(reading, key, value, keyReading.kind);
-        case KEY_FAMILY.proc:
-            if (!keyReading.doesTakeValue) return false;
-            return addDecoded(reading.procs, key);
-        case KEY_FAMILY.healthChange:
-            return addDecoded(reading.healthChanges, decodeHealthChange(key, value, keyReading));
-        case KEY_FAMILY.declaration:
-            return addDecoded(reading.declared, {
-                effect: key,
-                amount: parseInteger(value),
-                text: value,
-            });
-        case KEY_FAMILY.skillName:
-        case KEY_FAMILY.customSkillName:
-            return addSkillName(reading, value, keyReading.kind, message);
-        case KEY_FAMILY.skillId:
-            reading.skillId = parseInteger(value);
-            reading.skillKeys += 1;
-            return true;
-        case KEY_FAMILY.outcome:
-            return addDecoded(reading.outcomes, decodeFightOutcome(value, keyReading.result));
-        case KEY_FAMILY.fled:
-            return addDecoded(reading.outcomes, decodeFledOutcome());
-        case KEY_FAMILY.unaccountedHealth:
-            return addDecoded(reading.unaccounted, decodeUnaccountedShare(key, value));
-        case KEY_FAMILY.namedDamage:
-            return addDecoded(reading.namedDamage, decodeNamedDamage(value));
-        case KEY_FAMILY.namedHealing:
-            return addDecoded(reading.namedHealing, decodeNamedHealing(key, value));
-        case KEY_FAMILY.valuelessDeclaration:
-            return false;
-    }
-}
-
-/**
- * A figure of the blow, or the key unread: a value that is no number, and one below nothing. No
- * key of these families has stated one over `captures/` (0 of every value, 2026-09-21), and
- * a total taking it would go down.
- */
-function addFigure(
-    reading: MessageReading,
-    key: string,
-    value: string,
-    family: typeof KEY_FAMILY.damage | typeof KEY_FAMILY.prevented | typeof KEY_FAMILY.destroyed,
-): boolean {
-    const amount = parseInteger(value);
-    if (amount === null) return false;
-    if (amount < 0) return false;
-    assert(Number.isSafeInteger(amount), "a figure read from digits is held exactly");
-    const token = getTokenFromKey(key);
-    if (family === KEY_FAMILY.prevented) reading.prevented.push({ defence: token, amount });
-    else if (family === KEY_FAMILY.destroyed) reading.destroyed.push({ statistic: token, amount });
-    else if (key.startsWith(RAW_SIGN)) reading.raw.push({ element: token, amount });
-    else reading.applied.push({ element: token, amount });
-    return true;
 }
 
 /** The client's own token: the key with its sign taken off. */
@@ -486,27 +526,6 @@ function decodeHealthChange(
     assert(declared.length < members.length, "the health figure is not a declaration");
     const amount = keyReading.sign * magnitude;
     return { source: key, amount, isOnTarget: keyReading.isOnTarget, declared };
-}
-
-/**
- * A name saying nothing or running past the bound goes unread, as a value that is no number does.
- * `tcustom` names its user in the target slot, so it is read only where one combatant is named.
- */
-function addSkillName(
-    reading: MessageReading,
-    value: string,
-    family: typeof KEY_FAMILY.skillName | typeof KEY_FAMILY.customSkillName,
-    message: ProtocolMessage,
-): boolean {
-    if (value.length === 0) return false;
-    if (value.length > NAME_LENGTH_MAXIMUM) return false;
-    if (family === KEY_FAMILY.customSkillName) {
-        if (!doesNameOneCombatant(message)) return false;
-    }
-    reading.skillName = value;
-    reading.skillKeys += 1;
-    assert(reading.skillKeys <= message.parameters.length, "a skill key is one of the message's");
-    return true;
 }
 
 /** Both ends the same, or one end unstated: there was never a second name to get wrong. */

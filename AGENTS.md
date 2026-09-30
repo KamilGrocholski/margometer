@@ -81,10 +81,12 @@ this language does not have would be**; each states what binds instead.
   to the decode path that raises it is a finding.
 - **S4. A function called from one place is written in its caller, unless its verb is strong.**
   Length ends no function, and strength is **P1**'s. The body is a braced block there, headed by a
-  one-line comment naming the step, and the block scopes what the step declares (**S6**). A function
-  handed on as a value — a listener, a callback — is not called, and stays one. Observation: in
-  `libs/`, `src/` or `tools/`, a function no other module imports, whose verb is not strong, called
-  from exactly one function and never handed on. ADR 0018.
+  one-line comment naming the step, and the block scopes what the step declares (**S6**); where the
+  step is the whole body of an `if`, a loop or a closure, that body is its block and the heading its
+  first line. A function handed on as a value — a listener, a callback — is not called, and stays
+  one; nor does an `async` function a synchronous caller starts, because only a function holds its
+  awaits. Observation: in `libs/`, `src/` or `tools/`, a function no other module imports, whose
+  verb is not strong, called from exactly one function and never handed on. ADR 0018.
 - **S5.** Assertion density averages at least two per **function that takes something and may
   assert**, across `libs/`, `src/core/`, `src/game/`, `src/runtime/` and `tools/`, counting the
   closures a file writes inside its functions as the functions they are. A function handed nothing
@@ -376,7 +378,7 @@ TypeScript idiom, with the naming rules stated here.
 - **C4.** A file's docblock says what the file is for, in **at most eight lines of prose**. The
   lines showing how a tool is run do not count.
 - **C5.** Comment share of a file stays under 25%, counting the comment lines that carry a word and
-  not a block's heading (**S4**). `develop ADR 0016`, `0075`, ADR 0018.
+  not a heading standing over a block's own `{` (**S4**). `develop ADR 0016`, `0075`, ADR 0018.
 - **C6.** Comments are sentences — a space after the slashes, a capital letter, a full stop, or a
   colon when they introduce what follows. An end-of-line comment may be a phrase.
 - **C7. No regular expressions**, in either spelling. Text is read by walking it. A new exception is
@@ -536,6 +538,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/handed-callbacks.test.ts`        | E10                                                    |
 | `tests/repository/type-assertions.test.ts`         | C13                                                    |
 | `tests/repository/control-flow.test.ts`            | S1                                                     |
+| `tests/repository/called-once.test.ts`             | S4                                                     |
 | `tests/repository/purity.test.ts`                  | P1, P3, P4                                             |
 | `tests/repository/comment-share.test.ts`           | C4, C16                                                |
 | `tests/repository/design-tokens.test.ts`           | `DESIGN.md`                                            |

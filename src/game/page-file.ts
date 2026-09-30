@@ -59,7 +59,23 @@ export function initPageFile(downloads: PageDownloads | null): FileSink {
                 return downloads.createObjectURL(downloads.createBlob(text, FILE_TYPE));
             });
             if (url instanceof Error) return url;
-            const clicked = errors.attempt(() => writePageFileAnchor(downloads, url, name));
+            // Click the file's anchor: false where the page lends none, and the anchor comes off
+            // whether the click threw or not.
+            const clicked = errors.attempt((): boolean => {
+                assert(url.length > 0, "a file is clicked under the address the page gave it");
+                const anchor = downloads.createAnchor();
+                if (anchor === null) return false;
+                anchor.href = url;
+                anchor.download = name;
+                anchor.className = DOWNLOAD_ANCHOR_CLASS;
+                downloads.appendAnchor(anchor);
+                try {
+                    anchor.click();
+                } finally {
+                    anchor.remove();
+                }
+                return true;
+            });
             // The clock is the browser's, so the release is guarded where it is handed over (E10).
             const release = (): void => {
                 const revoked = errors.attempt(() => downloads.revokeObjectURL(url));
@@ -72,21 +88,4 @@ export function initPageFile(downloads: PageDownloads | null): FileSink {
             return undefined;
         },
     };
-}
-
-/** False where the page lends no anchor; the anchor comes off whether the click threw or not. */
-function writePageFileAnchor(downloads: PageDownloads, url: string, name: string): boolean {
-    assert(url.length > 0, "a file is clicked under the address the page gave it");
-    const anchor = downloads.createAnchor();
-    if (anchor === null) return false;
-    anchor.href = url;
-    anchor.download = name;
-    anchor.className = DOWNLOAD_ANCHOR_CLASS;
-    downloads.appendAnchor(anchor);
-    try {
-        anchor.click();
-    } finally {
-        anchor.remove();
-    }
-    return true;
 }

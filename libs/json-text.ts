@@ -38,21 +38,20 @@ export class JsonUnwritable extends Error {
 }
 
 export function parseJson(text: string): JsonValue | JsonUnreadable {
-    const parsed = errors.attempt(() => readJsonValue(JSON.parse(text)));
+    const parsed = errors.attempt((): JsonValue => {
+        const value: unknown = JSON.parse(text);
+        // Without a reviver, `JSON.parse` answers nothing but these (ECMA-262 §25.5.1).
+        if (value === null) return value;
+        if (typeof value === "boolean") return value;
+        if (typeof value === "number") return value;
+        if (typeof value === "string") return value;
+        if (Array.isArray(value)) return value;
+        assert(isRecord(value), "JSON text parses into a value JSON has");
+        return value;
+    });
     if (parsed instanceof Error) return new JsonUnreadable(parsed);
     assert(text.length > 0, "text that parsed says something");
     return parsed;
-}
-
-/** Without a reviver, `JSON.parse` answers nothing but these (ECMA-262 §25.5.1). */
-function readJsonValue(value: unknown): JsonValue {
-    if (value === null) return value;
-    if (typeof value === "boolean") return value;
-    if (typeof value === "number") return value;
-    if (typeof value === "string") return value;
-    if (Array.isArray(value)) return value;
-    assert(isRecord(value), "JSON text parses into a value JSON has");
-    return value;
 }
 
 /** `indentSpaces` where a person will read the result; none where only a reader will. */

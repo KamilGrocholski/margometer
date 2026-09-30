@@ -79,7 +79,17 @@ function prepareHandover(
 ): Handover | ExportFailure {
     if (standing.kept === null) {
         const now = ports.clock.readNowMilliseconds();
-        const surroundings = readHandoverSurroundings(ports, now, readLiveBuild(ports.build));
+        let gameBuild: string | null;
+        // Read the build: one the page will not state is absent, and no failure of the file's.
+        {
+            const read = ports.build.readBuildId();
+            if (read instanceof Error) gameBuild = null;
+            else {
+                assert(read.length > 0, "a build the page stated says something");
+                gameBuild = read;
+            }
+        }
+        const surroundings = readHandoverSurroundings(ports, now, gameBuild);
         if (surroundings instanceof Error) return surroundings;
         const subject = prepareHandoverSubject(standing.reading, live.place);
         return { calls: live.capture, subject, surroundings };
@@ -122,14 +132,6 @@ function readHandoverSurroundings(
         userAgent: ports.surroundings.readUserAgent(),
         addOnVersion: ports.version,
     };
-}
-
-/** A build the page will not state is absent from the file, and no failure of the file's. */
-function readLiveBuild(build: BuildPort): string | null {
-    const read = build.readBuildId();
-    if (read instanceof Error) return null;
-    assert(read.length > 0, "a build the page stated says something");
-    return read;
 }
 
 function prepareHandoverSubject(reading: FightReading, place: FightPlace | null): FileSubject {

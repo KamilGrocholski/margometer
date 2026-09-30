@@ -468,10 +468,119 @@ export function createFabricatedFight(
         awaiting: null,
         statementOrdinal: 1,
     };
-    addOpeningCall(state);
-    const turns = addFightRounds(state);
-    if (shape.doesCloseOnShouts) addClosingShouts(state, turns);
-    addClosingCall(state);
+    // Add the client's own opening: the cast, its ground, and whose side the reader is.
+    {
+        assertStrictEquals(state.calls.length, 0, "an opening is the first call a fight carries");
+        const before = encodeSnapshot(state);
+        const messages = encodeOpeningDeclarations(state);
+        const indexes = addMessageIndexes(state, messages);
+        const payload: Record<string, unknown> = {
+            [ENVELOPE_KEYS.isInit]: "1",
+            [ENVELOPE_KEYS.isOnAuto]: "0",
+            [CLIENT_FIELDS.battleground]: "009.jpg",
+            [CLIENT_FIELDS.skillsDisabled]: [],
+            [CLIENT_FIELDS.skillsComboMaximum]: [],
+            [CLIENT_FIELDS.skills]: ["-1", "", "", "", "", "", "", "", "", ""],
+            [ENVELOPE_KEYS.combatants]: encodeWarriorsById(state.warriors, encodeOpeningWarrior),
+            [ENVELOPE_KEYS.readerSide]: SIDE_OURS,
+            [ENVELOPE_KEYS.messages]: messages,
+            [ENVELOPE_KEYS.messagesStated]: indexes,
+            [CLIENT_FIELDS.poolTime]: {
+                [CLIENT_FIELDS.poolTotal]: 120,
+                [CLIENT_FIELDS.poolMinimum]: 2,
+                [CLIENT_FIELDS.poolPenalty]: 5,
+                [CLIENT_FIELDS.poolLeft]: 120,
+            },
+            [CLIENT_FIELDS.moveOpening]: 15,
+            [CLIENT_FIELDS.move]: 15,
+        };
+        state.awaiting = payload;
+        addCall(state, payload, messages, before);
+    }
+    let turns = 0;
+    // Add the rounds, counting the turns run, which is how far down the script the fight reached.
+    addRounds: {
+        for (let round = 0; round < state.shape.rounds; round += 1) {
+            state.round = round;
+            // Reset the statuses that ran out by this round.
+            {
+                assert(state.round >= 0, "a round is never below the first");
+                for (const warrior of state.warriors) {
+                    if (warrior.statusMask === 0) continue;
+                    if (warrior.statusClearsAtRound > state.round) continue;
+                    warrior.statusMask = 0;
+                }
+                assert(
+                    state.warriors.every((one) => one.statusMask >= 0),
+                    "a mask is never below nothing",
+                );
+            }
+            for (const actor of state.warriors) {
+                if (!isStanding(actor)) continue;
+                if (isFightOver(state)) break addRounds;
+                const turn = prepareTurn(state, actor, turns);
+                if (turn === null) continue;
+                const act = ACTS[turns % ACTS.length];
+                assertExists(act, "a turn is written by an act the script names");
+                addTurnCall(state, turn, act);
+                turns += 1;
+            }
+        }
+        assert(turns > 0, "a fabricated fight runs at least one turn");
+    }
+    if (shape.doesCloseOnShouts) {
+        // Add two turns more, one a side, each spent on the shout that holds everybody standing.
+        // ⚠️ **Where the rotation lands a shout is not a shape anybody chose.** Measured
+        // 2026-09-22 at ten a side, level 92: the walk reaches this act once every 41 turns, so
+        // how many are still held at the last call falls out of wherever the rounds happened
+        // to stop — 20 at 20 rounds, 10 at the default 26, and nothing says so. A fixture for
+        // `PROVOKED_MAXIMUM` (`src/ui/panel-standing.ts`) cannot rest on that. A side nobody is
+        // left on shouts at nobody, so a shape whose fight settles before its rounds run out
+        // is refused here rather than closing on one shout.
+        assert(turns > 0, "a fight closing on shouts ran turns before them");
+        assert(state.calls.length > 1, "and carries the calls those turns wrote");
+        // Both sides are asked before either shouts: a side with nobody left neither shouts nor
+        // is shouted at, and the second of those is what a check on the shouter alone walks
+        // past.
+        const wiped = SIDES.filter((side) => getStandingOnSide(state, side).length === 0);
+        if (wiped.length > 0) {
+            throw new FabricatedFightError(
+                `nobody is left standing on side ${wiped.join(" and side ")} after` +
+                    ` ${state.shape.rounds} rounds, so no shout closes the fight:` +
+                    ` --${CLOSING_SHOUTS_FLAG} asks for a shape both sides come out of standing`,
+            );
+        }
+        let ordinal = turns;
+        for (const side of SIDES) {
+            const standing = getStandingOnSide(state, side);
+            const shouter = standing[standing.length - 1];
+            assertExists(shouter, "a side somebody is left on has a last of them");
+            const turn = prepareTurn(state, shouter, ordinal);
+            assertExists(turn, "and somebody to shout at, both sides being standing");
+            addTurnCall(state, turn, SHOUT_ACT);
+            ordinal += 1;
+        }
+    }
+    // Add how the fight ends: the two sides as text, and what the log says after them.
+    {
+        const last = state.warriors.find(isStanding);
+        assertExists(last, "a fight ends with somebody left standing");
+        assert(state.calls.length > 1, "and after the calls that got it there");
+        addTurnStatement(state, last);
+        const before = encodeSnapshot(state);
+        const messages = state.shape.ending === FABRICATION_ENDING.fled
+            ? encodeFledClosing(last)
+            : encodeSettledClosing(state);
+        assert(messages.length > 0, "a fight that ends says so");
+        const payload: Record<string, unknown> = {
+            [ENVELOPE_KEYS.isEnd]: 1,
+            [ENVELOPE_KEYS.combatants]: encodeWarriorsById(state.warriors, encodeStandingWarrior),
+            [ENVELOPE_KEYS.messages]: messages,
+            [ENVELOPE_KEYS.messagesStated]: addMessageIndexes(state, messages),
+            [CLIENT_FIELDS.move]: -1,
+        };
+        addCall(state, payload, messages, before);
+    }
     assert(state.calls.length > 1, "a fabricated fight carries more than its opening");
     assert(state.calls.length <= CALLS_MAXIMUM, "and stays inside its stated bound");
     return { shape, warriors, calls: state.calls, actsReached: Math.min(turns, ACTS.length) };
@@ -524,36 +633,6 @@ function composeScaled(shape: FabricationShape, figure: number): number {
     const scaled = Math.max(1, Math.round(figure * shape.scale));
     assert(Number.isSafeInteger(scaled), "and comes out a whole number");
     return scaled;
-}
-
-/** The client's own opening: the cast, the ground it stands on, and whose side the reader is. */
-function addOpeningCall(state: FabricationState): void {
-    assertStrictEquals(state.calls.length, 0, "an opening is the first call a fight carries");
-    const before = encodeSnapshot(state);
-    const messages = encodeOpeningDeclarations(state);
-    const indexes = addMessageIndexes(state, messages);
-    const payload: Record<string, unknown> = {
-        [ENVELOPE_KEYS.isInit]: "1",
-        [ENVELOPE_KEYS.isOnAuto]: "0",
-        [CLIENT_FIELDS.battleground]: "009.jpg",
-        [CLIENT_FIELDS.skillsDisabled]: [],
-        [CLIENT_FIELDS.skillsComboMaximum]: [],
-        [CLIENT_FIELDS.skills]: ["-1", "", "", "", "", "", "", "", "", ""],
-        [ENVELOPE_KEYS.combatants]: encodeWarriorsById(state.warriors, encodeOpeningWarrior),
-        [ENVELOPE_KEYS.readerSide]: SIDE_OURS,
-        [ENVELOPE_KEYS.messages]: messages,
-        [ENVELOPE_KEYS.messagesStated]: indexes,
-        [CLIENT_FIELDS.poolTime]: {
-            [CLIENT_FIELDS.poolTotal]: 120,
-            [CLIENT_FIELDS.poolMinimum]: 2,
-            [CLIENT_FIELDS.poolPenalty]: 5,
-            [CLIENT_FIELDS.poolLeft]: 120,
-        },
-        [CLIENT_FIELDS.moveOpening]: 15,
-        [CLIENT_FIELDS.move]: 15,
-    };
-    state.awaiting = payload;
-    addCall(state, payload, messages, before);
 }
 
 /** What the panel would have seen of each combatant, which is the snapshot the format carries. */
@@ -698,37 +777,6 @@ function addCall(
         combatantsBefore: before,
         combatantsAfter: encodeSnapshot(state),
     });
-}
-
-/** How many turns the fight ran, which is how far down the script it reached. */
-function addFightRounds(state: FabricationState): number {
-    let ordinal = 0;
-    for (let round = 0; round < state.shape.rounds; round += 1) {
-        state.round = round;
-        resetExpiredStatuses(state);
-        for (const actor of state.warriors) {
-            if (!isStanding(actor)) continue;
-            if (isFightOver(state)) return ordinal;
-            const turn = prepareTurn(state, actor, ordinal);
-            if (turn === null) continue;
-            const act = ACTS[ordinal % ACTS.length];
-            assertExists(act, "a turn is written by an act the script names");
-            addTurnCall(state, turn, act);
-            ordinal += 1;
-        }
-    }
-    assert(ordinal > 0, "a fabricated fight runs at least one turn");
-    return ordinal;
-}
-
-function resetExpiredStatuses(state: FabricationState): void {
-    assert(state.round >= 0, "a round is never below the first");
-    for (const warrior of state.warriors) {
-        if (warrior.statusMask === 0) continue;
-        if (warrior.statusClearsAtRound > state.round) continue;
-        warrior.statusMask = 0;
-    }
-    assert(state.warriors.every((one) => one.statusMask >= 0), "a mask is never below nothing");
 }
 
 function isStanding(warrior: FabricatedWarrior): boolean {
@@ -886,63 +934,6 @@ function encodeStandingWarrior(warrior: FabricatedWarrior): Record<string, unkno
         [CLIENT_FIELDS.energy]: ENERGY_STATED,
         [CLIENT_FIELDS.armour]: encodeArmour(warrior),
     };
-}
-
-/**
- * Two turns more, one a side, each spent on the shout — so the last call of the fight is one where
- * everybody still standing is held by somebody.
- *
- * ⚠️ **Where the rotation lands a shout is not a shape anybody chose.** Measured 2026-09-22 at ten
- * a side, level 92: the walk reaches this act once every 41 turns, so how many are still held at
- * the last call falls out of wherever the rounds happened to stop — 20 at 20 rounds, 10 at the
- * default 26, and nothing says so. A fixture for `PROVOKED_MAXIMUM` (`src/ui/panel-standing.ts`)
- * cannot rest on that. A side nobody is left on shouts at nobody, so a shape whose fight settles
- * before its rounds run out is refused here rather than closing on one shout.
- */
-function addClosingShouts(state: FabricationState, turns: number): void {
-    assert(turns > 0, "a fight closing on shouts ran turns before them");
-    assert(state.calls.length > 1, "and carries the calls those turns wrote");
-    // Both sides are asked before either shouts: a side with nobody left neither shouts nor is
-    // shouted at, and the second of those is what a check on the shouter alone walks past.
-    const wiped = SIDES.filter((side) => getStandingOnSide(state, side).length === 0);
-    if (wiped.length > 0) {
-        throw new FabricatedFightError(
-            `nobody is left standing on side ${wiped.join(" and side ")} after` +
-                ` ${state.shape.rounds} rounds, so no shout closes the fight:` +
-                ` --${CLOSING_SHOUTS_FLAG} asks for a shape both sides come out of standing`,
-        );
-    }
-    let ordinal = turns;
-    for (const side of SIDES) {
-        const standing = getStandingOnSide(state, side);
-        const shouter = standing[standing.length - 1];
-        assertExists(shouter, "a side somebody is left on has a last of them");
-        const turn = prepareTurn(state, shouter, ordinal);
-        assertExists(turn, "and somebody to shout at, both sides being standing");
-        addTurnCall(state, turn, SHOUT_ACT);
-        ordinal += 1;
-    }
-}
-
-/** How the fight ends: the two sides as text, and what the log says after them. */
-function addClosingCall(state: FabricationState): void {
-    const last = state.warriors.find(isStanding);
-    assertExists(last, "a fight ends with somebody left standing");
-    assert(state.calls.length > 1, "and after the calls that got it there");
-    addTurnStatement(state, last);
-    const before = encodeSnapshot(state);
-    const messages = state.shape.ending === FABRICATION_ENDING.fled
-        ? encodeFledClosing(last)
-        : encodeSettledClosing(state);
-    assert(messages.length > 0, "a fight that ends says so");
-    const payload: Record<string, unknown> = {
-        [ENVELOPE_KEYS.isEnd]: 1,
-        [ENVELOPE_KEYS.combatants]: encodeWarriorsById(state.warriors, encodeStandingWarrior),
-        [ENVELOPE_KEYS.messages]: messages,
-        [ENVELOPE_KEYS.messagesStated]: addMessageIndexes(state, messages),
-        [CLIENT_FIELDS.move]: -1,
-    };
-    addCall(state, payload, messages, before);
 }
 
 /**

@@ -64,45 +64,43 @@ export async function readUserscriptFiles(
     root = ".",
 ): Promise<UserscriptFiles> {
     const metadata = encodeUserscriptBanner(version);
-    const bundle = await readBundle(entry, root);
+    let bundle: string;
+    // Read what the bundler wrote off a file of its own, so no build churns `dist/` half-way.
+    {
+        assert(entry.length > 0, "a bundler is told what to read");
+        assert(root.length > 0, "and which tree to read it in");
+        const output = await Deno.makeTempFile({ prefix: "margometer-", suffix: ".js" });
+        assert(output.length > 0, "a bundler is told where to write");
+        const bundling = new Deno.Command(Deno.execPath(), {
+            args: [
+                "bundle",
+                "--platform=browser",
+                "--config",
+                CONFIGURATION_FILE,
+                "-o",
+                output,
+                entry,
+            ],
+            // ⚠️ Both the configuration and the entry are read in the tree handed, so a copy's `#/`
+            // resolves into the copy: read from here, it would build this tree's panel unedited.
+            cwd: root,
+            stdout: "piped",
+            stderr: "piped",
+        });
+        const finished = await bundling.output();
+        if (!finished.success) {
+            await Deno.remove(output);
+            const said = new TextDecoder().decode(finished.stderr);
+            throw new UserscriptBuildError(`the bundler refused: ${said}`);
+        }
+        bundle = await Deno.readTextFile(output);
+        await Deno.remove(output);
+        if (bundle.length === 0) throw new UserscriptBuildError("the bundler wrote nothing");
+    }
     const stamped = requireBundleInBrowser(stampBundleVersion(bundle, version));
     const script = `${metadata}${stamped}`;
     assert(script.startsWith(metadata), "the banner stands over the bundle");
     return { script, metadata };
-}
-
-/** What the bundler wrote, read off a file of its own so no build churns `dist/` half-way. */
-async function readBundle(entry: string, root: string): Promise<string> {
-    assert(entry.length > 0, "a bundler is told what to read");
-    assert(root.length > 0, "and which tree to read it in");
-    const output = await Deno.makeTempFile({ prefix: "margometer-", suffix: ".js" });
-    assert(output.length > 0, "a bundler is told where to write");
-    const bundling = new Deno.Command(Deno.execPath(), {
-        args: [
-            "bundle",
-            "--platform=browser",
-            "--config",
-            CONFIGURATION_FILE,
-            "-o",
-            output,
-            entry,
-        ],
-        // ⚠️ Both the configuration and the entry are read in the tree handed, so a copy's `#/`
-        // resolves into the copy: read from here, it would build this tree's panel unedited.
-        cwd: root,
-        stdout: "piped",
-        stderr: "piped",
-    });
-    const finished = await bundling.output();
-    if (!finished.success) {
-        await Deno.remove(output);
-        const said = new TextDecoder().decode(finished.stderr);
-        throw new UserscriptBuildError(`the bundler refused: ${said}`);
-    }
-    const bundle = await Deno.readTextFile(output);
-    await Deno.remove(output);
-    if (bundle.length === 0) throw new UserscriptBuildError("the bundler wrote nothing");
-    return bundle;
 }
 
 export function encodeUserscriptBanner(version: string): string {

@@ -389,13 +389,52 @@ export function initPanelDrag(
     placement: PanelPlacement,
     options: PanelDragOptions,
 ): PanelDragHandle {
+    let position: PanelPosition | null;
+    // Open the window at the reader's place, or the middle of the screen.
+    {
+        // A position from the first frame is what lets the detail window and the card answer the
+        // side they stand on (`develop ADR 0090`), where a panel left on the sheet's corner has no
+        // `left` for either of them to read.
+        //
+        // ⚠️ **This runs on the stack the add-on stands up on**, under no region: a place that will
+        // not be read or written leaves the panel on the sheet's corner and the drag still wired
+        // (**E12**).
+        const opened = errors.attempt(() => {
+            const opening = placement.position ??
+                composeOpeningPosition(
+                    options.window,
+                    placement.readViewport(),
+                    options.getTypeTokens(),
+                );
+            if (opening === null) return null;
+            const clamped = clampPosition(opening, placement.readViewport());
+            const style = composePositionStyle(clamped, options.window);
+            if (style === null) return opening;
+            host.setAttribute(STYLE_ATTRIBUTE, style);
+            return clamped;
+        });
+        if (opened instanceof Error) {
+            addViewFailureGuarded(options.onFailure, new WindowUnplaced(options.window, opened));
+            position = null;
+        } else position = opened;
+    }
     const state: PanelDragState = {
-        position: initPanelDragOpening(host, placement, options),
+        position,
         size: placement.size,
         grab: null,
         written: null,
     };
-    const write = () => writePanelDragStyle(host, state, placement, options);
+    const write = () => {
+        // Write the style the window stands in now.
+        // A position that writes no style leaves the host on the sheet's own corner, which is a
+        // place — and the window is still there to be grabbed (**E12**).
+        const applied = getPanelDragSize(state, placement, options);
+        const style = composeHostStyle(state.position, applied, options.window);
+        if (style === null) return;
+        if (style === state.written) return;
+        state.written = style;
+        host.setAttribute(STYLE_ATTRIBUTE, style);
+    };
     write();
     // Listen for the grab, the drag and the release.
     {
@@ -463,7 +502,12 @@ export function initPanelDrag(
         getPosition: () => state.position,
         onDrawn: () => {
             if (state.grab?.kind === GRAB_KIND.move) {
-                setPointerHeldAgain(state.grab, getBar(), options);
+                // Hold the pointer again, on the bar a draw put in place of the held one.
+                // Every draw replaces the bar, and a browser drops the capture with the node it
+                // was on. What is missed then is the release: the drag would go on armed, and
+                // the panel follow the next pointer to cross it with nobody holding it.
+                const grab = state.grab;
+                setPointerHeld(getBar(), true, grab.pointerId, options);
             }
         },
         setPosition: (next: PanelPosition) => {
@@ -480,24 +524,6 @@ export function initPanelDrag(
             write();
         },
     };
-}
-
-/**
- * The style the window stands in now. A position that writes no style leaves the host on the
- * sheet's own corner, which is a place — and the window is still there to be grabbed (**E12**).
- */
-function writePanelDragStyle(
-    host: PanelElement,
-    state: PanelDragState,
-    placement: PanelPlacement,
-    options: PanelDragOptions,
-): void {
-    const applied = getPanelDragSize(state, placement, options);
-    const style = composeHostStyle(state.position, applied, options.window);
-    if (style === null) return;
-    if (style === state.written) return;
-    state.written = style;
-    host.setAttribute(STYLE_ATTRIBUTE, style);
 }
 
 /** The size the reader chose, bound by the type the window is drawn in and where it stands now. */
@@ -524,38 +550,6 @@ function writePanelDragPosition(
     if (!Number.isSafeInteger(next.top)) return;
     state.position = next;
     write();
-}
-
-/**
- * The reader's place, or the middle of the window: a position from the first frame is what lets
- * the detail window and the card answer the side they stand on (`develop ADR 0090`), where a
- * panel left on the sheet's corner has no `left` for either of them to read.
- *
- * ⚠️ **This runs on the stack the add-on stands up on**, under no region: a place that will not
- * be read or written leaves the panel on the sheet's corner and the drag still wired (**E12**).
- */
-function initPanelDragOpening(
-    host: PanelElement,
-    placement: PanelPlacement,
-    options: PanelDragOptions,
-): PanelPosition | null {
-    const opened = errors.attempt(() => {
-        const opening = placement.position ??
-            composeOpeningPosition(
-                options.window,
-                placement.readViewport(),
-                options.getTypeTokens(),
-            );
-        if (opening === null) return null;
-        const clamped = clampPosition(opening, placement.readViewport());
-        const style = composePositionStyle(clamped, options.window);
-        if (style === null) return opening;
-        host.setAttribute(STYLE_ATTRIBUTE, style);
-        return clamped;
-    });
-    if (!(opened instanceof Error)) return opened;
-    addViewFailureGuarded(options.onFailure, new WindowUnplaced(options.window, opened));
-    return null;
 }
 
 /** Where a window nobody has moved opens, which is not the same place for both of them. */
@@ -705,18 +699,4 @@ function composeDraggedPosition(
         left: grab.fromLeft + (pointer.left - grab.pointerLeft),
         top: grab.fromTop + (pointer.top - grab.pointerTop),
     }, viewport);
-}
-
-/**
- * Every draw replaces the bar, and a browser drops the capture with the node it was on. What is
- * missed then is the release: the drag would go on armed, and the panel follow the next pointer to
- * cross it with nobody holding it.
- */
-function setPointerHeldAgain(
-    grab: PanelGrab | null,
-    bar: PanelElement,
-    options: PanelDragOptions,
-): void {
-    if (grab === null) return;
-    setPointerHeld(bar, true, grab.pointerId, options);
 }

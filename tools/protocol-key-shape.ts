@@ -141,7 +141,38 @@ export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
     const tallies = new Map<string, ShapeTally>();
     for (const { fight, reading } of replayed) {
         for (const messages of reading.messagesByPayload) {
-            for (const message of messages) addKeyShapesMessage(tallies, fight.path, message);
+            for (const message of messages) {
+                // Add what one message says of each key it carries.
+                assert(tallies.size <= KEYS_MAXIMUM, "a tally stays inside its stated bound");
+                const parsed = parseProtocolMessage(message);
+                if (parsed instanceof Error) {
+                    throw new ProtocolKeyShapeError(
+                        `${fight.path}: the grammar refused a message, ${parsed.name}`,
+                        { cause: parsed },
+                    );
+                }
+                const parameters = parsed.parameters;
+                const placements = decodeKeyPlacements(
+                    new Set(parameters.map((one) => one.key)),
+                );
+                for (const parameter of parameters) {
+                    const value = decodeKeyValue(parameter.value);
+                    const tally = tallies.get(parameter.key);
+                    if (tally === undefined) {
+                        tallies.set(parameter.key, {
+                            occurrences: 1,
+                            placements: new Set(placements),
+                            values: new Set([value]),
+                        });
+                        continue;
+                    }
+                    tally.occurrences += 1;
+                    tally.values.add(value);
+                    for (const placement of [...tally.placements]) {
+                        if (!placements.has(placement)) tally.placements.delete(placement);
+                    }
+                }
+            }
         }
     }
     const shapes: KeyShape[] = [];
@@ -157,39 +188,6 @@ export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
     }
     assert(shapes.length === tallies.size, "every key tallied is a shape");
     return shapes;
-}
-
-function addKeyShapesMessage(
-    tallies: Map<string, ShapeTally>,
-    path: string,
-    message: string,
-): void {
-    assert(tallies.size <= KEYS_MAXIMUM, "a tally stays inside its stated bound");
-    const parsed = parseProtocolMessage(message);
-    if (parsed instanceof Error) {
-        throw new ProtocolKeyShapeError(`${path}: the grammar refused a message, ${parsed.name}`, {
-            cause: parsed,
-        });
-    }
-    const parameters = parsed.parameters;
-    const placements = decodeKeyPlacements(new Set(parameters.map((one) => one.key)));
-    for (const parameter of parameters) {
-        const value = decodeKeyValue(parameter.value);
-        const tally = tallies.get(parameter.key);
-        if (tally === undefined) {
-            tallies.set(parameter.key, {
-                occurrences: 1,
-                placements: new Set(placements),
-                values: new Set([value]),
-            });
-            continue;
-        }
-        tally.occurrences += 1;
-        tally.values.add(value);
-        for (const placement of [...tally.placements]) {
-            if (!placements.has(placement)) tally.placements.delete(placement);
-        }
-    }
 }
 
 /** Every placement that holds for one message, judged on the keys the whole message carries. */

@@ -101,56 +101,63 @@ const VERDICT_WORDS: Readonly<Record<ReadingVerdict, string>> = {
  * exit, because an outage is not evidence that anything moved.
  */
 async function writeReadingsStatus(): Promise<void> {
-    const states = await readReadingStates(Date.now());
+    let states: ReadingState[];
+    // Read every reading, in the order a refresh does them: each one dates the one after it.
+    {
+        // A frozen row asks what a freeze off the cache would write, so it is current where that
+        // is what stands.
+        const now = Date.now();
+        const client = readCachedClientSource(CHANNEL);
+        const dump = readCachedHelpArticle(MECHANICS_ARTICLE);
+        const table = readCachedSkillTable();
+        let clientState: ReadingState;
+        // Ask the world, catching its not answering and nothing else of this tool's.
+        {
+            try {
+                clientState = composeClientState(await readServedBuild(CHANNEL), client);
+            } catch (failure) {
+                if (!(failure instanceof GameUnreachableError)) throw failure;
+                clientState = composeUnaskedClientState(failure.message);
+            }
+        }
+        states = [
+            clientState,
+            composeFrozenState(
+                "frozen keys",
+                "keys",
+                client === null ? null : prepareFrozenKeyTable(),
+            ),
+            composeFrozenState(
+                "frozen buffs",
+                "bits",
+                client === null ? null : prepareFrozenBuffBits(),
+            ),
+            composeDumpState(
+                "help dump",
+                `view,${MECHANICS_ARTICLE}`,
+                dump?.fetchedAt ?? null,
+                now,
+            ),
+            composeFrozenState(
+                "frozen help",
+                "phrases",
+                dump === null ? null : prepareFrozenHelpCounts(MECHANICS_ARTICLE, []),
+            ),
+            composeDumpState("skill dump", "skills", table?.fetchedAt ?? null, now),
+            composeFrozenState(
+                "frozen skills",
+                "skills",
+                table === null ? null : prepareFrozenSkillTable(),
+            ),
+        ];
+        assertStrictEquals(states.length, READINGS_REPORTED, "every reading was reported on");
+    }
     for (const state of states) console.log(formatReadingLine(state));
     const stale = states.filter((one) => one.verdict === READING_VERDICT.stale).length;
     const unasked = states.filter((one) => one.verdict === READING_VERDICT.unknown).length;
     assert(stale + unasked <= states.length, "no more loud rows than there are readings");
     if (stale > 0) Deno.exitCode = EXIT_STALE;
     else if (unasked > 0) Deno.exitCode = EXIT_UNASKED;
-}
-
-/**
- * Every reading, in the order a refresh does them: each one dates the one after it. A frozen row
- * asks what a freeze off the cache would write, so it is current where that is what stands.
- */
-async function readReadingStates(now: number): Promise<ReadingState[]> {
-    const client = readCachedClientSource(CHANNEL);
-    const dump = readCachedHelpArticle(MECHANICS_ARTICLE);
-    const table = readCachedSkillTable();
-    const states = [
-        await readClientState(client),
-        composeFrozenState("frozen keys", "keys", client === null ? null : prepareFrozenKeyTable()),
-        composeFrozenState(
-            "frozen buffs",
-            "bits",
-            client === null ? null : prepareFrozenBuffBits(),
-        ),
-        composeDumpState("help dump", `view,${MECHANICS_ARTICLE}`, dump?.fetchedAt ?? null, now),
-        composeFrozenState(
-            "frozen help",
-            "phrases",
-            dump === null ? null : prepareFrozenHelpCounts(MECHANICS_ARTICLE, []),
-        ),
-        composeDumpState("skill dump", "skills", table?.fetchedAt ?? null, now),
-        composeFrozenState(
-            "frozen skills",
-            "skills",
-            table === null ? null : prepareFrozenSkillTable(),
-        ),
-    ];
-    assertStrictEquals(states.length, READINGS_REPORTED, "every reading was reported on");
-    return states;
-}
-
-/** The world asked. The catch is narrow: the world not answering, and nothing else of this tool's. */
-async function readClientState(cached: CachedClientSource | null): Promise<ReadingState> {
-    try {
-        return composeClientState(await readServedBuild(CHANNEL), cached);
-    } catch (failure) {
-        if (!(failure instanceof GameUnreachableError)) throw failure;
-        return composeUnaskedClientState(failure.message);
-    }
 }
 
 /** The bundle in `.cache/` against what the world is serving right now. */

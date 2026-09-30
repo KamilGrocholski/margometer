@@ -58,7 +58,7 @@ import { initPanelView, type PanelView } from "#/src/ui/panel-element.ts";
 import type { PanelIntent } from "#/src/ui/panel-intent.ts";
 import { createScreenState, type ScreenState } from "#/src/ui/panel-screen.ts";
 import { ROWS_BESIDE_THE_STATUSES, type TranslateLabel } from "#/src/ui/panel-words.ts";
-import { GestureDropped, RegionUndrawn, type ViewFailure } from "#/src/ui/view-failure.ts";
+import { GestureDropped, RegionUndrawn } from "#/src/ui/view-failure.ts";
 
 export interface RuntimePorts {
     clock: Clock;
@@ -119,13 +119,6 @@ interface RuntimeState {
     isStoodDown: boolean;
 }
 
-interface RuntimeParts {
-    defects: DefectLedger;
-    keeper: ShelfKeeper;
-    screen: ScreenState;
-    translate: TranslateLabel;
-}
-
 export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runtime {
     assert(options.version.length > 0, "a runtime names the build it runs");
     const statusBits = options.tables.tooltip.statusBits.length;
@@ -161,10 +154,102 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
         assert(read.length > 0, "a label the client answered says something");
         return read;
     };
-    const state = initRuntimeState(ports, options, { defects, keeper, screen, translate });
+    let state: RuntimeState;
+    // Build the state, and start looking for the engine.
+    {
+        // The closures below are called by the game and the reader, never while this block runs.
+        const { live, listener } = initLiveFight({
+            engine: ports.engine,
+            clock: ports.clock,
+            place: ports.place,
+            hero: ports.hero,
+            build: ports.build,
+            tables: options.tables.decoder,
+            sessionOptions: options.sessionOptions,
+            defects,
+            keepFight: (fight) => keeper.keep(fight),
+            onFightOpened: () => resetScreenOnOpening(screen),
+            markStale: () => markStale(state),
+        });
+        // The view reports a window it cannot place while it is being built, before `state` exists.
+        let builtState: RuntimeState | null = null;
+        const view = initPanelView(ports.document, {
+            version: options.version,
+            typeStep: screen.typeStep,
+            onIntent: (intent) => onRuntimeIntent(state, intent),
+            // Count the failure the view met. One met outside a frame — a gesture dropped, a card
+            // that would not draw under a pointer — asks for the frame that says it, or a reader
+            // who only hovers never sees the line.
+            onFailure: (failure) => {
+                if (failure instanceof RegionUndrawn) {
+                    defects.add({ kind: DEFECT_KIND.region, region: failure.region, failure });
+                } else if (failure instanceof GestureDropped) {
+                    defects.add({ kind: DEFECT_KIND.gesture, region: null, failure });
+                } else {
+                    defects.add({ kind: DEFECT_KIND.mount, region: null, failure });
+                }
+                // Met while the runtime is still being stood up: the first frame says it. Inside a
+                // frame the view's report collects instead, so nothing arrives here while one is
+                // drawing.
+                if (builtState === null) return;
+                markStale(builtState);
+            },
+            placement: readRuntimePlacement(ports, defects, PANEL_WINDOW.panel, screen),
+            standingPlacement: readRuntimePlacement(ports, defects, PANEL_WINDOW.helper, screen),
+            translate,
+        });
+        assert(
+            keeper.getFights().length <= KEPT_MAXIMUM,
+            "the shelf opened stays inside its bound",
+        );
+        state = {
+            ports,
+            options,
+            defects,
+            keeper,
+            screen,
+            translate,
+            live,
+            view,
+            search: null,
+            wrap: null,
+            frame: null,
+            isStale: false,
+            hasFrameRefused: false,
+            isMounted: false,
+            isStoodDown: false,
+        };
+        builtState = state;
+        state.search = startEngineSearch(ports.engine, ports.interval, listener, {
+            onAttached: (wrap) => {
+                state.wrap = wrap;
+                showRuntimePanel(state);
+            },
+            onStoodDown: (failure) => {
+                state.isStoodDown = true;
+                ports.console.writeBrandedLine(failure.name, failure);
+            },
+            onRefused: (failure) => failRuntimeSearch(state, failure),
+            onAbandoned: (failure) => failRuntimeSearch(state, failure),
+            onLookFailed: (failure) => ports.console.writeBrandedLine(failure.name, failure),
+        });
+    }
     return {
         onIntent: (intent) => onRuntimeIntent(state, intent),
-        deinit: () => deinitRuntimeState(state),
+        // Stop looking, take the wrap off, and cancel the frame asked for.
+        deinit: () => {
+            state.search?.stop();
+            state.frame?.cancel();
+            state.frame = null;
+            state.isStoodDown = true;
+            if (state.search !== null) {
+                assert(state.search.isDone(), "a stopped add-on looks no further");
+            }
+            const wrap = state.wrap;
+            state.wrap = null;
+            if (wrap === null) return undefined;
+            return wrap.detach();
+        },
     };
 }
 
@@ -194,69 +279,6 @@ function readRuntimeSize(
         assert(size.height > 0, "and a height");
     }
     return size;
-}
-
-function initRuntimeState(
-    ports: RuntimePorts,
-    options: RuntimeOptions,
-    parts: RuntimeParts,
-): RuntimeState {
-    const { defects, keeper, screen } = parts;
-    // The closures below are called by the game and the reader, never while this function runs.
-    const { live, listener } = initLiveFight({
-        engine: ports.engine,
-        clock: ports.clock,
-        place: ports.place,
-        hero: ports.hero,
-        build: ports.build,
-        tables: options.tables.decoder,
-        sessionOptions: options.sessionOptions,
-        defects,
-        keepFight: (fight) => keeper.keep(fight),
-        onFightOpened: () => resetScreenOnOpening(screen),
-        markStale: () => markStale(state),
-    });
-    // The view reports a window it cannot place while it is being built, before `state` exists.
-    let builtState: RuntimeState | null = null;
-    const view = initPanelView(ports.document, {
-        version: options.version,
-        typeStep: screen.typeStep,
-        onIntent: (intent) => onRuntimeIntent(state, intent),
-        onFailure: (failure) => onViewFailure(defects, failure, builtState),
-        placement: readRuntimePlacement(ports, defects, PANEL_WINDOW.panel, screen),
-        standingPlacement: readRuntimePlacement(ports, defects, PANEL_WINDOW.helper, screen),
-        translate: parts.translate,
-    });
-    assert(keeper.getFights().length <= KEPT_MAXIMUM, "the shelf opened stays inside its bound");
-    const state: RuntimeState = {
-        ports,
-        options,
-        ...parts,
-        live,
-        view,
-        search: null,
-        wrap: null,
-        frame: null,
-        isStale: false,
-        hasFrameRefused: false,
-        isMounted: false,
-        isStoodDown: false,
-    };
-    builtState = state;
-    state.search = startEngineSearch(ports.engine, ports.interval, listener, {
-        onAttached: (wrap) => {
-            state.wrap = wrap;
-            showRuntimePanel(state);
-        },
-        onStoodDown: (failure) => {
-            state.isStoodDown = true;
-            ports.console.writeBrandedLine(failure.name, failure);
-        },
-        onRefused: (failure) => failRuntimeSearch(state, failure),
-        onAbandoned: (failure) => failRuntimeSearch(state, failure),
-        onLookFailed: (failure) => ports.console.writeBrandedLine(failure.name, failure),
-    });
-    return state;
 }
 
 /**
@@ -291,6 +313,13 @@ function renderRuntimeFrame(state: RuntimeState): void {
     assert(state.isStale, "a frame falls only where one was asked for");
     state.isStale = false;
     state.frame = null;
+    let world: string | null;
+    // Read the page's world, or nothing where the page named none: the card leaves the line off.
+    {
+        const read = state.ports.surroundings.readWorld();
+        if (read === WORLD_UNKNOWN) world = null;
+        else world = read;
+    }
     renderFrame({
         screen: state.screen,
         keeper: state.keeper,
@@ -301,7 +330,7 @@ function renderRuntimeFrame(state: RuntimeState): void {
         tooltip: state.ports.tooltip,
         tables: state.options.tables.tooltip,
         translate: state.translate,
-        world: readRuntimeWorld(state.ports.surroundings),
+        world,
     });
     if (state.isMounted) return;
     const mounted = state.ports.mountPanel(state.view.element);
@@ -309,13 +338,6 @@ function renderRuntimeFrame(state: RuntimeState): void {
         state.defects.add({ kind: DEFECT_KIND.mount, region: null, failure: mounted });
     } else state.isMounted = true;
     assert(!state.isStale, "a frame asks for no second frame of its own");
-}
-
-/** The page's world, or nothing where the page named none: the card leaves the line off. */
-function readRuntimeWorld(surroundings: SurroundingsPort): string | null {
-    const world = surroundings.readWorld();
-    if (world === WORLD_UNKNOWN) return null;
-    return world;
 }
 
 function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
@@ -330,33 +352,6 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
         defects: state.defects,
     };
     if (executeRuntimeIntent(parts, intent)) markStale(state);
-}
-
-/**
- * A failure the view met, counted; and one met outside a frame — a gesture dropped, a card that
- * would not draw under a pointer — asks for the frame that says it, or a reader who only hovers
- * never sees the line.
- */
-function onViewFailure(
-    defects: DefectLedger,
-    failure: ViewFailure,
-    state: RuntimeState | null,
-): void {
-    addViewFailure(defects, failure);
-    // Met while the runtime is still being stood up: the first frame says it. Inside a frame the
-    // view's report collects instead, so nothing arrives here while one is drawing.
-    if (state === null) return;
-    markStale(state);
-}
-
-function addViewFailure(defects: DefectLedger, failure: ViewFailure): void {
-    if (failure instanceof RegionUndrawn) {
-        defects.add({ kind: DEFECT_KIND.region, region: failure.region, failure });
-    } else if (failure instanceof GestureDropped) {
-        defects.add({ kind: DEFECT_KIND.gesture, region: null, failure });
-    } else {
-        defects.add({ kind: DEFECT_KIND.mount, region: null, failure });
-    }
 }
 
 function readRuntimePlacement(
@@ -383,16 +378,4 @@ function failRuntimeSearch(state: RuntimeState, failure: EngineFailure): void {
     assert(state.wrap === null, "and one holding the game is not looking for it");
     state.defects.add({ kind: DEFECT_KIND.engine, region: null, failure });
     showRuntimePanel(state);
-}
-
-function deinitRuntimeState(state: RuntimeState): undefined | EngineFailure {
-    state.search?.stop();
-    state.frame?.cancel();
-    state.frame = null;
-    state.isStoodDown = true;
-    if (state.search !== null) assert(state.search.isDone(), "a stopped add-on looks no further");
-    const wrap = state.wrap;
-    state.wrap = null;
-    if (wrap === null) return undefined;
-    return wrap.detach();
 }

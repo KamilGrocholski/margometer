@@ -16,7 +16,6 @@ import {
     getRecordField,
     getStatedTextField,
     isRecord,
-    type UnknownRecord,
 } from "#/libs/unknown-value.ts";
 import {
     type KeyValueStore,
@@ -173,66 +172,115 @@ export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
     if (listed instanceof Error) return new ShelfUnreadable({ cause: listed });
     const fights: KeptFight[] = [];
     for (const value of listed ?? []) {
-        const fight = readKeptFight(value);
+        let fight: KeptFight | null;
+        // Read the fight, or null where this version does not recognise it, whole fight and all.
+        readFight: {
+            // A payload nobody can read is a fight dropped, not a payload skipped: a gap mid-fight
+            // decodes to figures that look right.
+            if (!isRecord(value)) {
+                fight = null;
+                break readFight;
+            }
+            const openedAt = getNumberField(value, FIGHT_FIELDS, "openedAt");
+            if (openedAt instanceof Error) {
+                fight = null;
+                break readFight;
+            }
+            if (openedAt === null) {
+                fight = null;
+                break readFight;
+            }
+            if (openedAt < 0) {
+                fight = null;
+                break readFight;
+            }
+            const payloads = getListField(value, FIGHT_FIELDS, "payloads", CALLS_MAXIMUM);
+            if (payloads instanceof Error) {
+                fight = null;
+                break readFight;
+            }
+            if (payloads === null) {
+                fight = null;
+                break readFight;
+            }
+            if (payloads.length === 0) {
+                fight = null;
+                break readFight;
+            }
+            if (!payloads.every(isRecord)) {
+                fight = null;
+                break readFight;
+            }
+            const gameBuild = getStatedTextField(value, FIGHT_FIELDS, "gameBuild");
+            let place: FightPlace | null;
+            // Read the place: one that does not read back is nobody's place, not a fight dropped.
+            readPlace: {
+                const stored = getRecordField(value, FIGHT_FIELDS, "place");
+                if (stored instanceof Error) {
+                    place = null;
+                    break readPlace;
+                }
+                if (stored === null) {
+                    place = null;
+                    break readPlace;
+                }
+                const mapName = getStatedTextField(stored, PLACE_FIELDS, "mapName");
+                const x = getNumberField(stored, PLACE_FIELDS, "x");
+                const y = getNumberField(stored, PLACE_FIELDS, "y");
+                const read = {
+                    mapName: mapName instanceof Error ? null : mapName,
+                    x: x instanceof Error ? null : x,
+                    y: y instanceof Error ? null : y,
+                };
+                if (read.mapName !== null) {
+                    place = read;
+                    break readPlace;
+                }
+                if (read.x !== null) {
+                    place = read;
+                    break readPlace;
+                }
+                if (read.y === null) {
+                    place = null;
+                    break readPlace;
+                }
+                place = read;
+            }
+            let readerId: number | null;
+            // Read the reader's id: one that does not read back is nobody's, not a fight dropped.
+            readReaderId: {
+                const id = getNumberField(value, FIGHT_FIELDS, "readerId");
+                if (id instanceof Error) {
+                    readerId = null;
+                    break readReaderId;
+                }
+                if (id === null) {
+                    readerId = null;
+                    break readReaderId;
+                }
+                if (!Number.isSafeInteger(id)) {
+                    readerId = null;
+                    break readReaderId;
+                }
+                if (id <= 0) {
+                    readerId = null;
+                    break readReaderId;
+                }
+                readerId = id;
+            }
+            fight = {
+                openedAt,
+                payloads: [...payloads],
+                place,
+                readerId,
+                gameBuild: gameBuild instanceof Error ? null : gameBuild,
+                isPinned: value[FIGHT_FIELDS.isPinned] === true,
+            };
+        }
         if (fight !== null) fights.push(fight);
     }
     assert(fights.length <= KEPT_MAXIMUM, "a shelf read back stays inside its stated bound");
     return { fights };
-}
-
-/**
- * Null for anything this version does not recognise, whole fight and all. A payload nobody can read
- * is a fight dropped, not a payload skipped: a gap mid-fight decodes to figures that look right.
- */
-function readKeptFight(value: unknown): KeptFight | null {
-    if (!isRecord(value)) return null;
-    const openedAt = getNumberField(value, FIGHT_FIELDS, "openedAt");
-    if (openedAt instanceof Error) return null;
-    if (openedAt === null) return null;
-    if (openedAt < 0) return null;
-    const payloads = getListField(value, FIGHT_FIELDS, "payloads", CALLS_MAXIMUM);
-    if (payloads instanceof Error) return null;
-    if (payloads === null) return null;
-    if (payloads.length === 0) return null;
-    if (!payloads.every(isRecord)) return null;
-    const gameBuild = getStatedTextField(value, FIGHT_FIELDS, "gameBuild");
-    return {
-        openedAt,
-        payloads: [...payloads],
-        place: readKeptPlace(value),
-        readerId: readKeptReaderId(value),
-        gameBuild: gameBuild instanceof Error ? null : gameBuild,
-        isPinned: value[FIGHT_FIELDS.isPinned] === true,
-    };
-}
-
-/** An id that does not read back is nobody's, not a fight dropped: the figures stand without it. */
-function readKeptReaderId(fight: UnknownRecord): number | null {
-    const id = getNumberField(fight, FIGHT_FIELDS, "readerId");
-    if (id instanceof Error) return null;
-    if (id === null) return null;
-    if (!Number.isSafeInteger(id)) return null;
-    if (id <= 0) return null;
-    return id;
-}
-
-/** A place that does not read back is nobody's place, not a fight dropped. */
-function readKeptPlace(fight: UnknownRecord): FightPlace | null {
-    const place = getRecordField(fight, FIGHT_FIELDS, "place");
-    if (place instanceof Error) return null;
-    if (place === null) return null;
-    const mapName = getStatedTextField(place, PLACE_FIELDS, "mapName");
-    const x = getNumberField(place, PLACE_FIELDS, "x");
-    const y = getNumberField(place, PLACE_FIELDS, "y");
-    const read = {
-        mapName: mapName instanceof Error ? null : mapName,
-        x: x instanceof Error ? null : x,
-        y: y instanceof Error ? null : y,
-    };
-    if (read.mapName !== null) return read;
-    if (read.x !== null) return read;
-    if (read.y === null) return null;
-    return read;
 }
 
 /** A fight kept once. A second fight under the same moment is refused, never merged. */
@@ -273,7 +321,19 @@ function writeShelf(
         );
         if (text instanceof Error) return new ShelfUnwritable({ cause: text });
         const written = store.write(SHELF_KEY, text);
-        if (!(written instanceof Error)) return writeShelfDropped(before, fights, held);
+        if (!(written instanceof Error)) {
+            // Say what was offered and did not go down: the rotation, stated rather than silent.
+            const kept = new Set(held.map((one) => one.openedAt));
+            const dropped = fights.filter((one) => !kept.has(one.openedAt)).map((one) =>
+                one.openedAt
+            );
+            assert(
+                dropped.length + held.length === fights.length,
+                "every fight offered is kept or dropped",
+            );
+            assert(before.fights.length <= KEPT_MAXIMUM, "the shelf before was inside its bound");
+            return { contents: { fights: held }, droppedOpenedAt: dropped };
+        }
         if (written instanceof StoreUnavailable) return written;
         refused = written;
         const shorter = dropOldestUnpinned(held);
@@ -294,22 +354,6 @@ function encodeKeptFight(fight: KeptFight): Record<string, unknown> {
     if (readerId === null) return rest;
     assert(readerId > 0, "an id written is one the page stated");
     return { ...rest, readerId };
-}
-
-/** What was offered and did not go down: the rotation, stated rather than silent. */
-function writeShelfDropped(
-    before: ShelfContents,
-    offered: readonly KeptFight[],
-    held: readonly KeptFight[],
-): ShelfWritten {
-    const kept = new Set(held.map((one) => one.openedAt));
-    const dropped = offered.filter((one) => !kept.has(one.openedAt)).map((one) => one.openedAt);
-    assert(
-        dropped.length + held.length === offered.length,
-        "every fight offered is kept or dropped",
-    );
-    assert(before.fights.length <= KEPT_MAXIMUM, "the shelf before was inside its bound");
-    return { contents: { fights: held }, droppedOpenedAt: dropped };
 }
 
 function dropOldestUnpinned(fights: readonly KeptFight[]): KeptFight[] | null {

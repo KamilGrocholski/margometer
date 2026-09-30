@@ -185,21 +185,22 @@ function verifyQueueHolders(steps: readonly ReplayedStep[]): void {
     for (const step of steps) {
         const stated = step.record.turnStatement;
         if (stated === null) continue;
-        const named = readCurrentHolder(step.update);
-        if (named === null) continue;
+        let named: number;
+        // Read the holder the payload's own witness names, and pass a payload naming none.
+        {
+            const update = step.update;
+            if (!isRecord(update)) continue;
+            const holder = getNumberField(update, WITNESS_KEYS, "holder");
+            if (holder instanceof Error) continue;
+            if (holder === null) continue;
+            named = holder;
+        }
         assertStrictEquals(
             stated.combatantId,
             named,
             "the queue's least ordinal is held by the combatant the payload names",
         );
     }
-}
-
-function readCurrentHolder(update: unknown): number | null {
-    if (!isRecord(update)) return null;
-    const holder = getNumberField(update, WITNESS_KEYS, "holder");
-    if (holder instanceof Error) return null;
-    return holder;
 }
 
 /**

@@ -39,7 +39,28 @@ export function executeRuntimeIntent(parts: IntentParts, intent: PanelIntent): b
     switch (intent.kind) {
         case PANEL_INTENT.saveFile: {
             // Everything under a file reaches `core/`, whose assertion costs the file alone.
-            const saved = errors.attempt(() => writeIntentFile(parts));
+            const saved = errors.attempt(() => {
+                // The release of the file lands on the browser's clock after this has returned, so
+                // its failure is handed the same mark by the sink.
+                const { screen, keeper, live, defects } = parts;
+                const view = getFightView(live.session);
+                const liveReading = view === null ? null : tallyFightReading(view);
+                const standing = lookupStandingFight(
+                    liveReading,
+                    screen.openFightId,
+                    keeper.getFights(),
+                    keeper.lookupReading,
+                );
+                if (standing !== null) {
+                    const applied = standing.reading.view.payloadsApplied;
+                    assert(applied > 0, "a fight handed over was read from something");
+                }
+                const ports = { ...parts.ports, version: parts.version };
+                const written = writeFightHandover(standing, live, ports, (failure) => {
+                    addFileDefect(defects, failure);
+                });
+                if (written instanceof Error) addFileDefect(defects, written);
+            });
             if (saved instanceof Error) addFileDefect(parts.defects, saved);
             return executeScreenIntent(parts.screen, intent);
         }
@@ -88,31 +109,6 @@ export function executeRuntimeIntent(parts: IntentParts, intent: PanelIntent): b
         default:
             return executeScreenIntent(parts.screen, intent);
     }
-}
-
-/**
- * The file a reader asked for, or a mark. The release of the file lands on the browser's clock
- * after this has returned, so its failure is handed the same mark by the sink.
- */
-function writeIntentFile(parts: IntentParts): void {
-    const { screen, keeper, live, defects } = parts;
-    const view = getFightView(live.session);
-    const liveReading = view === null ? null : tallyFightReading(view);
-    const standing = lookupStandingFight(
-        liveReading,
-        screen.openFightId,
-        keeper.getFights(),
-        keeper.lookupReading,
-    );
-    if (standing !== null) {
-        const applied = standing.reading.view.payloadsApplied;
-        assert(applied > 0, "a fight handed over was read from something");
-    }
-    const ports = { ...parts.ports, version: parts.version };
-    const written = writeFightHandover(standing, live, ports, (failure) => {
-        addFileDefect(defects, failure);
-    });
-    if (written instanceof Error) addFileDefect(defects, written);
 }
 
 function addFileDefect(defects: DefectLedger, failure: RuntimeFailure): void {

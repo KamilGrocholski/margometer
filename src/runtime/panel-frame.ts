@@ -44,7 +44,6 @@ import {
     type FightSuspicions,
     getOutcomeForSeat,
     presentScreen,
-    type ScreenReading,
     type ShelfRow,
 } from "#/src/ui/panel-reading.ts";
 import { composeListName, type ScreenState } from "#/src/ui/panel-screen.ts";
@@ -64,7 +63,7 @@ import {
     STORE_REFUSED_ANSWER,
     type TranslateLabel,
 } from "#/src/ui/panel-words.ts";
-import { type OpenedReadings, presentOpenedReadings } from "./opened-reading.ts";
+import { presentOpenedReadings } from "./opened-reading.ts";
 
 /** Which level of the panel two counts of one figure came out different on. */
 export const FIGURES_CUT = { screen: "screen", drill: "drill", pair: "pair" } as const;
@@ -121,14 +120,93 @@ export function renderFrame(parts: FrameParts): void {
         parts.keeper.getFights().length <= KEPT_MAXIMUM,
         "a frame draws a shelf inside its bound",
     );
-    const tooltips = errors.attempt(() => renderFrameTooltips(parts));
+    // Write the carried tooltips, after the engine's own call, where a frame falls: the game
+    // rebuilt its tooltips there.
+    const tooltips = errors.attempt(() => {
+        const view = getFightView(parts.live.session);
+        if (view === null) return;
+        const written = writeCarriedTooltips(view, parts.tables, parts.translate, parts.tooltip);
+        if (written instanceof Error) addRegionDefect(parts, written);
+        else assert(written.written <= written.asked, "no block lands that was not composed");
+    });
     if (tooltips instanceof Error) addRegionDefect(parts, tooltips);
-    renderFrameStanding(parts);
+    // Draw the window beside the panel, before the panel.
+    {
+        // A fight the panel cannot read is not a fight the window has nothing to say about. A
+        // reading that will not compose is said as a fight that would not read, and never as no
+        // fight.
+        const isShelfEmpty = parts.keeper.getFights().length === 0;
+        const read = errors.attempt(() =>
+            presentFrameStanding(parts.live, parts.tables, isShelfEmpty)
+        );
+        if (read instanceof Error) {
+            parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
+        }
+        const reading = read instanceof Error ? STANDING_ABSENCE.fightUnread : read;
+        addUndrawn(
+            parts.defects,
+            parts.view.renderStanding(reading, parts.screen.isStandingCollapsed),
+        );
+    }
     const said = getPanelDefects(parts.defects);
     // Asked without decoding anything: a fight that will not read is still worth handing over.
     const hasFightToSave = parts.live.capture.calls.length > 0 ||
         parts.keeper.getFights().length > 0;
-    const drawn = errors.attempt(() => renderFramePanel(parts, said, hasFightToSave));
+    // Draw the panel, or waiting where there is nothing to stand on — no fight and an empty shelf —
+    // because a panel of zeroes over a game that has not started is a claim.
+    const drawn = errors.attempt(() => {
+        const { screen, keeper, live } = parts;
+        const view = getFightView(live.session);
+        const liveReading = view === null ? null : tallyFightReading(view);
+        const standing = lookupStandingFight(
+            liveReading,
+            screen.openFightId,
+            keeper.getFights(),
+            keeper.lookupReading,
+        );
+        if (standing === null) {
+            // A kept fight chosen and still no standing is a fight that no longer reads, and the
+            // reader is told which one rather than that there has been none.
+            const unread = lookupStandingKept(liveReading, screen.openFightId, keeper.getFights());
+            const keptUnread = unread === undefined ? null : {
+                at: parts.clock.readMoment(unread.openedAt),
+                place: formatFightPlace(unread.place),
+            };
+            const waiting = { isCollapsed: screen.isCollapsed, defects: said, hasFightToSave };
+            const drawnWaiting = parts.view.renderWaiting({
+                ...waiting,
+                isFightUnread: false,
+                keptUnread,
+                options: presentOptions(parts),
+                typeStep: screen.typeStep,
+                windowSizes: screen.windowSizes,
+            });
+            addUndrawn(parts.defects, drawnWaiting);
+            return;
+        }
+        assert(
+            standing.reading.view.payloadsApplied > 0,
+            "a fight stood on was read from something",
+        );
+        const shown = presentFrameScreen(parts, standing, liveReading, said, hasFightToSave);
+        // Say where two counts of one figure came out different.
+        {
+            // The one thing the panel can say about a drawn figure being wrong rather than short,
+            // and a defect rather than an assertion (`develop ADR 0051`).
+            const defects = parts.defects;
+            const add = (cut: FiguresCut): void => {
+                defects.add({
+                    kind: DEFECT_KIND.figures,
+                    region: null,
+                    failure: new FiguresDisagreed(cut),
+                });
+            };
+            if (shown.reading.hasFiguresDisagreed) add(FIGURES_CUT.screen);
+            if (shown.drill?.hasFiguresDisagreed === true) add(FIGURES_CUT.drill);
+            if (shown.pair?.hasFiguresDisagreed === true) add(FIGURES_CUT.pair);
+        }
+        addUndrawn(parts.defects, parts.view.render(shown));
+    });
     if (!(drawn instanceof Error)) return;
     parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: drawn });
     const waiting = {
@@ -145,32 +223,8 @@ export function renderFrame(parts: FrameParts): void {
     addUndrawn(parts.defects, parts.view.renderWaiting(waiting));
 }
 
-/** After the engine's own call, where a frame falls: the game rebuilt its tooltips there. */
-function renderFrameTooltips(parts: FrameParts): void {
-    const view = getFightView(parts.live.session);
-    if (view === null) return;
-    const written = writeCarriedTooltips(view, parts.tables, parts.translate, parts.tooltip);
-    if (written instanceof Error) addRegionDefect(parts, written);
-    else assert(written.written <= written.asked, "no block lands that was not composed");
-}
-
 function addRegionDefect(parts: FrameParts, failure: RuntimeFailure): void {
     parts.defects.add({ kind: DEFECT_KIND.region, region: null, failure });
-}
-
-/**
- * The window beside the panel, before the panel: a fight the panel cannot read is not a fight the
- * window has nothing to say about. A reading that will not compose is said as a fight that would
- * not read, and never as no fight.
- */
-function renderFrameStanding(parts: FrameParts): void {
-    const isShelfEmpty = parts.keeper.getFights().length === 0;
-    const read = errors.attempt(() => presentFrameStanding(parts.live, parts.tables, isShelfEmpty));
-    if (read instanceof Error) {
-        parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
-    }
-    const reading = read instanceof Error ? STANDING_ABSENCE.fightUnread : read;
-    addUndrawn(parts.defects, parts.view.renderStanding(reading, parts.screen.isStandingCollapsed));
 }
 
 /**
@@ -204,49 +258,6 @@ function addUndrawn(defects: DefectLedger, report: RenderReport): void {
     }
 }
 
-/**
- * Waiting where there is nothing to stand on — no fight and an empty shelf — because a panel of
- * zeroes over a game that has not started is a claim.
- */
-function renderFramePanel(
-    parts: FrameParts,
-    said: readonly PanelDefect[],
-    hasFightToSave: boolean,
-): void {
-    const { screen, keeper, live } = parts;
-    const view = getFightView(live.session);
-    const liveReading = view === null ? null : tallyFightReading(view);
-    const standing = lookupStandingFight(
-        liveReading,
-        screen.openFightId,
-        keeper.getFights(),
-        keeper.lookupReading,
-    );
-    if (standing === null) {
-        // A kept fight chosen and still no standing is a fight that no longer reads, and the
-        // reader is told which one rather than that there has been none.
-        const unread = lookupStandingKept(liveReading, screen.openFightId, keeper.getFights());
-        const keptUnread = unread === undefined ? null : {
-            at: parts.clock.readMoment(unread.openedAt),
-            place: formatFightPlace(unread.place),
-        };
-        const waiting = { isCollapsed: screen.isCollapsed, defects: said, hasFightToSave };
-        const drawn = parts.view.renderWaiting({
-            ...waiting,
-            isFightUnread: false,
-            keptUnread,
-            options: presentOptions(parts),
-            typeStep: screen.typeStep,
-            windowSizes: screen.windowSizes,
-        });
-        addUndrawn(parts.defects, drawn);
-        return;
-    }
-    assert(standing.reading.view.payloadsApplied > 0, "a fight stood on was read from something");
-    const shown = presentFrameScreen(parts, standing, liveReading, said, hasFightToSave);
-    addUndrawn(parts.defects, parts.view.render(shown));
-}
-
 function formatFightPlace(place: FightPlace | null): string | null {
     if (place === null) return null;
     return formatPlace(place.mapName, place.x, place.y);
@@ -270,7 +281,6 @@ function presentFrameScreen(
         getFightSuspicions(view),
     );
     const opened = presentOpenedReadings(standing.reading, screen);
-    addFiguresDisagreed(parts.defects, reading, opened);
     // The row the panel is drawing: the kept one wherever there is no live fight to mark instead.
     const chosenFight = screen.openFightId ?? standing.kept?.openedAt ?? null;
     if (standing.kept !== null) assert(chosenFight !== null, "a kept fight on screen is one named");
@@ -354,27 +364,6 @@ function getFightSuspicions(view: FightView): FightSuspicions {
         hasJoinedInProgress: view.hasJoinedInProgress,
         messagesRead: view.messagesRead,
     };
-}
-
-/**
- * Two counts of one figure came out different: the one thing the panel can say about a drawn
- * figure being wrong rather than short, and a defect rather than an assertion (`develop ADR 0051`).
- */
-function addFiguresDisagreed(
-    defects: DefectLedger,
-    reading: ScreenReading,
-    opened: OpenedReadings,
-): void {
-    const add = (cut: FiguresCut): void => {
-        defects.add({
-            kind: DEFECT_KIND.figures,
-            region: null,
-            failure: new FiguresDisagreed(cut),
-        });
-    };
-    if (reading.hasFiguresDisagreed) add(FIGURES_CUT.screen);
-    if (opened.drill?.hasFiguresDisagreed === true) add(FIGURES_CUT.drill);
-    if (opened.pair?.hasFiguresDisagreed === true) add(FIGURES_CUT.pair);
 }
 
 /**

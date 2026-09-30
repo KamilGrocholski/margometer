@@ -8,7 +8,7 @@
 
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
-import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
+import { isRecord } from "#/libs/unknown-value.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { readPageBattle } from "./engine-battle.ts";
 import { readNamedWarriors, WARRIOR_ID_KEY } from "./warrior-snapshot.ts";
@@ -73,7 +73,67 @@ export function initPageTooltip(page: unknown): TooltipPort {
             const asked = [...rowsByCombatantId.values()].filter((rows) => rows.length > 0).length;
             assert(asked <= COMBATANTS_MAXIMUM, "no more blocks than a fight puts on a board");
             const next = new Map(blocksById);
-            const walked = errors.attempt(() => writeBlocks(page, rowsByCombatantId, next));
+            // Write every fighter's block, and forget a fighter the page no longer draws, which
+            // keeps one board's worth in memory.
+            const walked = errors.attempt(() => {
+                const warriors = readNamedWarriors(readPageBattle(page));
+                if (warriors instanceof Error) return 0;
+                let written = 0;
+                const drawn = new Set<number>();
+                for (const warrior of warriors) {
+                    const id = warrior[WARRIOR_ID_KEY];
+                    if (typeof id !== "number") continue;
+                    drawn.add(id);
+                    const block = encodeBlock(rowsByCombatantId.get(id) ?? []);
+                    const was = next.get(id) ?? "";
+                    let stands: boolean;
+                    // Write the block onto the fighter, or pass over one out of reach.
+                    writeBlock: {
+                        // A fighter with no tooltip this file can reach keeps whatever stood there.
+                        // ⚠️ **The break between the rows is the client's own**: a block goes on
+                        // through `concatTip`, which writes the `<br>`, and comes off through `tip`
+                        // with the registry's own string less ours. `tipupdate` goes after the
+                        // rows, because `concatTip` triggers nothing.
+                        const held = warrior[WARRIOR_ELEMENT_FIELD];
+                        if (!isRecord(held)) continue;
+                        const find = held[FIND_METHOD];
+                        if (typeof find !== "function") continue;
+                        const targets: unknown = Reflect.apply(find, held, [TOOLTIP_TARGETS]);
+                        if (!isTooltipTargets(targets)) continue;
+                        const current = targets.getTipData();
+                        if (typeof current !== "string") continue;
+                        const at = was.length === 0 ? -1 : current.lastIndexOf(was);
+                        if (at !== -1) {
+                            if (was === block) {
+                                stands = true;
+                                break writeBlock;
+                            }
+                            const theirs = current.slice(0, at) + current.slice(at + was.length);
+                            // An empty string is the client's word for deleting the tooltip, which
+                            // is not ours to do.
+                            if (theirs.length === 0) continue;
+                            targets.tip(theirs);
+                        }
+                        if (block.length === 0) {
+                            stands = false;
+                            break writeBlock;
+                        }
+                        for (const row of block.split(CLIENT_BREAK).slice(1)) {
+                            targets.concatTip(row);
+                        }
+                        targets.trigger(TELL_EVENT);
+                        stands = true;
+                    }
+                    if (stands) next.set(id, block);
+                    else next.delete(id);
+                    if (stands) written += 1;
+                }
+                for (const id of [...next.keys()]) {
+                    if (!drawn.has(id)) next.delete(id);
+                }
+                assert(next.size <= COMBATANTS_MAXIMUM, "remembered blocks stay one board's worth");
+                return written;
+            });
             // ⚠️ Kept whatever the walk came to: a block that went on before a throw of theirs,
             // forgotten, would be looked for as the old one and put on a second time.
             blocksById = next;
@@ -84,71 +144,12 @@ export function initPageTooltip(page: unknown): TooltipPort {
     };
 }
 
-/** A fighter the page no longer draws is forgotten, which keeps one board's worth in memory. */
-function writeBlocks(
-    page: unknown,
-    rowsByCombatantId: ReadonlyMap<number, readonly string[]>,
-    blocksById: Map<number, string>,
-): number {
-    const warriors = readNamedWarriors(readPageBattle(page));
-    if (warriors instanceof Error) return 0;
-    let written = 0;
-    const drawn = new Set<number>();
-    for (const warrior of warriors) {
-        const id = warrior[WARRIOR_ID_KEY];
-        if (typeof id !== "number") continue;
-        drawn.add(id);
-        const block = encodeBlock(rowsByCombatantId.get(id) ?? []);
-        const stands = writeBlockToWarrior(warrior, blocksById.get(id) ?? "", block);
-        if (stands === null) continue;
-        if (stands) blocksById.set(id, block);
-        else blocksById.delete(id);
-        if (stands) written += 1;
-    }
-    for (const id of [...blocksById.keys()]) {
-        if (!drawn.has(id)) blocksById.delete(id);
-    }
-    assert(blocksById.size <= COMBATANTS_MAXIMUM, "remembered blocks stay one board's worth");
-    return written;
-}
-
 /** The block as `concatTip` leaves it in the registry, which is what is looked for next time. */
 function encodeBlock(rows: readonly string[]): string {
     assert(rows.length <= ROWS_WRITTEN_MAXIMUM, "a block handed over is a stated length");
     const text = rows.map((row) => `${CLIENT_BREAK}${row}`).join("");
     if (text.length > 0) assert(text.startsWith(CLIENT_BREAK), "it opens on the client's break");
     return text;
-}
-
-/**
- * True where the block now stands, false where none of ours does, and null where the fighter has
- * no tooltip this file can reach — whatever stood there before is left as it was.
- *
- * ⚠️ **The break between the rows is the client's own**: a block goes on through `concatTip`,
- * which writes the `<br>`, and comes off through `tip` with the registry's own string less ours.
- * `tipupdate` goes after the rows, because `concatTip` triggers nothing.
- */
-function writeBlockToWarrior(warrior: UnknownRecord, was: string, block: string): boolean | null {
-    const held = warrior[WARRIOR_ELEMENT_FIELD];
-    if (!isRecord(held)) return null;
-    const find = held[FIND_METHOD];
-    if (typeof find !== "function") return null;
-    const targets: unknown = Reflect.apply(find, held, [TOOLTIP_TARGETS]);
-    if (!isTooltipTargets(targets)) return null;
-    const current = targets.getTipData();
-    if (typeof current !== "string") return null;
-    const at = was.length === 0 ? -1 : current.lastIndexOf(was);
-    if (at !== -1) {
-        if (was === block) return true;
-        const theirs = current.slice(0, at) + current.slice(at + was.length);
-        // An empty string is the client's word for deleting the tooltip, which is not ours to do.
-        if (theirs.length === 0) return null;
-        targets.tip(theirs);
-    }
-    if (block.length === 0) return false;
-    for (const row of block.split(CLIENT_BREAK).slice(1)) targets.concatTip(row);
-    targets.trigger(TELL_EVENT);
-    return true;
 }
 
 /**

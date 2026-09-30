@@ -52,20 +52,26 @@ function readEngineHeroId(engine: UnknownRecord): number | null {
     const hero = getRecordField(held, HELD_FIELDS, "data");
     if (hero instanceof Error) return null;
     if (hero === null) return null;
-    const id = readHeroIdField(hero);
+    let id: number | null;
+    // Read the id in either spelling, as a tile is read.
+    readId: {
+        // A client that states a number as text states the number.
+        const text = getTextField(hero, HERO_FIELDS, "id");
+        if (!(text instanceof Error)) {
+            if (text !== null) {
+                id = parseInteger(text);
+                break readId;
+            }
+        }
+        const stated = getNumberField(hero, HERO_FIELDS, "id");
+        if (stated instanceof Error) {
+            id = null;
+            break readId;
+        }
+        id = stated;
+    }
     if (id === null) return null;
     if (!Number.isSafeInteger(id)) return null;
     if (id <= 0) return null;
     return id;
-}
-
-/** Either spelling, as a tile is read: a client that states a number as text states the number. */
-function readHeroIdField(hero: UnknownRecord): number | null {
-    const text = getTextField(hero, HERO_FIELDS, "id");
-    if (!(text instanceof Error)) {
-        if (text !== null) return parseInteger(text);
-    }
-    const stated = getNumberField(hero, HERO_FIELDS, "id");
-    if (stated instanceof Error) return null;
-    return stated;
 }

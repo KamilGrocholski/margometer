@@ -132,7 +132,26 @@ const DESCRIPTION_FIELD = 5;
  * the data. Counts a recording already carries are added to, never overwritten.
  */
 export function composeIntake(recording: unknown): Intake {
-    const counted = removeReport(composeRecordingInEnglish(recording));
+    const english = composeRecordingInEnglish(recording);
+    let counted: { recording: unknown; wasRemoved: boolean };
+    // Remove the figures the add-on counted, keeping raw material only.
+    {
+        // A computed number beside the evidence is one version's arithmetic nobody can tell a test
+        // failed against (`develop ADR 0027`).
+        if (isRecord(english)) {
+            if (FILE_FIELD.report in english) {
+                const kept: Record<string, unknown> = {};
+                for (const [field, value] of Object.entries(english)) {
+                    if (field !== FILE_FIELD.report) kept[field] = value;
+                }
+                assert(
+                    !(FILE_FIELD.report in kept),
+                    "a recording admitted carries no counted figure",
+                );
+                counted = { recording: kept, wasRemoved: true };
+            } else counted = { recording: english, wasRemoved: false };
+        } else counted = { recording: english, wasRemoved: false };
+    }
     const named = composePseudonymisedRecording(counted.recording);
     const described = removeSkillDescriptions(named.recording);
     if (!isRecord(described.recording)) {
@@ -158,21 +177,6 @@ export function composeIntake(recording: unknown): Intake {
         wasReportRemoved: counted.wasRemoved,
         substitutions: named.substitutions,
     };
-}
-
-/**
- * Without the figures the add-on counted: raw material only, because a computed number beside the
- * evidence is one version's arithmetic nobody can tell a test failed against (`develop ADR 0027`).
- */
-function removeReport(recording: unknown): { recording: unknown; wasRemoved: boolean } {
-    if (!isRecord(recording)) return { recording, wasRemoved: false };
-    if (!(FILE_FIELD.report in recording)) return { recording, wasRemoved: false };
-    const kept: Record<string, unknown> = {};
-    for (const [field, value] of Object.entries(recording)) {
-        if (field !== FILE_FIELD.report) kept[field] = value;
-    }
-    assert(!(FILE_FIELD.report in kept), "a recording admitted carries no counted figure");
-    return { recording: kept, wasRemoved: true };
 }
 
 /**
@@ -246,7 +250,21 @@ export function composePseudonymisedRecording(recording: unknown): Pseudonymisat
 function indexCombatantRoll(recording: unknown): CombatantRoll {
     const roll: CombatantRoll = { isPlayerById: new Map(), namesById: new Map() };
     for (const call of readRecordingCalls(recording)) {
-        addCombatantRollPayload(roll, call);
+        // Add the payload's roster: `npc` rides only there, the one place a person can be told.
+        addPayload: {
+            const payload = call[FILE_FIELD.payload];
+            if (!isRecord(payload)) break addPayload;
+            const warriors = payload[ENVELOPE_KEYS.combatants];
+            if (!isRecord(warriors)) break addPayload;
+            for (const [key, stated] of Object.entries(warriors)) {
+                if (!isRecord(stated)) continue;
+                const id = readIdentity(stated[WARRIOR_FIELDS.id]) ?? readIdentity(key);
+                if (id === null) continue;
+                const nonPlayer = readIdentity(stated[INTAKE_KEYS.nonPlayer]);
+                if (nonPlayer !== null) roll.isPlayerById.set(id, nonPlayer === 0);
+                setRollName(roll, id, stated[WARRIOR_FIELDS.name]);
+            }
+        }
         indexCombatantRollSnapshots(roll, call);
     }
     assert(roll.namesById.size <= NAMES_MAXIMUM, "a roll names no more than it is bounded to");
@@ -259,22 +277,6 @@ function readRecordingCalls(recording: unknown): UnknownRecord[] {
     if (!Array.isArray(stated)) return [];
     assert(stated.length <= CALLS_MAXIMUM, "a recording stays inside its stated bound");
     return stated.filter(isRecord);
-}
-
-/** `npc` rides only in the payload's roster, so that is the only place a person can be told. */
-function addCombatantRollPayload(roll: CombatantRoll, call: UnknownRecord): void {
-    const payload = call[FILE_FIELD.payload];
-    if (!isRecord(payload)) return;
-    const warriors = payload[ENVELOPE_KEYS.combatants];
-    if (!isRecord(warriors)) return;
-    for (const [key, stated] of Object.entries(warriors)) {
-        if (!isRecord(stated)) continue;
-        const id = readIdentity(stated[WARRIOR_FIELDS.id]) ?? readIdentity(key);
-        if (id === null) continue;
-        const nonPlayer = readIdentity(stated[INTAKE_KEYS.nonPlayer]);
-        if (nonPlayer !== null) roll.isPlayerById.set(id, nonPlayer === 0);
-        setRollName(roll, id, stated[WARRIOR_FIELDS.name]);
-    }
 }
 
 function indexCombatantRollSnapshots(roll: CombatantRoll, call: UnknownRecord): void {

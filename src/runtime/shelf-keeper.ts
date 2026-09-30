@@ -114,30 +114,75 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
             if (state.readings.size < KEPT_MAXIMUM) state.readings.set(fight.openedAt, reading);
             return reading;
         },
-        keep: (fight) => keepShelfFight(state, fight),
-        pin: (openedAt) => pinShelfFight(state, openedAt),
-        choose: (choice) => chooseShelfStore(state, choice),
+        // Keep a fight, and hold what the store answered.
+        keep: (fight) => {
+            const next = [...state.fights, fight];
+            const kept = keepFight(state.store, { fights: state.fights }, fight);
+            state.answers.isEverySlotPinned = false;
+            if (!(kept instanceof Error)) {
+                setShelfWritten(state, kept.contents, rotateShelf(next).length);
+                return;
+            }
+            if (kept instanceof EverySlotPinned) {
+                state.answers.isEverySlotPinned = true;
+                return;
+            }
+            // Two fights under one moment, which a clock that only goes forward never states.
+            if (kept instanceof FightAlreadyKept) {
+                state.options.defects.add({
+                    kind: DEFECT_KIND.keeping,
+                    region: null,
+                    failure: kept,
+                });
+                return;
+            }
+            setShelfRefused(state, rotateShelf(next));
+        },
+        // Pin a fight, or take its pin off.
+        pin: (openedAt) => {
+            const held = state.fights.find((one) => one.openedAt === openedAt);
+            // A pin on a fight no longer kept asks for nothing: the next frame shows the shelf as
+            // it is.
+            if (held === undefined) return;
+            const next = state.fights.map((one) =>
+                one.openedAt === openedAt ? { ...one, isPinned: !one.isPinned } : one
+            );
+            assert(next.length === state.fights.length, "a pin moves no fight on or off the shelf");
+            const pinned = pinFight(
+                state.store,
+                { fights: state.fights },
+                openedAt,
+                !held.isPinned,
+            );
+            if (pinned instanceof Error) setShelfRefused(state, next);
+            else setShelfWritten(state, pinned.contents, next.length);
+        },
+        // Move the shelf to the store chosen. The fights go first, the answer second, and the place
+        // they came from is emptied last: a store that refuses them, or a browser that will not
+        // keep the answer, leaves the reader's fights where the next page will still look.
+        choose: (choice) => {
+            if (choice === state.choice) return;
+            const moved = state.options.initShelfStore(choice);
+            const written = writeShelfContents(moved, { fights: state.fights });
+            if (written instanceof Error) {
+                state.answers.hasStoreRefused = true;
+                state.answers.hasStoreMadeRoom = false;
+                return;
+            }
+            const answered = writeStorageChoice(state.options.settings, choice);
+            state.answers.hasChoiceRefused = answered instanceof Error;
+            if (answered instanceof Error) return;
+            // ⚠️ A copy the old store will not let go of is the reader's fights left where they
+            // were, which `develop` leaves unsaid as well: nothing is lost, and the answer already
+            // stands.
+            void deleteShelf(state.store);
+            const offered = state.fights.length;
+            assert(written.contents.fights.length <= offered, "a shelf moved grows by nothing");
+            state.choice = choice;
+            state.store = moved;
+            setShelfWritten(state, written.contents, offered);
+        },
     };
-}
-
-function keepShelfFight(state: KeeperState, fight: KeptFight): void {
-    const next = [...state.fights, fight];
-    const kept = keepFight(state.store, { fights: state.fights }, fight);
-    state.answers.isEverySlotPinned = false;
-    if (!(kept instanceof Error)) {
-        setShelfWritten(state, kept.contents, rotateShelf(next).length);
-        return;
-    }
-    if (kept instanceof EverySlotPinned) {
-        state.answers.isEverySlotPinned = true;
-        return;
-    }
-    // Two fights under one moment, which a clock that only goes forward never states.
-    if (kept instanceof FightAlreadyKept) {
-        state.options.defects.add({ kind: DEFECT_KIND.keeping, region: null, failure: kept });
-        return;
-    }
-    setShelfRefused(state, rotateShelf(next));
 }
 
 /** What went down is what is drawn: a store that asked for less leaves the shelf a reload finds. */
@@ -164,44 +209,4 @@ function setShelfRefused(state: KeeperState, asked: readonly KeptFight[]): void 
     state.answers.hasStoreMadeRoom = false;
     state.fights = asked;
     removeUnshelvedReadings(state);
-}
-
-function pinShelfFight(state: KeeperState, openedAt: number): void {
-    const held = state.fights.find((one) => one.openedAt === openedAt);
-    // A pin on a fight no longer kept asks for nothing: the next frame shows the shelf as it is.
-    if (held === undefined) return;
-    const next = state.fights.map((one) =>
-        one.openedAt === openedAt ? { ...one, isPinned: !one.isPinned } : one
-    );
-    assert(next.length === state.fights.length, "a pin moves no fight on or off the shelf");
-    const pinned = pinFight(state.store, { fights: state.fights }, openedAt, !held.isPinned);
-    if (pinned instanceof Error) setShelfRefused(state, next);
-    else setShelfWritten(state, pinned.contents, next.length);
-}
-
-/**
- * The fights go first, the answer second, and the place they came from is emptied last: a store
- * that refuses them, or a browser that will not keep the answer, leaves the reader's fights where
- * the next page will still look.
- */
-function chooseShelfStore(state: KeeperState, choice: StorageChoice): void {
-    if (choice === state.choice) return;
-    const moved = state.options.initShelfStore(choice);
-    const written = writeShelfContents(moved, { fights: state.fights });
-    if (written instanceof Error) {
-        state.answers.hasStoreRefused = true;
-        state.answers.hasStoreMadeRoom = false;
-        return;
-    }
-    const answered = writeStorageChoice(state.options.settings, choice);
-    state.answers.hasChoiceRefused = answered instanceof Error;
-    if (answered instanceof Error) return;
-    // ⚠️ A copy the old store will not let go of is the reader's fights left where they were,
-    // which `develop` leaves unsaid as well: nothing is lost, and the answer already stands.
-    void deleteShelf(state.store);
-    const offered = state.fights.length;
-    assert(written.contents.fights.length <= offered, "a shelf moved grows by nothing");
-    state.choice = choice;
-    state.store = moved;
-    setShelfWritten(state, written.contents, offered);
 }

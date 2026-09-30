@@ -1073,10 +1073,69 @@ export function presentTooltipRows(
 ): string[] {
     const rowsMaximum = statusBits.length + ROWS_BESIDE_THE_STATUSES;
     const said: string[] = [];
-    addTurnsRow(said, reading);
-    addChargeRow(said, reading);
-    addLegendaryRows(said, reading);
-    addProvocationRows(said, reading);
+    // Say the turns taken, where the figure cannot be short.
+    {
+        // ⚠️ **A figure that may be short is drawn where it can be marked, and nowhere else.** The
+        // panel draws these on a fight it walked into and says over them that every number may be
+        // understated (`formatJoinedInProgressSuspicion`). This block has no room for that sentence
+        // and no mark of its own, so the row it cannot qualify is the row it does not draw —
+        // `CONTEXT.md`'s **Suspect** is marked beside the figure it concerns or it is not a
+        // suspect, it is a wrong number.
+        if (!reading.wasJoinedInProgress) {
+            if (reading.turnsTaken > 0) {
+                said.push(`${TOOLTIP_WORDS.turnsTaken} ${formatFigure(reading.turnsTaken)}`);
+            }
+        }
+    }
+    // Say the skill being charged, and how far its charge has run.
+    {
+        // ⚠️ **Counts up, with no noun**: the client's own pair, as Pomocnik draws it. The okrzyk's
+        // `1 z 3` counts down and carries no noun either, so the row's own name is all that tells
+        // the two directions apart. `develop ADR 0115`, `develop ADR 0116`.
+        const charge = reading.charge;
+        if (charge !== null) {
+            const apart = STANDING_WORDS.castSeparator;
+            const passed = formatCounter(charge.turnsElapsed, charge.turnsStated);
+            said.push(
+                `${STANDING_WORDS.chargedSkill} ${apart} ${charge.skillName} ${apart} ${passed}`,
+            );
+        }
+    }
+    // Say what stands of the legendary heals.
+    {
+        // ⚠️ **A row naming a thing and then saying something about it carries the separator**,
+        // the way a status and a provocation do. Without it `Dotyk anioła 1 z 3` runs the name
+        // into the figure and reads as one phrase, while the rows around it read as two — measured
+        // by eye over a drawn block, 2026-09-22, which is the only place the whole set stands
+        // together.
+        //
+        // **Dotyk anioła counts up, in heals**, while the provocation below it counts down, in
+        // turns: each heal is on the wire and nothing dates a turn it ends on (`develop ADR 0113`).
+        // ⚠️ **Neither fraction carries a noun** (`develop ADR 0116`), so the row's name is all
+        // that says which way one runs.
+        const given = reading.holytouchHealsGiven;
+        const apart = STANDING_WORDS.castSeparator;
+        if (reading.hasSpentLastheal) {
+            said.push(`${TOOLTIP_WORDS.lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
+        }
+        if (given !== null) {
+            const heals = formatCounter(given, HOLYTOUCH_HEALS_STATED);
+            said.push(`${TOOLTIP_WORDS.holytouch} ${apart} ${heals}`);
+        }
+    }
+    // Say whom the fighter provokes, and who holds it provoked.
+    {
+        if (reading.provokes > 0) {
+            const counted = formatCountedNoun(reading.provokes, COUNTED_NOUNS.combatants);
+            said.push(`${TOOLTIP_WORDS.provokes} ${counted}`);
+        }
+        const held = reading.provokedBy;
+        if (held !== null) {
+            const left = formatCounter(held.turnsStated - held.turnsElapsed, held.turnsStated);
+            const apart = STANDING_WORDS.castSeparator;
+            said.push(`${TOOLTIP_WORDS.provokedBy} ${held.name} ${apart} ${left}`);
+        }
+    }
     const words = { translate, statusBits, rowsMaximum };
     addStatusRows(said, getLeadingStatuses(reading.statuses, statusBits), words);
     addStatusRows(said, getTrailingStatuses(reading.statuses, statusBits), words);
@@ -1085,65 +1144,6 @@ export function presentTooltipRows(
     // The name takes a row of the bound like any other, so a block handed over is never longer
     // than the maximum however many rows were composed.
     return [ADD_ON_NAME, ...kept].slice(0, rowsMaximum);
-}
-
-/**
- * ⚠️ **A figure that may be short is drawn where it can be marked, and nowhere else.** The panel
- * draws these on a fight it walked into and says over them that every number may be understated
- * (`formatJoinedInProgressSuspicion`). This block has no room for that sentence and no mark of its
- * own, so the row it cannot qualify is the row it does not draw — `CONTEXT.md`'s
- * **Suspect** is marked beside the figure it concerns or it is not a suspect, it is a wrong number.
- */
-function addTurnsRow(said: string[], reading: TooltipReading): void {
-    if (reading.wasJoinedInProgress) return;
-    if (reading.turnsTaken <= 0) return;
-    said.push(`${TOOLTIP_WORDS.turnsTaken} ${formatFigure(reading.turnsTaken)}`);
-}
-
-/**
- * ⚠️ **Counts up, with no noun**: the client's own pair, as Pomocnik draws it. The okrzyk's `1 z 3`
- * counts down and carries no noun either, so the row's own name is all that tells the two
- * directions apart. `develop ADR 0115`, `develop ADR 0116`.
- */
-function addChargeRow(said: string[], reading: TooltipReading): void {
-    const charge = reading.charge;
-    if (charge === null) return;
-    const apart = STANDING_WORDS.castSeparator;
-    const passed = formatCounter(charge.turnsElapsed, charge.turnsStated);
-    said.push(`${STANDING_WORDS.chargedSkill} ${apart} ${charge.skillName} ${apart} ${passed}`);
-}
-
-/**
- * ⚠️ **A row naming a thing and then saying something about it carries the separator**, the way a
- * status and a provocation do. Without it `Dotyk anioła 1 z 3` runs the name into the
- * figure and reads as one phrase, while the rows around it read as two — measured by eye over a
- * drawn block, 2026-09-22, which is the only place the whole set stands together.
- *
- * **Dotyk anioła counts up, in heals**, while the provocation below it counts down, in turns: each
- * heal is on the wire and nothing dates a turn it ends on (`develop ADR 0113`). ⚠️ **Neither
- * fraction carries a noun** (`develop ADR 0116`), so the row's name is all that says which way one
- * runs.
- */
-function addLegendaryRows(said: string[], reading: TooltipReading): void {
-    const given = reading.holytouchHealsGiven;
-    const apart = STANDING_WORDS.castSeparator;
-    if (reading.hasSpentLastheal) {
-        said.push(`${TOOLTIP_WORDS.lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
-    }
-    if (given === null) return;
-    const heals = formatCounter(given, HOLYTOUCH_HEALS_STATED);
-    said.push(`${TOOLTIP_WORDS.holytouch} ${apart} ${heals}`);
-}
-
-function addProvocationRows(said: string[], reading: TooltipReading): void {
-    if (reading.provokes > 0) {
-        const counted = formatCountedNoun(reading.provokes, COUNTED_NOUNS.combatants);
-        said.push(`${TOOLTIP_WORDS.provokes} ${counted}`);
-    }
-    const held = reading.provokedBy;
-    if (held === null) return;
-    const left = formatCounter(held.turnsStated - held.turnsElapsed, held.turnsStated);
-    said.push(`${TOOLTIP_WORDS.provokedBy} ${held.name} ${STANDING_WORDS.castSeparator} ${left}`);
 }
 
 /**

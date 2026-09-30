@@ -101,7 +101,55 @@ export function initPageEngine(page: unknown): EnginePort {
             if (engines.length === 0) return new EngineAbsent();
             const battle = lookupEngineBattle(engines);
             if (battle === null) return new BattleAbsent();
-            return initBattle(battle);
+            return {
+                // Put the wrap on the engine's own method.
+                wrap: (listener): WrapHandle | EngineFailure => {
+                    const original = battle[WRAPPED_METHOD];
+                    if (typeof original !== "function") return new MethodAbsent();
+                    if (isOurWrap(original)) return new EngineAlreadyWrapped();
+                    const failures: { count: number; first: errors.Caught | null } = {
+                        count: 0,
+                        first: null,
+                    };
+                    const count = (failure: errors.Caught): void => {
+                        if (failures.count >= FAILURES_MAXIMUM) return;
+                        failures.count += 1;
+                        if (failures.first === null) failures.first = failure;
+                    };
+                    // Two guards and not one: a throw before the call must not skip the reading
+                    // after it.
+                    const wrapper: Wrapper = function (this: unknown, ...args: unknown[]): unknown {
+                        const before = errors.attempt(() => listener.onBeforeCall());
+                        if (before instanceof Error) count(before);
+                        const answer: unknown = Reflect.apply(original, this, args);
+                        const after = errors.attempt(() => listener.onPayload(args[0]));
+                        if (after instanceof Error) count(after);
+                        return answer;
+                    };
+                    wrapper[WRAP_MARKER] = WRAP_VERSION;
+                    battle[WRAPPED_METHOD] = wrapper;
+                    assert(
+                        isOurWrap(battle[WRAPPED_METHOD]),
+                        "the wrap that went on says whose it is",
+                    );
+                    assert(
+                        battle[WRAPPED_METHOD] !== original,
+                        "and stands where the engine's own stood",
+                    );
+                    return {
+                        detach() {
+                            if (battle[WRAPPED_METHOD] !== wrapper) return new WrapCovered();
+                            battle[WRAPPED_METHOD] = original;
+                            return undefined;
+                        },
+                        getFailureCount: () => failures.count,
+                        getFirstFailure: () => failures.first,
+                    };
+                },
+                readWarriors() {
+                    return errors.attempt(() => readWarriorSnapshot(battle));
+                },
+            };
         },
     };
 }
@@ -117,52 +165,6 @@ function lookupEngineBattle(engines: readonly Record<string, unknown>[]) {
 /** The battle is written to once, by the wrap, which `isRecord`'s read-only reading refuses. */
 function isWritableRecord(value: unknown): value is Record<string, unknown> {
     return isRecord(value);
-}
-
-function initBattle(battle: Record<string, unknown>): EngineBattle {
-    return {
-        wrap: (listener) => wrapBattle(battle, listener),
-        readWarriors() {
-            return errors.attempt(() => readWarriorSnapshot(battle));
-        },
-    };
-}
-
-function wrapBattle(
-    battle: Record<string, unknown>,
-    listener: PayloadListener,
-): WrapHandle | EngineFailure {
-    const original = battle[WRAPPED_METHOD];
-    if (typeof original !== "function") return new MethodAbsent();
-    if (isOurWrap(original)) return new EngineAlreadyWrapped();
-    const failures: { count: number; first: errors.Caught | null } = { count: 0, first: null };
-    const count = (failure: errors.Caught): void => {
-        if (failures.count >= FAILURES_MAXIMUM) return;
-        failures.count += 1;
-        if (failures.first === null) failures.first = failure;
-    };
-    // Two guards and not one: a throw before the call must not skip the reading after it.
-    const wrapper: Wrapper = function (this: unknown, ...args: unknown[]): unknown {
-        const before = errors.attempt(() => listener.onBeforeCall());
-        if (before instanceof Error) count(before);
-        const answer: unknown = Reflect.apply(original, this, args);
-        const after = errors.attempt(() => listener.onPayload(args[0]));
-        if (after instanceof Error) count(after);
-        return answer;
-    };
-    wrapper[WRAP_MARKER] = WRAP_VERSION;
-    battle[WRAPPED_METHOD] = wrapper;
-    assert(isOurWrap(battle[WRAPPED_METHOD]), "the wrap that went on says whose it is");
-    assert(battle[WRAPPED_METHOD] !== original, "and stands where the engine's own stood");
-    return {
-        detach() {
-            if (battle[WRAPPED_METHOD] !== wrapper) return new WrapCovered();
-            battle[WRAPPED_METHOD] = original;
-            return undefined;
-        },
-        getFailureCount: () => failures.count,
-        getFirstFailure: () => failures.first,
-    };
 }
 
 function isOurWrap(value: unknown): boolean {

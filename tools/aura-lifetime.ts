@@ -70,17 +70,6 @@ interface OpenRun {
     turnsAtLighting: number;
 }
 
-/** One combatant's mask at one step, and what the walk holds between steps. */
-interface RunStep {
-    at: number;
-    combatantId: number;
-    mask: number;
-    turnsByCombatantId: ReadonlyMap<number, number>;
-    open: Map<string, OpenRun>;
-    held: Map<string, boolean>;
-    closed: StatusRun[];
-}
-
 /** Past the payload count of the longest recording, so each walk carries a stated bound. */
 const STEPS_MAXIMUM = 4096;
 /** Past the number of lightings one recording can hold, for the same reason. */
@@ -110,7 +99,40 @@ function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
     for (const [at, step] of steps.entries()) {
         const turnsByCombatantId = indexTurnsByCombatantId(step.reading.figures.statistics);
         for (const [combatantId, mask] of step.record.statusMasksByCombatantId) {
-            addStatusRunStep({ at, combatantId, mask, turnsByCombatantId, open, held, closed });
+            // Hold one combatant's mask at this step against what they held at the step before.
+            const clock = turnsByCombatantId.get(combatantId) ?? 0;
+            assert(clock >= 0, "a combatant's clock never runs behind the start of the fight");
+            assert(at >= 0, "and a payload is at a place in the recording");
+            for (let bit = 0; bit < FROZEN_BUFF_BITS.bits.length; bit += 1) {
+                const key = `${formatInteger(combatantId)}/${formatInteger(bit)}`;
+                const has = isBitSet(mask, bit);
+                const was = held.get(key);
+                held.set(key, has);
+                if (was === undefined) continue;
+                if (!was) {
+                    if (has) open.set(key, { litAt: at, turnsAtLighting: clock });
+                    continue;
+                }
+                if (has) continue;
+                const opened = open.get(key);
+                if (opened === undefined) continue;
+                // Close the run that went out at this step.
+                {
+                    open.delete(key);
+                    assert(
+                        clock >= opened.turnsAtLighting,
+                        "a clock never runs backwards over one recording",
+                    );
+                    assert(opened.litAt <= at, "and a status goes out no earlier than it lit");
+                    closed.push({
+                        combatantId,
+                        bit,
+                        litAt: opened.litAt,
+                        wentOutAt: at,
+                        ownTurns: clock - opened.turnsAtLighting,
+                    });
+                }
+            }
         }
     }
     assert(closed.length <= RUNS_MAXIMUM, "a recording holds no more runs than the bound");
@@ -132,45 +154,10 @@ function indexTurnsByCombatantId(statistics: FightStatistics): Map<number, numbe
     return found;
 }
 
-/** One combatant's mask at one step, against what they were holding at the step before. */
-function addStatusRunStep(step: RunStep): void {
-    const clock = step.turnsByCombatantId.get(step.combatantId) ?? 0;
-    assert(clock >= 0, "a combatant's clock never runs behind the start of the fight");
-    assert(step.at >= 0, "and a payload is at a place in the recording");
-    for (let bit = 0; bit < FROZEN_BUFF_BITS.bits.length; bit += 1) {
-        const key = `${formatInteger(step.combatantId)}/${formatInteger(bit)}`;
-        const has = isBitSet(step.mask, bit);
-        const was = step.held.get(key);
-        step.held.set(key, has);
-        if (was === undefined) continue;
-        if (!was) {
-            if (has) step.open.set(key, { litAt: step.at, turnsAtLighting: clock });
-            continue;
-        }
-        if (has) continue;
-        addStatusRunClosed(step, key, bit, clock);
-    }
-}
-
 function isBitSet(mask: number, bit: number): boolean {
     assert(bit >= 0, "a bit is looked for at a position");
     assert(bit < STATUS_BITS_MAXIMUM, "and inside the integer a mask arrives as");
     return (mask >> bit & 1) === 1;
-}
-
-function addStatusRunClosed(step: RunStep, key: string, bit: number, clock: number): void {
-    const opened = step.open.get(key);
-    if (opened === undefined) return;
-    step.open.delete(key);
-    assert(clock >= opened.turnsAtLighting, "a clock never runs backwards over one recording");
-    assert(opened.litAt <= step.at, "and a status goes out no earlier than it lit");
-    step.closed.push({
-        combatantId: step.combatantId,
-        bit,
-        litAt: opened.litAt,
-        wentOutAt: step.at,
-        ownTurns: clock - opened.turnsAtLighting,
-    });
 }
 
 /** The runs of one recording gathered into cohorts: one status, one step, everyone it lit on. */

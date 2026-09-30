@@ -234,17 +234,17 @@ file comes or goes (ADR 0010).
 | `tools/turn-count.ts`            | the turns each recording's combatants took, graded against the game's numbering: `fight:turns`                           |
 | `tools/turn-reading.ts`          | what each message came to under the turn rule, and the openers in dispute: `fight:openers`                               |
 
-| Path                | For                                                                                                                                         |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/`            | shared test support (fake window and document, simulator, recording readers, a register's table reader) and the entry and simulation suites |
-| `tests/core/`       | the suites of `src/core/`, and the decoding rules held over the recordings                                                                  |
-| `tests/e2e/`        | the browser suite: Playwright on Node driving the built userscript in Chrome, outside the gate                                              |
-| `tests/game/`       | the suites of `src/game/`, the page adapters, and a session replayed from the recordings                                                    |
-| `tests/libs/`       | the suites of `libs/`                                                                                                                       |
-| `tests/repository/` | the guards the register in `AGENTS.md` names, each holding a rule over the tree                                                             |
-| `tests/runtime/`    | the suites of `src/runtime/`                                                                                                                |
-| `tests/tools/`      | the suites of `tools/`                                                                                                                      |
-| `tests/ui/`         | the suites of `src/ui/`, and the bounds and wording of what the panel draws                                                                 |
+| Path                | For                                                                                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/`            | shared test support (fake window and document, simulator, recording readers, a register's table reader, the reader of each verb's purity) and the entry and simulation suites |
+| `tests/core/`       | the suites of `src/core/`, and the decoding rules held over the recordings                                                                                                    |
+| `tests/e2e/`        | the browser suite: Playwright on Node driving the built userscript in Chrome, outside the gate                                                                                |
+| `tests/game/`       | the suites of `src/game/`, the page adapters, and a session replayed from the recordings                                                                                      |
+| `tests/libs/`       | the suites of `libs/`                                                                                                                                                         |
+| `tests/repository/` | the guards the register in `AGENTS.md` names, each holding a rule over the tree                                                                                               |
+| `tests/runtime/`    | the suites of `src/runtime/`                                                                                                                                                  |
+| `tests/tools/`      | the suites of `tools/`                                                                                                                                                        |
+| `tests/ui/`         | the suites of `src/ui/`, and the bounds and wording of what the panel draws                                                                                                   |
 
 | Path        | For                                                                                                   |
 | ----------- | ----------------------------------------------------------------------------------------------------- |

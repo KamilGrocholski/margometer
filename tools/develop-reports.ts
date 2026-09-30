@@ -187,7 +187,23 @@ export function readDevelopReport(revision: string, task: string): string {
     assert(revision.length > 0, "develop is read at a revision");
     assert(task.length > 0, "and by one of its tasks");
     const directory = `${CACHE_DIRECTORY}/develop-${revision}`;
-    if (!isTreeComplete(directory)) writeDevelopTree(revision, directory);
+    if (!isTreeComplete(directory)) {
+        // Write the tree out afresh, so nothing a half-finished run left behind is read.
+        emptyDirSync(directory);
+        const archive = `${directory}.tar`;
+        runDevelopCommand("git", [
+            "archive",
+            "--output",
+            archive,
+            revision,
+            ...DEVELOP_PATHS,
+            DEVELOP_RECORDINGS,
+        ]);
+        runDevelopCommand("tar", ["-xf", archive, "-C", directory]);
+        Deno.removeSync(archive);
+        Deno.writeTextFileSync(`${directory}/${COMPLETE_MARK}`, `${revision}\n`);
+        assert(isTreeComplete(directory), "a tree taken out is marked whole");
+    }
     const output = new Deno.Command(Deno.execPath(), {
         args: ["task", "--quiet", task],
         cwd: directory,
@@ -209,25 +225,6 @@ function isTreeComplete(directory: string): boolean {
     if (!(mark instanceof Error)) return mark.isFile;
     if (mark.cause instanceof Deno.errors.NotFound) return false;
     throw new DevelopReportError(`${directory} cannot be looked at`, { cause: mark });
-}
-
-/** Taken out afresh, so nothing a half-finished run left behind is read. */
-function writeDevelopTree(revision: string, directory: string): void {
-    assert(revision.length > 0, "a tree is taken out at a revision");
-    emptyDirSync(directory);
-    const archive = `${directory}.tar`;
-    runDevelopCommand("git", [
-        "archive",
-        "--output",
-        archive,
-        revision,
-        ...DEVELOP_PATHS,
-        DEVELOP_RECORDINGS,
-    ]);
-    runDevelopCommand("tar", ["-xf", archive, "-C", directory]);
-    Deno.removeSync(archive);
-    Deno.writeTextFileSync(`${directory}/${COMPLETE_MARK}`, `${revision}\n`);
-    assert(isTreeComplete(directory), "a tree taken out is marked whole");
 }
 
 function runDevelopCommand(command: string, args: readonly string[]): void {

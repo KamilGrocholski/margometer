@@ -195,7 +195,18 @@ function composeServedFights(fromPaths: readonly string[]): ServedFight[] {
     assert(fromPaths.length <= FROM_PATHS_MAXIMUM, "a preview opens no more than the bound");
     const fights = readRecordedFights().map(composeServedFight);
     for (const path of fromPaths) {
-        const opened = composeServedFight(readFromPath(path));
+        let read: RecordedFight;
+        // Read the recording at a path handed on the command line.
+        {
+            const parsed = parseJson(Deno.readTextFileSync(path));
+            if (parsed instanceof Error) {
+                throw new PreviewServeError(`${path} is not a recording: ${parsed.name}`, {
+                    cause: parsed,
+                });
+            }
+            read = readRecordedFight(path, parsed);
+        }
+        const opened = composeServedFight(read);
         if (fights.some((fight) => fight.name === opened.name)) {
             throw new PreviewServeError(`${opened.name} is a name the recordings already carry`);
         }
@@ -210,18 +221,9 @@ function composeServedFight(fight: RecordedFight): ServedFight {
     return { name: formatRecordingName(fight.path), calls: fight.updates };
 }
 
-function readFromPath(path: string): RecordedFight {
-    const parsed = parseJson(Deno.readTextFileSync(path));
-    if (parsed instanceof Error) {
-        throw new PreviewServeError(`${path} is not a recording: ${parsed.name}`, {
-            cause: parsed,
-        });
-    }
-    return readRecordedFight(path, parsed);
-}
-
-function readPreviewBundle(): Promise<string> {
-    return readUserscriptFiles(readDevelopmentVersion()).then((files) => files.script);
+/** Asynchronous throughout, so a version that cannot be read rejects rather than throws. */
+async function readPreviewBundle(): Promise<string> {
+    return (await readUserscriptFiles(readDevelopmentVersion())).script;
 }
 
 /** Drains the watcher until it is closed, which is what `stop` does to end this. */
@@ -232,60 +234,76 @@ async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Pro
         if (pending !== null) clearTimeout(pending);
         pending = setTimeout(() => {
             pending = null;
-            readRebuilt(state).then(() => {}, (failure: unknown) => {
-                console.error(FAILURE_LINE, failure);
-            });
+            // Read the bundle rebuilt, and tell every page listening how the build went.
+            {
+                state.readBundle().then((script) => {
+                    state.script = script;
+                    console.log(`rebuilt, ${state.listeners.size} page(s) told to reload`);
+                    tellPreviewListeners(state.listeners, "rebuilt", "ok");
+                }, (failure: unknown) => {
+                    if (!(failure instanceof UserscriptBuildError)) throw failure;
+                    console.log(`the tree does not build: ${failure.message.split("\n")[0]}`);
+                    tellPreviewListeners(state.listeners, "failed", failure.message);
+                }).then(() => {}, (failure: unknown) => {
+                    console.error(FAILURE_LINE, failure);
+                });
+            }
         }, REBUILD_QUIET_MILLISECONDS);
     }
     if (pending !== null) clearTimeout(pending);
 }
 
-async function readRebuilt(state: PreviewState): Promise<void> {
-    try {
-        state.script = await state.readBundle();
-        console.log(`rebuilt, ${state.listeners.size} page(s) told to reload`);
-        tellPreviewListeners(state.listeners, "rebuilt", "ok");
-    } catch (failure) {
-        if (!(failure instanceof UserscriptBuildError)) throw failure;
-        console.log(`the tree does not build: ${failure.message.split("\n")[0]}`);
-        tellPreviewListeners(state.listeners, "failed", failure.message);
-    }
-}
-
 /** Every request; the event stream holds its connection open and is the server's own. */
-export function answerPreviewRequest(
-    state: PreviewState,
-    url: URL,
-): Promise<Response> | Response {
+export async function answerPreviewRequest(state: PreviewState, url: URL): Promise<Response> {
     assert(url.pathname.startsWith("/"), "a request names a path");
     if (url.pathname === "/reload") return openPreviewEvents(state.listeners);
-    if (url.pathname === `/${USERSCRIPT_NAME}`) return answerScript(state);
-    if (url.pathname === "/calls") return answerCalls(state, url);
-    if (url.pathname === "/") return answerPage(state, url);
+    if (url.pathname === `/${USERSCRIPT_NAME}`) {
+        // Answer the bundle, built on first asking: a tree that does not build answers 500.
+        try {
+            if (state.script === null) state.script = await state.readBundle();
+            return new Response(state.script, { headers: SCRIPT_TYPE });
+        } catch (failure) {
+            if (!(failure instanceof UserscriptBuildError)) throw failure;
+            return new Response(failure.message, { status: 500 });
+        }
+    }
+    if (url.pathname === "/calls") {
+        // Answer a fight's calls: a name is required, where the page route reads none as landing.
+        const asked = url.searchParams.get("fight");
+        const fight = asked === null ? null : lookupServedFight(state.fights, asked);
+        if (fight === null) return new Response("no such recording", { status: 404 });
+        return new Response(JSON.stringify(fight.calls), {
+            headers: { "content-type": "application/json; charset=utf-8" },
+        });
+    }
+    if (url.pathname === "/") {
+        // Answer the page, over the finished fight where nothing says otherwise.
+        // As the published page opens: the empty panel is worth reaching and `to start` reaches
+        // it, but it is not what somebody starting this came to see.
+        const fight = lookupServedFight(state.fights, url.searchParams.get("fight"));
+        if (fight === null) return new Response("no such recording", { status: 404 });
+        const stated = url.searchParams.get("entry");
+        const asked = stated === null ? fight.calls.length : parseInteger(stated);
+        if (asked === null) return new Response("entry is not a number", { status: 400 });
+        const entryIndex = clamp(asked, 0, fight.calls.length);
+        const page = composePreviewPage({
+            fightName: fight.name,
+            entryIndex,
+            calls: fight.calls,
+            fights: composeFightLinks(state.fights),
+            scriptDirectory: "/",
+            words: PREVIEW_WORDS,
+            introduction: null,
+            doesAddressCarryState: true,
+            doesStartFromEmpty: true,
+            install: null,
+            appendedScript: state.appendedScript,
+        });
+        return new Response(page, { headers: HTML_TYPE });
+    }
     // An empty script and never a miss: only the tag's `src` is ever read, for the build id.
     if (url.pathname === `/${GAME_SCRIPT_NAME}`) return new Response("", { headers: SCRIPT_TYPE });
     return new Response("not here", { status: 404 });
-}
-
-/** The bundle, built on first asking; a tree that does not build answers 500 and the log. */
-async function answerScript(state: PreviewState): Promise<Response> {
-    try {
-        if (state.script === null) state.script = await state.readBundle();
-        return new Response(state.script, { headers: SCRIPT_TYPE });
-    } catch (failure) {
-        if (!(failure instanceof UserscriptBuildError)) throw failure;
-        return new Response(failure.message, { status: 500 });
-    }
-}
-
-/** A name is required, where the page route reads a missing one as the fight to open on. */
-function answerCalls(state: PreviewState, url: URL): Response {
-    const asked = url.searchParams.get("fight");
-    const fight = asked === null ? null : lookupServedFight(state.fights, asked);
-    if (fight === null) return new Response("no such recording", { status: 404 });
-    return new Response(JSON.stringify(fight.calls), {
-        headers: { "content-type": "application/json; charset=utf-8" },
-    });
 }
 
 /** The landing fight where the address names none. */
@@ -295,33 +313,6 @@ function lookupServedFight(
 ): ServedFight | null {
     const wanted = name ?? formatRecordingName(lookupRecordedFight(LANDING_RECORDING).path);
     return fights.find((fight) => fight.name === wanted) ?? null;
-}
-
-/**
- * The finished fight where nothing says otherwise, as the published page opens: the empty panel is
- * worth reaching and `to start` reaches it, but it is not what somebody starting this came to see.
- */
-function answerPage(state: PreviewState, url: URL): Response {
-    const fight = lookupServedFight(state.fights, url.searchParams.get("fight"));
-    if (fight === null) return new Response("no such recording", { status: 404 });
-    const stated = url.searchParams.get("entry");
-    const asked = stated === null ? fight.calls.length : parseInteger(stated);
-    if (asked === null) return new Response("entry is not a number", { status: 400 });
-    const entryIndex = clamp(asked, 0, fight.calls.length);
-    const page = composePreviewPage({
-        fightName: fight.name,
-        entryIndex,
-        calls: fight.calls,
-        fights: composeFightLinks(state.fights),
-        scriptDirectory: "/",
-        words: PREVIEW_WORDS,
-        introduction: null,
-        doesAddressCarryState: true,
-        doesStartFromEmpty: true,
-        install: null,
-        appendedScript: state.appendedScript,
-    });
-    return new Response(page, { headers: HTML_TYPE });
 }
 
 /** Every fight offered once; having a process is why each can be fetched rather than navigated to. */

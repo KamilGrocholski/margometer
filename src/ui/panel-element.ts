@@ -67,7 +67,6 @@ import {
     type OpponentRow,
     type PairReading,
     type PanelSidePart,
-    type PanelSides,
     type PanelUnnamedEnd,
     type PartReading,
     type PersonRow,
@@ -265,18 +264,6 @@ interface PersonPlace {
     turnHolderId: number | null;
 }
 
-/**
- * The dots a charge draws, and **every one of them as a node a pointer may land on**. A card is
- * read off the node under the hand and never walked up from (`renderStandingPerson`), so
- * each dot goes back to the caller to be marked with the row's own key: unmarked, the widest
- * thing on the row is a run of holes the card closes in. `StandingCount` below is the same shape
- * for the same reason.
- */
-interface ChargedSkillPips {
-    element: PanelElement;
-    parts: PanelElement[];
-}
-
 /** A person as a row of the window beside the panel states them. */
 interface StandingPerson {
     name: string;
@@ -444,17 +431,8 @@ interface PanelRegions {
     defects: PanelElement;
 }
 
-/** The two windows a card may open beside, each asked for where and how wide it stands **now**. */
-interface TipWindows {
-    getPanel(): PanelDragHandle | null;
-    getStanding(): PanelDragHandle | null;
-    /** What a card may be follows the type. */
-    getTypeStep(): TypeStep;
-}
-
-/** What a draw is handed. Gathered rather than closed over, so the entry point stays a page. */
+/** What the fold and the settling after it are handed, by both of the panel's draws. */
 interface PanelDrawing {
-    host: PanelElement;
     document: PanelDocument;
     version: string;
     sheet: PanelElement;
@@ -464,18 +442,10 @@ interface PanelDrawing {
     frame: PanelElement;
     renderInPlace: PanelRedraw;
     report: UndrawnReport;
-    register: TipRegister;
-    standingRegister: TipRegister;
     drawing: ListDrawing;
-    translate: TranslateLabel | null;
     tip: TipHandle;
     getDrag(): PanelDragHandle | null;
-    standingWindow: PanelElement;
     standingDrag: PanelDragHandle | null;
-    getStandingBar(): PanelElement;
-    setStandingBar(next: PanelElement): void;
-    getStandingBody(): PanelElement;
-    setStandingBody(next: PanelElement): void;
 }
 
 type PanelRedraw = (
@@ -584,132 +554,23 @@ const DEFECTS_MAXIMUM = Object.values(PANEL_DEFECT_KIND).length;
 
 export function initPanelView(document: PanelDocument, options: PanelViewOptions): PanelView {
     let typeStep = options.typeStep;
-    const { host, root, sheet } = renderPanelShadow(document, options.version, typeStep);
-    const regions = renderPanelRegions(document);
-    const panelGrip = renderSizeGrip(document, PANEL_WINDOW.panel);
-    const frame = renderPanelFrame(document, regions, panelGrip);
-    const report = initUndrawnReport(options.onFailure);
-    const renderInPlace = (
-        standing: PanelElement,
-        region: PanelRegion,
-        render: () => PanelElement,
-    ) => {
-        return renderRegionInPlace(document, standing, region, render, report);
-    };
-    const register = initTipRegister();
-    const standingRegister = initTipRegister();
-    const drawing = initListDrawing(document, regions, report);
-    let drag: PanelDragHandle | null = null;
-    let standingDrag: PanelDragHandle | null = null;
-    const cards = composeTipLookup(register, standingRegister);
-    const getTypeStep = () => typeStep;
-    const tip = initTipBeside(document, cards, options.placement, report, {
-        getPanel: () => drag,
-        getStanding: () => standingDrag,
-        getTypeStep,
-    });
-    const standing = renderStandingWindow(document);
-    let standingBar = standing.bar;
-    let standingBody = standing.body;
-    addPanelRootChildren(root, [regions.title, frame, tip.element, standing.element]);
-    addPanelRootListeners(root, options, tip.onHover, standing.element);
-    // After the listeners that read a press, and on the same root: a drag is four more of them.
-    const wired = { view: options, getTypeStep };
-    const panelWired = { ...wired, window: PANEL_WINDOW.panel, grip: panelGrip };
-    drag = initDragOrNothing(root, host, () => regions.title, options.placement, panelWired);
-    const helperWired = { ...wired, window: PANEL_WINDOW.helper, grip: standing.grip };
-    const standingBarNow = () => standingBar;
-    const helperPlacement = options.standingPlacement;
-    standingDrag = initDragOrNothing(
-        root,
-        standing.element,
-        standingBarNow,
-        helperPlacement,
-        helperWired,
-    );
-    const held: PanelDrawing = {
-        host,
-        document,
-        version: options.version,
-        sheet,
-        getTypeStep,
-        setTypeStep: (next: TypeStep) => typeStep = next,
-        regions,
-        frame,
-        renderInPlace,
-        report,
-        register,
-        standingRegister,
-        drawing,
-        translate: options.translate,
-        tip,
-        getDrag: () => drag,
-        standingWindow: standing.element,
-        standingDrag,
-        getStandingBar: () => standingBar,
-        setStandingBar: (next: PanelElement) => standingBar = next,
-        getStandingBody: () => standingBody,
-        setStandingBody: (next: PanelElement) => standingBody = next,
-    };
-    return {
-        element: held.host,
-        render: (shown: ShownScreen): RenderReport =>
-            report.collect(() => {
-                renderStep(report, PANEL_REGION.list, () => drawing.keep());
-                register.reset();
-                renderFold(held, shown);
-                if (shown.isCollapsed) renderPanelFolded(document, regions, renderInPlace);
-                else {renderPanelBody(
-                        document,
-                        regions,
-                        shown,
-                        register,
-                        held.translate,
-                        renderInPlace,
-                        drawing,
-                    );}
-                renderPanelSettled(held);
-            }),
-        renderWaiting: (waiting: WaitingReading): RenderReport =>
-            report.collect(() => {
-                renderStep(report, PANEL_REGION.list, () => drawing.keep());
-                register.reset();
-                renderFold(held, waiting);
-                renderPanelWaiting(document, regions, waiting, renderInPlace, drawing, register);
-                renderPanelSettled(held);
-            }),
-        renderStanding: (
-            reading: StandingReading | StandingAbsence,
-            isCollapsed: boolean,
-        ): RenderReport =>
-            report.collect(() => renderStandingWindowInPlace(held, reading, isCollapsed)),
-    };
-}
-
-/**
- * The host, and the root everything else goes into. Both are built once and stay: only the
- * regions inside are replaced, so the listener at the root outlives every redraw and a press
- * during one is not swallowed. The sheet is written again only when the reader chooses another
- * size of type — a region redrawn under it keeps its look, and a browser re-parses nothing on a
- * redraw.
- */
-function renderPanelShadow(
-    document: PanelDocument,
-    version: string,
-    typeStep: TypeStep,
-): { host: PanelElement; root: PanelRoot; sheet: PanelElement } {
     const host = document.createElement("div");
-    host.setAttribute("id", HOST_NAME);
-    host.setAttribute(VERSION_ATTRIBUTE, version);
-    const root = host.attachShadow({ mode: "open" });
-    const sheet = document.createElement("style");
-    sheet.textContent = composeStyleSheet(typeStep);
-    root.append(sheet);
-    return { host, root, sheet };
-}
-
-function renderPanelRegions(document: PanelDocument): PanelRegions {
-    const regions = {
+    let root: PanelRoot;
+    let sheet: PanelElement;
+    // Build the host, and the root everything else goes into.
+    {
+        // Both are built once and stay: only the regions inside are replaced, so the listener at
+        // the root outlives every redraw and a press during one is not swallowed. The sheet is
+        // written again only when the reader chooses another size of type — a region redrawn
+        // under it keeps its look, and a browser re-parses nothing on a redraw.
+        host.setAttribute("id", HOST_NAME);
+        host.setAttribute(VERSION_ATTRIBUTE, options.version);
+        root = host.attachShadow({ mode: "open" });
+        sheet = document.createElement("style");
+        sheet.textContent = composeStyleSheet(typeStep);
+        root.append(sheet);
+    }
+    const regions: PanelRegions = {
         title: renderElement(document, "div", CLASS.title),
         header: renderSlot(document),
         nouns: renderSlot(document),
@@ -724,7 +585,1258 @@ function renderPanelRegions(document: PanelDocument): PanelRegions {
         suspicions: renderSlot(document),
         defects: renderSlot(document),
     };
-    return regions;
+    const panelGrip = renderSizeGrip(document, PANEL_WINDOW.panel);
+    const frame = renderElement(document, "div", CLASS.frame);
+    // Put every region in the order it is drawn in, inside the frame the fold collapses.
+    {
+        const panel = renderElement(document, "div", CLASS.panel);
+        for (const region of [regions.header, regions.nouns, regions.directions, regions.crumb]) {
+            panel.append(region);
+        }
+        panel.append(regions.options);
+        for (const region of [regions.list, regions.pinnedActor, regions.pinnedTarget]) {
+            panel.append(region);
+        }
+        panel.append(regions.outside);
+        panel.append(regions.sides);
+        panel.append(regions.suspicions);
+        panel.append(regions.defects);
+        panel.append(panelGrip);
+        frame.append(panel);
+    }
+    let report: UndrawnReport;
+    // Tell a region that would not draw to the render running, or to the sink where none is.
+    {
+        let collected: RegionUndrawn[] | null = null;
+        report = {
+            add(region, cause) {
+                const failure = new RegionUndrawn(region, cause);
+                if (collected === null) {
+                    addViewFailureGuarded(options.onFailure, failure);
+                    return;
+                }
+                if (collected.length < UNDRAWN_MAXIMUM) collected.push(failure);
+            },
+            // ⚠️ Every step of a render stands under a guard of its own, so nothing leaves
+            // `render` with the report still collecting. A step added unguarded would take the
+            // sink with it.
+            collect(render: () => void): RenderReport {
+                const undrawn: RegionUndrawn[] = [];
+                collected = undrawn;
+                render();
+                collected = null;
+                return { undrawn };
+            },
+        };
+    }
+    const renderInPlace = (
+        standing: PanelElement,
+        region: PanelRegion,
+        render: () => PanelElement,
+    ): PanelElement => {
+        const next = renderRegion(document, region, render, report);
+        if (next === null) return standing;
+        // The document's own call, and a region's to lose rather than the whole draw's: what
+        // stands is the region as it was, which a reader has already read once.
+        const replaced = errors.attempt(() => standing.replaceWith(next));
+        if (!(replaced instanceof Error)) return next;
+        report.add(region, replaced);
+        return standing;
+    };
+    const register = initTipRegister();
+    const standingRegister = initTipRegister();
+    let drawing: ListDrawing;
+    // Draw the one region that scrolls, keeping the reader's position under the place it is for.
+    {
+        const scrolls = initScrollMemo();
+        // Which list is standing in the region, so a position read off it is kept under the place
+        // it belongs to rather than under the place taking its turn.
+        let shownName = WAITING_LIST_NAME;
+        let isRegionKept = false;
+        drawing = {
+            // ⚠️ **Before any region is redrawn.** A region taken away grows the list under it,
+            // and a browser answers a taller box by clamping the position on it — the reader's own
+            // place, gone before anything read it. Measured on Chrome 152.0.7977.64, 2026-09-04:
+            // going back from a level takes the crumb away, and 54 pixels became 34 as it went.
+            keep: () => {
+                const top = readTopOfList(regions.list);
+                if (top !== null) scrolls.setTop(shownName, top);
+            },
+            renderListRegion: (name: string, render: () => PanelElement): void => {
+                const next = renderRegion(document, PANEL_REGION.list, render, report);
+                if (next === null) return;
+                // The same list, drawn again: a payload landing is not a reason to take the region
+                // the reader is turning away from them. Another list is the region replaced, so
+                // the place kept under its own name is what they land on.
+                isRegionKept = name === shownName && renderListRows(regions.list, next);
+                if (!isRegionKept) {
+                    const replaced = errors.attempt(() => regions.list.replaceWith(next));
+                    if (replaced instanceof Error) report.add(PANEL_REGION.list, replaced);
+                    else regions.list = next;
+                }
+                shownName = name;
+            },
+            // And after every region is standing, for the same reason read the other way round. A
+            // fold empties the region like any other and takes no name away, so what a reader
+            // unfolds onto is the list they were reading, at the position they left it at.
+            // Nothing to put back where the region itself stayed: the browser has the reader's
+            // place already.
+            settle: () => {
+                if (isRegionKept) return;
+                writeTopOfList(regions.list, scrolls.getTop(shownName));
+            },
+        };
+    }
+    let drag: PanelDragHandle | null = null;
+    let standingDrag: PanelDragHandle | null = null;
+    const cards = composeTipLookup(register, standingRegister);
+    const getTypeStep = () => typeStep;
+    let tipHandle: TipHandle;
+    // Place the card against wherever its own window stands **now**, not where it was wired.
+    {
+        // Both the place and the room are asked of the windows as they are, because a drag moves
+        // one and a window resize moves the other. **Which window a card opens beside is decided
+        // off its key**, the one thing the handle holds that says where the row it names is
+        // drawn: placed against the panel, a card from the second window opened straight over
+        // that window's own lower rows (`develop ADR 0090`).
+        const placement = options.placement;
+        const composePlace = (handle: PanelDragHandle | null): TipWindowPlace | null => {
+            const position = handle?.getPosition() ?? null;
+            if (handle === null) return null;
+            if (position === null) return null;
+            return { position, widthPixels: handle.getWidthPixels() };
+        };
+        const composeAcross = (key: string): TipAcross | null => {
+            // The sheet's own token and never a copy of it: the two spellings drifted on
+            // 2026-09-15 and the card, drawn at one width and placed as if it were the other,
+            // stood 43px over the rows it explains. It decides the **side** a card opens on and
+            // nothing else (`develop ADR 0091`).
+            const viewport = placement?.readViewport() ?? null;
+            const tokens = TYPE_TOKENS[getTypeStep()];
+            if (key.startsWith(STANDING_TIP_PREFIX)) {
+                const standing = composePlace(standingDrag);
+                return composeTipAcross(standing, viewport, tokens.tipWidthPixelsMaximum);
+            }
+            const panel = composePlace(drag);
+            return composeTipAcross(panel, viewport, tokens.tipWidthPixelsMaximum);
+        };
+        tipHandle = initTipHandle(
+            document,
+            cards,
+            // The card, which cannot degrade as a region does. A region's fallback is a sentence
+            // standing where it was; the card is a child of the root and the only thing the sheet
+            // places, so that sentence would be a block under the panel. A card that will not
+            // render is no card: the one standing hides (**E12**).
+            (standing, render) => {
+                const rendered = errors.attempt(() => {
+                    const next = render();
+                    standing.replaceWith(next);
+                    return next;
+                });
+                if (!(rendered instanceof Error)) return rendered;
+                report.add(PANEL_REGION.tip, rendered);
+                setTipHidden(standing, true);
+                return standing;
+            },
+            composeAcross,
+            () => placement?.readViewport()?.height ?? null,
+            getTypeStep,
+        );
+    }
+    // The window beside the panel, as one element under the same root — `SECURITY.md`'s guest
+    // rule puts everything a reader meets inside one shadow root under one name.
+    const standingWindow = renderElement(document, "div", CLASS.standing);
+    let standingBar = renderStandingBar(document, false);
+    let standingBody = renderSlot(document);
+    const standingGrip = renderSizeGrip(document, PANEL_WINDOW.helper);
+    standingWindow.append(standingBar);
+    standingWindow.append(standingBody);
+    standingWindow.append(standingGrip);
+    for (const child of [regions.title, frame, tipHandle.element, standingWindow]) {
+        root.append(child);
+    }
+    // Listen at the root, and on no row.
+    {
+        // Two windows sit under that root — `develop ADR 0060` — so the second is asked whether it
+        // holds a press.
+        const onHover = tipHandle.onHover;
+        // The press and never the click: a browser assembles a click out of two moments and
+        // dispatches it only if both resolve to a node still in the tree, so a payload landing
+        // between the press and the release would detach what was pressed and dispatch nothing.
+        addGuardedListener(root, EVENT_TYPE.press, PANEL_LISTENER.press, (event) => {
+            // The primary button alone: without this a right press would open a row and the
+            // listener below would step straight back out of it, which is worse than either half.
+            if ((event.button ?? PRIMARY_BUTTON) !== PRIMARY_BUTTON) return;
+            const target = event.target;
+            if (target === null) return;
+            const intent = readPanelIntent(target);
+            if (intent instanceof Error) {
+                addViewFailureGuarded(
+                    options.onFailure,
+                    new GestureDropped(PANEL_LISTENER.press, intent),
+                );
+                return;
+            }
+            if (intent !== null) options.onIntent(intent);
+        }, options.onFailure);
+        // One gesture in, one gesture out, and the way out works from anywhere on the panel: a
+        // back control alone would make the cheapest gesture the one that needs aiming. The window
+        // beside the panel is not the panel, and a press landing in it moves nothing —
+        // `develop ADR 0071`. The menu is stopped either way: the panel suppresses it under the
+        // whole root.
+        addGuardedListener(root, EVENT_TYPE.back, PANEL_LISTENER.back, (event) => {
+            event.preventDefault?.();
+            // A press stating no target is nobody's window, and keeps the panel's meaning.
+            if (standingWindow.contains(event.target)) return;
+            options.onIntent({ kind: PANEL_INTENT.close });
+        }, options.onFailure);
+        addGuardedListener(root, EVENT_TYPE.move, PANEL_LISTENER.hover, (event) => {
+            const target = event.target;
+            onHover(target === null ? null : target.getAttribute(TIP_ATTRIBUTE), event.clientY);
+        }, options.onFailure);
+        // What closes the card. `pointerleave` does not bubble and a shadow root is not on the
+        // composed path of one dispatched to an element, so the one listener would never see it;
+        // `pointerout` bubbles — and therefore fires on every crossing **inside** a row, whose
+        // bar, rank, name and figure are four elements. What the pointer went *to* tells the two
+        // apart: a crossing that lands on the same row's mark is not a leaving, and reading it
+        // keeps the card from being thrown away and rebuilt four times on the way across the row.
+        addGuardedListener(root, EVENT_TYPE.leave, PANEL_LISTENER.leave, (event) => {
+            const went = event.relatedTarget ?? null;
+            onHover(went === null ? null : went.getAttribute(TIP_ATTRIBUTE), event.clientY);
+        }, options.onFailure);
+    }
+    // After the listeners that read a press, and on the same root: a drag is four more of them.
+    const wired = { view: options, getTypeStep };
+    const panelWired = { ...wired, window: PANEL_WINDOW.panel, grip: panelGrip };
+    drag = initDragOrNothing(root, host, () => regions.title, options.placement, panelWired);
+    const helperWired = { ...wired, window: PANEL_WINDOW.helper, grip: standingGrip };
+    const standingBarNow = () => standingBar;
+    const helperPlacement = options.standingPlacement;
+    standingDrag = initDragOrNothing(
+        root,
+        standingWindow,
+        standingBarNow,
+        helperPlacement,
+        helperWired,
+    );
+    const held: PanelDrawing = {
+        document,
+        version: options.version,
+        sheet,
+        getTypeStep,
+        setTypeStep: (next: TypeStep) => typeStep = next,
+        regions,
+        frame,
+        renderInPlace,
+        report,
+        drawing,
+        tip: tipHandle,
+        getDrag: () => drag,
+        standingDrag,
+    };
+    const renderScreen = (shown: ShownScreen): RenderReport =>
+        report.collect(() => {
+            renderStep(report, PANEL_REGION.list, () => drawing.keep());
+            register.reset();
+            renderFold(held, shown);
+            if (shown.isCollapsed) {
+                renderPanelFolded(document, regions, renderInPlace);
+            } else if (shown.options !== null) {
+                renderPanelOptions(
+                    document,
+                    { regions, renderInPlace, drawing, register },
+                    shown.options,
+                    { typeStep: shown.typeStep, windowSizes: shown.windowSizes },
+                );
+                regions.defects = renderInPlace(
+                    regions.defects,
+                    PANEL_REGION.defects,
+                    () => renderDefects(document, shown.defects),
+                );
+            } else {
+                const translate = options.translate;
+                // Draw the fight's line: the sides, how it ended and where, under the fight's card.
+                regions.header = renderInPlace(regions.header, PANEL_REGION.header, () => {
+                    if (shown.isOnShelf) return renderSlot(document);
+                    const header = renderElement(document, "div", CLASS.header);
+                    const line = renderElement(document, "div", CLASS.headerLine);
+                    const who = renderElement(document, "span", "");
+                    who.textContent = formatSideCounts(shown.reading.sizes, shown.reading.unplaced);
+                    line.append(who);
+                    // Every part carries the key, because a pointer lands on the innermost one.
+                    const marked = [line, who];
+                    // Absent rather than empty where the reading says nothing, and
+                    // `ui/panel-reading.ts` says when it does and why the header may not fill the
+                    // silence in.
+                    const outcome = shown.reading.outcome;
+                    if (outcome !== null) {
+                        const said = renderElement(document, "span", CLASS.headerOutcome);
+                        said.textContent = getWordsForOutcome(outcome);
+                        line.append(said);
+                        marked.push(said);
+                    }
+                    if (shown.place !== null) {
+                        // The name gives way and the tile never does (ADR 0014). The tile carries
+                        // its own space, so the place reads as one text to anything that reads its
+                        // text, and the card states it whole.
+                        const place = shown.place;
+                        const where = renderElement(document, "span", CLASS.headerPlace);
+                        if (place.name !== null) {
+                            const name = renderElement(document, "span", CLASS.headerPlaceName);
+                            name.textContent = place.name;
+                            where.append(name);
+                        }
+                        if (place.tile !== null) {
+                            const tile = renderElement(document, "span", CLASS.headerPlaceTile);
+                            tile.textContent = place.name === null ? place.tile : ` ${place.tile}`;
+                            where.append(tile);
+                        }
+                        line.append(where);
+                        marked.push(where, ...Array.from(where.children));
+                    }
+                    header.append(line);
+                    register.add(FIGHT_TIP_KEY, () => presentFightCard(shown.card));
+                    setRowMarks(marked, TIP_ATTRIBUTE, FIGHT_TIP_KEY);
+                    return header;
+                });
+                // Draw the strips that choose the screen's noun.
+                regions.nouns = renderInPlace(regions.nouns, PANEL_REGION.strips, () => {
+                    if (shown.isOnShelf) return renderSlot(document);
+                    const strips = renderElement(document, "div", CLASS.strips);
+                    for (const one of presentNounStrips(shown.current)) {
+                        strips.append(
+                            renderStrip(document, PANEL_MARK.screen, getShownStrip(one, shown)),
+                        );
+                    }
+                    return strips;
+                });
+                // Draw the strips that choose the direction, and the side where one is named.
+                regions.directions = renderInPlace(regions.directions, PANEL_REGION.strips, () => {
+                    if (shown.isOnShelf) return renderSlot(document);
+                    const strips = renderElement(document, "div", CLASS.strips);
+                    for (const one of presentDirectionStrips(shown.current)) {
+                        strips.append(
+                            renderStrip(document, PANEL_MARK.screen, getShownStrip(one, shown)),
+                        );
+                    }
+                    if (shown.readerSide === null) return strips;
+                    strips.append(renderElement(document, "span", CLASS.stripsGap));
+                    for (const one of presentSideStrips(shown.side)) {
+                        strips.append(
+                            renderStrip(document, PANEL_MARK.side, getShownStrip(one, shown)),
+                        );
+                    }
+                    return strips;
+                });
+                // Draw the way back from the level that is open, and nothing where none is.
+                regions.crumb = renderInPlace(regions.crumb, PANEL_REGION.crumb, () => {
+                    if (shown.isOnShelf) {
+                        return renderCrumb(document, register, {
+                            said: PANEL_WORDS.fights,
+                            from: PANEL_WORDS.backFromFights,
+                        });
+                    }
+                    if (shown.halfNamedDrill !== null) {
+                        const unnamed = getWordsForUnnamedRow(
+                            getEndForPinned(shown.halfNamedDrill.case),
+                        );
+                        // Under an opened person the level is their end left out, and the way back
+                        // is to them.
+                        if (shown.drill !== null) {
+                            return renderCrumb(document, register, {
+                                said: unnamed,
+                                from: shown.drill.name ?? PANEL_WORDS.unknown,
+                            });
+                        }
+                        return renderCrumb(document, register, {
+                            said: getWordsForHalfNamedDrill(shown.halfNamedDrill, shown.current),
+                            from: unnamed,
+                        });
+                    }
+                    if (shown.halfNamed !== null) {
+                        return renderCrumb(document, register, {
+                            said: getWordsForUnnamedRow(shown.halfNamed.end),
+                            from: null,
+                        });
+                    }
+                    if (shown.drill === null) return renderSlot(document);
+                    const opened = shown.drill.name ?? PANEL_WORDS.unknown;
+                    if (shown.part !== null) {
+                        return renderCrumb(document, register, {
+                            said: getWordsForNamedPart(shown.part.part, shown.current),
+                            from: opened,
+                        });
+                    }
+                    if (shown.pair === null) {
+                        return renderCrumb(document, register, { said: opened, from: null });
+                    }
+                    return renderCrumb(document, register, {
+                        said: shown.pair.otherName ?? PANEL_WORDS.unknown,
+                        from: opened,
+                    });
+                });
+                regions.options = renderInPlace(
+                    regions.options,
+                    PANEL_REGION.strips,
+                    () => renderSlot(document),
+                );
+                // Draw the list: the shelf, a level opened over the ranking, or the ranking.
+                drawing.renderListRegion(shown.listName, () => {
+                    if (shown.isOnShelf) {
+                        // The size stands before the place and not after it, so the one cell that
+                        // can be cut is the last one: written the other way round, a long map name
+                        // pushes the size off the row.
+                        const list = renderList(document, ROWS_SHELF);
+                        if (shown.shelf.length === 0) {
+                            list.append(renderEmpty(document, PANEL_WORDS.shelfEmpty));
+                            return list;
+                        }
+                        for (const fight of shown.shelf) {
+                            const chosen = fight.isChosen ? ` ${CLASS.rowChosen}` : "";
+                            const row = renderElement(
+                                document,
+                                "div",
+                                `${CLASS.row} ${CLASS.rowDrillable}${chosen}`,
+                            );
+                            if (fight.isPinnable) {
+                                const set = fight.isPinned ? ` ${CLASS.rowPinSet}` : "";
+                                const pin = renderElement(
+                                    document,
+                                    "span",
+                                    `${CLASS.rowPin}${set}`,
+                                );
+                                pin.textContent = fight.isPinned ? PIN_MARK : UNPINNED_MARK;
+                                pin.setAttribute(TITLE_ATTRIBUTE, getWordsForPin(fight.isPinned));
+                                // The moment and never the word a live row is pressed by: what a
+                                // pin acts on is a fight the shelf holds, and the one going on now
+                                // is on the shelf only while it is also kept.
+                                pin.setAttribute(PANEL_MARK.pin, `${fight.openedAt}`);
+                                row.append(pin);
+                            }
+                            const time = renderElement(document, "span", CLASS.rowTime);
+                            time.textContent = getWordsForShelfTime(fight.at, fight.isLive);
+                            const size = renderElement(document, "span", CLASS.rowSize);
+                            size.textContent = formatShelfSize(fight.sizes);
+                            const where = renderElement(document, "span", CLASS.rowName);
+                            where.textContent = fight.place ?? "";
+                            const outcome = renderElement(document, "span", CLASS.rowValue);
+                            outcome.textContent = getWordsForShelfOutcome(
+                                fight.outcome,
+                                fight.isLive,
+                            );
+                            for (const part of [time, size, where, outcome]) row.append(part);
+                            const parts = [row, time, size, where, outcome];
+                            register.add(
+                                `shelf:${fight.openedAt}`,
+                                () => presentFightCard(fight.card),
+                            );
+                            setRowMarks(parts, TIP_ATTRIBUTE, `shelf:${fight.openedAt}`);
+                            // A moment would have to be one no kept fight could carry, and there is
+                            // no such moment.
+                            setRowMarks(
+                                parts,
+                                PANEL_MARK.fight,
+                                fight.isLive ? LIVE_FIGHT_MARK : `${fight.openedAt}`,
+                            );
+                            list.append(row);
+                        }
+                        return list;
+                    }
+                    if (shown.part !== null) {
+                        // Draw whom one part of an opened figure reached, headed by the direction's
+                        // word: a level opened on a screen about what reached the reader is headed
+                        // by whom it came from.
+                        const part = shown.part;
+                        const rows = part.byOpponent.rows.length +
+                            (part.byOpponent.unnamed === null ? 0 : 1);
+                        const list = renderList(
+                            document,
+                            Math.max(rows + 1, shown.reading.visibleRows),
+                        );
+                        const figure = getWordsForMetric(shown.current);
+                        const heading = getWordsForOpponentCut(shown.current);
+                        list.append(renderSection(document, heading, part.total));
+                        const share = PANEL_WORDS.shareOfFigure;
+                        // Nothing on this rung opens, so no card here promises a gesture
+                        // (`docs/drill-levels.md`).
+                        const place: CardPlace = {
+                            metric: shown.current,
+                            translate,
+                            isRowNarrower: true,
+                            readerSide: shown.readerSide,
+                        };
+                        for (const [at, row] of part.byOpponent.rows.entries()) {
+                            const tip = {
+                                register,
+                                key: `reached:${row.combatantId}`,
+                                figure,
+                                share,
+                                compose: composePersonCard(row, place, false),
+                            };
+                            list.append(
+                                renderRow(
+                                    document,
+                                    presentCombatantRow(
+                                        row,
+                                        at + 1,
+                                        shown.current,
+                                        composeCutPlace(shown),
+                                    ),
+                                    null,
+                                    tip,
+                                ),
+                            );
+                        }
+                        if (part.byOpponent.unnamed === null) return list;
+                        // The end the protocol left out of a blow this part carried: it is inside
+                        // the figure over the level, so the column comes to a hundred with it and
+                        // falls short without it.
+                        const end = getUnnamedEndForMetric(shown.current);
+                        const tip = {
+                            register,
+                            key: "reached:nobody",
+                            figure,
+                            share,
+                            notes: [getWordsForUnnamedEnd(end, getNounForMetric(shown.current))],
+                        };
+                        const reading = presentUnnamedRow(
+                            part.byOpponent.unnamed,
+                            getWordsForUnnamedRow(end),
+                        );
+                        list.append(renderRow(document, reading, null, tip));
+                        return list;
+                    }
+                    if (shown.pair !== null) {
+                        // Draw what passed between the two: the skills, then the kinds of damage.
+                        const pair = shown.pair;
+                        const list = renderList(
+                            document,
+                            getRowsForPair(pair, shown.reading.visibleRows),
+                        );
+                        const figure = getWordsForMetric(shown.current);
+                        const share = PANEL_WORDS.shareOfFigure;
+                        if (pair.parts.length > 0) {
+                            list.append(renderSection(document, PANEL_WORDS.skills, pair.total));
+                            for (const [at, row] of pair.parts.entries()) {
+                                const tip = {
+                                    register,
+                                    figure,
+                                    share,
+                                    key: getKeyForNamedPart(TIP_KEY_PLACE.pair, row.part),
+                                    caveat: getCaveatForNamedPart(row.part, shown.current),
+                                };
+                                const reading = {
+                                    name: getWordsForNamedPart(row.part, shown.current),
+                                    figure: row.figure,
+                                    fill: row.fill,
+                                    shareText: row.shareText,
+                                    colour: lookupColourForProfession(null),
+                                    profession: null,
+                                    rank: at + 1,
+                                };
+                                list.append(renderRow(document, reading, null, tip));
+                            }
+                        }
+                        const cut = pair.byElement;
+                        if (cut.rows.length > 0) {
+                            list.append(
+                                renderSection(document, PANEL_WORDS.damageKind, pair.total),
+                            );
+                            for (const [at, row] of cut.rows.entries()) {
+                                const part = { kind: OPENED_PART.element, element: row.element };
+                                const tip = {
+                                    register,
+                                    figure,
+                                    share,
+                                    key: getKeyForNamedPart(TIP_KEY_PLACE.pairKinds, part),
+                                };
+                                list.append(
+                                    renderRow(
+                                        document,
+                                        presentElementRow(row, PANEL_NOUN.damage, at + 1),
+                                        null,
+                                        tip,
+                                    ),
+                                );
+                            }
+                        }
+                        return list;
+                    }
+                    if (shown.halfNamedDrill !== null) {
+                        // Draw what stands under one row of that level: a person's own keys, or a
+                        // key's own people. The two are one fold read both ways round, so one
+                        // branch rather than two levels. Nothing here opens: it is the third level,
+                        // and the panel goes no deeper.
+                        const drill = shown.halfNamedDrill;
+                        const figure = getWordsForMetric(shown.current);
+                        if (drill.opened === HALF_NAMED_OPENED.element) {
+                            const rows = drill.rows.length + (drill.neither === null ? 0 : 1);
+                            const list = renderList(
+                                document,
+                                Math.max(rows + 1, shown.reading.visibleRows),
+                            );
+                            const heading = getWordsForHalfNamedCut(drill.end);
+                            list.append(renderSection(document, heading, drill.total));
+                            renderHalfNamedRows(document, list, shown, {
+                                rows: drill.rows,
+                                neither: drill.neither,
+                                doesOpen: false,
+                                register,
+                                translate: null,
+                            });
+                            return list;
+                        }
+                        const kinds = getElementCutRows(drill.kinds);
+                        const list = renderList(
+                            document,
+                            Math.max(kinds + 1, shown.reading.visibleRows),
+                        );
+                        renderElementSection(document, list, drill.kinds, {
+                            metric: shown.current,
+                            register,
+                            figure,
+                            total: drill.total,
+                        });
+                        return list;
+                    }
+                    if (shown.halfNamed !== null) {
+                        // Draw what stands under a pinned row: the end the game did name, person by
+                        // person, and never a guess at the one it left out. Which end that is turns
+                        // on the row rather than on the screen, so `Otrzymane` heads its two rows
+                        // differently. `develop ADR 0038`.
+                        const halfNamed = shown.halfNamed;
+                        const named = halfNamed.rows.length + (halfNamed.neither === null ? 0 : 1);
+                        const kinds = getElementCutRows(halfNamed.kinds);
+                        const needed = named + 1 + (kinds === 0 ? 0 : kinds + 1);
+                        const list = renderList(
+                            document,
+                            Math.max(needed, shown.reading.visibleRows),
+                        );
+                        const heading = getWordsForHalfNamedCut(halfNamed.end);
+                        list.append(renderSection(document, heading, halfNamed.total));
+                        renderHalfNamedRows(document, list, shown, {
+                            rows: halfNamed.rows,
+                            neither: halfNamed.neither,
+                            doesOpen: true,
+                            register,
+                            translate,
+                        });
+                        renderElementSection(document, list, halfNamed.kinds, {
+                            metric: shown.current,
+                            register,
+                            figure: getWordsForMetric(shown.current),
+                            total: halfNamed.total,
+                        });
+                        return list;
+                    }
+                    if (shown.drill !== null) {
+                        // Draw an opened person: neither cut opens any further, and a cut with
+                        // nothing in it draws no heading — a blow the protocol tied to nobody still
+                        // states what it was dealt with, so the kinds can stand alone.
+                        const drill = shown.drill;
+                        const list = renderList(
+                            document,
+                            getRowsForDrill(drill, shown.reading.visibleRows),
+                        );
+                        const figure = getWordsForMetric(shown.current);
+                        const share = PANEL_WORDS.shareOfFigure;
+                        // Draw whom the figure reached, where the reading fills that cut.
+                        {
+                            // One screen fills it and the others are handed an empty cut:
+                            // `src/ui/panel-reading.ts` says which screen that is and why.
+                            const cut = drill.byOpponent;
+                            const place: CardPlace = {
+                                metric: shown.current,
+                                translate,
+                                isRowNarrower: true,
+                                readerSide: shown.readerSide,
+                            };
+                            if (cut.rows.length + (cut.unnamed === null ? 0 : 1) > 0) {
+                                const heading = getWordsForOpponentCut(shown.current);
+                                list.append(renderSection(document, heading, drill.total));
+                            }
+                            for (const [at, row] of cut.rows.entries()) {
+                                const tip = {
+                                    register,
+                                    key: `to:${row.combatantId}`,
+                                    figure,
+                                    share,
+                                    compose: composePersonCard(row, place, row.doesOpenPair),
+                                };
+                                const mark = row.doesOpenPair
+                                    ? { attribute: PANEL_MARK.row, stated: `${row.combatantId}` }
+                                    : null;
+                                list.append(
+                                    renderRow(
+                                        document,
+                                        presentCombatantRow(
+                                            row,
+                                            at + 1,
+                                            shown.current,
+                                            composeCutPlace(shown),
+                                        ),
+                                        mark,
+                                        tip,
+                                    ),
+                                );
+                            }
+                            if (cut.unnamed !== null) {
+                                const end = getUnnamedEndForMetric(shown.current);
+                                const tip = {
+                                    register,
+                                    key: "to:nobody",
+                                    figure,
+                                    share,
+                                    // What the game did not say, and only that: where this figure
+                                    // stands is answered by the heading over it — a cut of the one
+                                    // person's figure.
+                                    notes: [
+                                        getWordsForUnnamedEnd(end, getNounForMetric(shown.current)),
+                                    ],
+                                };
+                                const reading = presentUnnamedRow(
+                                    cut.unnamed,
+                                    getWordsForUnnamedRow(end),
+                                );
+                                const mark = cut.unnamed.doesOpenPair
+                                    ? { attribute: PANEL_MARK.unnamed, stated: end }
+                                    : null;
+                                list.append(renderRow(document, reading, mark, tip));
+                            }
+                        }
+                        // Draw the skills the figure was made of.
+                        {
+                            const cut = drill.bySkill;
+                            const stated = { metric: shown.current, register, figure };
+                            if (cut.rows.length + (cut.plain === null ? 0 : 1) > 0) {
+                                list.append(
+                                    renderSection(document, PANEL_WORDS.skills, drill.total),
+                                );
+                                let drawn = 0;
+                                for (const row of cut.rows) {
+                                    drawn = renderSkillSectionPlain(
+                                        document,
+                                        list,
+                                        cut.plain,
+                                        stated,
+                                        drawn,
+                                        false,
+                                    );
+                                    drawn += 1;
+                                    const tip = {
+                                        register,
+                                        key: getKeyForNamedPart(TIP_KEY_PLACE.skill, row.part),
+                                        figure,
+                                        share,
+                                    };
+                                    const reading = presentSkillRow(row, shown.current, drawn);
+                                    const mark = getMarkForNamedPart(row.part, row.doesOpenPart);
+                                    list.append(renderRow(document, reading, mark, tip));
+                                }
+                                renderSkillSectionPlain(
+                                    document,
+                                    list,
+                                    cut.plain,
+                                    stated,
+                                    drawn,
+                                    true,
+                                );
+                                renderRestRow(document, list, cut.rest, {
+                                    register,
+                                    figure,
+                                    key: "skill:rest",
+                                });
+                            }
+                        }
+                        renderElementSection(document, list, drill.byElement, {
+                            metric: shown.current,
+                            register,
+                            figure,
+                            total: drill.total,
+                        });
+                        if (drill.total === 0) {
+                            list.append(renderEmpty(document, getWordsForNothing(shown.current)));
+                        }
+                        return list;
+                    }
+                    // Draw the ranking, where every row opens its person.
+                    const reading = shown.reading;
+                    const metric = shown.current;
+                    const place = {
+                        readerSide: shown.readerSide,
+                        turnHolderId: shown.turnHolderId,
+                    };
+                    const list = renderList(document, reading.visibleRows);
+                    if (reading.rows.length === 0) {
+                        list.append(renderEmpty(document, PANEL_WORDS.nothingYet));
+                        return list;
+                    }
+                    const figure = getWordsForMetric(metric);
+                    for (const [at, row] of reading.rows.entries()) {
+                        const reader = presentCombatantRow(row, at + 1, metric, place);
+                        const tip = {
+                            register,
+                            key: `row:${row.combatantId}`,
+                            figure,
+                            share: PANEL_WORDS.share,
+                            compose: composePersonCard(
+                                row,
+                                {
+                                    metric,
+                                    translate,
+                                    isRowNarrower: false,
+                                    readerSide: shown.readerSide,
+                                },
+                                true,
+                            ),
+                        };
+                        list.append(renderRow(document, reader, {
+                            attribute: PANEL_MARK.row,
+                            stated: `${row.combatantId}`,
+                        }, tip));
+                    }
+                    return list;
+                });
+                // Draw the two pinned rows, each in a region of its own.
+                {
+                    // A pinned row keeps a place of its own whether or not there is one to draw, so
+                    // a failure takes one row rather than both — and nothing standing below them
+                    // moves when one arrives.
+                    const stated = {
+                        metric: shown.current,
+                        isSideChosen: shown.side !== SIDE_CHOICE.everyone,
+                        figure: getWordsForMetric(shown.current),
+                    };
+                    const isOpen = isLevelOpen(shown);
+                    const pinned = !isOpen && !shown.isOnShelf ? shown.reading.pinned : [];
+                    const ends = [
+                        [UNNAMED_END.actor, "pinnedActor"],
+                        [UNNAMED_END.target, "pinnedTarget"],
+                    ] as const;
+                    for (const [end, standing] of ends) {
+                        const row = pinned.find((one) => one.end === end) ?? null;
+                        regions[standing] = renderInPlace(
+                            regions[standing],
+                            PANEL_REGION.pinned,
+                            () => {
+                                if (row === null) return renderSlot(document);
+                                const block = renderElement(document, "div", CLASS.pinned);
+                                const tip = {
+                                    register,
+                                    key: `pinned:${row.end}`,
+                                    figure: stated.figure,
+                                    share: PANEL_WORDS.share,
+                                    notes: formatPinnedNotes(
+                                        row,
+                                        stated.metric,
+                                        stated.isSideChosen,
+                                    ),
+                                    cut: presentPinnedCutParts(row, stated.metric),
+                                };
+                                const reading = presentUnnamedRow(
+                                    row,
+                                    getWordsForUnnamedRow(row.end),
+                                );
+                                const mark = { attribute: PANEL_MARK.unnamed, stated: row.end };
+                                block.append(renderRow(document, reading, mark, tip));
+                                return block;
+                            },
+                        );
+                    }
+                }
+                // Draw what stands under the list: past the ranking, the sides, warnings, defects.
+                {
+                    regions.outside = renderInPlace(regions.outside, PANEL_REGION.outside, () => {
+                        if (shown.isOnShelf) return renderSlot(document);
+                        // What the screen's own count holds and no row of it does. **It is not the
+                        // suspicions in another shape**: a suspicion says a figure may be short and
+                        // never by how much, because nothing states one; this states a figure,
+                        // because two counts of the same screen came out different by exactly that
+                        // much.
+                        const outside = shown.reading.outsideRanking;
+                        if (outside === null) return renderSlot(document);
+                        const block = renderElement(document, "div", CLASS.outside);
+                        block.append(
+                            renderSection(document, PANEL_WORDS.outsideRanking, outside.figure),
+                        );
+                        const reading = {
+                            name: PANEL_WORDS.outsideRow,
+                            figure: outside.figure,
+                            fill: outside.fill,
+                            shareText: outside.shareText,
+                            colour: lookupColourForProfession(null),
+                            profession: null,
+                            // No place, so the hatch: its figure is what reached no row rather than
+                            // what anybody did — `DESIGN.md`, and `develop ADR 0079`'s test for
+                            // which kind of row takes one.
+                            rank: null,
+                        };
+                        const tip = {
+                            register,
+                            key: "outside",
+                            figure: getWordsForMetric(shown.current),
+                            share: PANEL_WORDS.share,
+                            notes: [PANEL_WORDS.outsideNote],
+                        };
+                        block.append(renderRow(document, reading, null, tip));
+                        return block;
+                    });
+                    // Whether there is a summary to draw is asked **inside** the guard, not before
+                    // it: a reading that throws on being asked cost the whole panel where the
+                    // question stood outside.
+                    regions.sides = renderInPlace(regions.sides, PANEL_REGION.sides, () => {
+                        // Two sides nothing can tell apart are not two figures, and a strip of them
+                        // says nothing.
+                        const sides = shown.reading.sides;
+                        if (sides === null) return renderSlot(document);
+                        if (shown.isOnShelf) return renderSlot(document);
+                        const block = renderElement(document, "div", CLASS.sides);
+                        const line = renderElement(document, "div", CLASS.sidesLine);
+                        const reader = renderElement(
+                            document,
+                            "span",
+                            `${CLASS.sidesOurs} ${CLASS.figure}`,
+                        );
+                        reader.textContent = formatFigure(sides.reader);
+                        const label = renderElement(document, "span", CLASS.sidesLabel);
+                        label.textContent = formatSidesLabel(shown);
+                        const opposing = renderElement(
+                            document,
+                            "span",
+                            `${CLASS.sidesTheirs} ${CLASS.figure}`,
+                        );
+                        opposing.textContent = formatFigure(sides.opposing);
+                        line.append(reader);
+                        line.append(label);
+                        line.append(opposing);
+                        block.append(line);
+                        // Draw the track the three figures share, a part for each that has any.
+                        {
+                            const whole = sides.reader + sides.opposing + sides.nobody;
+                            if (whole > 0) {
+                                const track = renderElement(document, "div", CLASS.sidesTrack);
+                                const parts: Array<[number, string]> = [
+                                    [sides.reader / whole, CLASS.sidesOurs],
+                                    [sides.opposing / whole, CLASS.sidesTheirs],
+                                    [sides.nobody / whole, CLASS.sidesNobody],
+                                ];
+                                for (const [share, className] of parts) {
+                                    if (share > 0) {
+                                        const part = renderElement(document, "span", className);
+                                        const width = formatDecimal(
+                                            Math.min(share, 1) * AS_PERCENT,
+                                            FILL_PLACES,
+                                        );
+                                        part.setAttribute(STYLE_ATTRIBUTE, `width:${width}%`);
+                                        track.append(part);
+                                    }
+                                }
+                                block.append(track);
+                            }
+                        }
+                        if (sides.nobody > 0) {
+                            const spare = renderElement(
+                                document,
+                                "div",
+                                `${CLASS.sidesLine} ${CLASS.sidesSpare} ${CLASS.sidesNobody}`,
+                            );
+                            const words = renderElement(document, "span", CLASS.sidesLabel);
+                            words.textContent = PANEL_WORDS.withoutSide;
+                            const stated = renderElement(document, "span", CLASS.figure);
+                            stated.textContent = formatFigure(sides.nobody);
+                            spare.append(words);
+                            spare.append(stated);
+                            block.append(spare);
+                        }
+                        return block;
+                    });
+                    regions.suspicions = renderInPlace(
+                        regions.suspicions,
+                        PANEL_REGION.suspicions,
+                        () =>
+                            renderSuspicions(
+                                document,
+                                shown.isOnShelf ? shown.shelfAnswers : shown.reading.suspicions,
+                            ),
+                    );
+                    // Last, and drawn on every screen: what the panel could not do is not about the
+                    // fight, so it does not go away when the reader switches to another one —
+                    // `DESIGN.md`.
+                    regions.defects = renderInPlace(
+                        regions.defects,
+                        PANEL_REGION.defects,
+                        () => renderDefects(document, shown.defects),
+                    );
+                }
+            }
+            renderPanelSettled(held);
+        });
+    const renderWaiting = (waiting: WaitingReading): RenderReport =>
+        report.collect(() => {
+            renderStep(report, PANEL_REGION.list, () => drawing.keep());
+            register.reset();
+            renderFold(held, waiting);
+            renderPanelFolded(document, regions, renderInPlace);
+            // A defect can arrive before a fight does — a reading that would not compose leaves
+            // the panel waiting — so what could not be done is drawn here too.
+            if (!waiting.isCollapsed) {
+                if (waiting.options !== null) {
+                    renderPanelOptions(
+                        document,
+                        { regions, renderInPlace, drawing, register },
+                        waiting.options,
+                        { typeStep: waiting.typeStep, windowSizes: waiting.windowSizes },
+                    );
+                } else {
+                    drawing.renderListRegion(WAITING_LIST_NAME, () => {
+                        const list = renderList(document, ROWS_WAITING);
+                        list.className = `${CLASS.list} ${CLASS.listWaiting}`;
+                        const kept = waiting.keptUnread;
+                        if (kept !== null) {
+                            list.append(renderEmpty(document, PANEL_WORDS.keptUnread));
+                            const when = formatKeptUnread(kept.at, kept.place);
+                            if (when.length > 0) list.append(renderEmpty(document, when));
+                            return list;
+                        }
+                        const said = waiting.isFightUnread
+                            ? PANEL_WORDS.fightUnread
+                            : PANEL_WORDS.noFightYet;
+                        list.append(renderEmpty(document, said));
+                        return list;
+                    });
+                }
+                regions.defects = renderInPlace(
+                    regions.defects,
+                    PANEL_REGION.defects,
+                    () => renderDefects(document, waiting.defects),
+                );
+            }
+            renderPanelSettled(held);
+        });
+    const renderStanding = (
+        reading: StandingReading | StandingAbsence,
+        isCollapsed: boolean,
+    ): RenderReport =>
+        report.collect(() => {
+            // The mark on the frame and the body rendered empty, both — as the panel's fold does.
+            // The frame is what stays across a draw, so it is what can say the window is away.
+            renderStep(report, PANEL_REGION.standing, () => {
+                standingWindow.className = isCollapsed
+                    ? `${CLASS.standing} ${CLASS.standingFolded}`
+                    : CLASS.standing;
+            });
+            standingBar = renderInPlace(
+                standingBar,
+                PANEL_REGION.standing,
+                () => renderStandingBar(document, isCollapsed),
+            );
+            // ⚠️ The two windows keep two registers because they are drawn at two moments: this
+            // one goes up first and the panel's own draw resets the panel's register under it,
+            // which took every card this window had registered with it (`develop ADR 0086`).
+            standingRegister.reset();
+            standingBody = renderInPlace(standingBody, PANEL_REGION.standing, () => {
+                // Folded, the body is rendered empty rather than rendered and hidden — a fight
+                // redraws every few seconds, and what is not drawn costs nothing to draw.
+                if (isCollapsed) return renderSlot(document);
+                const body = renderElement(document, "div", CLASS.standingBody);
+                if (typeof reading === "string") {
+                    body.append(renderEmpty(document, getWordsForStandingAbsence(reading)));
+                    return body;
+                }
+                // What is true of one fighter is said on that fighter, in the game's own tooltip
+                // (`develop ADR 0108`), so nothing below is drawn per combatant.
+                // Say whose turn the game numbers, or why it numbers none — `develop ADR 0072`.
+                {
+                    const said = reading.turnOrdinal === null
+                        ? ""
+                        : formatTurnOrdinal(reading.turnOrdinal);
+                    const section = renderElement(document, "div", CLASS.section);
+                    const words = renderElement(document, "span", CLASS.sectionWords);
+                    words.textContent = STANDING_WORDS.now;
+                    const figure = renderElement(document, "span", CLASS.figure);
+                    figure.textContent = said;
+                    section.append(words);
+                    section.append(figure);
+                    body.append(section);
+                    const holder = reading.holder;
+                    if (holder === null) {
+                        const empty = renderElement(document, "div", CLASS.empty);
+                        empty.textContent = getWordsForTurnState(reading.turnState);
+                        body.append(empty);
+                    } else {
+                        body.append(
+                            renderStandingPerson(document, standingRegister, STANDING_NOW_TIP_KEY, {
+                                name: holder.name,
+                                skillName: null,
+                                colour: holder.colour,
+                                sidePart: holder.sidePart,
+                                turns: null,
+                                turnsCaveat: null,
+                                isUnder: false,
+                            }),
+                        );
+                    }
+                }
+                // Draw the charge band where a charge is: a heading, and a row per charge.
+                if (reading.chargedSkills.length > 0) {
+                    const first = reading.chargedSkills[0];
+                    const section = renderElement(document, "div", CLASS.section);
+                    const words = renderElement(document, "span", CLASS.sectionWords);
+                    words.textContent = STANDING_WORDS.chargedSkill;
+                    const state = renderElement(document, "span", CLASS.figure);
+                    state.textContent = first === undefined
+                        ? ""
+                        : getWordsForChargedSkill(first.state);
+                    section.append(words);
+                    section.append(state);
+                    body.append(section);
+                    // A row opens nothing, so it wears the leaf's cursor and carries the card that
+                    // hands back what its name cell cut — every row in this window does since
+                    // `develop ADR 0100`.
+                    for (const charged of reading.chargedSkills) {
+                        const row = renderElement(
+                            document,
+                            "div",
+                            `${CLASS.row} ${CLASS.rowLeaf}`,
+                        );
+                        const cap = renderElement(document, "div", CLASS.barCap);
+                        cap.setAttribute(
+                            STYLE_ATTRIBUTE,
+                            `background:${formatColour(charged.colour)}`,
+                        );
+                        const name = renderElement(document, "span", CLASS.rowName);
+                        name.textContent = charged.skillName;
+                        const value = renderElement(
+                            document,
+                            "span",
+                            `${CLASS.rowValue} ${CLASS.figure}`,
+                        );
+                        value.textContent = formatCounter(
+                            charged.turnsElapsed,
+                            charged.turnsStated,
+                        );
+                        const pips = renderElement(document, "div", CLASS.standingPips);
+                        const dots: PanelElement[] = [pips];
+                        // Draw one dot per turn of the charge, lit up to what has passed.
+                        {
+                            // ⚠️ **Every dot is a node a pointer may land on**, and a card is read
+                            // off the node under the hand, never walked up from: each goes on to be
+                            // marked with the row's key, or the widest thing on the row is a run of
+                            // holes the card closes in.
+                            pips.setAttribute(
+                                STYLE_ATTRIBUTE,
+                                `color:${formatColour(charged.colour)}`,
+                            );
+                            const stated = Math.min(
+                                Math.max(charged.turnsStated, 0),
+                                CHARGED_PIPS_MAXIMUM,
+                            );
+                            for (let turn = 0; turn < stated; turn += 1) {
+                                const lit = turn < charged.turnsElapsed
+                                    ? ` ${CLASS.standingPipLit}`
+                                    : "";
+                                const pip = renderElement(
+                                    document,
+                                    "div",
+                                    `${CLASS.standingPip}${lit}`,
+                                );
+                                pips.append(pip);
+                                dots.push(pip);
+                            }
+                        }
+                        row.append(cap);
+                        row.append(name);
+                        row.append(pips);
+                        row.append(value);
+                        const parts = [cap, name, ...dots, value];
+                        for (const rule of renderSideRules(document, charged.sidePart)) {
+                            row.append(rule);
+                            parts.push(rule);
+                        }
+                        const key = `${STANDING_CHARGE_TIP_PREFIX}${
+                            formatWhole(charged.combatantId)
+                        }`;
+                        standingRegister.add(key, () => presentChargedSkillTip(charged));
+                        setRowMarks([row, ...parts], TIP_ATTRIBUTE, key);
+                        body.append(row);
+                    }
+                }
+                if (reading.provoked.length === 0) {
+                    if (reading.chargedSkills.length === 0) {
+                        const empty = renderElement(document, "div", CLASS.empty);
+                        empty.textContent = STANDING_WORDS.nothingHappens;
+                        body.append(empty);
+                    }
+                    return body;
+                }
+                // Draw one row per person holding, and under it one per person held.
+                {
+                    // The turns stand on the rows under, because a shout runs on the turns of
+                    // whoever it holds (`develop ADR 0103`). The heading counts the characters
+                    // held, and never the casts holding them: `develop ADR 0062`'s heading counts
+                    // people.
+                    let counted = 0;
+                    for (const one of reading.provoked) counted += one.provoked.length;
+                    body.append(
+                        renderSection(document, STANDING_WORDS.provocation, counted),
+                    );
+                    for (const provocation of reading.provoked) {
+                        // The fold's own key, so a card is filed under the cast rather than under
+                        // the person: one caster shouting both okrzyki stands twice
+                        // (`develop ADR 0097`).
+                        const cast = `${formatWhole(provocation.casterId)}/${
+                            formatWhole(provocation.skillId)
+                        }`;
+                        body.append(renderStandingPerson(
+                            document,
+                            standingRegister,
+                            `${STANDING_HOLDING_TIP_PREFIX}${cast}`,
+                            {
+                                name: provocation.casterName,
+                                skillName: provocation.skillName,
+                                colour: provocation.casterColour,
+                                sidePart: provocation.casterSidePart,
+                                // No length here: one cast holding two characters is two counts on
+                                // two clocks, so the figure sits on the row of whoever is carrying
+                                // it (`develop ADR 0103`).
+                                turns: null,
+                                turnsCaveat: null,
+                                isUnder: false,
+                            },
+                        ));
+                        for (const holding of provocation.provoked) {
+                            // The cast as well as whoever it holds, although
+                            // `core/aura-standing.ts` keys a provocation by that character and so
+                            // hands each one over once. A key that leans on somebody else's keying
+                            // fails silently the day it moves: the register refuses the second of
+                            // two rows without a word, and that row then wears its neighbour's
+                            // card.
+                            const key = `${STANDING_HELD_TIP_PREFIX}${cast}/${
+                                formatWhole(holding.provokedId)
+                            }`;
+                            body.append(renderStandingPerson(document, standingRegister, key, {
+                                name: holding.name,
+                                // Named on the card and never on the row: the row above draws it
+                                // already, and what this row does state is a length of this
+                                // character's own (`develop ADR 0103`).
+                                skillName: provocation.skillName,
+                                colour: holding.colour,
+                                sidePart: holding.sidePart,
+                                turns: formatCounter(
+                                    holding.turnsStated - holding.turnsElapsed,
+                                    holding.turnsStated,
+                                ),
+                                turnsCaveat: null,
+                                isUnder: true,
+                            }));
+                        }
+                    }
+                }
+                return body;
+            });
+            standingDrag?.onDrawn();
+        });
+    return { element: host, render: renderScreen, renderWaiting, renderStanding };
 }
 
 function renderElement(document: PanelDocument, tag: string, className: string): PanelElement {
@@ -738,76 +1850,12 @@ function renderSlot(document: PanelDocument): PanelElement {
     return slot;
 }
 
-/** Every region in the order it is drawn in, inside the frame the fold collapses. */
-function renderPanelFrame(
-    document: PanelDocument,
-    regions: PanelRegions,
-    grip: PanelElement,
-): PanelElement {
-    const frame = renderElement(document, "div", CLASS.frame);
-    const panel = renderElement(document, "div", CLASS.panel);
-    for (const region of [regions.header, regions.nouns, regions.directions, regions.crumb]) {
-        panel.append(region);
-    }
-    panel.append(regions.options);
-    for (const region of [regions.list, regions.pinnedActor, regions.pinnedTarget]) {
-        panel.append(region);
-    }
-    panel.append(regions.outside);
-    panel.append(regions.sides);
-    panel.append(regions.suspicions);
-    panel.append(regions.defects);
-    panel.append(grip);
-    frame.append(panel);
-    return frame;
-}
-
 /** The corner a window is sized by. Built once, as the frame is, and no redraw replaces it. */
 function renderSizeGrip(document: PanelDocument, window: PanelWindow): PanelElement {
     const grip = renderElement(document, "div", CLASS.sizeGrip);
     grip.setAttribute(SIZE_GRIP_ATTRIBUTE, GRIP_MARK_BY_WINDOW[window]);
     grip.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.resizeGrip);
     return grip;
-}
-
-function initUndrawnReport(onFailure: (failure: ViewFailure) => void): UndrawnReport {
-    let collected: RegionUndrawn[] | null = null;
-    return {
-        add(region, cause) {
-            const failure = new RegionUndrawn(region, cause);
-            if (collected === null) {
-                addViewFailureGuarded(onFailure, failure);
-                return;
-            }
-            if (collected.length < UNDRAWN_MAXIMUM) collected.push(failure);
-        },
-        // ⚠️ Every step of a render stands under a guard of its own, so nothing leaves `render`
-        // with the report still collecting. A step added unguarded would take the sink with it.
-        collect(render: () => void): RenderReport {
-            const undrawn: RegionUndrawn[] = [];
-            collected = undrawn;
-            render();
-            collected = null;
-            return { undrawn };
-        },
-    };
-}
-
-function renderRegionInPlace(
-    document: PanelDocument,
-    standing: PanelElement,
-    region: PanelRegion,
-    render: () => PanelElement,
-    report: UndrawnReport,
-): PanelElement {
-    const next = renderRegion(document, region, render, report);
-    if (next === null) return standing;
-    // The document's own call, and a region's to lose rather than the whole draw's: what stands
-    // is the region as it was, which a reader has already read once.
-    const replaced = errors.attempt(() => standing.replaceWith(next));
-    if (!(replaced instanceof Error)) return next;
-    report.add(region, replaced);
-    return standing;
 }
 
 /**
@@ -831,143 +1879,12 @@ function renderRegion(
     return undrawn instanceof Error ? null : undrawn;
 }
 
-function initListDrawing(
-    document: PanelDocument,
-    regions: PanelRegions,
-    report: UndrawnReport,
-): ListDrawing {
-    const scrolls = initScrollMemo();
-    // Which list is standing in the region, so a position read off it is kept under the place it
-    // belongs to rather than under the place taking its turn.
-    let shownName = WAITING_LIST_NAME;
-    let isRegionKept = false;
-    const renderListRegion = (name: string, render: () => PanelElement): void => {
-        const next = renderRegion(document, PANEL_REGION.list, render, report);
-        if (next === null) return;
-        // The same list, drawn again: a payload landing is not a reason to take the region the
-        // reader is turning away from them. Another list is the region replaced, so the place
-        // kept under its own name is what they land on.
-        isRegionKept = name === shownName && renderListRows(regions.list, next);
-        if (!isRegionKept) {
-            const replaced = errors.attempt(() => regions.list.replaceWith(next));
-            if (replaced instanceof Error) report.add(PANEL_REGION.list, replaced);
-            else regions.list = next;
-        }
-        shownName = name;
-    };
-    return {
-        // ⚠️ **Before any region is redrawn.** A region taken away grows the list under it, and a
-        // browser answers a taller box by clamping the position on it — the reader's own place,
-        // gone before anything read it. Measured on Chrome 152.0.7977.64, 2026-09-04: going back
-        // from a level takes the crumb away, and 54 pixels became 34 as the crumb went.
-        keep: () => {
-            const top = readTopOfList(regions.list);
-            if (top !== null) scrolls.setTop(shownName, top);
-        },
-        renderListRegion,
-        // And after every region is standing, for the same reason read the other way round. A
-        // fold empties the region like any other and takes no name away, so what a reader unfolds
-        // onto is the list they were reading, at the position they left it at. Nothing to put
-        // back where the region itself stayed: the browser has the reader's place already.
-        settle: () => {
-            if (isRegionKept) return;
-            writeTopOfList(regions.list, scrolls.getTop(shownName));
-        },
-    };
-}
-
 /**
  * One card over two windows, so one reading over two registers. The panel's is asked first: it is
  * the one a fight refills every few seconds, and no key is stated by both.
  */
 function composeTipLookup(panel: TipRegister, standing: TipRegister): TipLookup {
     return { lookup: (key: string) => panel.lookup(key) ?? standing.lookup(key) };
-}
-
-/**
- * The card, placed against wherever its own window is **now** rather than where it was wired —
- * both the place and the room are asked of the windows as they are, because a drag moves one and
- * a window resize moves the other.
- *
- * **Which window a card opens beside is decided off its key**, the one thing the handle holds that
- * says where the row it names is drawn. Placed against the panel, a card from the second window
- * opened straight over that window's own lower rows (`develop ADR 0090`). Each window answers for
- * its own card and reads nothing of the other's place.
- */
-function initTipBeside(
-    document: PanelDocument,
-    register: TipLookup,
-    placement: PanelPlacement | null,
-    report: UndrawnReport,
-    windows: TipWindows,
-): TipHandle {
-    const composePlace = (drag: PanelDragHandle | null): TipWindowPlace | null => {
-        const position = drag?.getPosition() ?? null;
-        if (drag === null) return null;
-        if (position === null) return null;
-        return { position, widthPixels: drag.getWidthPixels() };
-    };
-    const composeAcross = (key: string): TipAcross | null => {
-        // The sheet's own token and never a copy of it: the two spellings drifted on 2026-09-15
-        // and the card, drawn at one width and placed as if it were the other, stood 43px over the
-        // rows it explains. It decides the **side** a card opens on and nothing else (`develop ADR
-        // 0091`).
-        const viewport = placement?.readViewport() ?? null;
-        const tokens = TYPE_TOKENS[windows.getTypeStep()];
-        if (key.startsWith(STANDING_TIP_PREFIX)) {
-            const standing = composePlace(windows.getStanding());
-            return composeTipAcross(standing, viewport, tokens.tipWidthPixelsMaximum);
-        }
-        const panel = composePlace(windows.getPanel());
-        return composeTipAcross(panel, viewport, tokens.tipWidthPixelsMaximum);
-    };
-    return initTipHandle(
-        document,
-        register,
-        (standing, render) => renderTipInPlace(standing, render, report),
-        composeAcross,
-        () => placement?.readViewport()?.height ?? null,
-        windows.getTypeStep,
-    );
-}
-
-/**
- * The card, which cannot degrade as a region does. A region's fallback is a sentence standing
- * where it was; the card is a child of the root and the only thing the sheet places, so that
- * sentence would be a block under the panel. A card that will not render is no card: the one
- * standing hides (**E12**).
- */
-function renderTipInPlace(
-    standing: PanelElement,
-    render: () => PanelElement,
-    report: UndrawnReport,
-): PanelElement {
-    const rendered = errors.attempt(() => {
-        const next = render();
-        standing.replaceWith(next);
-        return next;
-    });
-    if (!(rendered instanceof Error)) return rendered;
-    report.add(PANEL_REGION.tip, rendered);
-    setTipHidden(standing, true);
-    return standing;
-}
-
-/**
- * The window beside the panel, as one element under the same root — `SECURITY.md`'s
- * guest rule puts everything a reader meets inside one shadow root under one name.
- */
-function renderStandingWindow(
-    document: PanelDocument,
-): { element: PanelElement; bar: PanelElement; body: PanelElement; grip: PanelElement } {
-    const element = renderElement(document, "div", CLASS.standing);
-    const bar = renderStandingBar(document, false);
-    const body = renderSlot(document);
-    const grip = renderSizeGrip(document, PANEL_WINDOW.helper);
-    element.append(bar);
-    element.append(body);
-    element.append(grip);
-    return { element, bar, body, grip };
 }
 
 /** The window's own bar: its own grip, its own fold, and no control that would close it. */
@@ -994,66 +1911,6 @@ function renderBarControl(
     control.setAttribute(stated.attribute, "");
     control.setAttribute(TITLE_ATTRIBUTE, stated.words);
     return control;
-}
-
-function addPanelRootChildren(root: PanelRoot, children: readonly PanelElement[]): void {
-    for (const child of children) root.append(child);
-}
-
-/**
- * The four listeners, all of them at the root and none of them on a row. Two windows sit under
- * that root — `develop ADR 0060` — so the second is handed in, to be asked which holds a press.
- *
- * The press and never the click: a browser assembles a click out of two moments and dispatches it
- * only if both resolve to a node still in the tree, so a payload landing between the press and
- * the release would detach what was pressed and dispatch nothing at all.
- */
-function addPanelRootListeners(
-    root: PanelRoot,
-    options: PanelViewOptions,
-    onHover: (key: string | null, clientY: number) => void,
-    standing: PanelElement,
-): void {
-    addGuardedListener(root, EVENT_TYPE.press, PANEL_LISTENER.press, (event) => {
-        // The primary button alone: without this a right press would open a row and the listener
-        // below would step straight back out of it, which is worse than either half.
-        if ((event.button ?? PRIMARY_BUTTON) !== PRIMARY_BUTTON) return;
-        const target = event.target;
-        if (target === null) return;
-        const intent = readPanelIntent(target);
-        if (intent instanceof Error) {
-            addViewFailureGuarded(
-                options.onFailure,
-                new GestureDropped(PANEL_LISTENER.press, intent),
-            );
-            return;
-        }
-        if (intent !== null) options.onIntent(intent);
-    }, options.onFailure);
-    // One gesture in, one gesture out, and the way out works from anywhere on the panel: a back
-    // control alone would make the cheapest gesture the one that needs aiming. The window beside
-    // the panel is not the panel, and a press landing in it moves nothing — `develop ADR 0071`.
-    // The menu is stopped either way: the panel suppresses it under the whole root.
-    addGuardedListener(root, EVENT_TYPE.back, PANEL_LISTENER.back, (event) => {
-        event.preventDefault?.();
-        // A press stating no target is nobody's window, and keeps the panel's meaning.
-        if (standing.contains(event.target)) return;
-        options.onIntent({ kind: PANEL_INTENT.close });
-    }, options.onFailure);
-    addGuardedListener(root, EVENT_TYPE.move, PANEL_LISTENER.hover, (event) => {
-        const target = event.target;
-        onHover(target === null ? null : target.getAttribute(TIP_ATTRIBUTE), event.clientY);
-    }, options.onFailure);
-    // What closes the card. `pointerleave` does not bubble and a shadow root is not on the
-    // composed path of one dispatched to an element, so the one listener would never see it;
-    // `pointerout` bubbles — and therefore fires on every crossing **inside** a row, whose bar,
-    // rank, name and figure are four elements. What the pointer went *to* tells the two apart: a
-    // crossing that lands on the same row's mark is not a leaving, and reading it keeps the card
-    // from being thrown away and rebuilt four times on the way across the row it describes.
-    addGuardedListener(root, EVENT_TYPE.leave, PANEL_LISTENER.leave, (event) => {
-        const went = event.relatedTarget ?? null;
-        onHover(went === null ? null : went.getAttribute(TIP_ATTRIBUTE), event.clientY);
-    }, options.onFailure);
 }
 
 /**
@@ -1112,8 +1969,15 @@ function renderFold(
             held.sheet.textContent = composeStyleSheet(typeStep);
             held.setTypeStep(typeStep);
         });
+        // The window beside the panel keeps the side it stood on as both change size.
         renderStep(held.report, PANEL_REGION.standing, () => {
-            setStandingBeside(held, before, getWindowWidths(held));
+            const after = getWindowWidths(held);
+            const panel = held.getDrag()?.getPosition() ?? null;
+            const standing = held.standingDrag?.getPosition() ?? null;
+            if (panel === null) return;
+            if (standing === null) return;
+            const next = composeStandingAfterStep(panel, standing, before, after);
+            if (next !== null) held.standingDrag?.setPosition(next);
         });
     }
     renderStep(held.report, PANEL_REGION.header, () => {
@@ -1125,66 +1989,59 @@ function renderFold(
     held.regions.title = held.renderInPlace(
         held.regions.title,
         PANEL_REGION.header,
-        () => renderTitle(held.document, held.version, isCollapsed, hasFightToSave),
+        () => {
+            // The save is drawn only where there is a fight to hand over. A control that does
+            // nothing is worse than one that is not there (`DESIGN.md`), and an envelope with no
+            // call in it is a file that looks like a saved fight and is not. `develop ADR 0053`.
+            const document = held.document;
+            const bar = renderElement(document, "div", CLASS.title);
+            // Set before the controls are appended, not after: `textContent` replaces every child,
+            // so the other order would wipe them.
+            bar.textContent = `${GRIP_MARK}${PANEL_WORDS.title}`;
+            bar.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.drag);
+            setGripMark(bar, PANEL_WINDOW.panel);
+            const label = renderElement(document, "span", CLASS.titleVersion);
+            label.textContent = held.version;
+            // Marked as well as the bar under it. The bar wears `cursor:move` and every child
+            // inherits it, so a label that starts no drag is an affordance that lies (`DESIGN.md`)
+            // — and this one sits between the name and the controls, where a hand aiming for the
+            // bar lands.
+            setGripMark(label, PANEL_WINDOW.panel);
+            bar.append(label);
+            // First of the controls, so the three a reader already knew keep their places: the save
+            // comes and goes, and a control standing after it would walk along the bar with it.
+            bar.append(renderBarControl(document, {
+                className: `${CLASS.control} ${CLASS.controlLead}`,
+                mark: OPTIONS_MARK,
+                attribute: PANEL_MARK.options,
+                words: PANEL_WORDS.openOptions,
+            }));
+            bar.append(renderBarControl(document, {
+                className: CLASS.control,
+                mark: SHELF_MARK,
+                attribute: PANEL_MARK.shelf,
+                words: PANEL_WORDS.openFights,
+            }));
+            if (hasFightToSave) {
+                bar.append(renderBarControl(document, {
+                    className: CLASS.control,
+                    mark: SAVE_MARK,
+                    attribute: PANEL_MARK.save,
+                    words: PANEL_WORDS.saveFight,
+                }));
+            }
+            bar.append(renderBarControl(document, {
+                className: CLASS.control,
+                mark: isCollapsed ? UNFOLD_MARK : FOLD_MARK,
+                attribute: PANEL_MARK.fold,
+                words: isCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse,
+            }));
+            return bar;
+        },
     );
     renderStep(held.report, PANEL_REGION.header, () => {
         held.frame.className = isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
     });
-}
-
-/**
- * The save is drawn only where there is a fight to hand over. A control that does nothing is worse
- * than one that is not there (`DESIGN.md`), and an envelope with no call in it is a file
- * that looks like a saved fight and is not. `develop ADR 0053`.
- */
-function renderTitle(
-    document: PanelDocument,
-    version: string,
-    isCollapsed: boolean,
-    hasFightToSave: boolean,
-): PanelElement {
-    const bar = renderElement(document, "div", CLASS.title);
-    // Set before the controls are appended, not after: `textContent` replaces every child, so
-    // the other order would wipe them.
-    bar.textContent = `${GRIP_MARK}${PANEL_WORDS.title}`;
-    bar.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.drag);
-    setGripMark(bar, PANEL_WINDOW.panel);
-    const label = renderElement(document, "span", CLASS.titleVersion);
-    label.textContent = version;
-    // Marked as well as the bar under it. The bar wears `cursor:move` and every child inherits it,
-    // so a label that starts no drag is an affordance that lies (`DESIGN.md`) — and this
-    // one sits between the name and the controls, where a hand aiming for the bar lands.
-    setGripMark(label, PANEL_WINDOW.panel);
-    bar.append(label);
-    // First of the controls, so the three a reader already knew keep their places: the save comes
-    // and goes, and a control standing after it would walk along the bar with it.
-    bar.append(renderBarControl(document, {
-        className: `${CLASS.control} ${CLASS.controlLead}`,
-        mark: OPTIONS_MARK,
-        attribute: PANEL_MARK.options,
-        words: PANEL_WORDS.openOptions,
-    }));
-    bar.append(renderBarControl(document, {
-        className: CLASS.control,
-        mark: SHELF_MARK,
-        attribute: PANEL_MARK.shelf,
-        words: PANEL_WORDS.openFights,
-    }));
-    if (hasFightToSave) {
-        bar.append(renderBarControl(document, {
-            className: CLASS.control,
-            mark: SAVE_MARK,
-            attribute: PANEL_MARK.save,
-            words: PANEL_WORDS.saveFight,
-        }));
-    }
-    bar.append(renderBarControl(document, {
-        className: CLASS.control,
-        mark: isCollapsed ? UNFOLD_MARK : FOLD_MARK,
-        attribute: PANEL_MARK.fold,
-        words: isCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse,
-    }));
-    return bar;
 }
 
 /** How wide each window stands now, which a change of type moves and a size may not. */
@@ -1194,16 +2051,6 @@ function getWindowWidths(held: PanelDrawing): WindowWidths {
         panel: held.getDrag()?.getWidthPixels() ?? tokens.panelWidthPixels,
         standing: held.standingDrag?.getWidthPixels() ?? tokens.standingWidthPixels,
     };
-}
-
-/** The window beside the panel keeps the side it stood on as both change size. */
-function setStandingBeside(held: PanelDrawing, before: WindowWidths, after: WindowWidths): void {
-    const panel = held.getDrag()?.getPosition() ?? null;
-    const standing = held.standingDrag?.getPosition() ?? null;
-    if (panel === null) return;
-    if (standing === null) return;
-    const next = composeStandingAfterStep(panel, standing, before, after);
-    if (next !== null) held.standingDrag?.setPosition(next);
 }
 
 function renderPanelFolded(
@@ -1233,119 +2080,6 @@ function renderPanelFolded(
     regions.defects = renderInPlace(regions.defects, PANEL_REGION.defects, renderEmptySlot);
 }
 
-function renderPanelBody(
-    document: PanelDocument,
-    regions: PanelRegions,
-    shown: ShownScreen,
-    register: TipRegister,
-    translate: TranslateLabel | null,
-    renderInPlace: PanelRedraw,
-    drawing: ListDrawing,
-): void {
-    if (shown.options !== null) {
-        renderPanelOptions(
-            document,
-            { regions, renderInPlace, drawing, register },
-            shown.options,
-            { typeStep: shown.typeStep, windowSizes: shown.windowSizes },
-        );
-        regions.defects = renderInPlace(
-            regions.defects,
-            PANEL_REGION.defects,
-            () => renderDefects(document, shown.defects),
-        );
-        return;
-    }
-    const isFight = !shown.isOnShelf;
-    const renderEmptySlot = () => renderSlot(document);
-    regions.header = renderInPlace(
-        regions.header,
-        PANEL_REGION.header,
-        isFight ? () => renderHeader(document, shown, register) : renderEmptySlot,
-    );
-    regions.nouns = renderInPlace(
-        regions.nouns,
-        PANEL_REGION.strips,
-        isFight ? () => renderNounStrips(document, shown) : renderEmptySlot,
-    );
-    regions.directions = renderInPlace(
-        regions.directions,
-        PANEL_REGION.strips,
-        isFight ? () => renderDirectionStrips(document, shown) : renderEmptySlot,
-    );
-    regions.crumb = renderInPlace(
-        regions.crumb,
-        PANEL_REGION.crumb,
-        () => renderCrumbRegion(document, shown, register),
-    );
-    regions.options = renderInPlace(regions.options, PANEL_REGION.strips, renderEmptySlot);
-    drawing.renderListRegion(
-        shown.listName,
-        () => renderShownList(document, shown, register, translate),
-    );
-    renderPinnedRegions(document, regions, shown, register, renderInPlace);
-    renderPanelBodyFoot(document, regions, shown, register, renderInPlace);
-}
-
-function renderHeader(
-    document: PanelDocument,
-    shown: ShownScreen,
-    register: TipRegister,
-): PanelElement {
-    const header = renderElement(document, "div", CLASS.header);
-    const line = renderElement(document, "div", CLASS.headerLine);
-    const who = renderElement(document, "span", "");
-    who.textContent = formatSideCounts(shown.reading.sizes, shown.reading.unplaced);
-    line.append(who);
-    // Every part carries the key, because a pointer lands on the innermost one.
-    const marked = [line, who];
-    // Absent rather than empty where the reading says nothing, and `ui/panel-reading.ts` says
-    // when it does and why the header may not fill the silence in.
-    const outcome = shown.reading.outcome;
-    if (outcome !== null) {
-        const said = renderElement(document, "span", CLASS.headerOutcome);
-        said.textContent = getWordsForOutcome(outcome);
-        line.append(said);
-        marked.push(said);
-    }
-    if (shown.place !== null) {
-        const place = renderHeaderPlace(document, shown.place);
-        line.append(place);
-        marked.push(place, ...Array.from(place.children));
-    }
-    header.append(line);
-    register.add(FIGHT_TIP_KEY, () => presentFightCard(shown.card));
-    setRowMarks(marked, TIP_ATTRIBUTE, FIGHT_TIP_KEY);
-    return header;
-}
-
-/**
- * The name gives way and the tile never does (ADR 0014). The tile carries its own space, so the
- * place reads as one text to anything that reads its text, and the card states it whole.
- */
-function renderHeaderPlace(document: PanelDocument, place: PlaceWords): PanelElement {
-    const held = renderElement(document, "span", CLASS.headerPlace);
-    if (place.name !== null) {
-        const name = renderElement(document, "span", CLASS.headerPlaceName);
-        name.textContent = place.name;
-        held.append(name);
-    }
-    if (place.tile !== null) {
-        const tile = renderElement(document, "span", CLASS.headerPlaceTile);
-        tile.textContent = place.name === null ? place.tile : ` ${place.tile}`;
-        held.append(tile);
-    }
-    return held;
-}
-
-function renderNounStrips(document: PanelDocument, shown: ShownScreen): PanelElement {
-    const strips = renderElement(document, "div", CLASS.strips);
-    for (const one of presentNounStrips(shown.current)) {
-        strips.append(renderStrip(document, PANEL_MARK.screen, getShownStrip(one, shown)));
-    }
-    return strips;
-}
-
 function renderStrip(
     document: PanelDocument,
     attribute: string,
@@ -1361,67 +2095,6 @@ function renderStrip(
 function getShownStrip(strip: ScreenStrip, shown: ShownScreen): ScreenStrip {
     if (!shown.isOnShelf) return strip;
     return { ...strip, isCurrent: false };
-}
-
-function renderDirectionStrips(document: PanelDocument, shown: ShownScreen): PanelElement {
-    const strips = renderElement(document, "div", CLASS.strips);
-    for (const one of presentDirectionStrips(shown.current)) {
-        strips.append(renderStrip(document, PANEL_MARK.screen, getShownStrip(one, shown)));
-    }
-    if (shown.readerSide === null) return strips;
-    strips.append(renderElement(document, "span", CLASS.stripsGap));
-    for (const one of presentSideStrips(shown.side)) {
-        strips.append(renderStrip(document, PANEL_MARK.side, getShownStrip(one, shown)));
-    }
-    return strips;
-}
-
-function renderCrumbRegion(
-    document: PanelDocument,
-    shown: ShownScreen,
-    register: TipRegister,
-): PanelElement {
-    if (shown.isOnShelf) {
-        return renderCrumb(document, register, {
-            said: PANEL_WORDS.fights,
-            from: PANEL_WORDS.backFromFights,
-        });
-    }
-    if (shown.halfNamedDrill !== null) {
-        const unnamed = getWordsForUnnamedRow(getEndForPinned(shown.halfNamedDrill.case));
-        // Under an opened person the level is their end left out, and the way back is to them.
-        if (shown.drill !== null) {
-            return renderCrumb(document, register, {
-                said: unnamed,
-                from: shown.drill.name ?? PANEL_WORDS.unknown,
-            });
-        }
-        return renderCrumb(document, register, {
-            said: getWordsForHalfNamedDrill(shown.halfNamedDrill, shown.current),
-            from: unnamed,
-        });
-    }
-    if (shown.halfNamed !== null) {
-        return renderCrumb(document, register, {
-            said: getWordsForUnnamedRow(shown.halfNamed.end),
-            from: null,
-        });
-    }
-    if (shown.drill === null) return renderSlot(document);
-    const opened = shown.drill.name ?? PANEL_WORDS.unknown;
-    if (shown.part !== null) {
-        return renderCrumb(document, register, {
-            said: getWordsForNamedPart(shown.part.part, shown.current),
-            from: opened,
-        });
-    }
-    if (shown.pair === null) {
-        return renderCrumb(document, register, { said: opened, from: null });
-    }
-    return renderCrumb(document, register, {
-        said: shown.pair.otherName ?? PANEL_WORDS.unknown,
-        from: opened,
-    });
 }
 
 /**
@@ -1522,11 +2195,69 @@ function renderPanelOptions(
                 from: PANEL_WORDS.backFromOptions,
             }),
     );
-    regions.options = renderInPlace(
-        regions.options,
-        PANEL_REGION.strips,
-        () => renderOptionsRegion(document, options, chosen),
-    );
+    regions.options = renderInPlace(regions.options, PANEL_REGION.strips, () => {
+        const region = renderElement(document, "div", "");
+        // Ask the size of type: three steps side by side, each written in its size (ADR 0015).
+        {
+            const question = renderOptionsQuestion(document, PANEL_WORDS.typeSize);
+            const steps = renderElement(document, "div", CLASS.optionsSteps);
+            for (const step of TYPE_STEPS) {
+                const marked = step === chosen.typeStep ? ` ${CLASS.stripCurrent}` : "";
+                const className = `${CLASS.optionsStep} ${composeOptionsStepClass(step)}${marked}`;
+                const one = renderElement(document, "div", className);
+                one.textContent = getWordsForTypeStep(step);
+                one.setAttribute(PANEL_MARK.typeStep, step);
+                steps.append(one);
+            }
+            question.append(steps);
+            region.append(question);
+        }
+        // Say of each window whether it keeps a size of the reader's.
+        {
+            // A way back on the window that keeps one and on no other: a control that does nothing
+            // is worse than none (`DESIGN.md`).
+            const question = renderOptionsQuestion(document, PANEL_WORDS.windowSize);
+            for (const window of PANEL_WINDOWS) {
+                const isSized = chosen.windowSizes[window] !== null;
+                const line = renderElement(document, "div", CLASS.optionsWindow);
+                const name = renderElement(document, "span", CLASS.optionsWindowName);
+                name.textContent = getWordsForWindow(window);
+                const own = isSized ? ` ${CLASS.optionsWindowOwn}` : "";
+                const state = renderElement(document, "span", `${CLASS.optionsWindowState}${own}`);
+                state.textContent = isSized ? PANEL_WORDS.sizeOwn : PANEL_WORDS.sizeDefault;
+                line.append(name);
+                line.append(state);
+                if (isSized) {
+                    const reset = renderElement(document, "span", CLASS.optionsReset);
+                    reset.textContent = PANEL_WORDS.sizeReset;
+                    reset.setAttribute(PANEL_MARK.resetSize, window);
+                    line.append(reset);
+                }
+                question.append(line);
+            }
+            const hint = renderElement(document, "div", CLASS.optionsMeaning);
+            hint.textContent = PANEL_WORDS.resizeHint;
+            question.append(hint);
+            region.append(question);
+        }
+        // Ask where fights are kept: a row per answer, longest first, and what the one taken means.
+        {
+            const current = options.storage;
+            const question = renderOptionsQuestion(document, PANEL_WORDS.storage);
+            for (const choice of STORAGE_CHOICES) {
+                const marked = choice === current ? ` ${CLASS.stripCurrent}` : "";
+                const one = renderElement(document, "div", `${CLASS.optionsAnswer}${marked}`);
+                one.textContent = getWordsForStorage(choice);
+                one.setAttribute(PANEL_MARK.storage, choice);
+                question.append(one);
+            }
+            const meaning = renderElement(document, "div", CLASS.optionsMeaning);
+            meaning.textContent = getWordsForStorageMeaning(current);
+            question.append(meaning);
+            region.append(question);
+        }
+        return region;
+    });
     drawing.renderListRegion(OPTIONS_LIST_NAME, renderEmptySlot);
     regions.pinnedActor = renderInPlace(regions.pinnedActor, PANEL_REGION.pinned, renderEmptySlot);
     regions.pinnedTarget = renderInPlace(
@@ -1543,127 +2274,12 @@ function renderPanelOptions(
     );
 }
 
-function renderOptionsRegion(
-    document: PanelDocument,
-    options: OptionsReading,
-    chosen: { typeStep: TypeStep; windowSizes: WindowSizes },
-): PanelElement {
-    const region = renderElement(document, "div", "");
-    region.append(renderOptionsType(document, chosen.typeStep));
-    region.append(renderOptionsSize(document, chosen.windowSizes));
-    region.append(renderOptionsStorage(document, options.storage));
-    return region;
-}
-
-/** The three steps side by side, each word written in the size it gives (ADR 0015). */
-function renderOptionsType(document: PanelDocument, current: TypeStep): PanelElement {
-    const question = renderOptionsQuestion(document, PANEL_WORDS.typeSize);
-    const steps = renderElement(document, "div", CLASS.optionsSteps);
-    for (const step of TYPE_STEPS) {
-        const marked = step === current ? ` ${CLASS.stripCurrent}` : "";
-        const className = `${CLASS.optionsStep} ${composeOptionsStepClass(step)}${marked}`;
-        const one = renderElement(document, "div", className);
-        one.textContent = getWordsForTypeStep(step);
-        one.setAttribute(PANEL_MARK.typeStep, step);
-        steps.append(one);
-    }
-    question.append(steps);
-    return question;
-}
-
 function renderOptionsQuestion(document: PanelDocument, said: string): PanelElement {
     const question = renderElement(document, "div", CLASS.optionsQuestion);
     const heading = renderElement(document, "div", CLASS.optionsHeading);
     heading.textContent = said;
     question.append(heading);
     return question;
-}
-
-/**
- * A line per window saying whether it keeps a size of the reader's, and a way back on the one that
- * does and on no other: a control that does nothing is worse than none (`DESIGN.md`).
- */
-function renderOptionsSize(document: PanelDocument, sizes: WindowSizes): PanelElement {
-    const question = renderOptionsQuestion(document, PANEL_WORDS.windowSize);
-    for (const window of PANEL_WINDOWS) {
-        const isSized = sizes[window] !== null;
-        const line = renderElement(document, "div", CLASS.optionsWindow);
-        const name = renderElement(document, "span", CLASS.optionsWindowName);
-        name.textContent = getWordsForWindow(window);
-        const own = isSized ? ` ${CLASS.optionsWindowOwn}` : "";
-        const state = renderElement(document, "span", `${CLASS.optionsWindowState}${own}`);
-        state.textContent = isSized ? PANEL_WORDS.sizeOwn : PANEL_WORDS.sizeDefault;
-        line.append(name);
-        line.append(state);
-        if (isSized) {
-            const reset = renderElement(document, "span", CLASS.optionsReset);
-            reset.textContent = PANEL_WORDS.sizeReset;
-            reset.setAttribute(PANEL_MARK.resetSize, window);
-            line.append(reset);
-        }
-        question.append(line);
-    }
-    const hint = renderElement(document, "div", CLASS.optionsMeaning);
-    hint.textContent = PANEL_WORDS.resizeHint;
-    question.append(hint);
-    return question;
-}
-
-/** A row per answer, in the order they keep longest, and under them what the one taken means. */
-function renderOptionsStorage(document: PanelDocument, current: StorageChoice): PanelElement {
-    const question = renderOptionsQuestion(document, PANEL_WORDS.storage);
-    for (const choice of STORAGE_CHOICES) {
-        const marked = choice === current ? ` ${CLASS.stripCurrent}` : "";
-        const one = renderElement(document, "div", `${CLASS.optionsAnswer}${marked}`);
-        one.textContent = getWordsForStorage(choice);
-        one.setAttribute(PANEL_MARK.storage, choice);
-        question.append(one);
-    }
-    const meaning = renderElement(document, "div", CLASS.optionsMeaning);
-    meaning.textContent = getWordsForStorageMeaning(current);
-    question.append(meaning);
-    return question;
-}
-
-function renderShownList(
-    document: PanelDocument,
-    shown: ShownScreen,
-    register: TipRegister,
-    translate: TranslateLabel | null,
-): PanelElement {
-    if (shown.isOnShelf) return renderShelf(document, shown, register);
-    if (shown.part !== null) {
-        return renderPart(document, shown, shown.part, register, translate);
-    }
-    if (shown.pair !== null) return renderPair(document, shown, shown.pair, register);
-    if (shown.halfNamedDrill !== null) {
-        return renderHalfNamedDrill(document, shown, shown.halfNamedDrill, register);
-    }
-    if (shown.halfNamed !== null) {
-        return renderHalfNamed(document, shown, shown.halfNamed, register, translate);
-    }
-    if (shown.drill !== null) {
-        return renderDrill(document, shown, shown.drill, register, translate);
-    }
-    return renderRanking(document, shown, register, translate);
-}
-
-/**
- * The size stands before the place and not after it, so the one cell that can be cut is the last
- * one: written the other way round, a long map name pushes the size off the end of the row.
- */
-function renderShelf(
-    document: PanelDocument,
-    shown: ShownScreen,
-    register: TipRegister,
-): PanelElement {
-    const list = renderList(document, ROWS_SHELF);
-    if (shown.shelf.length === 0) {
-        list.append(renderEmpty(document, PANEL_WORDS.shelfEmpty));
-        return list;
-    }
-    for (const fight of shown.shelf) list.append(renderShelfRow(document, fight, register));
-    return list;
 }
 
 function renderList(document: PanelDocument, visibleRows: number): PanelElement {
@@ -1682,106 +2298,12 @@ function renderEmpty(document: PanelDocument, words: string): PanelElement {
     return empty;
 }
 
-function renderShelfRow(
-    document: PanelDocument,
-    fight: ShelfRow,
-    register: TipRegister,
-): PanelElement {
-    const chosen = fight.isChosen ? ` ${CLASS.rowChosen}` : "";
-    const row = renderElement(document, "div", `${CLASS.row} ${CLASS.rowDrillable}${chosen}`);
-    if (fight.isPinnable) row.append(renderPin(document, fight));
-    const time = renderElement(document, "span", CLASS.rowTime);
-    time.textContent = getWordsForShelfTime(fight.at, fight.isLive);
-    const size = renderElement(document, "span", CLASS.rowSize);
-    size.textContent = formatShelfSize(fight.sizes);
-    const where = renderElement(document, "span", CLASS.rowName);
-    where.textContent = fight.place ?? "";
-    const outcome = renderElement(document, "span", CLASS.rowValue);
-    outcome.textContent = getWordsForShelfOutcome(fight.outcome, fight.isLive);
-    for (const part of [time, size, where, outcome]) row.append(part);
-    const parts = [row, time, size, where, outcome];
-    register.add(`shelf:${fight.openedAt}`, () => presentFightCard(fight.card));
-    setRowMarks(parts, TIP_ATTRIBUTE, `shelf:${fight.openedAt}`);
-    // A moment would have to be one no kept fight could carry, and there is no such moment.
-    setRowMarks(parts, PANEL_MARK.fight, fight.isLive ? LIVE_FIGHT_MARK : `${fight.openedAt}`);
-    return row;
-}
-
-function renderPin(document: PanelDocument, fight: ShelfRow): PanelElement {
-    const set = fight.isPinned ? ` ${CLASS.rowPinSet}` : "";
-    const pin = renderElement(document, "span", `${CLASS.rowPin}${set}`);
-    pin.textContent = fight.isPinned ? PIN_MARK : UNPINNED_MARK;
-    pin.setAttribute(TITLE_ATTRIBUTE, getWordsForPin(fight.isPinned));
-    // The moment and never the word a live row is pressed by: what a pin acts on is a fight the
-    // shelf holds, and the one going on now is on the shelf only while it is also kept.
-    pin.setAttribute(PANEL_MARK.pin, `${fight.openedAt}`);
-    return pin;
-}
-
 /**
  * A pointer lands on the deepest element under it, so every part of a row wears the row's marks —
  * the same reason the press attribute is written on the spans and not on the row alone.
  */
 function setRowMarks(parts: readonly PanelElement[], name: string, value: string): void {
     for (const part of parts) part.setAttribute(name, value);
-}
-
-/**
- * Whom one part of an opened figure reached. The heading is the direction's, so a level opened on
- * a screen about what reached the reader is headed by whom it came from.
- */
-function renderPart(
-    document: PanelDocument,
-    shown: ShownScreen,
-    part: PartReading,
-    register: TipRegister,
-    translate: TranslateLabel | null,
-): PanelElement {
-    const rows = part.byOpponent.rows.length + (part.byOpponent.unnamed === null ? 0 : 1);
-    const list = renderList(document, Math.max(rows + 1, shown.reading.visibleRows));
-    const figure = getWordsForMetric(shown.current);
-    const heading = getWordsForOpponentCut(shown.current);
-    list.append(renderSection(document, heading, part.total));
-    const share = PANEL_WORDS.shareOfFigure;
-    // Nothing on this rung opens, so no card here promises a gesture
-    // (`docs/drill-levels.md`).
-    const place: CardPlace = {
-        metric: shown.current,
-        translate,
-        isRowNarrower: true,
-        readerSide: shown.readerSide,
-    };
-    for (const [at, row] of part.byOpponent.rows.entries()) {
-        const tip = {
-            register,
-            key: `reached:${row.combatantId}`,
-            figure,
-            share,
-            compose: composePersonCard(row, place, false),
-        };
-        list.append(
-            renderRow(
-                document,
-                presentCombatantRow(row, at + 1, shown.current, composeCutPlace(shown)),
-                null,
-                tip,
-            ),
-        );
-    }
-    if (part.byOpponent.unnamed === null) return list;
-    // The end the protocol left out of a blow this part carried: it is inside the figure over the
-    // level, so the column comes to a hundred with it and falls short without it.
-    const end = getUnnamedEndForMetric(shown.current);
-    const tip = {
-        register,
-        key: "reached:nobody",
-        figure,
-        share,
-        notes: [getWordsForUnnamedEnd(end, getNounForMetric(shown.current))],
-    };
-    const reading = presentUnnamedRow(part.byOpponent.unnamed, getWordsForUnnamedRow(end));
-    list.append(renderRow(document, reading, null, tip));
-    return list;
 }
 
 function renderSection(
@@ -1836,7 +2358,17 @@ function renderRow(
     // none.
     const place = reading.rank === null ? ` ${CLASS.rowApart}` : "";
     const element = renderElement(document, "div", `${CLASS.row} ${kind}${place}`);
-    const parts = renderBars(document, reading);
+    const parts: PanelElement[] = [];
+    // Draw the bar as wide as the row's fill, and its cap, both in the row's colour.
+    {
+        const width = formatDecimal(Math.min(reading.fill, 1) * AS_PERCENT, FILL_PLACES);
+        const colour = formatColour(reading.colour);
+        const bar = renderElement(document, "div", CLASS.bar);
+        bar.setAttribute(STYLE_ATTRIBUTE, `width:${width}%;background:${colour}`);
+        const cap = renderElement(document, "div", CLASS.barCap);
+        cap.setAttribute(STYLE_ATTRIBUTE, `background:${colour}`);
+        parts.push(bar, cap);
+    }
     const rank = renderElement(document, "span", CLASS.rowRank);
     rank.textContent = reading.rank === null ? "" : `${formatFigure(reading.rank)}.`;
     parts.push(rank);
@@ -1881,15 +2413,6 @@ function renderRow(
     tip.register.add(tip.key, tip.compose ?? (() => presentRowTip(reading, tip, doesOpen)));
     setRowMarks(marked, TIP_ATTRIBUTE, tip.key);
     return element;
-}
-
-function renderBars(document: PanelDocument, reading: RowReading): PanelElement[] {
-    const width = formatDecimal(Math.min(reading.fill, 1) * AS_PERCENT, FILL_PLACES);
-    const bar = renderElement(document, "div", CLASS.bar);
-    bar.setAttribute(STYLE_ATTRIBUTE, `width:${width}%;background:${formatColour(reading.colour)}`);
-    const cap = renderElement(document, "div", CLASS.barCap);
-    cap.setAttribute(STYLE_ATTRIBUTE, `background:${formatColour(reading.colour)}`);
-    return [bar, cap];
 }
 
 /**
@@ -2015,52 +2538,11 @@ function presentUnnamedRow(row: UnnamedRow | PinnedRow, name: string): RowReadin
     };
 }
 
-function renderPair(
-    document: PanelDocument,
-    shown: ShownScreen,
-    pair: PairReading,
-    register: TipRegister,
-): PanelElement {
-    const list = renderList(document, getRowsForPair(pair, shown.reading.visibleRows));
-    const figure = getWordsForMetric(shown.current);
-    const share = PANEL_WORDS.shareOfFigure;
-    renderPairParts(document, list, pair, { metric: shown.current, register, figure, share });
-    renderPairKinds(document, list, pair, { register, figure, share });
-    return list;
-}
-
 function getRowsForPair(pair: PairReading, floor: number): number {
     const parts = pair.parts.length;
     const kinds = pair.byElement.rows.length;
     const needed = (parts === 0 ? 0 : parts + 1) + (kinds === 0 ? 0 : kinds + 1);
     return Math.max(needed, floor);
-}
-
-function renderPairParts(
-    document: PanelDocument,
-    list: PanelElement,
-    pair: PairReading,
-    stated: { metric: PanelMetric; register: TipRegister; figure: string; share: string },
-): void {
-    if (pair.parts.length === 0) return;
-    list.append(renderSection(document, PANEL_WORDS.skills, pair.total));
-    for (const [at, row] of pair.parts.entries()) {
-        const tip = {
-            ...stated,
-            key: getKeyForNamedPart(TIP_KEY_PLACE.pair, row.part),
-            caveat: getCaveatForNamedPart(row.part, stated.metric),
-        };
-        const reading = {
-            name: getWordsForNamedPart(row.part, stated.metric),
-            figure: row.figure,
-            fill: row.fill,
-            shareText: row.shareText,
-            colour: lookupColourForProfession(null),
-            profession: null,
-            rank: at + 1,
-        };
-        list.append(renderRow(document, reading, null, tip));
-    }
 }
 
 /**
@@ -2086,24 +2568,6 @@ function getCaveatForNamedPart(part: OpenedPart, metric: PanelMetric): Caveat | 
     return getCaveatForUnannounced(getNounForMetric(metric));
 }
 
-function renderPairKinds(
-    document: PanelDocument,
-    list: PanelElement,
-    pair: PairReading,
-    stated: { register: TipRegister; figure: string; share: string },
-): void {
-    const cut = pair.byElement;
-    if (cut.rows.length === 0) return;
-    list.append(renderSection(document, PANEL_WORDS.damageKind, pair.total));
-    for (const [at, row] of cut.rows.entries()) {
-        const part = { kind: OPENED_PART.element, element: row.element };
-        const tip = { ...stated, key: getKeyForNamedPart(TIP_KEY_PLACE.pairKinds, part) };
-        list.append(
-            renderRow(document, presentElementRow(row, PANEL_NOUN.damage, at + 1), null, tip),
-        );
-    }
-}
-
 function presentElementRow(row: ElementRow, noun: PanelNoun, rank: number): RowReading {
     return {
         name: noun === PANEL_NOUN.damage
@@ -2116,44 +2580,6 @@ function presentElementRow(row: ElementRow, noun: PanelNoun, rank: number): RowR
         profession: null,
         rank,
     };
-}
-
-/**
- * What stands under one row of that level: a person's own keys, or a key's own people. The two are
- * one fold read both ways round, so this is one function with one branch rather than two levels.
- *
- * Nothing here opens. It is the third level, and the panel goes no deeper.
- */
-function renderHalfNamedDrill(
-    document: PanelDocument,
-    shown: ShownScreen,
-    drill: HalfNamedDrillReading,
-    register: TipRegister,
-): PanelElement {
-    const figure = getWordsForMetric(shown.current);
-    if (drill.opened === HALF_NAMED_OPENED.element) {
-        const rows = drill.rows.length + (drill.neither === null ? 0 : 1);
-        const list = renderList(document, Math.max(rows + 1, shown.reading.visibleRows));
-        const heading = getWordsForHalfNamedCut(drill.end);
-        list.append(renderSection(document, heading, drill.total));
-        renderHalfNamedRows(document, list, shown, {
-            rows: drill.rows,
-            neither: drill.neither,
-            doesOpen: false,
-            register,
-            translate: null,
-        });
-        return list;
-    }
-    const kinds = getElementCutRows(drill.kinds);
-    const list = renderList(document, Math.max(kinds + 1, shown.reading.visibleRows));
-    renderElementSection(document, list, drill.kinds, {
-        metric: shown.current,
-        register,
-        figure,
-        total: drill.total,
-    });
-    return list;
 }
 
 /** The end the game did name, as the heading that names it: whom it reached, or who did it. */
@@ -2290,82 +2716,6 @@ function renderRestRow(
 }
 
 /**
- * What stands under a pinned row: **the end the game did name**, person by person, and never a
- * guess at the one it left out. Which end that is turns on the row rather than on the screen — a
- * figure with no actor was still taken by somebody, one with no target was still struck by
- * somebody — so `Otrzymane` heads its two rows differently. `develop ADR 0038`.
- *
- * Nothing on this level opens: a pair between somebody and nobody is not a pair.
- */
-function renderHalfNamed(
-    document: PanelDocument,
-    shown: ShownScreen,
-    halfNamed: HalfNamedReading,
-    register: TipRegister,
-    translate: TranslateLabel | null,
-): PanelElement {
-    const named = halfNamed.rows.length + (halfNamed.neither === null ? 0 : 1);
-    const kinds = getElementCutRows(halfNamed.kinds);
-    const needed = named + 1 + (kinds === 0 ? 0 : kinds + 1);
-    const list = renderList(document, Math.max(needed, shown.reading.visibleRows));
-    const heading = getWordsForHalfNamedCut(halfNamed.end);
-    list.append(renderSection(document, heading, halfNamed.total));
-    renderHalfNamedRows(document, list, shown, {
-        rows: halfNamed.rows,
-        neither: halfNamed.neither,
-        doesOpen: true,
-        register,
-        translate,
-    });
-    renderElementSection(document, list, halfNamed.kinds, {
-        metric: shown.current,
-        register,
-        figure: getWordsForMetric(shown.current),
-        total: halfNamed.total,
-    });
-    return list;
-}
-
-/**
- * Neither cut is opened any further, and a cut with nothing in it draws no heading: a blow the
- * protocol tied to nobody still states what it was dealt with, so the kinds can stand alone.
- */
-function renderDrill(
-    document: PanelDocument,
-    shown: ShownScreen,
-    drill: DrillReading,
-    register: TipRegister,
-    translate: TranslateLabel | null,
-): PanelElement {
-    const list = renderList(document, getRowsForDrill(drill, shown.reading.visibleRows));
-    const figure = getWordsForMetric(shown.current);
-    const place: CardPlace = {
-        metric: shown.current,
-        translate,
-        isRowNarrower: true,
-        readerSide: shown.readerSide,
-    };
-    renderOpponentSection(document, list, drill, {
-        metric: shown.current,
-        register,
-        figure,
-        place,
-        person: composeCutPlace(shown),
-    });
-    renderSkillSection(document, list, drill, { metric: shown.current, register, figure });
-    renderElementSection(document, list, drill.byElement, {
-        metric: shown.current,
-        register,
-        figure,
-        total: drill.total,
-    });
-    if (drill.total === 0) {
-        list.append(renderEmpty(document, getWordsForNothing(shown.current)));
-    }
-    return list;
-}
-
-/**
  * A breakdown reached from a list of eleven must not shorten the window under the hand that
  * pressed it, and one longer than eleven must not be cut off in the middle of a section — the
  * ceiling on the host is what stops either from reaching past the bottom of the screen.
@@ -2382,97 +2732,6 @@ function getRowsForDrill(drill: DrillReading, floor: number): number {
             (drill.bySkill.plain === null ? 0 : 1) + 1;
     }
     return Math.max(needed, floor);
-}
-
-/**
- * Drawn on the one screen the reading fills it for; on the others it is handed an empty cut,
- * and `src/ui/panel-reading.ts` says which screen that is and why.
- */
-function renderOpponentSection(
-    document: PanelDocument,
-    list: PanelElement,
-    drill: DrillReading,
-    stated: {
-        metric: PanelMetric;
-        register: TipRegister;
-        figure: string;
-        place: CardPlace;
-        person: PersonPlace;
-    },
-): void {
-    const cut = drill.byOpponent;
-    if (cut.rows.length === 0 && cut.unnamed === null) return;
-    const heading = getWordsForOpponentCut(stated.metric);
-    list.append(renderSection(document, heading, drill.total));
-    const share = PANEL_WORDS.shareOfFigure;
-    for (const [at, row] of cut.rows.entries()) {
-        const tip = {
-            register: stated.register,
-            key: `to:${row.combatantId}`,
-            ...{
-                figure: stated.figure,
-                share,
-                compose: composePersonCard(row, stated.place, row.doesOpenPair),
-            },
-        };
-        const mark = row.doesOpenPair
-            ? { attribute: PANEL_MARK.row, stated: `${row.combatantId}` }
-            : null;
-        list.append(
-            renderRow(
-                document,
-                presentCombatantRow(row, at + 1, stated.metric, stated.person),
-                mark,
-                tip,
-            ),
-        );
-    }
-    if (cut.unnamed === null) return;
-    const end = getUnnamedEndForMetric(stated.metric);
-    const tip = {
-        register: stated.register,
-        key: "to:nobody",
-        figure: stated.figure,
-        share,
-        // What the game did not say, and only that: where this figure stands is answered by the
-        // heading over it — it is a cut of the one person's figure the level is about.
-        notes: [getWordsForUnnamedEnd(end, getNounForMetric(stated.metric))],
-    };
-    const reading = presentUnnamedRow(cut.unnamed, getWordsForUnnamedRow(end));
-    const mark = cut.unnamed.doesOpenPair ? { attribute: PANEL_MARK.unnamed, stated: end } : null;
-    list.append(renderRow(document, reading, mark, tip));
-}
-
-function renderSkillSection(
-    document: PanelDocument,
-    list: PanelElement,
-    drill: DrillReading,
-    stated: { metric: PanelMetric; register: TipRegister; figure: string },
-): void {
-    const cut = drill.bySkill;
-    if (cut.rows.length === 0 && cut.plain === null) return;
-    list.append(renderSection(document, PANEL_WORDS.skills, drill.total));
-    const share = PANEL_WORDS.shareOfFigure;
-    let drawn = 0;
-    for (const row of cut.rows) {
-        drawn = renderSkillSectionPlain(document, list, cut.plain, stated, drawn, false);
-        drawn += 1;
-        const tip = {
-            register: stated.register,
-            key: getKeyForNamedPart(TIP_KEY_PLACE.skill, row.part),
-            figure: stated.figure,
-            share,
-        };
-        const reading = presentSkillRow(row, stated.metric, drawn);
-        const mark = getMarkForNamedPart(row.part, row.doesOpenPart);
-        list.append(renderRow(document, reading, mark, tip));
-    }
-    renderSkillSectionPlain(document, list, cut.plain, stated, drawn, true);
-    renderRestRow(document, list, cut.rest, {
-        register: stated.register,
-        figure: stated.figure,
-        key: "skill:rest",
-    });
 }
 
 /**
@@ -2528,80 +2787,6 @@ function presentSkillRow(row: SkillRow, metric: PanelMetric, rank: number): RowR
     };
 }
 
-function renderRanking(
-    document: PanelDocument,
-    shown: ShownScreen,
-    register: TipRegister,
-    translate: TranslateLabel | null,
-): PanelElement {
-    const reading = shown.reading;
-    const metric = shown.current;
-    const place = { readerSide: shown.readerSide, turnHolderId: shown.turnHolderId };
-    const list = renderList(document, reading.visibleRows);
-    if (reading.rows.length === 0) {
-        list.append(renderEmpty(document, PANEL_WORDS.nothingYet));
-        return list;
-    }
-    const figure = getWordsForMetric(metric);
-    for (const [at, row] of reading.rows.entries()) {
-        const reader = presentCombatantRow(row, at + 1, metric, place);
-        const tip = {
-            register,
-            key: `row:${row.combatantId}`,
-            figure,
-            share: PANEL_WORDS.share,
-            compose: composePersonCard(
-                row,
-                {
-                    metric,
-                    translate,
-                    isRowNarrower: false,
-                    readerSide: shown.readerSide,
-                },
-                true,
-            ),
-        };
-        list.append(renderRow(document, reader, {
-            attribute: PANEL_MARK.row,
-            stated: `${row.combatantId}`,
-        }, tip));
-    }
-    return list;
-}
-
-/**
- * A pinned row keeps a place of its own whether or not there is one to draw, so a failure takes
- * one row rather than both — and nothing standing below them moves when one arrives.
- */
-function renderPinnedRegions(
-    document: PanelDocument,
-    regions: PanelRegions,
-    shown: ShownScreen,
-    register: TipRegister,
-    renderInPlace: PanelRedraw,
-): void {
-    const stated = {
-        metric: shown.current,
-        isSideChosen: shown.side !== SIDE_CHOICE.everyone,
-        figure: getWordsForMetric(shown.current),
-    };
-    const isOpen = isLevelOpen(shown);
-    const pinned = !isOpen && !shown.isOnShelf ? shown.reading.pinned : [];
-    const ends = [
-        [UNNAMED_END.actor, "pinnedActor"],
-        [UNNAMED_END.target, "pinnedTarget"],
-    ] as const;
-    for (const [end, standing] of ends) {
-        const row = pinned.find((one) => one.end === end) ?? null;
-        regions[standing] = renderInPlace(
-            regions[standing],
-            PANEL_REGION.pinned,
-            () =>
-                row === null ? renderSlot(document) : renderPinned(document, row, register, stated),
-        );
-    }
-}
-
 /**
  * Whether a level stands over the screen's own list. Three fields and not five: a pair and a part
  * are reached through an opened row, so neither stands without `drill`. Asked in two places, and
@@ -2612,27 +2797,6 @@ function isLevelOpen(shown: ShownScreen): boolean {
     if (shown.drill !== null) return true;
     if (shown.halfNamed !== null) return true;
     return shown.halfNamedDrill !== null;
-}
-
-function renderPinned(
-    document: PanelDocument,
-    row: PinnedRow,
-    register: TipRegister,
-    stated: { metric: PanelMetric; isSideChosen: boolean; figure: string },
-): PanelElement {
-    const block = renderElement(document, "div", CLASS.pinned);
-    const tip = {
-        register,
-        key: `pinned:${row.end}`,
-        figure: stated.figure,
-        share: PANEL_WORDS.share,
-        notes: formatPinnedNotes(row, stated.metric, stated.isSideChosen),
-        cut: presentPinnedCutParts(row, stated.metric),
-    };
-    const reading = presentUnnamedRow(row, getWordsForUnnamedRow(row.end));
-    const mark = { attribute: PANEL_MARK.unnamed, stated: row.end };
-    block.append(renderRow(document, reading, mark, tip));
-    return block;
 }
 
 /**
@@ -2681,105 +2845,6 @@ function presentPinnedCutParts(row: PinnedRow, metric: PanelMetric): RowTipCut {
     return { heading: getWordsForKindCut(metric), parts };
 }
 
-/** What stands under the list: past the ranking, the sides, the warnings and the defects. */
-function renderPanelBodyFoot(
-    document: PanelDocument,
-    regions: PanelRegions,
-    shown: ShownScreen,
-    register: TipRegister,
-    renderInPlace: PanelRedraw,
-): void {
-    regions.outside = renderInPlace(
-        regions.outside,
-        PANEL_REGION.outside,
-        () => shown.isOnShelf ? renderSlot(document) : renderOutside(document, shown, register),
-    );
-    // Whether there is a summary to draw is asked **inside** the guard, not before it: a reading
-    // that throws on being asked cost the whole panel where the question stood outside.
-    regions.sides = renderInPlace(regions.sides, PANEL_REGION.sides, () => {
-        const hasSides = shown.reading.sides !== null && !shown.isOnShelf;
-        if (!hasSides) return renderSlot(document);
-        return renderSides(document, shown);
-    });
-    regions.suspicions = renderInPlace(
-        regions.suspicions,
-        PANEL_REGION.suspicions,
-        () =>
-            renderSuspicions(
-                document,
-                shown.isOnShelf ? shown.shelfAnswers : shown.reading.suspicions,
-            ),
-    );
-    // Last, and drawn on every screen: what the panel could not do is not about the fight, so it
-    // does not go away when the reader switches to another one — `DESIGN.md`.
-    regions.defects = renderInPlace(
-        regions.defects,
-        PANEL_REGION.defects,
-        () => renderDefects(document, shown.defects),
-    );
-}
-
-/**
- * The section under the list: what the screen's own count holds and no row of it does.
- *
- * **It is not the suspicions in another shape.** A suspicion says a figure may be short and never
- * by how much, because nothing states one; this states a figure, because two counts of the same
- * screen came out different by exactly that much. The two stand under one heading so a reader has
- * one place for what the panel could not put anywhere, and they are different claims inside it.
- */
-function renderOutside(
-    document: PanelDocument,
-    shown: ShownScreen,
-    register: TipRegister,
-): PanelElement {
-    const outside = shown.reading.outsideRanking;
-    if (outside === null) return renderSlot(document);
-    const block = renderElement(document, "div", CLASS.outside);
-    block.append(renderSection(document, PANEL_WORDS.outsideRanking, outside.figure));
-    const reading = {
-        name: PANEL_WORDS.outsideRow,
-        figure: outside.figure,
-        fill: outside.fill,
-        shareText: outside.shareText,
-        colour: lookupColourForProfession(null),
-        profession: null,
-        // No place, so the hatch: its figure is what reached no row rather than what anybody did
-        // — `DESIGN.md`, and `develop ADR 0079`'s test for which kind of row takes one.
-        rank: null,
-    };
-    const tip = {
-        register,
-        key: "outside",
-        figure: getWordsForMetric(shown.current),
-        share: PANEL_WORDS.share,
-        notes: [PANEL_WORDS.outsideNote],
-    };
-    block.append(renderRow(document, reading, null, tip));
-    return block;
-}
-
-function renderSides(document: PanelDocument, shown: ShownScreen): PanelElement {
-    const sides = shown.reading.sides;
-    // Two sides nothing can tell apart are not two figures, and a strip of them says nothing:
-    // `renderPanelBody` asks the same question, and this answers it rather than trusting it.
-    if (sides === null) return renderSlot(document);
-    const block = renderElement(document, "div", CLASS.sides);
-    const line = renderElement(document, "div", CLASS.sidesLine);
-    const reader = renderElement(document, "span", `${CLASS.sidesOurs} ${CLASS.figure}`);
-    reader.textContent = formatFigure(sides.reader);
-    const label = renderElement(document, "span", CLASS.sidesLabel);
-    label.textContent = formatSidesLabel(shown);
-    const opposing = renderElement(document, "span", `${CLASS.sidesTheirs} ${CLASS.figure}`);
-    opposing.textContent = formatFigure(sides.opposing);
-    line.append(reader);
-    line.append(label);
-    line.append(opposing);
-    block.append(line);
-    renderSidesTrack(document, block, sides);
-    if (sides.nobody > 0) block.append(renderSidesSpare(document, sides.nobody));
-    return block;
-}
-
 /**
  * The strip totals the whole fight whatever the list under it is showing, so the label says so
  * wherever the two differ — a narrowed side, or any level standing over the list.
@@ -2790,53 +2855,6 @@ function formatSidesLabel(shown: ShownScreen): string {
         if (!isLevelOpen(shown)) return sides;
     }
     return `${PANEL_WORDS.wholeFight} · ${sides}`;
-}
-
-function renderSidesTrack(
-    document: PanelDocument,
-    block: PanelElement,
-    sides: PanelSides,
-): void {
-    const whole = sides.reader + sides.opposing + sides.nobody;
-    if (whole <= 0) return;
-    const track = renderElement(document, "div", CLASS.sidesTrack);
-    const parts: Array<[number, string]> = [
-        [sides.reader / whole, CLASS.sidesOurs],
-        [sides.opposing / whole, CLASS.sidesTheirs],
-        [sides.nobody / whole, CLASS.sidesNobody],
-    ];
-    for (const [share, className] of parts) {
-        const part = renderSidesPart(document, share, className);
-        if (part !== null) track.append(part);
-    }
-    block.append(track);
-}
-
-function renderSidesPart(
-    document: PanelDocument,
-    share: number,
-    className: string,
-): PanelElement | null {
-    if (share <= 0) return null;
-    const part = renderElement(document, "span", className);
-    const width = formatDecimal(Math.min(share, 1) * AS_PERCENT, FILL_PLACES);
-    part.setAttribute(STYLE_ATTRIBUTE, `width:${width}%`);
-    return part;
-}
-
-function renderSidesSpare(document: PanelDocument, figure: number): PanelElement {
-    const spare = renderElement(
-        document,
-        "div",
-        `${CLASS.sidesLine} ${CLASS.sidesSpare} ${CLASS.sidesNobody}`,
-    );
-    const label = renderElement(document, "span", CLASS.sidesLabel);
-    label.textContent = PANEL_WORDS.withoutSide;
-    const stated = renderElement(document, "span", CLASS.figure);
-    stated.textContent = formatFigure(figure);
-    spare.append(label);
-    spare.append(stated);
-    return spare;
 }
 
 function renderSuspicions(document: PanelDocument, suspicions: readonly string[]): PanelElement {
@@ -2867,174 +2885,6 @@ function renderPanelSettled(held: PanelDrawing): void {
     renderStep(held.report, PANEL_REGION.list, () => held.drawing.settle());
     held.getDrag()?.onDrawn();
     renderStep(held.report, PANEL_REGION.tip, () => held.tip.renderOpen());
-}
-
-/**
- * A panel with no fight to draw. A defect can arrive before one does — a reading that would not
- * compose leaves the panel waiting — so what could not be done is drawn here too.
- */
-function renderPanelWaiting(
-    document: PanelDocument,
-    regions: PanelRegions,
-    waiting: WaitingReading,
-    renderInPlace: PanelRedraw,
-    drawing: ListDrawing,
-    register: TipRegister,
-): void {
-    renderPanelFolded(document, regions, renderInPlace);
-    if (waiting.isCollapsed) return;
-    if (waiting.options !== null) {
-        renderPanelOptions(
-            document,
-            { regions, renderInPlace, drawing, register },
-            waiting.options,
-            { typeStep: waiting.typeStep, windowSizes: waiting.windowSizes },
-        );
-    } else drawing.renderListRegion(WAITING_LIST_NAME, () => renderWaitingList(document, waiting));
-    regions.defects = renderInPlace(
-        regions.defects,
-        PANEL_REGION.defects,
-        () => renderDefects(document, waiting.defects),
-    );
-}
-
-function renderWaitingList(document: PanelDocument, waiting: WaitingReading): PanelElement {
-    const list = renderList(document, ROWS_WAITING);
-    list.className = `${CLASS.list} ${CLASS.listWaiting}`;
-    const kept = waiting.keptUnread;
-    if (kept !== null) {
-        list.append(renderEmpty(document, PANEL_WORDS.keptUnread));
-        const when = formatKeptUnread(kept.at, kept.place);
-        if (when.length > 0) list.append(renderEmpty(document, when));
-        return list;
-    }
-    const said = waiting.isFightUnread ? PANEL_WORDS.fightUnread : PANEL_WORDS.noFightYet;
-    list.append(renderEmpty(document, said));
-    return list;
-}
-
-function renderStandingWindowInPlace(
-    held: PanelDrawing,
-    reading: StandingReading | StandingAbsence,
-    isCollapsed: boolean,
-): void {
-    const { document, renderInPlace } = held;
-    // The mark on the frame and the body rendered empty, both — as the panel's fold does. The
-    // frame is what stays across a draw, so it is what can say the window is away.
-    renderStep(held.report, PANEL_REGION.standing, () => {
-        held.standingWindow.className = isCollapsed
-            ? `${CLASS.standing} ${CLASS.standingFolded}`
-            : CLASS.standing;
-    });
-    held.setStandingBar(
-        renderInPlace(
-            held.getStandingBar(),
-            PANEL_REGION.standing,
-            () => renderStandingBar(document, isCollapsed),
-        ),
-    );
-    // ⚠️ The two windows keep two registers because they are drawn at two moments: this one goes
-    // up first and the panel's own draw resets the panel's register under it, which took every
-    // card this window had registered with it (`develop ADR 0086`).
-    held.standingRegister.reset();
-    held.setStandingBody(
-        renderStandingBodyInPlace(
-            document,
-            held.getStandingBody(),
-            reading,
-            isCollapsed,
-            renderInPlace,
-            held.standingRegister,
-        ),
-    );
-    held.standingDrag?.onDrawn();
-}
-
-/**
- * Folded, the body is rendered empty rather than rendered and hidden — a fight redraws every few
- * seconds, and what is not drawn costs nothing to draw.
- */
-function renderStandingBodyInPlace(
-    document: PanelDocument,
-    standing: PanelElement,
-    reading: StandingReading | StandingAbsence,
-    isCollapsed: boolean,
-    renderInPlace: PanelRedraw,
-    register: TipRegister,
-): PanelElement {
-    const region = PANEL_REGION.standing;
-    if (isCollapsed) return renderInPlace(standing, region, () => renderSlot(document));
-    if (typeof reading === "string") {
-        return renderInPlace(standing, region, () => renderStandingAbsence(document, reading));
-    }
-    return renderInPlace(standing, region, () => renderStandingBody(document, reading, register));
-}
-
-function renderStandingAbsence(document: PanelDocument, absence: StandingAbsence): PanelElement {
-    const body = renderElement(document, "div", CLASS.standingBody);
-    body.append(renderEmpty(document, getWordsForStandingAbsence(absence)));
-    return body;
-}
-
-/**
- * What the window says about the **fight**: whose turn it is, what is being made ready, and who is
- * holding whom. What is true of one fighter is said on that fighter, in the game's own tooltip
- * (`develop ADR 0108`), so nothing here is drawn per combatant.
- */
-function renderStandingBody(
-    document: PanelDocument,
-    reading: StandingReading,
-    register: TipRegister,
-): PanelElement {
-    const body = renderElement(document, "div", CLASS.standingBody);
-    for (const element of renderStandingNow(document, reading, register)) body.append(element);
-    for (const element of renderChargedSkills(document, reading, register)) {
-        body.append(element);
-    }
-    if (reading.chargedSkills.length === 0) {
-        if (reading.provoked.length === 0) {
-            const empty = renderElement(document, "div", CLASS.empty);
-            empty.textContent = STANDING_WORDS.nothingHappens;
-            body.append(empty);
-            return body;
-        }
-    }
-    for (const element of renderProvoked(document, reading, register)) {
-        body.append(element);
-    }
-    return body;
-}
-
-/** Whose turn the game numbers, or the sentence naming why it numbers none — `develop ADR 0072`. */
-function renderStandingNow(
-    document: PanelDocument,
-    reading: StandingReading,
-    register: TipRegister,
-): PanelElement[] {
-    const said = reading.turnOrdinal === null ? "" : formatTurnOrdinal(reading.turnOrdinal);
-    const section = renderElement(document, "div", CLASS.section);
-    const words = renderElement(document, "span", CLASS.sectionWords);
-    words.textContent = STANDING_WORDS.now;
-    const figure = renderElement(document, "span", CLASS.figure);
-    figure.textContent = said;
-    section.append(words);
-    section.append(figure);
-    const holder = reading.holder;
-    if (holder === null) {
-        const empty = renderElement(document, "div", CLASS.empty);
-        empty.textContent = getWordsForTurnState(reading.turnState);
-        return [section, empty];
-    }
-    const row = renderStandingPerson(document, register, STANDING_NOW_TIP_KEY, {
-        name: holder.name,
-        skillName: null,
-        colour: holder.colour,
-        sidePart: holder.sidePart,
-        turns: null,
-        turnsCaveat: null,
-        isUnder: false,
-    });
-    return [section, row];
 }
 
 /**
@@ -3118,85 +2968,6 @@ function presentStandingPersonTip(person: StandingPerson): TipReading {
 }
 
 /**
- * The band itself: a heading whose right-hand side says what became of the charge, and one row
- * per charge. Drawn only where there is one — a fight where nothing is being made ready looks
- * exactly as it did before this band existed.
- */
-function renderChargedSkills(
-    document: PanelDocument,
-    reading: StandingReading,
-    register: TipRegister,
-): PanelElement[] {
-    if (reading.chargedSkills.length === 0) return [];
-    const first = reading.chargedSkills[0];
-    const section = renderElement(document, "div", CLASS.section);
-    const words = renderElement(document, "span", CLASS.sectionWords);
-    words.textContent = STANDING_WORDS.chargedSkill;
-    const state = renderElement(document, "span", CLASS.figure);
-    state.textContent = first === undefined ? "" : getWordsForChargedSkill(first.state);
-    section.append(words);
-    section.append(state);
-    const drawn: PanelElement[] = [section];
-    for (const charged of reading.chargedSkills) {
-        drawn.push(renderChargedSkillRow(document, register, charged));
-    }
-    return drawn;
-}
-
-/**
- * One charge, as a row. It opens nothing, so it wears the leaf's cursor and carries the card that
- * hands back what its name cell cut — every row in this window does since `develop ADR 0100`.
- */
-function renderChargedSkillRow(
-    document: PanelDocument,
-    register: TipRegister,
-    charged: StandingChargedSkill,
-): PanelElement {
-    const row = renderElement(document, "div", `${CLASS.row} ${CLASS.rowLeaf}`);
-    const cap = renderElement(document, "div", CLASS.barCap);
-    cap.setAttribute(STYLE_ATTRIBUTE, `background:${formatColour(charged.colour)}`);
-    const name = renderElement(document, "span", CLASS.rowName);
-    name.textContent = charged.skillName;
-    const value = renderElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
-    value.textContent = formatCounter(charged.turnsElapsed, charged.turnsStated);
-    const pips = renderChargedSkillPips(document, charged);
-    row.append(cap);
-    row.append(name);
-    row.append(pips.element);
-    row.append(value);
-    const parts = [cap, name, ...pips.parts, value];
-    for (const rule of renderSideRules(document, charged.sidePart)) {
-        row.append(rule);
-        parts.push(rule);
-    }
-    const key = `${STANDING_CHARGE_TIP_PREFIX}${formatWhole(charged.combatantId)}`;
-    register.add(key, () => presentChargedSkillTip(charged));
-    setRowMarks([row, ...parts], TIP_ATTRIBUTE, key);
-    return row;
-}
-
-/**
- * One dot per turn of the charge, lit up to what has passed. The game's own bar is cut the same
- * way and nothing else in this panel is round, so the shape says this and only this.
- */
-function renderChargedSkillPips(
-    document: PanelDocument,
-    charged: StandingChargedSkill,
-): ChargedSkillPips {
-    const element = renderElement(document, "div", CLASS.standingPips);
-    element.setAttribute(STYLE_ATTRIBUTE, `color:${formatColour(charged.colour)}`);
-    const stated = Math.min(Math.max(charged.turnsStated, 0), CHARGED_PIPS_MAXIMUM);
-    const parts: PanelElement[] = [element];
-    for (let turn = 0; turn < stated; turn += 1) {
-        const lit = turn < charged.turnsElapsed ? ` ${CLASS.standingPipLit}` : "";
-        const pip = renderElement(document, "div", `${CLASS.standingPip}${lit}`);
-        element.append(pip);
-        parts.push(pip);
-    }
-    return { element, parts };
-}
-
-/**
  * What a charge's row had to cut, handed back whole: the blow's name, whoever is making it ready
  * — which the row says in a hue and nowhere in words — and what became of it at either end. The
  * turns are the client's own pair, under the word a cast's card already states its own under.
@@ -3215,66 +2986,4 @@ function presentChargedSkillTip(charged: StandingChargedSkill): TipReading {
         subtitle: formatChargedSkillSubtitle(charged.name, charged.state),
         groups: [{ lines: [stated] }],
     };
-}
-
-/**
- * One row per person, at both levels: whoever is holding, and under them whom. The turns stand on
- * the rows under it, because a shout runs on the turns of whoever it holds. `develop ADR 0103`.
- */
-function renderProvoked(
-    document: PanelDocument,
-    reading: StandingReading,
-    register: TipRegister,
-): PanelElement[] {
-    if (reading.provoked.length === 0) return [];
-    // The characters held, and never the casts holding them: `develop ADR 0062`'s heading counts
-    // people.
-    let counted = 0;
-    for (const one of reading.provoked) counted += one.provoked.length;
-    const drawn: PanelElement[] = [
-        renderSection(document, STANDING_WORDS.provocation, counted),
-    ];
-    for (const provocation of reading.provoked) {
-        // The fold's own key, so a card is filed under the cast rather than under the person: one
-        // caster shouting both okrzyki stands twice (`develop ADR 0097`).
-        const cast = `${formatWhole(provocation.casterId)}/${formatWhole(provocation.skillId)}`;
-        drawn.push(renderStandingPerson(
-            document,
-            register,
-            `${STANDING_HOLDING_TIP_PREFIX}${cast}`,
-            {
-                name: provocation.casterName,
-                skillName: provocation.skillName,
-                colour: provocation.casterColour,
-                sidePart: provocation.casterSidePart,
-                // No length here: one cast holding two characters is two counts on two clocks,
-                // so the figure sits on the row of whoever is carrying it (`develop ADR 0103`).
-                turns: null,
-                turnsCaveat: null,
-                isUnder: false,
-            },
-        ));
-        for (const held of provocation.provoked) {
-            // The cast as well as whoever it holds, although `core/aura-standing.ts` keys a
-            // provocation by that character and so hands each one over once. A key that leans on
-            // somebody else's keying fails silently the day it moves: the register refuses the
-            // second of two rows without a word, and that row then wears its neighbour's card.
-            const key = `${STANDING_HELD_TIP_PREFIX}${cast}/${formatWhole(held.provokedId)}`;
-            drawn.push(renderStandingPerson(document, register, key, {
-                name: held.name,
-                // Named on the card and never on the row: the row above draws it already, and what
-                // this row does state is a length of this character's own (`develop ADR 0103`).
-                skillName: provocation.skillName,
-                colour: held.colour,
-                sidePart: held.sidePart,
-                turns: formatCounter(
-                    held.turnsStated - held.turnsElapsed,
-                    held.turnsStated,
-                ),
-                turnsCaveat: null,
-                isUnder: true,
-            }));
-        }
-    }
-    return drawn;
 }

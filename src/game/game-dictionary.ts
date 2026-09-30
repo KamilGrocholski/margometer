@@ -32,7 +32,16 @@ export function initPageDictionary(page: unknown): DictionaryPort {
         readLabel(labelId, category) {
             assert(labelId.length > 0, "an id asked of the client is one the panel named");
             if (category !== undefined) assert(category.length > 0, "and filed somewhere");
-            const entry = errors.attempt(() => readPageDictionaryEntry(page, labelId, category));
+            // Read the entry: null where no lookup stands on the page, which is every page but the
+            // game's, or no text came.
+            const entry = errors.attempt((): string | null => {
+                if (!isRecord(page)) return null;
+                const translate = page[TRANSLATE_FIELD];
+                if (typeof translate !== "function") return null;
+                const read: unknown = Reflect.apply(translate, page, [labelId, null, category]);
+                if (typeof read !== "string") return null;
+                return read;
+            });
             if (entry instanceof Error) return entry;
             if (entry === null) return new PageReadingAbsent(PAGE_READING.label);
             // An answer past the bound is no label, and the answer is the game's: refused, never
@@ -45,16 +54,6 @@ export function initPageDictionary(page: unknown): DictionaryPort {
             return label;
         },
     };
-}
-
-/** Null where no lookup stands on the page, which is every page but the game's, or no text came. */
-function readPageDictionaryEntry(page: unknown, labelId: string, category?: string): string | null {
-    if (!isRecord(page)) return null;
-    const translate = page[TRANSLATE_FIELD];
-    if (typeof translate !== "function") return null;
-    const entry: unknown = Reflect.apply(translate, page, [labelId, null, category]);
-    if (typeof entry !== "string") return null;
-    return entry;
 }
 
 /** Exported because it is the only place the rule can be checked: the dictionary is not here. */

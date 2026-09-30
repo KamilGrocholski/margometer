@@ -109,10 +109,18 @@ C14 wants a type to say it, and P4 hands state down as a parameter, which says i
 - `tests/repository/purity.test.ts` holds P1, P3 and P4, and reads the purity of each verb off N2's
   table. The tree it met was mended in the commit that brought it: a `compose…` that initialised the
   runtime's ports or drew the panel, a `get…` that added what it did not find, a weak `add…` handing
-  a failure on through a verb of none. S4 and P2 are held by reading until their guards run.
-- S4 moves some two hundred functions into their callers. `src/core/fight-statistics.ts` takes its
-  `add…` helpers into `tallyFightStatistics`, and `src/ui/panel-element.ts` its `render…` pieces
-  into the functions that call them. A strong helper stays where C1 puts it.
+  a failure on through a verb of none. P2 is held by reading until its guard runs.
+- `tests/repository/called-once.test.ts` holds S4: a function its module mentions once, as the
+  callee of that one call, not exported and not strong. A call from the module's top, a constant's
+  initializer or a tool's `import.meta.main`, is no function's, and is outside it. Nor is an `async`
+  function a synchronous caller starts: `readFileEvents` in `tools/preview-server.ts` drains a
+  watcher its caller cannot await, and written in place it would be a function called where it is
+  defined, the same function without its name.
+- S4 moved 187 functions into their callers: 7 with the purity guard and 180 its own guard found at
+  its first run, on 2026-10-01. The top-level functions of `libs/`, `src/` and `tools/` went from
+  1271 to 1085. `src/core/fight-statistics.ts` took its `add…` helpers into `tallyFightStatistics`,
+  some 600 lines, and `src/ui/panel-element.ts` its `render…` pieces into `initPanelView`, some
+  1270. A strong helper stays where C1 puts it.
 - S5 counts per function, so every function S4 removes raises the density, and an assertion of a
   helper's precondition that its caller already guarantees becomes one A12 deletes.
 - Open, and the maintainer's: whether a guard for P2 reads direct callers or reachability from the

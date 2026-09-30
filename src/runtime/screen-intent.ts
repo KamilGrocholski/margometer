@@ -7,97 +7,172 @@
 import { assert } from "@std/assert/assert";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
 import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
-import type { PanelUnnamedEnd } from "#/src/ui/panel-reading.ts";
 import type { ScreenState } from "#/src/ui/panel-screen.ts";
 
 export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): boolean {
-    const hasMoved = executeScreenIntentOnce(screen, intent);
+    let hasMoved: boolean;
+    // Move the screen by the intent, one step.
+    {
+        switch (intent.kind) {
+            case PANEL_INTENT.metric:
+                // Keep the person, on every screen, and close what names one direction or noun.
+                {
+                    const metric = intent.metric;
+                    screen.current = metric;
+                    screen.isOnShelf = false;
+                    screen.isOnOptions = false;
+                    screen.openPairId = null;
+                    screen.openPart = null;
+                    screen.openUnnamedEnd = null;
+                    hasMoved = true;
+                }
+                break;
+            case PANEL_INTENT.side:
+                // Close everything opened, since a side decides who is on the list.
+                {
+                    const side = intent.side;
+                    screen.side = side;
+                    screen.isOnShelf = false;
+                    screen.isOnOptions = false;
+                    screen.openRowId = null;
+                    screen.openUnnamedEnd = null;
+                    screen.openPairId = null;
+                    screen.openPart = null;
+                    hasMoved = true;
+                }
+                break;
+            case PANEL_INTENT.openRow:
+                // Open the row, or under an opened one the rung under it: never a toggle.
+                {
+                    const combatantId = intent.combatantId;
+                    assert(
+                        Number.isSafeInteger(combatantId),
+                        "a row is opened by the game's own id",
+                    );
+                    // An opened row covers the screen it was opened on, so a press inside it is a
+                    // pair, or that person's share of what nobody was named for under a pinned row.
+                    if (screen.openRowId !== null) screen.openPairId = combatantId;
+                    else if (screen.openUnnamedEnd !== null) screen.openPairId = combatantId;
+                    else screen.openRowId = combatantId;
+                    hasMoved = true;
+                }
+                break;
+            case PANEL_INTENT.openUnnamed:
+                // Open the end left out: the rung under an opened person, or the pinned row.
+                {
+                    const end = intent.end;
+                    assert(
+                        screen.openPairId === null,
+                        "an end left out is pressed from the level over it",
+                    );
+                    assert(screen.openPart === null, "and never from a part's level");
+                    screen.openUnnamedEnd = end;
+                    hasMoved = true;
+                }
+                break;
+            case PANEL_INTENT.openPart:
+                screen.openPart = intent.part;
+                hasMoved = true;
+                break;
+            // One rung at a time. False where there was none to leave: the gesture is the whole
+            // panel's, so a press on the ranking would otherwise redraw it for nothing.
+            case PANEL_INTENT.close:
+                if (screen.isOnOptions) {
+                    screen.isOnOptions = false;
+                    hasMoved = true;
+                    break;
+                }
+                if (screen.isOnShelf) {
+                    screen.isOnShelf = false;
+                    hasMoved = true;
+                    break;
+                }
+                if (screen.openPart !== null) {
+                    screen.openPart = null;
+                    hasMoved = true;
+                    break;
+                }
+                if (screen.openPairId !== null) {
+                    screen.openPairId = null;
+                    hasMoved = true;
+                    break;
+                }
+                // The end a person left out is the rung under their figure, so it closes before
+                // they do.
+                if (screen.openRowId !== null) {
+                    if (screen.openUnnamedEnd !== null) screen.openUnnamedEnd = null;
+                    else screen.openRowId = null;
+                    hasMoved = true;
+                    break;
+                }
+                if (screen.openUnnamedEnd === null) {
+                    hasMoved = false;
+                    break;
+                }
+                screen.openUnnamedEnd = null;
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.fold:
+                if (intent.window === PANEL_WINDOW.panel) screen.isCollapsed = !screen.isCollapsed;
+                else screen.isStandingCollapsed = !screen.isStandingCollapsed;
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.shelf:
+                screen.isOnShelf = !screen.isOnShelf;
+                screen.isOnOptions = false;
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.options:
+                screen.isOnOptions = !screen.isOnOptions;
+                screen.isOnShelf = false;
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.showKept:
+                setScreenFight(screen, intent.openedAt);
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.showLive:
+                setScreenFight(screen, null);
+                hasMoved = true;
+                break;
+            // A save moves nothing, and asks for a frame all the same: the defect it can leave is
+            // said on the panel, and the shelf between fights has no payload coming to draw it.
+            case PANEL_INTENT.saveFile:
+                hasMoved = true;
+                break;
+            // The same size asked for again moves nothing, and a frame for it would redraw nothing.
+            case PANEL_INTENT.typeStep:
+                if (screen.typeStep === intent.step) {
+                    hasMoved = false;
+                    break;
+                }
+                screen.typeStep = intent.step;
+                hasMoved = true;
+                break;
+            // Kept for the frames to come, and no frame now unless the options stand open: the
+            // window already stands that size, and the options are the one place that says which is
+            // sized.
+            case PANEL_INTENT.resize:
+                screen.windowSizes = { ...screen.windowSizes, [intent.window]: intent.size };
+                hasMoved = screen.isOnOptions;
+                break;
+            case PANEL_INTENT.resetSize:
+                if (screen.windowSizes[intent.window] === null) {
+                    hasMoved = false;
+                    break;
+                }
+                screen.windowSizes = { ...screen.windowSizes, [intent.window]: null };
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.move:
+            case PANEL_INTENT.storage:
+            case PANEL_INTENT.pin:
+                hasMoved = false;
+                break;
+        }
+    }
     verifyScreenState(screen);
     return hasMoved;
-}
-
-function executeScreenIntentOnce(screen: ScreenState, intent: PanelIntent): boolean {
-    switch (intent.kind) {
-        case PANEL_INTENT.metric:
-            return setScreenMetric(screen, intent.metric);
-        case PANEL_INTENT.side:
-            return setScreenSide(screen, intent.side);
-        case PANEL_INTENT.openRow:
-            return setScreenRow(screen, intent.combatantId);
-        case PANEL_INTENT.openUnnamed:
-            return setScreenUnnamed(screen, intent.end);
-        case PANEL_INTENT.openPart:
-            screen.openPart = intent.part;
-            return true;
-        // One rung at a time. False where there was none to leave: the gesture is the whole panel's,
-        // so a press on the ranking would otherwise redraw it for nothing.
-        case PANEL_INTENT.close:
-            if (screen.isOnOptions) {
-                screen.isOnOptions = false;
-                return true;
-            }
-            if (screen.isOnShelf) {
-                screen.isOnShelf = false;
-                return true;
-            }
-            if (screen.openPart !== null) {
-                screen.openPart = null;
-                return true;
-            }
-            if (screen.openPairId !== null) {
-                screen.openPairId = null;
-                return true;
-            }
-            // The end a person left out is the rung under their figure, so it closes before they do.
-            if (screen.openRowId !== null) {
-                if (screen.openUnnamedEnd !== null) screen.openUnnamedEnd = null;
-                else screen.openRowId = null;
-                return true;
-            }
-            if (screen.openUnnamedEnd === null) return false;
-            screen.openUnnamedEnd = null;
-            return true;
-        case PANEL_INTENT.fold:
-            if (intent.window === PANEL_WINDOW.panel) screen.isCollapsed = !screen.isCollapsed;
-            else screen.isStandingCollapsed = !screen.isStandingCollapsed;
-            return true;
-        case PANEL_INTENT.shelf:
-            screen.isOnShelf = !screen.isOnShelf;
-            screen.isOnOptions = false;
-            return true;
-        case PANEL_INTENT.options:
-            screen.isOnOptions = !screen.isOnOptions;
-            screen.isOnShelf = false;
-            return true;
-        case PANEL_INTENT.showKept:
-            setScreenFight(screen, intent.openedAt);
-            return true;
-        case PANEL_INTENT.showLive:
-            setScreenFight(screen, null);
-            return true;
-        // A save moves nothing, and asks for a frame all the same: the defect it can leave is said
-        // on the panel, and the shelf between fights has no payload coming to draw it.
-        case PANEL_INTENT.saveFile:
-            return true;
-        // The same size asked for again moves nothing, and a frame for it would redraw nothing.
-        case PANEL_INTENT.typeStep:
-            if (screen.typeStep === intent.step) return false;
-            screen.typeStep = intent.step;
-            return true;
-        // Kept for the frames to come, and no frame now unless the options stand open: the window
-        // already stands that size, and the options are the one place that says which is sized.
-        case PANEL_INTENT.resize:
-            screen.windowSizes = { ...screen.windowSizes, [intent.window]: intent.size };
-            return screen.isOnOptions;
-        case PANEL_INTENT.resetSize:
-            if (screen.windowSizes[intent.window] === null) return false;
-            screen.windowSizes = { ...screen.windowSizes, [intent.window]: null };
-            return true;
-        case PANEL_INTENT.move:
-        case PANEL_INTENT.storage:
-        case PANEL_INTENT.pin:
-            return false;
-    }
 }
 
 /**
@@ -110,56 +185,6 @@ function verifyScreenState(screen: ScreenState): void {
     if (screen.openUnnamedEnd === null) return;
     assert(screen.openPairId === null, "a person's end left out is not a pair with somebody");
     assert(screen.openPart === null, "and no part of their figure is open under it");
-}
-
-/**
- * The person stays, since they exist on every screen; the pair, the part and a pinned row go, since
- * each names a figure of one direction or one noun that the next screen does not draw.
- */
-function setScreenMetric(screen: ScreenState, metric: ScreenState["current"]): boolean {
-    screen.current = metric;
-    screen.isOnShelf = false;
-    screen.isOnOptions = false;
-    screen.openPairId = null;
-    screen.openPart = null;
-    screen.openUnnamedEnd = null;
-    return true;
-}
-
-/** A side decides who is on the list, so whatever was opened before may not be on it any more. */
-function setScreenSide(screen: ScreenState, side: ScreenState["side"]): boolean {
-    screen.side = side;
-    screen.isOnShelf = false;
-    screen.isOnOptions = false;
-    screen.openRowId = null;
-    screen.openUnnamedEnd = null;
-    screen.openPairId = null;
-    screen.openPart = null;
-    return true;
-}
-
-/**
- * Not a toggle: an opened row covers the screen it was opened on, so a press inside it is the rung
- * under it — the pair of the two of them inside somebody's figure, and that person's share of what
- * nobody was named for under a pinned row.
- */
-function setScreenRow(screen: ScreenState, combatantId: number): boolean {
-    assert(Number.isSafeInteger(combatantId), "a row is opened by the game's own id");
-    if (screen.openRowId !== null) screen.openPairId = combatantId;
-    else if (screen.openUnnamedEnd !== null) screen.openPairId = combatantId;
-    else screen.openRowId = combatantId;
-    return true;
-}
-
-/**
- * Under an opened person it is the rung under their figure, as a pair is; on the ranking it is the
- * pinned row. Either way it is pressed from a level with no pair and no part open under it.
- */
-function setScreenUnnamed(screen: ScreenState, end: PanelUnnamedEnd): boolean {
-    assert(screen.openPairId === null, "an end left out is pressed from the level over it");
-    assert(screen.openPart === null, "and never from a part's level");
-    screen.openUnnamedEnd = end;
-    return true;
 }
 
 function setScreenFight(screen: ScreenState, openedAt: number | null): void {

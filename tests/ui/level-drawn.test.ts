@@ -357,9 +357,9 @@ function getPlacesWrongfullyHeld(seen: RegionDrawn, closing: string): string[] {
  * A section whose numbers do not run. ⚠️ **A number is a claim about position, so the two have to
  * be read together**: a row carrying `1.` drawn under a row carrying `5.` is a bar at the bottom
  * of a column saying it is the top of it, which is the one thing a list of bars says without
- * being read (`src/ui/panel-reading.ts`, `renderPairParts`). Numbering and ordering come from
- * two layers here — the reading says which place, the sheet says where — and this is the only
- * thing that asks whether they agree. `develop ADR 0079`.
+ * being read (`src/ui/panel-reading.ts`, and the pair's parts in `renderScreen`). Numbering and
+ * ordering come from two layers here — the reading says which place, the sheet says where — and
+ * this is the only thing that asks whether they agree. `develop ADR 0079`.
  */
 function getPlacesOutOfOrder(seen: RegionDrawn): string[] {
     const found: string[] = [];
@@ -677,7 +677,7 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
  * pair is handed `at + 1`, so the numbers run whatever the list holds and
  * `getPlacesOutOfOrder` sees nothing wrong — what is wrong is the list. Appending the closing row
  * after the sort put the largest bar of the column at the bottom of it with a number on it, which
- * is the defect `renderPairParts`' own comment warns about and did not hold. `develop ADR 0079`.
+ * is the defect the section's numbering warns about and did not hold. `develop ADR 0079`.
  */
 Deno.test("a pair states its parts largest first, the closing row among them", () => {
     let closing = 0;
