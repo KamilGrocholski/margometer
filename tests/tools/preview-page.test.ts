@@ -181,6 +181,20 @@ Deno.test("the second half of the driver is the caller's, and so is the sentence
     assertStringIncludes(dressed, "what this is", "and the sentence stands over the page");
 });
 
+Deno.test("the page's own script keeps its names off the page the bundle stands on", () => {
+    const page = composePreviewPage({
+        ...composeOptions(CALLS),
+        appendedScript: "var setStandingBeside = function () {};",
+    });
+    const opened = page.indexOf("(function runPreview() {");
+    assert(opened > page.indexOf('<script id="preview-settings"'), "the driver opens a scope");
+    assert(opened < page.indexOf("var PREVIEW ="), "before the first name it declares");
+    assert(
+        page.indexOf("var setStandingBeside") < page.indexOf("})();\n</script>", opened),
+        "and closes it after the last one the caller appended",
+    );
+});
+
 Deno.test("the band over the page is the caller's, and a served page carries none", () => {
     const bare = composePreviewPage(composeOptions(CALLS));
     assert(!bare.includes(PREVIEW_INSTALL_OPENING), "who started the server has the file");

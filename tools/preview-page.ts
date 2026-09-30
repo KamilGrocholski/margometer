@@ -162,10 +162,21 @@ export function composePreviewPage(options: PreviewPageOptions): string {
         afterDriver: `${composePreviewBody(options)}
 <script id="preview-settings" type="application/json">${settings}</script>
 <script>
-${script}
+${composeOwnScope(script)}
 </script>
 `,
     });
+}
+
+/**
+ * ⚠️ The bundle is a plain script here, where a manager would have wrapped it, so each of its
+ * top-level functions is a global of the page, and a page `var` of the same name replaces it. On
+ * 2026-09-30 the page's `setStandingBeside` stood in for the panel's: a size of type pressed made
+ * the panel drag its own window with a pointer no browser holds, and state a gesture defect.
+ */
+function composeOwnScope(script: string): string {
+    assert(script.length > 0, "a page has a driver to keep to itself");
+    return `(function runPreview() {\n${script}\n})();`;
 }
 
 /** Somebody else's material, on its way into a tag it must not be able to close. */
