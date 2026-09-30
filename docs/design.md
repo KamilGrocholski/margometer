@@ -44,6 +44,7 @@ each is the `AGENTS.md` rule named beside it.
 | T6 | Explicit control flow.                    | A failure comes back beside the value, with no box and no `map`/`andThen`. Every call site writes `if (value instanceof Error)`, or asks for the class it expects. S1.                                                     |
 | T7 | Absent in the protocol is not a failure.  | `T \| null` in a domain type means "the protocol did not state it", which is a fact. A failure class means "reading failed". E6.                                                                                           |
 | T8 | Batch where the cost is.                  | A payload and a click only mark the panel stale. One scheduled frame computes and draws once, however many changes arrived. There is no queue, because there is nothing to hold in one.                                    |
+| T9 | State changes where they are seen.        | A step that changes state is read in its caller, in the order it runs, and what is pulled out into a function of its own is pure: Carmack's inlining, with D's strengths of purity. `AGENTS.md` S4, P1–P4.                 |
 
 ## 3. Foundation: `libs/`
 

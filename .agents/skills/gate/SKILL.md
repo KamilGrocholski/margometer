@@ -44,7 +44,6 @@ satisfied; the guard is never what gets changed to pass (_Ask first_).
 | `documents.test.ts`, `a rule named in bold…`            | a rule named in bold that `AGENTS.md` does not state              |
 | `cited-paths.test.ts`, `every path this tree is cited…` | a backticked path that moved or never was: fix the citation       |
 | `comment-share.test.ts`                                 | **C4**, **C16**: cut the comment, never pad the code to dilute it |
-| `function-length.test.ts`                               | **S4**: split by what it does, not at the seventieth line         |
 | `declaration-order.test.ts`                             | **C1**: types, constants, then functions, the entry first         |
 | `broad-catches.test.ts`                                 | **E4**: route the call through `attempt` at its boundary          |
 | `control-flow.test.ts`                                  | **S1**: a function reaching itself, or a body written on one line |

@@ -68,6 +68,10 @@ were left (**G3**).
 - [ ] Every collection that grows with input has a maximum, and something reads it (**S11**).
 - [ ] Compound conditions split, invariants stated positively (**S12**).
 - [ ] Every `if` that does not leave has its `else`, or its negative space is empty (**S14**).
+- [ ] A function keeps the purity its verb states: a strong one changes nothing it is handed, and a
+      strong or weak one calls nothing of none (**P1**, **P3**).
+- [ ] A function called from one place, whose verb is not strong, is a block in its caller under a
+      one-line heading (**S4**); a state change stands in its event's entry (**P2**).
 
 ### Assertions
 
@@ -89,8 +93,8 @@ were left (**G3**).
 
 ### Comments and documents
 
-- [ ] Each comment carries a measurement, a constraint, a rejected alternative or a trap (**C2**),
-      and says what is true now (**C3**).
+- [ ] Each comment carries a measurement, a constraint, a rejected alternative, a trap or a step's
+      heading (**C2**), and says what is true now (**C3**).
 - [ ] A docblock says what the file is for (**C4**); description lives there and nowhere else
       (**C14**).
 - [ ] Nothing a canonical document owns is restated (**C15**).

@@ -79,7 +79,12 @@ this language does not have would be**; each states what binds instead.
   continuing.
 - **S3.** The cost of one payload is **measured** over the recordings, never assumed, and a change
   to the decode path that raises it is a finding.
-- **S4.** No function is longer than 70 lines, which is one printed page.
+- **S4. A function called from one place is written in its caller, unless its verb is strong.**
+  Length ends no function, and strength is **P1**'s. The body is a braced block there, headed by a
+  one-line comment naming the step, and the block scopes what the step declares (**S6**). A function
+  handed on as a value — a listener, a callback — is not called, and stays one. Observation: in
+  `libs/`, `src/` or `tools/`, a function no other module imports, whose verb is not strong, called
+  from exactly one function and never handed on. ADR 0018.
 - **S5.** Assertion density averages at least two per **function that takes something and may
   assert**, across `libs/`, `src/core/`, `src/game/`, `src/runtime/` and `tools/`, counting the
   closures a file writes inside its functions as the functions they are. A function handed nothing
@@ -113,6 +118,30 @@ this language does not have would be**; each states what binds instead.
   are one `if` and its `else`. An `if` stands alone only where its negative space is empty — nothing
   happens there, and nothing holds there but the negation of its own condition. ADR 0006.
   _(`by-reading` whether the negative space had something to say)_
+
+## Purity
+
+What a function may touch, across `libs/`, `src/` and `tools/`. ADR 0018, after Carmack.
+
+- **P1. A function's verb states its purity, and the function keeps it.** **N2**'s table gives each
+  verb one: a **strong** function reads only its parameters and module constants, changes none of
+  them and returns a value; a **weak** one changes only what it is handed; a verb of **none**, or
+  one outside the table, may reach anything; `read` is **either**, because **N16** names where a
+  value comes from, not what reaching it touches. A strong or weak function calls only strong, weak
+  and `read` functions. Observation: a strong or weak function calling one of none, or a strong one
+  assigning into a parameter or calling a method that changes one — `push`, `set`, `delete`,
+  `splice`, `sort`, and every other that changes a collection in place.
+- **P2. Each event changes state at one point.** The payload, the gesture and the frame of
+  `docs/design.md` §10 each read top-down as the sequence of the changes they make; anywhere else
+  that wants one sets a flag (`markStale`), and the entry makes it. Observation: a `render…` called
+  by a function that is neither a `render…` nor the frame's entry, or a `commit…` called by anything
+  but the payload's.
+- **P3. A strong function takes readings.** A collection it is handed is typed `readonly T[]`,
+  `ReadonlyMap` or `ReadonlySet`, and a record `Readonly<…>` or with `readonly` fields. Observation:
+  a parameter of a strong function annotated `T[]`, `Map<` or `Set<`.
+- **P4. A module holds no state of its own.** State lives in the object an `init` builds (**I2**),
+  and a function reaches it as a parameter. Observation: a top-level `let` or `var`, or a top-level
+  collection something changes.
 
 ## Assertions
 
@@ -235,40 +264,41 @@ TypeScript idiom, with the naming rules stated here.
 - **N2. A function name starts with the action it performs**, and each verb means one kind of work.
   Most come from TigerBeetle, whose functions name their work rather than reaching for one verb.
 
-  | Action              | Means                                                                       |
-  | ------------------- | --------------------------------------------------------------------------- |
-  | `init`              | Creates an object that holds state; its parameters are `…Options`           |
-  | `deinit`            | Gives back what an object holds outside itself: a wrap, a frame, a listener |
-  | `open`              | Loads durable state into memory at start                                    |
-  | `on`                | Reacts to input from outside; the callback name                             |
-  | `prepare`           | Reads and computes a transition, touching nothing                           |
-  | `commit`            | Writes a prepared transition; cannot fail                                   |
-  | `execute`           | Performs one operation on state                                             |
-  | `verify`            | Asserts the invariants of a whole structure                                 |
-  | `get`               | Accesses what this program holds, immediately                               |
-  | `set`               | Assigns from one value to another                                           |
-  | `lookup`            | Finds something that may not be there                                       |
-  | `read`              | Takes a value from **outside** this program — **N16**                       |
-  | `write`             | Puts a value outside this program — **N16**                                 |
-  | `parse`             | Text → structure                                                            |
-  | `decode`            | Structure → **meaning**                                                     |
-  | `encode`            | Meaning → structure or text for somebody else to read                       |
-  | `tally`             | Sums figures                                                                |
-  | `index`             | Builds a map to look things up in                                           |
-  | `replay`            | Walks events from the start to what stands now                              |
-  | `present`           | Turns figures into what a screen shows                                      |
-  | `render`            | Builds or updates DOM                                                       |
-  | `format`            | Writes a value as text a person reads                                       |
-  | `add` / `remove`    | Puts something into somewhere / takes it out                                |
-  | `create` / `delete` | Brings something into existence / erases it                                 |
-  | `reset`             | Restores to the initial state                                               |
-  | `require`           | A value narrowed to a type, or throws — `tools/` only (**E1**)              |
-  | `expect`            | Fails a test unless something holds — a test's action and nobody else's     |
-  | `attempt`           | Calls what may throw, answering its value or a `Caught` (**E4**)            |
-  | `compose`           | A new value made of several, where no verb above fits                       |
+  | Action              | Means                                                                       | Purity (**P1**) |
+  | ------------------- | --------------------------------------------------------------------------- | --------------- |
+  | `init`              | Creates an object that holds state; its parameters are `…Options`           | none            |
+  | `deinit`            | Gives back what an object holds outside itself: a wrap, a frame, a listener | none            |
+  | `open`              | Loads durable state into memory at start                                    | none            |
+  | `on`                | Reacts to input from outside; the callback name                             | none            |
+  | `prepare`           | Reads and computes a transition, touching nothing                           | strong          |
+  | `commit`            | Writes a prepared transition; cannot fail                                   | none            |
+  | `execute`           | Performs one operation on state                                             | none            |
+  | `verify`            | Asserts the invariants of a whole structure                                 | strong          |
+  | `get`               | Accesses what this program holds, immediately                               | strong          |
+  | `set`               | Assigns from one value to another                                           | weak            |
+  | `lookup`            | Finds something that may not be there                                       | strong          |
+  | `read`              | Takes a value from **outside** this program — **N16**                       | either          |
+  | `write`             | Puts a value outside this program — **N16**                                 | none            |
+  | `parse`             | Text → structure                                                            | strong          |
+  | `decode`            | Structure → **meaning**                                                     | strong          |
+  | `encode`            | Meaning → structure or text for somebody else to read                       | strong          |
+  | `tally`             | Sums figures                                                                | strong          |
+  | `index`             | Builds a map to look things up in                                           | strong          |
+  | `replay`            | Walks events from the start to what stands now                              | strong          |
+  | `present`           | Turns figures into what a screen shows                                      | strong          |
+  | `render`            | Builds or updates DOM                                                       | none            |
+  | `format`            | Writes a value as text a person reads                                       | strong          |
+  | `add` / `remove`    | Puts something into somewhere / takes it out                                | weak            |
+  | `create` / `delete` | Brings something into existence / erases it                                 | strong / none   |
+  | `reset`             | Restores to the initial state                                               | weak            |
+  | `require`           | A value narrowed to a type, or throws — `tools/` only (**E1**)              | strong          |
+  | `expect`            | Fails a test unless something holds — a test's action and nobody else's     | strong          |
+  | `attempt`           | Calls what may throw, answering its value or a `Caught` (**E4**)            | none            |
+  | `compose`           | A new value made of several, where no verb above fits                       | strong          |
 
   `compose` is the residue, not the default. Other verbs are allowed where they are more precise,
-  but never a **synonym** for one in the table.
+  but never a **synonym** for one in the table, and one outside it is of none. A predicate that
+  **N8**'s prefixes open is strong.
 - **N3.** Units and qualifiers go **last**, sorted by descending significance: `damageRawTotal`,
   `latencyMillisecondsMaximum`, and a shouted constant the same way: `ROWS_MAXIMUM`, never
   `MAXIMUM_ROWS`. A bound is a qualifier like any other, and TigerBeetle spells it last everywhere
@@ -278,8 +308,7 @@ TypeScript idiom, with the naming rules stated here.
   word is an abbreviation or the game's own spelling)_
 - **N5.** Related names get the same length where they can, so they line up: `source` and `target`,
   not `src` and `dest`. _(`by-reading` whether two related names line up)_
-- **N6.** A helper called by one function is prefixed with that function's name; a callback goes
-  last in the parameter list.
+- **N6.** A callback goes last in the parameter list.
 - **N7.** Names follow A/HC/LC — `prefix? + action + high context + low context?`.
 - **N8.** Booleans carry a prefix, in the tense that fits: `is`, `was`, `will` for a state, `has`
   for what is held, `does` for what a thing can do, `should` for a condition with an action behind
@@ -335,16 +364,17 @@ TypeScript idiom, with the naming rules stated here.
   it and before the next exported one, so a helper is read after its caller and inside its caller's
   run; in a test file each case opens a run as an export does. ADR 0003. _(`by-reading` which export
   is the entry)_
-- **C2. A comment earns its place by carrying one of four things, and nothing else:** a measurement,
+- **C2. A comment earns its place by carrying one of five things, and nothing else:** a measurement,
   with the material and date it was taken on; a constraint somebody else's system imposes; a
-  rejected alternative and why it lost; a trap that will otherwise be fallen into twice.
-  _(`by-reading` whether a comment carries a measurement, a constraint, an alternative or a trap)_
+  rejected alternative and why it lost; a trap that will otherwise be fallen into twice; the heading
+  of a block **S4** wrote into its caller, one line naming the step. _(`by-reading` whether a
+  comment carries a measurement, a constraint, an alternative, a trap or a step)_
 - **C3.** A comment states what is true of the code **now**. Never how it came to be this way.
   _(`by-reading` whether a sentence describes the code now or how it got here)_
 - **C4.** A file's docblock says what the file is for, in **at most eight lines of prose**. The
   lines showing how a tool is run do not count.
-- **C5.** Comment share of a file stays under 25%, counting the comment lines that carry a word.
-  `develop ADR 0016`, `0075`.
+- **C5.** Comment share of a file stays under 25%, counting the comment lines that carry a word and
+  not a block's heading (**S4**). `develop ADR 0016`, `0075`, ADR 0018.
 - **C6.** Comments are sentences — a space after the slashes, a capital letter, a full stop, or a
   colon when they introduce what follows. An end-of-line comment may be a phrase.
 - **C7. No regular expressions**, in either spelling. Text is read by walking it. A new exception is
@@ -369,7 +399,8 @@ TypeScript idiom, with the naming rules stated here.
   `develop ADR 0016`.
 - **C15.** A comment never restates what a canonical document owns; it **cites** it. **And never
   twice in this tree.** `develop ADR 0016`.
-- **C16.** Comment share of a directory under `src/` or `tools/` stays under 22%.
+- **C16.** Comment share of a directory under `src/` or `tools/`, counted as **C5** counts it, stays
+  under 22%.
 - **C17. The standard library is asked before a function is written.** Where its edge case differs
   from the one needed, keep your own and **name the difference where the code stands**. A new
   package is a dependency, and **Ask first** governs it. `develop ADR 0040`.
@@ -483,7 +514,6 @@ that has stopped finding its subject; only the second catches one that finds too
 | -------------------------------------------------- | ------------------------------------------------------ |
 | `deno check`, strict, with unused names an error   | S7                                                     |
 | `tests/repository/declaration-order.test.ts`       | C1                                                     |
-| `tests/repository/function-length.test.ts`         | S4                                                     |
 | `tests/repository/regular-expressions.test.ts`     | C7                                                     |
 | `tests/repository/import-paths.test.ts`            | C8                                                     |
 | `tests/repository/non-null-assertions.test.ts`     | C12                                                    |

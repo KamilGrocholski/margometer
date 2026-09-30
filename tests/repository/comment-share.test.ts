@@ -1,7 +1,8 @@
 /**
  * C4 and C16: a file's docblock runs to eight lines of prose at most, and no directory of the
  * program or its tools is past its share of comment. A comment line counts where it carries a
- * word: a docblock's marks and the blank line between its paragraphs are punctuation.
+ * word: a docblock's marks and the blank line between its paragraphs are punctuation, and the
+ * heading P2 writes over a block stands where a function's name stood.
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
@@ -23,6 +24,8 @@ const DIRECTORY_SHARE_PERCENT_MAXIMUM = 22;
 const DIRECTORY_ROOTS = ["src/", "tools/"];
 const DOCBLOCK_OPENER = "/**";
 const COMMENT_MARGIN = "*";
+const LINE_COMMENT_OPENER = "//";
+const BLOCK_OPENER = "{";
 /** How a docblock sets a command apart from its prose, as Markdown reads an indented block. */
 const LISTING_INDENT = "    ";
 
@@ -107,10 +110,45 @@ function readCommentShare(file: SourceFile): CommentShare {
         }
     }
     const lines = file.text.split("\n");
+    const headings = countBlockHeadings(lines);
+    assert(headings <= worded, "a heading is a worded comment line");
     const held = lines[lines.length - 1] === "" ? lines.length - 1 : lines.length;
     assert(worded <= held, "a comment line is a line of the file");
-    return { worded, held };
+    return { worded: worded - headings, held };
 }
+
+/** A line comment carrying a word, on the line above a block that opens alone. */
+function countBlockHeadings(lines: readonly string[]): number {
+    let counted = 0;
+    for (let index = 1; index < lines.length; index += 1) {
+        if (lines[index]?.trim() !== BLOCK_OPENER) continue;
+        const above = (lines[index - 1] ?? "").trim();
+        if (!above.startsWith(LINE_COMMENT_OPENER)) continue;
+        if (hasWord(above.slice(LINE_COMMENT_OPENER.length))) counted += 1;
+    }
+    return counted;
+}
+
+Deno.test("a block's heading is not counted, and a comment above any other opening is", () => {
+    const sample = composeSample([
+        "export function run(): void {",
+        "    // Read the envelope.",
+        "    {",
+        "        const one = 1;",
+        "    }",
+        "    // Two lines,",
+        "    // of which the last heads the block.",
+        "    {",
+        "        const two = 2;",
+        "    }",
+        "    // An opening that is not a block.",
+        "    if (Math.random() > 0) {",
+        "        const three = 3;",
+        "    }",
+        "}",
+    ]);
+    assertEquals(readCommentShare(sample), { worded: 2, held: 15 }, "the first heading and the if");
+});
 
 Deno.test("no directory of the program or its tools is past its share of comment", () => {
     const shares = new Map<string, CommentShare>();
