@@ -1,7 +1,7 @@
 {
     // The last version released. A release commit moves it with `CHANGELOG.md`'s section, and
     // a build handed none marks it `-dev` (`docs/releasing.md`).
-    "version": "0.20.0",
+    "version": "0.21.0",
     "tasks": {
         // The gate. One command, so there is no version of "I ran the tests but not the lint".
         // `-A`: the guards ask git what it tracks and what `develop` held, by a subprocess.

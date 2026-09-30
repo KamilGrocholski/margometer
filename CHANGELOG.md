@@ -37,7 +37,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.21.0] — 2026-09-30
 
 - **Nowość** — Panel i Pomocnika można powiększyć, ciągnąc za prawy dolny róg; rozmiar zostaje po
   odświeżeniu strony, a w opcjach pod ⚙ można go przywrócić.
