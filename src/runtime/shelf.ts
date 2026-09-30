@@ -332,7 +332,7 @@ export function pinFight(
     return writeShelf(store, shelf, next);
 }
 
-export function removeKeptFight(
+export function deleteKeptFight(
     store: KeyValueStore,
     shelf: ShelfContents,
     openedAt: number,

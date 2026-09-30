@@ -21,7 +21,7 @@ import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     type CombatantFigures,
     countUnreadMessages,
-    initCombatantFigures,
+    createCombatantFigures,
     tallyFightStatistics,
 } from "#/src/core/fight-statistics.ts";
 import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
@@ -2905,9 +2905,9 @@ Deno.test("a section past its own bound sums what is left, and never calls it un
  * it hands out so the test states no shape of its own.
  */
 function composeStatisticsWithSkills(receiverId: number, names: number): FightStatistics {
-    const receiver = initCombatantFigures();
+    const receiver = createCombatantFigures();
     receiver.damageTaken = names;
-    const giver = initCombatantFigures();
+    const giver = createCombatantFigures();
     giver.damageDealt = names;
     for (let at = 0; at < names; at += 1) {
         giver.skills.set(`Cios ${at}`, {
@@ -2920,7 +2920,7 @@ function composeStatisticsWithSkills(receiverId: number, names: number): FightSt
             restoredByOpponent: new Map(),
         });
     }
-    const totals = initCombatantFigures();
+    const totals = createCombatantFigures();
     totals.damageTaken = names;
     totals.damageDealt = names;
     return {
@@ -3077,7 +3077,7 @@ Deno.test("no recording leaves anything outside the ranking, on any screen or se
  */
 Deno.test("a pair whose parts outrun its figure closes at nought, and says so", () => {
     const statistics = tallyFightStatistics([], new Map());
-    const figures = initCombatantFigures();
+    const figures = createCombatantFigures();
     figures.skills.set("Cios", {
         name: "Cios",
         uses: 1,
@@ -3193,9 +3193,9 @@ Deno.test("a cast past the bound costs the smallest figures, and never the list"
     const statistics = tallyFightStatistics([], new Map());
     const byCombatantId = new Map<number, CombatantFigures>();
     for (const one of combatants) {
-        byCombatantId.set(one.id, { ...initCombatantFigures(), damageDealt: 100 + one.id });
+        byCombatantId.set(one.id, { ...createCombatantFigures(), damageDealt: 100 + one.id });
     }
-    byCombatantId.set(ONE_TOO_MANY, { ...initCombatantFigures(), damageDealt: 1 });
+    byCombatantId.set(ONE_TOO_MANY, { ...createCombatantFigures(), damageDealt: 1 });
     const reading = presentScreen(
         { ...statistics, byCombatantId },
         roster,

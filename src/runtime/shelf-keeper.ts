@@ -93,31 +93,31 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
         getFights: () => state.fights,
         getChoice: () => state.choice,
         getAnswers: () => ({ ...state.answers }),
-        lookupReading: (fight) => lookupKeptReading(state, fight),
+        // A refusal is held as well: the shelf is walked on every frame, and a fight that will not
+        // replay would otherwise be replayed, and marked, once per frame.
+        lookupReading: (fight) => {
+            const held = state.readings.get(fight.openedAt);
+            if (held !== undefined) return held;
+            const { tables, sessionOptions, defects } = state.options;
+            const ran = errors.attempt(() => replayKeptFight(fight, tables, sessionOptions));
+            let reading: KeptReading | null = null;
+            if (ran instanceof Error) {
+                defects.add({ kind: DEFECT_KIND.kept, region: null, failure: ran });
+            } else reading = ran;
+            if (reading !== null) {
+                const read = reading.messagesByPayload.length;
+                assert(
+                    read === fight.payloads.length,
+                    "a kept fight is replayed payload by payload",
+                );
+            }
+            if (state.readings.size < KEPT_MAXIMUM) state.readings.set(fight.openedAt, reading);
+            return reading;
+        },
         keep: (fight) => keepShelfFight(state, fight),
         pin: (openedAt) => pinShelfFight(state, openedAt),
         choose: (choice) => chooseShelfStore(state, choice),
     };
-}
-
-/**
- * A refusal is held as well: the shelf is walked on every frame, and a fight that will not replay
- * would otherwise be replayed, and marked, once per frame.
- */
-function lookupKeptReading(state: KeeperState, fight: KeptFight): KeptReading | null {
-    const held = state.readings.get(fight.openedAt);
-    if (held !== undefined) return held;
-    const { tables, sessionOptions, defects } = state.options;
-    const ran = errors.attempt(() => replayKeptFight(fight, tables, sessionOptions));
-    let reading: KeptReading | null = null;
-    if (ran instanceof Error) defects.add({ kind: DEFECT_KIND.kept, region: null, failure: ran });
-    else reading = ran;
-    if (reading !== null) {
-        const read = reading.messagesByPayload.length;
-        assert(read === fight.payloads.length, "a kept fight is replayed payload by payload");
-    }
-    if (state.readings.size < KEPT_MAXIMUM) state.readings.set(fight.openedAt, reading);
-    return reading;
 }
 
 function keepShelfFight(state: KeeperState, fight: KeptFight): void {
@@ -147,10 +147,10 @@ function setShelfWritten(state: KeeperState, contents: ShelfContents, offered: n
     state.answers.hasStoreRefused = false;
     state.answers.hasStoreMadeRoom = contents.fights.length < offered;
     state.fights = contents.fights;
-    keepShelfReadings(state);
+    removeUnshelvedReadings(state);
 }
 
-function keepShelfReadings(state: KeeperState): void {
+function removeUnshelvedReadings(state: KeeperState): void {
     for (const openedAt of [...state.readings.keys()]) {
         if (state.fights.some((one) => one.openedAt === openedAt)) continue;
         state.readings.delete(openedAt);
@@ -163,7 +163,7 @@ function setShelfRefused(state: KeeperState, asked: readonly KeptFight[]): void 
     state.answers.hasStoreRefused = true;
     state.answers.hasStoreMadeRoom = false;
     state.fights = asked;
-    keepShelfReadings(state);
+    removeUnshelvedReadings(state);
 }
 
 function pinShelfFight(state: KeeperState, openedAt: number): void {

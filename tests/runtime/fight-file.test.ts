@@ -21,7 +21,7 @@ import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import { tallyFightFigures } from "#/src/core/fight-figures.ts";
 import { getFightView } from "#/src/core/fight-session.ts";
-import { initCombatantFigures, tallyFightStatistics } from "#/src/core/fight-statistics.ts";
+import { createCombatantFigures, tallyFightStatistics } from "#/src/core/fight-statistics.ts";
 import { NO_CAPTURE } from "#/src/game/fight-capture.ts";
 import {
     encodeFightFile,
@@ -200,7 +200,7 @@ Deno.test("every fight-wide figure the aggregate holds is written into the hando
 
 Deno.test("every figure of a row is written, for each combatant and for the totals", () => {
     const report = encodeFightReport(composeFoughtSubject());
-    const owed = Object.keys(initCombatantFigures()).sort();
+    const owed = Object.keys(createCombatantFigures()).sort();
     const combatants = report.combatants;
     assert(isRecord(combatants), "the report holds a row per combatant");
     assertEquals(Object.keys(combatants).sort(), ["1", "2"], "one per combatant it counted");

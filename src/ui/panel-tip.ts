@@ -437,7 +437,7 @@ export function initTipHandle(
     let openKey: string | null = null;
     let openTop = 0;
     let openSize: TipSize = tallyTipSize(null, getTypeStep());
-    const setTo = (key: string, reading: TipReading): void => {
+    const renderTipFor = (key: string, reading: TipReading): void => {
         // Cut here rather than where a card is composed: the one place that knows both it and the
         // window, and on the way in for a card opened and for one a redraw put up again.
         const shown = composeTipWithin(reading, getTipRoom(getViewportHeight()), getTypeStep());
@@ -479,7 +479,7 @@ export function initTipHandle(
             }
             openTop = top;
             openKey = key;
-            setTo(key, compose());
+            renderTipFor(key, compose());
         },
         renderOpen(): void {
             const key = openKey;
@@ -489,7 +489,7 @@ export function initTipHandle(
                 hide();
                 return;
             }
-            setTo(key, compose());
+            renderTipFor(key, compose());
         },
     };
 }

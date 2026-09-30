@@ -9,7 +9,7 @@
 import { assert, assertEquals, assertExists } from "@std/assert";
 import type { BattleEvent } from "#/src/core/battle-event.ts";
 import {
-    deriveHealthFromPercent,
+    composeHealthFromPercent,
     deriveHealthTolerance,
     getStatedHealthsFromEvent,
     indexTeamHeals,
@@ -176,8 +176,8 @@ function isPoolRaiseAmong(declared: readonly { effect: string }[]): boolean {
  * raise moves the maximum the two percentages either side of it are read against.
  */
 function addComparison(reading: WitnessReading, one: Comparison): void {
-    const wasAt = deriveHealthFromPercent(one.percentBefore, one.healthMaximum);
-    const isAt = deriveHealthFromPercent(one.percentAfter, one.healthMaximum);
+    const wasAt = composeHealthFromPercent(one.percentBefore, one.healthMaximum);
+    const isAt = composeHealthFromPercent(one.percentAfter, one.healthMaximum);
     assertExists(wasAt, `${one.path}: a maximum that was read`);
     assertExists(isAt, `${one.path}: a maximum that was read`);
     reading.compared += 1;

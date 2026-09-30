@@ -33,10 +33,10 @@ import {
 } from "./panel-look.ts";
 import { formatWhole } from "./panel-words.ts";
 import {
+    addViewFailureGuarded,
     GestureDropped,
     PANEL_LISTENER,
     type PanelListener,
-    reportViewFailure,
     type ViewFailure,
     WindowUnplaced,
 } from "./view-failure.ts";
@@ -397,7 +397,68 @@ export function initPanelDrag(
     };
     const write = () => writePanelDragStyle(host, state, placement, options);
     write();
-    addPanelDragListeners(root, getBar, placement, options, { state, write });
+    // Listen for the grab, the drag and the release.
+    {
+        const add = (
+            type: string,
+            listener: PanelListener,
+            handle: (event: PanelEvent) => void,
+        ) => {
+            addGuardedListener(root, type, listener, handle, (failure) => {
+                // A grab left standing after a failure moves the window under the next pointer that
+                // crosses it, with nobody having pressed the bar.
+                state.grab = null;
+                addViewFailureGuarded(options.onFailure, failure);
+            });
+        };
+        const getHeld = (grab: PanelGrab): PanelElement => {
+            if (grab.kind === GRAB_KIND.size) return options.grip ?? getBar();
+            return getBar();
+        };
+        add(EVENT_TYPE.press, PANEL_LISTENER.grab, (event) => {
+            const started = composePanelDragGrab(event, state, placement, options);
+            if (started === null) return;
+            state.grab = started;
+            setPointerHeld(getHeld(started), true, event.pointerId, options);
+        });
+        const onDragEnd = (): void => {
+            const grab = state.grab;
+            if (grab === null) return;
+            state.grab = null;
+            setPointerHeld(getHeld(grab), false, grab.pointerId, options);
+            if (grab.kind === GRAB_KIND.size) {
+                if (state.size !== null) options.onResized(state.size);
+            } else if (state.position !== null) options.onMoved(state.position);
+        };
+        add(EVENT_TYPE.move, PANEL_LISTENER.drag, (event) => {
+            const grab = state.grab;
+            if (grab === null) return;
+            // A release the root never saw. Without capture — the forgiving part of a drag,
+            // `setPointerHeld` — a hand letting go outside the panel reports its `pointerup`
+            // elsewhere, and the grab left standing follows the next pointer to cross the panel.
+            // No buttons stated is a document reporting none, not a hand that let go, and it is
+            // not `0` either.
+            if (event.buttons === 0) {
+                onDragEnd();
+                return;
+            }
+            const pointer = readPointerFromEvent(event);
+            if (pointer === null) return;
+            const viewport = placement.readViewport();
+            if (grab.kind === GRAB_KIND.move) {
+                writePanelDragPosition(
+                    state,
+                    composeDraggedPosition(grab, pointer, viewport),
+                    write,
+                );
+                return;
+            }
+            state.size = composeDraggedSize(grab, pointer, state, placement, options);
+            write();
+        });
+        add(EVENT_TYPE.release, PANEL_LISTENER.release, onDragEnd);
+        add(EVENT_TYPE.cancel, PANEL_LISTENER.cancel, onDragEnd);
+    }
     return {
         getPosition: () => state.position,
         onDrawn: () => {
@@ -406,7 +467,7 @@ export function initPanelDrag(
             }
         },
         setPosition: (next: PanelPosition) => {
-            setPanelDragPosition(state, clampPosition(next, placement.readViewport()), write);
+            writePanelDragPosition(state, clampPosition(next, placement.readViewport()), write);
             if (state.position !== null) options.onMoved(state.position);
         },
         getWidthPixels: () => {
@@ -454,7 +515,7 @@ function getPanelDragSize(
     );
 }
 
-function setPanelDragPosition(
+function writePanelDragPosition(
     state: PanelDragState,
     next: PanelPosition,
     write: () => void,
@@ -463,67 +524,6 @@ function setPanelDragPosition(
     if (!Number.isSafeInteger(next.top)) return;
     state.position = next;
     write();
-}
-
-function addPanelDragListeners(
-    root: PanelRoot,
-    getBar: () => PanelElement,
-    placement: PanelPlacement,
-    options: PanelDragOptions,
-    held: { state: PanelDragState; write: () => void },
-): void {
-    const { state, write } = held;
-    const add = (type: string, listener: PanelListener, handle: (event: PanelEvent) => void) => {
-        addGuardedListener(root, type, listener, handle, (failure) => {
-            // A grab left standing after a failure moves the window under the next pointer that
-            // crosses it, with nobody having pressed the bar.
-            state.grab = null;
-            reportViewFailure(options.onFailure, failure);
-        });
-    };
-    const getHeld = (grab: PanelGrab): PanelElement => {
-        if (grab.kind === GRAB_KIND.size) return options.grip ?? getBar();
-        return getBar();
-    };
-    add(EVENT_TYPE.press, PANEL_LISTENER.grab, (event) => {
-        const started = composePanelDragGrab(event, state, placement, options);
-        if (started === null) return;
-        state.grab = started;
-        setPointerHeld(getHeld(started), true, event.pointerId, options);
-    });
-    const onDragEnd = (): void => {
-        const grab = state.grab;
-        if (grab === null) return;
-        state.grab = null;
-        setPointerHeld(getHeld(grab), false, grab.pointerId, options);
-        if (grab.kind === GRAB_KIND.size) {
-            if (state.size !== null) options.onResized(state.size);
-        } else if (state.position !== null) options.onMoved(state.position);
-    };
-    add(EVENT_TYPE.move, PANEL_LISTENER.drag, (event) => {
-        const grab = state.grab;
-        if (grab === null) return;
-        // A release the root never saw. Without capture — the forgiving part of a drag,
-        // `setPointerHeld` — a hand letting go outside the panel reports its `pointerup`
-        // elsewhere, and the grab left standing follows the next pointer to cross the panel.
-        // No buttons stated is a document reporting none, not a hand that let go, and it is
-        // not `0` either.
-        if (event.buttons === 0) {
-            onDragEnd();
-            return;
-        }
-        const pointer = readPointerFromEvent(event);
-        if (pointer === null) return;
-        const viewport = placement.readViewport();
-        if (grab.kind === GRAB_KIND.move) {
-            setPanelDragPosition(state, composeDraggedPosition(grab, pointer, viewport), write);
-            return;
-        }
-        state.size = composeDraggedSize(grab, pointer, state, placement, options);
-        write();
-    });
-    add(EVENT_TYPE.release, PANEL_LISTENER.release, onDragEnd);
-    add(EVENT_TYPE.cancel, PANEL_LISTENER.cancel, onDragEnd);
 }
 
 /**
@@ -554,7 +554,7 @@ function initPanelDragOpening(
         return clamped;
     });
     if (!(opened instanceof Error)) return opened;
-    reportViewFailure(options.onFailure, new WindowUnplaced(options.window, opened));
+    addViewFailureGuarded(options.onFailure, new WindowUnplaced(options.window, opened));
     return null;
 }
 
@@ -693,7 +693,7 @@ function setPointerHeld(
         else bar.releasePointerCapture?.(pointerId);
     });
     if (!(held instanceof Error)) return;
-    reportViewFailure(options.onFailure, new GestureDropped(PANEL_LISTENER.capture, held));
+    addViewFailureGuarded(options.onFailure, new GestureDropped(PANEL_LISTENER.capture, held));
 }
 
 function composeDraggedPosition(

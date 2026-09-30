@@ -445,7 +445,7 @@ export interface FightSession {
     standing: SessionStanding | null; // null: no payload yet
     events: BattleEvent[];
 }
-export function initFightSession(options: SessionOptions): FightSession;
+export function createFightSession(options: SessionOptions): FightSession;
 export function getSessionPhase(session: FightSession): SessionPhase;
 /** A reading: the arrays are the session's own, typed read-only, and nothing here writes (S9). */
 export function getFightView(session: FightSession): FightView | null;
@@ -718,7 +718,7 @@ export function pinFight(
     openedAt: number,
     isPinned: boolean,
 ): ShelfWritten | ShelfFailure;
-export function removeKeptFight(
+export function deleteKeptFight(
     store: KeyValueStore,
     shelf: ShelfContents,
     openedAt: number,

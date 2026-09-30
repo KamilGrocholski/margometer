@@ -147,7 +147,32 @@ export function readUserscriptWindow(page: unknown): RuntimePorts | WindowUnusab
     if (!isUserscriptWindow(page)) {
         return new WindowUnusable(lookupWindowPartMissing(page) ?? WINDOW_PART.window);
     }
-    return composeRuntimePorts(page);
+    return {
+        clock: initPageClock(page.Date),
+        frames: initPageFrames(page),
+        interval: initPageInterval(page),
+        engine: initPageEngine(page),
+        place: initPagePlace(page),
+        hero: initPageHero(page),
+        dictionary: initPageDictionary(page),
+        build: initPageBuild({ readScriptSources: () => readPageScriptSources(page) }),
+        surroundings: initPageSurroundings(page),
+        tooltip: initPageTooltip(page),
+        settings: initPageStore(readPageStorage(page, STORAGE_CHOICE.local)),
+        initShelfStore: (choice) => initShelfStoreOnPage(page, choice),
+        file: initPageFile({
+            createObjectURL: (blob) => page.URL.createObjectURL(blob),
+            revokeObjectURL: (url) => page.URL.revokeObjectURL(url),
+            createBlob: (text, type) => new page.Blob([text], { type }),
+            createAnchor: () => page.document.createElement(ANCHOR_TAG),
+            appendAnchor: (anchor) => page.document.body.append(anchor),
+            setTimeout: (step, afterMilliseconds) => void page.setTimeout(step, afterMilliseconds),
+        }),
+        console: initPageConsole(page.console),
+        document: page.document,
+        mountPanel: (panel) => errors.attempt(() => page.document.body.append(panel)),
+        readViewport: () => readPageViewport(page),
+    };
 }
 
 function isUserscriptWindow(page: UnknownRecord): page is UnknownRecord & UserscriptWindow {
@@ -184,35 +209,6 @@ function isDocumentOfAPage(value: unknown): boolean {
 function isCallableOn(held: unknown, name: string): boolean {
     if (!isRecord(held)) return false;
     return typeof held[name] === "function";
-}
-
-function composeRuntimePorts(page: UserscriptWindow): RuntimePorts {
-    return {
-        clock: initPageClock(page.Date),
-        frames: initPageFrames(page),
-        interval: initPageInterval(page),
-        engine: initPageEngine(page),
-        place: initPagePlace(page),
-        hero: initPageHero(page),
-        dictionary: initPageDictionary(page),
-        build: initPageBuild({ readScriptSources: () => readPageScriptSources(page) }),
-        surroundings: initPageSurroundings(page),
-        tooltip: initPageTooltip(page),
-        settings: initPageStore(readPageStorage(page, STORAGE_CHOICE.local)),
-        initShelfStore: (choice) => initShelfStoreOnPage(page, choice),
-        file: initPageFile({
-            createObjectURL: (blob) => page.URL.createObjectURL(blob),
-            revokeObjectURL: (url) => page.URL.revokeObjectURL(url),
-            createBlob: (text, type) => new page.Blob([text], { type }),
-            createAnchor: () => page.document.createElement(ANCHOR_TAG),
-            appendAnchor: (anchor) => page.document.body.append(anchor),
-            setTimeout: (step, afterMilliseconds) => void page.setTimeout(step, afterMilliseconds),
-        }),
-        console: initPageConsole(page.console),
-        document: page.document,
-        mountPanel: (panel) => errors.attempt(() => page.document.body.append(panel)),
-        readViewport: () => readPageViewport(page),
-    };
 }
 
 /** Every script's source the page states, up to the bound the build's reader walks. */

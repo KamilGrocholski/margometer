@@ -10,8 +10,8 @@
 import * as errors from "#/libs/errors.ts";
 import {
     commitPayload,
+    createFightSession,
     type FightSession,
-    initFightSession,
     type PayloadCommitted,
     type PayloadRecord,
     preparePayload,
@@ -66,7 +66,7 @@ export function initLiveFight(options: LiveFightOptions): {
     listener: PayloadListener;
 } {
     const live: LiveFight = {
-        session: initFightSession(options.sessionOptions),
+        session: createFightSession(options.sessionOptions),
         capture: NO_CAPTURE,
         snapshotBefore: null,
         place: null,

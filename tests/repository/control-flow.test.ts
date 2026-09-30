@@ -9,12 +9,14 @@
 
 import { assert, assertEquals } from "@std/assert";
 import {
-    type AstNode,
     composeSample,
     formatNodePlace,
     FUNCTION_NODES,
-    lookupImportedPath,
+    indexCallableNames,
+    lookupCallerDeclaration,
+    NAME_MARK,
     readAstNodes,
+    readDeclaredFunctionName,
     readSourceFiles,
     SOURCE_DIRECTORIES,
     type SourceFile,
@@ -22,9 +24,6 @@ import {
 
 /** What S1 binds: the program and its tools. A test's fake may recurse as the page it fakes does. */
 const CHECKED_DIRECTORIES = ["frozen", "libs", "src", "tools"];
-const NAME_MARK = "#";
-/** Past the depth of any parse here, so the climb to a declaration carries a stated bound. */
-const DEPTH_MAXIMUM = 512;
 /** Past the declarations of the whole tree, so a walk of the graph carries a stated bound. */
 const DECLARATIONS_MAXIMUM = 8192;
 
@@ -48,11 +47,13 @@ Deno.test("a function reaching itself is flagged in each shape, and a plain call
 function indexCalls(files: readonly SourceFile[]): Map<string, Set<string>> {
     const calls = new Map<string, Set<string>>();
     for (const file of files) {
-        const known = indexCallsNames(file);
+        const known = indexCallableNames(file);
         for (const call of readAstNodes(file, ["CallExpression"])) {
             const called = known.get(call.callee?.name ?? "");
             if (called === undefined) continue;
-            const caller = lookupCallerName(call);
+            const declaration = lookupCallerDeclaration(call);
+            if (declaration === null) continue;
+            const caller = readDeclaredFunctionName(declaration);
             if (caller === null) continue;
             const key = file.path + NAME_MARK + caller;
             const reached = calls.get(key) ?? new Set<string>();
@@ -61,49 +62,6 @@ function indexCalls(files: readonly SourceFile[]): Map<string, Set<string>> {
         }
     }
     return calls;
-}
-
-/** What each name a file can call stands for: its own declarations, and what it imports. */
-function indexCallsNames(file: SourceFile): Map<string, string> {
-    const known = new Map<string, string>();
-    for (const declared of readAstNodes(file, ["FunctionDeclaration", "VariableDeclarator"])) {
-        const name = readDeclaredFunctionName(declared);
-        if (name !== null) known.set(name, file.path + NAME_MARK + name);
-    }
-    for (const imported of readAstNodes(file, ["ImportDeclaration"])) {
-        const source = imported.source?.value;
-        if (typeof source !== "string") continue;
-        const path = lookupImportedPath(file, source);
-        if (path === null) continue;
-        for (const specifier of imported.specifiers ?? []) {
-            const local = specifier.local?.name;
-            const name = specifier.imported?.name;
-            if (local === undefined) continue;
-            if (name !== undefined) known.set(local, path + NAME_MARK + name);
-        }
-    }
-    return known;
-}
-
-/** The name a declaration gives a function, or null where it declares something else. */
-function readDeclaredFunctionName(node: AstNode): string | null {
-    if (node.type === "FunctionDeclaration") return node.id?.name ?? null;
-    const init = node.init;
-    if (init === null || init === undefined) return null;
-    if (!FUNCTION_NODES.some((kind) => kind === init.type)) return null;
-    return node.id?.name ?? null;
-}
-
-/** The declaration a call stands in, climbing out of every closure; null at a module's top. */
-function lookupCallerName(call: AstNode): string | null {
-    let node = call.parent ?? null;
-    for (let depth = 0; node !== null; depth += 1) {
-        assert(depth < DEPTH_MAXIMUM, "a parse stays inside the depth a climb states");
-        const name = readDeclaredFunctionName(node);
-        if (name !== null) return name;
-        node = node.parent ?? null;
-    }
-    return null;
 }
 
 /** Every declaration the calls lead back to itself, in order. */

@@ -6,7 +6,7 @@
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import type { StatedSkills } from "#/src/core/aura-standing.ts";
-import { initFightSession, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
+import { createFightSession, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { NO_CAPTURE } from "#/src/game/fight-capture.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
 import { type KeptReading, replayKeptFight } from "#/src/runtime/fight-reading.ts";
@@ -97,7 +97,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
             choose: () => {},
         },
         live: {
-            session: initFightSession(SESSION_OPTIONS),
+            session: createFightSession(SESSION_OPTIONS),
             capture: NO_CAPTURE,
             snapshotBefore: null,
             place: null,

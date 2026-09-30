@@ -246,7 +246,7 @@ export function composePseudonymisedRecording(recording: unknown): Pseudonymisat
 function indexCombatantRoll(recording: unknown): CombatantRoll {
     const roll: CombatantRoll = { isPlayerById: new Map(), namesById: new Map() };
     for (const call of readRecordingCalls(recording)) {
-        indexCombatantRollPayload(roll, call);
+        addCombatantRollPayload(roll, call);
         indexCombatantRollSnapshots(roll, call);
     }
     assert(roll.namesById.size <= NAMES_MAXIMUM, "a roll names no more than it is bounded to");
@@ -262,7 +262,7 @@ function readRecordingCalls(recording: unknown): UnknownRecord[] {
 }
 
 /** `npc` rides only in the payload's roster, so that is the only place a person can be told. */
-function indexCombatantRollPayload(roll: CombatantRoll, call: UnknownRecord): void {
+function addCombatantRollPayload(roll: CombatantRoll, call: UnknownRecord): void {
     const payload = call[FILE_FIELD.payload];
     if (!isRecord(payload)) return;
     const warriors = payload[ENVELOPE_KEYS.combatants];
@@ -351,7 +351,7 @@ function indexNameSubstitutions(roll: CombatantRoll): Map<string, string> {
  * also somebody's name is refused, since a sequential substitution over those eats itself. The
  * add-on cannot write that; a file edited by hand can.
  */
-function composeSubstitutionOrder(substitutions: Map<string, string>): [string, string][] {
+function composeSubstitutionOrder(substitutions: ReadonlyMap<string, string>): [string, string][] {
     const pairs = [...substitutions]
         .filter(([name, label]) => name !== label)
         .sort((one, other) => other[0].length - one[0].length);

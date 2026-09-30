@@ -236,7 +236,7 @@ export function countUnreadMessages(counted: UnreadMessageCounts): number {
     return unread;
 }
 
-export function initCombatantFigures(): TallyingFigures {
+export function createCombatantFigures(): TallyingFigures {
     return {
         damageDealt: 0,
         damageTaken: 0,
@@ -372,14 +372,14 @@ function addUnreadMessage(build: StatisticsBuild, event: UnknownMessageEvent): v
     for (const combatantId of combatantIds) {
         if (charged.has(combatantId)) continue;
         charged.add(combatantId);
-        const figures = getFiguresForCombatant(build.byCombatantId, combatantId);
+        const figures = addCombatantFigures(build.byCombatantId, combatantId);
         if (unreadCause === UNREAD_CAUSE.unknownKey) figures.unreadMessagesUnknownKey += 1;
         else figures.unreadMessagesNoParameter += 1;
     }
     assert(charged.size <= combatantIds.length, "a row is charged for it once, or not at all");
 }
 
-function getFiguresForCombatant(
+function addCombatantFigures(
     byCombatantId: Map<number, TallyingFigures>,
     combatantId: number,
 ): TallyingFigures {
@@ -387,7 +387,7 @@ function getFiguresForCombatant(
     const held = byCombatantId.get(combatantId);
     if (held !== undefined) return held;
     assert(byCombatantId.size < COMBATANTS_MAXIMUM, "a fight stays inside its stated bound");
-    const figures = initCombatantFigures();
+    const figures = createCombatantFigures();
     byCombatantId.set(combatantId, figures);
     return figures;
 }
@@ -416,7 +416,7 @@ function addTeamHeal(
     }
     for (const [combatantId, amount] of heal.restoredByCombatantId) {
         assert(amount >= 0, "a cast puts back no less than nothing");
-        getFiguresForCombatant(build.byCombatantId, combatantId).healthRestored += amount;
+        addCombatantFigures(build.byCombatantId, combatantId).healthRestored += amount;
         addRestoredSource(build, combatantId, heal.source, amount, announced);
         // The one healing shape whose giver the protocol states outright: the caster.
         const stated = { source: heal.source, announced };
@@ -433,7 +433,7 @@ function addTeamHeal(
 function addUnplacedCast(build: StatisticsBuild, casterId: number | null): void {
     if (casterId === null) return;
     assert(Number.isSafeInteger(casterId), "a cast is charged to somebody the protocol named");
-    const figures = getFiguresForCombatant(build.byCombatantId, casterId);
+    const figures = addCombatantFigures(build.byCombatantId, casterId);
     figures.castsUnplaced += 1;
     assert(figures.castsUnplaced > 0, "a suspicion charged to a row is one the row now carries");
 }
@@ -452,7 +452,7 @@ function addRestoredSource(
     assert(amount >= 0, "restored health is never below nothing");
     assert(source.length > 0, "and comes under a key the protocol named");
     if (healedId === null) return;
-    const healed = getFiguresForCombatant(build.byCombatantId, healedId);
+    const healed = addCombatantFigures(build.byCombatantId, healedId);
     addToCut(healed.healthRestoredBySource, source, amount);
     if (getSkillOwnerId(announced) !== null) return;
     addToCut(healed.healthRestoredWithoutSkillBySource, source, amount);
@@ -490,28 +490,28 @@ function addGivenHealth(
     assert(stated.source.length > 0, "and comes under a key the protocol named");
     if (healedId !== null) {
         if (giverId !== null) {
-            const healed = getFiguresForCombatant(build.byCombatantId, healedId);
+            const healed = addCombatantFigures(build.byCombatantId, healedId);
             addToCut(healed.healthRestoredByGiver, `${giverId}`, amount);
         }
     }
     if (giverId === null) {
         build.givenByNobody += amount;
         if (healedId === null) return;
-        const healed = getFiguresForCombatant(build.byCombatantId, healedId);
+        const healed = addCombatantFigures(build.byCombatantId, healedId);
         healed.healthRestoredByNobody += amount;
         addToCut(healed.healthRestoredByNobodyBySource, stated.source, amount);
         return;
     }
-    const giver = getFiguresForCombatant(build.byCombatantId, giverId);
+    const giver = addCombatantFigures(build.byCombatantId, giverId);
     giver.healthGiven += amount;
     if (healedId === null) return;
     addToCut(giver.healthGivenByReceiver, `${healedId}`, amount);
     if (getSkillOwnerId(stated.announced) !== null) return;
-    const cut = getPairCut(giver.healthGivenWithoutSkillByReceiverAndSource, `${healedId}`);
+    const cut = addPairCut(giver.healthGivenWithoutSkillByReceiverAndSource, `${healedId}`);
     addToCut(cut, stated.source, amount);
 }
 
-function getPairCut(cut: Map<string, Map<string, number>>, other: string): Map<string, number> {
+function addPairCut(cut: Map<string, Map<string, number>>, other: string): Map<string, number> {
     assert(other.length > 0, "the other end of a movement is named before it is cut by");
     assert(cut.size <= COMBATANTS_MAXIMUM, "a fight cuts by the people who are in it");
     const held = cut.get(other) ?? new Map<string, number>();
@@ -529,8 +529,8 @@ function addSkillRestored(
     assert(announced.skillName.length > 0, "and the announcement behind it is named");
     const ownerId = getSkillOwnerId(announced);
     if (ownerId === null) return;
-    const skills = getFiguresForCombatant(build.byCombatantId, ownerId).skills;
-    const held = getSkillFigures(skills, announced.skillName);
+    const skills = addCombatantFigures(build.byCombatantId, ownerId).skills;
+    const held = addSkillFigures(skills, announced.skillName);
     held.restored += amount;
     if (healedId !== null) addToCut(held.restoredByOpponent, `${healedId}`, amount);
 }
@@ -539,7 +539,7 @@ function addSkillRestored(
  * A skill is kept under its **name** rather than its id: 346 of the 3,349 announcements over
  * `captures/` on 2026-08-29 carry no id, and a row keyed by nothing merges two skills.
  */
-function getSkillFigures(
+function addSkillFigures(
     skills: Map<string, TallyingSkillFigures>,
     name: string,
 ): TallyingSkillFigures {
@@ -563,7 +563,7 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
     const blow = tallyBlowFigures(event);
     if (event.actorId === null) build.dealtByNobody += blow.amount;
     else {
-        const dealer = getFiguresForCombatant(build.byCombatantId, event.actorId);
+        const dealer = addCombatantFigures(build.byCombatantId, event.actorId);
         addAttackDealt(dealer, event, blow);
     }
     const striker = getStrikerFigures(build, event.actorId);
@@ -572,7 +572,7 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
         addBlowWithNoTarget(build, event.actorId, blow.amount, blow.kinds);
         return;
     }
-    const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
+    const target = addCombatantFigures(build.byCombatantId, event.targetId);
     addAttackTaken(target, event, blow);
     addBlowProcs(striker, target, event.procs);
 }
@@ -655,7 +655,7 @@ function addSkillDealt(
 ): void {
     assert(amount >= 0, "what a blow lands is never below nothing");
     assert(announced.skillName.length > 0, "and the announcement in front of it is named");
-    const held = getSkillFigures(skills, announced.skillName);
+    const held = addSkillFigures(skills, announced.skillName);
     held.dealt += amount;
     if (other !== null) addToCut(held.dealtByOpponent, other, amount);
 }
@@ -670,7 +670,7 @@ function getOtherEndKey(targetId: number | null): string | null {
 /** The swing itself, counted where the blow is: a figure stated against a name is not one. */
 function addSkillBlow(skills: Map<string, TallyingSkillFigures>, announced: AnnouncedSkill): void {
     assert(announced.skillName.length > 0, "a swing is counted under the announcement named");
-    const held = getSkillFigures(skills, announced.skillName);
+    const held = addSkillFigures(skills, announced.skillName);
     held.blows += 1;
     assert(held.blows > 0, "a swing that was counted was counted at least once");
 }
@@ -680,7 +680,7 @@ function addToPairCut(
     other: string,
     figures: readonly DamageFigure[],
 ): void {
-    const held = getPairCut(cut, other);
+    const held = addPairCut(cut, other);
     for (const figure of figures) addToCut(held, figure.element, figure.amount);
 }
 
@@ -714,7 +714,7 @@ function getStrikerFigures(
 ): TallyingFigures | null {
     if (actorId === null) return null;
     assert(Number.isSafeInteger(actorId), "an end the protocol named is named by a number");
-    return getFiguresForCombatant(build.byCombatantId, actorId);
+    return addCombatantFigures(build.byCombatantId, actorId);
 }
 
 /**
@@ -757,7 +757,7 @@ function addBlowWithNoTarget(
         addKindsToCut(build.byNeitherEndByKind, kinds);
         return;
     }
-    const striker = getFiguresForCombatant(build.byCombatantId, actorId);
+    const striker = addCombatantFigures(build.byCombatantId, actorId);
     striker.damageDealtToNobody += amount;
     addKindsToCut(striker.damageDealtToNobodyByKind, kinds);
 }
@@ -819,7 +819,7 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
     assert(amount >= 0, "damage stated against a name is never below nothing");
     if (event.actorId === null) build.dealtByNobody += amount;
     else {
-        const dealer = getFiguresForCombatant(build.byCombatantId, event.actorId);
+        const dealer = addCombatantFigures(build.byCombatantId, event.actorId);
         addDealtHealth(dealer, amount);
         dealer.damageDealtBlowLargest = getLargerBlow(dealer.damageDealtBlowLargest, amount);
         addToCut(dealer.damageDealtByKind, event.damage.element, amount);
@@ -839,7 +839,7 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
         addBlowWithNoTarget(build, event.actorId, amount, [event.damage]);
         return;
     }
-    const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
+    const target = addCombatantFigures(build.byCombatantId, event.targetId);
     addTakenHealth(target, amount);
     target.damageTakenBlowLargest = getLargerBlow(target.damageTakenBlowLargest, amount);
     addToCut(target.damageTakenByKind, event.damage.element, amount);
@@ -902,7 +902,7 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
         addToCut(build.byNeitherEndByKind, event.source, lost);
         return;
     }
-    const figures = getFiguresForCombatant(build.byCombatantId, event.combatantId);
+    const figures = addCombatantFigures(build.byCombatantId, event.combatantId);
     if (event.amount >= 0) {
         figures.healthRestored += event.amount;
         addRestoredSource(build, event.combatantId, event.source, event.amount, event.announced);
@@ -983,18 +983,18 @@ function addWoundTick(
     assert(amount > 0, "a wound ticking takes health off");
     assert(Number.isSafeInteger(amount), "a figure totalled is a whole number");
     const kind: DamageFigure[] = [{ element: WOUND_TICK_KEY, amount }];
-    const attacker = getFiguresForCombatant(build.byCombatantId, attackerId);
+    const attacker = addCombatantFigures(build.byCombatantId, attackerId);
     addDealtHealth(attacker, amount);
     addToCut(attacker.damageDealtByKind, WOUND_TICK_KEY, amount);
     addToCut(attacker.damageDealtWithoutSkillBySource, WOUND_TICK_KEY, amount);
     addToCut(
-        getPairCut(attacker.damageDealtWithoutSkillByOpponentAndSource, `${victimId}`),
+        addPairCut(attacker.damageDealtWithoutSkillByOpponentAndSource, `${victimId}`),
         WOUND_TICK_KEY,
         amount,
     );
     addToCut(attacker.damageDealtByOpponent, `${victimId}`, amount);
     addToPairCut(attacker.damageDealtByOpponentAndKind, `${victimId}`, kind);
-    const victim = getFiguresForCombatant(build.byCombatantId, victimId);
+    const victim = addCombatantFigures(build.byCombatantId, victimId);
     addToCut(victim.damageTakenByOpponent, `${attackerId}`, amount);
     addToPairCut(victim.damageTakenByOpponentAndKind, `${attackerId}`, kind);
 }
@@ -1003,7 +1003,7 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
     if (event.kind !== BATTLE_EVENT.healingToNamedCombatant) return;
     assert(event.amount >= 0, "healing restored is never below nothing");
     if (event.targetId === null) return addRestoredToNobody(build, event.amount);
-    const figures = getFiguresForCombatant(build.byCombatantId, event.targetId);
+    const figures = addCombatantFigures(build.byCombatantId, event.targetId);
     figures.healthRestored += event.amount;
     addRestoredSource(build, event.targetId, event.source, event.amount, null);
     // No announcement to ask: this figure rides a blow struck at somebody else, so the message's
@@ -1038,8 +1038,8 @@ function addSkillUse(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== BATTLE_EVENT.skillUsed) return;
     if (event.actorId === null) return;
     assert(event.skillName.length > 0, "an announcement names the skill it announces");
-    const skills = getFiguresForCombatant(build.byCombatantId, event.actorId).skills;
-    const held = getSkillFigures(skills, event.skillName);
+    const skills = addCombatantFigures(build.byCombatantId, event.actorId).skills;
+    const held = addSkillFigures(skills, event.skillName);
     held.uses += 1;
     assert(held.uses > 0, "an announcement that was counted was counted at least once");
 }
@@ -1050,7 +1050,7 @@ function addTurnTaken(build: StatisticsBuild, event: BattleEvent): void {
     build.turnStanding = composeTurnStanding(event, build.turnStanding);
     if (openerId === null) return;
     assert(Number.isSafeInteger(openerId), "a turn is charged to an id that was read");
-    const figures = getFiguresForCombatant(build.byCombatantId, openerId);
+    const figures = addCombatantFigures(build.byCombatantId, openerId);
     figures.turnsTaken += 1;
     assert(figures.turnsTaken > 0, "a turn that was counted was counted at least once");
 }
@@ -1059,13 +1059,13 @@ function addTurnLost(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== BATTLE_EVENT.turnLost) return;
     if (event.combatantId === null) return;
     assert(Number.isSafeInteger(event.combatantId), "a turn is lost by an id that was read");
-    const figures = getFiguresForCombatant(build.byCombatantId, event.combatantId);
+    const figures = addCombatantFigures(build.byCombatantId, event.combatantId);
     figures.turnsLost += 1;
     assert(figures.turnsLost > 0, "a turn that was lost was lost at least once");
 }
 
 function tallyTotals(byCombatantId: ReadonlyMap<number, TallyingFigures>): TallyingFigures {
-    const totals = initCombatantFigures();
+    const totals = createCombatantFigures();
     for (const figures of byCombatantId.values()) {
         totals.damageDealt += figures.damageDealt;
         totals.damageTaken += figures.damageTaken;

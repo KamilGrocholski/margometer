@@ -385,7 +385,7 @@ const ACTS: readonly FabricatedAct[] = [
     { name: "buffs standing", doesOpenTurn: false, execute: executeStandingBuffs },
     { name: "legendary buffs standing", doesOpenTurn: false, execute: executeLegendaryBuffs },
     { name: "a bard's song", doesOpenTurn: true, execute: executeBardSong },
-    { name: "a step", doesOpenTurn: true, execute: executeStep },
+    { name: "a step", doesOpenTurn: true, execute: encodeStep },
     { name: "a skill made ready", doesOpenTurn: true, execute: executePrepare },
     { name: "a turn spent on nothing", doesOpenTurn: true, execute: executeTurnLost },
     { name: "the log saying something else", doesOpenTurn: false, execute: executeLoot },
@@ -809,7 +809,7 @@ function addTurnCall(state: FabricationState, turn: FabricatedTurn, act: Fabrica
     // of the turn.
     const messages = act.execute(turn);
     if (act.doesOpenTurn) assert(messages.length > 0, "an act opening a turn leaves a message");
-    else messages.push(...executeStep(turn));
+    else messages.push(...encodeStep(turn));
     const indexes = addMessageIndexes(state, messages);
     addTurnStatement(state, turn.actor);
     const payload: Record<string, unknown> = {
@@ -981,7 +981,7 @@ function encodeSideNames(state: FabricationState, side: number): string {
 function encodeMessage(
     actor: MessageSide | null,
     target: MessageSide | null,
-    parameters: MessageParameter[],
+    parameters: readonly MessageParameter[],
 ): string {
     assert(parameters.length > 0, "a message states something after its ends");
     const written = encodeProtocolMessage({ actor, target, parameters });
@@ -1457,7 +1457,7 @@ function executeBardSong(turn: FabricatedTurn): string[] {
     return [encodeMessage(encodeSide(turn.actor), null, [encodeValued("tcustom", BARD_SONG)])];
 }
 
-function executeStep(turn: FabricatedTurn): string[] {
+function encodeStep(turn: FabricatedTurn): string[] {
     assert(isStanding(turn.actor), "a step is taken by somebody still standing");
     assert(turn.actor.id > 0, "and by somebody the payload names");
     return [encodeMessage(encodeSide(turn.actor), null, [encodeValueless(STEP_KEY)])];
@@ -1600,7 +1600,10 @@ function getPlainSkill(turn: FabricatedTurn): FabricatedSkill {
 }
 
 /** Health moving outside a blow, stated on the combatant it happened to. */
-function encodeHealthChange(warrior: FabricatedWarrior, parameters: MessageParameter[]): string {
+function encodeHealthChange(
+    warrior: FabricatedWarrior,
+    parameters: readonly MessageParameter[],
+): string {
     assert(parameters.length > 0, "a movement of health states the key it arrived on");
     assert(warrior.id > 0, "and the combatant it happened to");
     return encodeMessage(encodeSide(warrior), null, parameters);

@@ -264,37 +264,39 @@ TypeScript idiom, with the naming rules stated here.
 - **N2. A function name starts with the action it performs**, and each verb means one kind of work.
   Most come from TigerBeetle, whose functions name their work rather than reaching for one verb.
 
-  | Action              | Means                                                                       | Purity (**P1**) |
-  | ------------------- | --------------------------------------------------------------------------- | --------------- |
-  | `init`              | Creates an object that holds state; its parameters are `…Options`           | none            |
-  | `deinit`            | Gives back what an object holds outside itself: a wrap, a frame, a listener | none            |
-  | `open`              | Loads durable state into memory at start                                    | none            |
-  | `on`                | Reacts to input from outside; the callback name                             | none            |
-  | `prepare`           | Reads and computes a transition, touching nothing                           | strong          |
-  | `commit`            | Writes a prepared transition; cannot fail                                   | none            |
-  | `execute`           | Performs one operation on state                                             | none            |
-  | `verify`            | Asserts the invariants of a whole structure                                 | strong          |
-  | `get`               | Accesses what this program holds, immediately                               | strong          |
-  | `set`               | Assigns from one value to another                                           | weak            |
-  | `lookup`            | Finds something that may not be there                                       | strong          |
-  | `read`              | Takes a value from **outside** this program — **N16**                       | either          |
-  | `write`             | Puts a value outside this program — **N16**                                 | none            |
-  | `parse`             | Text → structure                                                            | strong          |
-  | `decode`            | Structure → **meaning**                                                     | strong          |
-  | `encode`            | Meaning → structure or text for somebody else to read                       | strong          |
-  | `tally`             | Sums figures                                                                | strong          |
-  | `index`             | Builds a map to look things up in                                           | strong          |
-  | `replay`            | Walks events from the start to what stands now                              | strong          |
-  | `present`           | Turns figures into what a screen shows                                      | strong          |
-  | `render`            | Builds or updates DOM                                                       | none            |
-  | `format`            | Writes a value as text a person reads                                       | strong          |
-  | `add` / `remove`    | Puts something into somewhere / takes it out                                | weak            |
-  | `create` / `delete` | Brings something into existence / erases it                                 | strong / none   |
-  | `reset`             | Restores to the initial state                                               | weak            |
-  | `require`           | A value narrowed to a type, or throws — `tools/` only (**E1**)              | strong          |
-  | `expect`            | Fails a test unless something holds — a test's action and nobody else's     | strong          |
-  | `attempt`           | Calls what may throw, answering its value or a `Caught` (**E4**)            | none            |
-  | `compose`           | A new value made of several, where no verb above fits                       | strong          |
+  | Action              | Means                                                                                      | Purity (**P1**) |
+  | ------------------- | ------------------------------------------------------------------------------------------ | --------------- |
+  | `init`              | Creates an object that holds state and something outside it; its parameters are `…Options` | none            |
+  | `deinit`            | Gives back what an object holds outside itself: a wrap, a frame, a listener                | none            |
+  | `open`              | Loads durable state into memory at start                                                   | none            |
+  | `on`                | Reacts to input from outside; the callback name                                            | none            |
+  | `prepare`           | Reads and computes a transition, touching nothing                                          | strong          |
+  | `commit`            | Writes a prepared transition; cannot fail                                                  | weak            |
+  | `execute`           | Performs one operation on state                                                            | none            |
+  | `verify`            | Asserts the invariants of a whole structure                                                | strong          |
+  | `get`               | Accesses what this program holds, immediately                                              | strong          |
+  | `set`               | Assigns from one value to another                                                          | weak            |
+  | `lookup`            | Finds something that may not be there                                                      | strong          |
+  | `read`              | Takes a value from **outside** this program — **N16**                                      | either          |
+  | `write`             | Puts a value outside this program — **N16**                                                | none            |
+  | `parse`             | Text → structure                                                                           | strong          |
+  | `decode`            | Structure → **meaning**                                                                    | strong          |
+  | `encode`            | Meaning → structure or text for somebody else to read                                      | strong          |
+  | `tally`             | Sums figures                                                                               | strong          |
+  | `count`             | Counts what matches                                                                        | strong          |
+  | `clamp`             | Holds a number inside its range                                                            | strong          |
+  | `index`             | Builds a map to look things up in                                                          | strong          |
+  | `replay`            | Walks events from the start to what stands now                                             | strong          |
+  | `present`           | Turns figures into what a screen shows                                                     | strong          |
+  | `render`            | Builds or updates DOM                                                                      | none            |
+  | `format`            | Writes a value as text a person reads                                                      | strong          |
+  | `add` / `remove`    | Puts something into somewhere / takes it out                                               | weak            |
+  | `create` / `delete` | Brings a value into existence from its parameters alone / erases one outside               | strong / none   |
+  | `reset`             | Restores to the initial state                                                              | weak            |
+  | `require`           | A value narrowed to a type, or throws — `tools/` only (**E1**)                             | strong          |
+  | `expect`            | Fails a test unless something holds — a test's action and nobody else's                    | strong          |
+  | `attempt`           | Calls what may throw, answering its value or a `Caught` (**E4**)                           | none            |
+  | `compose`           | A new value made of several, where no verb above fits                                      | strong          |
 
   `compose` is the residue, not the default. Other verbs are allowed where they are more precise,
   but never a **synonym** for one in the table, and one outside it is of none. A predicate that
@@ -534,6 +536,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/handed-callbacks.test.ts`        | E10                                                    |
 | `tests/repository/type-assertions.test.ts`         | C13                                                    |
 | `tests/repository/control-flow.test.ts`            | S1                                                     |
+| `tests/repository/purity.test.ts`                  | P1, P3, P4                                             |
 | `tests/repository/comment-share.test.ts`           | C4, C16                                                |
 | `tests/repository/design-tokens.test.ts`           | `DESIGN.md`                                            |
 | `tests/repository/changelog.test.ts`               | `CHANGELOG.md`                                         |

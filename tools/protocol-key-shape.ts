@@ -141,7 +141,7 @@ export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
     const tallies = new Map<string, ShapeTally>();
     for (const { fight, reading } of replayed) {
         for (const messages of reading.messagesByPayload) {
-            for (const message of messages) tallyKeyShapesMessage(tallies, fight.path, message);
+            for (const message of messages) addKeyShapesMessage(tallies, fight.path, message);
         }
     }
     const shapes: KeyShape[] = [];
@@ -159,7 +159,7 @@ export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
     return shapes;
 }
 
-function tallyKeyShapesMessage(
+function addKeyShapesMessage(
     tallies: Map<string, ShapeTally>,
     path: string,
     message: string,
@@ -172,9 +172,9 @@ function tallyKeyShapesMessage(
         });
     }
     const parameters = parsed.parameters;
-    const placements = tallyKeyShapesMessagePlacements(new Set(parameters.map((one) => one.key)));
+    const placements = decodeKeyPlacements(new Set(parameters.map((one) => one.key)));
     for (const parameter of parameters) {
-        const value = tallyKeyShapesMessageValue(parameter.value);
+        const value = decodeKeyValue(parameter.value);
         const tally = tallies.get(parameter.key);
         if (tally === undefined) {
             tallies.set(parameter.key, {
@@ -193,7 +193,7 @@ function tallyKeyShapesMessage(
 }
 
 /** Every placement that holds for one message, judged on the keys the whole message carries. */
-function tallyKeyShapesMessagePlacements(carried: ReadonlySet<string>): Set<KeyPlacement> {
+function decodeKeyPlacements(carried: ReadonlySet<string>): Set<KeyPlacement> {
     assert(carried.size > 0, "a placement is asked of a message carrying a key");
     const families = new Set([...carried].map((key) => getKeyReading(key)?.kind ?? null));
     const placements = new Set<KeyPlacement>([KEY_PLACEMENT.anywhere]);
@@ -211,7 +211,7 @@ function tallyKeyShapesMessagePlacements(carried: ReadonlySet<string>): Set<KeyP
 }
 
 /** The most specific of the four one occurrence states. `null` is no value, never empty text. */
-function tallyKeyShapesMessageValue(value: string | null): KeyValue {
+function decodeKeyValue(value: string | null): KeyValue {
     if (value === null) return KEY_VALUE.none;
     if (parseInteger(value) !== null) return KEY_VALUE.whole;
     if (parseDecimal(value) !== null) return KEY_VALUE.number;
@@ -389,14 +389,14 @@ export function parseProseCountClaims(text: string): ProseCountClaim[] {
     for (const [offset, line] of text.split("\n").entries()) {
         const heading = parseRegisterHeading(line, offset + 1);
         if (heading !== null) {
-            parseProseCountClaimsParagraph(claims, key, opened, paragraph);
+            addProseCountClaims(claims, key, opened, paragraph);
             key = heading.key;
             paragraph = "";
             continue;
         }
         if (key.length === 0) continue;
         if (line.trim().length === 0) {
-            parseProseCountClaimsParagraph(claims, key, opened, paragraph);
+            addProseCountClaims(claims, key, opened, paragraph);
             paragraph = "";
             continue;
         }
@@ -404,13 +404,13 @@ export function parseProseCountClaims(text: string): ProseCountClaim[] {
         if (paragraph.length === 0) opened = offset + 1;
         paragraph = paragraph.length === 0 ? line.trim() : `${paragraph} ${line.trim()}`;
     }
-    parseProseCountClaimsParagraph(claims, key, opened, paragraph);
+    addProseCountClaims(claims, key, opened, paragraph);
     assert(claims.length <= CLAIMS_MAXIMUM, "a register states no more claims than the bound");
     return claims;
 }
 
 /** One paragraph's sentences, each asked whether it counts something the `_Shape:_` line owns. */
-function parseProseCountClaimsParagraph(
+function addProseCountClaims(
     claims: ProseCountClaim[],
     key: string,
     line: number,
@@ -430,7 +430,21 @@ function parseProseCountClaimsParagraph(
 function isCountingSentence(sentence: string): boolean {
     const words: string[] = [];
     for (const raw of sentence.split(" ")) {
-        const word = trimWordEdges(raw);
+        let start = 0;
+        let end = raw.length;
+        // Trim the word's edges: `**Both**` and `340,` are the words `both` and `340` to a count.
+        {
+            for (let at = 0; at < raw.length; at += 1) {
+                if (!WORD_EDGES.includes(raw.charAt(at))) break;
+                start = at + 1;
+            }
+            for (let at = raw.length; at > start; at -= 1) {
+                if (!WORD_EDGES.includes(raw.charAt(at - 1))) break;
+                end = at - 1;
+            }
+            assert(end >= start, "a word trimmed from both ends has not crossed itself");
+        }
+        const word = raw.slice(start, end);
         if (word.length > 0) words.push(word);
     }
     assert(words.length <= CLAIMS_MAXIMUM, "a sentence holds no more words than the bound");
@@ -440,22 +454,6 @@ function isCountingSentence(sentence: string): boolean {
         if (isCountWord(words[at - 1] ?? "")) return true;
     }
     return false;
-}
-
-/** `**Both**` and `340,` are the same word as `both` and `340` to a reader looking for a count. */
-function trimWordEdges(raw: string): string {
-    let start = 0;
-    for (let at = 0; at < raw.length; at += 1) {
-        if (!WORD_EDGES.includes(raw.charAt(at))) break;
-        start = at + 1;
-    }
-    let end = raw.length;
-    for (let at = raw.length; at > start; at -= 1) {
-        if (!WORD_EDGES.includes(raw.charAt(at - 1))) break;
-        end = at - 1;
-    }
-    assert(end >= start, "a word trimmed from both ends has not crossed itself");
-    return raw.slice(start, end);
 }
 
 /** Digits, or a word that spells a figure. `every` and `each` are neither, and are the point. */

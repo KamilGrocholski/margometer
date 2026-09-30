@@ -169,11 +169,11 @@ import {
     type TipReading,
 } from "./tip-reading.ts";
 import {
+    addViewFailureGuarded,
     GestureDropped,
     PANEL_LISTENER,
     RegionUndrawn,
     type RenderReport,
-    reportViewFailure,
     type ViewFailure,
 } from "./view-failure.ts";
 
@@ -462,7 +462,7 @@ interface PanelDrawing {
     setTypeStep(next: TypeStep): void;
     regions: PanelRegions;
     frame: PanelElement;
-    redraw: PanelRedraw;
+    renderInPlace: PanelRedraw;
     report: UndrawnReport;
     register: TipRegister;
     standingRegister: TipRegister;
@@ -490,7 +490,7 @@ type PanelRedraw = (
  */
 interface ListDrawing {
     keep(): void;
-    draw(name: string, render: () => PanelElement): void;
+    renderListRegion(name: string, render: () => PanelElement): void;
     settle(): void;
 }
 
@@ -589,7 +589,11 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     const panelGrip = renderSizeGrip(document, PANEL_WINDOW.panel);
     const frame = renderPanelFrame(document, regions, panelGrip);
     const report = initUndrawnReport(options.onFailure);
-    const redraw = (standing: PanelElement, region: PanelRegion, render: () => PanelElement) => {
+    const renderInPlace = (
+        standing: PanelElement,
+        region: PanelRegion,
+        render: () => PanelElement,
+    ) => {
         return renderRegionInPlace(document, standing, region, render, report);
     };
     const register = initTipRegister();
@@ -623,7 +627,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         helperPlacement,
         helperWired,
     );
-    return composePanelView({
+    const held: PanelDrawing = {
         host,
         document,
         version: options.version,
@@ -632,7 +636,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         setTypeStep: (next: TypeStep) => typeStep = next,
         regions,
         frame,
-        redraw,
+        renderInPlace,
         report,
         register,
         standingRegister,
@@ -646,7 +650,40 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         setStandingBar: (next: PanelElement) => standingBar = next,
         getStandingBody: () => standingBody,
         setStandingBody: (next: PanelElement) => standingBody = next,
-    });
+    };
+    return {
+        element: held.host,
+        render: (shown: ShownScreen): RenderReport =>
+            report.collect(() => {
+                renderStep(report, PANEL_REGION.list, () => drawing.keep());
+                register.reset();
+                renderFold(held, shown);
+                if (shown.isCollapsed) renderPanelFolded(document, regions, renderInPlace);
+                else {renderPanelBody(
+                        document,
+                        regions,
+                        shown,
+                        register,
+                        held.translate,
+                        renderInPlace,
+                        drawing,
+                    );}
+                renderPanelSettled(held);
+            }),
+        renderWaiting: (waiting: WaitingReading): RenderReport =>
+            report.collect(() => {
+                renderStep(report, PANEL_REGION.list, () => drawing.keep());
+                register.reset();
+                renderFold(held, waiting);
+                renderPanelWaiting(document, regions, waiting, renderInPlace, drawing, register);
+                renderPanelSettled(held);
+            }),
+        renderStanding: (
+            reading: StandingReading | StandingAbsence,
+            isCollapsed: boolean,
+        ): RenderReport =>
+            report.collect(() => renderStandingWindowInPlace(held, reading, isCollapsed)),
+    };
 }
 
 /**
@@ -739,7 +776,7 @@ function initUndrawnReport(onFailure: (failure: ViewFailure) => void): UndrawnRe
         add(region, cause) {
             const failure = new RegionUndrawn(region, cause);
             if (collected === null) {
-                reportViewFailure(onFailure, failure);
+                addViewFailureGuarded(onFailure, failure);
                 return;
             }
             if (collected.length < UNDRAWN_MAXIMUM) collected.push(failure);
@@ -804,7 +841,7 @@ function initListDrawing(
     // belongs to rather than under the place taking its turn.
     let shownName = WAITING_LIST_NAME;
     let isRegionKept = false;
-    const draw = (name: string, render: () => PanelElement): void => {
+    const renderListRegion = (name: string, render: () => PanelElement): void => {
         const next = renderRegion(document, PANEL_REGION.list, render, report);
         if (next === null) return;
         // The same list, drawn again: a payload landing is not a reason to take the region the
@@ -827,7 +864,7 @@ function initListDrawing(
             const top = readTopOfList(regions.list);
             if (top !== null) scrolls.setTop(shownName, top);
         },
-        draw,
+        renderListRegion,
         // And after every region is standing, for the same reason read the other way round. A
         // fold empties the region like any other and takes no name away, so what a reader unfolds
         // onto is the list they were reading, at the position they left it at. Nothing to put
@@ -985,7 +1022,10 @@ function addPanelRootListeners(
         if (target === null) return;
         const intent = readPanelIntent(target);
         if (intent instanceof Error) {
-            reportViewFailure(options.onFailure, new GestureDropped(PANEL_LISTENER.press, intent));
+            addViewFailureGuarded(
+                options.onFailure,
+                new GestureDropped(PANEL_LISTENER.press, intent),
+            );
             return;
         }
         if (intent !== null) options.onIntent(intent);
@@ -1046,43 +1086,6 @@ function initDragOrNothing(
     });
 }
 
-function composePanelView(held: PanelDrawing): PanelView {
-    const { document, regions, redraw, register, drawing, report } = held;
-    return {
-        element: held.host,
-        render: (shown: ShownScreen): RenderReport =>
-            report.collect(() => {
-                renderStep(report, PANEL_REGION.list, () => drawing.keep());
-                register.reset();
-                renderFold(held, shown);
-                if (shown.isCollapsed) renderPanelFolded(document, regions, redraw);
-                else {renderPanelBody(
-                        document,
-                        regions,
-                        shown,
-                        register,
-                        held.translate,
-                        redraw,
-                        drawing,
-                    );}
-                renderPanelSettled(held);
-            }),
-        renderWaiting: (waiting: WaitingReading): RenderReport =>
-            report.collect(() => {
-                renderStep(report, PANEL_REGION.list, () => drawing.keep());
-                register.reset();
-                renderFold(held, waiting);
-                renderPanelWaiting(document, regions, waiting, redraw, drawing, register);
-                renderPanelSettled(held);
-            }),
-        renderStanding: (
-            reading: StandingReading | StandingAbsence,
-            isCollapsed: boolean,
-        ): RenderReport =>
-            report.collect(() => renderStandingWindowInPlace(held, reading, isCollapsed)),
-    };
-}
-
 /** A step of a draw that is not a region's own, charged to the region it stands for. */
 function renderStep(report: UndrawnReport, region: PanelRegion, step: () => void): void {
     const ran = errors.attempt(step);
@@ -1119,7 +1122,7 @@ function renderFold(
     renderStep(held.report, PANEL_REGION.standing, () => {
         held.standingDrag?.setSize(drawn.windowSizes.helper);
     });
-    held.regions.title = held.redraw(
+    held.regions.title = held.renderInPlace(
         held.regions.title,
         PANEL_REGION.header,
         () => renderTitle(held.document, held.version, isCollapsed, hasFightToSave),
@@ -1206,20 +1209,28 @@ function setStandingBeside(held: PanelDrawing, before: WindowWidths, after: Wind
 function renderPanelFolded(
     document: PanelDocument,
     regions: PanelRegions,
-    redraw: PanelRedraw,
+    renderInPlace: PanelRedraw,
 ): void {
-    const slot = () => renderSlot(document);
-    regions.header = redraw(regions.header, PANEL_REGION.header, slot);
-    regions.nouns = redraw(regions.nouns, PANEL_REGION.strips, slot);
-    regions.directions = redraw(regions.directions, PANEL_REGION.strips, slot);
-    regions.crumb = redraw(regions.crumb, PANEL_REGION.crumb, slot);
-    regions.options = redraw(regions.options, PANEL_REGION.strips, slot);
-    regions.list = redraw(regions.list, PANEL_REGION.list, slot);
-    regions.pinnedActor = redraw(regions.pinnedActor, PANEL_REGION.pinned, slot);
-    regions.pinnedTarget = redraw(regions.pinnedTarget, PANEL_REGION.pinned, slot);
-    regions.sides = redraw(regions.sides, PANEL_REGION.sides, slot);
-    regions.suspicions = redraw(regions.suspicions, PANEL_REGION.suspicions, slot);
-    regions.defects = redraw(regions.defects, PANEL_REGION.defects, slot);
+    const renderEmptySlot = () => renderSlot(document);
+    regions.header = renderInPlace(regions.header, PANEL_REGION.header, renderEmptySlot);
+    regions.nouns = renderInPlace(regions.nouns, PANEL_REGION.strips, renderEmptySlot);
+    regions.directions = renderInPlace(regions.directions, PANEL_REGION.strips, renderEmptySlot);
+    regions.crumb = renderInPlace(regions.crumb, PANEL_REGION.crumb, renderEmptySlot);
+    regions.options = renderInPlace(regions.options, PANEL_REGION.strips, renderEmptySlot);
+    regions.list = renderInPlace(regions.list, PANEL_REGION.list, renderEmptySlot);
+    regions.pinnedActor = renderInPlace(regions.pinnedActor, PANEL_REGION.pinned, renderEmptySlot);
+    regions.pinnedTarget = renderInPlace(
+        regions.pinnedTarget,
+        PANEL_REGION.pinned,
+        renderEmptySlot,
+    );
+    regions.sides = renderInPlace(regions.sides, PANEL_REGION.sides, renderEmptySlot);
+    regions.suspicions = renderInPlace(
+        regions.suspicions,
+        PANEL_REGION.suspicions,
+        renderEmptySlot,
+    );
+    regions.defects = renderInPlace(regions.defects, PANEL_REGION.defects, renderEmptySlot);
 }
 
 function renderPanelBody(
@@ -1228,17 +1239,17 @@ function renderPanelBody(
     shown: ShownScreen,
     register: TipRegister,
     translate: TranslateLabel | null,
-    redraw: PanelRedraw,
+    renderInPlace: PanelRedraw,
     drawing: ListDrawing,
 ): void {
     if (shown.options !== null) {
         renderPanelOptions(
             document,
-            { regions, redraw, drawing, register },
+            { regions, renderInPlace, drawing, register },
             shown.options,
             { typeStep: shown.typeStep, windowSizes: shown.windowSizes },
         );
-        regions.defects = redraw(
+        regions.defects = renderInPlace(
             regions.defects,
             PANEL_REGION.defects,
             () => renderDefects(document, shown.defects),
@@ -1246,31 +1257,34 @@ function renderPanelBody(
         return;
     }
     const isFight = !shown.isOnShelf;
-    const slot = () => renderSlot(document);
-    regions.header = redraw(
+    const renderEmptySlot = () => renderSlot(document);
+    regions.header = renderInPlace(
         regions.header,
         PANEL_REGION.header,
-        isFight ? () => renderHeader(document, shown, register) : slot,
+        isFight ? () => renderHeader(document, shown, register) : renderEmptySlot,
     );
-    regions.nouns = redraw(
+    regions.nouns = renderInPlace(
         regions.nouns,
         PANEL_REGION.strips,
-        isFight ? () => renderNounStrips(document, shown) : slot,
+        isFight ? () => renderNounStrips(document, shown) : renderEmptySlot,
     );
-    regions.directions = redraw(
+    regions.directions = renderInPlace(
         regions.directions,
         PANEL_REGION.strips,
-        isFight ? () => renderDirectionStrips(document, shown) : slot,
+        isFight ? () => renderDirectionStrips(document, shown) : renderEmptySlot,
     );
-    regions.crumb = redraw(
+    regions.crumb = renderInPlace(
         regions.crumb,
         PANEL_REGION.crumb,
         () => renderCrumbRegion(document, shown, register),
     );
-    regions.options = redraw(regions.options, PANEL_REGION.strips, slot);
-    drawing.draw(shown.listName, () => renderShownList(document, shown, register, translate));
-    renderPinnedRegions(document, regions, shown, register, redraw);
-    renderPanelBodyFoot(document, regions, shown, register, redraw);
+    regions.options = renderInPlace(regions.options, PANEL_REGION.strips, renderEmptySlot);
+    drawing.renderListRegion(
+        shown.listName,
+        () => renderShownList(document, shown, register, translate),
+    );
+    renderPinnedRegions(document, regions, shown, register, renderInPlace);
+    renderPanelBodyFoot(document, regions, shown, register, renderInPlace);
 }
 
 function renderHeader(
@@ -1487,19 +1501,19 @@ function renderPanelOptions(
     document: PanelDocument,
     drawn: {
         regions: PanelRegions;
-        redraw: PanelRedraw;
+        renderInPlace: PanelRedraw;
         drawing: ListDrawing;
         register: TipRegister;
     },
     options: OptionsReading,
     chosen: { typeStep: TypeStep; windowSizes: WindowSizes },
 ): void {
-    const { regions, redraw, drawing, register } = drawn;
-    const slot = () => renderSlot(document);
-    regions.header = redraw(regions.header, PANEL_REGION.header, slot);
-    regions.nouns = redraw(regions.nouns, PANEL_REGION.strips, slot);
-    regions.directions = redraw(regions.directions, PANEL_REGION.strips, slot);
-    regions.crumb = redraw(
+    const { regions, renderInPlace, drawing, register } = drawn;
+    const renderEmptySlot = () => renderSlot(document);
+    regions.header = renderInPlace(regions.header, PANEL_REGION.header, renderEmptySlot);
+    regions.nouns = renderInPlace(regions.nouns, PANEL_REGION.strips, renderEmptySlot);
+    regions.directions = renderInPlace(regions.directions, PANEL_REGION.strips, renderEmptySlot);
+    regions.crumb = renderInPlace(
         regions.crumb,
         PANEL_REGION.crumb,
         () =>
@@ -1508,17 +1522,21 @@ function renderPanelOptions(
                 from: PANEL_WORDS.backFromOptions,
             }),
     );
-    regions.options = redraw(
+    regions.options = renderInPlace(
         regions.options,
         PANEL_REGION.strips,
         () => renderOptionsRegion(document, options, chosen),
     );
-    drawing.draw(OPTIONS_LIST_NAME, slot);
-    regions.pinnedActor = redraw(regions.pinnedActor, PANEL_REGION.pinned, slot);
-    regions.pinnedTarget = redraw(regions.pinnedTarget, PANEL_REGION.pinned, slot);
-    regions.outside = redraw(regions.outside, PANEL_REGION.outside, slot);
-    regions.sides = redraw(regions.sides, PANEL_REGION.sides, slot);
-    regions.suspicions = redraw(
+    drawing.renderListRegion(OPTIONS_LIST_NAME, renderEmptySlot);
+    regions.pinnedActor = renderInPlace(regions.pinnedActor, PANEL_REGION.pinned, renderEmptySlot);
+    regions.pinnedTarget = renderInPlace(
+        regions.pinnedTarget,
+        PANEL_REGION.pinned,
+        renderEmptySlot,
+    );
+    regions.outside = renderInPlace(regions.outside, PANEL_REGION.outside, renderEmptySlot);
+    regions.sides = renderInPlace(regions.sides, PANEL_REGION.sides, renderEmptySlot);
+    regions.suspicions = renderInPlace(
         regions.suspicions,
         PANEL_REGION.suspicions,
         () => renderSuspicions(document, options.answers),
@@ -2560,7 +2578,7 @@ function renderPinnedRegions(
     regions: PanelRegions,
     shown: ShownScreen,
     register: TipRegister,
-    redraw: PanelRedraw,
+    renderInPlace: PanelRedraw,
 ): void {
     const stated = {
         metric: shown.current,
@@ -2575,7 +2593,7 @@ function renderPinnedRegions(
     ] as const;
     for (const [end, standing] of ends) {
         const row = pinned.find((one) => one.end === end) ?? null;
-        regions[standing] = redraw(
+        regions[standing] = renderInPlace(
             regions[standing],
             PANEL_REGION.pinned,
             () =>
@@ -2669,21 +2687,21 @@ function renderPanelBodyFoot(
     regions: PanelRegions,
     shown: ShownScreen,
     register: TipRegister,
-    redraw: PanelRedraw,
+    renderInPlace: PanelRedraw,
 ): void {
-    regions.outside = redraw(
+    regions.outside = renderInPlace(
         regions.outside,
         PANEL_REGION.outside,
         () => shown.isOnShelf ? renderSlot(document) : renderOutside(document, shown, register),
     );
     // Whether there is a summary to draw is asked **inside** the guard, not before it: a reading
     // that throws on being asked cost the whole panel where the question stood outside.
-    regions.sides = redraw(regions.sides, PANEL_REGION.sides, () => {
+    regions.sides = renderInPlace(regions.sides, PANEL_REGION.sides, () => {
         const hasSides = shown.reading.sides !== null && !shown.isOnShelf;
         if (!hasSides) return renderSlot(document);
         return renderSides(document, shown);
     });
-    regions.suspicions = redraw(
+    regions.suspicions = renderInPlace(
         regions.suspicions,
         PANEL_REGION.suspicions,
         () =>
@@ -2694,7 +2712,7 @@ function renderPanelBodyFoot(
     );
     // Last, and drawn on every screen: what the panel could not do is not about the fight, so it
     // does not go away when the reader switches to another one — `DESIGN.md`.
-    regions.defects = redraw(
+    regions.defects = renderInPlace(
         regions.defects,
         PANEL_REGION.defects,
         () => renderDefects(document, shown.defects),
@@ -2859,21 +2877,21 @@ function renderPanelWaiting(
     document: PanelDocument,
     regions: PanelRegions,
     waiting: WaitingReading,
-    redraw: PanelRedraw,
+    renderInPlace: PanelRedraw,
     drawing: ListDrawing,
     register: TipRegister,
 ): void {
-    renderPanelFolded(document, regions, redraw);
+    renderPanelFolded(document, regions, renderInPlace);
     if (waiting.isCollapsed) return;
     if (waiting.options !== null) {
         renderPanelOptions(
             document,
-            { regions, redraw, drawing, register },
+            { regions, renderInPlace, drawing, register },
             waiting.options,
             { typeStep: waiting.typeStep, windowSizes: waiting.windowSizes },
         );
-    } else drawing.draw(WAITING_LIST_NAME, () => renderWaitingList(document, waiting));
-    regions.defects = redraw(
+    } else drawing.renderListRegion(WAITING_LIST_NAME, () => renderWaitingList(document, waiting));
+    regions.defects = renderInPlace(
         regions.defects,
         PANEL_REGION.defects,
         () => renderDefects(document, waiting.defects),
@@ -2900,7 +2918,7 @@ function renderStandingWindowInPlace(
     reading: StandingReading | StandingAbsence,
     isCollapsed: boolean,
 ): void {
-    const { document, redraw } = held;
+    const { document, renderInPlace } = held;
     // The mark on the frame and the body rendered empty, both — as the panel's fold does. The
     // frame is what stays across a draw, so it is what can say the window is away.
     renderStep(held.report, PANEL_REGION.standing, () => {
@@ -2909,7 +2927,7 @@ function renderStandingWindowInPlace(
             : CLASS.standing;
     });
     held.setStandingBar(
-        redraw(
+        renderInPlace(
             held.getStandingBar(),
             PANEL_REGION.standing,
             () => renderStandingBar(document, isCollapsed),
@@ -2925,7 +2943,7 @@ function renderStandingWindowInPlace(
             held.getStandingBody(),
             reading,
             isCollapsed,
-            redraw,
+            renderInPlace,
             held.standingRegister,
         ),
     );
@@ -2941,15 +2959,15 @@ function renderStandingBodyInPlace(
     standing: PanelElement,
     reading: StandingReading | StandingAbsence,
     isCollapsed: boolean,
-    redraw: PanelRedraw,
+    renderInPlace: PanelRedraw,
     register: TipRegister,
 ): PanelElement {
     const region = PANEL_REGION.standing;
-    if (isCollapsed) return redraw(standing, region, () => renderSlot(document));
+    if (isCollapsed) return renderInPlace(standing, region, () => renderSlot(document));
     if (typeof reading === "string") {
-        return redraw(standing, region, () => renderStandingAbsence(document, reading));
+        return renderInPlace(standing, region, () => renderStandingAbsence(document, reading));
     }
-    return redraw(standing, region, () => renderStandingBody(document, reading, register));
+    return renderInPlace(standing, region, () => renderStandingBody(document, reading, register));
 }
 
 function renderStandingAbsence(document: PanelDocument, absence: StandingAbsence): PanelElement {

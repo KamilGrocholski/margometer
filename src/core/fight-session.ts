@@ -195,7 +195,7 @@ const NO_UNREAD: UnreadCounts = {
     [UNREAD_CAUSE.grammarRefused]: 0,
 };
 
-export function initFightSession(options: SessionOptions): FightSession {
+export function createFightSession(options: SessionOptions): FightSession {
     assert(options.combatantsMaximum <= COMBATANTS_MAXIMUM, "a cast is bounded by the roster");
     assert(options.eventsMaximum > MESSAGES_MAXIMUM, "a fight holds more than one full payload");
     assert(options.payloadsMaximum > 0, "a fight holds a payload");

@@ -14,9 +14,9 @@ import {
 } from "#/src/core/fight-figures.ts";
 import {
     commitPayload,
+    createFightSession,
     type FightView,
     getFightView,
-    initFightSession,
     type PayloadRejected,
     preparePayload,
     type SessionOptions,
@@ -72,7 +72,7 @@ export function replayFightPayloads(
     options: SessionOptions,
 ): KeptReading | null | ReplayFailure {
     assert(payloads.length <= CALLS_MAXIMUM, "a fight replayed is inside a recording's bound");
-    const session = initFightSession(options);
+    const session = createFightSession(options);
     const messagesByPayload: (readonly string[])[] = [];
     for (const payload of payloads) {
         const record = readPayloadEnvelope(payload);

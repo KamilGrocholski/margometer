@@ -340,7 +340,17 @@ function decodeMessageReading(message: ProtocolMessage): MessageReading {
         else isRead = addValuedKey(reading, key, parameter.value, keyReading, message);
         if (!isRead) reading.unreadKeys.push(key);
     }
-    closeAnnouncement(reading);
+    // Close the announcement: an id with no name is a skill nothing can put on screen.
+    {
+        assert(reading.skill === null, "a reading's announcement is closed once");
+        assert(reading.skillKeys >= 0, "a key is counted once");
+        if (reading.skillName !== null) {
+            reading.skill = { skillName: reading.skillName, skillId: reading.skillId };
+        } else if (reading.skillKeys > 0) {
+            reading.unreadKeys.push(SKILL_ID_KEY);
+            reading.skillKeys -= 1;
+        }
+    }
     const read = tallyParametersRead(reading);
     assert(read === message.parameters.length, "every parameter is read or named unread, once");
     return reading;
@@ -581,19 +591,6 @@ function decodeNamedHealing(
     assert(named.targetName.length > 0, "the healed is named inside the value");
     assert(Number.isSafeInteger(amount), "healing read from digits is held exactly");
     return { ...named, amount, source: key };
-}
-
-/** An id with no name is a skill nothing can put on screen, and the protocol has never sent one. */
-function closeAnnouncement(reading: MessageReading): void {
-    assert(reading.skill === null, "a reading's announcement is closed once");
-    assert(reading.skillKeys >= 0, "a key is counted once");
-    if (reading.skillName !== null) {
-        reading.skill = { skillName: reading.skillName, skillId: reading.skillId };
-        return;
-    }
-    if (reading.skillKeys === 0) return;
-    reading.unreadKeys.push(SKILL_ID_KEY);
-    reading.skillKeys -= 1;
 }
 
 function tallyParametersRead(reading: MessageReading): number {

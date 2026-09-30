@@ -24,6 +24,7 @@ import {
 } from "#/src/game/browser-store.ts";
 import { getFightView } from "#/src/core/fight-session.ts";
 import {
+    deleteKeptFight,
     EverySlotPinned,
     FightAlreadyKept,
     FightNotKept,
@@ -32,7 +33,6 @@ import {
     type KeptFight,
     openShelf,
     pinFight,
-    removeKeptFight,
     RotationRefused,
     type ShelfContents,
     ShelfUnreadable,
@@ -284,10 +284,10 @@ Deno.test("a fight is kept once, and a fight not kept is neither pinned nor remo
     const pinned = pinFight(store, shelf, 2, true);
     assertInstanceOf(pinned, FightNotKept, "a pin on nobody's fight");
     assertStrictEquals(pinned.openedAt, 2, "named by its moment");
-    const unkept = removeKeptFight(store, shelf, 2);
+    const unkept = deleteKeptFight(store, shelf, 2);
     assertInstanceOf(unkept, FightNotKept, "and a removal");
     assertStrictEquals(unkept.openedAt, 2, "named the same way");
-    const removed = removeKeptFight(store, shelf, 1);
+    const removed = deleteKeptFight(store, shelf, 1);
     assertEquals(removed, { contents: EMPTY, droppedOpenedAt: [] }, "the kept one goes");
     assertEquals(readOpenedAt(store), [], "and a reload finds it gone");
     assertThrows(

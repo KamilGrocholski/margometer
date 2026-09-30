@@ -29,8 +29,34 @@ function executeScreenIntentOnce(screen: ScreenState, intent: PanelIntent): bool
         case PANEL_INTENT.openPart:
             screen.openPart = intent.part;
             return true;
+        // One rung at a time. False where there was none to leave: the gesture is the whole panel's,
+        // so a press on the ranking would otherwise redraw it for nothing.
         case PANEL_INTENT.close:
-            return closeScreenRung(screen);
+            if (screen.isOnOptions) {
+                screen.isOnOptions = false;
+                return true;
+            }
+            if (screen.isOnShelf) {
+                screen.isOnShelf = false;
+                return true;
+            }
+            if (screen.openPart !== null) {
+                screen.openPart = null;
+                return true;
+            }
+            if (screen.openPairId !== null) {
+                screen.openPairId = null;
+                return true;
+            }
+            // The end a person left out is the rung under their figure, so it closes before they do.
+            if (screen.openRowId !== null) {
+                if (screen.openUnnamedEnd !== null) screen.openUnnamedEnd = null;
+                else screen.openRowId = null;
+                return true;
+            }
+            if (screen.openUnnamedEnd === null) return false;
+            screen.openUnnamedEnd = null;
+            return true;
         case PANEL_INTENT.fold:
             if (intent.window === PANEL_WINDOW.panel) screen.isCollapsed = !screen.isCollapsed;
             else screen.isStandingCollapsed = !screen.isStandingCollapsed;
@@ -133,38 +159,6 @@ function setScreenUnnamed(screen: ScreenState, end: PanelUnnamedEnd): boolean {
     assert(screen.openPairId === null, "an end left out is pressed from the level over it");
     assert(screen.openPart === null, "and never from a part's level");
     screen.openUnnamedEnd = end;
-    return true;
-}
-
-/**
- * One rung at a time, and the part before the pair. False where there was no rung to leave: the
- * gesture is the whole panel's, so a press on the ranking would otherwise redraw it for nothing.
- */
-function closeScreenRung(screen: ScreenState): boolean {
-    if (screen.isOnOptions) {
-        screen.isOnOptions = false;
-        return true;
-    }
-    if (screen.isOnShelf) {
-        screen.isOnShelf = false;
-        return true;
-    }
-    if (screen.openPart !== null) {
-        screen.openPart = null;
-        return true;
-    }
-    if (screen.openPairId !== null) {
-        screen.openPairId = null;
-        return true;
-    }
-    // The end a person left out is the rung under their figure, so it closes before they do.
-    if (screen.openRowId !== null) {
-        if (screen.openUnnamedEnd !== null) screen.openUnnamedEnd = null;
-        else screen.openRowId = null;
-        return true;
-    }
-    if (screen.openUnnamedEnd === null) return false;
-    screen.openUnnamedEnd = null;
     return true;
 }
 

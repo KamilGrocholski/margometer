@@ -44,7 +44,7 @@ export function deriveHealthTolerance(healthMaximum: number): number {
 }
 
 /** Null where nothing stated a maximum. Zero is a reading, and never stands in for one. */
-export function deriveHealthFromPercent(
+export function composeHealthFromPercent(
     percent: number,
     healthMaximum: number | null,
 ): number | null {
@@ -99,7 +99,7 @@ export function indexFightEntryHealth(
         for (const [combatantId, percent] of getStatedHealthsFromEvent(event)) {
             if (entered.has(combatantId)) continue;
             const maximum = roster.byId.get(combatantId)?.healthMaximum ?? null;
-            const health = deriveHealthFromPercent(percent, maximum);
+            const health = composeHealthFromPercent(percent, maximum);
             if (health === null) continue;
             assert(maximum !== null, "a health read off a percentage was read against a pool");
             assert(health <= maximum, "nobody enters above their own pool");
@@ -124,7 +124,7 @@ export function indexTeamHeals(
     const held = new Map<number, number>();
     const heals = new Map<BattleEvent, TeamHeal>();
     for (const event of events) {
-        const heal = deriveTeamHeal(event, roster, entered, held);
+        const heal = composeTeamHeal(event, roster, entered, held);
         if (heal !== null) {
             const casterSide = roster.byId.get(heal.casterId)?.side;
             assert(casterSide !== undefined, "a cast is sized only on a side its caster stands on");
@@ -138,7 +138,7 @@ export function indexTeamHeals(
         }
         for (const [combatantId, percent] of getStatedHealthsFromEvent(event)) {
             const maximum = roster.byId.get(combatantId)?.healthMaximum ?? null;
-            const health = deriveHealthFromPercent(percent, maximum);
+            const health = composeHealthFromPercent(percent, maximum);
             if (health !== null) held.set(combatantId, health);
         }
     }
@@ -167,7 +167,7 @@ function indexReducedSides(events: readonly BattleEvent[], roster: CombatantRost
  * at what they entered the fight with. A member missing any of the three is not sized, and the cast
  * keeps saying so.
  */
-function deriveTeamHeal(
+function composeTeamHeal(
     event: BattleEvent,
     roster: CombatantRoster,
     entered: FightEntryHealth,

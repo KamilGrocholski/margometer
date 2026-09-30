@@ -24,8 +24,8 @@ import {
 } from "#/src/game/payload-envelope.ts";
 import {
     commitPayload,
+    createFightSession,
     getFightView,
-    initFightSession,
     preparePayload,
     SESSION_OPTIONS,
 } from "#/src/core/fight-session.ts";
@@ -164,7 +164,7 @@ Deno.test("an empty message is passed over, and counts as lost against what was 
     const record = readOk({ mi: [0, 0, 0], m: ["0;0;txt=a", "", "0;0;txt=b"] });
     assertEquals(record.messages, ["0;0;txt=a", "0;0;txt=b"], "two read");
     assertStrictEquals(record.messagesStated, 3, "out of three stated");
-    const session = initFightSession(SESSION_OPTIONS);
+    const session = createFightSession(SESSION_OPTIONS);
     const prepared = preparePayload(session, { ...record, isInit: true }, BLOWS_GRANTED);
     assertNotInstanceOf(prepared, Error, "the payload is prepared");
     commitPayload(session, prepared);

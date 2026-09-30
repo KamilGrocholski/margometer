@@ -50,16 +50,26 @@ across the tree. ADR 0006 cites "S4's page" as it stood on its date.
 **A function's verb states its purity, in D's two strengths.** N2's table gains a column:
 
 - **strong** — reads only its parameters and module constants, changes none of them, and returns a
-  value: `prepare`, `verify`, `get`, `lookup`, `parse`, `decode`, `encode`, `tally`, `index`,
-  `replay`, `present`, `format`, `compose`, `create`, `require`, `expect`, and the predicates **N8**
-  names;
-- **weak** — changes only what it is handed: `add`, `remove`, `set`, `reset`;
+  value: `prepare`, `verify`, `get`, `lookup`, `parse`, `decode`, `encode`, `tally`, `count`,
+  `clamp`, `index`, `replay`, `present`, `format`, `compose`, `create`, `require`, `expect`, and the
+  predicates **N8** names;
+- **weak** — changes only what it is handed: `add`, `remove`, `set`, `reset`, and `commit`, which
+  writes a prepared transition into the session it is handed;
 - **none** — anything else, and every verb outside the table;
 - **either** — `read`, whose verb says where a value comes from (N16) and not what reaching it
   touches: `readPayloadEnvelope` reads a value it is handed, `readStorageChoice` a store.
 
 A strong or weak function calls only strong, weak and `read` functions, and a strong one changes
-nothing it is handed. That is **P1**.
+nothing it is handed. That is **P1**. A strong function may call a weak one on what it made itself,
+as `replayFightPayloads` commits into the session it creates: D allows the same, and a guard cannot
+tell a local from a handed value by name, so which argument a weak call is handed is held by
+reading.
+
+**`init` holds something outside it, and `create` does not.** `init` makes an object that holds
+state and something outside it — a wrap, a frame, a listener — and `create` brings a value into
+existence from its parameters alone. `initFightSession` and `initCombatantFigures` built plain
+records, and are `create…`. `count` and `clamp` join the table as strong verbs: 17 calls from strong
+and weak functions went to one of the two, and neither is a synonym of a verb there.
 
 **A function called from one place is written in its caller, unless it is strong.** Its body becomes
 a braced block, headed by a one-line comment that names the step, which is Carmack's style C. A
@@ -96,9 +106,10 @@ C14 wants a type to say it, and P4 hands state down as a parameter, which says i
 
 - The guard of the 70 lines, under `tests/repository/`, is deleted with them.
 - `tests/repository/comment-share.test.ts` leaves a block's heading out of the share.
-- S4 and P1 to P4 are held by reading until their guards run. The findings above are what a P1 guard
-  meets first: `compose…` functions that initialise or draw, `init…` used for a plain record, and
-  weak listeners that report to the console.
+- `tests/repository/purity.test.ts` holds P1, P3 and P4, and reads the purity of each verb off N2's
+  table. The tree it met was mended in the commit that brought it: a `compose…` that initialised the
+  runtime's ports or drew the panel, a `get…` that added what it did not find, a weak `add…` handing
+  a failure on through a verb of none. S4 and P2 are held by reading until their guards run.
 - S4 moves some two hundred functions into their callers. `src/core/fight-statistics.ts` takes its
   `add…` helpers into `tallyFightStatistics`, and `src/ui/panel-element.ts` its `render…` pieces
   into the functions that call them. A strong helper stays where C1 puts it.
@@ -106,4 +117,5 @@ C14 wants a type to say it, and P4 hands state down as a parameter, which says i
   helper's precondition that its caller already guarantees becomes one A12 deletes.
 - Open, and the maintainer's: whether a guard for P2 reads direct callers or reachability from the
   entries of `docs/design.md` §10. Every `render…` reaches back to `startMargoMeter` through the
-  callbacks, so reachability alone separates nothing.
+  callbacks, so reachability alone separates nothing; and direct callers meet `markStale`, which
+  draws at once where no frame can be asked for (§10.4), so either reading needs that case named.

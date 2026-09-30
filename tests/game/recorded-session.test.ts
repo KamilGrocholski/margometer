@@ -15,10 +15,10 @@ import {
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     commitPayload,
+    createFightSession,
     type FightSession,
     type FightView,
     getFightView,
-    initFightSession,
     preparePayload,
     SESSION_OPTIONS,
 } from "#/src/core/fight-session.ts";
@@ -188,7 +188,7 @@ Deno.test("Dotyk anioła counts the heals the decoder reads, over every recordin
 
 /** The fight after every call, in order, as the panel would have read it. */
 function replayEach(fight: RecordedFight, visit: (view: FightView) => void): void {
-    const session = initFightSession(SESSION_OPTIONS);
+    const session = createFightSession(SESSION_OPTIONS);
     for (const update of fight.updates) {
         apply(session, update, fight.path);
         visit(view(session, fight.path));

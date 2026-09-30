@@ -7,9 +7,9 @@
 import * as errors from "#/libs/errors.ts";
 import type { PanelEvent, PanelRoot } from "./panel-document.ts";
 import {
+    addViewFailureGuarded,
     GestureDropped,
     type PanelListener,
-    reportViewFailure,
     type ViewFailure,
 } from "./view-failure.ts";
 
@@ -23,6 +23,6 @@ export function addGuardedListener(
     root.addEventListener(type, (event) => {
         const handled = errors.attempt(() => handle(event));
         if (!(handled instanceof Error)) return;
-        reportViewFailure(onFailure, new GestureDropped(listener, handled));
+        addViewFailureGuarded(onFailure, new GestureDropped(listener, handled));
     });
 }

@@ -158,7 +158,7 @@ function requireCachedBuild(): string {
 
 export function encodeFrozenKeyModule(
     build: string,
-    keys: string[],
+    keys: readonly string[],
     family: ComputedKeyFamily,
 ): string {
     const written = keys.map((key) => `        ${encodeRequiredText(key)},`).join("\n");

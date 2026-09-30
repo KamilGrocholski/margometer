@@ -18,10 +18,10 @@ import {
 } from "#/src/core/combatant-roster.ts";
 import {
     type CombatantFigures,
+    createCombatantFigures,
     type FightOutcome,
     type FightStatistics,
     type FigureCut,
-    initCombatantFigures,
     type SkillFigures,
 } from "#/src/core/fight-statistics.ts";
 import { parseInteger } from "#/libs/number-text.ts";
@@ -1035,7 +1035,7 @@ function composeRowDetailFor(
     combatantId: number,
 ): RowDetail {
     return composeRowDetail(
-        statistics.byCombatantId.get(combatantId) ?? initCombatantFigures(),
+        statistics.byCombatantId.get(combatantId) ?? createCombatantFigures(),
         roster.byId.get(combatantId)?.level ?? null,
         getWasTurnLostRead(statistics),
     );
@@ -2286,7 +2286,7 @@ export function presentDrill(
     // list at zero, and a row that drew nothing when it was pressed would leave the panel saying
     // the press did not land. What they open onto is the sentence saying they did nothing.
     const figures = statistics.byCombatantId.get(combatantId) ??
-        (held === undefined ? undefined : initCombatantFigures());
+        (held === undefined ? undefined : createCombatantFigures());
     if (figures === undefined) return null;
     const cuts = getCutsForMetric(figures, metric);
     const total = getFigure(figures, metric);

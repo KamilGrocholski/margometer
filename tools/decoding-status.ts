@@ -80,13 +80,13 @@ export function tallyDecodingStatus(replayed: readonly ReplayedFight[]): Decodin
     assertStrictEquals(eventsByKind.size, BATTLE_EVENTS.length, "every kind has one line");
     assert(status.messagesRefused <= status.messagesWithUnread, "a refusal is one of them");
     assert(status.messagesWithoutParameter <= status.messagesWithUnread, "and so is an empty one");
-    return { ...status, eventsByKind, unreadKeysByFrequency: sortTally([...unreadKeys]) };
+    return { ...status, eventsByKind, unreadKeysByFrequency: composeRankedTally([...unreadKeys]) };
 }
 
 /** Largest first, ties by name, so two runs over one material read alike. */
-function sortTally(tally: [string, number][]): Tally {
+function composeRankedTally(tally: Tally): Tally {
     assert(tally.length <= TALLY_MAXIMUM, "a tally sorted stays inside its stated bound");
-    return tally.sort((one, other) => getRankedOrder(one[1], other[1], one[0], other[0]));
+    return [...tally].sort((one, other) => getRankedOrder(one[1], other[1], one[0], other[0]));
 }
 
 /** The report as lines, so a test reads what it states without running it. */
@@ -119,7 +119,7 @@ export function formatStatusReport(
             : shelved.map((name) => `  ${name}`)),
         "",
         "events by kind",
-        ...formatStatusTallyLines(sortTally([...status.eventsByKind])),
+        ...formatStatusTallyLines(composeRankedTally([...status.eventsByKind])),
         "",
         "unread keys, most frequent first",
         ...(unread.length === 0 ? ["  every key was read"] : formatStatusTallyLines(unread)),

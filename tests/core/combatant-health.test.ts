@@ -7,7 +7,7 @@
 
 import { assert, assertEquals, assertExists } from "@std/assert";
 import {
-    deriveHealthFromPercent,
+    composeHealthFromPercent,
     deriveHealthTolerance,
     getStatedHealthsFromEvent,
     indexFightEntryHealth,
@@ -21,10 +21,14 @@ import { readRecordedFights } from "#/tests/recorded-fights.ts";
 const PERCENT_PLACES = 100;
 
 Deno.test("zero is a reading, and a maximum nobody stated is not", () => {
-    assertEquals(deriveHealthFromPercent(0, 745), 0, "nothing left is a measurement");
-    assertEquals(deriveHealthFromPercent(100, 745), 745, "a full pool reads back exactly");
-    assertEquals(deriveHealthFromPercent(50, 745), 373, "a half is rounded, not truncated");
-    assertEquals(deriveHealthFromPercent(50, null), null, "no maximum, no reading, and never zero");
+    assertEquals(composeHealthFromPercent(0, 745), 0, "nothing left is a measurement");
+    assertEquals(composeHealthFromPercent(100, 745), 745, "a full pool reads back exactly");
+    assertEquals(composeHealthFromPercent(50, 745), 373, "a half is rounded, not truncated");
+    assertEquals(
+        composeHealthFromPercent(50, null),
+        null,
+        "no maximum, no reading, and never zero",
+    );
     assertEquals(deriveHealthTolerance(0), 1, "a pool of nothing still rounds");
     assertEquals(deriveHealthTolerance(745), 1, "a small pool is read to the point");
 });
@@ -58,7 +62,7 @@ Deno.test("a stated percentage reads back to the health the client holds", () =>
     for (const fight of readRecordedFights()) {
         const path = fight.path;
         for (const reading of fight.healthReadings) {
-            const health = deriveHealthFromPercent(reading.healthPercent, reading.healthMaximum);
+            const health = composeHealthFromPercent(reading.healthPercent, reading.healthMaximum);
             assertExists(health, `${path}: a stated maximum reads`);
             const distance = Math.abs(health - reading.health);
             const tolerance = deriveHealthTolerance(reading.healthMaximum);

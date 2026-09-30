@@ -62,7 +62,7 @@ export interface RenderReport {
 }
 
 /** The sink the runtime hands the view. A sink that throws has nobody left to tell. */
-export function reportViewFailure(
+export function addViewFailureGuarded(
     onFailure: (failure: ViewFailure) => void,
     failure: ViewFailure,
 ): void {

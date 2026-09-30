@@ -14,10 +14,10 @@ import {
 import { decodePayloadMessages, type UnreadMessage } from "#/src/core/fight-decoder.ts";
 import {
     commitPayload,
+    createFightSession,
     type FightSession,
     type FightView,
     getFightView,
-    initFightSession,
     preparePayload,
     SESSION_OPTIONS,
 } from "#/src/core/fight-session.ts";
@@ -199,7 +199,7 @@ export function decodeRecordedFight(fight: RecordedFight): RecordedDecoding {
  * The cast comes off the payloads here, as the add-on reads it, and not off the snapshots.
  */
 export function replayRecordedFight(fight: RecordedFight): FightSession {
-    const session = initFightSession(SESSION_OPTIONS);
+    const session = createFightSession(SESSION_OPTIONS);
     for (const update of fight.updates) {
         const record = readPayloadEnvelope(update);
         assert(

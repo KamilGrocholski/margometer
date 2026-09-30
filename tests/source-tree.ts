@@ -40,6 +40,12 @@ export interface AstNode {
     specifiers?: AstNode[];
     local?: AstNode;
     imported?: AstNode;
+    kind?: string;
+    left?: AstNode;
+    object?: AstNode;
+    argument?: AstNode;
+    expression?: AstNode;
+    types?: AstNode[];
 }
 type AstVisitor = Record<string, (node: AstNode) => void>;
 interface AstComment {
@@ -77,6 +83,10 @@ const ROOT_PREFIX = "#/";
 const SIBLING_PREFIX = "./";
 /** What `src/` reaches outside itself and ships with it. */
 const BUNDLED_PREFIXES = ["frozen/", "libs/"];
+/** Between a file's path and a declaration's name, in the key a call graph is indexed by. */
+export const NAME_MARK = "#";
+/** Past the depth of any parse here, so the climb to a declaration carries a stated bound. */
+const DEPTH_MAXIMUM = 512;
 
 /** Every `.ts` file under the directories asked for that exist, by repository-relative path. */
 export function readSourceFiles(directories: readonly string[]): SourceFile[] {
@@ -199,4 +209,46 @@ export function formatNodePlace(file: SourceFile, node: AstNode): string {
 /** A sample the guards are proved on, never a file in the tree. */
 export function composeSample(lines: readonly string[]): SourceFile {
     return { path: "sample.ts", text: lines.join("\n") };
+}
+
+/** What each name a file can call stands for, by `path#name`: its own declarations and imports. */
+export function indexCallableNames(file: SourceFile): Map<string, string> {
+    const known = new Map<string, string>();
+    for (const declared of readAstNodes(file, ["FunctionDeclaration", "VariableDeclarator"])) {
+        const name = readDeclaredFunctionName(declared);
+        if (name !== null) known.set(name, file.path + NAME_MARK + name);
+    }
+    for (const imported of readAstNodes(file, ["ImportDeclaration"])) {
+        const source = imported.source?.value;
+        if (typeof source !== "string") continue;
+        const path = lookupImportedPath(file, source);
+        if (path === null) continue;
+        for (const specifier of imported.specifiers ?? []) {
+            const local = specifier.local?.name;
+            const name = specifier.imported?.name;
+            if (local === undefined) continue;
+            if (name !== undefined) known.set(local, path + NAME_MARK + name);
+        }
+    }
+    return known;
+}
+
+/** The name a declaration gives a function, or null where it declares something else. */
+export function readDeclaredFunctionName(node: AstNode): string | null {
+    if (node.type === "FunctionDeclaration") return node.id?.name ?? null;
+    const init = node.init;
+    if (init === null || init === undefined) return null;
+    if (!FUNCTION_NODES.some((kind) => kind === init.type)) return null;
+    return node.id?.name ?? null;
+}
+
+/** The declaration a node stands in, climbing out of every unnamed closure; null at the top. */
+export function lookupCallerDeclaration(node: AstNode): AstNode | null {
+    let at = node.parent ?? null;
+    for (let depth = 0; at !== null; depth += 1) {
+        assert(depth < DEPTH_MAXIMUM, "a parse stays inside the depth a climb states");
+        if (readDeclaredFunctionName(at) !== null) return at;
+        at = at.parent ?? null;
+    }
+    return null;
 }

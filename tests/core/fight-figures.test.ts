@@ -19,9 +19,9 @@ import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { tallyFightFigures, verifyFightFigures } from "#/src/core/fight-figures.ts";
 import {
     commitPayload,
+    createFightSession,
     type FightView,
     getFightView,
-    initFightSession,
     type PayloadRecord,
     preparePayload,
     SESSION_OPTIONS,
@@ -66,7 +66,7 @@ Deno.test("a fight run through the session tallies what its events tally, everyw
 });
 
 function replayRecordedFight(fight: RecordedFight): FightView {
-    const session = initFightSession(SESSION_OPTIONS);
+    const session = createFightSession(SESSION_OPTIONS);
     fight.payloads.forEach((messages, index) => {
         const isInit = index === 0;
         const combatants = isInit ? fight.combatants : [];
@@ -84,7 +84,7 @@ function replayRecordedFight(fight: RecordedFight): FightView {
 }
 
 Deno.test("figures are tallied from a fight that exists, and say what they stand on", () => {
-    const session = initFightSession(SESSION_OPTIONS);
+    const session = createFightSession(SESSION_OPTIONS);
     const opened = preparePayload(session, { ...NOTHING, isInit: true }, BLOWS_GRANTED);
     assert(!(opened instanceof Error), "a fight opens on nothing");
     commitPayload(session, opened);
