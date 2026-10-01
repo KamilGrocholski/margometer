@@ -28,6 +28,7 @@ const TOOL_ERROR_CODE = {
     turnReading: "TurnReading",
     fabricatedFight: "FabricatedFight",
     gameReadings: "GameReadings",
+    payloadCost: "PayloadCost",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -192,5 +193,12 @@ export class FabricatedFightError extends MargoMeterToolError {
 export class GameReadingsError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.gameReadings, reason, options);
+    }
+}
+
+/** A cost that cannot be taken: a recording whose call the add-on itself would refuse. */
+export class PayloadCostError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.payloadCost, reason, options);
     }
 }

@@ -21,6 +21,8 @@
         // What the decoder could not read, in `develop`'s text: the question that decides
         // whether an intake is worth starting, so a path is a file on disk.
         "fight:decoding": "deno run -A tools/decoding-status.ts",
+        // What one payload costs in the game's stack and a frame's tally at a fight's end (S3).
+        "fight:cost": "deno run -A tools/payload-cost.ts",
         // `docs/design.md` §12's proof: both texts against `develop`'s own, run from its own tree
         // under `.cache/`. Outside the gate because it runs another branch's program; a
         // difference exits 1 and is a finding in one of the two, never an expectation to move.

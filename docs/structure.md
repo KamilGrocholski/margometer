@@ -210,6 +210,7 @@ file comes or goes (ADR 0010).
 | `tools/help-article.ts`          | the published help, cached, searched and its phrase counts frozen: `game:help`                                           |
 | `tools/help-claim-register.ts`   | the claims `docs/protocol-keys.md` makes of the published help, read back into phrases                                   |
 | `tools/margometer-tool-error.ts` | `MargoMeterToolError`, the abstract base every tool failure extends                                                      |
+| `tools/payload-cost.ts`          | what one payload costs in the game's stack, and the frame's tally, over the recordings: `fight:cost`                     |
 | `tools/panel-giving-way.ts`      | the panel with a region that will not draw, built from a copy of the tree: `preview:giveway`, `panel:giveway`            |
 | `tools/panel-shots.ts`           | photographs the panel in each state worth showing into `screenshots/`: `panel:shots`                                     |
 | `tools/preview-page.ts`          | the page both previews draw: the game page, the bar, the tooltips column, a store that forgets, and the install band     |
