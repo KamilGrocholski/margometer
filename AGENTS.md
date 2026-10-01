@@ -79,14 +79,16 @@ this language does not have would be**; each states what binds instead.
   continuing.
 - **S3.** The cost of one payload is **measured** over the recordings, never assumed, and a change
   to the decode path that raises it is a finding.
-- **S4. A function called from one place is written in its caller, unless its verb is strong.**
-  Length ends no function, and strength is **P1**'s. The body is a braced block there, headed by a
-  one-line comment naming the step, and the block scopes what the step declares (**S6**); where the
-  step is the whole body of an `if`, a loop or a closure, that body is its block and the heading its
-  first line. A function handed on as a value — a listener, a callback — is not called, and stays
-  one; nor does an `async` function a synchronous caller starts, because only a function holds its
-  awaits. Observation: in `libs/`, `src/` or `tools/`, a function no other module imports, whose
-  verb is not strong, called from exactly one function and never handed on. ADR 0018.
+- **S4. A function called from one place is written in its caller, unless its verb is strong or,
+  written there, it would nest past S16's bound.** Length ends no function, and strength is
+  **P1**'s. The body is a braced block there, headed by a one-line comment naming the step, and the
+  block scopes what the step declares (**S6**); where the step is the whole body of an `if`, a loop
+  or a closure, that body is its block and the heading its first line. A function handed on as a
+  value — a listener, a callback — is not called, and stays one; nor does an `async` function a
+  synchronous caller starts, because only a function holds its awaits. Observation: in `libs/`,
+  `src/` or `tools/`, a function no other module imports, whose verb is not strong, called from
+  exactly one function and never handed on, and whose body's depth plus the depth of its call stays
+  within **S16**'s bound. ADR 0018, ADR 0022.
 - **S5.** Assertion density averages at least two per **function that takes something and may
   assert**, across `libs/`, `src/core/`, `src/game/`, `src/runtime/` and `tools/`, counting the
   closures a file writes inside its functions as the functions they are. A function handed nothing
@@ -125,6 +127,10 @@ this language does not have would be**; each states what binds instead.
   `delete`d, and its type marks none optional. Observation: a `delete` of a property, or a property
   typed `?:`, in `libs/`, `src/core/`, `src/game/` or `src/runtime/`. A type describing an object
   the page hands over is not one this program builds. ADR 0021.
+- **S16. A body nests at most five blocks deep, counting its own.** A braced block, a `case`, and
+  every arrow a statement stands in, braced or not, each count one; a lambda written inside a
+  statement adds nothing. Observation: in `libs/`, `src/` or `tools/`, a statement standing in more
+  than five. ADR 0022.
 
 ## Purity
 
@@ -555,6 +561,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/record-shapes.test.ts`           | S15                                                    |
 | `tests/repository/control-flow.test.ts`            | S1                                                     |
 | `tests/repository/called-once.test.ts`             | S4                                                     |
+| `tests/repository/nesting-depth.test.ts`           | S16                                                    |
 | `tests/repository/purity.test.ts`                  | P1, P3, P4                                             |
 | `tests/repository/event-entries.test.ts`           | P2                                                     |
 | `tests/repository/single-importer.test.ts`         | C9                                                     |

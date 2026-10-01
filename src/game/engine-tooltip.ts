@@ -8,7 +8,7 @@
 
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
-import { isRecord } from "#/libs/unknown-value.ts";
+import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { readPageBattle } from "./engine-battle.ts";
 import { readNamedWarriors, WARRIOR_ID_KEY } from "./warrior-snapshot.ts";
@@ -86,44 +86,8 @@ export function initPageTooltip(page: unknown): TooltipPort {
                     drawn.add(id);
                     const block = encodeBlock(rowsByCombatantId.get(id) ?? []);
                     const was = next.get(id) ?? "";
-                    let stands: boolean;
-                    // Write the block onto the fighter, or pass over one out of reach.
-                    writeBlock: {
-                        // A fighter with no tooltip this file can reach keeps whatever stood there.
-                        // ⚠️ **The break between the rows is the client's own**: a block goes on
-                        // through `concatTip`, which writes the `<br>`, and comes off through `tip`
-                        // with the registry's own string less ours. `tipupdate` goes after the
-                        // rows, because `concatTip` triggers nothing.
-                        const held = warrior[WARRIOR_ELEMENT_FIELD];
-                        if (!isRecord(held)) continue;
-                        const find = held[FIND_METHOD];
-                        if (typeof find !== "function") continue;
-                        const targets: unknown = Reflect.apply(find, held, [TOOLTIP_TARGETS]);
-                        if (!isTooltipTargets(targets)) continue;
-                        const current = targets.getTipData();
-                        if (typeof current !== "string") continue;
-                        const at = was.length === 0 ? -1 : current.lastIndexOf(was);
-                        if (at !== -1) {
-                            if (was === block) {
-                                stands = true;
-                                break writeBlock;
-                            }
-                            const theirs = current.slice(0, at) + current.slice(at + was.length);
-                            // An empty string is the client's word for deleting the tooltip, which
-                            // is not ours to do.
-                            if (theirs.length === 0) continue;
-                            targets.tip(theirs);
-                        }
-                        if (block.length === 0) {
-                            stands = false;
-                            break writeBlock;
-                        }
-                        for (const row of block.split(CLIENT_BREAK).slice(1)) {
-                            targets.concatTip(row);
-                        }
-                        targets.trigger(TELL_EVENT);
-                        stands = true;
-                    }
+                    const stands = writeWarriorBlock(warrior, block, was);
+                    if (stands === null) continue;
                     if (stands) next.set(id, block);
                     else next.delete(id);
                     if (stands) written += 1;
@@ -150,6 +114,36 @@ function encodeBlock(rows: readonly string[]): string {
     const text = rows.map((row) => `${CLIENT_BREAK}${row}`).join("");
     if (text.length > 0) assert(text.startsWith(CLIENT_BREAK), "it opens on the client's break");
     return text;
+}
+
+/**
+ * Whether the block stands on the fighter once written, or null where no tooltip this file can
+ * reach holds one, which keeps whatever stood there. ⚠️ **The break between the rows is the
+ * client's own**: a block goes on through `concatTip`, which writes the `<br>`, and comes off
+ * through `tip` with the registry's own string less ours. `tipupdate` goes after the rows, because
+ * `concatTip` triggers nothing.
+ */
+function writeWarriorBlock(warrior: UnknownRecord, block: string, was: string): boolean | null {
+    const held = warrior[WARRIOR_ELEMENT_FIELD];
+    if (!isRecord(held)) return null;
+    const find = held[FIND_METHOD];
+    if (typeof find !== "function") return null;
+    const targets: unknown = Reflect.apply(find, held, [TOOLTIP_TARGETS]);
+    if (!isTooltipTargets(targets)) return null;
+    const current = targets.getTipData();
+    if (typeof current !== "string") return null;
+    const at = was.length === 0 ? -1 : current.lastIndexOf(was);
+    if (at !== -1) {
+        if (was === block) return true;
+        const theirs = current.slice(0, at) + current.slice(at + was.length);
+        // An empty string is the client's word for deleting the tooltip, which is not ours to do.
+        if (theirs.length === 0) return null;
+        targets.tip(theirs);
+    }
+    if (block.length === 0) return false;
+    for (const row of block.split(CLIENT_BREAK).slice(1)) targets.concatTip(row);
+    targets.trigger(TELL_EVENT);
+    return true;
 }
 
 /**

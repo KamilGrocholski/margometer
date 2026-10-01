@@ -140,37 +140,35 @@ export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
     assert(replayed.length > 0, "a measurement is taken over something");
     const tallies = new Map<string, ShapeTally>();
     for (const { fight, reading } of replayed) {
-        for (const messages of reading.messagesByPayload) {
-            for (const message of messages) {
-                // Add what one message says of each key it carries.
-                assert(tallies.size <= KEYS_MAXIMUM, "a tally stays inside its stated bound");
-                const parsed = parseProtocolMessage(message);
-                if (parsed instanceof Error) {
-                    throw new ProtocolKeyShapeError(
-                        `${fight.path}: the grammar refused a message, ${parsed.name}`,
-                        { cause: parsed },
-                    );
-                }
-                const parameters = parsed.parameters;
-                const placements = decodeKeyPlacements(
-                    new Set(parameters.map((one) => one.key)),
+        for (const message of reading.messagesByPayload.flat()) {
+            // Add what one message says of each key it carries.
+            assert(tallies.size <= KEYS_MAXIMUM, "a tally stays inside its stated bound");
+            const parsed = parseProtocolMessage(message);
+            if (parsed instanceof Error) {
+                throw new ProtocolKeyShapeError(
+                    `${fight.path}: the grammar refused a message, ${parsed.name}`,
+                    { cause: parsed },
                 );
-                for (const parameter of parameters) {
-                    const value = decodeKeyValue(parameter.value);
-                    const tally = tallies.get(parameter.key);
-                    if (tally === undefined) {
-                        tallies.set(parameter.key, {
-                            occurrences: 1,
-                            placements: new Set(placements),
-                            values: new Set([value]),
-                        });
-                        continue;
-                    }
-                    tally.occurrences += 1;
-                    tally.values.add(value);
-                    for (const placement of [...tally.placements]) {
-                        if (!placements.has(placement)) tally.placements.delete(placement);
-                    }
+            }
+            const parameters = parsed.parameters;
+            const placements = decodeKeyPlacements(
+                new Set(parameters.map((one) => one.key)),
+            );
+            for (const parameter of parameters) {
+                const value = decodeKeyValue(parameter.value);
+                const tally = tallies.get(parameter.key);
+                if (tally === undefined) {
+                    tallies.set(parameter.key, {
+                        occurrences: 1,
+                        placements: new Set(placements),
+                        values: new Set([value]),
+                    });
+                    continue;
+                }
+                tally.occurrences += 1;
+                tally.values.add(value);
+                for (const placement of [...tally.placements]) {
+                    if (!placements.has(placement)) tally.placements.delete(placement);
                 }
             }
         }

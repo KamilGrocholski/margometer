@@ -88,6 +88,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0019-each-events-entry-is-the-name-the-design-gives-it.md`                                 | each event's entry is the name its heading in the design gives it, and the card is one                       |
 | `docs/adr/0020-a-module-one-module-of-its-layer-imports-is-written-in-it.md`                         | a module one sibling imports is written in it, and the page's time is one file                               |
 | `docs/adr/0021-a-record-is-born-whole-and-a-fixed-choice-is-a-table.md`                              | a record has every field from its literal, a fixed choice is a lookup, and `any` and `@ts-` go with the cast |
+| `docs/adr/0022-a-body-nests-five-blocks-deep-and-a-function-that-would-nest-past-it-stays-one.md`    | a body nests five blocks deep, and a function written in its caller past that stays one                      |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

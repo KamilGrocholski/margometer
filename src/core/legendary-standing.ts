@@ -61,24 +61,20 @@ export function prepareLegendaryWalk(
                 if (event.actorId !== null) holytouchHealsByHolder.set(event.actorId, 0);
             }
         }
-        if (event.kind === BATTLE_EVENT.healthChange) {
-            if (event.source === HOLYTOUCH_HEAL_KEY) {
-                // Count the heal onto the run open on its holder.
-                const holderId = event.combatantId;
-                if (holderId !== null) {
-                    const heals = holytouchHealsByHolder.get(holderId);
-                    if (heals !== undefined) {
-                        assert(heals >= 0, "a run open on a holder has given none or more");
-                        holytouchHealsByHolder.set(holderId, heals + 1);
-                    }
-                }
-            }
-        }
         if (event.kind === BATTLE_EVENT.healingToNamedCombatant) {
             if (event.source === LASTHEAL_KEY) {
                 if (event.targetId !== null) spentLastheal.add(event.targetId);
             }
         }
+        if (event.kind !== BATTLE_EVENT.healthChange) continue;
+        if (event.source !== HOLYTOUCH_HEAL_KEY) continue;
+        // Count the heal onto the run open on its holder.
+        const holderId = event.combatantId;
+        if (holderId === null) continue;
+        const heals = holytouchHealsByHolder.get(holderId);
+        if (heals === undefined) continue;
+        assert(heals >= 0, "a run open on a holder has given none or more");
+        holytouchHealsByHolder.set(holderId, heals + 1);
     }
     assert(holytouchHealsByHolder.size <= HOLDERS_MAXIMUM, "a board holds a bounded cast");
     assert(spentLastheal.size <= HOLDERS_MAXIMUM, "and so does what has been spent on it");

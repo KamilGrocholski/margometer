@@ -1,17 +1,21 @@
 /**
- * S4: a function called from one place is written in its caller, unless its verb is strong. A
- * function counts as called once where its name is mentioned once in its module, as the callee of
- * that one call; one handed on as a value, exported, or strong is left where it stands.
+ * S4: a function called from one place is written in its caller, unless its verb is strong or, written
+ * there, it would nest past S16's bound. A function counts as called once where its name is
+ * mentioned once in its module, as the callee of that one call; one handed on as a value, exported,
+ * or strong is left where it stands.
  */
 
 import { assertEquals } from "@std/assert";
 import {
     type AstNode,
     composeSample,
+    countEnclosingBlocks,
     formatNodePlace,
     lookupCallerDeclaration,
+    NESTING_DEPTH_MAXIMUM,
     readAstNodes,
     readDeclaredFunctionName,
+    readNestedNodes,
     readSourceFiles,
     type SourceFile,
 } from "#/tests/source-tree.ts";
@@ -49,6 +53,30 @@ Deno.test("a function called once, not strong and not exported, is flagged", () 
         "async function readEvents() { return 1; }",
         "async function openAll() { await readAll(); }",
         "async function readAll() { return 1; }",
+        "function walkAll(rows) {",
+        "    for (const row of rows) {",
+        "        if (row) {",
+        "            addDeep(row);",
+        "            addShallow(row);",
+        "        }",
+        "    }",
+        "}",
+        "function addDeep(row) {",
+        "    for (const one of row) {",
+        "        if (one) { one.done = 1; }",
+        "    }",
+        "}",
+        "function addShallow(row) {",
+        "    for (const one of row) { one.done = 1; }",
+        "}",
+        "function outer(rows) {",
+        "    for (const row of rows) {",
+        "        if (row) {",
+        "            const addInner = (one) => { one.done = 1; };",
+        "            addInner(row);",
+        "        }",
+        "    }",
+        "}",
     ]);
     assertEquals(
         lookupCalledOnce(sample, new Set(["format", "is"])),
@@ -56,14 +84,17 @@ Deno.test("a function called once, not strong and not exported, is flagged", () 
             "sample.ts:7 onPress, called once by run",
             "sample.ts:10 addRows, called once by run",
             "sample.ts:22 readAll, called once by openAll",
+            "sample.ts:36 addShallow, called once by walkAll",
+            "sample.ts:42 addInner, called once by outer",
         ],
-        "strong, handed on, twice, exported, from the module, or started async are not",
+        "strong, handed on, twice, exported, from the module, started async, or too deep are not",
     );
 });
 
 /** Every function its module calls at one place, whose verb is not strong and that nobody imports. */
 function lookupCalledOnce(file: SourceFile, strong: ReadonlySet<string>): string[] {
     const identifiers = readAstNodes(file, ["Identifier"]);
+    const nested = readNestedNodes(file);
     const found: string[] = [];
     for (const declaration of readAstNodes(file, ["FunctionDeclaration", "VariableDeclarator"])) {
         const name = readDeclaredFunctionName(declaration);
@@ -83,6 +114,7 @@ function lookupCalledOnce(file: SourceFile, strong: ReadonlySet<string>): string
         const caller = lookupCallerDeclaration(call);
         if (caller === null) continue;
         if (isStartedAsync(declaration, caller)) continue;
+        if (isPastBoundInCaller(declaration, call, nested)) continue;
         const callerName = readDeclaredFunctionName(caller);
         found.push(`${formatNodePlace(file, declaration)} ${name}, called once by ${callerName}`);
     }
@@ -93,6 +125,26 @@ function lookupCalledOnce(file: SourceFile, strong: ReadonlySet<string>): string
 function isStartedAsync(declaration: AstNode, caller: AstNode): boolean {
     if (readFunctionNode(declaration).async !== true) return false;
     return readFunctionNode(caller).async !== true;
+}
+
+/**
+ * A function whose body, written as a block where it is called, would nest past S16's bound: each
+ * statement of the body lands as deep under the call as it stands under the declaration.
+ */
+function isPastBoundInCaller(
+    declaration: AstNode,
+    call: AstNode,
+    nested: readonly AstNode[],
+): boolean {
+    const [from, to] = declaration.range;
+    const own = countEnclosingBlocks(declaration);
+    let deepest = 0;
+    for (const node of nested) {
+        if (node.range[0] < from) continue;
+        if (node.range[1] > to) continue;
+        deepest = Math.max(deepest, countEnclosingBlocks(node) - own);
+    }
+    return countEnclosingBlocks(call) + deepest > NESTING_DEPTH_MAXIMUM;
 }
 
 function readFunctionNode(declaration: AstNode): AstNode {

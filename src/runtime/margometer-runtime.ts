@@ -401,89 +401,87 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
     if (state.isStoodDown) return;
     let shouldDraw: boolean;
     // Execute the intent as one operation (`docs/design.md` §10.3), marking a failure where met.
-    {
-        switch (intent.kind) {
-            case PANEL_INTENT.saveFile: {
-                // Everything under a file reaches `core/`, whose assertion costs the file alone.
-                const saved = errors.attempt(() => {
-                    // The release of the file lands on the browser's clock after this has
-                    // returned, so its failure is handed the same mark by the sink.
-                    const { screen, keeper, live, defects } = state;
-                    const view = getFightView(live.session);
-                    const liveReading = view === null ? null : tallyFightReading(view);
-                    const standing = lookupStandingFight(
-                        liveReading,
-                        screen.openFightId,
-                        keeper.getFights(),
-                        keeper.lookupReading,
-                    );
-                    if (standing !== null) {
-                        const applied = standing.reading.view.payloadsApplied;
-                        assert(applied > 0, "a fight handed over was read from something");
-                    }
-                    const ports = { ...state.ports, version: state.options.version };
-                    const written = writeFightHandover(standing, live, ports, (failure) => {
-                        addFileDefect(defects, failure);
-                    });
-                    if (written instanceof Error) addFileDefect(defects, written);
-                });
-                if (saved instanceof Error) addFileDefect(state.defects, saved);
-                shouldDraw = executeScreenIntent(state.screen, intent);
-                break;
-            }
-            case PANEL_INTENT.pin:
-                state.keeper.pin(intent.openedAt);
-                shouldDraw = true;
-                break;
-            case PANEL_INTENT.storage:
-                state.keeper.choose(intent.choice);
-                shouldDraw = true;
-                break;
-            // Once per drag rather than once per frame, and no frame: the panel already stands
-            // there. A refusal is an answer: the reader's choice stands, and only the next visit
-            // is the poorer for it, as `develop` has it.
-            case PANEL_INTENT.move:
-                void writeWindowPosition(state.ports.settings, intent.window, intent.position);
-                shouldDraw = false;
-                break;
-            // Once per release, as a move is, and for the same reason no frame, but where the
-            // options stand open: they say which window is sized, and would otherwise say it wrong.
-            case PANEL_INTENT.resize: {
-                const hasMoved = executeScreenIntent(state.screen, intent);
-                void writeWindowSize(state.ports.settings, intent.window, intent.size);
-                assert(
-                    state.screen.windowSizes[intent.window] === intent.size,
-                    "a window sized is the size the frames to come draw it",
+    switch (intent.kind) {
+        case PANEL_INTENT.saveFile: {
+            // Everything under a file reaches `core/`, whose assertion costs the file alone.
+            const saved = errors.attempt(() => {
+                // The release of the file lands on the browser's clock after this has
+                // returned, so its failure is handed the same mark by the sink.
+                const { screen, keeper, live, defects } = state;
+                const view = getFightView(live.session);
+                const liveReading = view === null ? null : tallyFightReading(view);
+                const standing = lookupStandingFight(
+                    liveReading,
+                    screen.openFightId,
+                    keeper.getFights(),
+                    keeper.lookupReading,
                 );
-                shouldDraw = hasMoved;
-                break;
-            }
-            case PANEL_INTENT.resetSize: {
-                const hasMoved = executeScreenIntent(state.screen, intent);
-                if (hasMoved) void removeWindowSize(state.ports.settings, intent.window);
-                shouldDraw = hasMoved;
-                break;
-            }
-            case PANEL_INTENT.typeStep: {
-                const hasMoved = executeScreenIntent(state.screen, intent);
-                if (hasMoved) void writeTypeStep(state.ports.settings, state.screen.typeStep);
-                shouldDraw = hasMoved;
-                break;
-            }
-            case PANEL_INTENT.fold: {
-                const hasMoved = executeScreenIntent(state.screen, intent);
-                const isCollapsed = intent.window === PANEL_WINDOW.panel
-                    ? state.screen.isCollapsed
-                    : state.screen.isStandingCollapsed;
-                void writeWindowFold(state.ports.settings, intent.window, isCollapsed);
-                assert(hasMoved, "a fold always moves the window it names");
-                shouldDraw = hasMoved;
-                break;
-            }
-            default:
-                shouldDraw = executeScreenIntent(state.screen, intent);
-                break;
+                if (standing !== null) {
+                    const applied = standing.reading.view.payloadsApplied;
+                    assert(applied > 0, "a fight handed over was read from something");
+                }
+                const ports = { ...state.ports, version: state.options.version };
+                const written = writeFightHandover(standing, live, ports, (failure) => {
+                    addFileDefect(defects, failure);
+                });
+                if (written instanceof Error) addFileDefect(defects, written);
+            });
+            if (saved instanceof Error) addFileDefect(state.defects, saved);
+            shouldDraw = executeScreenIntent(state.screen, intent);
+            break;
         }
+        case PANEL_INTENT.pin:
+            state.keeper.pin(intent.openedAt);
+            shouldDraw = true;
+            break;
+        case PANEL_INTENT.storage:
+            state.keeper.choose(intent.choice);
+            shouldDraw = true;
+            break;
+        // Once per drag rather than once per frame, and no frame: the panel already stands
+        // there. A refusal is an answer: the reader's choice stands, and only the next visit
+        // is the poorer for it, as `develop` has it.
+        case PANEL_INTENT.move:
+            void writeWindowPosition(state.ports.settings, intent.window, intent.position);
+            shouldDraw = false;
+            break;
+        // Once per release, as a move is, and for the same reason no frame, but where the
+        // options stand open: they say which window is sized, and would otherwise say it wrong.
+        case PANEL_INTENT.resize: {
+            const hasMoved = executeScreenIntent(state.screen, intent);
+            void writeWindowSize(state.ports.settings, intent.window, intent.size);
+            assert(
+                state.screen.windowSizes[intent.window] === intent.size,
+                "a window sized is the size the frames to come draw it",
+            );
+            shouldDraw = hasMoved;
+            break;
+        }
+        case PANEL_INTENT.resetSize: {
+            const hasMoved = executeScreenIntent(state.screen, intent);
+            if (hasMoved) void removeWindowSize(state.ports.settings, intent.window);
+            shouldDraw = hasMoved;
+            break;
+        }
+        case PANEL_INTENT.typeStep: {
+            const hasMoved = executeScreenIntent(state.screen, intent);
+            if (hasMoved) void writeTypeStep(state.ports.settings, state.screen.typeStep);
+            shouldDraw = hasMoved;
+            break;
+        }
+        case PANEL_INTENT.fold: {
+            const hasMoved = executeScreenIntent(state.screen, intent);
+            const isCollapsed = intent.window === PANEL_WINDOW.panel
+                ? state.screen.isCollapsed
+                : state.screen.isStandingCollapsed;
+            void writeWindowFold(state.ports.settings, intent.window, isCollapsed);
+            assert(hasMoved, "a fold always moves the window it names");
+            shouldDraw = hasMoved;
+            break;
+        }
+        default:
+            shouldDraw = executeScreenIntent(state.screen, intent);
+            break;
     }
     if (shouldDraw) markStale(state);
 }

@@ -89,6 +89,27 @@ const BUNDLED_PREFIXES = ["frozen/", "libs/"];
 export const NAME_MARK = "#";
 /** Past the depth of any parse here, so the climb to a declaration carries a stated bound. */
 const DEPTH_MAXIMUM = 512;
+/** S16: how many blocks a body may nest, counting its own. */
+export const NESTING_DEPTH_MAXIMUM = 5;
+/** The statements S16 measures. */
+const NESTED_NODES = [
+    "BreakStatement",
+    "ContinueStatement",
+    "DoWhileStatement",
+    "ExpressionStatement",
+    "ForInStatement",
+    "ForOfStatement",
+    "ForStatement",
+    "FunctionDeclaration",
+    "IfStatement",
+    "LabeledStatement",
+    "ReturnStatement",
+    "SwitchStatement",
+    "ThrowStatement",
+    "TryStatement",
+    "VariableDeclaration",
+    "WhileStatement",
+] as const;
 
 /** Every `.ts` file under the directories asked for that exist, by repository-relative path. */
 export function readSourceFiles(directories: readonly string[]): SourceFile[] {
@@ -253,4 +274,33 @@ export function lookupCallerDeclaration(node: AstNode): AstNode | null {
         at = at.parent ?? null;
     }
     return null;
+}
+
+/**
+ * The blocks a node stands in, up to its module's top: a braced body, a `case`, and an arrow whose
+ * body is an expression each count one, because written in braces that body would be a block.
+ */
+export function countEnclosingBlocks(node: AstNode): number {
+    let count = 0;
+    let at = node.parent ?? null;
+    for (let depth = 0; at !== null; depth += 1) {
+        assert(depth < DEPTH_MAXIMUM, "a parse stays inside the depth a climb states");
+        if (at.type === "BlockStatement" || at.type === "SwitchCase") count += 1;
+        if (isExpressionArrow(at)) count += 1;
+        at = at.parent ?? null;
+    }
+    return count;
+}
+
+/** An arrow whose body is an expression rather than a block. */
+function isExpressionArrow(node: AstNode): boolean {
+    if (node.type !== "ArrowFunctionExpression") return false;
+    const body = node.body;
+    if (body === null || body === undefined || Array.isArray(body)) return false;
+    return body.type !== "BlockStatement";
+}
+
+/** What S16 measures in a file: every statement, an arrow's expression body being none. */
+export function readNestedNodes(file: SourceFile): AstNode[] {
+    return readAstNodes(file, NESTED_NODES);
 }
