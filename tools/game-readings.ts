@@ -38,7 +38,7 @@ import {
     writeFrozenHelpCounts,
     writeHelpArticleCache,
 } from "./help-article.ts";
-import { GameUnreachableError } from "./margometer-tool-error.ts";
+import { GameReadingsError, GameUnreachableError } from "./margometer-tool-error.ts";
 import {
     prepareFrozenKeyTable,
     requireProtocolKeys,
@@ -340,6 +340,6 @@ if (import.meta.main) {
     } else if (command === "preview") {
         await writeDevelopmentPreview();
     } else {
-        console.log("usage: deno task game:readings status | refresh | preview");
+        throw new GameReadingsError("usage: deno task game:readings status | refresh | preview");
     }
 }

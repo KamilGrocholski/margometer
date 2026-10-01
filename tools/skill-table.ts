@@ -212,7 +212,9 @@ export function readCachedSkillTable(): CachedSkillTable | null {
     const text = errors.attempt(() => Deno.readTextFileSync(`${CACHE_ROOT}${MANIFEST_NAME}`));
     if (text instanceof Error) return null;
     const parsed = parseJson(text);
-    if (parsed instanceof Error) throw new SkillTableError("the skill manifest is not JSON");
+    if (parsed instanceof Error) {
+        throw new SkillTableError("the skill manifest is not JSON", { cause: parsed });
+    }
     return requireCachedSkillTable(parsed);
 }
 
@@ -373,7 +375,7 @@ export async function writeSkillTableCache(): Promise<CachedSkillTable> {
     const cached = { url: SKILLS_ADDRESS, fetchedAt, pagePath, pageLength: html.length };
     const written = encodeJson(cached, INDENT_SPACES);
     if (written instanceof Error) {
-        throw new SkillTableError("the skill manifest could not be written");
+        throw new SkillTableError("the skill manifest could not be written", { cause: written });
     }
     Deno.writeTextFileSync(`${CACHE_ROOT}${MANIFEST_NAME}`, `${written}\n`);
     assert(html.length > 0, "a page that was fetched says something");

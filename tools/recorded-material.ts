@@ -68,7 +68,7 @@ export function readRecordedMaterial(paths: readonly string[]): RecordedMaterial
     return { material: paths.join(" "), fights };
 }
 
-function readRecordingFile(path: string): RecordedFight {
+export function readRecordingFile(path: string): RecordedFight {
     assert(path.length > 0, "a recording is opened from somewhere");
     const text = errors.attempt(() => Deno.readTextFileSync(path));
     if (text instanceof Error) {

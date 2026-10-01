@@ -12,14 +12,12 @@
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
-import { parseJson } from "#/libs/json-text.ts";
 import { clamp } from "#/libs/number-range.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import { GAME_SCRIPT_NAME } from "#/tests/e2e/game-page.ts";
 import {
     lookupRecordedFight,
-    readRecordedFight,
     readRecordedFights,
     type RecordedFight,
 } from "#/tests/recorded-fights.ts";
@@ -32,7 +30,7 @@ import { FABRICATED_DIRECTORY } from "./fabricated-fight.ts";
 import { PreviewServeError, UserscriptBuildError } from "./margometer-tool-error.ts";
 import { composePreviewPage, type PreviewFightLink, type PreviewWords } from "./preview-page.ts";
 import { LANDING_RECORDING } from "./preview-site.ts";
-import { formatRecordingName } from "./recorded-material.ts";
+import { formatRecordingName, readRecordingFile } from "./recorded-material.ts";
 
 /** A fight the server offers, under the name the picker and the address carry. */
 export interface ServedFight {
@@ -195,18 +193,7 @@ function composeServedFights(fromPaths: readonly string[]): ServedFight[] {
     assert(fromPaths.length <= FROM_PATHS_MAXIMUM, "a preview opens no more than the bound");
     const fights = readRecordedFights().map(composeServedFight);
     for (const path of fromPaths) {
-        let read: RecordedFight;
-        // Read the recording at a path handed on the command line.
-        {
-            const parsed = parseJson(Deno.readTextFileSync(path));
-            if (parsed instanceof Error) {
-                throw new PreviewServeError(`${path} is not a recording: ${parsed.name}`, {
-                    cause: parsed,
-                });
-            }
-            read = readRecordedFight(path, parsed);
-        }
-        const opened = composeServedFight(read);
+        const opened = composeServedFight(readRecordingFile(path));
         if (fights.some((fight) => fight.name === opened.name)) {
             throw new PreviewServeError(`${opened.name} is a name the recordings already carry`);
         }

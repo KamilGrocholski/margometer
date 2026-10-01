@@ -27,6 +27,7 @@ export const TOOL_ERROR_CODE = {
     turnCount: "TurnCount",
     turnReading: "TurnReading",
     fabricatedFight: "FabricatedFight",
+    gameReadings: "GameReadings",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -184,5 +185,12 @@ export class TurnReadingError extends MargoMeterToolError {
 export class FabricatedFightError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.fabricatedFight, reason, options);
+    }
+}
+
+/** A readings round asked for by a command the tool does not have. */
+export class GameReadingsError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.gameReadings, reason, options);
     }
 }
