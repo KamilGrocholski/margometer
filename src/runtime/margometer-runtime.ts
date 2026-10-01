@@ -208,17 +208,14 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             tables: options.tables.decoder,
             sessionOptions: options.sessionOptions,
             defects,
-            keepFight: (fight) => keeper.keep(fight),
+            keeper,
             // ⚠️ **A row left open would find somebody in the next fight**: a party keeps its ids
             // from one fight to the next, ten of them shared between
             // `captures/2026-08-15-tempest-grupa-vs-hildur-1` and `-2`, read 2026-08-31.
             onFightOpened: () => {
                 // Put the panel back on its ranking, for a reader on the live fight alone.
                 if (screen.openFightId !== null) return;
-                screen.openRowId = null;
-                screen.openUnnamedEnd = null;
-                screen.openPairId = null;
-                screen.openPart = null;
+                resetScreenOpened(screen);
             },
             markStale: () => markStale(state),
         });
@@ -302,6 +299,14 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             return wrap.detach();
         },
     };
+}
+
+/** Nothing open on the screen: no row, no end left out, no pair and no part of a figure. */
+function resetScreenOpened(screen: ScreenState): void {
+    screen.openRowId = null;
+    screen.openUnnamedEnd = null;
+    screen.openPairId = null;
+    screen.openPart = null;
 }
 
 /** A value the reader stored that does not read back costs that value, and says so. */
@@ -653,10 +658,7 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
                     screen.side = side;
                     screen.isOnShelf = false;
                     screen.isOnOptions = false;
-                    screen.openRowId = null;
-                    screen.openUnnamedEnd = null;
-                    screen.openPairId = null;
-                    screen.openPart = null;
+                    resetScreenOpened(screen);
                     hasMoved = true;
                 }
                 break;
@@ -811,8 +813,5 @@ function setScreenFight(screen: ScreenState, openedAt: number | null): void {
     screen.openFightId = openedAt;
     screen.isOnShelf = false;
     screen.isOnOptions = false;
-    screen.openRowId = null;
-    screen.openUnnamedEnd = null;
-    screen.openPairId = null;
-    screen.openPart = null;
+    resetScreenOpened(screen);
 }

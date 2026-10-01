@@ -510,7 +510,7 @@ function presentShelfAnswers(answers: ShelfAnswers): string[] {
     return said;
 }
 
-export function getPanelDefects(defects: DefectLedger): PanelDefect[] {
+function getPanelDefects(defects: DefectLedger): PanelDefect[] {
     return defects.getCounts().map(({ kind, region, count }) => ({ kind, region, count }));
 }
 

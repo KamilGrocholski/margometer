@@ -351,6 +351,20 @@ export const SIZE_VARIABLES: {
         height: "--MargoMeter-standing-height",
     },
 };
+/** Where a window's top is written. One each: a shared one has the second move the first's top. */
+export const TOP_VARIABLES: { readonly [Window in PanelWindow]: string } = {
+    [PANEL_WINDOW.panel]: "--MargoMeter-panel-top",
+    [PANEL_WINDOW.helper]: "--MargoMeter-standing-top",
+};
+/** How many rows a list stands, written on the list. */
+export const ROWS_VARIABLE = "--MargoMeter-rows";
+/** Where a card is placed, written on the card, which is the one kind the reset leaves standing. */
+export const TIP_VARIABLES = {
+    top: "--MargoMeter-tip-top",
+    left: "--MargoMeter-tip-left",
+    right: "--MargoMeter-tip-right",
+    height: "--MargoMeter-tip-height",
+} as const;
 
 /**
  * A press that leaves text selected behind it is an accident, which is why the bar and the
@@ -489,12 +503,12 @@ export function composeStyleSheet(step: TypeStep): string {
 function composeFrameRules(tokens: TypeTokens): string {
     // The share binds a panel nobody sized; one sized is bound by the window alone (ADR 0013).
     const share = `var(${SIZED_PANEL_VARIABLES.share},${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh)`;
-    const ceiling = `min(calc(100vh - var(${VARIABLE_PREFIX}panel-top) - ${PLACE.insetPixels}px),` +
+    const ceiling = `min(calc(100vh - var(${TOP_VARIABLES.panel}) - ${PLACE.insetPixels}px),` +
         `${share})`;
     const width = `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px)`;
     return `:host{all:initial;${composeVariables(tokens)}` +
-        `${VARIABLE_PREFIX}panel-top:${PLACE.insetPixels}px;` +
-        `position:fixed;top:var(${VARIABLE_PREFIX}panel-top);right:${PLACE.insetPixels}px;` +
+        `${TOP_VARIABLES.panel}:${PLACE.insetPixels}px;` +
+        `position:fixed;top:var(${TOP_VARIABLES.panel});right:${PLACE.insetPixels}px;` +
         `z-index:${PLACE.layer};display:flex;flex-direction:column;` +
         `max-height:${ceiling};}` +
         `.${CLASS.title}{flex:none;display:flex;align-items:center;` +
@@ -698,7 +712,7 @@ function composeListRules(tokens: TypeTokens): string {
     const rowCost = `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half))`;
     return `.${CLASS.list}{padding:${region};` +
         `padding-bottom:${belowRows};` +
-        `height:calc(var(${VARIABLE_PREFIX}rows,${ROWS_BY_DEFAULT}) * ${rowCost});` +
+        `height:calc(var(${ROWS_VARIABLE},${ROWS_BY_DEFAULT}) * ${rowCost});` +
         `overflow-y:auto;overflow-x:hidden;` +
         `overscroll-behavior:contain;scrollbar-width:none;}` +
         // The background and the layer are not decoration: a row's bar is positioned and comes
@@ -849,11 +863,11 @@ function composeTipRules(tokens: TypeTokens): string {
     // Where a card stands before any window has been moved: against the panel's own corner. It is
     // a distance from the **right** edge, and every placement across is, because a card narrower
     // than the bound has to keep the edge facing its window and not float the difference away.
-    const right = `var(${VARIABLE_PREFIX}tip-right,calc(${PLACE.insetPixels}px + ` +
+    const right = `var(${TIP_VARIABLES.right},calc(${PLACE.insetPixels}px + ` +
         `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px) + ` +
         `${SPACE_PIXELS.small}px))`;
     return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
-        `left:var(${VARIABLE_PREFIX}tip-left,auto);right:${right};` +
+        `left:var(${TIP_VARIABLES.left},auto);right:${right};` +
         `top:${composeTipTop()};z-index:${LAYER.tip};` +
         // As wide as what it says, up to the bound — and never wider than the screen it stands
         // on, which is the case the bound on its own does not answer.
@@ -915,8 +929,8 @@ function composeTipRules(tokens: TypeTokens): string {
 }
 
 function composeTipTop(): string {
-    return `clamp(${PLACE.insetPixels}px,var(${VARIABLE_PREFIX}tip-top,${PLACE.insetPixels}px),` +
-        `calc(100vh - var(${VARIABLE_PREFIX}tip-height,0px) - ${PLACE.insetPixels}px))`;
+    return `clamp(${PLACE.insetPixels}px,var(${TIP_VARIABLES.top},${PLACE.insetPixels}px),` +
+        `calc(100vh - var(${TIP_VARIABLES.height},0px) - ${PLACE.insetPixels}px))`;
 }
 
 /**
@@ -967,7 +981,7 @@ function composeCaveatMarkRule(tokens: TypeTokens): string {
  */
 function composeStandingRules(tokens: TypeTokens): string {
     const top =
-        `clamp(${PLACE.insetPixels}px,var(${VARIABLE_PREFIX}standing-top,${PLACE.insetPixels}px),` +
+        `clamp(${PLACE.insetPixels}px,var(${TOP_VARIABLES.helper},${PLACE.insetPixels}px),` +
         `calc(100vh - ${PLACE.insetPixels}px))`;
     const left = `var(${VARIABLE_PREFIX}standing-left,calc(100vw - ${PLACE.insetPixels}px - ` +
         `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px) - ` +

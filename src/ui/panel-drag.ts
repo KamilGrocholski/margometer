@@ -20,6 +20,7 @@ import {
     type PanelRoot,
     STYLE_ATTRIBUTE,
 } from "./panel-document.ts";
+import { PANEL_INTENT, type PanelIntent } from "./panel-intent.ts";
 import { addGuardedListener } from "./panel-listener.ts";
 import {
     composeSizedPanelStyle,
@@ -29,6 +30,7 @@ import {
     SIZE_GRIP,
     SIZE_VARIABLES,
     SPACE_PIXELS,
+    TOP_VARIABLES,
     type TypeTokens,
 } from "./panel-look.ts";
 import { formatWhole } from "./panel-words.ts";
@@ -131,12 +133,11 @@ export interface PanelDragOptions {
     window: PanelWindow;
     /** The type a reader chose decides how wide each window stands, and it can change. */
     getTypeTokens: () => TypeTokens;
-    onMoved: (position: PanelPosition) => void;
-    /** Told once, on release, as a move is. */
-    onResized: (size: WindowSize) => void;
+    /** Told a move or a resize once, on release. */
+    onIntent: (intent: PanelIntent) => void;
     onFailure: (failure: ViewFailure) => void;
     /** The corner the window is sized by. It is built once and stays, unlike the bar. */
-    grip: PanelElement | null;
+    grip: PanelElement;
 }
 
 /**
@@ -161,12 +162,6 @@ const ROWS_BY_WINDOW_MINIMUM: { readonly [Window in PanelWindow]: number } = {
 export const GRIP_MARK_BY_WINDOW: { readonly [Window in PanelWindow]: string } = {
     [PANEL_WINDOW.panel]: "panel",
     [PANEL_WINDOW.helper]: "standing",
-};
-
-/** One per window: sharing the panel's had the second rewriting the first one's ceiling. */
-const TOP_VARIABLES: { readonly [Window in PanelWindow]: string } = {
-    [PANEL_WINDOW.panel]: "--MargoMeter-panel-top",
-    [PANEL_WINDOW.helper]: "--MargoMeter-standing-top",
 };
 
 /**
@@ -230,7 +225,7 @@ export function composeDefaultPosition(
  */
 export function composePositionStyle(
     position: PanelPosition,
-    windowName: PanelWindow = PANEL_WINDOW.panel,
+    windowName: PanelWindow,
 ): string | null {
     if (!Number.isSafeInteger(position.left)) return null;
     if (!Number.isSafeInteger(position.top)) return null;
@@ -258,12 +253,6 @@ export function composeHostStyle(
     const both = `${variables.width}:${width}px;${variables.height}:${height}px`;
     const sized = windowName === PANEL_WINDOW.panel ? `${both};${composeSizedPanelStyle()}` : both;
     return placed === null ? sized : `${placed};${sized}`;
-}
-
-/** How wide a window stands at its type, which is also the narrowest it may be made. */
-export function getWindowWidthPixels(windowName: PanelWindow, tokens: TypeTokens): number {
-    if (windowName === PANEL_WINDOW.helper) return tokens.standingWidthPixels;
-    return tokens.panelWidthPixels;
 }
 
 /**
@@ -298,6 +287,12 @@ export function composeSizeBounds(
         heightMinimum,
         heightMaximum: Math.max(heightMinimum, heightMaximum),
     };
+}
+
+/** How wide a window stands at its type, which is also the narrowest it may be made. */
+function getWindowWidthPixels(windowName: PanelWindow, tokens: TypeTokens): number {
+    if (windowName === PANEL_WINDOW.helper) return tokens.standingWidthPixels;
+    return tokens.panelWidthPixels;
 }
 
 /** **Every size downstream of this is whole and inside its bounds**, and one not stated is the least. */
@@ -451,7 +446,7 @@ export function initPanelDrag(
             });
         };
         const getHeld = (grab: PanelGrab): PanelElement => {
-            if (grab.kind === GRAB_KIND.size) return options.grip ?? getBar();
+            if (grab.kind === GRAB_KIND.size) return options.grip;
             return getBar();
         };
         add(EVENT_TYPE.press, PANEL_LISTENER.grab, (event) => {
@@ -465,9 +460,16 @@ export function initPanelDrag(
             if (grab === null) return;
             state.grab = null;
             setPointerHeld(getHeld(grab), false, grab.pointerId, options);
+            const window = options.window;
             if (grab.kind === GRAB_KIND.size) {
-                if (state.size !== null) options.onResized(state.size);
-            } else if (state.position !== null) options.onMoved(state.position);
+                const size = state.size;
+                if (size !== null) options.onIntent({ kind: PANEL_INTENT.resize, window, size });
+            } else {
+                const position = state.position;
+                if (position !== null) {
+                    options.onIntent({ kind: PANEL_INTENT.move, window, position });
+                }
+            }
         };
         add(EVENT_TYPE.move, PANEL_LISTENER.drag, (event) => {
             const grab = state.grab;
@@ -512,7 +514,10 @@ export function initPanelDrag(
         },
         setPosition: (next: PanelPosition) => {
             writePanelDragPosition(state, clampPosition(next, placement.readViewport()), write);
-            if (state.position !== null) options.onMoved(state.position);
+            const position = state.position;
+            if (position !== null) {
+                options.onIntent({ kind: PANEL_INTENT.move, window: options.window, position });
+            }
         },
         getWidthPixels: () => {
             const applied = getPanelDragSize(state, placement, options);

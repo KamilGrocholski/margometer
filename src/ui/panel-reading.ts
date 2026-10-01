@@ -1643,11 +1643,9 @@ function getPinnedDisagrees(
     part: PanelSidePart | null,
 ): boolean {
     if (part !== null) return false;
-    if (PINNED_SHAPES[kase].standing === PINNED_STANDING.cut) return false;
-    if (kase === PINNED_CASE.dealtWithNoActor) return total !== statistics.dealtByNobody;
-    if (kase === PINNED_CASE.takenWithNoTarget) return total !== statistics.takenByNobody;
-    if (kase === PINNED_CASE.givenWithNoActor) return total !== statistics.givenByNobody;
-    return false;
+    const shape = PINNED_SHAPES[kase];
+    if (shape.standing === PINNED_STANDING.cut) return false;
+    return total !== getNobodyForMetric(statistics, shape.metric);
 }
 
 /**

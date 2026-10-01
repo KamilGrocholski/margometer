@@ -139,7 +139,7 @@ function composeOptions(
         tables: BLOWS_GRANTED,
         sessionOptions: SESSION_OPTIONS,
         defects,
-        keepFight: (fight) => keeper.keep(fight),
+        keeper,
         onFightOpened: () => {
             opened.count += 1;
         },

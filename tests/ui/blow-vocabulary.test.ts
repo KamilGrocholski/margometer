@@ -86,10 +86,10 @@ Deno.test("every defence and every statistic a recording states is one the panel
 });
 
 Deno.test("a key no table holds travels as the game wrote it, and none is invented", () => {
-    assertEquals(getWordsForBlowKey("+crit"), "krytyk", "a proc the table holds is worded");
-    assertEquals(getWordsForBlowKey("blok"), "blok", "and so is a defence");
+    assertEquals(getWordsForBlowKey("+crit", null), "krytyk", "a proc the table holds is worded");
+    assertEquals(getWordsForBlowKey("blok", null), "blok", "and so is a defence");
     assertEquals(
-        getWordsForBlowKey("-tenacity"),
+        getWordsForBlowKey("-tenacity", null),
         "-tenacity",
         "a key nothing has named reaches the reader as the game wrote it, sign and all",
     );
@@ -295,7 +295,7 @@ Deno.test("a key naming a sub-line is a key a row already counts", () => {
     const narrowed = [...PROC_SUB_WORD_BY_KEY.keys()];
     assertEquals(
         narrowed.map((key) => PROC_WORD_BY_KEY.get(key)),
-        narrowed.map(() => getWordsForBlowKey("+wound")),
+        narrowed.map(() => getWordsForBlowKey("+wound", null)),
         "every key narrowing a row lands on the row `+wound` opened",
     );
     // The sample that must not flag: the bare announcement and the crit stand alone.

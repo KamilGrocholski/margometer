@@ -99,6 +99,8 @@ export const OPENED_PART = {
     plain: "plain",
 } as const;
 export const SIDE_CHOICES = Object.values(SIDE_CHOICE);
+/** The options draw no list, and the name keeps nobody's place: there is nothing to scroll. */
+export const OPTIONS_LIST_NAME = "options";
 
 const OPPONENT_WORDS: Record<PanelMetric, string> = {
     damageDealt: PANEL_WORDS.dealtTo,
@@ -150,7 +152,7 @@ export function createScreenState(
  * last one's ranking with somebody else's position on it. `develop ADR 0050`.
  */
 export function composeListName(screen: ScreenState, fightId: number | null): string {
-    if (screen.isOnOptions) return "options";
+    if (screen.isOnOptions) return OPTIONS_LIST_NAME;
     if (screen.isOnShelf) return "shelf";
     const part = screen.openPart === null ? "" : composeNameForPart(screen.openPart);
     const name = [

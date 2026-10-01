@@ -106,7 +106,7 @@ Deno.test("a window stating no size to clamp against leaves the panel where it i
 });
 
 Deno.test("what puts the panel there releases the corner it was anchored to", () => {
-    const style = composePositionStyle({ left: 40, top: 60 });
+    const style = composePositionStyle({ left: 40, top: 60 }, PANEL_WINDOW.panel);
     assertExists(style, "a position of two whole numbers puts the panel somewhere");
     assertStringIncludes(style, "left:40px", "the panel is put where it was dragged to");
     assertStringIncludes(style, "top:60px", "in both directions");
@@ -119,7 +119,7 @@ Deno.test("what puts the panel there releases the corner it was anchored to", ()
     );
     assertStringIncludes(style, "right:auto", "and the corner the sheet anchored to is released");
     assertEquals(
-        composePositionStyle({ left: 40, top: Number.POSITIVE_INFINITY }),
+        composePositionStyle({ left: 40, top: Number.POSITIVE_INFINITY }, PANEL_WINDOW.panel),
         null,
         "and a position that is not one writes no style, leaving the sheet's corner standing",
     );

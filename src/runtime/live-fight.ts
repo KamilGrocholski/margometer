@@ -28,7 +28,7 @@ import { type PageReadFailure, PageReadingAbsent } from "#/src/game/page-reading
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
 import { WarriorsAbsent, type WarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
 import { DEFECT_KIND, type DefectKind, type DefectLedger } from "./defect-ledger.ts";
-import type { KeptFight } from "./shelf.ts";
+import type { ShelfKeeper } from "./shelf-keeper.ts";
 
 export interface LiveFightOptions {
     engine: EnginePort;
@@ -39,8 +39,8 @@ export interface LiveFightOptions {
     tables: DecoderTables;
     sessionOptions: SessionOptions;
     defects: DefectLedger;
-    /** Once, on the call that ends a fight: a fight put on the shelf twice is two fights. */
-    keepFight: (fight: KeptFight) => void;
+    /** Kept into once, on the call that ends a fight: a fight put on it twice is two fights. */
+    keeper: ShelfKeeper;
     /** On the payload that opens a fight, once its moment and its place are read. */
     onFightOpened: () => void;
     /** Asks for one frame; later marks before it arrives do nothing. */
@@ -142,7 +142,7 @@ export function initLiveFight(options: LiveFightOptions): {
                         gameBuild: readPageValue(options, options.build.readBuildId()),
                         isPinned: false,
                     };
-                    options.keepFight(fight);
+                    options.keeper.keep(fight);
                 });
             }
             guard(options, DEFECT_KIND.reading, undefined, () => options.markStale());

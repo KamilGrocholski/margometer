@@ -178,7 +178,6 @@ export const PANEL_WORDS = {
     openOptions: "Pokaż albo schowaj opcje",
     back: "skład",
     shelfEmpty: "Nie ma jeszcze zapisanych walk",
-    fightOver: "Walka skończona",
     dealtTo: "KOMU",
     takenFrom: "OD KOGO",
     damageKind: "TYP OBRAŻEŃ",
@@ -197,8 +196,6 @@ export const PANEL_WORDS = {
     outsideRow: "Poza wierszami",
     outsideNote: "Tej części nie ma nigdzie wyżej — ani na wierszu postaci, ani pod listą.",
     restNote: "Za dużo pozycji, żeby pokazać każdą — te są tu zsumowane.",
-    undrawn: "nie dało się narysować",
-    combatants: "Postacie",
     share: "Udział w walce",
     shareOfFigure: "Udział w tej liczbie",
     drag: "Przeciągnij, żeby przesunąć",
@@ -955,7 +952,7 @@ export function getNoteForCaveat(caveat: Caveat): string {
 }
 
 /** Ours, then the player's own client, then the key as the game wrote it. `develop ADR 0024`. */
-export function getWordsForBlowKey(key: string, translate: TranslateLabel | null = null): string {
+export function getWordsForBlowKey(key: string, translate: TranslateLabel | null): string {
     const words = PROC_WORD_BY_KEY.get(key) ?? DEFENCE_WORD_BY_KEY.get(key);
     if (words !== undefined) {
         return words;
@@ -1205,7 +1202,7 @@ function getRowCarriesMarkup(row: string): boolean {
  * `develop ADR 0024`, and there is no first here: this repository has no word of its own for any of
  * the nine, and inventing one would put a made-up label where the game already has a real one.
  */
-export function getWordsForStatusBit(
+function getWordsForStatusBit(
     bit: number,
     translate: TranslateLabel | null,
     statusBits: readonly string[],

@@ -57,6 +57,8 @@ import {
     composeStyleSheet,
     getTipHeight,
     getTipRoom,
+    ROWS_VARIABLE,
+    TIP_VARIABLES,
     TYPE_TOKENS,
 } from "./panel-look.ts";
 import { type Colour, formatColour, lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
@@ -101,6 +103,7 @@ import {
     getWordsForMetric,
     getWordsForOpponentCut,
     OPENED_PART,
+    OPTIONS_LIST_NAME,
     PANEL_DIRECTION,
     PANEL_METRIC,
     PANEL_NOUN,
@@ -456,7 +459,7 @@ interface PanelDrawing {
     report: UndrawnReport;
     drawing: ListDrawing;
     tip: TipHandle;
-    getDrag(): PanelDragHandle | null;
+    drag: PanelDragHandle | null;
     standingDrag: PanelDragHandle | null;
 }
 
@@ -640,7 +643,6 @@ const STANDING_CHARGE_TIP_PREFIX = `${STANDING_TIP_PREFIX}charge:`;
 const STANDING_HOLDING_TIP_PREFIX = `${STANDING_TIP_PREFIX}holding:`;
 const STANDING_HELD_TIP_PREFIX = `${STANDING_TIP_PREFIX}held:`;
 const TITLE_ATTRIBUTE = "title";
-const ROWS_VARIABLE = "--MargoMeter-rows";
 /**
  * ⚠️ **No face in `system-ui, sans-serif` carries U+2B73 on this machine.** Chrome 152 draws it
  * anyway, from a font further down its own fallback, and `fc-list :charset=2b73` on 2026-08-30
@@ -678,8 +680,6 @@ const ROWS_WAITING = 11;
 const ROWS_SHELF = 11;
 /** The place a panel with no fight stands in. Nothing to scroll, and nobody's position. */
 const WAITING_LIST_NAME = "waiting";
-/** The options draw no list, and the name keeps nobody's place: there is nothing to scroll. */
-const OPTIONS_LIST_NAME = "options";
 /**
  * How many kinds a pinned row's card states before what is left of them is summed into one line.
  * Measured over `captures/` with `develop`'s `deno task panel:drill` on 2026-09-01: the widest
@@ -739,17 +739,12 @@ const NOTE_MARK_CHARACTERS = 2;
  * this is headroom rather than a limit anything meets.
  */
 const TIP_LINES_MAXIMUM = 64;
-/** A custom property, which is the one kind `src/ui/panel-look.ts`'s reset leaves standing. */
-const TOP_VARIABLE = "--MargoMeter-tip-top";
-const LEFT_VARIABLE = "--MargoMeter-tip-left";
-const RIGHT_VARIABLE = "--MargoMeter-tip-right";
 /**
  * What the edge a card is **not** measured from is released to. Both are always written together:
  * leaving one off would let the sheet's own fallback stand beside the offset just written, and the
  * card would be pinned by both edges at once — which is a width nobody chose (`develop ADR 0091`).
  */
 const EDGE_RELEASED = "auto";
-const HEIGHT_VARIABLE = "--MargoMeter-tip-height";
 /** Past every card there is: four figures, the counters, both runs and the notes come to five. */
 const TIP_GROUPS_MAXIMUM = 16;
 /** Past the widest cut a card draws: fourteen worded procs, four destroyed, three defences. */
@@ -758,6 +753,12 @@ const CARD_PARTS_MAXIMUM = 64;
 const OFFHAND_CRIT_KEY = "+of_crit";
 /** Headroom rather than a bound anything meets: a reader comes back to a handful of places. */
 const LISTS_KEPT_MAXIMUM = 32;
+/** What a note's tone adds to its class, a space before it where it adds anything. */
+const TIP_NOTE_TONE_CLASS: Record<TipNoteTone, string> = {
+    [TIP_NOTE_TONE.plain]: "",
+    [TIP_NOTE_TONE.suspect]: ` ${CLASS.tipSuspect}`,
+    [TIP_NOTE_TONE.caveat]: ` ${CLASS.tipCaveatNote}`,
+};
 
 export function initPanelView(document: PanelDocument, options: PanelViewOptions): PanelView {
     let typeStep = options.typeStep;
@@ -1038,7 +1039,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         report,
         drawing,
         tip: tipHandle,
-        getDrag: () => drag,
+        drag,
         standingDrag,
     };
     const renderScreen = (shown: ShownScreen): RenderReport =>
@@ -1272,27 +1273,16 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                             isRowNarrower: true,
                             readerSide: shown.readerSide,
                         };
+                        const person = {
+                            register,
+                            keyPrefix: "reached",
+                            figure,
+                            share,
+                            card: place,
+                            place: composeCutPlace(shown),
+                        };
                         for (const [at, row] of part.byOpponent.rows.entries()) {
-                            const tip = {
-                                register,
-                                key: `reached:${row.combatantId}`,
-                                figure,
-                                share,
-                                compose: composePersonCard(row, place, false),
-                            };
-                            list.append(
-                                renderRow(
-                                    document,
-                                    presentCombatantRow(
-                                        row,
-                                        at + 1,
-                                        shown.current,
-                                        composeCutPlace(shown),
-                                    ),
-                                    null,
-                                    tip,
-                                ),
-                            );
+                            list.append(renderPersonRow(document, row, at + 1, person, false));
                         }
                         if (part.byOpponent.unnamed === null) return list;
                         // The end the protocol left out of a blow this part carried: it is inside
@@ -1462,30 +1452,23 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                                 const heading = getWordsForOpponentCut(shown.current);
                                 list.append(renderSection(document, heading, drill.total));
                             }
+                            const person = {
+                                register,
+                                keyPrefix: "to",
+                                figure,
+                                share,
+                                card: place,
+                                place: composeCutPlace(shown),
+                            };
                             for (const [at, row] of cut.rows.entries()) {
-                                const tip = {
-                                    register,
-                                    key: `to:${row.combatantId}`,
-                                    figure,
-                                    share,
-                                    compose: composePersonCard(row, place, row.doesOpenPair),
-                                };
-                                const mark = row.doesOpenPair
-                                    ? { attribute: PANEL_MARK.row, stated: `${row.combatantId}` }
-                                    : null;
-                                list.append(
-                                    renderRow(
-                                        document,
-                                        presentCombatantRow(
-                                            row,
-                                            at + 1,
-                                            shown.current,
-                                            composeCutPlace(shown),
-                                        ),
-                                        mark,
-                                        tip,
-                                    ),
+                                const drawn = renderPersonRow(
+                                    document,
+                                    row,
+                                    at + 1,
+                                    person,
+                                    row.doesOpenPair,
                                 );
+                                list.append(drawn);
                             }
                             if (cut.unnamed !== null) {
                                 const end = getUnnamedEndForMetric(shown.current);
@@ -1578,29 +1561,21 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                         list.append(renderEmpty(document, PANEL_WORDS.nothingYet));
                         return list;
                     }
-                    const figure = getWordsForMetric(metric);
+                    const person = {
+                        register,
+                        keyPrefix: "row",
+                        figure: getWordsForMetric(metric),
+                        share: PANEL_WORDS.share,
+                        card: {
+                            metric,
+                            translate,
+                            isRowNarrower: false,
+                            readerSide: shown.readerSide,
+                        },
+                        place,
+                    };
                     for (const [at, row] of reading.rows.entries()) {
-                        const reader = presentCombatantRow(row, at + 1, metric, place);
-                        const tip = {
-                            register,
-                            key: `row:${row.combatantId}`,
-                            figure,
-                            share: PANEL_WORDS.share,
-                            compose: composePersonCard(
-                                row,
-                                {
-                                    metric,
-                                    translate,
-                                    isRowNarrower: false,
-                                    readerSide: shown.readerSide,
-                                },
-                                true,
-                            ),
-                        };
-                        list.append(renderRow(document, reader, {
-                            attribute: PANEL_MARK.row,
-                            stated: `${row.combatantId}`,
-                        }, tip));
+                        list.append(renderPersonRow(document, row, at + 1, person, true));
                     }
                     return list;
                 });
@@ -2143,8 +2118,7 @@ function initDragOrNothing(
     return initPanelDrag(root, host, getBar, placement, {
         window,
         getTypeTokens: () => TYPE_TOKENS[wired.getTypeStep()],
-        onMoved: (position) => view.onIntent({ kind: PANEL_INTENT.move, window, position }),
-        onResized: (size) => view.onIntent({ kind: PANEL_INTENT.resize, window, size }),
+        onIntent: view.onIntent,
         onFailure: view.onFailure,
         grip: wired.grip,
     });
@@ -2179,7 +2153,7 @@ function renderFold(
         // The window beside the panel keeps the side it stood on as both change size.
         renderStep(held.report, PANEL_REGION.standing, () => {
             const after = getWindowWidths(held);
-            const panel = held.getDrag()?.getPosition() ?? null;
+            const panel = held.drag?.getPosition() ?? null;
             const standing = held.standingDrag?.getPosition() ?? null;
             if (panel === null) return;
             if (standing === null) return;
@@ -2188,7 +2162,7 @@ function renderFold(
         });
     }
     renderStep(held.report, PANEL_REGION.header, () => {
-        held.getDrag()?.setSize(drawn.windowSizes.panel);
+        held.drag?.setSize(drawn.windowSizes.panel);
     });
     renderStep(held.report, PANEL_REGION.standing, () => {
         held.standingDrag?.setSize(drawn.windowSizes.helper);
@@ -2255,7 +2229,7 @@ function renderFold(
 function getWindowWidths(held: PanelDrawing): WindowWidths {
     const tokens = TYPE_TOKENS[held.getTypeStep()];
     return {
-        panel: held.getDrag()?.getWidthPixels() ?? tokens.panelWidthPixels,
+        panel: held.drag?.getWidthPixels() ?? tokens.panelWidthPixels,
         standing: held.standingDrag?.getWidthPixels() ?? tokens.standingWidthPixels,
     };
 }
@@ -2351,9 +2325,13 @@ function presentCrumbTip(leaving: string): TipReading {
 /** What the way back calls the row that is open, which is the row itself and not its level. */
 function getWordsForHalfNamedDrill(drill: HalfNamedDrillReading, metric: PanelMetric): string {
     if (drill.opened === HALF_NAMED_OPENED.person) return drill.row.name ?? PANEL_WORDS.unknown;
-    return getNounForMetric(metric) === PANEL_NOUN.damage
-        ? getWordsForDamageKind(drill.element)
-        : getWordsForHealthSource(drill.element);
+    return getWordsForKind(getNounForMetric(metric), drill.element);
+}
+
+/** A kind is a damage element or a healing source, worded from the table of its noun. */
+function getWordsForKind(noun: PanelNoun, key: string): string {
+    if (noun === PANEL_NOUN.damage) return getWordsForDamageKind(key);
+    return getWordsForHealthSource(key);
 }
 
 function getWordsForUnnamedRow(end: PanelUnnamedEnd): string {
@@ -2369,9 +2347,7 @@ function getWordsForNamedPart(part: OpenedPart, metric: PanelMetric): string {
     if (part.kind === OPENED_PART.skill) return part.name;
     if (part.kind === OPENED_PART.plain) return getWordsForUnannounced(metric);
     const named = part.kind === OPENED_PART.source ? part.source : part.element;
-    return getNounForMetric(metric) === PANEL_NOUN.damage
-        ? getWordsForDamageKind(named)
-        : getWordsForHealthSource(named);
+    return getWordsForKind(getNounForMetric(metric), named);
 }
 
 /**
@@ -2527,6 +2503,36 @@ function renderSection(
     section.append(words);
     section.append(figure);
     return section;
+}
+
+/**
+ * A person's row with the card their four figures make, keyed under the list it stands in. A row
+ * that opens wears the mark a press is read by, and its card says so.
+ */
+function renderPersonRow(
+    document: PanelDocument,
+    row: RankingRow | OpponentRow,
+    rank: number,
+    person: {
+        register: TipRegister;
+        keyPrefix: string;
+        figure: string;
+        share: string;
+        card: CardPlace;
+        place: PersonPlace;
+    },
+    doesOpen: boolean,
+): PanelElement {
+    const tip = {
+        register: person.register,
+        key: `${person.keyPrefix}:${row.combatantId}`,
+        figure: person.figure,
+        share: person.share,
+        compose: composePersonCard(row, person.card, doesOpen),
+    };
+    const reading = presentCombatantRow(row, rank, person.card.metric, person.place);
+    const mark = doesOpen ? { attribute: PANEL_MARK.row, stated: `${row.combatantId}` } : null;
+    return renderRow(document, reading, mark, tip);
 }
 
 /**
@@ -2778,9 +2784,7 @@ function getCaveatForNamedPart(part: OpenedPart, metric: PanelMetric): Caveat | 
 
 function presentElementRow(row: ElementRow, noun: PanelNoun, rank: number): RowReading {
     return {
-        name: noun === PANEL_NOUN.damage
-            ? getWordsForDamageKind(row.element)
-            : getWordsForHealthSource(row.element),
+        name: getWordsForKind(noun, row.element),
         figure: row.figure,
         fill: row.fill,
         shareText: row.shareText,
@@ -2819,17 +2823,16 @@ function renderHalfNamedRows(
         isRowNarrower: true,
         readerSide: shown.readerSide,
     };
+    const person = {
+        register,
+        keyPrefix: "named",
+        figure,
+        share,
+        card: place,
+        place: composeCutPlace(shown),
+    };
     for (const [at, row] of rows.entries()) {
-        const tip = {
-            register,
-            key: `named:${row.combatantId}`,
-            figure,
-            share,
-            compose: composePersonCard(row, place, doesOpen),
-        };
-        const reading = presentCombatantRow(row, at + 1, shown.current, composeCutPlace(shown));
-        const mark = doesOpen ? { attribute: PANEL_MARK.row, stated: `${row.combatantId}` } : null;
-        list.append(renderRow(document, reading, mark, tip));
+        list.append(renderPersonRow(document, row, at + 1, person, doesOpen));
     }
     if (neither === null) return;
     const tip = {
@@ -3091,7 +3094,7 @@ function renderDefects(document: PanelDocument, defects: readonly PanelDefect[])
 /** After every region stands: the reader's place, the grip on the bar, and the card open. */
 function renderPanelSettled(held: PanelDrawing): void {
     renderStep(held.report, PANEL_REGION.list, () => held.drawing.settle());
-    held.getDrag()?.onDrawn();
+    held.drag?.onDrawn();
     renderStep(held.report, PANEL_REGION.tip, () => held.tip.renderOpen());
 }
 
@@ -3361,7 +3364,7 @@ export function renderTip(
                 // (`develop ADR 0092` carries the measurement), and only the circled
                 // letter had to be built.
                 const note = document.createElement("div");
-                const tone = composeTipNoteToneClass(line.tone);
+                const tone = TIP_NOTE_TONE_CLASS[line.tone];
                 note.className = `${CLASS.tipNote}${tone}`;
                 note.textContent = line.text;
                 // ⚠️ **Appended after the sentence and stood before it by the sheet.**
@@ -3403,12 +3406,6 @@ export function renderTip(
         tip.append(drawnGroup);
     }
     return tip;
-}
-
-function composeTipNoteToneClass(tone: TipNoteTone): string {
-    if (tone === TIP_NOTE_TONE.suspect) return ` ${CLASS.tipSuspect}`;
-    if (tone === TIP_NOTE_TONE.caveat) return ` ${CLASS.tipCaveatNote}`;
-    return "";
 }
 
 /**
@@ -3456,8 +3453,8 @@ export function setTipPlace(
     // The height rather than the counts it came from: the trim and the sheet's clamp spend one
     // number. A height nothing could be read for leaves the property off (**E12**).
     const height = getTipHeight(size, TYPE_TOKENS[step]);
-    const tall = height === null ? "" : `;${HEIGHT_VARIABLE}:${height}px`;
-    tip.setAttribute(STYLE_ATTRIBUTE, `${TOP_VARIABLE}:${top}px${tall}${sideways}`);
+    const tall = height === null ? "" : `;${TIP_VARIABLES.height}:${height}px`;
+    tip.setAttribute(STYLE_ATTRIBUTE, `${TIP_VARIABLES.top}:${top}px${tall}${sideways}`);
 }
 
 /**
@@ -3469,9 +3466,9 @@ function composeTipAcrossStyle(across: TipAcross | null): string {
     if (across === null) return "";
     const at = `${Math.max(0, Math.round(across.at))}px`;
     if (across.edge === "left") {
-        return `;${LEFT_VARIABLE}:${at};${RIGHT_VARIABLE}:${EDGE_RELEASED}`;
+        return `;${TIP_VARIABLES.left}:${at};${TIP_VARIABLES.right}:${EDGE_RELEASED}`;
     }
-    return `;${LEFT_VARIABLE}:${EDGE_RELEASED};${RIGHT_VARIABLE}:${at}`;
+    return `;${TIP_VARIABLES.left}:${EDGE_RELEASED};${TIP_VARIABLES.right}:${at}`;
 }
 
 /**
