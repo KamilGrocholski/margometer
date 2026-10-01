@@ -2278,6 +2278,7 @@ function renderPanelFolded(
         PANEL_REGION.pinned,
         renderEmptySlot,
     );
+    regions.outside = renderInPlace(regions.outside, PANEL_REGION.outside, renderEmptySlot);
     regions.sides = renderInPlace(regions.sides, PANEL_REGION.sides, renderEmptySlot);
     regions.suspicions = renderInPlace(
         regions.suspicions,

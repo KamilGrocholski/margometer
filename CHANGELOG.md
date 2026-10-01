@@ -37,6 +37,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Sekcja „Poza rankingiem” znika razem z walką, gdy panel się zwija albo znów czeka
+  na walkę, zamiast zostawać pod nim.
+
 ## [0.21.0] — 2026-09-30
 
 - **Nowość** — Panel i Pomocnika można powiększyć, ciągnąc za prawy dolny róg; rozmiar zostaje po

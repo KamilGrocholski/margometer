@@ -3355,3 +3355,21 @@ Deno.test("what no row holds stands under the list, hatched, and says so on its 
         "and its card says what cannot be known about it",
     );
 });
+
+Deno.test("what no row holds goes with the fight, when the panel folds or waits again", () => {
+    const outside = { figure: 1000, fill: 0.5, shareText: "10%" };
+    const shown = composeShownScreen({ ...readFight(), outsideRanking: outside });
+    const isSectionDrawn = (host: FakeElement) =>
+        getTextsByClass(host, "section-words").includes(PANEL_WORDS.outsideRanking);
+
+    const waiting = initTestView(composeFakeDocument());
+    waiting.render(shown);
+    assert(isSectionDrawn(waiting.element as FakeElement), "the section stands under the fight");
+    waiting.renderWaiting(NOTHING_WAITING);
+    assert(!isSectionDrawn(waiting.element as FakeElement), "and a panel waiting again drops it");
+
+    const folded = initTestView(composeFakeDocument());
+    folded.render(shown);
+    folded.render({ ...shown, isCollapsed: true });
+    assert(!isSectionDrawn(folded.element as FakeElement), "and so does a panel folded over it");
+});
