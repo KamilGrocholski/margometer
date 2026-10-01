@@ -19,10 +19,11 @@ import {
     type AnnouncementStanding,
     type DecodeContext,
     decodePayloadMessages,
+    encodeProtocolMessage,
     MESSAGES_MAXIMUM,
+    parseProtocolMessage,
 } from "#/src/core/fight-decoder.ts";
 import { PREPARE_KEY } from "#/src/core/protocol-key.ts";
-import { encodeProtocolMessage, parseProtocolMessage } from "#/src/core/protocol-message.ts";
 import {
     composeTurnStanding,
     lookupDeclarationOpenerKey,

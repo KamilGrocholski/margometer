@@ -120,8 +120,8 @@ ${composeGame(place)}
 /**
  * The game, stood up before the add-on looks for one: the first look is the one that finds it, and
  * a page standing it up afterwards draws nothing for as long as the poll takes
- * (`src/runtime/engine-search.ts`). Both roster names are needed — with only `w` every snapshot
- * read under `warriorsList` comes out empty (`src/game/engine-warrior.ts`).
+ * (`src/runtime/margometer-runtime.ts`). Both roster names are needed — with only `w` every
+ * snapshot read under `warriorsList` comes out empty (`src/game/payload-envelope.ts`).
  *
  * Each fighter carries a `$` of the client's own shape, so what `src/game/engine-tooltip.ts`
  * writes lands somewhere a test can read it back.

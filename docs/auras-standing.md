@@ -118,7 +118,7 @@ the mask holds one bearer reaches **56** of their turns for `swow_down` and **23
 eight. That is no disagreement with the `own` column — that one counts what a **run** usually comes
 to, and this is the longest one ever ran.
 
-⚠️ **The mask is read as the add-on reads it** (`src/game/engine-warrior.ts`): a combatant who has
+⚠️ **The mask is read as the add-on reads it** (`src/game/payload-envelope.ts`): a combatant who has
 fallen carries nothing, because the client takes the icons down at that point. Read off the wire
 instead, as `develop`'s tool read it, a run whose bearer fell holding it never goes out and so is
 never counted: over `captures/` on 2026-09-25 that reading lit `poisoned` 21 times where the

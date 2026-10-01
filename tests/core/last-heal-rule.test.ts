@@ -8,7 +8,7 @@
 
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
-import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
+import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 interface NamedFigure {

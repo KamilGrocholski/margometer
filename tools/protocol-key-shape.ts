@@ -12,7 +12,7 @@ import { assert } from "@std/assert";
 import { formatInteger, parseDecimal, parseInteger } from "#/libs/number-text.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import { getKeyReading, KEY_FAMILY, type KeyReading } from "#/src/core/protocol-key.ts";
-import { parseProtocolMessage } from "#/src/core/protocol-message.ts";
+import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { RECORDINGS_DIRECTORY } from "#/tests/recording-sources.ts";
 import { BACKTICK, parseBacktickedPhrases, REGISTER_PATH } from "./help-claim-register.ts";
 import { ProtocolKeyShapeError } from "./margometer-tool-error.ts";

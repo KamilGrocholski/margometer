@@ -765,7 +765,7 @@ export interface ShelfKeeper {
 
 // A payload and an intent change state at once; drawing waits for one frame
 export interface Runtime {
-    onIntent(intent: PanelIntent): void; // a listener: executeRuntimeIntent → markStale
+    onIntent(intent: PanelIntent): void; // a listener: the intent executed → markStale
     deinit(): undefined | EngineFailure; // stops looking, takes the wrap off, cancels the frame
 }
 export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runtime;
@@ -774,11 +774,6 @@ export interface RuntimeOptions {
     tables: { decoder: DecoderTables; tooltip: TooltipTables };
     sessionOptions: SessionOptions;
 }
-/**
- * One intent, as a state machine executes one operation. A failure leaves its mark where the step
- * that met it knows which one; the answer is whether the panel needs a frame.
- */
-export function executeRuntimeIntent(parts: IntentParts, intent: PanelIntent): boolean;
 export interface RuntimePorts {
     clock: Clock;
     frames: FrameScheduler;
@@ -968,11 +963,11 @@ end: no DOM; cost bounded by the message count; a JSON copy only of a call thinn
 
 ```
 listener ─ reads a PanelIntent off data-* (isOneOf; unknown → GestureDropped)
-   executeRuntimeIntent: the screen moves, and the options and the shelf never cover it together;
-      the keeper pins and moves the shelf; a fold is written; a size of type is written, and asks
-      for a frame only where it moved; a move is written and asks for no frame, and a resize
-      asks for one only while the options stand open; a size given back is removed and asks for
-      one; a save writes the file or a "file" defect
+   the intent executed in place: the screen moves, and the options and the shelf never cover it
+      together; the keeper pins and moves the shelf; a fold is written; a size of type is
+      written, and asks for a frame only where it moved; a move is written and asks for no
+      frame, and a resize asks for one only while the options stand open; a size given back is
+      removed and asks for one; a save writes the file or a "file" defect
    true → markStale
 ```
 

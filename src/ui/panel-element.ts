@@ -1,6 +1,10 @@
 /**
  * The panel, drawn into a document it is handed. It never reaches for one, which is what keeps
  * the surface this asks of a browser declared rather than assumed.
+ *
+ * Beside it stands the detail window, which outlives every redraw: appended to the root once, the
+ * way the one listener is, and filled from a register the drawn rows add to. A card it shows is
+ * counted in lines, and the sheet multiplies: **nothing here measures anything**.
  */
 
 import { formatDecimal } from "#/libs/number-text.ts";
@@ -12,6 +16,8 @@ import {
     type PanelWindow,
     STORAGE_CHOICES,
     type StorageChoice,
+    TYPE_STEP,
+    TYPE_STEP_DEFAULT,
     TYPE_STEPS,
     type TypeStep,
     type WindowSizes,
@@ -45,17 +51,24 @@ import {
     readPanelIntent,
 } from "./panel-intent.ts";
 import { addGuardedListener } from "./panel-listener.ts";
-import { CLASS, composeOptionsStepClass, composeStyleSheet, TYPE_TOKENS } from "./panel-look.ts";
+import {
+    CLASS,
+    composeOptionsStepClass,
+    composeStyleSheet,
+    getTipHeight,
+    getTipRoom,
+    TYPE_TOKENS,
+} from "./panel-look.ts";
 import { type Colour, formatColour, lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
-import { presentCard, presentCaveatNoteLines } from "./panel-card.ts";
-import { presentFightCard } from "./fight-card.ts";
 import {
     type ClosingRow,
+    type CutPart,
     type DrillReading,
     type ElementCut,
     type ElementRow,
     type FightCardReading,
     type FightMoment,
+    formatRowSuspicions,
     getEndForPinned,
     getPartOfSide,
     HALF_NAMED_OPENED,
@@ -73,6 +86,7 @@ import {
     type PinnedRow,
     type PlainRow,
     type RankingRow,
+    type RowDetail,
     type ScreenReading,
     type ShelfRow,
     SIDE_PART,
@@ -88,6 +102,7 @@ import {
     getWordsForOpponentCut,
     OPENED_PART,
     PANEL_DIRECTION,
+    PANEL_METRIC,
     PANEL_NOUN,
     type PanelMetric,
     type PanelNoun,
@@ -98,40 +113,42 @@ import {
     type ScreenStrip,
     SIDE_CHOICE,
 } from "./panel-screen.ts";
-import { createScrollMemo, readTopOfList, renderListRows, writeTopOfList } from "./panel-scroll.ts";
 import {
     type StandingAbsence,
     type StandingChargedSkill,
     type StandingReading,
 } from "./panel-standing.ts";
 import {
-    createTipRegister,
-    initTipHandle,
-    setTipHidden,
-    type TipCompose,
-    type TipHandle,
-    type TipLookup,
-    type TipRegister,
-} from "./panel-tip.ts";
-import {
     CARD_WORDS,
+    CAVEAT,
     type Caveat,
     CAVEAT_MARK,
+    CAVEATS,
     DEFECT_MARK,
+    FIGHT_CARD_WORDS,
+    formatCardSubtitle,
     formatChargedSkillSubtitle,
     formatCounter,
     formatDefect,
+    formatDestroyed,
     formatFigure,
     formatKeptUnread,
+    formatShare,
     formatShelfSize,
     formatSideCounts,
     formatTurnOrdinal,
+    formatTurns,
     formatUndrawn,
     formatUses,
     formatWhole,
     getCaveatForUnannounced,
+    getNoteForCaveat,
+    getSubWordsForBlowKey,
+    getWordsForBlowKey,
+    getWordsForCardMetric,
     getWordsForChargedSkill,
     getWordsForDamageKind,
+    getWordsForDestroyed,
     getWordsForHealthSource,
     getWordsForNothing,
     getWordsForOutcome,
@@ -161,13 +178,6 @@ import {
     TURN_MARK,
 } from "./panel-words.ts";
 import {
-    TIP_LINE,
-    TIP_NOTE_TONE,
-    type TipGroup,
-    type TipLine,
-    type TipReading,
-} from "./tip-reading.ts";
-import {
     addViewFailureGuarded,
     GestureDropped,
     PANEL_LISTENER,
@@ -175,6 +185,8 @@ import {
     type RenderReport,
     type ViewFailure,
 } from "./view-failure.ts";
+import { getRankedOrder } from "./ranked-order.ts";
+import { CRITICAL_PROC_KEYS } from "#/src/core/protocol-key.ts";
 
 /** Where a part's row stands, which its card's key begins with: one part stands at two levels. */
 const TIP_KEY_PLACE = { skill: "skill", pair: "pair", pairKinds: "pair-kinds" } as const;
@@ -464,6 +476,140 @@ interface ListDrawing {
     settle(): void;
 }
 
+/**
+ * What a card says, as a shape rather than a sentence: the panel draws a figure, a sub-line, a
+ * heading and a note differently, and a renderer handed one string and a newline would hold that
+ * decision where nothing can check it.
+ */
+export const TIP_LINE = { stat: "stat", sub: "sub", heading: "heading", note: "note" } as const;
+
+/**
+ * What a sentence at the foot of a card is about, which alone decides its ink. ⚠️ The glyph stays
+ * inside the sentence's `text`: it counts in the card's height, and a node of its own would
+ * shorten every note in that arithmetic while the drawn sentence stayed as long.
+ */
+export const TIP_NOTE_TONE = { plain: "plain", suspect: "suspect", caveat: "caveat" } as const;
+
+export type TipNoteTone = VocabularyWord<typeof TIP_NOTE_TONE>;
+
+type TipLine =
+    | {
+        kind: typeof TIP_LINE.stat;
+        label: string;
+        stated: string;
+        isStrong: boolean;
+        /** Required, so a figure joining the card is asked whether it names more than it counts. */
+        caveat: Caveat | null;
+    }
+    | { kind: typeof TIP_LINE.sub; label: string; stated: string }
+    | { kind: typeof TIP_LINE.heading; text: string }
+    | { kind: typeof TIP_LINE.note; text: string; tone: TipNoteTone };
+
+export interface TipGroup {
+    lines: TipLine[];
+}
+
+export interface TipReading {
+    name: string;
+    subtitle: string | null;
+    groups: TipGroup[];
+}
+
+/**
+ * A **way to compose the card** rather than the card: a fight redraws every few seconds and
+ * twenty rows are drawn each time, so composing every one would pay for nineteen nobody opens.
+ */
+type TipCompose = () => TipReading;
+
+/**
+ * What the pointer asks, and all it asks. Two windows fill two registers and the card is one, so
+ * the handle is handed a reading rather than either register — `develop ADR 0086`.
+ */
+interface TipLookup {
+    lookup(key: string): TipCompose | null;
+}
+
+/**
+ * Filled by every draw and read by the pointer. The key is stated by the row rather than counted
+ * off the draw order: a fight reorders its ranking between payloads, and a counted key would let
+ * an open tip go on describing whichever row now stands in that place.
+ */
+interface TipRegister extends TipLookup {
+    add(key: string, compose: TipCompose): void;
+    reset(): void;
+}
+
+interface TipSize {
+    lines: number;
+    groups: number;
+}
+
+type TipRedraw = (standing: PanelElement, compose: () => PanelElement) => PanelElement;
+
+/**
+ * How many characters of a card stand on one of its lines, as **floors** rather than a measurement
+ * of any one text: counting low leaves the card standing higher up the screen than it had to, which
+ * is the direction that keeps it on the screen.
+ */
+interface CharactersPerLine {
+    /**
+     * A note, and the line under the name too: it is drawn in the same face at the same size in
+     * the same box, so what a sentence costs is what it costs.
+     */
+    note: number;
+    /**
+     * The name a card opens with, which is lower because the name is drawn bold and bold is wider.
+     *
+     * ⚠️ **A floor over characters cannot see where a line broke.** What it is short by is a name
+     * whose last word is long, and the margin is what absorbs that; the one case measured past the
+     * margin is an unbroken run of capitals — 60 of them draw four lines and count three. A real
+     * name is not that, and the card carries the air to survive one line of it.
+     */
+    name: number;
+}
+
+interface TipHandle {
+    element: PanelElement;
+    onHover(key: string | null, clientY: number): void;
+    renderOpen(): void;
+}
+
+interface CardSubject {
+    name: string;
+    profession: string | null;
+    /** Which side they stand on, worded — the label the row's own rule is drawn against. */
+    sidePart: PanelSidePart;
+    detail: RowDetail;
+    metric: PanelMetric;
+    doesOpen: boolean;
+    /**
+     * Whether the row the card stands over states a narrower figure than the card does. True
+     * inside an opened row, where the row is a cut and the card is still the whole fight, and
+     * `CARD_WORDS.scope` is what the card then owes the reader.
+     */
+    isRowNarrower: boolean;
+    /** Asked only for a key this repository has no word for. Null on a page with no game on it. */
+    translate: TranslateLabel | null;
+}
+
+interface CardFigure {
+    metric: PanelMetric;
+    figure: number;
+    halfNamed: { label: string; figure: number } | null;
+    /** The part a pool took rather than health, per pool, drawn under the figure it is part of. */
+    absorbed: readonly CutPart[];
+}
+
+/**
+ * Where a reader left the one region that scrolls, kept by which list was standing in it. A
+ * redraw that replaces the region reads the position off the element about to go and writes it
+ * onto whichever list stands next under the same name. `develop ADR 0050`.
+ */
+interface ScrollMemo {
+    getTop(name: string): number;
+    setTop(name: string, top: number): void;
+}
+
 const HOST_NAME = "MargoMeter-Panel";
 /**
  * On the host where anything outside the root can read it: a screenshot of the panel is a report,
@@ -551,6 +697,67 @@ const UNDRAWN_MAXIMUM = 32;
 
 /** One line per kind at most, which is what the runtime's ledger holds. */
 const DEFECTS_MAXIMUM = Object.values(PANEL_DEFECT_KIND).length;
+
+/**
+ * Counted off **an opened row**, the widest screen the panel has: its three sections, each with
+ * an unnamed row and a heading, and the two pinned rows. Counted off the ranking it was 128,
+ * which a drill reaches; counted with a skill section of names alone it was 384, and on the two
+ * screen that section is names **and** the keys no announcement covered. A row past the
+ * bound registers nothing, and `onHover` then hides the card rather than drawing one.
+ * `tests/ui/share-bound.test.ts` is where the arithmetic is, against the panel's own constants.
+ */
+const TIPS_MAXIMUM = 512;
+/**
+ * One row per type step. The small one: notes at 242 pixels of type — the window less its padding —
+ * in Chrome on 2026-08-29, where the longest note this panel composes ran 104 characters over three
+ * lines and the shortest 31 over one; names in Chrome 152 on 2026-09-18 at 240 pixels of type, over
+ * the 31 names `captures/` carries composed into the place shape a shelf row states (`Nazwa (x, y)`)
+ * and read at every prefix length: 2,211 readings, and 27 is the **largest** floor that
+ * under-counts none of them.
+ *
+ * **The other two steps keep the small one's floors**, because the card's bound grows with its
+ * type. Measured in Chrome 154 on 2026-09-28 at each step's own bound, over every prefix of the 112
+ * notes the ranking cards of `captures/` compose and of its 20 names in the place shape, drawn
+ * bold as a name: the largest floor under-counting none is 36 for a name and 42 for a note at
+ * all three, so no step reads a line as holding more than the small one does.
+ */
+const CHARACTERS_PER_LINE_BY_STEP: { readonly [Step in TypeStep]: CharactersPerLine } = {
+    [TYPE_STEP.small]: { note: 32, name: 27 },
+    [TYPE_STEP.medium]: { note: 32, name: 27 },
+    [TYPE_STEP.large]: { note: 32, name: 27 },
+};
+/**
+ * What the drawn mark opening a caveated note takes off that note's first line, as the characters
+ * it stands in the room of: the ring and the air after it, against a body character's own width.
+ */
+const NOTE_MARK_CHARACTERS = 2;
+/**
+ * Past every card this panel composes: four figures and their parts, the counters, both runs — the
+ * criticals, the defences, the procs and what a blow destroyed — and the notes. The tallest card
+ * any recording composes is 31 lines and the median 23, over the 1,260 cards the ranking of
+ * `captures/` opens on 2026-09-25 — `deno task panel:cards` is what measures it, and
+ * this is headroom rather than a limit anything meets.
+ */
+const TIP_LINES_MAXIMUM = 64;
+/** A custom property, which is the one kind `src/ui/panel-look.ts`'s reset leaves standing. */
+const TOP_VARIABLE = "--MargoMeter-tip-top";
+const LEFT_VARIABLE = "--MargoMeter-tip-left";
+const RIGHT_VARIABLE = "--MargoMeter-tip-right";
+/**
+ * What the edge a card is **not** measured from is released to. Both are always written together:
+ * leaving one off would let the sheet's own fallback stand beside the offset just written, and the
+ * card would be pinned by both edges at once — which is a width nobody chose (`develop ADR 0091`).
+ */
+const EDGE_RELEASED = "auto";
+const HEIGHT_VARIABLE = "--MargoMeter-tip-height";
+/** Past every card there is: four figures, the counters, both runs and the notes come to five. */
+const TIP_GROUPS_MAXIMUM = 16;
+/** Past the widest cut a card draws: fourteen worded procs, four destroyed, three defences. */
+const CARD_PARTS_MAXIMUM = 64;
+/** Counted in the line above it rather than beside it, so the card never says it twice. */
+const OFFHAND_CRIT_KEY = "+of_crit";
+/** Headroom rather than a bound anything meets: a reader comes back to a handful of places. */
+const LISTS_KEPT_MAXIMUM = 32;
 
 export function initPanelView(document: PanelDocument, options: PanelViewOptions): PanelView {
     let typeStep = options.typeStep;
@@ -2986,4 +3193,893 @@ function presentChargedSkillTip(charged: StandingChargedSkill): TipReading {
         subtitle: formatChargedSkillSubtitle(charged.name, charged.state),
         groups: [{ lines: [stated] }],
     };
+}
+
+/**
+ * The sentences the figures above earned, and **read off those figures rather than asked a second
+ * time**: a card that worked out for itself which ones to say could draw a glyph pointing at a
+ * sentence it had not drawn, or a sentence no glyph pointed at. Each is said once however many of
+ * its figures wear the mark, and the run is bounded by `CAVEATS`, which is closed (**S11**).
+ *
+ * A row's card composes its sentences here too (`develop:src/ui/panel-element.ts`), which is what
+ * keeps one glyph and one sentence answering to each other wherever either is drawn.
+ * `develop ADR 0089`.
+ */
+function presentCaveatNoteLines(groups: readonly TipGroup[]): TipLine[] {
+    const said = new Set<Caveat>();
+    for (const group of groups) {
+        for (const line of group.lines) {
+            if (line.kind !== TIP_LINE.stat) continue;
+            if (line.caveat === null) continue;
+            said.add(line.caveat);
+        }
+    }
+    // The sentence alone: the mark opening it is drawn from the tone rather than spelled into the
+    // text (`develop ADR 0092`), and `develop:src/ui/panel-tip.ts` is where it goes on being
+    // counted.
+    return CAVEATS.filter((one) => said.has(one)).map((one): TipLine => ({
+        kind: TIP_LINE.note,
+        text: getNoteForCaveat(one),
+        tone: TIP_NOTE_TONE.caveat,
+    }));
+}
+
+/**
+ * What pointing at a fight says, from the line over the ranking or from a row on the shelf: which
+ * fight it was, when it opened, where in full, on which world, and as which character (ADR 0014).
+ * A line with nothing to state is left off, so the card never says that something is unknown.
+ *
+ * ⚠️ **The place is the card's name and never one of its lines.** A name wraps and is counted at
+ * the lines it takes, where a line's value neither shrinks nor wraps: a place a line could not hold
+ * would be cut on the one card that exists to draw it whole (`develop ADR 0084`).
+ */
+function presentFightCard(fight: FightCardReading): TipReading {
+    const counted = formatFightCardCounts(fight);
+    const lines: TipLine[] = [];
+    // A fight going on is dated by when it opened: the shelf's `teraz` is a row's word, not a date.
+    addFightCardLine(lines, FIGHT_CARD_WORDS.when, getWordsForShelfTime(fight.at, false));
+    addFightCardLine(lines, FIGHT_CARD_WORDS.world, fight.world ?? "");
+    addFightCardLine(lines, FIGHT_CARD_WORDS.character, fight.reader?.name ?? "");
+    // A profession and a level beside a nickname of twenty-five characters (`develop ADR 0097`)
+    // overrun the bound, so the two stand on a line of their own, as a person's card puts them
+    // under the name.
+    const said = fight.reader === null
+        ? null
+        : formatCardSubtitle(fight.reader.profession, fight.reader.level, SIDE_PART.nobody);
+    addFightCardLine(lines, FIGHT_CARD_WORDS.profession, said ?? "");
+    const groups = lines.length === 0 ? [] : [{ lines }];
+    if (fight.place === null) return { name: counted, subtitle: null, groups };
+    return { name: fight.place, subtitle: counted, groups };
+}
+
+/** The line over the ranking, in the words a shelf row uses for how it went. */
+function formatFightCardCounts(fight: FightCardReading): string {
+    const counted = formatSideCounts(fight.sizes, fight.unplaced);
+    const outcome = getWordsForShelfOutcome(fight.outcome, fight.isLive);
+    if (outcome.length === 0) return counted;
+    return `${counted} · ${outcome}`;
+}
+
+function addFightCardLine(lines: TipLine[], label: string, stated: string): void {
+    if (stated.length === 0) return;
+    lines.push({ kind: TIP_LINE.stat, label, stated, isStrong: false, caveat: null });
+}
+
+export function createTipRegister(): TipRegister {
+    const held = new Map<string, TipCompose>();
+    return {
+        // A row with no name, one already registered, or one past the bound is left without a
+        // card. What that costs is detail on hover, and never the draw it arrived in (**E12**).
+        add(key: string, compose: TipCompose): void {
+            if (key.length === 0) return;
+            if (held.has(key)) return;
+            if (held.size >= TIPS_MAXIMUM) return;
+            held.set(key, compose);
+        },
+        lookup(key: string): TipCompose | null {
+            return held.get(key) ?? null;
+        },
+        reset(): void {
+            held.clear();
+        },
+    };
+}
+
+export function tallyTipSize(reading: TipReading | null, step: TypeStep): TipSize {
+    if (reading === null) return { lines: 1, groups: 0 };
+    const floors = CHARACTERS_PER_LINE_BY_STEP[step];
+    let lines = getTipLinesForCharacters(reading.name.length, floors.name);
+    if (reading.subtitle !== null) {
+        lines += getTipLinesForCharacters(reading.subtitle.length, floors.note);
+    }
+    for (const group of reading.groups) {
+        for (const line of group.lines) {
+            lines += getTipLineCost(line, floors);
+        }
+    }
+    // The bound is on where the card is placed, never on what it holds: every line is drawn.
+    if (lines > TIP_LINES_MAXIMUM) lines = TIP_LINES_MAXIMUM;
+    return { lines, groups: reading.groups.length };
+}
+
+/**
+ * What a run of text costs the height, on the floor its face is counted at. A floor of nought
+ * answers infinity, and a text of nothing stands on a line all the same.
+ */
+function getTipLinesForCharacters(characters: number, charactersPerLine: number): number {
+    const wrapped = Math.ceil(characters / charactersPerLine);
+    if (wrapped < 1) return 1;
+    return wrapped;
+}
+
+/**
+ * What one line of a run costs the height. A note wraps, so it costs the lines its text runs to;
+ * every other kind is held to one by the stylesheet, which cuts a long label rather than folding
+ * it. The name a card opens with is neither, and `tallyTipSize` counts it.
+ *
+ * ⚠️ **A caveated note's mark is counted although it is not in the text.** It is drawn from the
+ * tone since `develop ADR 0092`, and a count reading `text` alone would shorten every one of those
+ * notes by a mark the card still draws — which is the trap the glyph sat inside the sentence to
+ * avoid while it was a codepoint.
+ */
+function getTipLineCost(line: TipLine, floors: CharactersPerLine): number {
+    if (line.kind !== TIP_LINE.note) return 1;
+    const marked = line.tone === TIP_NOTE_TONE.caveat ? NOTE_MARK_CHARACTERS : 0;
+    return getTipLinesForCharacters(line.text.length + marked, floors.note);
+}
+
+export function renderTip(
+    document: PanelDocument,
+    reading: TipReading | null,
+): PanelElement {
+    const tip = document.createElement("div");
+    tip.className = reading === null ? `${CLASS.tip} ${CLASS.tipHidden}` : CLASS.tip;
+    if (reading === null) return tip;
+    // A block rather than a span, because the name folds and an inline box would fold around
+    // whatever stood beside it. What its lines cost is `tallyTipSize` above.
+    const name = document.createElement("div");
+    name.className = CLASS.tipName;
+    name.textContent = reading.name;
+    tip.append(name);
+    if (reading.subtitle !== null) {
+        const subtitle = document.createElement("div");
+        subtitle.className = CLASS.tipSubtitle;
+        subtitle.textContent = reading.subtitle;
+        tip.append(subtitle);
+    }
+    for (const group of reading.groups) {
+        // Render one group of the card's lines.
+        const drawnGroup = document.createElement("div");
+        drawnGroup.className = CLASS.tipGroup;
+        for (const line of group.lines) {
+            // Render one line of the group.
+            if (line.kind === TIP_LINE.note) {
+                // Render a sentence at the foot of the card, its caveat's ring before it.
+                // The suspect and the defect marks stay inside their own text: both are
+                // drawn by a codepoint that every face carries at a width its own height
+                // (`develop ADR 0092` carries the measurement), and only the circled
+                // letter had to be built.
+                const note = document.createElement("div");
+                const tone = composeTipNoteToneClass(line.tone);
+                note.className = `${CLASS.tipNote}${tone}`;
+                note.textContent = line.text;
+                // ⚠️ **Appended after the sentence and stood before it by the sheet.**
+                // `textContent` replaces every child, so a ring written first is wiped
+                // by the line it belongs to — and wrapping the sentence in a span of its
+                // own instead would leave this element's own `textContent` empty, which
+                // is what every reader of a drawn note asks it for.
+                if (line.tone === TIP_NOTE_TONE.caveat) {
+                    note.append(renderTipCaveat(document));
+                }
+                drawnGroup.append(note);
+            } else if (line.kind === TIP_LINE.heading) {
+                // Render a heading over the lines below it.
+                const heading = document.createElement("div");
+                heading.className = CLASS.tipHeading;
+                heading.textContent = line.text;
+                drawnGroup.append(heading);
+            } else {
+                const drawnLine = document.createElement("div");
+                drawnLine.className = composeTipLineClass(line);
+                const label = document.createElement("span");
+                label.className = CLASS.tipLabel;
+                label.textContent = line.label;
+                const value = document.createElement("span");
+                value.className = CLASS.tipValue;
+                value.textContent = line.stated;
+                drawnLine.append(label);
+                // Before the value and never after it: the value column is right-aligned
+                // in `tabular-nums`, and a glyph behind it would offset the figures of the
+                // lines carrying one against those that do not. Before it, the column
+                // stays aligned and the glyph still stands at the figure.
+                if (line.kind === TIP_LINE.stat) {
+                    if (line.caveat !== null) drawnLine.append(renderTipCaveat(document));
+                }
+                drawnLine.append(value);
+                drawnGroup.append(drawnLine);
+            }
+        }
+        tip.append(drawnGroup);
+    }
+    return tip;
+}
+
+function composeTipNoteToneClass(tone: TipNoteTone): string {
+    if (tone === TIP_NOTE_TONE.suspect) return ` ${CLASS.tipSuspect}`;
+    if (tone === TIP_NOTE_TONE.caveat) return ` ${CLASS.tipCaveatNote}`;
+    return "";
+}
+
+/**
+ * The glyph a figure wears where its label names more than the figure counts. It takes its width
+ * from the label beside it, which the sheet cuts rather than folds — `LABEL_CHARACTERS_MAXIMUM` in
+ * `src/ui/panel-words.ts` is where that arithmetic is.
+ */
+function renderTipCaveat(document: PanelDocument): PanelElement {
+    const element = document.createElement("span");
+    element.className = CLASS.tipCaveat;
+    element.textContent = CAVEAT_MARK;
+    return element;
+}
+
+function composeTipLineClass(line: TipLine): string {
+    if (line.kind === TIP_LINE.sub) return `${CLASS.tipLine} ${CLASS.tipSub}`;
+    if (line.kind === TIP_LINE.stat) {
+        if (line.isStrong) return `${CLASS.tipLine} ${CLASS.tipStrong}`;
+    }
+    return CLASS.tipLine;
+}
+
+export function setTipHidden(tip: PanelElement, isHidden: boolean): void {
+    tip.className = isHidden ? `${CLASS.tip} ${CLASS.tipHidden}` : CLASS.tip;
+}
+
+/**
+ * Where the tip sits, and how tall it stands, as the properties the stylesheet clamps and
+ * multiplies. Whole pixels down the screen, because `clientY` is fractional on a scaled display
+ * and half a pixel is nothing anybody can see — while a declaration reading `292.33333333333px`
+ * is something a reader of the page can.
+ */
+export function setTipPlace(
+    tip: PanelElement,
+    clientY: number,
+    across: TipAcross | null,
+    size: TipSize,
+    step: TypeStep,
+): void {
+    // A pointer that states no position puts the card at the top rather than nowhere: `Math.round`
+    // of a figure that is not one is not one either, and a card placed at it is off the screen.
+    const stated = Number.isFinite(clientY) ? clientY : 0;
+    const top = Math.max(0, Math.round(stated));
+    const sideways = composeTipAcrossStyle(across);
+    // The height rather than the counts it came from: the trim and the sheet's clamp spend one
+    // number. A height nothing could be read for leaves the property off (**E12**).
+    const height = getTipHeight(size, TYPE_TOKENS[step]);
+    const tall = height === null ? "" : `;${HEIGHT_VARIABLE}:${height}px`;
+    tip.setAttribute(STYLE_ATTRIBUTE, `${TOP_VARIABLE}:${top}px${tall}${sideways}`);
+}
+
+/**
+ * The pair of properties a placement across comes to, or nothing at all — a panel nobody has
+ * moved keeps the corner the sheet states, and writing an offset for it would say the reader had
+ * moved something.
+ */
+function composeTipAcrossStyle(across: TipAcross | null): string {
+    if (across === null) return "";
+    const at = `${Math.max(0, Math.round(across.at))}px`;
+    if (across.edge === "left") {
+        return `;${LEFT_VARIABLE}:${at};${RIGHT_VARIABLE}:${EDGE_RELEASED}`;
+    }
+    return `;${LEFT_VARIABLE}:${EDGE_RELEASED};${RIGHT_VARIABLE}:${at}`;
+}
+
+/**
+ * The card cut to the room there is, with a line saying so wherever anything was given up.
+ *
+ * ⚠️ **A card taller than the window is clipped and says nothing about it.** The box carries
+ * `overflow:hidden` and takes no pointer: measured on Chrome 152, 2026-09-06, a 533 px card in a
+ * 480 px window shows 464 of it and loses the rest without a mark. So what will not fit is given
+ * up at a run's own edge and the card states it. Unchanged where the page states no height.
+ */
+export function composeTipWithin(
+    reading: TipReading,
+    room: number | null,
+    typeStep: TypeStep,
+): TipReading {
+    if (room === null) return reading;
+    if (!Number.isFinite(room)) return reading;
+    if (room <= 0) return reading;
+    if (isTipWithin(reading, room, typeStep)) return reading;
+    let kept: readonly TipGroup[] = reading.groups;
+    for (let step = 0; step < TIP_GROUPS_MAXIMUM; step += 1) {
+        const shorter = composeGroupsWithout(kept);
+        if (shorter === null) break;
+        kept = shorter;
+        if (isTipWithin(composeTipCut(reading, kept), room, typeStep)) break;
+    }
+    return composeTipCut(reading, kept);
+}
+
+function isTipWithin(reading: TipReading, room: number, step: TypeStep): boolean {
+    const height = getTipHeight(tallyTipSize(reading, step), TYPE_TOKENS[step]);
+    if (height === null) return true;
+    return height <= room;
+}
+
+/**
+ * The card with its last sacrificeable run gone, or null where there is none left. The four
+ * figures are what a card is for and the notes carry the suspicions — a claim that a figure above
+ * may be wrong outranks how somebody fought — so what goes is between them, the last one first.
+ */
+function composeGroupsWithout(groups: readonly TipGroup[]): TipGroup[] | null {
+    const last = groups.length - 1;
+    if (last < 1) return null;
+    const at = isNoteGroup(groups[last] ?? { lines: [] }) ? last - 1 : last;
+    if (at < 1) return null;
+    return [...groups.slice(0, at), ...groups.slice(at + 1)];
+}
+
+/** A run of nothing but notes, which is what a card puts last and what a trim never takes. */
+function isNoteGroup(group: TipGroup): boolean {
+    if (group.lines.length === 0) return false;
+    return group.lines.every((one) => one.kind === TIP_LINE.note);
+}
+
+/** The card once something was given up: it says so, where a figure's qualifiers are read. */
+function composeTipCut(reading: TipReading, kept: readonly TipGroup[]): TipReading {
+    if (kept.length === reading.groups.length) return reading;
+    const said: TipLine = { kind: TIP_LINE.note, text: CARD_WORDS.cut, tone: TIP_NOTE_TONE.plain };
+    const last = kept[kept.length - 1];
+    if (last !== undefined) {
+        if (isNoteGroup(last)) {
+            const groups = [...kept.slice(0, -1), { lines: [...last.lines, said] }];
+            return { ...reading, groups };
+        }
+    }
+    return { ...reading, groups: [...kept, { lines: [said] }] };
+}
+
+/**
+ * The tip on the page, and the whole of what it remembers: which row it is open for, how tall its
+ * card stands and where the pointer left it.
+ *
+ * A fight redraws every few seconds. A tip that vanished under the cursor on every payload would
+ * be worse than one that says nothing, so a redraw looks its own key up again and follows the
+ * figure as it moves — and hides only where the row it names has stopped being drawn.
+ */
+export function initTipHandle(
+    document: PanelDocument,
+    register: TipLookup,
+    redraw: TipRedraw,
+    /** Asked with the key the card is open for: the two windows do not open on the same side. */
+    getAcross: (key: string) => TipAcross | null = () => null,
+    /** Asked as a card opens, never as the panel is built. Null is a page stating no height. */
+    getViewportHeight: () => number | null = () => null,
+    getTypeStep: () => TypeStep = () => TYPE_STEP_DEFAULT,
+): TipHandle {
+    let standing = renderTip(document, null);
+    let openKey: string | null = null;
+    let openTop = 0;
+    let openSize: TipSize = tallyTipSize(null, getTypeStep());
+    const renderTipFor = (key: string, reading: TipReading): void => {
+        // Cut here rather than where a card is composed: the one place that knows both it and the
+        // window, and on the way in for a card opened and for one a redraw put up again.
+        const shown = composeTipWithin(reading, getTipRoom(getViewportHeight()), getTypeStep());
+        openSize = tallyTipSize(shown, getTypeStep());
+        standing = redraw(standing, () => renderTip(document, shown));
+        setTipPlace(standing, openTop, getAcross(key), openSize, getTypeStep());
+    };
+    const hide = (): void => {
+        if (openKey === null) return;
+        openKey = null;
+        setTipHidden(standing, true);
+    };
+    return {
+        element: standing,
+        onHover(key: string | null, clientY: number): void {
+            if (key === null) {
+                hide();
+                return;
+            }
+            const top = Math.max(0, Math.round(clientY));
+            if (key === openKey) {
+                // A card that would not compose is hidden where it stands
+                // (`src/ui/panel-element.ts`) without this handle being told, so the key it was
+                // open under still names it: without the class read here, a pointer moving inside
+                // that row would only move a window nobody can see.
+                if (!standing.className.includes(CLASS.tipHidden)) {
+                    // A pointer reports far more moves than the window has places to stand in,
+                    // and a move inside one pixel would rewrite the same declaration.
+                    if (top === openTop) return;
+                    openTop = top;
+                    setTipPlace(standing, openTop, getAcross(key), openSize, getTypeStep());
+                    return;
+                }
+            }
+            const compose = register.lookup(key);
+            if (compose === null) {
+                hide();
+                return;
+            }
+            openTop = top;
+            openKey = key;
+            renderTipFor(key, compose());
+        },
+        renderOpen(): void {
+            const key = openKey;
+            if (key === null) return;
+            const compose = register.lookup(key);
+            if (compose === null) {
+                hide();
+                return;
+            }
+            renderTipFor(key, compose());
+        },
+    };
+}
+
+/**
+ * What a person's row says on demand, at whichever level it stands: every figure a combatant has
+ * and not only the one the screen is showing, and both runs and not only the screen's.
+ */
+export function presentCard(subject: CardSubject): TipReading {
+    const groups: TipGroup[] = [
+        { lines: presentCardFigureLines(subject.detail, subject.metric, subject.translate) },
+    ];
+    const counters = presentCardCounterLines(subject.detail);
+    if (counters.length > 0) groups.push({ lines: counters });
+    groups.push(...presentCardRunGroups(subject.detail, subject.translate));
+    const notes = presentCardNoteLines(subject, groups);
+    if (notes.length > 0) groups.push({ lines: notes });
+    return {
+        // A card with nobody behind it says so rather than standing with a blank where a name is.
+        name: subject.name.length > 0 ? subject.name : PANEL_WORDS.unknown,
+        subtitle: formatCardSubtitle(
+            subject.profession,
+            subject.detail.level,
+            subject.sidePart,
+        ),
+        groups,
+    };
+}
+
+/**
+ * The figures the whole fight is summed over, under the heading saying so.
+ *
+ * **The screen's own figure stands whatever it is, and the other three only above nought.** A
+ * screen showing somebody at nothing has to say nothing — that is the answer to what was asked —
+ * while the other three at nought are three lines answering nobody. Drawing all four
+ * unconditionally printed 580 figures of nought over `captures/` on 2026-09-14, 0.49 to a
+ * card; this leaves 145, each of them the one a reader pointed at.
+ */
+function presentCardFigureLines(
+    detail: RowDetail,
+    metric: PanelMetric,
+    translate: TranslateLabel | null,
+): TipLine[] {
+    const lines: TipLine[] = [{ kind: TIP_LINE.heading, text: CARD_WORDS.wholeFight }];
+    for (const one of presentCardFigures(detail)) {
+        if (one.metric !== metric) {
+            if (!Number.isFinite(one.figure)) continue;
+            if (one.figure <= 0) continue;
+        }
+        lines.push({
+            kind: TIP_LINE.stat,
+            label: getWordsForCardMetric(one.metric),
+            stated: formatFigure(one.figure),
+            isStrong: one.metric === metric,
+            caveat: null,
+        });
+        if (one.halfNamed !== null) {
+            lines.push(...presentCardSubLine(one.halfNamed.label, one.halfNamed.figure));
+        }
+        for (const part of presentCardWordedParts(one.absorbed, translate)) {
+            lines.push(...presentCardSubLine(part.label, part.figure));
+        }
+    }
+    return lines;
+}
+
+/**
+ * The four in the order the strip over the list puts them, written out rather than derived: a
+ * table read out of `SCREEN_ORDER` could not say which end each one is missing. That the order is
+ * the strip's is read back in words by `tests/ui/panel-card.test.ts`.
+ */
+function presentCardFigures(detail: RowDetail): CardFigure[] {
+    const figures: CardFigure[] = [
+        {
+            metric: PANEL_METRIC.damageDealt,
+            figure: detail.damageDealt,
+            halfNamed: { label: PANEL_WORDS.withoutTarget, figure: detail.damageDealtToNobody },
+            absorbed: detail.damageDealtAbsorbedByDefence,
+        },
+        {
+            metric: PANEL_METRIC.damageTaken,
+            figure: detail.damageTaken,
+            halfNamed: { label: PANEL_WORDS.withoutActor, figure: detail.damageTakenFromNobody },
+            absorbed: detail.damageTakenAbsorbedByDefence,
+        },
+        {
+            metric: PANEL_METRIC.healthGiven,
+            figure: detail.healthGiven,
+            halfNamed: null,
+            absorbed: [],
+        },
+        {
+            metric: PANEL_METRIC.healthRestored,
+            figure: detail.healthRestored,
+            halfNamed: { label: PANEL_WORDS.withoutActor, figure: detail.healthRestoredByNobody },
+            absorbed: [],
+        },
+    ];
+    return figures;
+}
+
+function presentCardSubLine(label: string, figure: number): TipLine[] {
+    if (label.length === 0) return [];
+    if (!Number.isFinite(figure)) return [];
+    if (figure <= 0) return [];
+    return [{ kind: TIP_LINE.sub, label, stated: formatFigure(figure) }];
+}
+
+function presentCardCounterLines(detail: RowDetail): TipLine[] {
+    const lines: TipLine[] = [];
+    // First, because a turn is what the counts below happened inside of: the blows and the
+    // announcements are what one was spent on (`docs/turns-taken.md`).
+    if (detail.turnsTaken > 0) lines.push(presentCardTurnLine(detail));
+    if (detail.blowsStruck > 0) {
+        lines.push({
+            kind: TIP_LINE.stat,
+            label: CARD_WORDS.blows,
+            stated: formatFigure(detail.blowsStruck),
+            isStrong: false,
+            caveat: null,
+        });
+        lines.push(
+            ...presentCardSubLine(CARD_WORDS.blowsWithoutSkill, detail.blowsWithoutSkill),
+        );
+    }
+    if (detail.skillUses > 0) {
+        lines.push({
+            kind: TIP_LINE.stat,
+            label: CARD_WORDS.skillUses,
+            stated: formatFigure(detail.skillUses),
+            isStrong: false,
+            caveat: null,
+        });
+    }
+    return lines;
+}
+
+/**
+ * The turns a combatant took, with the ones they lost beside them **wherever that reading was heard
+ * at all**. Where the fight carries no lost turn on anybody, the second half is unread rather than
+ * nought — the announcement is read by the shape of a sentence and a world wording it otherwise
+ * yields nothing for everybody (`docs/turns-taken.md`) — so the line states the one figure
+ * it has. `develop ADR 0110`.
+ */
+function presentCardTurnLine(detail: RowDetail): TipLine {
+    if (!detail.wasTurnLostRead) {
+        return {
+            kind: TIP_LINE.stat,
+            label: CARD_WORDS.turns,
+            stated: formatFigure(detail.turnsTaken),
+            isStrong: false,
+            caveat: CAVEAT.turns,
+        };
+    }
+    return {
+        kind: TIP_LINE.stat,
+        label: CARD_WORDS.turnsWithLost,
+        stated: formatTurns(detail.turnsTaken, detail.turnsLost),
+        isStrong: false,
+        caveat: CAVEAT.turns,
+    };
+}
+
+/**
+ * The two runs, each under the heading naming its end, and a run that came to nothing is not
+ * drawn at all. **Neither of them turns on the screen**: a reader asking what held has the same
+ * card as one asking what landed, and the screen decides only which of the four figures is bold.
+ * `DESIGN.md` owns the rest of the card's shape.
+ */
+function presentCardRunGroups(detail: RowDetail, translate: TranslateLabel | null): TipGroup[] {
+    const runs = [
+        { heading: CARD_WORDS.striking, lines: presentCardStrikingLines(detail, translate) },
+        { heading: CARD_WORDS.struck, lines: presentCardStruckLines(detail, translate) },
+    ];
+    const groups: TipGroup[] = [];
+    for (const run of runs) {
+        if (run.heading.length === 0) continue;
+        if (run.lines.length === 0) continue;
+        groups.push({ lines: [{ kind: TIP_LINE.heading, text: run.heading }, ...run.lines] });
+    }
+    return groups;
+}
+
+/**
+ * How they struck: what the protocol stated before reduction, how much of it landed critically,
+ * what else fired, and what their blows took off the other side. The share is of **blows** and
+ * never of the turns the line above states: nothing on this card is divided by a turn
+ * (`PRODUCT.md`, `develop ADR 0048`).
+ */
+function presentCardStrikingLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
+    const lines: TipLine[] = [...presentCardRawLine(detail.damageDealtRaw)];
+    const critical = presentCardCriticalText(detail);
+    if (critical !== null) {
+        lines.push({
+            kind: TIP_LINE.stat,
+            label: CARD_WORDS.blowsCritical,
+            stated: critical,
+            isStrong: false,
+            caveat: null,
+        });
+        const offhand = detail.procsWhenStriking.filter((part) => part.key === OFFHAND_CRIT_KEY);
+        lines.push(
+            ...presentCardWordedParts(offhand, translate).map((one): TipLine => ({
+                kind: TIP_LINE.sub,
+                label: one.label,
+                stated: formatUses(one.figure),
+            })),
+        );
+    }
+    lines.push(...presentCardProcLines(detail.procsWhenStriking, CRITICAL_PROC_KEYS, translate));
+    lines.push(...presentCardDestroyedLines(detail.statisticsDestroyed));
+    return lines;
+}
+
+/**
+ * What the protocol stated before reduction, at whichever end the run it joins is about.
+ *
+ * **It stands in the run and never under the figure of the whole fight.** Drawn there it read as a
+ * part of the figure over it, and it is a sum over a narrower set of messages: a blow states a
+ * figure before reduction, while damage stated against a name arrives already reduced and health
+ * moving outside a blow states no such figure at all (`src/core/fight-statistics.ts`). Over
+ * `captures/` on 2026-09-14 it stood **below** the figure it hung under on 296 of 1,184
+ * cards, and on 172 of them below one figure and above the other on the same card.
+ * `develop ADR 0087`.
+ */
+function presentCardRawLine(raw: number): TipLine[] {
+    if (!Number.isFinite(raw)) return [];
+    if (raw <= 0) return [];
+    return [{
+        kind: TIP_LINE.stat,
+        label: CARD_WORDS.raw,
+        stated: formatFigure(raw),
+        isStrong: false,
+        caveat: CAVEAT.reduction,
+    }];
+}
+
+/** Null where nothing was struck, because a rate of nothing is not zero — it is no rate. */
+function presentCardCriticalText(detail: RowDetail): string | null {
+    if (detail.blowsCritical <= 0) return null;
+    if (detail.blowsStruck <= 0) return null;
+    // More criticals than blows is a share above the hundred, which is a number that is wrong
+    // looking like one that is right. The count is stated on its own instead (**E12**).
+    if (detail.blowsCritical > detail.blowsStruck) return formatUses(detail.blowsCritical);
+    const share = formatShare(detail.blowsCritical / detail.blowsStruck);
+    return `${formatFigure(detail.blowsCritical)} (${share})`;
+}
+
+/**
+ * Parts sharing a word are one row, and the word is what decides it.
+ *
+ * `ui/panel-words.ts` is where several keys come to share one, and why. Drawn a key at a time
+ * they made two lines reading that word against different counts, which a reader can only take
+ * as a panel that cannot add: nothing on screen says which of them either line is.
+ */
+function presentCardWordedParts(
+    parts: readonly CutPart[],
+    translate: TranslateLabel | null,
+): Array<{ label: string; figure: number }> {
+    const byLabel = new Map<string, number>();
+    for (const part of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+        const label = getWordsForBlowKey(part.key, translate);
+        if (label.length === 0) continue;
+        byLabel.set(label, (byLabel.get(label) ?? 0) + part.figure);
+    }
+    const folded = [...byLabel].map(([label, figure]) => ({ label, figure }));
+    folded.sort((one, other) => getRankedOrder(one.figure, other.figure, one.label, other.label));
+    return folded;
+}
+
+/**
+ * Everything but the keys the line above it already counted, which would otherwise read twice.
+ *
+ * **The count wears the sign, because it shares a column with damage.** A proc that fired thirteen
+ * times printed `13` directly over `Największy cios 2 865`, in one right-aligned column of
+ * `tabular-nums`, with nothing saying which of the two is a quantity of damage. `×13` is the
+ * spelling `formatUses` already gives a count of announcements (`src/ui/panel-words.ts`).
+ */
+function presentCardProcLines(
+    parts: readonly CutPart[],
+    without: readonly string[],
+    translate: TranslateLabel | null,
+): TipLine[] {
+    const kept = parts.filter((part) => !without.includes(part.key));
+    const narrowed = presentCardProcSubParts(kept, translate);
+    const lines: TipLine[] = [];
+    for (const one of presentCardWordedParts(kept, translate)) {
+        lines.push({
+            kind: TIP_LINE.stat,
+            label: one.label,
+            stated: formatUses(one.figure),
+            isStrong: false,
+            caveat: null,
+        });
+        for (const sub of narrowed.get(one.label) ?? []) {
+            lines.push({
+                kind: TIP_LINE.sub,
+                label: sub.label,
+                stated: formatUses(sub.figure),
+            });
+        }
+    }
+    return lines;
+}
+
+/**
+ * The runs standing under a row, by the word that row wears — which keys draw one at all is
+ * `src/ui/panel-words.ts`'s to say.
+ *
+ * **Sliced where `presentCardWordedParts` slices**, so the two walks see one list and no sub-line
+ * can count a part the row above it dropped. Pushed inside that row's own turn rather than sorted
+ * with the rest, because a sub-line is read through the line above it (`DESIGN.md`).
+ */
+function presentCardProcSubParts(
+    parts: readonly CutPart[],
+    translate: TranslateLabel | null,
+): Map<string, Array<{ label: string; figure: number }>> {
+    const byWords = new Map<string, Map<string, number>>();
+    for (const part of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+        const words = getSubWordsForBlowKey(part.key);
+        if (words.length === 0) continue;
+        const label = getWordsForBlowKey(part.key, translate);
+        if (label.length === 0) continue;
+        const held = byWords.get(label) ?? new Map<string, number>();
+        held.set(words, (held.get(words) ?? 0) + part.figure);
+        byWords.set(label, held);
+    }
+    const folded = new Map<string, Array<{ label: string; figure: number }>>();
+    for (const [label, held] of byWords) {
+        const run = [...held].map(([words, figure]) => ({ label: words, figure }));
+        run.sort((one, other) => getRankedOrder(one.figure, other.figure, one.label, other.label));
+        folded.set(label, run);
+    }
+    return folded;
+}
+
+/**
+ * What their blows took off the other side, under a heading and **never under a sum**: the parts
+ * are counted in different units and the figure carries which (`src/ui/panel-words.ts`).
+ */
+function presentCardDestroyedLines(parts: readonly CutPart[]): TipLine[] {
+    if (parts.length === 0) return [];
+    const lines: TipLine[] = [{ kind: TIP_LINE.heading, text: CARD_WORDS.destroyed }];
+    for (const part of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+        if (part.figure <= 0) continue;
+        lines.push({
+            kind: TIP_LINE.sub,
+            label: getWordsForDestroyed(part.key),
+            stated: formatDestroyed(part.key, part.figure),
+        });
+    }
+    return lines;
+}
+
+/**
+ * What held: the sum a counter states with the defences it is made of under it, then what fired
+ * on their side of somebody else's blow.
+ */
+function presentCardStruckLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
+    const lines: TipLine[] = [...presentCardRawLine(detail.damageTakenRaw)];
+    if (detail.damagePrevented > 0) {
+        lines.push({
+            kind: TIP_LINE.stat,
+            label: CARD_WORDS.prevented,
+            stated: formatFigure(detail.damagePrevented),
+            isStrong: false,
+            caveat: CAVEAT.reduction,
+        });
+        lines.push(
+            ...presentCardWordedParts(detail.damagePreventedByDefence, translate).map((
+                one,
+            ): TipLine => ({
+                kind: TIP_LINE.sub,
+                label: one.label,
+                stated: formatFigure(one.figure),
+            })),
+        );
+    }
+    lines.push(...presentCardProcLines(detail.procsWhenStruck, [], translate));
+    return lines;
+}
+
+function presentCardNoteLines(subject: CardSubject, groups: readonly TipGroup[]): TipLine[] {
+    const lines: TipLine[] = [...presentCaveatNoteLines(groups)];
+    // This person's own, and nobody else's: a gap naming nobody stays under the list, where it
+    // qualifies every row at once (`develop:ARCHITECTURE.md`). `develop ADR 0069`.
+    for (const suspicion of formatRowSuspicions(subject.detail, subject.metric)) {
+        if (suspicion.length === 0) continue;
+        lines.push({
+            kind: TIP_LINE.note,
+            text: `${SUSPECT_MARK}${suspicion}`,
+            tone: TIP_NOTE_TONE.suspect,
+        });
+    }
+    // Last of the sentences and before the instruction, because it answers for every figure above
+    // it rather than for one of them.
+    if (subject.isRowNarrower) {
+        lines.push({ kind: TIP_LINE.note, text: CARD_WORDS.scope, tone: TIP_NOTE_TONE.plain });
+    }
+    if (subject.doesOpen) {
+        lines.push({ kind: TIP_LINE.note, text: CARD_WORDS.gesture, tone: TIP_NOTE_TONE.plain });
+    }
+    return lines;
+}
+
+/** In memory: a position that outlived a reload would open on a fight the page no longer holds. */
+export function createScrollMemo(): ScrollMemo {
+    const held = new Map<string, number>();
+    return {
+        getTop(name: string): number {
+            const kept = held.get(name);
+            if (kept === undefined) return 0;
+            if (!Number.isFinite(kept)) return 0;
+            if (kept < 0) return 0;
+            return kept;
+        },
+        // A name nobody can look up again, or a position no region could be put at, is refused
+        // rather than kept: what a bad one costs is the place a reader was at (**E12**).
+        setTop(name: string, top: number): void {
+            if (name.length === 0) return;
+            if (!Number.isFinite(top)) return;
+            if (top < 0) return;
+            held.set(name, top);
+            if (held.size <= LISTS_KEPT_MAXIMUM) return;
+            const oldest = held.keys().next();
+            if (!oldest.done) held.delete(oldest.value);
+        },
+    };
+}
+
+/** Null where what stands in the region is a slot, which does not scroll and holds no position. */
+export function readTopOfList(region: PanelElement): number | null {
+    if (!isRegionList(region)) return null;
+    const top = region.scrollTop;
+    if (!Number.isFinite(top)) return null;
+    if (top < 0) return null;
+    return top;
+}
+
+function isRegionList(region: PanelElement): boolean {
+    return region.className.includes(CLASS.list);
+}
+
+/**
+ * ⚠️ **A wheel turn belongs to the element it is turning**, so the rows are swapped under the
+ * reader rather than the region replaced — and the style with them, since a list's own height is
+ * written there and one left behind froze (`tests/ui/panel-scroll.test.ts`). False where either
+ * side is not a list. `develop ADR 0052`.
+ */
+export function renderListRows(standing: PanelElement, next: PanelElement): boolean {
+    if (!isRegionList(standing)) return false;
+    if (!isRegionList(next)) return false;
+    standing.className = next.className;
+    standing.setAttribute(STYLE_ATTRIBUTE, next.getAttribute(STYLE_ATTRIBUTE) ?? "");
+    standing.replaceChildren(...Array.from(next.children));
+    return true;
+}
+
+/**
+ * ⚠️ **A slot is left alone**, so a fold does not write a zero over the place a reader was at.
+ * Measured on Chrome 152.0.7977.64, 2026-09-04: written straight after `replaceWith` the position
+ * sticks, onto a replacement of the same height and onto a taller one.
+ */
+export function writeTopOfList(region: PanelElement, top: number): void {
+    if (!Number.isFinite(top)) return;
+    if (top < 0) return;
+    if (!isRegionList(region)) return;
+    region.scrollTop = top;
 }

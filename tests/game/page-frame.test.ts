@@ -11,7 +11,7 @@ import {
     assertStrictEquals,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initPageFrames, type PageFrames } from "#/src/game/page-frame.ts";
+import { initPageFrames, type PageFrames } from "#/src/game/page-time.ts";
 
 Deno.test("a step runs when its frame falls, and a cancel hands back the page's own handle", () => {
     const wound = composeFrames();

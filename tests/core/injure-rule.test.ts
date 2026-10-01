@@ -9,14 +9,17 @@
 
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
-import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
+import {
+    decodePayloadMessages,
+    parseProtocolMessage,
+    type ProtocolMessage,
+} from "#/src/core/fight-decoder.ts";
 import {
     type FightStatistics,
     tallyFightStatistics,
     verifyFightStatistics,
 } from "#/src/core/fight-statistics.ts";
 import { WOUND_ANNOUNCEMENT_KEY, WOUND_TICK_KEY as TICK_KEY } from "#/src/core/protocol-key.ts";
-import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
 

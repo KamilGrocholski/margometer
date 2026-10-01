@@ -6,7 +6,7 @@
 
 import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initPageClock, type PageDate } from "#/src/game/page-clock.ts";
+import { initPageClock, type PageDate } from "#/src/game/page-time.ts";
 
 const SEPTEMBER = { day: 13, month: 8, hour: 21, minute: 5 };
 

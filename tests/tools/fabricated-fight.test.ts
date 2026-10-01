@@ -16,7 +16,7 @@ import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { countUnreadMessages } from "#/src/core/fight-statistics.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
-import { parseProtocolMessage } from "#/src/core/protocol-message.ts";
+import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { replayFightPayloads } from "#/src/runtime/fight-reading.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
@@ -144,7 +144,7 @@ Deno.test("the fabricated fight puts something in every part of the panel", () =
 
 /**
  * The client's keys the fabricator spells for want of an exported map (N13), held to the reader
- * that takes each: the health maximum and the charge to `src/game/engine-warrior.ts`, the witness
+ * that takes each: the health maximum and the charge to `src/game/payload-envelope.ts`, the witness
  * of the turn to `tools/turn-count.ts`. A misspelt one reads as a field the game did not send.
  */
 Deno.test("every key the fabricator spells on its own is one a reader here takes", () => {

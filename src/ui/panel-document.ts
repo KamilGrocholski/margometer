@@ -35,11 +35,11 @@ export interface PanelEvent {
 export interface PanelElement {
     className: string;
     textContent: string;
-    /** Where the list is scrolled to, which `src/ui/panel-scroll.ts` reads and writes. */
+    /** Where the list is scrolled to, which `src/ui/panel-element.ts` reads and writes. */
     scrollTop: number;
     append(child: PanelElement): void;
     replaceWith(other: PanelElement): void;
-    /** How the list swaps its rows without being replaced; `src/ui/panel-scroll.ts` says why. */
+    /** How the list swaps its rows without being replaced; `src/ui/panel-element.ts` says why. */
     children: ArrayLike<PanelElement>;
     replaceChildren(...children: PanelElement[]): void;
     setAttribute(name: string, value: string): void;

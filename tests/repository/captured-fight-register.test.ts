@@ -8,8 +8,7 @@
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
-import { WARRIOR_FIELDS } from "#/src/game/engine-warrior.ts";
-import { ENVELOPE_KEYS } from "#/src/game/payload-envelope.ts";
+import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/game/payload-envelope.ts";
 import { FILE_FIELD, NOTHING_STATED } from "#/src/runtime/fight-file.ts";
 import { INTAKE_KEYS } from "#/tools/capture-intake.ts";
 import { readRecordedFights, type RecordedFight } from "#/tests/recorded-fights.ts";

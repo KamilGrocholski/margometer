@@ -8,13 +8,13 @@
 
 import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import { initPageEngine, SearchAbandoned, type WrapHandle } from "#/src/game/engine-battle.ts";
-import { initPageInterval, type PageTimers } from "#/src/game/page-interval.ts";
+import { initPageInterval, type PageTimers } from "#/src/game/page-time.ts";
 import {
     type EngineSearch,
     LOOKS_MAXIMUM,
     type SearchReport,
     startEngineSearch,
-} from "#/src/runtime/engine-search.ts";
+} from "#/src/runtime/margometer-runtime.ts";
 
 interface Told {
     payloads: unknown[];

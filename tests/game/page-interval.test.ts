@@ -13,7 +13,7 @@ import {
     assertThrows,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initPageInterval, type PageTimers } from "#/src/game/page-interval.ts";
+import { initPageInterval, type PageTimers } from "#/src/game/page-time.ts";
 
 interface Wound {
     timers: PageTimers;

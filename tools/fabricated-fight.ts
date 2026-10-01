@@ -43,11 +43,10 @@ import {
     encodeProtocolMessage,
     type MessageParameter,
     type MessageSide,
-} from "#/src/core/protocol-message.ts";
+} from "#/src/core/fight-decoder.ts";
 import { encodeHealthPercent } from "#/src/core/protocol-number.ts";
-import { WARRIOR_FIELDS } from "#/src/game/engine-warrior.ts";
+import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/game/payload-envelope.ts";
 import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
-import { ENVELOPE_KEYS } from "#/src/game/payload-envelope.ts";
 import type { CapturedCombatant } from "#/src/game/warrior-snapshot.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { readDevelopmentVersion } from "./build-userscript.ts";

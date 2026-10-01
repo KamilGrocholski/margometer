@@ -7,7 +7,7 @@
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { getFightView } from "#/src/core/fight-session.ts";
 import { tallyFightReading } from "#/src/runtime/fight-reading.ts";
-import { presentOpenedReadings } from "#/src/runtime/opened-reading.ts";
+import { presentOpenedReadings } from "#/src/runtime/panel-frame.ts";
 import { lookupPinnedCase, presentDrill, UNNAMED_END } from "#/src/ui/panel-reading.ts";
 import { createScreenState, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
 import { lookupRecordedFight, replayRecordedFight } from "#/tests/recorded-fights.ts";

@@ -13,7 +13,7 @@ import {
     assertThrows,
 } from "@std/assert";
 import { getDefenceMechanism, getKeyReading, KEY_FAMILY } from "#/src/core/protocol-key.ts";
-import { parseProtocolMessage } from "#/src/core/protocol-message.ts";
+import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 Deno.test("the family rule reads a marker, and the sign says which half", () => {

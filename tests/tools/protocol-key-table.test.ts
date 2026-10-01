@@ -8,7 +8,7 @@
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
-import { parseProtocolMessage } from "#/src/core/protocol-message.ts";
+import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 import { ProtocolKeyTableError } from "#/tools/margometer-tool-error.ts";
 import {

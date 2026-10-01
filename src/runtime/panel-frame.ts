@@ -16,7 +16,7 @@ import type { OutcomeResult } from "#/src/core/battle-event.ts";
 import { type FightView, getFightView } from "#/src/core/fight-session.ts";
 import type { TooltipPort } from "#/src/game/engine-tooltip.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
-import type { Clock } from "#/src/game/page-clock.ts";
+import type { Clock } from "#/src/game/page-time.ts";
 import { type TooltipTables, writeCarriedTooltips } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
 import {
@@ -39,14 +39,29 @@ import type {
 import type { RenderReport } from "#/src/ui/view-failure.ts";
 import {
     composeHeadcount,
+    type DrillReading,
     type FightCardReading,
     type FightReader,
     type FightSuspicions,
+    getEndForPinned,
     getOutcomeForSeat,
+    HALF_NAMED_OPENED,
+    type HalfNamedDrillReading,
+    type HalfNamedOpened,
+    type HalfNamedReading,
+    lookupPinnedCase,
+    type PairReading,
+    type PartReading,
+    presentDrill,
+    presentHalfNamed,
+    presentHalfNamedDrill,
+    presentOpenedUnnamed,
+    presentPair,
+    presentPart,
     presentScreen,
     type ShelfRow,
 } from "#/src/ui/panel-reading.ts";
-import { composeListName, type ScreenState } from "#/src/ui/panel-screen.ts";
+import { composeListName, OPENED_PART, type ScreenState } from "#/src/ui/panel-screen.ts";
 import {
     presentStanding,
     STANDING_ABSENCE,
@@ -63,7 +78,6 @@ import {
     STORE_REFUSED_ANSWER,
     type TranslateLabel,
 } from "#/src/ui/panel-words.ts";
-import { presentOpenedReadings } from "./opened-reading.ts";
 
 /** Which level of the panel two counts of one figure came out different on. */
 export const FIGURES_CUT = { screen: "screen", drill: "drill", pair: "pair" } as const;
@@ -91,6 +105,14 @@ export interface FrameParts {
     translate: TranslateLabel;
     /** The world the page is on, which is every kept fight's: a shelf is one origin's store. */
     world: string | null;
+}
+
+export interface OpenedReadings {
+    drill: DrillReading | null;
+    pair: PairReading | null;
+    part: PartReading | null;
+    halfNamed: HalfNamedReading | null;
+    halfNamedDrill: HalfNamedDrillReading | null;
 }
 
 interface LiveRow {
@@ -490,4 +512,93 @@ function presentShelfAnswers(answers: ShelfAnswers): string[] {
 
 export function getPanelDefects(defects: DefectLedger): PanelDefect[] {
     return defects.getCounts().map(({ kind, region, count }) => ({ kind, region, count }));
+}
+
+/**
+ * What stands under the rows a reader opened (`docs/design.md` §9): a person's figure, the pair of
+ * two people, the part a figure was made of, and what nobody was named for, under a pinned row or
+ * under the person whose figure left it out. A mark that names no figure on this screen opens
+ * nothing, which is the answer a mark left over from another screen deserves.
+ */
+export function presentOpenedReadings(reading: FightReading, screen: ScreenState): OpenedReadings {
+    const statistics = reading.figures.statistics;
+    const roster = reading.view.roster;
+    if (screen.openRowId === null) {
+        const halfNamed = presentOpenedHalfNamed(reading, screen);
+        const halfNamedDrill = presentOpenedHalfNamedDrill(reading, screen);
+        return { drill: null, pair: null, part: null, halfNamed, halfNamedDrill };
+    }
+    const drill = presentDrill(statistics, roster, screen.current, screen.openRowId);
+    // A row nobody in the fight is on opens nothing, and nothing under it stands either.
+    if (drill === null) {
+        return { drill: null, pair: null, part: null, halfNamed: null, halfNamedDrill: null };
+    }
+    assert(drill.combatantId === screen.openRowId, "the row drawn open is the row opened");
+    const pair = screen.openPairId === null
+        ? null
+        : presentPair(statistics, roster, screen.current, drill.combatantId, screen.openPairId);
+    const part = screen.openPart === null
+        ? null
+        : presentPart(statistics, roster, screen.current, drill.combatantId, screen.openPart);
+    const halfNamedDrill = presentOpenedUnnamedOfRow(reading, screen, drill);
+    return { drill, pair, part, halfNamed: null, halfNamedDrill };
+}
+
+/**
+ * The end the opened figure left out, where that row opens: the reading composes the level only
+ * behind a row that says it opens, so a mark left over from another screen draws nothing.
+ */
+function presentOpenedUnnamedOfRow(
+    reading: FightReading,
+    screen: ScreenState,
+    drill: DrillReading,
+): HalfNamedDrillReading | null {
+    assert(screen.openRowId === drill.combatantId, "the rung is under the row drawn open");
+    if (screen.openUnnamedEnd === null) return null;
+    const unnamed = drill.byOpponent.unnamed;
+    if (unnamed === null) return null;
+    if (!unnamed.doesOpenPair) return null;
+    const { statistics } = reading.figures;
+    const { roster } = reading.view;
+    const held = presentOpenedUnnamed(statistics, roster, screen.current, drill.combatantId);
+    if (held === null) return null;
+    return getEndForPinned(held.case) === screen.openUnnamedEnd ? held : null;
+}
+
+function presentOpenedHalfNamed(
+    reading: FightReading,
+    screen: ScreenState,
+): HalfNamedReading | null {
+    if (screen.openUnnamedEnd === null) return null;
+    const kase = lookupPinnedCase(screen.current, screen.openUnnamedEnd);
+    if (kase === null) return null;
+    const { statistics } = reading.figures;
+    const { roster, readerSide } = reading.view;
+    return presentHalfNamed(statistics, roster, kase, screen.side, readerSide);
+}
+
+function presentOpenedHalfNamedDrill(
+    reading: FightReading,
+    screen: ScreenState,
+): HalfNamedDrillReading | null {
+    if (screen.openUnnamedEnd === null) return null;
+    const kase = lookupPinnedCase(screen.current, screen.openUnnamedEnd);
+    if (kase === null) return null;
+    const opened = lookupHalfNamedOpened(screen);
+    if (opened === null) return null;
+    const { statistics } = reading.figures;
+    const { roster, readerSide } = reading.view;
+    return presentHalfNamedDrill(statistics, roster, kase, screen.side, readerSide, opened);
+}
+
+/** A person or a key, and never both: the way back closes the key first, so one of them is null. */
+function lookupHalfNamedOpened(screen: ScreenState): HalfNamedOpened | null {
+    assert(screen.openUnnamedEnd !== null, "a pinned row's rung is asked of an open pinned row");
+    assert(screen.openRowId === null, "a person's row and a pinned row are never open at once");
+    if (screen.openPart !== null) {
+        if (screen.openPart.kind !== OPENED_PART.element) return null;
+        return { kind: HALF_NAMED_OPENED.element, element: screen.openPart.element };
+    }
+    if (screen.openPairId === null) return null;
+    return { kind: HALF_NAMED_OPENED.person, combatantId: screen.openPairId };
 }

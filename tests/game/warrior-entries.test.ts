@@ -7,8 +7,7 @@
  */
 
 import { assert, assertEquals, assertNotInstanceOf } from "@std/assert";
-import { readWarriorEntries } from "#/src/game/engine-warrior.ts";
-import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import { readPayloadEnvelope, readWarriorEntries } from "#/src/game/payload-envelope.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 const WHOLE = { id: 1, name: "Gracz 1", team: 2, prof: "w", lvl: 40, hp: { max: 745 } };

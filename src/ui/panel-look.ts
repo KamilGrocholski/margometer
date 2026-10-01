@@ -424,8 +424,8 @@ export function getInkForBar(hue: Colour): Colour {
  * ⚠️ **One arithmetic, where there were two.** The sheet worked this out again from the counts the
  * draw wrote, which was enough while nothing else needed the number. The panel needs it now — a
  * card taller than the window is cut to the room there is rather than clipped
- * (`src/ui/panel-tip.ts`) — and a trim and a clamp at two heights would put the notice on a card
- * that fitted, or leave one that did not without it.
+ * (`src/ui/panel-element.ts`) — and a trim and a clamp at two heights would put the notice on a
+ * card that fitted, or leave one that did not without it.
  */
 export function getTipHeight(
     size: { lines: number; groups: number },
@@ -874,8 +874,8 @@ function composeTipRules(tokens: TypeTokens): string {
         // the name a row had to cut, and an answer cut again is no answer (`DESIGN.md`).
         // `break-word` and not `break-all`, which splits a word where a space was free, nor
         // `anywhere`, which shrinks the min-content width the card is laid out against
-        // (`develop ADR 0091`). ⚠️ The lines it folds to are counted in `src/ui/panel-tip.ts`, and
-        // a rule folding here while the count reserves one line is a card off the screen.
+        // (`develop ADR 0091`). ⚠️ The lines it folds to are counted in `src/ui/panel-element.ts`,
+        // and a rule folding here while the count reserves one line is a card off the screen.
         `.${CLASS.tipName}{font-weight:600;overflow-wrap:break-word;}` +
         `.${CLASS.tipSubtitle}{color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.tipGroup}{margin-top:var(${VARIABLE_PREFIX}small);` +

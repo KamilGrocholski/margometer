@@ -1,8 +1,7 @@
 /**
  * How tall the card a person's row opens stands, measured in lines over the recordings. The card
- * is the panel's own (`src/ui/panel-card.ts`), composed for every ranking row of the fight the
- * runtime's chain replays, and `src/ui/panel-tip.ts` owns what a line costs. The counts stay here
- * (**V5**).
+ * is the panel's own (`src/ui/panel-element.ts`, which also owns what a line costs), composed for
+ * every ranking row of the fight the runtime's chain replays. The counts stay here (**V5**).
  *
  *     deno task panel:cards                      every recording, and the height it comes to
  *     deno task panel:cards [recording.json …]   one recording
@@ -12,7 +11,7 @@
 import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { formatInteger } from "#/libs/number-text.ts";
-import { presentCard } from "#/src/ui/panel-card.ts";
+import { presentCard, tallyTipSize, TIP_LINE } from "#/src/ui/panel-element.ts";
 import {
     getPartOfSide,
     NOTHING_SUSPECT,
@@ -21,8 +20,6 @@ import {
 } from "#/src/ui/panel-reading.ts";
 import { type PanelMetric, SCREEN_ORDER, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
-import { tallyTipSize } from "#/src/ui/panel-tip.ts";
-import { TIP_LINE } from "#/src/ui/tip-reading.ts";
 import { PANEL_WORDS } from "#/src/ui/panel-words.ts";
 import {
     formatRecordingName,

@@ -22,11 +22,16 @@ import { initPagePlace } from "#/src/game/engine-place.ts";
 import { initPageTooltip } from "#/src/game/engine-tooltip.ts";
 import { initPageBuild, SCRIPTS_MAXIMUM } from "#/src/game/game-build.ts";
 import { initPageDictionary } from "#/src/game/game-dictionary.ts";
-import { initPageClock, type PageDate } from "#/src/game/page-clock.ts";
+import {
+    initPageClock,
+    initPageFrames,
+    initPageInterval,
+    type PageDate,
+    type PageFrames,
+    type PageTimers,
+} from "#/src/game/page-time.ts";
 import { initPageConsole, type PageConsole } from "#/src/game/page-console.ts";
 import { type DownloadAnchor, initPageFile } from "#/src/game/page-file.ts";
-import { initPageFrames, type PageFrames } from "#/src/game/page-frame.ts";
-import { initPageInterval, type PageTimers } from "#/src/game/page-interval.ts";
 import { initPageSurroundings } from "#/src/game/page-surroundings.ts";
 import {
     initRuntime,

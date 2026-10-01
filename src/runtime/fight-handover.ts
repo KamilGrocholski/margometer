@@ -13,7 +13,7 @@ import type * as errors from "#/libs/errors.ts";
 import type { CaptureStanding } from "#/src/game/fight-capture.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
-import type { Clock } from "#/src/game/page-clock.ts";
+import type { Clock } from "#/src/game/page-time.ts";
 import type { FileFailure, FileSink } from "#/src/game/page-file.ts";
 import type { SurroundingsPort } from "#/src/game/page-surroundings.ts";
 import {

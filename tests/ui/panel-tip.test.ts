@@ -15,8 +15,9 @@ import {
     setTipHidden,
     setTipPlace,
     tallyTipSize,
-} from "#/src/ui/panel-tip.ts";
-import type { TipNoteTone, TipReading } from "#/src/ui/tip-reading.ts";
+    type TipNoteTone,
+    type TipReading,
+} from "#/src/ui/panel-element.ts";
 import { CLASS, getTipHeight, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { TYPE_STEP } from "#/src/ui/panel-choice.ts";
 import { CARD_WORDS } from "#/src/ui/panel-words.ts";
@@ -59,7 +60,7 @@ const HILDUR: TipReading = {
 /**
  * ⚠️ **The floors are spelled here rather than imported, and that is deliberate.** A test reading
  * the constant it is checking would pass at any value of it, including the one that stands a card
- * off the bottom of the screen. The numbers are `src/ui/panel-tip.ts`'s, measured in Chrome.
+ * off the bottom of the screen. The numbers are `src/ui/panel-element.ts`'s, measured in Chrome.
  */
 const NAME_ON_ONE_LINE = 27;
 const SUBTITLE_ON_ONE_LINE = 32;

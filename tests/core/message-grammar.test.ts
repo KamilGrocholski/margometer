@@ -15,7 +15,7 @@ import {
     SEGMENTS_MAXIMUM,
     SegmentsExceeded,
     SideUnreadable,
-} from "#/src/core/protocol-message.ts";
+} from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 /** `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`, the samples' own fight. */

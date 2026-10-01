@@ -988,7 +988,8 @@ Deno.test("a card is trimmed to the room the sheet leaves it, the window less it
  * The other side of the rule below, and the one cell written against it. Every other run of words
  * on this panel is cut where it will not fit, because its height is counted as one line. The name a
  * card opens with is the **answer** to a name a row had to cut (`develop ADR 0084`), and an answer
- * cut again answers nothing — so it folds, and `src/ui/panel-tip.ts` counts the lines it folds to.
+ * cut again answers nothing — so it folds, and `src/ui/panel-element.ts` counts the lines it folds
+ * to.
  */
 Deno.test("the name a card opens with folds rather than shortening", () => {
     // A reader is proved by a sample it must flag and one it must not.

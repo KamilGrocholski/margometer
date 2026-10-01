@@ -19,8 +19,8 @@ Read on 2026-10-01 at `14223de`, a guard over direct callers met three things in
   name `renderRuntimeFrame`, so the one entry that draws was named twice and called from two places.
 - The payload's entry is the `onPayload` method of an object `initLiveFight` builds. The guards'
   shared caller climb names declared functions only, and found `initLiveFight` there.
-- `onHover` in `src/ui/panel-tip.ts` draws the card as the pointer reaches a row. §10 described no
-  such event.
+- `onHover` in `src/ui/panel-element.ts` draws the card as the pointer reaches a row. §10 described
+  no such event.
 
 ## Decision
 

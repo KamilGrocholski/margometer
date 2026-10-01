@@ -7,7 +7,7 @@
  */
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
-import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/protocol-message.ts";
+import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 interface ParsedRecorded {

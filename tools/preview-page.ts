@@ -8,8 +8,7 @@
  */
 
 import { assert, assertStringIncludes } from "@std/assert";
-import { ENVELOPE_KEYS } from "#/src/game/payload-envelope.ts";
-import { WARRIOR_FIELDS } from "#/src/game/engine-warrior.ts";
+import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/game/payload-envelope.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { PLACE, SHAPE, SPACE_PIXELS, SURFACE, TEXT, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { formatColour, SIGNAL } from "#/src/ui/panel-palette.ts";

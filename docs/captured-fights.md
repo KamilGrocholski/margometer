@@ -327,7 +327,7 @@ evidence.
   the same cast was available all along (`tests/repository/redacted-names.test.ts`,
   `tests/core/npc-heal-rule.test.ts`), and the one whose subject **is** the comparison counts what
   the snapshots hold back by that property rather than by a recording's name
-  (`tests/game/engine-warrior.test.ts`).
+  (`tests/game/warrior-entries.test.ts`).
 
   ⚠️ **It is the only recording carrying `+of_wound`**, and the register had written down that none
   did. It is `+wound`'s twin off the auxiliary weapon, and both occurrences ride blows of one

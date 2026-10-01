@@ -1,6 +1,7 @@
 /**
  * The card height report: one card per ranking row of every screen, and the summary written off
- * them. That the heights are the panel's is `src/ui/panel-tip.ts`'s to hold; these hold the text.
+ * them. That the heights are the panel's is `src/ui/panel-element.ts`'s to hold; these hold the
+ * text.
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";

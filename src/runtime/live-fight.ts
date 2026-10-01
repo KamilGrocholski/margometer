@@ -23,7 +23,7 @@ import type { PlacePort } from "#/src/game/engine-place.ts";
 import { type CaptureStanding, NO_CAPTURE, prepareCapture } from "#/src/game/fight-capture.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
-import type { Clock } from "#/src/game/page-clock.ts";
+import type { Clock } from "#/src/game/page-time.ts";
 import { type PageReadFailure, PageReadingAbsent } from "#/src/game/page-reading.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
 import { WarriorsAbsent, type WarriorSnapshot } from "#/src/game/warrior-snapshot.ts";

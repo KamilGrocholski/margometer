@@ -6,14 +6,16 @@
  */
 
 import { assert } from "@std/assert/assert";
-import type * as errors from "#/libs/errors.ts";
+import * as errors from "#/libs/errors.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
-import type { SessionOptions } from "#/src/core/fight-session.ts";
+import { getFightView, type SessionOptions } from "#/src/core/fight-session.ts";
 import type { KeyValueStore } from "#/src/game/browser-store.ts";
 import {
     EngineAlreadyWrapped,
     type EngineFailure,
     type EnginePort,
+    type PayloadListener,
+    SearchAbandoned,
     type WrapHandle,
 } from "#/src/game/engine-battle.ts";
 import type { HeroPort } from "#/src/game/engine-hero.ts";
@@ -21,27 +23,36 @@ import type { PlacePort } from "#/src/game/engine-place.ts";
 import { ROWS_WRITTEN_MAXIMUM, type TooltipPort } from "#/src/game/engine-tooltip.ts";
 import type { DictionaryPort } from "#/src/game/game-dictionary.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
-import type { Clock } from "#/src/game/page-clock.ts";
+import type {
+    Clock,
+    FrameHandle,
+    FrameScheduler,
+    IntervalHandle,
+    IntervalScheduler,
+} from "#/src/game/page-time.ts";
 import type { ConsolePort } from "#/src/game/page-console.ts";
 import type { FileSink } from "#/src/game/page-file.ts";
-import type { FrameHandle, FrameScheduler } from "#/src/game/page-frame.ts";
-import type { IntervalScheduler } from "#/src/game/page-interval.ts";
 import { type SurroundingsPort, WORLD_UNKNOWN } from "#/src/game/page-surroundings.ts";
 import type { TooltipTables } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger, initDefectLedger } from "./defect-ledger.ts";
-import { type EngineSearch, startEngineSearch } from "./engine-search.ts";
-import { executeRuntimeIntent, type IntentParts } from "./runtime-intent.ts";
+import type { RuntimeFailure } from "./failure-fate.ts";
+import { writeFightHandover } from "./fight-handover.ts";
+import { lookupStandingFight, tallyFightReading } from "./fight-reading.ts";
 import { initLiveFight, type LiveFight } from "./live-fight.ts";
 import { renderFrame } from "./panel-frame.ts";
-import { resetScreenOnOpening } from "./screen-intent.ts";
 import {
     readStorageChoice,
     readTypeStep,
     readWindowFold,
     readWindowPosition,
     readWindowSize,
+    removeWindowSize,
     type SettingFailure,
     STORAGE_DEFAULT,
+    writeTypeStep,
+    writeWindowFold,
+    writeWindowPosition,
+    writeWindowSize,
 } from "./settings.ts";
 import { initShelfKeeper, type ShelfKeeper } from "./shelf-keeper.ts";
 import { KEPT_MAXIMUM } from "./shelf.ts";
@@ -55,7 +66,7 @@ import {
 import type { PanelDocument, PanelElement } from "#/src/ui/panel-document.ts";
 import type { PanelPlacement, PanelViewport } from "#/src/ui/panel-drag.ts";
 import { initPanelView, type PanelView } from "#/src/ui/panel-element.ts";
-import type { PanelIntent } from "#/src/ui/panel-intent.ts";
+import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
 import { createScreenState, type ScreenState } from "#/src/ui/panel-screen.ts";
 import { ROWS_BESIDE_THE_STATUSES, type TranslateLabel } from "#/src/ui/panel-words.ts";
 import { GestureDropped, RegionUndrawn } from "#/src/ui/view-failure.ts";
@@ -119,6 +130,36 @@ interface RuntimeState {
     isStoodDown: boolean;
 }
 
+/** How a search ends, and the one thing it says on the way. Each is said once. */
+export interface SearchReport {
+    onAttached(wrap: WrapHandle): void;
+    /** A MargoMeter already holds the game, so this copy stands down and never counts. */
+    onStoodDown(failure: EngineFailure): void;
+    /** The game is here, and the method it is read by is not: said once, the looking goes on. */
+    onRefused(failure: EngineFailure): void;
+    onAbandoned(failure: EngineFailure): void;
+    /** A look that failed, the first time one does. The looking goes on to its bound. */
+    onLookFailed(failure: errors.Caught): void;
+}
+
+export interface EngineSearch {
+    /** Stops looking. A wrap already on stays on: taking it off is the wrap's own `detach`. */
+    stop(): void;
+    isDone(): boolean;
+}
+
+interface Search {
+    looks: number;
+    isDone: boolean;
+    hasRefused: boolean;
+    hasFailed: boolean;
+    handle: IntervalHandle | null;
+}
+
+const LOOK_EVERY_MILLISECONDS = 250;
+/** Four looks a second for a minute. A game that has not arrived by then is not arriving. */
+export const LOOKS_MAXIMUM = 240;
+
 export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runtime {
     assert(options.version.length > 0, "a runtime names the build it runs");
     const statusBits = options.tables.tooltip.statusBits.length;
@@ -168,7 +209,17 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             sessionOptions: options.sessionOptions,
             defects,
             keepFight: (fight) => keeper.keep(fight),
-            onFightOpened: () => resetScreenOnOpening(screen),
+            // ⚠️ **A row left open would find somebody in the next fight**: a party keeps its ids
+            // from one fight to the next, ten of them shared between
+            // `captures/2026-08-15-tempest-grupa-vs-hildur-1` and `-2`, read 2026-08-31.
+            onFightOpened: () => {
+                // Put the panel back on its ranking, for a reader on the live fight alone.
+                if (screen.openFightId !== null) return;
+                screen.openRowId = null;
+                screen.openUnnamedEnd = null;
+                screen.openPairId = null;
+                screen.openPart = null;
+            },
             markStale: () => markStale(state),
         });
         // The view reports a window it cannot place while it is being built, before `state` exists.
@@ -343,15 +394,97 @@ function onFrame(state: RuntimeState): void {
 function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
     // A panel left on the page by a copy that was stopped answers no press.
     if (state.isStoodDown) return;
-    const parts: IntentParts = {
-        ports: state.ports,
-        version: state.options.version,
-        screen: state.screen,
-        keeper: state.keeper,
-        live: state.live,
-        defects: state.defects,
-    };
-    if (executeRuntimeIntent(parts, intent)) markStale(state);
+    let shouldDraw: boolean;
+    // Execute the intent as one operation (`docs/design.md` §10.3), marking a failure where met.
+    {
+        switch (intent.kind) {
+            case PANEL_INTENT.saveFile: {
+                // Everything under a file reaches `core/`, whose assertion costs the file alone.
+                const saved = errors.attempt(() => {
+                    // The release of the file lands on the browser's clock after this has
+                    // returned, so its failure is handed the same mark by the sink.
+                    const { screen, keeper, live, defects } = state;
+                    const view = getFightView(live.session);
+                    const liveReading = view === null ? null : tallyFightReading(view);
+                    const standing = lookupStandingFight(
+                        liveReading,
+                        screen.openFightId,
+                        keeper.getFights(),
+                        keeper.lookupReading,
+                    );
+                    if (standing !== null) {
+                        const applied = standing.reading.view.payloadsApplied;
+                        assert(applied > 0, "a fight handed over was read from something");
+                    }
+                    const ports = { ...state.ports, version: state.options.version };
+                    const written = writeFightHandover(standing, live, ports, (failure) => {
+                        addFileDefect(defects, failure);
+                    });
+                    if (written instanceof Error) addFileDefect(defects, written);
+                });
+                if (saved instanceof Error) addFileDefect(state.defects, saved);
+                shouldDraw = executeScreenIntent(state.screen, intent);
+                break;
+            }
+            case PANEL_INTENT.pin:
+                state.keeper.pin(intent.openedAt);
+                shouldDraw = true;
+                break;
+            case PANEL_INTENT.storage:
+                state.keeper.choose(intent.choice);
+                shouldDraw = true;
+                break;
+            // Once per drag rather than once per frame, and no frame: the panel already stands
+            // there. A refusal is an answer: the reader's choice stands, and only the next visit
+            // is the poorer for it, as `develop` has it.
+            case PANEL_INTENT.move:
+                void writeWindowPosition(state.ports.settings, intent.window, intent.position);
+                shouldDraw = false;
+                break;
+            // Once per release, as a move is, and for the same reason no frame, but where the
+            // options stand open: they say which window is sized, and would otherwise say it wrong.
+            case PANEL_INTENT.resize: {
+                const hasMoved = executeScreenIntent(state.screen, intent);
+                void writeWindowSize(state.ports.settings, intent.window, intent.size);
+                assert(
+                    state.screen.windowSizes[intent.window] === intent.size,
+                    "a window sized is the size the frames to come draw it",
+                );
+                shouldDraw = hasMoved;
+                break;
+            }
+            case PANEL_INTENT.resetSize: {
+                const hasMoved = executeScreenIntent(state.screen, intent);
+                if (hasMoved) void removeWindowSize(state.ports.settings, intent.window);
+                shouldDraw = hasMoved;
+                break;
+            }
+            case PANEL_INTENT.typeStep: {
+                const hasMoved = executeScreenIntent(state.screen, intent);
+                if (hasMoved) void writeTypeStep(state.ports.settings, state.screen.typeStep);
+                shouldDraw = hasMoved;
+                break;
+            }
+            case PANEL_INTENT.fold: {
+                const hasMoved = executeScreenIntent(state.screen, intent);
+                const isCollapsed = intent.window === PANEL_WINDOW.panel
+                    ? state.screen.isCollapsed
+                    : state.screen.isStandingCollapsed;
+                void writeWindowFold(state.ports.settings, intent.window, isCollapsed);
+                assert(hasMoved, "a fold always moves the window it names");
+                shouldDraw = hasMoved;
+                break;
+            }
+            default:
+                shouldDraw = executeScreenIntent(state.screen, intent);
+                break;
+        }
+    }
+    if (shouldDraw) markStale(state);
+}
+
+function addFileDefect(defects: DefectLedger, failure: RuntimeFailure): void {
+    defects.add({ kind: DEFECT_KIND.file, region: null, failure });
 }
 
 function readRuntimePlacement(
@@ -378,4 +511,308 @@ function failRuntimeSearch(state: RuntimeState, failure: EngineFailure): void {
     assert(state.wrap === null, "and one holding the game is not looking for it");
     state.defects.add({ kind: DEFECT_KIND.engine, region: null, failure });
     showRuntimePanel(state);
+}
+
+/**
+ * Getting the wrap onto the game (§10.1). The game builds its battle once, while its engine starts,
+ * and a userscript may arrive on either side of that: so this looks, keeps looking, and stops when
+ * it finds one or when the game plainly is not coming. A search with no end is something the page
+ * pays for forever.
+ */
+export function startEngineSearch(
+    engine: EnginePort,
+    interval: IntervalScheduler,
+    listener: PayloadListener,
+    report: SearchReport,
+): EngineSearch {
+    const search: Search = {
+        looks: 0,
+        isDone: false,
+        hasRefused: false,
+        hasFailed: false,
+        handle: null,
+    };
+    // ⚠️ The report is ours and may break, and two of its calls stand on the stack that started
+    // the add-on, outside any look's guard. One guard here covers all of them: a report that
+    // breaks has nowhere further to go, and the search has already counted the look it failed on.
+    const onLookFailure = (failure: errors.Caught): void => {
+        void errors.attempt(() => failLook(search, report, failure));
+    };
+    // ⚠️ The first look runs on the stack that started the add-on, where only the game's own page
+    // stands above it; every look after it runs in the browser's timer. One guard for both.
+    const first = errors.attempt(() => look(search, engine, listener, report));
+    if (first instanceof Error) onLookFailure(first);
+    if (!search.isDone) {
+        const started = interval.every(
+            () => look(search, engine, listener, report),
+            LOOK_EVERY_MILLISECONDS,
+            onLookFailure,
+        );
+        if (started instanceof Error) onLookFailure(started);
+        else search.handle = started;
+    }
+    return {
+        stop: () => stopLooking(search),
+        isDone: () => search.isDone,
+    };
+}
+
+/** A look that failed is still a look, so the search runs out where one finding nothing does. */
+function failLook(
+    search: Search,
+    report: SearchReport,
+    failure: errors.Caught,
+): void {
+    if (!search.hasFailed) {
+        search.hasFailed = true;
+        report.onLookFailed(failure);
+    }
+    abandonAtBound(search, report);
+}
+
+function abandonAtBound(search: Search, report: SearchReport): void {
+    if (search.looks < LOOKS_MAXIMUM) return;
+    if (search.isDone) return;
+    stopLooking(search);
+    report.onAbandoned(new SearchAbandoned(search.looks, LOOKS_MAXIMUM));
+}
+
+/**
+ * ⚠️ The clock is the page's, and a cancel it refuses leaves a search that is done and a timer that
+ * finds it done at every tick, which is the one thing the refusal can cost; so it is not reported.
+ */
+function stopLooking(search: Search): void {
+    search.isDone = true;
+    const handle = search.handle;
+    search.handle = null;
+    if (handle === null) return;
+    void handle.cancel();
+}
+
+function look(
+    search: Search,
+    engine: EnginePort,
+    listener: PayloadListener,
+    report: SearchReport,
+): void {
+    if (search.isDone) return;
+    search.looks += 1;
+    assert(search.looks <= LOOKS_MAXIMUM, "the search stays inside its stated bound");
+    const battle = engine.readBattle();
+    if (battle instanceof Error) {
+        if (battle instanceof errors.Caught) failLook(search, report, battle);
+        else abandonAtBound(search, report);
+        return;
+    }
+    const wrapped = battle.wrap(listener);
+    if (!(wrapped instanceof Error)) {
+        stopLooking(search);
+        report.onAttached(wrapped);
+        return;
+    }
+    if (wrapped instanceof EngineAlreadyWrapped) {
+        stopLooking(search);
+        report.onStoodDown(wrapped);
+        return;
+    }
+    // The game is here and its method is gone. Said once; the looking ends where a search
+    // finding nothing ends, and says nothing then: the game was there, so it was not abandoned.
+    if (search.looks >= LOOKS_MAXIMUM) stopLooking(search);
+    if (search.hasRefused) return;
+    search.hasRefused = true;
+    report.onRefused(wrapped);
+}
+
+/**
+ * Where an intent leaves the panel's screen (`docs/design.md` §10.3): which list, which side, which
+ * row and which rung under it. Pure moves over the screen state; the shelf, the settings and the
+ * file are the runtime's. False for an intent that moves nothing, so it costs no frame.
+ */
+export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): boolean {
+    let hasMoved: boolean;
+    // Move the screen by the intent, one step.
+    {
+        switch (intent.kind) {
+            case PANEL_INTENT.metric:
+                // Keep the person, on every screen, and close what names one direction or noun.
+                {
+                    const metric = intent.metric;
+                    screen.current = metric;
+                    screen.isOnShelf = false;
+                    screen.isOnOptions = false;
+                    screen.openPairId = null;
+                    screen.openPart = null;
+                    screen.openUnnamedEnd = null;
+                    hasMoved = true;
+                }
+                break;
+            case PANEL_INTENT.side:
+                // Close everything opened, since a side decides who is on the list.
+                {
+                    const side = intent.side;
+                    screen.side = side;
+                    screen.isOnShelf = false;
+                    screen.isOnOptions = false;
+                    screen.openRowId = null;
+                    screen.openUnnamedEnd = null;
+                    screen.openPairId = null;
+                    screen.openPart = null;
+                    hasMoved = true;
+                }
+                break;
+            case PANEL_INTENT.openRow:
+                // Open the row, or under an opened one the rung under it: never a toggle.
+                {
+                    const combatantId = intent.combatantId;
+                    assert(
+                        Number.isSafeInteger(combatantId),
+                        "a row is opened by the game's own id",
+                    );
+                    // An opened row covers the screen it was opened on, so a press inside it is a
+                    // pair, or that person's share of what nobody was named for under a pinned row.
+                    if (screen.openRowId !== null) screen.openPairId = combatantId;
+                    else if (screen.openUnnamedEnd !== null) screen.openPairId = combatantId;
+                    else screen.openRowId = combatantId;
+                    hasMoved = true;
+                }
+                break;
+            case PANEL_INTENT.openUnnamed:
+                // Open the end left out: the rung under an opened person, or the pinned row.
+                {
+                    const end = intent.end;
+                    assert(
+                        screen.openPairId === null,
+                        "an end left out is pressed from the level over it",
+                    );
+                    assert(screen.openPart === null, "and never from a part's level");
+                    screen.openUnnamedEnd = end;
+                    hasMoved = true;
+                }
+                break;
+            case PANEL_INTENT.openPart:
+                screen.openPart = intent.part;
+                hasMoved = true;
+                break;
+            // One rung at a time. False where there was none to leave: the gesture is the whole
+            // panel's, so a press on the ranking would otherwise redraw it for nothing.
+            case PANEL_INTENT.close:
+                if (screen.isOnOptions) {
+                    screen.isOnOptions = false;
+                    hasMoved = true;
+                    break;
+                }
+                if (screen.isOnShelf) {
+                    screen.isOnShelf = false;
+                    hasMoved = true;
+                    break;
+                }
+                if (screen.openPart !== null) {
+                    screen.openPart = null;
+                    hasMoved = true;
+                    break;
+                }
+                if (screen.openPairId !== null) {
+                    screen.openPairId = null;
+                    hasMoved = true;
+                    break;
+                }
+                // The end a person left out is the rung under their figure, so it closes before
+                // they do.
+                if (screen.openRowId !== null) {
+                    if (screen.openUnnamedEnd !== null) screen.openUnnamedEnd = null;
+                    else screen.openRowId = null;
+                    hasMoved = true;
+                    break;
+                }
+                if (screen.openUnnamedEnd === null) {
+                    hasMoved = false;
+                    break;
+                }
+                screen.openUnnamedEnd = null;
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.fold:
+                if (intent.window === PANEL_WINDOW.panel) screen.isCollapsed = !screen.isCollapsed;
+                else screen.isStandingCollapsed = !screen.isStandingCollapsed;
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.shelf:
+                screen.isOnShelf = !screen.isOnShelf;
+                screen.isOnOptions = false;
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.options:
+                screen.isOnOptions = !screen.isOnOptions;
+                screen.isOnShelf = false;
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.showKept:
+                setScreenFight(screen, intent.openedAt);
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.showLive:
+                setScreenFight(screen, null);
+                hasMoved = true;
+                break;
+            // A save moves nothing, and asks for a frame all the same: the defect it can leave is
+            // said on the panel, and the shelf between fights has no payload coming to draw it.
+            case PANEL_INTENT.saveFile:
+                hasMoved = true;
+                break;
+            // The same size asked for again moves nothing, and a frame for it would redraw nothing.
+            case PANEL_INTENT.typeStep:
+                if (screen.typeStep === intent.step) {
+                    hasMoved = false;
+                    break;
+                }
+                screen.typeStep = intent.step;
+                hasMoved = true;
+                break;
+            // Kept for the frames to come, and no frame now unless the options stand open: the
+            // window already stands that size, and the options are the one place that says which is
+            // sized.
+            case PANEL_INTENT.resize:
+                screen.windowSizes = { ...screen.windowSizes, [intent.window]: intent.size };
+                hasMoved = screen.isOnOptions;
+                break;
+            case PANEL_INTENT.resetSize:
+                if (screen.windowSizes[intent.window] === null) {
+                    hasMoved = false;
+                    break;
+                }
+                screen.windowSizes = { ...screen.windowSizes, [intent.window]: null };
+                hasMoved = true;
+                break;
+            case PANEL_INTENT.move:
+            case PANEL_INTENT.storage:
+            case PANEL_INTENT.pin:
+                hasMoved = false;
+                break;
+        }
+    }
+    verifyScreenState(screen);
+    return hasMoved;
+}
+
+/**
+ * The two covers never stand open together: each one's control closes the other. An end left out
+ * beside an opened person is a rung of its own, so neither a pair nor a part stands beside it.
+ */
+function verifyScreenState(screen: ScreenState): void {
+    if (screen.isOnOptions) assert(!screen.isOnShelf, "the options and the shelf are one cover");
+    if (screen.openRowId === null) return;
+    if (screen.openUnnamedEnd === null) return;
+    assert(screen.openPairId === null, "a person's end left out is not a pair with somebody");
+    assert(screen.openPart === null, "and no part of their figure is open under it");
+}
+
+function setScreenFight(screen: ScreenState, openedAt: number | null): void {
+    if (openedAt !== null) assert(Number.isSafeInteger(openedAt), "a fight is chosen by a moment");
+    screen.openFightId = openedAt;
+    screen.isOnShelf = false;
+    screen.isOnOptions = false;
+    screen.openRowId = null;
+    screen.openUnnamedEnd = null;
+    screen.openPairId = null;
+    screen.openPart = null;
 }

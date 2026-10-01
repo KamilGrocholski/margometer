@@ -6,8 +6,7 @@
  */
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { WARRIOR_FIELDS } from "#/src/game/engine-warrior.ts";
-import { ENVELOPE_KEYS } from "#/src/game/payload-envelope.ts";
+import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/game/payload-envelope.ts";
 import { GAME_SCRIPT_NAME } from "#/tests/e2e/game-page.ts";
 import { USERSCRIPT_NAME } from "#/tools/build-userscript.ts";
 import {

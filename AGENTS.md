@@ -388,7 +388,9 @@ TypeScript idiom, with the naming rules stated here.
   repository root, `#/path.ts`.** Never `../`, never `./` into a subdirectory, never `#/` for a
   sibling, and always the file's extension. ADR 0002.
 - **C9.** Nothing exists before it is needed — files, directories, modules, tools, guards and
-  documents alike. A shared module appears at the **second** consumer.
+  documents alike. A shared module appears at the **second** consumer. Observation: a module of
+  `src/core/`, `src/game/`, `src/runtime/` or `src/ui/` that exactly one other module of its own
+  directory imports, a test counting as no consumer. ADR 0020.
 - **C10.** A file holds one subject, however long that subject runs. What forces a split is a
   **second** subject, never a line count.
 - **C11.** Never create a file that only re-exports; update the import to the real module.
@@ -542,6 +544,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/called-once.test.ts`             | S4                                                     |
 | `tests/repository/purity.test.ts`                  | P1, P3, P4                                             |
 | `tests/repository/event-entries.test.ts`           | P2                                                     |
+| `tests/repository/single-importer.test.ts`         | C9                                                     |
 | `tests/repository/comment-share.test.ts`           | C4, C16                                                |
 | `tests/repository/design-tokens.test.ts`           | `DESIGN.md`                                            |
 | `tests/repository/changelog.test.ts`               | `CHANGELOG.md`                                         |

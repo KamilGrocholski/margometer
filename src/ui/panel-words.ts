@@ -484,7 +484,7 @@ export const PROC_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entr
  * `develop ADR 0095`.
  *
  * `+of_crit` is the same shape and is not here: the count it narrows is one of blows and not of
- * announcements, so `src/ui/panel-card.ts` draws it against a figure this table has no unit for.
+ * announcements, so `src/ui/panel-element.ts` draws it against a figure this table has no unit for.
  */
 export const PROC_SUB_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
     "+woundpoison": "osłabiona",

@@ -12,7 +12,7 @@ import {
     readTopOfList,
     renderListRows,
     writeTopOfList,
-} from "#/src/ui/panel-scroll.ts";
+} from "#/src/ui/panel-element.ts";
 import type { PanelElement } from "#/src/ui/panel-document.ts";
 import { composeFakeDocument } from "#/tests/fake-document.ts";
 

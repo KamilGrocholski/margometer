@@ -173,7 +173,7 @@ Selectors: `host` · `hover`
 | `offsetX`, `offsetY`    | `src/ui/panel-drag.ts`      | 1             | 39      | 1      |
 | `getBoundingClientRect` | `src/ui/panel-element.ts`   | 2             | 3       | 4      |
 | `contains`              | `src/ui/panel-element.ts`   | 16            | 9       | 1.1    |
-| `scrollTop`             | `src/ui/panel-scroll.ts`    | 1             | 1       | 1      |
+| `scrollTop`             | `src/ui/panel-element.ts`   | 1             | 1       | 1      |
 | `Blob`                  | `src/userscript-entry.ts`   | 5             | 4       | 6      |
 | `createObjectURL`       | `src/userscript-entry.ts`   | 19            | 19      | 6      |
 | `localStorage`          | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
