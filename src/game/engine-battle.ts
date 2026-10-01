@@ -78,8 +78,6 @@ export interface EnginePort {
     readBattle(): EngineBattle | EngineFailure | errors.Caught;
 }
 
-type Wrapper = ((this: unknown, ...args: unknown[]) => unknown) & { [WRAP_MARKER]?: number };
-
 /** Both spellings are in the wild, and a client renaming either breaks both readers at once. */
 const ENGINE_FIELD = "Engine";
 const ENGINE_CALL_FIELD = "getEngine";
@@ -118,7 +116,7 @@ export function initPageEngine(page: unknown): EnginePort {
                     };
                     // Two guards and not one: a throw before the call must not skip the reading
                     // after it.
-                    const wrapper: Wrapper = function (this: unknown, ...args: unknown[]): unknown {
+                    const wrap = function (this: unknown, ...args: unknown[]): unknown {
                         const before = errors.attempt(() => listener.onBeforeCall());
                         if (before instanceof Error) count(before);
                         const answer: unknown = Reflect.apply(original, this, args);
@@ -126,7 +124,7 @@ export function initPageEngine(page: unknown): EnginePort {
                         if (after instanceof Error) count(after);
                         return answer;
                     };
-                    wrapper[WRAP_MARKER] = WRAP_VERSION;
+                    const wrapper = Object.assign(wrap, { [WRAP_MARKER]: WRAP_VERSION });
                     battle[WRAPPED_METHOD] = wrapper;
                     assert(
                         isOurWrap(battle[WRAPPED_METHOD]),

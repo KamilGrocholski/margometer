@@ -41,6 +41,8 @@ export interface AstNode {
     local?: AstNode;
     imported?: AstNode;
     kind?: string;
+    operator?: string;
+    optional?: boolean;
     left?: AstNode;
     object?: AstNode;
     argument?: AstNode;

@@ -8,7 +8,8 @@ description: Review a change in MargoMeter against its rules — the gate first,
 A review here covers what the gate cannot see. What a guard in the register holds, the gate has
 already said; the review reads what is left, most of all the rules `AGENTS.md` marks `by-reading`.
 **This skill owns no rule.** It owns the levels and the format below, and every finding names the
-rule it breaks.
+rule it breaks. A change an agent wrote is read as hard as one a person wrote, for an abstraction
+nobody needs, a shape that changes and an allocation in a loop most of all.
 
 ## The process
 
@@ -39,7 +40,8 @@ rule it breaks.
   space had something to say (**S14**), an assertion missing or naming its condition (**A1**,
   **A2**, **A4**), a verb or a term used for something else (**N2**, **N12**, **N20**), a comment
   about the past (**C3**) or earning nothing (**C2**), a claim with no source (**V1**), a new test
-  with no proof (**W3**), a boundary tested from one side (**W5**).
+  with no proof (**W3**), a boundary tested from one side (**W5**), a branch where a table would do
+  (**C18**), a file or an interface before its second consumer (**C9**, **I1**).
 - **`LOW`** — a name, a docblock or a comment that reads worse than it could, and states nothing
   wrong.
 
@@ -48,6 +50,18 @@ A finding takes the level of the heaviest thing it does, and one rule: the heavi
 were left (**G3**).
 
 ## The checklist
+
+### Simplicity
+
+- [ ] Is this the simplest thing that works, with nothing built for a need nobody has yet (**C9**,
+      **I1**, **I3**)?
+- [ ] Can a reader new to the tree follow it in five minutes, from its names, types and assertions
+      (**C14**, **S1**, **N2**)?
+- [ ] Could a branch be data: a lookup in place of a `switch` or a run of `if` (**C18**)?
+- [ ] Can any of it, or a dependency, be deleted with the gate still green (**C9**, **W4**, _Ask
+      first_)?
+- [ ] Is every record born whole, and nothing allocated per element that could stand outside the
+      loop (**S15**, **S3**)?
 
 ### Boundaries and failures
 

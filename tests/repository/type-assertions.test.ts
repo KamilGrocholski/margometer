@@ -1,7 +1,9 @@
 /**
  * C13: nothing outside the tests asserts a type, in either spelling. `as const` asserts nothing and
  * `satisfies` asks the compiler rather than overriding it, so neither is read as one. No crossing
- * has needed a cast yet, so there is no register; the first one is `[ASK]` and starts it.
+ * has needed a cast yet, so there is no register; the first one is `[ASK]` and starts it. No file,
+ * a test included, silences the compiler with a `@ts-` directive: `deno lint`'s `ban-ts-comment`
+ * lets one through that carries a description, so the lint alone does not hold it.
  */
 
 import { assertEquals } from "@std/assert";
@@ -10,13 +12,19 @@ import {
     composeSample,
     formatNodePlace,
     readAstNodes,
+    readCommentTexts,
     readSourceFiles,
+    SOURCE_DIRECTORIES,
     type SourceFile,
 } from "#/tests/source-tree.ts";
 
 /** Every source directory but `tests/`, which C13 lets keep the cast. */
 const CHECKED_DIRECTORIES = ["frozen", "libs", "src", "tools"];
 const CONST_NAME = "const";
+/** How TypeScript opens every directive that turns a check off or down. */
+const DIRECTIVE_OPENER = "@ts-";
+/** What may stand before a directive inside its comment: a block comment's stars and the blanks. */
+const DIRECTIVE_LEAD = " \t*/";
 
 Deno.test("a cast is flagged in either spelling, and `as const` and `satisfies` are not", () => {
     const sample = composeSample([
@@ -44,4 +52,34 @@ function isConstAssertion(node: AstNode): boolean {
 Deno.test("nothing outside the tests asserts a type", () => {
     const files = readSourceFiles(CHECKED_DIRECTORIES);
     assertEquals(files.flatMap(lookupTypeAssertions), [], "C13");
+});
+
+Deno.test("a `@ts-` directive is flagged in either comment, and one named in prose is not", () => {
+    const sample = composeSample([
+        "// @ts-ignore",
+        "const one = read();",
+        "/* @ts-expect-error the reading is late */",
+        "const two = read();",
+        "// A @ts-ignore here would silence the compiler.",
+        "const three = read();",
+    ]);
+    assertEquals(lookupDirectives(sample), [
+        "sample.ts: @ts-ignore",
+        "sample.ts: @ts-expect-error the reading is late ",
+    ], "the two directives");
+});
+
+function lookupDirectives(file: SourceFile): string[] {
+    const found: string[] = [];
+    for (const text of readCommentTexts(file)) {
+        let at = 0;
+        while (at < text.length && DIRECTIVE_LEAD.includes(text[at] ?? "")) at += 1;
+        if (text.startsWith(DIRECTIVE_OPENER, at)) found.push(`${file.path}: ${text.slice(at)}`);
+    }
+    return found;
+}
+
+Deno.test("no file silences the compiler with a directive", () => {
+    const files = readSourceFiles(SOURCE_DIRECTORIES);
+    assertEquals(files.flatMap(lookupDirectives), [], "C13");
 });

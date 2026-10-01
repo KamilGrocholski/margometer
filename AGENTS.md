@@ -120,6 +120,11 @@ this language does not have would be**; each states what binds instead.
   are one `if` and its `else`. An `if` stands alone only where its negative space is empty — nothing
   happens there, and nothing holds there but the negation of its own condition. ADR 0006.
   _(`by-reading` whether the negative space had something to say)_
+- **S15. A record is born whole.** A record this program builds has every field from the literal
+  that creates it, `null` where nothing was stated (**E6**): no field is added after, none is
+  `delete`d, and its type marks none optional. Observation: a `delete` of a property, or a property
+  typed `?:`, in `libs/`, `src/core/`, `src/game/` or `src/runtime/`. A type describing an object
+  the page hands over is not one this program builds. ADR 0021.
 
 ## Purity
 
@@ -400,7 +405,9 @@ TypeScript idiom, with the naming rules stated here.
   than asking it, so a value is narrowed by a guard instead: `isRecord` and the field readers
   `docs/design.md` §3 gives, a `value is X` predicate, an `instanceof`. `as const` and `satisfies`
   assert nothing. The case that keeps escaping is `JSON.parse`. A crossing that has no narrowing to
-  offer is `[ASK]`, and the first one starts a register. Tests keep the cast. `develop ADR 0044`.
+  offer is `[ASK]`, and the first one starts a register. Tests keep the cast. `any` and a `@ts-`
+  directive override the compiler as a cast does, and no file keeps either. `develop ADR 0044`,
+  ADR 0021.
 - **C14. Self-documenting code first.** A name, a type and an assertion say what a sentence would
   and cannot go stale. Plain description belongs in the **file's docblock** and nowhere else.
   `develop ADR 0016`.
@@ -411,6 +418,10 @@ TypeScript idiom, with the naming rules stated here.
 - **C17. The standard library is asked before a function is written.** Where its edge case differs
   from the one needed, keep your own and **name the difference where the code stands**. A new
   package is a dependency, and **Ask first** governs it. `develop ADR 0040`.
+- **C18. What can be a table is a table.** A choice that answers one fixed value for another is a
+  lookup in a vocabulary-keyed record or a `ReadonlyMap`, and a branch stands where its cases do
+  different work. Observation: a `switch`, or a run of `if` comparing one value by `===`, over three
+  or more constants other than `null`, each case answering a literal or a module constant. ADR 0021.
 
 ## Language
 
@@ -520,6 +531,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | Guard                                              | Holds                                                  |
 | -------------------------------------------------- | ------------------------------------------------------ |
 | `deno check`, strict, with unused names an error   | S7                                                     |
+| `deno lint`, the recommended rules                 | C13: `any`                                             |
 | `tests/repository/declaration-order.test.ts`       | C1                                                     |
 | `tests/repository/regular-expressions.test.ts`     | C7                                                     |
 | `tests/repository/import-paths.test.ts`            | C8                                                     |
@@ -540,6 +552,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/broad-catches.test.ts`           | E4                                                     |
 | `tests/repository/handed-callbacks.test.ts`        | E10                                                    |
 | `tests/repository/type-assertions.test.ts`         | C13                                                    |
+| `tests/repository/record-shapes.test.ts`           | S15                                                    |
 | `tests/repository/control-flow.test.ts`            | S1                                                     |
 | `tests/repository/called-once.test.ts`             | S4                                                     |
 | `tests/repository/purity.test.ts`                  | P1, P3, P4                                             |
