@@ -175,7 +175,6 @@ function composeTeamHeal(
 ): TeamHeal | null {
     if (event.kind !== BATTLE_EVENT.unaccountedHealth) return null;
     if (event.combatantId === null) return null;
-    if (event.declaredShare === null) return null;
     const casterSide = roster.byId.get(event.combatantId)?.side;
     if (casterSide === undefined) return null;
     assert(event.declaredShare >= 0, "a share sized is never below nothing");

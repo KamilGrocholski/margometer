@@ -33,6 +33,7 @@ import {
 import { encodeHealthPercent, parseHealthPercent } from "./protocol-number.ts";
 import {
     APPLIED_SIGN,
+    DAMAGE_HALF,
     getKeyReading,
     KEY_FAMILY,
     NAME_SEPARATOR,
@@ -299,7 +300,6 @@ export function decodeMessage(
 ): MessageDecoded | UnreadMessage {
     const message = parseProtocolMessage(text);
     if (message instanceof Error) {
-        const standing = composeStandingAfterMessage(context, [], null);
         const unreadCause: UnreadCause = UNREAD_CAUSE.grammarRefused;
         return new UnreadMessage({
             unreadCause,
@@ -307,15 +307,15 @@ export function decodeMessage(
             combatantIds: [],
             text,
             events: [],
-            standing,
+            standing: null,
         });
     }
     const reading = decodeMessageReading(message);
     const isBlow = hasAttackFigure(reading);
-    const announced = lookupAnnouncedForMessage(message, reading.skill, context.standing, isBlow);
+    const own = getAnnouncedSkill(message, reading.skill);
+    const announced = lookupAnnouncedForMessage(message, own, context.standing, isBlow);
     if (!isBlow) reading.unreadKeys.push(...reading.procs);
     const events = decodeMessageEvents(message, reading, announced, context.roster, isBlow);
-    const own = getAnnouncedSkill(message, reading.skill);
     const standing = composeStandingAfterMessage(context, events, own);
     assert(events.length <= message.parameters.length, "a message stays inside its bound");
     if (reading.unreadKeys.length > 0) {
@@ -443,12 +443,11 @@ function decodeMessageReading(message: ProtocolMessage): MessageReading {
                                 "a figure read from digits is held exactly",
                             );
                             const token = getTokenFromKey(key);
-                            const family = keyReading.kind;
-                            if (family === KEY_FAMILY.prevented) {
+                            if (keyReading.kind === KEY_FAMILY.prevented) {
                                 reading.prevented.push({ defence: token, amount });
-                            } else if (family === KEY_FAMILY.destroyed) {
+                            } else if (keyReading.kind === KEY_FAMILY.destroyed) {
                                 reading.destroyed.push({ statistic: token, amount });
-                            } else if (key.startsWith(RAW_SIGN)) {
+                            } else if (keyReading.half === DAMAGE_HALF.raw) {
                                 reading.raw.push({ element: token, amount });
                             } else reading.applied.push({ element: token, amount });
                             isRead = true;
@@ -697,11 +696,10 @@ function hasAttackFigure(reading: MessageReading): boolean {
  */
 function lookupAnnouncedForMessage(
     message: ProtocolMessage,
-    skill: AnnouncementReading | null,
+    own: AnnouncedSkill | null,
     standing: AnnouncementStanding,
     isBlow: boolean,
 ): AnnouncedSkill | null {
-    const own = getAnnouncedSkill(message, skill);
     if (own !== null) return own;
     if (standing === null) return null;
     const announced = standing.announced;

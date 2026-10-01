@@ -404,9 +404,11 @@ export function tallyFightStatistics(
         if (event.kind === BATTLE_EVENT.attack) {
             // Add the blow to the row that struck it and the row it struck.
             const blow = tallyBlowFigures(event);
-            if (event.actorId === null) build.dealtByNobody += blow.amount;
+            const dealer = event.actorId === null
+                ? null
+                : addCombatantFigures(build.byCombatantId, event.actorId);
+            if (dealer === null) build.dealtByNobody += blow.amount;
             else {
-                const dealer = addCombatantFigures(build.byCombatantId, event.actorId);
                 // Add the dealing half of the blow, on the row of whoever struck it.
                 {
                     assert(
@@ -489,9 +491,8 @@ export function tallyFightStatistics(
                     }
                 }
             }
-            const striker = getStrikerFigures(build, event.actorId);
             if (event.targetId === null) {
-                addBlowProcs(striker, null, event.procs);
+                addBlowProcs(dealer, null, event.procs);
                 addBlowWithNoTarget(build, event.actorId, blow.amount, blow.kinds);
             } else {
                 const target = addCombatantFigures(build.byCombatantId, event.targetId);
@@ -556,7 +557,32 @@ export function tallyFightStatistics(
                         "a total of damage taken never falls below nothing",
                     );
                 }
-                addBlowProcs(striker, target, event.procs);
+                addBlowProcs(dealer, target, event.procs);
+            }
+            // Keep the wound a blow announced against whoever carries it: a tick arriving on the
+            // same message is a later event, and finds it the freshest against that victim.
+            {
+                // Only a blow naming both ends and a figure is kept: all 84 in `captures/` do,
+                // 2026-09-11 (`develop ADR 0022`).
+                assert(
+                    build.woundByVictimId.size <= COMBATANTS_MAXIMUM,
+                    "a fight stays inside its bound",
+                );
+                const attackerId = event.actorId;
+                const victimId = event.targetId;
+                if (attackerId !== null) {
+                    if (victimId !== null) {
+                        for (const declared of event.declared) {
+                            if (declared.effect !== WOUND_ANNOUNCEMENT_KEY) continue;
+                            if (declared.amount === null) continue;
+                            // The figure is the game's: a wound announcing nothing is skipped,
+                            // never asserted against.
+                            if (declared.amount <= 0) continue;
+                            const standing = { attackerId, amount: declared.amount };
+                            build.woundByVictimId.set(victimId, standing);
+                        }
+                    }
+                }
             }
         }
         if (event.kind === BATTLE_EVENT.damageToNamedCombatant) {
@@ -636,32 +662,6 @@ export function tallyFightStatistics(
                             `${event.actorId}`,
                             amount,
                         );
-                    }
-                }
-            }
-        }
-        // Before the tick it is charged to: a wound announced by the message a tick arrives on is
-        // still the freshest one against that victim.
-        if (event.kind === BATTLE_EVENT.attack) {
-            // Keep the wound a blow announced against whoever carries it.
-            // Only a blow naming both ends and a figure is kept: all 84 in `captures/` do,
-            // 2026-09-11 (`develop ADR 0022`).
-            assert(
-                build.woundByVictimId.size <= COMBATANTS_MAXIMUM,
-                "a fight stays inside its bound",
-            );
-            const attackerId = event.actorId;
-            const victimId = event.targetId;
-            if (attackerId !== null) {
-                if (victimId !== null) {
-                    for (const declared of event.declared) {
-                        if (declared.effect !== WOUND_ANNOUNCEMENT_KEY) continue;
-                        if (declared.amount === null) continue;
-                        // The figure is the game's: a wound announcing nothing is skipped,
-                        // never asserted against.
-                        if (declared.amount <= 0) continue;
-                        const standing = { attackerId, amount: declared.amount };
-                        build.woundByVictimId.set(victimId, standing);
                     }
                 }
             }
@@ -932,14 +932,13 @@ function addUnplacedCast(build: StatisticsBuild, casterId: number | null): void 
  */
 function addRestoredSource(
     build: StatisticsBuild,
-    healedId: number | null,
+    healedId: number,
     source: string,
     amount: number,
     announced: AnnouncedSkill | null,
 ): void {
     assert(amount >= 0, "restored health is never below nothing");
     assert(source.length > 0, "and comes under a key the protocol named");
-    if (healedId === null) return;
     const healed = addCombatantFigures(build.byCombatantId, healedId);
     addToCut(healed.healthRestoredBySource, source, amount);
     if (getSkillOwnerId(announced) !== null) return;
@@ -971,28 +970,21 @@ function addGivenHealth(
     build: StatisticsBuild,
     giverId: number | null,
     amount: number,
-    healedId: number | null,
+    healedId: number,
     stated: { source: string; announced: AnnouncedSkill | null },
 ): void {
     assert(amount >= 0, "restored health is never below nothing");
     assert(stated.source.length > 0, "and comes under a key the protocol named");
-    if (healedId !== null) {
-        if (giverId !== null) {
-            const healed = addCombatantFigures(build.byCombatantId, healedId);
-            addToCut(healed.healthRestoredByGiver, `${giverId}`, amount);
-        }
-    }
+    const healed = addCombatantFigures(build.byCombatantId, healedId);
     if (giverId === null) {
         build.givenByNobody += amount;
-        if (healedId === null) return;
-        const healed = addCombatantFigures(build.byCombatantId, healedId);
         healed.healthRestoredByNobody += amount;
         addToCut(healed.healthRestoredByNobodyBySource, stated.source, amount);
         return;
     }
+    addToCut(healed.healthRestoredByGiver, `${giverId}`, amount);
     const giver = addCombatantFigures(build.byCombatantId, giverId);
     giver.healthGiven += amount;
-    if (healedId === null) return;
     addToCut(giver.healthGivenByReceiver, `${healedId}`, amount);
     if (getSkillOwnerId(stated.announced) !== null) return;
     const cut = addPairCut(giver.healthGivenWithoutSkillByReceiverAndSource, `${healedId}`);
@@ -1011,7 +1003,7 @@ function addSkillRestored(
     build: StatisticsBuild,
     announced: AnnouncedSkill,
     amount: number,
-    healedId: number | null,
+    healedId: number,
 ): void {
     assert(amount >= 0, "restored health is never below nothing");
     assert(announced.skillName.length > 0, "and the announcement behind it is named");
@@ -1020,7 +1012,7 @@ function addSkillRestored(
     const skills = addCombatantFigures(build.byCombatantId, ownerId).skills;
     const held = addSkillFigures(skills, announced.skillName);
     held.restored += amount;
-    if (healedId !== null) addToCut(held.restoredByOpponent, `${healedId}`, amount);
+    addToCut(held.restoredByOpponent, `${healedId}`, amount);
 }
 
 /**
@@ -1128,16 +1120,6 @@ function isBlowCritical(procs: readonly string[]): boolean {
     return procs.some((key) => CRITICAL_PROC_KEYS.includes(key));
 }
 
-/** The row the blow was struck from, or nothing where the protocol named nobody at that end. */
-function getStrikerFigures(
-    build: StatisticsBuild,
-    actorId: number | null,
-): TallyingFigures | null {
-    if (actorId === null) return null;
-    assert(Number.isSafeInteger(actorId), "an end the protocol named is named by a number");
-    return addCombatantFigures(build.byCombatantId, actorId);
-}
-
 /**
  * What fired beside the blow, on the row of whoever it belongs to. A key whose end is `unsettled`
  * reaches neither row: a row charged with one would be this file guessing.
@@ -1224,7 +1206,7 @@ function addRestoredToNobody(build: StatisticsBuild, amount: number): void {
  */
 function lookupGiverId(
     source: string,
-    healedId: number | null,
+    healedId: number,
     announced: AnnouncedSkill | null,
 ): number | null {
     assert(source.length > 0, "restored health names the key it was stated on");

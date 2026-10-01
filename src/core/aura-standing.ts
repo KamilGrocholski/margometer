@@ -19,7 +19,7 @@ import {
     NAME_SEPARATOR,
     PROVOCATION_KEY,
 } from "./protocol-key.ts";
-import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "./turn-clock.ts";
+import { addEventTurns, NO_TURN_STANDING } from "./turn-clock.ts";
 
 /** A cast reaches what its keys reach, and both sides where its keys disagree. */
 export const AURA_REACH = { ...KEY_REACH, bothSides: "both-sides" } as const;
@@ -123,7 +123,7 @@ interface AuraWalk {
 }
 
 /** Past every cast the corpus holds in one fight, so the walk carries a stated maximum. */
-export const STANDINGS_MAXIMUM = 256;
+const STANDINGS_MAXIMUM = 256;
 
 /**
  * What the keys on one cast say it reaches. ⚠️ **Keys that disagree are a skill reaching both
@@ -204,11 +204,7 @@ export function replayFightStandings(view: FightView, stated: StatedSkills): Fig
     };
     let standing = NO_TURN_STANDING;
     for (const event of view.events) {
-        addTurn(walk.turnsByCombatantId, lookupTurnOpener(event, standing));
-        if (event.kind === BATTLE_EVENT.turnLost) {
-            addTurn(walk.turnsByCombatantId, event.combatantId);
-        }
-        standing = composeTurnStanding(event, standing);
+        standing = addEventTurns(walk.turnsByCombatantId, event, standing);
         const cast = lookupAuraCast(event, stated, walk.turnsByCombatantId);
         if (cast === null) continue;
         assert(walk.bySkill.size <= STANDINGS_MAXIMUM, "a fight stays inside its stated bound");
@@ -223,13 +219,6 @@ export function replayFightStandings(view: FightView, stated: StatedSkills): Fig
         standings: replayFightStandingsOnSides(walk),
         provocations: replayFightStandingsProvoked(walk),
     };
-}
-
-function addTurn(turnsByCombatantId: Map<number, number>, combatantId: number | null): void {
-    if (combatantId === null) return;
-    const taken = turnsByCombatantId.get(combatantId) ?? 0;
-    assert(taken >= 0, "a count of turns is never below nothing");
-    turnsByCombatantId.set(combatantId, taken + 1);
 }
 
 /**

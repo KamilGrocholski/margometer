@@ -169,7 +169,7 @@ export interface UnaccountedHealthEvent {
     source: string;
     /** The caster, off the actor slot: 8 of the 115 in `captures/` name another target. */
     combatantId: number | null;
-    declaredShare: number | null;
+    declaredShare: number;
     announced: AnnouncedSkill | null;
 }
 

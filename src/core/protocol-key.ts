@@ -356,12 +356,10 @@ export function getKeyReading(key: string): KeyReading | null {
     assert(key.length > 0, "a key asked about is a key the message wrote");
     const listed = KEY_READING_BY_KEY.get(key);
     if (listed !== undefined) return listed;
-    const marker = key.slice(DAMAGE_MARKER_AT, DAMAGE_MARKER_AT + DAMAGE_MARKER.length);
-    if (marker !== DAMAGE_MARKER) return null;
-    const sign = key.slice(0, DAMAGE_MARKER_AT);
+    if (!key.startsWith(DAMAGE_MARKER, DAMAGE_MARKER_AT)) return null;
     let half: DamageHalf;
-    if (sign === RAW_SIGN) half = DAMAGE_HALF.raw;
-    else if (sign === APPLIED_SIGN) half = DAMAGE_HALF.applied;
+    if (key.startsWith(RAW_SIGN)) half = DAMAGE_HALF.raw;
+    else if (key.startsWith(APPLIED_SIGN)) half = DAMAGE_HALF.applied;
     else return null;
     assert(!KEY_READING_BY_KEY.has(key), "a key read by the family rule is in no list");
     return { kind: KEY_FAMILY.damage, half };

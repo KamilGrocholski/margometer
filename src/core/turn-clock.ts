@@ -57,6 +57,27 @@ function hasDeclaredEffect(event: DeclarationEvent, effect: string): boolean {
 }
 
 /**
+ * One event on every combatant's own clock, answering the standing the next event is read on. A
+ * turn lost passes the clock as a turn taken does: granted and spent on nothing, it still passed.
+ */
+export function addEventTurns(
+    turnsByCombatantId: Map<number, number>,
+    event: BattleEvent,
+    standing: TurnStanding,
+): TurnStanding {
+    addTurn(turnsByCombatantId, lookupTurnOpener(event, standing));
+    if (event.kind === BATTLE_EVENT.turnLost) addTurn(turnsByCombatantId, event.combatantId);
+    return composeTurnStanding(event, standing);
+}
+
+function addTurn(turnsByCombatantId: Map<number, number>, combatantId: number | null): void {
+    if (combatantId === null) return;
+    const taken = turnsByCombatantId.get(combatantId) ?? 0;
+    assert(taken >= 0, "a count of turns is never below nothing");
+    turnsByCombatantId.set(combatantId, taken + 1);
+}
+
+/**
  * The same standing, one event on. A blow keeps the announcement going only while it is that
  * announcement's own; anything else ends it, and an event that is nobody's action ends both
  * halves. Damage stated by name is its actor's action as much as a blow is.

@@ -13,7 +13,7 @@ import { replayFightStandings } from "#/src/core/aura-standing.ts";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import type { FightView } from "#/src/core/fight-session.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
-import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
+import { addEventTurns, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
 import {
     readRecordedMaterial,
@@ -131,13 +131,7 @@ function replayClocks(events: readonly BattleEvent[]): Map<number, number>[] {
     const turns = new Map<number, number>();
     let standing = NO_TURN_STANDING;
     for (const event of events) {
-        const opener = lookupTurnOpener(event, standing);
-        if (opener !== null) turns.set(opener, (turns.get(opener) ?? 0) + 1);
-        if (event.kind === BATTLE_EVENT.turnLost) {
-            const lost = event.combatantId;
-            if (lost !== null) turns.set(lost, (turns.get(lost) ?? 0) + 1);
-        }
-        standing = composeTurnStanding(event, standing);
+        standing = addEventTurns(turns, event, standing);
         clocks.push(new Map(turns));
     }
     assertStrictEquals(clocks.length, events.length, "a clock is read after every event");

@@ -8,13 +8,8 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
-import {
-    composeTurnStanding,
-    lookupTurnOpener,
-    NO_TURN_STANDING,
-    type TurnStanding,
-} from "./turn-clock.ts";
+import type { BattleEvent } from "./battle-event.ts";
+import { addEventTurns, NO_TURN_STANDING, type TurnStanding } from "./turn-clock.ts";
 
 /** One status one combatant is holding, with what has passed of it on their own clock. */
 export interface CarriedStatus {
@@ -60,9 +55,7 @@ export function prepareCarriedStatuses(
     const turnsByCombatantId = new Map(walk.turnsByCombatantId);
     let standing = walk.standing;
     for (const event of events) {
-        addTurn(turnsByCombatantId, lookupTurnOpener(event, standing));
-        if (event.kind === BATTLE_EVENT.turnLost) addTurn(turnsByCombatantId, event.combatantId);
-        standing = composeTurnStanding(event, standing);
+        standing = addEventTurns(turnsByCombatantId, event, standing);
     }
     const heldByCombatantId = new Map(walk.heldByCombatantId);
     for (const [combatantId, mask] of masksByCombatantId) {
@@ -75,13 +68,6 @@ export function prepareCarriedStatuses(
     }
     assert(heldByCombatantId.size <= CARRIERS_MAXIMUM, "no more carriers than a board holds");
     return { standing, turnsByCombatantId, heldByCombatantId };
-}
-
-function addTurn(turnsByCombatantId: Map<number, number>, combatantId: number | null): void {
-    if (combatantId === null) return;
-    const taken = (turnsByCombatantId.get(combatantId) ?? 0) + 1;
-    assert(taken > 0, "a turn that was counted was counted at least once");
-    turnsByCombatantId.set(combatantId, taken);
 }
 
 /**

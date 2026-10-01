@@ -25,7 +25,7 @@ const DIRECTION_SIGNS = "+-";
 const HOLE_MARK = "%";
 const FULL_STOP = ".";
 /** An entry is a label with at most a hole in it; this is far past any the game states. */
-export const ENTRY_LENGTH_MAXIMUM = 4096;
+const ENTRY_LENGTH_MAXIMUM = 4096;
 
 export function initPageDictionary(page: unknown): DictionaryPort {
     return {
