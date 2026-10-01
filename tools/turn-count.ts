@@ -19,13 +19,14 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
 import type { TurnStatement } from "#/src/core/fight-session.ts";
-import type { FightStatistics } from "#/src/core/fight-statistics.ts";
+import type { CombatantFigures, FightStatistics } from "#/src/core/fight-statistics.ts";
 import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
 import { ENVELOPE_KEYS } from "#/src/game/payload-envelope.ts";
 import type { RecordedFight } from "#/tests/recorded-fights.ts";
 import { TurnCountError } from "./margometer-tool-error.ts";
 import {
     formatRecordingName,
+    lookupRecordingPaths,
     readRecordedMaterial,
     type ReplayedStep,
     replayRecordedSteps,
@@ -168,7 +169,9 @@ function composeTurnGrade(fight: RecordedFight, steps: readonly ReplayedStep[]):
     return {
         name: formatRecordingName(fight.path),
         verdict: getTurnVerdict(outcomes),
-        turns: tallyTurnDelta(indexTurnsTakenByCombatantId(last.reading.figures.statistics)),
+        turns: tallyTurnDelta(
+            indexTurnsByCombatantId(last.reading.figures.statistics, (one) => one.turnsTaken),
+        ),
         bounded: outcomes.length,
         ...tally,
         untold,
@@ -217,8 +220,8 @@ function composeTurnStretch(steps: readonly ReplayedStep[]): TurnStretch | null 
         const stated = step.record.turnStatement;
         if (stated === null) continue;
         const statistics = step.reading.figures.statistics;
-        const taken = tallyTurnDelta(indexTurnsTakenByCombatantId(statistics));
-        const lost = tallyTurnsLost(statistics);
+        const taken = tallyTurnDelta(indexTurnsByCombatantId(statistics, (one) => one.turnsTaken));
+        const lost = tallyTurnDelta(indexTurnsByCombatantId(statistics, (one) => one.turnsLost));
         if (first === null) {
             first = stated;
             atFirst.taken = taken;
@@ -240,21 +243,19 @@ function composeTurnStretch(steps: readonly ReplayedStep[]): TurnStretch | null 
     return { granted, taken, short: granted - taken, lost };
 }
 
-function tallyTurnsLost(statistics: FightStatistics): number {
-    let lost = 0;
-    for (const figures of statistics.byCombatantId.values()) {
-        assert(figures.turnsLost >= 0, "a row lost no less than no turn at all");
-        lost += figures.turnsLost;
-    }
-    return lost;
-}
-
-/** Every row's turns as the tally holds them, which is what a panel draws. */
-function indexTurnsTakenByCombatantId(statistics: FightStatistics): Map<number, number> {
+/**
+ * Every row's turns as the tally holds them, which is what a panel draws: the ones taken, or the
+ * ones lost, so a boundary can grade the two the same way.
+ */
+function indexTurnsByCombatantId(
+    statistics: FightStatistics,
+    getTurns: (figures: CombatantFigures) => number,
+): Map<number, number> {
     const byCombatantId = new Map<number, number>();
     for (const [combatantId, figures] of statistics.byCombatantId) {
-        assert(figures.turnsTaken >= 0, "a row took no less than no turn at all");
-        if (figures.turnsTaken > 0) byCombatantId.set(combatantId, figures.turnsTaken);
+        const turns = getTurns(figures);
+        assert(turns >= 0, "a row counts no less than no turn at all");
+        if (turns > 0) byCombatantId.set(combatantId, turns);
     }
     assert(byCombatantId.size <= COMBATANTS_MAXIMUM, "a fight stays inside its stated bound");
     return byCombatantId;
@@ -286,8 +287,8 @@ export function composeTurnBoundaries(steps: readonly ReplayedStep[]): TurnBound
         if (isNarrated) isNarrated = isPayloadNarrated(step.update, expected);
         expected = getMessageIndexAfter(step.update, expected);
         const statistics = step.reading.figures.statistics;
-        const takenNow = indexTurnsTakenByCombatantId(statistics);
-        const lostNow = indexTurnsLostByCombatantId(statistics);
+        const takenNow = indexTurnsByCombatantId(statistics, (one) => one.turnsTaken);
+        const lostNow = indexTurnsByCombatantId(statistics, (one) => one.turnsLost);
         const arriving = step.record.turnStatement;
         if (stated !== null) {
             if (arriving !== null) {
@@ -354,17 +355,6 @@ function getMessageIndexAfter(update: unknown, expected: number | null): number 
     assert(Number.isSafeInteger(last), "a message is numbered by a whole number");
     assert(last >= 0, "and numbered from the fight's own start");
     return last + 1;
-}
-
-/** The same lost turns row by row, so a boundary can be graded the way the taken ones are. */
-function indexTurnsLostByCombatantId(statistics: FightStatistics): Map<number, number> {
-    const byCombatantId = new Map<number, number>();
-    for (const [combatantId, figures] of statistics.byCombatantId) {
-        assert(figures.turnsLost >= 0, "a row lost no less than no turn at all");
-        if (figures.turnsLost > 0) byCombatantId.set(combatantId, figures.turnsLost);
-    }
-    assert(byCombatantId.size <= COMBATANTS_MAXIMUM, "a fight stays inside its stated bound");
-    return byCombatantId;
 }
 
 /** What one payload added, row by row: the turns taken while it was being delivered. */
@@ -476,7 +466,7 @@ export function formatCaseReport(grades: readonly TurnGrade[]): string[] {
  * over, and the whole stretch beside it. A verdict without its coverage would hold while most of
  * the numbering went ungraded.
  */
-export function formatGradeRegister(grades: readonly TurnGrade[]): string[] {
+function formatGradeRegister(grades: readonly TurnGrade[]): string[] {
     assert(grades.length > 0, "a register states the grades it was handed");
     const headings = ["steps", "agreed", "granted", "taken", "short", "lost", "opened"];
     const lines = [
@@ -514,7 +504,7 @@ function formatGradeRegisterStretch(grade: TurnGrade): string[] {
  * One recording walked boundary by boundary, which is where a verdict can be argued with. A
  * payload stating no ordinal opens no boundary and gets no line.
  */
-export function formatTurnWalk(fight: RecordedFight): string[] {
+function formatTurnWalk(fight: RecordedFight): string[] {
     const boundaries = composeTurnBoundaries(replayRecordedSteps(fight));
     const lines = ["", `=== ${formatRecordingName(fight.path)} ===`];
     for (const boundary of boundaries) lines.push(formatTurnWalkLine(boundary));
@@ -538,18 +528,10 @@ function formatTurnWalkLine(boundary: TurnBoundary): string {
 export function parseTurnArguments(stated: readonly string[]): TurnArguments {
     assert(stated.length <= ARGUMENTS_MAXIMUM, "a run is given no more arguments than are read");
     const parsed = parseArgs([...stated], { boolean: ["cases"] });
-    const paths: string[] = [];
-    for (const one of parsed._) {
-        if (typeof one !== "string") {
-            throw new TurnCountError("a recording is named by a path and never by a number");
-        }
-        paths.push(one);
+    const paths = lookupRecordingPaths(parsed._);
+    if (paths === null) {
+        throw new TurnCountError("a recording is named by a path and never by a number");
     }
-    assertStrictEquals(
-        paths.length,
-        parsed._.length,
-        "every argument that is not a flag is a path",
-    );
     return { isCases: parsed.cases, paths };
 }
 

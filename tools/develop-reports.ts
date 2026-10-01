@@ -183,7 +183,7 @@ function formatDifferenceLines(difference: ReportDifference): string[] {
  * What `develop` prints for `task`, from its own tree taken out of git at `revision`. The
  * recordings go with it, read by its reader exactly as it reads them on its own branch.
  */
-export function readDevelopReport(revision: string, task: string): string {
+function readDevelopReport(revision: string, task: string): string {
     assert(revision.length > 0, "develop is read at a revision");
     assert(task.length > 0, "and by one of its tasks");
     const directory = `${CACHE_DIRECTORY}/develop-${revision}`;

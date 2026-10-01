@@ -11,7 +11,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { encodeJson } from "#/libs/json-text.ts";
 import { formatInteger } from "#/libs/number-text.ts";
 import { getEndOfRun, isWhitespaceAt, lookupQuotedLiteral } from "#/libs/text-walk.ts";
-import { GAME_CHANNEL, readCachedBundle, readCachedClientSource } from "./game-client-source.ts";
+import { GAME_CHANNEL, readCachedBundle, requireCachedBuild } from "./game-client-source.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { BuffBitTableError } from "./margometer-tool-error.ts";
 
@@ -65,18 +65,6 @@ export function prepareFrozenBuffBits(): FrozenFiles {
         bits.length,
         (date) => [encodeFrozenBuffModule(date, bits)],
     );
-}
-
-/** The build a bit order would be dated by; an empty cache is refused rather than read past. */
-function requireCachedBuild(): string {
-    const cached = readCachedClientSource(GAME_CHANNEL.production);
-    if (cached === null) {
-        throw new BuffBitTableError(
-            "nothing cached for production — run `deno task game:client fetch production`",
-        );
-    }
-    assertStrictEquals(cached.channel, GAME_CHANNEL.production, "the channel the table stands on");
-    return cached.build;
 }
 
 export function encodeFrozenBuffModule(build: string, bits: readonly string[]): string {

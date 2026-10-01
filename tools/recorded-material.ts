@@ -51,11 +51,22 @@ export interface SteppedFight {
 }
 
 const RECORDINGS_MAXIMUM = 1_000;
-const RECORDING_SUFFIX = ".json";
+export const RECORDING_SUFFIX = ".json";
 const PATH_SEPARATOR = "/";
 export const DECODER_TABLES: DecoderTables = composeRuntimeTables().decoder;
 
 /** The recordings where no path was named, the files named otherwise. */
+/**
+ * The recordings a command line named, or null where it named one by a number: `parseArgs` reads
+ * `12` as a number, and a recording is named by its path.
+ */
+export function lookupRecordingPaths(named: readonly (string | number)[]): string[] | null {
+    assert(named.length <= RECORDINGS_MAXIMUM, "a tool is named no more files than it reads");
+    const paths = named.filter((one): one is string => typeof one === "string");
+    if (paths.length < named.length) return null;
+    return paths;
+}
+
 export function readRecordedMaterial(paths: readonly string[]): RecordedMaterial {
     assert(paths.length <= RECORDINGS_MAXIMUM, "a tool is named no more files than it reads");
     if (paths.length === 0) {

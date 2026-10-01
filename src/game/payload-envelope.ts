@@ -128,8 +128,8 @@ export const WARRIOR_FIELDS: FieldKeys<WarriorField> = {
     statuses: "buffs",
     charge: "super_cast",
 };
-const HEALTH_FIELDS: FieldKeys<HealthField> = { maximum: "max", now: "cur" };
-const CHARGE_FIELDS: FieldKeys<ChargeField> = {
+export const HEALTH_FIELDS: FieldKeys<HealthField> = { maximum: "max", now: "cur" };
+export const CHARGE_FIELDS: FieldKeys<ChargeField> = {
     name: "name",
     turnsElapsed: "turn",
     turnsStated: "total_turns",

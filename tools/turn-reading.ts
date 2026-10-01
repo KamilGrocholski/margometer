@@ -36,6 +36,7 @@ import { TurnReadingError } from "./margometer-tool-error.ts";
 import {
     DECODER_TABLES,
     formatRecordingName,
+    lookupRecordingPaths,
     readRecordedMaterial,
     type ReplayedStep,
     replayRecordedSteps,
@@ -150,7 +151,7 @@ export function composeFightMessages(fights: readonly RecordedFight[]): FightMes
  * across payloads as `src/core/fight-statistics.ts` carries it, and the decoder's own standing
  * starts over at each payload as the session's does.
  */
-export function composeMessageReadings(fight: RecordedFight): MessageReading[] {
+function composeMessageReadings(fight: RecordedFight): MessageReading[] {
     const steps = replayRecordedSteps(fight);
     const byOrdinals = new Map<string, TurnBoundary>();
     for (const boundary of composeTurnBoundaries(steps)) {
@@ -388,7 +389,7 @@ export function composeOpenerTally(walks: readonly FightMessages[]): OpenerTally
 }
 
 /** The partition the document carries above the key table. */
-export function formatOpenerReport(tallies: readonly OpenerTally[]): string[] {
+function formatOpenerReport(tallies: readonly OpenerTally[]): string[] {
     assert(tallies.length > 0, "a report states the tally it was handed");
     const lines = [`  ${"opened by".padEnd(OPENER_WIDTH)}${"turns".padStart(9)}`];
     for (const one of tallies) {
@@ -397,7 +398,7 @@ export function formatOpenerReport(tallies: readonly OpenerTally[]): string[] {
     return lines;
 }
 
-export function formatKeyReport(tallies: readonly KeyTally[]): string[] {
+function formatKeyReport(tallies: readonly KeyTally[]): string[] {
     assert(tallies.length > 0, "a report states the tally it was handed");
     const lines = [
         `  ${"key".padEnd(KEY_WIDTH)}${"messages".padStart(10)}${"opened".padStart(9)}` +
@@ -415,7 +416,7 @@ export function formatKeyReport(tallies: readonly KeyTally[]): string[] {
 }
 
 /** The register the document carries, which names no message and points at every one of them. */
-export function formatDisputeReport(disputed: readonly DisputedReading[]): string[] {
+function formatDisputeReport(disputed: readonly DisputedReading[]): string[] {
     const lines = [
         `  ${"recording".padEnd(NAME_WIDTH)}${"payload".padStart(9)}${"message".padStart(9)}` +
         `${"combatant".padStart(12)}${"from".padStart(8)}${"to".padStart(8)}` +
@@ -461,18 +462,10 @@ function formatReadingWalkLine(reading: MessageReading): string {
 export function parseReadingArguments(stated: readonly string[]): ReadingArguments {
     assert(stated.length <= ARGUMENTS_MAXIMUM, "a run is given no more arguments than are read");
     const parsed = parseArgs([...stated], { boolean: ["keys"] });
-    const paths: string[] = [];
-    for (const one of parsed._) {
-        if (typeof one !== "string") {
-            throw new TurnReadingError("a recording is named by a path and never by a number");
-        }
-        paths.push(one);
+    const paths = lookupRecordingPaths(parsed._);
+    if (paths === null) {
+        throw new TurnReadingError("a recording is named by a path and never by a number");
     }
-    assertStrictEquals(
-        paths.length,
-        parsed._.length,
-        "every argument that is not a flag is a path",
-    );
     return { isKeys: parsed.keys, paths };
 }
 

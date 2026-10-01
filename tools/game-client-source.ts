@@ -87,6 +87,18 @@ function composeManifestPath(channel: GameChannel): string {
     return path;
 }
 
+/** The build a frozen table would be lifted from, refusing rather than reading an empty cache. */
+export function requireCachedBuild(): string {
+    const cached = readCachedClientSource(GAME_CHANNEL.production);
+    if (cached === null) {
+        throw new GameSourceError(
+            "nothing cached for production — run `deno task game:client fetch production`",
+        );
+    }
+    assertStrictEquals(cached.channel, GAME_CHANNEL.production, "the channel the table stands on");
+    return cached.build;
+}
+
 /**
  * The manifest decides whether the cache is stale, so a field it does not carry stops here rather
  * than reaching the comparison as `undefined` (C13).

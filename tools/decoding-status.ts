@@ -141,7 +141,7 @@ function formatStatusTallyLines(tally: Tally): string[] {
 }
 
 /** Every recording where no path was named, the files named otherwise, as a terminal prints it. */
-export function formatDecodingStatus(paths: readonly string[]): string {
+function formatDecodingStatus(paths: readonly string[]): string {
     return formatMaterialStatus(readRecordedMaterial(paths));
 }
 

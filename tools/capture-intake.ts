@@ -563,7 +563,7 @@ export function isSlugText(text: string): boolean {
 }
 
 /** Read, checked, redacted and written; what was substituted goes to the screen and nowhere else. */
-export function writeIntake(source: string, slug: string): string {
+function writeIntake(source: string, slug: string): string {
     assert(source.length > 0, "a recording is read from somewhere");
     const text = errors.attempt(() => Deno.readTextFileSync(source));
     if (text instanceof Error) {

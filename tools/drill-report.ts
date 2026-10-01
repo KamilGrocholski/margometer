@@ -23,7 +23,6 @@ import {
     type HalfNamedDrillReading,
     type HalfNamedOpened,
     type HalfNamedReading,
-    type NamedPart,
     NOTHING_SUSPECT,
     type OpenedPart,
     type PinnedCase,
@@ -39,6 +38,7 @@ import {
 import { OPENED_PART, type PanelMetric, SCREEN_ORDER, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import {
     formatRecordingName,
+    lookupRecordingPaths,
     readRecordedMaterial,
     type ReplayedFight,
     replayRecordedMaterial,
@@ -62,7 +62,7 @@ export const DRILL_RUNG = {
 export type DrillRung = VocabularyWord<typeof DRILL_RUNG>;
 
 /** Every kind of row the panel draws below a heading; `docs/drill-levels.md` says what each is. */
-export const DRILL_ROW = {
+const DRILL_ROW = {
     person: "person",
     halfNamed: "half-named",
     skill: "skill",
@@ -122,6 +122,13 @@ export const DRILL_ROWS = Object.values(DRILL_ROW);
 export const DRILL_VERDICTS = Object.values(DRILL_VERDICT);
 /** A run names a screen and a handful of recordings; this is far past that. */
 const ARGUMENTS_MAXIMUM = 256;
+/** The row each part of a figure opens onto; the part no announcement stood behind closes it. */
+const ROW_BY_PART: Record<OpenedPart["kind"], DrillRow> = {
+    [OPENED_PART.skill]: DRILL_ROW.skill,
+    [OPENED_PART.source]: DRILL_ROW.source,
+    [OPENED_PART.element]: DRILL_ROW.kind,
+    [OPENED_PART.plain]: DRILL_ROW.closing,
+};
 /** No name in the three vocabularies holds a bar, so no two cases come to one key. */
 const CASE_KEY_SEPARATOR = " | ";
 const SCREEN_WIDTH = 20;
@@ -282,9 +289,7 @@ export function tallyDrillCases(
                     );
                     if (pair === null) continue;
                     for (const part of pair.parts) {
-                        const partRow = part.part.kind === OPENED_PART.plain
-                            ? DRILL_ROW.closing
-                            : getRowForPart(part.part);
+                        const partRow = ROW_BY_PART[part.part.kind];
                         addCaseToTally(tally, screen, {
                             rung: DRILL_RUNG.pair,
                             row: partRow,
@@ -353,7 +358,7 @@ export function tallyDrillCases(
                         }
                     }
                     for (const skill of drill.bySkill.rows) {
-                        const skillRow = getRowForPart(skill.part);
+                        const skillRow = ROW_BY_PART[skill.part.kind];
                         addCaseToTally(
                             tally,
                             screen,
@@ -506,12 +511,6 @@ function presentUnnamedCut(
 }
 
 /** What the register calls a part, which is the reader's word for it and not the type's. */
-function getRowForPart(part: NamedPart): DrillRow {
-    if (part.kind === OPENED_PART.skill) return DRILL_ROW.skill;
-    if (part.kind === OPENED_PART.source) return DRILL_ROW.source;
-    return DRILL_ROW.kind;
-}
-
 /** The level a part of an opened figure opens onto: people, and the end the protocol left out. */
 function addPartRungToTally(
     tally: DrillTally,
@@ -613,7 +612,7 @@ function formatOpenedLines(fight: PanelFight, screen: PanelMetric, combatantId: 
     lines.push(...formatUnnamedPairLines(fight, screen, drill));
     for (const skill of drill.bySkill.rows) {
         const opens = skill.doesOpenPart ? OPENS_WORD : LEAF_WORD;
-        const row = getRowForPart(skill.part).padEnd(PART_WIDTH);
+        const row = ROW_BY_PART[skill.part.kind].padEnd(PART_WIDTH);
         const named = getTextForNamedPart(skill.part);
         lines.push(`      ${row}${opens}  ${named} ${formatInteger(skill.figure)}`);
     }
@@ -689,8 +688,8 @@ function parseDrillArguments(stated: readonly string[]): DrillArguments {
     }
     const parsed = parseArgs([...stated], { boolean: ["cases"], string: ["screen"] });
     if (parsed.screen === "") throw new DrillReportError("--screen was given no screen to walk");
-    const paths = parsed._.filter((one): one is string => typeof one === "string");
-    if (paths.length !== parsed._.length) {
+    const paths = lookupRecordingPaths(parsed._);
+    if (paths === null) {
         throw new DrillReportError("a recording is named by a path and never by a number");
     }
     return { isCases: parsed.cases, screen: parsed.screen ?? null, paths };

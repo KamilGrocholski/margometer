@@ -249,7 +249,7 @@ function isLightingAgreeing(row: LightingRow): boolean {
     return new Set(row.ownTurnsEach).size === 1;
 }
 
-export function formatBitReport(rows: readonly BitRow[]): string[] {
+function formatBitReport(rows: readonly BitRow[]): string[] {
     assert(rows.length > 0, "a report stands on at least one status");
     const heading = `${"status".padEnd(NAME_WIDTH)}` +
         "  lit  shared  together  apart  agreeing  apart+agree  own  runs  longest";
@@ -273,7 +273,7 @@ export function formatBitReport(rows: readonly BitRow[]): string[] {
 }
 
 /** Every lighting that reached more than one bearer, one line each. */
-export function formatLightingCases(lightings: readonly LightingRow[]): string[] {
+function formatLightingCases(lightings: readonly LightingRow[]): string[] {
     assert(lightings.length <= RUNS_MAXIMUM, "the cases reported stay inside the walk's bound");
     return lightings.filter((row) => row.bearers > 1).map((row) => {
         const turns = row.ownTurnsEach.map((one) => formatInteger(one)).join(", ");

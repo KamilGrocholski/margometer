@@ -30,7 +30,7 @@ import { FABRICATED_DIRECTORY } from "./fabricated-fight.ts";
 import { PreviewServeError, UserscriptBuildError } from "./margometer-tool-error.ts";
 import { composePreviewPage, type PreviewFightLink, type PreviewWords } from "./preview-page.ts";
 import { LANDING_RECORDING } from "./preview-site.ts";
-import { formatRecordingName, readRecordingFile } from "./recorded-material.ts";
+import { formatRecordingName, readRecordingFile, RECORDING_SUFFIX } from "./recorded-material.ts";
 
 /** A fight the server offers, under the name the picker and the address carry. */
 export interface ServedFight {
@@ -87,7 +87,6 @@ const FLAG_PORT = "--port";
 const FLAG_FIGHT = "--fight";
 const FLAG_FROM = "--from";
 const FLAG_FABRICATED = "--fabricated";
-const RECORDING_SUFFIX = ".json";
 /** Past every shape a person makes to look at one (S11). */
 const FROM_PATHS_MAXIMUM = 64;
 const TEXT_ENCODER = new TextEncoder();
@@ -241,7 +240,7 @@ async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Pro
 }
 
 /** Every request; the event stream holds its connection open and is the server's own. */
-export async function answerPreviewRequest(state: PreviewState, url: URL): Promise<Response> {
+async function answerPreviewRequest(state: PreviewState, url: URL): Promise<Response> {
     assert(url.pathname.startsWith("/"), "a request names a path");
     if (url.pathname === "/reload") return openPreviewEvents(state.listeners);
     if (url.pathname === `/${USERSCRIPT_NAME}`) {

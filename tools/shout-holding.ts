@@ -181,7 +181,7 @@ export function tallyStruckShare(atShouter: number, atSomebodyElse: number): num
     return share;
 }
 
-export function formatHoldingReport(reading: HoldingReading): string[] {
+function formatHoldingReport(reading: HoldingReading): string[] {
     const { episodes, atShouter, atSomebodyElse } = reading.baseline;
     assert(episodes > 0, "a report stands on at least one episode");
     const before = formatInteger(tallyStruckShare(atShouter, atSomebodyElse));

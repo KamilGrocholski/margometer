@@ -18,6 +18,7 @@ import { BACKTICK, parseBacktickedPhrases, REGISTER_PATH } from "./help-claim-re
 import { ProtocolKeyShapeError } from "./margometer-tool-error.ts";
 import {
     readRecordedMaterial,
+    RECORDING_SUFFIX,
     type ReplayedFight,
     replayRecordedMaterial,
 } from "./recorded-material.ts";
@@ -123,7 +124,6 @@ const COUNT_WORDS = [
 /** What a sentence wraps a word in: markdown emphasis, and the punctuation around a clause. */
 const WORD_EDGES = "*_`.,;:()[]\"'";
 const SENTENCE_END = ". ";
-const RECORDING_SUFFIX = ".json";
 /** Past the claims the register carries, and past what a document of its size could state. */
 const CLAIMS_MAXIMUM = 1024;
 const CLAIM_SEPARATOR = ";";

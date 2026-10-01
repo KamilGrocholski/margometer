@@ -45,10 +45,16 @@ import {
     type MessageSide,
 } from "#/src/core/fight-decoder.ts";
 import { encodeHealthPercent } from "#/src/core/protocol-number.ts";
-import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/game/payload-envelope.ts";
+import {
+    CHARGE_FIELDS,
+    ENVELOPE_KEYS,
+    HEALTH_FIELDS,
+    WARRIOR_FIELDS,
+} from "#/src/game/payload-envelope.ts";
 import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
 import type { CapturedCombatant } from "#/src/game/warrior-snapshot.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
+import { INTAKE_KEYS } from "./capture-intake.ts";
 import { readDevelopmentVersion } from "./build-userscript.ts";
 import { FabricatedFightError } from "./margometer-tool-error.ts";
 import { WITNESS_KEYS } from "./turn-count.ts";
@@ -193,7 +199,6 @@ const CLIENT_FIELDS = {
     moveOpening: "start_move",
     move: "move",
     originalId: "originalId",
-    nonPlayer: "npc",
     otherLevel: "oplvl",
     gender: "gender",
     gridRow: "y",
@@ -210,12 +215,7 @@ const CLIENT_FIELDS = {
     cooldowns: "cooldowns",
     figureNow: "cur",
     figureBonus: "bonus",
-    healthMaximum: "max",
-    healthNow: "cur",
     healthPercent: "hpp",
-    chargeName: "name",
-    chargeTurnsElapsed: "turn",
-    chargeTurnsStated: "total_turns",
 } as const;
 /** There is one script; the shape is what a run varies about it. */
 const FABRICATION_SCRIPT = "ten-a-side";
@@ -656,8 +656,8 @@ function encodeHealthRecord(warrior: FabricatedWarrior): Record<string, unknown>
     assert(warrior.healthMaximum > 0, "a combatant states the maximum it stands against");
     assert(warrior.health >= 0, "and health that is never below nothing");
     return {
-        [CLIENT_FIELDS.healthMaximum]: warrior.healthMaximum,
-        [CLIENT_FIELDS.healthNow]: warrior.health,
+        [HEALTH_FIELDS.maximum]: warrior.healthMaximum,
+        [HEALTH_FIELDS.now]: warrior.health,
         [CLIENT_FIELDS.healthPercent]: getHealthPercent(warrior),
     };
 }
@@ -728,7 +728,7 @@ function encodeOpeningWarrior(warrior: FabricatedWarrior): Record<string, unknow
         [WARRIOR_FIELDS.side]: warrior.side,
         [WARRIOR_FIELDS.profession]: warrior.profession,
         [WARRIOR_FIELDS.level]: warrior.level,
-        [CLIENT_FIELDS.nonPlayer]: 0,
+        [INTAKE_KEYS.nonPlayer]: 0,
         [WARRIOR_FIELDS.statuses]: warrior.statusMask,
         [WARRIOR_FIELDS.health]: encodeHealthRecord(warrior),
         [CLIENT_FIELDS.otherLevel]: warrior.level,
@@ -748,9 +748,9 @@ function encodeOpeningWarrior(warrior: FabricatedWarrior): Record<string, unknow
     };
     if (warrior.id === THEIRS_ID_FIRST) {
         encoded[WARRIOR_FIELDS.charge] = {
-            [CLIENT_FIELDS.chargeName]: CHARGED_SKILL,
-            [CLIENT_FIELDS.chargeTurnsElapsed]: 2,
-            [CLIENT_FIELDS.chargeTurnsStated]: 5,
+            [CHARGE_FIELDS.name]: CHARGED_SKILL,
+            [CHARGE_FIELDS.turnsElapsed]: 2,
+            [CHARGE_FIELDS.turnsStated]: 5,
         };
     }
     return encoded;
@@ -998,14 +998,10 @@ function encodeValueless(key: string): MessageParameter {
 }
 
 function executePlainBlow(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [executeBlow(turn, [])];
 }
 
 function executeCriticalBlow(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [executeBlow(turn, [
         encodeValueless("+crit"),
         encodeFigure("+actdmg", composeSmall(turn, 4)),
@@ -1014,8 +1010,6 @@ function executeCriticalBlow(turn: FabricatedTurn): string[] {
 }
 
 function executeOffhandBlow(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [executeBlow(turn, [
         encodeValueless("+of_crit"),
         encodeFigure("+resdmg", composeSmallHealth(turn, 31)),
@@ -1026,8 +1020,6 @@ function executeOffhandBlow(turn: FabricatedTurn): string[] {
 }
 
 function executePiercingBlow(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [executeBlow(turn, [encodeValueless("+pierce"), encodeValueless("-pierceb")])];
 }
 
@@ -1037,8 +1029,6 @@ function executePiercingBlow(turn: FabricatedTurn): string[] {
  * (`docs/protocol-keys.md`).
  */
 function executeCriticalPierce(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [executeBlow(turn, [
         encodeValueless("+crit"),
         encodeValueless("+pierce"),
@@ -1047,8 +1037,6 @@ function executeCriticalPierce(turn: FabricatedTurn): string[] {
 }
 
 function executeAbsorbedBlow(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [executeBlow(turn, [
         encodeFigure("-absorb", composeSmallHealth(turn, 140)),
         encodeFigure("-absorbm", composeSmallHealth(turn, 95)),
@@ -1058,8 +1046,6 @@ function executeAbsorbedBlow(turn: FabricatedTurn): string[] {
 }
 
 function executeArmourBreakingBlow(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [executeBlow(turn, [
         encodeValueless("+acdmg_destroyed"),
         encodeFigure("-dmga", composeSmallHealth(turn, 60)),
@@ -1067,8 +1053,6 @@ function executeArmourBreakingBlow(turn: FabricatedTurn): string[] {
 }
 
 function executeThirdAttack(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [executeBlow(turn, [
         encodeFigure("+thirdatt", composeSmallHealth(turn, 260)),
         encodeFigure("-thirdatt", composeSmallHealth(turn, 190)),
@@ -1076,8 +1060,6 @@ function executeThirdAttack(turn: FabricatedTurn): string[] {
 }
 
 function executeStunningBlow(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     setStatusBit(turn.target, 8, turn.round);
     setStatusBit(turn.target, 7, turn.round);
     return [executeBlow(turn, [
@@ -1092,8 +1074,6 @@ function executeStunningBlow(turn: FabricatedTurn): string[] {
 }
 
 function executeCursedBlow(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [executeBlow(turn, [
         encodeValueless("+legbon_curse"),
         encodeValueless("+legbon_verycrit"),
@@ -1103,8 +1083,6 @@ function executeCursedBlow(turn: FabricatedTurn): string[] {
 }
 
 function executeEvadedBlow(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [executeBlow(turn, [
         encodeValueless("-evade"),
         encodeValueless("-contra"),
@@ -1117,8 +1095,6 @@ function executeEvadedBlow(turn: FabricatedTurn): string[] {
 }
 
 function executeWoundingBlow(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     setStatusBit(turn.target, 0, turn.round);
     setStatusBit(turn.target, 1, turn.round);
     return [executeBlow(turn, [
@@ -1133,8 +1109,6 @@ function executeWoundingBlow(turn: FabricatedTurn): string[] {
  * both (`docs/protocol-keys.md`).
  */
 function executeWeakenedWound(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     setStatusBit(turn.target, 0, turn.round);
     return [executeBlow(turn, [
         encodeFigure("+woundpoison", WOUND_WEAKENED_PERCENT),
@@ -1150,8 +1124,6 @@ function executeWeakenedWound(turn: FabricatedTurn): string[] {
  * `captures/` ride a blow stating this key alone (`docs/protocol-keys.md`).
  */
 function executeAuxiliaryWound(turn: FabricatedTurn): string[] {
-    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
     setStatusBit(turn.target, 0, turn.round);
     return [executeBlow(turn, [encodeValueless("+of_wound")])];
 }
@@ -1477,7 +1449,9 @@ function executeLoot(turn: FabricatedTurn): string[] {
 
 /** A blow: what it threw, what got through, and whatever the act stated beside it. */
 function executeBlow(turn: FabricatedTurn, extra: MessageParameter[]): string {
-    assert(turn.target.healthMaximum > 0, "a blow lands where there is a maximum");
+    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
+    assert(turn.target.side !== turn.actor.side, "and never at its own side");
+    assert(turn.target.healthMaximum > 0, "and lands where there is a maximum");
     assert(extra.every((one) => one.key.length > 0), "and states every key beside it by name");
     const element = getElement(turn);
     const raw = composeFigure(turn, FIGURE_RAW_BASE);

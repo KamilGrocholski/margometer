@@ -5,7 +5,7 @@
 
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 
-export const TOOL_ERROR_CODE = {
+const TOOL_ERROR_CODE = {
     userscriptBuild: "UserscriptBuild",
     declaredVersion: "DeclaredVersion",
     recordingRead: "RecordingRead",

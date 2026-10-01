@@ -130,27 +130,6 @@ ${TIP_ANCHOR}`;
 }
 
 /**
- * The built bundle of a copy of the tree carrying the edit. A copy and never the tree: a run that
- * failed part-way would otherwise leave `src/` holding a panel that refuses to draw.
- */
-export async function readGivingWayBundle(regions: readonly PanelRegion[]): Promise<string> {
-    assert(regions.length > 0, "a build that gives way is told what gives way");
-    const root = await Deno.makeTempDir({ prefix: "margometer-giving-way-" });
-    try {
-        for (const name of COPIED) await copy(name, `${root}/${name}`);
-        const source = await Deno.readTextFile(PANEL_FILE);
-        const written = composeGivingWaySource(source, regions);
-        await Deno.writeTextFile(`${root}/${PANEL_FILE}`, written);
-        const built = await readUserscriptFiles(readDevelopmentVersion(), BUNDLE_ENTRY, root);
-        // A copy whose imports resolved back into this tree builds the panel unedited.
-        assert(built.script.includes(GIVING_WAY_MARKER), "the build is of the edited copy");
-        return built.script;
-    } finally {
-        await Deno.remove(root, { recursive: true });
-    }
-}
-
-/**
  * The picture of one region giving way, at the moment the underway set is taken. ⚠️ **A region
  * that fails is stated in the list of defects at the next draw, not the one it failed in**, and a
  * page between payloads draws nothing: each picture presses the strip already shown, which draws
@@ -172,7 +151,7 @@ export function composeGivingWayShot(region: PanelRegion): PanelShot {
 }
 
 /** One picture per region asked for, named for it, into a directory of the caller's choosing. */
-export async function writeGivingWayShots(flags: GivingWayFlags): Promise<string[]> {
+async function writeGivingWayShots(flags: GivingWayFlags): Promise<string[]> {
     assert(flags.regions.length > 0, "a set of pictures is of something");
     const fight = lookupRecordedFight(LANDING_RECORDING);
     const entry = lookupShotEntry(SHOT_MOMENT.underway, fight.updates.length);
@@ -193,6 +172,27 @@ export async function writeGivingWayShots(flags: GivingWayFlags): Promise<string
     }
     assertStrictEquals(written.length, flags.regions.length, "one picture per region asked for");
     return written;
+}
+
+/**
+ * The built bundle of a copy of the tree carrying the edit. A copy and never the tree: a run that
+ * failed part-way would otherwise leave `src/` holding a panel that refuses to draw.
+ */
+async function readGivingWayBundle(regions: readonly PanelRegion[]): Promise<string> {
+    assert(regions.length > 0, "a build that gives way is told what gives way");
+    const root = await Deno.makeTempDir({ prefix: "margometer-giving-way-" });
+    try {
+        for (const name of COPIED) await copy(name, `${root}/${name}`);
+        const source = await Deno.readTextFile(PANEL_FILE);
+        const written = composeGivingWaySource(source, regions);
+        await Deno.writeTextFile(`${root}/${PANEL_FILE}`, written);
+        const built = await readUserscriptFiles(readDevelopmentVersion(), BUNDLE_ENTRY, root);
+        // A copy whose imports resolved back into this tree builds the panel unedited.
+        assert(built.script.includes(GIVING_WAY_MARKER), "the build is of the edited copy");
+        return built.script;
+    } finally {
+        await Deno.remove(root, { recursive: true });
+    }
 }
 
 if (import.meta.main) {

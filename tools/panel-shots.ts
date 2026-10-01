@@ -137,7 +137,7 @@ export function lookupShotEntry(moment: ShotMoment, calls: number): number {
  * The whole set, into a directory of its own first: a run failing part-way must not take the
  * pictures with it, or a README is left pointing at nothing.
  */
-export async function writePanelShots(version: string): Promise<PanelShotRecord> {
+async function writePanelShots(version: string): Promise<PanelShotRecord> {
     assert(version.length > 0, "a set is taken at a version the panel in it will state");
     let commit: string;
     // Read the commit the set comes from, or refuse: a set over uncommitted work names no build.

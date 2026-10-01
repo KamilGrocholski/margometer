@@ -8,7 +8,7 @@
  *     deno task game:keys [freeze]
  */
 
-import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
+import { assert, assertNotStrictEquals } from "@std/assert";
 import { encodeJson } from "#/libs/json-text.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import {
@@ -18,7 +18,7 @@ import {
     JAVASCRIPT_QUOTES,
     lookupQuotedLiteral,
 } from "#/libs/text-walk.ts";
-import { GAME_CHANNEL, readCachedBundle, readCachedClientSource } from "./game-client-source.ts";
+import { GAME_CHANNEL, readCachedBundle, requireCachedBuild } from "./game-client-source.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { ProtocolKeyTableError } from "./margometer-tool-error.ts";
 
@@ -142,18 +142,6 @@ export function prepareFrozenKeyTable(): FrozenFiles {
         keys.length,
         (date) => [encodeFrozenKeyModule(date, keys, family)],
     );
-}
-
-/** The build the table would be lifted from, refusing rather than reading an empty cache. */
-function requireCachedBuild(): string {
-    const cached = readCachedClientSource(GAME_CHANNEL.production);
-    if (cached === null) {
-        throw new ProtocolKeyTableError(
-            "nothing cached for production — run `deno task game:client fetch production`",
-        );
-    }
-    assertStrictEquals(cached.channel, GAME_CHANNEL.production, "the channel the table stands on");
-    return cached.build;
 }
 
 export function encodeFrozenKeyModule(

@@ -23,6 +23,7 @@ import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { PANEL_WORDS } from "#/src/ui/panel-words.ts";
 import {
     formatRecordingName,
+    lookupRecordingPaths,
     readRecordedMaterial,
     type ReplayedFight,
     replayRecordedMaterial,
@@ -165,8 +166,8 @@ function parseCardArguments(stated: readonly string[]): CardArguments {
         throw new CardHeightError(`more than ${ARGUMENTS_MAXIMUM} arguments`);
     }
     const parsed = parseArgs([...stated], { boolean: ["tallest"] });
-    const paths = parsed._.filter((one): one is string => typeof one === "string");
-    if (paths.length !== parsed._.length) {
+    const paths = lookupRecordingPaths(parsed._);
+    if (paths === null) {
         throw new CardHeightError("a recording is named by a path and never by a number");
     }
     return { isTallest: parsed.tallest, paths };

@@ -85,7 +85,7 @@ export const EXIT_UNASKED = 2;
 /** What a script reads off a preview: the development client differs from what is frozen. */
 export const EXIT_AHEAD = 1;
 /** Every reading this routine reports on, so a row quietly dropped fails rather than hides. */
-export const READINGS_REPORTED = 7;
+const READINGS_REPORTED = 7;
 const NAME_COLUMN = 14;
 const SAYS_COLUMN = 80;
 /** The loud ones end a work round; `current` is the quiet one. */

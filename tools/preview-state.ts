@@ -15,11 +15,11 @@ export const STATE_VALUE_MAXIMUM = 200;
 /** The whole hash. A browser takes far more; an address somebody has to look at does not. */
 export const STATE_TEXT_MAXIMUM = 2000;
 /** How long the panel is waited for, in tries of `STATE_WAIT_EVERY_MILLISECONDS`. */
-export const STATE_WAIT_TRIES = 40;
+const STATE_WAIT_TRIES = 40;
 const STATE_WAIT_EVERY_MILLISECONDS = 25;
-export const STATE_ENTRY_NAME = "e";
-export const STATE_SCREEN_NAME = "s";
-export const STATE_STORE_NAME = "k";
+const STATE_ENTRY_NAME = "e";
+const STATE_SCREEN_NAME = "s";
+const STATE_STORE_NAME = "k";
 
 /**
  * The address, read before the bundle runs, so the store can be handed what it held last. A hash

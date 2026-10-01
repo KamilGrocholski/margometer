@@ -281,7 +281,7 @@ function indexNamedBySkillId(events: readonly BattleEvent[]): Map<number, number
 }
 
 /** The three reports, one after another, as a terminal prints them. */
-export function formatAuraReport(stepped: readonly SteppedFight[], material: string): string[] {
+function formatAuraReport(stepped: readonly SteppedFight[], material: string): string[] {
     assert(material.length > 0, "a report names the material it was taken over");
     return [
         `what stands, over ${material}\n`,
