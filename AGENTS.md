@@ -133,11 +133,12 @@ What a function may touch, across `libs/`, `src/` and `tools/`. ADR 0018, after 
   and `read` functions. Observation: a strong or weak function calling one of none, or a strong one
   assigning into a parameter or calling a method that changes one — `push`, `set`, `delete`,
   `splice`, `sort`, and every other that changes a collection in place.
-- **P2. Each event changes state at one point.** The payload, the gesture and the frame of
+- **P2. Each event changes state at one point.** The payload, the gesture, the frame and the card of
   `docs/design.md` §10 each read top-down as the sequence of the changes they make; anywhere else
   that wants one sets a flag (`markStale`), and the entry makes it. Observation: a `render…` called
-  by a function that is neither a `render…` nor the frame's entry, or a `commit…` called by anything
-  but the payload's.
+  by anything but a `render…`, an `init…`, the frame's entry or the card's, or a `commit…` called by
+  anything but a `commit…`, a `replay…` or the payload's entry, the entries being the names the
+  headings of §10.4, §10.7 and §10.2 give. ADR 0019.
 - **P3. A strong function takes readings.** A collection it is handed is typed `readonly T[]`,
   `ReadonlyMap` or `ReadonlySet`, and a record `Readonly<…>` or with `readonly` fields. Observation:
   a parameter of a strong function annotated `T[]`, `Map<` or `Set<`.
@@ -540,6 +541,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/control-flow.test.ts`            | S1                                                     |
 | `tests/repository/called-once.test.ts`             | S4                                                     |
 | `tests/repository/purity.test.ts`                  | P1, P3, P4                                             |
+| `tests/repository/event-entries.test.ts`           | P2                                                     |
 | `tests/repository/comment-share.test.ts`           | C4, C16                                                |
 | `tests/repository/design-tokens.test.ts`           | `DESIGN.md`                                            |
 | `tests/repository/changelog.test.ts`               | `CHANGELOG.md`                                         |

@@ -290,7 +290,7 @@ function markStale(state: RuntimeState): void {
     if (state.isStale) return;
     state.isStale = true;
     const requested = state.ports.frames.requestFrame(
-        () => renderRuntimeFrame(state),
+        () => onFrame(state),
         (failure) => state.defects.add({ kind: DEFECT_KIND.region, region: null, failure }),
     );
     if (!(requested instanceof Error)) {
@@ -302,14 +302,14 @@ function markStale(state: RuntimeState): void {
         state.defects.add({ kind: DEFECT_KIND.region, region: null, failure: requested });
     }
     assert(state.frame === null, "a draw without a frame holds none it asked for");
-    renderRuntimeFrame(state);
+    onFrame(state);
 }
 
 /**
  * The only drawing, and the panel goes up at the first one: no frame is asked for before the wrap
  * is on or the game is given up on. A panel the page will not take is tried again at the next.
  */
-function renderRuntimeFrame(state: RuntimeState): void {
+function onFrame(state: RuntimeState): void {
     assert(state.isStale, "a frame falls only where one was asked for");
     state.isStale = false;
     state.frame = null;

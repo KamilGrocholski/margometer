@@ -85,6 +85,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0016-the-end-an-opened-figure-left-out-opens-onto-that-persons-keys.md`                    | the end an opened figure left out opens onto that person's own keys                             |
 | `docs/adr/0017-the-middle-type-step-is-what-a-reader-who-chose-none-reads.md`                        | a reader who chose no type step reads the middle one, 12px                                      |
 | `docs/adr/0018-a-function-called-from-one-place-is-written-in-its-caller-unless-it-is-pure.md`       | a function called once is a block in its caller unless its verb is strong, and length ends none |
+| `docs/adr/0019-each-events-entry-is-the-name-the-design-gives-it.md`                                 | each event's entry is the name its heading in the design gives it, and the card is one          |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

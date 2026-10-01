@@ -946,7 +946,7 @@ the first frame draws and mounts   a failure → a "mount" defect, tried again a
 No frame is asked for before the wrap is on or the game is given up on, so the panel goes up at the
 first frame, as `develop` puts it up when the wrap goes on.
 
-### 10.2 The game's stack: `updateData`
+### 10.2 The game's stack: `onPayload`, called inside `updateData`
 
 ```
 onBeforeCall ─ errors.attempt(readWarriorSnapshot) ─▶ snapshotBefore | null
@@ -1031,6 +1031,19 @@ goes without a mark.
 | browser storage                | `errors.attempt` inside the `KeyValueStore` implementation                                          |
 | the game's own page state      | `errors.attempt` in `PlacePort`, `HeroPort`, `DictionaryPort`, `BuildPort`, `TooltipPort`, warriors |
 | a callback somebody else calls | a DOM listener and `onFrame`, under `errors.attempt`                                                |
+
+### 10.7 The card: `onHover`, in the root listener, under its guard
+
+```
+listener ─ the row under the pointer, by its tip key, and the pointer's height
+   onHover: the same row → the card moves with the pointer, and nothing is drawn
+            another row   → its reading composed and the card drawn at once
+            no row        → the card hides
+```
+
+The detail window answers the pointer where it stands, with no frame between: a card drawn a frame
+late follows a row the pointer has already left. It is the view's own state — which key is open and
+where the card stands — and reaches neither the runtime nor the session, so it marks nothing stale.
 
 ## 11. Recorded material and the file format
 
