@@ -9,8 +9,8 @@
 import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import {
     composeTipWithin,
+    createTipRegister,
     initTipHandle,
-    initTipRegister,
     renderTip,
     setTipHidden,
     setTipPlace,
@@ -65,7 +65,7 @@ const NAME_ON_ONE_LINE = 27;
 const SUBTITLE_ON_ONE_LINE = 32;
 
 Deno.test("a row is looked up by the name it stated, and by no other", () => {
-    const register = initTipRegister();
+    const register = createTipRegister();
     const compose = () => HILDUR;
     assertEquals(register.lookup("row:7"), null, "a row nobody drew has nothing to say");
     register.add("row:7", compose);
@@ -486,7 +486,7 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
 
 function composeHandleUnderTest() {
     const document = composeFakeDocument();
-    const register = initTipRegister();
+    const register = createTipRegister();
     const swap = composeSwap();
     const handle = initTipHandle(
         document,
@@ -529,7 +529,7 @@ Deno.test("a move inside one pixel writes nothing, because there is nowhere new 
  */
 Deno.test("a card hidden where it stood is composed again, not moved", () => {
     const document = composeFakeDocument();
-    const register = initTipRegister();
+    const register = createTipRegister();
     let willFail = false;
     const handle = initTipHandle(document, register, (standing, compose) => {
         // The panel's own answer to a card that throws: hidden where it stands, nothing replaced.
@@ -562,7 +562,7 @@ Deno.test("a card hidden where it stood is composed again, not moved", () => {
  */
 Deno.test("the card asks where it may stand with the key it is open for", () => {
     const document = composeFakeDocument();
-    const register = initTipRegister();
+    const register = createTipRegister();
     const asked: string[] = [];
     const swap = composeSwap();
     const handle = initTipHandle(

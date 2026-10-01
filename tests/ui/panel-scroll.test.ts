@@ -8,7 +8,7 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { CLASS } from "#/src/ui/panel-look.ts";
 import {
-    initScrollMemo,
+    createScrollMemo,
     readTopOfList,
     renderListRows,
     writeTopOfList,
@@ -22,12 +22,12 @@ const SOMEWHERE_DOWN = 240;
 const SOMEWHERE = "damageDealt|everyone";
 
 Deno.test("a list nobody has scrolled stands at the top", () => {
-    const kept = initScrollMemo();
+    const kept = createScrollMemo();
     assertStrictEquals(kept.getTop("damageDealt|everyone"), 0, "and says so as a zero");
 });
 
 Deno.test("a position comes back under the name it was kept under", () => {
-    const kept = initScrollMemo();
+    const kept = createScrollMemo();
     kept.setTop("ranking", SOMEWHERE_DOWN);
     kept.setTop("opened", 1);
     assertStrictEquals(kept.getTop("ranking"), SOMEWHERE_DOWN, "the one that was kept");
@@ -36,7 +36,7 @@ Deno.test("a position comes back under the name it was kept under", () => {
 });
 
 Deno.test("the oldest place goes when the maximum is reached", () => {
-    const kept = initScrollMemo();
+    const kept = createScrollMemo();
     kept.setTop("first", SOMEWHERE_DOWN);
     for (let at = 0; at < NAMES_TRIED; at += 1) kept.setTop(`place ${at}`, at + 1);
     assertStrictEquals(kept.getTop("first"), 0, "the place kept longest ago is gone");
@@ -83,7 +83,7 @@ Deno.test("a position is put on a list and never on a slot", () => {
  * to cost the draw it arrived in — **E12**, `develop ADR 0051`.
  */
 Deno.test("a position no region could be put at is refused, and the kept one stands", () => {
-    const kept = initScrollMemo();
+    const kept = createScrollMemo();
     kept.setTop(SOMEWHERE, SOMEWHERE_DOWN);
     kept.setTop(SOMEWHERE, Number.NaN);
     assertStrictEquals(

@@ -134,7 +134,7 @@ const HEIGHT_VARIABLE = "--MargoMeter-tip-height";
 /** Past every card there is: four figures, the counters, both runs and the notes come to five. */
 const TIP_GROUPS_MAXIMUM = 16;
 
-export function initTipRegister(): TipRegister {
+export function createTipRegister(): TipRegister {
     const held = new Map<string, TipCompose>();
     return {
         // A row with no name, one already registered, or one past the bound is left without a

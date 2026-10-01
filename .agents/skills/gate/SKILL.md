@@ -36,17 +36,20 @@ satisfied; the guard is never what gets changed to pass (_Ask first_).
 
 ## Reds seen before
 
-| Red in                                                  | What it means                                                     |
-| ------------------------------------------------------- | ----------------------------------------------------------------- |
-| `documents.test.ts`, `a file unlisted`                  | a tracked file with no row in `docs/structure.md` (**C9**)        |
-| `documents.test.ts`, `a line naming nothing`            | a row, a list line or a register row whose file is gone           |
-| `documents.test.ts`, `a document unlisted`              | a document not on the list in `AGENTS.md`                         |
-| `documents.test.ts`, `a rule named in bold…`            | a rule named in bold that `AGENTS.md` does not state              |
-| `cited-paths.test.ts`, `every path this tree is cited…` | a backticked path that moved or never was: fix the citation       |
-| `comment-share.test.ts`                                 | **C4**, **C16**: cut the comment, never pad the code to dilute it |
-| `declaration-order.test.ts`                             | **C1**: types, constants, then functions, the entry first         |
-| `broad-catches.test.ts`                                 | **E4**: route the call through `attempt` at its boundary          |
-| `control-flow.test.ts`                                  | **S1**: a function reaching itself, or a body written on one line |
+| Red in                                                  | What it means                                                                                                                                        |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `documents.test.ts`, `a file unlisted`                  | a tracked file with no row in `docs/structure.md` (**C9**)                                                                                           |
+| `documents.test.ts`, `a line naming nothing`            | a row, a list line or a register row whose file is gone                                                                                              |
+| `documents.test.ts`, `a document unlisted`              | a document not on the list in `AGENTS.md`                                                                                                            |
+| `documents.test.ts`, `a rule named in bold…`            | a rule named in bold that `AGENTS.md` does not state                                                                                                 |
+| `cited-paths.test.ts`, `every path this tree is cited…` | a backticked path that moved or never was: fix the citation                                                                                          |
+| `comment-share.test.ts`                                 | **C4**, **C16**: cut the comment, never pad the code to dilute it                                                                                    |
+| `declaration-order.test.ts`                             | **C1**: types, constants, then functions, the entry first                                                                                            |
+| `broad-catches.test.ts`                                 | **E4**: route the call through `attempt` at its boundary                                                                                             |
+| `control-flow.test.ts`                                  | **S1**: a function reaching itself, or a body written on one line                                                                                    |
+| `called-once.test.ts`                                   | **S4**: write the helper into its one caller as a headed block; never rename it strong, or hand it on as a value, to dodge the guard                 |
+| `purity.test.ts`                                        | **P1**: the verb lies about what the function touches, so change the verb or move the touch; **P3** `readonly`; **P4** state into an `init`'s object |
+| `event-entries.test.ts`                                 | **P2**: a draw or a commit off its event's path; set the flag and let the entry do it, or name a new entry in `docs/design.md` §10                   |
 
 All of them stand under `tests/repository/`.
 

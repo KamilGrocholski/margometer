@@ -16,7 +16,7 @@ export interface ScrollMemo {
 const LISTS_KEPT_MAXIMUM = 32;
 
 /** In memory: a position that outlived a reload would open on a fight the page no longer holds. */
-export function initScrollMemo(): ScrollMemo {
+export function createScrollMemo(): ScrollMemo {
     const held = new Map<string, number>();
     return {
         getTop(name: string): number {

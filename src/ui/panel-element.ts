@@ -98,15 +98,15 @@ import {
     type ScreenStrip,
     SIDE_CHOICE,
 } from "./panel-screen.ts";
-import { initScrollMemo, readTopOfList, renderListRows, writeTopOfList } from "./panel-scroll.ts";
+import { createScrollMemo, readTopOfList, renderListRows, writeTopOfList } from "./panel-scroll.ts";
 import {
     type StandingAbsence,
     type StandingChargedSkill,
     type StandingReading,
 } from "./panel-standing.ts";
 import {
+    createTipRegister,
     initTipHandle,
-    initTipRegister,
     setTipHidden,
     type TipCompose,
     type TipHandle,
@@ -643,12 +643,12 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         report.add(region, replaced);
         return standing;
     };
-    const register = initTipRegister();
-    const standingRegister = initTipRegister();
+    const register = createTipRegister();
+    const standingRegister = createTipRegister();
     let drawing: ListDrawing;
     // Draw the one region that scrolls, keeping the reader's position under the place it is for.
     {
-        const scrolls = initScrollMemo();
+        const scrolls = createScrollMemo();
         // Which list is standing in the region, so a position read off it is kept under the place
         // it belongs to rather than under the place taking its turn.
         let shownName = WAITING_LIST_NAME;
