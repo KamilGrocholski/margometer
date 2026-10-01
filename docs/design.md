@@ -202,7 +202,10 @@ the one layer holding a frozen reading and handing it on. `libs/` and `frozen/` 
 ## 5. Ports
 
 A port is an interface over something this program does not control. Each has a real implementation
-over the page and a simulated one (§12), which is what earns it an interface (`AGENTS.md` I1).
+over the page and a simulated one (§12), which is what earns it an interface (`AGENTS.md` I1) — but
+the engine and the dictionary, which are simulated one step lower: a page of the test's own under
+the real adapter (`tests/runtime-world.ts`), because the adapter is what a recording has to pass
+through. Their interfaces describe objects an `init…` builds and that hold what they wrap (I2).
 
 ```ts
 // Time and the frame

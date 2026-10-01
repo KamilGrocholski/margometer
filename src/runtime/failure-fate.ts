@@ -1,7 +1,8 @@
 /**
  * Every failure meets a fate, and the compiler holds the table complete (`AGENTS.md` E7,
  * `docs/design.md` §10.5): a class added to `RuntimeFailure` without an entry fails `deno check`.
- * Which defect a failure leaves is the step's that met it; whether it leaves one is this table's.
+ * The step that meets a failure carries its fate out, and nothing reads this table at run time:
+ * `tests/simulation.ts` holds every kind the console hears to one of its names.
  */
 
 import type * as errors from "#/libs/errors.ts";
