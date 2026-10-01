@@ -214,8 +214,7 @@ function addPinnedLevelToTally(tally: DrillTally, fight: PanelFight, kase: Pinne
             one.figure > 0,
             "a person under a pinned row carries some of its figure",
         );
-        // Always: their share of the figure is keyed throughout, which
-        // `src/core/` asserts.
+        // Always: their share of the figure is keyed throughout, which `src/core/` asserts.
         addCaseToTally(tally, pinnedScreen, {
             rung: DRILL_RUNG.unnamed,
             row: DRILL_ROW.person,

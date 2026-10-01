@@ -1091,29 +1091,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                     shown.listName,
                     () => renderListLevel(document, register, shown, options.translate),
                 );
-                // Draw the two pinned rows, each in a region of its own.
-                // A pinned row keeps a place of its own whether or not there is one to draw, so
-                // a failure takes one row rather than both — and nothing standing below them
-                // moves when one arrives.
-                const stated = {
-                    metric: shown.current,
-                    isSideChosen: shown.side !== SIDE_CHOICE.everyone,
-                    figure: getWordsForMetric(shown.current),
-                };
-                const isOpen = isLevelOpen(shown);
-                const pinned = !isOpen && !shown.isOnShelf ? shown.reading.pinned : [];
-                const ends = [
-                    [UNNAMED_END.actor, "pinnedActor"],
-                    [UNNAMED_END.target, "pinnedTarget"],
-                ] as const;
-                for (const [end, standing] of ends) {
-                    const row = pinned.find((one) => one.end === end) ?? null;
-                    regions[standing] = renderInPlace(
-                        regions[standing],
-                        PANEL_REGION.pinned,
-                        () => renderPinnedRegion(document, register, row, stated),
-                    );
-                }
+                renderPinnedRows(document, regions, renderInPlace, register, shown);
                 // Draw what stands under the list: past the ranking, the sides, warnings, defects.
                 regions.outside = renderInPlace(
                     regions.outside,
@@ -1964,33 +1942,53 @@ function renderListLevel(
     return list;
 }
 
-function renderPinnedRegion(
+/**
+ * Draw the two pinned rows, each in a region of its own. A pinned row keeps a place of its own
+ * whether or not there is one to draw, so a failure takes one row rather than both — and nothing
+ * standing below them moves when one arrives.
+ */
+function renderPinnedRows(
     document: PanelDocument,
+    regions: PanelRegions,
+    renderInPlace: PanelRedraw,
     register: TipRegister,
-    row: PinnedRow | null,
-    stated: { metric: PanelMetric; isSideChosen: boolean; figure: string },
-): PanelElement {
-    if (row === null) return renderSlot(document);
-    const block = renderElement(document, "div", CLASS.pinned);
-    const tip = {
-        register,
-        key: `pinned:${row.end}`,
-        figure: stated.figure,
-        share: PANEL_WORDS.share,
-        notes: formatPinnedNotes(
-            row,
-            stated.metric,
-            stated.isSideChosen,
-        ),
-        cut: presentPinnedCutParts(row, stated.metric),
+    shown: ShownScreen,
+): void {
+    const stated = {
+        metric: shown.current,
+        isSideChosen: shown.side !== SIDE_CHOICE.everyone,
+        figure: getWordsForMetric(shown.current),
     };
-    const reading = presentUnnamedRow(
-        row,
-        getWordsForUnnamedRow(row.end),
-    );
-    const mark = { attribute: PANEL_MARK.unnamed, stated: row.end };
-    block.append(renderRow(document, reading, mark, tip));
-    return block;
+    const isOpen = isLevelOpen(shown);
+    const pinned = !isOpen && !shown.isOnShelf ? shown.reading.pinned : [];
+    const ends = [
+        [UNNAMED_END.actor, "pinnedActor"],
+        [UNNAMED_END.target, "pinnedTarget"],
+    ] as const;
+    for (const [end, standing] of ends) {
+        const row = pinned.find((one) => one.end === end) ?? null;
+        regions[standing] = renderInPlace(
+            regions[standing],
+            PANEL_REGION.pinned,
+            () => {
+                // Draw the row, or the slot that keeps its place.
+                if (row === null) return renderSlot(document);
+                const block = renderElement(document, "div", CLASS.pinned);
+                const tip = {
+                    register,
+                    key: `pinned:${row.end}`,
+                    figure: stated.figure,
+                    share: PANEL_WORDS.share,
+                    notes: formatPinnedNotes(row, stated.metric, stated.isSideChosen),
+                    cut: presentPinnedCutParts(row, stated.metric),
+                };
+                const reading = presentUnnamedRow(row, getWordsForUnnamedRow(row.end));
+                const mark = { attribute: PANEL_MARK.unnamed, stated: row.end };
+                block.append(renderRow(document, reading, mark, tip));
+                return block;
+            },
+        );
+    }
 }
 
 function renderOutsideRegion(

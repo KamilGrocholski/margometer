@@ -704,9 +704,8 @@ function addHealthLost(
 ): void {
     const lost = -event.amount;
     addTakenHealth(figures, lost);
-    // The key joins the kind cut, because a tick of poison is a kind of damage
-    // taken; and the cut the skills section closes against, which is a
-    // different question.
+    // The key joins the kind cut, because a tick of poison is a kind of damage taken; and the cut
+    // the skills section closes against, which is a different question.
     addToCut(figures.damageTakenByKind, event.source, lost);
     addToCut(figures.damageTakenWithoutSkillBySource, event.source, lost);
     const attackerId = lookupWoundAttackerId(build, event);
