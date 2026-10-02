@@ -45,6 +45,8 @@ below points at the rule it checks, and the rule's owner is where to read it in 
 ### What the change drags along
 
 - [ ] A file added, moved or deleted has its row in `docs/structure.md` (**C9**).
+- [ ] A name, a file or a task added, renamed or gone has `docs/names.md` written again:
+      `deno task names`, which its guard asks for by name.
 - [ ] A new canonical document joins the list in `AGENTS.md`, in this commit (**C9**).
 - [ ] A new guard joins the register, in the commit that makes it pass (Guard register).
 - [ ] A rule changed has its decision record in `docs/adr/`, numbered next (`AGENTS.md` intro).

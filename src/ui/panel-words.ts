@@ -620,7 +620,7 @@ export const HEALTH_SOURCE_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Ob
     bandage: "bandażowanie",
 }));
 
-export const COUNTED_NOUNS = {
+export const COUNTED_NOUN_WORDS = {
     messages: { one: "wiadomość", few: "wiadomości", many: "wiadomości" },
     heals: { one: "uleczenie", few: "uleczenia", many: "uleczeń" },
     fights: { one: "walka", few: "walki", many: "walk" },
@@ -813,8 +813,7 @@ export const FIGHT_CARD_WORDS = {
     profession: "Profesja",
 } as const;
 
-const LIVE_FIGHT_TIME = "teraz";
-const LIVE_FIGHT_OUTCOME = "trwa";
+const LIVE_FIGHT_WORDS = { time: "teraz", outcome: "trwa" } as const;
 const TWO_DIGITS = 2;
 /** The month a person counts first, which is the offset a lookup by month subtracts. */
 const FIRST_MONTH = 1;
@@ -1127,7 +1126,7 @@ export function presentTooltipRows(
     // Say whom the fighter provokes, and who holds it provoked.
     {
         if (tooltip.provokedCount > 0) {
-            const counted = formatCountedNoun(tooltip.provokedCount, COUNTED_NOUNS.combatants);
+            const counted = formatCountedNoun(tooltip.provokedCount, COUNTED_NOUN_WORDS.combatants);
             said.push(`${TOOLTIP_WORDS.provokedCount} ${counted}`);
         }
         const provoker = tooltip.provokedBy;
@@ -1315,7 +1314,7 @@ export function formatKeptUnread(at: FightMoment | null, place: string | null): 
  * The place is what pays for the width, on every row (`DESIGN.md`, `develop ADR 0084`).
  */
 export function formatShelfTime(at: FightMoment | null, isLive: boolean): string {
-    if (isLive) return LIVE_FIGHT_TIME;
+    if (isLive) return LIVE_FIGHT_WORDS.time;
     if (at === null) return "";
     if (at.hour < 0) return "";
     if (at.minute < 0) return "";
@@ -1350,7 +1349,7 @@ export function getWordsForShelfOutcome(outcome: OutcomeResult | null, isLive: b
     // How it went outranks the word for one going on: a fight that has ended is still the live
     // one until the next begins, and *trwa* over a fight the game has already called is wrong.
     if (outcome !== null) return getWordsForOutcome(outcome);
-    if (isLive) return LIVE_FIGHT_OUTCOME;
+    if (isLive) return LIVE_FIGHT_WORDS.outcome;
     return "";
 }
 
@@ -1366,7 +1365,7 @@ export function formatUses(uses: number): string {
 export function formatNamesReachedByGap(names: readonly string[], charged: number): string {
     if (charged <= 0) return "";
     if (charged > NAMED_ROWS_MAXIMUM) {
-        return ` (dotyczy ${composeGenitiveNoun(charged, COUNTED_NOUNS.combatants)})`;
+        return ` (dotyczy ${composeGenitiveNoun(charged, COUNTED_NOUN_WORDS.combatants)})`;
     }
     if (names.length === 0) return "";
     return ` (${names.join(", ")})`;
@@ -1392,7 +1391,7 @@ export function formatUnknownKeySuspicion(
     whom: string,
 ): string {
     if (count <= 0) return "";
-    const said = formatOutOf(count, stated, COUNTED_NOUNS.messages);
+    const said = formatOutOf(count, stated, COUNTED_NOUN_WORDS.messages);
     return "Nie wiadomo, co znaczyła część tego, co powiedziała gra — " +
         `${said} bez odczytu${whom}, więc liczby mogą być zaniżone.`;
 }
@@ -1414,7 +1413,7 @@ export function formatNoParameterSuspicion(
     whom: string,
 ): string {
     if (count <= 0) return "";
-    const said = formatOutOf(count, stated, COUNTED_NOUNS.messages);
+    const said = formatOutOf(count, stated, COUNTED_NOUN_WORDS.messages);
     return "Część tego, co powiedziała gra, nie niosła żadnej liczby — " +
         `${said} bez odczytu${whom}, więc liczby mogą być zaniżone.`;
 }
@@ -1422,7 +1421,7 @@ export function formatNoParameterSuspicion(
 /** It names nobody, and takes no `whom`: a message nothing could be read out of named no end. */
 export function formatGrammarRefusedSuspicion(count: number, stated: number): string {
     if (count <= 0) return "";
-    const said = formatOutOf(count, stated, COUNTED_NOUNS.messages);
+    const said = formatOutOf(count, stated, COUNTED_NOUN_WORDS.messages);
     return "Części tego, co powiedziała gra, nie dało się rozłożyć na słowa — " +
         `${said} bez odczytu, więc liczby mogą być zaniżone.`;
 }
@@ -1430,7 +1429,7 @@ export function formatGrammarRefusedSuspicion(count: number, stated: number): st
 /** The count sits in an apposition: under *nie dotarło* the verb would have to agree with it. */
 export function formatLostMessageSuspicion(count: number, stated: number): string {
     if (count <= 0) return "";
-    const said = formatOutOf(count, stated, COUNTED_NOUNS.messages);
+    const said = formatOutOf(count, stated, COUNTED_NOUN_WORDS.messages);
     return `Część walki nie dotarła do panelu — ${said} bez odbioru, ` +
         "więc wszystkie liczby mogą być zaniżone.";
 }
@@ -1447,7 +1446,7 @@ export function formatUnplacedHealSuspicion(
     whom: string,
 ): string {
     if (count <= 0) return "";
-    const said = formatOutOf(count, stated, COUNTED_NOUNS.heals);
+    const said = formatOutOf(count, stated, COUNTED_NOUN_WORDS.heals);
     return `Nie da się rozdzielić leczenia drużyny — ${said} bez podziału${whom}, ` +
         "więc leczenie może być zaniżone.";
 }
@@ -1460,21 +1459,21 @@ export function formatUnplacedHealSuspicion(
  */
 export function formatUnknownKeyRowSuspicion(count: number): string {
     if (count <= 0) return "";
-    const said = formatCountedNoun(count, COUNTED_NOUNS.messages);
+    const said = formatCountedNoun(count, COUNTED_NOUN_WORDS.messages);
     return `Nie wiadomo, co znaczyła część tego, co gra powiedziała z jej udziałem — ${said} ` +
         "bez odczytu, więc jej liczby mogą być zaniżone.";
 }
 
 export function formatNoParameterRowSuspicion(count: number): string {
     if (count <= 0) return "";
-    const said = formatCountedNoun(count, COUNTED_NOUNS.messages);
+    const said = formatCountedNoun(count, COUNTED_NOUN_WORDS.messages);
     return `Część tego, co gra powiedziała z jej udziałem, nie niosła żadnej liczby — ${said} ` +
         "bez odczytu, więc jej liczby mogą być zaniżone.";
 }
 
 export function formatUnplacedHealRowSuspicion(count: number): string {
     if (count <= 0) return "";
-    const said = formatCountedNoun(count, COUNTED_NOUNS.heals);
+    const said = formatCountedNoun(count, COUNTED_NOUN_WORDS.heals);
     return `Nie da się rozdzielić jej leczenia drużyny — ${said} bez podziału, ` +
         "więc jej leczenie może być zaniżone.";
 }

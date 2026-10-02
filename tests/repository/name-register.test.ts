@@ -5,8 +5,9 @@
  * this suite with `--write` and the file is written again. Which name is right is `AGENTS.md`'s.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { parse as parseJsonc } from "@std/jsonc";
+import { isDigitAt } from "#/libs/text-walk.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import {
@@ -85,6 +86,10 @@ const CONFIGURATION_PATH = "deno.json";
 const MANIFEST_PATH = "package.json";
 /** Evidence rather than names of ours, and `captures/AGENTS.md` keeps it. */
 const EVIDENCE_PREFIX = "captures/";
+/** A suite's strings are material it is handed, never a name the tree reads by. */
+const SUITE_PREFIX = "tests/";
+/** What a reader of the panel is told (L2): words, never names, however short. */
+const WORDS_SUFFIX = "_WORDS";
 /** A name standing in more files than this is given as a count and its layers. */
 const PATHS_LISTED_MAXIMUM = 3;
 /** Past the depth of any parse here, so a climb or a walk of a pattern carries a stated bound. */
@@ -189,6 +194,8 @@ Deno.test("a name is read by what declares it, and a comment or a sentence is no
         'const STORE_KEY = { fights: "MargoMeter-fights", shelf: ["data-shelf"] } as const;',
         'const SENTENCE = "Walka trwa dalej";',
         'const POLISH = "Żółw";',
+        'const OUTCOME_WORDS = { draw: "remis" } as const;',
+        'const FROZEN = { fetchedAt: "2026-10-02T14:46:17.315Z", article: "372" };',
         "export function readPlace(text: string, { at, ...rest }: Shape): number {",
         '    const local = "inside-a-function";',
         "    const [first] = [text];",
@@ -203,6 +210,9 @@ Deno.test("a name is read by what declares it, and a comment or a sentence is no
         "class Plain",
         "failure class RefusedTwice",
         "failure class StoreRefused",
+        "field article",
+        "field draw",
+        "field fetchedAt",
         "field field",
         "field fights",
         "field health",
@@ -214,6 +224,8 @@ Deno.test("a name is read by what declares it, and a comment or a sentence is no
         "import alias parseText",
         "local first",
         "local local",
+        "module constant FROZEN",
+        "module constant OUTCOME_WORDS",
         "module constant POLISH",
         "module constant SENTENCE",
         "module constant STORE_KEY",
@@ -230,10 +242,14 @@ Deno.test("a name is read by what declares it, and a comment or a sentence is no
     assertEquals(strings, [
         "STORE_KEY MargoMeter-fights",
         "STORE_KEY data-shelf",
-    ], "a constant's strings, and not a sentence, a word past ASCII or a function's string");
+    ], "a constant's strings, and not a sentence, a word, a date, a count or a function's string");
     assertEquals(read.vocabularies, [
         { name: "STORE_KEY", keys: ["fights", "shelf"], path: "sample.ts" },
+        { name: "OUTCOME_WORDS", keys: ["draw"], path: "sample.ts" },
     ], "and a vocabulary by its keys");
+    const suite = composeSample(['const FIXTURE = "luvia-grupa-vs-amaimon";']);
+    const fixture = readFileNames({ ...suite, path: "tests/sample.test.ts" });
+    assertEquals(fixture.strings, [], "and a suite's material is no name at all");
 });
 
 /** What one file declares, each name once per kind. */
@@ -414,10 +430,15 @@ function readPropertyName(
     addName(readKeyName(node), isFunction ? NAME_KIND.function : NAME_KIND.field);
 }
 
-/** A string literal, kept where a module-level constant holds it, and only if it is a name. */
+/**
+ * A string literal, kept where a module-level constant holds it, and only if it is a name: not a
+ * suite's material, not a figure or a date, which open with a digit, and not a reader's word.
+ */
 function readHeldString(file: SourceFile, node: AstNode, read: FileNames): void {
     if (typeof node.value !== "string") return;
     if (!isNameLike(node.value)) return;
+    if (isDigitAt(node.value, 0)) return;
+    if (file.path.startsWith(SUITE_PREFIX)) return;
     let child = node;
     let at = node.parent ?? null;
     for (let depth = 0; at !== null; depth += 1) {
@@ -425,7 +446,9 @@ function readHeldString(file: SourceFile, node: AstNode, read: FileNames): void 
         if (at.type === "VariableDeclarator") {
             if (!isTopLevel(at)) return;
             const holder = at.id?.name ?? null;
-            if (holder !== null) read.strings.push({ value: node.value, holder, path: file.path });
+            if (holder === null) return;
+            if (holder.endsWith(WORDS_SUFFIX)) return;
+            read.strings.push({ value: node.value, holder, path: file.path });
             return;
         }
         if (!HOLDING_NODES.includes(at.type)) return;
@@ -534,7 +557,7 @@ Deno.test("docs/names.md lists every name the tree spells, as the tree spells it
         return;
     }
     const written = Deno.readTextFileSync(REGISTER_PATH);
-    assertEquals(lookupFirstDifference(written, composed), null, "run `deno task names`");
+    assertStrictEquals(lookupFirstDifference(written, composed), null, "run `deno task names`");
 });
 
 /**
@@ -673,9 +696,11 @@ function composeStringLines(strings: readonly HeldString[]): string[] {
         "",
         "## Strings held by name",
         "",
-        "Every string a module-level constant holds, by the file that spells it: the game's keys and",
-        "fields, the store's keys, the sheet's classes and variables, the page's attributes. A string",
-        "with a space or a letter past ASCII is text rather than a name, and is left out.",
+        "Every string a module-level constant of the program or its tools holds, by the file that spells",
+        "it: the game's keys and fields, the store's keys, the sheet's classes and variables, the page's",
+        "attributes. Text is left out: a string with a space or a letter past ASCII, one opening with a",
+        "digit, which is a figure or a date, and a word a `…_WORDS` table holds for the reader. So is a",
+        "suite's material.",
     ];
     const paths = [...new Set(strings.map((one) => one.path))].sort(compareText);
     for (const path of paths) {

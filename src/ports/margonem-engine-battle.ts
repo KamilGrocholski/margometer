@@ -71,7 +71,7 @@ export interface WrapHandle {
 
 export interface MargonemEngineBattle {
     wrap(listener: PayloadListener): WrapHandle | MargonemEngineFailure;
-    readMargonemEngineWarriors():
+    readWarriors():
         | MargonemEngineWarriorSnapshot
         | MargonemEngineWarriorFailure
         | errors.Caught;
@@ -147,7 +147,7 @@ export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngine
                         getFirstFailure: () => failures.first,
                     };
                 },
-                readMargonemEngineWarriors() {
+                readWarriors() {
                     return errors.attempt(() => readMargonemEngineWarriorSnapshot(battle));
                 },
             };

@@ -18,7 +18,8 @@ reading keeps its date is ADR 0011.
    `unchanged since` for each reading, then it prints a status, which should be all `current`.
 3. **Read what moved:** `git diff --stat frozen/`. Empty means only the caches in `.cache/` moved,
    and there is nothing to commit. A moved file:
-   - stage it by path and run the gate (`gate` skill, **W1**, **W2**);
+   - stage it by path and run the gate (`gate` skill, **W1**, **W2**); a key or a bit added, dropped
+     or renamed is a name `docs/names.md` lists, and `deno task names` writes it again;
    - a guard gone red is a claim the game no longer backs, and the claim changes, never the reading
      (`frozen/AGENTS.md`, _Never_);
    - the refresh is a commit of its own, its body naming the build or date and what moved (**G3**),

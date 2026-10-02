@@ -199,7 +199,7 @@ function readLiveMargonemEngineWarriors(
         }
         liveFight.margonemEngineBattle = battle;
     }
-    const read = liveFight.margonemEngineBattle.readMargonemEngineWarriors();
+    const read = liveFight.margonemEngineBattle.readWarriors();
     if (!(read instanceof Error)) return read;
     if (read instanceof MargonemEngineWarriorsAbsent) return [];
     options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: read });

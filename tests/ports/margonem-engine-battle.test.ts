@@ -228,10 +228,10 @@ Deno.test("the warriors are read off the live battle, and a battle holding none 
         updateData: () => 1,
         warriorsList: { 7: { id: 7, name: "Gracz 1", team: 1, hp: { cur: 5, max: 9 } } },
     });
-    const read = live.readMargonemEngineWarriors();
+    const read = live.readWarriors();
     assertNotInstanceOf(read, Error, "the warriors are read");
     assertEquals(read.map((one) => one.id), [7], "the one the fight holds");
-    const empty = readBattleOn({ updateData: () => 1 }).readMargonemEngineWarriors();
+    const empty = readBattleOn({ updateData: () => 1 }).readWarriors();
     assertInstanceOf(empty, MargonemEngineWarriorsAbsent, "and none is a failure");
 });
 
@@ -285,7 +285,7 @@ Deno.test("a battle that throws as its warriors are read answers a failure of it
             throw new RangeError("a battle being torn down");
         },
     });
-    const read = readBattleOn(battle).readMargonemEngineWarriors();
+    const read = readBattleOn(battle).readWarriors();
     assertInstanceOf(read, Error, "the warriors are not read");
     assertInstanceOf(read, errors.Caught, "and it was theirs");
 });

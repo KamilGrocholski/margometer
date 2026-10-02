@@ -20,7 +20,7 @@ import {
     CAVEAT,
     CAVEATS,
     CHOICE_REFUSED_ANSWER,
-    COUNTED_NOUNS,
+    COUNTED_NOUN_WORDS,
     DEFENCE_WORD_BY_KEY,
     DESTROYED_WORD_BY_KEY,
     ELEMENT_WORD_BY_KEY,
@@ -231,7 +231,7 @@ Deno.test("every word the panel says says something", () => {
 
 function getSentences(): string[] {
     const found = Object.values(PANEL_WORDS).map((one) => String(one));
-    for (const noun of Object.values(COUNTED_NOUNS)) {
+    for (const noun of Object.values(COUNTED_NOUN_WORDS)) {
         found.push(noun.one, noun.few, noun.many);
     }
     // What a half-named row says, for the same reason: the tables behind these are keyed and a
@@ -835,7 +835,7 @@ Deno.test("a quoted key is skipped and the value beside it is not", () => {
 });
 
 Deno.test("a count is spelled the three ways Polish spells one", () => {
-    const noun = COUNTED_NOUNS.messages;
+    const noun = COUNTED_NOUN_WORDS.messages;
     assertEquals(formatCountedNoun(1, noun), "1 wiadomość", "one takes the first form");
     assertEquals(formatCountedNoun(2, noun), "2 wiadomości", "two takes the second");
     assertEquals(formatCountedNoun(4, noun), "4 wiadomości", "and so does four");
@@ -844,7 +844,7 @@ Deno.test("a count is spelled the three ways Polish spells one", () => {
 });
 
 Deno.test("the teens take the third form and the twenties do not", () => {
-    const noun = COUNTED_NOUNS.fights;
+    const noun = COUNTED_NOUN_WORDS.fights;
     assertEquals(formatCountedNoun(12, noun), "12 walk", "twelve is not two");
     assertEquals(formatCountedNoun(14, noun), "14 walk", "nor is fourteen four");
     assertEquals(formatCountedNoun(22, noun), "22 walki", "but twenty-two is");
@@ -854,7 +854,7 @@ Deno.test("the teens take the third form and the twenties do not", () => {
 });
 
 Deno.test("every noun states its three forms, and they are not one form thrice", () => {
-    for (const [name, noun] of Object.entries(COUNTED_NOUNS)) {
+    for (const [name, noun] of Object.entries(COUNTED_NOUN_WORDS)) {
         assert(noun.one.length > 0, `${name} states the first form`);
         assert(noun.few.length > 0, `${name} states the second`);
         assert(noun.many.length > 0, `${name} states the third`);

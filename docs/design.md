@@ -251,7 +251,7 @@ export interface MargonemEngineBattlePort {
 }
 export interface MargonemEngineBattle {
     wrap(listener: PayloadListener): WrapHandle | MargonemEngineFailure;
-    readMargonemEngineWarriors():
+    readWarriors():
         | MargonemEngineWarriorSnapshot
         | MargonemEngineWarriorFailure
         | errors.Caught;
