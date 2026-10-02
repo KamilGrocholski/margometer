@@ -152,21 +152,21 @@ export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
             }
             const parameters = parsed.parameters;
             const placements = decodeKeyPlacements(
-                new Set(parameters.map((one) => one.key)),
+                new Set(parameters.map((parameter) => parameter.key)),
             );
             for (const parameter of parameters) {
-                const value = decodeKeyValue(parameter.value);
+                const keyValue = decodeKeyValue(parameter.value);
                 const tally = tallies.get(parameter.key);
                 if (tally === undefined) {
                     tallies.set(parameter.key, {
                         occurrences: 1,
                         placements: new Set(placements),
-                        values: new Set([value]),
+                        values: new Set([keyValue]),
                     });
                     continue;
                 }
                 tally.occurrences += 1;
-                tally.values.add(value);
+                tally.values.add(keyValue);
                 for (const placement of [...tally.placements]) {
                     if (!placements.has(placement)) tally.placements.delete(placement);
                 }
@@ -207,10 +207,10 @@ function decodeKeyPlacements(carried: ReadonlySet<string>): Set<KeyPlacement> {
 }
 
 /** The most specific of the four one occurrence states. `null` is no value, never empty text. */
-function decodeKeyValue(value: string | null): KeyValue {
-    if (value === null) return KEY_VALUE.none;
-    if (parseInteger(value) !== null) return KEY_VALUE.whole;
-    if (parseDecimal(value) !== null) return KEY_VALUE.number;
+function decodeKeyValue(stated: string | null): KeyValue {
+    if (stated === null) return KEY_VALUE.none;
+    if (parseInteger(stated) !== null) return KEY_VALUE.whole;
+    if (parseDecimal(stated) !== null) return KEY_VALUE.number;
     return KEY_VALUE.text;
 }
 
@@ -264,8 +264,8 @@ export function parseRegisteredKeys(text: string): RegisteredKey[] {
  * The key and verdict a `### ` heading states, or null where the line is not one. The verdict
  * keeps every word after the dash: `not a battle key` is four of them.
  */
-function parseRegisterHeading(line: string, at: number): RegisteredKey | null {
-    assert(at > 0, "a line number is one-based");
+function parseRegisterHeading(line: string, lineNumber: number): RegisteredKey | null {
+    assert(lineNumber > 0, "a line number is one-based");
     if (!line.startsWith(HEADING_OPENER)) return null;
     const rest = line.slice(HEADING_OPENER.length);
     if (!rest.startsWith(BACKTICK)) return null;
@@ -274,7 +274,7 @@ function parseRegisterHeading(line: string, at: number): RegisteredKey | null {
     const key = rest.slice(BACKTICK.length, close);
     if (key.length === 0) return null;
     const verdict = rest.slice(close + BACKTICK.length).split(VERDICT_DASH).join("").trim();
-    return { key, line: at, verdict, shape: null };
+    return { key, line: lineNumber, verdict, shape: null };
 }
 
 /**
@@ -284,19 +284,21 @@ function parseRegisterHeading(line: string, at: number): RegisteredKey | null {
 function parseShapeLine(key: string, line: string): KeyShape | null {
     assert(key.length > 0, "a claim read off a line belongs to a key");
     if (!line.startsWith(SHAPE_MARKER)) return null;
-    const claims = line.slice(SHAPE_MARKER.length).split(CLAIM_SEPARATOR).map((one) => one.trim());
+    const claims = line.slice(SHAPE_MARKER.length).split(CLAIM_SEPARATOR).map((claim) =>
+        claim.trim()
+    );
     if (claims.length !== CLAIMS_PER_LINE) {
         throw new ProtocolKeyShapeError(`${key} states ${claims.length} claims, not three`);
     }
-    const [counted, placement, value] = claims;
+    const [counted, placement, valueClaim] = claims;
     assert(counted !== undefined, "a line split in three has a first claim");
     assert(placement !== undefined, "and a second");
-    assert(value !== undefined, "and a third");
+    assert(valueClaim !== undefined, "and a third");
     return {
         key,
         occurrences: parseShapeLineOccurrences(key, counted),
         placement: parseShapeLinePlacement(key, placement),
-        value: parseShapeLineValue(key, value),
+        value: parseShapeLineValue(key, valueClaim),
     };
 }
 
@@ -356,13 +358,13 @@ export function parseStatedVerdicts(text: string): string[] {
 export function parseStatedCountRule(text: string): string {
     assert(text.length > 0, "a register read for its rule says something");
     const flowing = text.split("\n").map((line) => line.trim()).join(" ");
-    const at = flowing.indexOf(COUNT_RULE_STATED);
-    if (at === -1) {
+    const ruleAt = flowing.indexOf(COUNT_RULE_STATED);
+    if (ruleAt === -1) {
         throw new ProtocolKeyShapeError(
             `${REGISTER_PATH}: no sentence states what a count written in prose has to name`,
         );
     }
-    const opened = at + BOLD.length;
+    const opened = ruleAt + BOLD.length;
     const end = flowing.indexOf(BOLD, opened);
     if (end === -1) {
         throw new ProtocolKeyShapeError(`${REGISTER_PATH}: the count rule never closes its bold`);
@@ -430,13 +432,13 @@ function isCountingSentence(sentence: string): boolean {
         let end = raw.length;
         // Trim the word's edges: `**Both**` and `340,` are the words `both` and `340` to a count.
         {
-            for (let at = 0; at < raw.length; at += 1) {
-                if (!WORD_EDGES.includes(raw.charAt(at))) break;
-                start = at + 1;
+            for (let position = 0; position < raw.length; position += 1) {
+                if (!WORD_EDGES.includes(raw.charAt(position))) break;
+                start = position + 1;
             }
-            for (let at = raw.length; at > start; at -= 1) {
-                if (!WORD_EDGES.includes(raw.charAt(at - 1))) break;
-                end = at - 1;
+            for (let position = raw.length; position > start; position -= 1) {
+                if (!WORD_EDGES.includes(raw.charAt(position - 1))) break;
+                end = position - 1;
             }
             assert(end >= start, "a word trimmed from both ends has not crossed itself");
         }
@@ -444,10 +446,10 @@ function isCountingSentence(sentence: string): boolean {
         if (word.length > 0) words.push(word);
     }
     assert(words.length <= CLAIMS_MAXIMUM, "a sentence holds no more words than the bound");
-    for (const [at, word] of words.entries()) {
+    for (const [wordIndex, word] of words.entries()) {
         if (!word.toLowerCase().startsWith(OCCURRENCE_STEM)) continue;
-        if (at === 0) continue;
-        if (isCountWord(words[at - 1] ?? "")) return true;
+        if (wordIndex === 0) continue;
+        if (isCountWord(words[wordIndex - 1] ?? "")) return true;
     }
     return false;
 }
@@ -462,13 +464,13 @@ function isCountWord(word: string): boolean {
 /** Every recording path the sentence names, which is the material a count may rest on. */
 function parseRecordingsNamed(sentence: string): string[] {
     const named: string[] = [];
-    let at = sentence.indexOf(RECORDINGS_DIRECTORY);
+    let pathAt = sentence.indexOf(RECORDINGS_DIRECTORY);
     for (let look = 0; look < CLAIMS_MAXIMUM; look += 1) {
-        if (at === -1) break;
-        const end = sentence.indexOf(RECORDING_SUFFIX, at);
+        if (pathAt === -1) break;
+        const end = sentence.indexOf(RECORDING_SUFFIX, pathAt);
         if (end === -1) break;
-        named.push(sentence.slice(at, end + RECORDING_SUFFIX.length));
-        at = sentence.indexOf(RECORDINGS_DIRECTORY, end);
+        named.push(sentence.slice(pathAt, end + RECORDING_SUFFIX.length));
+        pathAt = sentence.indexOf(RECORDINGS_DIRECTORY, end);
     }
     assert(named.length <= CLAIMS_MAXIMUM, "a sentence names no more paths than the bound");
     return named;
@@ -490,8 +492,10 @@ export function formatShapeReport(
 ): string {
     assert(material.length > 0, "a report names the material it was taken over");
     const entries = parseRegisteredKeys(register);
-    const stated = new Map(entries.map((one) => [one.key, one.shape]));
-    const named = new Set(entries.map((one) => one.key));
+    const stated = new Map(
+        entries.map((registeredKey) => [registeredKey.key, registeredKey.shape]),
+    );
+    const named = new Set(entries.map((registeredKey) => registeredKey.key));
     const lines = [
         `what a key states about itself, over ${material}`,
         "",

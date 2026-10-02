@@ -58,8 +58,8 @@ const TALLEST_LISTED = 12;
 /** Every card the ranking of every screen opens, in the order the screens and rows are drawn. */
 export function tallyCardHeights(replayed: readonly ReplayedFight[]): CardHeight[] {
     const heights: CardHeight[] = [];
-    for (const one of replayed) {
-        for (const height of tallyFightCardHeights(one)) {
+    for (const replayedFight of replayed) {
+        for (const height of tallyFightCardHeights(replayedFight)) {
             if (heights.length >= CARDS_MAXIMUM) {
                 throw new CardHeightError(`more cards than the ${CARDS_MAXIMUM} a run holds`);
             }
@@ -123,8 +123,12 @@ function tallyCardHeight(
 
 export function formatHeightReport(heights: readonly CardHeight[]): string[] {
     assert(heights.length > 0, "a report is written over cards that were measured");
-    const lines = heights.map((one) => one.lines).toSorted((one, other) => one - other);
-    const notes = heights.map((one) => one.notes).toSorted((one, other) => one - other);
+    const lines = heights.map((height) => height.lines).toSorted((count, otherCount) =>
+        count - otherCount
+    );
+    const notes = heights.map((height) => height.notes).toSorted((count, otherCount) =>
+        count - otherCount
+    );
     const tallest = lines.at(-1);
     assertExists(tallest, "the tallest card is one of the cards measured");
     const said = [
@@ -134,30 +138,34 @@ export function formatHeightReport(heights: readonly CardHeight[]): string[] {
         `notes median   ${formatInteger(getMedian(notes))}`,
     ];
     const countByLines = new Map<number, number>();
-    for (const one of heights) countByLines.set(one.lines, (countByLines.get(one.lines) ?? 0) + 1);
-    const counted = [...countByLines].toSorted((one, other) => one[0] - other[0]);
+    for (const height of heights) {
+        countByLines.set(height.lines, (countByLines.get(height.lines) ?? 0) + 1);
+    }
+    const counted = [...countByLines].toSorted((tally, otherTally) => tally[0] - otherTally[0]);
     assertStrictEquals(
         counted.length,
         countByLines.size,
         "a distribution states every height once",
     );
-    said.push("heights        " + counted.map(([at, count]) => `${at}:${count}`).join(" "));
+    said.push("heights        " + counted.map(([lines, count]) => `${lines}:${count}`).join(" "));
     return said;
 }
 
 /** The middle of an ordered run, and the lower of the two where it has an even count. */
 function getMedian(ordered: readonly number[]): number {
     assert(ordered.length > 0, "a median is taken of something");
-    const found = ordered[Math.floor((ordered.length - 1) / 2)];
-    assertExists(found, "the middle of an ordered run is inside it");
-    return found;
+    const median = ordered[Math.floor((ordered.length - 1) / 2)];
+    assertExists(median, "the middle of an ordered run is inside it");
+    return median;
 }
 
 export function formatTallestReport(heights: readonly CardHeight[]): string[] {
     assert(heights.length > 0, "the tallest cards are listed out of cards that were measured");
-    const ordered = heights.toSorted((one, other) => other.lines - one.lines);
-    return ordered.slice(0, TALLEST_LISTED).map((one) =>
-        `${formatInteger(one.lines)} lines  ${one.screen}  ${one.name}  ${one.recording}`
+    const ordered = heights.toSorted((height, otherHeight) => otherHeight.lines - height.lines);
+    return ordered.slice(0, TALLEST_LISTED).map((height) =>
+        `${
+            formatInteger(height.lines)
+        } lines  ${height.screen}  ${height.name}  ${height.recording}`
     );
 }
 

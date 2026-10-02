@@ -132,8 +132,8 @@ ${written}
 `;
 }
 
-function encodeRequiredText(value: unknown): string {
-    const text = encodeJson(value, 0);
+function encodeRequiredText(phrase: unknown): string {
+    const text = encodeJson(phrase, 0);
     if (text instanceof Error) {
         throw new HelpArticleError("a phrase of the table cannot be written", {
             cause: text,
@@ -162,12 +162,16 @@ function composeManifestPath(article: string): string {
 }
 
 /** No `fetchedAt`, no age check: a field the manifest does not carry stops here (C13). */
-export function requireCachedHelpArticle(value: unknown, article: string): CachedHelpArticle {
-    if (!isRecord(value)) throw new HelpArticleError(`cache manifest for ${article} is no object`);
-    if (value.article !== article) {
-        throw new HelpArticleError(`cache manifest for ${article} says it holds ${value.article}`);
+export function requireCachedHelpArticle(manifest: unknown, article: string): CachedHelpArticle {
+    if (!isRecord(manifest)) {
+        throw new HelpArticleError(`cache manifest for ${article} is no object`);
     }
-    const { url, fetchedAt, textPath, textLength } = value;
+    if (manifest.article !== article) {
+        throw new HelpArticleError(
+            `cache manifest for ${article} says it holds ${manifest.article}`,
+        );
+    }
+    const { url, fetchedAt, textPath, textLength } = manifest;
     if (typeof textLength !== "number") {
         throw new HelpArticleError(`cache manifest for ${article}: textLength is not a number`);
     }
@@ -212,20 +216,20 @@ export function lookupFragments(
     const needle = phrase.toLocaleLowerCase(LOCALE);
     const haystack = text.toLocaleLowerCase(LOCALE);
     const before = Math.round(context / 3);
-    const found: string[] = [];
+    const excerpts: string[] = [];
     let from = 0;
     let previousEnd = -1;
-    while (found.length < maximum) {
+    while (excerpts.length < maximum) {
         const hit = haystack.indexOf(needle, from);
         if (hit === -1) break;
         from = hit + needle.length;
         if (hit < previousEnd) continue;
         const end = hit + context;
-        found.push(text.slice(Math.max(0, hit - before), end).trim());
+        excerpts.push(text.slice(Math.max(0, hit - before), end).trim());
         previousEnd = end;
     }
     assert(before <= context, "the text in front of a hit is part of its window");
-    return found;
+    return excerpts;
 }
 
 /** Whether the dump is past the floor; an unreadable date counts as stale, being no date. */

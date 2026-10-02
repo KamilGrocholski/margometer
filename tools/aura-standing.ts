@@ -137,7 +137,7 @@ export function tallyAuraRows(stepped: readonly SteppedFight[]): AuraRow[] {
         rows.push({ ...tally.row, casters: tally.casterIds.size, recordings: tally.paths.size });
     }
     assertStrictEquals(rows.length, tallies.size, "a skill is registered once");
-    assert(rows.every((one) => one.turnsStated > 0), "and each carries the turns it was dated by");
+    assert(rows.every((row) => row.turnsStated > 0), "and each carries the turns it was dated by");
     return rows.sort((left, right) => left.skillId - right.skillId);
 }
 
@@ -157,7 +157,9 @@ export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
                 for (const event of view.events) {
                     if (event.kind !== BATTLE_EVENT.skillUsed) continue;
                     if (event.actorId === null) continue;
-                    const keys = event.declared.map((one) => one.effect).filter(isSideWideKey);
+                    const keys = event.declared.map((declared) => declared.effect).filter(
+                        isSideWideKey,
+                    );
                     if (keys.length === 0) continue;
                     keysByCast.set(`${event.actorId}/${event.skillId}`, [...new Set(keys)]);
                 }
@@ -165,9 +167,9 @@ export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
             }
             const held = replayAuraStandings(view, STATED_SKILLS).auras;
             const casterIdsByKey = new Map<string, number[]>();
-            for (const one of held) {
-                for (const key of keysByCast.get(`${one.casterId}/${one.skillId}`) ?? []) {
-                    casterIdsByKey.set(key, [...(casterIdsByKey.get(key) ?? []), one.casterId]);
+            for (const aura of held) {
+                for (const key of keysByCast.get(`${aura.casterId}/${aura.skillId}`) ?? []) {
+                    casterIdsByKey.set(key, [...(casterIdsByKey.get(key) ?? []), aura.casterId]);
                 }
             }
             assert(casterIdsByKey.size <= SKILLS_MAXIMUM, "a moment stays inside its bound");
@@ -196,7 +198,7 @@ export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
             }
         }
     }
-    const rows = [...tallies.values()].filter((one) => one.sourcesAtOnce > 1);
+    const rows = [...tallies.values()].filter((row) => row.sourcesAtOnce > 1);
     assert(rows.length <= tallies.size, "a row reported is a row tallied");
     // Plain comparison rather than `localeCompare`: the keys are the game's own ASCII spellings,
     // and `docs/browser-support.md` registers that construct as spelled nowhere in this tree.
@@ -211,26 +213,26 @@ export function tallyProvocationRows(stepped: readonly SteppedFight[]): Provocat
             const view = step.reading.view;
             const held = replayAuraStandings(view, STATED_SKILLS).provocations;
             const atOnce = new Map<number, number>();
-            for (const one of held) {
-                atOnce.set(one.skillId, (atOnce.get(one.skillId) ?? 0) + 1);
-                const tally = tallies.get(one.skillId) ?? {
+            for (const provocation of held) {
+                atOnce.set(provocation.skillId, (atOnce.get(provocation.skillId) ?? 0) + 1);
+                const tally = tallies.get(provocation.skillId) ?? {
                     row: {
-                        skillId: one.skillId,
-                        skillName: one.skillName,
+                        skillId: provocation.skillId,
+                        skillName: provocation.skillName,
                         casters: 0,
                         recordings: 0,
                         heldAtOnce: 0,
-                        turnsStated: one.turnsStated,
-                        coverageMinimum:
-                            STATED_SKILLS.shoutsBySkillId.get(one.skillId)?.coverageMinimum ?? 0,
+                        turnsStated: provocation.turnsStated,
+                        coverageMinimum: STATED_SKILLS.shoutsBySkillId.get(provocation.skillId)
+                            ?.coverageMinimum ?? 0,
                         namedAtOnce: 0,
                     },
                     casterIds: new Set<number>(),
                     paths: new Set<string>(),
                 };
-                tally.casterIds.add(one.casterId);
+                tally.casterIds.add(provocation.casterId);
                 tally.paths.add(fight.path);
-                tallies.set(one.skillId, tally);
+                tallies.set(provocation.skillId, tally);
             }
             const namedBySkillId = indexNamedBySkillId(view.events);
             // Add this moment's holding and naming to the register.
@@ -265,19 +267,23 @@ export function tallyProvocationRows(stepped: readonly SteppedFight[]): Provocat
 
 /** The most characters one announcement of a skill named, by the skill it was announced on. */
 function indexNamedBySkillId(events: readonly BattleEvent[]): Map<number, number> {
-    const found = new Map<number, number>();
+    const namedBySkillId = new Map<number, number>();
     for (const event of events) {
         if (event.kind !== BATTLE_EVENT.skillUsed) continue;
         if (event.skillId === null) continue;
-        for (const one of event.declared) {
-            if (one.effect !== PROVOCATION_KEY) continue;
-            if (one.text === null) continue;
-            const named = one.text.split(NAME_SEPARATOR).filter((name) => name.length > 0).length;
-            if (named > (found.get(event.skillId) ?? 0)) found.set(event.skillId, named);
+        for (const declared of event.declared) {
+            if (declared.effect !== PROVOCATION_KEY) continue;
+            if (declared.text === null) continue;
+            const named = declared.text.split(NAME_SEPARATOR).filter((name) =>
+                name.length > 0
+            ).length;
+            if (named > (namedBySkillId.get(event.skillId) ?? 0)) {
+                namedBySkillId.set(event.skillId, named);
+            }
         }
     }
-    assert(found.size <= SKILLS_MAXIMUM, "no more skills named than the stated bound");
-    return found;
+    assert(namedBySkillId.size <= SKILLS_MAXIMUM, "no more skills named than the stated bound");
+    return namedBySkillId;
 }
 
 /** The three reports, one after another, as a terminal prints them. */
@@ -314,7 +320,7 @@ function formatAuraReportLine(
     widths: readonly number[],
 ): string {
     assert(cells.length === widths.length, "every cell is written in a width of its own");
-    const aligned = cells.map((cell, at) => cell.padStart(widths[at] ?? 0));
+    const aligned = cells.map((cell, column) => cell.padStart(widths[column] ?? 0));
     return `${skillId.padStart(4)}  ${[skillName.padEnd(NAME_WIDTH), ...aligned].join(" ")}`;
 }
 
@@ -340,9 +346,9 @@ function formatAuraReportShouts(rows: readonly ProvocationRow[]): string[] {
 function formatAuraReportSources(rows: readonly SourceRow[]): string[] {
     assert(rows.length <= SKILLS_MAXIMUM, "a report stays inside the register's bound");
     const widths = [6, 8, 9, 7];
-    const format = (key: string, cells: readonly string[]): string => {
+    const formatSourceLine = (key: string, cells: readonly string[]): string => {
         assert(cells.length === widths.length, "every cell is written in a width of its own");
-        const aligned = cells.map((cell, at) => cell.padStart(widths[at] ?? 0));
+        const aligned = cells.map((cell, column) => cell.padStart(widths[column] ?? 0));
         return [key.padEnd(KEY_WIDTH), ...aligned].join(" ");
     };
     const lines = rows.map((row) => {
@@ -352,9 +358,9 @@ function formatAuraReportSources(rows: readonly SourceRow[]): string[] {
             row.momentsFromOne,
             row.sourcesAtOnce,
         ];
-        return format(row.key, figures.map(formatInteger));
+        return formatSourceLine(row.key, figures.map(formatInteger));
     });
-    return [format("key", ["two", "past two", "one twice", "at once"]), ...lines];
+    return [formatSourceLine("key", ["two", "past two", "one twice", "at once"]), ...lines];
 }
 
 if (import.meta.main) {

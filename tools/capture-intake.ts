@@ -140,8 +140,8 @@ export function composeIntake(recording: unknown): Intake {
         if (isRecord(english)) {
             if (FILE_FIELD.report in english) {
                 const kept: Record<string, unknown> = {};
-                for (const [field, value] of Object.entries(english)) {
-                    if (field !== FILE_FIELD.report) kept[field] = value;
+                for (const [field, fieldValue] of Object.entries(english)) {
+                    if (field !== FILE_FIELD.report) kept[field] = fieldValue;
                 }
                 assert(
                     !(FILE_FIELD.report in kept),
@@ -211,12 +211,12 @@ export function composeRecordingInEnglish(recording: unknown): unknown {
 
 /** One record with its keys renamed where a name is known, in the order they arrived in. */
 function composeRenamedRecord(
-    value: UnknownRecord,
+    record: UnknownRecord,
     names: Readonly<Record<string, string>>,
 ): Record<string, unknown> {
     const renamed: Record<string, unknown> = {};
-    for (const [key, held] of Object.entries(value)) renamed[names[key] ?? key] = held;
-    assert(Object.keys(renamed).length <= Object.keys(value).length, "a field is renamed once");
+    for (const [key, held] of Object.entries(record)) renamed[names[key] ?? key] = held;
+    assert(Object.keys(renamed).length <= Object.keys(record).length, "a field is renamed once");
     return renamed;
 }
 
@@ -231,17 +231,17 @@ export function composePseudonymisedRecording(recording: unknown): Pseudonymisat
     const substitutions = indexNameSubstitutions(roll);
     const pairs = composeSubstitutionOrder(substitutions);
     let changed = 0;
-    const substitute = (text: string): string => {
-        let result = text;
+    const substituteNames = (text: string): string => {
+        let substituted = text;
         for (const [name, label] of pairs) {
-            const parts = result.split(name);
+            const parts = substituted.split(name);
             if (parts.length === 1) continue;
             changed += parts.length - 1;
-            result = parts.join(label);
+            substituted = parts.join(label);
         }
-        return result;
+        return substituted;
     };
-    const mapped = composeMappedValue(recording, substitute);
+    const mapped = composeMappedValue(recording, substituteNames);
     assert(changed >= 0, "what was substituted is never fewer than nothing");
     return { recording: mapped, changed, substitutions };
 }
@@ -291,10 +291,10 @@ function indexCombatantRollSnapshots(roll: CombatantRoll, call: UnknownRecord): 
 }
 
 /** An id as the game states one: a whole number, or its digits as text. */
-function readIdentity(value: unknown): number | null {
-    if (typeof value === "number") return Number.isSafeInteger(value) ? value : null;
-    if (typeof value !== "string") return null;
-    return parseInteger(value);
+function readIdentity(candidate: unknown): number | null {
+    if (typeof candidate === "number") return Number.isSafeInteger(candidate) ? candidate : null;
+    if (typeof candidate !== "string") return null;
+    return parseInteger(candidate);
 }
 
 function setRollName(roll: CombatantRoll, id: number, name: unknown): void {
@@ -315,7 +315,7 @@ function requireEveryCombatantDecided(roll: CombatantRoll): void {
     // Numeric, not lexicographic: `-161518` would otherwise sort between `-1` and `-2`.
     const undecided = [...roll.namesById.keys()]
         .filter((id) => !roll.isPlayerById.has(id))
-        .sort((one, other) => one - other);
+        .sort((id, otherId) => id - otherId);
     if (undecided.length === 0) return;
     throw new CaptureIntakeError(
         `cannot tell whether combatant ${undecided.join(", ")} is a player or a monster — ` +
@@ -327,7 +327,7 @@ function indexNameSubstitutions(roll: CombatantRoll): Map<string, string> {
     const substitutions = new Map<string, string>();
     const players = [...roll.namesById.keys()]
         .filter((id) => roll.isPlayerById.get(id) === true)
-        .sort((one, other) => one - other);
+        .sort((id, otherId) => id - otherId);
     for (const [order, id] of players.entries()) {
         // A digit rather than a letter: `Gracz A`…`Gracz G` name fixed people in the repository's
         // prose (`NOTICE.md`), while a label here means something in one file only.
@@ -355,7 +355,7 @@ function indexNameSubstitutions(roll: CombatantRoll): Map<string, string> {
 function composeSubstitutionOrder(substitutions: ReadonlyMap<string, string>): [string, string][] {
     const pairs = [...substitutions]
         .filter(([name, label]) => name !== label)
-        .sort((one, other) => other[0].length - one[0].length);
+        .sort((pair, otherPair) => otherPair[0].length - pair[0].length);
     const labels = new Set(pairs.map(([, label]) => label));
     const collision = pairs.find(([name]) => labels.has(name));
     if (collision === undefined) return pairs;
@@ -367,30 +367,30 @@ function composeSubstitutionOrder(substitutions: ReadonlyMap<string, string>): [
 /** Every string in the document mapped, the keys left alone: they are ids, kept in order. */
 function composeMappedValue(root: unknown, mapText: (text: string) => string): unknown {
     let mapped: unknown = null;
-    const pending: MappingTask[] = [{ value: root, hold: (one) => void (mapped = one) }];
+    const pending: MappingTask[] = [{ value: root, hold: (done) => void (mapped = done) }];
     let steps = 0;
     while (pending.length > 0) {
         const task = pending.pop();
         if (task === undefined) break;
         steps += 1;
         assert(steps <= VALUES_MAXIMUM, "the walk stays inside its stated bound");
-        const value = task.value;
-        if (typeof value === "string") {
-            task.hold(mapText(value));
-        } else if (Array.isArray(value)) {
-            const held: unknown[] = value.map(() => null);
+        const walkedValue = task.value;
+        if (typeof walkedValue === "string") {
+            task.hold(mapText(walkedValue));
+        } else if (Array.isArray(walkedValue)) {
+            const held: unknown[] = walkedValue.map(() => null);
             task.hold(held);
-            for (const [at, one] of value.entries()) {
-                pending.push({ value: one, hold: (done) => void (held[at] = done) });
+            for (const [index, member] of walkedValue.entries()) {
+                pending.push({ value: member, hold: (done) => void (held[index] = done) });
             }
-        } else if (isRecord(value)) {
+        } else if (isRecord(walkedValue)) {
             const held: Record<string, unknown> = {};
-            for (const key of Object.keys(value)) held[key] = null;
+            for (const key of Object.keys(walkedValue)) held[key] = null;
             task.hold(held);
-            for (const [key, one] of Object.entries(value)) {
-                pending.push({ value: one, hold: (done) => void (held[key] = done) });
+            for (const [key, fieldValue] of Object.entries(walkedValue)) {
+                pending.push({ value: fieldValue, hold: (done) => void (held[key] = done) });
             }
-        } else task.hold(value);
+        } else task.hold(walkedValue);
     }
     assert(steps > 0, "a document took at least one step");
     return mapped;
@@ -414,12 +414,16 @@ export function removeSkillDescriptions(recording: unknown): DescriptionRemoval 
                     `fields, not whole groups of ${FIELDS_PER_ABILITY} — the layout changed`,
             );
         }
-        for (let at = DESCRIPTION_FIELD; at < abilities.length; at += FIELDS_PER_ABILITY) {
-            const stated = abilities[at];
+        for (
+            let descriptionAt = DESCRIPTION_FIELD;
+            descriptionAt < abilities.length;
+            descriptionAt += FIELDS_PER_ABILITY
+        ) {
+            const stated = abilities[descriptionAt];
             if (typeof stated !== "string") continue;
             if (stated.length === 0) continue;
             if (REMOVED_DESCRIPTIONS.includes(stated)) continue;
-            abilities[at] = REMOVED_DESCRIPTION;
+            abilities[descriptionAt] = REMOVED_DESCRIPTION;
             removed += 1;
         }
     }
@@ -468,8 +472,8 @@ export function requireRecordingIsNew(
     }
 }
 
-function encodeRequiredJson(value: unknown): string {
-    const text = encodeJson(value, 0);
+function encodeRequiredJson(encodable: unknown): string {
+    const text = encodeJson(encodable, 0);
     if (text instanceof Error) {
         throw new CaptureIntakeError("a payload cannot be written as text to compare", {
             cause: text,
@@ -503,8 +507,8 @@ export function composeIntakeName(recording: unknown, slug: string): string {
 function parseMomentDay(text: string): string | null {
     if (text.length < DAY_SHAPE.length) return null;
     const day = text.slice(0, DAY_SHAPE.length);
-    for (const [at, wanted] of [...DAY_SHAPE].entries()) {
-        const character = day.charAt(at);
+    for (const [position, wanted] of [...DAY_SHAPE].entries()) {
+        const character = day.charAt(position);
         if (wanted === "-") {
             if (character !== "-") return null;
         } else if (character < "0" || character > "9") return null;
@@ -530,15 +534,15 @@ function readEnvelopeVersion(envelope: UnknownRecord, field: string): string {
 function isVersionText(text: string): boolean {
     if (text.length > OFFERED_MAXIMUM) return false;
     const characters = [...text];
-    for (const [at, character] of characters.entries()) {
+    for (const [position, character] of characters.entries()) {
         const isLetter = (character >= "a" && character <= "z") ||
             (character >= "A" && character <= "Z");
         const isDigit = character >= "0" && character <= "9";
         const isPunctuation = character === "." || character === "-";
         if (!isLetter && !isDigit && !isPunctuation) return false;
         if (isPunctuation) {
-            if (at === 0) return false;
-            if (at === characters.length - 1) return false;
+            if (position === 0) return false;
+            if (position === characters.length - 1) return false;
         }
     }
     return characters.length > 0;

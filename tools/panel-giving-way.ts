@@ -155,8 +155,8 @@ export function composeGivingWayShot(region: PanelRegion): PanelShot {
 async function writeGivingWayShots(flags: GivingWayFlags): Promise<string[]> {
     assert(flags.regions.length > 0, "a set of pictures is of something");
     const fight = lookupRecordedFight(LANDING_RECORDING);
-    const entry = lookupShotEntry(SHOT_MOMENT.underway, fight.updates.length);
-    const html = composeShotPage(fight.updates, entry);
+    const fedThrough = lookupShotEntry(SHOT_MOMENT.underway, fight.updates.length);
+    const html = composeShotPage(fight.updates, fedThrough);
     await Deno.mkdir(flags.into, { recursive: true });
     const browser = await launchShotBrowser(flags.browser);
     const written: string[] = [];

@@ -80,14 +80,17 @@ const CASES_FLAG = "--cases";
 /** Every lighting over the material, recording by recording. */
 export function replayLightingRows(stepped: readonly SteppedFight[]): LightingRow[] {
     assert(stepped.length > 0, "a walk stands on at least one recording");
-    const found: LightingRow[] = [];
+    const lightings: LightingRow[] = [];
     for (const { fight, steps } of stepped) {
         const name = formatRecordingName(fight.path);
-        for (const row of indexLightingRows(name, replayStatusRuns(steps))) found.push(row);
+        for (const row of indexLightingRows(name, replayStatusRuns(steps))) lightings.push(row);
     }
-    assert(found.length <= RUNS_MAXIMUM, "the corpus holds no more lightings than the bound");
-    assert(found.every((row) => row.fight.length > 0), "and every lighting names its recording");
-    return found;
+    assert(lightings.length <= RUNS_MAXIMUM, "the corpus holds no more lightings than the bound");
+    assert(
+        lightings.every((row) => row.fight.length > 0),
+        "and every lighting names its recording",
+    );
+    return lightings;
 }
 
 /** Every run of every status in one recording, closed ones only: an open one has no length. */
@@ -96,13 +99,13 @@ function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
     const open = new Map<string, OpenRun>();
     const held = new Map<string, boolean>();
     assert(steps.length <= STEPS_MAXIMUM, "a recording carries no more payloads than the bound");
-    for (const [at, step] of steps.entries()) {
+    for (const [stepIndex, step] of steps.entries()) {
         const turnsByCombatantId = indexTurnsByCombatantId(step.reading.figures.statistics);
         for (const [combatantId, mask] of step.record.statusMasksByCombatantId) {
             // Hold one combatant's mask at this step against what they held at the step before.
             const clock = turnsByCombatantId.get(combatantId) ?? 0;
             assert(clock >= 0, "a combatant's clock never runs behind the start of the fight");
-            assert(at >= 0, "and a payload is at a place in the recording");
+            assert(stepIndex >= 0, "and a payload is at a place in the recording");
             for (let bit = 0; bit < FROZEN_BUFF_BITS.bits.length; bit += 1) {
                 const key = `${formatInteger(combatantId)}/${formatInteger(bit)}`;
                 const has = isBitSet(mask, bit);
@@ -110,7 +113,7 @@ function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
                 held.set(key, has);
                 if (was === undefined) continue;
                 if (!was) {
-                    if (has) open.set(key, { litAt: at, turnsAtLighting: clock });
+                    if (has) open.set(key, { litAt: stepIndex, turnsAtLighting: clock });
                     continue;
                 }
                 if (has) continue;
@@ -123,12 +126,15 @@ function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
                         clock >= opened.turnsAtLighting,
                         "a clock never runs backwards over one recording",
                     );
-                    assert(opened.litAt <= at, "and a status goes out no earlier than it lit");
+                    assert(
+                        opened.litAt <= stepIndex,
+                        "and a status goes out no earlier than it lit",
+                    );
                     closed.push({
                         combatantId,
                         bit,
                         litAt: opened.litAt,
-                        wentOutAt: at,
+                        wentOutAt: stepIndex,
                         ownTurns: clock - opened.turnsAtLighting,
                     });
                 }
@@ -144,14 +150,17 @@ function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
  * turn granted and spent on nothing still passed for whoever is carrying it.
  */
 function indexTurnsByCombatantId(statistics: FightStatistics): Map<number, number> {
-    const found = new Map<number, number>();
+    const turnsByCombatantId = new Map<number, number>();
     for (const [combatantId, figures] of statistics.byCombatantId) {
         assert(figures.turnsTaken >= 0, "a clock counts turns taken and never owes them");
         assert(figures.turnsLost >= 0, "and counts turns lost the same way");
-        found.set(combatantId, figures.turnsTaken + figures.turnsLost);
+        turnsByCombatantId.set(combatantId, figures.turnsTaken + figures.turnsLost);
     }
-    assert(found.size <= statistics.byCombatantId.size, "no more clocks than combatants");
-    return found;
+    assert(
+        turnsByCombatantId.size <= statistics.byCombatantId.size,
+        "no more clocks than combatants",
+    );
+    return turnsByCombatantId;
 }
 
 function isBitSet(mask: number, bit: number): boolean {
@@ -168,25 +177,27 @@ function indexLightingRows(name: string, runs: readonly StatusRun[]): LightingRo
         byMoment.set(key, [...(byMoment.get(key) ?? []), run]);
     }
     assert(name.length > 0, "the runs of a recording are gathered under its name");
-    const found = [...byMoment.values()].map((gathered) => indexLightingRowsOne(name, gathered));
-    assertStrictEquals(found.length, byMoment.size, "every moment gathered is a moment reported");
-    return found.sort((one, other) => one.litAt - other.litAt);
+    const rows = [...byMoment.values()].map((gathered) => indexLightingRowsOne(name, gathered));
+    assertStrictEquals(rows.length, byMoment.size, "every moment gathered is a moment reported");
+    return rows.sort((row, otherRow) => row.litAt - otherRow.litAt);
 }
 
 function indexLightingRowsOne(name: string, gathered: readonly StatusRun[]): LightingRow {
-    const [first] = gathered;
-    assert(first !== undefined, "a lighting stands on at least one bearer");
-    const bitName = FROZEN_BUFF_BITS.bits[first.bit];
+    const [firstRun] = gathered;
+    assert(firstRun !== undefined, "a lighting stands on at least one bearer");
+    const bitName = FROZEN_BUFF_BITS.bits[firstRun.bit];
     assert(bitName !== undefined, "and on a status the frozen table names");
     const endings = new Set(gathered.map((run) => run.wentOutAt));
-    const ownTurnsEach = gathered.map((run) => run.ownTurns).sort((one, other) => one - other);
+    const ownTurnsEach = gathered.map((run) => run.ownTurns).sort((turns, otherTurns) =>
+        turns - otherTurns
+    );
     assert(endings.size <= gathered.length, "and never on more endings than bearers");
-    assert(gathered.every((run) => run.bit === first.bit), "one lighting is one status");
+    assert(gathered.every((run) => run.bit === firstRun.bit), "one lighting is one status");
     return {
         fight: name,
-        bit: first.bit,
+        bit: firstRun.bit,
         bitName,
-        litAt: first.litAt,
+        litAt: firstRun.litAt,
         bearers: gathered.length,
         endings: endings.size,
         ownTurnsEach,
@@ -198,13 +209,13 @@ function indexLightingRowsOne(name: string, gathered: readonly StatusRun[]): Lig
  * bearers and let them go at several moments is a moment no single clock accounts for.
  */
 export function tallyBitRows(lightings: readonly LightingRow[]): BitRow[] {
-    const found: BitRow[] = [];
+    const rows: BitRow[] = [];
     for (const [bit, bitName] of FROZEN_BUFF_BITS.bits.entries()) {
         const mine = lightings.filter((row) => row.bit === bit);
         const shared = mine.filter((row) => row.bearers > 1);
         const apart = shared.filter((row) => row.endings > 1);
         const common = tallyBitRowsCommonTurns(mine);
-        found.push({
+        rows.push({
             bit,
             bitName,
             lightings: mine.length,
@@ -217,12 +228,12 @@ export function tallyBitRows(lightings: readonly LightingRow[]): BitRow[] {
             ownTurnsLongest: Math.max(0, ...mine.flatMap((row) => row.ownTurnsEach)),
         });
     }
-    assertStrictEquals(found.length, FROZEN_BUFF_BITS.bits.length, "every frozen bit has a row");
+    assertStrictEquals(rows.length, FROZEN_BUFF_BITS.bits.length, "every frozen bit has a row");
     assert(
-        found.every((row) => row.together + row.apart <= row.lightings),
+        rows.every((row) => row.together + row.apart <= row.lightings),
         "and no row shares more lightings than it saw",
     );
-    return found;
+    return rows;
 }
 
 /**
@@ -235,12 +246,16 @@ function tallyBitRowsCommonTurns(rows: readonly LightingRow[]): { length: number
         for (const own of row.ownTurnsEach) runsByLength.set(own, (runsByLength.get(own) ?? 0) + 1);
     }
     assert(runsByLength.size <= RUNS_MAXIMUM, "a status came to no more lengths than runs");
-    let found = { length: 0, runs: 0 };
-    for (const [length, runs] of [...runsByLength].sort((one, other) => one[0] - other[0])) {
-        if (runs > found.runs) found = { length, runs };
+    let mode = { length: 0, runs: 0 };
+    for (
+        const [length, runs] of [...runsByLength].sort((tally, otherTally) =>
+            tally[0] - otherTally[0]
+        )
+    ) {
+        if (runs > mode.runs) mode = { length, runs };
     }
-    assert(found.runs >= 0, "a mode over nothing counts nothing");
-    return found;
+    assert(mode.runs >= 0, "a mode over nothing counts nothing");
+    return mode;
 }
 
 /** Whether every bearer of one lighting carried it for the same count of their own turns. */
@@ -276,7 +291,7 @@ function formatBitReport(rows: readonly BitRow[]): string[] {
 function formatLightingCases(lightings: readonly LightingRow[]): string[] {
     assert(lightings.length <= RUNS_MAXIMUM, "the cases reported stay inside the walk's bound");
     return lightings.filter((row) => row.bearers > 1).map((row) => {
-        const turns = row.ownTurnsEach.map((one) => formatInteger(one)).join(", ");
+        const turns = row.ownTurnsEach.map((ownTurns) => formatInteger(ownTurns)).join(", ");
         return `${row.fight}  ${row.bitName} lit at ${formatInteger(row.litAt)} on ` +
             `${formatInteger(row.bearers)}, out at ${formatInteger(row.endings)} steps, ` +
             `own turns ${turns}`;
@@ -284,7 +299,7 @@ function formatLightingCases(lightings: readonly LightingRow[]): string[] {
 }
 
 if (import.meta.main) {
-    const paths = Deno.args.filter((one) => one !== CASES_FLAG);
+    const paths = Deno.args.filter((argument) => argument !== CASES_FLAG);
     const lightings = replayLightingRows(replayMaterialSteps(readRecordedMaterial(paths)));
     const cases = Deno.args.includes(CASES_FLAG) ? formatLightingCases(lightings) : [];
     console.log([...cases, ...formatBitReport(tallyBitRows(lightings))].join("\n"));

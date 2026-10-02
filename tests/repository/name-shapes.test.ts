@@ -28,9 +28,9 @@ interface ImportReach {
 }
 
 /** Where a bare verb is looked for: the code a reader of the tree follows by its calls. */
-const FUNCTION_DIRECTORIES = ["libs", "src"];
+const FUNCTION_DIRECTORIES = ["libs", "src", "tools"];
 /** Where a placeholder is looked for, a layer at a time as each is renamed. */
-const BINDING_DIRECTORIES = ["libs", "src"];
+const BINDING_DIRECTORIES = ["libs", "src", "tools"];
 /** Words that fit any value, so a name made of one says nothing of what it holds. */
 const PLACEHOLDERS = [
     "a",

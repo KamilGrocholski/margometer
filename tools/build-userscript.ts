@@ -60,14 +60,14 @@ export async function writeUserscript(version: string): Promise<string> {
  */
 export async function readUserscriptFiles(
     version: string,
-    entry = BUNDLE_ENTRY,
+    entryPath = BUNDLE_ENTRY,
     root = ".",
 ): Promise<UserscriptFiles> {
     const metadata = encodeUserscriptBanner(version);
     let bundle: string;
     // Read what the bundler wrote off a file of its own, so no build churns `dist/` half-way.
     {
-        assert(entry.length > 0, "a bundler is told what to read");
+        assert(entryPath.length > 0, "a bundler is told what to read");
         assert(root.length > 0, "and which tree to read it in");
         const output = await Deno.makeTempFile({ prefix: "margometer-", suffix: ".js" });
         assert(output.length > 0, "a bundler is told where to write");
@@ -79,7 +79,7 @@ export async function readUserscriptFiles(
                 CONFIGURATION_FILE,
                 "-o",
                 output,
-                entry,
+                entryPath,
             ],
             // ⚠️ Both the configuration and the entry are read in the tree handed, so a copy's `#/`
             // resolves into the copy: read from here, it would build this tree's panel unedited.
@@ -109,8 +109,8 @@ export function encodeUserscriptBanner(version: string): string {
     }
     const directives = encodeUserscriptBannerDirectives(version);
     assert(directives.length > 0, "a banner states something");
-    const lines = directives.map(([key, value]) => {
-        return `// @${key.padEnd(DIRECTIVE_KEY_WIDTH)} ${value}`.trimEnd();
+    const lines = directives.map(([key, setting]) => {
+        return `// @${key.padEnd(DIRECTIVE_KEY_WIDTH)} ${setting}`.trimEnd();
     });
     return `// ==UserScript==\n${lines.join("\n")}\n// ==/UserScript==\n`;
 }
@@ -169,9 +169,9 @@ export function requireBundleInBrowser(bundle: string): string {
 }
 
 export function lookupOutboundCalls(text: string): string[] {
-    const found = OUTBOUND_CALLS.filter((call) => text.includes(call));
-    assert(found.length <= OUTBOUND_CALLS.length, "each is named once");
-    return found;
+    const outbound = OUTBOUND_CALLS.filter((call) => text.includes(call));
+    assert(outbound.length <= OUTBOUND_CALLS.length, "each is named once");
+    return outbound;
 }
 
 /** The version `deno.json` declares, marked as no release of it. */
@@ -185,11 +185,11 @@ export function readDevelopmentVersion(): string {
 /** `deno.json` carries comments, which `JSON.parse` refuses and `@std/jsonc` reads. */
 export function parseDeclaredVersion(configuration: string): string {
     assert(configuration.length > 0, "a configuration that was read says something");
-    const read: unknown = parseJsonc(configuration);
-    if (!isRecord(read)) {
+    const parsed: unknown = parseJsonc(configuration);
+    if (!isRecord(parsed)) {
         throw new DeclaredVersionError(`${CONFIGURATION_FILE} is not a configuration`);
     }
-    const declared = read.version;
+    const declared = parsed.version;
     if (typeof declared !== "string") {
         throw new DeclaredVersionError(`${CONFIGURATION_FILE} declares no version to build at`);
     }

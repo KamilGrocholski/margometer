@@ -122,14 +122,14 @@ export function indexReportSections(text: string): Map<string, string[]> {
     const lines = text.split("\n");
     assert(lines.length <= LINES_MAXIMUM, "a report stays inside the lines it is bounded to");
     const sections = new Map<string, string[]>();
-    let current: string[] | null = null;
+    let openSection: string[] | null = null;
     for (const line of lines) {
         const name = lookupHeadingName(line);
         if (name !== null) {
             assertStrictEquals(sections.has(name), false, `${name} is reported once`);
-            current = [];
-            sections.set(name, current);
-        } else if (current !== null) current.push(line);
+            openSection = [];
+            sections.set(name, openSection);
+        } else if (openSection !== null) openSection.push(line);
     }
     for (const section of sections.values()) {
         while (section.at(-1) === "") section.pop();

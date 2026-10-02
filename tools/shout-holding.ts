@@ -84,17 +84,17 @@ export function tallyHoldingReading(replayed: readonly ReplayedFight[]): Holding
                     episode.turnsAtShout >= 0,
                     "and on a clock the held character had already reached",
                 );
-                for (const [later, next] of events.slice(episode.at + 1).entries()) {
-                    if (isShoutAnnouncement(next)) break;
-                    if (next.kind !== BATTLE_EVENT.attack) continue;
-                    if (next.actorId !== episode.provokedId) continue;
-                    if (next.targetId === null) continue;
+                for (const [later, laterEvent] of events.slice(episode.at + 1).entries()) {
+                    if (isShoutAnnouncement(laterEvent)) break;
+                    if (laterEvent.kind !== BATTLE_EVENT.attack) continue;
+                    if (laterEvent.actorId !== episode.provokedId) continue;
+                    if (laterEvent.targetId === null) continue;
                     const now = clocks[episode.at + 1 + later];
                     const elapsed = (now?.get(episode.provokedId) ?? 0) - episode.turnsAtShout;
                     if (elapsed < 0) continue;
                     if (elapsed > TURNS_REPORTED_MAXIMUM) continue;
                     const tally = byTurn.get(elapsed) ?? { atShouter: 0, atSomebodyElse: 0 };
-                    addStruck(tally, next.targetId === episode.casterId);
+                    addStruck(tally, laterEvent.targetId === episode.casterId);
                     byTurn.set(elapsed, tally);
                 }
             }
@@ -113,10 +113,12 @@ export function tallyHoldingReading(replayed: readonly ReplayedFight[]): Holding
             }
         }
     }
-    const rows = [...byTurn.keys()].sort((one, other) => one - other).map((turnsElapsed) => {
-        const tally = byTurn.get(turnsElapsed) ?? { atShouter: 0, atSomebodyElse: 0 };
-        return { turnsElapsed, ...tally };
-    });
+    const rows = [...byTurn.keys()].sort((turns, otherTurns) => turns - otherTurns).map(
+        (turnsElapsed) => {
+            const tally = byTurn.get(turnsElapsed) ?? { atShouter: 0, atSomebodyElse: 0 };
+            return { turnsElapsed, ...tally };
+        },
+    );
     assert(rows.length <= TURNS_REPORTED_MAXIMUM + 1, "no more turns reported than the bound");
     assert(episodes >= rows.length, "a turn reported stands on at least one episode");
     return { rows, baseline: { episodes, ...baseline } };
@@ -135,32 +137,40 @@ function replayClocks(events: readonly BattleEvent[]): Map<number, number>[] {
         clocks.push(new Map(turns));
     }
     assertStrictEquals(clocks.length, events.length, "a clock is read after every event");
-    assert([...turns.values()].every((one) => one > 0), "and a combatant counted took a turn");
+    assert([...turns.values()].every((clock) => clock > 0), "and a combatant counted took a turn");
     return clocks;
 }
 
 /** Every shout, resolved to the characters it named, with each one's own clock at the moment. */
 function replayEpisodes(view: FightView, clocks: readonly Map<number, number>[]): Episode[] {
-    const found: Episode[] = [];
-    for (const [at, event] of view.events.entries()) {
+    const episodes: Episode[] = [];
+    for (const [eventIndex, event] of view.events.entries()) {
         if (event.kind !== BATTLE_EVENT.skillUsed) continue;
         if (!isShoutAnnouncement(event)) continue;
-        const upTo = { ...view, events: view.events.slice(0, at + 1) };
-        for (const one of replayAuraStandings(upTo, STATED_SKILLS).provocations) {
-            if (one.casterId !== event.actorId) continue;
-            const turnsAtShout = clocks[at]?.get(one.provokedId) ?? 0;
+        const upTo = { ...view, events: view.events.slice(0, eventIndex + 1) };
+        for (const provocation of replayAuraStandings(upTo, STATED_SKILLS).provocations) {
+            if (provocation.casterId !== event.actorId) continue;
+            const turnsAtShout = clocks[eventIndex]?.get(provocation.provokedId) ?? 0;
             assert(turnsAtShout >= 0, "a character shouted at is on a clock that has not run back");
-            assert(one.provokedId !== one.casterId, "and a shout never holds whoever threw it");
-            found.push({ provokedId: one.provokedId, casterId: one.casterId, at, turnsAtShout });
+            assert(
+                provocation.provokedId !== provocation.casterId,
+                "and a shout never holds whoever threw it",
+            );
+            episodes.push({
+                provokedId: provocation.provokedId,
+                casterId: provocation.casterId,
+                at: eventIndex,
+                turnsAtShout,
+            });
         }
     }
-    assert(found.length <= EPISODES_MAXIMUM, "a fight holds no more episodes than the bound");
-    return found;
+    assert(episodes.length <= EPISODES_MAXIMUM, "a fight holds no more episodes than the bound");
+    return episodes;
 }
 
 function isShoutAnnouncement(event: BattleEvent): boolean {
     if (event.kind !== BATTLE_EVENT.skillUsed) return false;
-    return event.declared.some((one) => one.effect === PROVOCATION_KEY);
+    return event.declared.some((declared) => declared.effect === PROVOCATION_KEY);
 }
 
 function addStruck(tally: StruckTally, isAtShouter: boolean): void {

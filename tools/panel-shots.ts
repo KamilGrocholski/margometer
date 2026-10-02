@@ -156,10 +156,10 @@ async function writePanelShots(version: string): Promise<PanelShotRecord> {
     const taken: TakenShot[] = [];
     try {
         for (const shot of composePanelShots()) {
-            const entry = lookupShotEntry(shot.moment, fight.updates.length);
-            const html = composeShotPage(fight.updates, entry);
+            const fedThrough = lookupShotEntry(shot.moment, fight.updates.length);
+            const html = composeShotPage(fight.updates, fedThrough);
             await writeShot(browser, html, bundle, shot, `${staging}/${shot.name}`);
-            taken.push({ name: shot.name, entry });
+            taken.push({ name: shot.name, entry: fedThrough });
         }
         const fightName = formatRecordingName(fight.path);
         const takenAt = new Date().toISOString();
@@ -195,12 +195,14 @@ function readGitText(args: readonly string[]): string {
     return new TextDecoder().decode(asked.stdout).trim();
 }
 
-/** The page a picture is taken of: the fight fed through `entry`, both windows in the corner. */
-export function composeShotPage(calls: readonly unknown[], entry: number): string {
-    assert(entry <= calls.length, "a picture is of a moment the recording reaches");
+/**
+ * The page a picture is taken of: the fight fed through `fedThrough`, both windows in the corner.
+ */
+export function composeShotPage(calls: readonly unknown[], fedThrough: number): string {
+    assert(fedThrough <= calls.length, "a picture is of a moment the recording reaches");
     const html = composePanelPage({
         calls,
-        fedThrough: entry,
+        fedThrough,
         engine: "before",
         doesLoadTwice: false,
         place: "Podgląd",

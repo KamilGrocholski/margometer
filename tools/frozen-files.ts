@@ -38,8 +38,8 @@ export function prepareFrozenFiles(
 ): FrozenFiles {
     assert(paths.length > 0, "a freeze writes at least one file");
     const helds = paths.map(readHeldText);
-    const first = helds[0] ?? null;
-    const heldDate = first === null ? null : lookupHeldDate(first, dateField);
+    const firstHeld = helds[0] ?? null;
+    const heldDate = firstHeld === null ? null : lookupHeldDate(firstHeld, dateField);
     return composeFrozenFiles(paths, helds, heldDate, readDate, count, encode);
 }
 
@@ -55,9 +55,9 @@ function readHeldText(path: string): string | null {
 export function lookupHeldDate(text: string, dateField: string): string | null {
     assert(dateField.length > 0, "a module is dated by a named field");
     const opener = `${DATE_INDENT}${dateField}${DATE_SEPARATOR}`;
-    const at = text.indexOf(opener);
-    if (at === -1) return null;
-    const literal = lookupQuotedLiteral(text, at + opener.length);
+    const openerAt = text.indexOf(opener);
+    if (openerAt === -1) return null;
+    const literal = lookupQuotedLiteral(text, openerAt + opener.length);
     if (literal === null) return null;
     if (literal.text.length === 0) return null;
     return literal.text;

@@ -153,8 +153,8 @@ async function writeReadingsStatus(): Promise<void> {
         assertStrictEquals(states.length, READINGS_REPORTED, "every reading was reported on");
     }
     for (const state of states) console.log(formatReadingLine(state));
-    const stale = states.filter((one) => one.verdict === READING_VERDICT.stale).length;
-    const unasked = states.filter((one) => one.verdict === READING_VERDICT.unknown).length;
+    const stale = states.filter((state) => state.verdict === READING_VERDICT.stale).length;
+    const unasked = states.filter((state) => state.verdict === READING_VERDICT.unknown).length;
     assert(stale + unasked <= states.length, "no more loud rows than there are readings");
     if (stale > 0) Deno.exitCode = EXIT_STALE;
     else if (unasked > 0) Deno.exitCode = EXIT_UNASKED;
@@ -322,10 +322,10 @@ export function composeBitShifts(
     const shifts: BitShift[] = [];
     const length = Math.max(frozen.length, lifted.length);
     for (let bit = 0; bit < length; bit += 1) {
-        const held = frozen[bit] ?? null;
-        const read = lifted[bit] ?? null;
-        if (held === read) continue;
-        shifts.push({ bit, frozen: held, lifted: read });
+        const frozenName = frozen[bit] ?? null;
+        const liftedName = lifted[bit] ?? null;
+        if (frozenName === liftedName) continue;
+        shifts.push({ bit, frozen: frozenName, lifted: liftedName });
     }
     return shifts;
 }

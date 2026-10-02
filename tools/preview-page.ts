@@ -189,8 +189,8 @@ function composeOwnScope(script: string): string {
 }
 
 /** Somebody else's material, on its way into a tag it must not be able to close. */
-function composeEscapedJson(value: unknown): string {
-    const written = JSON.stringify(value);
+function composeEscapedJson(material: unknown): string {
+    const written = JSON.stringify(material);
     assert(typeof written === "string", "what a page carries is written out as text");
     return written.split("<").join("\\u003c");
 }

@@ -71,9 +71,9 @@ export function lookupChangelogSection(changelog: string, version: string): stri
 /** A file this tool reads, or a refusal naming it: a missing changelog is a release unwritten. */
 function readReleaseFile(path: string): string {
     assert(path.length > 0, "a file is read from somewhere");
-    const read = errors.attempt(() => Deno.readTextFileSync(path));
-    if (read instanceof Error) throw new ChangelogError(`${path} cannot be read`, { cause: read });
-    return read;
+    const text = errors.attempt(() => Deno.readTextFileSync(path));
+    if (text instanceof Error) throw new ChangelogError(`${path} cannot be read`, { cause: text });
+    return text;
 }
 
 if (import.meta.main) {

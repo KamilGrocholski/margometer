@@ -71,14 +71,16 @@ export function formatFigureReport(replayed: ReplayedFight): string[] {
 function formatSideLines(statistics: FightStatistics, roster: CombatantRoster): string[] {
     const lines: string[] = [];
     const sides = [...indexMembersBySide(statistics, roster)].sort(
-        (one, other) => (one[0] ?? Number.MAX_SAFE_INTEGER) - (other[0] ?? Number.MAX_SAFE_INTEGER),
+        (sideGroup, otherSideGroup) =>
+            (sideGroup[0] ?? Number.MAX_SAFE_INTEGER) -
+            (otherSideGroup[0] ?? Number.MAX_SAFE_INTEGER),
     );
     const readDealt = (id: number): number =>
         statistics.byCombatantId.get(id)?.damageDealtApplied ?? 0;
     for (const [side, members] of sides) {
         const caption = side === null ? "no side the roster gives" : `side ${side}`;
         lines.push(`  —— ${caption} (${formatInteger(members.length)}) ——`);
-        const ranked = [...members].sort((one, other) => readDealt(other) - readDealt(one));
+        const ranked = [...members].sort((id, otherId) => readDealt(otherId) - readDealt(id));
         for (const id of ranked) {
             const figures = statistics.byCombatantId.get(id);
             const label = roster.byId.get(id)?.name ?? `id ${formatInteger(id)}`;
@@ -161,7 +163,7 @@ function formatSkillText(skills: ReadonlyMap<string, SkillFigures>): string {
     assert(skills.size <= SKILLS_MAXIMUM, "a combatant announces no more than it is bounded to");
     if (skills.size === 0) return NOTHING;
     const written = [...skills.values()]
-        .sort((one, other) => other.uses - one.uses)
+        .sort((skill, otherSkill) => otherSkill.uses - skill.uses)
         .map((skill) => `${skill.name} ×${formatInteger(skill.uses)}`);
     assertStrictEquals(written.length, skills.size, "every skill announced is written down");
     return written.join("  ");
@@ -231,7 +233,9 @@ export function formatCutText(cut: FigureCut, roster: CombatantRoster | null): s
     assert(cut.size <= CUT_PARTS_MAXIMUM, "a cut stays inside the parts a card draws");
     if (cut.size === 0) return NOTHING;
     const written = [...cut]
-        .sort((one, other) => getRankedOrder(one[1], other[1], one[0], other[0]))
+        .sort((cutPart, otherCutPart) =>
+            getRankedOrder(cutPart[1], otherCutPart[1], cutPart[0], otherCutPart[0])
+        )
         .map(([key, amount]) => {
             // Through the reader rather than `Number`: a key that is not an id reads as nothing
             // rather than as `NaN` asking the roster a question.

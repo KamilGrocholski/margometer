@@ -45,11 +45,11 @@ const INDENT_SPACES = 2;
 const MANIFEST_FIELDS = ["build", "host", "fetchedAt", "bundlePath"] as const;
 
 /** A channel named at a terminal, or a refusal naming it. */
-export function requireMargonemChannel(value: string): MargonemChannel {
-    if (!isOneOf(MARGONEM_CHANNELS, value)) {
-        throw new MargonemClientSourceError(`unknown channel "${value}"`);
+export function requireMargonemChannel(channel: string): MargonemChannel {
+    if (!isOneOf(MARGONEM_CHANNELS, channel)) {
+        throw new MargonemClientSourceError(`unknown channel "${channel}"`);
     }
-    return value;
+    return channel;
 }
 
 /**
@@ -119,20 +119,20 @@ export function requireCachedBuild(): string {
  * than reaching the comparison as `undefined` (C13).
  */
 export function requireCachedMargonemClientSource(
-    value: unknown,
+    manifest: unknown,
     channel: MargonemChannel,
 ): CachedMargonemClientSource {
-    if (!isRecord(value)) {
+    if (!isRecord(manifest)) {
         throw new MargonemClientSourceError(`cache manifest for ${channel} is no object`);
     }
-    if (value.channel !== channel) {
+    if (manifest.channel !== channel) {
         throw new MargonemClientSourceError(
-            `cache manifest for ${channel} says it holds ${value.channel}`,
+            `cache manifest for ${channel} says it holds ${manifest.channel}`,
         );
     }
     const stated: Record<string, string> = {};
     for (const field of MANIFEST_FIELDS) {
-        const held = value[field];
+        const held = manifest[field];
         if (typeof held !== "string") {
             throw new MargonemClientSourceError(
                 `cache manifest for ${channel}: ${field} is not stated`,
@@ -143,15 +143,15 @@ export function requireCachedMargonemClientSource(
         }
         stated[field] = held;
     }
-    const read = {
+    const cachedSource = {
         channel,
         build: stated.build ?? "",
         host: stated.host ?? "",
         fetchedAt: stated.fetchedAt ?? "",
         bundlePath: stated.bundlePath ?? "",
     };
-    assert(read.build.length > 0, "a reading that was admitted knows its own build");
-    return read;
+    assert(cachedSource.build.length > 0, "a reading that was admitted knows its own build");
+    return cachedSource;
 }
 
 /** The cached bundle, refusing rather than pretending when there is none. */

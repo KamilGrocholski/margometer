@@ -162,15 +162,15 @@ function composeMessageReadings(fight: RecordedFight): ParametersDecoded[] {
     let stated: number | null = null;
     let place: ReadingPlace = { standing: NO_TURN_STANDING, actorId: null, events: 0 };
     for (const [payload, step] of steps.entries()) {
-        const read = composeMessageReadingsOfStep(step, payload, place);
-        pending.push(...read.readings);
-        place = read.place;
+        const stepReading = composeMessageReadingsOfStep(step, payload, place);
+        pending.push(...stepReading.readings);
+        place = stepReading.place;
         const arriving = step.record.turnStatement;
         if (arriving === null) continue;
         const boundary = stated === null
             ? undefined
             : byOrdinals.get(`${stated}->${arriving.ordinal}`);
-        for (const one of pending) readings.push({ ...one, boundary: boundary ?? null });
+        for (const reading of pending) readings.push({ ...reading, boundary: boundary ?? null });
         pending = [];
         stated = arriving.ordinal;
     }
@@ -195,7 +195,7 @@ function composeMessageReadingsOfStep(
     const roster = step.reading.view.roster;
     let announcement: AnnouncementStanding = null;
     let events = 0;
-    for (const [at, message] of step.record.messages.entries()) {
+    for (const [messageIndex, message] of step.record.messages.entries()) {
         const context: DecodeContext = {
             roster,
             announcementStanding: announcement,
@@ -204,12 +204,14 @@ function composeMessageReadingsOfStep(
         const decoded = decodePayloadMessages([message], context);
         const turn = readMessageTurn(decoded.events, standing);
         const parsed = parseProtocolMessage(message);
-        const keys = parsed instanceof Error ? [] : parsed.parameters.map((one) => one.key);
+        const keys = parsed instanceof Error
+            ? []
+            : parsed.parameters.map((parameter) => parameter.key);
         const actorId = parsed instanceof Error ? null : (parsed.actor?.combatantId ?? null);
         const openerId = turn.openerId;
         readings.push({
             payload,
-            at,
+            at: messageIndex,
             keys,
             actorId,
             kinds: decoded.events.map((event) => event.kind),
@@ -281,8 +283,8 @@ function composeKeysAddingTurn(
     assert(!(parsed instanceof Error), "a message the grammar refused opens no turn");
     const parameters = parsed.parameters;
     const adding: string[] = [];
-    for (const key of new Set(parameters.map((one) => one.key))) {
-        const kept = parameters.filter((one) => one.key !== key);
+    for (const key of new Set(parameters.map((parameter) => parameter.key))) {
+        const kept = parameters.filter((parameter) => parameter.key !== key);
         const without = encodeProtocolMessage({ ...parsed, parameters: kept });
         const opened = readMessageTurn(decodePayloadMessages([without], context).events, standing);
         if (opened.openerId !== openerId) adding.push(key);
@@ -324,7 +326,9 @@ export function composeDisputedReadings(walk: FightMessages): DisputedReading[] 
 export function composeDisputeRegister(walks: readonly FightMessages[]): DisputedReading[] {
     assert(walks.length > 0, "a register is measured over something");
     const disputed = walks.flatMap(composeDisputedReadings);
-    for (const one of disputed) assert(one.to > one.from, "a disputed stretch runs forwards");
+    for (const dispute of disputed) {
+        assert(dispute.to > dispute.from, "a disputed stretch runs forwards");
+    }
     return disputed;
 }
 
@@ -348,10 +352,10 @@ export function composeKeyTally(walks: readonly FightMessages[]): KeyTally[] {
             }
         }
     }
-    const tallies = [...byKey.values()].filter((one) => one.opened + one.lost > 0);
+    const tallies = [...byKey.values()].filter((tally) => tally.opened + tally.lost > 0);
     tallies.sort(getKeyTallyOrder);
-    for (const one of tallies) {
-        assert(one.opened <= one.messages, "a key opens no more than it came");
+    for (const tally of tallies) {
+        assert(tally.opened <= tally.messages, "a key opens no more than it came");
     }
     return tallies;
 }
@@ -360,12 +364,12 @@ export function composeKeyTally(walks: readonly FightMessages[]): KeyTally[] {
  * Most first, and a plain comparison of the key to break a tie: a key is an identifier the game
  * chose rather than a word anybody reads, so no collation is asked of it.
  */
-function getKeyTallyOrder(one: KeyTally, other: KeyTally): number {
-    assert(one.key.length > 0, "a tally is kept under a key");
-    assert(other.key.length > 0, "and compared against another kept under one");
-    if (one.opened !== other.opened) return other.opened - one.opened;
-    if (one.key < other.key) return -1;
-    if (one.key > other.key) return 1;
+function getKeyTallyOrder(tally: KeyTally, otherTally: KeyTally): number {
+    assert(tally.key.length > 0, "a tally is kept under a key");
+    assert(otherTally.key.length > 0, "and compared against another kept under one");
+    if (tally.opened !== otherTally.opened) return otherTally.opened - tally.opened;
+    if (tally.key < otherTally.key) return -1;
+    if (tally.key > otherTally.key) return 1;
     return 0;
 }
 
@@ -387,7 +391,7 @@ export function composeOpenerTally(walks: readonly FightMessages[]): OpenerTally
         }
     }
     const tallies = [...turns].map(([opener, count]) => ({ opener, turns: count }));
-    tallies.sort((one, other) => other.turns - one.turns);
+    tallies.sort((tally, otherTally) => otherTally.turns - tally.turns);
     assert(tallies.length > 0, "the recordings opened a turn on something");
     return tallies;
 }
@@ -396,8 +400,10 @@ export function composeOpenerTally(walks: readonly FightMessages[]): OpenerTally
 function formatOpenerReport(tallies: readonly OpenerTally[]): string[] {
     assert(tallies.length > 0, "a report states the tally it was handed");
     const lines = [`  ${"opened by".padEnd(OPENER_WIDTH)}${"turns".padStart(9)}`];
-    for (const one of tallies) {
-        lines.push(`  ${one.opener.padEnd(OPENER_WIDTH)}${formatInteger(one.turns).padStart(9)}`);
+    for (const tally of tallies) {
+        lines.push(
+            `  ${tally.opener.padEnd(OPENER_WIDTH)}${formatInteger(tally.turns).padStart(9)}`,
+        );
     }
     return lines;
 }
@@ -408,12 +414,12 @@ function formatKeyReport(tallies: readonly KeyTally[]): string[] {
         `  ${"key".padEnd(KEY_WIDTH)}${"messages".padStart(10)}${"opened".padStart(9)}` +
         `${"adds".padStart(7)}${"lost".padStart(7)}`,
     ];
-    for (const one of tallies) {
+    for (const tally of tallies) {
         lines.push(
-            `  ${one.key.padEnd(KEY_WIDTH)}${formatInteger(one.messages).padStart(10)}` +
-                `${formatInteger(one.opened).padStart(9)}` +
-                `${formatInteger(one.adds).padStart(7)}` +
-                `${formatInteger(one.lost).padStart(7)}`,
+            `  ${tally.key.padEnd(KEY_WIDTH)}${formatInteger(tally.messages).padStart(10)}` +
+                `${formatInteger(tally.opened).padStart(9)}` +
+                `${formatInteger(tally.adds).padStart(7)}` +
+                `${formatInteger(tally.lost).padStart(7)}`,
         );
     }
     return lines;
@@ -426,14 +432,16 @@ function formatDisputeReport(disputed: readonly DisputedReading[]): string[] {
         `${"combatant".padStart(12)}${"from".padStart(8)}${"to".padStart(8)}` +
         `${"counted".padStart(9)}  key`,
     ];
-    for (const one of disputed) {
-        assert(one.key.length > 0, "a dispute stands on a key it names");
+    for (const dispute of disputed) {
+        assert(dispute.key.length > 0, "a dispute stands on a key it names");
         lines.push(
-            `  ${one.name.padEnd(NAME_WIDTH)}${formatInteger(one.payload).padStart(9)}` +
-                `${formatInteger(one.at).padStart(9)}` +
-                `${formatInteger(one.combatantId).padStart(12)}` +
-                `${formatInteger(one.from).padStart(8)}${formatInteger(one.to).padStart(8)}` +
-                `${formatInteger(one.counted).padStart(9)}  ${one.key}`,
+            `  ${dispute.name.padEnd(NAME_WIDTH)}${formatInteger(dispute.payload).padStart(9)}` +
+                `${formatInteger(dispute.at).padStart(9)}` +
+                `${formatInteger(dispute.combatantId).padStart(12)}` +
+                `${formatInteger(dispute.from).padStart(8)}${
+                    formatInteger(dispute.to).padStart(8)
+                }` +
+                `${formatInteger(dispute.counted).padStart(9)}  ${dispute.key}`,
         );
     }
     return lines;

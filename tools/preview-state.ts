@@ -65,7 +65,7 @@ var PREVIEW_STATE = getPreviewStateFromHash(window.location.hash);`;
 
 /** Walked rather than matched: C7 binds the browser half of this tool as it binds the rest. */
 function composePreviewStateParser(): string {
-    const entry = JSON.stringify(STATE_ENTRY_NAME);
+    const entryName = JSON.stringify(STATE_ENTRY_NAME);
     const screen = JSON.stringify(STATE_SCREEN_NAME);
     const store = JSON.stringify(STATE_STORE_NAME);
     const parser = `var getPreviewStateFromHash = function (hash) {
@@ -80,7 +80,7 @@ function composePreviewStateParser(): string {
       if (mark > 0) {
         var name = parts[at].slice(0, mark);
         var value = decodeURIComponent(parts[at].slice(mark + 1));
-        if (name === ${entry}) state.entry = getPreviewWholeFromText(value);
+        if (name === ${entryName}) state.entry = getPreviewWholeFromText(value);
         if (name === ${screen}) state.screen = value;
         if (name === ${store}) state.store = getPreviewStoreFromText(value);
       }

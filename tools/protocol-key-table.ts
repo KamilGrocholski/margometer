@@ -181,8 +181,8 @@ function encodeFamilyText(family: ComputedKeyFamily): string {
 }
 
 /** A value of the table as the text it is written down as, or a refusal branded as this tool's. */
-function encodeRequiredText(value: unknown): string {
-    const text = encodeJson(value, 0);
+function encodeRequiredText(encodable: unknown): string {
+    const text = encodeJson(encodable, 0);
     if (text instanceof Error) {
         throw new ProtocolKeyTableError("a value of the table cannot be written", { cause: text });
     }
@@ -212,19 +212,19 @@ export function requireProtocolKeys(bundle: string): string[] {
  * before the block, because the development channel serves the client unminified.
  */
 function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
-    let at = bundle.indexOf(SWITCH_SUBJECT_TAIL, from);
+    let tailAt = bundle.indexOf(SWITCH_SUBJECT_TAIL, from);
     for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
-        if (at === -1) return null;
-        let start = at;
+        if (tailAt === -1) return null;
+        let start = tailAt;
         while (start > from) {
             if (!isNameCharacterAt(bundle, start - 1)) break;
             start -= 1;
         }
-        const block = getEndOfRun(bundle, at + SWITCH_SUBJECT_TAIL.length, isWhitespaceAt);
-        if (start < at) {
+        const block = getEndOfRun(bundle, tailAt + SWITCH_SUBJECT_TAIL.length, isWhitespaceAt);
+        if (start < tailAt) {
             if (bundle.charAt(block) === BLOCK_OPEN) return start;
         }
-        at = bundle.indexOf(SWITCH_SUBJECT_TAIL, at + 1);
+        tailAt = bundle.indexOf(SWITCH_SUBJECT_TAIL, tailAt + 1);
     }
     return null;
 }
@@ -246,11 +246,11 @@ function parseCaseLabels(body: string): string[] {
     const labels: string[] = [];
     let from = 0;
     for (let look = 0; look < CASE_LABELS_MAXIMUM; look += 1) {
-        const at = body.indexOf(CASE_KEYWORD, from);
-        if (at === -1) return labels;
-        from = at + 1;
-        if (isNameCharacterAt(body, at - 1)) continue;
-        const open = getEndOfRun(body, at + CASE_KEYWORD.length, isWhitespaceAt);
+        const keywordAt = body.indexOf(CASE_KEYWORD, from);
+        if (keywordAt === -1) return labels;
+        from = keywordAt + 1;
+        if (isNameCharacterAt(body, keywordAt - 1)) continue;
+        const open = getEndOfRun(body, keywordAt + CASE_KEYWORD.length, isWhitespaceAt);
         const quoted = lookupQuotedLiteral(body, open);
         if (quoted === null) continue;
         const terminator = getEndOfRun(body, quoted.end, isWhitespaceAt);
@@ -268,10 +268,10 @@ function requireBlockBody(source: string, from: number): string {
     if (start === -1) throw new ProtocolKeyTableError("no block after the switch subject");
     let depth = 0;
     let quote = "";
-    for (let at = start; at < source.length; at += 1) {
-        const character = source.charAt(at);
+    for (let position = start; position < source.length; position += 1) {
+        const character = source.charAt(position);
         if (quote !== "") {
-            if (character === ESCAPE) at += 1;
+            if (character === ESCAPE) position += 1;
             else if (character === quote) quote = "";
             continue;
         }
@@ -279,7 +279,7 @@ function requireBlockBody(source: string, from: number): string {
         else if (character === BLOCK_OPEN) depth += 1;
         else if (character === BLOCK_CLOSE) {
             depth -= 1;
-            if (depth === 0) return source.slice(start, at + 1);
+            if (depth === 0) return source.slice(start, position + 1);
         }
     }
     assertNotStrictEquals(depth, 0, "a block that never closed was walked to the end");
@@ -287,18 +287,18 @@ function requireBlockBody(source: string, from: number): string {
 }
 
 export function requireComputedKeyFamily(bundle: string): ComputedKeyFamily {
-    const read = DEFAULT_BRANCH_SHAPES
+    const familyFields = DEFAULT_BRANCH_SHAPES
         .map((steps) => lookupShapeFields(bundle, steps))
         .find((fields): fields is Map<DefaultBranchField, string> => fields !== null);
-    if (read === undefined) {
+    if (familyFields === undefined) {
         throw new ProtocolKeyTableError(
             "no computed key family in the default branch — the client changed how it routes keys",
         );
     }
-    const marker = read.get("marker") ?? "";
-    const dealtSign = read.get("dealtSign") ?? "";
-    const markerAt = parseInteger(read.get("markerAt") ?? "");
-    const markerLength = parseInteger(read.get("markerLength") ?? "");
+    const marker = familyFields.get("marker") ?? "";
+    const dealtSign = familyFields.get("dealtSign") ?? "";
+    const markerAt = parseInteger(familyFields.get("markerAt") ?? "");
+    const markerLength = parseInteger(familyFields.get("markerLength") ?? "");
     // That the fields are there is ours to guarantee: the shape read them all or none. What the
     // client wrote inside them is not, so the offsets are refused rather than coerced.
     if (markerAt === null || markerLength === null) {
@@ -320,12 +320,12 @@ function lookupShapeFields(
     if (head === undefined || head.kind !== SHAPE_STEP.text) {
         throw new ProtocolKeyTableError("a default-branch shape has to open with text");
     }
-    let at = bundle.indexOf(head.text);
+    let headAt = bundle.indexOf(head.text);
     for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
-        if (at === -1) return null;
-        const fields = parseShapeFields(bundle, at, steps);
+        if (headAt === -1) return null;
+        const fields = parseShapeFields(bundle, headAt, steps);
         if (fields !== null) return fields;
-        at = bundle.indexOf(head.text, at + 1);
+        headAt = bundle.indexOf(head.text, headAt + 1);
     }
     return null;
 }

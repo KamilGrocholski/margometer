@@ -163,19 +163,21 @@ export function encodeFrozenSkillTexts(
     const dated = `${DATE_NOTE}\n    ${FROZEN_DATE_FIELD}: ${JSON.stringify(date)},\n`;
     const durations = `${FROZEN_SKILL_BANNER}\nexport const FROZEN_SKILL_DURATIONS = {\n${dated}` +
         `    skills: [\n${encodeFrozenSkills(skills)}\n    ],\n} as const;\n`;
-    const rows = auras.map((one) =>
-        `        { id: ${formatInteger(one.id)}, turns: ${one.turns} },`
+    const rows = auras.map((aura) =>
+        `        { id: ${formatInteger(aura.id)}, turns: ${aura.turns} },`
     );
-    const shouted = shouts.map((one) =>
-        `        { id: ${formatInteger(one.id)}, turns: ${one.turns}, ` +
-        `coverageMinimum: ${one.coverageMinimum} },`
+    const shouted = shouts.map((shout) =>
+        `        { id: ${formatInteger(shout.id)}, turns: ${shout.turns}, ` +
+        `coverageMinimum: ${shout.coverageMinimum} },`
     );
     const aurasText = `${FROZEN_AURA_BANNER}\nexport const FROZEN_AURA_TURNS = {\n${dated}` +
         `    skills: [\n${rows.join("\n")}\n    ],\n    shouts: [\n${
             shouted.join("\n")
         }\n    ],\n} as const;\n`;
-    const blows = granted.map((one) =>
-        `        { id: ${formatInteger(one.id)}, blowsGrantedMinimum: ${one.blowsGrantedMinimum} },`
+    const blows = granted.map((grant) =>
+        `        { id: ${
+            formatInteger(grant.id)
+        }, blowsGrantedMinimum: ${grant.blowsGrantedMinimum} },`
     );
     const blowsText = `${FROZEN_BLOWS_BANNER}\nexport const FROZEN_BLOWS_GRANTED = {\n${dated}` +
         `    skills: [\n${blows.join("\n")}\n    ],\n} as const;\n`;
@@ -196,7 +198,7 @@ function encodeFrozenSkills(skills: readonly SkillReading[]): string {
             `            effects: [`,
         );
         for (const effect of skill.effects) {
-            const turns = effect.turns.map((one) => formatInteger(one)).join(", ");
+            const turns = effect.turns.map((levelTurns) => formatInteger(levelTurns)).join(", ");
             lines.push(
                 `                { key: ${JSON.stringify(effect.key)}, turns: [${turns}] },`,
             );
@@ -218,9 +220,9 @@ export function readCachedSkillTable(): CachedSkillTable | null {
     return requireCachedSkillTable(parsed);
 }
 
-function requireCachedSkillTable(value: unknown): CachedSkillTable {
-    if (!isRecord(value)) throw new SkillTableError("the skill cache states no manifest");
-    const { url, fetchedAt, pagePath, pageLength } = value;
+function requireCachedSkillTable(manifest: unknown): CachedSkillTable {
+    if (!isRecord(manifest)) throw new SkillTableError("the skill cache states no manifest");
+    const { url, fetchedAt, pagePath, pageLength } = manifest;
     if (typeof url !== "string") throw new SkillTableError("the skill cache names no address");
     if (typeof fetchedAt !== "string") throw new SkillTableError("the skill cache has no date");
     if (typeof pagePath !== "string") throw new SkillTableError("the skill cache names no page");
@@ -231,7 +233,7 @@ function requireCachedSkillTable(value: unknown): CachedSkillTable {
 
 /** Rows carrying exactly the columns named above; a page of another shape is refused. */
 export function requireSkillsOfMargonemApi(html: string): SkillReading[] {
-    const found: SkillReading[] = [];
+    const skills: SkillReading[] = [];
     const rows = html.split(ROW_OPEN);
     assert(rows.length <= ROWS_MAXIMUM, "the page stays inside its stated bound");
     for (const row of rows.slice(1)) {
@@ -239,15 +241,19 @@ export function requireSkillsOfMargonemApi(html: string): SkillReading[] {
         if (cells.length !== COLUMNS.length) continue;
         const id = parseInteger((cells[IDENTITY_COLUMN] ?? "").trim());
         if (id === null) continue;
-        found.push({ id, effects: parseCellEffects(cells[EFFECTS_COLUMN] ?? "") });
+        skills.push({ id, effects: parseCellEffects(cells[EFFECTS_COLUMN] ?? "") });
     }
-    if (found.length === 0) {
+    if (skills.length === 0) {
         throw new SkillTableError(
             `the skill table served no row of ${formatInteger(COLUMNS.length)} columns`,
         );
     }
-    assertStrictEquals(new Set(found.map((one) => one.id)).size, found.length, "a skill once");
-    return found;
+    assertStrictEquals(
+        new Set(skills.map((skill) => skill.id)).size,
+        skills.length,
+        "a skill once",
+    );
+    return skills;
 }
 
 /** The cells of one row, as the text a person would have seen in each. */
@@ -266,13 +272,13 @@ function parseRowCells(row: string): string[] {
 }
 
 function parseCellEffects(cell: string): SkillEffectReading[] {
-    const found: SkillEffectReading[] = [];
+    const effects: SkillEffectReading[] = [];
     for (const stated of cell.split(EFFECT_TERMINATOR)) {
-        assert(found.length <= EFFECTS_MAXIMUM, "a skill stays inside its stated bound");
+        assert(effects.length <= EFFECTS_MAXIMUM, "a skill stays inside its stated bound");
         const effect = parseEffect(stated.trim());
-        if (effect !== null) found.push(effect);
+        if (effect !== null) effects.push(effect);
     }
-    return found;
+    return effects;
 }
 
 /**
@@ -281,22 +287,22 @@ function parseCellEffects(cell: string): SkillEffectReading[] {
  * `@` at all, so a walk skipping such a level would throw away the only figure it carries.
  */
 function parseEffect(text: string): SkillEffectReading | null {
-    const at = text.indexOf(EFFECT_ASSIGNMENT);
-    if (at <= 0) return null;
-    const key = text.slice(0, at).trim();
+    const assignmentAt = text.indexOf(EFFECT_ASSIGNMENT);
+    if (assignmentAt <= 0) return null;
+    const key = text.slice(0, assignmentAt).trim();
     if (key.length === 0) return null;
     const turns: number[] = [];
     const amounts: number[] = [];
     const values: number[] = [];
-    for (const level of text.slice(at + 1).split(LEVEL_SEPARATOR)) {
+    for (const level of text.slice(assignmentAt + 1).split(LEVEL_SEPARATOR)) {
         const marked = level.indexOf(DURATION_MARKER);
-        const value = parseInteger((marked === -1 ? level : level.slice(0, marked)).trim());
-        if (value !== null) values.push(value);
+        const levelValue = parseInteger((marked === -1 ? level : level.slice(0, marked)).trim());
+        if (levelValue !== null) values.push(levelValue);
         if (marked === -1) continue;
         const stated = parseInteger(level.slice(marked + 1).trim());
         if (stated === null) continue;
         turns.push(stated);
-        if (value !== null) amounts.push(value);
+        if (levelValue !== null) amounts.push(levelValue);
     }
     assert(amounts.length <= turns.length, "an amount is read only beside a duration");
     return { key, turns, amounts, values };
@@ -306,13 +312,17 @@ function parseEffect(text: string): SkillEffectReading | null {
 export function composeAuraSkills(
     skills: readonly SkillReading[],
 ): AuraSkill[] {
-    const found: AuraSkill[] = [];
+    const auraSkills: AuraSkill[] = [];
     for (const skill of skills) {
         const turns = lookupAuraTurnsStated(skill.effects);
-        if (turns !== null) found.push({ id: skill.id, turns });
+        if (turns !== null) auraSkills.push({ id: skill.id, turns });
     }
-    assertStrictEquals(indexAuraTurnsBySkillId(found).size, found.length, "each is named once");
-    return found;
+    assertStrictEquals(
+        indexAuraTurnsBySkillId(auraSkills).size,
+        auraSkills.length,
+        "each is named once",
+    );
+    return auraSkills;
 }
 
 /**
@@ -324,17 +334,20 @@ export function composeAuraSkills(
 export function composeShoutSkills(
     skills: readonly SkillReading[],
 ): ShoutSkill[] {
-    const found: ShoutSkill[] = [];
+    const shoutSkills: ShoutSkill[] = [];
     for (const skill of skills) {
-        const shout = skill.effects.find((one) => one.key === PROVOCATION_KEY);
+        const shout = skill.effects.find((effect) => effect.key === PROVOCATION_KEY);
         if (shout === undefined) continue;
         if (shout.turns.length === 0) continue;
         if (shout.amounts.length === 0) continue;
         const turns = Math.max(...shout.turns);
-        found.push({ id: skill.id, turns, coverageMinimum: Math.min(...shout.amounts) });
+        shoutSkills.push({ id: skill.id, turns, coverageMinimum: Math.min(...shout.amounts) });
     }
-    assert(found.every((one) => one.coverageMinimum > 0), "a shout covers somebody");
-    return found;
+    assert(
+        shoutSkills.every((shoutSkill) => shoutSkill.coverageMinimum > 0),
+        "a shout covers somebody",
+    );
+    return shoutSkills;
 }
 
 /**
@@ -344,15 +357,15 @@ export function composeShoutSkills(
 export function composeGrantedBlows(
     skills: readonly SkillReading[],
 ): GrantedBlows[] {
-    const found: GrantedBlows[] = [];
+    const grantedBlows: GrantedBlows[] = [];
     for (const skill of skills) {
-        const granted = skill.effects.find((one) => one.key === BLOWS_GRANTED_KEY);
+        const granted = skill.effects.find((effect) => effect.key === BLOWS_GRANTED_KEY);
         if (granted === undefined) continue;
         if (granted.values.length === 0) continue;
-        found.push({ id: skill.id, blowsGrantedMinimum: Math.min(...granted.values) });
+        grantedBlows.push({ id: skill.id, blowsGrantedMinimum: Math.min(...granted.values) });
     }
-    assert(found.every((one) => one.blowsGrantedMinimum > 0), "a grant is worth a blow");
-    return found;
+    assert(grantedBlows.every((grant) => grant.blowsGrantedMinimum > 0), "a grant is worth a blow");
+    return grantedBlows;
 }
 
 /** The page fetched and kept under `.cache/`, beside the date it was fetched on. */

@@ -510,7 +510,7 @@ export function createFabricatedFight(
                     warrior.statusMask = 0;
                 }
                 assert(
-                    state.warriors.every((one) => one.statusMask >= 0),
+                    state.warriors.every((combatant) => combatant.statusMask >= 0),
                     "a mask is never below nothing",
                 );
             }
@@ -562,13 +562,13 @@ export function createFabricatedFight(
     }
     // Add how the fight ends: the two sides as text, and what the log says after them.
     {
-        const last = state.warriors.find(isStanding);
-        assertExists(last, "a fight ends with somebody left standing");
+        const survivor = state.warriors.find(isStanding);
+        assertExists(survivor, "a fight ends with somebody left standing");
         assert(state.calls.length > 1, "and after the calls that got it there");
-        addTurnStatement(state, last);
+        addTurnStatement(state, survivor);
         const before = encodeSnapshot(state);
         const messages = state.shape.ending === FABRICATION_ENDING.fled
-            ? encodeFledClosing(last)
+            ? encodeFledClosing(survivor)
             : encodeSettledClosing(state);
         assert(messages.length > 0, "a fight that ends says so");
         const payload: Record<string, unknown> = {
@@ -592,7 +592,11 @@ function createFabricatedWarriors(shape: FabricationShape): FabricatedWarrior[] 
         warriors.push(createFabricatedWarrior(shape, SIDE_THEIRS, place));
     }
     assertStrictEquals(warriors.length, shape.perSide * 2, "both sides are fielded in full");
-    assertStrictEquals(new Set(warriors.map((one) => one.id)).size, warriors.length, "each once");
+    assertStrictEquals(
+        new Set(warriors.map((combatant) => combatant.id)).size,
+        warriors.length,
+        "each once",
+    );
     return warriors;
 }
 
@@ -686,7 +690,7 @@ function encodeFigureRecord(figure: number): Record<string, unknown> {
  * message that opens no turn and rides no act.
  */
 function encodeOpeningDeclarations(state: FabricationState): string[] {
-    const stated = state.warriors.find((one) => one.side === SIDE_THEIRS);
+    const stated = state.warriors.find((combatant) => combatant.side === SIDE_THEIRS);
     assertExists(stated, "an opening declaration is made about somebody in the fight");
     return [encodeMessage(encodeSide(stated), null, [
         encodeValued("surpass_bonus_total", formatInteger(14)),
@@ -791,7 +795,9 @@ function isFightOver(state: FabricationState): boolean {
 }
 
 function getStandingOnSide(state: FabricationState, side: number): FabricatedWarrior[] {
-    const standing = state.warriors.filter((one) => one.side === side && isStanding(one));
+    const standing = state.warriors.filter((combatant) =>
+        combatant.side === side && isStanding(combatant)
+    );
     assert(standing.length <= state.shape.perSide, "a side holds no more than it fielded");
     assert(standing.every(isStanding), "and everyone left on it is standing");
     return standing;
@@ -828,8 +834,8 @@ function lookupOpponent(
     actor: FabricatedWarrior,
     ordinal: number,
 ): FabricatedWarrior | null {
-    const other = actor.side === SIDE_OURS ? SIDE_THEIRS : SIDE_OURS;
-    const standing = getStandingOnSide(state, other);
+    const opposingSide = actor.side === SIDE_OURS ? SIDE_THEIRS : SIDE_OURS;
+    const standing = getStandingOnSide(state, opposingSide);
     if (standing.length === 0) return null;
     const chosen = standing[(ordinal + state.round * CHOICE_PER_ROUND) % standing.length];
     assertExists(chosen, "a blow is thrown at somebody still standing");
@@ -842,7 +848,9 @@ function getAlly(
     actor: FabricatedWarrior,
     ordinal: number,
 ): FabricatedWarrior {
-    const beside = getStandingOnSide(state, actor.side).filter((one) => one.id !== actor.id);
+    const beside = getStandingOnSide(state, actor.side).filter((combatant) =>
+        combatant.id !== actor.id
+    );
     if (beside.length === 0) return actor;
     const chosen = beside[(ordinal + state.round * CHOICE_PER_ROUND) % beside.length];
     assertExists(chosen, "an act that names an ally names one still standing");
@@ -898,7 +906,7 @@ function encodeTurnQueue(
     assert(standing.length > 0, "there is somebody left to put in the queue");
     assert(ordinal > 0, "and the game numbers a turn from one upwards");
     const opens = clampNumber(
-        standing.findIndex((one) => one.id === acting.id),
+        standing.findIndex((combatant) => combatant.id === acting.id),
         0,
         standing.length - 1,
     );
@@ -919,7 +927,9 @@ function encodeTurnQueue(
  */
 function getStatedWarriors(state: FabricationState, turn: FabricatedTurn): FabricatedWarrior[] {
     const named = new Set([turn.actor.id, turn.target.id, turn.ally.id]);
-    const stated = state.warriors.filter((one) => named.has(one.id) || one.statusMask !== 0);
+    const stated = state.warriors.filter((combatant) =>
+        named.has(combatant.id) || combatant.statusMask !== 0
+    );
     assert(stated.length > 0, "a payload states somebody");
     assert(stated.length <= state.warriors.length, "and no more than the cast it was built from");
     return stated;
@@ -966,9 +976,11 @@ function encodeSettledClosing(state: FabricationState): string[] {
 }
 
 function encodeSideNames(state: FabricationState, side: number): string {
-    const named = state.warriors.filter((one) => one.side === side).map((one) => one.name);
+    const named = state.warriors.filter((combatant) => combatant.side === side).map((combatant) =>
+        combatant.name
+    );
     assertStrictEquals(named.length, state.shape.perSide, "a side named names all of its own");
-    assert(named.every((one) => one.length > 0), "and each of them says something");
+    assert(named.every((name) => name.length > 0), "and each of them says something");
     return named.join(NAME_SEPARATOR);
 }
 
@@ -989,10 +1001,10 @@ function encodeSide(warrior: FabricatedWarrior): StatedEnd {
     return { combatantId: warrior.id, healthPercent: getHealthPercent(warrior) };
 }
 
-function encodeValued(key: string, value: string): MessageParameter {
+function encodeValued(key: string, text: string): MessageParameter {
     assert(key.length > 0, "a key a message states is named");
-    assert(value.length > 0, "and a value stated says something");
-    return { key, value };
+    assert(text.length > 0, "and a value stated says something");
+    return { key, value: text };
 }
 
 function encodeValueless(key: string): MessageParameter {
@@ -1138,7 +1150,7 @@ function executeWoundTick(turn: FabricatedTurn): string[] {
     assert(turn.round >= 0, "and on a round the fight has reached");
     const injure = executeHealthTaken(turn, turn.target, WOUND_TICK_KEY, 175);
     const wound = executeHealthTaken(turn, turn.target, "wound", 130);
-    return [injure, wound].filter((one) => one !== null);
+    return [injure, wound].filter((message) => message !== null);
 }
 
 function executePoisonTick(turn: FabricatedTurn): string[] {
@@ -1152,7 +1164,7 @@ function executePoisonTick(turn: FabricatedTurn): string[] {
         ? null
         : encodeHealthChange(turn.target, [encodeValued("poison", stated)]);
     const fire = executeHealthTaken(turn, turn.target, "fire", 96);
-    return [ticked, fire].filter((one) => one !== null);
+    return [ticked, fire].filter((message) => message !== null);
 }
 
 function executeLightTick(turn: FabricatedTurn): string[] {
@@ -1164,7 +1176,7 @@ function executeLightTick(turn: FabricatedTurn): string[] {
         encodeFigure("anguish", anguish),
         encodeValueless("+legbon_anguish"),
     ]);
-    return [light, ached].filter((one) => one !== null);
+    return [light, ached].filter((message) => message !== null);
 }
 
 function executeHealSelf(turn: FabricatedTurn): string[] {
@@ -1206,7 +1218,7 @@ function executeBandage(turn: FabricatedTurn): string[] {
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
     const bandaged = executeHealthGiven(turn, turn.actor, "bandage", 210);
     const carried = executeHealthGiven(turn, turn.ally, "npc_heal", 260);
-    return [bandaged, carried].filter((one) => one !== null);
+    return [bandaged, carried].filter((message) => message !== null);
 }
 
 function executeLastHeal(turn: FabricatedTurn): string[] {
@@ -1222,9 +1234,9 @@ function executeLastHeal(turn: FabricatedTurn): string[] {
 function executeNamedDamage(turn: FabricatedTurn): string[] {
     assert(turn.ally.side === turn.actor.side, "an ally stands on the actor's own side");
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
-    const element = getElement(turn);
+    const elementKeys = getElement(turn);
     const dealt = removeHealth(turn.ally, composeSmallHealth(turn, 340));
-    const stated = `${formatInteger(dealt)},${element.member},${encodeNamedText(turn.ally)}`;
+    const stated = `${formatInteger(dealt)},${elementKeys.member},${encodeNamedText(turn.ally)}`;
     return [executeBlow(turn, [encodeValued("+oth_dmg", stated)])];
 }
 
@@ -1235,12 +1247,12 @@ function executeNamedDamage(turn: FabricatedTurn): string[] {
  */
 function executeBlowFromNobody(turn: FabricatedTurn): string[] {
     assert(turn.target.healthMaximum > 0, "a blow lands where there is a maximum");
-    const element = getElement(turn);
+    const elementKeys = getElement(turn);
     const raw = composeFigure(turn, FIGURE_RAW_BASE);
     const applied = removeHealth(turn.target, raw - composeReduction(turn));
     return [encodeMessage(null, encodeSide(turn.target), [
-        encodeFigure(element.raw, raw),
-        encodeFigure(element.applied, applied),
+        encodeFigure(elementKeys.raw, raw),
+        encodeFigure(elementKeys.applied, applied),
     ])];
 }
 
@@ -1250,13 +1262,13 @@ function executeBlowFromNobody(turn: FabricatedTurn): string[] {
  */
 function executeBlowAtNobody(turn: FabricatedTurn): string[] {
     assert(isStanding(turn.actor), "a turn is taken by somebody still standing");
-    const element = getElement(turn);
+    const elementKeys = getElement(turn);
     const raw = composeFigure(turn, FIGURE_RAW_BASE);
     const applied = raw - composeReduction(turn);
     assert(applied >= 0, "no blow lands below nothing");
     return [encodeMessage(encodeSide(turn.actor), null, [
-        encodeFigure(element.raw, raw),
-        encodeFigure(element.applied, applied),
+        encodeFigure(elementKeys.raw, raw),
+        encodeFigure(elementKeys.applied, applied),
     ])];
 }
 
@@ -1290,7 +1302,10 @@ function executeHealToNobody(turn: FabricatedTurn): string[] {
  */
 function executeSideHeal(turn: FabricatedTurn): string[] {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
-    assert(turn.side.every((one) => one.side === turn.actor.side), "and only their own");
+    assert(
+        turn.side.every((combatant) => combatant.side === turn.actor.side),
+        "and only their own",
+    );
     const share = composeSmall(turn, 22);
     for (const standing of turn.side) {
         addHealth(standing, Math.round(standing.healthMaximum * share / WHOLE_PERCENT));
@@ -1304,7 +1319,10 @@ function executeSideHeal(turn: FabricatedTurn): string[] {
 
 function executeAuraCast(turn: FabricatedTurn): string[] {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
-    assert(turn.side.every((one) => one.side === turn.actor.side), "and only their own");
+    assert(
+        turn.side.every((combatant) => combatant.side === turn.actor.side),
+        "and only their own",
+    );
     return [encodeMessage(encodeSide(turn.actor), null, [
         ...encodeAnnouncement(getAuraSkill(turn)),
         encodeFigure("aura-ac_per", composeSmall(turn, 15)),
@@ -1325,11 +1343,17 @@ function executeAuraCast(turn: FabricatedTurn): string[] {
  */
 function executeShout(turn: FabricatedTurn): string[] {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
-    assert(turn.side.every((one) => one.side === turn.actor.side), "and only their own");
+    assert(
+        turn.side.every((combatant) => combatant.side === turn.actor.side),
+        "and only their own",
+    );
     assert(turn.opposing.length > 0, "and a shout names the characters it holds");
     return [encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
         ...encodeAnnouncement(SHOUT_SKILL),
-        encodeValued(PROVOCATION_KEY, turn.opposing.map((one) => one.name).join(NAME_SEPARATOR)),
+        encodeValued(
+            PROVOCATION_KEY,
+            turn.opposing.map((combatant) => combatant.name).join(NAME_SEPARATOR),
+        ),
         encodeFigure(SLOW_ALL_KEY, composeSmall(turn, 25)),
         encodeFigure("alllowdmg", composeSmall(turn, 16)),
     ])];
@@ -1337,7 +1361,10 @@ function executeShout(turn: FabricatedTurn): string[] {
 
 function executeAlliesCast(turn: FabricatedTurn): string[] {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
-    assert(turn.side.every((one) => one.side === turn.actor.side), "and only their own");
+    assert(
+        turn.side.every((combatant) => combatant.side === turn.actor.side),
+        "and only their own",
+    );
     return [encodeMessage(encodeSide(turn.actor), null, [
         ...encodeAnnouncement(getAuraSkill(turn)),
         encodeFigure("critval-allies", composeSmall(turn, 12)),
@@ -1352,7 +1379,10 @@ function executeAlliesCast(turn: FabricatedTurn): string[] {
 
 function executeEnemiesCast(turn: FabricatedTurn): string[] {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
-    assert(turn.side.every((one) => one.side === turn.actor.side), "and only their own");
+    assert(
+        turn.side.every((combatant) => combatant.side === turn.actor.side),
+        "and only their own",
+    );
     return [encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
         ...encodeAnnouncement(getAuraSkill(turn)),
         encodeFigure("poison_lowdmg_per-enemies", composeSmall(turn, 27)),
@@ -1457,15 +1487,18 @@ function executeBlow(turn: FabricatedTurn, extra: MessageParameter[]): string {
     assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
     assert(turn.target.side !== turn.actor.side, "and never at its own side");
     assert(turn.target.healthMaximum > 0, "and lands where there is a maximum");
-    assert(extra.every((one) => one.key.length > 0), "and states every key beside it by name");
-    const element = getElement(turn);
+    assert(
+        extra.every((parameter) => parameter.key.length > 0),
+        "and states every key beside it by name",
+    );
+    const elementKeys = getElement(turn);
     const raw = composeFigure(turn, FIGURE_RAW_BASE);
     const applied = removeHealth(turn.target, raw - composeReduction(turn));
     assert(applied <= raw, "no more gets through a blow than the blow threw");
     return encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
-        encodeFigure(element.raw, raw),
+        encodeFigure(elementKeys.raw, raw),
         encodeFigure("+acdmg", composeScaled(turn.shape, ARMOUR_DAMAGE)),
-        encodeFigure(element.applied, applied),
+        encodeFigure(elementKeys.applied, applied),
         ...extra,
     ]);
 }
@@ -1625,10 +1658,10 @@ function encodeMovedHealth(warrior: FabricatedWarrior, key: string, moved: numbe
 function lookupHurtAlly(turn: FabricatedTurn): FabricatedWarrior | null {
     assert(turn.side.length > 0, "an ally is looked for on a side with somebody on it");
     let hurt: FabricatedWarrior | null = null;
-    for (const one of turn.side) {
-        if (one.health >= one.healthMaximum) continue;
-        if (hurt === null) hurt = one;
-        else if (one.healthMaximum - one.health > hurt.healthMaximum - hurt.health) hurt = one;
+    for (const ally of turn.side) {
+        if (ally.health >= ally.healthMaximum) continue;
+        if (hurt === null) hurt = ally;
+        else if (ally.healthMaximum - ally.health > hurt.healthMaximum - hurt.health) hurt = ally;
     }
     if (hurt !== null) assert(hurt.health < hurt.healthMaximum, "an ally that is healed has room");
     return hurt;

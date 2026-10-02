@@ -58,7 +58,7 @@ export interface PreviewServer {
 
 /** A reload stream still open, and the way to say something into it. */
 export interface ReloadListener {
-    send(event: string, data: string): void;
+    send(event: string, text: string): void;
     close(): void;
 }
 
@@ -322,8 +322,8 @@ export function openPreviewEvents(listeners: Set<ReloadListener>): Response {
         start(controller) {
             held = {
                 // One `data:` line per line: a bare newline ends the event, and a log is many.
-                send: (event, data) => {
-                    const lines = data.split("\n").map((line) => `data: ${line}`).join("\n");
+                send: (event, text) => {
+                    const lines = text.split("\n").map((line) => `data: ${line}`).join("\n");
                     controller.enqueue(TEXT_ENCODER.encode(`event: ${event}\n${lines}\n\n`));
                 },
                 close: () => controller.close(),
@@ -345,11 +345,11 @@ export function openPreviewEvents(listeners: Set<ReloadListener>): Response {
 export function tellPreviewListeners(
     listeners: Set<ReloadListener>,
     event: string,
-    data: string,
+    text: string,
 ): void {
     assert(event.length > 0, "a page is told something");
     for (const listener of [...listeners]) {
-        const told = errors.attempt(() => listener.send(event, data));
+        const told = errors.attempt(() => listener.send(event, text));
         if (told instanceof Error) listeners.delete(listener);
     }
     assert(listeners.size <= LISTENERS_MAXIMUM, "the listeners stay inside their bound");
@@ -369,18 +369,20 @@ export function readPreviewFlags(args: readonly string[]): {
     let fight: string | null = null;
     let shouldOpenFabricated = false;
     const fromPaths: string[] = [];
-    for (let at = 0; at < args.length; at += 1) {
-        if (args[at] === FLAG_FABRICATED) {
+    for (let argumentIndex = 0; argumentIndex < args.length; argumentIndex += 1) {
+        if (args[argumentIndex] === FLAG_FABRICATED) {
             shouldOpenFabricated = true;
             continue;
         }
-        const value = args[at + 1];
-        if (value === undefined) throw new PreviewServeError(`${args[at]} takes a value`);
-        if (args[at] === FLAG_PORT) port = parseInteger(value) ?? DEFAULT_PORT;
-        else if (args[at] === FLAG_FIGHT) fight = value;
-        else if (args[at] === FLAG_FROM) fromPaths.push(value);
-        else throw new PreviewServeError(`${args[at]} is not a flag this reads`);
-        at += 1;
+        const flagValue = args[argumentIndex + 1];
+        if (flagValue === undefined) {
+            throw new PreviewServeError(`${args[argumentIndex]} takes a value`);
+        }
+        if (args[argumentIndex] === FLAG_PORT) port = parseInteger(flagValue) ?? DEFAULT_PORT;
+        else if (args[argumentIndex] === FLAG_FIGHT) fight = flagValue;
+        else if (args[argumentIndex] === FLAG_FROM) fromPaths.push(flagValue);
+        else throw new PreviewServeError(`${args[argumentIndex]} is not a flag this reads`);
+        argumentIndex += 1;
     }
     assert(fromPaths.length <= args.length, "no more paths than were given");
     return { port, fight, fromPaths, shouldOpenFabricated };
@@ -405,9 +407,9 @@ export function readFabricatedPaths(directory: string): string[] {
         );
     }
     const paths = listed
-        .filter((entry) => entry.isFile)
-        .filter((entry) => entry.name.endsWith(RECORDING_SUFFIX))
-        .map((entry) => `${directory}/${entry.name}`)
+        .filter((directoryEntry) => directoryEntry.isFile)
+        .filter((directoryEntry) => directoryEntry.name.endsWith(RECORDING_SUFFIX))
+        .map((directoryEntry) => `${directory}/${directoryEntry.name}`)
         .sort();
     if (paths.length === 0) {
         throw new PreviewServeError(

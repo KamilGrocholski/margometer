@@ -61,7 +61,7 @@ export const DECODER_TABLES: DecoderTables = composeRuntimeTables().decoder;
  */
 export function lookupRecordingPaths(named: readonly (string | number)[]): string[] | null {
     assert(named.length <= RECORDINGS_MAXIMUM, "a tool is named no more files than it reads");
-    const paths = named.filter((one): one is string => typeof one === "string");
+    const paths = named.filter((argument): argument is string => typeof argument === "string");
     if (paths.length < named.length) return null;
     return paths;
 }
@@ -166,10 +166,10 @@ export function replayRecordedSteps(fight: RecordedFight): ReplayedStep[] {
 /** The heading a report stands under: the file's own name, the directory and suffix off. */
 export function formatRecordingName(path: string): string {
     assert(path.length > 0, "a recording is named by its path");
-    const last = path.split(PATH_SEPARATOR).at(-1) ?? path;
-    const name = last.endsWith(RECORDING_SUFFIX)
-        ? last.slice(0, last.length - RECORDING_SUFFIX.length)
-        : last;
+    const fileName = path.split(PATH_SEPARATOR).at(-1) ?? path;
+    const name = fileName.endsWith(RECORDING_SUFFIX)
+        ? fileName.slice(0, fileName.length - RECORDING_SUFFIX.length)
+        : fileName;
     assert(name.length > 0, "and answers under a name that says something");
     return name;
 }

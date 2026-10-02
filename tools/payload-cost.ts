@@ -55,21 +55,21 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
         tallyMicroseconds: Number.POSITIVE_INFINITY,
     }));
     for (let run = 0; run < runs; run += 1) {
-        for (const [at, fight] of material.fights.entries()) {
-            const cost = costs[at];
+        for (const [fightIndex, fight] of material.fights.entries()) {
+            const cost = costs[fightIndex];
             assert(cost !== undefined, "every fight has its cost");
             // Stand the add-on up over a game whose own method is timed apart from the wrap.
             const battle = composeRebuildingBattle();
             const own = battle.page.Engine.battle.updateData;
             assert(typeof own === "function", "the game's method stands before the wrap");
             let margonemEngineMilliseconds = 0;
-            const timed = (payload: unknown): unknown => {
+            const timeMargonemEngineUpdate = (payload: unknown): unknown => {
                 const started = performance.now();
                 const answered = Reflect.apply(own, battle.page.Engine.battle, [payload]);
                 margonemEngineMilliseconds = performance.now() - started;
                 return answered;
             };
-            battle.page.Engine.battle.updateData = timed;
+            battle.page.Engine.battle.updateData = timeMargonemEngineUpdate;
             const window = composeFakeWindow({
                 margonem: { ...battle.page, _t: (labelId: string) => `label ${labelId}` },
             });
@@ -84,7 +84,11 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
             if (typeof wrapped !== "function") {
                 throw new PayloadCostError("the battle lost its method");
             }
-            assertNotStrictEquals(wrapped, timed, "the add-on wraps the game's method");
+            assertNotStrictEquals(
+                wrapped,
+                timeMargonemEngineUpdate,
+                "the add-on wraps the game's method",
+            );
             const session = createFightSession(SESSION_OPTIONS);
             for (const [index, update] of fight.updates.entries()) {
                 // Time the payload as the game calls it, less what the game's own method took.
@@ -131,25 +135,28 @@ function formatCostReport(costs: readonly FightCost[], material: string): string
     assert(costs.length > 0, "a report is of something");
     assert(material.length > 0, "and names what it was taken on (V4)");
     const payloads = costs.flatMap((cost) =>
-        cost.payloadMicroseconds.map((microseconds, at) => ({
+        cost.payloadMicroseconds.map((microseconds, payloadIndex) => ({
             name: cost.name,
-            at,
+            at: payloadIndex,
             microseconds,
-            messages: cost.messages[at] ?? 0,
+            messages: cost.messages[payloadIndex] ?? 0,
         }))
     );
-    const ordered = payloads.map((one) => one.microseconds).sort((one, other) => one - other);
+    const ordered = payloads.map((payload) => payload.microseconds).sort((
+        microseconds,
+        otherMicroseconds,
+    ) => microseconds - otherMicroseconds);
     const median = ordered[Math.floor(ordered.length / 2)] ?? 0;
     const tail =
         ordered[Math.min(ordered.length - 1, Math.floor(ordered.length * PERCENTILE_TAIL))] ??
             0;
-    const largest = payloads.reduce((one, other) =>
-        other.microseconds > one.microseconds ? other : one
+    const largest = payloads.reduce((largestSoFar, payload) =>
+        payload.microseconds > largestSoFar.microseconds ? payload : largestSoFar
     );
-    const messages = payloads.reduce((sum, one) => sum + one.messages, 0);
-    const total = payloads.reduce((sum, one) => sum + one.microseconds, 0);
-    const tally = costs.reduce((one, other) =>
-        other.tallyMicroseconds > one.tallyMicroseconds ? other : one
+    const messages = payloads.reduce((sum, payload) => sum + payload.messages, 0);
+    const total = payloads.reduce((sum, payload) => sum + payload.microseconds, 0);
+    const tally = costs.reduce((slowestSoFar, cost) =>
+        cost.tallyMicroseconds > slowestSoFar.tallyMicroseconds ? cost : slowestSoFar
     );
     const formatMicroseconds = (microseconds: number) =>
         `${formatInteger(Math.round(microseconds))} µs`;

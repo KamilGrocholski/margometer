@@ -86,7 +86,9 @@ export function tallyDecodingStatus(replayed: readonly ReplayedFight[]): Decodin
 /** Largest first, ties by name, so two runs over one material read alike. */
 function composeRankedTally(tally: Tally): Tally {
     assert(tally.length <= TALLY_MAXIMUM, "a tally sorted stays inside its stated bound");
-    return [...tally].sort((one, other) => getRankedOrder(one[1], other[1], one[0], other[0]));
+    return [...tally].sort((keyCount, otherKeyCount) =>
+        getRankedOrder(keyCount[1], otherKeyCount[1], keyCount[0], otherKeyCount[0])
+    );
 }
 
 /** The report as lines, so a test reads what it states without running it. */

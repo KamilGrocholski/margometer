@@ -86,8 +86,8 @@ ${written}
 }
 
 /** One bit's name as the text it is written down as, or a refusal branded as this tool's. */
-function encodeRequiredText(value: string): string {
-    const text = encodeJson(value, 0);
+function encodeRequiredText(name: string): string {
+    const text = encodeJson(name, 0);
     if (text instanceof Error) {
         throw new BuffBitTableError("a name of the table cannot be written", { cause: text });
     }
@@ -100,43 +100,43 @@ function encodeRequiredText(value: string): string {
  * an empty reading looks exactly like a game that dropped the feature.
  */
 export function requireBuffBits(bundle: string): string[] {
-    const found: string[] = [];
-    let at = bundle.indexOf(NOTHING_ARGUMENT);
+    const names: string[] = [];
+    let nothingAt = bundle.indexOf(NOTHING_ARGUMENT);
     for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
-        if (at === -1) break;
-        const name = lookupRegisteredStatusName(bundle, at);
+        if (nothingAt === -1) break;
+        const name = lookupRegisteredStatusName(bundle, nothingAt);
         if (name !== null) {
-            assert(found.length < STATUS_BITS_MAXIMUM, "a mask holds no more bits than an integer");
-            found.push(name);
+            assert(names.length < STATUS_BITS_MAXIMUM, "a mask holds no more bits than an integer");
+            names.push(name);
         }
-        at = bundle.indexOf(NOTHING_ARGUMENT, at + 1);
+        nothingAt = bundle.indexOf(NOTHING_ARGUMENT, nothingAt + 1);
     }
-    if (found.length === 0) {
+    if (names.length === 0) {
         throw new BuffBitTableError("no status is registered in the bundle — the client changed");
     }
-    assertStrictEquals(new Set(found).size, found.length, "each status is named at one position");
-    return found;
+    assertStrictEquals(new Set(names).size, names.length, "each status is named at one position");
+    return names;
 }
 
 /**
- * The name registered by the entry whose `null` sits at `at`, or null where that is some other
- * call. Read forwards from the bracket rather than back from the comma: a literal is a literal
- * only where something says where it opened, and the bracket is that thing.
+ * The name registered by the entry whose `null` sits at `nothingAt`, or null where that is some
+ * other call. Read forwards from the bracket rather than back from the comma: a literal is a
+ * literal only where something says where it opened, and the bracket is that thing.
  */
-function lookupRegisteredStatusName(bundle: string, at: number): string | null {
-    assert(at >= 0, "an entry is looked for inside the bundle");
-    const after = getEndOfRun(bundle, at + NOTHING_ARGUMENT.length, isWhitespaceAt);
+function lookupRegisteredStatusName(bundle: string, nothingAt: number): string | null {
+    assert(nothingAt >= 0, "an entry is looked for inside the bundle");
+    const after = getEndOfRun(bundle, nothingAt + NOTHING_ARGUMENT.length, isWhitespaceAt);
     if (bundle.charAt(after) !== ARGUMENT_SEPARATOR) return null;
     const role = lookupQuotedLiteral(bundle, getEndOfRun(bundle, after + 1, isWhitespaceAt));
     if (role === null) return null;
     if (role.text !== ROLE) return null;
     if (bundle.charAt(getEndOfRun(bundle, role.end, isWhitespaceAt)) !== CALL_CLOSE) return null;
-    const separator = bundle.lastIndexOf(ARGUMENT_SEPARATOR, at);
+    const separator = bundle.lastIndexOf(ARGUMENT_SEPARATOR, nothingAt);
     if (separator === -1) return null;
-    if (getEndOfRun(bundle, separator + 1, isWhitespaceAt) !== at) return null;
+    if (getEndOfRun(bundle, separator + 1, isWhitespaceAt) !== nothingAt) return null;
     const open = bundle.lastIndexOf(CALL_OPEN, separator);
     if (open === -1) return null;
-    if (open < at - WALK_BACK_MAXIMUM) return null;
+    if (open < nothingAt - WALK_BACK_MAXIMUM) return null;
     const name = lookupQuotedLiteral(bundle, getEndOfRun(bundle, open + 1, isWhitespaceAt));
     if (name === null) return null;
     if (getEndOfRun(bundle, name.end, isWhitespaceAt) !== separator) return null;

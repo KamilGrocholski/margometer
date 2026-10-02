@@ -1248,7 +1248,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `format` — strong
 
-- `format` — `tools/aura-standing.ts`
 - `formatAuraReport` — `tools/aura-standing.ts`
 - `formatAuraReportLine` — `tools/aura-standing.ts`
 - `formatAuraReportShouts` — `tools/aura-standing.ts`
@@ -1344,6 +1343,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `formatSideLines` — `tools/fight-figures.ts`
 - `formatSidesLabel` — `src/ui/panel-element.ts`
 - `formatSkillText` — `tools/fight-figures.ts`
+- `formatSourceLine` — `tools/aura-standing.ts`
 - `formatStatusCountLine` — `tools/decoding-status.ts`
 - `formatStatusReport` — `tools/decoding-status.ts`
 - `formatStatusTallyLines` — `tools/decoding-status.ts`
@@ -2491,7 +2491,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `substitute` — not in N2's table
 
-- `substitute` — `tools/capture-intake.ts`
+- `substituteNames` — `tools/capture-intake.ts`
 
 ### `subtitle` — not in N2's table
 
@@ -2513,9 +2513,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `tick` — `tests/runtime/margonem-engine-search.test.ts`
 
-### `timed` — not in N2's table
+### `time` — not in N2's table
 
-- `timed` — `tools/payload-cost.ts`
+- `timeMargonemEngineUpdate` — `tools/payload-cost.ts`
 
 ### `tip` — not in N2's table
 
@@ -5856,15 +5856,18 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `appended` — `tools/turn-reading.ts`
 - `applied` — `tools/fabricated-fight.ts`
 - `archive` — `tools/develop-reports.ts`
+- `argumentIndex` — `tools/preview-server.ts`
 - `arriving` — `tools/turn-count.ts`, `tools/turn-reading.ts`
 - `article` — `tools/help-article.ts`
 - `asked` — in 7 files: `tools/`
-- `at` — in 11 files: `tools/`
+- `assignmentAt` — `tools/skill-table.ts`
 - `atFirst` — `tools/turn-count.ts`
 - `atLast` — `tools/turn-count.ts`
 - `atOnce` — `tools/aura-standing.ts`
 - `atShouter` — `tools/shout-holding.ts`
 - `atSomebodyElse` — `tools/shout-holding.ts`
+- `aura` — `tools/aura-standing.ts`
+- `auraSkills` — `tools/skill-table.ts`
 - `auras` — `tools/skill-table.ts`
 - `aurasText` — `tools/skill-table.ts`
 - `awaiting` — `tools/fabricated-fight.ts`
@@ -5902,6 +5905,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `bySide` — `tools/fight-figures.ts`
 - `byTurn` — `tools/shout-holding.ts`
 - `cached` — in 4 files: `tools/`
+- `cachedSource` — `tools/margonem-client-source.ts`
 - `call` — `tools/capture-intake.ts`
 - `calls` — `tools/fabricated-fight.ts`
 - `caption` — `tools/fight-figures.ts`
@@ -5920,7 +5924,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `chosen` — `tools/develop-reports.ts`, `tools/fabricated-fight.ts`
 - `cited` — `tools/help-article.ts`
 - `claim` — `tools/help-claim-register.ts`
-- `claims` — `tools/protocol-key-shape.ts`
+- `claims` — `tools/help-claim-register.ts`, `tools/protocol-key-shape.ts`
 - `client` — `tools/margonem-readings.ts`
 - `clientState` — `tools/margonem-readings.ts`
 - `clip` — `tools/panel-shots.ts`
@@ -5945,7 +5949,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `countByLines` — `tools/card-height.ts`
 - `counted` — in 4 files: `tools/`
 - `counts` — `tools/fight-figures.ts`, `tools/help-article.ts`, `tools/turn-count.ts`
-- `current` — `tools/develop-reports.ts`
 - `cut` — `tools/drill-report.ts`
 - `date` — `tools/help-article.ts`
 - `dated` — `tools/skill-table.ts`
@@ -5953,12 +5956,13 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `days` — `tools/help-article.ts`
 - `dealt` — `tools/fabricated-fight.ts`
 - `dealtSign` — `tools/protocol-key-table.ts`
-- `declared` — `tools/build-userscript.ts`
+- `declared` — `tools/aura-standing.ts`, `tools/build-userscript.ts`
 - `decoded` — `tools/turn-reading.ts`
 - `decoding` — `tools/develop-reports.ts`
 - `delta` — `tools/turn-count.ts`
 - `depth` — `tools/protocol-key-table.ts`
 - `described` — `tools/capture-intake.ts`
+- `descriptionAt` — `tools/capture-intake.ts`
 - `details` — `tools/fight-figures.ts`
 - `develop` — `tools/develop-reports.ts`
 - `developFigures` — `tools/develop-reports.ts`
@@ -5972,19 +5976,22 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `directory` — `tools/develop-reports.ts`, `tools/help-article.ts`,
   `tools/margonem-client-source.ts`
 - `disagreed` — `tools/protocol-key-shape.ts`
+- `dispute` — `tools/turn-reading.ts`
 - `disputed` — `tools/turn-reading.ts`
 - `distinct` — `tools/help-article.ts`, `tools/protocol-key-table.ts`
 - `document` — `tools/recorded-material.ts`
 - `domain` — `tools/build-userscript.ts`
 - `drawn` — `tools/panel-shots.ts`
 - `drill` — `tools/drill-report.ts`
+- `drillCase` — `tools/drill-report.ts`
 - `driver` — `tools/preview-page.ts`
 - `dump` — `tools/margonem-readings.ts`
 - `dumped` — `tools/margonem-readings.ts`
 - `durations` — `tools/skill-table.ts`
 - `effect` — `tools/skill-table.ts`
+- `effects` — `tools/skill-table.ts`
 - `elapsed` — `tools/shout-holding.ts`
-- `element` — `tools/fabricated-fight.ts`
+- `elementKeys` — `tools/fabricated-fight.ts`
 - `elsewhere` — `tools/turn-count.ts`
 - `encoded` — `tools/fabricated-fight.ts`
 - `end` — `tools/changelog.ts`, `tools/help-article.ts`, `tools/protocol-key-shape.ts`
@@ -5993,37 +6000,47 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `engine` — `tools/payload-cost.ts`
 - `english` — `tools/capture-intake.ts`
 - `entries` — `tools/protocol-key-shape.ts`
-- `entry` — `tools/panel-giving-way.ts`, `tools/panel-shots.ts`, `tools/preview-state.ts`
 - `entryIndex` — `tools/preview-server.ts`
+- `entryName` — `tools/preview-state.ts`
 - `envelope` — `tools/capture-intake.ts`
 - `episode` — `tools/shout-holding.ts`
 - `episodes` — `tools/shout-holding.ts`
 - `event` — in 5 files: `tools/`
+- `eventIndex` — `tools/shout-holding.ts`
 - `events` — `tools/shout-holding.ts`, `tools/turn-reading.ts`
 - `eventsByKind` — `tools/decoding-status.ts`
+- `excerpts` — `tools/help-article.ts`
 - `expected` — `tools/turn-count.ts`
 - `families` — `tools/protocol-key-shape.ts`
 - `family` — `tools/protocol-key-table.ts`
+- `familyFields` — `tools/protocol-key-table.ts`
+- `fedThrough` — `tools/panel-giving-way.ts`, `tools/panel-shots.ts`
 - `fetchedAt` — `tools/help-article.ts`, `tools/margonem-client-source.ts`, `tools/skill-table.ts`
 - `field` — `tools/capture-intake.ts`, `tools/help-article.ts`, `tools/margonem-client-source.ts`
+- `fieldValue` — `tools/capture-intake.ts`
 - `fields` — `tools/protocol-key-table.ts`
 - `fight` — in 11 files: `tools/`
+- `fightIndex` — `tools/payload-cost.ts`
 - `fightName` — `tools/panel-shots.ts`
 - `fights` — `tools/preview-server.ts`, `tools/recorded-material.ts`
 - `figure` — `tools/fabricated-fight.ts`
 - `figures` — in 7 files: `tools/`
 - `file` — `tools/preview-site.ts`
+- `fileName` — `tools/recorded-material.ts`
 - `files` — `tools/build-userscript.ts`, `tools/preview-site.ts`
 - `finished` — `tools/build-userscript.ts`
 - `fire` — `tools/fabricated-fight.ts`
-- `first` — `tools/aura-lifetime.ts`, `tools/frozen-files.ts`, `tools/turn-count.ts`
+- `firstHeld` — `tools/frozen-files.ts`
+- `firstIndex` — `tools/turn-count.ts`
 - `firstRow` — `tools/panel-shots.ts`
+- `firstRun` — `tools/aura-lifetime.ts`
+- `firstStatement` — `tools/turn-count.ts`
 - `flag` — `tools/capture-intake.ts`
+- `flagValue` — `tools/preview-server.ts`
 - `flags` — `tools/panel-giving-way.ts`, `tools/preview-server.ts`
 - `flowing` — `tools/protocol-key-shape.ts`
 - `fold` — `tools/panel-giving-way.ts`
 - `fought` — `tools/fabricated-fight.ts`
-- `found` — in 9 files: `tools/`
 - `fragment` — `tools/help-article.ts`
 - `fragments` — `tools/help-article.ts`
 - `from` — in 4 files: `tools/`
@@ -6031,16 +6048,19 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `frozen` — in 4 files: `tools/`
 - `frozenBuild` — `tools/margonem-readings.ts`
 - `frozenKeys` — `tools/margonem-readings.ts`
+- `frozenName` — `tools/margonem-readings.ts`
 - `given` — `tools/fabricated-fight.ts`
 - `grade` — `tools/turn-count.ts`
 - `graded` — `tools/turn-count.ts`
 - `grades` — `tools/turn-count.ts`
 - `granted` — `tools/skill-table.ts`, `tools/turn-count.ts`
+- `grantedBlows` — `tools/skill-table.ts`
 - `has` — `tools/aura-lifetime.ts`
 - `hasMoved` — `tools/help-article.ts`
 - `hash` — `tools/preview-state.ts`
 - `haystack` — `tools/help-article.ts`
 - `head` — `tools/protocol-key-table.ts`
+- `headAt` — `tools/protocol-key-table.ts`
 - `heading` — `tools/aura-lifetime.ts`, `tools/develop-reports.ts`, `tools/protocol-key-shape.ts`
 - `headings` — `tools/aura-standing.ts`, `tools/turn-count.ts`
 - `healthMaximum` — `tools/fabricated-fight.ts`
@@ -6057,7 +6077,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `html` — in 4 files: `tools/`
 - `hurt` — `tools/fabricated-fight.ts`
 - `id` — `tools/capture-intake.ts`, `tools/fight-figures.ts`, `tools/skill-table.ts`
-- `index` — in 6 files: `tools/`
+- `index` — in 7 files: `tools/`
 - `indexes` — `tools/fabricated-fight.ts`
 - `indices` — `tools/turn-count.ts`
 - `injure` — `tools/fabricated-fight.ts`
@@ -6079,21 +6099,28 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `keepAlive` — `tools/preview-server.ts`
 - `kept` — in 4 files: `tools/`
 - `key` — in 9 files: `tools/`
+- `keyValue` — `tools/protocol-key-shape.ts`
 - `keys` — in 4 files: `tools/`
 - `keysByCast` — `tools/aura-standing.ts`
+- `keywordAt` — `tools/protocol-key-table.ts`
 - `kind` — `tools/drill-report.ts`, `tools/turn-reading.ts`
 - `kindPlace` — `tools/drill-report.ts`
 - `known` — `tools/capture-intake.ts`
 - `label` — `tools/capture-intake.ts`, `tools/fight-figures.ts`
 - `labels` — `tools/capture-intake.ts`, `tools/protocol-key-table.ts`
 - `largest` — `tools/payload-cost.ts`
-- `last` — `tools/fabricated-fight.ts`, `tools/recorded-material.ts`, `tools/turn-count.ts`
+- `lastIndex` — `tools/turn-count.ts`
+- `lastStatement` — `tools/turn-count.ts`
+- `lastStep` — `tools/turn-count.ts`
 - `later` — `tools/shout-holding.ts`
+- `laterEvent` — `tools/shout-holding.ts`
 - `least` — `tools/preview-page.ts`
 - `left` — `tools/panel-shots.ts`
 - `length` — `tools/aura-lifetime.ts`, `tools/margonem-readings.ts`, `tools/skill-table.ts`
 - `level` — `tools/skill-table.ts`
+- `levelValue` — `tools/skill-table.ts`
 - `liftedKeys` — `tools/margonem-readings.ts`
+- `liftedName` — `tools/margonem-readings.ts`
 - `light` — `tools/fabricated-fight.ts`
 - `lightings` — `tools/aura-lifetime.ts`
 - `line` — in 5 files: `tools/`
@@ -6116,43 +6143,49 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `markerLength` — `tools/protocol-key-table.ts`
 - `mask` — `tools/aura-lifetime.ts`
 - `material` — in 5 files: `tools/`
-- `median` — `tools/payload-cost.ts`
+- `median` — `tools/card-height.ts`, `tools/payload-cost.ts`
+- `member` — `tools/capture-intake.ts`
 - `members` — `tools/fight-figures.ts`
 - `message` — `tools/protocol-key-shape.ts`, `tools/turn-reading.ts`
+- `messageIndex` — `tools/turn-reading.ts`
 - `messages` — `tools/fabricated-fight.ts`, `tools/payload-cost.ts`
 - `metadata` — `tools/build-userscript.ts`
 - `milliseconds` — `tools/help-article.ts`
 - `mine` — `tools/aura-lifetime.ts`, `tools/turn-count.ts`
 - `missing` — `tools/help-article.ts`
+- `mode` — `tools/aura-lifetime.ts`
 - `most` — `tools/preview-page.ts`
 - `moved` — in 4 files: `tools/`
 - `name` — in 9 files: `tools/`
 - `named` — in 8 files: `tools/`
 - `namedBySkillId` — `tools/aura-standing.ts`
-- `names` — `tools/develop-reports.ts`
+- `names` — `tools/buff-bit-table.ts`, `tools/develop-reports.ts`
 - `needle` — `tools/help-article.ts`
 - `newer` — `tools/develop-reports.ts`
-- `next` — `tools/shout-holding.ts`
 - `nonPlayer` — `tools/capture-intake.ts`
 - `normalised` — `tools/fabricated-fight.ts`
 - `note` — `tools/protocol-key-shape.ts`
 - `notes` — `tools/card-height.ts`
+- `nothingAt` — `tools/buff-bit-table.ts`
 - `now` — `tools/margonem-readings.ts`, `tools/shout-holding.ts`
 - `occurrences` — `tools/protocol-key-shape.ts`
 - `offered` — `tools/capture-intake.ts`
 - `offset` — `tools/help-claim-register.ts`, `tools/protocol-key-shape.ts`
-- `one` — in 8 files: `tools/`
 - `only` — `tools/protocol-key-shape.ts`
 - `open` — in 6 files: `tools/`
+- `openSection` — `tools/develop-reports.ts`
 - `opened` — in 5 files: `tools/`
+- `openedPart` — `tools/drill-report.ts`
 - `opener` — `tools/changelog.ts`, `tools/frozen-files.ts`, `tools/turn-reading.ts`
+- `openerAt` — `tools/frozen-files.ts`
 - `openerId` — `tools/turn-reading.ts`
 - `opening` — `tools/preview-server.ts`
 - `opens` — `tools/drill-report.ts`, `tools/fabricated-fight.ts`
+- `opposingSide` — `tools/fabricated-fight.ts`
 - `order` — `tools/capture-intake.ts`
 - `ordered` — `tools/card-height.ts`, `tools/payload-cost.ts`
 - `ordinal` — `tools/fabricated-fight.ts`
-- `other` — `tools/drill-report.ts`, `tools/fabricated-fight.ts`
+- `otherEnd` — `tools/drill-report.ts`
 - `outbound` — `tools/build-userscript.ts`
 - `outcome` — `tools/fight-figures.ts`, `tools/turn-count.ts`
 - `outcomes` — `tools/turn-count.ts`
@@ -6164,18 +6197,19 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `pagePath` — `tools/skill-table.ts`
 - `paged` — `tools/margonem-readings.ts`
 - `pair` — `tools/drill-report.ts`
+- `pairPart` — `tools/drill-report.ts`
 - `pairs` — `tools/capture-intake.ts`
 - `panel` — `tools/panel-shots.ts`, `tools/preview-page.ts`, `tools/preview-state.ts`
 - `paragraph` — `tools/protocol-key-shape.ts`
 - `parameter` — `tools/protocol-key-shape.ts`
 - `parameters` — `tools/protocol-key-shape.ts`, `tools/turn-reading.ts`
-- `parsed` — in 11 files: `tools/`
+- `parsed` — in 12 files: `tools/`
 - `parser` — `tools/preview-state.ts`
-- `part` — `tools/drill-report.ts`
 - `partRow` — `tools/drill-report.ts`
 - `parts` — `tools/build-userscript.ts`, `tools/capture-intake.ts`
 - `past` — `tools/shout-holding.ts`
 - `path` — in 6 files: `tools/`
+- `pathAt` — `tools/protocol-key-shape.ts`
 - `paths` — in 8 files: `tools/`
 - `payload` — `tools/capture-intake.ts`, `tools/fabricated-fight.ts`, `tools/turn-reading.ts`
 - `payloads` — `tools/payload-cost.ts`
@@ -6195,19 +6229,21 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `players` — `tools/capture-intake.ts`
 - `poison` — `tools/fabricated-fight.ts`
 - `port` — `tools/panel-giving-way.ts`, `tools/preview-server.ts`
+- `position` — `tools/capture-intake.ts`, `tools/protocol-key-shape.ts`,
+  `tools/protocol-key-table.ts`
 - `prefix` — `tools/build-userscript.ts`
 - `prepared` — `tools/payload-cost.ts`
 - `preview` — `tools/panel-giving-way.ts`, `tools/preview-server.ts`
 - `previousActorId` — `tools/turn-reading.ts`
 - `previousEnd` — `tools/help-article.ts`
 - `profession` — `tools/fabricated-fight.ts`
+- `provocation` — `tools/aura-standing.ts`, `tools/shout-holding.ts`
 - `queue` — `tools/fabricated-fight.ts`
 - `quote` — `tools/protocol-key-table.ts`
 - `quoted` — `tools/protocol-key-table.ts`
 - `ranked` — `tools/fight-figures.ts`
 - `raw` — `tools/fabricated-fight.ts`, `tools/protocol-key-shape.ts`
 - `reach` — `tools/aura-standing.ts`
-- `read` — in 6 files: `tools/`
 - `readerSide` — `tools/preview-page.ts`
 - `reading` — in 8 files: `tools/`
 - `readings` — `tools/turn-reading.ts`
@@ -6222,11 +6258,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `removed` — `tools/capture-intake.ts`, `tools/margonem-readings.ts`
 - `renamed` — `tools/capture-intake.ts`
 - `replayed` — in 5 files: `tools/`
+- `replayedFight` — `tools/card-height.ts`, `tools/drill-report.ts`
 - `report` — `tools/protocol-key-shape.ts`
 - `response` — `tools/help-article.ts`, `tools/margonem-client-source.ts`, `tools/skill-table.ts`
 - `rest` — `tools/changelog.ts`, `tools/protocol-key-shape.ts`
 - `restored` — `tools/fabricated-fight.ts`
-- `result` — `tools/capture-intake.ts`
 - `rewrite` — `tools/develop-reports.ts`
 - `rewriteLines` — `tools/develop-reports.ts`
 - `role` — `tools/buff-bit-table.ts`
@@ -6235,7 +6271,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `roster` — `tools/drill-report.ts`, `tools/turn-reading.ts`
 - `round` — `tools/fabricated-fight.ts`
 - `row` — in 5 files: `tools/`
-- `rows` — `tools/aura-standing.ts`, `tools/shout-holding.ts`, `tools/skill-table.ts`
+- `rows` — in 4 files: `tools/`
+- `ruleAt` — `tools/protocol-key-shape.ts`
 - `run` — `tools/aura-lifetime.ts`, `tools/payload-cost.ts`
 - `rungs` — `tools/drill-report.ts`
 - `runs` — `tools/aura-lifetime.ts`
@@ -6267,6 +6304,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `shots` — `tools/panel-shots.ts`
 - `shouldOpenFabricated` — `tools/preview-server.ts`
 - `shout` — `tools/skill-table.ts`
+- `shoutSkills` — `tools/skill-table.ts`
 - `shouted` — `tools/skill-table.ts`
 - `shouter` — `tools/fabricated-fight.ts`
 - `shouts` — `tools/fabricated-fight.ts`, `tools/skill-table.ts`
@@ -6293,10 +6331,13 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `started` — `tools/payload-cost.ts`
 - `state` — in 5 files: `tools/`
 - `stated` — in 8 files: `tools/`
+- `statedIndex` — `tools/turn-count.ts`
 - `states` — `tools/margonem-readings.ts`
 - `statistics` — `tools/drill-report.ts`, `tools/fight-figures.ts`, `tools/turn-count.ts`
 - `status` — `tools/decoding-status.ts`
 - `step` — in 6 files: `tools/`
+- `stepIndex` — `tools/aura-lifetime.ts`
+- `stepReading` — `tools/turn-reading.ts`
 - `stepped` — `tools/recorded-material.ts`
 - `steps` — in 5 files: `tools/`
 - `stood` — `tools/preview-page.ts`
@@ -6304,9 +6345,12 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `stretch` — `tools/turn-count.ts`
 - `strongest` — `tools/protocol-key-shape.ts`
 - `subject` — `tools/protocol-key-table.ts`
+- `substituted` — `tools/capture-intake.ts`
 - `substitutions` — `tools/capture-intake.ts`
+- `survivor` — `tools/fabricated-fight.ts`
 - `table` — `tools/margonem-readings.ts`
 - `tail` — `tools/payload-cost.ts`
+- `tailAt` — `tools/protocol-key-table.ts`
 - `taken` — `tools/fabricated-fight.ts`, `tools/panel-shots.ts`, `tools/turn-count.ts`
 - `takenAt` — `tools/panel-shots.ts`
 - `takenNow` — `tools/turn-count.ts`
@@ -6316,7 +6360,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `target` — `tools/capture-intake.ts`, `tools/fabricated-fight.ts`
 - `task` — `tools/capture-intake.ts`
 - `terminator` — `tools/protocol-key-table.ts`
-- `text` — in 11 files: `tools/`
+- `text` — in 12 files: `tools/`
 - `textLength` — `tools/help-article.ts`
 - `textPath` — `tools/help-article.ts`
 - `texts` — `tools/frozen-files.ts`
@@ -6344,13 +6388,14 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `update` — `tools/payload-cost.ts`, `tools/recorded-material.ts`, `tools/turn-count.ts`
 - `updates` — `tools/recorded-material.ts`
 - `url` — `tools/help-article.ts`, `tools/skill-table.ts`
-- `value` — in 4 files: `tools/`
+- `valueClaim` — `tools/protocol-key-shape.ts`
 - `values` — `tools/skill-table.ts`
 - `verdict` — `tools/margonem-readings.ts`, `tools/protocol-key-shape.ts`
 - `version` — `tools/build-userscript.ts`, `tools/changelog.ts`, `tools/fabricated-fight.ts`
 - `view` — in 5 files: `tools/`
 - `walk` — `tools/turn-reading.ts`
 - `walked` — `tools/drill-report.ts`
+- `walkedValue` — `tools/capture-intake.ts`
 - `walks` — `tools/turn-reading.ts`
 - `wanted` — `tools/capture-intake.ts`, `tools/preview-server.ts`
 - `warning` — `tools/help-article.ts`
@@ -6367,6 +6412,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `without` — `tools/turn-reading.ts`
 - `won` — `tools/fabricated-fight.ts`
 - `word` — `tools/protocol-key-shape.ts`
+- `wordIndex` — `tools/protocol-key-shape.ts`
 - `words` — `tools/protocol-key-shape.ts`
 - `world` — `tools/capture-intake.ts`
 - `wound` — `tools/fabricated-fight.ts`
@@ -8333,12 +8379,13 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `after` — `tools/turn-count.ts`
 - `amount` — `tools/fabricated-fight.ts`, `tools/fight-figures.ts`
 - `args` — in 5 files: `tools/`
+- `argument` — `tools/aura-lifetime.ts`, `tools/recorded-material.ts`
 - `arriving` — `tools/turn-count.ts`
 - `article` — `tools/help-article.ts`
 - `asked` — `tools/fabricated-fight.ts`, `tools/panel-shots.ts`
-- `at` — in 6 files: `tools/`
 - `atShouter` — `tools/shout-holding.ts`
 - `atSomebodyElse` — `tools/shout-holding.ts`
+- `aura` — `tools/skill-table.ts`
 - `auras` — `tools/skill-table.ts`
 - `base` — `tools/fabricated-fight.ts`
 - `before` — `tools/fabricated-fight.ts`, `tools/turn-count.ts`, `tools/turn-reading.ts`
@@ -8354,18 +8401,22 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `cached` — `tools/margonem-readings.ts`
 - `call` — `tools/build-userscript.ts`, `tools/capture-intake.ts`, `tools/fabricated-fight.ts`
 - `calls` — `tools/panel-shots.ts`
+- `candidate` — `tools/capture-intake.ts`
 - `caption` — `tools/decoding-status.ts`, `tools/develop-reports.ts`, `tools/fight-figures.ts`
 - `carried` — `tools/protocol-key-shape.ts`
 - `cases` — `tools/drill-report.ts`
 - `cause` — `tools/help-article.ts`, `tools/panel-shots.ts`, `tools/skill-table.ts`
-- `cell` — `tools/aura-standing.ts`, `tools/skill-table.ts`
+- `cell` — `tools/aura-standing.ts`, `tools/skill-table.ts`, `tools/turn-count.ts`
 - `cells` — `tools/aura-standing.ts`
 - `changelog` — `tools/changelog.ts`
 - `channel` — `tools/margonem-client-source.ts`
-- `claim` — `tools/protocol-key-shape.ts`
+- `claim` — `tools/help-claim-register.ts`, `tools/protocol-key-shape.ts`
 - `claims` — `tools/protocol-key-shape.ts`
+- `clock` — `tools/shout-holding.ts`
 - `clocks` — `tools/shout-holding.ts`
 - `code` — `tools/margometer-tool-error.ts`
+- `column` — `tools/aura-standing.ts`
+- `combatant` — `tools/fabricated-fight.ts`
 - `combatantId` — `tools/drill-report.ts`
 - `command` — `tools/develop-reports.ts`
 - `comparison` — `tools/develop-reports.ts`
@@ -8374,13 +8425,14 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `controller` — `tools/preview-server.ts`
 - `cost` — `tools/payload-cost.ts`
 - `costs` — `tools/payload-cost.ts`
-- `count` — in 7 files: `tools/`
-- `counted` — `tools/turn-count.ts`
+- `count` — in 8 files: `tools/`
+- `counted` — `tools/drill-report.ts`, `tools/turn-count.ts`
 - `counts` — `tools/help-article.ts`
 - `cut` — `tools/fight-figures.ts`
-- `data` — `tools/preview-server.ts`
+- `cutPart` — `tools/fight-figures.ts`
 - `date` — in 5 files: `tools/`
 - `dateField` — `tools/frozen-files.ts`
+- `declared` — `tools/aura-standing.ts`, `tools/shout-holding.ts`
 - `delta` — `tools/turn-count.ts`
 - `develop` — `tools/develop-reports.ts`
 - `developLines` — `tools/develop-reports.ts`
@@ -8388,6 +8440,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `developText` — `tools/develop-reports.ts`
 - `difference` — `tools/develop-reports.ts`
 - `directory` — `tools/develop-reports.ts`, `tools/preview-server.ts`
+- `directoryEntry` — `tools/preview-server.ts`
 - `disputed` — `tools/turn-reading.ts`
 - `doesCloseOnShouts` — `tools/fabricated-fight.ts`
 - `doesOfferFights` — `tools/preview-page.ts`
@@ -8395,9 +8448,12 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `doesStartFromEmpty` — `tools/preview-page.ts`
 - `done` — `tools/capture-intake.ts`
 - `drill` — `tools/drill-report.ts`
+- `drillCase` — `tools/drill-report.ts`
+- `effect` — `tools/skill-table.ts`
+- `encodable` — `tools/capture-intake.ts`, `tools/protocol-key-table.ts`
 - `encode` — `tools/fabricated-fight.ts`, `tools/frozen-files.ts`
 - `ending` — `tools/fabricated-fight.ts`
-- `entry` — `tools/build-userscript.ts`, `tools/panel-shots.ts`, `tools/preview-server.ts`
+- `entryPath` — `tools/build-userscript.ts`
 - `envelope` — `tools/capture-intake.ts`
 - `event` — `tools/preview-server.ts`, `tools/shout-holding.ts`, `tools/turn-reading.ts`
 - `events` — `tools/aura-standing.ts`, `tools/shout-holding.ts`, `tools/turn-reading.ts`
@@ -8407,6 +8463,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tools/preview-server.ts`
 - `fallback` — `tools/fabricated-fight.ts`
 - `family` — `tools/protocol-key-shape.ts`, `tools/protocol-key-table.ts`
+- `fedThrough` — `tools/panel-shots.ts`
 - `fetchedAt` — `tools/help-article.ts`, `tools/margonem-readings.ts`
 - `field` — `tools/capture-intake.ts`
 - `fields` — `tools/protocol-key-table.ts`
@@ -8425,9 +8482,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getTurns` — `tools/turn-count.ts`
 - `grade` — `tools/turn-count.ts`
 - `grades` — `tools/turn-count.ts`
+- `grant` — `tools/skill-table.ts`
 - `granted` — `tools/skill-table.ts`
 - `group` — `tools/card-height.ts`
-- `heading` — `tools/fight-figures.ts`
+- `heading` — `tools/fight-figures.ts`, `tools/turn-count.ts`
+- `height` — `tools/card-height.ts`
 - `heights` — `tools/card-height.ts`
 - `heldDate` — `tools/frozen-files.ts`
 - `helds` — `tools/frozen-files.ts`
@@ -8438,22 +8497,29 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `install` — `tools/preview-page.ts`
 - `isAtShouter` — `tools/shout-holding.ts`
 - `key` — in 8 files: `tools/`
+- `keyCount` — `tools/decoding-status.ts`
 - `keys` — `tools/margonem-readings.ts`, `tools/protocol-key-table.ts`
 - `kind` — `tools/decoding-status.ts`
+- `knownMarker` — `tools/help-claim-register.ts`
 - `label` — `tools/capture-intake.ts`, `tools/fight-figures.ts`
 - `labelId` — `tools/payload-cost.ts`
+- `largestSoFar` — `tools/payload-cost.ts`
 - `left` — `tools/aura-standing.ts`
 - `level` — `tools/fabricated-fight.ts`
+- `levelTurns` — `tools/skill-table.ts`
 - `lifted` — `tools/margonem-readings.ts`
 - `lightings` — `tools/aura-lifetime.ts`
 - `line` — in 6 files: `tools/`
+- `lineNumber` — `tools/help-claim-register.ts`, `tools/protocol-key-shape.ts`
+- `lines` — `tools/card-height.ts`
 - `listeners` — `tools/preview-server.ts`
+- `manifest` — `tools/help-article.ts`, `tools/margonem-client-source.ts`, `tools/skill-table.ts`
 - `mapText` — `tools/capture-intake.ts`
 - `mapped` — `tools/capture-intake.ts`
 - `mask` — `tools/aura-lifetime.ts`
-- `material` — in 7 files: `tools/`
+- `material` — in 8 files: `tools/`
 - `maximum` — `tools/fabricated-fight.ts`, `tools/help-article.ts`
-- `message` — `tools/turn-reading.ts`
+- `message` — `tools/fabricated-fight.ts`, `tools/turn-reading.ts`
 - `messages` — `tools/fabricated-fight.ts`
 - `messagesLost` — `tools/fight-figures.ts`
 - `microseconds` — `tools/payload-cost.ts`
@@ -8461,28 +8527,44 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `minimum` — `tools/fabricated-fight.ts`
 - `moment` — `tools/panel-shots.ts`
 - `moved` — `tools/fabricated-fight.ts`
-- `name` — in 8 files: `tools/`
+- `name` — in 9 files: `tools/`
 - `named` — `tools/help-article.ts`, `tools/recorded-material.ts`
 - `names` — `tools/capture-intake.ts`
 - `need` — `tools/preview-page.ts`
+- `nothingAt` — `tools/buff-bit-table.ts`
 - `now` — `tools/help-article.ts`, `tools/margonem-readings.ts`
-- `one` — in 17 files: `tools/`
 - `opened` — `tools/drill-report.ts`
+- `openedPart` — `tools/drill-report.ts`
 - `opener` — `tools/turn-reading.ts`
 - `openerId` — `tools/turn-reading.ts`
 - `options` — `tools/margometer-tool-error.ts`, `tools/preview-page.ts`, `tools/preview-server.ts`
 - `ordered` — `tools/card-height.ts`
 - `ordinal` — `tools/fabricated-fight.ts`
-- `other` — in 9 files: `tools/`
+- `otherCount` — `tools/card-height.ts`
+- `otherCutPart` — `tools/fight-figures.ts`
+- `otherDrillCase` — `tools/drill-report.ts`
+- `otherHeight` — `tools/card-height.ts`
+- `otherId` — `tools/capture-intake.ts`, `tools/fight-figures.ts`
+- `otherKeyCount` — `tools/decoding-status.ts`
+- `otherMicroseconds` — `tools/payload-cost.ts`
+- `otherPair` — `tools/capture-intake.ts`
+- `otherRow` — `tools/aura-lifetime.ts`
+- `otherSideGroup` — `tools/fight-figures.ts`
+- `otherSkill` — `tools/fight-figures.ts`
+- `otherTally` — `tools/aura-lifetime.ts`, `tools/card-height.ts`, `tools/turn-reading.ts`
+- `otherTurns` — `tools/aura-lifetime.ts`, `tools/shout-holding.ts`
 - `outcomes` — `tools/turn-count.ts`
+- `ownTurns` — `tools/aura-lifetime.ts`
+- `pair` — `tools/capture-intake.ts`
 - `paragraph` — `tools/protocol-key-shape.ts`
+- `parameter` — `tools/fabricated-fight.ts`, `tools/protocol-key-shape.ts`, `tools/turn-reading.ts`
 - `parameters` — `tools/fabricated-fight.ts`
-- `part` — `tools/drill-report.ts`
 - `path` — in 6 files: `tools/`
 - `paths` — in 4 files: `tools/`
 - `payload` — `tools/fabricated-fight.ts`, `tools/payload-cost.ts`, `tools/turn-reading.ts`
+- `payloadIndex` — `tools/payload-cost.ts`
 - `perSide` — `tools/fabricated-fight.ts`
-- `phrase` — `tools/help-article.ts`
+- `phrase` — `tools/help-article.ts`, `tools/help-claim-register.ts`
 - `phrases` — `tools/help-article.ts`
 - `pinnedCase` — `tools/drill-report.ts`
 - `place` — `tools/drill-report.ts`, `tools/fabricated-fight.ts`
@@ -8491,11 +8573,13 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `readDate` — `tools/frozen-files.ts`
 - `reading` — `tools/shout-holding.ts`, `tools/turn-reading.ts`
 - `reason` — `tools/margometer-tool-error.ts`
+- `record` — `tools/capture-intake.ts`
 - `recording` — `tools/capture-intake.ts`
 - `region` — `tools/panel-giving-way.ts`
 - `regions` — `tools/panel-giving-way.ts`
 - `register` — `tools/protocol-key-shape.ts`
 - `registered` — `tools/protocol-key-shape.ts`
+- `registeredKey` — `tools/protocol-key-shape.ts`
 - `replayed` — in 6 files: `tools/`
 - `request` — `tools/preview-server.ts`
 - `revision` — `tools/develop-reports.ts`
@@ -8518,16 +8602,21 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `script` — `tools/preview-page.ts`, `tools/preview-server.ts`
 - `sentence` — `tools/protocol-key-shape.ts`
 - `served` — `tools/margonem-readings.ts`
+- `setting` — `tools/build-userscript.ts`
 - `shape` — `tools/fabricated-fight.ts`, `tools/protocol-key-shape.ts`
 - `shapes` — `tools/protocol-key-shape.ts`
 - `shift` — `tools/margonem-readings.ts`
 - `shot` — `tools/panel-shots.ts`
+- `shout` — `tools/skill-table.ts`
+- `shoutSkill` — `tools/skill-table.ts`
 - `shouts` — `tools/skill-table.ts`
 - `side` — `tools/fabricated-fight.ts`
-- `skill` — `tools/fabricated-fight.ts`, `tools/fight-figures.ts`
+- `sideGroup` — `tools/fight-figures.ts`
+- `skill` — `tools/fabricated-fight.ts`, `tools/fight-figures.ts`, `tools/skill-table.ts`
 - `skillId` — `tools/aura-standing.ts`
 - `skillName` — `tools/aura-standing.ts`
 - `skills` — `tools/fight-figures.ts`, `tools/skill-table.ts`
+- `slowestSoFar` — `tools/payload-cost.ts`
 - `slug` — `tools/capture-intake.ts`
 - `source` — `tools/capture-intake.ts`, `tools/panel-giving-way.ts`, `tools/protocol-key-table.ts`
 - `standing` — `tools/turn-reading.ts`
@@ -8542,16 +8631,16 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `substitutions` — `tools/capture-intake.ts`
 - `sum` — `tools/fabricated-fight.ts`, `tools/payload-cost.ts`
 - `tallies` — `tools/turn-reading.ts`
-- `tally` — `tools/decoding-status.ts`, `tools/drill-report.ts`, `tools/shout-holding.ts`
+- `tally` — in 6 files: `tools/`
 - `target` — `tools/fabricated-fight.ts`
 - `task` — `tools/develop-reports.ts`
-- `text` — in 10 files: `tools/`
+- `text` — in 11 files: `tools/`
 - `turn` — `tools/fabricated-fight.ts`
+- `turns` — `tools/aura-lifetime.ts`, `tools/shout-holding.ts`
 - `turnsElapsed` — `tools/shout-holding.ts`
 - `unit` — `tools/margonem-readings.ts`
 - `update` — `tools/turn-count.ts`
 - `url` — `tools/preview-server.ts`
-- `value` — in 10 files: `tools/`
 - `values` — `tools/protocol-key-shape.ts`
 - `version` — in 4 files: `tools/`
 - `view` — `tools/shout-holding.ts`

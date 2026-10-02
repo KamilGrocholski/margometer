@@ -144,8 +144,8 @@ export function composeTurnGrades(fights: readonly RecordedFight[]): TurnGrade[]
 }
 
 function composeTurnGrade(fight: RecordedFight, steps: readonly ReplayedStep[]): TurnGrade {
-    const last = steps.at(-1);
-    assert(last !== undefined, "a recording that was stepped through has a last step");
+    const lastStep = steps.at(-1);
+    assert(lastStep !== undefined, "a recording that was stepped through has a last step");
     verifyQueueHolders(steps);
     const boundaries = composeTurnBoundaries(steps);
     const tally = { exact: 0, over: 0, under: 0 };
@@ -170,7 +170,10 @@ function composeTurnGrade(fight: RecordedFight, steps: readonly ReplayedStep[]):
         name: formatRecordingName(fight.path),
         verdict: getTurnVerdict(outcomes),
         turns: tallyTurnDelta(
-            indexTurnsByCombatantId(last.reading.figures.statistics, (one) => one.turnsTaken),
+            indexTurnsByCombatantId(
+                lastStep.reading.figures.statistics,
+                (figures) => figures.turnsTaken,
+            ),
         ),
         bounded: outcomes.length,
         ...tally,
@@ -212,29 +215,33 @@ function verifyQueueHolders(steps: readonly ReplayedStep[]): void {
  */
 function composeTurnStretch(steps: readonly ReplayedStep[]): TurnStretch | null {
     assert(steps.length > 0, "a stretch is measured over the payloads a recording carried");
-    let first: TurnStatement | null = null;
-    let last: TurnStatement | null = null;
+    let firstStatement: TurnStatement | null = null;
+    let lastStatement: TurnStatement | null = null;
     const atFirst = { taken: 0, lost: 0 };
     const atLast = { taken: 0, lost: 0 };
     for (const step of steps) {
         const stated = step.record.turnStatement;
         if (stated === null) continue;
         const statistics = step.reading.figures.statistics;
-        const taken = tallyTurnDelta(indexTurnsByCombatantId(statistics, (one) => one.turnsTaken));
-        const lost = tallyTurnDelta(indexTurnsByCombatantId(statistics, (one) => one.turnsLost));
-        if (first === null) {
-            first = stated;
+        const taken = tallyTurnDelta(
+            indexTurnsByCombatantId(statistics, (figures) => figures.turnsTaken),
+        );
+        const lost = tallyTurnDelta(
+            indexTurnsByCombatantId(statistics, (figures) => figures.turnsLost),
+        );
+        if (firstStatement === null) {
+            firstStatement = stated;
             atFirst.taken = taken;
             atFirst.lost = lost;
         }
-        last = stated;
+        lastStatement = stated;
         atLast.taken = taken;
         atLast.lost = lost;
     }
-    if (first === null) return null;
-    if (last === null) return null;
-    if (last.ordinal === first.ordinal) return null;
-    const granted = last.ordinal - first.ordinal;
+    if (firstStatement === null) return null;
+    if (lastStatement === null) return null;
+    if (lastStatement.ordinal === firstStatement.ordinal) return null;
+    const granted = lastStatement.ordinal - firstStatement.ordinal;
     const taken = atLast.taken - atFirst.taken;
     const lost = atLast.lost - atFirst.lost;
     assert(granted > 0, "a stretch the game numbered twice runs forwards");
@@ -287,8 +294,8 @@ export function composeTurnBoundaries(steps: readonly ReplayedStep[]): TurnBound
         if (isNarrated) isNarrated = isPayloadNarrated(step.update, expected);
         expected = getMessageIndexAfter(step.update, expected);
         const statistics = step.reading.figures.statistics;
-        const takenNow = indexTurnsByCombatantId(statistics, (one) => one.turnsTaken);
-        const lostNow = indexTurnsByCombatantId(statistics, (one) => one.turnsLost);
+        const takenNow = indexTurnsByCombatantId(statistics, (figures) => figures.turnsTaken);
+        const lostNow = indexTurnsByCombatantId(statistics, (figures) => figures.turnsLost);
         const arriving = step.record.turnStatement;
         if (stated !== null) {
             if (arriving !== null) {
@@ -320,10 +327,10 @@ function isPayloadNarrated(update: unknown, expected: number | null): boolean {
     assert(expected >= 0, "a numbering already seen runs from the fight's own start");
     const indices = readMessageIndices(update);
     if (indices === null) return true;
-    const first = indices[0];
-    if (first === undefined) return true;
-    assert(Number.isSafeInteger(first), "a message is numbered by a whole number");
-    return first === expected;
+    const firstIndex = indices[0];
+    if (firstIndex === undefined) return true;
+    assert(Number.isSafeInteger(firstIndex), "a message is numbered by a whole number");
+    return firstIndex === expected;
 }
 
 /**
@@ -337,10 +344,10 @@ function readMessageIndices(update: unknown): number[] | null {
     if (stated instanceof Error) return null;
     if (stated === null) return null;
     const indices: number[] = [];
-    for (const one of stated) {
-        if (typeof one !== "number") return null;
-        if (!Number.isFinite(one)) return null;
-        indices.push(one);
+    for (const statedIndex of stated) {
+        if (typeof statedIndex !== "number") return null;
+        if (!Number.isFinite(statedIndex)) return null;
+        indices.push(statedIndex);
     }
     assertStrictEquals(indices.length, stated.length, "every index stated is an index read");
     return indices;
@@ -350,11 +357,11 @@ function readMessageIndices(update: unknown): number[] | null {
 function getMessageIndexAfter(update: unknown, expected: number | null): number | null {
     const indices = readMessageIndices(update);
     if (indices === null) return expected;
-    const last = indices.at(-1);
-    if (last === undefined) return expected;
-    assert(Number.isSafeInteger(last), "a message is numbered by a whole number");
-    assert(last >= 0, "and numbered from the fight's own start");
-    return last + 1;
+    const lastIndex = indices.at(-1);
+    if (lastIndex === undefined) return expected;
+    assert(Number.isSafeInteger(lastIndex), "a message is numbered by a whole number");
+    assert(lastIndex >= 0, "and numbered from the fight's own start");
+    return lastIndex + 1;
 }
 
 /** What one payload added, row by row: the turns taken while it was being delivered. */
@@ -438,7 +445,7 @@ export function formatCaseReport(grades: readonly TurnGrade[]): string[] {
     const headings = ["turns", "bounded", ...TURN_OUTCOMES, "untold", "placed", "elsewhere"];
     const lines = [
         `  ${"recording".padEnd(NAME_WIDTH)}${"the game agrees".padEnd(VERDICT_WIDTH)}${
-            headings.map((one) => one.padStart(COUNT_WIDTH)).join("")
+            headings.map((heading) => heading.padStart(COUNT_WIDTH)).join("")
         }`,
     ];
     for (const grade of grades) {
@@ -454,7 +461,7 @@ export function formatCaseReport(grades: readonly TurnGrade[]): string[] {
         ];
         lines.push(
             `  ${grade.name.padEnd(NAME_WIDTH)}${grade.verdict.padEnd(VERDICT_WIDTH)}${
-                counts.map((one) => formatInteger(one).padStart(COUNT_WIDTH)).join("")
+                counts.map((count) => formatInteger(count).padStart(COUNT_WIDTH)).join("")
             }`,
         );
     }
@@ -471,7 +478,7 @@ function formatGradeRegister(grades: readonly TurnGrade[]): string[] {
     const headings = ["steps", "agreed", "granted", "taken", "short", "lost", "opened"];
     const lines = [
         `  ${"recording".padEnd(NAME_WIDTH)}${"the game agrees".padEnd(VERDICT_WIDTH)}` +
-        headings.map((one) => one.padStart(COLUMN_WIDTH)).join(""),
+        headings.map((heading) => heading.padStart(COLUMN_WIDTH)).join(""),
     ];
     for (const grade of grades) {
         const cells = [
@@ -481,7 +488,7 @@ function formatGradeRegister(grades: readonly TurnGrade[]): string[] {
         ];
         lines.push(
             `  ${grade.name.padEnd(NAME_WIDTH)}${grade.verdict.padEnd(VERDICT_WIDTH)}` +
-                cells.map((one) => one.padStart(COLUMN_WIDTH)).join(""),
+                cells.map((cell) => cell.padStart(COLUMN_WIDTH)).join(""),
         );
     }
     return lines;
