@@ -62,7 +62,7 @@ test.describe("a panel narrower than what it drew", () => {
             const root = document.getElementById("MargoMeter-Panel")?.shadowRoot ?? null;
             if (root === null) throw new ReferenceError("no panel to narrow");
             const rule = document.createElement("style");
-            rule.textContent = ".panel{width:120px}.list{width:120px}";
+            rule.textContent = ".meter{width:120px}.list{width:120px}";
             root.append(rule);
         });
 

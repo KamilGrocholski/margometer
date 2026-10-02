@@ -37,7 +37,7 @@ test.describe("before the game has said anything", () => {
         await expect(panel.at(".list .empty"), "and it says so where the ranking would be")
             .toHaveText(NOTHING_YET);
         await expect(
-            panel.at(".MargoMeter-standing .standing-body .empty"),
+            panel.at(".MargoMeter-helper .helper-body .empty"),
             "and the window beside it says the same under its bar",
         ).toHaveText(NOTHING_YET);
         await expect(panel.at("[data-screen]"), "with no strips to press").toHaveCount(0);

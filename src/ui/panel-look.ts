@@ -84,7 +84,7 @@ export const CLASS = {
     controlLead: "titlebar-lead",
     frame: "MargoMeter-body",
     folded: "folded",
-    panel: "panel",
+    meter: "meter",
     slot: "slot",
     header: "header",
     headerLine: "header-line",
@@ -170,23 +170,20 @@ export const CLASS = {
     tipSuspect: "tip-suspect",
     /** The sentence's own, and never `tipCaveat` — that one is the glyph cell beside a figure. */
     tipCaveatNote: "tip-caveat-note",
-    /**
-     * The helper: its own bar, its own body, and the rows under each heading. ⚠️ The classes keep
-     * `develop`'s word for the window, because the sheet is held to `develop`'s byte for byte.
-     */
-    helper: "MargoMeter-standing",
-    helperBar: "standing-bar",
-    helperBody: "standing-body",
-    helperFolded: "standing-folded",
+    /** The helper: its own bar, its own body, and the rows under each heading. */
+    helper: "MargoMeter-helper",
+    helperBar: "helper-bar",
+    helperBody: "helper-body",
+    helperFolded: "helper-folded",
     /** A row nested under the one above it, whoever stands in either. */
-    helperUnder: "standing-under",
+    helperUnder: "helper-under",
     /** The okrzyk a holder is holding somebody with, drawn on their row (`develop ADR 0097`). */
-    helperCast: "standing-cast",
+    helperCast: "helper-cast",
     /** The row that carries one, which is the only row where the name gives way last. */
-    helperHolding: "standing-holding",
-    helperPips: "standing-pips",
-    helperPip: "standing-pip",
-    helperPipLit: "standing-pip-lit",
+    helperHolding: "helper-holding",
+    helperPips: "helper-pips",
+    helperPip: "helper-pip",
+    helperPipLit: "helper-pip-lit",
     /** The corner a window is sized by, in either window (ADR 0013). */
     sizeGrip: "size-grip",
 } as const;
@@ -346,18 +343,18 @@ export const SIZE_VARIABLES: {
     readonly [Window in PanelWindow]: { readonly width: string; readonly height: string };
 } = {
     [PANEL_WINDOW.meter]: {
-        width: "--MargoMeter-panel-width",
-        height: "--MargoMeter-panel-height",
+        width: "--MargoMeter-meter-width",
+        height: "--MargoMeter-meter-height",
     },
     [PANEL_WINDOW.helper]: {
-        width: "--MargoMeter-standing-width",
-        height: "--MargoMeter-standing-height",
+        width: "--MargoMeter-helper-width",
+        height: "--MargoMeter-helper-height",
     },
 };
 /** Where a window's top is written. One each: a shared one has the second move the first's top. */
 export const TOP_VARIABLES: { readonly [Window in PanelWindow]: string } = {
-    [PANEL_WINDOW.meter]: "--MargoMeter-panel-top",
-    [PANEL_WINDOW.helper]: "--MargoMeter-standing-top",
+    [PANEL_WINDOW.meter]: "--MargoMeter-meter-top",
+    [PANEL_WINDOW.helper]: "--MargoMeter-helper-top",
 };
 /** How many rows a list stands, written on the list. */
 export const ROWS_VARIABLE = "--MargoMeter-rows";
@@ -548,7 +545,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         // Two classes in the selector, so the outcome does not depend on where the rule is
         // written: a bare `.folded` ties with the region's own rule and loses on source order.
         `.${CLASS.frame}.${CLASS.folded}{display:none;}` +
-        `.${CLASS.panel}{font:${composeFontBody(tokens)};width:${width};position:relative;` +
+        `.${CLASS.meter}{font:${composeFontBody(tokens)};width:${width};position:relative;` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
@@ -557,10 +554,10 @@ function composeFrameRules(tokens: TypeTokens): string {
         // them past its own foot with no ground under them.
         `box-sizing:border-box;display:flex;flex-direction:column;` +
         `min-height:var(${SIZE_VARIABLES.meter.height},0);}` +
-        `.${CLASS.panel}>*{flex:none;}` +
+        `.${CLASS.meter}>*{flex:none;}` +
         // In a sized panel the list takes the room the rest leave it, and never fewer than a few
         // rows; in one nobody sized it is as tall as the rows it promises, and there is no room.
-        `.${CLASS.panel}>.${CLASS.list}{flex:1 1 var(${SIZED_PANEL_VARIABLES.listBasis},auto);` +
+        `.${CLASS.meter}>.${CLASS.list}{flex:1 1 var(${SIZED_PANEL_VARIABLES.listBasis},auto);` +
         `min-height:calc(var(${SIZED_PANEL_VARIABLES.listRowsLeast},0) * ` +
         `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half)));}` +
         `.${CLASS.slot}{display:none;}`;
@@ -986,7 +983,7 @@ function composeHelperRules(tokens: TypeTokens): string {
     const top =
         `clamp(${PLACE.insetPixels}px,var(${TOP_VARIABLES.helper},${PLACE.insetPixels}px),` +
         `calc(100vh - ${PLACE.insetPixels}px))`;
-    const left = `var(${VARIABLE_PREFIX}standing-left,calc(100vw - ${PLACE.insetPixels}px - ` +
+    const left = `var(${VARIABLE_PREFIX}helper-left,calc(100vw - ${PLACE.insetPixels}px - ` +
         `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px) - ` +
         `var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px) - ` +
         `${SPACE_PIXELS.small}px))`;
@@ -1065,6 +1062,6 @@ function composeSizeGripRules(): string {
         `width:${SIZE_GRIP.sizePixels}px;height:${SIZE_GRIP.sizePixels}px;z-index:1;` +
         `color:var(${VARIABLE_PREFIX}quiet);background:linear-gradient(135deg,${strokes});` +
         `cursor:nwse-resize;touch-action:none;-webkit-user-select:none;user-select:none;}` +
-        `.${CLASS.panel}>.${CLASS.sizeGrip}{right:${panelOutside};bottom:${panelOutside};}` +
+        `.${CLASS.meter}>.${CLASS.sizeGrip}{right:${panelOutside};bottom:${panelOutside};}` +
         `.${CLASS.sizeGrip}:hover{color:var(${VARIABLE_PREFIX}text);}`;
 }

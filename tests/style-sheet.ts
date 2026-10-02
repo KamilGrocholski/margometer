@@ -21,7 +21,7 @@ export const LONGEST_RULE = 1024;
 export function getRuleBody(sheet: string, selector: string): string {
     assert(selector.startsWith("."), "a rule is looked up by the class it selects");
     const opener = `${selector}{`;
-    // The selector has to stand on its own: `.list{` sits inside `.panel>.list{` too, and that
+    // The selector has to stand on its own: `.list{` sits inside `.meter>.list{` too, and that
     // rule states a `flex` and nothing a guard adds up.
     let at = sheet.indexOf(opener);
     let tried = 0;

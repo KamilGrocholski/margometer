@@ -38,7 +38,7 @@ export async function readUnderPoint(page: Page, at: PagePoint): Promise<string>
         const under = root === null ? null : root.elementFromPoint(x, y);
         if (under === null) return "nothing";
         const grip = under.getAttribute("data-grip");
-        return grip === "panel" ? "grip" : `covered:${under.className}`;
+        return grip === "meter" ? "grip" : `covered:${under.className}`;
     }, { selector: HOST_SELECTOR, x: at.x, y: at.y });
 }
 
@@ -55,7 +55,7 @@ export async function readPointsAlongBar(
 ): Promise<BarPoint[]> {
     // The first of them, which is the bar: the version label inside it wears the same mark and
     // a locator matching two elements refuses to measure either.
-    const box = await page.locator('[data-grip="panel"]').first().boundingBox();
+    const box = await page.locator('[data-grip="meter"]').first().boundingBox();
     expect(box, "the panel draws a bar to measure along").not.toBeNull();
     const bar = box ?? { x: 0, y: 0, width: 0, height: 0 };
     const points: BarPoint[] = [];
@@ -119,7 +119,7 @@ export async function readPanelShape(page: Page): Promise<string> {
         // fold or a level compared with them in would move whenever the other window did.
         return regions
             .filter((region) => !region.className.startsWith("MargoMeter-tip"))
-            .filter((region) => !region.className.startsWith("MargoMeter-standing"))
+            .filter((region) => !region.className.startsWith("MargoMeter-helper"))
             .map((region) => region.outerHTML).join("");
     }, HOST_SELECTOR);
     expect(shape.length, "the panel is drawing something to compare").toBeGreaterThan(0);

@@ -93,7 +93,7 @@ export const PANEL_REGION = {
     /** The card a row opens. It is not a region of the panel's frame, and it is drawn like one. */
     tip: "tip",
     /** The window beside the panel. Its own region, drawn and undrawn like any other. */
-    helper: "standing",
+    helper: "helper",
 } as const;
 export type PanelRegion = VocabularyWord<typeof PANEL_REGION>;
 

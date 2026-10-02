@@ -111,7 +111,7 @@ var check = function (where) {
   if (said.indexOf("undefined") !== -1) fault(where + ": a row reads undefined");
   if (said.indexOf("NaN") !== -1) fault(where + ": a row reads NaN");
   if (said.indexOf("[object") !== -1) fault(where + ": a row reads an object");
-  wide(root.querySelector(".panel"), where, "the panel");
+  wide(root.querySelector(".meter"), where, "the panel");
   wide(root.querySelector(".list"), where, "the list");
 };
 var closeTo = function (before, where) {

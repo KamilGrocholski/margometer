@@ -158,10 +158,10 @@ const ROWS_BY_WINDOW_MINIMUM: { readonly [Window in PanelWindow]: number } = {
     [PANEL_WINDOW.meter]: 6,
     [PANEL_WINDOW.helper]: 3,
 };
-/** What a grip states: `develop`'s word for each window, which the drawn panel keeps. */
+/** What a grip states: the window it belongs to. */
 export const GRIP_MARK_BY_WINDOW: { readonly [Window in PanelWindow]: string } = {
-    [PANEL_WINDOW.meter]: "panel",
-    [PANEL_WINDOW.helper]: "standing",
+    [PANEL_WINDOW.meter]: "meter",
+    [PANEL_WINDOW.helper]: "helper",
 };
 
 /**

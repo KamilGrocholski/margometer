@@ -12,8 +12,8 @@ const HELPER_SIZE_KEY = "MargoMeter-pomocnik-size";
 /** Far enough that no rounding could account for it, and inside the window either way. */
 const WIDER = 60;
 const TALLER = 50;
-const PANEL_GRIP = '[data-size-grip="panel"]';
-const HELPER_GRIP = '[data-size-grip="standing"]';
+const PANEL_GRIP = '[data-size-grip="meter"]';
+const HELPER_GRIP = '[data-size-grip="helper"]';
 
 test("the panel's corner moves with the hand, and the size is written once, on release", async ({ panel }) => {
     const before = await panel.place();
@@ -28,7 +28,7 @@ test("the panel's corner moves with the hand, and the size is written once, on r
     expect(after.left, "and it grew from where it stood").toBe(before.left);
     expect(await panel.stored(SIZE_KEY), "let go, the size is written").not.toBeNull();
     const list = await panel.at(".list").boundingBox();
-    const body = await panel.at(".panel").boundingBox();
+    const body = await panel.at(".meter").boundingBox();
     expect(list?.height ?? 0, "the list takes the room the panel was given").toBeGreaterThan(0);
     // Pressed at the corner's middle, six in from its edge, which is the panel's.
     expect((body?.y ?? 0) + (body?.height ?? 0), "the panel's foot is where the corner was let go")
@@ -69,13 +69,13 @@ test("a window sized is offered back at once, with the options shut or open", as
 });
 
 test("the window beside the panel is sized by its own corner, under its own key", async ({ panel }) => {
-    const before = await panel.at(".MargoMeter-standing").boundingBox();
+    const before = await panel.at(".MargoMeter-helper").boundingBox();
     await setDragged(panel.page, await readCentreOf(panel.page, HELPER_GRIP), {
         x: -40,
         y: TALLER,
     });
     // Narrower than its type is not a size it takes: its bar holds its controls at that width.
-    const after = await panel.at(".MargoMeter-standing").boundingBox();
+    const after = await panel.at(".MargoMeter-helper").boundingBox();
     expect(after?.width, "it stays as wide as its type").toBe(before?.width);
     expect(after?.height ?? 0, "and grows down").toBeGreaterThan(before?.height ?? 0);
     expect(await panel.stored(HELPER_SIZE_KEY), "under its own key").not.toBeNull();
@@ -119,7 +119,7 @@ test("a panel made shorter than its regions grows to hold them, on its own groun
     await setDragged(panel.page, await readCentreOf(panel.page, PANEL_GRIP), { x: 0, y: -400 });
     const drawn = await panel.page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot;
-        const ground = root?.querySelector(".panel");
+        const ground = root?.querySelector(".meter");
         const summary = root?.querySelector(".MargoMeter-sides");
         const list = root?.querySelector(".list");
         return {

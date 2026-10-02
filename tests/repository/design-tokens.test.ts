@@ -157,7 +157,7 @@ function readStepPixels(read: (tokens: TypeTokens) => number): string[] {
 
 /** The line height the panel prints at. No export states it: it is the sheet's own, and private. */
 function readLineHeightDrawn(step: TypeStep): string {
-    const font = getDeclaration(getRuleBody(composeStyleSheet(step), `.${CLASS.panel}`), "font");
+    const font = getDeclaration(getRuleBody(composeStyleSheet(step), `.${CLASS.meter}`), "font");
     assertExists(font, "the panel states the type it prints");
     const slash = font.indexOf("/");
     assertNotStrictEquals(slash, -1, "and states it as a size over a line height");

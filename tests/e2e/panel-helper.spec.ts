@@ -23,14 +23,14 @@ const CARD_OPEN = ".MargoMeter-tip:not(.tip-hidden)";
 const UNFOLD_MARK = "+";
 
 test("the window stands beside the panel and never under it", async ({ panel }) => {
-    await expect(panel.at(".MargoMeter-standing"), "a window of its own").toHaveCount(1);
+    await expect(panel.at(".MargoMeter-helper"), "a window of its own").toHaveCount(1);
     await waitForFrame(panel.page);
     const both = await panel.page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
         const read = (selector: string) =>
             root?.querySelector(selector)?.getBoundingClientRect() ?? null;
         const panelBox = read(".MargoMeter-titlebar");
-        const standing = read(".MargoMeter-standing");
+        const standing = read(".MargoMeter-helper");
         if (panelBox === null || standing === null) return null;
         return {
             helperRight: Math.round(standing.right),
@@ -46,7 +46,7 @@ test("the window stands beside the panel and never under it", async ({ panel }) 
 
 test("dragging the window by its bar leaves the panel where it was", async ({ panel }) => {
     const before = await panel.place();
-    const bar = await panel.at(".standing-bar").boundingBox();
+    const bar = await panel.at(".helper-bar").boundingBox();
     expect(bar, "the window carries a bar to drag it by").not.toBeNull();
 
     await setDragged(panel.page, { x: (bar?.x ?? 0) + 30, y: (bar?.y ?? 0) + 6 }, {
@@ -61,16 +61,16 @@ test("dragging the window by its bar leaves the panel where it was", async ({ pa
 });
 
 test("each window folds on its own, and both are remembered", async ({ panel }) => {
-    await expect(panel.at("[data-standing-fold]"), "the window offers its own control")
+    await expect(panel.at("[data-helper-fold]"), "the window offers its own control")
         .toHaveText(FOLD_MARK);
 
-    await panel.at("[data-standing-fold]").click();
+    await panel.at("[data-helper-fold]").click();
 
-    await expect(panel.at(".MargoMeter-standing.standing-folded"), "the window folds away")
+    await expect(panel.at(".MargoMeter-helper.helper-folded"), "the window folds away")
         .toHaveCount(
             1,
         );
-    await expect(panel.at("[data-standing-fold]"), "and its mark turns round")
+    await expect(panel.at("[data-helper-fold]"), "and its mark turns round")
         .toHaveText(UNFOLD_MARK);
     await expect(panel.at(".MargoMeter-body.folded"), "the panel stays open").toHaveCount(0);
     await expect(panel.at(".list .row"), "with its ranking drawn").not.toHaveCount(0);
@@ -78,7 +78,7 @@ test("each window folds on its own, and both are remembered", async ({ panel }) 
 
     await panel.page.reload();
 
-    await expect(panel.at(".MargoMeter-standing.standing-folded"), "and it comes back folded")
+    await expect(panel.at(".MargoMeter-helper.helper-folded"), "and it comes back folded")
         .toHaveCount(1);
     await expect(panel.at(".MargoMeter-body.folded"), "with the panel still open").toHaveCount(0);
 });
@@ -91,24 +91,24 @@ test("each window folds on its own, and both are remembered", async ({ panel }) 
 test("a shout is drawn under whoever holds it, and no rest is claimed", async ({ panel }) => {
     // The section is the caster and the characters under them, so what is counted is the nested
     // rows rather than a sentence — the holder line is gone (`develop ADR 0067`).
-    const under = panel.at(".MargoMeter-standing .row.standing-under");
+    const under = panel.at(".MargoMeter-helper .row.helper-under");
     await expect(under, "the fight leaves somebody provoked").not.toHaveCount(0);
     await expect(
-        panel.at(".MargoMeter-standing .standing-holder"),
+        panel.at(".MargoMeter-helper .helper-holder"),
         "and says it in rows, never in a sentence under a name",
     ).toHaveCount(0);
     // Every line under the section is a row: nothing claims a rest the game did not name.
-    const lines = await panel.at(".MargoMeter-standing .standing-body > div").allTextContents();
+    const lines = await panel.at(".MargoMeter-helper .helper-body > div").allTextContents();
     for (const said of lines) {
         expect(said, "no line stands for somebody the game never named").not.toContain("losowo");
     }
 
     // Nothing in this window opens, so a press anywhere in it leaves the section as it was — the
     // one gesture it still answers is its own fold, which `a window folds on its own` holds.
-    const held = await panel.at(".MargoMeter-standing .row-name").count();
-    await panel.at(".MargoMeter-standing .row-name").first().click();
+    const held = await panel.at(".MargoMeter-helper .row-name").count();
+    await panel.at(".MargoMeter-helper .row-name").first().click();
     await expect(
-        panel.at(".MargoMeter-standing .row-name"),
+        panel.at(".MargoMeter-helper .row-name"),
         "a press on a row draws the same rows back",
     ).toHaveCount(held);
     await panel.expectHonest("a window whose rows were pressed");
@@ -117,7 +117,7 @@ test("a shout is drawn under whoever holds it, and no rest is claimed", async ({
     await waitForFrame(panel.page);
     const place = await panel.page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
-        const box = root?.querySelector(".MargoMeter-standing")?.getBoundingClientRect() ?? null;
+        const box = root?.querySelector(".MargoMeter-helper")?.getBoundingClientRect() ?? null;
         return box === null ? null : { bottom: Math.round(box.bottom), top: Math.round(box.top) };
     });
     expect(place?.top, "the window starts on the screen").toBeGreaterThanOrEqual(0);
@@ -140,7 +140,7 @@ test("the name is drawn whole, and the cast gives way to a floor", async ({ pane
     await waitForFrame(panel.page);
     const measured = await panel.page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
-        const cast = root?.querySelector(".MargoMeter-standing .standing-cast") ?? null;
+        const cast = root?.querySelector(".MargoMeter-helper .helper-cast") ?? null;
         const row = cast?.closest(".row") ?? null;
         const name = row?.querySelector(".row-name") ?? null;
         if (cast === null || row === null || name === null) return null;
@@ -187,7 +187,7 @@ test("the name is drawn whole, and the cast gives way to a floor", async ({ pane
  * that is why the exemption is by name rather than by silence.
  */
 test("no sentence is cut, and a row is the only thing that may be", async ({ panel }) => {
-    await expect(panel.at(".MargoMeter-standing .row"), "the window is drawing something")
+    await expect(panel.at(".MargoMeter-helper .row"), "the window is drawing something")
         .not.toHaveCount(0);
 
     const cut = await readCutSentences(panel.page);
@@ -206,7 +206,7 @@ async function readCutSentences(page: Page): Promise<string[]> {
     await waitForFrame(page);
     const found = await page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
-        const window = root?.querySelector(".MargoMeter-standing") ?? null;
+        const window = root?.querySelector(".MargoMeter-helper") ?? null;
         if (window === null) return null;
         const said: string[] = [];
         for (const element of window.querySelectorAll("*")) {
@@ -245,7 +245,7 @@ test("a card stands over the window, even where the window covers it", async ({ 
         const root = document.getElementById("MargoMeter-Panel")?.shadowRoot ?? null;
         if (root === null) return null;
         const tip = root.querySelector(".MargoMeter-tip");
-        const standing = root.querySelector(".MargoMeter-standing");
+        const standing = root.querySelector(".MargoMeter-helper");
         if (tip === null || standing === null) return null;
         const held = tip.getBoundingClientRect();
         // Put the window exactly over the card, the way a reader who dragged it there would.
@@ -284,7 +284,7 @@ test("a card stands over the window, even where the window covers it", async ({ 
  * there is no room on the left, so what it holds is the flip.
  */
 test("a card from this window's row stands clear of this window", async ({ panel }) => {
-    const rows = panel.at(".MargoMeter-standing .row[data-tip]");
+    const rows = panel.at(".MargoMeter-helper .row[data-tip]");
     await expect(rows, "the window is drawing rows to hover").not.toHaveCount(0);
 
     await rows.first().hover();
@@ -292,7 +292,7 @@ test("a card from this window's row stands clear of this window", async ({ panel
     await expect(panel.at(".MargoMeter-tip:not(.tip-hidden)"), "hovering one opens a card")
         .toHaveCount(1);
     const card = await readEdgesOf(panel.page, ".MargoMeter-tip:not(.tip-hidden)");
-    const window = await readEdgesOf(panel.page, ".MargoMeter-standing");
+    const window = await readEdgesOf(panel.page, ".MargoMeter-helper");
     expect(
         isClearOf(card, window),
         `the card at ${card.left}..${card.right} is off the window at ` +
@@ -322,7 +322,7 @@ test("the panel's own card follows the panel, not the window beside it", async (
         .toHaveCount(1);
     const card = await readEdgesOf(panel.page, ".MargoMeter-tip:not(.tip-hidden)");
     const frame = await readEdgesOf(panel.page, "#MargoMeter-Panel");
-    const window = await readEdgesOf(panel.page, ".MargoMeter-standing");
+    const window = await readEdgesOf(panel.page, ".MargoMeter-helper");
     expect(
         card.left - frame.right,
         `the card at ${card.left}..${card.right} opens one gap past the panel at ` +
@@ -342,7 +342,7 @@ test("the panel's own card follows the panel, not the window beside it", async (
  * by (`develop ADR 0100`). Held here because the card is opened by a real pointer.
  */
 test("a row of the window hands its name back on a card", async ({ panel }) => {
-    const rows = panel.at(".MargoMeter-standing .row[data-tip]");
+    const rows = panel.at(".MargoMeter-helper .row[data-tip]");
     await expect(rows, "the window is drawing rows to hover").not.toHaveCount(0);
     const named = await rows.first().locator(".row-name").innerText();
 
@@ -360,12 +360,12 @@ test("a row of the window hands its name back on a card", async ({ panel }) => {
  * cuts nothing — it reads a whole name off a row the browser is drawing short.
  */
 test("a row holding somebody hands back on its card what its cells cut", async ({ panel }) => {
-    const rows = panel.at(".MargoMeter-standing .row.standing-holding");
+    const rows = panel.at(".MargoMeter-helper .row.helper-holding");
     await expect(rows, "the fight leaves somebody holding somebody").not.toHaveCount(0);
-    const cast = await readCell(panel.page, ".MargoMeter-standing .row.standing-holding .row-name");
+    const cast = await readCell(panel.page, ".MargoMeter-helper .row.helper-holding .row-name");
     const okrzyk = await readCell(
         panel.page,
-        ".MargoMeter-standing .row.standing-holding .standing-cast",
+        ".MargoMeter-helper .row.helper-holding .helper-cast",
     );
     expect(cast, "the row draws a name").not.toBeNull();
     expect(okrzyk, "and the okrzyk beside it").not.toBeNull();
@@ -389,7 +389,7 @@ test("a row holding somebody hands back on its card what its cells cut", async (
     // The key carries this window's own prefix, which is what opens the card beside this window
     // rather than beside the panel (`develop ADR 0090`) — a claim only a browser can be asked for.
     const card = await readEdgesOf(panel.page, CARD_OPEN);
-    const window = await readEdgesOf(panel.page, ".MargoMeter-standing");
+    const window = await readEdgesOf(panel.page, ".MargoMeter-helper");
     expect(
         isClearOf(card, window),
         `the card at ${card.left}..${card.right} is off the window at ` +
@@ -424,13 +424,13 @@ async function readCell(page: Page, selector: string): Promise<
  * a row wearing its neighbour's card. `develop ADR 0098` puts the section in the key for this.
  */
 test("the character a shout holds opens a card of their own", async ({ panel }) => {
-    const held = panel.at(".MargoMeter-standing .row.standing-under");
+    const held = panel.at(".MargoMeter-helper .row.helper-under");
     await expect(held, "the fight leaves somebody provoked").not.toHaveCount(0);
     const holder = await readCell(
         panel.page,
-        ".MargoMeter-standing .row.standing-holding .row-name",
+        ".MargoMeter-helper .row.helper-holding .row-name",
     );
-    const under = await readCell(panel.page, ".MargoMeter-standing .row.standing-under .row-name");
+    const under = await readCell(panel.page, ".MargoMeter-helper .row.helper-under .row-name");
     expect(holder, "the row of whoever is holding draws a name").not.toBeNull();
     expect(under, "and so does the row under it").not.toBeNull();
 
@@ -444,7 +444,7 @@ test("the character a shout holds opens a card of their own", async ({ panel }) 
     // share the width with a figure. If this ever reads false the fixture stopped exercising it.
     const figure = await readCell(
         panel.page,
-        ".MargoMeter-standing .row.standing-under .row-value.figure",
+        ".MargoMeter-helper .row.helper-under .row-value.figure",
     );
     expect(figure?.said, "and stating a length of their own").toBeTruthy();
     expect(name?.scrollWidth ?? 0, "which the card gives back whole however the row cut it")

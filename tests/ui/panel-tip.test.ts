@@ -572,26 +572,26 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
         (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
         (key) => {
             asked.push(key);
-            const at = key === "standing:12" ? 255 : 507;
+            const at = key === "helper:12" ? 255 : 507;
             return { edge: "left", at };
         },
     );
     const first = handle.element as FakeElement;
 
-    register.add("standing:12", () => HILDUR);
-    handle.onHover("standing:12", 300);
+    register.add("helper:12", () => HILDUR);
+    handle.onHover("helper:12", 300);
     const shown = first.replacedBy;
     assertExists(shown, "a row of the second window opens a card");
-    assertEquals(asked, ["standing:12"], "and the place was asked for under that row's own key");
+    assertEquals(asked, ["helper:12"], "and the place was asked for under that row's own key");
     assert(
         shown.attributes.get("style")?.includes("--MargoMeter-tip-left:255px"),
         "so it stands where that window's answer put it, not the panel's",
     );
 
-    handle.onHover("standing:12", 360);
+    handle.onHover("helper:12", 360);
     assertEquals(asked.length, 2, "a move on the same row asks again, the card having not moved");
     handle.renderOpen();
-    assertEquals(asked, ["standing:12", "standing:12", "standing:12"], "and so does a redraw");
+    assertEquals(asked, ["helper:12", "helper:12", "helper:12"], "and so does a redraw");
 });
 
 Deno.test("nobody under the pointer hides it, and a row nobody drew never opens it", () => {

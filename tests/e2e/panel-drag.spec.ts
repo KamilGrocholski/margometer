@@ -52,7 +52,7 @@ test("a drag writes a left, a top, and the corner given up", async ({ panel }) =
     const bar = await readPointsAlongBar(panel.page, [20]);
     await setDragged(panel.page, { x: bar[0]?.x ?? 0, y: bar[0]?.y ?? 0 }, { x: ACROSS, y: DOWN });
     const style = await readHostStyle(panel.page);
-    for (const declaration of ["left:", "top:", "--MargoMeter-panel-top:", "right:auto"]) {
+    for (const declaration of ["left:", "top:", "--MargoMeter-meter-top:", "right:auto"]) {
         expect(style, `the host states ${declaration}`).toContain(declaration);
     }
 });

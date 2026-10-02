@@ -49,7 +49,7 @@ test("a right press in the window beside the panel leaves the level open", async
     await expect(panel.at(".crumb-here"), "a level is open to be taken away").toHaveCount(1);
     const opened = await readPanelShape(panel.page);
 
-    await panel.at(".MargoMeter-standing .row-name").first().click({ button: "right" });
+    await panel.at(".MargoMeter-helper .row-name").first().click({ button: "right" });
 
     expect(await readPanelShape(panel.page), "the panel is drawing what it was").toBe(opened);
     await expect(panel.at(".crumb-here"), "and the crumb still names the level").toHaveCount(1);

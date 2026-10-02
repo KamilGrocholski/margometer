@@ -82,6 +82,17 @@ const DEVELOP_SHEET_FILES = [
     "libs/text-walk.ts",
 ];
 const DEVELOP_ROOT_PREFIX = '"@/';
+/**
+ * `develop`'s words for the two windows, and ours (ADR 0024): its sheet is spelled ours before the
+ * comparison, so a name is no departure and anything else still is.
+ */
+const DEVELOP_SPELLINGS: readonly (readonly [string, string])[] = [
+    ["MargoMeter-standing", "MargoMeter-helper"],
+    [".standing-", ".helper-"],
+    ["--MargoMeter-panel-top", "--MargoMeter-meter-top"],
+    [".panel{", ".meter{"],
+    [".panel>", ".meter>"],
+];
 
 /** ADR 0013, 0014 and 0015: the rules the options, the sizing and the fight's line move. */
 const SHEET_DEPARTURES: readonly SheetDeparture[] = [
@@ -98,14 +109,14 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // panel stands past the share of the window, and its list takes the room it is given.
     { develop: ":host", here: ":host", moved: ["max-height"] },
     { develop: ".MargoMeter-titlebar", here: ".MargoMeter-titlebar", moved: ["width"] },
-    { develop: ".panel", here: ".panel", moved: ["width", "position", "min-height"] },
-    { develop: ".panel>.list", here: ".panel>.list", moved: ["flex", "min-height"] },
+    { develop: ".meter", here: ".meter", moved: ["width", "position", "min-height"] },
+    { develop: ".meter>.list", here: ".meter>.list", moved: ["flex", "min-height"] },
     { develop: ".MargoMeter-tip", here: ".MargoMeter-tip", moved: ["right"] },
-    { develop: ".MargoMeter-standing", here: ".MargoMeter-standing", moved: ["left", "width"] },
-    { develop: ".standing-body", here: ".standing-body", moved: ["box-sizing", "height"] },
-    { develop: null, here: ".MargoMeter-standing.standing-folded .size-grip" },
+    { develop: ".MargoMeter-helper", here: ".MargoMeter-helper", moved: ["left", "width"] },
+    { develop: ".helper-body", here: ".helper-body", moved: ["box-sizing", "height"] },
+    { develop: null, here: ".MargoMeter-helper.helper-folded .size-grip" },
     { develop: null, here: ".size-grip" },
-    { develop: null, here: ".panel>.size-grip" },
+    { develop: null, here: ".meter>.size-grip" },
     { develop: null, here: ".size-grip:hover" },
     // The place joins the fight's line, and only the map's name gives way on it (ADR 0014).
     { develop: ".header-line", here: ".header-line", moved: ["justify-content", "gap"] },
@@ -412,10 +423,15 @@ Deno.test("the two sides are told apart by more than a hue", () => {
  * The sheet is `develop`'s, rule for rule and to the byte (**W8**), but for the rules a decision
  * record names: every token, every colour and every other rule, in the order `develop` writes them.
  * A token written in another spelling here has to write the same text, and a value that moved
- * without a record naming it is a finding in one of the two.
+ * without a record naming it is a finding in one of the two. The windows' names are `develop`'s
+ * spelled ours first (ADR 0024).
  */
 Deno.test("the style sheet is develop's, but for the rules ADR 0013, 0014 and 0015 move", async () => {
-    const develop = await readDevelopStyleSheet();
+    let develop = await readDevelopStyleSheet();
+    for (const [was, is] of DEVELOP_SPELLINGS) {
+        assert(develop.includes(was), `develop's sheet spells ${was}, which is why it is renamed`);
+        develop = develop.replaceAll(was, is);
+    }
     assertEquals(
         findSheetDepartures(develop, composeStyleSheet(TYPE_STEP.small), SHEET_DEPARTURES),
         [],
@@ -595,15 +611,15 @@ Deno.test("the card stands over the window beside the panel, and both over the f
             const written = rule.split("z-index:")[1] ?? "";
             return Number(written.split(";")[0]);
         };
-        const standing = layerOf(`.${CLASS.helper}{`);
+        const helper = layerOf(`.${CLASS.helper}{`);
         const tip = layerOf(`.${CLASS.tip}{`);
         assertStrictEquals(
-            standing,
+            helper,
             Number(LAYER.helper),
             "the window takes the layer it is given",
         );
         assertStrictEquals(tip, Number(LAYER.tip), "and so does the card");
-        assert(tip > standing, "a card is what a reader pointed at, so nothing else covers it");
+        assert(tip > helper, "a card is what a reader pointed at, so nothing else covers it");
         // The frame takes none of its own: it is what both of the others may be dragged over.
         const frame = sheet.slice(
             sheet.indexOf(":host{"),
@@ -893,7 +909,7 @@ Deno.test("a row drops its ink onto its middle and stays the height the list cou
         );
         const rowHeight = getPixels(readSheetVariable(sheet, "row-height"));
         assertEquals(rowHeight, TYPE_TOKENS[step].rowHeightPixels, "which is the step's own");
-        const line = getLineHeights(getRuleBody(sheet, `.${CLASS.panel}`));
+        const line = getLineHeights(getRuleBody(sheet, `.${CLASS.meter}`));
         assertExists(line[0], "the panel states the line a row's cells are drawn on");
         const spare = rowHeight - (above ?? 0) - getPixels(line[0]);
         assertEquals(
@@ -919,14 +935,14 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
         const sheet = composeStyleSheet(step);
         const tokens = TYPE_TOKENS[step];
         const body = `${tokens.fontPixels}px/${tokens.lineHeightPixels}px`;
-        for (const drawn of [CLASS.panel, CLASS.helper, CLASS.tip]) {
+        for (const drawn of [CLASS.meter, CLASS.helper, CLASS.tip]) {
             const font = getDeclaration(getRuleBody(sheet, `.${drawn}`), "font");
             assert(font?.startsWith(body), `${step}: ${drawn} prints ${font}, not ${body}`);
         }
         // As wide as the step says, until a reader sizes the window by its corner.
-        const panel = `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px)`;
-        const standing = `var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px)`;
-        const widths = [[CLASS.panel, panel], [CLASS.title, panel], [CLASS.helper, standing]];
+        const meter = `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px)`;
+        const helper = `var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px)`;
+        const widths = [[CLASS.meter, meter], [CLASS.title, meter], [CLASS.helper, helper]];
         for (const [drawn, width] of widths) {
             const stated = getDeclaration(getRuleBody(sheet, `.${drawn}`), "width");
             assertEquals(stated, width, `${step}: ${drawn} stands as wide as the step says`);

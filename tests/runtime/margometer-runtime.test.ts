@@ -1363,14 +1363,14 @@ Deno.test("a window sized is kept with no frame, comes back after a reload, and 
     );
     const reloaded = reloadRuntimeWorld(world);
     const style = () => reloaded.getHost().attributes.get("style") ?? "";
-    assertStringIncludes(style(), "--MargoMeter-panel-width:320px", "it comes back that wide");
-    assertStringIncludes(style(), "--MargoMeter-panel-height:350px", "and that tall");
+    assertStringIncludes(style(), "--MargoMeter-meter-width:320px", "it comes back that wide");
+    assertStringIncludes(style(), "--MargoMeter-meter-height:350px", "and that tall");
     openOptions(reloaded);
     const reset = findByMark(reloaded.getHost(), "data-reset-size", "meter");
     assertExists(reset, "the options offer the size back");
     reloaded.press(reset);
     assertEquals(reloaded.held.get(STORE_KEY.panelSize), undefined, "given back, nothing is kept");
-    assertEquals(style().includes("--MargoMeter-panel-width"), false, "and it stands at its type");
+    assertEquals(style().includes("--MargoMeter-meter-width"), false, "and it stands at its type");
     assertEquals(
         findByMark(reloaded.getHost(), "data-reset-size", "meter"),
         undefined,
@@ -1401,7 +1401,7 @@ Deno.test("a window sized stays that size through the frames after it, and can b
     const style = world.getHost().attributes.get("style") ?? "";
     assertStringIncludes(
         style,
-        "--MargoMeter-panel-width:320px",
+        "--MargoMeter-meter-width:320px",
         "the next payload keeps the size",
     );
     openOptions(world);
@@ -1420,7 +1420,7 @@ Deno.test("a window's size the browser kept unreadable costs the size, and says 
     const host = world.getHost();
     const standing = getElementsWithin(host).find((one) => one.className.startsWith(CLASS.helper));
     assertEquals(
-        (standing?.attributes.get("style") ?? "").includes("--MargoMeter-standing-width"),
+        (standing?.attributes.get("style") ?? "").includes("--MargoMeter-helper-width"),
         false,
         "the window stands at its type",
     );
@@ -1816,7 +1816,7 @@ Deno.test("a shelf of pins says the fight had nowhere to go", () => {
 Deno.test("the window beside the panel folds on its own, and is kept folded apart from it", () => {
     const world = playRecordedFight();
     const host = world.getHost();
-    const control = findByMark(host, "data-standing-fold");
+    const control = findByMark(host, "data-helper-fold");
     assertExists(control, "the window carries a fold of its own");
     world.press(control);
     assertEquals(world.held.get(STORE_KEY.helperFolded), "1", "written where a reload looks");

@@ -630,7 +630,7 @@ export const TIP_ATTRIBUTE = "data-tip";
 const CRUMB_TIP_KEY = "crumb:back";
 /** The fight's line: one is drawn at a time, and its card is the fight on screen. */
 const FIGHT_TIP_KEY = "fight";
-const HELPER_TIP_PREFIX = "standing:";
+const HELPER_TIP_PREFIX = "helper:";
 /** The one person's row there is only ever one of, whoever is standing on it. */
 const HELPER_NOW_TIP_KEY = `${HELPER_TIP_PREFIX}now`;
 /**
@@ -797,7 +797,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     const frame = renderElement(document, "div", CLASS.frame);
     // Put every region in the order it is drawn in, inside the frame the fold collapses.
     {
-        const panel = renderElement(document, "div", CLASS.panel);
+        const panel = renderElement(document, "div", CLASS.meter);
         for (const region of [regions.header, regions.nouns, regions.directions, regions.crumb]) {
             panel.append(region);
         }

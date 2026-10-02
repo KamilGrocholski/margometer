@@ -315,7 +315,7 @@ test("the way back says both gestures, and only where a level is open", async ({
  * sixteen characters.
  */
 test("a card is as wide as what it says, up to the bound", async ({ panel }) => {
-    const standingRow = panel.at(`${HOST_SELECTOR} .MargoMeter-standing .row[data-tip]`)
+    const standingRow = panel.at(`${HOST_SELECTOR} .MargoMeter-helper .row[data-tip]`)
         .first();
     await expect(standingRow, "the fight leaves something standing to point at").toHaveCount(1);
     await standingRow.hover();
@@ -349,24 +349,24 @@ test("a card is as wide as what it says, up to the bound", async ({ panel }) => 
  */
 test("a card keeps the edge facing its window, whatever width it draws at", async ({ panel }) => {
     expect(
-        await readGapTo(panel, ".list .row", ".panel"),
+        await readGapTo(panel, ".list .row", ".meter"),
         "the wide card stands a gap from the window whose row it names",
     ).toBe(GAP);
 
-    const grip = await panel.at('[data-grip="standing"]').first().boundingBox();
+    const grip = await panel.at('[data-grip="helper"]').first().boundingBox();
     expect(grip, "the second window draws a bar to drag it by").not.toBeNull();
     const from = { x: Math.round(grip?.x ?? 0) + 20, y: Math.round(grip?.y ?? 0) + 6 };
     await setDragged(panel.page, from, { x: TO_THE_RIGHT, y: 0 });
 
-    const standing = await readEdgesOf(panel.page, `${HOST_SELECTOR} .MargoMeter-standing`);
+    const standing = await readEdgesOf(panel.page, `${HOST_SELECTOR} .MargoMeter-helper`);
     expect(standing.left, "dragged right, it has room on its left for any card there is")
         .toBeGreaterThan(BOUND + GAP);
 
     // The drag took the pointer off the row, so the card is asked for again before it is read.
     const gap = await readGapTo(
         panel,
-        ".MargoMeter-standing .row[data-tip]",
-        ".MargoMeter-standing",
+        ".MargoMeter-helper .row[data-tip]",
+        ".MargoMeter-helper",
     );
     const narrow = await readEdgesOf(panel.page, CARD_OPEN);
     expect(narrow.right - narrow.left, "the card that window opens is narrower than the bound")

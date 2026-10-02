@@ -114,7 +114,7 @@ Deno.test("what puts the panel there releases the corner it was anchored to", ()
     // cannot read a `top` back out of an inline style — so the same number is written twice.
     assertStringIncludes(
         style,
-        "--MargoMeter-panel-top:60px",
+        "--MargoMeter-meter-top:60px",
         "the ceiling is told where the top is",
     );
     assertStringIncludes(style, "right:auto", "and the corner the sheet anchored to is released");
@@ -385,14 +385,14 @@ Deno.test("a window's style states its size beside its place, and each alone", (
     const place = { left: 40, top: 60 };
     assertEquals(
         composeHostStyle(place, size, PANEL_WINDOW.meter),
-        "left:40px;top:60px;--MargoMeter-panel-top:60px;right:auto;" +
-            "--MargoMeter-panel-width:320px;--MargoMeter-panel-height:350px;" +
+        "left:40px;top:60px;--MargoMeter-meter-top:60px;right:auto;" +
+            "--MargoMeter-meter-width:320px;--MargoMeter-meter-height:350px;" +
             "--MargoMeter-list-basis:0px;--MargoMeter-list-rows-least:3;--MargoMeter-panel-share:100vh",
         "both, in the panel's own properties, with the list and the ceiling a sized panel states",
     );
     assertEquals(
         composeHostStyle(null, size, PANEL_WINDOW.helper),
-        "--MargoMeter-standing-width:320px;--MargoMeter-standing-height:350px",
+        "--MargoMeter-helper-width:320px;--MargoMeter-helper-height:350px",
         "a size with no place, in the other window's",
     );
     assertEquals(

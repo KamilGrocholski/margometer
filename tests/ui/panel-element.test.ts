@@ -2102,13 +2102,13 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     panel.render({ ...composeShownScreen(readFight()), typeStep: TYPE_STEP.small });
     const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
     assertExists(bar, "the bar is drawn");
-    assertEquals(bar.attributes.get("data-grip"), "panel", "and it says which window it drags");
+    assertEquals(bar.attributes.get("data-grip"), "meter", "and it says which window it drags");
 
     // Nobody has moved this one, so it stands in the middle of the window from the first frame,
     // which is also the place the first grab starts from.
     assertEquals(
         host.attributes.get("style"),
-        "left:510px;top:153px;--MargoMeter-panel-top:153px;right:auto",
+        "left:510px;top:153px;--MargoMeter-meter-top:153px;right:auto",
         "a panel nobody has moved is put in the middle of the window it was drawn into",
     );
 
@@ -2116,7 +2116,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     dragOnElement(host, "pointermove", bar, { clientX: 1000, clientY: 120 });
     assertEquals(
         host.attributes.get("style"),
-        "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
+        "left:410px;top:253px;--MargoMeter-meter-top:253px;right:auto",
         "the panel follows the hand, by the distance the hand moved",
     );
     assertEquals(moved, [], "and nothing is stored while it is still being dragged");
@@ -2127,7 +2127,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     dragOnElement(host, "pointermove", bar, { clientX: 500, clientY: 500 });
     assertEquals(
         host.attributes.get("style"),
-        "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
+        "left:410px;top:253px;--MargoMeter-meter-top:253px;right:auto",
         "and a pointer moving with nothing held moves nothing",
     );
 });
@@ -2184,7 +2184,7 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
     const shown = { ...composeShownScreen(readFight()), typeStep: TYPE_STEP.small };
     panel.render(shown);
     const grip = getElementsWithin(host).find((one) =>
-        one.attributes.get("data-size-grip") === "panel"
+        one.attributes.get("data-size-grip") === "meter"
     );
     assertExists(grip, "the panel carries its corner");
     // The corner stands where the press lands when the event says nothing more: a panel 260 wide
@@ -2192,13 +2192,13 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
     dragOnElement(host, "pointerdown", grip, { clientX: 300, clientY: 364 });
     dragOnElement(host, "pointermove", grip, { clientX: 360, clientY: 414 });
     const style = () => host.attributes.get("style") ?? "";
-    assertStringIncludes(style(), "--MargoMeter-panel-width:320px", "the corner widens it");
-    assertStringIncludes(style(), "--MargoMeter-panel-height:350px", "and lengthens its body");
+    assertStringIncludes(style(), "--MargoMeter-meter-width:320px", "the corner widens it");
+    assertStringIncludes(style(), "--MargoMeter-meter-height:350px", "and lengthens its body");
     assertEquals(sized, [], "and nothing is told while the hand is on it");
     panel.render(shown);
     assertStringIncludes(
         style(),
-        "--MargoMeter-panel-width:320px",
+        "--MargoMeter-meter-width:320px",
         "a frame does not undo the hand",
     );
     dragOnElement(host, "pointerup", grip, { clientX: 360, clientY: 414 });
@@ -2214,18 +2214,18 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
     panel.render({ ...shown, windowSizes: { meter: { width: 320, height: 350 }, helper: null } });
     assertStringIncludes(
         style(),
-        "--MargoMeter-panel-width:320px",
+        "--MargoMeter-meter-width:320px",
         "and a frame carrying it keeps it",
     );
     panel.render(shown);
     assertEquals(
-        style().includes("--MargoMeter-panel-width"),
+        style().includes("--MargoMeter-meter-width"),
         false,
         "one without it gives it back",
     );
     dragOnElement(host, "pointerdown", grip, { clientX: 300, clientY: 364 });
     dragOnElement(host, "pointermove", grip, { clientX: 100, clientY: 100 });
-    assertStringIncludes(style(), "--MargoMeter-panel-width:260px", "never narrower than its bar");
+    assertStringIncludes(style(), "--MargoMeter-meter-width:260px", "never narrower than its bar");
     dragOnElement(host, "pointerup", grip, { clientX: 100, clientY: 100 });
 });
 
@@ -2271,13 +2271,13 @@ Deno.test("the version label on the bar is a handle, like the bar around it", ()
     panel.renderWaiting(NOTHING_WAITING);
     const version = getElementsWithin(host).find((one) => one.className === CLASS.titleVersion);
     assertExists(version, "the bar states the version it was built at");
-    assertEquals(version.attributes.get("data-grip"), "panel", "and a drag may start from it");
+    assertEquals(version.attributes.get("data-grip"), "meter", "and a drag may start from it");
 
     dragOnElement(host, "pointerdown", version, { clientX: 100, clientY: 100 });
     dragOnElement(host, "pointermove", version, { clientX: 400, clientY: 300 });
     assertEquals(
         host.attributes.get("style"),
-        "left:340px;top:240px;--MargoMeter-panel-top:240px;right:auto",
+        "left:340px;top:240px;--MargoMeter-meter-top:240px;right:auto",
         "the panel follows a hand that took hold of the label",
     );
 });
@@ -2299,7 +2299,7 @@ Deno.test("a press on a control is not a drag, whatever the pointer does next", 
     dragOnElement(host, "pointermove", fold, { clientX: 400, clientY: 400 });
     assertEquals(
         host.attributes.get("style"),
-        "left:40px;top:40px;--MargoMeter-panel-top:40px;right:auto",
+        "left:40px;top:40px;--MargoMeter-meter-top:40px;right:auto",
         "the panel stays where the reader left it: a press on a control is that control's",
     );
 });
@@ -2339,7 +2339,7 @@ Deno.test("a draw landing mid-drag does not take the panel out of the hand", () 
     dragOnElement(host, "pointermove", drawn, { clientX: 300, clientY: 220 });
     assertEquals(
         host.attributes.get("style"),
-        "left:240px;top:240px;--MargoMeter-panel-top:240px;right:auto",
+        "left:240px;top:240px;--MargoMeter-meter-top:240px;right:auto",
         "the panel goes on following the hand across the draw",
     );
     dragOnElement(host, "pointerup", drawn, { clientX: 300, clientY: 220 });

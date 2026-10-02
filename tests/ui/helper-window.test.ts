@@ -126,7 +126,7 @@ function draw(reading: ReturnType<typeof presentHelper>): {
 function getWindow(host: FakeElement): FakeElement {
     // Folded, the frame wears a second class — which is how it says so.
     const found = getElementsWithin(host)
-        .find((one) => one.className.split(" ")[0] === "MargoMeter-standing");
+        .find((one) => one.className.split(" ")[0] === "MargoMeter-helper");
     assertExists(found, "the window stands beside the panel, under the same root");
     return found;
 }
@@ -265,11 +265,11 @@ Deno.test("a folded window is its bar, whether or not there is a fight under it"
         true,
     );
     assertEquals(getTextsByClass(getWindow(host), "row-name"), [], "folded, no row is composed");
-    const bar = getElementsWithin(getWindow(host)).find((one) => one.className === "standing-bar");
+    const bar = getElementsWithin(getWindow(host)).find((one) => one.className === "helper-bar");
     assertExists(bar, "and the bar it folded to is still there to press");
     assertStrictEquals(
         bar.attributes.get("data-grip"),
-        "standing",
+        "helper",
         "wearing its own window's name",
     );
     panel.renderHelper(HELPER_ABSENCE.noFightYet, true);
@@ -288,7 +288,7 @@ Deno.test("before a fight the window says what the panel says, and never an empt
         "a fight nobody has seen is said, once",
     );
     assertEquals(getTextsByClass(window, "row-name"), [], "with nobody drawn under it");
-    const body = getElementsWithin(window).find((one) => one.className === "standing-body");
+    const body = getElementsWithin(window).find((one) => one.className === "helper-body");
     assertExists(body, "in the body that closes the box under the bar");
 
     panel.renderHelper(HELPER_ABSENCE.betweenFights, false);
@@ -316,7 +316,7 @@ Deno.test("the window's fold is its own, and never the panel's", () => {
         false,
     );
     const control = getElementsWithin(getWindow(host))
-        .find((one) => one.attributes.get("data-standing-fold") !== undefined);
+        .find((one) => one.attributes.get("data-helper-fold") !== undefined);
     assertExists(control, "the window's bar carries a fold of its own");
     assert(
         control.attributes.get("data-fold") === undefined,
@@ -356,7 +356,7 @@ Deno.test("a shout is drawn under whoever is holding it, and the turns are the h
         one.className.split(" ")[0] === "row"
     );
     assertEquals(
-        rows.map((one) => one.className.includes("standing-under")),
+        rows.map((one) => one.className.includes("helper-under")),
         [false, true],
         "and the held character is the one nested under the row above it",
     );
@@ -397,7 +397,7 @@ Deno.test("the row holding somebody names the okrzyk, and the held row does not"
     );
     const { host } = draw(reading);
     assertEquals(
-        getTextsByClass(getWindow(host), "standing-cast"),
+        getTextsByClass(getWindow(host), "helper-cast"),
         ["Wyzywający okrzyk"],
         "the cast is named once, on the row of whoever is holding with it",
     );
@@ -405,7 +405,7 @@ Deno.test("the row holding somebody names the okrzyk, and the held row does not"
         one.className.split(" ")[0] === "row"
     );
     assertEquals(
-        rows.map((one) => one.children.some((part) => part.className === "standing-cast")),
+        rows.map((one) => one.children.some((part) => part.className === "helper-cast")),
         [true, false],
         "and the character held carries no cast of their own, because they cast nothing",
     );
@@ -510,10 +510,10 @@ Deno.test("a charge wears the hue of whoever is making it, and one dot per turn"
         "the band heads itself with the game's own name for it",
     );
     const pips = getElementsWithin(window).filter((one) =>
-        one.className.split(" ")[0] === "standing-pip"
+        one.className.split(" ")[0] === "helper-pip"
     );
     assertStrictEquals(pips.length, 4, "one dot per turn the whole charge runs");
-    const lit = pips.filter((one) => one.className.includes("standing-pip-lit"));
+    const lit = pips.filter((one) => one.className.includes("helper-pip-lit"));
     assertStrictEquals(lit.length, 2, "and the ones that have passed are the ones lit");
 });
 
@@ -733,10 +733,10 @@ function getRowsWithoutCard(host: FakeElement): string[] {
 Deno.test("a row drawn without a card is what that walk reports", () => {
     const document = composeFakeDocument();
     const window = document.createElement("div") as FakeElement;
-    window.className = "MargoMeter-standing";
+    window.className = "MargoMeter-helper";
     const marked = document.createElement("div") as FakeElement;
     marked.className = "row leaf";
-    marked.setAttribute("data-tip", "standing:charge:21");
+    marked.setAttribute("data-tip", "helper:charge:21");
     const bare = document.createElement("div") as FakeElement;
     bare.className = "row leaf";
     bare.textContent = "Lodowe Pandemonium";
@@ -784,7 +784,7 @@ Deno.test("the card of a charge names the blow whole, whoever is making it, and 
     );
     const { host } = draw(reading);
     const row = getElementsWithin(getWindow(host))
-        .find((one) => one.getAttribute("data-tip") === "standing:charge:21");
+        .find((one) => one.getAttribute("data-tip") === "helper:charge:21");
     assertExists(row, "the charge stands as a row of its own, keyed by whoever is making it");
     pointAtElement(host, "pointermove", row, 200);
     const card = readTip(host);
@@ -820,7 +820,7 @@ Deno.test("a charge that is over says on its own card which end it came to", () 
         );
         const { host } = draw(reading);
         const row = getElementsWithin(getWindow(host))
-            .find((one) => one.getAttribute("data-tip") === "standing:charge:21");
+            .find((one) => one.getAttribute("data-tip") === "helper:charge:21");
         assertExists(row, `a ${state} charge is still a row for the turn it stands`);
         pointAtElement(host, "pointermove", row, 200);
         assertEquals(
@@ -845,16 +845,16 @@ Deno.test("a pointer on any part of a charge's row keeps its card open, every do
     );
     const { host } = draw(reading);
     const row = getElementsWithin(getWindow(host))
-        .find((one) => one.getAttribute("data-tip") === "standing:charge:21");
+        .find((one) => one.getAttribute("data-tip") === "helper:charge:21");
     assertExists(row, "the charge is drawn as a row");
     const inside = getElementsWithin(row).slice(1);
     assert(inside.length > 4, "the row is drawn out of parts, the dots among them");
-    const dots = inside.filter((one) => one.className.split(" ")[0] === "standing-pip");
+    const dots = inside.filter((one) => one.className.split(" ")[0] === "helper-pip");
     assertStrictEquals(dots.length, 4, "one dot per turn the whole charge runs");
 
     const deaf: string[] = [];
     for (const part of inside) {
-        if (part.getAttribute("data-tip") === "standing:charge:21") continue;
+        if (part.getAttribute("data-tip") === "helper:charge:21") continue;
         deaf.push(`${part.className}:${part.textContent}`);
     }
     assertEquals(deaf, [], "and every one of them names the same card as the row");
@@ -871,7 +871,7 @@ Deno.test("a card open over a row the window stopped drawing closes at the next 
     const charging = presentHelper([], [composeCharge()], ROSTER, OURS, composeTurn(null));
     panel.renderHelper(charging, false);
     const row = getElementsWithin(host).find((one) =>
-        (one.attributes.get("data-tip") ?? "").startsWith("standing:charge:")
+        (one.attributes.get("data-tip") ?? "").startsWith("helper:charge:")
     );
     assertExists(row, "the charge's row carries a card");
     pointAtElement(host, "pointermove", row, 200);

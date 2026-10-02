@@ -9,7 +9,7 @@ import { expect, test } from "./panel-fixture.ts";
 const STORAGE_KEY = "MargoMeter-storage";
 const CONTROLS = ["[data-options]", "[data-shelf]", "[data-save]", "[data-fold]"];
 /** Named as `SIZE_VARIABLES` in `src/ui/panel-look.ts` names the panel's width. */
-const PANEL_WIDTH_VARIABLE = "--MargoMeter-panel-width";
+const PANEL_WIDTH_VARIABLE = "--MargoMeter-meter-width";
 /** Each step and the row it draws: `TYPE_TOKENS` in `src/ui/panel-look.ts`. */
 const STEPS = [
     { step: "small", row: 18 },
@@ -73,7 +73,7 @@ test("every answer in the options stands on one line inside the panel, at every 
         await panel.at(`[data-type-step="${step}"]`).click();
         await expect(panel.at(`[data-type-step="${step}"].selected`), `${step} is taken`)
             .toHaveCount(1);
-        const edge = await panel.at(".panel").evaluate((one) => one.getBoundingClientRect().right);
+        const edge = await panel.at(".meter").evaluate((one) => one.getBoundingClientRect().right);
         for (const selector of ANSWERS) {
             const drawn = await panel.at(selector).evaluateAll((all) =>
                 all.map((one) => ({

@@ -52,7 +52,7 @@ export const PANEL_MARK = {
     /** Which window a reset gives back to its type, named as `PANEL_WINDOW` names it. */
     resetSize: "data-reset-size",
     /** The helper's own fold: one mark over both would put away the window being watched. */
-    helperFold: "data-standing-fold",
+    helperFold: "data-helper-fold",
 } as const;
 export type PanelMark = VocabularyWord<typeof PANEL_MARK>;
 

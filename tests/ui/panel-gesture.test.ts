@@ -54,7 +54,7 @@ Deno.test("each window is moved by its own bar, and reported moved under its own
     panel.renderHelper(HELPER_ABSENCE.noFightYet, false);
     panel.renderWaiting(NOTHING_WAITING);
     const host = panel.element as FakeElement;
-    const bar = findGrip(host, "standing");
+    const bar = findGrip(host, "helper");
     dragOnElement(host, "pointerdown", bar, { clientX: 610, clientY: 50 });
     dragOnElement(host, "pointermove", bar, { clientX: 650, clientY: 90 });
     dragOnElement(host, "pointerup", bar, { clientX: 650, clientY: 90 });
@@ -78,7 +78,7 @@ Deno.test("a pointer stating no place starts no drag, and the panel stays where 
     });
     panel.renderWaiting(NOTHING_WAITING);
     const host = panel.element as FakeElement;
-    const bar = findGrip(host, "panel");
+    const bar = findGrip(host, "meter");
     const stood = host.attributes.get("style");
     dragOnElement(host, "pointerdown", bar, { clientX: Number.NaN, clientY: 50 });
     dragOnElement(host, "pointermove", bar, { clientX: 400, clientY: 400 });
@@ -93,7 +93,7 @@ Deno.test("a pointer the bar will not hold drops that hold, and the drag still m
     });
     panel.renderWaiting(NOTHING_WAITING);
     const host = panel.element as FakeElement;
-    const bar = findGrip(host, "panel");
+    const bar = findGrip(host, "meter");
     bar.setPointerCapture = () => {
         throw new RangeError("a pointer the browser no longer considers active");
     };
@@ -106,7 +106,7 @@ Deno.test("a pointer the bar will not hold drops that hold, and the drag still m
     );
     assertEquals(
         host.attributes.get("style"),
-        "left:140px;top:140px;--MargoMeter-panel-top:140px;right:auto",
+        "left:140px;top:140px;--MargoMeter-meter-top:140px;right:auto",
         "and the panel went on following the hand",
     );
 });
