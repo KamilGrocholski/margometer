@@ -32,7 +32,7 @@ export interface FileSubject {
     roster: CombatantRoster;
     /** Where it was fought, as the client stated it rather than as the bar words it. */
     place: FightPlace | null;
-    payloads: number;
+    payloadsApplied: number;
     messagesLost: number;
     isOver: boolean;
 }
@@ -62,10 +62,33 @@ export class FileUnserializable extends Error {
     }
 }
 
+/**
+ * The key a figure is written under where its name here has moved on from `develop`'s: the format
+ * is version 4, carried over unchanged, so a renamed figure keeps the key the files already hold.
+ */
+export const REPORT_KEY_BY_ROW_FIELD = {
+    sideHealsUnsized: "castsUnplaced",
+    healthRestoredByNobodyByKey: "healthRestoredByNobodyBySource",
+    healthRestoredByKey: "healthRestoredBySource",
+    healthRestoredWithoutSkillByKey: "healthRestoredWithoutSkillBySource",
+    damageTakenWithoutSkillByKey: "damageTakenWithoutSkillBySource",
+    damageDealtWithoutSkillByKey: "damageDealtWithoutSkillBySource",
+    damageDealtWithoutSkillByOpponentAndKey: "damageDealtWithoutSkillByOpponentAndSource",
+    healthGivenWithoutSkillByReceiverAndKey: "healthGivenWithoutSkillByReceiverAndSource",
+} as const;
+export const REPORT_KEY_BY_SKILL_FIELD = {
+    damageDealt: "dealt",
+    damageDealtByOpponent: "dealtByOpponent",
+    healthGiven: "restored",
+    healthGivenByReceiver: "restoredByOpponent",
+} as const;
+type ReportKey<Field, Renamed> = Field extends keyof Renamed ? Renamed[Field] : Field;
+
 type ReportSkill = {
-    [Key in keyof SkillFigures]: SkillFigures[Key] extends number ? number
-        : SkillFigures[Key] extends string ? string
-        : Record<string, number>;
+    [Key in keyof SkillFigures as ReportKey<Key, typeof REPORT_KEY_BY_SKILL_FIELD>]:
+        SkillFigures[Key] extends number ? number
+            : SkillFigures[Key] extends string ? string
+            : Record<string, number>;
 };
 
 /**
@@ -73,12 +96,24 @@ type ReportSkill = {
  * added to the aggregate stops the build here until somebody decides how it is written down.
  */
 type ReportRow = {
-    [Key in keyof CombatantFigures]: CombatantFigures[Key] extends number ? number
-        : CombatantFigures[Key] extends ReadonlyMap<string, number> ? Record<string, number>
-        : CombatantFigures[Key] extends ReadonlyMap<string, ReadonlyMap<string, number>>
-            ? Record<string, Record<string, number>>
-        : Record<string, ReportSkill>;
+    [Key in keyof CombatantFigures as ReportKey<Key, typeof REPORT_KEY_BY_ROW_FIELD>]:
+        CombatantFigures[Key] extends number ? number
+            : CombatantFigures[Key] extends ReadonlyMap<string, number> ? Record<string, number>
+            : CombatantFigures[Key] extends ReadonlyMap<string, ReadonlyMap<string, number>>
+                ? Record<string, Record<string, number>>
+            : Record<string, ReportSkill>;
 };
+
+/** The same for the figures the aggregate holds beside its rows. */
+export const REPORT_KEY_BY_FIGHT_FIELD = {
+    damageDealtByNobody: "dealtByNobody",
+    damageTakenByNobody: "takenByNobody",
+    healthGivenByNobody: "givenByNobody",
+    healthRestoredToNobody: "restoredToNobody",
+    damageByNeitherEnd: "byNeitherEnd",
+    sideHealsUnsized: "castsUnplaced",
+    sideHealsStated: "castsStated",
+} as const;
 
 /**
  * 4 states what it could not read as `null`; 3 was the envelope in English, 2 Polish and carrying
@@ -154,11 +189,12 @@ export function encodeFightFile(
  */
 function encodeFightFileName(surroundings: FileSurroundings): string {
     assert(surroundings.addOnVersion.length > 0, "a file is named for the build that wrote it");
-    const at = surroundings.capturedAt.split(":").join("-").split(".").join("-");
-    assert(!at.includes(":"), "and for a moment no file system objects to");
-    assert(!at.includes("."), "nor one a file's own extension could be read out of");
+    const momentForName = surroundings.capturedAt.split(":").join("-").split(".").join("-");
+    assert(!momentForName.includes(":"), "and for a moment no file system objects to");
+    assert(!momentForName.includes("."), "nor one a file's own extension could be read out of");
     const build = surroundings.gameBuild ?? NOTHING_STATED;
-    return `margometer-${surroundings.world}-${build}-${surroundings.addOnVersion}-${at}.json`;
+    const { world, addOnVersion } = surroundings;
+    return `margometer-${world}-${build}-${addOnVersion}-${momentForName}.json`;
 }
 
 /**
@@ -166,24 +202,24 @@ function encodeFightFileName(surroundings: FileSurroundings): string {
  * them: a key here is one somebody can grep for in `src/core/fight-statistics.ts`.
  */
 export function encodeFightReport(subject: FileSubject): Record<string, unknown> {
-    assert(subject.payloads > 0, "a fight written into a report was built from something");
+    assert(subject.payloadsApplied > 0, "a fight written into a report was built from something");
     assert(subject.messagesLost >= 0, "and lost no fewer than none of what it was handed");
     const statistics = subject.statistics;
     return {
-        payloads: subject.payloads,
+        payloads: subject.payloadsApplied,
         isOver: subject.isOver,
         place: subject.place,
         messagesLost: subject.messagesLost,
         unreadMessagesUnknownKey: statistics.unreadMessagesUnknownKey,
         unreadMessagesNoParameter: statistics.unreadMessagesNoParameter,
         unreadMessagesGrammarRefused: statistics.unreadMessagesGrammarRefused,
-        castsUnplaced: statistics.castsUnplaced,
-        castsStated: statistics.castsStated,
-        dealtByNobody: statistics.dealtByNobody,
-        takenByNobody: statistics.takenByNobody,
-        givenByNobody: statistics.givenByNobody,
-        restoredToNobody: statistics.restoredToNobody,
-        byNeitherEnd: statistics.byNeitherEnd,
+        [REPORT_KEY_BY_FIGHT_FIELD.sideHealsUnsized]: statistics.sideHealsUnsized,
+        [REPORT_KEY_BY_FIGHT_FIELD.sideHealsStated]: statistics.sideHealsStated,
+        [REPORT_KEY_BY_FIGHT_FIELD.damageDealtByNobody]: statistics.damageDealtByNobody,
+        [REPORT_KEY_BY_FIGHT_FIELD.damageTakenByNobody]: statistics.damageTakenByNobody,
+        [REPORT_KEY_BY_FIGHT_FIELD.healthGivenByNobody]: statistics.healthGivenByNobody,
+        [REPORT_KEY_BY_FIGHT_FIELD.healthRestoredToNobody]: statistics.healthRestoredToNobody,
+        [REPORT_KEY_BY_FIGHT_FIELD.damageByNeitherEnd]: statistics.damageByNeitherEnd,
         roster: [...subject.roster.byId.values()],
         combatants: encodeReportCombatants(statistics),
         totals: encodeReportRow(statistics.totals),
@@ -207,7 +243,7 @@ function encodeReportRow(figures: CombatantFigures): ReportRow {
     return {
         unreadMessagesUnknownKey: figures.unreadMessagesUnknownKey,
         unreadMessagesNoParameter: figures.unreadMessagesNoParameter,
-        castsUnplaced: figures.castsUnplaced,
+        [REPORT_KEY_BY_ROW_FIELD.sideHealsUnsized]: figures.sideHealsUnsized,
         damageDealt: figures.damageDealt,
         damageTaken: figures.damageTaken,
         damageDealtRaw: figures.damageDealtRaw,
@@ -224,20 +260,28 @@ function encodeReportRow(figures: CombatantFigures): ReportRow {
         healthRestoredByNobody: figures.healthRestoredByNobody,
         damageTakenFromNobodyByKind: cut(figures.damageTakenFromNobodyByKind),
         damageDealtToNobodyByKind: cut(figures.damageDealtToNobodyByKind),
-        healthRestoredByNobodyBySource: cut(figures.healthRestoredByNobodyBySource),
+        [REPORT_KEY_BY_ROW_FIELD.healthRestoredByNobodyByKey]: cut(
+            figures.healthRestoredByNobodyByKey,
+        ),
         healthRestoredByGiver: cut(figures.healthRestoredByGiver),
         healthGivenByReceiver: cut(figures.healthGivenByReceiver),
-        healthRestoredBySource: cut(figures.healthRestoredBySource),
-        healthRestoredWithoutSkillBySource: cut(figures.healthRestoredWithoutSkillBySource),
-        damageTakenWithoutSkillBySource: cut(figures.damageTakenWithoutSkillBySource),
-        damageDealtWithoutSkillBySource: cut(figures.damageDealtWithoutSkillBySource),
-        damageDealtWithoutSkillByOpponentAndSource: pair(
-            figures.damageDealtWithoutSkillByOpponentAndSource,
+        [REPORT_KEY_BY_ROW_FIELD.healthRestoredByKey]: cut(figures.healthRestoredByKey),
+        [REPORT_KEY_BY_ROW_FIELD.healthRestoredWithoutSkillByKey]: cut(
+            figures.healthRestoredWithoutSkillByKey,
+        ),
+        [REPORT_KEY_BY_ROW_FIELD.damageTakenWithoutSkillByKey]: cut(
+            figures.damageTakenWithoutSkillByKey,
+        ),
+        [REPORT_KEY_BY_ROW_FIELD.damageDealtWithoutSkillByKey]: cut(
+            figures.damageDealtWithoutSkillByKey,
+        ),
+        [REPORT_KEY_BY_ROW_FIELD.damageDealtWithoutSkillByOpponentAndKey]: pair(
+            figures.damageDealtWithoutSkillByOpponentAndKey,
         ),
         damageDealtWithoutSkillByOpponent: cut(figures.damageDealtWithoutSkillByOpponent),
         damageTakenWithoutSkillByOpponent: cut(figures.damageTakenWithoutSkillByOpponent),
-        healthGivenWithoutSkillByReceiverAndSource: pair(
-            figures.healthGivenWithoutSkillByReceiverAndSource,
+        [REPORT_KEY_BY_ROW_FIELD.healthGivenWithoutSkillByReceiverAndKey]: pair(
+            figures.healthGivenWithoutSkillByReceiverAndKey,
         ),
         damageDealtByKind: cut(figures.damageDealtByKind),
         damageTakenByKind: cut(figures.damageTakenByKind),
@@ -274,7 +318,7 @@ function encodeReportPairCut(
     cut: ReadonlyMap<string, ReadonlyMap<string, number>>,
 ): Record<string, Record<string, number>> {
     const written: Record<string, Record<string, number>> = {};
-    for (const [key, held] of cut) written[key] = encodeReportCut(held);
+    for (const [key, innerCut] of cut) written[key] = encodeReportCut(innerCut);
     assert(Object.keys(written).length === cut.size, "every cut of a cut is written down");
     return written;
 }
@@ -288,11 +332,15 @@ function encodeReportSkills(
         written[key] = {
             name: skill.name,
             uses: skill.uses,
-            dealt: skill.dealt,
+            [REPORT_KEY_BY_SKILL_FIELD.damageDealt]: skill.damageDealt,
             blows: skill.blows,
-            dealtByOpponent: encodeReportCut(skill.dealtByOpponent),
-            restored: skill.restored,
-            restoredByOpponent: encodeReportCut(skill.restoredByOpponent),
+            [REPORT_KEY_BY_SKILL_FIELD.damageDealtByOpponent]: encodeReportCut(
+                skill.damageDealtByOpponent,
+            ),
+            [REPORT_KEY_BY_SKILL_FIELD.healthGiven]: skill.healthGiven,
+            [REPORT_KEY_BY_SKILL_FIELD.healthGivenByReceiver]: encodeReportCut(
+                skill.healthGivenByReceiver,
+            ),
         };
     }
     assert(Object.keys(written).length === skills.size, "and every one of them is written down");

@@ -60,15 +60,19 @@ Deno.test("a name no screen answers to moves nothing", () => {
 
 Deno.test("a panel opens on a screen it can draw, folded as the reader last left it", () => {
     const state = createScreenState(false);
-    assertArrayIncludes(SCREEN_ORDER, [state.current], "the opening screen is one of them");
-    assertEquals(state.current, PANEL_METRIC.damageDealt, "and it is what the reader did");
+    assertArrayIncludes(SCREEN_ORDER, [state.metric], "the opening screen is one of them");
+    assertEquals(state.metric, PANEL_METRIC.damageDealt, "and it is what the reader did");
     assertEquals(
         state.side,
         SIDE_CHOICE.everyone,
         "and lists everybody before a reader narrows it",
     );
-    assertEquals(state.isCollapsed, false, "and a reader who folded nothing away opens unfolded");
-    assertEquals(createScreenState(true).isCollapsed, true, "while one who did opens folded");
+    assertEquals(
+        state.isMeterCollapsed,
+        false,
+        "and a reader who folded nothing away opens unfolded",
+    );
+    assertEquals(createScreenState(true).isMeterCollapsed, true, "while one who did opens folded");
 });
 
 Deno.test("a name no side answers to moves nothing either", () => {
@@ -162,10 +166,10 @@ Deno.test("a place a reader stands in is named, and every field of it counts", (
     const moved: string[] = [];
     for (
         const change of [
-            () => screen.current = PANEL_METRIC.healthRestored,
+            () => screen.metric = PANEL_METRIC.healthRestored,
             () => screen.side = SIDE_CHOICE.reader,
-            () => screen.openRowId = 469657,
-            () => screen.openPairId = 469658,
+            () => screen.openedCombatantId = 469657,
+            () => screen.pairCombatantId = 469658,
             () => screen.openPart = { kind: OPENED_PART.skill, name: "Cios" },
         ]
     ) {
@@ -203,9 +207,9 @@ Deno.test("the shelf is a place of its own, whatever screen stands under it", ()
     const screen = createScreenState(false);
     screen.isOnShelf = true;
     const shelf = composeListName(screen, FIGHT);
-    screen.current = PANEL_METRIC.healthGiven;
+    screen.metric = PANEL_METRIC.healthGiven;
     screen.side = SIDE_CHOICE.opposing;
-    screen.openRowId = 469657;
+    screen.openedCombatantId = 469657;
     assertEquals(composeListName(screen, FIGHT), shelf, "the shelf covers the screens it is over");
     screen.isOnShelf = false;
     assert(composeListName(screen, FIGHT) !== shelf, "and the screen under it is somewhere else");
@@ -219,8 +223,8 @@ Deno.test("the options are a place of their own, and not the shelf's", () => {
     screen.isOnOptions = true;
     const options = composeListName(screen, FIGHT);
     assert(options !== shelf, "two covers, two places");
-    screen.current = PANEL_METRIC.healthGiven;
-    screen.openRowId = 469657;
+    screen.metric = PANEL_METRIC.healthGiven;
+    screen.openedCombatantId = 469657;
     assertEquals(composeListName(screen, FIGHT), options, "whatever screen stands under them");
 });
 

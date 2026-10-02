@@ -26,16 +26,18 @@ const NAVIGATOR_FIELD = "navigator";
 const USER_AGENT_FIELD = "userAgent";
 const HOST_SEPARATOR = ".";
 
-export function initBrowserSurroundings(page: unknown): BrowserSurroundingsPort {
+export function initBrowserSurroundings(browserWindow: unknown): BrowserSurroundingsPort {
     return {
         readWorld() {
-            const read = errors.attempt(() => readBrowserText(page, LOCATION_FIELD, HOST_FIELD));
+            const read = errors.attempt(() =>
+                readBrowserText(browserWindow, LOCATION_FIELD, HOST_FIELD)
+            );
             if (read instanceof Error) return WORLD_UNKNOWN;
             return parseWorld(read ?? "");
         },
         readUserAgent() {
             const read = errors.attempt(() =>
-                readBrowserText(page, NAVIGATOR_FIELD, USER_AGENT_FIELD)
+                readBrowserText(browserWindow, NAVIGATOR_FIELD, USER_AGENT_FIELD)
             );
             if (read instanceof Error) return null;
             return read;
@@ -44,12 +46,12 @@ export function initBrowserSurroundings(page: unknown): BrowserSurroundingsPort 
 }
 
 /** Null where the page holds no such text, or holds it empty: nothing stated is no answer. */
-function readBrowserText(page: unknown, held: string, field: string): string | null {
-    assert(held.length > 0, "a field of the page is asked for by name");
-    if (!isRecord(page)) return null;
-    const record = page[held];
-    if (!isRecord(record)) return null;
-    const text = record[field];
+function readBrowserText(browserWindow: unknown, memberName: string, field: string): string | null {
+    assert(memberName.length > 0, "a field of the page is asked for by name");
+    if (!isRecord(browserWindow)) return null;
+    const member = browserWindow[memberName];
+    if (!isRecord(member)) return null;
+    const text = member[field];
     if (typeof text !== "string") return null;
     if (text.length === 0) return null;
     return text;

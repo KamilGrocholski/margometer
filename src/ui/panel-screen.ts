@@ -50,23 +50,23 @@ export const SIDE_CHOICE = {
 export type PanelSideChoice = VocabularyWord<typeof SIDE_CHOICE>;
 
 export interface ScreenState {
-    current: PanelMetric;
+    metric: PanelMetric;
     side: PanelSideChoice;
     isOnShelf: boolean;
     /** The options cover the screens as the shelf does, and the two never stand open together. */
     isOnOptions: boolean;
-    openRowId: number | null;
+    openedCombatantId: number | null;
     /**
      * Which end the protocol left out stands open: a pinned row under the ranking, or beside
-     * `openRowId` that person's own row for it, which is the rung under their figure.
+     * `openedCombatantId` that person's own row for it, which is the rung under their figure.
      */
     openUnnamedEnd: PanelUnnamedEnd | null;
-    openPairId: number | null;
+    pairCombatantId: number | null;
     /** Which row of a cut stands open — a skill, a key or a kind, and never two of them. */
     openPart: OpenedPart | null;
     /** A fight chosen is read from what was kept of it, never from figures somebody stored. */
-    openFightId: number | null;
-    isCollapsed: boolean;
+    chosenFightOpenedAt: number | null;
+    isMeterCollapsed: boolean;
     /** The window beside the panel, which folds apart from it — `develop ADR 0060`. */
     isHelperCollapsed: boolean;
     /** The size the type is drawn at, which a reader chose once for both windows (ADR 0013). */
@@ -121,22 +121,22 @@ const KIND_WORDS: Record<PanelMetric, string> = {
 };
 
 export function createScreenState(
-    isCollapsed: boolean,
+    isMeterCollapsed: boolean,
     isHelperCollapsed = false,
     typeStep: TypeStep = TYPE_STEP_DEFAULT,
     windowSizes: WindowSizes = NO_WINDOW_SIZES,
 ): ScreenState {
     const state: ScreenState = {
-        current: PANEL_METRIC.damageDealt,
+        metric: PANEL_METRIC.damageDealt,
         side: SIDE_CHOICE.everyone,
         isOnShelf: false,
         isOnOptions: false,
-        openRowId: null,
+        openedCombatantId: null,
         openUnnamedEnd: null,
-        openPairId: null,
+        pairCombatantId: null,
         openPart: null,
-        openFightId: null,
-        isCollapsed,
+        chosenFightOpenedAt: null,
+        isMeterCollapsed,
         isHelperCollapsed,
         typeStep,
         windowSizes,
@@ -156,12 +156,12 @@ export function composeListName(screen: ScreenState, fightId: number | null): st
     if (screen.isOnShelf) return "shelf";
     const part = screen.openPart === null ? "" : composeNameForPart(screen.openPart);
     const name = [
-        screen.current,
+        screen.metric,
         screen.side,
         `${fightId}`,
-        `${screen.openRowId}`,
+        `${screen.openedCombatantId}`,
         `${screen.openUnnamedEnd}`,
-        `${screen.openPairId}`,
+        `${screen.pairCombatantId}`,
         part,
     ].join("|");
     return name;

@@ -222,7 +222,7 @@ of the health alone when it was read on 2026-09-12, and that share has not been 
 What is true is narrower. `SkillFigures` hangs off the record of whoever **made** the announcement,
 so a figure somebody received carries no announcement of its own. `damageTaken` therefore reads its
 `skill` rows off the striker's row and closes the rest against `Zwykły cios` — the same walk
-`healthRestored` has always made over `restoredByOpponent`, `getPairGivingEnd` turning on the
+`healthRestored` has always made over `healthGivenByReceiver`, `getPairGivingEnd` turning on the
 direction rather than on the noun.
 
 **Which is what a received skill row opens onto.** A section folds every caster's announcement under
@@ -268,8 +268,8 @@ Shapes the code would draw, absent from `captures/`, so no verdict is claimed. E
 - a `no kind` row on any level that could hold one. Under a pinned row it is not absent but
   impossible, which is the bullet above rather than this one;
 - a `half-named` row on the third level, under a part;
-- a `neither end` row under a pinned one. `byNeitherEnd` is zero over every recording, so the row
-  the code draws for it has never been drawn from material.
+- a `neither end` row under a pinned one. `damageByNeitherEnd` is zero over every recording, so the
+  row the code draws for it has never been drawn from material.
 
 `tests/ui/panel-element.test.ts` and `tests/ui/panel-content.test.ts` draw several of these from
 fights built by hand, which is where their shape is held.

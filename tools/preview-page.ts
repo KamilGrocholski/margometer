@@ -69,14 +69,18 @@ export interface PreviewPageOptions {
     fightName: string;
     /** Where the replay stops. The caller clamps it; nothing here reads text into a number. */
     entryIndex: number;
-    /** The whole recording, carried in the page: a page that fetched its fight is empty at `load`. */
+    /**
+     * The whole recording, carried in the page: a page that fetched its fight is empty at `load`.
+     */
     calls: readonly unknown[];
     fights: readonly PreviewFightLink[];
     /** `/` while a server answers every path; `./` where a host serves a project under one. */
     scriptDirectory: string;
     words: PreviewWords;
     introduction: string | null;
-    /** Whether the address carries the entry, the screen and the store (`tools/preview-state.ts`). */
+    /**
+     * Whether the address carries the entry, the screen and the store (`tools/preview-state.ts`).
+     */
     doesAddressCarryState: boolean;
     /**
      * What `from the start` reaches: the empty panel, which only a fresh document gives, or the
@@ -96,7 +100,7 @@ export const PREVIEW_SPLIT_SELECTOR = ".preview-split";
 export const PREVIEW_SAID_SELECTOR = ".preview-said";
 /** What the two windows take across: inset, panel, the gap between, and the window beside it. */
 export const WINDOWS_ACROSS_PIXELS = PLACE.insetPixels +
-    TYPE_TOKENS[TYPE_STEP_DEFAULT].panelWidthPixels + SPACE_PIXELS.small +
+    TYPE_TOKENS[TYPE_STEP_DEFAULT].meterWidthPixels + SPACE_PIXELS.small +
     TYPE_TOKENS[TYPE_STEP_DEFAULT].helperWidthPixels;
 /** Air past the windows, so the text never runs up against them. */
 const COLUMN_AIR_PIXELS = 58;
@@ -107,9 +111,13 @@ const COLUMN_AIR_PIXELS = 58;
 export const COLUMN_WIDTH_MAXIMUM = `min(46em, calc(100vw - ${
     WINDOWS_ACROSS_PIXELS + COLUMN_AIR_PIXELS
 }px), calc(50vw - 64px))`;
-/** Below this the page is one column: 1024 is the first standard width whose half clears the pair. */
+/**
+ * Below this the page is one column: 1024 is the first standard width whose half clears the pair.
+ */
 export const SPLIT_FROM_PIXELS = 1024;
-/** Below this height the left half tightens: a 1280×720 screen leaves Chrome about 577px of page. */
+/**
+ * Below this height the left half tightens: a 1280×720 screen leaves Chrome about 577px of page.
+ */
 const SPLIT_SHORT_PIXELS = 780;
 /** Past which nobody reads as far as the button (S11). */
 const INSTALL_NEEDS_MAXIMUM = 4;
@@ -122,7 +130,9 @@ const GAME_PAGE_COLOUR = "#14171c";
 /** Counted down from the panel's own layer, so the harness never covers the thing under test. */
 const PREVIEW_STRIP_LAYER = Number(PLACE.layer) - 1;
 const PREVIEW_TIPS_LAYER = PREVIEW_STRIP_LAYER - 1;
-/** The mark on the need whose failure is silent, drawn rather than spelled: a glyph takes a face. */
+/**
+ * The mark on the need whose failure is silent, drawn rather than spelled: a glyph takes a face.
+ */
 const SILENT_MARK = '<svg class="preview-mark" viewBox="0 0 18 18" aria-hidden="true">' +
     '<path d="M9 2.4 16.2 15H1.8Z"></path><path d="M9 7v4"></path>' +
     '<path d="M9 13.2v.1"></path></svg>';

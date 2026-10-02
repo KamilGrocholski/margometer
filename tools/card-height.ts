@@ -11,7 +11,7 @@
 import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { formatInteger } from "#/libs/number-text.ts";
-import { presentCard, tallyTipSize, TIP_LINE } from "#/src/ui/panel-element.ts";
+import { CARD_LINE, presentCard, tallyCardSize } from "#/src/ui/panel-element.ts";
 import {
     getSideRelation,
     NOTHING_SUSPECT,
@@ -106,11 +106,11 @@ function tallyCardHeight(
         isRowNarrower: false,
         translate: null,
     });
-    const size = tallyTipSize(reading, TYPE_STEP_DEFAULT);
+    const size = tallyCardSize(reading, TYPE_STEP_DEFAULT);
     assert(size.lines > 0, "a card drawn at all stands at least one line");
     const notes = reading.groups
         .flatMap((group) => group.lines)
-        .filter((line) => line.kind === TIP_LINE.note).length;
+        .filter((line) => line.kind === CARD_LINE.note).length;
     return {
         recording: formatRecordingName(replayed.fight.path),
         screen,

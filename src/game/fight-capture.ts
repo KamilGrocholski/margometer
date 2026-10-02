@@ -90,14 +90,14 @@ export function prepareCapture(
     else if (!capture.shapesSeen.has(shape)) isKept = true;
     else isKept = !capture.statesSeen.has(state);
     if (!isKept) return { callIndex, isOpening, isPastCeiling: false, kept: null };
-    const kept: CapturedCall = {
+    const keptCall: CapturedCall = {
         index: callIndex,
         payload: createCaptureCopy(call.payload),
         messages: [...call.messages],
         combatantsBefore: call.combatantsBefore === null ? null : [...call.combatantsBefore],
         combatantsAfter: call.combatantsAfter === null ? null : [...call.combatantsAfter],
     };
-    return { callIndex, isOpening, isPastCeiling: false, kept: { call: kept, shape, state } };
+    return { callIndex, isOpening, isPastCeiling: false, kept: { call: keptCall, shape, state } };
 }
 
 /** Which keys the payload carried, so a call introducing one nobody has seen is kept. */

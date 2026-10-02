@@ -30,6 +30,8 @@ import {
     type FileSubject,
     type FileSurroundings,
     FileUnserializable,
+    REPORT_KEY_BY_FIGHT_FIELD,
+    REPORT_KEY_BY_ROW_FIELD,
 } from "#/src/runtime/fight-file.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { readRecordedFights, replayRecordedFight } from "#/tests/recorded-fights.ts";
@@ -155,7 +157,7 @@ function composeEmptySubject(): FileSubject {
         statistics: tallyFightStatistics([], new Map()),
         roster,
         place: null,
-        payloads: 1,
+        payloadsApplied: 1,
         messagesLost: 0,
         isOver: false,
     };
@@ -187,7 +189,7 @@ Deno.test("every fight-wide figure the aggregate holds is written into the hando
     const subject = composeEmptySubject();
     const counted = Object.entries(subject.statistics)
         .filter(([, value]) => typeof value === "number")
-        .map(([name]) => name);
+        .map(([name]) => lookupReportKey(name, REPORT_KEY_BY_FIGHT_FIELD));
     assert(counted.length > 0, "the aggregate holds figures beside its rows");
     const written = readFile(writeFile(LIVE_EMPTY, subject).text).report;
     assert(isRecord(written), "a fight that was read is written into the recording");
@@ -198,9 +200,16 @@ Deno.test("every fight-wide figure the aggregate holds is written into the hando
     );
 });
 
+/** The key a figure is written under: its own name, but for one the file still spells as before. */
+function lookupReportKey(field: string, renamed: Readonly<Record<string, string>>): string {
+    return renamed[field] ?? field;
+}
+
 Deno.test("every figure of a row is written, for each combatant and for the totals", () => {
     const report = encodeFightReport(composeFoughtSubject());
-    const owed = Object.keys(createCombatantFigures()).sort();
+    const owed = Object.keys(createCombatantFigures())
+        .map((name) => lookupReportKey(name, REPORT_KEY_BY_ROW_FIELD))
+        .sort();
     const combatants = report.combatants;
     assert(isRecord(combatants), "the report holds a row per combatant");
     assertEquals(Object.keys(combatants).sort(), ["1", "2"], "one per combatant it counted");
@@ -225,11 +234,14 @@ function composeFoughtSubject(): FileSubject {
         "1=90.00;2=80.00;tspell=Cios;skillId=1;+dmg=100;-dmg=100",
         "1=90.00;2=80.00;+dmg=100;-blok=100;-dmg=0",
     ];
-    const events =
-        decodePayloadMessages(messages, { roster, standing: null, tables: BLOWS_GRANTED })
-            .events;
+    const events = decodePayloadMessages(messages, {
+        roster,
+        announcementStanding: null,
+        tables: BLOWS_GRANTED,
+    })
+        .events;
     const statistics = tallyFightStatistics(events, new Map());
-    return { statistics, roster, place: null, payloads: 1, messagesLost: 0, isOver: false };
+    return { statistics, roster, place: null, payloadsApplied: 1, messagesLost: 0, isOver: false };
 }
 
 /** Two swings under one name, which is the row the panel draws for it (`develop ADR 0078`). */
@@ -281,7 +293,7 @@ Deno.test("every recording, replayed and written, reads back whole", () => {
             statistics: figures.statistics,
             roster: view.roster,
             place: { mapName: "Mapa", x: 1, y: 2 },
-            payloads: view.payloadsApplied,
+            payloadsApplied: view.payloadsApplied,
             messagesLost: view.messagesLost,
             isOver: view.isOver,
         };
@@ -317,14 +329,21 @@ Deno.test("a row writes each figure the aggregate counted, and not a stand-in", 
     assert(counted !== undefined, "the aggregate counted the dealer");
     for (const [name, value] of Object.entries(counted)) {
         if (typeof value !== "number") continue;
-        assertEquals(row[name], value, `${name} is written as it was counted`);
+        const key = lookupReportKey(name, REPORT_KEY_BY_ROW_FIELD);
+        assertEquals(row[key], value, `${name} is written as it was counted, under ${key}`);
     }
     assertEquals(row.blowsStruck, 2, "two swings, which is what the row states");
 });
 
 Deno.test("what qualifies the figures is written as the fight stated it", () => {
     const place = { mapName: "Mapa", x: 12, y: 34 };
-    const subject = { ...composeEmptySubject(), place, payloads: 2, messagesLost: 3, isOver: true };
+    const subject = {
+        ...composeEmptySubject(),
+        place,
+        payloadsApplied: 2,
+        messagesLost: 3,
+        isOver: true,
+    };
     const report = encodeFightReport(subject);
     assertEquals(report.place, place, "where it was fought");
     assertEquals(report.payloads, 2, "what it was built from");

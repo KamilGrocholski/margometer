@@ -72,7 +72,7 @@ that way. The shadow root is open, so `.shadowRoot.querySelector(…)` reaches i
 | `.titlebar-fights`, `.titlebar-button`                       | the shelf, and folding the panel  |
 
 Presses and hovers are addressed by attribute: `[data-screen]`, `[data-side]`, `[data-row]`,
-`[data-shelf]`, `[data-pin]`, `[data-tip]`, `[data-storage]`.
+`[data-shelf]`, `[data-pin]`, `[data-card]`, `[data-storage]`.
 
 ## Gotchas paid for
 

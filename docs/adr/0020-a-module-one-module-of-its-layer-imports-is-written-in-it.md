@@ -59,7 +59,7 @@ would have had a second consumer, and the guard would have found 2 of them.
   `resetScreenOnOpening` were called once and are not strong, so S4 wrote them into their callers.
 - On 2026-10-01: 73 files to 60, 21623 lines to 21474, 704 `export`s to 689; the built userscript
   went from 478415 bytes to 478337.
-- Test files keep the subject they hold (`tests/ui/panel-tip.test.ts`), and three are renamed for
+- Test files keep the subject they hold (`tests/ui/card-window.test.ts`), and three are renamed for
   theirs: `tests/core/message-grammar.test.ts`, `tests/game/warrior-entries.test.ts` and
   `tests/runtime/opened-readings.test.ts`.
 - A merge that drops an `export` can leave a function called once, which S4 then writes into its

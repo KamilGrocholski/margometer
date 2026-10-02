@@ -196,7 +196,11 @@ function composeMessageReadingsOfStep(
     let announcement: AnnouncementStanding = null;
     let events = 0;
     for (const [at, message] of step.record.messages.entries()) {
-        const context: DecodeContext = { roster, standing: announcement, tables: DECODER_TABLES };
+        const context: DecodeContext = {
+            roster,
+            announcementStanding: announcement,
+            tables: DECODER_TABLES,
+        };
         const decoded = decodePayloadMessages([message], context);
         const turn = readMessageTurn(decoded.events, standing);
         const parsed = parseProtocolMessage(message);
@@ -219,7 +223,7 @@ function composeMessageReadingsOfStep(
             isContested: openerId === null ? false : openerId === previousActorId,
             boundary: null,
         });
-        announcement = decoded.standing;
+        announcement = decoded.announcementStanding;
         standing = turn.standing;
         previousActorId = actorId;
         events += decoded.events.length;

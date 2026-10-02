@@ -19,30 +19,30 @@ import { STORE_KEY } from "#/src/game/browser-store.ts";
 import { CLASS } from "#/src/ui/panel-look.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import {
+    BROWSER_WINDOW_PART,
+    BrowserWindowUnusable,
     composeRuntimeTables,
     readRuntimePorts,
     startMargoMeter,
-    WINDOW_PART,
     type WindowPart,
-    WindowUnusable,
 } from "#/src/userscript-entry.ts";
 import { getElementsWithin } from "./fake-document.ts";
 import { composeFakeWindow, type FakeWindow, flushFakeFrames } from "./fake-window.ts";
 import { lookupRecordedFight } from "./recorded-fights.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
-const BRANDED_STOOD_DOWN = "MargoMeter/Panel WindowUnusable";
+const BRANDED_STOOD_DOWN = "MargoMeter/Panel BrowserWindowUnusable";
 /** The members a page lacking one part does not state, by the part the entry names. */
 const MEMBERS_BY_PART: readonly (readonly [WindowPart, readonly string[]])[] = [
-    [WINDOW_PART.document, ["document"]],
-    [WINDOW_PART.timers, ["setInterval"]],
-    [WINDOW_PART.timers, ["clearInterval"]],
-    [WINDOW_PART.timers, ["setTimeout"]],
-    [WINDOW_PART.frames, ["requestAnimationFrame"]],
-    [WINDOW_PART.frames, ["cancelAnimationFrame"]],
-    [WINDOW_PART.clock, ["Date"]],
-    [WINDOW_PART.downloads, ["Blob"]],
-    [WINDOW_PART.downloads, ["URL"]],
+    [BROWSER_WINDOW_PART.document, ["document"]],
+    [BROWSER_WINDOW_PART.timers, ["setInterval"]],
+    [BROWSER_WINDOW_PART.timers, ["clearInterval"]],
+    [BROWSER_WINDOW_PART.timers, ["setTimeout"]],
+    [BROWSER_WINDOW_PART.frames, ["requestAnimationFrame"]],
+    [BROWSER_WINDOW_PART.frames, ["cancelAnimationFrame"]],
+    [BROWSER_WINDOW_PART.clock, ["Date"]],
+    [BROWSER_WINDOW_PART.downloads, ["Blob"]],
+    [BROWSER_WINDOW_PART.downloads, ["URL"]],
 ];
 
 Deno.test("a page stating what the add-on calls stands it up, and the panel goes up at a frame", () => {
@@ -81,7 +81,11 @@ Deno.test("a page lacking a part the add-on calls stands it down, naming the par
         assertStrictEquals(window.lines.length, 1, `${members}: one line, naming the ${part}`);
         const [said, failure] = window.lines[0] ?? [];
         assertStrictEquals(said, BRANDED_STOOD_DOWN, `${members}: one line, naming the ${part}`);
-        assertInstanceOf(failure, WindowUnusable, `${members}: one line, naming the ${part}`);
+        assertInstanceOf(
+            failure,
+            BrowserWindowUnusable,
+            `${members}: one line, naming the ${part}`,
+        );
         assertStrictEquals(failure.missing, part, `${members}: one line, naming the ${part}`);
         assertEquals([window.frames, window.shown], [[], []], `${members}: and nothing drawn`);
     }
@@ -133,7 +137,7 @@ Deno.test("the tables the add-on runs on are the frozen readings, every one of t
         );
     }
     for (const skill of FROZEN_AURA_TURNS.skills) {
-        const turns = tables.tooltip.statedSkills.turnsBySkillId.get(skill.id);
+        const turns = tables.tooltip.statedSkills.auraTurnsBySkillId.get(skill.id);
         assertStrictEquals(turns, skill.turns, `skill ${skill.id} runs what the table froze`);
     }
     for (const shout of FROZEN_AURA_TURNS.shouts) {
@@ -145,7 +149,7 @@ Deno.test("the tables the add-on runs on are the frozen readings, every one of t
         FROZEN_BUFF_BITS.bits,
         "the mask is the client's",
     );
-    for (const bit of tables.tooltip.witnessedKeyByBit.keys()) {
+    for (const bit of tables.tooltip.keyByStatusBit.keys()) {
         assert(bit < FROZEN_BUFF_BITS.bits.length, `bit ${bit} is a position in the client's mask`);
     }
 });

@@ -91,10 +91,10 @@ const WRAP_VERSION = 1;
 const FAILURES_MAXIMUM = 1048576;
 
 /** The page's game, in whichever spelling answers. A call into the page may throw: theirs. */
-export function initGameBattle(page: unknown): GameBattlePort {
+export function initGameBattle(browserWindow: unknown): GameBattlePort {
     return {
         readBattle() {
-            const engines = errors.attempt(() => readGameEngines(page));
+            const engines = errors.attempt(() => readGameEngines(browserWindow));
             if (engines instanceof Error) return engines;
             if (engines.length === 0) return new GameEngineAbsent();
             const battle = lookupGameBattle(engines);
@@ -171,15 +171,17 @@ function isOurWrap(value: unknown): boolean {
 }
 
 /** Both spellings of the game a page holds, in the order tried; a call into the page is theirs. */
-export function readGameEngines(page: unknown): Record<string, unknown>[] {
-    if (!isRecord(page)) return [];
-    const found: unknown[] = [page[ENGINE_FIELD]];
-    const stated = page[ENGINE_CALL_FIELD];
-    if (typeof stated === "function") found.push(Reflect.apply(stated, page, []));
-    return found.filter(isWritableRecord);
+export function readGameEngines(browserWindow: unknown): Record<string, unknown>[] {
+    if (!isRecord(browserWindow)) return [];
+    const engineCandidates: unknown[] = [browserWindow[ENGINE_FIELD]];
+    const getEngine = browserWindow[ENGINE_CALL_FIELD];
+    if (typeof getEngine === "function") {
+        engineCandidates.push(Reflect.apply(getEngine, browserWindow, []));
+    }
+    return engineCandidates.filter(isWritableRecord);
 }
 
 /** The battle a page's game holds, or null; a call into the page may throw, and it is theirs. */
-export function readGameBattleRecord(page: unknown): Record<string, unknown> | null {
-    return lookupGameBattle(readGameEngines(page));
+export function readGameBattleRecord(browserWindow: unknown): Record<string, unknown> | null {
+    return lookupGameBattle(readGameEngines(browserWindow));
 }

@@ -327,9 +327,9 @@ claim — were the okrzyki one shape, skill 25 would read five here rather than 
 `src/core/aura-standing.ts` had `shout` reaching the **caster's** side, which is backwards: the
 help's effect table forces the affected to attack the character who used the skill, and over
 `captures/` **168 of 168 characters named across 166 announcements stand opposite the caster**, none
-on their own side. So `Prowokujący okrzyk` reaches both — it provokes the other side and raises its
-own — and `Wyzywający okrzyk` reaches only the other, its `both` having come from nothing but that
-entry.
+on their own side. So `Prowokujący okrzyk` reaches both — it provokedCount the other side and raises
+its own — and `Wyzywający okrzyk` reaches only the other, its `both` having come from nothing but
+that entry.
 
 |  id | skill              | on | fights | at once | stated | reaches  |
 | --: | ------------------ | -: | -----: | ------: | -----: | -------- |

@@ -96,10 +96,10 @@ function readCapturedCombatant(warrior: UnknownRecord): CapturedCombatant {
  */
 export function readGameWarriorsNamed(battle: unknown): UnknownRecord[] | GameWarriorFailure {
     if (!isRecord(battle)) return new GameWarriorsAbsent();
-    for (const collection of WARRIOR_COLLECTIONS) {
-        const held = battle[collection];
-        if (!isRecord(held)) continue;
-        const named = Object.values(held).filter(isGameWarriorNamed);
+    for (const collectionKey of WARRIOR_COLLECTIONS) {
+        const collection = battle[collectionKey];
+        if (!isRecord(collection)) continue;
+        const named = Object.values(collection).filter(isGameWarriorNamed);
         if (named.length === 0) continue;
         if (named.length > COMBATANTS_MAXIMUM) {
             return new GameWarriorsExceeded(named.length, COMBATANTS_MAXIMUM);

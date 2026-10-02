@@ -358,7 +358,7 @@ Deno.test("what stands under an announcement is what the register says it is", (
         const { roster } = replayed.reading.view;
         for (const [combatantId, figures] of statistics.byCombatantId) {
             dealtTotal += figures.damageDealt;
-            for (const skill of figures.skills.values()) underAnnouncement += skill.dealt;
+            for (const skill of figures.skills.values()) underAnnouncement += skill.damageDealt;
             if (roster.byId.get(combatantId)?.side !== SIDE_COUNTED) continue;
             onSide += 1;
             if (figures.skills.size > 0) announcingOnSide += 1;

@@ -152,12 +152,12 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
         }
         assert(messages.length <= MESSAGES_MAXIMUM, "a payload's messages stay inside the bound");
     }
-    const stated = getListField(payload, ENVELOPE_KEYS, "messagesStated", MESSAGES_MAXIMUM);
-    if (stated instanceof Error) return createEnvelopeFailure(stated);
+    const messagesStated = getListField(payload, ENVELOPE_KEYS, "messagesStated", MESSAGES_MAXIMUM);
+    if (messagesStated instanceof Error) return createEnvelopeFailure(messagesStated);
     const readerSide = readPayloadEnvelopeInteger(payload, "readerSide");
     if (readerSide instanceof Error) return readerSide;
-    const auto = readPayloadEnvelopeInteger(payload, "isOnAuto");
-    if (auto instanceof Error) return auto;
+    const onAutoStated = readPayloadEnvelopeInteger(payload, "isOnAuto");
+    if (onAutoStated instanceof Error) return onAutoStated;
     let turnStatement: TurnStatement | null;
     // Read the turn in progress: the queue's least ordinal, and whose it is.
     readTurn: {
@@ -208,9 +208,9 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
             return new PayloadFieldTooLong("combatants", warriors.length, COMBATANTS_MAXIMUM);
         }
     }
-    const reading = readGameWarriorEntries(warriors);
+    const warriorEntries = readGameWarriorEntries(warriors);
     const ids = new Set<number>();
-    for (const combatant of reading.combatants) {
+    for (const combatant of warriorEntries.combatants) {
         if (ids.has(combatant.id)) return new PayloadCombatantRepeated(combatant.id);
         ids.add(combatant.id);
     }
@@ -218,13 +218,13 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
         isInit: Object.hasOwn(payload, ENVELOPE_KEYS.isInit),
         isEnd: Object.hasOwn(payload, ENVELOPE_KEYS.isEnd),
         messages,
-        messagesStated: stated === null ? null : stated.length,
+        messagesStated: messagesStated === null ? null : messagesStated.length,
         readerSide,
-        isOnAuto: auto === null ? null : auto !== 0,
+        isOnAuto: onAutoStated === null ? null : onAutoStated !== 0,
         turnStatement,
-        combatants: reading.combatants,
-        statusMasksByCombatantId: reading.statusMasksByCombatantId,
-        chargeStatements: reading.chargeStatements,
+        combatants: warriorEntries.combatants,
+        statusMasksByCombatantId: warriorEntries.statusMasksByCombatantId,
+        chargeStatements: warriorEntries.chargeStatements,
     };
 }
 
@@ -266,7 +266,7 @@ export function readGameWarriorEntries(entries: readonly unknown[]): GameWarrior
         entries.length <= COMBATANTS_MAXIMUM,
         "a payload's warriors are bounded by the envelope",
     );
-    const reading: GameWarriorEntries = {
+    const warriorEntries: GameWarriorEntries = {
         combatants: [],
         statusMasksByCombatantId: new Map(),
         chargeStatements: [],
@@ -309,7 +309,7 @@ export function readGameWarriorEntries(entries: readonly unknown[]): GameWarrior
             };
             assert(combatant.name.length > 0, "a name that was read says something");
         }
-        if (combatant !== null) reading.combatants.push(combatant);
+        if (combatant !== null) warriorEntries.combatants.push(combatant);
         let mask: number | null;
         // Read the one integer the payload restates for a combatant every time, by bit position.
         readMask: {
@@ -344,7 +344,7 @@ export function readGameWarriorEntries(entries: readonly unknown[]): GameWarrior
             }
             mask = stated;
         }
-        if (mask !== null) reading.statusMasksByCombatantId.set(id, mask);
+        if (mask !== null) warriorEntries.statusMasksByCombatantId.set(id, mask);
         let charge: ChargedSkillStatement["charge"];
         // Read the charge the entry carries, or null where it states none.
         readCharge: {
@@ -398,10 +398,10 @@ export function readGameWarriorEntries(entries: readonly unknown[]): GameWarrior
             const stood = { skillName, turnsElapsed };
             charge = { ...stood, turnsStated };
         }
-        reading.chargeStatements.push({ combatantId: id, charge });
+        warriorEntries.chargeStatements.push({ combatantId: id, charge });
     }
-    assert(reading.combatants.length <= entries.length, "a combatant is one entry");
-    return reading;
+    assert(warriorEntries.combatants.length <= entries.length, "a combatant is one entry");
+    return warriorEntries;
 }
 
 /**

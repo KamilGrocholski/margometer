@@ -27,7 +27,7 @@ const FULL_STOP = ".";
 /** An entry is a label with at most a hole in it; this is far past any the game states. */
 const ENTRY_LENGTH_MAXIMUM = 4096;
 
-export function initGameDictionary(page: unknown): GameDictionaryPort {
+export function initGameDictionary(browserWindow: unknown): GameDictionaryPort {
     return {
         readLabel(labelId, category) {
             assert(labelId.length > 0, "an id asked of the client is one the panel named");
@@ -35,10 +35,14 @@ export function initGameDictionary(page: unknown): GameDictionaryPort {
             // Read the entry: null where no lookup stands on the page, which is every page but the
             // game's, or no text came.
             const entry = errors.attempt((): string | null => {
-                if (!isRecord(page)) return null;
-                const translate = page[TRANSLATE_FIELD];
+                if (!isRecord(browserWindow)) return null;
+                const translate = browserWindow[TRANSLATE_FIELD];
                 if (typeof translate !== "function") return null;
-                const read: unknown = Reflect.apply(translate, page, [labelId, null, category]);
+                const read: unknown = Reflect.apply(translate, browserWindow, [
+                    labelId,
+                    null,
+                    category,
+                ]);
                 if (typeof read !== "string") return null;
                 return read;
             });

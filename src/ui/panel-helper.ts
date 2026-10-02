@@ -49,7 +49,7 @@ export interface StandingProvocation {
     skillId: number;
     skillName: string;
     casterColour: Colour;
-    casterSidePart: SideRelation;
+    casterSideRelation: SideRelation;
     provoked: StandingProvoked[];
 }
 
@@ -115,9 +115,9 @@ export interface HelperContent {
     turnState: StandingTurnState;
     turnOrdinal: number | null;
     /** Null where the payload numbered a turn for nobody the roster holds. */
-    holder: StandingHolder | null;
+    turnHolder: StandingHolder | null;
     /** Whom a shout is holding. Its own section: one row per cast, the held under it. */
-    provoked: StandingProvocation[];
+    provocations: StandingProvocation[];
     /** What is being made ready, and what became of it. Empty draws no section at all. */
     chargedSkills: StandingChargedSkill[];
 }
@@ -148,18 +148,18 @@ export function presentHelper(
 ): HelperContent {
     // Clamped before the fold, so the whole section stays inside the one stated bound and the
     // groups are bounded by what is left of it (**S11**).
-    const held = provocations.slice(0, PROVOKED_MAXIMUM);
+    const provocationsBounded = provocations.slice(0, PROVOKED_MAXIMUM);
     const now = getStandingTurnNow(turn);
     const holder = now === null ? undefined : roster.byId.get(now.combatantId);
     return {
         turnState: getStandingTurnState(turn, holder !== undefined),
         turnOrdinal: now?.ordinal ?? null,
-        holder: holder === undefined ? null : {
+        turnHolder: holder === undefined ? null : {
             name: holder.name,
             colour: lookupColourForProfession(holder.profession),
             sideRelation: getSideRelation(holder.side, readerSide),
         },
-        provoked: presentStandingProvocations(held, roster, readerSide),
+        provocations: presentStandingProvocations(provocationsBounded, roster, readerSide),
         chargedSkills: presentStandingChargedSkills(chargedSkills, roster, readerSide),
     };
 }
@@ -210,17 +210,17 @@ function presentStandingProvocations(
     for (const standing of provocations) {
         const caster = roster.byId.get(standing.casterId);
         const key = `${standing.casterId}/${standing.skillId}`;
-        const held = byCast.get(key) ?? {
+        const group = byCast.get(key) ?? {
             casterId: standing.casterId,
             casterName: caster?.name ?? PANEL_WORDS.withoutActor,
             skillId: standing.skillId,
             skillName: standing.skillName,
             casterColour: lookupColourForProfession(caster?.profession ?? null),
-            casterSidePart: getSideRelation(caster?.side ?? null, readerSide),
+            casterSideRelation: getSideRelation(caster?.side ?? null, readerSide),
             provoked: [],
         };
-        held.provoked.push(presentStandingProvoked(standing, roster, readerSide));
-        byCast.set(key, held);
+        group.provoked.push(presentStandingProvoked(standing, roster, readerSide));
+        byCast.set(key, group);
     }
     return [...byCast.values()];
 }

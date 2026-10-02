@@ -19,22 +19,25 @@ import {
 
 export interface FightFigures {
     statistics: FightStatistics;
-    heals: ReadonlyMap<BattleEvent, SideHeal>;
+    sideHealByEvent: ReadonlyMap<BattleEvent, SideHeal>;
     /** What the view had applied when these were tallied: the key a caller memoises on. */
     payloadsApplied: number;
 }
 
 export function tallyFightFigures(view: FightView): FightFigures {
     assert(view.payloadsApplied > 0, "figures are tallied from a fight that exists");
-    const heals = indexSideHeals(view.events, view.roster);
-    const statistics = tallyFightStatistics(view.events, heals);
-    assert(heals.size <= view.events.length, "a cast sized is an event of the fight");
-    return { statistics, heals, payloadsApplied: view.payloadsApplied };
+    const sideHealByEvent = indexSideHeals(view.events, view.roster);
+    const statistics = tallyFightStatistics(view.events, sideHealByEvent);
+    assert(sideHealByEvent.size <= view.events.length, "a cast sized is an event of the fight");
+    return { statistics, sideHealByEvent, payloadsApplied: view.payloadsApplied };
 }
 
 /** The balances in one place: assertions only. */
 export function verifyFightFigures(figures: FightFigures): void {
     assert(figures.payloadsApplied > 0, "figures verified were tallied from a fight");
-    assert(figures.statistics.castsStated >= figures.heals.size, "a cast sized was stated");
+    assert(
+        figures.statistics.sideHealsStated >= figures.sideHealByEvent.size,
+        "a cast sized was stated",
+    );
     verifyFightStatistics(figures.statistics);
 }

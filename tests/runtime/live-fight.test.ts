@@ -132,7 +132,7 @@ function composeOptions(
         defects,
     });
     const options: LiveFightOptions = {
-        engine: initGameBattle(game.page),
+        battle: initGameBattle(game.page),
         clock: STILL_CLOCK,
         place,
         hero,
@@ -154,7 +154,7 @@ function composeOptions(
 
 function playInto(game: FakeGame, options: LiveFightOptions, payloads: readonly unknown[]) {
     const { live, listener } = initLiveFight(options);
-    const battle = options.engine.readBattle();
+    const battle = options.battle.readBattle();
     assert(!(battle instanceof Error), "the fake page holds a battle");
     const wrapped = battle.wrap(listener);
     assert(!(wrapped instanceof Error), "and the listener is wrapped onto it");

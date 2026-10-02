@@ -77,10 +77,10 @@ Deno.test("the count stops at its bound, and counts to it", () => {
 Deno.test("a kind drawn in two regions is two rows, and one line", () => {
     const { ledger, lines } = composeLedger();
     ledger.add({ kind: DEFECT_KIND.region, region: PANEL_REGION.list, failure: FIRST });
-    ledger.add({ kind: DEFECT_KIND.region, region: PANEL_REGION.tip, failure: SECOND });
+    ledger.add({ kind: DEFECT_KIND.region, region: PANEL_REGION.card, failure: SECOND });
     ledger.add({ kind: DEFECT_KIND.region, region: PANEL_REGION.list, failure: SECOND });
     const rows = ledger.getCounts().map((one) => [one.region, one.count]);
-    assertEquals(rows, [[PANEL_REGION.list, 2], [PANEL_REGION.tip, 1]], "a row per region");
+    assertEquals(rows, [[PANEL_REGION.list, 2], [PANEL_REGION.card, 1]], "a row per region");
     assertEquals(lines.map(([kind]) => kind), [DEFECT_KIND.region], "and the kind said once");
     assertStrictEquals(lines[0]?.[1], FIRST, "with the first failure beside it");
 });

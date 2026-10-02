@@ -16,11 +16,11 @@ const POINT = ".";
 
 /** `70.07`: a whole part, a point, and exactly the places the protocol writes. */
 export function parseHealthPercent(text: string): number | null {
-    const point = text.indexOf(POINT);
-    if (point === -1) return null;
-    const fraction = text.slice(point + POINT.length);
+    const pointIndex = text.indexOf(POINT);
+    if (pointIndex === -1) return null;
+    const fraction = text.slice(pointIndex + POINT.length);
     if (fraction.length !== HEALTH_PERCENT_PLACES) return null;
-    if (!isDigitRun(text.slice(0, point))) return null;
+    if (!isDigitRun(text.slice(0, pointIndex))) return null;
     if (!isDigitRun(fraction)) return null;
     const value = parseDecimal(text);
     assert(value !== null, "text of the stated shape is text a decimal is read from");

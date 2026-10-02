@@ -81,7 +81,7 @@ interface LevelWalk {
 const ROWS_VARIABLE = "--MargoMeter-rows";
 const STYLE_ATTRIBUTE = "style";
 /** What a row states its own card under. Spelled here, as every mark a test presses by is. */
-const TIP_ATTRIBUTE = "data-tip";
+const CARD_ATTRIBUTE = "data-card";
 /**
  * What a figure reads when it is not one. Spelled out rather than imported: a test reading the
  * word back from the module that writes it holds the two to be the same and neither to be right
@@ -189,7 +189,7 @@ function getRegionShortfall(where: string, shown: ShownScreen): string | null {
         ...getKeysShared(seen),
         ...getFiguresUnreadable(seen),
         ...getPlacesMismarked(seen),
-        ...getPlacesWrongfullyHeld(seen, getWordsForUnannounced(shown.current)),
+        ...getPlacesWrongfullyHeld(seen, getWordsForUnannounced(shown.metric)),
         ...getPlacesOutOfOrder(seen),
     ];
     if (shared.length > 0) return `${where}: ${shared.join(", ")}`;
@@ -232,7 +232,7 @@ function readRowKeys(host: FakeElement): Map<string, Set<string>> {
     const saidByKey = new Map<string, Set<string>>();
     for (const one of getElementsWithin(host)) {
         if (one.className.split(" ")[0] !== CLASS.row) continue;
-        const key = one.attributes.get(TIP_ATTRIBUTE);
+        const key = one.attributes.get(CARD_ATTRIBUTE);
         if (key === undefined) continue;
         const said = getElementsWithin(one).map((part) => part.textContent).join("|");
         const held = saidByKey.get(key) ?? new Set<string>();
@@ -391,11 +391,11 @@ function isRegionShort(seen: RegionDrawn): boolean {
 /** The rungs reached by opening a row: the figure itself, a pair inside it, and a part of it. */
 function addOpenedRungs(walk: LevelWalk, statistics: FightStatistics, roster: CombatantRoster) {
     let walked = 0;
-    for (const row of walk.base.reading.rows) {
+    for (const row of walk.base.ranking.rows) {
         const drill = presentOpenedLevel(statistics, roster, walk.metric, row.combatantId);
         if (drill === null) continue;
-        walked += addLevel(walk, "opened", { drill });
-        for (const other of drill.byOpponent.rows) {
+        walked += addLevel(walk, "opened", { opened: drill });
+        for (const other of drill.byOtherEnd.rows) {
             if (!other.doesOpenPair) continue;
             const pair = presentPairLevel(
                 statistics,
@@ -404,11 +404,11 @@ function addOpenedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
                 row.combatantId,
                 other.combatantId,
             );
-            if (pair !== null) walked += addLevel(walk, "pair", { drill, pair });
+            if (pair !== null) walked += addLevel(walk, "pair", { opened: drill, pair });
         }
         for (const one of composeOpenedParts(drill)) {
             const part = presentPartLevel(statistics, roster, walk.metric, row.combatantId, one);
-            if (part !== null) walked += addLevel(walk, "part", { drill, part });
+            if (part !== null) walked += addLevel(walk, "part", { opened: drill, part });
         }
     }
     return walked;
@@ -427,7 +427,7 @@ function composeOpenedParts(drill: OpenedLevelContent): OpenedPart[] {
         one,
     ): NamedPart => ({ kind: "element", element: one.element }));
     const parts: OpenedPart[] = [...skills, ...kinds];
-    const closing = drill.bySkill.plain;
+    const closing = drill.bySkill.closing;
     if (closing === null) return parts;
     if (!closing.doesOpenPart) return parts;
     parts.push({ kind: "plain" });
@@ -437,17 +437,17 @@ function composeOpenedParts(drill: OpenedLevelContent): OpenedPart[] {
 /** And the branch off the ranking: a pinned row, and the two shapes of the level under it. */
 function addPinnedRungs(walk: LevelWalk, statistics: FightStatistics, roster: CombatantRoster) {
     let walked = 0;
-    for (const kase of PINNED_CASES) {
-        if (getMetricForPinned(kase) !== walk.metric) continue;
+    for (const pinnedCase of PINNED_CASES) {
+        if (getMetricForPinned(pinnedCase) !== walk.metric) continue;
         const halfNamed = presentUnnamedLevel(
             statistics,
             roster,
-            kase,
+            pinnedCase,
             walk.side,
             walk.readerSide,
         );
         if (halfNamed === null) continue;
-        walked += addLevel(walk, "unnamed", { halfNamed });
+        walked += addLevel(walk, "unnamed", { unnamed: halfNamed });
         const opened = [
             ...halfNamed.rows.map((one) => (
                 { kind: "person" as const, combatantId: one.combatantId }
@@ -460,12 +460,12 @@ function addPinnedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
             const cut = presentUnnamedCutLevel(
                 statistics,
                 roster,
-                kase,
+                pinnedCase,
                 walk.side,
                 walk.readerSide,
                 one,
             );
-            if (cut !== null) walked += addLevel(walk, "unnamed cut", { halfNamedDrill: cut });
+            if (cut !== null) walked += addLevel(walk, "unnamed cut", { unnamedCut: cut });
         }
     }
     return walked;
@@ -655,13 +655,13 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
             for (const metric of ["damageDealt", "damageTaken"] as const) {
                 const drill = presentOpenedLevel(statistics, roster, metric, combatantId);
                 if (drill === null) continue;
-                const plain = drill.bySkill.plain;
+                const plain = drill.bySkill.closing;
                 if (plain === null) continue;
                 if (plain.figure === 0) continue;
-                assertExists(plain.place, "the closing row of a damage section holds a place");
+                assertExists(plain.rank, "the closing row of a damage section holds a place");
                 const bigger = drill.bySkill.rows.filter((one) => one.figure > plain.figure);
-                assertEquals(plain.place, bigger.length + 1, `${path}: its figure decides`);
-                places.set(plain.place, (places.get(plain.place) ?? 0) + 1);
+                assertEquals(plain.rank, bigger.length + 1, `${path}: its figure decides`);
+                places.set(plain.rank, (places.get(plain.rank) ?? 0) + 1);
             }
         }
     }
@@ -687,7 +687,7 @@ Deno.test("a pair states its parts largest first, the closing row among them", (
             for (const metric of ["damageDealt", "damageTaken"] as const) {
                 const drill = presentOpenedLevel(statistics, roster, metric, combatantId);
                 if (drill === null) continue;
-                for (const other of drill.byOpponent.rows) {
+                for (const other of drill.byOtherEnd.rows) {
                     const pair = presentPairLevel(
                         statistics,
                         roster,

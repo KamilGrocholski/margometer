@@ -48,7 +48,7 @@ import type { PanelDocument, PanelElement } from "#/src/ui/panel-document.ts";
 import { BUILD_VERSION } from "./build-version.ts";
 
 /** The part of a page the add-on could not find, named in our words (`AGENTS.md` N13). */
-export const WINDOW_PART = {
+export const BROWSER_WINDOW_PART = {
     window: "window",
     document: "document",
     console: "console",
@@ -57,10 +57,10 @@ export const WINDOW_PART = {
     clock: "clock",
     downloads: "downloads",
 } as const;
-export type WindowPart = VocabularyWord<typeof WINDOW_PART>;
+export type WindowPart = VocabularyWord<typeof BROWSER_WINDOW_PART>;
 
-export class WindowUnusable extends Error {
-    override readonly name = "WindowUnusable";
+export class BrowserWindowUnusable extends Error {
+    override readonly name = "BrowserWindowUnusable";
     readonly missing: WindowPart;
 
     constructor(missing: WindowPart) {
@@ -70,14 +70,14 @@ export class WindowUnusable extends Error {
 }
 
 /** What stops the add-on before it stands: the page, or a throw while it stood up. */
-export type BootFailure = WindowUnusable | errors.Caught;
+export type BootFailure = BrowserWindowUnusable | errors.Caught;
 
 /**
  * The names a browser gives what this needs, and the whole of what it is asked for. That each is
  * there and callable is all `isUserscriptWindow` says: a signature is not `typeof`'s to give, and
  * a member of the wrong shape is answered for by the boundary that calls it (`develop ADR 0051`).
  */
-export interface UserscriptWindow extends BrowserTimers, BrowserFrames {
+export interface BrowserWindow extends BrowserTimers, BrowserFrames {
     document: UserscriptDocument;
     console: BrowserConsole;
     Date: BrowserDate;
@@ -101,22 +101,22 @@ const SCRIPT_WITH_SOURCE = "script[src]";
 const ANCHOR_TAG = "a";
 
 /** Starts the add-on on the page, or leaves one console line where it cannot. Never throws. */
-export function startMargoMeter(page: unknown): Runtime | null {
+export function startMargoMeter(browserWindow: unknown): Runtime | null {
     // Read the page's window into ports, and start the runtime on them.
     const started = errors.attempt((): Runtime | null => {
-        const read = errors.attempt(() => readRuntimePorts(page));
-        if (read instanceof Error) {
-            writeStoodDownLine(page, read);
+        const ports = errors.attempt(() => readRuntimePorts(browserWindow));
+        if (ports instanceof Error) {
+            writeStoodDownLine(browserWindow, ports);
             return null;
         }
-        return initRuntime(read, {
-            version: BUILD_VERSION,
+        return initRuntime(ports, {
+            addOnVersion: BUILD_VERSION,
             tables: composeRuntimeTables(),
             sessionOptions: SESSION_OPTIONS,
         });
     });
     if (!(started instanceof Error)) return started;
-    writeStoodDownLine(page, started);
+    writeStoodDownLine(browserWindow, started);
     return null;
 }
 
@@ -124,76 +124,79 @@ export function startMargoMeter(page: unknown): Runtime | null {
  * The one mark a page that will not stand the add-on gets. A page with no console of its own has
  * nowhere to carry it, and the add-on stands down silently there, because nothing is left to say.
  */
-function writeStoodDownLine(page: unknown, failure: BootFailure): void {
+function writeStoodDownLine(browserWindow: unknown, failure: BootFailure): void {
     // Read the page's own console, or null where it has none.
-    const console = errors.attempt((): BrowserConsole | null => {
-        if (!isRecord(page)) return null;
-        const held = page.console;
-        if (!isRecord(held)) return null;
-        const error = held.error;
+    const errorConsole = errors.attempt((): BrowserConsole | null => {
+        if (!isRecord(browserWindow)) return null;
+        const browserConsole = browserWindow.console;
+        if (!isRecord(browserConsole)) return null;
+        const error = browserConsole.error;
         if (typeof error !== "function") return null;
-        return { error: (...values) => void error.apply(held, values) };
+        return { error: (...values) => void error.apply(browserConsole, values) };
     });
-    if (console instanceof Error) return;
-    if (console === null) return;
-    initBrowserConsole(console).writeBrandedLine(failure.name, failure);
+    if (errorConsole instanceof Error) return;
+    if (errorConsole === null) return;
+    initBrowserConsole(errorConsole).writeBrandedLine(failure.name, failure);
 }
 
 /**
  * The page as the ports the runtime is handed. Reading a member of a page is a call into it, since
  * a getter is the page's own code, so the caller holds this under `errors.attempt`.
  */
-export function readRuntimePorts(page: unknown): RuntimePorts | WindowUnusable {
-    if (!isRecord(page)) return new WindowUnusable(WINDOW_PART.window);
-    if (!isUserscriptWindow(page)) {
-        return new WindowUnusable(lookupWindowPartMissing(page) ?? WINDOW_PART.window);
+export function readRuntimePorts(browserWindow: unknown): RuntimePorts | BrowserWindowUnusable {
+    if (!isRecord(browserWindow)) return new BrowserWindowUnusable(BROWSER_WINDOW_PART.window);
+    if (!isUserscriptWindow(browserWindow)) {
+        return new BrowserWindowUnusable(
+            lookupWindowPartMissing(browserWindow) ?? BROWSER_WINDOW_PART.window,
+        );
     }
     return {
-        clock: initBrowserClock(page.Date),
-        frames: initBrowserFrames(page),
-        interval: initBrowserInterval(page),
-        engine: initGameBattle(page),
-        place: initGamePlace(page),
-        hero: initGameHero(page),
-        dictionary: initGameDictionary(page),
+        clock: initBrowserClock(browserWindow.Date),
+        frames: initBrowserFrames(browserWindow),
+        interval: initBrowserInterval(browserWindow),
+        battle: initGameBattle(browserWindow),
+        place: initGamePlace(browserWindow),
+        hero: initGameHero(browserWindow),
+        dictionary: initGameDictionary(browserWindow),
         build: initGameBuild({
             // Read every script's source the page states, up to the bound the build's reader walks.
             readScriptSources: () => {
-                const scripts = page.document.querySelectorAll(SCRIPT_WITH_SOURCE);
+                const scripts = browserWindow.document.querySelectorAll(SCRIPT_WITH_SOURCE);
                 const walked = Math.min(scripts.length, SCRIPTS_MAXIMUM);
                 const sources: unknown[] = [];
                 for (let at = 0; at < walked; at += 1) sources.push(scripts[at]?.src);
                 return sources;
             },
         }),
-        surroundings: initBrowserSurroundings(page),
-        tooltip: initGameTooltip(page),
-        settings: initBrowserStore(readBrowserStorage(page, STORAGE_CHOICE.local)),
+        surroundings: initBrowserSurroundings(browserWindow),
+        tooltip: initGameTooltip(browserWindow),
+        settings: initBrowserStore(readBrowserStorage(browserWindow, STORAGE_CHOICE.local)),
         // The store the reader asked for, or the one that forgets: a reader who chose to keep
         // fights on a browser that lends no store is better served by a panel that forgets between
         // pages than by one that keeps their fights somewhere they did not choose.
-        initShelfStore: (choice) => {
-            if (choice === STORAGE_CHOICE.memory) return initMemoryStore();
-            const storage = readBrowserStorage(page, choice);
+        initShelfStore: (storageChoice) => {
+            if (storageChoice === STORAGE_CHOICE.memory) return initMemoryStore();
+            const storage = readBrowserStorage(browserWindow, storageChoice);
             if (storage === null) return initMemoryStore();
             return initBrowserStore(storage);
         },
         file: initBrowserFile({
-            createObjectURL: (blob) => page.URL.createObjectURL(blob),
-            revokeObjectURL: (url) => page.URL.revokeObjectURL(url),
-            createBlob: (text, type) => new page.Blob([text], { type }),
-            createAnchor: () => page.document.createElement(ANCHOR_TAG),
-            appendAnchor: (anchor) => page.document.body.append(anchor),
-            setTimeout: (step, afterMilliseconds) => void page.setTimeout(step, afterMilliseconds),
+            createObjectURL: (blob) => browserWindow.URL.createObjectURL(blob),
+            revokeObjectURL: (url) => browserWindow.URL.revokeObjectURL(url),
+            createBlob: (text, type) => new browserWindow.Blob([text], { type }),
+            createAnchor: () => browserWindow.document.createElement(ANCHOR_TAG),
+            appendAnchor: (anchor) => browserWindow.document.body.append(anchor),
+            setTimeout: (step, afterMilliseconds) =>
+                void browserWindow.setTimeout(step, afterMilliseconds),
         }),
-        console: initBrowserConsole(page.console),
-        document: page.document,
-        mountPanel: (panel) => errors.attempt(() => page.document.body.append(panel)),
+        console: initBrowserConsole(browserWindow.console),
+        document: browserWindow.document,
+        mountPanel: (panel) => errors.attempt(() => browserWindow.document.body.append(panel)),
         // Read the viewport: a page stating one size and not the other states none, as does one
         // stating nonsense.
         readViewport: () => {
-            const width = page.innerWidth;
-            const height = page.innerHeight;
+            const width = browserWindow.innerWidth;
+            const height = browserWindow.innerHeight;
             if (typeof width !== "number") return null;
             if (typeof height !== "number") return null;
             if (!Number.isFinite(width)) return null;
@@ -205,22 +208,26 @@ export function readRuntimePorts(page: unknown): RuntimePorts | WindowUnusable {
     };
 }
 
-function isUserscriptWindow(page: UnknownRecord): page is UnknownRecord & UserscriptWindow {
-    return lookupWindowPartMissing(page) === null;
+function isUserscriptWindow(
+    browserWindow: UnknownRecord,
+): browserWindow is UnknownRecord & BrowserWindow {
+    return lookupWindowPartMissing(browserWindow) === null;
 }
 
 /** The first part a page lacks, or null where it states every one the add-on calls. */
-function lookupWindowPartMissing(page: UnknownRecord): WindowPart | null {
-    if (!isUserscriptDocument(page.document)) return WINDOW_PART.document;
-    if (!isCallableOn(page.console, "error")) return WINDOW_PART.console;
-    if (typeof page.setInterval !== "function") return WINDOW_PART.timers;
-    if (typeof page.clearInterval !== "function") return WINDOW_PART.timers;
-    if (typeof page.setTimeout !== "function") return WINDOW_PART.timers;
-    if (typeof page.requestAnimationFrame !== "function") return WINDOW_PART.frames;
-    if (typeof page.cancelAnimationFrame !== "function") return WINDOW_PART.frames;
-    if (typeof page.Date !== "function") return WINDOW_PART.clock;
-    if (typeof page.Blob !== "function") return WINDOW_PART.downloads;
-    if (typeof page.URL !== "function") return WINDOW_PART.downloads;
+function lookupWindowPartMissing(browserWindow: UnknownRecord): WindowPart | null {
+    if (!isUserscriptDocument(browserWindow.document)) return BROWSER_WINDOW_PART.document;
+    if (!isCallableOn(browserWindow.console, "error")) return BROWSER_WINDOW_PART.console;
+    if (typeof browserWindow.setInterval !== "function") return BROWSER_WINDOW_PART.timers;
+    if (typeof browserWindow.clearInterval !== "function") return BROWSER_WINDOW_PART.timers;
+    if (typeof browserWindow.setTimeout !== "function") return BROWSER_WINDOW_PART.timers;
+    if (typeof browserWindow.requestAnimationFrame !== "function") {
+        return BROWSER_WINDOW_PART.frames;
+    }
+    if (typeof browserWindow.cancelAnimationFrame !== "function") return BROWSER_WINDOW_PART.frames;
+    if (typeof browserWindow.Date !== "function") return BROWSER_WINDOW_PART.clock;
+    if (typeof browserWindow.Blob !== "function") return BROWSER_WINDOW_PART.downloads;
+    if (typeof browserWindow.URL !== "function") return BROWSER_WINDOW_PART.downloads;
     return null;
 }
 
@@ -236,22 +243,25 @@ function isUserscriptDocument(value: unknown): boolean {
  * `isRecord` refuses all three: they are asked for by `typeof`, and their members not at all. A
  * missing `URL.createObjectURL` costs the file, which `initBrowserFile` answers for.
  */
-function isCallableOn(held: unknown, name: string): boolean {
-    if (!isRecord(held)) return false;
-    return typeof held[name] === "function";
+function isCallableOn(owner: unknown, name: string): boolean {
+    if (!isRecord(owner)) return false;
+    return typeof owner[name] === "function";
 }
 
 /**
  * The store a browser lends under that name, or null. Reaching the property is itself a read that
  * can throw: a browser forbidding storage throws on the access, before there is a `getItem`.
  */
-function readBrowserStorage(page: UserscriptWindow, choice: StorageChoice): BrowserStorage | null {
-    const read = errors.attempt(() => {
-        if (choice === STORAGE_CHOICE.session) return page.sessionStorage;
-        return page.localStorage;
+function readBrowserStorage(
+    browserWindow: BrowserWindow,
+    storageChoice: StorageChoice,
+): BrowserStorage | null {
+    const storage = errors.attempt(() => {
+        if (storageChoice === STORAGE_CHOICE.session) return browserWindow.sessionStorage;
+        return browserWindow.localStorage;
     });
-    if (read instanceof Error) return null;
-    return read ?? null;
+    if (storage instanceof Error) return null;
+    return storage ?? null;
 }
 
 /**
@@ -266,10 +276,10 @@ export function composeRuntimeTables(): RuntimeTables {
         },
         tooltip: {
             statedSkills: {
-                turnsBySkillId: indexAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
+                auraTurnsBySkillId: indexAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
                 shoutsBySkillId: indexShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
             },
-            witnessedKeyByBit: indexKeyByStatusBit(FROZEN_BUFF_BITS.bits),
+            keyByStatusBit: indexKeyByStatusBit(FROZEN_BUFF_BITS.bits),
             statusBits: FROZEN_BUFF_BITS.bits,
         },
     };

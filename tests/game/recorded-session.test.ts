@@ -38,7 +38,11 @@ const NO_SNAPSHOTS =
 Deno.test("a recording replayed call by call reads as the whole of itself", () => {
     for (const fight of readRecordedFights()) {
         const replayed = view(replayRecordedFight(fight), fight.path);
-        const context = { roster: replayed.roster, standing: null, tables: BLOWS_GRANTED };
+        const context = {
+            roster: replayed.roster,
+            announcementStanding: null,
+            tables: BLOWS_GRANTED,
+        };
         const decoded = fight.payloads.flatMap((one) => decodePayloadMessages(one, context).events);
         assertEquals(replayed.events, decoded, `${fight.path}: the session lost or invented one`);
         assertStrictEquals(replayed.payloadsApplied, fight.updates.length, `${fight.path}: every`);
@@ -179,7 +183,7 @@ Deno.test("Dotyk anioła counts the heals the decoder reads, over every recordin
     for (const fight of readRecordedFights()) {
         replayEach(fight, (replayed) => {
             for (const one of replayed.legendaryStandings) {
-                if (one.holytouchHealsGiven !== null) counts.add(one.holytouchHealsGiven);
+                if (one.holytouchHealsReceived !== null) counts.add(one.holytouchHealsReceived);
             }
         });
     }

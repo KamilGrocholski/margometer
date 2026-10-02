@@ -43,8 +43,9 @@ const CARRIED = getBlowKeysFromRecordings();
  * in neither — which is how the one label over the bound went four releases unnoticed.
  *
  * ⚠️ **A caveated label is not held tighter here.** The glyph beside it is a cell of its own, so
- * what it costs is pixels rather than characters, and this count cannot see it. `panel-tip.spec.ts`
- * holds that, in the browser, over every label a card draws. `develop ADR 0088`.
+ * what it costs is pixels rather than characters, and this count cannot see it.
+ * `panel-card.spec.ts` holds that, in the browser, over every label a card draws.
+ * `develop ADR 0088`.
  */
 const CARD_LABEL_KEYS = [
     "raw",
@@ -310,7 +311,7 @@ function getBlowKeysFromRecordings(): BlowKeys {
     const found: BlowKeys = { procs: new Set(), defences: new Set(), destroyed: new Set() };
     for (const fight of readRecordedFights()) {
         const roster = indexCombatantRoster(fight.combatants);
-        const context = { roster, standing: null, tables: BLOWS_GRANTED };
+        const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
         for (const event of decodePayloadMessages(fight.payloads.flat(), context).events) {
             if (event.kind !== "attack") continue;
             for (const key of event.procs) found.procs.add(key);

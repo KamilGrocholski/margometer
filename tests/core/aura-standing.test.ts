@@ -90,19 +90,17 @@ Deno.test("a cast stands from its own turn, and leaves when its turns have passe
     const dated = composeStated([{ id: 264, turns: 2 }]);
     const cast = composeCast(1, 264, "+spell-taken_dmg-all");
     assertEquals(
-        replayStandings([cast], dated, ROSTER).standings.map((one) => one.turnsElapsed),
+        replayStandings([cast], dated, ROSTER).auras.map((one) => one.turnsElapsed),
         [0],
         "nothing has passed on the turn it was cast",
     );
     assertEquals(
-        replayStandings([cast, composeBlow(1)], dated, ROSTER).standings.map((one) =>
-            one.turnsElapsed
-        ),
+        replayStandings([cast, composeBlow(1)], dated, ROSTER).auras.map((one) => one.turnsElapsed),
         [1],
         "and one turn of the caster's later, one has",
     );
     assertEquals(
-        replayStandings([cast, composeBlow(1), composeBlow(1)], dated, ROSTER).standings,
+        replayStandings([cast, composeBlow(1), composeBlow(1)], dated, ROSTER).auras,
         [],
         "at the turns it was given it is no longer standing",
     );
@@ -114,7 +112,7 @@ function composeStated(
     shouts: readonly { id: number; turns: number; coverageMinimum: number }[] = [],
 ): StatedSkills {
     return {
-        turnsBySkillId: indexAuraTurnsBySkillId(skills),
+        auraTurnsBySkillId: indexAuraTurnsBySkillId(skills),
         shoutsBySkillId: indexShoutsBySkillId(shouts),
     };
 }
@@ -198,12 +196,12 @@ Deno.test("another's turn moves nothing, and a second cast refreshes rather than
     const dated = composeStated([{ id: 264, turns: 8 }]);
     const cast = composeCast(1, 264, "+spell-taken_dmg-all");
     assertEquals(
-        replayStandings([cast, composeBlow(2), composeBlow(2)], dated, ROSTER).standings
+        replayStandings([cast, composeBlow(2), composeBlow(2)], dated, ROSTER).auras
             .map((one) => one.turnsElapsed),
         [0],
         "the length is counted in the caster's own turns and nobody else's",
     );
-    const refreshed = replayStandings([cast, composeBlow(1), cast], dated, ROSTER).standings;
+    const refreshed = replayStandings([cast, composeBlow(1), cast], dated, ROSTER).auras;
     assertStrictEquals(refreshed.length, 1, "a second cast by the same caster is one row");
     assertStrictEquals(refreshed[0]?.turnsElapsed, 0, "and it starts again");
 });
@@ -211,12 +209,12 @@ Deno.test("another's turn moves nothing, and a second cast refreshes rather than
 Deno.test("a cast the table dates no duration for reaches no row", () => {
     const cast = composeCast(1, 999, "aura-sa_per");
     assertEquals(
-        replayStandings([cast], DATED, ROSTER).standings,
+        replayStandings([cast], DATED, ROSTER).auras,
         [],
         "an id the frozen table does not name",
     );
     assertEquals(
-        replayStandings([composeCast(1, 264, "+dmg")], DATED, ROSTER).standings,
+        replayStandings([composeCast(1, 264, "+dmg")], DATED, ROSTER).auras,
         [],
         "and a skill whose effects reach one combatant",
     );
@@ -228,13 +226,13 @@ Deno.test("every recording answers, and nothing stands longer than the table giv
         const path = fight.path;
         const roster = indexCombatantRoster(fight.combatants);
         const events = decodeRecordedFight(fight).events;
-        for (const one of replayStandings(events, DATED, roster).standings) {
+        for (const one of replayStandings(events, DATED, roster).auras) {
             stood += 1;
             assert(one.turnsElapsed >= 0, `${path}: a length is never below nothing`);
             assert(one.turnsElapsed < one.turnsStated, `${path}: and never past what was stated`);
             assert(one.skillName.length > 0, `${path}: a standing names the skill the game named`);
             assert(
-                DATED.turnsBySkillId.has(one.skillId),
+                DATED.auraTurnsBySkillId.has(one.skillId),
                 `${path}: and one the published table dates`,
             );
         }
@@ -382,7 +380,7 @@ Deno.test("a shout the table dates nowhere holds nobody, and its other half stil
         "an id the frozen shouts do not name holds nobody",
     );
     assertEquals(
-        replayStandings(events, dated, ROSTER).standings.map((one) => one.turnsStated),
+        replayStandings(events, dated, ROSTER).auras.map((one) => one.turnsStated),
         [5],
         "and the debuff on the same announcement is dated by itself, so it stands",
     );
@@ -397,7 +395,7 @@ Deno.test("a cast the aura table dates nowhere still shouts, and stands on no si
         "the half the table does date is the half that is read",
     );
     assertEquals(
-        replayStandings(events, dated, ROSTER).standings,
+        replayStandings(events, dated, ROSTER).auras,
         [],
         "and an undated side-wide half stands nowhere rather than borrowing the shout's turns",
     );
@@ -411,7 +409,7 @@ Deno.test("an okrzyk dated on neither half is no cast at all", () => {
         ROSTER,
     );
     assertEquals(held.provocations, [], "nothing holds anybody");
-    assertEquals(held.standings, [], "and nothing stands");
+    assertEquals(held.auras, [], "and nothing stands");
 });
 
 Deno.test("one shout holds a character, and the last of them is the one that does", () => {
@@ -455,7 +453,7 @@ Deno.test("an okrzyk stands beside the whole-team casts as well as holding someb
         composeCast(1, 264, "+spell-taken_dmg-all"),
     ];
     assertEquals(
-        replayStandings(events, dated, ROSTER).standings.map((one) => one.skillId).sort(),
+        replayStandings(events, dated, ROSTER).auras.map((one) => one.skillId).sort(),
         [188, 264],
         "the okrzyk's side-wide half stands where every other cast reaching a side does",
     );
@@ -485,10 +483,10 @@ Deno.test("an okrzyk's two halves run out apart, and on two different clocks", (
     // Whatever the held character does, the debuff goes on running on the caster's own turns.
     for (const elapsed of [0, 1, 2, 3, 4]) {
         const held = replayStandings([cast, ...composeTurns(1, elapsed)], dated, ROSTER);
-        assertStrictEquals(held.standings[0]?.turnsElapsed, elapsed, `the debuff at ${elapsed}`);
+        assertStrictEquals(held.auras[0]?.turnsElapsed, elapsed, `the debuff at ${elapsed}`);
     }
     const over = replayStandings([cast, ...composeTurns(1, 5)], dated, ROSTER);
-    assertEquals(over.standings, [], "and at five the debuff has run out too");
+    assertEquals(over.auras, [], "and at five the debuff has run out too");
 });
 
 /** As many of that caster's own turns as a sample needs to pass, each opened by a blow. */
@@ -568,7 +566,7 @@ Deno.test(`${BOTH_OKRZYKI}: two casters at one monster leave one provocation sta
     // on the side-wide half's own turns — 2 by the frozen table, where its shout is dated 3 — so
     // the two halves of one announcement run out apart, which is the whole of what that decision
     // states.
-    const standing = replayStandings(announced, DATED, roster).standings;
+    const standing = replayStandings(announced, DATED, roster).auras;
     assertEquals(
         standing.filter((one) => one.skillId === 25).map((one) => one.turnsStated),
         [2],
@@ -701,20 +699,20 @@ Deno.test("a name nobody holds is skipped wherever it stands in the list", () =>
 Deno.test("the target slot is read beside a shout, and on no other cast", () => {
     const dated = composeStated([{ id: 188, turns: 5 }, { id: 264, turns: 8 }], SHOUTS);
     const plain = replayStandings([composeCast(1, 264, "+spell-taken_dmg-all", 9)], dated, ROSTER);
-    assertStrictEquals(plain.standings[0]?.chosenTargetId, null, "a cast reaching a side");
+    assertStrictEquals(plain.auras[0]?.shoutTargetId, null, "a cast reaching a side");
     const shouted = replayStandings(
         [composeCast(1, 188, "shout alllowdmg", 9, "Ktoś 9")],
         dated,
         ROSTER,
     );
-    assertStrictEquals(shouted.standings[0]?.chosenTargetId, 9, "and the shout's own slot");
+    assertStrictEquals(shouted.auras[0]?.shoutTargetId, 9, "and the shout's own slot");
 });
 
 Deno.test("a standing carries the figures its announcement stated", () => {
     const dated = composeStated([{ id: 264, turns: 8 }]);
     const held = replayStandings([composeCast(1, 264, "+spell-taken_dmg-all")], dated, ROSTER);
     assertEquals(
-        [...(held.standings[0]?.amountByKey ?? [])],
+        [...(held.auras[0]?.amountByKey ?? [])],
         [["+spell-taken_dmg-all", 8]],
         "each key at the figure it was stated at",
     );
@@ -723,7 +721,7 @@ Deno.test("a standing carries the figures its announcement stated", () => {
 Deno.test("the turns a cast stood on are the turns as it stood, not as the fight ended", () => {
     const dated = composeStated([{ id: 264, turns: 8 }]);
     const events = [composeCast(1, 264, "+spell-taken_dmg-all"), ...composeTurns(2, 3)];
-    const held = replayStandings(events, dated, ROSTER).standings[0];
+    const held = replayStandings(events, dated, ROSTER).auras[0];
     assertStrictEquals(held?.turnsAtCastByCombatantId.get(1), 1, "the caster's turn of the cast");
     assertStrictEquals(held?.turnsAtCastByCombatantId.get(2), undefined, "and nobody else's yet");
 });
@@ -736,7 +734,7 @@ Deno.test("a turn lost is a turn that passed for whoever is carrying a cast", ()
         dated,
         ROSTER,
     );
-    assertStrictEquals(held.standings[0]?.turnsElapsed, 1, "one of the caster's turns went by");
+    assertStrictEquals(held.auras[0]?.turnsElapsed, 1, "one of the caster's turns went by");
 });
 
 Deno.test("the slow a Szadź casts reaches the other side", () => {

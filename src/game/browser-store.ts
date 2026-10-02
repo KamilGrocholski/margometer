@@ -13,13 +13,13 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 /** Every key this add-on writes, named as ours like everything else a reader could meet. */
 export const STORE_KEY = {
     fights: "MargoMeter-fights",
-    panelFolded: "MargoMeter-folded",
-    panelPlace: "MargoMeter-place",
+    meterFolded: "MargoMeter-folded",
+    meterPosition: "MargoMeter-place",
     helperFolded: "MargoMeter-pomocnik-folded",
-    helperPlace: "MargoMeter-pomocnik-place",
+    helperPosition: "MargoMeter-pomocnik-place",
     storage: "MargoMeter-storage",
     typeStep: "MargoMeter-type",
-    panelSize: "MargoMeter-size",
+    meterSize: "MargoMeter-size",
     helperSize: "MargoMeter-pomocnik-size",
 } as const;
 export type StoreKey = VocabularyWord<typeof STORE_KEY>;
@@ -111,20 +111,23 @@ function prepareStoreWrite(value: string): undefined | StoreValueTooLong {
  * nothing but a value past the bound: there is no quota to be past and nothing to be forbidden.
  */
 export function initMemoryStore(): KeyValueStore {
-    const held = new Map<StoreKey, string>();
+    const valuesByKey = new Map<StoreKey, string>();
     return {
         read(key) {
-            return held.get(key) ?? null;
+            return valuesByKey.get(key) ?? null;
         },
         write(key, value) {
             const tooLong = prepareStoreWrite(value);
             if (tooLong instanceof Error) return tooLong;
-            held.set(key, value);
-            assert(held.size <= STORE_KEYS.length, "a store holds no more than the keys it has");
+            valuesByKey.set(key, value);
+            assert(
+                valuesByKey.size <= STORE_KEYS.length,
+                "a store holds no more than the keys it has",
+            );
             return undefined;
         },
         delete(key) {
-            held.delete(key);
+            valuesByKey.delete(key);
             return undefined;
         },
     };

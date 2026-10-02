@@ -37,16 +37,16 @@ Deno.test("a cast reaching their side stands on the bearer while their own turns
 });
 
 function readFigure(
-    standings: readonly AuraStanding[],
+    auras: readonly AuraStanding[],
     bit: number,
     turnsByCombatantId: ReadonlyMap<number, number>,
 ) {
     const found = tallyCarriedFigures({
         statuses: [{ combatantId: 12, bit, turnsElapsed: 4 }],
-        standings,
+        auras,
         roster: ROSTER,
         turnsByCombatantId,
-        witnessed: WITNESSED,
+        keyByStatusBit: WITNESSED,
     });
     return found[0];
 }
@@ -59,7 +59,7 @@ function composeCast(over: Partial<AuraStanding> & { key: string; amount: number
         turnsElapsed: 0,
         turnsStated: 8,
         reach: "casters-side",
-        chosenTargetId: null,
+        shoutTargetId: null,
         amountByKey: new Map([[over.key, over.amount]]),
         turnsAtCastByCombatantId: new Map([[11, 0], [12, 0], [13, 0], [21, 0]]),
         ...over,
@@ -127,10 +127,10 @@ Deno.test("the caster of a key the help halves for them gets no figure", () => {
 Deno.test("a status no key is witnessed on gets no row at all", () => {
     const found = tallyCarriedFigures({
         statuses: [{ combatantId: 12, bit: 3, turnsElapsed: 4 }],
-        standings: [composeCast({ key: "aura-sa_per", amount: 20 })],
+        auras: [composeCast({ key: "aura-sa_per", amount: 20 })],
         roster: ROSTER,
         turnsByCombatantId: new Map([[12, 1]]),
-        witnessed: WITNESSED,
+        keyByStatusBit: WITNESSED,
     });
     assertEquals(found, [], "poisoning is moved by no key that states a figure");
 });

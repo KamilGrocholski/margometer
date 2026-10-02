@@ -12,6 +12,7 @@ import { PANEL_REGION } from "#/src/ui/panel-words.ts";
 import { readBundleFiles } from "#/tests/source-tree.ts";
 import { GivingWayError } from "#/tools/margometer-tool-error.ts";
 import {
+    CARD_ANCHOR,
     composeGivingWayShot,
     composeGivingWaySource,
     DEFAULT_INTO,
@@ -21,14 +22,13 @@ import {
     readGivingWayFlags,
     REGION_ANCHOR,
     REGIONS_ASKED_MAXIMUM,
-    TIP_ANCHOR,
 } from "#/tools/panel-giving-way.ts";
 import { SHOT_DIRECTORY } from "#/tools/panel-shots.ts";
 
 Deno.test("both guards this edits are still the panel's, and each stands once", () => {
     const source = Deno.readTextFileSync(PANEL_FILE);
     assertStrictEquals(source.split(REGION_ANCHOR).length - 1, 1, "every region's guard, once");
-    assertStrictEquals(source.split(TIP_ANCHOR).length - 1, 1, "and the card's, once");
+    assertStrictEquals(source.split(CARD_ANCHOR).length - 1, 1, "and the card's, once");
 });
 
 Deno.test("a region asked for reaches both guards, and one asked for with it arrives too", () => {
@@ -38,7 +38,7 @@ Deno.test("a region asked for reaches both guards, and one asked for with it arr
     // The list the added lines test against, and never a name that merely occurs in the panel:
     // `list` is a word the source spells for its own reasons.
     assertStrictEquals(given.split(`["list"].includes(region)`).length - 1, 1, "every region's");
-    assertStrictEquals(given.split(`["list"].includes(PANEL_REGION.tip)`).length - 1, 1, "card");
+    assertStrictEquals(given.split(`["list"].includes(PANEL_REGION.card)`).length - 1, 1, "card");
     assertStrictEquals(given.split(GIVING_WAY_MARKER).length - 1, 2, "one line in each guard");
     const both = composeGivingWaySource(source, [PANEL_REGION.list, PANEL_REGION.sides]);
     assert(both.includes(`["list","sides"].includes(region)`), "two of them arrive as two");
@@ -46,7 +46,7 @@ Deno.test("a region asked for reaches both guards, and one asked for with it arr
 
 /** The samples it must refuse: a panel with either guard written another way, or twice. */
 Deno.test("a source not carrying each guard once is refused, not edited into nothing", () => {
-    const refused = [REGION_ANCHOR, TIP_ANCHOR, `${REGION_ANCHOR}${REGION_ANCHOR}${TIP_ANCHOR}`];
+    const refused = [REGION_ANCHOR, CARD_ANCHOR, `${REGION_ANCHOR}${REGION_ANCHOR}${CARD_ANCHOR}`];
     for (const source of refused) {
         assertThrows(
             () => composeGivingWaySource(source, [PANEL_REGION.list]),
@@ -54,15 +54,15 @@ Deno.test("a source not carrying each guard once is refused, not edited into not
             "the guard this edits",
         );
     }
-    const carried = composeGivingWaySource(`${REGION_ANCHOR}${TIP_ANCHOR}`, [PANEL_REGION.list]);
+    const carried = composeGivingWaySource(`${REGION_ANCHOR}${CARD_ANCHOR}`, [PANEL_REGION.list]);
     assert(carried.includes(GIVING_WAY_MARKER), "and one carrying both, once each, is edited");
 });
 
 Deno.test("every region the panel words is one to ask for, and nothing else is", () => {
     assertEquals(GIVING_WAY_REGIONS, Object.values(PANEL_REGION), "the panel's own, in order");
     assertEquals(readGivingWayFlags([]).regions, GIVING_WAY_REGIONS, "none asked is every one");
-    const asked = readGivingWayFlags(["--region", "list", "--region", "tip"]);
-    assertEquals(asked.regions, [PANEL_REGION.list, PANEL_REGION.tip], "each asked, in order");
+    const asked = readGivingWayFlags(["--region", "list", "--region", "card"]);
+    assertEquals(asked.regions, [PANEL_REGION.list, PANEL_REGION.card], "each asked, in order");
     assertThrows(
         () => readGivingWayFlags(["--region", "list", "--region", "nowhere"]),
         GivingWayError,
@@ -110,9 +110,9 @@ Deno.test("each picture reaches the state it is named for, and no further", () =
     const folded = { doesHover: false, mark: PANEL_MARK.helperFold, at: 0 };
     assertEquals(composeGivingWayShot(PANEL_REGION.list).steps, [pressed], "a draw more");
     assertEquals(composeGivingWayShot(PANEL_REGION.strips).steps, [folded, folded], "no strips");
-    const tip = composeGivingWayShot(PANEL_REGION.tip);
-    assertStrictEquals(tip.steps[0]?.doesHover, true, "the card is opened by a pointer over it");
-    assertEquals(tip.steps.slice(1), [pressed], "and stated at the draw after");
+    const card = composeGivingWayShot(PANEL_REGION.card);
+    assertStrictEquals(card.steps[0]?.doesHover, true, "the card is opened by a pointer over it");
+    assertEquals(card.steps.slice(1), [pressed], "and stated at the draw after");
     const names = GIVING_WAY_REGIONS.map((region) => composeGivingWayShot(region).name);
     assertStrictEquals(new Set(names).size, GIVING_WAY_REGIONS.length, "one name per region");
 });

@@ -162,10 +162,10 @@ legibility.
 | `fontSize`       | `11px` · `12px` · `13px` — the three steps of type, small first                   |
 | `rowHeight`      | `18px` · `19px` · `21px`                                                          |
 | `maxHeightShare` | `66vh`                                                                            |
-| `tipWidth`       | `250px` · `272px` · `296px` — a maximum, and a card is as wide as what it says    |
+| `cardWidth`      | `250px` · `272px` · `296px` — a maximum, and a card is as wide as what it says    |
 | `lineHeight`     | `15px` · `16px` · `18px` — whole pixels, and what a counted card is multiplied by |
-| `panelWidth`     | `260px` · `274px` · `306px` — narrow on purpose: the panel is a guest             |
-| `helperWidth`    | `210px` · `228px` · `248px` — the window beside the panel                         |
+| `meterWidth`     | `260px` · `274px` · `306px` — narrow on purpose: the meter is a guest             |
+| `helperWidth`    | `210px` · `228px` · `248px` — the window beside the meter                         |
 | `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against                   |
 | `panelLayer`     | `10` — the game's interface layer, and under every window it opens                |
 
@@ -342,7 +342,7 @@ it is both the live one and a kept one, it keeps the live row's wording and the 
 in two digits, so the cell is one width whichever day it falls on. A shelf holds twenty fights and a
 pinned one outlives the rotation, so a column of bare times is several days reading as one evening.
 The place is what pays for the width, on every row and not only on the rows that span days, and it
-pays enough that **on a dated row the place is a hint and the tip is the answer** — the name the
+pays enough that **on a dated row the place is a hint and the card is the answer** — the name the
 cell had to cut is drawn whole there. **develop ADR 0084** carries the measurement.
 
 **The pin is inside the row and is not part of it.** It is the one control that outranks the row it

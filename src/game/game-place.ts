@@ -36,12 +36,12 @@ const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "name", x: "x", y: "y" };
 
 /** The first spelling of the game that says anything wins: two spellings are one game. */
-export function initGamePlace(page: unknown): GamePlacePort {
+export function initGamePlace(browserWindow: unknown): GamePlacePort {
     return {
         readPlace() {
-            const read = errors.attempt(() => readGameEngines(page).map(readGamePlace));
-            if (read instanceof Error) return read;
-            for (const place of read) {
+            const places = errors.attempt(() => readGameEngines(browserWindow).map(readGamePlace));
+            if (places instanceof Error) return places;
+            for (const place of places) {
                 if (place !== null) return place;
             }
             return new GameValueAbsent(GAME_VALUE.place);
@@ -67,10 +67,10 @@ function readGamePlace(engine: UnknownRecord): FightPlace | null {
 }
 
 function readGameEngineRecord(engine: UnknownRecord, field: GameEngineField): UnknownRecord | null {
-    const held = getRecordField(engine, ENGINE_FIELDS, field);
-    if (held instanceof Error) return null;
-    if (held === null) return null;
-    const data = getRecordField(held, HELD_FIELDS, "data");
+    const engineMember = getRecordField(engine, ENGINE_FIELDS, field);
+    if (engineMember instanceof Error) return null;
+    if (engineMember === null) return null;
+    const data = getRecordField(engineMember, HELD_FIELDS, "data");
     if (data instanceof Error) return null;
     return data;
 }

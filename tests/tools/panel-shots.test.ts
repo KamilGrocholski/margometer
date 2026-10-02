@@ -149,11 +149,11 @@ Deno.test("the card is photographed over a person's row, never over the fight's 
 
 Deno.test("a frame holds the windows and their card, from the leftmost to the corner", () => {
     const panelLeft = VIEWPORT_WIDTH - PLACE.insetPixels -
-        TYPE_TOKENS[TYPE_STEP_DEFAULT].panelWidthPixels;
+        TYPE_TOKENS[TYPE_STEP_DEFAULT].meterWidthPixels;
     const panel = {
         x: panelLeft,
         y: 8,
-        width: TYPE_TOKENS[TYPE_STEP_DEFAULT].panelWidthPixels,
+        width: TYPE_TOKENS[TYPE_STEP_DEFAULT].meterWidthPixels,
         height: 400,
     };
     const standing = { x: panelLeft - 220, y: 8, width: 210, height: 120 };
@@ -173,7 +173,7 @@ Deno.test("a panel that never reached its corner is refused, not photographed", 
     const astray = {
         x: 500,
         y: 8,
-        width: TYPE_TOKENS[TYPE_STEP_DEFAULT].panelWidthPixels,
+        width: TYPE_TOKENS[TYPE_STEP_DEFAULT].meterWidthPixels,
         height: 400,
     };
     assertThrows(() => composeShotClip([astray], VIEWPORT_WIDTH), PanelShotError, "corner");

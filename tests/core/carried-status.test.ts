@@ -157,9 +157,9 @@ Deno.test("the walk handed in is left as it was, and the same input prepares the
 
 function copyWalk(walk: CarriedStatusWalk) {
     return {
-        standing: { ...walk.standing },
+        standing: { ...walk.turnStanding },
         turns: [...walk.turnsByCombatantId],
-        held: [...walk.heldByCombatantId].map(([id, held]) => [id, [...held]]),
+        held: [...walk.lightingTurnByBitByCombatantId].map(([id, held]) => [id, [...held]]),
     };
 }
 
@@ -170,7 +170,15 @@ Deno.test("a combatant whose mask lets everything go is no longer held at all", 
         [],
         new Map([[1, composeMask(SPEED_UP)], [2, composeMask(POISONED)]]),
     );
-    assertEquals([...walk.heldByCombatantId.keys()], [1, 2], "two carriers while both hold one");
+    assertEquals(
+        [...walk.lightingTurnByBitByCombatantId.keys()],
+        [1, 2],
+        "two carriers while both hold one",
+    );
     walk = prepareCarriedStatusWalk(walk, [], new Map([[1, 0]]));
-    assertEquals([...walk.heldByCombatantId.keys()], [2], "and one once the other lets go");
+    assertEquals(
+        [...walk.lightingTurnByBitByCombatantId.keys()],
+        [2],
+        "and one once the other lets go",
+    );
 });

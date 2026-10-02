@@ -11,14 +11,14 @@ import { type FakeElement, getElementsWithin, getTextsByClass } from "./fake-doc
 import { CLASS } from "#/src/ui/panel-look.ts";
 
 /** One line of the card as a reader meets it: what it is of, what it says, and how it is drawn. */
-export interface TipLineRead {
+export interface CardLineRead {
     label: string;
     value: string;
     isStrong: boolean;
     isSub: boolean;
 }
 
-export interface TipRead {
+export interface CardRead {
     className: string;
     name: string[];
     subtitle: string[];
@@ -26,37 +26,37 @@ export interface TipRead {
     headings: string[];
     groups: number;
     lines: string[];
-    stated: TipLineRead[];
+    stated: CardLineRead[];
 }
 
 /** Whatever the detail is saying right now, read back out of the root it stands in. */
-export function readTip(host: FakeElement): TipRead {
-    const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
-    assertExists(tip, "the detail is a region of the panel like any other");
-    const name = getTextsByClass(tip, CLASS.tipName);
+export function readCard(host: FakeElement): CardRead {
+    const card = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.card));
+    assertExists(card, "the detail is a region of the panel like any other");
+    const name = getTextsByClass(card, CLASS.cardName);
     return {
-        className: tip.className,
+        className: card.className,
         name,
-        subtitle: getTextsByClass(tip, CLASS.tipSubtitle),
+        subtitle: getTextsByClass(card, CLASS.cardSubtitle),
         // By the class among its classes, not by the whole attribute: a note carrying a tone
         // wears a second class, and an exact match read past every suspicion the panel drew.
-        notes: getElementsWithin(tip)
-            .filter((one) => one.className.split(" ").includes(CLASS.tipNote))
+        notes: getElementsWithin(card)
+            .filter((one) => one.className.split(" ").includes(CLASS.cardNote))
             .map((one) => one.textContent),
-        headings: getTextsByClass(tip, CLASS.tipHeading),
-        groups: getElementsWithin(tip).filter((one) => one.className === CLASS.tipGroup).length,
+        headings: getTextsByClass(card, CLASS.cardHeading),
+        groups: getElementsWithin(card).filter((one) => one.className === CLASS.cardGroup).length,
         lines: [
             ...name,
-            ...getTextsByClass(tip, CLASS.tipLabel),
-            ...getTextsByClass(tip, CLASS.tipValue),
+            ...getTextsByClass(card, CLASS.cardLabel),
+            ...getTextsByClass(card, CLASS.cardValue),
         ],
-        stated: getElementsWithin(tip)
-            .filter((one) => one.className.startsWith(CLASS.tipLine))
+        stated: getElementsWithin(card)
+            .filter((one) => one.className.startsWith(CLASS.cardLine))
             .map((one) => ({
-                label: getTextsByClass(one, CLASS.tipLabel)[0] ?? "",
-                value: getTextsByClass(one, CLASS.tipValue)[0] ?? "",
-                isStrong: one.className.includes(CLASS.tipStrong),
-                isSub: one.className.includes(CLASS.tipSub),
+                label: getTextsByClass(one, CLASS.cardLabel)[0] ?? "",
+                value: getTextsByClass(one, CLASS.cardValue)[0] ?? "",
+                isStrong: one.className.includes(CLASS.cardStrong),
+                isSub: one.className.includes(CLASS.cardSub),
             })),
     };
 }

@@ -376,9 +376,9 @@ export function getDefenceMechanism(defence: string): DefenceMechanism {
 
 function indexKeyMeanings(): Map<string, KeyMeaning> {
     const found = new Map<string, KeyMeaning>();
-    const add = (key: string, reading: KeyMeaning) => {
+    const add = (key: string, keyMeaning: KeyMeaning) => {
         assert(!found.has(key), "a key belongs to one family");
-        found.set(key, reading);
+        found.set(key, keyMeaning);
     };
     for (const key of DAMAGE_KEYS) {
         add(key, {

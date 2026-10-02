@@ -108,15 +108,15 @@ export interface FrameParts {
 }
 
 export interface OpenedLevels {
-    drill: OpenedLevelContent | null;
+    opened: OpenedLevelContent | null;
     pair: PairLevelContent | null;
     part: PartLevelContent | null;
-    halfNamed: UnnamedLevelContent | null;
-    halfNamedDrill: UnnamedCutLevelContent | null;
+    unnamed: UnnamedLevelContent | null;
+    unnamedCut: UnnamedCutLevelContent | null;
 }
 
 interface LiveRow {
-    reading: FightState;
+    fightState: FightState;
     place: FightPlace | null;
     readerId: number | null;
     openedAt: number;
@@ -158,48 +158,52 @@ export function renderFrame(parts: FrameParts): void {
         // reading that will not compose is said as a fight that would not read, and never as no
         // fight.
         const isShelfEmpty = parts.keeper.getFights().length === 0;
-        const read = errors.attempt(() =>
+        const helperRead = errors.attempt(() =>
             presentHelperForFrame(parts.live, parts.tables, isShelfEmpty)
         );
-        if (read instanceof Error) {
-            parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
+        if (helperRead instanceof Error) {
+            parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: helperRead });
         }
-        const reading = read instanceof Error ? HELPER_ABSENCE.fightUnread : read;
+        const helper = helperRead instanceof Error ? HELPER_ABSENCE.fightUnread : helperRead;
         addUndrawnDefects(
             parts.defects,
-            parts.view.renderHelper(reading, parts.screen.isHelperCollapsed),
+            parts.view.renderHelper(helper, parts.screen.isHelperCollapsed),
         );
     }
-    const said = getPanelDefects(parts.defects);
+    const defects = getPanelDefects(parts.defects);
     // Asked without decoding anything: a fight that will not read is still worth handing over.
     const hasFightToSave = parts.live.capture.calls.length > 0 ||
         parts.keeper.getFights().length > 0;
     // Draw the panel, or waiting where there is nothing to stand on — no fight and an empty shelf —
     // because a panel of zeroes over a game that has not started is a claim.
-    const drawn = errors.attempt(() => {
-        const { screen, keeper, live } = parts;
-        const view = composeFightView(live.session);
+    const rendered = errors.attempt(() => {
+        const { screen, keeper, live: liveFight } = parts;
+        const view = composeFightView(liveFight.session);
         const liveFightState = view === null ? null : tallyFightState(view);
         const shownFight = lookupShownFight(
             liveFightState,
-            screen.openFightId,
+            screen.chosenFightOpenedAt,
             keeper.getFights(),
             keeper.lookupKeptFightState,
         );
         if (shownFight === null) {
             // A kept fight chosen and still none shown is a fight that no longer reads, and the
             // reader is told which one rather than that there has been none.
-            const unread = lookupShownKeptFight(
+            const unreadKeptFight = lookupShownKeptFight(
                 liveFightState,
-                screen.openFightId,
+                screen.chosenFightOpenedAt,
                 keeper.getFights(),
             );
-            const keptUnread = unread === undefined ? null : {
-                at: parts.clock.readMoment(unread.openedAt),
-                place: formatFightPlace(unread.place),
+            const keptUnread = unreadKeptFight === undefined ? null : {
+                at: parts.clock.readMoment(unreadKeptFight.openedAt),
+                place: formatFightPlace(unreadKeptFight.place),
             };
-            const waiting = { isCollapsed: screen.isCollapsed, defects: said, hasFightToSave };
-            const drawnWaiting = parts.view.renderWaiting({
+            const waiting = {
+                isMeterCollapsed: screen.isMeterCollapsed,
+                defects,
+                hasFightToSave,
+            };
+            const renderedWaiting = parts.view.renderWaiting({
                 ...waiting,
                 isFightUnread: false,
                 keptUnread,
@@ -207,36 +211,42 @@ export function renderFrame(parts: FrameParts): void {
                 typeStep: screen.typeStep,
                 windowSizes: screen.windowSizes,
             });
-            addUndrawnDefects(parts.defects, drawnWaiting);
+            addUndrawnDefects(parts.defects, renderedWaiting);
             return;
         }
         assert(
-            shownFight.state.view.payloadsApplied > 0,
+            shownFight.fightState.view.payloadsApplied > 0,
             "a fight stood on was read from something",
         );
-        const shown = presentFrameScreen(parts, shownFight, liveFightState, said, hasFightToSave);
+        const shownScreen = presentFrameScreen(
+            parts,
+            shownFight,
+            liveFightState,
+            defects,
+            hasFightToSave,
+        );
         // Say where two counts of one figure came out different.
         {
             // The one thing the panel can say about a drawn figure being wrong rather than short,
             // and a defect rather than an assertion (`develop ADR 0051`).
-            const defects = parts.defects;
+            const ledger = parts.defects;
             const add = (cut: FiguresCut): void => {
-                defects.add({
+                ledger.add({
                     kind: DEFECT_KIND.figures,
                     region: null,
                     failure: new FiguresDisagreed(cut),
                 });
             };
-            if (shown.reading.hasFiguresDisagreed) add(FIGURES_CUT.screen);
-            if (shown.drill?.hasFiguresDisagreed === true) add(FIGURES_CUT.drill);
-            if (shown.pair?.hasFiguresDisagreed === true) add(FIGURES_CUT.pair);
+            if (shownScreen.ranking.hasFiguresDisagreed) add(FIGURES_CUT.screen);
+            if (shownScreen.opened?.hasFiguresDisagreed === true) add(FIGURES_CUT.drill);
+            if (shownScreen.pair?.hasFiguresDisagreed === true) add(FIGURES_CUT.pair);
         }
-        addUndrawnDefects(parts.defects, parts.view.render(shown));
+        addUndrawnDefects(parts.defects, parts.view.render(shownScreen));
     });
-    if (!(drawn instanceof Error)) return;
-    parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: drawn });
+    if (!(rendered instanceof Error)) return;
+    parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: rendered });
     const waiting = {
-        isCollapsed: parts.screen.isCollapsed,
+        isMeterCollapsed: parts.screen.isMeterCollapsed,
         defects: getPanelDefects(parts.defects),
         hasFightToSave,
         isFightUnread: true,
@@ -258,19 +268,22 @@ function addRegionDefect(parts: FrameParts, failure: RuntimeFailure): void {
  * where the shelf keeps one the panel draws it, so "no fight yet" is said only over an empty shelf.
  */
 function presentHelperForFrame(
-    live: LiveFight,
+    liveFight: LiveFight,
     tables: TooltipTables,
     isShelfEmpty: boolean,
 ): HelperContent | HelperAbsence {
-    const view = composeFightView(live.session);
+    const view = composeFightView(liveFight.session);
     if (view === null) {
         return isShelfEmpty ? HELPER_ABSENCE.noFightYet : HELPER_ABSENCE.betweenFights;
     }
-    const held = replayAuraStandings(view, tables.statedSkills);
-    assert(held.provocations.length <= COMBATANTS_MAXIMUM, "a shout holds people of this fight");
+    const standings = replayAuraStandings(view, tables.statedSkills);
+    assert(
+        standings.provocations.length <= COMBATANTS_MAXIMUM,
+        "a shout holds people of this fight",
+    );
     const turn = { statement: view.turnStatement, isOver: view.isOver, isOnAuto: view.isOnAuto };
     return presentHelper(
-        held.provocations,
+        standings.provocations,
         view.chargedSkills,
         view.roster,
         view.readerSide,
@@ -293,61 +306,66 @@ function presentFrameScreen(
     parts: FrameParts,
     shownFight: ShownFight,
     liveFightState: FightState | null,
-    said: readonly PanelDefect[],
+    defects: readonly PanelDefect[],
     hasFightToSave: boolean,
 ): ShownScreen {
-    const { screen, keeper, live } = parts;
-    const { view, figures } = shownFight.state;
-    const reading = presentScreen(
+    const { screen, keeper, live: liveFight } = parts;
+    const { view, figures } = shownFight.fightState;
+    const ranking = presentScreen(
         figures.statistics,
         view.roster,
-        screen.current,
+        screen.metric,
         screen.side,
         view.readerSide,
         getFightSuspicions(view),
     );
-    const opened = presentOpenedLevels(shownFight.state, screen);
+    const openedLevels = presentOpenedLevels(shownFight.fightState, screen);
     // The row the panel is drawing: the kept one wherever there is no live fight to mark instead.
-    const chosenFight = screen.openFightId ?? shownFight.kept?.openedAt ?? null;
-    if (shownFight.kept !== null) {
-        assert(chosenFight !== null, "a kept fight on screen is one named");
+    const chosenFightOpenedAt = screen.chosenFightOpenedAt ?? shownFight.keptFight?.openedAt ??
+        null;
+    if (shownFight.keptFight !== null) {
+        assert(chosenFightOpenedAt !== null, "a kept fight on screen is one named");
     }
-    assert(reading.rows.length <= COMBATANTS_MAXIMUM, "a ranking holds the fight's cast at most");
+    assert(ranking.rows.length <= COMBATANTS_MAXIMUM, "a ranking holds the fight's cast at most");
     const liveRow = liveFightState === null ? null : {
-        reading: liveFightState,
-        place: live.place,
-        readerId: live.readerId,
-        openedAt: live.openedAt,
+        fightState: liveFightState,
+        place: liveFight.place,
+        readerId: liveFight.readerId,
+        openedAt: liveFight.openedAt,
     };
     return {
-        reading,
-        listName: composeListName(screen, chosenFight ?? live.openedAt),
-        current: screen.current,
+        ranking,
+        listName: composeListName(screen, chosenFightOpenedAt ?? liveFight.openedAt),
+        metric: screen.metric,
         side: screen.side,
         readerSide: view.readerSide,
         // A fight already over numbers nobody's turn, and one read off the shelf has passed.
         turnHolderId: view.isOver ? null : view.turnStatement?.combatantId ?? null,
-        shelf: presentShelfRows(parts, liveRow, chosenFight),
+        shelf: presentShelfRows(parts, liveRow, chosenFightOpenedAt),
         options: presentOptions(parts),
         typeStep: screen.typeStep,
         windowSizes: screen.windowSizes,
         hasFightToSave,
         shelfAnswers: presentShelfAnswers(keeper.getAnswers()),
-        defects: said,
+        defects,
         isOnShelf: screen.isOnShelf,
-        ...opened,
-        place: formatFightPlaceWords(shownFight.kept === null ? live.place : shownFight.kept.place),
+        ...openedLevels,
+        fightPlace: formatFightPlaceWords(
+            shownFight.keptFight === null ? liveFight.place : shownFight.keptFight.place,
+        ),
         card: presentFightCardContent(parts, {
-            sizes: reading.sizes,
-            unplaced: reading.unplaced,
-            outcome: reading.outcome,
-            isLive: shownFight.kept === null,
-            openedAt: shownFight.kept?.openedAt ?? live.openedAt,
-            place: shownFight.kept === null ? live.place : shownFight.kept.place,
-            readerId: shownFight.kept === null ? live.readerId : shownFight.kept.readerId,
+            sizes: ranking.sizes,
+            unplaced: ranking.unplaced,
+            outcome: ranking.outcome,
+            isLive: shownFight.keptFight === null,
+            openedAt: shownFight.keptFight?.openedAt ?? liveFight.openedAt,
+            place: shownFight.keptFight === null ? liveFight.place : shownFight.keptFight.place,
+            readerId: shownFight.keptFight === null
+                ? liveFight.readerId
+                : shownFight.keptFight.readerId,
             roster: view.roster,
         }),
-        isCollapsed: screen.isCollapsed,
+        isMeterCollapsed: screen.isMeterCollapsed,
     };
 }
 
@@ -401,24 +419,26 @@ function getFightSuspicions(view: FightView): FightSuspicions {
  */
 function presentShelfRows(
     parts: FrameParts,
-    live: LiveRow | null,
-    chosenId: number | null,
+    liveRow: LiveRow | null,
+    chosenFightOpenedAt: number | null,
 ): ShelfRow[] {
-    const kept = parts.keeper.getFights().slice(0, KEPT_MAXIMUM);
+    const keptFights = parts.keeper.getFights().slice(0, KEPT_MAXIMUM);
     const rows: ShelfRow[] = [];
-    const alsoKept = live === null ? undefined : kept.find((one) => one.openedAt === live.openedAt);
-    if (live !== null) {
-        const { sizes, unplaced } = presentShelfHeadcount(live.reading);
-        const outcome = getOutcomeOfReading(live.reading);
+    const alsoKept = liveRow === null
+        ? undefined
+        : keptFights.find((one) => one.openedAt === liveRow.openedAt);
+    if (liveRow !== null) {
+        const { sizes, unplaced } = presentShelfHeadcount(liveRow.fightState);
+        const outcome = getOutcomeOfReading(liveRow.fightState);
         rows.push({
-            openedAt: live.openedAt,
-            at: parts.clock.readMoment(live.openedAt),
+            openedAt: liveRow.openedAt,
+            at: parts.clock.readMoment(liveRow.openedAt),
             sizes,
-            place: formatFightPlace(live.place),
+            place: formatFightPlace(liveRow.place),
             outcome,
             isLive: true,
             // Nothing chosen is the live fight: a kept row's moment is never the live one's.
-            isChosen: chosenId === null,
+            isChosen: chosenFightOpenedAt === null,
             isPinned: alsoKept?.isPinned ?? false,
             isPinnable: alsoKept !== undefined,
             card: presentFightCardContent(parts, {
@@ -426,19 +446,19 @@ function presentShelfRows(
                 unplaced,
                 outcome,
                 isLive: true,
-                openedAt: live.openedAt,
-                place: live.place,
-                readerId: live.readerId,
-                roster: live.reading.view.roster,
+                openedAt: liveRow.openedAt,
+                place: liveRow.place,
+                readerId: liveRow.readerId,
+                roster: liveRow.fightState.view.roster,
             }),
         });
     }
-    for (const one of [...kept].sort((first, other) => other.openedAt - first.openedAt)) {
+    for (const one of [...keptFights].sort((first, other) => other.openedAt - first.openedAt)) {
         if (one.openedAt === alsoKept?.openedAt) continue;
-        const reading = parts.keeper.lookupKeptFightState(one);
+        const fightState = parts.keeper.lookupKeptFightState(one);
         // A row for a fight nothing can be read out of would state a headcount it does not have.
-        if (reading === null) continue;
-        rows.push(presentKeptShelfRow(parts, one, reading, chosenId));
+        if (fightState === null) continue;
+        rows.push(presentKeptShelfRow(parts, one, fightState, chosenFightOpenedAt));
     }
     assert(rows.length <= KEPT_MAXIMUM + 1, "a row per kept fight, and one for the live one");
     assert(rows.filter((one) => one.isLive).length <= 1, "and one live fight at most");
@@ -446,31 +466,31 @@ function presentShelfRows(
 }
 
 /** Counted as the fight's line counts it, so a row's card says what the line's card says. */
-function presentShelfHeadcount(reading: FightState): { sizes: number[]; unplaced: number } {
-    const { roster, readerSide } = reading.view;
-    const headcount = composeHeadcount(reading.figures.statistics, roster, readerSide);
+function presentShelfHeadcount(fightState: FightState): { sizes: number[]; unplaced: number } {
+    const { roster, readerSide } = fightState.view;
+    const headcount = composeHeadcount(fightState.figures.statistics, roster, readerSide);
     const counted = headcount.sizes.reduce((sum, count) => sum + count, 0);
     assert(headcount.sizes.every((count) => count > 0), "a side on the shelf holds somebody");
     assert(counted === roster.byId.size, "everybody the roster seats, once");
     return headcount;
 }
 
-function getOutcomeOfReading(reading: FightState): OutcomeResult | null {
-    const outcome = reading.figures.statistics.outcome;
+function getOutcomeOfReading(fightState: FightState): OutcomeResult | null {
+    const outcome = fightState.figures.statistics.outcome;
     if (outcome === null) return null;
-    return getOutcomeForReaderSide(outcome, reading.view.roster, reading.view.readerSide);
+    return getOutcomeForReaderSide(outcome, fightState.view.roster, fightState.view.readerSide);
 }
 
 function presentKeptShelfRow(
     parts: FrameParts,
     fight: KeptFight,
-    reading: FightState,
-    chosenId: number | null,
+    fightState: FightState,
+    chosenFightOpenedAt: number | null,
 ): ShelfRow {
-    assert(reading.view.payloadsApplied > 0, "a kept row states a fight read from something");
+    assert(fightState.view.payloadsApplied > 0, "a kept row states a fight read from something");
     assert(fight.payloads.length > 0, "and kept from something");
-    const { sizes, unplaced } = presentShelfHeadcount(reading);
-    const outcome = getOutcomeOfReading(reading);
+    const { sizes, unplaced } = presentShelfHeadcount(fightState);
+    const outcome = getOutcomeOfReading(fightState);
     return {
         openedAt: fight.openedAt,
         at: parts.clock.readMoment(fight.openedAt),
@@ -478,7 +498,7 @@ function presentKeptShelfRow(
         place: formatFightPlace(fight.place),
         outcome,
         isLive: false,
-        isChosen: chosenId === fight.openedAt,
+        isChosen: chosenFightOpenedAt === fight.openedAt,
         isPinned: fight.isPinned,
         isPinnable: true,
         card: presentFightCardContent(parts, {
@@ -489,7 +509,7 @@ function presentKeptShelfRow(
             openedAt: fight.openedAt,
             place: fight.place,
             readerId: fight.readerId,
-            roster: reading.view.roster,
+            roster: fightState.view.roster,
         }),
     };
 }
@@ -504,16 +524,18 @@ function presentOptions(parts: FrameParts): OptionsContent | null {
 }
 
 /** A refusal is an answer, and the figures it stands beside are whole. */
-function presentShelfAnswers(answers: ShelfAnswers): string[] {
-    const said: string[] = [];
-    if (answers.isEverySlotPinned) said.push(EVERY_SLOT_PINNED_ANSWER);
-    if (answers.hasStoreRefused) said.push(STORE_REFUSED_ANSWER);
-    if (answers.hasStoreMadeRoom) said.push(STORE_MADE_ROOM_ANSWER);
-    if (answers.hasChoiceRefused) said.push(CHOICE_REFUSED_ANSWER);
+function presentShelfAnswers(shelfAnswers: ShelfAnswers): string[] {
+    const answers: string[] = [];
+    if (shelfAnswers.isEverySlotPinned) answers.push(EVERY_SLOT_PINNED_ANSWER);
+    if (shelfAnswers.hasStoreRefused) answers.push(STORE_REFUSED_ANSWER);
+    if (shelfAnswers.hasStoreMadeRoom) answers.push(STORE_MADE_ROOM_ANSWER);
+    if (shelfAnswers.hasChoiceRefused) answers.push(CHOICE_REFUSED_ANSWER);
     // A refusal and room made are answers to one write, so the two never stand together.
-    if (answers.hasStoreRefused) assert(!answers.hasStoreMadeRoom, "a store refused, or made room");
-    assert(said.length <= SHELF_ANSWERS_MAXIMUM, "at most three of the four ever hold at once");
-    return said;
+    if (shelfAnswers.hasStoreRefused) {
+        assert(!shelfAnswers.hasStoreMadeRoom, "a store refused, or made room");
+    }
+    assert(answers.length <= SHELF_ANSWERS_MAXIMUM, "at most three of the four ever hold at once");
+    return answers;
 }
 
 function getPanelDefects(defects: DefectLedger): PanelDefect[] {
@@ -526,32 +548,32 @@ function getPanelDefects(defects: DefectLedger): PanelDefect[] {
  * under the person whose figure left it out. A mark that names no figure on this screen opens
  * nothing, which is the answer a mark left over from another screen deserves.
  */
-export function presentOpenedLevels(reading: FightState, screen: ScreenState): OpenedLevels {
-    const statistics = reading.figures.statistics;
-    const roster = reading.view.roster;
-    if (screen.openRowId === null) {
-        const halfNamed = lookupUnnamedLevel(reading, screen);
-        const halfNamedDrill = lookupUnnamedCutLevel(reading, screen);
-        return { drill: null, pair: null, part: null, halfNamed, halfNamedDrill };
+export function presentOpenedLevels(fightState: FightState, screen: ScreenState): OpenedLevels {
+    const statistics = fightState.figures.statistics;
+    const roster = fightState.view.roster;
+    if (screen.openedCombatantId === null) {
+        const unnamed = lookupUnnamedLevel(fightState, screen);
+        const unnamedCut = lookupUnnamedCutLevel(fightState, screen);
+        return { opened: null, pair: null, part: null, unnamed, unnamedCut };
     }
-    const drill = presentOpenedLevel(statistics, roster, screen.current, screen.openRowId);
+    const opened = presentOpenedLevel(statistics, roster, screen.metric, screen.openedCombatantId);
     // A row nobody in the fight is on opens nothing, and nothing under it stands either.
-    if (drill === null) {
-        return { drill: null, pair: null, part: null, halfNamed: null, halfNamedDrill: null };
+    if (opened === null) {
+        return { opened: null, pair: null, part: null, unnamed: null, unnamedCut: null };
     }
-    assert(drill.combatantId === screen.openRowId, "the row drawn open is the row opened");
-    const pair = screen.openPairId === null ? null : presentPairLevel(
+    assert(opened.combatantId === screen.openedCombatantId, "the row drawn open is the row opened");
+    const pair = screen.pairCombatantId === null ? null : presentPairLevel(
         statistics,
         roster,
-        screen.current,
-        drill.combatantId,
-        screen.openPairId,
+        screen.metric,
+        opened.combatantId,
+        screen.pairCombatantId,
     );
     const part = screen.openPart === null
         ? null
-        : presentPartLevel(statistics, roster, screen.current, drill.combatantId, screen.openPart);
-    const halfNamedDrill = lookupUnnamedPairLevel(reading, screen, drill);
-    return { drill, pair, part, halfNamed: null, halfNamedDrill };
+        : presentPartLevel(statistics, roster, screen.metric, opened.combatantId, screen.openPart);
+    const unnamedCut = lookupUnnamedPairLevel(fightState, screen, opened);
+    return { opened, pair, part, unnamed: null, unnamedCut };
 }
 
 /**
@@ -559,56 +581,71 @@ export function presentOpenedLevels(reading: FightState, screen: ScreenState): O
  * behind a row that says it opens, so a mark left over from another screen draws nothing.
  */
 function lookupUnnamedPairLevel(
-    reading: FightState,
+    fightState: FightState,
     screen: ScreenState,
     drill: OpenedLevelContent,
 ): UnnamedCutLevelContent | null {
-    assert(screen.openRowId === drill.combatantId, "the rung is under the row drawn open");
+    assert(screen.openedCombatantId === drill.combatantId, "the rung is under the row drawn open");
     if (screen.openUnnamedEnd === null) return null;
-    const unnamed = drill.byOpponent.unnamed;
+    const unnamed = drill.byOtherEnd.halfNamed;
     if (unnamed === null) return null;
     if (!unnamed.doesOpenPair) return null;
-    const { statistics } = reading.figures;
-    const { roster } = reading.view;
-    const held = presentUnnamedPairLevel(statistics, roster, screen.current, drill.combatantId);
-    if (held === null) return null;
-    return getEndForPinned(held.case) === screen.openUnnamedEnd ? held : null;
+    const { statistics } = fightState.figures;
+    const { roster } = fightState.view;
+    const unnamedPair = presentUnnamedPairLevel(
+        statistics,
+        roster,
+        screen.metric,
+        drill.combatantId,
+    );
+    if (unnamedPair === null) return null;
+    return getEndForPinned(unnamedPair.case) === screen.openUnnamedEnd ? unnamedPair : null;
 }
 
 function lookupUnnamedLevel(
-    reading: FightState,
+    fightState: FightState,
     screen: ScreenState,
 ): UnnamedLevelContent | null {
     if (screen.openUnnamedEnd === null) return null;
-    const kase = lookupPinnedCase(screen.current, screen.openUnnamedEnd);
-    if (kase === null) return null;
-    const { statistics } = reading.figures;
-    const { roster, readerSide } = reading.view;
-    return presentUnnamedLevel(statistics, roster, kase, screen.side, readerSide);
+    const pinnedCase = lookupPinnedCase(screen.metric, screen.openUnnamedEnd);
+    if (pinnedCase === null) return null;
+    const { statistics } = fightState.figures;
+    const { roster, readerSide } = fightState.view;
+    return presentUnnamedLevel(statistics, roster, pinnedCase, screen.side, readerSide);
 }
 
 function lookupUnnamedCutLevel(
-    reading: FightState,
+    fightState: FightState,
     screen: ScreenState,
 ): UnnamedCutLevelContent | null {
     if (screen.openUnnamedEnd === null) return null;
-    const kase = lookupPinnedCase(screen.current, screen.openUnnamedEnd);
-    if (kase === null) return null;
-    const opened = lookupUnnamedCutPress(screen);
-    if (opened === null) return null;
-    const { statistics } = reading.figures;
-    const { roster, readerSide } = reading.view;
-    return presentUnnamedCutLevel(statistics, roster, kase, screen.side, readerSide, opened);
+    const pinnedCase = lookupPinnedCase(screen.metric, screen.openUnnamedEnd);
+    if (pinnedCase === null) return null;
+    const halfNamedOpened = lookupUnnamedCutPress(screen);
+    if (halfNamedOpened === null) return null;
+    const { statistics } = fightState.figures;
+    const { roster, readerSide } = fightState.view;
+    return presentUnnamedCutLevel(
+        statistics,
+        roster,
+        pinnedCase,
+        screen.side,
+        readerSide,
+        halfNamedOpened,
+    );
 }
 
 /** A person or a key, and never both: the way back closes the key first, so one of them is null. */
 function lookupUnnamedCutPress(screen: ScreenState): HalfNamedOpened | null {
     assert(screen.openUnnamedEnd !== null, "a pinned row's rung is asked of an open pinned row");
-    assert(screen.openRowId === null, "a person's row and a pinned row are never open at once");
+    assert(
+        screen.openedCombatantId === null,
+        "a person's row and a pinned row are never open at once",
+    );
     if (screen.openPart !== null) {
         if (screen.openPart.kind !== OPENED_PART.element) return null;
         return { kind: HALF_NAMED_OPENED.element, element: screen.openPart.element };
     }
-    if (screen.openPairId === null) return null;
-    return { kind: HALF_NAMED_OPENED.person, combatantId: screen.openPairId };
+    if (screen.pairCombatantId === null) return null;
+    return { kind: HALF_NAMED_OPENED.person, combatantId: screen.pairCombatantId };
 }

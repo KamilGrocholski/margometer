@@ -118,7 +118,7 @@ export async function readPanelShape(page: Page): Promise<string> {
         // The card and the window beside the panel are the panel's siblings, not its shape: a
         // fold or a level compared with them in would move whenever the other window did.
         return regions
-            .filter((region) => !region.className.startsWith("MargoMeter-tip"))
+            .filter((region) => !region.className.startsWith("MargoMeter-card"))
             .filter((region) => !region.className.startsWith("MargoMeter-helper"))
             .map((region) => region.outerHTML).join("");
     }, HOST_SELECTOR);

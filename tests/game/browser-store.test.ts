@@ -26,13 +26,13 @@ const REFUSAL = new DOMException("this browser forbids storage", "SecurityError"
 
 Deno.test("a store that answers reads back what was written to it", () => {
     const store = initBrowserStore(composeAnsweringStorage());
-    assertStrictEquals(store.read(STORE_KEY.panelFolded), null, "nothing written");
-    assertStrictEquals(store.write(STORE_KEY.panelFolded, "1"), undefined, "taken");
-    assertStrictEquals(store.read(STORE_KEY.panelFolded), "1", "and read back");
-    store.write(STORE_KEY.panelFolded, "");
-    assertStrictEquals(store.read(STORE_KEY.panelFolded), "", "empty is not none");
-    assertStrictEquals(store.delete(STORE_KEY.panelFolded), undefined, "removed");
-    assertStrictEquals(store.read(STORE_KEY.panelFolded), null, "and gone");
+    assertStrictEquals(store.read(STORE_KEY.meterFolded), null, "nothing written");
+    assertStrictEquals(store.write(STORE_KEY.meterFolded, "1"), undefined, "taken");
+    assertStrictEquals(store.read(STORE_KEY.meterFolded), "1", "and read back");
+    store.write(STORE_KEY.meterFolded, "");
+    assertStrictEquals(store.read(STORE_KEY.meterFolded), "", "empty is not none");
+    assertStrictEquals(store.delete(STORE_KEY.meterFolded), undefined, "removed");
+    assertStrictEquals(store.read(STORE_KEY.meterFolded), null, "and gone");
 });
 
 function composeAnsweringStorage(): BrowserStorage {

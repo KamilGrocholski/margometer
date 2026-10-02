@@ -20,8 +20,8 @@ export function composeShownScreen(
 ): ShownScreen {
     return {
         listName: SHOWN_LIST,
-        reading,
-        current: metric,
+        ranking: reading,
+        metric: metric,
         side: SIDE_CHOICE.everyone,
         readerSide: null,
         turnHolderId: null,
@@ -33,12 +33,12 @@ export function composeShownScreen(
         hasFightToSave: true,
         shelfAnswers: [],
         defects: [],
-        drill: null,
+        opened: null,
         pair: null,
         part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
+        unnamed: null,
+        unnamedCut: null,
+        fightPlace: null,
         card: {
             sizes: reading.sizes,
             unplaced: reading.unplaced,
@@ -49,6 +49,6 @@ export function composeShownScreen(
             world: null,
             reader: null,
         },
-        isCollapsed: false,
+        isMeterCollapsed: false,
     };
 }

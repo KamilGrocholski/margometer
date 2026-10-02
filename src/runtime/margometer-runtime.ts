@@ -75,7 +75,7 @@ export interface RuntimePorts {
     clock: BrowserClock;
     frames: BrowserFrameScheduler;
     interval: BrowserIntervalScheduler;
-    engine: GameBattlePort;
+    battle: GameBattlePort;
     place: GamePlacePort;
     hero: GameHeroPort;
     dictionary: GameDictionaryPort;
@@ -101,7 +101,7 @@ export interface RuntimeTables {
 
 export interface RuntimeOptions {
     /** Which build drew the panel and wrote a file. */
-    version: string;
+    addOnVersion: string;
     tables: RuntimeTables;
     sessionOptions: SessionOptions;
 }
@@ -161,15 +161,15 @@ const LOOK_EVERY_MILLISECONDS = 250;
 export const LOOKS_MAXIMUM = 240;
 
 export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runtime {
-    assert(options.version.length > 0, "a runtime names the build it runs");
-    const statusBits = options.tables.tooltip.statusBits.length;
+    assert(options.addOnVersion.length > 0, "a runtime names the build it runs");
+    const statusBitsCount = options.tables.tooltip.statusBits.length;
     // One bound in two layers, which is the one place both are in reach (`docs/design.md` §4).
     assert(
-        statusBits + ROWS_BESIDE_THE_STATUSES <= ROWS_WRITTEN_MAXIMUM,
+        statusBitsCount + ROWS_BESIDE_THE_STATUSES <= ROWS_WRITTEN_MAXIMUM,
         "every row a fighter can be given fits the block the tooltip writer takes",
     );
     const defects = initDefectLedger(ports.console);
-    const choice = readSettingOrFallback(
+    const storageChoice = readSettingOrFallback(
         defects,
         readStorageChoice(ports.settings),
         STORAGE_DEFAULT,
@@ -177,7 +177,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
     const keeper = initShelfKeeper({
         settings: ports.settings,
         initShelfStore: ports.initShelfStore,
-        choice,
+        choice: storageChoice,
         tables: options.tables.decoder,
         sessionOptions: options.sessionOptions,
         defects,
@@ -194,17 +194,17 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
     // The raw key is the mark where the client cannot be asked (`develop ADR 0024`).
     const translate: TranslateLabel = (id, category) => {
         assert(id.length > 0, "a label is asked for by an id the panel named");
-        const read = ports.dictionary.readLabel(id, category);
-        if (read instanceof Error) return null;
-        assert(read.length > 0, "a label the client answered says something");
-        return read;
+        const label = ports.dictionary.readLabel(id, category);
+        if (label instanceof Error) return null;
+        assert(label.length > 0, "a label the client answered says something");
+        return label;
     };
     let state: RuntimeState;
     // Build the state, and start looking for the engine.
     {
         // The closures below are called by the game and the reader, never while this block runs.
-        const { live, listener } = initLiveFight({
-            engine: ports.engine,
+        const { live: liveFight, listener } = initLiveFight({
+            battle: ports.battle,
             clock: ports.clock,
             place: ports.place,
             hero: ports.hero,
@@ -218,7 +218,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             // `captures/2026-08-15-tempest-grupa-vs-hildur-1` and `-2`, read 2026-08-31.
             onFightOpened: () => {
                 // Put the panel back on its ranking, for a reader on the live fight alone.
-                if (screen.openFightId !== null) return;
+                if (screen.chosenFightOpenedAt !== null) return;
                 resetScreenOpened(screen);
             },
             markStale: () => markStale(state),
@@ -226,7 +226,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
         // The view reports a window it cannot place while it is being built, before `state` exists.
         let builtState: RuntimeState | null = null;
         const view = initPanelView(ports.document, {
-            version: options.version,
+            addOnVersion: options.addOnVersion,
             typeStep: screen.typeStep,
             onIntent: (intent) => onRuntimeIntent(state, intent),
             // Count the failure the view met. One met outside a frame — a gesture dropped, a card
@@ -246,7 +246,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
                 if (builtState === null) return;
                 markStale(builtState);
             },
-            placement: readPlacementSetting(ports, defects, PANEL_WINDOW.meter, screen),
+            meterPlacement: readPlacementSetting(ports, defects, PANEL_WINDOW.meter, screen),
             helperPlacement: readPlacementSetting(ports, defects, PANEL_WINDOW.helper, screen),
             translate,
         });
@@ -261,7 +261,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             keeper,
             screen,
             translate,
-            live,
+            live: liveFight,
             view,
             search: null,
             wrap: null,
@@ -272,7 +272,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             isStoodDown: false,
         };
         builtState = state;
-        state.search = initGameEngineSearch(ports.engine, ports.interval, listener, {
+        state.search = initGameEngineSearch(ports.battle, ports.interval, listener, {
             onAttached: (wrap) => {
                 state.wrap = wrap;
                 markPanelDue(state);
@@ -307,9 +307,9 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
 
 /** Nothing open on the screen: no row, no end left out, no pair and no part of a figure. */
 function resetScreenOpened(screen: ScreenState): void {
-    screen.openRowId = null;
+    screen.openedCombatantId = null;
     screen.openUnnamedEnd = null;
-    screen.openPairId = null;
+    screen.pairCombatantId = null;
     screen.openPart = null;
 }
 
@@ -324,16 +324,20 @@ function readSettingOrFallback<Value>(
     return fallback;
 }
 
-function readFoldSetting(ports: RuntimePorts, defects: DefectLedger, window: PanelWindow): boolean {
-    return readSettingOrFallback(defects, readWindowCollapsed(ports.settings, window), false);
+function readFoldSetting(
+    ports: RuntimePorts,
+    defects: DefectLedger,
+    panelWindow: PanelWindow,
+): boolean {
+    return readSettingOrFallback(defects, readWindowCollapsed(ports.settings, panelWindow), false);
 }
 
 function readSizeSetting(
     ports: RuntimePorts,
     defects: DefectLedger,
-    window: PanelWindow,
+    panelWindow: PanelWindow,
 ): WindowSize | null {
-    const size = readSettingOrFallback(defects, readWindowSize(ports.settings, window), null);
+    const size = readSettingOrFallback(defects, readWindowSize(ports.settings, panelWindow), null);
     if (size !== null) {
         assert(size.width > 0, "a window is put back at a width it can stand at");
         assert(size.height > 0, "and a height");
@@ -411,21 +415,21 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
             const saved = errors.attempt(() => {
                 // The release of the file lands on the browser's clock after this has
                 // returned, so its failure is handed the same mark by the sink.
-                const { screen, keeper, live, defects } = state;
-                const view = composeFightView(live.session);
+                const { screen, keeper, live: liveFight, defects } = state;
+                const view = composeFightView(liveFight.session);
                 const liveFightState = view === null ? null : tallyFightState(view);
-                const shown = lookupShownFight(
+                const shownFight = lookupShownFight(
                     liveFightState,
-                    screen.openFightId,
+                    screen.chosenFightOpenedAt,
                     keeper.getFights(),
                     keeper.lookupKeptFightState,
                 );
-                if (shown !== null) {
-                    const applied = shown.state.view.payloadsApplied;
+                if (shownFight !== null) {
+                    const applied = shownFight.fightState.view.payloadsApplied;
                     assert(applied > 0, "a fight handed over was read from something");
                 }
-                const ports = { ...state.ports, version: state.options.version };
-                const written = writeShownFightFile(shown, live, ports, (failure) => {
+                const ports = { ...state.ports, addOnVersion: state.options.addOnVersion };
+                const written = writeShownFightFile(shownFight, liveFight, ports, (failure) => {
                     addFileDefect(defects, failure);
                 });
                 if (written instanceof Error) addFileDefect(defects, written);
@@ -476,7 +480,7 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
         case PANEL_INTENT.fold: {
             const hasMoved = executeScreenIntent(state.screen, intent);
             const isCollapsed = intent.window === PANEL_WINDOW.meter
-                ? state.screen.isCollapsed
+                ? state.screen.isMeterCollapsed
                 : state.screen.isHelperCollapsed;
             void writeWindowCollapsed(state.ports.settings, intent.window, isCollapsed);
             assert(hasMoved, "a fold always moves the window it names");
@@ -497,19 +501,19 @@ function addFileDefect(defects: DefectLedger, failure: RuntimeFailure): void {
 function readPlacementSetting(
     ports: RuntimePorts,
     defects: DefectLedger,
-    window: PanelWindow,
+    panelWindow: PanelWindow,
     screen: ScreenState,
 ): PanelPlacement {
     const position = readSettingOrFallback(
         defects,
-        readWindowPosition(ports.settings, window),
+        readWindowPosition(ports.settings, panelWindow),
         null,
     );
     if (position !== null) {
         assert(Number.isSafeInteger(position.left), "a window is put back at a whole column");
         assert(Number.isSafeInteger(position.top), "and a whole row");
     }
-    return { position, size: screen.windowSizes[window], readViewport: ports.readViewport };
+    return { position, size: screen.windowSizes[panelWindow], readViewport: ports.readViewport };
 }
 
 function markPanelDue(state: RuntimeState): void {
@@ -531,7 +535,7 @@ function onGameEngineSearchFailed(state: RuntimeState, failure: GameEngineFailur
  * pays for forever.
  */
 export function initGameEngineSearch(
-    engine: GameBattlePort,
+    battlePort: GameBattlePort,
     interval: BrowserIntervalScheduler,
     listener: PayloadListener,
     report: SearchReport,
@@ -551,11 +555,11 @@ export function initGameEngineSearch(
     };
     // ⚠️ The first look runs on the stack that started the add-on, where only the game's own page
     // stands above it; every look after it runs in the browser's timer. One guard for both.
-    const first = errors.attempt(() => executeSearchLook(search, engine, listener, report));
+    const first = errors.attempt(() => executeSearchLook(search, battlePort, listener, report));
     if (first instanceof Error) onLookFailure(first);
     if (!search.isDone) {
         const started = interval.every(
-            () => executeSearchLook(search, engine, listener, report),
+            () => executeSearchLook(search, battlePort, listener, report),
             LOOK_EVERY_MILLISECONDS,
             onLookFailure,
         );
@@ -602,14 +606,14 @@ function deinitSearchTimer(search: Search): void {
 
 function executeSearchLook(
     search: Search,
-    engine: GameBattlePort,
+    battlePort: GameBattlePort,
     listener: PayloadListener,
     report: SearchReport,
 ): void {
     if (search.isDone) return;
     search.looks += 1;
     assert(search.looks <= LOOKS_MAXIMUM, "the search stays inside its stated bound");
-    const battle = engine.readBattle();
+    const battle = battlePort.readBattle();
     if (battle instanceof Error) {
         if (battle instanceof errors.Caught) executeLookFailed(search, report, battle);
         else executeSearchBound(search, report);
@@ -648,10 +652,10 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
                 // Keep the person, on every screen, and close what names one direction or noun.
                 {
                     const metric = intent.metric;
-                    screen.current = metric;
+                    screen.metric = metric;
                     screen.isOnShelf = false;
                     screen.isOnOptions = false;
-                    screen.openPairId = null;
+                    screen.pairCombatantId = null;
                     screen.openPart = null;
                     screen.openUnnamedEnd = null;
                     hasMoved = true;
@@ -678,9 +682,9 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
                     );
                     // An opened row covers the screen it was opened on, so a press inside it is a
                     // pair, or that person's share of what nobody was named for under a pinned row.
-                    if (screen.openRowId !== null) screen.openPairId = combatantId;
-                    else if (screen.openUnnamedEnd !== null) screen.openPairId = combatantId;
-                    else screen.openRowId = combatantId;
+                    if (screen.openedCombatantId !== null) screen.pairCombatantId = combatantId;
+                    else if (screen.openUnnamedEnd !== null) screen.pairCombatantId = combatantId;
+                    else screen.openedCombatantId = combatantId;
                     hasMoved = true;
                 }
                 break;
@@ -689,7 +693,7 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
                 {
                     const end = intent.end;
                     assert(
-                        screen.openPairId === null,
+                        screen.pairCombatantId === null,
                         "an end left out is pressed from the level over it",
                     );
                     assert(screen.openPart === null, "and never from a part's level");
@@ -719,16 +723,16 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
                     hasMoved = true;
                     break;
                 }
-                if (screen.openPairId !== null) {
-                    screen.openPairId = null;
+                if (screen.pairCombatantId !== null) {
+                    screen.pairCombatantId = null;
                     hasMoved = true;
                     break;
                 }
                 // The end a person left out is the rung under their figure, so it closes before
                 // they do.
-                if (screen.openRowId !== null) {
+                if (screen.openedCombatantId !== null) {
                     if (screen.openUnnamedEnd !== null) screen.openUnnamedEnd = null;
-                    else screen.openRowId = null;
+                    else screen.openedCombatantId = null;
                     hasMoved = true;
                     break;
                 }
@@ -740,8 +744,9 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
                 hasMoved = true;
                 break;
             case PANEL_INTENT.fold:
-                if (intent.window === PANEL_WINDOW.meter) screen.isCollapsed = !screen.isCollapsed;
-                else screen.isHelperCollapsed = !screen.isHelperCollapsed;
+                if (intent.window === PANEL_WINDOW.meter) {
+                    screen.isMeterCollapsed = !screen.isMeterCollapsed;
+                } else screen.isHelperCollapsed = !screen.isHelperCollapsed;
                 hasMoved = true;
                 break;
             case PANEL_INTENT.shelf:
@@ -808,15 +813,15 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
  */
 function verifyScreenState(screen: ScreenState): void {
     if (screen.isOnOptions) assert(!screen.isOnShelf, "the options and the shelf are one cover");
-    if (screen.openRowId === null) return;
+    if (screen.openedCombatantId === null) return;
     if (screen.openUnnamedEnd === null) return;
-    assert(screen.openPairId === null, "a person's end left out is not a pair with somebody");
+    assert(screen.pairCombatantId === null, "a person's end left out is not a pair with somebody");
     assert(screen.openPart === null, "and no part of their figure is open under it");
 }
 
 function setScreenFight(screen: ScreenState, openedAt: number | null): void {
     if (openedAt !== null) assert(Number.isSafeInteger(openedAt), "a fight is chosen by a moment");
-    screen.openFightId = openedAt;
+    screen.chosenFightOpenedAt = openedAt;
     screen.isOnShelf = false;
     screen.isOnOptions = false;
     resetScreenOpened(screen);

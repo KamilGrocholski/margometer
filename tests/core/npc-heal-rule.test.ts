@@ -22,7 +22,7 @@ const NPC_HEAL = "captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.js
 Deno.test("the key is read wherever it stands, including where it states nothing", () => {
     const fight = lookupRecordedFight(NPC_HEAL);
     const roster = indexCombatantRoster(fight.combatants);
-    const context = { roster, standing: null, tables: BLOWS_GRANTED };
+    const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
     const restored = decodePayloadMessages(fight.messages, context).events
         .filter((event) => event.kind === "health-change" && event.source === KEY);
     assertEquals(restored.length, 3, "every occurrence became an event, 2026-08-30");
@@ -65,7 +65,7 @@ Deno.test("the restoration is the actor's, whichever combatant the other slot na
 
         const [healed] = [...actors];
         assertExists(healed, "a set of one has a member");
-        const context = { roster, standing: null, tables: BLOWS_GRANTED };
+        const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
         for (const event of decodePayloadMessages(messages, context).events) {
             if (event.kind !== "health-change") continue;
             assertEquals(event.combatantId, healed, `${path}: every event lands on the actor`);

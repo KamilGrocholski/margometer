@@ -47,7 +47,7 @@ import {
     getWholeTextsByClass,
     pointAtElement,
 } from "#/tests/fake-document.ts";
-import { readTip } from "#/tests/drawn-card.ts";
+import { readCard } from "#/tests/drawn-card.ts";
 import { TEST_VERSION } from "#/tests/panel-view.ts";
 import {
     lookupRecordedFight,
@@ -82,7 +82,7 @@ const TABLES_DATING_NOTHING: RuntimeTables = {
         ...RUNTIME_TABLES.tooltip,
         statedSkills: {
             ...RUNTIME_TABLES.tooltip.statedSkills,
-            turnsBySkillId: { get: () => 0 } as unknown as ReadonlyMap<number, number>,
+            auraTurnsBySkillId: { get: () => 0 } as unknown as ReadonlyMap<number, number>,
         },
     },
 };
@@ -394,12 +394,12 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
     const host = world.getHost();
     const rows = (within: FakeElement) => countRows(getPanelWithin(within));
     assert(rows(host) > 0, "the panel opens drawing the fight");
-    assertEquals(world.held.get(STORE_KEY.panelFolded), undefined, "and nothing is stored yet");
+    assertEquals(world.held.get(STORE_KEY.meterFolded), undefined, "and nothing is stored yet");
     const folding = findByMark(host, "data-fold");
     assertExists(folding, "there is a control to press");
     world.press(folding);
     assertEquals(rows(host), 0, "pressing it folds the panel to its bar");
-    assertEquals(world.held.get(STORE_KEY.panelFolded), "1", "and says so where a reload looks");
+    assertEquals(world.held.get(STORE_KEY.meterFolded), "1", "and says so where a reload looks");
 
     const again = reloadRuntimeWorld(world);
     for (const payload of readUpdates(HILDUR)) again.update(payload);
@@ -409,7 +409,7 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
     assertExists(unfolding, "the bar still carries its control");
     again.press(unfolding);
     assert(rows(reopened) > 0, "which brings the fight back");
-    assertEquals(again.held.get(STORE_KEY.panelFolded), "", "and stores the unfolding too");
+    assertEquals(again.held.get(STORE_KEY.meterFolded), "", "and stores the unfolding too");
 });
 
 Deno.test("the fight is handed over counted as well as raw, and the two agree", () => {
@@ -701,7 +701,7 @@ Deno.test("a reader opens a pinned row, and it does not follow them to the next 
     world.press(person);
     assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person.textContent, "one rung");
     const kinds = getElementsWithin(host).filter((one) => {
-        return (one.attributes.get("data-tip") ?? "").startsWith("kind:");
+        return (one.attributes.get("data-card") ?? "").startsWith("kind:");
     });
     assert(kinds.length > 0, "which is the keys their share of the figure moved under");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
@@ -1293,7 +1293,7 @@ Deno.test("a stopped copy answers no press, and draws no call that still reaches
     assertExists(folding, "there is a control to press");
     assertInstanceOf(world.runtime.deinit(), Error, "ours cannot come off from under theirs");
     world.press(folding);
-    assertEquals(world.held.get(STORE_KEY.panelFolded), undefined, "the press kept nothing");
+    assertEquals(world.held.get(STORE_KEY.meterFolded), undefined, "the press kept nothing");
     world.update({ init: 1, m: ["0;0;txt=a"] });
     const drawn = countRows(findList(world.getHost()));
     assert(drawn > 0, "no frame drew the fight that call opened, which has nobody in it");
@@ -1354,7 +1354,7 @@ Deno.test("a window sized is kept with no frame, comes back after a reload, and 
     const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
     const size = { width: 320, height: 350 };
     world.runtime.onIntent({ kind: "resize", window: "meter", size });
-    assertEquals(world.held.get(STORE_KEY.panelSize), '{"width":320,"height":350}', "kept");
+    assertEquals(world.held.get(STORE_KEY.meterSize), '{"width":320,"height":350}', "kept");
     world.flush();
     assertStrictEquals(
         bar?.replacedBy,
@@ -1369,7 +1369,7 @@ Deno.test("a window sized is kept with no frame, comes back after a reload, and 
     const reset = findByMark(reloaded.getHost(), "data-reset-size", "meter");
     assertExists(reset, "the options offer the size back");
     reloaded.press(reset);
-    assertEquals(reloaded.held.get(STORE_KEY.panelSize), undefined, "given back, nothing is kept");
+    assertEquals(reloaded.held.get(STORE_KEY.meterSize), undefined, "given back, nothing is kept");
     assertEquals(style().includes("--MargoMeter-meter-width"), false, "and it stands at its type");
     assertEquals(
         findByMark(reloaded.getHost(), "data-reset-size", "meter"),
@@ -1433,7 +1433,7 @@ Deno.test("a window's size the browser kept unreadable costs the size, and says 
 
 Deno.test("a window's fold the browser kept unreadable costs the fold, and says so", () => {
     const world = initRuntimeWorld(composeBattlePage(), (built) => {
-        built.held.set(STORE_KEY.panelFolded, "folded, perhaps");
+        built.held.set(STORE_KEY.meterFolded, "folded, perhaps");
         return {};
     });
     for (const payload of readUpdates(HILDUR)) world.update(payload);
@@ -1450,7 +1450,7 @@ Deno.test("where a reader lets go of a window is kept where a reload will look f
     const world = playRecordedFight();
     world.runtime.onIntent({ kind: "move", window: "meter", position: { left: 40, top: 60 } });
     assertEquals(
-        world.held.get(STORE_KEY.panelPlace),
+        world.held.get(STORE_KEY.meterPosition),
         '{"left":40,"top":60}',
         "written once, where a reload will look",
     );
@@ -1520,7 +1520,7 @@ Deno.test("the fight's line and its shelf row say who the reader was, and it out
     const world = initRuntimeWorld(composePlacedPage({ x: 12, y: 34, id: reader.id }));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const said = readFightCard(world);
-    assertEquals(readTip(world.getHost()).name, ["Mapa Testowa (12, 34)"], "where, whole");
+    assertEquals(readCard(world.getHost()).name, ["Mapa Testowa (12, 34)"], "where, whole");
     assertEquals(said.get(FIGHT_CARD_WORDS.world), WORLD, "on the world the page is on");
     const character = said.get(FIGHT_CARD_WORDS.character);
     assertEquals(character, reader.name, "as the combatant the hero's id keys");
@@ -1533,7 +1533,7 @@ Deno.test("the fight's line and its shelf row say who the reader was, and it out
         "a kept fight names the reader it was read with, with no fight going on to ask",
     );
     openShelfRowCard(again);
-    const card = readTip(again.getHost());
+    const card = readCard(again.getHost());
     assertEquals(
         new Map(card.stated.map((one) => [one.label, one.value])).get(FIGHT_CARD_WORDS.character),
         character,
@@ -1547,7 +1547,7 @@ function readFightCard(world: RuntimeWorld): Map<string, string> {
     const line = getElementsWithin(host).find((one) => one.className === CLASS.headerLine);
     assertExists(line, "the fight's line is drawn");
     pointAtElement(host, "pointermove", line, 20);
-    return new Map(readTip(host).stated.map((one) => [one.label, one.value]));
+    return new Map(readCard(host).stated.map((one) => [one.label, one.value]));
 }
 
 /** Points at the shelf's first row, which opens its card. */
@@ -1582,7 +1582,7 @@ Deno.test("a shelf row's card counts the unplaced the fight's line counts, live 
 
 /** The headcount the open card names, without how the fight went. */
 function readCardCounts(world: RuntimeWorld): string | undefined {
-    return readTip(world.getHost()).name[0]?.split(" · ")[0];
+    return readCard(world.getHost()).name[0]?.split(" · ")[0];
 }
 
 Deno.test("a shelf row's card counts nobody unplaced where the fight's line counts none", () => {
@@ -1674,13 +1674,13 @@ Deno.test("a copy that stood down answers an intent with nothing drawn and nothi
     second.runtime.onIntent({ kind: "fold", window: "meter" });
     second.flush();
     assertEquals(second.shown, [], "no panel goes up for it");
-    assertEquals(second.held.get(STORE_KEY.panelFolded), undefined, "and nothing is written down");
+    assertEquals(second.held.get(STORE_KEY.meterFolded), undefined, "and nothing is written down");
 });
 
 Deno.test("each window goes back where the reader left it, and never where the other was", () => {
     const world = initRuntimeWorld(composeBattlePage(), (built) => {
-        built.held.set(STORE_KEY.panelPlace, '{"left":40,"top":60}');
-        built.held.set(STORE_KEY.helperPlace, '{"left":300,"top":400}');
+        built.held.set(STORE_KEY.meterPosition, '{"left":40,"top":60}');
+        built.held.set(STORE_KEY.helperPosition, '{"left":300,"top":400}');
         return {};
     });
     const styles = getElementsWithin(world.getHost()).map((one) => ({
@@ -1820,7 +1820,7 @@ Deno.test("the window beside the panel folds on its own, and is kept folded apar
     assertExists(control, "the window carries a fold of its own");
     world.press(control);
     assertEquals(world.held.get(STORE_KEY.helperFolded), "1", "written where a reload looks");
-    assertEquals(world.held.get(STORE_KEY.panelFolded), undefined, "and the panel's left alone");
+    assertEquals(world.held.get(STORE_KEY.meterFolded), undefined, "and the panel's left alone");
     const standing = getElementsWithin(host)
         .find((one) => one.className.split(" ")[0] === CLASS.helper);
     assertExists(standing, "the window stands beside the panel");

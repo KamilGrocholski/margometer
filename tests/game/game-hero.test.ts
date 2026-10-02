@@ -38,7 +38,7 @@ Deno.test("an id that names nobody is none, never a guess", () => {
 
 function expectAbsent(read: unknown, message: string): void {
     assertInstanceOf(read, GameValueAbsent, message);
-    assertStrictEquals(read.reading, GAME_VALUE.hero, `${message}: the reading named`);
+    assertStrictEquals(read.value, GAME_VALUE.hero, `${message}: the reading named`);
 }
 
 Deno.test("the engine is read by the page's call when the field holds none", () => {

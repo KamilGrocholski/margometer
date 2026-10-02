@@ -121,7 +121,11 @@ Deno.test("an event that is nobody's action ends both halves of the standing", (
         combatantNames: ["Gracz 1"],
     };
     const struck = composeTurnStanding(composeBlow(1, true), NO_TURN_STANDING);
-    assertEquals(struck, { strikingId: 1, actingId: 1 }, "an announced blow is mid-strike");
+    assertEquals(
+        struck,
+        { announcedStrikerId: 1, lastActorId: 1 },
+        "an announced blow is mid-strike",
+    );
     assertStrictEquals(composeTurnStanding(outcome, struck), NO_TURN_STANDING, "and it ends");
 });
 

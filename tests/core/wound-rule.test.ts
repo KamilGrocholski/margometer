@@ -29,7 +29,7 @@ Deno.test("every tick takes the percentage stated before it down by its own figu
     for (
         const event of decodePayloadMessages(lookupRecordedFight(WOUND).messages, {
             roster,
-            standing: null,
+            announcementStanding: null,
             tables: BLOWS_GRANTED,
         }).events
     ) {
@@ -64,7 +64,7 @@ Deno.test("every tick takes the percentage stated before it down by its own figu
 
 Deno.test("the key is read as damage, and all of it lands on the combatant it ticks on", () => {
     const roster = indexCombatantRoster(lookupRecordedFight(WOUND).combatants);
-    const context = { roster, standing: null, tables: BLOWS_GRANTED };
+    const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
     const decoded = decodePayloadMessages(lookupRecordedFight(WOUND).messages, context);
     const ticked = decoded.events.filter((event) => {
         if (event.kind !== "health-change") return false;

@@ -59,7 +59,7 @@ Deno.test("a fight run through the session tallies what its events tally, everyw
         assertEquals(figures.statistics, alone, `${fight.path}: the view hands over the fight`);
         assertStrictEquals(figures.payloadsApplied, fight.payloads.length, fight.path);
         fights += 1;
-        sized += figures.heals.size;
+        sized += figures.sideHealByEvent.size;
     }
     assert(fights > 0, "the recordings were there to run");
     assert(sized > 0, "and some of them carry a cast sized onto a side");

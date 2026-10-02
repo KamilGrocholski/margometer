@@ -11,15 +11,18 @@ import { type PanelEdges, readEdgesOf, readPointsAlongBar, setDragged } from "./
 import type { Page } from "@playwright/test";
 import { waitForFrame } from "./panel-page.ts";
 
-/** The keys the two windows are kept under, named as `STORE_KEY` in `src/game/browser-store.ts` names them. */
+/**
+ * The keys the two windows are kept under, named as `STORE_KEY` in `src/game/browser-store.ts`
+ * names them.
+ */
 const PLACE_KEY = "MargoMeter-place";
 const STANDING_PLACE_KEY = "MargoMeter-pomocnik-place";
 const STANDING_FOLD_KEY = "MargoMeter-pomocnik-folded";
 /** The air the sheet keeps between a window and the card beside it, as `SPACE.small` states it. */
 const GAP = 4;
 const FOLD_MARK = "—";
-/** The card while it is open, as `tests/e2e/panel-tip.spec.ts` names it. */
-const CARD_OPEN = ".MargoMeter-tip:not(.tip-hidden)";
+/** The card while it is open, as `tests/e2e/panel-card.spec.ts` names it. */
+const CARD_OPEN = ".MargoMeter-card:not(.card-hidden)";
 const UNFOLD_MARK = "+";
 
 test("the window stands beside the panel and never under it", async ({ panel }) => {
@@ -235,41 +238,41 @@ test("a card stands over the window, even where the window covers it", async ({ 
     // probe — the one property this changes, and never the layer under test.
     const row = panel.at("#MargoMeter-Panel .list .row").first();
     await row.hover();
-    const card = panel.at(".MargoMeter-tip");
+    const card = panel.at(".MargoMeter-card");
     // Walked rather than matched (**C7**), and the class list rather than the whole attribute:
     // `toHaveClass` with text compares the list entire, so it would pass on a hidden card too.
     const classes = (await card.getAttribute("class") ?? "").split(" ");
-    expect(classes, "the card opened").not.toContain("tip-hidden");
+    expect(classes, "the card opened").not.toContain("card-hidden");
     await waitForFrame(panel.page);
     const stack = await panel.page.evaluate(() => {
         const root = document.getElementById("MargoMeter-Panel")?.shadowRoot ?? null;
         if (root === null) return null;
-        const tip = root.querySelector(".MargoMeter-tip");
+        const card = root.querySelector(".MargoMeter-card");
         const standing = root.querySelector(".MargoMeter-helper");
-        if (tip === null || standing === null) return null;
-        const held = tip.getBoundingClientRect();
+        if (card === null || standing === null) return null;
+        const held = card.getBoundingClientRect();
         // Put the window exactly over the card, the way a reader who dragged it there would.
         const moved = standing as HTMLElement;
         moved.style.left = `${held.x}px`;
         moved.style.top = `${held.y}px`;
         moved.style.width = `${held.width}px`;
         moved.style.height = `${held.height}px`;
-        (tip as HTMLElement).style.pointerEvents = "auto";
-        const box = tip.getBoundingClientRect();
+        (card as HTMLElement).style.pointerEvents = "auto";
+        const box = card.getBoundingClientRect();
         const found = root.elementsFromPoint(box.x + box.width / 2, box.y + box.height / 2);
         const at = (owner: Element) => found.findIndex((one) => owner.contains(one));
         return {
-            tipAt: at(tip),
+            cardAt: at(card),
             standingAt: at(standing),
             doesCover: standing.getBoundingClientRect().width > 0,
         };
     });
     expect(stack?.doesCover, "the window really is over the card").toBe(true);
-    expect(stack?.tipAt ?? -1, "the card is in the stack at that point").toBeGreaterThanOrEqual(0);
+    expect(stack?.cardAt ?? -1, "the card is in the stack at that point").toBeGreaterThanOrEqual(0);
     expect(stack?.standingAt ?? -1, "and so is the window").toBeGreaterThanOrEqual(0);
     // Topmost first, so the card standing over the window is the smaller index.
     expect(
-        stack?.tipAt ?? 1,
+        stack?.cardAt ?? 1,
         "and the card is drawn over it, not under it",
     ).toBeLessThan(stack?.standingAt ?? 0);
 });
@@ -284,14 +287,14 @@ test("a card stands over the window, even where the window covers it", async ({ 
  * there is no room on the left, so what it holds is the flip.
  */
 test("a card from this window's row stands clear of this window", async ({ panel }) => {
-    const rows = panel.at(".MargoMeter-helper .row[data-tip]");
+    const rows = panel.at(".MargoMeter-helper .row[data-card]");
     await expect(rows, "the window is drawing rows to hover").not.toHaveCount(0);
 
     await rows.first().hover();
 
-    await expect(panel.at(".MargoMeter-tip:not(.tip-hidden)"), "hovering one opens a card")
+    await expect(panel.at(".MargoMeter-card:not(.card-hidden)"), "hovering one opens a card")
         .toHaveCount(1);
-    const card = await readEdgesOf(panel.page, ".MargoMeter-tip:not(.tip-hidden)");
+    const card = await readEdgesOf(panel.page, ".MargoMeter-card:not(.card-hidden)");
     const window = await readEdgesOf(panel.page, ".MargoMeter-helper");
     expect(
         isClearOf(card, window),
@@ -318,9 +321,12 @@ test("the panel's own card follows the panel, not the window beside it", async (
     await setDragged(panel.page, { x: bar[0]?.x ?? 0, y: bar[0]?.y ?? 0 }, { x: -600, y: 0 });
     await panel.at("#MargoMeter-Panel .list .row").first().hover();
 
-    await expect(panel.at(".MargoMeter-tip:not(.tip-hidden)"), "hovering a panel row opens a card")
+    await expect(
+        panel.at(".MargoMeter-card:not(.card-hidden)"),
+        "hovering a panel row opens a card",
+    )
         .toHaveCount(1);
-    const card = await readEdgesOf(panel.page, ".MargoMeter-tip:not(.tip-hidden)");
+    const card = await readEdgesOf(panel.page, ".MargoMeter-card:not(.card-hidden)");
     const frame = await readEdgesOf(panel.page, "#MargoMeter-Panel");
     const window = await readEdgesOf(panel.page, ".MargoMeter-helper");
     expect(
@@ -342,15 +348,15 @@ test("the panel's own card follows the panel, not the window beside it", async (
  * by (`develop ADR 0100`). Held here because the card is opened by a real pointer.
  */
 test("a row of the window hands its name back on a card", async ({ panel }) => {
-    const rows = panel.at(".MargoMeter-helper .row[data-tip]");
+    const rows = panel.at(".MargoMeter-helper .row[data-card]");
     await expect(rows, "the window is drawing rows to hover").not.toHaveCount(0);
     const named = await rows.first().locator(".row-name").innerText();
 
     await rows.first().hover();
 
-    await expect(panel.at(".MargoMeter-tip:not(.tip-hidden)"), "hovering one opens a card")
+    await expect(panel.at(".MargoMeter-card:not(.card-hidden)"), "hovering one opens a card")
         .toHaveCount(1);
-    await expect(panel.at(".MargoMeter-tip .tip-name"), "which names that row").toHaveText(named);
+    await expect(panel.at(".MargoMeter-card .card-name"), "which names that row").toHaveText(named);
 });
 
 /**
@@ -375,8 +381,8 @@ test("a row holding somebody hands back on its card what its cells cut", async (
     await rows.first().hover();
 
     await expect(panel.at(CARD_OPEN), "hovering it opens a card").toHaveCount(1);
-    const name = await readCell(panel.page, `${CARD_OPEN} .tip-name`);
-    const under = await readCell(panel.page, `${CARD_OPEN} .tip-subtitle`);
+    const name = await readCell(panel.page, `${CARD_OPEN} .card-name`);
+    const under = await readCell(panel.page, `${CARD_OPEN} .card-subtitle`);
     expect(name?.said, "which opens with the whole name").toBe(cast.said);
     expect(under?.said, "and names the okrzyk under it, whole").toBe(okrzyk.said);
     // ⚠️ **This row stopped cutting the okrzyk when its figure left.** `develop ADR 0103` moved the
@@ -437,7 +443,7 @@ test("the character a shout holds opens a card of their own", async ({ panel }) 
     await held.first().hover();
 
     await expect(panel.at(CARD_OPEN), "hovering it opens a card").toHaveCount(1);
-    const name = await readCell(panel.page, `${CARD_OPEN} .tip-name`);
+    const name = await readCell(panel.page, `${CARD_OPEN} .card-name`);
     expect(name?.said, "naming whoever is held").toBe(under?.said);
     expect(name?.said, "and never whoever is holding them").not.toBe(holder?.said);
     // `develop ADR 0103`: this row is the one carrying a length now, so it is the one whose name has to

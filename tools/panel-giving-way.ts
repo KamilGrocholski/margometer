@@ -53,10 +53,10 @@ export const PANEL_FILE = "src/ui/panel-element.ts";
  * over source that stops finding its subject builds a panel that gives nothing way.
  */
 export const REGION_ANCHOR = "    const rendered = errors.attempt(render);\n";
-export const TIP_ANCHOR =
-    "                    const next = render();\n                    standing.replaceWith(next);\n";
+export const CARD_ANCHOR =
+    "                    const next = render();\n                    previous.replaceWith(next);\n";
 /** The card's guard stands as deep as its anchor, so the line written into it does too. */
-const TIP_INDENT = TIP_ANCHOR.slice(0, TIP_ANCHOR.indexOf("const"));
+const CARD_INDENT = CARD_ANCHOR.slice(0, CARD_ANCHOR.indexOf("const"));
 /** Everything the bundle entry reaches, and the lock its imports resolve by. */
 const COPIED = ["src", "libs", "frozen", "deno.json", "deno.lock"];
 /** Past the regions there are, which is what a person may ask for at once (S11). */
@@ -111,7 +111,7 @@ export function readGivingWayFlags(args: readonly string[]): GivingWayFlags {
 export function composeGivingWaySource(source: string, regions: readonly PanelRegion[]): string {
     assert(regions.length > 0, "a build that gives way is told what gives way");
     assert(regions.length <= REGIONS_ASKED_MAXIMUM, "and is asked inside the stated bound");
-    for (const anchor of [REGION_ANCHOR, TIP_ANCHOR]) {
+    for (const anchor of [REGION_ANCHOR, CARD_ANCHOR]) {
         if (source.split(anchor).length !== 2) {
             throw new GivingWayError(`${PANEL_FILE} no longer carries once the guard this edits`);
         }
@@ -122,9 +122,10 @@ export function composeGivingWaySource(source: string, regions: readonly PanelRe
         return render();
     });
 `;
-    const tip = `${TIP_INDENT}if (${named}.includes(PANEL_REGION.tip)) throw "${GIVING_WAY_MARKER}";
-${TIP_ANCHOR}`;
-    const written = source.replace(REGION_ANCHOR, region).replace(TIP_ANCHOR, tip);
+    const card =
+        `${CARD_INDENT}if (${named}.includes(PANEL_REGION.card)) throw "${GIVING_WAY_MARKER}";
+${CARD_ANCHOR}`;
+    const written = source.replace(REGION_ANCHOR, region).replace(CARD_ANCHOR, card);
     assertStrictEquals(written.split(GIVING_WAY_MARKER).length, 3, "both guards carry the line");
     return written;
 }
@@ -144,7 +145,7 @@ export function composeGivingWayShot(region: PanelRegion): PanelShot {
     const shot: PanelShot = {
         name: `giving-way-${region}.png`,
         moment: SHOT_MOMENT.underway,
-        steps: region === PANEL_REGION.tip ? [hover, ...redraw] : redraw,
+        steps: region === PANEL_REGION.card ? [hover, ...redraw] : redraw,
     };
     assert(shot.steps.length <= 2, "a region gives way at the moment, not after a walk to it");
     return shot;

@@ -303,6 +303,6 @@ Deno.test("a legendary run lit in one payload counts the heals of the next", () 
     const lit = "1=90.00;2=80.00;+dmg=10;-dmg=10;+legbon_holytouch";
     apply(session, { ...OPENING, messages: [lit] });
     apply(session, { ...NOTHING, messages: ["1=96.00;0;legbon_holytouch_heal=60"] });
-    const heals = view(session).legendaryStandings.map((one) => one.holytouchHealsGiven);
+    const heals = view(session).legendaryStandings.map((one) => one.holytouchHealsReceived);
     assertEquals(heals, [1], "the run carries into the payload after its lighting");
 });

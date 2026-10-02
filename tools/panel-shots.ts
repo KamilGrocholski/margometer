@@ -218,16 +218,16 @@ export function composeShotPage(calls: readonly unknown[], entry: number): strin
 function composeWindowsSeeded(): string {
     // The shots are taken at the size a reader who chose none reads.
     const drawn = TYPE_TOKENS[TYPE_STEP_DEFAULT];
-    const helperOffset = PLACE.insetPixels + drawn.panelWidthPixels + SPACE_PIXELS.wide +
+    const helperOffset = PLACE.insetPixels + drawn.meterWidthPixels + SPACE_PIXELS.wide +
         drawn.helperWidthPixels;
     return `(function setWindowsSeeded() {
   try {
     var top = ${PLACE.insetPixels};
-    var panelLeft = Math.max(0, window.innerWidth - ${PLACE.insetPixels + drawn.panelWidthPixels});
+    var panelLeft = Math.max(0, window.innerWidth - ${PLACE.insetPixels + drawn.meterWidthPixels});
     var helperLeft = Math.max(0, window.innerWidth - ${helperOffset});
-    localStorage.setItem(${JSON.stringify(STORE_KEY.panelPlace)},
+    localStorage.setItem(${JSON.stringify(STORE_KEY.meterPosition)},
       JSON.stringify({ left: panelLeft, top: top }));
-    localStorage.setItem(${JSON.stringify(STORE_KEY.helperPlace)},
+    localStorage.setItem(${JSON.stringify(STORE_KEY.helperPosition)},
       JSON.stringify({ left: helperLeft, top: top }));
   } catch (reason) {
     console.warn("MargoMeter/Preview", reason);
@@ -259,7 +259,7 @@ export async function writeShot(
 ): Promise<void> {
     const served = { html, scriptName: USERSCRIPT_NAME, script: bundle, viewport: VIEWPORT };
     const page = await openPanelPage(browser, served, shot.steps);
-    const boxes = await readPanelBoxes(page, CLASS.helper, CLASS.tip);
+    const boxes = await readPanelBoxes(page, CLASS.helper, CLASS.card);
     if (boxes === null) {
         await closePanelPage(page);
         throw new PanelShotError(`${shot.name}: a window stands nowhere on the page`);

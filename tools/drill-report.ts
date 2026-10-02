@@ -202,9 +202,9 @@ export function tallyDrillCases(
 }
 
 /** Add what a pinned row opens onto: the named end, and what named neither. */
-function addPinnedLevelToTally(tally: DrillTally, fight: PanelFight, kase: PinnedCase): void {
-    const pinnedScreen = getMetricForPinned(kase);
-    const held = presentHalfNamedForEveryone(fight, kase);
+function addPinnedLevelToTally(tally: DrillTally, fight: PanelFight, pinnedCase: PinnedCase): void {
+    const pinnedScreen = getMetricForPinned(pinnedCase);
+    const held = presentHalfNamedForEveryone(fight, pinnedCase);
     assertExists(
         held,
         "a pinned row that is drawn has a level under it",
@@ -220,7 +220,7 @@ function addPinnedLevelToTally(tally: DrillTally, fight: PanelFight, kase: Pinne
             row: DRILL_ROW.person,
         }, true);
     }
-    if (held.neither !== null) {
+    if (held.neitherEnd !== null) {
         const place = {
             rung: DRILL_RUNG.unnamed,
             row: DRILL_ROW.neitherEnd,
@@ -235,7 +235,7 @@ function addPinnedLevelToTally(tally: DrillTally, fight: PanelFight, kase: Pinne
         const place = { rung: DRILL_RUNG.unnamed, row: DRILL_ROW.kind };
         addCaseToTally(tally, pinnedScreen, place, one.doesOpenPart);
     }
-    if (held.kinds.unnamed !== null) {
+    if (held.kinds.noKind !== null) {
         const place = { rung: DRILL_RUNG.unnamed, row: DRILL_ROW.noKind };
         addCaseToTally(tally, pinnedScreen, place, false);
     }
@@ -247,7 +247,7 @@ function addPinnedLevelToTally(tally: DrillTally, fight: PanelFight, kase: Pinne
                 kind: HALF_NAMED_OPENED.person,
                 combatantId: person.combatantId,
             };
-            const under = presentUnnamedCut(fight, kase, opened);
+            const under = presentUnnamedCut(fight, pinnedCase, opened);
             if (under === null) continue;
             assert(
                 under.opened === HALF_NAMED_OPENED.person,
@@ -266,7 +266,7 @@ function addPinnedLevelToTally(tally: DrillTally, fight: PanelFight, kase: Pinne
                 kind: HALF_NAMED_OPENED.element,
                 element: kind.element,
             };
-            const under = presentUnnamedCut(fight, kase, opened);
+            const under = presentUnnamedCut(fight, pinnedCase, opened);
             if (under === null) continue;
             assert(
                 under.opened === HALF_NAMED_OPENED.element,
@@ -279,7 +279,7 @@ function addPinnedLevelToTally(tally: DrillTally, fight: PanelFight, kase: Pinne
                     row: DRILL_ROW.person,
                 }, false);
             }
-            if (under.neither !== null) {
+            if (under.neitherEnd !== null) {
                 addCaseToTally(tally, pinnedScreen, {
                     rung: cut,
                     row: DRILL_ROW.neitherEnd,
@@ -303,7 +303,7 @@ function addOpenedLevelToTally(
     const { roster, statistics } = fight;
     const drill = presentOpenedLevel(statistics, roster, screen, combatantId);
     if (drill === null) return;
-    for (const other of drill.byOpponent.rows) {
+    for (const other of drill.byOtherEnd.rows) {
         const place = { rung: DRILL_RUNG.opened, row: DRILL_ROW.person };
         addCaseToTally(tally, screen, place, other.doesOpenPair);
         if (!other.doesOpenPair) continue;
@@ -332,7 +332,7 @@ function addOpenedLevelToTally(
                 row: DRILL_ROW.kind,
             }, false);
         }
-        if (pair.byElement.unnamed !== null) {
+        if (pair.byElement.noKind !== null) {
             addCaseToTally(tally, screen, {
                 rung: DRILL_RUNG.pair,
                 row: DRILL_ROW.noKind,
@@ -342,7 +342,7 @@ function addOpenedLevelToTally(
     // Add the two cross-sections of the opened row, and a part's level under.
     {
         const opened = DRILL_RUNG.opened;
-        const unnamed = drill.byOpponent.unnamed;
+        const unnamed = drill.byOtherEnd.halfNamed;
         if (unnamed !== null) {
             const place = { rung: opened, row: DRILL_ROW.halfNamed };
             addCaseToTally(tally, screen, place, unnamed.doesOpenPair);
@@ -371,7 +371,7 @@ function addOpenedLevelToTally(
                         one.doesOpenPart,
                     );
                 }
-                if (held.kinds.unnamed !== null) {
+                if (held.kinds.noKind !== null) {
                     addCaseToTally(
                         tally,
                         screen,
@@ -402,7 +402,7 @@ function addOpenedLevelToTally(
                 );
             }
         }
-        const closing = drill.bySkill.plain;
+        const closing = drill.bySkill.closing;
         if (closing !== null) {
             const place = { rung: opened, row: DRILL_ROW.closing };
             addCaseToTally(tally, screen, place, closing.doesOpenPart);
@@ -429,7 +429,7 @@ function addOpenedLevelToTally(
                 addPartRungToTally(tally, fight, screen, combatantId, part);
             }
         }
-        if (drill.byElement.unnamed !== null) {
+        if (drill.byElement.noKind !== null) {
             addCaseToTally(tally, screen, {
                 rung: opened,
                 row: DRILL_ROW.noKind,
@@ -488,7 +488,7 @@ function addCaseToTally(
 
 function presentHalfNamedForEveryone(
     fight: PanelFight,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
 ): UnnamedLevelContent | null {
     assert(
         fight.name.length > 0,
@@ -497,7 +497,7 @@ function presentHalfNamedForEveryone(
     return presentUnnamedLevel(
         fight.statistics,
         fight.roster,
-        kase,
+        pinnedCase,
         SIDE_CHOICE.everyone,
         fight.readerSide,
     );
@@ -505,14 +505,14 @@ function presentHalfNamedForEveryone(
 
 function presentUnnamedCut(
     fight: PanelFight,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
     opened: HalfNamedOpened,
 ): UnnamedCutLevelContent | null {
     assert(fight.name.length > 0, "a level is read off a recording with a name");
     return presentUnnamedCutLevel(
         fight.statistics,
         fight.roster,
-        kase,
+        pinnedCase,
         SIDE_CHOICE.everyone,
         fight.readerSide,
         opened,
@@ -536,7 +536,7 @@ function addPartRungToTally(
         part,
     );
     if (held === null) return;
-    for (const one of held.byOpponent.rows) {
+    for (const one of held.byOtherEnd.rows) {
         assert(
             one.figure >= 0,
             "a person a part reached holds no less than nothing",
@@ -546,7 +546,7 @@ function addPartRungToTally(
             row: DRILL_ROW.person,
         }, false);
     }
-    if (held.byOpponent.unnamed !== null) {
+    if (held.byOtherEnd.halfNamed !== null) {
         const place = { rung: DRILL_RUNG.part, row: DRILL_ROW.halfNamed };
         addCaseToTally(tally, screen, place, false);
     }
@@ -613,7 +613,7 @@ function formatOpenedLines(fight: PanelFight, screen: PanelMetric, combatantId: 
     const drill = presentOpenedLevel(fight.statistics, fight.roster, screen, combatantId);
     if (drill === null) return [];
     const lines = [`    ${drill.name ?? NOBODY_NAMED} — ${formatInteger(drill.total)}`];
-    for (const other of drill.byOpponent.rows) {
+    for (const other of drill.byOtherEnd.rows) {
         const opens = other.doesOpenPair ? OPENS_WORD : LEAF_WORD;
         const named = other.name ?? NOBODY_NAMED;
         lines.push(`      person  ${opens}  ${named} ${formatInteger(other.figure)}`);
@@ -625,7 +625,7 @@ function formatOpenedLines(fight: PanelFight, screen: PanelMetric, combatantId: 
         const named = getTextForNamedPart(skill.part);
         lines.push(`      ${row}${opens}  ${named} ${formatInteger(skill.figure)}`);
     }
-    const closing = drill.bySkill.plain;
+    const closing = drill.bySkill.closing;
     if (closing !== null) {
         lines.push(`      closing ${closing.doesOpenPart ? OPENS_WORD : LEAF_WORD}`);
     }
@@ -633,7 +633,7 @@ function formatOpenedLines(fight: PanelFight, screen: PanelMetric, combatantId: 
         const opens = kind.doesOpenPart ? OPENS_WORD : LEAF_WORD;
         lines.push(`      kind    ${opens}  ${kind.element} ${formatInteger(kind.figure)}`);
     }
-    if (drill.byElement.unnamed !== null) lines.push("      no kind  leaf");
+    if (drill.byElement.noKind !== null) lines.push("      no kind  leaf");
     return lines;
 }
 
@@ -643,7 +643,7 @@ function formatUnnamedPairLines(
     screen: PanelMetric,
     drill: OpenedLevelContent,
 ): string[] {
-    const unnamed = drill.byOpponent.unnamed;
+    const unnamed = drill.byOtherEnd.halfNamed;
     if (unnamed === null) return [];
     if (!unnamed.doesOpenPair) return ["      half-named  leaf"];
     const lines = [`      half-named  opens  ${formatInteger(unnamed.figure)}`];
@@ -657,37 +657,37 @@ function formatUnnamedPairLines(
 }
 
 /** One pinned row opened: the end the game did name, and what named neither. */
-function formatUnnamedLines(fight: PanelFight, kase: PinnedCase): string[] {
-    const held = presentHalfNamedForEveryone(fight, kase);
+function formatUnnamedLines(fight: PanelFight, pinnedCase: PinnedCase): string[] {
+    const held = presentHalfNamedForEveryone(fight, pinnedCase);
     if (held === null) return [];
-    const lines = [`    ${kase} — ${formatInteger(held.total)}`];
+    const lines = [`    ${pinnedCase} — ${formatInteger(held.total)}`];
     for (const one of held.rows) {
         const named = one.name ?? NOBODY_NAMED;
         lines.push(`      person  opens  ${named} ${formatInteger(one.figure)}`);
         const opened = { kind: HALF_NAMED_OPENED.person, combatantId: one.combatantId };
-        const under = presentUnnamedCut(fight, kase, opened);
+        const under = presentUnnamedCut(fight, pinnedCase, opened);
         if (under === null) continue;
         if (under.opened !== HALF_NAMED_OPENED.person) continue;
         for (const kind of under.kinds.rows) {
             lines.push(`        kind    leaf   ${kind.element} ${formatInteger(kind.figure)}`);
         }
     }
-    if (held.neither !== null) lines.push("      neither end  leaf");
+    if (held.neitherEnd !== null) lines.push("      neither end  leaf");
     for (const one of held.kinds.rows) {
         const opens = one.doesOpenPart ? OPENS_WORD : LEAF_WORD;
         lines.push(`      kind    ${opens}  ${one.element} ${formatInteger(one.figure)}`);
         if (!one.doesOpenPart) continue;
         const opened = { kind: HALF_NAMED_OPENED.element, element: one.element };
-        const under = presentUnnamedCut(fight, kase, opened);
+        const under = presentUnnamedCut(fight, pinnedCase, opened);
         if (under === null) continue;
         if (under.opened !== HALF_NAMED_OPENED.element) continue;
         for (const row of under.rows) {
             const named = row.name ?? NOBODY_NAMED;
             lines.push(`        person  leaf   ${named} ${formatInteger(row.figure)}`);
         }
-        if (under.neither !== null) lines.push("        neither end  leaf");
+        if (under.neitherEnd !== null) lines.push("        neither end  leaf");
     }
-    if (held.kinds.unnamed !== null) lines.push("      no kind  leaf");
+    if (held.kinds.noKind !== null) lines.push("      no kind  leaf");
     return lines;
 }
 

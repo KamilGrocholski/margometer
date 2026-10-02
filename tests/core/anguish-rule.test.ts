@@ -96,7 +96,7 @@ Deno.test("a tick is charged to its victim, and to nobody who applied the bleed"
 function decodeTwoAppliers() {
     const fight = lookupRecordedFight(TWO_APPLIERS);
     const roster = indexCombatantRoster(fight.combatants);
-    const context = { roster, standing: null, tables: BLOWS_GRANTED };
+    const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
     return decodePayloadMessages(fight.messages, context).events;
 }
 
@@ -115,5 +115,5 @@ Deno.test("the bleed reaches the victim's own figures and credits nobody with de
     assertExists(victim, "the victim has a row of their own");
     assertEquals(only.byCombatantId.size, 1, "and is the only combatant the ticks name");
     assertEquals(victim[1].damageTakenApplied, total, "who is charged the whole of the bleed");
-    assertEquals(only.dealtByNobody, total, "while it is dealt by nobody the protocol named");
+    assertEquals(only.damageDealtByNobody, total, "while it is dealt by nobody the protocol named");
 });

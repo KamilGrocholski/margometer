@@ -16,11 +16,11 @@ export type GameValue = VocabularyWord<typeof GAME_VALUE>;
 
 export class GameValueAbsent extends Error {
     override readonly name = "GameValueAbsent";
-    readonly reading: GameValue;
+    readonly value: GameValue;
 
-    constructor(reading: GameValue) {
+    constructor(value: GameValue) {
         super();
-        this.reading = reading;
+        this.value = value;
     }
 }
 

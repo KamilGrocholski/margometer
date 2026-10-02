@@ -27,7 +27,7 @@ import {
 /** The frozen readings a tooltip's rows are worded and figured from, handed in by their holder. */
 export interface TooltipTables {
     statedSkills: StatedSkills;
-    witnessedKeyByBit: ReadonlyMap<number, string>;
+    keyByStatusBit: ReadonlyMap<number, string>;
     statusBits: readonly string[];
 }
 
@@ -37,29 +37,35 @@ export function writeCarriedTooltips(
     translate: TranslateLabel | null,
     tooltip: GameTooltipPort,
 ): TooltipWritten | errors.Caught {
-    const held = replayAuraStandings(view, tables.statedSkills);
+    const fightStandings = replayAuraStandings(view, tables.statedSkills);
     const figures = new Map<string, CarriedFigure>();
     const carried = tallyCarriedFigures({
         statuses: view.carriedStatuses,
-        standings: held.standings,
+        auras: fightStandings.auras,
         roster: view.roster,
         turnsByCombatantId: view.turnsByCombatantId,
-        witnessed: tables.witnessedKeyByBit,
+        keyByStatusBit: tables.keyByStatusBit,
     });
     for (const one of carried) figures.set(`${one.combatantId}/${one.bit}`, one);
-    const rows = new Map<number, readonly string[]>();
+    const rowsByCombatantId = new Map<number, readonly string[]>();
     for (const combatantId of view.roster.byId.keys()) {
-        const reading = presentCarriedTooltip(combatantId, view, held, figures);
-        rows.set(combatantId, presentTooltipRows(reading, translate, tables.statusBits));
+        const tooltipContent = presentCarriedTooltip(combatantId, view, fightStandings, figures);
+        rowsByCombatantId.set(
+            combatantId,
+            presentTooltipRows(tooltipContent, translate, tables.statusBits),
+        );
     }
-    assert(rows.size <= COMBATANTS_MAXIMUM, "a block per fighter the roster holds, and no more");
-    return tooltip.writeRows(rows);
+    assert(
+        rowsByCombatantId.size <= COMBATANTS_MAXIMUM,
+        "a block per fighter the roster holds, and no more",
+    );
+    return tooltip.writeRows(rowsByCombatantId);
 }
 
 function presentCarriedTooltip(
     combatantId: number,
     view: FightView,
-    held: FightStandings,
+    fightStandings: FightStandings,
     figures: ReadonlyMap<string, CarriedFigure>,
 ): TooltipContent {
     const charging = view.chargedSkills.find((one) => {
@@ -67,7 +73,7 @@ function presentCarriedTooltip(
         return one.combatantId === combatantId;
     });
     const legendary = view.legendaryStandings.find((one) => one.combatantId === combatantId);
-    const provoked = held.provocations.find((one) => one.provokedId === combatantId);
+    const provoked = fightStandings.provocations.find((one) => one.provokedId === combatantId);
     const caster = provoked === undefined ? undefined : view.roster.byId.get(provoked.casterId);
     const statuses = view.carriedStatuses.filter((one) => one.combatantId === combatantId);
     assert(statuses.length <= view.carriedStatuses.length, "a fighter carries part of the fight");
@@ -83,13 +89,14 @@ function presentCarriedTooltip(
             turnsElapsed: provoked.turnsElapsed,
             turnsStated: provoked.turnsStated,
         },
-        provokes: held.provocations.filter((one) => one.casterId === combatantId).length,
+        provokedCount:
+            fightStandings.provocations.filter((one) => one.casterId === combatantId).length,
         statuses: statuses.map((one) => ({
             bit: one.bit,
             percent: figures.get(`${one.combatantId}/${one.bit}`)?.percent ?? null,
         })),
-        holytouchHealsGiven: legendary?.holytouchHealsGiven ?? null,
+        holytouchHealsReceived: legendary?.holytouchHealsReceived ?? null,
         hasSpentLastheal: legendary?.hasSpentLastheal ?? false,
-        wasJoinedInProgress: view.hasJoinedInProgress,
+        hasJoinedInProgress: view.hasJoinedInProgress,
     };
 }

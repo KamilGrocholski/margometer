@@ -26,7 +26,7 @@ Deno.test("the figure is health, and raises the percentage stated before it by i
     for (
         const event of decodePayloadMessages(lookupRecordedFight(BANDAGE).messages, {
             roster,
-            standing: null,
+            announcementStanding: null,
             tables: BLOWS_GRANTED,
         }).events
     ) {

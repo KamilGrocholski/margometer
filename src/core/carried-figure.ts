@@ -24,12 +24,12 @@ export interface CarriedFigure {
 /** What a reading of the fight hands over, so this file reads no walk of its own. */
 export interface CarriedFigureInputs {
     statuses: readonly CarriedStatus[];
-    standings: readonly AuraStanding[];
+    auras: readonly AuraStanding[];
     roster: CombatantRoster;
     /** Turns taken per combatant, the clock a cast is held to while it stands on a bearer. */
     turnsByCombatantId: ReadonlyMap<number, number>;
     /** Which key moves which bit, handed over by whoever holds the frozen list of bits. */
-    witnessed: ReadonlyMap<number, string>;
+    keyByStatusBit: ReadonlyMap<number, string>;
 }
 
 interface Bearer {
@@ -82,21 +82,21 @@ export function indexKeyByStatusBit(bits: readonly string[]): Map<number, string
 }
 
 /** One row per status a figure can be said of, and none for the rest. */
-export function tallyCarriedFigures(reading: CarriedFigureInputs): CarriedFigure[] {
-    assert(reading.witnessed.size <= SOURCES_MAXIMUM, "the bits witnessed are a short list");
+export function tallyCarriedFigures(inputs: CarriedFigureInputs): CarriedFigure[] {
+    assert(inputs.keyByStatusBit.size <= SOURCES_MAXIMUM, "the bits witnessed are a short list");
     const found: CarriedFigure[] = [];
-    for (const status of reading.statuses) {
-        const key = reading.witnessed.get(status.bit);
+    for (const status of inputs.statuses) {
+        const key = inputs.keyByStatusBit.get(status.bit);
         if (key === undefined) continue;
-        const combatant = reading.roster.byId.get(status.combatantId);
+        const combatant = inputs.roster.byId.get(status.combatantId);
         if (combatant === undefined) continue;
-        const turnsTaken = reading.turnsByCombatantId.get(status.combatantId) ?? 0;
+        const turnsTaken = inputs.turnsByCombatantId.get(status.combatantId) ?? 0;
         const bearer = { combatantId: status.combatantId, side: combatant.side, turnsTaken };
-        const casts = lookupCastsOverBearer(reading.standings, reading.roster, bearer, key);
-        const percent = tallyPercentForBearer(reading.standings, casts, bearer, key);
+        const casts = lookupCastsOverBearer(inputs.auras, inputs.roster, bearer, key);
+        const percent = tallyPercentForBearer(inputs.auras, casts, bearer, key);
         found.push({ combatantId: status.combatantId, bit: status.bit, percent });
     }
-    assert(found.length <= reading.statuses.length, "no more rows than statuses handed in");
+    assert(found.length <= inputs.statuses.length, "no more rows than statuses handed in");
     return found;
 }
 
@@ -107,25 +107,25 @@ export function tallyCarriedFigures(reading: CarriedFigureInputs): CarriedFigure
  * own length for everybody else; asked on the bearer's clock it goes when it should.
  */
 function lookupCastsOverBearer(
-    standings: readonly AuraStanding[],
+    auras: readonly AuraStanding[],
     roster: CombatantRoster,
     bearer: Bearer,
     key: string,
 ): AuraStanding[] {
-    assert(standings.length <= SOURCES_MAXIMUM * SOURCES_MAXIMUM, "a walk over casts is bounded");
+    assert(auras.length <= SOURCES_MAXIMUM * SOURCES_MAXIMUM, "a walk over casts is bounded");
     assert(bearer.turnsTaken >= 0, "and a count of turns never runs backwards");
     const found: AuraStanding[] = [];
-    for (const standing of standings) {
+    for (const aura of auras) {
         if (found.length >= SOURCES_MAXIMUM) break;
-        if (standing.amountByKey.get(key) === undefined) continue;
-        const caster = roster.byId.get(standing.casterId);
+        if (aura.amountByKey.get(key) === undefined) continue;
+        const caster = roster.byId.get(aura.casterId);
         if (caster === undefined) continue;
         if (!doesKeyReachBearer(key, caster.side, bearer.side)) continue;
-        const was = standing.turnsAtCastByCombatantId.get(bearer.combatantId);
-        if (was === undefined) continue;
-        const turnsElapsed = bearer.turnsTaken - was;
+        const turnsAtCast = aura.turnsAtCastByCombatantId.get(bearer.combatantId);
+        if (turnsAtCast === undefined) continue;
+        const turnsElapsed = bearer.turnsTaken - turnsAtCast;
         if (turnsElapsed < 0) continue;
-        if (turnsElapsed < standing.turnsStated) found.push(standing);
+        if (turnsElapsed < aura.turnsStated) found.push(aura);
     }
     return found;
 }
@@ -150,30 +150,32 @@ function doesKeyReachBearer(key: string, casterSide: number, bearerSide: number)
  * announced nowhere, so the figure would be a part passing itself off as the whole.
  */
 function tallyPercentForBearer(
-    standings: readonly AuraStanding[],
+    auras: readonly AuraStanding[],
     casts: readonly AuraStanding[],
     bearer: Bearer,
     key: string,
 ): number | null {
     assert(key.length > 0, "a figure is asked of a key");
     assert(casts.length <= SOURCES_MAXIMUM, "and over the casts the walk above bounded");
-    if (isCasterHalved(standings, bearer.combatantId, key)) return null;
+    if (isCasterHalved(auras, bearer.combatantId, key)) return null;
     if (casts.length === 0) return null;
-    const figures = casts.map((one) => one.amountByKey.get(key) ?? 0).sort((a, b) => b - a);
+    const amountsDescending = casts.map((one) => one.amountByKey.get(key) ?? 0).sort((a, b) =>
+        b - a
+    );
     let summed = 0;
-    for (let at = 0; at < SOURCES_COUNTED; at += 1) summed += figures[at] ?? 0;
+    for (let at = 0; at < SOURCES_COUNTED; at += 1) summed += amountsDescending[at] ?? 0;
     return summed;
 }
 
 /** True where this bearer is one of the casters a key hands a different amount to. */
 function isCasterHalved(
-    standings: readonly AuraStanding[],
+    auras: readonly AuraStanding[],
     combatantId: number,
     key: string,
 ): boolean {
     assert(Number.isSafeInteger(combatantId), "a bearer is asked about by identity");
     if (!HALVED_FOR_THE_CASTER.includes(key)) return false;
-    return standings.some((one) => {
+    return auras.some((one) => {
         if (one.casterId !== combatantId) return false;
         return one.amountByKey.get(key) !== undefined;
     });

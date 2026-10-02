@@ -112,7 +112,9 @@ Deno.test("nothing on a published page asks a domain root, or a process, for any
     assertEquals(readLoadedMarks(page), [], "no font, no picture and no counter arrives");
 });
 
-/** What a page would go and get. An `<a href>` is a navigation somebody presses, and stays legal. */
+/**
+ * What a page would go and get. An `<a href>` is a navigation somebody presses, and stays legal.
+ */
 function readLoadedMarks(text: string): string[] {
     const found = LOADED_FROM_ELSEWHERE.filter((mark) => text.includes(mark));
     let at = text.indexOf(LINK_OPENING);
@@ -232,7 +234,7 @@ Deno.test("a published page puts both windows in the corner, and again on every 
     assertStringIncludes(page, "setStandingBeside", "and the window beside it follows");
     assertStringIncludes(
         page,
-        "setStandingBeside();\n    setTipsPlaced();",
+        "setStandingBeside();\n    setCardsPlaced();",
         "and the column of tooltips is placed straight after the windows it stands by",
     );
     assertStringIncludes(page, `addEventListener("resize", setWindowsPlaced)`, "and on a resize");
@@ -242,7 +244,7 @@ Deno.test("a published page puts both windows in the corner, and again on every 
         "once the panel the add-on draws on a frame stands",
     );
     assertStringIncludes(page, "buttons: 1", "by a drag stating a held button");
-    assert(!page.includes(STORE_KEY.panelPlace), "and never through the store behind its back");
+    assert(!page.includes(STORE_KEY.meterPosition), "and never through the store behind its back");
 });
 
 Deno.test("the page plays the fight once on arriving, and only the bar stops it", () => {

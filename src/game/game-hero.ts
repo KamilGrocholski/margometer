@@ -31,12 +31,14 @@ const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const HERO_FIELDS: FieldKeys<HeroField> = { id: "id" };
 
 /** The first spelling of the game that states an id wins: two spellings are one game. */
-export function initGameHero(page: unknown): GameHeroPort {
+export function initGameHero(browserWindow: unknown): GameHeroPort {
     return {
         readHeroId() {
-            const read = errors.attempt(() => readGameEngines(page).map(readGameHeroId));
-            if (read instanceof Error) return read;
-            for (const id of read) {
+            const heroIds = errors.attempt(() =>
+                readGameEngines(browserWindow).map(readGameHeroId)
+            );
+            if (heroIds instanceof Error) return heroIds;
+            for (const id of heroIds) {
                 if (id !== null) return id;
             }
             return new GameValueAbsent(GAME_VALUE.hero);
@@ -46,24 +48,24 @@ export function initGameHero(page: unknown): GameHeroPort {
 
 /** Null where the engine holds no hero, or an id that is not a whole number above nought. */
 function readGameHeroId(engine: UnknownRecord): number | null {
-    const held = getRecordField(engine, ENGINE_FIELDS, "hero");
-    if (held instanceof Error) return null;
-    if (held === null) return null;
-    const hero = getRecordField(held, HELD_FIELDS, "data");
-    if (hero instanceof Error) return null;
-    if (hero === null) return null;
+    const heroObject = getRecordField(engine, ENGINE_FIELDS, "hero");
+    if (heroObject instanceof Error) return null;
+    if (heroObject === null) return null;
+    const heroData = getRecordField(heroObject, HELD_FIELDS, "data");
+    if (heroData instanceof Error) return null;
+    if (heroData === null) return null;
     let id: number | null;
     // Read the id in either spelling, as a tile is read.
     readId: {
         // A client that states a number as text states the number.
-        const text = getTextField(hero, HERO_FIELDS, "id");
+        const text = getTextField(heroData, HERO_FIELDS, "id");
         if (!(text instanceof Error)) {
             if (text !== null) {
                 id = parseInteger(text);
                 break readId;
             }
         }
-        const stated = getNumberField(hero, HERO_FIELDS, "id");
+        const stated = getNumberField(heroData, HERO_FIELDS, "id");
         if (stated instanceof Error) {
             id = null;
             break readId;

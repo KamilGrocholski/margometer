@@ -44,7 +44,11 @@ Deno.test("each window is moved by its own bar, and reported moved under its own
     const asked: PanelIntent[] = [];
     const panel = initTestView(composeFakeDocument(), {
         onIntent: (one) => asked.push(one),
-        placement: { position: { left: 40, top: 40 }, size: null, readViewport: () => VIEWPORT },
+        meterPlacement: {
+            position: { left: 40, top: 40 },
+            size: null,
+            readViewport: () => VIEWPORT,
+        },
         helperPlacement: {
             position: { left: 600, top: 40 },
             size: null,
@@ -74,7 +78,11 @@ function findGrip(host: FakeElement, grip: string): FakeElement {
 
 Deno.test("a pointer stating no place starts no drag, and the panel stays where it stood", () => {
     const panel = initTestView(composeFakeDocument(), {
-        placement: { position: { left: 40, top: 40 }, size: null, readViewport: () => VIEWPORT },
+        meterPlacement: {
+            position: { left: 40, top: 40 },
+            size: null,
+            readViewport: () => VIEWPORT,
+        },
     });
     panel.renderWaiting(NOTHING_WAITING);
     const host = panel.element as FakeElement;
@@ -89,7 +97,11 @@ Deno.test("a pointer the bar will not hold drops that hold, and the drag still m
     const failures: ViewFailure[] = [];
     const panel = initTestView(composeFakeDocument(), {
         onFailure: (one) => failures.push(one),
-        placement: { position: { left: 40, top: 40 }, size: null, readViewport: () => VIEWPORT },
+        meterPlacement: {
+            position: { left: 40, top: 40 },
+            size: null,
+            readViewport: () => VIEWPORT,
+        },
     });
     panel.renderWaiting(NOTHING_WAITING);
     const host = panel.element as FakeElement;

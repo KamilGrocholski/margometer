@@ -66,7 +66,7 @@ interface KeeperState {
     fights: readonly KeptFight[];
     answers: ShelfAnswers;
     /** In memory and never in the store: a figure that survives a reload is an older version's. */
-    readings: Map<number, KeptFightState | null>;
+    fightStatesByOpenedAt: Map<number, KeptFightState | null>;
 }
 
 export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
@@ -86,7 +86,7 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
             hasStoreMadeRoom: false,
             hasChoiceRefused: false,
         },
-        readings: new Map(),
+        fightStatesByOpenedAt: new Map(),
     };
     assert(state.fights.length <= KEPT_MAXIMUM, "a shelf opened is inside its stated bound");
     return {
@@ -96,43 +96,45 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
         // A refusal is held as well: the shelf is walked on every frame, and a fight that will not
         // replay would otherwise be replayed, and marked, once per frame.
         lookupKeptFightState: (fight) => {
-            const held = state.readings.get(fight.openedAt);
-            if (held !== undefined) return held;
+            const rememberedFightState = state.fightStatesByOpenedAt.get(fight.openedAt);
+            if (rememberedFightState !== undefined) return rememberedFightState;
             const { tables, sessionOptions, defects } = state.options;
             const ran = errors.attempt(() => replayKeptFight(fight, tables, sessionOptions));
-            let reading: KeptFightState | null = null;
+            let fightState: KeptFightState | null = null;
             if (ran instanceof Error) {
                 defects.add({ kind: DEFECT_KIND.kept, region: null, failure: ran });
-            } else reading = ran;
-            if (reading !== null) {
-                const read = reading.messagesByPayload.length;
+            } else fightState = ran;
+            if (fightState !== null) {
+                const payloadsReplayedCount = fightState.messagesByPayload.length;
                 assert(
-                    read === fight.payloads.length,
+                    payloadsReplayedCount === fight.payloads.length,
                     "a kept fight is replayed payload by payload",
                 );
             }
-            if (state.readings.size < KEPT_MAXIMUM) state.readings.set(fight.openedAt, reading);
-            return reading;
+            if (state.fightStatesByOpenedAt.size < KEPT_MAXIMUM) {
+                state.fightStatesByOpenedAt.set(fight.openedAt, fightState);
+            }
+            return fightState;
         },
         // Keep a fight, and hold what the store answered.
         keep: (fight) => {
             const next = [...state.fights, fight];
-            const kept = writeKeptFight(state.store, { fights: state.fights }, fight);
+            const written = writeKeptFight(state.store, { fights: state.fights }, fight);
             state.answers.isEverySlotPinned = false;
-            if (!(kept instanceof Error)) {
-                setShelfWritten(state, kept.contents, rotateShelf(next).length);
+            if (!(written instanceof Error)) {
+                setShelfWritten(state, written.contents, rotateShelf(next).length);
                 return;
             }
-            if (kept instanceof EverySlotPinned) {
+            if (written instanceof EverySlotPinned) {
                 state.answers.isEverySlotPinned = true;
                 return;
             }
             // Two fights under one moment, which a clock that only goes forward never states.
-            if (kept instanceof FightAlreadyKept) {
+            if (written instanceof FightAlreadyKept) {
                 state.options.defects.add({
                     kind: DEFECT_KIND.keeping,
                     region: null,
-                    failure: kept,
+                    failure: written,
                 });
                 return;
             }
@@ -140,36 +142,36 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
         },
         // Pin a fight, or take its pin off.
         pin: (openedAt) => {
-            const held = state.fights.find((one) => one.openedAt === openedAt);
+            const fight = state.fights.find((one) => one.openedAt === openedAt);
             // A pin on a fight no longer kept asks for nothing: the next frame shows the shelf as
             // it is.
-            if (held === undefined) return;
+            if (fight === undefined) return;
             const next = state.fights.map((one) =>
                 one.openedAt === openedAt ? { ...one, isPinned: !one.isPinned } : one
             );
             assert(next.length === state.fights.length, "a pin moves no fight on or off the shelf");
-            const pinned = writeKeptFightPin(
+            const written = writeKeptFightPin(
                 state.store,
                 { fights: state.fights },
                 openedAt,
-                !held.isPinned,
+                !fight.isPinned,
             );
-            if (pinned instanceof Error) setShelfRefused(state, next);
-            else setShelfWritten(state, pinned.contents, next.length);
+            if (written instanceof Error) setShelfRefused(state, next);
+            else setShelfWritten(state, written.contents, next.length);
         },
         // Move the shelf to the store chosen. The fights go first, the answer second, and the place
         // they came from is emptied last: a store that refuses them, or a browser that will not
         // keep the answer, leaves the reader's fights where the next page will still look.
-        moveShelf: (choice) => {
-            if (choice === state.choice) return;
-            const moved = state.options.initShelfStore(choice);
-            const written = writeShelfContents(moved, { fights: state.fights });
+        moveShelf: (storageChoice) => {
+            if (storageChoice === state.choice) return;
+            const targetStore = state.options.initShelfStore(storageChoice);
+            const written = writeShelfContents(targetStore, { fights: state.fights });
             if (written instanceof Error) {
                 state.answers.hasStoreRefused = true;
                 state.answers.hasStoreMadeRoom = false;
                 return;
             }
-            const answered = writeStorageChoice(state.options.settings, choice);
+            const answered = writeStorageChoice(state.options.settings, storageChoice);
             state.answers.hasChoiceRefused = answered instanceof Error;
             if (answered instanceof Error) return;
             // ⚠️ A copy the old store will not let go of is the reader's fights left where they
@@ -178,8 +180,8 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
             void deleteShelf(state.store);
             const offered = state.fights.length;
             assert(written.contents.fights.length <= offered, "a shelf moved grows by nothing");
-            state.choice = choice;
-            state.store = moved;
+            state.choice = storageChoice;
+            state.store = targetStore;
             setShelfWritten(state, written.contents, offered);
         },
     };
@@ -196,11 +198,14 @@ function setShelfWritten(state: KeeperState, contents: ShelfContents, offered: n
 }
 
 function removeUnshelvedFightStates(state: KeeperState): void {
-    for (const openedAt of [...state.readings.keys()]) {
+    for (const openedAt of [...state.fightStatesByOpenedAt.keys()]) {
         if (state.fights.some((one) => one.openedAt === openedAt)) continue;
-        state.readings.delete(openedAt);
+        state.fightStatesByOpenedAt.delete(openedAt);
     }
-    assert(state.readings.size <= KEPT_MAXIMUM, "a reading is held for a fight on the shelf");
+    assert(
+        state.fightStatesByOpenedAt.size <= KEPT_MAXIMUM,
+        "a reading is held for a fight on the shelf",
+    );
 }
 
 function setShelfRefused(state: KeeperState, asked: readonly KeptFight[]): void {

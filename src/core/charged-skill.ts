@@ -50,31 +50,34 @@ export const CHARGED_SKILLS_MAXIMUM = 4;
  * says nothing about is charging what they were charging.
  */
 export function prepareChargedSkills(
-    standings: readonly ChargedSkillStanding[],
+    chargedSkillStandings: readonly ChargedSkillStanding[],
     statements: readonly ChargedSkillStatement[],
     events: readonly BattleEvent[],
     ordinal: number | null,
 ): ChargedSkillStanding[] {
-    assert(standings.length <= CHARGED_SKILLS_MAXIMUM, "what stood stays inside the bound");
-    const announced = indexAnnouncedNamesByActor(events);
-    const broken = indexChargeBrokenIds(events);
-    const statedById = new Map(statements.map((one) => [one.combatantId, one]));
+    assert(
+        chargedSkillStandings.length <= CHARGED_SKILLS_MAXIMUM,
+        "what stood stays inside the bound",
+    );
+    const skillNamesByActorId = indexAnnouncedNamesByActor(events);
+    const chargeBrokenIds = indexChargeBrokenIds(events);
+    const statementByCombatantId = new Map(statements.map((one) => [one.combatantId, one]));
     const next: ChargedSkillStanding[] = [];
-    for (const held of standings) {
-        const statement = statedById.get(held.combatantId);
+    for (const previous of chargedSkillStandings) {
+        const statement = statementByCombatantId.get(previous.combatantId);
         if (statement?.charge !== undefined) {
             if (statement.charge !== null) continue;
         }
-        if (held.state !== CHARGED_SKILL_STATE.charging) {
-            if (!isPastItsTurn(held, ordinal)) next.push(held);
+        if (previous.state !== CHARGED_SKILL_STATE.charging) {
+            if (!isPastItsTurn(previous, ordinal)) next.push(previous);
             continue;
         }
         if (statement === undefined) {
-            next.push(held);
+            next.push(previous);
             continue;
         }
-        const state = lookupEndedState(held, announced, broken);
-        if (state !== null) next.push({ ...held, state, endedAtOrdinal: ordinal });
+        const state = lookupEndedState(previous, skillNamesByActorId, chargeBrokenIds);
+        if (state !== null) next.push({ ...previous, state, endedAtOrdinal: ordinal });
     }
     for (const statement of statements) {
         const charging = composeChargingStanding(statement);
@@ -92,13 +95,13 @@ export function prepareChargedSkills(
  * would otherwise both read as struck off one of them landing it.
  */
 function indexAnnouncedNamesByActor(events: readonly BattleEvent[]): Map<number, Set<string>> {
-    const namesByActor = new Map<number, Set<string>>();
+    const skillNamesByActorId = new Map<number, Set<string>>();
     const add = (actorId: number | null, skillName: string): void => {
         assert(skillName.length > 0, "an announcement that was made is named");
         if (actorId === null) return;
-        const names = namesByActor.get(actorId) ?? new Set<string>();
-        names.add(skillName);
-        namesByActor.set(actorId, names);
+        const skillNames = skillNamesByActorId.get(actorId) ?? new Set<string>();
+        skillNames.add(skillName);
+        skillNamesByActorId.set(actorId, skillNames);
     };
     for (const event of events) {
         if (event.kind === BATTLE_EVENT.skillUsed) add(event.actorId, event.skillName);
@@ -106,20 +109,20 @@ function indexAnnouncedNamesByActor(events: readonly BattleEvent[]): Map<number,
             if (event.announced !== null) add(event.announced.actorId, event.announced.skillName);
         }
     }
-    assert(namesByActor.size <= events.length, "no more announcers than events announcing");
-    return namesByActor;
+    assert(skillNamesByActorId.size <= events.length, "no more announcers than events announcing");
+    return skillNamesByActorId;
 }
 
 /** Whom a blow of this payload broke a charge on, which the message states as its target. */
 function indexChargeBrokenIds(events: readonly BattleEvent[]): Set<number> {
-    const broken = new Set<number>();
+    const chargeBrokenIds = new Set<number>();
     for (const event of events) {
         if (event.kind !== BATTLE_EVENT.attack) continue;
         if (event.targetId === null) continue;
-        if (event.procs.includes(CHARGE_BROKEN_KEY)) broken.add(event.targetId);
+        if (event.procs.includes(CHARGE_BROKEN_KEY)) chargeBrokenIds.add(event.targetId);
     }
-    assert(broken.size <= events.length, "no more broken than blows");
-    return broken;
+    assert(chargeBrokenIds.size <= events.length, "no more broken than blows");
+    return chargeBrokenIds;
 }
 
 /**
@@ -127,10 +130,13 @@ function indexChargeBrokenIds(events: readonly BattleEvent[]): Set<number> {
  * moves by one on the very next payload, 24 times out of 24. Where it numbers no turn at all, the
  * mark lasts the payload it was made on and no longer.
  */
-function isPastItsTurn(standing: ChargedSkillStanding, ordinal: number | null): boolean {
-    if (standing.endedAtOrdinal === null) return true;
+function isPastItsTurn(
+    chargedSkillStanding: ChargedSkillStanding,
+    ordinal: number | null,
+): boolean {
+    if (chargedSkillStanding.endedAtOrdinal === null) return true;
     if (ordinal === null) return true;
-    return ordinal > standing.endedAtOrdinal;
+    return ordinal > chargedSkillStanding.endedAtOrdinal;
 }
 
 /**
@@ -138,15 +144,19 @@ function isPastItsTurn(standing: ChargedSkillStanding, ordinal: number | null): 
  * combatant fell, or the charge went away under nothing this reader can see.
  */
 function lookupEndedState(
-    standing: ChargedSkillStanding,
-    announced: ReadonlyMap<number, ReadonlySet<string>>,
-    broken: ReadonlySet<number>,
+    chargedSkillStanding: ChargedSkillStanding,
+    skillNamesByActorId: ReadonlyMap<number, ReadonlySet<string>>,
+    chargeBrokenIds: ReadonlySet<number>,
 ): ChargedSkillState | null {
-    assert(standing.skillName.length > 0, "a charge that stood names the blow being made ready");
-    if (announced.get(standing.combatantId)?.has(standing.skillName) === true) {
+    assert(
+        chargedSkillStanding.skillName.length > 0,
+        "a charge that stood names the blow being made ready",
+    );
+    const skillNames = skillNamesByActorId.get(chargedSkillStanding.combatantId);
+    if (skillNames?.has(chargedSkillStanding.skillName) === true) {
         return CHARGED_SKILL_STATE.struck;
     }
-    if (broken.has(standing.combatantId)) return CHARGED_SKILL_STATE.broken;
+    if (chargeBrokenIds.has(chargedSkillStanding.combatantId)) return CHARGED_SKILL_STATE.broken;
     return null;
 }
 

@@ -136,10 +136,10 @@ Deno.test("the fabricated fight puts something in every part of the panel", () =
     assert(statistics.totals.damageTakenAbsorbed > 0, "and a pool took something");
     // The four the corpus cannot show. Two of them reach a pinned row, and two reach no row at
     // all — which is the only place they can be looked at (`develop ADR 0082`, `CONTEXT.md`).
-    assert(statistics.dealtByNobody > 0, "somebody was struck by nobody the game named");
-    assert(statistics.takenByNobody > 0, "and somebody struck nobody it named");
-    assert(statistics.byNeitherEnd > 0, "health went out with neither end named");
-    assert(statistics.restoredToNobody > 0, "and came back to nobody named either");
+    assert(statistics.damageDealtByNobody > 0, "somebody was struck by nobody the game named");
+    assert(statistics.damageTakenByNobody > 0, "and somebody struck nobody it named");
+    assert(statistics.damageByNeitherEnd > 0, "health went out with neither end named");
+    assert(statistics.healthRestoredToNobody > 0, "and came back to nobody named either");
 });
 
 /**

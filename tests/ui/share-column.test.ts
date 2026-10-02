@@ -18,7 +18,7 @@ import { SHARE_FLOOR } from "#/src/ui/panel-words.ts";
 import { parseSharePoints } from "#/tests/share-text.ts";
 import {
     NOTHING_SUSPECT,
-    PINNED_STANDING,
+    PINNED_PLACING,
     presentOpenedLevel,
     presentPairLevel,
     presentPartLevel,
@@ -111,7 +111,7 @@ function composeSectionsForScreen(
         // holds, so a column read without it is the shortfall itself.
         rows: [
             ...reading.rows,
-            ...reading.pinned.filter((one) => one.standing === PINNED_STANDING.apart),
+            ...reading.pinned.filter((one) => one.placing === PINNED_PLACING.apart),
             ...(reading.outsideRanking === null ? [] : [reading.outsideRanking]),
         ],
         total: reading.total,
@@ -136,22 +136,22 @@ function composeSectionsForScreenRow(
     if (drill === null) return [];
     const found: Section[] = [
         {
-            where: `${metric}/drill.byOpponent`,
-            rows: composeCutShares(drill.byOpponent.rows, drill.byOpponent.unnamed),
+            where: `${metric}/drill.byOtherEnd`,
+            rows: composeCutShares(drill.byOtherEnd.rows, drill.byOtherEnd.halfNamed),
             total: drill.total,
         },
         {
             where: `${metric}/drill.bySkill`,
-            rows: composeCutShares(drill.bySkill.rows, drill.bySkill.plain),
+            rows: composeCutShares(drill.bySkill.rows, drill.bySkill.closing),
             total: drill.total,
         },
         {
             where: `${metric}/drill.byElement`,
-            rows: composeCutShares(drill.byElement.rows, drill.byElement.unnamed),
+            rows: composeCutShares(drill.byElement.rows, drill.byElement.noKind),
             total: drill.total,
         },
     ];
-    for (const other of drill.byOpponent.rows) {
+    for (const other of drill.byOtherEnd.rows) {
         const at = [combatantId, other.combatantId] as const;
         const pair = presentPairLevel(statistics, roster, metric, at[0], at[1]);
         if (pair === null) continue;
@@ -162,7 +162,7 @@ function composeSectionsForScreenRow(
         });
         found.push({
             where: `${metric}/pair.byElement`,
-            rows: composeCutShares(pair.byElement.rows, pair.byElement.unnamed),
+            rows: composeCutShares(pair.byElement.rows, pair.byElement.noKind),
             total: pair.total,
         });
     }
@@ -176,8 +176,8 @@ function composeSectionsForScreenRow(
         const held = presentPartLevel(statistics, roster, metric, combatantId, part);
         if (held === null) continue;
         found.push({
-            where: `${metric}/part.byOpponent`,
-            rows: composeCutShares(held.byOpponent.rows, held.byOpponent.unnamed),
+            where: `${metric}/part.byOtherEnd`,
+            rows: composeCutShares(held.byOtherEnd.rows, held.byOtherEnd.halfNamed),
             total: held.total,
         });
     }

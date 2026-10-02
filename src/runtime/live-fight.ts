@@ -36,7 +36,7 @@ import { DEFECT_KIND, type DefectKind, type DefectLedger } from "./defect-ledger
 import type { ShelfKeeper } from "./shelf-keeper.ts";
 
 export interface LiveFightOptions {
-    engine: GameBattlePort;
+    battle: GameBattlePort;
     clock: BrowserClock;
     place: GamePlacePort;
     hero: GameHeroPort;
@@ -62,29 +62,29 @@ export interface LiveFight {
     readerId: number | null;
     openedAt: number;
     /** Read once: the game builds its battle while its engine starts, and never again. */
-    battle: GameBattle | null;
+    gameBattle: GameBattle | null;
 }
 
 export function initLiveFight(options: LiveFightOptions): {
     live: LiveFight;
     listener: PayloadListener;
 } {
-    const live: LiveFight = {
+    const liveFight: LiveFight = {
         session: createFightSession(options.sessionOptions),
         capture: createFightCapture(),
         snapshotBefore: null,
         place: null,
         readerId: null,
         openedAt: 0,
-        battle: null,
+        gameBattle: null,
     };
     const listener: PayloadListener = {
         onBeforeCall() {
-            live.snapshotBefore = executeLiveStep(
+            liveFight.snapshotBefore = executeLiveStep(
                 options,
                 DEFECT_KIND.file,
                 null,
-                () => readLiveGameWarriors(live, options),
+                () => readLiveGameWarriors(liveFight, options),
             );
         },
         onPayload(payload) {
@@ -95,22 +95,22 @@ export function initLiveFight(options: LiveFightOptions): {
                 options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
                 return null;
             });
-            const after = executeLiveStep(
+            const snapshotAfter = executeLiveStep(
                 options,
                 DEFECT_KIND.file,
                 null,
-                () => readLiveGameWarriors(live, options),
+                () => readLiveGameWarriors(liveFight, options),
             );
             executeLiveStep(options, DEFECT_KIND.file, undefined, () => {
                 const messages = record === null ? [] : record.messages;
                 const call = {
                     payload,
                     messages,
-                    combatantsBefore: live.snapshotBefore,
-                    combatantsAfter: after,
+                    combatantsBefore: liveFight.snapshotBefore,
+                    combatantsAfter: snapshotAfter,
                 };
-                const prepared = prepareCapture(live.capture, call, record?.isInit ?? false);
-                commitCapture(live.capture, prepared);
+                const prepared = prepareCapture(liveFight.capture, call, record?.isInit ?? false);
+                commitCapture(liveFight.capture, prepared);
             });
             // Commit the record, or leave a defect where it will not prepare.
             const committed = record === null ? null : executeLiveStep(
@@ -118,7 +118,7 @@ export function initLiveFight(options: LiveFightOptions): {
                 DEFECT_KIND.reading,
                 null,
                 (): PayloadCommitted | null => {
-                    const prepared = preparePayload(live.session, record, options.tables);
+                    const prepared = preparePayload(liveFight.session, record, options.tables);
                     if (prepared instanceof Error) {
                         options.defects.add({
                             kind: DEFECT_KIND.reading,
@@ -127,27 +127,27 @@ export function initLiveFight(options: LiveFightOptions): {
                         });
                         return null;
                     }
-                    return commitPayload(live.session, prepared);
+                    return commitPayload(liveFight.session, prepared);
                 },
             );
             if (committed?.hasOpened === true) {
                 // Open the fight: its moment, its place and who the reader is.
                 executeLiveStep(options, DEFECT_KIND.reading, undefined, () => {
-                    live.openedAt = options.clock.readNowMilliseconds();
-                    live.place = readGameValue(options, options.place.readPlace());
-                    live.readerId = readGameValue(options, options.hero.readHeroId());
+                    liveFight.openedAt = options.clock.readNowMilliseconds();
+                    liveFight.place = readGameValue(options, options.place.readPlace());
+                    liveFight.readerId = readGameValue(options, options.hero.readHeroId());
                     options.onFightOpened();
                 });
             }
             if (committed?.hasClosed === true) {
                 // Keep the closed fight on the shelf.
                 executeLiveStep(options, DEFECT_KIND.keeping, undefined, () => {
-                    const payloads = live.capture.calls.map((call) => call.payload);
+                    const payloads = liveFight.capture.calls.map((call) => call.payload);
                     const fight = {
-                        openedAt: live.openedAt,
+                        openedAt: liveFight.openedAt,
                         payloads,
-                        place: live.place,
-                        readerId: live.readerId,
+                        place: liveFight.place,
+                        readerId: liveFight.readerId,
                         gameBuild: readGameValue(options, options.build.readBuildId()),
                         isPinned: false,
                     };
@@ -157,7 +157,7 @@ export function initLiveFight(options: LiveFightOptions): {
             executeLiveStep(options, DEFECT_KIND.reading, undefined, () => options.markStale());
         },
     };
-    return { live, listener };
+    return { live: liveFight, listener };
 }
 
 /** A step of ours that broke an invariant costs that step and leaves a defect; the rest goes on. */
@@ -178,18 +178,18 @@ function executeLiveStep<Value>(
  * `develop` records it; a snapshot that could not be read is `null`, and a defect.
  */
 function readLiveGameWarriors(
-    live: LiveFight,
+    liveFight: LiveFight,
     options: LiveFightOptions,
 ): GameWarriorSnapshot | null {
-    if (live.battle === null) {
-        const battle = options.engine.readBattle();
+    if (liveFight.gameBattle === null) {
+        const battle = options.battle.readBattle();
         if (battle instanceof Error) {
             options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: battle });
             return null;
         }
-        live.battle = battle;
+        liveFight.gameBattle = battle;
     }
-    const read = live.battle.readGameWarriors();
+    const read = liveFight.gameBattle.readGameWarriors();
     if (!(read instanceof Error)) return read;
     if (read instanceof GameWarriorsAbsent) return [];
     options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: read });

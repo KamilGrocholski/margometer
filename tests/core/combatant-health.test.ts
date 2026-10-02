@@ -84,7 +84,11 @@ Deno.test("every combatant in every recording is stated before anything happens 
         const cast = fight.combatants;
         const roster = indexCombatantRoster(cast);
         const events = fight.payloads.flatMap((one) =>
-            decodePayloadMessages(one, { roster, standing: null, tables: BLOWS_GRANTED })
+            decodePayloadMessages(one, {
+                roster,
+                announcementStanding: null,
+                tables: BLOWS_GRANTED,
+            })
                 .events
         );
         const health = indexFightEntryHealth(events, roster);
@@ -112,7 +116,7 @@ Deno.test("what states a combatant first is usually an event with no figure at a
             for (
                 const event of decodePayloadMessages(payload, {
                     roster: roster,
-                    standing: null,
+                    announcementStanding: null,
                     tables: BLOWS_GRANTED,
                 }).events
             ) {
@@ -172,7 +176,7 @@ Deno.test("the first statement is the one that counts, whatever came after", () 
     }]);
     const events = decodePayloadMessages(["1=80.00;0;heal=50", "1=30.00;0;poison=500"], {
         roster,
-        standing: null,
+        announcementStanding: null,
         tables: BLOWS_GRANTED,
     }).events;
     assertEquals(
@@ -197,7 +201,7 @@ Deno.test("a share is of the maximum, floored, and reaches the caster's own side
             "3=100.00;0;step",
             "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
         ],
-        { roster, standing: null, tables: BLOWS_GRANTED },
+        { roster, announcementStanding: null, tables: BLOWS_GRANTED },
     ).events;
     const heals = [...indexSideHeals(events, roster).values()];
     assertEquals(heals.length, 1, "one cast");
@@ -229,7 +233,7 @@ Deno.test("a cast cannot put back more than a combatant walked in with", () => {
             "2=50.00;0;poison=5000",
             "1=95.00;1=95.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
         ],
-        { roster, standing: null, tables: BLOWS_GRANTED },
+        { roster, announcementStanding: null, tables: BLOWS_GRANTED },
     ).events;
     const heals = [...indexSideHeals(events, roster).values()];
     assertEquals(
@@ -256,7 +260,7 @@ Deno.test("a member nobody can size leaves the cast saying so", () => {
             "1=50.00;0;poison=500",
             "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
         ],
-        { roster, standing: null, tables: BLOWS_GRANTED },
+        { roster, announcementStanding: null, tables: BLOWS_GRANTED },
     ).events;
     const heals = [...indexSideHeals(events, roster).values()];
     assertEquals(heals[0]?.restoredByCombatantId.get(1), 300, "the one that could be sized is");
@@ -274,7 +278,7 @@ Deno.test("a cast on a side a reducer reached is refused whole", () => {
             "1=50.00;0;poison=11937",
             "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
         ],
-        { roster, standing: null, tables: BLOWS_GRANTED },
+        { roster, announcementStanding: null, tables: BLOWS_GRANTED },
     ).events;
     assertEquals(indexSideHeals(reduced, roster).size, 0, "nothing is sized where it was cut");
 
@@ -286,7 +290,7 @@ Deno.test("a cast on a side a reducer reached is refused whole", () => {
             "1=50.00;0;poison=11937",
             "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
         ],
-        { roster, standing: null, tables: BLOWS_GRANTED },
+        { roster, announcementStanding: null, tables: BLOWS_GRANTED },
     ).events;
     assertEquals(
         indexSideHeals(theirOwn, roster).size,
@@ -303,7 +307,11 @@ Deno.test("every cast in the recordings is sized, and the cap is what does the w
     for (const fight of readRecordedFights()) {
         const roster = indexCombatantRoster(fight.combatants);
         const events = fight.payloads.flatMap((one) =>
-            decodePayloadMessages(one, { roster, standing: null, tables: BLOWS_GRANTED })
+            decodePayloadMessages(one, {
+                roster,
+                announcementStanding: null,
+                tables: BLOWS_GRANTED,
+            })
                 .events
         );
         for (const heal of indexSideHeals(events, roster).values()) {

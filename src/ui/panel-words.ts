@@ -66,18 +66,18 @@ export interface TooltipContent {
     /** Whoever is holding them with an okrzyk, and how far through the shout's turns they are. */
     provokedBy: { name: string; turnsElapsed: number; turnsStated: number } | null;
     /** How many characters their own okrzyk is holding. Never their names — `develop ADR 0103`. */
-    provokes: number;
+    provokedCount: number;
     /** What the mask says stands on them, with what the announcements over them come to. */
     statuses: readonly TooltipStatus[];
     /** The heals the bonus has given them since it lit, or null where it is not standing. */
-    holytouchHealsGiven: number | null;
+    holytouchHealsReceived: number | null;
     hasSpentLastheal: boolean;
     /**
      * Whether the panel walked into this fight. **The turns are the one row here counted from
      * the fight's own start**, so they are the one row a late start understates — everything
      * else says what stands now.
      */
-    wasJoinedInProgress: boolean;
+    hasJoinedInProgress: boolean;
 }
 
 export const PANEL_REGION = {
@@ -91,7 +91,7 @@ export const PANEL_REGION = {
     suspicions: "suspicions",
     defects: "defects",
     /** The card a row opens. It is not a region of the panel's frame, and it is drawn like one. */
-    tip: "tip",
+    card: "card",
     /** The window beside the panel. Its own region, drawn and undrawn like any other. */
     helper: "helper",
 } as const;
@@ -299,7 +299,7 @@ const APART_NOTE = "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno.";
  * **What decides whether a reader may add this figure to what they have just read.** Two of the
  * five are inside the ranking and three are not, and a bar looks the same either way.
  */
-const PINNED_STANDING_NOTES: Record<PinnedCase, string> = {
+const PINNED_PLACING_NOTES: Record<PinnedCase, string> = {
     dealtWithNoActor: APART_NOTE,
     givenWithNoActor: APART_NOTE,
     takenWithNoTarget: APART_NOTE,
@@ -493,7 +493,7 @@ export const PROC_SUB_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.
 }));
 
 /**
- * What a label **of ours** may run to before the column cuts it. `.tip-label` is `nowrap` with an
+ * What a label **of ours** may run to before the column cuts it. `.card-label` is `nowrap` with an
  * ellipsis, so a long one costs the card no height — it costs the end of the word, and a cut label
  * reads as a shorter label with nothing saying it was cut (`develop ADR 0088`). Our own words are
  * ours to keep short, and `tests/ui/blow-vocabulary.test.ts` holds every one of them to this.
@@ -699,7 +699,7 @@ const TOOLTIP_WORDS = {
      * state had come from either.
      */
     provokedBy: "Sprowokowany przez",
-    provokes: "Prowokuje",
+    provokedCount: "Prowokuje",
     holytouch: "Dotyk anioła",
     lastheal: "Ostatni ratunek",
     /** The bonus fires once a fight, so this is a state and never a count. */
@@ -861,7 +861,7 @@ export const REGION_WORDS: { readonly [Region in PanelRegion]: string } = {
     outside: "tego, co zostało poza rankingiem",
     suspicions: "ostrzeżenia",
     defects: "spisu usterek",
-    tip: "szczegółów wiersza",
+    card: "szczegółów wiersza",
     [PANEL_REGION.helper]: "pomocnika",
 };
 
@@ -937,13 +937,13 @@ export function getCaveatForUnannounced(noun: PanelNoun): Caveat | null {
     return UNANNOUNCED_CAVEATS[noun];
 }
 
-export function getWordsForPinnedStanding(kase: PinnedCase): string {
-    const words = PINNED_STANDING_NOTES[kase];
+export function getWordsForPinnedStanding(pinnedCase: PinnedCase): string {
+    const words = PINNED_PLACING_NOTES[pinnedCase];
     return words;
 }
 
-export function getWordsForPinnedScope(kase: PinnedCase): string {
-    const words = PINNED_SCOPE_NOTES[kase];
+export function getWordsForPinnedScope(pinnedCase: PinnedCase): string {
+    const words = PINNED_SCOPE_NOTES[pinnedCase];
     return words;
 }
 
@@ -984,17 +984,17 @@ export function getSubWordsForBlowKey(key: string): string {
 }
 
 export function getWordsForDestroyed(statistic: string): string {
-    const held = DESTROYED_WORD_BY_KEY.get(statistic);
-    if (held === undefined) return statistic;
-    return held.name;
+    const word = DESTROYED_WORD_BY_KEY.get(statistic);
+    if (word === undefined) return statistic;
+    return word.name;
 }
 
 /** The figure with the unit it is in, which is the whole reason the two are never totalled. */
 export function formatDestroyed(statistic: string, figure: number): string {
     const stated = formatFigure(figure);
-    const held = DESTROYED_WORD_BY_KEY.get(statistic);
-    if (held === undefined) return stated;
-    return `${stated} ${held.unit}`;
+    const word = DESTROYED_WORD_BY_KEY.get(statistic);
+    if (word === undefined) return stated;
+    return `${stated} ${word.unit}`;
 }
 
 export function getWordsForProfession(profession: string): string {
@@ -1065,7 +1065,7 @@ export function formatCountedNoun(count: number, noun: CountedNoun): string {
  * is fixed, so a row is found where it was last time (`develop ADR 0116`).
  */
 export function presentTooltipRows(
-    reading: TooltipContent,
+    tooltip: TooltipContent,
     translate: TranslateLabel | null,
     statusBits: readonly string[],
 ): string[] {
@@ -1079,9 +1079,9 @@ export function presentTooltipRows(
         // and no mark of its own, so the row it cannot qualify is the row it does not draw —
         // `CONTEXT.md`'s **Suspect** is marked beside the figure it concerns or it is not a
         // suspect, it is a wrong number.
-        if (!reading.wasJoinedInProgress) {
-            if (reading.turnsTaken > 0) {
-                said.push(`${TOOLTIP_WORDS.turnsTaken} ${formatFigure(reading.turnsTaken)}`);
+        if (!tooltip.hasJoinedInProgress) {
+            if (tooltip.turnsTaken > 0) {
+                said.push(`${TOOLTIP_WORDS.turnsTaken} ${formatFigure(tooltip.turnsTaken)}`);
             }
         }
     }
@@ -1090,7 +1090,7 @@ export function presentTooltipRows(
         // ⚠️ **Counts up, with no noun**: the client's own pair, as Pomocnik draws it. The okrzyk's
         // `1 z 3` counts down and carries no noun either, so the row's own name is all that tells
         // the two directions apart. `develop ADR 0115`, `develop ADR 0116`.
-        const charge = reading.charge;
+        const charge = tooltip.charge;
         if (charge !== null) {
             const apart = HELPER_WORDS.castSeparator;
             const passed = formatCounter(charge.turnsElapsed, charge.turnsStated);
@@ -1111,9 +1111,9 @@ export function presentTooltipRows(
         // turns: each heal is on the wire and nothing dates a turn it ends on (`develop ADR 0113`).
         // ⚠️ **Neither fraction carries a noun** (`develop ADR 0116`), so the row's name is all
         // that says which way one runs.
-        const given = reading.holytouchHealsGiven;
+        const given = tooltip.holytouchHealsReceived;
         const apart = HELPER_WORDS.castSeparator;
-        if (reading.hasSpentLastheal) {
+        if (tooltip.hasSpentLastheal) {
             said.push(`${TOOLTIP_WORDS.lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
         }
         if (given !== null) {
@@ -1123,20 +1123,23 @@ export function presentTooltipRows(
     }
     // Say whom the fighter provokes, and who holds it provoked.
     {
-        if (reading.provokes > 0) {
-            const counted = formatCountedNoun(reading.provokes, COUNTED_NOUNS.combatants);
-            said.push(`${TOOLTIP_WORDS.provokes} ${counted}`);
+        if (tooltip.provokedCount > 0) {
+            const counted = formatCountedNoun(tooltip.provokedCount, COUNTED_NOUNS.combatants);
+            said.push(`${TOOLTIP_WORDS.provokedCount} ${counted}`);
         }
-        const held = reading.provokedBy;
-        if (held !== null) {
-            const left = formatCounter(held.turnsStated - held.turnsElapsed, held.turnsStated);
+        const provoker = tooltip.provokedBy;
+        if (provoker !== null) {
+            const left = formatCounter(
+                provoker.turnsStated - provoker.turnsElapsed,
+                provoker.turnsStated,
+            );
             const apart = HELPER_WORDS.castSeparator;
-            said.push(`${TOOLTIP_WORDS.provokedBy} ${held.name} ${apart} ${left}`);
+            said.push(`${TOOLTIP_WORDS.provokedBy} ${provoker.name} ${apart} ${left}`);
         }
     }
     const words = { translate, statusBits, rowsMaximum };
-    addStatusRows(said, getLeadingStatuses(reading.statuses, statusBits), words);
-    addStatusRows(said, getTrailingStatuses(reading.statuses, statusBits), words);
+    addStatusRows(said, getLeadingStatuses(tooltip.statuses, statusBits), words);
+    addStatusRows(said, getTrailingStatuses(tooltip.statuses, statusBits), words);
     const kept = said.filter((row) => !doesRowCarryMarkup(row));
     if (kept.length === 0) return [];
     // The name takes a row of the bound like any other, so a block handed over is never longer
@@ -1565,9 +1568,9 @@ export function formatSharesApportioned(amounts: readonly number[], whole: numbe
     if (!Number.isFinite(whole)) return amounts.map(() => formatSharePoints(0, false));
     if (whole <= 0) return amounts.map(() => formatSharePoints(0, false));
     const shares = composeSharesInPoints(amounts.slice(0, SHARES_MAXIMUM), whole);
-    const held = shares.reduce((sum, one) => sum + one.points, 0);
+    const pointsPaid = shares.reduce((sum, one) => sum + one.points, 0);
     const exact = shares.reduce((sum, one) => sum + one.points + one.remainder, 0);
-    let left = Math.round(exact) - held;
+    let left = Math.round(exact) - pointsPaid;
     const unpaid: ShareInPoints[][] = [];
     for (const group of composeShareGroups(shares)) {
         if (group.length > left) {
@@ -1624,9 +1627,9 @@ function composeShareGroups(shares: readonly ShareInPoints[]): ShareInPoints[][]
     for (const share of shares) {
         // A share with nothing discarded is a whole number of points already.
         if (share.remainder <= 0) continue;
-        const held = byAmount.get(share.amount);
-        if (held === undefined) byAmount.set(share.amount, [share]);
-        else held.push(share);
+        const group = byAmount.get(share.amount);
+        if (group === undefined) byAmount.set(share.amount, [share]);
+        else group.push(share);
     }
     const groups = [...byAmount.values()];
     groups.sort((one, other) => {
@@ -1644,8 +1647,8 @@ function getShareGroupHead(group: readonly ShareInPoints[]): ShareInPoints {
 
 export function formatShareRounded(share: number): string {
     if (!Number.isFinite(share)) return PANEL_WORDS.unknown;
-    const held = clamp(share, 0, 1);
-    return formatSharePoints(Math.round(held * HUNDRED), held > 0);
+    const clamped = clamp(share, 0, 1);
+    return formatSharePoints(Math.round(clamped * HUNDRED), clamped > 0);
 }
 
 export function formatPlace(

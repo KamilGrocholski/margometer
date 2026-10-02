@@ -94,7 +94,11 @@ function witnessRecording(fight: RecordedFight, reading: WitnessReading): void {
     // the whole fight and still applied at the message it landed on.
     const byMessage = payloads.flatMap((one) => one.map((message) => [message, one] as const))
         .map(([message]) =>
-            decodePayloadMessages([message], { roster, standing: null, tables: BLOWS_GRANTED })
+            decodePayloadMessages([message], {
+                roster,
+                announcementStanding: null,
+                tables: BLOWS_GRANTED,
+            })
                 .events
         );
     const heals = indexSideHeals(byMessage.flat(), roster);

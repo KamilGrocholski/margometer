@@ -93,7 +93,7 @@ export function initRuntimeWorld(
     const base = world.ports;
     world.ports = { ...base, ...overrides(world, base) };
     world.runtime = initRuntime(world.ports, {
-        version: TEST_VERSION,
+        addOnVersion: TEST_VERSION,
         tables,
         sessionOptions: SESSION_OPTIONS,
     });
@@ -177,7 +177,7 @@ function composeRuntimePorts(
             },
         },
         interval: { every: () => ({ cancel: () => undefined }) },
-        engine: initGameBattle(page),
+        battle: initGameBattle(page),
         place: initGamePlace(page),
         hero: initGameHero(page),
         dictionary: initGameDictionary(page),

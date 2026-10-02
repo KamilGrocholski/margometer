@@ -41,7 +41,7 @@ Deno.test("whoever holds the turn is a person, hue, side and all", () => {
         OURS,
         composeTurn({ ordinal: 48, combatantId: 21 }),
     );
-    assertEquals(reading.holder, {
+    assertEquals(reading.turnHolder, {
         name: "Renegat 1",
         colour: lookupColourForProfession("t"),
         sideRelation: SIDE_RELATION.opposing,
@@ -55,8 +55,12 @@ Deno.test("whoever holds the turn is a person, hue, side and all", () => {
         null,
         composeTurn({ ordinal: 48, combatantId: 21 }),
     );
-    assertStrictEquals(seatless.holder?.colour, lookupColourForProfession("t"), "the hue stands");
-    assertStrictEquals(seatless.holder?.sideRelation, SIDE_RELATION.nobody, "and no side does");
+    assertStrictEquals(
+        seatless.turnHolder?.colour,
+        lookupColourForProfession("t"),
+        "the hue stands",
+    );
+    assertStrictEquals(seatless.turnHolder?.sideRelation, SIDE_RELATION.nobody, "and no side does");
 });
 
 /** A fight underway, numbered or not — what the window is handed wherever the turn is not it. */
@@ -77,12 +81,12 @@ Deno.test("a turn the game has stopped numbering is not stated, and the state sa
     const underway = presentHelper([], [], ROSTER, OURS, composeTurn(stated));
     assertStrictEquals(underway.turnState, STANDING_TURN_STATE.held, "a fight being numbered");
     assertStrictEquals(underway.turnOrdinal, 267, "so the ordinal is stated");
-    assertEquals(underway.holder?.name, "Renegat 1", "and whoever the game numbered it for");
+    assertEquals(underway.turnHolder?.name, "Renegat 1", "and whoever the game numbered it for");
 
     const after = presentHelper([], [], ROSTER, OURS, composeTurn(stated, { isOver: true }));
     assertStrictEquals(after.turnState, STANDING_TURN_STATE.afterFight, "an ended fight");
     assertStrictEquals(after.turnOrdinal, null, "so the last ordinal is not stated as now");
-    assertStrictEquals(after.holder, null, "and nobody is holding it");
+    assertStrictEquals(after.turnHolder, null, "and nobody is holding it");
 
     const running = presentHelper([], [], ROSTER, OURS, composeTurn(stated, { isOnAuto: true }));
     assertStrictEquals(running.turnState, STANDING_TURN_STATE.onAuto, "a fight the game runs");
@@ -127,13 +131,13 @@ Deno.test("a shout stands under whoever is holding it, and the turns are the hel
         OURS,
         composeTurn(null),
     );
-    assertEquals(reading.provoked, [{
+    assertEquals(reading.provocations, [{
         casterId: 11,
         casterName: "Gracz 1",
         skillId: 188,
         skillName: "Wyzywający okrzyk",
         casterColour: lookupColourForProfession("m"),
-        casterSidePart: SIDE_RELATION.reader,
+        casterSideRelation: SIDE_RELATION.reader,
         provoked: [{
             provokedId: 21,
             name: "Renegat 1",
@@ -178,7 +182,7 @@ Deno.test("one caster shouting both okrzyki is two groups, each under its own na
         composeTurn(null),
     );
     assertEquals(
-        reading.provoked.map((one) => [one.casterName, one.skillName]),
+        reading.provocations.map((one) => [one.casterName, one.skillName]),
         [["Gracz 1", "Wyzywający okrzyk"], ["Gracz 1", "Prowokujący okrzyk"]],
         "one group per cast, in the order the fight named them",
     );
@@ -194,11 +198,13 @@ Deno.test("one cast holding two characters states a length for each of them", ()
         OURS,
         composeTurn(null),
     );
-    assertStrictEquals(reading.provoked.length, 1, "one caster, so one group");
+    assertStrictEquals(reading.provocations.length, 1, "one caster, so one group");
     // `develop ADR 0103`: the figure is on whoever is carrying it, and two of them are not the
     // same turns in.
     assertEquals(
-        reading.provoked[0]?.provoked.map((one) => [one.name, one.turnsElapsed, one.turnsStated]),
+        reading.provocations[0]?.provoked.map((
+            one,
+        ) => [one.name, one.turnsElapsed, one.turnsStated]),
         [["Gracz 1", 2, 3], ["Gracz 2", 2, 3]],
         "holding both of them, one figure per character held",
     );
@@ -213,7 +219,7 @@ Deno.test("two casters holding apart stand apart, in the order the fight named t
         composeTurn(null),
     );
     assertEquals(
-        reading.provoked.map((one) => one.casterName),
+        reading.provocations.map((one) => one.casterName),
         ["Gracz 2", "Renegat 1"],
         "a group first named stands higher, so none moves under the hand",
     );
@@ -229,10 +235,10 @@ Deno.test("a holder the roster cannot place is still stated, and says so", () =>
     );
     // **A11**: this layer asserts nothing, so a caster nobody can place falls back rather than
     // taking the section down with it.
-    const group = reading.provoked[0];
+    const group = reading.provocations[0];
     assertExists(group, "the shout is still holding somebody, whoever threw it");
     assertStrictEquals(group.casterName, PANEL_WORDS.withoutActor, "under the words for nobody");
-    assertStrictEquals(group.casterSidePart, SIDE_RELATION.nobody, "and on no side");
+    assertStrictEquals(group.casterSideRelation, SIDE_RELATION.nobody, "and on no side");
     assertStrictEquals(group.provoked[0]?.name, "Renegat 1", "over whoever they hold");
 });
 
@@ -258,7 +264,7 @@ Deno.test("the provoked stop at their stated maximum, and one under it is stated
     // Counted in characters and not in groups: the clamp stands before the fold, so the bound is
     // on the people the section draws however few casts they arrive under (`develop ADR 0067`).
     const countHeld = (reading: ReturnType<typeof presentHelper>) =>
-        reading.provoked.reduce((sum, one) => sum + one.provoked.length, 0);
+        reading.provocations.reduce((sum, one) => sum + one.provoked.length, 0);
     const over = presentHelper(many, [], ROSTER, OURS, composeTurn(null));
     assertStrictEquals(countHeld(over), PROVOKED_MAXIMUM, "past it, the rest are dropped");
     const under = presentHelper(
@@ -331,8 +337,12 @@ Deno.test("a character shouted at before they have moved is held, at none of the
         OURS,
         composeTurn(null),
     );
-    assertStrictEquals(reading.provoked.length, 1, "the shout holds them from the moment it lands");
-    const held = reading.provoked[0]?.provoked[0];
+    assertStrictEquals(
+        reading.provocations.length,
+        1,
+        "the shout holds them from the moment it lands",
+    );
+    const held = reading.provocations[0]?.provoked[0];
     assertExists(held, "and they stand under whoever is holding them");
     assertEquals([held.turnsElapsed, held.turnsStated], [0, 3], "with all three still to run");
 });

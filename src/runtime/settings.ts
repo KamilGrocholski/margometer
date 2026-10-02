@@ -77,11 +77,11 @@ type SizeField = "width" | "height";
 const STORE_KEY_BY_SETTING: { readonly [Key in SettingKey]: StoreKey } = {
     [SETTING_KEY.storage]: STORE_KEY.storage,
     [SETTING_KEY.typeStep]: STORE_KEY.typeStep,
-    [SETTING_KEY.meterPosition]: STORE_KEY.panelPlace,
-    [SETTING_KEY.meterFolded]: STORE_KEY.panelFolded,
-    [SETTING_KEY.helperPosition]: STORE_KEY.helperPlace,
+    [SETTING_KEY.meterPosition]: STORE_KEY.meterPosition,
+    [SETTING_KEY.meterFolded]: STORE_KEY.meterFolded,
+    [SETTING_KEY.helperPosition]: STORE_KEY.helperPosition,
     [SETTING_KEY.helperFolded]: STORE_KEY.helperFolded,
-    [SETTING_KEY.meterSize]: STORE_KEY.panelSize,
+    [SETTING_KEY.meterSize]: STORE_KEY.meterSize,
     [SETTING_KEY.helperSize]: STORE_KEY.helperSize,
 };
 const FOLD_SETTING_BY_WINDOW: { readonly [Window in PanelWindow]: SettingKey } = {
@@ -135,9 +135,9 @@ export function writeTypeStep(store: KeyValueStore, step: TypeStep): undefined |
 
 export function readWindowCollapsed(
     store: KeyValueStore,
-    window: PanelWindow,
+    panelWindow: PanelWindow,
 ): boolean | SettingFailure {
-    const key = FOLD_SETTING_BY_WINDOW[window];
+    const key = FOLD_SETTING_BY_WINDOW[panelWindow];
     const read = store.read(STORE_KEY_BY_SETTING[key]);
     if (read instanceof Error) return read;
     if (read === null) return false;
@@ -148,10 +148,10 @@ export function readWindowCollapsed(
 
 export function writeWindowCollapsed(
     store: KeyValueStore,
-    window: PanelWindow,
+    panelWindow: PanelWindow,
     isCollapsed: boolean,
 ): undefined | SettingFailure {
-    const key = FOLD_SETTING_BY_WINDOW[window];
+    const key = FOLD_SETTING_BY_WINDOW[panelWindow];
     return store.write(STORE_KEY_BY_SETTING[key], isCollapsed ? FOLDED : UNFOLDED);
 }
 
@@ -161,9 +161,9 @@ export function writeWindowCollapsed(
  */
 export function readWindowPosition(
     store: KeyValueStore,
-    window: PanelWindow,
+    panelWindow: PanelWindow,
 ): PanelPosition | null | SettingFailure {
-    const key = POSITION_SETTING_BY_WINDOW[window];
+    const key = POSITION_SETTING_BY_WINDOW[panelWindow];
     const read = store.read(STORE_KEY_BY_SETTING[key]);
     if (read instanceof Error) return read;
     if (read === null) return null;
@@ -196,10 +196,10 @@ function parseWholePair<Field extends string>(
 /** A position that is not two whole numbers is the caller's bug, which `formatInteger` asserts. */
 export function writeWindowPosition(
     store: KeyValueStore,
-    window: PanelWindow,
+    panelWindow: PanelWindow,
     position: PanelPosition,
 ): undefined | SettingFailure {
-    const key = POSITION_SETTING_BY_WINDOW[window];
+    const key = POSITION_SETTING_BY_WINDOW[panelWindow];
     const text = `{"left":${formatInteger(position.left)},"top":${formatInteger(position.top)}}`;
     return store.write(STORE_KEY_BY_SETTING[key], text);
 }
@@ -210,9 +210,9 @@ export function writeWindowPosition(
  */
 export function readWindowSize(
     store: KeyValueStore,
-    window: PanelWindow,
+    panelWindow: PanelWindow,
 ): WindowSize | null | SettingFailure {
-    const key = SIZE_SETTING_BY_WINDOW[window];
+    const key = SIZE_SETTING_BY_WINDOW[panelWindow];
     const read = store.read(STORE_KEY_BY_SETTING[key]);
     if (read instanceof Error) return read;
     if (read === null) return null;
@@ -227,12 +227,12 @@ export function readWindowSize(
 
 export function writeWindowSize(
     store: KeyValueStore,
-    window: PanelWindow,
+    panelWindow: PanelWindow,
     size: WindowSize,
 ): undefined | SettingFailure {
     assert(size.width > 0, "a window made narrower than nothing is our bug");
     assert(size.height > 0, "and so is one made shorter than nothing");
-    const key = SIZE_SETTING_BY_WINDOW[window];
+    const key = SIZE_SETTING_BY_WINDOW[panelWindow];
     const text = `{"width":${formatInteger(size.width)},"height":${formatInteger(size.height)}}`;
     return store.write(STORE_KEY_BY_SETTING[key], text);
 }
@@ -240,7 +240,7 @@ export function writeWindowSize(
 /** The window goes back to what its type draws it at, which is nothing stored. */
 export function deleteWindowSize(
     store: KeyValueStore,
-    window: PanelWindow,
+    panelWindow: PanelWindow,
 ): undefined | SettingFailure {
-    return store.delete(STORE_KEY_BY_SETTING[SIZE_SETTING_BY_WINDOW[window]]);
+    return store.delete(STORE_KEY_BY_SETTING[SIZE_SETTING_BY_WINDOW[panelWindow]]);
 }

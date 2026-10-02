@@ -235,6 +235,10 @@ options, each measured at its own size rather than scaled from another. _Avoid_:
 **Row**: One combatant's line in a ranking, or a pinned line standing apart from it. _Avoid_: Item,
 entry, bar
 
+**Card**: The box a row opens while the pointer rests on it: what the row had to leave out about the
+person, and the caveats under it. Ours — the box the game itself hangs on a fighter is its
+**tooltip**, which the add-on only writes rows into. _Avoid_: Tip, popup, hover
+
 **Drill**: What pressing a row opens onto — the levels below the ranking. _Avoid_: Detail view,
 expansion, breakdown, sub-panel
 

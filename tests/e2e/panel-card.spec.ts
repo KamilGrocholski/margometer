@@ -13,31 +13,39 @@ import { readEdgesOf, readPointsAlongBar, setDragged } from "./panel-probe.ts";
 import { waitForFrame } from "./panel-page.ts";
 
 /** The card, and the mark it wears while nobody is being told anything. */
-const CARD = ".MargoMeter-tip";
-const CARD_OPEN = ".MargoMeter-tip:not(.tip-hidden)";
+const CARD = ".MargoMeter-card";
+const CARD_OPEN = ".MargoMeter-card:not(.card-hidden)";
 /** The one instruction a row gives, drawn on the card of a row that opens onto a level. */
 const OPENS_NOTE = "LPM — rozwiń wiersz";
-/** The two the crumb gives, and the second is named nowhere else on the panel (`develop ADR 0086`). */
+/**
+ * The two the crumb gives, and the second is named nowhere else on the panel (`develop ADR 0086`).
+ */
 const BACK_NOTE = "LPM tutaj — wróć o krok";
 const BACK_ANYWHERE_NOTE = "PPM gdziekolwiek — wróć o krok";
 /** Far enough left that the card cannot stand on that side of the panel any more. */
 const TO_THE_LEFT = -420;
-/** Far enough right that the widest card there is has room on that window's left (`develop ADR 0091`). */
+/**
+ * Far enough right that the widest card there is has room on that window's left
+ * (`develop ADR 0091`).
+ */
 const TO_THE_RIGHT = 420;
 /** Under the 549 px the tallest card this corpus composes needs, measured 2026-09-06. */
 const SHORT_WINDOW = 480;
 /** What the card says where a run of it was given up. Read in words, as every sentence is. */
 const CUT_NOTE = "Nie wszystko się mieści w tym oknie.";
-/** `tipWidthPixelsMaximum` at the default step (ADR 0017), as the number a measurement is compared against. */
+/**
+ * `cardWidthPixelsMaximum` at the default step (ADR 0017), as the number a measurement is compared
+ * against.
+ */
 const BOUND = 272;
 /** `SPACE.small`, which is the air the sheet keeps between a window and the card beside it. */
 const GAP = 4;
 
 /**
- * ⚠️ **A place too long for its own row is the case the card exists to answer** (`develop ADR 0084`),
- * and it is the one case no recording can carry: a map name reaches the panel off the game's own
- * page state, never off a payload. So the suite says where the fight is, and these two say it at
- * lengths the row cannot hold.
+ * ⚠️ **A place too long for its own row is the case the card exists to answer**
+ * (`develop ADR 0084`), and it is the one case no recording can carry: a map name reaches the panel
+ * off the game's own page state, never off a payload. So the suite says where the fight is, and
+ * these two say it at lengths the row cannot hold.
  *
  * Long enough to fold to **three** lines and not two. What a mutation to the count has to move is
  * a card standing 17 px above what it draws, measured over this corpus on 2026-09-06 — one line of
@@ -62,7 +70,7 @@ test("the card opens under the pointer, and names the row it describes", async (
     await row.hover();
 
     await expect(panel.at(CARD_OPEN), "hovering a row opens it").toHaveCount(1);
-    await expect(panel.at(`${CARD} .tip-name`), "and it names that row").toHaveText(named);
+    await expect(panel.at(`${CARD} .card-name`), "and it names that row").toHaveText(named);
     await panel.expectHonest("a card open over the ranking");
 });
 
@@ -78,7 +86,7 @@ test("no label the card draws is cut by the column it is drawn in", async ({ pan
     await row.hover();
     await expect(panel.at(CARD_OPEN), "a card is open to measure").toHaveCount(1);
 
-    const labels = panel.at(`${CARD} .tip-label`);
+    const labels = panel.at(`${CARD} .card-label`);
     const counted = await labels.count();
     expect(counted, "and it draws labels to measure").toBeGreaterThan(0);
     const cut: string[] = [];
@@ -93,7 +101,7 @@ test("no label the card draws is cut by the column it is drawn in", async ({ pan
     }
     expect(cut, "every label stands whole, glyph and all").toEqual([]);
 
-    const marks = await panel.at(`${CARD} .tip-caveat`).count();
+    const marks = await panel.at(`${CARD} .card-caveat`).count();
     expect(marks, "and a figure naming more than it counts wears its mark").toBeGreaterThan(0);
 });
 
@@ -101,13 +109,13 @@ test("crossing inside a row keeps the card, and leaving takes it away", async ({
     const row = panel.at(".list .row").first();
     await row.locator(".row-name").hover();
     await expect(panel.at(CARD_OPEN), "the name opened it").toHaveCount(1);
-    const named = await panel.at(`${CARD} .tip-name`).innerText();
+    const named = await panel.at(`${CARD} .card-name`).innerText();
 
     // A row is four elements, and `pointerout` bubbles: the crossing from its name to its figure
     // is a leaving of an element, and it must not be read as a leaving of the row.
     await row.locator(".row-value").hover();
     await expect(panel.at(CARD_OPEN), "and the figure beside it keeps it open").toHaveCount(1);
-    await expect(panel.at(`${CARD} .tip-name`), "still describing the same row").toHaveText(named);
+    await expect(panel.at(`${CARD} .card-name`), "still describing the same row").toHaveText(named);
 
     // ⚠️ Dispatched, and this is the one place in the suite that dispatches. A real crossing is a
     // `pointerout` **and** a `pointermove`, and the move would reopen a card the out had wrongly
@@ -122,11 +130,11 @@ test("crossing inside a row keeps the card, and leaving takes it away", async ({
         name.dispatchEvent(
             new PointerEvent("pointerout", { bubbles: true, composed: true, relatedTarget: value }),
         );
-        const card = root?.querySelector(".MargoMeter-tip") ?? null;
+        const card = root?.querySelector(".MargoMeter-card") ?? null;
         return card === null ? null : card.className;
     }, HOST_SELECTOR);
     expect(stayed, "a leaving read on its own still leaves the card standing").toBe(
-        "MargoMeter-tip",
+        "MargoMeter-card",
     );
 
     await panel.at(".MargoMeter-titlebar").hover();
@@ -176,7 +184,7 @@ test("a redraw that drops the row takes its card with it", async ({ panel }) => 
 /**
  * ⚠️ **The draw counts the card in lines and the sheet turns that count into a height** — and it
  * is that height, and nothing measured, that clamps the top edge so the card stays on the screen
- * (`composeTipTop` in `src/ui/panel-look.ts`). A count that came out **under** what the browser
+ * (`composeCardTop` in `src/ui/panel-look.ts`). A count that came out **under** what the browser
  * draws would let the clamp place a card whose bottom is off the screen, with no scrollbar and
  * nothing said: the card carries `overflow:hidden` and takes no pointer.
  *
@@ -217,23 +225,23 @@ async function readCardHeight(page: import("@playwright/test").Page) {
     await waitForFrame(page);
     return await page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
-        const tip = root?.querySelector(".MargoMeter-tip") ?? null;
-        if (tip === null) return null;
-        const style = getComputedStyle(tip);
-        const group = tip.querySelector(".tip-group");
+        const card = root?.querySelector(".MargoMeter-card") ?? null;
+        if (card === null) return null;
+        const style = getComputedStyle(card);
+        const group = card.querySelector(".card-group");
         const groupStyle = group === null ? null : getComputedStyle(group);
         const groupCost = groupStyle === null ? 0 : parseFloat(groupStyle.marginTop) +
             parseFloat(groupStyle.paddingTop) + parseFloat(groupStyle.borderTopWidth);
         return {
             // The panel's own answer, as the one property it writes the height on.
-            counted: Math.round(parseFloat(style.getPropertyValue("--MargoMeter-tip-height"))),
+            counted: Math.round(parseFloat(style.getPropertyValue("--MargoMeter-card-height"))),
             groupCost,
-            drawn: tip.scrollHeight,
+            drawn: card.scrollHeight,
             // What the box is showing of it. Less than it holds is a card cut in silence.
-            shown: tip.clientHeight,
-            bottom: Math.round(tip.getBoundingClientRect().bottom),
+            shown: card.clientHeight,
+            bottom: Math.round(card.getBoundingClientRect().bottom),
             viewport: globalThis.innerHeight,
-            said: tip.textContent ?? "",
+            said: card.textContent ?? "",
         };
     });
 }
@@ -308,14 +316,14 @@ test("the way back says both gestures, and only where a level is open", async ({
 });
 
 /**
- * ⚠️ **The one claim a unit test cannot make: how wide the card ends up.** The width is the
- * sheet's — `max-content` under a bound (`develop ADR 0091`) — so nothing in `src/` knows it and only a
- * browser laying the card out can answer. Before that decision every card was the bound: the
- * second window's card, a skill name over one instruction, stood at the whole of the bound for
- * sixteen characters.
+ * ⚠️ **The one claim a unit test cannot make: how wide the card ends up.** The width is the sheet's
+ * — `max-content` under a bound (`develop ADR 0091`) — so nothing in `src/` knows it and only a
+ * browser laying the card out can answer. Before that decision every card was the bound: the second
+ * window's card, a skill name over one instruction, stood at the whole of the bound for sixteen
+ * characters.
  */
 test("a card is as wide as what it says, up to the bound", async ({ panel }) => {
-    const standingRow = panel.at(`${HOST_SELECTOR} .MargoMeter-helper .row[data-tip]`)
+    const standingRow = panel.at(`${HOST_SELECTOR} .MargoMeter-helper .row[data-card]`)
         .first();
     await expect(standingRow, "the fight leaves something standing to point at").toHaveCount(1);
     await standingRow.hover();
@@ -365,7 +373,7 @@ test("a card keeps the edge facing its window, whatever width it draws at", asyn
     // The drag took the pointer off the row, so the card is asked for again before it is read.
     const gap = await readGapTo(
         panel,
-        ".MargoMeter-helper .row[data-tip]",
+        ".MargoMeter-helper .row[data-card]",
         ".MargoMeter-helper",
     );
     const narrow = await readEdgesOf(panel.page, CARD_OPEN);
@@ -378,7 +386,7 @@ test("a card keeps the edge facing its window, whatever width it draws at", asyn
 
 /**
  * The air between a window and the card one of its rows opened, on whichever side the card landed
- * — this holds the gap and never the side, which is `composeTipAcross`'s answer and held in
+ * — this holds the gap and never the side, which is `composeCardAcross`'s answer and held in
  * `tests/ui/panel-drag.test.ts`. The row is hovered again each time, because a drag in between
  * takes the pointer off it and the card with it.
  */
@@ -444,7 +452,7 @@ async function readCardName(page: import("@playwright/test").Page) {
     await waitForFrame(page);
     return await page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
-        const name = root?.querySelector(".MargoMeter-tip:not(.tip-hidden) .tip-name") ?? null;
+        const name = root?.querySelector(".MargoMeter-card:not(.card-hidden) .card-name") ?? null;
         if (name === null) return null;
         return {
             said: name.textContent ?? "",

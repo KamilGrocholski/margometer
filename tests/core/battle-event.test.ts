@@ -19,7 +19,7 @@ Deno.test("every variant the union holds is produced by the recordings", () => {
     // An unknown message is what the decoder makes of a key nobody has read, so no recording can
     // be expected to carry one: every key the recordings hold is read. The probe stands in for
     // the protocol change this variant exists for.
-    const context = { roster: null, standing: null, tables: BLOWS_GRANTED };
+    const context = { roster: null, announcementStanding: null, tables: BLOWS_GRANTED };
     for (const event of decodePayloadMessages(["0;0;whatever_per=30"], context).events) {
         produced.add(event.kind);
     }

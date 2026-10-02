@@ -58,13 +58,13 @@ export type AnnouncementStanding = StandingAnnouncement | null;
 
 export interface DecodeContext {
     roster: CombatantRoster | null;
-    standing: AnnouncementStanding;
+    announcementStanding: AnnouncementStanding;
     tables: DecoderTables;
 }
 
 export interface MessageDecoded {
     events: readonly BattleEvent[];
-    standing: AnnouncementStanding;
+    announcementStanding: AnnouncementStanding;
 }
 
 export interface UnreadDetails {
@@ -74,7 +74,7 @@ export interface UnreadDetails {
     text: string;
     /** What was read beside the unread keys: a blow with a new proc keeps its damage. */
     events: readonly BattleEvent[];
-    standing: AnnouncementStanding;
+    announcementStanding: AnnouncementStanding;
 }
 
 export class UnreadMessage extends Error implements UnreadDetails {
@@ -84,23 +84,23 @@ export class UnreadMessage extends Error implements UnreadDetails {
     readonly combatantIds: readonly number[];
     readonly text: string;
     readonly events: readonly BattleEvent[];
-    readonly standing: AnnouncementStanding;
+    readonly announcementStanding: AnnouncementStanding;
 
-    constructor(reading: UnreadDetails) {
+    constructor(details: UnreadDetails) {
         super();
-        this.unreadCause = reading.unreadCause;
-        this.keys = reading.keys;
-        this.combatantIds = reading.combatantIds;
-        this.text = reading.text;
-        this.events = reading.events;
-        this.standing = reading.standing;
+        this.unreadCause = details.unreadCause;
+        this.keys = details.keys;
+        this.combatantIds = details.combatantIds;
+        this.text = details.text;
+        this.events = details.events;
+        this.announcementStanding = details.announcementStanding;
     }
 }
 
 export interface PayloadDecoded {
     events: readonly BattleEvent[];
     unread: readonly UnreadMessage[];
-    standing: AnnouncementStanding;
+    announcementStanding: AnnouncementStanding;
 }
 
 interface HealthChangeDecoded {
@@ -129,13 +129,13 @@ interface ParametersDecoded {
     healthChanges: HealthChangeDecoded[];
     namedDamage: (NamedTargetDecoded & { damage: DamageFigure })[];
     namedHealing: (NamedTargetDecoded & { amount: number; source: string })[];
-    unaccounted: { source: string; declaredShare: number }[];
+    unaccountedShares: { source: string; declaredShare: number }[];
     outcomes: FightOutcomeEvent[];
     declared: DeclaredEffect[];
-    skill: AnnouncementDecoded | null;
+    announcement: AnnouncementDecoded | null;
     skillName: string | null;
     skillId: number | null;
-    skillKeys: number;
+    skillKeysRead: number;
     unreadKeys: string[];
 }
 
@@ -243,10 +243,10 @@ const SIDE_SEGMENTS = 2;
 
 /** The counts the published table states, keyed by the id an announcement carries. */
 export function indexBlowsGrantedBySkillId(
-    stated: readonly { id: number; blowsGrantedMinimum: number }[],
+    skills: readonly { id: number; blowsGrantedMinimum: number }[],
 ): Map<number, number> {
     const found = new Map<number, number>();
-    for (const skill of stated) {
+    for (const skill of skills) {
         assert(skill.blowsGrantedMinimum > 0, "a skill in the table grants at least one blow");
         assert(skill.blowsGrantedMinimum < BLOWS_GRANTED_MAXIMUM, "and stays inside the bound");
         assert(!found.has(skill.id), "and is named once");
@@ -267,20 +267,20 @@ export function decodePayloadMessages(
     assert(texts.length <= MESSAGES_MAXIMUM, "a payload stays inside its stated bound");
     const events: BattleEvent[] = [];
     const unread: UnreadMessage[] = [];
-    let standing = context.standing;
+    let announcementStanding = context.announcementStanding;
     for (const text of texts) {
-        const decoded = decodeMessage(text, { ...context, standing });
+        const decoded = decodeMessage(text, { ...context, announcementStanding });
         if (decoded instanceof Error) {
             events.push(...decoded.events, decodeUnknownMessageEvent(decoded));
             unread.push(decoded);
         } else {
             events.push(...decoded.events);
         }
-        standing = decoded.standing;
+        announcementStanding = decoded.announcementStanding;
     }
     assert(events.length >= texts.length, "every message leaves at least one event behind");
     assert(unread.length <= texts.length, "and at most one unread record");
-    return { events, unread, standing };
+    return { events, unread, announcementStanding };
 }
 
 function decodeUnknownMessageEvent(unread: UnreadMessage): UnknownMessageEvent {
@@ -308,29 +308,54 @@ export function decodeMessage(
             combatantIds: [],
             text,
             events: [],
-            standing: null,
+            announcementStanding: null,
         });
     }
-    const reading = decodeMessageParameters(message);
-    const isBlow = hasAttackFigure(reading);
-    const own = decodeAnnouncedSkill(message, reading.skill);
-    const announced = lookupAnnouncedForMessage(message, own, context.standing, isBlow);
-    if (!isBlow) reading.unreadKeys.push(...reading.procs);
-    const events = decodeMessageEvents(message, reading, announced, context.roster, isBlow);
-    const standing = composeAnnouncementStanding(context, events, own);
+    const parametersDecoded = decodeMessageParameters(message);
+    const isBlow = hasAttackFigure(parametersDecoded);
+    const announcedHere = decodeAnnouncedSkill(message, parametersDecoded.announcement);
+    const announced = lookupAnnouncedForMessage(
+        message,
+        announcedHere,
+        context.announcementStanding,
+        isBlow,
+    );
+    if (!isBlow) parametersDecoded.unreadKeys.push(...parametersDecoded.procs);
+    const events = decodeMessageEvents(
+        message,
+        parametersDecoded,
+        announced,
+        context.roster,
+        isBlow,
+    );
+    const announcementStanding = composeAnnouncementStanding(context, events, announcedHere);
     assert(events.length <= message.parameters.length, "a message stays inside its bound");
-    if (reading.unreadKeys.length > 0) {
+    if (parametersDecoded.unreadKeys.length > 0) {
         const combatantIds = getNamedCombatantIds(message);
         const unreadCause = UNREAD_CAUSE.unknownKey;
-        const keys = reading.unreadKeys;
-        return new UnreadMessage({ unreadCause, keys, combatantIds, text, events, standing });
+        const keys = parametersDecoded.unreadKeys;
+        return new UnreadMessage({
+            unreadCause,
+            keys,
+            combatantIds,
+            text,
+            events,
+            announcementStanding,
+        });
     }
     if (events.length === 0) {
         const combatantIds = getNamedCombatantIds(message);
         const unreadCause = UNREAD_CAUSE.noParameter;
-        return new UnreadMessage({ unreadCause, keys: [], combatantIds, text, events, standing });
+        return new UnreadMessage({
+            unreadCause,
+            keys: [],
+            combatantIds,
+            text,
+            events,
+            announcementStanding,
+        });
     }
-    return { events, standing };
+    return { events, announcementStanding };
 }
 
 /**
@@ -347,17 +372,20 @@ function composeAnnouncementStanding(
         const blowsRemaining = getBlowsForAnnouncement(announced, context.tables);
         return { announced, blowsRemaining, isGlued: true };
     }
-    const standing = context.standing;
-    if (standing === null) return null;
-    const struck = events.find((event) => event.kind === BATTLE_EVENT.attack);
-    if (struck === undefined) return null;
-    if (struck.kind !== BATTLE_EVENT.attack) return null;
-    if (struck.actorId !== standing.announced.actorId) return null;
-    assert(standing.blowsRemaining > 0, "a standing handed on has a blow left to spend");
-    const blowsRemaining = standing.blowsRemaining - 1;
+    const announcementStanding = context.announcementStanding;
+    if (announcementStanding === null) return null;
+    const attack = events.find((event) => event.kind === BATTLE_EVENT.attack);
+    if (attack === undefined) return null;
+    if (attack.kind !== BATTLE_EVENT.attack) return null;
+    if (attack.actorId !== announcementStanding.announced.actorId) return null;
+    assert(
+        announcementStanding.blowsRemaining > 0,
+        "a standing handed on has a blow left to spend",
+    );
+    const blowsRemaining = announcementStanding.blowsRemaining - 1;
     assert(blowsRemaining >= 0, "a standing spends no more blows than it was given");
     if (blowsRemaining === 0) return null;
-    return { announced: standing.announced, blowsRemaining, isGlued: false };
+    return { announced: announcementStanding.announced, blowsRemaining, isGlued: false };
 }
 
 /**
@@ -367,15 +395,15 @@ function composeAnnouncementStanding(
  */
 function getBlowsForAnnouncement(announced: AnnouncedSkill, tables: DecoderTables): number {
     if (announced.skillId === null) return BLOWS_GRANTED_MAXIMUM;
-    const granted = tables.blowsGrantedBySkillId.get(announced.skillId) ?? 0;
-    assert(granted >= 0, "a table grants nothing or more");
-    assert(1 + granted <= BLOWS_GRANTED_MAXIMUM, "a reach stays inside its stated bound");
-    return 1 + granted;
+    const blowsGranted = tables.blowsGrantedBySkillId.get(announced.skillId) ?? 0;
+    assert(blowsGranted >= 0, "a table grants nothing or more");
+    assert(1 + blowsGranted <= BLOWS_GRANTED_MAXIMUM, "a reach stays inside its stated bound");
+    return 1 + blowsGranted;
 }
 
 /** Every parameter is read, or named unread, and none twice. */
 function decodeMessageParameters(message: ProtocolMessage): ParametersDecoded {
-    const reading: ParametersDecoded = {
+    const parametersDecoded: ParametersDecoded = {
         raw: [],
         applied: [],
         prevented: [],
@@ -384,13 +412,13 @@ function decodeMessageParameters(message: ProtocolMessage): ParametersDecoded {
         healthChanges: [],
         namedDamage: [],
         namedHealing: [],
-        unaccounted: [],
+        unaccountedShares: [],
         outcomes: [],
         declared: [],
-        skill: null,
+        announcement: null,
         skillName: null,
         skillId: null,
-        skillKeys: 0,
+        skillKeysRead: 0,
         unreadKeys: [],
     };
     for (const parameter of message.parameters) {
@@ -404,13 +432,13 @@ function decodeMessageParameters(message: ProtocolMessage): ParametersDecoded {
             assert(key.length > 0, "a key is never empty");
             switch (keyMeaning.kind) {
                 case KEY_FAMILY.proc:
-                    isRead = addParameterRead(reading.procs, key);
+                    isRead = addParameterRead(parametersDecoded.procs, key);
                     break;
                 case KEY_FAMILY.fled:
-                    isRead = addParameterRead(reading.outcomes, decodeFledOutcome());
+                    isRead = addParameterRead(parametersDecoded.outcomes, decodeFledOutcome());
                     break;
                 case KEY_FAMILY.valuelessDeclaration:
-                    isRead = addParameterRead(reading.declared, {
+                    isRead = addParameterRead(parametersDecoded.declared, {
                         effect: key,
                         amount: null,
                         text: null,
@@ -419,28 +447,34 @@ function decodeMessageParameters(message: ProtocolMessage): ParametersDecoded {
                 default:
                     isRead = false;
             }
-        } else isRead = addValuedKey(reading, message, key, value, keyMeaning);
-        if (!isRead) reading.unreadKeys.push(key);
+        } else isRead = addValuedKey(parametersDecoded, message, key, value, keyMeaning);
+        if (!isRead) parametersDecoded.unreadKeys.push(key);
     }
     // Close the announcement: an id with no name is a skill nothing can put on screen.
     {
-        assert(reading.skill === null, "a reading's announcement is closed once");
-        assert(reading.skillKeys >= 0, "a key is counted once");
-        if (reading.skillName !== null) {
-            reading.skill = { skillName: reading.skillName, skillId: reading.skillId };
-        } else if (reading.skillKeys > 0) {
-            reading.unreadKeys.push(SKILL_ID_KEY);
-            reading.skillKeys -= 1;
+        assert(parametersDecoded.announcement === null, "a reading's announcement is closed once");
+        assert(parametersDecoded.skillKeysRead >= 0, "a key is counted once");
+        if (parametersDecoded.skillName !== null) {
+            parametersDecoded.announcement = {
+                skillName: parametersDecoded.skillName,
+                skillId: parametersDecoded.skillId,
+            };
+        } else if (parametersDecoded.skillKeysRead > 0) {
+            parametersDecoded.unreadKeys.push(SKILL_ID_KEY);
+            parametersDecoded.skillKeysRead -= 1;
         }
     }
-    const read = countParametersRead(reading);
-    assert(read === message.parameters.length, "every parameter is read or named unread, once");
-    return reading;
+    const parametersReadCount = countParametersRead(parametersDecoded);
+    assert(
+        parametersReadCount === message.parameters.length,
+        "every parameter is read or named unread, once",
+    );
+    return parametersDecoded;
 }
 
 /** Read a valued key: a value its family cannot read leaves it unread, not asserted. */
 function addValuedKey(
-    reading: ParametersDecoded,
+    parametersDecoded: ParametersDecoded,
     message: ProtocolMessage,
     key: string,
     value: string,
@@ -461,24 +495,24 @@ function addValuedKey(
             assert(Number.isSafeInteger(amount), "a figure read from digits is held exactly");
             const token = parseKeyToken(key);
             if (keyMeaning.kind === KEY_FAMILY.prevented) {
-                reading.prevented.push({ defence: token, amount });
+                parametersDecoded.prevented.push({ defence: token, amount });
             } else if (keyMeaning.kind === KEY_FAMILY.destroyed) {
-                reading.destroyed.push({ statistic: token, amount });
+                parametersDecoded.destroyed.push({ statistic: token, amount });
             } else if (keyMeaning.half === DAMAGE_HALF.raw) {
-                reading.raw.push({ element: token, amount });
-            } else reading.applied.push({ element: token, amount });
+                parametersDecoded.raw.push({ element: token, amount });
+            } else parametersDecoded.applied.push({ element: token, amount });
             return true;
         }
         case KEY_FAMILY.proc:
-            if (keyMeaning.doesTakeValue) return addParameterRead(reading.procs, key);
+            if (keyMeaning.doesTakeValue) return addParameterRead(parametersDecoded.procs, key);
             return false;
         case KEY_FAMILY.healthChange:
             return addParameterRead(
-                reading.healthChanges,
+                parametersDecoded.healthChanges,
                 decodeHealthChange(key, value, keyMeaning),
             );
         case KEY_FAMILY.declaration:
-            return addParameterRead(reading.declared, {
+            return addParameterRead(parametersDecoded.declared, {
                 effect: key,
                 amount: parseInteger(value),
                 text: value,
@@ -493,28 +527,34 @@ function addValuedKey(
             if (value.length === 0) return false;
             if (value.length > NAME_LENGTH_MAXIMUM) return false;
             if (!isUserNamed) return false;
-            reading.skillName = value;
-            reading.skillKeys += 1;
+            parametersDecoded.skillName = value;
+            parametersDecoded.skillKeysRead += 1;
             assert(
-                reading.skillKeys <= message.parameters.length,
+                parametersDecoded.skillKeysRead <= message.parameters.length,
                 "a skill key is one of the message's",
             );
             return true;
         }
         case KEY_FAMILY.skillId:
-            reading.skillId = parseInteger(value);
-            reading.skillKeys += 1;
+            parametersDecoded.skillId = parseInteger(value);
+            parametersDecoded.skillKeysRead += 1;
             return true;
         case KEY_FAMILY.outcome:
-            return addParameterRead(reading.outcomes, decodeFightOutcome(value, keyMeaning.result));
+            return addParameterRead(
+                parametersDecoded.outcomes,
+                decodeFightOutcome(value, keyMeaning.result),
+            );
         case KEY_FAMILY.fled:
-            return addParameterRead(reading.outcomes, decodeFledOutcome());
+            return addParameterRead(parametersDecoded.outcomes, decodeFledOutcome());
         case KEY_FAMILY.unaccountedHealth:
-            return addParameterRead(reading.unaccounted, decodeUnaccountedShare(key, value));
+            return addParameterRead(
+                parametersDecoded.unaccountedShares,
+                decodeUnaccountedShare(key, value),
+            );
         case KEY_FAMILY.namedDamage:
-            return addParameterRead(reading.namedDamage, decodeNamedDamage(value));
+            return addParameterRead(parametersDecoded.namedDamage, decodeNamedDamage(value));
         case KEY_FAMILY.namedHealing:
-            return addParameterRead(reading.namedHealing, decodeNamedHealing(key, value));
+            return addParameterRead(parametersDecoded.namedHealing, decodeNamedHealing(key, value));
         case KEY_FAMILY.valuelessDeclaration:
             return false;
     }
@@ -608,11 +648,11 @@ function decodeUnaccountedShare(
 function decodeNamedDamage(value: string): (NamedTargetDecoded & { damage: DamageFigure }) | null {
     const members = value.split(MEMBER_SEPARATOR);
     if (members.length !== NAMED_DAMAGE_MEMBERS) return null;
-    const [amountText = "", element = "", stated = ""] = members;
+    const [amountText = "", element = "", namedText = ""] = members;
     const amount = parseInteger(amountText);
     if (amount === null) return null;
     if (amount < 0) return null;
-    const named = parseNamedTarget(stated);
+    const named = parseNamedTarget(namedText);
     if (named === null) return null;
     const damage = { element: `${DAMAGE_ELEMENT_PREFIX}${element.trim()}`, amount };
     assert(damage.element.startsWith(DAMAGE_ELEMENT_PREFIX), "an element named is of the family");
@@ -623,10 +663,10 @@ function decodeNamedDamage(value: string): (NamedTargetDecoded & { damage: Damag
 /** `Gracz 1(63.00%)`: the name runs to the last opener, so a name may hold one of its own. */
 function parseNamedTarget(text: string): NamedTargetDecoded | null {
     if (!text.endsWith(PERCENT_CLOSER)) return null;
-    const opener = text.lastIndexOf(PERCENT_OPENER);
-    if (opener <= 0) return null;
-    const targetName = text.slice(0, opener);
-    const percentText = text.slice(opener + PERCENT_OPENER.length, -PERCENT_CLOSER.length);
+    const openerIndex = text.lastIndexOf(PERCENT_OPENER);
+    if (openerIndex <= 0) return null;
+    const targetName = text.slice(0, openerIndex);
+    const percentText = text.slice(openerIndex + PERCENT_OPENER.length, -PERCENT_CLOSER.length);
     assert(targetName.length > 0, "a stated name says something");
     assert(percentText.length < text.length, "a percentage is shorter than what carried it");
     return { targetName, targetHealthPercent: parseHealthPercent(percentText) };
@@ -639,30 +679,33 @@ function decodeNamedHealing(
 ): (NamedTargetDecoded & { amount: number; source: string }) | null {
     const members = value.split(MEMBER_SEPARATOR);
     if (members.length !== NAMED_HEALING_MEMBERS) return null;
-    const [amountText = "", stated = ""] = members;
+    const [amountText = "", namedText = ""] = members;
     const amount = parseInteger(amountText);
     if (amount === null) return null;
     if (amount < 0) return null;
-    const named = parseNamedTarget(stated);
+    const named = parseNamedTarget(namedText);
     if (named === null) return null;
     assert(named.targetName.length > 0, "the healed is named inside the value");
     assert(Number.isSafeInteger(amount), "healing read from digits is held exactly");
     return { ...named, amount, source: key };
 }
 
-function countParametersRead(reading: ParametersDecoded): number {
-    return reading.raw.length + reading.applied.length + reading.prevented.length +
-        reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
-        reading.namedDamage.length + reading.namedHealing.length + reading.unaccounted.length +
-        reading.outcomes.length + reading.declared.length +
-        reading.skillKeys + reading.unreadKeys.length;
+function countParametersRead(parametersDecoded: ParametersDecoded): number {
+    return parametersDecoded.raw.length + parametersDecoded.applied.length +
+        parametersDecoded.prevented.length +
+        parametersDecoded.destroyed.length + parametersDecoded.procs.length +
+        parametersDecoded.healthChanges.length +
+        parametersDecoded.namedDamage.length + parametersDecoded.namedHealing.length +
+        parametersDecoded.unaccountedShares.length +
+        parametersDecoded.outcomes.length + parametersDecoded.declared.length +
+        parametersDecoded.skillKeysRead + parametersDecoded.unreadKeys.length;
 }
 
-function hasAttackFigure(reading: ParametersDecoded): boolean {
-    if (reading.raw.length > 0) return true;
-    if (reading.applied.length > 0) return true;
-    if (reading.prevented.length > 0) return true;
-    return reading.destroyed.length > 0;
+function hasAttackFigure(parametersDecoded: ParametersDecoded): boolean {
+    if (parametersDecoded.raw.length > 0) return true;
+    if (parametersDecoded.applied.length > 0) return true;
+    if (parametersDecoded.prevented.length > 0) return true;
+    return parametersDecoded.destroyed.length > 0;
 }
 
 /**
@@ -673,18 +716,21 @@ function hasAttackFigure(reading: ParametersDecoded): boolean {
  */
 function lookupAnnouncedForMessage(
     message: ProtocolMessage,
-    own: AnnouncedSkill | null,
-    standing: AnnouncementStanding,
+    announcedHere: AnnouncedSkill | null,
+    announcementStanding: AnnouncementStanding,
     isBlow: boolean,
 ): AnnouncedSkill | null {
-    if (own !== null) return own;
-    if (standing === null) return null;
-    const announced = standing.announced;
+    if (announcedHere !== null) return announcedHere;
+    if (announcementStanding === null) return null;
+    const announced = announcementStanding.announced;
     if (announced.actorId === null) return null;
     if (message.actor === null) return null;
     if (message.actor.combatantId !== announced.actorId) return null;
-    assert(standing.blowsRemaining > 0, "a standing announcement has a message left to reach");
-    if (standing.isGlued) return announced;
+    assert(
+        announcementStanding.blowsRemaining > 0,
+        "a standing announcement has a message left to reach",
+    );
+    if (announcementStanding.isGlued) return announced;
     if (isBlow) return announced;
     return null;
 }
@@ -707,26 +753,26 @@ function decodeAnnouncedSkill(
  */
 function decodeMessageEvents(
     message: ProtocolMessage,
-    reading: ParametersDecoded,
+    parametersDecoded: ParametersDecoded,
     announced: AnnouncedSkill | null,
     roster: CombatantRoster | null,
     isBlow: boolean,
 ): BattleEvent[] {
     const events: BattleEvent[] = [];
-    if (isBlow) events.push(decodeAttackEvent(message, reading, announced));
-    for (const moved of reading.healthChanges) {
-        const side = moved.isOnTarget ? message.target : message.actor;
+    if (isBlow) events.push(decodeAttackEvent(message, parametersDecoded, announced));
+    for (const moved of parametersDecoded.healthChanges) {
+        const statedEnd = moved.isOnTarget ? message.target : message.actor;
         events.push({
             kind: BATTLE_EVENT.healthChange,
-            combatantId: side?.combatantId ?? null,
+            combatantId: statedEnd?.combatantId ?? null,
             amount: moved.amount,
-            healthPercent: side?.healthPercent ?? null,
+            healthPercent: statedEnd?.healthPercent ?? null,
             source: moved.source,
             declared: moved.declared,
             announced,
         });
     }
-    for (const named of reading.namedDamage) {
+    for (const named of parametersDecoded.namedDamage) {
         events.push({
             kind: BATTLE_EVENT.damageToNamedCombatant,
             actorId: message.actor?.combatantId ?? null,
@@ -737,7 +783,7 @@ function decodeMessageEvents(
             announced,
         });
     }
-    for (const unaccounted of reading.unaccounted) {
+    for (const unaccounted of parametersDecoded.unaccountedShares) {
         events.push({
             kind: BATTLE_EVENT.unaccountedHealth,
             source: unaccounted.source,
@@ -748,8 +794,10 @@ function decodeMessageEvents(
             announced,
         });
     }
-    if (reading.skill !== null) events.push(decodeSkillUsedEvent(message, reading, isBlow));
-    for (const restored of reading.namedHealing) {
+    if (parametersDecoded.announcement !== null) {
+        events.push(decodeSkillUsedEvent(message, parametersDecoded, isBlow));
+    }
+    for (const restored of parametersDecoded.namedHealing) {
         events.push({
             kind: BATTLE_EVENT.healingToNamedCombatant,
             targetName: restored.targetName,
@@ -759,33 +807,36 @@ function decodeMessageEvents(
             source: restored.source,
         });
     }
-    events.push(...reading.outcomes);
-    const declaration = decodeDeclaration(message, reading, roster, isBlow);
+    events.push(...parametersDecoded.outcomes);
+    const declaration = decodeDeclaration(message, parametersDecoded, roster, isBlow);
     if (declaration !== null) events.push(declaration);
-    assert(events.length >= reading.outcomes.length, "every outcome read is an event");
+    assert(events.length >= parametersDecoded.outcomes.length, "every outcome read is an event");
     assert(events.length <= message.parameters.length, "no parameter makes two events");
     return events;
 }
 
 function decodeAttackEvent(
     message: ProtocolMessage,
-    reading: ParametersDecoded,
+    parametersDecoded: ParametersDecoded,
     announced: AnnouncedSkill | null,
 ): AttackEvent {
-    assert(hasAttackFigure(reading), "an attack states a figure");
-    assert(reading.procs.length <= message.parameters.length, "an event stays inside its bound");
+    assert(hasAttackFigure(parametersDecoded), "an attack states a figure");
+    assert(
+        parametersDecoded.procs.length <= message.parameters.length,
+        "an event stays inside its bound",
+    );
     return {
         kind: BATTLE_EVENT.attack,
         actorId: message.actor?.combatantId ?? null,
         targetId: message.target?.combatantId ?? null,
         actorHealthPercent: message.actor?.healthPercent ?? null,
         targetHealthPercent: message.target?.healthPercent ?? null,
-        raw: reading.raw,
-        applied: reading.applied,
-        prevented: reading.prevented,
-        destroyed: reading.destroyed,
-        procs: reading.procs,
-        declared: reading.declared,
+        raw: parametersDecoded.raw,
+        applied: parametersDecoded.applied,
+        prevented: parametersDecoded.prevented,
+        destroyed: parametersDecoded.destroyed,
+        procs: parametersDecoded.procs,
+        declared: parametersDecoded.declared,
         announced,
     };
 }
@@ -798,10 +849,10 @@ function lookupNamedCombatantId(roster: CombatantRoster | null, name: string): n
 /** What an announcement states about its skill rides it, unless a blow already carries it. */
 function decodeSkillUsedEvent(
     message: ProtocolMessage,
-    reading: ParametersDecoded,
+    parametersDecoded: ParametersDecoded,
     isBlow: boolean,
 ): BattleEvent {
-    const skill = reading.skill;
+    const skill = parametersDecoded.announcement;
     assert(skill !== null, "a skill used is a skill announced");
     assert(skill.skillName.length > 0, "an announcement names something");
     return {
@@ -812,7 +863,7 @@ function decodeSkillUsedEvent(
         targetHealthPercent: message.target?.healthPercent ?? null,
         skillName: skill.skillName,
         skillId: skill.skillId,
-        declared: isBlow ? [] : reading.declared,
+        declared: isBlow ? [] : parametersDecoded.declared,
     };
 }
 
@@ -822,22 +873,24 @@ function decodeSkillUsedEvent(
  */
 function decodeDeclaration(
     message: ProtocolMessage,
-    reading: ParametersDecoded,
+    parametersDecoded: ParametersDecoded,
     roster: CombatantRoster | null,
     isBlow: boolean,
 ): BattleEvent | null {
     if (isBlow) return null;
-    if (reading.skill !== null) return null;
-    if (reading.declared.length === 0) return null;
-    const lostBy = lookupTurnLostBy(reading.declared, roster);
-    if (lostBy !== null) return { kind: BATTLE_EVENT.turnLost, combatantId: lostBy.combatantId };
-    const side = message.actor ?? message.target;
-    assert(reading.declared.every((one) => one.effect.length > 0), "each names its key");
+    if (parametersDecoded.announcement !== null) return null;
+    if (parametersDecoded.declared.length === 0) return null;
+    const turnLost = lookupTurnLostBy(parametersDecoded.declared, roster);
+    if (turnLost !== null) {
+        return { kind: BATTLE_EVENT.turnLost, combatantId: turnLost.combatantId };
+    }
+    const statedEnd = message.actor ?? message.target;
+    assert(parametersDecoded.declared.every((one) => one.effect.length > 0), "each names its key");
     return {
         kind: BATTLE_EVENT.declaration,
-        combatantId: side?.combatantId ?? null,
-        healthPercent: side?.healthPercent ?? null,
-        declared: reading.declared,
+        combatantId: statedEnd?.combatantId ?? null,
+        healthPercent: statedEnd?.healthPercent ?? null,
+        declared: parametersDecoded.declared,
     };
 }
 
@@ -852,10 +905,10 @@ function lookupTurnLostBy(
 ): { combatantId: number | null } | null {
     if (roster === null) return null;
     if (declared.length !== 1) return null;
-    const stated = declared[0];
-    if (stated === undefined) return null;
-    if (stated.effect !== TEXT_KEY) return null;
-    const text = stated.text;
+    const declaredEffect = declared[0];
+    if (declaredEffect === undefined) return null;
+    if (declaredEffect.effect !== TEXT_KEY) return null;
+    const text = declaredEffect.text;
     if (text === null) return null;
     if (text.endsWith(SENTENCE_STOP)) return null;
     assert(roster.idByName.size <= COMBATANTS_MAXIMUM, "a roster stays inside its stated bound");
@@ -901,10 +954,10 @@ export function parseProtocolMessage(text: string): ProtocolMessage | GrammarRef
 
     const parameters: MessageParameter[] = [];
     for (const segment of segments.slice(SIDE_SEGMENTS)) {
-        const separator = segment.indexOf(VALUE_SEPARATOR);
-        const key = separator === -1 ? segment : segment.slice(0, separator);
+        const separatorIndex = segment.indexOf(VALUE_SEPARATOR);
+        const key = separatorIndex === -1 ? segment : segment.slice(0, separatorIndex);
         if (key.length === 0) return new ParameterKeyEmpty(parameters.length);
-        const value = separator === -1 ? null : segment.slice(separator + 1);
+        const value = separatorIndex === -1 ? null : segment.slice(separatorIndex + 1);
         parameters.push({ key, value });
     }
     assert(parameters.length + SIDE_SEGMENTS === segments.length, "no segment is dropped");
@@ -916,14 +969,14 @@ function parseProtocolMessageSegments(text: string): string[] | SegmentsExceeded
     const segments: string[] = [];
     let from = 0;
     for (let look = 0; look < SEGMENTS_MAXIMUM; look += 1) {
-        const separator = text.indexOf(SEGMENT_SEPARATOR, from);
-        if (separator === -1) {
+        const separatorIndex = text.indexOf(SEGMENT_SEPARATOR, from);
+        if (separatorIndex === -1) {
             segments.push(text.slice(from));
             assert(segments.length <= SEGMENTS_MAXIMUM, "a message kept is one inside the bound");
             return segments;
         }
-        segments.push(text.slice(from, separator));
-        from = separator + SEGMENT_SEPARATOR.length;
+        segments.push(text.slice(from, separatorIndex));
+        from = separatorIndex + SEGMENT_SEPARATOR.length;
     }
     const count = countProtocolMessageSegments(text, from);
     assert(count > SEGMENTS_MAXIMUM, "a message refused for its length is past the bound");
@@ -953,13 +1006,13 @@ function parseProtocolMessageEnd(
     end: MessageEnd,
 ): StatedEnd | null | EndUnreadable {
     if (segment === NO_COMBATANT) return null;
-    const separator = segment.indexOf(VALUE_SEPARATOR);
-    const idText = separator === -1 ? segment : segment.slice(0, separator);
+    const separatorIndex = segment.indexOf(VALUE_SEPARATOR);
+    const idText = separatorIndex === -1 ? segment : segment.slice(0, separatorIndex);
     const combatantId = parseInteger(idText);
     if (combatantId === null) return new EndUnreadable(end);
     assert(Number.isSafeInteger(combatantId), "an id read is one held exactly");
-    if (separator === -1) return { combatantId, healthPercent: null };
-    const healthPercent = parseHealthPercent(segment.slice(separator + 1));
+    if (separatorIndex === -1) return { combatantId, healthPercent: null };
+    const healthPercent = parseHealthPercent(segment.slice(separatorIndex + 1));
     if (healthPercent === null) return new EndUnreadable(end);
     assert(healthPercent >= 0, "a percentage the grammar accepted is never below nothing");
     return { combatantId, healthPercent };
@@ -988,14 +1041,14 @@ export function encodeProtocolMessage(message: ProtocolMessage): string {
     return segments.join(SEGMENT_SEPARATOR);
 }
 
-function encodeProtocolMessageEnd(side: StatedEnd | null): string {
-    if (side === null) return NO_COMBATANT;
-    const idText = formatInteger(side.combatantId);
-    if (side.healthPercent === null) {
-        assert(idText !== NO_COMBATANT, "a side written bare is somebody, or it reads as nobody");
+function encodeProtocolMessageEnd(statedEnd: StatedEnd | null): string {
+    if (statedEnd === null) return NO_COMBATANT;
+    const idText = formatInteger(statedEnd.combatantId);
+    if (statedEnd.healthPercent === null) {
+        assert(idText !== NO_COMBATANT, "an end written bare is somebody, or it reads as nobody");
         return idText;
     }
-    const percentText = encodeHealthPercent(side.healthPercent);
+    const percentText = encodeHealthPercent(statedEnd.healthPercent);
     assert(!percentText.includes(SEGMENT_SEPARATOR), "a percentage never ends its segment");
     return `${idText}${VALUE_SEPARATOR}${percentText}`;
 }

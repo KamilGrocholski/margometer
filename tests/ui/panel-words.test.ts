@@ -175,11 +175,11 @@ const NOTHING_CARRIED = {
     turnsTaken: 0,
     charge: null,
     provokedBy: null,
-    provokes: 0,
+    provokedCount: 0,
     statuses: [],
-    holytouchHealsGiven: null,
+    holytouchHealsReceived: null,
     hasSpentLastheal: false,
-    wasJoinedInProgress: false,
+    hasJoinedInProgress: false,
 };
 
 /**
@@ -210,15 +210,15 @@ const CARRYING_EVERYTHING = {
     turnsTaken: 14,
     charge: { skillName: "Pożoga", turnsElapsed: 2, turnsStated: 4 },
     provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
-    provokes: 10,
+    provokedCount: 10,
     statuses: [
         { bit: 3, percent: null },
         { bit: 5, percent: 14 },
         { bit: 6, percent: 20 },
     ],
-    holytouchHealsGiven: 1,
+    holytouchHealsReceived: 1,
     hasSpentLastheal: true,
-    wasJoinedInProgress: false,
+    hasJoinedInProgress: false,
 };
 
 Deno.test("every word the panel says says something", () => {
@@ -240,9 +240,9 @@ function getSentences(): string[] {
         found.push(getNoteForUnnamedEnd(end, PANEL_NOUN.damage));
         found.push(getNoteForUnnamedEnd(end, PANEL_NOUN.healing));
     }
-    for (const kase of PINNED_CASES) {
-        found.push(getWordsForPinnedStanding(kase));
-        found.push(getWordsForPinnedScope(kase));
+    for (const pinnedCase of PINNED_CASES) {
+        found.push(getWordsForPinnedStanding(pinnedCase));
+        found.push(getWordsForPinnedScope(pinnedCase));
     }
     // The sentence each caveated figure owes, for the same reason: `CAVEAT_NOTES` is keyed by the
     // caveat and no walk over a table above reaches it.
@@ -364,9 +364,9 @@ function getSentencesFromTooltip(): string[] {
                 turnsTaken: 14,
                 charge: { skillName: "Cios", turnsElapsed: bit - 3, turnsStated: 1 },
                 provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
-                provokes: 2,
+                provokedCount: 2,
                 statuses: [{ bit, percent: 39 }],
-                holytouchHealsGiven: 1,
+                holytouchHealsReceived: 1,
                 hasSpentLastheal: true,
             },
             said,
@@ -534,7 +534,7 @@ Deno.test("every row that names a thing and qualifies it is punctuated alike", (
             charge: { skillName: "Pożoga", turnsElapsed: 2, turnsStated: 4 },
             provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
             statuses: [{ bit: 3, percent: null }],
-            holytouchHealsGiven: 1,
+            holytouchHealsReceived: 1,
             hasSpentLastheal: true,
         },
         null,
@@ -566,8 +566,8 @@ Deno.test("a provocation is said at the end it is read from", () => {
         "Sprowokowany przez Gracz 2 · 2 z 3",
         "the held fighter is told who holds them, and how many of their turns it still has",
     );
-    const shouting = (provokes: number) =>
-        presentTooltipRows({ ...NOTHING_CARRIED, provokes }, null, FROZEN_BUFF_BITS.bits)[1];
+    const shouting = (provokedCount: number) =>
+        presentTooltipRows({ ...NOTHING_CARRIED, provokedCount }, null, FROZEN_BUFF_BITS.bits)[1];
     assertEquals(shouting(10), "Prowokuje 10 postaci", "the shouter is told how many, not whom");
     assertEquals(shouting(1), "Prowokuje 1 postać", "one is one, in the noun's own form");
     assertEquals(shouting(2), "Prowokuje 2 postacie", "two to four take the second");
@@ -584,7 +584,7 @@ Deno.test("a provocation is said at the end it is read from", () => {
 Deno.test("Dotyk anioła says the heals it has given, out of the three it gives", () => {
     const row = (healsGiven: number) =>
         presentTooltipRows(
-            { ...NOTHING_CARRIED, holytouchHealsGiven: healsGiven },
+            { ...NOTHING_CARRIED, holytouchHealsReceived: healsGiven },
             null,
             FROZEN_BUFF_BITS.bits,
         )[1];
@@ -1320,7 +1320,7 @@ Deno.test("a fight the panel walked into says nothing about turns taken", () => 
         {
             ...NOTHING_CARRIED,
             turnsTaken: 14,
-            wasJoinedInProgress: true,
+            hasJoinedInProgress: true,
         },
         null,
         FROZEN_BUFF_BITS.bits,
@@ -1338,7 +1338,7 @@ Deno.test("walking in late costs the turns and nothing else", () => {
         {
             ...NOTHING_CARRIED,
             turnsTaken: 9,
-            wasJoinedInProgress: true,
+            hasJoinedInProgress: true,
             statuses: [{ bit: 6, percent: 20 }],
         },
         null,

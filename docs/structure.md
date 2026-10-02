@@ -91,6 +91,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0022-a-body-nests-five-blocks-deep-and-a-function-that-would-nest-past-it-stays-one.md`    | a body nests five blocks deep, and a function written in its caller past that stays one                      |
 | `docs/adr/0023-a-name-says-whether-a-thing-is-the-games-the-browsers-or-ours.md`                     | a name says whether a thing is the game's, the browser's or ours, and "reading" names one thing              |
 | `docs/adr/0024-the-dom-names-the-meter-and-the-helper-and-develops-sheet-is-read-in-those-names.md`  | the DOM names the meter and the helper, and develop's sheet is compared in those names                       |
+| `docs/adr/0025-a-field-names-what-it-holds-and-the-fight-file-keeps-its-keys-through-a-map.md`       | a field names what it holds, the fight file keeps its keys through a map, and ours is a card                 |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

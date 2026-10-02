@@ -94,20 +94,23 @@ export function indexFightEntryHealth(
     roster: CombatantRoster,
 ): FightEntryHealth {
     assert(roster.byId.size <= COMBATANTS_MAXIMUM, "a roster stays inside its stated bound");
-    const entered = new Map<number, number>();
+    const entryHealthByCombatantId = new Map<number, number>();
     for (const event of events) {
         for (const [combatantId, percent] of getHealthPercentsFromEvent(event)) {
-            if (entered.has(combatantId)) continue;
+            if (entryHealthByCombatantId.has(combatantId)) continue;
             const maximum = roster.byId.get(combatantId)?.healthMaximum ?? null;
             const health = composeHealthFromPercent(percent, maximum);
             if (health === null) continue;
             assert(maximum !== null, "a health read off a percentage was read against a pool");
             assert(health <= maximum, "nobody enters above their own pool");
-            entered.set(combatantId, health);
+            entryHealthByCombatantId.set(combatantId, health);
         }
     }
-    assert(entered.size <= roster.byId.size, "a fight is entered by the people in it");
-    return entered;
+    assert(
+        entryHealthByCombatantId.size <= roster.byId.size,
+        "a fight is entered by the people in it",
+    );
+    return entryHealthByCombatantId;
 }
 
 /**
@@ -119,27 +122,30 @@ export function indexSideHeals(
     events: readonly BattleEvent[],
     roster: CombatantRoster,
 ): ReadonlyMap<BattleEvent, SideHeal> {
-    const entered = indexFightEntryHealth(events, roster);
-    const reduced = indexReducedSides(events, roster);
-    const held = new Map<number, number>();
+    const entryHealthByCombatantId = indexFightEntryHealth(events, roster);
+    const reducedSides = indexReducedSides(events, roster);
+    const healthByCombatantId = new Map<number, number>();
     const heals = new Map<BattleEvent, SideHeal>();
     for (const event of events) {
-        const heal = composeSideHeal(event, roster, entered, held);
+        const heal = composeSideHeal(event, roster, entryHealthByCombatantId, healthByCombatantId);
         if (heal !== null) {
             const casterSide = roster.byId.get(heal.casterId)?.side;
             assert(casterSide !== undefined, "a cast is sized only on a side its caster stands on");
-            if (!reduced.has(casterSide)) {
+            if (!reducedSides.has(casterSide)) {
                 heals.set(event, heal);
                 // What a cast put back is health the next one cannot put back again.
                 for (const [combatantId, amount] of heal.restoredByCombatantId) {
-                    held.set(combatantId, (held.get(combatantId) ?? 0) + amount);
+                    healthByCombatantId.set(
+                        combatantId,
+                        (healthByCombatantId.get(combatantId) ?? 0) + amount,
+                    );
                 }
             }
         }
         for (const [combatantId, percent] of getHealthPercentsFromEvent(event)) {
             const maximum = roster.byId.get(combatantId)?.healthMaximum ?? null;
             const health = composeHealthFromPercent(percent, maximum);
-            if (health !== null) held.set(combatantId, health);
+            if (health !== null) healthByCombatantId.set(combatantId, health);
         }
     }
     assert(heals.size <= events.length, "a cast is one event");
@@ -148,18 +154,18 @@ export function indexSideHeals(
 
 /** Sides a reducer reached: the ones its own caster faced, which is what the help states. */
 function indexReducedSides(events: readonly BattleEvent[], roster: CombatantRoster): Set<number> {
-    const reduced = new Set<number>();
+    const reducedSides = new Set<number>();
     for (const event of events) {
         if (event.kind !== BATTLE_EVENT.skillUsed) continue;
         if (!event.declared.some((one) => one.effect === HEALING_REDUCER_KEY)) continue;
         if (event.actorId === null) continue;
         const casterSide = roster.byId.get(event.actorId)?.side;
         for (const combatant of roster.byId.values()) {
-            if (combatant.side !== casterSide) reduced.add(combatant.side);
+            if (combatant.side !== casterSide) reducedSides.add(combatant.side);
         }
     }
-    assert(reduced.size <= roster.byId.size, "a side reduced is a side somebody is on");
-    return reduced;
+    assert(reducedSides.size <= roster.byId.size, "a side reduced is a side somebody is on");
+    return reducedSides;
 }
 
 /**
@@ -170,39 +176,42 @@ function indexReducedSides(events: readonly BattleEvent[], roster: CombatantRost
 function composeSideHeal(
     event: BattleEvent,
     roster: CombatantRoster,
-    entered: FightEntryHealth,
-    held: ReadonlyMap<number, number>,
+    entryHealthByCombatantId: FightEntryHealth,
+    healthByCombatantId: ReadonlyMap<number, number>,
 ): SideHeal | null {
     if (event.kind !== BATTLE_EVENT.unaccountedHealth) return null;
     if (event.combatantId === null) return null;
     const casterSide = roster.byId.get(event.combatantId)?.side;
     if (casterSide === undefined) return null;
     assert(event.declaredShare >= 0, "a share sized is never below nothing");
-    const restored = new Map<number, number>();
+    const restoredByCombatantId = new Map<number, number>();
     let isWhole = true;
     for (const combatant of roster.byId.values()) {
         if (combatant.side !== casterSide) continue;
-        const entry = entered.get(combatant.id);
-        const now = held.get(combatant.id);
+        const healthAtEntry = entryHealthByCombatantId.get(combatant.id);
+        const healthNow = healthByCombatantId.get(combatant.id);
         const maximum = combatant.healthMaximum;
         if (maximum === null) isWhole = false;
-        else if (entry === undefined) isWhole = false;
-        else if (now === undefined) isWhole = false;
+        else if (healthAtEntry === undefined) isWhole = false;
+        else if (healthNow === undefined) isWhole = false;
         else {
             const share = Math.floor((event.declaredShare * maximum) / PERCENT_WHOLE);
-            const amount = clamp(share, 0, entry - now);
+            const amount = clamp(share, 0, healthAtEntry - healthNow);
             assert(amount <= share, "nobody is given more than the share the protocol stated");
-            restored.set(combatant.id, amount);
+            restoredByCombatantId.set(combatant.id, amount);
         }
     }
-    assert(restored.size <= roster.byId.size, "a cast reaches the people in the fight");
+    assert(
+        restoredByCombatantId.size <= roster.byId.size,
+        "a cast reaches the people in the fight",
+    );
     const casterId = event.combatantId;
     const source = event.source;
     return {
         casterId,
         source,
         declaredShare: event.declaredShare,
-        restoredByCombatantId: restored,
+        restoredByCombatantId,
         isWhole,
     };
 }

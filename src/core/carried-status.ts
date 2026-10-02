@@ -22,10 +22,10 @@ export interface CarriedStatus {
 
 /** What the walk carries between payloads: the clock, and each held bit's turn at lighting. */
 export interface CarriedStatusWalk {
-    readonly standing: TurnStanding;
+    readonly turnStanding: TurnStanding;
     readonly turnsByCombatantId: ReadonlyMap<number, number>;
     /** Keyed by combatant, then by bit, so a status gone is a key removed and never a zero. */
-    readonly heldByCombatantId: ReadonlyMap<number, ReadonlyMap<number, number>>;
+    readonly lightingTurnByBitByCombatantId: ReadonlyMap<number, ReadonlyMap<number, number>>;
 }
 
 /** A mask arrives as one integer, so a bit past the thirty-second is not one this reader holds. */
@@ -34,9 +34,9 @@ export const STATUS_BITS_MAXIMUM = 32;
 const CARRIERS_MAXIMUM = 64;
 
 export const NO_CARRIED_STATUS_WALK: CarriedStatusWalk = {
-    standing: NO_TURN_STANDING,
+    turnStanding: NO_TURN_STANDING,
     turnsByCombatantId: new Map(),
-    heldByCombatantId: new Map(),
+    lightingTurnByBitByCombatantId: new Map(),
 };
 
 /**
@@ -53,21 +53,28 @@ export function prepareCarriedStatusWalk(
     masksByCombatantId: ReadonlyMap<number, number>,
 ): CarriedStatusWalk {
     const turnsByCombatantId = new Map(walk.turnsByCombatantId);
-    let standing = walk.standing;
+    let turnStanding = walk.turnStanding;
     for (const event of events) {
-        standing = addEventTurns(turnsByCombatantId, event, standing);
+        turnStanding = addEventTurns(turnsByCombatantId, event, turnStanding);
     }
-    const heldByCombatantId = new Map(walk.heldByCombatantId);
+    const lightingTurnByBitByCombatantId = new Map(walk.lightingTurnByBitByCombatantId);
     for (const [combatantId, mask] of masksByCombatantId) {
         assert(Number.isSafeInteger(mask), "a mask handed to the walk is a whole count of bits");
         assert(mask >= 0, "and never a sign");
-        const clock = turnsByCombatantId.get(combatantId) ?? 0;
-        const held = prepareLightingTurnByBit(heldByCombatantId.get(combatantId), mask, clock);
-        if (held.size === 0) heldByCombatantId.delete(combatantId);
-        else heldByCombatantId.set(combatantId, held);
+        const turnsNow = turnsByCombatantId.get(combatantId) ?? 0;
+        const lightingTurnByBit = prepareLightingTurnByBit(
+            lightingTurnByBitByCombatantId.get(combatantId),
+            mask,
+            turnsNow,
+        );
+        if (lightingTurnByBit.size === 0) lightingTurnByBitByCombatantId.delete(combatantId);
+        else lightingTurnByBitByCombatantId.set(combatantId, lightingTurnByBit);
     }
-    assert(heldByCombatantId.size <= CARRIERS_MAXIMUM, "no more carriers than a board holds");
-    return { standing, turnsByCombatantId, heldByCombatantId };
+    assert(
+        lightingTurnByBitByCombatantId.size <= CARRIERS_MAXIMUM,
+        "no more carriers than a board holds",
+    );
+    return { turnStanding, turnsByCombatantId, lightingTurnByBitByCombatantId };
 }
 
 /**
@@ -76,27 +83,30 @@ export function prepareCarriedStatusWalk(
  * it, and re-reading its start would draw a length nobody carried.
  */
 function prepareLightingTurnByBit(
-    before: ReadonlyMap<number, number> | undefined,
+    lightingTurnByBitBefore: ReadonlyMap<number, number> | undefined,
     mask: number,
-    clock: number,
+    turnsNow: number,
 ): Map<number, number> {
-    assert(clock >= 0, "a clock counts turns from none");
-    const held = new Map<number, number>();
+    assert(turnsNow >= 0, "a clock counts turns from none");
+    const lightingTurnByBit = new Map<number, number>();
     for (let bit = 0; bit < STATUS_BITS_MAXIMUM; bit += 1) {
         if ((mask >> bit & 1) !== 1) continue;
-        held.set(bit, before?.get(bit) ?? clock);
+        lightingTurnByBit.set(bit, lightingTurnByBitBefore?.get(bit) ?? turnsNow);
     }
-    assert(held.size <= STATUS_BITS_MAXIMUM, "a combatant holds no more statuses than a mask has");
-    return held;
+    assert(
+        lightingTurnByBit.size <= STATUS_BITS_MAXIMUM,
+        "a combatant holds no more statuses than a mask has",
+    );
+    return lightingTurnByBit;
 }
 
 /** What is being carried, one row per status per combatant, by combatant and then by bit. */
 export function composeCarriedStatuses(walk: CarriedStatusWalk): CarriedStatus[] {
     const found: CarriedStatus[] = [];
-    for (const [combatantId, held] of walk.heldByCombatantId) {
-        const clock = walk.turnsByCombatantId.get(combatantId) ?? 0;
-        for (const [bit, turnsAtLighting] of held) {
-            const turnsElapsed = clock - turnsAtLighting;
+    for (const [combatantId, lightingTurnByBit] of walk.lightingTurnByBitByCombatantId) {
+        const turnsNow = walk.turnsByCombatantId.get(combatantId) ?? 0;
+        for (const [bit, turnsAtLighting] of lightingTurnByBit) {
+            const turnsElapsed = turnsNow - turnsAtLighting;
             assert(turnsElapsed >= 0, "a clock never runs behind the turn a status lit on");
             found.push({ combatantId, bit, turnsElapsed });
         }

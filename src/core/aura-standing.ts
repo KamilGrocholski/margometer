@@ -40,7 +40,7 @@ export interface SkillEffectTurns {
 
 /** What the table states about the skills the window draws, handed over rather than imported. */
 export interface StatedSkills {
-    turnsBySkillId: ReadonlyMap<number, number>;
+    auraTurnsBySkillId: ReadonlyMap<number, number>;
     shoutsBySkillId: ReadonlyMap<number, ShoutStated>;
 }
 
@@ -73,7 +73,7 @@ export interface AuraStanding {
      * Whom the caster's own side was pointed at. Read from the target slot **only** beside a shout:
      * on any other cast that slot names one end and not the bearer (`develop ADR 0010`).
      */
-    chosenTargetId: number | null;
+    shoutTargetId: number | null;
     /** What the announcement stated each key at, carried and never totalled here. */
     amountByKey: ReadonlyMap<string, number>;
     /** Everybody's own turn count as the cast stood, so a bearer can be dated on their own. */
@@ -82,7 +82,7 @@ export interface AuraStanding {
 
 /** What one walk of a fight answers, which is two things and not one. */
 export interface FightStandings {
-    standings: AuraStanding[];
+    auras: AuraStanding[];
     provocations: ProvocationStanding[];
 }
 
@@ -99,7 +99,7 @@ interface AuraCast {
     /** The side-wide half's own turns, or null where the aura table dates this skill nowhere. */
     turnsStated: number | null;
     reach: AuraReach | null;
-    chosenTargetId: number | null;
+    shoutTargetId: number | null;
     shout: { turns: number; names: readonly string[] } | null;
     amountByKey: ReadonlyMap<string, number>;
     turnsAtCastByCombatantId: ReadonlyMap<number, number>;
@@ -116,9 +116,9 @@ interface HeldByShout {
 
 interface AuraWalk {
     /** A cast reaching a side, keyed by who cast what: a second cast of theirs refreshes it. */
-    bySkill: Map<string, AuraCast>;
+    castByCasterAndSkill: Map<string, AuraCast>;
     /** A shout, keyed by each character it holds. A later shout on them replaces it. */
-    byProvoked: Map<number, HeldByShout>;
+    shoutByProvokedId: Map<number, HeldByShout>;
     turnsByCombatantId: Map<number, number>;
 }
 
@@ -143,28 +143,28 @@ export function lookupReachOfEffects(effects: readonly { effect: string }[]): Au
 
 /** The aura table, keyed by skill, handed over by whoever holds the frozen reading. */
 export function indexAuraTurnsBySkillId(
-    stated: readonly { id: number; turns: number }[],
+    skills: readonly { id: number; turns: number }[],
 ): Map<number, number> {
     const found = new Map<number, number>();
-    for (const skill of stated) {
+    for (const skill of skills) {
         assert(skill.turns > 0, "a skill in the table runs for a stated number of turns");
         found.set(skill.id, skill.turns);
     }
-    assert(found.size === stated.length, "and each of them is named once");
+    assert(found.size === skills.length, "and each of them is named once");
     return found;
 }
 
 /** The shouts the table dates, keyed as the aura turns are, and handed over the same way. */
 export function indexShoutsBySkillId(
-    stated: readonly { id: number; turns: number; coverageMinimum: number }[],
+    skills: readonly { id: number; turns: number; coverageMinimum: number }[],
 ): Map<number, ShoutStated> {
     const found = new Map<number, ShoutStated>();
-    for (const skill of stated) {
+    for (const skill of skills) {
         assert(skill.turns > 0, "a shout in the table holds for a stated number of turns");
         assert(skill.coverageMinimum > 0, "and covers at least one character");
         found.set(skill.id, { turns: skill.turns, coverageMinimum: skill.coverageMinimum });
     }
-    assert(found.size === stated.length, "and each of them is named once");
+    assert(found.size === skills.length, "and each of them is named once");
     return found;
 }
 
@@ -196,27 +196,35 @@ export function lookupAuraTurnsStated(effects: readonly SkillEffectTurns[]): num
  * ⚠️ **An okrzyk lands in both maps**: its two halves are dated apart, and folding them into one
  * row stated the shorter of two lengths for both.
  */
-export function replayAuraStandings(view: FightView, stated: StatedSkills): FightStandings {
+export function replayAuraStandings(view: FightView, statedSkills: StatedSkills): FightStandings {
     const walk: AuraWalk = {
-        bySkill: new Map(),
-        byProvoked: new Map(),
+        castByCasterAndSkill: new Map(),
+        shoutByProvokedId: new Map(),
         turnsByCombatantId: new Map(),
     };
-    let standing = NO_TURN_STANDING;
+    let turnStanding = NO_TURN_STANDING;
     for (const event of view.events) {
-        standing = addEventTurns(walk.turnsByCombatantId, event, standing);
-        const cast = lookupAuraCast(event, stated, walk.turnsByCombatantId);
+        turnStanding = addEventTurns(walk.turnsByCombatantId, event, turnStanding);
+        const cast = lookupAuraCast(event, statedSkills, walk.turnsByCombatantId);
         if (cast === null) continue;
-        assert(walk.bySkill.size <= STANDINGS_MAXIMUM, "a fight stays inside its stated bound");
-        assert(walk.byProvoked.size <= STANDINGS_MAXIMUM, "and so does what it holds people by");
-        if (cast.turnsStated !== null) walk.bySkill.set(`${cast.casterId}/${cast.skillId}`, cast);
+        assert(
+            walk.castByCasterAndSkill.size <= STANDINGS_MAXIMUM,
+            "a fight stays inside its stated bound",
+        );
+        assert(
+            walk.shoutByProvokedId.size <= STANDINGS_MAXIMUM,
+            "and so does what it holds people by",
+        );
+        if (cast.turnsStated !== null) {
+            walk.castByCasterAndSkill.set(`${cast.casterId}/${cast.skillId}`, cast);
+        }
         for (const provokedId of lookupProvokedIds(cast, view.roster)) {
             const turnsAtShout = walk.turnsByCombatantId.get(provokedId) ?? 0;
-            walk.byProvoked.set(provokedId, { cast, turnsAtShout });
+            walk.shoutByProvokedId.set(provokedId, { cast, turnsAtShout });
         }
     }
     return {
-        standings: composeAuraStandings(walk),
+        auras: composeAuraStandings(walk),
         provocations: composeProvocationStandings(walk),
     };
 }
@@ -228,7 +236,7 @@ export function replayAuraStandings(view: FightView, stated: StatedSkills): Figh
  */
 function lookupAuraCast(
     event: BattleEvent,
-    stated: StatedSkills,
+    statedSkills: StatedSkills,
     turnsByCombatantId: ReadonlyMap<number, number>,
 ): AuraCast | null {
     if (event.kind !== BATTLE_EVENT.skillUsed) return null;
@@ -236,12 +244,12 @@ function lookupAuraCast(
     if (event.skillId === null) return null;
     if (!event.declared.some((one) => isSideWideKey(one.effect))) return null;
     const turnsAtCast = turnsByCombatantId.get(event.actorId) ?? 0;
-    const isPointed = event.declared.some((one) => one.effect === PROVOCATION_KEY);
-    const shouted = isPointed ? stated.shoutsBySkillId.get(event.skillId) : undefined;
-    const shout = shouted === undefined
+    const isShout = event.declared.some((one) => one.effect === PROVOCATION_KEY);
+    const shoutStated = isShout ? statedSkills.shoutsBySkillId.get(event.skillId) : undefined;
+    const shout = shoutStated === undefined
         ? null
-        : { turns: shouted.turns, names: parseShoutNames(event.declared) };
-    const turnsStated = stated.turnsBySkillId.get(event.skillId) ?? null;
+        : { turns: shoutStated.turns, names: parseShoutNames(event.declared) };
+    const turnsStated = statedSkills.auraTurnsBySkillId.get(event.skillId) ?? null;
     if (turnsStated !== null) assert(turnsStated > 0, "a half that is dated runs for stated turns");
     if (shout !== null) assert(shout.turns > 0, "and so does the other one");
     assert(turnsAtCast > 0, "the cast stands on a turn its caster has taken");
@@ -252,7 +260,7 @@ function lookupAuraCast(
         turnsAtCast,
         turnsStated,
         reach: lookupReachOfEffects(event.declared),
-        chosenTargetId: isPointed ? event.targetId : null,
+        shoutTargetId: isShout ? event.targetId : null,
         shout,
         amountByKey: indexAmountByKey(event.declared),
         // Copied rather than held: the walk goes on counting, and a cast dated by a map that keeps
@@ -306,11 +314,11 @@ function lookupProvokedIds(cast: AuraCast, roster: CombatantRoster): number[] {
 /** Elapsed against stated, and a cast whose turns have run out is no longer standing. */
 function composeAuraStandings(walk: AuraWalk): AuraStanding[] {
     const found: AuraStanding[] = [];
-    for (const cast of walk.bySkill.values()) {
+    for (const cast of walk.castByCasterAndSkill.values()) {
         const turnsStated = cast.turnsStated;
         assert(turnsStated !== null, "a cast standing on a side is one the table dates");
-        const taken = walk.turnsByCombatantId.get(cast.casterId) ?? cast.turnsAtCast;
-        const turnsElapsed = taken - cast.turnsAtCast;
+        const turnsTakenNow = walk.turnsByCombatantId.get(cast.casterId) ?? cast.turnsAtCast;
+        const turnsElapsed = turnsTakenNow - cast.turnsAtCast;
         assert(turnsElapsed >= 0, "a caster never takes fewer turns than they had at the cast");
         if (turnsElapsed >= turnsStated) continue;
         found.push({
@@ -320,12 +328,12 @@ function composeAuraStandings(walk: AuraWalk): AuraStanding[] {
             turnsElapsed,
             turnsStated,
             reach: cast.reach,
-            chosenTargetId: cast.chosenTargetId,
+            shoutTargetId: cast.shoutTargetId,
             amountByKey: cast.amountByKey,
             turnsAtCastByCombatantId: cast.turnsAtCastByCombatantId,
         });
     }
-    assert(found.length <= walk.bySkill.size, "no more stands than was cast");
+    assert(found.length <= walk.castByCasterAndSkill.size, "no more stands than was cast");
     return found;
 }
 
@@ -336,11 +344,11 @@ function composeAuraStandings(walk: AuraWalk): AuraStanding[] {
  */
 function composeProvocationStandings(walk: AuraWalk): ProvocationStanding[] {
     const found: ProvocationStanding[] = [];
-    for (const [provokedId, held] of walk.byProvoked) {
-        const cast = held.cast;
+    for (const [provokedId, provocation] of walk.shoutByProvokedId) {
+        const cast = provocation.cast;
         assert(cast.shout !== null, "a cast holding somebody shouted");
-        const taken = walk.turnsByCombatantId.get(provokedId) ?? held.turnsAtShout;
-        const turnsElapsed = taken - held.turnsAtShout;
+        const turnsTakenNow = walk.turnsByCombatantId.get(provokedId) ?? provocation.turnsAtShout;
+        const turnsElapsed = turnsTakenNow - provocation.turnsAtShout;
         assert(turnsElapsed >= 0, "a character never takes fewer turns than they had at the shout");
         if (turnsElapsed > cast.shout.turns) continue;
         found.push({
@@ -352,6 +360,6 @@ function composeProvocationStandings(walk: AuraWalk): ProvocationStanding[] {
             turnsStated: cast.shout.turns,
         });
     }
-    assert(found.length <= walk.byProvoked.size, "no more are held than were shouted at");
+    assert(found.length <= walk.shoutByProvokedId.size, "no more are held than were shouted at");
     return found;
 }

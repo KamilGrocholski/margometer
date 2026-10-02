@@ -54,7 +54,7 @@ Deno.test("a ranking whose two counts disagree is drawn, and said as the screen'
             statistics: {
                 ...statistics,
                 totals: { ...statistics.totals, [PANEL_METRIC.damageDealt]: 0 },
-                dealtByNobody: 0,
+                damageDealtByNobody: 0,
             },
         },
     });
@@ -99,7 +99,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState) {
             place: null,
             readerId: null,
             openedAt: 0,
-            battle: null,
+            gameBattle: null,
         },
         defects,
         view: {

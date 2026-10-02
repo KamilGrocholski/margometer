@@ -52,8 +52,8 @@ Deno.test("the widest fight built here fields a full cast, with both ends left o
     const { roster, statistics } = composeWidestFight();
     assertStrictEquals(roster.byId.size, COMBATANTS_MAXIMUM, "ten a side is the widest roster");
     assertStrictEquals(countUnreadMessages(statistics), 0, "and nothing in it went unread");
-    assert(statistics.dealtByNobody > 0, "a blow the protocol gave no striker");
-    assert(statistics.takenByNobody > 0, "and one it gave no target");
+    assert(statistics.damageDealtByNobody > 0, "a blow the protocol gave no striker");
+    assert(statistics.damageTakenByNobody > 0, "and one it gave no target");
 });
 
 /**
@@ -79,7 +79,7 @@ function composeWidestFight(): {
         return `${one.id}=90.00;${target}=80.00;+dmg=${100 + one.id};-dmg=${100 + one.id}`;
     });
     messages.push("0;2=50.00;+dmg=10;-dmg=10", "1=90.00;0;+dmg=20;-dmg=20", "0;0;+dmg=30;-dmg=30");
-    const context = { roster, standing: null, tables: BLOWS_GRANTED };
+    const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
     const events = decodePayloadMessages(messages, context).events;
     const statistics = tallyFightStatistics(events, indexSideHeals(events, roster));
     return { roster, statistics, readerSide: OURS };

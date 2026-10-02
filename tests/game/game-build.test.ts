@@ -63,7 +63,7 @@ Deno.test("the first script naming a build is the page's build", () => {
 Deno.test("a page naming no build says so, and a source that is not text is passed over", () => {
     const none = initGameBuild({ readScriptSources: () => ["/js/jquery.js"] }).readBuildId();
     assertInstanceOf(none, GameValueAbsent, "no build is absent, never a guess");
-    assertStrictEquals(none.reading, GAME_VALUE.build, "and names the reading");
+    assertStrictEquals(none.value, GAME_VALUE.build, "and names the reading");
     const empty = initGameBuild({ readScriptSources: () => [] }).readBuildId();
     assertInstanceOf(empty, GameValueAbsent, "and a page with no scripts names none either");
     const mixed = [null, 7, { src: "x" }, "/js/main.min.53XkBRxF.js"];

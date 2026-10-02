@@ -86,7 +86,7 @@ Deno.test("a render or a commit off its event's path is flagged, and one on it i
         "function renderPanel(rows) { renderRows(rows); }",
         "function initView(rows) { renderRows(rows); }",
         "function onFrame(rows) { schedule(() => renderRows(rows)); }",
-        "function initTip(rows) {",
+        "function initCard(rows) {",
         "    return { onHover(key) { renderRows(key); } };",
         "}",
         "function replayPayloads(session) { commitPayload(session); }",

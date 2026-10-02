@@ -24,7 +24,9 @@ import { type Colour, formatColour, SIGNAL } from "./panel-palette.ts";
  */
 export interface TypeTokens {
     fontPixels: number;
-    /** Whole pixels: a fractional line box puts every box under it off the grid. `develop ADR 0015`. */
+    /**
+     * Whole pixels: a fractional line box puts every box under it off the grid. `develop ADR 0015`.
+     */
     lineHeightPixels: number;
     lineHeightTitlePixels: number;
     /** The one smaller type: the version, the place, an outcome, a section's heading. */
@@ -43,14 +45,14 @@ export interface TypeTokens {
     /** The caveat mark's ring, across and down, and the letter inside it. */
     markSizePixels: number;
     markLetterPixels: number;
-    panelWidthPixels: number;
+    meterWidthPixels: number;
     /**
      * How wide a card may stand — **a maximum and not a width**. The card is drawn at `max-content`
      * and this clamps it, so one saying two words is as wide as two words, and a ranking card fills
      * the bound. What that was measured to cost is `develop ADR 0091`'s, and the widths a browser
-     * really draws are `tests/e2e/panel-tip.spec.ts`'s.
+     * really draws are `tests/e2e/panel-card.spec.ts`'s.
      */
-    tipWidthPixelsMaximum: number;
+    cardWidthPixelsMaximum: number;
     /**
      * The window beside the panel. Narrower than the panel because it carries a name and a figure
      * and never a rank or a share, and it is the second thing standing over somebody else's game.
@@ -153,23 +155,23 @@ export const CLASS = {
     sidesOurs: "sides-ours",
     sidesTheirs: "sides-theirs",
     sidesNobody: "sides-nobody",
-    tip: "MargoMeter-tip",
-    tipHidden: "tip-hidden",
-    tipName: "tip-name",
-    tipSubtitle: "tip-subtitle",
-    tipGroup: "tip-group",
-    tipHeading: "tip-heading",
-    tipLine: "tip-line",
-    tipStrong: "tip-strong",
-    tipSub: "tip-sub",
-    tipLabel: "tip-label",
-    tipCaveat: "tip-caveat",
-    tipValue: "tip-value",
+    card: "MargoMeter-card",
+    cardHidden: "card-hidden",
+    cardName: "card-name",
+    cardSubtitle: "card-subtitle",
+    cardGroup: "card-group",
+    cardHeading: "card-heading",
+    cardLine: "card-line",
+    cardStrong: "card-strong",
+    cardSub: "card-sub",
+    cardLabel: "card-label",
+    cardCaveat: "card-caveat",
+    cardValue: "card-value",
     /** A sentence rather than a column, so the placement counts it as wrapping. */
-    tipNote: "tip-note",
-    tipSuspect: "tip-suspect",
-    /** The sentence's own, and never `tipCaveat` — that one is the glyph cell beside a figure. */
-    tipCaveatNote: "tip-caveat-note",
+    cardNote: "card-note",
+    cardSuspect: "card-suspect",
+    /** The sentence's own, and never `cardCaveat` — that one is the glyph cell beside a figure. */
+    cardCaveatNote: "card-caveat-note",
     /** The helper: its own bar, its own body, and the rows under each heading. */
     helper: "MargoMeter-helper",
     helperBar: "helper-bar",
@@ -216,7 +218,7 @@ export const PLACE = {
  */
 export const LAYER = {
     helper: "2",
-    tip: "3",
+    card: "3",
 } as const;
 
 /**
@@ -250,8 +252,8 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         castWidthPixelsMinimum: 48,
         markSizePixels: 10,
         markLetterPixels: 7,
-        panelWidthPixels: 260,
-        tipWidthPixelsMaximum: 250,
+        meterWidthPixels: 260,
+        cardWidthPixelsMaximum: 250,
         helperWidthPixels: 210,
     },
     [TYPE_STEP.medium]: {
@@ -265,8 +267,8 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         castWidthPixelsMinimum: 50,
         markSizePixels: 12,
         markLetterPixels: 7,
-        panelWidthPixels: 274,
-        tipWidthPixelsMaximum: 272,
+        meterWidthPixels: 274,
+        cardWidthPixelsMaximum: 272,
         helperWidthPixels: 228,
     },
     [TYPE_STEP.large]: {
@@ -280,8 +282,8 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         castWidthPixelsMinimum: 54,
         markSizePixels: 12,
         markLetterPixels: 7,
-        panelWidthPixels: 306,
-        tipWidthPixelsMaximum: 296,
+        meterWidthPixels: 306,
+        cardWidthPixelsMaximum: 296,
         helperWidthPixels: 248,
     },
 };
@@ -359,11 +361,11 @@ export const TOP_VARIABLES: { readonly [Window in PanelWindow]: string } = {
 /** How many rows a list stands, written on the list. */
 export const ROWS_VARIABLE = "--MargoMeter-rows";
 /** Where a card is placed, written on the card, which is the one kind the reset leaves standing. */
-export const TIP_VARIABLES = {
-    top: "--MargoMeter-tip-top",
-    left: "--MargoMeter-tip-left",
-    right: "--MargoMeter-tip-right",
-    height: "--MargoMeter-tip-height",
+export const CARD_VARIABLES = {
+    top: "--MargoMeter-card-top",
+    left: "--MargoMeter-card-left",
+    right: "--MargoMeter-card-right",
+    height: "--MargoMeter-card-height",
 } as const;
 
 /**
@@ -441,7 +443,7 @@ export function getInkForBar(hue: Colour): Colour {
  * (`src/ui/panel-element.ts`) — and a trim and a clamp at two heights would put the notice on a
  * card that fitted, or leave one that did not without it.
  */
-export function getTipHeight(
+export function getCardHeight(
     size: { lines: number; groups: number },
     tokens: TypeTokens,
 ): number | null {
@@ -457,7 +459,7 @@ export function getTipHeight(
  * What a card has to stand in: the window, less the air the sheet keeps at either end of it. Null
  * where the page states no height, which is a window nothing here may reason about.
  */
-export function getTipHeightAvailable(viewportHeight: number | null): number | null {
+export function getCardHeightAvailable(viewportHeight: number | null): number | null {
     if (viewportHeight === null) return null;
     if (!Number.isFinite(viewportHeight)) return null;
     const room = viewportHeight - 2 * PLACE.insetPixels;
@@ -490,7 +492,7 @@ export function composeStyleSheet(step: TypeStep): string {
     return `${composeFrameRules(tokens)}${composeRegionRules(tokens)}` +
         `${composeOptionsRules(tokens)}` +
         `${composeListRules(tokens)}${composeRowRules(tokens)}${composeUnderListRules()}` +
-        `${composeTipRules(tokens)}${composeHelperRules(tokens)}`;
+        `${composeCardRules(tokens)}${composeHelperRules(tokens)}`;
 }
 
 /**
@@ -505,7 +507,7 @@ function composeFrameRules(tokens: TypeTokens): string {
     const share = `var(${SIZED_PANEL_VARIABLES.share},${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh)`;
     const ceiling = `min(calc(100vh - var(${TOP_VARIABLES.meter}) - ${PLACE.insetPixels}px),` +
         `${share})`;
-    const width = `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px)`;
+    const width = `var(${SIZE_VARIABLES.meter.width},${tokens.meterWidthPixels}px)`;
     return `:host{all:initial;${composeVariables(tokens)}` +
         `${TOP_VARIABLES.meter}:${PLACE.insetPixels}px;` +
         `position:fixed;top:var(${TOP_VARIABLES.meter});right:${PLACE.insetPixels}px;` +
@@ -607,7 +609,9 @@ function composeVariable(name: string, value: string): string {
     return `${VARIABLE_PREFIX}${name}:${value};`;
 }
 
-/** The other spelling a rule takes, kept for the one colour this sheet composes rather than states. */
+/**
+ * The other spelling a rule takes, kept for the one colour this sheet composes rather than states.
+ */
 function formatRgbColour(colour: Colour): string {
     return `rgb(${colour[0]} ${colour[1]} ${colour[2]})`;
 }
@@ -861,27 +865,27 @@ function composeUnderListRules(): string {
 
 /**
  * **It states its own type and its own ink**, because `:host{all:initial}` reaches it and nothing
- * else does: the tip hangs off the root beside the frame, so `.panel`'s never arrive. Without the
+ * else does: the card hangs off the root beside the frame, so `.panel`'s never arrive. Without the
  * two the card is drawn in the browser's serif at `medium` in black on `raised` — figures nobody
  * can read, seen in Chrome 152 on 2026-08-29.
  *
  * `position:fixed` puts its containing block at the viewport, so the host's `overflow:hidden`
  * cannot clip it: the host creates none, having no transform, filter or containment.
  */
-function composeTipRules(tokens: TypeTokens): string {
+function composeCardRules(tokens: TypeTokens): string {
     // Where a card stands before any window has been moved: against the panel's own corner. It is
     // a distance from the **right** edge, and every placement across is, because a card narrower
     // than the bound has to keep the edge facing its window and not float the difference away.
-    const right = `var(${TIP_VARIABLES.right},calc(${PLACE.insetPixels}px + ` +
-        `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px) + ` +
+    const right = `var(${CARD_VARIABLES.right},calc(${PLACE.insetPixels}px + ` +
+        `var(${SIZE_VARIABLES.meter.width},${tokens.meterWidthPixels}px) + ` +
         `${SPACE_PIXELS.small}px))`;
-    return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
-        `left:var(${TIP_VARIABLES.left},auto);right:${right};` +
-        `top:${composeTipTop()};z-index:${LAYER.tip};` +
+    return `.${CLASS.card}{position:fixed;box-sizing:border-box;pointer-events:none;` +
+        `left:var(${CARD_VARIABLES.left},auto);right:${right};` +
+        `top:${composeCardTop()};z-index:${LAYER.card};` +
         // As wide as what it says, up to the bound — and never wider than the screen it stands
         // on, which is the case the bound on its own does not answer.
         `width:max-content;` +
-        `max-width:min(${tokens.tipWidthPixelsMaximum}px,` +
+        `max-width:min(${tokens.cardWidthPixelsMaximum}px,` +
         `calc(100vw - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px));` +
         // A card taller than the screen has no position showing all of it, and the clamp keeps
         // the top edge over the bottom.
@@ -892,54 +896,54 @@ function composeTipRules(tokens: TypeTokens): string {
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};}` +
-        `.${CLASS.tipHidden}{display:none;}` +
+        `.${CLASS.cardHidden}{display:none;}` +
         // The one cell on this panel that folds rather than shortening: it is the answer to
         // the name a row had to cut, and an answer cut again is no answer (`DESIGN.md`).
         // `break-word` and not `break-all`, which splits a word where a space was free, nor
         // `anywhere`, which shrinks the min-content width the card is laid out against
         // (`develop ADR 0091`). ⚠️ The lines it folds to are counted in `src/ui/panel-element.ts`,
         // and a rule folding here while the count reserves one line is a card off the screen.
-        `.${CLASS.tipName}{font-weight:600;overflow-wrap:break-word;}` +
-        `.${CLASS.tipSubtitle}{color:var(${VARIABLE_PREFIX}quiet);}` +
-        `.${CLASS.tipGroup}{margin-top:var(${VARIABLE_PREFIX}small);` +
+        `.${CLASS.cardName}{font-weight:600;overflow-wrap:break-word;}` +
+        `.${CLASS.cardSubtitle}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.cardGroup}{margin-top:var(${VARIABLE_PREFIX}small);` +
         `padding-top:var(${VARIABLE_PREFIX}small);` +
         `border-top:1px solid var(${VARIABLE_PREFIX}border);}` +
-        `.${CLASS.tipLine}{display:flex;justify-content:space-between;` +
+        `.${CLASS.cardLine}{display:flex;justify-content:space-between;` +
         `gap:var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.tipLine}.${CLASS.tipStrong}{font-weight:600;}` +
-        `.${CLASS.tipLine}.${CLASS.tipSub}{padding-left:var(${VARIABLE_PREFIX}wide);}` +
+        `.${CLASS.cardLine}.${CLASS.cardStrong}{font-weight:600;}` +
+        `.${CLASS.cardLine}.${CLASS.cardSub}{padding-left:var(${VARIABLE_PREFIX}wide);}` +
         // Cut rather than wrapped, because a label that folded would stand the card wrong —
         // `LABEL_CHARACTERS_MAXIMUM` in `src/ui/panel-words.ts` is where that arithmetic is.
         // `flex:1` and not `auto`: the mark a caveated figure wears sits between this and the
         // value, and a label at its natural width leaves it stranded mid-line, beside the words
         // rather than beside the figure it is about (`DESIGN.md`). Grown, the label pushes
         // the mark against the value wherever the label is short.
-        `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);flex:1;min-width:0;` +
+        `.${CLASS.cardLabel}{color:var(${VARIABLE_PREFIX}quiet);flex:1;min-width:0;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
-        `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}` +
+        `.${CLASS.cardValue}{font-variant-numeric:tabular-nums;flex:none;}` +
         composeCaveatMarkRule(tokens) +
         // The same letters a cut's heading wears down the panel, so a run of parts under one
         // reads as the same kind of thing in both places. `DESIGN.md` owns the look.
-        `.${CLASS.tipHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
+        `.${CLASS.cardHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
         `font-size:${tokens.fontSmallPixels}px;text-transform:uppercase;overflow:hidden;` +
         `text-overflow:ellipsis;white-space:nowrap;}` +
-        `.${CLASS.tipNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.cardNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
         // The sentence is this box's own text and the ring is a child appended after it, so the
         // sheet is what stands the ring first: `order` over a flex row. It buys the hanging indent
         // as well — a sentence running to a second line aligns under its own first word rather
         // than under the ring.
-        `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{display:flex;align-items:flex-start;` +
+        `.${CLASS.cardNote}.${CLASS.cardCaveatNote}{display:flex;align-items:flex-start;` +
         `gap:var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.tipNote} .${CLASS.tipCaveat}{order:-1;align-self:flex-start;` +
+        `.${CLASS.cardNote} .${CLASS.cardCaveat}{order:-1;align-self:flex-start;` +
         // Onto the optical centre of the first line: the line box less the ring, halved.
         `margin-top:${Math.floor((tokens.lineHeightPixels - tokens.markSizePixels) / 2)}px;}` +
-        `.${CLASS.tipNote}.${CLASS.tipSuspect}{color:var(${VARIABLE_PREFIX}suspect);}` +
-        `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{color:var(${VARIABLE_PREFIX}caveat);}`;
+        `.${CLASS.cardNote}.${CLASS.cardSuspect}{color:var(${VARIABLE_PREFIX}suspect);}` +
+        `.${CLASS.cardNote}.${CLASS.cardCaveatNote}{color:var(${VARIABLE_PREFIX}caveat);}`;
 }
 
-function composeTipTop(): string {
-    return `clamp(${PLACE.insetPixels}px,var(${TIP_VARIABLES.top},${PLACE.insetPixels}px),` +
-        `calc(100vh - var(${TIP_VARIABLES.height},0px) - ${PLACE.insetPixels}px))`;
+function composeCardTop(): string {
+    return `clamp(${PLACE.insetPixels}px,var(${CARD_VARIABLES.top},${PLACE.insetPixels}px),` +
+        `calc(100vh - var(${CARD_VARIABLES.height},0px) - ${PLACE.insetPixels}px))`;
 }
 
 /**
@@ -955,7 +959,7 @@ function composeTipTop(): string {
  * stretched to the line box is the ellipse this rule exists to stop being.
  */
 function composeCaveatMarkRule(tokens: TypeTokens): string {
-    return `.${CLASS.rowCaveat},.${CLASS.tipCaveat}{box-sizing:border-box;display:inline-flex;` +
+    return `.${CLASS.rowCaveat},.${CLASS.cardCaveat}{box-sizing:border-box;display:inline-flex;` +
         `align-items:center;justify-content:center;align-self:center;flex:none;` +
         `width:${tokens.markSizePixels}px;height:${tokens.markSizePixels}px;` +
         // An ink of its own, as the other three severities have: drawn in the label's colour it was
@@ -984,7 +988,7 @@ function composeHelperRules(tokens: TypeTokens): string {
         `clamp(${PLACE.insetPixels}px,var(${TOP_VARIABLES.helper},${PLACE.insetPixels}px),` +
         `calc(100vh - ${PLACE.insetPixels}px))`;
     const left = `var(${VARIABLE_PREFIX}helper-left,calc(100vw - ${PLACE.insetPixels}px - ` +
-        `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px) - ` +
+        `var(${SIZE_VARIABLES.meter.width},${tokens.meterWidthPixels}px) - ` +
         `var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px) - ` +
         `${SPACE_PIXELS.small}px))`;
     return `.${CLASS.helper}{position:fixed;box-sizing:border-box;` +
@@ -1053,15 +1057,15 @@ function composeHelperRules(tokens: TypeTokens): string {
 function composeSizeGripRules(): string {
     const strokes = "transparent 0 50%,currentColor 50% 60%,transparent 60% 72%," +
         "currentColor 72% 82%,transparent 82%";
-    // A box is placed against its parent's padding edge, inside the border: the panel draws one and
-    // the window beside it does not, so the panel's corner stands a rule further out to meet the
-    // window's edge. Measured in Chrome 154 on 2026-09-28, where at one offset a 60px drag made
-    // the panel 59px wider.
-    const panelOutside = `-${RULE_WIDTH}px`;
+    // A box is placed against its parent's padding edge, inside the border: the meter draws one and
+    // the helper does not, so the meter's corner stands a rule further out to meet the window's
+    // edge. Measured in Chrome 154 on 2026-09-28, where at one offset a 60px drag made the meter
+    // 59px wider.
+    const meterOutside = `-${RULE_WIDTH}px`;
     return `.${CLASS.sizeGrip}{position:absolute;right:0;bottom:0;` +
         `width:${SIZE_GRIP.sizePixels}px;height:${SIZE_GRIP.sizePixels}px;z-index:1;` +
         `color:var(${VARIABLE_PREFIX}quiet);background:linear-gradient(135deg,${strokes});` +
         `cursor:nwse-resize;touch-action:none;-webkit-user-select:none;user-select:none;}` +
-        `.${CLASS.meter}>.${CLASS.sizeGrip}{right:${panelOutside};bottom:${panelOutside};}` +
+        `.${CLASS.meter}>.${CLASS.sizeGrip}{right:${meterOutside};bottom:${meterOutside};}` +
         `.${CLASS.sizeGrip}:hover{color:var(${VARIABLE_PREFIX}text);}`;
 }

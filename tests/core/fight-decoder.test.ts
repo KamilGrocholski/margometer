@@ -221,7 +221,9 @@ function decode(
     roster: CombatantRoster | null = null,
     tables: DecoderTables = BLOWS_GRANTED,
 ): BattleEvent[] {
-    return [...decodePayloadMessages(messages, { roster, standing: null, tables }).events];
+    return [
+        ...decodePayloadMessages(messages, { roster, announcementStanding: null, tables }).events,
+    ];
 }
 
 /**
@@ -998,16 +1000,23 @@ Deno.test("a key spelled like what every object carries is unread, not an inheri
  * what was read beside the key: the payload's figures do not go short for it.
  */
 Deno.test("an unread message is a failure that keeps what it read", () => {
-    const decoded = decodeMessage(UNREAD, { roster: null, standing: null, tables: BLOWS_GRANTED });
+    const decoded = decodeMessage(UNREAD, {
+        roster: null,
+        announcementStanding: null,
+        tables: BLOWS_GRANTED,
+    });
     assertInstanceOf(decoded, UnreadMessage, "a message with a key nobody reads is a failure");
     assertStrictEquals(decoded.unreadCause, "unknown-key", "under the cause that left it so");
     assertEquals(decoded.keys, ["whatever_per"], "naming the key");
     assertEquals(decoded.events.map((one) => one.kind), ["skill-used"], "and what was read");
-    assertExists(decoded.standing, "the announcement it made still stands for the next one");
+    assertExists(
+        decoded.announcementStanding,
+        "the announcement it made still stands for the next one",
+    );
 
     const payload = decodePayloadMessages([UNREAD], {
         roster: null,
-        standing: null,
+        announcementStanding: null,
         tables: BLOWS_GRANTED,
     });
     assertEquals(payload.unread.length, 1, "the payload counts the message once");
@@ -1016,7 +1025,7 @@ Deno.test("an unread message is a failure that keeps what it read", () => {
 });
 
 Deno.test("a message read whole is no failure, and one of no parameters is", () => {
-    const context = { roster: null, standing: null, tables: BLOWS_GRANTED };
+    const context = { roster: null, announcementStanding: null, tables: BLOWS_GRANTED };
     assertNotInstanceOf(decodeMessage(ABSORBED, context), Error, "a blow read whole");
     const empty = decodeMessage("0;0", context);
     assertInstanceOf(empty, UnreadMessage, "a message stating nothing is read as nothing");
@@ -1038,13 +1047,13 @@ Deno.test("a message the grammar refuses ends a standing, as no blow does", () =
 Deno.test("the standing a payload ends on is what the next may start from", () => {
     const first = decodePayloadMessages([ANNOUNCEMENT], {
         roster: null,
-        standing: null,
+        announcementStanding: null,
         tables: BLOWS_GRANTED,
     });
-    assertExists(first.standing, "an announcement at a payload's end still stands");
+    assertExists(first.announcementStanding, "an announcement at a payload's end still stands");
     const carried = decodePayloadMessages([BLOW_AFTER], {
         roster: null,
-        standing: first.standing,
+        announcementStanding: first.announcementStanding,
         tables: BLOWS_GRANTED,
     });
     const blow = carried.events.find((event) => event.kind === BATTLE_EVENT.attack);

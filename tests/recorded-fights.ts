@@ -186,7 +186,7 @@ export function decodeRecordedFight(fight: RecordedFight): RecordedDecoding {
     const roster = indexCombatantRoster(fight.combatants);
     const decoding: RecordedDecoding = { events: [], unread: [] };
     for (const payload of fight.payloads) {
-        const context = { roster, standing: null, tables: BLOWS_GRANTED };
+        const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
         const decoded = decodePayloadMessages(payload, context);
         decoding.events.push(...decoded.events);
         decoding.unread.push(...decoded.unread);

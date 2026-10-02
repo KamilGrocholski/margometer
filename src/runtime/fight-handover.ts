@@ -36,7 +36,7 @@ export interface HandoverPorts {
     build: GameBuildPort;
     surroundings: BrowserSurroundingsPort;
     file: BrowserFileSink;
-    version: string;
+    addOnVersion: string;
 }
 
 /** The live fight as it is being read, for when the panel stands on it. */
@@ -52,53 +52,56 @@ interface Handover {
 }
 
 export function writeShownFightFile(
-    shown: ShownFight | null,
-    live: LiveHandover,
+    shownFight: ShownFight | null,
+    liveHandover: LiveHandover,
     ports: HandoverPorts,
     onLateFailure: (failure: errors.Caught) => void,
 ): undefined | ExportFailure {
-    assert(ports.version.length > 0, "a file names the build that wrote it");
-    if (shown === null) return new ShownFightAbsent();
+    assert(ports.addOnVersion.length > 0, "a file names the build that wrote it");
+    if (shownFight === null) return new ShownFightAbsent();
     // A fight that has ended is on the shelf and on the screen at once, and stays the live
     // recording through it: the one carrying the snapshots. The moment a live file states is now,
     // because what it says is when it was taken off.
     let handover: Handover;
-    if (shown.kept === null) {
+    if (shownFight.keptFight === null) {
         const now = ports.clock.readNowMilliseconds();
         let gameBuild: string | null;
         // Read the build: one the page will not state is absent, and no failure of the file's.
         {
-            const read = ports.build.readBuildId();
-            if (read instanceof Error) gameBuild = null;
+            const buildId = ports.build.readBuildId();
+            if (buildId instanceof Error) gameBuild = null;
             else {
-                assert(read.length > 0, "a build the page stated says something");
-                gameBuild = read;
+                assert(buildId.length > 0, "a build the page stated says something");
+                gameBuild = buildId;
             }
         }
         const surroundings = readFileSurroundings(ports, now, gameBuild);
         if (surroundings instanceof Error) return surroundings;
-        const subject = composeFileSubject(shown.state, live.place);
-        handover = { calls: live.capture, subject, surroundings };
+        const subject = composeFileSubject(shownFight.fightState, liveHandover.place);
+        handover = { calls: liveHandover.capture, subject, surroundings };
     } else {
-        const { kept, state } = shown;
+        const { keptFight, fightState } = shownFight;
         // A replay refuses the whole fight at the first payload it will not read, so every kept
         // payload has its messages: a file whose messages belonged to other calls cannot be
         // written.
-        const read = state.messagesByPayload.length;
-        assert(read === kept.payloads.length, "a kept fight was replayed payload by payload");
-        const calls = kept.payloads.map((payload, index) => ({
+        const payloadsReplayedCount = fightState.messagesByPayload.length;
+        assert(
+            payloadsReplayedCount === keptFight.payloads.length,
+            "a kept fight was replayed payload by payload",
+        );
+        const calls = keptFight.payloads.map((payload, index) => ({
             index,
             payload,
-            messages: state.messagesByPayload[index] ?? [],
+            messages: fightState.messagesByPayload[index] ?? [],
             combatantsBefore: null,
             combatantsAfter: null,
         }));
         // The world and the browser are the page's: a shelf is read out of one origin's store.
-        const surroundings = readFileSurroundings(ports, kept.openedAt, kept.gameBuild);
+        const surroundings = readFileSurroundings(ports, keptFight.openedAt, keptFight.gameBuild);
         if (surroundings instanceof Error) return surroundings;
         handover = {
             calls: { calls, droppedCalls: null, isTruncated: null },
-            subject: composeFileSubject(state, kept.place),
+            subject: composeFileSubject(fightState, keptFight.place),
             surroundings,
         };
     }
@@ -121,18 +124,18 @@ function readFileSurroundings(
         gameBuild,
         capturedAt,
         userAgent: ports.surroundings.readUserAgent(),
-        addOnVersion: ports.version,
+        addOnVersion: ports.addOnVersion,
     };
 }
 
-function composeFileSubject(reading: FightState, place: FightPlace | null): FileSubject {
-    assert(reading.view.payloadsApplied > 0, "a fight handed over was read from something");
+function composeFileSubject(fightState: FightState, place: FightPlace | null): FileSubject {
+    assert(fightState.view.payloadsApplied > 0, "a fight handed over was read from something");
     return {
-        statistics: reading.figures.statistics,
-        roster: reading.view.roster,
+        statistics: fightState.figures.statistics,
+        roster: fightState.view.roster,
         place,
-        payloads: reading.view.payloadsApplied,
-        messagesLost: reading.view.messagesLost,
-        isOver: reading.view.isOver,
+        payloadsApplied: fightState.view.payloadsApplied,
+        messagesLost: fightState.view.messagesLost,
+        isOver: fightState.view.isOver,
     };
 }

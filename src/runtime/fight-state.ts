@@ -40,8 +40,8 @@ export type ReplayFailure = EnvelopeFailure | PayloadRejected;
 
 /** The fight the panel stands on, and the kept one it was read off where that is what it is. */
 export type ShownFight =
-    | { kept: null; state: FightState }
-    | { kept: KeptFight; state: KeptFightState };
+    | { keptFight: null; fightState: FightState }
+    | { keptFight: KeptFight; fightState: KeptFightState };
 
 /** The figures, derived rather than kept, and verified in the one place they are balanced. */
 export function tallyFightState(view: FightView): FightState {
@@ -93,19 +93,19 @@ export function replayFightPayloads(
  * nothing to stand on, or where the kept fight no longer reads (a panel of zeroes is a claim).
  */
 export function lookupShownFight(
-    live: FightState | null,
-    openFightId: number | null,
+    liveFightState: FightState | null,
+    chosenFightOpenedAt: number | null,
     fights: readonly KeptFight[],
     lookupKeptFightState: (fight: KeptFight) => KeptFightState | null,
 ): ShownFight | null {
-    const kept = lookupShownKeptFight(live, openFightId, fights);
-    if (kept !== undefined) {
-        const state = lookupKeptFightState(kept);
-        if (state === null) return null;
-        return { kept, state };
+    const keptFight = lookupShownKeptFight(liveFightState, chosenFightOpenedAt, fights);
+    if (keptFight !== undefined) {
+        const keptFightState = lookupKeptFightState(keptFight);
+        if (keptFightState === null) return null;
+        return { keptFight, fightState: keptFightState };
     }
-    if (live === null) return null;
-    return { kept: null, state: live };
+    if (liveFightState === null) return null;
+    return { keptFight: null, fightState: liveFightState };
 }
 
 /**
@@ -113,15 +113,15 @@ export function lookupShownFight(
  * is going on. Undefined where the panel stands on the live fight, or on nothing.
  */
 export function lookupShownKeptFight(
-    live: FightState | null,
-    openFightId: number | null,
+    liveFightState: FightState | null,
+    chosenFightOpenedAt: number | null,
     fights: readonly KeptFight[],
 ): KeptFight | undefined {
     assert(fights.length <= KEPT_MAXIMUM, "a shelf walked is inside its stated bound");
-    const chosen = openFightId === null
+    const chosen = chosenFightOpenedAt === null
         ? undefined
-        : fights.find((one) => one.openedAt === openFightId);
-    return chosen ?? (live === null ? lookupNewestFight(fights) : undefined);
+        : fights.find((one) => one.openedAt === chosenFightOpenedAt);
+    return chosen ?? (liveFightState === null ? lookupNewestFight(fights) : undefined);
 }
 
 function lookupNewestFight(fights: readonly KeptFight[]): KeptFight | undefined {

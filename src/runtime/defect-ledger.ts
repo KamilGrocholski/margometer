@@ -50,23 +50,23 @@ const KINDS_COUNT = Object.values(DEFECT_KIND).length;
 /** Every kind, under every region and under none. */
 const ROWS_MAXIMUM = KINDS_COUNT * (Object.values(PANEL_REGION).length + 1);
 
-export function initDefectLedger(console: BrowserConsolePort): DefectLedger {
+export function initDefectLedger(browserConsole: BrowserConsolePort): DefectLedger {
     const counts = new Map<string, DefectCount>();
-    const written = new Set<DefectKind>();
+    const kindsWritten = new Set<DefectKind>();
     return {
         add(defect) {
-            const name = defect.region === null ? defect.kind : `${defect.kind}/${defect.region}`;
-            const held = counts.get(name);
-            if (held !== undefined) {
-                if (held.count < COUNT_MAXIMUM) held.count += 1;
+            const rowKey = defect.region === null ? defect.kind : `${defect.kind}/${defect.region}`;
+            const defectCount = counts.get(rowKey);
+            if (defectCount !== undefined) {
+                if (defectCount.count < COUNT_MAXIMUM) defectCount.count += 1;
                 return;
             }
             const { kind, region, failure } = defect;
-            counts.set(name, { kind, region, count: 1, first: failure });
+            counts.set(rowKey, { kind, region, count: 1, first: failure });
             assert(counts.size <= ROWS_MAXIMUM, "a ledger holds a row per kind and region at most");
-            if (written.has(kind)) return;
-            written.add(kind);
-            console.writeBrandedLine(kind, failure);
+            if (kindsWritten.has(kind)) return;
+            kindsWritten.add(kind);
+            browserConsole.writeBrandedLine(kind, failure);
         },
         getCounts() {
             const rows = [...counts.values()].map((one) => ({ ...one }));

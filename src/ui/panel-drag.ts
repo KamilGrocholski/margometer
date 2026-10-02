@@ -88,7 +88,7 @@ interface PanelDragState {
 }
 
 /** A window a card stands beside: where its left edge is, and how wide it stands. */
-export interface TipWindowPlace {
+export interface CardWindowPlace {
     position: PanelPosition;
     widthPixels: number;
 }
@@ -99,7 +99,7 @@ export interface TipWindowPlace {
  * left offset worked out from the bound would leave a card of two words floating the difference
  * away from the window it belongs to. The edge facing the window is the one that is pinned.
  */
-export interface TipAcross {
+export interface CardAcross {
     edge: "left" | "right";
     at: number;
 }
@@ -191,9 +191,9 @@ export function clampPosition(
 function getPositionWithin(value: number, limit: number): number {
     if (!Number.isFinite(value)) return 0;
     if (!Number.isFinite(limit)) return Math.round(value);
-    const held = Math.round(clamp(value, 0, limit));
-    if (!Number.isSafeInteger(held)) return 0;
-    return held;
+    const rounded = Math.round(clamp(value, 0, limit));
+    if (!Number.isSafeInteger(rounded)) return 0;
+    return rounded;
 }
 
 /**
@@ -206,12 +206,12 @@ function getPositionWithin(value: number, limit: number): number {
  */
 export function composeDefaultPosition(
     viewport: PanelViewport | null,
-    panelWidthPixels: number,
+    meterWidthPixels: number,
 ): PanelPosition | null {
     if (viewport === null) return null;
     const height = viewport.height * PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM / 100;
     return clampPosition({
-        left: (viewport.width - panelWidthPixels) / 2,
+        left: (viewport.width - meterWidthPixels) / 2,
         top: (viewport.height - height) / 2,
     }, viewport);
 }
@@ -225,13 +225,13 @@ export function composeDefaultPosition(
  */
 export function composePositionStyle(
     position: PanelPosition,
-    windowName: PanelWindow,
+    panelWindow: PanelWindow,
 ): string | null {
     if (!Number.isSafeInteger(position.left)) return null;
     if (!Number.isSafeInteger(position.top)) return null;
     const left = formatWholeUngrouped(position.left);
     const top = formatWholeUngrouped(position.top);
-    return `left:${left}px;top:${top}px;${TOP_VARIABLES[windowName]}:${top}px;right:auto`;
+    return `left:${left}px;top:${top}px;${TOP_VARIABLES[panelWindow]}:${top}px;right:auto`;
 }
 
 /**
@@ -241,17 +241,17 @@ export function composePositionStyle(
 export function composeHostStyle(
     position: PanelPosition | null,
     size: WindowSize | null,
-    windowName: PanelWindow,
+    panelWindow: PanelWindow,
 ): string | null {
-    const placed = position === null ? null : composePositionStyle(position, windowName);
+    const placed = position === null ? null : composePositionStyle(position, panelWindow);
     if (size === null) return placed;
     if (!Number.isSafeInteger(size.width)) return placed;
     if (!Number.isSafeInteger(size.height)) return placed;
-    const variables = SIZE_VARIABLES[windowName];
+    const variables = SIZE_VARIABLES[panelWindow];
     const width = formatWholeUngrouped(size.width);
     const height = formatWholeUngrouped(size.height);
     const both = `${variables.width}:${width}px;${variables.height}:${height}px`;
-    const sized = windowName === PANEL_WINDOW.meter ? `${both};${composeSizedPanelStyle()}` : both;
+    const sized = panelWindow === PANEL_WINDOW.meter ? `${both};${composeSizedPanelStyle()}` : both;
     return placed === null ? sized : `${placed};${sized}`;
 }
 
@@ -261,14 +261,14 @@ export function composeHostStyle(
  * tallest reaches the bottom of the screen. A screen too small for the least is given the least.
  */
 export function composeSizeBounds(
-    windowName: PanelWindow,
+    panelWindow: PanelWindow,
     tokens: TypeTokens,
     position: PanelPosition | null,
     viewport: PanelViewport | null,
 ): SizeBounds {
-    const widthMinimum = getWindowWidthPixels(windowName, tokens);
+    const widthMinimum = getWindowWidthPixels(panelWindow, tokens);
     const rowCost = tokens.rowHeightPixels + SPACE_PIXELS.half;
-    const heightMinimum = ROWS_BY_WINDOW_MINIMUM[windowName] * rowCost;
+    const heightMinimum = ROWS_BY_WINDOW_MINIMUM[panelWindow] * rowCost;
     let widthMaximum = widthMinimum * WIDTH_TIMES_TYPE_MAXIMUM;
     let heightMaximum = Number.POSITIVE_INFINITY;
     if (viewport !== null) {
@@ -290,12 +290,15 @@ export function composeSizeBounds(
 }
 
 /** How wide a window stands at its type, which is also the narrowest it may be made. */
-function getWindowWidthPixels(windowName: PanelWindow, tokens: TypeTokens): number {
-    if (windowName === PANEL_WINDOW.helper) return tokens.helperWidthPixels;
-    return tokens.panelWidthPixels;
+function getWindowWidthPixels(panelWindow: PanelWindow, tokens: TypeTokens): number {
+    if (panelWindow === PANEL_WINDOW.helper) return tokens.helperWidthPixels;
+    return tokens.meterWidthPixels;
 }
 
-/** **Every size downstream of this is whole and inside its bounds**, and one not stated is the least. */
+/**
+ * **Every size downstream of this is whole and inside its bounds**, and one not stated is the
+ * least.
+ */
 export function clampSize(size: WindowSize, bounds: SizeBounds): WindowSize {
     const width = Number.isFinite(size.width) ? size.width : bounds.widthMinimum;
     const height = Number.isFinite(size.height) ? size.height : bounds.heightMinimum;
@@ -317,17 +320,17 @@ export function clampSize(size: WindowSize, bounds: SizeBounds): WindowSize {
  * crossing two rows would watch it jump the window. The bound is what every card was placed by
  * before `develop ADR 0091`, so this half of the answer does not move.
  */
-export function composeTipAcross(
-    anchor: TipWindowPlace | null,
+export function composeCardAcross(
+    anchor: CardWindowPlace | null,
     viewport: PanelViewport | null,
-    tipWidthMaximum: number,
-): TipAcross | null {
-    if (!Number.isFinite(tipWidthMaximum)) return null;
-    if (tipWidthMaximum <= 0) return null;
+    cardWidthMaximum: number,
+): CardAcross | null {
+    if (!Number.isFinite(cardWidthMaximum)) return null;
+    if (cardWidthMaximum <= 0) return null;
     if (anchor === null) return null;
     if (viewport === null) return null;
     const gap = SPACE_PIXELS.small;
-    if (anchor.position.left - tipWidthMaximum - gap >= 0) {
+    if (anchor.position.left - cardWidthMaximum - gap >= 0) {
         return { edge: "right", at: viewport.width - anchor.position.left + gap };
     }
     const right = composeWindowRight(anchor);
@@ -336,11 +339,11 @@ export function composeTipAcross(
     // further left than it had to — on the screen, which is what this line is for.
     return {
         edge: "left",
-        at: Math.min(right + gap, Math.max(0, viewport.width - tipWidthMaximum)),
+        at: Math.min(right + gap, Math.max(0, viewport.width - cardWidthMaximum)),
     };
 }
 
-function composeWindowRight(place: TipWindowPlace): number {
+function composeWindowRight(place: CardWindowPlace): number {
     return place.position.left + place.widthPixels;
 }
 
@@ -445,7 +448,7 @@ export function initPanelDrag(
                 addViewFailureGuarded(options.onFailure, failure);
             });
         };
-        const getHeld = (grab: PanelGrab): PanelElement => {
+        const getGrabbedElement = (grab: PanelGrab): PanelElement => {
             if (grab.kind === GRAB_KIND.size) return options.grip;
             return getBar();
         };
@@ -453,13 +456,13 @@ export function initPanelDrag(
             const started = composePanelDragGrab(event, state, placement, options);
             if (started === null) return;
             state.grab = started;
-            setPointerHeld(getHeld(started), true, event.pointerId, options);
+            setPointerHeld(getGrabbedElement(started), true, event.pointerId, options);
         });
         const onDragEnd = (): void => {
             const grab = state.grab;
             if (grab === null) return;
             state.grab = null;
-            setPointerHeld(getHeld(grab), false, grab.pointerId, options);
+            setPointerHeld(getGrabbedElement(grab), false, grab.pointerId, options);
             const window = options.window;
             if (grab.kind === GRAB_KIND.size) {
                 const size = state.size;
@@ -559,12 +562,12 @@ function writePanelDragPosition(
 
 /** Where a window nobody has moved opens, which is not the same place for both of them. */
 function composeOpeningPosition(
-    windowName: PanelWindow,
+    panelWindow: PanelWindow,
     viewport: PanelViewport | null,
     tokens: TypeTokens,
 ): PanelPosition | null {
-    if (windowName === PANEL_WINDOW.helper) return composeHelperOpeningPosition(viewport, tokens);
-    return composeDefaultPosition(viewport, tokens.panelWidthPixels);
+    if (panelWindow === PANEL_WINDOW.helper) return composeHelperOpeningPosition(viewport, tokens);
+    return composeDefaultPosition(viewport, tokens.meterWidthPixels);
 }
 
 /**
@@ -576,13 +579,13 @@ function composeHelperOpeningPosition(
     viewport: PanelViewport | null,
     tokens: TypeTokens,
 ): PanelPosition | null {
-    const panel = composeDefaultPosition(viewport, tokens.panelWidthPixels);
-    if (panel === null) return null;
+    const meter = composeDefaultPosition(viewport, tokens.meterWidthPixels);
+    if (meter === null) return null;
     const gap = SPACE_PIXELS.small;
-    const beside = panel.left - tokens.helperWidthPixels - gap;
-    if (beside >= 0) return clampPosition({ left: beside, top: panel.top }, viewport);
+    const beside = meter.left - tokens.helperWidthPixels - gap;
+    if (beside >= 0) return clampPosition({ left: beside, top: meter.top }, viewport);
     // No room on the left, so the other side — the same answer the card gives (`develop ADR 0090`).
-    const other = { left: panel.left + tokens.panelWidthPixels + gap, top: panel.top };
+    const other = { left: meter.left + tokens.meterWidthPixels + gap, top: meter.top };
     return clampPosition(other, viewport);
 }
 
@@ -609,7 +612,7 @@ function composePanelDragGrab(
     if (pointer === null) return null;
     const tokens = options.getTypeTokens();
     const from = state.position ??
-        composeDefaultPosition(placement.readViewport(), tokens.panelWidthPixels);
+        composeDefaultPosition(placement.readViewport(), tokens.meterWidthPixels);
     if (from === null) return null;
     // Without this the browser starts its own text or image drag from the bar.
     event.preventDefault?.();
@@ -687,12 +690,12 @@ function setPointerHeld(
     options: PanelDragOptions,
 ): void {
     if (pointerId === undefined) return;
-    const held = errors.attempt(() => {
+    const captured = errors.attempt(() => {
         if (isHeld) bar.setPointerCapture?.(pointerId);
         else bar.releasePointerCapture?.(pointerId);
     });
-    if (!(held instanceof Error)) return;
-    addViewFailureGuarded(options.onFailure, new GestureDropped(PANEL_LISTENER.capture, held));
+    if (!(captured instanceof Error)) return;
+    addViewFailureGuarded(options.onFailure, new GestureDropped(PANEL_LISTENER.capture, captured));
 }
 
 function composeDraggedPosition(

@@ -17,7 +17,7 @@ export const TEST_VERSION = "0.0.0-test";
 
 /** Waiting with nothing to say, which is the panel before its first fight. */
 export const NOTHING_WAITING: WaitingContent = {
-    isCollapsed: false,
+    isMeterCollapsed: false,
     defects: [],
     hasFightToSave: false,
     isFightUnread: false,
@@ -32,11 +32,11 @@ export function initTestView(
     options: Partial<PanelViewOptions> = {},
 ): PanelView {
     return initPanelView(document, {
-        version: TEST_VERSION,
+        addOnVersion: TEST_VERSION,
         typeStep: TYPE_STEP_DEFAULT,
         onIntent: () => {},
         onFailure: () => {},
-        placement: null,
+        meterPlacement: null,
         helperPlacement: null,
         translate: null,
         ...options,

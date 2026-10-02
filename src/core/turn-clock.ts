@@ -16,26 +16,26 @@ import { PREPARE_KEY, STEP_KEY } from "./protocol-key.ts";
  * action rides it.
  */
 export interface TurnStanding {
-    strikingId: number | null;
-    actingId: number | null;
+    announcedStrikerId: number | null;
+    lastActorId: number | null;
 }
 
 /** Where a fight starts: nobody mid-blow and nobody having acted. */
-export const NO_TURN_STANDING: TurnStanding = { strikingId: null, actingId: null };
+export const NO_TURN_STANDING: TurnStanding = { announcedStrikerId: null, lastActorId: null };
 
 /** Whose turn this event opens, or null where it opens none. */
-export function lookupTurnOpener(event: BattleEvent, standing: TurnStanding): number | null {
+export function lookupTurnOpener(event: BattleEvent, turnStanding: TurnStanding): number | null {
     if (event.kind === BATTLE_EVENT.skillUsed) return event.actorId;
     if (event.kind === BATTLE_EVENT.attack) {
         if (event.announced !== null) return null;
-        if (standing.strikingId === event.actorId) return null;
+        if (turnStanding.announcedStrikerId === event.actorId) return null;
         return event.actorId;
     }
     if (event.kind !== BATTLE_EVENT.declaration) return null;
     const key = lookupDeclarationOpenerKey(event);
     if (key === STEP_KEY) return event.combatantId;
     if (key === null) return null;
-    if (standing.actingId === event.combatantId) return null;
+    if (turnStanding.lastActorId === event.combatantId) return null;
     return event.combatantId;
 }
 
@@ -63,18 +63,18 @@ function hasDeclaredEffect(event: DeclarationEvent, effect: string): boolean {
 export function addEventTurns(
     turnsByCombatantId: Map<number, number>,
     event: BattleEvent,
-    standing: TurnStanding,
+    turnStanding: TurnStanding,
 ): TurnStanding {
-    addTurn(turnsByCombatantId, lookupTurnOpener(event, standing));
+    addTurn(turnsByCombatantId, lookupTurnOpener(event, turnStanding));
     if (event.kind === BATTLE_EVENT.turnLost) addTurn(turnsByCombatantId, event.combatantId);
-    return composeTurnStanding(event, standing);
+    return composeTurnStanding(event, turnStanding);
 }
 
 function addTurn(turnsByCombatantId: Map<number, number>, combatantId: number | null): void {
     if (combatantId === null) return;
-    const taken = turnsByCombatantId.get(combatantId) ?? 0;
-    assert(taken >= 0, "a count of turns is never below nothing");
-    turnsByCombatantId.set(combatantId, taken + 1);
+    const turnsTaken = turnsByCombatantId.get(combatantId) ?? 0;
+    assert(turnsTaken >= 0, "a count of turns is never below nothing");
+    turnsByCombatantId.set(combatantId, turnsTaken + 1);
 }
 
 /**
@@ -82,22 +82,30 @@ function addTurn(turnsByCombatantId: Map<number, number>, combatantId: number | 
  * announcement's own; anything else ends it, and an event that is nobody's action ends both
  * halves. Damage stated by name is its actor's action as much as a blow is.
  */
-export function composeTurnStanding(event: BattleEvent, standing: TurnStanding): TurnStanding {
-    if (standing.strikingId !== null) {
-        assert(standing.strikingId === standing.actingId, "whoever is mid-blow acted last");
+export function composeTurnStanding(event: BattleEvent, turnStanding: TurnStanding): TurnStanding {
+    if (turnStanding.announcedStrikerId !== null) {
+        assert(
+            turnStanding.announcedStrikerId === turnStanding.lastActorId,
+            "whoever is mid-blow acted last",
+        );
     }
     if (event.kind === BATTLE_EVENT.attack) {
         let isStriking: boolean;
         if (event.announced !== null) isStriking = true;
-        else isStriking = standing.strikingId === event.actorId;
-        return { strikingId: isStriking ? event.actorId : null, actingId: event.actorId };
+        else isStriking = turnStanding.announcedStrikerId === event.actorId;
+        return {
+            announcedStrikerId: isStriking ? event.actorId : null,
+            lastActorId: event.actorId,
+        };
     }
-    if (event.kind === BATTLE_EVENT.skillUsed) return { strikingId: null, actingId: event.actorId };
+    if (event.kind === BATTLE_EVENT.skillUsed) {
+        return { announcedStrikerId: null, lastActorId: event.actorId };
+    }
     if (event.kind === BATTLE_EVENT.damageToNamedCombatant) {
-        return { strikingId: null, actingId: event.actorId };
+        return { announcedStrikerId: null, lastActorId: event.actorId };
     }
     if (event.kind === BATTLE_EVENT.declaration) {
-        return { strikingId: null, actingId: standing.actingId };
+        return { announcedStrikerId: null, lastActorId: turnStanding.lastActorId };
     }
     return NO_TURN_STANDING;
 }

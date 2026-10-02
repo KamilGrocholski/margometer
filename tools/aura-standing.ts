@@ -99,7 +99,7 @@ export function tallyAuraRows(stepped: readonly SteppedFight[]): AuraRow[] {
             // Add what stands at this moment to the register.
             {
                 const atOnce = new Map<number, number>();
-                for (const standing of held.standings) {
+                for (const standing of held.auras) {
                     atOnce.set(standing.skillId, (atOnce.get(standing.skillId) ?? 0) + 1);
                     const tally = tallies.get(standing.skillId) ?? {
                         row: {
@@ -163,7 +163,7 @@ export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
                 }
                 assert(keysByCast.size <= view.events.length, "a cast is registered off an event");
             }
-            const held = replayAuraStandings(view, STATED_SKILLS).standings;
+            const held = replayAuraStandings(view, STATED_SKILLS).auras;
             const casterIdsByKey = new Map<string, number[]>();
             for (const one of held) {
                 for (const key of keysByCast.get(`${one.casterId}/${one.skillId}`) ?? []) {

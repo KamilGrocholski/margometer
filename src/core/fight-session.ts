@@ -140,7 +140,7 @@ export class PayloadsExceeded extends Error {
 export type PayloadRejected = CombatantsExceeded | EventsExceeded | PayloadsExceeded;
 
 /** Everything a payload leaves standing, but the events, which are appended rather than copied. */
-interface SessionStanding {
+interface SessionState {
     readonly combatants: readonly Combatant[];
     readonly unread: UnreadCounts;
     readonly messagesLost: number;
@@ -152,23 +152,23 @@ interface SessionStanding {
     readonly turnStatement: TurnStatement | null;
     readonly isOnAuto: boolean;
     readonly chargedSkills: readonly ChargedSkillStanding[];
-    readonly carried: CarriedStatusWalk;
-    readonly legendary: LegendaryWalk;
+    readonly carriedStatusWalk: CarriedStatusWalk;
+    readonly legendaryWalk: LegendaryWalk;
 }
 
 export interface FightSession {
     readonly options: SessionOptions;
     /** Null until a payload has arrived: a fight nobody has seen is not a fight with no figures. */
-    standing: SessionStanding | null;
+    state: SessionState | null;
     events: BattleEvent[];
 }
 
 export interface PreparedPayload {
-    /** What the standing it was prepared against had applied; a fight that opens has none. */
+    /** What the state it was prepared against had applied; a fight that opens has none. */
     readonly payloadIndex: number;
     readonly isOpening: boolean;
     readonly decoded: PayloadDecoded;
-    readonly next: SessionStanding;
+    readonly next: SessionState;
 }
 
 export interface PayloadCommitted {
@@ -199,13 +199,13 @@ export function createFightSession(options: SessionOptions): FightSession {
     assert(options.combatantsMaximum <= COMBATANTS_MAXIMUM, "a cast is bounded by the roster");
     assert(options.eventsMaximum > MESSAGES_MAXIMUM, "a fight holds more than one full payload");
     assert(options.payloadsMaximum > 0, "a fight holds a payload");
-    return { options, standing: null, events: [] };
+    return { options, state: null, events: [] };
 }
 
 export function getSessionPhase(session: FightSession): SessionPhase {
-    if (session.standing === null) return SESSION_PHASE.waiting;
-    assert(session.standing.payloadsApplied > 0, "a fight that exists was built from something");
-    if (session.standing.isOver) return SESSION_PHASE.over;
+    if (session.state === null) return SESSION_PHASE.waiting;
+    assert(session.state.payloadsApplied > 0, "a fight that exists was built from something");
+    if (session.state.isOver) return SESSION_PHASE.over;
     return SESSION_PHASE.underway;
 }
 
@@ -215,27 +215,31 @@ export function preparePayload(
     record: PayloadRecord,
     tables: DecoderTables,
 ): PreparedPayload | PayloadRejected {
-    const before = record.isInit ? null : session.standing;
-    const eventsBefore = before === null ? 0 : session.events.length;
-    const payloadsApplied = (before?.payloadsApplied ?? 0) + 1;
+    const stateBefore = record.isInit ? null : session.state;
+    const eventsBefore = stateBefore === null ? 0 : session.events.length;
+    const payloadsApplied = (stateBefore?.payloadsApplied ?? 0) + 1;
     const options = session.options;
     if (payloadsApplied > options.payloadsMaximum) {
         return new PayloadsExceeded(payloadsApplied, options.payloadsMaximum);
     }
-    const combatants = preparePayloadCombatants(before?.combatants ?? [], record.combatants);
+    const combatants = preparePayloadCombatants(stateBefore?.combatants ?? [], record.combatants);
     if (combatants.length > options.combatantsMaximum) {
         return new CombatantsExceeded(combatants.length, options.combatantsMaximum);
     }
     const roster = indexCombatantRoster(combatants);
-    const decoded = decodePayloadMessages(record.messages, { roster, standing: null, tables });
+    const decoded = decodePayloadMessages(record.messages, {
+        roster,
+        announcementStanding: null,
+        tables,
+    });
     const eventsAfter = eventsBefore + decoded.events.length;
     if (eventsAfter > options.eventsMaximum) {
         return new EventsExceeded(eventsAfter, options.eventsMaximum);
     }
-    const next = preparePayloadStanding(before, record, decoded, combatants);
+    const next = preparePayloadStanding(stateBefore, record, decoded, combatants);
     assert(next.payloadsApplied === payloadsApplied, "a payload prepared is counted once");
-    const payloadIndex = before?.payloadsApplied ?? 0;
-    return { payloadIndex, isOpening: before === null, decoded, next };
+    const payloadIndex = stateBefore?.payloadsApplied ?? 0;
+    return { payloadIndex, isOpening: stateBefore === null, decoded, next };
 }
 
 /**
@@ -244,60 +248,74 @@ export function preparePayload(
  * sightings where the bound counts people.
  */
 function preparePayloadCombatants(
-    before: readonly Combatant[],
-    arriving: readonly Combatant[],
+    combatantsBefore: readonly Combatant[],
+    combatantsArriving: readonly Combatant[],
 ): Combatant[] {
-    const combatants = [...before];
-    for (const combatant of arriving) {
-        const seen = combatants.findIndex((one) => one.id === combatant.id);
-        if (seen === -1) combatants.push(combatant);
-        else combatants[seen] = combatant;
+    const combatants = [...combatantsBefore];
+    for (const combatant of combatantsArriving) {
+        const seenIndex = combatants.findIndex((one) => one.id === combatant.id);
+        if (seenIndex === -1) combatants.push(combatant);
+        else combatants[seenIndex] = combatant;
     }
-    assert(combatants.length >= before.length, "a cast only grows or is restated");
-    assert(combatants.length <= before.length + arriving.length, "by no more than arrived");
+    assert(combatants.length >= combatantsBefore.length, "a cast only grows or is restated");
+    assert(
+        combatants.length <= combatantsBefore.length + combatantsArriving.length,
+        "by no more than arrived",
+    );
     return combatants;
 }
 
 function preparePayloadStanding(
-    before: SessionStanding | null,
+    stateBefore: SessionState | null,
     record: PayloadRecord,
     decoded: PayloadDecoded,
     combatants: readonly Combatant[],
-): SessionStanding {
+): SessionState {
     // Kept once seen: a payload saying nothing about it would otherwise end the auto fight a reader
     // is watching. No payload states an auto fight and a queue at once (`captures/`
     // 2026-09-09), so what the game stated before it took the fight over is not the turn in hand.
-    const isOnAuto = record.isOnAuto ?? before?.isOnAuto ?? false;
-    const turnStatement = isOnAuto ? null : (record.turnStatement ?? before?.turnStatement ?? null);
+    const isOnAuto = record.isOnAuto ?? stateBefore?.isOnAuto ?? false;
+    const turnStatement = isOnAuto
+        ? null
+        : (record.turnStatement ?? stateBefore?.turnStatement ?? null);
     const chargedSkills = prepareChargedSkills(
-        before?.chargedSkills ?? [],
+        stateBefore?.chargedSkills ?? [],
         record.chargeStatements,
         decoded.events,
         turnStatement?.ordinal ?? null,
     );
     const events = decoded.events;
-    const masks = record.statusMasksByCombatantId;
+    const statusMasksByCombatantId = record.statusMasksByCombatantId;
     return {
         combatants,
-        unread: preparePayloadUnread(before?.unread ?? NO_UNREAD, decoded),
-        messagesLost: (before?.messagesLost ?? 0) + countMessagesLost(record),
-        messagesRead: (before?.messagesRead ?? 0) + record.messages.length,
+        unread: preparePayloadUnread(stateBefore?.unread ?? NO_UNREAD, decoded),
+        messagesLost: (stateBefore?.messagesLost ?? 0) + countMessagesLost(record),
+        messagesRead: (stateBefore?.messagesRead ?? 0) + record.messages.length,
         // `init` arrives once, so only the first payload of a fight can answer this.
-        hasJoinedInProgress: before === null ? !record.isInit : before.hasJoinedInProgress,
-        isOver: record.isEnd || (before?.isOver ?? false),
-        payloadsApplied: (before?.payloadsApplied ?? 0) + 1,
+        hasJoinedInProgress: stateBefore === null
+            ? !record.isInit
+            : stateBefore.hasJoinedInProgress,
+        isOver: record.isEnd || (stateBefore?.isOver ?? false),
+        payloadsApplied: (stateBefore?.payloadsApplied ?? 0) + 1,
         // Kept once seen, because only the opening payload carries it.
-        readerSide: record.readerSide ?? before?.readerSide ?? null,
+        readerSide: record.readerSide ?? stateBefore?.readerSide ?? null,
         turnStatement,
         isOnAuto,
         chargedSkills,
-        carried: prepareCarriedStatusWalk(before?.carried ?? NO_CARRIED_STATUS_WALK, events, masks),
-        legendary: prepareLegendaryWalk(before?.legendary ?? NO_LEGENDARY_WALK, events),
+        carriedStatusWalk: prepareCarriedStatusWalk(
+            stateBefore?.carriedStatusWalk ?? NO_CARRIED_STATUS_WALK,
+            events,
+            statusMasksByCombatantId,
+        ),
+        legendaryWalk: prepareLegendaryWalk(
+            stateBefore?.legendaryWalk ?? NO_LEGENDARY_WALK,
+            events,
+        ),
     };
 }
 
-function preparePayloadUnread(before: UnreadCounts, decoded: PayloadDecoded): UnreadCounts {
-    const counts = { ...before };
+function preparePayloadUnread(unreadBefore: UnreadCounts, decoded: PayloadDecoded): UnreadCounts {
+    const counts = { ...unreadBefore };
     for (const unread of decoded.unread) counts[unread.unreadCause] += 1;
     assert(decoded.unread.length <= decoded.events.length, "an unread message is an event too");
     return counts;
@@ -309,26 +327,26 @@ function preparePayloadUnread(before: UnreadCounts, decoded: PayloadDecoded): Un
  */
 function countMessagesLost(record: PayloadRecord): number {
     if (record.messagesStated === null) return 0;
-    const lost = record.messagesStated - record.messages.length;
+    const messagesLost = record.messagesStated - record.messages.length;
     assert(record.messagesStated <= MESSAGES_MAXIMUM, "the envelope bounded what it stated");
-    if (lost <= 0) return 0;
-    return lost;
+    if (messagesLost <= 0) return 0;
+    return messagesLost;
 }
 
 /** Phase two: the write alone. Nothing here can fail but an assertion. */
 export function commitPayload(session: FightSession, prepared: PreparedPayload): PayloadCommitted {
-    const wasOver = session.standing?.isOver ?? false;
+    const wasOver = session.state?.isOver ?? false;
     if (prepared.isOpening) {
         session.events = [];
     } else {
-        assert(session.standing !== null, "a payload read against a fight lands on that fight");
-        const applied = session.standing.payloadsApplied;
-        assert(applied === prepared.payloadIndex, "and on the payload it was read against");
+        assert(session.state !== null, "a payload read against a fight lands on that fight");
+        const payloadsApplied = session.state.payloadsApplied;
+        assert(payloadsApplied === prepared.payloadIndex, "and on the payload it was read against");
     }
     const events = prepared.decoded.events;
     assert(session.events.length + events.length <= session.options.eventsMaximum, "bounded");
     for (const event of events) session.events.push(event);
-    session.standing = prepared.next;
+    session.state = prepared.next;
     let hasClosed: boolean;
     if (prepared.next.isOver) hasClosed = prepared.isOpening || !wasOver;
     else hasClosed = false;
@@ -342,25 +360,25 @@ export function commitPayload(session: FightSession, prepared: PreparedPayload):
 
 /** A reading of the fight: the arrays are the session's own, and nothing here writes to them. */
 export function composeFightView(session: FightSession): FightView | null {
-    const standing = session.standing;
-    if (standing === null) return null;
-    assert(standing.payloadsApplied > 0, "a fight that exists was built from something");
-    assert(standing.chargedSkills.length <= CHARGED_SKILLS_MAXIMUM, "and bounds what it charges");
+    const state = session.state;
+    if (state === null) return null;
+    assert(state.payloadsApplied > 0, "a fight that exists was built from something");
+    assert(state.chargedSkills.length <= CHARGED_SKILLS_MAXIMUM, "and bounds what it charges");
     return {
-        roster: indexCombatantRoster(standing.combatants),
+        roster: indexCombatantRoster(state.combatants),
         events: session.events,
-        unread: standing.unread,
-        messagesLost: standing.messagesLost,
-        messagesRead: standing.messagesRead,
-        hasJoinedInProgress: standing.hasJoinedInProgress,
-        isOver: standing.isOver,
-        readerSide: standing.readerSide,
-        turnStatement: standing.turnStatement,
-        isOnAuto: standing.isOnAuto,
-        payloadsApplied: standing.payloadsApplied,
-        chargedSkills: standing.chargedSkills,
-        carriedStatuses: composeCarriedStatuses(standing.carried),
-        legendaryStandings: composeLegendaryStandings(standing.legendary),
-        turnsByCombatantId: standing.carried.turnsByCombatantId,
+        unread: state.unread,
+        messagesLost: state.messagesLost,
+        messagesRead: state.messagesRead,
+        hasJoinedInProgress: state.hasJoinedInProgress,
+        isOver: state.isOver,
+        readerSide: state.readerSide,
+        turnStatement: state.turnStatement,
+        isOnAuto: state.isOnAuto,
+        payloadsApplied: state.payloadsApplied,
+        chargedSkills: state.chargedSkills,
+        carriedStatuses: composeCarriedStatuses(state.carriedStatusWalk),
+        legendaryStandings: composeLegendaryStandings(state.legendaryWalk),
+        turnsByCombatantId: state.carriedStatusWalk.turnsByCombatantId,
     };
 }

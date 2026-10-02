@@ -209,7 +209,7 @@ Deno.test("the table reaches 252 blows, and the bound reaches three the table ca
 function decodeWithTable(fight: RecordedFight, tables: DecoderTables): BattleEvent[] {
     const roster = indexCombatantRoster(fight.combatants);
     return fight.payloads.flatMap((payload) => [
-        ...decodePayloadMessages(payload, { roster, standing: null, tables }).events,
+        ...decodePayloadMessages(payload, { roster, announcementStanding: null, tables }).events,
     ]);
 }
 

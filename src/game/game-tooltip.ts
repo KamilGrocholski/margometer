@@ -66,44 +66,47 @@ export const ROWS_WRITTEN_MAXIMUM = 20;
  * that tooltip and the block goes on again. So every fighter is written on every frame and nobody
  * takes two blocks, whichever of the client's updates rebuilt whom (`develop ADR 0111`).
  */
-export function initGameTooltip(page: unknown): GameTooltipPort {
+export function initGameTooltip(browserWindow: unknown): GameTooltipPort {
     let blocksById = new Map<number, string>();
     return {
         writeRows(rowsByCombatantId) {
             const asked = [...rowsByCombatantId.values()].filter((rows) => rows.length > 0).length;
             assert(asked <= COMBATANTS_MAXIMUM, "no more blocks than a fight puts on a board");
-            const next = new Map(blocksById);
+            const nextBlocksById = new Map(blocksById);
             // Write every fighter's block, and forget a fighter the page no longer draws, which
             // keeps one board's worth in memory.
-            const walked = errors.attempt(() => {
-                const warriors = readGameWarriorsNamed(readGameBattleRecord(page));
+            const blocksWritten = errors.attempt(() => {
+                const warriors = readGameWarriorsNamed(readGameBattleRecord(browserWindow));
                 if (warriors instanceof Error) return 0;
                 let written = 0;
-                const drawn = new Set<number>();
+                const drawnIds = new Set<number>();
                 for (const warrior of warriors) {
                     const id = warrior[WARRIOR_ID_KEY];
                     if (typeof id !== "number") continue;
-                    drawn.add(id);
+                    drawnIds.add(id);
                     const block = encodeTooltipBlock(rowsByCombatantId.get(id) ?? []);
-                    const was = next.get(id) ?? "";
-                    const stands = writeGameWarriorBlock(warrior, block, was);
-                    if (stands === null) continue;
-                    if (stands) next.set(id, block);
-                    else next.delete(id);
-                    if (stands) written += 1;
+                    const blockBefore = nextBlocksById.get(id) ?? "";
+                    const isBlockOn = writeGameWarriorBlock(warrior, block, blockBefore);
+                    if (isBlockOn === null) continue;
+                    if (isBlockOn) nextBlocksById.set(id, block);
+                    else nextBlocksById.delete(id);
+                    if (isBlockOn) written += 1;
                 }
-                for (const id of [...next.keys()]) {
-                    if (!drawn.has(id)) next.delete(id);
+                for (const id of [...nextBlocksById.keys()]) {
+                    if (!drawnIds.has(id)) nextBlocksById.delete(id);
                 }
-                assert(next.size <= COMBATANTS_MAXIMUM, "remembered blocks stay one board's worth");
+                assert(
+                    nextBlocksById.size <= COMBATANTS_MAXIMUM,
+                    "remembered blocks stay one board's worth",
+                );
                 return written;
             });
             // ⚠️ Kept whatever the walk came to: a block that went on before a throw of theirs,
             // forgotten, would be looked for as the old one and put on a second time.
-            blocksById = next;
-            if (walked instanceof Error) return walked;
-            assert(walked <= asked, "no more blocks landed than were composed");
-            return { written: walked, asked };
+            blocksById = nextBlocksById;
+            if (blocksWritten instanceof Error) return blocksWritten;
+            assert(blocksWritten <= asked, "no more blocks landed than were composed");
+            return { written: blocksWritten, asked };
         },
     };
 }
@@ -123,19 +126,23 @@ function encodeTooltipBlock(rows: readonly string[]): string {
  * through `tip` with the registry's own string less ours. `tipupdate` goes after the rows, because
  * `concatTip` triggers nothing.
  */
-function writeGameWarriorBlock(warrior: UnknownRecord, block: string, was: string): boolean | null {
-    const held = warrior[WARRIOR_ELEMENT_FIELD];
-    if (!isRecord(held)) return null;
-    const find = held[FIND_METHOD];
+function writeGameWarriorBlock(
+    warrior: UnknownRecord,
+    block: string,
+    blockBefore: string,
+): boolean | null {
+    const warriorElement = warrior[WARRIOR_ELEMENT_FIELD];
+    if (!isRecord(warriorElement)) return null;
+    const find = warriorElement[FIND_METHOD];
     if (typeof find !== "function") return null;
-    const targets: unknown = Reflect.apply(find, held, [TOOLTIP_TARGETS]);
+    const targets: unknown = Reflect.apply(find, warriorElement, [TOOLTIP_TARGETS]);
     if (!isTooltipTargets(targets)) return null;
-    const current = targets.getTipData();
-    if (typeof current !== "string") return null;
-    const at = was.length === 0 ? -1 : current.lastIndexOf(was);
+    const registryText = targets.getTipData();
+    if (typeof registryText !== "string") return null;
+    const at = blockBefore.length === 0 ? -1 : registryText.lastIndexOf(blockBefore);
     if (at !== -1) {
-        if (was === block) return true;
-        const theirs = current.slice(0, at) + current.slice(at + was.length);
+        if (blockBefore === block) return true;
+        const theirs = registryText.slice(0, at) + registryText.slice(at + blockBefore.length);
         // An empty string is the client's word for deleting the tooltip, which is not ours to do.
         if (theirs.length === 0) return null;
         targets.tip(theirs);

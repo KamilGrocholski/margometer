@@ -93,15 +93,15 @@ export function initBrowserClock(date: BrowserDate): BrowserClock {
             const read = errors.attempt((): BrowserMoment | null => {
                 // ⚠️ **The day is held to the same refusal as the time**: a shelf of twenty fights
                 // spans days, and a wrong one reads as a fight that happened.
-                const held: BrowserDateValue = new date(atMilliseconds);
-                const day = readMomentPart(held.getDate?.(), 1, DAY_MAXIMUM);
+                const dateValue: BrowserDateValue = new date(atMilliseconds);
+                const day = readMomentPart(dateValue.getDate?.(), 1, DAY_MAXIMUM);
                 const monthFromZero = readMomentPart(
-                    held.getMonth?.(),
+                    dateValue.getMonth?.(),
                     0,
                     MONTH_MAXIMUM - FIRST_MONTH_OFFSET,
                 );
-                const hour = readMomentPart(held.getHours?.(), 0, HOUR_MAXIMUM);
-                const minute = readMomentPart(held.getMinutes?.(), 0, MINUTE_MAXIMUM);
+                const hour = readMomentPart(dateValue.getHours?.(), 0, HOUR_MAXIMUM);
+                const minute = readMomentPart(dateValue.getMinutes?.(), 0, MINUTE_MAXIMUM);
                 if (day === null) return null;
                 if (monthFromZero === null) return null;
                 if (hour === null) return null;

@@ -41,7 +41,7 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
     let wounds = 0;
     for (const fight of readRecordedFights()) {
         const path = fight.path;
-        const freshestByVictim = new Map<number, string>();
+        const freshestByWounded = new Map<number, string>();
         for (const message of fight.messages) {
             const parsed = parseOrFail(message, path);
             const announced = parsed.parameters.filter((one) => one.key === WOUND_ANNOUNCEMENT_KEY);
@@ -51,7 +51,7 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
             if (applied !== undefined) {
                 assertExists(parsed.target, `${path}: a wound naming nobody to carry it`);
                 assertExists(applied.value, `${path}: a wound announcing no figure`);
-                freshestByVictim.set(parsed.target.combatantId, applied.value);
+                freshestByWounded.set(parsed.target.combatantId, applied.value);
                 wounds += 1;
             }
             const ticked = parsed.parameters.filter((one) => one.key === TICK_KEY);
@@ -60,7 +60,7 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
             if (tick === undefined) continue;
             assertExists(parsed.actor, `${path}: a tick naming nobody`);
             ticks += 1;
-            const wound = freshestByVictim.get(parsed.actor.combatantId);
+            const wound = freshestByWounded.get(parsed.actor.combatantId);
             assertExists(wound, `${path}: a tick on a victim carrying no wound`);
             assertEquals(tick.value, wound, `${path}: a tick stating what no wound announced`);
         }
@@ -104,12 +104,12 @@ Deno.test("every tick stands against the attacker whose wound was ticking", () =
     assertEquals(expected.size, 3, "charged to the three attackers who wounded, and nobody else");
 
     const roster = indexCombatantRoster(fight.combatants);
-    const context = { roster, standing: null, tables: BLOWS_GRANTED };
+    const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
     const events = decodePayloadMessages(fight.messages, context).events;
     const statistics = tallyFightStatistics(events, new Map());
     verifyFightStatistics(statistics);
-    for (const [attackerId, amount] of expected) {
-        const figures = statistics.byCombatantId.get(attackerId);
+    for (const [actorId, amount] of expected) {
+        const figures = statistics.byCombatantId.get(actorId);
         assertExists(figures, "an attacker whose wound ticked has a row");
         assertEquals(
             figures.damageDealtByKind.get(TICK_KEY),
@@ -121,7 +121,7 @@ Deno.test("every tick stands against the attacker whose wound was ticking", () =
 
 /** What the freshest wound against each victim charges, walked out of the messages by hand. */
 function tallyExpectedTicks(messages: readonly string[]): Map<number, number> {
-    const freshestByVictim = new Map<number, { attackerId: number; amount: string }>();
+    const freshestByWounded = new Map<number, { actorId: number; amount: string }>();
     const expected = new Map<number, number>();
     for (const message of messages) {
         const parsed = parseOrFail(message, THREE_ATTACKERS);
@@ -130,17 +130,17 @@ function tallyExpectedTicks(messages: readonly string[]): Map<number, number> {
             assertExists(parsed.actor, "a wound is left by somebody");
             assertExists(parsed.target, "on somebody");
             assertExists(applied.value, "and it announces a figure");
-            const standing = { attackerId: parsed.actor.combatantId, amount: applied.value };
-            freshestByVictim.set(parsed.target.combatantId, standing);
+            const standing = { actorId: parsed.actor.combatantId, amount: applied.value };
+            freshestByWounded.set(parsed.target.combatantId, standing);
         }
         const tick = parsed.parameters.find((one) => one.key === TICK_KEY);
         if (tick === undefined) continue;
         assertExists(parsed.actor, "a tick names its victim");
-        const wound = freshestByVictim.get(parsed.actor.combatantId);
+        const wound = freshestByWounded.get(parsed.actor.combatantId);
         assertExists(wound, "and the wound it belongs to is standing");
         assertEquals(tick.value, wound.amount, "stating what that wound announced");
         const amount = Number(wound.amount);
-        expected.set(wound.attackerId, (expected.get(wound.attackerId) ?? 0) + amount);
+        expected.set(wound.actorId, (expected.get(wound.actorId) ?? 0) + amount);
     }
     return expected;
 }
@@ -157,12 +157,12 @@ Deno.test("a tick stating what the wound announced is charged to whoever left it
     assertEquals(pair.get(TICK_KEY), 98, "the tick standing apart from the blow that left it");
     assertEquals(victim.damageTakenByOpponent.get(`${ATTACKER}`), 756, "which is 658 and 98");
     assertEquals(victim.damageTakenFromNobody, 0, "so no part of it is taken from nobody");
-    assertEquals(statistics.dealtByNobody, 0, "and none of it is dealt by nobody");
+    assertEquals(statistics.damageDealtByNobody, 0, "and none of it is dealt by nobody");
 });
 
 function tallyFightWithTick(tick: string): FightStatistics {
     const messages = [WOUND, `${VICTIM}=99.00;0;${TICK_KEY}=${tick}`];
-    const context = { roster: null, standing: null, tables: BLOWS_GRANTED };
+    const context = { roster: null, announcementStanding: null, tables: BLOWS_GRANTED };
     const statistics = tallyFightStatistics(
         decodePayloadMessages(messages, context).events,
         new Map(),
@@ -184,5 +184,5 @@ Deno.test("a tick stating anything else is charged to nobody, not to the nearest
     );
     assertEquals(victim.damageTakenByOpponent.get(`${ATTACKER}`), 658, "only the blow is theirs");
     assertEquals(victim.damageTakenFromNobody, 97, "the tick is taken from nobody");
-    assertEquals(statistics.dealtByNobody, 97, "and dealt by nobody");
+    assertEquals(statistics.damageDealtByNobody, 97, "and dealt by nobody");
 });

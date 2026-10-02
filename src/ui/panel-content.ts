@@ -128,7 +128,7 @@ export interface RowDetail {
      */
     unreadMessagesUnknownKey: number;
     unreadMessagesNoParameter: number;
-    castsUnplaced: number;
+    sideHealsUnsized: number;
 }
 
 /**
@@ -159,8 +159,8 @@ export type PanelUnnamedEnd = VocabularyWord<typeof UNNAMED_END>;
  * - `cut` — the rows hold the points already but cannot say this about them. The figure is a
  *   slice of what is on screen, so it states a share and adds nothing to the whole.
  */
-export const PINNED_STANDING = { apart: "apart", cut: "cut" } as const;
-export type PinnedStanding = VocabularyWord<typeof PINNED_STANDING>;
+export const PINNED_PLACING = { apart: "apart", cut: "cut" } as const;
+export type PinnedPlacing = VocabularyWord<typeof PINNED_PLACING>;
 
 /**
  * The five figures the protocol can leave half-named, one name each — and the name is the key
@@ -192,14 +192,14 @@ type HalfNamedField = VocabularyWord<typeof HALF_NAMED_FIELD>;
 const HALF_NAMED_KIND_FIELD = {
     damageTakenFromNobodyByKind: "damageTakenFromNobodyByKind",
     damageDealtToNobodyByKind: "damageDealtToNobodyByKind",
-    healthRestoredByNobodyBySource: "healthRestoredByNobodyBySource",
+    healthRestoredByNobodyByKey: "healthRestoredByNobodyByKey",
 } as const;
 type HalfNamedKindField = VocabularyWord<typeof HALF_NAMED_KIND_FIELD>;
 
 interface PinnedShape {
     metric: PanelMetric;
     end: PanelUnnamedEnd;
-    standing: PinnedStanding;
+    placing: PinnedPlacing;
     field: HalfNamedField;
     kinds: HalfNamedKindField;
 }
@@ -218,7 +218,7 @@ export interface OutsideRankingRow {
 export interface PinnedRow {
     case: PinnedCase;
     end: PanelUnnamedEnd;
-    standing: PinnedStanding;
+    placing: PinnedPlacing;
     figure: number;
     fill: number;
     shareText: string;
@@ -254,7 +254,7 @@ export interface UnnamedLevelContent {
      * The part of the figure that named **neither** end — inside the count above it and on nobody's
      * row, so a section without it falls short of what it is a cut of.
      */
-    neither: UnnamedRow | null;
+    neitherEnd: UnnamedRow | null;
 }
 
 /** Which row of a pinned level a reader pressed. The two shapes that level draws, and no third. */
@@ -284,7 +284,7 @@ export type UnnamedCutLevelContent =
         total: number;
         rows: HalfNamedRow[];
         /** A key may carry part of what named neither end, and that part is on nobody's row. */
-        neither: UnnamedRow | null;
+        neitherEnd: UnnamedRow | null;
     };
 
 /**
@@ -360,7 +360,7 @@ export interface ScreenContent {
      */
     hasFiguresDisagreed: boolean;
     sides: PanelSides | null;
-    visibleRows: number;
+    rowsVisibleCount: number;
 }
 
 /** What is short about the reading rather than about a figure on it. The session states both. */
@@ -397,7 +397,7 @@ interface HalfNamedPart {
  */
 interface HalfNamedListing {
     parts: HalfNamedPart[];
-    part: SideRelation | null;
+    sideListed: SideRelation | null;
 }
 
 /** Null without a seat: two sides nothing can tell apart are not two figures. */
@@ -478,7 +478,7 @@ export interface PlainRow {
  */
 export interface ClosingRow extends PlainRow {
     /** Where its figure puts it among the rows that take one. */
-    place: number;
+    rank: number;
     /** Whether pressing it opens the cut of whoever stood at the other end (`develop ADR 0081`). */
     doesOpenPart: boolean;
 }
@@ -500,20 +500,20 @@ export interface SkillCut {
      * figure moved from a true claim to a false one by a display bound. `develop ADR 0055`.
      */
     rest: PlainRow | null;
-    plain: ClosingRow | null;
+    closing: ClosingRow | null;
 }
 
 /**
  * The card stands over this row too, so the row carries what the card states — the same figures
  * the ranking's own row holds, because the card is about the person and not about the cut.
  */
-export interface OpponentRow extends PersonRow {
+export interface OtherEndRow extends PersonRow {
     doesOpenPair: boolean;
 }
 
-export interface OpponentCut {
-    rows: OpponentRow[];
-    unnamed: OpponentUnnamedRow | null;
+export interface OtherEndCut {
+    rows: OtherEndRow[];
+    halfNamed: OpponentUnnamedRow | null;
 }
 
 /** The end the protocol left out of an opened figure, which opens onto that person's own keys. */
@@ -528,7 +528,7 @@ export interface ElementCut {
      * is what the protocol stated no kind of at all. `develop ADR 0055`.
      */
     rest: UnnamedRow | null;
-    unnamed: UnnamedRow | null;
+    noKind: UnnamedRow | null;
 }
 
 /** The same, plus the row that closes a section against the figure over it. */
@@ -571,14 +571,14 @@ export interface PairLevelContent {
 export interface PartLevelContent {
     part: OpenedPart;
     total: number;
-    byOpponent: OpponentCut;
+    byOtherEnd: OtherEndCut;
 }
 
 export interface OpenedLevelContent {
     combatantId: number;
     name: string | null;
     profession: string | null;
-    byOpponent: OpponentCut;
+    byOtherEnd: OtherEndCut;
     /**
      * What the figure was done with, on the screen the protocol states it for. Empty on the
      * others: what hit you is named and what the other side chose never is.
@@ -591,7 +591,7 @@ export interface OpenedLevelContent {
 }
 
 interface MetricCuts {
-    byOpponent: FigureCut;
+    byOtherEnd: FigureCut;
     /** Null on the one screen whose second cut would word a figure with somebody else's cause. */
     byElement: FigureCut | null;
 }
@@ -660,37 +660,37 @@ const PINNED_SHAPES: Record<PinnedCase, PinnedShape> = {
     dealtWithNoActor: {
         metric: PANEL_METRIC.damageDealt,
         end: UNNAMED_END.actor,
-        standing: PINNED_STANDING.apart,
+        placing: PINNED_PLACING.apart,
         field: HALF_NAMED_FIELD.damageTakenFromNobody,
         kinds: HALF_NAMED_KIND_FIELD.damageTakenFromNobodyByKind,
     },
     givenWithNoActor: {
         metric: PANEL_METRIC.healthGiven,
         end: UNNAMED_END.actor,
-        standing: PINNED_STANDING.apart,
+        placing: PINNED_PLACING.apart,
         field: HALF_NAMED_FIELD.healthRestoredByNobody,
-        kinds: HALF_NAMED_KIND_FIELD.healthRestoredByNobodyBySource,
+        kinds: HALF_NAMED_KIND_FIELD.healthRestoredByNobodyByKey,
     },
     takenWithNoActor: {
         metric: PANEL_METRIC.damageTaken,
         end: UNNAMED_END.actor,
-        standing: PINNED_STANDING.cut,
+        placing: PINNED_PLACING.cut,
         field: HALF_NAMED_FIELD.damageTakenFromNobody,
         kinds: HALF_NAMED_KIND_FIELD.damageTakenFromNobodyByKind,
     },
     takenWithNoTarget: {
         metric: PANEL_METRIC.damageTaken,
         end: UNNAMED_END.target,
-        standing: PINNED_STANDING.apart,
+        placing: PINNED_PLACING.apart,
         field: HALF_NAMED_FIELD.damageDealtToNobody,
         kinds: HALF_NAMED_KIND_FIELD.damageDealtToNobodyByKind,
     },
     restoredWithNoActor: {
         metric: PANEL_METRIC.healthRestored,
         end: UNNAMED_END.actor,
-        standing: PINNED_STANDING.cut,
+        placing: PINNED_PLACING.cut,
         field: HALF_NAMED_FIELD.healthRestoredByNobody,
-        kinds: HALF_NAMED_KIND_FIELD.healthRestoredByNobodyBySource,
+        kinds: HALF_NAMED_KIND_FIELD.healthRestoredByNobodyByKey,
     },
 };
 
@@ -720,12 +720,12 @@ const WARNINGS_MAXIMUM = 6;
 /** And a row carries the three of the six that can be charged to one person. */
 const ROW_WARNINGS = 3;
 
-export function getEndForPinned(kase: PinnedCase): PanelUnnamedEnd {
-    return PINNED_SHAPES[kase].end;
+export function getEndForPinned(pinnedCase: PinnedCase): PanelUnnamedEnd {
+    return PINNED_SHAPES[pinnedCase].end;
 }
 
-export function getMetricForPinned(kase: PinnedCase): PanelMetric {
-    return PINNED_SHAPES[kase].metric;
+export function getMetricForPinned(pinnedCase: PinnedCase): PanelMetric {
+    return PINNED_SHAPES[pinnedCase].metric;
 }
 
 /**
@@ -734,8 +734,8 @@ export function getMetricForPinned(kase: PinnedCase): PanelMetric {
  * and opening the screen's other end instead would be a level about something else.
  */
 export function lookupPinnedCase(metric: PanelMetric, end: PanelUnnamedEnd): PinnedCase | null {
-    const found = PINNED_CASES.filter((kase) => {
-        const shape = PINNED_SHAPES[kase];
+    const found = PINNED_CASES.filter((pinnedCase) => {
+        const shape = PINNED_SHAPES[pinnedCase];
         if (shape.metric !== metric) return false;
         return shape.end === end;
     });
@@ -756,7 +756,7 @@ export function formatRowSuspicions(detail: RowDetail, metric: PanelMetric): str
         formatNoParameterRowSuspicion(detail.unreadMessagesNoParameter),
     ];
     if (getNounForMetric(metric) === PANEL_NOUN.healing) {
-        said.push(formatUnplacedHealRowSuspicion(detail.castsUnplaced));
+        said.push(formatUnplacedHealRowSuspicion(detail.sideHealsUnsized));
     }
     return said.filter((one) => one.length > 0).slice(0, ROW_WARNINGS);
 }
@@ -770,29 +770,35 @@ export function isRowSuspect(detail: RowDetail, metric: PanelMetric): boolean {
     if (detail.unreadMessagesUnknownKey > 0) return true;
     if (detail.unreadMessagesNoParameter > 0) return true;
     if (getNounForMetric(metric) !== PANEL_NOUN.healing) return false;
-    return detail.castsUnplaced > 0;
+    return detail.sideHealsUnsized > 0;
 }
 
 export function presentUnnamedLevel(
     statistics: FightStatistics,
     roster: CombatantRoster,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
     choice: PanelSideChoice,
     readerSide: number | null,
 ): UnnamedLevelContent | null {
-    const { parts, part } = composeHalfNamedListing(statistics, roster, kase, choice, readerSide);
-    const total = getPinnedFigure(statistics, kase, parts, part);
+    const { parts, sideListed } = composeHalfNamedListing(
+        statistics,
+        roster,
+        pinnedCase,
+        choice,
+        readerSide,
+    );
+    const total = getPinnedFigure(statistics, pinnedCase, parts, sideListed);
     if (total <= 0) return null;
-    const neither = getNeitherEndForPinned(statistics, kase, part);
+    const neither = getNeitherEndForPinned(statistics, pinnedCase, sideListed);
     const largest = getLargestFigure([...parts.map((one) => one.figure), neither]);
     const shares = formatSharesApportioned([...parts.map((one) => one.figure), neither], total);
     return {
-        case: kase,
-        end: getEndForPinned(kase),
+        case: pinnedCase,
+        end: getEndForPinned(pinnedCase),
         total,
         rows: composeHalfNamedRows(statistics, roster, parts, shares, largest),
-        kinds: composeHalfNamedKinds(statistics, kase, parts, neither, total),
-        neither: neither <= 0 ? null : {
+        kinds: composeHalfNamedKinds(statistics, pinnedCase, parts, neither, total),
+        neitherEnd: neither <= 0 ? null : {
             figure: neither,
             fill: getBarFill(neither, largest),
             shareText: shares[parts.length] ?? "",
@@ -807,18 +813,25 @@ export function presentUnnamedLevel(
 function composeHalfNamedListing(
     statistics: FightStatistics,
     roster: CombatantRoster,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
     choice: PanelSideChoice,
     readerSide: number | null,
 ): HalfNamedListing {
-    const metric = getMetricForPinned(kase);
+    const metric = getMetricForPinned(pinnedCase);
     const listed = composeRowsBeforeShares(statistics, roster, metric).filter((row) =>
         isSideListed(row.side, choice, readerSide)
     );
-    const part = getSideRelationListed(choice, readerSide);
+    const sideListed = getSideRelationListed(choice, readerSide);
     return {
-        parts: composeHalfNamedParts(statistics, roster, kase, listed, part, readerSide),
-        part,
+        parts: composeHalfNamedParts(
+            statistics,
+            roster,
+            pinnedCase,
+            listed,
+            sideListed,
+            readerSide,
+        ),
+        sideListed,
     };
 }
 
@@ -831,12 +844,12 @@ function composeRowsBeforeShares(
     const seen = new Set<number>();
     for (const [combatantId, figures] of statistics.byCombatantId) {
         seen.add(combatantId);
-        const held = roster.byId.get(combatantId);
+        const combatant = roster.byId.get(combatantId);
         rows.push({
             combatantId,
-            name: held?.name ?? null,
-            side: held?.side ?? null,
-            profession: held?.profession ?? null,
+            name: combatant?.name ?? null,
+            side: combatant?.side ?? null,
+            profession: combatant?.profession ?? null,
             figure: getFigureForMetric(figures, metric),
         });
     }
@@ -908,19 +921,22 @@ function getSideRelationListed(
 function composeHalfNamedParts(
     statistics: FightStatistics,
     roster: CombatantRoster,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
     rows: readonly UnsharedRow[],
-    part: SideRelation | null,
+    sideListed: SideRelation | null,
     readerSide: number | null,
 ): HalfNamedPart[] {
-    const shape = PINNED_SHAPES[kase];
+    const shape = PINNED_SHAPES[pinnedCase];
     const listed = new Set(rows.map((one) => one.combatantId));
     const found: HalfNamedPart[] = [];
     for (const [combatantId, figures] of statistics.byCombatantId) {
         const figure = figures[shape.field];
         if (figure <= 0) continue;
-        const held = getSideRelation(roster.byId.get(combatantId)?.side ?? null, readerSide);
-        if (!isPinnedPersonKept(shape, held, listed.has(combatantId), part)) continue;
+        const sideRelation = getSideRelation(
+            roster.byId.get(combatantId)?.side ?? null,
+            readerSide,
+        );
+        if (!isPinnedPersonKept(shape, sideRelation, listed.has(combatantId), sideListed)) continue;
         found.push({ combatantId, figure });
     }
     return found;
@@ -929,13 +945,13 @@ function composeHalfNamedParts(
 /** The three rules the paragraph above states, as the one condition each of them is. */
 function isPinnedPersonKept(
     shape: PinnedShape,
-    held: SideRelation,
+    sideRelation: SideRelation,
     isListed: boolean,
-    part: SideRelation | null,
+    sideListed: SideRelation | null,
 ): boolean {
-    if (shape.standing === PINNED_STANDING.cut) return isListed;
-    if (part === null) return true;
-    return getSideRelationCharged(held, shape.metric) === part;
+    if (shape.placing === PINNED_PLACING.cut) return isListed;
+    if (sideListed === null) return true;
+    return getSideRelationCharged(sideRelation, shape.metric) === sideListed;
 }
 
 /**
@@ -946,11 +962,11 @@ function isPinnedPersonKept(
  * derived from it, and the derivation is the noun's — damage crosses, healing does not. What is
  * never derived is a **name**: the pinned rows go on saying which end the game left out.
  */
-function getSideRelationCharged(part: SideRelation, metric: PanelMetric): SideRelation {
-    if (part === SIDE_RELATION.nobody) return part;
-    if (metric === PANEL_METRIC.healthGiven) return part;
-    if (metric === PANEL_METRIC.healthRestored) return part;
-    return part === SIDE_RELATION.reader ? SIDE_RELATION.opposing : SIDE_RELATION.reader;
+function getSideRelationCharged(sideRelation: SideRelation, metric: PanelMetric): SideRelation {
+    if (sideRelation === SIDE_RELATION.nobody) return sideRelation;
+    if (metric === PANEL_METRIC.healthGiven) return sideRelation;
+    if (metric === PANEL_METRIC.healthRestored) return sideRelation;
+    return sideRelation === SIDE_RELATION.reader ? SIDE_RELATION.opposing : SIDE_RELATION.reader;
 }
 
 /**
@@ -963,26 +979,26 @@ function getSideRelationCharged(part: SideRelation, metric: PanelMetric): SideRe
  */
 function getPinnedFigure(
     statistics: FightStatistics,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
     parts: readonly HalfNamedPart[],
-    part: SideRelation | null,
+    sideListed: SideRelation | null,
 ): number {
     let total = 0;
     for (const one of parts) total += one.figure;
-    total += getNeitherEndForPinned(statistics, kase, part);
+    total += getNeitherEndForPinned(statistics, pinnedCase, sideListed);
     return total;
 }
 
 function getNeitherEndForPinned(
     statistics: FightStatistics,
-    kase: PinnedCase,
-    part: SideRelation | null,
+    pinnedCase: PinnedCase,
+    sideListed: SideRelation | null,
 ): number {
-    const shape = PINNED_SHAPES[kase];
-    if (part !== null) return 0;
-    if (shape.standing === PINNED_STANDING.cut) return 0;
+    const shape = PINNED_SHAPES[pinnedCase];
+    if (sideListed !== null) return 0;
+    if (shape.placing === PINNED_PLACING.cut) return 0;
     if (getNounForMetric(shape.metric) === PANEL_NOUN.healing) return 0;
-    return statistics.byNeitherEnd;
+    return statistics.damageByNeitherEnd;
 }
 
 function getLargestFigure(figures: readonly number[]): number {
@@ -1002,12 +1018,12 @@ function composeHalfNamedRows(
     largest: number,
 ): HalfNamedRow[] {
     const rows = parts.map((one, at): HalfNamedRow => {
-        const held = roster.byId.get(one.combatantId);
+        const combatant = roster.byId.get(one.combatantId);
         return {
             combatantId: one.combatantId,
-            name: held?.name ?? null,
-            side: held?.side ?? null,
-            profession: held?.profession ?? null,
+            name: combatant?.name ?? null,
+            side: combatant?.side ?? null,
+            profession: combatant?.profession ?? null,
             figure: one.figure,
             fill: getBarFill(one.figure, largest),
             shareText: shares[at] ?? "",
@@ -1082,7 +1098,7 @@ function composeRowDetail(
         statisticsDestroyed: composeCutParts(figures.statisticsDestroyed),
         unreadMessagesUnknownKey: figures.unreadMessagesUnknownKey,
         unreadMessagesNoParameter: figures.unreadMessagesNoParameter,
-        castsUnplaced: figures.castsUnplaced,
+        sideHealsUnsized: figures.sideHealsUnsized,
     };
 }
 
@@ -1140,12 +1156,12 @@ function wasAnyTurnLost(statistics: FightStatistics): boolean {
  */
 function composeHalfNamedKinds(
     statistics: FightStatistics,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
     parts: readonly HalfNamedPart[],
     neither: number,
     total: number,
 ): ElementCut {
-    const shape = PINNED_SHAPES[kase];
+    const shape = PINNED_SHAPES[pinnedCase];
     const folded = new Map<string, number>();
     let rest = 0;
     for (const one of parts) {
@@ -1153,7 +1169,7 @@ function composeHalfNamedKinds(
         if (figures === undefined) continue;
         rest += addFoldedCut(folded, figures[shape.kinds]);
     }
-    if (neither > 0) rest += addFoldedCut(folded, statistics.byNeitherEndByKind);
+    if (neither > 0) rest += addFoldedCut(folded, statistics.damageByNeitherEndByKind);
     // A key standing only for what named neither end has nobody's row to open onto, and a level
     // holding one refusal says nothing the row above it did not.
     return composeElementCut(folded, total, (element) => {
@@ -1165,9 +1181,9 @@ function composeHalfNamedKinds(
  * One person's own cut into the fold, under the key the protocol wrote it with — and the figure it
  * could not give a key of its own to, which the caller owes a row (`develop ADR 0055`).
  */
-function addFoldedCut(folded: Map<string, number>, held: FigureCut): number {
+function addFoldedCut(folded: Map<string, number>, cut: FigureCut): number {
     let rest = 0;
-    for (const [key, figure] of held) {
+    for (const [key, figure] of cut) {
         if (folded.has(key)) {
             folded.set(key, (folded.get(key) ?? 0) + figure);
             continue;
@@ -1199,16 +1215,16 @@ function composeElementCut(
     rest = 0,
 ): ElementCut {
     const stated: Array<{ element: string; figure: number }> = [];
-    let held = rest;
+    let partsTotal = rest;
     for (const [element, figure] of cut) {
-        held += figure;
+        partsTotal += figure;
         // A part that came to nothing is not a part of the figure: it takes a row and adds none
         // of it. The combatant at zero on a ranking is the other case and is still drawn — that
         // is a person who did nothing, and this is a nothing that has no person.
         if (figure > 0) stated.push({ element, figure });
     }
     stated.sort(compareElementRows);
-    const unnamed = total - held;
+    const unnamed = total - partsTotal;
     const figures = stated.map((one) => one.figure);
     if (rest > 0) figures.push(rest);
     if (unnamed > 0) figures.push(unnamed);
@@ -1229,7 +1245,7 @@ function composeElementCut(
                 shareText: shares[stated.length] ?? "",
             }
             : null,
-        unnamed: unnamed > 0
+        noKind: unnamed > 0
             ? {
                 figure: unnamed,
                 fill: getBarFill(unnamed, largest),
@@ -1277,38 +1293,48 @@ function getHalfNamedByKind(
 export function presentUnnamedCutLevel(
     statistics: FightStatistics,
     roster: CombatantRoster,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
     choice: PanelSideChoice,
     readerSide: number | null,
     opened: HalfNamedOpened,
 ): UnnamedCutLevelContent | null {
-    const { parts, part } = composeHalfNamedListing(statistics, roster, kase, choice, readerSide);
+    const { parts, sideListed } = composeHalfNamedListing(
+        statistics,
+        roster,
+        pinnedCase,
+        choice,
+        readerSide,
+    );
     if (opened.kind === HALF_NAMED_OPENED.person) {
-        return composeHalfNamedForPerson(statistics, roster, kase, parts, opened.combatantId);
+        return composeHalfNamedForPerson(statistics, roster, pinnedCase, parts, opened.combatantId);
     }
-    return composeHalfNamedForKind(statistics, roster, kase, { parts, part }, opened);
+    return composeHalfNamedForKind(statistics, roster, pinnedCase, { parts, sideListed }, opened);
 }
 
 /** One person's share of a half-named figure, cut by what the protocol says it was dealt with. */
 function composeHalfNamedForPerson(
     statistics: FightStatistics,
     roster: CombatantRoster,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
     parts: readonly HalfNamedPart[],
     combatantId: number,
 ): UnnamedCutLevelContent | null {
-    const held = parts.find((one) => one.combatantId === combatantId);
-    if (held === undefined) return null;
+    const part = parts.find((one) => one.combatantId === combatantId);
+    if (part === undefined) return null;
     const figures = statistics.byCombatantId.get(combatantId);
     if (figures === undefined) return null;
-    const [row] = composeHalfNamedRows(statistics, roster, [held], ["100%"], held.figure);
+    const [row] = composeHalfNamedRows(statistics, roster, [part], ["100%"], part.figure);
     if (row === undefined) return null;
     return {
         opened: HALF_NAMED_OPENED.person,
-        case: kase,
+        case: pinnedCase,
         row,
-        total: held.figure,
-        kinds: composeElementCut(figures[PINNED_SHAPES[kase].kinds], held.figure, () => false),
+        total: part.figure,
+        kinds: composeElementCut(
+            figures[PINNED_SHAPES[pinnedCase].kinds],
+            part.figure,
+            () => false,
+        ),
     };
 }
 
@@ -1320,15 +1346,17 @@ function composeHalfNamedForPerson(
 function composeHalfNamedForKind(
     statistics: FightStatistics,
     roster: CombatantRoster,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
     listing: HalfNamedListing,
     opened: { kind: typeof HALF_NAMED_OPENED.element; element: string },
 ): UnnamedCutLevelContent | null {
-    const shape = PINNED_SHAPES[kase];
+    const shape = PINNED_SHAPES[pinnedCase];
     const found = getHalfNamedByKind(statistics, shape.kinds, listing.parts, opened.element);
     if (found.length === 0) return null;
-    const apart = getNeitherEndForPinned(statistics, kase, listing.part);
-    const neither = apart <= 0 ? 0 : statistics.byNeitherEndByKind.get(opened.element) ?? 0;
+    const neitherEndPinned = getNeitherEndForPinned(statistics, pinnedCase, listing.sideListed);
+    const neither = neitherEndPinned <= 0
+        ? 0
+        : statistics.damageByNeitherEndByKind.get(opened.element) ?? 0;
     let total = neither;
     for (const one of found) total += one.figure;
     if (total <= 0) return null;
@@ -1337,12 +1365,12 @@ function composeHalfNamedForKind(
     const largest = getLargestFigure(figures);
     return {
         opened: HALF_NAMED_OPENED.element,
-        case: kase,
+        case: pinnedCase,
         element: opened.element,
         end: shape.end,
         total,
         rows: composeHalfNamedRows(statistics, roster, found, shares, largest),
-        neither: neither <= 0 ? null : {
+        neitherEnd: neither <= 0 ? null : {
             figure: neither,
             fill: getBarFill(neither, largest),
             shareText: shares[found.length] ?? "",
@@ -1361,11 +1389,11 @@ export function presentUnnamedPairLevel(
     metric: PanelMetric,
     combatantId: number,
 ): UnnamedCutLevelContent | null {
-    const kase = OPENED_UNNAMED_CASES[metric];
-    if (kase === null) return null;
+    const pinnedCase = OPENED_UNNAMED_CASES[metric];
+    if (pinnedCase === null) return null;
     const figures = statistics.byCombatantId.get(combatantId);
     if (figures === undefined) return null;
-    const shape = PINNED_SHAPES[kase];
+    const shape = PINNED_SHAPES[pinnedCase];
     const figure = figures[shape.field];
     if (figure <= 0) return null;
     const [row] = composeHalfNamedRows(
@@ -1378,7 +1406,7 @@ export function presentUnnamedPairLevel(
     if (row === undefined) return null;
     return {
         opened: HALF_NAMED_OPENED.person,
-        case: kase,
+        case: pinnedCase,
         row,
         total: figure,
         kinds: composeElementCut(figures[shape.kinds], figure, () => false),
@@ -1435,20 +1463,20 @@ export function presentScreen(
     const total = getListedTotal(statistics, listed, metric, choice);
     const pinned = composePinnedFigures(statistics, roster, listed, metric, choice, readerSide);
     const sides = composePanelSides(statistics, roster, metric, readerSide);
-    const part = getSideRelationListed(choice, readerSide);
+    const sideListed = getSideRelationListed(choice, readerSide);
     // Only a figure standing apart joins the whole: one standing as a cut is already inside the
     // rows, so paying it out of the hundred would take a point off a row that owns one.
-    const apart = pinned.filter((one) => one.standing === PINNED_STANDING.apart);
-    const placed = apart.reduce((sum, one) => sum + one.figure, total);
+    const pinnedApart = pinned.filter((one) => one.placing === PINNED_PLACING.apart);
+    const figurePlaced = pinnedApart.reduce((sum, one) => sum + one.figure, total);
     // ⚠️ **The second count, and the whole reason there are two.** Everything above is composed
     // from the rows; this is composed from the statistics and never looks at them, so the
     // difference is what the screen holds and no row does. Not the rows' own total: a whole
     // derived from the figures being shared makes the column read a hundred whatever went missing
     // on the way to it.
-    const counted = getCountedTotal(statistics, sides, metric, part);
-    const outside = Math.max(counted - placed, 0);
-    const whole = placed + outside;
-    const shared = [...listed.map((row) => row.figure), ...apart.map((one) => one.figure)];
+    const screenTotal = getCountedTotal(statistics, sides, metric, sideListed);
+    const outside = Math.max(screenTotal - figurePlaced, 0);
+    const whole = figurePlaced + outside;
+    const shared = [...listed.map((row) => row.figure), ...pinnedApart.map((one) => one.figure)];
     if (outside > 0) shared.push(outside);
     const shares = formatSharesApportioned(shared, whole);
     const largest = getLargestFigure([...shared, ...pinned.map((one) => one.figure)]);
@@ -1462,8 +1490,11 @@ export function presentScreen(
         rows,
         // The rows holding **more** than the screen's own count is the other side of `unplaced`,
         // and the one that says a drawn figure is wrong rather than short.
-        hasFiguresDisagreed: counted < placed || hasSideTotalDisagreed(whole, sides, part) ||
-            pinned.some((one) => hasPinnedTotalDisagreed(statistics, one.case, one.figure, part)),
+        hasFiguresDisagreed: screenTotal < figurePlaced ||
+            hasSideTotalDisagreed(whole, sides, sideListed) ||
+            pinned.some((one) =>
+                hasPinnedTotalDisagreed(statistics, one.case, one.figure, sideListed)
+            ),
         outcome: getFightOutcomeForReaderSide(statistics, roster, readerSide),
         ...composeHeadcount(statistics, roster, readerSide),
         total,
@@ -1480,7 +1511,7 @@ export function presentScreen(
         // Read off what the list is, and never off what was pressed: with no seat to read from
         // every list is everybody, whatever the strip last answered, and a shorter window would
         // be the height of a side nothing narrowed to.
-        visibleRows: part === null ? RANKING_ROWS : SIDE_ROWS,
+        rowsVisibleCount: sideListed === null ? RANKING_ROWS : SIDE_ROWS,
     };
 }
 
@@ -1522,23 +1553,30 @@ function composePinnedFigures(
     choice: PanelSideChoice,
     readerSide: number | null,
 ): Array<Omit<PinnedRow, "fill" | "shareText">> {
-    const part = getSideRelationListed(choice, readerSide);
+    const sideListed = getSideRelationListed(choice, readerSide);
     const found: Array<Omit<PinnedRow, "fill" | "shareText">> = [];
-    const pinned = PINNED_CASES.filter((kase) => PINNED_SHAPES[kase].metric === metric);
-    for (const kase of pinned) {
-        const parts = composeHalfNamedParts(statistics, roster, kase, rows, part, readerSide);
-        const figure = getPinnedFigure(statistics, kase, parts, part);
+    const pinned = PINNED_CASES.filter((pinnedCase) => PINNED_SHAPES[pinnedCase].metric === metric);
+    for (const pinnedCase of pinned) {
+        const parts = composeHalfNamedParts(
+            statistics,
+            roster,
+            pinnedCase,
+            rows,
+            sideListed,
+            readerSide,
+        );
+        const figure = getPinnedFigure(statistics, pinnedCase, parts, sideListed);
         // A figure of nothing is not pinned, and its cut is a cut of nothing: the fold below
         // states a figure there is some of, so it is asked only where the row will be drawn.
         if (figure <= 0) continue;
-        const shape = PINNED_SHAPES[kase];
-        const neither = getNeitherEndForPinned(statistics, kase, part);
+        const shape = PINNED_SHAPES[pinnedCase];
+        const neither = getNeitherEndForPinned(statistics, pinnedCase, sideListed);
         found.push({
-            case: kase,
+            case: pinnedCase,
             end: shape.end,
-            standing: shape.standing,
+            placing: shape.placing,
             figure,
-            kinds: composeHalfNamedKinds(statistics, kase, parts, neither, figure),
+            kinds: composeHalfNamedKinds(statistics, pinnedCase, parts, neither, figure),
         });
     }
     return found;
@@ -1553,9 +1591,15 @@ function composePanelSides(
     if (readerSide === null) return null;
     const totals: Record<SideRelation, number> = { reader: 0, opposing: 0, nobody: 0 };
     for (const [combatantId, figures] of statistics.byCombatantId) {
-        const part = getSideRelation(roster.byId.get(combatantId)?.side ?? null, readerSide);
-        totals[part] += getFigureForMetric(figures, metric);
-        totals[getSideRelationCharged(part, metric)] += getHalfNamedAtNamedEnd(figures, metric);
+        const sideRelation = getSideRelation(
+            roster.byId.get(combatantId)?.side ?? null,
+            readerSide,
+        );
+        totals[sideRelation] += getFigureForMetric(figures, metric);
+        totals[getSideRelationCharged(sideRelation, metric)] += getHalfNamedAtNamedEnd(
+            figures,
+            metric,
+        );
     }
     totals.nobody += getNeitherEndForMetric(statistics, metric);
     return totals;
@@ -1570,8 +1614,8 @@ function getHalfNamedAtNamedEnd(figures: CombatantFigures, metric: PanelMetric):
 
 /** What names neither end, which belongs to no side at all and is only ever damage. */
 function getNeitherEndForMetric(statistics: FightStatistics, metric: PanelMetric): number {
-    if (metric === PANEL_METRIC.damageDealt) return statistics.byNeitherEnd;
-    if (metric === PANEL_METRIC.damageTaken) return statistics.byNeitherEnd;
+    if (metric === PANEL_METRIC.damageDealt) return statistics.damageByNeitherEnd;
+    if (metric === PANEL_METRIC.damageTaken) return statistics.damageByNeitherEnd;
     return 0;
 }
 
@@ -1591,15 +1635,15 @@ function getCountedTotal(
     statistics: FightStatistics,
     sides: PanelSides | null,
     metric: PanelMetric,
-    part: SideRelation | null,
+    sideListed: SideRelation | null,
 ): number {
-    if (part === null) {
+    if (sideListed === null) {
         return getFigureForMetric(statistics.totals, metric) +
             getHalfNamedTotalForMetric(statistics, metric);
     }
     if (sides === null) return 0;
-    if (part === SIDE_RELATION.reader) return sides.reader;
-    if (part === SIDE_RELATION.opposing) return sides.opposing;
+    if (sideListed === SIDE_RELATION.reader) return sides.reader;
+    if (sideListed === SIDE_RELATION.opposing) return sides.opposing;
     return sides.nobody;
 }
 
@@ -1610,10 +1654,10 @@ function getCountedTotal(
  * The fourth reaches no row at all, which is what the section under the list is for.
  */
 function getHalfNamedTotalForMetric(statistics: FightStatistics, metric: PanelMetric): number {
-    if (metric === PANEL_METRIC.damageDealt) return statistics.dealtByNobody;
-    if (metric === PANEL_METRIC.damageTaken) return statistics.takenByNobody;
-    if (metric === PANEL_METRIC.healthGiven) return statistics.givenByNobody;
-    return statistics.restoredToNobody;
+    if (metric === PANEL_METRIC.damageDealt) return statistics.damageDealtByNobody;
+    if (metric === PANEL_METRIC.damageTaken) return statistics.damageTakenByNobody;
+    if (metric === PANEL_METRIC.healthGiven) return statistics.healthGivenByNobody;
+    return statistics.healthRestoredToNobody;
 }
 
 /**
@@ -1625,11 +1669,11 @@ function getHalfNamedTotalForMetric(statistics: FightStatistics, metric: PanelMe
 function hasSideTotalDisagreed(
     whole: number,
     sides: PanelSides | null,
-    part: SideRelation | null,
+    sideListed: SideRelation | null,
 ): boolean {
-    if (part === null) return false;
+    if (sideListed === null) return false;
     if (sides === null) return false;
-    return whole !== (part === SIDE_RELATION.reader ? sides.reader : sides.opposing);
+    return whole !== (sideListed === SIDE_RELATION.reader ? sides.reader : sides.opposing);
 }
 
 /**
@@ -1643,13 +1687,13 @@ function hasSideTotalDisagreed(
  */
 function hasPinnedTotalDisagreed(
     statistics: FightStatistics,
-    kase: PinnedCase,
+    pinnedCase: PinnedCase,
     total: number,
-    part: SideRelation | null,
+    sideListed: SideRelation | null,
 ): boolean {
-    if (part !== null) return false;
-    const shape = PINNED_SHAPES[kase];
-    if (shape.standing === PINNED_STANDING.cut) return false;
+    if (sideListed !== null) return false;
+    const shape = PINNED_SHAPES[pinnedCase];
+    if (shape.placing === PINNED_PLACING.cut) return false;
     return total !== getHalfNamedTotalForMetric(statistics, shape.metric);
 }
 
@@ -1682,7 +1726,7 @@ function composePinnedRows(
 ): PinnedRow[] {
     let taken = 0;
     return pinned.map((one) => {
-        const shareText = one.standing === PINNED_STANDING.apart
+        const shareText = one.placing === PINNED_PLACING.apart
             ? apartShares[taken++] ?? ""
             : formatShareRounded(whole === 0 ? 0 : one.figure / whole);
         return { ...one, fill: getBarFill(one.figure, largest), shareText };
@@ -1722,9 +1766,9 @@ function composeSuspicions(
     );
     if (getNounForMetric(metric) === PANEL_NOUN.healing) {
         said.push(formatUnplacedHealSuspicion(
-            statistics.castsUnplaced,
-            statistics.castsStated,
-            formatRowsReachedByGap(statistics, roster, (one) => one.castsUnplaced),
+            statistics.sideHealsUnsized,
+            statistics.sideHealsStated,
+            formatRowsReachedByGap(statistics, roster, (one) => one.sideHealsUnsized),
         ));
     }
     return said.filter((one) => one.length > 0).slice(0, WARNINGS_MAXIMUM);
@@ -1747,10 +1791,10 @@ function formatRowsReachedByGap(
         if (charged >= COMBATANTS_MAXIMUM) break;
         if (getCount(figures) <= 0) continue;
         charged += 1;
-        const held = roster.byId.get(combatantId);
-        if (held === undefined) continue;
+        const combatant = roster.byId.get(combatantId);
+        if (combatant === undefined) continue;
         if (names.length >= NAMED_ROWS_MAXIMUM) continue;
-        names.push(held.name);
+        names.push(combatant.name);
     }
     return formatNamesReachedByGap(names, charged);
 }
@@ -1824,7 +1868,7 @@ export function presentPartLevel(
     return {
         part,
         total,
-        byOpponent: composeOpponentCut(
+        byOtherEnd: composeOpponentCut(
             cut,
             statistics,
             roster,
@@ -1863,7 +1907,7 @@ function composePeopleForPart(
         // so a received row has no second end to be cut by.
         if (metric !== PANEL_METRIC.healthGiven) return null;
         return composePeopleForKey(
-            figures.healthGivenWithoutSkillByReceiverAndSource,
+            figures.healthGivenWithoutSkillByReceiverAndKey,
             part.source,
         );
     }
@@ -1894,13 +1938,15 @@ function composePeopleForSkill(
     if (getDirectionForMetric(metric) === PANEL_DIRECTION.given) {
         const skill = figures.skills.get(name);
         if (skill === undefined) return null;
-        return composeCutWithoutZeros(isDamage ? skill.dealtByOpponent : skill.restoredByOpponent);
+        return composeCutWithoutZeros(
+            isDamage ? skill.damageDealtByOpponent : skill.healthGivenByReceiver,
+        );
     }
     const reached = new Map<string, number>();
-    for (const [otherId, held] of statistics.byCombatantId) {
-        for (const skill of held.skills.values()) {
+    for (const [otherId, otherFigures] of statistics.byCombatantId) {
+        for (const skill of otherFigures.skills.values()) {
             if (skill.name !== name) continue;
-            const cut = isDamage ? skill.dealtByOpponent : skill.restoredByOpponent;
+            const cut = isDamage ? skill.damageDealtByOpponent : skill.healthGivenByReceiver;
             const figure = cut.get(`${combatantId}`) ?? 0;
             if (figure > 0) reached.set(`${otherId}`, (reached.get(`${otherId}`) ?? 0) + figure);
         }
@@ -1950,7 +1996,9 @@ function getPartTotal(
         if (getDirectionForMetric(metric) === PANEL_DIRECTION.given) {
             const skill = figures.skills.get(part.name);
             if (skill === undefined) return getTotalFromCut(cut);
-            return getNounForMetric(metric) === PANEL_NOUN.damage ? skill.dealt : skill.restored;
+            return getNounForMetric(metric) === PANEL_NOUN.damage
+                ? skill.damageDealt
+                : skill.healthGiven;
         }
     }
     // What was received under a name, and what a key gave, are read by folding the same cut the
@@ -1963,22 +2011,22 @@ function getPartTotal(
 function getCutsForMetric(figures: CombatantFigures, metric: PanelMetric): MetricCuts {
     if (metric === PANEL_METRIC.damageDealt) {
         return {
-            byOpponent: figures.damageDealtByOpponent,
+            byOtherEnd: figures.damageDealtByOpponent,
             byElement: figures.damageDealtByKind,
         };
     }
     if (metric === PANEL_METRIC.damageTaken) {
         return {
-            byOpponent: figures.damageTakenByOpponent,
+            byOtherEnd: figures.damageTakenByOpponent,
             byElement: figures.damageTakenByKind,
         };
     }
     if (metric === PANEL_METRIC.healthGiven) {
-        return { byOpponent: figures.healthGivenByReceiver, byElement: null };
+        return { byOtherEnd: figures.healthGivenByReceiver, byElement: null };
     }
     return {
-        byOpponent: figures.healthRestoredByGiver,
-        byElement: figures.healthRestoredBySource,
+        byOtherEnd: figures.healthRestoredByGiver,
+        byElement: figures.healthRestoredByKey,
     };
 }
 
@@ -2005,14 +2053,14 @@ function composeOpponentCut(
     roster: CombatantRoster,
     totals: { figure: number; unnamedOpened: number | null },
     doesOpen: (otherId: number) => boolean,
-): OpponentCut {
+): OtherEndCut {
     const total = totals.figure;
     const stated: UnsharedRow[] = [];
-    let held = 0;
+    let partsTotal = 0;
     for (const [named, figure] of cut) {
         const other = parseInteger(named);
         if (other === null) continue;
-        held += figure;
+        partsTotal += figure;
         const combatant = roster.byId.get(other);
         stated.push({
             combatantId: other,
@@ -2023,7 +2071,7 @@ function composeOpponentCut(
         });
     }
     stated.sort(compareRowsByFigureThenId);
-    const unnamed = total - held;
+    const unnamed = total - partsTotal;
     const figures = stated.map((one) => one.figure);
     if (unnamed > 0) figures.push(unnamed);
     const shares = formatSharesApportioned(figures, total);
@@ -2036,7 +2084,7 @@ function composeOpponentCut(
             doesOpenPair: doesOpen(row.combatantId),
             detail: composeRowDetailFor(statistics, roster, row.combatantId),
         })),
-        unnamed: unnamed > 0
+        halfNamed: unnamed > 0
             ? {
                 figure: unnamed,
                 fill: getBarFill(unnamed, largest),
@@ -2063,19 +2111,19 @@ export function presentPairLevel(
     const total = getPairTotal(figures, metric, otherId);
     if (total === null) return null;
     const kinds = getPairKinds(figures, metric, otherId);
-    const held = roster.byId.get(otherId);
+    const otherCombatant = roster.byId.get(otherId);
     const parts = composePairParts(statistics, metric, combatantId, otherId, total);
     return {
         combatantId,
         otherId,
-        otherName: held?.name ?? null,
-        otherProfession: held?.profession ?? null,
+        otherName: otherCombatant?.name ?? null,
+        otherProfession: otherCombatant?.profession ?? null,
         total,
         parts: parts.rows,
         hasFiguresDisagreed: parts.hasFiguresDisagreed,
         // Nothing on the last rung opens: the protocol states no further cut of a pair.
         byElement: kinds === null
-            ? { rows: [], rest: null, unnamed: null }
+            ? { rows: [], rest: null, noKind: null }
             : composeElementCut(kinds, total, () => false),
     };
 }
@@ -2148,14 +2196,14 @@ function composePairParts(
             getTextForNamedPart(other.part),
         )
     );
-    const held = getTotalFromParts(stated);
-    const plain = total - held;
+    const partsTotal = getTotalFromParts(stated);
+    const closingFigure = total - partsTotal;
     // Clamped as the section a skill row closes is (`composeSkillCut`), and the clamp carried
     // out: a remainder below nothing is the parts coming to more than the figure over them, which
     // is a drawn figure being wrong rather than short, and a bar cannot be drawn below nothing.
-    const drawn = Math.max(plain, 0);
+    const closingFigureClamped = Math.max(closingFigure, 0);
     const figures = stated.map((one) => one.figure);
-    if (plain !== 0) figures.push(drawn);
+    if (closingFigure !== 0) figures.push(closingFigureClamped);
     const shares = formatSharesApportioned(figures, total);
     const largest = getLargestFigure(figures);
     const rows: PairPartRow[] = stated.map((one, at) => ({
@@ -2164,18 +2212,18 @@ function composePairParts(
         fill: getBarFill(one.figure, largest),
         shareText: shares[at] ?? "",
     }));
-    if (plain === 0) return { rows, hasFiguresDisagreed: false };
+    if (closingFigure === 0) return { rows, hasFiguresDisagreed: false };
     // Where its figure puts it, and not after the lot — the warning above is about a key larger
     // than every skill sitting at the bottom of a column, and the closing row is the one that most
     // often is (`develop ADR 0079`). Its share is read by the index it was composed under, so the
     // figure it carries is unmoved by where it is drawn.
-    rows.splice(getPlaceForClosing(stated, drawn) - 1, 0, {
+    rows.splice(getPlaceForClosing(stated, closingFigureClamped) - 1, 0, {
         part: { kind: OPENED_PART.plain },
-        figure: drawn,
-        fill: getBarFill(drawn, largest),
+        figure: closingFigureClamped,
+        fill: getBarFill(closingFigureClamped, largest),
         shareText: shares[stated.length] ?? "",
     });
-    return { rows, hasFiguresDisagreed: plain < 0 };
+    return { rows, hasFiguresDisagreed: closingFigure < 0 };
 }
 
 /**
@@ -2202,16 +2250,16 @@ function composePairPartFigures(
     const stated: UnsharedPairPart[] = [];
     for (const skill of end.figures.skills.values()) {
         const figure = isDamage
-            ? skill.dealtByOpponent.get(end.subject) ?? 0
-            : skill.restoredByOpponent.get(end.subject) ?? 0;
+            ? skill.damageDealtByOpponent.get(end.subject) ?? 0
+            : skill.healthGivenByReceiver.get(end.subject) ?? 0;
         if (figure > 0) {
             stated.push({ part: { kind: OPENED_PART.skill, name: skill.name }, figure });
         }
     }
     if (isDamage) {
         // The dealing end's own cut, on both screens: `getPairGivingEnd` hands over whoever struck,
-        // which is why the skills above read `dealtByOpponent` off it as well.
-        const cut = end.figures.damageDealtWithoutSkillByOpponentAndSource.get(end.subject);
+        // which is why the skills above read `damageDealtByOpponent` off it as well.
+        const cut = end.figures.damageDealtWithoutSkillByOpponentAndKey.get(end.subject);
         if (cut === undefined) return stated;
         for (const [source, figure] of cut) {
             if (figure <= 0) continue;
@@ -2219,7 +2267,7 @@ function composePairPartFigures(
         }
         return stated;
     }
-    const cut = end.figures.healthGivenWithoutSkillByReceiverAndSource.get(end.subject);
+    const cut = end.figures.healthGivenWithoutSkillByReceiverAndKey.get(end.subject);
     if (cut === undefined) return stated;
     for (const [source, figure] of cut) {
         if (figure > 0) stated.push({ part: { kind: OPENED_PART.source, source }, figure });
@@ -2274,25 +2322,25 @@ export function presentOpenedLevel(
     metric: PanelMetric,
     combatantId: number,
 ): OpenedLevelContent | null {
-    const held = roster.byId.get(combatantId);
+    const combatant = roster.byId.get(combatantId);
     // Every row of a ranking opens, including a combatant nothing has named yet: they are on the
     // list at zero, and a row that drew nothing when it was pressed would leave the panel saying
     // the press did not land. What they open onto is the sentence saying they did nothing.
     const figures = statistics.byCombatantId.get(combatantId) ??
-        (held === undefined ? undefined : createCombatantFigures());
+        (combatant === undefined ? undefined : createCombatantFigures());
     if (figures === undefined) return null;
     const cuts = getCutsForMetric(figures, metric);
     const total = getFigureForMetric(figures, metric);
     const unnamedOpened = presentUnnamedPairLevel(statistics, roster, metric, combatantId);
-    const byOpponent = composeOpponentCut(
-        cuts.byOpponent,
+    const byOtherEnd = composeOpponentCut(
+        cuts.byOtherEnd,
         statistics,
         roster,
         { figure: total, unnamedOpened: unnamedOpened?.total ?? null },
         (otherId) => getPairTotal(figures, metric, otherId) !== null,
     );
     const byElement = cuts.byElement === null
-        ? { rows: [], rest: null, unnamed: null }
+        ? { rows: [], rest: null, noKind: null }
         : composeElementCut(
             cuts.byElement,
             total,
@@ -2305,9 +2353,9 @@ export function presentOpenedLevel(
     const bySkill = composeSkillCut(statistics, figures, metric, total, combatantId);
     return {
         combatantId,
-        name: held?.name ?? null,
-        profession: held?.profession ?? null,
-        byOpponent,
+        name: combatant?.name ?? null,
+        profession: combatant?.profession ?? null,
+        byOtherEnd,
         bySkill,
         byElement,
         total,
@@ -2336,11 +2384,11 @@ function composeSkillCut(
     const stated = folded.rows;
     stated.sort(compareSkillRows);
     // What the bound would not give a row to counts as held, because the game **did** name it:
-    // left out of this sum it would land in `plain`, which says nothing announced the blow.
-    const held = stated.reduce((sum, one) => sum + one.figure, folded.rest);
+    // left out of this sum it would land in `closingFigure`, which says nothing announced the blow.
+    const partsTotal = stated.reduce((sum, one) => sum + one.figure, folded.rest);
     // Drawn even where it landed nothing: three blows that were all blocked are three blows, and
     // a section that skipped them would say the combatant never swung.
-    const plain = total - held;
+    const closingFigure = total - partsTotal;
     // ⚠️ **On the healing screens this is nought by construction**, and it is not asserted
     // (`develop ADR 0051`): one condition in `src/core/fight-statistics.ts` sends a movement to a
     // skill's row or to the key cut, never to both and never to neither. It is not carried out
@@ -2348,16 +2396,16 @@ function composeSkillCut(
     // — a share divided by the wrong whole — and this one is not: a remainder draws a row of its
     // own, with the figure on it, where a reader can see it and add it up.
     const isCounted = metric === PANEL_METRIC.damageDealt;
-    const hasPlain = plain > 0 || (isCounted && figures.blowsWithoutSkill > 0);
+    const hasClosing = closingFigure > 0 || (isCounted && figures.blowsWithoutSkill > 0);
     const hasRest = folded.rest > 0;
     // ⚠️ **The shares are composed from the clamped figure, never from the bare remainder.** A
     // row drawn at nought beside a share worked out from a figure below nothing prints
     // *Nie wiadomo* where the panel has just drawn a number, which is a row saying two things at
     // once. What the clamp hides is carried out of here instead.
-    const drawn = Math.max(plain, 0);
+    const closingFigureClamped = Math.max(closingFigure, 0);
     const figuresOnScreen = stated.map((one) => one.figure);
     if (hasRest) figuresOnScreen.push(folded.rest);
-    if (hasPlain) figuresOnScreen.push(drawn);
+    if (hasClosing) figuresOnScreen.push(closingFigureClamped);
     const shares = formatSharesApportioned(figuresOnScreen, total);
     const largest = getLargestFigure(figuresOnScreen);
     return {
@@ -2369,20 +2417,20 @@ function composeSkillCut(
         // ⚠️ **Last, because it is the only row of the section left holding no place.** What a
         // bound would not draw is never folded into the row below it (`develop ADR 0055`).
         rest: hasRest ? composeRestRow(folded.rest, largest, shares[stated.length] ?? "") : null,
-        plain: hasPlain
+        closing: hasClosing
             ? composeClosingRow({
                 blows: isCounted ? figures.blowsWithoutSkill : null,
                 doesOpenPart: composePeopleForPart(statistics, figures, metric, combatantId, {
                     kind: OPENED_PART.plain,
                 }) !==
                     null,
-                figure: drawn,
+                figure: closingFigureClamped,
                 largest,
                 stated,
                 shareText: shares[stated.length + (hasRest ? 1 : 0)] ?? "",
             })
             : null,
-        hasFiguresDisagreed: plain < 0,
+        hasFiguresDisagreed: closingFigure < 0,
     };
 }
 
@@ -2424,11 +2472,11 @@ function composeSkillRowsStated(
         const named = composeSkillRowsReceived(
             statistics,
             combatantId,
-            (o) => o.restoredByOpponent,
+            (o) => o.healthGivenByReceiver,
         );
         return composeFoldsJoined(
             named,
-            composeSourceRows(figures.healthRestoredWithoutSkillBySource),
+            composeSourceRows(figures.healthRestoredWithoutSkillByKey),
         );
     }
     // ⚠️ **The keys stand here and the elements do not, and the two are not the same list.** What
@@ -2440,21 +2488,21 @@ function composeSkillRowsStated(
         const named = composeSkillRowsReceived(
             statistics,
             combatantId,
-            (one) => one.dealtByOpponent,
+            (one) => one.damageDealtByOpponent,
         );
         return composeFoldsJoined(
             named,
-            composeSourceRows(figures.damageTakenWithoutSkillBySource),
+            composeSourceRows(figures.damageTakenWithoutSkillByKey),
         );
     }
     const own = [...figures.skills.values()];
     if (metric === PANEL_METRIC.healthGiven) {
         const given = getGivenSourceCut(figures);
         return composeFoldsJoined({
-            parts: own.filter((one) => one.restored > 0).map((one) => ({
+            parts: own.filter((one) => one.healthGiven > 0).map((one) => ({
                 part: { kind: OPENED_PART.skill, name: one.name },
                 uses: one.uses,
-                figure: one.restored,
+                figure: one.healthGiven,
             })),
             // What the fold could not key travels with the section it was folded for, so the two
             // bounds on one path come to one row rather than to a shortfall nobody drew.
@@ -2462,13 +2510,13 @@ function composeSkillRowsStated(
         }, composeSourceRows(given.cut));
     }
     return composeFoldsJoined({
-        parts: own.filter((one) => one.dealt > 0 || one.blows > 0).map((one) => ({
+        parts: own.filter((one) => one.damageDealt > 0 || one.blows > 0).map((one) => ({
             part: { kind: OPENED_PART.skill, name: one.name },
             uses: one.uses,
-            figure: one.dealt,
+            figure: one.damageDealt,
         })),
         rest: 0,
-    }, composeSourceRows(figures.damageDealtWithoutSkillBySource));
+    }, composeSourceRows(figures.damageDealtWithoutSkillByKey));
 }
 
 /**
@@ -2479,7 +2527,7 @@ function composeSkillRowsStated(
  *
  * The announcement is kept on the record of whoever made it, so a received figure is cut by
  * walking everybody rather than by reading one row. Which cut of theirs answers is the caller's:
- * `restoredByOpponent` where health arrived, `dealtByOpponent` where a blow did.
+ * `healthGivenByReceiver` where health arrived, `damageDealtByOpponent` where a blow did.
  */
 function composeSkillRowsReceived(
     statistics: FightStatistics,
@@ -2488,8 +2536,8 @@ function composeSkillRowsReceived(
 ): FoldedParts {
     const byName = new Map<string, number>();
     let rest = 0;
-    for (const held of statistics.byCombatantId.values()) {
-        for (const skill of held.skills.values()) {
+    for (const combatantFigures of statistics.byCombatantId.values()) {
+        for (const skill of combatantFigures.skills.values()) {
             const figure = getCut(skill).get(`${combatantId}`) ?? 0;
             if (figure <= 0) continue;
             if (byName.has(skill.name)) {
@@ -2559,7 +2607,7 @@ function composeSourceRows(cut: FigureCut): FoldedParts {
 function getGivenSourceCut(figures: CombatantFigures): { cut: FigureCut; rest: number } {
     const folded = new Map<string, number>();
     let rest = 0;
-    for (const cut of figures.healthGivenWithoutSkillByReceiverAndSource.values()) {
+    for (const cut of figures.healthGivenWithoutSkillByReceiverAndKey.values()) {
         // The fold runs over every receiver, so its own bound is the panel's (**S11**): what
         // `core/` holds is one receiver's cut and not the union of twenty. What it will not hold
         // travels out with it, because the section below owes it a row (`develop ADR 0055`).
@@ -2599,7 +2647,7 @@ function composeClosingRow(
 ): ClosingRow {
     return {
         blows: said.blows,
-        place: getPlaceForClosing(said.stated, said.figure),
+        rank: getPlaceForClosing(said.stated, said.figure),
         doesOpenPart: said.doesOpenPart,
         figure: said.figure,
         fill: getBarFill(said.figure, said.largest),

@@ -63,7 +63,7 @@ test("the caveat mark is a circle, on the row and on the card alike", async ({ p
 
     const boxes = [await row.boundingBox()];
     await panel.at(`${HOST_SELECTOR} .list .row`).first().hover();
-    const onCard = panel.at(`${HOST_SELECTOR} .MargoMeter-tip .tip-caveat`).first();
+    const onCard = panel.at(`${HOST_SELECTOR} .MargoMeter-card .card-caveat`).first();
     await expect(onCard, "and a card carries it beside a figure").not.toHaveCount(0);
     boxes.push(await onCard.boundingBox());
 

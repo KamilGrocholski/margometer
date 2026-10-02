@@ -16,12 +16,12 @@ export interface BrowserConsole {
 /** Shown first, so a line of ours is never read as the game's. */
 const BRAND = "MargoMeter/Panel";
 
-export function initBrowserConsole(console: BrowserConsole): BrowserConsolePort {
+export function initBrowserConsole(browserConsole: BrowserConsole): BrowserConsolePort {
     return {
         writeBrandedLine(kind, detail) {
             // ⚠️ The line is the mark. A console that refuses it has nowhere further to send it,
             // and the defect it stands for is counted by the ledger either way.
-            void errors.attempt(() => console.error(`${BRAND} ${kind}`, detail));
+            void errors.attempt(() => browserConsole.error(`${BRAND} ${kind}`, detail));
         },
     };
 }

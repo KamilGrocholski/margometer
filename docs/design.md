@@ -314,13 +314,13 @@ export interface KeyValueStore {
 }
 export const STORE_KEY = {
     fights: "MargoMeter-fights",
-    panelFolded: "MargoMeter-folded",
-    panelPlace: "MargoMeter-place",
+    meterFolded: "MargoMeter-folded",
+    meterPosition: "MargoMeter-place",
     helperFolded: "MargoMeter-pomocnik-folded",
-    helperPlace: "MargoMeter-pomocnik-place",
+    helperPosition: "MargoMeter-pomocnik-place",
     storage: "MargoMeter-storage",
     typeStep: "MargoMeter-type",
-    panelSize: "MargoMeter-size",
+    meterSize: "MargoMeter-size",
     helperSize: "MargoMeter-pomocnik-size",
 } as const;
 export type StoreKey = VocabularyWord<typeof STORE_KEY>;
@@ -446,7 +446,7 @@ export type SessionPhase = (typeof SESSION_PHASE)[keyof typeof SESSION_PHASE];
 /** A record the four functions below read and write; nothing else writes to it. */
 export interface FightSession {
     readonly options: SessionOptions;
-    standing: SessionStanding | null; // null: no payload yet
+    state: SessionState | null; // null: no payload yet
     events: BattleEvent[];
 }
 export function createFightSession(options: SessionOptions): FightSession;
@@ -466,7 +466,7 @@ export interface PreparedPayload {
     readonly payloadIndex: number; // what the standing it was read against had applied
     readonly isOpening: boolean; // `init`, or the first payload the session sees
     readonly decoded: PayloadDecoded;
-    readonly next: SessionStanding; // everything but the events, which commit appends
+    readonly next: SessionState; // everything but the events, which commit appends
 }
 export interface PayloadCommitted {
     hasOpened: boolean;
@@ -686,7 +686,7 @@ export interface DefectCount {
 export interface Settings {
     storage: StorageChoice;
     typeStep: TypeStep; // the screen state carries it, as it carries the folds
-    panel: WindowSetting;
+    meter: WindowSetting;
     helper: WindowSetting;
 }
 export interface WindowSetting {
@@ -878,7 +878,7 @@ export interface PanelView {
     element: PanelElement;
     render(shown: ShownScreen): RenderReport;
     renderWaiting(waiting: WaitingContent): RenderReport;
-    renderHelper(standing: HelperContent | HelperAbsence, isCollapsed: boolean): RenderReport;
+    renderHelper(helper: HelperContent | HelperAbsence, isCollapsed: boolean): RenderReport;
 }
 /** A region that could not draw stands undrawn in place. */
 export interface RenderReport {
@@ -934,7 +934,8 @@ literals stand in the variants here only so the document reads. A failure is a c
 
 ```
 window ─ readRuntimePorts ─▶ RuntimePorts | BootFailure, under errors.attempt
-   WindowUnusable: the first part missing (document, console, timers, frames, clock, downloads)
+   BrowserWindowUnusable: the first part missing (document, console, timers, frames, clock,
+     downloads)
    Caught: a member whose getter threw, a broken invariant while standing up
    a failure → one console line where the page has a console → stand down, no panel
 composeRuntimeTables     the frozen readings indexed, under the start's guard, never at load
@@ -1043,7 +1044,7 @@ goes without a mark.
 ### 10.7 The card: `onHover`, in the root listener, under its guard
 
 ```
-listener ─ the row under the pointer, by its tip key, and the pointer's height
+listener ─ the row under the pointer, by its card key, and the pointer's height
    onHover: the same row → the card moves with the pointer, and nothing is drawn
             another row   → its reading composed and the card drawn at once
             no row        → the card hides

@@ -7,7 +7,7 @@
  */
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
-import { presentCard, TIP_LINE, TIP_NOTE_TONE, type TipGroup } from "#/src/ui/panel-element.ts";
+import { CARD_LINE, CARD_NOTE_TONE, type CardGroup, presentCard } from "#/src/ui/panel-element.ts";
 import { type RowDetail, SIDE_RELATION, type SideRelation } from "#/src/ui/panel-content.ts";
 import { PANEL_METRIC, type PanelMetric, SCREEN_ORDER } from "#/src/ui/panel-screen.ts";
 import {
@@ -59,7 +59,7 @@ const HILDUR: RowDetail = {
     ],
     unreadMessagesUnknownKey: 0,
     unreadMessagesNoParameter: 0,
-    castsUnplaced: 0,
+    sideHealsUnsized: 0,
 };
 
 /** Somebody the roster holds and the fight never touched, which is a reading and not a gap. */
@@ -93,7 +93,7 @@ const NOBODY: RowDetail = {
     statisticsDestroyed: [],
     unreadMessagesUnknownKey: 0,
     unreadMessagesNoParameter: 0,
-    castsUnplaced: 0,
+    sideHealsUnsized: 0,
 };
 
 /**
@@ -171,14 +171,14 @@ Deno.test("the whole fight is a block of its own, and the screen's figure is in 
  * included**. Left out of this reader, a figure that lost its mark would read the same as one that
  * never had it, and every frozen list below would stay green through the loss.
  */
-function readGroup(group: TipGroup): string[] {
+function readGroup(group: CardGroup): string[] {
     return group.lines.map((line) => {
         // The mark a sentence wears is read off its tone, which is where the panel reads it too.
-        if (line.kind === TIP_LINE.note) {
-            return line.tone === TIP_NOTE_TONE.caveat ? `${CAVEATED} ${line.text}` : line.text;
+        if (line.kind === CARD_LINE.note) {
+            return line.tone === CARD_NOTE_TONE.caveat ? `${CAVEATED} ${line.text}` : line.text;
         }
-        if (line.kind === TIP_LINE.heading) return `[${line.text}]`;
-        if (line.kind === TIP_LINE.sub) return `  ${line.label} ${line.stated}`;
+        if (line.kind === CARD_LINE.heading) return `[${line.text}]`;
+        if (line.kind === CARD_LINE.sub) return `  ${line.label} ${line.stated}`;
         const said = line.caveat === null ? line.label : `${line.label} ${CAVEATED}`;
         return line.isStrong ? `**${said}** ${line.stated}` : `${said} ${line.stated}`;
     });
@@ -530,15 +530,17 @@ Deno.test("a card says the gaps that name its own person, and no others", () => 
     };
     const clean = readNotes(NOBODY);
     assertEquals(
-        clean.filter((line) => line.kind === TIP_LINE.note && line.tone === TIP_NOTE_TONE.suspect),
+        clean.filter((line) =>
+            line.kind === CARD_LINE.note && line.tone === CARD_NOTE_TONE.suspect
+        ),
         [],
         "a person no gap names carries none, whatever the fight is short of",
     );
     const charged = readNotes({ ...NOBODY, unreadMessagesUnknownKey: 2 })
-        .filter((line) => line.kind === TIP_LINE.note && line.tone === TIP_NOTE_TONE.suspect);
+        .filter((line) => line.kind === CARD_LINE.note && line.tone === CARD_NOTE_TONE.suspect);
     assertEquals(charged.length, 1, "and the person a gap does name carries that one");
     assert(
-        charged[0]?.kind === TIP_LINE.note && charged[0].text.startsWith(SUSPECT_MARK),
+        charged[0]?.kind === CARD_LINE.note && charged[0].text.startsWith(SUSPECT_MARK),
         "drawn as a suspicion, which is a mark as well as a colour",
     );
 });
@@ -552,7 +554,7 @@ Deno.test("a card states both of the gaps that can name one person, widest first
         name: "Hildur Muza Śmierci",
         profession: "m",
         sideRelation: SIDE_RELATION.nobody,
-        detail: { ...HILDUR, unreadMessagesUnknownKey: 2, castsUnplaced: 1 },
+        detail: { ...HILDUR, unreadMessagesUnknownKey: 2, sideHealsUnsized: 1 },
         metric: PANEL_METRIC.healthGiven,
         doesOpen: false,
         isRowNarrower: false,
@@ -571,7 +573,7 @@ Deno.test("a card on a damage screen says nothing about a cast, which puts back 
         name: "Hildur Muza Śmierci",
         profession: "m",
         sideRelation: SIDE_RELATION.nobody,
-        detail: { ...HILDUR, castsUnplaced: 1 },
+        detail: { ...HILDUR, sideHealsUnsized: 1 },
         metric: PANEL_METRIC.damageDealt,
         doesOpen: false,
         isRowNarrower: false,
@@ -925,12 +927,12 @@ Deno.test("the card says how many turns a combatant took, and only where they to
     const readTurnLines = (detail: RowDetail): string[] =>
         presentCard({ ...subject, detail }).groups
             .flatMap((group) => group.lines)
-            .filter((line) => line.kind === TIP_LINE.stat)
+            .filter((line) => line.kind === CARD_LINE.stat)
             .filter((line) => {
                 if (line.label === CARD_WORDS.turns) return true;
                 return line.label === CARD_WORDS.turnsWithLost;
             })
-            .map((line) => (line.kind === TIP_LINE.stat ? `${line.label} ${line.stated}` : ""));
+            .map((line) => (line.kind === CARD_LINE.stat ? `${line.label} ${line.stated}` : ""));
     assertEquals(
         readTurnLines(HILDUR),
         [`${CARD_WORDS.turnsWithLost} 37\u00a0/\u00a04`],
@@ -953,6 +955,6 @@ Deno.test("the card says how many turns a combatant took, and only where they to
     // Neither half is drawn as a sub-line any more, which is what develop ADR 0110 took from 0049.
     const under = presentCard({ ...subject, detail: HILDUR }).groups
         .flatMap((group) => group.lines)
-        .filter((line) => line.kind === TIP_LINE.sub && line.stated === "4");
+        .filter((line) => line.kind === CARD_LINE.sub && line.stated === "4");
     assertEquals(under, [], "and nothing about turns hangs beneath the line saying them");
 });

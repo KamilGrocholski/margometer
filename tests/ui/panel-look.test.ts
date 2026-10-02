@@ -19,9 +19,9 @@ import {
     composeBarColour,
     composeOptionsStepClass,
     composeStyleSheet,
+    getCardHeightAvailable,
     getContrastRatio,
     getInkForBar,
-    getTipHeightAvailable,
     LAYER,
     PLACE,
     SIZE_VARIABLES,
@@ -74,7 +74,9 @@ const HEX_COLOUR_LENGTH = 7;
 const RGB_OPENER = "rgb(";
 const RGB_CLOSER = ")";
 const CHANNEL_VALUE_MAXIMUM = 255;
-/** `develop`'s sheet and the whole of what it imports, at the revision the recordings are read at. */
+/**
+ * `develop`'s sheet and the whole of what it imports, at the revision the recordings are read at.
+ */
 const DEVELOP_SHEET_FILES = [
     "src/ui/panel-look.ts",
     "libs/number-range.ts",
@@ -83,8 +85,8 @@ const DEVELOP_SHEET_FILES = [
 ];
 const DEVELOP_ROOT_PREFIX = '"@/';
 /**
- * `develop`'s words for the two windows, and ours (ADR 0024): its sheet is spelled ours before the
- * comparison, so a name is no departure and anything else still is.
+ * `develop`'s words for the two windows and the card, and ours (ADR 0024): its sheet is spelled
+ * ours before the comparison, so a name is no departure and anything else still is.
  */
 const DEVELOP_SPELLINGS: readonly (readonly [string, string])[] = [
     ["MargoMeter-standing", "MargoMeter-helper"],
@@ -92,6 +94,8 @@ const DEVELOP_SPELLINGS: readonly (readonly [string, string])[] = [
     ["--MargoMeter-panel-top", "--MargoMeter-meter-top"],
     [".panel{", ".meter{"],
     [".panel>", ".meter>"],
+    ["MargoMeter-tip", "MargoMeter-card"],
+    [".tip-", ".card-"],
 ];
 
 /** ADR 0013, 0014 and 0015: the rules the options, the sizing and the fight's line move. */
@@ -111,7 +115,7 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: ".MargoMeter-titlebar", here: ".MargoMeter-titlebar", moved: ["width"] },
     { develop: ".meter", here: ".meter", moved: ["width", "position", "min-height"] },
     { develop: ".meter>.list", here: ".meter>.list", moved: ["flex", "min-height"] },
-    { develop: ".MargoMeter-tip", here: ".MargoMeter-tip", moved: ["right"] },
+    { develop: ".MargoMeter-card", here: ".MargoMeter-card", moved: ["right"] },
     { develop: ".MargoMeter-helper", here: ".MargoMeter-helper", moved: ["left", "width"] },
     { develop: ".helper-body", here: ".helper-body", moved: ["box-sizing", "height"] },
     { develop: null, here: ".MargoMeter-helper.helper-folded .size-grip" },
@@ -498,7 +502,9 @@ function composeBodyWithout(body: string, moved: readonly string[]): string {
     }).join(";");
 }
 
-/** `develop`'s modules written out of git into a directory of their own, and the sheet asked for. */
+/**
+ * `develop`'s modules written out of git into a directory of their own, and the sheet asked for.
+ */
 async function readDevelopStyleSheet(): Promise<string> {
     const root = Deno.makeTempDirSync({ prefix: "margometer-develop-sheet-" });
     for (const path of DEVELOP_SHEET_FILES) {
@@ -612,14 +618,14 @@ Deno.test("the card stands over the window beside the panel, and both over the f
             return Number(written.split(";")[0]);
         };
         const helper = layerOf(`.${CLASS.helper}{`);
-        const tip = layerOf(`.${CLASS.tip}{`);
+        const card = layerOf(`.${CLASS.card}{`);
         assertStrictEquals(
             helper,
             Number(LAYER.helper),
             "the window takes the layer it is given",
         );
-        assertStrictEquals(tip, Number(LAYER.tip), "and so does the card");
-        assert(tip > helper, "a card is what a reader pointed at, so nothing else covers it");
+        assertStrictEquals(card, Number(LAYER.card), "and so does the card");
+        assert(card > helper, "a card is what a reader pointed at, so nothing else covers it");
         // The frame takes none of its own: it is what both of the others may be dragged over.
         const frame = sheet.slice(
             sheet.indexOf(":host{"),
@@ -929,30 +935,32 @@ function readSheetVariable(sheet: string, name: string): string {
     return value;
 }
 
-/** A step moves both windows and the card at once: one size of type, never two beside each other. */
+/**
+ * A step moves both windows and the card at once: one size of type, never two beside each other.
+ */
 Deno.test("every step draws both windows and the card in its own type, at its own widths", () => {
     for (const step of TYPE_STEPS) {
         const sheet = composeStyleSheet(step);
         const tokens = TYPE_TOKENS[step];
         const body = `${tokens.fontPixels}px/${tokens.lineHeightPixels}px`;
-        for (const drawn of [CLASS.meter, CLASS.helper, CLASS.tip]) {
+        for (const drawn of [CLASS.meter, CLASS.helper, CLASS.card]) {
             const font = getDeclaration(getRuleBody(sheet, `.${drawn}`), "font");
             assert(font?.startsWith(body), `${step}: ${drawn} prints ${font}, not ${body}`);
         }
         // As wide as the step says, until a reader sizes the window by its corner.
-        const meter = `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px)`;
+        const meter = `var(${SIZE_VARIABLES.meter.width},${tokens.meterWidthPixels}px)`;
         const helper = `var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px)`;
         const widths = [[CLASS.meter, meter], [CLASS.title, meter], [CLASS.helper, helper]];
         for (const [drawn, width] of widths) {
             const stated = getDeclaration(getRuleBody(sheet, `.${drawn}`), "width");
             assertEquals(stated, width, `${step}: ${drawn} stands as wide as the step says`);
         }
-        const tip = getDeclaration(getRuleBody(sheet, `.${CLASS.tip}`), "max-width");
-        assertStringIncludes(tip ?? "", `${tokens.tipWidthPixelsMaximum}px`, `${step}: the card`);
+        const card = getDeclaration(getRuleBody(sheet, `.${CLASS.card}`), "max-width");
+        assertStringIncludes(card ?? "", `${tokens.cardWidthPixelsMaximum}px`, `${step}: the card`);
         // Every smaller type the sheet spells is the step's own, and the ring's letter is its own.
         const letter = `${tokens.markLetterPixels}px`;
         const ring = readRules(sheet).find((one) =>
-            one.selector === `.${CLASS.rowCaveat},.${CLASS.tipCaveat}`
+            one.selector === `.${CLASS.rowCaveat},.${CLASS.cardCaveat}`
         );
         assertExists(ring, `${step}: the ring is one rule for both places it stands`);
         assertEquals(getDeclaration(ring.body, "font-size"), letter, `${step}: the ring's letter`);
@@ -983,17 +991,21 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
 
 Deno.test("a card is trimmed to the room the sheet leaves it, the window less its air", () => {
     const sheet = composeStyleSheet(TYPE_STEP_DEFAULT);
-    const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.tip}`), "max-height");
+    const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.card}`), "max-height");
     assertExists(stated, "the sheet holds a card inside the window");
     const opener = "calc(100vh - ";
     assert(stated.startsWith(opener), `${stated} is a bound on the window's height`);
     const terms = stated.slice(opener.length, stated.length - 1).split(" - ");
     const air = terms.reduce((sum, term) => sum + getPixels(term), 0);
-    assertEquals(getTipHeightAvailable(900), 900 - air, "the trim spends the air the sheet spends");
-    assertEquals(getTipHeightAvailable(air), null, "a window no taller than the air has no room");
-    assertEquals(getTipHeightAvailable(air + 1), 1, "and a pixel past it has that pixel");
     assertEquals(
-        getTipHeightAvailable(null),
+        getCardHeightAvailable(900),
+        900 - air,
+        "the trim spends the air the sheet spends",
+    );
+    assertEquals(getCardHeightAvailable(air), null, "a window no taller than the air has no room");
+    assertEquals(getCardHeightAvailable(air + 1), 1, "and a pixel past it has that pixel");
+    assertEquals(
+        getCardHeightAvailable(null),
         null,
         "a page stating no height has no room to reason about",
     );
@@ -1030,11 +1042,11 @@ Deno.test("the name a card opens with folds rather than shortening", () => {
     for (const step of TYPE_STEPS) {
         const sheet = composeStyleSheet(step);
         assertEquals(
-            getShorteningMissing(sheet, `.${CLASS.tipName}`).length,
+            getShorteningMissing(sheet, `.${CLASS.cardName}`).length,
             SHORTENING.length,
             "the name states none of them, so nothing cuts it",
         );
-        const body = getRuleBody(sheet, `.${CLASS.tipName}`);
+        const body = getRuleBody(sheet, `.${CLASS.cardName}`);
         assertEquals(
             getDeclaration(body, "overflow-wrap"),
             "break-word",
@@ -1079,7 +1091,7 @@ Deno.test("a cell carrying a figure refuses to fold, and its neighbour shortens"
             assertEquals(getDeclaration(body, "white-space"), "nowrap", `${selector} folds`);
             assertEquals(getDeclaration(body, "flex"), "none", `${selector} gives way`);
         }
-        const beside = [CLASS.sectionWords, CLASS.sidesLabel, CLASS.rowName, CLASS.tipLabel];
+        const beside = [CLASS.sectionWords, CLASS.sidesLabel, CLASS.rowName, CLASS.cardLabel];
         const short = beside.flatMap((className) => getShorteningMissing(sheet, `.${className}`));
         assertEquals(short, [], "the words beside a figure are the cell that shortens");
     }

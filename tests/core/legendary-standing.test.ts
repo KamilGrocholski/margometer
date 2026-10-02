@@ -25,14 +25,18 @@ const SOMEBODY_ELSE = 12;
 Deno.test("the effect stands for the heals the help gives it, and goes with the last", () => {
     let walk = NO_LEGENDARY_WALK;
     walk = prepareLegendaryWalk(walk, [composeDeclaringBlow(HOLDER)]);
-    assertStrictEquals(readStanding(walk, HOLDER)?.holytouchHealsGiven, 0, "lit, and none yet");
+    assertStrictEquals(readStanding(walk, HOLDER)?.holytouchHealsReceived, 0, "lit, and none yet");
     walk = prepareLegendaryWalk(walk, [composeHeal(HOLDER)]);
-    assertStrictEquals(readStanding(walk, HOLDER)?.holytouchHealsGiven, 1, "one heal is one");
+    assertStrictEquals(readStanding(walk, HOLDER)?.holytouchHealsReceived, 1, "one heal is one");
     for (let heal = 2; heal < HOLYTOUCH_HEALS_STATED; heal += 1) {
         walk = prepareLegendaryWalk(walk, [composeHeal(HOLDER)]);
     }
     const inside = readStanding(walk, HOLDER);
-    assertStrictEquals(inside?.holytouchHealsGiven, HOLYTOUCH_HEALS_STATED - 1, "still standing");
+    assertStrictEquals(
+        inside?.holytouchHealsReceived,
+        HOLYTOUCH_HEALS_STATED - 1,
+        "still standing",
+    );
     // **W5**: the bound is a boundary, so the heal reaching it is asserted beside the one under.
     walk = prepareLegendaryWalk(walk, [composeHeal(HOLDER)]);
     assertStrictEquals(
@@ -94,7 +98,11 @@ Deno.test("a heal with no lighting before it opens no run", () => {
     walk = prepareLegendaryWalk(walk, [composeHeal(HOLDER)]);
     assertEquals(composeLegendaryStandings(walk), [], "nothing dates where it began");
     walk = prepareLegendaryWalk(walk, [composeHeal(HOLDER), composeDeclaringBlow(HOLDER)]);
-    assertStrictEquals(readStanding(walk, HOLDER)?.holytouchHealsGiven, 0, "the one before is not");
+    assertStrictEquals(
+        readStanding(walk, HOLDER)?.holytouchHealsReceived,
+        0,
+        "the one before is not",
+    );
 });
 
 /**
@@ -108,7 +116,7 @@ Deno.test("a second declaration restarts the run rather than lengthening it", ()
     walk = prepareLegendaryWalk(walk, [composeDeclaringBlow(HOLDER)]);
     walk = prepareLegendaryWalk(walk, [composeHeal(HOLDER)]);
     const standing = readStanding(walk, HOLDER);
-    assertStrictEquals(standing?.holytouchHealsGiven, 1, "one heal since the later of the two");
+    assertStrictEquals(standing?.holytouchHealsReceived, 1, "one heal since the later of the two");
 });
 
 Deno.test("the heals are counted on the holder and on nobody else", () => {
@@ -119,7 +127,7 @@ Deno.test("the heals are counted on the holder and on nobody else", () => {
     ]);
     const standings = composeLegendaryStandings(walk);
     assertEquals(standings.map((one) => one.combatantId), [HOLDER], "one row, and it is theirs");
-    assertStrictEquals(standings[0]?.holytouchHealsGiven, 0, "and somebody else's heal is not");
+    assertStrictEquals(standings[0]?.holytouchHealsReceived, 0, "and somebody else's heal is not");
 });
 
 Deno.test("a bonus that fires once stays fired, and says nothing of any length", () => {
@@ -128,7 +136,7 @@ Deno.test("a bonus that fires once stays fired, and says nothing of any length",
     walk = prepareLegendaryWalk(walk, []);
     const spent = readStanding(walk, HOLDER);
     assertStrictEquals(spent?.hasSpentLastheal, true, "spent a payload later is still spent");
-    assertStrictEquals(spent?.holytouchHealsGiven, null, "and the other bonus says nothing");
+    assertStrictEquals(spent?.holytouchHealsReceived, null, "and the other bonus says nothing");
 });
 
 /** The bonus that heals once a fight, read off the value and never off a slot. */
@@ -153,7 +161,7 @@ Deno.test("a holder of both is one row, and it says both", () => {
     const standings = composeLegendaryStandings(walk);
     assertStrictEquals(standings.length, 1, "one combatant, one row");
     assertStrictEquals(standings[0]?.hasSpentLastheal, true, "the bonus that fired");
-    assertStrictEquals(standings[0]?.holytouchHealsGiven, 0, "and the one still running");
+    assertStrictEquals(standings[0]?.holytouchHealsReceived, 0, "and the one still running");
 });
 
 /**
@@ -190,5 +198,8 @@ Deno.test("the walk handed in is left as it was, and the same input prepares the
 });
 
 function copyWalk(walk: LegendaryWalk) {
-    return { heals: [...walk.holytouchHealsByHolder], spent: [...walk.spentLastheal] };
+    return {
+        heals: [...walk.holytouchHealsByBearerId],
+        spent: [...walk.lastHealSpentCombatantIds],
+    };
 }

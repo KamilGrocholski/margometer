@@ -154,7 +154,7 @@ Deno.test("a card that will not draw under the pointer is told to the sink as th
     const panel = initTestView(document, { onFailure: (failure) => failures.push(failure) });
     panel.render(composeShownScreen(readFight()));
     const host = panel.element as FakeElement;
-    const row = getElementsWithin(host).find((one) => one.attributes.has("data-tip"));
+    const row = getElementsWithin(host).find((one) => one.attributes.has("data-card"));
     assertExists(row, "a row carries a card");
     const createElement = document.createElement;
     document.createElement = () => {
@@ -164,11 +164,11 @@ Deno.test("a card that will not draw under the pointer is told to the sink as th
     document.createElement = createElement;
     assertEquals(
         failures.map((one) => one instanceof RegionUndrawn ? one.region : one.name),
-        [PANEL_REGION.tip],
+        [PANEL_REGION.card],
         "no render was running, so the card is the sink's to hear of",
     );
-    const tip = host.shadow?.find((one) => one.className.startsWith("MargoMeter-tip"));
-    assertEquals(tip?.className, "MargoMeter-tip tip-hidden", "and the card standing hides");
+    const card = host.shadow?.find((one) => one.className.startsWith("MargoMeter-card"));
+    assertEquals(card?.className, "MargoMeter-card card-hidden", "and the card standing hides");
 });
 
 Deno.test("a region kept after a refused replace is the one the next draw replaces", () => {
@@ -194,7 +194,7 @@ Deno.test("a window that will not open where told stays on the sheet's corner, a
     const failures: ViewFailure[] = [];
     const panel = initTestView(composeFakeDocument(), {
         onFailure: (failure) => failures.push(failure),
-        placement: {
+        meterPlacement: {
             position: null,
             size: null,
             readViewport: () => {

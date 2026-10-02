@@ -312,35 +312,38 @@ function writeShelf(
     before: ShelfContents,
     fights: readonly KeptFight[],
 ): ShelfWritten | ShelfFailure {
-    let held = rotateShelf(fights);
+    let offered = rotateShelf(fights);
     let refused: StoreFailure | null = null;
     for (let attempts = 1; attempts <= KEPT_MAXIMUM + 1; attempts += 1) {
         const text = encodeJson(
-            { version: SHELF_VERSION, fights: held.map(encodeKeptFight) },
+            { version: SHELF_VERSION, fights: offered.map(encodeKeptFight) },
             0,
         );
         if (text instanceof Error) return new ShelfUnwritable({ cause: text });
         const written = store.write(SHELF_KEY, text);
         if (!(written instanceof Error)) {
             // Say what was offered and did not go down: the rotation, stated rather than silent.
-            const kept = new Set(held.map((one) => one.openedAt));
-            const dropped = fights.filter((one) => !kept.has(one.openedAt)).map((one) =>
+            const keptOpenedAts = new Set(offered.map((one) => one.openedAt));
+            const dropped = fights.filter((one) => !keptOpenedAts.has(one.openedAt)).map((one) =>
                 one.openedAt
             );
             assert(
-                dropped.length + held.length === fights.length,
+                dropped.length + offered.length === fights.length,
                 "every fight offered is kept or dropped",
             );
             assert(before.fights.length <= KEPT_MAXIMUM, "the shelf before was inside its bound");
-            return { contents: { fights: held }, droppedOpenedAt: dropped };
+            return { contents: { fights: offered }, droppedOpenedAt: dropped };
         }
         if (written instanceof StoreUnavailable) return written;
         refused = written;
-        const shorter = dropOldestUnpinned(held);
+        const shorter = dropOldestUnpinned(offered);
         if (shorter === null) return new RotationRefused(attempts, { cause: refused });
-        held = shorter;
+        offered = shorter;
     }
-    assert(held.length === 0, "a shelf offered once per fight it holds has nothing left to drop");
+    assert(
+        offered.length === 0,
+        "a shelf offered once per fight it holds has nothing left to drop",
+    );
     return new RotationRefused(KEPT_MAXIMUM + 1, { cause: refused });
 }
 
@@ -359,10 +362,10 @@ function encodeKeptFight(fight: KeptFight): Record<string, unknown> {
 function dropOldestUnpinned(fights: readonly KeptFight[]): KeptFight[] | null {
     const at = fights.findIndex((one) => !one.isPinned);
     if (at === -1) return null;
-    const held = [...fights];
-    held.splice(at, 1);
-    assert(held.length + 1 === fights.length, "dropping the oldest drops exactly one");
-    return held;
+    const remaining = [...fights];
+    remaining.splice(at, 1);
+    assert(remaining.length + 1 === fights.length, "dropping the oldest drops exactly one");
+    return remaining;
 }
 
 export function writeKeptFightPin(
@@ -405,13 +408,13 @@ export function deleteShelf(store: KeyValueStore): undefined | StoreFailure {
 
 /** What a full shelf keeps: the newest, and everything the reader pinned. */
 export function rotateShelf(fights: readonly KeptFight[]): KeptFight[] {
-    let held = [...fights];
+    let rotated = [...fights];
     for (let dropped = 0; dropped < fights.length; dropped += 1) {
-        if (held.length <= KEPT_MAXIMUM) break;
-        const shorter = dropOldestUnpinned(held);
+        if (rotated.length <= KEPT_MAXIMUM) break;
+        const shorter = dropOldestUnpinned(rotated);
         if (shorter === null) break;
-        held = shorter;
+        rotated = shorter;
     }
-    assert(held.length <= fights.length, "a rotation never grows the shelf it was handed");
-    return held.length <= KEPT_MAXIMUM ? held : held.slice(0, KEPT_MAXIMUM);
+    assert(rotated.length <= fights.length, "a rotation never grows the shelf it was handed");
+    return rotated.length <= KEPT_MAXIMUM ? rotated : rotated.slice(0, KEPT_MAXIMUM);
 }
