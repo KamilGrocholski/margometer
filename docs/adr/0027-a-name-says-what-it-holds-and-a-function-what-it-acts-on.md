@@ -11,7 +11,7 @@ section:
 
 - of 1975 functions, 1515 had three words or more, and 122 had one;
 - of 1799 locals, 1253 had one word, and of 714 parameters, 529;
-- a probe of the parse on the same tree found 2113 bindings named with a word that fits any value
+- a probe of the parse on the same tree found 2114 bindings named with a word that fits any value
   (`value`, `at`, `one`, `other`, `found`, `read`, `first`, `next` …): 1527 under `tests/`, 245
   under `tools/`, 184 under `src/ui/`, 62 under `src/core/`, 49 under `src/runtime/`, 30 under
   `src/ports/`, 14 under `libs/` and 3 in the entry;
@@ -34,11 +34,13 @@ namespace is its object. Whether a method reads as a sentence is left to a reade
 which keeps the list's scroll and not the drawing, is the case it is for.
 
 **A local or a parameter names what it holds, never a placeholder.** The placeholders are a closed
-list, the words that fit any value: `a`, `at`, `b`, `current`, `data`, `element`, `entry`, `first`,
-`found`, `item`, `last`, `next`, `node`, `one`, `other`, `part`, `previous`, `read`, `result`,
-`value`. A lambda is no exception: `(one) => one.openedAt` becomes `(keptFight) => …`. A word of the
-list inside a longer name says what it is of, and stands (`valueByName`, `previousRegion`). `x` and
-`y` stay: a coordinate is named by its axis.
+list, the words that fit any value: `a`, `at`, `b`, `current`, `data`, `entry`, `first`, `found`,
+`item`, `last`, `next`, `node`, `one`, `other`, `part`, `previous`, `read`, `result`, `value`. A
+lambda is no exception: `(one) => one.openedAt` becomes `(keptFight) => …`. A word of the list
+inside a longer name says what it is of, and stands (`valueByName`, `previousRegion`). `x` and `y`
+stay: a coordinate is named by its axis. So does `element`: **Element** is `CONTEXT.md`'s term for a
+damage type, and a local holding one is named by it (N12); a DOM element is named for its role, and
+that is read rather than guarded.
 
 Rejected: every name a full sentence, types and files included. `readBuildIdFromBundleScriptName`
 says what the module's name already says, and N9 forbids that.

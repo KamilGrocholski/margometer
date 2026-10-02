@@ -67,8 +67,8 @@ export type VocabularyWord<Vocabulary extends Readonly<Record<string, string>>> 
     Vocabulary[keyof Vocabulary];
 export function isOneOf<const Words extends readonly string[]>(
     words: Words,
-    value: unknown,
-): value is Words[number];
+    candidate: unknown,
+): candidate is Words[number];
 
 // libs/unknown-value.ts
 /** Read-only: a write into the game's object through this type does not compile. */
@@ -76,7 +76,7 @@ export interface UnknownRecord {
     readonly [key: string]: unknown;
 }
 /** `typeof` alone admits `null` and arrays here, and the answer must be read-only. */
-export function isRecord(value: unknown): value is UnknownRecord;
+export function isRecord(candidate: unknown): candidate is UnknownRecord;
 
 /** Keys are the game's, fields are ours: the same map as `ENVELOPE_KEYS` (§7). */
 export type FieldKeys<Field extends string> = { readonly [Name in Field]: string };
@@ -147,15 +147,15 @@ export class JsonUnwritable extends Error {
 }
 export function parseJson(text: string): JsonValue | JsonUnreadable;
 export function encodeJson(
-    value: unknown,
+    encodable: unknown,
     indentSpaces: number,
 ): string | JsonTextAbsent | JsonUnwritable;
 
 // libs/number-text.ts — one reason to fail each, so `null`
 export function parseInteger(text: string): number | null; // digits, optional minus, safe integer
 export function parseDecimal(text: string): number | null; // digits, a point, digits; no sign
-export function formatInteger(value: number): string;
-export function formatDecimal(value: number, places: number): string;
+export function formatInteger(integer: number): string;
+export function formatDecimal(decimal: number, places: number): string;
 
 // libs/number-range.ts
 /** Unlike the usual clamp: where `maximum < minimum` the minimum wins. */
@@ -312,7 +312,7 @@ export interface TooltipWritten {
 // Browser storage
 export interface KeyValueStore {
     read(key: StoreKey): string | null | StoreFailure; // null: no such key, a fact
-    write(key: StoreKey, value: string): undefined | StoreFailure;
+    write(key: StoreKey, storedText: string): undefined | StoreFailure;
     remove(key: StoreKey): undefined | StoreFailure;
 }
 export const STORE_KEY = {

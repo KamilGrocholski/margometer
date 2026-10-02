@@ -299,7 +299,7 @@ Deno.test("a charge the envelope states reaches the view", () => {
     apply(session, { ...OPENING, chargeStatements: [{ combatantId: 4, charge }] });
     const charged = view(session).chargedSkills;
     assertEquals(
-        charged.map((charge) => [charge.combatantId, charge.state]),
+        charged.map((chargedSkill) => [chargedSkill.combatantId, chargedSkill.state]),
         [[4, "charging"]],
         "one",
     );

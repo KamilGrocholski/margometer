@@ -147,7 +147,10 @@ export function formatHeightReport(heights: readonly CardHeight[]): string[] {
         countByLines.size,
         "a distribution states every height once",
     );
-    said.push("heights        " + counted.map(([lines, count]) => `${lines}:${count}`).join(" "));
+    said.push(
+        "heights        " +
+            counted.map(([lineCount, cardCount]) => `${lineCount}:${cardCount}`).join(" "),
+    );
     return said;
 }
 

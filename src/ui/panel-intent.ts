@@ -158,9 +158,9 @@ export function readPanelIntent(target: PanelTarget): IntentReading {
         if (target.getAttribute(PANEL_MARK.plain) !== null) {
             return createOpenPartIntent({ kind: OPENED_PART.plain });
         }
-        const damageElement = target.getAttribute(PANEL_MARK.kind);
-        if (damageElement !== null) {
-            return createOpenPartIntent({ kind: OPENED_PART.element, element: damageElement });
+        const element = target.getAttribute(PANEL_MARK.kind);
+        if (element !== null) {
+            return createOpenPartIntent({ kind: OPENED_PART.element, element });
         }
     }
     // Read the fight the shelf shows or pins.

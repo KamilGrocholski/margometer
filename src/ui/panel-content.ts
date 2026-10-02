@@ -1180,8 +1180,8 @@ function composeHalfNamedKinds(
     if (neither > 0) rest += addFoldedCut(folded, statistics.damageByNeitherEndByKind);
     // A key standing only for what named neither end has nobody's row to open onto, and a level
     // holding one refusal says nothing the row above it did not.
-    return composeElementCut(folded, total, (damageElement) => {
-        return getHalfNamedByKind(statistics, shape.kinds, parts, damageElement).length > 0;
+    return composeElementCut(folded, total, (element) => {
+        return getHalfNamedByKind(statistics, shape.kinds, parts, element).length > 0;
     }, rest);
 }
 
@@ -1218,18 +1218,18 @@ function addFoldedCut(folded: Map<string, number>, cut: FigureCut): number {
 function composeElementCut(
     cut: FigureCut,
     total: number,
-    doesOpen: (damageElement: string) => boolean,
+    doesOpen: (element: string) => boolean,
     /** What a fold gave no key of its own to. Held, because the protocol did state it. */
     rest = 0,
 ): ElementCut {
     const stated: Array<{ element: string; figure: number }> = [];
     let partsTotal = rest;
-    for (const [damageElement, figure] of cut) {
+    for (const [element, figure] of cut) {
         partsTotal += figure;
         // A part that came to nothing is not a part of the figure: it takes a row and adds none
         // of it. The combatant at zero on a ranking is the other case and is still drawn — that
         // is a person who did nothing, and this is a nothing that has no person.
-        if (figure > 0) stated.push({ element: damageElement, figure });
+        if (figure > 0) stated.push({ element, figure });
     }
     stated.sort(compareElementRows);
     const unnamed = total - partsTotal;
@@ -1277,13 +1277,13 @@ function getHalfNamedByKind(
     statistics: FightStatistics,
     kinds: HalfNamedKindField,
     parts: readonly HalfNamedPart[],
-    damageElement: string,
+    element: string,
 ): HalfNamedPart[] {
     const halfNamedParts: HalfNamedPart[] = [];
     for (const halfNamedPart of parts) {
         const figures = statistics.byCombatantId.get(halfNamedPart.combatantId);
         if (figures === undefined) continue;
-        const figure = figures[kinds].get(damageElement) ?? 0;
+        const figure = figures[kinds].get(element) ?? 0;
         if (figure <= 0) continue;
         halfNamedParts.push({ combatantId: halfNamedPart.combatantId, figure });
     }
@@ -2374,10 +2374,10 @@ export function presentOpenedLevel(
         : composeElementCut(
             cuts.byElement,
             total,
-            (damageElement) =>
+            (element) =>
                 composePeopleForPart(statistics, figures, metric, combatantId, {
                     kind: OPENED_PART.element,
-                    element: damageElement,
+                    element,
                 }) !== null,
         );
     const bySkill = composeSkillCut(statistics, figures, metric, total, combatantId);

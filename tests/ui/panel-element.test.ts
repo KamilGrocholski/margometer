@@ -3328,11 +3328,9 @@ Deno.test("a row closing a pair says what it says one level up, and its neighbou
         panel.render({ ...composeShownScreen(reading, metric), opened: drill, pair });
         const host = panel.element as FakeElement;
         const rows = getElementsWithin(host).filter(
-            (drawn) => drawn.attributes.get("data-card")?.startsWith("pair-") === true,
+            (row) => row.attributes.get("data-card")?.startsWith("pair-") === true,
         );
-        const closing = rows.find((drawn) =>
-            drawn.attributes.get("data-card") === "pair-skill:plain"
-        );
+        const closing = rows.find((row) => row.attributes.get("data-card") === "pair-skill:plain");
         // Every other part of a pair names what it was, so a mark on one would point at nothing.
         for (const row of rows) {
             if (row === closing) continue;

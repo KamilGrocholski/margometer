@@ -5,7 +5,7 @@
  * (`errors.attempt`, ADR 0009): whether either reads as a sentence is left to a reader.
  */
 
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import {
     type AstNode,
     composeSample,
@@ -20,6 +20,7 @@ import {
     SOURCE_DIRECTORIES,
     type SourceFile,
 } from "#/tests/source-tree.ts";
+import { RULES_PATH } from "#/tests/verb-purities.ts";
 
 /** Which modules are reached through a namespace, and which of their names are imported alone. */
 interface ImportReach {
@@ -29,29 +30,12 @@ interface ImportReach {
 
 /** Where a bare verb is looked for: the code a reader of the tree follows by its calls. */
 const FUNCTION_DIRECTORIES = ["libs", "src", "tools"];
-/** Words that fit any value, so a name made of one says nothing of what it holds. */
-const PLACEHOLDERS = [
-    "a",
-    "at",
-    "b",
-    "current",
-    "data",
-    "element",
-    "entry",
-    "first",
-    "found",
-    "item",
-    "last",
-    "next",
-    "node",
-    "one",
-    "other",
-    "part",
-    "previous",
-    "read",
-    "result",
-    "value",
-];
+/** N22, and where its list of placeholders stands in it: between the two dashes. */
+const PLACEHOLDER_RULE_OPENER = "- **N22.";
+const PLACEHOLDER_LIST_OPENER = "never a placeholder — ";
+const PLACEHOLDER_LIST_CLOSER = " — ";
+const PLACEHOLDER_SEPARATOR = ", ";
+const QUOTE = "`";
 /** What a parameter list stands on, a type's signatures included: a parameter there is named too. */
 const SIGNATURE_NODES = [
     ...FUNCTION_NODES,
@@ -155,6 +139,39 @@ function indexImportReach(files: readonly SourceFile[]): ImportReach {
     return { namespaced, named };
 }
 
+Deno.test("the placeholders are read off N22 itself, wrapped as the rule wraps them", () => {
+    const rules = [
+        "- **N21. Another rule.** A name is never a placeholder — `two` — in its own words.",
+        "- **N22. A value says what it is.** A local is",
+        "  never a placeholder — `a`, `at`,",
+        "  `value` — in a lambda as anywhere.",
+        "- **C1. The next rule.**",
+    ].join("\n");
+    assertEquals(readPlaceholders(rules), ["a", "at", "value"], "the list, and nothing around it");
+    const placeholders = readPlaceholders(Deno.readTextFileSync(RULES_PATH));
+    assert(placeholders.includes("one"), "and the rule's own list holds what it was written for");
+});
+
+/** The words N22 lists, each between quotes, its lines joined where the rule wraps them. */
+function readPlaceholders(rules: string): string[] {
+    const opener = rules.indexOf(PLACEHOLDER_RULE_OPENER);
+    assert(opener !== -1, "AGENTS.md states N22");
+    const rulesFromN22 = rules.slice(opener).split("\n").map((line) => line.trim()).join(" ");
+    const listStart = rulesFromN22.indexOf(PLACEHOLDER_LIST_OPENER);
+    assert(listStart !== -1, "N22 lists its placeholders");
+    const from = listStart + PLACEHOLDER_LIST_OPENER.length;
+    const listEnd = rulesFromN22.indexOf(PLACEHOLDER_LIST_CLOSER, from);
+    assert(listEnd !== -1, "and closes the list with a dash");
+    const quoted = rulesFromN22.slice(from, listEnd).split(PLACEHOLDER_SEPARATOR);
+    for (const word of quoted) {
+        assert(word.startsWith(QUOTE), `N22 quotes each placeholder: ${word}`);
+        assert(word.endsWith(QUOTE), `on both sides: ${word}`);
+    }
+    const placeholders = quoted.map((word) => word.slice(QUOTE.length, -QUOTE.length));
+    assert(placeholders.length > 0, "and the list holds a word");
+    return placeholders;
+}
+
 Deno.test("a placeholder bound anywhere is flagged, and a name that says what it holds is not", () => {
     const sample = composeSample([
         "function read(value: number, { at, keptFight }: Shape): number {",
@@ -167,7 +184,8 @@ Deno.test("a placeholder bound anywhere is flagged, and a name that says what it
         "type Compare = (a: number, b: number) => number;",
         "const valueByName = new Map();",
     ]);
-    assertEquals(lookupPlaceholders(sample), [
+    const placeholders = ["a", "at", "b", "first", "found", "next", "one", "result", "value"];
+    assertEquals(lookupPlaceholders(sample, placeholders), [
         "sample.ts:1 value",
         "sample.ts:1 at",
         "sample.ts:2 found",
@@ -180,15 +198,15 @@ Deno.test("a placeholder bound anywhere is flagged, and a name that says what it
     ], "every placeholder once where it is bound, and not a name holding one as a word");
 });
 
-function lookupPlaceholders(file: SourceFile): string[] {
-    const placeholders: string[] = [];
+function lookupPlaceholders(file: SourceFile, placeholders: readonly string[]): string[] {
+    const bound: string[] = [];
     for (const binding of readAstNodes(file, BINDING_NODES)) {
         for (const name of readBindingNames(binding)) {
-            if (!PLACEHOLDERS.includes(name)) continue;
-            placeholders.push(`${formatNodePlace(file, binding)} ${name}`);
+            if (!placeholders.includes(name)) continue;
+            bound.push(`${formatNodePlace(file, binding)} ${name}`);
         }
     }
-    return placeholders;
+    return bound;
 }
 
 /** The names a node binds: a declarator's, a catch clause's, or a signature's parameters. */
@@ -204,6 +222,9 @@ Deno.test("every function and every binding in the tree is named as N22 asks", (
         lookupBareVerbs(file, reach)
     );
     assertEquals(functions, [], "N22: a function declared on its own says what it acts on");
-    const bindings = readSourceFiles(SOURCE_DIRECTORIES).flatMap(lookupPlaceholders);
+    const placeholders = readPlaceholders(Deno.readTextFileSync(RULES_PATH));
+    const bindings = readSourceFiles(SOURCE_DIRECTORIES).flatMap((file) =>
+        lookupPlaceholders(file, placeholders)
+    );
     assertEquals(bindings, [], "N22: a local or a parameter says what it holds");
 });

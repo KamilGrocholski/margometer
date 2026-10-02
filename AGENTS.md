@@ -384,10 +384,10 @@ TypeScript idiom, with the naming rules stated here.
 - **N22. A function says what it acts on, and a value what it is.** A function declared on its own
   is an action and its object, never a bare verb; a method is read with its receiver, and so is a
   function every importer reaches through its module (`errors.attempt`). A local or a parameter is
-  never a placeholder — `a`, `at`, `b`, `current`, `data`, `element`, `entry`, `first`, `found`,
-  `item`, `last`, `next`, `node`, `one`, `other`, `part`, `previous`, `read`, `result`, `value` — in
-  a lambda as anywhere. Observation: such a function in `libs/`, `src/` or `tools/` whose name is
-  one word, or such a binding in `frozen/`, `libs/`, `src/`, `tools/` or `tests/`. ADR 0027.
+  never a placeholder — `a`, `at`, `b`, `current`, `data`, `entry`, `first`, `found`, `item`,
+  `last`, `next`, `node`, `one`, `other`, `part`, `previous`, `read`, `result`, `value` — in a
+  lambda as anywhere. Observation: such a function in `libs/`, `src/` or `tools/` whose name is one
+  word, or such a binding in `frozen/`, `libs/`, `src/`, `tools/` or `tests/`. ADR 0027.
   _(`by-reading` whether a method reads as a sentence with its receiver)_
 
 ## Code
