@@ -60,23 +60,23 @@ export function composeHealthFromPercent(
 /** Where an event says a combatant stands, as `[combatantId, percent]`: one reading for all. */
 export function getHealthPercentsFromEvent(event: BattleEvent): [number, number][] {
     const stated: [number, number][] = [];
-    const add = (combatantId: number | null, percent: number | null): void => {
+    const addStatedPercent = (combatantId: number | null, percent: number | null): void => {
         if (combatantId === null) return;
         if (percent !== null) stated.push([combatantId, percent]);
     };
     switch (event.kind) {
         case BATTLE_EVENT.attack:
         case BATTLE_EVENT.skillUsed:
-            add(event.actorId, event.actorHealthPercent);
-            add(event.targetId, event.targetHealthPercent);
+            addStatedPercent(event.actorId, event.actorHealthPercent);
+            addStatedPercent(event.targetId, event.targetHealthPercent);
             break;
         case BATTLE_EVENT.healthChange:
         case BATTLE_EVENT.declaration:
-            add(event.combatantId, event.healthPercent);
+            addStatedPercent(event.combatantId, event.healthPercent);
             break;
         case BATTLE_EVENT.damageToNamedCombatant:
         case BATTLE_EVENT.healingToNamedCombatant:
-            add(event.targetId, event.targetHealthPercent);
+            addStatedPercent(event.targetId, event.targetHealthPercent);
             break;
     }
     assert(stated.length <= ENDS_MAXIMUM, "an event states where at most two combatants stand");
@@ -157,7 +157,9 @@ function indexReducedSides(events: readonly BattleEvent[], roster: CombatantRost
     const reducedSides = new Set<number>();
     for (const event of events) {
         if (event.kind !== BATTLE_EVENT.skillUsed) continue;
-        if (!event.declared.some((one) => one.effect === HEALING_REDUCER_KEY)) continue;
+        if (
+            !event.declared.some((declaredEffect) => declaredEffect.effect === HEALING_REDUCER_KEY)
+        ) continue;
         if (event.actorId === null) continue;
         const casterSide = roster.byId.get(event.actorId)?.side;
         for (const combatant of roster.byId.values()) {

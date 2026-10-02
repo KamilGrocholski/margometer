@@ -141,10 +141,11 @@ function writeMargonemEngineWarriorBlock(
     if (!isTooltipTargets(targets)) return null;
     const registryText = targets.getTipData();
     if (typeof registryText !== "string") return null;
-    const at = blockBefore.length === 0 ? -1 : registryText.lastIndexOf(blockBefore);
-    if (at !== -1) {
+    const blockIndex = blockBefore.length === 0 ? -1 : registryText.lastIndexOf(blockBefore);
+    if (blockIndex !== -1) {
         if (blockBefore === block) return true;
-        const theirs = registryText.slice(0, at) + registryText.slice(at + blockBefore.length);
+        const theirs = registryText.slice(0, blockIndex) +
+            registryText.slice(blockIndex + blockBefore.length);
         // An empty string is the client's word for deleting the tooltip, which is not ours to do.
         if (theirs.length === 0) return null;
         targets.tip(theirs);
@@ -159,10 +160,10 @@ function writeMargonemEngineWarriorBlock(
  * ⚠️ **The methods are checked rather than left to throw**: a throw ends the walk, and every
  * fighter after the one that could not take a line would lose theirs.
  */
-function isTooltipTargets(value: unknown): value is TooltipTargets {
-    if (!isRecord(value)) return false;
-    if (typeof value[READ_METHOD] !== "function") return false;
-    if (typeof value[REPLACE_METHOD] !== "function") return false;
-    if (typeof value[APPEND_METHOD] !== "function") return false;
-    return typeof value[TELL_METHOD] === "function";
+function isTooltipTargets(targetsCandidate: unknown): targetsCandidate is TooltipTargets {
+    if (!isRecord(targetsCandidate)) return false;
+    if (typeof targetsCandidate[READ_METHOD] !== "function") return false;
+    if (typeof targetsCandidate[REPLACE_METHOD] !== "function") return false;
+    if (typeof targetsCandidate[APPEND_METHOD] !== "function") return false;
+    return typeof targetsCandidate[TELL_METHOD] === "function";
 }

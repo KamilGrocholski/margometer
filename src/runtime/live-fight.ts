@@ -97,9 +97,13 @@ export function initLiveFight(options: LiveFightOptions): {
         onPayload(payload) {
             // Read the payload, each step under its own guard.
             const record = executeLiveStep(options, DEFECT_KIND.reading, null, () => {
-                const read = readPayloadEnvelope(payload);
-                if (!(read instanceof Error)) return read;
-                options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
+                const payloadRecord = readPayloadEnvelope(payload);
+                if (!(payloadRecord instanceof Error)) return payloadRecord;
+                options.defects.add({
+                    kind: DEFECT_KIND.reading,
+                    region: null,
+                    failure: payloadRecord,
+                });
                 return null;
             });
             const snapshotAfter = executeLiveStep(
@@ -199,22 +203,22 @@ function readLiveMargonemEngineWarriors(
         }
         liveFight.margonemEngineBattle = battle;
     }
-    const read = liveFight.margonemEngineBattle.readWarriors();
-    if (!(read instanceof Error)) return read;
-    if (read instanceof MargonemEngineWarriorsAbsent) return [];
-    options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: read });
+    const warriorSnapshot = liveFight.margonemEngineBattle.readWarriors();
+    if (!(warriorSnapshot instanceof Error)) return warriorSnapshot;
+    if (warriorSnapshot instanceof MargonemEngineWarriorsAbsent) return [];
+    options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: warriorSnapshot });
     return null;
 }
 
 /** Absent is shown as unknown and is no defect; a page that threw while asked is one. */
 function readMargonemValue<Value>(
     options: LiveFightOptions,
-    read: Value | MargonemReadFailure,
+    margonemValue: Value | MargonemReadFailure,
 ): Value | null {
-    if (read instanceof MargonemValueAbsent) return null;
-    if (read instanceof errors.Caught) {
-        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
+    if (margonemValue instanceof MargonemValueAbsent) return null;
+    if (margonemValue instanceof errors.Caught) {
+        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: margonemValue });
         return null;
     }
-    return read;
+    return margonemValue;
 }

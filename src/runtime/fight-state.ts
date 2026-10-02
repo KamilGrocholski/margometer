@@ -120,15 +120,15 @@ export function lookupShownKeptFight(
     assert(fights.length <= KEPT_MAXIMUM, "a shelf walked is inside its stated bound");
     const chosen = chosenFightOpenedAt === null
         ? undefined
-        : fights.find((one) => one.openedAt === chosenFightOpenedAt);
+        : fights.find((keptFight) => keptFight.openedAt === chosenFightOpenedAt);
     return chosen ?? (liveFightState === null ? lookupNewestFight(fights) : undefined);
 }
 
 function lookupNewestFight(fights: readonly KeptFight[]): KeptFight | undefined {
     let newest: KeptFight | undefined;
-    for (const one of fights) {
-        if (newest === undefined) newest = one;
-        else if (one.openedAt > newest.openedAt) newest = one;
+    for (const keptFight of fights) {
+        if (newest === undefined) newest = keptFight;
+        else if (keptFight.openedAt > newest.openedAt) newest = keptFight;
     }
     if (newest !== undefined) assert(fights.includes(newest), "the newest is one of the shelf's");
     else assert(fights.length === 0, "only an empty shelf names no newest");

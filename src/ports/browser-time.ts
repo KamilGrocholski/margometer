@@ -90,7 +90,7 @@ export function initBrowserClock(date: BrowserDate): BrowserClock {
         readMoment(atMilliseconds) {
             if (!Number.isFinite(atMilliseconds)) return null;
             // Read the moment: a day, a month, an hour and a minute, or null for any one refused.
-            const read = errors.attempt((): BrowserMoment | null => {
+            const moment = errors.attempt((): BrowserMoment | null => {
                 // ⚠️ **The day is held to the same refusal as the time**: a shelf of twenty fights
                 // spans days, and a wrong one reads as a fight that happened.
                 const dateValue: BrowserDateValue = new date(atMilliseconds);
@@ -108,37 +108,37 @@ export function initBrowserClock(date: BrowserDate): BrowserClock {
                 if (minute === null) return null;
                 return { day, month: monthFromZero + FIRST_MONTH_OFFSET, hour, minute };
             });
-            if (read instanceof Error) return null;
-            return read;
+            if (moment instanceof Error) return null;
+            return moment;
         },
         readTimestampText(atMilliseconds) {
             assert(Number.isFinite(atMilliseconds), "a moment written down is one on the clock");
-            const read = errors.attempt(() => new date(atMilliseconds).toISOString());
-            if (read instanceof Error) return read;
-            return String(read);
+            const timestampText = errors.attempt(() => new date(atMilliseconds).toISOString());
+            if (timestampText instanceof Error) return timestampText;
+            return String(timestampText);
         },
     };
 }
 
-function readMomentPart(value: unknown, minimum: number, maximum: number): number | null {
+function readMomentPart(momentPart: unknown, minimum: number, maximum: number): number | null {
     assert(minimum <= maximum, "a range is read low to high");
-    if (typeof value !== "number") return null;
-    if (!Number.isSafeInteger(value)) return null;
-    if (value < minimum) return null;
-    if (value <= maximum) return value;
+    if (typeof momentPart !== "number") return null;
+    if (!Number.isSafeInteger(momentPart)) return null;
+    if (momentPart < minimum) return null;
+    if (momentPart <= maximum) return momentPart;
     return null;
 }
 
 export function initBrowserFrames(frames: BrowserFrames): BrowserFrameScheduler {
     return {
         requestFrame(step, onStepFailure) {
-            const guarded = (): void => {
+            const runGuardedStep = (): void => {
                 const ran = errors.attempt(step);
                 if (!(ran instanceof Error)) return;
                 // ⚠️ The report is the mark (E9). One that throws has nowhere further to go.
                 void errors.attempt(() => onStepFailure(ran));
             };
-            const handle = errors.attempt(() => frames.requestAnimationFrame(guarded));
+            const handle = errors.attempt(() => frames.requestAnimationFrame(runGuardedStep));
             if (handle instanceof Error) return handle;
             return {
                 cancel() {
@@ -157,14 +157,16 @@ export function initBrowserInterval(timers: BrowserTimers): BrowserIntervalSched
                 "a step repeats every whole millisecond",
             );
             assert(everyMilliseconds > 0, "and some time passes between two of them");
-            const guarded = (): void => {
+            const runGuardedStep = (): void => {
                 const ran = errors.attempt(step);
                 if (!(ran instanceof Error)) return;
                 // ⚠️ The report is the mark (E9). One that throws has nowhere further to go, and
                 // the browser's timer is not a place for it, so its own failure is discarded here.
                 void errors.attempt(() => onStepFailure(ran));
             };
-            const handle = errors.attempt(() => timers.setInterval(guarded, everyMilliseconds));
+            const handle = errors.attempt(() =>
+                timers.setInterval(runGuardedStep, everyMilliseconds)
+            );
             if (handle instanceof Error) return handle;
             return {
                 cancel: () => errors.attempt(() => timers.clearInterval(handle)),

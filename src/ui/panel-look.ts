@@ -379,20 +379,20 @@ const NO_SELECTION = "-webkit-user-select:none;user-select:none;";
  * **No production caller**: this and the two bar readings below are what hold `DESIGN.md`'s
  * contrast floor, measured by `tests/ui/panel-look.test.ts` over the tokens and the palette.
  */
-export function getContrastRatio(one: Colour, other: Colour): number {
-    const bright = Math.max(getLuminance(one), getLuminance(other));
-    const dim = Math.min(getLuminance(one), getLuminance(other));
+export function getContrastRatio(ink: Colour, ground: Colour): number {
+    const bright = Math.max(getLuminance(ink), getLuminance(ground));
+    const dim = Math.min(getLuminance(ink), getLuminance(ground));
     return (bright + LUMINANCE_OFFSET) / (dim + LUMINANCE_OFFSET);
 }
 
 function getLuminance(colour: Colour): number {
     let luminance = 0;
-    for (const [at, channel] of colour.entries()) {
+    for (const [channelIndex, channel] of colour.entries()) {
         const share = channel / CHANNEL_VALUE_MAXIMUM;
         const linear = share <= LOW_CHANNEL
             ? share / LOW_SLOPE
             : ((share + CHANNEL_OFFSET) / (1 + CHANNEL_OFFSET)) ** CHANNEL_EXPONENT;
-        luminance += linear * (LUMINANCE_WEIGHTS[at] ?? 0);
+        luminance += linear * (LUMINANCE_WEIGHTS[channelIndex] ?? 0);
     }
     return luminance;
 }
@@ -605,8 +605,8 @@ function composeVariables(tokens: TypeTokens): string {
     return stated;
 }
 
-function composeVariable(name: string, value: string): string {
-    return `${VARIABLE_PREFIX}${name}:${value};`;
+function composeVariable(name: string, variableValue: string): string {
+    return `${VARIABLE_PREFIX}${name}:${variableValue};`;
 }
 
 /**

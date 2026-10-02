@@ -177,17 +177,17 @@ export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
     const listed = getListField(parsed, SHELF_FIELDS, "fights", KEPT_MAXIMUM);
     if (listed instanceof Error) return new ShelfUnreadable({ cause: listed });
     const fights: KeptFight[] = [];
-    for (const value of listed ?? []) {
+    for (const storedFight of listed ?? []) {
         let fight: KeptFight | null;
         // Read the fight, or null where this version does not recognise it, whole fight and all.
         readFight: {
             // A payload nobody can read is a fight dropped, not a payload skipped: a gap mid-fight
             // decodes to figures that look right.
-            if (!isRecord(value)) {
+            if (!isRecord(storedFight)) {
                 fight = null;
                 break readFight;
             }
-            const openedAt = getNumberField(value, FIGHT_FIELDS, "openedAt");
+            const openedAt = getNumberField(storedFight, FIGHT_FIELDS, "openedAt");
             if (openedAt instanceof Error) {
                 fight = null;
                 break readFight;
@@ -200,7 +200,7 @@ export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
                 fight = null;
                 break readFight;
             }
-            const payloads = getListField(value, FIGHT_FIELDS, "payloads", CALLS_MAXIMUM);
+            const payloads = getListField(storedFight, FIGHT_FIELDS, "payloads", CALLS_MAXIMUM);
             if (payloads instanceof Error) {
                 fight = null;
                 break readFight;
@@ -218,14 +218,14 @@ export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
                 break readFight;
             }
             const margonemClientBuild = getStatedTextField(
-                value,
+                storedFight,
                 FIGHT_FIELDS,
                 "margonemClientBuild",
             );
             let place: FightPlace | null;
             // Read the place: one that does not read back is nobody's place, not a fight dropped.
             readPlace: {
-                const stored = getRecordField(value, FIGHT_FIELDS, "place");
+                const stored = getRecordField(storedFight, FIGHT_FIELDS, "place");
                 if (stored instanceof Error) {
                     place = null;
                     break readPlace;
@@ -237,29 +237,29 @@ export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
                 const mapName = getStatedTextField(stored, PLACE_FIELDS, "mapName");
                 const x = getNumberField(stored, PLACE_FIELDS, "x");
                 const y = getNumberField(stored, PLACE_FIELDS, "y");
-                const read = {
+                const statedPlace = {
                     mapName: mapName instanceof Error ? null : mapName,
                     x: x instanceof Error ? null : x,
                     y: y instanceof Error ? null : y,
                 };
-                if (read.mapName !== null) {
-                    place = read;
+                if (statedPlace.mapName !== null) {
+                    place = statedPlace;
                     break readPlace;
                 }
-                if (read.x !== null) {
-                    place = read;
+                if (statedPlace.x !== null) {
+                    place = statedPlace;
                     break readPlace;
                 }
-                if (read.y === null) {
+                if (statedPlace.y === null) {
                     place = null;
                     break readPlace;
                 }
-                place = read;
+                place = statedPlace;
             }
             let readerId: number | null;
             // Read the reader's id: one that does not read back is nobody's, not a fight dropped.
             readReaderId: {
-                const id = getNumberField(value, FIGHT_FIELDS, "readerId");
+                const id = getNumberField(storedFight, FIGHT_FIELDS, "readerId");
                 if (id instanceof Error) {
                     readerId = null;
                     break readReaderId;
@@ -286,7 +286,7 @@ export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
                 margonemClientBuild: margonemClientBuild instanceof Error
                     ? null
                     : margonemClientBuild,
-                isPinned: value[FIGHT_FIELDS.isPinned] === true,
+                isPinned: storedFight[FIGHT_FIELDS.isPinned] === true,
             };
         }
         if (fight !== null) fights.push(fight);
@@ -303,15 +303,15 @@ export function writeKeptFight(
 ): ShelfWritten | ShelfFailure {
     assert(fight.payloads.length > 0, "a fight kept was kept from something");
     assert(fight.payloads.length <= CALLS_MAXIMUM, "and stays inside a recording's bound");
-    if (shelf.fights.some((one) => one.openedAt === fight.openedAt)) {
+    if (shelf.fights.some((keptFight) => keptFight.openedAt === fight.openedAt)) {
         return new FightAlreadyKept(fight.openedAt);
     }
-    const next = [...shelf.fights, fight];
-    const pinned = next.filter((one) => one.isPinned).length;
+    const fightsAfter = [...shelf.fights, fight];
+    const pinned = fightsAfter.filter((keptFight) => keptFight.isPinned).length;
     if (pinned >= KEPT_MAXIMUM) {
-        if (next.length > KEPT_MAXIMUM) return new EverySlotPinned(KEPT_MAXIMUM);
+        if (fightsAfter.length > KEPT_MAXIMUM) return new EverySlotPinned(KEPT_MAXIMUM);
     }
-    return writeShelf(store, shelf, next);
+    return writeShelf(store, shelf, fightsAfter);
 }
 
 /**
@@ -335,10 +335,9 @@ function writeShelf(
         const written = store.write(SHELF_KEY, text);
         if (!(written instanceof Error)) {
             // Say what was offered and did not go down: the rotation, stated rather than silent.
-            const keptOpenedAts = new Set(offered.map((one) => one.openedAt));
-            const dropped = fights.filter((one) => !keptOpenedAts.has(one.openedAt)).map((one) =>
-                one.openedAt
-            );
+            const keptOpenedAts = new Set(offered.map((keptFight) => keptFight.openedAt));
+            const dropped = fights.filter((keptFight) => !keptOpenedAts.has(keptFight.openedAt))
+                .map((keptFight) => keptFight.openedAt);
             assert(
                 dropped.length + offered.length === fights.length,
                 "every fight offered is kept or dropped",
@@ -379,10 +378,10 @@ function encodeKeptFight(fight: KeptFight): Record<string, unknown> {
 }
 
 function dropOldestUnpinned(fights: readonly KeptFight[]): KeptFight[] | null {
-    const at = fights.findIndex((one) => !one.isPinned);
-    if (at === -1) return null;
+    const fightIndex = fights.findIndex((keptFight) => !keptFight.isPinned);
+    if (fightIndex === -1) return null;
     const remaining = [...fights];
-    remaining.splice(at, 1);
+    remaining.splice(fightIndex, 1);
     assert(remaining.length + 1 === fights.length, "dropping the oldest drops exactly one");
     return remaining;
 }
@@ -393,9 +392,13 @@ export function writeKeptFightPin(
     openedAt: number,
     isPinned: boolean,
 ): ShelfWritten | ShelfFailure {
-    if (!shelf.fights.some((one) => one.openedAt === openedAt)) return new FightNotKept(openedAt);
-    const next = shelf.fights.map((one) => one.openedAt === openedAt ? { ...one, isPinned } : one);
-    return writeShelf(store, shelf, next);
+    if (!shelf.fights.some((keptFight) => keptFight.openedAt === openedAt)) {
+        return new FightNotKept(openedAt);
+    }
+    const fightsAfter = shelf.fights.map((keptFight) =>
+        keptFight.openedAt === openedAt ? { ...keptFight, isPinned } : keptFight
+    );
+    return writeShelf(store, shelf, fightsAfter);
 }
 
 export function deleteKeptFight(
@@ -403,9 +406,9 @@ export function deleteKeptFight(
     shelf: ShelfContents,
     openedAt: number,
 ): ShelfWritten | ShelfFailure {
-    const next = shelf.fights.filter((one) => one.openedAt !== openedAt);
-    if (next.length === shelf.fights.length) return new FightNotKept(openedAt);
-    return writeShelf(store, shelf, next);
+    const fightsAfter = shelf.fights.filter((keptFight) => keptFight.openedAt !== openedAt);
+    if (fightsAfter.length === shelf.fights.length) return new FightNotKept(openedAt);
+    return writeShelf(store, shelf, fightsAfter);
 }
 
 /**

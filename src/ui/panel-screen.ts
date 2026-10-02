@@ -154,7 +154,7 @@ export function createScreenState(
 export function composeListName(screen: ScreenState, fightId: number | null): string {
     if (screen.isOnOptions) return OPTIONS_LIST_NAME;
     if (screen.isOnShelf) return "shelf";
-    const part = screen.openPart === null ? "" : composeNameForPart(screen.openPart);
+    const partName = screen.openPart === null ? "" : composeNameForPart(screen.openPart);
     const name = [
         screen.metric,
         screen.side,
@@ -162,7 +162,7 @@ export function composeListName(screen: ScreenState, fightId: number | null): st
         `${screen.openedCombatantId}`,
         `${screen.openUnnamedEnd}`,
         `${screen.pairCombatantId}`,
-        part,
+        partName,
     ].join("|");
     return name;
 }
@@ -172,11 +172,11 @@ export function composeListName(screen: ScreenState, fightId: number | null): st
  * closing row states a constant: it has no field of its own, and a place a reader was left at is
  * the whole of what this name is for (`develop ADR 0050`).
  */
-function composeNameForPart(part: OpenedPart): string {
-    if (part.kind === OPENED_PART.skill) return `${OPENED_PART.skill}:${part.name}`;
-    if (part.kind === OPENED_PART.source) return `${OPENED_PART.source}:${part.source}`;
-    if (part.kind === OPENED_PART.plain) return `${OPENED_PART.plain}:`;
-    return `kind:${part.element}`;
+function composeNameForPart(openedPart: OpenedPart): string {
+    if (openedPart.kind === OPENED_PART.skill) return `${OPENED_PART.skill}:${openedPart.name}`;
+    if (openedPart.kind === OPENED_PART.source) return `${OPENED_PART.source}:${openedPart.source}`;
+    if (openedPart.kind === OPENED_PART.plain) return `${OPENED_PART.plain}:`;
+    return `kind:${openedPart.element}`;
 }
 
 /**
@@ -206,11 +206,11 @@ export function getWordsForMetric(metric: PanelMetric): string {
     return `${getWordsForNoun(axes.noun)} ${getDirectionWordsForMetric(metric)}`;
 }
 
-export function presentNounStrips(current: PanelMetric): ScreenStrip[] {
+export function presentNounStrips(metricShown: PanelMetric): ScreenStrip[] {
     const strips = Object.values(PANEL_NOUN).map((noun) => ({
-        name: getScreenAfterNoun(noun, current),
+        name: getScreenAfterNoun(noun, metricShown),
         words: getWordsForNoun(noun),
-        isCurrent: noun === SCREEN_AXES[current].noun,
+        isCurrent: noun === SCREEN_AXES[metricShown].noun,
     }));
     return strips;
 }
@@ -219,33 +219,33 @@ export function presentNounStrips(current: PanelMetric): ScreenStrip[] {
  * Keeps the direction already being read, so crossing between the nouns never silently turns a
  * figure round. Where the new noun has no such direction, its first is the honest answer.
  */
-function getScreenAfterNoun(noun: PanelNoun, current: PanelMetric): PanelMetric {
-    const wanted = SCREEN_AXES[current].direction;
+function getScreenAfterNoun(noun: PanelNoun, metricShown: PanelMetric): PanelMetric {
+    const wanted = SCREEN_AXES[metricShown].direction;
     const screens = getScreensForNoun(noun);
     const kept = screens.find((screen) => SCREEN_AXES[screen].direction === wanted);
-    const reached = kept ?? screens[0] ?? current;
+    const reached = kept ?? screens[0] ?? metricShown;
     return reached;
 }
 
 function getScreensForNoun(noun: PanelNoun): PanelMetric[] {
-    const found = SCREEN_ORDER.filter((screen) => SCREEN_AXES[screen].noun === noun);
-    return found;
+    const screens = SCREEN_ORDER.filter((screen) => SCREEN_AXES[screen].noun === noun);
+    return screens;
 }
 
-export function presentDirectionStrips(current: PanelMetric): ScreenStrip[] {
-    const strips = getScreensForNoun(SCREEN_AXES[current].noun).map((screen) => ({
+export function presentDirectionStrips(metricShown: PanelMetric): ScreenStrip[] {
+    const strips = getScreensForNoun(SCREEN_AXES[metricShown].noun).map((screen) => ({
         name: screen,
         words: getDirectionWordsForMetric(screen),
-        isCurrent: screen === current,
+        isCurrent: screen === metricShown,
     }));
     return strips;
 }
 
-export function presentSideStrips(current: PanelSideChoice): ScreenStrip[] {
+export function presentSideStrips(sideShown: PanelSideChoice): ScreenStrip[] {
     const strips = SIDE_CHOICES.map((choice) => ({
         name: choice,
         words: getWordsForSide(choice),
-        isCurrent: choice === current,
+        isCurrent: choice === sideShown,
     }));
     return strips;
 }

@@ -22,16 +22,16 @@ export function parseHealthPercent(text: string): number | null {
     if (fraction.length !== HEALTH_PERCENT_PLACES) return null;
     if (!isDigitRun(text.slice(0, pointIndex))) return null;
     if (!isDigitRun(fraction)) return null;
-    const value = parseDecimal(text);
-    assert(value !== null, "text of the stated shape is text a decimal is read from");
-    assert(value >= 0, "a percentage read from digits is never below nothing");
-    return value;
+    const healthPercent = parseDecimal(text);
+    assert(healthPercent !== null, "text of the stated shape is text a decimal is read from");
+    assert(healthPercent >= 0, "a percentage read from digits is never below nothing");
+    return healthPercent;
 }
 
-export function encodeHealthPercent(value: number): string {
-    assert(Number.isFinite(value), "a percentage written is a number");
-    assert(value >= 0, "and never below nothing");
-    const text = formatDecimal(value, HEALTH_PERCENT_PLACES);
+export function encodeHealthPercent(healthPercent: number): string {
+    assert(Number.isFinite(healthPercent), "a percentage written is a number");
+    assert(healthPercent >= 0, "and never below nothing");
+    const text = formatDecimal(healthPercent, HEALTH_PERCENT_PLACES);
     assert(parseHealthPercent(text) !== null, "what is written is what the reader reads");
     return text;
 }

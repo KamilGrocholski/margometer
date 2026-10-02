@@ -56,7 +56,9 @@ export function prepareLegendaryWalk(
     const lastHealSpentCombatantIds = new Set(walk.lastHealSpentCombatantIds);
     for (const event of events) {
         if (event.kind === BATTLE_EVENT.attack) {
-            const isLit = event.declared.some((one) => one.effect === HOLYTOUCH_DECLARATION_KEY);
+            const isLit = event.declared.some((declaredEffect) =>
+                declaredEffect.effect === HOLYTOUCH_DECLARATION_KEY
+            );
             if (isLit) {
                 if (event.actorId !== null) holytouchHealsByBearerId.set(event.actorId, 0);
             }
@@ -114,7 +116,7 @@ export function composeLegendaryStandings(walk: LegendaryWalk): LegendaryStandin
         standingByCombatantId.size <= HOLDERS_MAXIMUM * 2,
         "no more rows than the two bonuses can put up",
     );
-    return [...standingByCombatantId.values()].sort((one, other) =>
-        one.combatantId - other.combatantId
+    return [...standingByCombatantId.values()].sort((leftStanding, rightStanding) =>
+        leftStanding.combatantId - rightStanding.combatantId
     );
 }

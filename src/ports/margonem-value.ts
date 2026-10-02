@@ -18,9 +18,9 @@ export class MargonemValueAbsent extends Error {
     override readonly name = "MargonemValueAbsent";
     readonly value: MargonemValue;
 
-    constructor(value: MargonemValue) {
+    constructor(margonemValue: MargonemValue) {
         super();
-        this.value = value;
+        this.value = margonemValue;
     }
 }
 

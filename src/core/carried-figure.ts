@@ -72,19 +72,19 @@ const KEY_BY_BIT_NAME: ReadonlyMap<string, string> = new Map([
 /** The two bits above at the positions the client registered them. */
 export function indexKeyByStatusBit(bits: readonly string[]): Map<number, string> {
     assert(bits.length <= SOURCES_MAXIMUM, "the client registers a short list of statuses");
-    const found = new Map<number, string>();
+    const keyByStatusBit = new Map<number, string>();
     for (let bit = 0; bit < bits.length; bit += 1) {
         const key = KEY_BY_BIT_NAME.get(bits[bit] ?? "");
-        if (key !== undefined) found.set(bit, key);
+        if (key !== undefined) keyByStatusBit.set(bit, key);
     }
-    assert(found.size <= KEY_BY_BIT_NAME.size, "no more are witnessed than have a key");
-    return found;
+    assert(keyByStatusBit.size <= KEY_BY_BIT_NAME.size, "no more are witnessed than have a key");
+    return keyByStatusBit;
 }
 
 /** One row per status a figure can be said of, and none for the rest. */
 export function tallyCarriedFigures(inputs: CarriedFigureInputs): CarriedFigure[] {
     assert(inputs.keyByStatusBit.size <= SOURCES_MAXIMUM, "the bits witnessed are a short list");
-    const found: CarriedFigure[] = [];
+    const carriedFigures: CarriedFigure[] = [];
     for (const status of inputs.statuses) {
         const key = inputs.keyByStatusBit.get(status.bit);
         if (key === undefined) continue;
@@ -94,10 +94,10 @@ export function tallyCarriedFigures(inputs: CarriedFigureInputs): CarriedFigure[
         const bearer = { combatantId: status.combatantId, side: combatant.side, turnsTaken };
         const casts = lookupCastsOverBearer(inputs.auras, inputs.roster, bearer, key);
         const percent = tallyPercentForBearer(inputs.auras, casts, bearer, key);
-        found.push({ combatantId: status.combatantId, bit: status.bit, percent });
+        carriedFigures.push({ combatantId: status.combatantId, bit: status.bit, percent });
     }
-    assert(found.length <= inputs.statuses.length, "no more rows than statuses handed in");
-    return found;
+    assert(carriedFigures.length <= inputs.statuses.length, "no more rows than statuses handed in");
+    return carriedFigures;
 }
 
 /**
@@ -114,9 +114,9 @@ function lookupCastsOverBearer(
 ): AuraStanding[] {
     assert(auras.length <= SOURCES_MAXIMUM * SOURCES_MAXIMUM, "a walk over casts is bounded");
     assert(bearer.turnsTaken >= 0, "and a count of turns never runs backwards");
-    const found: AuraStanding[] = [];
+    const castsOverBearer: AuraStanding[] = [];
     for (const aura of auras) {
-        if (found.length >= SOURCES_MAXIMUM) break;
+        if (castsOverBearer.length >= SOURCES_MAXIMUM) break;
         if (aura.amountByKey.get(key) === undefined) continue;
         const caster = roster.byId.get(aura.casterId);
         if (caster === undefined) continue;
@@ -125,9 +125,9 @@ function lookupCastsOverBearer(
         if (turnsAtCast === undefined) continue;
         const turnsElapsed = bearer.turnsTaken - turnsAtCast;
         if (turnsElapsed < 0) continue;
-        if (turnsElapsed < aura.turnsStated) found.push(aura);
+        if (turnsElapsed < aura.turnsStated) castsOverBearer.push(aura);
     }
-    return found;
+    return castsOverBearer;
 }
 
 /**
@@ -159,11 +159,14 @@ function tallyPercentForBearer(
     assert(casts.length <= SOURCES_MAXIMUM, "and over the casts the walk above bounded");
     if (isCasterHalved(auras, bearer.combatantId, key)) return null;
     if (casts.length === 0) return null;
-    const amountsDescending = casts.map((one) => one.amountByKey.get(key) ?? 0).sort((a, b) =>
-        b - a
-    );
+    const amountsDescending = casts.map((cast) => cast.amountByKey.get(key) ?? 0).sort((
+        leftAmount,
+        rightAmount,
+    ) => rightAmount - leftAmount);
     let summed = 0;
-    for (let at = 0; at < SOURCES_COUNTED; at += 1) summed += amountsDescending[at] ?? 0;
+    for (let amountIndex = 0; amountIndex < SOURCES_COUNTED; amountIndex += 1) {
+        summed += amountsDescending[amountIndex] ?? 0;
+    }
     return summed;
 }
 
@@ -175,8 +178,8 @@ function isCasterHalved(
 ): boolean {
     assert(Number.isSafeInteger(combatantId), "a bearer is asked about by identity");
     if (!HALVED_FOR_THE_CASTER.includes(key)) return false;
-    return auras.some((one) => {
-        if (one.casterId !== combatantId) return false;
-        return one.amountByKey.get(key) !== undefined;
+    return auras.some((aura) => {
+        if (aura.casterId !== combatantId) return false;
+        return aura.amountByKey.get(key) !== undefined;
     });
 }

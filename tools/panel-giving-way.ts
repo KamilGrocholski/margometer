@@ -53,8 +53,8 @@ export const PANEL_FILE = "src/ui/panel-element.ts";
  * over source that stops finding its subject builds a panel that gives nothing way.
  */
 export const REGION_ANCHOR = "    const rendered = errors.attempt(render);\n";
-export const CARD_ANCHOR =
-    "                    const next = render();\n                    previous.replaceWith(next);\n";
+export const CARD_ANCHOR = "                    const renderedCard = render();\n" +
+    "                    previousCard.replaceWith(renderedCard);\n";
 /** The card's guard stands as deep as its anchor, so the line written into it does too. */
 const CARD_INDENT = CARD_ANCHOR.slice(0, CARD_ANCHOR.indexOf("const"));
 /** Everything the bundle entry reaches, and the lock its imports resolve by. */

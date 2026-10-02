@@ -452,7 +452,7 @@ interface PanelDrawing {
     addOnVersion: string;
     sheet: PanelElement;
     getTypeStep(): TypeStep;
-    setTypeStep(next: TypeStep): void;
+    setTypeStep(typeStep: TypeStep): void;
     regions: PanelRegions;
     frame: PanelElement;
     renderInPlace: PanelRedraw;
@@ -464,7 +464,7 @@ interface PanelDrawing {
 }
 
 type PanelRedraw = (
-    previous: PanelElement,
+    previousRegion: PanelElement,
     region: PanelRegion,
     render: () => PanelElement,
 ) => PanelElement;
@@ -547,7 +547,7 @@ interface CardSize {
     groups: number;
 }
 
-type CardRedraw = (previous: PanelElement, compose: () => PanelElement) => PanelElement;
+type CardRedraw = (previousCard: PanelElement, compose: () => PanelElement) => PanelElement;
 
 /**
  * How many characters of a card stand on one of its lines, as **floors** rather than a measurement
@@ -838,18 +838,18 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         };
     }
     const renderInPlace = (
-        previous: PanelElement,
+        previousRegion: PanelElement,
         region: PanelRegion,
         render: () => PanelElement,
     ): PanelElement => {
-        const next = renderRegion(document, region, render, report);
-        if (next === null) return previous;
+        const renderedRegion = renderRegion(document, region, render, report);
+        if (renderedRegion === null) return previousRegion;
         // The document's own call, and a region's to lose rather than the whole draw's: what
         // stands is the region as it was, which a reader has already read once.
-        const replaced = errors.attempt(() => previous.replaceWith(next));
-        if (!(replaced instanceof Error)) return next;
+        const replaced = errors.attempt(() => previousRegion.replaceWith(renderedRegion));
+        if (!(replaced instanceof Error)) return renderedRegion;
         report.add(region, replaced);
-        return previous;
+        return previousRegion;
     };
     const meterRegister = createCardRegister();
     const helperRegister = createCardRegister();
@@ -871,16 +871,16 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                 if (top !== null) scrolls.setTop(shownName, top);
             },
             renderListRegion: (name: string, render: () => PanelElement): void => {
-                const next = renderRegion(document, PANEL_REGION.list, render, report);
-                if (next === null) return;
+                const renderedList = renderRegion(document, PANEL_REGION.list, render, report);
+                if (renderedList === null) return;
                 // The same list, drawn again: a payload landing is not a reason to take the region
                 // the reader is turning away from them. Another list is the region replaced, so
                 // the place kept under its own name is what they land on.
-                isRegionKept = name === shownName && renderListRows(regions.list, next);
+                isRegionKept = name === shownName && renderListRows(regions.list, renderedList);
                 if (!isRegionKept) {
-                    const replaced = errors.attempt(() => regions.list.replaceWith(next));
+                    const replaced = errors.attempt(() => regions.list.replaceWith(renderedList));
                     if (replaced instanceof Error) report.add(PANEL_REGION.list, replaced);
-                    else regions.list = next;
+                    else regions.list = renderedList;
                 }
                 shownName = name;
             },
@@ -935,16 +935,16 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             // standing where it was; the card is a child of the root and the only thing the sheet
             // places, so that sentence would be a block under the panel. A card that will not
             // render is no card: the one standing hides (**E12**).
-            (previous, render) => {
+            (previousCard, render) => {
                 const rendered = errors.attempt(() => {
-                    const next = render();
-                    previous.replaceWith(next);
-                    return next;
+                    const renderedCard = render();
+                    previousCard.replaceWith(renderedCard);
+                    return renderedCard;
                 });
                 if (!(rendered instanceof Error)) return rendered;
                 report.add(PANEL_REGION.card, rendered);
-                setCardHidden(previous, true);
-                return previous;
+                setCardHidden(previousCard, true);
+                return previousCard;
             },
             composeAcross,
             () => placement?.readViewport()?.height ?? null,
@@ -1038,7 +1038,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         addOnVersion: options.addOnVersion,
         sheet,
         getTypeStep,
-        setTypeStep: (next: TypeStep) => typeStep = next,
+        setTypeStep: (typeStepChosen: TypeStep) => typeStep = typeStepChosen,
         regions,
         frame,
         renderInPlace,
@@ -1260,14 +1260,14 @@ function renderHelperBody(
     }
     // Draw the charge band where a charge is: a heading, and a row per charge.
     if (helper.chargedSkills.length > 0) {
-        const first = helper.chargedSkills[0];
+        const firstCharged = helper.chargedSkills[0];
         const section = renderElement(document, "div", CLASS.section);
         const words = renderText(document, "span", CLASS.sectionWords, HELPER_WORDS.chargedSkill);
         const state = renderText(
             document,
             "span",
             CLASS.figure,
-            first === undefined ? "" : getWordsForChargedSkill(first.state),
+            firstCharged === undefined ? "" : getWordsForChargedSkill(firstCharged.state),
         );
         section.append(words);
         section.append(state);
@@ -1287,7 +1287,7 @@ function renderHelperBody(
                 `background:${formatColour(charged.colour)}`,
             );
             const name = renderText(document, "span", CLASS.rowName, charged.skillName);
-            const value = renderText(
+            const counter = renderText(
                 document,
                 "span",
                 `${CLASS.rowValue} ${CLASS.figure}`,
@@ -1323,8 +1323,8 @@ function renderHelperBody(
             row.append(cap);
             row.append(name);
             row.append(pips);
-            row.append(value);
-            const parts = [cap, name, ...dots, value];
+            row.append(counter);
+            const parts = [cap, name, ...dots, counter];
             for (const rule of renderSideRules(document, charged.sideRelation)) {
                 row.append(rule);
                 parts.push(rule);
@@ -1604,7 +1604,7 @@ function renderListLevel(
                 CLASS.rowValue,
                 getWordsForShelfOutcome(fight.outcome, fight.isLive),
             );
-            for (const part of [time, size, where, outcome]) row.append(part);
+            for (const cell of [time, size, where, outcome]) row.append(cell);
             const parts = [row, time, size, where, outcome];
             register.add(
                 `shelf:${fight.openedAt}`,
@@ -1626,16 +1626,16 @@ function renderListLevel(
         // Draw whom one part of an opened figure reached, headed by the direction's
         // word: a level opened on a screen about what reached the reader is headed
         // by whom it came from.
-        const part = shown.part;
-        const rows = part.byOtherEnd.rows.length +
-            (part.byOtherEnd.halfNamed === null ? 0 : 1);
+        const partLevel = shown.part;
+        const rows = partLevel.byOtherEnd.rows.length +
+            (partLevel.byOtherEnd.halfNamed === null ? 0 : 1);
         const list = renderListContainer(
             document,
             Math.max(rows + 1, shown.ranking.rowsVisibleCount),
         );
         const figure = getWordsForMetric(shown.metric);
         const heading = getWordsForOpponentCut(shown.metric);
-        list.append(renderSection(document, heading, part.total));
+        list.append(renderSection(document, heading, partLevel.total));
         const share = PANEL_WORDS.shareOfFigure;
         // Nothing on this rung opens, so no card here promises a gesture
         // (`docs/drill-levels.md`).
@@ -1653,10 +1653,10 @@ function renderListLevel(
             card: cardContext,
             place: composeCutPlace(shown),
         };
-        for (const [at, row] of part.byOtherEnd.rows.entries()) {
-            list.append(renderPersonRow(document, row, at + 1, person, false));
+        for (const [rowIndex, row] of partLevel.byOtherEnd.rows.entries()) {
+            list.append(renderPersonRow(document, row, rowIndex + 1, person, false));
         }
-        if (part.byOtherEnd.halfNamed === null) return list;
+        if (partLevel.byOtherEnd.halfNamed === null) return list;
         // The end the protocol left out of a blow this part carried: it is inside
         // the figure over the level, so the column comes to a hundred with it and
         // falls short without it.
@@ -1669,7 +1669,7 @@ function renderListLevel(
             notes: [getNoteForUnnamedEnd(end, getNounForMetric(shown.metric))],
         };
         const rowContent = presentUnnamedRow(
-            part.byOtherEnd.halfNamed,
+            partLevel.byOtherEnd.halfNamed,
             getWordsForUnnamedRow(end),
         );
         list.append(renderRow(document, rowContent, null, card));
@@ -1686,7 +1686,7 @@ function renderListLevel(
         const share = PANEL_WORDS.shareOfFigure;
         if (pair.parts.length > 0) {
             list.append(renderSection(document, PANEL_WORDS.skills, pair.total));
-            for (const [at, row] of pair.parts.entries()) {
+            for (const [rowIndex, row] of pair.parts.entries()) {
                 const card = {
                     register,
                     figure,
@@ -1701,7 +1701,7 @@ function renderListLevel(
                     shareText: row.shareText,
                     colour: lookupColourForProfession(null),
                     profession: null,
-                    rank: at + 1,
+                    rank: rowIndex + 1,
                 };
                 list.append(renderRow(document, rowContent, null, card));
             }
@@ -1711,18 +1711,18 @@ function renderListLevel(
             list.append(
                 renderSection(document, PANEL_WORDS.damageKind, pair.total),
             );
-            for (const [at, row] of cut.rows.entries()) {
-                const part = { kind: OPENED_PART.element, element: row.element };
+            for (const [rowIndex, row] of cut.rows.entries()) {
+                const openedPart = { kind: OPENED_PART.element, element: row.element };
                 const card = {
                     register,
                     figure,
                     share,
-                    key: getKeyForNamedPart(CARD_KEY_PLACE.pairKinds, part),
+                    key: getKeyForNamedPart(CARD_KEY_PLACE.pairKinds, openedPart),
                 };
                 list.append(
                     renderRow(
                         document,
-                        presentElementRow(row, PANEL_NOUN.damage, at + 1),
+                        presentElementRow(row, PANEL_NOUN.damage, rowIndex + 1),
                         null,
                         card,
                     ),
@@ -1832,11 +1832,11 @@ function renderListLevel(
                 card: cardContext,
                 place: composeCutPlace(shown),
             };
-            for (const [at, row] of cut.rows.entries()) {
+            for (const [rowIndex, row] of cut.rows.entries()) {
                 const drawn = renderPersonRow(
                     document,
                     row,
-                    at + 1,
+                    rowIndex + 1,
                     person,
                     row.doesOpenPair,
                 );
@@ -1946,8 +1946,8 @@ function renderListLevel(
         },
         place: personContext,
     };
-    for (const [at, row] of ranking.rows.entries()) {
-        list.append(renderPersonRow(document, row, at + 1, person, true));
+    for (const [rowIndex, row] of ranking.rows.entries()) {
+        list.append(renderPersonRow(document, row, rowIndex + 1, person, true));
     }
     return list;
 }
@@ -1976,7 +1976,7 @@ function renderPinnedRows(
         [UNNAMED_END.target, "pinnedTarget"],
     ] as const;
     for (const [end, regionName] of ends) {
-        const row = pinned.find((one) => one.end === end) ?? null;
+        const row = pinned.find((pinnedRow) => pinnedRow.end === end) ?? null;
         regions[regionName] = renderInPlace(
             regions[regionName],
             PANEL_REGION.pinned,
@@ -2081,13 +2081,13 @@ function renderSidesRegion(
             ];
             for (const [share, className] of parts) {
                 if (share > 0) {
-                    const part = renderElement(document, "span", className);
+                    const sideSegment = renderElement(document, "span", className);
                     const width = formatDecimal(
                         Math.min(share, 1) * AS_PERCENT,
                         FILL_PLACES,
                     );
-                    part.setAttribute(STYLE_ATTRIBUTE, `width:${width}%`);
-                    track.append(part);
+                    sideSegment.setAttribute(STYLE_ATTRIBUTE, `width:${width}%`);
+                    track.append(sideSegment);
                 }
             }
             block.append(track);
@@ -2109,9 +2109,9 @@ function renderSidesRegion(
 }
 
 function renderElement(document: PanelDocument, tag: string, className: string): PanelElement {
-    const element = document.createElement(tag);
-    element.className = className;
-    return element;
+    const createdElement = document.createElement(tag);
+    createdElement.className = className;
+    return createdElement;
 }
 
 /** An element holding one text, which is what most of the panel's cells are. */
@@ -2121,9 +2121,9 @@ function renderText(
     className: string,
     text: string,
 ): PanelElement {
-    const element = renderElement(document, tag, className);
-    element.textContent = text;
-    return element;
+    const textElement = renderElement(document, tag, className);
+    textElement.textContent = text;
+    return textElement;
 }
 
 function renderSlot(document: PanelDocument): PanelElement {
@@ -2258,13 +2258,15 @@ function renderFold(
             const helperPosition = panelDrawing.helperDrag?.getPosition() ?? null;
             if (meterPosition === null) return;
             if (helperPosition === null) return;
-            const next = composeHelperPositionAfterTypeStep(
+            const helperPositionAfter = composeHelperPositionAfterTypeStep(
                 meterPosition,
                 helperPosition,
                 before,
                 after,
             );
-            if (next !== null) panelDrawing.helperDrag?.setPosition(next);
+            if (helperPositionAfter !== null) {
+                panelDrawing.helperDrag?.setPosition(helperPositionAfter);
+            }
         });
     }
     executeRegionStep(panelDrawing.report, PANEL_REGION.header, () => {
@@ -2380,10 +2382,10 @@ function renderStrip(
     strip: ScreenStrip,
 ): PanelElement {
     const marked = strip.isCurrent ? ` ${CLASS.stripCurrent}` : "";
-    const element = renderElement(document, "div", `${CLASS.strip}${marked}`);
-    element.setAttribute(attribute, strip.name);
-    element.textContent = strip.words;
-    return element;
+    const stripElement = renderElement(document, "div", `${CLASS.strip}${marked}`);
+    stripElement.setAttribute(attribute, strip.name);
+    stripElement.textContent = strip.words;
+    return stripElement;
 }
 
 function getShownStrip(strip: ScreenStrip, shown: ShownScreen): ScreenStrip {
@@ -2459,10 +2461,10 @@ function getWordsForUnnamedRow(end: PanelUnnamedEnd): string {
  * states `heal` as a health gain and as a health loss both, and one label over the two would be two
  * quantities under one word.
  */
-function getWordsForNamedPart(part: OpenedPart, metric: PanelMetric): string {
-    if (part.kind === OPENED_PART.skill) return part.name;
-    if (part.kind === OPENED_PART.plain) return getWordsForUnannounced(metric);
-    const named = part.kind === OPENED_PART.source ? part.source : part.element;
+function getWordsForNamedPart(openedPart: OpenedPart, metric: PanelMetric): string {
+    if (openedPart.kind === OPENED_PART.skill) return openedPart.name;
+    if (openedPart.kind === OPENED_PART.plain) return getWordsForUnannounced(metric);
+    const named = openedPart.kind === OPENED_PART.source ? openedPart.source : openedPart.element;
     return getWordsForKind(getNounForMetric(metric), named);
 }
 
@@ -2552,10 +2554,10 @@ function renderPanelOptions(
         }
         // Ask where fights are kept: a row per answer, longest first, and what the one taken means.
         {
-            const current = options.storage;
+            const storageChosen = options.storage;
             const question = renderOptionsQuestion(document, PANEL_WORDS.storage);
             for (const choice of STORAGE_CHOICES) {
-                const marked = choice === current ? ` ${CLASS.stripCurrent}` : "";
+                const marked = choice === storageChosen ? ` ${CLASS.stripCurrent}` : "";
                 const answer = renderText(
                     document,
                     "div",
@@ -2569,7 +2571,7 @@ function renderPanelOptions(
                 document,
                 "div",
                 CLASS.optionsMeaning,
-                getWordsForStorageMeaning(current),
+                getWordsForStorageMeaning(storageChosen),
             );
             question.append(meaning);
             region.append(question);
@@ -2621,8 +2623,8 @@ function renderEmptyNote(document: PanelDocument, words: string): PanelElement {
  * A pointer lands on the deepest element under it, so every part of a row wears the row's marks —
  * the same reason the press attribute is written on the spans and not on the row alone.
  */
-function setRowMarks(parts: readonly PanelElement[], name: string, value: string): void {
-    for (const part of parts) part.setAttribute(name, value);
+function setRowMarks(parts: readonly PanelElement[], name: string, stated: string): void {
+    for (const cell of parts) cell.setAttribute(name, stated);
 }
 
 function renderSection(
@@ -2704,7 +2706,7 @@ function renderRow(
     // answers it: every other reading is handed its position, and only an unnamed one is handed
     // none.
     const apartClass = rowContent.rank === null ? ` ${CLASS.rowApart}` : "";
-    const element = renderElement(document, "div", `${CLASS.row} ${kind}${apartClass}`);
+    const rowElement = renderElement(document, "div", `${CLASS.row} ${kind}${apartClass}`);
     const parts: PanelElement[] = [];
     // Draw the bar as wide as the row's fill, and its cap, both in the row's colour.
     {
@@ -2743,7 +2745,7 @@ function renderRow(
     }
     parts.push(...renderSideRules(document, rowContent.sideRelation ?? SIDE_RELATION.nobody));
     const name = renderText(document, "span", CLASS.rowName, rowContent.name);
-    const value = renderText(
+    const figureCell = renderText(
         document,
         "span",
         `${CLASS.rowValue} ${CLASS.figure}`,
@@ -2753,17 +2755,17 @@ function renderRow(
     const uses = rowContent.uses ?? null;
     const counted = uses === null ? "" : ` · ${formatUses(uses)}`;
     share.textContent = `(${rowContent.shareText}${counted})`;
-    value.append(share);
-    parts.push(name, value);
-    for (const part of parts) element.append(part);
+    figureCell.append(share);
+    parts.push(name, figureCell);
+    for (const cell of parts) rowElement.append(cell);
     parts.push(share);
-    const marked = [element, ...parts];
+    const marked = [rowElement, ...parts];
     // Every span and not the row alone: a listener reads what was pressed off the node under the
     // hand, and a mark on the row only swallows a press that landed on the name or the figure.
     if (mark !== null) setRowMarks(marked, mark.attribute, mark.stated);
     card.register.add(card.key, card.compose ?? (() => presentRowCard(rowContent, card, doesOpen)));
     setRowMarks(marked, CARD_ATTRIBUTE, card.key);
-    return element;
+    return rowElement;
 }
 
 /**
@@ -2834,8 +2836,8 @@ function presentRowCardCutLines(cut: RowCardCut | undefined): CardLine[] {
     if (cut === undefined) return [];
     if (cut.parts.length === 0) return [];
     const lines: CardLine[] = [{ kind: CARD_LINE.heading, text: cut.heading }];
-    for (const part of cut.parts) {
-        lines.push({ kind: CARD_LINE.sub, label: part.label, stated: part.stated });
+    for (const cutPart of cut.parts) {
+        lines.push({ kind: CARD_LINE.sub, label: cutPart.label, stated: cutPart.stated });
     }
     return lines;
 }
@@ -2900,11 +2902,11 @@ function countRowsForPairLevel(pair: PairLevelContent, floor: number): number {
  * lands on somebody else's key silently — the register refuses a duplicate, and the row wears the
  * card of whichever section was drawn first.
  */
-function getKeyForNamedPart(where: CardKeyPlace, part: OpenedPart): string {
-    if (part.kind === OPENED_PART.skill) return `${where}-skill:${part.name}`;
-    if (part.kind === OPENED_PART.plain) return `${where}-skill:plain`;
-    if (part.kind === OPENED_PART.element) return `${where}-kind:${part.element}`;
-    return `${where}-source:${part.source}`;
+function getKeyForNamedPart(where: CardKeyPlace, openedPart: OpenedPart): string {
+    if (openedPart.kind === OPENED_PART.skill) return `${where}-skill:${openedPart.name}`;
+    if (openedPart.kind === OPENED_PART.plain) return `${where}-skill:plain`;
+    if (openedPart.kind === OPENED_PART.element) return `${where}-kind:${openedPart.element}`;
+    return `${where}-source:${openedPart.source}`;
 }
 
 /**
@@ -2912,8 +2914,8 @@ function getKeyForNamedPart(where: CardKeyPlace, part: OpenedPart): string {
  * caveat the deeper one drops leaves a reader at the bottom of the drill with no ring and no
  * sentence (`develop ADR 0089`). Every other kind of part names what it was, so none owes one.
  */
-function getCaveatForNamedPart(part: OpenedPart, metric: PanelMetric): Caveat | null {
-    if (part.kind !== OPENED_PART.plain) return null;
+function getCaveatForNamedPart(openedPart: OpenedPart, metric: PanelMetric): Caveat | null {
+    if (openedPart.kind !== OPENED_PART.plain) return null;
     return getCaveatForUnannounced(getNounForMetric(metric));
 }
 
@@ -2966,8 +2968,8 @@ function renderHalfNamedRows(
         card: cardContext,
         place: composeCutPlace(shown),
     };
-    for (const [at, row] of rows.entries()) {
-        list.append(renderPersonRow(document, row, at + 1, person, doesOpen));
+    for (const [rowIndex, row] of rows.entries()) {
+        list.append(renderPersonRow(document, row, rowIndex + 1, person, doesOpen));
     }
     if (neither === null) return;
     const card = {
@@ -2997,19 +2999,19 @@ function renderElementSection(
     list.append(renderSection(document, getWordsForKindCut(stated.metric), stated.total));
     const noun = getNounForMetric(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
-    for (const [at, row] of cut.rows.entries()) {
+    for (const [rowIndex, row] of cut.rows.entries()) {
         const card = {
             register: stated.register,
             key: `kind:${row.element}`,
             figure: stated.figure,
             share,
         };
-        const part = { kind: OPENED_PART.element, element: row.element };
+        const openedPart = { kind: OPENED_PART.element, element: row.element };
         list.append(
             renderRow(
                 document,
-                presentElementRow(row, noun, at + 1),
-                getMarkForNamedPart(part, row.doesOpenPart),
+                presentElementRow(row, noun, rowIndex + 1),
+                getMarkForNamedPart(openedPart, row.doesOpenPart),
                 card,
             ),
         );
@@ -3026,14 +3028,18 @@ function renderElementSection(
 }
 
 /** The mark a part row wears, and null where the level under it holds nothing. */
-function getMarkForNamedPart(part: OpenedPart, doesOpen: boolean): RowMark | null {
+function getMarkForNamedPart(openedPart: OpenedPart, doesOpen: boolean): RowMark | null {
     if (!doesOpen) return null;
-    if (part.kind === OPENED_PART.skill) return { attribute: PANEL_MARK.skill, stated: part.name };
-    if (part.kind === OPENED_PART.source) {
-        return { attribute: PANEL_MARK.source, stated: part.source };
+    if (openedPart.kind === OPENED_PART.skill) {
+        return { attribute: PANEL_MARK.skill, stated: openedPart.name };
     }
-    if (part.kind === OPENED_PART.plain) return { attribute: PANEL_MARK.plain, stated: PLAIN_MARK };
-    return { attribute: PANEL_MARK.kind, stated: part.element };
+    if (openedPart.kind === OPENED_PART.source) {
+        return { attribute: PANEL_MARK.source, stated: openedPart.source };
+    }
+    if (openedPart.kind === OPENED_PART.plain) {
+        return { attribute: PANEL_MARK.plain, stated: PLAIN_MARK };
+    }
+    return { attribute: PANEL_MARK.kind, stated: openedPart.element };
 }
 
 /**
@@ -3176,18 +3182,18 @@ function presentPinnedCutParts(row: PinnedRow, metric: PanelMetric): RowCardCut 
     // `develop ADR 0039`).
     const parts: Array<{ label: string; stated: string }> = [];
     let rest = 0;
-    for (const [at, one] of row.kinds.rows.entries()) {
-        if (at < CARD_CUT_PARTS_MAXIMUM) {
+    for (const [kindIndex, kindRow] of row.kinds.rows.entries()) {
+        if (kindIndex < CARD_CUT_PARTS_MAXIMUM) {
             parts.push({
                 label: getWordsForNamedPart(
-                    { kind: OPENED_PART.element, element: one.element },
+                    { kind: OPENED_PART.element, element: kindRow.element },
                     metric,
                 ),
-                stated: `${formatFigure(one.figure)} (${one.shareText})`,
+                stated: `${formatFigure(kindRow.figure)} (${kindRow.shareText})`,
             });
             continue;
         }
-        rest += one.figure;
+        rest += kindRow.figure;
     }
     if (rest > 0) parts.push({ label: PANEL_WORDS.restOfKinds, stated: formatFigure(rest) });
     return { heading: getWordsForKindCut(metric), parts };
@@ -3272,14 +3278,14 @@ function renderHelperPerson(
         parts.push(between, cast);
     }
     if (person.turns !== null) {
-        const value = renderText(
+        const turnsCell = renderText(
             document,
             "span",
             `${CLASS.rowValue} ${CLASS.figure}`,
             person.turns,
         );
-        row.append(value);
-        parts.push(value);
+        row.append(turnsCell);
+        parts.push(turnsCell);
     }
     for (const rule of renderSideRules(document, person.sideRelation)) {
         row.append(rule);
@@ -3358,9 +3364,9 @@ function presentCaveatNoteLines(groups: readonly CardGroup[]): CardLine[] {
     // The sentence alone: the mark opening it is drawn from the tone rather than spelled into the
     // text (`develop ADR 0092`), and `develop:src/ui/panel-card.ts` is where it goes on being
     // counted.
-    return CAVEATS.filter((one) => said.has(one)).map((one): CardLine => ({
+    return CAVEATS.filter((caveat) => said.has(caveat)).map((caveat): CardLine => ({
         kind: CARD_LINE.note,
-        text: getNoteForCaveat(one),
+        text: getNoteForCaveat(caveat),
         tone: CARD_NOTE_TONE.caveat,
     }));
 }
@@ -3525,9 +3531,9 @@ export function renderCard(
                 const label = document.createElement("span");
                 label.className = CLASS.cardLabel;
                 label.textContent = line.label;
-                const value = document.createElement("span");
-                value.className = CLASS.cardValue;
-                value.textContent = line.stated;
+                const stated = document.createElement("span");
+                stated.className = CLASS.cardValue;
+                stated.textContent = line.stated;
                 drawnLine.append(label);
                 // Before the value and never after it: the value column is right-aligned
                 // in `tabular-nums`, and a glyph behind it would offset the figures of the
@@ -3536,7 +3542,7 @@ export function renderCard(
                 if (line.kind === CARD_LINE.stat) {
                     if (line.caveat !== null) drawnLine.append(renderCardCaveat(document));
                 }
-                drawnLine.append(value);
+                drawnLine.append(stated);
                 drawnGroup.append(drawnLine);
             }
         }
@@ -3551,10 +3557,10 @@ export function renderCard(
  * `src/ui/panel-words.ts` is where that arithmetic is.
  */
 function renderCardCaveat(document: PanelDocument): PanelElement {
-    const element = document.createElement("span");
-    element.className = CLASS.cardCaveat;
-    element.textContent = CAVEAT_MARK;
-    return element;
+    const caveatElement = document.createElement("span");
+    caveatElement.className = CLASS.cardCaveat;
+    caveatElement.textContent = CAVEAT_MARK;
+    return caveatElement;
 }
 
 function composeCardLineClass(line: CardLine): string {
@@ -3601,11 +3607,11 @@ export function setCardPosition(
  */
 function composeCardAcrossStyle(across: CardAcross | null): string {
     if (across === null) return "";
-    const at = `${Math.max(0, Math.round(across.at))}px`;
+    const edgeOffset = `${Math.max(0, Math.round(across.at))}px`;
     if (across.edge === "left") {
-        return `;${CARD_VARIABLES.left}:${at};${CARD_VARIABLES.right}:${EDGE_RELEASED}`;
+        return `;${CARD_VARIABLES.left}:${edgeOffset};${CARD_VARIABLES.right}:${EDGE_RELEASED}`;
     }
-    return `;${CARD_VARIABLES.left}:${EDGE_RELEASED};${CARD_VARIABLES.right}:${at}`;
+    return `;${CARD_VARIABLES.left}:${EDGE_RELEASED};${CARD_VARIABLES.right}:${edgeOffset}`;
 }
 
 /**
@@ -3647,17 +3653,19 @@ function isCardWithin(card: CardContent, room: number, step: TypeStep): boolean 
  * may be wrong outranks how somebody fought — so what goes is between them, the last one first.
  */
 function composeGroupsWithout(groups: readonly CardGroup[]): CardGroup[] | null {
-    const last = groups.length - 1;
-    if (last < 1) return null;
-    const at = isNoteGroup(groups[last] ?? { lines: [] }) ? last - 1 : last;
-    if (at < 1) return null;
-    return [...groups.slice(0, at), ...groups.slice(at + 1)];
+    const lastIndex = groups.length - 1;
+    if (lastIndex < 1) return null;
+    const droppedIndex = isNoteGroup(groups[lastIndex] ?? { lines: [] })
+        ? lastIndex - 1
+        : lastIndex;
+    if (droppedIndex < 1) return null;
+    return [...groups.slice(0, droppedIndex), ...groups.slice(droppedIndex + 1)];
 }
 
 /** A run of nothing but notes, which is what a card puts last and what a trim never takes. */
 function isNoteGroup(group: CardGroup): boolean {
     if (group.lines.length === 0) return false;
-    return group.lines.every((one) => one.kind === CARD_LINE.note);
+    return group.lines.every((line) => line.kind === CARD_LINE.note);
 }
 
 /** The card once something was given up: it says so, where a figure's qualifiers are read. */
@@ -3668,10 +3676,10 @@ function composeCardTrimmed(card: CardContent, kept: readonly CardGroup[]): Card
         text: CARD_WORDS.cut,
         tone: CARD_NOTE_TONE.plain,
     };
-    const last = kept[kept.length - 1];
-    if (last !== undefined) {
-        if (isNoteGroup(last)) {
-            const groups = [...kept.slice(0, -1), { lines: [...last.lines, said] }];
+    const lastGroup = kept[kept.length - 1];
+    if (lastGroup !== undefined) {
+        if (isNoteGroup(lastGroup)) {
+            const groups = [...kept.slice(0, -1), { lines: [...lastGroup.lines, said] }];
             return { ...card, groups };
         }
     }
@@ -3712,7 +3720,7 @@ export function initCardHandle(
         cardElement = redraw(cardElement, () => renderCard(document, card));
         setCardPosition(cardElement, openTop, getAcross(key), openSize, getTypeStep());
     };
-    const hide = (): void => {
+    const hideCard = (): void => {
         if (openKey === null) return;
         openKey = null;
         setCardHidden(cardElement, true);
@@ -3721,7 +3729,7 @@ export function initCardHandle(
         element: cardElement,
         onHover(key: string | null, clientY: number): void {
             if (key === null) {
-                hide();
+                hideCard();
                 return;
             }
             const top = Math.max(0, Math.round(clientY));
@@ -3741,7 +3749,7 @@ export function initCardHandle(
             }
             const compose = cardLookup.lookup(key);
             if (compose === null) {
-                hide();
+                hideCard();
                 return;
             }
             openTop = top;
@@ -3753,7 +3761,7 @@ export function initCardHandle(
             if (key === null) return;
             const compose = cardLookup.lookup(key);
             if (compose === null) {
-                hide();
+                hideCard();
                 return;
             }
             renderCardFor(key, compose());
@@ -3801,23 +3809,25 @@ function presentCardFigureLines(
     translate: TranslateLabel | null,
 ): CardLine[] {
     const lines: CardLine[] = [{ kind: CARD_LINE.heading, text: CARD_WORDS.wholeFight }];
-    for (const one of presentCardFigures(detail)) {
-        if (one.metric !== metric) {
-            if (!Number.isFinite(one.figure)) continue;
-            if (one.figure <= 0) continue;
+    for (const cardFigure of presentCardFigures(detail)) {
+        if (cardFigure.metric !== metric) {
+            if (!Number.isFinite(cardFigure.figure)) continue;
+            if (cardFigure.figure <= 0) continue;
         }
         lines.push({
             kind: CARD_LINE.stat,
-            label: getWordsForCardMetric(one.metric),
-            stated: formatFigure(one.figure),
-            isStrong: one.metric === metric,
+            label: getWordsForCardMetric(cardFigure.metric),
+            stated: formatFigure(cardFigure.figure),
+            isStrong: cardFigure.metric === metric,
             caveat: null,
         });
-        if (one.halfNamed !== null) {
-            lines.push(...presentCardSubLine(one.halfNamed.label, one.halfNamed.figure));
+        if (cardFigure.halfNamed !== null) {
+            lines.push(
+                ...presentCardSubLine(cardFigure.halfNamed.label, cardFigure.halfNamed.figure),
+            );
         }
-        for (const part of presentCardPartsMergedByWord(one.absorbed, translate)) {
-            lines.push(...presentCardSubLine(part.label, part.figure));
+        for (const mergedPart of presentCardPartsMergedByWord(cardFigure.absorbed, translate)) {
+            lines.push(...presentCardSubLine(mergedPart.label, mergedPart.figure));
         }
     }
     return lines;
@@ -3957,12 +3967,14 @@ function presentCardDealtLines(detail: RowDetail, translate: TranslateLabel | nu
             isStrong: false,
             caveat: null,
         });
-        const offhand = detail.procsWhenStriking.filter((part) => part.key === OFFHAND_CRIT_KEY);
+        const offhand = detail.procsWhenStriking.filter((cutPart) =>
+            cutPart.key === OFFHAND_CRIT_KEY
+        );
         lines.push(
-            ...presentCardPartsMergedByWord(offhand, translate).map((one): CardLine => ({
+            ...presentCardPartsMergedByWord(offhand, translate).map((mergedPart): CardLine => ({
                 kind: CARD_LINE.sub,
-                label: one.label,
-                stated: formatUses(one.figure),
+                label: mergedPart.label,
+                stated: formatUses(mergedPart.figure),
             })),
         );
     }
@@ -4017,13 +4029,15 @@ function presentCardPartsMergedByWord(
     translate: TranslateLabel | null,
 ): Array<{ label: string; figure: number }> {
     const byLabel = new Map<string, number>();
-    for (const part of parts.slice(0, CARD_PARTS_MAXIMUM)) {
-        const label = getWordsForBlowKey(part.key, translate);
+    for (const cutPart of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+        const label = getWordsForBlowKey(cutPart.key, translate);
         if (label.length === 0) continue;
-        byLabel.set(label, (byLabel.get(label) ?? 0) + part.figure);
+        byLabel.set(label, (byLabel.get(label) ?? 0) + cutPart.figure);
     }
     const folded = [...byLabel].map(([label, figure]) => ({ label, figure }));
-    folded.sort((one, other) => getRankedOrder(one.figure, other.figure, one.label, other.label));
+    folded.sort((leftPart, rightPart) =>
+        getRankedOrder(leftPart.figure, rightPart.figure, leftPart.label, rightPart.label)
+    );
     return folded;
 }
 
@@ -4040,18 +4054,18 @@ function presentCardProcLines(
     without: readonly string[],
     translate: TranslateLabel | null,
 ): CardLine[] {
-    const kept = parts.filter((part) => !without.includes(part.key));
+    const kept = parts.filter((cutPart) => !without.includes(cutPart.key));
     const narrowed = presentCardProcSubParts(kept, translate);
     const lines: CardLine[] = [];
-    for (const one of presentCardPartsMergedByWord(kept, translate)) {
+    for (const mergedPart of presentCardPartsMergedByWord(kept, translate)) {
         lines.push({
             kind: CARD_LINE.stat,
-            label: one.label,
-            stated: formatUses(one.figure),
+            label: mergedPart.label,
+            stated: formatUses(mergedPart.figure),
             isStrong: false,
             caveat: null,
         });
-        for (const sub of narrowed.get(one.label) ?? []) {
+        for (const sub of narrowed.get(mergedPart.label) ?? []) {
             lines.push({
                 kind: CARD_LINE.sub,
                 label: sub.label,
@@ -4075,19 +4089,21 @@ function presentCardProcSubParts(
     translate: TranslateLabel | null,
 ): Map<string, Array<{ label: string; figure: number }>> {
     const byWords = new Map<string, Map<string, number>>();
-    for (const part of parts.slice(0, CARD_PARTS_MAXIMUM)) {
-        const words = getSubWordsForBlowKey(part.key);
+    for (const cutPart of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+        const words = getSubWordsForBlowKey(cutPart.key);
         if (words.length === 0) continue;
-        const label = getWordsForBlowKey(part.key, translate);
+        const label = getWordsForBlowKey(cutPart.key, translate);
         if (label.length === 0) continue;
         const figureBySubWord = byWords.get(label) ?? new Map<string, number>();
-        figureBySubWord.set(words, (figureBySubWord.get(words) ?? 0) + part.figure);
+        figureBySubWord.set(words, (figureBySubWord.get(words) ?? 0) + cutPart.figure);
         byWords.set(label, figureBySubWord);
     }
     const folded = new Map<string, Array<{ label: string; figure: number }>>();
     for (const [label, figureBySubWord] of byWords) {
         const run = [...figureBySubWord].map(([words, figure]) => ({ label: words, figure }));
-        run.sort((one, other) => getRankedOrder(one.figure, other.figure, one.label, other.label));
+        run.sort((leftPart, rightPart) =>
+            getRankedOrder(leftPart.figure, rightPart.figure, leftPart.label, rightPart.label)
+        );
         folded.set(label, run);
     }
     return folded;
@@ -4100,12 +4116,12 @@ function presentCardProcSubParts(
 function presentCardDestroyedLines(parts: readonly CutPart[]): CardLine[] {
     if (parts.length === 0) return [];
     const lines: CardLine[] = [{ kind: CARD_LINE.heading, text: CARD_WORDS.destroyed }];
-    for (const part of parts.slice(0, CARD_PARTS_MAXIMUM)) {
-        if (part.figure <= 0) continue;
+    for (const cutPart of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+        if (cutPart.figure <= 0) continue;
         lines.push({
             kind: CARD_LINE.sub,
-            label: getWordsForDestroyed(part.key),
-            stated: formatDestroyed(part.key, part.figure),
+            label: getWordsForDestroyed(cutPart.key),
+            stated: formatDestroyed(cutPart.key, cutPart.figure),
         });
     }
     return lines;
@@ -4127,11 +4143,11 @@ function presentCardTakenLines(detail: RowDetail, translate: TranslateLabel | nu
         });
         lines.push(
             ...presentCardPartsMergedByWord(detail.damagePreventedByDefence, translate).map((
-                one,
+                mergedPart,
             ): CardLine => ({
                 kind: CARD_LINE.sub,
-                label: one.label,
-                stated: formatFigure(one.figure),
+                label: mergedPart.label,
+                stated: formatFigure(mergedPart.figure),
             })),
         );
     }
@@ -4206,12 +4222,12 @@ function isRegionList(region: PanelElement): boolean {
  * written there and one left behind froze (`tests/ui/panel-scroll.test.ts`). False where either
  * side is not a list. `develop ADR 0052`.
  */
-export function renderListRows(region: PanelElement, next: PanelElement): boolean {
+export function renderListRows(region: PanelElement, renderedList: PanelElement): boolean {
     if (!isRegionList(region)) return false;
-    if (!isRegionList(next)) return false;
-    region.className = next.className;
-    region.setAttribute(STYLE_ATTRIBUTE, next.getAttribute(STYLE_ATTRIBUTE) ?? "");
-    region.replaceChildren(...Array.from(next.children));
+    if (!isRegionList(renderedList)) return false;
+    region.className = renderedList.className;
+    region.setAttribute(STYLE_ATTRIBUTE, renderedList.getAttribute(STYLE_ATTRIBUTE) ?? "");
+    region.replaceChildren(...Array.from(renderedList.children));
     return true;
 }
 

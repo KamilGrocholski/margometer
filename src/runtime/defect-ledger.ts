@@ -69,7 +69,7 @@ export function initDefectLedger(browserConsole: BrowserConsolePort): DefectLedg
             browserConsole.writeBrandedLine(kind, failure);
         },
         getCounts() {
-            const rows = [...counts.values()].map((one) => ({ ...one }));
+            const rows = [...counts.values()].map((defectCount) => ({ ...defectCount }));
             assert(rows.length <= ROWS_MAXIMUM, "and states no more rows than it holds");
             return rows;
         },

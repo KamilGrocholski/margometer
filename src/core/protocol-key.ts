@@ -375,50 +375,62 @@ export function getDefenceMechanism(defence: string): DefenceMechanism {
 }
 
 function indexKeyMeanings(): Map<string, KeyMeaning> {
-    const found = new Map<string, KeyMeaning>();
-    const add = (key: string, keyMeaning: KeyMeaning) => {
-        assert(!found.has(key), "a key belongs to one family");
-        found.set(key, keyMeaning);
+    const keyMeaningByKey = new Map<string, KeyMeaning>();
+    const addKeyMeaning = (key: string, keyMeaning: KeyMeaning) => {
+        assert(!keyMeaningByKey.has(key), "a key belongs to one family");
+        keyMeaningByKey.set(key, keyMeaning);
     };
     for (const key of DAMAGE_KEYS) {
-        add(key, {
+        addKeyMeaning(key, {
             kind: KEY_FAMILY.damage,
             half: key.startsWith(RAW_SIGN) ? DAMAGE_HALF.raw : DAMAGE_HALF.applied,
         });
     }
-    for (const key of DEFENCE_MECHANISM_BY_KEY.keys()) add(key, { kind: KEY_FAMILY.prevented });
-    for (const key of DESTROYED_KEYS) add(key, { kind: KEY_FAMILY.destroyed });
+    for (const key of DEFENCE_MECHANISM_BY_KEY.keys()) {
+        addKeyMeaning(key, { kind: KEY_FAMILY.prevented });
+    }
+    for (const key of DESTROYED_KEYS) addKeyMeaning(key, { kind: KEY_FAMILY.destroyed });
     for (const [key, end] of PROC_END_BY_KEY) {
-        add(key, { kind: KEY_FAMILY.proc, end, doesTakeValue: PROCS_WITH_VALUE.includes(key) });
+        addKeyMeaning(key, {
+            kind: KEY_FAMILY.proc,
+            end,
+            doesTakeValue: PROCS_WITH_VALUE.includes(key),
+        });
     }
     for (const [key, change] of HEALTH_CHANGE_BY_KEY) {
-        add(key, { kind: KEY_FAMILY.healthChange, ...change });
+        addKeyMeaning(key, { kind: KEY_FAMILY.healthChange, ...change });
     }
-    for (const key of DECLARATION_KEYS) add(key, { kind: KEY_FAMILY.declaration });
+    for (const key of DECLARATION_KEYS) addKeyMeaning(key, { kind: KEY_FAMILY.declaration });
     for (const key of VALUELESS_DECLARATION_KEYS) {
-        add(key, { kind: KEY_FAMILY.valuelessDeclaration });
+        addKeyMeaning(key, { kind: KEY_FAMILY.valuelessDeclaration });
     }
-    add("tspell", { kind: KEY_FAMILY.skillName });
-    add("tcustom", { kind: KEY_FAMILY.customSkillName });
-    add(SKILL_ID_KEY, { kind: KEY_FAMILY.skillId });
-    add("winner", { kind: KEY_FAMILY.outcome, result: OUTCOME_RESULT.won });
-    add("loser", { kind: KEY_FAMILY.outcome, result: OUTCOME_RESULT.lost });
-    add("flee", { kind: KEY_FAMILY.fled });
-    add("healall_per", { kind: KEY_FAMILY.unaccountedHealth });
-    add("+oth_dmg", { kind: KEY_FAMILY.namedDamage });
-    add(LASTHEAL_KEY, { kind: KEY_FAMILY.namedHealing });
-    assert(found.size > PROC_END_BY_KEY.size, "every family is indexed, not only the procs");
-    return found;
+    addKeyMeaning("tspell", { kind: KEY_FAMILY.skillName });
+    addKeyMeaning("tcustom", { kind: KEY_FAMILY.customSkillName });
+    addKeyMeaning(SKILL_ID_KEY, { kind: KEY_FAMILY.skillId });
+    addKeyMeaning("winner", { kind: KEY_FAMILY.outcome, result: OUTCOME_RESULT.won });
+    addKeyMeaning("loser", { kind: KEY_FAMILY.outcome, result: OUTCOME_RESULT.lost });
+    addKeyMeaning("flee", { kind: KEY_FAMILY.fled });
+    addKeyMeaning("healall_per", { kind: KEY_FAMILY.unaccountedHealth });
+    addKeyMeaning("+oth_dmg", { kind: KEY_FAMILY.namedDamage });
+    addKeyMeaning(LASTHEAL_KEY, { kind: KEY_FAMILY.namedHealing });
+    assert(
+        keyMeaningByKey.size > PROC_END_BY_KEY.size,
+        "every family is indexed, not only the procs",
+    );
+    return keyMeaningByKey;
 }
 
 function indexDefenceMechanisms(): Map<string, DefenceMechanism> {
-    const found = new Map<string, DefenceMechanism>();
+    const mechanismByDefence = new Map<string, DefenceMechanism>();
     for (const [key, mechanism] of DEFENCE_MECHANISM_BY_KEY) {
         assert(key.startsWith(APPLIED_SIGN), "a defence stops damage on the applied side");
         const defence = key.slice(APPLIED_SIGN.length);
-        assert(!found.has(defence), "a defence is named by one key");
-        found.set(defence, mechanism);
+        assert(!mechanismByDefence.has(defence), "a defence is named by one key");
+        mechanismByDefence.set(defence, mechanism);
     }
-    assert(found.size === DEFENCE_MECHANISM_BY_KEY.size, "every defence key is indexed");
-    return found;
+    assert(
+        mechanismByDefence.size === DEFENCE_MECHANISM_BY_KEY.size,
+        "every defence key is indexed",
+    );
+    return mechanismByDefence;
 }

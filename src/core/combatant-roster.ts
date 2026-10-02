@@ -53,8 +53,8 @@ export function indexCombatantRoster(combatants: readonly Combatant[]): Combatan
 /** `null`: ambiguous, or nobody. */
 export function lookupCombatantIdByName(roster: CombatantRoster, name: string): number | null {
     assert(name.length > 0, "a name to resolve is never empty");
-    const found = roster.idByName.get(name) ?? AMBIGUOUS;
-    if (found === AMBIGUOUS) return AMBIGUOUS;
-    assert(roster.byId.get(found)?.name === name, "a name resolves to somebody who holds it");
-    return found;
+    const combatantId = roster.idByName.get(name) ?? AMBIGUOUS;
+    if (combatantId === AMBIGUOUS) return AMBIGUOUS;
+    assert(roster.byId.get(combatantId)?.name === name, "a name resolves to somebody who holds it");
+    return combatantId;
 }

@@ -236,10 +236,10 @@ export function preparePayload(
     if (eventsAfter > options.eventsMaximum) {
         return new EventsExceeded(eventsAfter, options.eventsMaximum);
     }
-    const next = preparePayloadStanding(stateBefore, record, decoded, combatants);
-    assert(next.payloadsApplied === payloadsApplied, "a payload prepared is counted once");
+    const stateAfter = preparePayloadStanding(stateBefore, record, decoded, combatants);
+    assert(stateAfter.payloadsApplied === payloadsApplied, "a payload prepared is counted once");
     const payloadIndex = stateBefore?.payloadsApplied ?? 0;
-    return { payloadIndex, isOpening: stateBefore === null, decoded, next };
+    return { payloadIndex, isOpening: stateBefore === null, decoded, next: stateAfter };
 }
 
 /**
@@ -253,7 +253,9 @@ function preparePayloadCombatants(
 ): Combatant[] {
     const combatants = [...combatantsBefore];
     for (const combatant of combatantsArriving) {
-        const seenIndex = combatants.findIndex((one) => one.id === combatant.id);
+        const seenIndex = combatants.findIndex((seenCombatant) =>
+            seenCombatant.id === combatant.id
+        );
         if (seenIndex === -1) combatants.push(combatant);
         else combatants[seenIndex] = combatant;
     }

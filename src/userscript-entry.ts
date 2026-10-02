@@ -94,7 +94,7 @@ export interface BrowserWindow extends BrowserTimers, BrowserFrames {
 export interface UserscriptDocument extends PanelDocument {
     createElement(tag: string): PanelElement & DownloadAnchor;
     querySelectorAll(selector: string): ArrayLike<{ src?: unknown }>;
-    body: { append(node: PanelElement | DownloadAnchor): void };
+    body: { append(appendedElement: PanelElement | DownloadAnchor): void };
 }
 
 const SCRIPT_WITH_SOURCE = "script[src]";
@@ -164,7 +164,9 @@ export function readRuntimePorts(browserWindow: unknown): RuntimePorts | Browser
                 const scripts = browserWindow.document.querySelectorAll(SCRIPT_WITH_SOURCE);
                 const walked = Math.min(scripts.length, SCRIPTS_MAXIMUM);
                 const sources: unknown[] = [];
-                for (let at = 0; at < walked; at += 1) sources.push(scripts[at]?.src);
+                for (let scriptIndex = 0; scriptIndex < walked; scriptIndex += 1) {
+                    sources.push(scripts[scriptIndex]?.src);
+                }
                 return sources;
             },
         }),
@@ -231,11 +233,11 @@ function lookupWindowPartMissing(browserWindow: UnknownRecord): WindowPart | nul
     return null;
 }
 
-function isUserscriptDocument(value: unknown): boolean {
-    if (!isRecord(value)) return false;
-    if (typeof value.createElement !== "function") return false;
-    if (typeof value.querySelectorAll !== "function") return false;
-    return isCallableOn(value.body, "append");
+function isUserscriptDocument(documentCandidate: unknown): boolean {
+    if (!isRecord(documentCandidate)) return false;
+    if (typeof documentCandidate.createElement !== "function") return false;
+    if (typeof documentCandidate.querySelectorAll !== "function") return false;
+    return isCallableOn(documentCandidate.body, "append");
 }
 
 /**

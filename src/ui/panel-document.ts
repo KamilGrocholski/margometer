@@ -38,15 +38,15 @@ export interface PanelElement {
     /** Where the list is scrolled to, which `src/ui/panel-element.ts` reads and writes. */
     scrollTop: number;
     append(child: PanelElement): void;
-    replaceWith(other: PanelElement): void;
+    replaceWith(replacement: PanelElement): void;
     /** How the list swaps its rows without being replaced; `src/ui/panel-element.ts` says why. */
     children: ArrayLike<PanelElement>;
     replaceChildren(...children: PanelElement[]): void;
-    setAttribute(name: string, value: string): void;
+    setAttribute(name: string, text: string): void;
     /** Read off an element about to go, so a list that stays takes what the new one carries. */
     getAttribute(name: string): string | null;
     /** Which of the two windows a press landed in, for the way back (`develop ADR 0071`). */
-    contains(other: PanelTarget | null): boolean;
+    contains(target: PanelTarget | null): boolean;
     attachShadow(options: { mode: "open" }): PanelRoot;
     /** A drag keeping the pointer it has. Optional: a document offering neither still drags. */
     setPointerCapture?(pointerId: number): void;

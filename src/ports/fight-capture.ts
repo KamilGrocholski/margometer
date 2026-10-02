@@ -121,12 +121,15 @@ function encodeCaptureState(combatants: MargonemEngineWarriorSnapshot | null): s
  * than `structuredClone`: what is recorded is written as JSON anyway, so anything the round trip
  * cannot carry is dropped now rather than silently at the end.
  */
-function createCaptureCopy(value: unknown): unknown {
-    const written = encodeJson(value, 0);
+function createCaptureCopy(payload: unknown): unknown {
+    const written = encodeJson(payload, 0);
     if (written instanceof Error) return null;
-    const read = parseJson(written);
-    assert(!(read instanceof Error), "text this writer produced is text this reader takes back");
-    return read;
+    const payloadCopy = parseJson(written);
+    assert(
+        !(payloadCopy instanceof Error),
+        "text this writer produced is text this reader takes back",
+    );
+    return payloadCopy;
 }
 
 /** Phase two: the call kept or counted into the recording. It cannot fail. */

@@ -77,11 +77,11 @@ export function initBrowserFile(downloads: BrowserDownloads | null): BrowserFile
                 return true;
             });
             // The clock is the browser's, so the release is guarded where it is handed over (E10).
-            const release = (): void => {
+            const releaseObjectUrl = (): void => {
                 const revoked = errors.attempt(() => downloads.revokeObjectURL(url));
                 if (revoked instanceof Error) void errors.attempt(() => onLateFailure(revoked));
             };
-            const scheduled = errors.attempt(() => downloads.setTimeout(release, 0));
+            const scheduled = errors.attempt(() => downloads.setTimeout(releaseObjectUrl, 0));
             if (scheduled instanceof Error) return scheduled;
             if (clicked instanceof Error) return clicked;
             if (!clicked) return new FileApiAbsent();

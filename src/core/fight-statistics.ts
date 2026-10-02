@@ -538,7 +538,7 @@ export function tallyFightStatistics(
             const outcomeSoFar = tallying.outcome ??
                 { wonNames: [], lostNames: [], isDrawn: false, isFled: false };
             assert(
-                event.combatantNames.every((one) => one.length > 0),
+                event.combatantNames.every((combatantName) => combatantName.length > 0),
                 "a side named is named in full",
             );
             if (event.result === OUTCOME_RESULT.drawn) {
@@ -811,11 +811,11 @@ function addBlowDealt(dealer: TallyingFigures, event: AttackEvent, blow: BlowFig
         }
     }
     addDamageFiguresToCut(dealer.damageDealtByKind, blow.kinds);
-    for (const part of blow.absorbedParts) {
+    for (const absorbedPart of blow.absorbedParts) {
         addToCut(
             dealer.damageDealtAbsorbedByDefence,
-            part.defence,
-            part.amount,
+            absorbedPart.defence,
+            absorbedPart.amount,
         );
     }
     if (event.targetId !== null) {
@@ -891,20 +891,20 @@ function addBlowTaken(target: TallyingFigures, event: AttackEvent, blow: BlowFig
             target.damageTakenBlowLargest,
             blow.amount,
         );
-        for (const part of blow.absorbedParts) {
-            target.damageTakenAbsorbed += part.amount;
+        for (const absorbedPart of blow.absorbedParts) {
+            target.damageTakenAbsorbed += absorbedPart.amount;
             addToCut(
                 target.damageTakenAbsorbedByDefence,
-                part.defence,
-                part.amount,
+                absorbedPart.defence,
+                absorbedPart.amount,
             );
         }
-        for (const part of blow.preventedParts) {
-            target.damagePrevented += part.amount;
+        for (const preventedPart of blow.preventedParts) {
+            target.damagePrevented += preventedPart.amount;
             addToCut(
                 target.damagePreventedByDefence,
-                part.defence,
-                part.amount,
+                preventedPart.defence,
+                preventedPart.amount,
             );
         }
     }
@@ -925,16 +925,18 @@ function lookupAnnouncedWound(
     const woundedId = event.targetId;
     if (actorId === null) return null;
     if (woundedId === null) return null;
-    let found: { woundedId: number; standing: WoundStanding } | null = null;
+    let announcedWound: { woundedId: number; standing: WoundStanding } | null = null;
     for (const declared of event.declared) {
         if (declared.effect !== WOUND_ANNOUNCEMENT_KEY) continue;
         if (declared.amount === null) continue;
         // The figure is the game's: a wound announcing nothing is skipped, never asserted against.
         if (declared.amount <= 0) continue;
-        found = { woundedId, standing: { actorId, amount: declared.amount } };
+        announcedWound = { woundedId, standing: { actorId, amount: declared.amount } };
     }
-    if (found !== null) assert(found.standing.amount > 0, "a wound kept takes something off");
-    return found;
+    if (announcedWound !== null) {
+        assert(announcedWound.standing.amount > 0, "a wound kept takes something off");
+    }
+    return announcedWound;
 }
 
 function addCombatantFigures(

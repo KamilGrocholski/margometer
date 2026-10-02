@@ -75,9 +75,9 @@ function readMargonemEngineRecord(
     const engineMember = getRecordField(engine, ENGINE_FIELDS, field);
     if (engineMember instanceof Error) return null;
     if (engineMember === null) return null;
-    const data = getRecordField(engineMember, HELD_FIELDS, "data");
-    if (data instanceof Error) return null;
-    return data;
+    const memberRecord = getRecordField(engineMember, HELD_FIELDS, "data");
+    if (memberRecord instanceof Error) return null;
+    return memberRecord;
 }
 
 /** Either spelling, because the client itself does arithmetic on one and compares the other. */

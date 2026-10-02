@@ -86,8 +86,8 @@ function readCapturedCombatant(warrior: UnknownRecord): CapturedCombatant {
     const copied: Record<string, unknown> = {};
     for (const key of COPIED_KEYS) copied[key] = warrior[key] ?? null;
     for (const key of SHALLOW_COPIED_KEYS) {
-        const value = warrior[key];
-        copied[key] = isRecord(value) ? { ...value } : value ?? null;
+        const copiedValue = warrior[key];
+        copied[key] = isRecord(copiedValue) ? { ...copiedValue } : copiedValue ?? null;
     }
     assert(Object.keys(copied).length === COPIED_KEYS.length + SHALLOW_COPIED_KEYS.length, "all");
     const { name, team, prof, lvl, hp, mana, energy, ac } = copied;
@@ -115,9 +115,11 @@ export function readMargonemEngineWarriorsNamed(
     return new MargonemEngineWarriorsAbsent();
 }
 
-function isMargonemEngineWarriorNamed(value: unknown): value is UnknownRecord {
-    if (!isRecord(value)) return false;
-    const name = value[NAME_KEY];
+function isMargonemEngineWarriorNamed(
+    warriorCandidate: unknown,
+): warriorCandidate is UnknownRecord {
+    if (!isRecord(warriorCandidate)) return false;
+    const name = warriorCandidate[NAME_KEY];
     if (typeof name !== "string") return false;
     return name.length > 0;
 }

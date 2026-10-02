@@ -230,16 +230,20 @@ export function renderFrame(parts: FrameParts): void {
             // The one thing the panel can say about a drawn figure being wrong rather than short,
             // and a defect rather than an assertion (`develop ADR 0051`).
             const ledger = parts.defects;
-            const add = (cut: FiguresCut): void => {
+            const addFiguresDisagreed = (cut: FiguresCut): void => {
                 ledger.add({
                     kind: DEFECT_KIND.figures,
                     region: null,
                     failure: new FiguresDisagreed(cut),
                 });
             };
-            if (shownScreen.ranking.hasFiguresDisagreed) add(FIGURES_CUT.screen);
-            if (shownScreen.opened?.hasFiguresDisagreed === true) add(FIGURES_CUT.drill);
-            if (shownScreen.pair?.hasFiguresDisagreed === true) add(FIGURES_CUT.pair);
+            if (shownScreen.ranking.hasFiguresDisagreed) addFiguresDisagreed(FIGURES_CUT.screen);
+            if (shownScreen.opened?.hasFiguresDisagreed === true) {
+                addFiguresDisagreed(FIGURES_CUT.drill);
+            }
+            if (shownScreen.pair?.hasFiguresDisagreed === true) {
+                addFiguresDisagreed(FIGURES_CUT.pair);
+            }
         }
         addUndrawnDefects(parts.defects, parts.view.render(shownScreen));
     });
@@ -395,10 +399,10 @@ function presentFightCardContent(parts: FrameParts, source: FightCardSource): Fi
  */
 function lookupFightReader(roster: CombatantRoster, readerId: number | null): FightReader | null {
     if (readerId === null) return null;
-    const found = roster.byId.get(readerId);
-    if (found === undefined) return null;
-    assert(found.id === readerId, "a combatant found by an id is the one it names");
-    return { name: found.name, profession: found.profession, level: found.level };
+    const combatant = roster.byId.get(readerId);
+    if (combatant === undefined) return null;
+    assert(combatant.id === readerId, "a combatant found by an id is the one it names");
+    return { name: combatant.name, profession: combatant.profession, level: combatant.level };
 }
 
 /** What is short about the reading itself, which the session states and the figures cannot. */
@@ -426,7 +430,7 @@ function presentShelfRows(
     const rows: ShelfRow[] = [];
     const alsoKept = liveRow === null
         ? undefined
-        : keptFights.find((one) => one.openedAt === liveRow.openedAt);
+        : keptFights.find((keptFight) => keptFight.openedAt === liveRow.openedAt);
     if (liveRow !== null) {
         const { sizes, unplaced } = presentShelfHeadcount(liveRow.fightState);
         const outcome = getOutcomeOfReading(liveRow.fightState);
@@ -453,15 +457,18 @@ function presentShelfRows(
             }),
         });
     }
-    for (const one of [...keptFights].sort((first, other) => other.openedAt - first.openedAt)) {
-        if (one.openedAt === alsoKept?.openedAt) continue;
-        const fightState = parts.keeper.lookupKeptFightState(one);
+    const keptFightsNewestFirst = [...keptFights].sort((leftFight, rightFight) =>
+        rightFight.openedAt - leftFight.openedAt
+    );
+    for (const keptFight of keptFightsNewestFirst) {
+        if (keptFight.openedAt === alsoKept?.openedAt) continue;
+        const fightState = parts.keeper.lookupKeptFightState(keptFight);
         // A row for a fight nothing can be read out of would state a headcount it does not have.
         if (fightState === null) continue;
-        rows.push(presentKeptShelfRow(parts, one, fightState, chosenFightOpenedAt));
+        rows.push(presentKeptShelfRow(parts, keptFight, fightState, chosenFightOpenedAt));
     }
     assert(rows.length <= KEPT_MAXIMUM + 1, "a row per kept fight, and one for the live one");
-    assert(rows.filter((one) => one.isLive).length <= 1, "and one live fight at most");
+    assert(rows.filter((shelfRow) => shelfRow.isLive).length <= 1, "and one live fight at most");
     return rows;
 }
 
@@ -569,11 +576,11 @@ export function presentOpenedLevels(fightState: FightState, screen: ScreenState)
         opened.combatantId,
         screen.pairCombatantId,
     );
-    const part = screen.openPart === null
+    const partLevel = screen.openPart === null
         ? null
         : presentPartLevel(statistics, roster, screen.metric, opened.combatantId, screen.openPart);
     const unnamedCut = lookupUnnamedPairLevel(fightState, screen, opened);
-    return { opened, pair, part, unnamed: null, unnamedCut };
+    return { opened, pair, part: partLevel, unnamed: null, unnamedCut };
 }
 
 /**

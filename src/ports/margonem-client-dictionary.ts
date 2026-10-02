@@ -34,26 +34,26 @@ export function initMargonemClientDictionary(browserWindow: unknown): MargonemCl
             if (category !== undefined) assert(category.length > 0, "and filed somewhere");
             // Read the entry: null where no lookup stands on the page, which is every page but the
             // game's, or no text came.
-            const entry = errors.attempt((): string | null => {
+            const dictionaryText = errors.attempt((): string | null => {
                 if (!isRecord(browserWindow)) return null;
                 const translate = browserWindow[TRANSLATE_FIELD];
                 if (typeof translate !== "function") return null;
-                const read: unknown = Reflect.apply(translate, browserWindow, [
+                const translation: unknown = Reflect.apply(translate, browserWindow, [
                     labelId,
                     null,
                     category,
                 ]);
-                if (typeof read !== "string") return null;
-                return read;
+                if (typeof translation !== "string") return null;
+                return translation;
             });
-            if (entry instanceof Error) return entry;
-            if (entry === null) return new MargonemValueAbsent(MARGONEM_VALUE.label);
+            if (dictionaryText instanceof Error) return dictionaryText;
+            if (dictionaryText === null) return new MargonemValueAbsent(MARGONEM_VALUE.label);
             // An answer past the bound is no label, and the answer is the game's: refused, never
             // asserted against, from inside a card the panel is composing.
-            if (entry.length > ENTRY_LENGTH_MAXIMUM) {
+            if (dictionaryText.length > ENTRY_LENGTH_MAXIMUM) {
                 return new MargonemValueAbsent(MARGONEM_VALUE.label);
             }
-            const label = parseLabel(entry);
+            const label = parseLabel(dictionaryText);
             if (label === null) return new MargonemValueAbsent(MARGONEM_VALUE.label);
             return label;
         },
@@ -61,27 +61,35 @@ export function initMargonemClientDictionary(browserWindow: unknown): MargonemCl
 }
 
 /** Exported because it is the only place the rule can be checked: the dictionary is not here. */
-export function parseLabel(entry: string): string | null {
+export function parseLabel(dictionaryText: string): string | null {
     assert(
-        entry.length <= ENTRY_LENGTH_MAXIMUM,
+        dictionaryText.length <= ENTRY_LENGTH_MAXIMUM,
         "an entry read for a label stays inside that bound",
     );
-    if (hasHole(entry)) return null;
-    const first = entry[0];
-    const isSigned = first === undefined ? false : DIRECTION_SIGNS.includes(first);
-    const unsigned = (isSigned ? entry.slice(1) : entry).trim();
-    assert(unsigned.length <= entry.length, "taking a sign off never lengthens an entry");
+    if (hasHole(dictionaryText)) return null;
+    const firstCharacter = dictionaryText[0];
+    const isSigned = firstCharacter === undefined
+        ? false
+        : DIRECTION_SIGNS.includes(firstCharacter);
+    const unsigned = (isSigned ? dictionaryText.slice(1) : dictionaryText).trim();
+    assert(unsigned.length <= dictionaryText.length, "taking a sign off never lengthens an entry");
     const label = (unsigned.endsWith(FULL_STOP) ? unsigned.slice(0, -1) : unsigned).trim();
     if (label.length === 0) return null;
     assert(!hasHole(label), "a label carries no hole the client would have filled");
-    assert(label.length <= entry.length, "and is no longer than the entry it was read out of");
+    assert(
+        label.length <= dictionaryText.length,
+        "and is no longer than the entry it was read out of",
+    );
     return label;
 }
 
 /** Two marks with nothing between them is a hole, and any second mark is by definition that. */
-function hasHole(entry: string): boolean {
-    assert(entry.length <= ENTRY_LENGTH_MAXIMUM, "text walked for a hole stays inside its bound");
-    const open = entry.indexOf(HOLE_MARK);
+function hasHole(dictionaryText: string): boolean {
+    assert(
+        dictionaryText.length <= ENTRY_LENGTH_MAXIMUM,
+        "text walked for a hole stays inside its bound",
+    );
+    const open = dictionaryText.indexOf(HOLE_MARK);
     if (open === -1) return false;
-    return entry.indexOf(HOLE_MARK, open + 1) !== -1;
+    return dictionaryText.indexOf(HOLE_MARK, open + 1) !== -1;
 }

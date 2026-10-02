@@ -102,15 +102,20 @@ function prepareLightingTurnByBit(
 
 /** What is being carried, one row per status per combatant, by combatant and then by bit. */
 export function composeCarriedStatuses(walk: CarriedStatusWalk): CarriedStatus[] {
-    const found: CarriedStatus[] = [];
+    const carriedStatuses: CarriedStatus[] = [];
     for (const [combatantId, lightingTurnByBit] of walk.lightingTurnByBitByCombatantId) {
         const turnsNow = walk.turnsByCombatantId.get(combatantId) ?? 0;
         for (const [bit, turnsAtLighting] of lightingTurnByBit) {
             const turnsElapsed = turnsNow - turnsAtLighting;
             assert(turnsElapsed >= 0, "a clock never runs behind the turn a status lit on");
-            found.push({ combatantId, bit, turnsElapsed });
+            carriedStatuses.push({ combatantId, bit, turnsElapsed });
         }
     }
-    assert(found.length <= CARRIERS_MAXIMUM * STATUS_BITS_MAXIMUM, "no more rows than bits");
-    return found.sort((one, other) => one.combatantId - other.combatantId || one.bit - other.bit);
+    assert(
+        carriedStatuses.length <= CARRIERS_MAXIMUM * STATUS_BITS_MAXIMUM,
+        "no more rows than bits",
+    );
+    return carriedStatuses.sort((leftStatus, rightStatus) =>
+        leftStatus.combatantId - rightStatus.combatantId || leftStatus.bit - rightStatus.bit
+    );
 }

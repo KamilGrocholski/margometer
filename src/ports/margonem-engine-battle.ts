@@ -112,22 +112,24 @@ export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngine
                         count: 0,
                         first: null,
                     };
-                    const count = (failure: errors.Caught): void => {
+                    const recordFailure = (failure: errors.Caught): void => {
                         if (failures.count >= FAILURES_MAXIMUM) return;
                         failures.count += 1;
                         if (failures.first === null) failures.first = failure;
                     };
                     // Two guards and not one: a throw before the call must not skip the reading
                     // after it.
-                    const wrap = function (this: unknown, ...args: unknown[]): unknown {
+                    const callEngineUpdate = function (this: unknown, ...args: unknown[]): unknown {
                         const before = errors.attempt(() => listener.onBeforeCall());
-                        if (before instanceof Error) count(before);
+                        if (before instanceof Error) recordFailure(before);
                         const answer: unknown = Reflect.apply(original, this, args);
                         const after = errors.attempt(() => listener.onPayload(args[0]));
-                        if (after instanceof Error) count(after);
+                        if (after instanceof Error) recordFailure(after);
                         return answer;
                     };
-                    const wrapper = Object.assign(wrap, { [WRAP_MARKER]: WRAP_VERSION });
+                    const wrapper = Object.assign(callEngineUpdate, {
+                        [WRAP_MARKER]: WRAP_VERSION,
+                    });
                     battle[WRAPPED_METHOD] = wrapper;
                     assert(
                         isOurWrap(battle[WRAPPED_METHOD]),
@@ -164,13 +166,13 @@ function lookupMargonemEngineBattle(engines: readonly Record<string, unknown>[])
 }
 
 /** The battle is written to once, by the wrap, which `isRecord`'s read-only reading refuses. */
-function isWritableRecord(value: unknown): value is Record<string, unknown> {
-    return isRecord(value);
+function isWritableRecord(battleCandidate: unknown): battleCandidate is Record<string, unknown> {
+    return isRecord(battleCandidate);
 }
 
-function isOurWrap(value: unknown): boolean {
-    if (typeof value !== "function") return false;
-    return WRAP_MARKER in value;
+function isOurWrap(engineMethod: unknown): boolean {
+    if (typeof engineMethod !== "function") return false;
+    return WRAP_MARKER in engineMethod;
 }
 
 /** Both spellings of the game a page holds, in the order tried; a call into the page is theirs. */

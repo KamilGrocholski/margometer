@@ -1052,9 +1052,9 @@ export function formatCountedNoun(count: number, noun: CountedNoun): string {
     if (count < 0) return `${PANEL_WORDS.unknown} ${noun.many}`;
     if (count === 1) return `1 ${noun.one}`;
     const lastTwo = count % HUNDRED;
-    const last = count % TEN;
+    const lastDigit = count % TEN;
     if (lastTwo >= TEEN_FLOOR && lastTwo <= TEEN_CEILING) return `${count} ${noun.many}`;
-    if (last >= FEW_FLOOR && last <= FEW_CEILING) return `${count} ${noun.few}`;
+    if (lastDigit >= FEW_FLOOR && lastDigit <= FEW_CEILING) return `${count} ${noun.few}`;
     return `${count} ${noun.many}`;
 }
 
@@ -1300,9 +1300,9 @@ export function getWordsForTypeStep(step: TypeStep): string {
 }
 
 /** When and where a kept fight that would not read was fought: what the shelf row would say. */
-export function formatKeptUnread(at: FightMoment | null, place: string | null): string {
-    const parts = [formatShelfTime(at, false), place ?? ""];
-    return parts.filter((part) => part.length > 0).join(" · ");
+export function formatKeptUnread(moment: FightMoment | null, place: string | null): string {
+    const parts = [formatShelfTime(moment, false), place ?? ""];
+    return parts.filter((phrase) => phrase.length > 0).join(" · ");
 }
 
 /**
@@ -1313,25 +1313,25 @@ export function formatKeptUnread(at: FightMoment | null, place: string | null): 
  *
  * The place is what pays for the width, on every row (`DESIGN.md`, `develop ADR 0084`).
  */
-export function formatShelfTime(at: FightMoment | null, isLive: boolean): string {
+export function formatShelfTime(moment: FightMoment | null, isLive: boolean): string {
     if (isLive) return LIVE_FIGHT_WORDS.time;
-    if (at === null) return "";
-    if (at.hour < 0) return "";
-    if (at.minute < 0) return "";
-    if (at.day < FIRST_DAY) return "";
-    if (at.day > DAY_MAXIMUM) return "";
-    const month = MONTH_WORDS[at.month - FIRST_MONTH];
+    if (moment === null) return "";
+    if (moment.hour < 0) return "";
+    if (moment.minute < 0) return "";
+    if (moment.day < FIRST_DAY) return "";
+    if (moment.day > DAY_MAXIMUM) return "";
+    const month = MONTH_WORDS[moment.month - FIRST_MONTH];
     if (month === undefined) return "";
-    const day = formatTwoDigits(at.day);
+    const day = formatTwoDigits(moment.day);
     if (day === "") return "";
-    const clock = `${formatTwoDigits(at.hour)}:${formatTwoDigits(at.minute)}`;
+    const clock = `${formatTwoDigits(moment.hour)}:${formatTwoDigits(moment.minute)}`;
     return `${day} ${month} ${clock}`;
 }
 
-function formatTwoDigits(value: number): string {
-    if (!Number.isSafeInteger(value)) return "";
-    if (value < 0) return "";
-    const digits = formatWholeUngrouped(value);
+function formatTwoDigits(momentPart: number): string {
+    if (!Number.isSafeInteger(momentPart)) return "";
+    if (momentPart < 0) return "";
+    const digits = formatWholeUngrouped(momentPart);
     return digits.length >= TWO_DIGITS ? digits : `0${digits}`;
 }
 
@@ -1340,7 +1340,7 @@ function formatTwoDigits(value: number): string {
  * borrowed word would be it. The header says the same with `vs`, where there is room for a word.
  */
 export function formatShelfSize(counts: readonly number[]): string {
-    counts = counts.filter((one) => one > 0);
+    counts = counts.filter((count) => count > 0);
     if (counts.length === 0) return "";
     return counts.map((count) => formatFigure(count)).join("×");
 }
@@ -1487,10 +1487,10 @@ export function formatUndrawn(region: PanelRegion): string {
  * asserts its input is a safe integer, and the panel is the layer that must not stop. On every
  * whole number it is `formatInteger`; a fraction rounds, and what is no number is the unknown word.
  */
-export function formatWholeUngrouped(value: number): string {
-    if (Number.isSafeInteger(value)) return formatInteger(value);
-    if (!Number.isFinite(value)) return PANEL_WORDS.unknown;
-    const rounded = Math.round(value);
+export function formatWholeUngrouped(wholeNumber: number): string {
+    if (Number.isSafeInteger(wholeNumber)) return formatInteger(wholeNumber);
+    if (!Number.isFinite(wholeNumber)) return PANEL_WORDS.unknown;
+    const rounded = Math.round(wholeNumber);
     if (!Number.isSafeInteger(rounded)) return PANEL_WORDS.unknown;
     return formatInteger(rounded);
 }
@@ -1514,7 +1514,7 @@ export function formatDefect(
  * added to a side, because which side they are on is exactly what nobody knows.
  */
 export function formatSideCounts(sizes: readonly number[], unplaced: number): string {
-    const counts = sizes.filter((one) => one > 0);
+    const counts = sizes.filter((size) => size > 0);
     if (counts.length === 0) return PANEL_WORDS.noSides;
     const counted = counts.map((count) => formatFigure(count)).join(" vs ");
     if (unplaced <= 0) return counted;
@@ -1537,10 +1537,10 @@ export function formatTurns(taken: number, lost: number): string {
  * figure that is not one is drawn as *not known*, never as `0`: they are different claims
  * (`CONTEXT.md`).
  */
-export function formatFigure(value: number): string {
+export function formatFigure(figure: number): string {
     // ⚠️ One check, not two, and every caller relies on it: rounding what is not a number answers
     // what is not a whole one either, so a second guard anywhere above this is unreachable.
-    const rounded = Math.round(value);
+    const rounded = Math.round(figure);
     if (!Number.isSafeInteger(rounded)) return PANEL_WORDS.unknown;
     const digits = formatWholeUngrouped(rounded);
     const sign = digits.startsWith(MINUS_SIGN) ? MINUS_SIGN : "";
@@ -1570,8 +1570,8 @@ export function formatSharesApportioned(amounts: readonly number[], whole: numbe
     if (!Number.isFinite(whole)) return amounts.map(() => formatSharePoints(0, false));
     if (whole <= 0) return amounts.map(() => formatSharePoints(0, false));
     const shares = composeSharesInPoints(amounts.slice(0, SHARES_MAXIMUM), whole);
-    const pointsPaid = shares.reduce((sum, one) => sum + one.points, 0);
-    const exact = shares.reduce((sum, one) => sum + one.points + one.remainder, 0);
+    const pointsPaid = shares.reduce((sum, share) => sum + share.points, 0);
+    const exact = shares.reduce((sum, share) => sum + share.points + share.remainder, 0);
     let left = Math.round(exact) - pointsPaid;
     const unpaid: ShareInPoints[][] = [];
     for (const group of composeShareGroups(shares)) {
@@ -1591,7 +1591,7 @@ export function formatSharesApportioned(amounts: readonly number[], whole: numbe
             left -= 1;
         }
     }
-    return shares.map((one) => formatSharePoints(one.points, one.amount > 0));
+    return shares.map((share) => formatSharePoints(share.points, share.amount > 0));
 }
 
 /**
@@ -1634,11 +1634,13 @@ function composeShareGroups(shares: readonly ShareInPoints[]): ShareInPoints[][]
         else group.push(share);
     }
     const groups = [...byAmount.values()];
-    groups.sort((one, other) => {
-        const first = getShareGroupHead(one);
-        const second = getShareGroupHead(other);
-        if (first.remainder !== second.remainder) return second.remainder - first.remainder;
-        return first.index - second.index;
+    groups.sort((leftGroup, rightGroup) => {
+        const leftHead = getShareGroupHead(leftGroup);
+        const rightHead = getShareGroupHead(rightGroup);
+        if (leftHead.remainder !== rightHead.remainder) {
+            return rightHead.remainder - leftHead.remainder;
+        }
+        return leftHead.index - rightHead.index;
     });
     return groups;
 }

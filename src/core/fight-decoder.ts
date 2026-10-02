@@ -245,14 +245,14 @@ const SIDE_SEGMENTS = 2;
 export function indexBlowsGrantedBySkillId(
     skills: readonly { id: number; blowsGrantedMinimum: number }[],
 ): Map<number, number> {
-    const found = new Map<number, number>();
+    const blowsGrantedBySkillId = new Map<number, number>();
     for (const skill of skills) {
         assert(skill.blowsGrantedMinimum > 0, "a skill in the table grants at least one blow");
         assert(skill.blowsGrantedMinimum < BLOWS_GRANTED_MAXIMUM, "and stays inside the bound");
-        assert(!found.has(skill.id), "and is named once");
-        found.set(skill.id, skill.blowsGrantedMinimum);
+        assert(!blowsGrantedBySkillId.has(skill.id), "and is named once");
+        blowsGrantedBySkillId.set(skill.id, skill.blowsGrantedMinimum);
     }
-    return found;
+    return blowsGrantedBySkillId;
 }
 
 /**
@@ -424,10 +424,10 @@ function decodeMessageParameters(message: ProtocolMessage): ParametersDecoded {
     for (const parameter of message.parameters) {
         const key = parameter.key;
         const keyMeaning = lookupKeyMeaning(key);
-        const value = parameter.value;
+        const valueText = parameter.value;
         let isRead: boolean;
         if (keyMeaning === null) isRead = false;
-        else if (value === null) {
+        else if (valueText === null) {
             // Read a key that stands bare, or leave it unread.
             assert(key.length > 0, "a key is never empty");
             switch (keyMeaning.kind) {
@@ -447,7 +447,7 @@ function decodeMessageParameters(message: ProtocolMessage): ParametersDecoded {
                 default:
                     isRead = false;
             }
-        } else isRead = addValuedKey(parametersDecoded, message, key, value, keyMeaning);
+        } else isRead = addValuedKey(parametersDecoded, message, key, valueText, keyMeaning);
         if (!isRead) parametersDecoded.unreadKeys.push(key);
     }
     // Close the announcement: an id with no name is a skill nothing can put on screen.
@@ -477,7 +477,7 @@ function addValuedKey(
     parametersDecoded: ParametersDecoded,
     message: ProtocolMessage,
     key: string,
-    value: string,
+    valueText: string,
     keyMeaning: KeyMeaning,
 ): boolean {
     assert(key.length > 0, "a key is never empty");
@@ -489,7 +489,7 @@ function addValuedKey(
             // Read a figure of the blow: no number, or one below nothing, goes unread. No key of
             // these families has stated one below nothing over `captures/` (0 of every value,
             // 2026-09-21), and a total taking it would go down.
-            const amount = parseInteger(value);
+            const amount = parseInteger(valueText);
             if (amount === null) return false;
             if (amount < 0) return false;
             assert(Number.isSafeInteger(amount), "a figure read from digits is held exactly");
@@ -509,13 +509,13 @@ function addValuedKey(
         case KEY_FAMILY.healthChange:
             return addParameterRead(
                 parametersDecoded.healthChanges,
-                decodeHealthChange(key, value, keyMeaning),
+                decodeHealthChange(key, valueText, keyMeaning),
             );
         case KEY_FAMILY.declaration:
             return addParameterRead(parametersDecoded.declared, {
                 effect: key,
-                amount: parseInteger(value),
-                text: value,
+                amount: parseInteger(valueText),
+                text: valueText,
             });
         case KEY_FAMILY.skillName:
         case KEY_FAMILY.customSkillName: {
@@ -524,10 +524,10 @@ function addValuedKey(
             const isUserNamed = keyMeaning.kind === KEY_FAMILY.customSkillName
                 ? doesNameOneCombatant(message)
                 : true;
-            if (value.length === 0) return false;
-            if (value.length > NAME_LENGTH_MAXIMUM) return false;
+            if (valueText.length === 0) return false;
+            if (valueText.length > NAME_LENGTH_MAXIMUM) return false;
             if (!isUserNamed) return false;
-            parametersDecoded.skillName = value;
+            parametersDecoded.skillName = valueText;
             parametersDecoded.skillKeysRead += 1;
             assert(
                 parametersDecoded.skillKeysRead <= message.parameters.length,
@@ -536,33 +536,36 @@ function addValuedKey(
             return true;
         }
         case KEY_FAMILY.skillId:
-            parametersDecoded.skillId = parseInteger(value);
+            parametersDecoded.skillId = parseInteger(valueText);
             parametersDecoded.skillKeysRead += 1;
             return true;
         case KEY_FAMILY.outcome:
             return addParameterRead(
                 parametersDecoded.outcomes,
-                decodeFightOutcome(value, keyMeaning.result),
+                decodeFightOutcome(valueText, keyMeaning.result),
             );
         case KEY_FAMILY.fled:
             return addParameterRead(parametersDecoded.outcomes, decodeFledOutcome());
         case KEY_FAMILY.unaccountedHealth:
             return addParameterRead(
                 parametersDecoded.unaccountedShares,
-                decodeUnaccountedShare(key, value),
+                decodeUnaccountedShare(key, valueText),
             );
         case KEY_FAMILY.namedDamage:
-            return addParameterRead(parametersDecoded.namedDamage, decodeNamedDamage(value));
+            return addParameterRead(parametersDecoded.namedDamage, decodeNamedDamage(valueText));
         case KEY_FAMILY.namedHealing:
-            return addParameterRead(parametersDecoded.namedHealing, decodeNamedHealing(key, value));
+            return addParameterRead(
+                parametersDecoded.namedHealing,
+                decodeNamedHealing(key, valueText),
+            );
         case KEY_FAMILY.valuelessDeclaration:
             return false;
     }
 }
 
-function addParameterRead<Decoded>(found: Decoded[], decoded: Decoded | null): boolean {
+function addParameterRead<Decoded>(decodedParameters: Decoded[], decoded: Decoded | null): boolean {
     if (decoded === null) return false;
-    const count = found.push(decoded);
+    const count = decodedParameters.push(decoded);
     assert(count > 0, "what was decoded is held");
     return true;
 }
@@ -591,10 +594,10 @@ function parseKeyToken(key: string): string {
 /** The figure, then whatever the key stated beside it. */
 function decodeHealthChange(
     key: string,
-    value: string,
+    valueText: string,
     keyMeaning: { sign: 1 | -1; isOnTarget: boolean },
 ): HealthChangeDecoded | null {
-    const members = value.split(MEMBER_SEPARATOR);
+    const members = valueText.split(MEMBER_SEPARATOR);
     const magnitude = parseInteger(members[0] ?? "");
     if (magnitude === null) return null;
     const declared: DeclaredEffect[] = [];
@@ -615,46 +618,48 @@ function doesNameOneCombatant(message: ProtocolMessage): boolean {
 
 /** `loser=?` is not a side of that name, so it is left unread rather than read as a draw. */
 function decodeFightOutcome(
-    value: string,
-    result: typeof OUTCOME_RESULT.won | typeof OUTCOME_RESULT.lost,
+    valueText: string,
+    outcomeResult: typeof OUTCOME_RESULT.won | typeof OUTCOME_RESULT.lost,
 ): FightOutcomeEvent | null {
-    if (value.length === 0) return null;
-    if (value === NO_WINNER) {
-        if (result === OUTCOME_RESULT.lost) return null;
+    if (valueText.length === 0) return null;
+    if (valueText === NO_WINNER) {
+        if (outcomeResult === OUTCOME_RESULT.lost) return null;
         return {
             kind: BATTLE_EVENT.fightOutcome,
             result: OUTCOME_RESULT.drawn,
             combatantNames: [],
         };
     }
-    const combatantNames = value.split(NAME_SEPARATOR);
-    if (combatantNames.some((one) => one.length === 0)) return null;
-    if (combatantNames.some((one) => one.startsWith(" "))) return null;
+    const combatantNames = valueText.split(NAME_SEPARATOR);
+    if (combatantNames.some((combatantName) => combatantName.length === 0)) return null;
+    if (combatantNames.some((combatantName) => combatantName.startsWith(" "))) return null;
     assert(combatantNames.length > 0, "a side that is named has at least one member");
-    return { kind: BATTLE_EVENT.fightOutcome, result, combatantNames };
+    return { kind: BATTLE_EVENT.fightOutcome, result: outcomeResult, combatantNames };
 }
 
 /** A share written with or without a fraction: `30` and `22.5` are both in `captures/`. */
 function decodeUnaccountedShare(
     key: string,
-    value: string,
+    valueText: string,
 ): { source: string; declaredShare: number } | null {
-    const declaredShare = parseDecimal(value);
+    const declaredShare = parseDecimal(valueText);
     if (declaredShare === null) return null;
     assert(declaredShare >= 0, "a share read is never below nothing");
     return { source: key, declaredShare };
 }
 
-function decodeNamedDamage(value: string): (NamedTargetDecoded & { damage: DamageFigure }) | null {
-    const members = value.split(MEMBER_SEPARATOR);
+function decodeNamedDamage(
+    valueText: string,
+): (NamedTargetDecoded & { damage: DamageFigure }) | null {
+    const members = valueText.split(MEMBER_SEPARATOR);
     if (members.length !== NAMED_DAMAGE_MEMBERS) return null;
-    const [amountText = "", element = "", namedText = ""] = members;
+    const [amountText = "", elementText = "", namedText = ""] = members;
     const amount = parseInteger(amountText);
     if (amount === null) return null;
     if (amount < 0) return null;
     const named = parseNamedTarget(namedText);
     if (named === null) return null;
-    const damage = { element: `${DAMAGE_ELEMENT_PREFIX}${element.trim()}`, amount };
+    const damage = { element: `${DAMAGE_ELEMENT_PREFIX}${elementText.trim()}`, amount };
     assert(damage.element.startsWith(DAMAGE_ELEMENT_PREFIX), "an element named is of the family");
     assert(named.targetName.length > 0, "a figure stated against a name has a name");
     return { ...named, damage };
@@ -675,9 +680,9 @@ function parseNamedTarget(text: string): NamedTargetDecoded | null {
 /** Healing that took health away would be this reader misreading its key, not a loss reported. */
 function decodeNamedHealing(
     key: string,
-    value: string,
+    valueText: string,
 ): (NamedTargetDecoded & { amount: number; source: string }) | null {
-    const members = value.split(MEMBER_SEPARATOR);
+    const members = valueText.split(MEMBER_SEPARATOR);
     if (members.length !== NAMED_HEALING_MEMBERS) return null;
     const [amountText = "", namedText = ""] = members;
     const amount = parseInteger(amountText);
@@ -885,7 +890,10 @@ function decodeDeclaration(
         return { kind: BATTLE_EVENT.turnLost, combatantId: turnLost.combatantId };
     }
     const statedEnd = message.actor ?? message.target;
-    assert(parametersDecoded.declared.every((one) => one.effect.length > 0), "each names its key");
+    assert(
+        parametersDecoded.declared.every((declaredEffect) => declaredEffect.effect.length > 0),
+        "each names its key",
+    );
     return {
         kind: BATTLE_EVENT.declaration,
         combatantId: statedEnd?.combatantId ?? null,
@@ -924,14 +932,19 @@ function lookupTurnLostBy(
 }
 
 function getNamedCombatantIds(message: ProtocolMessage): number[] {
-    const found: number[] = [];
-    if (message.actor !== null) found.push(message.actor.combatantId);
+    const namedCombatantIds: number[] = [];
+    if (message.actor !== null) namedCombatantIds.push(message.actor.combatantId);
     if (message.target !== null) {
-        if (!found.includes(message.target.combatantId)) found.push(message.target.combatantId);
+        if (!namedCombatantIds.includes(message.target.combatantId)) {
+            namedCombatantIds.push(message.target.combatantId);
+        }
     }
-    assert(found.length <= ENDS_MAXIMUM, "a message names at most two ends");
-    assert(new Set(found).size === found.length, "an end named twice is named once here");
-    return found;
+    assert(namedCombatantIds.length <= ENDS_MAXIMUM, "a message names at most two ends");
+    assert(
+        new Set(namedCombatantIds).size === namedCombatantIds.length,
+        "an end named twice is named once here",
+    );
+    return namedCombatantIds;
 }
 
 /**
@@ -957,8 +970,8 @@ export function parseProtocolMessage(text: string): ProtocolMessage | GrammarRef
         const separatorIndex = segment.indexOf(VALUE_SEPARATOR);
         const key = separatorIndex === -1 ? segment : segment.slice(0, separatorIndex);
         if (key.length === 0) return new ParameterKeyEmpty(parameters.length);
-        const value = separatorIndex === -1 ? null : segment.slice(separatorIndex + 1);
-        parameters.push({ key, value });
+        const valueText = separatorIndex === -1 ? null : segment.slice(separatorIndex + 1);
+        parameters.push({ key, value: valueText });
     }
     assert(parameters.length + SIDE_SEGMENTS === segments.length, "no segment is dropped");
     return { actor, target, parameters };
@@ -987,13 +1000,13 @@ function parseProtocolMessageSegments(text: string): string[] | SegmentsExceeded
 function countProtocolMessageSegments(text: string, from: number): number {
     assert(from <= text.length, "the count resumes inside the text");
     let count = SEGMENTS_MAXIMUM + 1;
-    let at = text.indexOf(SEGMENT_SEPARATOR, from);
+    let separatorIndex = text.indexOf(SEGMENT_SEPARATOR, from);
     for (let look = 0; look < text.length; look += 1) {
-        if (at === -1) break;
+        if (separatorIndex === -1) break;
         count += 1;
-        at = text.indexOf(SEGMENT_SEPARATOR, at + SEGMENT_SEPARATOR.length);
+        separatorIndex = text.indexOf(SEGMENT_SEPARATOR, separatorIndex + SEGMENT_SEPARATOR.length);
     }
-    assert(at === -1, "every separator in the text was counted");
+    assert(separatorIndex === -1, "every separator in the text was counted");
     return count;
 }
 
@@ -1033,9 +1046,9 @@ export function encodeProtocolMessage(message: ProtocolMessage): string {
     ];
     for (const parameter of message.parameters) {
         assert(parameter.key.length > 0, "every parameter written names its key");
-        const value = parameter.value;
+        const valueText = parameter.value;
         segments.push(
-            value === null ? parameter.key : `${parameter.key}${VALUE_SEPARATOR}${value}`,
+            valueText === null ? parameter.key : `${parameter.key}${VALUE_SEPARATOR}${valueText}`,
         );
     }
     return segments.join(SEGMENT_SEPARATOR);

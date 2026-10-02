@@ -251,9 +251,9 @@ function readPayloadEnvelopeInteger(
     const asText = getTextField(payload, ENVELOPE_KEYS, field);
     if (asText instanceof Error) return new PayloadFieldMalformed(field, { cause: asText });
     assert(asText !== null, "a field of the wrong type for a number is present");
-    const value = parseInteger(asText);
-    if (value === null) return new PayloadFieldMalformed(field, { cause: asNumber });
-    return value;
+    const integer = parseInteger(asText);
+    if (integer === null) return new PayloadFieldMalformed(field, { cause: asNumber });
+    return integer;
 }
 
 /**
@@ -271,15 +271,15 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
         statusMasksByCombatantId: new Map(),
         chargeStatements: [],
     };
-    for (const entry of entries) {
-        if (!isRecord(entry)) continue;
-        const id = getNumberField(entry, WARRIOR_FIELDS, "id");
+    for (const warriorEntry of entries) {
+        if (!isRecord(warriorEntry)) continue;
+        const id = getNumberField(warriorEntry, WARRIOR_FIELDS, "id");
         if (id instanceof Error) continue;
         if (id === null) continue;
         let combatant: Combatant | null;
         // Read a combatant stated in full: an id, a name and a side. The rest may be absent.
         readCombatant: {
-            const name = getStatedTextField(entry, WARRIOR_FIELDS, "name");
+            const name = getStatedTextField(warriorEntry, WARRIOR_FIELDS, "name");
             if (name instanceof Error) {
                 combatant = null;
                 break readCombatant;
@@ -288,7 +288,7 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
                 combatant = null;
                 break readCombatant;
             }
-            const side = getNumberField(entry, WARRIOR_FIELDS, "side");
+            const side = getNumberField(warriorEntry, WARRIOR_FIELDS, "side");
             if (side instanceof Error) {
                 combatant = null;
                 break readCombatant;
@@ -297,15 +297,15 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
                 combatant = null;
                 break readCombatant;
             }
-            const profession = getStatedTextField(entry, WARRIOR_FIELDS, "profession");
-            const level = getNumberField(entry, WARRIOR_FIELDS, "level");
+            const profession = getStatedTextField(warriorEntry, WARRIOR_FIELDS, "profession");
+            const level = getNumberField(warriorEntry, WARRIOR_FIELDS, "level");
             combatant = {
                 id,
                 name,
                 side,
                 profession: profession instanceof Error ? null : profession,
                 level: level instanceof Error ? null : level,
-                healthMaximum: readPayloadWarriorHealth(entry, "maximum"),
+                healthMaximum: readPayloadWarriorHealth(warriorEntry, "maximum"),
             };
             assert(combatant.name.length > 0, "a name that was read says something");
         }
@@ -318,14 +318,14 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
             // carry a lit mask over `captures/` (2026-09-22), and the client removes a fighter's
             // status icons at exactly that point, once their health reads zero (production build
             // `Bb28FQty`).
-            const now = readPayloadWarriorHealth(entry, "now");
+            const now = readPayloadWarriorHealth(warriorEntry, "now");
             if (now !== null) {
                 if (now <= 0) {
                     mask = NOTHING_CARRIED;
                     break readMask;
                 }
             }
-            const stated = getNumberField(entry, WARRIOR_FIELDS, "statuses");
+            const stated = getNumberField(warriorEntry, WARRIOR_FIELDS, "statuses");
             if (stated instanceof Error) {
                 mask = null;
                 break readMask;
@@ -351,7 +351,7 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
             // None is how the game says one has ended (`super_cast` is cleared the moment the blow
             // lands or is taken away, build `Cl9U89Zr`). Half of the pair of figures is nothing
             // worth drawing, so a partial charge reads as none.
-            const stated = getRecordField(entry, WARRIOR_FIELDS, "charge");
+            const stated = getRecordField(warriorEntry, WARRIOR_FIELDS, "charge");
             if (stated instanceof Error) {
                 charge = null;
                 break readCharge;
@@ -408,8 +408,8 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
  * A figure of the entry's health, or null where it says nothing about it. A pool of nothing or
  * below it is one no share can be read against: the same null a pool nobody stated is.
  */
-function readPayloadWarriorHealth(entry: UnknownRecord, field: HealthField): number | null {
-    const health = getRecordField(entry, WARRIOR_FIELDS, "health");
+function readPayloadWarriorHealth(warriorEntry: UnknownRecord, field: HealthField): number | null {
+    const health = getRecordField(warriorEntry, WARRIOR_FIELDS, "health");
     if (health instanceof Error) return null;
     if (health === null) return null;
     const figure = getNumberField(health, HEALTH_FIELDS, field);

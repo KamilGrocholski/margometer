@@ -195,7 +195,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
         },
     );
     // The raw key is the mark where the client cannot be asked (`develop ADR 0024`).
-    const translate: TranslateLabel = (id, category) => {
+    const translateLabel: TranslateLabel = (id, category) => {
         assert(id.length > 0, "a label is asked for by an id the panel named");
         const label = ports.dictionary.readLabel(id, category);
         if (label instanceof Error) return null;
@@ -251,7 +251,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             },
             meterPlacement: readPlacementSetting(ports, defects, PANEL_WINDOW.meter, screen),
             helperPlacement: readPlacementSetting(ports, defects, PANEL_WINDOW.helper, screen),
-            translate,
+            translate: translateLabel,
         });
         assert(
             keeper.getFights().length <= KEPT_MAXIMUM,
@@ -263,7 +263,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             defects,
             keeper,
             screen,
-            translate,
+            translate: translateLabel,
             live: liveFight,
             view,
             search: null,
@@ -319,11 +319,11 @@ function resetScreenOpened(screen: ScreenState): void {
 /** A value the reader stored that does not read back costs that value, and says so. */
 function readSettingOrFallback<Value>(
     defects: DefectLedger,
-    read: Value | SettingFailure,
+    storedSetting: Value | SettingFailure,
     fallback: Value,
 ): Value {
-    if (!(read instanceof Error)) return read;
-    defects.add({ kind: DEFECT_KIND.kept, region: null, failure: read });
+    if (!(storedSetting instanceof Error)) return storedSetting;
+    defects.add({ kind: DEFECT_KIND.kept, region: null, failure: storedSetting });
     return fallback;
 }
 
@@ -383,9 +383,9 @@ function onFrame(state: RuntimeState): void {
     let world: string | null;
     // Read the page's world, or nothing where the page named none: the card leaves the line off.
     {
-        const read = state.ports.surroundings.readWorld();
-        if (read === WORLD_UNKNOWN) world = null;
-        else world = read;
+        const worldText = state.ports.surroundings.readWorld();
+        if (worldText === WORLD_UNKNOWN) world = null;
+        else world = worldText;
     }
     renderFrame({
         screen: state.screen,
@@ -561,8 +561,8 @@ export function initMargonemEngineSearch(
     };
     // ⚠️ The first look runs on the stack that started the add-on, where only the game's own page
     // stands above it; every look after it runs in the browser's timer. One guard for both.
-    const first = errors.attempt(() => executeSearchLook(search, battlePort, listener, report));
-    if (first instanceof Error) onLookFailure(first);
+    const firstLook = errors.attempt(() => executeSearchLook(search, battlePort, listener, report));
+    if (firstLook instanceof Error) onLookFailure(firstLook);
     if (!search.isDone) {
         const started = interval.every(
             () => executeSearchLook(search, battlePort, listener, report),

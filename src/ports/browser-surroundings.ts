@@ -29,18 +29,18 @@ const HOST_SEPARATOR = ".";
 export function initBrowserSurroundings(browserWindow: unknown): BrowserSurroundingsPort {
     return {
         readWorld() {
-            const read = errors.attempt(() =>
+            const hostText = errors.attempt(() =>
                 readBrowserText(browserWindow, LOCATION_FIELD, HOST_FIELD)
             );
-            if (read instanceof Error) return WORLD_UNKNOWN;
-            return parseWorld(read ?? "");
+            if (hostText instanceof Error) return WORLD_UNKNOWN;
+            return parseWorld(hostText ?? "");
         },
         readUserAgent() {
-            const read = errors.attempt(() =>
+            const userAgent = errors.attempt(() =>
                 readBrowserText(browserWindow, NAVIGATOR_FIELD, USER_AGENT_FIELD)
             );
-            if (read instanceof Error) return null;
-            return read;
+            if (userAgent instanceof Error) return null;
+            return userAgent;
         },
     };
 }

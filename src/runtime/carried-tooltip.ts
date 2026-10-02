@@ -49,7 +49,9 @@ export function writeCarriedTooltips(
         turnsByCombatantId: view.turnsByCombatantId,
         keyByStatusBit: tables.keyByStatusBit,
     });
-    for (const one of carried) figures.set(`${one.combatantId}/${one.bit}`, one);
+    for (const carriedFigure of carried) {
+        figures.set(`${carriedFigure.combatantId}/${carriedFigure.bit}`, carriedFigure);
+    }
     const rowsByCombatantId = new Map<number, readonly string[]>();
     for (const combatantId of view.roster.byId.keys()) {
         const tooltipContent = presentCarriedTooltip(combatantId, view, fightStandings, figures);
@@ -71,14 +73,20 @@ function presentCarriedTooltip(
     fightStandings: FightStandings,
     figures: ReadonlyMap<string, CarriedFigure>,
 ): TooltipContent {
-    const charging = view.chargedSkills.find((one) => {
-        if (one.state !== CHARGED_SKILL_STATE.charging) return false;
-        return one.combatantId === combatantId;
+    const charging = view.chargedSkills.find((chargedSkill) => {
+        if (chargedSkill.state !== CHARGED_SKILL_STATE.charging) return false;
+        return chargedSkill.combatantId === combatantId;
     });
-    const legendary = view.legendaryStandings.find((one) => one.combatantId === combatantId);
-    const provoked = fightStandings.provocations.find((one) => one.provokedId === combatantId);
+    const legendary = view.legendaryStandings.find((legendaryStanding) =>
+        legendaryStanding.combatantId === combatantId
+    );
+    const provoked = fightStandings.provocations.find((provocation) =>
+        provocation.provokedId === combatantId
+    );
     const caster = provoked === undefined ? undefined : view.roster.byId.get(provoked.casterId);
-    const statuses = view.carriedStatuses.filter((one) => one.combatantId === combatantId);
+    const statuses = view.carriedStatuses.filter((carriedStatus) =>
+        carriedStatus.combatantId === combatantId
+    );
     assert(statuses.length <= view.carriedStatuses.length, "a fighter carries part of the fight");
     return {
         turnsTaken: view.turnsByCombatantId.get(combatantId) ?? 0,
@@ -93,10 +101,13 @@ function presentCarriedTooltip(
             turnsStated: provoked.turnsStated,
         },
         provokedCount:
-            fightStandings.provocations.filter((one) => one.casterId === combatantId).length,
-        statuses: statuses.map((one) => ({
-            bit: one.bit,
-            percent: figures.get(`${one.combatantId}/${one.bit}`)?.percent ?? null,
+            fightStandings.provocations.filter((provocation) =>
+                provocation.casterId === combatantId
+            ).length,
+        statuses: statuses.map((carriedStatus) => ({
+            bit: carriedStatus.bit,
+            percent: figures.get(`${carriedStatus.combatantId}/${carriedStatus.bit}`)?.percent ??
+                null,
         })),
         holytouchHealsReceived: legendary?.holytouchHealsReceived ?? null,
         hasSpentLastheal: legendary?.hasSpentLastheal ?? false,

@@ -39,8 +39,8 @@ export function initMargonemClientBuild(scripts: BrowserScripts): MargonemClient
             const sources = errors.attempt(() => scripts.readScriptSources());
             if (sources instanceof Error) return sources;
             const walked = Math.min(sources.length, SCRIPTS_MAXIMUM);
-            for (let at = 0; at < walked; at += 1) {
-                const source = sources[at];
+            for (let scriptIndex = 0; scriptIndex < walked; scriptIndex += 1) {
+                const source = sources[scriptIndex];
                 if (typeof source !== "string") continue;
                 const build = parseMargonemClientBuildId(source);
                 if (build !== null) return build;

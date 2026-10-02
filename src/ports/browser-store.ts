@@ -54,14 +54,14 @@ export type StoreFailure = StoreUnavailable | StoreRefused | StoreValueTooLong;
 export interface KeyValueStore {
     /** `null`: no such key, which is a fact. */
     read(key: StoreKey): string | null | StoreFailure;
-    write(key: StoreKey, value: string): undefined | StoreFailure;
+    write(key: StoreKey, storedText: string): undefined | StoreFailure;
     delete(key: StoreKey): undefined | StoreFailure;
 }
 
 /** The whole of what this asks a page for. A browser's `localStorage` satisfies it. */
 export interface BrowserStorage {
     getItem(key: string): string | null;
-    setItem(key: string, value: string): void;
+    setItem(key: string, storedText: string): void;
     removeItem(key: string): void;
 }
 
@@ -79,16 +79,16 @@ export function initBrowserStore(storage: BrowserStorage | null): KeyValueStore 
     return {
         read(key) {
             if (storage === null) return new StoreUnavailable();
-            const read = errors.attempt(() => storage.getItem(key));
-            if (read instanceof Error) return new StoreRefused(read);
-            if (typeof read !== "string") return null;
-            return read;
+            const storedText = errors.attempt(() => storage.getItem(key));
+            if (storedText instanceof Error) return new StoreRefused(storedText);
+            if (typeof storedText !== "string") return null;
+            return storedText;
         },
-        write(key, value) {
+        write(key, storedText) {
             if (storage === null) return new StoreUnavailable();
-            const tooLong = prepareStoreWrite(value);
+            const tooLong = prepareStoreWrite(storedText);
             if (tooLong instanceof Error) return tooLong;
-            const written = errors.attempt(() => storage.setItem(key, value));
+            const written = errors.attempt(() => storage.setItem(key, storedText));
             if (written instanceof Error) return new StoreRefused(written);
             return undefined;
         },
@@ -101,9 +101,9 @@ export function initBrowserStore(storage: BrowserStorage | null): KeyValueStore 
     };
 }
 
-function prepareStoreWrite(value: string): undefined | StoreValueTooLong {
-    if (value.length <= STORE_VALUE_LENGTH_MAXIMUM) return undefined;
-    return new StoreValueTooLong(value.length, STORE_VALUE_LENGTH_MAXIMUM);
+function prepareStoreWrite(storedText: string): undefined | StoreValueTooLong {
+    if (storedText.length <= STORE_VALUE_LENGTH_MAXIMUM) return undefined;
+    return new StoreValueTooLong(storedText.length, STORE_VALUE_LENGTH_MAXIMUM);
 }
 
 /**
@@ -116,10 +116,10 @@ export function initMemoryStore(): KeyValueStore {
         read(key) {
             return valuesByKey.get(key) ?? null;
         },
-        write(key, value) {
-            const tooLong = prepareStoreWrite(value);
+        write(key, storedText) {
+            const tooLong = prepareStoreWrite(storedText);
             if (tooLong instanceof Error) return tooLong;
-            valuesByKey.set(key, value);
+            valuesByKey.set(key, storedText);
             assert(
                 valuesByKey.size <= STORE_KEYS.length,
                 "a store holds no more than the keys it has",

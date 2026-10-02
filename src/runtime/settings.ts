@@ -107,11 +107,11 @@ const POSITION_FIELDS: FieldKeys<PositionField> = { left: "left", top: "top" };
 const SIZE_FIELDS: FieldKeys<SizeField> = { width: "width", height: "height" };
 
 export function readStorageChoice(store: KeyValueStore): StorageChoice | SettingFailure {
-    const read = store.read(STORE_KEY_BY_SETTING.storage);
-    if (read instanceof Error) return read;
-    if (read === null) return STORAGE_DEFAULT;
-    if (!isOneOf(STORAGE_CHOICES, read)) return new SettingUnreadable(SETTING_KEY.storage);
-    return read;
+    const storedText = store.read(STORE_KEY_BY_SETTING.storage);
+    if (storedText instanceof Error) return storedText;
+    if (storedText === null) return STORAGE_DEFAULT;
+    if (!isOneOf(STORAGE_CHOICES, storedText)) return new SettingUnreadable(SETTING_KEY.storage);
+    return storedText;
 }
 
 export function writeStorageChoice(
@@ -122,11 +122,11 @@ export function writeStorageChoice(
 }
 
 export function readTypeStep(store: KeyValueStore): TypeStep | SettingFailure {
-    const read = store.read(STORE_KEY_BY_SETTING[SETTING_KEY.typeStep]);
-    if (read instanceof Error) return read;
-    if (read === null) return TYPE_STEP_DEFAULT;
-    if (!isOneOf(TYPE_STEPS, read)) return new SettingUnreadable(SETTING_KEY.typeStep);
-    return read;
+    const storedText = store.read(STORE_KEY_BY_SETTING[SETTING_KEY.typeStep]);
+    if (storedText instanceof Error) return storedText;
+    if (storedText === null) return TYPE_STEP_DEFAULT;
+    if (!isOneOf(TYPE_STEPS, storedText)) return new SettingUnreadable(SETTING_KEY.typeStep);
+    return storedText;
 }
 
 export function writeTypeStep(store: KeyValueStore, step: TypeStep): undefined | SettingFailure {
@@ -138,11 +138,11 @@ export function readWindowCollapsed(
     panelWindow: PanelWindow,
 ): boolean | SettingFailure {
     const key = FOLD_SETTING_BY_WINDOW[panelWindow];
-    const read = store.read(STORE_KEY_BY_SETTING[key]);
-    if (read instanceof Error) return read;
-    if (read === null) return false;
-    if (read === FOLDED) return true;
-    if (read === UNFOLDED) return false;
+    const storedText = store.read(STORE_KEY_BY_SETTING[key]);
+    if (storedText instanceof Error) return storedText;
+    if (storedText === null) return false;
+    if (storedText === FOLDED) return true;
+    if (storedText === UNFOLDED) return false;
     return new SettingUnreadable(key);
 }
 
@@ -164,11 +164,11 @@ export function readWindowPosition(
     panelWindow: PanelWindow,
 ): PanelPosition | null | SettingFailure {
     const key = POSITION_SETTING_BY_WINDOW[panelWindow];
-    const read = store.read(STORE_KEY_BY_SETTING[key]);
-    if (read instanceof Error) return read;
-    if (read === null) return null;
-    if (read.length > PAIR_LENGTH_MAXIMUM) return new SettingTooLong(key);
-    const pair = parseWholePair(read, POSITION_FIELDS, ["left", "top"]);
+    const storedText = store.read(STORE_KEY_BY_SETTING[key]);
+    if (storedText instanceof Error) return storedText;
+    if (storedText === null) return null;
+    if (storedText.length > PAIR_LENGTH_MAXIMUM) return new SettingTooLong(key);
+    const pair = parseWholePair(storedText, POSITION_FIELDS, ["left", "top"]);
     if (pair === null) return new SettingUnreadable(key);
     return { left: pair[0], top: pair[1] };
 }
@@ -182,15 +182,15 @@ function parseWholePair<Field extends string>(
     const parsed = parseJson(text);
     if (parsed instanceof Error) return null;
     if (!isRecord(parsed)) return null;
-    const first = getNumberField(parsed, fields, names[0]);
-    const second = getNumberField(parsed, fields, names[1]);
-    if (first instanceof Error) return null;
-    if (second instanceof Error) return null;
-    if (first === null) return null;
-    if (second === null) return null;
-    if (!Number.isSafeInteger(first)) return null;
-    if (!Number.isSafeInteger(second)) return null;
-    return [first, second];
+    const firstNumber = getNumberField(parsed, fields, names[0]);
+    const secondNumber = getNumberField(parsed, fields, names[1]);
+    if (firstNumber instanceof Error) return null;
+    if (secondNumber instanceof Error) return null;
+    if (firstNumber === null) return null;
+    if (secondNumber === null) return null;
+    if (!Number.isSafeInteger(firstNumber)) return null;
+    if (!Number.isSafeInteger(secondNumber)) return null;
+    return [firstNumber, secondNumber];
 }
 
 /** A position that is not two whole numbers is the caller's bug, which `formatInteger` asserts. */
@@ -213,11 +213,11 @@ export function readWindowSize(
     panelWindow: PanelWindow,
 ): WindowSize | null | SettingFailure {
     const key = SIZE_SETTING_BY_WINDOW[panelWindow];
-    const read = store.read(STORE_KEY_BY_SETTING[key]);
-    if (read instanceof Error) return read;
-    if (read === null) return null;
-    if (read.length > PAIR_LENGTH_MAXIMUM) return new SettingTooLong(key);
-    const pair = parseWholePair(read, SIZE_FIELDS, ["width", "height"]);
+    const storedText = store.read(STORE_KEY_BY_SETTING[key]);
+    if (storedText instanceof Error) return storedText;
+    if (storedText === null) return null;
+    if (storedText.length > PAIR_LENGTH_MAXIMUM) return new SettingTooLong(key);
+    const pair = parseWholePair(storedText, SIZE_FIELDS, ["width", "height"]);
     if (pair === null) return new SettingUnreadable(key);
     const [width, height] = pair;
     if (width < 1) return new SettingUnreadable(key);

@@ -114,11 +114,11 @@ export interface PanelDragHandle {
     /** The bar has been drawn again; take hold of the one standing. */
     onDrawn(): void;
     /** Stand the window here as a drag would leave it, and tell whoever a drag tells. */
-    setPosition(next: PanelPosition): void;
+    setPosition(position: PanelPosition): void;
     /** How wide the window stands now: its size where it has one, its type's where it has none. */
     getWidthPixels(): number;
     /** The size a frame hands in. A frame landing while the corner is held is not the hand's. */
-    setSize(next: WindowSize | null): void;
+    setSize(size: WindowSize | null): void;
 }
 
 export interface PanelPlacement {
@@ -188,10 +188,10 @@ export function clampPosition(
  * A whole pixel, on the screen, and a number a style can be written from. `clampNumber` refuses
  * anything else, so what is not one is answered before it is handed over (**E12**).
  */
-function getPositionWithin(value: number, limit: number): number {
-    if (!Number.isFinite(value)) return 0;
-    if (!Number.isFinite(limit)) return Math.round(value);
-    const rounded = Math.round(clampNumber(value, 0, limit));
+function getPositionWithin(coordinate: number, limit: number): number {
+    if (!Number.isFinite(coordinate)) return 0;
+    if (!Number.isFinite(limit)) return Math.round(coordinate);
+    const rounded = Math.round(clampNumber(coordinate, 0, limit));
     if (!Number.isSafeInteger(rounded)) return 0;
     return rounded;
 }
@@ -422,7 +422,7 @@ export function initPanelDrag(
         grab: null,
         written: null,
     };
-    const write = () => {
+    const writeHostStyle = () => {
         // Write the style the window stands in now.
         // A position that writes no style leaves the host on the sheet's own corner, which is a
         // place — and the window is still there to be grabbed (**E12**).
@@ -433,10 +433,10 @@ export function initPanelDrag(
         state.written = style;
         host.setAttribute(STYLE_ATTRIBUTE, style);
     };
-    write();
+    writeHostStyle();
     // Listen for the grab, the drag and the release.
     {
-        const add = (
+        const addRootListener = (
             type: string,
             listener: PanelListener,
             handle: (event: PanelEvent) => void,
@@ -452,7 +452,7 @@ export function initPanelDrag(
             if (grab.kind === GRAB_KIND.size) return options.grip;
             return getBar();
         };
-        add(EVENT_TYPE.press, PANEL_LISTENER.grab, (event) => {
+        addRootListener(EVENT_TYPE.press, PANEL_LISTENER.grab, (event) => {
             const started = composePanelDragGrab(event, state, placement, options);
             if (started === null) return;
             state.grab = started;
@@ -474,7 +474,7 @@ export function initPanelDrag(
                 }
             }
         };
-        add(EVENT_TYPE.move, PANEL_LISTENER.drag, (event) => {
+        addRootListener(EVENT_TYPE.move, PANEL_LISTENER.drag, (event) => {
             const grab = state.grab;
             if (grab === null) return;
             // A release the root never saw. Without capture — the forgiving part of a drag,
@@ -493,15 +493,15 @@ export function initPanelDrag(
                 writePanelDragPosition(
                     state,
                     composeDraggedPosition(grab, pointer, viewport),
-                    write,
+                    writeHostStyle,
                 );
                 return;
             }
             state.size = composeDraggedSize(grab, pointer, state, placement, options);
-            write();
+            writeHostStyle();
         });
-        add(EVENT_TYPE.release, PANEL_LISTENER.release, onDragEnd);
-        add(EVENT_TYPE.cancel, PANEL_LISTENER.cancel, onDragEnd);
+        addRootListener(EVENT_TYPE.release, PANEL_LISTENER.release, onDragEnd);
+        addRootListener(EVENT_TYPE.cancel, PANEL_LISTENER.cancel, onDragEnd);
     }
     return {
         getPosition: () => state.position,
@@ -515,8 +515,12 @@ export function initPanelDrag(
                 setPointerHeld(getBar(), true, grab.pointerId, options);
             }
         },
-        setPosition: (next: PanelPosition) => {
-            writePanelDragPosition(state, clampPosition(next, placement.readViewport()), write);
+        setPosition: (positionRequested: PanelPosition) => {
+            writePanelDragPosition(
+                state,
+                clampPosition(positionRequested, placement.readViewport()),
+                writeHostStyle,
+            );
             const position = state.position;
             if (position !== null) {
                 options.onIntent({ kind: PANEL_INTENT.move, window: options.window, position });
@@ -526,10 +530,10 @@ export function initPanelDrag(
             const applied = getPanelDragSize(state, placement, options);
             return applied?.width ?? getWindowWidthPixels(options.window, options.getTypeTokens());
         },
-        setSize: (next: WindowSize | null) => {
+        setSize: (size: WindowSize | null) => {
             if (state.grab?.kind === GRAB_KIND.size) return;
-            state.size = next;
-            write();
+            state.size = size;
+            writeHostStyle();
         },
     };
 }
@@ -551,13 +555,13 @@ function getPanelDragSize(
 
 function writePanelDragPosition(
     state: PanelDragState,
-    next: PanelPosition,
-    write: () => void,
+    position: PanelPosition,
+    writeHostStyle: () => void,
 ): void {
-    if (!Number.isSafeInteger(next.left)) return;
-    if (!Number.isSafeInteger(next.top)) return;
-    state.position = next;
-    write();
+    if (!Number.isSafeInteger(position.left)) return;
+    if (!Number.isSafeInteger(position.top)) return;
+    state.position = position;
+    writeHostStyle();
 }
 
 /** Where a window nobody has moved opens, which is not the same place for both of them. */
@@ -585,8 +589,8 @@ function composeHelperOpeningPosition(
     const beside = meter.left - tokens.helperWidthPixels - gap;
     if (beside >= 0) return clampPosition({ left: beside, top: meter.top }, viewport);
     // No room on the left, so the other side — the same answer the card gives (`develop ADR 0090`).
-    const other = { left: meter.left + tokens.meterWidthPixels + gap, top: meter.top };
-    return clampPosition(other, viewport);
+    const rightOfMeter = { left: meter.left + tokens.meterWidthPixels + gap, top: meter.top };
+    return clampPosition(rightOfMeter, viewport);
 }
 
 /**
@@ -636,9 +640,9 @@ function composePanelDragGrab(
 }
 
 /** Where on the grip a press landed, and the corner itself where the event does not say. */
-function readGripPressOffset(value: number | undefined, corner: number): number {
-    const read = readCoordinate(value);
-    return read === null ? corner : read;
+function readGripPressOffset(offset: number | undefined, corner: number): number {
+    const offsetRead = readCoordinate(offset);
+    return offsetRead === null ? corner : offsetRead;
 }
 
 function composeDraggedSize(
@@ -671,10 +675,10 @@ function readPointerFromEvent(event: PanelEvent): PanelPosition | null {
 }
 
 /** A browser states a coordinate, and a document standing in for one may state anything. */
-function readCoordinate(value: unknown): number | null {
-    if (typeof value !== "number") return null;
-    if (!Number.isFinite(value)) return null;
-    return value;
+function readCoordinate(coordinate: unknown): number | null {
+    if (typeof coordinate !== "number") return null;
+    if (!Number.isFinite(coordinate)) return null;
+    return coordinate;
 }
 
 /**

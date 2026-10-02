@@ -61,32 +61,39 @@ export function prepareChargedSkills(
     );
     const skillNamesByActorId = indexAnnouncedNamesByActor(events);
     const chargeBrokenIds = indexChargeBrokenIds(events);
-    const statementByCombatantId = new Map(statements.map((one) => [one.combatantId, one]));
-    const next: ChargedSkillStanding[] = [];
-    for (const previous of chargedSkillStandings) {
-        const statement = statementByCombatantId.get(previous.combatantId);
+    const statementByCombatantId = new Map(
+        statements.map((statement) => [statement.combatantId, statement]),
+    );
+    const standingsNow: ChargedSkillStanding[] = [];
+    for (const standingBefore of chargedSkillStandings) {
+        const statement = statementByCombatantId.get(standingBefore.combatantId);
         if (statement?.charge !== undefined) {
             if (statement.charge !== null) continue;
         }
-        if (previous.state !== CHARGED_SKILL_STATE.charging) {
-            if (!isPastItsTurn(previous, ordinal)) next.push(previous);
+        if (standingBefore.state !== CHARGED_SKILL_STATE.charging) {
+            if (!isPastItsTurn(standingBefore, ordinal)) standingsNow.push(standingBefore);
             continue;
         }
         if (statement === undefined) {
-            next.push(previous);
+            standingsNow.push(standingBefore);
             continue;
         }
-        const state = lookupEndedState(previous, skillNamesByActorId, chargeBrokenIds);
-        if (state !== null) next.push({ ...previous, state, endedAtOrdinal: ordinal });
+        const state = lookupEndedState(standingBefore, skillNamesByActorId, chargeBrokenIds);
+        if (state !== null) {
+            standingsNow.push({ ...standingBefore, state, endedAtOrdinal: ordinal });
+        }
     }
     for (const statement of statements) {
         const charging = composeChargingStanding(statement);
         if (charging === null) continue;
-        if (next.length >= CHARGED_SKILLS_MAXIMUM) break;
-        next.push(charging);
+        if (standingsNow.length >= CHARGED_SKILLS_MAXIMUM) break;
+        standingsNow.push(charging);
     }
-    assert(next.length <= CHARGED_SKILLS_MAXIMUM, "and what stands now stays inside it too");
-    return next;
+    assert(
+        standingsNow.length <= CHARGED_SKILLS_MAXIMUM,
+        "and what stands now stays inside it too",
+    );
+    return standingsNow;
 }
 
 /**
@@ -96,7 +103,7 @@ export function prepareChargedSkills(
  */
 function indexAnnouncedNamesByActor(events: readonly BattleEvent[]): Map<number, Set<string>> {
     const skillNamesByActorId = new Map<number, Set<string>>();
-    const add = (actorId: number | null, skillName: string): void => {
+    const addAnnouncedName = (actorId: number | null, skillName: string): void => {
         assert(skillName.length > 0, "an announcement that was made is named");
         if (actorId === null) return;
         const skillNames = skillNamesByActorId.get(actorId) ?? new Set<string>();
@@ -104,9 +111,11 @@ function indexAnnouncedNamesByActor(events: readonly BattleEvent[]): Map<number,
         skillNamesByActorId.set(actorId, skillNames);
     };
     for (const event of events) {
-        if (event.kind === BATTLE_EVENT.skillUsed) add(event.actorId, event.skillName);
+        if (event.kind === BATTLE_EVENT.skillUsed) addAnnouncedName(event.actorId, event.skillName);
         if (event.kind === BATTLE_EVENT.attack) {
-            if (event.announced !== null) add(event.announced.actorId, event.announced.skillName);
+            if (event.announced !== null) {
+                addAnnouncedName(event.announced.actorId, event.announced.skillName);
+            }
         }
     }
     assert(skillNamesByActorId.size <= events.length, "no more announcers than events announcing");
