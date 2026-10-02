@@ -28,6 +28,20 @@ Deno.test("both names the client has served give up their build", () => {
     );
 });
 
+/** A transcript: the bundle's script tag as `experimental.margonem.pl` served it, 2026-10-02. */
+Deno.test("an id carrying a dash is read whole", () => {
+    assertEquals(
+        parseMargonemClientBuildId('<script src="/js/main.min.COv-iBFt.js"></script>'),
+        "COv-iBFt",
+        "the dash is part of the id, not where it ends",
+    );
+    assertEquals(
+        parseMargonemClientBundleName('<script src="/js/main.min.COv-iBFt.js"></script>'),
+        "main.min.COv-iBFt.js",
+        "and of the bundle's name",
+    );
+});
+
 Deno.test("a name that is not the bundle's yields nothing at all", () => {
     assertStrictEquals(parseMargonemClientBuildId(""), null, "nothing states no build");
     assertStrictEquals(

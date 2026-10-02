@@ -21,12 +21,14 @@ export interface BrowserScripts {
 /**
  * What both shapes the client has served have in common. Until 2026-08-25 a bundle was
  * `main.min1786514810315.js`, thirteen digits of timestamp; read 2026-08-25, `tempest` and `luvia`
- * both serve `/js/main.min.53XkBRxF.js`, a dot and eight characters of mixed case.
+ * both serve `/js/main.min.53XkBRxF.js`, a dot and eight characters of mixed case. Read 2026-10-02,
+ * `experimental` serves `/js/main.min.COv-iBFt.js`: an id may carry a dash.
  */
 const BUILD_CHARACTERS_MINIMUM = 8;
 const SCRIPT_NAME_HEAD = "main.min";
 const SCRIPT_NAME_TAIL = ".js";
 const OPTIONAL_SEPARATOR = ".";
+const BUILD_DASH = "-";
 /** A page states a handful of scripts, and a source names the bundle at most a few times. */
 const LOOKS_MAXIMUM = 256;
 export const SCRIPTS_MAXIMUM = 4096;
@@ -69,7 +71,7 @@ function lookupScriptNameSpan(
         from = head + 1;
         let buildStart = head + SCRIPT_NAME_HEAD.length;
         if (text.charAt(buildStart) === OPTIONAL_SEPARATOR) buildStart += 1;
-        const buildEnd = getEndOfRun(text, buildStart, isAlphanumericAt);
+        const buildEnd = getEndOfRun(text, buildStart, isBuildCharacterAt);
         if (buildEnd - buildStart < BUILD_CHARACTERS_MINIMUM) continue;
         if (!text.startsWith(SCRIPT_NAME_TAIL, buildEnd)) continue;
         assert(head < buildStart, "a name starts before the id inside it");
@@ -78,8 +80,10 @@ function lookupScriptNameSpan(
     return null;
 }
 
-function isAlphanumericAt(text: string, index: number): boolean {
+/** A letter, a digit or a dash: every character an id the client served has carried. */
+function isBuildCharacterAt(text: string, index: number): boolean {
     const character = text.charAt(index);
+    if (character === BUILD_DASH) return true;
     if (character >= "0") {
         if (character <= "9") return true;
     }

@@ -1814,11 +1814,12 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `is` — strong
 
-- `isAlphanumericAt` — `src/ports/margonem-client-build.ts`, `tests/repository/names.test.ts`
+- `isAlphanumericAt` — `tests/repository/names.test.ts`
 - `isAnnouncement` — `tests/core/granted-blow-rule.test.ts`,
   `tests/core/skill-announcement-rule.test.ts`
 - `isBitSet` — `tools/aura-lifetime.ts`
 - `isBlowCritical` — `src/core/fight-statistics.ts`
+- `isBuildCharacterAt` — `src/ports/margonem-client-build.ts`
 - `isCallableOn` — `src/userscript-entry.ts`
 - `isCamelCase` — `tests/repository/names.test.ts`
 - `isCanonicalPlace` — `tests/repository/documents.test.ts`
@@ -3387,6 +3388,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `BATTLE_FIELD` — `src/ports/margonem-engine-battle.ts`
 - `BRAND` — `src/ports/browser-console.ts`
 - `BUILD_CHARACTERS_MINIMUM` — `src/ports/margonem-client-build.ts`
+- `BUILD_DASH` — `src/ports/margonem-client-build.ts`
 - `CALLS_MAXIMUM` — `src/ports/fight-capture.ts`
 - `CHARGE_FIELDS` — `src/ports/payload-envelope.ts`
 - `CLIENT_BREAK` — `src/ports/margonem-engine-tooltip.ts`
@@ -12576,6 +12578,7 @@ a letter past ASCII is text rather than a name, and is left out.
 
 ### `src/ports/margonem-client-build.ts`
 
+- `"-"` — `BUILD_DASH`
 - `"."` — `OPTIONAL_SEPARATOR`
 - `".js"` — `SCRIPT_NAME_TAIL`
 - `"main.min"` — `SCRIPT_NAME_HEAD`
