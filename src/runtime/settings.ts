@@ -18,7 +18,7 @@ import {
     STORE_KEY,
     type StoreFailure,
     type StoreKey,
-} from "#/src/game/browser-store.ts";
+} from "#/src/ports/browser-store.ts";
 import {
     PANEL_WINDOW,
     type PanelPosition,

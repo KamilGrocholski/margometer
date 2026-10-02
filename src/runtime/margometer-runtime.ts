@@ -9,7 +9,7 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import { composeFightView, type SessionOptions } from "#/src/core/fight-session.ts";
-import type { KeyValueStore } from "#/src/game/browser-store.ts";
+import type { KeyValueStore } from "#/src/ports/browser-store.ts";
 import {
     MargonemEngineAlreadyWrapped,
     type MargonemEngineBattlePort,
@@ -17,25 +17,25 @@ import {
     type PayloadListener,
     SearchAbandoned,
     type WrapHandle,
-} from "#/src/game/margonem-engine-battle.ts";
-import type { MargonemEngineHeroPort } from "#/src/game/margonem-engine-hero.ts";
-import type { MargonemEnginePlacePort } from "#/src/game/margonem-engine-place.ts";
+} from "#/src/ports/margonem-engine-battle.ts";
+import type { MargonemEngineHeroPort } from "#/src/ports/margonem-engine-hero.ts";
+import type { MargonemEnginePlacePort } from "#/src/ports/margonem-engine-place.ts";
 import {
     type MargonemEngineTooltipPort,
     ROWS_WRITTEN_MAXIMUM,
-} from "#/src/game/margonem-engine-tooltip.ts";
-import type { MargonemClientDictionaryPort } from "#/src/game/margonem-client-dictionary.ts";
-import type { MargonemClientBuildPort } from "#/src/game/margonem-client-build.ts";
+} from "#/src/ports/margonem-engine-tooltip.ts";
+import type { MargonemClientDictionaryPort } from "#/src/ports/margonem-client-dictionary.ts";
+import type { MargonemClientBuildPort } from "#/src/ports/margonem-client-build.ts";
 import type {
     BrowserClock,
     BrowserFrameScheduler,
     BrowserIntervalScheduler,
     FrameHandle,
     IntervalHandle,
-} from "#/src/game/browser-time.ts";
-import type { BrowserConsolePort } from "#/src/game/browser-console.ts";
-import type { BrowserFileSink } from "#/src/game/browser-file.ts";
-import { type BrowserSurroundingsPort, WORLD_UNKNOWN } from "#/src/game/browser-surroundings.ts";
+} from "#/src/ports/browser-time.ts";
+import type { BrowserConsolePort } from "#/src/ports/browser-console.ts";
+import type { BrowserFileSink } from "#/src/ports/browser-file.ts";
+import { type BrowserSurroundingsPort, WORLD_UNKNOWN } from "#/src/ports/browser-surroundings.ts";
 import type { TooltipTables } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger, initDefectLedger } from "./defect-ledger.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";

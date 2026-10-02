@@ -19,7 +19,7 @@ import {
     preparePayload,
     SESSION_OPTIONS,
 } from "#/src/core/fight-session.ts";
-import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
 import { tallyFightState } from "#/src/runtime/fight-state.ts";
 import { startMargoMeter } from "#/src/userscript-entry.ts";
 import { composeFakeWindow, flushFakeFrames } from "#/tests/fake-window.ts";

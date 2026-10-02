@@ -21,7 +21,7 @@ widest headcount and outcome in the corpus is `10 vs 1` beside `PRZEGRANA`. Besi
 
 The add-on reads when a fight opened and where, and the shelf states both. It reads the world off
 the page's host, but only when a fight is handed over as a file
-(`src/game/browser-surroundings.ts`). It does not know which combatant is the reader, only which
+(`src/ports/browser-surroundings.ts`). It does not know which combatant is the reader, only which
 side is (`myteam`). On a shelf row, the card states the place alone.
 
 The client names its own warrior in a fight by its hero's id. Production build `Bb28FQty`, fetched

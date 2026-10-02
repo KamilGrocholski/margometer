@@ -13,7 +13,7 @@ import {
     assertThrows,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { type BrowserTimers, initBrowserInterval } from "#/src/game/browser-time.ts";
+import { type BrowserTimers, initBrowserInterval } from "#/src/ports/browser-time.ts";
 
 interface Wound {
     timers: BrowserTimers;

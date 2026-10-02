@@ -5,7 +5,7 @@
 
 import { expect, type PanelHandle, test } from "./panel-fixture.ts";
 
-/** The keys the shelf and the choice are written under, as `STORE_KEY` in `src/game/browser-store.ts` names them. */
+/** The keys the shelf and the choice are written under, as `STORE_KEY` in `src/ports/browser-store.ts` names them. */
 const SHELF_KEY = "MargoMeter-fights";
 const STORAGE_KEY = "MargoMeter-storage";
 /** What the row of the fight going on right now states, rather than a time it opened at. */

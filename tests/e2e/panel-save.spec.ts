@@ -12,7 +12,7 @@ import { expect, type PanelHandle, test } from "./panel-fixture.ts";
 import { MARGONEM_CLIENT_BUILD } from "./margonem-page.ts";
 import { PAGE_WORLD } from "./panel-page.ts";
 
-/** The envelope's own field names, as `src/game/fight-capture.ts` writes them. */
+/** The envelope's own field names, as `src/ports/fight-capture.ts` writes them. */
 const ENVELOPE = [
     "formatVersion",
     "addOnVersion",

@@ -7,8 +7,8 @@
 
 import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initMargonemEnginePlace } from "#/src/game/margonem-engine-place.ts";
-import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/game/margonem-value.ts";
+import { initMargonemEnginePlace } from "#/src/ports/margonem-engine-place.ts";
+import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
 
 Deno.test("the map and the tile are read off the client's own state", () => {
     const place = readPlaceOf(composeMargonemEngine("Tempest", 12, 34));

@@ -9,15 +9,19 @@
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import { composeFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
-import { initBrowserStore, initMemoryStore, type KeyValueStore } from "#/src/game/browser-store.ts";
-import { initMargonemEngineBattle } from "#/src/game/margonem-engine-battle.ts";
-import type { MargonemEngineHeroPort } from "#/src/game/margonem-engine-hero.ts";
-import type { MargonemEnginePlacePort } from "#/src/game/margonem-engine-place.ts";
-import { commitCapture, createFightCapture, prepareCapture } from "#/src/game/fight-capture.ts";
-import type { MargonemClientBuildPort } from "#/src/game/margonem-client-build.ts";
-import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/game/margonem-value.ts";
-import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
-import type { MargonemEngineWarriorSnapshot } from "#/src/game/margonem-engine-warriors.ts";
+import {
+    initBrowserStore,
+    initMemoryStore,
+    type KeyValueStore,
+} from "#/src/ports/browser-store.ts";
+import { initMargonemEngineBattle } from "#/src/ports/margonem-engine-battle.ts";
+import type { MargonemEngineHeroPort } from "#/src/ports/margonem-engine-hero.ts";
+import type { MargonemEnginePlacePort } from "#/src/ports/margonem-engine-place.ts";
+import { commitCapture, createFightCapture, prepareCapture } from "#/src/ports/fight-capture.ts";
+import type { MargonemClientBuildPort } from "#/src/ports/margonem-client-build.ts";
+import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
+import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
+import type { MargonemEngineWarriorSnapshot } from "#/src/ports/margonem-engine-warriors.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
 import { initLiveFight, type LiveFightOptions } from "#/src/runtime/live-fight.ts";
 import { initShelfKeeper } from "#/src/runtime/shelf-keeper.ts";

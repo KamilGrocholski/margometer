@@ -20,7 +20,7 @@ import {
     type KeyValueStore,
     STORE_KEY,
     StoreRefused,
-} from "#/src/game/browser-store.ts";
+} from "#/src/ports/browser-store.ts";
 import {
     deleteWindowSize,
     readStorageChoice,

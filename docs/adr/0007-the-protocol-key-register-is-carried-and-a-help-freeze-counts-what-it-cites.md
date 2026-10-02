@@ -21,7 +21,7 @@ this tree's names rather than deleted. The register is where a verdict about a k
   names this tree's files and constants:
   - what a key means is `src/core/protocol-key.ts`, and its proc table is `PROC_END_BY_KEY`;
   - a turn is counted in `src/core/turn-clock.ts`;
-  - a recording is replayed per file in `tests/game/recorded-session.test.ts`.
+  - a recording is replayed per file in `tests/ports/recorded-session.test.ts`.
 - A file this tree does not carry is cited as `develop:`, and a decision record of `develop`'s as
   `develop ADR`.
 - `tools/protocol-key-shape.ts` measures through the add-on's own chain

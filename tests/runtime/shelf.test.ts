@@ -21,7 +21,7 @@ import {
     type KeyValueStore,
     STORE_KEY,
     StoreUnavailable,
-} from "#/src/game/browser-store.ts";
+} from "#/src/ports/browser-store.ts";
 import { composeFightView } from "#/src/core/fight-session.ts";
 import {
     deleteKeptFight,

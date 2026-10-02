@@ -50,9 +50,9 @@ import {
     ENVELOPE_KEYS,
     HEALTH_FIELDS,
     WARRIOR_FIELDS,
-} from "#/src/game/payload-envelope.ts";
-import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
-import type { CapturedCombatant } from "#/src/game/margonem-engine-warriors.ts";
+} from "#/src/ports/payload-envelope.ts";
+import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
+import type { CapturedCombatant } from "#/src/ports/margonem-engine-warriors.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { INTAKE_KEYS } from "./capture-intake.ts";
 import { readDevelopmentVersion } from "./build-userscript.ts";
@@ -394,7 +394,7 @@ const ACTS: readonly FabricatedAct[] = [
  * ⚠️ **A shape past one of these is refused rather than asserted**: it is what a reader typed,
  * and both bounds belong to somebody else. Twenty combatants is what a roster holds
  * (`src/core/combatant-roster.ts`); two thousand calls is where collecting stops
- * (`src/game/fight-capture.ts`), and a replay asserts against it, so a longer fight writes a file
+ * (`src/ports/fight-capture.ts`), and a replay asserts against it, so a longer fight writes a file
  * nothing in this repository can open.
  */
 export function requireFabricationShape(

@@ -95,7 +95,7 @@ const CLASSES_MAXIMUM = 4096;
 const LAYERS = [
     "libs/",
     "src/core/",
-    "src/game/",
+    "src/ports/",
     "src/runtime/",
     "src/ui/",
     "src/",

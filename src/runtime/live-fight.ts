@@ -21,24 +21,24 @@ import type {
     MargonemEngineBattle,
     MargonemEngineBattlePort,
     PayloadListener,
-} from "#/src/game/margonem-engine-battle.ts";
-import type { MargonemEngineHeroPort } from "#/src/game/margonem-engine-hero.ts";
-import type { MargonemEnginePlacePort } from "#/src/game/margonem-engine-place.ts";
+} from "#/src/ports/margonem-engine-battle.ts";
+import type { MargonemEngineHeroPort } from "#/src/ports/margonem-engine-hero.ts";
+import type { MargonemEnginePlacePort } from "#/src/ports/margonem-engine-place.ts";
 import {
     commitCapture,
     createFightCapture,
     type FightCapture,
     prepareCapture,
-} from "#/src/game/fight-capture.ts";
-import type { FightPlace } from "#/src/game/fight-place.ts";
-import type { MargonemClientBuildPort } from "#/src/game/margonem-client-build.ts";
-import type { BrowserClock } from "#/src/game/browser-time.ts";
-import { type MargonemReadFailure, MargonemValueAbsent } from "#/src/game/margonem-value.ts";
-import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+} from "#/src/ports/fight-capture.ts";
+import type { FightPlace } from "#/src/ports/fight-place.ts";
+import type { MargonemClientBuildPort } from "#/src/ports/margonem-client-build.ts";
+import type { BrowserClock } from "#/src/ports/browser-time.ts";
+import { type MargonemReadFailure, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
+import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
 import {
     MargonemEngineWarriorsAbsent,
     type MargonemEngineWarriorSnapshot,
-} from "#/src/game/margonem-engine-warriors.ts";
+} from "#/src/ports/margonem-engine-warriors.ts";
 import { DEFECT_KIND, type DefectKind, type DefectLedger } from "./defect-ledger.ts";
 import type { ShelfKeeper } from "./shelf-keeper.ts";
 

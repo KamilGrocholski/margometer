@@ -13,7 +13,7 @@ import {
     initMargonemEngineTooltip,
     type MargonemEngineTooltipPort,
     ROWS_WRITTEN_MAXIMUM,
-} from "#/src/game/margonem-engine-tooltip.ts";
+} from "#/src/ports/margonem-engine-tooltip.ts";
 import { ROWS_BESIDE_THE_STATUSES } from "#/src/ui/panel-words.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 
@@ -32,7 +32,7 @@ const TOOLTIP_ROWS_MAXIMUM = FROZEN_BUFF_BITS.bits.length + ROWS_BESIDE_THE_STAT
 const THEIRS = '<div class="nick">Gracz</div>';
 
 /**
- * ⚠️ **One bound, two spellings, and only a guard keeps them level.** `game/` reaches into no
+ * ⚠️ **One bound, two spellings, and only a guard keeps them level.** `ports/` reaches into no
  * `ui/` module, so the writer states the maximum a second time — and a block composed up to the
  * composer's bound must be one the writer will still take, or the assertion at the crossing
  * fires on a fighter with a lot to say.

@@ -26,8 +26,8 @@ import {
     readMargonemEngines,
     WrapCovered,
     type WrapHandle,
-} from "#/src/game/margonem-engine-battle.ts";
-import { MargonemEngineWarriorsAbsent } from "#/src/game/margonem-engine-warriors.ts";
+} from "#/src/ports/margonem-engine-battle.ts";
+import { MargonemEngineWarriorsAbsent } from "#/src/ports/margonem-engine-warriors.ts";
 
 interface Held {
     battle: Record<string, unknown>;

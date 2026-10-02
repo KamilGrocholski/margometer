@@ -22,18 +22,18 @@ that they are evidence, and that no hand edits them.
 
 ## How a reading is refreshed
 
-`deno task game:readings refresh` fetches the client bundle, the published help and the published
-skill table, then freezes each reading from what it has just fetched — in that order, because every
-reading is dated by the fetch above it. A file whose content did not move stays as it stands, date
-and all, so `git diff frozen/` after a refresh shows only what the game changed (ADR 0011).
-`deno task game:readings status` asks the same question and changes nothing: it exits `0` where
-every reading is the game's, `1` where one went behind, and `2` where the world could not be asked
-at all. `deno task game:readings preview` reads the development channel's client against what is
-frozen and names the keys and the bits it adds, drops or moves; it exits `1` where there are any,
-and writes nothing here. A refresh and a status take no list of what to count: a freeze counts every
-phrase a `_Help:_` line of `docs/protocol-keys.md` cites, and
-`deno task game:help freeze <phrase> …` adds one before a claim leans on it (ADR 0007). **AGENTS.md
-W10** says when the routine is run.
+`deno task margonem:readings refresh` fetches the client bundle, the published help and the
+published skill table, then freezes each reading from what it has just fetched — in that order,
+because every reading is dated by the fetch above it. A file whose content did not move stays as it
+stands, date and all, so `git diff frozen/` after a refresh shows only what the game changed (ADR
+0011). `deno task margonem:readings status` asks the same question and changes nothing: it exits `0`
+where every reading is the game's, `1` where one went behind, and `2` where the world could not be
+asked at all. `deno task margonem:readings preview` reads the development channel's client against
+what is frozen and names the keys and the bits it adds, drops or moves; it exits `1` where there are
+any, and writes nothing here. A refresh and a status take no list of what to count: a freeze counts
+every phrase a `_Help:_` line of `docs/protocol-keys.md` cites, and
+`deno task margonem:help freeze <phrase> …` adds one before a claim leans on it (ADR 0007).
+**AGENTS.md W10** says when the routine is run.
 
 ## Why they exist
 

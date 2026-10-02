@@ -10,11 +10,11 @@
 
 import { assert } from "@std/assert/assert";
 import type * as errors from "#/libs/errors.ts";
-import type { FightPlace } from "#/src/game/fight-place.ts";
-import type { MargonemClientBuildPort } from "#/src/game/margonem-client-build.ts";
-import type { BrowserClock } from "#/src/game/browser-time.ts";
-import type { BrowserFileSink, FileFailure } from "#/src/game/browser-file.ts";
-import type { BrowserSurroundingsPort } from "#/src/game/browser-surroundings.ts";
+import type { FightPlace } from "#/src/ports/fight-place.ts";
+import type { MargonemClientBuildPort } from "#/src/ports/margonem-client-build.ts";
+import type { BrowserClock } from "#/src/ports/browser-time.ts";
+import type { BrowserFileSink, FileFailure } from "#/src/ports/browser-file.ts";
+import type { BrowserSurroundingsPort } from "#/src/ports/browser-surroundings.ts";
 import {
     encodeFightFile,
     type FileCalls,

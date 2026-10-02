@@ -22,7 +22,7 @@ import {
     preparePayload,
     SESSION_OPTIONS,
 } from "#/src/core/fight-session.ts";
-import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import {
     lookupRecordedFight,

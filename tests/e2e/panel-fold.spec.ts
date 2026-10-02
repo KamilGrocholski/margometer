@@ -5,7 +5,7 @@
 import { expect, test } from "./panel-fixture.ts";
 import { readPanelShape } from "./panel-probe.ts";
 
-/** The one key the fold is written under, named as `STORE_KEY` in `src/game/browser-store.ts` names it. */
+/** The one key the fold is written under, named as `STORE_KEY` in `src/ports/browser-store.ts` names it. */
 const FOLD_KEY = "MargoMeter-folded";
 /** What the control reads while the panel is open, and while it is away. */
 const FOLD_MARK = "—";

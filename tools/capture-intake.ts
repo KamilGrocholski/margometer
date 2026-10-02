@@ -15,7 +15,7 @@ import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
-import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/game/payload-envelope.ts";
+import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { FILE_FIELD, NOTHING_STATED } from "#/src/runtime/fight-file.ts";
 import {
     readRecordedFight,

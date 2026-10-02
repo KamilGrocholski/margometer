@@ -22,7 +22,7 @@ import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import { tallyFightFigures } from "#/src/core/fight-figures.ts";
 import { composeFightView } from "#/src/core/fight-session.ts";
 import { createCombatantFigures, tallyFightStatistics } from "#/src/core/fight-statistics.ts";
-import { createFightCapture } from "#/src/game/fight-capture.ts";
+import { createFightCapture } from "#/src/ports/fight-capture.ts";
 import {
     encodeFightFile,
     encodeFightReport,

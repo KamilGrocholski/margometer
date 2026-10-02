@@ -5,7 +5,7 @@
  * `src/core/protocol-key.ts` reads them as. The `_Shape:_` line in `docs/protocol-keys.md` is this
  * measurement written down, and `tests/tools/protocol-key-shape.test.ts` holds the two together.
  *
- *     deno task game:shape
+ *     deno task margonem:shape
  */
 
 import { assert } from "@std/assert";

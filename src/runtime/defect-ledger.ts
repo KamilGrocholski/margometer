@@ -7,7 +7,7 @@
 
 import { assert } from "@std/assert/assert";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
-import type { BrowserConsolePort } from "#/src/game/browser-console.ts";
+import type { BrowserConsolePort } from "#/src/ports/browser-console.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
 import { PANEL_REGION, type PanelRegion } from "#/src/ui/panel-words.ts";
 

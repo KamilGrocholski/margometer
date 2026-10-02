@@ -12,7 +12,7 @@ import { waitForFrame } from "./panel-page.ts";
 
 /** The line every failure of the add-on's own is branded with, in the one console it holds. */
 const FAILURE_LINE = "MargoMeter/Panel";
-/** The `name` of two failures in `src/game/margonem-engine-battle.ts`, which a Node suite cannot import. */
+/** The `name` of two failures in `src/ports/margonem-engine-battle.ts`, which a Node suite cannot import. */
 const ENGINE_FAILURE_SEARCH_ABANDONED = "SearchAbandoned";
 const ENGINE_FAILURE_ALREADY_WRAPPED = "MargonemEngineAlreadyWrapped";
 /** `PANEL_WORDS`' for the "engine" defect, in `src/ui/panel-words.ts`. */

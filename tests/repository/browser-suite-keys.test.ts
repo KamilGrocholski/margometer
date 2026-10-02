@@ -1,11 +1,11 @@
 /**
  * N13's other half: the browser suite spells the store keys a second time, because Node cannot
  * import a module that reaches `jsr:`. Every `…_KEY` constant it declares holds a key `STORE_KEY`
- * names, so a key renamed in `src/game/browser-store.ts` reddens here rather than in a browser.
+ * names, so a key renamed in `src/ports/browser-store.ts` reddens here rather than in a browser.
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { STORE_KEY } from "#/src/game/browser-store.ts";
+import { STORE_KEY } from "#/src/ports/browser-store.ts";
 import {
     composeSample,
     formatNodePlace,

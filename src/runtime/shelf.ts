@@ -22,9 +22,9 @@ import {
     STORE_KEY,
     type StoreFailure,
     StoreUnavailable,
-} from "#/src/game/browser-store.ts";
-import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
-import type { FightPlace } from "#/src/game/fight-place.ts";
+} from "#/src/ports/browser-store.ts";
+import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
+import type { FightPlace } from "#/src/ports/fight-place.ts";
 
 export interface KeptFight {
     /** Stated by the caller, which owns the clock. Zero is a moment like any other. */

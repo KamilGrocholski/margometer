@@ -46,7 +46,7 @@ All 273 sites were read. Ten changed, and the rest have an empty negative space:
   only an empty shelf names no newest fight.
 - **A value set before the `if` moved into the `else`.** This happened in
   `src/core/fight-decoder.ts` (`getTokenFromKey`), `src/core/fight-session.ts` (`hasClosed`),
-  `src/core/turn-clock.ts` (`isStriking`) and `src/game/fight-capture.ts` (`isKept`).
+  `src/core/turn-clock.ts` (`isStriking`) and `src/ports/fight-capture.ts` (`isKept`).
 - **Two `if` over a condition and its negation merged into one `if` and its `else`.** This happened
   twice in `src/core/fight-statistics.ts` (damage taken from nobody or from an opponent) and once in
   `src/ui/ranked-order.ts`.

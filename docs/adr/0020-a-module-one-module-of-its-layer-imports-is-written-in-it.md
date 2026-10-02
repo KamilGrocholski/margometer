@@ -41,7 +41,7 @@ layers, and an import across a layer is `docs/design.md` §4's to keep apart, so
 to some 4100 lines. The maintainer weighed them as subjects of their own and chose the merge: the
 detail window is drawn by the panel and nothing else.
 
-**The page's time is one file**, `src/game/browser-time.ts`. No guard asks for it: the clock, the
+**The page's time is one file**, `src/ports/browser-time.ts`. No guard asks for it: the clock, the
 frame and the interval are three ports the entry reads, but `docs/design.md` §5 states them as one
 group, "Time and the frame", and three files for one group is the split C10 forbids.
 
@@ -60,7 +60,7 @@ would have had a second consumer, and the guard would have found 2 of them.
 - On 2026-10-01: 73 files to 60, 21623 lines to 21474, 704 `export`s to 689; the built userscript
   went from 478415 bytes to 478337.
 - Test files keep the subject they hold (`tests/ui/card-window.test.ts`), and three are renamed for
-  theirs: `tests/core/message-grammar.test.ts`, `tests/game/warrior-entries.test.ts` and
+  theirs: `tests/core/message-grammar.test.ts`, `tests/ports/warrior-entries.test.ts` and
   `tests/runtime/opened-readings.test.ts`.
 - A merge that drops an `export` can leave a function called once, which S4 then writes into its
   caller; `tests/repository/called-once.test.ts` names it.

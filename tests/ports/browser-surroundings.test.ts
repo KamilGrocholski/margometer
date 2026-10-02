@@ -5,7 +5,7 @@ import {
     initBrowserSurroundings,
     parseWorld,
     WORLD_UNKNOWN,
-} from "#/src/game/browser-surroundings.ts";
+} from "#/src/ports/browser-surroundings.ts";
 
 Deno.test("the world is the first label of the host, and a page with none is nobody's", () => {
     assertEquals(parseWorld("tempest.margonem.pl"), "tempest", "the first label");

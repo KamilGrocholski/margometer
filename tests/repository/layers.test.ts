@@ -17,14 +17,14 @@ const IMPORTS_ALLOWED: readonly (readonly [string, readonly string[]])[] = [
     ["frozen/", []],
     ["libs/", ["libs/"]],
     ["src/core/", ["libs/", "src/core/"]],
-    ["src/game/", ["libs/", "src/core/", "src/game/"]],
-    ["src/runtime/", ["libs/", "src/core/", "src/game/", "src/ui/", "src/runtime/"]],
+    ["src/ports/", ["libs/", "src/core/", "src/ports/"]],
+    ["src/runtime/", ["libs/", "src/core/", "src/ports/", "src/ui/", "src/runtime/"]],
     ["src/ui/", ["libs/", "src/core/", "src/ui/"]],
     ["src/userscript-", [
         "frozen/",
         "libs/",
         "src/core/",
-        "src/game/",
+        "src/ports/",
         "src/runtime/",
         "src/ui/",
         "src/build-version.ts",
@@ -34,20 +34,20 @@ const IMPORTS_ALLOWED: readonly (readonly [string, readonly string[]])[] = [
 
 Deno.test("an import from above a layer is flagged, and one from below it is not", () => {
     const upward = composeSample([
-        'import { a } from "#/src/game/payload-envelope.ts";',
+        'import { a } from "#/src/ports/payload-envelope.ts";',
         'import * as b from "#/libs/errors.ts";',
         'import { c } from "@std/assert/assert";',
         'import { d } from "./sibling.ts";',
     ]);
     const core = { ...upward, path: "src/core/sample.ts" };
     assertEquals(lookupImportsUpward(core), [
-        "src/core/sample.ts imports src/game/payload-envelope.ts",
+        "src/core/sample.ts imports src/ports/payload-envelope.ts",
     ], "core reaching into game is flagged, and libs and the standard library are not");
     const library = { ...upward, path: "libs/sample.ts" };
     assertEquals(lookupImportsUpward(library), [
-        "libs/sample.ts imports src/game/payload-envelope.ts",
+        "libs/sample.ts imports src/ports/payload-envelope.ts",
     ], "a library imports no layer, and other libraries and its sibling are not one");
-    const game = { ...upward, path: "src/game/sample.ts" };
+    const game = { ...upward, path: "src/ports/sample.ts" };
     assertEquals(lookupImportsUpward(game), [], "and game may import from core and libs both");
 });
 

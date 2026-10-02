@@ -41,7 +41,7 @@ export type Caveat = VocabularyWord<typeof CAVEAT>;
 
 /**
  * A name out of the running client, or null where it has none to give. Declared here rather than
- * imported: `docs/design.md` §4 names no direction from `ui/` to `game/`.
+ * imported: `docs/design.md` §4 names no direction from `ui/` to `ports/`.
  *
  * The category is the client's own filing, and it is optional because most of what the panel asks
  * for sits in the default one. `develop:src/game/game-dictionary.ts` is where the shape is

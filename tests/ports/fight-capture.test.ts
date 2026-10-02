@@ -21,8 +21,8 @@ import {
     type FightCapture,
     type MargonemEngineCall,
     prepareCapture,
-} from "#/src/game/fight-capture.ts";
-import type { CapturedCombatant } from "#/src/game/margonem-engine-warriors.ts";
+} from "#/src/ports/fight-capture.ts";
+import type { CapturedCombatant } from "#/src/ports/margonem-engine-warriors.ts";
 
 const NOBODY = { combatantsBefore: [], combatantsAfter: [] };
 

@@ -8,7 +8,7 @@
  */
 
 import { assert, assertStringIncludes } from "@std/assert";
-import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/game/payload-envelope.ts";
+import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { PLACE, SHAPE, SPACE_PIXELS, SURFACE, TEXT, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { formatColour, SIGNAL } from "#/src/ui/panel-palette.ts";
@@ -403,7 +403,7 @@ function composePreviewTipsCardStyle(): string {
 
 /**
  * What the add-on wrote into the game's own tooltips, one block per fighter. It is the real path:
- * the stub's fighters carry a `$` of the client's shape, so `src/game/margonem-engine-tooltip.ts` writes
+ * the stub's fighters carry a `$` of the client's shape, so `src/ports/margonem-engine-tooltip.ts` writes
  * through the registry's own methods, and a renamed method shows here as an empty block.
  */
 function composePreviewTooltips(words: PreviewWords): string {

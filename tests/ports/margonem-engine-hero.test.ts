@@ -7,8 +7,8 @@
 
 import { assert, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initMargonemEngineHero } from "#/src/game/margonem-engine-hero.ts";
-import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/game/margonem-value.ts";
+import { initMargonemEngineHero } from "#/src/ports/margonem-engine-hero.ts";
+import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
 
 Deno.test("the hero's id is read off the client's own state, as a number or as text", () => {
     assertStrictEquals(readHeroIdOf(composeMargonemEngine(1897)), 1897, "as the page holds it");

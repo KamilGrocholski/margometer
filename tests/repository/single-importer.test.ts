@@ -13,7 +13,7 @@ import {
 } from "#/tests/source-tree.ts";
 
 /** The layers of `docs/design.md` §4 that hold modules; the entry and its boot stand above them. */
-const LAYER_DIRECTORIES = ["src/core/", "src/game/", "src/runtime/", "src/ui/"];
+const LAYER_DIRECTORIES = ["src/core/", "src/ports/", "src/runtime/", "src/ui/"];
 
 Deno.test("a module one sibling imports is flagged, and one two import or from above is not", () => {
     const files = [
@@ -22,13 +22,13 @@ Deno.test("a module one sibling imports is flagged, and one two import or from a
         { ...composeSample(['import { b } from "#/src/ui/shared.ts";']), path: "src/ui/card.ts" },
         { ...composeSample(['import { c } from "#/src/core/below.ts";']), path: "src/ui/card.ts" },
         { ...composeSample(['import { d } from "#/src/ui/entry-only.ts";']), path: "src/entry.ts" },
-        { ...composeSample(['import { e } from "#/src/game/top.ts";']), path: "src/game/one.ts" },
-        { ...composeSample(['import { e } from "#/src/game/top.ts";']), path: "src/game/one.ts" },
+        { ...composeSample(['import { e } from "#/src/ports/top.ts";']), path: "src/ports/one.ts" },
+        { ...composeSample(['import { e } from "#/src/ports/top.ts";']), path: "src/ports/one.ts" },
     ];
     assertEquals(
         lookupSingleImported(files),
         [
-            "src/game/top.ts, imported only by src/game/one.ts",
+            "src/ports/top.ts, imported only by src/ports/one.ts",
             "src/ui/alone.ts, imported only by src/ui/panel.ts",
         ],
         "two importers, an importer in another layer, or one importing twice are told apart",

@@ -165,22 +165,22 @@ Selectors: `host` · `hover`
 
 ## The DOM
 
-| Construct               | Where                       | Chrome / Edge | Firefox | Safari |
-| ----------------------- | --------------------------- | ------------- | ------- | ------ |
-| `replaceChildren`       | `src/ui/panel-element.ts`   | 86            | 78      | 14     |
-| `attachShadow`          | `src/ui/panel-element.ts`   | 53            | 63      | 10     |
-| `setPointerCapture`     | `src/ui/panel-element.ts`   | 55            | 59      | 13     |
-| `offsetX`, `offsetY`    | `src/ui/panel-drag.ts`      | 1             | 39      | 1      |
-| `getBoundingClientRect` | `src/ui/panel-element.ts`   | 2             | 3       | 4      |
-| `contains`              | `src/ui/panel-element.ts`   | 16            | 9       | 1.1    |
-| `scrollTop`             | `src/ui/panel-element.ts`   | 1             | 1       | 1      |
-| `Blob`                  | `src/userscript-entry.ts`   | 5             | 4       | 6      |
-| `createObjectURL`       | `src/userscript-entry.ts`   | 19            | 19      | 6      |
-| `localStorage`          | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
-| `sessionStorage`        | `src/userscript-entry.ts`   | 4             | 2       | 4      |
-| `getItem`               | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
-| `setItem`               | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
-| `removeItem`            | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
+| Construct               | Where                        | Chrome / Edge | Firefox | Safari |
+| ----------------------- | ---------------------------- | ------------- | ------- | ------ |
+| `replaceChildren`       | `src/ui/panel-element.ts`    | 86            | 78      | 14     |
+| `attachShadow`          | `src/ui/panel-element.ts`    | 53            | 63      | 10     |
+| `setPointerCapture`     | `src/ui/panel-element.ts`    | 55            | 59      | 13     |
+| `offsetX`, `offsetY`    | `src/ui/panel-drag.ts`       | 1             | 39      | 1      |
+| `getBoundingClientRect` | `src/ui/panel-element.ts`    | 2             | 3       | 4      |
+| `contains`              | `src/ui/panel-element.ts`    | 16            | 9       | 1.1    |
+| `scrollTop`             | `src/ui/panel-element.ts`    | 1             | 1       | 1      |
+| `Blob`                  | `src/userscript-entry.ts`    | 5             | 4       | 6      |
+| `createObjectURL`       | `src/userscript-entry.ts`    | 19            | 19      | 6      |
+| `localStorage`          | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
+| `sessionStorage`        | `src/userscript-entry.ts`    | 4             | 2       | 4      |
+| `getItem`               | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
+| `setItem`               | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
+| `removeItem`            | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
 
 The five storage rows were read on **2026-08-26**, `contains` on **2026-09-09** and the offsets on
 **2026-09-28**, from the same source as the rest; every other row carries the date at the top of
@@ -191,7 +191,7 @@ supports it perfectly.
 ⚠️ **The quota is not in this register, and its absence is the entry.** How much an origin may keep
 differs by engine, by profile and by how much that origin already holds, and none of it is readable
 from a page. The add-on therefore never predicts one: it writes, catches the refusal, gives up its
-oldest unpinned fight and writes again (`src/game/browser-store.ts`,
+oldest unpinned fight and writes again (`src/ports/browser-store.ts`,
 `develop:src/game/kept-fights.ts`). That matters more here than anywhere else in this table, because
 the origin is shared with the game — which keeps everything under one key, rewrites it whole on
 every change, and catches nothing (`git show v0.10.1:docs/specs/a-fight-you-can-go-back-to.md`).
@@ -240,7 +240,7 @@ and the second is an accident.
 
 `Object.hasOwn` is the Firefox number, read on **2026-09-27** from the same source, and it has no
 state below its floor: every field of a payload is read through it (`libs/unknown-value.ts`,
-`src/game/payload-envelope.ts`), so an engine without it throws on the first read of every payload
+`src/ports/payload-envelope.ts`), so an engine without it throws on the first read of every payload
 and counts nothing.
 
 ### Patterns, and the part no compiler holds
@@ -292,7 +292,7 @@ library member the engine lacks fails at the call, which is a place: something r
 the failure is that thing's size. A pattern whose syntax the engine cannot parse is an _early_
 SyntaxError — it is refused while the file is being read, before a line of it has run. The bundle
 never parses, so the reader sees no panel and no console line of ours. `new RegExp` differs only in
-when — `src/game/margonem-client-build.ts` builds two at module scope, so those throw while the
+when — `src/ports/margonem-client-build.ts` builds two at module scope, so those throw while the
 add-on is starting. There is no degraded state to describe here, which is why the `[ASK]`
 `AGENTS.md` puts on a construct that raises the floor binds with nothing to weigh.
 

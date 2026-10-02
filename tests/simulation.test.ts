@@ -7,7 +7,7 @@
 
 import { assert, assertEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { StoreRefused } from "#/src/game/browser-store.ts";
+import { StoreRefused } from "#/src/ports/browser-store.ts";
 import { readRecordedFights } from "./recorded-fights.ts";
 import { FAULT_FREE, type FaultPlan, runSimulation } from "./simulation.ts";
 

@@ -15,12 +15,12 @@ import {
     assertStrictEquals,
 } from "@std/assert";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
-import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
 import {
     MargonemEngineWarriorsAbsent,
     MargonemEngineWarriorsExceeded,
     readMargonemEngineWarriorSnapshot,
-} from "#/src/game/margonem-engine-warriors.ts";
+} from "#/src/ports/margonem-engine-warriors.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 /** The fields every recording's snapshot carries, in the order it carries them. */

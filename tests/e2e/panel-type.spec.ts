@@ -5,7 +5,7 @@
 
 import { expect, test } from "./panel-fixture.ts";
 
-/** Named as `STORE_KEY` in `src/game/browser-store.ts` names it. */
+/** Named as `STORE_KEY` in `src/ports/browser-store.ts` names it. */
 const TYPE_KEY = "MargoMeter-type";
 /** Each step, the type it prints and the row it draws: `TYPE_TOKENS` in `src/ui/panel-look.ts`. */
 const STEPS = [

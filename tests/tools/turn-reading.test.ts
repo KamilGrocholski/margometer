@@ -23,7 +23,7 @@ import {
 } from "#/tests/recorded-fights.ts";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import { PREPARE_KEY, TEXT_KEY } from "#/src/core/protocol-key.ts";
-import { ENVELOPE_KEYS } from "#/src/game/payload-envelope.ts";
+import { ENVELOPE_KEYS } from "#/src/ports/payload-envelope.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { TurnReadingError } from "#/tools/margometer-tool-error.ts";
 import { readRecordedMaterial, replayRecordedMaterial } from "#/tools/recorded-material.ts";

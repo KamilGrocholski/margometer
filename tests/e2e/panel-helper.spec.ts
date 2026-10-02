@@ -12,7 +12,7 @@ import type { Page } from "@playwright/test";
 import { waitForFrame } from "./panel-page.ts";
 
 /**
- * The keys the two windows are kept under, named as `STORE_KEY` in `src/game/browser-store.ts`
+ * The keys the two windows are kept under, named as `STORE_KEY` in `src/ports/browser-store.ts`
  * names them.
  */
 const PLACE_KEY = "MargoMeter-place";

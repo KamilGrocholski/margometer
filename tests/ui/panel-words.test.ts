@@ -121,7 +121,7 @@ const OUR_VOCABULARY = [
  * Keys the game chose. A reader is told what happened, never what it arrived under.
  *
  * ⚠️ **Seven of these were kept by hand against a table that grows.** `frozen/protocol-keys.ts` is
- * every key the client branches on, re-lifted by `deno task game:keys`, and a sentence naming one
+ * every key the client branches on, re-lifted by `deno task margonem:keys`, and a sentence naming one
  * of them would have gone unread unless somebody had thought to add it here. What is taken from
  * that table is every key **whose shape Polish does not have** — an underscore, a digit, a capital
  * — because these are matched as substrings and `blok` is a word a Polish sentence may say.

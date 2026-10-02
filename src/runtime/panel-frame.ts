@@ -14,9 +14,9 @@ import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-r
 import { replayAuraStandings } from "#/src/core/aura-standing.ts";
 import type { OutcomeResult } from "#/src/core/battle-event.ts";
 import { composeFightView, type FightView } from "#/src/core/fight-session.ts";
-import type { MargonemEngineTooltipPort } from "#/src/game/margonem-engine-tooltip.ts";
-import type { FightPlace } from "#/src/game/fight-place.ts";
-import type { BrowserClock } from "#/src/game/browser-time.ts";
+import type { MargonemEngineTooltipPort } from "#/src/ports/margonem-engine-tooltip.ts";
+import type { FightPlace } from "#/src/ports/fight-place.ts";
+import type { BrowserClock } from "#/src/ports/browser-time.ts";
 import { type TooltipTables, writeCarriedTooltips } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
 import {

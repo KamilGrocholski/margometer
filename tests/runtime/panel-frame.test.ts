@@ -7,7 +7,7 @@
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import type { StatedSkills } from "#/src/core/aura-standing.ts";
 import { createFightSession, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
-import { createFightCapture } from "#/src/game/fight-capture.ts";
+import { createFightCapture } from "#/src/ports/fight-capture.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
 import { type KeptFightState, replayKeptFight } from "#/src/runtime/fight-state.ts";
 import {

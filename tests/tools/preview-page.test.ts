@@ -6,7 +6,7 @@
  */
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/game/payload-envelope.ts";
+import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { MARGONEM_CLIENT_SCRIPT_NAME } from "#/tests/e2e/margonem-page.ts";
 import { USERSCRIPT_NAME } from "#/tools/build-userscript.ts";
 import {

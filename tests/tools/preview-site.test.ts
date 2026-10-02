@@ -12,7 +12,7 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
-import { STORE_KEY } from "#/src/game/browser-store.ts";
+import { STORE_KEY } from "#/src/ports/browser-store.ts";
 import {
     encodeUserscriptBanner,
     parseDeclaredVersion,

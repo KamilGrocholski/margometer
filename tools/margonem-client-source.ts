@@ -3,7 +3,7 @@
  * for reading, and what is fetched never leaves `.cache/`: the client is somebody else's work, read
  * locally to understand a protocol the add-on already receives (`NOTICE.md`, `SECURITY.md`).
  *
- *     deno task game:client status | fetch [production|development]
+ *     deno task margonem:client status | fetch [production|development]
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
@@ -14,7 +14,7 @@ import { isRecord } from "#/libs/unknown-value.ts";
 import {
     parseMargonemClientBuildId,
     parseMargonemClientBundleName,
-} from "#/src/game/margonem-client-build.ts";
+} from "#/src/ports/margonem-client-build.ts";
 import { MargonemClientSourceError, MargonemUnreachableError } from "./margometer-tool-error.ts";
 
 export const MARGONEM_CHANNEL = { production: "production", development: "development" } as const;
@@ -103,7 +103,7 @@ export function requireCachedBuild(): string {
     const cached = readCachedMargonemClientSource(MARGONEM_CHANNEL.production);
     if (cached === null) {
         throw new MargonemClientSourceError(
-            "nothing cached for production — run `deno task game:client fetch production`",
+            "nothing cached for production — run `deno task margonem:client fetch production`",
         );
     }
     assertStrictEquals(
@@ -159,7 +159,7 @@ export function readCachedBundle(channel: MargonemChannel): string {
     const cached = readCachedMargonemClientSource(channel);
     if (cached === null) {
         throw new MargonemClientSourceError(
-            `nothing cached for ${channel} — run \`deno task game:client fetch ${channel}\``,
+            `nothing cached for ${channel} — run \`deno task margonem:client fetch ${channel}\``,
         );
     }
     const bundle = Deno.readTextFileSync(cached.bundlePath);
@@ -252,7 +252,7 @@ if (import.meta.main) {
         console.log(`cached ${cached.channel} build ${cached.build} → ${cached.bundlePath}`);
     } else {
         throw new MargonemClientSourceError(
-            "usage: deno task game:client status | fetch [channel]",
+            "usage: deno task margonem:client status | fetch [channel]",
         );
     }
 }

@@ -23,7 +23,7 @@ import {
 } from "#/src/core/fight-session.ts";
 import { tallyFightFigures } from "#/src/core/fight-figures.ts";
 import type { FightStatistics } from "#/src/core/fight-statistics.ts";
-import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
+import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { BLOWS_GRANTED } from "./frozen-tables.ts";
 import { RECORDINGS_DIRECTORY } from "./recording-sources.ts";
@@ -69,7 +69,7 @@ const RECORDING_EXTENSION = ".json";
 
 /**
  * The warrior keys inside a snapshot, as a recording keeps them. They are the game's, and
- * `src/game/margonem-engine-warriors.ts` copies them under their own names; the recording's own keys are
+ * `src/ports/margonem-engine-warriors.ts` copies them under their own names; the recording's own keys are
  * `FILE_FIELD`'s (N13).
  */
 const WARRIOR_FIELDS = {

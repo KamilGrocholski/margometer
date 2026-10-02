@@ -11,8 +11,8 @@ import {
     initMargonemEngineBattle,
     SearchAbandoned,
     type WrapHandle,
-} from "#/src/game/margonem-engine-battle.ts";
-import { type BrowserTimers, initBrowserInterval } from "#/src/game/browser-time.ts";
+} from "#/src/ports/margonem-engine-battle.ts";
+import { type BrowserTimers, initBrowserInterval } from "#/src/ports/browser-time.ts";
 import {
     initMargonemEngineSearch,
     LOOKS_MAXIMUM,

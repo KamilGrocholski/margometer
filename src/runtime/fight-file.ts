@@ -16,8 +16,8 @@ import type {
     FightStatistics,
     SkillFigures,
 } from "#/src/core/fight-statistics.ts";
-import type { CapturedCall } from "#/src/game/fight-capture.ts";
-import type { FightPlace } from "#/src/game/fight-place.ts";
+import type { CapturedCall } from "#/src/ports/fight-capture.ts";
+import type { FightPlace } from "#/src/ports/fight-place.ts";
 
 /** What a recording states, however it was come by. Null is what nobody measured. */
 export interface FileCalls {

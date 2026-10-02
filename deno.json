@@ -66,20 +66,20 @@
         // Every reading of the game this repository stands on, asked whether it is still the
         // game's, and made current again. What a work round starts with (W10), because the gate
         // reaches no network and so cannot tell that one went behind: `frozen/AGENTS.md`.
-        "game:readings": "deno run -A tools/margonem-readings.ts",
+        "margonem:readings": "deno run -A tools/margonem-readings.ts",
         // The client fetched and dated, so a claim about it names the build it was read on.
-        "game:client": "deno run -A tools/margonem-client-source.ts",
+        "margonem:client": "deno run -A tools/margonem-client-source.ts",
         // Every key the client branches on, and the bits a status mask is read by.
-        "game:keys": "deno run -A tools/protocol-key-table.ts",
-        "game:buffs": "deno run -A tools/buff-bit-table.ts",
+        "margonem:keys": "deno run -A tools/protocol-key-table.ts",
+        "margonem:buffs": "deno run -A tools/buff-bit-table.ts",
         // Every skill the game publishes, and the turns each effect runs for.
-        "game:skills": "deno run -A tools/skill-table.ts",
+        "margonem:skills": "deno run -A tools/skill-table.ts",
         // The published help, cached and searched, and the counts `docs/protocol-keys.md`'s claims
         // and the panel's words are held to. A freeze counts what the register cites.
-        "game:help": "deno run -A tools/help-article.ts",
+        "margonem:help": "deno run -A tools/help-article.ts",
         // What every key states about itself over `captures/`, beside the `_Shape:_` line
         // `docs/protocol-keys.md` writes for it: where a count in the register comes from.
-        "game:shape": "deno run -A tools/protocol-key-shape.ts",
+        "margonem:shape": "deno run -A tools/protocol-key-shape.ts",
         // How a recording the add-on wrote becomes material: redacted, and written into
         // `captures/` for a person to read and commit.
         "capture:intake": "deno run -A tools/capture-intake.ts",

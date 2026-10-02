@@ -19,7 +19,7 @@ import type { FightView } from "#/src/core/fight-session.ts";
 import type {
     MargonemEngineTooltipPort,
     TooltipWritten,
-} from "#/src/game/margonem-engine-tooltip.ts";
+} from "#/src/ports/margonem-engine-tooltip.ts";
 import {
     PANEL_WORDS,
     presentTooltipRows,

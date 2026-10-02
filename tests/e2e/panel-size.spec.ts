@@ -6,7 +6,7 @@
 import { expect, test } from "./panel-fixture.ts";
 import { readCentreOf, setDragged } from "./panel-probe.ts";
 
-/** The keys a size is written under, named as `STORE_KEY` in `src/game/browser-store.ts` names them. */
+/** The keys a size is written under, named as `STORE_KEY` in `src/ports/browser-store.ts` names them. */
 const SIZE_KEY = "MargoMeter-size";
 const HELPER_SIZE_KEY = "MargoMeter-pomocnik-size";
 /** Far enough that no rounding could account for it, and inside the window either way. */

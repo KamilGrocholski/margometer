@@ -12,9 +12,9 @@ reading keeps its date is ADR 0011.
 ## The process
 
 1. **Read the status.** The session-start hook in `.claude/settings.json` prints
-   `game:readings status` and `game:client status` into the context. Where it is missing (a resumed
-   session, or a round started later), run both yourself.
-2. **Any row STALE → refresh:** `deno task game:readings refresh`. Its lines say `moved to` or
+   `margonem:readings status` and `margonem:client status` into the context. Where it is missing (a
+   resumed session, or a round started later), run both yourself.
+2. **Any row STALE → refresh:** `deno task margonem:readings refresh`. Its lines say `moved to` or
    `unchanged since` for each reading, then it prints a status, which should be all `current`.
 3. **Read what moved:** `git diff --stat frozen/`. Empty means only the caches in `.cache/` moved,
    and there is nothing to commit. A moved file:
@@ -23,12 +23,12 @@ reading keeps its date is ADR 0011.
      (`frozen/AGENTS.md`, _Never_);
    - the refresh is a commit of its own, its body naming the build or date and what moved (**G3**),
      and it waits for the maintainer like any other (**G1**).
-4. **The experimental build moved** (`development … STALE` in `game:client status`) → run
-   `deno task game:readings preview`. A key or a bit it names is a heads-up for the next release:
-   report it to the maintainer, and freeze nothing from it.
-5. **Ask again during the round**, with `game:readings status`, before any claim that leans on the
-   game: a key's meaning, a phrase of the help, a duration. Ask again before a commit whose round
-   leaned on them (the `commit` checklist).
+4. **The experimental build moved** (`development … STALE` in `margonem:client status`) → run
+   `deno task margonem:readings preview`. A key or a bit it names is a heads-up for the next
+   release: report it to the maintainer, and freeze nothing from it.
+5. **Ask again during the round**, with `margonem:readings status`, before any claim that leans on
+   the game: a key's meaning, a phrase of the help, a duration. Ask again before a commit whose
+   round leaned on them (the `commit` checklist).
 
 ## Reading the exit
 

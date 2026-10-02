@@ -18,8 +18,8 @@ console line, a screenshot — because the file will not say.
 
 ## Before anything
 
-1. **The readings are current** (**W10**): `deno task game:readings status`, the `readings` skill.
-   The file's `gameBuild` against the frozen build says whether the game moved since.
+1. **The readings are current** (**W10**): `deno task margonem:readings status`, the `readings`
+   skill. The file's `gameBuild` against the frozen build says whether the game moved since.
 2. **Read the envelope**, with `jq` or `deno eval` over the file — never with a bare `jsr:` import,
    which writes to `deno.lock`: `formatVersion`, `addOnVersion`, `gameBuild`, `droppedCalls`,
    `isTruncated`, whether any call carries `combatantsBefore`, and every count in `report`.
@@ -51,7 +51,7 @@ console line, a screenshot — because the file will not say.
    | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
    | an unread key (`unknown-key`)                  | `src/core/protocol-key.ts`, `docs/protocol-keys.md`, as the `intake` skill's step 4   |
    | grammar refused, no parameter                  | `src/core/fight-decoder.ts`                                                           |
-   | messages lost, calls dropped, a truncated file | `src/game/fight-capture.ts`                                                           |
+   | messages lost, calls dropped, a truncated file | `src/ports/fight-capture.ts`                                                          |
    | casts unplaced, figures by nobody, neither end | `src/core/fight-statistics.ts`                                                        |
    | a defect the panel states                      | its kind in `src/runtime/defect-ledger.ts`, its fate in `src/runtime/failure-fate.ts` |
    | the panel's parts disagree with its whole      | `src/runtime/panel-frame.ts`, `src/ui/panel-content.ts`                               |

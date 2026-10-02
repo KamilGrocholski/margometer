@@ -20,7 +20,7 @@ What the old tree does that this design does not, measured on `develop` @ `fa1dc
   settings, the export, the drawing and the defects at once.
 - **The panel redraws on every call to `updateData`** (`src/userscript-entry.ts:1912`), including
   the calls the game keeps making after a fight is over. On the first recording, thinning dropped
-  565 of 569 calls for carrying nothing new (`src/game/fight-capture.ts`).
+  565 of 569 calls for carrying nothing new (`src/ports/fight-capture.ts`).
 - **Figures are recomputed from nothing on every draw**, not once per change.
 - **`compose` starts 310 of the 680 functions in `src/` and `libs/`**, and means four things there:
   building a stateful object, a computation, building DOM, and composing Polish text.
@@ -40,7 +40,7 @@ each is the `AGENTS.md` rule named beside it.
 | T2 | A limit on everything.                    | Every collection states a maximum, and capacities are fixed when a fight opens. S11.                                                                                                                                       |
 | T3 | In somebody else's stack, only what must. | In the game's stack: reading the envelope, copying for the file, `preparePayload`/`commitPayload`. The cost is bounded by the message count; nothing throws past `errors.attempt`. No drawing.                             |
 | T4 | A deterministic core.                     | `core/` is pure transitions `(state, input) → value \| failure`. All I/O goes through ports, so a simulator replays recordings with injected faults — the VOPR idea.                                                       |
-| T5 | Parse, don't validate.                    | A value from the game is read into a type of ours at the edge in `game/`, and every bound on it is checked there, once. Above the edge nothing is `unknown`, and a bound broken there is a bug of ours: an assertion.      |
+| T5 | Parse, don't validate.                    | A value from the game is read into a type of ours at the edge in `ports/`, and every bound on it is checked there, once. Above the edge nothing is `unknown`, and a bound broken there is a bug of ours: an assertion.     |
 | T6 | Explicit control flow.                    | A failure comes back beside the value, with no box and no `map`/`andThen`. Every call site writes `if (value instanceof Error)`, or asks for the class it expects. S1.                                                     |
 | T7 | Absent in the protocol is not a failure.  | `T \| null` in a domain type means "the protocol did not state it", which is a fact. A failure class means "reading failed". E6.                                                                                           |
 | T8 | Batch where the cost is.                  | A payload and a click only mark the panel stale. One scheduled frame computes and draws once, however many changes arrived. There is no queue, because there is nothing to hold in one.                                    |
@@ -188,16 +188,16 @@ What is deliberately **not** here:
 frozen/                   the game's published tables, as `develop` @ `fa1dcce` froze them
 libs/                     result, vocabulary, readers of text, numbers, JSON, unknown values
 src/core/                 grammar → decoder → session → figures → standings (pure, deterministic)
-src/game/                 ports over the page: engine, warriors, envelope, store, place,
-                          dictionary, tooltip, file
+src/ports/                ports over Margonem and the browser: engine, warriors, envelope, store,
+                          place, dictionary, tooltip, file
 src/runtime/              the frame, defects, settings, shelf, export
 src/ui/                   reading → DOM; throws nothing, asserts nothing; gestures → intents
 src/userscript-entry.ts   composing the ports and starting; nothing else
 ```
 
-Dependencies point one way: `core → libs`; `game → core (types), libs`; `ui → core (types), libs`;
-`runtime → everything below it`; the entry → `runtime`, `game`, `ui`, `core` and `frozen/`, which is
-the one layer holding a frozen reading and handing it on. `libs/` and `frozen/` import no layer.
+Dependencies point one way: `core → libs`; `ports → core (types), libs`; `ui → core (types), libs`;
+`runtime → everything below it`; the entry → `runtime`, `ports`, `ui`, `core` and `frozen/`, which
+is the one layer holding a frozen reading and handing it on. `libs/` and `frozen/` import no layer.
 
 ## 5. Ports
 
@@ -349,7 +349,7 @@ export interface BrowserFileSink {
 }
 export type FileFailure = FileApiAbsent | errors.Caught;
 /** Once per kind of defect. */
-/** The kind is handed in as text: `game/` imports nothing of the runtime's (§4). */
+/** The kind is handed in as text: `ports/` imports nothing of the runtime's (§4). */
 export interface BrowserConsolePort {
     writeBrandedLine(kind: string, detail: unknown): void;
 }
@@ -1083,9 +1083,9 @@ This branch starts empty, so the order is what makes each step testable on the l
 2. `core/` grammar and decoder, carried over from `develop` with its tests, returning failures
    beside their values.
 3. `core/` session (`preparePayload`, `commitPayload`), figures, standings.
-4. `game/`: the envelope, warriors and capture readers.
+4. `ports/`: the envelope, warriors and capture readers.
 5. `runtime/`: defects, settings, shelf, file, `FAILURE_FATES`. Each port of §5 arrives with the
-   runtime piece that consumes it (`AGENTS.md` C9), in `game/` where it reads the page.
+   runtime piece that consumes it (`AGENTS.md` C9), in `ports/` where it reads the page.
 6. `ui/`: `present…`, `PanelView`, intents; then the runtime joining them: `initRuntime`, the
    keeper, the frame, the tooltip and the file, with the dictionary, tooltip, frame, clock,
    surroundings and file ports.

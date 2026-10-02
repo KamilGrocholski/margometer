@@ -69,7 +69,7 @@ export const PROBE_NAME = "margometerE2e";
 export const ENGINE_ANSWER = "e2e-engine";
 /** The place the stub names, which no recording carries and every header states. */
 export const PLACE_NAME = "E2E";
-/** A build id in the shape `src/game/margonem-client-build.ts` reads, on a tag that loads nothing. */
+/** A build id in the shape `src/ports/margonem-client-build.ts` reads, on a tag that loads nothing. */
 export const MARGONEM_CLIENT_BUILD = "1785244275300";
 export const MARGONEM_CLIENT_SCRIPT_NAME = `main.min${MARGONEM_CLIENT_BUILD}.js`;
 /** Where the settings the driver reads are parked, since a page cannot be handed an argument. */
@@ -121,15 +121,15 @@ ${composeMargonem(place)}
  * The game, stood up before the add-on looks for one: the first look is the one that finds it, and
  * a page standing it up afterwards draws nothing for as long as the poll takes
  * (`src/runtime/margometer-runtime.ts`). Both roster names are needed — with only `w` every
- * snapshot read under `warriorsList` comes out empty (`src/game/payload-envelope.ts`).
+ * snapshot read under `warriorsList` comes out empty (`src/ports/payload-envelope.ts`).
  *
- * Each fighter carries a `$` of the client's own shape, so what `src/game/margonem-engine-tooltip.ts`
+ * Each fighter carries a `$` of the client's own shape, so what `src/ports/margonem-engine-tooltip.ts`
  * writes lands somewhere a test can read it back.
  */
 function composeMargonem(place: string): string {
     return `window.MARGOMETER_TIPS = {};
 // The client's registry of tooltips is one string per fighter, and these four are all the add-on
-// asks of it (src/game/margonem-engine-tooltip.ts). \`told\` counts what an open tooltip was told.
+// asks of it (src/ports/margonem-engine-tooltip.ts). \`told\` counts what an open tooltip was told.
 window.MARGOMETER_TOLD = {};
 var composeTipTarget = function (id) {
   var targets = {
@@ -172,7 +172,7 @@ window.Engine = {
 /**
  * What the page keeps for a test. `Blob` is wrapped because the panel hands a file over as an
  * object URL it clicks and revokes on the next macrotask (`initBrowserFile`, in
- * `src/game/browser-file.ts`) — the text is kept here synchronously, where nothing can lose the race
+ * `src/ports/browser-file.ts`) — the text is kept here synchronously, where nothing can lose the race
  * for it.
  */
 function composeProbe(): string {

@@ -15,7 +15,7 @@ import {
 import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { FROZEN_BLOWS_GRANTED } from "#/frozen/blows-granted.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
-import { STORE_KEY } from "#/src/game/browser-store.ts";
+import { STORE_KEY } from "#/src/ports/browser-store.ts";
 import { CLASS } from "#/src/ui/panel-look.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import {

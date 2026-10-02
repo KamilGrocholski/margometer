@@ -11,7 +11,7 @@ import {
     assertStrictEquals,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { type BrowserFrames, initBrowserFrames } from "#/src/game/browser-time.ts";
+import { type BrowserFrames, initBrowserFrames } from "#/src/ports/browser-time.ts";
 
 Deno.test("a step runs when its frame falls, and a cancel hands back the page's own handle", () => {
     const wound = composeFrames();

@@ -21,7 +21,7 @@ import {
     PayloadFieldTooLong,
     PayloadNotRecord,
     readPayloadEnvelope,
-} from "#/src/game/payload-envelope.ts";
+} from "#/src/ports/payload-envelope.ts";
 import {
     commitPayload,
     composeFightView,

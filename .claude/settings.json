@@ -26,7 +26,7 @@
                     {
                         "type": "command",
                         "timeout": 60,
-                        "command": "export NO_COLOR=1; deno task --quiet game:readings status 2>&1; deno task --quiet game:client status 2>&1; exit 0"
+                        "command": "export NO_COLOR=1; deno task --quiet margonem:readings status 2>&1; deno task --quiet margonem:client status 2>&1; exit 0"
                     }
                 ]
             }

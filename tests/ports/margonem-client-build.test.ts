@@ -12,8 +12,8 @@ import {
     initMargonemClientBuild,
     parseMargonemClientBuildId,
     parseMargonemClientBundleName,
-} from "#/src/game/margonem-client-build.ts";
-import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/game/margonem-value.ts";
+} from "#/src/ports/margonem-client-build.ts";
+import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
 
 Deno.test("both names the client has served give up their build", () => {
     assertEquals(

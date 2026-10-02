@@ -12,7 +12,7 @@ the naming are `tools/capture-intake.ts`'s; what each recording holds is
 
 ## Before anything
 
-1. **The readings are current** (**W10**): `deno task game:readings status`.
+1. **The readings are current** (**W10**): `deno task margonem:readings status`.
 2. **Replay the file first**: `deno task fight:decoding <file>`. A `no snapshot` line means the file
    is a report from the shelf, not a recording, and intake will refuse it: the combatants before and
    after are the one check of the decoder that is not the decoder. An unread key is tallied by name.
@@ -27,8 +27,8 @@ the naming are `tools/capture-intake.ts`'s; what each recording holds is
    by naming what a person has to read. No nickname enters the tree (_Never_).
 3. **The register.** Its entry in `docs/captured-fights.md`.
 4. **The decoder**, where a key went unread: its meaning in `src/core/protocol-key.ts`, its entry in
-   `docs/protocol-keys.md`, then `deno task game:shape` for the `_Shape:_` lines and
-   `deno task game:help freeze` where the entry cites the help.
+   `docs/protocol-keys.md`, then `deno task margonem:shape` for the `_Shape:_` lines and
+   `deno task margonem:help freeze` where the entry cites the help.
 5. **The registers the tools print**, each against its document: `fight:turns` →
    `docs/turns-taken.md`, `fight:openers` → `docs/reading-a-turn.md`, `fight:auras` →
    `docs/auras-standing.md`, `panel:drill` → `docs/drill-levels.md`.
@@ -49,9 +49,9 @@ the naming are `tools/capture-intake.ts`'s; what each recording holds is
 
 ## Gotchas paid for
 
-- **`game:shape` only reports.** Rewriting many `_Shape:_` lines at once takes a one-off script that
-  imports `tallyKeyShapes` and `formatShapeLine` from `tools/protocol-key-shape.ts`. It has to stand
-  inside the tree, under `fabricated/` which git ignores, for `#/` to resolve.
+- **`margonem:shape` only reports.** Rewriting many `_Shape:_` lines at once takes a one-off script
+  that imports `tallyKeyShapes` and `formatShapeLine` from `tools/protocol-key-shape.ts`. It has to
+  stand inside the tree, under `fabricated/` which git ignores, for `#/` to resolve.
 - **Two close numbers mean different things.** "The corpus states N of them" in
   `docs/turns-taken.md` is the turns-lost sum pinned in `tests/core/fight-statistics.test.ts`, not
   the count of turn-lost events `fight:decoding` prints.

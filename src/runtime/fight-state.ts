@@ -21,8 +21,8 @@ import {
     preparePayload,
     type SessionOptions,
 } from "#/src/core/fight-session.ts";
-import { type EnvelopeFailure, readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
-import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
+import { type EnvelopeFailure, readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
+import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
 import { KEPT_MAXIMUM, type KeptFight } from "./shelf.ts";
 
 export interface FightState {

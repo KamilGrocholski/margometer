@@ -13,7 +13,7 @@ const MARKS_ON_THE_SCREENS = 2;
 const SIDES_ON_A_FIGHT = 3;
 /** On the shelf: kept for good, kept until the tab closes, kept only for now. */
 const PLACES_TO_KEEP = 3;
-/** The one key the choice is written under, named as `STORE_KEY` in `src/game/browser-store.ts` names it. */
+/** The one key the choice is written under, named as `STORE_KEY` in `src/ports/browser-store.ts` names it. */
 const STORAGE_KEY = "MargoMeter-storage";
 
 test("every noun and direction is a strip, and pressing one moves the mark", async ({ panel }) => {

@@ -5,8 +5,8 @@ key: some are already settled, and some were investigated and deliberately left 
 
 Each entry carries a **verdict** and its **evidence** — a measurement over the captured fights, a
 citation from the game client with the build it was read on, or the game's published help with the
-date it was read (`deno task game:help`). A verdict without evidence is a guess someone will later
-mistake for a fact.
+date it was read (`deno task margonem:help`). A verdict without evidence is a guess someone will
+later mistake for a fact.
 
 **A verdict is one of `decoded`, `investigated` or `not a battle key`**, and a word outside that
 list is refused rather than read as silence, the way a phrase outside the vocabularies below is.
@@ -23,11 +23,11 @@ no sentence of the game's is copied in here — an entry carries the locator and
 **Guarded** by two tests, one per source an entry stands on.
 `tests/repository/protocol-keys.test.ts` re-counts what this file claims of the published help
 against the frozen table beside it. `tests/tools/protocol-key-shape.test.ts` re-earns every
-`_Shape:_` line over `captures/` through `deno task game:shape`, both ways round — a claim the
+`_Shape:_` line over `captures/` through `deno task margonem:shape`, both ways round — a claim the
 recordings no longer produce fails, and so does a key they carry that no entry states. Coverage over
 the material is held elsewhere and as an assertion rather than a report:
 `tests/core/fight-decoder.test.ts` fails if anything in `captures/` goes unread, and
-`tests/game/recorded-session.test.ts` fails per recording.
+`tests/ports/recorded-session.test.ts` fails per recording.
 
 ## What every entry states about its own material
 
@@ -82,8 +82,8 @@ One said a key occurred once where the corpus carried it twenty times, and reste
 on the singleness. Another counted occurrences of a key at twice what that key's own `_Shape:_` line
 counted, and was a day old — a recording states every message twice, in the payload and in the
 parsed messages both, so a count taken by `grep` over `captures/` is doubled every time.
-`tests/repository/protocol-keys.test.ts` re-earns this rule, and `deno task game:shape` is where a
-count comes from.
+`tests/repository/protocol-keys.test.ts` re-earns this rule, and `deno task margonem:shape` is where
+a count comes from.
 
 ### Which channel a claim is read on
 
@@ -108,9 +108,10 @@ telling us:
 **The line states an occurrence; the prose states what it means.** `names` claims only that the
 article carries the phrase — whether it _documents_ the key is a paragraph a person has to read, and
 three entries here occur in the article without being documented by it. Every phrase is re-counted
-against `frozen/help-phrases.ts`, which `deno task game:help freeze` writes from the cached dump, by
-`tests/repository/protocol-keys.test.ts`. Counts only: the help's own sentences never enter this
-repository, and a count is our measurement of the article rather than a piece of it (NOTICE.md).
+against `frozen/help-phrases.ts`, which `deno task margonem:help freeze` writes from the cached
+dump, by `tests/repository/protocol-keys.test.ts`. Counts only: the help's own sentences never enter
+this repository, and a count is our measurement of the article rather than a piece of it
+(NOTICE.md).
 
 **An entry citing the help must carry the line.** Not every entry — a key nobody has asked the help
 about says nothing, and silence is the honest answer there.
@@ -1433,7 +1434,7 @@ it: this one names fire, where `-c`'s names cold and `-l`'s lightning. The sente
 in that bundle and are not copied here (`AGENTS.md`). The published help names `resdmg` and none of
 the three narrowed keys, so what the unit is comes from the entry above rather than from an article
 of its own. None of the three states a `_Help:_` line: the claim would be one the frozen table has
-never counted, because `deno task game:help` has searched `resdmg` alone.
+never counted, because `deno task margonem:help` has searched `resdmg` alone.
 
 ### `+resdmgc` — decoded
 
@@ -2856,8 +2857,8 @@ says nothing of frost, so neither the base nor the rule behind this key is docum
 variant for the other two weakeners and none for this one — a claim about the switch, read on
 production `Bb28FQty` 2026-09-16, not an absence of material. `captures/` carries none of the four
 keys this entry and the three below name, as the set stood 2026-09-16, so none states a `_Shape:_`
-line. None states a `_Help:_` line either: `deno task game:help` has searched `wound` and the stem
-alone, so a claim about the narrowed keys would be one the frozen table never counted.
+line. None states a `_Help:_` line either: `deno task margonem:help` has searched `wound` and the
+stem alone, so a claim about the narrowed keys would be one the frozen table never counted.
 
 _Evidence:_ production build `Bb28FQty` composes `msg_woundfrost %val%` on the one switch that
 composes `msg_+wound`, `msg_woundpoison`, `msg_woundmagic`, `msg_of_woundpoison` and

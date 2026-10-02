@@ -11,7 +11,7 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import type { SessionOptions } from "#/src/core/fight-session.ts";
-import type { KeyValueStore } from "#/src/game/browser-store.ts";
+import type { KeyValueStore } from "#/src/ports/browser-store.ts";
 import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
 import { type KeptFightState, replayKeptFight } from "./fight-state.ts";
 import { writeStorageChoice } from "./settings.ts";

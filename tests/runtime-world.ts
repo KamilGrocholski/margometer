@@ -7,12 +7,12 @@
 
 import { assert, assertExists } from "@std/assert";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
-import { initBrowserStore, type KeyValueStore } from "#/src/game/browser-store.ts";
-import { initMargonemEngineBattle } from "#/src/game/margonem-engine-battle.ts";
-import { initMargonemEngineHero } from "#/src/game/margonem-engine-hero.ts";
-import { initMargonemEnginePlace } from "#/src/game/margonem-engine-place.ts";
-import { initMargonemEngineTooltip } from "#/src/game/margonem-engine-tooltip.ts";
-import { initMargonemClientDictionary } from "#/src/game/margonem-client-dictionary.ts";
+import { initBrowserStore, type KeyValueStore } from "#/src/ports/browser-store.ts";
+import { initMargonemEngineBattle } from "#/src/ports/margonem-engine-battle.ts";
+import { initMargonemEngineHero } from "#/src/ports/margonem-engine-hero.ts";
+import { initMargonemEnginePlace } from "#/src/ports/margonem-engine-place.ts";
+import { initMargonemEngineTooltip } from "#/src/ports/margonem-engine-tooltip.ts";
+import { initMargonemClientDictionary } from "#/src/ports/margonem-client-dictionary.ts";
 import {
     initRuntime,
     type Runtime,

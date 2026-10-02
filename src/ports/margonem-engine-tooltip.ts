@@ -55,8 +55,8 @@ const TELL_EVENT = "tipupdate";
 const CLIENT_BREAK = "<br>";
 
 /**
- * Past the rows one block comes to. `game/` reaches into no `ui/` module, so the composer's own
- * bound is held level with this one by `tests/game/margonem-engine-tooltip.test.ts`.
+ * Past the rows one block comes to. `ports/` reaches into no `ui/` module, so the composer's own
+ * bound is held level with this one by `tests/ports/margonem-engine-tooltip.test.ts`.
  */
 export const ROWS_WRITTEN_MAXIMUM = 20;
 

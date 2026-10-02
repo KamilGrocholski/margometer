@@ -145,24 +145,24 @@ file comes or goes (ADR 0010).
 | `src/core/protocol-number.ts`    | the numbers the protocol states, in the shapes it states them in                             |
 | `src/core/turn-clock.ts`         | whose turn an event opens, the one clock every figure and status counts turns on             |
 
-| Path                                     | For                                                                                        |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `src/game/browser-store.ts`              | the store a browser lends, wrapped so a refusal is an answer                               |
-| `src/game/margonem-engine-battle.ts`     | the running fight on the page, and the wrap of the engine's `updateData`                   |
-| `src/game/margonem-engine-hero.ts`       | which combatant is the reader, read off the game client's own state as its hero's id       |
-| `src/game/margonem-engine-place.ts`      | where a fight is happening, read off the game client's own state                           |
-| `src/game/margonem-engine-tooltip.ts`    | our rows appended to the tooltip the game client shows for a fighter                       |
-| `src/game/fight-capture.ts`              | the fight as it happened, thinned as it is collected, kept for a recording                 |
-| `src/game/fight-place.ts`                | where a fight was fought: the map's name and the reader's square on it                     |
-| `src/game/margonem-client-build.ts`      | the build id read out of the client bundle's file name                                     |
-| `src/game/margonem-client-dictionary.ts` | asking the running game client what the reader's own copy calls something                  |
-| `src/game/browser-time.ts`               | the page's clock, animation frame and repeating timer, each step guarded at the handover   |
-| `src/game/browser-console.ts`            | the page's console: one branded line per kind of failure                                   |
-| `src/game/browser-file.ts`               | hands a file to the browser's downloads, through a blob and an object URL                  |
-| `src/game/margonem-value.ts`             | a value asked of the game that came back empty, shown as unknown                           |
-| `src/game/browser-surroundings.ts`       | what a recording states about where it was taken: the world and the browser                |
-| `src/game/payload-envelope.ts`           | one engine call read into a `PayloadRecord`, its warrior entries with each mask and charge |
-| `src/game/margonem-engine-warriors.ts`   | the combatants the running fight holds, copied for a recording                             |
+| Path                                      | For                                                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/ports/browser-store.ts`              | the store a browser lends, wrapped so a refusal is an answer                               |
+| `src/ports/margonem-engine-battle.ts`     | the running fight on the page, and the wrap of the engine's `updateData`                   |
+| `src/ports/margonem-engine-hero.ts`       | which combatant is the reader, read off the game client's own state as its hero's id       |
+| `src/ports/margonem-engine-place.ts`      | where a fight is happening, read off the game client's own state                           |
+| `src/ports/margonem-engine-tooltip.ts`    | our rows appended to the tooltip the game client shows for a fighter                       |
+| `src/ports/fight-capture.ts`              | the fight as it happened, thinned as it is collected, kept for a recording                 |
+| `src/ports/fight-place.ts`                | where a fight was fought: the map's name and the reader's square on it                     |
+| `src/ports/margonem-client-build.ts`      | the build id read out of the client bundle's file name                                     |
+| `src/ports/margonem-client-dictionary.ts` | asking the running game client what the reader's own copy calls something                  |
+| `src/ports/browser-time.ts`               | the page's clock, animation frame and repeating timer, each step guarded at the handover   |
+| `src/ports/browser-console.ts`            | the page's console: one branded line per kind of failure                                   |
+| `src/ports/browser-file.ts`               | hands a file to the browser's downloads, through a blob and an object URL                  |
+| `src/ports/margonem-value.ts`             | a value asked of the game that came back empty, shown as unknown                           |
+| `src/ports/browser-surroundings.ts`       | what a recording states about where it was taken: the world and the browser                |
+| `src/ports/payload-envelope.ts`           | one engine call read into a `PayloadRecord`, its warrior entries with each mask and charge |
+| `src/ports/margonem-engine-warriors.ts`   | the combatants the running fight holds, copied for a recording                             |
 
 | Path                                | For                                                                                             |
 | ----------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -200,7 +200,7 @@ file comes or goes (ADR 0010).
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `tools/aura-lifetime.ts`          | how long a status stands on the mask, and whether one lighting goes out together: `fight:life`                           |
 | `tools/aura-standing.ts`          | what stands on a side, whom a shout holds, how many sources stand at once: `fight:auras`                                 |
-| `tools/buff-bit-table.ts`         | lifts the statuses the `buffs` mask is read by from the client bundle: `game:buffs`                                      |
+| `tools/buff-bit-table.ts`         | lifts the statuses the `buffs` mask is read by from the client bundle: `margonem:buffs`                                  |
 | `tools/build-userscript.ts`       | builds the userscript a reader installs, and checks the built text: `build`                                              |
 | `tools/capture-intake.ts`         | turns a recording the add-on wrote into material in `captures/`: `capture:intake`                                        |
 | `tools/card-height.ts`            | how tall the card a ranking row opens stands, over the recordings: `panel:cards`                                         |
@@ -211,9 +211,9 @@ file comes or goes (ADR 0010).
 | `tools/fabricated-fight.ts`       | a fight nobody fought, ten a side, written under `fabricated/` outside git: `fight:fabricate`                            |
 | `tools/fight-figures.ts`          | what a recording adds up to per combatant, as a terminal table: `fight:figures`                                          |
 | `tools/frozen-files.ts`           | what a freeze leaves in `frozen/`: a file re-dated only where its content moved                                          |
-| `tools/margonem-client-source.ts` | fetches and dates the game client's JavaScript into `.cache/`: `game:client`                                             |
-| `tools/margonem-readings.ts`      | whether the readings in `frozen/` are current, the refresh, and the development preview: `game:readings`                 |
-| `tools/help-article.ts`           | the published help, cached, searched and its phrase counts frozen: `game:help`                                           |
+| `tools/margonem-client-source.ts` | fetches and dates the game client's JavaScript into `.cache/`: `margonem:client`                                         |
+| `tools/margonem-readings.ts`      | whether the readings in `frozen/` are current, the refresh, and the development preview: `margonem:readings`             |
+| `tools/help-article.ts`           | the published help, cached, searched and its phrase counts frozen: `margonem:help`                                       |
 | `tools/help-claim-register.ts`    | the claims `docs/protocol-keys.md` makes of the published help, read back into phrases                                   |
 | `tools/margometer-tool-error.ts`  | `MargoMeterToolError`, the abstract base every tool failure extends                                                      |
 | `tools/payload-cost.ts`           | what one payload costs in the game's stack, and the frame's tally, over the recordings: `fight:cost`                     |
@@ -223,11 +223,11 @@ file comes or goes (ADR 0010).
 | `tools/preview-server.ts`         | serves the preview with a picker, rebuilt and reloaded on change, saying a failed build: `preview`, `preview:fabricated` |
 | `tools/preview-site.ts`           | builds the one-page preview GitHub Pages publishes, which keeps nothing and plays its fight once: `preview:site`         |
 | `tools/preview-state.ts`          | what `deno task preview` carries in its address across a reload                                                          |
-| `tools/protocol-key-shape.ts`     | what each key states about itself over the recordings, beside the register's line: `game:shape`                          |
-| `tools/protocol-key-table.ts`     | lifts every protocol key the game client branches on from its bundle: `game:keys`                                        |
+| `tools/protocol-key-shape.ts`     | what each key states about itself over the recordings, beside the register's line: `margonem:shape`                      |
+| `tools/protocol-key-table.ts`     | lifts every protocol key the game client branches on from its bundle: `margonem:keys`                                    |
 | `tools/recorded-material.ts`      | the recordings a tool reports on, each fight replayed through the runtime's chain, whole or call by call                 |
 | `tools/shout-holding.ts`          | whom a character a shout named strikes, turn by turn after it: `fight:shout`                                             |
-| `tools/skill-table.ts`            | every published skill and the turns its effects run for: `game:skills`                                                   |
+| `tools/skill-table.ts`            | every published skill and the turns its effects run for: `margonem:skills`                                               |
 | `tools/turn-count.ts`             | the turns each recording's combatants took, graded against the game's numbering: `fight:turns`                           |
 | `tools/turn-reading.ts`           | what each message came to under the turn rule, and the openers in dispute: `fight:openers`                               |
 
@@ -236,7 +236,7 @@ file comes or goes (ADR 0010).
 | `tests/`            | shared test support (fake window and document, simulator, recording readers, a register's table reader, the reader of each verb's purity) and the entry and simulation suites |
 | `tests/core/`       | the suites of `src/core/`, and the decoding rules held over the recordings                                                                                                    |
 | `tests/e2e/`        | the browser suite: Playwright on Node driving the built userscript in Chrome, outside the gate                                                                                |
-| `tests/game/`       | the suites of `src/game/`, the page adapters, and a session replayed from the recordings                                                                                      |
+| `tests/ports/`      | the suites of `src/ports/`, the page adapters, and a session replayed from the recordings                                                                                     |
 | `tests/libs/`       | the suites of `libs/`                                                                                                                                                         |
 | `tests/repository/` | the guards the register in `AGENTS.md` names, each holding a rule over the tree                                                                                               |
 | `tests/runtime/`    | the suites of `src/runtime/`                                                                                                                                                  |

@@ -30,7 +30,7 @@ Read from the parser on 2026-09-30 at `56cafa7`, over the top-level function dec
 - 14 functions in `src/` stood between 60 and 70 lines.
 
 `initRuntime` and `initRuntimeState` (`src/runtime/margometer-runtime.ts`) are one sequence of about
-a hundred lines, cut in two at the page. `readPayloadEnvelope` (`src/game/payload-envelope.ts`)
+a hundred lines, cut in two at the page. `readPayloadEnvelope` (`src/ports/payload-envelope.ts`)
 calls four pieces of itself, each once. `renderPanelBodyFoot` stood some 1400 lines under the one
 line that calls it (`src/ui/panel-element.ts`).
 

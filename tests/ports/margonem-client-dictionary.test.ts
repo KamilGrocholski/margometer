@@ -7,8 +7,11 @@
 
 import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initMargonemClientDictionary, parseLabel } from "#/src/game/margonem-client-dictionary.ts";
-import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/game/margonem-value.ts";
+import {
+    initMargonemClientDictionary,
+    parseLabel,
+} from "#/src/ports/margonem-client-dictionary.ts";
+import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
 
 const CRITICAL_ID = "msg_+crit";
 

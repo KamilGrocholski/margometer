@@ -16,7 +16,7 @@ import {
     StoreRefused,
     StoreUnavailable,
     StoreValueTooLong,
-} from "#/src/game/browser-store.ts";
+} from "#/src/ports/browser-store.ts";
 
 /**
  * A browser that refuses, throwing what one set to forbid storage actually throws: a

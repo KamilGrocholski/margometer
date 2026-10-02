@@ -6,7 +6,7 @@
  * what production froze, and writes nothing under `frozen/`. `frozen/AGENTS.md` says when each is
  * run (W10).
  *
- *     deno task game:readings status | refresh | preview
+ *     deno task margonem:readings status | refresh | preview
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
@@ -341,7 +341,7 @@ if (import.meta.main) {
         await writeDevelopmentPreview();
     } else {
         throw new MargonemReadingsError(
-            "usage: deno task game:readings status | refresh | preview",
+            "usage: deno task margonem:readings status | refresh | preview",
         );
     }
 }

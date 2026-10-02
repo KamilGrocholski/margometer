@@ -20,8 +20,8 @@ import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
 import type { TurnStatement } from "#/src/core/fight-session.ts";
 import type { CombatantFigures, FightStatistics } from "#/src/core/fight-statistics.ts";
-import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
-import { ENVELOPE_KEYS } from "#/src/game/payload-envelope.ts";
+import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
+import { ENVELOPE_KEYS } from "#/src/ports/payload-envelope.ts";
 import type { RecordedFight } from "#/tests/recorded-fights.ts";
 import { TurnCountError } from "./margometer-tool-error.ts";
 import {

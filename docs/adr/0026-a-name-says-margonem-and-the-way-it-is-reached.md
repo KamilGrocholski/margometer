@@ -66,9 +66,20 @@ file's spelling and is not a word of a name of ours.
 **Engine** entries name `MargonemClient…` and `MargonemEngine…`, and add `Game` to what a name
 avoids. A tool's console brand moves with its class: `MargoMeterTool/MargonemClientSource`.
 
-What stays, and the maintainer's call:
+**The layer is `src/ports/`.** It holds the ports over Margonem and over the browser, and the reader
+of the payload one of them hands over, so `game` named only part of it. "Ports" is `docs/design.md`
+§5's word for what the layer is; the prefix of each file says whose port it is
+(`src/ports/margonem-engine-battle.ts`, `src/ports/browser-store.ts`). Its suites are
+`tests/ports/`. A citation of a path at a revision (`develop:`, `git show v0.10.1:`) keeps the path
+that stood there.
 
-- the layer's directory, `src/game/`, which `docs/design.md` §4 names and which holds the browser's
-  ports beside the game's;
-- the tasks `game:*`, which hooks, skills and the headers of `frozen/` name, and which only a
-  re-freeze can rewrite in `frozen/`.
+Rejected: `src/edge/`, after §7's title. It is shorter and covers the payload's reader, but "port"
+is the word the design defines for it.
+
+**The tasks are `margonem:*`**: `margonem:readings`, `margonem:client`, `margonem:keys`,
+`margonem:buffs`, `margonem:skills`, `margonem:help`, `margonem:shape`. Every reading in `frozen/`
+names the task that wrote it in its banner, and a freeze compares a file byte for byte (ADR 0011),
+so the new banner re-dated every reading to the fetch that wrote it: build `DHSqC3Uh` for the keys
+and the bits, 2026-10-02 for the help and the skills. No key, bit, phrase or duration moved; the
+refresh run before the rename, on the same build and the same day, reported every one
+`unchanged since`.

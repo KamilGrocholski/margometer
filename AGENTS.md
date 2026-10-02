@@ -91,7 +91,7 @@ this language does not have would be**; each states what binds instead.
   exactly one function and never handed on, and whose body's depth plus the depth of its call stays
   within **S16**'s bound. ADR 0018, ADR 0022.
 - **S5.** Assertion density averages at least two per **function that takes something and may
-  assert**, across `libs/`, `src/core/`, `src/game/`, `src/runtime/` and `tools/`, counting the
+  assert**, across `libs/`, `src/core/`, `src/ports/`, `src/runtime/` and `tools/`, counting the
   closures a file writes inside its functions as the functions they are. A function handed nothing
   has no precondition a caller could break; one **E12** forbids to assert has none it may state.
   **The floor a machine holds this to sits below the two**, so that deleting an assertion **A12**
@@ -126,7 +126,7 @@ this language does not have would be**; each states what binds instead.
 - **S15. A record is born whole.** A record this program builds has every field from the literal
   that creates it, `null` where nothing was stated (**E6**): no field is added after, none is
   `delete`d, and its type marks none optional. Observation: a `delete` of a property, or a property
-  typed `?:`, in `libs/`, `src/core/`, `src/game/` or `src/runtime/`. A type describing an object
+  typed `?:`, in `libs/`, `src/core/`, `src/ports/` or `src/runtime/`. A type describing an object
   the page hands over is not one this program builds. ADR 0021.
 - **S16. A body nests at most five blocks deep, counting its own.** A braced block, a `case`, and
   every arrow a statement stands in, braced or not, each count one; a lambda written inside a
@@ -410,7 +410,7 @@ TypeScript idiom, with the naming rules stated here.
   sibling, and always the file's extension. ADR 0002.
 - **C9.** Nothing exists before it is needed — files, directories, modules, tools, guards and
   documents alike. A shared module appears at the **second** consumer. Observation: a module of
-  `src/core/`, `src/game/`, `src/runtime/` or `src/ui/` that exactly one other module of its own
+  `src/core/`, `src/ports/`, `src/runtime/` or `src/ui/` that exactly one other module of its own
   directory imports, a test counting as no consumer. ADR 0020.
 - **C10.** A file holds one subject, however long that subject runs. What forces a split is a
   **second** subject, never a line count.
@@ -483,7 +483,7 @@ TypeScript idiom, with the naming rules stated here.
 - **W9.** A change under `src/` is not done until the end-to-end suite is green as well, from the
   commit that brings the suite. `develop ADR 0047`.
 - **W10.** A work round that relies on frozen readings of the game starts with them current, by
-  `frozen/AGENTS.md`: `deno task game:readings status`, and `refresh` where one went behind (ADR
+  `frozen/AGENTS.md`: `deno task margonem:readings status`, and `refresh` where one went behind (ADR
   0005).
 
 ## Git

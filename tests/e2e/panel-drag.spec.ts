@@ -15,7 +15,7 @@ const DOWN = 60;
 const VISIBLE_LEAST = 64;
 const WINDOW_WIDTH = 1280;
 const WINDOW_HEIGHT = 900;
-/** The one key a drag writes, named as `STORE_KEY` in `src/game/browser-store.ts` names it. */
+/** The one key a drag writes, named as `STORE_KEY` in `src/ports/browser-store.ts` names it. */
 const PLACE_KEY = "MargoMeter-place";
 /** Enough of the fight to have drawn a panel, and enough left over to land one mid-drag. */
 const PART_WAY = 20;

@@ -5,7 +5,7 @@
 
 import { expect, test } from "./panel-fixture.ts";
 
-/** Named as `STORE_KEY` in `src/game/browser-store.ts` names it. */
+/** Named as `STORE_KEY` in `src/ports/browser-store.ts` names it. */
 const STORAGE_KEY = "MargoMeter-storage";
 const CONTROLS = ["[data-options]", "[data-shelf]", "[data-save]", "[data-fold]"];
 /** Named as `SIZE_VARIABLES` in `src/ui/panel-look.ts` names the panel's width. */

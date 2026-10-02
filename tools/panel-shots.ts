@@ -13,7 +13,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { encodeJson } from "#/libs/json-text.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { PANEL_MARK, type PanelMark } from "#/src/ui/panel-intent.ts";
-import { STORE_KEY } from "#/src/game/browser-store.ts";
+import { STORE_KEY } from "#/src/ports/browser-store.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { CLASS, PLACE, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { composePanelPage } from "#/tests/e2e/margonem-page.ts";

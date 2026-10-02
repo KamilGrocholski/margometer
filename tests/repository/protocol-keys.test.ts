@@ -103,7 +103,7 @@ Deno.test("the reader knows a help claim from every other line", () => {
 });
 
 Deno.test("the frozen table counts exactly what the register cites, and nothing besides", () => {
-    // `deno task game:help freeze` takes its list from the register, so the two sides are one walk
+    // `deno task margonem:help freeze` takes its list from the register, so the two sides are one walk
     // over one document. What this catches is the freeze that was not re-run: a claim added since
     // carries no count, and a count outlives the claim that earned it.
     const cited = parseCitedHelpPhrases(REGISTER);

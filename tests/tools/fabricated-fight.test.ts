@@ -144,7 +144,7 @@ Deno.test("the fabricated fight puts something in every part of the panel", () =
 
 /**
  * The client's keys the fabricator spells for want of an exported map (N13), held to the reader
- * that takes each: the health maximum and the charge to `src/game/payload-envelope.ts`, the witness
+ * that takes each: the health maximum and the charge to `src/ports/payload-envelope.ts`, the witness
  * of the turn to `tools/turn-count.ts`. A misspelt one reads as a field the game did not send.
  */
 Deno.test("every key the fabricator spells on its own is one a reader here takes", () => {

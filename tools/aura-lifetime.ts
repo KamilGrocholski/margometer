@@ -1,6 +1,6 @@
 /**
  * How long a status really stands on a combatant, read off the mask each payload restates as the
- * add-on reads it, so a combatant who has fallen carries nothing (`src/game/payload-envelope.ts`).
+ * add-on reads it, so a combatant who has fallen carries nothing (`src/ports/payload-envelope.ts`).
  * It asks one question: when one moment lights a status on several combatants at once, do they all
  * lose it at one moment, or each at their own Nth turn. The clock is the figures' own, turns taken
  * and lost both; `docs/auras-standing.md` is this report written down.

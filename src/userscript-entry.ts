@@ -19,13 +19,13 @@ import {
     type BrowserStorage,
     initBrowserStore,
     initMemoryStore,
-} from "#/src/game/browser-store.ts";
-import { initMargonemEngineBattle } from "#/src/game/margonem-engine-battle.ts";
-import { initMargonemEngineHero } from "#/src/game/margonem-engine-hero.ts";
-import { initMargonemEnginePlace } from "#/src/game/margonem-engine-place.ts";
-import { initMargonemEngineTooltip } from "#/src/game/margonem-engine-tooltip.ts";
-import { initMargonemClientBuild, SCRIPTS_MAXIMUM } from "#/src/game/margonem-client-build.ts";
-import { initMargonemClientDictionary } from "#/src/game/margonem-client-dictionary.ts";
+} from "#/src/ports/browser-store.ts";
+import { initMargonemEngineBattle } from "#/src/ports/margonem-engine-battle.ts";
+import { initMargonemEngineHero } from "#/src/ports/margonem-engine-hero.ts";
+import { initMargonemEnginePlace } from "#/src/ports/margonem-engine-place.ts";
+import { initMargonemEngineTooltip } from "#/src/ports/margonem-engine-tooltip.ts";
+import { initMargonemClientBuild, SCRIPTS_MAXIMUM } from "#/src/ports/margonem-client-build.ts";
+import { initMargonemClientDictionary } from "#/src/ports/margonem-client-dictionary.ts";
 import {
     type BrowserDate,
     type BrowserFrames,
@@ -33,10 +33,10 @@ import {
     initBrowserClock,
     initBrowserFrames,
     initBrowserInterval,
-} from "#/src/game/browser-time.ts";
-import { type BrowserConsole, initBrowserConsole } from "#/src/game/browser-console.ts";
-import { type DownloadAnchor, initBrowserFile } from "#/src/game/browser-file.ts";
-import { initBrowserSurroundings } from "#/src/game/browser-surroundings.ts";
+} from "#/src/ports/browser-time.ts";
+import { type BrowserConsole, initBrowserConsole } from "#/src/ports/browser-console.ts";
+import { type DownloadAnchor, initBrowserFile } from "#/src/ports/browser-file.ts";
+import { initBrowserSurroundings } from "#/src/ports/browser-surroundings.ts";
 import {
     initRuntime,
     type Runtime,

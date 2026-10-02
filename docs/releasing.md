@@ -18,8 +18,8 @@ Which branch holds what: **G6**. The order the three pushes go in, and where the
 ## 1. Before the number moves
 
 - [ ] On `develop`, working tree clean, `deno task check` green, `deno task e2e` green.
-- [ ] `deno task game:readings status` — every reading current (**W10**). A release standing on a
-      table the game has moved past draws figures the game no longer means.
+- [ ] `deno task margonem:readings status` — every reading current (**W10**). A release standing on
+      a table the game has moved past draws figures the game no longer means.
 - [ ] `deno task fight:decoding` — nothing newly unread over `captures/`. A release that decodes
       less than the last one is a finding, not a release.
 - [ ] Both READMEs, sentence by sentence, and the band the published page opens with
