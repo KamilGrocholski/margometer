@@ -5,7 +5,7 @@
  * (`errors.attempt`, ADR 0009): whether either reads as a sentence is left to a reader.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertArrayIncludes, assertEquals } from "@std/assert";
 import {
     type AstNode,
     composeSample,
@@ -149,7 +149,11 @@ Deno.test("the placeholders are read off N22 itself, wrapped as the rule wraps t
     ].join("\n");
     assertEquals(readPlaceholders(rules), ["a", "at", "value"], "the list, and nothing around it");
     const placeholders = readPlaceholders(Deno.readTextFileSync(RULES_PATH));
-    assert(placeholders.includes("one"), "and the rule's own list holds what it was written for");
+    assertArrayIncludes(
+        placeholders,
+        ["one"],
+        "and the rule's own list holds what it was written for",
+    );
 });
 
 /** The words N22 lists, each between quotes, its lines joined where the rule wraps them. */
