@@ -47,7 +47,7 @@ const NO_GRANTS: DecoderTables = { blowsGrantedBySkillId: new Map() };
 const TABLES = { table: BLOWS_GRANTED, none: NO_GRANTS } as const;
 
 /**
- * The whole of what the corpus grants, measured 2026-09-21: 239 announcements are followed by two
+ * The whole of what the corpus grants, measured 2026-10-02: 255 announcements are followed by two
  * of their own blows and none by three, and the three skills behind them are the two the table
  * grants an attack to and one it has never heard of.
  */
@@ -60,7 +60,7 @@ Deno.test("a run of the announcer's own blows is two at most, and only for three
     }
     assertEquals(
         [...longer.entries()].sort(),
-        [["Podwójne trafienie", 177], ["Podwójny strzał", 59], ["Struna płomienna", 3]],
+        [["Podwójne trafienie", 186], ["Podwójny strzał", 66], ["Struna płomienna", 3]],
         "the skills that strike twice, and how often the corpus caught each",
     );
 });
@@ -150,7 +150,7 @@ Deno.test("a second blow is reached by the table where it can, and by the bound 
         bounded += 1;
         assert(granted >= run.blows.length - 1, `${run.skillName}: more blows than it grants`);
     }
-    assertStrictEquals(bounded, 236, "what the table bounds");
+    assertStrictEquals(bounded, 252, "what the table bounds");
     assertStrictEquals(reached, 3, "and what the bound reaches, because the table cannot");
 });
 
@@ -170,7 +170,7 @@ Deno.test("a granted blow carries damage and nothing a second reading would plac
             }
         }
     }
-    assertStrictEquals(read, 239, "every second blow the corpus holds was read");
+    assertStrictEquals(read, 255, "every second blow the corpus holds was read");
 });
 
 /**
@@ -178,7 +178,7 @@ Deno.test("a granted blow carries damage and nothing a second reading would plac
  * before this decision**: a reach the table could not bound is not the table's to take away, so
  * the three blows it reaches stay reached. The empty column isolates the table's own contribution.
  */
-Deno.test("the table reaches 236 blows, and the bound reaches three the table cannot", () => {
+Deno.test("the table reaches 252 blows, and the bound reaches three the table cannot", () => {
     const counted = new Map<string, { plain: number; plainApplied: number }>();
     for (const [name, tables] of Object.entries(TABLES)) {
         let plain = 0;
@@ -195,12 +195,12 @@ Deno.test("the table reaches 236 blows, and the bound reaches three the table ca
     }
     assertEquals(
         counted.get("table"),
-        { plain: 1769, plainApplied: 2254795 },
+        { plain: 1824, plainApplied: 2341838 },
         "what stands behind no announcement once both halves of the rule have run",
     );
     assertEquals(
         counted.get("none"),
-        { plain: 2005, plainApplied: 2404633 },
+        { plain: 2076, plainApplied: 2497601 },
         "and what the bound alone leaves, which is the table's own contribution measured",
     );
 });
@@ -214,7 +214,7 @@ function decodeWithTable(fight: RecordedFight, tables: DecoderTables): BattleEve
 }
 
 /** The rows the change takes away entirely: a combatant whose every blow was announced. */
-Deno.test("six combatants are left with no unannounced blow at all", () => {
+Deno.test("seven combatants are left with no unannounced blow at all", () => {
     let emptied = 0;
     for (const fight of readRecordedFights()) {
         const now = tallyFightStatistics(decodeWithTable(fight, BLOWS_GRANTED), new Map());
@@ -228,7 +228,7 @@ Deno.test("six combatants are left with no unannounced blow at all", () => {
             emptied += 1;
         }
     }
-    assertStrictEquals(emptied, 6, "and each of them loses the row that closed their section");
+    assertStrictEquals(emptied, 7, "and each of them loses the row that closed their section");
 });
 
 /** The table the tests carry, as `develop:frozen/blows-granted.ts` froze it. */
@@ -244,7 +244,7 @@ Deno.test("the table the tests carry is the three skills that grant a blow", () 
 /**
  * ⚠️ **`Zwykły cios` is a measured claim.** Every blow standing under no announcement opened a turn
  * of its own, so the two readings of one message, whose action it was and whose skill it was,
- * answer alike. The empty table proves the walk still counts: 236 blows fall back into the row, and
+ * answer alike. The empty table proves the walk still counts: 252 blows fall back into the row, and
  * every one of them stands mid-strike.
  */
 Deno.test("every blow the closing row holds opened a turn of its own", () => {
@@ -267,12 +267,12 @@ Deno.test("every blow the closing row holds opened a turn of its own", () => {
     }
     assertEquals(
         counted.get("table"),
-        { plain: 1769, midStrike: 0 },
+        { plain: 1824, midStrike: 0 },
         "the row is exactly the blows the game numbered a turn for",
     );
     assertEquals(
         counted.get("none"),
-        { plain: 2005, midStrike: 236 },
+        { plain: 2076, midStrike: 252 },
         "and without the table's reach the walk still finds what it is looking for",
     );
 });

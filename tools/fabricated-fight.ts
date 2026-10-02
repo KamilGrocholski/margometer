@@ -1085,6 +1085,7 @@ function executeCursedBlow(turn: FabricatedTurn): string[] {
 function executeEvadedBlow(turn: FabricatedTurn): string[] {
     return [executeBlow(turn, [
         encodeValueless("-evade"),
+        encodeValueless("-parry"),
         encodeValueless("-contra"),
         encodeValueless("-arrowblock"),
         encodeValueless("-tenacity"),

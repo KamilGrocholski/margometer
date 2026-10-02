@@ -147,6 +147,7 @@ stated, and every turn before it is one the span never saw.
 | 2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0               | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
 | 2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0                 | `always`        | 8     | 8      | 13      | 12    | 1     | 1    | 3      |
 | 2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0                 | `always`        | 122   | 122    | 238     | 226   | 12    | 12   | 2      |
+| 2026-10-02-luvia-grupa-vs-amaimon-auto-BTPBneEN-0.21.0            | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
 
 ## What the register says
 
@@ -199,7 +200,7 @@ line and divided from them by a slash.
 another language: the line opens with the combatant's own name and the separator the game puts after
 it, and it does not end in the full stop the game's other lines about a combatant end in. Measured
 over `captures/` on 2026-09-03 with no other condition: **319 matches, all 319 a turn nobody spent,
-nothing missed, nothing else caught.** The corpus states 391 of them now, 2026-09-21; what the
+nothing missed, nothing else caught.** The corpus states 415 of them now, 2026-10-02; what the
 recordings admitted since have not had is the second half of that reading, which is a person going
 through every match. The three lines about striking a target already dead end in a full stop; loot
 lines put a colon after the name. **develop ADR 0049** carries the rest, including why the stun keys
@@ -290,7 +291,7 @@ reading `a01bf11` refused, and it is not what `grooove.pl` does either.
   count is zero on everybody, and the card states no second figure at all rather than a nought — so
   nothing on screen becomes false. What it still cannot say is **which** of the two a quiet fight
   is: a fight where nobody was stunned and a world this reading cannot hear draw the same card. 4 of
-  the 35 recordings are quiet that way. That is the cost of reading a shape rather than a key
+  the 36 recordings are quiet that way. That is the cost of reading a shape rather than a key
   (**develop ADR 0110**), and it is carried rather than closed — the stun keys above make the
   failure loud without making the quiet fight legible.
 

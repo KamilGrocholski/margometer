@@ -77,6 +77,12 @@ const BLOCKED = [
 const CRITICAL = "467968=100.00;-10000249=99.69;+crit;+pierce;+dmgd=1557;+acdmg=16;-dmgd=1012";
 /** The same shape with the defending side's own flag on it, which is not the striker's. */
 const EVADED = "467968=100.00;-10000249=99.69;-evade;+dmgd=900;-dmgd=0";
+/**
+ * `2026-10-02-luvia-grupa-vs-amaimon-auto-BTPBneEN-0.21.0.json`: the boss's blow, parried. Its cold
+ * half is stated raw and never applied, so the blow lands nothing at all.
+ */
+const PARRIED =
+    "-10020804=30.33;61801=60.10;-poison_lowdmg_per=10;+dmg=1091;+dmgc=2140;-parry;-dmg=0";
 /** A key the register refuses an end: decoded, and charged to nobody until somebody knows. */
 const UNSETTLED = "467968=100.00;-10000249=99.69;-tenacity;+dmgd=100;-dmgd=100";
 
@@ -445,8 +451,8 @@ Deno.test("the corpus says who gave every point of health it put back", () => {
         given += statistics.totals.healthGiven;
         nobody += statistics.givenByNobody;
     }
-    assertEquals(restored, 4_047_283, "the health the recordings put back, 2026-09-21");
-    assertEquals(given, 4_047_283, "all of which has a giver the reading can name");
+    assertEquals(restored, 4_184_673, "the health the recordings put back, 2026-10-02");
+    assertEquals(given, 4_184_673, "all of which has a giver the reading can name");
     assertEquals(nobody, 0, "and none of it is left charged to nobody");
     assertEquals(given + nobody, restored, "every point put back is counted once on each side");
 });
@@ -845,6 +851,25 @@ Deno.test("a flag the defence fired is the defence's, whichever sign the key wea
     assertEquals(statistics.byCombatantId.get(467968)?.blowsCritical, 0, "nothing critical here");
 });
 
+Deno.test("a parry is the parrying side's, and the blow it stopped lands nothing", () => {
+    const statistics = tally(decode([PARRIED], null), new Map());
+    const parrier = statistics.byCombatantId.get(61801);
+    const striker = statistics.byCombatantId.get(-10020804);
+    assertEquals(
+        [...parrier?.procsWhenStruck ?? []],
+        [["-parry", 1]],
+        "a parry sits on the row of whoever parried",
+    );
+    assertEquals(
+        [...striker?.procsWhenStriking ?? []],
+        [],
+        "and never on the striker's, whose blow it stopped",
+    );
+    assertEquals(striker?.damageDealtRaw, 3231, "both halves of the blow were put out");
+    assertEquals(striker?.damageDealt, 0, "and none of it landed");
+    assertEquals(parrier?.damageTaken, 0, "so the parrier took nothing");
+});
+
 Deno.test("a proc nobody can place is charged to nobody rather than to whoever was handy", () => {
     const statistics = tally(
         decode([UNSETTLED], null),
@@ -1054,7 +1079,7 @@ Deno.test("every recording charges a turn to somebody who was already in the fig
             turns += figures.turnsTaken;
         }
     }
-    assertEquals(turns, 5897, "the turns the recordings hold, 2026-09-21");
+    assertEquals(turns, 6155, "the turns the recordings hold, 2026-10-02");
 });
 
 Deno.test("a turn the game says was spent on nothing lands on the row it names", () => {
@@ -1118,7 +1143,7 @@ Deno.test("every turn the recordings say was lost is charged to somebody in the 
         assertEquals(placed, stated, `${path}: a turn was lost by nobody the roster holds`);
         lost += placed;
     }
-    assertEquals(lost, 391, "the turns the recordings say were lost, 2026-09-21");
+    assertEquals(lost, 415, "the turns the recordings say were lost, 2026-10-02");
 });
 
 /**

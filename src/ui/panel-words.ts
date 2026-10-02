@@ -469,6 +469,7 @@ export const PROC_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entr
     "+fastarrow": "szybka strzała",
     "+acdmg_destroyed": "pancerz zniszczony",
     "-evade": "unik",
+    "-parry": "parowanie",
     "-contra": "kontra",
     "-arrowblock": "blok strzały",
 }));

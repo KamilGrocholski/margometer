@@ -312,7 +312,7 @@ Deno.test("every cast in the recordings is sized, and the cap is what does the w
             }
         }
     }
-    assertEquals(casts, 126, "every occurrence the corpus holds is sized");
+    assertEquals(casts, 132, "every occurrence the corpus holds is sized");
     assertEquals(whole, casts, "and every one of them reaches its whole side");
     assert(capped > atShare, "the cap binds more figures than the share does");
 });

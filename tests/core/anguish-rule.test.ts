@@ -40,7 +40,7 @@ Deno.test("every tick names its victim in the actor slot and nobody at the other
             assertEquals(parsed.target, null, `${fight.path}: and states nobody at the other end`);
         }
     }
-    assertEquals(ticks, 73, "every tick the material carries was read, 2026-09-19");
+    assertEquals(ticks, 74, "every tick the material carries was read, 2026-10-02");
 });
 
 function parseOrFail(text: string, path: string): ProtocolMessage {
@@ -60,7 +60,7 @@ Deno.test("the announcement carries no figure, so nothing says which application
             }
         }
     }
-    assertEquals(announcements, 20, "every announcement the material carries was read, 2026-09-19");
+    assertEquals(announcements, 21, "every announcement the material carries was read, 2026-10-02");
 });
 
 Deno.test("a tick is charged to its victim, and to nobody who applied the bleed", () => {

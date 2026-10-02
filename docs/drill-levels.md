@@ -213,10 +213,10 @@ rows. `DESIGN.md` owns that rule; `docs/protocol-keys.md` owns what each key mea
 ⚠️ **This document said the opposite until 2026-08-31, and the recordings said otherwise all
 along.** It read: _nothing announces a blow you take; the protocol names what hit you and never what
 the other side chose_ — which was a claim about the protocol standing on a fact about our own
-aggregation. The protocol does announce, on both sides: 32 of the 39 combatants on side 2 across
-`captures/` announce something, Amaimon, Hildur, Draugr, Centaur and Mamlambo among them, and 80.5%
-of all damage dealt in the corpus stands under an announcement — 10,252,941 of 12,740,622, read
-2026-09-27, what a pool took counted in as ADR 0012 counts it. `develop ADR 0078` was worth 147,082
+aggregation. The protocol does announce, on both sides: 33 of the 40 combatants on side 2 across
+`captures/` announce something, Amaimon, Hildur, Draugr, Centaur and Mamlambo among them, and 80.4%
+of all damage dealt in the corpus stands under an announcement — 10,584,141 of 13,159,081, read
+2026-10-02, what a pool took counted in as ADR 0012 counts it. `develop ADR 0078` was worth 147,082
 of the health alone when it was read on 2026-09-12, and that share has not been re-earned since.
 
 What is true is narrower. `SkillFigures` hangs off the record of whoever **made** the announcement,

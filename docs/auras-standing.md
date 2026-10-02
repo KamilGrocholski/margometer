@@ -287,7 +287,7 @@ one combatant held it twice. `at once` is the most that ever stood together.
 | `+spell-taken_dmg-all`        | 177 |        0 |         0 |       2 |
 | `active_decblock_per-enemies` |   3 |        0 |         0 |       2 |
 | `alllowdmg`                   |   3 |        0 |         0 |       2 |
-| `allslow_per`                 | 558 |       94 |         0 |       3 |
+| `allslow_per`                 | 558 |       96 |         0 |       3 |
 | `aura-ac_per`                 | 115 |        0 |         0 |       2 |
 | `aura-resall`                 | 115 |        0 |         0 |       2 |
 | `aura-sa_per`                 | 370 |       98 |         0 |       4 |
@@ -335,11 +335,11 @@ entry.
 | --: | ------------------ | -: | -----: | ------: | -----: | -------- |
 |  25 | Prowokujący okrzyk |  4 |      6 |       1 |      2 | both     |
 |  76 | Aura ochrony       | 13 |     16 |       2 |      8 | caster's |
-|  89 | Podwójny dech      | 19 |     19 |       4 |      8 | caster's |
-| 123 | Szadź              | 22 |     23 |       3 |      8 | other    |
-| 188 | Wyzywający okrzyk  | 10 |     17 |       2 |      5 | other    |
+|  89 | Podwójny dech      | 19 |     20 |       4 |      8 | caster's |
+| 123 | Szadź              | 25 |     24 |       3 |      8 | other    |
+| 188 | Wyzywający okrzyk  | 11 |     18 |       2 |      5 | other    |
 | 219 | Jadowity podmuch   |  1 |      1 |       1 |      8 | other    |
-| 264 | Piętno bestii      | 14 |     17 |       2 |      8 | other    |
+| 264 | Piętno bestii      | 15 |     18 |       2 |      8 | other    |
 
 **The published table dates more skills than the corpus has ever cast**, and the ones missing here
 are missing for want of a recording rather than by a verdict: the guard holds the register to what
@@ -382,7 +382,7 @@ announcement of it was ever seen to list.
 |  id | skill              | casters | fights | at once | stated | covers | names |
 | --: | ------------------ | ------: | -----: | ------: | -----: | -----: | ----: |
 |  25 | Prowokujący okrzyk |       3 |      5 |       1 |      3 |      6 |     1 |
-| 188 | Wyzywający okrzyk  |       8 |     14 |       2 |      3 |      6 |     2 |
+| 188 | Wyzywający okrzyk  |       9 |     15 |       2 |      3 |      6 |     2 |
 
 ## How long a shout holds somebody
 
@@ -402,19 +402,20 @@ episode stops at the next shout of any kind, because a later one replaces whatev
 
 | turn | at the shouter | elsewhere | share |
 | ---: | -------------: | --------: | ----: |
-|    1 |             75 |         0 |  100% |
-|    2 |             61 |         0 |  100% |
-|    3 |             49 |         2 |   96% |
-|    4 |             29 |         4 |   88% |
-|    5 |             20 |         6 |   77% |
-|    6 |              7 |         5 |   58% |
-|    7 |              4 |         2 |   67% |
-|    8 |              4 |         5 |   44% |
+|    1 |             77 |         0 |  100% |
+|    2 |             63 |         0 |  100% |
+|    3 |             50 |         2 |   96% |
+|    4 |             29 |         6 |   83% |
+|    5 |             20 |         7 |   74% |
+|    6 |              7 |         7 |   50% |
+|    7 |              4 |         4 |   50% |
+|    8 |              4 |         6 |   40% |
 
 ⚠️ **The baseline is what those three rows have to beat, and it is high.** The same characters,
-before the shout named them, already sent 79% of their blows at whoever would shout — most
+before the shout named them, already sent 77% of their blows at whoever would shout — most
 recordings are a group against one, so there is not much else to hit. The first three turns stand at
-185 of 187 against that, and the fourth onwards falls **through** it (`captures/`, 2026-09-25).
+190 of 192 against that, the fourth still above it, and the fifth onwards falls **through** it
+(`captures/`, 2026-10-02).
 
 **The edge sits exactly where the published table puts it.** The table gives a shout three turns,
 and three of the held character's own turns is where the share stops being total. On the caster's

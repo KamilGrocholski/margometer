@@ -187,6 +187,7 @@ const PROC_END_BY_KEY: ReadonlyMap<string, ProcEnd> = new Map<string, ProcEnd>([
     ["+superspell-prevented", PROC_END.unsettled],
     ["-tenacity", PROC_END.unsettled],
     ["-evade", PROC_END.target],
+    ["-parry", PROC_END.target],
     ["-contra", PROC_END.target],
     ["-arrowblock", PROC_END.target],
 ]);
