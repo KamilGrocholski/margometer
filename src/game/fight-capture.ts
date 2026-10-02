@@ -29,13 +29,29 @@ export interface EngineCall {
     combatantsAfter: WarriorSnapshot | null;
 }
 
-export interface CaptureStanding {
-    readonly calls: readonly CapturedCall[];
-    readonly droppedCalls: number;
+/** The recording being collected, changed by `commitCapture` alone. */
+export interface FightCapture {
+    calls: CapturedCall[];
+    droppedCalls: number;
     /** Whether the ceiling was reached, so the file says its tail is missing. */
-    readonly isTruncated: boolean;
-    readonly shapesSeen: ReadonlySet<string>;
-    readonly statesSeen: ReadonlySet<string>;
+    isTruncated: boolean;
+    shapesSeen: Set<string>;
+    statesSeen: Set<string>;
+}
+
+export interface PreparedCapture {
+    /** How many calls the recording it was prepared against held; a fight that opens holds none. */
+    readonly callIndex: number;
+    readonly isOpening: boolean;
+    readonly isPastCeiling: boolean;
+    /** Null where the call says nothing new or comes past the ceiling: it is counted, not kept. */
+    readonly kept: CaptureKept | null;
+}
+
+interface CaptureKept {
+    readonly call: CapturedCall;
+    readonly shape: string;
+    readonly state: string;
 }
 
 /**
@@ -45,49 +61,43 @@ export interface CaptureStanding {
 export const CALLS_MAXIMUM = 2000;
 const SHAPE_KEYS_MAXIMUM = 256;
 
-export const NO_CAPTURE: CaptureStanding = {
-    calls: [],
-    droppedCalls: 0,
-    isTruncated: false,
-    shapesSeen: new Set(),
-    statesSeen: new Set(),
-};
+export function createFightCapture(): FightCapture {
+    return {
+        calls: [],
+        droppedCalls: 0,
+        isTruncated: false,
+        shapesSeen: new Set(),
+        statesSeen: new Set(),
+    };
+}
 
-/**
- * The recording after one more call, as a new standing: the one handed in is left as it was. A
- * fight that opens starts the recording over.
- */
+/** Phase one: whether one more call is kept, and its copy, the recording untouched. */
 export function prepareCapture(
-    standing: CaptureStanding,
+    capture: FightCapture,
     call: EngineCall,
     isOpening: boolean,
-): CaptureStanding {
-    const previous = isOpening ? NO_CAPTURE : standing;
-    assert(previous.calls.length <= CALLS_MAXIMUM, "a recording stays inside its stated bound");
-    if (previous.calls.length >= CALLS_MAXIMUM) {
-        return { ...previous, isTruncated: true, droppedCalls: previous.droppedCalls + 1 };
+): PreparedCapture {
+    const callIndex = isOpening ? 0 : capture.calls.length;
+    assert(callIndex <= CALLS_MAXIMUM, "a recording stays inside its stated bound");
+    if (callIndex >= CALLS_MAXIMUM) {
+        return { callIndex, isOpening, isPastCeiling: true, kept: null };
     }
     const shape = encodeCaptureShape(call.payload);
     const state = encodeCaptureState(call.combatantsAfter);
     let isKept: boolean;
-    if (call.messages.length > 0) isKept = true;
-    else if (!previous.shapesSeen.has(shape)) isKept = true;
-    else isKept = !previous.statesSeen.has(state);
-    if (!isKept) return { ...previous, droppedCalls: previous.droppedCalls + 1 };
+    if (isOpening) isKept = true;
+    else if (call.messages.length > 0) isKept = true;
+    else if (!capture.shapesSeen.has(shape)) isKept = true;
+    else isKept = !capture.statesSeen.has(state);
+    if (!isKept) return { callIndex, isOpening, isPastCeiling: false, kept: null };
     const kept: CapturedCall = {
-        index: previous.calls.length,
+        index: callIndex,
         payload: prepareCaptureCopy(call.payload),
         messages: [...call.messages],
         combatantsBefore: call.combatantsBefore === null ? null : [...call.combatantsBefore],
         combatantsAfter: call.combatantsAfter === null ? null : [...call.combatantsAfter],
     };
-    return {
-        calls: [...previous.calls, kept],
-        droppedCalls: previous.droppedCalls,
-        isTruncated: false,
-        shapesSeen: new Set([...previous.shapesSeen, shape]),
-        statesSeen: new Set([...previous.statesSeen, state]),
-    };
+    return { callIndex, isOpening, isPastCeiling: false, kept: { call: kept, shape, state } };
 }
 
 /** Which keys the payload carried, so a call introducing one nobody has seen is kept. */
@@ -117,4 +127,31 @@ function prepareCaptureCopy(value: unknown): unknown {
     const read = parseJson(written);
     assert(!(read instanceof Error), "text this writer produced is text this reader takes back");
     return read;
+}
+
+/** Phase two: the call kept or counted into the recording. It cannot fail. */
+export function commitCapture(capture: FightCapture, prepared: PreparedCapture): void {
+    if (prepared.isOpening) {
+        // Start over: a fight that opens is a recording of its own.
+        capture.calls = [];
+        capture.droppedCalls = 0;
+        capture.shapesSeen = new Set();
+        capture.statesSeen = new Set();
+    } else {
+        const callIndex = capture.calls.length;
+        assert(
+            callIndex === prepared.callIndex,
+            "a call lands on the recording it was read against",
+        );
+    }
+    capture.isTruncated = prepared.isPastCeiling;
+    const kept = prepared.kept;
+    if (kept === null) {
+        capture.droppedCalls += 1;
+        return;
+    }
+    assert(capture.calls.length < CALLS_MAXIMUM, "a call is kept only under the ceiling");
+    capture.calls.push(kept.call);
+    capture.shapesSeen.add(kept.shape);
+    capture.statesSeen.add(kept.state);
 }

@@ -10,7 +10,6 @@
 
 import { assert } from "@std/assert/assert";
 import type * as errors from "#/libs/errors.ts";
-import type { CaptureStanding } from "#/src/game/fight-capture.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
 import type { Clock } from "#/src/game/page-time.ts";
@@ -42,7 +41,7 @@ export interface HandoverPorts {
 
 /** The live fight as it is being read, for when the panel stands on it. */
 export interface LiveHandover {
-    capture: CaptureStanding;
+    capture: FileCalls;
     place: FightPlace | null;
 }
 

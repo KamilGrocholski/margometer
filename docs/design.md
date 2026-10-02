@@ -612,16 +612,18 @@ export type EnvelopeFailure =
  * cost in the game's stack does not grow. `snapshotAfter` reads the fight after the original.
  */
 export function prepareCapture(
-    standing: CaptureStanding,
+    capture: FightCapture,
     call: EngineCall, // the payload, its messages, and the snapshots either side
     isOpening: boolean,
-): CaptureStanding;
-export interface CaptureStanding {
-    readonly calls: readonly CapturedCall[];
-    readonly droppedCalls: number;
-    readonly isTruncated: boolean; // the ceiling was reached: the file says its tail is missing
-    readonly shapesSeen: ReadonlySet<string>;
-    readonly statesSeen: ReadonlySet<string>;
+): PreparedCapture; // the call's copy where it is kept; the recording untouched
+/** Appends rather than copies, so a call costs the same at the end of a fight as at its start. */
+export function commitCapture(capture: FightCapture, prepared: PreparedCapture): void;
+export interface FightCapture {
+    calls: CapturedCall[];
+    droppedCalls: number;
+    isTruncated: boolean; // the ceiling was reached: the file says its tail is missing
+    shapesSeen: Set<string>;
+    statesSeen: Set<string>;
 }
 
 /** Called on the live battle object by the engine port, inside its `errors.attempt`. */
@@ -953,7 +955,7 @@ onBeforeCall ─ errors.attempt(readWarriorSnapshot) ─▶ snapshotBefore | nul
 onPayload(payload) ─ errors.attempt:
    readPayloadEnvelope     a failure → a "reading" defect (and messagesLost, where countable)
    readWarriorSnapshot     after the original → snapshotAfter | null
-   prepareCapture          → the capture standing, committed with the session's payload
+   prepareCapture          → commitCapture: the call kept or counted, beside the session's payload
    preparePayload          a value → commitPayload → unread counted (suspect)
                                  hasOpened → the moment and the place, the screen reset
                                  hasClosed → ShelfKeeper.keep → the shelf's answers

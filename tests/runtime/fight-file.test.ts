@@ -22,7 +22,7 @@ import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import { tallyFightFigures } from "#/src/core/fight-figures.ts";
 import { getFightView } from "#/src/core/fight-session.ts";
 import { createCombatantFigures, tallyFightStatistics } from "#/src/core/fight-statistics.ts";
-import { NO_CAPTURE } from "#/src/game/fight-capture.ts";
+import { createFightCapture } from "#/src/game/fight-capture.ts";
 import {
     encodeFightFile,
     encodeFightReport,
@@ -50,7 +50,7 @@ const SURROUNDINGS: FileSurroundings = {
     addOnVersion: ADD_ON_VERSION,
 };
 
-const LIVE_EMPTY: FileCalls = NO_CAPTURE;
+const LIVE_EMPTY: FileCalls = createFightCapture();
 
 Deno.test("the envelope is the one every admitted recording already carries", () => {
     const admitted = readFile(readRecordingText(NEWEST));

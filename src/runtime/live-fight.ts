@@ -20,7 +20,12 @@ import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import type { EngineBattle, EnginePort, PayloadListener } from "#/src/game/engine-battle.ts";
 import type { HeroPort } from "#/src/game/engine-hero.ts";
 import type { PlacePort } from "#/src/game/engine-place.ts";
-import { type CaptureStanding, NO_CAPTURE, prepareCapture } from "#/src/game/fight-capture.ts";
+import {
+    commitCapture,
+    createFightCapture,
+    type FightCapture,
+    prepareCapture,
+} from "#/src/game/fight-capture.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
 import type { Clock } from "#/src/game/page-time.ts";
@@ -49,7 +54,7 @@ export interface LiveFightOptions {
 
 export interface LiveFight {
     session: FightSession;
-    capture: CaptureStanding;
+    capture: FightCapture;
     snapshotBefore: WarriorSnapshot | null;
     /** Read once, on the payload that opens a fight: the hero does not move while one is on. */
     place: FightPlace | null;
@@ -66,7 +71,7 @@ export function initLiveFight(options: LiveFightOptions): {
 } {
     const live: LiveFight = {
         session: createFightSession(options.sessionOptions),
-        capture: NO_CAPTURE,
+        capture: createFightCapture(),
         snapshotBefore: null,
         place: null,
         readerId: null,
@@ -104,7 +109,8 @@ export function initLiveFight(options: LiveFightOptions): {
                     combatantsBefore: live.snapshotBefore,
                     combatantsAfter: after,
                 };
-                live.capture = prepareCapture(live.capture, call, record?.isInit ?? false);
+                const prepared = prepareCapture(live.capture, call, record?.isInit ?? false);
+                commitCapture(live.capture, prepared);
             });
             // Commit the record, or leave a defect where it will not prepare.
             const committed = record === null

@@ -13,7 +13,7 @@ import { initMemoryStore, initPageStore, type KeyValueStore } from "#/src/game/b
 import { initPageEngine } from "#/src/game/engine-battle.ts";
 import type { HeroPort } from "#/src/game/engine-hero.ts";
 import type { PlacePort } from "#/src/game/engine-place.ts";
-import { NO_CAPTURE, prepareCapture } from "#/src/game/fight-capture.ts";
+import { commitCapture, createFightCapture, prepareCapture } from "#/src/game/fight-capture.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
 import { PAGE_READING, PageReadingAbsent } from "#/src/game/page-reading.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
@@ -57,7 +57,7 @@ Deno.test("every recording played through the wrap is the fight, the file and th
         const view = getFightView(live.session);
         const expected = getFightView(replayRecordedFight(fight));
         assertEquals(view, expected, `${fight.path}: the session is the fight`);
-        let capture = NO_CAPTURE;
+        const capture = createFightCapture();
         // The fight is kept on the call that ends it, so the shelf holds the calls up to that one.
         let keptCalls: unknown[] | null = null;
         fight.updates.forEach((payload, at) => {
@@ -65,11 +65,12 @@ Deno.test("every recording played through the wrap is the fight, the file and th
             assert(!(record instanceof Error), `${fight.path}: a recorded call reads`);
             const combatantsBefore = at === 0 ? [] : after[at - 1] ?? [];
             const call = { payload, messages: record.messages, combatantsBefore };
-            capture = prepareCapture(
+            const prepared = prepareCapture(
                 capture,
                 { ...call, combatantsAfter: after[at] ?? [] },
                 record.isInit,
             );
+            commitCapture(capture, prepared);
             if (record.isEnd) keptCalls ??= capture.calls.map((one) => one.payload);
         });
         assertEquals(live.capture, capture, `${fight.path}: the file holds what was captured`);
