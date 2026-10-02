@@ -7,7 +7,7 @@
  * `develop ADR 0011`.
  */
 
-import { clamp } from "#/libs/number-range.ts";
+import { clampNumber } from "#/libs/number-range.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { formatInteger } from "#/libs/number-text.ts";
 import type { OutcomeResult } from "#/src/core/battle-event.ts";
@@ -1649,7 +1649,7 @@ function getShareGroupHead(group: readonly ShareInPoints[]): ShareInPoints {
 
 export function formatShareRounded(share: number): string {
     if (!Number.isFinite(share)) return PANEL_WORDS.unknown;
-    const clamped = clamp(share, 0, 1);
+    const clamped = clampNumber(share, 0, 1);
     return formatSharePoints(Math.round(clamped * HUNDRED), clamped > 0);
 }
 

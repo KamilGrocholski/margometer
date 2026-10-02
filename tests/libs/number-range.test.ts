@@ -6,27 +6,27 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { clamp } from "#/libs/number-range.ts";
+import { clampNumber } from "#/libs/number-range.ts";
 
 Deno.test("a value inside its range is the value, and outside it is the end it passed", () => {
-    assertEquals(clamp(5, 0, 10), 5, "a value between two ends is itself");
-    assertEquals(clamp(0, 0, 10), 0, "a value standing on the bottom is the bottom");
-    assertEquals(clamp(10, 0, 10), 10, "and one standing on the top is the top");
-    assertEquals(clamp(1, 0, 10), 1, "the neighbour of the bottom is inside");
-    assertEquals(clamp(9, 0, 10), 9, "and so is the neighbour of the top");
+    assertEquals(clampNumber(5, 0, 10), 5, "a value between two ends is itself");
+    assertEquals(clampNumber(0, 0, 10), 0, "a value standing on the bottom is the bottom");
+    assertEquals(clampNumber(10, 0, 10), 10, "and one standing on the top is the top");
+    assertEquals(clampNumber(1, 0, 10), 1, "the neighbour of the bottom is inside");
+    assertEquals(clampNumber(9, 0, 10), 9, "and so is the neighbour of the top");
 
-    assertEquals(clamp(-1, 0, 10), 0, "a value below the bottom is held at it");
-    assertEquals(clamp(11, 0, 10), 10, "and one above the top is held at that");
+    assertEquals(clampNumber(-1, 0, 10), 0, "a value below the bottom is held at it");
+    assertEquals(clampNumber(11, 0, 10), 10, "and one above the top is held at that");
 });
 
 Deno.test("a range with no room in it answers its bottom", () => {
-    assertEquals(clamp(5, 0, -3), 0, "a top below the bottom leaves only the bottom");
-    assertEquals(clamp(-5, 0, -3), 0, "whichever side the value came from");
-    assertEquals(clamp(5, 4, 4), 4, "a range of one holds that one");
-    assertEquals(clamp(3, 4, 4), 4, "from either side of it");
+    assertEquals(clampNumber(5, 0, -3), 0, "a top below the bottom leaves only the bottom");
+    assertEquals(clampNumber(-5, 0, -3), 0, "whichever side the value came from");
+    assertEquals(clampNumber(5, 4, 4), 4, "a range of one holds that one");
+    assertEquals(clampNumber(3, 4, 4), 4, "from either side of it");
 });
 
 Deno.test("a range below nothing is a range like any other", () => {
-    assertEquals(clamp(-5, -10, -1), -5, "a value between two ends below nothing");
-    assertEquals(clamp(0, -10, -1), -1, "and zero is above that range, not inside it");
+    assertEquals(clampNumber(-5, -10, -1), -5, "a value between two ends below nothing");
+    assertEquals(clampNumber(0, -10, -1), -1, "and zero is above that range, not inside it");
 });

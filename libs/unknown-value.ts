@@ -55,10 +55,10 @@ export class FieldTooLong<Field extends string> extends Error {
 export type FieldFailure<Field extends string> = FieldWrongType<Field> | FieldTooLong<Field>;
 
 /** `typeof` alone admits `null` and arrays here, and the answer must be read-only. */
-export function isRecord(value: unknown): value is UnknownRecord {
-    if (typeof value !== "object") return false;
-    if (value === null) return false;
-    return !Array.isArray(value);
+export function isRecord(candidate: unknown): candidate is UnknownRecord {
+    if (typeof candidate !== "object") return false;
+    if (candidate === null) return false;
+    return !Array.isArray(candidate);
 }
 
 /** A finite number. `typeof` first, because `Number.isFinite` does not narrow `unknown`. */
@@ -67,15 +67,15 @@ export function getNumberField<Field extends string>(
     keys: FieldKeys<Field>,
     field: Field,
 ): number | null | FieldWrongType<Field> {
-    const value = getOwnValue(record, keys[field]);
-    if (value === undefined) return null;
-    if (typeof value !== "number") {
+    const fieldValue = getOwnValue(record, keys[field]);
+    if (fieldValue === undefined) return null;
+    if (typeof fieldValue !== "number") {
         return new FieldWrongType(field, FIELD_TYPE.number);
     }
-    if (!Number.isFinite(value)) {
+    if (!Number.isFinite(fieldValue)) {
         return new FieldWrongType(field, FIELD_TYPE.number);
     }
-    return value;
+    return fieldValue;
 }
 
 /** `undefined` where the record does not hold the key itself, whatever its prototype holds. */
@@ -91,12 +91,12 @@ export function getTextField<Field extends string>(
     keys: FieldKeys<Field>,
     field: Field,
 ): string | null | FieldWrongType<Field> {
-    const value = getOwnValue(record, keys[field]);
-    if (value === undefined) return null;
-    if (typeof value !== "string") {
+    const fieldValue = getOwnValue(record, keys[field]);
+    if (fieldValue === undefined) return null;
+    if (typeof fieldValue !== "string") {
         return new FieldWrongType(field, FIELD_TYPE.text);
     }
-    return value;
+    return fieldValue;
 }
 
 /** Text that says something. Empty text is the wrong type here, and is asked for by name. */
@@ -119,12 +119,12 @@ export function getRecordField<Field extends string>(
     keys: FieldKeys<Field>,
     field: Field,
 ): UnknownRecord | null | FieldWrongType<Field> {
-    const value = getOwnValue(record, keys[field]);
-    if (value === undefined) return null;
-    if (!isRecord(value)) {
+    const fieldValue = getOwnValue(record, keys[field]);
+    if (fieldValue === undefined) return null;
+    if (!isRecord(fieldValue)) {
         return new FieldWrongType(field, FIELD_TYPE.record);
     }
-    return value;
+    return fieldValue;
 }
 
 /** A longer list is a failure, never a truncation. */
@@ -136,13 +136,13 @@ export function getListField<Field extends string>(
 ): readonly unknown[] | null | FieldFailure<Field> {
     assert(Number.isSafeInteger(maximum), "a list is bounded by a whole count");
     assert(maximum >= 0, "of none or more");
-    const value = getOwnValue(record, keys[field]);
-    if (value === undefined) return null;
-    if (!Array.isArray(value)) {
+    const fieldValue = getOwnValue(record, keys[field]);
+    if (fieldValue === undefined) return null;
+    if (!Array.isArray(fieldValue)) {
         return new FieldWrongType(field, FIELD_TYPE.list);
     }
-    if (value.length > maximum) {
-        return new FieldTooLong(field, value.length, maximum);
+    if (fieldValue.length > maximum) {
+        return new FieldTooLong(field, fieldValue.length, maximum);
     }
-    return value;
+    return fieldValue;
 }

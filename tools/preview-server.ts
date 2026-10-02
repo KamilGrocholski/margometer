@@ -12,7 +12,7 @@
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
-import { clamp } from "#/libs/number-range.ts";
+import { clampNumber } from "#/libs/number-range.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import { MARGONEM_CLIENT_SCRIPT_NAME } from "#/tests/e2e/margonem-page.ts";
@@ -271,7 +271,7 @@ async function answerPreviewRequest(state: PreviewState, url: URL): Promise<Resp
         const stated = url.searchParams.get("entry");
         const asked = stated === null ? fight.calls.length : parseInteger(stated);
         if (asked === null) return new Response("entry is not a number", { status: 400 });
-        const entryIndex = clamp(asked, 0, fight.calls.length);
+        const entryIndex = clampNumber(asked, 0, fight.calls.length);
         const page = composePreviewPage({
             fightName: fight.name,
             entryIndex,

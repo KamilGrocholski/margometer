@@ -4,7 +4,7 @@
  * **Two windows share this root, and a grip says which.** `develop ADR 0060`.
  */
 
-import { clamp } from "#/libs/number-range.ts";
+import { clampNumber } from "#/libs/number-range.ts";
 import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import {
@@ -185,13 +185,13 @@ export function clampPosition(
 }
 
 /**
- * A whole pixel, on the screen, and a number a style can be written from. `clamp` refuses
+ * A whole pixel, on the screen, and a number a style can be written from. `clampNumber` refuses
  * anything else, so what is not one is answered before it is handed over (**E12**).
  */
 function getPositionWithin(value: number, limit: number): number {
     if (!Number.isFinite(value)) return 0;
     if (!Number.isFinite(limit)) return Math.round(value);
-    const rounded = Math.round(clamp(value, 0, limit));
+    const rounded = Math.round(clampNumber(value, 0, limit));
     if (!Number.isSafeInteger(rounded)) return 0;
     return rounded;
 }
@@ -303,8 +303,8 @@ export function clampSize(size: WindowSize, bounds: SizeBounds): WindowSize {
     const width = Number.isFinite(size.width) ? size.width : bounds.widthMinimum;
     const height = Number.isFinite(size.height) ? size.height : bounds.heightMinimum;
     return {
-        width: Math.round(clamp(width, bounds.widthMinimum, bounds.widthMaximum)),
-        height: Math.round(clamp(height, bounds.heightMinimum, bounds.heightMaximum)),
+        width: Math.round(clampNumber(width, bounds.widthMinimum, bounds.widthMaximum)),
+        height: Math.round(clampNumber(height, bounds.heightMinimum, bounds.heightMaximum)),
     };
 }
 

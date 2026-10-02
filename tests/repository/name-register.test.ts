@@ -15,6 +15,8 @@ import {
     composeSample,
     FUNCTION_NODES,
     readAstNodes,
+    readBoundNames,
+    readChildNode,
     readDeclaredFunctionName,
     readSourceFiles,
     SOURCE_DIRECTORIES,
@@ -322,33 +324,6 @@ function readFileNames(file: SourceFile): FileNames {
         }
     }
     return read;
-}
-
-/** The names a binding pattern declares: an identifier, and every one a destructuring holds. */
-function readBoundNames(pattern: AstNode | null): string[] {
-    const names: string[] = [];
-    const pending: AstNode[] = pattern === null ? [] : [pattern];
-    for (let step = 0; pending.length > 0; step += 1) {
-        assert(step < DEPTH_MAXIMUM, "a pattern stays inside the bound its walk states");
-        const node = pending.pop()!;
-        if (node.type === "Identifier") {
-            names.push(node.name ?? "");
-            continue;
-        }
-        const value = readChildNode(node.value);
-        const parts = [node.left, node.argument, node.parameter, value];
-        for (const part of [...parts, ...(node.elements ?? []), ...(node.properties ?? [])]) {
-            if (part !== undefined && part !== null) pending.push(part);
-        }
-    }
-    return names;
-}
-
-/** A node a field typed `unknown` holds, or null where it holds a value. */
-function readChildNode(value: unknown): AstNode | null {
-    if (!isRecord(value)) return null;
-    if (typeof value.type !== "string") return null;
-    return value as unknown as AstNode;
 }
 
 function readDeclaratorNames(

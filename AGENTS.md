@@ -381,6 +381,14 @@ TypeScript idiom, with the naming rules stated here.
   wears the prefix of what it simulates, and a key a file or a store keeps is spelled behind the map
   that reads it, not in the name of ours. Observation: an identifier in `frozen/`, `libs/`, `src/`,
   `tools/` or `tests/` one of whose words is `Game` or `GAME`. ADR 0023, ADR 0026.
+- **N22. A function says what it acts on, and a value what it is.** A function declared on its own
+  is an action and its object, never a bare verb; a method is read with its receiver, and so is a
+  function every importer reaches through its module (`errors.attempt`). A local or a parameter is
+  never a placeholder — `a`, `at`, `b`, `current`, `data`, `element`, `entry`, `first`, `found`,
+  `item`, `last`, `next`, `node`, `one`, `other`, `part`, `previous`, `read`, `result`, `value` — in
+  a lambda as anywhere. Observation: such a function in `libs/`, `src/` or `tools/` whose name is
+  one word, or such a binding in the layers `tests/repository/name-shapes.test.ts` reads. ADR 0027.
+  _(`by-reading` whether a method reads as a sentence with its receiver)_
 
 ## Code
 
@@ -556,6 +564,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/assert-imports.test.ts`          | A6, A10                                                |
 | `tests/repository/throws.test.ts`                  | E1, E3, E13                                            |
 | `tests/repository/names.test.ts`                   | N1, N10, N21                                           |
+| `tests/repository/name-shapes.test.ts`             | N22                                                    |
 | `tests/repository/layers.test.ts`                  | `docs/design.md` §4                                    |
 | `tests/repository/browser-suite-keys.test.ts`      | N13                                                    |
 | `tests/repository/reader-layer.test.ts`            | A11                                                    |

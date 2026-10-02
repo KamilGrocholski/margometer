@@ -39,15 +39,15 @@ export class JsonUnwritable extends Error {
 
 export function parseJson(text: string): JsonValue | JsonUnreadable {
     const parsed = errors.attempt((): JsonValue => {
-        const value: unknown = JSON.parse(text);
+        const parsedText: unknown = JSON.parse(text);
         // Without a reviver, `JSON.parse` answers nothing but these (ECMA-262 §25.5.1).
-        if (value === null) return value;
-        if (typeof value === "boolean") return value;
-        if (typeof value === "number") return value;
-        if (typeof value === "string") return value;
-        if (Array.isArray(value)) return value;
-        assert(isRecord(value), "JSON text parses into a value JSON has");
-        return value;
+        if (parsedText === null) return parsedText;
+        if (typeof parsedText === "boolean") return parsedText;
+        if (typeof parsedText === "number") return parsedText;
+        if (typeof parsedText === "string") return parsedText;
+        if (Array.isArray(parsedText)) return parsedText;
+        assert(isRecord(parsedText), "JSON text parses into a value JSON has");
+        return parsedText;
     });
     if (parsed instanceof Error) return new JsonUnreadable(parsed);
     assert(text.length > 0, "text that parsed says something");
@@ -56,13 +56,13 @@ export function parseJson(text: string): JsonValue | JsonUnreadable {
 
 /** `indentSpaces` where a person will read the result; none where only a reader will. */
 export function encodeJson(
-    value: unknown,
+    encodable: unknown,
     indentSpaces: number,
 ): string | JsonTextAbsent | JsonUnwritable {
     assert(Number.isSafeInteger(indentSpaces), "text is indented by a whole count of spaces");
     assert(indentSpaces >= 0, "of none or more");
     const written = errors.attempt((): string | undefined =>
-        JSON.stringify(value, null, indentSpaces)
+        JSON.stringify(encodable, null, indentSpaces)
     );
     if (written instanceof Error) return new JsonUnwritable(written);
     if (written === undefined) return new JsonTextAbsent();

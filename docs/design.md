@@ -159,7 +159,7 @@ export function formatDecimal(value: number, places: number): string;
 
 // libs/number-range.ts
 /** Unlike the usual clamp: where `maximum < minimum` the minimum wins. */
-export function clamp(value: number, minimum: number, maximum: number): number;
+export function clampNumber(number: number, minimum: number, maximum: number): number;
 
 // libs/tally-order.ts
 export function compareTallies(

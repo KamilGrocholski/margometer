@@ -94,6 +94,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0024-the-dom-names-the-meter-and-the-helper-and-develops-sheet-is-read-in-those-names.md`  | the DOM names the meter and the helper, and develop's sheet is compared in those names                       |
 | `docs/adr/0025-a-field-names-what-it-holds-and-the-fight-file-keeps-its-keys-through-a-map.md`       | a field names what it holds, the fight file keeps its keys through a map, and ours is a card                 |
 | `docs/adr/0026-a-name-says-margonem-and-the-way-it-is-reached.md`                                    | a name says Margonem and the way in: `MargonemEngine…`, `MargonemClient…`, `Margonem…`                       |
+| `docs/adr/0027-a-name-says-what-it-holds-and-a-function-what-it-acts-on.md`                          | a function says what it acts on, and a value what it is, never a placeholder                                 |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

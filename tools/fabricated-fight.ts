@@ -17,7 +17,7 @@ import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { normalize } from "@std/path";
 import { encodeJson } from "#/libs/json-text.ts";
-import { clamp } from "#/libs/number-range.ts";
+import { clampNumber } from "#/libs/number-range.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
@@ -666,7 +666,7 @@ function getHealthPercent(warrior: FabricatedWarrior): number {
     assert(warrior.healthMaximum > 0, "a combatant has a maximum to stand against");
     const share = warrior.health * WHOLE_PERCENT / warrior.healthMaximum;
     assert(share >= 0, "a percentage of health is never below nothing");
-    return clamp(share, 0, WHOLE_PERCENT);
+    return clampNumber(share, 0, WHOLE_PERCENT);
 }
 
 function encodeArmour(warrior: FabricatedWarrior): Record<string, unknown> {
@@ -897,7 +897,11 @@ function encodeTurnQueue(
     const standing = state.warriors.filter(isStanding);
     assert(standing.length > 0, "there is somebody left to put in the queue");
     assert(ordinal > 0, "and the game numbers a turn from one upwards");
-    const opens = clamp(standing.findIndex((one) => one.id === acting.id), 0, standing.length - 1);
+    const opens = clampNumber(
+        standing.findIndex((one) => one.id === acting.id),
+        0,
+        standing.length - 1,
+    );
     const queue: Record<string, number> = {};
     for (let ahead = 0; ahead < TURN_QUEUE_WIDTH; ahead += 1) {
         const chosen = standing[(opens + ahead) % standing.length];
@@ -1428,7 +1432,7 @@ function encodeStep(turn: FabricatedTurn): string[] {
 
 function executePrepare(turn: FabricatedTurn): string[] {
     assert(isStanding(turn.actor), "a skill is made ready by somebody standing");
-    const percent = formatInteger(clamp(composeSmall(turn, 70), 0, WHOLE_PERCENT));
+    const percent = formatInteger(clampNumber(composeSmall(turn, 70), 0, WHOLE_PERCENT));
     assert(CHARGED_SKILL.length > 0, "and is made ready under a name");
     return [encodeMessage(encodeSide(turn.actor), null, [
         encodeValued(PREPARE_KEY, `${CHARGED_SKILL}(${percent}%)`),
@@ -1493,7 +1497,7 @@ function encodeAnnouncement(skill: FabricatedSkill): MessageParameter[] {
 /** Clamped at the health left, so what the message states is what the combatant lost. */
 function removeHealth(warrior: FabricatedWarrior, asked: number): number {
     assert(asked >= 0, "a figure taken is never below nothing");
-    const taken = clamp(asked, 0, warrior.health);
+    const taken = clampNumber(asked, 0, warrior.health);
     warrior.health -= taken;
     assert(warrior.health >= 0, "and leaves health that is never below nothing");
     return taken;
@@ -1502,7 +1506,7 @@ function removeHealth(warrior: FabricatedWarrior, asked: number): number {
 /** The same the other way, clamped at the maximum so nobody is restored past full. */
 function addHealth(warrior: FabricatedWarrior, asked: number): number {
     assert(asked >= 0, "a figure restored is never below nothing");
-    const given = clamp(asked, 0, warrior.healthMaximum - warrior.health);
+    const given = clampNumber(asked, 0, warrior.healthMaximum - warrior.health);
     warrior.health += given;
     assert(warrior.health <= warrior.healthMaximum, "and never past the whole of it");
     return given;

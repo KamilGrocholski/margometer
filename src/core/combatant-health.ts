@@ -7,7 +7,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { clamp } from "#/libs/number-range.ts";
+import { clampNumber } from "#/libs/number-range.ts";
 import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
 import { type CombatantRoster, COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
 import { HEALING_REDUCER_KEY } from "./protocol-key.ts";
@@ -196,7 +196,7 @@ function composeSideHeal(
         else if (healthNow === undefined) isWhole = false;
         else {
             const share = Math.floor((event.declaredShare * maximum) / PERCENT_WHOLE);
-            const amount = clamp(share, 0, healthAtEntry - healthNow);
+            const amount = clampNumber(share, 0, healthAtEntry - healthNow);
             assert(amount <= share, "nobody is given more than the share the protocol stated");
             restoredByCombatantId.set(combatant.id, amount);
         }

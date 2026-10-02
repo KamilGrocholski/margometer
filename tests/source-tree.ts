@@ -8,6 +8,7 @@
 
 import { assert } from "@std/assert";
 import { existsSync, walkSync } from "@std/fs";
+import { isRecord } from "#/libs/unknown-value.ts";
 
 /**
  * `Deno.lint` is declared only under the `deno.unstable` library, and naming that in
@@ -273,6 +274,33 @@ export function readDeclaredFunctionName(node: AstNode): string | null {
     if (init === null || init === undefined) return null;
     if (!FUNCTION_NODES.some((kind) => kind === init.type)) return null;
     return node.id?.name ?? null;
+}
+
+/** The names a binding pattern declares: an identifier, and every one a destructuring holds. */
+export function readBoundNames(pattern: AstNode | null): string[] {
+    const names: string[] = [];
+    const pending: AstNode[] = pattern === null ? [] : [pattern];
+    for (let step = 0; pending.length > 0; step += 1) {
+        assert(step < DEPTH_MAXIMUM, "a pattern stays inside the bound its walk states");
+        const node = pending.pop()!;
+        if (node.type === "Identifier") {
+            names.push(node.name ?? "");
+            continue;
+        }
+        const value = readChildNode(node.value);
+        const parts = [node.left, node.argument, node.parameter, value];
+        for (const part of [...parts, ...(node.elements ?? []), ...(node.properties ?? [])]) {
+            if (part !== undefined && part !== null) pending.push(part);
+        }
+    }
+    return names;
+}
+
+/** A node a field typed `unknown` holds, or null where it holds a value. */
+export function readChildNode(value: unknown): AstNode | null {
+    if (!isRecord(value)) return null;
+    if (typeof value.type !== "string") return null;
+    return value as unknown as AstNode;
 }
 
 /** The declaration a node stands in, climbing out of every unnamed closure; null at the top. */

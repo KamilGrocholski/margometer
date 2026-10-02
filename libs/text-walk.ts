@@ -47,14 +47,14 @@ export function getEndOfRun(
 ): number {
     assert(Number.isSafeInteger(from), "a run starts at a whole position");
     assert(from >= 0, "inside the text");
-    let at = from;
-    while (at < text.length) {
-        if (!isMember(text, at)) break;
-        at += 1;
+    let runEnd = from;
+    while (runEnd < text.length) {
+        if (!isMember(text, runEnd)) break;
+        runEnd += 1;
     }
-    assert(at >= from, "a run never ends before it starts");
-    assert(at <= Math.max(from, text.length), "and never past the end of what it walked");
-    return at;
+    assert(runEnd >= from, "a run never ends before it starts");
+    assert(runEnd <= Math.max(from, text.length), "and never past the end of what it walked");
+    return runEnd;
 }
 
 /** Empty text is no run. */

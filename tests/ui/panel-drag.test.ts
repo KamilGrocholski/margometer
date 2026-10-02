@@ -88,7 +88,7 @@ Deno.test("a panel nobody has moved opens in the middle of the window", () => {
 });
 
 /**
- * A window that answers with something that is not a number. `clamp` refuses one, and
+ * A window that answers with something that is not a number. `clampNumber` refuses one, and
  * the panel goes on being drawn over a reading nothing here can do anything with; the corner is
  * a place and the panel is still there to be grabbed — **E12**, develop ADR 0051.
  */

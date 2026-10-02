@@ -7,7 +7,7 @@
  * `DESIGN.md` owns what these values are for; this file owns what they are.
  */
 
-import { clamp } from "#/libs/number-range.ts";
+import { clampNumber } from "#/libs/number-range.ts";
 import {
     PANEL_WINDOW,
     type PanelWindow,
@@ -412,7 +412,7 @@ export function composeBarColour(hue: Colour): Colour {
 
 /** One colour over another at an alpha, in sRGB because that is what the browser does here. */
 function composeColourOver(top: Colour, bottom: Colour, alpha: number): Colour {
-    const share = clamp(alpha, 0, 1);
+    const share = clampNumber(alpha, 0, 1);
     return [
         composeColourOverChannel(top[0], bottom[0], share),
         composeColourOverChannel(top[1], bottom[1], share),
