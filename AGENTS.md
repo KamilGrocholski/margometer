@@ -50,6 +50,7 @@ The documents this tree carries:
   reading and the game disagree.
 - [`docs/protocol-keys.md`](docs/protocol-keys.md) — what each protocol key means, and how that is
   known.
+- [`docs/names.md`](docs/names.md) — every name the tree spells, by what declares it and where.
 
 A document joins this list in the commit that creates it (**C9**). **`develop:path` and
 `develop ADR NNNN` name `develop` as it stood at `fa1dcce`**, before this rewrite replaced it:
@@ -560,6 +561,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/fabricated-fights.test.ts`       | `captures/AGENTS.md`                                   |
 | `tests/repository/protocol-keys.test.ts`           | `docs/protocol-keys.md`                                |
 | `tests/repository/cited-paths.test.ts`             | C3, C15                                                |
+| `tests/repository/name-register.test.ts`           | `docs/names.md`                                        |
 | `tests/repository/broad-catches.test.ts`           | E4                                                     |
 | `tests/repository/handed-callbacks.test.ts`        | E10                                                    |
 | `tests/repository/type-assertions.test.ts`         | C13                                                    |

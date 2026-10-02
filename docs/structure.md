@@ -59,6 +59,7 @@ file comes or goes (ADR 0010).
 | `docs/captured-fights.md` | what each recording in `captures/` holds: who fought, where, and how much protocol           |
 | `docs/design.md`          | the architecture: layers, ports, types, the process, the failure map, the file format        |
 | `docs/drill-levels.md`    | every kind of row the panel draws, and whether pressing it opens anything                    |
+| `docs/names.md`           | every name the tree spells, by what declares it and where, written by `deno task names`      |
 | `docs/protocol-keys.md`   | every protocol key looked into: its verdict, its shape over the recordings, and the evidence |
 | `docs/reading-a-turn.md`  | how a message becomes a turn, and every message where that and the game's numbering disagree |
 | `docs/releasing.md`       | every step of cutting a release, in order                                                    |

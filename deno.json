@@ -86,6 +86,10 @@
         // The version this tree declares, and the section `CHANGELOG.md` carries for it, as the
         // body of its release. A workflow runs it, and so can a hand before a tag.
         "release:notes": "deno run -A tools/changelog.ts",
+        // `docs/names.md` written again off the tree. Its guard composes the register, and the
+        // parser it reads with answers only under `deno test`, so the writer is that guard run
+        // with `--write` (Deno 2.9.7, 2026-10-02).
+        "names": "deno test -A tests/repository/name-register.test.ts -- --write",
         // The built file in the Chrome this machine has, on Node: outside the gate on purpose
         // (`develop ADR 0047`), and what W9 asks of a change under `src/` before it is done.
         "e2e": "npx playwright test"

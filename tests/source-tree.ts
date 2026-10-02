@@ -48,6 +48,10 @@ export interface AstNode {
     argument?: AstNode;
     expression?: AstNode;
     types?: AstNode[];
+    properties?: AstNode[];
+    elements?: (AstNode | null)[];
+    param?: AstNode | null;
+    parameter?: AstNode;
 }
 type AstVisitor = Record<string, (node: AstNode) => void>;
 interface AstComment {
