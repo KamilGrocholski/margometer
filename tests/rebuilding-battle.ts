@@ -52,9 +52,9 @@ export function composeRebuildingBattle(onPageCall?: (call: PageCall) => void) {
         for (const [id, focusedBy] of [...held]) {
             if (focusedBy !== null) setFocusedBy(id, null);
         }
-        const hero = Object.values(warriorsList).find((one) => {
-            if (one.npc !== 0) return false;
-            return typeof one.focus === "number" && one.focus !== 0;
+        const hero = Object.values(warriorsList).find((warrior) => {
+            if (warrior.npc !== 0) return false;
+            return typeof warrior.focus === "number" && warrior.focus !== 0;
         });
         if (hero !== undefined) setFocusedBy(String(hero.focus), String(hero.name));
         return 1;

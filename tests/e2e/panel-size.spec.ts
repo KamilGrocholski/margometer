@@ -97,15 +97,15 @@ test("a folded window is its bar alone, and its corner goes with its body", asyn
 test("neither corner stands over a figure or a mark a reader reads", async ({ panel }) => {
     for (const grip of [PANEL_GRIP, HELPER_GRIP]) {
         const corner = await panel.at(grip).boundingBox();
-        const read = await panel.page.evaluate(() => {
+        const cellBoxes = await panel.page.evaluate(() => {
             const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot;
             const cells = [...(root?.querySelectorAll(".figure, .row-value, .row-share") ?? [])];
-            return cells.map((one) => {
-                const box = one.getBoundingClientRect();
+            return cells.map((cell) => {
+                const box = cell.getBoundingClientRect();
                 return { x: box.x, y: box.y, right: box.right, bottom: box.bottom };
             });
         });
-        for (const cell of read) {
+        for (const cell of cellBoxes) {
             const apart = cell.right <= (corner?.x ?? 0) ||
                 cell.bottom <= (corner?.y ?? 0) ||
                 cell.x >= (corner?.x ?? 0) + (corner?.width ?? 0) ||

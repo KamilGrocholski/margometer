@@ -65,18 +65,20 @@ function composeWidestFight(): {
     statistics: FightStatistics;
     readerSide: number | null;
 } {
-    const combatants = Array.from({ length: COMBATANTS_MAXIMUM }, (_, at) => ({
-        id: at + 1,
-        name: `Gracz ${at + 1}`,
-        side: at % 2 === 0 ? OURS : THEIRS,
+    const combatants = Array.from({ length: COMBATANTS_MAXIMUM }, (_, index) => ({
+        id: index + 1,
+        name: `Gracz ${index + 1}`,
+        side: index % 2 === 0 ? OURS : THEIRS,
         profession: "w",
         level: 40,
         healthMaximum: 1000,
     }));
     const roster = indexCombatantRoster(combatants);
-    const messages = combatants.map((one) => {
-        const target = one.side === OURS ? 2 : 1;
-        return `${one.id}=90.00;${target}=80.00;+dmg=${100 + one.id};-dmg=${100 + one.id}`;
+    const messages = combatants.map((combatant) => {
+        const target = combatant.side === OURS ? 2 : 1;
+        return `${combatant.id}=90.00;${target}=80.00;+dmg=${100 + combatant.id};-dmg=${
+            100 + combatant.id
+        }`;
     });
     messages.push("0;2=50.00;+dmg=10;-dmg=10", "1=90.00;0;+dmg=20;-dmg=20", "0;0;+dmg=30;-dmg=30");
     const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
@@ -97,11 +99,11 @@ Deno.test("a full cast with both ends unknown draws its rows and both unnamed on
     );
     assertStrictEquals(reading.rows.length, COMBATANTS_MAXIMUM, "a row for everybody in it");
     assertEquals(
-        reading.pinned.map((one) => one.end),
+        reading.pinned.map((pinnedRow) => pinnedRow.end),
         [UNNAMED_END.actor, UNNAMED_END.target],
         "and both ends the protocol can leave out are pinned beside them",
     );
-    assert(reading.rows.every((one) => one.shareText.length > 0), "every row states its share");
+    assert(reading.rows.every((row) => row.shareText.length > 0), "every row states its share");
 
     const { host, failures } = drawShownView(
         composeFullCastScreen(reading, BOTH_ENDS_SCREEN, SIDE_CHOICE.everyone),

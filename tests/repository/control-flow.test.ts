@@ -66,42 +66,42 @@ function indexCalls(files: readonly SourceFile[]): Map<string, Set<string>> {
 
 /** Every declaration the calls lead back to itself, in order. */
 function lookupRecursiveNames(calls: ReadonlyMap<string, ReadonlySet<string>>): string[] {
-    const found: string[] = [];
+    const recursive: string[] = [];
     for (const start of calls.keys()) {
-        if (isReachingItself(calls, start)) found.push(start);
+        if (isReachingItself(calls, start)) recursive.push(start);
     }
-    return found.sort();
+    return recursive.sort();
 }
 
 function isReachingItself(calls: ReadonlyMap<string, ReadonlySet<string>>, start: string): boolean {
     const seen = new Set<string>();
     const pending = [...(calls.get(start) ?? [])];
-    for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
-        if (next === start) return true;
-        if (seen.has(next)) continue;
-        seen.add(next);
+    for (let pendingName = pending.pop(); pendingName !== undefined; pendingName = pending.pop()) {
+        if (pendingName === start) return true;
+        if (seen.has(pendingName)) continue;
+        seen.add(pendingName);
         assert(seen.size <= DECLARATIONS_MAXIMUM, "the graph stays inside the bound a walk states");
-        pending.push(...(calls.get(next) ?? []));
+        pending.push(...(calls.get(pendingName) ?? []));
     }
     return false;
 }
 
 Deno.test("a call is followed through the import that names it", () => {
-    const one = {
+    const goFile = {
         path: "one.ts",
         text: 'import { back } from "./two.ts";\nexport function go() { back(); }',
     };
-    const two = {
+    const backFile = {
         path: "two.ts",
         text: 'import { go } from "./one.ts";\nexport function back() { go(); }',
     };
     assertEquals(
-        lookupRecursiveNames(indexCalls([one, two])),
+        lookupRecursiveNames(indexCalls([goFile, backFile])),
         ["one.ts#go", "two.ts#back"],
         "a pair",
     );
     const alone = { path: "two.ts", text: "export function back() { return 1; }" };
-    assertEquals(lookupRecursiveNames(indexCalls([one, alone])), [], "and one that returns");
+    assertEquals(lookupRecursiveNames(indexCalls([goFile, alone])), [], "and one that returns");
 });
 
 Deno.test("no function of the program reaches itself", () => {
@@ -124,18 +124,18 @@ Deno.test("a body on one line is flagged, and an empty one or an expression is n
 });
 
 function lookupBodiesOnOneLine(file: SourceFile): string[] {
-    const found: string[] = [];
-    for (const node of readAstNodes(file, FUNCTION_NODES)) {
-        const body = node.body;
+    const oneLiners: string[] = [];
+    for (const functionNode of readAstNodes(file, FUNCTION_NODES)) {
+        const body = functionNode.body;
         if (body === null || body === undefined) continue;
         if (Array.isArray(body)) continue;
         const statements = body.body;
         if (!Array.isArray(statements)) continue;
         if (statements.length === 0) continue;
         const text = file.text.slice(body.range[0], body.range[1]);
-        if (!text.includes("\n")) found.push(formatNodePlace(file, node));
+        if (!text.includes("\n")) oneLiners.push(formatNodePlace(file, functionNode));
     }
-    return found;
+    return oneLiners;
 }
 
 Deno.test("no body in the tree is written on one line", () => {

@@ -34,9 +34,13 @@ Deno.test("all three frozen files were taken off the same page, on the same fetc
  */
 Deno.test("the skills granting a blow are the rows of the table carrying that key", () => {
     const carrying = FROZEN_SKILL_DURATIONS.skills
-        .filter((one) => one.effects.some((effect) => effect.key === BLOWS_GRANTED_KEY))
-        .map((one) => one.id);
-    assertEquals(FROZEN_BLOWS_GRANTED.skills.map((one) => one.id), carrying, "and nothing else");
+        .filter((skill) => skill.effects.some((effect) => effect.key === BLOWS_GRANTED_KEY))
+        .map((skill) => skill.id);
+    assertEquals(
+        FROZEN_BLOWS_GRANTED.skills.map((skill) => skill.id),
+        carrying,
+        "and nothing else",
+    );
     assert(carrying.length > 0, "the page states it on something");
     for (const skill of FROZEN_BLOWS_GRANTED.skills) {
         assert(Number.isSafeInteger(skill.blowsGrantedMinimum), `${skill.id}: a count is whole`);
@@ -69,31 +73,35 @@ Deno.test("the side's table is what the rule derives from the whole one, and not
  * quietly back into `Zwykły cios`.
  */
 Deno.test("every skill the corpus announces by id is one the published table carries", () => {
-    const dated = new Set<number>(FROZEN_SKILL_DURATIONS.skills.map((one) => one.id));
+    const dated = new Set<number>(FROZEN_SKILL_DURATIONS.skills.map((skill) => skill.id));
     const announced = readAnnouncedSkills();
-    const missed = announced.filter((one) => !dated.has(one.skillId ?? -1));
+    const missed = announced.filter((event) => !dated.has(event.skillId ?? -1));
     assert(announced.length > 0, "the corpus announces by id at all");
-    assertEquals(missed.map((one) => `${one.skillId} ${one.skillName}`), [], "an id undated");
+    assertEquals(missed.map((event) => `${event.skillId} ${event.skillName}`), [], "an id undated");
 });
 
 function readAnnouncedSkills(): SkillUsedEvent[] {
-    const found: SkillUsedEvent[] = [];
+    const announcements: SkillUsedEvent[] = [];
     for (const { reading } of replayRecordedMaterial(readRecordedMaterial([]))) {
         for (const event of reading.view.events) {
             if (event.kind !== BATTLE_EVENT.skillUsed) continue;
-            if (event.skillId !== null) found.push(event);
+            if (event.skillId !== null) announcements.push(event);
         }
     }
-    return found;
+    return announcements;
 }
 
 Deno.test("every skill the corpus casts at a side is one the published table dates", () => {
     const dated = indexAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills);
     const cast = readAnnouncedSkills()
-        .filter((event) => event.declared.some((one) => isSideWideKey(one.effect)));
+        .filter((event) => event.declared.some((declaration) => isSideWideKey(declaration.effect)));
     const missed = cast.filter((event) => !dated.has(event.skillId ?? -1));
     assert(cast.length > 0, "the corpus casts something at a side");
-    assertEquals(missed.map((one) => `${one.skillId} ${one.skillName}`), [], "a cast undated");
+    assertEquals(
+        missed.map((event) => `${event.skillId} ${event.skillName}`),
+        [],
+        "a cast undated",
+    );
 });
 
 /**
@@ -103,13 +111,13 @@ Deno.test("every skill the corpus casts at a side is one the published table dat
 Deno.test("the frozen shouts are the shout rows of the table, and nothing else is", () => {
     const derived: { id: number; turns: number }[] = [];
     for (const skill of FROZEN_SKILL_DURATIONS.skills) {
-        const shout = skill.effects.find((one) => one.key === PROVOCATION_KEY);
+        const shout = skill.effects.find((effect) => effect.key === PROVOCATION_KEY);
         if (shout === undefined) continue;
         assert(shout.turns.length > 0, `${skill.id}: a shout the table dates`);
         derived.push({ id: skill.id, turns: Math.max(...shout.turns) });
     }
     assertEquals(
-        FROZEN_AURA_TURNS.shouts.map((one) => ({ id: one.id, turns: one.turns })),
+        FROZEN_AURA_TURNS.shouts.map((shout) => ({ id: shout.id, turns: shout.turns })),
         derived,
         "every skill carrying the key is frozen, at the turns that key states",
     );

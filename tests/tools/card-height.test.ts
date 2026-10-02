@@ -23,13 +23,13 @@ Deno.test("a recording opens a card per ranking row on every screen, and the rep
     const heights = tallyCardHeights(replayRecordedMaterial(readRecordedMaterial([HILDUR])));
     assertEquals(heights.length % SCREEN_ORDER.length, 0, "the same rows on every screen");
     for (const screen of SCREEN_ORDER) {
-        assert(heights.some((one) => one.screen === screen), `${screen} opens cards`);
+        assert(heights.some((height) => height.screen === screen), `${screen} opens cards`);
     }
-    assert(heights.every((one) => one.recording === HILDUR_NAME), "each names its recording");
+    assert(heights.every((height) => height.recording === HILDUR_NAME), "each names its recording");
     const report = formatHeightReport(heights);
     assertStrictEquals(report[0], `cards          ${heights.length}`, "the count comes first");
-    const distribution = (report.at(-1) ?? "").split(" ").filter((one) => one.includes(":"));
-    const counted = distribution.reduce((sum, one) => sum + Number(one.split(":")[1]), 0);
+    const distribution = (report.at(-1) ?? "").split(" ").filter((bucket) => bucket.includes(":"));
+    const counted = distribution.reduce((sum, bucket) => sum + Number(bucket.split(":")[1]), 0);
     assertStrictEquals(counted, heights.length, "and the distribution accounts for every card");
 });
 
@@ -63,7 +63,7 @@ function composeHeight(lines: number): CardHeight {
 }
 
 Deno.test("the tallest are listed tallest first, a screenful of them and no more", () => {
-    const many = Array.from({ length: TALLEST_LISTED + 1 }, (_, at) => composeHeight(at + 1));
+    const many = Array.from({ length: TALLEST_LISTED + 1 }, (_, index) => composeHeight(index + 1));
     const listed = formatTallestReport(many);
     assertStrictEquals(listed.length, TALLEST_LISTED, "a screenful");
     assertStrictEquals(

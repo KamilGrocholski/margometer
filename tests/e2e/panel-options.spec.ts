@@ -48,9 +48,9 @@ test("a bar too short for what it holds cuts the version, never a control", asyn
         expect((box?.x ?? 0) + (box?.width ?? 0), `${selector} ends inside the bar`)
             .toBeLessThanOrEqual((bar?.x ?? 0) + (bar?.width ?? 0));
     }
-    const version = await panel.at(".titlebar-version").evaluate((one) => ({
-        drawn: one.clientWidth,
-        asked: one.scrollWidth,
+    const version = await panel.at(".titlebar-version").evaluate((versionLabel) => ({
+        drawn: versionLabel.clientWidth,
+        asked: versionLabel.scrollWidth,
     }));
     expect(version.drawn, "the version is what gave way").toBeLessThan(version.asked);
 });
@@ -73,20 +73,23 @@ test("every answer in the options stands on one line inside the panel, at every 
         await panel.at(`[data-type-step="${step}"]`).click();
         await expect(panel.at(`[data-type-step="${step}"].selected`), `${step} is taken`)
             .toHaveCount(1);
-        const edge = await panel.at(".meter").evaluate((one) => one.getBoundingClientRect().right);
+        const edge = await panel.at(".meter").evaluate((meter) =>
+            meter.getBoundingClientRect().right
+        );
         for (const selector of ANSWERS) {
             const drawn = await panel.at(selector).evaluateAll((all) =>
-                all.map((one) => ({
-                    height: one.getBoundingClientRect().height,
-                    right: one.getBoundingClientRect().right,
-                    spill: one.scrollWidth - one.clientWidth,
+                all.map((answerElement) => ({
+                    height: answerElement.getBoundingClientRect().height,
+                    right: answerElement.getBoundingClientRect().right,
+                    spill: answerElement.scrollWidth - answerElement.clientWidth,
                 }))
             );
             expect(drawn.length, `${step}: ${selector} is drawn`).toBeGreaterThan(0);
-            for (const one of drawn) {
-                expect(one.height, `${step}: ${selector} is one row`).toBe(row);
-                expect(one.spill, `${step}: ${selector} holds its words`).toBeLessThanOrEqual(0);
-                expect(one.right, `${step}: ${selector} ends inside the panel`)
+            for (const drawnAnswer of drawn) {
+                expect(drawnAnswer.height, `${step}: ${selector} is one row`).toBe(row);
+                expect(drawnAnswer.spill, `${step}: ${selector} holds its words`)
+                    .toBeLessThanOrEqual(0);
+                expect(drawnAnswer.right, `${step}: ${selector} ends inside the panel`)
                     .toBeLessThanOrEqual(edge);
             }
         }

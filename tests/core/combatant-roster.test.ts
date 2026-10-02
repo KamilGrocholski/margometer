@@ -31,9 +31,13 @@ Deno.test("a roster of nothing holds nobody, and a roster of one holds one", () 
     const empty = indexCombatantRoster(lookupRecordedFight(NOBODY).combatants);
     assertEquals(empty.byId.size, 0, "a recording with no snapshot states no combatant");
     assertEquals(lookupCombatantIdByName(empty, "Gracz 1"), null, "and resolves no name");
-    const one = indexCombatantRoster([composeTestCombatant(1, "Gracz 1")]);
-    assertEquals(one.byId.size, 1, "one combatant is a roster");
-    assertEquals(lookupCombatantIdByName(one, "Gracz 1"), 1, "and answers to their own name");
+    const soloRoster = indexCombatantRoster([composeTestCombatant(1, "Gracz 1")]);
+    assertEquals(soloRoster.byId.size, 1, "one combatant is a roster");
+    assertEquals(
+        lookupCombatantIdByName(soloRoster, "Gracz 1"),
+        1,
+        "and answers to their own name",
+    );
 });
 
 function composeTestCombatant(id: number, name: string): Combatant {
@@ -80,7 +84,11 @@ Deno.test("every recording composes a roster of its own people", () => {
     for (const fight of readRecordedFights()) {
         const combatants = fight.combatants;
         const roster = indexCombatantRoster(combatants);
-        assertEquals(roster.byId.size, new Set(combatants.map((one) => one.id)).size, fight.path);
+        assertEquals(
+            roster.byId.size,
+            new Set(combatants.map((combatant) => combatant.id)).size,
+            fight.path,
+        );
         for (const [name, id] of roster.idByName) {
             if (id === null) continue;
             assertEquals(
@@ -90,7 +98,10 @@ Deno.test("every recording composes a roster of its own people", () => {
             );
         }
         largest = Math.max(largest, roster.byId.size);
-        sidesSeen = Math.max(sidesSeen, new Set(combatants.map((one) => one.side)).size);
+        sidesSeen = Math.max(
+            sidesSeen,
+            new Set(combatants.map((combatant) => combatant.side)).size,
+        );
     }
     assert(largest > 1, "the recordings hold fights of more than one person");
     assertEquals(sidesSeen, 2, "a fight has two sides, and neither is favoured here");

@@ -97,24 +97,24 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
     }
     assertEquals(world.lines, [], "and nothing of ours failed along the way");
     assertEquals(world.shown.length, 1, "one panel on the page, however many calls arrived");
-    const rows = getElementsWithin(findList(world.getHost())).filter((one) =>
-        one.className.split(" ")[0] === CLASS.row
+    const rows = getElementsWithin(findList(world.getHost())).filter((fakeElement) =>
+        fakeElement.className.split(" ")[0] === CLASS.row
     );
     assertEquals(rows.length, 11, "the fight's eleven combatants, each with a row");
     // The panel spaces its thousands on a gap that does not break.
     const figures = rows.map((row) =>
         Number(
-            (row.children.find((one) => one.className === `${CLASS.rowValue} ${CLASS.figure}`)
+            (row.children.find((child) => child.className === `${CLASS.rowValue} ${CLASS.figure}`)
                 ?.textContent ?? "").split(" ").join(""),
         )
     );
     assert((figures[0] ?? 0) > 0, "the largest figure is above nothing");
-    for (const [at, figure] of figures.entries()) {
-        if (at === 0) continue;
-        assert((figures[at - 1] ?? 0) >= figure, "and the rest fall away from it");
+    for (const [rank, figure] of figures.entries()) {
+        if (rank === 0) continue;
+        assert((figures[rank - 1] ?? 0) >= figure, "and the rest fall away from it");
     }
     const names = rows.map((row) =>
-        row.children.find((one) => one.className === CLASS.rowName)?.textContent ?? ""
+        row.children.find((child) => child.className === CLASS.rowName)?.textContent ?? ""
     );
     assertStrictEquals(new Set(names).size, names.length, "each row is somebody of their own");
     assertStrictEquals(world.runtime.deinit(), undefined, "the wrap comes off");
@@ -130,7 +130,9 @@ function readUpdates(path: string): readonly unknown[] {
 }
 
 function findList(host: FakeElement): FakeElement {
-    const list = getElementsWithin(host).find((one) => one.className.split(" ")[0] === CLASS.list);
+    const list = getElementsWithin(host).find((fakeElement) =>
+        fakeElement.className.split(" ")[0] === CLASS.list
+    );
     assertExists(list, "the panel drew its list");
     return list;
 }
@@ -154,7 +156,7 @@ Deno.test("a panel goes up when the reading starts, saying there has been no fig
         "waiting, said",
     );
     assertEquals(
-        getElementsWithin(host).filter((one) => one.className === CLASS.strips),
+        getElementsWithin(host).filter((fakeElement) => fakeElement.className === CLASS.strips),
         [],
         "no strips",
     );
@@ -164,7 +166,9 @@ Deno.test("a panel goes up when the reading starts, saying there has been no fig
 });
 
 function countRows(within: FakeElement): number {
-    return getElementsWithin(within).filter((one) => one.className.split(" ")[0] === CLASS.row)
+    return getElementsWithin(within).filter((fakeElement) =>
+        fakeElement.className.split(" ")[0] === CLASS.row
+    )
         .length;
 }
 
@@ -172,13 +176,15 @@ Deno.test("the ranking marks whose turn it is, and stops the moment the fight is
     const world = initRuntimeWorld(composeBattlePage());
     const payloads = readUpdates(HILDUR);
     const marksNow = () => {
-        return getElementsWithin(world.getHost()).filter((one) => one.className === CLASS.rowTurn);
+        return getElementsWithin(world.getHost()).filter((fakeElement) =>
+            fakeElement.className === CLASS.rowTurn
+        );
     };
     let marked = 0;
-    for (const [at, payload] of payloads.entries()) {
+    for (const [payloadIndex, payload] of payloads.entries()) {
         world.update(payload);
         // The last payload ends the fight, and a fight over numbers nobody's turn.
-        if (at === payloads.length - 1) continue;
+        if (payloadIndex === payloads.length - 1) continue;
         const marks = marksNow();
         assert(marks.length <= 1, "never more than one row at a time takes a turn");
         marked += marks.length;
@@ -263,8 +269,8 @@ Deno.test("a page that throws when it is looked at leaves the add-on standing, a
  */
 Deno.test("a store nothing can be read out of costs what was in it, and not the add-on", () => {
     const tooMany: unknown[] = [];
-    for (let at = 0; at < 40; at += 1) {
-        tooMany.push({ openedAt: at + 1, payloads: [{ a: "1=100;0" }], isPinned: false });
+    for (let fightIndex = 0; fightIndex < 40; fightIndex += 1) {
+        tooMany.push({ openedAt: fightIndex + 1, payloads: [{ a: "1=100;0" }], isPinned: false });
     }
     const world = initRuntimeWorld(composeBattlePage(), (built) => {
         const edited = JSON.stringify({ version: 3, fights: tooMany });
@@ -282,19 +288,19 @@ Deno.test("a store nothing can be read out of costs what was in it, and not the 
 Deno.test("a reader presses a screen and the panel goes there, and nowhere else", () => {
     const world = playRecordedFight();
     const host = world.getHost();
-    const current = () =>
+    const currentScreen = () =>
         getElementsWithin(host)
-            .find((one) => one.className.includes(CLASS.stripCurrent))
+            .find((fakeElement) => fakeElement.className.includes(CLASS.stripCurrent))
             ?.attributes.get("data-screen");
-    assertEquals(current(), "damageDealt", "the panel opens on what the reader did");
+    assertEquals(currentScreen(), "damageDealt", "the panel opens on what the reader did");
     const taken = findByMark(host, "data-screen", "damageTaken");
     assertExists(taken, "there is a screen to press");
     world.press(taken);
-    assertEquals(current(), "damageTaken", "and pressing it takes the panel there");
+    assertEquals(currentScreen(), "damageTaken", "and pressing it takes the panel there");
     const stray = world.ports.document.createElement("div") as FakeElement;
     stray.setAttribute("data-screen", "whateverTheGameCalls");
     world.press(stray);
-    assertEquals(current(), "damageTaken", "and a screen nobody has moves nothing");
+    assertEquals(currentScreen(), "damageTaken", "and a screen nobody has moves nothing");
 });
 
 /** The add-on stood up on a page of its own, with a recording replayed through its wrap. */
@@ -304,11 +310,11 @@ function playRecordedFight(path: string = HILDUR): RuntimeWorld {
     return world;
 }
 
-function findByMark(host: FakeElement, mark: string, value?: string): FakeElement | undefined {
-    return getElementsWithin(host).find((one) => {
-        const stated = one.attributes.get(mark);
+function findByMark(host: FakeElement, mark: string, markValue?: string): FakeElement | undefined {
+    return getElementsWithin(host).find((fakeElement) => {
+        const stated = fakeElement.attributes.get(mark);
         if (stated === undefined) return false;
-        return value === undefined ? true : stated === value;
+        return markValue === undefined ? true : stated === markValue;
     });
 }
 
@@ -317,9 +323,9 @@ Deno.test("a reader presses the other side of a fight against one, and the panel
     const host = world.getHost();
     const chosen = () =>
         getElementsWithin(host)
-            .find((one) => {
-                if (!one.className.includes(CLASS.stripCurrent)) return false;
-                return one.attributes.has("data-side");
+            .find((fakeElement) => {
+                if (!fakeElement.className.includes(CLASS.stripCurrent)) return false;
+                return fakeElement.attributes.has("data-side");
             })
             ?.attributes.get("data-side");
     assertEquals(chosen(), "everyone", "the panel opens on everybody in the fight");
@@ -357,12 +363,12 @@ Deno.test("a fight that ends goes on the shelf, once, and comes back after a rel
 });
 
 /** The reader comes back: a second start over the stores the first one left behind. */
-function reloadRuntimeWorld(first: RuntimeWorld, page = composeBattlePage()): RuntimeWorld {
+function reloadRuntimeWorld(firstWorld: RuntimeWorld, page = composeBattlePage()): RuntimeWorld {
     return initRuntimeWorld(page, (second) => {
-        for (const [key, value] of first.held) second.held.set(key, value);
+        for (const [key, stored] of firstWorld.held) second.held.set(key, stored);
         for (const choice of ["local", "session"]) {
-            for (const [key, value] of first.getShelf(choice)) {
-                second.getShelf(choice).set(key, value);
+            for (const [key, stored] of firstWorld.getShelf(choice)) {
+                second.getShelf(choice).set(key, stored);
             }
         }
         return {};
@@ -378,8 +384,8 @@ function openShelfScreen(world: RuntimeWorld): void {
 /** Every row of the ranking as a reader reads it, name and figure, in the order drawn. */
 function getRankingTexts(host: FakeElement): string[] {
     return getElementsWithin(findList(host))
-        .filter((one) => one.className.split(" ")[0] === CLASS.row)
-        .map((row) => row.children.map((one) => one.textContent).join(" | "));
+        .filter((fakeElement) => fakeElement.className.split(" ")[0] === CLASS.row)
+        .map((row) => row.children.map((child) => child.textContent).join(" | "));
 }
 
 /** Three fights, because the newest is the live row and never looked up on the shelf. */
@@ -471,8 +477,8 @@ function pressSave(world: RuntimeWorld): void {
     world.press(control);
 }
 
-function readSavedFile(world: RuntimeWorld, at = 0): Record<string, unknown> {
-    const parsed = parseJson(world.saved[at]?.text ?? "");
+function readSavedFile(world: RuntimeWorld, savedIndex = 0): Record<string, unknown> {
+    const parsed = parseJson(world.saved[savedIndex]?.text ?? "");
     assert(!(parsed instanceof Error), "what it handed over reads back as JSON");
     assert(isRecord(parsed), "and as a recording");
     return parsed;
@@ -485,10 +491,10 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
     assertEquals(world.saved.length, 0, "and nothing is saved until the control is pressed");
     pressSave(world);
     assertEquals(world.saved.length, 1, "one file when it is");
-    const at = CAPTURED_AT.split(":").join("-").split(".").join("-");
+    const capturedStamp = CAPTURED_AT.split(":").join("-").split(".").join("-");
     assertEquals(
         world.saved[0]?.name,
-        `margometer-${WORLD}-${MARGONEM_CLIENT_BUILD}-${TEST_VERSION}-${at}.json`,
+        `margometer-${WORLD}-${MARGONEM_CLIENT_BUILD}-${TEST_VERSION}-${capturedStamp}.json`,
         "named for the world, both builds and the moment it was asked for",
     );
     const written = readSavedFile(world);
@@ -501,12 +507,12 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
     assert(Array.isArray(entries), "carrying the calls the game made");
     assertEquals(entries.length, readUpdates(HILDUR).length, "every call, as material thinned");
     assertEquals(written.droppedCalls, 0, "and the file says nothing was dropped");
-    const first = entries[0];
-    assert(isRecord(first), "an entry is a record");
+    const firstCall = entries[0];
+    assert(isRecord(firstCall), "an entry is a record");
     const keys = ["index", "payload", "messages", "combatantsBefore", "combatantsAfter"];
-    assertEquals(Object.keys(first), keys, "in the shape every admitted recording carries");
-    const before = first.combatantsBefore;
-    const after = first.combatantsAfter;
+    assertEquals(Object.keys(firstCall), keys, "in the shape every admitted recording carries");
+    const before = firstCall.combatantsBefore;
+    const after = firstCall.combatantsAfter;
     assert(Array.isArray(before), "with a snapshot before the call");
     assert(Array.isArray(after), "and one after it");
     assertEquals(
@@ -544,11 +550,11 @@ Deno.test("the fight handed over is the one on screen, kept ones included", () =
     assert(isRecord(report), "with the figures the panel drew beside them");
     assertEquals(report.payloads, calls.length, "built from every call the file carries");
     assertEquals(report.isOver, true, "of a fight this one saw the end of");
-    const first = calls[0];
-    assert(isRecord(first), "and each call is a record");
-    assertEquals(first.combatantsBefore, null, "a snapshot the shelf never kept is absent");
-    assertEquals(first.combatantsAfter, null, "on either side of the call");
-    assert(Array.isArray(first.messages), "while the messages come back out of the payload");
+    const firstCall = calls[0];
+    assert(isRecord(firstCall), "and each call is a record");
+    assertEquals(firstCall.combatantsBefore, null, "a snapshot the shelf never kept is absent");
+    assertEquals(firstCall.combatantsAfter, null, "on either side of the call");
+    assert(Array.isArray(firstCall.messages), "while the messages come back out of the payload");
     assertEquals(written.droppedCalls, null, "and what nobody counted is not counted as none");
 });
 
@@ -561,11 +567,13 @@ Deno.test("the shelf has a screen of its own, and its control toggles", () => {
     openShelfScreen(world);
     assertEquals(rows(), 1, "and on the shelf, where the live and the kept fight are one row");
     assertEquals(getTextsByClass(host, CLASS.rowTime), ["teraz"], "the one going on now");
-    const pins = getElementsWithin(host).filter((one) => one.className.startsWith(CLASS.rowPin));
+    const pins = getElementsWithin(host).filter((fakeElement) =>
+        fakeElement.className.startsWith(CLASS.rowPin)
+    );
     assertEquals(pins.length, 1, "and it carries a pin, being a fight the rotation can drop");
     assertEquals(getTextsByClass(host, CLASS.crumbHere), ["Walki"], "the shelf says what it is");
     assertEquals(
-        getElementsWithin(host).filter((one) => one.className === CLASS.sides),
+        getElementsWithin(host).filter((fakeElement) => fakeElement.className === CLASS.sides),
         [],
         "and totals nothing, being a list of fights rather than a screen of one",
     );
@@ -579,7 +587,9 @@ Deno.test("the shelf has a screen of its own, and its control toggles", () => {
 });
 
 function getRegion(host: FakeElement, className: string): FakeElement | undefined {
-    return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
+    return getElementsWithin(getPanelWithin(host)).find((fakeElement) =>
+        fakeElement.className === className
+    );
 }
 
 Deno.test("a browser that will not have the shelf is answered, not argued with", () => {
@@ -600,12 +610,12 @@ Deno.test("a page with no game draws nothing and says why, once", () => {
 
 Deno.test("a second copy of the add-on stands down and never draws", () => {
     const page = composeBattlePage();
-    const first = initRuntimeWorld(page);
-    const second = initRuntimeWorld(page);
-    assertEquals(second.lines.length, 1, "the second copy stands down, and says so once");
-    first.update({ init: 1, m: [], mi: [] });
-    assertEquals(second.shown, [], "while it never puts a panel on the page");
-    assertEquals(first.shown.length, 1, "and the first has the one panel there is");
+    const firstWorld = initRuntimeWorld(page);
+    const secondWorld = initRuntimeWorld(page);
+    assertEquals(secondWorld.lines.length, 1, "the second copy stands down, and says so once");
+    firstWorld.update({ init: 1, m: [], mi: [] });
+    assertEquals(secondWorld.shown, [], "while it never puts a panel on the page");
+    assertEquals(firstWorld.shown.length, 1, "and the first has the one panel there is");
 });
 
 Deno.test("a reader opens a row, and every way out of it leads back to the screen", () => {
@@ -622,12 +632,12 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     assertExists(person, "saying whose row it is");
     assert(countListRows(host) > 0, "and drawing the parts of one figure");
     assert(countRowsThatOpen(host) > 0, "some of which open onto what passed between two people");
-    const other = getElementsWithin(getPanelWithin(host)).find((one) => {
-        if (one.className !== CLASS.rowName) return false;
-        return one.attributes.get("data-row") !== undefined;
+    const otherName = getElementsWithin(getPanelWithin(host)).find((fakeElement) => {
+        if (fakeElement.className !== CLASS.rowName) return false;
+        return fakeElement.attributes.get("data-row") !== undefined;
     });
-    assertExists(other, "there is somebody to open");
-    world.press(other);
+    assertExists(otherName, "there is somebody to open");
+    world.press(otherName);
     assertEquals(countRowsThatOpen(host), 0, "and on that rung nothing opens any further");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
     assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "one rung at a time");
@@ -656,9 +666,9 @@ function countListRows(host: FakeElement): number {
 }
 
 function countRowsThatOpen(host: FakeElement): number {
-    return getElementsWithin(getPanelWithin(host)).filter((one) => {
-        if (one.className.split(" ")[0] !== CLASS.row) return false;
-        return one.attributes.get("data-row") !== undefined;
+    return getElementsWithin(getPanelWithin(host)).filter((fakeElement) => {
+        if (fakeElement.className.split(" ")[0] !== CLASS.row) return false;
+        return fakeElement.attributes.get("data-row") !== undefined;
     }).length;
 }
 
@@ -666,7 +676,8 @@ function countRowsThatOpen(host: FakeElement): number {
 Deno.test("a way back with no rung to leave moves nothing, and redraws nothing", () => {
     const world = playRecordedFight();
     const host = world.getHost();
-    const getBar = () => getElementsWithin(host).find((one) => one.className === CLASS.title);
+    const getBar = () =>
+        getElementsWithin(host).find((fakeElement) => fakeElement.className === CLASS.title);
     const bar = getBar();
     assertExists(bar, "the bar is drawn, and a draw is what replaces it");
     world.press(host, "contextmenu");
@@ -688,7 +699,9 @@ Deno.test("a reader opens a pinned row, and it does not follow them to the next 
     const pinnedName = () => {
         const block = getRegion(host, CLASS.pinned);
         if (block === undefined) return undefined;
-        return getElementsWithin(block).find((one) => one.className === CLASS.rowName);
+        return getElementsWithin(block).find((fakeElement) =>
+            fakeElement.className === CLASS.rowName
+        );
     };
     const name = pinnedName();
     assertExists(name, "this fight pins a figure nobody was named for");
@@ -697,15 +710,15 @@ Deno.test("a reader opens a pinned row, and it does not follow them to the next 
     world.press(name);
     assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, PANEL_WORDS.withoutActor, "open");
     assertEquals(pinnedName(), undefined, "and the pinned row itself is off the screen");
-    const person = getElementsWithin(host).find((one) => {
-        if (one.className !== CLASS.rowName) return false;
-        return one.attributes.get("data-row") !== undefined;
+    const person = getElementsWithin(host).find((fakeElement) => {
+        if (fakeElement.className !== CLASS.rowName) return false;
+        return fakeElement.attributes.get("data-row") !== undefined;
     });
     assertExists(person, "the level names whom the game did state, each opening further");
     world.press(person);
     assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person.textContent, "one rung");
-    const kinds = getElementsWithin(host).filter((one) => {
-        return (one.attributes.get("data-card") ?? "").startsWith("kind:");
+    const kinds = getElementsWithin(host).filter((fakeElement) => {
+        return (fakeElement.attributes.get("data-card") ?? "").startsWith("kind:");
     });
     assert(kinds.length > 0, "which is the keys their share of the figure moved under");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
@@ -729,13 +742,13 @@ Deno.test("a reader opens what a figure was made of, and the way back is one run
     world.press(name);
     const person = getRegion(host, CLASS.crumbHere)?.textContent;
     assertExists(person, "which opens onto their figure, and says whose it is");
-    const part = getElementsWithin(host).find((one) => {
-        if (one.className !== CLASS.rowName) return false;
-        return one.attributes.get("data-skill") !== undefined;
+    const announcementName = getElementsWithin(host).find((fakeElement) => {
+        if (fakeElement.className !== CLASS.rowName) return false;
+        return fakeElement.attributes.get("data-skill") !== undefined;
     });
-    assertExists(part, "an announcement inside it is pressed by its own name");
-    const named = part.textContent;
-    world.press(part);
+    assertExists(announcementName, "an announcement inside it is pressed by its own name");
+    const named = announcementName.textContent;
+    world.press(announcementName);
     assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, named, "that announcement");
     assert(countRows(getPanelWithin(host)) > 0, "listing whom it reached");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
@@ -772,7 +785,7 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
     );
     openShelfScreen(world);
     const row = getElementsWithin(getPanelWithin(host))
-        .find((one) => one.className.split(" ")[0] === CLASS.row);
+        .find((fakeElement) => fakeElement.className.split(" ")[0] === CLASS.row);
     assertExists(row, "the shelf drew the fight that ended");
     assertEquals(getTextsByClass(row, CLASS.rowName), ["Mapa Testowa (12, 34)"], "and its row");
 });
@@ -839,7 +852,7 @@ Deno.test("a reload onto a kept fight that no longer reads says so, and when and
             const fights = [{ openedAt: 1, payloads: [{ init: 1, m: over }], place: stated }];
             const shelf = {
                 version: 3,
-                fights: fights.map((one) => ({ ...one, isPinned: false })),
+                fights: fights.map((fight) => ({ ...fight, isPinned: false })),
             };
             built.getShelf("local").set(STORE_KEY.fights, JSON.stringify(shelf));
             return {};
@@ -858,9 +871,9 @@ Deno.test("a fight that opens puts the reader back on the ranking", () => {
     for (const payload of readUpdates(FIRST_OF_A_PAIR)) world.update(payload);
     const host = world.getHost();
     // A player's row: the opponent is an NPC, whose id the game states afresh for each fight.
-    const name = getElementsWithin(host).find((one) => {
-        if (one.className !== CLASS.rowName) return false;
-        const stated = one.attributes.get("data-row");
+    const name = getElementsWithin(host).find((fakeElement) => {
+        if (fakeElement.className !== CLASS.rowName) return false;
+        const stated = fakeElement.attributes.get("data-row");
         if (stated === undefined) return false;
         return !stated.startsWith("-");
     });
@@ -882,9 +895,11 @@ Deno.test("a pin is the reader's own answer, and the shelf keeps it", () => {
     const host = world.getHost();
     openShelfScreen(world);
     const pin = (): FakeElement => {
-        const found = getElementsWithin(host).find((one) => one.className.startsWith(CLASS.rowPin));
-        assertExists(found, "the fight on the shelf carries a pin");
-        return found;
+        const drawnPin = getElementsWithin(host).find((fakeElement) =>
+            fakeElement.className.startsWith(CLASS.rowPin)
+        );
+        assertExists(drawnPin, "the fight on the shelf carries a pin");
+        return drawnPin;
     };
     assertEquals(pin().textContent, "☆", "which starts saying nothing was pinned");
     const before = countRows(getPanelWithin(host));
@@ -918,17 +933,17 @@ Deno.test("where the shelf is kept is the reader's answer, and the fights travel
 });
 
 function chooseStorage(world: RuntimeWorld, name: string): void {
-    const found = findByMark(world.getHost(), "data-storage", name);
-    assertExists(found, `the strip offers ${name}`);
-    world.press(found);
+    const storageOption = findByMark(world.getHost(), "data-storage", name);
+    assertExists(storageOption, `the strip offers ${name}`);
+    world.press(storageOption);
 }
 
 /** The storage strip's answer, read by its mark: the options carry the type's strip beside it. */
 function getStorageChosen(host: FakeElement): string[] {
     return getElementsWithin(host)
-        .filter((one) => one.attributes.get("data-storage") !== undefined)
-        .filter((one) => one.className.includes(CLASS.stripCurrent))
-        .map((one) => one.textContent);
+        .filter((fakeElement) => fakeElement.attributes.get("data-storage") !== undefined)
+        .filter((fakeElement) => fakeElement.className.includes(CLASS.stripCurrent))
+        .map((fakeElement) => fakeElement.textContent);
 }
 
 function openOptions(world: RuntimeWorld): void {
@@ -973,7 +988,7 @@ Deno.test("a store that will not take the fights leaves them where they were", (
     );
     assert(
         getTextsByClass(world.getHost(), CLASS.suspicion)
-            .some((one) => one.includes(STORE_REFUSED_ANSWER)),
+            .some((suspicion) => suspicion.includes(STORE_REFUSED_ANSWER)),
         "and the options say the store would not take them",
     );
 });
@@ -1025,9 +1040,9 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     const now = drawnFigures();
     assertNotStrictEquals(now[0], live[0], "the second fight states figures of its own");
     openShelfScreen(world);
-    const kepts = getElementsWithin(getPanelWithin(host)).filter((one) => {
-        if (one.className.split(" ")[0] !== CLASS.row) return false;
-        return one.attributes.get("data-fight") !== "live";
+    const kepts = getElementsWithin(getPanelWithin(host)).filter((fakeElement) => {
+        if (fakeElement.className.split(" ")[0] !== CLASS.row) return false;
+        return fakeElement.attributes.get("data-fight") !== "live";
     });
     assertEquals(kepts.length, 1, "the shelf holds the fight that ended before this one");
     const held = kepts[0];
@@ -1036,7 +1051,9 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     assertEquals(getTextsByClass(host, CLASS.crumbHere), [], "the shelf gives way to the figures");
     assertEquals(drawnFigures(), live, "which are the first fight's, read back off what was kept");
     openShelfScreen(world);
-    const marked = getElementsWithin(host).filter((one) => one.className.includes(CLASS.rowChosen));
+    const marked = getElementsWithin(host).filter((fakeElement) =>
+        fakeElement.className.includes(CLASS.rowChosen)
+    );
     assertEquals(marked.length, 1, "and the shelf marks which fight is on screen");
     assertEquals(marked[0]?.attributes.get("data-fight") === "live", false, "the kept one");
 });
@@ -1045,17 +1062,17 @@ Deno.test("a fight that has ended is handed over whole, snapshots and all", () =
     const world = playRecordedFight();
     openShelfScreen(world);
     const row = getElementsWithin(getPanelWithin(world.getHost()))
-        .find((one) => one.className.split(" ")[0] === CLASS.row);
+        .find((fakeElement) => fakeElement.className.split(" ")[0] === CLASS.row);
     assertExists(row, "the shelf holds the fight that just ended");
     world.press(row);
     pressSave(world);
     const written = readSavedFile(world);
     const calls = written.calls;
     assert(Array.isArray(calls), "carrying its calls");
-    const first = calls[0];
-    assert(isRecord(first), "and each of them a record");
-    assert(Array.isArray(first.combatantsBefore), "with the snapshots the shelf never keeps");
-    assert(Array.isArray(first.combatantsAfter), "on either side of the call");
+    const firstCall = calls[0];
+    assert(isRecord(firstCall), "and each of them a record");
+    assert(Array.isArray(firstCall.combatantsBefore), "with the snapshots the shelf never keeps");
+    assert(Array.isArray(firstCall.combatantsAfter), "on either side of the call");
     assertEquals(written.droppedCalls, 0, "and a dropped count that was really counted");
 });
 
@@ -1064,11 +1081,13 @@ Deno.test("a fight the reader walked into says so on the panel", () => {
     const [opening, ...rest] = readUpdates(HILDUR);
     assertExists(opening, "the recording opens with a payload");
     for (const payload of rest) world.update(payload);
-    const drawn = getElementsWithin(world.getHost()).find((one) =>
-        one.className === CLASS.suspicions
+    const drawn = getElementsWithin(world.getHost()).find((fakeElement) =>
+        fakeElement.className === CLASS.suspicions
     );
     assertExists(drawn, "the panel drew the region a suspicion is said in");
-    const said = getElementsWithin(drawn).map((one) => one.textContent ?? "").join(" ");
+    const said = getElementsWithin(drawn).map((fakeElement) => fakeElement.textContent ?? "").join(
+        " ",
+    );
     assertStringIncludes(said, "w trakcie", "and says the reading began after the fight did");
 });
 
@@ -1132,8 +1151,8 @@ Deno.test("a payload the fight refuses is said on the panel, and the next one is
     const world = initRuntimeWorld(composeBattlePage());
     const payloads = readUpdates(HILDUR);
     const middle = Math.floor(payloads.length / 2);
-    for (const [at, payload] of payloads.entries()) {
-        if (at === middle) world.update({ w: composeCastPastItsBound() });
+    for (const [payloadIndex, payload] of payloads.entries()) {
+        if (payloadIndex === middle) world.update({ w: composeCastPastItsBound() });
         world.update(payload);
     }
     const host = world.getHost();
@@ -1312,7 +1331,8 @@ function playRecordedFightOn(battle: Record<string, unknown>): RuntimeWorld {
 Deno.test("a size of type chosen redraws both windows in it, and comes back after a reload", () => {
     const world = playRecordedFight();
     const host = world.getHost();
-    const sheet = () => getElementsWithin(host).find((one) => one.tag === "style")?.textContent;
+    const sheet = () =>
+        getElementsWithin(host).find((fakeElement) => fakeElement.tag === "style")?.textContent;
     const drawn = sheet();
     assertStrictEquals(drawn, composeStyleSheet(TYPE_STEP_DEFAULT), "it opens at the default");
     assertEquals(world.held.get(STORE_KEY.typeStep), undefined, "with nothing stored");
@@ -1322,13 +1342,17 @@ Deno.test("a size of type chosen redraws both windows in it, and comes back afte
     world.press(large);
     assertStrictEquals(sheet(), composeStyleSheet(TYPE_STEP.large), "the sheet is that step's");
     assertEquals(world.held.get(STORE_KEY.typeStep), TYPE_STEP.large, "and the choice is kept");
-    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    const bar = getElementsWithin(host).find((fakeElement) =>
+        fakeElement.className === CLASS.title
+    );
     const again = findByMark(host, "data-type-step", TYPE_STEP.large);
     assertExists(again, "the step stands marked where it was pressed");
     world.press(again);
     assertStrictEquals(bar?.replacedBy, null, "the same step again redraws nothing");
     const reloaded = reloadRuntimeWorld(world);
-    const style = getElementsWithin(reloaded.getHost()).find((one) => one.tag === "style");
+    const style = getElementsWithin(reloaded.getHost()).find((fakeElement) =>
+        fakeElement.tag === "style"
+    );
     assertStrictEquals(
         style?.textContent,
         composeStyleSheet(TYPE_STEP.large),
@@ -1342,7 +1366,7 @@ Deno.test("a size of type the browser kept unreadable costs that size, and says 
         return {};
     });
     const host = world.getHost();
-    const style = getElementsWithin(host).find((one) => one.tag === "style");
+    const style = getElementsWithin(host).find((fakeElement) => fakeElement.tag === "style");
     assertStrictEquals(style?.textContent, composeStyleSheet(TYPE_STEP_DEFAULT), "the default");
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     assertEquals(
@@ -1355,7 +1379,9 @@ Deno.test("a size of type the browser kept unreadable costs that size, and says 
 Deno.test("a window sized is kept with no frame, comes back after a reload, and goes back", () => {
     const world = playRecordedFight();
     const host = world.getHost();
-    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    const bar = getElementsWithin(host).find((fakeElement) =>
+        fakeElement.className === CLASS.title
+    );
     const size = { width: 320, height: 350 };
     world.runtime.onIntent({ kind: "resize", window: "meter", size });
     assertEquals(world.held.get(STORE_KEY.meterSize), '{"width":320,"height":350}', "kept");
@@ -1422,7 +1448,9 @@ Deno.test("a window's size the browser kept unreadable costs the size, and says 
     });
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const host = world.getHost();
-    const standing = getElementsWithin(host).find((one) => one.className.startsWith(CLASS.helper));
+    const standing = getElementsWithin(host).find((fakeElement) =>
+        fakeElement.className.startsWith(CLASS.helper)
+    );
     assertEquals(
         (standing?.attributes.get("style") ?? "").includes("--MargoMeter-helper-width"),
         false,
@@ -1479,8 +1507,8 @@ Deno.test("a fight still going on is on the shelf with nothing to pin", () => {
     const payloads = readUpdates(HILDUR);
     for (const payload of payloads.slice(0, 3)) world.update(payload);
     openShelfScreen(world);
-    const pins = getElementsWithin(world.getHost()).filter((one) =>
-        one.className.startsWith(CLASS.rowPin)
+    const pins = getElementsWithin(world.getHost()).filter((fakeElement) =>
+        fakeElement.className.startsWith(CLASS.rowPin)
     );
     assertEquals(pins, [], "a fight nothing has written down has no pin to press");
 });
@@ -1519,7 +1547,9 @@ Deno.test("a fight read back off the shelf says where it was fought, not where t
 Deno.test("the fight's line and its shelf row say who the reader was, and it outlives a reload", () => {
     const view = composeFightView(replayRecordedFight(lookupRecordedFight(HILDUR)));
     assertExists(view, "the recording is a fight");
-    const reader = [...view.roster.byId.values()].find((one) => one.side === view.readerSide);
+    const reader = [...view.roster.byId.values()].find((combatant) =>
+        combatant.side === view.readerSide
+    );
     assertExists(reader, "with somebody on the reader's side");
     const world = initRuntimeWorld(composePlacedPage({ x: 12, y: 34, id: reader.id }));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
@@ -1539,7 +1569,9 @@ Deno.test("the fight's line and its shelf row say who the reader was, and it out
     openShelfRowCard(again);
     const card = readCard(again.getHost());
     assertEquals(
-        new Map(card.stated.map((one) => [one.label, one.value])).get(FIGHT_CARD_WORDS.character),
+        new Map(card.stated.map((statement) => [statement.label, statement.value])).get(
+            FIGHT_CARD_WORDS.character,
+        ),
         character,
         "and its row opens the same card",
     );
@@ -1548,17 +1580,19 @@ Deno.test("the fight's line and its shelf row say who the reader was, and it out
 /** The card the fight's line opens, as label to value. */
 function readFightCard(world: RuntimeWorld): Map<string, string> {
     const host = world.getHost();
-    const line = getElementsWithin(host).find((one) => one.className === CLASS.headerLine);
+    const line = getElementsWithin(host).find((fakeElement) =>
+        fakeElement.className === CLASS.headerLine
+    );
     assertExists(line, "the fight's line is drawn");
     pointAtElement(host, "pointermove", line, 20);
-    return new Map(readCard(host).stated.map((one) => [one.label, one.value]));
+    return new Map(readCard(host).stated.map((statement) => [statement.label, statement.value]));
 }
 
 /** Points at the shelf's first row, which opens its card. */
 function openShelfRowCard(world: RuntimeWorld): void {
     openShelfScreen(world);
     const row = getElementsWithin(getPanelWithin(world.getHost()))
-        .find((one) => one.className.split(" ")[0] === CLASS.row);
+        .find((fakeElement) => fakeElement.className.split(" ")[0] === CLASS.row);
     assertExists(row, "the shelf drew the fight");
     pointAtElement(world.getHost(), "pointermove", row, 120);
 }
@@ -1656,12 +1690,14 @@ Deno.test("a key under a pinned row opens whom it reached, and the way back is o
     const host = world.getHost();
     const pinned = getRegion(host, CLASS.pinned);
     assertExists(pinned, "this fight pins a figure nobody was named for");
-    const name = getElementsWithin(pinned).find((one) => one.className === CLASS.rowName);
+    const name = getElementsWithin(pinned).find((fakeElement) =>
+        fakeElement.className === CLASS.rowName
+    );
     assertExists(name, "and a row of it to open");
     world.press(name);
-    const key = getElementsWithin(getPanelWithin(host)).find((one) => {
-        if (one.className !== CLASS.rowName) return false;
-        return one.attributes.get("data-kind") !== undefined;
+    const key = getElementsWithin(getPanelWithin(host)).find((fakeElement) => {
+        if (fakeElement.className !== CLASS.rowName) return false;
+        return fakeElement.attributes.get("data-kind") !== undefined;
     });
     assertExists(key, "the level names the keys its figure moved under");
     world.press(key);
@@ -1687,13 +1723,13 @@ Deno.test("each window goes back where the reader left it, and never where the o
         built.held.set(STORE_KEY.helperPosition, '{"left":300,"top":400}');
         return {};
     });
-    const styles = getElementsWithin(world.getHost()).map((one) => ({
-        className: one.className.split(" ")[0],
-        style: one.attributes.get("style") ?? "",
+    const styles = getElementsWithin(world.getHost()).map((fakeElement) => ({
+        className: fakeElement.className.split(" ")[0],
+        style: fakeElement.attributes.get("style") ?? "",
     }));
-    const standing = styles.find((one) => one.className === CLASS.helper);
+    const standing = styles.find((styled) => styled.className === CLASS.helper);
     assertStringIncludes(standing?.style ?? "", "left:300px", "the window beside the panel");
-    const placed = styles.filter((one) => one.style.includes("left:40px"));
+    const placed = styles.filter((styled) => styled.style.includes("left:40px"));
     assertStrictEquals(placed.length, 1, "and the panel, each at its own");
 });
 
@@ -1758,9 +1794,9 @@ Deno.test("a kept fight opens at its own top, whatever place the live one was le
 /** The row of the fight before the one going on, found on the shelf screen it opens. */
 function findKeptShelfRow(world: RuntimeWorld): FakeElement {
     openShelfScreen(world);
-    const kept = getElementsWithin(getPanelWithin(world.getHost())).find((one) => {
-        if (one.className.split(" ")[0] !== CLASS.row) return false;
-        return one.attributes.get("data-fight") !== "live";
+    const kept = getElementsWithin(getPanelWithin(world.getHost())).find((fakeElement) => {
+        if (fakeElement.className.split(" ")[0] !== CLASS.row) return false;
+        return fakeElement.attributes.get("data-fight") !== "live";
     });
     assertExists(kept, "the shelf holds the fight before this one");
     return kept;
@@ -1773,15 +1809,15 @@ Deno.test("a store that made room for the fight says so on the shelf", () => {
     }));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const said = readShelfAnswers(world);
-    assert(said.some((one) => one.includes(STORE_MADE_ROOM_ANSWER)), "the older fight went");
+    assert(said.some((answer) => answer.includes(STORE_MADE_ROOM_ANSWER)), "the older fight went");
 });
 
 /** A shelf of the smallest fights there are, kept from moments before any a test plays. */
 function composeSmallShelf(count: number, isPinned: boolean): string {
     const fights = [];
-    for (let at = 1; at <= count; at += 1) {
+    for (let fightNumber = 1; fightNumber <= count; fightNumber += 1) {
         const payloads = [{ init: 1, m: ["0;0;winner=Gracz 1"], endBattle: 1 }];
-        fights.push({ openedAt: at, payloads, isPinned });
+        fights.push({ openedAt: fightNumber, payloads, isPinned });
     }
     return JSON.stringify({ version: 3, fights });
 }
@@ -1791,12 +1827,12 @@ function initStoreRefusingOnce(held: Map<string, string>): KeyValueStore {
     let refusals = 1;
     return initBrowserStore({
         getItem: (key) => held.get(key) ?? null,
-        setItem: (key, value) => {
+        setItem: (key, stored) => {
             if (refusals > 0) {
                 refusals -= 1;
                 throw new DOMException("full", "QuotaExceededError");
             }
-            held.set(key, value);
+            held.set(key, stored);
         },
         removeItem: (key) => void held.delete(key),
     });
@@ -1814,7 +1850,7 @@ Deno.test("a shelf of pins says the fight had nowhere to go", () => {
     });
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const said = readShelfAnswers(world);
-    assert(said.some((one) => one.includes(EVERY_SLOT_PINNED_ANSWER)), "every slot is a pin");
+    assert(said.some((answer) => answer.includes(EVERY_SLOT_PINNED_ANSWER)), "every slot is a pin");
 });
 
 Deno.test("the window beside the panel folds on its own, and is kept folded apart from it", () => {
@@ -1826,7 +1862,7 @@ Deno.test("the window beside the panel folds on its own, and is kept folded apar
     assertEquals(world.held.get(STORE_KEY.helperFolded), "1", "written where a reload looks");
     assertEquals(world.held.get(STORE_KEY.meterFolded), undefined, "and the panel's left alone");
     const standing = getElementsWithin(host)
-        .find((one) => one.className.split(" ")[0] === CLASS.helper);
+        .find((fakeElement) => fakeElement.className.split(" ")[0] === CLASS.helper);
     assertExists(standing, "the window stands beside the panel");
     assert(standing.className.split(" ").includes(CLASS.helperFolded), "folded to its bar");
     assert(countRows(getPanelWithin(host)) > 0, "while the panel goes on drawing the fight");
@@ -1894,12 +1930,12 @@ Deno.test("a change of screen keeps the person opened, and lets go of the pair",
     assertExists(name, "a row to open");
     world.press(name);
     const person = getRegion(host, CLASS.crumbHere)?.textContent;
-    const other = getElementsWithin(getPanelWithin(host)).find((one) => {
-        if (one.className !== CLASS.rowName) return false;
-        return one.attributes.get("data-row") !== undefined;
+    const otherName = getElementsWithin(getPanelWithin(host)).find((fakeElement) => {
+        if (fakeElement.className !== CLASS.rowName) return false;
+        return fakeElement.attributes.get("data-row") !== undefined;
     });
-    assertExists(other, "somebody inside it to open");
-    world.press(other);
+    assertExists(otherName, "somebody inside it to open");
+    world.press(otherName);
     assertNotStrictEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "a pair opened");
     const taken = findByMark(host, "data-screen", "damageTaken");
     assertExists(taken, "another screen to reach for");

@@ -460,7 +460,7 @@ Deno.test("a key nothing here words is drawn as the player's own client names it
  * `develop ADR 0087`.
  */
 Deno.test("a combatant the fight never touched states the figure that was asked, at nought", () => {
-    const at = (metric: PanelMetric) =>
+    const presentUntouchedCard = (metric: PanelMetric) =>
         presentCard({
             name: "Gracz 9",
             profession: null,
@@ -471,7 +471,7 @@ Deno.test("a combatant the fight never touched states the figure that was asked,
             isRowNarrower: false,
             translate: null,
         });
-    const card = at(PANEL_METRIC.damageDealt);
+    const card = presentUntouchedCard(PANEL_METRIC.damageDealt);
     assertEquals(card.subtitle, null, "and a line drawn for neither is a question, not an answer");
     assertEquals(card.groups.length, 1, "and nothing they did is nothing to put under a rule");
     const [figures] = card.groups;
@@ -483,14 +483,14 @@ Deno.test("a combatant the fight never touched states the figure that was asked,
     );
     // The sample that must move: the same combatant on another screen answers that screen.
     assertEquals(
-        readGroup(at(PANEL_METRIC.healthRestored).groups[0] ?? { lines: [] }),
+        readGroup(presentUntouchedCard(PANEL_METRIC.healthRestored).groups[0] ?? { lines: [] }),
         [`[${CARD_WORDS.wholeFight}]`, "**Leczenie otrzymane** 0"],
         "the figure standing at nought is the screen's own, and never a fixed one of the four",
     );
 });
 
 Deno.test("a part of a figure is drawn from the first point of it, and never below one", () => {
-    const at = (figure: number) =>
+    const readLinesForFigure = (figure: number) =>
         readGroup(
             presentCard({
                 name: "Gracz 9",
@@ -504,7 +504,7 @@ Deno.test("a part of a figure is drawn from the first point of it, and never bel
             }).groups[0] ?? { lines: [] },
         );
     const named = (figure: number) =>
-        at(figure).filter((line) => line.includes(PANEL_WORDS.withoutTarget));
+        readLinesForFigure(figure).filter((line) => line.includes(PANEL_WORDS.withoutTarget));
     assertEquals(named(0), [], "nothing named nobody is nothing to say");
     assertEquals(named(1), [`  ${PANEL_WORDS.withoutTarget} 1`], "and one point of it is said");
 });
@@ -602,12 +602,12 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
             isRowNarrower: false,
             translate: null,
         }).groups.map(readGroup);
-    const [first, ...rest] = SCREEN_ORDER.map(readScreen);
-    assertExists(first, "there is a screen to read the card on");
+    const [firstScreen, ...rest] = SCREEN_ORDER.map(readScreen);
+    assertExists(firstScreen, "there is a screen to read the card on");
     // Said of one screen before the four are compared: four cards agreeing with each other agree
     // just as well when a run has been dropped from all of them.
     assertEquals(
-        first.flat().filter((line) => line.startsWith("[")),
+        firstScreen.flat().filter((line) => line.startsWith("[")),
         [
             `[${CARD_WORDS.wholeFight}]`,
             `[${CARD_WORDS.striking}]`,
@@ -620,11 +620,13 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
     // `develop ADR 0032` holds and this change does not touch it: the runs still do not turn on the
     // screen. What the screen now decides, beside the bold, is which figure of nought is still
     // worth a line — so the first block is compared on its own, below.
-    for (const [at, groups] of rest.entries()) {
+    for (const [index, groups] of rest.entries()) {
         assertEquals(
             groups.slice(1),
-            first.slice(1),
-            `${SCREEN_ORDER[at + 1]} says what the first screen says below the fight's own figures`,
+            firstScreen.slice(1),
+            `${
+                SCREEN_ORDER[index + 1]
+            } says what the first screen says below the fight's own figures`,
         );
     }
     const noughtsOf = (metric: PanelMetric) =>
@@ -649,7 +651,7 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
     );
     // The crit keys are counted in the line above and never again beside it: `+crit` is the count
     // itself and `+of_crit` the part of it that was the offhand's.
-    const striking = first[2] ?? [];
+    const striking = firstScreen[2] ?? [];
     assert(!striking.some((line) => line.includes("krytyk")), "the crit keys are not said twice");
 });
 

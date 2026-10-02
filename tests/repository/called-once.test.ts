@@ -95,7 +95,7 @@ Deno.test("a function called once, not strong and not exported, is flagged", () 
 function lookupCalledOnce(file: SourceFile, strong: ReadonlySet<string>): string[] {
     const identifiers = readAstNodes(file, ["Identifier"]);
     const nested = readNestedNodes(file);
-    const found: string[] = [];
+    const calledOnce: string[] = [];
     for (const declaration of readAstNodes(file, ["FunctionDeclaration", "VariableDeclarator"])) {
         const name = readDeclaredFunctionName(declaration);
         if (name === null) continue;
@@ -103,9 +103,9 @@ function lookupCalledOnce(file: SourceFile, strong: ReadonlySet<string>): string
         if (declaration.parent?.type === "ExportNamedDeclaration") continue;
         if (declaration.parent?.parent?.type === "ExportNamedDeclaration") continue;
         const declared = declaration.id?.range[0];
-        const mentions = identifiers.filter((one) => {
-            if (one.name !== name) return false;
-            return one.range[0] !== declared;
+        const mentions = identifiers.filter((identifier) => {
+            if (identifier.name !== name) return false;
+            return identifier.range[0] !== declared;
         });
         if (mentions.length !== 1) continue;
         const call = mentions[0]!.parent;
@@ -116,9 +116,11 @@ function lookupCalledOnce(file: SourceFile, strong: ReadonlySet<string>): string
         if (isStartedAsync(declaration, caller)) continue;
         if (isPastBoundInCaller(declaration, call, nested)) continue;
         const callerName = readDeclaredFunctionName(caller);
-        found.push(`${formatNodePlace(file, declaration)} ${name}, called once by ${callerName}`);
+        calledOnce.push(
+            `${formatNodePlace(file, declaration)} ${name}, called once by ${callerName}`,
+        );
     }
-    return found.sort((one, other) => readLine(one) - readLine(other));
+    return calledOnce.sort((left, right) => readLine(left) - readLine(right));
 }
 
 /** An `async` function a synchronous caller starts: only a function can hold its awaits. */
@@ -139,10 +141,10 @@ function isPastBoundInCaller(
     const [from, to] = declaration.range;
     const own = countEnclosingBlocks(declaration);
     let deepest = 0;
-    for (const node of nested) {
-        if (node.range[0] < from) continue;
-        if (node.range[1] > to) continue;
-        deepest = Math.max(deepest, countEnclosingBlocks(node) - own);
+    for (const statement of nested) {
+        if (statement.range[0] < from) continue;
+        if (statement.range[1] > to) continue;
+        deepest = Math.max(deepest, countEnclosingBlocks(statement) - own);
     }
     return countEnclosingBlocks(call) + deepest > NESTING_DEPTH_MAXIMUM;
 }
@@ -152,9 +154,9 @@ function readFunctionNode(declaration: AstNode): AstNode {
     return declaration.init ?? declaration;
 }
 
-function readLine(found: string): number {
-    const from = found.indexOf(":") + 1;
-    return Number(found.slice(from, found.indexOf(" ", from)));
+function readLine(finding: string): number {
+    const from = finding.indexOf(":") + 1;
+    return Number(finding.slice(from, finding.indexOf(" ", from)));
 }
 
 Deno.test("no function of the program is called from one place and stands apart", () => {

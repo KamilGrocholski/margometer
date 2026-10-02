@@ -47,27 +47,27 @@ Deno.test("the reader knows a census row from every other line", () => {
 
 /** The rows whose first cell names a recording, which is what a census row looks like. */
 function readRecordingRows(text: string): string[][] {
-    const found: string[][] = [];
+    const recordingRows: string[][] = [];
     for (const line of text.split("\n")) {
         const cells = readRowCells(line);
-        if ((cells[0] ?? "").startsWith("captures/")) found.push(cells);
+        if ((cells[0] ?? "").startsWith("captures/")) recordingRows.push(cells);
     }
-    return found;
+    return recordingRows;
 }
 
 /** Every backticked cell of a table row, in the order the row states them. */
 function readRowCells(line: string): string[] {
     if (!line.trimStart().startsWith(ROW_OPENER)) return [];
-    const found: string[] = [];
-    let at = line.indexOf(BACKTICK);
-    while (at !== -1) {
-        assert(found.length <= ROWS_MAXIMUM, "the walk stays inside its stated bound");
-        const closes = line.indexOf(BACKTICK, at + 1);
+    const cells: string[] = [];
+    let backtickIndex = line.indexOf(BACKTICK);
+    while (backtickIndex !== -1) {
+        assert(cells.length <= ROWS_MAXIMUM, "the walk stays inside its stated bound");
+        const closes = line.indexOf(BACKTICK, backtickIndex + 1);
         if (closes === -1) break;
-        found.push(line.slice(at + 1, closes));
-        at = line.indexOf(BACKTICK, closes + 1);
+        cells.push(line.slice(backtickIndex + 1, closes));
+        backtickIndex = line.indexOf(BACKTICK, closes + 1);
     }
-    return found;
+    return cells;
 }
 
 /** A cell that is a count, which is how a census row is told from a fight's row of six. */
@@ -97,11 +97,11 @@ function readEnvelopeText(path: string, field: string): string {
     const parsed = parseJson(Deno.readTextFileSync(path));
     assert(!(parsed instanceof Error), `${path}: a recording is JSON`);
     assert(isRecord(parsed), `${path}: a recording is a record`);
-    const value = parsed[field];
-    if (value === undefined) return NO_BUILD;
-    if (value === null) return NO_BUILD;
-    assert(typeof value === "string", `${path}: ${field} is stated as text or as nothing`);
-    return value;
+    const fieldValue = parsed[field];
+    if (fieldValue === undefined) return NO_BUILD;
+    if (fieldValue === null) return NO_BUILD;
+    assert(typeof fieldValue === "string", `${path}: ${field} is stated as text or as nothing`);
+    return fieldValue;
 }
 
 /** What a filename says of a version, where the register says `none stated`. */
@@ -151,8 +151,8 @@ Deno.test("the cast each row states is the cast the recording's payloads state",
         assertExists(row, `${fight.path}: no row states its cast`);
         const seat = readReaderSide(fight);
         const cast = [...indexRecordedWarriors(fight).values()];
-        const ours = cast.filter((one) => one.side === seat);
-        const theirs = cast.filter((one) => one.side !== seat);
+        const ours = cast.filter((warrior) => warrior.side === seat);
+        const theirs = cast.filter((warrior) => warrior.side !== seat);
         assertEquals(row[1], `${ours.length} vs ${theirs.length}`, `${fight.path}: the shape`);
         assertEquals(row[3], formatCastText(ours), `${fight.path}: the reader's side`);
         assertEquals(row[4], formatCastText(theirs), `${fight.path}: and the other`);
@@ -185,7 +185,7 @@ function readReaderSide(fight: RecordedFight): number {
 
 /** Every warrior a recording's payloads state, by id, so one person is counted once. */
 function indexRecordedWarriors(fight: RecordedFight): Map<number, RecordedWarrior> {
-    const found = new Map<number, RecordedWarrior>();
+    const warriorsById = new Map<number, RecordedWarrior>();
     for (const update of fight.updates) {
         if (!isRecord(update)) continue;
         const warriors = update[ENVELOPE_KEYS.combatants];
@@ -201,29 +201,32 @@ function indexRecordedWarriors(fight: RecordedFight): Map<number, RecordedWarrio
             if (typeof level !== "number") continue;
             if (typeof profession !== "string") continue;
             const isPlayer = stated[INTAKE_KEYS.nonPlayer] === 0;
-            found.set(id, { side, profession, level, isPlayer });
+            warriorsById.set(id, { side, profession, level, isPlayer });
         }
     }
-    assert(found.size > 0, `${fight.path}: no warrior was read out of its payloads`);
-    assert(found.size <= ROWS_MAXIMUM, `${fight.path}: stays inside the bound this file walks by`);
-    return found;
+    assert(warriorsById.size > 0, `${fight.path}: no warrior was read out of its payloads`);
+    assert(
+        warriorsById.size <= ROWS_MAXIMUM,
+        `${fight.path}: stays inside the bound this file walks by`,
+    );
+    return warriorsById;
 }
 
 /** `10 players · h 1, m 2, p 2, t 1, w 4 · levels 93–120`, in the register's own words. */
 function formatCastText(cast: readonly RecordedWarrior[]): string {
     assert(cast.length > 0, "a side with nobody on it is not a side this register writes");
-    const players = cast.filter((one) => one.isPlayer).length;
+    const players = cast.filter((warrior) => warrior.isPlayer).length;
     // Every side in `captures/` is all people or all monsters, so the register has one noun each.
     assert(players === 0 || players === cast.length, "a side is all players or all NPCs");
     const noun = players === cast.length ? "player" : "NPC";
     const counted = `${cast.length} ${noun}${cast.length === 1 ? "" : "s"}`;
     const byProfession = new Map<string, number>();
-    for (const one of cast) {
-        byProfession.set(one.profession, (byProfession.get(one.profession) ?? 0) + 1);
+    for (const warrior of cast) {
+        byProfession.set(warrior.profession, (byProfession.get(warrior.profession) ?? 0) + 1);
     }
-    const professions = [...byProfession].sort(([one], [other]) => one < other ? -1 : 1)
+    const professions = [...byProfession].sort(([left], [right]) => left < right ? -1 : 1)
         .map(([letter, count]) => `${letter} ${count}`).join(", ");
-    const levels = cast.map((one) => one.level);
+    const levels = cast.map((warrior) => warrior.level);
     const lowest = Math.min(...levels);
     const highest = Math.max(...levels);
     const stated = lowest === highest
@@ -238,7 +241,7 @@ Deno.test("the census of shapes is the shapes the recordings actually are", () =
     for (const fight of readRecordedFights()) {
         const seat = readReaderSide(fight);
         const cast = [...indexRecordedWarriors(fight).values()];
-        const ours = cast.filter((one) => one.side === seat).length;
+        const ours = cast.filter((warrior) => warrior.side === seat).length;
         const shape = `${ours} vs ${cast.length - ours}`;
         counted.set(shape, (counted.get(shape) ?? 0) + 1);
     }
@@ -256,8 +259,8 @@ Deno.test("the census of shapes is the shapes the recordings actually are", () =
 
 /** Every backticked row of a table, whatever its first cell names. */
 function readRecordingTableRows(section: string): string[][] {
-    const found = section.split("\n").map(readRowCells).filter((cells) => cells.length > 0);
-    assert(found.length > 0, "a section this guard reads carries a table");
-    assert(found.length <= ROWS_MAXIMUM, "and stays inside the bound this file walks by");
-    return found;
+    const tableRows = section.split("\n").map(readRowCells).filter((cells) => cells.length > 0);
+    assert(tableRows.length > 0, "a section this guard reads carries a table");
+    assert(tableRows.length <= ROWS_MAXIMUM, "and stays inside the bound this file walks by");
+    return tableRows;
 }

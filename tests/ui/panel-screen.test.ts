@@ -97,9 +97,9 @@ Deno.test("one strip is marked on each row, and it is the screen the panel is on
     for (const screen of SCREEN_ORDER) {
         const nouns = presentNounStrips(screen);
         const directions = presentDirectionStrips(screen);
-        assertEquals(nouns.filter((one) => one.isCurrent).length, 1, "one noun is marked");
-        assertEquals(directions.filter((one) => one.isCurrent).length, 1, "and one direction");
-        const marked = directions.find((one) => one.isCurrent);
+        assertEquals(nouns.filter((strip) => strip.isCurrent).length, 1, "one noun is marked");
+        assertEquals(directions.filter((strip) => strip.isCurrent).length, 1, "and one direction");
+        const marked = directions.find((strip) => strip.isCurrent);
         assertEquals(marked?.name, screen, "and the marked direction is the screen itself");
     }
 });
@@ -109,19 +109,19 @@ Deno.test("one strip is marked on each row, and it is the screen the panel is on
  * was a noun with no direction. Crossing the nouns keeps the direction the reader is reading in.
  */
 Deno.test("crossing between the nouns keeps the direction, or says there is none to keep", () => {
-    const fromDealt = presentNounStrips(PANEL_METRIC.damageDealt).find((one) => !one.isCurrent);
+    const fromDealt = presentNounStrips(PANEL_METRIC.damageDealt).find((strip) => !strip.isCurrent);
     assertEquals(
         fromDealt?.name,
         PANEL_METRIC.healthGiven,
         "damage given crosses to healing given",
     );
-    const fromTaken = presentNounStrips(PANEL_METRIC.damageTaken).find((one) => !one.isCurrent);
+    const fromTaken = presentNounStrips(PANEL_METRIC.damageTaken).find((strip) => !strip.isCurrent);
     assertEquals(
         fromTaken?.name,
         PANEL_METRIC.healthRestored,
         "and damage taken to healing received",
     );
-    const back = presentNounStrips(PANEL_METRIC.healthGiven).find((one) => !one.isCurrent);
+    const back = presentNounStrips(PANEL_METRIC.healthGiven).find((strip) => !strip.isCurrent);
     assertEquals(
         back?.name,
         PANEL_METRIC.damageDealt,
@@ -130,13 +130,13 @@ Deno.test("crossing between the nouns keeps the direction, or says there is none
 });
 
 Deno.test("the direction strip draws the noun's own screens and nobody else's", () => {
-    const damage = presentDirectionStrips(PANEL_METRIC.damageDealt).map((one) => one.name);
+    const damage = presentDirectionStrips(PANEL_METRIC.damageDealt).map((strip) => strip.name);
     assertEquals(
         damage,
         [PANEL_METRIC.damageDealt, PANEL_METRIC.damageTaken],
         "damage both ways round",
     );
-    const healing = presentDirectionStrips(PANEL_METRIC.healthRestored).map((one) => one.name);
+    const healing = presentDirectionStrips(PANEL_METRIC.healthRestored).map((strip) => strip.name);
     assertEquals(
         healing,
         [PANEL_METRIC.healthGiven, PANEL_METRIC.healthRestored],
@@ -149,11 +149,19 @@ Deno.test("the side strip offers every choice there is, one of them marked", () 
     for (const choice of SIDE_CHOICES) {
         const strips = presentSideStrips(choice);
         assertEquals(strips.length, SIDE_CHOICES.length, "every choice is on the strip");
-        assertEquals(strips.filter((one) => one.isCurrent).length, 1, "and one of them is marked");
-        assertEquals(strips.find((one) => one.isCurrent)?.name, choice, "the one that was chosen");
+        assertEquals(
+            strips.filter((strip) => strip.isCurrent).length,
+            1,
+            "and one of them is marked",
+        );
+        assertEquals(
+            strips.find((strip) => strip.isCurrent)?.name,
+            choice,
+            "the one that was chosen",
+        );
     }
     assertEquals(
-        new Set(presentSideStrips(SIDE_CHOICE.everyone).map((one) => one.words)).size,
+        new Set(presentSideStrips(SIDE_CHOICE.everyone).map((strip) => strip.words)).size,
         3,
         "worded apart",
     );
@@ -161,8 +169,12 @@ Deno.test("the side strip offers every choice there is, one of them marked", () 
 
 Deno.test("a place a reader stands in is named, and every field of it counts", () => {
     const screen = createScreenState(false);
-    const first = composeListName(screen, FIGHT);
-    assertEquals(composeListName(screen, FIGHT), first, "the same place twice is the same name");
+    const placeName = composeListName(screen, FIGHT);
+    assertEquals(
+        composeListName(screen, FIGHT),
+        placeName,
+        "the same place twice is the same name",
+    );
     const moved: string[] = [];
     for (
         const change of [
@@ -178,7 +190,7 @@ Deno.test("a place a reader stands in is named, and every field of it counts", (
         assert(!moved.includes(name), `${name}: a field moved alone is a place of its own`);
         moved.push(name);
     }
-    assert(!moved.includes(first), "and none of them is the place they started from");
+    assert(!moved.includes(placeName), "and none of them is the place they started from");
     assertEquals(moved.length, 5, "five fields, five places");
 });
 
@@ -230,7 +242,7 @@ Deno.test("the options are a place of their own, and not the shelf's", () => {
 
 Deno.test("a fight is part of the place, so a new one is nobody's position", () => {
     const screen = createScreenState(false);
-    const first = composeListName(screen, FIGHT);
-    assert(composeListName(screen, FIGHT + 1) !== first, "another fight is another place");
-    assertEquals(composeListName(screen, FIGHT), first, "and the fight itself is where it was");
+    const placeName = composeListName(screen, FIGHT);
+    assert(composeListName(screen, FIGHT + 1) !== placeName, "another fight is another place");
+    assertEquals(composeListName(screen, FIGHT), placeName, "and the fight itself is where it was");
 });

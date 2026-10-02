@@ -49,10 +49,10 @@ test("pressing a row reads that fight, and pressing the live one comes back", as
     await setSecondFightKept(panel);
     await panel.at("[data-shelf]").click();
     const rows = panel.at(".list .row[data-fight]");
-    const first = await rows.first().getAttribute("data-fight");
-    const second = await rows.nth(1).getAttribute("data-fight");
-    expect(first, "the rows say which fight each is").not.toBeNull();
-    expect(second, "and they are not the same fight twice").not.toBe(first);
+    const firstFight = await rows.first().getAttribute("data-fight");
+    const secondFight = await rows.nth(1).getAttribute("data-fight");
+    expect(firstFight, "the rows say which fight each is").not.toBeNull();
+    expect(secondFight, "and they are not the same fight twice").not.toBe(firstFight);
 
     await rows.nth(1).click();
     await expect(panel.at(".list .row[data-fight]"), "the shelf steps aside for the fight")
@@ -61,7 +61,10 @@ test("pressing a row reads that fight, and pressing the live one comes back", as
     await panel.expectHonest("a fight read off the shelf");
 
     await panel.at("[data-shelf]").click();
-    await expect(panel.at(`.row.chosen[data-fight="${second}"]`), "the shelf marks which is read")
+    await expect(
+        panel.at(`.row.chosen[data-fight="${secondFight}"]`),
+        "the shelf marks which is read",
+    )
         .toHaveCount(1);
     await panel.at(`.list .row[data-fight="${LIVE}"]`).click();
     await panel.at("[data-shelf]").click();
@@ -86,9 +89,9 @@ test("a pin marks a fight, and the fights travel to wherever they are kept", asy
         .not.toHaveCount(0);
 
     const kept = await panel.at(".list .row[data-fight]").count();
-    for (const at of [1, 2, 0]) {
+    for (const storageIndex of [1, 2, 0]) {
         await panel.at("[data-options]").click();
-        const choice = panel.at("[data-storage]").nth(at);
+        const choice = panel.at("[data-storage]").nth(storageIndex);
         const named = await choice.getAttribute("data-storage");
         await choice.click();
         expect(await panel.stored(STORAGE_KEY), `${named} is where the reader asked`).toBe(named);

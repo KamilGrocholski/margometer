@@ -38,15 +38,15 @@ Deno.test("a cast is flagged in either spelling, and `as const` and `satisfies` 
 });
 
 function lookupTypeAssertions(file: SourceFile): string[] {
-    const found: string[] = [];
-    for (const node of readAstNodes(file, ["TSAsExpression", "TSTypeAssertion"])) {
-        if (!isConstAssertion(node)) found.push(formatNodePlace(file, node));
+    const casts: string[] = [];
+    for (const assertion of readAstNodes(file, ["TSAsExpression", "TSTypeAssertion"])) {
+        if (!isConstAssertion(assertion)) casts.push(formatNodePlace(file, assertion));
     }
-    return found;
+    return casts;
 }
 
-function isConstAssertion(node: AstNode): boolean {
-    return node.typeAnnotation?.typeName?.name === CONST_NAME;
+function isConstAssertion(assertion: AstNode): boolean {
+    return assertion.typeAnnotation?.typeName?.name === CONST_NAME;
 }
 
 Deno.test("nothing outside the tests asserts a type", () => {
@@ -70,13 +70,17 @@ Deno.test("a `@ts-` directive is flagged in either comment, and one named in pro
 });
 
 function lookupDirectives(file: SourceFile): string[] {
-    const found: string[] = [];
+    const directives: string[] = [];
     for (const text of readCommentTexts(file)) {
-        let at = 0;
-        while (at < text.length && DIRECTIVE_LEAD.includes(text[at] ?? "")) at += 1;
-        if (text.startsWith(DIRECTIVE_OPENER, at)) found.push(`${file.path}: ${text.slice(at)}`);
+        let characterIndex = 0;
+        while (
+            characterIndex < text.length && DIRECTIVE_LEAD.includes(text[characterIndex] ?? "")
+        ) characterIndex += 1;
+        if (text.startsWith(DIRECTIVE_OPENER, characterIndex)) {
+            directives.push(`${file.path}: ${text.slice(characterIndex)}`);
+        }
     }
-    return found;
+    return directives;
 }
 
 Deno.test("no file silences the compiler with a directive", () => {

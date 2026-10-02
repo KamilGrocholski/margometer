@@ -57,7 +57,7 @@ function composeWarrior(id: number, name: string): Record<string, unknown> {
 function readNames(battle: unknown): unknown[] {
     const snapshot = readMargonemEngineWarriorSnapshot(battle);
     assertNotInstanceOf(snapshot, Error, "the battle states a collection of warriors");
-    return snapshot.map((one) => one.name);
+    return snapshot.map((warrior) => warrior.name);
 }
 
 Deno.test("a warrior with no name is passed over, and the rest of the fight is read", () => {
@@ -100,7 +100,10 @@ Deno.test("a fight holding no collection of warriors is refused, not read as nob
 Deno.test("a fight of twenty is read, and one of twenty-one is refused", () => {
     const cast = (count: number) =>
         Object.fromEntries(
-            Array.from({ length: count }, (_, at) => [at + 1, composeWarrior(at + 1, `P${at}`)]),
+            Array.from(
+                { length: count },
+                (_, index) => [index + 1, composeWarrior(index + 1, `P${index}`)],
+            ),
         );
     const full = readMargonemEngineWarriorSnapshot({ warriorsList: cast(COMBATANTS_MAXIMUM) });
     assertNotInstanceOf(full, Error, "a full fight is read");
@@ -190,7 +193,7 @@ Deno.test("what a payload states about a combatant is what the snapshot states",
     let compared = 0;
     let withoutSnapshot = 0;
     for (const fight of readRecordedFights()) {
-        const snapshots = new Map(fight.combatants.map((one) => [one.id, one]));
+        const snapshots = new Map(fight.combatants.map((combatant) => [combatant.id, combatant]));
         for (const update of fight.updates) {
             const record = readPayloadEnvelope(update);
             assertNotInstanceOf(record, Error, `${fight.path}: a recorded call is read`);

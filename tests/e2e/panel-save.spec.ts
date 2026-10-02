@@ -40,11 +40,11 @@ async function readHandedOver(panel: PanelHandle) {
         panel.page.waitForEvent("download"),
         panel.at("[data-save]").click(),
     ]);
-    const at = await download.path();
-    expect(at, "the browser took the file rather than refusing it").not.toBeNull();
+    const savedPath = await download.path();
+    expect(savedPath, "the browser took the file rather than refusing it").not.toBeNull();
     return {
         named: download.suggestedFilename(),
-        read: JSON.parse(readFileSync(at, "utf8")) as Record<string, unknown>,
+        read: JSON.parse(readFileSync(savedPath, "utf8")) as Record<string, unknown>,
     };
 }
 
@@ -96,9 +96,9 @@ test.describe("a fight the panel read back off its own shelf", () => {
         expect(Array.isArray(calls), "it carries the calls the shelf kept").toBe(true);
         expect((calls as unknown[]).length, "and there are some of them").toBeGreaterThan(0);
         expect(handed.read.report, "with the figures the panel drew beside them").not.toBeNull();
-        const first = (calls as Record<string, unknown>[])[0];
-        expect(first?.combatantsBefore, "a snapshot the shelf never kept is absent").toBeNull();
-        expect(first?.combatantsAfter, "on either side of the call").toBeNull();
+        const firstCall = (calls as Record<string, unknown>[])[0];
+        expect(firstCall?.combatantsBefore, "a snapshot the shelf never kept is absent").toBeNull();
+        expect(firstCall?.combatantsAfter, "on either side of the call").toBeNull();
         expect(handed.read.droppedCalls, "and what nobody counted is not counted as none")
             .toBeNull();
     });

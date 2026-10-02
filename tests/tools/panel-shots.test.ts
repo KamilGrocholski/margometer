@@ -42,30 +42,30 @@ Deno.test("the reader flags a set at odds with its sidecar, and passes one that 
 
 /** What the directory holds against what the sidecar names, in both directions. */
 function lookupSetDisagreements(held: readonly string[], named: readonly string[]): string[] {
-    const found: string[] = [];
+    const disagreements: string[] = [];
     for (const name of held) {
         if (name === SIDECAR_NAME) continue;
-        if (!named.includes(name)) found.push(`${name} is there and unnamed`);
+        if (!named.includes(name)) disagreements.push(`${name} is there and unnamed`);
     }
     for (const name of named) {
-        if (!held.includes(name)) found.push(`${name} is named and gone`);
+        if (!held.includes(name)) disagreements.push(`${name} is named and gone`);
     }
-    return found;
+    return disagreements;
 }
 
 Deno.test("whatever is in the directory agrees with the sidecar standing beside it", () => {
     const sidecar = readSidecar();
     const shots = sidecar.shots;
     assert(Array.isArray(shots), "the sidecar lists the pictures it names");
-    const named = shots.map((one) => isRecord(one) ? String(one.name) : "");
-    const held = [...Deno.readDirSync(SHOT_DIRECTORY)].map((entry) => entry.name);
+    const named = shots.map((shot) => isRecord(shot) ? String(shot.name) : "");
+    const held = [...Deno.readDirSync(SHOT_DIRECTORY)].map((directoryEntry) => directoryEntry.name);
     assertEquals(lookupSetDisagreements(held, named), [], "a leftover picture looks current");
     const calls = lookupRecordedFight(`captures/${sidecar.fight}.json`).updates.length;
-    for (const one of shots) {
-        assert(isRecord(one), "each picture is a record");
-        assert(typeof one.entry === "number", `${one.name}: says how far into the fight it is`);
-        assert(one.entry > 0, `${one.name}: of a fight something was read of`);
-        assert(one.entry <= calls, `${one.name}: and one the recording reaches`);
+    for (const shot of shots) {
+        assert(isRecord(shot), "each picture is a record");
+        assert(typeof shot.entry === "number", `${shot.name}: says how far into the fight it is`);
+        assert(shot.entry > 0, `${shot.name}: of a fight something was read of`);
+        assert(shot.entry <= calls, `${shot.name}: and one the recording reaches`);
     }
 });
 
@@ -91,19 +91,23 @@ Deno.test("the set was taken at a version this tree is", () => {
  */
 Deno.test("the moment the underway pictures are taken at is one a fight is going at", () => {
     const fight = lookupRecordedFight(LANDING_RECORDING);
-    const at = (entry: number) => {
+    const viewAt = (entryNumber: number) => {
         const tables = composeRuntimeTables().decoder;
-        const read = replayFightPayloads(fight.updates.slice(0, entry), tables, SESSION_OPTIONS);
-        assert(!(read instanceof Error), "the recording replays through the runtime's chain");
-        assert(read !== null, "and opens a fight");
-        return read.view;
+        const replayed = replayFightPayloads(
+            fight.updates.slice(0, entryNumber),
+            tables,
+            SESSION_OPTIONS,
+        );
+        assert(!(replayed instanceof Error), "the recording replays through the runtime's chain");
+        assert(replayed !== null, "and opens a fight");
+        return replayed.view;
     };
     assertEquals(
-        lookupUnderwayObjections(at(UNDERWAY_ENTRY)),
+        lookupUnderwayObjections(viewAt(UNDERWAY_ENTRY)),
         [],
         "the entry the five are taken at",
     );
-    const end = lookupUnderwayObjections(at(fight.updates.length));
+    const end = lookupUnderwayObjections(viewAt(fight.updates.length));
     assert(end.includes("the fight had already ended"), "and the end of it is not one");
 });
 
@@ -112,16 +116,24 @@ Deno.test("the moment the underway pictures are taken at is one a fight is going
  * the first, so a moved `UNDERWAY_ENTRY` lights each clause on its own.
  */
 function lookupUnderwayObjections(view: FightView): string[] {
-    const found: string[] = [];
-    if (view.isOver) found.push("the fight had already ended");
-    if (view.turnStatement === null) found.push("no turn was stated");
-    const charging = view.chargedSkills.filter((one) => one.state === CHARGED_SKILL_STATE.charging);
-    if (charging.length !== 1) found.push(`${charging.length} charges stood, and one is wanted`);
-    for (const one of charging) {
-        if (one.turnsStated < 2) found.push(`${one.skillName} states one turn, one pip`);
-        if (one.turnsElapsed >= one.turnsStated) found.push(`${one.skillName} has no turn left`);
+    const objections: string[] = [];
+    if (view.isOver) objections.push("the fight had already ended");
+    if (view.turnStatement === null) objections.push("no turn was stated");
+    const charging = view.chargedSkills.filter((standing) =>
+        standing.state === CHARGED_SKILL_STATE.charging
+    );
+    if (charging.length !== 1) {
+        objections.push(`${charging.length} charges stood, and one is wanted`);
     }
-    return found;
+    for (const standing of charging) {
+        if (standing.turnsStated < 2) {
+            objections.push(`${standing.skillName} states one turn, one pip`);
+        }
+        if (standing.turnsElapsed >= standing.turnsStated) {
+            objections.push(`${standing.skillName} has no turn left`);
+        }
+    }
+    return objections;
 }
 
 Deno.test("a moment is where in the fight the picture is taken", () => {
@@ -132,7 +144,7 @@ Deno.test("a moment is where in the fight the picture is taken", () => {
 Deno.test("the set is taken at both moments, and the shelf at only the end", () => {
     const shots = composePanelShots();
     assert(shots.every((shot) => shot.name.endsWith(".png")), "every picture is named as one");
-    const over = shots.filter((shot) => shot.moment === SHOT_MOMENT.over).map((one) => one.name);
+    const over = shots.filter((shot) => shot.moment === SHOT_MOMENT.over).map((shot) => shot.name);
     assertEquals(over, ["panel-shelf.png"], "a fight is kept where it reaches its end");
     assert(shots.some((shot) => shot.moment === SHOT_MOMENT.underway), "and five are of it going");
 });

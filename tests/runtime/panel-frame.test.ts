@@ -126,8 +126,11 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState) {
     };
     /** The cut each disagreement was said as, or the class of anything else said under figures. */
     const readFiguresSaid = () =>
-        defects.getCounts().filter((one) => one.kind === DEFECT_KIND.figures).map((one) =>
-            one.first instanceof FiguresDisagreed ? one.first.cut : one.first.name
+        defects.getCounts().filter((defectCount) => defectCount.kind === DEFECT_KIND.figures).map((
+            defectCount,
+        ) => defectCount.first instanceof FiguresDisagreed
+            ? defectCount.first.cut
+            : defectCount.first.name
         );
     return { parts, shown, standings, defects, readFiguresSaid };
 }
@@ -175,6 +178,8 @@ Deno.test("the window beside the panel says which reason leaves it nothing live 
         [HELPER_ABSENCE.fightUnread],
         "a fight that arrived and would not read is never said to be no fight",
     );
-    const readings = broken.defects.getCounts().filter((one) => one.kind === DEFECT_KIND.reading);
+    const readings = broken.defects.getCounts().filter((defectCount) =>
+        defectCount.kind === DEFECT_KIND.reading
+    );
     assertStrictEquals(readings.length, 1, "and what would not compose is a defect");
 });

@@ -109,7 +109,10 @@ function start(
     report: SearchReport,
     seen: unknown[] = [],
 ): MargonemEngineSearch {
-    const listener = { onBeforeCall: () => {}, onPayload: (one: unknown) => void seen.push(one) };
+    const listener = {
+        onBeforeCall: () => {},
+        onPayload: (payload: unknown) => void seen.push(payload),
+    };
     return initMargonemEngineSearch(
         initMargonemEngineBattle(page),
         initBrowserInterval(clock.timers),

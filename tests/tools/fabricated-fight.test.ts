@@ -77,10 +77,10 @@ Deno.test("what the fabricator writes states every key the register calls decode
     const stated = new Set(messages.flatMap(readMessageKeys));
     assert(stated.size > 0, "and the fabricated fight states keys of its own");
     const unstated = registered
-        .filter((entry) => entry.verdict === DECODED_VERDICT)
-        .filter((entry) => !(entry.key in NOT_A_MESSAGE_KEY))
-        .filter((entry) => !stated.has(entry.key))
-        .map((entry) => entry.key);
+        .filter((registeredKey) => registeredKey.verdict === DECODED_VERDICT)
+        .filter((registeredKey) => !(registeredKey.key in NOT_A_MESSAGE_KEY))
+        .filter((registeredKey) => !stated.has(registeredKey.key))
+        .map((registeredKey) => registeredKey.key);
     assertEquals(unstated, [], "a decoded key the fabricated fight never puts in front of anybody");
 });
 
@@ -93,7 +93,7 @@ function readMessageKeys(message: string): string[] {
 
 Deno.test("every exemption names a key the register really carries", () => {
     const registered = parseRegisteredKeys(Deno.readTextFileSync(REGISTER_PATH));
-    const keys = new Set(registered.map((entry) => entry.key));
+    const keys = new Set(registered.map((registeredKey) => registeredKey.key));
     const gone = Object.keys(NOT_A_MESSAGE_KEY).filter((key) => !keys.has(key));
     assertEquals(gone, [], "an exemption for a key the register no longer names");
     const reasons = Object.values(NOT_A_MESSAGE_KEY).filter((reason) => reason.length === 0);
@@ -113,10 +113,10 @@ Deno.test("the fabricated fight fields ten players against ten", () => {
     const combatants = [...view.roster.byId.values()];
     assertStrictEquals(combatants.length, COMBATANTS_MAXIMUM, "a fabricated fight fields twenty");
     assertStrictEquals(view.readerSide, 1, "and states which side the reader is on");
-    const ours = combatants.filter((one) => one.side === view.readerSide);
+    const ours = combatants.filter((combatant) => combatant.side === view.readerSide);
     assertStrictEquals(ours.length, 10, "ten of them ours");
     assertStrictEquals(combatants.length - ours.length, 10, "and ten of them theirs");
-    const professions = new Set(combatants.map((one) => one.profession));
+    const professions = new Set(combatants.map((combatant) => combatant.profession));
     assert(professions.size >= 4, "across more than one profession");
 });
 
@@ -125,13 +125,34 @@ Deno.test("the fabricated fight puts something in every part of the panel", () =
     assert(statistics.outcome !== null, "a fight that ended says who won it");
     const figures = [...statistics.byCombatantId.values()];
     assertStrictEquals(figures.length, COMBATANTS_MAXIMUM, "and a figure for every combatant");
-    assert(figures.every((one) => one.damageDealtApplied > 0), "each of whom dealt something");
-    assert(figures.every((one) => one.damageTakenApplied > 0), "and each of whom took something");
-    assert(figures.every((one) => one.turnsTaken > 0), "and each of whom took a turn");
-    assert(figures.some((one) => one.healthGiven > 0), "somebody restored somebody else");
-    assert(figures.some((one) => one.turnsLost > 0), "and somebody spent a turn on nothing");
-    assert(figures.some((one) => one.blowsCritical > 0), "and somebody struck a critical blow");
-    assert(figures.some((one) => one.skills.size > 0), "and somebody was named under a skill");
+    assert(
+        figures.every((combatantFigures) => combatantFigures.damageDealtApplied > 0),
+        "each of whom dealt something",
+    );
+    assert(
+        figures.every((combatantFigures) => combatantFigures.damageTakenApplied > 0),
+        "and each of whom took something",
+    );
+    assert(
+        figures.every((combatantFigures) => combatantFigures.turnsTaken > 0),
+        "and each of whom took a turn",
+    );
+    assert(
+        figures.some((combatantFigures) => combatantFigures.healthGiven > 0),
+        "somebody restored somebody else",
+    );
+    assert(
+        figures.some((combatantFigures) => combatantFigures.turnsLost > 0),
+        "and somebody spent a turn on nothing",
+    );
+    assert(
+        figures.some((combatantFigures) => combatantFigures.blowsCritical > 0),
+        "and somebody struck a critical blow",
+    );
+    assert(
+        figures.some((combatantFigures) => combatantFigures.skills.size > 0),
+        "and somebody was named under a skill",
+    );
     assert(statistics.totals.damagePrevented > 0, "the fight prevented something");
     assert(statistics.totals.damageTakenAbsorbed > 0, "and a pool took something");
     // The four the corpus cannot show. Two of them reach a pinned row, and two reach no row at
@@ -150,9 +171,13 @@ Deno.test("the fabricated fight puts something in every part of the panel", () =
 Deno.test("every key the fabricator spells on its own is one a reader here takes", () => {
     const roster = REPLAY.reading.view.roster;
     for (const warrior of FIGHT.warriors) {
-        const read = roster.byId.get(warrior.id);
-        assertExists(read, `${warrior.name} is in the roster`);
-        assertStrictEquals(read.healthMaximum, warrior.healthMaximum, "at the maximum it states");
+        const combatant = roster.byId.get(warrior.id);
+        assertExists(combatant, `${warrior.name} is in the roster`);
+        assertStrictEquals(
+            combatant.healthMaximum,
+            warrior.healthMaximum,
+            "at the maximum it states",
+        );
     }
     const opening = replayFightPayloads([FIGHT.calls[0]!.payload], DECODER_TABLES, SESSION_OPTIONS);
     assert(!(opening instanceof Error), "the opening is a call the chain reads");
@@ -229,14 +254,23 @@ Deno.test("the shape a fight was composed at is readable off the shape itself", 
  */
 Deno.test("a fight at another level is fought at that level's figures", () => {
     assertStrictEquals(DUEL.warriors.length, 2, "one a side is two combatants");
-    assert(DUEL.warriors.every((one) => one.healthMaximum < 2000), "small pools at level 5");
+    assert(
+        DUEL.warriors.every((warrior) => warrior.healthMaximum < 2000),
+        "small pools at level 5",
+    );
     const replay = replayFabricatedFight(DUEL, "duel");
     const statistics = replay.reading.figures.statistics;
     assertStrictEquals(countUnreadMessages(statistics), 0, "a message the panel could not read");
     assertStrictEquals(replay.reading.view.messagesLost, 0, "a message the payload carried");
     const figures = [...statistics.byCombatantId.values()];
-    assert(figures.every((one) => one.damageDealtApplied > 0), "each of them dealt something");
-    assert(figures.every((one) => one.turnsTaken > 0), "and each of them took a turn");
+    assert(
+        figures.every((combatantFigures) => combatantFigures.damageDealtApplied > 0),
+        "each of them dealt something",
+    );
+    assert(
+        figures.every((combatantFigures) => combatantFigures.turnsTaken > 0),
+        "and each of them took a turn",
+    );
 });
 
 function replayFabricatedFight(fight: FabricatedFight, name: string): ReplayedFight {
@@ -296,16 +330,18 @@ Deno.test("a fight closing on shouts leaves everybody on the board held", () => 
     const shouted = fight.calls.slice(-1 - CLOSING_SHOUTS, -1);
     assertStrictEquals(shouted.length, CLOSING_SHOUTS, "two turns stand before the closing call");
     assert(
-        shouted.every((call) => call.messages.some((one) => one.includes(`${PROVOCATION_KEY}=`))),
+        shouted.every((call) =>
+            call.messages.some((message) => message.includes(`${PROVOCATION_KEY}=`))
+        ),
         "and each of them is spent on a shout",
     );
     const { replay, held } = readProvokedAtClose(fight, "shouted");
     const roster = replay.reading.view.roster;
     assertStrictEquals(roster.byId.size, COMBATANTS_MAXIMUM, "a ten-a-side fields twenty");
     assertStrictEquals(held.length, COMBATANTS_MAXIMUM, "and closes with each of them held");
-    const provoked = new Set(held.map((one) => one.provokedId));
+    const provoked = new Set(held.map((provocation) => provocation.provokedId));
     assertStrictEquals(provoked.size, COMBATANTS_MAXIMUM, "each of them once, nobody twice");
-    const casters = new Set(held.map((one) => one.casterId));
+    const casters = new Set(held.map((provocation) => provocation.casterId));
     assertStrictEquals(casters.size, 2, "by two shouters");
     const sides = new Set([...casters].map((id) => roster.byId.get(id)?.side));
     assertStrictEquals(sides.size, 2, "one on each side, which is what holds both of them at once");
@@ -330,7 +366,11 @@ Deno.test("the smallest board closes on shouts holding both of its own", () => {
     const { replay, held } = readProvokedAtClose(createFabricatedFight(shape), "shouted duel");
     assertStrictEquals(replay.reading.view.roster.byId.size, 2, "one a side is two combatants");
     assertStrictEquals(held.length, 2, "and both of them end the fight held");
-    assertStrictEquals(new Set(held.map((one) => one.casterId)).size, 2, "each by the other");
+    assertStrictEquals(
+        new Set(held.map((provocation) => provocation.casterId)).size,
+        2,
+        "each by the other",
+    );
 });
 
 /**

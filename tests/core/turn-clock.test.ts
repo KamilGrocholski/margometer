@@ -83,8 +83,8 @@ Deno.test("a step opens a turn, and a preparation only where its combatant has n
     assertEquals(lookupOpeners([composeDeclaration(3, "prepare")]), [3], "so is a preparation");
     const beside = lookupOpeners([composeBlow(3, false), composeDeclaration(3, "prepare")]);
     assertEquals(beside, [3, null], "but one stated beside its own action rides it");
-    const other = lookupOpeners([composeBlow(4, false), composeDeclaration(3, "prepare")]);
-    assertEquals(other, [4, 3], "and one after somebody else's is a turn");
+    const afterAnother = lookupOpeners([composeBlow(4, false), composeDeclaration(3, "prepare")]);
+    assertEquals(afterAnother, [4, 3], "and one after somebody else's is a turn");
     assertEquals(lookupOpeners([composeDeclaration(3, "txt")]), [null], "a log line is none");
 });
 

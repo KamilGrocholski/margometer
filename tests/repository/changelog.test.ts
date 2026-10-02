@@ -88,13 +88,16 @@ Deno.test("a released section covers its own version and no neighbour", () => {
  * section and the release for `0.1.0` would announce the tail of `0.2.0`.
  */
 Deno.test("a version number in the middle of an entry is not mistaken for its heading", () => {
-    const first = lookupChangelogSection(CHANGELOG, "0.1.0") ?? "";
+    const earliestSection = lookupChangelogSection(CHANGELOG, "0.1.0") ?? "";
     assertStringIncludes(
-        first,
+        earliestSection,
         "Nakładka z licznikiem obrażeń",
         "0.1.0 is read from its own heading",
     );
-    assert(!first.includes("wycofana z opisu wydania"), "and never from a mention of its number");
+    assert(
+        !earliestSection.includes("wycofana z opisu wydania"),
+        "and never from a mention of its number",
+    );
 });
 
 Deno.test("a version with no section is null rather than empty text", () => {
@@ -143,7 +146,7 @@ Deno.test("the kinds run in the stated order inside every version", () => {
     assertEquals(lookupKindOrderFaults(broken).length, 1, "and one out of order states one");
 
     const faults = lookupKindOrderFaults(CHANGELOG)
-        .filter((one) => !SECTIONS_PAST_THEIR_TAG.some((past) => one.startsWith(`${past}:`)));
+        .filter((fault) => !SECTIONS_PAST_THEIR_TAG.some((past) => fault.startsWith(`${past}:`)));
     assertEquals(faults, [], "an entry a skimming reader stops before");
 });
 
@@ -159,7 +162,7 @@ function lookupKindOrderFaults(text: string): string[] {
             continue;
         }
         if (!line.startsWith("- ")) continue;
-        const kind = ENTRY_KINDS.findIndex((one) => line.includes(one));
+        const kind = ENTRY_KINDS.findIndex((kindMarker) => line.includes(kindMarker));
         if (kind === -1) continue;
         if (kind >= reached) {
             reached = kind;
@@ -178,8 +181,8 @@ Deno.test("every section this file excuses is still there, and still out of orde
     const faults = lookupKindOrderFaults(CHANGELOG);
     for (const past of SECTIONS_PAST_THEIR_TAG) {
         assertStringIncludes(CHANGELOG, past, "a section excused here is still in the file");
-        const found = faults.some((one) => one.startsWith(`${past}:`));
-        assert(found, `${past} runs in order now and no longer needs excusing`);
+        const isStillFaulted = faults.some((fault) => fault.startsWith(`${past}:`));
+        assert(isStillFaulted, `${past} runs in order now and no longer needs excusing`);
     }
     assert(SECTIONS_PAST_THEIR_TAG.length > 0, "the list is read rather than assumed empty");
 });
@@ -219,13 +222,15 @@ Deno.test("an entry from the rule down is one sentence", () => {
 /** Where an entry carries a second sentence, reading down to `floor` or to the end of the file. */
 function lookupSentenceFaults(text: string, floor: string | null): string[] {
     const faults: string[] = [];
-    for (const { section, entry } of parseChangelogEntries(text)) {
+    for (const { section, entry: entryText } of parseChangelogEntries(text)) {
         if (floor !== null) {
             if (section.startsWith(floor)) break;
         }
-        const early = lookupSentenceEnds(entry).filter((end) => !isEndAtTheClose(entry, end));
+        const early = lookupSentenceEnds(entryText).filter((end) =>
+            !isEndAtTheClose(entryText, end)
+        );
         if (early.length === 0) continue;
-        faults.push(`${section}: ${entry.slice(0, 40)}`);
+        faults.push(`${section}: ${entryText.slice(0, 40)}`);
     }
     return faults;
 }
@@ -254,9 +259,9 @@ function parseChangelogEntries(text: string): ChangelogEntry[] {
             open = false;
             continue;
         }
-        const last = entries.at(-1);
-        if (last === undefined) continue;
-        last.entry = `${last.entry} ${line.trim()}`;
+        const continuedEntry = entries.at(-1);
+        if (continuedEntry === undefined) continue;
+        continuedEntry.entry = `${continuedEntry.entry} ${line.trim()}`;
     }
     return entries;
 }
@@ -268,20 +273,20 @@ function parseChangelogEntries(text: string): ChangelogEntry[] {
  * sentence of the game's — `„Walka się skończyła." i tyle` — carries a third. A close is a stop
  * that ends the text, or one followed by a space and then a capital.
  */
-function lookupSentenceEnds(entry: string): number[] {
+function lookupSentenceEnds(text: string): number[] {
     const ends: number[] = [];
-    for (let index = 0; index < entry.length; index += 1) {
-        if (!SENTENCE_ENDS.includes(entry.charAt(index))) continue;
-        if (index === entry.length - 1) {
+    for (let index = 0; index < text.length; index += 1) {
+        if (!SENTENCE_ENDS.includes(text.charAt(index))) continue;
+        if (index === text.length - 1) {
             ends.push(index);
             continue;
         }
-        if (entry.charAt(index + 1) !== " ") continue;
-        const next = entry.slice(index + 2).trimStart();
-        const opener = next.startsWith("„") ? next.slice(1) : next;
-        const first = opener.charAt(0);
-        if (first === "") continue;
-        if (first === first.toLowerCase()) continue;
+        if (text.charAt(index + 1) !== " ") continue;
+        const followingText = text.slice(index + 2).trimStart();
+        const opener = followingText.startsWith("„") ? followingText.slice(1) : followingText;
+        const leadingCharacter = opener.charAt(0);
+        if (leadingCharacter === "") continue;
+        if (leadingCharacter === leadingCharacter.toLowerCase()) continue;
         ends.push(index);
     }
     return ends;
@@ -290,8 +295,8 @@ function lookupSentenceEnds(entry: string): number[] {
 /**
  * Whether a sentence closing here closes the entry — everything after it is punctuation.
  */
-function isEndAtTheClose(entry: string, index: number): boolean {
-    for (const character of entry.slice(index + 1)) {
+function isEndAtTheClose(text: string, index: number): boolean {
+    for (const character of text.slice(index + 1)) {
         if (!ENTRY_CLOSERS.includes(character)) return false;
     }
     return true;
@@ -304,6 +309,6 @@ function isEndAtTheClose(entry: string, index: number): boolean {
 Deno.test("the sections this rule arrived too late for are still there", () => {
     assertStringIncludes(CHANGELOG, SECTIONS_BEFORE_THE_RULE, "the floor is a heading in the file");
     const whole = lookupSentenceFaults(CHANGELOG, null);
-    const below = whole.some((one) => one.startsWith(SECTIONS_BEFORE_THE_RULE));
+    const below = whole.some((fault) => fault.startsWith(SECTIONS_BEFORE_THE_RULE));
     assert(below, `${SECTIONS_BEFORE_THE_RULE} keeps the rule already and needs no floor`);
 });

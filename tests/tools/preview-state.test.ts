@@ -22,10 +22,10 @@ interface PreviewStateReading {
 Deno.test("what the harness writes into the address is what it reads back out of it", () => {
     const held = { place: `{"left":10,"top":20}`, folded: "1" };
     const hash = composeHashOfShown(held, { entry: 7, screen: "damageTaken" });
-    const read = readStateFromHash(hash);
-    assertEquals(read.entry, 7, "the entry the replay stopped at");
-    assertEquals(read.screen, "damageTaken", "the screen the panel was on");
-    assertEquals(read.store, held, "and every value the add-on had put in the store");
+    const reading = readStateFromHash(hash);
+    assertEquals(reading.entry, 7, "the entry the replay stopped at");
+    assertEquals(reading.screen, "damageTaken", "the screen the panel was on");
+    assertEquals(reading.store, held, "and every value the add-on had put in the store");
 });
 
 /** The writing half, standing where the driver stands it: after a store, with an entry reached. */
@@ -53,17 +53,20 @@ function composeHashOfShown(
 }
 
 function readStateFromHash(hash: string): PreviewStateReading {
-    const read = new Function("window", `${composePreviewStateReading()}\nreturn PREVIEW_STATE;`);
-    return read({ location: { hash } }) as PreviewStateReading;
+    const readPreviewState = new Function(
+        "window",
+        `${composePreviewStateReading()}\nreturn PREVIEW_STATE;`,
+    );
+    return readPreviewState({ location: { hash } }) as PreviewStateReading;
 }
 
 Deno.test("an address nobody composed reads as no state rather than as a wrong one", () => {
     for (
         const hash of ["", "#", "#e", "#e=", "#e=-1", "#e=1.5", "#e=x", "#k=not-json", "#k=[1,2]"]
     ) {
-        const read = readStateFromHash(hash);
-        assertEquals(read.entry, null, `${hash} states no entry`);
-        assertEquals(read.store, {}, `${hash} states nothing the store should hold`);
+        const reading = readStateFromHash(hash);
+        assertEquals(reading.entry, null, `${hash} states no entry`);
+        assertEquals(reading.store, {}, `${hash} states nothing the store should hold`);
     }
     const half = readStateFromHash("#e=3&k=%7B%22a%22%3A1%7D");
     assertEquals(half.entry, 3, "an entry beside a store nobody could read is still an entry");
@@ -73,32 +76,34 @@ Deno.test("an address nobody composed reads as no state rather than as a wrong o
 Deno.test("a value too long for an address does not travel, and one at the edge does", () => {
     const edge = "x".repeat(STATE_VALUE_MAXIMUM);
     const over = "x".repeat(STATE_VALUE_MAXIMUM + 1);
-    const read = readStateFromHash(composeHashOfShown({ edge, over }, { entry: 0, screen: null }));
-    assertEquals(read.store["edge"], edge, "the longest value that fits is carried");
-    assertEquals(read.store["over"], undefined, "and the first one past it is left behind");
-    assertEquals(read.entry, 0, "zero is an entry, and the one the empty panel stands at");
-    const one = readStateFromHash(composeHashOfShown({}, { entry: 1, screen: null }));
-    assertEquals(one.entry, 1, "and one past it is the first call");
+    const reading = readStateFromHash(
+        composeHashOfShown({ edge, over }, { entry: 0, screen: null }),
+    );
+    assertEquals(reading.store["edge"], edge, "the longest value that fits is carried");
+    assertEquals(reading.store["over"], undefined, "and the first one past it is left behind");
+    assertEquals(reading.entry, 0, "zero is an entry, and the one the empty panel stands at");
+    const atFirstCall = readStateFromHash(composeHashOfShown({}, { entry: 1, screen: null }));
+    assertEquals(atFirstCall.entry, 1, "and one past it is the first call");
 });
 
 /** The shelf is the value this is about: whole in the address it would take the rest down. */
 Deno.test("one value nobody could carry does not take the small ones down with it", () => {
     const shelf = "x".repeat(STATE_TEXT_MAXIMUM * 2);
     const held = { shelf, place: `{"left":10,"top":20}` };
-    const read = readStateFromHash(composeHashOfShown(held, { entry: 2, screen: null }));
-    assertEquals(read.store["place"], held.place, "the setting beside it still travels");
-    assertEquals(read.store["shelf"], undefined, "and the one nobody could carry does not");
+    const reading = readStateFromHash(composeHashOfShown(held, { entry: 2, screen: null }));
+    assertEquals(reading.store["place"], held.place, "the setting beside it still travels");
+    assertEquals(reading.store["shelf"], undefined, "and the one nobody could carry does not");
 });
 
 Deno.test("a store too big for the whole address is dropped, and the rest still travels", () => {
     const held: Record<string, string> = {};
-    for (let at = 0; at * STATE_VALUE_MAXIMUM < STATE_TEXT_MAXIMUM * 2; at += 1) {
-        held[`key${at}`] = "x".repeat(STATE_VALUE_MAXIMUM);
+    for (let index = 0; index * STATE_VALUE_MAXIMUM < STATE_TEXT_MAXIMUM * 2; index += 1) {
+        held[`key${index}`] = "x".repeat(STATE_VALUE_MAXIMUM);
     }
     const hash = composeHashOfShown(held, { entry: 4, screen: "healthGiven" });
     assert(hash.length <= STATE_TEXT_MAXIMUM, "an address stays inside the length it states");
-    const read = readStateFromHash(hash);
-    assertEquals(read.entry, 4, "the entry survives the store being left behind");
-    assertEquals(read.screen, "healthGiven", "and so does the screen");
-    assertEquals(read.store, {}, "the store is the part that goes, whole");
+    const reading = readStateFromHash(hash);
+    assertEquals(reading.entry, 4, "the entry survives the store being left behind");
+    assertEquals(reading.screen, "healthGiven", "and so does the screen");
+    assertEquals(reading.store, {}, "the store is the part that goes, whole");
 });

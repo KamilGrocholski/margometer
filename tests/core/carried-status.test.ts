@@ -34,7 +34,7 @@ Deno.test("a status states the turns its carrier took, and nobody else's", () =>
         new Map([[1, composeMask(SPEED_UP)]]),
     );
     assertEquals(
-        composeCarriedStatuses(walk).map((one) => one.turnsElapsed),
+        composeCarriedStatuses(walk).map((status) => status.turnsElapsed),
         [2],
         "two turns of their own passed, and the blow of another combatant did not",
     );
@@ -74,7 +74,7 @@ Deno.test("a status the game never let go of keeps the turn it lit on", () => {
         [],
         new Map([[1, composeMask(SPEED_UP)]]),
     );
-    for (const at of [1, 2, 3]) {
+    for (const turn of [1, 2, 3]) {
         walk = prepareCarriedStatusWalk(
             walk,
             [composeBlow(1)],
@@ -82,8 +82,8 @@ Deno.test("a status the game never let go of keeps the turn it lit on", () => {
         );
         assertStrictEquals(
             composeCarriedStatuses(walk)[0]?.turnsElapsed,
-            at,
-            `at their ${at}th turn the run is still the one that lit`,
+            turn,
+            `at their ${turn}th turn the run is still the one that lit`,
         );
     }
 });
@@ -95,7 +95,7 @@ Deno.test("a status that goes out and lights again is a new run, counted from th
     assertEquals(composeCarriedStatuses(walk), [], "a mask without the bit is carrying nothing");
     walk = prepareCarriedStatusWalk(walk, [composeBlow(1)], new Map([[1, composeMask(SPEED_UP)]]));
     assertEquals(
-        composeCarriedStatuses(walk).map((one) => one.turnsElapsed),
+        composeCarriedStatuses(walk).map((status) => status.turnsElapsed),
         [0],
         "and the run that lights after it starts from the turn it lit on",
     );
@@ -110,7 +110,7 @@ Deno.test("a payload saying nothing about somebody takes nothing away from them"
     walk = prepareCarriedStatusWalk(walk, [], new Map([[1, composeMask(SPEED_UP)]]));
     walk = prepareCarriedStatusWalk(walk, [composeBlow(1)], new Map());
     assertEquals(
-        composeCarriedStatuses(walk).map((one) => one.turnsElapsed),
+        composeCarriedStatuses(walk).map((status) => status.turnsElapsed),
         [1],
         "they go on carrying it, and their turn went on being counted",
     );
@@ -125,7 +125,7 @@ Deno.test("the rows are ordered by combatant and then by the client's own bit or
         new Map([[2, composeMask(SWOW_DOWN)], [1, composeMask(SPEED_UP, POISONED)]]),
     );
     assertEquals(
-        composeCarriedStatuses(walk).map((one) => [one.combatantId, one.bit]),
+        composeCarriedStatuses(walk).map((status) => [status.combatantId, status.bit]),
         [[1, POISONED], [1, SPEED_UP], [2, SWOW_DOWN]],
         "whoever the payload named first is not what orders them",
     );
@@ -133,9 +133,9 @@ Deno.test("the rows are ordered by combatant and then by the client's own bit or
 
 Deno.test("a mask with nothing lit carries nothing, which is a reading and not a silence", () => {
     const walk = prepareCarriedStatusWalk(NO_CARRIED_STATUS_WALK, [], new Map([[1, 0], [2, 0]]));
-    const found = composeCarriedStatuses(walk);
-    assertEquals(found, [], "nobody is carrying anything");
-    assert(Array.isArray(found), "and the answer is a list rather than nothing at all");
+    const statuses = composeCarriedStatuses(walk);
+    assertEquals(statuses, [], "nobody is carrying anything");
+    assert(Array.isArray(statuses), "and the answer is a list rather than nothing at all");
 });
 
 /** Preparing touches nothing, which is what lets a session drop a payload that failed halfway. */
@@ -148,9 +148,13 @@ Deno.test("the walk handed in is left as it was, and the same input prepares the
     const kept = copyWalk(before);
     const events = [composeBlow(1), composeBlow(2)];
     const masks = new Map([[1, 0], [2, composeMask(POISONED)]]);
-    const first = prepareCarriedStatusWalk(before, events, masks);
-    const second = prepareCarriedStatusWalk(before, events, masks);
-    assertEquals(copyWalk(first), copyWalk(second), "the same input prepares the same walk");
+    const firstWalk = prepareCarriedStatusWalk(before, events, masks);
+    const secondWalk = prepareCarriedStatusWalk(before, events, masks);
+    assertEquals(
+        copyWalk(firstWalk),
+        copyWalk(secondWalk),
+        "the same input prepares the same walk",
+    );
     assertEquals(copyWalk(before), kept, "and the walk it was prepared from is unchanged");
     assertEquals(copyWalk(NO_CARRIED_STATUS_WALK).turns, [], "as is the walk nothing started");
 });

@@ -47,11 +47,13 @@ Deno.test("an assert of our own is flagged, in either spelling, and a call to on
 });
 
 function lookupOwnAsserts(file: SourceFile): string[] {
-    const found: string[] = [];
-    for (const node of readAstNodes(file, ["FunctionDeclaration", "VariableDeclarator"])) {
-        if (node.id?.name === ASSERT_NAME) found.push(formatNodePlace(file, node));
+    const ownAsserts: string[] = [];
+    for (const declaration of readAstNodes(file, ["FunctionDeclaration", "VariableDeclarator"])) {
+        if (declaration.id?.name === ASSERT_NAME) {
+            ownAsserts.push(formatNodePlace(file, declaration));
+        }
     }
-    return found;
+    return ownAsserts;
 }
 
 Deno.test("what the bundle carries takes the plain assert by its module path", () => {

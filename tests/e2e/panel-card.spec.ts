@@ -90,12 +90,12 @@ test("no label the card draws is cut by the column it is drawn in", async ({ pan
     const counted = await labels.count();
     expect(counted, "and it draws labels to measure").toBeGreaterThan(0);
     const cut: string[] = [];
-    for (let at = 0; at < counted; at += 1) {
-        const one = labels.nth(at);
-        const room = await one.evaluate((element) => ({
-            said: element.textContent ?? "",
-            drawn: element.scrollWidth,
-            given: element.clientWidth,
+    for (let labelIndex = 0; labelIndex < counted; labelIndex += 1) {
+        const label = labels.nth(labelIndex);
+        const room = await label.evaluate((labelElement) => ({
+            said: labelElement.textContent ?? "",
+            drawn: labelElement.scrollWidth,
+            given: labelElement.clientWidth,
         }));
         if (room.drawn > room.given) cut.push(`${room.said} ${room.drawn}>${room.given}`);
     }
@@ -125,10 +125,14 @@ test("crossing inside a row keeps the card, and leaving takes it away", async ({
     const stayed = await panel.page.evaluate((selector) => {
         const root = document.querySelector(selector)?.shadowRoot ?? null;
         const name = root?.querySelector(".list .row .row-name") ?? null;
-        const value = root?.querySelector(".list .row .row-value") ?? null;
-        if (name === null || value === null) return null;
+        const rowValue = root?.querySelector(".list .row .row-value") ?? null;
+        if (name === null || rowValue === null) return null;
         name.dispatchEvent(
-            new PointerEvent("pointerout", { bubbles: true, composed: true, relatedTarget: value }),
+            new PointerEvent("pointerout", {
+                bubbles: true,
+                composed: true,
+                relatedTarget: rowValue,
+            }),
         );
         const card = root?.querySelector(".MargoMeter-card") ?? null;
         return card === null ? null : card.className;
@@ -197,21 +201,21 @@ test("a card is counted at or above what it draws, and stays on screen", async (
     expect(rows, "there are rows whose cards can be opened").toBeGreaterThan(0);
     const under: string[] = [];
     const off: string[] = [];
-    for (let at = 0; at < rows; at += 1) {
-        await panel.at(".list .row").nth(at).hover();
+    for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+        await panel.at(".list .row").nth(rowIndex).hover();
         const seen = await readCardHeight(panel.page);
-        expect(seen, `row ${at} opened a card`).not.toBeNull();
+        expect(seen, `row ${rowIndex} opened a card`).not.toBeNull();
         if (seen === null) continue;
         // The count is read off the properties the draw wrote and the costs off the sheet's own
         // computed values, so neither half of the arithmetic is restated here.
         if (seen.counted < seen.drawn) {
-            under.push(`row ${at}: counted ${seen.counted}, drew ${seen.drawn}`);
+            under.push(`row ${rowIndex}: counted ${seen.counted}, drew ${seen.drawn}`);
         }
         if (seen.drawn > seen.shown + 1) {
-            under.push(`row ${at}: holds ${seen.drawn} and shows ${seen.shown}`);
+            under.push(`row ${rowIndex}: holds ${seen.drawn} and shows ${seen.shown}`);
         }
         if (seen.bottom > seen.viewport) {
-            off.push(`row ${at}: bottom at ${seen.bottom} of ${seen.viewport}`);
+            off.push(`row ${rowIndex}: bottom at ${seen.bottom} of ${seen.viewport}`);
         }
     }
     expect(under, "a card counted under what it draws is one the clamp may put off the screen")
@@ -505,9 +509,9 @@ async function readFightLine(page: import("@playwright/test").Page) {
         if (line === null) return null;
         if (name === null) return null;
         if (tile === null) return null;
-        const measure = (one: Element) => ({
-            scrollWidth: one.scrollWidth,
-            clientWidth: Math.ceil(one.getBoundingClientRect().width),
+        const measure = (measured: Element) => ({
+            scrollWidth: measured.scrollWidth,
+            clientWidth: Math.ceil(measured.getBoundingClientRect().width),
         });
         // Where the tile's first character after its space is drawn, against the tile's own edge.
         const text = tile.firstChild;

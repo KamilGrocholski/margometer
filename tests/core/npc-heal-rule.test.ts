@@ -27,8 +27,8 @@ Deno.test("the key is read wherever it stands, including where it states nothing
         .filter((event) => event.kind === "health-change" && event.source === KEY);
     assertEquals(restored.length, 3, "every occurrence became an event, 2026-08-30");
     const figures = restored.map((event) => event.kind === "health-change" ? event.amount : null);
-    assertEquals(figures.filter((one) => one === 0).length, 1, "one of them states nothing");
-    assert(figures.every((one) => one !== null), "and none of the three was dropped");
+    assertEquals(figures.filter((figure) => figure === 0).length, 1, "one of them states nothing");
+    assert(figures.every((figure) => figure !== null), "and none of the three was dropped");
 });
 
 /**
@@ -82,7 +82,7 @@ function getRecordingsCarryingKey(): RecordedFight[] {
 function isCarryingKey(message: string): boolean {
     const parsed = parseProtocolMessage(message);
     if (parsed instanceof Error) return false;
-    return parsed.parameters.some((one) => one.key === KEY);
+    return parsed.parameters.some((parameter) => parameter.key === KEY);
 }
 
 /**

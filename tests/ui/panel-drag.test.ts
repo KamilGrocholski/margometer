@@ -174,8 +174,8 @@ function composeFromRight(windowWidth: number, windowLeft: number): CardAcross {
 }
 
 /** The screen's left edge, which is what a card flipped to the other side is measured from. */
-function composeFromLeft(at: number): CardAcross {
-    return { edge: "left", at };
+function composeFromLeft(distance: number): CardAcross {
+    return { edge: "left", at: distance };
 }
 
 /**
@@ -186,15 +186,15 @@ function composeFromLeft(at: number): CardAcross {
  * says there is no room: both flip, and the panel stays still.
  */
 Deno.test("the side a card opens on is the same for every card the window holds", () => {
-    const at = composePlace(253);
+    const anchor = composePlace(253);
     assertEquals(
-        composeCardAcross(at, WINDOW, MAXIMUM_CARD_WIDTH),
+        composeCardAcross(anchor, WINDOW, MAXIMUM_CARD_WIDTH),
         composeFromLeft(517),
         "the bound says there is no room on the left",
     );
     assertEquals(
-        composeCardAcross(at, WINDOW, MAXIMUM_CARD_WIDTH),
-        composeCardAcross(at, WINDOW, MAXIMUM_CARD_WIDTH),
+        composeCardAcross(anchor, WINDOW, MAXIMUM_CARD_WIDTH),
+        composeCardAcross(anchor, WINDOW, MAXIMUM_CARD_WIDTH),
         "and nothing about the card the reader is pointing at reaches this answer",
     );
 });
@@ -319,17 +319,17 @@ Deno.test("the window beside the panel keeps its side as the type changes size",
 
 Deno.test("a window is made no narrower than its type and no wider than twice it, on the screen", () => {
     const tokens = TYPE_TOKENS[TYPE_STEP.small];
-    const at = { left: 40, top: 40 };
-    const bounds = composeSizeBounds(PANEL_WINDOW.meter, tokens, at, WINDOW);
+    const position = { left: 40, top: 40 };
+    const bounds = composeSizeBounds(PANEL_WINDOW.meter, tokens, position, WINDOW);
     assertEquals(
         bounds.widthMinimum,
         PANEL_WIDTH,
         "the bar holds its controls at its type's width",
     );
     assertEquals(bounds.widthMaximum, PANEL_WIDTH * 2, "and a window twice that is the widest");
-    const tallest = WINDOW.height - at.top - getBarHeight(tokens) - PLACE.insetPixels;
+    const tallest = WINDOW.height - position.top - getBarHeight(tokens) - PLACE.insetPixels;
     assertEquals(bounds.heightMaximum, tallest, "the tallest body reaches the foot of the screen");
-    const helper = composeSizeBounds(PANEL_WINDOW.helper, tokens, at, WINDOW);
+    const helper = composeSizeBounds(PANEL_WINDOW.helper, tokens, position, WINDOW);
     assertEquals(helper.widthMinimum, STANDING_WIDTH, "the other window's type is its own");
     assert(helper.heightMinimum < bounds.heightMinimum, "and it keeps fewer rows than the panel");
     const near = composeSizeBounds(PANEL_WINDOW.meter, tokens, { left: 1000, top: 40 }, WINDOW);

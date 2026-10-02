@@ -96,7 +96,7 @@ Deno.test("the register reader finds the register, and nothing else in the file"
  * against a recording.
  */
 function parseRegisterRows(text: string): RegisterRow[] {
-    const found: RegisterRow[] = [];
+    const rows: RegisterRow[] = [];
     let isInside = false;
     for (const line of text.split("\n")) {
         if (line.startsWith(REGISTER_HEADING)) isInside = true;
@@ -110,7 +110,7 @@ function parseRegisterRows(text: string): RegisterRow[] {
         );
         if (opened === undefined) continue;
         if (!isOneOf(TURN_VERDICTS, verdict)) continue;
-        found.push({
+        rows.push({
             name: name!,
             verdict,
             steps: steps!,
@@ -122,12 +122,12 @@ function parseRegisterRows(text: string): RegisterRow[] {
             opened,
         });
     }
-    return found;
+    return rows;
 }
 
-function formatRegisterKey(one: RegisterRow): string {
-    return `${one.name} | ${one.verdict} | ${one.steps} | ${one.agreed} | ${one.granted} | ` +
-        `${one.taken} | ${one.short} | ${one.lost} | ${one.opened}`;
+function formatRegisterKey(registerRow: RegisterRow): string {
+    return `${registerRow.name} | ${registerRow.verdict} | ${registerRow.steps} | ${registerRow.agreed} | ${registerRow.granted} | ` +
+        `${registerRow.taken} | ${registerRow.short} | ${registerRow.lost} | ${registerRow.opened}`;
 }
 
 Deno.test("the register names every recording graded, and no recording that is not", () => {
@@ -136,9 +136,9 @@ Deno.test("the register names every recording graded, and no recording that is n
         parseRegisterRows(Deno.readTextFileSync(REGISTER_PATH)).map(formatRegisterKey),
     );
     assert(written.size > 0, "the register carries rows");
-    const unwritten = [...measured].filter((one) => !written.has(one)).sort();
+    const unwritten = [...measured].filter((gradeKey) => !written.has(gradeKey)).sort();
     assertEquals(unwritten, [], `${REGISTER_PATH}: a recording is graded that the register omits`);
-    const ungraded = [...written].filter((one) => !measured.has(one)).sort();
+    const ungraded = [...written].filter((gradeKey) => !measured.has(gradeKey)).sort();
     assertEquals(ungraded, [], `${REGISTER_PATH}: the register names a grade nothing produces`);
 });
 
@@ -217,7 +217,7 @@ Deno.test("the count agrees with the numbering at all but three boundaries", () 
  */
 Deno.test("a stretch the game never narrated is counted apart and graded by nothing", () => {
     const boundaries = composeTurnBoundaries(replayRecordedSteps(lookupRecordedFight(UNNARRATED)));
-    const untold = boundaries.filter((one) => !one.isNarrated);
+    const untold = boundaries.filter((boundary) => !boundary.isNarrated);
     assertStrictEquals(untold.length, 1, "one stretch of this recording went untold, 2026-09-25");
     const only = untold[0]!;
     assertEquals(
@@ -225,7 +225,7 @@ Deno.test("a stretch the game never narrated is counted apart and graded by noth
         [235, 248, 1],
         "the ordinals it spans, and the one message the game sent across them",
     );
-    assert(boundaries.every((one) => one.advance > 0), "a boundary runs forwards");
+    assert(boundaries.every((boundary) => boundary.advance > 0), "a boundary runs forwards");
 });
 
 /**
@@ -237,7 +237,7 @@ Deno.test("the boar recording reproduces the figures the deleted reading left be
     const taken = [...tallyRecordedFight(BOAR).statistics.byCombatantId.values()]
         .map((figures) => figures.turnsTaken)
         .filter((turns) => turns > 0)
-        .sort((one, other) => other - one);
+        .sort((left, right) => right - left);
     assertEquals(taken, [8, 3, 1], "the split the deleted reading reported");
 });
 
@@ -389,7 +389,7 @@ Deno.test("the sentences summing the register carry the figures the tree produce
         `${REGISTER_PATH}: how many of them meet`,
     );
     const opened = getGrades().flatMap((grade) => grade.openedAt === null ? [] : [grade.openedAt]);
-    const late = opened.filter((one) => one > 1);
+    const late = opened.filter((ordinal) => ordinal > 1);
     assertStringIncludes(
         register,
         `${late.length} of the ${opened.length} recordings the game numbered open on an ordinal ` +

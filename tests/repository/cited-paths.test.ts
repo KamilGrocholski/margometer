@@ -76,9 +76,20 @@ const CITED_WHILE_ABSENT = [
  * has stopped finding its subject, and only the second catches one that finds too much.
  */
 Deno.test("a rooted path is read as a citation, and a bare module name is not", () => {
-    const read = readCitations("sample", "see `src/core/fight-decoder.ts` and `core/a.ts`");
-    assertEquals(read.map((one) => one.path), ["src/core/fight-decoder.ts"], "the rooted one only");
-    assertEquals(read.map((one) => one.revision), [null], "and it is read against this tree");
+    const sampleCitations = readCitations(
+        "sample",
+        "see `src/core/fight-decoder.ts` and `core/a.ts`",
+    );
+    assertEquals(
+        sampleCitations.map((citation) => citation.path),
+        ["src/core/fight-decoder.ts"],
+        "the rooted one only",
+    );
+    assertEquals(
+        sampleCitations.map((citation) => citation.revision),
+        [null],
+        "and it is read against this tree",
+    );
     assertEquals(readCitations("sample", "`utils.ts` is never created here"), [], "nor a name");
     assertEquals(readCitations("sample", "src/core/fight-decoder.ts"), [], "nor an unquoted path");
     assertEquals(readCitations("sample", "`src/core/` holds it"), [], "nor a directory");
@@ -87,20 +98,20 @@ Deno.test("a rooted path is read as a citation, and a bare module name is not", 
 
 /** Every citation in a text, walking its backticked spans: this repository quotes every path. */
 function readCitations(document: string, text: string): Citation[] {
-    const found: Citation[] = [];
-    let at = 0;
+    const citations: Citation[] = [];
+    let characterIndex = 0;
     for (let count = 0;; count += 1) {
         assert(
             count <= text.length,
             "a walk passes two marks at every step, so the text bounds it",
         );
-        const opened = text.indexOf(SPAN_MARK, at);
-        if (opened === -1) return found;
+        const opened = text.indexOf(SPAN_MARK, characterIndex);
+        if (opened === -1) return citations;
         const closed = text.indexOf(SPAN_MARK, opened + 1);
-        if (closed === -1) return found;
-        at = closed + 1;
+        if (closed === -1) return citations;
+        characterIndex = closed + 1;
         const citation = readCitationsSpan(document, text.slice(opened + 1, closed));
-        if (citation !== null) found.push(citation);
+        if (citation !== null) citations.push(citation);
     }
 }
 
@@ -137,11 +148,23 @@ function readCitationsSpanHistory(document: string, span: string): Citation | nu
 
 Deno.test("a citation into history is read against the revision it names", () => {
     const develop = readCitations("sample", "as `develop:src/ui/panel-look.ts` drew it");
-    assertEquals(develop.map((one) => one.revision), [DEVELOP_REVISION], "develop is fa1dcce");
-    assertEquals(develop.map((one) => one.path), ["src/ui/panel-look.ts"], "without its mark");
+    assertEquals(
+        develop.map((citation) => citation.revision),
+        [DEVELOP_REVISION],
+        "develop is fa1dcce",
+    );
+    assertEquals(
+        develop.map((citation) => citation.path),
+        ["src/ui/panel-look.ts"],
+        "without its mark",
+    );
     const shown = readCitations("sample", "see `git show v0.10.1:src/ui/panel-look.ts` today");
-    assertEquals(shown.map((one) => one.revision), ["v0.10.1"], "the revision it names");
-    assertEquals(shown.map((one) => one.path), ["src/ui/panel-look.ts"], "and the path at it");
+    assertEquals(shown.map((citation) => citation.revision), ["v0.10.1"], "the revision it names");
+    assertEquals(
+        shown.map((citation) => citation.path),
+        ["src/ui/panel-look.ts"],
+        "and the path at it",
+    );
     assertEquals(readCitations("sample", "`git show v0.10.1` and `git status`"), [], "no path");
     assertEquals(readCitations("sample", "`develop:path` names develop"), [], "nor a placeholder");
     const computed = readCitations("sample", '`git show "$(git describe main):docs/a.md"`');
@@ -155,8 +178,12 @@ Deno.test("a comment of a source file is read, and its code is not", () => {
         "const shown = `src/b.ts`;",
         "// Held by `tests/c.ts`.",
     ]);
-    const read = readCitations(sample.path, readCommentTexts(sample).join("\n"));
-    assertEquals(read.map((one) => one.path), ["tools/a.ts", "tests/c.ts"], "the comments only");
+    const sampleCitations = readCitations(sample.path, readCommentTexts(sample).join("\n"));
+    assertEquals(
+        sampleCitations.map((citation) => citation.path),
+        ["tools/a.ts", "tests/c.ts"],
+        "the comments only",
+    );
 });
 
 Deno.test("every path this tree is cited for is in it, or is one this file excuses", () => {
@@ -173,16 +200,16 @@ Deno.test("every path this tree is cited for is in it, or is one this file excus
 
 /** Every document and every source file's comments, read once for all the cases below. */
 function readEveryCitation(): Citation[] {
-    const found: Citation[] = [];
+    const citations: Citation[] = [];
     for (const path of readGitLines(["ls-files", "*.md"])) {
         if (path === HAND_KEPT_LIST) continue;
-        found.push(...readCitations(path, Deno.readTextFileSync(path)));
+        citations.push(...readCitations(path, Deno.readTextFileSync(path)));
     }
     for (const file of readSourceFiles(SOURCE_DIRECTORIES)) {
-        found.push(...readCitations(file.path, readCommentTexts(file).join("\n")));
+        citations.push(...readCitations(file.path, readCommentTexts(file).join("\n")));
     }
-    assert(found.length > 0, "an empty reading of the tree is a finding, not a pass");
-    return found;
+    assert(citations.length > 0, "an empty reading of the tree is a finding, not a pass");
+    return citations;
 }
 
 function readGitLines(args: string[]): string[] {
@@ -228,7 +255,7 @@ Deno.test("every citation this file excuses is still absent, and still made", ()
     assert(CITED_WHILE_ABSENT.length > 0, "the list is read rather than assumed empty");
     const tracked = readTrackedPaths();
     const made = new Set(
-        readEveryCitation().filter((one) => one.revision === null).map(formatCitation),
+        readEveryCitation().filter((citation) => citation.revision === null).map(formatCitation),
     );
     for (const place of CITED_WHILE_ABSENT) {
         const path = place.slice(place.indexOf(PLACE_MARK) + PLACE_MARK.length);

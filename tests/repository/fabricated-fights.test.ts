@@ -67,9 +67,9 @@ function isFabricatedEnvelope(document: unknown): boolean {
 
 Deno.test("no recording in the evidence directory is a fight nobody fought", () => {
     const paths = [...Deno.readDirSync(RECORDINGS_DIRECTORY)]
-        .filter((entry) => entry.isFile)
-        .filter((entry) => entry.name.endsWith(RECORDING_SUFFIX))
-        .map((entry) => `${RECORDINGS_DIRECTORY}${entry.name}`);
+        .filter((recordingFile) => recordingFile.isFile)
+        .filter((recordingFile) => recordingFile.name.endsWith(RECORDING_SUFFIX))
+        .map((recordingFile) => `${RECORDINGS_DIRECTORY}${recordingFile.name}`);
     assert(paths.length > 0, "an empty evidence directory is a finding, not a pass");
     const marked: string[] = [];
     for (const path of paths) {

@@ -56,15 +56,15 @@ test("a right press in the window beside the panel leaves the level open", async
 });
 
 test("the third level is the last, and back pops one rung at a time", async ({ panel }) => {
-    const first = await readPanelShape(panel.page);
+    const firstShape = await readPanelShape(panel.page);
     await panel.at("[data-row]").first().click();
-    const second = await readPanelShape(panel.page);
+    const secondShape = await readPanelShape(panel.page);
 
     const parts = panel.at("[data-skill], [data-source], [data-kind]");
     await expect(parts, "the opened level holds parts to press").not.toHaveCount(0);
     await parts.first().click();
-    const third = await readPanelShape(panel.page);
-    expect(third, "and one of them opened a third level").not.toBe(second);
+    const thirdShape = await readPanelShape(panel.page);
+    expect(thirdShape, "and one of them opened a third level").not.toBe(secondShape);
     await panel.expectHonest("the third level");
 
     let deeper = 0;
@@ -72,9 +72,11 @@ test("the third level is the last, and back pops one rung at a time", async ({ p
     expect(deeper, "nothing on the third level opens onto a fourth").toBe(0);
 
     await panel.at("[data-back]").click();
-    expect(await readPanelShape(panel.page), "back goes up one rung").toBe(second);
+    expect(await readPanelShape(panel.page), "back goes up one rung").toBe(secondShape);
     await panel.at("[data-back]").click();
-    expect(await readPanelShape(panel.page), "and one more brings the ranking back").toBe(first);
+    expect(await readPanelShape(panel.page), "and one more brings the ranking back").toBe(
+        firstShape,
+    );
 });
 
 test("a row nobody was named on opens onto the end the game did name", async ({ panel }) => {

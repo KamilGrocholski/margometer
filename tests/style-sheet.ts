@@ -23,16 +23,20 @@ export function getRuleBody(sheet: string, selector: string): string {
     const opener = `${selector}{`;
     // The selector has to stand on its own: `.list{` sits inside `.meter>.list{` too, and that
     // rule states a `flex` and nothing a guard adds up.
-    let at = sheet.indexOf(opener);
+    let openerIndex = sheet.indexOf(opener);
     let tried = 0;
-    while (at > 0) {
+    while (openerIndex > 0) {
         assert(tried < RULES_IN_A_SHEET, "a lookup stays inside the sheet's stated bound");
         tried += 1;
-        if (sheet[at - 1] === "}") break;
-        at = sheet.indexOf(opener, at + 1);
+        if (sheet[openerIndex - 1] === "}") break;
+        openerIndex = sheet.indexOf(opener, openerIndex + 1);
     }
-    assertNotStrictEquals(at, -1, `${selector} is a rule of its own the sheet does not carry`);
-    const from = at + opener.length;
+    assertNotStrictEquals(
+        openerIndex,
+        -1,
+        `${selector} is a rule of its own the sheet does not carry`,
+    );
+    const from = openerIndex + opener.length;
     const to = sheet.indexOf("}", from);
     assertNotStrictEquals(to, -1, `${selector} opens a rule the sheet never closes`);
     return sheet.slice(from, to);
@@ -42,14 +46,14 @@ export function getRuleBody(sheet: string, selector: string): string {
 export function getDeclaration(body: string, property: string): string | null {
     assert(property.length > 0, "a declaration is looked up by name");
     assert(body.length <= LONGEST_RULE, "a rule stays inside its stated bound");
-    let found: string | null = null;
+    let declared: string | null = null;
     for (const stated of body.split(";")) {
-        const at = stated.indexOf(":");
-        if (at === -1) continue;
-        if (stated.slice(0, at).trim() !== property) continue;
-        found = stated.slice(at + 1).trim();
+        const colonIndex = stated.indexOf(":");
+        if (colonIndex === -1) continue;
+        if (stated.slice(0, colonIndex).trim() !== property) continue;
+        declared = stated.slice(colonIndex + 1).trim();
     }
-    return found;
+    return declared;
 }
 
 /** Every rule in the order it is written. The sheet nests nothing, so a rule ends at its first `}`. */

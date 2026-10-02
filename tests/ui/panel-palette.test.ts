@@ -21,10 +21,10 @@ const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
 
 Deno.test("a profession keeps its colour, and one the game did not state is colourless", () => {
-    const taken = PROFESSIONS.map((one) => lookupColourForProfession(one));
+    const taken = PROFESSIONS.map((profession) => lookupColourForProfession(profession));
     assertEquals(new Set(taken).size, PROFESSIONS.length, "each of the six takes a hue of its own");
-    for (const one of taken) {
-        assert(PALETTE_COLOURS.some((hue) => hue === one), `${one} comes out of the palette`);
+    for (const colour of taken) {
+        assert(PALETTE_COLOURS.some((hue) => hue === colour), `${colour} comes out of the palette`);
     }
     assertEquals(lookupColourForProfession(null), SIGNAL.unknown, "and none stated is colourless");
     assertEquals(lookupColourForProfession("z"), SIGNAL.unknown, "as is one nobody has a hue for");
@@ -38,7 +38,9 @@ Deno.test("a profession keeps its colour, and one the game did not state is colo
 /** The hue each letter wore on `develop` @ `fa1dcce`, which is the expectation here (**W8**). */
 Deno.test("a profession wears the hue develop drew it in", () => {
     assertEquals(
-        PROFESSIONS.map((one) => [one, formatColour(lookupColourForProfession(one))]),
+        PROFESSIONS.map((
+            profession,
+        ) => [profession, formatColour(lookupColourForProfession(profession))]),
         [
             ["w", "#c2502b"],
             ["m", "#157cd0"],
@@ -84,11 +86,11 @@ Deno.test("a profession the panel colours is one it can name, and the other way 
 
 /** Every letter the panel gives a hue to, asked of the palette rather than listed a second time. */
 function getColouredProfessions(): string[] {
-    const found: string[] = [];
+    const coloured: string[] = [];
     for (const letter of ALPHABET) {
-        if (lookupColourForProfession(letter) !== SIGNAL.unknown) found.push(letter);
+        if (lookupColourForProfession(letter) !== SIGNAL.unknown) coloured.push(letter);
     }
-    return found;
+    return coloured;
 }
 
 /** Which letters one side of the pairing holds and the other does not, in either direction. */
@@ -96,14 +98,14 @@ function getUnpairedProfessions(
     worded: ReadonlyMap<string, string>,
     coloured: readonly string[],
 ): string[] {
-    const found: string[] = [];
+    const unpaired: string[] = [];
     for (const code of coloured) {
-        if (!worded.has(code)) found.push(code);
+        if (!worded.has(code)) unpaired.push(code);
     }
     for (const code of worded.keys()) {
-        if (!coloured.includes(code)) found.push(code);
+        if (!coloured.includes(code)) unpaired.push(code);
     }
-    return found.sort();
+    return unpaired.sort();
 }
 
 Deno.test("a profession the table does not word travels as the game wrote it", () => {

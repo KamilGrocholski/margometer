@@ -74,15 +74,26 @@ Deno.test("regions are asked for up to the bound and refused one past it", () =>
     const flags = (count: number) => {
         return Array.from({ length: count }, () => ["--region", "list"]).flat();
     };
-    const at = readGivingWayFlags(flags(REGIONS_ASKED_MAXIMUM));
-    assertStrictEquals(at.regions.length, REGIONS_ASKED_MAXIMUM, "the bound itself is asked");
+    const atBound = readGivingWayFlags(flags(REGIONS_ASKED_MAXIMUM));
+    assertStrictEquals(atBound.regions.length, REGIONS_ASKED_MAXIMUM, "the bound itself is asked");
     assertThrows(() => readGivingWayFlags(flags(REGIONS_ASKED_MAXIMUM + 1)), GivingWayError);
 });
 
 Deno.test("the flags a person gives are read, and what is not one is refused", () => {
-    const read = readGivingWayFlags(["--shots", "--port", "4190", "--browser", "/bin/chrome"]);
+    const givenFlags = readGivingWayFlags([
+        "--shots",
+        "--port",
+        "4190",
+        "--browser",
+        "/bin/chrome",
+    ]);
     assertEquals(
-        { port: read.port, browser: read.browser, doesShoot: read.doesShoot, into: read.into },
+        {
+            port: givenFlags.port,
+            browser: givenFlags.browser,
+            doesShoot: givenFlags.doesShoot,
+            into: givenFlags.into,
+        },
         { port: 4190, browser: "/bin/chrome", doesShoot: true, into: DEFAULT_INTO },
     );
     assertStrictEquals(readGivingWayFlags([]).doesShoot, false, "serving is what it does alone");

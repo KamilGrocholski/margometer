@@ -36,8 +36,8 @@ Deno.test("a catch is read as the function it stands in, and a finally is not a 
 
 function lookupCatchPlaces(file: SourceFile): string[] {
     const functions = readAstNodes(file, FUNCTION_NODES);
-    return readAstNodes(file, ["CatchClause"]).map((node) => {
-        const name = lookupEnclosingFunction(functions, node)?.id?.name ?? ANONYMOUS;
+    return readAstNodes(file, ["CatchClause"]).map((catchClause) => {
+        const name = lookupEnclosingFunction(functions, catchClause)?.id?.name ?? ANONYMOUS;
         return `${file.path} ${name}`;
     });
 }

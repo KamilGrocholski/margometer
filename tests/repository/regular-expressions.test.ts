@@ -25,17 +25,19 @@ Deno.test("both spellings are flagged, and a slash inside a string is not", () =
 });
 
 function lookupRegularExpressions(file: SourceFile): string[] {
-    const found: string[] = [];
-    for (const node of readAstNodes(file, ["Literal", "Identifier"])) {
-        const isLiteral = typeof node.regex === "object" && node.regex !== null;
-        const isConstructor = node.name === CONSTRUCTOR_NAME;
-        if (isLiteral) found.push(`${formatNodePlace(file, node)} spells a literal`);
-        if (isConstructor) found.push(`${formatNodePlace(file, node)} names the constructor`);
+    const spelled: string[] = [];
+    for (const candidate of readAstNodes(file, ["Literal", "Identifier"])) {
+        const isLiteral = typeof candidate.regex === "object" && candidate.regex !== null;
+        const isConstructor = candidate.name === CONSTRUCTOR_NAME;
+        if (isLiteral) spelled.push(`${formatNodePlace(file, candidate)} spells a literal`);
+        if (isConstructor) {
+            spelled.push(`${formatNodePlace(file, candidate)} names the constructor`);
+        }
     }
-    return found;
+    return spelled;
 }
 
 Deno.test("no file in the tree spells a regular expression", () => {
-    const found = readSourceFiles(SOURCE_DIRECTORIES).flatMap(lookupRegularExpressions);
-    assertEquals(found, [], "C7");
+    const spelled = readSourceFiles(SOURCE_DIRECTORIES).flatMap(lookupRegularExpressions);
+    assertEquals(spelled, [], "C7");
 });

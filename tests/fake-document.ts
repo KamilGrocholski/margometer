@@ -70,13 +70,13 @@ export function dragOnElement(
     host: FakeElement,
     type: string,
     target: FakeElement | null,
-    at: { clientX: number; clientY: number },
+    pointer: { clientX: number; clientY: number },
 ): void {
     for (const handle of host.rootListeners.get(type) ?? []) {
         handle({
             target,
-            clientX: at.clientX,
-            clientY: at.clientY,
+            clientX: pointer.clientX,
+            clientY: pointer.clientY,
             pointerId: 1,
             preventDefault: () => {},
         });
@@ -88,7 +88,7 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
     return {
         created,
         createElement(tag: string): FakeElement {
-            const element: FakeElement = {
+            const fakeElement: FakeElement = {
                 tag,
                 className: "",
                 textContent: "",
@@ -103,71 +103,77 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                 pointersHeld: [],
                 pointersReleased: [],
                 setPointerCapture(pointerId: number): void {
-                    element.pointersHeld.push(pointerId);
+                    fakeElement.pointersHeld.push(pointerId);
                 },
                 releasePointerCapture(pointerId: number): void {
-                    element.pointersReleased.push(pointerId);
+                    fakeElement.pointersReleased.push(pointerId);
                 },
-                replaceWith(other: PanelElement): void {
-                    element.replacedBy = other as FakeElement;
+                replaceWith(replacement: PanelElement): void {
+                    fakeElement.replacedBy = replacement as FakeElement;
                     for (const parent of created) {
-                        const at = parent.children.indexOf(element);
-                        if (at !== -1) parent.children[at] = other as FakeElement;
-                        const inside = parent.shadow?.indexOf(element) ?? -1;
-                        if (inside !== -1) parent.shadow?.splice(inside, 1, other as FakeElement);
+                        const childIndex = parent.children.indexOf(fakeElement);
+                        if (childIndex !== -1) {
+                            parent.children[childIndex] = replacement as FakeElement;
+                        }
+                        const inside = parent.shadow?.indexOf(fakeElement) ?? -1;
+                        if (inside !== -1) {
+                            parent.shadow?.splice(inside, 1, replacement as FakeElement);
+                        }
                     }
                 },
                 append(child: PanelElement): void {
-                    assertNotStrictEquals(child, element, "an element never holds itself");
-                    element.children.push(child as FakeElement);
+                    assertNotStrictEquals(child, fakeElement, "an element never holds itself");
+                    fakeElement.children.push(child as FakeElement);
                 },
                 replaceChildren(...children: PanelElement[]): void {
-                    element.children = children as FakeElement[];
+                    fakeElement.children = children as FakeElement[];
                 },
-                setAttribute(name: string, value: string): void {
-                    element.attributes.set(name, value);
+                setAttribute(name: string, attributeValue: string): void {
+                    fakeElement.attributes.set(name, attributeValue);
                 },
                 getAttribute(name: string): string | null {
-                    return element.attributes.get(name) ?? null;
+                    return fakeElement.attributes.get(name) ?? null;
                 },
-                contains(other: PanelTarget | null): boolean {
-                    if (other === null) return false;
-                    return getElementsWithin(element).some((one) => one === other);
+                contains(target: PanelTarget | null): boolean {
+                    if (target === null) return false;
+                    return getElementsWithin(fakeElement).some((descendant) =>
+                        descendant === target
+                    );
                 },
                 attachShadow(): PanelRoot {
-                    assertStrictEquals(element.shadow, null, "a root is attached once");
+                    assertStrictEquals(fakeElement.shadow, null, "a root is attached once");
                     const inside: FakeElement[] = [];
-                    element.shadow = inside;
+                    fakeElement.shadow = inside;
                     return {
                         append: (child) => inside.push(child as FakeElement),
                         addEventListener(type: string, handle: (event: PanelEvent) => void): void {
-                            const held = element.rootListeners.get(type) ?? [];
-                            element.rootListeners.set(type, [...held, handle]);
+                            const held = fakeElement.rootListeners.get(type) ?? [];
+                            fakeElement.rootListeners.set(type, [...held, handle]);
                         },
                     };
                 },
             };
-            created.push(element);
-            return element;
+            created.push(fakeElement);
+            return fakeElement;
         },
     };
 }
 
 /** Every element under one, itself included, so a test can ask what was drawn anywhere. */
-export function getElementsWithin(element: FakeElement): FakeElement[] {
+export function getElementsWithin(root: FakeElement): FakeElement[] {
     // In the order they were drawn, because a test that asks what the first row says means the
     // first row on screen.
-    const found: FakeElement[] = [element];
-    let at = 0;
-    while (at < found.length) {
-        const next = found[at];
-        at += 1;
-        if (next === undefined) break;
-        for (const child of next.children) found.push(child);
-        for (const child of next.shadow ?? []) found.push(child);
-        assert(found.length <= 4096, "the walk stays inside its bound");
+    const elementsWithin: FakeElement[] = [root];
+    let walkIndex = 0;
+    while (walkIndex < elementsWithin.length) {
+        const visited = elementsWithin[walkIndex];
+        walkIndex += 1;
+        if (visited === undefined) break;
+        for (const child of visited.children) elementsWithin.push(child);
+        for (const child of visited.shadow ?? []) elementsWithin.push(child);
+        assert(elementsWithin.length <= 4096, "the walk stays inside its bound");
     }
-    return found;
+    return elementsWithin;
 }
 
 /**
@@ -178,15 +184,15 @@ export function getElementsWithin(element: FakeElement): FakeElement[] {
 export function getPanelWithin(host: FakeElement): FakeElement {
     // Folded, the frame wears a second class, and a test asking what it drew still means it.
     const frame = getElementsWithin(host)
-        .find((one) => one.className.split(" ")[0] === "MargoMeter-body");
+        .find((descendant) => descendant.className.split(" ")[0] === "MargoMeter-body");
     assertExists(frame, "the host carries the panel's own frame");
     return frame;
 }
 
-export function getTextsByClass(element: FakeElement, className: string): string[] {
-    return getElementsWithin(element)
-        .filter((one) => one.className === className)
-        .map((one) => one.textContent);
+export function getTextsByClass(root: FakeElement, className: string): string[] {
+    return getElementsWithin(root)
+        .filter((descendant) => descendant.className === className)
+        .map((descendant) => descendant.textContent);
 }
 
 /**
@@ -194,23 +200,23 @@ export function getTextsByClass(element: FakeElement, className: string): string
  * built of parts. `getTextsByClass` reads the element's own text alone, which a figure beside its
  * share relies on.
  */
-export function getWholeTextsByClass(element: FakeElement, className: string): string[] {
-    return getElementsWithin(element)
-        .filter((one) => one.className === className)
+export function getWholeTextsByClass(root: FakeElement, className: string): string[] {
+    return getElementsWithin(root)
+        .filter((descendant) => descendant.className === className)
         .map(readTextWithin);
 }
 
 /** Depth first, as a document is read: a walk across would put a cousin before a child's child. */
-function readTextWithin(element: FakeElement): string {
-    const waiting: FakeElement[] = [element];
+function readTextWithin(root: FakeElement): string {
+    const waiting: FakeElement[] = [root];
     let text = "";
     let walked = 0;
     while (waiting.length > 0) {
-        const next = waiting.pop();
-        if (next === undefined) break;
-        text += next.textContent;
-        for (let at = next.children.length - 1; at >= 0; at -= 1) {
-            const child = next.children[at];
+        const visited = waiting.pop();
+        if (visited === undefined) break;
+        text += visited.textContent;
+        for (let childIndex = visited.children.length - 1; childIndex >= 0; childIndex -= 1) {
+            const child = visited.children[childIndex];
             if (child !== undefined) waiting.push(child);
         }
         walked += 1;

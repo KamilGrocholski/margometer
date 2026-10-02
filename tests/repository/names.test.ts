@@ -36,7 +36,7 @@ Deno.test("a file named for its category or out of kebab-case is flagged", () =>
 
 function lookupMisnamedFile(path: string): string[] {
     const name = path.slice(path.lastIndexOf("/") + 1);
-    const suffix = FILE_SUFFIXES.find((one) => name.endsWith(one));
+    const suffix = FILE_SUFFIXES.find((candidate) => name.endsWith(candidate));
     if (suffix === undefined) return [`${path} is not a module`];
     const stem = name.slice(0, name.length - suffix.length);
     if (CATEGORY_STEMS.includes(stem)) return [`${path} names a category`];
@@ -99,31 +99,31 @@ Deno.test("an exported function out of camelCase and a type out of PascalCase ar
 });
 
 function lookupMisnamedExports(file: SourceFile): string[] {
-    const found: string[] = [];
-    for (const node of readAstNodes(file, ["ExportNamedDeclaration"])) {
-        const declaration = node.declaration;
+    const misnamed: string[] = [];
+    for (const exported of readAstNodes(file, ["ExportNamedDeclaration"])) {
+        const declaration = exported.declaration;
         if (declaration === null) continue;
         if (declaration === undefined) continue;
-        const place = formatNodePlace(file, node);
+        const place = formatNodePlace(file, exported);
         const name = declaration.id?.name;
         if (declaration.type === "FunctionDeclaration") {
             if (name !== undefined) {
-                if (!isCamelCase(name)) found.push(`${place} function ${name}`);
+                if (!isCamelCase(name)) misnamed.push(`${place} function ${name}`);
             }
         }
         if (TYPE_NODES.includes(declaration.type)) {
             if (name !== undefined) {
-                if (!isPascalCase(name)) found.push(`${place} type ${name}`);
+                if (!isPascalCase(name)) misnamed.push(`${place} type ${name}`);
             }
         }
         for (const declarator of declaration.declarations ?? []) {
             const initType = declarator.init?.type ?? "";
             if (initType !== "ArrowFunctionExpression") continue;
             const bound = declarator.id?.name ?? "";
-            if (!isCamelCase(bound)) found.push(`${place} function ${bound}`);
+            if (!isCamelCase(bound)) misnamed.push(`${place} function ${bound}`);
         }
     }
-    return found;
+    return misnamed;
 }
 
 function isCamelCase(name: string): boolean {
@@ -169,14 +169,14 @@ Deno.test("a name holding the word Game is flagged, and a lower-case key or a st
 });
 
 function lookupRetiredWords(file: SourceFile): string[] {
-    const found: string[] = [];
-    for (const node of readAstNodes(file, ["Identifier"])) {
-        const name = node.name ?? "";
+    const retired: string[] = [];
+    for (const identifier of readAstNodes(file, ["Identifier"])) {
+        const name = identifier.name ?? "";
         const words = readNameWords(name);
         if (!words.some((word) => RETIRED_WORDS.includes(word))) continue;
-        found.push(`${formatNodePlace(file, node)} ${name}`);
+        retired.push(`${formatNodePlace(file, identifier)} ${name}`);
     }
-    return found;
+    return retired;
 }
 
 /** The words of a name: split at `_`, and where an upper-case letter opens a word. */

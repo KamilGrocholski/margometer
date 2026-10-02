@@ -79,7 +79,9 @@ function witnessRecording(fight: RecordedFight, reading: WitnessReading): void {
     const path = fight.path;
     const combatants = fight.combatants;
     const roster = indexCombatantRoster(combatants);
-    const healthMaximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
+    const healthMaximumById = new Map(
+        combatants.map((combatant) => [combatant.id, combatant.healthMaximum]),
+    );
     const payloads = fight.payloads;
     const doesCarryUnsizedShare = payloads.some((payload) =>
         payload.some((message) => message.includes(UNSIZED_SHARE_KEY))
@@ -92,7 +94,9 @@ function witnessRecording(fight: RecordedFight, reading: WitnessReading): void {
     let isPoolRaised = false;
     // Every message decoded once, kept in order, so a cast stated about a side can be sized over
     // the whole fight and still applied at the message it landed on.
-    const byMessage = payloads.flatMap((one) => one.map((message) => [message, one] as const))
+    const byMessage = payloads.flatMap((payload) =>
+        payload.map((message) => [message, payload] as const)
+    )
         .map(([message]) =>
             decodePayloadMessages([message], {
                 roster,
@@ -170,7 +174,7 @@ function isPoolRaiseDeclared(event: BattleEvent): boolean {
 }
 
 function isPoolRaiseAmong(declared: readonly { effect: string }[]): boolean {
-    return declared.some((one) => one.effect === POOL_RAISE_KEY);
+    return declared.some((declaredEffect) => declaredEffect.effect === POOL_RAISE_KEY);
 }
 
 /**
@@ -179,24 +183,25 @@ function isPoolRaiseAmong(declared: readonly { effect: string }[]): boolean {
  * restores health nobody can place, one payload moves health with no message at all, and a pool
  * raise moves the maximum the two percentages either side of it are read against.
  */
-function addComparison(reading: WitnessReading, one: Comparison): void {
-    const wasAt = composeHealthFromPercent(one.percentBefore, one.healthMaximum);
-    const isAt = composeHealthFromPercent(one.percentAfter, one.healthMaximum);
-    assertExists(wasAt, `${one.path}: a maximum that was read`);
-    assertExists(isAt, `${one.path}: a maximum that was read`);
+function addComparison(reading: WitnessReading, comparison: Comparison): void {
+    const wasAt = composeHealthFromPercent(comparison.percentBefore, comparison.healthMaximum);
+    const isAt = composeHealthFromPercent(comparison.percentAfter, comparison.healthMaximum);
+    assertExists(wasAt, `${comparison.path}: a maximum that was read`);
+    assertExists(isAt, `${comparison.path}: a maximum that was read`);
     reading.compared += 1;
     const stated = isAt - wasAt;
-    const tolerance = composeHealthTolerance(one.healthMaximum) * READINGS_COMPARED;
-    if (Math.abs(stated - one.moved) <= tolerance) {
+    const tolerance = composeHealthTolerance(comparison.healthMaximum) * READINGS_COMPARED;
+    if (Math.abs(stated - comparison.moved) <= tolerance) {
         reading.agreed += 1;
         return;
     }
-    const found = `${one.path} ${one.combatantId}: stated ${stated}, read ${one.moved}`;
-    if (one.percentAfter === 0) reading.died += 1;
-    else if (stated < one.moved) reading.vanished.push(found);
-    else if (one.doesCarryUnsizedShare) reading.appeared += 1;
-    else if (one.doesSpanPoolRaise) reading.raised += 1;
-    else reading.unexplained.push(found);
+    const disagreement =
+        `${comparison.path} ${comparison.combatantId}: stated ${stated}, read ${comparison.moved}`;
+    if (comparison.percentAfter === 0) reading.died += 1;
+    else if (stated < comparison.moved) reading.vanished.push(disagreement);
+    else if (comparison.doesCarryUnsizedShare) reading.appeared += 1;
+    else if (comparison.doesSpanPoolRaise) reading.raised += 1;
+    else reading.unexplained.push(disagreement);
 }
 
 Deno.test("one payload moves health with no message saying so, and it is pinned here", () => {

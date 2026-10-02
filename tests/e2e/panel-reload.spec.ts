@@ -57,8 +57,8 @@ test("what the reader was reading is not remembered, and that is the point", asy
     const screens = panel.at("[data-screen]");
     const opening = await screens.first().getAttribute("data-screen");
     await screens.nth(3).click();
-    const other = await panel.at("[data-screen]").nth(3).getAttribute("data-screen");
-    expect(other, "the reader moved off the screen the panel opens on").not.toBe(opening);
+    const chosenScreen = await panel.at("[data-screen]").nth(3).getAttribute("data-screen");
+    expect(chosenScreen, "the reader moved off the screen the panel opens on").not.toBe(opening);
     await panel.at("[data-side]").nth(2).click();
     await panel.at("[data-row]").first().click();
     await expect(panel.at(".crumb-here"), "with a row open under them").toHaveCount(1);

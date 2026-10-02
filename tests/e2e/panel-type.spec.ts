@@ -34,8 +34,8 @@ test("every size of type draws its own row, keeps the bar whole, and reaches bot
         const beside = await panel.at(".MargoMeter-helper").boundingBox();
         expect((beside?.x ?? 0) + (beside?.width ?? 0), `${step}: the window beside stays beside`)
             .toBeLessThanOrEqual(bar?.x ?? 0);
-        const standing = await panel.at(".MargoMeter-helper").evaluate((one) =>
-            getComputedStyle(one).fontSize
+        const standing = await panel.at(".MargoMeter-helper").evaluate((helper) =>
+            getComputedStyle(helper).fontSize
         );
         expect(standing, `${step}: the window beside the panel prints the same type`).toBe(font);
         await panel.expectHonest(`the ranking at the ${step} step`);
@@ -47,6 +47,6 @@ test("a size of type chosen is the size the page comes back at", async ({ panel 
     await panel.at('[data-type-step="large"]').click();
     expect(await panel.stored(TYPE_KEY), "the browser keeps the choice").toBe("large");
     await panel.page.reload();
-    const font = await panel.at(".meter").evaluate((one) => getComputedStyle(one).fontSize);
+    const font = await panel.at(".meter").evaluate((meter) => getComputedStyle(meter).fontSize);
     expect(font, "and the panel comes back in it").toBe("13px");
 });

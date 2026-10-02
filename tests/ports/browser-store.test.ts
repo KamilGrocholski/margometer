@@ -39,8 +39,8 @@ function composeAnsweringStorage(): BrowserStorage {
     const held = new Map<string, string>();
     return {
         getItem: (key) => held.get(key) ?? null,
-        setItem: (key, value) => {
-            held.set(key, value);
+        setItem: (key, stored) => {
+            held.set(key, stored);
         },
         removeItem: (key) => void held.delete(key),
     };
@@ -118,7 +118,7 @@ Deno.test("a page answering something other than text for a key has nothing unde
         setItem: () => {},
         removeItem: () => {},
     };
-    const read = initBrowserStore(odd).read(STORE_KEY.storage);
-    assertNotInstanceOf(read, Error, "an odd answer is no failure");
-    assertStrictEquals(read, null, "none");
+    const storageChoice = initBrowserStore(odd).read(STORE_KEY.storage);
+    assertNotInstanceOf(storageChoice, Error, "an odd answer is no failure");
+    assertStrictEquals(storageChoice, null, "none");
 });

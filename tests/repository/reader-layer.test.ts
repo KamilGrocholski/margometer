@@ -22,15 +22,15 @@ Deno.test("an assertion the reader's layer imports is flagged, and one elsewhere
     assertEquals(lookupReaderAsserts(ui), [
         'src/ui/panel-sample.ts imports "@std/assert/assert"',
     ], "the panel asserts nothing");
-    const entry = { ...sample, path: "src/userscript-entry.ts" };
-    assertEquals(lookupReaderAsserts(entry).length, 1, "and neither does the entry");
+    const entryFile = { ...sample, path: "src/userscript-entry.ts" };
+    assertEquals(lookupReaderAsserts(entryFile).length, 1, "and neither does the entry");
     const core = { ...sample, path: "src/core/sample.ts" };
     assertEquals(lookupReaderAsserts(core), [], "while core asserts as it should");
 });
 
 function lookupReaderAsserts(file: SourceFile): string[] {
     if (!isReaderLayer(file.path)) return [];
-    const sources = readImportSources(file).filter((one) => one.startsWith(ASSERT_PACKAGE));
+    const sources = readImportSources(file).filter((source) => source.startsWith(ASSERT_PACKAGE));
     return sources.map((source) => `${file.path} imports "${source}"`);
 }
 

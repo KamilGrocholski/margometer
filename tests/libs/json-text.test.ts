@@ -72,7 +72,7 @@ Deno.test("indentation is written where a person will read it and not where nobo
     const spaced = encodeJson({ a: 1 }, 2);
     assertStrictEquals(spaced, '{\n  "a": 1\n}', "indented where a person will read it");
 
-    const read = parseJson(spaced);
-    assertNotInstanceOf(read, Error, "and what was written reads back");
-    assertEquals(read, { a: 1 }, "as the value it was written from");
+    const parsed = parseJson(spaced);
+    assertNotInstanceOf(parsed, Error, "and what was written reads back");
+    assertEquals(parsed, { a: 1 }, "as the value it was written from");
 });

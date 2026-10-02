@@ -66,9 +66,9 @@ function apply(session: FightSession, record: PayloadRecord): PayloadCommitted {
 }
 
 function view(session: FightSession): FightView {
-    const found = composeFightView(session);
-    assertExists(found, "a fight stands");
-    return found;
+    const fightView = composeFightView(session);
+    assertExists(fightView, "a fight stands");
+    return fightView;
 }
 
 Deno.test("preparing touches nothing, and a payload lands once", () => {
@@ -169,12 +169,15 @@ Deno.test("a session says whether it saw the payload that opened the fight", () 
     assertFalse(view(fromStart).hasJoinedInProgress, "watched from its opening payload");
 
     const joined = createFightSession(SESSION_OPTIONS);
-    const first = apply(joined, { ...NOTHING, messages: ["0;0;txt=a"] });
+    const firstApplied = apply(joined, { ...NOTHING, messages: ["0;0;txt=a"] });
     assert(
         view(joined).hasJoinedInProgress,
         "one whose first payload is anything else began before",
     );
-    assert(first.hasOpened, "the first payload the session sees opens its fight, joined or not");
+    assert(
+        firstApplied.hasOpened,
+        "the first payload the session sees opens its fight, joined or not",
+    );
     apply(joined, { ...NOTHING, messages: ["0;0;txt=b"] });
     assert(view(joined).hasJoinedInProgress, "which no later payload undoes");
     apply(joined, OPENING);
@@ -231,7 +234,12 @@ Deno.test("a cast stated twice is one cast, and a fight of twenty survives the r
 function composeFullCast(): Combatant[] {
     return Array.from(
         { length: COMBATANTS_MAXIMUM },
-        (_, at) => composeCombatant(at + 1, `Postac${at + 1}`, at < COMBATANTS_MAXIMUM / 2 ? 1 : 2),
+        (_, index) =>
+            composeCombatant(
+                index + 1,
+                `Postac${index + 1}`,
+                index < COMBATANTS_MAXIMUM / 2 ? 1 : 2,
+            ),
     );
 }
 
@@ -264,7 +272,7 @@ Deno.test("what a payload says somebody carries reaches the view, and a new figh
     assertEquals(view(session).carriedStatuses, [], "nobody carries anything yet");
     const masks = new Map([[7, 0b101]]);
     apply(session, { ...NOTHING, statusMasksByCombatantId: masks });
-    const bits = view(session).carriedStatuses.map((one) => one.bit);
+    const bits = view(session).carriedStatuses.map((status) => status.bit);
     assertEquals(bits, [0, 2], "the two lit bits, handed over from the mask");
     apply(session, OPENING);
     assertEquals(view(session).carriedStatuses, [], "and a fight that opens holds none");
@@ -276,7 +284,11 @@ Deno.test("a legendary bonus the fight spent reaches the view, and a new fight d
     const rescue = "2=40.00;3=50.00;legbon_lastheal=100,Gracz 1(50.00%)";
     apply(session, { ...OPENING, combatants: cast, messages: [rescue] });
     const standings = view(session).legendaryStandings;
-    assertEquals(standings.map((one) => one.combatantId), [1], "the healed spent the bonus");
+    assertEquals(
+        standings.map((standing) => standing.combatantId),
+        [1],
+        "the healed spent the bonus",
+    );
     apply(session, OPENING);
     assertEquals(view(session).legendaryStandings, [], "and a fight that opens holds none of it");
 });
@@ -286,7 +298,11 @@ Deno.test("a charge the envelope states reaches the view", () => {
     const charge = { skillName: "Cios", turnsElapsed: 0, turnsStated: 2 };
     apply(session, { ...OPENING, chargeStatements: [{ combatantId: 4, charge }] });
     const charged = view(session).chargedSkills;
-    assertEquals(charged.map((one) => [one.combatantId, one.state]), [[4, "charging"]], "one");
+    assertEquals(
+        charged.map((charge) => [charge.combatantId, charge.state]),
+        [[4, "charging"]],
+        "one",
+    );
 });
 
 Deno.test("a fight that ended stays over, whatever arrives after the end", () => {
@@ -303,6 +319,8 @@ Deno.test("a legendary run lit in one payload counts the heals of the next", () 
     const lit = "1=90.00;2=80.00;+dmg=10;-dmg=10;+legbon_holytouch";
     apply(session, { ...OPENING, messages: [lit] });
     apply(session, { ...NOTHING, messages: ["1=96.00;0;legbon_holytouch_heal=60"] });
-    const heals = view(session).legendaryStandings.map((one) => one.holytouchHealsReceived);
+    const heals = view(session).legendaryStandings.map((standing) =>
+        standing.holytouchHealsReceived
+    );
     assertEquals(heals, [1], "the run carries into the payload after its lighting");
 });

@@ -37,8 +37,8 @@ Deno.test("a tile arrives as text as readily as a number", () => {
 Deno.test("a tile of zero is a tile somebody stands on", () => {
     const place = readPlaceOf(composeMargonemEngine("Tempest", 0, 0));
     assertEquals(place, { mapName: "Tempest", x: 0, y: 0 }, "zero is where they are");
-    const one = readPlaceOf(composeMargonemEngine(null, 1, 1));
-    assertEquals(one, { mapName: null, x: 1, y: 1 }, "and one beside it, with no map named");
+    const besideZero = readPlaceOf(composeMargonemEngine(null, 1, 1));
+    assertEquals(besideZero, { mapName: null, x: 1, y: 1 }, "and one beside it, with no map named");
 });
 
 Deno.test("what the page will not say is null, and a page saying nothing is no place", () => {
@@ -54,9 +54,9 @@ Deno.test("what the page will not say is null, and a page saying nothing is no p
     expectAbsent(initMargonemEnginePlace(null).readPlace(), "and nor does no page");
 });
 
-function expectAbsent(read: unknown, message: string): void {
-    assertInstanceOf(read, MargonemValueAbsent, message);
-    assertStrictEquals(read.value, MARGONEM_VALUE.place, `${message}: the reading named`);
+function expectAbsent(answer: unknown, message: string): void {
+    assertInstanceOf(answer, MargonemValueAbsent, message);
+    assertStrictEquals(answer.value, MARGONEM_VALUE.place, `${message}: the reading named`);
 }
 
 Deno.test("the engine is read by the page's call when the field holds none", () => {
@@ -74,9 +74,9 @@ Deno.test("a page tearing itself down is a failure of theirs, not a reading of n
             throw new TypeError("the context is gone");
         },
     };
-    const read = readPlaceOf(throwing);
-    assertInstanceOf(read, Error, "the throw is not an absent place");
-    assertInstanceOf(read, errors.Caught, "it is named as theirs");
+    const answer = readPlaceOf(throwing);
+    assertInstanceOf(answer, Error, "the throw is not an absent place");
+    assertInstanceOf(answer, errors.Caught, "it is named as theirs");
 });
 
 /** The page's own `getEngine` is called on the way in, and a page tearing down throws from it. */
@@ -87,9 +87,9 @@ Deno.test("a page whose own call throws is a failure of theirs, not a reading of
             throw thrown;
         },
     };
-    const read = initMargonemEnginePlace(page).readPlace();
-    assertInstanceOf(read, errors.Caught, "a failure of theirs");
-    assertStrictEquals(read.cause, thrown, "with its cause");
+    const answer = initMargonemEnginePlace(page).readPlace();
+    assertInstanceOf(answer, errors.Caught, "a failure of theirs");
+    assertStrictEquals(answer.cause, thrown, "with its cause");
 });
 
 Deno.test("the client's own method for this is never called", () => {

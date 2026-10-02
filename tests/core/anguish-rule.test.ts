@@ -33,7 +33,7 @@ Deno.test("every tick names its victim in the actor slot and nobody at the other
     for (const fight of readRecordedFights()) {
         for (const message of fight.messages) {
             const parsed = parseOrFail(message, fight.path);
-            const carries = parsed.parameters.some((one) => one.key === TICK_KEY);
+            const carries = parsed.parameters.some((parameter) => parameter.key === TICK_KEY);
             if (!carries) continue;
             ticks += 1;
             assertExists(parsed.actor, `${fight.path}: a tick states whose health moved`);
@@ -53,10 +53,14 @@ Deno.test("the announcement carries no figure, so nothing says which application
     let announcements = 0;
     for (const fight of readRecordedFights()) {
         for (const message of fight.messages) {
-            for (const one of parseOrFail(message, fight.path).parameters) {
-                if (one.key !== ANNOUNCEMENT_KEY) continue;
+            for (const parameter of parseOrFail(message, fight.path).parameters) {
+                if (parameter.key !== ANNOUNCEMENT_KEY) continue;
                 announcements += 1;
-                assertEquals(one.value, null, `${fight.path}: an announcement stating a figure`);
+                assertEquals(
+                    parameter.value,
+                    null,
+                    `${fight.path}: an announcement stating a figure`,
+                );
             }
         }
     }
@@ -67,7 +71,7 @@ Deno.test("a tick is charged to its victim, and to nobody who applied the bleed"
     const appliers = new Set<number>();
     for (const message of lookupRecordedFight(TWO_APPLIERS).messages) {
         const parsed = parseOrFail(message, TWO_APPLIERS);
-        if (!parsed.parameters.some((one) => one.key === ANNOUNCEMENT_KEY)) continue;
+        if (!parsed.parameters.some((parameter) => parameter.key === ANNOUNCEMENT_KEY)) continue;
         const applier = parsed.actor?.combatantId;
         if (applier !== undefined) appliers.add(applier);
     }

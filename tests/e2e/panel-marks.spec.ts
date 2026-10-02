@@ -17,7 +17,7 @@ test("a mark before a name leaves that name whole", async ({ panel }) => {
         .toHaveCount(1);
 
     const rows = await readRowsDrawn(panel.page);
-    const marked = rows.filter((one) => one.marks.length > 0);
+    const marked = rows.filter((row) => row.marks.length > 0);
     expect(marked.length, "the marks reach some of the list").toBeGreaterThan(0);
     expect(marked.length, "and never the whole of it").toBeLessThan(rows.length);
     // The cost `develop ADR 0023` measured, asked of the rows actually paying it. A name cut on a row
@@ -38,7 +38,7 @@ async function readRowsDrawn(page: import("@playwright/test").Page) {
         return [...root.querySelectorAll(".list .row")].map((row) => {
             const name = row.querySelector(".row-name");
             const marks = [".row-suspect", ".row-caveat", ".row-turn"]
-                .filter((one) => row.querySelector(one) !== null);
+                .filter((markSelector) => row.querySelector(markSelector) !== null);
             if (!(name instanceof HTMLElement)) return { text: "", cut: 0, marks };
             return {
                 text: name.textContent ?? "",

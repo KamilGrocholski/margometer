@@ -116,15 +116,15 @@ Deno.test("nothing on a published page asks a domain root, or a process, for any
  * What a page would go and get. An `<a href>` is a navigation somebody presses, and stays legal.
  */
 function readLoadedMarks(text: string): string[] {
-    const found = LOADED_FROM_ELSEWHERE.filter((mark) => text.includes(mark));
-    let at = text.indexOf(LINK_OPENING);
-    for (let tried = 0; at !== -1; tried += 1) {
+    const marks = LOADED_FROM_ELSEWHERE.filter((mark) => text.includes(mark));
+    let linkAt = text.indexOf(LINK_OPENING);
+    for (let tried = 0; linkAt !== -1; tried += 1) {
         assert(tried <= text.length, "the walk stays inside the text");
-        const tag = text.slice(at, text.indexOf(">", at));
-        if (!tag.includes(LINK_INLINE)) found.push(tag);
-        at = text.indexOf(LINK_OPENING, at + LINK_OPENING.length);
+        const tag = text.slice(linkAt, text.indexOf(">", linkAt));
+        if (!tag.includes(LINK_INLINE)) marks.push(tag);
+        linkAt = text.indexOf(LINK_OPENING, linkAt + LINK_OPENING.length);
     }
-    return found;
+    return marks;
 }
 
 Deno.test("the reader over what a page loads flags a stylesheet, and not a link or an icon", () => {

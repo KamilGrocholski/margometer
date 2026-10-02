@@ -162,16 +162,16 @@ Deno.test("a claim of silence has tried the key's stem", () => {
  */
 function composeStemPhrases(key: string): string[] {
     const bare = SIGNS.includes(key.charAt(0)) ? key.slice(1) : key;
-    let at = -1;
+    let separatorIndex = -1;
     for (let index = 0; index < bare.length; index += 1) {
         if (!SEPARATORS.includes(bare.charAt(index))) continue;
-        at = index;
+        separatorIndex = index;
         break;
     }
-    if (at === -1) return [bare];
-    const tail = bare.slice(at + 1);
+    if (separatorIndex === -1) return [bare];
+    const tail = bare.slice(separatorIndex + 1);
     assert(tail.length > 0, "a separator with nothing after it is not a separator");
-    if (SCOPE_SUFFIXES.includes(tail)) return [bare, bare.slice(0, at)];
+    if (SCOPE_SUFFIXES.includes(tail)) return [bare, bare.slice(0, separatorIndex)];
     return [bare, tail];
 }
 
@@ -179,10 +179,10 @@ Deno.test("no claim runs onto a second line, where this reader would see half of
     const lines = REGISTER.split("\n");
     const continued: string[] = [];
     for (const claim of parseHelpClaims(REGISTER)) {
-        const next = (lines[claim.line] ?? "").trim();
-        if (CLAIM_TERMINATORS.includes(next)) continue;
-        if (parseHelpClaim(next, claim.line + 1) !== null) continue;
-        continued.push(`${REGISTER_PATH}:${claim.line} is followed by "${next}"`);
+        const followingLine = (lines[claim.line] ?? "").trim();
+        if (CLAIM_TERMINATORS.includes(followingLine)) continue;
+        if (parseHelpClaim(followingLine, claim.line + 1) !== null) continue;
+        continued.push(`${REGISTER_PATH}:${claim.line} is followed by "${followingLine}"`);
     }
     assert(lines.length > 0, "there is a document to read");
     assertEquals(continued, [], "a wrapped claim is a claim read by halves");
@@ -198,8 +198,8 @@ Deno.test("the register and the decoder agree on whose the healing is, both ways
     assertEquals(parseLabelClaims("_Health:_ moves health\n", CAUSE_MARKER), [], "and not a cause");
 
     const claimed = parseLabelClaims(REGISTER, CAUSE_MARKER)
-        .filter((one) => one.claim === CAUSE.subjectsOwn)
-        .map((one) => one.key)
+        .filter((labelClaim) => labelClaim.claim === CAUSE.subjectsOwn)
+        .map((labelClaim) => labelClaim.key)
         .sort();
     assert(claimed.length > 0, "the register claims it of something");
     assertEquals(
@@ -212,7 +212,7 @@ Deno.test("the register and the decoder agree on whose the healing is, both ways
 /** The key each section is about, paired with what the labelled line states, in document order. */
 function parseLabelClaims(text: string, marker: string): LabelClaim[] {
     assert(marker.length > 0, "a claim is read under a label");
-    const found: LabelClaim[] = [];
+    const labelClaims: LabelClaim[] = [];
     let key = "";
     for (const line of text.split("\n")) {
         if (line.startsWith(SECTION_MARKER)) {
@@ -222,9 +222,9 @@ function parseLabelClaims(text: string, marker: string): LabelClaim[] {
         if (!line.startsWith(marker)) continue;
         // The preamble states an `_Evidence:_` line of its own, under a heading naming no key.
         if (key.length === 0) continue;
-        found.push({ key, claim: line.slice(marker.length).trim() });
+        labelClaims.push({ key, claim: line.slice(marker.length).trim() });
     }
-    return found;
+    return labelClaims;
 }
 
 Deno.test("a key the register calls absent from the client is absent from the frozen table", () => {
@@ -241,20 +241,22 @@ Deno.test("a key the register calls absent from the client is absent from the fr
 
 /** Every key the register states the client does not know, read out of the sentence saying so. */
 function parseAbsentKeys(text: string): string[] {
-    const found: string[] = [];
-    let at = text.indexOf(ABSENCE_CLAIM);
-    for (let looked = 0; at !== -1; looked += 1) {
+    const absentKeys: string[] = [];
+    let claimIndex = text.indexOf(ABSENCE_CLAIM);
+    for (let looked = 0; claimIndex !== -1; looked += 1) {
         assert(looked <= PHRASES_MAXIMUM, "the walk stays inside its stated bound");
-        const rest = text.slice(at + ABSENCE_CLAIM.length);
-        at = text.indexOf(ABSENCE_CLAIM, at + 1);
+        const rest = text.slice(claimIndex + ABSENCE_CLAIM.length);
+        claimIndex = text.indexOf(ABSENCE_CLAIM, claimIndex + 1);
         if (!rest.startsWith(BACKTICK)) continue;
         const closes = rest.indexOf(BACKTICK, BACKTICK.length);
         if (closes === -1) continue;
         const key = rest.slice(BACKTICK.length, closes);
         if (key.length === 0) continue;
-        if (rest.slice(closes + BACKTICK.length).startsWith(CLIENT_LIST_CLAIM)) found.push(key);
+        if (rest.slice(closes + BACKTICK.length).startsWith(CLIENT_LIST_CLAIM)) {
+            absentKeys.push(key);
+        }
     }
-    return found;
+    return absentKeys;
 }
 
 Deno.test("every entry carries a verdict the register says it uses", () => {
@@ -268,15 +270,20 @@ Deno.test("every entry carries a verdict the register says it uses", () => {
     const legal = new Set(parseStatedVerdicts(REGISTER));
     assert(legal.size > 0, "the register names the verdicts an entry may carry");
 
-    const read = parseRegisteredKeys("### `+crit` — decoded\n### `+swing` — investigated\n");
-    assertEquals(read.map((one) => one.verdict), ["decoded", "investigated"], "the reader works");
+    const sampleKeys = parseRegisteredKeys("### `+crit` — decoded\n### `+swing` — investigated\n");
+    assertEquals(sampleKeys.map((registeredKey) => registeredKey.verdict), [
+        "decoded",
+        "investigated",
+    ], "the reader works");
     assertEquals(parseRegisteredKeys("Each entry carries a verdict.\n"), [], "and flags no prose");
 
     const entries = parseRegisteredKeys(REGISTER);
     assert(entries.length > 0, "the register opens entries to read");
     const wrong = entries
-        .filter((one) => !legal.has(one.verdict))
-        .map((one) => `${REGISTER_PATH}:${one.line} says "${one.verdict}"`);
+        .filter((registeredKey) => !legal.has(registeredKey.verdict))
+        .map((registeredKey) =>
+            `${REGISTER_PATH}:${registeredKey.line} says "${registeredKey.verdict}"`
+        );
     assertEquals(wrong, [], "a verdict outside the stated list is refused, not read as silence");
 });
 
@@ -284,7 +291,9 @@ Deno.test("every entry names a key the client still composes", () => {
     const sample =
         "### `+crit` — decoded\n### `attack` — not a battle key\n### `-dmga` — decoded\n";
     assertEquals(
-        parseRegisteredKeys(sample).filter(isEntryAnswerableByClient).map((one) => one.key),
+        parseRegisteredKeys(sample).filter(isEntryAnswerableByClient).map((registeredKey) =>
+            registeredKey.key
+        ),
         ["+crit"],
         "the reader asks after the entries the client's switch answers for",
     );
@@ -293,8 +302,10 @@ Deno.test("every entry names a key the client still composes", () => {
     assert(composed.size > 0, "the frozen table names the keys the client composes");
     const gone = parseRegisteredKeys(REGISTER)
         .filter(isEntryAnswerableByClient)
-        .filter((one) => !composed.has(one.key))
-        .map((one) => `${REGISTER_PATH}:${one.line} states \`${one.key}\``);
+        .filter((registeredKey) => !composed.has(registeredKey.key))
+        .map((registeredKey) =>
+            `${REGISTER_PATH}:${registeredKey.line} states \`${registeredKey.key}\``
+        );
     assertEquals(gone, [], "an entry documenting a key the client's own table no longer knows");
 });
 
@@ -302,18 +313,26 @@ Deno.test("every entry names a key the client still composes", () => {
  * An entry the client's switch has a case label for. A verdict saying the key is no battle key says
  * the switch never carries it, and the family the client reads by shape has no case label at all.
  */
-function isEntryAnswerableByClient(entry: { key: string; verdict: string }): boolean {
-    if (entry.verdict === NOT_A_BATTLE_KEY) return false;
-    if (entry.key === DAMAGE_FAMILY_HEADING) return false;
-    return lookupKeyMeaning(entry.key)?.kind !== KEY_FAMILY.damage;
+function isEntryAnswerableByClient(registeredKey: { key: string; verdict: string }): boolean {
+    if (registeredKey.verdict === NOT_A_BATTLE_KEY) return false;
+    if (registeredKey.key === DAMAGE_FAMILY_HEADING) return false;
+    return lookupKeyMeaning(registeredKey.key)?.kind !== KEY_FAMILY.damage;
 }
 
 Deno.test("the reader knows a count of occurrences from every other sentence", () => {
     const flagged = parseProseCountClaims(
         "### `-legbon_glare` — decoded\n\nIt has: one occurrence, on a blow, with no figure.\n",
     );
-    assertEquals(flagged.map((one) => one.key), ["-legbon_glare"], "a count in prose is found");
-    assertEquals(flagged.map((one) => one.recordings), [[]], "and it names no recording");
+    assertEquals(
+        flagged.map((countClaim) => countClaim.key),
+        ["-legbon_glare"],
+        "a count in prose is found",
+    );
+    assertEquals(
+        flagged.map((countClaim) => countClaim.recordings),
+        [[]],
+        "and it names no recording",
+    );
 
     const spelled = parseProseCountClaims("### `+absorb` — decoded\n\nBoth occurrences ride it.\n");
     assertEquals(spelled.length, 1, "a figure spelled as a word is a figure");
@@ -321,7 +340,11 @@ Deno.test("the reader knows a count of occurrences from every other sentence", (
     const scoped = parseProseCountClaims(
         "### `-absorb` — decoded\n\n45 occurrences on `captures/one.json`, every one valued.\n",
     );
-    assertEquals(scoped.map((one) => one.recordings), [["captures/one.json"]], "material carried");
+    assertEquals(
+        scoped.map((countClaim) => countClaim.recordings),
+        [["captures/one.json"]],
+        "material carried",
+    );
 
     assertEquals(
         parseProseCountClaims("### `winner` — decoded\n\nEvery occurrence has that shape.\n"),
@@ -359,18 +382,18 @@ Deno.test("every count the prose writes names the recordings it was counted on",
     const claims = parseProseCountClaims(REGISTER);
     assert(claims.length > 0, "the register writes counts in prose for this to read");
     const unnamed = claims
-        .filter((one) => one.recordings.length === 0)
-        .map((one) => `${REGISTER_PATH}:${one.line} "${one.sentence}"`);
+        .filter((countClaim) => countClaim.recordings.length === 0)
+        .map((countClaim) => `${REGISTER_PATH}:${countClaim.line} "${countClaim.sentence}"`);
     assertEquals(unnamed, [], "a count over the corpus goes stale and reads as one that did not");
 });
 
 Deno.test("every recording a count rests on is one the material still holds", () => {
     const held = new Set(readRecordedFights().map((fight) => fight.path));
     assert(held.size > 0, "the material holds recordings for a count to name");
-    const gone = parseProseCountClaims(REGISTER).flatMap((one) =>
-        one.recordings
+    const gone = parseProseCountClaims(REGISTER).flatMap((countClaim) =>
+        countClaim.recordings
             .filter((path) => !held.has(path))
-            .map((path) => `${REGISTER_PATH}:${one.line} counts over ${path}`)
+            .map((path) => `${REGISTER_PATH}:${countClaim.line} counts over ${path}`)
     );
     assertEquals(gone, [], "a count resting on a recording `captures/` no longer carries");
 });
@@ -392,13 +415,15 @@ Deno.test("the register and the decoder agree on which keys move health, both wa
 
     const said = new Set(
         parseLabelClaims(REGISTER, HEALTH_MARKER)
-            .filter((one) => one.claim === HEALTH_CLAIM)
-            .map((one) => one.key),
+            .filter((labelClaim) => labelClaim.claim === HEALTH_CLAIM)
+            .map((labelClaim) => labelClaim.key),
     );
     assert(said.size > 0, "the register states the verdict of something");
     const wrong = parseRegisteredKeys(REGISTER)
-        .filter((one) => (lookupDecodedCause(one.key) !== null) !== said.has(one.key))
-        .map((one) => `${REGISTER_PATH}:${one.line} \`${one.key}\``);
+        .filter((registeredKey) =>
+            (lookupDecodedCause(registeredKey.key) !== null) !== said.has(registeredKey.key)
+        )
+        .map((registeredKey) => `${REGISTER_PATH}:${registeredKey.line} \`${registeredKey.key}\``);
     assertEquals(wrong, [], "the line and the decoder disagree about whether a key moves health");
 });
 
@@ -436,21 +461,27 @@ Deno.test("the register and the decoder agree on who each figure is charged to, 
     assertEquals(lookupDecodedCause("poison"), CAUSE.nobody, "a tick nothing names is nobody's");
 
     const said = new Map(
-        parseLabelClaims(REGISTER, CAUSE_MARKER).map((one) => [one.key, one.claim]),
+        parseLabelClaims(REGISTER, CAUSE_MARKER).map((
+            labelClaim,
+        ) => [labelClaim.key, labelClaim.claim]),
     );
     assert(said.size > 0, "the register charges something to somebody");
     const wrong = parseRegisteredKeys(REGISTER)
-        .filter((one) => lookupDecodedCause(one.key) !== (said.get(one.key) ?? null))
-        .map((one) =>
-            `${REGISTER_PATH}:${one.line} \`${one.key}\` says ${
-                said.get(one.key) ?? "nothing"
-            }, the decoder reads ${lookupDecodedCause(one.key) ?? "no figure at all"}`
+        .filter((registeredKey) =>
+            lookupDecodedCause(registeredKey.key) !== (said.get(registeredKey.key) ?? null)
+        )
+        .map((registeredKey) =>
+            `${REGISTER_PATH}:${registeredKey.line} \`${registeredKey.key}\` says ${
+                said.get(registeredKey.key) ?? "nothing"
+            }, the decoder reads ${lookupDecodedCause(registeredKey.key) ?? "no figure at all"}`
         );
     assertEquals(wrong, [], "a figure charged one way here and read another way there");
 });
 
 Deno.test("every entry states its evidence or says whose it takes", () => {
-    const carried = new Set(parseLabelClaims(REGISTER, EVIDENCE_MARKER).map((one) => one.key));
+    const carried = new Set(
+        parseLabelClaims(REGISTER, EVIDENCE_MARKER).map((labelClaim) => labelClaim.key),
+    );
     assert(carried.size > 0, "the register carries evidence lines to find");
     const delegating = new Set<string>();
     let key = "";
@@ -459,13 +490,15 @@ Deno.test("every entry states its evidence or says whose it takes", () => {
             key = parseBacktickedPhrases(line)[0] ?? "";
             continue;
         }
-        if (EVIDENCE_DELEGATIONS.some((one) => line.includes(one))) delegating.add(key);
+        if (EVIDENCE_DELEGATIONS.some((delegation) => line.includes(delegation))) {
+            delegating.add(key);
+        }
     }
     assert(delegating.size > 0, "and entries that take a neighbour's");
     const bare = parseRegisteredKeys(REGISTER)
-        .filter((one) => !carried.has(one.key))
-        .filter((one) => !delegating.has(one.key))
-        .map((one) => `${REGISTER_PATH}:${one.line} \`${one.key}\``);
+        .filter((registeredKey) => !carried.has(registeredKey.key))
+        .filter((registeredKey) => !delegating.has(registeredKey.key))
+        .map((registeredKey) => `${REGISTER_PATH}:${registeredKey.line} \`${registeredKey.key}\``);
     assertEquals(bare, [], "an entry whose verdict rests on nothing a reader can follow");
 });
 
@@ -474,13 +507,15 @@ Deno.test("no key opens an entry twice", () => {
     assertEquals(twice.length, 2, "the reader takes both headings rather than collapsing them");
     const seen = new Map<string, number>();
     const repeated: string[] = [];
-    for (const entry of parseRegisteredKeys(REGISTER)) {
-        const before = seen.get(entry.key);
+    for (const registeredKey of parseRegisteredKeys(REGISTER)) {
+        const before = seen.get(registeredKey.key);
         if (before === undefined) {
-            seen.set(entry.key, entry.line);
+            seen.set(registeredKey.key, registeredKey.line);
             continue;
         }
-        repeated.push(`${REGISTER_PATH}:${entry.line} \`${entry.key}\`, already open at ${before}`);
+        repeated.push(
+            `${REGISTER_PATH}:${registeredKey.line} \`${registeredKey.key}\`, already open at ${before}`,
+        );
     }
     assertEquals(repeated, [], "one key, two entries, and a reader takes the one it met last");
 });
@@ -509,7 +544,7 @@ Deno.test("every constant the register names is one the tree still declares", ()
     assert(named.size > 0, "the register names constants to look for");
     const declared = new Set(readSourceFiles(SOURCE_DIRECTORIES).flatMap(readDeclaredNames));
     assert(declared.size > 0, "and there is TypeScript for them to be declared in");
-    const gone = [...named].filter((one) => !declared.has(one)).sort();
+    const gone = [...named].filter((constantName) => !declared.has(constantName)).sort();
     assertEquals(gone, [], "the register names a constant no file in the tree declares");
 });
 
@@ -519,8 +554,8 @@ Deno.test("every constant the register names is one the tree still declares", ()
  */
 function readDeclaredNames(file: SourceFile): string[] {
     const names: string[] = [];
-    for (const node of readAstNodes(file, ["VariableDeclarator"])) {
-        const name = node.id?.name;
+    for (const declarator of readAstNodes(file, ["VariableDeclarator"])) {
+        const name = declarator.id?.name;
         if (name !== undefined) names.push(name);
     }
     return names;
@@ -555,7 +590,9 @@ Deno.test("every key src/core/protocol-key.ts reads by name is a key the registe
     assert(owner !== undefined, `${KEY_OWNER_PATH} is where the keys are read`);
     const keys = readKeysReadByName(owner);
     assert(keys.length > 100, `the owner was read: ${keys.length} keys`);
-    const written = new Set(parseRegisteredKeys(REGISTER).map((one) => one.key));
+    const written = new Set(
+        parseRegisteredKeys(REGISTER).map((registeredKey) => registeredKey.key),
+    );
     const missing = keys
         .filter((key) => !written.has(key))
         .map((key) => `${key}, read as ${lookupKeyMeaning(key)?.kind}`);
@@ -568,16 +605,16 @@ Deno.test("every key src/core/protocol-key.ts reads by name is a key the registe
  */
 function readKeysReadByName(file: SourceFile): string[] {
     const keys = new Set<string>();
-    for (const node of readAstNodes(file, ["Literal"])) {
-        if (typeof node.value !== "string") continue;
-        if (node.value.length === 0) continue;
-        if (lookupKeyMeaning(node.value) === null) continue;
-        const marker = node.value.slice(
+    for (const literal of readAstNodes(file, ["Literal"])) {
+        if (typeof literal.value !== "string") continue;
+        if (literal.value.length === 0) continue;
+        if (lookupKeyMeaning(literal.value) === null) continue;
+        const marker = literal.value.slice(
             FAMILY_RULE.markerAt,
             FAMILY_RULE.markerAt + FAMILY_RULE.markerLength,
         );
         if (marker === FAMILY_RULE.marker) continue;
-        keys.add(node.value);
+        keys.add(literal.value);
     }
     return [...keys].sort();
 }

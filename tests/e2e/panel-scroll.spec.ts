@@ -43,10 +43,10 @@ test("the list is the one region that scrolls, and it hides its bar", async ({ p
  * nothing.
  */
 async function setOverflowingLevelOpened(panel: PanelHandle): Promise<number> {
-    for (let at = 0; at < ROWS_TRIED; at += 1) {
-        await panel.at(".list .row.drillable").nth(at).click();
+    for (let rowIndex = 0; rowIndex < ROWS_TRIED; rowIndex += 1) {
+        await panel.at(".list .row.drillable").nth(rowIndex).click();
         const seen = await readScrollers(panel);
-        if (seen.height > seen.shown) return at;
+        if (seen.height > seen.shown) return rowIndex;
         await panel.at("[data-back]").click();
     }
     expect(false, `no row in the first ${ROWS_TRIED} opens onto a level that overflows`).toBe(true);
@@ -60,9 +60,11 @@ async function readScrollers(panel: PanelHandle) {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
         const list = root?.querySelector(".list") ?? null;
         const others: string[] = [];
-        for (const one of root?.querySelectorAll("*") ?? []) {
-            if (one.className === "list") continue;
-            if (one.scrollHeight > one.clientHeight + 1) others.push(one.className);
+        for (const descendant of root?.querySelectorAll("*") ?? []) {
+            if (descendant.className === "list") continue;
+            if (descendant.scrollHeight > descendant.clientHeight + 1) {
+                others.push(descendant.className);
+            }
         }
         return {
             top: list?.scrollTop ?? -1,
@@ -211,7 +213,7 @@ test("a screen away and back is where the reader left it", async ({ panel }) => 
  * list and moves nothing, and the ranking it goes back to overflows on no recording here.
  */
 test("a level a reader comes back to is where they left it", async ({ panel }) => {
-    const at = await setOverflowingLevelOpened(panel);
+    const rowIndex = await setOverflowingLevelOpened(panel);
     expect((await readScrollers(panel)).top, "a level just opened starts at its top").toBe(0);
     const over = await readCentreOf(panel.page, ".list");
     await panel.page.mouse.move(over.x, over.y);
@@ -224,7 +226,7 @@ test("a level a reader comes back to is where they left it", async ({ panel }) =
     await panel.at("[data-back]").click();
     expect((await readScrollers(panel)).top, "the ranking under it was never scrolled").toBe(0);
 
-    await panel.at(".list .row.drillable").nth(at).click();
+    await panel.at(".list .row.drillable").nth(rowIndex).click();
     expect((await readScrollers(panel)).top, "and the level opened again is where it was")
         .toBe(left);
     await panel.expectHonest("a reader went back into a level they had scrolled");

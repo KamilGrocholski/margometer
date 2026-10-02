@@ -64,18 +64,18 @@ Deno.test("every recording played through the wrap is the fight, the file and th
         const capture = createFightCapture();
         // The fight is kept on the call that ends it, so the shelf holds the calls up to that one.
         let keptCalls: unknown[] | null = null;
-        fight.updates.forEach((payload, at) => {
+        fight.updates.forEach((payload, callIndex) => {
             const record = readPayloadEnvelope(payload);
             assert(!(record instanceof Error), `${fight.path}: a recorded call reads`);
-            const combatantsBefore = at === 0 ? [] : after[at - 1] ?? [];
+            const combatantsBefore = callIndex === 0 ? [] : after[callIndex - 1] ?? [];
             const call = { payload, messages: record.messages, combatantsBefore };
             const prepared = prepareCapture(
                 capture,
-                { ...call, combatantsAfter: after[at] ?? [] },
+                { ...call, combatantsAfter: after[callIndex] ?? [] },
                 record.isInit,
             );
             commitCapture(capture, prepared);
-            if (record.isEnd) keptCalls ??= capture.calls.map((one) => one.payload);
+            if (record.isEnd) keptCalls ??= capture.calls.map((keptCall) => keptCall.payload);
         });
         assertEquals(live.capture, capture, `${fight.path}: the file holds what was captured`);
         assertStrictEquals(keeper.getFights().length, 1, `${fight.path}: the fight is kept once`);
@@ -107,8 +107,10 @@ function composeMargonem(after: readonly MargonemEngineWarriorSnapshot[]): FakeM
     const battle: Record<string, unknown> = { warriorsList: {} };
     let call = 0;
     battle.updateData = () => {
-        const next = after[call] ?? [];
-        battle.warriorsList = Object.fromEntries(next.map((one, at) => [String(at), one]));
+        const snapshot = after[call] ?? [];
+        battle.warriorsList = Object.fromEntries(
+            snapshot.map((warrior, index) => [String(index), warrior]),
+        );
         call += 1;
         return call;
     };

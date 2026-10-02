@@ -22,7 +22,9 @@ const TOLERANCE = 0.007;
 Deno.test("every tick takes the percentage stated before it down by its own figure", () => {
     const combatants = lookupRecordedFight(WOUND).combatants;
     const roster = indexCombatantRoster(combatants);
-    const healthMaximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
+    const healthMaximumById = new Map(
+        combatants.map((combatant) => [combatant.id, combatant.healthMaximum]),
+    );
     const percentById = new Map<number, number>();
     let closed = 0;
     let past = 0;

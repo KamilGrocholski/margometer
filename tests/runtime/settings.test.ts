@@ -72,15 +72,15 @@ Deno.test("a choice nobody here wrote is refused by name, and a store's refusal 
     expectStoreRefused(written, "on writing too");
 });
 
-function expectSettingUnreadable(read: unknown, key: SettingKey, message: string): void {
-    assertInstanceOf(read, SettingUnreadable, message);
-    assertStrictEquals(read.key, key, `${message}, naming our field`);
+function expectSettingUnreadable(answer: unknown, key: SettingKey, message: string): void {
+    assertInstanceOf(answer, SettingUnreadable, message);
+    assertStrictEquals(answer.key, key, `${message}, naming our field`);
 }
 
-function expectStoreRefused(read: unknown, message: string): void {
-    assertInstanceOf(read, StoreRefused, message);
-    assertInstanceOf(read.cause, errors.Caught, `${message}, as a throw caught`);
-    assertStrictEquals(read.cause.cause, REFUSAL, `${message}, carrying what the store threw`);
+function expectStoreRefused(answer: unknown, message: string): void {
+    assertInstanceOf(answer, StoreRefused, message);
+    assertInstanceOf(answer.cause, errors.Caught, `${message}, as a throw caught`);
+    assertStrictEquals(answer.cause.cause, REFUSAL, `${message}, carrying what the store threw`);
 }
 
 function composeRefusingStore(): KeyValueStore {
@@ -230,8 +230,8 @@ Deno.test("a position survives a reload, and nothing else is read as one", () =>
     ];
     for (const [text, message] of samples) {
         store.write(STORE_KEY.meterPosition, text);
-        const read = readWindowPosition(store, PANEL_WINDOW.meter);
-        expectSettingUnreadable(read, SETTING_KEY.meterPosition, message);
+        const answer = readWindowPosition(store, PANEL_WINDOW.meter);
+        expectSettingUnreadable(answer, SETTING_KEY.meterPosition, message);
     }
 });
 

@@ -150,8 +150,8 @@ function isInvariantBroken(detail: unknown): boolean {
 function readSimulationRanking(window: FakeWindow): string {
     const host = window.offered[0];
     if (host === undefined) return "";
-    const list = getElementsWithin(host).find((one) => one.className === CLASS.list);
+    const list = getElementsWithin(host).find((drawn) => drawn.className === CLASS.list);
     if (list === undefined) return "";
     // A fake node's text is its own and not its children's, so the rows are read one by one.
-    return getElementsWithin(list).map((one) => one.textContent).join("|");
+    return getElementsWithin(list).map((row) => row.textContent).join("|");
 }

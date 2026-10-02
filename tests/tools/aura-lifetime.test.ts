@@ -70,9 +70,9 @@ Deno.test("the shared column is the two it is made of", () => {
     const documented = parseBitRows(text);
     const shared = parseSharedCells(text);
     assertStrictEquals(shared.length, documented.length, "every row states what it shared");
-    for (const [at, row] of documented.entries()) {
+    for (const [rowIndex, row] of documented.entries()) {
         assertStrictEquals(
-            shared[at],
+            shared[rowIndex],
             row.together + row.apart,
             `${row.bitName}: shared is the together and the apart`,
         );
@@ -81,12 +81,12 @@ Deno.test("the shared column is the two it is made of", () => {
 
 /** What the document's own `shared` column says, which no row of the tool carries as a field. */
 function parseSharedCells(text: string): number[] {
-    const found: number[] = [];
+    const shares: number[] = [];
     for (const cells of parseTableRows(text, HEADING, BIT_CELLS)) {
         if (!Number.isSafeInteger(parseTableInteger(cells[1]))) continue;
-        found.push(parseTableInteger(cells[2]));
+        shares.push(parseTableInteger(cells[2]));
     }
-    return found;
+    return shares;
 }
 
 Deno.test("a lighting no single clock explains is on the material", () => {
@@ -131,8 +131,10 @@ function parseClauseRows(text: string): ClauseRow[] {
     for (const cells of parseTableRows(text, HEADING, CLAUSE_CELLS)) {
         const clause = (cells[0] ?? "").replaceAll(QUOTE, "");
         if (!CLAUSE_OPENERS.some((opener) => clause.startsWith(opener))) continue;
-        const keys = (cells[1] ?? "").split(",").map((one) => one.trim().replaceAll(QUOTE, ""));
-        rows.push({ clause, keys: keys.filter((one) => one.length > 0) });
+        const keys = (cells[1] ?? "").split(",").map((keyCell) =>
+            keyCell.trim().replaceAll(QUOTE, "")
+        );
+        rows.push({ clause, keys: keys.filter((key) => key.length > 0) });
     }
     return rows;
 }
@@ -143,9 +145,9 @@ function parseClauseRows(text: string): ClauseRow[] {
  * the shorter `adddmg2`, because that is the spelling the article carries.
  */
 function lookupHelpLine(register: string, key: string): string | null {
-    const at = register.indexOf(`${ENTRY_MARK}${QUOTE}${key}${QUOTE}`);
-    if (at === -1) return null;
-    for (const line of register.slice(at).split("\n")) {
+    const entryStart = register.indexOf(`${ENTRY_MARK}${QUOTE}${key}${QUOTE}`);
+    if (entryStart === -1) return null;
+    for (const line of register.slice(entryStart).split("\n")) {
         if (line.startsWith(ENTRY_MARK)) {
             if (!line.includes(`${QUOTE}${key}${QUOTE}`)) return null;
         }
@@ -171,6 +173,6 @@ Deno.test("the readers take the row they must and leave the row they must not", 
     const clause =
         `${HEADING}\n\n| \`od tur przeciwników\` | \`active_decblock_per-enemies\` | x |\n`;
     assertStrictEquals(parseClauseRows(clause).length, 1, "a clause row is read");
-    const other = `${HEADING}\n\n| \`aura-sa_per\` | \`something\` | x |\n`;
-    assertStrictEquals(parseClauseRows(other).length, 0, "a row naming no clause is not one");
+    const unclaused = `${HEADING}\n\n| \`aura-sa_per\` | \`something\` | x |\n`;
+    assertStrictEquals(parseClauseRows(unclaused).length, 0, "a row naming no clause is not one");
 });

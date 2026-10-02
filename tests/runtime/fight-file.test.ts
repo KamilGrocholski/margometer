@@ -107,13 +107,13 @@ Deno.test("a recording nobody measured says null, where one measured says a numb
     assertEquals(kept.isTruncated, null, "and a tail nobody could ask about is not a whole one");
     const calls = kept.calls;
     assert(Array.isArray(calls), "the calls are a list");
-    const first = calls[0];
-    assert(isRecord(first), "and each one a record");
-    assertEquals(first.index, 0, "numbered as it was kept");
-    assertEquals(first.payload, { foo: 1 }, "carrying the payload as the game sent it");
-    assertEquals(first.combatantsBefore, null, "a snapshot nobody read is absent, never empty");
-    assertEquals(first.combatantsAfter, null, "on either side of the call");
-    assertEquals(first.messages, ["one"], "while what was read is written as it was read");
+    const firstCall = calls[0];
+    assert(isRecord(firstCall), "and each one a record");
+    assertEquals(firstCall.index, 0, "numbered as it was kept");
+    assertEquals(firstCall.payload, { foo: 1 }, "carrying the payload as the game sent it");
+    assertEquals(firstCall.combatantsBefore, null, "a snapshot nobody read is absent, never empty");
+    assertEquals(firstCall.combatantsAfter, null, "on either side of the call");
+    assertEquals(firstCall.messages, ["one"], "while what was read is written as it was read");
 
     const live = readFile(writeFile(LIVE_EMPTY, null).text);
     assertEquals(live.droppedCalls, 0, "a recording collected live counted, and none were");
@@ -305,9 +305,13 @@ Deno.test("every recording, replayed and written, reads back whole", () => {
             combatantsAfter: null,
         }));
         const kept = { calls, droppedCalls: null, isTruncated: null };
-        const read = readFile(writeFile(kept, subject).text);
-        assertEquals(read.calls, JSON.parse(JSON.stringify(calls)), `${fight.path}: the calls`);
-        const report = read.report;
+        const roundTripped = readFile(writeFile(kept, subject).text);
+        assertEquals(
+            roundTripped.calls,
+            JSON.parse(JSON.stringify(calls)),
+            `${fight.path}: the calls`,
+        );
+        const report = roundTripped.report;
         assert(isRecord(report), `${fight.path}: the report`);
         assertEquals(report.payloads, fight.updates.length, `${fight.path}: every call counted`);
         const roster = JSON.parse(JSON.stringify([...view.roster.byId.values()]));
@@ -327,10 +331,10 @@ Deno.test("a row writes each figure the aggregate counted, and not a stand-in", 
     assert(isRecord(row), "and the dealer has one");
     const counted = subject.statistics.byCombatantId.get(1);
     assert(counted !== undefined, "the aggregate counted the dealer");
-    for (const [name, value] of Object.entries(counted)) {
-        if (typeof value !== "number") continue;
+    for (const [name, figure] of Object.entries(counted)) {
+        if (typeof figure !== "number") continue;
         const key = lookupReportKey(name, REPORT_KEY_BY_ROW_FIELD);
-        assertEquals(row[key], value, `${name} is written as it was counted, under ${key}`);
+        assertEquals(row[key], figure, `${name} is written as it was counted, under ${key}`);
     }
     assertEquals(row.blowsStruck, 2, "two swings, which is what the row states");
 });

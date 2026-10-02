@@ -206,8 +206,10 @@ Deno.test("a name is read by what declares it, and a comment or a sentence is no
         "const formatRow = (row: string) => row;",
         "const object = { tallyRows() { return 1; } };",
     ]);
-    const read = readFileNames(sample);
-    const sightings = composeSightings([read]).map((one) => `${one.kind} ${one.name}`);
+    const sampleNames = readFileNames(sample);
+    const sightings = composeSightings([sampleNames]).map((sighting) =>
+        `${sighting.kind} ${sighting.name}`
+    );
     assertEquals(sightings.sort(), [
         "class Plain",
         "failure class RefusedTwice",
@@ -240,12 +242,14 @@ Deno.test("a name is read by what declares it, and a comment or a sentence is no
         "type WarriorShape",
         "type parameter Side",
     ], "every declaration once, and the comment's name is none");
-    const strings = read.strings.map((one) => `${one.holder} ${one.value}`);
+    const strings = sampleNames.strings.map((heldString) =>
+        `${heldString.holder} ${heldString.value}`
+    );
     assertEquals(strings, [
         "STORE_KEY MargoMeter-fights",
         "STORE_KEY data-shelf",
     ], "a constant's strings, and not a sentence, a word, a date, a count or a function's string");
-    assertEquals(read.vocabularies, [
+    assertEquals(sampleNames.vocabularies, [
         { name: "STORE_KEY", keys: ["fights", "shelf"], path: "sample.ts" },
         { name: "OUTCOME_WORDS", keys: ["draw"], path: "sample.ts" },
     ], "and a vocabulary by its keys");
@@ -256,92 +260,94 @@ Deno.test("a name is read by what declares it, and a comment or a sentence is no
 
 /** What one file declares, each name once per kind. */
 function readFileNames(file: SourceFile): FileNames {
-    const read: FileNames = { sightings: [], classes: [], strings: [], vocabularies: [] };
+    const fileNames: FileNames = { sightings: [], classes: [], strings: [], vocabularies: [] };
     const seen = new Set<string>();
     const addName = (name: string | null, kind: NameKind) => {
         if (name === null) return;
         const key = `${kind} ${name}`;
         if (seen.has(key)) return;
         seen.add(key);
-        read.sightings.push({ name, kind, path: file.path });
+        fileNames.sightings.push({ name, kind, path: file.path });
     };
-    for (const node of readAstNodes(file, DECLARING_NODES)) {
-        if (SIGNATURE_NODES.includes(node.type)) {
-            for (const parameter of node.params ?? []) {
+    for (const declaringNode of readAstNodes(file, DECLARING_NODES)) {
+        if (SIGNATURE_NODES.includes(declaringNode.type)) {
+            for (const parameter of declaringNode.params ?? []) {
                 for (const name of readBoundNames(parameter)) addName(name, NAME_KIND.parameter);
             }
         }
-        switch (node.type) {
+        switch (declaringNode.type) {
             case "FunctionDeclaration":
             case "FunctionExpression":
             case "TSDeclareFunction":
-                addName(node.id?.name ?? null, NAME_KIND.function);
+                addName(declaringNode.id?.name ?? null, NAME_KIND.function);
                 break;
             case "VariableDeclarator":
-                readDeclaratorNames(file, node, read, addName);
+                readDeclaratorNames(file, declaringNode, fileNames, addName);
                 break;
             case "ClassDeclaration":
             case "ClassExpression":
-                readClass(file, node, read);
+                readClass(file, declaringNode, fileNames);
                 break;
             case "TSInterfaceDeclaration":
             case "TSTypeAliasDeclaration":
-                addName(node.id?.name ?? null, NAME_KIND.type);
+                addName(declaringNode.id?.name ?? null, NAME_KIND.type);
                 break;
             case "TSTypeParameter":
-                addName(readNodeName(node.name), NAME_KIND.typeParameter);
+                addName(readNodeName(declaringNode.name), NAME_KIND.typeParameter);
                 break;
             case "ImportSpecifier":
-                if (node.local?.name !== node.imported?.name) {
-                    addName(node.local?.name ?? null, NAME_KIND.alias);
+                if (declaringNode.local?.name !== declaringNode.imported?.name) {
+                    addName(declaringNode.local?.name ?? null, NAME_KIND.alias);
                 }
                 break;
             case "ImportDefaultSpecifier":
             case "ImportNamespaceSpecifier":
-                addName(node.local?.name ?? null, NAME_KIND.alias);
+                addName(declaringNode.local?.name ?? null, NAME_KIND.alias);
                 break;
             case "CatchClause":
-                for (const name of readBoundNames(node.param ?? null)) {
+                for (const name of readBoundNames(declaringNode.param ?? null)) {
                     addName(name, NAME_KIND.parameter);
                 }
                 break;
             case "TSPropertySignature":
             case "PropertyDefinition":
-                addName(readKeyName(node), NAME_KIND.field);
+                addName(readKeyName(declaringNode), NAME_KIND.field);
                 break;
             case "MethodDefinition":
             case "TSMethodSignature":
-                if (readKeyName(node) !== CONSTRUCTOR_NAME) {
-                    addName(readKeyName(node), NAME_KIND.function);
+                if (readKeyName(declaringNode) !== CONSTRUCTOR_NAME) {
+                    addName(readKeyName(declaringNode), NAME_KIND.function);
                 }
                 break;
             case "Property":
-                readPropertyName(node, addName);
+                readPropertyName(declaringNode, addName);
                 break;
             case "Literal":
-                readHeldString(file, node, read);
+                readHeldString(file, declaringNode, fileNames);
                 break;
         }
     }
-    return read;
+    return fileNames;
 }
 
 function readDeclaratorNames(
     file: SourceFile,
-    node: AstNode,
-    read: FileNames,
+    declarator: AstNode,
+    fileNames: FileNames,
     addName: (name: string | null, kind: NameKind) => void,
 ): void {
-    const isTop = isTopLevel(node);
-    const function_ = readDeclaredFunctionName(node);
+    const isTop = isTopLevel(declarator);
+    const function_ = readDeclaredFunctionName(declarator);
     if (function_ !== null) {
         addName(function_, NAME_KIND.function);
         return;
     }
     const kind = isTop ? NAME_KIND.constant : NAME_KIND.local;
-    for (const name of readBoundNames(node.id ?? null)) addName(name, kind);
-    const keys = isTop ? readVocabularyKeys(node.init ?? null) : null;
-    if (keys !== null) read.vocabularies.push({ name: node.id?.name ?? "", keys, path: file.path });
+    for (const name of readBoundNames(declarator.id ?? null)) addName(name, kind);
+    const keys = isTop ? readVocabularyKeys(declarator.init ?? null) : null;
+    if (keys !== null) {
+        fileNames.vocabularies.push({ name: declarator.id?.name ?? "", keys, path: file.path });
+    }
 }
 
 /** A declarator standing at a module's top, exported or not. */
@@ -371,74 +377,74 @@ function readVocabularyKeys(init: AstNode | null): string[] | null {
     return keys;
 }
 
-function readClass(file: SourceFile, node: AstNode, read: FileNames): void {
-    const name = node.id?.name ?? null;
+function readClass(file: SourceFile, declaration: AstNode, fileNames: FileNames): void {
+    const name = declaration.id?.name ?? null;
     if (name === null) return;
-    const base = node.superClass?.name ?? null;
-    read.classes.push({ name, base, path: file.path });
+    const base = declaration.superClass?.name ?? null;
+    fileNames.classes.push({ name, base, path: file.path });
 }
 
 /** A key as written: an identifier, or a string that is a name; null where it is computed. */
-function readKeyName(node: AstNode): string | null {
-    if (node.computed === true) return null;
-    const key = node.key ?? null;
+function readKeyName(keyedNode: AstNode): string | null {
+    if (keyedNode.computed === true) return null;
+    const key = keyedNode.key ?? null;
     if (key === null) return null;
     if (typeof key.value === "string") return isNameLike(key.value) ? key.value : null;
     return key.name ?? null;
 }
 
 /** A name a node states either as a string or as an identifier holding one. */
-function readNodeName(value: unknown): string | null {
-    if (typeof value === "string") return value;
-    if (!isRecord(value)) return null;
-    return typeof value.name === "string" ? value.name : null;
+function readNodeName(nameField: unknown): string | null {
+    if (typeof nameField === "string") return nameField;
+    if (!isRecord(nameField)) return null;
+    return typeof nameField.name === "string" ? nameField.name : null;
 }
 
 /** An object literal's key is a field and its method a function; a pattern's key binds nothing. */
 function readPropertyName(
-    node: AstNode,
+    property: AstNode,
     addName: (name: string | null, kind: NameKind) => void,
 ): void {
-    if (node.parent?.type !== "ObjectExpression") return;
-    const value = readChildNode(node.value);
-    const isFunction = FUNCTION_NODES.some((kind) => kind === value?.type);
-    addName(readKeyName(node), isFunction ? NAME_KIND.function : NAME_KIND.field);
+    if (property.parent?.type !== "ObjectExpression") return;
+    const propertyValue = readChildNode(property.value);
+    const isFunction = FUNCTION_NODES.some((kind) => kind === propertyValue?.type);
+    addName(readKeyName(property), isFunction ? NAME_KIND.function : NAME_KIND.field);
 }
 
 /**
  * A string literal, kept where a module-level constant holds it, and only if it is a name: not a
  * suite's material, not a figure or a date, which open with a digit, and not a reader's word.
  */
-function readHeldString(file: SourceFile, node: AstNode, read: FileNames): void {
-    if (typeof node.value !== "string") return;
-    if (!isNameLike(node.value)) return;
-    if (isDigitAt(node.value, 0)) return;
+function readHeldString(file: SourceFile, literal: AstNode, fileNames: FileNames): void {
+    if (typeof literal.value !== "string") return;
+    if (!isNameLike(literal.value)) return;
+    if (isDigitAt(literal.value, 0)) return;
     if (file.path.startsWith(SUITE_PREFIX)) return;
-    let child = node;
-    let at = node.parent ?? null;
-    for (let depth = 0; at !== null; depth += 1) {
+    let child = literal;
+    let ancestor = literal.parent ?? null;
+    for (let depth = 0; ancestor !== null; depth += 1) {
         assert(depth < DEPTH_MAXIMUM, "a parse stays inside the depth a climb states");
-        if (at.type === "VariableDeclarator") {
-            if (!isTopLevel(at)) return;
-            const holder = at.id?.name ?? null;
+        if (ancestor.type === "VariableDeclarator") {
+            if (!isTopLevel(ancestor)) return;
+            const holder = ancestor.id?.name ?? null;
             if (holder === null) return;
             if (holder.endsWith(WORDS_SUFFIX)) return;
-            read.strings.push({ value: node.value, holder, path: file.path });
+            fileNames.strings.push({ value: literal.value, holder, path: file.path });
             return;
         }
-        if (!HOLDING_NODES.includes(at.type)) return;
-        if (at.type === "Property") {
-            if (isSameRange(at.key ?? null, child)) return;
+        if (!HOLDING_NODES.includes(ancestor.type)) return;
+        if (ancestor.type === "Property") {
+            if (isSameRange(ancestor.key ?? null, child)) return;
         }
-        child = at;
-        at = at.parent ?? null;
+        child = ancestor;
+        ancestor = ancestor.parent ?? null;
     }
 }
 
-function isSameRange(one: AstNode | null, other: AstNode): boolean {
-    if (one === null) return false;
-    if (one.range[0] !== other.range[0]) return false;
-    return one.range[1] === other.range[1];
+function isSameRange(left: AstNode | null, right: AstNode): boolean {
+    if (left === null) return false;
+    if (left.range[0] !== right.range[0]) return false;
+    return left.range[1] === right.range[1];
 }
 
 /** Printable ASCII and no space: what a key, a selector or a class is spelled in. */
@@ -457,15 +463,15 @@ function composeSightings(files: readonly FileNames[]): NameSighting[] {
     assert(classes.length < CLASSES_MAXIMUM, "the tree stays inside the classes its walk states");
     const failures = new Set([FAILURE_ROOT]);
     for (let pass = 0; pass <= classes.length; pass += 1) {
-        const grown = classes.filter((one) => failures.has(one.base ?? ""));
+        const grown = classes.filter((sighting) => failures.has(sighting.base ?? ""));
         const before = failures.size;
-        for (const one of grown) failures.add(one.name);
+        for (const sighting of grown) failures.add(sighting.name);
         if (failures.size === before) break;
     }
-    const resolved = classes.map((one) => ({
-        name: one.name,
-        kind: failures.has(one.name) ? NAME_KIND.failure : NAME_KIND.class,
-        path: one.path,
+    const resolved = classes.map((sighting) => ({
+        name: sighting.name,
+        kind: failures.has(sighting.name) ? NAME_KIND.failure : NAME_KIND.class,
+        path: sighting.path,
     }));
     return [...files.flatMap((file) => file.sightings), ...resolved];
 }
@@ -509,9 +515,9 @@ function isEdgedBy(text: string, mark: string): boolean {
     return text.endsWith(mark);
 }
 
-function compareText(one: string, other: string): number {
-    if (one < other) return -1;
-    return one > other ? 1 : 0;
+function compareText(left: string, right: string): number {
+    if (left < right) return -1;
+    return left > right ? 1 : 0;
 }
 
 Deno.test("docs/names.md lists every name the tree spells, as the tree spells it now", async () => {
@@ -558,14 +564,14 @@ async function formatMarkdown(text: string): Promise<string> {
 function readTrackedPaths(): string[] {
     const asked = new Deno.Command("git", { args: ["ls-files"], stdout: "piped" }).outputSync();
     assert(asked.success, "git names what it tracks");
-    const paths = new TextDecoder().decode(asked.stdout).split("\n").filter((one) => one !== "");
+    const paths = new TextDecoder().decode(asked.stdout).split("\n").filter((line) => line !== "");
     assert(paths.length > 0, "and it tracks something");
     return paths;
 }
 
-function readRecordKeys(value: unknown): string[] {
-    assert(isRecord(value), "a configuration's tasks are a record");
-    return Object.keys(value).sort(compareText);
+function readRecordKeys(record: unknown): string[] {
+    assert(isRecord(record), "a configuration's tasks are a record");
+    return Object.keys(record).sort(compareText);
 }
 
 /** The whole register, in the order its sections stand. */
@@ -588,7 +594,7 @@ function composeNameRegister(tree: NameTree): string {
     lines.push(...composeFunctionLines(sightings, tree.purities));
     for (const kind of LAYERED_KINDS) {
         lines.push("", `## ${SECTION_HEADINGS[kind]}`);
-        lines.push(...composeLayeredLines(sightings.filter((one) => one.kind === kind)));
+        lines.push(...composeLayeredLines(sightings.filter((sighting) => sighting.kind === kind)));
     }
     lines.push(...composeVocabularyLines(tree.files.flatMap((file) => file.vocabularies)));
     lines.push(...composeStringLines(tree.files.flatMap((file) => file.strings)));
@@ -605,16 +611,16 @@ function composeFunctionLines(
     sightings: readonly NameSighting[],
     purities: ReadonlyMap<string, Purity>,
 ): string[] {
-    const functions = sightings.filter((one) => one.kind === NAME_KIND.function);
+    const functions = sightings.filter((sighting) => sighting.kind === NAME_KIND.function);
     const byVerb = new Map<string, NameSighting[]>();
-    for (const one of functions) {
-        const verb = readVerb(one.name);
-        byVerb.set(verb, [...(byVerb.get(verb) ?? []), one]);
+    for (const sighting of functions) {
+        const verb = readVerb(sighting.name);
+        byVerb.set(verb, [...(byVerb.get(verb) ?? []), sighting]);
     }
     const tabled = [...purities.keys()].filter((verb) => byVerb.has(verb));
-    const other = [...byVerb.keys()].filter((verb) => !purities.has(verb)).sort(compareText);
+    const untabled = [...byVerb.keys()].filter((verb) => !purities.has(verb)).sort(compareText);
     const lines: string[] = [];
-    for (const verb of [...tabled, ...other]) {
+    for (const verb of [...tabled, ...untabled]) {
         const purity = purities.get(verb);
         const stated = purity === undefined ? "not in N2's table" : purity;
         const heading = verb === "" ? "No verb" : `${formatCodeSpan(verb)} — ${stated}`;
@@ -627,10 +633,10 @@ function composeFunctionLines(
 /** One entry per name, sorted, each with every file it stands in. */
 function composeEntryLines(sightings: readonly NameSighting[]): string[] {
     const pathsByName = new Map<string, Set<string>>();
-    for (const one of sightings) {
-        const paths = pathsByName.get(one.name) ?? new Set<string>();
-        paths.add(one.path);
-        pathsByName.set(one.name, paths);
+    for (const sighting of sightings) {
+        const paths = pathsByName.get(sighting.name) ?? new Set<string>();
+        paths.add(sighting.path);
+        pathsByName.set(sighting.name, paths);
     }
     return [...pathsByName.keys()].sort(compareText).map((name) => {
         const paths = [...(pathsByName.get(name) ?? [])].sort(compareText);
@@ -642,7 +648,7 @@ function composeEntryLines(sightings: readonly NameSighting[]): string[] {
 function composeLayeredLines(sightings: readonly NameSighting[]): string[] {
     const lines: string[] = [];
     for (const layer of LAYERS) {
-        const standing = sightings.filter((one) => lookupLayer(one.path) === layer);
+        const standing = sightings.filter((sighting) => lookupLayer(sighting.path) === layer);
         if (standing.length === 0) continue;
         lines.push("", `### ${formatCodeSpan(layer)}`, "");
         lines.push(...composeEntryLines(standing));
@@ -653,13 +659,19 @@ function composeLayeredLines(sightings: readonly NameSighting[]): string[] {
 function composeVocabularyLines(vocabularies: readonly Vocabulary[]): string[] {
     const lines = ["", "## Vocabularies", "", "Each `as const` object of a module, by its keys."];
     for (const layer of LAYERS) {
-        const standing = vocabularies.filter((one) => lookupLayer(one.path) === layer);
+        const standing = vocabularies.filter((vocabulary) =>
+            lookupLayer(vocabulary.path) === layer
+        );
         if (standing.length === 0) continue;
         lines.push("", `### ${formatCodeSpan(layer)}`, "");
-        const sorted = [...standing].sort((one, other) => compareText(one.name, other.name));
-        for (const one of sorted) {
-            const keys = one.keys.map(formatCodeSpan).join(", ");
-            lines.push(`- ${formatCodeSpan(one.name)} — ${formatCodeSpan(one.path)}: ${keys}`);
+        const sorted = [...standing].sort((left, right) => compareText(left.name, right.name));
+        for (const vocabulary of sorted) {
+            const keys = vocabulary.keys.map(formatCodeSpan).join(", ");
+            lines.push(
+                `- ${formatCodeSpan(vocabulary.name)} — ${
+                    formatCodeSpan(vocabulary.path)
+                }: ${keys}`,
+            );
         }
     }
     return lines;
@@ -677,18 +689,18 @@ function composeStringLines(strings: readonly HeldString[]): string[] {
         "digit, which is a figure or a date, and a word a `…_WORDS` table holds for the reader. So is a",
         "suite's material.",
     ];
-    const paths = [...new Set(strings.map((one) => one.path))].sort(compareText);
+    const paths = [...new Set(strings.map((heldString) => heldString.path))].sort(compareText);
     for (const path of paths) {
         lines.push("", `### ${formatCodeSpan(path)}`, "");
         const holdersByValue = new Map<string, Set<string>>();
-        for (const one of strings.filter((held) => held.path === path)) {
-            const holders = holdersByValue.get(one.value) ?? new Set<string>();
-            holders.add(one.holder);
-            holdersByValue.set(one.value, holders);
+        for (const heldString of strings.filter((held) => held.path === path)) {
+            const holders = holdersByValue.get(heldString.value) ?? new Set<string>();
+            holders.add(heldString.holder);
+            holdersByValue.set(heldString.value, holders);
         }
-        for (const value of [...holdersByValue.keys()].sort(compareText)) {
-            const holders = [...(holdersByValue.get(value) ?? [])].sort(compareText);
-            const spelled = formatCodeSpan(JSON.stringify(value));
+        for (const heldValue of [...holdersByValue.keys()].sort(compareText)) {
+            const holders = [...(holdersByValue.get(heldValue) ?? [])].sort(compareText);
+            const spelled = formatCodeSpan(JSON.stringify(heldValue));
             lines.push(`- ${spelled} — ${holders.map(formatCodeSpan).join(", ")}`);
         }
     }
@@ -699,17 +711,19 @@ function composeStringLines(strings: readonly HeldString[]): string[] {
 function composeTreeLines(tracked: readonly string[]): string[] {
     const directories = new Set<string>();
     for (const path of tracked) {
-        let at = path.indexOf("/");
-        for (let depth = 0; at !== -1; depth += 1) {
+        let slashIndex = path.indexOf("/");
+        for (let depth = 0; slashIndex !== -1; depth += 1) {
             assert(depth < DEPTH_MAXIMUM, "a path stays inside the depth its walk states");
-            directories.add(path.slice(0, at + 1));
-            at = path.indexOf("/", at + 1);
+            directories.add(path.slice(0, slashIndex + 1));
+            slashIndex = path.indexOf("/", slashIndex + 1);
         }
     }
     const lines = ["", "## Directories", ""];
-    lines.push(...[...directories].sort(compareText).map((one) => `- ${formatCodeSpan(one)}`));
+    lines.push(
+        ...[...directories].sort(compareText).map((directory) => `- ${formatCodeSpan(directory)}`),
+    );
     lines.push("", "## Files", "");
-    lines.push(...[...tracked].sort(compareText).map((one) => `- ${formatCodeSpan(one)}`));
+    lines.push(...[...tracked].sort(compareText).map((path) => `- ${formatCodeSpan(path)}`));
     return lines;
 }
 
@@ -719,9 +733,11 @@ function lookupFirstDifference(written: string, composed: string): string | null
     const composedLines = composed.split("\n");
     const count = Math.max(writtenLines.length, composedLines.length);
     for (let index = 0; index < count; index += 1) {
-        const one = writtenLines[index];
-        const other = composedLines[index];
-        if (one !== other) return `line ${index + 1}: written ${one}, composed ${other}`;
+        const writtenLine = writtenLines[index];
+        const composedLine = composedLines[index];
+        if (writtenLine !== composedLine) {
+            return `line ${index + 1}: written ${writtenLine}, composed ${composedLine}`;
+        }
     }
     return null;
 }

@@ -22,9 +22,9 @@ const ANNOUNCEMENT_KEY = "tspell";
 Deno.test("the share stands on a skill announcement and never on a blow", () => {
     let reports = 0;
     for (const { path, parsed } of getParsedMessages()) {
-        if (!parsed.parameters.some((one) => one.key === KEY)) continue;
+        if (!parsed.parameters.some((parameter) => parameter.key === KEY)) continue;
         reports += 1;
-        const announced = parsed.parameters.some((one) => one.key === ANNOUNCEMENT_KEY);
+        const announced = parsed.parameters.some((parameter) => parameter.key === ANNOUNCEMENT_KEY);
         assert(announced, `${path}: a share on a message announcing no skill`);
     }
     assert(reports > 0, "an empty reading of the material is a finding, not a pass");
@@ -32,15 +32,15 @@ Deno.test("the share stands on a skill announcement and never on a blow", () => 
 
 /** Every message of every recording, parsed, beside the recording it came from. */
 function getParsedMessages(): { path: string; parsed: ProtocolMessage }[] {
-    const found: { path: string; parsed: ProtocolMessage }[] = [];
+    const messages: { path: string; parsed: ProtocolMessage }[] = [];
     for (const fight of readRecordedFights()) {
         for (const message of fight.messages) {
             const parsed = parseProtocolMessage(message);
             assert(!(parsed instanceof Error), `${fight.path}: a recorded message parses`);
-            found.push({ path: fight.path, parsed: parsed });
+            messages.push({ path: fight.path, parsed: parsed });
         }
     }
-    return found;
+    return messages;
 }
 
 Deno.test("a caster never reports two different shares, in a fight or across them", () => {
@@ -62,16 +62,16 @@ Deno.test("a caster never reports two different shares, in a fight or across the
 
 /** Every report of the share, as the material states it: who declared it, where, and what. */
 function getReports(): ShareReport[] {
-    const found: ShareReport[] = [];
+    const reports: ShareReport[] = [];
     for (const { path, parsed } of getParsedMessages()) {
-        for (const one of parsed.parameters) {
-            if (one.key !== KEY) continue;
-            assertExists(one.value, `${path}: a share that states nothing`);
+        for (const parameter of parsed.parameters) {
+            if (parameter.key !== KEY) continue;
+            assertExists(parameter.value, `${path}: a share that states nothing`);
             assertExists(parsed.actor, `${path}: a share nobody declared`);
-            found.push({ path, caster: parsed.actor.combatantId, share: one.value });
+            reports.push({ path, caster: parsed.actor.combatantId, share: parameter.value });
         }
     }
-    return found;
+    return reports;
 }
 
 /**
@@ -82,12 +82,14 @@ function getReports(): ShareReport[] {
  */
 Deno.test("the share is neither the key's nor the fight's", () => {
     const reports = getReports();
-    const shares = new Set(reports.map((one) => one.share));
+    const shares = new Set(reports.map((report) => report.share));
     assert(shares.size > 1, "one value across every caster would make the share the key's");
 
     const disagreeing = new Set<string>();
     for (const fight of readRecordedFights()) {
-        const here = reports.filter((one) => one.path === fight.path).map((one) => one.share);
+        const here = reports.filter((report) => report.path === fight.path).map((report) =>
+            report.share
+        );
         if (new Set(here).size > 1) disagreeing.add(fight.path);
     }
     assert(disagreeing.size > 0, "one value inside every fight would make the share the fight's");
@@ -105,7 +107,7 @@ Deno.test("a caster carries their own share from one fight into the next", () =>
     for (const [caster, paths] of casters) {
         if (paths.size < 2) continue;
         const shares = new Set(
-            reports.filter((one) => one.caster === caster).map((one) => one.share),
+            reports.filter((report) => report.caster === caster).map((report) => report.share),
         );
         assertEquals(shares.size, 1, `caster ${caster} reported differently in different fights`);
         travelled += 1;

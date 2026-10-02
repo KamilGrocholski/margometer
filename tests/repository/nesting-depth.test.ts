@@ -86,28 +86,31 @@ Deno.test("a body past the bound is flagged in each shape, and one at the bound 
 /** Each top-level declaration nesting past the bound, at its deepest place and how deep it goes. */
 function lookupDeepBodies(file: SourceFile, maximum: number): string[] {
     const deepest = new Map<number, { node: AstNode; depth: number }>();
-    for (const node of readNestedNodes(file)) {
-        const depth = countEnclosingBlocks(node);
+    for (const statement of readNestedNodes(file)) {
+        const depth = countEnclosingBlocks(statement);
         if (depth <= maximum) continue;
         // Two walks hand two copies of a node, so a declaration is keyed by where it starts.
-        const top = lookupTopDeclaration(node).range[0];
+        const top = lookupTopDeclaration(statement).range[0];
         const was = deepest.get(top);
-        if (was === undefined || depth > was.depth) deepest.set(top, { node, depth });
+        if (was === undefined || depth > was.depth) deepest.set(top, { node: statement, depth });
     }
     return [...deepest.values()]
-        .map((one) => `${formatNodePlace(file, one.node)} ${one.depth} deep`)
+        .map((place) => `${formatNodePlace(file, place.node)} ${place.depth} deep`)
         .sort();
 }
 
 /** The statement a node stands in at its module's top. */
-function lookupTopDeclaration(node: AstNode): AstNode {
-    let at = node;
-    for (let depth = 0; at.parent?.type !== "Program"; depth += 1) {
+function lookupTopDeclaration(statement: AstNode): AstNode {
+    let ancestor = statement;
+    for (let depth = 0; ancestor.parent?.type !== "Program"; depth += 1) {
         assert(depth < CLIMB_MAXIMUM, "a parse stays inside the depth a climb states");
-        assert(at.parent !== null && at.parent !== undefined, "a node stands in a program");
-        at = at.parent;
+        assert(
+            ancestor.parent !== null && ancestor.parent !== undefined,
+            "a node stands in a program",
+        );
+        ancestor = ancestor.parent;
     }
-    return at;
+    return ancestor;
 }
 
 Deno.test("no body of the program nests past the bound", () => {

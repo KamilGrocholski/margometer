@@ -147,17 +147,17 @@ Deno.test("more charges than the bound states are clamped rather than refused", 
         "the band draws what it stated it would",
     );
     assertEquals(
-        past.map((one) => one.combatantId),
-        atBound.map((one) => one.combatantId),
+        past.map((standing) => standing.combatantId),
+        atBound.map((standing) => standing.combatantId),
         "and the ones it draws are the first the envelope stated",
     );
 });
 
 function chargingMany(count: number): ChargedSkillStatement[] {
     const many: ChargedSkillStatement[] = [];
-    for (let at = 0; at < count; at += 1) {
+    for (let index = 0; index < count; index += 1) {
         many.push({
-            combatantId: -at - 1,
+            combatantId: -index - 1,
             charge: { skillName: BLOW, turnsElapsed: 0, turnsStated: 2 },
         });
     }
@@ -176,16 +176,19 @@ Deno.test("a blow of the same name landed by somebody else ends no charge of one
         1,
     );
     assertEquals(both.length, 2, "two combatants make the same blow ready");
-    const announcedByPlayer: BattleEvent[] = announce(BLOW).map((one) =>
-        one.kind === BATTLE_EVENT.skillUsed ? { ...one, actorId: PLAYER } : one
+    const announcedByPlayer: BattleEvent[] = announce(BLOW).map((event) =>
+        event.kind === BATTLE_EVENT.skillUsed ? { ...event, actorId: PLAYER } : event
     );
-    const next = prepareChargedSkills(
+    const afterBlow = prepareChargedSkills(
         both,
         [...stateless(), { combatantId: PLAYER, charge: null }],
         announcedByPlayer,
         2,
     );
-    assertEquals(next.map((one) => [one.combatantId, one.state]), [[PLAYER, "struck"]]);
+    assertEquals(afterBlow.map((standing) => [standing.combatantId, standing.state]), [[
+        PLAYER,
+        "struck",
+    ]]);
 });
 
 /** The three states a charge passes through are the vocabulary's, and each is reached. */
@@ -195,7 +198,7 @@ Deno.test("a charge reaches every state the vocabulary names, and no other", () 
     const broken = prepareChargedSkills(opened, stateless(), breakCharge(MONSTER), 11);
     const reached: ChargedSkillStanding[] = [...opened, ...struck, ...broken];
     assertEquals(
-        reached.map((one) => one.state),
+        reached.map((standing) => standing.state),
         Object.values(CHARGED_SKILL_STATE),
         "in that order",
     );

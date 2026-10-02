@@ -106,14 +106,14 @@ Deno.test("the file that would be installed carries the banner and no way out", 
 
 Deno.test("a bundle that could leave the browser is refused before it is written", async () => {
     const directory = Deno.makeTempDirSync({ prefix: "margometer-leaving-" });
-    const entry = `${directory}/leaving.ts`;
+    const entryPath = `${directory}/leaving.ts`;
     const version = new URL("../../src/build-version.ts", import.meta.url).href;
     Deno.writeTextFileSync(
-        entry,
+        entryPath,
         `import { BUILD_VERSION } from "${version}";\nawait fetch(BUILD_VERSION);\n`,
     );
     await assertRejects(
-        () => readUserscriptFiles("1.2.3", entry),
+        () => readUserscriptFiles("1.2.3", entryPath),
         UserscriptBuildError,
         "could leave the browser: fetch(",
     );

@@ -26,25 +26,27 @@ Deno.test("the reader finds a pin under its action, and none where the action ha
 /** Every runtime action a workflow uses, and the version it pins, or null where it pins none. */
 function readPins(text: string): [string, string | null][] {
     const lines = text.split("\n");
-    const found: [string, string | null][] = [];
+    const pins: [string, string | null][] = [];
     for (const [index, line] of lines.entries()) {
-        const at = line.indexOf(USES_MARK);
-        if (at === -1) continue;
-        const used = line.slice(at + USES_MARK.length);
+        const usesIndex = line.indexOf(USES_MARK);
+        if (usesIndex === -1) continue;
+        const used = line.slice(usesIndex + USES_MARK.length);
         const action = used.slice(0, used.indexOf("@"));
         const input = PIN_BY_ACTION[action];
         if (input === undefined) continue;
         const below = lines.slice(index + 1, index + 1 + PIN_LINES_BELOW);
-        const pin = below.map((one) => one.trim()).find((one) => one.startsWith(input));
-        found.push([action, pin === undefined ? null : pin.slice(input.length)]);
+        const pin = below.map((belowLine) => belowLine.trim()).find((trimmed) =>
+            trimmed.startsWith(input)
+        );
+        pins.push([action, pin === undefined ? null : pin.slice(input.length)]);
     }
-    return found;
+    return pins;
 }
 
 Deno.test("every workflow pins each runtime, and pins the one every other workflow pins", () => {
     const pinsByAction = new Map<string, Set<string | null>>();
-    for (const entry of Deno.readDirSync(WORKFLOWS_DIRECTORY)) {
-        const text = Deno.readTextFileSync(WORKFLOWS_DIRECTORY + entry.name);
+    for (const workflowFile of Deno.readDirSync(WORKFLOWS_DIRECTORY)) {
+        const text = Deno.readTextFileSync(WORKFLOWS_DIRECTORY + workflowFile.name);
         for (const [action, pin] of readPins(text)) {
             pinsByAction.set(action, (pinsByAction.get(action) ?? new Set()).add(pin));
         }

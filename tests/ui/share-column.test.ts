@@ -51,9 +51,11 @@ const NO_SHARE = "0%";
 
 Deno.test("every column of shares the panel draws comes to a hundred", () => {
     let drawn = 0;
-    for (const path of readRecordedFights().map((one) => one.path)) {
+    for (const path of readRecordedFights().map((recordedFight) => recordedFight.path)) {
         const fight = tallyRecordedFight(path);
-        const seats = [...new Set([...fight.roster.byId.values()].map((one) => one.side))];
+        const seats = [
+            ...new Set([...fight.roster.byId.values()].map((combatant) => combatant.side)),
+        ];
         for (const readerSide of [null, ...seats]) {
             for (
                 const side of [
@@ -103,7 +105,7 @@ function composeSectionsForScreen(
         readerSide,
         NOTHING_SUSPECT,
     );
-    const found: Section[] = [{
+    const sections: Section[] = [{
         where: `${metric}/ranking`,
         // A pinned figure standing as a cut is already inside the rows; only one standing apart
         // joins the whole, which is the arithmetic `presentScreen` shares them by. The
@@ -111,15 +113,15 @@ function composeSectionsForScreen(
         // holds, so a column read without it is the shortfall itself.
         rows: [
             ...reading.rows,
-            ...reading.pinned.filter((one) => one.placing === PINNED_PLACING.apart),
+            ...reading.pinned.filter((pinnedRow) => pinnedRow.placing === PINNED_PLACING.apart),
             ...(reading.outsideRanking === null ? [] : [reading.outsideRanking]),
         ],
         total: reading.total,
     }];
     for (const row of reading.rows) {
-        found.push(...composeSectionsForScreenRow(fight, metric, row.combatantId));
+        sections.push(...composeSectionsForScreenRow(fight, metric, row.combatantId));
     }
-    return found;
+    return sections;
 }
 
 /**
@@ -134,7 +136,7 @@ function composeSectionsForScreenRow(
     const { roster, statistics } = fight;
     const drill = presentOpenedLevel(statistics, roster, metric, combatantId);
     if (drill === null) return [];
-    const found: Section[] = [
+    const sections: Section[] = [
         {
             where: `${metric}/drill.byOtherEnd`,
             rows: composeCutShares(drill.byOtherEnd.rows, drill.byOtherEnd.halfNamed),
@@ -151,16 +153,16 @@ function composeSectionsForScreenRow(
             total: drill.total,
         },
     ];
-    for (const other of drill.byOtherEnd.rows) {
-        const at = [combatantId, other.combatantId] as const;
-        const pair = presentPairLevel(statistics, roster, metric, at[0], at[1]);
+    for (const otherEndRow of drill.byOtherEnd.rows) {
+        const pairIds = [combatantId, otherEndRow.combatantId] as const;
+        const pair = presentPairLevel(statistics, roster, metric, pairIds[0], pairIds[1]);
         if (pair === null) continue;
-        found.push({
+        sections.push({
             where: `${metric}/pair.parts`,
             rows: composeCutShares(pair.parts, null),
             total: pair.total,
         });
-        found.push({
+        sections.push({
             where: `${metric}/pair.byElement`,
             rows: composeCutShares(pair.byElement.rows, pair.byElement.noKind),
             total: pair.total,
@@ -169,26 +171,29 @@ function composeSectionsForScreenRow(
     // Every kind of part, and the kinds beside the announcements: each opens onto a level of
     // its own, and a column that came to ninety-something on any of them is the finding.
     const parts = [
-        ...drill.bySkill.rows.map((one) => one.part),
-        ...drill.byElement.rows.map((one) => ({ kind: OPENED_PART.element, element: one.element })),
+        ...drill.bySkill.rows.map((skillRow) => skillRow.part),
+        ...drill.byElement.rows.map((elementRow) => ({
+            kind: OPENED_PART.element,
+            element: elementRow.element,
+        })),
     ];
-    for (const part of parts) {
-        const held = presentPartLevel(statistics, roster, metric, combatantId, part);
+    for (const openedPart of parts) {
+        const held = presentPartLevel(statistics, roster, metric, combatantId, openedPart);
         if (held === null) continue;
-        found.push({
+        sections.push({
             where: `${metric}/part.byOtherEnd`,
             rows: composeCutShares(held.byOtherEnd.rows, held.byOtherEnd.halfNamed),
             total: held.total,
         });
     }
-    return found;
+    return sections;
 }
 
 function composeCutShares(
     rows: readonly ShareRow[],
     closing: ShareRow | null,
 ): ShareRow[] {
-    const shares = rows.map((one) => ({ figure: one.figure, shareText: one.shareText }));
+    const shares = rows.map((row) => ({ figure: row.figure, shareText: row.shareText }));
     if (closing === null) return shares;
     return [...shares, { figure: closing.figure, shareText: closing.shareText }];
 }
@@ -197,7 +202,7 @@ function composeCutShares(
 function getShareSum(section: Section): number | null {
     if (section.total <= 0) return null;
     if (section.rows.length === 0) return null;
-    return section.rows.reduce((sum, one) => sum + parseSharePoints(one.shareText), 0);
+    return section.rows.reduce((sum, row) => sum + parseSharePoints(row.shareText), 0);
 }
 
 /**

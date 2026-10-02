@@ -227,9 +227,9 @@ function parseSheetColour(text: string): Colour | null {
     if (!text.startsWith("#")) return null;
     if (text.length !== HEX_COLOUR_LENGTH) return null;
     const channels: number[] = [];
-    for (let at = 1; at < text.length; at += 2) {
-        const high = HEX_DIGITS.indexOf(text.charAt(at));
-        const low = HEX_DIGITS.indexOf(text.charAt(at + 1));
+    for (let index = 1; index < text.length; index += 2) {
+        const high = HEX_DIGITS.indexOf(text.charAt(index));
+        const low = HEX_DIGITS.indexOf(text.charAt(index + 1));
         if (high === -1) return null;
         if (low === -1) return null;
         channels.push(high * HEX_BASE + low);
@@ -309,35 +309,35 @@ Deno.test("every ink the sheet paints with clears its floor over the ground it i
 
 /** Every `--MargoMeter-x:y;` the sheet declares, as the name and the value it ships. */
 function readSheetVariables(sheet: string): Map<string, string> {
-    const found = new Map<string, string>();
-    let at = sheet.indexOf(VARIABLE_OPENER);
+    const valueByName = new Map<string, string>();
+    let openerIndex = sheet.indexOf(VARIABLE_OPENER);
     for (let held = 0; held < sheet.length; held += 1) {
-        if (at === -1) break;
-        const colon = sheet.indexOf(":", at);
-        const shut = sheet.indexOf(";", at);
-        const name = sheet.slice(at + VARIABLE_OPENER.length, colon);
-        at = sheet.indexOf(VARIABLE_OPENER, at + VARIABLE_OPENER.length);
+        if (openerIndex === -1) break;
+        const colon = sheet.indexOf(":", openerIndex);
+        const shut = sheet.indexOf(";", openerIndex);
+        const name = sheet.slice(openerIndex + VARIABLE_OPENER.length, colon);
+        openerIndex = sheet.indexOf(VARIABLE_OPENER, openerIndex + VARIABLE_OPENER.length);
         if (colon === -1) continue;
         if (shut === -1) continue;
         if (shut < colon) continue;
         if (name.includes(")")) continue;
-        found.set(name, sheet.slice(colon + 1, shut).trim());
+        valueByName.set(name, sheet.slice(colon + 1, shut).trim());
     }
-    return found;
+    return valueByName;
 }
 
 /** The variables named after one property, so `color:` and `background:` are asked apart. */
 function readNamesUsedBy(sheet: string, property: string): Set<string> {
-    const found = new Set<string>();
+    const names = new Set<string>();
     const opener = `${property}:var(${VARIABLE_OPENER}`;
-    let at = sheet.indexOf(opener);
+    let openerIndex = sheet.indexOf(opener);
     for (let held = 0; held < sheet.length; held += 1) {
-        if (at === -1) break;
-        const shut = sheet.indexOf(")", at);
-        if (shut !== -1) found.add(sheet.slice(at + opener.length, shut));
-        at = sheet.indexOf(opener, at + opener.length);
+        if (openerIndex === -1) break;
+        const shut = sheet.indexOf(")", openerIndex);
+        if (shut !== -1) names.add(sheet.slice(openerIndex + opener.length, shut));
+        openerIndex = sheet.indexOf(opener, openerIndex + opener.length);
     }
-    return found;
+    return names;
 }
 
 /** Each ink-over-ground pairing held to its floor, and how many were asked. */
@@ -380,7 +380,7 @@ Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for",
     // Every hue the panel can put under a figure: a profession on a ranking row, the colourless
     // one every cut of a figure takes, and the two hues of the palette no profession spends.
     const hues = [
-        ...PROFESSIONS.map((one) => lookupColourForProfession(one)),
+        ...PROFESSIONS.map((profession) => lookupColourForProfession(profession)),
         lookupColourForProfession(null),
         ...PALETTE_COLOURS,
     ];
@@ -397,7 +397,7 @@ Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for",
 });
 
 Deno.test("the ink is computed, and at this tint every bar takes the light one", () => {
-    const inks = new Set(PALETTE_COLOURS.map((one) => getInkForBar(one)));
+    const inks = new Set(PALETTE_COLOURS.map((hue) => getInkForBar(hue)));
     // Measured, not designed: at a tint of 0.55 over this track no bar is light enough for the
     // dark ink, which is why that token is reachable only by a lighter bar than the panel draws.
     assertEquals([...inks], [TEXT.inkLight], "every bar the panel draws takes the light ink");
@@ -453,52 +453,54 @@ function findSheetDepartures(
     here: string,
     departures: readonly SheetDeparture[],
 ): string[] {
-    const found: string[] = [];
+    const findings: string[] = [];
     const developRules = readRules(develop);
     const hereRules = readRules(here);
     const movedBySelector = new Map<string, readonly string[]>();
     for (const departure of departures) {
         const { develop: was, here: is } = departure;
         if (was !== null) {
-            if (!developRules.some((one) => one.selector === was)) found.push(`${was} unknown`);
+            if (!developRules.some((rule) => rule.selector === was)) {
+                findings.push(`${was} unknown`);
+            }
         }
         if (is !== null) {
-            if (!hereRules.some((one) => one.selector === is)) found.push(`${is} not written`);
+            if (!hereRules.some((rule) => rule.selector === is)) findings.push(`${is} not written`);
         }
         if (departure.moved !== undefined) {
             if (was !== null) movedBySelector.set(was, departure.moved);
         }
     }
-    const isWhole = (one: SheetDeparture) => one.moved === undefined;
-    const set = (pick: (one: SheetDeparture) => string | null) =>
+    const isWhole = (departure: SheetDeparture) => departure.moved === undefined;
+    const set = (pick: (departure: SheetDeparture) => string | null) =>
         departures.filter(isWhole).map(pick);
     const kept = (rules: readonly SheetRule[], gone: readonly (string | null)[]) =>
-        rules.filter((one) => !gone.includes(one.selector)).map((one) => {
-            const moved = movedBySelector.get(one.selector) ?? [];
-            return `${one.selector}{${composeBodyWithout(one.body, moved)}}`;
+        rules.filter((rule) => !gone.includes(rule.selector)).map((rule) => {
+            const moved = movedBySelector.get(rule.selector) ?? [];
+            return `${rule.selector}{${composeBodyWithout(rule.body, moved)}}`;
         });
-    const developKept = kept(developRules, set((one) => one.develop));
-    const hereKept = kept(hereRules, set((one) => one.here));
+    const developKept = kept(developRules, set((departure) => departure.develop));
+    const hereKept = kept(hereRules, set((departure) => departure.here));
     for (const [selector, moved] of movedBySelector) {
-        const was = developRules.find((one) => one.selector === selector)?.body;
-        const is = hereRules.find((one) => one.selector === selector)?.body;
-        if (was === is) found.push(`${selector} moved nothing of ${moved.join(", ")}`);
+        const was = developRules.find((rule) => rule.selector === selector)?.body;
+        const is = hereRules.find((rule) => rule.selector === selector)?.body;
+        if (was === is) findings.push(`${selector} moved nothing of ${moved.join(", ")}`);
     }
     const length = Math.max(developKept.length, hereKept.length);
-    for (let at = 0; at < length; at += 1) {
-        if (developKept[at] === hereKept[at]) continue;
-        found.push(`rule ${at}: develop ${developKept[at]} against ${hereKept[at]}`);
+    for (let index = 0; index < length; index += 1) {
+        if (developKept[index] === hereKept[index]) continue;
+        findings.push(`rule ${index}: develop ${developKept[index]} against ${hereKept[index]}`);
         break;
     }
-    return found;
+    return findings;
 }
 
 /** A rule's declarations but those a record names, in the order they were written. */
 function composeBodyWithout(body: string, moved: readonly string[]): string {
     if (moved.length === 0) return body;
     return body.split(";").filter((stated) => {
-        const at = stated.indexOf(":");
-        return at === -1 || !moved.includes(stated.slice(0, at));
+        const colon = stated.indexOf(":");
+        return colon === -1 || !moved.includes(stated.slice(0, colon));
     }).join(";");
 }
 
@@ -575,8 +577,8 @@ Deno.test("the sheet shuts the game out, and every class it selects is one the p
         for (const [name, spelling] of Object.entries(CLASS)) {
             assertStringIncludes(sheet, `.${spelling}`, `${name} is a class no rule selects`);
         }
-        const opened = [...sheet].filter((one) => one === "{").length;
-        const closed = [...sheet].filter((one) => one === "}").length;
+        const opened = [...sheet].filter((character) => character === "{").length;
+        const closed = [...sheet].filter((character) => character === "}").length;
         assertEquals(opened, closed, "every rule the sheet opens is closed");
         assert(opened > 1, "and the sheet holds more than the host's own rule");
     }
@@ -590,9 +592,9 @@ Deno.test("a value is written once, and every rule spends it by name", () => {
         const twice: string[] = [];
         const signals = [SIGNAL.suspect, SIGNAL.caveat, SIGNAL.defect];
         const colours = [...Object.values(SURFACE), ...Object.values(TEXT), ...signals];
-        for (const value of colours.map(formatColour)) {
-            const written = sheet.split(value).length - 1;
-            if (written > 1) twice.push(`${value} written ${written} times`);
+        for (const colourText of colours.map(formatColour)) {
+            const written = sheet.split(colourText).length - 1;
+            if (written > 1) twice.push(`${colourText} written ${written} times`);
         }
         assertEquals(twice, [], "a value the sheet writes more than once");
         assertStringIncludes(
@@ -611,9 +613,9 @@ Deno.test("the card stands over the window beside the panel, and both over the f
     for (const step of TYPE_STEPS) {
         const sheet = composeStyleSheet(step);
         const layerOf = (selector: string) => {
-            const at = sheet.indexOf(selector);
-            assert(at >= 0, `the sheet spells ${selector}`);
-            const rule = sheet.slice(at, sheet.indexOf("}", at));
+            const selectorIndex = sheet.indexOf(selector);
+            assert(selectorIndex >= 0, `the sheet spells ${selector}`);
+            const rule = sheet.slice(selectorIndex, sheet.indexOf("}", selectorIndex));
             const written = rule.split("z-index:")[1] ?? "";
             return Number(written.split(";")[0]);
         };
@@ -719,9 +721,9 @@ function getTermPixels(stated: string): number {
     }
     if (stated === "0") return 0;
     assert(stated.endsWith("px"), `${stated} is a length this panel does not measure in`);
-    const value = Number(stated.slice(0, -"px".length));
-    assert(Number.isFinite(value), `${stated} is not a number`);
-    return value;
+    const pixels = Number(stated.slice(0, -"px".length));
+    assert(Number.isFinite(pixels), `${stated} is not a number`);
+    return pixels;
 }
 
 /** `regionDown` is spelled `region-down` in a rule, and the guard must cross that spelling once. */
@@ -838,18 +840,18 @@ Deno.test("a list is as tall as the rows it promises, and carries no term beside
 function getOperatorsAtDepth(stated: string): string[] {
     assert(stated.startsWith("calc("), "a height is arithmetic before it is read as any");
     assert(stated.length <= LONGEST_DECLARATION, "a height stays inside its stated bound");
-    const found: string[] = [];
+    const operators: string[] = [];
     let depth = 0;
     for (const character of stated.slice("calc(".length, stated.length - 1)) {
         if (character === "(") depth += 1;
         if (character === ")") depth -= 1;
         if (depth > 0) continue;
-        if (character === "*") found.push(character);
-        if (character === "+") found.push(character);
-        if (character === "-") found.push(character);
+        if (character === "*") operators.push(character);
+        if (character === "+") operators.push(character);
+        if (character === "-") operators.push(character);
     }
     assertStrictEquals(depth, 0, "a height closes every group it opens");
-    return found;
+    return operators;
 }
 
 Deno.test("the panel's rhythm is whole pixels, so a bar and its ink round together", () => {
@@ -872,21 +874,21 @@ Deno.test("the panel's rhythm is whole pixels, so a bar and its ink round togeth
 
 /** Every line height the sheet states, which is the term after the slash in a `font` shorthand. */
 function getLineHeights(sheet: string): string[] {
-    const found: string[] = [];
-    let at = sheet.indexOf("font:");
+    const lineHeights: string[] = [];
+    let fontIndex = sheet.indexOf("font:");
     let tried = 0;
-    while (at !== -1) {
+    while (fontIndex !== -1) {
         assert(tried < RULES_IN_A_SHEET, "the walk stays inside the sheet's stated bound");
         tried += 1;
-        const slash = sheet.indexOf("/", at);
+        const slash = sheet.indexOf("/", fontIndex);
         assertNotStrictEquals(slash, -1, "a font shorthand here states a line height");
         const ends = sheet.indexOf(" ", slash);
         assertNotStrictEquals(ends, -1, "and a stack after it");
-        found.push(sheet.slice(slash + 1, ends));
-        at = sheet.indexOf("font:", at + 1);
+        lineHeights.push(sheet.slice(slash + 1, ends));
+        fontIndex = sheet.indexOf("font:", fontIndex + 1);
     }
-    assert(found.length > 0, "the panel states the type it prints");
-    return found;
+    assert(lineHeights.length > 0, "the panel states the type it prints");
+    return lineHeights;
 }
 
 Deno.test("a row drops its ink onto its middle and stays the height the list counts", () => {
@@ -928,11 +930,11 @@ Deno.test("a row drops its ink onto its middle and stays the height the list cou
 
 /** A token the host declares, as the sheet spells its value. */
 function readSheetVariable(sheet: string, name: string): string {
-    const host = readRules(sheet).find((one) => one.selector === ":host");
+    const host = readRules(sheet).find((rule) => rule.selector === ":host");
     assertExists(host, "the sheet declares its tokens on the host");
-    const value = getDeclaration(host.body, `${VARIABLE_OPENER}${name}`);
-    assertExists(value, `the host declares ${name}`);
-    return value;
+    const declared = getDeclaration(host.body, `${VARIABLE_OPENER}${name}`);
+    assertExists(declared, `the host declares ${name}`);
+    return declared;
 }
 
 /**
@@ -959,8 +961,8 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
         assertStringIncludes(card ?? "", `${tokens.cardWidthPixelsMaximum}px`, `${step}: the card`);
         // Every smaller type the sheet spells is the step's own, and the ring's letter is its own.
         const letter = `${tokens.markLetterPixels}px`;
-        const ring = readRules(sheet).find((one) =>
-            one.selector === `.${CLASS.rowCaveat},.${CLASS.cardCaveat}`
+        const ring = readRules(sheet).find((rule) =>
+            rule.selector === `.${CLASS.rowCaveat},.${CLASS.cardCaveat}`
         );
         assertExists(ring, `${step}: the ring is one rule for both places it stands`);
         assertEquals(getDeclaration(ring.body, "font-size"), letter, `${step}: the ring's letter`);
@@ -976,8 +978,8 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
             );
         }
         const small = readRules(sheet)
-            .filter((one) => !samples.includes(one.selector))
-            .map((one) => getDeclaration(one.body, "font-size"))
+            .filter((rule) => !samples.includes(rule.selector))
+            .map((rule) => getDeclaration(rule.body, "font-size"))
             .filter((stated) => stated !== null)
             .filter((stated) => stated !== letter);
         assert(small.length > 0, `${step}: the sheet spells a smaller type`);

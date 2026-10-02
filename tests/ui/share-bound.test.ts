@@ -28,8 +28,8 @@ Deno.test("the share writer holds every row the widest section can draw", () => 
 });
 
 Deno.test("a section as wide as the panel allows states a share on every row", () => {
-    const amounts = Array.from({ length: WIDEST_SECTION }, (_, at) => at + 1);
-    const whole = amounts.reduce((sum, one) => sum + one, 0);
+    const amounts = Array.from({ length: WIDEST_SECTION }, (_, index) => index + 1);
+    const whole = amounts.reduce((sum, amount) => sum + amount, 0);
     const shares = formatSharesApportioned(amounts, whole);
 
     assertStrictEquals(

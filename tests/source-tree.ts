@@ -54,7 +54,7 @@ export interface AstNode {
     param?: AstNode | null;
     parameter?: AstNode;
 }
-type AstVisitor = Record<string, (node: AstNode) => void>;
+type AstVisitor = Record<string, (visitedNode: AstNode) => void>;
 interface AstComment {
     type: string;
     range: [number, number];
@@ -127,12 +127,12 @@ export function readSourceFiles(directories: readonly string[]): SourceFile[] {
             existsSync(directory, { isDirectory: true }),
             `${directory} is a directory of the tree`,
         );
-        for (const entry of walkSync(directory, { exts: [".ts"], includeDirs: false })) {
-            files.push({ path: entry.path, text: Deno.readTextFileSync(entry.path) });
+        for (const walkedFile of walkSync(directory, { exts: [".ts"], includeDirs: false })) {
+            files.push({ path: walkedFile.path, text: Deno.readTextFileSync(walkedFile.path) });
             assert(files.length <= FILES_MAXIMUM, "the tree stays inside the bound a walk states");
         }
     }
-    return files.sort((one, other) => one.path < other.path ? -1 : 1);
+    return files.sort((left, right) => left.path < right.path ? -1 : 1);
 }
 
 /** What ships: `src/`, and every `frozen/` and `libs/` module it reaches through an import. */
@@ -159,9 +159,9 @@ export function readBundleFiles(): SourceFile[] {
 
 export function readImportSources(file: SourceFile): string[] {
     const sources: string[] = [];
-    for (const node of readAstNodes(file, IMPORT_NODES)) {
-        const value = node.source?.value;
-        if (typeof value === "string") sources.push(value);
+    for (const declaration of readAstNodes(file, IMPORT_NODES)) {
+        const source = declaration.source?.value;
+        if (typeof source === "string") sources.push(source);
     }
     return sources;
 }
@@ -179,65 +179,67 @@ export function lookupImportedPath(file: SourceFile, source: string): string | n
 
 /** Every node of the kinds asked for, in the order the parser meets them. */
 export function readAstNodes(file: SourceFile, kinds: readonly string[]): AstNode[] {
-    const found: AstNode[] = [];
+    const matchingNodes: AstNode[] = [];
     const visitors: AstVisitor = {};
-    for (const kind of kinds) visitors[kind] = (node) => found.push(node);
+    for (const kind of kinds) visitors[kind] = (visitedNode) => matchingNodes.push(visitedNode);
     lint.runPlugin(
         { name: "read", rules: { walk: { create: () => visitors } } },
         file.path,
         file.text,
     );
-    return found;
+    return matchingNodes;
 }
 
 /** The innermost of the functions given that a node stands in, or null at a module's top level. */
 export function lookupEnclosingFunction(
     functions: readonly AstNode[],
-    node: AstNode,
+    enclosed: AstNode,
 ): AstNode | null {
-    let found: AstNode | null = null;
+    let innermost: AstNode | null = null;
     for (const candidate of functions) {
-        if (candidate.range[0] > node.range[0]) continue;
-        if (candidate.range[1] < node.range[1]) continue;
-        if (isSameRange(candidate, node)) continue;
-        if (found === null || candidate.range[0] >= found.range[0]) found = candidate;
+        if (candidate.range[0] > enclosed.range[0]) continue;
+        if (candidate.range[1] < enclosed.range[1]) continue;
+        if (isSameRange(candidate, enclosed)) continue;
+        if (innermost === null || candidate.range[0] >= innermost.range[0]) innermost = candidate;
     }
-    return found;
+    return innermost;
 }
 
-function isSameRange(one: AstNode, other: AstNode): boolean {
-    if (one.range[0] !== other.range[0]) return false;
-    return one.range[1] === other.range[1];
+function isSameRange(left: AstNode, right: AstNode): boolean {
+    if (left.range[0] !== right.range[0]) return false;
+    return left.range[1] === right.range[1];
 }
 
 /** The text of every comment in a file, without its marks, in the order the file states them. */
 export function readCommentTexts(file: SourceFile): string[] {
-    const found: string[] = [];
+    const commentTexts: string[] = [];
     const visitors = (context: LintContext): AstVisitor => ({
         Program: () => {
-            for (const comment of context.sourceCode.getAllComments()) found.push(comment.value);
+            for (const comment of context.sourceCode.getAllComments()) {
+                commentTexts.push(comment.value);
+            }
         },
     });
     lint.runPlugin({ name: "read", rules: { walk: { create: visitors } } }, file.path, file.text);
-    return found;
+    return commentTexts;
 }
 
 /** One-based, as an editor and `file:line` read it. */
 export function getLineAt(text: string, offset: number): number {
     assert(offset <= text.length, "an offset lies inside the text it was taken from");
     let line = 1;
-    let at = text.indexOf("\n");
-    while (at !== -1) {
-        if (at >= offset) break;
+    let newlineIndex = text.indexOf("\n");
+    while (newlineIndex !== -1) {
+        if (newlineIndex >= offset) break;
         line += 1;
-        at = text.indexOf("\n", at + 1);
+        newlineIndex = text.indexOf("\n", newlineIndex + 1);
     }
     return line;
 }
 
 /** Where a finding stands, as `path:line`, so a red gate points at it. */
-export function formatNodePlace(file: SourceFile, node: AstNode): string {
-    return `${file.path}:${getLineAt(file.text, node.range[0])}`;
+export function formatNodePlace(file: SourceFile, flaggedNode: AstNode): string {
+    return `${file.path}:${getLineAt(file.text, flaggedNode.range[0])}`;
 }
 
 /** A sample the guards are proved on, never a file in the tree. */
@@ -268,12 +270,12 @@ export function indexCallableNames(file: SourceFile): Map<string, string> {
 }
 
 /** The name a declaration gives a function, or null where it declares something else. */
-export function readDeclaredFunctionName(node: AstNode): string | null {
-    if (node.type === "FunctionDeclaration") return node.id?.name ?? null;
-    const init = node.init;
+export function readDeclaredFunctionName(declaration: AstNode): string | null {
+    if (declaration.type === "FunctionDeclaration") return declaration.id?.name ?? null;
+    const init = declaration.init;
     if (init === null || init === undefined) return null;
     if (!FUNCTION_NODES.some((kind) => kind === init.type)) return null;
-    return node.id?.name ?? null;
+    return declaration.id?.name ?? null;
 }
 
 /** The names a binding pattern declares: an identifier, and every one a destructuring holds. */
@@ -282,34 +284,40 @@ export function readBoundNames(pattern: AstNode | null): string[] {
     const pending: AstNode[] = pattern === null ? [] : [pattern];
     for (let step = 0; pending.length > 0; step += 1) {
         assert(step < DEPTH_MAXIMUM, "a pattern stays inside the bound its walk states");
-        const node = pending.pop()!;
-        if (node.type === "Identifier") {
-            names.push(node.name ?? "");
+        const subpattern = pending.pop()!;
+        if (subpattern.type === "Identifier") {
+            names.push(subpattern.name ?? "");
             continue;
         }
-        const value = readChildNode(node.value);
-        const parts = [node.left, node.argument, node.parameter, value];
-        for (const part of [...parts, ...(node.elements ?? []), ...(node.properties ?? [])]) {
-            if (part !== undefined && part !== null) pending.push(part);
+        const valueNode = readChildNode(subpattern.value);
+        const parts = [subpattern.left, subpattern.argument, subpattern.parameter, valueNode];
+        for (
+            const child of [
+                ...parts,
+                ...(subpattern.elements ?? []),
+                ...(subpattern.properties ?? []),
+            ]
+        ) {
+            if (child !== undefined && child !== null) pending.push(child);
         }
     }
     return names;
 }
 
 /** A node a field typed `unknown` holds, or null where it holds a value. */
-export function readChildNode(value: unknown): AstNode | null {
-    if (!isRecord(value)) return null;
-    if (typeof value.type !== "string") return null;
-    return value as unknown as AstNode;
+export function readChildNode(fieldValue: unknown): AstNode | null {
+    if (!isRecord(fieldValue)) return null;
+    if (typeof fieldValue.type !== "string") return null;
+    return fieldValue as unknown as AstNode;
 }
 
 /** The declaration a node stands in, climbing out of every unnamed closure; null at the top. */
-export function lookupCallerDeclaration(node: AstNode): AstNode | null {
-    let at = node.parent ?? null;
-    for (let depth = 0; at !== null; depth += 1) {
+export function lookupCallerDeclaration(enclosed: AstNode): AstNode | null {
+    let ancestor = enclosed.parent ?? null;
+    for (let depth = 0; ancestor !== null; depth += 1) {
         assert(depth < DEPTH_MAXIMUM, "a parse stays inside the depth a climb states");
-        if (readDeclaredFunctionName(at) !== null) return at;
-        at = at.parent ?? null;
+        if (readDeclaredFunctionName(ancestor) !== null) return ancestor;
+        ancestor = ancestor.parent ?? null;
     }
     return null;
 }
@@ -318,22 +326,22 @@ export function lookupCallerDeclaration(node: AstNode): AstNode | null {
  * The blocks a node stands in, up to its module's top: a braced body, a `case`, and an arrow whose
  * body is an expression each count one, because written in braces that body would be a block.
  */
-export function countEnclosingBlocks(node: AstNode): number {
+export function countEnclosingBlocks(enclosed: AstNode): number {
     let count = 0;
-    let at = node.parent ?? null;
-    for (let depth = 0; at !== null; depth += 1) {
+    let ancestor = enclosed.parent ?? null;
+    for (let depth = 0; ancestor !== null; depth += 1) {
         assert(depth < DEPTH_MAXIMUM, "a parse stays inside the depth a climb states");
-        if (at.type === "BlockStatement" || at.type === "SwitchCase") count += 1;
-        if (isExpressionArrow(at)) count += 1;
-        at = at.parent ?? null;
+        if (ancestor.type === "BlockStatement" || ancestor.type === "SwitchCase") count += 1;
+        if (isExpressionArrow(ancestor)) count += 1;
+        ancestor = ancestor.parent ?? null;
     }
     return count;
 }
 
 /** An arrow whose body is an expression rather than a block. */
-function isExpressionArrow(node: AstNode): boolean {
-    if (node.type !== "ArrowFunctionExpression") return false;
-    const body = node.body;
+function isExpressionArrow(candidate: AstNode): boolean {
+    if (candidate.type !== "ArrowFunctionExpression") return false;
+    const body = candidate.body;
     if (body === null || body === undefined || Array.isArray(body)) return false;
     return body.type !== "BlockStatement";
 }

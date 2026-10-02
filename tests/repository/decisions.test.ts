@@ -31,7 +31,11 @@ const DATE_LENGTH = "2026-09-25".length;
 Deno.test("decision numbering runs from one without a gap, and each title states its own", () => {
     const records = readDecisionRecords();
     assert(records.length > 0, "there are decisions to read");
-    assertEquals(records.map((one) => one.number), records.map((_, index) => index + 1), "no gap");
+    assertEquals(
+        records.map((record) => record.number),
+        records.map((_, index) => index + 1),
+        "no gap",
+    );
     for (const record of records) {
         const stated = `${formatDecisionNumber(record.number)}. `;
         assert(record.title.startsWith(stated), `${record.path} is titled by its own number`);
@@ -40,12 +44,12 @@ Deno.test("decision numbering runs from one without a gap, and each title states
 
 function readDecisionRecords(): DecisionRecord[] {
     const records: DecisionRecord[] = [];
-    for (const entry of Deno.readDirSync(DECISIONS_DIRECTORY)) {
-        if (!entry.isFile) continue;
-        const path = DECISIONS_DIRECTORY + entry.name;
+    for (const recordFile of Deno.readDirSync(DECISIONS_DIRECTORY)) {
+        if (!recordFile.isFile) continue;
+        const path = DECISIONS_DIRECTORY + recordFile.name;
         records.push(readDecisionRecord(path, Deno.readTextFileSync(path)));
     }
-    return records.sort((one, other) => one.number - other.number);
+    return records.sort((left, right) => left.number - right.number);
 }
 
 function readDecisionRecord(path: string, text: string): DecisionRecord {
@@ -70,11 +74,11 @@ function readDecisionRecordField(
     header: readonly string[],
     opener: string,
 ): string | null {
-    const line = header.find((one) => one.startsWith(opener));
+    const line = header.find((headerLine) => headerLine.startsWith(opener));
     if (line === undefined) return null;
-    const value = line.slice(opener.length);
-    assert(value.length > 0, `${path}: ${opener.trim()} states something`);
-    return value;
+    const fieldText = line.slice(opener.length);
+    assert(fieldText.length > 0, `${path}: ${opener.trim()} states something`);
+    return fieldText;
 }
 
 function formatDecisionNumber(number: number): string {
@@ -92,7 +96,7 @@ Deno.test("every decision is dated, and carries a status a record can hold", () 
 
 Deno.test("a record superseded names its replacement, and the replacement names it back", () => {
     const records = readDecisionRecords();
-    const byName = new Map(records.map((one) => [formatDecisionName(one.number), one]));
+    const byName = new Map(records.map((record) => [formatDecisionName(record.number), record]));
     for (const record of records) {
         const name = formatDecisionName(record.number);
         if (record.status.startsWith(SUPERSEDED_OPENER)) {

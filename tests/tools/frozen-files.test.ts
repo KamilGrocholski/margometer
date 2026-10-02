@@ -64,16 +64,16 @@ Deno.test("content that moved re-dates every file written off the fetch", () => 
 
 Deno.test("one file of a set moving re-dates the set, and a missing file is a moved one", () => {
     const encode = encodeSample("same");
-    const [first, second] = encode(HELD_DATE);
-    assert(first !== undefined, "the sample writes a first file");
-    assert(second !== undefined, "and a second");
-    const edited = [first, `${second}// by hand\n`];
+    const [firstFile, secondFile] = encode(HELD_DATE);
+    assert(firstFile !== undefined, "the sample writes a first file");
+    assert(secondFile !== undefined, "and a second");
+    const edited = [firstFile, `${secondFile}// by hand\n`];
     const moved = composeFrozenFiles(PATHS, edited, HELD_DATE, READ_DATE, 1, encode);
     assertStrictEquals(moved.hasMoved, true, "the second file no longer is what the fetch gives");
     assertStrictEquals(moved.date, READ_DATE, "and the first one moves with it");
-    const missing = composeFrozenFiles(PATHS, [first, null], HELD_DATE, READ_DATE, 1, encode);
+    const missing = composeFrozenFiles(PATHS, [firstFile, null], HELD_DATE, READ_DATE, 1, encode);
     assertStrictEquals(missing.hasMoved, true, "a file nobody wrote yet is written");
-    const undated = composeFrozenFiles(PATHS, [first, second], null, READ_DATE, 1, encode);
+    const undated = composeFrozenFiles(PATHS, [firstFile, secondFile], null, READ_DATE, 1, encode);
     assertStrictEquals(undated.hasMoved, true, "and so is a set whose date cannot be read");
 });
 
@@ -87,15 +87,18 @@ Deno.test("the held date is read off the field an encoder writes, and nowhere el
 });
 
 Deno.test("every frozen reading states its date in the field its tool reads it from", () => {
-    const read = (path: string, field: string) =>
+    const readHeldDate = (path: string, field: string) =>
         lookupHeldDate(Deno.readTextFileSync(path), field);
-    const keys = read("frozen/protocol-keys.ts", KEY_DATE_FIELD);
+    const keys = readHeldDate("frozen/protocol-keys.ts", KEY_DATE_FIELD);
     assertStrictEquals(keys, FROZEN_PROTOCOL_KEYS.gameBuild, "the key table");
-    assertStrictEquals(read("frozen/buff-bits.ts", BUFF_DATE_FIELD), FROZEN_BUFF_BITS.gameBuild);
-    const help = read("frozen/help-phrases.ts", HELP_DATE_FIELD);
+    assertStrictEquals(
+        readHeldDate("frozen/buff-bits.ts", BUFF_DATE_FIELD),
+        FROZEN_BUFF_BITS.gameBuild,
+    );
+    const help = readHeldDate("frozen/help-phrases.ts", HELP_DATE_FIELD);
     assertStrictEquals(help, FROZEN_HELP_PHRASES.fetchedAt, "the help counts");
     for (const path of [SKILL_PATH, FROZEN_AURA_PATH, FROZEN_BLOWS_PATH]) {
-        const skills = read(path, SKILL_DATE_FIELD);
+        const skills = readHeldDate(path, SKILL_DATE_FIELD);
         assertStrictEquals(skills, FROZEN_SKILL_DURATIONS.fetchedAt, `${path} dates with the set`);
     }
 });

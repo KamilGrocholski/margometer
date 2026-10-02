@@ -113,7 +113,7 @@ Deno.test("a render or a commit off its event's path is flagged, and one on it i
 
 /** Every call to a render or a commit from a caller that is not on its event's path. */
 function lookupEventBreaches(files: readonly SourceFile[], entries: EventEntries): string[] {
-    const found: string[] = [];
+    const breaches: string[] = [];
     for (const file of files) {
         const known = indexCallableNames(file);
         for (const call of readAstNodes(file, ["CallExpression"])) {
@@ -129,36 +129,36 @@ function lookupEventBreaches(files: readonly SourceFile[], entries: EventEntries
             const place = `${formatNodePlace(file, call)} ${caller}`;
             if (calleeVerb === RENDER_VERB) {
                 if (!isOnPath(caller, RENDER_CALLERS, [entries.frame, entries.card])) {
-                    found.push(`${place} renders, through ${calleeName}`);
+                    breaches.push(`${place} renders, through ${calleeName}`);
                 }
             } else if (!isOnPath(caller, COMMIT_CALLERS, [entries.payload])) {
-                found.push(`${place} commits, through ${calleeName}`);
+                breaches.push(`${place} commits, through ${calleeName}`);
             }
         }
     }
-    return found;
+    return breaches;
 }
 
 /** The function a call stands in: a declared one, or an object's method, named by its key. */
 function lookupCallerName(call: AstNode): string | null {
-    let at = call.parent ?? null;
-    for (let depth = 0; at !== null; depth += 1) {
+    let ancestor = call.parent ?? null;
+    for (let depth = 0; ancestor !== null; depth += 1) {
         assert(depth < DEPTH_MAXIMUM, "a parse stays inside the depth a climb states");
-        const declared = readDeclaredFunctionName(at);
+        const declared = readDeclaredFunctionName(ancestor);
         if (declared !== null) return declared;
-        const method = readMethodName(at);
+        const method = readMethodName(ancestor);
         if (method !== null) return method;
-        at = at.parent ?? null;
+        ancestor = ancestor.parent ?? null;
     }
     return null;
 }
 
-function readMethodName(node: AstNode): string | null {
-    if (!METHOD_NODES.includes(node.type)) return null;
-    const value = (node as unknown as { value?: AstNode }).value;
-    if (value === undefined) return null;
-    if (!FUNCTION_VALUES.includes(value.type)) return null;
-    return node.key?.name ?? null;
+function readMethodName(candidate: AstNode): string | null {
+    if (!METHOD_NODES.includes(candidate.type)) return null;
+    const methodFunction = (candidate as unknown as { value?: AstNode }).value;
+    if (methodFunction === undefined) return null;
+    if (!FUNCTION_VALUES.includes(methodFunction.type)) return null;
+    return candidate.key?.name ?? null;
 }
 
 function isOnPath(caller: string, verbs: readonly string[], entries: readonly string[]): boolean {

@@ -54,15 +54,15 @@ Deno.test("an import from above a layer is flagged, and one from below it is not
 function lookupImportsUpward(file: SourceFile): string[] {
     const allowed = lookupLayerReach(file.path);
     if (allowed === null) return [];
-    const found: string[] = [];
+    const upward: string[] = [];
     for (const source of readImportSources(file)) {
         const target = lookupImportedPath(file, source);
         if (target === null) continue;
         if (!allowed.some((prefix) => target.startsWith(prefix))) {
-            found.push(`${file.path} imports ${target}`);
+            upward.push(`${file.path} imports ${target}`);
         }
     }
-    return found;
+    return upward;
 }
 
 function lookupLayerReach(path: string): readonly string[] | null {
@@ -71,6 +71,6 @@ function lookupLayerReach(path: string): readonly string[] | null {
 }
 
 Deno.test("no file in frozen/, libs/ or src/ imports from a layer above its own", () => {
-    const found = readSourceFiles(["frozen", "libs", "src"]).flatMap(lookupImportsUpward);
-    assertEquals(found, [], "docs/design.md §4");
+    const upward = readSourceFiles(["frozen", "libs", "src"]).flatMap(lookupImportsUpward);
+    assertEquals(upward, [], "docs/design.md §4");
 });

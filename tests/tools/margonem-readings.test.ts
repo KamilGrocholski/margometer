@@ -32,9 +32,13 @@ const MILLISECONDS_PER_DAY = 86_400_000;
 
 Deno.test("a row says which reading it is about and what the verdict was", () => {
     const says = "served x";
-    const current = formatReadingLine({ name: "client", verdict: READING_VERDICT.current, says });
-    assertStringIncludes(current, "client", "the row names its reading");
-    assert(current.endsWith("current"), "and ends in the verdict");
+    const currentLine = formatReadingLine({
+        name: "client",
+        verdict: READING_VERDICT.current,
+        says,
+    });
+    assertStringIncludes(currentLine, "client", "the row names its reading");
+    assert(currentLine.endsWith("current"), "and ends in the verdict");
     const stale = formatReadingLine({ name: "client", verdict: READING_VERDICT.stale, says });
     assert(stale.endsWith("STALE"), "the other verdict is the loud one");
     assert(!stale.includes("current"), "and never carries both");
@@ -68,10 +72,10 @@ function composeCachedMargonemClient(build: string): CachedMargonemClientSource 
 
 Deno.test("a frozen reading is current where a freeze off the cache would leave it standing", () => {
     const kept = composeDecidedFreeze({ hasMoved: false, heldDate: HELD_BUILD, date: HELD_BUILD });
-    const current = composeFrozenState("frozen keys", "keys", kept);
-    assertEquals(current.verdict, "current", "a newer build that gave the same keys");
-    assertStringIncludes(current.says, READ_BUILD, "the row states the build it read");
-    assertStringIncludes(current.says, HELD_BUILD, "and the one the table is still dated by");
+    const currentState = composeFrozenState("frozen keys", "keys", kept);
+    assertEquals(currentState.verdict, "current", "a newer build that gave the same keys");
+    assertStringIncludes(currentState.says, READ_BUILD, "the row states the build it read");
+    assertStringIncludes(currentState.says, HELD_BUILD, "and the one the table is still dated by");
     const moved = composeDecidedFreeze({ hasMoved: true, heldDate: HELD_BUILD, date: READ_BUILD });
     assertEquals(composeFrozenState("frozen keys", "keys", moved).verdict, "stale", "keys moved");
     const absent = composeFrozenState("frozen keys", "keys", null);
@@ -95,11 +99,27 @@ Deno.test("a refresh says whether it rewrote a reading or left it standing", () 
 });
 
 Deno.test("a fetched page goes stale on a floor, and the day before it does not", () => {
-    const at = (days: number) => READ_AT_MILLISECONDS + days * MILLISECONDS_PER_DAY;
-    assertEquals(composeDumpState("help dump", "v", READ_AT, at(0)).verdict, "current", "now");
-    assertEquals(composeDumpState("help dump", "v", READ_AT, at(6)).verdict, "current", "at six");
-    assertEquals(composeDumpState("help dump", "v", READ_AT, at(7)).verdict, "stale", "at seven");
-    assertEquals(composeDumpState("help dump", "v", null, at(7)).verdict, "stale", "none cached");
+    const momentAfterDays = (days: number) => READ_AT_MILLISECONDS + days * MILLISECONDS_PER_DAY;
+    assertEquals(
+        composeDumpState("help dump", "v", READ_AT, momentAfterDays(0)).verdict,
+        "current",
+        "now",
+    );
+    assertEquals(
+        composeDumpState("help dump", "v", READ_AT, momentAfterDays(6)).verdict,
+        "current",
+        "at six",
+    );
+    assertEquals(
+        composeDumpState("help dump", "v", READ_AT, momentAfterDays(7)).verdict,
+        "stale",
+        "at seven",
+    );
+    assertEquals(
+        composeDumpState("help dump", "v", null, momentAfterDays(7)).verdict,
+        "stale",
+        "none cached",
+    );
 });
 
 Deno.test("a world that did not answer is said as that, and never as a stale reading", () => {

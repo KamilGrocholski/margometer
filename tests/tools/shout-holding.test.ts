@@ -46,9 +46,9 @@ Deno.test("the share each row states is the share of the two counts beside it", 
     const rows = parseHoldingRows(text);
     const shares = parseShareCells(text);
     assertStrictEquals(shares.length, rows.length, "every row states a share");
-    for (const [at, row] of rows.entries()) {
+    for (const [rowIndex, row] of rows.entries()) {
         assertStrictEquals(
-            shares[at],
+            shares[rowIndex],
             tallyStruckShare(row.atShouter, row.atSomebodyElse),
             `turn ${row.turnsElapsed}: the share is the two counts beside it`,
         );
@@ -57,12 +57,12 @@ Deno.test("the share each row states is the share of the two counts beside it", 
 
 /** The share each row states, which the tool never carries as a field. */
 function parseShareCells(text: string): number[] {
-    const found: number[] = [];
+    const shares: number[] = [];
     for (const cells of parseTableRows(text, HEADING, CELLS)) {
         if (!Number.isSafeInteger(parseTableInteger(cells[0]))) continue;
-        found.push(parseTableInteger((cells[3] ?? "").replace(PERCENT, "")));
+        shares.push(parseTableInteger((cells[3] ?? "").replace(PERCENT, "")));
     }
-    return found;
+    return shares;
 }
 
 /**
@@ -73,7 +73,7 @@ Deno.test("a shout is total for the turns the table dates it, and falls after", 
     const stated = FROZEN_AURA_TURNS.shouts[0]?.turns;
     assert(stated !== undefined, "the frozen table dates a shout");
     assert(
-        FROZEN_AURA_TURNS.shouts.every((one) => one.turns === stated),
+        FROZEN_AURA_TURNS.shouts.every((shout) => shout.turns === stated),
         "and dates every shout the same, which is what one boundary stands on",
     );
     const inside = MEASURED.rows.filter((row) => row.turnsElapsed <= stated);

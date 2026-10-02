@@ -61,12 +61,13 @@ Deno.test("the bonus fires under the share of the pool the help documents", () =
     const occurrences = getOccurrences();
     assertEquals(occurrences.length, 14, "every occurrence the material carries, 2026-09-09");
     let closest = 0;
-    for (const one of occurrences) {
+    for (const occurrence of occurrences) {
         // What they hold after, less what was put back, is what the blow left them on.
-        const left = (one.heal.percent * one.healthMaximum) / 100 - one.heal.amount;
-        const share = left / one.healthMaximum;
-        assert(share >= 0, `${one.path}: a bonus putting back more than the pool holds`);
-        assert(share < THRESHOLD, `${one.path}: fired at ${share.toFixed(4)} of the pool`);
+        const left = (occurrence.heal.percent * occurrence.healthMaximum) / 100 -
+            occurrence.heal.amount;
+        const share = left / occurrence.healthMaximum;
+        assert(share >= 0, `${occurrence.path}: a bonus putting back more than the pool holds`);
+        assert(share < THRESHOLD, `${occurrence.path}: fired at ${share.toFixed(4)} of the pool`);
         closest = Math.max(closest, share);
     }
     // A bound nothing approaches is a bound this material cannot see. Two sit just under it.
@@ -74,7 +75,7 @@ Deno.test("the bonus fires under the share of the pool the help documents", () =
 });
 
 function getOccurrences(): Occurrence[] {
-    const found: Occurrence[] = [];
+    const occurrences: Occurrence[] = [];
     for (const fight of readRecordedFights()) {
         const running: RunningStatement = {
             path: fight.path,
@@ -85,10 +86,10 @@ function getOccurrences(): Occurrence[] {
         for (const message of fight.messages) {
             const parsed = parseProtocolMessage(message);
             assert(!(parsed instanceof Error), `${fight.path}: a recorded message parses`);
-            found.push(...getOccurrencesOfMessage(running, parsed));
+            occurrences.push(...getOccurrencesOfMessage(running, parsed));
         }
     }
-    return found;
+    return occurrences;
 }
 
 function getOccurrencesOfMessage(running: RunningStatement, parsed: ProtocolMessage): Occurrence[] {
@@ -102,25 +103,27 @@ function getOccurrencesOfMessage(running: RunningStatement, parsed: ProtocolMess
         running.percentByName.set(named, side.healthPercent);
         running.sinceUnsized.delete(named);
     }
-    for (const other of parsed.parameters) {
-        if (other.key !== NAMED_DAMAGE_KEY) continue;
-        const hit = readNamed(String(other.value));
+    for (const parameter of parsed.parameters) {
+        if (parameter.key !== NAMED_DAMAGE_KEY) continue;
+        const hit = readNamed(String(parameter.value));
         running.percentByName.set(hit.name, hit.percent);
         running.sinceUnsized.delete(hit.name);
     }
-    const found: Occurrence[] = [];
-    for (const [at, one] of parsed.parameters.entries()) {
-        if (one.key !== HEAL_KEY) continue;
-        assertExists(one.value, `${running.path}: a bonus stating nothing`);
-        const heal = readNamed(one.value);
-        found.push(getOccurrence(running, parsed, at, heal, stated, broken));
+    const occurrences: Occurrence[] = [];
+    for (const [position, parameter] of parsed.parameters.entries()) {
+        if (parameter.key !== HEAL_KEY) continue;
+        assertExists(parameter.value, `${running.path}: a bonus stating nothing`);
+        const heal = readNamed(parameter.value);
+        occurrences.push(getOccurrence(running, parsed, position, heal, stated, broken));
         running.percentByName.set(heal.name, heal.percent);
         running.sinceUnsized.delete(heal.name);
     }
-    if (parsed.parameters.some((one) => one.key === UNSIZED_SHARE_KEY)) {
-        for (const one of running.roster.byId.values()) running.sinceUnsized.add(one.name);
+    if (parsed.parameters.some((parameter) => parameter.key === UNSIZED_SHARE_KEY)) {
+        for (const combatant of running.roster.byId.values()) {
+            running.sinceUnsized.add(combatant.name);
+        }
     }
-    return found;
+    return occurrences;
 }
 
 /**
@@ -129,25 +132,25 @@ function getOccurrencesOfMessage(running: RunningStatement, parsed: ProtocolMess
  * states `amount,name(percent%)` and the named damage `amount,element,name(percent%)`, so the
  * name and the percentage are the last member in both and the element is what differs.
  */
-function readNamed(value: string): NamedFigure {
-    const members = value.split(",");
-    const last = members[members.length - 1];
-    assertExists(last, "a value that split has a last member");
-    const open = last.lastIndexOf("(");
-    const close = last.lastIndexOf("%)");
+function readNamed(figureText: string): NamedFigure {
+    const members = figureText.split(",");
+    const lastMember = members[members.length - 1];
+    assertExists(lastMember, "a value that split has a last member");
+    const open = lastMember.lastIndexOf("(");
+    const close = lastMember.lastIndexOf("%)");
     assert(open > 0, "the name is followed by the percentage it was left on");
     assert(close > open, "and that percentage is closed");
     return {
         amount: Number(members[0]),
-        name: last.slice(0, open),
-        percent: Number(last.slice(open + 1, close)),
+        name: lastMember.slice(0, open),
+        percent: Number(lastMember.slice(open + 1, close)),
     };
 }
 
 function getOccurrence(
     running: RunningStatement,
     parsed: ProtocolMessage,
-    at: number,
+    position: number,
     heal: NamedFigure,
     stated: ReadonlyMap<string, number>,
     broken: ReadonlySet<string>,
@@ -159,18 +162,18 @@ function getOccurrence(
     assertExists(healthMaximum, `${path}: and the snapshot states their pool`);
     const named = (from: number, to: number) =>
         parsed.parameters.slice(from, to)
-            .filter((other) => other.key === NAMED_DAMAGE_KEY)
-            .map((other) => readNamed(String(other.value)))
-            .filter((other) => other.name === heal.name);
+            .filter((parameter) => parameter.key === NAMED_DAMAGE_KEY)
+            .map((parameter) => readNamed(String(parameter.value)))
+            .filter((figure) => figure.name === heal.name);
     const here = named(0, parsed.parameters.length);
     const isSame = (percent: number) => Math.abs(percent - heal.percent) < SAME_PERCENT;
-    const before = named(0, at).filter((other) => !isSame(other.percent));
+    const before = named(0, position).filter((figure) => !isSame(figure.percent));
     return {
         path,
         heal,
         healthMaximum,
-        paired: here.filter((other) => isSame(other.percent)).map((o) => o.amount),
-        past: here.filter((other) => !isSame(other.percent)).map((o) => o.amount),
+        paired: here.filter((figure) => isSame(figure.percent)).map((o) => o.amount),
+        past: here.filter((figure) => !isSame(figure.percent)).map((o) => o.amount),
         percentBefore: before[before.length - 1]?.percent ?? stated.get(heal.name) ?? null,
         // A segment of this message is stated after any earlier share, so only a percentage
         // taken from the running statement can be older than one.
@@ -181,18 +184,22 @@ function getOccurrence(
 Deno.test("the damage that pairs with the bonus is the segments stating its own percentage", () => {
     let closed = 0;
     let refused = 0;
-    for (const one of getOccurrences()) {
-        if (one.percentBefore === null) continue;
-        if (one.paired.length === 0) continue;
-        if (one.isChainBroken) {
+    for (const occurrence of getOccurrences()) {
+        if (occurrence.percentBefore === null) continue;
+        if (occurrence.paired.length === 0) continue;
+        if (occurrence.isChainBroken) {
             refused += 1;
             continue;
         }
-        const left = (one.heal.percent * one.healthMaximum) / 100 - one.heal.amount;
-        const paired = one.paired.reduce((sum, amount) => sum + amount, 0);
-        const reconstructed = ((left + paired) / one.healthMaximum) * 100;
-        const off = Math.abs(reconstructed - one.percentBefore);
-        assert(off <= TOLERANCE, `${one.path}: the chain is off by ${off.toFixed(4)} points`);
+        const left = (occurrence.heal.percent * occurrence.healthMaximum) / 100 -
+            occurrence.heal.amount;
+        const paired = occurrence.paired.reduce((sum, amount) => sum + amount, 0);
+        const reconstructed = ((left + paired) / occurrence.healthMaximum) * 100;
+        const off = Math.abs(reconstructed - occurrence.percentBefore);
+        assert(
+            off <= TOLERANCE,
+            `${occurrence.path}: the chain is off by ${off.toFixed(4)} points`,
+        );
         closed += 1;
     }
     assertEquals(closed, 6, "every occurrence the segments can chain, 2026-08-30");
@@ -207,18 +214,21 @@ Deno.test("the damage that pairs with the bonus is the segments stating its own 
 Deno.test("a segment past the bonus's percentage is another blow, and breaks the chain", () => {
     const struckAgain = getOccurrences().filter(isStruckAgain);
     assert(struckAgain.length > 0, "the material carries one, or this rule is about nothing");
-    for (const one of struckAgain) {
-        const left = (one.heal.percent * one.healthMaximum) / 100 - one.heal.amount;
-        const paired = one.paired.reduce((sum, amount) => sum + amount, 0);
-        const everything = one.past.reduce((sum, amount) => sum + amount, paired);
-        assertExists(one.percentBefore, "a chain with a percentage to close on");
-        const wrong = Math.abs(((left + everything) / one.healthMaximum) * 100 - one.percentBefore);
-        assert(wrong > TOLERANCE, `${one.path}: taking every segment closed anyway`);
+    for (const occurrence of struckAgain) {
+        const left = (occurrence.heal.percent * occurrence.healthMaximum) / 100 -
+            occurrence.heal.amount;
+        const paired = occurrence.paired.reduce((sum, amount) => sum + amount, 0);
+        const everything = occurrence.past.reduce((sum, amount) => sum + amount, paired);
+        assertExists(occurrence.percentBefore, "a chain with a percentage to close on");
+        const wrong = Math.abs(
+            ((left + everything) / occurrence.healthMaximum) * 100 - occurrence.percentBefore,
+        );
+        assert(wrong > TOLERANCE, `${occurrence.path}: taking every segment closed anyway`);
     }
 });
 
-function isStruckAgain(one: Occurrence): boolean {
-    if (one.past.length === 0) return false;
-    if (one.paired.length === 0) return false;
-    return one.percentBefore !== null;
+function isStruckAgain(occurrence: Occurrence): boolean {
+    if (occurrence.past.length === 0) return false;
+    if (occurrence.paired.length === 0) return false;
+    return occurrence.percentBefore !== null;
 }

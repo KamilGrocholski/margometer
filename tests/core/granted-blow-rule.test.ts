@@ -77,16 +77,18 @@ function readRunsFromRecordings(): RecordedRun[] {
 function readRunsFromPayload(payload: readonly string[]): RecordedRun[] {
     const parsed = payload.map(parseOrFail);
     const runs: RecordedRun[] = [];
-    for (let at = 0; at < parsed.length; at += 1) {
-        const opener = parsed[at];
+    for (let position = 0; position < parsed.length; position += 1) {
+        const opener = parsed[position];
         if (opener === undefined) continue;
-        if (!isAnnouncement(opener.parameters.map((one) => one.key))) continue;
+        if (!isAnnouncement(opener.parameters.map((parameter) => parameter.key))) continue;
         const actorId = opener.actor?.combatantId ?? opener.target?.combatantId ?? null;
-        const stated = opener.parameters.find((one) => one.key === ID_KEY)?.value ?? null;
+        const stated = opener.parameters.find((parameter) => parameter.key === ID_KEY)?.value ??
+            null;
         runs.push({
-            skillName: opener.parameters.find((one) => one.key === NAME_KEY)?.value ?? "",
+            skillName: opener.parameters.find((parameter) => parameter.key === NAME_KEY)?.value ??
+                "",
             skillId: stated === null ? null : Number(stated),
-            blows: readRunBlows(payload, parsed, at, actorId),
+            blows: readRunBlows(payload, parsed, position, actorId),
         });
     }
     return runs;
@@ -102,22 +104,22 @@ function isAnnouncement(keys: readonly string[]): boolean {
     return keys.some((key) => ANNOUNCEMENT_KEYS.includes(key));
 }
 
-/** The run of the announcer's own blows following the announcement at `at`. */
+/** The run of the announcer's own blows following the announcement at `announcementPosition`. */
 function readRunBlows(
     payload: readonly string[],
     parsed: readonly ProtocolMessage[],
-    at: number,
+    announcementPosition: number,
     actorId: number | null,
 ): string[] {
     const blows: string[] = [];
-    for (let look = at + 1; look < parsed.length; look += 1) {
+    for (let look = announcementPosition + 1; look < parsed.length; look += 1) {
         assert(blows.length <= RUN_MAXIMUM, "a run stays inside the bound this walk states");
-        const next = parsed[look];
-        if (next === undefined) break;
-        const following = next.parameters.map((one) => one.key);
+        const laterMessage = parsed[look];
+        if (laterMessage === undefined) break;
+        const following = laterMessage.parameters.map((parameter) => parameter.key);
         if (isAnnouncement(following)) break;
         if (!hasDamageFigure(following)) break;
-        if ((next.actor?.combatantId ?? null) !== actorId) break;
+        if ((laterMessage.actor?.combatantId ?? null) !== actorId) break;
         blows.push(payload[look] ?? "");
     }
     return blows;
@@ -160,17 +162,17 @@ Deno.test("a second blow is reached by the table where it can, and by the bound 
  * be answered before the figures below could be trusted again.
  */
 Deno.test("a granted blow carries damage and nothing a second reading would place", () => {
-    let read = 0;
+    let blowsRead = 0;
     for (const run of readRunsFromRecordings()) {
         for (const message of run.blows.slice(1)) {
-            read += 1;
-            const keys = parseOrFail(message).parameters.map((one) => one.key);
+            blowsRead += 1;
+            const keys = parseOrFail(message).parameters.map((parameter) => parameter.key);
             for (const elsewhere of ELSEWHERE_KEYS) {
                 assert(!keys.includes(elsewhere), `a granted blow states ${elsewhere}`);
             }
         }
     }
-    assertStrictEquals(read, 255, "every second blow the corpus holds was read");
+    assertStrictEquals(blowsRead, 255, "every second blow the corpus holds was read");
 });
 
 /**
@@ -188,7 +190,7 @@ Deno.test("the table reaches 252 blows, and the bound reaches three the table ca
                 if (event.kind !== BATTLE_EVENT.attack) continue;
                 if (event.announced !== null) continue;
                 plain += 1;
-                plainApplied += event.applied.reduce((sum, one) => sum + one.amount, 0);
+                plainApplied += event.applied.reduce((sum, figure) => sum + figure.amount, 0);
             }
         }
         counted.set(name, { plain, plainApplied });

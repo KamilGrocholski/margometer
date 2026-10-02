@@ -123,9 +123,9 @@ const NOTHING_DRAWN: RegionDrawn = {
 };
 
 Deno.test("every level stands as tall as it drew, with one card per row and no two alike", () => {
-    const replays: FightReplay[] = readRecordedFights().map((one) => {
-        const { view, roster, statistics } = tallyRecordedFight(one.path);
-        return { name: one.path, roster, statistics, readerSide: view.readerSide };
+    const replays: FightReplay[] = readRecordedFights().map((recordedFight) => {
+        const { view, roster, statistics } = tallyRecordedFight(recordedFight.path);
+        return { name: recordedFight.path, roster, statistics, readerSide: view.readerSide };
     });
     assert(replays.length > 0, "there is material to walk");
     const short: string[] = [];
@@ -177,8 +177,8 @@ function composeLevelScreen(
 
 function addLevel(walk: LevelWalk, rung: string, over: Partial<ShownScreen>): number {
     const where = `${walk.replay.name} ${walk.metric}/${walk.side}/${rung}`;
-    const found = getRegionShortfall(where, { ...walk.base, ...over });
-    if (found !== null) walk.short.push(found);
+    const shortfall = getRegionShortfall(where, { ...walk.base, ...over });
+    if (shortfall !== null) walk.short.push(shortfall);
     return 1;
 }
 
@@ -207,7 +207,9 @@ function readRegionDrawn(shown: ShownScreen): RegionDrawn {
     });
     failures += panel.render(shown).undrawn.length;
     const host = panel.element as FakeElement;
-    const list = getElementsWithin(host).find((one) => one.className.startsWith(CLASS.list));
+    const list = getElementsWithin(host).find((descendant) =>
+        descendant.className.startsWith(CLASS.list)
+    );
     assertExists(list, "every screen the panel draws stands a list somewhere");
     const stated = list.attributes.get(STYLE_ATTRIBUTE) ?? "";
     const [named, count] = stated.split(":");
@@ -230,11 +232,11 @@ function readRegionDrawn(shown: ShownScreen): RegionDrawn {
  */
 function readRowKeys(host: FakeElement): Map<string, Set<string>> {
     const saidByKey = new Map<string, Set<string>>();
-    for (const one of getElementsWithin(host)) {
-        if (one.className.split(" ")[0] !== CLASS.row) continue;
-        const key = one.attributes.get(CARD_ATTRIBUTE);
+    for (const descendant of getElementsWithin(host)) {
+        if (descendant.className.split(" ")[0] !== CLASS.row) continue;
+        const key = descendant.attributes.get(CARD_ATTRIBUTE);
         if (key === undefined) continue;
-        const said = getElementsWithin(one).map((part) => part.textContent).join("|");
+        const said = getElementsWithin(descendant).map((inner) => inner.textContent).join("|");
         const held = saidByKey.get(key) ?? new Set<string>();
         held.add(said);
         saidByKey.set(key, held);
@@ -249,21 +251,21 @@ function readRowKeys(host: FakeElement): Map<string, Set<string>> {
  */
 function readRowPlaces(host: FakeElement): RowPlace[] {
     const places: RowPlace[] = [];
-    for (const one of getElementsWithin(host)) {
+    for (const descendant of getElementsWithin(host)) {
         // A heading opens a section, so the numbers under it start again from one. Recorded as a
         // place of its own rather than by grouping: the walk is flat, and a section it did not
         // see would read the next section's first number as a jump backwards.
-        if (one.className.split(" ").includes(CLASS.section)) {
+        if (descendant.className.split(" ").includes(CLASS.section)) {
             places.push({ stated: "", isApart: false, name: "", isSectionOpened: true });
             continue;
         }
-        if (one.className.split(" ")[0] !== CLASS.row) continue;
-        const cell = one.children.find((part) => part.className === CLASS.rowRank);
+        if (descendant.className.split(" ")[0] !== CLASS.row) continue;
+        const cell = descendant.children.find((child) => child.className === CLASS.rowRank);
         if (cell === undefined) continue;
-        const named = one.children.find((part) => part.className === CLASS.rowName);
+        const named = descendant.children.find((child) => child.className === CLASS.rowName);
         places.push({
             stated: cell.textContent,
-            isApart: one.className.split(" ").includes(CLASS.rowApart),
+            isApart: descendant.className.split(" ").includes(CLASS.rowApart),
             name: named?.textContent ?? "",
             isSectionOpened: false,
         });
@@ -279,20 +281,24 @@ function readRowPlaces(host: FakeElement): RowPlace[] {
 function readFiguresDrawn(host: FakeElement): { figures: string[]; widths: string[] } {
     const figures: string[] = [];
     const widths: string[] = [];
-    for (const one of getElementsWithin(host)) {
-        if (one.className === CLASS.bar) widths.push(one.attributes.get(STYLE_ATTRIBUTE) ?? "");
-        if (one.className.split(" ").includes(CLASS.figure)) figures.push(one.textContent);
+    for (const descendant of getElementsWithin(host)) {
+        if (descendant.className === CLASS.bar) {
+            widths.push(descendant.attributes.get(STYLE_ATTRIBUTE) ?? "");
+        }
+        if (descendant.className.split(" ").includes(CLASS.figure)) {
+            figures.push(descendant.textContent);
+        }
     }
     return { figures, widths };
 }
 
 /** The keys two different rows both stated, which is a row wearing its neighbour's card. */
 function getKeysShared(seen: RegionDrawn): string[] {
-    const found: string[] = [];
+    const findings: string[] = [];
     for (const [key, said] of seen.saidByKey) {
-        if (said.size > 1) found.push(`${key} on ${said.size} rows`);
+        if (said.size > 1) findings.push(`${key} on ${said.size} rows`);
     }
-    return found;
+    return findings;
 }
 
 /**
@@ -301,15 +307,17 @@ function getKeysShared(seen: RegionDrawn): string[] {
  * defect one step later, as a declaration the browser drops without saying so.
  */
 function getFiguresUnreadable(seen: RegionDrawn): string[] {
-    const found: string[] = [];
-    for (const one of seen.figures) {
-        if (one.includes(NOT_KNOWN)) found.push(`a figure reading "${one}"`);
-        if (one.trimStart().startsWith(MINUS_SIGN)) found.push(`a figure below nothing: ${one}`);
+    const findings: string[] = [];
+    for (const figure of seen.figures) {
+        if (figure.includes(NOT_KNOWN)) findings.push(`a figure reading "${figure}"`);
+        if (figure.trimStart().startsWith(MINUS_SIGN)) {
+            findings.push(`a figure below nothing: ${figure}`);
+        }
     }
-    for (const one of seen.widths) {
-        if (one.includes(`width:${MINUS_SIGN}`)) found.push(`a bar drawn at ${one}`);
+    for (const width of seen.widths) {
+        if (width.includes(`width:${MINUS_SIGN}`)) findings.push(`a bar drawn at ${width}`);
     }
-    return found;
+    return findings;
 }
 
 /**
@@ -319,18 +327,20 @@ function getFiguresUnreadable(seen: RegionDrawn): string[] {
  * `DESIGN.md` says must not look like a place it does not hold.
  */
 function getPlacesMismarked(seen: RegionDrawn): string[] {
-    const found: string[] = [];
-    for (const one of seen.places) {
-        if (one.isSectionOpened) continue;
-        const doesState = one.stated.length > 0;
+    const findings: string[] = [];
+    for (const place of seen.places) {
+        if (place.isSectionOpened) continue;
+        const doesState = place.stated.length > 0;
         if (doesState) {
-            if (one.isApart) found.push(`a row at "${one.stated}" drawn apart from the ranking`);
+            if (place.isApart) {
+                findings.push(`a row at "${place.stated}" drawn apart from the ranking`);
+            }
         }
         if (!doesState) {
-            if (!one.isApart) found.push("a row holding no place drawn as though it held one");
+            if (!place.isApart) findings.push("a row holding no place drawn as though it held one");
         }
     }
-    return found;
+    return findings;
 }
 
 /**
@@ -340,17 +350,17 @@ function getPlacesMismarked(seen: RegionDrawn): string[] {
  * asks **which** kinds, which is the rule itself (`develop ADR 0079`).
  */
 function getPlacesWrongfullyHeld(seen: RegionDrawn, closing: string): string[] {
-    const found: string[] = [];
-    for (const one of seen.places) {
-        if (one.isSectionOpened) continue;
-        if (one.name === closing) {
-            if (one.stated.length === 0) found.push(`"${closing}" drawn holding no place`);
+    const findings: string[] = [];
+    for (const place of seen.places) {
+        if (place.isSectionOpened) continue;
+        if (place.name === closing) {
+            if (place.stated.length === 0) findings.push(`"${closing}" drawn holding no place`);
             continue;
         }
-        if (!WORDS_HOLDING_NO_PLACE.includes(one.name)) continue;
-        if (one.stated.length > 0) found.push(`"${one.name}" drawn at "${one.stated}"`);
+        if (!WORDS_HOLDING_NO_PLACE.includes(place.name)) continue;
+        if (place.stated.length > 0) findings.push(`"${place.name}" drawn at "${place.stated}"`);
     }
-    return found;
+    return findings;
 }
 
 /**
@@ -362,20 +372,22 @@ function getPlacesWrongfullyHeld(seen: RegionDrawn, closing: string): string[] {
  * this is the only thing that asks whether they agree. `develop ADR 0079`.
  */
 function getPlacesOutOfOrder(seen: RegionDrawn): string[] {
-    const found: string[] = [];
-    let last = 0;
-    for (const one of seen.places) {
-        if (one.isSectionOpened) {
-            last = 0;
+    const findings: string[] = [];
+    let numberBefore = 0;
+    for (const place of seen.places) {
+        if (place.isSectionOpened) {
+            numberBefore = 0;
             continue;
         }
-        if (one.stated.length === 0) continue;
-        const stated = parseInteger(one.stated.replace(".", ""));
+        if (place.stated.length === 0) continue;
+        const stated = parseInteger(place.stated.replace(".", ""));
         if (stated === null) continue;
-        if (stated !== last + 1) found.push(`"${one.name}" stated ${stated} after ${last}`);
-        last = stated;
+        if (stated !== numberBefore + 1) {
+            findings.push(`"${place.name}" stated ${stated} after ${numberBefore}`);
+        }
+        numberBefore = stated;
     }
-    return found;
+    return findings;
 }
 
 /**
@@ -395,20 +407,28 @@ function addOpenedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
         const drill = presentOpenedLevel(statistics, roster, walk.metric, row.combatantId);
         if (drill === null) continue;
         walked += addLevel(walk, "opened", { opened: drill });
-        for (const other of drill.byOtherEnd.rows) {
-            if (!other.doesOpenPair) continue;
+        for (const otherEndRow of drill.byOtherEnd.rows) {
+            if (!otherEndRow.doesOpenPair) continue;
             const pair = presentPairLevel(
                 statistics,
                 roster,
                 walk.metric,
                 row.combatantId,
-                other.combatantId,
+                otherEndRow.combatantId,
             );
             if (pair !== null) walked += addLevel(walk, "pair", { opened: drill, pair });
         }
-        for (const one of composeOpenedParts(drill)) {
-            const part = presentPartLevel(statistics, roster, walk.metric, row.combatantId, one);
-            if (part !== null) walked += addLevel(walk, "part", { opened: drill, part });
+        for (const openedPart of composeOpenedParts(drill)) {
+            const partLevel = presentPartLevel(
+                statistics,
+                roster,
+                walk.metric,
+                row.combatantId,
+                openedPart,
+            );
+            if (partLevel !== null) {
+                walked += addLevel(walk, "part", { opened: drill, part: partLevel });
+            }
         }
     }
     return walked;
@@ -422,10 +442,12 @@ function addOpenedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
  * rows takes every level but the one that row opens, and says nothing about what it missed.
  */
 function composeOpenedParts(drill: OpenedLevelContent): OpenedPart[] {
-    const skills = drill.bySkill.rows.filter((one) => one.doesOpenPart).map((one) => one.part);
-    const kinds = drill.byElement.rows.filter((one) => one.doesOpenPart).map((
-        one,
-    ): NamedPart => ({ kind: "element", element: one.element }));
+    const skills = drill.bySkill.rows.filter((skillRow) => skillRow.doesOpenPart).map((skillRow) =>
+        skillRow.part
+    );
+    const kinds = drill.byElement.rows.filter((elementRow) => elementRow.doesOpenPart).map((
+        elementRow,
+    ): NamedPart => ({ kind: "element", element: elementRow.element }));
     const parts: OpenedPart[] = [...skills, ...kinds];
     const closing = drill.bySkill.closing;
     if (closing === null) return parts;
@@ -449,21 +471,23 @@ function addPinnedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
         if (halfNamed === null) continue;
         walked += addLevel(walk, "unnamed", { unnamed: halfNamed });
         const opened = [
-            ...halfNamed.rows.map((one) => (
-                { kind: "person" as const, combatantId: one.combatantId }
+            ...halfNamed.rows.map((row) => (
+                { kind: "person" as const, combatantId: row.combatantId }
             )),
-            ...halfNamed.kinds.rows.filter((one) => one.doesOpenPart).map((one) => (
-                { kind: "element" as const, element: one.element }
+            ...halfNamed.kinds.rows.filter((elementRow) => elementRow.doesOpenPart).map((
+                elementRow,
+            ) => (
+                { kind: "element" as const, element: elementRow.element }
             )),
         ];
-        for (const one of opened) {
+        for (const openedPart of opened) {
             const cut = presentUnnamedCutLevel(
                 statistics,
                 roster,
                 pinnedCase,
                 walk.side,
                 walk.readerSide,
-                one,
+                openedPart,
             );
             if (cut !== null) walked += addLevel(walk, "unnamed cut", { unnamedCut: cut });
         }
@@ -649,7 +673,7 @@ Deno.test("the closing row is read as holding a place, and the row summing a bou
  */
 Deno.test("the closing row stands where its figure puts it, first in half the sections", () => {
     const places = new Map<number, number>();
-    for (const path of readRecordedFights().map((one) => one.path)) {
+    for (const path of readRecordedFights().map((recordedFight) => recordedFight.path)) {
         const { statistics, roster } = tallyRecordedFight(path);
         for (const [combatantId] of statistics.byCombatantId) {
             for (const metric of ["damageDealt", "damageTaken"] as const) {
@@ -659,14 +683,16 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
                 if (plain === null) continue;
                 if (plain.figure === 0) continue;
                 assertExists(plain.rank, "the closing row of a damage section holds a place");
-                const bigger = drill.bySkill.rows.filter((one) => one.figure > plain.figure);
+                const bigger = drill.bySkill.rows.filter((skillRow) =>
+                    skillRow.figure > plain.figure
+                );
                 assertEquals(plain.rank, bigger.length + 1, `${path}: its figure decides`);
                 places.set(plain.rank, (places.get(plain.rank) ?? 0) + 1);
             }
         }
     }
     assertEquals(
-        [...places.entries()].sort((one, other) => one[0] - other[0]),
+        [...places.entries()].sort((left, right) => left[0] - right[0]),
         [[1, 159], [2, 65], [3, 47], [4, 18], [5, 6], [6, 3]],
         "every section the corpus draws one in, 2026-10-02",
     );
@@ -681,25 +707,25 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
  */
 Deno.test("a pair states its parts largest first, the closing row among them", () => {
     let closing = 0;
-    for (const path of readRecordedFights().map((one) => one.path)) {
+    for (const path of readRecordedFights().map((recordedFight) => recordedFight.path)) {
         const { statistics, roster } = tallyRecordedFight(path);
         for (const [combatantId] of statistics.byCombatantId) {
             for (const metric of ["damageDealt", "damageTaken"] as const) {
                 const drill = presentOpenedLevel(statistics, roster, metric, combatantId);
                 if (drill === null) continue;
-                for (const other of drill.byOtherEnd.rows) {
+                for (const otherEndRow of drill.byOtherEnd.rows) {
                     const pair = presentPairLevel(
                         statistics,
                         roster,
                         metric,
                         combatantId,
-                        other.combatantId,
+                        otherEndRow.combatantId,
                     );
                     if (pair === null) continue;
-                    if (pair.parts.some((one) => one.part.kind === "plain")) closing += 1;
-                    const figures = pair.parts.map((one) => one.figure);
+                    if (pair.parts.some((pairPart) => pairPart.part.kind === "plain")) closing += 1;
+                    const figures = pair.parts.map((pairPart) => pairPart.figure);
                     assertEquals(
-                        [...figures].sort((one, another) => another - one),
+                        [...figures].sort((left, right) => right - left),
                         figures,
                         `${path}: a pair drawn out of order puts a large bar under a small one`,
                     );

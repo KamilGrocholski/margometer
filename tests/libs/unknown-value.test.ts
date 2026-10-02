@@ -49,13 +49,13 @@ Deno.test("a number is read only where a number was stated", () => {
 
 /** A failure naming our field and the type it was read as, which is all a caller is told. */
 function expectWrongType(
-    read: unknown,
+    answer: unknown,
     [field, expected]: readonly [string, string],
     message: string,
 ): void {
-    assertInstanceOf(read, FieldWrongType, message);
-    assertStrictEquals(read.field, field, message);
-    assertStrictEquals(read.expected, expected, message);
+    assertInstanceOf(answer, FieldWrongType, message);
+    assertStrictEquals(answer.field, field, message);
+    assertStrictEquals(answer.expected, expected, message);
 }
 
 Deno.test("text is read wherever text was stated, saying something or not", () => {
@@ -105,14 +105,14 @@ Deno.test("a list is read up to its bound, and past it is too long rather than c
 });
 
 function expectTooLong(
-    read: unknown,
+    answer: unknown,
     [count, maximum]: readonly [number, number],
     message: string,
 ): void {
-    assertInstanceOf(read, FieldTooLong, message);
-    assertStrictEquals(read.field, "listed", message);
-    assertStrictEquals(read.count, count, message);
-    assertStrictEquals(read.maximum, maximum, message);
+    assertInstanceOf(answer, FieldTooLong, message);
+    assertStrictEquals(answer.field, "listed", message);
+    assertStrictEquals(answer.count, count, message);
+    assertStrictEquals(answer.maximum, maximum, message);
 }
 
 Deno.test("a field answers only what the record itself holds, however a key is spelled", () => {

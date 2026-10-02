@@ -149,7 +149,7 @@ Deno.test("the store is taken away, and what the add-on keeps lives only in the 
     );
     const store = stand(window, { store: held }) as {
         getItem(key: string): string | null;
-        setItem(key: string, value: string): void;
+        setItem(key: string, stored: string): void;
     };
     assert(window["localStorage"] === store, "the browser's store is replaced by the page's");
     assert(window["sessionStorage"] === store, "and so is the other one, by the same");
@@ -317,10 +317,10 @@ Deno.test("nothing the harness draws is named as the add-on's", () => {
 
 Deno.test("the page module speaks neither language, because every word is a value", () => {
     const source = Deno.readTextFileSync("tools/preview-page.ts");
-    const found: string[] = [];
+    const letters: string[] = [];
     for (const letter of "ąćęłńóśźżĄĆĘŁŃÓŚŹŻ") {
-        if (source.includes(letter)) found.push(letter);
+        if (source.includes(letter)) letters.push(letter);
     }
-    assertEquals(found, [], "L2: the language of a page is the caller's to choose");
+    assertEquals(letters, [], "L2: the language of a page is the caller's to choose");
     assertStringIncludes(source, "PreviewWords", "which is what the words being a type is for");
 });

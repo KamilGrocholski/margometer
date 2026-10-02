@@ -82,7 +82,7 @@ Deno.test("the register reader finds the register, and nothing else in the file"
  * document carries four other tables, and a reader that took them would count vocabularies.
  */
 function readRegisterRows(text: string): RegisterRow[] {
-    const found: RegisterRow[] = [];
+    const rows: RegisterRow[] = [];
     for (const line of readSectionLines(text, REGISTER_HEADING)) {
         if (!line.startsWith(CELL_OPENER)) continue;
         const [screen, rung, row, verdict] = readRowCells(line).map(readBareCell);
@@ -90,9 +90,9 @@ function readRegisterRows(text: string): RegisterRow[] {
         if (rung === undefined) continue;
         if (row === undefined) continue;
         if (!isOneOf(DRILL_VERDICTS, verdict)) continue;
-        found.push({ screen, rung, row, verdict });
+        rows.push({ screen, rung, row, verdict });
     }
-    return found;
+    return rows;
 }
 
 /** The lines under a heading, up to the next heading of its rank. */
@@ -118,21 +118,23 @@ function readBareCell(cell: string): string {
 
 /** Every run between a pair of backticks on one line, in the order written. */
 function readBackticked(line: string): string[] {
-    const found: string[] = [];
-    let at = line.indexOf(BACKTICK);
+    const spans: string[] = [];
+    let backtickAt = line.indexOf(BACKTICK);
     // The bound is the line's own length: a line holds fewer pairs than it holds characters.
     for (let held = 0; held < line.length; held += 1) {
-        if (at === -1) break;
-        const closes = line.indexOf(BACKTICK, at + 1);
+        if (backtickAt === -1) break;
+        const closes = line.indexOf(BACKTICK, backtickAt + 1);
         if (closes === -1) break;
-        found.push(line.slice(at + 1, closes));
-        at = line.indexOf(BACKTICK, closes + 1);
+        spans.push(line.slice(backtickAt + 1, closes));
+        backtickAt = line.indexOf(BACKTICK, closes + 1);
     }
-    return found;
+    return spans;
 }
 
-function formatRegisterKey(one: RegisterRow): string {
-    return [one.screen, one.rung, one.row, one.verdict].join(KEY_SEPARATOR);
+function formatRegisterKey(registerRow: RegisterRow): string {
+    return [registerRow.screen, registerRow.rung, registerRow.row, registerRow.verdict].join(
+        KEY_SEPARATOR,
+    );
 }
 
 Deno.test("the register names every case the panel produces, and no case it does not", () => {
@@ -142,12 +144,12 @@ Deno.test("the register names every case the panel produces, and no case it does
     );
     assert(written.size > 0, "the register carries rows");
     assertEquals(
-        [...measured].filter((one) => !written.has(one)).sort(),
+        [...measured].filter((caseKey) => !written.has(caseKey)).sort(),
         [],
         `${REGISTER_PATH}: the panel draws a case the register does not`,
     );
     assertEquals(
-        [...written].filter((one) => !measured.has(one)).sort(),
+        [...written].filter((caseKey) => !measured.has(caseKey)).sort(),
         [],
         `${REGISTER_PATH}: the register names a case the panel does not draw`,
     );
@@ -160,16 +162,31 @@ function readCorpus(): ReplayedFight[] {
 Deno.test("every case is one of the vocabularies the register states", () => {
     const cases = tallyDrillCases(readHildur());
     assert(cases.length > 0, "the recording produces cases");
-    for (const one of cases) {
+    for (const drillCase of cases) {
         assertArrayIncludes(
             SCREEN_ORDER,
-            [one.screen],
-            `${one.screen} is a screen the strips draw`,
+            [drillCase.screen],
+            `${drillCase.screen} is a screen the strips draw`,
         );
-        assertArrayIncludes(DRILL_RUNGS, [one.rung], `${one.rung} is a level the panel has`);
-        assertArrayIncludes(DRILL_ROWS, [one.row], `${one.row} is a kind of row the panel draws`);
-        assertArrayIncludes(DRILL_VERDICTS, [one.verdict], `${one.verdict} is a verdict`);
-        assert(one.opens + one.shut > 0, "and a case counted was counted at least once");
+        assertArrayIncludes(
+            DRILL_RUNGS,
+            [drillCase.rung],
+            `${drillCase.rung} is a level the panel has`,
+        );
+        assertArrayIncludes(
+            DRILL_ROWS,
+            [drillCase.row],
+            `${drillCase.row} is a kind of row the panel draws`,
+        );
+        assertArrayIncludes(
+            DRILL_VERDICTS,
+            [drillCase.verdict],
+            `${drillCase.verdict} is a verdict`,
+        );
+        assert(
+            drillCase.opens + drillCase.shut > 0,
+            "and a case counted was counted at least once",
+        );
     }
 });
 
@@ -197,13 +214,15 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
         const panel = initTestView(composeFakeDocument());
         panel.render(composeShownScreen(reading, screen));
         const drawn = getElementsWithin(panel.element as FakeElement)
-            .filter((one) => one.className.split(" ")[0] === CLASS.row);
+            .filter((fakeElement) => fakeElement.className.split(" ")[0] === CLASS.row);
         assert(drawn.length > 0, `${screen}: the ranking drew rows`);
-        const opening = drawn.filter((one) => one.attributes.has(PANEL_MARK.row));
+        const opening = drawn.filter((fakeElement) => fakeElement.attributes.has(PANEL_MARK.row));
         assertEquals(opening.length, reading.rows.length, `${screen}: every combatant row opens`);
         // A pinned row is marked by an end rather than by a combatant: nobody stands behind it to
         // be named by an id (`develop ADR 0038`).
-        const pinned = drawn.filter((one) => one.attributes.has(PANEL_MARK.unnamed));
+        const pinned = drawn.filter((fakeElement) =>
+            fakeElement.attributes.has(PANEL_MARK.unnamed)
+        );
         assertEquals(pinned.length, reading.pinned.length, `${screen}: every pinned row opens`);
         for (const row of drawn) {
             const doesOpen = row.attributes.has(PANEL_MARK.row) ||
@@ -222,10 +241,14 @@ Deno.test("the report is the composition, a line per case under one heading", ()
     const lines = formatCaseReport(cases);
     assertStringIncludes(lines[0] ?? "", "verdict", "the table is headed");
     assertEquals(lines.length, cases.length + 1, "and holds a line per case under that heading");
-    cases.forEach((one, index) => {
+    cases.forEach((drillCase, index) => {
         const line = lines[index + 1] ?? "";
-        for (const word of [one.screen, one.rung, one.row, one.verdict]) {
-            assertStringIncludes(line, word, `${one.screen} ${one.rung} ${one.row} is on its line`);
+        for (const word of [drillCase.screen, drillCase.rung, drillCase.row, drillCase.verdict]) {
+            assertStringIncludes(
+                line,
+                word,
+                `${drillCase.screen} ${drillCase.rung} ${drillCase.row} is on its line`,
+            );
         }
     });
 });
@@ -259,17 +282,17 @@ Deno.test("every verdict of `sometimes` is explained, and every explanation is o
     assertEquals(readExplainedCells(elsewhere), [], "a heading outside the section is not one");
     const register = Deno.readTextFileSync(REGISTER_PATH);
     const uncertain = readRegisterRows(register)
-        .filter((one) => one.verdict === DRILL_VERDICT.sometimes)
-        .map((one) => [one.screen, one.row].join(KEY_SEPARATOR));
+        .filter((registerRow) => registerRow.verdict === DRILL_VERDICT.sometimes)
+        .map((registerRow) => [registerRow.screen, registerRow.row].join(KEY_SEPARATOR));
     assert(uncertain.length > 0, "the register carries a verdict that depends on something");
     const explained = readExplainedCells(register);
     assertEquals(
-        uncertain.filter((one) => !explained.includes(one)).sort(),
+        uncertain.filter((cell) => !explained.includes(cell)).sort(),
         [],
         `${REGISTER_PATH}: a cell says \`sometimes\` and nothing says on what`,
     );
     assertEquals(
-        explained.filter((one) => !uncertain.includes(one)).sort(),
+        explained.filter((cell) => !uncertain.includes(cell)).sort(),
         [],
         `${REGISTER_PATH}: a cell is explained that no longer says \`sometimes\``,
     );
@@ -281,15 +304,15 @@ Deno.test("every verdict of `sometimes` is explained, and every explanation is o
  * columns.
  */
 function readExplainedCells(text: string): string[] {
-    const found: string[] = [];
+    const cells: string[] = [];
     for (const line of readSectionLines(text, SOMETIMES_HEADING)) {
         if (!line.startsWith("### ")) continue;
         const [screen, row] = readBackticked(line);
         if (screen === undefined) continue;
         if (row === undefined) continue;
-        found.push([screen, row].join(KEY_SEPARATOR));
+        cells.push([screen, row].join(KEY_SEPARATOR));
     }
-    return found;
+    return cells;
 }
 
 /**
@@ -307,18 +330,18 @@ Deno.test("the kinds said to stay shut are the kinds that stay shut, both ways r
     const said = readKindsSaidShut(Deno.readTextFileSync(REGISTER_PATH));
     assert(said.length > 0, "the document names the kinds that stay shut");
     const shut = new Set<string>();
-    for (const one of tallyDrillCases(readCorpus())) {
-        if (one.rung !== DRILL_RUNG.opened) continue;
-        if (one.shut === 0) continue;
-        shut.add(one.row);
+    for (const drillCase of tallyDrillCases(readCorpus())) {
+        if (drillCase.rung !== DRILL_RUNG.opened) continue;
+        if (drillCase.shut === 0) continue;
+        shut.add(drillCase.row);
     }
     assertEquals(
-        said.filter((one) => !shut.has(one)),
+        said.filter((kind) => !shut.has(kind)),
         [],
         `${REGISTER_PATH}: a kind is said to stay shut that opens wherever the panel draws it`,
     );
     assertEquals(
-        [...shut].sort().filter((one) => !said.includes(one)),
+        [...shut].sort().filter((kind) => !said.includes(kind)),
         [],
         `${REGISTER_PATH}: a kind stays shut and the document does not say so`,
     );
@@ -336,11 +359,11 @@ function readKindsSaidShut(text: string): string[] {
         if (said.length === 0 && !line.startsWith(SHUT_OPENING)) continue;
         said = `${said} ${line}`;
     }
-    const found = new Set<string>();
+    const kinds = new Set<string>();
     for (const named of readBackticked(said)) {
-        if (isOneOf(DRILL_ROWS, named)) found.add(named);
+        if (isOneOf(DRILL_ROWS, named)) kinds.add(named);
     }
-    return [...found].sort();
+    return [...kinds].sort();
 }
 
 /**

@@ -46,16 +46,20 @@ Deno.test("the writer takes every row the composer is allowed to compose", () =>
 });
 
 Deno.test("a block lands on the fighter it was composed for, and on nobody else", () => {
-    const first = composeRegistry();
-    const second = composeRegistry();
+    const firstRegistry = composeRegistry();
+    const secondRegistry = composeRegistry();
     const page = composePage([
-        composeWarrior(11, "Gracz 1", first),
-        composeWarrior(21, "Renegat 1", second),
+        composeWarrior(11, "Gracz 1", firstRegistry),
+        composeWarrior(21, "Renegat 1", secondRegistry),
     ]);
     const writing = initMargonemEngineTooltip(page).writeRows(new Map([[11, ["MargoMeter"]]]));
     assertEquals(writing, { written: 1, asked: 1 }, "one block asked for, one landed");
-    assertEquals(first.text, `${THEIRS}<br>MargoMeter`, "under what the game composed");
-    assertEquals(second.text, THEIRS, "and the fighter it was not composed for got nothing");
+    assertEquals(firstRegistry.text, `${THEIRS}<br>MargoMeter`, "under what the game composed");
+    assertEquals(
+        secondRegistry.text,
+        THEIRS,
+        "and the fighter it was not composed for got nothing",
+    );
 });
 
 function composeRegistry(text: string = THEIRS): Registry {
@@ -64,7 +68,7 @@ function composeRegistry(text: string = THEIRS): Registry {
 
 function composePage(warriors: unknown[]) {
     const warriorsList: Record<string, unknown> = {};
-    for (const [at, warrior] of warriors.entries()) warriorsList[`${at}`] = warrior;
+    for (const [index, warrior] of warriors.entries()) warriorsList[`${index}`] = warrior;
     return { Engine: { battle: { warriorsList } } };
 }
 
@@ -90,7 +94,7 @@ function composeWarrior(id: number, name: string, registry: Registry, over: {
             registry.told += 1;
         },
     };
-    const element = {
+    const jqueryObject = {
         find: () => {
             if (over.doesThrowOnFind === true) throw new TypeError("a page being torn down");
             if (over.hasMethods === false) return { concatTip: targets.concatTip };
@@ -103,7 +107,7 @@ function composeWarrior(id: number, name: string, registry: Registry, over: {
         },
     };
     if (over.hasElement === false) return { id, name };
-    return { id, name, $: element };
+    return { id, name, $: jqueryObject };
 }
 
 /**
@@ -230,7 +234,7 @@ Deno.test("a fighter with no way to take a line costs their own line and nobody 
     );
     assertEquals(writing, { written: 2, asked: 3 }, "the two that could take one did");
     assertEquals(
-        registries.map((one) => one.appended),
+        registries.map((registry) => registry.appended),
         [[], ["b"], ["c"]],
         "and the walk went on past the one that could not",
     );
@@ -238,17 +242,21 @@ Deno.test("a fighter with no way to take a line costs their own line and nobody 
 
 Deno.test("any one of the four methods gone costs that fighter's line, and nobody else's", () => {
     for (const method of ["getTipData", "tip", "concatTip", "trigger"]) {
-        const first = composeRegistry();
-        const second = composeRegistry();
+        const firstRegistry = composeRegistry();
+        const secondRegistry = composeRegistry();
         const page = composePage([
-            composeWarrior(11, "Gracz 1", first, { lacking: method }),
-            composeWarrior(21, "Renegat 1", second),
+            composeWarrior(11, "Gracz 1", firstRegistry, { lacking: method }),
+            composeWarrior(21, "Renegat 1", secondRegistry),
         ]);
         const writing = initMargonemEngineTooltip(page).writeRows(
             new Map([[11, ["a"]], [21, ["b"]]]),
         );
         assertEquals(writing, { written: 1, asked: 2 }, `without ${method}, one of two`);
-        assertEquals([first.appended, second.appended], [[], ["b"]], `past the one without it`);
+        assertEquals(
+            [firstRegistry.appended, secondRegistry.appended],
+            [[], ["b"]],
+            `past the one without it`,
+        );
     }
 });
 
@@ -261,10 +269,10 @@ Deno.test("a fighter out of reach for a payload keeps the block remembered on th
     const registry = composeRegistry();
     let isAnswering = true;
     const warrior = composeWarrior(11, "Gracz 1", registry) as Record<string, unknown>;
-    const element = warrior.$;
+    const jqueryObject = warrior.$;
     const answering = {
         find: () => {
-            const targets = (element as { find: () => Record<string, unknown> }).find();
+            const targets = (jqueryObject as { find: () => Record<string, unknown> }).find();
             return { ...targets, getTipData: () => isAnswering ? registry.text : undefined };
         },
     };
@@ -275,8 +283,8 @@ Deno.test("a fighter out of reach for a payload keeps the block remembered on th
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
     isAnswering = true;
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
-    const one = `${THEIRS}<br>MargoMeter<br>Tury wykonane 4`;
-    assertEquals(registry.text, one, "a tooltip that answered nothing once");
+    const withOneBlock = `${THEIRS}<br>MargoMeter<br>Tury wykonane 4`;
+    assertEquals(registry.text, withOneBlock, "a tooltip that answered nothing once");
     warrior.$ = undefined;
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 5"]]]));
     warrior.$ = answering;
@@ -309,15 +317,15 @@ Deno.test("a block the game's own text repeats is taken off where ours went on",
 });
 
 Deno.test("a fighter the page has not drawn is stepped over, not thrown on", () => {
-    const first = composeRegistry();
-    const second = composeRegistry();
+    const firstRegistry = composeRegistry();
+    const secondRegistry = composeRegistry();
     const page = composePage([
-        composeWarrior(11, "Gracz 1", first, { hasElement: false }),
-        composeWarrior(21, "Renegat 1", second),
+        composeWarrior(11, "Gracz 1", firstRegistry, { hasElement: false }),
+        composeWarrior(21, "Renegat 1", secondRegistry),
     ]);
     const writing = initMargonemEngineTooltip(page).writeRows(new Map([[11, ["a"]], [21, ["b"]]]));
     assertEquals(writing, { written: 1, asked: 2 }, "the one that is drawn takes its line");
-    assertEquals(second.appended, ["b"], "and the other costs nothing");
+    assertEquals(secondRegistry.appended, ["b"], "and the other costs nothing");
 });
 
 Deno.test("a call of theirs that throws costs the lines and never the fight", () => {
@@ -368,7 +376,7 @@ Deno.test("the writer remembers one board's worth of fighters, however many figh
     const page = composePage([]);
     const writer = initMargonemEngineTooltip(page);
     for (let fight = 0; fight < 4; fight += 1) {
-        const ids = Array.from({ length: COMBATANTS_MAXIMUM }, (_, at) => fight * 1000 + at);
+        const ids = Array.from({ length: COMBATANTS_MAXIMUM }, (_, index) => fight * 1000 + index);
         const board = composePage(
             ids.map((id) => composeWarrior(id, `Gracz ${id}`, composeRegistry())),
         );
@@ -392,7 +400,7 @@ Deno.test("no block asked for is no block written, and the counts say both", () 
  * for as the old block on the next write, not be found, and go on a second time.
  */
 Deno.test("a throw part way through remembers every block that went on before it", () => {
-    const first = composeRegistry();
+    const firstRegistry = composeRegistry();
     let isThrowing = true;
     const second = {
         id: 21,
@@ -409,15 +417,15 @@ Deno.test("a throw part way through remembers every block that went on before it
             },
         },
     };
-    const page = composePage([composeWarrior(11, "Gracz 1", first), second]);
+    const page = composePage([composeWarrior(11, "Gracz 1", firstRegistry), second]);
     const writer = initMargonemEngineTooltip(page);
     const rows = new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]);
     assertInstanceOf(writer.writeRows(rows), errors.Caught, "the walk stopped on the throw");
-    assertEquals(first.appended.length, 2, "after the first fighter's block went on");
+    assertEquals(firstRegistry.appended.length, 2, "after the first fighter's block went on");
     isThrowing = false;
     writer.writeRows(rows);
     assertEquals(
-        first.text,
+        firstRegistry.text,
         `${THEIRS}<br>MargoMeter<br>Tury wykonane 3`,
         "and it stays one block",
     );

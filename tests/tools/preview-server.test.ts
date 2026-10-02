@@ -206,8 +206,8 @@ Deno.test("past the bound a page is refused a stream rather than held", () => {
     }
     assertStrictEquals(listeners.size, LISTENERS_MAXIMUM);
     assertStrictEquals(openPreviewEvents(listeners).status, 503, "one past the bound is refused");
-    assert(opened.every((one) => one.status === 200), "and every one up to it was not");
-    for (const one of opened) one.body!.cancel();
+    assert(opened.every((response) => response.status === 200), "and every one up to it was not");
+    for (const response of opened) response.body!.cancel();
 });
 
 Deno.test("a fight opened at a path is drawn beside the recordings", async () => {

@@ -46,9 +46,9 @@ Deno.test("a name the roster lacks is flagged, one it holds is not, and each is 
             source: "heal",
         },
     ];
-    const found = lookupUnplacedNames(events, new Set(roster.idByName.keys()));
-    assertEquals(found.outside, ["Leak", "Other", "Third"], "an outcome, a shout and a target");
-    assertEquals(found.read, 5, "and free prose is not a list of names");
+    const unplaced = lookupUnplacedNames(events, new Set(roster.idByName.keys()));
+    assertEquals(unplaced.outside, ["Leak", "Other", "Third"], "an outcome, a shout and a target");
+    assertEquals(unplaced.read, 5, "and free prose is not a list of names");
 });
 
 function lookupUnplacedNames(
@@ -56,7 +56,7 @@ function lookupUnplacedNames(
     known: ReadonlySet<string>,
 ): { read: number; outside: string[] } {
     const outside: string[] = [];
-    let read = 0;
+    let namesRead = 0;
     for (const event of events) {
         const said: string[] = [];
         if (event.kind === BATTLE_EVENT.fightOutcome) said.push(...event.combatantNames);
@@ -64,30 +64,30 @@ function lookupUnplacedNames(
         // it, so without this a leak is dropped rather than found.
         if ("targetName" in event) said.push(event.targetName);
         if ("declared" in event) {
-            for (const one of event.declared) {
-                if (!NAME_KEYS.includes(one.effect)) continue;
-                if (one.text === null) continue;
-                said.push(...one.text.split(NAME_SEPARATOR));
+            for (const declaration of event.declared) {
+                if (!NAME_KEYS.includes(declaration.effect)) continue;
+                if (declaration.text === null) continue;
+                said.push(...declaration.text.split(NAME_SEPARATOR));
             }
         }
         for (const name of said) {
             if (name.length === 0) continue;
-            read += 1;
+            namesRead += 1;
             if (!known.has(name)) outside.push(name);
         }
     }
-    return { read, outside };
+    return { read: namesRead, outside };
 }
 
 Deno.test("no recording carries a name its own roster cannot place", () => {
     const outside: string[] = [];
-    let read = 0;
+    let namesRead = 0;
     for (const { fight, reading } of replayRecordedMaterial(readRecordedMaterial([]))) {
         const known = new Set(reading.view.roster.idByName.keys());
-        const found = lookupUnplacedNames(reading.view.events, known);
-        read += found.read;
-        outside.push(...found.outside.map((name) => `${fight.path}: ${name}`));
+        const unplaced = lookupUnplacedNames(reading.view.events, known);
+        namesRead += unplaced.read;
+        outside.push(...unplaced.outside.map((name) => `${fight.path}: ${name}`));
     }
-    assert(read > 0, "the recordings carry names for this to be asked of");
+    assert(namesRead > 0, "the recordings carry names for this to be asked of");
     assertEquals(outside, [], "a name no roster places is a leak or a gap, and both are findings");
 });

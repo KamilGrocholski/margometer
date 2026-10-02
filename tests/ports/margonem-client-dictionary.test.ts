@@ -52,9 +52,9 @@ Deno.test("a page with no game on it lends no dictionary", () => {
     expectAbsent(initMargonemClientDictionary("a page").readLabel(CRITICAL_ID), "nor a string");
 });
 
-function expectAbsent(read: unknown, message: string): void {
-    assertInstanceOf(read, MargonemValueAbsent, message);
-    assertStrictEquals(read.value, MARGONEM_VALUE.label, `${message}: the reading named`);
+function expectAbsent(answer: unknown, message: string): void {
+    assertInstanceOf(answer, MargonemValueAbsent, message);
+    assertStrictEquals(answer.value, MARGONEM_VALUE.label, `${message}: the reading named`);
 }
 
 Deno.test("a reader answers what the client answers, and nothing where it answers nothing", () => {
@@ -83,9 +83,9 @@ Deno.test("a dictionary that throws leaves the panel drawing its own word", () =
         // A real fault rather than a thrown Error: a torn-down page context looks like this.
         _t: (): string => (undefined as unknown as { missing: () => string }).missing(),
     });
-    const read = dictionary.readLabel(CRITICAL_ID);
-    assertInstanceOf(read, Error, "the failure comes back as no label");
-    assertInstanceOf(read, errors.Caught, "the page's own");
+    const answer = dictionary.readLabel(CRITICAL_ID);
+    assertInstanceOf(answer, Error, "the failure comes back as no label");
+    assertInstanceOf(answer, errors.Caught, "the page's own");
 });
 
 Deno.test("an answer past the bound is no label, and never an assertion inside a card", () => {

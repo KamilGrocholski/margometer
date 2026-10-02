@@ -13,14 +13,14 @@ const LINE_BREAK = "\n";
 
 /** Every row of exactly `cells` cells from the heading down, each cell trimmed. */
 export function parseTableRows(text: string, heading: string, cells: number): string[][] {
-    const at = text.indexOf(heading);
-    assert(at !== -1, `the document carries ${heading}`);
+    const headingIndex = text.indexOf(heading);
+    assert(headingIndex !== -1, `the document carries ${heading}`);
     assert(cells > 0, "a row is read by a count of cells");
     const rows: string[][] = [];
-    for (const line of text.slice(at).split(LINE_BREAK)) {
+    for (const line of text.slice(headingIndex).split(LINE_BREAK)) {
         if (!line.startsWith(ROW_OPENER)) continue;
-        const found = line.split(CELL_MARK).slice(1, -1).map((one) => one.trim());
-        if (found.length === cells) rows.push(found);
+        const rowCells = line.split(CELL_MARK).slice(1, -1).map((cell) => cell.trim());
+        if (rowCells.length === cells) rows.push(rowCells);
     }
     return rows;
 }

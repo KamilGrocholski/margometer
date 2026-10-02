@@ -111,7 +111,7 @@ function lookupPurityBreaches(
     files: readonly SourceFile[],
     purities: ReadonlyMap<string, Purity>,
 ): string[] {
-    const found: string[] = [];
+    const breaches: string[] = [];
     for (const file of files) {
         const known = indexCallableNames(file);
         for (const call of readAstNodes(file, ["CallExpression"])) {
@@ -120,11 +120,11 @@ function lookupPurityBreaches(
             const caller = lookupCallerDeclaration(call);
             if (caller === null) continue;
             const breach = lookupCallBreach(caller, callee, purities);
-            if (breach !== null) found.push(`${formatNodePlace(file, call)} ${breach}`);
+            if (breach !== null) breaches.push(`${formatNodePlace(file, call)} ${breach}`);
         }
-        found.push(...lookupHandedChanges(file, purities));
+        breaches.push(...lookupHandedChanges(file, purities));
     }
-    return found;
+    return breaches;
 }
 
 /** What a call breaks of P1, or null where it keeps it. */
@@ -148,7 +148,7 @@ function getPurity(name: string, purities: ReadonlyMap<string, Purity>): Purity 
 
 /** Every change a strong function makes to a parameter: an assignment into it, or a method. */
 function lookupHandedChanges(file: SourceFile, purities: ReadonlyMap<string, Purity>): string[] {
-    const found: string[] = [];
+    const handedChanges: string[] = [];
     for (const changed of readChangedNodes(file)) {
         const root = readRootName(changed);
         if (root === null) continue;
@@ -157,12 +157,12 @@ function lookupHandedChanges(file: SourceFile, purities: ReadonlyMap<string, Pur
         const name = readDeclaredFunctionName(caller)!;
         if (getPurity(name, purities) !== PURITY.strong) continue;
         if (!readParameterNames(caller).has(root)) continue;
-        found.push(
+        handedChanges.push(
             `${formatNodePlace(file, changed)} ${name}, strong, changes ${root}, ` +
                 `which it was handed`,
         );
     }
-    return found;
+    return handedChanges;
 }
 
 /** Every node a file changes in place, by an assignment into it or a method, in the file's order. */
@@ -171,13 +171,13 @@ function readChangedNodes(file: SourceFile): AstNode[] {
         ...readAstNodes(file, CHANGING_NODES).map(readChangedByAssignment),
         ...readAstNodes(file, ["CallExpression"]).map(readChangedByMethod),
     ];
-    const found = changes.filter((node) => node !== null);
-    return found.sort((one, other) => one.range[0] - other.range[0]);
+    const changedNodes = changes.filter((changedNode) => changedNode !== null);
+    return changedNodes.sort((left, right) => left.range[0] - right.range[0]);
 }
 
 /** What an assignment changes in place — `rows[0]` of `rows[0] = 1` — or null where it rebinds a name. */
-function readChangedByAssignment(node: AstNode): AstNode | null {
-    const target = node.left ?? node.argument;
+function readChangedByAssignment(assignment: AstNode): AstNode | null {
+    const target = assignment.left ?? assignment.argument;
     if (target === undefined) return null;
     if (target.type === "Identifier") return null;
     return target;
@@ -192,13 +192,13 @@ function readChangedByMethod(call: AstNode): AstNode | null {
 }
 
 /** The identifier a member chain stands on — `rows` of `rows[0]!.cells` — or null. */
-function readRootName(node: AstNode): string | null {
-    let at: AstNode | undefined = node;
-    for (let depth = 0; at !== undefined; depth += 1) {
+function readRootName(chain: AstNode): string | null {
+    let chainLink: AstNode | undefined = chain;
+    for (let depth = 0; chainLink !== undefined; depth += 1) {
         assert(depth < CHAIN_DEPTH_MAXIMUM, "a member chain stays inside the depth a climb states");
-        if (at.type === "Identifier") return at.name ?? null;
-        if (at.type === "MemberExpression") at = at.object;
-        else if (at.type === "TSNonNullExpression") at = at.expression;
+        if (chainLink.type === "Identifier") return chainLink.name ?? null;
+        if (chainLink.type === "MemberExpression") chainLink = chainLink.object;
+        else if (chainLink.type === "TSNonNullExpression") chainLink = chainLink.expression;
         else return null;
     }
     return null;
@@ -206,9 +206,9 @@ function readRootName(node: AstNode): string | null {
 
 /** The names a declared function's parameters bind, destructured ones included. */
 function readParameterNames(declaration: AstNode): Set<string> {
-    const node = readDeclaredFunction(declaration);
+    const declaredFunction = readDeclaredFunction(declaration);
     const names = new Set<string>();
-    for (const parameter of node.params ?? []) {
+    for (const parameter of declaredFunction.params ?? []) {
         const pattern = parameter.type === "AssignmentPattern" ? parameter.left! : parameter;
         if (pattern.type === "Identifier") names.add(pattern.name ?? "");
         for (const property of readPatternNames(pattern)) names.add(property);
@@ -226,13 +226,13 @@ function readDeclaredFunction(declaration: AstNode): AstNode {
 
 /** The names a destructuring pattern binds, one level deep: `{ rows, cells }` and `[first]`. */
 function readPatternNames(pattern: AstNode): string[] {
-    const found: string[] = [];
+    const patternNames: string[] = [];
     const members = pattern as unknown as { properties?: AstNode[]; elements?: AstNode[] };
     for (const member of [...(members.properties ?? []), ...(members.elements ?? [])]) {
-        const value = (member as unknown as { value?: AstNode }).value ?? member;
-        if (value?.type === "Identifier") found.push(value.name ?? "");
+        const boundNode = (member as unknown as { value?: AstNode }).value ?? member;
+        if (boundNode?.type === "Identifier") patternNames.push(boundNode.name ?? "");
     }
-    return found;
+    return patternNames;
 }
 
 Deno.test("a strong function changing what it is handed is flagged, and what it made is not", () => {
@@ -285,7 +285,7 @@ function lookupWritableParameters(
     file: SourceFile,
     purities: ReadonlyMap<string, Purity>,
 ): string[] {
-    const found: string[] = [];
+    const writableParameters: string[] = [];
     for (const declaration of readAstNodes(file, ["FunctionDeclaration", "VariableDeclarator"])) {
         const name = readDeclaredFunctionName(declaration);
         if (name === null) continue;
@@ -299,13 +299,13 @@ function lookupWritableParameters(
                 if (!isWritableCollection(type)) continue;
                 const text = file.text.slice(type.range[0], type.range[1]);
                 const binding = pattern.name ?? file.text.slice(...pattern.range);
-                found.push(
+                writableParameters.push(
                     `${formatNodePlace(file, declaration)} ${name} is handed ${binding} as ${text}`,
                 );
             }
         }
     }
-    return found;
+    return writableParameters;
 }
 
 function isWritableCollection(type: AstNode): boolean {
@@ -339,28 +339,30 @@ Deno.test("a module's own let, and a collection of its own that it changes, are 
 
 /** Every top-level `let` or `var`, and every top-level collection the module changes. */
 function lookupModuleStates(file: SourceFile): string[] {
-    const found: string[] = [];
+    const moduleStates: string[] = [];
     const collections = new Map<string, AstNode>();
     for (const declaration of readAstNodes(file, ["VariableDeclaration"])) {
         if (!isTopLevel(declaration)) continue;
         for (const declarator of declaration.declarations ?? []) {
             const name = declarator.id?.name ?? "";
             if (declaration.kind !== "const") {
-                found.push(`${formatNodePlace(file, declarator)} holds ${name}`);
+                moduleStates.push(`${formatNodePlace(file, declarator)} holds ${name}`);
             } else if (isCollectionMade(declarator.init)) {
                 collections.set(name, declarator);
             }
         }
     }
     const changed = new Set<string>();
-    for (const node of readChangedNodes(file)) {
-        const root = readRootName(node);
+    for (const changedNode of readChangedNodes(file)) {
+        const root = readRootName(changedNode);
         if (root !== null) changed.add(root);
     }
     for (const [name, declarator] of collections) {
-        if (changed.has(name)) found.push(`${formatNodePlace(file, declarator)} changes ${name}`);
+        if (changed.has(name)) {
+            moduleStates.push(`${formatNodePlace(file, declarator)} changes ${name}`);
+        }
     }
-    return found;
+    return moduleStates;
 }
 
 function isTopLevel(declaration: AstNode): boolean {

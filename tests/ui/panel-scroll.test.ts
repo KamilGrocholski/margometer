@@ -38,7 +38,7 @@ Deno.test("a position comes back under the name it was kept under", () => {
 Deno.test("the oldest place goes when the maximum is reached", () => {
     const kept = createScrollMemo();
     kept.setTop("first", SOMEWHERE_DOWN);
-    for (let at = 0; at < NAMES_TRIED; at += 1) kept.setTop(`place ${at}`, at + 1);
+    for (let index = 0; index < NAMES_TRIED; index += 1) kept.setTop(`place ${index}`, index + 1);
     assertStrictEquals(kept.getTop("first"), 0, "the place kept longest ago is gone");
     assertStrictEquals(
         kept.getTop(`place ${NAMES_TRIED - 1}`),
@@ -63,9 +63,9 @@ Deno.test("a position is read off a list and off nothing else", () => {
 });
 
 function composeElementOfClass(className: string): PanelElement {
-    const element = composeFakeDocument().createElement("div");
-    element.className = className;
-    return element;
+    const elementOfClass = composeFakeDocument().createElement("div");
+    elementOfClass.className = className;
+    return elementOfClass;
 }
 
 Deno.test("a position is put on a list and never on a slot", () => {
@@ -121,12 +121,12 @@ Deno.test("the rows are swapped under the reader, and the region they scroll in 
     standing.className = CLASS.list;
     const wasRow = document.createElement("div");
     standing.append(wasRow);
-    const next = document.createElement("div");
-    next.className = `${CLASS.list} ${CLASS.listWaiting}`;
+    const drawn = document.createElement("div");
+    drawn.className = `${CLASS.list} ${CLASS.listWaiting}`;
     const row = document.createElement("div");
-    next.append(row);
+    drawn.append(row);
 
-    assertStrictEquals(renderListRows(standing, next), true, "both are lists, so the rows move");
+    assertStrictEquals(renderListRows(standing, drawn), true, "both are lists, so the rows move");
     assertEquals(Array.from(standing.children), [row], "the region holds what was drawn for it");
     assertStrictEquals(
         standing.className,
@@ -142,10 +142,10 @@ Deno.test("the rows are swapped under the reader, and the region they scroll in 
 Deno.test("the region takes the height the list drawn for it was standing at", () => {
     const standing = composeElementOfClass(CLASS.list);
     standing.setAttribute("style", "--MargoMeter-rows:11");
-    const next = composeElementOfClass(CLASS.list);
-    next.setAttribute("style", "--MargoMeter-rows:22");
+    const drawn = composeElementOfClass(CLASS.list);
+    drawn.setAttribute("style", "--MargoMeter-rows:22");
 
-    assertStrictEquals(renderListRows(standing, next), true, "the rows move");
+    assertStrictEquals(renderListRows(standing, drawn), true, "the rows move");
     assertStrictEquals(
         standing.getAttribute("style"),
         "--MargoMeter-rows:22",
@@ -157,9 +157,9 @@ Deno.test("the region takes the height the list drawn for it was standing at", (
 Deno.test("a list carrying no height takes none from the one it replaced", () => {
     const standing = composeElementOfClass(CLASS.list);
     standing.setAttribute("style", "--MargoMeter-rows:11");
-    const next = composeElementOfClass(CLASS.list);
+    const drawn = composeElementOfClass(CLASS.list);
 
-    assertStrictEquals(renderListRows(standing, next), true, "the rows move");
+    assertStrictEquals(renderListRows(standing, drawn), true, "the rows move");
     assertStrictEquals(standing.getAttribute("style"), "", "and the height goes with them");
 });
 

@@ -42,7 +42,7 @@ Deno.test("a wider pool is read less exactly, and says so", () => {
 });
 
 Deno.test("the client's own percentage is its health rounded to two places", () => {
-    let read = 0;
+    let readingsChecked = 0;
     for (const fight of readRecordedFights()) {
         const path = fight.path;
         for (const reading of fight.healthReadings) {
@@ -50,10 +50,10 @@ Deno.test("the client's own percentage is its health rounded to two places", () 
             const exact = (reading.health / reading.healthMaximum) * 100;
             const rounded = Math.round(exact * PERCENT_PLACES) / PERCENT_PLACES;
             assertEquals(reading.healthPercent, rounded, `${path}: ${reading.combatantId}`);
-            read += 1;
+            readingsChecked += 1;
         }
     }
-    assert(read > 0, "the recordings state health");
+    assert(readingsChecked > 0, "the recordings state health");
 });
 
 Deno.test("a stated percentage reads back to the health the client holds", () => {
@@ -83,8 +83,8 @@ Deno.test("every combatant in every recording is stated before anything happens 
         const path = fight.path;
         const cast = fight.combatants;
         const roster = indexCombatantRoster(cast);
-        const events = fight.payloads.flatMap((one) =>
-            decodePayloadMessages(one, {
+        const events = fight.payloads.flatMap((payload) =>
+            decodePayloadMessages(payload, {
                 roster,
                 announcementStanding: null,
                 tables: BLOWS_GRANTED,
@@ -306,8 +306,8 @@ Deno.test("every cast in the recordings is sized, and the cap is what does the w
     let atShare = 0;
     for (const fight of readRecordedFights()) {
         const roster = indexCombatantRoster(fight.combatants);
-        const events = fight.payloads.flatMap((one) =>
-            decodePayloadMessages(one, {
+        const events = fight.payloads.flatMap((payload) =>
+            decodePayloadMessages(payload, {
                 roster,
                 announcementStanding: null,
                 tables: BLOWS_GRANTED,

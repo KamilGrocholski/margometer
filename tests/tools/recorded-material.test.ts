@@ -73,17 +73,17 @@ Deno.test("a file with a call the add-on refuses is refused, naming why", () => 
 Deno.test("a fight stepped call by call ends where the whole replay stands", () => {
     const material = readRecordedMaterial([]);
     const whole = replayRecordedMaterial(material);
-    for (const [at, { fight, steps }] of replayMaterialSteps(material).entries()) {
+    for (const [fightIndex, { fight, steps }] of replayMaterialSteps(material).entries()) {
         assert(steps.length > 0, `${fight.path}: a recording read is stepped at least once`);
         assert(steps.length <= fight.updates.length, `${fight.path}: at most once per call`);
         assertEquals(
             steps.at(-1)?.reading.view,
-            whole[at]?.reading.view,
+            whole[fightIndex]?.reading.view,
             `${fight.path}: the last step is the fight the whole replay reads`,
         );
         assertStrictEquals(steps.at(-1)?.update, fight.updates.at(-1), "after the last call");
         const counts = steps.map((step) => step.reading.view.payloadsApplied);
-        assertEquals(counts, [...counts].sort((one, other) => one - other), "one call at a time");
+        assertEquals(counts, [...counts].sort((left, right) => left - right), "one call at a time");
     }
 });
 

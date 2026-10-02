@@ -111,10 +111,10 @@ Deno.test("an ability's prose goes, a marker already there stays, and a strange 
 });
 
 Deno.test("the whole intake drops the report and adds its counts to what the file carried", () => {
-    const first = composeIntake(composeFight());
-    assert(first.wasReportRemoved, "the counted figures go");
-    assertEquals(first.recording, JSON.parse(first.text), "the text is the recording");
-    const written = first.recording as Record<string, unknown>;
+    const intake = composeIntake(composeFight());
+    assert(intake.wasReportRemoved, "the counted figures go");
+    assertEquals(intake.recording, JSON.parse(intake.text), "the text is the recording");
+    const written = intake.recording as Record<string, unknown>;
     assertStrictEquals("report" in written, false);
     assertStrictEquals(written.namesSubstituted, 6);
     assertStrictEquals(written.descriptionsRemoved, 1);

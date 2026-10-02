@@ -89,8 +89,8 @@ Deno.test("a recording one side reports and the other does not is a difference",
 });
 
 Deno.test("no recording on one side against one on the other is a difference, not agreement", () => {
-    const one = "=== one ===\n  payloads 1\n";
-    const none = compareReportSections("material captures/\n", one);
+    const oneSection = "=== one ===\n  payloads 1\n";
+    const none = compareReportSections("material captures/\n", oneSection);
     assertEquals(none.agreedNames, []);
     assertStrictEquals(none.differences.length, 1);
     const both = compareReportSections("material captures/\n", "material captures/\n");
@@ -109,14 +109,14 @@ Deno.test("a whole report is one section, its trailing blanks aside", () => {
 });
 
 Deno.test("a recording develop never read is named apart, and the rest are compared", () => {
-    const one = lookupRecordedFight(SHORT);
-    const other = lookupRecordedFight(OTHER);
-    const material = { material: "captures/", fights: [one, other] };
+    const shortFight = lookupRecordedFight(SHORT);
+    const otherFight = lookupRecordedFight(OTHER);
+    const material = { material: "captures/", fights: [shortFight, otherFight] };
     const none = selectDevelopMaterial(material, new Set([SHORT_NAME, OTHER_NAME]));
     assertEquals(none.newer, [], "nothing admitted since is nothing named");
     assertStrictEquals(none.shared.fights.length, 2);
     const newer = selectDevelopMaterial(material, new Set([SHORT_NAME]));
     assertEquals(newer.newer, [OTHER_NAME], "one admitted since is named");
-    assertEquals(newer.shared.fights, [one], "and left out of what is compared");
+    assertEquals(newer.shared.fights, [shortFight], "and left out of what is compared");
     assertStrictEquals(newer.shared.material, "captures/", "under the material it was taken from");
 });

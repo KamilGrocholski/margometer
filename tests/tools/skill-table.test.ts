@@ -17,11 +17,11 @@ import {
 } from "#/tools/skill-table.ts";
 
 Deno.test("a duration is read off the level it is stated on, and none where none is", () => {
-    const read = requireSkillsOfMargonemApi(
+    const skills = requireSkillsOfMargonemApi(
         composeRow("264", "taken_dmg_per-all=6@8,7@8;<br>cooldown=8"),
     );
-    assertStrictEquals(read.length, 1, "one row, one skill");
-    assertEquals(read[0]?.effects, [
+    assertStrictEquals(skills.length, 1, "one row, one skill");
+    assertEquals(skills[0]?.effects, [
         { key: "taken_dmg_per-all", turns: [8, 8], amounts: [6, 7], values: [6, 7] },
         { key: "cooldown", turns: [], amounts: [], values: [8] },
     ], "the marked half is the turns, the half in front of it the value, and none is none");
@@ -34,10 +34,10 @@ function composeRow(id: string, effects: string): string {
 }
 
 Deno.test("a level stating no duration is passed over rather than read as nothing", () => {
-    const read = requireSkillsOfMargonemApi(
+    const skills = requireSkillsOfMargonemApi(
         composeRow("7", "critmval_l=1,2,3;<br>slowfreeze_per=45@2,50@3"),
     );
-    assertEquals(read[0]?.effects, [
+    assertEquals(skills[0]?.effects, [
         { key: "critmval_l", turns: [], amounts: [], values: [1, 2, 3] },
         { key: "slowfreeze_per", turns: [2, 3], amounts: [45, 50], values: [45, 50] },
     ], "a run of plain values is a duration nowhere, not a duration of zero");
@@ -45,9 +45,9 @@ Deno.test("a level stating no duration is passed over rather than read as nothin
 
 Deno.test("a value the page writes as arithmetic is read as no duration at all", () => {
     // `mana=0.3*cplvl` and `dmg-target_absolute=10*cplvl` are stated per level and dated nowhere.
-    const read = requireSkillsOfMargonemApi(composeRow("8", "mana=0.3*cplvl,0.32*cplvl"));
+    const skills = requireSkillsOfMargonemApi(composeRow("8", "mana=0.3*cplvl,0.32*cplvl"));
     assertEquals(
-        read[0]?.effects,
+        skills[0]?.effects,
         [{ key: "mana", turns: [], amounts: [], values: [] }],
         "nothing marked, and no figure a reading could use",
     );
@@ -73,10 +73,10 @@ Deno.test("a page of another shape is refused rather than read off by one", () =
 });
 
 Deno.test("a row whose id is not a number is passed over, not read as one", () => {
-    const read = requireSkillsOfMargonemApi(
+    const skills = requireSkillsOfMargonemApi(
         composeRow("id", "aura-sa_per=11@8") + composeRow("89", "aura-sa_per=11@8"),
     );
-    assertEquals(read.map((one) => one.id), [89], "the heading row the page opens with");
+    assertEquals(skills.map((skill) => skill.id), [89], "the heading row the page opens with");
 });
 
 /**
@@ -85,40 +85,40 @@ Deno.test("a row whose id is not a number is passed over, not read as one", () =
  * values, so this is the only place the count is read off a page shape. **ADR 0063.**
  */
 Deno.test("a shout is carried by its own turns and by the fewest characters it covers", () => {
-    const read = requireSkillsOfMargonemApi(
+    const skills = requireSkillsOfMargonemApi(
         composeRow("188", "shout=6@3,7@3,8@3;<br>alllowdmg=1@5;<br>red-sa=6") +
             composeRow("89", "aura-sa_per=11@8;<br>cooldown=6"),
     );
     assertEquals(
-        composeShoutSkills(read),
+        composeShoutSkills(skills),
         [{ id: 188, turns: 3, coverageMinimum: 6 }],
         "three turns of its own where the skill's longest is five, and six at its lowest level",
     );
     assertEquals(
-        composeAuraSkills(read).find((one) => one.id === 188),
+        composeAuraSkills(skills).find((skill) => skill.id === 188),
         { id: 188, turns: 5 },
         "the aura reading of the same skill is still the longest of its effects",
     );
 });
 
 Deno.test("a shout the page dates nowhere is carried nowhere", () => {
-    const read = requireSkillsOfMargonemApi(composeRow("188", "shout=6;<br>alllowdmg=1@5"));
-    assertEquals(composeShoutSkills(read), [], "a count with no turns beside it holds nobody");
+    const skills = requireSkillsOfMargonemApi(composeRow("188", "shout=6;<br>alllowdmg=1@5"));
+    assertEquals(composeShoutSkills(skills), [], "a count with no turns beside it holds nobody");
 });
 
 Deno.test("only the skills reaching a side are carried, at the longest they state", () => {
-    const read = requireSkillsOfMargonemApi(
+    const skills = requireSkillsOfMargonemApi(
         composeRow("188", "shout=6@3;<br>alllowdmg=1@5;<br>red-sa=6") +
             composeRow("8", "manaendest=40,45") +
             composeRow("89", "aura-sa_per=11@8;<br>cooldown=6"),
     );
     assertEquals(
-        composeAuraSkills(read),
+        composeAuraSkills(skills),
         [{ id: 188, turns: 5 }, { id: 89, turns: 8 }],
         "the one reaching nobody is left behind, and the one stating two takes the longer",
     );
     assert(
-        composeAuraSkills(read).length < read.length,
+        composeAuraSkills(skills).length < skills.length,
         "a side's table is the smaller of the two",
     );
 });
@@ -129,27 +129,29 @@ Deno.test("only the skills reaching a side are carried, at the longest they stat
  * reader did until **develop ADR 0078**.
  */
 Deno.test("a granted blow is read where the page states no duration beside it", () => {
-    const read = requireSkillsOfMargonemApi(
+    const skills = requireSkillsOfMargonemApi(
         composeRow("239", "energy=10;<br>add_attacks=1;<br>cooldown=2") +
             composeRow("89", "aura-sa_per=11@8"),
     );
     assertEquals(
-        composeGrantedBlows(read),
+        composeGrantedBlows(skills),
         [{ id: 239, blowsGrantedMinimum: 1 }],
         "the skill granting one is carried, and the one granting none is left behind",
     );
 });
 
 Deno.test("a grant stated per level is carried at the fewest the page states", () => {
-    const read = requireSkillsOfMargonemApi(composeRow("283", "add_attacks=2,2,3;<br>cooldown=4"));
+    const skills = requireSkillsOfMargonemApi(
+        composeRow("283", "add_attacks=2,2,3;<br>cooldown=4"),
+    );
     assertEquals(
-        composeGrantedBlows(read),
+        composeGrantedBlows(skills),
         [{ id: 283, blowsGrantedMinimum: 2 }],
         "the panel does not know the caster's level, so it relies on what holds at every one",
     );
 });
 
 Deno.test("a grant the page writes as arithmetic is carried nowhere", () => {
-    const read = requireSkillsOfMargonemApi(composeRow("283", "add_attacks=0.5*cplvl"));
-    assertEquals(composeGrantedBlows(read), [], "a figure nothing could read is not a grant");
+    const skills = requireSkillsOfMargonemApi(composeRow("283", "add_attacks=0.5*cplvl"));
+    assertEquals(composeGrantedBlows(skills), [], "a figure nothing could read is not a grant");
 });

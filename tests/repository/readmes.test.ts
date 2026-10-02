@@ -21,25 +21,27 @@ Deno.test("the picture reader finds a tag's source, and nothing that is only bes
 });
 
 function readPictures(text: string): string[] {
-    const found: string[] = [];
-    let at = text.indexOf(PICTURE_MARK);
-    for (let tried = 0; at !== -1; tried += 1) {
+    const pictures: string[] = [];
+    let markIndex = text.indexOf(PICTURE_MARK);
+    for (let tried = 0; markIndex !== -1; tried += 1) {
         assert(tried <= text.length, "the walk stays inside the text");
-        const from = at + PICTURE_MARK.length;
-        found.push(text.slice(from, text.indexOf(PICTURE_CLOSER, from)));
-        at = text.indexOf(PICTURE_MARK, from);
+        const from = markIndex + PICTURE_MARK.length;
+        pictures.push(text.slice(from, text.indexOf(PICTURE_CLOSER, from)));
+        markIndex = text.indexOf(PICTURE_MARK, from);
     }
-    return found;
+    return pictures;
 }
 
 Deno.test("the two run headings at the same depths, in the same order", () => {
-    const [one, other] = README_PATHS.map((path) => readHeadingDepths(Deno.readTextFileSync(path)));
-    assert((one ?? []).length > 0, "there is a skeleton to compare");
-    assertEquals(one, other, "one skeleton in two languages");
+    const [polish, english] = README_PATHS.map((path) =>
+        readHeadingDepths(Deno.readTextFileSync(path))
+    );
+    assert((polish ?? []).length > 0, "there is a skeleton to compare");
+    assertEquals(polish, english, "one skeleton in two languages");
 });
 
 function readHeadingDepths(text: string): number[] {
-    const found: number[] = [];
+    const depths: number[] = [];
     for (const line of text.split("\n")) {
         if (!line.startsWith(HEADING_MARK)) continue;
         let depth = 0;
@@ -47,16 +49,20 @@ function readHeadingDepths(text: string): number[] {
             depth += 1;
             assert(depth <= line.length, "a heading's marks stand inside its line");
         }
-        found.push(depth);
+        depths.push(depth);
     }
-    return found;
+    return depths;
 }
 
 Deno.test("the two show the pictures the shot set names, in the same order", () => {
-    const [one, other] = README_PATHS.map((path) => readPictures(Deno.readTextFileSync(path)));
-    assert((one ?? []).length > 0, "a README shows the panel");
-    assertEquals(one, other, "the same pictures, in the same order");
-    assertEquals([...(one ?? [])].sort(), readShotPaths().sort(), "and the set taken, both ways");
+    const [polish, english] = README_PATHS.map((path) => readPictures(Deno.readTextFileSync(path)));
+    assert((polish ?? []).length > 0, "a README shows the panel");
+    assertEquals(polish, english, "the same pictures, in the same order");
+    assertEquals(
+        [...(polish ?? [])].sort(),
+        readShotPaths().sort(),
+        "and the set taken, both ways",
+    );
 });
 
 /** Every picture the sidecar says the last run took, as a path a README would show it at. */
@@ -76,9 +82,11 @@ function readShotPaths(): string[] {
 
 Deno.test("each translation offers the other on its first line", () => {
     for (const path of README_PATHS) {
-        const first = Deno.readTextFileSync(path).split("\n")[0] ?? "";
-        for (const other of README_PATHS) {
-            if (other !== path) assert(first.includes(`(${other})`), `${path} links ${other}`);
+        const openingLine = Deno.readTextFileSync(path).split("\n")[0] ?? "";
+        for (const translation of README_PATHS) {
+            if (translation !== path) {
+                assert(openingLine.includes(`(${translation})`), `${path} links ${translation}`);
+            }
         }
     }
 });

@@ -44,7 +44,9 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
         const freshestByWounded = new Map<number, string>();
         for (const message of fight.messages) {
             const parsed = parseOrFail(message, path);
-            const announced = parsed.parameters.filter((one) => one.key === WOUND_ANNOUNCEMENT_KEY);
+            const announced = parsed.parameters.filter((parameter) =>
+                parameter.key === WOUND_ANNOUNCEMENT_KEY
+            );
             // The walk below takes the first and would drop a second without a word.
             assert(announced.length <= 1, `${path}: two wounds announced in one message`);
             const applied = announced[0];
@@ -54,7 +56,7 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
                 freshestByWounded.set(parsed.target.combatantId, applied.value);
                 wounds += 1;
             }
-            const ticked = parsed.parameters.filter((one) => one.key === TICK_KEY);
+            const ticked = parsed.parameters.filter((parameter) => parameter.key === TICK_KEY);
             assert(ticked.length <= 1, `${path}: two wounds ticking in one message`);
             const tick = ticked[0];
             if (tick === undefined) continue;
@@ -79,14 +81,16 @@ Deno.test("a victim carries one wound at a time, however many attackers wounded 
     const attackers = new Map<number, Set<number>>();
     for (const message of lookupRecordedFight(THREE_ATTACKERS).messages) {
         const parsed = parseOrFail(message, THREE_ATTACKERS);
-        if (!parsed.parameters.some((one) => one.key === WOUND_ANNOUNCEMENT_KEY)) continue;
+        if (!parsed.parameters.some((parameter) => parameter.key === WOUND_ANNOUNCEMENT_KEY)) {
+            continue;
+        }
         assertExists(parsed.actor, "a wound has somebody who dealt it");
         assertExists(parsed.target, "and somebody who carries it");
         const seen = attackers.get(parsed.target.combatantId) ?? new Set<number>();
         seen.add(parsed.actor.combatantId);
         attackers.set(parsed.target.combatantId, seen);
     }
-    const most = Math.max(...[...attackers.values()].map((one) => one.size));
+    const most = Math.max(...[...attackers.values()].map((attackerIds) => attackerIds.size));
     assertEquals(most, 3, "three attackers wound one victim here, so freshest is a claim");
 });
 
@@ -125,7 +129,9 @@ function tallyExpectedTicks(messages: readonly string[]): Map<number, number> {
     const expected = new Map<number, number>();
     for (const message of messages) {
         const parsed = parseOrFail(message, THREE_ATTACKERS);
-        const applied = parsed.parameters.find((one) => one.key === WOUND_ANNOUNCEMENT_KEY);
+        const applied = parsed.parameters.find((parameter) =>
+            parameter.key === WOUND_ANNOUNCEMENT_KEY
+        );
         if (applied !== undefined) {
             assertExists(parsed.actor, "a wound is left by somebody");
             assertExists(parsed.target, "on somebody");
@@ -133,7 +139,7 @@ function tallyExpectedTicks(messages: readonly string[]): Map<number, number> {
             const standing = { actorId: parsed.actor.combatantId, amount: applied.value };
             freshestByWounded.set(parsed.target.combatantId, standing);
         }
-        const tick = parsed.parameters.find((one) => one.key === TICK_KEY);
+        const tick = parsed.parameters.find((parameter) => parameter.key === TICK_KEY);
         if (tick === undefined) continue;
         assertExists(parsed.actor, "a tick names its victim");
         const wound = freshestByWounded.get(parsed.actor.combatantId);

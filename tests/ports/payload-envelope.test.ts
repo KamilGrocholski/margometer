@@ -56,9 +56,9 @@ Deno.test("a field of the wrong shape refuses the payload, and says which field 
     expectMalformed(readPayloadEnvelope({ w: "one" }), "combatants", "text is no cast");
 });
 
-function expectMalformed(read: unknown, field: EnvelopeField, message: string): void {
-    assertInstanceOf(read, PayloadFieldMalformed, message);
-    assertStrictEquals(read.field, field, `${message}: our field`);
+function expectMalformed(answer: unknown, field: EnvelopeField, message: string): void {
+    assertInstanceOf(answer, PayloadFieldMalformed, message);
+    assertStrictEquals(answer.field, field, `${message}: our field`);
 }
 
 Deno.test("a list past its bound refuses the payload, and one at it does not", () => {
@@ -89,24 +89,24 @@ Deno.test("a list past its bound refuses the payload, and one at it does not", (
 });
 
 function expectTooLong(
-    read: unknown,
+    answer: unknown,
     expected: { field: EnvelopeField; count: number; maximum: number },
     message: string,
 ): void {
-    assertInstanceOf(read, PayloadFieldTooLong, message);
-    const { field, count, maximum } = read;
+    assertInstanceOf(answer, PayloadFieldTooLong, message);
+    const { field, count, maximum } = answer;
     assertEquals({ field, count, maximum }, expected, `${message}, saying by how much`);
 }
 
 Deno.test("a cast is read up to a full fight, and one warrior past it is refused", () => {
-    const warriors = Array.from({ length: COMBATANTS_MAXIMUM + 1 }, (_, at) => ({
-        id: at + 1,
-        name: `Gracz ${at + 1}`,
-        team: at % 2,
+    const warriors = Array.from({ length: COMBATANTS_MAXIMUM + 1 }, (_, index) => ({
+        id: index + 1,
+        name: `Gracz ${index + 1}`,
+        team: index % 2,
     }));
     const full = warriors.slice(0, COMBATANTS_MAXIMUM);
     assertStrictEquals(readOk({ w: full }).combatants.length, COMBATANTS_MAXIMUM, "twenty");
-    const keyed = Object.fromEntries(full.map((one) => [`${one.id}`, one]));
+    const keyed = Object.fromEntries(full.map((warrior) => [`${warrior.id}`, warrior]));
     assertStrictEquals(readOk({ w: keyed }).combatants.length, COMBATANTS_MAXIMUM, "keyed too");
     const past = {
         field: "combatants" as const,
@@ -114,7 +114,7 @@ Deno.test("a cast is read up to a full fight, and one warrior past it is refused
         maximum: COMBATANTS_MAXIMUM,
     };
     expectTooLong(readPayloadEnvelope({ w: warriors }), past, "a listed twenty-first is refused");
-    const keyedPast = Object.fromEntries(warriors.map((one) => [`${one.id}`, one]));
+    const keyedPast = Object.fromEntries(warriors.map((warrior) => [`${warrior.id}`, warrior]));
     expectTooLong(readPayloadEnvelope({ w: keyedPast }), past, "and so is a keyed one");
 });
 
@@ -125,13 +125,15 @@ function readOk(payload: unknown) {
 }
 
 Deno.test("a combatant stated twice in one payload refuses it", () => {
-    const one = { id: 3, name: "Gracz 3", team: 1 };
-    const repeated = readPayloadEnvelope({ w: [one, { ...one, name: "Gracz 4" }] });
+    const combatantEntry = { id: 3, name: "Gracz 3", team: 1 };
+    const repeated = readPayloadEnvelope({
+        w: [combatantEntry, { ...combatantEntry, name: "Gracz 4" }],
+    });
     assertInstanceOf(repeated, PayloadCombatantRepeated, "one id, two combatants");
     assertStrictEquals(repeated.combatantId, 3, "and says whose");
     const partial = { id: 3, buffs: 1 };
     assertNotInstanceOf(
-        readPayloadEnvelope({ w: [one, partial] }),
+        readPayloadEnvelope({ w: [combatantEntry, partial] }),
         Error,
         "a partial entry beside it is no second",
     );

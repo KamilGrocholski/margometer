@@ -39,9 +39,9 @@ Deno.test("an id that names nobody is none, never a guess", () => {
     expectAbsent(initMargonemEngineHero(null).readHeroId(), "and nor does no page");
 });
 
-function expectAbsent(read: unknown, message: string): void {
-    assertInstanceOf(read, MargonemValueAbsent, message);
-    assertStrictEquals(read.value, MARGONEM_VALUE.hero, `${message}: the reading named`);
+function expectAbsent(answer: unknown, message: string): void {
+    assertInstanceOf(answer, MargonemValueAbsent, message);
+    assertStrictEquals(answer.value, MARGONEM_VALUE.hero, `${message}: the reading named`);
 }
 
 Deno.test("the engine is read by the page's call when the field holds none", () => {
@@ -69,9 +69,9 @@ Deno.test("a page tearing itself down is a failure of theirs, not a reading of n
             },
         },
     };
-    const read = initMargonemEngineHero(page).readHeroId();
-    assertInstanceOf(read, errors.Caught, "a failure of theirs");
-    assertStrictEquals(read.cause, thrown, "with its cause");
+    const answer = initMargonemEngineHero(page).readHeroId();
+    assertInstanceOf(answer, errors.Caught, "a failure of theirs");
+    assertStrictEquals(answer.cause, thrown, "with its cause");
 });
 
 Deno.test("the client's own method for this is never called", () => {

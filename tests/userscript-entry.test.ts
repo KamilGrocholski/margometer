@@ -67,26 +67,34 @@ Deno.test("a recording played through the page's own method reaches the panel an
     }
     const host = window.shown[0];
     assertExists(host, "a panel went up");
-    const rows = getElementsWithin(host).filter((one) => one.className.startsWith(CLASS.row));
+    const rows = getElementsWithin(host).filter((drawn) => drawn.className.startsWith(CLASS.row));
     assert(rows.length > 0, "and draws the fight");
     assert(window.stored.has(STORE_KEY.fights), "the fight that ended is kept in the page's store");
     assertEquals(window.lines, [], "with not a word of failure");
 });
 
 Deno.test("a page lacking a part the add-on calls stands it down, naming the part once", () => {
-    for (const [part, members] of MEMBERS_BY_PART) {
+    for (const [pagePart, members] of MEMBERS_BY_PART) {
         const window = composeFakeWindow();
         for (const member of members) delete window.page[member];
         assertStrictEquals(startMargoMeter(window.page), null, `${members}: no add-on`);
-        assertStrictEquals(window.lines.length, 1, `${members}: one line, naming the ${part}`);
+        assertStrictEquals(window.lines.length, 1, `${members}: one line, naming the ${pagePart}`);
         const [said, failure] = window.lines[0] ?? [];
-        assertStrictEquals(said, BRANDED_STOOD_DOWN, `${members}: one line, naming the ${part}`);
+        assertStrictEquals(
+            said,
+            BRANDED_STOOD_DOWN,
+            `${members}: one line, naming the ${pagePart}`,
+        );
         assertInstanceOf(
             failure,
             BrowserWindowUnusable,
-            `${members}: one line, naming the ${part}`,
+            `${members}: one line, naming the ${pagePart}`,
         );
-        assertStrictEquals(failure.missing, part, `${members}: one line, naming the ${part}`);
+        assertStrictEquals(
+            failure.missing,
+            pagePart,
+            `${members}: one line, naming the ${pagePart}`,
+        );
         assertEquals([window.frames, window.shown], [[], []], `${members}: and nothing drawn`);
     }
 });
@@ -141,8 +149,8 @@ Deno.test("the tables the add-on runs on are the frozen readings, every one of t
         assertStrictEquals(turns, skill.turns, `skill ${skill.id} runs what the table froze`);
     }
     for (const shout of FROZEN_AURA_TURNS.shouts) {
-        const read = tables.tooltip.statedSkills.shoutsBySkillId.get(shout.id);
-        assertExists(read, `shout ${shout.id} is read`);
+        const shoutStated = tables.tooltip.statedSkills.shoutsBySkillId.get(shout.id);
+        assertExists(shoutStated, `shout ${shout.id} is read`);
     }
     assertStrictEquals(
         tables.tooltip.statusBits,
@@ -192,32 +200,32 @@ Deno.test("the page's size is read whole or not at all, and nought is a size", (
     for (const [width, height, expected] of sizes) {
         const window = composeFakeWindow();
         Object.assign(window.page, { innerWidth: width, innerHeight: height });
-        const read = readRuntimePorts(window.page);
-        assertNotInstanceOf(read, Error, "the page stands the add-on");
-        assertEquals(read.readViewport(), expected, `${width} by ${height}`);
+        const ports = readRuntimePorts(window.page);
+        assertNotInstanceOf(ports, Error, "the page stands the add-on");
+        assertEquals(ports.readViewport(), expected, `${width} by ${height}`);
     }
 });
 
 Deno.test("the game's build is read off the page's own script, and nothing else is", () => {
     const window = composeFakeWindow();
-    const read = readRuntimePorts(window.page);
-    assertNotInstanceOf(read, Error, "the page stands the add-on");
-    assertStrictEquals(read.build.readBuildId(), "53XkBRxF", "the bundle's name states it");
+    const ports = readRuntimePorts(window.page);
+    assertNotInstanceOf(ports, Error, "the page stands the add-on");
+    assertStrictEquals(ports.build.readBuildId(), "53XkBRxF", "the bundle's name states it");
     const document = window.page.document as Record<string, unknown>;
     document.querySelectorAll = () => [{ src: { toString: () => "/js/main.min.53XkBRxF.js" } }];
-    assertInstanceOf(read.build.readBuildId(), Error, "a source that is not text");
+    assertInstanceOf(ports.build.readBuildId(), Error, "a source that is not text");
 });
 
 Deno.test("a file goes to the page's downloads through an anchor standing in its body", () => {
     const window = composeFakeWindow();
-    const read = readRuntimePorts(window.page);
-    assertNotInstanceOf(read, Error, "the page stands the add-on");
-    const written = read.file.writeFile("fight.json", "{}", () => {});
+    const ports = readRuntimePorts(window.page);
+    assertNotInstanceOf(ports, Error, "the page stands the add-on");
+    const written = ports.file.writeFile("fight.json", "{}", () => {});
     assertStrictEquals(written, undefined, "the page took it");
     assertEquals(window.blobs, [["{}"]], "as one blob of the text");
     const anchor = window.anchors[0];
     assertExists(anchor, "through an anchor the page made");
     assertEquals([anchor.download, anchor.href], ["fight.json", "blob:1"], "named, at its address");
     assertEquals(anchor.calls, ["click", "remove"], "clicked, and taken off");
-    assert(window.shown.some((one) => one === (anchor as unknown)), "standing in the body");
+    assert(window.shown.some((host) => host === (anchor as unknown)), "standing in the body");
 });

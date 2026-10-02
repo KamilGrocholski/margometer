@@ -106,10 +106,10 @@ function composeFakeWindowDocument(window: FakeWindow, call: (reached: PageCall)
             return [{ src: "/js/main.min.53XkBRxF.js" }];
         },
         body: {
-            append: (node: FakeElement) => {
-                window.offered.push(node);
+            append: (appended: FakeElement) => {
+                window.offered.push(appended);
                 call(PAGE_CALL.mount);
-                window.shown.push(node);
+                window.shown.push(appended);
             },
         },
     });
@@ -151,9 +151,9 @@ function composeFakeWindowStorage(stored: Map<string, string>, call: (reached: P
             call(PAGE_CALL.storeRead);
             return stored.get(key) ?? null;
         },
-        setItem: (key: string, value: string) => {
+        setItem: (key: string, storedText: string) => {
             call(PAGE_CALL.storeWrite);
-            stored.set(key, value);
+            stored.set(key, storedText);
         },
         removeItem: (key: string) => {
             call(PAGE_CALL.storeWrite);

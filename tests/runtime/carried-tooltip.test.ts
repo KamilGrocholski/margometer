@@ -32,7 +32,7 @@ Deno.test("every fighter keeps one block through every payload, whoever was rebu
         const world = initRuntimeWorld(page);
         for (const [index, payload] of fight.updates.entries()) {
             const before = new Map(
-                [...registries].map(([id, one]) => [id, countBlocksInText(one.text)]),
+                [...registries].map(([id, registry]) => [id, countBlocksInText(registry.text)]),
             );
             world.update(payload);
             for (const [id, registry] of registries) {
@@ -60,7 +60,7 @@ Deno.test("an open tooltip is told to draw again exactly when rows went on", () 
     const world = initRuntimeWorld(page);
     let quiet = 0;
     for (const [index, payload] of lookupRecordedFight(HILDUR).updates.entries()) {
-        const before = new Map([...registries].map(([id, one]) => [id, { ...one }]));
+        const before = new Map([...registries].map(([id, registry]) => [id, { ...registry }]));
         world.update(payload);
         for (const [id, registry] of registries) {
             const was = before.get(id) ?? { text: "", appended: 0, told: 0 };
@@ -177,7 +177,9 @@ Deno.test("a shout is said on both ends of it, and the two ends agree", () => {
         const world = initRuntimeWorld(page);
         for (const [index, payload] of fight.updates.entries()) {
             world.update(payload);
-            const rows = [...registries.values()].flatMap((one) => one.text.split("<br>"));
+            const rows = [...registries.values()].flatMap((registry) =>
+                registry.text.split("<br>")
+            );
             const provoked = rows.filter((row) => row.startsWith("Sprowokowany przez "));
             const counted = rows
                 .filter((row) => row.startsWith("Prowokuje "))
@@ -220,7 +222,7 @@ Deno.test("a fight walked into says no count of turns on anybody", () => {
     const joined: Record<string, unknown> = { ...opening };
     delete joined.init;
     for (const payload of [joined, ...rest]) world.update(payload);
-    const rows = [...registries.values()].flatMap((one) => one.text.split("<br>"));
+    const rows = [...registries.values()].flatMap((registry) => registry.text.split("<br>"));
     assert(rows.includes(ADD_ON_ROW), "the fighters carry rows of ours");
     assertEquals(rows.filter((row) => row.startsWith("Tury wykonane")), [], "and none of turns");
 });
@@ -232,7 +234,7 @@ Deno.test("a status carried with a figure states it, and states the fighter's ow
     let figured = 0;
     for (const payload of lookupRecordedFight(HILDUR).updates) {
         world.update(payload);
-        const rows = [...registries.values()].flatMap((one) => one.text.split("<br>"));
+        const rows = [...registries.values()].flatMap((registry) => registry.text.split("<br>"));
         figured += rows.filter((row) => {
             if (!row.startsWith("swow_down ")) return false;
             return row.endsWith("%");

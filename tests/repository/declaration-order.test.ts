@@ -78,8 +78,8 @@ function readTopItems(file: SourceFile): TopItem[] {
     const derived = readTopItemsDerivedNames(file);
     const items: TopItem[] = [];
     for (const statement of statements) {
-        const item = readTopItemsStatement(file, statement, derived);
-        if (item !== null) items.push(item);
+        const topItem = readTopItemsStatement(file, statement, derived);
+        if (topItem !== null) items.push(topItem);
     }
     assert(items.length <= ITEMS_MAXIMUM, `${file.path} stays inside the bound a walk states`);
     return items;
@@ -145,22 +145,22 @@ function readTopItemsStatement(
 }
 
 function lookupSectionsOutOfOrder(file: SourceFile, items: readonly TopItem[]): string[] {
-    const found: string[] = [];
+    const misplaced: string[] = [];
     let highest: TopItem | null = null;
-    for (const item of items) {
+    for (const topItem of items) {
         if (highest !== null) {
-            if (SECTION_RANKS[item.section] < SECTION_RANKS[highest.section]) {
-                const line = getLineAt(file.text, item.range[0]);
-                found.push(
-                    `${file.path}:${line} ${item.name} stands with the ${item.section} ` +
+            if (SECTION_RANKS[topItem.section] < SECTION_RANKS[highest.section]) {
+                const line = getLineAt(file.text, topItem.range[0]);
+                misplaced.push(
+                    `${file.path}:${line} ${topItem.name} stands with the ${topItem.section} ` +
                         `but after ${highest.name}, which is one of the ${highest.section}`,
                 );
                 continue;
             }
         }
-        highest = item;
+        highest = topItem;
     }
-    return found;
+    return misplaced;
 }
 
 /**
@@ -168,42 +168,46 @@ function lookupSectionsOutOfOrder(file: SourceFile, items: readonly TopItem[]): 
  * names it, and inside the run that function's export opens.
  */
 function lookupHelpersOutOfPlace(file: SourceFile, items: readonly TopItem[]): string[] {
-    const functions = items.filter((item) => item.isFunction);
+    const functions = items.filter((topItem) => topItem.isFunction);
     const mentions = readHelpersMentions(file, functions);
-    const found: string[] = [];
+    const misplaced: string[] = [];
     for (let index = 0; index < functions.length; index += 1) {
         const helper = functions[index]!;
         if (helper.isExported) continue;
-        const first = mentions.findIndex((names, at) => {
-            if (at === index) return false;
+        const callerIndex = mentions.findIndex((names, mentionIndex) => {
+            if (mentionIndex === index) return false;
             return names.has(helper.name);
         });
-        if (first === -1) continue;
+        if (callerIndex === -1) continue;
         const line = getLineAt(file.text, helper.range[0]);
-        const caller = functions[first]!;
-        if (first > index) {
-            found.push(
+        const caller = functions[callerIndex]!;
+        if (callerIndex > index) {
+            misplaced.push(
                 `${file.path}:${line} ${helper.name} stands above ${caller.name}, ` +
                     `the first function that calls it`,
             );
             continue;
         }
-        const between = functions.slice(first + 1, index).find((one) => one.isExported);
+        const between = functions.slice(callerIndex + 1, index).find((topItem) =>
+            topItem.isExported
+        );
         if (between === undefined) continue;
-        found.push(
+        misplaced.push(
             `${file.path}:${line} ${helper.name} stands under ${between.name}, ` +
                 `past ${caller.name}, the first function that calls it`,
         );
     }
-    return found;
+    return misplaced;
 }
 
 /** The names each function's text mentions, a callback handed on counting as a call. */
 function readHelpersMentions(file: SourceFile, functions: readonly TopItem[]): Set<string>[] {
     const mentions = functions.map(() => new Set<string>());
     for (const identifier of readAstNodes(file, ["Identifier"])) {
-        const at = identifier.range[0];
-        const owner = functions.findIndex((one) => at >= one.range[0] && at < one.range[1]);
+        const identifierStart = identifier.range[0];
+        const owner = functions.findIndex((topItem) =>
+            identifierStart >= topItem.range[0] && identifierStart < topItem.range[1]
+        );
         if (owner === -1) continue;
         mentions[owner]!.add(identifier.name ?? "");
     }
@@ -303,6 +307,6 @@ Deno.test("a browser spec's helper stands under the first case that calls it, to
 });
 
 Deno.test("every module in the tree reads in that order", () => {
-    const found = readSourceFiles(SOURCE_DIRECTORIES).flatMap(lookupDeclarationsOutOfOrder);
-    assertEquals(found, [], "C1");
+    const misplaced = readSourceFiles(SOURCE_DIRECTORIES).flatMap(lookupDeclarationsOutOfOrder);
+    assertEquals(misplaced, [], "C1");
 });

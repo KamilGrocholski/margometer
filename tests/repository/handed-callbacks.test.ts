@@ -49,17 +49,17 @@ Deno.test("a guarded callback passes, and an unguarded one is flagged in each sp
 
 /** Every function of ours that calls nothing but a guard, which a handed callback may call. */
 function lookupGuardingNames(files: readonly SourceFile[]): Set<string> {
-    const found = new Set<string>(GUARDS);
+    const guardingNames = new Set<string>(GUARDS);
     for (const file of files) {
         const functions = readAstNodes(file, FUNCTION_NODES);
         const calls = readAstNodes(file, ["CallExpression"]);
         for (const declared of readAstNodes(file, ["FunctionDeclaration"])) {
             const name = declared.id?.name;
             if (name === undefined) continue;
-            if (isGuardedBody(declared, functions, calls, new Set(GUARDS))) found.add(name);
+            if (isGuardedBody(declared, functions, calls, new Set(GUARDS))) guardingNames.add(name);
         }
     }
-    return found;
+    return guardingNames;
 }
 
 /**
@@ -91,8 +91,8 @@ function readCalleeName(call: AstNode): string {
 }
 
 /** A node the body stands around, and no closure inside it stands closer. */
-function isOwnNode(body: AstNode, functions: readonly AstNode[], node: AstNode): boolean {
-    const enclosing = lookupEnclosingFunction(functions, node);
+function isOwnNode(body: AstNode, functions: readonly AstNode[], surrounded: AstNode): boolean {
+    const enclosing = lookupEnclosingFunction(functions, surrounded);
     if (enclosing === null) return false;
     if (enclosing.range[0] !== body.range[0]) return false;
     return enclosing.range[1] === body.range[1];
@@ -102,7 +102,7 @@ function lookupUnguardedCallbacks(file: SourceFile, guarding: ReadonlySet<string
     const functions = readAstNodes(file, FUNCTION_NODES);
     const calls = readAstNodes(file, ["CallExpression"]);
     const declarators = readAstNodes(file, ["VariableDeclarator"]);
-    const found: string[] = [];
+    const unguarded: string[] = [];
     for (const call of calls) {
         const method = call.callee?.property?.name ?? call.callee?.name ?? "";
         const index = CALLBACK_INDEX_BY_METHOD[method];
@@ -114,9 +114,9 @@ function lookupUnguardedCallbacks(file: SourceFile, guarding: ReadonlySet<string
         if (callback !== null) {
             if (isGuardedBody(callback, functions, calls, guarding)) continue;
         }
-        found.push(formatNodePlace(file, call));
+        unguarded.push(formatNodePlace(file, call));
     }
-    return found;
+    return unguarded;
 }
 
 /**
@@ -146,6 +146,6 @@ function lookupUnguardedCallbacksBody(
 Deno.test("every callback the bundle hands to the browser is guarded where it is handed", () => {
     const files = readBundleFiles();
     const guarding = lookupGuardingNames(files);
-    const found = files.flatMap((file) => lookupUnguardedCallbacks(file, guarding));
-    assertEquals(found, [], "E10");
+    const unguarded = files.flatMap((file) => lookupUnguardedCallbacks(file, guarding));
+    assertEquals(unguarded, [], "E10");
 });

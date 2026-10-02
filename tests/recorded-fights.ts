@@ -89,8 +89,8 @@ let recordedFights: readonly RecordedFight[] | null = null;
 export function readRecordedFights(): readonly RecordedFight[] {
     if (recordedFights !== null) return recordedFights;
     const paths = [...Deno.readDirSync(RECORDINGS_DIRECTORY)]
-        .filter((entry) => entry.isFile)
-        .map((entry) => `${RECORDINGS_DIRECTORY}${entry.name}`)
+        .filter((recordingFile) => recordingFile.isFile)
+        .map((recordingFile) => `${RECORDINGS_DIRECTORY}${recordingFile.name}`)
         .filter((path) => path.endsWith(RECORDING_EXTENSION))
         .sort();
     assert(paths.length > 0, "an empty evidence directory is a finding, not a pass");
@@ -128,9 +128,9 @@ export function readRecordedFight(path: string, document: unknown): RecordedFigh
         for (const snapshot of after) {
             const combatant = readRecordedCombatant(snapshot, path);
             healthReadings.push(readRecordedHealth(snapshot, path));
-            const first = byId.get(combatant.id);
-            if (first === undefined) byId.set(combatant.id, combatant);
-            else assertEquals(first, combatant, `${path} restates a combatant differently`);
+            const earlier = byId.get(combatant.id);
+            if (earlier === undefined) byId.set(combatant.id, combatant);
+            else assertEquals(earlier, combatant, `${path} restates a combatant differently`);
         }
     }
     const combatants = [...byId.values()];
@@ -176,9 +176,9 @@ function readRecordedHealth(snapshot: unknown, path: string): RecordedHealth {
 
 /** By the path it has under `captures/` on `develop`. */
 export function lookupRecordedFight(path: string): RecordedFight {
-    const found = readRecordedFights().find((one) => one.path === path);
-    assertExists(found, `${path} is a recording under ${RECORDINGS_DIRECTORY}`);
-    return found;
+    const fight = readRecordedFights().find((recorded) => recorded.path === path);
+    assertExists(fight, `${path} is a recording under ${RECORDINGS_DIRECTORY}`);
+    return fight;
 }
 
 /** Each payload decoded on its own, as `develop` decodes a call: no announcement spans two. */

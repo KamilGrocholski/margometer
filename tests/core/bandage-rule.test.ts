@@ -20,7 +20,9 @@ const TOLERANCE = 0.01;
 Deno.test("the figure is health, and raises the percentage stated before it by its share", () => {
     const combatants = lookupRecordedFight(BANDAGE).combatants;
     const roster = indexCombatantRoster(combatants);
-    const healthMaximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
+    const healthMaximumById = new Map(
+        combatants.map((combatant) => [combatant.id, combatant.healthMaximum]),
+    );
     const percentById = new Map<number, number>();
     let healed = 0;
     for (
@@ -54,7 +56,7 @@ Deno.test("one recording carries it, and a second would have to be read as well"
         fight.messages.some((message) => {
             const parsed = parseProtocolMessage(message);
             if (parsed instanceof Error) return false;
-            return parsed.parameters.some((one) => one.key === KEY);
+            return parsed.parameters.some((parameter) => parameter.key === KEY);
         })
     ).map((fight) => fight.path);
     assertEquals(carrying, [BANDAGE], "one, and the reading rests on it");

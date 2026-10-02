@@ -54,7 +54,7 @@ export const MARGONEM_CLIENT_BUILD = "53XkBRxF";
 export function initHeldStore(held: Map<string, string>): KeyValueStore {
     return initBrowserStore({
         getItem: (key) => held.get(key) ?? null,
-        setItem: (key, value) => void held.set(key, value),
+        setItem: (key, storedText) => void held.set(key, storedText),
         removeItem: (key) => void held.delete(key),
     });
 }

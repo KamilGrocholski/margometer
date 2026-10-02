@@ -120,8 +120,8 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
             loud.push(`said ${said.type()}: ${said.text()}`);
         });
         await use({ allow: (fragment) => allowed.push(fragment) });
-        const unexpected = loud.filter((one) =>
-            !allowed.some((fragment) => one.includes(fragment))
+        const unexpected = loud.filter((line) =>
+            !allowed.some((fragment) => line.includes(fragment))
         );
         expect(unexpected, "the panel cost the reader nothing on the console").toEqual([]);
     }, { auto: true }],
@@ -184,7 +184,7 @@ function composePanelHandle(
     version: string,
     serveWithNoFightFed: () => Promise<void>,
 ): PanelHandle {
-    const at = (selector: string) => page.locator(selector);
+    const locate = (selector: string) => page.locator(selector);
     const said = async () => {
         await waitForFrame(page);
         return await page.evaluate((selector) => {
@@ -196,7 +196,7 @@ function composePanelHandle(
         page,
         version,
         host: page.locator(HOST_SELECTOR),
-        at,
+        at: locate,
         feed: (count) => page.evaluate((step) => globalThis.margometerE2e.feed(step), count),
         remaining: () => page.evaluate(() => globalThis.margometerE2e.remaining()),
         rewind: () => page.evaluate(() => globalThis.margometerE2e.rewind()),
@@ -225,7 +225,7 @@ function composePanelHandle(
             }),
         said,
         async expectHonest(where) {
-            await expect(at(UNDRAWN_SELECTOR), `${where}: a region gave way`).toHaveCount(0);
+            await expect(locate(UNDRAWN_SELECTOR), `${where}: a region gave way`).toHaveCount(0);
             const drawn = await said();
             for (const never of NEVER_SAID) {
                 expect(drawn, `${where}: a row reads ${never}`).not.toContain(never);

@@ -78,8 +78,8 @@ function composeStoreHolding(text: string): KeyValueStore {
 
 Deno.test("the reader's id goes on beside the fight and comes back, and only where it was read", () => {
     const store = initMemoryStore();
-    const read = { ...composeFight(7), readerId: 1 };
-    writeKeptFight(store, EMPTY, read);
+    const withReader = { ...composeFight(7), readerId: 1 };
+    writeKeptFight(store, EMPTY, withReader);
     const text = store.read(STORE_KEY.fights);
     assert(typeof text === "string", "the shelf is written");
     assertStrictEquals(
@@ -87,7 +87,7 @@ Deno.test("the reader's id goes on beside the fight and comes back, and only whe
         `${DEVELOP_SHELF.slice(0, -3)},"readerId":1}]}`,
         "after everything develop wrote, so a develop shelf is this one less a field (ADR 0014)",
     );
-    assertEquals(openShelf(store), { fights: [read] }, "and it comes back with the fight");
+    assertEquals(openShelf(store), { fights: [withReader] }, "and it comes back with the fight");
 });
 
 Deno.test("an id that does not read back is nobody's, and the fight stands without it", () => {
@@ -118,9 +118,9 @@ function composeStoreWithCeiling(lengthMaximum: number): KeyValueStore {
     const held = new Map<string, string>();
     return initBrowserStore({
         getItem: (key) => held.get(key) ?? null,
-        setItem: (key, value) => {
-            if (value.length > lengthMaximum) throw new DOMException("full", "QuotaExceededError");
-            held.set(key, value);
+        setItem: (key, stored) => {
+            if (stored.length > lengthMaximum) throw new DOMException("full", "QuotaExceededError");
+            held.set(key, stored);
         },
         removeItem: (key) => void held.delete(key),
     });
@@ -153,8 +153,8 @@ Deno.test("a shelf nobody can read is refused, never trusted into a figure", () 
  * look like a fight.
  */
 Deno.test("a fight is kept from one payload and dropped where it has none", () => {
-    const one = '{"version":3,"fights":[{"openedAt":1,"payloads":[{"init":1}]}]}';
-    assertEquals(readOpenedAt(composeStoreHolding(one)), [1], "one payload is a fight");
+    const onePayload = '{"version":3,"fights":[{"openedAt":1,"payloads":[{"init":1}]}]}';
+    assertEquals(readOpenedAt(composeStoreHolding(onePayload)), [1], "one payload is a fight");
     const none = '{"version":3,"fights":[{"openedAt":1,"payloads":[]}]}';
     assertEquals(readOpenedAt(composeStoreHolding(none)), [], "a fight kept from nothing is none");
     const holed = '{"version":3,"fights":[{"openedAt":1,"payloads":[{"init":1},"gone"]}]}';
@@ -164,7 +164,7 @@ Deno.test("a fight is kept from one payload and dropped where it has none", () =
 function readOpenedAt(store: KeyValueStore): number[] {
     const opened = openShelf(store);
     assert(!(opened instanceof Error), "the shelf reads back");
-    return opened.fights.map((one) => one.openedAt);
+    return opened.fights.map((fight) => fight.openedAt);
 }
 
 Deno.test("one fight nobody can read costs that fight and not the shelf", () => {
@@ -176,11 +176,14 @@ Deno.test("one fight nobody can read costs that fight and not the shelf", () => 
 
 Deno.test("the shelf holds its stated maximum, oldest dropped first, and says which went", () => {
     const store = initMemoryStore();
-    const shelf = keepAll(store, Array.from({ length: KEPT_MAXIMUM }, (_, at) => composeFight(at)));
+    const shelf = keepAll(
+        store,
+        Array.from({ length: KEPT_MAXIMUM }, (_, openedAt) => composeFight(openedAt)),
+    );
     assertEquals(shelf.fights.length, KEPT_MAXIMUM, "twenty fit without dropping one");
-    const next = writeKeptFight(store, shelf, composeFight(KEPT_MAXIMUM));
-    assert(!(next instanceof Error), "the twenty-first is kept");
-    assertEquals(next.droppedOpenedAt, [0], "and the oldest went, which the answer names");
+    const written = writeKeptFight(store, shelf, composeFight(KEPT_MAXIMUM));
+    assert(!(written instanceof Error), "the twenty-first is kept");
+    assertEquals(written.droppedOpenedAt, [0], "and the oldest went, which the answer names");
     assertEquals(readOpenedAt(store)[0], 1, "as a reload finds");
     assertEquals(readOpenedAt(store).length, KEPT_MAXIMUM, "at the bound");
 });
@@ -198,20 +201,26 @@ function keepAll(store: KeyValueStore, fights: readonly KeptFight[]): ShelfConte
 
 Deno.test("a pin outranks the rotation, and the oldest unpinned goes instead", () => {
     const store = initMemoryStore();
-    const fights = Array.from({ length: KEPT_MAXIMUM }, (_, at) => composeFight(at, at < 2));
+    const fights = Array.from(
+        { length: KEPT_MAXIMUM },
+        (_, openedAt) => composeFight(openedAt, openedAt < 2),
+    );
     const shelf = keepAll(store, fights);
-    const next = writeKeptFight(store, shelf, composeFight(KEPT_MAXIMUM));
-    assert(!(next instanceof Error), "the twenty-first is kept");
-    assertEquals(next.droppedOpenedAt, [2], "the oldest nobody pinned went");
+    const written = writeKeptFight(store, shelf, composeFight(KEPT_MAXIMUM));
+    assert(!(written instanceof Error), "the twenty-first is kept");
+    assertEquals(written.droppedOpenedAt, [2], "the oldest nobody pinned went");
     assertEquals(readOpenedAt(store).slice(0, 3), [0, 1, 3], "the pinned two stayed");
     const opened = openShelf(store);
     assert(!(opened instanceof Error), "the shelf reads back");
-    assertEquals(opened.fights.filter((one) => one.isPinned).length, 2, "pins survive");
+    assertEquals(opened.fights.filter((fight) => fight.isPinned).length, 2, "pins survive");
 });
 
 Deno.test("a shelf with every slot pinned refuses the newest rather than dropping one", () => {
     const store = initMemoryStore();
-    const nearly = Array.from({ length: KEPT_MAXIMUM - 1 }, (_, at) => composeFight(at, true));
+    const nearly = Array.from(
+        { length: KEPT_MAXIMUM - 1 },
+        (_, openedAt) => composeFight(openedAt, true),
+    );
     let shelf = keepAll(store, nearly);
     const twentieth = writeKeptFight(store, shelf, composeFight(KEPT_MAXIMUM - 1, true));
     assert(
@@ -232,14 +241,14 @@ Deno.test("a shelf with every slot pinned refuses the newest rather than droppin
 
 /** No quota is assumed, so a shelf that will not fit asks for less. */
 Deno.test("a store with no room takes fewer fights, and says what it took", () => {
-    const four = [0, 1, 2, 3].map((one) => composeFight(one));
+    const four = [0, 1, 2, 3].map((openedAt) => composeFight(openedAt));
     const two = encodeWrittenShelf(four.slice(2));
     assert(!(two instanceof Error), "the newest two of four are text");
     const store = composeStoreWithCeiling(two.length);
     const shelf = keepAll(store, four.slice(0, 3));
     const kept = writeKeptFight(store, shelf, four[3] ?? composeFight(3));
     assert(!(kept instanceof Error), "a shelf that fits at some size is written at that size");
-    assertEquals(kept.contents.fights.map((one) => one.openedAt), [2, 3], "the newest");
+    assertEquals(kept.contents.fights.map((fight) => fight.openedAt), [2, 3], "the newest");
     assertEquals(readOpenedAt(store), [2, 3], "and what a reload finds is what the answer said");
 });
 
@@ -256,21 +265,21 @@ function encodeWrittenShelf(fights: readonly KeptFight[]): string | Error {
 }
 
 Deno.test("a pin outranks the store's refusal, and a shelf of pins too long is refused", () => {
-    const four = [0, 1, 2, 3].map((one) => composeFight(one, one === 0));
+    const four = [0, 1, 2, 3].map((openedAt) => composeFight(openedAt, openedAt === 0));
     const room = encodeWrittenShelf([four[0] ?? composeFight(0), four[3] ?? composeFight(3)]);
     assert(!(room instanceof Error), "a pinned fight beside the newest is text");
     const store = composeStoreWithCeiling(room.length);
     const shelf = keepAll(store, four.slice(0, 3));
     const kept = writeKeptFight(store, shelf, four[3] ?? composeFight(3));
     assert(!(kept instanceof Error), "and it is what fits");
-    assertEquals(kept.contents.fights.map((one) => one.openedAt), [0, 3], "pinned stayed");
+    assertEquals(kept.contents.fights.map((fight) => fight.openedAt), [0, 3], "pinned stayed");
     const both = [composeFight(0, true), composeFight(3, true)];
     const pinnedText = encodeWrittenShelf(both);
     assert(!(pinnedText instanceof Error), "two pinned fights are text");
     const cramped = composeStoreWithCeiling(pinnedText.length - 1);
-    const first = writeKeptFight(cramped, EMPTY, composeFight(0, true));
-    assert(!(first instanceof Error), "one pinned fight fits");
-    const pins = writeKeptFight(cramped, first.contents, composeFight(3, true));
+    const firstPinned = writeKeptFight(cramped, EMPTY, composeFight(0, true));
+    assert(!(firstPinned instanceof Error), "one pinned fight fits");
+    const pins = writeKeptFight(cramped, firstPinned.contents, composeFight(3, true));
     assertInstanceOf(
         pins,
         RotationRefused,
@@ -310,11 +319,11 @@ Deno.test("a fight keeps where it was fought and its build, and reads back witho
     assertStrictEquals(whole.fights[0]?.margonemClientBuild, "1786441768914", "as it was stated");
     const partial = '{"version":3,"fights":[{"openedAt":3,"payloads":[{"init":1}],' +
         '"place":{"mapName":"Mapa"}}]}';
-    const read = openShelf(composeStoreHolding(partial));
-    assert(!(read instanceof Error), "a fight with part of a place reads back");
-    assertEquals(read.fights[0]?.place, { mapName: "Mapa", x: null, y: null }, "that part");
+    const openedShelf = openShelf(composeStoreHolding(partial));
+    assert(!(openedShelf instanceof Error), "a fight with part of a place reads back");
+    assertEquals(openedShelf.fights[0]?.place, { mapName: "Mapa", x: null, y: null }, "that part");
     assertStrictEquals(
-        read.fights[0]?.margonemClientBuild,
+        openedShelf.fights[0]?.margonemClientBuild,
         null,
         "and a build nobody said is none",
     );
@@ -341,15 +350,29 @@ Deno.test("a fight off the shelf reads as the fight that went on it, through one
     assert(!(opened instanceof Error), "and read back");
     const offShelf = opened.fights[0];
     assert(offShelf !== undefined, "one fight");
-    const read = composeFightView(replayRecordedFight({ ...fight, updates: offShelf.payloads }));
+    const replayedOffShelf = composeFightView(
+        replayRecordedFight({ ...fight, updates: offShelf.payloads }),
+    );
     const watched = composeFightView(replayRecordedFight(fight));
-    assert(read !== null, "a fight off the shelf is a fight");
+    assert(replayedOffShelf !== null, "a fight off the shelf is a fight");
     assert(watched !== null, "and so is the one that was watched");
-    assertEquals(read.payloadsApplied, payloads.length, "every call went on and came back");
-    assertEquals(read.events, watched.events, "the same events, by the code that is running now");
-    assertEquals(read.roster.byId.size, watched.roster.byId.size, "and the same cast");
-    assertEquals(read.readerSide, watched.readerSide, "the reader's own side included");
-    assertEquals(read.messagesLost, watched.messagesLost, "and what nobody read is re-counted");
+    assertEquals(
+        replayedOffShelf.payloadsApplied,
+        payloads.length,
+        "every call went on and came back",
+    );
+    assertEquals(
+        replayedOffShelf.events,
+        watched.events,
+        "the same events, by the code that is running now",
+    );
+    assertEquals(replayedOffShelf.roster.byId.size, watched.roster.byId.size, "and the same cast");
+    assertEquals(replayedOffShelf.readerSide, watched.readerSide, "the reader's own side included");
+    assertEquals(
+        replayedOffShelf.messagesLost,
+        watched.messagesLost,
+        "and what nobody read is re-counted",
+    );
     assert(watched.events.length > 0, "over a recording that decodes to something");
 });
 
@@ -359,14 +382,14 @@ Deno.test("a fight off the shelf reads as the fight that went on it, through one
  */
 Deno.test("a shelf past its bound is unreadable, and one at its bound is read whole", () => {
     const listed = (count: number) =>
-        Array.from({ length: count }, (_, at) => composeFight(at * 1000));
+        Array.from({ length: count }, (_, index) => composeFight(index * 1000));
     const atBound = encodeJson({ version: 3, fights: listed(KEPT_MAXIMUM) }, 0);
     const pastBound = encodeJson({ version: 3, fights: listed(KEPT_MAXIMUM + 1) }, 0);
     assert(!(atBound instanceof Error), "a full shelf is written as text");
     assert(!(pastBound instanceof Error), "and so is one past it");
-    const read = openShelf(composeStoreHolding(atBound));
-    assert(!(read instanceof Error), "twenty fights read back");
-    assertStrictEquals(read.fights.length, KEPT_MAXIMUM, "every one of them");
+    const openedShelf = openShelf(composeStoreHolding(atBound));
+    assert(!(openedShelf instanceof Error), "twenty fights read back");
+    assertStrictEquals(openedShelf.fights.length, KEPT_MAXIMUM, "every one of them");
     const refused = openShelf(composeStoreHolding(pastBound));
     assertInstanceOf(refused, ShelfUnreadable, "twenty-one are refused whole");
 });

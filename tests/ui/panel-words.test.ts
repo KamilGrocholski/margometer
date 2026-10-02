@@ -230,117 +230,119 @@ Deno.test("every word the panel says says something", () => {
 });
 
 function getSentences(): string[] {
-    const found = Object.values(PANEL_WORDS).map((one) => String(one));
+    const sentences = Object.values(PANEL_WORDS).map((words) => String(words));
     for (const noun of Object.values(COUNTED_NOUN_WORDS)) {
-        found.push(noun.one, noun.few, noun.many);
+        sentences.push(noun.one, noun.few, noun.many);
     }
     // What a half-named row says, for the same reason: the tables behind these are keyed and a
     // walk over `PANEL_WORDS` reaches none of them.
     for (const end of Object.values(UNNAMED_END)) {
-        found.push(getNoteForUnnamedEnd(end, PANEL_NOUN.damage));
-        found.push(getNoteForUnnamedEnd(end, PANEL_NOUN.healing));
+        sentences.push(getNoteForUnnamedEnd(end, PANEL_NOUN.damage));
+        sentences.push(getNoteForUnnamedEnd(end, PANEL_NOUN.healing));
     }
     for (const pinnedCase of PINNED_CASES) {
-        found.push(getWordsForPinnedStanding(pinnedCase));
-        found.push(getWordsForPinnedScope(pinnedCase));
+        sentences.push(getWordsForPinnedStanding(pinnedCase));
+        sentences.push(getWordsForPinnedScope(pinnedCase));
     }
     // The sentence each caveated figure owes, for the same reason: `CAVEAT_NOTES` is keyed by the
     // caveat and no walk over a table above reaches it.
-    for (const caveat of CAVEATS) found.push(getNoteForCaveat(caveat));
-    found.push(NEITHER_END_WORDS.label, NEITHER_END_WORDS.note);
+    for (const caveat of CAVEATS) sentences.push(getNoteForCaveat(caveat));
+    sentences.push(NEITHER_END_WORDS.label, NEITHER_END_WORDS.note);
     // ⚠️ **What the panel says it could not do**, which `DEFECT_WORDS` carries and its own
     // docblock cites **L3** for. `PANEL_WORDS` does not hold them and a walk over it reached
     // none: measured 2026-09-11 by putting `oth_dmg` into one, which the checks below read past.
     // The region kind takes a region, so every one of those is asked as well.
     for (const kind of Object.values(PANEL_DEFECT_KIND)) {
-        found.push(formatDefect(kind, null, 1));
+        sentences.push(formatDefect(kind, null, 1));
         for (const region of Object.values(PANEL_REGION)) {
-            found.push(formatDefect(kind, region, 2));
+            sentences.push(formatDefect(kind, region, 2));
         }
     }
-    found.push(...getSentencesFromSuspicions());
+    sentences.push(...getSentencesFromSuspicions());
     // ⚠️ **Every table the module keeps, and every word it hands out that a table does not.**
     // Measured 2026-09-18 by putting `oth_dmg` into the first worded value of every table in
     // `src/ui/panel-words.ts` and running this file: all but one lit, and the one that did not
     // is `CLIENT_ID_BY_UNWORDED_KEY`, which `HOLDS_NO_WORD` excuses by name.
     for (const table of Object.values(TABLES)) {
         const words = table instanceof Map ? [...table.values()] : Object.values(table);
-        for (const one of words) found.push(String(one));
+        for (const word of words) sentences.push(String(word));
     }
     for (const [statistic, held] of DESTROYED_WORD_BY_KEY) {
-        found.push(held.name, held.unit, formatDestroyed(statistic, 12));
+        sentences.push(held.name, held.unit, formatDestroyed(statistic, 12));
     }
-    found.push(STORE_REFUSED_ANSWER, STORE_MADE_ROOM_ANSWER);
-    found.push(EVERY_SLOT_PINNED_ANSWER, CHOICE_REFUSED_ANSWER);
-    found.push(...getSentencesFromChoices());
+    sentences.push(STORE_REFUSED_ANSWER, STORE_MADE_ROOM_ANSWER);
+    sentences.push(EVERY_SLOT_PINNED_ANSWER, CHOICE_REFUSED_ANSWER);
+    sentences.push(...getSentencesFromChoices());
     for (const region of Object.values(PANEL_REGION)) {
-        found.push(formatUndrawn(region));
+        sentences.push(formatUndrawn(region));
     }
     // A word that says nothing where there is nothing to say is not a sentence: `held` is the
     // state with a turn to draw, and a shelf neither live nor ended has no word to stand under.
-    return found.filter((one) => one.length > 0);
+    return sentences.filter((sentence) => sentence.length > 0);
 }
 
 /** Every sentence a suspicion is said in, the fight's and a row's both. */
 function getSentencesFromSuspicions(): string[] {
-    const found: string[] = [formatJoinedInProgressSuspicion()];
+    const sentences: string[] = [formatJoinedInProgressSuspicion()];
     for (const count of [1, 2, 5]) {
         const whom = formatNamesReachedByGap(["Gracz 1", "Gracz 2"], 2);
-        found.push(formatLostMessageSuspicion(count, SAID_OUT_OF));
-        found.push(formatUnknownKeySuspicion(count, SAID_OUT_OF, whom));
-        found.push(formatNoParameterSuspicion(count, SAID_OUT_OF, whom));
-        found.push(formatGrammarRefusedSuspicion(count, SAID_OUT_OF));
-        found.push(formatUnplacedHealSuspicion(count, SAID_OUT_OF, whom));
-        found.push(formatUnknownKeyRowSuspicion(count));
-        found.push(formatNoParameterRowSuspicion(count));
-        found.push(formatUnplacedHealRowSuspicion(count));
+        sentences.push(formatLostMessageSuspicion(count, SAID_OUT_OF));
+        sentences.push(formatUnknownKeySuspicion(count, SAID_OUT_OF, whom));
+        sentences.push(formatNoParameterSuspicion(count, SAID_OUT_OF, whom));
+        sentences.push(formatGrammarRefusedSuspicion(count, SAID_OUT_OF));
+        sentences.push(formatUnplacedHealSuspicion(count, SAID_OUT_OF, whom));
+        sentences.push(formatUnknownKeyRowSuspicion(count));
+        sentences.push(formatNoParameterRowSuspicion(count));
+        sentences.push(formatUnplacedHealRowSuspicion(count));
         // And the other shape of the same words: a gap reaching more rows than a sentence lists.
-        found.push(formatUnknownKeySuspicion(count, SAID_OUT_OF, formatNamesReachedByGap([], 7)));
+        sentences.push(
+            formatUnknownKeySuspicion(count, SAID_OUT_OF, formatNamesReachedByGap([], 7)),
+        );
     }
-    return found;
+    return sentences;
 }
 
 /** Every word handed out per screen, side, noun, choice, state or ending. */
 function getSentencesFromChoices(): string[] {
-    const found: string[] = [];
+    const sentences: string[] = [];
     for (const metric of SCREEN_ORDER) {
-        found.push(getWordsForNothing(metric));
-        found.push(getWordsForUnannounced(metric));
-        found.push(getDirectionWordsForMetric(metric));
-        found.push(getWordsForCardMetric(metric));
+        sentences.push(getWordsForNothing(metric));
+        sentences.push(getWordsForUnannounced(metric));
+        sentences.push(getDirectionWordsForMetric(metric));
+        sentences.push(getWordsForCardMetric(metric));
     }
-    for (const noun of PANEL_NOUNS) found.push(getWordsForNoun(noun));
-    for (const choice of SIDE_CHOICES) found.push(getWordsForSide(choice));
-    for (const choice of STORAGE_CHOICES) found.push(getWordsForStorage(choice));
-    for (const step of TYPE_STEPS) found.push(getWordsForTypeStep(step));
-    for (const choice of STORAGE_CHOICES) found.push(getWordsForStorageMeaning(choice));
-    for (const window of PANEL_WINDOWS) found.push(getWordsForWindow(window));
-    for (const state of TURN_STATES) found.push(getWordsForTurnState(state));
+    for (const noun of PANEL_NOUNS) sentences.push(getWordsForNoun(noun));
+    for (const choice of SIDE_CHOICES) sentences.push(getWordsForSide(choice));
+    for (const choice of STORAGE_CHOICES) sentences.push(getWordsForStorage(choice));
+    for (const step of TYPE_STEPS) sentences.push(getWordsForTypeStep(step));
+    for (const choice of STORAGE_CHOICES) sentences.push(getWordsForStorageMeaning(choice));
+    for (const window of PANEL_WINDOWS) sentences.push(getWordsForWindow(window));
+    for (const state of TURN_STATES) sentences.push(getWordsForTurnState(state));
     for (const outcome of PANEL_OUTCOMES) {
-        found.push(getWordsForOutcome(outcome));
-        found.push(getWordsForShelfOutcome(outcome, false));
+        sentences.push(getWordsForOutcome(outcome));
+        sentences.push(getWordsForShelfOutcome(outcome, false));
     }
-    found.push(getWordsForShelfOutcome(null, true));
-    found.push(getWordsForPin(true), getWordsForPin(false));
+    sentences.push(getWordsForShelfOutcome(null, true));
+    sentences.push(getWordsForPin(true), getWordsForPin(false));
     // What is composed rather than held: a word spelled into a template is reached by no walk
     // over the tables above, and `tura` and `teraz` are both spelled that way.
-    found.push(formatTurnOrdinal(3), formatShelfTime(null, true));
+    sentences.push(formatTurnOrdinal(3), formatShelfTime(null, true));
     // Every month, because the twelve are spelled into the same template and a walk over the
     // tables reaches none of them either.
     for (let month = FIRST_MONTH; month <= MONTHS_IN_YEAR; month += 1) {
-        found.push(formatShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
+        sentences.push(formatShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
     }
-    found.push(formatSideCounts([4, 4], 2), formatShelfSize([4, 4]));
-    found.push(String(formatCardSubtitle("w", 120, SIDE_RELATION.reader)));
-    found.push(...getSentencesFromTooltip());
+    sentences.push(formatSideCounts([4, 4], 2), formatShelfSize([4, 4]));
+    sentences.push(String(formatCardSubtitle("w", 120, SIDE_RELATION.reader)));
+    sentences.push(...getSentencesFromTooltip());
     // ⚠️ **Both ends of a charge, because one of them hid behind the card.** `przerwane` reached
     // no check at all and `wykonane` passed as a tail of `Tury wykonane`, which is the shape the
     // holder check below no longer accepts (`develop ADR 0109`).
     for (const state of CHARGED_STATES) {
-        found.push(getWordsForChargedSkill(state));
-        found.push(formatChargedSkillSubtitle("Cios", state));
+        sentences.push(getWordsForChargedSkill(state));
+        sentences.push(formatChargedSkillSubtitle("Cios", state));
     }
-    return found;
+    return sentences;
 }
 
 /**
@@ -356,9 +358,9 @@ function getSentencesFromChoices(): string[] {
  */
 function getSentencesFromTooltip(): string[] {
     const said = (id: string): string => (id.length > 0 ? "Efekt" : "");
-    const found: string[] = [];
+    const sentences: string[] = [];
     for (const bit of [3, 4]) {
-        found.push(...presentTooltipRows(
+        sentences.push(...presentTooltipRows(
             {
                 ...NOTHING_CARRIED,
                 turnsTaken: 14,
@@ -373,7 +375,7 @@ function getSentencesFromTooltip(): string[] {
             FROZEN_BUFF_BITS.bits,
         ));
     }
-    return found;
+    return sentences;
 }
 
 /**
@@ -414,9 +416,9 @@ Deno.test("the block handed to the game says whose it is, and carries no markup"
         null,
         FROZEN_BUFF_BITS.bits,
     );
-    const first = said[0];
-    assertExists(first, "a status carried composes a row");
-    assertEquals(first, "MargoMeter", "the name stands alone, over the rows and not inside one");
+    const title = said[0];
+    assertExists(title, "a status carried composes a row");
+    assertEquals(title, "MargoMeter", "the name stands alone, over the rows and not inside one");
     for (const row of said) {
         assertEquals(row.includes("<"), false, "and no row opens markup in somebody else's string");
         assertEquals(row.includes("&"), false, "nor an entity in one");
@@ -706,23 +708,23 @@ Deno.test("every word the module holds reaches the checks above, or says why it 
 
 /** Every module-level declaration holding text, and the texts it holds. */
 function getWordHolders(source: string): Map<string, string[]> {
-    const found = new Map<string, string[]>();
+    const textsByHolder = new Map<string, string[]>();
     let holder = "";
     for (const line of source.split("\n")) {
         if (HOLDER_CLOSERS.some((closer) => line.startsWith(closer))) holder = "";
         const opened = getHolderName(line);
         if (opened !== "") {
             holder = opened;
-            if (!found.has(holder)) found.set(holder, []);
+            if (!textsByHolder.has(holder)) textsByHolder.set(holder, []);
         }
-        const held = found.get(holder);
+        const held = textsByHolder.get(holder);
         if (held === undefined) continue;
         if (isCommentLine(line)) continue;
         for (const text of getLineTexts(line)) {
             if (isReadableText(text)) held.push(text);
         }
     }
-    return found;
+    return textsByHolder;
 }
 
 /** The name a module-level declaration opens, or empty where the line opens none. */
@@ -730,11 +732,11 @@ function getHolderName(line: string): string {
     for (const opener of HOLDER_OPENERS) {
         if (!line.startsWith(opener)) continue;
         let name = "";
-        for (const one of line.slice(opener.length)) {
-            const isName = one === "_" || (one >= "0" && one <= "9") ||
-                (one >= "a" && one <= "z") || (one >= "A" && one <= "Z");
+        for (const character of line.slice(opener.length)) {
+            const isName = character === "_" || (character >= "0" && character <= "9") ||
+                (character >= "a" && character <= "z") || (character >= "A" && character <= "Z");
             if (!isName) break;
-            name += one;
+            name += character;
         }
         return name;
     }
@@ -751,7 +753,7 @@ function isCommentLine(line: string): boolean {
  * Every text a line holds. A comment is found on the same walk as the quotes — `source-line.ts`.
  */
 function getLineTexts(line: string): string[] {
-    const found: string[] = [];
+    const texts: string[] = [];
     let quote = "";
     let held = "";
     let opened = 0;
@@ -764,7 +766,7 @@ function getLineTexts(line: string): string[] {
         }
         if (quote !== "") {
             if (character === quote) {
-                if (!isKeyAt(line, opened, index + 1)) found.push(held);
+                if (!isKeyAt(line, opened, index + 1)) texts.push(held);
                 held = "";
                 quote = "";
             } else {
@@ -782,7 +784,7 @@ function getLineTexts(line: string): string[] {
         }
         index += 1;
     }
-    return found;
+    return texts;
 }
 
 /**
@@ -810,9 +812,9 @@ function isKeyAt(line: string, open: number, close: number): boolean {
 function isReadableText(text: string): boolean {
     if (text.length < 2) return false;
     if (text.includes("${")) return false;
-    for (const one of text) {
-        if (one >= "a" && one <= "z") return true;
-        if (one >= "A" && one <= "Z") return true;
+    for (const character of text) {
+        if (character >= "a" && character <= "z") return true;
+        if (character >= "A" && character <= "Z") return true;
     }
     return false;
 }
@@ -896,8 +898,10 @@ Deno.test("a share is spelled in whole points, and a figure too small to round s
  * `CONTEXT.md` keeps those apart. **E12**, develop ADR 0051.
  */
 Deno.test("a figure that is not one is said as not known, and never as a number", () => {
-    for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, 1e21]) {
-        assertEquals(formatFigure(value), PANEL_WORDS.unknown, `${value} is not a figure`);
+    for (
+        const nonFigure of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, 1e21]
+    ) {
+        assertEquals(formatFigure(nonFigure), PANEL_WORDS.unknown, `${nonFigure} is not a figure`);
     }
     assertEquals(formatFigure(0), "0", "while zero happened, and is written as it was");
 });
@@ -1377,7 +1381,7 @@ Deno.test("the rows stand in the one order the maintainer set", () => {
  */
 Deno.test("a block past its stated maximum is cut to it, and one at it is drawn whole", () => {
     const many = (count: number) =>
-        Array.from({ length: count }, (_, at) => ({ bit: at, percent: null }));
+        Array.from({ length: count }, (_, index) => ({ bit: index, percent: null }));
     const atTheBound = presentTooltipRows(
         {
             ...CARRYING_EVERYTHING,
@@ -1406,10 +1410,10 @@ Deno.test("a block past its stated maximum is cut to it, and one at it is drawn 
 Deno.test("every defect kind says something of its own, as a sentence, tallied past one", () => {
     const said = Object.values(PANEL_DEFECT_KIND).map((kind) => formatDefect(kind, null, 1));
     assertStrictEquals(new Set(said).size, said.length, "no two kinds worded alike");
-    for (const one of said) {
-        assert(one.length > 1, "a defect that is drawn says something");
-        assert(one.endsWith("."), "and says it as a sentence");
-        assert(!one.includes("("), "and once is not a tally");
+    for (const sentence of said) {
+        assert(sentence.length > 1, "a defect that is drawn says something");
+        assert(sentence.endsWith("."), "and says it as a sentence");
+        assert(!sentence.includes("("), "and once is not a tally");
     }
     const region = formatDefect(PANEL_DEFECT_KIND.region, "list", 1);
     assertStringIncludes(region, REGION_WORDS.list, "a region names the part that is missing");
@@ -1485,23 +1489,23 @@ Deno.test("a panel waiting for a game says what it cannot see", () => {
 });
 
 Deno.test("a kept fight that will not read is placed by what the shelf knows of it", () => {
-    const at = { day: 13, month: 9, hour: 21, minute: 5 };
-    const time = formatShelfTime(at, false);
-    assertEquals(formatKeptUnread(at, "Grota (34, 12)"), `${time} · Grota (34, 12)`, "both");
-    assertEquals(formatKeptUnread(at, null), time, "a place unstated is left out, not guessed");
+    const moment = { day: 13, month: 9, hour: 21, minute: 5 };
+    const time = formatShelfTime(moment, false);
+    assertEquals(formatKeptUnread(moment, "Grota (34, 12)"), `${time} · Grota (34, 12)`, "both");
+    assertEquals(formatKeptUnread(moment, null), time, "a place unstated is left out, not guessed");
     assertEquals(formatKeptUnread(null, "Grota"), "Grota", "and so is a moment unread");
     assertEquals(formatKeptUnread(null, null), "", "which leaves nothing to say at all");
 });
 
 function getUnmistakableKeys(): string[] {
-    const found = new Set<string>(HAND_KEPT_KEYS);
+    const keys = new Set<string>(HAND_KEPT_KEYS);
     for (const stated of FROZEN_PROTOCOL_KEYS.keys) {
         const key = stated.replace("+", "").replace("-", "");
         if (key.length < 4) continue;
         const isShaped = key.includes("_") || key !== key.toLowerCase() ||
-            [...key].some((one) => one >= "0" && one <= "9");
+            [...key].some((character) => character >= "0" && character <= "9");
         if (!isShaped) continue;
-        found.add(key.toLowerCase());
+        keys.add(key.toLowerCase());
     }
-    return [...found];
+    return [...keys];
 }

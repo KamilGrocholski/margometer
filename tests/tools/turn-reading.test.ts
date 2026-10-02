@@ -95,16 +95,17 @@ Deno.test("the register reader finds the register, and nothing else in the file"
  * sentence against a recording.
  */
 function parseRegisterRows(text: string): RegisterRow[] {
-    const found: RegisterRow[] = [];
+    const rows: RegisterRow[] = [];
     for (const line of parseSectionLines(text, REGISTER_HEADING)) {
         if (!line.startsWith(ROW_OPENER)) continue;
-        const [name, payload, at, combatantId, from, to, counted, key] = parseTableCells(line);
+        const [name, payload, messagePosition, combatantId, from, to, counted, key] =
+            parseTableCells(line);
         if (key === undefined) continue;
         if (!name!.startsWith(RECORDING_OPENER)) continue;
-        found.push({
+        rows.push({
             name: name!,
             payload: payload!,
-            at: at!,
+            at: messagePosition!,
             combatantId: combatantId!,
             from: from!,
             to: to!,
@@ -112,26 +113,26 @@ function parseRegisterRows(text: string): RegisterRow[] {
             key,
         });
     }
-    return found;
+    return rows;
 }
 
 /** The lines under one heading, up to the next. */
 function parseSectionLines(text: string, heading: string): string[] {
-    const found: string[] = [];
+    const lines: string[] = [];
     let isInside = false;
     for (const line of text.split("\n")) {
         if (line.startsWith(heading)) isInside = true;
         else if (line.startsWith(SECTION_OPENER)) {
             if (isInside) break;
         }
-        if (isInside) found.push(line);
+        if (isInside) lines.push(line);
     }
-    return found;
+    return lines;
 }
 
-function formatRegisterKey(one: RegisterRow): string {
-    return `${one.name} | ${one.payload} | ${one.at} | ${one.combatantId} | ${one.from} | ` +
-        `${one.to} | ${one.counted} | ${one.key}`;
+function formatRegisterKey(registerRow: RegisterRow): string {
+    return `${registerRow.name} | ${registerRow.payload} | ${registerRow.at} | ${registerRow.combatantId} | ${registerRow.from} | ` +
+        `${registerRow.to} | ${registerRow.counted} | ${registerRow.key}`;
 }
 
 Deno.test("the register names every disputed opener, and no opener that is not", () => {
@@ -140,9 +141,9 @@ Deno.test("the register names every disputed opener, and no opener that is not",
         parseRegisterRows(Deno.readTextFileSync(REGISTER_PATH)).map(formatRegisterKey),
     );
     assert(written.size > 0, "the register carries rows");
-    const unwritten = [...measured].filter((one) => !written.has(one)).sort();
+    const unwritten = [...measured].filter((rowKey) => !written.has(rowKey)).sort();
     assertEquals(unwritten, [], `${REGISTER_PATH}: an opener is disputed that the register omits`);
-    const undisputed = [...written].filter((one) => !measured.has(one)).sort();
+    const undisputed = [...written].filter((rowKey) => !measured.has(rowKey)).sort();
     assertEquals(undisputed, [], `${REGISTER_PATH}: the register names a dispute nothing produces`);
 });
 
@@ -153,9 +154,9 @@ function getWalks(): FightMessages[] {
 }
 
 /** The same line off the tree rather than off the document, so the two can be compared as sets. */
-function formatMeasuredKey(one: DisputedReading): string {
-    return `${one.name} | ${one.payload} | ${one.at} | ${one.combatantId} | ${one.from} | ` +
-        `${one.to} | ${one.counted} | ${one.key}`;
+function formatMeasuredKey(disputed: DisputedReading): string {
+    return `${disputed.name} | ${disputed.payload} | ${disputed.at} | ${disputed.combatantId} | ${disputed.from} | ` +
+        `${disputed.to} | ${disputed.counted} | ${disputed.key}`;
 }
 
 /**
@@ -172,9 +173,13 @@ Deno.test("what this reading counts is what the panel draws, on every recording"
         const walk = walks[index]!;
         const taken = new Map<number, number>();
         const lost = new Map<number, number>();
-        for (const one of walk.readings) {
-            if (one.openerId !== null) taken.set(one.openerId, (taken.get(one.openerId) ?? 0) + 1);
-            if (one.lostId !== null) lost.set(one.lostId, (lost.get(one.lostId) ?? 0) + 1);
+        for (const messageReading of walk.readings) {
+            if (messageReading.openerId !== null) {
+                taken.set(messageReading.openerId, (taken.get(messageReading.openerId) ?? 0) + 1);
+            }
+            if (messageReading.lostId !== null) {
+                lost.set(messageReading.lostId, (lost.get(messageReading.lostId) ?? 0) + 1);
+            }
         }
         for (const [combatantId, drawn] of reading.figures.statistics.byCombatantId) {
             assertStrictEquals(
@@ -202,7 +207,7 @@ Deno.test("a contested opener the game's numbering agrees with is no dispute", (
     let contested = 0;
     let disputed = 0;
     for (const walk of getWalks()) {
-        contested += walk.readings.filter((one) => one.isContested).length;
+        contested += walk.readings.filter((messageReading) => messageReading.isContested).length;
         disputed += composeDisputedReadings(walk).length;
     }
     assert(contested > disputed, "a stretch counted right leaves its contested openers standing");
@@ -213,14 +218,14 @@ Deno.test("the key table names every key a turn was read off, and no key that wa
     const measured = new Set(composeKeyTally(getWalks()).map(formatTallyKey));
     const written = new Set(parseRowsUnder(Deno.readTextFileSync(REGISTER_PATH), KEYS_HEADING, 5));
     assert(written.size > 0, "the key table carries rows");
-    const unwritten = [...measured].filter((one) => !written.has(one)).sort();
+    const unwritten = [...measured].filter((rowKey) => !written.has(rowKey)).sort();
     assertEquals(unwritten, [], `${REGISTER_PATH}: a key stands behind a turn and is not written`);
-    const untallied = [...written].filter((one) => !measured.has(one)).sort();
+    const untallied = [...written].filter((rowKey) => !measured.has(rowKey)).sort();
     assertEquals(untallied, [], `${REGISTER_PATH}: the table names a key nothing produces`);
 });
 
-function formatTallyKey(one: KeyTally): string {
-    return `${one.key} | ${one.messages} | ${one.opened} | ${one.adds} | ${one.lost}`;
+function formatTallyKey(keyTally: KeyTally): string {
+    return `${keyTally.key} | ${keyTally.messages} | ${keyTally.opened} | ${keyTally.adds} | ${keyTally.lost}`;
 }
 
 /**
@@ -230,13 +235,13 @@ function formatTallyKey(one: KeyTally): string {
  */
 function parseRowsUnder(text: string, heading: string, width: number): string[] {
     assert(width > 0, "a table is read at a width it states");
-    const found: string[] = [];
+    const rows: string[] = [];
     for (const line of parseSectionLines(text, heading)) {
         if (!line.startsWith(QUOTED_ROW_OPENER)) continue;
         const cells = parseTableCells(line);
-        if (cells.length === width) found.push(cells.join(" | "));
+        if (cells.length === width) rows.push(cells.join(" | "));
     }
-    return found;
+    return rows;
 }
 
 Deno.test("the reader takes a table at its width, and the legend beside it at none", () => {
@@ -295,19 +300,19 @@ Deno.test("what opened the turns partitions them, and the keys all but the blows
     );
     let turns = 0;
     let blows = 0;
-    for (const one of openers) {
-        turns += one.turns;
-        if (one.opener === BATTLE_EVENT.attack) blows += one.turns;
+    for (const openerTally of openers) {
+        turns += openerTally.turns;
+        if (openerTally.opener === BATTLE_EVENT.attack) blows += openerTally.turns;
     }
     assertStrictEquals(turns, 6155, "every turn the recordings opened, 2026-10-02");
     let adds = 0;
-    for (const one of composeKeyTally(getWalks())) adds += one.adds;
+    for (const keyTally of composeKeyTally(getWalks())) adds += keyTally.adds;
     assertStrictEquals(adds + blows, turns, "a turn is added by a key or opened by a blow");
     assert(blows > 0, "the recordings carry a turn no key accounts for");
 });
 
-function formatOpenerKey(one: OpenerTally): string {
-    return `${one.opener} | ${one.turns}`;
+function formatOpenerKey(openerTally: OpenerTally): string {
+    return `${openerTally.opener} | ${openerTally.turns}`;
 }
 
 /**
@@ -317,12 +322,15 @@ function formatOpenerKey(one: OpenerTally): string {
  */
 Deno.test("a turn nobody spent is read off one key, and that key opens none", () => {
     const tally = composeKeyTally(getWalks());
-    const losing = tally.filter((one) => one.lost > 0);
+    const losing = tally.filter((keyTally) => keyTally.lost > 0);
     assertStrictEquals(losing.length, 1, "one key states a turn nobody spent");
     const only = losing[0]!;
     assertStrictEquals(only.key, TEXT_KEY, "the key the game writes its sentence on");
     assertStrictEquals(only.opened, 0, "and it opens no turn of its own");
-    assert(tally.every((one) => one.opened <= one.messages), "a key opens no more than it arrives");
+    assert(
+        tally.every((keyTally) => keyTally.opened <= keyTally.messages),
+        "a key opens no more than it arrives",
+    );
 });
 
 Deno.test("a walk states a line for every message the recording carried", () => {
@@ -332,9 +340,9 @@ Deno.test("a walk states a line for every message the recording carried", () => 
     assert(walk.readings.length > 0, "the recording carried messages to read");
     // Zero is a boundary and so is one (W5): the first message of a fight is read against a
     // standing of nobody, and it is a message like any other.
-    const first = walk.readings[0]!;
-    assertStrictEquals(first.payload, 0, "and it sits in the payload that opened the fight");
-    assertStrictEquals(first.at, 0, "as the first message of it");
+    const firstReading = walk.readings[0]!;
+    assertStrictEquals(firstReading.payload, 0, "and it sits in the payload that opened the fight");
+    assertStrictEquals(firstReading.at, 0, "as the first message of it");
 });
 
 /** No message of the game's reaches the register or the walk: only its keys and its number. */
@@ -372,7 +380,7 @@ Deno.test("a preparation in the next call rides the turn its combatant took in t
     const fight = composeUnfoughtFight([[ANNOUNCEMENT], [PREPARATION]]);
     const walk = composeFightMessages([fight])[0]!;
     assertEquals(
-        walk.readings.map((one) => [one.payload, one.openerId]),
+        walk.readings.map((messageReading) => [messageReading.payload, messageReading.openerId]),
         [[0, 1], [1, null]],
         "the announcement opens the turn, and the preparation after it opens none",
     );
@@ -401,7 +409,7 @@ Deno.test("a declaration stating a step and a preparation is read off the step, 
     const fight = composeUnfoughtFight([[ANNOUNCEMENT], [STEP_AND_PREPARATION]]);
     const walk = composeFightMessages([fight])[0]!;
     assertEquals(
-        walk.readings.map((one) => [one.openerId, one.openerKey]),
+        walk.readings.map((messageReading) => [messageReading.openerId, messageReading.openerKey]),
         [[1, null], [1, "step"]],
         "the step opens a turn whoever acted before it, and it is the key the turn is named by",
     );

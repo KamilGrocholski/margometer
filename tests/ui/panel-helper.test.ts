@@ -173,16 +173,16 @@ function composeProvocation(
  * casts. `develop ADR 0097`.
  */
 Deno.test("one caster shouting both okrzyki is two groups, each under its own name", () => {
-    const other = { skillId: 25, skillName: "Prowokujący okrzyk" };
+    const secondShout = { skillId: 25, skillName: "Prowokujący okrzyk" };
     const reading = presentHelper(
-        [composeProvocation(21, 11), composeProvocation(12, 11, other)],
+        [composeProvocation(21, 11), composeProvocation(12, 11, secondShout)],
         [],
         ROSTER,
         OURS,
         composeTurn(null),
     );
     assertEquals(
-        reading.provocations.map((one) => [one.casterName, one.skillName]),
+        reading.provocations.map((provocation) => [provocation.casterName, provocation.skillName]),
         [["Gracz 1", "Wyzywający okrzyk"], ["Gracz 1", "Prowokujący okrzyk"]],
         "one group per cast, in the order the fight named them",
     );
@@ -203,8 +203,8 @@ Deno.test("one cast holding two characters states a length for each of them", ()
     // same turns in.
     assertEquals(
         reading.provocations[0]?.provoked.map((
-            one,
-        ) => [one.name, one.turnsElapsed, one.turnsStated]),
+            character,
+        ) => [character.name, character.turnsElapsed, character.turnsStated]),
         [["Gracz 1", 2, 3], ["Gracz 2", 2, 3]],
         "holding both of them, one figure per character held",
     );
@@ -219,7 +219,7 @@ Deno.test("two casters holding apart stand apart, in the order the fight named t
         composeTurn(null),
     );
     assertEquals(
-        reading.provocations.map((one) => one.casterName),
+        reading.provocations.map((provocation) => provocation.casterName),
         ["Gracz 2", "Renegat 1"],
         "a group first named stands higher, so none moves under the hand",
     );
@@ -260,11 +260,13 @@ Deno.test("the provoked stop at their stated maximum, and one under it is stated
     // **W5**: the bound is a boundary, so the row below it is asserted beside it. The clamp is
     // what stands in for an assertion here, because this layer asserts nothing (**A11**).
     const many: ProvocationStanding[] = [];
-    for (let at = 0; at < PROVOKED_MAXIMUM + 4; at += 1) many.push(composeProvocation(21, 11));
+    for (let index = 0; index < PROVOKED_MAXIMUM + 4; index += 1) {
+        many.push(composeProvocation(21, 11));
+    }
     // Counted in characters and not in groups: the clamp stands before the fold, so the bound is
     // on the people the section draws however few casts they arrive under (`develop ADR 0067`).
     const countHeld = (reading: ReturnType<typeof presentHelper>) =>
-        reading.provocations.reduce((sum, one) => sum + one.provoked.length, 0);
+        reading.provocations.reduce((sum, provocation) => sum + provocation.provoked.length, 0);
     const over = presentHelper(many, [], ROSTER, OURS, composeTurn(null));
     assertStrictEquals(countHeld(over), PROVOKED_MAXIMUM, "past it, the rest are dropped");
     const under = presentHelper(
@@ -354,17 +356,17 @@ Deno.test("a character shouted at before they have moved is held, at none of the
  * row past it.
  */
 Deno.test("the band stops at its stated maximum, and one at it is stated whole", () => {
-    const charges = [11, 12, 21, 11, 12].map((combatantId, at) =>
-        composeCharge({ combatantId, skillName: `Cios ${at}` })
+    const charges = [11, 12, 21, 11, 12].map((combatantId, index) =>
+        composeCharge({ combatantId, skillName: `Cios ${index}` })
     );
     const over = presentHelper([], charges, ROSTER, OURS, composeTurn(null));
     assertEquals(
-        over.chargedSkills.map((one) => one.skillName),
+        over.chargedSkills.map((chargedSkill) => chargedSkill.skillName),
         ["Cios 0", "Cios 1", "Cios 2", "Cios 3"],
         "past it, the rest are dropped, in the order the fight named them",
     );
-    const at = presentHelper([], charges.slice(0, 4), ROSTER, OURS, composeTurn(null));
-    assertStrictEquals(at.chargedSkills.length, 4, "at it, all of them");
+    const atMaximum = presentHelper([], charges.slice(0, 4), ROSTER, OURS, composeTurn(null));
+    assertStrictEquals(atMaximum.chargedSkills.length, 4, "at it, all of them");
     const nameless = presentHelper(
         [],
         [composeCharge({ skillName: "" })],

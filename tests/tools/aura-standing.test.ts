@@ -65,7 +65,7 @@ function parseReach(said: string): AuraReach | null {
 
 Deno.test("a shout is dated by its own row, and covers what that row states", () => {
     const shouts = new Map<number, { turns: number; coverageMinimum: number }>(
-        FROZEN_AURA_TURNS.shouts.map((one) => [one.id, one]),
+        FROZEN_AURA_TURNS.shouts.map((shout) => [shout.id, shout]),
     );
     const documented = parseShoutRows(Deno.readTextFileSync(REGISTER_PATH));
     assert(documented.length > 0, "the register states the skills that shout");
@@ -112,7 +112,7 @@ function parseShoutRows(text: string): ProvocationRow[] {
 Deno.test("the corpus holds a shout that named two, and holds both of them", () => {
     const measured = tallyProvocationRows(STEPPED);
     assert(measured.length > 0, "the corpus shouts at somebody");
-    const listed = measured.filter((one) => one.namedAtOnce > 1);
+    const listed = measured.filter((row) => row.namedAtOnce > 1);
     assert(listed.length > 0, "some shout in the corpus names more than one character");
     for (const row of measured) {
         assert(
@@ -125,7 +125,7 @@ Deno.test("the corpus holds a shout that named two, and holds both of them", () 
 
 Deno.test("a skill the register states is one the published table dates, at the same turns", () => {
     const dated = new Map<number, number>(
-        FROZEN_AURA_TURNS.skills.map((one) => [one.id, one.turns]),
+        FROZEN_AURA_TURNS.skills.map((skill) => [skill.id, skill.turns]),
     );
     const documented = parseRegisterRows(Deno.readTextFileSync(REGISTER_PATH));
     assert(documented.length > 0, "the register states the skills that stand");
@@ -168,7 +168,7 @@ Deno.test("the provocation register is what the recordings hold, and the other w
  * side-wide half apart (`develop ADR 0097`).
  */
 Deno.test("an okrzyk is in both registers, because the table dates both of its halves", () => {
-    const stood = new Set(tallyAuraRows(STEPPED).map((one) => one.skillId));
+    const stood = new Set(tallyAuraRows(STEPPED).map((row) => row.skillId));
     const shouted = tallyProvocationRows(STEPPED);
     assert(shouted.length > 0, "the corpus holds shouts for the registers to disagree about");
     for (const row of shouted) {
@@ -215,7 +215,7 @@ function parseSourceRows(text: string): SourceRow[] {
  */
 Deno.test("the corpus stands past two sources, and never one combatant twice", () => {
     const measured = tallySourceRows(STEPPED);
-    const past = measured.filter((one) => one.momentsPastTwo > 0);
+    const past = measured.filter((row) => row.momentsPastTwo > 0);
     assert(past.length > 0, "some key stands from three or more combatants at once");
     for (const row of measured) {
         assertStrictEquals(

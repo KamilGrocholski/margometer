@@ -31,7 +31,7 @@ export interface PanelEdges {
 }
 
 /** Read inside the shadow root, which is the only place `elementFromPoint` can see a row. */
-export async function readUnderPoint(page: Page, at: PagePoint): Promise<string> {
+export async function readUnderPoint(page: Page, point: PagePoint): Promise<string> {
     await waitForFrame(page);
     return await page.evaluate(({ selector, x, y }) => {
         const root = document.querySelector(selector)?.shadowRoot ?? null;
@@ -39,7 +39,7 @@ export async function readUnderPoint(page: Page, at: PagePoint): Promise<string>
         if (under === null) return "nothing";
         const grip = under.getAttribute("data-grip");
         return grip === "meter" ? "grip" : `covered:${under.className}`;
-    }, { selector: HOST_SELECTOR, x: at.x, y: at.y });
+    }, { selector: HOST_SELECTOR, x: point.x, y: point.y });
 }
 
 /**
@@ -60,33 +60,33 @@ export async function readPointsAlongBar(
     const bar = box ?? { x: 0, y: 0, width: 0, height: 0 };
     const points: BarPoint[] = [];
     for (const along of offsets) {
-        const at = { x: Math.round(bar.x + along), y: Math.round(bar.y + bar.height / 2) };
-        const onto = await readUnderPoint(page, at);
-        points.push({ ...at, along, isGrip: onto === "grip", onto });
+        const point = { x: Math.round(bar.x + along), y: Math.round(bar.y + bar.height / 2) };
+        const onto = await readUnderPoint(page, point);
+        points.push({ ...point, along, isGrip: onto === "grip", onto });
     }
     expect(points.length, "every offset was looked at").toBe(offsets.length);
     return points;
 }
 
-export async function readCentreOf(page: Page, selector: string, at = 0): Promise<PagePoint> {
-    const box = await page.locator(selector).nth(at).boundingBox();
-    expect(box, `${selector} #${at} is somewhere on the page`).not.toBeNull();
-    const found = box ?? { x: 0, y: 0, width: 0, height: 0 };
+export async function readCentreOf(page: Page, selector: string, index = 0): Promise<PagePoint> {
+    const box = await page.locator(selector).nth(index).boundingBox();
+    expect(box, `${selector} #${index} is somewhere on the page`).not.toBeNull();
+    const measured = box ?? { x: 0, y: 0, width: 0, height: 0 };
     return {
-        x: Math.round(found.x + found.width / 2),
-        y: Math.round(found.y + found.height / 2),
+        x: Math.round(measured.x + measured.width / 2),
+        y: Math.round(measured.y + measured.height / 2),
     };
 }
 
 export async function readEdgesOf(
     page: Page,
     selector: string,
-    at = 0,
+    index = 0,
 ): Promise<PanelEdges> {
-    const box = await page.locator(selector).nth(at).boundingBox();
-    expect(box, `${selector} #${at} is somewhere on the page`).not.toBeNull();
-    const found = box ?? { x: 0, y: 0, width: 0, height: 0 };
-    return { left: Math.round(found.x), right: Math.round(found.x + found.width) };
+    const box = await page.locator(selector).nth(index).boundingBox();
+    expect(box, `${selector} #${index} is somewhere on the page`).not.toBeNull();
+    const measured = box ?? { x: 0, y: 0, width: 0, height: 0 };
+    return { left: Math.round(measured.x), right: Math.round(measured.x + measured.width) };
 }
 
 export async function setDragged(page: Page, from: PagePoint, by: PagePoint): Promise<void> {

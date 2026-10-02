@@ -78,9 +78,9 @@ Deno.test("what the grammar does not cover is refused, and says which end", () =
     assertStrictEquals(keyless.index, 1, "a value with no key");
 });
 
-function expectSideUnreadable(read: unknown, end: MessageEnd, message: string): void {
-    assertInstanceOf(read, EndUnreadable, message);
-    assertStrictEquals(read.end, end, message);
+function expectSideUnreadable(answer: unknown, end: MessageEnd, message: string): void {
+    assertInstanceOf(answer, EndUnreadable, message);
+    assertStrictEquals(answer.end, end, message);
 }
 
 Deno.test("an id past what a number holds exactly is refused, not rounded", () => {
@@ -112,17 +112,17 @@ Deno.test("a message is read up to its bound, and refused one segment past it", 
 
 Deno.test("every message in every recording parses and writes back unchanged", () => {
     const recordings = readRecordedFights();
-    let read = 0;
+    let messagesRead = 0;
     let nobodyNamed = 0;
     for (const recording of recordings) {
         for (const message of recording.messages) {
-            read += 1;
+            messagesRead += 1;
             const parsed = parseProtocolMessage(message);
             assert(!(parsed instanceof Error), `${recording.path}: "${message}" is refused`);
             assertStrictEquals(encodeProtocolMessage(parsed), message, recording.path);
             if (parsed.actor === null) nobodyNamed += 1;
         }
     }
-    assert(read > recordings.length, "the recordings carry messages, not just files");
+    assert(messagesRead > recordings.length, "the recordings carry messages, not just files");
     assert(nobodyNamed > 0, "the protocol does state a message with no actor");
 });

@@ -30,10 +30,10 @@ test("the window stands beside the panel and never under it", async ({ panel }) 
     await waitForFrame(panel.page);
     const both = await panel.page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
-        const read = (selector: string) =>
+        const boxOf = (selector: string) =>
             root?.querySelector(selector)?.getBoundingClientRect() ?? null;
-        const panelBox = read(".MargoMeter-titlebar");
-        const standing = read(".MargoMeter-helper");
+        const panelBox = boxOf(".MargoMeter-titlebar");
+        const standing = boxOf(".MargoMeter-helper");
         if (panelBox === null || standing === null) return null;
         return {
             helperRight: Math.round(standing.right),
@@ -207,21 +207,21 @@ test("no sentence is cut, and a row is the only thing that may be", async ({ pan
  */
 async function readCutSentences(page: Page): Promise<string[]> {
     await waitForFrame(page);
-    const found = await page.evaluate(() => {
+    const cutSentences = await page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
         const window = root?.querySelector(".MargoMeter-helper") ?? null;
         if (window === null) return null;
         const said: string[] = [];
-        for (const element of window.querySelectorAll("*")) {
-            if (element.closest(".row") !== null) continue;
-            if (element.scrollWidth <= element.clientWidth + 1) continue;
-            if ((element.textContent ?? "").trim() === "") continue;
-            said.push(`${element.className}: ${element.textContent}`);
+        for (const descendant of window.querySelectorAll("*")) {
+            if (descendant.closest(".row") !== null) continue;
+            if (descendant.scrollWidth <= descendant.clientWidth + 1) continue;
+            if ((descendant.textContent ?? "").trim() === "") continue;
+            said.push(`${descendant.className}: ${descendant.textContent}`);
         }
         return said;
     });
-    expect(found, "the window was found and measured").not.toBeNull();
-    return found ?? [];
+    expect(cutSentences, "the window was found and measured").not.toBeNull();
+    return cutSentences ?? [];
 }
 
 /**
@@ -259,11 +259,12 @@ test("a card stands over the window, even where the window covers it", async ({ 
         moved.style.height = `${held.height}px`;
         (card as HTMLElement).style.pointerEvents = "auto";
         const box = card.getBoundingClientRect();
-        const found = root.elementsFromPoint(box.x + box.width / 2, box.y + box.height / 2);
-        const at = (owner: Element) => found.findIndex((one) => owner.contains(one));
+        const stacked = root.elementsFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        const positionInStack = (owner: Element) =>
+            stacked.findIndex((stackedElement) => owner.contains(stackedElement));
         return {
-            cardAt: at(card),
-            standingAt: at(standing),
+            cardAt: positionInStack(card),
+            standingAt: positionInStack(standing),
             doesCover: standing.getBoundingClientRect().width > 0,
         };
     });
@@ -305,9 +306,9 @@ test("a card from this window's row stands clear of this window", async ({ panel
 });
 
 /** Whether two boxes share no pixel of the screen between them, read off their edges. */
-function isClearOf(one: PanelEdges, other: PanelEdges): boolean {
-    if (one.right <= other.left) return true;
-    return one.left >= other.right;
+function isClearOf(firstBox: PanelEdges, secondBox: PanelEdges): boolean {
+    if (firstBox.right <= secondBox.left) return true;
+    return firstBox.left >= secondBox.right;
 }
 
 /**
@@ -409,9 +410,9 @@ async function readCell(page: Page, selector: string): Promise<
     { said: string; scrollWidth: number; clientWidth: number; scrollHeight: number } | null
 > {
     await waitForFrame(page);
-    return await page.evaluate((one) => {
+    return await page.evaluate((cellSelector) => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
-        const cell = root?.querySelector(one) ?? null;
+        const cell = root?.querySelector(cellSelector) ?? null;
         if (cell === null) return null;
         return {
             // `textContent` and never `innerText`: a cell cut by the sheet still holds the whole

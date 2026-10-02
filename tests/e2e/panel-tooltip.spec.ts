@@ -35,26 +35,26 @@ test("the add-on's rows land in the game's own tooltips", async ({ panel }) => {
 /** What stands in every fighter's tooltip past what the game composed, row by row. */
 async function readTooltips(page: Page): Promise<Record<string, string[]>> {
     await waitForFrame(page);
-    const found = await page.evaluate(() => {
+    const tips = await page.evaluate(() => {
         const held = (window as unknown as { MARGOMETER_TIPS?: Record<string, string> })
             .MARGOMETER_TIPS;
         return held ?? null;
     });
-    expect(found, "the page collected what was written to its fighters").not.toBeNull();
+    expect(tips, "the page collected what was written to its fighters").not.toBeNull();
     const rows: Record<string, string[]> = {};
-    for (const [id, text] of Object.entries(found ?? {})) rows[id] = text.split("<br>").slice(1);
+    for (const [id, text] of Object.entries(tips ?? {})) rows[id] = text.split("<br>").slice(1);
     return rows;
 }
 
 /** How many times each fighter's open tooltip was told to draw again. */
 async function readTold(page: Page): Promise<Record<string, number>> {
     await waitForFrame(page);
-    const found = await page.evaluate(() => {
+    const told = await page.evaluate(() => {
         return (window as unknown as { MARGOMETER_TOLD?: Record<string, number> })
             .MARGOMETER_TOLD ?? null;
     });
-    expect(found, "the page counted what its tooltips were told").not.toBeNull();
-    return found ?? {};
+    expect(told, "the page counted what its tooltips were told").not.toBeNull();
+    return told ?? {};
 }
 
 /**

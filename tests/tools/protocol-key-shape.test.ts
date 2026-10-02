@@ -52,16 +52,28 @@ const ELSEWHERE = [
 ].join("\n");
 
 Deno.test("the reader knows an entry and its claim from every other line", () => {
-    const read = parseRegisteredKeys(SAMPLE);
-    assertEquals(read.map((one) => one.key), ["+pierce", "+swing"], "both entries are found");
-    assertEquals(read[0]?.shape, {
+    const registered = parseRegisteredKeys(SAMPLE);
+    assertEquals(
+        registered.map((registeredKey) => registeredKey.key),
+        ["+pierce", "+swing"],
+        "both entries are found",
+    );
+    assertEquals(registered[0]?.shape, {
         key: "+pierce",
         occurrences: 398,
         placement: KEY_PLACEMENT.onBlow,
         value: KEY_VALUE.none,
     }, "and the claim under the first is read whole");
-    assertStrictEquals(read[1]?.shape, null, "an entry stating no shape reads as stating none");
-    assertEquals(read.map((one) => one.line), [1, 7], "each knows the line it opened on");
+    assertStrictEquals(
+        registered[1]?.shape,
+        null,
+        "an entry stating no shape reads as stating none",
+    );
+    assertEquals(
+        registered.map((registeredKey) => registeredKey.line),
+        [1, 7],
+        "each knows the line it opened on",
+    );
 });
 
 Deno.test("the reader flags nothing outside an entry", () => {
@@ -75,25 +87,29 @@ Deno.test("a claim never runs on from the entry below it", () => {
         "### `b` — decoded",
         "_Shape:_ 1 occurrences; anywhere; text",
     ];
-    const read = parseRegisteredKeys(said.join("\n"));
-    assertStrictEquals(read[0]?.shape, null, "the entry above keeps its own silence");
-    assertStrictEquals(read[1]?.shape?.occurrences, 1, "and the entry below keeps its own claim");
+    const registered = parseRegisteredKeys(said.join("\n"));
+    assertStrictEquals(registered[0]?.shape, null, "the entry above keeps its own silence");
+    assertStrictEquals(
+        registered[1]?.shape?.occurrences,
+        1,
+        "and the entry below keeps its own claim",
+    );
 });
 
 Deno.test("every claim the register states is one the recordings carry, and the other way", () => {
-    const measured = new Map(MEASURED.map((one) => [one.key, one]));
+    const measured = new Map(MEASURED.map((shape) => [shape.key, shape]));
     assert(measured.size > 0, "the corpus carries something to measure");
-    const written = REGISTERED.filter((one) => one.shape !== null);
+    const written = REGISTERED.filter((registeredKey) => registeredKey.shape !== null);
     assert(written.length > 0, "and the register states something about it");
-    for (const entry of written) {
+    for (const registeredKey of written) {
         assertEquals(
-            entry.shape,
-            measured.get(entry.key) ?? null,
-            `${REGISTER_PATH}:${entry.line}: ${entry.key} against what the recordings carry`,
+            registeredKey.shape,
+            measured.get(registeredKey.key) ?? null,
+            `${REGISTER_PATH}:${registeredKey.line}: ${registeredKey.key} against what the recordings carry`,
         );
     }
-    const stated = new Set(written.map((one) => one.key));
-    const named = new Set(REGISTERED.map((one) => one.key));
+    const stated = new Set(written.map((registeredKey) => registeredKey.key));
+    const named = new Set(REGISTERED.map((registeredKey) => registeredKey.key));
     const unstated = [...measured.keys()]
         .filter((key) => !stated.has(key))
         .filter((key) => !isDocumentedByFamily(key, named));
@@ -101,18 +117,20 @@ Deno.test("every claim the register states is one the recordings carry, and the 
 });
 
 Deno.test("an entry states no shape only for a key the recordings do not carry", () => {
-    const measured = new Set(MEASURED.map((one) => one.key));
-    const silent = REGISTERED.filter((one) => one.shape === null);
+    const measured = new Set(MEASURED.map((shape) => shape.key));
+    const silent = REGISTERED.filter((registeredKey) => registeredKey.shape === null);
     assert(silent.length > 0, "the register holds entries for keys no recording carries");
     const carried = silent
-        .filter((one) => one.key !== DAMAGE_FAMILY_HEADING)
-        .filter((one) => measured.has(one.key))
-        .map((one) => `${REGISTER_PATH}:${one.line}: ${one.key} is carried and states no shape`);
+        .filter((registeredKey) => registeredKey.key !== DAMAGE_FAMILY_HEADING)
+        .filter((registeredKey) => measured.has(registeredKey.key))
+        .map((registeredKey) =>
+            `${REGISTER_PATH}:${registeredKey.line}: ${registeredKey.key} is carried and states no shape`
+        );
     assertEquals(carried, [], "an omission the recordings do not excuse");
 });
 
 Deno.test("the family entry is what documents the keys the client has no case label for", () => {
-    const named = new Set(REGISTERED.map((one) => one.key));
+    const named = new Set(REGISTERED.map((registeredKey) => registeredKey.key));
     assert(named.has(DAMAGE_FAMILY_HEADING), "the register opens the family it stands on");
     assert(isDocumentedByFamily("-dmgc", named), "a member with no entry of its own is covered");
     assert(!isDocumentedByFamily("-dmga", named), "the member that earned an entry is not");
@@ -121,8 +139,8 @@ Deno.test("the family entry is what documents the keys the client has no case la
 });
 
 Deno.test("the corpus reaches every phrase both vocabularies hold", () => {
-    const placements = new Set(MEASURED.map((one) => one.placement));
-    const values = new Set(MEASURED.map((one) => one.value));
+    const placements = new Set(MEASURED.map((shape) => shape.placement));
+    const values = new Set(MEASURED.map((shape) => shape.value));
     assertEquals(
         [...placements].sort(),
         Object.values(KEY_PLACEMENT).sort(),
@@ -182,7 +200,7 @@ Deno.test("the report counts a disagreement per key, and never a family member",
     ];
     const lines = formatShapeReport(shapes, "a sample", register).split("\n");
     assertStrictEquals(lines.at(-2), `2 of 4 disagree with ${REGISTER_PATH}`, "a moved count and");
-    assert(lines.some((one) => one.endsWith("— states 2; on a blow; no value")), "what it said");
-    assert(lines.some((one) => one.endsWith("— no entry")), "and a key with no entry");
-    assert(lines.some((one) => one.endsWith(`— ${DAMAGE_FAMILY_HEADING}`)), "the family's own");
+    assert(lines.some((line) => line.endsWith("— states 2; on a blow; no value")), "what it said");
+    assert(lines.some((line) => line.endsWith("— no entry")), "and a key with no entry");
+    assert(lines.some((line) => line.endsWith(`— ${DAMAGE_FAMILY_HEADING}`)), "the family's own");
 });

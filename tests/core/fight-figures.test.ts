@@ -102,7 +102,7 @@ Deno.test("figures are tallied from a fight that exists, and say what they stand
 });
 
 Deno.test("figures one point off their own balance are refused where they are verified", () => {
-    const fight = readRecordedFights().find((one) => one.combatants.length > 0);
+    const fight = readRecordedFights().find((recorded) => recorded.combatants.length > 0);
     assert(fight !== undefined, "a recording with a cast");
     const figures = tallyFightFigures(replayRecordedFight(fight));
     verifyFightFigures(figures);

@@ -43,7 +43,9 @@ Deno.test("a recording replayed call by call reads as the whole of itself", () =
             announcementStanding: null,
             tables: BLOWS_GRANTED,
         };
-        const decoded = fight.payloads.flatMap((one) => decodePayloadMessages(one, context).events);
+        const decoded = fight.payloads.flatMap((payload) =>
+            decodePayloadMessages(payload, context).events
+        );
         assertEquals(replayed.events, decoded, `${fight.path}: the session lost or invented one`);
         assertStrictEquals(replayed.payloadsApplied, fight.updates.length, `${fight.path}: every`);
         assert(replayed.isOver, `${fight.path}: every recording carries the end of its fight`);
@@ -51,20 +53,20 @@ Deno.test("a recording replayed call by call reads as the whole of itself", () =
 });
 
 function view(session: FightSession, path: string): FightView {
-    const found = composeFightView(session);
-    assertExists(found, `${path}: the replay produced a fight`);
-    return found;
+    const fightView = composeFightView(session);
+    assertExists(fightView, `${path}: the replay produced a fight`);
+    return fightView;
 }
 
 Deno.test("a fight that opens replaces the one standing before it", () => {
-    const [first, second] = readRecordedFights();
-    assert(first !== undefined, "a first recording to run");
-    assert(second !== undefined, "and a second to run after it");
-    const session = replayRecordedFight(first);
-    for (const update of second.updates) apply(session, update, second.path);
-    const replaced = view(session, second.path);
-    assertStrictEquals(replaced.payloadsApplied, second.updates.length, "only the second");
-    const alone = view(replayRecordedFight(second), second.path);
+    const [firstFight, secondFight] = readRecordedFights();
+    assert(firstFight !== undefined, "a first recording to run");
+    assert(secondFight !== undefined, "and a second to run after it");
+    const session = replayRecordedFight(firstFight);
+    for (const update of secondFight.updates) apply(session, update, secondFight.path);
+    const replaced = view(session, secondFight.path);
+    assertStrictEquals(replaced.payloadsApplied, secondFight.updates.length, "only the second");
+    const alone = view(replayRecordedFight(secondFight), secondFight.path);
     assertEquals(replaced.events, alone.events, "and it reads as it would alone");
 });
 
@@ -149,9 +151,12 @@ Deno.test("what the payloads said somebody carries reaches the view", () => {
     for (const fight of readRecordedFights()) {
         const replayed = view(replayRecordedFight(fight), fight.path);
         if (replayed.carriedStatuses.length > 0) carrying += 1;
-        for (const one of replayed.carriedStatuses) {
-            assert(one.turnsElapsed >= 0, `${fight.path}: a status stands for turns that passed`);
-            assert(one.bit >= 0, `${fight.path}: and at a position in the mask`);
+        for (const status of replayed.carriedStatuses) {
+            assert(
+                status.turnsElapsed >= 0,
+                `${fight.path}: a status stands for turns that passed`,
+            );
+            assert(status.bit >= 0, `${fight.path}: and at a position in the mask`);
         }
     }
     assert(carrying > 0, "somebody in the corpus is carrying something the game stated");
@@ -182,8 +187,10 @@ Deno.test("Dotyk anioła counts the heals the decoder reads, over every recordin
     const counts = new Set<number>();
     for (const fight of readRecordedFights()) {
         replayEach(fight, (replayed) => {
-            for (const one of replayed.legendaryStandings) {
-                if (one.holytouchHealsReceived !== null) counts.add(one.holytouchHealsReceived);
+            for (const standing of replayed.legendaryStandings) {
+                if (standing.holytouchHealsReceived !== null) {
+                    counts.add(standing.holytouchHealsReceived);
+                }
             }
         });
     }

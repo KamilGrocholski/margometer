@@ -47,16 +47,16 @@ function lookupSingleImported(files: readonly SourceFile[]): string[] {
             importersByModule.set(target, importers);
         }
     }
-    const found: string[] = [];
+    const singleImported: string[] = [];
     for (const [target, importers] of importersByModule) {
         if (importers.size !== 1) continue;
         const directory = target.slice(0, target.lastIndexOf("/") + 1);
         if (!LAYER_DIRECTORIES.includes(directory)) continue;
         const [importer] = [...importers];
         if (!importer!.startsWith(directory)) continue;
-        found.push(`${target}, imported only by ${importer}`);
+        singleImported.push(`${target}, imported only by ${importer}`);
     }
-    return found.sort();
+    return singleImported.sort();
 }
 
 Deno.test("no module of a layer stands apart from the one module that imports it", () => {

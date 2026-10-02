@@ -25,29 +25,33 @@ Deno.test("a key constant holding a word no store key is, is flagged", () => {
         'const PLACE_KEY = "MargoMeter-plac";',
         'const HOST_SELECTOR = "#MargoMeter-Panel";',
     ]);
-    const read = readSuiteKeys(sample);
-    assertEquals(read.found, 2, "both key constants are read, and the selector is not");
-    assertEquals(read.unknown, ['sample.ts:2 PLACE_KEY holds "MargoMeter-plac"'], "the misspelt");
+    const sampleKeys = readSuiteKeys(sample);
+    assertEquals(sampleKeys.found, 2, "both key constants are read, and the selector is not");
+    assertEquals(
+        sampleKeys.unknown,
+        ['sample.ts:2 PLACE_KEY holds "MargoMeter-plac"'],
+        "the misspelt",
+    );
 });
 
 function readSuiteKeys(file: SourceFile): { found: number; unknown: string[] } {
     const unknown: string[] = [];
-    let found = 0;
+    let keysFound = 0;
     for (const declarator of readAstNodes(file, ["VariableDeclarator"])) {
         const name = declarator.id?.name ?? "";
         if (!name.endsWith(KEY_SUFFIX)) continue;
         const held = declarator.init?.value;
         if (typeof held !== "string") continue;
-        found += 1;
+        keysFound += 1;
         if (STORE_KEYS.includes(held)) continue;
         unknown.push(`${formatNodePlace(file, declarator)} ${name} holds "${held}"`);
     }
-    return { found, unknown };
+    return { found: keysFound, unknown };
 }
 
 Deno.test("every store key the browser suite spells is one the add-on writes", () => {
     const reads = readSourceFiles(["tests/e2e"]).map(readSuiteKeys);
-    const found = reads.reduce((sum, read) => sum + read.found, 0);
-    assert(found >= KEYS_FOUND_MINIMUM, `the suite names its keys: ${found} read`);
-    assertEquals(reads.flatMap((read) => read.unknown), [], "N13");
+    const keysFound = reads.reduce((sum, suiteKeys) => sum + suiteKeys.found, 0);
+    assert(keysFound >= KEYS_FOUND_MINIMUM, `the suite names its keys: ${keysFound} read`);
+    assertEquals(reads.flatMap((suiteKeys) => suiteKeys.unknown), [], "N13");
 });

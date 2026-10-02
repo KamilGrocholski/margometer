@@ -25,8 +25,8 @@ Deno.test("a warrior missing what a row needs is passed over, not filled in", ()
     assertEquals(bare?.profession, null, "and a profession nobody stated is none");
 });
 
-function readOne(entry: unknown) {
-    return readPayloadWarriorEntries([entry]).combatants[0] ?? null;
+function readOne(warriorEntry: unknown) {
+    return readPayloadWarriorEntries([warriorEntry]).combatants[0] ?? null;
 }
 
 Deno.test("a cast is a cast, keyed by id or listed in order", () => {
@@ -75,8 +75,8 @@ Deno.test("a combatant at nothing carries nothing, whatever their mask states", 
 
 /** A payload's own entry for one combatant, in the shape every recording carries. */
 function readMasks(health: unknown, mask: unknown): [number, number][] {
-    const entry = { id: 11, name: "Gracz 1", team: 1, hp: health, buffs: mask };
-    return [...readPayloadWarriorEntries([entry]).statusMasksByCombatantId];
+    const warriorEntry = { id: 11, name: "Gracz 1", team: 1, hp: health, buffs: mask };
+    return [...readPayloadWarriorEntries([warriorEntry]).statusMasksByCombatantId];
 }
 
 /** W5: zero is a boundary. One point left is somebody standing, and they keep what they hold. */
@@ -113,8 +113,8 @@ Deno.test("a charge is read in full, or as none", () => {
 });
 
 function readCharge(stated: unknown) {
-    const entry = { id: 5, super_cast: stated };
-    const [statement] = readPayloadWarriorEntries([entry]).chargeStatements;
+    const warriorEntry = { id: 5, super_cast: stated };
+    const [statement] = readPayloadWarriorEntries([warriorEntry]).chargeStatements;
     assert(statement !== undefined, "every entry with an id states a charge or none");
     return statement;
 }

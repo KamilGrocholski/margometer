@@ -17,7 +17,7 @@ import { initHeldStore, initRefusingStore } from "#/tests/runtime-world.ts";
 Deno.test("a fight kept is on the shelf and in the store, and the answers say nothing", () => {
     const { keeper, getShelf } = initKeeper();
     keeper.keep(composeFight(1));
-    assertEquals(keeper.getFights().map((one) => one.openedAt), [1], "the fight stands");
+    assertEquals(keeper.getFights().map((fight) => fight.openedAt), [1], "the fight stands");
     assert(getShelf(STORAGE_CHOICE.local).has(STORE_KEY.fights), "where a reload will look");
     const quiet = {
         isEverySlotPinned: false,
@@ -66,7 +66,11 @@ function composeFight(openedAt: number, isPinned = false): KeptFight {
 Deno.test("a fight the store refuses stays a row, beside the answer that it was not saved", () => {
     const { keeper, lines } = initKeeper({ initShelfStore: () => initRefusingStore() });
     keeper.keep(composeFight(1));
-    assertEquals(keeper.getFights().map((one) => one.openedAt), [1], "what the reader asked for");
+    assertEquals(
+        keeper.getFights().map((fight) => fight.openedAt),
+        [1],
+        "what the reader asked for",
+    );
     assert(keeper.getAnswers().hasStoreRefused, "and the store's answer beside it");
     assertEquals(lines, [], "which is an answer and not a defect");
 });
@@ -87,9 +91,9 @@ Deno.test("a store that asks for room takes the newest, and the answer says room
 function initCeilingStore(held: Map<string, string>, lengthMaximum: number): KeyValueStore {
     return initBrowserStore({
         getItem: (key) => held.get(key) ?? null,
-        setItem: (key, value) => {
-            if (value.length > lengthMaximum) throw new DOMException("full", "QuotaExceededError");
-            held.set(key, value);
+        setItem: (key, stored) => {
+            if (stored.length > lengthMaximum) throw new DOMException("full", "QuotaExceededError");
+            held.set(key, stored);
         },
         removeItem: (key) => void held.delete(key),
     });
@@ -98,7 +102,9 @@ function initCeilingStore(held: Map<string, string>, lengthMaximum: number): Key
 /** The rotation on a full shelf is not the store asking for room, and is not said as it. */
 Deno.test("a shelf past its bound drops its oldest quietly, as the rotation it is", () => {
     const { keeper } = initKeeper();
-    for (let at = 1; at <= KEPT_MAXIMUM + 1; at += 1) keeper.keep(composeFight(at));
+    for (let openedAt = 1; openedAt <= KEPT_MAXIMUM + 1; openedAt += 1) {
+        keeper.keep(composeFight(openedAt));
+    }
     assertStrictEquals(keeper.getFights().length, KEPT_MAXIMUM, "the shelf stays at its bound");
     assertStrictEquals(keeper.getFights()[0]?.openedAt, 2, "having let the oldest go");
     assert(!keeper.getAnswers().hasStoreMadeRoom, "which is not the store asking for room");
@@ -106,7 +112,9 @@ Deno.test("a shelf past its bound drops its oldest quietly, as the rotation it i
 
 Deno.test("a shelf of pins keeps them, and says the new fight had nowhere to go", () => {
     const { keeper } = initKeeper();
-    for (let at = 1; at <= KEPT_MAXIMUM; at += 1) keeper.keep(composeFight(at, true));
+    for (let openedAt = 1; openedAt <= KEPT_MAXIMUM; openedAt += 1) {
+        keeper.keep(composeFight(openedAt, true));
+    }
     keeper.keep(composeFight(KEPT_MAXIMUM + 1));
     assert(keeper.getAnswers().isEverySlotPinned, "every slot held by a pin");
     assertStrictEquals(keeper.getFights().length, KEPT_MAXIMUM, "and none of them let go");
@@ -123,7 +131,11 @@ Deno.test("a pin toggles, and one the store refuses stands in memory as the read
     keeper.pin(1);
     assertStrictEquals(keeper.getFights()[0]?.isPinned, false, "pressed again, not");
     keeper.pin(99);
-    assertEquals(keeper.getFights().map((one) => one.openedAt), [1], "a pin on no fight is none");
+    assertEquals(
+        keeper.getFights().map((fight) => fight.openedAt),
+        [1],
+        "a pin on no fight is none",
+    );
     const refusing = initKeeper({ initShelfStore: () => initRefusingStore() });
     refusing.keeper.keep(composeFight(1));
     refusing.keeper.pin(1);
@@ -149,7 +161,7 @@ Deno.test("a fight kept twice under one moment is kept once, and a defect", () =
     const { keeper, lines } = initKeeper();
     keeper.keep(composeFight(1));
     keeper.keep(composeFight(1));
-    assertEquals(keeper.getFights().map((one) => one.openedAt), [1], "one fight on the shelf");
+    assertEquals(keeper.getFights().map((fight) => fight.openedAt), [1], "one fight on the shelf");
     assertEquals(lines, [DEFECT_KIND.keeping], "and the second said as ours to answer for");
 });
 
@@ -158,9 +170,9 @@ Deno.test("a store that took the next fight takes back the answer that it refuse
     let isRefusing = true;
     const store = initBrowserStore({
         getItem: (key) => held.get(key) ?? null,
-        setItem: (key, value) => {
+        setItem: (key, stored) => {
             if (isRefusing) throw new DOMException("full", "QuotaExceededError");
-            held.set(key, value);
+            held.set(key, stored);
         },
         removeItem: (key) => void held.delete(key),
     });
@@ -174,15 +186,15 @@ Deno.test("a store that took the next fight takes back the answer that it refuse
 
 Deno.test("a reading is held for every fight on the shelf, however many went before", () => {
     const { keeper } = initKeeper();
-    for (let at = 1; at <= KEPT_MAXIMUM + 1; at += 1) {
-        const fight = composeFight(at);
+    for (let openedAt = 1; openedAt <= KEPT_MAXIMUM + 1; openedAt += 1) {
+        const fight = composeFight(openedAt);
         keeper.keep(fight);
-        const read = keeper.lookupKeptFightState(fight);
-        assert(read !== null, "a fight that reads is read");
+        const keptState = keeper.lookupKeptFightState(fight);
+        assert(keptState !== null, "a fight that reads is read");
         assertStrictEquals(
             keeper.lookupKeptFightState(fight),
-            read,
-            `fight ${at} is held, not replayed`,
+            keptState,
+            `fight ${openedAt} is held, not replayed`,
         );
     }
 });
@@ -217,7 +229,11 @@ Deno.test("a kept fight is replayed once, and one that will not replay is marked
     assertStrictEquals(defects.getCounts()[0]?.count, 1, "and marked once, not once per ask");
     const whole = composeFight(2);
     keeper.keep(whole);
-    const read = keeper.lookupKeptFightState(whole);
-    assert(read !== null, "a fight that reads is read");
-    assertStrictEquals(keeper.lookupKeptFightState(whole), read, "and held rather than read again");
+    const keptState = keeper.lookupKeptFightState(whole);
+    assert(keptState !== null, "a fight that reads is read");
+    assertStrictEquals(
+        keeper.lookupKeptFightState(whole),
+        keptState,
+        "and held rather than read again",
+    );
 });

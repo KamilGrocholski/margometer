@@ -457,7 +457,7 @@ Deno.test("the corpus says who gave every point of health it put back", () => {
     let nobody = 0;
     for (const { combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
-        const events = payloads.flatMap((one) => decode(one, roster));
+        const events = payloads.flatMap((payload) => decode(payload, roster));
         const statistics = tally(events, indexSideHeals(events, roster));
         restored += statistics.totals.healthRestored;
         given += statistics.totals.healthGiven;
@@ -605,7 +605,7 @@ Deno.test("what the recordings restore is mostly what a cast put back", () => {
     let unplaced = 0;
     for (const { combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
-        const events = payloads.flatMap((one) => decode(one, roster));
+        const events = payloads.flatMap((payload) => decode(payload, roster));
         const statistics = tally(events, indexSideHeals(events, roster));
         restored += statistics.totals.healthRestored;
         unplaced += statistics.sideHealsUnsized;
@@ -632,7 +632,7 @@ Deno.test("a blow is cut by what it was dealt with and by whom it reached", () =
 Deno.test("every cut of a combatant comes to that combatant's own total", () => {
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
-        const events = payloads.flatMap((one) => decode(one, roster));
+        const events = payloads.flatMap((payload) => decode(payload, roster));
         const statistics = tally(events, indexSideHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
             let dealtByKind = 0;
@@ -666,7 +666,7 @@ Deno.test("every cut of a combatant comes to that combatant's own total", () => 
 Deno.test("a cut by both ends comes to the same figure as the cut by one", () => {
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
-        const events = payloads.flatMap((one) => decode(one, roster));
+        const events = payloads.flatMap((payload) => decode(payload, roster));
         const statistics = tally(events, indexSideHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
             const where = `${path}: ${combatantId}`;
@@ -676,12 +676,16 @@ Deno.test("a cut by both ends comes to the same figure as the cut by one", () =>
                     [figures.damageTakenByOpponent, figures.damageTakenByOpponentAndKind],
                 ] as const
             ) {
-                for (const [other, amount] of flat) {
-                    const kinds = deep.get(other);
+                for (const [opponent, amount] of flat) {
+                    const kinds = deep.get(opponent);
                     assertExists(kinds, `${where}: a pair cut by one end and not by both`);
                     let total = 0;
                     for (const figure of kinds.values()) total += figure;
-                    assertEquals(total, amount, `${where}: the two cuts disagree about ${other}`);
+                    assertEquals(
+                        total,
+                        amount,
+                        `${where}: the two cuts disagree about ${opponent}`,
+                    );
                 }
             }
             // And every skill is a part of what its announcer dealt or put back, never more.
@@ -717,22 +721,23 @@ Deno.test("what one dealt another is the announcements aimed at them, and never 
     let between = 0;
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
-        const events = payloads.flatMap((one) => decode(one, roster));
+        const events = payloads.flatMap((payload) => decode(payload, roster));
         const statistics = tally(events, indexSideHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
-            for (const [other, kinds] of figures.damageTakenByOpponentAndKind) {
+            for (const [opponent, kinds] of figures.damageTakenByOpponentAndKind) {
                 let total = 0;
                 for (const figure of kinds.values()) total += figure;
                 let held = 0;
                 for (
-                    const skill of statistics.byCombatantId.get(Number(other))?.skills.values() ??
-                        []
+                    const skill
+                        of statistics.byCombatantId.get(Number(opponent))?.skills.values() ??
+                            []
                 ) {
                     held += skill.damageDealtByOpponent.get(`${combatantId}`) ?? 0;
                 }
                 assert(
                     held <= total,
-                    `${path}: ${other} announced more against ${combatantId} than reached them`,
+                    `${path}: ${opponent} announced more against ${combatantId} than reached them`,
                 );
                 if (total === 0) continue;
                 if (held === 0) none += 1;
@@ -760,18 +765,18 @@ Deno.test("what one gave another is the skills announced for it plus the keys, e
     let stated = 0;
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
-        const events = payloads.flatMap((one) => decode(one, roster));
+        const events = payloads.flatMap((payload) => decode(payload, roster));
         const statistics = tally(events, indexSideHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
-            for (const [other, amount] of figures.healthGivenByReceiver) {
+            for (const [receiver, amount] of figures.healthGivenByReceiver) {
                 pairs += 1;
                 let held = 0;
                 for (const skill of figures.skills.values()) {
-                    const figure = skill.healthGivenByReceiver.get(other) ?? 0;
+                    const figure = skill.healthGivenByReceiver.get(receiver) ?? 0;
                     if (figure > 0) announced += 1;
                     held += figure;
                 }
-                const keys = figures.healthGivenWithoutSkillByReceiverAndKey.get(other);
+                const keys = figures.healthGivenWithoutSkillByReceiverAndKey.get(receiver);
                 for (const figure of keys?.values() ?? []) {
                     stated += 1;
                     held += figure;
@@ -779,7 +784,7 @@ Deno.test("what one gave another is the skills announced for it plus the keys, e
                 assertEquals(
                     held,
                     amount,
-                    `${path}: ${combatantId} to ${other} is not what its parts hold`,
+                    `${path}: ${combatantId} to ${receiver} is not what its parts hold`,
                 );
             }
             // The same equation on the receiving side, which is the one the panel's own section
@@ -1098,7 +1103,7 @@ Deno.test("every recording charges a turn to somebody who was already in the fig
         const roster = indexCombatantRoster(combatants);
         // One decode per payload, which is what the session does: an announcement is glued
         // inside the payload it arrived in and never across two of them.
-        const events = payloads.flatMap((one) => decode(one, roster));
+        const events = payloads.flatMap((payload) => decode(payload, roster));
         const statistics = tally(events, indexSideHeals(events, roster));
         for (const [id, figures] of statistics.byCombatantId) {
             assert(figures.turnsTaken >= 0, `${path} ${id} took no less than no turn`);
@@ -1161,11 +1166,11 @@ Deno.test("every turn the recordings say was lost is charged to somebody in the 
     let lost = 0;
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
-        const events = payloads.flatMap((one) => decode(one, roster));
+        const events = payloads.flatMap((payload) => decode(payload, roster));
         const statistics = tally(events, indexSideHeals(events, roster));
         let placed = 0;
         for (const [, figures] of statistics.byCombatantId) placed += figures.turnsLost;
-        const stated = events.filter((one) => one.kind === "turn-lost").length;
+        const stated = events.filter((event) => event.kind === "turn-lost").length;
         assertEquals(placed, stated, `${path}: a turn was lost by nobody the roster holds`);
         lost += placed;
     }

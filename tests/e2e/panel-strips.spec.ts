@@ -23,14 +23,14 @@ test("every noun and direction is a strip, and pressing one moves the mark", asy
         .toHaveCount(MARKS_ON_THE_SCREENS);
 
     const drawn: string[] = [];
-    for (let at = 0; at < STRIPS_ON_A_FIGHT; at += 1) {
+    for (let stripIndex = 0; stripIndex < STRIPS_ON_A_FIGHT; stripIndex += 1) {
         // Re-read every round: pressing a noun rewrites what the direction strips are for.
-        const name = await panel.at("[data-screen]").nth(at).getAttribute("data-screen");
+        const name = await panel.at("[data-screen]").nth(stripIndex).getAttribute("data-screen");
         expect(name, "a strip says which screen it opens").not.toBeNull();
-        await panel.at("[data-screen]").nth(at).click();
+        await panel.at("[data-screen]").nth(stripIndex).click();
         // The strip itself and not a lookup by name: a noun and a direction can both be strips for
         // the same screen, so `[data-screen="…"]` finds two and neither is "the one pressed".
-        await expect(panel.at("[data-screen]").nth(at), `${name} is where it stands now`)
+        await expect(panel.at("[data-screen]").nth(stripIndex), `${name} is where it stands now`)
             .toHaveClass("strip selected");
         await expect(panel.at("[data-screen].selected"), "and neither strip lost its mark")
             .toHaveCount(MARKS_ON_THE_SCREENS);
@@ -50,11 +50,11 @@ test("the audiences are three, and each draws a ranking of its own", async ({ pa
         SIDES_ON_A_FIGHT,
     );
     const drawn: string[] = [];
-    for (let at = 0; at < SIDES_ON_A_FIGHT; at += 1) {
-        await sides.nth(at).click();
+    for (let sideIndex = 0; sideIndex < SIDES_ON_A_FIGHT; sideIndex += 1) {
+        await sides.nth(sideIndex).click();
         await expect(panel.at("[data-side].selected"), "one audience is marked").toHaveCount(1);
         drawn.push(await panel.said());
-        await panel.expectHonest(`the audience at ${at}`);
+        await panel.expectHonest(`the audience at ${sideIndex}`);
     }
     expect(new Set(drawn).size, "and the three of them are not one screen three times")
         .toBeGreaterThan(1);
@@ -75,8 +75,8 @@ test("the strip that says where a shelf is kept belongs to the options", async (
         .toHaveCount(1);
     // Never starting at the first: the panel already stands on it, and pressing where a reader
     // already is asks the store for nothing — so the round would prove the write by not making it.
-    for (const at of [1, 2, 0]) {
-        const choice = panel.at("[data-storage]").nth(at);
+    for (const storageIndex of [1, 2, 0]) {
+        const choice = panel.at("[data-storage]").nth(storageIndex);
         const named = await choice.getAttribute("data-storage");
         await choice.click();
         expect(await panel.stored(STORAGE_KEY), `${named} was written down`).toBe(named);

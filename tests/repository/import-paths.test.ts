@@ -96,6 +96,6 @@ Deno.test("Node and Playwright are the browser suite's to import, and nobody els
 });
 
 Deno.test("every import in the tree is spelt for where it stands", () => {
-    const found = readSourceFiles(SOURCE_DIRECTORIES).flatMap(lookupMisspeltImports);
-    assertEquals(found, [], "C8");
+    const misspelt = readSourceFiles(SOURCE_DIRECTORIES).flatMap(lookupMisspeltImports);
+    assertEquals(misspelt, [], "C8");
 });

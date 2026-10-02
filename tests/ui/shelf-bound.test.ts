@@ -60,8 +60,8 @@ Deno.test("a full shelf with a fight still running draws, rather than going undr
 /** A full shelf with the fight that is still running on top of it — the reported case. */
 function composeFullShelf(): ShelfRow[] {
     const rows = [composeShelfRow(KEPT_MAXIMUM + 1, true)];
-    for (let at = 0; at < KEPT_MAXIMUM; at += 1) {
-        rows.push(composeShelfRow(at + 1, false));
+    for (let index = 0; index < KEPT_MAXIMUM; index += 1) {
+        rows.push(composeShelfRow(index + 1, false));
     }
     return rows;
 }

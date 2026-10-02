@@ -90,12 +90,14 @@ Deno.test("a cast stands from its own turn, and leaves when its turns have passe
     const dated = composeStated([{ id: 264, turns: 2 }]);
     const cast = composeCast(1, 264, "+spell-taken_dmg-all");
     assertEquals(
-        replayStandings([cast], dated, ROSTER).auras.map((one) => one.turnsElapsed),
+        replayStandings([cast], dated, ROSTER).auras.map((aura) => aura.turnsElapsed),
         [0],
         "nothing has passed on the turn it was cast",
     );
     assertEquals(
-        replayStandings([cast, composeBlow(1)], dated, ROSTER).auras.map((one) => one.turnsElapsed),
+        replayStandings([cast, composeBlow(1)], dated, ROSTER).auras.map((aura) =>
+            aura.turnsElapsed
+        ),
         [1],
         "and one turn of the caster's later, one has",
     );
@@ -136,10 +138,10 @@ function composeCast(
         targetHealthPercent: null,
         skillName: "Cast",
         skillId,
-        declared: effect.split(" ").map((one) => ({
-            effect: one,
+        declared: effect.split(" ").map((effectKey) => ({
+            effect: effectKey,
             amount: 8,
-            text: one === "shout" ? shouted : null,
+            text: effectKey === "shout" ? shouted : null,
         })),
     };
 }
@@ -197,7 +199,7 @@ Deno.test("another's turn moves nothing, and a second cast refreshes rather than
     const cast = composeCast(1, 264, "+spell-taken_dmg-all");
     assertEquals(
         replayStandings([cast, composeBlow(2), composeBlow(2)], dated, ROSTER).auras
-            .map((one) => one.turnsElapsed),
+            .map((aura) => aura.turnsElapsed),
         [0],
         "the length is counted in the caster's own turns and nobody else's",
     );
@@ -226,13 +228,13 @@ Deno.test("every recording answers, and nothing stands longer than the table giv
         const path = fight.path;
         const roster = indexCombatantRoster(fight.combatants);
         const events = decodeRecordedFight(fight).events;
-        for (const one of replayStandings(events, DATED, roster).auras) {
+        for (const aura of replayStandings(events, DATED, roster).auras) {
             stood += 1;
-            assert(one.turnsElapsed >= 0, `${path}: a length is never below nothing`);
-            assert(one.turnsElapsed < one.turnsStated, `${path}: and never past what was stated`);
-            assert(one.skillName.length > 0, `${path}: a standing names the skill the game named`);
+            assert(aura.turnsElapsed >= 0, `${path}: a length is never below nothing`);
+            assert(aura.turnsElapsed < aura.turnsStated, `${path}: and never past what was stated`);
+            assert(aura.skillName.length > 0, `${path}: a standing names the skill the game named`);
             assert(
-                DATED.auraTurnsBySkillId.has(one.skillId),
+                DATED.auraTurnsBySkillId.has(aura.skillId),
                 `${path}: and one the published table dates`,
             );
         }
@@ -291,21 +293,21 @@ Deno.test("a shout holds every character its value names, and nobody else", () =
         composeRoster(2, 3),
     ).provocations;
     assertEquals(
-        held.map((one) => one.provokedId).sort((left, right) => left - right),
+        held.map((provocation) => provocation.provokedId).sort((left, right) => left - right),
         [8, 9],
         "the two the announcement listed, and never the third of that side",
     );
-    assert(held.every((one) => one.casterId === 1), "all held by whoever shouted");
+    assert(held.every((provocation) => provocation.casterId === 1), "all held by whoever shouted");
 });
 
 /** As many on each side as a sample asks for, so the count has a side to be read against. */
 function composeRoster(ours: number, theirs: number) {
     const combatants: Combatant[] = [];
-    for (let at = 0; at < ours; at += 1) {
-        combatants.push(composeCombatant(1 + at, OURS));
+    for (let index = 0; index < ours; index += 1) {
+        combatants.push(composeCombatant(1 + index, OURS));
     }
-    for (let at = 0; at < theirs; at += 1) {
-        combatants.push(composeCombatant(9 - at, THEIRS));
+    for (let index = 0; index < theirs; index += 1) {
+        combatants.push(composeCombatant(9 - index, THEIRS));
     }
     return indexCombatantRoster(combatants);
 }
@@ -323,7 +325,7 @@ Deno.test("a value naming one holds one, which is every recording before this ro
         // which a roster now refuses as one combatant named twice.
         composeRoster(8, 1),
     ).provocations;
-    assertEquals(held.map((one) => one.provokedId), [9], "the one it named");
+    assertEquals(held.map((provocation) => provocation.provokedId), [9], "the one it named");
 });
 
 /**
@@ -339,7 +341,11 @@ Deno.test("a name the roster cannot place is dropped, and the rest of the list s
         dated,
         roster,
     ).provocations;
-    assertEquals(partly.map((one) => one.provokedId), [9], "the name that resolves, and no other");
+    assertEquals(
+        partly.map((provocation) => provocation.provokedId),
+        [9],
+        "the name that resolves, and no other",
+    );
 
     const none = replayStandings(
         [composeCast(1, 188, "shout alllowdmg", 9, "Nikt Taki")],
@@ -380,7 +386,7 @@ Deno.test("a shout the table dates nowhere holds nobody, and its other half stil
         "an id the frozen shouts do not name holds nobody",
     );
     assertEquals(
-        replayStandings(events, dated, ROSTER).auras.map((one) => one.turnsStated),
+        replayStandings(events, dated, ROSTER).auras.map((aura) => aura.turnsStated),
         [5],
         "and the debuff on the same announcement is dated by itself, so it stands",
     );
@@ -435,7 +441,10 @@ Deno.test("a later shout takes over each character it names, and leaves the rest
         composeRoster(2, 3),
     ).provocations;
     assertEquals(
-        held.map((one) => [one.provokedId, one.casterId]).sort((a, b) => (a[0] ?? 0) - (b[0] ?? 0)),
+        held.map((provocation) => [provocation.provokedId, provocation.casterId]).sort((
+            left,
+            right,
+        ) => (left[0] ?? 0) - (right[0] ?? 0)),
         [[8, 2], [9, 1]],
         "the later shout took the one it named, and the other is still held by the first",
     );
@@ -453,7 +462,7 @@ Deno.test("an okrzyk stands beside the whole-team casts as well as holding someb
         composeCast(1, 264, "+spell-taken_dmg-all"),
     ];
     assertEquals(
-        replayStandings(events, dated, ROSTER).auras.map((one) => one.skillId).sort(),
+        replayStandings(events, dated, ROSTER).auras.map((aura) => aura.skillId).sort(),
         [188, 264],
         "the okrzyk's side-wide half stands where every other cast reaching a side does",
     );
@@ -491,9 +500,9 @@ Deno.test("an okrzyk's two halves run out apart, and on two different clocks", (
 
 /** As many of that caster's own turns as a sample needs to pass, each opened by a blow. */
 function composeTurns(actorId: number, turns: number): BattleEvent[] {
-    const found: BattleEvent[] = [];
-    for (let at = 0; at < turns; at += 1) found.push(composeBlow(actorId));
-    return found;
+    const blows: BattleEvent[] = [];
+    for (let turn = 0; turn < turns; turn += 1) blows.push(composeBlow(actorId));
+    return blows;
 }
 
 Deno.test("a target slot nobody shouted at holds nobody", () => {
@@ -515,12 +524,12 @@ Deno.test(`${AGAINST_TWO}: one shout holds both players it named`, () => {
     const held = replayStandings(announced, DATED, roster).provocations;
     assertStrictEquals(held.length, 2, "the value named two characters, so two are held");
     assertEquals(
-        held.map((one) => roster.byId.get(one.provokedId)?.name).sort(),
+        held.map((provocation) => roster.byId.get(provocation.provokedId)?.name).sort(),
         ["Gracz 2", "Gracz 3"],
         "both of the opposing side, by the names the announcement carried",
     );
     assert(
-        held.every((one) => one.turnsStated === 3),
+        held.every((provocation) => provocation.turnsStated === 3),
         "each dated by the shout's own row rather than the skill's longest",
     );
     // `develop ADR 0103`: two characters held by one shout run out on two clocks, so by the end of
@@ -543,9 +552,11 @@ function composeEventsAndShout(path: string): {
     const roster = indexCombatantRoster(fight.combatants);
     const events = decodeRecordedFight(fight).events;
     let lastShout = -1;
-    for (const [at, event] of events.entries()) {
+    for (const [eventIndex, event] of events.entries()) {
         if (event.kind !== "skill-used") continue;
-        if (event.declared.some((one) => one.effect === PROVOCATION_KEY)) lastShout = at;
+        if (event.declared.some((declaredEffect) => declaredEffect.effect === PROVOCATION_KEY)) {
+            lastShout = eventIndex;
+        }
     }
     assert(lastShout >= 0, `${path} carries a shout to read`);
     return { roster, events, lastShout };
@@ -568,7 +579,7 @@ Deno.test(`${BOTH_OKRZYKI}: two casters at one monster leave one provocation sta
     // states.
     const standing = replayStandings(announced, DATED, roster).auras;
     assertEquals(
-        standing.filter((one) => one.skillId === 25).map((one) => one.turnsStated),
+        standing.filter((aura) => aura.skillId === 25).map((aura) => aura.turnsStated),
         [2],
         "the okrzyk that is holding somebody also stands on its caster's side, once",
     );
@@ -613,10 +624,10 @@ Deno.test("the entry reader flags a bare key, and passes one with a reason or a 
         REACH_CLOSER,
         '    ["after", "other-side"],',
     ].join("\n");
-    const read = lookupBareReachEntries(sample, { NAMED_KEY: "debuff-enemies" });
-    assertStrictEquals(read.entries, 5, "every entry inside the table, and none after it");
+    const reachEntries = lookupBareReachEntries(sample, { NAMED_KEY: "debuff-enemies" });
+    assertStrictEquals(reachEntries.entries, 5, "every entry inside the table, and none after it");
     assertEquals(
-        read.bare,
+        reachEntries.bare,
         ["plainkey", "LEFT_ALONE"],
         "and only the two with nothing beside them",
     );
@@ -634,7 +645,7 @@ function lookupBareReachEntries(
     const opened = source.indexOf(REACH_OPENER);
     assert(opened !== -1, "the table is where this guard expects it");
     const lines = source.slice(opened + REACH_OPENER.length).split("\n");
-    const found: ReachEntries = { entries: 0, bare: [] };
+    const reachEntries: ReachEntries = { entries: 0, bare: [] };
     let commented = false;
     for (const line of lines) {
         const trimmed = line.trim();
@@ -646,14 +657,14 @@ function lookupBareReachEntries(
         if (!trimmed.startsWith("[")) continue;
         const named = readReachEntryKey(trimmed, keys);
         if (named.length === 0) continue;
-        found.entries += 1;
+        reachEntries.entries += 1;
         const saysItsSide = SIDE_IN_THE_NAME.some((mark) => named.includes(mark));
         if (!saysItsSide) {
-            if (!commented) found.bare.push(named);
+            if (!commented) reachEntries.bare.push(named);
         }
         commented = false;
     }
-    return found;
+    return reachEntries;
 }
 
 /** `["alllowdmg", …]` names its key; `[HEALING_REDUCER_KEY, …]` names what the constant holds. */
@@ -671,9 +682,13 @@ function readReachEntryKey(trimmed: string, keys: Readonly<Record<string, unknow
  * comment. A key added without one reddens this.
  */
 Deno.test("a reach with no side in its name is entered with its reason", () => {
-    const read = lookupBareReachEntries(Deno.readTextFileSync(REACH_SOURCE), protocolKeys);
-    assert(read.entries > 10, `the table was read: ${read.entries} entries`);
-    assertEquals(read.bare, [], "every key that does not name its side is entered with a reason");
+    const reachEntries = lookupBareReachEntries(Deno.readTextFileSync(REACH_SOURCE), protocolKeys);
+    assert(reachEntries.entries > 10, `the table was read: ${reachEntries.entries} entries`);
+    assertEquals(
+        reachEntries.bare,
+        [],
+        "every key that does not name its side is entered with a reason",
+    );
 });
 
 /**
@@ -682,18 +697,26 @@ Deno.test("a reach with no side in its name is entered with its reason", () => {
  */
 Deno.test("a name nobody holds is skipped wherever it stands in the list", () => {
     const dated = composeStated([{ id: 188, turns: 5 }], SHOUTS);
-    const first = replayStandings(
+    const afterUnplaced = replayStandings(
         [composeCast(1, 188, "shout alllowdmg", 9, "Nikt Taki, Ktoś 9")],
         dated,
         composeRoster(2, 3),
     ).provocations;
-    assertEquals(first.map((one) => one.provokedId), [9], "a name after an unplaced one holds");
+    assertEquals(
+        afterUnplaced.map((provocation) => provocation.provokedId),
+        [9],
+        "a name after an unplaced one holds",
+    );
     const trailing = replayStandings(
         [composeCast(1, 188, "shout alllowdmg", 9, "Ktoś 9, ")],
         dated,
         composeRoster(2, 3),
     ).provocations;
-    assertEquals(trailing.map((one) => one.provokedId), [9], "and an empty name is no name");
+    assertEquals(
+        trailing.map((provocation) => provocation.provokedId),
+        [9],
+        "and an empty name is no name",
+    );
 });
 
 Deno.test("the target slot is read beside a shout, and on no other cast", () => {

@@ -29,8 +29,6 @@ interface ImportReach {
 
 /** Where a bare verb is looked for: the code a reader of the tree follows by its calls. */
 const FUNCTION_DIRECTORIES = ["libs", "src", "tools"];
-/** Where a placeholder is looked for, a layer at a time as each is renamed. */
-const BINDING_DIRECTORIES = ["libs", "src", "tools"];
 /** Words that fit any value, so a name made of one says nothing of what it holds. */
 const PLACEHOLDERS = [
     "a",
@@ -206,6 +204,6 @@ Deno.test("every function and every binding in the tree is named as N22 asks", (
         lookupBareVerbs(file, reach)
     );
     assertEquals(functions, [], "N22: a function declared on its own says what it acts on");
-    const bindings = readSourceFiles(BINDING_DIRECTORIES).flatMap(lookupPlaceholders);
+    const bindings = readSourceFiles(SOURCE_DIRECTORIES).flatMap(lookupPlaceholders);
     assertEquals(bindings, [], "N22: a local or a parameter says what it holds");
 });

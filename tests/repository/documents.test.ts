@@ -72,23 +72,23 @@ function readRuleName(line: string): RuleName | null {
 
 /** A prefix of capitals and a number, closed by what is asked; null where the text is not one. */
 function readRuleNameText(text: string, closer: string): RuleName | null {
-    let at = 0;
-    for (; at < text.length; at += 1) {
-        const character = text.charAt(at);
+    let characterIndex = 0;
+    for (; characterIndex < text.length; characterIndex += 1) {
+        const character = text.charAt(characterIndex);
         if (character < "A") break;
         if (character > "Z") break;
     }
-    const prefix = text.slice(0, at);
-    const digitsFrom = at;
-    for (; at < text.length; at += 1) {
-        const character = text.charAt(at);
+    const prefix = text.slice(0, characterIndex);
+    const digitsFrom = characterIndex;
+    for (; characterIndex < text.length; characterIndex += 1) {
+        const character = text.charAt(characterIndex);
         if (character < "0") break;
         if (character > "9") break;
     }
     if (prefix.length !== 1) return null;
-    if (at === digitsFrom) return null;
-    if (!text.startsWith(closer, at)) return null;
-    return { prefix, number: Number(text.slice(digitsFrom, at)) };
+    if (characterIndex === digitsFrom) return null;
+    if (!text.startsWith(closer, characterIndex)) return null;
+    return { prefix, number: Number(text.slice(digitsFrom, characterIndex)) };
 }
 
 Deno.test("rule numbering runs from one without a gap, prefix by prefix", () => {
@@ -130,22 +130,22 @@ function formatRuleName(rule: RuleName): string {
  * numbering is written `develop ADR` or `develop:AGENTS.md`, never bold, so it is not read here.
  */
 function readBoldRuleNames(text: string): string[] {
-    const found: string[] = [];
-    let at = text.indexOf(BOLD_MARK);
-    for (let tried = 0; at !== -1; tried += 1) {
+    const ruleNames: string[] = [];
+    let markIndex = text.indexOf(BOLD_MARK);
+    for (let tried = 0; markIndex !== -1; tried += 1) {
         assert(tried <= text.length, "the walk stays inside the text");
-        const rule = readRuleNameText(text.slice(at + BOLD_MARK.length), BOLD_MARK);
-        if (rule !== null) found.push(formatRuleName(rule));
-        at = text.indexOf(BOLD_MARK, at + BOLD_MARK.length);
+        const rule = readRuleNameText(text.slice(markIndex + BOLD_MARK.length), BOLD_MARK);
+        if (rule !== null) ruleNames.push(formatRuleName(rule));
+        markIndex = text.indexOf(BOLD_MARK, markIndex + BOLD_MARK.length);
     }
-    return found;
+    return ruleNames;
 }
 
 function readTrackedPaths(patterns: string[]): string[] {
     const asked = new Deno.Command("git", { args: ["ls-files", ...patterns], stdout: "piped" })
         .outputSync();
     assert(asked.success, "git names what it tracks");
-    const paths = new TextDecoder().decode(asked.stdout).split("\n").filter((one) => one !== "");
+    const paths = new TextDecoder().decode(asked.stdout).split("\n").filter((line) => line !== "");
     assert(paths.length > 0, "and it tracks something");
     return paths;
 }
@@ -170,16 +170,16 @@ function readRegisterGuards(text: string): string[] {
     const lines = text.split("\n");
     const opened = lines.indexOf(REGISTER_HEADING);
     assert(opened !== -1, "the rules carry a register");
-    const found: string[] = [];
+    const guards: string[] = [];
     for (const line of lines.slice(opened)) {
         if (!line.startsWith(CELL_MARK)) continue;
         const cell = line.split(CELL_MARK)[1] ?? "";
         const quoted = cell.indexOf(QUOTE);
         if (quoted === -1) continue;
         const named = cell.slice(quoted + 1, cell.indexOf(QUOTE, quoted + 1));
-        if (named.startsWith(GUARD_DIRECTORY)) found.push(named);
+        if (named.startsWith(GUARD_DIRECTORY)) guards.push(named);
     }
-    return found;
+    return guards;
 }
 
 Deno.test("the list of documents names every document in the tree, and nothing else", () => {
@@ -195,14 +195,14 @@ function readListedDocuments(text: string): string[] {
     const lines = text.split("\n");
     const lead = lines.indexOf(DOCUMENTS_LEAD);
     assert(lead !== -1, "the rules list the documents they stand on");
-    const found: string[] = [];
+    const documents: string[] = [];
     for (const line of lines.slice(lead + 2)) {
         if (line === "") break;
         if (!line.startsWith(DOCUMENT_OPENER)) continue;
         const from = DOCUMENT_OPENER.length;
-        found.push(line.slice(from, line.indexOf(QUOTE, from)));
+        documents.push(line.slice(from, line.indexOf(QUOTE, from)));
     }
-    return found;
+    return documents;
 }
 
 /** A document at the root or directly under `docs/`, where a canonical one stands. */
@@ -236,14 +236,14 @@ function readStructurePaths(text: string): string[] {
     const lines = text.split("\n");
     const heading = lines.indexOf(STRUCTURE_HEADING);
     assert(heading !== -1, "the document maps the tree");
-    const found: string[] = [];
+    const structurePaths: string[] = [];
     for (const line of lines.slice(heading + 1)) {
         if (line.startsWith(SECTION_OPENER)) break;
         if (!line.startsWith(STRUCTURE_OPENER)) continue;
         const from = STRUCTURE_OPENER.length;
-        found.push(line.slice(from, line.indexOf(QUOTE, from)));
+        structurePaths.push(line.slice(from, line.indexOf(QUOTE, from)));
     }
-    return found;
+    return structurePaths;
 }
 
 Deno.test("a file is mapped by itself, or by the directory the structure takes whole", () => {
@@ -303,7 +303,7 @@ function readSkillHeader(text: string): SkillHeader | null {
 
 /** The rest of the line a field opens; empty where the frontmatter does not state it. */
 function readSkillHeaderField(header: string[], opener: string): string {
-    const line = header.find((one) => one.startsWith(opener)) ?? opener;
+    const line = header.find((headerLine) => headerLine.startsWith(opener)) ?? opener;
     return line.slice(opener.length);
 }
 

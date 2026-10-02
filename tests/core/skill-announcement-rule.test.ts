@@ -40,16 +40,16 @@ Deno.test("what a skill spends stands on its announcement and nowhere else", () 
 
 /** Every message of every recording, parsed, with its keys and the recording it came from. */
 function getParsedMessages(): ParsedRecorded[] {
-    const found: ParsedRecorded[] = [];
+    const messages: ParsedRecorded[] = [];
     for (const fight of readRecordedFights()) {
         for (const message of fight.messages) {
             const parsed = parseProtocolMessage(message);
             assert(!(parsed instanceof Error), `${fight.path}: a recorded message parses`);
-            const keys = parsed.parameters.map((one) => one.key);
-            found.push({ path: fight.path, parsed: parsed, keys });
+            const keys = parsed.parameters.map((parameter) => parameter.key);
+            messages.push({ path: fight.path, parsed: parsed, keys });
         }
     }
-    return found;
+    return messages;
 }
 
 function isAnnouncement(keys: readonly string[]): boolean {
@@ -65,11 +65,11 @@ function isAnnouncement(keys: readonly string[]): boolean {
 Deno.test("what a skill spends is a count, never a quantity", () => {
     const values = new Set<number>();
     for (const { path, parsed } of getParsedMessages()) {
-        for (const one of parsed.parameters) {
-            if (one.key !== COUNT_KEY) continue;
-            assertExists(one.value, `${path}: a count stating nothing`);
-            const spent = Number(one.value);
-            assert(Number.isSafeInteger(spent), `${path}: a count spelled ${one.value}`);
+        for (const parameter of parsed.parameters) {
+            if (parameter.key !== COUNT_KEY) continue;
+            assertExists(parameter.value, `${path}: a count stating nothing`);
+            const spent = Number(parameter.value);
+            assert(Number.isSafeInteger(spent), `${path}: a count spelled ${parameter.value}`);
             assert(spent > 0, `${path}: a skill spending no points states none`);
             assert(spent < QUANTITY_FLOOR, `${path}: ${spent} is a quantity, not a count`);
             values.add(spent);
@@ -84,20 +84,20 @@ Deno.test("what a skill spends is a count, never a quantity", () => {
  * entry in the register at all.
  */
 Deno.test("a declaration rides a name the game did not take from its own table", () => {
-    const found: string[] = [];
+    const declaredKeys: string[] = [];
     for (const { path, parsed, keys } of getParsedMessages()) {
         if (!keys.includes(CUSTOM_NAME_KEY)) continue;
         assert(!keys.includes(TABLE_NAME_KEY), `${path}: a message spelling the name twice`);
-        for (const one of parsed.parameters) {
-            const isName = one.key === CUSTOM_NAME_KEY;
+        for (const parameter of parsed.parameters) {
+            const isName = parameter.key === CUSTOM_NAME_KEY;
             if (isName) continue;
-            if (one.value === null) continue;
-            found.push(one.key);
+            if (parameter.value === null) continue;
+            declaredKeys.push(parameter.key);
         }
     }
     for (const key of ["aura-ac_per", "aura-resall", "critval-allies", "critmval-allies"]) {
         assertArrayIncludes(
-            found,
+            declaredKeys,
             [key],
             `${key} rides a custom name in the material and was not found`,
         );

@@ -22,8 +22,9 @@ Deno.test("a person's row and the end their figure left out open at once are the
     const end = UNNAMED_END.actor;
     assertExists(lookupPinnedCase(metric, end), "this screen has a pinned row to open");
     const { statistics } = reading.figures;
-    const person = [...view.roster.byId.keys()].find((one) =>
-        presentOpenedLevel(statistics, view.roster, metric, one)?.byOtherEnd.halfNamed?.doesOpenPair
+    const person = [...view.roster.byId.keys()].find((combatantId) =>
+        presentOpenedLevel(statistics, view.roster, metric, combatantId)?.byOtherEnd.halfNamed
+            ?.doesOpenPair
     );
     assertExists(person, "and somebody whose figure left that end out");
     const screen = { ...createScreenState(false), metric: metric };
@@ -50,10 +51,10 @@ Deno.test("a person's row and the end their figure left out open at once are the
         "totalling the row it was opened from",
     );
 
-    const other = UNNAMED_END.target;
+    const otherEnd = UNNAMED_END.target;
     const stray = presentOpenedLevels(reading, {
         ...screen,
-        openUnnamedEnd: other,
+        openUnnamedEnd: otherEnd,
         openedCombatantId: person,
     });
     assertEquals(stray.unnamedCut, null, "a mark naming the other end opens nothing here");
@@ -70,8 +71,9 @@ Deno.test("an end left out whose keys fall short of it opens nothing", () => {
     const reading = tallyFightState(view);
     const metric = PANEL_METRIC.damageTaken;
     const { statistics } = reading.figures;
-    const person = [...view.roster.byId.keys()].find((one) =>
-        presentOpenedLevel(statistics, view.roster, metric, one)?.byOtherEnd.halfNamed?.doesOpenPair
+    const person = [...view.roster.byId.keys()].find((combatantId) =>
+        presentOpenedLevel(statistics, view.roster, metric, combatantId)?.byOtherEnd.halfNamed
+            ?.doesOpenPair
     );
     assertExists(person, "somebody's figure left the striker out");
     const figures = statistics.byCombatantId.get(person);

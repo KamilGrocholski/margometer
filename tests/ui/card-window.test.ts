@@ -75,8 +75,8 @@ Deno.test("a row is looked up by the name it stated, and by no other", () => {
     // Two rows answering to one name must not stop the draw: the first stands and the second is
     // refused, so what a clash costs is a card on hover and never the panel — **E12**, develop ADR
     // 0051.
-    const other = () => HILDUR;
-    register.add("row:7", other);
+    const composeClashing = () => HILDUR;
+    register.add("row:7", composeClashing);
     assertEquals(
         register.lookup("row:7"),
         compose,
@@ -118,10 +118,10 @@ Deno.test("the card draws a line for each of the three kinds, marked as the kind
 });
 
 /** Every line's own class, in the order the card drew them. */
-function getClassesByPrefix(element: FakeElement, prefix: string): string[] {
-    return getElementsWithin(element)
-        .filter((one) => one.className.startsWith(prefix))
-        .map((one) => one.className);
+function getClassesByPrefix(card: FakeElement, prefix: string): string[] {
+    return getElementsWithin(card)
+        .filter((descendant) => descendant.className.startsWith(prefix))
+        .map((descendant) => descendant.className);
 }
 
 Deno.test("a row with nothing further to say draws a name, and nobody hovered draws none", () => {
@@ -392,18 +392,18 @@ Deno.test("a card too tall for the window gives up its runs, and says that it di
 
     // Room for one run less than the card holds, which is what a short window comes to.
     const cut = composeCardWithin(tall, whole - 1, STEP);
-    const said = cut.groups.flatMap((one) => one.lines);
+    const said = cut.groups.flatMap((group) => group.lines);
     assertEquals(cut.groups[0], tall.groups[0], "the four figures are what a card is for");
     assert(
-        said.some((one) => one.kind === "note" && one.text === CARD_WORDS.cut),
+        said.some((line) => line.kind === "note" && line.text === CARD_WORDS.cut),
         "and a card that gave something up says so rather than losing it in silence",
     );
     assert(
-        said.some((one) => one.kind === "note" && one.tone === "suspect"),
+        said.some((line) => line.kind === "note" && line.tone === "suspect"),
         "the suspicion stands: it is a claim that a figure above it may be wrong",
     );
     assert(
-        !said.some((one) => one.kind === "heading" && one.text === "W CIOSACH PRZYJĘTYCH"),
+        !said.some((line) => line.kind === "heading" && line.text === "W CIOSACH PRZYJĘTYCH"),
         "and the run given up is the last of the ones between them",
     );
 });
@@ -438,24 +438,24 @@ Deno.test("a window too short for even the figures still draws them, and says so
     const cut = composeCardWithin(tall, 1, STEP);
     assertEquals(cut.groups[0], tall.groups[0], "the figures are drawn whatever the room");
     assert(
-        cut.groups.flatMap((one) => one.lines).some((one) =>
-            one.kind === "note" && one.text === CARD_WORDS.cut
+        cut.groups.flatMap((group) => group.lines).some((line) =>
+            line.kind === "note" && line.text === CARD_WORDS.cut
         ),
         "and the card says a part of it is not there",
     );
 });
 
 Deno.test("the detail follows the pointer, and lets go of a row that stopped being drawn", () => {
-    const { register, handle, first } = composeHandleUnderTest();
+    const { register, handle, first: firstCard } = composeHandleUnderTest();
     assertEquals(
-        first.className,
+        firstCard.className,
         `${CLASS.card} ${CLASS.cardHidden}`,
         "a panel starts saying none",
     );
 
     register.add("row:7", () => HILDUR);
     handle.onHover("row:7", 412);
-    const shown = first.replacedBy;
+    const shown = firstCard.replacedBy;
     assertExists(shown, "a row hovered puts a detail where the empty one stood");
     assertEquals(getTextsByClass(shown, CLASS.cardName), [HILDUR.name], "saying whose row it is");
     assert(
@@ -522,17 +522,17 @@ function composeHandleUnderTest() {
 /** The panel's own way of putting one region in the place of another, small enough to read. */
 function composeSwap(): (standing: FakeElement, compose: () => FakeElement) => FakeElement {
     return (standing, compose) => {
-        const next = compose();
-        standing.replaceWith(next);
-        return next;
+        const composed = compose();
+        standing.replaceWith(composed);
+        return composed;
     };
 }
 
 Deno.test("a move inside one pixel writes nothing, because there is nowhere new to stand", () => {
-    const { register, handle, first } = composeHandleUnderTest();
+    const { register, handle, first: firstCard } = composeHandleUnderTest();
     register.add("row:7", () => HILDUR);
     handle.onHover("row:7", 412);
-    const shown = first.replacedBy;
+    const shown = firstCard.replacedBy;
     assertExists(shown, "a row hovered opens the detail");
     shown.attributes.delete("style");
     handle.onHover("row:7", 412.4);
@@ -557,24 +557,24 @@ Deno.test("a card hidden where it stood is composed again, not moved", () => {
             setCardHidden(standing, true);
             return standing;
         }
-        const next = compose();
-        standing.replaceWith(next);
-        return next;
+        const composed = compose();
+        standing.replaceWith(composed);
+        return composed;
     });
-    const first = handle.element as FakeElement;
+    const firstCard = handle.element as FakeElement;
 
     register.add("row:7", () => HILDUR);
     willFail = true;
     handle.onHover("row:7", 412);
     assertEquals(
-        first.className,
+        firstCard.className,
         `${CLASS.card} ${CLASS.cardHidden}`,
         "the card is hidden in place",
     );
 
     willFail = false;
     handle.onHover("row:7", 480);
-    const shown = first.replacedBy;
+    const shown = firstCard.replacedBy;
     assertExists(shown, "a move on the same row asks for the card again rather than moving none");
     assertEquals(getTextsByClass(shown, CLASS.cardName), [HILDUR.name], "and it names that row");
 });
@@ -595,15 +595,15 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
         (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
         (key) => {
             asked.push(key);
-            const at = key === "helper:12" ? 255 : 507;
-            return { edge: "left", at };
+            const distance = key === "helper:12" ? 255 : 507;
+            return { edge: "left", at: distance };
         },
     );
-    const first = handle.element as FakeElement;
+    const firstCard = handle.element as FakeElement;
 
     register.add("helper:12", () => HILDUR);
     handle.onHover("helper:12", 300);
-    const shown = first.replacedBy;
+    const shown = firstCard.replacedBy;
     assertExists(shown, "a row of the second window opens a card");
     assertEquals(asked, ["helper:12"], "and the place was asked for under that row's own key");
     assert(
@@ -618,14 +618,14 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
 });
 
 Deno.test("nobody under the pointer hides it, and a row nobody drew never opens it", () => {
-    const { register, handle, first } = composeHandleUnderTest();
+    const { register, handle, first: firstCard } = composeHandleUnderTest();
     handle.onHover("row:404", 200);
-    assertEquals(first.replacedBy, null, "a key the draw never registered draws nothing");
-    assertEquals(first.className, `${CLASS.card} ${CLASS.cardHidden}`, "and leaves it hidden");
+    assertEquals(firstCard.replacedBy, null, "a key the draw never registered draws nothing");
+    assertEquals(firstCard.className, `${CLASS.card} ${CLASS.cardHidden}`, "and leaves it hidden");
 
     register.add("row:7", () => HILDUR);
     handle.onHover("row:7", 200);
-    const shown = first.replacedBy;
+    const shown = firstCard.replacedBy;
     assertExists(shown, "a key it did register opens it");
     handle.onHover(null, 200);
     assertEquals(

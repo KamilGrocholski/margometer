@@ -387,7 +387,7 @@ TypeScript idiom, with the naming rules stated here.
   never a placeholder — `a`, `at`, `b`, `current`, `data`, `element`, `entry`, `first`, `found`,
   `item`, `last`, `next`, `node`, `one`, `other`, `part`, `previous`, `read`, `result`, `value` — in
   a lambda as anywhere. Observation: such a function in `libs/`, `src/` or `tools/` whose name is
-  one word, or such a binding in the layers `tests/repository/name-shapes.test.ts` reads. ADR 0027.
+  one word, or such a binding in `frozen/`, `libs/`, `src/`, `tools/` or `tests/`. ADR 0027.
   _(`by-reading` whether a method reads as a sentence with its receiver)_
 
 ## Code

@@ -47,7 +47,7 @@ Deno.test("counts are kept per kind, and each kind has its own line", () => {
         [DEFECT_KIND.file, DEFECT_KIND.engine],
         "a line each",
     );
-    const counts = ledger.getCounts().map((one) => [one.kind, one.count]);
+    const counts = ledger.getCounts().map((defectCount) => [defectCount.kind, defectCount.count]);
     assertEquals(counts, [[DEFECT_KIND.file, 2], [DEFECT_KIND.engine, 1]], "and a count each");
 });
 
@@ -79,7 +79,7 @@ Deno.test("a kind drawn in two regions is two rows, and one line", () => {
     ledger.add({ kind: DEFECT_KIND.region, region: PANEL_REGION.list, failure: FIRST });
     ledger.add({ kind: DEFECT_KIND.region, region: PANEL_REGION.card, failure: SECOND });
     ledger.add({ kind: DEFECT_KIND.region, region: PANEL_REGION.list, failure: SECOND });
-    const rows = ledger.getCounts().map((one) => [one.region, one.count]);
+    const rows = ledger.getCounts().map((defectCount) => [defectCount.region, defectCount.count]);
     assertEquals(rows, [[PANEL_REGION.list, 2], [PANEL_REGION.card, 1]], "a row per region");
     assertEquals(lines.map(([kind]) => kind), [DEFECT_KIND.region], "and the kind said once");
     assertStrictEquals(lines[0]?.[1], FIRST, "with the first failure beside it");

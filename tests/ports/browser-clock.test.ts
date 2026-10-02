@@ -34,20 +34,36 @@ function composeDate(parts: Record<string, number | undefined>): BrowserDate {
 }
 
 Deno.test("a clock answering a day outside the calendar answers no moment at all", () => {
-    const read = (parts: Record<string, number | undefined>) =>
+    const readMomentWith = (parts: Record<string, number | undefined>) =>
         initBrowserClock(composeDate({ ...SEPTEMBER, ...parts })).readMoment(0);
-    assertEquals(read({ day: 99 }), null, "a day past the calendar");
-    assertEquals(read({ day: 0 }), null, "and one before it");
-    assertEquals(read({ day: 31 }), { day: 31, month: 9, hour: 21, minute: 5 }, "its last day");
-    assertEquals(read({ day: 1 }), { day: 1, month: 9, hour: 21, minute: 5 }, "and its first");
-    assertEquals(read({ month: 12 }), null, "a thirteenth month");
-    assertEquals(read({ month: 11 }), { day: 13, month: 12, hour: 21, minute: 5 }, "December");
-    assertEquals(read({ hour: -1 }), null, "an hour before midnight's");
-    assertEquals(read({ hour: 24 }), null, "and one past the day's last");
-    assertEquals(read({ minute: 60 }), null, "a minute past the hour's last");
-    assertEquals(read({ minute: 0 }), { day: 13, month: 9, hour: 21, minute: 0 }, "and its first");
-    assertEquals(read({ hour: 21.5 }), null, "and a fraction of one");
-    assertEquals(read({ minute: undefined }), null, "and a document that lends no clock");
+    assertEquals(readMomentWith({ day: 99 }), null, "a day past the calendar");
+    assertEquals(readMomentWith({ day: 0 }), null, "and one before it");
+    assertEquals(
+        readMomentWith({ day: 31 }),
+        { day: 31, month: 9, hour: 21, minute: 5 },
+        "its last day",
+    );
+    assertEquals(
+        readMomentWith({ day: 1 }),
+        { day: 1, month: 9, hour: 21, minute: 5 },
+        "and its first",
+    );
+    assertEquals(readMomentWith({ month: 12 }), null, "a thirteenth month");
+    assertEquals(
+        readMomentWith({ month: 11 }),
+        { day: 13, month: 12, hour: 21, minute: 5 },
+        "December",
+    );
+    assertEquals(readMomentWith({ hour: -1 }), null, "an hour before midnight's");
+    assertEquals(readMomentWith({ hour: 24 }), null, "and one past the day's last");
+    assertEquals(readMomentWith({ minute: 60 }), null, "a minute past the hour's last");
+    assertEquals(
+        readMomentWith({ minute: 0 }),
+        { day: 13, month: 9, hour: 21, minute: 0 },
+        "and its first",
+    );
+    assertEquals(readMomentWith({ hour: 21.5 }), null, "and a fraction of one");
+    assertEquals(readMomentWith({ minute: undefined }), null, "and a document that lends no clock");
 });
 
 Deno.test("a moment off every clock is no moment, and one that throws is none either", () => {

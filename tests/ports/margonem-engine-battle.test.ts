@@ -77,9 +77,9 @@ function wrapOn(battle: Record<string, unknown>, listener: PayloadListener): Wra
 }
 
 function readBattleOn(battle: Record<string, unknown>): MargonemEngineBattle {
-    const read = initMargonemEngineBattle({ Engine: { battle } }).readBattle();
-    assertNotInstanceOf(read, Error, "the page holds a battle");
-    return read;
+    const engineBattle = initMargonemEngineBattle({ Engine: { battle } }).readBattle();
+    assertNotInstanceOf(engineBattle, Error, "the page holds a battle");
+    return engineBattle;
 }
 
 /** A listener that does nothing, so each test states only the half it is about. */
@@ -130,9 +130,9 @@ Deno.test("a failure of ours never reaches the page, and every one is counted", 
     assertStrictEquals(callUpdate(held.battle, null, [{}]), 1, "the engine's value comes back");
     assertStrictEquals(callUpdate(held.battle, null, [{}]), 1, "and again");
     assertStrictEquals(wrap.getFailureCount(), 2, "while every failure is counted");
-    const first = wrap.getFirstFailure();
-    assertInstanceOf(first, errors.Caught, "and the first one is kept");
-    assert(first?.cause instanceof RangeError, "with what it threw");
+    const firstFailure = wrap.getFirstFailure();
+    assertInstanceOf(firstFailure, errors.Caught, "and the first one is kept");
+    assert(firstFailure?.cause instanceof RangeError, "with what it threw");
 });
 
 /** Two guards and not one: a throw before the call does not skip the reading after it. */
@@ -161,7 +161,10 @@ Deno.test("the engine's own failure is the engine's, and is not swallowed", () =
             throw new RangeError("the game's own");
         },
     };
-    const wrap = wrapOn(battle, composeListener({ onPayload: (one) => void seen.push(one) }));
+    const wrap = wrapOn(
+        battle,
+        composeListener({ onPayload: (payload) => void seen.push(payload) }),
+    );
     assertThrows(() => callUpdate(battle, null, [{}]), RangeError, "the game's own");
     assertEquals(seen, [], "and no payload is read off a call that did not finish");
     assertStrictEquals(wrap.getFailureCount(), 0, "nor is the game's failure counted as ours");
@@ -218,9 +221,9 @@ Deno.test("the page is asked for a game in both spellings, and a call may throw"
             throw new RangeError("a page being torn down");
         },
     });
-    const read = tearing.readBattle();
-    assertInstanceOf(read, Error, "a call that throws answers no battle");
-    assertInstanceOf(read, errors.Caught, "and says it was theirs");
+    const answer = tearing.readBattle();
+    assertInstanceOf(answer, Error, "a call that throws answers no battle");
+    assertInstanceOf(answer, errors.Caught, "and says it was theirs");
 });
 
 Deno.test("the warriors are read off the live battle, and a battle holding none says so", () => {
@@ -228,9 +231,9 @@ Deno.test("the warriors are read off the live battle, and a battle holding none 
         updateData: () => 1,
         warriorsList: { 7: { id: 7, name: "Gracz 1", team: 1, hp: { cur: 5, max: 9 } } },
     });
-    const read = live.readWarriors();
-    assertNotInstanceOf(read, Error, "the warriors are read");
-    assertEquals(read.map((one) => one.id), [7], "the one the fight holds");
+    const warriors = live.readWarriors();
+    assertNotInstanceOf(warriors, Error, "the warriors are read");
+    assertEquals(warriors.map((warrior) => warrior.id), [7], "the one the fight holds");
     const empty = readBattleOn({ updateData: () => 1 }).readWarriors();
     assertInstanceOf(empty, MargonemEngineWarriorsAbsent, "and none is a failure");
 });
@@ -285,7 +288,7 @@ Deno.test("a battle that throws as its warriors are read answers a failure of it
             throw new RangeError("a battle being torn down");
         },
     });
-    const read = readBattleOn(battle).readWarriors();
-    assertInstanceOf(read, Error, "the warriors are not read");
-    assertInstanceOf(read, errors.Caught, "and it was theirs");
+    const answer = readBattleOn(battle).readWarriors();
+    assertInstanceOf(answer, Error, "the warriors are not read");
+    assertInstanceOf(answer, errors.Caught, "and it was theirs");
 });

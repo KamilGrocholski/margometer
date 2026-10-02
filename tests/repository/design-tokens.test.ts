@@ -47,7 +47,7 @@ Deno.test("a table row is read, and a sentence that quotes a token is not one", 
  * heading row and the divider under it quote nothing, so neither is read as a row.
  */
 function parseTokenRows(document: string): Map<string, string[]> {
-    const found = new Map<string, string[]>();
+    const valuesByToken = new Map<string, string[]>();
     for (const line of document.split("\n")) {
         if (!line.startsWith(TABLE_OPENER)) continue;
         const cells = line.split(TABLE_OPENER);
@@ -55,25 +55,25 @@ function parseTokenRows(document: string): Map<string, string[]> {
         if (named.length !== 1) continue;
         const token = named[0];
         assertExists(token, "a cell quoting one name states it");
-        assert(!found.has(token), `${token} is stated by two rows of one document`);
-        found.set(token, readQuotedSpans(cells[2] ?? ""));
+        assert(!valuesByToken.has(token), `${token} is stated by two rows of one document`);
+        valuesByToken.set(token, readQuotedSpans(cells[2] ?? ""));
     }
-    return found;
+    return valuesByToken;
 }
 
 /** Every backticked span of a cell, in the order it states them. */
 function readQuotedSpans(cell: string): string[] {
     assert(cell.length <= CELL_LENGTH_MAXIMUM, "a cell stays inside its stated bound");
-    const found: string[] = [];
-    let at = cell.indexOf(QUOTE);
-    for (let tried = 0; at !== -1; tried += 1) {
+    const spans: string[] = [];
+    let quoteIndex = cell.indexOf(QUOTE);
+    for (let tried = 0; quoteIndex !== -1; tried += 1) {
         assert(tried <= cell.length, "the walk stays inside the cell's own bound");
-        const ends = cell.indexOf(QUOTE, at + 1);
-        if (ends === -1) return found;
-        found.push(cell.slice(at + 1, ends));
-        at = cell.indexOf(QUOTE, ends + 1);
+        const ends = cell.indexOf(QUOTE, quoteIndex + 1);
+        if (ends === -1) return spans;
+        spans.push(cell.slice(quoteIndex + 1, ends));
+        quoteIndex = cell.indexOf(QUOTE, ends + 1);
     }
-    return found;
+    return spans;
 }
 
 Deno.test("a value that moved is reported, and one that stood still is not", () => {
@@ -93,16 +93,16 @@ function lookupDisagreements(
     stated: ReadonlyMap<string, readonly string[]>,
     spent: Readonly<Record<string, readonly string[]>>,
 ): string[] {
-    const found: string[] = [];
+    const disagreements: string[] = [];
     for (const [name, values] of stated) {
         const spending = spent[name];
         if (spending === undefined) continue;
         if (values.join(" ") === spending.join(" ")) continue;
-        found.push(
+        disagreements.push(
             `${name}: the page says ${values.join(" ")}, the panel spends ${spending.join(" ")}`,
         );
     }
-    return found;
+    return disagreements;
 }
 
 Deno.test("every value DESIGN.md quotes is the one the panel spends", () => {
@@ -151,8 +151,8 @@ function readTokensSpent(): Record<string, readonly string[]> {
 }
 
 /** A token of the type's, one value per step in the order the steps run, small first. */
-function readStepPixels(read: (tokens: TypeTokens) => number): string[] {
-    return TYPE_STEPS.map((step) => `${read(TYPE_TOKENS[step])}px`);
+function readStepPixels(getToken: (tokens: TypeTokens) => number): string[] {
+    return TYPE_STEPS.map((step) => `${getToken(TYPE_TOKENS[step])}px`);
 }
 
 /** The line height the panel prints at. No export states it: it is the sheet's own, and private. */
@@ -185,10 +185,10 @@ Deno.test("the palette the document prints is the one the panel draws", () => {
 /** The hues under the palette's own heading, printed as a line of their own and not a table. */
 function parsePaletteStated(document: string): string[] {
     const lines = document.split("\n");
-    const at = lines.indexOf(PALETTE_HEADING);
-    assertNotStrictEquals(at, -1, "the document names the palette");
+    const headingIndex = lines.indexOf(PALETTE_HEADING);
+    assertNotStrictEquals(headingIndex, -1, "the document names the palette");
     for (let step = 1; step <= PALETTE_LINES_BELOW; step += 1) {
-        const line = lines[at + step] ?? "";
+        const line = lines[headingIndex + step] ?? "";
         if (line.startsWith(QUOTE)) return readQuotedSpans(line);
     }
     return [];

@@ -20,10 +20,10 @@ Deno.test("an asserted non-null is flagged, and a negation and an inequality are
 
 function lookupNonNullAssertions(file: SourceFile): string[] {
     const nodes = readAstNodes(file, ["TSNonNullExpression"]);
-    return nodes.map((node) => formatNodePlace(file, node));
+    return nodes.map((assertion) => formatNodePlace(file, assertion));
 }
 
 Deno.test("nothing in src/ or tools/ asserts a value is not null", () => {
-    const found = readSourceFiles(["src", "tools"]).flatMap(lookupNonNullAssertions);
-    assertEquals(found, [], "C12");
+    const assertions = readSourceFiles(["src", "tools"]).flatMap(lookupNonNullAssertions);
+    assertEquals(assertions, [], "C12");
 });

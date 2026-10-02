@@ -64,9 +64,9 @@ Deno.test("a press whose handler throws is a dropped gesture, and the next one l
 });
 
 function findMarked(host: FakeElement, mark: string): FakeElement {
-    const found = getElementsWithin(host).find((one) => one.attributes.has(mark));
-    assertExists(found, `the panel draws something marked ${mark}`);
-    return found;
+    const marked = getElementsWithin(host).find((descendant) => descendant.attributes.has(mark));
+    assertExists(marked, `the panel draws something marked ${mark}`);
+    return marked;
 }
 
 Deno.test("a mark with a value nothing of ours writes drops the gesture and asks nothing", () => {
@@ -120,7 +120,7 @@ Deno.test("a render reports every region it left undrawn, and nothing where all 
     };
     const report = panel.render(composeShownScreen(broken));
     assertEquals(
-        report.undrawn.map((one) => [one.name, one.region]),
+        report.undrawn.map((regionUndrawn) => [regionUndrawn.name, regionUndrawn.region]),
         [
             ["RegionUndrawn", PANEL_REGION.sides],
             ["RegionUndrawn", PANEL_REGION.suspicions],
@@ -131,9 +131,9 @@ Deno.test("a render reports every region it left undrawn, and nothing where all 
 });
 
 /** What a region cost, caught at its guard: a throw of ours, carried as the cause. */
-function isCaughtRangeError(one: RegionUndrawn): boolean {
-    if (!(one.cause instanceof errors.Caught)) return false;
-    return one.cause.cause instanceof RangeError;
+function isCaughtRangeError(regionUndrawn: RegionUndrawn): boolean {
+    if (!(regionUndrawn.cause instanceof errors.Caught)) return false;
+    return regionUndrawn.cause.cause instanceof RangeError;
 }
 
 function readFight(): ScreenContent {
@@ -154,7 +154,9 @@ Deno.test("a card that will not draw under the pointer is told to the sink as th
     const panel = initTestView(document, { onFailure: (failure) => failures.push(failure) });
     panel.render(composeShownScreen(readFight()));
     const host = panel.element as FakeElement;
-    const row = getElementsWithin(host).find((one) => one.attributes.has("data-card"));
+    const row = getElementsWithin(host).find((descendant) =>
+        descendant.attributes.has("data-card")
+    );
     assertExists(row, "a row carries a card");
     const createElement = document.createElement;
     document.createElement = () => {
@@ -163,11 +165,13 @@ Deno.test("a card that will not draw under the pointer is told to the sink as th
     pointAtElement(host, "pointermove", row, 200);
     document.createElement = createElement;
     assertEquals(
-        failures.map((one) => one instanceof RegionUndrawn ? one.region : one.name),
+        failures.map((failure) => failure instanceof RegionUndrawn ? failure.region : failure.name),
         [PANEL_REGION.card],
         "no render was running, so the card is the sink's to hear of",
     );
-    const card = host.shadow?.find((one) => one.className.startsWith("MargoMeter-card"));
+    const card = host.shadow?.find((shadowChild) =>
+        shadowChild.className.startsWith("MargoMeter-card")
+    );
     assertEquals(card?.className, "MargoMeter-card card-hidden", "and the card standing hides");
 });
 
@@ -176,7 +180,8 @@ Deno.test("a region kept after a refused replace is the one the next draw replac
     const reading = readFight();
     panel.render(composeShownScreen(reading));
     const host = panel.element as FakeElement;
-    const readHeaders = () => getElementsWithin(host).filter((one) => one.className === "header");
+    const readHeaders = () =>
+        getElementsWithin(host).filter((descendant) => descendant.className === "header");
     const [kept] = readHeaders();
     assertExists(kept, "the header stands, to be refused");
     const replaceWith = kept.replaceWith;
@@ -205,7 +210,9 @@ Deno.test("a window that will not open where told stays on the sheet's corner, a
     const host = panel.element as FakeElement;
     assertEquals(host.attributes.get("style"), undefined, "the sheet's corner, which is a place");
     assertEquals(
-        failures.map((one) => one instanceof WindowUnplaced ? one.window : one.name),
+        failures.map((failure) =>
+            failure instanceof WindowUnplaced ? failure.window : failure.name
+        ),
         [PANEL_WINDOW.meter],
         "and the window that did not open where it was told is named",
     );

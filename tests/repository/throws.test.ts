@@ -28,7 +28,9 @@ Deno.test("a throw is flagged, and a word in a string is not", () => {
 });
 
 function lookupThrows(file: SourceFile): string[] {
-    return readAstNodes(file, ["ThrowStatement"]).map((node) => formatNodePlace(file, node));
+    return readAstNodes(file, ["ThrowStatement"]).map((throwStatement) =>
+        formatNodePlace(file, throwStatement)
+    );
 }
 
 Deno.test("a class extending Error is flagged in either spelling, and another is not", () => {
@@ -42,11 +44,13 @@ Deno.test("a class extending Error is flagged in either spelling, and another is
 
 function lookupErrorClasses(file: SourceFile): string[] {
     if (file.path === TOOL_ERROR_PATH) return [];
-    return readErrorClasses(file).map((node) => formatNodePlace(file, node));
+    return readErrorClasses(file).map((errorClass) => formatNodePlace(file, errorClass));
 }
 
 function readErrorClasses(file: SourceFile): AstNode[] {
-    return readAstNodes(file, CLASS_NODES).filter((node) => node.superClass?.name === ERROR_NAME);
+    return readAstNodes(file, CLASS_NODES).filter((errorClass) =>
+        errorClass.superClass?.name === ERROR_NAME
+    );
 }
 
 Deno.test("a failure class naming itself passes, and one naming nothing or another is flagged", () => {
@@ -65,31 +69,33 @@ Deno.test("a failure class naming itself passes, and one naming nothing or anoth
 
 /** A failure class whose `name` is not the literal of its own class name. */
 function lookupUnnamedFailures(file: SourceFile): string[] {
-    const found: string[] = [];
-    for (const node of readErrorClasses(file)) {
-        const declared = node.id?.name;
-        if (declared === undefined) found.push(formatNodePlace(file, node));
-        else if (readStatedName(node) !== declared) found.push(formatNodePlace(file, node));
+    const unnamed: string[] = [];
+    for (const errorClass of readErrorClasses(file)) {
+        const declared = errorClass.id?.name;
+        if (declared === undefined) unnamed.push(formatNodePlace(file, errorClass));
+        else if (readStatedName(errorClass) !== declared) {
+            unnamed.push(formatNodePlace(file, errorClass));
+        }
     }
-    return found;
+    return unnamed;
 }
 
 /** The literal a class assigns its `name` field in its body, or null where it assigns none. */
-function readStatedName(node: AstNode): string | null {
-    const body = node.body;
+function readStatedName(errorClass: AstNode): string | null {
+    const body = errorClass.body;
     if (body === null || body === undefined || Array.isArray(body)) return null;
     const members = Array.isArray(body.body) ? body.body : [];
     for (const member of members) {
         if (member.type !== "PropertyDefinition") continue;
         if (member.key?.name !== NAME_FIELD) continue;
-        const value = isRecordNode(member.value) ? member.value.value : undefined;
-        return typeof value === "string" ? value : null;
+        const statedName = isRecordNode(member.value) ? member.value.value : undefined;
+        return typeof statedName === "string" ? statedName : null;
     }
     return null;
 }
 
-function isRecordNode(value: unknown): value is { value?: unknown } {
-    return typeof value === "object" && value !== null;
+function isRecordNode(candidate: unknown): candidate is { value?: unknown } {
+    return typeof candidate === "object" && candidate !== null;
 }
 
 Deno.test("nothing the bundle carries throws on purpose", () => {
@@ -99,8 +105,8 @@ Deno.test("nothing the bundle carries throws on purpose", () => {
 Deno.test("every failure class of the bundle names itself, by a name no other class takes", () => {
     const files = readBundleFiles();
     assertEquals(files.flatMap(lookupUnnamedFailures), [], "E3");
-    const names = files.flatMap(readErrorClasses).map((node) => node.id?.name ?? "");
-    const repeated = names.filter((name, at) => names.indexOf(name) !== at);
+    const names = files.flatMap(readErrorClasses).map((errorClass) => errorClass.id?.name ?? "");
+    const repeated = names.filter((name, nameIndex) => names.indexOf(name) !== nameIndex);
     assertEquals(repeated, [], "FAILURE_FATES is keyed by the name, so one name is one class");
     assert(names.length > 0, "and the bundle has failure classes to read");
 });

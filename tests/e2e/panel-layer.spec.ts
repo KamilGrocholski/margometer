@@ -78,11 +78,11 @@ function readLayerStacks(
     positioner.append(surface, covering);
     document.body.prepend(positioner);
     const readAt = (x: number): LayerStack => {
-        const found = document.elementsFromPoint(x, box.top + box.height / 2);
+        const stacked = document.elementsFromPoint(x, box.top + box.height / 2);
         return {
-            windowAt: found.indexOf(covering),
-            hostAt: found.indexOf(host),
-            interfaceAt: found.indexOf(surface),
+            windowAt: stacked.indexOf(covering),
+            hostAt: stacked.indexOf(host),
+            interfaceAt: stacked.indexOf(surface),
         };
     };
     return {

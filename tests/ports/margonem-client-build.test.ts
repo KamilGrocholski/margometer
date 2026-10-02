@@ -125,9 +125,9 @@ Deno.test("a page whose scripts will not be read is a failure of theirs", () => 
             throw thrown;
         },
     };
-    const read = initMargonemClientBuild(scripts).readBuildId();
-    assertInstanceOf(read, errors.Caught, "a failure of theirs");
-    assertStrictEquals(read.cause, thrown, "with its cause");
+    const answer = initMargonemClientBuild(scripts).readBuildId();
+    assertInstanceOf(answer, errors.Caught, "a failure of theirs");
+    assertStrictEquals(answer.cause, thrown, "with its cause");
 });
 
 /** Probe: an id long enough under a tail that does not hold is passed, and the search goes on. */

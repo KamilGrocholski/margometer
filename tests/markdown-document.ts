@@ -12,15 +12,15 @@ const BACKTICK = "`";
 /** Every cell of a table row, trimmed and with one pair of the document's backticks off. */
 export function parseTableCells(line: string): string[] {
     const cells: string[] = [];
-    let at = line.indexOf(CELL_SEPARATOR);
-    assert(at >= 0, "a table line opens with a bar");
-    let next = line.indexOf(CELL_SEPARATOR, at + 1);
+    let cellOpening = line.indexOf(CELL_SEPARATOR);
+    assert(cellOpening >= 0, "a table line opens with a bar");
+    let cellClosing = line.indexOf(CELL_SEPARATOR, cellOpening + 1);
     // A row holds fewer cells than it holds characters, so its length bounds the walk.
     for (let held = 0; held < line.length; held += 1) {
-        if (next === -1) break;
-        cells.push(parseTableCellsBare(line.slice(at + 1, next).trim()));
-        at = next;
-        next = line.indexOf(CELL_SEPARATOR, at + 1);
+        if (cellClosing === -1) break;
+        cells.push(parseTableCellsBare(line.slice(cellOpening + 1, cellClosing).trim()));
+        cellOpening = cellClosing;
+        cellClosing = line.indexOf(CELL_SEPARATOR, cellOpening + 1);
     }
     return cells;
 }

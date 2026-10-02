@@ -73,15 +73,15 @@ Deno.test("every mark the panel writes states the intent the runtime is handed",
         [PANEL_MARK.fold, "", { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.meter }],
         [PANEL_MARK.back, "", { kind: PANEL_INTENT.close }],
     ] as const;
-    for (const [mark, value, intent] of cases) {
-        assertEquals(readMark(mark, value), intent, `${mark}="${value}"`);
+    for (const [mark, markValue, intent] of cases) {
+        assertEquals(readMark(mark, markValue), intent, `${mark}="${markValue}"`);
     }
     // **W5**: the first id there is reads as one, and is not taken for nothing.
     assertEquals(readMark(PANEL_MARK.row, "0"), { kind: PANEL_INTENT.openRow, combatantId: 0 });
 });
 
-function readMark(name: string, value: string) {
-    return readPanelIntent(composeTarget({ [name]: value }));
+function readMark(name: string, markValue: string) {
+    return readPanelIntent(composeTarget({ [name]: markValue }));
 }
 
 function composeTarget(marks: Record<string, string>): PanelTarget {
@@ -100,17 +100,17 @@ Deno.test("a value no mark of ours writes is a failure naming the mark, never a 
         [PANEL_MARK.typeStep, "12"],
         [PANEL_MARK.resetSize, "standing"],
     ] as const;
-    for (const [mark, value] of strays) {
-        const read = readMark(mark, value);
-        assertInstanceOf(read, MarkValueUnknown, `${mark}="${value}"`);
-        assertStrictEquals(read.mark, mark, `${mark}="${value}" names the mark`);
+    for (const [mark, markValue] of strays) {
+        const failure = readMark(mark, markValue);
+        assertInstanceOf(failure, MarkValueUnknown, `${mark}="${markValue}"`);
+        assertStrictEquals(failure.mark, mark, `${mark}="${markValue}" names the mark`);
     }
 });
 
 Deno.test("a press on nothing of ours asks for nothing; marks are read in develop's order", () => {
     assertEquals(readPanelIntent(composeTarget({})), null, "an unmarked element");
-    const node = { getAttribute: undefined } as unknown as PanelTarget;
-    assertEquals(readPanelIntent(node), null, "and a node that states no attributes at all");
+    const bareTarget = { getAttribute: undefined } as unknown as PanelTarget;
+    assertEquals(readPanelIntent(bareTarget), null, "and a node that states no attributes at all");
     // Two marks on one node are read in `develop`'s order: the row before the way back.
     const both = composeTarget({ [PANEL_MARK.row]: "7", [PANEL_MARK.back]: "" });
     assertEquals(readPanelIntent(both), { kind: PANEL_INTENT.openRow, combatantId: 7 });

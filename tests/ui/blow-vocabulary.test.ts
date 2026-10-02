@@ -266,8 +266,8 @@ Deno.test("no label a card draws is longer than the column it is drawn in", () =
     // Both ways: an entry in neither list is an entry nothing above holds.
     assertEquals(
         Object.keys(CARD_WORDS).filter((key) =>
-            !CARD_LABEL_KEYS.some((one) => one === key) &&
-            !CARD_OTHER_KEYS.some((one) => one === key)
+            !CARD_LABEL_KEYS.some((labelKey) => labelKey === key) &&
+            !CARD_OTHER_KEYS.some((otherKey) => otherKey === key)
         ),
         [],
         "every word the card table holds is either a label in the cut column or a sentence",
@@ -308,17 +308,17 @@ Deno.test("a key naming a sub-line is a key a row already counts", () => {
 
 /** Every key the recordings actually carried, read through the decoder rather than off the text. */
 function getBlowKeysFromRecordings(): BlowKeys {
-    const found: BlowKeys = { procs: new Set(), defences: new Set(), destroyed: new Set() };
+    const blowKeys: BlowKeys = { procs: new Set(), defences: new Set(), destroyed: new Set() };
     for (const fight of readRecordedFights()) {
         const roster = indexCombatantRoster(fight.combatants);
         const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
         for (const event of decodePayloadMessages(fight.payloads.flat(), context).events) {
             if (event.kind !== "attack") continue;
-            for (const key of event.procs) found.procs.add(key);
-            for (const stopped of event.prevented) found.defences.add(stopped.defence);
-            for (const destroyed of event.destroyed) found.destroyed.add(destroyed.statistic);
+            for (const key of event.procs) blowKeys.procs.add(key);
+            for (const stopped of event.prevented) blowKeys.defences.add(stopped.defence);
+            for (const destroyed of event.destroyed) blowKeys.destroyed.add(destroyed.statistic);
         }
     }
-    assert(found.procs.size > 0, "an empty reading of the material is a finding, not a pass");
-    return found;
+    assert(blowKeys.procs.size > 0, "an empty reading of the material is a finding, not a pass");
+    return blowKeys;
 }

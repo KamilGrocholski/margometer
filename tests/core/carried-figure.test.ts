@@ -41,14 +41,14 @@ function readFigure(
     bit: number,
     turnsByCombatantId: ReadonlyMap<number, number>,
 ) {
-    const found = tallyCarriedFigures({
+    const figures = tallyCarriedFigures({
         statuses: [{ combatantId: 12, bit, turnsElapsed: 4 }],
         auras,
         roster: ROSTER,
         turnsByCombatantId,
         keyByStatusBit: WITNESSED,
     });
-    return found[0];
+    return figures[0];
 }
 
 function composeCast(over: Partial<AuraStanding> & { key: string; amount: number }): AuraStanding {
@@ -125,14 +125,14 @@ Deno.test("the caster of a key the help halves for them gets no figure", () => {
 });
 
 Deno.test("a status no key is witnessed on gets no row at all", () => {
-    const found = tallyCarriedFigures({
+    const figures = tallyCarriedFigures({
         statuses: [{ combatantId: 12, bit: 3, turnsElapsed: 4 }],
         auras: [composeCast({ key: "aura-sa_per", amount: 20 })],
         roster: ROSTER,
         turnsByCombatantId: new Map([[12, 1]]),
         keyByStatusBit: WITNESSED,
     });
-    assertEquals(found, [], "poisoning is moved by no key that states a figure");
+    assertEquals(figures, [], "poisoning is moved by no key that states a figure");
 });
 
 /**
@@ -140,12 +140,12 @@ Deno.test("a status no key is witnessed on gets no row at all", () => {
  * no sample above reached the branch it broke.
  */
 Deno.test("the two highest add, whatever order they arrived in, and a third does not", () => {
-    const standings = [5, 20, 19].map((amount, at) =>
+    const standings = [5, 20, 19].map((amount, castIndex) =>
         composeCast({
             key: "aura-sa_per",
             amount,
-            casterId: [11, 13, 11][at] ?? 11,
-            skillId: 89 + at,
+            casterId: [11, 13, 11][castIndex] ?? 11,
+            skillId: 89 + castIndex,
         })
     );
     const figure = readFigure(standings, SPEED_BIT, new Map([[12, 1]]));

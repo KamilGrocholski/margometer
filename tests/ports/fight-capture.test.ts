@@ -112,8 +112,8 @@ Deno.test("a call prepared against one recording lands on no other", () => {
 
 Deno.test("a recording stops at its ceiling rather than dropping its start", () => {
     const recording = createFightCapture();
-    for (let at = 0; at < CALLS_MAXIMUM; at += 1) {
-        capture(recording, { payload: { at }, messages: [`${at}`] });
+    for (let callIndex = 0; callIndex < CALLS_MAXIMUM; callIndex += 1) {
+        capture(recording, { payload: { at: callIndex }, messages: [`${callIndex}`] });
     }
     assertEquals(recording.calls.length, CALLS_MAXIMUM, "every call up to the ceiling is kept");
     assertFalse(recording.isTruncated, "and a recording at its ceiling has lost nothing yet");
@@ -130,8 +130,8 @@ Deno.test("a recording stops at its ceiling rather than dropping its start", () 
 
 Deno.test("a call kept past the ceiling is a call nobody prepared", () => {
     const recording = createFightCapture();
-    for (let at = 0; at < CALLS_MAXIMUM; at += 1) {
-        capture(recording, { payload: { at }, messages: [`${at}`] });
+    for (let callIndex = 0; callIndex < CALLS_MAXIMUM; callIndex += 1) {
+        capture(recording, { payload: { at: callIndex }, messages: [`${callIndex}`] });
     }
     const call = recording.calls[0];
     assert(call !== undefined, "the recording holds a call to forge from");

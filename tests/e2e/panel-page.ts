@@ -27,8 +27,8 @@ export async function waitForFrame(page: Page): Promise<void> {
 /** The payloads of a recording, in order, as the game delivered them. */
 export function readRecordedCalls(rootDirectory: string, name: string): unknown[] {
     const text = readFileSync(join(rootDirectory, name), "utf8");
-    const read = JSON.parse(text) as { calls?: { payload?: unknown }[] };
-    const calls = read.calls ?? [];
+    const recording = JSON.parse(text) as { calls?: { payload?: unknown }[] };
+    const calls = recording.calls ?? [];
     expect(calls.length, `${name} carries calls to replay`).toBeGreaterThan(0);
     return calls.map((call) => call.payload);
 }

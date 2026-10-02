@@ -67,13 +67,15 @@ test("the bar is grabbable along its length, and its controls are not", async ({
         // bar out from under the coordinates the next one was going to use, and the second point
         // would then press the page instead of the panel.
         const again = await readPointsAlongBar(panel.page, [point.along]);
-        const at = again[0];
-        expect(at, "the bar is still there to take hold of").toBeDefined();
+        const pointNow = again[0];
+        expect(pointNow, "the bar is still there to take hold of").toBeDefined();
         const before = await panel.place();
-        await setDragged(panel.page, { x: at?.x ?? 0, y: at?.y ?? 0 }, { x: 40, y: 0 });
+        await setDragged(panel.page, { x: pointNow?.x ?? 0, y: pointNow?.y ?? 0 }, { x: 40, y: 0 });
         const after = await panel.place();
         const moved = after.left - before.left;
-        expect(moved, `at ${point.along}px the bar is ${at?.onto}`).toBe(at?.isGrip ? 40 : 0);
+        expect(moved, `at ${point.along}px the bar is ${pointNow?.onto}`).toBe(
+            pointNow?.isGrip ? 40 : 0,
+        );
     }
 });
 
@@ -119,14 +121,14 @@ test("dragged at any edge, the panel keeps its footing on the screen", async ({ 
     for (const corner of corners) {
         const bar = await readPointsAlongBar(panel.page, [20]);
         await setDragged(panel.page, { x: bar[0]?.x ?? 0, y: bar[0]?.y ?? 0 }, corner.by);
-        const at = await panel.place();
-        expect(at.left + at.width, `${corner.name}: something is left on the right`)
+        const placed = await panel.place();
+        expect(placed.left + placed.width, `${corner.name}: something is left on the right`)
             .toBeGreaterThanOrEqual(VISIBLE_LEAST);
-        expect(at.left, `${corner.name}: and it did not leave to the right`)
+        expect(placed.left, `${corner.name}: and it did not leave to the right`)
             .toBeLessThanOrEqual(WINDOW_WIDTH - VISIBLE_LEAST);
-        expect(at.top, `${corner.name}: the bar is reachable from the top`)
+        expect(placed.top, `${corner.name}: the bar is reachable from the top`)
             .toBeGreaterThanOrEqual(0);
-        expect(at.top, `${corner.name}: and from the bottom`)
+        expect(placed.top, `${corner.name}: and from the bottom`)
             .toBeLessThanOrEqual(WINDOW_HEIGHT - VISIBLE_LEAST);
     }
     await panel.expectHonest("a panel pushed at every edge");
@@ -169,9 +171,11 @@ test.describe("a payload landing in the middle of a drag", () => {
         await panel.feed(1);
 
         await panel.page.mouse.move(from.x, WINDOW_HEIGHT - 1, { steps: 6 });
-        const at = await panel.place();
-        expect(at.top, "the panel went on down after the payload").toBeGreaterThan(from.y + DOWN);
-        expect(at.top + at.height, "and the hand is below the panel it is holding")
+        const heldPlace = await panel.place();
+        expect(heldPlace.top, "the panel went on down after the payload").toBeGreaterThan(
+            from.y + DOWN,
+        );
+        expect(heldPlace.top + heldPlace.height, "and the hand is below the panel it is holding")
             .toBeLessThan(WINDOW_HEIGHT - 1);
 
         await panel.page.mouse.up();

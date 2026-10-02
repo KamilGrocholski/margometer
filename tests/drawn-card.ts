@@ -31,7 +31,7 @@ export interface CardRead {
 
 /** Whatever the detail is saying right now, read back out of the root it stands in. */
 export function readCard(host: FakeElement): CardRead {
-    const card = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.card));
+    const card = (host.shadow ?? []).find((child) => child.className.startsWith(CLASS.card));
     assertExists(card, "the detail is a region of the panel like any other");
     const name = getTextsByClass(card, CLASS.cardName);
     return {
@@ -41,22 +41,23 @@ export function readCard(host: FakeElement): CardRead {
         // By the class among its classes, not by the whole attribute: a note carrying a tone
         // wears a second class, and an exact match read past every suspicion the panel drew.
         notes: getElementsWithin(card)
-            .filter((one) => one.className.split(" ").includes(CLASS.cardNote))
-            .map((one) => one.textContent),
+            .filter((drawn) => drawn.className.split(" ").includes(CLASS.cardNote))
+            .map((note) => note.textContent),
         headings: getTextsByClass(card, CLASS.cardHeading),
-        groups: getElementsWithin(card).filter((one) => one.className === CLASS.cardGroup).length,
+        groups:
+            getElementsWithin(card).filter((drawn) => drawn.className === CLASS.cardGroup).length,
         lines: [
             ...name,
             ...getTextsByClass(card, CLASS.cardLabel),
             ...getTextsByClass(card, CLASS.cardValue),
         ],
         stated: getElementsWithin(card)
-            .filter((one) => one.className.startsWith(CLASS.cardLine))
-            .map((one) => ({
-                label: getTextsByClass(one, CLASS.cardLabel)[0] ?? "",
-                value: getTextsByClass(one, CLASS.cardValue)[0] ?? "",
-                isStrong: one.className.includes(CLASS.cardStrong),
-                isSub: one.className.includes(CLASS.cardSub),
+            .filter((drawn) => drawn.className.startsWith(CLASS.cardLine))
+            .map((line) => ({
+                label: getTextsByClass(line, CLASS.cardLabel)[0] ?? "",
+                value: getTextsByClass(line, CLASS.cardValue)[0] ?? "",
+                isStrong: line.className.includes(CLASS.cardStrong),
+                isSub: line.className.includes(CLASS.cardSub),
             })),
     };
 }

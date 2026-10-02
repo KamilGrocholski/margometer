@@ -65,7 +65,7 @@ function composeDeclaringBlow(actorId: number): BattleEvent {
 }
 
 function readStanding(walk: LegendaryWalk, combatantId: number) {
-    return composeLegendaryStandings(walk).find((one) => one.combatantId === combatantId);
+    return composeLegendaryStandings(walk).find((standing) => standing.combatantId === combatantId);
 }
 
 /** One heal under the effect. A full holder is healed for nought, and that is still a heal. */
@@ -126,7 +126,11 @@ Deno.test("the heals are counted on the holder and on nobody else", () => {
         composeHeal(SOMEBODY_ELSE),
     ]);
     const standings = composeLegendaryStandings(walk);
-    assertEquals(standings.map((one) => one.combatantId), [HOLDER], "one row, and it is theirs");
+    assertEquals(
+        standings.map((standing) => standing.combatantId),
+        [HOLDER],
+        "one row, and it is theirs",
+    );
     assertStrictEquals(standings[0]?.holytouchHealsReceived, 0, "and somebody else's heal is not");
 });
 
@@ -182,7 +186,11 @@ Deno.test("the blow's own thrower is the holder, and not whoever it was thrown a
     let walk = NO_LEGENDARY_WALK;
     walk = prepareLegendaryWalk(walk, [composeDeclaringBlow(SOMEBODY_ELSE)]);
     const standings = composeLegendaryStandings(walk);
-    assertEquals(standings.map((one) => one.combatantId), [SOMEBODY_ELSE], "it lit on the thrower");
+    assertEquals(
+        standings.map((standing) => standing.combatantId),
+        [SOMEBODY_ELSE],
+        "it lit on the thrower",
+    );
 });
 
 /** Preparing touches nothing, which is what lets a session drop a payload that failed halfway. */
@@ -190,9 +198,13 @@ Deno.test("the walk handed in is left as it was, and the same input prepares the
     const before = prepareLegendaryWalk(NO_LEGENDARY_WALK, [composeDeclaringBlow(HOLDER)]);
     const kept = copyWalk(before);
     const events = [composeHeal(HOLDER), composeLastheal(SOMEBODY_ELSE)];
-    const first = prepareLegendaryWalk(before, events);
-    const second = prepareLegendaryWalk(before, events);
-    assertEquals(copyWalk(first), copyWalk(second), "the same input prepares the same walk");
+    const firstWalk = prepareLegendaryWalk(before, events);
+    const secondWalk = prepareLegendaryWalk(before, events);
+    assertEquals(
+        copyWalk(firstWalk),
+        copyWalk(secondWalk),
+        "the same input prepares the same walk",
+    );
     assertEquals(copyWalk(before), kept, "and the walk it was prepared from is unchanged");
     assertEquals(copyWalk(NO_LEGENDARY_WALK), { heals: [], spent: [] }, "as is the empty walk");
 });

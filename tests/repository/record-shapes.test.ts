@@ -34,12 +34,14 @@ Deno.test("a deleted and an optional property are flagged, and a map's delete an
 });
 
 function lookupShapeChanges(file: SourceFile): string[] {
-    const found: string[] = [];
-    for (const node of readAstNodes(file, ["UnaryExpression", "TSPropertySignature"])) {
-        if (node.operator === DELETE_OPERATOR) found.push(formatNodePlace(file, node));
-        if (node.optional === true) found.push(formatNodePlace(file, node));
+    const shapeChanges: string[] = [];
+    for (const candidate of readAstNodes(file, ["UnaryExpression", "TSPropertySignature"])) {
+        if (candidate.operator === DELETE_OPERATOR) {
+            shapeChanges.push(formatNodePlace(file, candidate));
+        }
+        if (candidate.optional === true) shapeChanges.push(formatNodePlace(file, candidate));
     }
-    return found;
+    return shapeChanges;
 }
 
 Deno.test("no record the layers build changes its shape", () => {

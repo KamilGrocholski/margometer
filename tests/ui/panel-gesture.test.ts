@@ -23,10 +23,12 @@ const SECONDARY_BUTTON = 2;
 
 Deno.test("only the primary button opens anything, and a press stating none is that button", () => {
     const asked: PanelIntent[] = [];
-    const panel = initTestView(composeFakeDocument(), { onIntent: (one) => asked.push(one) });
+    const panel = initTestView(composeFakeDocument(), { onIntent: (intent) => asked.push(intent) });
     panel.renderWaiting(NOTHING_WAITING);
     const host = panel.element as FakeElement;
-    const fold = getElementsWithin(host).find((one) => one.attributes.has("data-fold"));
+    const fold = getElementsWithin(host).find((descendant) =>
+        descendant.attributes.has("data-fold")
+    );
     assertExists(fold, "the bar folds the panel");
     dispatch(host, "pointerdown", { target: fold, clientY: 10, button: SECONDARY_BUTTON });
     assertEquals(asked, [], "a second button asks for nothing");
@@ -43,7 +45,7 @@ function dispatch(host: FakeElement, type: string, event: PanelEvent): void {
 Deno.test("each window is moved by its own bar, and reported moved under its own name", () => {
     const asked: PanelIntent[] = [];
     const panel = initTestView(composeFakeDocument(), {
-        onIntent: (one) => asked.push(one),
+        onIntent: (intent) => asked.push(intent),
         meterPlacement: {
             position: { left: 40, top: 40 },
             size: null,
@@ -71,9 +73,11 @@ Deno.test("each window is moved by its own bar, and reported moved under its own
 });
 
 function findGrip(host: FakeElement, grip: string): FakeElement {
-    const found = getElementsWithin(host).find((one) => one.attributes.get("data-grip") === grip);
-    assertExists(found, `the ${grip} window draws a bar to drag it by`);
-    return found;
+    const bar = getElementsWithin(host).find((descendant) =>
+        descendant.attributes.get("data-grip") === grip
+    );
+    assertExists(bar, `the ${grip} window draws a bar to drag it by`);
+    return bar;
 }
 
 Deno.test("a pointer stating no place starts no drag, and the panel stays where it stood", () => {
@@ -96,7 +100,7 @@ Deno.test("a pointer stating no place starts no drag, and the panel stays where 
 Deno.test("a pointer the bar will not hold drops that hold, and the drag still moves", () => {
     const failures: ViewFailure[] = [];
     const panel = initTestView(composeFakeDocument(), {
-        onFailure: (one) => failures.push(one),
+        onFailure: (failure) => failures.push(failure),
         meterPlacement: {
             position: { left: 40, top: 40 },
             size: null,
@@ -112,7 +116,9 @@ Deno.test("a pointer the bar will not hold drops that hold, and the drag still m
     dragOnElement(host, "pointerdown", bar, { clientX: 100, clientY: 50 });
     dragOnElement(host, "pointermove", bar, { clientX: 200, clientY: 150 });
     assertEquals(
-        failures.map((one) => one instanceof GestureDropped ? one.listener : one.name),
+        failures.map((failure) =>
+            failure instanceof GestureDropped ? failure.listener : failure.name
+        ),
         [PANEL_LISTENER.capture],
         "the hold is what was dropped",
     );
