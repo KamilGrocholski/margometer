@@ -56,10 +56,10 @@ import {
 } from "#/tests/recorded-fights.ts";
 import {
     CAPTURED_AT,
-    GAME_BUILD,
     initHeldStore,
     initRefusingStore,
     initRuntimeWorld,
+    MARGONEM_CLIENT_BUILD,
     readKeptFights,
     RUNTIME_TABLES,
     type RuntimeWorld,
@@ -338,7 +338,11 @@ Deno.test("a fight that ends goes on the shelf, once, and comes back after a rel
     const world = playRecordedFight();
     const kept = readKeptFights(world.getShelf("local"));
     assertEquals(kept.length, 1, "one fight, however many calls said it was over");
-    assertEquals(kept[0]?.gameBuild, GAME_BUILD, "under the build the page stated it on");
+    assertEquals(
+        kept[0]?.margonemClientBuild,
+        MARGONEM_CLIENT_BUILD,
+        "under the build the page stated it on",
+    );
     const again = reloadRuntimeWorld(world);
     openShelfScreen(again);
     assertEquals(getTextsByClass(again.getHost(), CLASS.rowSize), ["10×1"], "and comes back");
@@ -484,13 +488,13 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
     const at = CAPTURED_AT.split(":").join("-").split(".").join("-");
     assertEquals(
         world.saved[0]?.name,
-        `margometer-${WORLD}-${GAME_BUILD}-${TEST_VERSION}-${at}.json`,
+        `margometer-${WORLD}-${MARGONEM_CLIENT_BUILD}-${TEST_VERSION}-${at}.json`,
         "named for the world, both builds and the moment it was asked for",
     );
     const written = readSavedFile(world);
     assertEquals(
         [written.world, written.gameBuild],
-        [WORLD, GAME_BUILD],
+        [WORLD, MARGONEM_CLIENT_BUILD],
         "where, and which client",
     );
     const entries = written.calls;
@@ -1938,7 +1942,7 @@ Deno.test("a kept fight's file says which client it was fought under, and where"
     const again = reloadRuntimeWorld(world);
     pressSave(again);
     const written = readSavedFile(again);
-    assertEquals(written.gameBuild, GAME_BUILD, "the build kept beside the fight");
+    assertEquals(written.gameBuild, MARGONEM_CLIENT_BUILD, "the build kept beside the fight");
     const report = written.report;
     assert(isRecord(report), "with the report beside the calls");
     assertEquals(report.place, { mapName: "Mapa Testowa", x: 12, y: 34 }, "and its place");

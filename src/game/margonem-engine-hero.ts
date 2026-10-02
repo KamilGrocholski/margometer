@@ -14,40 +14,40 @@ import {
     getTextField,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
-import { readGameEngines } from "./game-battle.ts";
-import { GAME_VALUE, type GameReadFailure, GameValueAbsent } from "./game-value.ts";
+import { readMargonemEngines } from "./margonem-engine-battle.ts";
+import { MARGONEM_VALUE, type MargonemReadFailure, MargonemValueAbsent } from "./margonem-value.ts";
 
-export interface GameHeroPort {
-    readHeroId(): number | GameReadFailure;
+export interface MargonemEngineHeroPort {
+    readHeroId(): number | MargonemReadFailure;
 }
 
 /** Production build `Bb28FQty`, fetched 2026-09-27: `this.getId=()=>this.d.id` on the hero. */
-type GameEngineField = "hero";
+type MargonemEngineField = "hero";
 type HeldField = "data";
 type HeroField = "id";
 
-const ENGINE_FIELDS: FieldKeys<GameEngineField> = { hero: "hero" };
+const ENGINE_FIELDS: FieldKeys<MargonemEngineField> = { hero: "hero" };
 const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const HERO_FIELDS: FieldKeys<HeroField> = { id: "id" };
 
 /** The first spelling of the game that states an id wins: two spellings are one game. */
-export function initGameHero(browserWindow: unknown): GameHeroPort {
+export function initMargonemEngineHero(browserWindow: unknown): MargonemEngineHeroPort {
     return {
         readHeroId() {
             const heroIds = errors.attempt(() =>
-                readGameEngines(browserWindow).map(readGameHeroId)
+                readMargonemEngines(browserWindow).map(readMargonemEngineHeroId)
             );
             if (heroIds instanceof Error) return heroIds;
             for (const id of heroIds) {
                 if (id !== null) return id;
             }
-            return new GameValueAbsent(GAME_VALUE.hero);
+            return new MargonemValueAbsent(MARGONEM_VALUE.hero);
         },
     };
 }
 
 /** Null where the engine holds no hero, or an id that is not a whole number above nought. */
-function readGameHeroId(engine: UnknownRecord): number | null {
+function readMargonemEngineHeroId(engine: UnknownRecord): number | null {
     const heroObject = getRecordField(engine, ENGINE_FIELDS, "hero");
     if (heroObject instanceof Error) return null;
     if (heroObject === null) return null;

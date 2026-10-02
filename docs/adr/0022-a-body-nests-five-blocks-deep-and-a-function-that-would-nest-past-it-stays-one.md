@@ -17,8 +17,8 @@ top-level declarations of `libs/`, `src/` and `tools/`:
 
 Counting the blocks a statement stands in, its own function's body included, 1161 of 1169
 declarations went no deeper than five; the other eight went to six, seven, eight and ten, and the
-ten was `initPanelView`. `initPageTooltip` (`src/game/game-tooltip.ts`) had taken a function into
-itself by turning each `return` into a labelled `break`.
+ten was `initPanelView`. `initPageTooltip` (`src/game/margonem-engine-tooltip.ts`) had taken a
+function into itself by turning each `return` into a labelled `break`.
 
 Carmack's mail on inlined code, the source ADR 0018 cites, asks to **consider** inlining a function
 called from one place, and names the enemy as state changed out of the order a reader sees it in;

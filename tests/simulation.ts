@@ -34,7 +34,7 @@ export interface FaultPlan {
 
 export interface SimulationReport {
     /** Whether anything of ours reached the game's stack, or the browser's through a frame. */
-    hasThrownIntoGame: boolean;
+    hasThrownIntoMargonem: boolean;
     /** What the ranking says after the last frame, which is what a fault must never move. */
     ranking: string;
     /** Every kind of failure the console was told, by its class's `name`, once each, in order. */
@@ -74,20 +74,20 @@ export function runSimulation(plan: FaultPlan, updates: readonly unknown[]): Sim
     };
     const battle = composeRebuildingBattle(onPageCall);
     const window = composeFakeWindow({
-        game: { ...battle.page, _t: composeSimulationDictionary(onPageCall) },
+        margonem: { ...battle.page, _t: composeSimulationDictionary(onPageCall) },
         onPageCall,
     });
-    let hasThrownIntoGame = !runSimulationStep(() => void startMargoMeter(window.page));
+    let hasThrownIntoMargonem = !runSimulationStep(() => void startMargoMeter(window.page));
     for (const [index, payload] of updates.entries()) {
-        const called = runSimulationStep(() => callSimulationGame(window, payload));
-        if (!called) hasThrownIntoGame = true;
+        const called = runSimulationStep(() => callSimulationMargonemEngine(window, payload));
+        if (!called) hasThrownIntoMargonem = true;
         if ((index + 1) % plan.payloadsPerFrame !== 0) continue;
-        if (!runSimulationStep(() => flushFakeFrames(window))) hasThrownIntoGame = true;
+        if (!runSimulationStep(() => flushFakeFrames(window))) hasThrownIntoMargonem = true;
     }
-    if (!runSimulationStep(() => flushFakeFrames(window))) hasThrownIntoGame = true;
+    if (!runSimulationStep(() => flushFakeFrames(window))) hasThrownIntoMargonem = true;
     const kindsSaid = readSimulationKinds(window);
     return {
-        hasThrownIntoGame,
+        hasThrownIntoMargonem,
         ranking: readSimulationRanking(window),
         kindsSaid,
         hasInvariantBroken: window.lines.some((line) => isInvariantBroken(line[1])),
@@ -114,7 +114,7 @@ function runSimulationStep(step: () => void): boolean {
     }
 }
 
-function callSimulationGame(window: FakeWindow, payload: unknown): void {
+function callSimulationMargonemEngine(window: FakeWindow, payload: unknown): void {
     const engine = window.page.Engine;
     assert(isRecord(engine), "the page holds a game");
     const battle = engine.battle;

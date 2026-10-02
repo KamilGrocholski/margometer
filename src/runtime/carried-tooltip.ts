@@ -16,7 +16,10 @@ import { type CarriedFigure, tallyCarriedFigures } from "#/src/core/carried-figu
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import type { FightView } from "#/src/core/fight-session.ts";
-import type { GameTooltipPort, TooltipWritten } from "#/src/game/game-tooltip.ts";
+import type {
+    MargonemEngineTooltipPort,
+    TooltipWritten,
+} from "#/src/game/margonem-engine-tooltip.ts";
 import {
     PANEL_WORDS,
     presentTooltipRows,
@@ -35,7 +38,7 @@ export function writeCarriedTooltips(
     view: FightView,
     tables: TooltipTables,
     translate: TranslateLabel | null,
-    tooltip: GameTooltipPort,
+    tooltip: MargonemEngineTooltipPort,
 ): TooltipWritten | errors.Caught {
     const fightStandings = replayAuraStandings(view, tables.statedSkills);
     const figures = new Map<string, CarriedFigure>();

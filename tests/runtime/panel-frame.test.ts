@@ -33,7 +33,7 @@ Deno.test("a ranking whose two counts disagree is drawn, and said as the screen'
         payloads: lookupRecordedFight(HILDUR).updates,
         place: null,
         readerId: null,
-        gameBuild: null,
+        margonemClientBuild: null,
         isPinned: false,
     };
     const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);
@@ -99,7 +99,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState) {
             place: null,
             readerId: null,
             openedAt: 0,
-            gameBattle: null,
+            margonemEngineBattle: null,
         },
         defects,
         view: {
@@ -138,7 +138,7 @@ Deno.test("the window beside the panel says which reason leaves it nothing live 
         payloads: lookupRecordedFight(HILDUR).updates,
         place: null,
         readerId: null,
-        gameBuild: null,
+        margonemClientBuild: null,
         isPinned: false,
     };
     const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);

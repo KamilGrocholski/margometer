@@ -9,7 +9,7 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "./panel-fixture.ts";
-import { HOST_SELECTOR } from "./game-page.ts";
+import { HOST_SELECTOR } from "./margonem-page.ts";
 import { waitForFrame } from "./panel-page.ts";
 
 interface LayerStack {
@@ -29,12 +29,12 @@ interface LayerStandIn {
  * 2026-09-23: `.layer{z-index:10}` is the interface layer's, and 11 is the lowest a layer holding
  * a window, the chat or an alert stands at.
  */
-const GAME_INTERFACE_LAYER = 10;
-const GAME_WINDOW_LAYER_LOWEST = 11;
+const MARGONEM_INTERFACE_LAYER = 10;
+const MARGONEM_WINDOW_LAYER_LOWEST = 11;
 
 test("a window of the game's stands over the panel", async ({ panel }) => {
     await expect(panel.host, "the panel is drawn to be covered").toBeVisible();
-    const { covered } = await readStacksUnder(panel.page, GAME_WINDOW_LAYER_LOWEST);
+    const { covered } = await readStacksUnder(panel.page, MARGONEM_WINDOW_LAYER_LOWEST);
     expect(covered.windowAt, "the window is in the stack at that point").toBeGreaterThanOrEqual(0);
     expect(covered.hostAt, "and so is the panel").toBeGreaterThanOrEqual(0);
     // Topmost first, so what stands over is the smaller index.
@@ -47,7 +47,7 @@ test("a window of the game's stands over the panel", async ({ panel }) => {
 async function readStacksUnder(page: Page, windowLayer: number) {
     const standIn = {
         selector: HOST_SELECTOR,
-        interfaceLayer: GAME_INTERFACE_LAYER,
+        interfaceLayer: MARGONEM_INTERFACE_LAYER,
         windowLayer,
     };
     await waitForFrame(page);
@@ -92,7 +92,7 @@ function readLayerStacks(
 }
 
 test("the panel stands over the game's interface, map and HUD alike", async ({ panel }) => {
-    const { clear } = await readStacksUnder(panel.page, GAME_WINDOW_LAYER_LOWEST);
+    const { clear } = await readStacksUnder(panel.page, MARGONEM_WINDOW_LAYER_LOWEST);
     expect(clear.windowAt, "no window stands at this point").toBe(-1);
     expect(clear.interfaceAt, "the interface does").toBeGreaterThanOrEqual(0);
     expect(clear.hostAt, "and so does the panel").toBeGreaterThanOrEqual(0);
@@ -103,7 +103,7 @@ test("the panel stands over the game's interface, map and HUD alike", async ({ p
 
 test("the reader tells a window under the panel from one over it", async ({ panel }) => {
     // The sample it must answer the other way: a block under the interface's own number.
-    const { covered } = await readStacksUnder(panel.page, GAME_INTERFACE_LAYER - 1);
+    const { covered } = await readStacksUnder(panel.page, MARGONEM_INTERFACE_LAYER - 1);
     expect(covered.windowAt, "the block is in the stack at that point").toBeGreaterThanOrEqual(0);
     expect(covered.hostAt, "and the panel stands over a block under it").toBeLessThan(
         covered.windowAt,

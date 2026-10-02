@@ -191,7 +191,7 @@ Deno.test("the file a fabricated fight is written as says so three times over", 
     assertStrictEquals(envelope[FABRICATION_FIELDS.isFabricated], true, "the envelope says so");
     assertStrictEquals(envelope[FILE_FIELD.world], FABRICATED_WORLD, "the world it states says so");
     assert(`${envelope[FABRICATION_FIELDS.fabricatedBy]}`.length > 0, "and what wrote it is named");
-    assertStrictEquals(envelope[FILE_FIELD.gameBuild], null, "it came off no build");
+    assertStrictEquals(envelope[FILE_FIELD.margonemClientBuild], null, "it came off no build");
 });
 
 Deno.test("a shape past what a roster or a recording holds is refused, not composed", () => {

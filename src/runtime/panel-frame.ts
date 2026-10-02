@@ -14,7 +14,7 @@ import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-r
 import { replayAuraStandings } from "#/src/core/aura-standing.ts";
 import type { OutcomeResult } from "#/src/core/battle-event.ts";
 import { composeFightView, type FightView } from "#/src/core/fight-session.ts";
-import type { GameTooltipPort } from "#/src/game/game-tooltip.ts";
+import type { MargonemEngineTooltipPort } from "#/src/game/margonem-engine-tooltip.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
 import type { BrowserClock } from "#/src/game/browser-time.ts";
 import { type TooltipTables, writeCarriedTooltips } from "./carried-tooltip.ts";
@@ -100,7 +100,7 @@ export interface FrameParts {
     defects: DefectLedger;
     view: PanelView;
     clock: BrowserClock;
-    tooltip: GameTooltipPort;
+    tooltip: MargonemEngineTooltipPort;
     tables: TooltipTables;
     translate: TranslateLabel;
     /** The world the page is on, which is every kept fight's: a shelf is one origin's store. */

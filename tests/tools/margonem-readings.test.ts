@@ -7,22 +7,22 @@
  */
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import type { CachedClientSource } from "#/tools/game-client-source.ts";
+import type { CachedMargonemClientSource } from "#/tools/margonem-client-source.ts";
 import type { FrozenFiles } from "#/tools/frozen-files.ts";
 import {
     composeBitShifts,
-    composeClientState,
     composeDumpState,
     composeFrozenState,
     composeKeyDifference,
-    composeUnaskedClientState,
+    composeMargonemClientState,
+    composeUnaskedMargonemClientState,
     EXIT_AHEAD,
     EXIT_STALE,
     EXIT_UNASKED,
     formatReadingLine,
     formatRefreshLine,
     READING_VERDICT,
-} from "#/tools/game-readings.ts";
+} from "#/tools/margonem-readings.ts";
 
 const HELD_BUILD = "heldBuild";
 const READ_BUILD = "readBuild";
@@ -43,14 +43,20 @@ Deno.test("a row says which reading it is about and what the verdict was", () =>
 });
 
 Deno.test("the cached bundle is current only where it is the one being served", () => {
-    assertEquals(composeClientState("abc", composeCachedClient("abc")).verdict, "current");
-    assertEquals(composeClientState("abc", composeCachedClient("xyz")).verdict, "stale");
-    const absent = composeClientState("abc", null);
+    assertEquals(
+        composeMargonemClientState("abc", composeCachedMargonemClient("abc")).verdict,
+        "current",
+    );
+    assertEquals(
+        composeMargonemClientState("abc", composeCachedMargonemClient("xyz")).verdict,
+        "stale",
+    );
+    const absent = composeMargonemClientState("abc", null);
     assertEquals(absent.verdict, "stale", "a cache nobody filled is not current either");
     assertStringIncludes(absent.says, "nothing cached", "which the row says rather than implies");
 });
 
-function composeCachedClient(build: string): CachedClientSource {
+function composeCachedMargonemClient(build: string): CachedMargonemClientSource {
     return {
         channel: "production",
         build,
@@ -98,7 +104,7 @@ Deno.test("a fetched page goes stale on a floor, and the day before it does not"
 
 Deno.test("a world that did not answer is said as that, and never as a stale reading", () => {
     // The fix for one is to wait and for the other to refresh, so the row a person reads names it.
-    const unasked = composeUnaskedClientState("https://tempest.margonem.pl did not answer");
+    const unasked = composeUnaskedMargonemClientState("https://tempest.margonem.pl did not answer");
     assertEquals(unasked.verdict, "unknown", "nobody could ask, so nothing is claimed");
     assertEquals(unasked.name, "client", "and it stands in the row that needed the network");
     assert(!formatReadingLine(unasked).includes("STALE"), "never wearing the other verdict");

@@ -21,7 +21,7 @@ import {
 } from "#/src/core/aura-standing.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
-import { GameUnreachableError, SkillTableError } from "./margometer-tool-error.ts";
+import { MargonemUnreachableError, SkillTableError } from "./margometer-tool-error.ts";
 
 export interface CachedSkillTable {
     url: string;
@@ -64,7 +64,7 @@ export interface FrozenSkillTable extends FrozenFiles {
 }
 
 const SKILLS_ADDRESS = "https://public-api.margonem.pl/we_get/skills/";
-/** Ignored by git, and exported for the reason `tools/game-client-source.ts` gives for its own. */
+/** Ignored by git, and exported for the reason `tools/margonem-client-source.ts` gives for its own. */
 export const CACHE_ROOT = ".cache/skills/";
 const MANIFEST_NAME = "provenance.json";
 const PAGE_NAME = "skills.html";
@@ -149,7 +149,7 @@ function requireCachedSkills(): { cached: CachedSkillTable; skills: SkillReading
     }
     const html = Deno.readTextFileSync(cached.pagePath);
     assert(html.length > 0, "a cached page says something");
-    return { cached, skills: requireSkillsOfPage(html) };
+    return { cached, skills: requireSkillsOfMargonemApi(html) };
 }
 
 export function encodeFrozenSkillTexts(
@@ -230,7 +230,7 @@ function requireCachedSkillTable(value: unknown): CachedSkillTable {
 }
 
 /** Rows carrying exactly the columns named above; a page of another shape is refused. */
-export function requireSkillsOfPage(html: string): SkillReading[] {
+export function requireSkillsOfMargonemApi(html: string): SkillReading[] {
     const found: SkillReading[] = [];
     const rows = html.split(ROW_OPEN);
     assert(rows.length <= ROWS_MAXIMUM, "the page stays inside its stated bound");
@@ -362,10 +362,10 @@ export async function writeSkillTableCache(): Promise<CachedSkillTable> {
     try {
         response = await fetch(SKILLS_ADDRESS);
     } catch (cause) {
-        throw new GameUnreachableError(`${SKILLS_ADDRESS} did not answer`, { cause });
+        throw new MargonemUnreachableError(`${SKILLS_ADDRESS} did not answer`, { cause });
     }
     if (!response.ok) {
-        throw new GameUnreachableError(`${SKILLS_ADDRESS} answered ${response.status}`);
+        throw new MargonemUnreachableError(`${SKILLS_ADDRESS} answered ${response.status}`);
     }
     const html = await response.text();
     const pagePath = `${CACHE_ROOT}${PAGE_NAME}`;

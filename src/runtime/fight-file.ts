@@ -41,7 +41,7 @@ export interface FileSubject {
 export interface FileSurroundings {
     world: string;
     /** Null where the page did not say: a recording without it is not comparable with others. */
-    gameBuild: string | null;
+    margonemClientBuild: string | null;
     capturedAt: string;
     /** Null where the browser did not say, never `""`. */
     userAgent: string | null;
@@ -127,7 +127,7 @@ export const FILE_FIELD = {
     addOnVersion: "addOnVersion",
     capturedAt: "capturedAt",
     world: "world",
-    gameBuild: "gameBuild",
+    margonemClientBuild: "gameBuild",
     userAgent: "userAgent",
     report: "report",
     droppedCalls: "droppedCalls",
@@ -157,7 +157,10 @@ export function encodeFightFile(
 ): FightFile | FileUnserializable {
     assert(surroundings.world.length > 0, "a recording names the world it was taken on");
     assert(surroundings.capturedAt.length > 0, "and the moment it was taken at");
-    assert(surroundings.gameBuild !== "", "a build it could not read is absent, never empty");
+    assert(
+        surroundings.margonemClientBuild !== "",
+        "a build it could not read is absent, never empty",
+    );
     assert(surroundings.userAgent !== "", "and so is a browser that said nothing of itself");
     if (calls.droppedCalls !== null) assert(calls.droppedCalls >= 0, "none dropped, or more");
     const written = encodeJson({
@@ -165,7 +168,7 @@ export function encodeFightFile(
         [FILE_FIELD.addOnVersion]: surroundings.addOnVersion,
         [FILE_FIELD.capturedAt]: surroundings.capturedAt,
         [FILE_FIELD.world]: surroundings.world,
-        [FILE_FIELD.gameBuild]: surroundings.gameBuild,
+        [FILE_FIELD.margonemClientBuild]: surroundings.margonemClientBuild,
         [FILE_FIELD.userAgent]: surroundings.userAgent,
         // Above the calls, which run to hundreds of kilobytes.
         [FILE_FIELD.report]: subject === null ? null : encodeFightReport(subject),
@@ -192,7 +195,7 @@ function encodeFightFileName(surroundings: FileSurroundings): string {
     const momentForName = surroundings.capturedAt.split(":").join("-").split(".").join("-");
     assert(!momentForName.includes(":"), "and for a moment no file system objects to");
     assert(!momentForName.includes("."), "nor one a file's own extension could be read out of");
-    const build = surroundings.gameBuild ?? NOTHING_STATED;
+    const build = surroundings.margonemClientBuild ?? NOTHING_STATED;
     const { world, addOnVersion } = surroundings;
     return `margometer-${world}-${build}-${addOnVersion}-${momentForName}.json`;
 }

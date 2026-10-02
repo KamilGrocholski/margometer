@@ -27,13 +27,13 @@ declare global {
 }
 
 /** When the game stands up, relative to the bundle looking for one. */
-export type EnginePresence = "before" | "late" | "none";
+export type MargonemEnginePresence = "before" | "late" | "none";
 
 export interface PanelPageOptions {
     calls: readonly unknown[];
     /** How many payloads the page replays before `load`. The rest are `feed`'s to deliver. */
     fedThrough: number;
-    engine: EnginePresence;
+    engine: MargonemEnginePresence;
     doesLoadTwice: boolean;
     /**
      * Where the game says the fight is. A map name is the game's own and nothing in `src/` bounds
@@ -69,9 +69,9 @@ export const PROBE_NAME = "margometerE2e";
 export const ENGINE_ANSWER = "e2e-engine";
 /** The place the stub names, which no recording carries and every header states. */
 export const PLACE_NAME = "E2E";
-/** A build id in the shape `src/game/game-build.ts` reads, on a tag that loads nothing. */
-export const GAME_BUILD = "1785244275300";
-export const GAME_SCRIPT_NAME = `main.min${GAME_BUILD}.js`;
+/** A build id in the shape `src/game/margonem-client-build.ts` reads, on a tag that loads nothing. */
+export const MARGONEM_CLIENT_BUILD = "1785244275300";
+export const MARGONEM_CLIENT_SCRIPT_NAME = `main.min${MARGONEM_CLIENT_BUILD}.js`;
 /** Where the settings the driver reads are parked, since a page cannot be handed an argument. */
 const SETTINGS_ID = "e2e-settings";
 /** Late enough to miss the first look and two polls of 250 ms, early enough not to slow a test. */
@@ -86,11 +86,11 @@ const ENGINE_LATE_MILLISECONDS = 700;
 export function composePanelPage(options: PanelPageOptions): string {
     const settings = JSON.stringify({ calls: options.calls, fedThrough: options.fedThrough })
         .split("<").join("\\u003c");
-    const game = options.engine === "none"
+    const margonem = options.engine === "none"
         ? ""
         : options.engine === "late"
-        ? composeGameLate(options.place)
-        : composeGame(options.place);
+        ? composeMargonemLate(options.place)
+        : composeMargonem(options.place);
     const directory = options.scriptDirectory ?? "/";
     const bundle = `<script src="${directory}${options.userscriptName}"></script>\n`;
     const second = options.doesLoadTwice ? bundle : "";
@@ -101,8 +101,8 @@ export function composePanelPage(options: PanelPageOptions): string {
 <title>${options.title ?? "MargoMeter end to end"}</title></head>
 <body>
 <script>${composeProbe()}</script>
-<script>${game}</script>
-<script src="${directory}${GAME_SCRIPT_NAME}"></script>
+<script>${margonem}</script>
+<script src="${directory}${MARGONEM_CLIENT_SCRIPT_NAME}"></script>
 ${before}${bundle}${second}<script id="${SETTINGS_ID}" type="application/json">${settings}</script>
 <script>${composeDriver()}</script>
 ${options.afterDriver ?? ""}</body>
@@ -111,9 +111,9 @@ ${options.afterDriver ?? ""}</body>
 }
 
 /** The game arriving after the bundle has already looked for it once and missed. */
-function composeGameLate(place: string): string {
-    return `window.setTimeout(function standTheGameUp() {
-${composeGame(place)}
+function composeMargonemLate(place: string): string {
+    return `window.setTimeout(function standMargonemEngineUp() {
+${composeMargonem(place)}
 }, ${ENGINE_LATE_MILLISECONDS});`;
 }
 
@@ -123,13 +123,13 @@ ${composeGame(place)}
  * (`src/runtime/margometer-runtime.ts`). Both roster names are needed — with only `w` every
  * snapshot read under `warriorsList` comes out empty (`src/game/payload-envelope.ts`).
  *
- * Each fighter carries a `$` of the client's own shape, so what `src/game/game-tooltip.ts`
+ * Each fighter carries a `$` of the client's own shape, so what `src/game/margonem-engine-tooltip.ts`
  * writes lands somewhere a test can read it back.
  */
-function composeGame(place: string): string {
+function composeMargonem(place: string): string {
     return `window.MARGOMETER_TIPS = {};
 // The client's registry of tooltips is one string per fighter, and these four are all the add-on
-// asks of it (src/game/game-tooltip.ts). \`told\` counts what an open tooltip was told.
+// asks of it (src/game/margonem-engine-tooltip.ts). \`told\` counts what an open tooltip was told.
 window.MARGOMETER_TOLD = {};
 var composeTipTarget = function (id) {
   var targets = {
@@ -153,7 +153,7 @@ window.Engine = {
           // Accumulated, not replaced, because the client's own record is one object it
           // mutates — a payload restates only what moved, so a fighter replaced by it loses the
           // name they were introduced under — and a warrior with no name is one
-          // \`readGameWarriorsNamed\` steps over.
+          // \`readMargonemEngineWarriorsNamed\` steps over.
           window.MARGOMETER_TIPS[id] = "game";
           var held = window.Engine.battle.w[id] || { $: composeTipTarget(id) };
           for (var field in roster[id]) held[field] = roster[id][field];

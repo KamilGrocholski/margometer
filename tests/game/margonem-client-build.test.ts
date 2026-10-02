@@ -8,29 +8,45 @@
 
 import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initGameBuild, parseGameBuildId, parseGameBundleName } from "#/src/game/game-build.ts";
-import { GAME_VALUE, GameValueAbsent } from "#/src/game/game-value.ts";
+import {
+    initMargonemClientBuild,
+    parseMargonemClientBuildId,
+    parseMargonemClientBundleName,
+} from "#/src/game/margonem-client-build.ts";
+import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/game/margonem-value.ts";
 
 Deno.test("both names the client has served give up their build", () => {
     assertEquals(
-        parseGameBuildId("https://tempest.margonem.pl/js/main.min1786514810315.js"),
+        parseMargonemClientBuildId("https://tempest.margonem.pl/js/main.min1786514810315.js"),
         "1786514810315",
         "the older name, whose id is a millisecond timestamp",
     );
     assertEquals(
-        parseGameBuildId("https://luvia.margonem.pl/js/main.min.53XkBRxF.js"),
+        parseMargonemClientBuildId("https://luvia.margonem.pl/js/main.min.53XkBRxF.js"),
         "53XkBRxF",
         "and the newer, whose id is eight characters with a dot in front of it",
     );
 });
 
 Deno.test("a name that is not the bundle's yields nothing at all", () => {
-    assertStrictEquals(parseGameBuildId(""), null, "nothing states no build");
-    assertStrictEquals(parseGameBuildId("/js/main.min.js"), null, "and neither does no id");
-    assertStrictEquals(parseGameBuildId("/js/main.min.7short.js"), null, "nor a short one");
-    assertStrictEquals(parseGameBuildId("/js/other.min.53XkBRxF.js"), null, "nor another file");
+    assertStrictEquals(parseMargonemClientBuildId(""), null, "nothing states no build");
     assertStrictEquals(
-        parseGameBuildId("/js/main.min.53XkBRxF.css"),
+        parseMargonemClientBuildId("/js/main.min.js"),
+        null,
+        "and neither does no id",
+    );
+    assertStrictEquals(
+        parseMargonemClientBuildId("/js/main.min.7short.js"),
+        null,
+        "nor a short one",
+    );
+    assertStrictEquals(
+        parseMargonemClientBuildId("/js/other.min.53XkBRxF.js"),
+        null,
+        "nor another file",
+    );
+    assertStrictEquals(
+        parseMargonemClientBuildId("/js/main.min.53XkBRxF.css"),
         null,
         "nor the same id under a tail this reader does not answer to",
     );
@@ -38,17 +54,33 @@ Deno.test("a name that is not the bundle's yields nothing at all", () => {
 
 /** W5: the floor is eight, so seven is refused and eight read, in both shapes. */
 Deno.test("an id of eight characters is one, and of seven is not", () => {
-    assertStrictEquals(parseGameBuildId("/js/main.min.53XkBRx.js"), null, "seven after the dot");
-    assertStrictEquals(parseGameBuildId("/js/main.min.53XkBRxF.js"), "53XkBRxF", "eight after it");
-    assertStrictEquals(parseGameBuildId("/js/main.min1786514.js"), null, "seven with no dot");
-    assertStrictEquals(parseGameBuildId("/js/main.min17865148.js"), "17865148", "eight with none");
+    assertStrictEquals(
+        parseMargonemClientBuildId("/js/main.min.53XkBRx.js"),
+        null,
+        "seven after the dot",
+    );
+    assertStrictEquals(
+        parseMargonemClientBuildId("/js/main.min.53XkBRxF.js"),
+        "53XkBRxF",
+        "eight after it",
+    );
+    assertStrictEquals(
+        parseMargonemClientBuildId("/js/main.min1786514.js"),
+        null,
+        "seven with no dot",
+    );
+    assertStrictEquals(
+        parseMargonemClientBuildId("/js/main.min17865148.js"),
+        "17865148",
+        "eight with none",
+    );
 });
 
 Deno.test("the search goes past a name whose tail does not hold", () => {
     // A page states this name more than once, and only one of them need be the bundle: a reader
     // that stopped at the first `main.min` would answer null for a page that states the answer.
     assertEquals(
-        parseGameBuildId("main.min.js and then main.min.53XkBRxF.js"),
+        parseMargonemClientBuildId("main.min.js and then main.min.53XkBRxF.js"),
         "53XkBRxF",
         "the second one answers where the first could not",
     );
@@ -56,18 +88,19 @@ Deno.test("the search goes past a name whose tail does not hold", () => {
 
 Deno.test("the first script naming a build is the page's build", () => {
     const sources = ["/js/jquery.js", "/js/main.min.53XkBRxF.js", "/js/main.min.Bb28FQty.js"];
-    const build = initGameBuild({ readScriptSources: () => sources }).readBuildId();
+    const build = initMargonemClientBuild({ readScriptSources: () => sources }).readBuildId();
     assertEquals(build, "53XkBRxF", "the first that names one, and not a later one");
 });
 
 Deno.test("a page naming no build says so, and a source that is not text is passed over", () => {
-    const none = initGameBuild({ readScriptSources: () => ["/js/jquery.js"] }).readBuildId();
-    assertInstanceOf(none, GameValueAbsent, "no build is absent, never a guess");
-    assertStrictEquals(none.value, GAME_VALUE.build, "and names the reading");
-    const empty = initGameBuild({ readScriptSources: () => [] }).readBuildId();
-    assertInstanceOf(empty, GameValueAbsent, "and a page with no scripts names none either");
+    const none = initMargonemClientBuild({ readScriptSources: () => ["/js/jquery.js"] })
+        .readBuildId();
+    assertInstanceOf(none, MargonemValueAbsent, "no build is absent, never a guess");
+    assertStrictEquals(none.value, MARGONEM_VALUE.build, "and names the reading");
+    const empty = initMargonemClientBuild({ readScriptSources: () => [] }).readBuildId();
+    assertInstanceOf(empty, MargonemValueAbsent, "and a page with no scripts names none either");
     const mixed = [null, 7, { src: "x" }, "/js/main.min.53XkBRxF.js"];
-    const passed = initGameBuild({ readScriptSources: () => mixed }).readBuildId();
+    const passed = initMargonemClientBuild({ readScriptSources: () => mixed }).readBuildId();
     assertEquals(passed, "53XkBRxF", "what is not text is passed over, not refused");
 });
 
@@ -78,7 +111,7 @@ Deno.test("a page whose scripts will not be read is a failure of theirs", () => 
             throw thrown;
         },
     };
-    const read = initGameBuild(scripts).readBuildId();
+    const read = initMargonemClientBuild(scripts).readBuildId();
     assertInstanceOf(read, errors.Caught, "a failure of theirs");
     assertStrictEquals(read.cause, thrown, "with its cause");
 });
@@ -86,7 +119,7 @@ Deno.test("a page whose scripts will not be read is a failure of theirs", () => 
 /** Probe: an id long enough under a tail that does not hold is passed, and the search goes on. */
 Deno.test("a name of full length whose tail does not hold is passed for the next one", () => {
     assertEquals(
-        parseGameBuildId("main.min.53XkBRxF.css then main.min.Bb28FQty.js"),
+        parseMargonemClientBuildId("main.min.53XkBRxF.css then main.min.Bb28FQty.js"),
         "Bb28FQty",
         "the second one answers where the first had the wrong tail",
     );
@@ -94,14 +127,18 @@ Deno.test("a name of full length whose tail does not hold is passed for the next
 
 Deno.test("the bundle's whole name is read where the id is, in both shapes the client served", () => {
     const page = '<script src="/js/main.min.53XkBRxF.js"></script>';
-    assertStrictEquals(parseGameBundleName(page), "main.min.53XkBRxF.js");
+    assertStrictEquals(parseMargonemClientBundleName(page), "main.min.53XkBRxF.js");
     assertStrictEquals(
-        parseGameBundleName("/js/main.min1786514810315.js"),
+        parseMargonemClientBundleName("/js/main.min1786514810315.js"),
         "main.min1786514810315.js",
     );
-    assertStrictEquals(parseGameBundleName("main.min.short.js"), null, "an id too short is none");
     assertStrictEquals(
-        parseGameBundleName("main.min.53XkBRxF.css"),
+        parseMargonemClientBundleName("main.min.short.js"),
+        null,
+        "an id too short is none",
+    );
+    assertStrictEquals(
+        parseMargonemClientBundleName("main.min.53XkBRxF.css"),
         null,
         "and so is another file",
     );

@@ -135,7 +135,7 @@ const HAND_KEPT_KEYS = [
     "oth_dmg",
     "endbattle",
 ];
-const GAME_KEYS = getUnmistakableKeys();
+const MARGONEM_CLIENT_KEYS = getUnmistakableKeys();
 /** What a count in these sentences is stated out of. Any figure past the counts below will do. */
 const SAID_OUT_OF = 412;
 
@@ -669,12 +669,12 @@ Deno.test("no sentence carries our vocabulary", () => {
 
 Deno.test("no sentence carries a key of the game's", () => {
     assert(
-        GAME_KEYS.length > HAND_KEPT_KEYS.length * 3,
-        `the frozen table widens the seven kept by hand, and gave ${GAME_KEYS.length}`,
+        MARGONEM_CLIENT_KEYS.length > HAND_KEPT_KEYS.length * 3,
+        `the frozen table widens the seven kept by hand, and gave ${MARGONEM_CLIENT_KEYS.length}`,
     );
     const wrong: string[] = [];
     for (const sentence of getSentences()) {
-        for (const key of GAME_KEYS) {
+        for (const key of MARGONEM_CLIENT_KEYS) {
             if (sentence.toLowerCase().includes(key)) wrong.push(`${sentence} says ${key}`);
         }
     }

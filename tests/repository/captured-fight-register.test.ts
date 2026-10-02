@@ -83,7 +83,7 @@ Deno.test("a recording is filed under the two versions it states", () => {
     const fights = readRecordedFights();
     assert(fights.length > 0, "there is material to check");
     for (const fight of fights) {
-        const build = readNameVersion(readEnvelopeText(fight.path, FILE_FIELD.gameBuild));
+        const build = readNameVersion(readEnvelopeText(fight.path, FILE_FIELD.margonemClientBuild));
         const addOn = readNameVersion(readEnvelopeText(fight.path, FILE_FIELD.addOnVersion));
         assert(
             fight.path.endsWith(`-${build}-${addOn}.json`),
@@ -129,7 +129,11 @@ Deno.test("what the register states of each recording is what the recording stat
         assertExists(counted, `${fight.path}: no row states its world, versions, calls, messages`);
         const path = fight.path;
         assertEquals(counted[1], readEnvelopeText(path, FILE_FIELD.world), `${path}: the world`);
-        assertEquals(counted[2], readEnvelopeText(path, FILE_FIELD.gameBuild), `${path}: build`);
+        assertEquals(
+            counted[2],
+            readEnvelopeText(path, FILE_FIELD.margonemClientBuild),
+            `${path}: build`,
+        );
         assertEquals(counted[3], readEnvelopeText(path, FILE_FIELD.addOnVersion), `${path}: ours`);
         assertEquals(counted[4], String(fight.updates.length), `${path}: the calls`);
         assertEquals(counted[5], String(fight.messages.length), `${path}: the messages`);

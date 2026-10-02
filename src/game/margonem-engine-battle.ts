@@ -9,26 +9,26 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import {
-    type GameWarriorFailure,
-    type GameWarriorSnapshot,
-    readGameWarriorSnapshot,
-} from "./warrior-snapshot.ts";
+    type MargonemEngineWarriorFailure,
+    type MargonemEngineWarriorSnapshot,
+    readMargonemEngineWarriorSnapshot,
+} from "./margonem-engine-warriors.ts";
 
-export class GameEngineAbsent extends Error {
-    override readonly name = "GameEngineAbsent";
+export class MargonemEngineAbsent extends Error {
+    override readonly name = "MargonemEngineAbsent";
 }
 
-export class GameBattleAbsent extends Error {
-    override readonly name = "GameBattleAbsent";
+export class MargonemEngineBattleAbsent extends Error {
+    override readonly name = "MargonemEngineBattleAbsent";
 }
 
-export class GameMethodAbsent extends Error {
-    override readonly name = "GameMethodAbsent";
+export class MargonemEngineMethodAbsent extends Error {
+    override readonly name = "MargonemEngineMethodAbsent";
 }
 
 /** A wrap of ours already stands: another copy of the add-on is reading this fight. */
-export class GameEngineAlreadyWrapped extends Error {
-    override readonly name = "GameEngineAlreadyWrapped";
+export class MargonemEngineAlreadyWrapped extends Error {
+    override readonly name = "MargonemEngineAlreadyWrapped";
 }
 
 export class SearchAbandoned extends Error {
@@ -47,11 +47,11 @@ export class WrapCovered extends Error {
     override readonly name = "WrapCovered";
 }
 
-export type GameEngineFailure =
-    | GameEngineAbsent
-    | GameBattleAbsent
-    | GameMethodAbsent
-    | GameEngineAlreadyWrapped
+export type MargonemEngineFailure =
+    | MargonemEngineAbsent
+    | MargonemEngineBattleAbsent
+    | MargonemEngineMethodAbsent
+    | MargonemEngineAlreadyWrapped
     | SearchAbandoned
     | WrapCovered;
 
@@ -63,19 +63,22 @@ export interface PayloadListener {
 
 export interface WrapHandle {
     /** Puts back what was there, and only where ours is still the outermost layer. */
-    detach(): undefined | GameEngineFailure;
+    detach(): undefined | MargonemEngineFailure;
     /** Failures of ours the wrap caught: the listener guards itself, so this is what escaped. */
     getFailureCount(): number;
     getFirstFailure(): errors.Caught | null;
 }
 
-export interface GameBattle {
-    wrap(listener: PayloadListener): WrapHandle | GameEngineFailure;
-    readGameWarriors(): GameWarriorSnapshot | GameWarriorFailure | errors.Caught;
+export interface MargonemEngineBattle {
+    wrap(listener: PayloadListener): WrapHandle | MargonemEngineFailure;
+    readMargonemEngineWarriors():
+        | MargonemEngineWarriorSnapshot
+        | MargonemEngineWarriorFailure
+        | errors.Caught;
 }
 
-export interface GameBattlePort {
-    readBattle(): GameBattle | GameEngineFailure | errors.Caught;
+export interface MargonemEngineBattlePort {
+    readBattle(): MargonemEngineBattle | MargonemEngineFailure | errors.Caught;
 }
 
 /** Both spellings are in the wild, and a client renaming either breaks both readers at once. */
@@ -91,20 +94,20 @@ const WRAP_VERSION = 1;
 const FAILURES_MAXIMUM = 1048576;
 
 /** The page's game, in whichever spelling answers. A call into the page may throw: theirs. */
-export function initGameBattle(browserWindow: unknown): GameBattlePort {
+export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngineBattlePort {
     return {
         readBattle() {
-            const engines = errors.attempt(() => readGameEngines(browserWindow));
+            const engines = errors.attempt(() => readMargonemEngines(browserWindow));
             if (engines instanceof Error) return engines;
-            if (engines.length === 0) return new GameEngineAbsent();
-            const battle = lookupGameBattle(engines);
-            if (battle === null) return new GameBattleAbsent();
+            if (engines.length === 0) return new MargonemEngineAbsent();
+            const battle = lookupMargonemEngineBattle(engines);
+            if (battle === null) return new MargonemEngineBattleAbsent();
             return {
                 // Put the wrap on the engine's own method.
-                wrap: (listener): WrapHandle | GameEngineFailure => {
+                wrap: (listener): WrapHandle | MargonemEngineFailure => {
                     const original = battle[WRAPPED_METHOD];
-                    if (typeof original !== "function") return new GameMethodAbsent();
-                    if (isOurWrap(original)) return new GameEngineAlreadyWrapped();
+                    if (typeof original !== "function") return new MargonemEngineMethodAbsent();
+                    if (isOurWrap(original)) return new MargonemEngineAlreadyWrapped();
                     const failures: { count: number; first: errors.Caught | null } = {
                         count: 0,
                         first: null,
@@ -144,15 +147,15 @@ export function initGameBattle(browserWindow: unknown): GameBattlePort {
                         getFirstFailure: () => failures.first,
                     };
                 },
-                readGameWarriors() {
-                    return errors.attempt(() => readGameWarriorSnapshot(battle));
+                readMargonemEngineWarriors() {
+                    return errors.attempt(() => readMargonemEngineWarriorSnapshot(battle));
                 },
             };
         },
     };
 }
 
-function lookupGameBattle(engines: readonly Record<string, unknown>[]) {
+function lookupMargonemEngineBattle(engines: readonly Record<string, unknown>[]) {
     for (const engine of engines) {
         const battle = engine[BATTLE_FIELD];
         if (isWritableRecord(battle)) return battle;
@@ -171,7 +174,7 @@ function isOurWrap(value: unknown): boolean {
 }
 
 /** Both spellings of the game a page holds, in the order tried; a call into the page is theirs. */
-export function readGameEngines(browserWindow: unknown): Record<string, unknown>[] {
+export function readMargonemEngines(browserWindow: unknown): Record<string, unknown>[] {
     if (!isRecord(browserWindow)) return [];
     const engineCandidates: unknown[] = [browserWindow[ENGINE_FIELD]];
     const getEngine = browserWindow[ENGINE_CALL_FIELD];
@@ -182,6 +185,6 @@ export function readGameEngines(browserWindow: unknown): Record<string, unknown>
 }
 
 /** The battle a page's game holds, or null; a call into the page may throw, and it is theirs. */
-export function readGameBattleRecord(browserWindow: unknown): Record<string, unknown> | null {
-    return lookupGameBattle(readGameEngines(browserWindow));
+export function readMargonemEngineBattle(browserWindow: unknown): Record<string, unknown> | null {
+    return lookupMargonemEngineBattle(readMargonemEngines(browserWindow));
 }

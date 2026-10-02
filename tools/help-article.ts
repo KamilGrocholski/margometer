@@ -16,7 +16,7 @@ import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { parseCitedHelpPhrases, REGISTER_PATH } from "./help-claim-register.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
-import { GameUnreachableError, HelpArticleError } from "./margometer-tool-error.ts";
+import { HelpArticleError, MargonemUnreachableError } from "./margometer-tool-error.ts";
 
 export interface CachedHelpArticle {
     article: string;
@@ -38,7 +38,7 @@ const HELP_HOST = "https://pomoc.margonem.pl";
  * count describing a document the tool no longer read.
  */
 export const MECHANICS_ARTICLE = "372";
-/** Ignored by git, and exported for the reason `tools/game-client-source.ts` gives. */
+/** Ignored by git, and exported for the reason `tools/margonem-client-source.ts` gives. */
 export const CACHE_ROOT = ".cache/help/";
 const MANIFEST_NAME = "provenance.json";
 const TEXT_NAME = "text.txt";
@@ -257,9 +257,9 @@ export async function writeHelpArticleCache(article: string): Promise<CachedHelp
     try {
         response = await fetch(url);
     } catch (cause) {
-        throw new GameUnreachableError(`${url} did not answer`, { cause });
+        throw new MargonemUnreachableError(`${url} did not answer`, { cause });
     }
-    if (!response.ok) throw new GameUnreachableError(`${url} answered ${response.status}`);
+    if (!response.ok) throw new MargonemUnreachableError(`${url} answered ${response.status}`);
     const text = decodeHtmlText(await response.text());
     const directory = `${CACHE_ROOT}${article}/`;
     Deno.mkdirSync(directory, { recursive: true });

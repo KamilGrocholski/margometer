@@ -7,16 +7,16 @@
  */
 
 import { expect, test } from "./panel-fixture.ts";
-import { ENGINE_ANSWER, HOST_SELECTOR } from "./game-page.ts";
+import { ENGINE_ANSWER, HOST_SELECTOR } from "./margonem-page.ts";
 import { waitForFrame } from "./panel-page.ts";
 
 /** The line every failure of the add-on's own is branded with, in the one console it holds. */
 const FAILURE_LINE = "MargoMeter/Panel";
-/** The `name` of two failures in `src/game/game-battle.ts`, which a Node suite cannot import. */
+/** The `name` of two failures in `src/game/margonem-engine-battle.ts`, which a Node suite cannot import. */
 const ENGINE_FAILURE_SEARCH_ABANDONED = "SearchAbandoned";
-const ENGINE_FAILURE_ALREADY_WRAPPED = "GameEngineAlreadyWrapped";
+const ENGINE_FAILURE_ALREADY_WRAPPED = "MargonemEngineAlreadyWrapped";
 /** `PANEL_WORDS`' for the "engine" defect, in `src/ui/panel-words.ts`. */
-const NO_GAME_WORDS = "Nie widać walki w grze";
+const NO_FIGHT_WORDS = "Nie widać walki w grze";
 /** The attach poll gives up after 240 looks of 250 ms. Past that, and nowhere near a real wait. */
 const PAST_THE_SEARCH = 70_000;
 
@@ -71,7 +71,7 @@ test.describe("a page that offers no game", () => {
         // drew nothing at all, so a reader learns why the panel is empty rather than guessing.
         await expect(panel.host, "and giving up puts the panel up").toHaveCount(1);
         await expect.poll(() => panel.said(), { message: "saying there is no fight to see" })
-            .toContain(NO_GAME_WORDS);
+            .toContain(NO_FIGHT_WORDS);
     });
 });
 

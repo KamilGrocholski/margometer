@@ -368,15 +368,19 @@ TypeScript idiom, with the naming rules stated here.
   `{ kind: typeof OPENED_PART.skill }`. The key is the name for code; the value is what reaches a
   console or a file. A failure is a class (**E3**), never a union with a `kind`.
 - **N20. A failure class is named for what failed and how**, a subject and its state:
-  `GameEngineAbsent`, `StoreRefused`, `PayloadsExceeded`. A union of them that a function answers is
-  `…Failure`, and a tool's thrown class is `…Error` (**E13**). A failure of the bundle never ends in
-  `Error`, which names the mechanism `extends Error` already states. ADR 0009. _(`by-reading`
-  whether a name says what failed and how)_
-- **N21. A name says whose the thing is.** A port over the game, its `init` and the failures it
-  answers are `Game…`, and `window.Engine` itself is `GameEngine…`; a port over the browser is
-  `Browser…`; what is ours carries neither. The protocol's words `CONTEXT.md` gives are ours and
-  take none. Observation: an `init…` or a port interface in `src/game/` reaching the game or the
-  browser alone whose name carries neither prefix. ADR 0023.
+  `MargonemEngineAbsent`, `StoreRefused`, `PayloadsExceeded`. A union of them that a function
+  answers is `…Failure`, and a tool's thrown class is `…Error` (**E13**). A failure of the bundle
+  never ends in `Error`, which names the mechanism `extends Error` already states. ADR 0009.
+  _(`by-reading` whether a name says what failed and how)_
+- **N21. A name says whose a thing is and which way it is reached.** What is reached through the
+  game's `window.Engine` — its battle, its hero, its map, its warriors — is `MargonemEngine…`; what
+  is reached through the game's client outside the engine — a global function, the bundle's name —
+  is `MargonemClient…`; what is the game's and reached more than one way, or over the network by a
+  tool, is `Margonem…`; a port over the browser is `Browser…`. What is ours carries none, and
+  neither does a word of the protocol `CONTEXT.md` gives (`readPayloadWarriorEntries`). A simulation
+  wears the prefix of what it simulates, and a key a file or a store keeps is spelled behind the map
+  that reads it, not in the name of ours. Observation: an identifier in `frozen/`, `libs/`, `src/`,
+  `tools/` or `tests/` one of whose words is `Game` or `GAME`. ADR 0023, ADR 0026.
 
 ## Code
 
@@ -551,7 +555,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/synchronous-bundle.test.ts`      | S13                                                    |
 | `tests/repository/assert-imports.test.ts`          | A6, A10                                                |
 | `tests/repository/throws.test.ts`                  | E1, E3, E13                                            |
-| `tests/repository/names.test.ts`                   | N1, N10                                                |
+| `tests/repository/names.test.ts`                   | N1, N10, N21                                           |
 | `tests/repository/layers.test.ts`                  | `docs/design.md` §4                                    |
 | `tests/repository/browser-suite-keys.test.ts`      | N13                                                    |
 | `tests/repository/reader-layer.test.ts`            | A11                                                    |

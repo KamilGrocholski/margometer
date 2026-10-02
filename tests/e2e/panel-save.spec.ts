@@ -9,7 +9,7 @@
 
 import { readFileSync } from "node:fs";
 import { expect, type PanelHandle, test } from "./panel-fixture.ts";
-import { GAME_BUILD } from "./game-page.ts";
+import { MARGONEM_CLIENT_BUILD } from "./margonem-page.ts";
 import { PAGE_WORLD } from "./panel-page.ts";
 
 /** The envelope's own field names, as `src/game/fight-capture.ts` writes them. */
@@ -25,7 +25,11 @@ const ENVELOPE = [
 
 test("the file is named for the world and the build it was taken on", async ({ panel }) => {
     const handed = await readHandedOver(panel);
-    expect(handed.named.startsWith(`margometer-${PAGE_WORLD}-${GAME_BUILD}-${panel.version}-`))
+    expect(
+        handed.named.startsWith(
+            `margometer-${PAGE_WORLD}-${MARGONEM_CLIENT_BUILD}-${panel.version}-`,
+        ),
+    )
         .toBe(true);
     expect(handed.named.endsWith(".json"), "and it is a JSON file").toBe(true);
 });

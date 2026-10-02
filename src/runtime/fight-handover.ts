@@ -11,7 +11,7 @@
 import { assert } from "@std/assert/assert";
 import type * as errors from "#/libs/errors.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
-import type { GameBuildPort } from "#/src/game/game-build.ts";
+import type { MargonemClientBuildPort } from "#/src/game/margonem-client-build.ts";
 import type { BrowserClock } from "#/src/game/browser-time.ts";
 import type { BrowserFileSink, FileFailure } from "#/src/game/browser-file.ts";
 import type { BrowserSurroundingsPort } from "#/src/game/browser-surroundings.ts";
@@ -33,7 +33,7 @@ export type ExportFailure = ShownFightAbsent | FileUnserializable | FileFailure;
 
 export interface HandoverPorts {
     clock: BrowserClock;
-    build: GameBuildPort;
+    build: MargonemClientBuildPort;
     surroundings: BrowserSurroundingsPort;
     file: BrowserFileSink;
     addOnVersion: string;
@@ -65,17 +65,17 @@ export function writeShownFightFile(
     let handover: Handover;
     if (shownFight.keptFight === null) {
         const now = ports.clock.readNowMilliseconds();
-        let gameBuild: string | null;
+        let margonemClientBuild: string | null;
         // Read the build: one the page will not state is absent, and no failure of the file's.
         {
             const buildId = ports.build.readBuildId();
-            if (buildId instanceof Error) gameBuild = null;
+            if (buildId instanceof Error) margonemClientBuild = null;
             else {
                 assert(buildId.length > 0, "a build the page stated says something");
-                gameBuild = buildId;
+                margonemClientBuild = buildId;
             }
         }
-        const surroundings = readFileSurroundings(ports, now, gameBuild);
+        const surroundings = readFileSurroundings(ports, now, margonemClientBuild);
         if (surroundings instanceof Error) return surroundings;
         const subject = composeFileSubject(shownFight.fightState, liveHandover.place);
         handover = { calls: liveHandover.capture, subject, surroundings };
@@ -97,7 +97,11 @@ export function writeShownFightFile(
             combatantsAfter: null,
         }));
         // The world and the browser are the page's: a shelf is read out of one origin's store.
-        const surroundings = readFileSurroundings(ports, keptFight.openedAt, keptFight.gameBuild);
+        const surroundings = readFileSurroundings(
+            ports,
+            keptFight.openedAt,
+            keptFight.margonemClientBuild,
+        );
         if (surroundings instanceof Error) return surroundings;
         handover = {
             calls: { calls, droppedCalls: null, isTruncated: null },
@@ -113,7 +117,7 @@ export function writeShownFightFile(
 function readFileSurroundings(
     ports: HandoverPorts,
     atMilliseconds: number,
-    gameBuild: string | null,
+    margonemClientBuild: string | null,
 ): FileSurroundings | errors.Caught {
     const capturedAt = ports.clock.readTimestampText(atMilliseconds);
     if (capturedAt instanceof Error) return capturedAt;
@@ -121,7 +125,7 @@ function readFileSurroundings(
     assert(world.length > 0, "a world is named, or named unknown, and never left empty");
     return {
         world,
-        gameBuild,
+        margonemClientBuild,
         capturedAt,
         userAgent: ports.surroundings.readUserAgent(),
         addOnVersion: ports.addOnVersion,

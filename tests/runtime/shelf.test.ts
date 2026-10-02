@@ -65,7 +65,7 @@ function composeFight(openedAt: number, isPinned = false): KeptFight {
         }],
         place: { mapName: "Mapa", x: 12, y: 34 },
         readerId: null,
-        gameBuild: "1786441768914",
+        margonemClientBuild: "1786441768914",
         isPinned,
     };
 }
@@ -243,11 +243,15 @@ Deno.test("a store with no room takes fewer fights, and says what it took", () =
     assertEquals(readOpenedAt(store), [2, 3], "and what a reload finds is what the answer said");
 });
 
-/** Fights as the shelf writes them: an id nobody stated is left out, as `develop` wrote a fight. */
+/**
+ * Fights as the shelf writes them, under the keys it stores: an id nobody stated is left out, as
+ * `develop` wrote a fight.
+ */
 function encodeWrittenShelf(fights: readonly KeptFight[]): string | Error {
-    const written = fights.map(({ readerId, ...rest }) =>
-        readerId === null ? rest : { ...rest, readerId }
-    );
+    const written = fights.map(({ readerId, margonemClientBuild, isPinned, ...rest }) => {
+        const stored = { ...rest, gameBuild: margonemClientBuild, isPinned };
+        return readerId === null ? stored : { ...stored, readerId };
+    });
     return encodeJson({ version: 3, fights: written }, 0);
 }
 
@@ -303,13 +307,17 @@ Deno.test("a fight keeps where it was fought and its build, and reads back witho
     const whole = openShelf(store);
     assert(!(whole instanceof Error), "the shelf reads back");
     assertEquals(whole.fights[0]?.place, { mapName: "Mapa", x: 12, y: 34 }, "whole");
-    assertStrictEquals(whole.fights[0]?.gameBuild, "1786441768914", "as it was stated");
+    assertStrictEquals(whole.fights[0]?.margonemClientBuild, "1786441768914", "as it was stated");
     const partial = '{"version":3,"fights":[{"openedAt":3,"payloads":[{"init":1}],' +
         '"place":{"mapName":"Mapa"}}]}';
     const read = openShelf(composeStoreHolding(partial));
     assert(!(read instanceof Error), "a fight with part of a place reads back");
     assertEquals(read.fights[0]?.place, { mapName: "Mapa", x: null, y: null }, "that part");
-    assertStrictEquals(read.fights[0]?.gameBuild, null, "and a build nobody said is none");
+    assertStrictEquals(
+        read.fights[0]?.margonemClientBuild,
+        null,
+        "and a build nobody said is none",
+    );
     const yOnly = '{"version":3,"fights":[{"openedAt":4,"payloads":[{"init":1}],"place":{"y":7}}]}';
     const alone = openShelf(composeStoreHolding(yOnly));
     assert(!(alone instanceof Error), "a place stating one number reads back");

@@ -69,7 +69,7 @@ const RECORDING_EXTENSION = ".json";
 
 /**
  * The warrior keys inside a snapshot, as a recording keeps them. They are the game's, and
- * `src/game/warrior-snapshot.ts` copies them under their own names; the recording's own keys are
+ * `src/game/margonem-engine-warriors.ts` copies them under their own names; the recording's own keys are
  * `FILE_FIELD`'s (N13).
  */
 const WARRIOR_FIELDS = {

@@ -15,44 +15,46 @@ import {
     getTextField,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
-import { readGameEngines } from "./game-battle.ts";
+import { readMargonemEngines } from "./margonem-engine-battle.ts";
 import type { FightPlace } from "./fight-place.ts";
-import { GAME_VALUE, type GameReadFailure, GameValueAbsent } from "./game-value.ts";
+import { MARGONEM_VALUE, type MargonemReadFailure, MargonemValueAbsent } from "./margonem-value.ts";
 
-export interface GamePlacePort {
-    readPlace(): FightPlace | GameReadFailure;
+export interface MargonemEnginePlacePort {
+    readPlace(): FightPlace | MargonemReadFailure;
 }
 
 /**
  * Carried from v1's reading of production build `53XkBRxF` and development build
  * `1781609507010`: the map is `Engine.map.d.name` and the position `Engine.hero.d.x` and `.y`.
  */
-type GameEngineField = "map" | "hero";
+type MargonemEngineField = "map" | "hero";
 type HeldField = "data";
 type PlaceField = "mapName" | "x" | "y";
 
-const ENGINE_FIELDS: FieldKeys<GameEngineField> = { map: "map", hero: "hero" };
+const ENGINE_FIELDS: FieldKeys<MargonemEngineField> = { map: "map", hero: "hero" };
 const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "name", x: "x", y: "y" };
 
 /** The first spelling of the game that says anything wins: two spellings are one game. */
-export function initGamePlace(browserWindow: unknown): GamePlacePort {
+export function initMargonemEnginePlace(browserWindow: unknown): MargonemEnginePlacePort {
     return {
         readPlace() {
-            const places = errors.attempt(() => readGameEngines(browserWindow).map(readGamePlace));
+            const places = errors.attempt(() =>
+                readMargonemEngines(browserWindow).map(readMargonemEnginePlace)
+            );
             if (places instanceof Error) return places;
             for (const place of places) {
                 if (place !== null) return place;
             }
-            return new GameValueAbsent(GAME_VALUE.place);
+            return new MargonemValueAbsent(MARGONEM_VALUE.place);
         },
     };
 }
 
 /** The three fields fail apart rather than together: a map mid-load has none of them. */
-function readGamePlace(engine: UnknownRecord): FightPlace | null {
-    const map = readGameEngineRecord(engine, "map");
-    const hero = readGameEngineRecord(engine, "hero");
+function readMargonemEnginePlace(engine: UnknownRecord): FightPlace | null {
+    const map = readMargonemEngineRecord(engine, "map");
+    const hero = readMargonemEngineRecord(engine, "hero");
     let mapName: string | null = null;
     if (map !== null) {
         const name = getStatedTextField(map, PLACE_FIELDS, "mapName");
@@ -66,7 +68,10 @@ function readGamePlace(engine: UnknownRecord): FightPlace | null {
     return { mapName, x, y };
 }
 
-function readGameEngineRecord(engine: UnknownRecord, field: GameEngineField): UnknownRecord | null {
+function readMargonemEngineRecord(
+    engine: UnknownRecord,
+    field: MargonemEngineField,
+): UnknownRecord | null {
     const engineMember = getRecordField(engine, ENGINE_FIELDS, field);
     if (engineMember instanceof Error) return null;
     if (engineMember === null) return null;

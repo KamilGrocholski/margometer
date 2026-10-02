@@ -18,7 +18,11 @@ import {
     JAVASCRIPT_QUOTES,
     lookupQuotedLiteral,
 } from "#/libs/text-walk.ts";
-import { GAME_CHANNEL, readCachedBundle, requireCachedBuild } from "./game-client-source.ts";
+import {
+    MARGONEM_CHANNEL,
+    readCachedBundle,
+    requireCachedBuild,
+} from "./margonem-client-source.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { ProtocolKeyTableError } from "./margometer-tool-error.ts";
 
@@ -131,7 +135,7 @@ export function writeFrozenKeyTable(): FrozenFiles {
 /** The table the cached bundle gives, dated by the first build that gave it (ADR 0011). */
 export function prepareFrozenKeyTable(): FrozenFiles {
     const build = requireCachedBuild();
-    const bundle = readCachedBundle(GAME_CHANNEL.production);
+    const bundle = readCachedBundle(MARGONEM_CHANNEL.production);
     const keys = requireProtocolKeys(bundle);
     const family = requireComputedKeyFamily(bundle);
     assert(keys.length > 0, "a table that is frozen counts something");
@@ -366,7 +370,7 @@ if (import.meta.main) {
         const moved = frozen.hasMoved ? "froze" : "unchanged:";
         console.log(`${moved} ${count} keys from build ${frozen.date} → ${FROZEN_PATH}`);
     } else {
-        const bundle = readCachedBundle(GAME_CHANNEL.production);
+        const bundle = readCachedBundle(MARGONEM_CHANNEL.production);
         const count = formatInteger(requireProtocolKeys(bundle).length);
         const family = requireComputedKeyFamily(bundle);
         console.log(`${count} keys plus the ${family.marker} family in ${requireCachedBuild()}`);

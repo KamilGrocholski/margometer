@@ -10,14 +10,14 @@ import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/ass
 import * as errors from "#/libs/errors.ts";
 import { composeFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { initBrowserStore, initMemoryStore, type KeyValueStore } from "#/src/game/browser-store.ts";
-import { initGameBattle } from "#/src/game/game-battle.ts";
-import type { GameHeroPort } from "#/src/game/game-hero.ts";
-import type { GamePlacePort } from "#/src/game/game-place.ts";
+import { initMargonemEngineBattle } from "#/src/game/margonem-engine-battle.ts";
+import type { MargonemEngineHeroPort } from "#/src/game/margonem-engine-hero.ts";
+import type { MargonemEnginePlacePort } from "#/src/game/margonem-engine-place.ts";
 import { commitCapture, createFightCapture, prepareCapture } from "#/src/game/fight-capture.ts";
-import type { GameBuildPort } from "#/src/game/game-build.ts";
-import { GAME_VALUE, GameValueAbsent } from "#/src/game/game-value.ts";
+import type { MargonemClientBuildPort } from "#/src/game/margonem-client-build.ts";
+import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/game/margonem-value.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
-import type { GameWarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
+import type { MargonemEngineWarriorSnapshot } from "#/src/game/margonem-engine-warriors.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
 import { initLiveFight, type LiveFightOptions } from "#/src/runtime/live-fight.ts";
 import { initShelfKeeper } from "#/src/runtime/shelf-keeper.ts";
@@ -29,10 +29,10 @@ import {
     replayRecordedFight,
 } from "#/tests/recorded-fights.ts";
 
-interface FakeGame {
+interface FakeMargonem {
     page: { Engine: { battle: Record<string, unknown> } };
     /** The warriors the engine's own call leaves behind it, one list per call. */
-    after: readonly GameWarriorSnapshot[];
+    after: readonly MargonemEngineWarriorSnapshot[];
 }
 
 const PLACE = { mapName: "Mapa", x: 12, y: 34 };
@@ -51,9 +51,9 @@ Deno.test("every recording played through the wrap is the fight, the file and th
     let fights = 0;
     for (const fight of readRecordedFights()) {
         const after = readRecordedAfter(fight);
-        const game = composeGame(after);
-        const { options, lines, stale, keeper, opened } = composeOptions(game);
-        const { live } = playInto(game, options, fight.updates);
+        const margonem = composeMargonem(after);
+        const { options, lines, stale, keeper, opened } = composeOptions(margonem);
+        const { live } = playInto(margonem, options, fight.updates);
         const view = composeFightView(live.session);
         const expected = composeFightView(replayRecordedFight(fight));
         assertEquals(view, expected, `${fight.path}: the session is the fight`);
@@ -79,7 +79,7 @@ Deno.test("every recording played through the wrap is the fight, the file and th
         assertExists(kept, `${fight.path}: and stands on the shelf`);
         assertEquals(kept.payloads, keptCalls, `${fight.path}: its calls, up to the end`);
         assertEquals(
-            [kept.openedAt, kept.place, kept.readerId, kept.gameBuild],
+            [kept.openedAt, kept.place, kept.readerId, kept.margonemClientBuild],
             [OPENED_AT, PLACE, READER_ID, "Bb28FQty"],
         );
         assertEquals(lines, [], `${fight.path}: and nothing went wrong on the way`);
@@ -91,15 +91,15 @@ Deno.test("every recording played through the wrap is the fight, the file and th
 });
 
 /** The recording's own snapshots after each call, which the fake engine moves its warriors to. */
-function readRecordedAfter(fight: RecordedFight): GameWarriorSnapshot[] {
+function readRecordedAfter(fight: RecordedFight): MargonemEngineWarriorSnapshot[] {
     const document = JSON.parse(Deno.readTextFileSync(fight.path));
-    return document.calls.map((call: { combatantsAfter?: GameWarriorSnapshot | null }) =>
+    return document.calls.map((call: { combatantsAfter?: MargonemEngineWarriorSnapshot | null }) =>
         call.combatantsAfter ?? []
     );
 }
 
 /** A battle whose own call moves its warriors to what the recording says it left. */
-function composeGame(after: readonly GameWarriorSnapshot[]): FakeGame {
+function composeMargonem(after: readonly MargonemEngineWarriorSnapshot[]): FakeMargonem {
     const battle: Record<string, unknown> = { warriorsList: {} };
     let call = 0;
     battle.updateData = () => {
@@ -112,16 +112,16 @@ function composeGame(after: readonly GameWarriorSnapshot[]): FakeGame {
 }
 
 function composeOptions(
-    game: FakeGame,
+    margonem: FakeMargonem,
     overrides: Partial<LiveFightOptions> = {},
     shelfStore: KeyValueStore = initMemoryStore(),
 ) {
     const lines: string[] = [];
     const stale = { count: 0 };
     const opened = { count: 0 };
-    const place: GamePlacePort = { readPlace: () => PLACE };
-    const hero: GameHeroPort = { readHeroId: () => READER_ID };
-    const build: GameBuildPort = { readBuildId: () => "Bb28FQty" };
+    const place: MargonemEnginePlacePort = { readPlace: () => PLACE };
+    const hero: MargonemEngineHeroPort = { readHeroId: () => READER_ID };
+    const build: MargonemClientBuildPort = { readBuildId: () => "Bb28FQty" };
     const defects = initDefectLedger({ writeBrandedLine: (kind) => lines.push(kind) });
     const keeper = initShelfKeeper({
         settings: initMemoryStore(),
@@ -132,7 +132,7 @@ function composeOptions(
         defects,
     });
     const options: LiveFightOptions = {
-        battle: initGameBattle(game.page),
+        battle: initMargonemEngineBattle(margonem.page),
         clock: STILL_CLOCK,
         place,
         hero,
@@ -152,38 +152,42 @@ function composeOptions(
     return { options, lines, stale, keeper, opened };
 }
 
-function playInto(game: FakeGame, options: LiveFightOptions, payloads: readonly unknown[]) {
+function playInto(margonem: FakeMargonem, options: LiveFightOptions, payloads: readonly unknown[]) {
     const { live, listener } = initLiveFight(options);
     const battle = options.battle.readBattle();
     assert(!(battle instanceof Error), "the fake page holds a battle");
     const wrapped = battle.wrap(listener);
     assert(!(wrapped instanceof Error), "and the listener is wrapped onto it");
-    const updateData = game.page.Engine.battle.updateData;
+    const updateData = margonem.page.Engine.battle.updateData;
     assert(typeof updateData === "function", "the wrap stands where the engine's call stood");
-    for (const payload of payloads) Reflect.apply(updateData, game.page.Engine.battle, [payload]);
+    for (const payload of payloads) {
+        Reflect.apply(updateData, margonem.page.Engine.battle, [payload]);
+    }
     return { live, wrapped };
 }
 
 Deno.test("a call the envelope refuses is a defect, and the file still keeps the call", () => {
-    const game = composeGame([[], []]);
-    const { options, lines } = composeOptions(game);
-    const { live } = playInto(game, options, [{ init: 1, m: ["0;0;txt=a"] }, { m: "not a list" }]);
+    const margonem = composeMargonem([[], []]);
+    const { options, lines } = composeOptions(margonem);
+    const { live } = playInto(margonem, options, [{ init: 1, m: ["0;0;txt=a"] }, {
+        m: "not a list",
+    }]);
     assertEquals(lines, [DEFECT_KIND.reading], "the refusal is a reading defect, said once");
     assertStrictEquals(composeFightView(live.session)?.payloadsApplied, 1, "the fight read on");
     assertStrictEquals(live.capture.calls.length, 2, "and the file lost neither call");
 });
 
 Deno.test("a fight is kept once, whatever arrives after its end", () => {
-    const game = composeGame([[], [], []]);
-    const { options, keeper } = composeOptions(game);
+    const margonem = composeMargonem([[], [], []]);
+    const { options, keeper } = composeOptions(margonem);
     const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
-    playInto(game, options, [{ init: 1 }, end, { m: ["0;0;txt=a"] }]);
+    playInto(margonem, options, [{ init: 1 }, end, { m: ["0;0;txt=a"] }]);
     assertStrictEquals(keeper.getFights().length, 1, "one fight, one row");
     assert(!keeper.getAnswers().hasStoreRefused, "and the shelf said it was written");
 });
 
 Deno.test("a shelf the store refuses is the shelf's answer, and the fight still reads", () => {
-    const game = composeGame([[], []]);
+    const margonem = composeMargonem([[], []]);
     const refusing: KeyValueStore = initBrowserStore({
         getItem: () => null,
         setItem: () => {
@@ -191,77 +195,79 @@ Deno.test("a shelf the store refuses is the shelf's answer, and the fight still 
         },
         removeItem: () => {},
     });
-    const { options, lines, keeper } = composeOptions(game, {}, refusing);
-    const { live } = playInto(game, options, [{ init: 1 }, { endBattle: 1 }]);
+    const { options, lines, keeper } = composeOptions(margonem, {}, refusing);
+    const { live } = playInto(margonem, options, [{ init: 1 }, { endBattle: 1 }]);
     assert(keeper.getAnswers().hasStoreRefused, "the answer is the store's");
     assertEquals(lines, [], "which is an answer and not a defect");
     assert(composeFightView(live.session)?.isOver === true, "and the fight is over all the same");
 });
 
 Deno.test("a place the page does not state is unknown, and one it throws on is a defect", () => {
-    const absent: GamePlacePort = {
-        readPlace: () => new GameValueAbsent(GAME_VALUE.place),
+    const absent: MargonemEnginePlacePort = {
+        readPlace: () => new MargonemValueAbsent(MARGONEM_VALUE.place),
     };
-    const quiet = composeGame([[]]);
+    const quiet = composeMargonem([[]]);
     const unknown = composeOptions(quiet, { place: absent });
     assertStrictEquals(playInto(quiet, unknown.options, [{ init: 1 }]).live.place, null, "none");
     assertEquals(unknown.lines, [], "and no defect");
-    const thrown: GamePlacePort = { readPlace: () => new errors.Caught("torn") };
-    const loud = composeGame([[]]);
+    const thrown: MargonemEnginePlacePort = { readPlace: () => new errors.Caught("torn") };
+    const loud = composeMargonem([[]]);
     const failed = composeOptions(loud, { place: thrown });
     playInto(loud, failed.options, [{ init: 1 }]);
     assertEquals(failed.lines, [DEFECT_KIND.reading], "a page that threw leaves a mark");
 });
 
 Deno.test("a hero the page does not state is nobody, and one it throws on is a defect", () => {
-    const absent: GameHeroPort = { readHeroId: () => new GameValueAbsent(GAME_VALUE.hero) };
-    const quiet = composeGame([[], []]);
+    const absent: MargonemEngineHeroPort = {
+        readHeroId: () => new MargonemValueAbsent(MARGONEM_VALUE.hero),
+    };
+    const quiet = composeMargonem([[], []]);
     const unknown = composeOptions(quiet, { hero: absent });
     const { live } = playInto(quiet, unknown.options, [{ init: 1 }, { endBattle: 1 }]);
     assertStrictEquals(live.readerId, null, "none");
     assertStrictEquals(unknown.keeper.getFights()[0]?.readerId, null, "and none is kept");
     assertEquals(unknown.lines, [], "and no defect");
-    const thrown: GameHeroPort = { readHeroId: () => new errors.Caught("torn") };
-    const loud = composeGame([[]]);
+    const thrown: MargonemEngineHeroPort = { readHeroId: () => new errors.Caught("torn") };
+    const loud = composeMargonem([[]]);
     const failed = composeOptions(loud, { hero: thrown });
     playInto(loud, failed.options, [{ init: 1 }]);
     assertEquals(failed.lines, [DEFECT_KIND.reading], "a page that threw leaves a mark");
 });
 
 Deno.test("a second fight is asked who the reader is, not told who they were", () => {
-    const game = composeGame([[], [], []]);
+    const margonem = composeMargonem([[], [], []]);
     let asked = 0;
-    const hero: GameHeroPort = {
+    const hero: MargonemEngineHeroPort = {
         readHeroId: () => {
             asked += 1;
             return asked;
         },
     };
-    const { options } = composeOptions(game, { hero });
+    const { options } = composeOptions(margonem, { hero });
     const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
-    const { live } = playInto(game, options, [{ init: 1 }, end, { init: 1 }]);
+    const { live } = playInto(margonem, options, [{ init: 1 }, end, { init: 1 }]);
     assertStrictEquals(asked, 2, "once as each fight opens, and never on a call inside one");
     assertStrictEquals(live.readerId, 2, "the second fight's own answer");
 });
 
 Deno.test("a step of ours that breaks costs that step, and the call goes on", () => {
-    const game = composeGame([[]]);
-    const { options, lines } = composeOptions(game, {
+    const margonem = composeMargonem([[]]);
+    const { options, lines } = composeOptions(margonem, {
         markStale: () => {
             throw new Error("a frame nobody can ask for");
         },
     });
-    const { live, wrapped } = playInto(game, options, [{ init: 1, m: ["0;0;txt=a"] }]);
+    const { live, wrapped } = playInto(margonem, options, [{ init: 1, m: ["0;0;txt=a"] }]);
     assertEquals(lines, [DEFECT_KIND.reading], "the broken step is a defect");
     assertStrictEquals(composeFightView(live.session)?.events.length, 1, "and the reading stands");
     assertStrictEquals(wrapped.getFailureCount(), 0, "and nothing escaped to the wrap");
 });
 
 Deno.test("a second fight opening on the same listener starts its file and its row anew", () => {
-    const game = composeGame([[], [], [], []]);
-    const { options, keeper, opened } = composeOptions(game);
+    const margonem = composeMargonem([[], [], [], []]);
+    const { options, keeper, opened } = composeOptions(margonem);
     const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
-    const { live } = playInto(game, options, [{ init: 1 }, end, { init: 1, m: ["0;0;txt=b"] }]);
+    const { live } = playInto(margonem, options, [{ init: 1 }, end, { init: 1, m: ["0;0;txt=b"] }]);
     assertStrictEquals(live.capture.calls.length, 1, "the file holds the fight that opened");
     assertStrictEquals(
         composeFightView(live.session)?.payloadsApplied,
@@ -273,10 +279,10 @@ Deno.test("a second fight opening on the same listener starts its file and its r
 });
 
 Deno.test("a payload past a bound the session states is a defect, and the fight stands", () => {
-    const game = composeGame([[], []]);
+    const margonem = composeMargonem([[], []]);
     const sessionOptions = { ...SESSION_OPTIONS, payloadsMaximum: 1 };
-    const { options, lines } = composeOptions(game, { sessionOptions });
-    const { live } = playInto(game, options, [{ init: 1 }, { m: ["0;0;txt=a"] }]);
+    const { options, lines } = composeOptions(margonem, { sessionOptions });
+    const { live } = playInto(margonem, options, [{ init: 1 }, { m: ["0;0;txt=a"] }]);
     assertEquals(lines, [DEFECT_KIND.reading], "the refusal is a reading defect");
     assertStrictEquals(
         composeFightView(live.session)?.payloadsApplied,

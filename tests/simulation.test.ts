@@ -35,7 +35,7 @@ Deno.test("under every plan, on every recording, the game never meets a throw of
         for (const plan of PLANS) {
             const where = `${fight.path}, seed ${plan.seed}`;
             const faulted = runSimulation(plan, fight.updates);
-            assert(!faulted.hasThrownIntoGame, `${where}: a throw of ours reached the game`);
+            assert(!faulted.hasThrownIntoMargonem, `${where}: a throw of ours reached the game`);
             assertEquals(faulted.ranking, alone.ranking, `${where}: the figures moved`);
             assertEquals(faulted.unhandledKinds, [], `${where}: a failure met no fate`);
             assert(

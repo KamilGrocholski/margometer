@@ -8,11 +8,11 @@
 import { assert, assertExists } from "@std/assert";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { initBrowserStore, type KeyValueStore } from "#/src/game/browser-store.ts";
-import { initGameBattle } from "#/src/game/game-battle.ts";
-import { initGameHero } from "#/src/game/game-hero.ts";
-import { initGamePlace } from "#/src/game/game-place.ts";
-import { initGameTooltip } from "#/src/game/game-tooltip.ts";
-import { initGameDictionary } from "#/src/game/game-dictionary.ts";
+import { initMargonemEngineBattle } from "#/src/game/margonem-engine-battle.ts";
+import { initMargonemEngineHero } from "#/src/game/margonem-engine-hero.ts";
+import { initMargonemEnginePlace } from "#/src/game/margonem-engine-place.ts";
+import { initMargonemEngineTooltip } from "#/src/game/margonem-engine-tooltip.ts";
+import { initMargonemClientDictionary } from "#/src/game/margonem-client-dictionary.ts";
 import {
     initRuntime,
     type Runtime,
@@ -48,7 +48,7 @@ export const RUNTIME_TABLES: RuntimeTables = composeRuntimeTables();
 /** The moment every file a test is handed was taken at. */
 export const CAPTURED_AT = "2026-08-29T10:00:00.000Z";
 export const WORLD = "tempest";
-export const GAME_BUILD = "53XkBRxF";
+export const MARGONEM_CLIENT_BUILD = "53XkBRxF";
 
 /** A store over a map somebody else holds, so a test can look in the place it wrote to. */
 export function initHeldStore(held: Map<string, string>): KeyValueStore {
@@ -177,13 +177,13 @@ function composeRuntimePorts(
             },
         },
         interval: { every: () => ({ cancel: () => undefined }) },
-        battle: initGameBattle(page),
-        place: initGamePlace(page),
-        hero: initGameHero(page),
-        dictionary: initGameDictionary(page),
-        build: { readBuildId: () => GAME_BUILD },
+        battle: initMargonemEngineBattle(page),
+        place: initMargonemEnginePlace(page),
+        hero: initMargonemEngineHero(page),
+        dictionary: initMargonemClientDictionary(page),
+        build: { readBuildId: () => MARGONEM_CLIENT_BUILD },
         surroundings: { readWorld: () => WORLD, readUserAgent: () => "a browser that said so" },
-        tooltip: initGameTooltip(page),
+        tooltip: initMargonemEngineTooltip(page),
         settings: initHeldStore(world.held),
         initShelfStore: (choice) => initHeldStore(world.getShelf(choice)),
         file: {

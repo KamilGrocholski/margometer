@@ -22,13 +22,13 @@ import {
 } from "./buff-bit-table.ts";
 import type { FrozenFiles } from "./frozen-files.ts";
 import {
-    type CachedClientSource,
-    GAME_CHANNEL,
+    type CachedMargonemClientSource,
+    MARGONEM_CHANNEL,
     readCachedBundle,
-    readCachedClientSource,
+    readCachedMargonemClientSource,
     readServedBuild,
-    writeClientSourceCache,
-} from "./game-client-source.ts";
+    writeMargonemClientSourceCache,
+} from "./margonem-client-source.ts";
 import {
     formatDumpAge,
     isDumpStale,
@@ -38,7 +38,7 @@ import {
     writeFrozenHelpCounts,
     writeHelpArticleCache,
 } from "./help-article.ts";
-import { GameReadingsError, GameUnreachableError } from "./margometer-tool-error.ts";
+import { MargonemReadingsError, MargonemUnreachableError } from "./margometer-tool-error.ts";
 import {
     prepareFrozenKeyTable,
     requireProtocolKeys,
@@ -75,9 +75,9 @@ export interface BitShift {
 }
 
 /** Production only: production decides, and every frozen reading was lifted from what it serves. */
-const CHANNEL = GAME_CHANNEL.production;
+const CHANNEL = MARGONEM_CHANNEL.production;
 /** The channel a preview reads: it serves what production has not shipped yet. */
-const PREVIEW_CHANNEL = GAME_CHANNEL.development;
+const PREVIEW_CHANNEL = MARGONEM_CHANNEL.development;
 const NOTHING_CACHED = "nothing cached";
 /** What a script reads off a status: a reading behind the game, and a world nobody could ask. */
 export const EXIT_STALE = 1;
@@ -107,17 +107,17 @@ async function writeReadingsStatus(): Promise<void> {
         // A frozen row asks what a freeze off the cache would write, so it is current where that
         // is what stands.
         const now = Date.now();
-        const client = readCachedClientSource(CHANNEL);
+        const client = readCachedMargonemClientSource(CHANNEL);
         const dump = readCachedHelpArticle(MECHANICS_ARTICLE);
         const table = readCachedSkillTable();
         let clientState: ReadingState;
         // Ask the world, catching its not answering and nothing else of this tool's.
         {
             try {
-                clientState = composeClientState(await readServedBuild(CHANNEL), client);
+                clientState = composeMargonemClientState(await readServedBuild(CHANNEL), client);
             } catch (failure) {
-                if (!(failure instanceof GameUnreachableError)) throw failure;
-                clientState = composeUnaskedClientState(failure.message);
+                if (!(failure instanceof MargonemUnreachableError)) throw failure;
+                clientState = composeUnaskedMargonemClientState(failure.message);
             }
         }
         states = [
@@ -161,9 +161,9 @@ async function writeReadingsStatus(): Promise<void> {
 }
 
 /** The bundle in `.cache/` against what the world is serving right now. */
-export function composeClientState(
+export function composeMargonemClientState(
     served: string,
-    cached: CachedClientSource | null,
+    cached: CachedMargonemClientSource | null,
 ): ReadingState {
     assert(served.length > 0, "a world that answered named a build");
     if (cached === null) {
@@ -178,7 +178,7 @@ export function composeClientState(
 }
 
 /** A world nobody could ask: an outage is not evidence that the game moved on. */
-export function composeUnaskedClientState(said: string): ReadingState {
+export function composeUnaskedMargonemClientState(said: string): ReadingState {
     assert(said.length > 0, "a world that could not be asked says what happened");
     return { name: "client", verdict: READING_VERDICT.unknown, says: `not asked: ${said}` };
 }
@@ -228,7 +228,7 @@ export function formatReadingLine(state: ReadingState): string {
  * above it, counts from the dump fetched above them, and durations from the page above those.
  */
 async function writeRefreshedReadings(): Promise<void> {
-    const client = await writeClientSourceCache(CHANNEL);
+    const client = await writeMargonemClientSourceCache(CHANNEL);
     console.log(`${"client".padEnd(NAME_COLUMN)} build ${client.build} → ${client.bundlePath}`);
     console.log(formatRefreshLine("frozen keys", "keys", writeFrozenKeyTable()));
     console.log(formatRefreshLine("frozen buffs", "bits", writeFrozenBuffBits()));
@@ -259,11 +259,11 @@ export function formatRefreshLine(name: string, unit: string, frozen: FrozenFile
  * release may bring. Nothing is written under `frozen/`, because production decides.
  */
 async function writeDevelopmentPreview(): Promise<void> {
-    let cached: CachedClientSource;
+    let cached: CachedMargonemClientSource;
     try {
-        cached = await writeClientSourceCache(PREVIEW_CHANNEL);
+        cached = await writeMargonemClientSourceCache(PREVIEW_CHANNEL);
     } catch (failure) {
-        if (!(failure instanceof GameUnreachableError)) throw failure;
+        if (!(failure instanceof MargonemUnreachableError)) throw failure;
         console.log(`${PREVIEW_CHANNEL.padEnd(NAME_COLUMN)} not asked: ${failure.message}`);
         Deno.exitCode = EXIT_UNASKED;
         return;
@@ -340,6 +340,8 @@ if (import.meta.main) {
     } else if (command === "preview") {
         await writeDevelopmentPreview();
     } else {
-        throw new GameReadingsError("usage: deno task game:readings status | refresh | preview");
+        throw new MargonemReadingsError(
+            "usage: deno task game:readings status | refresh | preview",
+        );
     }
 }

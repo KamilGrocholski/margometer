@@ -12,7 +12,11 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { CLASS, PLACE, SPACE_PIXELS } from "#/src/ui/panel-look.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
 import { GRIP_ATTRIBUTE, GRIP_MARK_BY_WINDOW } from "#/src/ui/panel-drag.ts";
-import { GAME_SCRIPT_NAME, HOST_SELECTOR, PROBE_NAME } from "#/tests/e2e/game-page.ts";
+import {
+    HOST_SELECTOR,
+    MARGONEM_CLIENT_SCRIPT_NAME,
+    PROBE_NAME,
+} from "#/tests/e2e/margonem-page.ts";
 import { lookupRecordedFight, type RecordedFight } from "#/tests/recorded-fights.ts";
 import {
     parseDeclaredVersion,
@@ -97,7 +101,7 @@ export async function composePreviewSiteFiles(version: string): Promise<PreviewS
         // A real file where a server answers a miss: a host answering one with its own HTML turns
         // the tag into a syntax error in every visitor's console.
         {
-            name: GAME_SCRIPT_NAME,
+            name: MARGONEM_CLIENT_SCRIPT_NAME,
             text: "// Nothing reads this file; its name carries a build id.\n",
         },
     ];

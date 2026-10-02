@@ -19,10 +19,10 @@ import {
     commitCapture,
     createFightCapture,
     type FightCapture,
-    type GameEngineCall,
+    type MargonemEngineCall,
     prepareCapture,
 } from "#/src/game/fight-capture.ts";
-import type { CapturedCombatant } from "#/src/game/warrior-snapshot.ts";
+import type { CapturedCombatant } from "#/src/game/margonem-engine-warriors.ts";
 
 const NOBODY = { combatantsBefore: [], combatantsAfter: [] };
 
@@ -56,7 +56,11 @@ Deno.test("every call carrying messages is kept, and a call saying nothing new i
     assertEquals(recording.calls.length, 3, "while a repeat that carries a message is kept");
 });
 
-function capture(recording: FightCapture, call: Partial<GameEngineCall>, isOpening = false): void {
+function capture(
+    recording: FightCapture,
+    call: Partial<MargonemEngineCall>,
+    isOpening = false,
+): void {
     const whole = { payload: {}, messages: [], ...NOBODY, ...call };
     commitCapture(recording, prepareCapture(recording, whole, isOpening));
 }

@@ -20,12 +20,12 @@ import {
     initBrowserStore,
     initMemoryStore,
 } from "#/src/game/browser-store.ts";
-import { initGameBattle } from "#/src/game/game-battle.ts";
-import { initGameHero } from "#/src/game/game-hero.ts";
-import { initGamePlace } from "#/src/game/game-place.ts";
-import { initGameTooltip } from "#/src/game/game-tooltip.ts";
-import { initGameBuild, SCRIPTS_MAXIMUM } from "#/src/game/game-build.ts";
-import { initGameDictionary } from "#/src/game/game-dictionary.ts";
+import { initMargonemEngineBattle } from "#/src/game/margonem-engine-battle.ts";
+import { initMargonemEngineHero } from "#/src/game/margonem-engine-hero.ts";
+import { initMargonemEnginePlace } from "#/src/game/margonem-engine-place.ts";
+import { initMargonemEngineTooltip } from "#/src/game/margonem-engine-tooltip.ts";
+import { initMargonemClientBuild, SCRIPTS_MAXIMUM } from "#/src/game/margonem-client-build.ts";
+import { initMargonemClientDictionary } from "#/src/game/margonem-client-dictionary.ts";
 import {
     type BrowserDate,
     type BrowserFrames,
@@ -154,11 +154,11 @@ export function readRuntimePorts(browserWindow: unknown): RuntimePorts | Browser
         clock: initBrowserClock(browserWindow.Date),
         frames: initBrowserFrames(browserWindow),
         interval: initBrowserInterval(browserWindow),
-        battle: initGameBattle(browserWindow),
-        place: initGamePlace(browserWindow),
-        hero: initGameHero(browserWindow),
-        dictionary: initGameDictionary(browserWindow),
-        build: initGameBuild({
+        battle: initMargonemEngineBattle(browserWindow),
+        place: initMargonemEnginePlace(browserWindow),
+        hero: initMargonemEngineHero(browserWindow),
+        dictionary: initMargonemClientDictionary(browserWindow),
+        build: initMargonemClientBuild({
             // Read every script's source the page states, up to the bound the build's reader walks.
             readScriptSources: () => {
                 const scripts = browserWindow.document.querySelectorAll(SCRIPT_WITH_SOURCE);
@@ -169,7 +169,7 @@ export function readRuntimePorts(browserWindow: unknown): RuntimePorts | Browser
             },
         }),
         surroundings: initBrowserSurroundings(browserWindow),
-        tooltip: initGameTooltip(browserWindow),
+        tooltip: initMargonemEngineTooltip(browserWindow),
         settings: initBrowserStore(readBrowserStorage(browserWindow, STORAGE_CHOICE.local)),
         // The store the reader asked for, or the one that forgets: a reader who chose to keep
         // fights on a browser that lends no store is better served by a panel that forgets between

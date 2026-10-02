@@ -83,7 +83,7 @@ export type EnvelopeFailure =
     | PayloadFieldTooLong
     | PayloadCombatantRepeated;
 
-type GameWarriorField =
+type PayloadWarriorField =
     | "id"
     | "name"
     | "side"
@@ -97,7 +97,7 @@ type HealthField = "maximum" | "now";
 
 type ChargeField = "name" | "turnsElapsed" | "turnsStated";
 
-export interface GameWarriorEntries {
+export interface PayloadWarriorEntries {
     combatants: Combatant[];
     statusMasksByCombatantId: Map<number, number>;
     chargeStatements: ChargedSkillStatement[];
@@ -118,7 +118,7 @@ export const ENVELOPE_KEYS: FieldKeys<EnvelopeField> = {
 /** Ten entries wide in all 1022 payloads of `captures/` stating a queue, 2026-09-02. */
 const QUEUE_ENTRIES_MAXIMUM = 1024;
 /** The client's own keys for one warrior entry, spelled here and nowhere else (N13). */
-export const WARRIOR_FIELDS: FieldKeys<GameWarriorField> = {
+export const WARRIOR_FIELDS: FieldKeys<PayloadWarriorField> = {
     id: "id",
     name: "name",
     side: "team",
@@ -208,7 +208,7 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
             return new PayloadFieldTooLong("combatants", warriors.length, COMBATANTS_MAXIMUM);
         }
     }
-    const warriorEntries = readGameWarriorEntries(warriors);
+    const warriorEntries = readPayloadWarriorEntries(warriors);
     const ids = new Set<number>();
     for (const combatant of warriorEntries.combatants) {
         if (ids.has(combatant.id)) return new PayloadCombatantRepeated(combatant.id);
@@ -261,12 +261,12 @@ function readPayloadEnvelopeInteger(
  * each carries. A payload restates only what moved, so an entry is often partial: one missing what
  * the roster needs is passed over, never refused, because that is how the game writes.
  */
-export function readGameWarriorEntries(entries: readonly unknown[]): GameWarriorEntries {
+export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadWarriorEntries {
     assert(
         entries.length <= COMBATANTS_MAXIMUM,
         "a payload's warriors are bounded by the envelope",
     );
-    const warriorEntries: GameWarriorEntries = {
+    const warriorEntries: PayloadWarriorEntries = {
         combatants: [],
         statusMasksByCombatantId: new Map(),
         chargeStatements: [],
@@ -305,7 +305,7 @@ export function readGameWarriorEntries(entries: readonly unknown[]): GameWarrior
                 side,
                 profession: profession instanceof Error ? null : profession,
                 level: level instanceof Error ? null : level,
-                healthMaximum: readGameWarriorEntryHealth(entry, "maximum"),
+                healthMaximum: readPayloadWarriorHealth(entry, "maximum"),
             };
             assert(combatant.name.length > 0, "a name that was read says something");
         }
@@ -318,7 +318,7 @@ export function readGameWarriorEntries(entries: readonly unknown[]): GameWarrior
             // carry a lit mask over `captures/` (2026-09-22), and the client removes a fighter's
             // status icons at exactly that point, once their health reads zero (production build
             // `Bb28FQty`).
-            const now = readGameWarriorEntryHealth(entry, "now");
+            const now = readPayloadWarriorHealth(entry, "now");
             if (now !== null) {
                 if (now <= 0) {
                     mask = NOTHING_CARRIED;
@@ -408,7 +408,7 @@ export function readGameWarriorEntries(entries: readonly unknown[]): GameWarrior
  * A figure of the entry's health, or null where it says nothing about it. A pool of nothing or
  * below it is one no share can be read against: the same null a pool nobody stated is.
  */
-function readGameWarriorEntryHealth(entry: UnknownRecord, field: HealthField): number | null {
+function readPayloadWarriorHealth(entry: UnknownRecord, field: HealthField): number | null {
     const health = getRecordField(entry, WARRIOR_FIELDS, "health");
     if (health instanceof Error) return null;
     if (health === null) return null;

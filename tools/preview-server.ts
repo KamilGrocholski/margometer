@@ -15,7 +15,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { clamp } from "#/libs/number-range.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
-import { GAME_SCRIPT_NAME } from "#/tests/e2e/game-page.ts";
+import { MARGONEM_CLIENT_SCRIPT_NAME } from "#/tests/e2e/margonem-page.ts";
 import {
     lookupRecordedFight,
     readRecordedFights,
@@ -288,7 +288,9 @@ async function answerPreviewRequest(state: PreviewState, url: URL): Promise<Resp
         return new Response(page, { headers: HTML_TYPE });
     }
     // An empty script and never a miss: only the tag's `src` is ever read, for the build id.
-    if (url.pathname === `/${GAME_SCRIPT_NAME}`) return new Response("", { headers: SCRIPT_TYPE });
+    if (url.pathname === `/${MARGONEM_CLIENT_SCRIPT_NAME}`) {
+        return new Response("", { headers: SCRIPT_TYPE });
+    }
     return new Response("not here", { status: 404 });
 }
 

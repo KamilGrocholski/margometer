@@ -17,9 +17,13 @@ import {
     type SessionOptions,
 } from "#/src/core/fight-session.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
-import type { GameBattle, GameBattlePort, PayloadListener } from "#/src/game/game-battle.ts";
-import type { GameHeroPort } from "#/src/game/game-hero.ts";
-import type { GamePlacePort } from "#/src/game/game-place.ts";
+import type {
+    MargonemEngineBattle,
+    MargonemEngineBattlePort,
+    PayloadListener,
+} from "#/src/game/margonem-engine-battle.ts";
+import type { MargonemEngineHeroPort } from "#/src/game/margonem-engine-hero.ts";
+import type { MargonemEnginePlacePort } from "#/src/game/margonem-engine-place.ts";
 import {
     commitCapture,
     createFightCapture,
@@ -27,20 +31,23 @@ import {
     prepareCapture,
 } from "#/src/game/fight-capture.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
-import type { GameBuildPort } from "#/src/game/game-build.ts";
+import type { MargonemClientBuildPort } from "#/src/game/margonem-client-build.ts";
 import type { BrowserClock } from "#/src/game/browser-time.ts";
-import { type GameReadFailure, GameValueAbsent } from "#/src/game/game-value.ts";
+import { type MargonemReadFailure, MargonemValueAbsent } from "#/src/game/margonem-value.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
-import { GameWarriorsAbsent, type GameWarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
+import {
+    MargonemEngineWarriorsAbsent,
+    type MargonemEngineWarriorSnapshot,
+} from "#/src/game/margonem-engine-warriors.ts";
 import { DEFECT_KIND, type DefectKind, type DefectLedger } from "./defect-ledger.ts";
 import type { ShelfKeeper } from "./shelf-keeper.ts";
 
 export interface LiveFightOptions {
-    battle: GameBattlePort;
+    battle: MargonemEngineBattlePort;
     clock: BrowserClock;
-    place: GamePlacePort;
-    hero: GameHeroPort;
-    build: GameBuildPort;
+    place: MargonemEnginePlacePort;
+    hero: MargonemEngineHeroPort;
+    build: MargonemClientBuildPort;
     tables: DecoderTables;
     sessionOptions: SessionOptions;
     defects: DefectLedger;
@@ -55,14 +62,14 @@ export interface LiveFightOptions {
 export interface LiveFight {
     session: FightSession;
     capture: FightCapture;
-    snapshotBefore: GameWarriorSnapshot | null;
+    snapshotBefore: MargonemEngineWarriorSnapshot | null;
     /** Read once, on the payload that opens a fight: the hero does not move while one is on. */
     place: FightPlace | null;
     /** Read with the place: which combatant the reader is, as the client keys its own warrior. */
     readerId: number | null;
     openedAt: number;
     /** Read once: the game builds its battle while its engine starts, and never again. */
-    gameBattle: GameBattle | null;
+    margonemEngineBattle: MargonemEngineBattle | null;
 }
 
 export function initLiveFight(options: LiveFightOptions): {
@@ -76,7 +83,7 @@ export function initLiveFight(options: LiveFightOptions): {
         place: null,
         readerId: null,
         openedAt: 0,
-        gameBattle: null,
+        margonemEngineBattle: null,
     };
     const listener: PayloadListener = {
         onBeforeCall() {
@@ -84,7 +91,7 @@ export function initLiveFight(options: LiveFightOptions): {
                 options,
                 DEFECT_KIND.file,
                 null,
-                () => readLiveGameWarriors(liveFight, options),
+                () => readLiveMargonemEngineWarriors(liveFight, options),
             );
         },
         onPayload(payload) {
@@ -99,7 +106,7 @@ export function initLiveFight(options: LiveFightOptions): {
                 options,
                 DEFECT_KIND.file,
                 null,
-                () => readLiveGameWarriors(liveFight, options),
+                () => readLiveMargonemEngineWarriors(liveFight, options),
             );
             executeLiveStep(options, DEFECT_KIND.file, undefined, () => {
                 const messages = record === null ? [] : record.messages;
@@ -134,8 +141,8 @@ export function initLiveFight(options: LiveFightOptions): {
                 // Open the fight: its moment, its place and who the reader is.
                 executeLiveStep(options, DEFECT_KIND.reading, undefined, () => {
                     liveFight.openedAt = options.clock.readNowMilliseconds();
-                    liveFight.place = readGameValue(options, options.place.readPlace());
-                    liveFight.readerId = readGameValue(options, options.hero.readHeroId());
+                    liveFight.place = readMargonemValue(options, options.place.readPlace());
+                    liveFight.readerId = readMargonemValue(options, options.hero.readHeroId());
                     options.onFightOpened();
                 });
             }
@@ -148,7 +155,10 @@ export function initLiveFight(options: LiveFightOptions): {
                         payloads,
                         place: liveFight.place,
                         readerId: liveFight.readerId,
-                        gameBuild: readGameValue(options, options.build.readBuildId()),
+                        margonemClientBuild: readMargonemValue(
+                            options,
+                            options.build.readBuildId(),
+                        ),
                         isPinned: false,
                     };
                     options.keeper.keep(fight);
@@ -177,31 +187,31 @@ function executeLiveStep<Value>(
  * The warriors the battle holds. A battle holding none is a reading of an empty fight, `[]`, as
  * `develop` records it; a snapshot that could not be read is `null`, and a defect.
  */
-function readLiveGameWarriors(
+function readLiveMargonemEngineWarriors(
     liveFight: LiveFight,
     options: LiveFightOptions,
-): GameWarriorSnapshot | null {
-    if (liveFight.gameBattle === null) {
+): MargonemEngineWarriorSnapshot | null {
+    if (liveFight.margonemEngineBattle === null) {
         const battle = options.battle.readBattle();
         if (battle instanceof Error) {
             options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: battle });
             return null;
         }
-        liveFight.gameBattle = battle;
+        liveFight.margonemEngineBattle = battle;
     }
-    const read = liveFight.gameBattle.readGameWarriors();
+    const read = liveFight.margonemEngineBattle.readMargonemEngineWarriors();
     if (!(read instanceof Error)) return read;
-    if (read instanceof GameWarriorsAbsent) return [];
+    if (read instanceof MargonemEngineWarriorsAbsent) return [];
     options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: read });
     return null;
 }
 
 /** Absent is shown as unknown and is no defect; a page that threw while asked is one. */
-function readGameValue<Value>(
+function readMargonemValue<Value>(
     options: LiveFightOptions,
-    read: Value | GameReadFailure,
+    read: Value | MargonemReadFailure,
 ): Value | null {
-    if (read instanceof GameValueAbsent) return null;
+    if (read instanceof MargonemValueAbsent) return null;
     if (read instanceof errors.Caught) {
         options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
         return null;

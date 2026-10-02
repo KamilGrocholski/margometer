@@ -12,8 +12,8 @@ const TOOL_ERROR_CODE = {
     developReport: "DevelopReport",
     changelog: "Changelog",
     captureIntake: "CaptureIntake",
-    gameSource: "GameSource",
-    gameUnreachable: "GameUnreachable",
+    margonemClientSource: "MargonemClientSource",
+    margonemUnreachable: "MargonemUnreachable",
     protocolKeyTable: "ProtocolKeyTable",
     protocolKeyShape: "ProtocolKeyShape",
     buffBitTable: "BuffBitTable",
@@ -27,7 +27,7 @@ const TOOL_ERROR_CODE = {
     turnCount: "TurnCount",
     turnReading: "TurnReading",
     fabricatedFight: "FabricatedFight",
-    gameReadings: "GameReadings",
+    margonemReadings: "MargonemReadings",
     payloadCost: "PayloadCost",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
@@ -85,16 +85,16 @@ export class CaptureIntakeError extends MargoMeterToolError {
 }
 
 /** The client's page or bundle could not be read the way this tool expects, or its cache is broken. */
-export class GameSourceError extends MargoMeterToolError {
+export class MargonemClientSourceError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super(TOOL_ERROR_CODE.gameSource, reason, options);
+        super(TOOL_ERROR_CODE.margonemClientSource, reason, options);
     }
 }
 
 /** A world that did not answer. Its own class, because "the game moved on" and "nobody could ask" lead to different verdicts. */
-export class GameUnreachableError extends MargoMeterToolError {
+export class MargonemUnreachableError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super(TOOL_ERROR_CODE.gameUnreachable, reason, options);
+        super(TOOL_ERROR_CODE.margonemUnreachable, reason, options);
     }
 }
 
@@ -190,9 +190,9 @@ export class FabricatedFightError extends MargoMeterToolError {
 }
 
 /** A readings round asked for by a command the tool does not have. */
-export class GameReadingsError extends MargoMeterToolError {
+export class MargonemReadingsError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super(TOOL_ERROR_CODE.gameReadings, reason, options);
+        super(TOOL_ERROR_CODE.margonemReadings, reason, options);
     }
 }
 

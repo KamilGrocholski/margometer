@@ -1,5 +1,5 @@
 /**
- * The page both previews draw: the game page the browser suite drives (`tests/e2e/game-page.ts`),
+ * The page both previews draw: the game page the browser suite drives (`tests/e2e/margonem-page.ts`),
  * with the harness around it — a bar that steps one recording and picks another, a column of what
  * landed in the game's tooltips, a store that forgets, and on the published page the band offering
  * the add-on. Every word a reader sees arrives as an option, so this file speaks neither language:
@@ -12,7 +12,7 @@ import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/game/payload-envelope.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { PLACE, SHAPE, SPACE_PIXELS, SURFACE, TEXT, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { formatColour, SIGNAL } from "#/src/ui/panel-palette.ts";
-import { composePanelPage, PROBE_NAME } from "#/tests/e2e/game-page.ts";
+import { composePanelPage, PROBE_NAME } from "#/tests/e2e/margonem-page.ts";
 import { USERSCRIPT_NAME } from "./build-userscript.ts";
 import {
     composePreviewStateBare,
@@ -126,7 +126,7 @@ const PLAY_SECONDS = 12;
 const PLAY_STEP_MINIMUM_MILLISECONDS = 90;
 const PLAY_STEP_MAXIMUM_MILLISECONDS = 900;
 /** The game's own page colour, read off v0.10.1's picture of the panel in the game: its ground. */
-const GAME_PAGE_COLOUR = "#14171c";
+const MARGONEM_PAGE_COLOUR = "#14171c";
 /** Counted down from the panel's own layer, so the harness never covers the thing under test. */
 const PREVIEW_STRIP_LAYER = Number(PLACE.layer) - 1;
 const PREVIEW_TIPS_LAYER = PREVIEW_STRIP_LAYER - 1;
@@ -261,7 +261,7 @@ ${items}
  * 2026-09-19, a sheet choosing its own spelled 21 colours and none the panel states.
  */
 function composePreviewStyle(): string {
-    const sheet = `html, body { margin: 0; height: 100%; background: ${GAME_PAGE_COLOUR};
+    const sheet = `html, body { margin: 0; height: 100%; background: ${MARGONEM_PAGE_COLOUR};
   color: ${formatColour(TEXT.plain)}; font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
 .preview-intro { margin: 0; padding: 18px 20px; max-width: ${COLUMN_WIDTH_MAXIMUM};
   color: ${formatColour(TEXT.quiet)}; }
@@ -291,7 +291,11 @@ function composePreviewStyle(): string {
 .preview-install + .preview-intro { padding-top: 14px; }
 .preview-said > :first-child { padding-top: 0; }
 ${composeStripStyle()}`;
-    assertStringIncludes(sheet, GAME_PAGE_COLOUR, "the panel is judged against the game's page");
+    assertStringIncludes(
+        sheet,
+        MARGONEM_PAGE_COLOUR,
+        "the panel is judged against the game's page",
+    );
     assertStringIncludes(sheet, COLUMN_WIDTH_MAXIMUM, "a column ends where the windows begin");
     assertStringIncludes(sheet, ".preview-get", "and the offer is a button, not a word in a line");
     return sheet;
@@ -339,7 +343,7 @@ function composeSplitStyle(): string {
   .preview-said { width: 50vw; flex-shrink: 0; box-sizing: border-box; padding: 32px;
     background: ${formatColour(SURFACE.panel)}; border-right: 1px solid ${border};
     display: flex; flex-direction: column; align-items: center; overflow-y: auto; }
-  .preview-stage { display: block; flex-grow: 1; background: ${GAME_PAGE_COLOUR}; }
+  .preview-stage { display: block; flex-grow: 1; background: ${MARGONEM_PAGE_COLOUR}; }
   .preview-install { padding: 0; }
   .preview-install h1 { font-size: 38px; letter-spacing: -0.015em; }
   .preview-take { margin-top: 24px; text-align: center; }
@@ -399,7 +403,7 @@ function composePreviewTipsCardStyle(): string {
 
 /**
  * What the add-on wrote into the game's own tooltips, one block per fighter. It is the real path:
- * the stub's fighters carry a `$` of the client's shape, so `src/game/game-tooltip.ts` writes
+ * the stub's fighters carry a `$` of the client's shape, so `src/game/margonem-engine-tooltip.ts` writes
  * through the registry's own methods, and a renamed method shows here as an empty block.
  */
 function composePreviewTooltips(words: PreviewWords): string {

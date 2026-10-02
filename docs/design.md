@@ -246,12 +246,15 @@ export interface IntervalHandle {
 }
 
 // The engine
-export interface GameBattlePort {
-    readBattle(): GameBattle | GameEngineFailure | errors.Caught;
+export interface MargonemEngineBattlePort {
+    readBattle(): MargonemEngineBattle | MargonemEngineFailure | errors.Caught;
 }
-export interface GameBattle {
-    wrap(listener: PayloadListener): WrapHandle | GameEngineFailure;
-    readGameWarriors(): GameWarriorSnapshot | GameWarriorFailure | errors.Caught;
+export interface MargonemEngineBattle {
+    wrap(listener: PayloadListener): WrapHandle | MargonemEngineFailure;
+    readMargonemEngineWarriors():
+        | MargonemEngineWarriorSnapshot
+        | MargonemEngineWarriorFailure
+        | errors.Caught;
 }
 /** Called in the game's stack. */
 export interface PayloadListener {
@@ -259,39 +262,39 @@ export interface PayloadListener {
     onPayload(payload: unknown): void;
 }
 export interface WrapHandle {
-    detach(): undefined | GameEngineFailure;
+    detach(): undefined | MargonemEngineFailure;
     getFailureCount(): number; // the listener guards itself; this counts what escaped it
     getFirstFailure(): errors.Caught | null; // what a defect carries
 }
 // Each a class of its own, `extends Error`, with a `name` spelled as the class is.
-export type GameEngineFailure =
-    | GameEngineAbsent // neither spelling answered
-    | GameBattleAbsent
-    | GameMethodAbsent // the method's name is spelled by the adapter alone
-    | GameEngineAlreadyWrapped // another copy's wrap marker is present
+export type MargonemEngineFailure =
+    | MargonemEngineAbsent // neither spelling answered
+    | MargonemEngineBattleAbsent
+    | MargonemEngineMethodAbsent // the method's name is spelled by the adapter alone
+    | MargonemEngineAlreadyWrapped // another copy's wrap marker is present
     | SearchAbandoned // `looks` and `maximum`
     | WrapCovered; // somebody wrapped over us; only ours comes off
 
 // The game's page state, read
-export interface GamePlacePort {
-    readPlace(): FightPlace | GameReadFailure;
+export interface MargonemEnginePlacePort {
+    readPlace(): FightPlace | MargonemReadFailure;
 }
 /** The hero's id, which is how the client keys its own warrior in a fight (ADR 0014). */
-export interface GameHeroPort {
-    readHeroId(): number | GameReadFailure;
+export interface MargonemEngineHeroPort {
+    readHeroId(): number | MargonemReadFailure;
 }
-export interface GameDictionaryPort {
+export interface MargonemClientDictionaryPort {
     /** The category is the client's own filing: a status is filed under `buff`. */
-    readLabel(labelId: string, category?: string): string | GameReadFailure;
+    readLabel(labelId: string, category?: string): string | MargonemReadFailure;
 }
-export interface GameBuildPort {
-    readBuildId(): string | GameReadFailure;
+export interface MargonemClientBuildPort {
+    readBuildId(): string | MargonemReadFailure;
 }
-/** `GameValueAbsent` names the reading: "place", "label" or "build". */
-export type GameReadFailure = GameValueAbsent | errors.Caught;
+/** `MargonemValueAbsent` names the reading: "place", "label" or "build". */
+export type MargonemReadFailure = MargonemValueAbsent | errors.Caught;
 
 // The one write into the game: rows of its tooltip, every fighter the page draws at once
-export interface GameTooltipPort {
+export interface MargonemEngineTooltipPort {
     /**
      * An empty list takes the block off. The writer remembers the block it left on each fighter
      * and forgets a fighter the page no longer draws, so a rebuilt tooltip takes it once again.
@@ -592,7 +595,7 @@ const ENVELOPE_KEYS: { readonly [Field in EnvelopeField]: string } = {
 
 /**
  * In the game's stack: bounded, and it builds arrays and records of its own. The snapshot and the
- * copy for the file are other readings of the same call (`readGameWarriorSnapshot`,
+ * copy for the file are other readings of the same call (`readMargonemEngineWarriorSnapshot`,
  * `prepareCapture`), and the listener holds the three side by side rather than this one carrying
  * the other two.
  */
@@ -616,7 +619,7 @@ export type EnvelopeFailure =
  */
 export function prepareCapture(
     capture: FightCapture,
-    call: GameEngineCall, // the payload, its messages, and the snapshots either side
+    call: MargonemEngineCall, // the payload, its messages, and the snapshots either side
     isOpening: boolean,
 ): PreparedCapture; // the call's copy where it is kept; the recording untouched
 /** Appends rather than copies, so a call costs the same at the end of a fight as at its start. */
@@ -630,10 +633,12 @@ export interface FightCapture {
 }
 
 /** Called on the live battle object by the engine port, inside its `errors.attempt`. */
-export function readGameWarriorSnapshot(battle: unknown): GameWarriorSnapshot | GameWarriorFailure;
-export type GameWarriorFailure =
-    | GameWarriorsAbsent // no collection answered with a named warrior
-    | GameWarriorsExceeded; // `count`, `maximum`
+export function readMargonemEngineWarriorSnapshot(
+    battle: unknown,
+): MargonemEngineWarriorSnapshot | MargonemEngineWarriorFailure;
+export type MargonemEngineWarriorFailure =
+    | MargonemEngineWarriorsAbsent // no collection answered with a named warrior
+    | MargonemEngineWarriorsExceeded; // `count`, `maximum`
 ```
 
 A warrior entry the payload restates only in part (it carries only what moved) is not a combatant
@@ -778,7 +783,7 @@ export interface ShelfKeeper {
 // A payload and an intent change state at once; drawing waits for one frame
 export interface Runtime {
     onIntent(intent: PanelIntent): void; // a listener: the intent executed → markStale
-    deinit(): undefined | GameEngineFailure; // stops looking, takes the wrap off, cancels the frame
+    deinit(): undefined | MargonemEngineFailure; // stops looking, takes the wrap off, cancels the frame
 }
 export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runtime;
 export interface RuntimeOptions {
@@ -790,13 +795,13 @@ export interface RuntimePorts {
     clock: BrowserClock;
     frames: BrowserFrameScheduler;
     interval: BrowserIntervalScheduler;
-    engine: GameBattlePort;
-    place: GamePlacePort;
-    hero: GameHeroPort;
-    dictionary: GameDictionaryPort;
-    build: GameBuildPort;
+    engine: MargonemEngineBattlePort;
+    place: MargonemEnginePlacePort;
+    hero: MargonemEngineHeroPort;
+    dictionary: MargonemClientDictionaryPort;
+    build: MargonemClientBuildPort;
     surroundings: BrowserSurroundingsPort;
-    tooltip: GameTooltipPort;
+    tooltip: MargonemEngineTooltipPort;
     settings: KeyValueStore;
     initShelfStore(choice: StorageChoice): KeyValueStore; // never refusing: memory at worst
     file: BrowserFileSink;
@@ -808,7 +813,7 @@ export interface RuntimePorts {
 
 // Every failure meets a fate, and the compiler holds the table complete
 export type RuntimeFailure =
-    | GameEngineFailure
+    | MargonemEngineFailure
     | EnvelopeFailure
     | PayloadRejected
     | UnreadMessage
@@ -819,8 +824,8 @@ export type RuntimeFailure =
     | ExportFailure // no fight on screen, a file that will not encode, a sink that refused
     | FiguresDisagreed // two counts of one figure came out different
     | ViewFailure // RegionUndrawn, GestureDropped, WindowUnplaced
-    | GameWarriorFailure
-    | GameReadFailure
+    | MargonemEngineWarriorFailure
+    | MargonemReadFailure
     | errors.Caught;
 export const FAILURE_FATE = {
     shownAsUnknown: "shown-as-unknown",
@@ -945,8 +950,8 @@ initRuntime(ports, options)
    ─▶ openShelf               a failure → an empty shelf, and a "kept" defect
    ─▶ initPanelView           readWindowPosition × 2: a failure → the sheet's corner, a "kept" defect
    ─▶ look for the engine every 250 ms, at most 240 times
-        GameEngineAlreadyWrapped        → stand down, one console line, no panel
-        GameMethodAbsent, abandoned     → an "engine" defect, markStale: the panel waits
+        MargonemEngineAlreadyWrapped        → stand down, one console line, no panel
+        MargonemEngineMethodAbsent, abandoned     → an "engine" defect, markStale: the panel waits
         a look that threw           → one console line; the looking goes on
         found                       → engine.wrap(listener), markStale
 the first frame draws and mounts   a failure → a "mount" defect, tried again at the next frame
@@ -958,11 +963,11 @@ first frame, as `develop` puts it up when the wrap goes on.
 ### 10.2 The game's stack: `onPayload`, called inside `updateData`
 
 ```
-onBeforeCall ─ errors.attempt(readGameWarriorSnapshot) ─▶ snapshotBefore | null
+onBeforeCall ─ errors.attempt(readMargonemEngineWarriorSnapshot) ─▶ snapshotBefore | null
 [the game's original runs; its exception reaches the game untouched, and we do nothing]
 onPayload(payload) ─ errors.attempt:
    readPayloadEnvelope     a failure → a "reading" defect (and messagesLost, where countable)
-   readGameWarriorSnapshot     after the original → snapshotAfter | null
+   readMargonemEngineWarriorSnapshot     after the original → snapshotAfter | null
    prepareCapture          → commitCapture: the call kept or counted, beside the session's payload
    preparePayload          a value → commitPayload → unread counted (suspect)
                                  hasOpened → the moment and the place, the screen reset
@@ -1007,39 +1012,39 @@ goes without a mark.
 
 ### 10.5 The failure map
 
-| Failure                                      | Fate                   | What the reader sees                                   |
-| -------------------------------------------- | ---------------------- | ------------------------------------------------------ |
-| `UnreadMessage` (grammar, unknown key, none) | `shown-as-suspect`     | a count beside the figure, a suspicion sentence        |
-| `PayloadRejected`                            | `defect` "reading"     | the defects section; the fight read so far stands      |
-| `hasJoinedInProgress` (data, not a failure)  | `shown-as-suspect`     | "joined in progress"                                   |
-| `EnvelopeFailure`                            | `defect` "reading"     | the defects section: what could not be done, how often |
-| `Caught`                                     | `defect` of its step   | as above; one console line per kind                    |
-| `hasFiguresDisagreed` (data, not a failure)  | `defect` "figures"     | as above                                               |
-| `StoreFailure` on choosing a store           | `fallback-with-defect` | memory; the options say it was refused                 |
-| `ShelfFailure` on a write                    | `shelf-answer`         | the shelf's answer row                                 |
-| `ShelfUnreadable`, `ShelfVersionUnknown`     | `fallback-with-defect` | an empty shelf; a "kept" defect                        |
-| `FightAlreadyKept`                           | `defect` "keeping"     | the fight is not kept twice                            |
-| `SettingFailure`                             | `fallback-with-defect` | the default place, fold, size or type; a "kept" defect |
-| `RegionUndrawn`                              | `defect` "region"      | an undrawn mark where the region stands                |
-| `GestureDropped`                             | `defect` "gesture"     | nothing happened, marked once                          |
-| `WindowUnplaced`                             | `fallback-with-defect` | the sheet's corner; a "mount" defect                   |
-| `ExportFailure`, `FileFailure`               | `defect` "file"        | as above                                               |
-| a tooltip write that threw                   | `defect` "region"      | the game's tooltip without our rows                    |
-| a setting write refused                      | none                   | the reader's choice stands; the next visit is poorer   |
-| `GameReadFailure`                            | `shown-as-unknown`     | no place line; our word instead of the game's          |
-| `GameEngineAlreadyWrapped`, `BootFailure`    | `stand-down`           | no panel, one console line                             |
-| `SearchAbandoned`, `GameMethodAbsent`        | `defect` "engine"      | the panel waits, one console line                      |
+| Failure                                         | Fate                   | What the reader sees                                   |
+| ----------------------------------------------- | ---------------------- | ------------------------------------------------------ |
+| `UnreadMessage` (grammar, unknown key, none)    | `shown-as-suspect`     | a count beside the figure, a suspicion sentence        |
+| `PayloadRejected`                               | `defect` "reading"     | the defects section; the fight read so far stands      |
+| `hasJoinedInProgress` (data, not a failure)     | `shown-as-suspect`     | "joined in progress"                                   |
+| `EnvelopeFailure`                               | `defect` "reading"     | the defects section: what could not be done, how often |
+| `Caught`                                        | `defect` of its step   | as above; one console line per kind                    |
+| `hasFiguresDisagreed` (data, not a failure)     | `defect` "figures"     | as above                                               |
+| `StoreFailure` on choosing a store              | `fallback-with-defect` | memory; the options say it was refused                 |
+| `ShelfFailure` on a write                       | `shelf-answer`         | the shelf's answer row                                 |
+| `ShelfUnreadable`, `ShelfVersionUnknown`        | `fallback-with-defect` | an empty shelf; a "kept" defect                        |
+| `FightAlreadyKept`                              | `defect` "keeping"     | the fight is not kept twice                            |
+| `SettingFailure`                                | `fallback-with-defect` | the default place, fold, size or type; a "kept" defect |
+| `RegionUndrawn`                                 | `defect` "region"      | an undrawn mark where the region stands                |
+| `GestureDropped`                                | `defect` "gesture"     | nothing happened, marked once                          |
+| `WindowUnplaced`                                | `fallback-with-defect` | the sheet's corner; a "mount" defect                   |
+| `ExportFailure`, `FileFailure`                  | `defect` "file"        | as above                                               |
+| a tooltip write that threw                      | `defect` "region"      | the game's tooltip without our rows                    |
+| a setting write refused                         | none                   | the reader's choice stands; the next visit is poorer   |
+| `MargonemReadFailure`                           | `shown-as-unknown`     | no place line; our word instead of the game's          |
+| `MargonemEngineAlreadyWrapped`, `BootFailure`   | `stand-down`           | no panel, one console line                             |
+| `SearchAbandoned`, `MargonemEngineMethodAbsent` | `defect` "engine"      | the panel waits, one console line                      |
 
 ### 10.6 Where a broad catch stands
 
-| Boundary                       | Where                                                                                                                   |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| the add-on standing up         | `readRuntimePorts` and `initRuntime` under `errors.attempt`, in the entry                                               |
-| the wrapped engine call        | `PayloadListener.onBeforeCall` and `onPayload`                                                                          |
-| one render region              | `errors.attempt` per region in `PanelView.render`                                                                       |
-| browser storage                | `errors.attempt` inside the `KeyValueStore` implementation                                                              |
-| the game's own page state      | `errors.attempt` in `GamePlacePort`, `GameHeroPort`, `GameDictionaryPort`, `GameBuildPort`, `GameTooltipPort`, warriors |
-| a callback somebody else calls | a DOM listener and `onFrame`, under `errors.attempt`                                                                    |
+| Boundary                       | Where                                                                                                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the add-on standing up         | `readRuntimePorts` and `initRuntime` under `errors.attempt`, in the entry                                                                                                 |
+| the wrapped engine call        | `PayloadListener.onBeforeCall` and `onPayload`                                                                                                                            |
+| one render region              | `errors.attempt` per region in `PanelView.render`                                                                                                                         |
+| browser storage                | `errors.attempt` inside the `KeyValueStore` implementation                                                                                                                |
+| the game's own page state      | `errors.attempt` in `MargonemEnginePlacePort`, `MargonemEngineHeroPort`, `MargonemClientDictionaryPort`, `MargonemClientBuildPort`, `MargonemEngineTooltipPort`, warriors |
+| a callback somebody else calls | a DOM listener and `onFrame`, under `errors.attempt`                                                                                                                      |
 
 ### 10.7 The card: `onHover`, in the root listener, under its guard
 
@@ -1098,7 +1103,7 @@ export interface FaultPlan {
 }
 export function runSimulation(plan: FaultPlan, updates: readonly unknown[]): SimulationReport;
 export interface SimulationReport {
-    hasThrownIntoGame: boolean; // from the game's call, the start, or a frame
+    hasThrownIntoMargonem: boolean; // from the game's call, the start, or a frame
     ranking: string; // what the last frame drew, compared with a run left alone
     kindsSaid: string[]; // every kind of failure the console heard
     unhandledKinds: string[]; // those `FAILURE_FATES` has no fate for

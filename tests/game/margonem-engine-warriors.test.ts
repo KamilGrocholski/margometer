@@ -17,10 +17,10 @@ import {
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
 import {
-    GameWarriorsAbsent,
-    GameWarriorsExceeded,
-    readGameWarriorSnapshot,
-} from "#/src/game/warrior-snapshot.ts";
+    MargonemEngineWarriorsAbsent,
+    MargonemEngineWarriorsExceeded,
+    readMargonemEngineWarriorSnapshot,
+} from "#/src/game/margonem-engine-warriors.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 /** The fields every recording's snapshot carries, in the order it carries them. */
@@ -55,7 +55,7 @@ function composeWarrior(id: number, name: string): Record<string, unknown> {
 }
 
 function readNames(battle: unknown): unknown[] {
-    const snapshot = readGameWarriorSnapshot(battle);
+    const snapshot = readMargonemEngineWarriorSnapshot(battle);
     assertNotInstanceOf(snapshot, Error, "the battle states a collection of warriors");
     return snapshot.map((one) => one.name);
 }
@@ -74,11 +74,27 @@ Deno.test("a warrior with no name is passed over, and the rest of the fight is r
 });
 
 Deno.test("a fight holding no collection of warriors is refused, not read as nobody", () => {
-    assertInstanceOf(readGameWarriorSnapshot(null), GameWarriorsAbsent, "no battle at all");
-    assertInstanceOf(readGameWarriorSnapshot([]), GameWarriorsAbsent, "a list is no battle");
-    assertInstanceOf(readGameWarriorSnapshot({}), GameWarriorsAbsent, "no collection");
+    assertInstanceOf(
+        readMargonemEngineWarriorSnapshot(null),
+        MargonemEngineWarriorsAbsent,
+        "no battle at all",
+    );
+    assertInstanceOf(
+        readMargonemEngineWarriorSnapshot([]),
+        MargonemEngineWarriorsAbsent,
+        "a list is no battle",
+    );
+    assertInstanceOf(
+        readMargonemEngineWarriorSnapshot({}),
+        MargonemEngineWarriorsAbsent,
+        "no collection",
+    );
     const nobody = { warriorsList: { 1: { id: 1 } }, warriors: [composeWarrior(1, "A")] };
-    assertInstanceOf(readGameWarriorSnapshot(nobody), GameWarriorsAbsent, "and none named");
+    assertInstanceOf(
+        readMargonemEngineWarriorSnapshot(nobody),
+        MargonemEngineWarriorsAbsent,
+        "and none named",
+    );
 });
 
 Deno.test("a fight of twenty is read, and one of twenty-one is refused", () => {
@@ -86,11 +102,11 @@ Deno.test("a fight of twenty is read, and one of twenty-one is refused", () => {
         Object.fromEntries(
             Array.from({ length: count }, (_, at) => [at + 1, composeWarrior(at + 1, `P${at}`)]),
         );
-    const full = readGameWarriorSnapshot({ warriorsList: cast(COMBATANTS_MAXIMUM) });
+    const full = readMargonemEngineWarriorSnapshot({ warriorsList: cast(COMBATANTS_MAXIMUM) });
     assertNotInstanceOf(full, Error, "a full fight is read");
     assertStrictEquals(full.length, COMBATANTS_MAXIMUM, "everybody in it");
-    const past = readGameWarriorSnapshot({ warriorsList: cast(COMBATANTS_MAXIMUM + 1) });
-    assertInstanceOf(past, GameWarriorsExceeded, "one past it is refused");
+    const past = readMargonemEngineWarriorSnapshot({ warriorsList: cast(COMBATANTS_MAXIMUM + 1) });
+    assertInstanceOf(past, MargonemEngineWarriorsExceeded, "one past it is refused");
     assertEquals(
         { count: past.count, maximum: past.maximum },
         { count: COMBATANTS_MAXIMUM + 1, maximum: COMBATANTS_MAXIMUM },
@@ -101,7 +117,7 @@ Deno.test("a fight of twenty is read, and one of twenty-one is refused", () => {
 Deno.test("what the game goes on changing is copied, not held by reference", () => {
     const warrior = composeWarrior(1, "A");
     const battle = { warriorsList: { 1: warrior } };
-    const snapshot = readGameWarriorSnapshot(battle);
+    const snapshot = readMargonemEngineWarriorSnapshot(battle);
     assertNotInstanceOf(snapshot, Error, "the fight is read");
     const [held] = snapshot;
     assert(held !== undefined, "with its one warrior");
@@ -115,27 +131,29 @@ Deno.test("what the game goes on changing is copied, not held by reference", () 
 });
 
 Deno.test("an id is read where it is stated, and the original one where it is not", () => {
-    const stated = readGameWarriorSnapshot({ warriorsList: { 1: composeWarrior(1, "A") } });
+    const stated = readMargonemEngineWarriorSnapshot({
+        warriorsList: { 1: composeWarrior(1, "A") },
+    });
     assertNotInstanceOf(stated, Error, "a warrior with an id is read");
     assertStrictEquals(stated[0]?.id, 1, "under it");
     const { id: _, ...unnumbered } = composeWarrior(1, "A");
-    const original = readGameWarriorSnapshot({
+    const original = readMargonemEngineWarriorSnapshot({
         warriorsList: { 1: { ...unnumbered, originalId: 7 } },
     });
     assertNotInstanceOf(original, Error, "and one carrying only the id it was cloned from");
     assertStrictEquals(original[0]?.id, 7, "is read under that");
-    const both = readGameWarriorSnapshot({
+    const both = readMargonemEngineWarriorSnapshot({
         warriorsList: { 1: { ...composeWarrior(3, "A"), originalId: 7 } },
     });
     assertNotInstanceOf(both, Error, "one carrying both is read");
     assertStrictEquals(both[0]?.id, 3, "under its own");
-    const nameless = readGameWarriorSnapshot({ warriorsList: { 1: unnumbered } });
+    const nameless = readMargonemEngineWarriorSnapshot({ warriorsList: { 1: unnumbered } });
     assertNotInstanceOf(nameless, Error, "one stating neither is read all the same");
     assertStrictEquals(nameless[0]?.id, null, "and says it could not be numbered");
 });
 
 Deno.test("a snapshot is written in the fields and the order the recordings carry", () => {
-    const snapshot = readGameWarriorSnapshot({ warriorsList: { 1: { name: "A" } } });
+    const snapshot = readMargonemEngineWarriorSnapshot({ warriorsList: { 1: { name: "A" } } });
     assertNotInstanceOf(snapshot, Error, "a warrior stating only a name is read");
     const [held] = snapshot;
     assertEquals(Object.keys(held ?? {}), RECORDED_KEYS, "every recorded field, in order");

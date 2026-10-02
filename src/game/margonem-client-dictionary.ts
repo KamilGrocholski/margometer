@@ -7,11 +7,11 @@
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
-import { GAME_VALUE, type GameReadFailure, GameValueAbsent } from "./game-value.ts";
+import { MARGONEM_VALUE, type MargonemReadFailure, MargonemValueAbsent } from "./margonem-value.ts";
 
-export interface GameDictionaryPort {
+export interface MargonemClientDictionaryPort {
     /** The category is the client's own filing: an id filed outside `default` needs its name. */
-    readLabel(labelId: string, category?: string): string | GameReadFailure;
+    readLabel(labelId: string, category?: string): string | MargonemReadFailure;
 }
 
 /**
@@ -27,7 +27,7 @@ const FULL_STOP = ".";
 /** An entry is a label with at most a hole in it; this is far past any the game states. */
 const ENTRY_LENGTH_MAXIMUM = 4096;
 
-export function initGameDictionary(browserWindow: unknown): GameDictionaryPort {
+export function initMargonemClientDictionary(browserWindow: unknown): MargonemClientDictionaryPort {
     return {
         readLabel(labelId, category) {
             assert(labelId.length > 0, "an id asked of the client is one the panel named");
@@ -47,14 +47,14 @@ export function initGameDictionary(browserWindow: unknown): GameDictionaryPort {
                 return read;
             });
             if (entry instanceof Error) return entry;
-            if (entry === null) return new GameValueAbsent(GAME_VALUE.label);
+            if (entry === null) return new MargonemValueAbsent(MARGONEM_VALUE.label);
             // An answer past the bound is no label, and the answer is the game's: refused, never
             // asserted against, from inside a card the panel is composing.
             if (entry.length > ENTRY_LENGTH_MAXIMUM) {
-                return new GameValueAbsent(GAME_VALUE.label);
+                return new MargonemValueAbsent(MARGONEM_VALUE.label);
             }
             const label = parseLabel(entry);
-            if (label === null) return new GameValueAbsent(GAME_VALUE.label);
+            if (label === null) return new MargonemValueAbsent(MARGONEM_VALUE.label);
             return label;
         },
     };

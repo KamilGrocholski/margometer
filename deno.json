@@ -66,9 +66,9 @@
         // Every reading of the game this repository stands on, asked whether it is still the
         // game's, and made current again. What a work round starts with (W10), because the gate
         // reaches no network and so cannot tell that one went behind: `frozen/AGENTS.md`.
-        "game:readings": "deno run -A tools/game-readings.ts",
+        "game:readings": "deno run -A tools/margonem-readings.ts",
         // The client fetched and dated, so a claim about it names the build it was read on.
-        "game:client": "deno run -A tools/game-client-source.ts",
+        "game:client": "deno run -A tools/margonem-client-source.ts",
         // Every key the client branches on, and the bits a status mask is read by.
         "game:keys": "deno run -A tools/protocol-key-table.ts",
         "game:buffs": "deno run -A tools/buff-bit-table.ts",

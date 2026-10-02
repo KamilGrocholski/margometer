@@ -38,7 +38,7 @@ export interface KeptFight {
      */
     readerId: number | null;
     /** Which client it was read off, so a fight re-read later says what it was recorded on. */
-    gameBuild: string | null;
+    margonemClientBuild: string | null;
     /** Kept by the reader against the rotation. */
     isPinned: boolean;
 }
@@ -131,7 +131,13 @@ export type ShelfFailure =
     | FightNotKept;
 
 type ShelfField = "version" | "fights";
-type FightField = "openedAt" | "payloads" | "place" | "readerId" | "gameBuild" | "isPinned";
+type FightField =
+    | "openedAt"
+    | "payloads"
+    | "place"
+    | "readerId"
+    | "margonemClientBuild"
+    | "isPinned";
 type PlaceField = "mapName" | "x" | "y";
 
 /** A shelf holds this many fights and no more, the oldest nobody pinned dropped first. */
@@ -149,7 +155,7 @@ const FIGHT_FIELDS: FieldKeys<FightField> = {
     payloads: "payloads",
     place: "place",
     readerId: "readerId",
-    gameBuild: "gameBuild",
+    margonemClientBuild: "gameBuild",
     isPinned: "isPinned",
 };
 const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "mapName", x: "x", y: "y" };
@@ -211,7 +217,11 @@ export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
                 fight = null;
                 break readFight;
             }
-            const gameBuild = getStatedTextField(value, FIGHT_FIELDS, "gameBuild");
+            const margonemClientBuild = getStatedTextField(
+                value,
+                FIGHT_FIELDS,
+                "margonemClientBuild",
+            );
             let place: FightPlace | null;
             // Read the place: one that does not read back is nobody's place, not a fight dropped.
             readPlace: {
@@ -273,7 +283,9 @@ export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
                 payloads: [...payloads],
                 place,
                 readerId,
-                gameBuild: gameBuild instanceof Error ? null : gameBuild,
+                margonemClientBuild: margonemClientBuild instanceof Error
+                    ? null
+                    : margonemClientBuild,
                 isPinned: value[FIGHT_FIELDS.isPinned] === true,
             };
         }
@@ -348,15 +360,22 @@ function writeShelf(
 }
 
 /**
- * The id only where there is one, so a fight kept without it is written as `develop` wrote it and a
- * shelf round-trips through either (ADR 0014).
+ * Each field under the key the shelf stores it by, in `develop`'s order, and the id only where there
+ * is one, so a fight kept without it is written as `develop` wrote it and a shelf round-trips
+ * through either (ADR 0014).
  */
 function encodeKeptFight(fight: KeptFight): Record<string, unknown> {
     assert(fight.payloads.length > 0, "a fight written was kept from something");
-    const { readerId, ...rest } = fight;
-    if (readerId === null) return rest;
-    assert(readerId > 0, "an id written is one the page stated");
-    return { ...rest, readerId };
+    const encoded: Record<string, unknown> = {
+        [FIGHT_FIELDS.openedAt]: fight.openedAt,
+        [FIGHT_FIELDS.payloads]: fight.payloads,
+        [FIGHT_FIELDS.place]: fight.place,
+        [FIGHT_FIELDS.margonemClientBuild]: fight.margonemClientBuild,
+        [FIGHT_FIELDS.isPinned]: fight.isPinned,
+    };
+    if (fight.readerId === null) return encoded;
+    assert(fight.readerId > 0, "an id written is one the page stated");
+    return { ...encoded, [FIGHT_FIELDS.readerId]: fight.readerId };
 }
 
 function dropOldestUnpinned(fights: readonly KeptFight[]): KeptFight[] | null {

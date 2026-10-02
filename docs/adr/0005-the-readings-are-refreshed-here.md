@@ -19,7 +19,7 @@ table, the help counts and the skill durations.
 
 **The freezers run on this branch, and write `frozen/` here.**
 
-- `tools/game-client-source.ts`, `protocol-key-table.ts`, `buff-bit-table.ts`, `skill-table.ts`,
+- `tools/margonem-client-source.ts`, `protocol-key-table.ts`, `buff-bit-table.ts`, `skill-table.ts`,
   `help-article.ts` and `game-readings.ts` are ported from `develop` @ `fa1dcce`. The tasks keep
   their names: `game:client`, `game:keys`, `game:buffs`, `game:skills`, `game:help` and
   `game:readings`.

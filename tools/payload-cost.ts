@@ -62,23 +62,25 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
             const battle = composeRebuildingBattle();
             const own = battle.page.Engine.battle.updateData;
             assert(typeof own === "function", "the game's method stands before the wrap");
-            let gameMilliseconds = 0;
+            let margonemEngineMilliseconds = 0;
             const timed = (payload: unknown): unknown => {
                 const started = performance.now();
                 const answered = Reflect.apply(own, battle.page.Engine.battle, [payload]);
-                gameMilliseconds = performance.now() - started;
+                margonemEngineMilliseconds = performance.now() - started;
                 return answered;
             };
             battle.page.Engine.battle.updateData = timed;
             const window = composeFakeWindow({
-                game: { ...battle.page, _t: (labelId: string) => `label ${labelId}` },
+                margonem: { ...battle.page, _t: (labelId: string) => `label ${labelId}` },
             });
             startMargoMeter(window.page);
             const engine = window.page.Engine;
             if (!isRecord(engine)) throw new PayloadCostError("the page lost its game");
-            const gameBattle = engine.battle;
-            if (!isRecord(gameBattle)) throw new PayloadCostError("the game lost its battle");
-            const wrapped = gameBattle.updateData;
+            const margonemEngineBattle = engine.battle;
+            if (!isRecord(margonemEngineBattle)) {
+                throw new PayloadCostError("the game lost its battle");
+            }
+            const wrapped = margonemEngineBattle.updateData;
             if (typeof wrapped !== "function") {
                 throw new PayloadCostError("the battle lost its method");
             }
@@ -87,8 +89,8 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
             for (const [index, update] of fight.updates.entries()) {
                 // Time the payload as the game calls it, less what the game's own method took.
                 const started = performance.now();
-                Reflect.apply(wrapped, gameBattle, [update]);
-                const tookMilliseconds = performance.now() - started - gameMilliseconds;
+                Reflect.apply(wrapped, margonemEngineBattle, [update]);
+                const tookMilliseconds = performance.now() - started - margonemEngineMilliseconds;
                 const took = tookMilliseconds * MICROSECONDS_PER_MILLISECOND;
                 cost.payloadMicroseconds[index] = Math.min(
                     cost.payloadMicroseconds[index] ?? took,

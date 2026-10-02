@@ -7,7 +7,7 @@
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/game/payload-envelope.ts";
-import { GAME_SCRIPT_NAME } from "#/tests/e2e/game-page.ts";
+import { MARGONEM_CLIENT_SCRIPT_NAME } from "#/tests/e2e/margonem-page.ts";
 import { USERSCRIPT_NAME } from "#/tools/build-userscript.ts";
 import {
     composePreviewPage,
@@ -300,7 +300,11 @@ Deno.test("the mark on the silent need is drawn rather than spelled", () => {
 
 Deno.test("the scripts are asked for under the directory the caller answers on", () => {
     const published = composePreviewPage({ ...composeOptions(CALLS), scriptDirectory: "./" });
-    assertStringIncludes(published, `src="./${GAME_SCRIPT_NAME}"`, "the decoy, relatively");
+    assertStringIncludes(
+        published,
+        `src="./${MARGONEM_CLIENT_SCRIPT_NAME}"`,
+        "the decoy, relatively",
+    );
     assertStringIncludes(published, `src="./${USERSCRIPT_NAME}"`, "and the bundle beside it");
     assert(!published.includes(`src="/`), "nothing asks a domain root for a project's own file");
 });

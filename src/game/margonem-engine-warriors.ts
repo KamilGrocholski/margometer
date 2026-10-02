@@ -27,14 +27,14 @@ export interface CapturedCombatant {
     ac: unknown;
 }
 
-export type GameWarriorSnapshot = readonly CapturedCombatant[];
+export type MargonemEngineWarriorSnapshot = readonly CapturedCombatant[];
 
-export class GameWarriorsAbsent extends Error {
-    override readonly name = "GameWarriorsAbsent";
+export class MargonemEngineWarriorsAbsent extends Error {
+    override readonly name = "MargonemEngineWarriorsAbsent";
 }
 
-export class GameWarriorsExceeded extends Error {
-    override readonly name = "GameWarriorsExceeded";
+export class MargonemEngineWarriorsExceeded extends Error {
+    override readonly name = "MargonemEngineWarriorsExceeded";
     readonly count: number;
     readonly maximum: number;
 
@@ -45,7 +45,9 @@ export class GameWarriorsExceeded extends Error {
     }
 }
 
-export type GameWarriorFailure = GameWarriorsAbsent | GameWarriorsExceeded;
+export type MargonemEngineWarriorFailure =
+    | MargonemEngineWarriorsAbsent
+    | MargonemEngineWarriorsExceeded;
 
 /**
  * Where the running fight keeps its combatants, in the order tried. Each receives every field of a
@@ -62,8 +64,10 @@ const COPIED_KEYS = ["name", "team", "prof", "lvl", "mana", "energy"] as const;
 const SHALLOW_COPIED_KEYS = ["hp", "ac"] as const;
 const NAME_KEY = "name";
 
-export function readGameWarriorSnapshot(battle: unknown): GameWarriorSnapshot | GameWarriorFailure {
-    const named = readGameWarriorsNamed(battle);
+export function readMargonemEngineWarriorSnapshot(
+    battle: unknown,
+): MargonemEngineWarriorSnapshot | MargonemEngineWarriorFailure {
+    const named = readMargonemEngineWarriorsNamed(battle);
     if (named instanceof Error) return named;
     const snapshot = named.map(readCapturedCombatant);
     assert(snapshot.length === named.length, "every named warrior is copied once");
@@ -94,22 +98,24 @@ function readCapturedCombatant(warrior: UnknownRecord): CapturedCombatant {
  * The warriors themselves, out of whichever collection answers first: the objects the game goes on
  * drawing, so the one other reader of them, the tooltip, writes through their own methods.
  */
-export function readGameWarriorsNamed(battle: unknown): UnknownRecord[] | GameWarriorFailure {
-    if (!isRecord(battle)) return new GameWarriorsAbsent();
+export function readMargonemEngineWarriorsNamed(
+    battle: unknown,
+): UnknownRecord[] | MargonemEngineWarriorFailure {
+    if (!isRecord(battle)) return new MargonemEngineWarriorsAbsent();
     for (const collectionKey of WARRIOR_COLLECTIONS) {
         const collection = battle[collectionKey];
         if (!isRecord(collection)) continue;
-        const named = Object.values(collection).filter(isGameWarriorNamed);
+        const named = Object.values(collection).filter(isMargonemEngineWarriorNamed);
         if (named.length === 0) continue;
         if (named.length > COMBATANTS_MAXIMUM) {
-            return new GameWarriorsExceeded(named.length, COMBATANTS_MAXIMUM);
+            return new MargonemEngineWarriorsExceeded(named.length, COMBATANTS_MAXIMUM);
         }
         return named;
     }
-    return new GameWarriorsAbsent();
+    return new MargonemEngineWarriorsAbsent();
 }
 
-function isGameWarriorNamed(value: unknown): value is UnknownRecord {
+function isMargonemEngineWarriorNamed(value: unknown): value is UnknownRecord {
     if (!isRecord(value)) return false;
     const name = value[NAME_KEY];
     if (typeof name !== "string") return false;

@@ -16,12 +16,12 @@ import {
 } from "./build-once.ts";
 import {
     composePanelPage,
-    type EnginePresence,
-    GAME_SCRIPT_NAME,
     HOST_SELECTOR,
+    MARGONEM_CLIENT_SCRIPT_NAME,
+    type MargonemEnginePresence,
     type PanelPageOptions,
     PLACE_NAME,
-} from "./game-page.ts";
+} from "./margonem-page.ts";
 import { PAGE_ORIGIN, readRecordedCalls, waitForFrame } from "./panel-page.ts";
 
 export { expect };
@@ -31,7 +31,7 @@ export interface PanelOptions {
     recording: string;
     /** How much of it the page has delivered by `load`: all of it, none, or a count. */
     fedThrough: number | "all" | "none";
-    engine: EnginePresence;
+    engine: MargonemEnginePresence;
     doesLoadTwice: boolean;
     /**
      * Whether the browser's clock is Playwright's before the page runs. It has to be installed
@@ -170,7 +170,7 @@ async function setPageServed(page: Page, script: string, html: string): Promise<
         }
         // An empty script and never a miss: a host answering one with its own HTML turns the tag
         // into a syntax error, and only the `src` attribute is ever read.
-        if (path === `/${GAME_SCRIPT_NAME}`) {
+        if (path === `/${MARGONEM_CLIENT_SCRIPT_NAME}`) {
             return route.fulfill({ contentType: "text/javascript", body: "" });
         }
         if (path === "/") return route.fulfill({ contentType: "text/html", body: html });

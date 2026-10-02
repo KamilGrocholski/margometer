@@ -11,18 +11,21 @@ import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import { composeFightView, type SessionOptions } from "#/src/core/fight-session.ts";
 import type { KeyValueStore } from "#/src/game/browser-store.ts";
 import {
-    type GameBattlePort,
-    GameEngineAlreadyWrapped,
-    type GameEngineFailure,
+    MargonemEngineAlreadyWrapped,
+    type MargonemEngineBattlePort,
+    type MargonemEngineFailure,
     type PayloadListener,
     SearchAbandoned,
     type WrapHandle,
-} from "#/src/game/game-battle.ts";
-import type { GameHeroPort } from "#/src/game/game-hero.ts";
-import type { GamePlacePort } from "#/src/game/game-place.ts";
-import { type GameTooltipPort, ROWS_WRITTEN_MAXIMUM } from "#/src/game/game-tooltip.ts";
-import type { GameDictionaryPort } from "#/src/game/game-dictionary.ts";
-import type { GameBuildPort } from "#/src/game/game-build.ts";
+} from "#/src/game/margonem-engine-battle.ts";
+import type { MargonemEngineHeroPort } from "#/src/game/margonem-engine-hero.ts";
+import type { MargonemEnginePlacePort } from "#/src/game/margonem-engine-place.ts";
+import {
+    type MargonemEngineTooltipPort,
+    ROWS_WRITTEN_MAXIMUM,
+} from "#/src/game/margonem-engine-tooltip.ts";
+import type { MargonemClientDictionaryPort } from "#/src/game/margonem-client-dictionary.ts";
+import type { MargonemClientBuildPort } from "#/src/game/margonem-client-build.ts";
 import type {
     BrowserClock,
     BrowserFrameScheduler,
@@ -75,13 +78,13 @@ export interface RuntimePorts {
     clock: BrowserClock;
     frames: BrowserFrameScheduler;
     interval: BrowserIntervalScheduler;
-    battle: GameBattlePort;
-    place: GamePlacePort;
-    hero: GameHeroPort;
-    dictionary: GameDictionaryPort;
-    build: GameBuildPort;
+    battle: MargonemEngineBattlePort;
+    place: MargonemEnginePlacePort;
+    hero: MargonemEngineHeroPort;
+    dictionary: MargonemClientDictionaryPort;
+    build: MargonemClientBuildPort;
     surroundings: BrowserSurroundingsPort;
-    tooltip: GameTooltipPort;
+    tooltip: MargonemEngineTooltipPort;
     /** Where the panel's own choices are kept, which is never the store the shelf is moved to. */
     settings: KeyValueStore;
     /** Never refusing: a browser that lends no store is answered with one that forgets. */
@@ -109,7 +112,7 @@ export interface RuntimeOptions {
 export interface Runtime {
     onIntent(intent: PanelIntent): void;
     /** Stops looking, takes the wrap off and cancels the frame asked for. */
-    deinit(): undefined | GameEngineFailure;
+    deinit(): undefined | MargonemEngineFailure;
 }
 
 interface RuntimeState {
@@ -121,7 +124,7 @@ interface RuntimeState {
     live: LiveFight;
     view: PanelView;
     translate: TranslateLabel;
-    search: GameEngineSearch | null;
+    search: MargonemEngineSearch | null;
     wrap: WrapHandle | null;
     frame: FrameHandle | null;
     isStale: boolean;
@@ -134,15 +137,15 @@ interface RuntimeState {
 export interface SearchReport {
     onAttached(wrap: WrapHandle): void;
     /** A MargoMeter already holds the game, so this copy stands down and never counts. */
-    onStoodDown(failure: GameEngineFailure): void;
+    onStoodDown(failure: MargonemEngineFailure): void;
     /** The game is here, and the method it is read by is not: said once, the looking goes on. */
-    onRefused(failure: GameEngineFailure): void;
-    onAbandoned(failure: GameEngineFailure): void;
+    onRefused(failure: MargonemEngineFailure): void;
+    onAbandoned(failure: MargonemEngineFailure): void;
     /** A look that failed, the first time one does. The looking goes on to its bound. */
     onLookFailed(failure: errors.Caught): void;
 }
 
-export interface GameEngineSearch {
+export interface MargonemEngineSearch {
     /** Stops looking. A wrap already on stays on: taking it off is the wrap's own `detach`. */
     stop(): void;
     isDone(): boolean;
@@ -272,7 +275,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             isStoodDown: false,
         };
         builtState = state;
-        state.search = initGameEngineSearch(ports.battle, ports.interval, listener, {
+        state.search = initMargonemEngineSearch(ports.battle, ports.interval, listener, {
             onAttached: (wrap) => {
                 state.wrap = wrap;
                 markPanelDue(state);
@@ -281,8 +284,8 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
                 state.isStoodDown = true;
                 ports.console.writeBrandedLine(failure.name, failure);
             },
-            onRefused: (failure) => onGameEngineSearchFailed(state, failure),
-            onAbandoned: (failure) => onGameEngineSearchFailed(state, failure),
+            onRefused: (failure) => onMargonemEngineSearchFailed(state, failure),
+            onAbandoned: (failure) => onMargonemEngineSearchFailed(state, failure),
             onLookFailed: (failure) => ports.console.writeBrandedLine(failure.name, failure),
         });
     }
@@ -521,8 +524,11 @@ function markPanelDue(state: RuntimeState): void {
     markStale(state);
 }
 
-function onGameEngineSearchFailed(state: RuntimeState, failure: GameEngineFailure): void {
-    assert(!(failure instanceof GameEngineAlreadyWrapped), "a copy that stands down shows nothing");
+function onMargonemEngineSearchFailed(state: RuntimeState, failure: MargonemEngineFailure): void {
+    assert(
+        !(failure instanceof MargonemEngineAlreadyWrapped),
+        "a copy that stands down shows nothing",
+    );
     assert(state.wrap === null, "and one holding the game is not looking for it");
     state.defects.add({ kind: DEFECT_KIND.engine, region: null, failure });
     markPanelDue(state);
@@ -534,12 +540,12 @@ function onGameEngineSearchFailed(state: RuntimeState, failure: GameEngineFailur
  * it finds one or when the game plainly is not coming. A search with no end is something the page
  * pays for forever.
  */
-export function initGameEngineSearch(
-    battlePort: GameBattlePort,
+export function initMargonemEngineSearch(
+    battlePort: MargonemEngineBattlePort,
     interval: BrowserIntervalScheduler,
     listener: PayloadListener,
     report: SearchReport,
-): GameEngineSearch {
+): MargonemEngineSearch {
     const search: Search = {
         looks: 0,
         isDone: false,
@@ -606,7 +612,7 @@ function deinitSearchTimer(search: Search): void {
 
 function executeSearchLook(
     search: Search,
-    battlePort: GameBattlePort,
+    battlePort: MargonemEngineBattlePort,
     listener: PayloadListener,
     report: SearchReport,
 ): void {
@@ -625,7 +631,7 @@ function executeSearchLook(
         report.onAttached(wrapped);
         return;
     }
-    if (wrapped instanceof GameEngineAlreadyWrapped) {
+    if (wrapped instanceof MargonemEngineAlreadyWrapped) {
         deinitSearchTimer(search);
         report.onStoodDown(wrapped);
         return;

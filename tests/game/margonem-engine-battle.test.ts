@@ -16,18 +16,18 @@ import {
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import {
-    type GameBattle,
-    GameBattleAbsent,
-    GameEngineAbsent,
-    GameEngineAlreadyWrapped,
-    GameMethodAbsent,
-    initGameBattle,
+    initMargonemEngineBattle,
+    MargonemEngineAbsent,
+    MargonemEngineAlreadyWrapped,
+    type MargonemEngineBattle,
+    MargonemEngineBattleAbsent,
+    MargonemEngineMethodAbsent,
     type PayloadListener,
-    readGameEngines,
+    readMargonemEngines,
     WrapCovered,
     type WrapHandle,
-} from "#/src/game/game-battle.ts";
-import { GameWarriorsAbsent } from "#/src/game/warrior-snapshot.ts";
+} from "#/src/game/margonem-engine-battle.ts";
+import { MargonemEngineWarriorsAbsent } from "#/src/game/margonem-engine-warriors.ts";
 
 interface Held {
     battle: Record<string, unknown>;
@@ -46,7 +46,7 @@ Deno.test("the engine's own call runs first, and its value comes back untouched"
     const held = composeHeld("the engine's own answer");
     const seen: unknown[] = [];
     wrapOn(held.battle, composeListener({ onPayload: (payload) => void seen.push(payload) }));
-    const self = { theGame: true };
+    const self = { theMargonemEngineBattle: true };
     const answer = callUpdate(held.battle, self, [{ m: [] }, 2]);
     assertStrictEquals(answer, "the engine's own answer", "the value is the engine's");
     assertEquals(seen, [{ m: [] }], "and the payload reached us once, as the first argument");
@@ -76,8 +76,8 @@ function wrapOn(battle: Record<string, unknown>, listener: PayloadListener): Wra
     return wrapped;
 }
 
-function readBattleOn(battle: Record<string, unknown>): GameBattle {
-    const read = initGameBattle({ Engine: { battle } }).readBattle();
+function readBattleOn(battle: Record<string, unknown>): MargonemEngineBattle {
+    const read = initMargonemEngineBattle({ Engine: { battle } }).readBattle();
     assertNotInstanceOf(read, Error, "the page holds a battle");
     return read;
 }
@@ -171,18 +171,18 @@ Deno.test("a second copy of the add-on stands down, as does a battle with nothin
     const held = composeHeld(1);
     wrapOn(held.battle, composeListener({}));
     const second = readBattleOn(held.battle).wrap(composeListener({}));
-    assertInstanceOf(second, GameEngineAlreadyWrapped, "the second stands down");
+    assertInstanceOf(second, MargonemEngineAlreadyWrapped, "the second stands down");
     const empty = readBattleOn({}).wrap(composeListener({}));
-    assertInstanceOf(empty, GameMethodAbsent, "and one with no method");
+    assertInstanceOf(empty, MargonemEngineMethodAbsent, "and one with no method");
     const notMethod = readBattleOn({ updateData: 5 }).wrap(composeListener({}));
-    assertInstanceOf(notMethod, GameMethodAbsent, "or a value that is none");
+    assertInstanceOf(notMethod, MargonemEngineMethodAbsent, "or a value that is none");
 });
 
 /** By the marker's presence, whatever its value: any MargoMeter is a second count. */
 Deno.test("another build's wrap is recognised by its marker alone", () => {
     const foreign = Object.assign(() => 1, { __margometerBattleWrap: 99 });
     const wrapped = readBattleOn({ updateData: foreign }).wrap(composeListener({}));
-    assertInstanceOf(wrapped, GameEngineAlreadyWrapped, "a second count refused");
+    assertInstanceOf(wrapped, MargonemEngineAlreadyWrapped, "a second count refused");
     const unmarked = readBattleOn({ updateData: () => 1 }).wrap(composeListener({}));
     assertNotInstanceOf(unmarked, Error, "while a function carrying no marker is wrapped");
 });
@@ -206,14 +206,14 @@ Deno.test("a detach puts back what was there, and only where ours is outermost",
 
 Deno.test("the page is asked for a game in both spellings, and a call may throw", () => {
     const battle = { updateData: () => 1 };
-    assertEquals(readGameEngines({ Engine: { battle } }), [{ battle }], "the field");
-    assertEquals(readGameEngines({ getEngine: () => ({ battle }) }), [{ battle }], "the call");
-    assertEquals(readGameEngines(null), [], "and a page that is not one is asked nothing");
-    const engine = initGameBattle({});
-    assertInstanceOf(engine.readBattle(), GameEngineAbsent, "no engine");
-    const idle = initGameBattle({ Engine: { battle: null } });
-    assertInstanceOf(idle.readBattle(), GameBattleAbsent, "no battle");
-    const tearing = initGameBattle({
+    assertEquals(readMargonemEngines({ Engine: { battle } }), [{ battle }], "the field");
+    assertEquals(readMargonemEngines({ getEngine: () => ({ battle }) }), [{ battle }], "the call");
+    assertEquals(readMargonemEngines(null), [], "and a page that is not one is asked nothing");
+    const engine = initMargonemEngineBattle({});
+    assertInstanceOf(engine.readBattle(), MargonemEngineAbsent, "no engine");
+    const idle = initMargonemEngineBattle({ Engine: { battle: null } });
+    assertInstanceOf(idle.readBattle(), MargonemEngineBattleAbsent, "no battle");
+    const tearing = initMargonemEngineBattle({
         getEngine: () => {
             throw new RangeError("a page being torn down");
         },
@@ -228,11 +228,11 @@ Deno.test("the warriors are read off the live battle, and a battle holding none 
         updateData: () => 1,
         warriorsList: { 7: { id: 7, name: "Gracz 1", team: 1, hp: { cur: 5, max: 9 } } },
     });
-    const read = live.readGameWarriors();
+    const read = live.readMargonemEngineWarriors();
     assertNotInstanceOf(read, Error, "the warriors are read");
     assertEquals(read.map((one) => one.id), [7], "the one the fight holds");
-    const empty = readBattleOn({ updateData: () => 1 }).readGameWarriors();
-    assertInstanceOf(empty, GameWarriorsAbsent, "and none is a failure");
+    const empty = readBattleOn({ updateData: () => 1 }).readMargonemEngineWarriors();
+    assertInstanceOf(empty, MargonemEngineWarriorsAbsent, "and none is a failure");
 });
 
 Deno.test("the failures a wrap counts stop at its bound, and not before", () => {
@@ -285,7 +285,7 @@ Deno.test("a battle that throws as its warriors are read answers a failure of it
             throw new RangeError("a battle being torn down");
         },
     });
-    const read = readBattleOn(battle).readGameWarriors();
+    const read = readBattleOn(battle).readMargonemEngineWarriors();
     assertInstanceOf(read, Error, "the warriors are not read");
     assertInstanceOf(read, errors.Caught, "and it was theirs");
 });

@@ -52,7 +52,7 @@ import {
     WARRIOR_FIELDS,
 } from "#/src/game/payload-envelope.ts";
 import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
-import type { CapturedCombatant } from "#/src/game/warrior-snapshot.ts";
+import type { CapturedCombatant } from "#/src/game/margonem-engine-warriors.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { INTAKE_KEYS } from "./capture-intake.ts";
 import { readDevelopmentVersion } from "./build-userscript.ts";
@@ -1643,7 +1643,7 @@ export function encodeFabricatedFight(fight: FabricatedFight): string {
         [FILE_FIELD.addOnVersion]: version,
         [FILE_FIELD.capturedAt]: FABRICATED_AT,
         [FILE_FIELD.world]: FABRICATED_WORLD,
-        [FILE_FIELD.gameBuild]: null,
+        [FILE_FIELD.margonemClientBuild]: null,
         [FILE_FIELD.userAgent]: null,
         [FILE_FIELD.droppedCalls]: 0,
         [FILE_FIELD.isTruncated]: false,

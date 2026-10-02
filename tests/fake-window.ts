@@ -41,7 +41,7 @@ export interface FakeWindow {
 
 export interface FakeWindowOptions {
     /** Members of the game's own, stated over the page: `Engine`, `_t`. */
-    game?: Record<string, unknown>;
+    margonem?: Record<string, unknown>;
     /** Asked before each call reaches the page; a throw is the page's own. */
     onPageCall?: (call: PageCall) => void;
 }
@@ -88,7 +88,7 @@ export function composeFakeWindow(options: FakeWindowOptions = {}): FakeWindow {
         location: { hostname: "tempest.margonem.pl" },
         navigator: { userAgent: "a browser that said so" },
         Engine: { battle: { updateData: () => 1 } },
-        ...options.game,
+        ...options.margonem,
     };
     return window;
 }

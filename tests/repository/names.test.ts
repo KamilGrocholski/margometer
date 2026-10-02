@@ -1,6 +1,7 @@
 /**
  * N1 and N10: file names are kebab-case and name their contents; exported functions are
- * camelCase and exported types PascalCase.
+ * camelCase and exported types PascalCase. N21: no identifier carries the word `Game`, which named
+ * the game whichever way it was reached; `Margonem…` and its channel say both.
  */
 
 import { assertEquals } from "@std/assert";
@@ -18,6 +19,9 @@ import { isDigitAt } from "#/libs/text-walk.ts";
 const CATEGORY_STEMS = ["utils", "helpers", "common", "misc", "index"];
 const TYPE_NODES = ["TSTypeAliasDeclaration", "TSInterfaceDeclaration", "ClassDeclaration"];
 const FILE_SUFFIXES = [".test.ts", ".spec.ts", ".ts"];
+/** N21's retired word, in both spellings a name here takes. */
+const RETIRED_WORDS = ["Game", "GAME"];
+const WORD_JOINER = "_";
 
 Deno.test("a file named for its category or out of kebab-case is flagged", () => {
     assertEquals(lookupMisnamedFile("libs/utils.ts"), ["libs/utils.ts names a category"], "N10");
@@ -144,8 +148,66 @@ function isPascalCase(name: string): boolean {
     return isEveryCharacter(name, isAlphanumericAt);
 }
 
-Deno.test("every file in the tree is named as N1 and N10 ask", () => {
+Deno.test("a name holding the word Game is flagged, and a lower-case key or a string is not", () => {
+    const sample = composeSample([
+        "const initGamePlace = 1;",
+        "const GAME_KEYS = [];",
+        "class StoreGame {}",
+        "const record = { gameBuild: 1 };",
+        "const gameplay = 2;",
+        'const text = "GameValue";',
+        "// GameValue in a comment",
+        "const MargonemEnginePlace = 3;",
+    ]);
+    const flagged = [
+        "sample.ts:1 initGamePlace",
+        "sample.ts:2 GAME_KEYS",
+        "sample.ts:3 StoreGame",
+    ];
+    assertEquals(lookupRetiredWords(sample), flagged, "and the rest are not");
+    assertEquals(readNameWords("HTMLGame2Value"), ["HTML", "Game2", "Value"], "an acronym ends");
+});
+
+function lookupRetiredWords(file: SourceFile): string[] {
+    const found: string[] = [];
+    for (const node of readAstNodes(file, ["Identifier"])) {
+        const name = node.name ?? "";
+        const words = readNameWords(name);
+        if (!words.some((word) => RETIRED_WORDS.includes(word))) continue;
+        found.push(`${formatNodePlace(file, node)} ${name}`);
+    }
+    return found;
+}
+
+/** The words of a name: split at `_`, and where an upper-case letter opens a word. */
+function readNameWords(name: string): string[] {
+    const words: string[] = [];
+    let word = "";
+    for (let index = 0; index < name.length; index += 1) {
+        const character = name.charAt(index);
+        const isBreak = character === WORD_JOINER;
+        if (isBreak || isWordStartAt(name, index)) {
+            if (word !== "") words.push(word);
+            word = "";
+        }
+        if (!isBreak) word += character;
+    }
+    if (word !== "") words.push(word);
+    return words;
+}
+
+/** An upper-case letter after a lower-case one or a digit, or the last of a run before one. */
+function isWordStartAt(name: string, index: number): boolean {
+    if (index === 0) return false;
+    if (!isUpperAt(name, index)) return false;
+    if (isLowerOrDigitAt(name, index - 1)) return true;
+    if (!isUpperAt(name, index - 1)) return false;
+    return isLowerAt(name, index + 1);
+}
+
+Deno.test("every file and name in the tree is as N1, N10 and N21 ask", () => {
     const files = readSourceFiles(SOURCE_DIRECTORIES);
     assertEquals(files.flatMap((file) => lookupMisnamedFile(file.path)), [], "N10");
     assertEquals(files.flatMap(lookupMisnamedExports), [], "N1");
+    assertEquals(files.flatMap(lookupRetiredWords), [], "N21");
 });

@@ -6,7 +6,7 @@
  */
 
 import { type Browser, chromium, type Page } from "@playwright/test";
-import { GAME_SCRIPT_NAME, HOST_SELECTOR } from "./game-page.ts";
+import { HOST_SELECTOR, MARGONEM_CLIENT_SCRIPT_NAME } from "./margonem-page.ts";
 import { PAGE_ORIGIN, waitForFrame } from "./panel-page.ts";
 
 /** A real press or a real hover, on the `at`th element carrying `mark` inside the panel. */
@@ -66,7 +66,7 @@ async function routePanelPage(page: Page, served: PanelServed): Promise<void> {
             return route.fulfill({ contentType: "text/javascript", body: served.script });
         }
         // An empty script and never a miss: only the tag's `src` is read, for the build id.
-        if (path === `/${GAME_SCRIPT_NAME}`) {
+        if (path === `/${MARGONEM_CLIENT_SCRIPT_NAME}`) {
             return route.fulfill({ contentType: "text/javascript", body: "" });
         }
         if (path === "/") return route.fulfill({ contentType: "text/html", body: served.html });

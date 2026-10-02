@@ -183,9 +183,9 @@ evidence.
   this recording can settle — the messages, the snapshots and the percentages in it are unaffected.
   All three recordings of that day arrived the same way, and the reason turned out not to be the
   page: the client had started naming its bundle `main.min.53XkBRxF.js`, and the reader knew only
-  ids that were numbers (`src/game/game-build.ts`). It reads both now, so a recording made after
-  2026-08-25 carries a build again — these three cannot, being evidence (`captures/AGENTS.md`), and
-  their column is a fact about them for good.
+  ids that were numbers (`src/game/margonem-client-build.ts`). It reads both now, so a recording
+  made after 2026-08-25 carries a build again — these three cannot, being evidence
+  (`captures/AGENTS.md`), and their column is a fact about them for good.
 
   It is also the only fight **entered by hand and finished on auto**: the opening call states `auto`
   as `0`, the third states `1`, and 304 of the 308 messages arrive in the closing call. Unlike the
@@ -217,7 +217,7 @@ evidence.
   while `payload.w` states the health as it stands at the reload. 212 of its 487 messages arrive in
   that call, the rest in the one that ends the fight. It is also the first recording to carry a
   build again after the three of 2026-08-25 that name none — `53XkBRxF`, read off a bundle filename
-  that is not a number (`src/game/game-build.ts`).
+  that is not a number (`src/game/margonem-client-build.ts`).
 
   ⚠️ **It is the one recording where the game contradicts itself about a combatant's health.** For
   ten of the eleven, the last percentage the opening call states is the percentage the snapshot

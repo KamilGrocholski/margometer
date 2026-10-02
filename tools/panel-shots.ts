@@ -2,7 +2,7 @@
  * The panel, photographed, one picture per state worth showing, into `screenshots/` with
  * `taken-at.json` naming the commit, version, recording and moment of the set. `DESIGN.md` owns the
  * rule this obeys, _The Frame Is Not A Screen Rule_: it refuses to shoot while `src/` carries
- * anything no commit holds. The page is `tests/e2e/game-page.ts`, driven in Chrome by Playwright
+ * anything no commit holds. The page is `tests/e2e/margonem-page.ts`, driven in Chrome by Playwright
  * as the browser suite drives it, with both windows seeded in the corner the READMEs show.
  * Whether a state shown is reachable no picture says: opening every one before committing stays.
  *
@@ -16,7 +16,7 @@ import { PANEL_MARK, type PanelMark } from "#/src/ui/panel-intent.ts";
 import { STORE_KEY } from "#/src/game/browser-store.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { CLASS, PLACE, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
-import { composePanelPage } from "#/tests/e2e/game-page.ts";
+import { composePanelPage } from "#/tests/e2e/margonem-page.ts";
 import {
     closePanelPage,
     launchPanelBrowser,

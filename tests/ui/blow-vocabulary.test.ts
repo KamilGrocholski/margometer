@@ -158,7 +158,7 @@ Deno.test("a key with no word travels as the game wrote it where nobody can be a
 /**
  * The table is the mechanism, not the order of two lookups: a key we word never reaches the client
  * at all. Asking and preferring our answer would look the same from outside and would put an id on
- * the client's report queue for every key the panel draws (`src/game/game-dictionary.ts`).
+ * the client's report queue for every key the panel draws (`src/game/margonem-client-dictionary.ts`).
  */
 Deno.test("a key the panel words is never asked about, reader present or not", () => {
     const asked: string[] = [];
@@ -175,7 +175,7 @@ Deno.test("a key the panel words is never asked about, reader present or not", (
 
 /**
  * The negative space, and the reason the ids are a table rather than `msg_` and the key: an id the
- * client does not know is queued with a timer armed to report it (`src/game/game-dictionary.ts`).
+ * client does not know is queued with a timer armed to report it (`src/game/margonem-client-dictionary.ts`).
  * A key the game adds tomorrow is worded by nobody here and is in no table, so it must reach the
  * reader as raw protocol without anything being put to the client at all.
  */

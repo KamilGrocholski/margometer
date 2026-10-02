@@ -22,7 +22,7 @@ deno task preview        # http://127.0.0.1:8000/
 ```
 
 The index lists every recording under `captures/`. `/fight/<name>?through=<n>` opens the page the
-browser suite drives (`tests/e2e/game-page.ts`) with the fight fed `n` calls in, the whole fight
+browser suite drives (`tests/e2e/margonem-page.ts`) with the fight fed `n` calls in, the whole fight
 where `n` is missing or out of range. A strip at the bottom left steps it: `+1`, `+10`, `all`,
 `restart`, and the counter writes `through` back into the address.
 

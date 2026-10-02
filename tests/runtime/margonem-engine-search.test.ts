@@ -7,12 +7,16 @@
  */
 
 import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
-import { initGameBattle, SearchAbandoned, type WrapHandle } from "#/src/game/game-battle.ts";
+import {
+    initMargonemEngineBattle,
+    SearchAbandoned,
+    type WrapHandle,
+} from "#/src/game/margonem-engine-battle.ts";
 import { type BrowserTimers, initBrowserInterval } from "#/src/game/browser-time.ts";
 import {
-    type GameEngineSearch,
-    initGameEngineSearch,
+    initMargonemEngineSearch,
     LOOKS_MAXIMUM,
+    type MargonemEngineSearch,
     type SearchReport,
 } from "#/src/runtime/margometer-runtime.ts";
 
@@ -104,10 +108,10 @@ function start(
     clock: BrowserClock,
     report: SearchReport,
     seen: unknown[] = [],
-): GameEngineSearch {
+): MargonemEngineSearch {
     const listener = { onBeforeCall: () => {}, onPayload: (one: unknown) => void seen.push(one) };
-    return initGameEngineSearch(
-        initGameBattle(page),
+    return initMargonemEngineSearch(
+        initMargonemEngineBattle(page),
         initBrowserInterval(clock.timers),
         listener,
         report,
@@ -255,8 +259,8 @@ Deno.test("a clock that will not let go leaves a search that is done", () => {
             throw new RangeError("a clock that will not let go");
         },
     };
-    const search = initGameEngineSearch(
-        initGameBattle({}),
+    const search = initMargonemEngineSearch(
+        initMargonemEngineBattle({}),
         initBrowserInterval(refusing),
         { onBeforeCall: () => {}, onPayload: () => {} },
         report,
@@ -316,8 +320,8 @@ Deno.test("a search that is done looks no more, though the page's timer will not
             return {};
         },
     };
-    initGameEngineSearch(
-        initGameBattle(page),
+    initMargonemEngineSearch(
+        initMargonemEngineBattle(page),
         initBrowserInterval(stuck),
         { onBeforeCall: () => {}, onPayload: () => {} },
         report,
@@ -336,8 +340,8 @@ Deno.test("a page that will not start the timer is marked, once, as a look that 
         },
         clearInterval: () => {},
     };
-    initGameEngineSearch(
-        initGameBattle({}),
+    initMargonemEngineSearch(
+        initMargonemEngineBattle({}),
         initBrowserInterval(refusing),
         { onBeforeCall: () => {}, onPayload: () => {} },
         report,
@@ -348,7 +352,7 @@ Deno.test("a page that will not start the timer is marked, once, as a look that 
 
 /**
  * A timer the page will not start is reported on the stack that started the add-on, outside any
- * look's guard, so a report that breaks there must not leave `initGameEngineSearch` either.
+ * look's guard, so a report that breaks there must not leave `initMargonemEngineSearch` either.
  */
 Deno.test("a report that breaks on the starting stack does not leave the start", () => {
     const refusing: BrowserTimers = {
@@ -367,8 +371,8 @@ Deno.test("a report that breaks on the starting stack does not leave the start",
         },
     };
     const listener = { onBeforeCall: () => {}, onPayload: () => {} };
-    const search = initGameEngineSearch(
-        initGameBattle({}),
+    const search = initMargonemEngineSearch(
+        initMargonemEngineBattle({}),
         initBrowserInterval(refusing),
         listener,
         report,

@@ -10,10 +10,10 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
-import { readGameBattleRecord } from "./game-battle.ts";
-import { readGameWarriorsNamed, WARRIOR_ID_KEY } from "./warrior-snapshot.ts";
+import { readMargonemEngineBattle } from "./margonem-engine-battle.ts";
+import { readMargonemEngineWarriorsNamed, WARRIOR_ID_KEY } from "./margonem-engine-warriors.ts";
 
-export interface GameTooltipPort {
+export interface MargonemEngineTooltipPort {
     /** Every fighter the page draws, each with the rows they should carry now, empty or not. */
     writeRows(
         rowsByCombatantId: ReadonlyMap<number, readonly string[]>,
@@ -56,7 +56,7 @@ const CLIENT_BREAK = "<br>";
 
 /**
  * Past the rows one block comes to. `game/` reaches into no `ui/` module, so the composer's own
- * bound is held level with this one by `tests/game/game-tooltip.test.ts`.
+ * bound is held level with this one by `tests/game/margonem-engine-tooltip.test.ts`.
  */
 export const ROWS_WRITTEN_MAXIMUM = 20;
 
@@ -66,7 +66,7 @@ export const ROWS_WRITTEN_MAXIMUM = 20;
  * that tooltip and the block goes on again. So every fighter is written on every frame and nobody
  * takes two blocks, whichever of the client's updates rebuilt whom (`develop ADR 0111`).
  */
-export function initGameTooltip(browserWindow: unknown): GameTooltipPort {
+export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngineTooltipPort {
     let blocksById = new Map<number, string>();
     return {
         writeRows(rowsByCombatantId) {
@@ -76,7 +76,9 @@ export function initGameTooltip(browserWindow: unknown): GameTooltipPort {
             // Write every fighter's block, and forget a fighter the page no longer draws, which
             // keeps one board's worth in memory.
             const blocksWritten = errors.attempt(() => {
-                const warriors = readGameWarriorsNamed(readGameBattleRecord(browserWindow));
+                const warriors = readMargonemEngineWarriorsNamed(
+                    readMargonemEngineBattle(browserWindow),
+                );
                 if (warriors instanceof Error) return 0;
                 let written = 0;
                 const drawnIds = new Set<number>();
@@ -86,7 +88,7 @@ export function initGameTooltip(browserWindow: unknown): GameTooltipPort {
                     drawnIds.add(id);
                     const block = encodeTooltipBlock(rowsByCombatantId.get(id) ?? []);
                     const blockBefore = nextBlocksById.get(id) ?? "";
-                    const isBlockOn = writeGameWarriorBlock(warrior, block, blockBefore);
+                    const isBlockOn = writeMargonemEngineWarriorBlock(warrior, block, blockBefore);
                     if (isBlockOn === null) continue;
                     if (isBlockOn) nextBlocksById.set(id, block);
                     else nextBlocksById.delete(id);
@@ -126,7 +128,7 @@ function encodeTooltipBlock(rows: readonly string[]): string {
  * through `tip` with the registry's own string less ours. `tipupdate` goes after the rows, because
  * `concatTip` triggers nothing.
  */
-function writeGameWarriorBlock(
+function writeMargonemEngineWarriorBlock(
     warrior: UnknownRecord,
     block: string,
     blockBefore: string,

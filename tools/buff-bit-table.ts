@@ -11,7 +11,11 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { encodeJson } from "#/libs/json-text.ts";
 import { formatInteger } from "#/libs/number-text.ts";
 import { getEndOfRun, isWhitespaceAt, lookupQuotedLiteral } from "#/libs/text-walk.ts";
-import { GAME_CHANNEL, readCachedBundle, requireCachedBuild } from "./game-client-source.ts";
+import {
+    MARGONEM_CHANNEL,
+    readCachedBundle,
+    requireCachedBuild,
+} from "./margonem-client-source.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { BuffBitTableError } from "./margometer-tool-error.ts";
 
@@ -56,7 +60,7 @@ export function writeFrozenBuffBits(): FrozenFiles {
 /** The bit order the cached bundle gives, dated by the first build that gave it (ADR 0011). */
 export function prepareFrozenBuffBits(): FrozenFiles {
     const build = requireCachedBuild();
-    const bits = requireBuffBits(readCachedBundle(GAME_CHANNEL.production));
+    const bits = requireBuffBits(readCachedBundle(MARGONEM_CHANNEL.production));
     assert(bits.length > 0, "a table that is frozen counts something");
     return prepareFrozenFiles(
         [FROZEN_PATH],
@@ -147,7 +151,7 @@ if (import.meta.main) {
         const moved = frozen.hasMoved ? "froze" : "unchanged:";
         console.log(`${moved} ${count} bits from build ${frozen.date} → ${FROZEN_PATH}`);
     } else {
-        const bits = requireBuffBits(readCachedBundle(GAME_CHANNEL.production));
+        const bits = requireBuffBits(readCachedBundle(MARGONEM_CHANNEL.production));
         console.log(`${formatInteger(bits.length)} bits in build ${requireCachedBuild()}`);
         for (const [index, name] of bits.entries()) {
             console.log(`  bit ${formatInteger(index)}  ${name}`);

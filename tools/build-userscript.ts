@@ -34,8 +34,8 @@ export const USERSCRIPT_DOWNLOAD_ADDRESS =
     `${HOMEPAGE}/releases/latest/download/${USERSCRIPT_NAME}`;
 const METADATA_DOWNLOAD_ADDRESS = `${HOMEPAGE}/releases/latest/download/${METADATA_NAME}`;
 /** Worlds live on subdomains of their own; these are the operator's site, not a world. */
-const NON_GAME_HOSTS = ["www", "forum", "commons", "pomoc"];
-const GAME_DOMAINS = ["pl", "com"];
+const NON_WORLD_HOSTS = ["www", "forum", "commons", "pomoc"];
+const MARGONEM_DOMAINS = ["pl", "com"];
 /** Anything by which a built file could leave the browser. */
 const OUTBOUND_CALLS = ["fetch(", "XMLHttpRequest", "sendBeacon", "new WebSocket", "EventSource"];
 /** Sorts below the release of that number, so a copy built here is offered the release. */
@@ -128,13 +128,13 @@ function encodeUserscriptBannerDirectives(version: string): [string, string][] {
         ["downloadURL", USERSCRIPT_DOWNLOAD_ADDRESS],
         ["updateURL", METADATA_DOWNLOAD_ADDRESS],
     ];
-    for (const domain of GAME_DOMAINS) {
+    for (const domain of MARGONEM_DOMAINS) {
         // A pattern without the trailing `/*` never fires on a world carrying a query.
         directives.push(["match", `https://*.margonem.${domain}/*`]);
     }
     // ⚠️ `*.margonem.pl` matches the bare domain too, so the bare one is excluded by name.
-    for (const prefix of [...NON_GAME_HOSTS.map((host) => `${host}.`), ""]) {
-        for (const domain of GAME_DOMAINS) {
+    for (const prefix of [...NON_WORLD_HOSTS.map((host) => `${host}.`), ""]) {
+        for (const domain of MARGONEM_DOMAINS) {
             directives.push(["exclude", `https://${prefix}margonem.${domain}/*`]);
         }
     }

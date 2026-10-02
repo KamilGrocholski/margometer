@@ -14,7 +14,7 @@ Deno.test("every fate the vocabulary names is the fate of some failure", () => {
 
 Deno.test("the fates §10.5 names outright are the ones the table holds", () => {
     assertStrictEquals(
-        FAILURE_FATES.GameEngineAlreadyWrapped,
+        FAILURE_FATES.MargonemEngineAlreadyWrapped,
         FAILURE_FATE.standDown,
         "a second copy",
     );
@@ -24,7 +24,7 @@ Deno.test("the fates §10.5 names outright are the ones the table holds", () => 
         "an unread message",
     );
     assertStrictEquals(
-        FAILURE_FATES.GameValueAbsent,
+        FAILURE_FATES.MargonemValueAbsent,
         FAILURE_FATE.shownAsUnknown,
         "a reading the page did not give",
     );

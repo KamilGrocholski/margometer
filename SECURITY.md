@@ -57,8 +57,8 @@ whole security model, and everything else is a consequence.
   `tipupdate`, the event the client's own `tip` triggers, and the client's own code draws an open
   tooltip again. The game rewrites a fighter's entry whenever it updates them, so a detach leaves
   the last block only until then. It is the only thing this add-on puts outside itself,
-  `src/game/game-tooltip.ts` is the only file that does it, and **develop ADR 0105**, **develop ADR
-  0107** and **develop ADR 0111** carry what it cost to decide.
+  `src/game/margonem-engine-tooltip.ts` is the only file that does it, and **develop ADR 0105**,
+  **develop ADR 0107** and **develop ADR 0111** carry what it cost to decide.
 
 ## Being a guest on the page
 

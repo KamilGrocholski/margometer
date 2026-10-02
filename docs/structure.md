@@ -93,6 +93,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0023-a-name-says-whether-a-thing-is-the-games-the-browsers-or-ours.md`                     | a name says whether a thing is the game's, the browser's or ours, and "reading" names one thing              |
 | `docs/adr/0024-the-dom-names-the-meter-and-the-helper-and-develops-sheet-is-read-in-those-names.md`  | the DOM names the meter and the helper, and develop's sheet is compared in those names                       |
 | `docs/adr/0025-a-field-names-what-it-holds-and-the-fight-file-keeps-its-keys-through-a-map.md`       | a field names what it holds, the fight file keeps its keys through a map, and ours is a card                 |
+| `docs/adr/0026-a-name-says-margonem-and-the-way-it-is-reached.md`                                    | a name says Margonem and the way in: `MargonemEngine…`, `MargonemClient…`, `Margonem…`                       |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
@@ -144,24 +145,24 @@ file comes or goes (ADR 0010).
 | `src/core/protocol-number.ts`    | the numbers the protocol states, in the shapes it states them in                             |
 | `src/core/turn-clock.ts`         | whose turn an event opens, the one clock every figure and status counts turns on             |
 
-| Path                               | For                                                                                        |
-| ---------------------------------- | ------------------------------------------------------------------------------------------ |
-| `src/game/browser-store.ts`        | the store a browser lends, wrapped so a refusal is an answer                               |
-| `src/game/game-battle.ts`          | the running fight on the page, and the wrap of the engine's `updateData`                   |
-| `src/game/game-hero.ts`            | which combatant is the reader, read off the game client's own state as its hero's id       |
-| `src/game/game-place.ts`           | where a fight is happening, read off the game client's own state                           |
-| `src/game/game-tooltip.ts`         | our rows appended to the tooltip the game client shows for a fighter                       |
-| `src/game/fight-capture.ts`        | the fight as it happened, thinned as it is collected, kept for a recording                 |
-| `src/game/fight-place.ts`          | where a fight was fought: the map's name and the reader's square on it                     |
-| `src/game/game-build.ts`           | the build id read out of the client bundle's file name                                     |
-| `src/game/game-dictionary.ts`      | asking the running game client what the reader's own copy calls something                  |
-| `src/game/browser-time.ts`         | the page's clock, animation frame and repeating timer, each step guarded at the handover   |
-| `src/game/browser-console.ts`      | the page's console: one branded line per kind of failure                                   |
-| `src/game/browser-file.ts`         | hands a file to the browser's downloads, through a blob and an object URL                  |
-| `src/game/game-value.ts`           | a value asked of the game that came back empty, shown as unknown                           |
-| `src/game/browser-surroundings.ts` | what a recording states about where it was taken: the world and the browser                |
-| `src/game/payload-envelope.ts`     | one engine call read into a `PayloadRecord`, its warrior entries with each mask and charge |
-| `src/game/warrior-snapshot.ts`     | the combatants the running fight holds, copied for a recording                             |
+| Path                                     | For                                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/game/browser-store.ts`              | the store a browser lends, wrapped so a refusal is an answer                               |
+| `src/game/margonem-engine-battle.ts`     | the running fight on the page, and the wrap of the engine's `updateData`                   |
+| `src/game/margonem-engine-hero.ts`       | which combatant is the reader, read off the game client's own state as its hero's id       |
+| `src/game/margonem-engine-place.ts`      | where a fight is happening, read off the game client's own state                           |
+| `src/game/margonem-engine-tooltip.ts`    | our rows appended to the tooltip the game client shows for a fighter                       |
+| `src/game/fight-capture.ts`              | the fight as it happened, thinned as it is collected, kept for a recording                 |
+| `src/game/fight-place.ts`                | where a fight was fought: the map's name and the reader's square on it                     |
+| `src/game/margonem-client-build.ts`      | the build id read out of the client bundle's file name                                     |
+| `src/game/margonem-client-dictionary.ts` | asking the running game client what the reader's own copy calls something                  |
+| `src/game/browser-time.ts`               | the page's clock, animation frame and repeating timer, each step guarded at the handover   |
+| `src/game/browser-console.ts`            | the page's console: one branded line per kind of failure                                   |
+| `src/game/browser-file.ts`               | hands a file to the browser's downloads, through a blob and an object URL                  |
+| `src/game/margonem-value.ts`             | a value asked of the game that came back empty, shown as unknown                           |
+| `src/game/browser-surroundings.ts`       | what a recording states about where it was taken: the world and the browser                |
+| `src/game/payload-envelope.ts`           | one engine call read into a `PayloadRecord`, its warrior entries with each mask and charge |
+| `src/game/margonem-engine-warriors.ts`   | the combatants the running fight holds, copied for a recording                             |
 
 | Path                                | For                                                                                             |
 | ----------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -195,40 +196,40 @@ file comes or goes (ADR 0010).
 | `src/ui/ranked-order.ts`   | the order of a ranking, with a tie-break that keeps it stable                        |
 | `src/ui/view-failure.ts`   | what the panel could not do, as records the runtime counts                           |
 
-| Path                             | For                                                                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `tools/aura-lifetime.ts`         | how long a status stands on the mask, and whether one lighting goes out together: `fight:life`                           |
-| `tools/aura-standing.ts`         | what stands on a side, whom a shout holds, how many sources stand at once: `fight:auras`                                 |
-| `tools/buff-bit-table.ts`        | lifts the statuses the `buffs` mask is read by from the client bundle: `game:buffs`                                      |
-| `tools/build-userscript.ts`      | builds the userscript a reader installs, and checks the built text: `build`                                              |
-| `tools/capture-intake.ts`        | turns a recording the add-on wrote into material in `captures/`: `capture:intake`                                        |
-| `tools/card-height.ts`           | how tall the card a ranking row opens stands, over the recordings: `panel:cards`                                         |
-| `tools/changelog.ts`             | a version's `CHANGELOG.md` section as release notes, and the declared version: `release:notes`                           |
-| `tools/decoding-status.ts`       | how much of the protocol the decoder reads, in `develop`'s text: `fight:decoding`                                        |
-| `tools/develop-reports.ts`       | this tree's reports held against `develop`'s at the pinned revision: `fight:develop`                                     |
-| `tools/drill-report.ts`          | which rows of the panel open onto another level, over the recordings: `panel:drill`                                      |
-| `tools/fabricated-fight.ts`      | a fight nobody fought, ten a side, written under `fabricated/` outside git: `fight:fabricate`                            |
-| `tools/fight-figures.ts`         | what a recording adds up to per combatant, as a terminal table: `fight:figures`                                          |
-| `tools/frozen-files.ts`          | what a freeze leaves in `frozen/`: a file re-dated only where its content moved                                          |
-| `tools/game-client-source.ts`    | fetches and dates the game client's JavaScript into `.cache/`: `game:client`                                             |
-| `tools/game-readings.ts`         | whether the readings in `frozen/` are current, the refresh, and the development preview: `game:readings`                 |
-| `tools/help-article.ts`          | the published help, cached, searched and its phrase counts frozen: `game:help`                                           |
-| `tools/help-claim-register.ts`   | the claims `docs/protocol-keys.md` makes of the published help, read back into phrases                                   |
-| `tools/margometer-tool-error.ts` | `MargoMeterToolError`, the abstract base every tool failure extends                                                      |
-| `tools/payload-cost.ts`          | what one payload costs in the game's stack, and the frame's tally, over the recordings: `fight:cost`                     |
-| `tools/panel-giving-way.ts`      | the panel with a region that will not draw, built from a copy of the tree: `preview:giveway`, `panel:giveway`            |
-| `tools/panel-shots.ts`           | photographs the panel in each state worth showing into `screenshots/`: `panel:shots`                                     |
-| `tools/preview-page.ts`          | the page both previews draw: the game page, the bar, the tooltips column, a store that forgets, and the install band     |
-| `tools/preview-server.ts`        | serves the preview with a picker, rebuilt and reloaded on change, saying a failed build: `preview`, `preview:fabricated` |
-| `tools/preview-site.ts`          | builds the one-page preview GitHub Pages publishes, which keeps nothing and plays its fight once: `preview:site`         |
-| `tools/preview-state.ts`         | what `deno task preview` carries in its address across a reload                                                          |
-| `tools/protocol-key-shape.ts`    | what each key states about itself over the recordings, beside the register's line: `game:shape`                          |
-| `tools/protocol-key-table.ts`    | lifts every protocol key the game client branches on from its bundle: `game:keys`                                        |
-| `tools/recorded-material.ts`     | the recordings a tool reports on, each fight replayed through the runtime's chain, whole or call by call                 |
-| `tools/shout-holding.ts`         | whom a character a shout named strikes, turn by turn after it: `fight:shout`                                             |
-| `tools/skill-table.ts`           | every published skill and the turns its effects run for: `game:skills`                                                   |
-| `tools/turn-count.ts`            | the turns each recording's combatants took, graded against the game's numbering: `fight:turns`                           |
-| `tools/turn-reading.ts`          | what each message came to under the turn rule, and the openers in dispute: `fight:openers`                               |
+| Path                              | For                                                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `tools/aura-lifetime.ts`          | how long a status stands on the mask, and whether one lighting goes out together: `fight:life`                           |
+| `tools/aura-standing.ts`          | what stands on a side, whom a shout holds, how many sources stand at once: `fight:auras`                                 |
+| `tools/buff-bit-table.ts`         | lifts the statuses the `buffs` mask is read by from the client bundle: `game:buffs`                                      |
+| `tools/build-userscript.ts`       | builds the userscript a reader installs, and checks the built text: `build`                                              |
+| `tools/capture-intake.ts`         | turns a recording the add-on wrote into material in `captures/`: `capture:intake`                                        |
+| `tools/card-height.ts`            | how tall the card a ranking row opens stands, over the recordings: `panel:cards`                                         |
+| `tools/changelog.ts`              | a version's `CHANGELOG.md` section as release notes, and the declared version: `release:notes`                           |
+| `tools/decoding-status.ts`        | how much of the protocol the decoder reads, in `develop`'s text: `fight:decoding`                                        |
+| `tools/develop-reports.ts`        | this tree's reports held against `develop`'s at the pinned revision: `fight:develop`                                     |
+| `tools/drill-report.ts`           | which rows of the panel open onto another level, over the recordings: `panel:drill`                                      |
+| `tools/fabricated-fight.ts`       | a fight nobody fought, ten a side, written under `fabricated/` outside git: `fight:fabricate`                            |
+| `tools/fight-figures.ts`          | what a recording adds up to per combatant, as a terminal table: `fight:figures`                                          |
+| `tools/frozen-files.ts`           | what a freeze leaves in `frozen/`: a file re-dated only where its content moved                                          |
+| `tools/margonem-client-source.ts` | fetches and dates the game client's JavaScript into `.cache/`: `game:client`                                             |
+| `tools/margonem-readings.ts`      | whether the readings in `frozen/` are current, the refresh, and the development preview: `game:readings`                 |
+| `tools/help-article.ts`           | the published help, cached, searched and its phrase counts frozen: `game:help`                                           |
+| `tools/help-claim-register.ts`    | the claims `docs/protocol-keys.md` makes of the published help, read back into phrases                                   |
+| `tools/margometer-tool-error.ts`  | `MargoMeterToolError`, the abstract base every tool failure extends                                                      |
+| `tools/payload-cost.ts`           | what one payload costs in the game's stack, and the frame's tally, over the recordings: `fight:cost`                     |
+| `tools/panel-giving-way.ts`       | the panel with a region that will not draw, built from a copy of the tree: `preview:giveway`, `panel:giveway`            |
+| `tools/panel-shots.ts`            | photographs the panel in each state worth showing into `screenshots/`: `panel:shots`                                     |
+| `tools/preview-page.ts`           | the page both previews draw: the game page, the bar, the tooltips column, a store that forgets, and the install band     |
+| `tools/preview-server.ts`         | serves the preview with a picker, rebuilt and reloaded on change, saying a failed build: `preview`, `preview:fabricated` |
+| `tools/preview-site.ts`           | builds the one-page preview GitHub Pages publishes, which keeps nothing and plays its fight once: `preview:site`         |
+| `tools/preview-state.ts`          | what `deno task preview` carries in its address across a reload                                                          |
+| `tools/protocol-key-shape.ts`     | what each key states about itself over the recordings, beside the register's line: `game:shape`                          |
+| `tools/protocol-key-table.ts`     | lifts every protocol key the game client branches on from its bundle: `game:keys`                                        |
+| `tools/recorded-material.ts`      | the recordings a tool reports on, each fight replayed through the runtime's chain, whole or call by call                 |
+| `tools/shout-holding.ts`          | whom a character a shout named strikes, turn by turn after it: `fight:shout`                                             |
+| `tools/skill-table.ts`            | every published skill and the turns its effects run for: `game:skills`                                                   |
+| `tools/turn-count.ts`             | the turns each recording's combatants took, graded against the game's numbering: `fight:turns`                           |
+| `tools/turn-reading.ts`           | what each message came to under the turn rule, and the openers in dispute: `fight:openers`                               |
 
 | Path                | For                                                                                                                                                                           |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

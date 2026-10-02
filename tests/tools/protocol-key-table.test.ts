@@ -83,9 +83,9 @@ Deno.test("the family the client recognises by shape is read in both orders", ()
 });
 
 Deno.test("the frozen table says which build it came from, and holds no repetition", () => {
-    const { keys, gameBuild, computedFamily } = FROZEN_PROTOCOL_KEYS;
+    const { keys, gameBuild: build, computedFamily } = FROZEN_PROTOCOL_KEYS;
     assert(keys.length > 0, "a table that was lifted names something");
-    assert(gameBuild.length >= 8, "a build id is at least the eight characters both forms share");
+    assert(build.length >= 8, "a build id is at least the eight characters both forms share");
     assertEquals(new Set(keys).size, keys.length, "a key is named once");
     assertEquals([...keys], [...keys].sort(), "and the order is the one a re-freeze reproduces");
     assert(computedFamily.marker.length > 0, "the family has a marker");

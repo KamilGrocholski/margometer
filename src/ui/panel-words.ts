@@ -958,13 +958,16 @@ export function getWordsForBlowKey(key: string, translate: TranslateLabel | null
     if (words !== undefined) {
         return words;
     }
-    const stated = getGameWordsForKey(key, translate);
+    const stated = getMargonemClientWordsForKey(key, translate);
     if (stated !== null) return stated;
     return key;
 }
 
 /** Null where nobody is asked, where the client has no name, or where the name will not fit. */
-function getGameWordsForKey(key: string, translate: TranslateLabel | null): string | null {
+function getMargonemClientWordsForKey(
+    key: string,
+    translate: TranslateLabel | null,
+): string | null {
     if (translate === null) return null;
     const id = CLIENT_ID_BY_UNWORDED_KEY.get(key);
     if (id === undefined) return null;

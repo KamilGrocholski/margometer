@@ -8,7 +8,7 @@
 
 import { assert, assertStringIncludes } from "@std/assert";
 import { PANEL_MARK } from "#/src/ui/panel-intent.ts";
-import { PROBE_NAME } from "#/tests/e2e/game-page.ts";
+import { PROBE_NAME } from "#/tests/e2e/margonem-page.ts";
 
 /** One value that travels. Past this lies the shelf, which is a fight rather than a setting. */
 export const STATE_VALUE_MAXIMUM = 200;

@@ -6,11 +6,11 @@
 ## Context
 
 `AGENTS.md` C8, carried over from `develop`, wrote every import from the repository root under the
-`@/` alias, a sibling included: `src/game/game-tooltip.ts`, then named `engine-tooltip.ts`, imported
-the file beside it as `@/src/game/engine-battle.ts`. An import line then says nothing about
-distance. A file that leans on its own directory and one that reaches across two layers read alike,
-and the directory's name is spelled again on every line of a module that only talks to its
-neighbours.
+`@/` alias, a sibling included: `src/game/margonem-engine-tooltip.ts`, then named
+`engine-tooltip.ts`, imported the file beside it as `@/src/game/engine-battle.ts`. An import line
+then says nothing about distance. A file that leans on its own directory and one that reaches across
+two layers read alike, and the directory's name is spelled again on every line of a module that only
+talks to its neighbours.
 
 `@/` is also the prefix npm gives a scoped package (`@std/assert` stands beside it in `deno.json`),
 so the two kinds of import were told apart by the character after the at sign.

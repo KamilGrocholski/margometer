@@ -46,7 +46,7 @@ const ADD_ON_VERSION = "0.0.0-test";
 
 const SURROUNDINGS: FileSurroundings = {
     world: "tempest",
-    gameBuild: "53XkBRxF",
+    margonemClientBuild: "53XkBRxF",
     capturedAt: "2026-08-29T10:11:12.345Z",
     userAgent: "a browser that said so",
     addOnVersion: ADD_ON_VERSION,
@@ -121,12 +121,12 @@ Deno.test("a recording nobody measured says null, where one measured says a numb
 });
 
 Deno.test("a recording that could not read its surroundings says so rather than inventing", () => {
-    const blind = { ...SURROUNDINGS, gameBuild: null, userAgent: null };
+    const blind = { ...SURROUNDINGS, margonemClientBuild: null, userAgent: null };
     const written = readFile(writeFile(LIVE_EMPTY, null, blind).text);
     assertEquals(written.gameBuild, null, "a build nobody stated is absent, never a stand-in");
     assertEquals(written.userAgent, null, "and so is a browser that said nothing of itself");
     assertThrows(
-        () => encodeFightFile(LIVE_EMPTY, null, { ...SURROUNDINGS, gameBuild: "" }),
+        () => encodeFightFile(LIVE_EMPTY, null, { ...SURROUNDINGS, margonemClientBuild: "" }),
         AssertionError,
         "a build it could not read is absent, never empty",
     );
@@ -170,7 +170,7 @@ Deno.test("a file is named for the world, both versions and the moment", () => {
         `margometer-tempest-53XkBRxF-${ADD_ON_VERSION}-2026-08-29T10-11-12-345Z.json`,
         "the world, the game's build, ours, then the moment",
     );
-    const blind = writeFile(LIVE_EMPTY, null, { ...SURROUNDINGS, gameBuild: null }).name;
+    const blind = writeFile(LIVE_EMPTY, null, { ...SURROUNDINGS, margonemClientBuild: null }).name;
     assertStringIncludes(blind, "-none-", "a build the page never stated is said to be none");
     assert(!name.slice(0, -".json".length).includes(":"), "no colon reaches a file's name");
     assertStringIncludes(

@@ -58,7 +58,7 @@ function composeFight(openedAt: number, isPinned = false): KeptFight {
         payloads: [payload],
         place: null,
         readerId: null,
-        gameBuild: null,
+        margonemClientBuild: null,
         isPinned,
     };
 }

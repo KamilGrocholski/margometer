@@ -77,7 +77,7 @@ const ENVELOPE_BEFORE_ENGLISH: Readonly<Record<string, string>> = {
     dodatek: FILE_FIELD.addOnVersion,
     przy: FILE_FIELD.capturedAt,
     swiat: FILE_FIELD.world,
-    build: FILE_FIELD.gameBuild,
+    build: FILE_FIELD.margonemClientBuild,
     przegladarka: FILE_FIELD.userAgent,
     raport: FILE_FIELD.report,
     pominietych: FILE_FIELD.droppedCalls,
@@ -494,7 +494,7 @@ export function composeIntakeName(recording: unknown, slug: string): string {
         throw new CaptureIntakeError(`\`${FILE_FIELD.world}\` is \`${world}\`, not a name part`);
     }
     if (!isSlugText(slug)) throw new CaptureIntakeError(`\`${slug}\` is not a kebab-case slug`);
-    const build = readEnvelopeVersion(envelope, FILE_FIELD.gameBuild);
+    const build = readEnvelopeVersion(envelope, FILE_FIELD.margonemClientBuild);
     const addOn = readEnvelopeVersion(envelope, FILE_FIELD.addOnVersion);
     return `${day}-${world}-${slug}-${build}-${addOn}${RECORDING_SUFFIX}`;
 }

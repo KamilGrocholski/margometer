@@ -53,7 +53,7 @@ What follows from it:
 - A measurement of how the panel lays out is taken in Chrome, and carries its version and the date
   it was taken on, as **V3** asks of any claim about a browser. `deno task preview` serves the
   add-on over a recording with no game and no network, on the page the browser suite drives Chrome
-  over (`tests/e2e/game-page.ts`).
+  over (`tests/e2e/margonem-page.ts`).
 - A measurement already in the tree that names another engine stays as it was taken. It was true of
   that engine on that date, and rewriting it would be inventing a reading nobody took.
 - Being the target buys Chrome nothing in the tables below. A construct still needs an entry with
@@ -292,9 +292,9 @@ library member the engine lacks fails at the call, which is a place: something r
 the failure is that thing's size. A pattern whose syntax the engine cannot parse is an _early_
 SyntaxError — it is refused while the file is being read, before a line of it has run. The bundle
 never parses, so the reader sees no panel and no console line of ours. `new RegExp` differs only in
-when — `src/game/game-build.ts` builds two at module scope, so those throw while the add-on is
-starting. There is no degraded state to describe here, which is why the `[ASK]` `AGENTS.md` puts on
-a construct that raises the floor binds with nothing to weigh.
+when — `src/game/margonem-client-build.ts` builds two at module scope, so those throw while the
+add-on is starting. There is no degraded state to describe here, which is why the `[ASK]`
+`AGENTS.md` puts on a construct that raises the floor binds with nothing to weigh.
 
 ## Installing it
 

@@ -1,5 +1,5 @@
 /**
- * What the browser suite reads a page and the recordings with. The page itself is `game-page.ts`.
+ * What the browser suite reads a page and the recordings with. The page itself is `margonem-page.ts`.
  *
  * Deliberately **not** `develop:tools/preview-page.ts`, which takes the browser's storage away and appends
  * its script after the bundle has run — so it can neither prove a place survives a reload nor see

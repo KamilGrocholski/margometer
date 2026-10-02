@@ -7,10 +7,10 @@
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { getEndOfRun } from "#/libs/text-walk.ts";
-import { GAME_VALUE, type GameReadFailure, GameValueAbsent } from "./game-value.ts";
+import { MARGONEM_VALUE, type MargonemReadFailure, MargonemValueAbsent } from "./margonem-value.ts";
 
-export interface GameBuildPort {
-    readBuildId(): string | GameReadFailure;
+export interface MargonemClientBuildPort {
+    readBuildId(): string | MargonemReadFailure;
 }
 
 /** The whole of what this asks a page for: the sources of its scripts. */
@@ -31,7 +31,7 @@ const OPTIONAL_SEPARATOR = ".";
 const LOOKS_MAXIMUM = 256;
 export const SCRIPTS_MAXIMUM = 4096;
 
-export function initGameBuild(scripts: BrowserScripts): GameBuildPort {
+export function initMargonemClientBuild(scripts: BrowserScripts): MargonemClientBuildPort {
     return {
         readBuildId() {
             const sources = errors.attempt(() => scripts.readScriptSources());
@@ -40,10 +40,10 @@ export function initGameBuild(scripts: BrowserScripts): GameBuildPort {
             for (let at = 0; at < walked; at += 1) {
                 const source = sources[at];
                 if (typeof source !== "string") continue;
-                const build = parseGameBuildId(source);
+                const build = parseMargonemClientBuildId(source);
                 if (build !== null) return build;
             }
-            return new GameValueAbsent(GAME_VALUE.build);
+            return new MargonemValueAbsent(MARGONEM_VALUE.build);
         },
     };
 }
@@ -52,7 +52,7 @@ export function initGameBuild(scripts: BrowserScripts): GameBuildPort {
  * `main.min<build>.js` or `main.min.<build>.js`, null for anything else. A `main.min` whose tail
  * does not hold is not the end of the search: a page states this name more than once.
  */
-export function parseGameBuildId(text: string): string | null {
+export function parseMargonemClientBuildId(text: string): string | null {
     const span = lookupScriptNameSpan(text);
     if (span === null) return null;
     return text.slice(span.buildStart, span.buildEnd);
@@ -95,7 +95,7 @@ function isAlphanumericAt(text: string, index: number): boolean {
  * Composing the name from the id asks for one that is not there: the separator before the id is
  * the client's to choose, and it changed once (read 2026-08-25).
  */
-export function parseGameBundleName(text: string): string | null {
+export function parseMargonemClientBundleName(text: string): string | null {
     const span = lookupScriptNameSpan(text);
     if (span === null) return null;
     const end = span.buildEnd + SCRIPT_NAME_TAIL.length;

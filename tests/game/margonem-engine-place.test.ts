@@ -7,26 +7,26 @@
 
 import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initGamePlace } from "#/src/game/game-place.ts";
-import { GAME_VALUE, GameValueAbsent } from "#/src/game/game-value.ts";
+import { initMargonemEnginePlace } from "#/src/game/margonem-engine-place.ts";
+import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/game/margonem-value.ts";
 
 Deno.test("the map and the tile are read off the client's own state", () => {
-    const place = readPlaceOf(composeEngine("Tempest", 12, 34));
+    const place = readPlaceOf(composeMargonemEngine("Tempest", 12, 34));
     assertEquals(place, { mapName: "Tempest", x: 12, y: 34 }, "all three, as the page holds");
 });
 
 function readPlaceOf(engine: unknown) {
-    return initGamePlace({ Engine: engine }).readPlace();
+    return initMargonemEnginePlace({ Engine: engine }).readPlace();
 }
 
-function composeEngine(mapName: unknown, x: unknown, y: unknown): Record<string, unknown> {
+function composeMargonemEngine(mapName: unknown, x: unknown, y: unknown): Record<string, unknown> {
     return { map: { d: { name: mapName } }, hero: { d: { x, y } } };
 }
 
 Deno.test("a tile arrives as text as readily as a number", () => {
-    const place = readPlaceOf(composeEngine("Tempest", "12", "34"));
+    const place = readPlaceOf(composeMargonemEngine("Tempest", "12", "34"));
     assertEquals(place, { mapName: "Tempest", x: 12, y: 34 }, "both spellings are read");
-    const east = readPlaceOf(composeEngine("Tempest", "east", 1));
+    const east = readPlaceOf(composeMargonemEngine("Tempest", "east", 1));
     assertEquals(
         east,
         { mapName: "Tempest", x: null, y: 1 },
@@ -35,9 +35,9 @@ Deno.test("a tile arrives as text as readily as a number", () => {
 });
 
 Deno.test("a tile of zero is a tile somebody stands on", () => {
-    const place = readPlaceOf(composeEngine("Tempest", 0, 0));
+    const place = readPlaceOf(composeMargonemEngine("Tempest", 0, 0));
     assertEquals(place, { mapName: "Tempest", x: 0, y: 0 }, "zero is where they are");
-    const one = readPlaceOf(composeEngine(null, 1, 1));
+    const one = readPlaceOf(composeMargonemEngine(null, 1, 1));
     assertEquals(one, { mapName: null, x: 1, y: 1 }, "and one beside it, with no map named");
 });
 
@@ -51,17 +51,21 @@ Deno.test("what the page will not say is null, and a page saying nothing is no p
     expectAbsent(readPlaceOf({ map: { d: {} }, hero: { d: {} } }), "none of it is none");
     expectAbsent(readPlaceOf({}), "an engine holding neither says nothing");
     expectAbsent(readPlaceOf(null), "and what is not an engine says nothing either");
-    expectAbsent(initGamePlace(null).readPlace(), "and nor does no page");
+    expectAbsent(initMargonemEnginePlace(null).readPlace(), "and nor does no page");
 });
 
 function expectAbsent(read: unknown, message: string): void {
-    assertInstanceOf(read, GameValueAbsent, message);
-    assertStrictEquals(read.value, GAME_VALUE.place, `${message}: the reading named`);
+    assertInstanceOf(read, MargonemValueAbsent, message);
+    assertStrictEquals(read.value, MARGONEM_VALUE.place, `${message}: the reading named`);
 }
 
 Deno.test("the engine is read by the page's call when the field holds none", () => {
-    const page = { getEngine: () => composeEngine("Tempest", 1, 2) };
-    assertEquals(initGamePlace(page).readPlace(), { mapName: "Tempest", x: 1, y: 2 }, "read");
+    const page = { getEngine: () => composeMargonemEngine("Tempest", 1, 2) };
+    assertEquals(
+        initMargonemEnginePlace(page).readPlace(),
+        { mapName: "Tempest", x: 1, y: 2 },
+        "read",
+    );
 });
 
 Deno.test("a page tearing itself down is a failure of theirs, not a reading of nothing", () => {
@@ -83,7 +87,7 @@ Deno.test("a page whose own call throws is a failure of theirs, not a reading of
             throw thrown;
         },
     };
-    const read = initGamePlace(page).readPlace();
+    const read = initMargonemEnginePlace(page).readPlace();
     assertInstanceOf(read, errors.Caught, "a failure of theirs");
     assertStrictEquals(read.cause, thrown, "with its cause");
 });
@@ -113,14 +117,18 @@ Deno.test("the client's own method for this is never called", () => {
 Deno.test("one axis alone is a place, and a tile of the wrong type is none, never zero", () => {
     const onlyX = readPlaceOf({ map: { d: {} }, hero: { d: { x: 12 } } });
     assertEquals(onlyX, { mapName: null, x: 12, y: null }, "a tile on one axis is a place");
-    const odd = readPlaceOf(composeEngine("Tempest", true, 34));
+    const odd = readPlaceOf(composeMargonemEngine("Tempest", true, 34));
     assertEquals(odd, { mapName: "Tempest", x: null, y: 34 }, "a tile nobody wrote is none");
 });
 
 Deno.test("the first spelling of the game that says anything is the one read", () => {
     const page = {
-        Engine: composeEngine("Tempest", 1, 2),
-        getEngine: () => composeEngine("Luvia", 3, 4),
+        Engine: composeMargonemEngine("Tempest", 1, 2),
+        getEngine: () => composeMargonemEngine("Luvia", 3, 4),
     };
-    assertEquals(initGamePlace(page).readPlace(), { mapName: "Tempest", x: 1, y: 2 }, "Engine");
+    assertEquals(
+        initMargonemEnginePlace(page).readPlace(),
+        { mapName: "Tempest", x: 1, y: 2 },
+        "Engine",
+    );
 });

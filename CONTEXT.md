@@ -265,11 +265,12 @@ Fixture, sample, test data, mock, dump
 
 **Game client**: The bundle the game serves and runs in the reader's browser. Two channels:
 **production** at `<world>.margonem.pl`, which decides, and **development** at
-`experimental.margonem.pl`, which is readable but lags. What is the client's is `Game…` in a name
-(**N21**). _Avoid_: Engine, upstream, page
+`experimental.margonem.pl`, which is readable but lags. What is reached through the client outside
+the engine is `MargonemClient…` in a name, and what is the game's at large `Margonem…` (**N21**).
+_Avoid_: Engine, upstream, page, and `Game` in a name
 
 **Engine**: The object inside the game client whose update function we wrap. Narrower than the
-client, and `GameEngine…` in a name. _Avoid_: runtime, core
+client, and `MargonemEngine…` in a name, with everything read through it. _Avoid_: runtime, core
 
 **Browser**: The interfaces the browser itself offers the add-on — storage, the clock, frames and
 timers, the console, a download, the page's location and agent. Neither the client's nor the

@@ -6,7 +6,7 @@
  */
 
 import { expect, type Page } from "@playwright/test";
-import { HOST_SELECTOR } from "./game-page.ts";
+import { HOST_SELECTOR } from "./margonem-page.ts";
 import { waitForFrame } from "./panel-page.ts";
 
 export interface PagePoint {
