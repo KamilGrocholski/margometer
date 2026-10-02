@@ -13814,7 +13814,7 @@ a letter past ASCII is text rather than a name, and is left out.
 - `"delete"` — `DELETE_OPERATOR`
 - `"libs"` — `CHECKED_DIRECTORIES`
 - `"src/core"` — `CHECKED_DIRECTORIES`
-- `"src/game"` — `CHECKED_DIRECTORIES`
+- `"src/ports"` — `CHECKED_DIRECTORIES`
 - `"src/runtime"` — `CHECKED_DIRECTORIES`
 
 ### `tests/repository/regular-expressions.test.ts`

@@ -6,7 +6,7 @@
  * from 2026-08-25 carry `build: null` for good because of it.
  */
 
-import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
+import { assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import {
     initMargonemClientBuild,
@@ -16,12 +16,12 @@ import {
 import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
 
 Deno.test("both names the client has served give up their build", () => {
-    assertEquals(
+    assertStrictEquals(
         parseMargonemClientBuildId("https://tempest.margonem.pl/js/main.min1786514810315.js"),
         "1786514810315",
         "the older name, whose id is a millisecond timestamp",
     );
-    assertEquals(
+    assertStrictEquals(
         parseMargonemClientBuildId("https://luvia.margonem.pl/js/main.min.53XkBRxF.js"),
         "53XkBRxF",
         "and the newer, whose id is eight characters with a dot in front of it",
@@ -30,12 +30,12 @@ Deno.test("both names the client has served give up their build", () => {
 
 /** A transcript: the bundle's script tag as `experimental.margonem.pl` served it, 2026-10-02. */
 Deno.test("an id carrying a dash is read whole", () => {
-    assertEquals(
+    assertStrictEquals(
         parseMargonemClientBuildId('<script src="/js/main.min.COv-iBFt.js"></script>'),
         "COv-iBFt",
         "the dash is part of the id, not where it ends",
     );
-    assertEquals(
+    assertStrictEquals(
         parseMargonemClientBundleName('<script src="/js/main.min.COv-iBFt.js"></script>'),
         "main.min.COv-iBFt.js",
         "and of the bundle's name",
@@ -93,7 +93,7 @@ Deno.test("an id of eight characters is one, and of seven is not", () => {
 Deno.test("the search goes past a name whose tail does not hold", () => {
     // A page states this name more than once, and only one of them need be the bundle: a reader
     // that stopped at the first `main.min` would answer null for a page that states the answer.
-    assertEquals(
+    assertStrictEquals(
         parseMargonemClientBuildId("main.min.js and then main.min.53XkBRxF.js"),
         "53XkBRxF",
         "the second one answers where the first could not",
@@ -103,7 +103,7 @@ Deno.test("the search goes past a name whose tail does not hold", () => {
 Deno.test("the first script naming a build is the page's build", () => {
     const sources = ["/js/jquery.js", "/js/main.min.53XkBRxF.js", "/js/main.min.Bb28FQty.js"];
     const build = initMargonemClientBuild({ readScriptSources: () => sources }).readBuildId();
-    assertEquals(build, "53XkBRxF", "the first that names one, and not a later one");
+    assertStrictEquals(build, "53XkBRxF", "the first that names one, and not a later one");
 });
 
 Deno.test("a page naming no build says so, and a source that is not text is passed over", () => {
@@ -115,7 +115,7 @@ Deno.test("a page naming no build says so, and a source that is not text is pass
     assertInstanceOf(empty, MargonemValueAbsent, "and a page with no scripts names none either");
     const mixed = [null, 7, { src: "x" }, "/js/main.min.53XkBRxF.js"];
     const passed = initMargonemClientBuild({ readScriptSources: () => mixed }).readBuildId();
-    assertEquals(passed, "53XkBRxF", "what is not text is passed over, not refused");
+    assertStrictEquals(passed, "53XkBRxF", "what is not text is passed over, not refused");
 });
 
 Deno.test("a page whose scripts will not be read is a failure of theirs", () => {
@@ -132,7 +132,7 @@ Deno.test("a page whose scripts will not be read is a failure of theirs", () => 
 
 /** Probe: an id long enough under a tail that does not hold is passed, and the search goes on. */
 Deno.test("a name of full length whose tail does not hold is passed for the next one", () => {
-    assertEquals(
+    assertStrictEquals(
         parseMargonemClientBuildId("main.min.53XkBRxF.css then main.min.Bb28FQty.js"),
         "Bb28FQty",
         "the second one answers where the first had the wrong tail",

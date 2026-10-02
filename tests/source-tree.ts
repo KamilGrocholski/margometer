@@ -115,11 +115,17 @@ const NESTED_NODES = [
     "WhileStatement",
 ] as const;
 
-/** Every `.ts` file under the directories asked for that exist, by repository-relative path. */
+/**
+ * Every `.ts` file under the directories asked for, by repository-relative path. A directory that is
+ * gone fails rather than reading as empty: a guard naming a layer a rename moved held nothing.
+ */
 export function readSourceFiles(directories: readonly string[]): SourceFile[] {
     const files: SourceFile[] = [];
     for (const directory of directories) {
-        if (!existsSync(directory, { isDirectory: true })) continue;
+        assert(
+            existsSync(directory, { isDirectory: true }),
+            `${directory} is a directory of the tree`,
+        );
         for (const entry of walkSync(directory, { exts: [".ts"], includeDirs: false })) {
             files.push({ path: entry.path, text: Deno.readTextFileSync(entry.path) });
             assert(files.length <= FILES_MAXIMUM, "the tree stays inside the bound a walk states");

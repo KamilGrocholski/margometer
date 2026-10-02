@@ -14,7 +14,7 @@ import {
 } from "#/tests/source-tree.ts";
 
 /** The layers that build records, and `libs/`, which the bundle carries. */
-const CHECKED_DIRECTORIES = ["libs", "src/core", "src/game", "src/runtime"];
+const CHECKED_DIRECTORIES = ["libs", "src/core", "src/ports", "src/runtime"];
 const DELETE_OPERATOR = "delete";
 
 Deno.test("a deleted and an optional property are flagged, and a map's delete and null are not", () => {
