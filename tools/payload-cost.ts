@@ -1,15 +1,17 @@
 /**
  * What one payload costs in the game's stack, and what the frame's tally costs at a fight's end,
- * timed over the recordings through the runtime's own chain (S3). A payload is its envelope, the
- * session's prepare and its commit, which is everything the wrap runs before it hands the call
- * back. Each figure is the least of several runs: a slower run is the collector or another
- * process, never the code. V8 under Deno, which is the engine Chrome runs the userscript on.
+ * timed over the recordings (S3). A payload is timed through the wrap itself: the add-on stood up by
+ * its entry over the simulator's page and game (`tests/simulation.ts`), the game's method called
+ * as the game calls it, less what the game's own method took. Each figure is the least of several
+ * runs: a slower run is the collector or another process, never the code. V8 under Deno, which is
+ * the engine Chrome runs the userscript on.
  *
  *     deno task fight:cost [recording.json …]
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
+import { isRecord } from "#/libs/unknown-value.ts";
 import {
     commitPayload,
     createFightSession,
@@ -19,6 +21,9 @@ import {
 } from "#/src/core/fight-session.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
 import { tallyFightReading } from "#/src/runtime/fight-reading.ts";
+import { startMargoMeter } from "#/src/userscript-entry.ts";
+import { composeFakeWindow, flushFakeFrames } from "#/tests/fake-window.ts";
+import { composeRebuildingBattle } from "#/tests/rebuilding-battle.ts";
 import { PayloadCostError } from "./margometer-tool-error.ts";
 import {
     DECODER_TABLES,
@@ -53,10 +58,44 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
         for (const [at, fight] of material.fights.entries()) {
             const cost = costs[at];
             assert(cost !== undefined, "every fight has its cost");
+            // Stand the add-on up over a game whose own method is timed apart from the wrap.
+            const battle = composeRebuildingBattle();
+            const own = battle.page.Engine.battle.updateData;
+            assert(typeof own === "function", "the game's method stands before the wrap");
+            let gameMilliseconds = 0;
+            const timed = (payload: unknown): unknown => {
+                const started = performance.now();
+                const answered = Reflect.apply(own, battle.page.Engine.battle, [payload]);
+                gameMilliseconds = performance.now() - started;
+                return answered;
+            };
+            battle.page.Engine.battle.updateData = timed;
+            const window = composeFakeWindow({
+                game: { ...battle.page, _t: (labelId: string) => `label ${labelId}` },
+            });
+            startMargoMeter(window.page);
+            const engine = window.page.Engine;
+            if (!isRecord(engine)) throw new PayloadCostError("the page lost its game");
+            const gameBattle = engine.battle;
+            if (!isRecord(gameBattle)) throw new PayloadCostError("the game lost its battle");
+            const wrapped = gameBattle.updateData;
+            if (typeof wrapped !== "function") {
+                throw new PayloadCostError("the battle lost its method");
+            }
+            assertNotStrictEquals(wrapped, timed, "the add-on wraps the game's method");
             const session = createFightSession(SESSION_OPTIONS);
             for (const [index, update] of fight.updates.entries()) {
-                // Time the payload as the wrap runs it: the envelope, the prepare, the commit.
+                // Time the payload as the game calls it, less what the game's own method took.
                 const started = performance.now();
+                Reflect.apply(wrapped, gameBattle, [update]);
+                const tookMilliseconds = performance.now() - started - gameMilliseconds;
+                const took = tookMilliseconds * MICROSECONDS_PER_MILLISECOND;
+                cost.payloadMicroseconds[index] = Math.min(
+                    cost.payloadMicroseconds[index] ?? took,
+                    took,
+                );
+                flushFakeFrames(window);
+                // Keep a session of the tally's own, refusing a recording the add-on would refuse.
                 const record = readPayloadEnvelope(update);
                 if (record instanceof Error) {
                     throw new PayloadCostError(`${cost.name}: call ${index} has no envelope`, {
@@ -70,13 +109,9 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
                     });
                 }
                 commitPayload(session, prepared);
-                const took = (performance.now() - started) * MICROSECONDS_PER_MILLISECOND;
-                cost.payloadMicroseconds[index] = Math.min(
-                    cost.payloadMicroseconds[index] ?? took,
-                    took,
-                );
                 cost.messages[index] = record.messages.length;
             }
+            assertStrictEquals(window.lines.length, 0, "a recording timed left no failure behind");
             const view = getFightView(session);
             if (view === null) throw new PayloadCostError(`${cost.name} opened no fight`);
             // Time the tally a frame runs, at the call where the fight is longest.
