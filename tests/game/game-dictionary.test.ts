@@ -7,8 +7,8 @@
 
 import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initPageDictionary, parseLabel } from "#/src/game/game-dictionary.ts";
-import { PAGE_READING, PageReadingAbsent } from "#/src/game/page-reading.ts";
+import { initClientDictionary, parseLabel } from "#/src/game/game-dictionary.ts";
+import { CLIENT_READING, ClientReadingAbsent } from "#/src/game/page-reading.ts";
 
 const CRITICAL_ID = "msg_+crit";
 
@@ -42,21 +42,21 @@ Deno.test("an entry with no words in it is refused, and a lone mark is not a wor
 });
 
 Deno.test("a page with no game on it lends no dictionary", () => {
-    expectAbsent(initPageDictionary({}).readLabel(CRITICAL_ID), "never loaded");
-    const stated = initPageDictionary({ _t: "not a function" }).readLabel(CRITICAL_ID);
+    expectAbsent(initClientDictionary({}).readLabel(CRITICAL_ID), "never loaded");
+    const stated = initClientDictionary({ _t: "not a function" }).readLabel(CRITICAL_ID);
     expectAbsent(stated, "nor where it is not one");
-    expectAbsent(initPageDictionary(null).readLabel(CRITICAL_ID), "nor with no page");
-    expectAbsent(initPageDictionary("a page").readLabel(CRITICAL_ID), "nor a string");
+    expectAbsent(initClientDictionary(null).readLabel(CRITICAL_ID), "nor with no page");
+    expectAbsent(initClientDictionary("a page").readLabel(CRITICAL_ID), "nor a string");
 });
 
 function expectAbsent(read: unknown, message: string): void {
-    assertInstanceOf(read, PageReadingAbsent, message);
-    assertStrictEquals(read.reading, PAGE_READING.label, `${message}: the reading named`);
+    assertInstanceOf(read, ClientReadingAbsent, message);
+    assertStrictEquals(read.reading, CLIENT_READING.label, `${message}: the reading named`);
 }
 
 Deno.test("a reader answers what the client answers, and nothing where it answers nothing", () => {
     const asked: unknown[][] = [];
-    const dictionary = initPageDictionary({
+    const dictionary = initClientDictionary({
         _t: (...args: unknown[]) => {
             asked.push(args);
             return args[0] === CRITICAL_ID ? "+Critical hit" : undefined;
@@ -70,13 +70,13 @@ Deno.test("a reader answers what the client answers, and nothing where it answer
 });
 
 Deno.test("an answer of the wrong kind is no answer either", () => {
-    const dictionary = initPageDictionary({ _t: () => 42 });
+    const dictionary = initClientDictionary({ _t: () => 42 });
     expectAbsent(dictionary.readLabel(CRITICAL_ID), "which refuses what is not text");
 });
 
 /** The exception must not travel on: the panel is drawn inside a call the game made (E5). */
 Deno.test("a dictionary that throws leaves the panel drawing its own word", () => {
-    const dictionary = initPageDictionary({
+    const dictionary = initClientDictionary({
         // A real fault rather than a thrown Error: a torn-down page context looks like this.
         _t: (): string => (undefined as unknown as { missing: () => string }).missing(),
     });
@@ -86,8 +86,8 @@ Deno.test("a dictionary that throws leaves the panel drawing its own word", () =
 });
 
 Deno.test("an answer past the bound is no label, and never an assertion inside a card", () => {
-    const dictionary = initPageDictionary({ _t: () => "x".repeat(4097) });
+    const dictionary = initClientDictionary({ _t: () => "x".repeat(4097) });
     expectAbsent(dictionary.readLabel(CRITICAL_ID), "the answer is refused as no label");
-    const fits = initPageDictionary({ _t: () => "x".repeat(4096) });
+    const fits = initClientDictionary({ _t: () => "x".repeat(4096) });
     assertEquals(fits.readLabel(CRITICAL_ID), "x".repeat(4096), "and one at the bound is read");
 });

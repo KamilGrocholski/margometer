@@ -13,9 +13,9 @@ import { CHARGED_SKILL_STATE, type ChargedSkillStanding } from "#/src/core/charg
 import { COMBATANTS_MAXIMUM, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import type { TurnStatement } from "#/src/core/fight-session.ts";
 import { lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
-import { SIDE_PART } from "#/src/ui/panel-reading.ts";
+import { SIDE_RELATION } from "#/src/ui/panel-reading.ts";
 import {
-    presentStanding,
+    presentHelper,
     PROVOKED_MAXIMUM,
     STANDING_TURN_STATE,
     type StandingTurn,
@@ -34,7 +34,7 @@ const ROSTER = indexCombatantRoster([
 Deno.test("whoever holds the turn is a person, hue, side and all", () => {
     // ⚠️ The `Teraz` row drew a bare name: no cap and no rule, so the one character a reader is
     // watching hardest was the one the window said least about (`develop ADR 0065`).
-    const reading = presentStanding(
+    const reading = presentHelper(
         [],
         [],
         ROSTER,
@@ -44,11 +44,11 @@ Deno.test("whoever holds the turn is a person, hue, side and all", () => {
     assertEquals(reading.holder, {
         name: "Renegat 1",
         colour: lookupColourForProfession("t"),
-        sidePart: SIDE_PART.opposing,
+        sideRelation: SIDE_RELATION.opposing,
     }, "the roster places whoever holds it, in their own hue and on their own side");
     // **W5: zero is a boundary.** The same turn, on a fight with no seat to read from: the hue
     // stands, because it is theirs, and the side does not, because nothing can place them.
-    const seatless = presentStanding(
+    const seatless = presentHelper(
         [],
         [],
         ROSTER,
@@ -56,7 +56,7 @@ Deno.test("whoever holds the turn is a person, hue, side and all", () => {
         composeTurn({ ordinal: 48, combatantId: 21 }),
     );
     assertStrictEquals(seatless.holder?.colour, lookupColourForProfession("t"), "the hue stands");
-    assertStrictEquals(seatless.holder?.sidePart, SIDE_PART.nobody, "and no side does");
+    assertStrictEquals(seatless.holder?.sideRelation, SIDE_RELATION.nobody, "and no side does");
 });
 
 /** A fight underway, numbered or not — what the window is handed wherever the turn is not it. */
@@ -74,23 +74,23 @@ function composeTurn(
  */
 Deno.test("a turn the game has stopped numbering is not stated, and the state says why", () => {
     const stated = { ordinal: 267, combatantId: 21 };
-    const underway = presentStanding([], [], ROSTER, OURS, composeTurn(stated));
+    const underway = presentHelper([], [], ROSTER, OURS, composeTurn(stated));
     assertStrictEquals(underway.turnState, STANDING_TURN_STATE.held, "a fight being numbered");
     assertStrictEquals(underway.turnOrdinal, 267, "so the ordinal is stated");
     assertEquals(underway.holder?.name, "Renegat 1", "and whoever the game numbered it for");
 
-    const after = presentStanding([], [], ROSTER, OURS, composeTurn(stated, { isOver: true }));
+    const after = presentHelper([], [], ROSTER, OURS, composeTurn(stated, { isOver: true }));
     assertStrictEquals(after.turnState, STANDING_TURN_STATE.afterFight, "an ended fight");
     assertStrictEquals(after.turnOrdinal, null, "so the last ordinal is not stated as now");
     assertStrictEquals(after.holder, null, "and nobody is holding it");
 
-    const running = presentStanding([], [], ROSTER, OURS, composeTurn(stated, { isOnAuto: true }));
+    const running = presentHelper([], [], ROSTER, OURS, composeTurn(stated, { isOnAuto: true }));
     assertStrictEquals(running.turnState, STANDING_TURN_STATE.onAuto, "a fight the game runs");
     assertStrictEquals(running.turnOrdinal, null, "so what it stated before is not stated either");
 
     // Both are true of every fight fought on the auto key, and only one of them says why there
     // is no turn to draw.
-    const both = presentStanding(
+    const both = presentHelper(
         [],
         [],
         ROSTER,
@@ -102,9 +102,9 @@ Deno.test("a turn the game has stopped numbering is not stated, and the state sa
 
 /** **W5**: the same two states on a fight the game never numbered at all. */
 Deno.test("a fight nobody numbered says what it is, and never that it went unread", () => {
-    const unread = presentStanding([], [], ROSTER, OURS, composeTurn(null));
+    const unread = presentHelper([], [], ROSTER, OURS, composeTurn(null));
     assertStrictEquals(unread.turnState, STANDING_TURN_STATE.unread, "this read none");
-    const auto = presentStanding(
+    const auto = presentHelper(
         [],
         [],
         ROSTER,
@@ -120,7 +120,7 @@ Deno.test("a fight nobody numbered says what it is, and never that it went unrea
 });
 
 Deno.test("a shout stands under whoever is holding it, and the turns are the held's", () => {
-    const reading = presentStanding(
+    const reading = presentHelper(
         [composeProvocation(21, 11)],
         [],
         ROSTER,
@@ -133,12 +133,12 @@ Deno.test("a shout stands under whoever is holding it, and the turns are the hel
         skillId: 188,
         skillName: "Wyzywający okrzyk",
         casterColour: lookupColourForProfession("m"),
-        casterSidePart: SIDE_PART.reader,
+        casterSidePart: SIDE_RELATION.reader,
         provoked: [{
             provokedId: 21,
             name: "Renegat 1",
             colour: lookupColourForProfession("t"),
-            sidePart: SIDE_PART.opposing,
+            sideRelation: SIDE_RELATION.opposing,
             turnsElapsed: 2,
             turnsStated: 3,
         }],
@@ -170,7 +170,7 @@ function composeProvocation(
  */
 Deno.test("one caster shouting both okrzyki is two groups, each under its own name", () => {
     const other = { skillId: 25, skillName: "Prowokujący okrzyk" };
-    const reading = presentStanding(
+    const reading = presentHelper(
         [composeProvocation(21, 11), composeProvocation(12, 11, other)],
         [],
         ROSTER,
@@ -187,7 +187,7 @@ Deno.test("one caster shouting both okrzyki is two groups, each under its own na
 Deno.test("one cast holding two characters states a length for each of them", () => {
     // The case the fold exists for. `captures/` holds it once, in the fight written from
     // side 2: one shout naming two players, measured 2026-09-09.
-    const reading = presentStanding(
+    const reading = presentHelper(
         [composeProvocation(11, 21), composeProvocation(12, 21)],
         [],
         ROSTER,
@@ -205,7 +205,7 @@ Deno.test("one cast holding two characters states a length for each of them", ()
 });
 
 Deno.test("two casters holding apart stand apart, in the order the fight named them", () => {
-    const reading = presentStanding(
+    const reading = presentHelper(
         [composeProvocation(21, 12), composeProvocation(11, 21)],
         [],
         ROSTER,
@@ -220,7 +220,7 @@ Deno.test("two casters holding apart stand apart, in the order the fight named t
 });
 
 Deno.test("a holder the roster cannot place is still stated, and says so", () => {
-    const reading = presentStanding(
+    const reading = presentHelper(
         [composeProvocation(21, -1)],
         [],
         ROSTER,
@@ -232,7 +232,7 @@ Deno.test("a holder the roster cannot place is still stated, and says so", () =>
     const group = reading.provoked[0];
     assertExists(group, "the shout is still holding somebody, whoever threw it");
     assertStrictEquals(group.casterName, PANEL_WORDS.withoutActor, "under the words for nobody");
-    assertStrictEquals(group.casterSidePart, SIDE_PART.nobody, "and on no side");
+    assertStrictEquals(group.casterSidePart, SIDE_RELATION.nobody, "and on no side");
     assertStrictEquals(group.provoked[0]?.name, "Renegat 1", "over whoever they hold");
 });
 
@@ -257,11 +257,11 @@ Deno.test("the provoked stop at their stated maximum, and one under it is stated
     for (let at = 0; at < PROVOKED_MAXIMUM + 4; at += 1) many.push(composeProvocation(21, 11));
     // Counted in characters and not in groups: the clamp stands before the fold, so the bound is
     // on the people the section draws however few casts they arrive under (`develop ADR 0067`).
-    const countHeld = (reading: ReturnType<typeof presentStanding>) =>
+    const countHeld = (reading: ReturnType<typeof presentHelper>) =>
         reading.provoked.reduce((sum, one) => sum + one.provoked.length, 0);
-    const over = presentStanding(many, [], ROSTER, OURS, composeTurn(null));
+    const over = presentHelper(many, [], ROSTER, OURS, composeTurn(null));
     assertStrictEquals(countHeld(over), PROVOKED_MAXIMUM, "past it, the rest are dropped");
-    const under = presentStanding(
+    const under = presentHelper(
         many.slice(0, PROVOKED_MAXIMUM - 1),
         [],
         ROSTER,
@@ -272,11 +272,15 @@ Deno.test("the provoked stop at their stated maximum, and one under it is stated
 });
 
 Deno.test("a charge wears the hue of whoever is making it, and says which side", () => {
-    const reading = presentStanding([], [composeCharge()], ROSTER, OURS, composeTurn(null));
+    const reading = presentHelper([], [composeCharge()], ROSTER, OURS, composeTurn(null));
     const charged = reading.chargedSkills[0];
     assertExists(charged, "the band states the charge the fight states");
     assertStrictEquals(charged.colour, lookupColourForProfession("t"), "in the maker's own hue");
-    assertStrictEquals(charged.sidePart, SIDE_PART.opposing, "and says which side is making it");
+    assertStrictEquals(
+        charged.sideRelation,
+        SIDE_RELATION.opposing,
+        "and says which side is making it",
+    );
     assertStrictEquals(charged.name, "Renegat 1", "and who, for the card");
     assertEquals([charged.turnsElapsed, charged.turnsStated], [2, 4], "and the game's figures");
 });
@@ -295,7 +299,7 @@ function composeCharge(over: Partial<ChargedSkillStanding> = {}): ChargedSkillSt
 
 Deno.test("a charge that is over wears no hue, and states which end it came to", () => {
     for (const state of [CHARGED_SKILL_STATE.struck, CHARGED_SKILL_STATE.broken]) {
-        const reading = presentStanding(
+        const reading = presentHelper(
             [],
             [composeCharge({ state, endedAtOrdinal: 12 })],
             ROSTER,
@@ -310,7 +314,7 @@ Deno.test("a charge that is over wears no hue, and states which end it came to",
 });
 
 Deno.test("a fight charging nothing states no band at all", () => {
-    const reading = presentStanding([], [], ROSTER, OURS, composeTurn(null));
+    const reading = presentHelper([], [], ROSTER, OURS, composeTurn(null));
     assertEquals(reading.chargedSkills, [], "nothing is being made ready");
 });
 
@@ -320,7 +324,7 @@ Deno.test("a fight charging nothing states no band at all", () => {
  * is a different state from the row being gone.
  */
 Deno.test("a character shouted at before they have moved is held, at none of their turns", () => {
-    const reading = presentStanding(
+    const reading = presentHelper(
         [composeProvocation(21, 11, { turnsElapsed: 0 })],
         [],
         ROSTER,
@@ -343,15 +347,15 @@ Deno.test("the band stops at its stated maximum, and one at it is stated whole",
     const charges = [11, 12, 21, 11, 12].map((combatantId, at) =>
         composeCharge({ combatantId, skillName: `Cios ${at}` })
     );
-    const over = presentStanding([], charges, ROSTER, OURS, composeTurn(null));
+    const over = presentHelper([], charges, ROSTER, OURS, composeTurn(null));
     assertEquals(
         over.chargedSkills.map((one) => one.skillName),
         ["Cios 0", "Cios 1", "Cios 2", "Cios 3"],
         "past it, the rest are dropped, in the order the fight named them",
     );
-    const at = presentStanding([], charges.slice(0, 4), ROSTER, OURS, composeTurn(null));
+    const at = presentHelper([], charges.slice(0, 4), ROSTER, OURS, composeTurn(null));
     assertStrictEquals(at.chargedSkills.length, 4, "at it, all of them");
-    const nameless = presentStanding(
+    const nameless = presentHelper(
         [],
         [composeCharge({ skillName: "" })],
         ROSTER,

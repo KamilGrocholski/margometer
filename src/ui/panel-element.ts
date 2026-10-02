@@ -30,7 +30,7 @@ import {
     STYLE_ATTRIBUTE,
 } from "./panel-document.ts";
 import {
-    composeStandingAfterStep,
+    composeHelperPositionAfterTypeStep,
     composeTipAcross,
     GRIP_MARK_BY_WINDOW,
     initPanelDrag,
@@ -56,7 +56,7 @@ import {
     composeOptionsStepClass,
     composeStyleSheet,
     getTipHeight,
-    getTipRoom,
+    getTipHeightAvailable,
     ROWS_VARIABLE,
     TIP_VARIABLES,
     TYPE_TOKENS,
@@ -72,7 +72,7 @@ import {
     type FightMoment,
     formatRowSuspicions,
     getEndForPinned,
-    getPartOfSide,
+    getSideRelation,
     HALF_NAMED_OPENED,
     type HalfNamedDrillReading,
     type HalfNamedReading,
@@ -81,7 +81,6 @@ import {
     type OpenedPart,
     type OpponentRow,
     type PairReading,
-    type PanelSidePart,
     type PanelUnnamedEnd,
     type PartReading,
     type PersonRow,
@@ -91,7 +90,8 @@ import {
     type RowDetail,
     type ScreenReading,
     type ShelfRow,
-    SIDE_PART,
+    SIDE_RELATION,
+    type SideRelation,
     type SkillRow,
     UNNAMED_END,
     type UnnamedRow,
@@ -117,9 +117,9 @@ import {
     SIDE_CHOICE,
 } from "./panel-screen.ts";
 import {
-    type StandingAbsence,
+    type HelperAbsence,
+    type HelperReading,
     type StandingChargedSkill,
-    type StandingReading,
 } from "./panel-standing.ts";
 import {
     CARD_WORDS,
@@ -136,16 +136,18 @@ import {
     formatDestroyed,
     formatFigure,
     formatKeptUnread,
-    formatShare,
+    formatShareRounded,
     formatShelfSize,
+    formatShelfTime,
     formatSideCounts,
     formatTurnOrdinal,
     formatTurns,
     formatUndrawn,
     formatUses,
-    formatWhole,
+    formatWholeUngrouped,
     getCaveatForUnannounced,
     getNoteForCaveat,
+    getNoteForUnnamedEnd,
     getSubWordsForBlowKey,
     getWordsForBlowKey,
     getWordsForCardMetric,
@@ -153,21 +155,20 @@ import {
     getWordsForDamageKind,
     getWordsForDestroyed,
     getWordsForHealthSource,
+    getWordsForHelperAbsence,
     getWordsForNothing,
     getWordsForOutcome,
     getWordsForPin,
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
     getWordsForShelfOutcome,
-    getWordsForShelfTime,
-    getWordsForStandingAbsence,
     getWordsForStorage,
     getWordsForStorageMeaning,
     getWordsForTurnState,
     getWordsForTypeStep,
     getWordsForUnannounced,
-    getWordsForUnnamedEnd,
     getWordsForWindow,
+    HELPER_WORDS,
     NEITHER_END_WORDS,
     PANEL_DEFECT_KIND,
     PANEL_REGION,
@@ -175,7 +176,6 @@ import {
     type PanelDefectKind,
     type PanelRegion,
     type PlaceWords,
-    STANDING_WORDS,
     SUSPECT_MARK,
     type TranslateLabel,
     TURN_MARK,
@@ -251,7 +251,7 @@ interface RowReading {
      * Which side this row stands on. `nobody` is every row with no person behind it and every
      * fight the client named no side of the reader's own on, and it draws no rule at all.
      */
-    sidePart?: PanelSidePart | undefined;
+    sideRelation?: SideRelation | undefined;
     /** Whether the game is numbering this combatant's turn. The ranking's answer and no other. */
     isTurnHolder?: boolean | undefined;
 }
@@ -289,7 +289,7 @@ interface StandingPerson {
      */
     skillName: string | null;
     colour: Colour;
-    sidePart: PanelSidePart;
+    sideRelation: SideRelation;
     /** Null where the figure belongs to the row above rather than to this one. */
     turns: string | null;
     /**
@@ -399,7 +399,7 @@ export interface PanelView {
      * The window beside the panel, drawn on the same frame. An absence is why there is no live
      * reading, said in one sentence where the reading would stand.
      */
-    renderStanding(reading: StandingReading | StandingAbsence, isCollapsed: boolean): RenderReport;
+    renderHelper(reading: HelperReading | HelperAbsence, isCollapsed: boolean): RenderReport;
 }
 
 export interface PanelViewOptions {
@@ -413,7 +413,7 @@ export interface PanelViewOptions {
     /** Null is a window never made movable, which is every panel a test draws. */
     placement: PanelPlacement | null;
     /** The helper's own corner, kept apart from the panel's: two windows, two answers. */
-    standingPlacement: PanelPlacement | null;
+    helperPlacement: PanelPlacement | null;
     /**
      * Null is the panel drawing its own words, which is what every test and every browser without
      * the game sees. Who asks the client, and how often, is the runtime's — `develop ADR 0024`.
@@ -460,7 +460,7 @@ interface PanelDrawing {
     drawing: ListDrawing;
     tip: TipHandle;
     drag: PanelDragHandle | null;
-    standingDrag: PanelDragHandle | null;
+    helperDrag: PanelDragHandle | null;
 }
 
 type PanelRedraw = (
@@ -581,7 +581,7 @@ interface CardSubject {
     name: string;
     profession: string | null;
     /** Which side they stand on, worded — the label the row's own rule is drawn against. */
-    sidePart: PanelSidePart;
+    sideRelation: SideRelation;
     detail: RowDetail;
     metric: PanelMetric;
     doesOpen: boolean;
@@ -852,7 +852,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         return standing;
     };
     const register = createTipRegister();
-    const standingRegister = createTipRegister();
+    const helperRegister = createTipRegister();
     let drawing: ListDrawing;
     // Draw the one region that scrolls, keeping the reader's position under the place it is for.
     {
@@ -896,8 +896,8 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         };
     }
     let drag: PanelDragHandle | null = null;
-    let standingDrag: PanelDragHandle | null = null;
-    const cards = composeTipLookup(register, standingRegister);
+    let helperDrag: PanelDragHandle | null = null;
+    const cards = composeTipLookup(register, helperRegister);
     const getTypeStep = () => typeStep;
     let tipHandle: TipHandle;
     // Place the card against wherever its own window stands **now**, not where it was wired.
@@ -922,7 +922,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             const viewport = placement?.readViewport() ?? null;
             const tokens = TYPE_TOKENS[getTypeStep()];
             if (key.startsWith(STANDING_TIP_PREFIX)) {
-                const standing = composePlace(standingDrag);
+                const standing = composePlace(helperDrag);
                 return composeTipAcross(standing, viewport, tokens.tipWidthPixelsMaximum);
             }
             const panel = composePlace(drag);
@@ -953,14 +953,14 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     }
     // The window beside the panel, as one element under the same root — `SECURITY.md`'s guest
     // rule puts everything a reader meets inside one shadow root under one name.
-    const standingWindow = renderElement(document, "div", CLASS.standing);
-    let standingBar = renderStandingBar(document, false);
+    const helperWindow = renderElement(document, "div", CLASS.standing);
+    let standingBar = renderHelperBar(document, false);
     let standingBody = renderSlot(document);
     const standingGrip = renderSizeGrip(document, PANEL_WINDOW.helper);
-    standingWindow.append(standingBar);
-    standingWindow.append(standingBody);
-    standingWindow.append(standingGrip);
-    for (const child of [regions.title, frame, tipHandle.element, standingWindow]) {
+    helperWindow.append(standingBar);
+    helperWindow.append(standingBody);
+    helperWindow.append(standingGrip);
+    for (const child of [regions.title, frame, tipHandle.element, helperWindow]) {
         root.append(child);
     }
     // Listen at the root, and on no row.
@@ -995,7 +995,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         addGuardedListener(root, EVENT_TYPE.back, PANEL_LISTENER.back, (event) => {
             event.preventDefault?.();
             // A press stating no target is nobody's window, and keeps the panel's meaning.
-            if (standingWindow.contains(event.target)) return;
+            if (helperWindow.contains(event.target)) return;
             options.onIntent({ kind: PANEL_INTENT.close });
         }, options.onFailure);
         addGuardedListener(root, EVENT_TYPE.move, PANEL_LISTENER.hover, (event) => {
@@ -1016,13 +1016,13 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     // After the listeners that read a press, and on the same root: a drag is four more of them.
     const wired = { view: options, getTypeStep };
     const panelWired = { ...wired, window: PANEL_WINDOW.panel, grip: panelGrip };
-    drag = initDragOrNothing(root, host, () => regions.title, options.placement, panelWired);
+    drag = initPanelDragIfPlaced(root, host, () => regions.title, options.placement, panelWired);
     const helperWired = { ...wired, window: PANEL_WINDOW.helper, grip: standingGrip };
     const standingBarNow = () => standingBar;
-    const helperPlacement = options.standingPlacement;
-    standingDrag = initDragOrNothing(
+    const helperPlacement = options.helperPlacement;
+    helperDrag = initPanelDragIfPlaced(
         root,
-        standingWindow,
+        helperWindow,
         standingBarNow,
         helperPlacement,
         helperWired,
@@ -1040,11 +1040,11 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         drawing,
         tip: tipHandle,
         drag,
-        standingDrag,
+        helperDrag,
     };
     const renderScreen = (shown: ShownScreen): RenderReport =>
         report.collect(() => {
-            renderStep(report, PANEL_REGION.list, () => drawing.keep());
+            executeRegionStep(report, PANEL_REGION.list, () => drawing.keep());
             register.reset();
             renderFold(held, shown);
             if (shown.isCollapsed) {
@@ -1128,7 +1128,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         });
     const renderWaiting = (waiting: WaitingReading): RenderReport =>
         report.collect(() => {
-            renderStep(report, PANEL_REGION.list, () => drawing.keep());
+            executeRegionStep(report, PANEL_REGION.list, () => drawing.keep());
             register.reset();
             renderFold(held, waiting);
             renderPanelFolded(document, regions, renderInPlace);
@@ -1156,58 +1156,58 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             }
             renderPanelSettled(held);
         });
-    const renderStanding = (
-        reading: StandingReading | StandingAbsence,
+    const renderHelper = (
+        reading: HelperReading | HelperAbsence,
         isCollapsed: boolean,
     ): RenderReport =>
         report.collect(() => {
             // The mark on the frame and the body rendered empty, both — as the panel's fold does.
             // The frame is what stays across a draw, so it is what can say the window is away.
-            renderStep(report, PANEL_REGION.standing, () => {
-                standingWindow.className = isCollapsed
+            executeRegionStep(report, PANEL_REGION.standing, () => {
+                helperWindow.className = isCollapsed
                     ? `${CLASS.standing} ${CLASS.standingFolded}`
                     : CLASS.standing;
             });
             standingBar = renderInPlace(
                 standingBar,
                 PANEL_REGION.standing,
-                () => renderStandingBar(document, isCollapsed),
+                () => renderHelperBar(document, isCollapsed),
             );
             // ⚠️ The two windows keep two registers because they are drawn at two moments: this
             // one goes up first and the panel's own draw resets the panel's register under it,
             // which took every card this window had registered with it (`develop ADR 0086`).
-            standingRegister.reset();
+            helperRegister.reset();
             standingBody = renderInPlace(
                 standingBody,
                 PANEL_REGION.standing,
-                () => renderStandingBody(document, standingRegister, reading, isCollapsed),
+                () => renderHelperBody(document, helperRegister, reading, isCollapsed),
             );
-            standingDrag?.onDrawn();
+            helperDrag?.onDrawn();
         });
-    return { element: host, render: renderScreen, renderWaiting, renderStanding };
+    return { element: host, render: renderScreen, renderWaiting, renderHelper };
 }
 
 /** Draw the list while no fight stands: kept unread, unread, or none yet. */
 function renderWaitingList(document: PanelDocument, waiting: WaitingReading): PanelElement {
-    const list = renderList(document, ROWS_WAITING);
+    const list = renderListContainer(document, ROWS_WAITING);
     list.className = `${CLASS.list} ${CLASS.listWaiting}`;
     const kept = waiting.keptUnread;
     if (kept !== null) {
-        list.append(renderEmpty(document, PANEL_WORDS.keptUnread));
+        list.append(renderEmptyNote(document, PANEL_WORDS.keptUnread));
         const when = formatKeptUnread(kept.at, kept.place);
-        if (when.length > 0) list.append(renderEmpty(document, when));
+        if (when.length > 0) list.append(renderEmptyNote(document, when));
         return list;
     }
     const said = waiting.isFightUnread ? PANEL_WORDS.fightUnread : PANEL_WORDS.noFightYet;
-    list.append(renderEmpty(document, said));
+    list.append(renderEmptyNote(document, said));
     return list;
 }
 
 /** Draw the standing window's body: whose turn it is, the charges, and who holds whom. */
-function renderStandingBody(
+function renderHelperBody(
     document: PanelDocument,
     register: TipRegister,
-    reading: StandingReading | StandingAbsence,
+    reading: HelperReading | HelperAbsence,
     isCollapsed: boolean,
 ): PanelElement {
     // Folded, the body is rendered empty rather than rendered and hidden — a fight
@@ -1215,7 +1215,7 @@ function renderStandingBody(
     if (isCollapsed) return renderSlot(document);
     const body = renderElement(document, "div", CLASS.standingBody);
     if (typeof reading === "string") {
-        body.append(renderEmpty(document, getWordsForStandingAbsence(reading)));
+        body.append(renderEmptyNote(document, getWordsForHelperAbsence(reading)));
         return body;
     }
     // What is true of one fighter is said on that fighter, in the game's own tooltip
@@ -1224,7 +1224,7 @@ function renderStandingBody(
     {
         const said = reading.turnOrdinal === null ? "" : formatTurnOrdinal(reading.turnOrdinal);
         const section = renderElement(document, "div", CLASS.section);
-        const words = renderText(document, "span", CLASS.sectionWords, STANDING_WORDS.now);
+        const words = renderText(document, "span", CLASS.sectionWords, HELPER_WORDS.now);
         const figure = renderText(document, "span", CLASS.figure, said);
         section.append(words);
         section.append(figure);
@@ -1240,11 +1240,11 @@ function renderStandingBody(
             body.append(empty);
         } else {
             body.append(
-                renderStandingPerson(document, register, STANDING_NOW_TIP_KEY, {
+                renderHelperPerson(document, register, STANDING_NOW_TIP_KEY, {
                     name: holder.name,
                     skillName: null,
                     colour: holder.colour,
-                    sidePart: holder.sidePart,
+                    sideRelation: holder.sideRelation,
                     turns: null,
                     turnsCaveat: null,
                     isUnder: false,
@@ -1256,7 +1256,7 @@ function renderStandingBody(
     if (reading.chargedSkills.length > 0) {
         const first = reading.chargedSkills[0];
         const section = renderElement(document, "div", CLASS.section);
-        const words = renderText(document, "span", CLASS.sectionWords, STANDING_WORDS.chargedSkill);
+        const words = renderText(document, "span", CLASS.sectionWords, HELPER_WORDS.chargedSkill);
         const state = renderText(
             document,
             "span",
@@ -1319,11 +1319,11 @@ function renderStandingBody(
             row.append(pips);
             row.append(value);
             const parts = [cap, name, ...dots, value];
-            for (const rule of renderSideRules(document, charged.sidePart)) {
+            for (const rule of renderSideRules(document, charged.sideRelation)) {
                 row.append(rule);
                 parts.push(rule);
             }
-            const key = `${STANDING_CHARGE_TIP_PREFIX}${formatWhole(charged.combatantId)}`;
+            const key = `${STANDING_CHARGE_TIP_PREFIX}${formatWholeUngrouped(charged.combatantId)}`;
             register.add(key, () => presentChargedSkillTip(charged));
             setRowMarks([row, ...parts], TIP_ATTRIBUTE, key);
             body.append(row);
@@ -1331,7 +1331,7 @@ function renderStandingBody(
     }
     if (reading.provoked.length === 0) {
         if (reading.chargedSkills.length === 0) {
-            const empty = renderText(document, "div", CLASS.empty, STANDING_WORDS.nothingHappens);
+            const empty = renderText(document, "div", CLASS.empty, HELPER_WORDS.nothingHappens);
             body.append(empty);
         }
         return body;
@@ -1345,14 +1345,16 @@ function renderStandingBody(
         let counted = 0;
         for (const one of reading.provoked) counted += one.provoked.length;
         body.append(
-            renderSection(document, STANDING_WORDS.provocation, counted),
+            renderSection(document, HELPER_WORDS.provocation, counted),
         );
         for (const provocation of reading.provoked) {
             // The fold's own key, so a card is filed under the cast rather than under
             // the person: one caster shouting both okrzyki stands twice
             // (`develop ADR 0097`).
-            const cast = `${formatWhole(provocation.casterId)}/${formatWhole(provocation.skillId)}`;
-            body.append(renderStandingPerson(
+            const cast = `${formatWholeUngrouped(provocation.casterId)}/${
+                formatWholeUngrouped(provocation.skillId)
+            }`;
+            body.append(renderHelperPerson(
                 document,
                 register,
                 `${STANDING_HOLDING_TIP_PREFIX}${cast}`,
@@ -1360,7 +1362,7 @@ function renderStandingBody(
                     name: provocation.casterName,
                     skillName: provocation.skillName,
                     colour: provocation.casterColour,
-                    sidePart: provocation.casterSidePart,
+                    sideRelation: provocation.casterSidePart,
                     // No length here: one cast holding two characters is two counts on
                     // two clocks, so the figure sits on the row of whoever is carrying
                     // it (`develop ADR 0103`).
@@ -1376,15 +1378,17 @@ function renderStandingBody(
                 // fails silently the day it moves: the register refuses the second of
                 // two rows without a word, and that row then wears its neighbour's
                 // card.
-                const key = `${STANDING_HELD_TIP_PREFIX}${cast}/${formatWhole(holding.provokedId)}`;
-                body.append(renderStandingPerson(document, register, key, {
+                const key = `${STANDING_HELD_TIP_PREFIX}${cast}/${
+                    formatWholeUngrouped(holding.provokedId)
+                }`;
+                body.append(renderHelperPerson(document, register, key, {
                     name: holding.name,
                     // Named on the card and never on the row: the row above draws it
                     // already, and what this row does state is a length of this
                     // character's own (`develop ADR 0103`).
                     skillName: provocation.skillName,
                     colour: holding.colour,
-                    sidePart: holding.sidePart,
+                    sideRelation: holding.sideRelation,
                     turns: formatCounter(
                         holding.turnsStated - holding.turnsElapsed,
                         holding.turnsStated,
@@ -1515,7 +1519,7 @@ function renderCrumbRegion(
             });
         }
         return renderCrumb(document, register, {
-            said: getWordsForHalfNamedDrill(shown.halfNamedDrill, shown.current),
+            said: getCrumbWordsForUnnamedCut(shown.halfNamedDrill, shown.current),
             from: unnamed,
         });
     }
@@ -1553,9 +1557,9 @@ function renderListLevel(
         // The size stands before the place and not after it, so the one cell that
         // can be cut is the last one: written the other way round, a long map name
         // pushes the size off the row.
-        const list = renderList(document, ROWS_SHELF);
+        const list = renderListContainer(document, ROWS_SHELF);
         if (shown.shelf.length === 0) {
-            list.append(renderEmpty(document, PANEL_WORDS.shelfEmpty));
+            list.append(renderEmptyNote(document, PANEL_WORDS.shelfEmpty));
             return list;
         }
         for (const fight of shown.shelf) {
@@ -1584,7 +1588,7 @@ function renderListLevel(
                 document,
                 "span",
                 CLASS.rowTime,
-                getWordsForShelfTime(fight.at, fight.isLive),
+                formatShelfTime(fight.at, fight.isLive),
             );
             const size = renderText(document, "span", CLASS.rowSize, formatShelfSize(fight.sizes));
             const where = renderText(document, "span", CLASS.rowName, fight.place ?? "");
@@ -1619,7 +1623,7 @@ function renderListLevel(
         const part = shown.part;
         const rows = part.byOpponent.rows.length +
             (part.byOpponent.unnamed === null ? 0 : 1);
-        const list = renderList(
+        const list = renderListContainer(
             document,
             Math.max(rows + 1, shown.reading.visibleRows),
         );
@@ -1656,7 +1660,7 @@ function renderListLevel(
             key: "reached:nobody",
             figure,
             share,
-            notes: [getWordsForUnnamedEnd(end, getNounForMetric(shown.current))],
+            notes: [getNoteForUnnamedEnd(end, getNounForMetric(shown.current))],
         };
         const reading = presentUnnamedRow(
             part.byOpponent.unnamed,
@@ -1668,9 +1672,9 @@ function renderListLevel(
     if (shown.pair !== null) {
         // Draw what passed between the two: the skills, then the kinds of damage.
         const pair = shown.pair;
-        const list = renderList(
+        const list = renderListContainer(
             document,
-            getRowsForPair(pair, shown.reading.visibleRows),
+            countRowsForPairLevel(pair, shown.reading.visibleRows),
         );
         const figure = getWordsForMetric(shown.current);
         const share = PANEL_WORDS.shareOfFigure;
@@ -1730,7 +1734,7 @@ function renderListLevel(
         const figure = getWordsForMetric(shown.current);
         if (drill.opened === HALF_NAMED_OPENED.element) {
             const rows = drill.rows.length + (drill.neither === null ? 0 : 1);
-            const list = renderList(
+            const list = renderListContainer(
                 document,
                 Math.max(rows + 1, shown.reading.visibleRows),
             );
@@ -1745,8 +1749,8 @@ function renderListLevel(
             });
             return list;
         }
-        const kinds = getElementCutRows(drill.kinds);
-        const list = renderList(
+        const kinds = countElementCutRows(drill.kinds);
+        const list = renderListContainer(
             document,
             Math.max(kinds + 1, shown.reading.visibleRows),
         );
@@ -1765,9 +1769,9 @@ function renderListLevel(
         // differently. `develop ADR 0038`.
         const halfNamed = shown.halfNamed;
         const named = halfNamed.rows.length + (halfNamed.neither === null ? 0 : 1);
-        const kinds = getElementCutRows(halfNamed.kinds);
+        const kinds = countElementCutRows(halfNamed.kinds);
         const needed = named + 1 + (kinds === 0 ? 0 : kinds + 1);
-        const list = renderList(
+        const list = renderListContainer(
             document,
             Math.max(needed, shown.reading.visibleRows),
         );
@@ -1793,9 +1797,9 @@ function renderListLevel(
         // nothing in it draws no heading — a blow the protocol tied to nobody still
         // states what it was dealt with, so the kinds can stand alone.
         const drill = shown.drill;
-        const list = renderList(
+        const list = renderListContainer(
             document,
-            getRowsForDrill(drill, shown.reading.visibleRows),
+            countRowsForOpenedLevel(drill, shown.reading.visibleRows),
         );
         const figure = getWordsForMetric(shown.current);
         const share = PANEL_WORDS.shareOfFigure;
@@ -1843,7 +1847,7 @@ function renderListLevel(
                     // stands is answered by the heading over it — a cut of the one
                     // person's figure.
                     notes: [
-                        getWordsForUnnamedEnd(end, getNounForMetric(shown.current)),
+                        getNoteForUnnamedEnd(end, getNounForMetric(shown.current)),
                     ],
                 };
                 const reading = presentUnnamedRow(
@@ -1866,7 +1870,7 @@ function renderListLevel(
                 );
                 let drawn = 0;
                 for (const row of cut.rows) {
-                    drawn = renderSkillSectionPlain(
+                    drawn = renderClosingRowAtPlace(
                         document,
                         list,
                         cut.plain,
@@ -1885,7 +1889,7 @@ function renderListLevel(
                     const mark = getMarkForNamedPart(row.part, row.doesOpenPart);
                     list.append(renderRow(document, reading, mark, tip));
                 }
-                renderSkillSectionPlain(
+                renderClosingRowAtPlace(
                     document,
                     list,
                     cut.plain,
@@ -1907,7 +1911,7 @@ function renderListLevel(
             total: drill.total,
         });
         if (drill.total === 0) {
-            list.append(renderEmpty(document, getWordsForNothing(shown.current)));
+            list.append(renderEmptyNote(document, getWordsForNothing(shown.current)));
         }
         return list;
     }
@@ -1918,9 +1922,9 @@ function renderListLevel(
         readerSide: shown.readerSide,
         turnHolderId: shown.turnHolderId,
     };
-    const list = renderList(document, reading.visibleRows);
+    const list = renderListContainer(document, reading.visibleRows);
     if (reading.rows.length === 0) {
-        list.append(renderEmpty(document, PANEL_WORDS.nothingYet));
+        list.append(renderEmptyNote(document, PANEL_WORDS.nothingYet));
         return list;
     }
     const person = {
@@ -2158,20 +2162,20 @@ function composeTipLookup(panel: TipRegister, standing: TipRegister): TipLookup 
 }
 
 /** The window's own bar: its own grip, its own fold, and no control that would close it. */
-function renderStandingBar(document: PanelDocument, isCollapsed: boolean): PanelElement {
+function renderHelperBar(document: PanelDocument, isCollapsed: boolean): PanelElement {
     const bar = renderText(
         document,
         "div",
         CLASS.standingBar,
-        `${GRIP_MARK}${STANDING_WORDS.title}`,
+        `${GRIP_MARK}${HELPER_WORDS.title}`,
     );
-    bar.setAttribute(TITLE_ATTRIBUTE, STANDING_WORDS.drag);
+    bar.setAttribute(TITLE_ATTRIBUTE, HELPER_WORDS.drag);
     setGripMark(bar, PANEL_WINDOW.helper);
     bar.append(renderBarControl(document, {
         className: CLASS.control,
         mark: isCollapsed ? UNFOLD_MARK : FOLD_MARK,
         attribute: PANEL_MARK.helperFold,
-        words: isCollapsed ? STANDING_WORDS.expand : STANDING_WORDS.collapse,
+        words: isCollapsed ? HELPER_WORDS.expand : HELPER_WORDS.collapse,
     }));
     return bar;
 }
@@ -2192,7 +2196,7 @@ function renderBarControl(
  * Both windows' listeners stand on the same root, so each set answers to its own grip by name.
  * Without the name on the mark both start on either bar: the panel moves by the wrong one.
  */
-function initDragOrNothing(
+function initPanelDragIfPlaced(
     root: PanelRoot,
     host: PanelElement,
     getBar: () => PanelElement,
@@ -2216,7 +2220,7 @@ function initDragOrNothing(
 }
 
 /** A step of a draw that is not a region's own, charged to the region it stands for. */
-function renderStep(report: UndrawnReport, region: PanelRegion, step: () => void): void {
+function executeRegionStep(report: UndrawnReport, region: PanelRegion, step: () => void): void {
     const ran = errors.attempt(step);
     if (ran instanceof Error) report.add(region, ran);
 }
@@ -2237,26 +2241,26 @@ function renderFold(
     const { isCollapsed, hasFightToSave, typeStep } = drawn;
     if (typeStep !== held.getTypeStep()) {
         const before = getWindowWidths(held);
-        renderStep(held.report, PANEL_REGION.header, () => {
+        executeRegionStep(held.report, PANEL_REGION.header, () => {
             held.sheet.textContent = composeStyleSheet(typeStep);
             held.setTypeStep(typeStep);
         });
         // The window beside the panel keeps the side it stood on as both change size.
-        renderStep(held.report, PANEL_REGION.standing, () => {
+        executeRegionStep(held.report, PANEL_REGION.standing, () => {
             const after = getWindowWidths(held);
             const panel = held.drag?.getPosition() ?? null;
-            const standing = held.standingDrag?.getPosition() ?? null;
+            const standing = held.helperDrag?.getPosition() ?? null;
             if (panel === null) return;
             if (standing === null) return;
-            const next = composeStandingAfterStep(panel, standing, before, after);
-            if (next !== null) held.standingDrag?.setPosition(next);
+            const next = composeHelperPositionAfterTypeStep(panel, standing, before, after);
+            if (next !== null) held.helperDrag?.setPosition(next);
         });
     }
-    renderStep(held.report, PANEL_REGION.header, () => {
+    executeRegionStep(held.report, PANEL_REGION.header, () => {
         held.drag?.setSize(drawn.windowSizes.panel);
     });
-    renderStep(held.report, PANEL_REGION.standing, () => {
-        held.standingDrag?.setSize(drawn.windowSizes.helper);
+    executeRegionStep(held.report, PANEL_REGION.standing, () => {
+        held.helperDrag?.setSize(drawn.windowSizes.helper);
     });
     held.regions.title = held.renderInPlace(
         held.regions.title,
@@ -2310,7 +2314,7 @@ function renderFold(
             return bar;
         },
     );
-    renderStep(held.report, PANEL_REGION.header, () => {
+    executeRegionStep(held.report, PANEL_REGION.header, () => {
         held.frame.className = isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
     });
 }
@@ -2320,7 +2324,7 @@ function getWindowWidths(held: PanelDrawing): WindowWidths {
     const tokens = TYPE_TOKENS[held.getTypeStep()];
     return {
         panel: held.drag?.getWidthPixels() ?? tokens.panelWidthPixels,
-        standing: held.standingDrag?.getWidthPixels() ?? tokens.standingWidthPixels,
+        standing: held.helperDrag?.getWidthPixels() ?? tokens.helperWidthPixels,
     };
 }
 
@@ -2412,7 +2416,7 @@ function presentCrumbTip(leaving: string): TipReading {
 }
 
 /** What the way back calls the row that is open, which is the row itself and not its level. */
-function getWordsForHalfNamedDrill(drill: HalfNamedDrillReading, metric: PanelMetric): string {
+function getCrumbWordsForUnnamedCut(drill: HalfNamedDrillReading, metric: PanelMetric): string {
     if (drill.opened === HALF_NAMED_OPENED.person) return drill.row.name ?? PANEL_WORDS.unknown;
     return getWordsForKind(getNounForMetric(metric), drill.element);
 }
@@ -2572,17 +2576,17 @@ function renderOptionsQuestion(document: PanelDocument, said: string): PanelElem
     return question;
 }
 
-function renderList(document: PanelDocument, visibleRows: number): PanelElement {
+function renderListContainer(document: PanelDocument, visibleRows: number): PanelElement {
     if (!Number.isSafeInteger(visibleRows)) visibleRows = ROWS_WAITING;
     if (visibleRows < 1) visibleRows = ROWS_WAITING;
     const list = renderElement(document, "div", CLASS.list);
     // ⚠️ Not `formatFigure`, which is what a reader reads: it groups thousands with a
     // no-break space, and `--MargoMeter-rows:1 000` stops the `calc` over it being a length.
-    list.setAttribute(STYLE_ATTRIBUTE, `${ROWS_VARIABLE}:${formatWhole(visibleRows)}`);
+    list.setAttribute(STYLE_ATTRIBUTE, `${ROWS_VARIABLE}:${formatWholeUngrouped(visibleRows)}`);
     return list;
 }
 
-function renderEmpty(document: PanelDocument, words: string): PanelElement {
+function renderEmptyNote(document: PanelDocument, words: string): PanelElement {
     const empty = renderText(document, "div", CLASS.empty, words);
     return empty;
 }
@@ -2653,7 +2657,7 @@ function composePersonCard(
         presentCard({
             name: row.name ?? PANEL_WORDS.unknown,
             profession: row.profession,
-            sidePart: getPartOfSide(row.side, place.readerSide),
+            sideRelation: getSideRelation(row.side, place.readerSide),
             detail: row.detail,
             metric: place.metric,
             doesOpen,
@@ -2711,7 +2715,7 @@ function renderRow(
         const mark = renderText(document, "span", CLASS.rowTurn, TURN_MARK);
         parts.push(mark);
     }
-    parts.push(...renderSideRules(document, reading.sidePart ?? SIDE_PART.nobody));
+    parts.push(...renderSideRules(document, reading.sideRelation ?? SIDE_RELATION.nobody));
     const name = renderText(document, "span", CLASS.rowName, reading.name);
     const value = renderText(
         document,
@@ -2743,13 +2747,13 @@ function renderRow(
  */
 function renderSideRules(
     document: PanelDocument,
-    part: PanelSidePart,
+    part: SideRelation,
 ): PanelElement[] {
-    if (part === SIDE_PART.nobody) return [];
+    if (part === SIDE_RELATION.nobody) return [];
     const rule = renderElement(document, "div", CLASS.rowSide);
     rule.setAttribute(
         STYLE_ATTRIBUTE,
-        `color:${formatColour(part === SIDE_PART.reader ? SIGNAL.ours : SIGNAL.theirs)}`,
+        `color:${formatColour(part === SIDE_RELATION.reader ? SIGNAL.ours : SIGNAL.theirs)}`,
     );
     return [rule];
 }
@@ -2827,7 +2831,7 @@ function presentCombatantRow(
         profession: row.profession,
         rank,
         isSuspect: isRowSuspect(row.detail, metric),
-        sidePart: getPartOfSide(row.side, place.readerSide),
+        sideRelation: getSideRelation(row.side, place.readerSide),
         isTurnHolder: row.combatantId === place.turnHolderId,
     };
 }
@@ -2859,7 +2863,7 @@ function presentUnnamedRow(row: UnnamedRow | PinnedRow, name: string): RowReadin
     };
 }
 
-function getRowsForPair(pair: PairReading, floor: number): number {
+function countRowsForPairLevel(pair: PairReading, floor: number): number {
     const parts = pair.parts.length;
     const kinds = pair.byElement.rows.length;
     const needed = (parts === 0 ? 0 : parts + 1) + (kinds === 0 ? 0 : kinds + 1);
@@ -2954,7 +2958,7 @@ function renderHalfNamedRows(
 }
 
 /** How many rows a cut by key costs a level: its keys, and each row that closes it. */
-function getElementCutRows(cut: ElementCut): number {
+function countElementCutRows(cut: ElementCut): number {
     return cut.rows.length + (cut.rest === null ? 0 : 1) + (cut.unnamed === null ? 0 : 1);
 }
 
@@ -2965,7 +2969,7 @@ function renderElementSection(
     cut: ElementCut,
     stated: { metric: PanelMetric; register: TipRegister; figure: string; total: number },
 ): void {
-    if (getElementCutRows(cut) === 0) return;
+    if (countElementCutRows(cut) === 0) return;
     list.append(renderSection(document, getWordsForKindCut(stated.metric), stated.total));
     const noun = getNounForMetric(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
@@ -3038,13 +3042,15 @@ function renderRestRow(
  * pressed it, and one longer than eleven must not be cut off in the middle of a section — the
  * ceiling on the host is what stops either from reaching past the bottom of the screen.
  */
-function getRowsForDrill(drill: DrillReading, floor: number): number {
+function countRowsForOpenedLevel(drill: DrillReading, floor: number): number {
     const opponents = drill.byOpponent;
     let needed = 0;
     if (opponents.rows.length > 0 || opponents.unnamed !== null) {
         needed += opponents.rows.length + (opponents.unnamed === null ? 0 : 1) + 1;
     }
-    if (getElementCutRows(drill.byElement) > 0) needed += getElementCutRows(drill.byElement) + 1;
+    if (countElementCutRows(drill.byElement) > 0) {
+        needed += countElementCutRows(drill.byElement) + 1;
+    }
     if (drill.bySkill.rows.length > 0 || drill.bySkill.plain !== null) {
         needed += drill.bySkill.rows.length + (drill.bySkill.rest === null ? 0 : 1) +
             (drill.bySkill.plain === null ? 0 : 1) + 1;
@@ -3057,7 +3063,7 @@ function getRowsForDrill(drill: DrillReading, floor: number): number {
  * It is asked before every row and once more after the last, so the place the reading composed is
  * the place it is drawn at whether that is the top of the section or the bottom of it.
  */
-function renderSkillSectionPlain(
+function renderClosingRowAtPlace(
     document: PanelDocument,
     list: PanelElement,
     plain: ClosingRow | null,
@@ -3127,7 +3133,7 @@ function isLevelOpen(shown: ShownScreen): boolean {
  */
 function formatPinnedNotes(row: PinnedRow, metric: PanelMetric, isSideChosen: boolean): string[] {
     const notes = [
-        getWordsForUnnamedEnd(row.end, getNounForMetric(metric)),
+        getNoteForUnnamedEnd(row.end, getNounForMetric(metric)),
         getWordsForPinnedStanding(row.case),
     ];
     if (isSideChosen) notes.push(getWordsForPinnedScope(row.case));
@@ -3199,9 +3205,9 @@ function renderDefects(document: PanelDocument, defects: readonly PanelDefect[])
 
 /** After every region stands: the reader's place, the grip on the bar, and the card open. */
 function renderPanelSettled(held: PanelDrawing): void {
-    renderStep(held.report, PANEL_REGION.list, () => held.drawing.settle());
+    executeRegionStep(held.report, PANEL_REGION.list, () => held.drawing.settle());
     held.drag?.onDrawn();
-    renderStep(held.report, PANEL_REGION.tip, () => held.tip.renderOpen());
+    executeRegionStep(held.report, PANEL_REGION.tip, () => held.tip.renderOpen());
 }
 
 /**
@@ -3217,7 +3223,7 @@ function renderPanelSettled(held: PanelDrawing): void {
  * Both of the cells it draws shorten, so it wears the leaf's cursor and carries the card that
  * hands them back — `develop ADR 0098`.
  */
-function renderStandingPerson(
+function renderHelperPerson(
     document: PanelDocument,
     register: TipRegister,
     tipKey: string,
@@ -3235,7 +3241,7 @@ function renderStandingPerson(
     row.append(name);
     const parts = [cap, name];
     if (castName !== null) {
-        const between = renderText(document, "span", CLASS.rowShare, STANDING_WORDS.castSeparator);
+        const between = renderText(document, "span", CLASS.rowShare, HELPER_WORDS.castSeparator);
         const cast = renderText(document, "span", CLASS.standingCast, castName);
         row.append(between);
         row.append(cast);
@@ -3251,11 +3257,11 @@ function renderStandingPerson(
         row.append(value);
         parts.push(value);
     }
-    for (const rule of renderSideRules(document, person.sidePart)) {
+    for (const rule of renderSideRules(document, person.sideRelation)) {
         row.append(rule);
         parts.push(rule);
     }
-    register.add(tipKey, () => presentStandingPersonTip(person));
+    register.add(tipKey, () => presentHelperPersonTip(person));
     // Every span and not the row alone, for `renderRow`'s own reason: a pointer lands on
     // the node under it, and `getAttribute` is never walked up.
     setRowMarks([row, ...parts], TIP_ATTRIBUTE, tipKey);
@@ -3268,13 +3274,13 @@ function renderStandingPerson(
  * figures of the fight are the panel's and never reach this window, so what stands here is the
  * card a skill and a fight on the shelf already get. `develop ADR 0098`.
  */
-function presentStandingPersonTip(person: StandingPerson): TipReading {
+function presentHelperPersonTip(person: StandingPerson): TipReading {
     if (person.turns === null) {
         return { name: person.name, subtitle: person.skillName, groups: [] };
     }
     const stated: TipLine = {
         kind: TIP_LINE.stat,
-        label: STANDING_WORDS.turnsLeft,
+        label: HELPER_WORDS.turnsLeft,
         stated: person.turns,
         isStrong: false,
         caveat: person.turnsCaveat,
@@ -3294,7 +3300,7 @@ function presentStandingPersonTip(person: StandingPerson): TipReading {
 function presentChargedSkillTip(charged: StandingChargedSkill): TipReading {
     const stated: TipLine = {
         kind: TIP_LINE.stat,
-        label: STANDING_WORDS.turnsPassed,
+        label: HELPER_WORDS.turnsPassed,
         stated: formatCounter(charged.turnsElapsed, charged.turnsStated),
         isStrong: false,
         caveat: null,
@@ -3348,7 +3354,7 @@ function presentFightCard(fight: FightCardReading): TipReading {
     const counted = formatFightCardCounts(fight);
     const lines: TipLine[] = [];
     // A fight going on is dated by when it opened: the shelf's `teraz` is a row's word, not a date.
-    addFightCardLine(lines, FIGHT_CARD_WORDS.when, getWordsForShelfTime(fight.at, false));
+    addFightCardLine(lines, FIGHT_CARD_WORDS.when, formatShelfTime(fight.at, false));
     addFightCardLine(lines, FIGHT_CARD_WORDS.world, fight.world ?? "");
     addFightCardLine(lines, FIGHT_CARD_WORDS.character, fight.reader?.name ?? "");
     // A profession and a level beside a nickname of twenty-five characters (`develop ADR 0097`)
@@ -3356,7 +3362,7 @@ function presentFightCard(fight: FightCardReading): TipReading {
     // under the name.
     const said = fight.reader === null
         ? null
-        : formatCardSubtitle(fight.reader.profession, fight.reader.level, SIDE_PART.nobody);
+        : formatCardSubtitle(fight.reader.profession, fight.reader.level, SIDE_RELATION.nobody);
     addFightCardLine(lines, FIGHT_CARD_WORDS.profession, said ?? "");
     const groups = lines.length === 0 ? [] : [{ lines }];
     if (fight.place === null) return { name: counted, subtitle: null, groups };
@@ -3545,7 +3551,7 @@ export function setTipHidden(tip: PanelElement, isHidden: boolean): void {
  * and half a pixel is nothing anybody can see — while a declaration reading `292.33333333333px`
  * is something a reader of the page can.
  */
-export function setTipPlace(
+export function setTipPosition(
     tip: PanelElement,
     clientY: number,
     across: TipAcross | null,
@@ -3600,9 +3606,9 @@ export function composeTipWithin(
         const shorter = composeGroupsWithout(kept);
         if (shorter === null) break;
         kept = shorter;
-        if (isTipWithin(composeTipCut(reading, kept), room, typeStep)) break;
+        if (isTipWithin(composeTipTrimmed(reading, kept), room, typeStep)) break;
     }
-    return composeTipCut(reading, kept);
+    return composeTipTrimmed(reading, kept);
 }
 
 function isTipWithin(reading: TipReading, room: number, step: TypeStep): boolean {
@@ -3631,7 +3637,7 @@ function isNoteGroup(group: TipGroup): boolean {
 }
 
 /** The card once something was given up: it says so, where a figure's qualifiers are read. */
-function composeTipCut(reading: TipReading, kept: readonly TipGroup[]): TipReading {
+function composeTipTrimmed(reading: TipReading, kept: readonly TipGroup[]): TipReading {
     if (kept.length === reading.groups.length) return reading;
     const said: TipLine = { kind: TIP_LINE.note, text: CARD_WORDS.cut, tone: TIP_NOTE_TONE.plain };
     const last = kept[kept.length - 1];
@@ -3669,10 +3675,14 @@ export function initTipHandle(
     const renderTipFor = (key: string, reading: TipReading): void => {
         // Cut here rather than where a card is composed: the one place that knows both it and the
         // window, and on the way in for a card opened and for one a redraw put up again.
-        const shown = composeTipWithin(reading, getTipRoom(getViewportHeight()), getTypeStep());
+        const shown = composeTipWithin(
+            reading,
+            getTipHeightAvailable(getViewportHeight()),
+            getTypeStep(),
+        );
         openSize = tallyTipSize(shown, getTypeStep());
         standing = redraw(standing, () => renderTip(document, shown));
-        setTipPlace(standing, openTop, getAcross(key), openSize, getTypeStep());
+        setTipPosition(standing, openTop, getAcross(key), openSize, getTypeStep());
     };
     const hide = (): void => {
         if (openKey === null) return;
@@ -3697,7 +3707,7 @@ export function initTipHandle(
                     // and a move inside one pixel would rewrite the same declaration.
                     if (top === openTop) return;
                     openTop = top;
-                    setTipPlace(standing, openTop, getAcross(key), openSize, getTypeStep());
+                    setTipPosition(standing, openTop, getAcross(key), openSize, getTypeStep());
                     return;
                 }
             }
@@ -3742,7 +3752,7 @@ export function presentCard(subject: CardSubject): TipReading {
         subtitle: formatCardSubtitle(
             subject.profession,
             subject.detail.level,
-            subject.sidePart,
+            subject.sideRelation,
         ),
         groups,
     };
@@ -3778,7 +3788,7 @@ function presentCardFigureLines(
         if (one.halfNamed !== null) {
             lines.push(...presentCardSubLine(one.halfNamed.label, one.halfNamed.figure));
         }
-        for (const part of presentCardWordedParts(one.absorbed, translate)) {
+        for (const part of presentCardPartsMergedByWord(one.absorbed, translate)) {
             lines.push(...presentCardSubLine(part.label, part.figure));
         }
     }
@@ -3890,8 +3900,8 @@ function presentCardTurnLine(detail: RowDetail): TipLine {
  */
 function presentCardRunGroups(detail: RowDetail, translate: TranslateLabel | null): TipGroup[] {
     const runs = [
-        { heading: CARD_WORDS.striking, lines: presentCardStrikingLines(detail, translate) },
-        { heading: CARD_WORDS.struck, lines: presentCardStruckLines(detail, translate) },
+        { heading: CARD_WORDS.striking, lines: presentCardDealtLines(detail, translate) },
+        { heading: CARD_WORDS.struck, lines: presentCardTakenLines(detail, translate) },
     ];
     const groups: TipGroup[] = [];
     for (const run of runs) {
@@ -3908,7 +3918,7 @@ function presentCardRunGroups(detail: RowDetail, translate: TranslateLabel | nul
  * never of the turns the line above states: nothing on this card is divided by a turn
  * (`PRODUCT.md`, `develop ADR 0048`).
  */
-function presentCardStrikingLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
+function presentCardDealtLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
     const lines: TipLine[] = [...presentCardRawLine(detail.damageDealtRaw)];
     const critical = presentCardCriticalText(detail);
     if (critical !== null) {
@@ -3921,7 +3931,7 @@ function presentCardStrikingLines(detail: RowDetail, translate: TranslateLabel |
         });
         const offhand = detail.procsWhenStriking.filter((part) => part.key === OFFHAND_CRIT_KEY);
         lines.push(
-            ...presentCardWordedParts(offhand, translate).map((one): TipLine => ({
+            ...presentCardPartsMergedByWord(offhand, translate).map((one): TipLine => ({
                 kind: TIP_LINE.sub,
                 label: one.label,
                 stated: formatUses(one.figure),
@@ -3963,7 +3973,7 @@ function presentCardCriticalText(detail: RowDetail): string | null {
     // More criticals than blows is a share above the hundred, which is a number that is wrong
     // looking like one that is right. The count is stated on its own instead (**E12**).
     if (detail.blowsCritical > detail.blowsStruck) return formatUses(detail.blowsCritical);
-    const share = formatShare(detail.blowsCritical / detail.blowsStruck);
+    const share = formatShareRounded(detail.blowsCritical / detail.blowsStruck);
     return `${formatFigure(detail.blowsCritical)} (${share})`;
 }
 
@@ -3974,7 +3984,7 @@ function presentCardCriticalText(detail: RowDetail): string | null {
  * they made two lines reading that word against different counts, which a reader can only take
  * as a panel that cannot add: nothing on screen says which of them either line is.
  */
-function presentCardWordedParts(
+function presentCardPartsMergedByWord(
     parts: readonly CutPart[],
     translate: TranslateLabel | null,
 ): Array<{ label: string; figure: number }> {
@@ -4005,7 +4015,7 @@ function presentCardProcLines(
     const kept = parts.filter((part) => !without.includes(part.key));
     const narrowed = presentCardProcSubParts(kept, translate);
     const lines: TipLine[] = [];
-    for (const one of presentCardWordedParts(kept, translate)) {
+    for (const one of presentCardPartsMergedByWord(kept, translate)) {
         lines.push({
             kind: TIP_LINE.stat,
             label: one.label,
@@ -4028,9 +4038,9 @@ function presentCardProcLines(
  * The runs standing under a row, by the word that row wears — which keys draw one at all is
  * `src/ui/panel-words.ts`'s to say.
  *
- * **Sliced where `presentCardWordedParts` slices**, so the two walks see one list and no sub-line
- * can count a part the row above it dropped. Pushed inside that row's own turn rather than sorted
- * with the rest, because a sub-line is read through the line above it (`DESIGN.md`).
+ * **Sliced where `presentCardPartsMergedByWord` slices**, so the two walks see one list and no
+ * sub-line can count a part the row above it dropped. Pushed inside that row's own turn rather than
+ * sorted with the rest, because a sub-line is read through the line above it (`DESIGN.md`).
  */
 function presentCardProcSubParts(
     parts: readonly CutPart[],
@@ -4077,7 +4087,7 @@ function presentCardDestroyedLines(parts: readonly CutPart[]): TipLine[] {
  * What held: the sum a counter states with the defences it is made of under it, then what fired
  * on their side of somebody else's blow.
  */
-function presentCardStruckLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
+function presentCardTakenLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
     const lines: TipLine[] = [...presentCardRawLine(detail.damageTakenRaw)];
     if (detail.damagePrevented > 0) {
         lines.push({
@@ -4088,7 +4098,7 @@ function presentCardStruckLines(detail: RowDetail, translate: TranslateLabel | n
             caveat: CAVEAT.reduction,
         });
         lines.push(
-            ...presentCardWordedParts(detail.damagePreventedByDefence, translate).map((
+            ...presentCardPartsMergedByWord(detail.damagePreventedByDefence, translate).map((
                 one,
             ): TipLine => ({
                 kind: TIP_LINE.sub,

@@ -3,13 +3,13 @@
  * §6.5). Tallying returns figures, never a failure: every way it could fail ends where a broken
  * invariant ends, in the defect `errors.attempt` leaves, so a failure type would change no outcome.
  *
- * Team heals are sized over the whole fight, because sizing one reads messages from later payloads,
+ * Side heals are sized over the whole fight, because sizing one reads messages from later payloads,
  * so figures are tallied from the view rather than folded in as payloads arrive.
  */
 
 import { assert } from "@std/assert/assert";
 import type { BattleEvent } from "./battle-event.ts";
-import { indexTeamHeals, type TeamHeal } from "./combatant-health.ts";
+import { indexSideHeals, type SideHeal } from "./combatant-health.ts";
 import type { FightView } from "./fight-session.ts";
 import {
     type FightStatistics,
@@ -19,14 +19,14 @@ import {
 
 export interface FightFigures {
     statistics: FightStatistics;
-    heals: ReadonlyMap<BattleEvent, TeamHeal>;
+    heals: ReadonlyMap<BattleEvent, SideHeal>;
     /** What the view had applied when these were tallied: the key a caller memoises on. */
     payloadsApplied: number;
 }
 
 export function tallyFightFigures(view: FightView): FightFigures {
     assert(view.payloadsApplied > 0, "figures are tallied from a fight that exists");
-    const heals = indexTeamHeals(view.events, view.roster);
+    const heals = indexSideHeals(view.events, view.roster);
     const statistics = tallyFightStatistics(view.events, heals);
     assert(heals.size <= view.events.length, "a cast sized is an event of the fight");
     return { statistics, heals, payloadsApplied: view.payloadsApplied };

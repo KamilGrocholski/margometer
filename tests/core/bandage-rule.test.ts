@@ -8,7 +8,7 @@
 
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
-import { getStatedHealthsFromEvent } from "#/src/core/combatant-health.ts";
+import { getHealthPercentsFromEvent } from "#/src/core/combatant-health.ts";
 import { decodePayloadMessages, parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
@@ -44,7 +44,7 @@ Deno.test("the figure is health, and raises the percentage stated before it by i
             assert(off <= TOLERANCE, `the reading is off by ${off.toFixed(3)} points`);
             healed += 1;
         }
-        for (const [id, percent] of getStatedHealthsFromEvent(event)) percentById.set(id, percent);
+        for (const [id, percent] of getHealthPercentsFromEvent(event)) percentById.set(id, percent);
     }
     assertEquals(healed, 1, "the one occurrence the material carries, 2026-08-30");
 });

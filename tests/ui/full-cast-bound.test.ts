@@ -9,7 +9,7 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { indexTeamHeals } from "#/src/core/combatant-health.ts";
+import { indexSideHeals } from "#/src/core/combatant-health.ts";
 import {
     type CombatantRoster,
     COMBATANTS_MAXIMUM,
@@ -81,7 +81,7 @@ function composeWidestFight(): {
     messages.push("0;2=50.00;+dmg=10;-dmg=10", "1=90.00;0;+dmg=20;-dmg=20", "0;0;+dmg=30;-dmg=30");
     const context = { roster, standing: null, tables: BLOWS_GRANTED };
     const events = decodePayloadMessages(messages, context).events;
-    const statistics = tallyFightStatistics(events, indexTeamHeals(events, roster));
+    const statistics = tallyFightStatistics(events, indexSideHeals(events, roster));
     return { roster, statistics, readerSide: OURS };
 }
 

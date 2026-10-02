@@ -152,14 +152,14 @@ export function readPanelIntent(target: PanelTarget): IntentReading {
     {
         // A part names itself, whatever it names: the game's own keys and names are open sets.
         const name = target.getAttribute(PANEL_MARK.skill);
-        if (name !== null) return openPart({ kind: OPENED_PART.skill, name });
+        if (name !== null) return createOpenPartIntent({ kind: OPENED_PART.skill, name });
         const source = target.getAttribute(PANEL_MARK.source);
-        if (source !== null) return openPart({ kind: OPENED_PART.source, source });
+        if (source !== null) return createOpenPartIntent({ kind: OPENED_PART.source, source });
         if (target.getAttribute(PANEL_MARK.plain) !== null) {
-            return openPart({ kind: OPENED_PART.plain });
+            return createOpenPartIntent({ kind: OPENED_PART.plain });
         }
         const element = target.getAttribute(PANEL_MARK.kind);
-        if (element !== null) return openPart({ kind: OPENED_PART.element, element });
+        if (element !== null) return createOpenPartIntent({ kind: OPENED_PART.element, element });
     }
     // Read the fight the shelf shows or pins.
     {
@@ -211,6 +211,6 @@ export function readPanelIntent(target: PanelTarget): IntentReading {
     return null;
 }
 
-function openPart(part: OpenedPart): PanelIntent {
+function createOpenPartIntent(part: OpenedPart): PanelIntent {
     return { kind: PANEL_INTENT.openPart, part };
 }

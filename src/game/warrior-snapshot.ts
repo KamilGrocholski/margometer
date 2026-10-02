@@ -65,13 +65,13 @@ const NAME_KEY = "name";
 export function readWarriorSnapshot(battle: unknown): WarriorSnapshot | WarriorFailure {
     const named = readNamedWarriors(battle);
     if (named instanceof Error) return named;
-    const snapshot = named.map(readWarriorSnapshotCombatant);
+    const snapshot = named.map(readCapturedCombatant);
     assert(snapshot.length === named.length, "every named warrior is copied once");
     return snapshot;
 }
 
 /** Never `structuredClone` of the warrior, which carries references to the page and the engine. */
-function readWarriorSnapshotCombatant(warrior: UnknownRecord): CapturedCombatant {
+function readCapturedCombatant(warrior: UnknownRecord): CapturedCombatant {
     let id: number | null = null;
     for (const key of IDENTITY_KEYS) {
         if (id !== null) break;

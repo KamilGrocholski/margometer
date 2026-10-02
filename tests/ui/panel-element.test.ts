@@ -29,14 +29,14 @@ import { readTip } from "#/tests/drawn-card.ts";
 import {
     NOTHING_SUSPECT,
     type PinnedRow,
-    presentDrill,
-    presentHalfNamed,
-    presentOpenedUnnamed,
-    presentPair,
-    presentPart,
+    presentOpenedLevel,
+    presentPairLevel,
+    presentPartLevel,
     presentScreen,
+    presentUnnamedLevel,
+    presentUnnamedPairLevel,
     type ScreenReading,
-    SIDE_PART,
+    SIDE_RELATION,
     UNNAMED_END,
 } from "#/src/ui/panel-reading.ts";
 import { CLASS, composeStyleSheet, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
@@ -62,6 +62,7 @@ import {
     formatUndrawn,
     getCaveatForUnannounced,
     getNoteForCaveat,
+    getNoteForUnnamedEnd,
     getWordsForCardMetric,
     getWordsForDamageKind,
     getWordsForHealthSource,
@@ -74,7 +75,6 @@ import {
     getWordsForStorageMeaning,
     getWordsForTypeStep,
     getWordsForUnannounced,
-    getWordsForUnnamedEnd,
     getWordsForWindow,
     PANEL_DEFECT_KIND,
     PANEL_REGION,
@@ -512,7 +512,7 @@ Deno.test("a pinned row says what the game left out, and where its figure stands
     assertEquals(
         held.card.notes,
         [
-            getWordsForUnnamedEnd("actor", "damage"),
+            getNoteForUnnamedEnd("actor", "damage"),
             getWordsForPinnedStanding(held.pinned.case),
             CARD_WORDS.gesture,
         ],
@@ -720,7 +720,7 @@ Deno.test("a pinned row opens onto the end the game did name, under its own head
     const { reading, statistics, roster } = readPinnedFight("damageDealt");
     const pinned = reading.pinned[0];
     assertExists(pinned, "this fight pins a figure");
-    const halfNamed = presentHalfNamed(statistics, roster, pinned.case, "everyone", null);
+    const halfNamed = presentUnnamedLevel(statistics, roster, pinned.case, "everyone", null);
     assertExists(halfNamed, "which opens onto a level");
     const document = composeFakeDocument();
     const panel = initTestView(document);
@@ -787,7 +787,7 @@ Deno.test("an end left out inside an opened figure says what was left out, and n
     const card = readTip(host);
     assertEquals(
         card.notes,
-        [getWordsForUnnamedEnd("target", "damage")],
+        [getNoteForUnnamedEnd("target", "damage")],
         "one sentence, and it is the one about what the game did not say",
     );
 });
@@ -804,7 +804,7 @@ function openFirstRow() {
     );
     const first = reading.rows[0];
     assertExists(first, "there is a row to open");
-    const drill = presentDrill(statistics, roster, "damageDealt", first.combatantId);
+    const drill = presentOpenedLevel(statistics, roster, "damageDealt", first.combatantId);
     assertExists(drill, "and the screen it sits on cuts further");
     return { reading, drill, opened: first };
 }
@@ -856,10 +856,10 @@ Deno.test("an end left out inside an opened figure is pressed by that end, from 
 Deno.test("an end left out inside an opened figure opens onto its keys, and back to the person", () => {
     const { reading, statistics, roster } = readPinnedFight("damageTaken");
     const opened = reading.rows
-        .map((row) => presentDrill(statistics, roster, "damageTaken", row.combatantId))
+        .map((row) => presentOpenedLevel(statistics, roster, "damageTaken", row.combatantId))
         .find((drill) => drill?.byOpponent.unnamed?.doesOpenPair === true);
     assertExists(opened, "somebody on the screen lost health nobody was named for");
-    const under = presentOpenedUnnamed(statistics, roster, "damageTaken", opened.combatantId);
+    const under = presentUnnamedPairLevel(statistics, roster, "damageTaken", opened.combatantId);
     assertExists(under, "and the level under that row is composed");
     assert(under.opened === "person", "as that person's own keys");
     const document = composeFakeDocument();
@@ -927,9 +927,9 @@ Deno.test("the strip says it is the whole fight wherever the list under it is no
     const { reading, statistics, roster, readerSide } = readPinnedFight("damageDealt");
     const opened = reading.rows[0];
     assertExists(opened, "there is a row to open");
-    const drill = presentDrill(statistics, roster, "damageDealt", opened.combatantId);
+    const drill = presentOpenedLevel(statistics, roster, "damageDealt", opened.combatantId);
     assertExists(drill, "and it opens");
-    const halfNamed = presentHalfNamed(
+    const halfNamed = presentUnnamedLevel(
         statistics,
         roster,
         "dealtWithNoActor",
@@ -1726,7 +1726,7 @@ function getUndressedRegions(sheet: string, classNames: readonly string[]): stri
             found.push(className);
             continue;
         }
-        if (!getIsLineWhole(font)) {
+        if (!isLineWhole(font)) {
             found.push(className);
             continue;
         }
@@ -1736,7 +1736,7 @@ function getUndressedRegions(sheet: string, classNames: readonly string[]): stri
 }
 
 /** Whether a `font` shorthand states the whole-pixel line the rest of the panel is drawn on. */
-function getIsLineWhole(font: string): boolean {
+function isLineWhole(font: string): boolean {
     const slash = font.indexOf("/");
     if (slash === -1) return false;
     const ends = font.indexOf(" ", slash);
@@ -1782,7 +1782,7 @@ Deno.test("pointing at a ranking row opens everything that row had to leave out"
     );
     assertEquals(
         shown.subtitle,
-        [formatCardSubtitle(first.profession, first.detail.level, SIDE_PART.nobody)],
+        [formatCardSubtitle(first.profession, first.detail.level, SIDE_RELATION.nobody)],
         "and what they are beside how far along, off the roster the fight was fought by",
     );
     const figures = shown.stated.filter((one) => !one.isSub);
@@ -1909,12 +1909,12 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
         null,
         NOTHING_SUSPECT,
     );
-    const drill = presentDrill(statistics, roster, "healthGiven", HEALER);
+    const drill = presentOpenedLevel(statistics, roster, "healthGiven", HEALER);
     assertExists(drill, "the healer's row opens");
     const announced = drill.bySkill.rows.find((one) => one.doesOpenPart);
     assertExists(announced, "onto a skill that reached somebody else");
     assertStrictEquals(announced.part.kind, "skill", "and one the game announced by name");
-    const skill = presentPart(statistics, roster, "healthGiven", HEALER, announced.part);
+    const skill = presentPartLevel(statistics, roster, "healthGiven", HEALER, announced.part);
     assertExists(skill, "which opens onto the people it reached");
     const document = composeFakeDocument();
     const panel = initTestView(document);
@@ -2143,7 +2143,7 @@ Deno.test("a size of type moves the window beside the panel off it, and says whe
             }
         },
         placement: { position: null, size: null, readViewport: viewport },
-        standingPlacement: { position: null, size: null, readViewport: viewport },
+        helperPlacement: { position: null, size: null, readViewport: viewport },
     });
     const host = panel.element as FakeElement;
     const standing = () =>
@@ -2152,10 +2152,10 @@ Deno.test("a size of type moves the window beside the panel off it, and says whe
     const large = TYPE_TOKENS[TYPE_STEP.large];
     // Nobody moved either window: the panel is centred and the other opens against its left.
     const panelLeft = (1280 - standard.panelWidthPixels) / 2;
-    const opened = panelLeft - standard.standingWidthPixels - SPACE_PIXELS.small;
+    const opened = panelLeft - standard.helperWidthPixels - SPACE_PIXELS.small;
     assertStringIncludes(standing()?.attributes.get("style") ?? "", `left:${opened}px`, "beside");
     panel.render({ ...composeShownScreen(readFight()), typeStep: TYPE_STEP.large });
-    const shifted = opened - (large.standingWidthPixels - standard.standingWidthPixels);
+    const shifted = opened - (large.helperWidthPixels - standard.helperWidthPixels);
     assertStringIncludes(
         standing()?.attributes.get("style") ?? "",
         `left:${shifted}px`,
@@ -2362,7 +2362,7 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
         );
         const first = reading.rows[0];
         assertExists(first, `${screen}: there is a row to open`);
-        const drill = presentDrill(statistics, roster, screen, first.combatantId);
+        const drill = presentOpenedLevel(statistics, roster, screen, first.combatantId);
         assertExists(drill, `${screen}: and it opens`);
         const document = composeFakeDocument();
         const panel = initTestView(document);
@@ -2608,13 +2608,13 @@ Deno.test("a heading is its words and a figure, and says only what its level is 
         null,
         NOTHING_SUSPECT,
     );
-    const opened = presentDrill(statistics, roster, "healthGiven", healer);
+    const opened = presentOpenedLevel(statistics, roster, "healthGiven", healer);
     assertExists(opened, "the healer's row opens");
     const announced = opened.bySkill.rows.find((one) => one.doesOpenPart);
     assertExists(announced, "onto a skill that reached somebody else");
-    const part = presentPart(statistics, roster, "healthGiven", healer, announced.part);
+    const part = presentPartLevel(statistics, roster, "healthGiven", healer, announced.part);
     assertExists(part, "which opens onto the people it reached");
-    const pair = presentPair(statistics, roster, "healthGiven", healer, healer);
+    const pair = presentPairLevel(statistics, roster, "healthGiven", healer, healer);
     assertExists(pair, "and the person inside it opens onto the pair");
 
     const levels = [
@@ -2921,7 +2921,7 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
         null,
         NOTHING_SUSPECT,
     );
-    const drill = presentDrill(statistics, roster, "healthGiven", 469657);
+    const drill = presentOpenedLevel(statistics, roster, "healthGiven", 469657);
     assertExists(drill, "the healer's row opens");
     assertEquals(drill.bySkill.plain, null, "onto a section closing against nothing");
     const document = composeFakeDocument();
@@ -2962,9 +2962,9 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
         null,
         NOTHING_SUSPECT,
     );
-    const drill = presentDrill(statistics, roster, "healthGiven", healer);
+    const drill = presentOpenedLevel(statistics, roster, "healthGiven", healer);
     assertExists(drill, "the healer's row opens");
-    const pair = presentPair(statistics, roster, "healthGiven", healer, healer);
+    const pair = presentPairLevel(statistics, roster, "healthGiven", healer, healer);
     assertExists(pair, "and the person inside it opens onto the pair");
     assert(pair.parts.length > 1, "which says more than the row that was pressed");
 
@@ -3020,7 +3020,7 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
     );
     const first = reading.rows[0];
     assertExists(first, "there is a row to open");
-    const drill = presentDrill(statistics, roster, "damageTaken", first.combatantId);
+    const drill = presentOpenedLevel(statistics, roster, "damageTaken", first.combatantId);
     assertExists(drill, "and it opens");
     const opening = drill.byOpponent.rows.find((one) => one.doesOpenPair);
     const shut = drill.byElement.rows.find((one) => !one.doesOpenPart);
@@ -3101,7 +3101,7 @@ function composeNotesForOpenedRow(
         null,
         NOTHING_SUSPECT,
     );
-    const drill = presentDrill(statistics, roster, metric, combatantId);
+    const drill = presentOpenedLevel(statistics, roster, metric, combatantId);
     assertExists(drill, "the row opens");
     const document = composeFakeDocument();
     const panel = initTestView(document);
@@ -3211,7 +3211,7 @@ Deno.test("the closing row's card says what the game did not, and only on a dama
         const { reading, statistics, roster } = readPinnedFight(metric, "everyone");
         const opened = reading.rows[0];
         assertExists(opened, `${metric}: the ranking holds a row to open`);
-        const drill = presentDrill(statistics, roster, metric, opened.combatantId);
+        const drill = presentOpenedLevel(statistics, roster, metric, opened.combatantId);
         assertExists(drill, `${metric}: the first row opens`);
         const document = composeFakeDocument();
         const panel = initTestView(document);
@@ -3256,11 +3256,11 @@ Deno.test("a row closing a pair says what it says one level up, and its neighbou
         const { reading, statistics, roster } = readPinnedFight(metric, "everyone");
         const opened = reading.rows[0];
         assertExists(opened, `${metric}: the ranking holds a row to open`);
-        const drill = presentDrill(statistics, roster, metric, opened.combatantId);
+        const drill = presentOpenedLevel(statistics, roster, metric, opened.combatantId);
         assertExists(drill, `${metric}: the first row opens`);
         const other = drill.byOpponent.rows.find((one) => one.doesOpenPair);
         if (other === undefined) continue;
-        const pair = presentPair(
+        const pair = presentPairLevel(
             statistics,
             roster,
             metric,

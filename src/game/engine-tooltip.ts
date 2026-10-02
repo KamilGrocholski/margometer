@@ -10,7 +10,7 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
-import { readPageBattle } from "./engine-battle.ts";
+import { readEngineBattleRecord } from "./engine-battle.ts";
 import { readNamedWarriors, WARRIOR_ID_KEY } from "./warrior-snapshot.ts";
 
 export interface TooltipPort {
@@ -66,7 +66,7 @@ export const ROWS_WRITTEN_MAXIMUM = 20;
  * that tooltip and the block goes on again. So every fighter is written on every frame and nobody
  * takes two blocks, whichever of the client's updates rebuilt whom (`develop ADR 0111`).
  */
-export function initPageTooltip(page: unknown): TooltipPort {
+export function initEngineTooltip(page: unknown): TooltipPort {
     let blocksById = new Map<number, string>();
     return {
         writeRows(rowsByCombatantId) {
@@ -76,7 +76,7 @@ export function initPageTooltip(page: unknown): TooltipPort {
             // Write every fighter's block, and forget a fighter the page no longer draws, which
             // keeps one board's worth in memory.
             const walked = errors.attempt(() => {
-                const warriors = readNamedWarriors(readPageBattle(page));
+                const warriors = readNamedWarriors(readEngineBattleRecord(page));
                 if (warriors instanceof Error) return 0;
                 let written = 0;
                 const drawn = new Set<number>();
@@ -84,7 +84,7 @@ export function initPageTooltip(page: unknown): TooltipPort {
                     const id = warrior[WARRIOR_ID_KEY];
                     if (typeof id !== "number") continue;
                     drawn.add(id);
-                    const block = encodeBlock(rowsByCombatantId.get(id) ?? []);
+                    const block = encodeTooltipBlock(rowsByCombatantId.get(id) ?? []);
                     const was = next.get(id) ?? "";
                     const stands = writeWarriorBlock(warrior, block, was);
                     if (stands === null) continue;
@@ -109,7 +109,7 @@ export function initPageTooltip(page: unknown): TooltipPort {
 }
 
 /** The block as `concatTip` leaves it in the registry, which is what is looked for next time. */
-function encodeBlock(rows: readonly string[]): string {
+function encodeTooltipBlock(rows: readonly string[]): string {
     assert(rows.length <= ROWS_WRITTEN_MAXIMUM, "a block handed over is a stated length");
     const text = rows.map((row) => `${CLIENT_BREAK}${row}`).join("");
     if (text.length > 0) assert(text.startsWith(CLIENT_BREAK), "it opens on the client's break");

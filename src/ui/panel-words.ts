@@ -11,10 +11,10 @@ import { clamp } from "#/libs/number-range.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { formatInteger } from "#/libs/number-text.ts";
 import type { OutcomeResult } from "#/src/core/battle-event.ts";
-import type { FightMoment, PanelSidePart, PanelUnnamedEnd, PinnedCase } from "./panel-reading.ts";
+import type { FightMoment, PanelUnnamedEnd, PinnedCase, SideRelation } from "./panel-reading.ts";
 import type { PanelWindow, StorageChoice, TypeStep } from "./panel-choice.ts";
 import type { PanelMetric, PanelNoun, PanelSideChoice } from "./panel-screen.ts";
-import type { StandingAbsence, StandingTurnState } from "./panel-standing.ts";
+import type { HelperAbsence, StandingTurnState } from "./panel-standing.ts";
 import type { ChargedSkillState } from "#/src/core/charged-skill.ts";
 import { HASTE_BIT_NAME, SLOW_BIT_NAME } from "#/src/core/carried-figure.ts";
 import { HOLYTOUCH_HEALS_STATED } from "#/src/core/legendary-standing.ts";
@@ -308,10 +308,10 @@ const PINNED_STANDING_NOTES: Record<PinnedCase, string> = {
 };
 
 /**
- * ⚠️ **The end a figure was counted by is not always the shown team's own end.** One standing
+ * ⚠️ **The end a figure was counted by is not always the shown side's own end.** One standing
  * apart is charged by the end the game **did** name and damage crosses on the way
- * (`getPartCharged`, `develop ADR 0013`), so on `Otrzymane` the named end is whoever swung — and a
- * sentence naming it would read as the shown team having swung.
+ * (`getSideRelationCharged`, `develop ADR 0013`), so on `Otrzymane` the named end is whoever swung
+ * — and a sentence naming it would read as the shown side having swung.
  */
 const PINNED_SCOPE_NOTES: Record<PinnedCase, string> = {
     dealtWithNoActor: "Tylko z pokazanej drużyny — to ona to zadała, choć gra nie mówi kto.",
@@ -575,7 +575,7 @@ export const PROFESSION_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Objec
     b: "Tancerz ostrzy",
 }));
 
-const SIDE_PART_WORDS: Record<PanelSidePart, string | null> = {
+const SIDE_PART_WORDS: Record<SideRelation, string | null> = {
     reader: SIDE_WORDS.reader,
     opposing: SIDE_WORDS.opposing,
     nobody: null,
@@ -655,7 +655,7 @@ const TEN = 10;
 const HUNDRED = 100;
 
 /** The window beside the panel: the turn in hand, what is being made ready, and who holds whom. */
-export const STANDING_WORDS = {
+export const HELPER_WORDS = {
     title: "Pomocnik",
     drag: "Przeciągnij, żeby przesunąć",
     collapse: "Zwiń Pomocnika",
@@ -758,9 +758,9 @@ const TURN_STATE_WORDS: Record<StandingTurnState, string> = {
 };
 
 /** The panel's own sentences where they fit, so the two windows never disagree on a fight. */
-const STANDING_ABSENCE_WORDS: Record<StandingAbsence, string> = {
+const HELPER_ABSENCE_WORDS: Record<HelperAbsence, string> = {
     noFightYet: PANEL_WORDS.noFightYet,
-    betweenFights: STANDING_WORDS.nothingHappens,
+    betweenFights: HELPER_WORDS.nothingHappens,
     fightUnread: PANEL_WORDS.fightUnread,
 };
 
@@ -783,7 +783,7 @@ const STORAGE_MEANING_WORDS: Record<StorageChoice, string> = {
 /** A line per window in the options, so a reader who sized one is told which goes back. */
 const WINDOW_WORDS: Record<PanelWindow, string> = {
     panel: "Panel",
-    helper: STANDING_WORDS.title,
+    helper: HELPER_WORDS.title,
 };
 
 const TYPE_STEP_WORDS: Record<TypeStep, string> = {
@@ -913,7 +913,7 @@ export function getWordsForNoun(noun: PanelNoun): string {
     return words;
 }
 
-export function getWordsForDirection(metric: PanelMetric): string {
+export function getDirectionWordsForMetric(metric: PanelMetric): string {
     const words = DIRECTION_WORDS[metric];
     return words;
 }
@@ -928,7 +928,7 @@ export function getWordsForCardMetric(metric: PanelMetric): string {
     return words;
 }
 
-export function getWordsForUnnamedEnd(end: PanelUnnamedEnd, noun: PanelNoun): string {
+export function getNoteForUnnamedEnd(end: PanelUnnamedEnd, noun: PanelNoun): string {
     const words = UNNAMED_END_NOTES[end][noun];
     return words;
 }
@@ -1010,7 +1010,7 @@ export function getWordsForProfession(profession: string): string {
 export function formatCardSubtitle(
     profession: string | null,
     level: number | null,
-    sidePart: PanelSidePart,
+    sideRelation: SideRelation,
 ): string | null {
     if (level !== null) {
         if (!Number.isSafeInteger(level)) level = null;
@@ -1020,9 +1020,9 @@ export function formatCardSubtitle(
     }
     const said: string[] = [];
     if (profession !== null) said.push(getWordsForProfession(profession));
-    if (level !== null) said.push(`(${formatWhole(level)})`);
+    if (level !== null) said.push(`(${formatWholeUngrouped(level)})`);
     const stated = said.join(" ");
-    const side = SIDE_PART_WORDS[sidePart];
+    const side = SIDE_PART_WORDS[sideRelation];
     if (side === null) return stated.length === 0 ? null : stated;
     return stated.length === 0 ? side : `${stated} · ${side}`;
 }
@@ -1092,10 +1092,10 @@ export function presentTooltipRows(
         // the two directions apart. `develop ADR 0115`, `develop ADR 0116`.
         const charge = reading.charge;
         if (charge !== null) {
-            const apart = STANDING_WORDS.castSeparator;
+            const apart = HELPER_WORDS.castSeparator;
             const passed = formatCounter(charge.turnsElapsed, charge.turnsStated);
             said.push(
-                `${STANDING_WORDS.chargedSkill} ${apart} ${charge.skillName} ${apart} ${passed}`,
+                `${HELPER_WORDS.chargedSkill} ${apart} ${charge.skillName} ${apart} ${passed}`,
             );
         }
     }
@@ -1112,7 +1112,7 @@ export function presentTooltipRows(
         // ⚠️ **Neither fraction carries a noun** (`develop ADR 0116`), so the row's name is all
         // that says which way one runs.
         const given = reading.holytouchHealsGiven;
-        const apart = STANDING_WORDS.castSeparator;
+        const apart = HELPER_WORDS.castSeparator;
         if (reading.hasSpentLastheal) {
             said.push(`${TOOLTIP_WORDS.lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
         }
@@ -1130,14 +1130,14 @@ export function presentTooltipRows(
         const held = reading.provokedBy;
         if (held !== null) {
             const left = formatCounter(held.turnsStated - held.turnsElapsed, held.turnsStated);
-            const apart = STANDING_WORDS.castSeparator;
+            const apart = HELPER_WORDS.castSeparator;
             said.push(`${TOOLTIP_WORDS.provokedBy} ${held.name} ${apart} ${left}`);
         }
     }
     const words = { translate, statusBits, rowsMaximum };
     addStatusRows(said, getLeadingStatuses(reading.statuses, statusBits), words);
     addStatusRows(said, getTrailingStatuses(reading.statuses, statusBits), words);
-    const kept = said.filter((row) => !getRowCarriesMarkup(row));
+    const kept = said.filter((row) => !doesRowCarryMarkup(row));
     if (kept.length === 0) return [];
     // The name takes a row of the bound like any other, so a block handed over is never longer
     // than the maximum however many rows were composed.
@@ -1163,7 +1163,7 @@ function addStatusRows(
     for (const status of statuses) {
         if (said.length >= words.rowsMaximum) break;
         const word = getWordsForStatusBit(status.bit, words.translate, words.statusBits);
-        const percent = status.percent === null ? "" : ` ${formatWhole(status.percent)}%`;
+        const percent = status.percent === null ? "" : ` ${formatWholeUngrouped(status.percent)}%`;
         said.push(`${word}${percent}`);
     }
 }
@@ -1193,7 +1193,7 @@ function getTrailingStatuses(
     });
 }
 
-function getRowCarriesMarkup(row: string): boolean {
+function doesRowCarryMarkup(row: string): boolean {
     if (row.includes(MARKUP_OPENER)) return true;
     return row.includes(MARKUP_ENTITY);
 }
@@ -1232,7 +1232,7 @@ export function getWordsForChargedSkill(state: ChargedSkillState): string {
 export function formatChargedSkillSubtitle(name: string, state: ChargedSkillState): string {
     const said = getWordsForChargedSkill(state);
     if (said.length === 0) return name;
-    return `${name} ${STANDING_WORDS.castSeparator} ${said}`;
+    return `${name} ${HELPER_WORDS.castSeparator} ${said}`;
 }
 
 /**
@@ -1249,7 +1249,7 @@ export function formatCounter(figure: number, stated: number): string {
     if (!Number.isSafeInteger(stated)) return PANEL_WORDS.unknown;
     if (figure < 0) return PANEL_WORDS.unknown;
     if (stated < figure) return PANEL_WORDS.unknown;
-    return `${formatWhole(figure)} z ${formatWhole(stated)}`;
+    return `${formatWholeUngrouped(figure)} z ${formatWholeUngrouped(stated)}`;
 }
 
 export function getWordsForTurnState(state: StandingTurnState): string {
@@ -1257,8 +1257,8 @@ export function getWordsForTurnState(state: StandingTurnState): string {
     return words;
 }
 
-export function getWordsForStandingAbsence(absence: StandingAbsence): string {
-    const words = STANDING_ABSENCE_WORDS[absence];
+export function getWordsForHelperAbsence(absence: HelperAbsence): string {
+    const words = HELPER_ABSENCE_WORDS[absence];
     return words;
 }
 
@@ -1266,7 +1266,7 @@ export function getWordsForStandingAbsence(absence: StandingAbsence): string {
 export function formatTurnOrdinal(ordinal: number): string {
     if (!Number.isSafeInteger(ordinal)) return PANEL_WORDS.unknown;
     if (ordinal < 0) return PANEL_WORDS.unknown;
-    return `tura ${formatWhole(ordinal)}`;
+    return `tura ${formatWholeUngrouped(ordinal)}`;
 }
 
 export function getWordsForPin(isPinned: boolean): string {
@@ -1294,6 +1294,12 @@ export function getWordsForTypeStep(step: TypeStep): string {
     return words;
 }
 
+/** When and where a kept fight that would not read was fought: what the shelf row would say. */
+export function formatKeptUnread(at: FightMoment | null, place: string | null): string {
+    const parts = [formatShelfTime(at, false), place ?? ""];
+    return parts.filter((part) => part.length > 0).join(" · ");
+}
+
 /**
  * Two digits either side and the day in front of them: a column of times jumping between four and
  * five characters reads as a column of different things, and a shelf spanning days reads as one
@@ -1302,13 +1308,7 @@ export function getWordsForTypeStep(step: TypeStep): string {
  *
  * The place is what pays for the width, on every row (`DESIGN.md`, `develop ADR 0084`).
  */
-/** When and where a kept fight that would not read was fought: what the shelf row would say. */
-export function formatKeptUnread(at: FightMoment | null, place: string | null): string {
-    const parts = [getWordsForShelfTime(at, false), place ?? ""];
-    return parts.filter((part) => part.length > 0).join(" · ");
-}
-
-export function getWordsForShelfTime(at: FightMoment | null, isLive: boolean): string {
+export function formatShelfTime(at: FightMoment | null, isLive: boolean): string {
     if (isLive) return LIVE_FIGHT_TIME;
     if (at === null) return "";
     if (at.hour < 0) return "";
@@ -1326,7 +1326,7 @@ export function getWordsForShelfTime(at: FightMoment | null, isLive: boolean): s
 function formatTwoDigits(value: number): string {
     if (!Number.isSafeInteger(value)) return "";
     if (value < 0) return "";
-    const digits = formatWhole(value);
+    const digits = formatWholeUngrouped(value);
     return digits.length >= TWO_DIGITS ? digits : `0${digits}`;
 }
 
@@ -1357,7 +1357,7 @@ export function formatUses(uses: number): string {
  * Whom a gap reaches, as the sentence puts them: names while they are few, a count past that — a
  * list growing with the fight would be a second ranking, drawn in a paragraph. `develop ADR 0070`.
  */
-export function formatChargedRows(names: readonly string[], charged: number): string {
+export function formatNamesReachedByGap(names: readonly string[], charged: number): string {
     if (charged <= 0) return "";
     if (charged > NAMED_ROWS_MAXIMUM) {
         return ` (dotyczy ${composeGenitiveNoun(charged, COUNTED_NOUNS.combatants)})`;
@@ -1371,7 +1371,7 @@ export function formatChargedRows(names: readonly string[], charged: number): st
  * plural: `1 z 3 uleczeń`, never `3 uleczenia`, which is the form nothing governs.
  */
 function composeGenitiveNoun(count: number, noun: CountedNoun): string {
-    return `${formatWhole(count)} ${noun.many}`;
+    return `${formatWholeUngrouped(count)} ${noun.many}`;
 }
 
 /**
@@ -1399,7 +1399,7 @@ export function formatUnknownKeySuspicion(
 function formatOutOf(count: number, stated: number, noun: CountedNoun): string {
     if (stated <= 1) return formatCountedNoun(count, noun);
     if (stated < count) return formatCountedNoun(count, noun);
-    return `${formatWhole(count)} z ${composeGenitiveNoun(stated, noun)}`;
+    return `${formatWholeUngrouped(count)} z ${composeGenitiveNoun(stated, noun)}`;
 }
 
 export function formatNoParameterSuspicion(
@@ -1482,7 +1482,7 @@ export function formatUndrawn(region: PanelRegion): string {
  * asserts its input is a safe integer, and the panel is the layer that must not stop. On every
  * whole number it is `formatInteger`; a fraction rounds, and what is no number is the unknown word.
  */
-export function formatWhole(value: number): string {
+export function formatWholeUngrouped(value: number): string {
     if (Number.isSafeInteger(value)) return formatInteger(value);
     if (!Number.isFinite(value)) return PANEL_WORDS.unknown;
     const rounded = Math.round(value);
@@ -1500,7 +1500,7 @@ export function formatDefect(
         ? `Panel nie narysował ${REGION_WORDS[region]}`
         : DEFECT_WORDS[kind];
     const isTallied = Number.isSafeInteger(count) && count > 1;
-    const times = isTallied ? ` (${formatWhole(count)}×)` : "";
+    const times = isTallied ? ` (${formatWholeUngrouped(count)}×)` : "";
     return `${said}${times}.`;
 }
 
@@ -1537,7 +1537,7 @@ export function formatFigure(value: number): string {
     // what is not a whole one either, so a second guard anywhere above this is unreachable.
     const rounded = Math.round(value);
     if (!Number.isSafeInteger(rounded)) return PANEL_WORDS.unknown;
-    const digits = formatWhole(rounded);
+    const digits = formatWholeUngrouped(rounded);
     const sign = digits.startsWith(MINUS_SIGN) ? MINUS_SIGN : "";
     const body = digits.slice(sign.length);
     let spaced = "";
@@ -1559,7 +1559,7 @@ export function formatFigure(value: number): string {
  * second decimal place does not close it, because `33,3%` three times adds to `99,9%` and the
  * column still does not sum.
  */
-export function formatShares(amounts: readonly number[], whole: number): string[] {
+export function formatSharesApportioned(amounts: readonly number[], whole: number): string[] {
     // A whole that is not a number states no share of anything, and neither does one at or below
     // nothing: every row reads `0%`, which is what a screen with no figure on it already draws.
     if (!Number.isFinite(whole)) return amounts.map(() => formatSharePoints(0, false));
@@ -1600,7 +1600,7 @@ function formatSharePoints(points: number, isPresent: boolean): string {
     if (!Number.isSafeInteger(points)) return PANEL_WORDS.unknown;
     if (points < 0) return PANEL_WORDS.unknown;
     if (points === 0 && isPresent) return SHARE_FLOOR;
-    return `${formatWhole(points)}%`;
+    return `${formatWholeUngrouped(points)}%`;
 }
 
 function composeSharesInPoints(amounts: readonly number[], whole: number): ShareInPoints[] {
@@ -1642,7 +1642,7 @@ function getShareGroupHead(group: readonly ShareInPoints[]): ShareInPoints {
     return group[0] ?? NOBODY_TO_PAY;
 }
 
-export function formatShare(share: number): string {
+export function formatShareRounded(share: number): string {
     if (!Number.isFinite(share)) return PANEL_WORDS.unknown;
     const held = clamp(share, 0, 1);
     return formatSharePoints(Math.round(held * HUNDRED), held > 0);

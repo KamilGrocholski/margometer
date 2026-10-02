@@ -7,7 +7,7 @@ import { assertEquals, assertExists } from "@std/assert";
 import { PANEL_WINDOW, type PanelPosition } from "#/src/ui/panel-choice.ts";
 import type { PanelEvent } from "#/src/ui/panel-document.ts";
 import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
-import { STANDING_ABSENCE } from "#/src/ui/panel-standing.ts";
+import { HELPER_ABSENCE } from "#/src/ui/panel-standing.ts";
 import { GestureDropped, PANEL_LISTENER, type ViewFailure } from "#/src/ui/view-failure.ts";
 import {
     composeFakeDocument,
@@ -45,13 +45,13 @@ Deno.test("each window is moved by its own bar, and reported moved under its own
     const panel = initTestView(composeFakeDocument(), {
         onIntent: (one) => asked.push(one),
         placement: { position: { left: 40, top: 40 }, size: null, readViewport: () => VIEWPORT },
-        standingPlacement: {
+        helperPlacement: {
             position: { left: 600, top: 40 },
             size: null,
             readViewport: () => VIEWPORT,
         },
     });
-    panel.renderStanding(STANDING_ABSENCE.noFightYet, false);
+    panel.renderHelper(HELPER_ABSENCE.noFightYet, false);
     panel.renderWaiting(NOTHING_WAITING);
     const host = panel.element as FakeElement;
     const bar = findGrip(host, "standing");

@@ -11,7 +11,7 @@
 import { assert, assertEquals, assertExists, assertStrictEquals, assertThrows } from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
 import { getNumberField, isRecord } from "#/libs/unknown-value.ts";
-import { replayFightStandings } from "#/src/core/aura-standing.ts";
+import { replayAuraStandings } from "#/src/core/aura-standing.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { countUnreadMessages } from "#/src/core/fight-statistics.ts";
@@ -317,7 +317,7 @@ Deno.test("a fight closing on shouts leaves everybody on the board held", () => 
 /** Whom the fight left held at its last call, read the way the panel reads it. */
 function readProvokedAtClose(fight: FabricatedFight, name: string) {
     const replay = replayFabricatedFight(fight, name);
-    const held = replayFightStandings(replay.reading.view, STATED_SKILLS).provocations;
+    const held = replayAuraStandings(replay.reading.view, STATED_SKILLS).provocations;
     return { replay, held };
 }
 

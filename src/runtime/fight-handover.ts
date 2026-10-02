@@ -22,14 +22,14 @@ import {
     type FileSurroundings,
     type FileUnserializable,
 } from "./fight-file.ts";
-import type { FightReading, StandingFight } from "./fight-reading.ts";
+import type { FightReading, ShownFight } from "./fight-reading.ts";
 
-export class StandingFightAbsent extends Error {
-    override readonly name = "StandingFightAbsent";
+export class ShownFightAbsent extends Error {
+    override readonly name = "ShownFightAbsent";
 }
 
 /** Which fight the file is of is the intent's question, and its refusal is the runtime's. */
-export type ExportFailure = StandingFightAbsent | FileUnserializable | FileFailure;
+export type ExportFailure = ShownFightAbsent | FileUnserializable | FileFailure;
 
 export interface HandoverPorts {
     clock: Clock;
@@ -51,32 +51,19 @@ interface Handover {
     surroundings: FileSurroundings;
 }
 
-export function writeFightHandover(
-    standing: StandingFight | null,
+export function writeShownFightFile(
+    shown: ShownFight | null,
     live: LiveHandover,
     ports: HandoverPorts,
     onLateFailure: (failure: errors.Caught) => void,
 ): undefined | ExportFailure {
     assert(ports.version.length > 0, "a file names the build that wrote it");
-    if (standing === null) return new StandingFightAbsent();
-    const prepared = prepareHandover(standing, live, ports);
-    if (prepared instanceof Error) return prepared;
-    const encoded = encodeFightFile(prepared.calls, prepared.subject, prepared.surroundings);
-    if (encoded instanceof Error) return encoded;
-    return ports.file.writeFile(encoded.name, encoded.text, onLateFailure);
-}
-
-/**
- * A fight that has ended is on the shelf and on the screen at once, and stays the live recording
- * through it: the one carrying the snapshots. The moment a live file states is now, because what
- * it says is when it was taken off.
- */
-function prepareHandover(
-    standing: StandingFight,
-    live: LiveHandover,
-    ports: HandoverPorts,
-): Handover | ExportFailure {
-    if (standing.kept === null) {
+    if (shown === null) return new ShownFightAbsent();
+    // A fight that has ended is on the shelf and on the screen at once, and stays the live
+    // recording through it: the one carrying the snapshots. The moment a live file states is now,
+    // because what it says is when it was taken off.
+    let handover: Handover;
+    if (shown.kept === null) {
         const now = ports.clock.readNowMilliseconds();
         let gameBuild: string | null;
         // Read the build: one the page will not state is absent, and no failure of the file's.
@@ -88,34 +75,39 @@ function prepareHandover(
                 gameBuild = read;
             }
         }
-        const surroundings = readHandoverSurroundings(ports, now, gameBuild);
+        const surroundings = readFileSurroundings(ports, now, gameBuild);
         if (surroundings instanceof Error) return surroundings;
-        const subject = prepareHandoverSubject(standing.reading, live.place);
-        return { calls: live.capture, subject, surroundings };
+        const subject = composeFileSubject(shown.reading, live.place);
+        handover = { calls: live.capture, subject, surroundings };
+    } else {
+        const { kept, reading } = shown;
+        // A replay refuses the whole fight at the first payload it will not read, so every kept
+        // payload has its messages: a file whose messages belonged to other calls cannot be
+        // written.
+        const read = reading.messagesByPayload.length;
+        assert(read === kept.payloads.length, "a kept fight was replayed payload by payload");
+        const calls = kept.payloads.map((payload, index) => ({
+            index,
+            payload,
+            messages: reading.messagesByPayload[index] ?? [],
+            combatantsBefore: null,
+            combatantsAfter: null,
+        }));
+        // The world and the browser are the page's: a shelf is read out of one origin's store.
+        const surroundings = readFileSurroundings(ports, kept.openedAt, kept.gameBuild);
+        if (surroundings instanceof Error) return surroundings;
+        handover = {
+            calls: { calls, droppedCalls: null, isTruncated: null },
+            subject: composeFileSubject(reading, kept.place),
+            surroundings,
+        };
     }
-    const { kept, reading } = standing;
-    // A replay refuses the whole fight at the first payload it will not read, so every kept
-    // payload has its messages: a file whose messages belonged to other calls cannot be written.
-    const read = reading.messagesByPayload.length;
-    assert(read === kept.payloads.length, "a kept fight was replayed payload by payload");
-    const calls = kept.payloads.map((payload, index) => ({
-        index,
-        payload,
-        messages: reading.messagesByPayload[index] ?? [],
-        combatantsBefore: null,
-        combatantsAfter: null,
-    }));
-    // The world and the browser are the page's: a shelf is read out of one origin's store.
-    const surroundings = readHandoverSurroundings(ports, kept.openedAt, kept.gameBuild);
-    if (surroundings instanceof Error) return surroundings;
-    return {
-        calls: { calls, droppedCalls: null, isTruncated: null },
-        subject: prepareHandoverSubject(reading, kept.place),
-        surroundings,
-    };
+    const encoded = encodeFightFile(handover.calls, handover.subject, handover.surroundings);
+    if (encoded instanceof Error) return encoded;
+    return ports.file.writeFile(encoded.name, encoded.text, onLateFailure);
 }
 
-function readHandoverSurroundings(
+function readFileSurroundings(
     ports: HandoverPorts,
     atMilliseconds: number,
     gameBuild: string | null,
@@ -133,7 +125,7 @@ function readHandoverSurroundings(
     };
 }
 
-function prepareHandoverSubject(reading: FightReading, place: FightPlace | null): FileSubject {
+function composeFileSubject(reading: FightReading, place: FightPlace | null): FileSubject {
     assert(reading.view.payloadsApplied > 0, "a fight handed over was read from something");
     return {
         statistics: reading.figures.statistics,

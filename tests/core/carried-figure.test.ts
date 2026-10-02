@@ -10,7 +10,7 @@
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { type AuraStanding } from "#/src/core/aura-standing.ts";
-import { indexWitnessedKeyByBit, tallyCarriedFigures } from "#/src/core/carried-figure.ts";
+import { indexKeyByStatusBit, tallyCarriedFigures } from "#/src/core/carried-figure.ts";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 
@@ -18,7 +18,7 @@ const OURS = 1;
 const THEIRS = 2;
 const SPEED_BIT = 6;
 const SLOW_BIT = 5;
-const WITNESSED = indexWitnessedKeyByBit(FROZEN_BUFF_BITS.bits);
+const WITNESSED = indexKeyByStatusBit(FROZEN_BUFF_BITS.bits);
 
 const ROSTER = indexCombatantRoster([
     { id: 11, name: "Gracz 1", side: OURS, profession: "w", level: 40, healthMaximum: 100 },

@@ -13,7 +13,7 @@ import { parseArgs } from "@std/cli";
 import { formatInteger } from "#/libs/number-text.ts";
 import { presentCard, tallyTipSize, TIP_LINE } from "#/src/ui/panel-element.ts";
 import {
-    getPartOfSide,
+    getSideRelation,
     NOTHING_SUSPECT,
     presentScreen,
     type RankingRow,
@@ -97,7 +97,7 @@ function tallyCardHeight(
     const reading = presentCard({
         name: row.name ?? PANEL_WORDS.unknown,
         profession: row.profession,
-        sidePart: getPartOfSide(row.side, replayed.reading.view.readerSide),
+        sideRelation: getSideRelation(row.side, replayed.reading.view.readerSide),
         detail: row.detail,
         metric: screen,
         // A ranking row opens at every screen (`docs/drill-levels.md`), so the card carries the

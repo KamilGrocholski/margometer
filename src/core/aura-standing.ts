@@ -13,7 +13,7 @@ import { BATTLE_EVENT, type BattleEvent, type DeclaredEffect } from "./battle-ev
 import { type CombatantRoster, lookupCombatantIdByName } from "./combatant-roster.ts";
 import type { FightView } from "./fight-session.ts";
 import {
-    isTeamWideKey,
+    isSideWideKey,
     KEY_REACH,
     lookupKeyReach,
     NAME_SEPARATOR,
@@ -176,12 +176,12 @@ export function indexShoutsBySkillId(
  * the aura a turn past the table. Null where no effect reaches a side. `tools/skill-table.ts`
  * freezes the aura table by this, so the rule and the table cannot be two readings.
  */
-export function lookupStatedTurns(effects: readonly SkillEffectTurns[]): number | null {
+export function lookupAuraTurnsStated(effects: readonly SkillEffectTurns[]): number | null {
     assert(effects.length <= STANDINGS_MAXIMUM, "a skill states a bounded list of effects");
     let longest = 0;
     for (const effect of effects) {
         if (effect.key === PROVOCATION_KEY) continue;
-        if (!isTeamWideKey(effect.key)) continue;
+        if (!isSideWideKey(effect.key)) continue;
         for (const turns of effect.turns) {
             if (turns > longest) longest = turns;
         }
@@ -196,7 +196,7 @@ export function lookupStatedTurns(effects: readonly SkillEffectTurns[]): number 
  * ⚠️ **An okrzyk lands in both maps**: its two halves are dated apart, and folding them into one
  * row stated the shorter of two lengths for both.
  */
-export function replayFightStandings(view: FightView, stated: StatedSkills): FightStandings {
+export function replayAuraStandings(view: FightView, stated: StatedSkills): FightStandings {
     const walk: AuraWalk = {
         bySkill: new Map(),
         byProvoked: new Map(),
@@ -216,8 +216,8 @@ export function replayFightStandings(view: FightView, stated: StatedSkills): Fig
         }
     }
     return {
-        standings: replayFightStandingsOnSides(walk),
-        provocations: replayFightStandingsProvoked(walk),
+        standings: composeAuraStandings(walk),
+        provocations: composeProvocationStandings(walk),
     };
 }
 
@@ -234,13 +234,13 @@ function lookupAuraCast(
     if (event.kind !== BATTLE_EVENT.skillUsed) return null;
     if (event.actorId === null) return null;
     if (event.skillId === null) return null;
-    if (!event.declared.some((one) => isTeamWideKey(one.effect))) return null;
+    if (!event.declared.some((one) => isSideWideKey(one.effect))) return null;
     const turnsAtCast = turnsByCombatantId.get(event.actorId) ?? 0;
     const isPointed = event.declared.some((one) => one.effect === PROVOCATION_KEY);
     const shouted = isPointed ? stated.shoutsBySkillId.get(event.skillId) : undefined;
     const shout = shouted === undefined
         ? null
-        : { turns: shouted.turns, names: lookupAuraCastNames(event.declared) };
+        : { turns: shouted.turns, names: parseShoutNames(event.declared) };
     const turnsStated = stated.turnsBySkillId.get(event.skillId) ?? null;
     if (turnsStated !== null) assert(turnsStated > 0, "a half that is dated runs for stated turns");
     if (shout !== null) assert(shout.turns > 0, "and so does the other one");
@@ -262,7 +262,7 @@ function lookupAuraCast(
 }
 
 /** The characters a shout named, off the value the announcement carried. */
-function lookupAuraCastNames(declared: readonly DeclaredEffect[]): string[] {
+function parseShoutNames(declared: readonly DeclaredEffect[]): string[] {
     const found: string[] = [];
     for (const one of declared) {
         if (one.effect !== PROVOCATION_KEY) continue;
@@ -304,7 +304,7 @@ function lookupProvokedIds(cast: AuraCast, roster: CombatantRoster): number[] {
 }
 
 /** Elapsed against stated, and a cast whose turns have run out is no longer standing. */
-function replayFightStandingsOnSides(walk: AuraWalk): AuraStanding[] {
+function composeAuraStandings(walk: AuraWalk): AuraStanding[] {
     const found: AuraStanding[] = [];
     for (const cast of walk.bySkill.values()) {
         const turnsStated = cast.turnsStated;
@@ -334,7 +334,7 @@ function replayFightStandingsOnSides(walk: AuraWalk): AuraStanding[] {
  * on the held character's own turns**: over `captures/` the provoked strike whoever shouted
  * on their first three turns and fall back on the fourth (`docs/auras-standing.md`).
  */
-function replayFightStandingsProvoked(walk: AuraWalk): ProvocationStanding[] {
+function composeProvocationStandings(walk: AuraWalk): ProvocationStanding[] {
     const found: ProvocationStanding[] = [];
     for (const [provokedId, held] of walk.byProvoked) {
         const cast = held.cast;

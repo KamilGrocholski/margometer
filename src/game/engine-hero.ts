@@ -14,11 +14,11 @@ import {
     getTextField,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
-import { readPageEngines } from "./engine-battle.ts";
-import { PAGE_READING, type PageReadFailure, PageReadingAbsent } from "./page-reading.ts";
+import { readEngines } from "./engine-battle.ts";
+import { CLIENT_READING, type ClientReadFailure, ClientReadingAbsent } from "./page-reading.ts";
 
 export interface HeroPort {
-    readHeroId(): number | PageReadFailure;
+    readHeroId(): number | ClientReadFailure;
 }
 
 /** Production build `Bb28FQty`, fetched 2026-09-27: `this.getId=()=>this.d.id` on the hero. */
@@ -31,15 +31,15 @@ const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const HERO_FIELDS: FieldKeys<HeroField> = { id: "id" };
 
 /** The first spelling of the game that states an id wins: two spellings are one game. */
-export function initPageHero(page: unknown): HeroPort {
+export function initEngineHero(page: unknown): HeroPort {
     return {
         readHeroId() {
-            const read = errors.attempt(() => readPageEngines(page).map(readEngineHeroId));
+            const read = errors.attempt(() => readEngines(page).map(readEngineHeroId));
             if (read instanceof Error) return read;
             for (const id of read) {
                 if (id !== null) return id;
             }
-            return new PageReadingAbsent(PAGE_READING.hero);
+            return new ClientReadingAbsent(CLIENT_READING.hero);
         },
     };
 }

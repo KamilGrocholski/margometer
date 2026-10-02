@@ -9,7 +9,7 @@
 
 import { assert, assertEquals, assertExists, AssertionError, assertThrows } from "@std/assert";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
-import { indexTeamHeals, type TeamHeal } from "#/src/core/combatant-health.ts";
+import { indexSideHeals, type SideHeal } from "#/src/core/combatant-health.ts";
 import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
@@ -178,7 +178,7 @@ Deno.test("a blow lands on both of its ends, and raw stays apart from applied", 
 /** Tallied, and held to its balances, which is the pair a caller always runs. */
 function tally(
     events: readonly BattleEvent[],
-    heals: ReadonlyMap<BattleEvent, TeamHeal>,
+    heals: ReadonlyMap<BattleEvent, SideHeal>,
 ): FightStatistics {
     const statistics = tallyFightStatistics(events, heals);
     verifyFightStatistics(statistics);
@@ -416,7 +416,7 @@ Deno.test("a cast credits its caster with everything it put back, member by memb
         ],
         roster,
     );
-    const statistics = tally(events, indexTeamHeals(events, roster));
+    const statistics = tally(events, indexSideHeals(events, roster));
     assertEquals(statistics.byCombatantId.get(1)?.healthGiven, 900, "the caster gave both shares");
     assertEquals(statistics.byCombatantId.get(2)?.healthGiven, 0, "and the other member gave none");
     assertEquals(statistics.givenByNobody, 0, "with nothing left charged to nobody");
@@ -446,7 +446,7 @@ Deno.test("the corpus says who gave every point of health it put back", () => {
     for (const { combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
         const events = payloads.flatMap((one) => decode(one, roster));
-        const statistics = tally(events, indexTeamHeals(events, roster));
+        const statistics = tally(events, indexSideHeals(events, roster));
         restored += statistics.totals.healthRestored;
         given += statistics.totals.healthGiven;
         nobody += statistics.givenByNobody;
@@ -504,7 +504,7 @@ Deno.test("a cast sized reaches the figures, and one nobody could place is count
         ],
         roster,
     );
-    const sized = tally(events, indexTeamHeals(events, roster));
+    const sized = tally(events, indexSideHeals(events, roster));
     assertEquals(sized.byCombatantId.get(1)?.healthRestored, 300, "a share of the first pool");
     assertEquals(sized.byCombatantId.get(2)?.healthRestored, 600, "and of the second");
     assertEquals(sized.castsUnplaced, 0, "with nothing left unplaced");
@@ -594,7 +594,7 @@ Deno.test("what the recordings restore is mostly what a cast put back", () => {
     for (const { combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
         const events = payloads.flatMap((one) => decode(one, roster));
-        const statistics = tally(events, indexTeamHeals(events, roster));
+        const statistics = tally(events, indexSideHeals(events, roster));
         restored += statistics.totals.healthRestored;
         unplaced += statistics.castsUnplaced;
     }
@@ -621,7 +621,7 @@ Deno.test("every cut of a combatant comes to that combatant's own total", () => 
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
         const events = payloads.flatMap((one) => decode(one, roster));
-        const statistics = tally(events, indexTeamHeals(events, roster));
+        const statistics = tally(events, indexSideHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
             let dealtByKind = 0;
             for (const amount of figures.damageDealtByKind.values()) dealtByKind += amount;
@@ -649,7 +649,7 @@ Deno.test("a cut by both ends comes to the same figure as the cut by one", () =>
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
         const events = payloads.flatMap((one) => decode(one, roster));
-        const statistics = tally(events, indexTeamHeals(events, roster));
+        const statistics = tally(events, indexSideHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
             const where = `${path}: ${combatantId}`;
             for (
@@ -700,7 +700,7 @@ Deno.test("what one dealt another is the announcements aimed at them, and never 
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
         const events = payloads.flatMap((one) => decode(one, roster));
-        const statistics = tally(events, indexTeamHeals(events, roster));
+        const statistics = tally(events, indexSideHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
             for (const [other, kinds] of figures.damageTakenByOpponentAndKind) {
                 let total = 0;
@@ -743,7 +743,7 @@ Deno.test("what one gave another is the skills announced for it plus the keys, e
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
         const events = payloads.flatMap((one) => decode(one, roster));
-        const statistics = tally(events, indexTeamHeals(events, roster));
+        const statistics = tally(events, indexSideHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
             for (const [other, amount] of figures.healthGivenByReceiver) {
                 pairs += 1;
@@ -964,7 +964,7 @@ Deno.test("every recording places what a blow carried, and places none of it twi
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
         const events = decode(payloads.flat(), roster);
-        const statistics = tally(events, indexTeamHeals(events, roster));
+        const statistics = tally(events, indexSideHeals(events, roster));
         for (const [id, figures] of statistics.byCombatantId) {
             let cut = 0;
             for (const [, amount] of figures.damagePreventedByDefence) cut += amount;
@@ -1073,7 +1073,7 @@ Deno.test("every recording charges a turn to somebody who was already in the fig
         // One decode per payload, which is what the session does: an announcement is glued
         // inside the payload it arrived in and never across two of them.
         const events = payloads.flatMap((one) => decode(one, roster));
-        const statistics = tally(events, indexTeamHeals(events, roster));
+        const statistics = tally(events, indexSideHeals(events, roster));
         for (const [id, figures] of statistics.byCombatantId) {
             assert(figures.turnsTaken >= 0, `${path} ${id} took no less than no turn`);
             turns += figures.turnsTaken;
@@ -1136,7 +1136,7 @@ Deno.test("every turn the recordings say was lost is charged to somebody in the 
     for (const { path, combatants, payloads } of readRecordedFights()) {
         const roster = indexCombatantRoster(combatants);
         const events = payloads.flatMap((one) => decode(one, roster));
-        const statistics = tally(events, indexTeamHeals(events, roster));
+        const statistics = tally(events, indexSideHeals(events, roster));
         let placed = 0;
         for (const [, figures] of statistics.byCombatantId) placed += figures.turnsLost;
         const stated = events.filter((one) => one.kind === "turn-lost").length;
@@ -1304,7 +1304,7 @@ Deno.test("a cast sized for only part of its side is still counted unplaced", ()
         { id: 3, name: "Gracz 3", side: 1, profession: "m", level: 40, healthMaximum: null },
     ]);
     const events = decode(["1=50.00;3=50.00;+dmg=1;-dmg=1", "1=50.00;0;healall_per=30"], roster);
-    const heals = indexTeamHeals(events, roster);
+    const heals = indexSideHeals(events, roster);
     const cast = [...heals.values()][0];
     assertExists(cast, "the cast is sized for the member it can be");
     assertEquals(cast.isWhole, false, "and says a member was left out");

@@ -10,9 +10,9 @@ import { assert, assertEquals, assertExists } from "@std/assert";
 import type { BattleEvent } from "#/src/core/battle-event.ts";
 import {
     composeHealthFromPercent,
-    deriveHealthTolerance,
-    getStatedHealthsFromEvent,
-    indexTeamHeals,
+    composeHealthTolerance,
+    getHealthPercentsFromEvent,
+    indexSideHeals,
 } from "#/src/core/combatant-health.ts";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
@@ -97,7 +97,7 @@ function witnessRecording(fight: RecordedFight, reading: WitnessReading): void {
             decodePayloadMessages([message], { roster, standing: null, tables: BLOWS_GRANTED })
                 .events
         );
-    const heals = indexTeamHeals(byMessage.flat(), roster);
+    const heals = indexSideHeals(byMessage.flat(), roster);
     for (const events of byMessage) {
         {
             const statedHere = new Map<number, number>();
@@ -108,7 +108,7 @@ function witnessRecording(fight: RecordedFight, reading: WitnessReading): void {
                 for (const [id, amount] of getMovedHealth(event)) {
                     pendingById.set(id, (pendingById.get(id) ?? 0) + amount);
                 }
-                for (const [id, percent] of getStatedHealthsFromEvent(event)) {
+                for (const [id, percent] of getHealthPercentsFromEvent(event)) {
                     statedHere.set(id, percent);
                 }
                 if (isPoolRaiseDeclared(event)) isPoolRaised = true;
@@ -182,7 +182,7 @@ function addComparison(reading: WitnessReading, one: Comparison): void {
     assertExists(isAt, `${one.path}: a maximum that was read`);
     reading.compared += 1;
     const stated = isAt - wasAt;
-    const tolerance = deriveHealthTolerance(one.healthMaximum) * READINGS_COMPARED;
+    const tolerance = composeHealthTolerance(one.healthMaximum) * READINGS_COMPARED;
     if (Math.abs(stated - one.moved) <= tolerance) {
         reading.agreed += 1;
         return;

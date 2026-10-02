@@ -27,7 +27,7 @@ export class FileApiAbsent extends Error {
 export type FileFailure = FileApiAbsent | errors.Caught;
 
 /** The whole of what this asks a page for. A browser's `window` and `document` satisfy it. */
-export interface PageDownloads {
+export interface BrowserDownloads {
     createObjectURL(blob: unknown): string;
     revokeObjectURL(url: string): void;
     createBlob(text: string, type: string): unknown;
@@ -49,7 +49,7 @@ export interface DownloadAnchor {
 const DOWNLOAD_ANCHOR_CLASS = "MargoMeter-download";
 const FILE_TYPE = "application/json";
 
-export function initPageFile(downloads: PageDownloads | null): FileSink {
+export function initBrowserFile(downloads: BrowserDownloads | null): FileSink {
     return {
         writeFile(name, text, onLateFailure) {
             assert(name.length > 0, "a file handed over is named");

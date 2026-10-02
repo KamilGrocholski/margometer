@@ -2,7 +2,7 @@
  * Every level the corpus can reach, drawn, and read back off the document it was drawn into.
  *
  * Two things nothing else holds, and both fail silently. The panel counts a level's rows in one
- * place and draws them in another (`getRowsForDrill` and its neighbours in
+ * place and draws them in another (`countRowsForOpenedLevel` and its neighbours in
  * `src/ui/panel-element.ts`), and a count that stopped agreeing with the drawing is a section cut
  * off mid-way. And a card is looked up by a key each row states for itself, so two rows stating
  * one key is a row wearing its neighbour's card — the register refuses the second quietly.
@@ -17,12 +17,12 @@ import {
     NOTHING_SUSPECT,
     type OpenedPart,
     PINNED_CASES,
-    presentDrill,
-    presentHalfNamed,
-    presentHalfNamedDrill,
-    presentPair,
-    presentPart,
+    presentOpenedLevel,
+    presentPairLevel,
+    presentPartLevel,
     presentScreen,
+    presentUnnamedCutLevel,
+    presentUnnamedLevel,
     type ScreenReading,
 } from "#/src/ui/panel-reading.ts";
 import { getWordsForUnannounced, NEITHER_END_WORDS, PANEL_WORDS } from "#/src/ui/panel-words.ts";
@@ -193,7 +193,7 @@ function getRegionShortfall(where: string, shown: ShownScreen): string | null {
         ...getPlacesOutOfOrder(seen),
     ];
     if (shared.length > 0) return `${where}: ${shared.join(", ")}`;
-    if (!getIsRegionShort(seen)) return null;
+    if (!isRegionShort(seen)) return null;
     return `${where}: promised ${seen.promised}, drew ${seen.drawn}, ${seen.failures} undrawn`;
 }
 
@@ -383,7 +383,7 @@ function getPlacesOutOfOrder(seen: RegionDrawn): string[] {
  * comparison that answered "no" to everything would agree with all 12,814 levels, so this is what
  * the sample at the end is handed.
  */
-function getIsRegionShort(seen: RegionDrawn): boolean {
+function isRegionShort(seen: RegionDrawn): boolean {
     if (seen.failures > 0) return true;
     return seen.promised < seen.drawn;
 }
@@ -392,12 +392,12 @@ function getIsRegionShort(seen: RegionDrawn): boolean {
 function addOpenedRungs(walk: LevelWalk, statistics: FightStatistics, roster: CombatantRoster) {
     let walked = 0;
     for (const row of walk.base.reading.rows) {
-        const drill = presentDrill(statistics, roster, walk.metric, row.combatantId);
+        const drill = presentOpenedLevel(statistics, roster, walk.metric, row.combatantId);
         if (drill === null) continue;
         walked += addLevel(walk, "opened", { drill });
         for (const other of drill.byOpponent.rows) {
             if (!other.doesOpenPair) continue;
-            const pair = presentPair(
+            const pair = presentPairLevel(
                 statistics,
                 roster,
                 walk.metric,
@@ -407,7 +407,7 @@ function addOpenedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
             if (pair !== null) walked += addLevel(walk, "pair", { drill, pair });
         }
         for (const one of composeOpenedParts(drill)) {
-            const part = presentPart(statistics, roster, walk.metric, row.combatantId, one);
+            const part = presentPartLevel(statistics, roster, walk.metric, row.combatantId, one);
             if (part !== null) walked += addLevel(walk, "part", { drill, part });
         }
     }
@@ -439,7 +439,7 @@ function addPinnedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
     let walked = 0;
     for (const kase of PINNED_CASES) {
         if (getMetricForPinned(kase) !== walk.metric) continue;
-        const halfNamed = presentHalfNamed(
+        const halfNamed = presentUnnamedLevel(
             statistics,
             roster,
             kase,
@@ -457,7 +457,7 @@ function addPinnedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
             )),
         ];
         for (const one of opened) {
-            const cut = presentHalfNamedDrill(
+            const cut = presentUnnamedCutLevel(
                 statistics,
                 roster,
                 kase,
@@ -474,15 +474,15 @@ function addPinnedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
 Deno.test("a region shorter than what it drew is read as short, and a whole one is not", () => {
     const whole = { ...NOTHING_DRAWN, promised: 22, drawn: 22 };
     assert(
-        getIsRegionShort({ ...whole, promised: 11 }),
+        isRegionShort({ ...whole, promised: 11 }),
         "a level standing eleven rows over twenty-two is a section cut off mid-way",
     );
     assert(
-        getIsRegionShort({ ...whole, failures: 1 }),
+        isRegionShort({ ...whole, failures: 1 }),
         "and a region that gave way is short of what it was asked for, whatever it promised",
     );
     assert(
-        !getIsRegionShort(whole),
+        !isRegionShort(whole),
         "a region as tall as its rows is whole, and a reader calling it short finds everything",
     );
 });
@@ -653,7 +653,7 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
         const { statistics, roster } = tallyRecordedFight(path);
         for (const [combatantId] of statistics.byCombatantId) {
             for (const metric of ["damageDealt", "damageTaken"] as const) {
-                const drill = presentDrill(statistics, roster, metric, combatantId);
+                const drill = presentOpenedLevel(statistics, roster, metric, combatantId);
                 if (drill === null) continue;
                 const plain = drill.bySkill.plain;
                 if (plain === null) continue;
@@ -685,10 +685,10 @@ Deno.test("a pair states its parts largest first, the closing row among them", (
         const { statistics, roster } = tallyRecordedFight(path);
         for (const [combatantId] of statistics.byCombatantId) {
             for (const metric of ["damageDealt", "damageTaken"] as const) {
-                const drill = presentDrill(statistics, roster, metric, combatantId);
+                const drill = presentOpenedLevel(statistics, roster, metric, combatantId);
                 if (drill === null) continue;
                 for (const other of drill.byOpponent.rows) {
-                    const pair = presentPair(
+                    const pair = presentPairLevel(
                         statistics,
                         roster,
                         metric,

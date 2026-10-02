@@ -47,7 +47,7 @@ export const NO_CARRIED_STATUS_WALK: CarriedStatusWalk = {
  * ⚠️ **A combatant the payload says nothing about keeps what they were holding.** A payload stating
  * only what moved states no mask for anybody else.
  */
-export function prepareCarriedStatuses(
+export function prepareCarriedStatusWalk(
     walk: CarriedStatusWalk,
     events: readonly BattleEvent[],
     masksByCombatantId: ReadonlyMap<number, number>,
@@ -62,7 +62,7 @@ export function prepareCarriedStatuses(
         assert(Number.isSafeInteger(mask), "a mask handed to the walk is a whole count of bits");
         assert(mask >= 0, "and never a sign");
         const clock = turnsByCombatantId.get(combatantId) ?? 0;
-        const held = prepareCarriedStatusesHeld(heldByCombatantId.get(combatantId), mask, clock);
+        const held = prepareLightingTurnByBit(heldByCombatantId.get(combatantId), mask, clock);
         if (held.size === 0) heldByCombatantId.delete(combatantId);
         else heldByCombatantId.set(combatantId, held);
     }
@@ -75,7 +75,7 @@ export function prepareCarriedStatuses(
  * turn it lit on: a status the game never let go of is one standing, however many casts refreshed
  * it, and re-reading its start would draw a length nobody carried.
  */
-function prepareCarriedStatusesHeld(
+function prepareLightingTurnByBit(
     before: ReadonlyMap<number, number> | undefined,
     mask: number,
     clock: number,

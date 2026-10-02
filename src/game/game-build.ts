@@ -7,14 +7,14 @@
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { getEndOfRun } from "#/libs/text-walk.ts";
-import { PAGE_READING, type PageReadFailure, PageReadingAbsent } from "./page-reading.ts";
+import { CLIENT_READING, type ClientReadFailure, ClientReadingAbsent } from "./page-reading.ts";
 
 export interface BuildPort {
-    readBuildId(): string | PageReadFailure;
+    readBuildId(): string | ClientReadFailure;
 }
 
 /** The whole of what this asks a page for: the sources of its scripts. */
-export interface PageScripts {
+export interface BrowserScripts {
     readScriptSources(): readonly unknown[];
 }
 
@@ -31,7 +31,7 @@ const OPTIONAL_SEPARATOR = ".";
 const LOOKS_MAXIMUM = 256;
 export const SCRIPTS_MAXIMUM = 4096;
 
-export function initPageBuild(scripts: PageScripts): BuildPort {
+export function initClientBuild(scripts: BrowserScripts): BuildPort {
     return {
         readBuildId() {
             const sources = errors.attempt(() => scripts.readScriptSources());
@@ -40,10 +40,10 @@ export function initPageBuild(scripts: PageScripts): BuildPort {
             for (let at = 0; at < walked; at += 1) {
                 const source = sources[at];
                 if (typeof source !== "string") continue;
-                const build = parseGameBuild(source);
+                const build = parseBuildId(source);
                 if (build !== null) return build;
             }
-            return new PageReadingAbsent(PAGE_READING.build);
+            return new ClientReadingAbsent(CLIENT_READING.build);
         },
     };
 }
@@ -52,7 +52,7 @@ export function initPageBuild(scripts: PageScripts): BuildPort {
  * `main.min<build>.js` or `main.min.<build>.js`, null for anything else. A `main.min` whose tail
  * does not hold is not the end of the search: a page states this name more than once.
  */
-export function parseGameBuild(text: string): string | null {
+export function parseBuildId(text: string): string | null {
     const span = lookupScriptNameSpan(text);
     if (span === null) return null;
     return text.slice(span.buildStart, span.buildEnd);

@@ -42,7 +42,7 @@ import {
 import {
     encodeProtocolMessage,
     type MessageParameter,
-    type MessageSide,
+    type StatedEnd,
 } from "#/src/core/fight-decoder.ts";
 import { encodeHealthPercent } from "#/src/core/protocol-number.ts";
 import {
@@ -969,8 +969,8 @@ function encodeSideNames(state: FabricationState, side: number): string {
 }
 
 function encodeMessage(
-    actor: MessageSide | null,
-    target: MessageSide | null,
+    actor: StatedEnd | null,
+    target: StatedEnd | null,
     parameters: readonly MessageParameter[],
 ): string {
     assert(parameters.length > 0, "a message states something after its ends");
@@ -979,7 +979,7 @@ function encodeMessage(
     return written;
 }
 
-function encodeSide(warrior: FabricatedWarrior): MessageSide {
+function encodeSide(warrior: FabricatedWarrior): StatedEnd {
     assert(warrior.id > 0, "a combatant a message names has an id");
     assert(warrior.name.length > 0, "and a name");
     return { combatantId: warrior.id, healthPercent: getHealthPercent(warrior) };

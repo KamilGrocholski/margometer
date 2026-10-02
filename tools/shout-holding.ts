@@ -9,7 +9,7 @@
 
 import { assert, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
-import { replayFightStandings } from "#/src/core/aura-standing.ts";
+import { replayAuraStandings } from "#/src/core/aura-standing.ts";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import type { FightView } from "#/src/core/fight-session.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
@@ -146,7 +146,7 @@ function replayEpisodes(view: FightView, clocks: readonly Map<number, number>[])
         if (event.kind !== BATTLE_EVENT.skillUsed) continue;
         if (!isShoutAnnouncement(event)) continue;
         const upTo = { ...view, events: view.events.slice(0, at + 1) };
-        for (const one of replayFightStandings(upTo, STATED_SKILLS).provocations) {
+        for (const one of replayAuraStandings(upTo, STATED_SKILLS).provocations) {
             if (one.casterId !== event.actorId) continue;
             const turnsAtShout = clocks[at]?.get(one.provokedId) ?? 0;
             assert(turnsAtShout >= 0, "a character shouted at is on a clock that has not run back");

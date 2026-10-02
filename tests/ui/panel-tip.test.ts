@@ -13,7 +13,7 @@ import {
     initTipHandle,
     renderTip,
     setTipHidden,
-    setTipPlace,
+    setTipPosition,
     tallyTipSize,
     type TipNoteTone,
     type TipReading,
@@ -277,22 +277,22 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     const document = composeFakeDocument();
     const tip = renderTip(document, HILDUR) as FakeElement;
     const size = tallyTipSize(HILDUR, STEP);
-    setTipPlace(tip, 292.33333333333, null, size, STEP);
+    setTipPosition(tip, 292.33333333333, null, size, STEP);
     assertEquals(
         tip.attributes.get("style"),
         "--MargoMeter-tip-top:292px;--MargoMeter-tip-height:118px",
         "a fractional `clientY` on a scaled display is not a place anybody can see",
     );
-    setTipPlace(tip, 0, null, size, STEP);
+    setTipPosition(tip, 0, null, size, STEP);
     assert(
         tip.attributes.get("style")?.startsWith("--MargoMeter-tip-top:0px;"),
         "the screen's top",
     );
-    setTipPlace(tip, -4, null, size, STEP);
+    setTipPosition(tip, -4, null, size, STEP);
     assert(tip.attributes.get("style")?.startsWith("--MargoMeter-tip-top:0px;"), "and never above");
     // A panel that has never been dragged keeps the side the sheet states, so nothing is written
     // across: the one written here is the panel saying it has moved.
-    setTipPlace(tip, 100, { edge: "left", at: 42.6 }, size, STEP);
+    setTipPosition(tip, 100, { edge: "left", at: 42.6 }, size, STEP);
     assertEquals(
         tip.attributes.get("style"),
         "--MargoMeter-tip-top:100px;--MargoMeter-tip-height:118px;" +
@@ -312,21 +312,21 @@ Deno.test("a card pinned by one edge releases the other, whichever way round it 
     const tip = renderTip(document, HILDUR) as FakeElement;
     const size = tallyTipSize(HILDUR, STEP);
 
-    setTipPlace(tip, 0, { edge: "right", at: 272 }, size, STEP);
+    setTipPosition(tip, 0, { edge: "right", at: 272 }, size, STEP);
     assertStringIncludes(
         tip.attributes.get("style") ?? "",
         "--MargoMeter-tip-left:auto;--MargoMeter-tip-right:272px",
         "a card standing left of its window is measured from the screen's right edge",
     );
 
-    setTipPlace(tip, 0, { edge: "left", at: 330 }, size, STEP);
+    setTipPosition(tip, 0, { edge: "left", at: 330 }, size, STEP);
     assertStringIncludes(
         tip.attributes.get("style") ?? "",
         "--MargoMeter-tip-left:330px;--MargoMeter-tip-right:auto",
         "and one flipped to the other side is measured from the left, the right let go",
     );
 
-    setTipPlace(tip, 0, null, size, STEP);
+    setTipPosition(tip, 0, null, size, STEP);
     const sheets = tip.attributes.get("style") ?? "";
     assertEquals(sheets.includes("tip-left"), false, "a panel nobody moved writes no edge at all");
     assertEquals(sheets.includes("tip-right"), false, "and the sheet's own corner stands");

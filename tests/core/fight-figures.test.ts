@@ -14,14 +14,14 @@ import {
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
-import { indexTeamHeals } from "#/src/core/combatant-health.ts";
+import { indexSideHeals } from "#/src/core/combatant-health.ts";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { tallyFightFigures, verifyFightFigures } from "#/src/core/fight-figures.ts";
 import {
     commitPayload,
+    composeFightView,
     createFightSession,
     type FightView,
-    getFightView,
     type PayloadRecord,
     preparePayload,
     SESSION_OPTIONS,
@@ -55,7 +55,7 @@ Deno.test("a fight run through the session tallies what its events tally, everyw
         verifyFightFigures(figures);
         const events = decodeRecordedFight(fight).events;
         const roster = indexCombatantRoster(fight.combatants);
-        const alone = tallyFightStatistics(events, indexTeamHeals(events, roster));
+        const alone = tallyFightStatistics(events, indexSideHeals(events, roster));
         assertEquals(figures.statistics, alone, `${fight.path}: the view hands over the fight`);
         assertStrictEquals(figures.payloadsApplied, fight.payloads.length, fight.path);
         fights += 1;
@@ -78,7 +78,7 @@ function replayRecordedFight(fight: RecordedFight): FightView {
         );
         commitPayload(session, prepared);
     });
-    const view = getFightView(session);
+    const view = composeFightView(session);
     assert(view !== null, `${fight.path}: the replay produced a fight`);
     return view;
 }
@@ -88,7 +88,7 @@ Deno.test("figures are tallied from a fight that exists, and say what they stand
     const opened = preparePayload(session, { ...NOTHING, isInit: true }, BLOWS_GRANTED);
     assert(!(opened instanceof Error), "a fight opens on nothing");
     commitPayload(session, opened);
-    const view = getFightView(session);
+    const view = composeFightView(session);
     assert(view !== null, "and stands");
     const figures = tallyFightFigures(view);
     verifyFightFigures(figures);

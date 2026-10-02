@@ -12,8 +12,8 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
-import { AURA_REACH, type AuraReach, replayFightStandings } from "#/src/core/aura-standing.ts";
-import { isTeamWideKey, NAME_SEPARATOR, PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
+import { AURA_REACH, type AuraReach, replayAuraStandings } from "#/src/core/aura-standing.ts";
+import { isSideWideKey, NAME_SEPARATOR, PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
 import {
     readRecordedMaterial,
@@ -95,7 +95,7 @@ export function tallyAuraRows(stepped: readonly SteppedFight[]): AuraRow[] {
     const tallies = new Map<number, SkillTally<AuraRow>>();
     for (const { fight, steps } of stepped) {
         for (const step of steps) {
-            const held = replayFightStandings(step.reading.view, STATED_SKILLS);
+            const held = replayAuraStandings(step.reading.view, STATED_SKILLS);
             // Add what stands at this moment to the register.
             {
                 const atOnce = new Map<number, number>();
@@ -157,13 +157,13 @@ export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
                 for (const event of view.events) {
                     if (event.kind !== BATTLE_EVENT.skillUsed) continue;
                     if (event.actorId === null) continue;
-                    const keys = event.declared.map((one) => one.effect).filter(isTeamWideKey);
+                    const keys = event.declared.map((one) => one.effect).filter(isSideWideKey);
                     if (keys.length === 0) continue;
                     keysByCast.set(`${event.actorId}/${event.skillId}`, [...new Set(keys)]);
                 }
                 assert(keysByCast.size <= view.events.length, "a cast is registered off an event");
             }
-            const held = replayFightStandings(view, STATED_SKILLS).standings;
+            const held = replayAuraStandings(view, STATED_SKILLS).standings;
             const casterIdsByKey = new Map<string, number[]>();
             for (const one of held) {
                 for (const key of keysByCast.get(`${one.casterId}/${one.skillId}`) ?? []) {
@@ -209,7 +209,7 @@ export function tallyProvocationRows(stepped: readonly SteppedFight[]): Provocat
     for (const { fight, steps } of stepped) {
         for (const step of steps) {
             const view = step.reading.view;
-            const held = replayFightStandings(view, STATED_SKILLS).provocations;
+            const held = replayAuraStandings(view, STATED_SKILLS).provocations;
             const atOnce = new Map<number, number>();
             for (const one of held) {
                 atOnce.set(one.skillId, (atOnce.get(one.skillId) ?? 0) + 1);

@@ -14,10 +14,10 @@ import {
 import { decodePayloadMessages, type UnreadMessage } from "#/src/core/fight-decoder.ts";
 import {
     commitPayload,
+    composeFightView,
     createFightSession,
     type FightSession,
     type FightView,
-    getFightView,
     preparePayload,
     SESSION_OPTIONS,
 } from "#/src/core/fight-session.ts";
@@ -217,7 +217,7 @@ export function replayRecordedFight(fight: RecordedFight): FightSession {
 }
 
 export function tallyRecordedFight(path: string): RecordedTally {
-    const view = getFightView(replayRecordedFight(lookupRecordedFight(path)));
+    const view = composeFightView(replayRecordedFight(lookupRecordedFight(path)));
     assertExists(view, `${path}: a recording states a fight to tally`);
     return { view, roster: view.roster, statistics: tallyFightFigures(view).statistics };
 }

@@ -15,10 +15,10 @@ import {
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     commitPayload,
+    composeFightView,
     createFightSession,
     type FightSession,
     type FightView,
-    getFightView,
     preparePayload,
     SESSION_OPTIONS,
 } from "#/src/core/fight-session.ts";
@@ -47,7 +47,7 @@ Deno.test("a recording replayed call by call reads as the whole of itself", () =
 });
 
 function view(session: FightSession, path: string): FightView {
-    const found = getFightView(session);
+    const found = composeFightView(session);
     assertExists(found, `${path}: the replay produced a fight`);
     return found;
 }

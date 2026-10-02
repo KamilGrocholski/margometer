@@ -7,12 +7,12 @@
 
 import { assert, assertExists } from "@std/assert";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
-import { initPageStore, type KeyValueStore } from "#/src/game/browser-store.ts";
-import { initPageEngine } from "#/src/game/engine-battle.ts";
-import { initPageHero } from "#/src/game/engine-hero.ts";
-import { initPagePlace } from "#/src/game/engine-place.ts";
-import { initPageTooltip } from "#/src/game/engine-tooltip.ts";
-import { initPageDictionary } from "#/src/game/game-dictionary.ts";
+import { initBrowserStore, type KeyValueStore } from "#/src/game/browser-store.ts";
+import { initEngineBattle } from "#/src/game/engine-battle.ts";
+import { initEngineHero } from "#/src/game/engine-hero.ts";
+import { initEnginePlace } from "#/src/game/engine-place.ts";
+import { initEngineTooltip } from "#/src/game/engine-tooltip.ts";
+import { initClientDictionary } from "#/src/game/game-dictionary.ts";
 import {
     initRuntime,
     type Runtime,
@@ -52,7 +52,7 @@ export const GAME_BUILD = "53XkBRxF";
 
 /** A store over a map somebody else holds, so a test can look in the place it wrote to. */
 export function initHeldStore(held: Map<string, string>): KeyValueStore {
-    return initPageStore({
+    return initBrowserStore({
         getItem: (key) => held.get(key) ?? null,
         setItem: (key, value) => void held.set(key, value),
         removeItem: (key) => void held.delete(key),
@@ -61,7 +61,7 @@ export function initHeldStore(held: Map<string, string>): KeyValueStore {
 
 /** A browser out of room: it reads, and refuses every write. */
 export function initRefusingStore(): KeyValueStore {
-    return initPageStore({
+    return initBrowserStore({
         getItem: () => null,
         setItem: () => {
             throw new RangeError("a browser out of room");
@@ -177,13 +177,13 @@ function composeRuntimePorts(
             },
         },
         interval: { every: () => ({ cancel: () => undefined }) },
-        engine: initPageEngine(page),
-        place: initPagePlace(page),
-        hero: initPageHero(page),
-        dictionary: initPageDictionary(page),
+        engine: initEngineBattle(page),
+        place: initEnginePlace(page),
+        hero: initEngineHero(page),
+        dictionary: initClientDictionary(page),
         build: { readBuildId: () => GAME_BUILD },
         surroundings: { readWorld: () => WORLD, readUserAgent: () => "a browser that said so" },
-        tooltip: initPageTooltip(page),
+        tooltip: initEngineTooltip(page),
         settings: initHeldStore(world.held),
         initShelfStore: (choice) => initHeldStore(world.getShelf(choice)),
         file: {

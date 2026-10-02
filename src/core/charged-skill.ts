@@ -57,7 +57,7 @@ export function prepareChargedSkills(
 ): ChargedSkillStanding[] {
     assert(standings.length <= CHARGED_SKILLS_MAXIMUM, "what stood stays inside the bound");
     const announced = indexAnnouncedNamesByActor(events);
-    const broken = indexBrokenIds(events);
+    const broken = indexChargeBrokenIds(events);
     const statedById = new Map(statements.map((one) => [one.combatantId, one]));
     const next: ChargedSkillStanding[] = [];
     for (const held of standings) {
@@ -77,7 +77,7 @@ export function prepareChargedSkills(
         if (state !== null) next.push({ ...held, state, endedAtOrdinal: ordinal });
     }
     for (const statement of statements) {
-        const charging = prepareChargedSkillsCharging(statement);
+        const charging = composeChargingStanding(statement);
         if (charging === null) continue;
         if (next.length >= CHARGED_SKILLS_MAXIMUM) break;
         next.push(charging);
@@ -111,7 +111,7 @@ function indexAnnouncedNamesByActor(events: readonly BattleEvent[]): Map<number,
 }
 
 /** Whom a blow of this payload broke a charge on, which the message states as its target. */
-function indexBrokenIds(events: readonly BattleEvent[]): Set<number> {
+function indexChargeBrokenIds(events: readonly BattleEvent[]): Set<number> {
     const broken = new Set<number>();
     for (const event of events) {
         if (event.kind !== BATTLE_EVENT.attack) continue;
@@ -150,7 +150,7 @@ function lookupEndedState(
     return null;
 }
 
-function prepareChargedSkillsCharging(
+function composeChargingStanding(
     statement: ChargedSkillStatement,
 ): ChargedSkillStanding | null {
     const charge = statement.charge;

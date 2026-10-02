@@ -27,7 +27,7 @@ import {
     type CarriedStatusWalk,
     composeCarriedStatuses,
     NO_CARRIED_STATUS_WALK,
-    prepareCarriedStatuses,
+    prepareCarriedStatusWalk,
 } from "./carried-status.ts";
 import {
     composeLegendaryStandings,
@@ -100,8 +100,8 @@ export interface FightView {
     turnsByCombatantId: ReadonlyMap<number, number>;
 }
 
-export class CastExceeded extends Error {
-    override readonly name = "CastExceeded";
+export class CombatantsExceeded extends Error {
+    override readonly name = "CombatantsExceeded";
     readonly count: number;
     readonly maximum: number;
 
@@ -137,7 +137,7 @@ export class PayloadsExceeded extends Error {
 }
 
 /** A fight past a bound the options state. What stands is left whole. */
-export type PayloadRejected = CastExceeded | EventsExceeded | PayloadsExceeded;
+export type PayloadRejected = CombatantsExceeded | EventsExceeded | PayloadsExceeded;
 
 /** Everything a payload leaves standing, but the events, which are appended rather than copied. */
 interface SessionStanding {
@@ -222,9 +222,9 @@ export function preparePayload(
     if (payloadsApplied > options.payloadsMaximum) {
         return new PayloadsExceeded(payloadsApplied, options.payloadsMaximum);
     }
-    const combatants = preparePayloadCast(before?.combatants ?? [], record.combatants);
+    const combatants = preparePayloadCombatants(before?.combatants ?? [], record.combatants);
     if (combatants.length > options.combatantsMaximum) {
-        return new CastExceeded(combatants.length, options.combatantsMaximum);
+        return new CombatantsExceeded(combatants.length, options.combatantsMaximum);
     }
     const roster = indexCombatantRoster(combatants);
     const decoded = decodePayloadMessages(record.messages, { roster, standing: null, tables });
@@ -243,7 +243,7 @@ export function preparePayload(
  * it**: the roster keys people by id, and a list that grew with every restatement would count
  * sightings where the bound counts people.
  */
-function preparePayloadCast(
+function preparePayloadCombatants(
     before: readonly Combatant[],
     arriving: readonly Combatant[],
 ): Combatant[] {
@@ -291,7 +291,7 @@ function preparePayloadStanding(
         turnStatement,
         isOnAuto,
         chargedSkills,
-        carried: prepareCarriedStatuses(before?.carried ?? NO_CARRIED_STATUS_WALK, events, masks),
+        carried: prepareCarriedStatusWalk(before?.carried ?? NO_CARRIED_STATUS_WALK, events, masks),
         legendary: prepareLegendaryWalk(before?.legendary ?? NO_LEGENDARY_WALK, events),
     };
 }
@@ -341,7 +341,7 @@ export function commitPayload(session: FightSession, prepared: PreparedPayload):
 }
 
 /** A reading of the fight: the arrays are the session's own, and nothing here writes to them. */
-export function getFightView(session: FightSession): FightView | null {
+export function composeFightView(session: FightSession): FightView | null {
     const standing = session.standing;
     if (standing === null) return null;
     assert(standing.payloadsApplied > 0, "a fight that exists was built from something");

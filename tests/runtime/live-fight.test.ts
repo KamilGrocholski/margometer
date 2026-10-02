@@ -8,14 +8,14 @@
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { getFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
-import { initMemoryStore, initPageStore, type KeyValueStore } from "#/src/game/browser-store.ts";
-import { initPageEngine } from "#/src/game/engine-battle.ts";
+import { composeFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
+import { initBrowserStore, initMemoryStore, type KeyValueStore } from "#/src/game/browser-store.ts";
+import { initEngineBattle } from "#/src/game/engine-battle.ts";
 import type { HeroPort } from "#/src/game/engine-hero.ts";
 import type { PlacePort } from "#/src/game/engine-place.ts";
 import { commitCapture, createFightCapture, prepareCapture } from "#/src/game/fight-capture.ts";
 import type { BuildPort } from "#/src/game/game-build.ts";
-import { PAGE_READING, PageReadingAbsent } from "#/src/game/page-reading.ts";
+import { CLIENT_READING, ClientReadingAbsent } from "#/src/game/page-reading.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
 import type { WarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
@@ -54,8 +54,8 @@ Deno.test("every recording played through the wrap is the fight, the file and th
         const game = composeGame(after);
         const { options, lines, stale, keeper, opened } = composeOptions(game);
         const { live } = playInto(game, options, fight.updates);
-        const view = getFightView(live.session);
-        const expected = getFightView(replayRecordedFight(fight));
+        const view = composeFightView(live.session);
+        const expected = composeFightView(replayRecordedFight(fight));
         assertEquals(view, expected, `${fight.path}: the session is the fight`);
         const capture = createFightCapture();
         // The fight is kept on the call that ends it, so the shelf holds the calls up to that one.
@@ -132,7 +132,7 @@ function composeOptions(
         defects,
     });
     const options: LiveFightOptions = {
-        engine: initPageEngine(game.page),
+        engine: initEngineBattle(game.page),
         clock: STILL_CLOCK,
         place,
         hero,
@@ -169,7 +169,7 @@ Deno.test("a call the envelope refuses is a defect, and the file still keeps the
     const { options, lines } = composeOptions(game);
     const { live } = playInto(game, options, [{ init: 1, m: ["0;0;txt=a"] }, { m: "not a list" }]);
     assertEquals(lines, [DEFECT_KIND.reading], "the refusal is a reading defect, said once");
-    assertStrictEquals(getFightView(live.session)?.payloadsApplied, 1, "the fight read on");
+    assertStrictEquals(composeFightView(live.session)?.payloadsApplied, 1, "the fight read on");
     assertStrictEquals(live.capture.calls.length, 2, "and the file lost neither call");
 });
 
@@ -184,7 +184,7 @@ Deno.test("a fight is kept once, whatever arrives after its end", () => {
 
 Deno.test("a shelf the store refuses is the shelf's answer, and the fight still reads", () => {
     const game = composeGame([[], []]);
-    const refusing: KeyValueStore = initPageStore({
+    const refusing: KeyValueStore = initBrowserStore({
         getItem: () => null,
         setItem: () => {
             throw new Error("a browser out of room");
@@ -195,12 +195,12 @@ Deno.test("a shelf the store refuses is the shelf's answer, and the fight still 
     const { live } = playInto(game, options, [{ init: 1 }, { endBattle: 1 }]);
     assert(keeper.getAnswers().hasStoreRefused, "the answer is the store's");
     assertEquals(lines, [], "which is an answer and not a defect");
-    assert(getFightView(live.session)?.isOver === true, "and the fight is over all the same");
+    assert(composeFightView(live.session)?.isOver === true, "and the fight is over all the same");
 });
 
 Deno.test("a place the page does not state is unknown, and one it throws on is a defect", () => {
     const absent: PlacePort = {
-        readPlace: () => new PageReadingAbsent(PAGE_READING.place),
+        readPlace: () => new ClientReadingAbsent(CLIENT_READING.place),
     };
     const quiet = composeGame([[]]);
     const unknown = composeOptions(quiet, { place: absent });
@@ -214,7 +214,7 @@ Deno.test("a place the page does not state is unknown, and one it throws on is a
 });
 
 Deno.test("a hero the page does not state is nobody, and one it throws on is a defect", () => {
-    const absent: HeroPort = { readHeroId: () => new PageReadingAbsent(PAGE_READING.hero) };
+    const absent: HeroPort = { readHeroId: () => new ClientReadingAbsent(CLIENT_READING.hero) };
     const quiet = composeGame([[], []]);
     const unknown = composeOptions(quiet, { hero: absent });
     const { live } = playInto(quiet, unknown.options, [{ init: 1 }, { endBattle: 1 }]);
@@ -253,7 +253,7 @@ Deno.test("a step of ours that breaks costs that step, and the call goes on", ()
     });
     const { live, wrapped } = playInto(game, options, [{ init: 1, m: ["0;0;txt=a"] }]);
     assertEquals(lines, [DEFECT_KIND.reading], "the broken step is a defect");
-    assertStrictEquals(getFightView(live.session)?.events.length, 1, "and the reading stands");
+    assertStrictEquals(composeFightView(live.session)?.events.length, 1, "and the reading stands");
     assertStrictEquals(wrapped.getFailureCount(), 0, "and nothing escaped to the wrap");
 });
 
@@ -263,7 +263,11 @@ Deno.test("a second fight opening on the same listener starts its file and its r
     const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
     const { live } = playInto(game, options, [{ init: 1 }, end, { init: 1, m: ["0;0;txt=b"] }]);
     assertStrictEquals(live.capture.calls.length, 1, "the file holds the fight that opened");
-    assertStrictEquals(getFightView(live.session)?.payloadsApplied, 1, "and so does the session");
+    assertStrictEquals(
+        composeFightView(live.session)?.payloadsApplied,
+        1,
+        "and so does the session",
+    );
     assertStrictEquals(keeper.getFights().length, 1, "while the first stays on the shelf");
     assertStrictEquals(opened.count, 2, "and each opening was said");
 });
@@ -274,5 +278,9 @@ Deno.test("a payload past a bound the session states is a defect, and the fight 
     const { options, lines } = composeOptions(game, { sessionOptions });
     const { live } = playInto(game, options, [{ init: 1 }, { m: ["0;0;txt=a"] }]);
     assertEquals(lines, [DEFECT_KIND.reading], "the refusal is a reading defect");
-    assertStrictEquals(getFightView(live.session)?.payloadsApplied, 1, "on the fight that stood");
+    assertStrictEquals(
+        composeFightView(live.session)?.payloadsApplied,
+        1,
+        "on the fight that stood",
+    );
 });

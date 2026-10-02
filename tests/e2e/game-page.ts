@@ -153,7 +153,7 @@ window.Engine = {
           // Accumulated, not replaced, because the client's own record is one object it
           // mutates — a payload restates only what moved, so a fighter replaced by it loses the
           // name they were introduced under — and a warrior with no name is one
-          // \`readLiveWarriors\` steps over.
+          // \`readNamedWarriors\` steps over.
           window.MARGOMETER_TIPS[id] = "game";
           var held = window.Engine.battle.w[id] || { $: composeTipTarget(id) };
           for (var field in roster[id]) held[field] = roster[id][field];
@@ -171,8 +171,9 @@ window.Engine = {
 
 /**
  * What the page keeps for a test. `Blob` is wrapped because the panel hands a file over as an
- * object URL it clicks and revokes on the next macrotask (`initPageFile`, in `src/game/page-file.ts`) — the
- * text is kept here synchronously, where nothing can lose the race for it.
+ * object URL it clicks and revokes on the next macrotask (`initBrowserFile`, in
+ * `src/game/page-file.ts`) — the text is kept here synchronously, where nothing can lose the race
+ * for it.
  */
 function composeProbe(): string {
     return `window.${PROBE_NAME} = { saved: [], fed: 0 };

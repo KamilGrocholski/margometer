@@ -133,7 +133,7 @@ export function writeTypeStep(store: KeyValueStore, step: TypeStep): undefined |
     return store.write(STORE_KEY_BY_SETTING[SETTING_KEY.typeStep], step);
 }
 
-export function readWindowFold(
+export function readWindowCollapsed(
     store: KeyValueStore,
     window: PanelWindow,
 ): boolean | SettingFailure {
@@ -146,7 +146,7 @@ export function readWindowFold(
     return new SettingUnreadable(key);
 }
 
-export function writeWindowFold(
+export function writeWindowCollapsed(
     store: KeyValueStore,
     window: PanelWindow,
     isCollapsed: boolean,
@@ -238,9 +238,9 @@ export function writeWindowSize(
 }
 
 /** The window goes back to what its type draws it at, which is nothing stored. */
-export function removeWindowSize(
+export function deleteWindowSize(
     store: KeyValueStore,
     window: PanelWindow,
 ): undefined | SettingFailure {
-    return store.remove(STORE_KEY_BY_SETTING[SIZE_SETTING_BY_WINDOW[window]]);
+    return store.delete(STORE_KEY_BY_SETTING[SIZE_SETTING_BY_WINDOW[window]]);
 }

@@ -8,7 +8,7 @@
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
 import { presentCard, TIP_LINE, TIP_NOTE_TONE, type TipGroup } from "#/src/ui/panel-element.ts";
-import { type PanelSidePart, type RowDetail, SIDE_PART } from "#/src/ui/panel-reading.ts";
+import { type RowDetail, SIDE_RELATION, type SideRelation } from "#/src/ui/panel-reading.ts";
 import { PANEL_METRIC, type PanelMetric, SCREEN_ORDER } from "#/src/ui/panel-screen.ts";
 import {
     CARD_WORDS,
@@ -113,7 +113,7 @@ Deno.test("the whole fight is a block of its own, and the screen's figure is in 
     const card = presentCard({
         name: "Hildur Muza Śmierci",
         profession: "p",
-        sidePart: SIDE_PART.nobody,
+        sideRelation: SIDE_RELATION.nobody,
         detail: HILDUR,
         metric: PANEL_METRIC.damageTaken,
         doesOpen: true,
@@ -197,7 +197,7 @@ Deno.test("a figure before reduction stands in its own run, under no figure", ()
     const card = presentCard({
         name: "Hildur Muza Śmierci",
         profession: "p",
-        sidePart: SIDE_PART.nobody,
+        sideRelation: SIDE_RELATION.nobody,
         detail: HILDUR,
         metric: PANEL_METRIC.damageTaken,
         doesOpen: false,
@@ -257,7 +257,7 @@ function readCardOf(detail: RowDetail): string[] {
     return presentCard({
         name: "Gracz 9",
         profession: null,
-        sidePart: SIDE_PART.nobody,
+        sideRelation: SIDE_RELATION.nobody,
         detail,
         metric: PANEL_METRIC.damageTaken,
         doesOpen: false,
@@ -329,7 +329,7 @@ Deno.test("the card says what they did when they struck, and what held when they
     const card = presentCard({
         name: "Hildur Muza Śmierci",
         profession: "p",
-        sidePart: SIDE_PART.nobody,
+        sideRelation: SIDE_RELATION.nobody,
         detail: HILDUR,
         metric: PANEL_METRIC.damageTaken,
         doesOpen: true,
@@ -371,11 +371,11 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
     const subtitleOf = (
         profession: string | null,
         level: number | null,
-        sidePart: PanelSidePart = SIDE_PART.nobody,
+        sideRelation: SideRelation = SIDE_RELATION.nobody,
     ) => presentCard({
         name: "Gracz 9",
         profession,
-        sidePart,
+        sideRelation,
         detail: { ...NOBODY, level },
         metric: PANEL_METRIC.damageDealt,
         doesOpen: false,
@@ -389,22 +389,22 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
     // The word the row's rule is drawn against: colour never carries a meaning alone, and this is
     // the label it carries (`develop ADR 0065`). A fight with no seat to read from says none of it.
     assertEquals(
-        subtitleOf("b", 41, SIDE_PART.reader),
+        subtitleOf("b", 41, SIDE_RELATION.reader),
         "Tancerz ostrzy (41) · My",
         "and whose side they stand on, last, because it is the panel's answer and not the game's",
     );
     assertEquals(
-        subtitleOf("b", 41, SIDE_PART.opposing),
+        subtitleOf("b", 41, SIDE_RELATION.opposing),
         "Tancerz ostrzy (41) · Oni",
         "either way round",
     );
     assertEquals(
-        subtitleOf(null, null, SIDE_PART.reader),
+        subtitleOf(null, null, SIDE_RELATION.reader),
         "My",
         "the side alone where nothing else was said",
     );
     assertEquals(
-        subtitleOf(null, null, SIDE_PART.nobody),
+        subtitleOf(null, null, SIDE_RELATION.nobody),
         null,
         "and nothing at all where none was",
     );
@@ -430,7 +430,7 @@ Deno.test("a key nothing here words is drawn as the player's own client names it
         presentCard({
             name: "Gracz 9",
             profession: null,
-            sidePart: SIDE_PART.nobody,
+            sideRelation: SIDE_RELATION.nobody,
             detail: struck,
             metric: PANEL_METRIC.damageDealt,
             doesOpen: false,
@@ -464,7 +464,7 @@ Deno.test("a combatant the fight never touched states the figure that was asked,
         presentCard({
             name: "Gracz 9",
             profession: null,
-            sidePart: SIDE_PART.nobody,
+            sideRelation: SIDE_RELATION.nobody,
             detail: NOBODY,
             metric,
             doesOpen: false,
@@ -495,7 +495,7 @@ Deno.test("a part of a figure is drawn from the first point of it, and never bel
             presentCard({
                 name: "Gracz 9",
                 profession: null,
-                sidePart: SIDE_PART.nobody,
+                sideRelation: SIDE_RELATION.nobody,
                 detail: { ...NOBODY, damageDealt: figure, damageDealtToNobody: figure },
                 metric: PANEL_METRIC.damageDealt,
                 doesOpen: false,
@@ -519,7 +519,7 @@ Deno.test("a card says the gaps that name its own person, and no others", () => 
         const card = presentCard({
             name: "Hildur Muza Śmierci",
             profession: "m",
-            sidePart: SIDE_PART.nobody,
+            sideRelation: SIDE_RELATION.nobody,
             detail,
             metric: PANEL_METRIC.healthRestored,
             doesOpen: false,
@@ -551,7 +551,7 @@ Deno.test("a card states both of the gaps that can name one person, widest first
     const card = presentCard({
         name: "Hildur Muza Śmierci",
         profession: "m",
-        sidePart: SIDE_PART.nobody,
+        sideRelation: SIDE_RELATION.nobody,
         detail: { ...HILDUR, unreadMessagesUnknownKey: 2, castsUnplaced: 1 },
         metric: PANEL_METRIC.healthGiven,
         doesOpen: false,
@@ -570,7 +570,7 @@ Deno.test("a card on a damage screen says nothing about a cast, which puts back 
     const card = presentCard({
         name: "Hildur Muza Śmierci",
         profession: "m",
-        sidePart: SIDE_PART.nobody,
+        sideRelation: SIDE_RELATION.nobody,
         detail: { ...HILDUR, castsUnplaced: 1 },
         metric: PANEL_METRIC.damageDealt,
         doesOpen: false,
@@ -593,7 +593,7 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
         presentCard({
             name: "Hildur Muza Śmierci",
             profession: "p",
-            sidePart: SIDE_PART.nobody,
+            sideRelation: SIDE_RELATION.nobody,
             detail: HILDUR,
             metric,
             doesOpen: false,
@@ -657,7 +657,7 @@ Deno.test("a run that came to nothing is not drawn, and neither is its heading",
         presentCard({
             name: "Gracz 9",
             profession: null,
-            sidePart: SIDE_PART.nobody,
+            sideRelation: SIDE_RELATION.nobody,
             detail,
             metric: PANEL_METRIC.damageDealt,
             doesOpen: false,
@@ -700,7 +700,7 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
         presentCard({
             name: "Gracz 9",
             profession: null,
-            sidePart: SIDE_PART.nobody,
+            sideRelation: SIDE_RELATION.nobody,
             detail: { ...NOBODY, unreadMessagesUnknownKey: 1 },
             metric: PANEL_METRIC.damageDealt,
             doesOpen: true,
@@ -729,7 +729,7 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
         presentCard({
             name: "Gracz 9",
             profession: null,
-            sidePart: SIDE_PART.nobody,
+            sideRelation: SIDE_RELATION.nobody,
             detail: { ...NOBODY, blowsCritical, blowsStruck },
             metric: PANEL_METRIC.damageDealt,
             doesOpen: false,
@@ -762,7 +762,7 @@ Deno.test("a card nobody is named on says so, rather than standing on a blank", 
     const card = presentCard({
         name: "",
         profession: null,
-        sidePart: SIDE_PART.nobody,
+        sideRelation: SIDE_RELATION.nobody,
         detail: NOBODY,
         metric: PANEL_METRIC.damageDealt,
         doesOpen: false,
@@ -779,7 +779,7 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
     const card = presentCard({
         name: "Amaimon Soploręki",
         profession: "p",
-        sidePart: SIDE_PART.nobody,
+        sideRelation: SIDE_RELATION.nobody,
         detail: {
             ...NOBODY,
             blowsStruck: 20,
@@ -826,7 +826,7 @@ function readStrikingProcs(procs: readonly { key: string; figure: number }[]): s
     const card = presentCard({
         name: "Amaimon Soploręki",
         profession: "p",
-        sidePart: SIDE_PART.nobody,
+        sideRelation: SIDE_RELATION.nobody,
         detail: { ...NOBODY, blowsStruck: 20, procsWhenStriking: [...procs] },
         metric: PANEL_METRIC.damageDealt,
         doesOpen: false,
@@ -916,7 +916,7 @@ Deno.test("the card says how many turns a combatant took, and only where they to
     const subject = {
         name: "Hildur Muza Śmierci",
         profession: "p",
-        sidePart: SIDE_PART.nobody,
+        sideRelation: SIDE_RELATION.nobody,
         metric: PANEL_METRIC.damageDealt,
         doesOpen: true,
         isRowNarrower: false,

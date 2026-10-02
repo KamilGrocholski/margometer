@@ -9,7 +9,7 @@ import { assert } from "@std/assert/assert";
 import type * as errors from "#/libs/errors.ts";
 import {
     type FightStandings,
-    replayFightStandings,
+    replayAuraStandings,
     type StatedSkills,
 } from "#/src/core/aura-standing.ts";
 import { type CarriedFigure, tallyCarriedFigures } from "#/src/core/carried-figure.ts";
@@ -37,7 +37,7 @@ export function writeCarriedTooltips(
     translate: TranslateLabel | null,
     tooltip: TooltipPort,
 ): TooltipWritten | errors.Caught {
-    const held = replayFightStandings(view, tables.statedSkills);
+    const held = replayAuraStandings(view, tables.statedSkills);
     const figures = new Map<string, CarriedFigure>();
     const carried = tallyCarriedFigures({
         statuses: view.carriedStatuses,

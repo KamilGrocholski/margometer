@@ -14,8 +14,8 @@ import { formatInteger } from "#/libs/number-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import {
     commitPayload,
+    composeFightView,
     createFightSession,
-    getFightView,
     preparePayload,
     SESSION_OPTIONS,
 } from "#/src/core/fight-session.ts";
@@ -112,7 +112,7 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
                 cost.messages[index] = record.messages.length;
             }
             assertStrictEquals(window.lines.length, 0, "a recording timed left no failure behind");
-            const view = getFightView(session);
+            const view = composeFightView(session);
             if (view === null) throw new PayloadCostError(`${cost.name} opened no fight`);
             // Time the tally a frame runs, at the call where the fight is longest.
             const started = performance.now();

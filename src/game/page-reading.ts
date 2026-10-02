@@ -6,22 +6,22 @@
 import type * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 
-export const PAGE_READING = {
+export const CLIENT_READING = {
     place: "place",
     hero: "hero",
     label: "label",
     build: "build",
 } as const;
-export type PageReading = VocabularyWord<typeof PAGE_READING>;
+export type ClientReading = VocabularyWord<typeof CLIENT_READING>;
 
-export class PageReadingAbsent extends Error {
-    override readonly name = "PageReadingAbsent";
-    readonly reading: PageReading;
+export class ClientReadingAbsent extends Error {
+    override readonly name = "ClientReadingAbsent";
+    readonly reading: ClientReading;
 
-    constructor(reading: PageReading) {
+    constructor(reading: ClientReading) {
         super();
         this.reading = reading;
     }
 }
 
-export type PageReadFailure = PageReadingAbsent | errors.Caught;
+export type ClientReadFailure = ClientReadingAbsent | errors.Caught;

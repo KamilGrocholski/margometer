@@ -359,7 +359,7 @@ TypeScript idiom, with the naming rules stated here.
   check (**A12**). ADR 0001. No `enum`, which emits an object nobody here writes (**S8**), and no
   `Object.freeze`, which would check at run time what `as const` already forbids. **One exception: a
   protocol message's key** stays a `string`, because the set is the game's and grows. The decoder's
-  `getKeyReading` decides whether a key means anything, and an unknown one is an unread message,
+  `lookupKeyReading` decides whether a key means anything, and an unknown one is an unread message,
   never a type error.
 - **N19. Every union with a `kind` has a vocabulary object**, so the string stands once and every
   variant, construction and `case` reaches it by symbol:

@@ -97,7 +97,7 @@ export const PREVIEW_SAID_SELECTOR = ".preview-said";
 /** What the two windows take across: inset, panel, the gap between, and the window beside it. */
 export const WINDOWS_ACROSS_PIXELS = PLACE.insetPixels +
     TYPE_TOKENS[TYPE_STEP_DEFAULT].panelWidthPixels + SPACE_PIXELS.small +
-    TYPE_TOKENS[TYPE_STEP_DEFAULT].standingWidthPixels;
+    TYPE_TOKENS[TYPE_STEP_DEFAULT].helperWidthPixels;
 /** Air past the windows, so the text never runs up against them. */
 const COLUMN_AIR_PIXELS = 58;
 /**

@@ -145,7 +145,7 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
     {
         // `develop` reads it so, and anything but text is a list no message can be placed in.
         const listed = getListField(payload, ENVELOPE_KEYS, "messages", MESSAGES_MAXIMUM);
-        if (listed instanceof Error) return readPayloadEnvelopeFailure(listed);
+        if (listed instanceof Error) return createEnvelopeFailure(listed);
         for (const message of listed ?? []) {
             if (typeof message !== "string") return new PayloadFieldMalformed("messages");
             if (message.length > 0) messages.push(message);
@@ -153,7 +153,7 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
         assert(messages.length <= MESSAGES_MAXIMUM, "a payload's messages stay inside the bound");
     }
     const stated = getListField(payload, ENVELOPE_KEYS, "messagesStated", MESSAGES_MAXIMUM);
-    if (stated instanceof Error) return readPayloadEnvelopeFailure(stated);
+    if (stated instanceof Error) return createEnvelopeFailure(stated);
     const readerSide = readPayloadEnvelopeInteger(payload, "readerSide");
     if (readerSide instanceof Error) return readerSide;
     const auto = readPayloadEnvelopeInteger(payload, "isOnAuto");
@@ -165,7 +165,7 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
         // `captures/` (2026-09-08) the step one ahead is wrong 11 times in 451, and the ninth 100
         // times in 277.
         const queue = getRecordField(payload, ENVELOPE_KEYS, "turnStatement");
-        if (queue instanceof Error) return readPayloadEnvelopeFailure(queue);
+        if (queue instanceof Error) return createEnvelopeFailure(queue);
         if (queue === null) {
             turnStatement = null;
             break readTurn;
@@ -197,7 +197,7 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
         const keyed = getRecordField(payload, ENVELOPE_KEYS, "combatants");
         if (keyed instanceof Error) {
             const listed = getListField(payload, ENVELOPE_KEYS, "combatants", COMBATANTS_MAXIMUM);
-            if (listed instanceof Error) return readPayloadEnvelopeFailure(listed);
+            if (listed instanceof Error) return createEnvelopeFailure(listed);
             warriors = [...(listed ?? [])];
         } else if (keyed !== null) {
             warriors = Object.values(keyed);
@@ -229,7 +229,7 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
 }
 
 /** Our field, never their key: the failure a field reader returned, in the envelope's terms. */
-function readPayloadEnvelopeFailure(failure: FieldFailure<EnvelopeField>): EnvelopeFailure {
+function createEnvelopeFailure(failure: FieldFailure<EnvelopeField>): EnvelopeFailure {
     if (failure instanceof FieldWrongType) {
         return new PayloadFieldMalformed(failure.field, { cause: failure });
     }
@@ -305,7 +305,7 @@ export function readWarriorEntries(entries: readonly unknown[]): WarriorReading 
                 side,
                 profession: profession instanceof Error ? null : profession,
                 level: level instanceof Error ? null : level,
-                healthMaximum: readWarriorEntriesHealth(entry, "maximum"),
+                healthMaximum: readWarriorEntryHealth(entry, "maximum"),
             };
             assert(combatant.name.length > 0, "a name that was read says something");
         }
@@ -318,7 +318,7 @@ export function readWarriorEntries(entries: readonly unknown[]): WarriorReading 
             // carry a lit mask over `captures/` (2026-09-22), and the client removes a fighter's
             // status icons at exactly that point, once their health reads zero (production build
             // `Bb28FQty`).
-            const now = readWarriorEntriesHealth(entry, "now");
+            const now = readWarriorEntryHealth(entry, "now");
             if (now !== null) {
                 if (now <= 0) {
                     mask = NOTHING_CARRIED;
@@ -408,7 +408,7 @@ export function readWarriorEntries(entries: readonly unknown[]): WarriorReading 
  * A figure of the entry's health, or null where it says nothing about it. A pool of nothing or
  * below it is one no share can be read against: the same null a pool nobody stated is.
  */
-function readWarriorEntriesHealth(entry: UnknownRecord, field: HealthField): number | null {
+function readWarriorEntryHealth(entry: UnknownRecord, field: HealthField): number | null {
     const health = getRecordField(entry, WARRIOR_FIELDS, "health");
     if (health instanceof Error) return null;
     if (health === null) return null;

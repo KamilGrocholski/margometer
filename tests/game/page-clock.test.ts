@@ -6,19 +6,19 @@
 
 import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initPageClock, type PageDate } from "#/src/game/page-time.ts";
+import { type BrowserDate, initBrowserClock } from "#/src/game/page-time.ts";
 
 const SEPTEMBER = { day: 13, month: 8, hour: 21, minute: 5 };
 
 Deno.test("a moment is read as the reader's own day and time, the month counted from one", () => {
-    const clock = initPageClock(composeDate(SEPTEMBER));
+    const clock = initBrowserClock(composeDate(SEPTEMBER));
     assertEquals(clock.readMoment(0), { day: 13, month: 9, hour: 21, minute: 5 }, "as a person");
     assertStrictEquals(clock.readNowMilliseconds(), 1234, "and now is the page's own now");
     assertEquals(clock.readTimestampText(0), "2026-09-13T21:05:00.000Z", "a file's moment");
 });
 
 /** A page clock answering whatever the test says, for every moment asked about. */
-function composeDate(parts: Record<string, number | undefined>): PageDate {
+function composeDate(parts: Record<string, number | undefined>): BrowserDate {
     return class {
         getDate = parts.day === undefined ? undefined : () => parts.day;
         getMonth = parts.month === undefined ? undefined : () => parts.month;
@@ -30,12 +30,12 @@ function composeDate(parts: Record<string, number | undefined>): PageDate {
         static now(): number {
             return 1234;
         }
-    } as unknown as PageDate;
+    } as unknown as BrowserDate;
 }
 
 Deno.test("a clock answering a day outside the calendar answers no moment at all", () => {
     const read = (parts: Record<string, number | undefined>) =>
-        initPageClock(composeDate({ ...SEPTEMBER, ...parts })).readMoment(0);
+        initBrowserClock(composeDate({ ...SEPTEMBER, ...parts })).readMoment(0);
     assertEquals(read({ day: 99 }), null, "a day past the calendar");
     assertEquals(read({ day: 0 }), null, "and one before it");
     assertEquals(read({ day: 31 }), { day: 31, month: 9, hour: 21, minute: 5 }, "its last day");
@@ -51,7 +51,7 @@ Deno.test("a clock answering a day outside the calendar answers no moment at all
 });
 
 Deno.test("a moment off every clock is no moment, and one that throws is none either", () => {
-    const clock = initPageClock(composeDate(SEPTEMBER));
+    const clock = initBrowserClock(composeDate(SEPTEMBER));
     assertEquals(clock.readMoment(Number.NaN), null, "a moment that is no number");
     const throwing = class {
         constructor() {
@@ -60,8 +60,8 @@ Deno.test("a moment off every clock is no moment, and one that throws is none ei
         static now(): number {
             return 0;
         }
-    } as unknown as PageDate;
-    const torn = initPageClock(throwing);
+    } as unknown as BrowserDate;
+    const torn = initBrowserClock(throwing);
     assertEquals(torn.readMoment(0), null, "a clock that throws answers no moment");
     const text = torn.readTimestampText(0);
     assertInstanceOf(text, Error, "and no file's moment either");
@@ -69,11 +69,11 @@ Deno.test("a moment off every clock is no moment, and one that throws is none ei
 });
 
 Deno.test("a moment past the calendar's reach is written as the page's refusal, not thrown", () => {
-    const text = initPageClock(Date).readTimestampText(8.64e15 + 1);
+    const text = initBrowserClock(Date).readTimestampText(8.64e15 + 1);
     assertInstanceOf(
         text,
         errors.Caught,
         "a real clock throws on it, and it comes back as an answer",
     );
-    assertEquals(initPageClock(Date).readTimestampText(0), "1970-01-01T00:00:00.000Z", "zero");
+    assertEquals(initBrowserClock(Date).readTimestampText(0), "1970-01-01T00:00:00.000Z", "zero");
 });

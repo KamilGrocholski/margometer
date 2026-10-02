@@ -20,7 +20,7 @@ import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import { tallyFightFigures } from "#/src/core/fight-figures.ts";
-import { getFightView } from "#/src/core/fight-session.ts";
+import { composeFightView } from "#/src/core/fight-session.ts";
 import { createCombatantFigures, tallyFightStatistics } from "#/src/core/fight-statistics.ts";
 import { createFightCapture } from "#/src/game/fight-capture.ts";
 import {
@@ -274,7 +274,7 @@ Deno.test("a value JSON has no text for is refused as unserializable, with its c
 Deno.test("every recording, replayed and written, reads back whole", () => {
     let files = 0;
     for (const fight of readRecordedFights()) {
-        const view = getFightView(replayRecordedFight(fight));
+        const view = composeFightView(replayRecordedFight(fight));
         assert(view !== null, `${fight.path}: the replay produced a fight`);
         const figures = tallyFightFigures(view);
         const subject: FileSubject = {

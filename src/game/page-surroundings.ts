@@ -26,16 +26,16 @@ const NAVIGATOR_FIELD = "navigator";
 const USER_AGENT_FIELD = "userAgent";
 const HOST_SEPARATOR = ".";
 
-export function initPageSurroundings(page: unknown): SurroundingsPort {
+export function initBrowserSurroundings(page: unknown): SurroundingsPort {
     return {
         readWorld() {
-            const read = errors.attempt(() => readPageText(page, LOCATION_FIELD, HOST_FIELD));
+            const read = errors.attempt(() => readBrowserText(page, LOCATION_FIELD, HOST_FIELD));
             if (read instanceof Error) return WORLD_UNKNOWN;
             return parseWorld(read ?? "");
         },
         readUserAgent() {
             const read = errors.attempt(() =>
-                readPageText(page, NAVIGATOR_FIELD, USER_AGENT_FIELD)
+                readBrowserText(page, NAVIGATOR_FIELD, USER_AGENT_FIELD)
             );
             if (read instanceof Error) return null;
             return read;
@@ -44,7 +44,7 @@ export function initPageSurroundings(page: unknown): SurroundingsPort {
 }
 
 /** Null where the page holds no such text, or holds it empty: nothing stated is no answer. */
-function readPageText(page: unknown, held: string, field: string): string | null {
+function readBrowserText(page: unknown, held: string, field: string): string | null {
     assert(held.length > 0, "a field of the page is asked for by name");
     if (!isRecord(page)) return null;
     const record = page[held];

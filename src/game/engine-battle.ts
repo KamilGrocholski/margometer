@@ -74,7 +74,7 @@ export interface EngineBattle {
     readWarriors(): WarriorSnapshot | WarriorFailure | errors.Caught;
 }
 
-export interface EnginePort {
+export interface BattlePort {
     readBattle(): EngineBattle | EngineFailure | errors.Caught;
 }
 
@@ -91,10 +91,10 @@ const WRAP_VERSION = 1;
 const FAILURES_MAXIMUM = 1048576;
 
 /** The page's game, in whichever spelling answers. A call into the page may throw: theirs. */
-export function initPageEngine(page: unknown): EnginePort {
+export function initEngineBattle(page: unknown): BattlePort {
     return {
         readBattle() {
-            const engines = errors.attempt(() => readPageEngines(page));
+            const engines = errors.attempt(() => readEngines(page));
             if (engines instanceof Error) return engines;
             if (engines.length === 0) return new EngineAbsent();
             const battle = lookupEngineBattle(engines);
@@ -171,7 +171,7 @@ function isOurWrap(value: unknown): boolean {
 }
 
 /** Both spellings of the game a page holds, in the order tried; a call into the page is theirs. */
-export function readPageEngines(page: unknown): Record<string, unknown>[] {
+export function readEngines(page: unknown): Record<string, unknown>[] {
     if (!isRecord(page)) return [];
     const found: unknown[] = [page[ENGINE_FIELD]];
     const stated = page[ENGINE_CALL_FIELD];
@@ -180,6 +180,6 @@ export function readPageEngines(page: unknown): Record<string, unknown>[] {
 }
 
 /** The battle a page's game holds, or null; a call into the page may throw, and it is theirs. */
-export function readPageBattle(page: unknown): Record<string, unknown> | null {
-    return lookupEngineBattle(readPageEngines(page));
+export function readEngineBattleRecord(page: unknown): Record<string, unknown> | null {
+    return lookupEngineBattle(readEngines(page));
 }

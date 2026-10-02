@@ -33,7 +33,7 @@ import {
     TOP_VARIABLES,
     type TypeTokens,
 } from "./panel-look.ts";
-import { formatWhole } from "./panel-words.ts";
+import { formatWholeUngrouped } from "./panel-words.ts";
 import {
     addViewFailureGuarded,
     GestureDropped,
@@ -229,8 +229,8 @@ export function composePositionStyle(
 ): string | null {
     if (!Number.isSafeInteger(position.left)) return null;
     if (!Number.isSafeInteger(position.top)) return null;
-    const left = formatWhole(position.left);
-    const top = formatWhole(position.top);
+    const left = formatWholeUngrouped(position.left);
+    const top = formatWholeUngrouped(position.top);
     return `left:${left}px;top:${top}px;${TOP_VARIABLES[windowName]}:${top}px;right:auto`;
 }
 
@@ -248,8 +248,8 @@ export function composeHostStyle(
     if (!Number.isSafeInteger(size.width)) return placed;
     if (!Number.isSafeInteger(size.height)) return placed;
     const variables = SIZE_VARIABLES[windowName];
-    const width = formatWhole(size.width);
-    const height = formatWhole(size.height);
+    const width = formatWholeUngrouped(size.width);
+    const height = formatWholeUngrouped(size.height);
     const both = `${variables.width}:${width}px;${variables.height}:${height}px`;
     const sized = windowName === PANEL_WINDOW.panel ? `${both};${composeSizedPanelStyle()}` : both;
     return placed === null ? sized : `${placed};${sized}`;
@@ -291,7 +291,7 @@ export function composeSizeBounds(
 
 /** How wide a window stands at its type, which is also the narrowest it may be made. */
 function getWindowWidthPixels(windowName: PanelWindow, tokens: TypeTokens): number {
-    if (windowName === PANEL_WINDOW.helper) return tokens.standingWidthPixels;
+    if (windowName === PANEL_WINDOW.helper) return tokens.helperWidthPixels;
     return tokens.panelWidthPixels;
 }
 
@@ -355,14 +355,14 @@ export function setGripMark(grip: PanelElement, window: PanelWindow): void {
  * the right keeps its distance from the panel's. One standing over or under the panel is not beside
  * it, and stays. Without this, a larger step stood the window over the panel's own ranks.
  */
-export function composeStandingAfterStep(
+export function composeHelperPositionAfterTypeStep(
     panel: PanelPosition,
     standing: PanelPosition,
     before: WindowWidths,
     after: WindowWidths,
 ): PanelPosition | null {
-    const standingRight = standing.left + before.standing;
-    if (standingRight <= panel.left) {
+    const helperRight = standing.left + before.standing;
+    if (helperRight <= panel.left) {
         return { left: standing.left - (after.standing - before.standing), top: standing.top };
     }
     if (standing.left >= panel.left + before.panel) {
@@ -563,7 +563,7 @@ function composeOpeningPosition(
     viewport: PanelViewport | null,
     tokens: TypeTokens,
 ): PanelPosition | null {
-    if (windowName === PANEL_WINDOW.helper) return composeStandingPosition(viewport, tokens);
+    if (windowName === PANEL_WINDOW.helper) return composeHelperOpeningPosition(viewport, tokens);
     return composeDefaultPosition(viewport, tokens.panelWidthPixels);
 }
 
@@ -572,14 +572,14 @@ function composeOpeningPosition(
  * `composeDefaultPosition` centres what it is given, so centring both puts this one exactly under
  * the panel — where the panel paints over it and a reader sees nothing at all. `develop ADR 0060`.
  */
-function composeStandingPosition(
+function composeHelperOpeningPosition(
     viewport: PanelViewport | null,
     tokens: TypeTokens,
 ): PanelPosition | null {
     const panel = composeDefaultPosition(viewport, tokens.panelWidthPixels);
     if (panel === null) return null;
     const gap = SPACE_PIXELS.small;
-    const beside = panel.left - tokens.standingWidthPixels - gap;
+    const beside = panel.left - tokens.helperWidthPixels - gap;
     if (beside >= 0) return clampPosition({ left: beside, top: panel.top }, viewport);
     // No room on the left, so the other side — the same answer the card gives (`develop ADR 0090`).
     const other = { left: panel.left + tokens.panelWidthPixels + gap, top: panel.top };
@@ -623,8 +623,8 @@ function composePanelDragGrab(
     // Nothing on the page is measured: the window's corner is the grip's, where the press landed on
     // the grip carried to its edge.
     const inside = SIZE_GRIP.sizePixels;
-    const right = pointer.left + inside - readOffset(event.offsetX, inside);
-    const bottom = pointer.top + inside - readOffset(event.offsetY, inside);
+    const right = pointer.left + inside - readGripPressOffset(event.offsetX, inside);
+    const bottom = pointer.top + inside - readGripPressOffset(event.offsetY, inside);
     return {
         ...grab,
         fromLeft: right - from.left,
@@ -633,7 +633,7 @@ function composePanelDragGrab(
 }
 
 /** Where on the grip a press landed, and the corner itself where the event does not say. */
-function readOffset(value: number | undefined, corner: number): number {
+function readGripPressOffset(value: number | undefined, corner: number): number {
     const read = readCoordinate(value);
     return read === null ? corner : read;
 }

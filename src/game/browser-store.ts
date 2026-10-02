@@ -55,11 +55,11 @@ export interface KeyValueStore {
     /** `null`: no such key, which is a fact. */
     read(key: StoreKey): string | null | StoreFailure;
     write(key: StoreKey, value: string): undefined | StoreFailure;
-    remove(key: StoreKey): undefined | StoreFailure;
+    delete(key: StoreKey): undefined | StoreFailure;
 }
 
 /** The whole of what this asks a page for. A browser's `localStorage` satisfies it. */
-export interface PageStorage {
+export interface BrowserStorage {
     getItem(key: string): string | null;
     setItem(key: string, value: string): void;
     removeItem(key: string): void;
@@ -75,7 +75,7 @@ const STORE_KEYS = Object.values(STORE_KEY);
 export const STORE_VALUE_LENGTH_MAXIMUM = 4194304;
 
 /** A store over the page's own; `null` where the page lent none, which every call then answers. */
-export function initPageStore(storage: PageStorage | null): KeyValueStore {
+export function initBrowserStore(storage: BrowserStorage | null): KeyValueStore {
     return {
         read(key) {
             if (storage === null) return new StoreUnavailable();
@@ -92,10 +92,10 @@ export function initPageStore(storage: PageStorage | null): KeyValueStore {
             if (written instanceof Error) return new StoreRefused(written);
             return undefined;
         },
-        remove(key) {
+        delete(key) {
             if (storage === null) return new StoreUnavailable();
-            const removed = errors.attempt(() => storage.removeItem(key));
-            if (removed instanceof Error) return new StoreRefused(removed);
+            const deleted = errors.attempt(() => storage.removeItem(key));
+            if (deleted instanceof Error) return new StoreRefused(deleted);
             return undefined;
         },
     };
@@ -123,7 +123,7 @@ export function initMemoryStore(): KeyValueStore {
             assert(held.size <= STORE_KEYS.length, "a store holds no more than the keys it has");
             return undefined;
         },
-        remove(key) {
+        delete(key) {
             held.delete(key);
             return undefined;
         },

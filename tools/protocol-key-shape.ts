@@ -11,7 +11,7 @@
 import { assert } from "@std/assert";
 import { formatInteger, parseDecimal, parseInteger } from "#/libs/number-text.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
-import { getKeyReading, KEY_FAMILY, type KeyReading } from "#/src/core/protocol-key.ts";
+import { KEY_FAMILY, type KeyReading, lookupKeyReading } from "#/src/core/protocol-key.ts";
 import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { RECORDINGS_DIRECTORY } from "#/tests/recording-sources.ts";
 import { BACKTICK, parseBacktickedPhrases, REGISTER_PATH } from "./help-claim-register.ts";
@@ -191,7 +191,7 @@ export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
 /** Every placement that holds for one message, judged on the keys the whole message carries. */
 function decodeKeyPlacements(carried: ReadonlySet<string>): Set<KeyPlacement> {
     assert(carried.size > 0, "a placement is asked of a message carrying a key");
-    const families = new Set([...carried].map((key) => getKeyReading(key)?.kind ?? null));
+    const families = new Set([...carried].map((key) => lookupKeyReading(key)?.kind ?? null));
     const placements = new Set<KeyPlacement>([KEY_PLACEMENT.anywhere]);
     if (carried.size === 1) placements.add(KEY_PLACEMENT.alone);
     if (ANNOUNCEMENT_FAMILIES.some((family) => families.has(family))) {
@@ -543,7 +543,7 @@ export function isDocumentedByFamily(key: string, registered: ReadonlySet<string
     assert(key.length > 0, "a key is asked about by name");
     assert(registered.has(DAMAGE_FAMILY_HEADING), "and against a register that opens the family");
     if (registered.has(key)) return false;
-    return getKeyReading(key)?.kind === KEY_FAMILY.damage;
+    return lookupKeyReading(key)?.kind === KEY_FAMILY.damage;
 }
 
 if (import.meta.main) {

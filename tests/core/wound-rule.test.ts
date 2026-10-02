@@ -9,7 +9,7 @@
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
-import { getStatedHealthsFromEvent } from "#/src/core/combatant-health.ts";
+import { getHealthPercentsFromEvent } from "#/src/core/combatant-health.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
@@ -56,7 +56,7 @@ Deno.test("every tick takes the percentage stated before it down by its own figu
                 closed += 1;
             }
         }
-        for (const [id, percent] of getStatedHealthsFromEvent(event)) percentById.set(id, percent);
+        for (const [id, percent] of getHealthPercentsFromEvent(event)) percentById.set(id, percent);
     }
     assertEquals(closed, 14, "every tick the arithmetic can reach closes on it, 2026-08-30");
     assertEquals(past, 1, "and the one it cannot is the killing tick");

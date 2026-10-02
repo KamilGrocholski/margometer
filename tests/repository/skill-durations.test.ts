@@ -9,11 +9,11 @@ import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { FROZEN_BLOWS_GRANTED } from "#/frozen/blows-granted.ts";
 import { FROZEN_SKILL_DURATIONS } from "#/frozen/skill-durations.ts";
-import { indexAuraTurnsBySkillId, lookupStatedTurns } from "#/src/core/aura-standing.ts";
+import { indexAuraTurnsBySkillId, lookupAuraTurnsStated } from "#/src/core/aura-standing.ts";
 import { BATTLE_EVENT, type SkillUsedEvent } from "#/src/core/battle-event.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { indexBlowsGrantedBySkillId } from "#/src/core/fight-decoder.ts";
-import { isTeamWideKey, PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
+import { isSideWideKey, PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { readRecordedMaterial, replayRecordedMaterial } from "#/tools/recorded-material.ts";
 import { BLOWS_GRANTED_KEY } from "#/tools/skill-table.ts";
 
@@ -52,7 +52,7 @@ Deno.test("the skills granting a blow are the rows of the table carrying that ke
 Deno.test("the side's table is what the rule derives from the whole one, and nothing else", () => {
     const derived: { id: number; turns: number }[] = [];
     for (const skill of FROZEN_SKILL_DURATIONS.skills) {
-        const turns = lookupStatedTurns(skill.effects);
+        const turns = lookupAuraTurnsStated(skill.effects);
         if (turns !== null) derived.push({ id: skill.id, turns });
     }
     assertEquals([...FROZEN_AURA_TURNS.skills], derived, "which keys reach a side is core's");
@@ -90,7 +90,7 @@ function readAnnouncedSkills(): SkillUsedEvent[] {
 Deno.test("every skill the corpus casts at a side is one the published table dates", () => {
     const dated = indexAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills);
     const cast = readAnnouncedSkills()
-        .filter((event) => event.declared.some((one) => isTeamWideKey(one.effect)));
+        .filter((event) => event.declared.some((one) => isSideWideKey(one.effect)));
     const missed = cast.filter((event) => !dated.has(event.skillId ?? -1));
     assert(cast.length > 0, "the corpus casts something at a side");
     assertEquals(missed.map((one) => `${one.skillId} ${one.skillName}`), [], "a cast undated");

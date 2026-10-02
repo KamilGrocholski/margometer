@@ -11,7 +11,7 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 
 /** A moment on the reader's own clock. The month counts from one, as a person counts them. */
-export interface PageMoment {
+export interface BrowserMoment {
     day: number;
     month: number;
     hour: number;
@@ -20,19 +20,19 @@ export interface PageMoment {
 
 export interface Clock {
     readNowMilliseconds(): number;
-    readMoment(atMilliseconds: number): PageMoment | null;
+    readMoment(atMilliseconds: number): BrowserMoment | null;
     /** The moment as a file states it, in the page's own ISO 8601. */
     readTimestampText(atMilliseconds: number): string | errors.Caught;
 }
 
 /** The whole of what this asks a page for. A browser's `Date` satisfies it. */
-export interface PageDate {
+export interface BrowserDate {
     now(): number;
-    new (atMilliseconds: number): PageDateValue;
+    new (atMilliseconds: number): BrowserDateValue;
 }
 
 /** Each optional: a document that lends no clock of its own answers no time. */
-export interface PageDateValue {
+export interface BrowserDateValue {
     toISOString(): string;
     getDate?(): number;
     getMonth?(): number;
@@ -53,7 +53,7 @@ export interface FrameHandle {
 }
 
 /** The whole of what this asks a page for. A browser's `window` satisfies it. */
-export interface PageFrames {
+export interface BrowserFrames {
     requestAnimationFrame(step: () => void): number;
     cancelAnimationFrame(handle: number): void;
 }
@@ -71,7 +71,7 @@ export interface IntervalScheduler {
 }
 
 /** The whole of what this asks a page for. A browser's `window` satisfies it. */
-export interface PageTimers {
+export interface BrowserTimers {
     setInterval(step: () => void, everyMilliseconds: number): number;
     clearInterval(handle: number): void;
 }
@@ -84,24 +84,24 @@ const FIRST_MONTH_OFFSET = 1;
 const HOUR_MAXIMUM = 23;
 const MINUTE_MAXIMUM = 59;
 
-export function initPageClock(date: PageDate): Clock {
+export function initBrowserClock(date: BrowserDate): Clock {
     return {
         readNowMilliseconds: () => date.now(),
         readMoment(atMilliseconds) {
             if (!Number.isFinite(atMilliseconds)) return null;
             // Read the moment: a day, a month, an hour and a minute, or null for any one refused.
-            const read = errors.attempt((): PageMoment | null => {
+            const read = errors.attempt((): BrowserMoment | null => {
                 // ⚠️ **The day is held to the same refusal as the time**: a shelf of twenty fights
                 // spans days, and a wrong one reads as a fight that happened.
-                const held: PageDateValue = new date(atMilliseconds);
-                const day = readWhole(held.getDate?.(), 1, DAY_MAXIMUM);
-                const monthFromZero = readWhole(
+                const held: BrowserDateValue = new date(atMilliseconds);
+                const day = readMomentPart(held.getDate?.(), 1, DAY_MAXIMUM);
+                const monthFromZero = readMomentPart(
                     held.getMonth?.(),
                     0,
                     MONTH_MAXIMUM - FIRST_MONTH_OFFSET,
                 );
-                const hour = readWhole(held.getHours?.(), 0, HOUR_MAXIMUM);
-                const minute = readWhole(held.getMinutes?.(), 0, MINUTE_MAXIMUM);
+                const hour = readMomentPart(held.getHours?.(), 0, HOUR_MAXIMUM);
+                const minute = readMomentPart(held.getMinutes?.(), 0, MINUTE_MAXIMUM);
                 if (day === null) return null;
                 if (monthFromZero === null) return null;
                 if (hour === null) return null;
@@ -120,7 +120,7 @@ export function initPageClock(date: PageDate): Clock {
     };
 }
 
-function readWhole(value: unknown, minimum: number, maximum: number): number | null {
+function readMomentPart(value: unknown, minimum: number, maximum: number): number | null {
     assert(minimum <= maximum, "a range is read low to high");
     if (typeof value !== "number") return null;
     if (!Number.isSafeInteger(value)) return null;
@@ -129,7 +129,7 @@ function readWhole(value: unknown, minimum: number, maximum: number): number | n
     return null;
 }
 
-export function initPageFrames(frames: PageFrames): FrameScheduler {
+export function initBrowserFrames(frames: BrowserFrames): FrameScheduler {
     return {
         requestFrame(step, onStepFailure) {
             const guarded = (): void => {
@@ -149,7 +149,7 @@ export function initPageFrames(frames: PageFrames): FrameScheduler {
     };
 }
 
-export function initPageInterval(timers: PageTimers): IntervalScheduler {
+export function initBrowserInterval(timers: BrowserTimers): IntervalScheduler {
     return {
         every(step, everyMilliseconds, onStepFailure) {
             assert(

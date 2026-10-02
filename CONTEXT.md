@@ -142,6 +142,10 @@ and not one. _Avoid_: Buff, debuff, effect, condition
 under a key of its own. **No skill table dates one**, so a length for it comes from the published
 help or from nowhere. _Avoid_: Legendary, artifact effect, item proc
 
+**Standing**: What holds in a fight at the moment it is read — an aura still inside its turns, the
+provocation a shout left, a charged skill being made ready, the turn in hand. A reading of now and
+never a total. _Avoid_: Active, ongoing, live
+
 **Declaration**: A figure the protocol states that **no total here counts** — an input, an outcome
 in a unit this meter does not keep, or an outcome outside the fight. Read, never totalled. The test:
 whatever this figure did, is it reported elsewhere, or in a unit no total keeps, or outside the
@@ -211,6 +215,17 @@ view, mode
 **Collapsed**: The panel folded to its title bar, drawing no screen at all. It is a state the reader
 chose, so it outlives a reload. _Avoid_: Minimized, hidden, closed, docked
 
+**Helper**: The second window, beside the panel, drawing what is **standing** in the fight going on
+— the turn in hand, the charged skills, whom a shout holds. It folds and moves on its own. _Avoid_:
+Standing, sidebar, companion
+
+**Shown fight**: The fight the panel is drawn over: the kept one the reader chose, else the one
+going on, else the newest kept. What the file hands over is this one and not the one going on.
+_Avoid_: Standing fight, current fight, selected fight
+
+**Shelf**: The fights the add-on keeps in the browser between pages, in the store the reader chose.
+One fight on it is a **kept fight**. _Avoid_: History, archive, saved fights
+
 **Type step**: One of the three sizes both windows are drawn at, which the reader chooses in the
 options, each measured at its own size rather than scaled from another. _Avoid_: Zoom, scale, theme
 
@@ -243,10 +258,14 @@ Fixture, sample, test data, mock, dump
 
 **Game client**: The bundle the game serves and runs in the reader's browser. Two channels:
 **production** at `<world>.margonem.pl`, which decides, and **development** at
-`experimental.margonem.pl`, which is readable but lags. _Avoid_: Engine, the game, upstream
+`experimental.margonem.pl`, which is readable but lags. _Avoid_: Engine, the game, upstream, page
 
 **Engine**: The object inside the game client whose update function we wrap. Narrower than the
 client. _Avoid_: Game, runtime, core
+
+**Browser**: The interfaces the browser itself offers the add-on — storage, the clock, frames and
+timers, the console, a download, the page's location and agent. Neither the client's nor the
+engine's, so a port over one is named for the browser. _Avoid_: Page, platform, environment
 
 **Build id**: The identifier of the client bundle we read a claim on, taken from the bundle's
 filename. Not always a number. _Avoid_: Version, revision, hash

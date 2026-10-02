@@ -8,12 +8,12 @@
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
-import { getFightView, type SessionOptions } from "#/src/core/fight-session.ts";
+import { composeFightView, type SessionOptions } from "#/src/core/fight-session.ts";
 import type { KeyValueStore } from "#/src/game/browser-store.ts";
 import {
+    type BattlePort,
     EngineAlreadyWrapped,
     type EngineFailure,
-    type EnginePort,
     type PayloadListener,
     SearchAbandoned,
     type WrapHandle,
@@ -36,21 +36,21 @@ import { type SurroundingsPort, WORLD_UNKNOWN } from "#/src/game/page-surroundin
 import type { TooltipTables } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger, initDefectLedger } from "./defect-ledger.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
-import { writeFightHandover } from "./fight-handover.ts";
-import { lookupStandingFight, tallyFightReading } from "./fight-reading.ts";
+import { writeShownFightFile } from "./fight-handover.ts";
+import { lookupShownFight, tallyFightReading } from "./fight-reading.ts";
 import { initLiveFight, type LiveFight } from "./live-fight.ts";
 import { renderFrame } from "./panel-frame.ts";
 import {
+    deleteWindowSize,
     readStorageChoice,
     readTypeStep,
-    readWindowFold,
+    readWindowCollapsed,
     readWindowPosition,
     readWindowSize,
-    removeWindowSize,
     type SettingFailure,
     STORAGE_DEFAULT,
     writeTypeStep,
-    writeWindowFold,
+    writeWindowCollapsed,
     writeWindowPosition,
     writeWindowSize,
 } from "./settings.ts";
@@ -75,7 +75,7 @@ export interface RuntimePorts {
     clock: Clock;
     frames: FrameScheduler;
     interval: IntervalScheduler;
-    engine: EnginePort;
+    engine: BattlePort;
     place: PlacePort;
     hero: HeroPort;
     dictionary: DictionaryPort;
@@ -169,7 +169,11 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
         "every row a fighter can be given fits the block the tooltip writer takes",
     );
     const defects = initDefectLedger(ports.console);
-    const choice = readRuntimeSetting(defects, readStorageChoice(ports.settings), STORAGE_DEFAULT);
+    const choice = readSettingOrFallback(
+        defects,
+        readStorageChoice(ports.settings),
+        STORAGE_DEFAULT,
+    );
     const keeper = initShelfKeeper({
         settings: ports.settings,
         initShelfStore: ports.initShelfStore,
@@ -179,12 +183,12 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
         defects,
     });
     const screen = createScreenState(
-        readRuntimeFold(ports, defects, PANEL_WINDOW.panel),
-        readRuntimeFold(ports, defects, PANEL_WINDOW.helper),
-        readRuntimeSetting(defects, readTypeStep(ports.settings), TYPE_STEP_DEFAULT),
+        readFoldSetting(ports, defects, PANEL_WINDOW.panel),
+        readFoldSetting(ports, defects, PANEL_WINDOW.helper),
+        readSettingOrFallback(defects, readTypeStep(ports.settings), TYPE_STEP_DEFAULT),
         {
-            panel: readRuntimeSize(ports, defects, PANEL_WINDOW.panel),
-            helper: readRuntimeSize(ports, defects, PANEL_WINDOW.helper),
+            panel: readSizeSetting(ports, defects, PANEL_WINDOW.panel),
+            helper: readSizeSetting(ports, defects, PANEL_WINDOW.helper),
         },
     );
     // The raw key is the mark where the client cannot be asked (`develop ADR 0024`).
@@ -242,8 +246,8 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
                 if (builtState === null) return;
                 markStale(builtState);
             },
-            placement: readRuntimePlacement(ports, defects, PANEL_WINDOW.panel, screen),
-            standingPlacement: readRuntimePlacement(ports, defects, PANEL_WINDOW.helper, screen),
+            placement: readPlacementSetting(ports, defects, PANEL_WINDOW.panel, screen),
+            helperPlacement: readPlacementSetting(ports, defects, PANEL_WINDOW.helper, screen),
             translate,
         });
         assert(
@@ -268,17 +272,17 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             isStoodDown: false,
         };
         builtState = state;
-        state.search = startEngineSearch(ports.engine, ports.interval, listener, {
+        state.search = initEngineSearch(ports.engine, ports.interval, listener, {
             onAttached: (wrap) => {
                 state.wrap = wrap;
-                showRuntimePanel(state);
+                markPanelDue(state);
             },
             onStoodDown: (failure) => {
                 state.isStoodDown = true;
                 ports.console.writeBrandedLine(failure.name, failure);
             },
-            onRefused: (failure) => failRuntimeSearch(state, failure),
-            onAbandoned: (failure) => failRuntimeSearch(state, failure),
+            onRefused: (failure) => onEngineSearchFailed(state, failure),
+            onAbandoned: (failure) => onEngineSearchFailed(state, failure),
             onLookFailed: (failure) => ports.console.writeBrandedLine(failure.name, failure),
         });
     }
@@ -310,7 +314,7 @@ function resetScreenOpened(screen: ScreenState): void {
 }
 
 /** A value the reader stored that does not read back costs that value, and says so. */
-function readRuntimeSetting<Value>(
+function readSettingOrFallback<Value>(
     defects: DefectLedger,
     read: Value | SettingFailure,
     fallback: Value,
@@ -320,16 +324,16 @@ function readRuntimeSetting<Value>(
     return fallback;
 }
 
-function readRuntimeFold(ports: RuntimePorts, defects: DefectLedger, window: PanelWindow): boolean {
-    return readRuntimeSetting(defects, readWindowFold(ports.settings, window), false);
+function readFoldSetting(ports: RuntimePorts, defects: DefectLedger, window: PanelWindow): boolean {
+    return readSettingOrFallback(defects, readWindowCollapsed(ports.settings, window), false);
 }
 
-function readRuntimeSize(
+function readSizeSetting(
     ports: RuntimePorts,
     defects: DefectLedger,
     window: PanelWindow,
 ): WindowSize | null {
-    const size = readRuntimeSetting(defects, readWindowSize(ports.settings, window), null);
+    const size = readSettingOrFallback(defects, readWindowSize(ports.settings, window), null);
     if (size !== null) {
         assert(size.width > 0, "a window is put back at a width it can stand at");
         assert(size.height > 0, "and a height");
@@ -408,20 +412,20 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
                 // The release of the file lands on the browser's clock after this has
                 // returned, so its failure is handed the same mark by the sink.
                 const { screen, keeper, live, defects } = state;
-                const view = getFightView(live.session);
+                const view = composeFightView(live.session);
                 const liveReading = view === null ? null : tallyFightReading(view);
-                const standing = lookupStandingFight(
+                const shown = lookupShownFight(
                     liveReading,
                     screen.openFightId,
                     keeper.getFights(),
-                    keeper.lookupReading,
+                    keeper.lookupKeptReading,
                 );
-                if (standing !== null) {
-                    const applied = standing.reading.view.payloadsApplied;
+                if (shown !== null) {
+                    const applied = shown.reading.view.payloadsApplied;
                     assert(applied > 0, "a fight handed over was read from something");
                 }
                 const ports = { ...state.ports, version: state.options.version };
-                const written = writeFightHandover(standing, live, ports, (failure) => {
+                const written = writeShownFightFile(shown, live, ports, (failure) => {
                     addFileDefect(defects, failure);
                 });
                 if (written instanceof Error) addFileDefect(defects, written);
@@ -435,7 +439,7 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
             shouldDraw = true;
             break;
         case PANEL_INTENT.storage:
-            state.keeper.choose(intent.choice);
+            state.keeper.moveShelf(intent.choice);
             shouldDraw = true;
             break;
         // Once per drag rather than once per frame, and no frame: the panel already stands
@@ -459,7 +463,7 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
         }
         case PANEL_INTENT.resetSize: {
             const hasMoved = executeScreenIntent(state.screen, intent);
-            if (hasMoved) void removeWindowSize(state.ports.settings, intent.window);
+            if (hasMoved) void deleteWindowSize(state.ports.settings, intent.window);
             shouldDraw = hasMoved;
             break;
         }
@@ -473,8 +477,8 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
             const hasMoved = executeScreenIntent(state.screen, intent);
             const isCollapsed = intent.window === PANEL_WINDOW.panel
                 ? state.screen.isCollapsed
-                : state.screen.isStandingCollapsed;
-            void writeWindowFold(state.ports.settings, intent.window, isCollapsed);
+                : state.screen.isHelperCollapsed;
+            void writeWindowCollapsed(state.ports.settings, intent.window, isCollapsed);
             assert(hasMoved, "a fold always moves the window it names");
             shouldDraw = hasMoved;
             break;
@@ -490,13 +494,17 @@ function addFileDefect(defects: DefectLedger, failure: RuntimeFailure): void {
     defects.add({ kind: DEFECT_KIND.file, region: null, failure });
 }
 
-function readRuntimePlacement(
+function readPlacementSetting(
     ports: RuntimePorts,
     defects: DefectLedger,
     window: PanelWindow,
     screen: ScreenState,
 ): PanelPlacement {
-    const position = readRuntimeSetting(defects, readWindowPosition(ports.settings, window), null);
+    const position = readSettingOrFallback(
+        defects,
+        readWindowPosition(ports.settings, window),
+        null,
+    );
     if (position !== null) {
         assert(Number.isSafeInteger(position.left), "a window is put back at a whole column");
         assert(Number.isSafeInteger(position.top), "and a whole row");
@@ -504,16 +512,16 @@ function readRuntimePlacement(
     return { position, size: screen.windowSizes[window], readViewport: ports.readViewport };
 }
 
-function showRuntimePanel(state: RuntimeState): void {
+function markPanelDue(state: RuntimeState): void {
     assert(!state.isStoodDown, "a copy that stood down puts no panel up");
     markStale(state);
 }
 
-function failRuntimeSearch(state: RuntimeState, failure: EngineFailure): void {
+function onEngineSearchFailed(state: RuntimeState, failure: EngineFailure): void {
     assert(!(failure instanceof EngineAlreadyWrapped), "a copy that stands down shows nothing");
     assert(state.wrap === null, "and one holding the game is not looking for it");
     state.defects.add({ kind: DEFECT_KIND.engine, region: null, failure });
-    showRuntimePanel(state);
+    markPanelDue(state);
 }
 
 /**
@@ -522,8 +530,8 @@ function failRuntimeSearch(state: RuntimeState, failure: EngineFailure): void {
  * it finds one or when the game plainly is not coming. A search with no end is something the page
  * pays for forever.
  */
-export function startEngineSearch(
-    engine: EnginePort,
+export function initEngineSearch(
+    engine: BattlePort,
     interval: IntervalScheduler,
     listener: PayloadListener,
     report: SearchReport,
@@ -539,15 +547,15 @@ export function startEngineSearch(
     // the add-on, outside any look's guard. One guard here covers all of them: a report that
     // breaks has nowhere further to go, and the search has already counted the look it failed on.
     const onLookFailure = (failure: errors.Caught): void => {
-        void errors.attempt(() => failLook(search, report, failure));
+        void errors.attempt(() => executeLookFailed(search, report, failure));
     };
     // ⚠️ The first look runs on the stack that started the add-on, where only the game's own page
     // stands above it; every look after it runs in the browser's timer. One guard for both.
-    const first = errors.attempt(() => look(search, engine, listener, report));
+    const first = errors.attempt(() => executeSearchLook(search, engine, listener, report));
     if (first instanceof Error) onLookFailure(first);
     if (!search.isDone) {
         const started = interval.every(
-            () => look(search, engine, listener, report),
+            () => executeSearchLook(search, engine, listener, report),
             LOOK_EVERY_MILLISECONDS,
             onLookFailure,
         );
@@ -555,13 +563,13 @@ export function startEngineSearch(
         else search.handle = started;
     }
     return {
-        stop: () => stopLooking(search),
+        stop: () => deinitSearchTimer(search),
         isDone: () => search.isDone,
     };
 }
 
 /** A look that failed is still a look, so the search runs out where one finding nothing does. */
-function failLook(
+function executeLookFailed(
     search: Search,
     report: SearchReport,
     failure: errors.Caught,
@@ -570,13 +578,13 @@ function failLook(
         search.hasFailed = true;
         report.onLookFailed(failure);
     }
-    abandonAtBound(search, report);
+    executeSearchBound(search, report);
 }
 
-function abandonAtBound(search: Search, report: SearchReport): void {
+function executeSearchBound(search: Search, report: SearchReport): void {
     if (search.looks < LOOKS_MAXIMUM) return;
     if (search.isDone) return;
-    stopLooking(search);
+    deinitSearchTimer(search);
     report.onAbandoned(new SearchAbandoned(search.looks, LOOKS_MAXIMUM));
 }
 
@@ -584,7 +592,7 @@ function abandonAtBound(search: Search, report: SearchReport): void {
  * ⚠️ The clock is the page's, and a cancel it refuses leaves a search that is done and a timer that
  * finds it done at every tick, which is the one thing the refusal can cost; so it is not reported.
  */
-function stopLooking(search: Search): void {
+function deinitSearchTimer(search: Search): void {
     search.isDone = true;
     const handle = search.handle;
     search.handle = null;
@@ -592,9 +600,9 @@ function stopLooking(search: Search): void {
     void handle.cancel();
 }
 
-function look(
+function executeSearchLook(
     search: Search,
-    engine: EnginePort,
+    engine: BattlePort,
     listener: PayloadListener,
     report: SearchReport,
 ): void {
@@ -603,24 +611,24 @@ function look(
     assert(search.looks <= LOOKS_MAXIMUM, "the search stays inside its stated bound");
     const battle = engine.readBattle();
     if (battle instanceof Error) {
-        if (battle instanceof errors.Caught) failLook(search, report, battle);
-        else abandonAtBound(search, report);
+        if (battle instanceof errors.Caught) executeLookFailed(search, report, battle);
+        else executeSearchBound(search, report);
         return;
     }
     const wrapped = battle.wrap(listener);
     if (!(wrapped instanceof Error)) {
-        stopLooking(search);
+        deinitSearchTimer(search);
         report.onAttached(wrapped);
         return;
     }
     if (wrapped instanceof EngineAlreadyWrapped) {
-        stopLooking(search);
+        deinitSearchTimer(search);
         report.onStoodDown(wrapped);
         return;
     }
     // The game is here and its method is gone. Said once; the looking ends where a search
     // finding nothing ends, and says nothing then: the game was there, so it was not abandoned.
-    if (search.looks >= LOOKS_MAXIMUM) stopLooking(search);
+    if (search.looks >= LOOKS_MAXIMUM) deinitSearchTimer(search);
     if (search.hasRefused) return;
     search.hasRefused = true;
     report.onRefused(wrapped);
@@ -733,7 +741,7 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
                 break;
             case PANEL_INTENT.fold:
                 if (intent.window === PANEL_WINDOW.panel) screen.isCollapsed = !screen.isCollapsed;
-                else screen.isStandingCollapsed = !screen.isStandingCollapsed;
+                else screen.isHelperCollapsed = !screen.isHelperCollapsed;
                 hasMoved = true;
                 break;
             case PANEL_INTENT.shelf:

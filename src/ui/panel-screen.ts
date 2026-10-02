@@ -15,7 +15,7 @@ import {
 } from "./panel-choice.ts";
 import type { OpenedPart, PanelUnnamedEnd } from "./panel-reading.ts";
 import {
-    getWordsForDirection,
+    getDirectionWordsForMetric,
     getWordsForNoun,
     getWordsForSide,
     PANEL_WORDS,
@@ -68,7 +68,7 @@ export interface ScreenState {
     openFightId: number | null;
     isCollapsed: boolean;
     /** The window beside the panel, which folds apart from it — `develop ADR 0060`. */
-    isStandingCollapsed: boolean;
+    isHelperCollapsed: boolean;
     /** The size the type is drawn at, which a reader chose once for both windows (ADR 0013). */
     typeStep: TypeStep;
     /** How big a reader made each window by its corner, kept beside the folds (ADR 0013). */
@@ -122,7 +122,7 @@ const KIND_WORDS: Record<PanelMetric, string> = {
 
 export function createScreenState(
     isCollapsed: boolean,
-    isStandingCollapsed = false,
+    isHelperCollapsed = false,
     typeStep: TypeStep = TYPE_STEP_DEFAULT,
     windowSizes: WindowSizes = NO_WINDOW_SIZES,
 ): ScreenState {
@@ -137,7 +137,7 @@ export function createScreenState(
         openPart: null,
         openFightId: null,
         isCollapsed,
-        isStandingCollapsed,
+        isHelperCollapsed,
         typeStep,
         windowSizes,
     };
@@ -203,7 +203,7 @@ export function getDirectionForMetric(metric: PanelMetric): PanelDirection {
 
 export function getWordsForMetric(metric: PanelMetric): string {
     const axes = SCREEN_AXES[metric];
-    return `${getWordsForNoun(axes.noun)} ${getWordsForDirection(metric)}`;
+    return `${getWordsForNoun(axes.noun)} ${getDirectionWordsForMetric(metric)}`;
 }
 
 export function presentNounStrips(current: PanelMetric): ScreenStrip[] {
@@ -235,7 +235,7 @@ function getScreensForNoun(noun: PanelNoun): PanelMetric[] {
 export function presentDirectionStrips(current: PanelMetric): ScreenStrip[] {
     const strips = getScreensForNoun(SCREEN_AXES[current].noun).map((screen) => ({
         name: screen,
-        words: getWordsForDirection(screen),
+        words: getDirectionWordsForMetric(screen),
         isCurrent: screen === current,
     }));
     return strips;

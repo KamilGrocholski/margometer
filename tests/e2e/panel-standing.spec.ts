@@ -33,13 +33,13 @@ test("the window stands beside the panel and never under it", async ({ panel }) 
         const standing = read(".MargoMeter-standing");
         if (panelBox === null || standing === null) return null;
         return {
-            standingRight: Math.round(standing.right),
+            helperRight: Math.round(standing.right),
             panelLeft: Math.round(panelBox.left),
             sameTop: Math.round(standing.top) === Math.round(panelBox.top),
         };
     });
     expect(both, "both windows are on the page").not.toBeNull();
-    expect(both?.standingRight, "the window ends before the panel begins")
+    expect(both?.helperRight, "the window ends before the panel begins")
         .toBeLessThanOrEqual(both?.panelLeft ?? 0);
     expect(both?.sameTop, "and opens level with it").toBe(true);
 });
@@ -294,7 +294,7 @@ test("a card from this window's row stands clear of this window", async ({ panel
     const card = await readEdgesOf(panel.page, ".MargoMeter-tip:not(.tip-hidden)");
     const window = await readEdgesOf(panel.page, ".MargoMeter-standing");
     expect(
-        getIsClearOf(card, window),
+        isClearOf(card, window),
         `the card at ${card.left}..${card.right} is off the window at ` +
             `${window.left}..${window.right}`,
     ).toBe(true);
@@ -302,7 +302,7 @@ test("a card from this window's row stands clear of this window", async ({ panel
 });
 
 /** Whether two boxes share no pixel of the screen between them, read off their edges. */
-function getIsClearOf(one: PanelEdges, other: PanelEdges): boolean {
+function isClearOf(one: PanelEdges, other: PanelEdges): boolean {
     if (one.right <= other.left) return true;
     return one.left >= other.right;
 }
@@ -391,7 +391,7 @@ test("a row holding somebody hands back on its card what its cells cut", async (
     const card = await readEdgesOf(panel.page, CARD_OPEN);
     const window = await readEdgesOf(panel.page, ".MargoMeter-standing");
     expect(
-        getIsClearOf(card, window),
+        isClearOf(card, window),
         `the card at ${card.left}..${card.right} is off the window at ` +
             `${window.left}..${window.right}`,
     ).toBe(true);

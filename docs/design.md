@@ -213,7 +213,7 @@ an object an `init…` builds, which holds what it wraps.
 export interface Clock {
     readNowMilliseconds(): number;
     /** The reader's own day and time, or null where the page's `Date` will not read one. */
-    readMoment(atMilliseconds: number): PageMoment | null;
+    readMoment(atMilliseconds: number): BrowserMoment | null;
     /** The moment as a file states it, in the page's own ISO 8601. */
     readTimestampText(atMilliseconds: number): string | errors.Caught;
 }
@@ -246,7 +246,7 @@ export interface IntervalHandle {
 }
 
 // The engine
-export interface EnginePort {
+export interface BattlePort {
     readBattle(): EngineBattle | EngineFailure | errors.Caught;
 }
 export interface EngineBattle {
@@ -274,21 +274,21 @@ export type EngineFailure =
 
 // The game's page state, read
 export interface PlacePort {
-    readPlace(): FightPlace | PageReadFailure;
+    readPlace(): FightPlace | ClientReadFailure;
 }
 /** The hero's id, which is how the client keys its own warrior in a fight (ADR 0014). */
 export interface HeroPort {
-    readHeroId(): number | PageReadFailure;
+    readHeroId(): number | ClientReadFailure;
 }
 export interface DictionaryPort {
     /** The category is the client's own filing: a status is filed under `buff`. */
-    readLabel(labelId: string, category?: string): string | PageReadFailure;
+    readLabel(labelId: string, category?: string): string | ClientReadFailure;
 }
 export interface BuildPort {
-    readBuildId(): string | PageReadFailure;
+    readBuildId(): string | ClientReadFailure;
 }
-/** `PageReadingAbsent` names the reading: "place", "label" or "build". */
-export type PageReadFailure = PageReadingAbsent | errors.Caught;
+/** `ClientReadingAbsent` names the reading: "place", "label" or "build". */
+export type ClientReadFailure = ClientReadingAbsent | errors.Caught;
 
 // The one write into the game: rows of its tooltip, every fighter the page draws at once
 export interface TooltipPort {
@@ -360,7 +360,7 @@ export interface ConsolePort {
 export function parseProtocolMessage(text: string): ProtocolMessage | GrammarRefusal;
 export type GrammarRefusal =
     | SegmentsExceeded // `segments` and `maximum`
-    | SideUnreadable // `end`: "actor" or "target"
+    | EndUnreadable // `end`: "actor" or "target"
     | ParameterKeyEmpty; // `index`
 ```
 
@@ -401,7 +401,7 @@ export interface UnreadReading {
 }
 
 /** `src/core/protocol-key.ts`: the one owner of what a key means. `null` is `unknown-key`. */
-export function getKeyReading(key: string): KeyReading | null;
+export function lookupKeyReading(key: string): KeyReading | null;
 
 /** The envelope has bounded the message count already; here it is asserted. */
 export function decodePayloadMessages(
@@ -452,7 +452,7 @@ export interface FightSession {
 export function createFightSession(options: SessionOptions): FightSession;
 export function getSessionPhase(session: FightSession): SessionPhase;
 /** A reading: the arrays are the session's own, typed read-only, and nothing here writes (S9). */
-export function getFightView(session: FightSession): FightView | null;
+export function composeFightView(session: FightSession): FightView | null;
 /** Phase one: reads and computations, the session untouched. */
 export function preparePayload(
     session: FightSession,
@@ -474,8 +474,11 @@ export interface PayloadCommitted {
     eventsAdded: number;
     unreadAdded: number;
 }
-/** A fight past a bound the options state; what stands is left whole. */
-export type PayloadRejected = CastExceeded | EventsExceeded | PayloadsExceeded; // `count`, `maximum`
+/**
+ * A fight past a bound the options state, each stating its `count` and `maximum`; what stands is
+ * left whole.
+ */
+export type PayloadRejected = CombatantsExceeded | EventsExceeded | PayloadsExceeded;
 
 /** What the envelope hands the session. Core owns the type because core reads it (§4). */
 export interface PayloadRecord {
@@ -529,7 +532,7 @@ export function tallyFightFigures(view: FightView): FightFigures;
 export function verifyFightFigures(figures: FightFigures): void;
 export interface FightFigures {
     statistics: FightStatistics;
-    heals: ReadonlyMap<BattleEvent, TeamHeal>;
+    heals: ReadonlyMap<BattleEvent, SideHeal>;
     payloadsApplied: number;
 }
 ```
@@ -551,14 +554,14 @@ They are not folded in as payloads arrive: sizing a team heal reads messages fro
 
 ```ts
 /** As tallying: the bounds are asserted, and a broken one is the frame step's defect. */
-export function replayFightStandings(view: FightView, stated: StatedSkills): FightStandings;
+export function replayAuraStandings(view: FightView, stated: StatedSkills): FightStandings;
 /** What a carried status comes to, where a standing cast of its key reaches the bearer's side. */
 export function tallyCarriedFigures(reading: CarriedFigureReading): CarriedFigure[];
 ```
 
-Which side a key reaches is `getKeyReading`'s file's to say (`lookupKeyReach`), beside what the key
-means. The published tables (`StatedSkills`, the blows granted, the status bits) are handed in by
-whoever holds a frozen reading; `core/` imports none.
+Which side a key reaches is `lookupKeyReading`'s file's to say (`lookupKeyReach`), beside what the
+key means. The published tables (`StatedSkills`, the blows granted, the status bits) are handed in
+by whoever holds a frozen reading; `core/` imports none.
 
 ## 7. The game's edge
 
@@ -697,7 +700,10 @@ export interface WindowSetting {
  */
 export function readStorageChoice(store: KeyValueStore): StorageChoice | SettingFailure;
 export function readTypeStep(store: KeyValueStore): TypeStep | SettingFailure;
-export function readWindowFold(store: KeyValueStore, window: PanelWindow): boolean | SettingFailure;
+export function readWindowCollapsed(
+    store: KeyValueStore,
+    window: PanelWindow,
+): boolean | SettingFailure;
 export function readWindowPosition(
     store: KeyValueStore,
     window: PanelWindow,
@@ -706,19 +712,19 @@ export function readWindowSize(
     store: KeyValueStore,
     window: PanelWindow,
 ): WindowSize | null | SettingFailure; // null: the window stands as its type draws it
-// and `writeStorageChoice`, `writeTypeStep`, `writeWindowFold`, `writeWindowPosition`,
-// `writeWindowSize` and `removeWindowSize` beside them
+// and `writeStorageChoice`, `writeTypeStep`, `writeWindowCollapsed`, `writeWindowPosition`,
+// `writeWindowSize` and `deleteWindowSize` beside them
 export type SettingFailure = StoreFailure | SettingUnreadable | SettingTooLong; // each names its `key`
 
 // The shelf
 /** At start: durable state into memory, as TigerBeetle's `open`. */
 export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure;
-export function keepFight(
+export function writeKeptFight(
     store: KeyValueStore,
     shelf: ShelfContents,
     fight: KeptFight,
 ): ShelfWritten | ShelfFailure;
-export function pinFight(
+export function writeKeptFightPin(
     store: KeyValueStore,
     shelf: ShelfContents,
     openedAt: number,
@@ -756,14 +762,14 @@ export function encodeFightFile(
     surroundings: FileSurroundings,
 ): FightFile | FileUnserializable; // the JSON failure as its `cause`
 /** Which fight the file is of is the intent's question, and its refusal is the runtime's. */
-export type ExportFailure = StandingFightAbsent | FileUnserializable | FileFailure;
+export type ExportFailure = ShownFightAbsent | FileUnserializable | FileFailure;
 
 // The shelf as the running add-on holds it: the fights, the store, and what the store answered
 export interface ShelfKeeper {
     getFights(): readonly KeptFight[];
     getChoice(): StorageChoice;
     getAnswers(): ShelfAnswers; // every slot pinned, refused, room made, choice refused
-    lookupReading(fight: KeptFight): KeptReading | null; // replayed once, a refusal included
+    lookupKeptReading(fight: KeptFight): KeptReading | null; // replayed once, a refusal included
     keep(fight: KeptFight): void;
     pin(openedAt: number): void; // a toggle, as develop's pin is
     choose(choice: StorageChoice): void; // fights first, the answer second, the old place last
@@ -784,7 +790,7 @@ export interface RuntimePorts {
     clock: Clock;
     frames: FrameScheduler;
     interval: IntervalScheduler;
-    engine: EnginePort;
+    engine: BattlePort;
     place: PlacePort;
     hero: HeroPort;
     dictionary: DictionaryPort;
@@ -814,7 +820,7 @@ export type RuntimeFailure =
     | FiguresDisagreed // two counts of one figure came out different
     | ViewFailure // RegionUndrawn, GestureDropped, WindowUnplaced
     | WarriorFailure
-    | PageReadFailure
+    | ClientReadFailure
     | errors.Caught;
 export const FAILURE_FATE = {
     shownAsUnknown: "shown-as-unknown",
@@ -847,14 +853,15 @@ export function presentScreen(
     readerSide: number | null,
     suspicions: FightSuspicions,
 ): ScreenReading;
-export function presentStanding(
+export function presentHelper(
     provocations: readonly ProvocationStanding[],
     chargedSkills: readonly ChargedSkillStanding[],
     roster: CombatantRoster,
     readerSide: number | null,
     turn: StandingTurn,
-): StandingReading;
-// and presentDrill, presentPair, presentPart, presentHalfNamed…, presentCard beside them
+): HelperReading;
+// and presentOpenedLevel, presentPairLevel, presentPartLevel, presentUnnamedLevel…, presentCard
+// beside them
 
 export function initPanelView(document: PanelDocument, options: PanelViewOptions): PanelView;
 export interface PanelViewOptions {
@@ -864,14 +871,14 @@ export interface PanelViewOptions {
     /** What failed while no render was running: a gesture, a card, a window's opening place. */
     onFailure: (failure: ViewFailure) => void;
     placement: PanelPlacement | null;
-    standingPlacement: PanelPlacement | null;
+    helperPlacement: PanelPlacement | null;
     translate: TranslateLabel | null;
 }
 export interface PanelView {
     element: PanelElement;
     render(shown: ShownScreen): RenderReport;
     renderWaiting(waiting: WaitingReading): RenderReport;
-    renderStanding(standing: StandingReading | StandingAbsence, isCollapsed: boolean): RenderReport;
+    renderHelper(standing: HelperReading | HelperAbsence, isCollapsed: boolean): RenderReport;
 }
 /** A region that could not draw stands undrawn in place. */
 export interface RenderReport {
@@ -926,13 +933,13 @@ literals stand in the variants here only so the document reads. A failure is a c
 ### 10.1 Start
 
 ```
-window ─ readUserscriptWindow ─▶ RuntimePorts | BootFailure, under errors.attempt
+window ─ readRuntimePorts ─▶ RuntimePorts | BootFailure, under errors.attempt
    WindowUnusable: the first part missing (document, console, timers, frames, clock, downloads)
    Caught: a member whose getter threw, a broken invariant while standing up
    a failure → one console line where the page has a console → stand down, no panel
 composeRuntimeTables     the frozen readings indexed, under the start's guard, never at load
 initRuntime(ports, options)
-   ─▶ readStorageChoice, readTypeStep, readWindowFold × 2, readWindowSize × 2
+   ─▶ readStorageChoice, readTypeStep, readWindowCollapsed × 2, readWindowSize × 2
                               a failure → the default, and a "kept" defect
    ─▶ openShelf               a failure → an empty shelf, and a "kept" defect
    ─▶ initPanelView           readWindowPosition × 2: a failure → the sheet's corner, a "kept" defect
@@ -980,8 +987,8 @@ listener ─ reads a PanelIntent off data-* (isOneOf; unknown → GestureDropped
 ### 10.4 The frame: `onFrame`, every step under `errors.attempt`
 
 ```
-1. replayFightStandings → presentTooltipRows → tooltip.writeRows → a failure → a "region" defect
-2. replayFightStandings → presentStanding → renderStanding → undrawn → "region" defects
+1. replayAuraStandings → presentTooltipRows → tooltip.writeRows → a failure → a "region" defect
+2. replayAuraStandings → presentHelper → renderHelper → undrawn → "region" defects
 3. the ledger as it stands → the panel's defects, drawn this frame
 4. tallyFightFigures → verifyFightFigures → presentScreen → render → undrawn → "region" defects
    nothing to stand on → renderWaiting; a broken invariant → a "reading" defect, unread
@@ -1018,7 +1025,7 @@ goes without a mark.
 | `ExportFailure`, `FileFailure`               | `defect` "file"        | as above                                               |
 | a tooltip write that threw                   | `defect` "region"      | the game's tooltip without our rows                    |
 | a setting write refused                      | none                   | the reader's choice stands; the next visit is poorer   |
-| `PageReadFailure`                            | `shown-as-unknown`     | no place line; our word instead of the game's          |
+| `ClientReadFailure`                          | `shown-as-unknown`     | no place line; our word instead of the game's          |
 | `EngineAlreadyWrapped`, `BootFailure`        | `stand-down`           | no panel, one console line                             |
 | `SearchAbandoned`, `MethodAbsent`            | `defect` "engine"      | the panel waits, one console line                      |
 
@@ -1026,7 +1033,7 @@ goes without a mark.
 
 | Boundary                       | Where                                                                                               |
 | ------------------------------ | --------------------------------------------------------------------------------------------------- |
-| the add-on standing up         | `readUserscriptWindow` and `initRuntime` under `errors.attempt`, in the entry                       |
+| the add-on standing up         | `readRuntimePorts` and `initRuntime` under `errors.attempt`, in the entry                           |
 | the wrapped engine call        | `PayloadListener.onBeforeCall` and `onPayload`                                                      |
 | one render region              | `errors.attempt` per region in `PanelView.render`                                                   |
 | browser storage                | `errors.attempt` inside the `KeyValueStore` implementation                                          |

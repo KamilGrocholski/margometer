@@ -26,13 +26,13 @@ import {
     NOTHING_SUSPECT,
     type OpenedPart,
     type PinnedCase,
-    presentDrill,
-    presentHalfNamed,
-    presentHalfNamedDrill,
-    presentOpenedUnnamed,
-    presentPair,
-    presentPart,
+    presentOpenedLevel,
+    presentPairLevel,
+    presentPartLevel,
     presentScreen,
+    presentUnnamedCutLevel,
+    presentUnnamedLevel,
+    presentUnnamedPairLevel,
     type ScreenReading,
 } from "#/src/ui/panel-reading.ts";
 import { OPENED_PART, type PanelMetric, SCREEN_ORDER, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
@@ -301,13 +301,13 @@ function addOpenedLevelToTally(
     combatantId: number,
 ): void {
     const { roster, statistics } = fight;
-    const drill = presentDrill(statistics, roster, screen, combatantId);
+    const drill = presentOpenedLevel(statistics, roster, screen, combatantId);
     if (drill === null) return;
     for (const other of drill.byOpponent.rows) {
         const place = { rung: DRILL_RUNG.opened, row: DRILL_ROW.person };
         addCaseToTally(tally, screen, place, other.doesOpenPair);
         if (!other.doesOpenPair) continue;
-        const pair = presentPair(
+        const pair = presentPairLevel(
             statistics,
             roster,
             screen,
@@ -348,7 +348,7 @@ function addOpenedLevelToTally(
             addCaseToTally(tally, screen, place, unnamed.doesOpenPair);
             if (unnamed.doesOpenPair) {
                 // Add the end the opened figure left out: their own keys.
-                const held = presentOpenedUnnamed(
+                const held = presentUnnamedPairLevel(
                     statistics,
                     roster,
                     screen,
@@ -494,7 +494,7 @@ function presentHalfNamedForEveryone(
         fight.name.length > 0,
         "a pinned level is read off a recording with a name",
     );
-    return presentHalfNamed(
+    return presentUnnamedLevel(
         fight.statistics,
         fight.roster,
         kase,
@@ -509,7 +509,7 @@ function presentUnnamedCut(
     opened: HalfNamedOpened,
 ): HalfNamedDrillReading | null {
     assert(fight.name.length > 0, "a level is read off a recording with a name");
-    return presentHalfNamedDrill(
+    return presentUnnamedCutLevel(
         fight.statistics,
         fight.roster,
         kase,
@@ -528,7 +528,7 @@ function addPartRungToTally(
     combatantId: number,
     part: OpenedPart,
 ): void {
-    const held = presentPart(
+    const held = presentPartLevel(
         fight.statistics,
         fight.roster,
         screen,
@@ -610,7 +610,7 @@ export function formatDrillReport(
 
 /** One opened row: the cut, and what each row of it opens onto. */
 function formatOpenedLines(fight: PanelFight, screen: PanelMetric, combatantId: number): string[] {
-    const drill = presentDrill(fight.statistics, fight.roster, screen, combatantId);
+    const drill = presentOpenedLevel(fight.statistics, fight.roster, screen, combatantId);
     if (drill === null) return [];
     const lines = [`    ${drill.name ?? NOBODY_NAMED} — ${formatInteger(drill.total)}`];
     for (const other of drill.byOpponent.rows) {
@@ -647,7 +647,7 @@ function formatUnnamedPairLines(
     if (unnamed === null) return [];
     if (!unnamed.doesOpenPair) return ["      half-named  leaf"];
     const lines = [`      half-named  opens  ${formatInteger(unnamed.figure)}`];
-    const held = presentOpenedUnnamed(fight.statistics, fight.roster, screen, drill.combatantId);
+    const held = presentUnnamedPairLevel(fight.statistics, fight.roster, screen, drill.combatantId);
     assertExists(held, "a row that opens has a level under it");
     if (held.opened !== HALF_NAMED_OPENED.person) return lines;
     for (const kind of held.kinds.rows) {

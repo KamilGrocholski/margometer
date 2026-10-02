@@ -37,7 +37,7 @@ export function initTestView(
         onIntent: () => {},
         onFailure: () => {},
         placement: null,
-        standingPlacement: null,
+        helperPlacement: null,
         translate: null,
         ...options,
     });

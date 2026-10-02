@@ -14,9 +14,9 @@ import {
 } from "#/src/core/fight-figures.ts";
 import {
     commitPayload,
+    composeFightView,
     createFightSession,
     type FightView,
-    getFightView,
     type PayloadRejected,
     preparePayload,
     type SessionOptions,
@@ -39,7 +39,7 @@ export interface KeptReading extends FightReading {
 export type ReplayFailure = EnvelopeFailure | PayloadRejected;
 
 /** The fight the panel stands on, and the kept one it was read off where that is what it is. */
-export type StandingFight =
+export type ShownFight =
     | { kept: null; reading: FightReading }
     | { kept: KeptFight; reading: KeptReading };
 
@@ -82,7 +82,7 @@ export function replayFightPayloads(
         commitPayload(session, prepared);
         messagesByPayload.push(record.messages);
     }
-    const view = getFightView(session);
+    const view = composeFightView(session);
     if (view === null) return null;
     return { ...tallyFightReading(view), messagesByPayload };
 }
@@ -92,15 +92,15 @@ export function replayFightPayloads(
  * and the newest kept fight is what it has instead (`develop ADR 0033`). Null where there is
  * nothing to stand on, or where the kept fight no longer reads (a panel of zeroes is a claim).
  */
-export function lookupStandingFight(
+export function lookupShownFight(
     live: FightReading | null,
     openFightId: number | null,
     fights: readonly KeptFight[],
-    lookupReading: (fight: KeptFight) => KeptReading | null,
-): StandingFight | null {
-    const kept = lookupStandingKept(live, openFightId, fights);
+    lookupKeptReading: (fight: KeptFight) => KeptReading | null,
+): ShownFight | null {
+    const kept = lookupShownKeptFight(live, openFightId, fights);
     if (kept !== undefined) {
-        const reading = lookupReading(kept);
+        const reading = lookupKeptReading(kept);
         if (reading === null) return null;
         return { kept, reading };
     }
@@ -112,7 +112,7 @@ export function lookupStandingFight(
  * Which kept fight the panel stands on, read or not: the one chosen, or the newest where no fight
  * is going on. Undefined where the panel stands on the live fight, or on nothing.
  */
-export function lookupStandingKept(
+export function lookupShownKeptFight(
     live: FightReading | null,
     openFightId: number | null,
     fights: readonly KeptFight[],

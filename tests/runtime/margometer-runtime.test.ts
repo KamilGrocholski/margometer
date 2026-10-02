@@ -17,9 +17,9 @@ import * as errors from "#/libs/errors.ts";
 import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
-import { getFightView } from "#/src/core/fight-session.ts";
-import { initPageStore, type KeyValueStore, STORE_KEY } from "#/src/game/browser-store.ts";
-import { initPageFrames } from "#/src/game/page-time.ts";
+import { composeFightView } from "#/src/core/fight-session.ts";
+import { initBrowserStore, type KeyValueStore, STORE_KEY } from "#/src/game/browser-store.ts";
+import { initBrowserFrames } from "#/src/game/page-time.ts";
 import { LOOKS_MAXIMUM, type RuntimeTables } from "#/src/runtime/margometer-runtime.ts";
 import { KEPT_MAXIMUM } from "#/src/runtime/shelf.ts";
 import { CLASS, composeStyleSheet } from "#/src/ui/panel-look.ts";
@@ -33,9 +33,9 @@ import {
     formatKeptUnread,
     formatPlace,
     getWordsForTurnState,
+    HELPER_WORDS,
     PANEL_DEFECT_KIND,
     PANEL_WORDS,
-    STANDING_WORDS,
     STORE_MADE_ROOM_ANSWER,
     STORE_REFUSED_ANSWER,
 } from "#/src/ui/panel-words.ts";
@@ -814,7 +814,7 @@ Deno.test("a panel reloaded between fights opens on the shelf rather than on not
     const host = again.getHost();
     assertEquals(
         getTextsByClass(host, CLASS.empty),
-        [STANDING_WORDS.nothingHappens],
+        [HELPER_WORDS.nothingHappens],
         "neither window says there was none, and the one beside it says nothing is going on",
     );
     assert(countRows(findList(host)) > 0, "it draws the newest fight it kept");
@@ -1515,7 +1515,7 @@ Deno.test("a fight read back off the shelf says where it was fought, not where t
 });
 
 Deno.test("the fight's line and its shelf row say who the reader was, and it outlives a reload", () => {
-    const view = getFightView(replayRecordedFight(lookupRecordedFight(HILDUR)));
+    const view = composeFightView(replayRecordedFight(lookupRecordedFight(HILDUR)));
     assertExists(view, "the recording is a fight");
     const reader = [...view.roster.byId.values()].find((one) => one.side === view.readerSide);
     assertExists(reader, "with somebody on the reader's side");
@@ -1700,7 +1700,7 @@ Deno.test("a frame that breaks is said on the panel at the next one, and not thr
     const queue: (() => void)[] = [];
     let mounts = 0;
     const world = initRuntimeWorld(composeBattlePage(), (_, base) => ({
-        frames: initPageFrames({
+        frames: initBrowserFrames({
             requestAnimationFrame: (step) => queue.push(step),
             cancelAnimationFrame: () => {},
         }),
@@ -1787,7 +1787,7 @@ function composeSmallShelf(count: number, isPinned: boolean): string {
 /** A store that refuses once, as a quota does until the rotation has dropped a fight. */
 function initStoreRefusingOnce(held: Map<string, string>): KeyValueStore {
     let refusals = 1;
-    return initPageStore({
+    return initBrowserStore({
         getItem: (key) => held.get(key) ?? null,
         setItem: (key, value) => {
             if (refusals > 0) {

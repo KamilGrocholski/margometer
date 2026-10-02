@@ -24,8 +24,8 @@ import {
 } from "#/src/game/payload-envelope.ts";
 import {
     commitPayload,
+    composeFightView,
     createFightSession,
-    getFightView,
     preparePayload,
     SESSION_OPTIONS,
 } from "#/src/core/fight-session.ts";
@@ -168,7 +168,7 @@ Deno.test("an empty message is passed over, and counts as lost against what was 
     const prepared = preparePayload(session, { ...record, isInit: true }, BLOWS_GRANTED);
     assertNotInstanceOf(prepared, Error, "the payload is prepared");
     commitPayload(session, prepared);
-    assertStrictEquals(getFightView(session)?.messagesLost, 1, "and the empty one is lost");
+    assertStrictEquals(composeFightView(session)?.messagesLost, 1, "and the empty one is lost");
     assertStrictEquals(readOk({ m: [] }).messagesStated, null, "no `mi` states no count");
     assertStrictEquals(readOk({ mi: [] }).messagesStated, 0, "while an empty one states none");
 });

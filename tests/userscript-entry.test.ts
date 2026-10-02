@@ -20,7 +20,7 @@ import { CLASS } from "#/src/ui/panel-look.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import {
     composeRuntimeTables,
-    readUserscriptWindow,
+    readRuntimePorts,
     startMargoMeter,
     WINDOW_PART,
     type WindowPart,
@@ -188,7 +188,7 @@ Deno.test("the page's size is read whole or not at all, and nought is a size", (
     for (const [width, height, expected] of sizes) {
         const window = composeFakeWindow();
         Object.assign(window.page, { innerWidth: width, innerHeight: height });
-        const read = readUserscriptWindow(window.page);
+        const read = readRuntimePorts(window.page);
         assertNotInstanceOf(read, Error, "the page stands the add-on");
         assertEquals(read.readViewport(), expected, `${width} by ${height}`);
     }
@@ -196,7 +196,7 @@ Deno.test("the page's size is read whole or not at all, and nought is a size", (
 
 Deno.test("the game's build is read off the page's own script, and nothing else is", () => {
     const window = composeFakeWindow();
-    const read = readUserscriptWindow(window.page);
+    const read = readRuntimePorts(window.page);
     assertNotInstanceOf(read, Error, "the page stands the add-on");
     assertStrictEquals(read.build.readBuildId(), "53XkBRxF", "the bundle's name states it");
     const document = window.page.document as Record<string, unknown>;
@@ -206,7 +206,7 @@ Deno.test("the game's build is read off the page's own script, and nothing else 
 
 Deno.test("a file goes to the page's downloads through an anchor standing in its body", () => {
     const window = composeFakeWindow();
-    const read = readUserscriptWindow(window.page);
+    const read = readRuntimePorts(window.page);
     assertNotInstanceOf(read, Error, "the page stands the add-on");
     const written = read.file.writeFile("fight.json", "{}", () => {});
     assertStrictEquals(written, undefined, "the page took it");

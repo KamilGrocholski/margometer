@@ -27,7 +27,6 @@ import {
     EVERY_SLOT_PINNED_ANSWER,
     FIGHT_CARD_WORDS,
     formatCardSubtitle,
-    formatChargedRows,
     formatChargedSkillSubtitle,
     formatCountedNoun,
     formatCounter,
@@ -38,12 +37,14 @@ import {
     formatJoinedInProgressSuspicion,
     formatKeptUnread,
     formatLostMessageSuspicion,
+    formatNamesReachedByGap,
     formatNoParameterRowSuspicion,
     formatNoParameterSuspicion,
     formatPlace,
-    formatShare,
-    formatShares,
+    formatShareRounded,
+    formatSharesApportioned,
     formatShelfSize,
+    formatShelfTime,
     formatSideCounts,
     formatTurnOrdinal,
     formatUndrawn,
@@ -52,13 +53,14 @@ import {
     formatUnplacedHealRowSuspicion,
     formatUnplacedHealSuspicion,
     formatUses,
-    formatWhole,
+    formatWholeUngrouped,
     getCaveatForUnannounced,
+    getDirectionWordsForMetric,
     getNoteForCaveat,
+    getNoteForUnnamedEnd,
     getWordsForCardMetric,
     getWordsForChargedSkill,
     getWordsForDamageKind,
-    getWordsForDirection,
     getWordsForHealthSource,
     getWordsForNothing,
     getWordsForNoun,
@@ -67,17 +69,16 @@ import {
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
     getWordsForShelfOutcome,
-    getWordsForShelfTime,
     getWordsForSide,
     getWordsForStorage,
     getWordsForStorageMeaning,
     getWordsForTurnState,
     getWordsForTypeStep,
     getWordsForUnannounced,
-    getWordsForUnnamedEnd,
     getWordsForWindow,
     HEALTH_LOSS_WORD_BY_KEY,
     HEALTH_SOURCE_WORD_BY_KEY,
+    HELPER_WORDS,
     NEITHER_END_WORDS,
     PANEL_DEFECT_KIND,
     PANEL_REGION,
@@ -88,13 +89,12 @@ import {
     PROFESSION_WORD_BY_KEY,
     REGION_WORDS,
     ROWS_BESIDE_THE_STATUSES,
-    STANDING_WORDS,
     STORE_MADE_ROOM_ANSWER,
     STORE_REFUSED_ANSWER,
 } from "#/src/ui/panel-words.ts";
 import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
 import { PANEL_WINDOWS, STORAGE_CHOICES, TYPE_STEPS } from "#/src/ui/panel-choice.ts";
-import { PINNED_CASES, SIDE_PART, UNNAMED_END } from "#/src/ui/panel-reading.ts";
+import { PINNED_CASES, SIDE_RELATION, UNNAMED_END } from "#/src/ui/panel-reading.ts";
 import { PANEL_NOUN, SCREEN_ORDER, SIDE_CHOICES } from "#/src/ui/panel-screen.ts";
 import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
@@ -157,7 +157,7 @@ const TABLES = {
     PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
     PROFESSION_WORD_BY_KEY,
-    STANDING_WORDS,
+    HELPER_WORDS,
 };
 
 /** Every member of each closed set, read off its vocabulary, so a fifth state is read too. */
@@ -237,8 +237,8 @@ function getSentences(): string[] {
     // What a half-named row says, for the same reason: the tables behind these are keyed and a
     // walk over `PANEL_WORDS` reaches none of them.
     for (const end of Object.values(UNNAMED_END)) {
-        found.push(getWordsForUnnamedEnd(end, PANEL_NOUN.damage));
-        found.push(getWordsForUnnamedEnd(end, PANEL_NOUN.healing));
+        found.push(getNoteForUnnamedEnd(end, PANEL_NOUN.damage));
+        found.push(getNoteForUnnamedEnd(end, PANEL_NOUN.healing));
     }
     for (const kase of PINNED_CASES) {
         found.push(getWordsForPinnedStanding(kase));
@@ -285,7 +285,7 @@ function getSentences(): string[] {
 function getSentencesFromSuspicions(): string[] {
     const found: string[] = [formatJoinedInProgressSuspicion()];
     for (const count of [1, 2, 5]) {
-        const whom = formatChargedRows(["Gracz 1", "Gracz 2"], 2);
+        const whom = formatNamesReachedByGap(["Gracz 1", "Gracz 2"], 2);
         found.push(formatLostMessageSuspicion(count, SAID_OUT_OF));
         found.push(formatUnknownKeySuspicion(count, SAID_OUT_OF, whom));
         found.push(formatNoParameterSuspicion(count, SAID_OUT_OF, whom));
@@ -295,7 +295,7 @@ function getSentencesFromSuspicions(): string[] {
         found.push(formatNoParameterRowSuspicion(count));
         found.push(formatUnplacedHealRowSuspicion(count));
         // And the other shape of the same words: a gap reaching more rows than a sentence lists.
-        found.push(formatUnknownKeySuspicion(count, SAID_OUT_OF, formatChargedRows([], 7)));
+        found.push(formatUnknownKeySuspicion(count, SAID_OUT_OF, formatNamesReachedByGap([], 7)));
     }
     return found;
 }
@@ -306,7 +306,7 @@ function getSentencesFromChoices(): string[] {
     for (const metric of SCREEN_ORDER) {
         found.push(getWordsForNothing(metric));
         found.push(getWordsForUnannounced(metric));
-        found.push(getWordsForDirection(metric));
+        found.push(getDirectionWordsForMetric(metric));
         found.push(getWordsForCardMetric(metric));
     }
     for (const noun of PANEL_NOUNS) found.push(getWordsForNoun(noun));
@@ -324,14 +324,14 @@ function getSentencesFromChoices(): string[] {
     found.push(getWordsForPin(true), getWordsForPin(false));
     // What is composed rather than held: a word spelled into a template is reached by no walk
     // over the tables above, and `tura` and `teraz` are both spelled that way.
-    found.push(formatTurnOrdinal(3), getWordsForShelfTime(null, true));
+    found.push(formatTurnOrdinal(3), formatShelfTime(null, true));
     // Every month, because the twelve are spelled into the same template and a walk over the
     // tables reaches none of them either.
     for (let month = FIRST_MONTH; month <= MONTHS_IN_YEAR; month += 1) {
-        found.push(getWordsForShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
+        found.push(formatShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
     }
     found.push(formatSideCounts([4, 4], 2), formatShelfSize([4, 4]));
-    found.push(String(formatCardSubtitle("w", 120, SIDE_PART.reader)));
+    found.push(String(formatCardSubtitle("w", 120, SIDE_RELATION.reader)));
     found.push(...getSentencesFromTooltip());
     // ⚠️ **Both ends of a charge, because one of them hid behind the card.** `przerwane` reached
     // no check at all and `wykonane` passed as a tail of `Tury wykonane`, which is the shape the
@@ -547,7 +547,7 @@ Deno.test("every row that names a thing and qualifies it is punctuated alike", (
         "the charge, the okrzyk and both legendary bonuses, and no status",
     );
     for (const row of carrying) {
-        assertStringIncludes(row, STANDING_WORDS.castSeparator, `${row} stands its parts apart`);
+        assertStringIncludes(row, HELPER_WORDS.castSeparator, `${row} stands its parts apart`);
     }
 });
 
@@ -874,17 +874,17 @@ Deno.test("a place is said with as much of it as was known, and nothing where no
 });
 
 Deno.test("a share is spelled in whole points, and a figure too small to round says so", () => {
-    assertEquals(formatShare(0.516), "52%", "whole points, the way every row prints one");
-    assertEquals(formatShare(0), "0%", "zero happened and measured nothing");
-    assertEquals(formatShare(1), "100%", "and the whole of a fight is the whole of it");
+    assertEquals(formatShareRounded(0.516), "52%", "whole points, the way every row prints one");
+    assertEquals(formatShareRounded(0), "0%", "zero happened and measured nothing");
+    assertEquals(formatShareRounded(1), "100%", "and the whole of a fight is the whole of it");
     // The floor and the measurement stand apart: one says too small to print, the other says none.
-    assertEquals(formatShare(0.0004), "<1%", "a share too small to print is not zero");
+    assertEquals(formatShareRounded(0.0004), "<1%", "a share too small to print is not zero");
     // A share outside the whole must not stop the panel: it is held to the ends instead, and one
     // that is not a number at all says so — **E12**, develop ADR 0051.
-    assertEquals(formatShare(1.5), "100%", "more than the whole is drawn as the whole");
-    assertEquals(formatShare(-1), "0%", "and below nothing is drawn as nothing");
+    assertEquals(formatShareRounded(1.5), "100%", "more than the whole is drawn as the whole");
+    assertEquals(formatShareRounded(-1), "0%", "and below nothing is drawn as nothing");
     assertEquals(
-        formatShare(Number.NaN),
+        formatShareRounded(Number.NaN),
         PANEL_WORDS.unknown,
         "while a share that is not a number is said as not known, which is not zero",
     );
@@ -957,12 +957,24 @@ Deno.test("a figure never offers a place to break, and never spaces what it shou
 
 Deno.test("a set of shares adds to the whole it is a share of", () => {
     // Rounded a row at a time these print 33%, 33% and 33%, which is a column that does not sum.
-    const thirds = formatShares([1, 1, 1], 3);
+    const thirds = formatSharesApportioned([1, 1, 1], 3);
     assertEquals(getPointsFromShares(thirds), 100, "the points left over are handed out");
-    assertEquals(formatShares([1, 0], 1), ["100%", "0%"], "a figure of nothing takes none");
-    assertEquals(formatShares([1, 1], 0), ["0%", "0%"], "a whole of nothing states no share");
+    assertEquals(
+        formatSharesApportioned([1, 0], 1),
+        ["100%", "0%"],
+        "a figure of nothing takes none",
+    );
+    assertEquals(
+        formatSharesApportioned([1, 1], 0),
+        ["0%", "0%"],
+        "a whole of nothing states no share",
+    );
     // A whole holding a figure the screen does not draw: the shares are right to add to less.
-    assertEquals(getPointsFromShares(formatShares([1, 1], 4)), 50, "half a whole is half");
+    assertEquals(
+        getPointsFromShares(formatSharesApportioned([1, 1], 4)),
+        50,
+        "half a whole is half",
+    );
 });
 
 /** What the reader adds up, as the reader adds it up: the points, without the sign. */
@@ -980,14 +992,14 @@ Deno.test("two of a figure print one share, and the column still adds up", () =>
     // The three equal figures hold the largest discarded fraction and there are only two points
     // to hand out, so the group is passed over and two smaller remainders are paid instead. Row
     // by row the first two of the three would take a point each and print 6% beside 5%.
-    const tie = formatShares([1, 1, 1, 2, 13], 18);
+    const tie = formatSharesApportioned([1, 1, 1, 2, 13], 18);
     assertEquals(tie, ["5%", "5%", "5%", "12%", "73%"], "equal figures print equal shares");
     assertEquals(getPointsFromShares(tie), 100, "and the column still comes to the whole");
     // A group that fits is paid whole: two points left, two members, both take one.
-    assertEquals(formatShares([1, 1, 4], 6), ["17%", "17%", "66%"], "a group that fits");
+    assertEquals(formatSharesApportioned([1, 1, 4], 6), ["17%", "17%", "66%"], "a group that fits");
     // Three equal thirds: the group of three cannot be paid out of the one point left, so the
     // column adding up wins over the evenness and the earliest row takes it.
-    const split = formatShares([1, 1, 1], 3);
+    const split = formatSharesApportioned([1, 1, 1], 3);
     assertEquals(getPointsFromShares(split), 100, "a tie is split where nothing else can pay");
     assertEquals(split, ["34%", "33%", "33%"], "earliest row first, so nothing flickers");
 });
@@ -1089,24 +1101,24 @@ Deno.test("a suspicion about one person states its count out of nothing", () => 
  * would be a second ranking drawn in a paragraph.
  */
 Deno.test("a suspicion names whom it reaches while they are few, counting them past that", () => {
-    assertEquals(formatChargedRows([], 0), "", "a gap naming nobody names nobody");
+    assertEquals(formatNamesReachedByGap([], 0), "", "a gap naming nobody names nobody");
     assertEquals(
-        formatChargedRows(["Gracz 1", "Gracz 2"], 2),
+        formatNamesReachedByGap(["Gracz 1", "Gracz 2"], 2),
         " (Gracz 1, Gracz 2)",
         "two are read faster as names than as a number",
     );
     assertEquals(
-        formatChargedRows(["Gracz 1", "Gracz 2", "Gracz 3"], 3),
+        formatNamesReachedByGap(["Gracz 1", "Gracz 2", "Gracz 3"], 3),
         " (Gracz 1, Gracz 2, Gracz 3)",
         "and three is what still fits beside a count",
     );
     assertStringIncludes(
-        formatChargedRows(["Gracz 1", "Gracz 2", "Gracz 3"], 4),
+        formatNamesReachedByGap(["Gracz 1", "Gracz 2", "Gracz 3"], 4),
         "dotyczy 4 postaci",
         "the fourth turns the list into a count, and the names are dropped whole",
     );
     assertEquals(
-        formatChargedRows([], 7),
+        formatNamesReachedByGap([], 7),
         " (dotyczy 7 postaci)",
         "rows the roster could not name are counted, never guessed at",
     );
@@ -1223,7 +1235,7 @@ Deno.test("a pool among the kinds of damage is the defence's own word", () => {
 Deno.test("every month a kept fight can fall in spells its own word", () => {
     const spelled: string[] = [];
     for (let month = FIRST_MONTH; month <= MONTHS_IN_YEAR; month += 1) {
-        spelled.push(getWordsForShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
+        spelled.push(formatShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
     }
     assertEquals(
         spelled,
@@ -1251,12 +1263,12 @@ Deno.test("every month a kept fight can fall in spells its own word", () => {
  */
 Deno.test("a moment on either edge of the calendar is still a moment", () => {
     assertEquals(
-        getWordsForShelfTime({ day: 1, month: FIRST_MONTH, hour: 0, minute: 0 }, false),
+        formatShelfTime({ day: 1, month: FIRST_MONTH, hour: 0, minute: 0 }, false),
         "01 sty 00:00",
         "the first minute of the year reads back, because zero is a reading",
     );
     assertEquals(
-        getWordsForShelfTime({ day: 31, month: MONTHS_IN_YEAR, hour: 23, minute: 59 }, false),
+        formatShelfTime({ day: 31, month: MONTHS_IN_YEAR, hour: 23, minute: 59 }, false),
         "31 gru 23:59",
         "and so does the last",
     );
@@ -1268,25 +1280,25 @@ Deno.test("a moment on either edge of the calendar is still a moment", () => {
  */
 Deno.test("a day nobody can name leaves the row saying nothing", () => {
     const beforeTheYear = { day: 1, month: FIRST_MONTH - 1, hour: 21, minute: 5 };
-    assertEquals(getWordsForShelfTime(beforeTheYear, false), "", "no month, so no date");
+    assertEquals(formatShelfTime(beforeTheYear, false), "", "no month, so no date");
     const afterTheYear = { day: 1, month: MONTHS_IN_YEAR + 1, hour: 21, minute: 5 };
-    assertEquals(getWordsForShelfTime(afterTheYear, false), "", "on both sides of the twelve");
+    assertEquals(formatShelfTime(afterTheYear, false), "", "on both sides of the twelve");
     const noDay = { day: 0, month: 9, hour: 21, minute: 5 };
-    assertEquals(getWordsForShelfTime(noDay, false), "", "and a day the calendar does not have");
+    assertEquals(formatShelfTime(noDay, false), "", "and a day the calendar does not have");
     const pastTheMonth = { day: 32, month: 9, hour: 21, minute: 5 };
-    assertEquals(getWordsForShelfTime(pastTheMonth, false), "", "on both sides of the day too");
+    assertEquals(formatShelfTime(pastTheMonth, false), "", "on both sides of the day too");
     const beforeMidnight = { day: 13, month: 9, hour: -1, minute: 5 };
-    assertEquals(getWordsForShelfTime(beforeMidnight, false), "", "an hour before the day began");
+    assertEquals(formatShelfTime(beforeMidnight, false), "", "an hour before the day began");
     const beforeTheHour = { day: 13, month: 9, hour: 21, minute: -1 };
-    assertEquals(getWordsForShelfTime(beforeTheHour, false), "", "and a minute before the hour");
-    assertEquals(getWordsForShelfTime(null, false), "", "as does a moment that never read back");
+    assertEquals(formatShelfTime(beforeTheHour, false), "", "and a minute before the hour");
+    assertEquals(formatShelfTime(null, false), "", "as does a moment that never read back");
 });
 
 /** The fight going on now is dated by nothing, because it is still happening. */
 Deno.test("the live row says when it is without a date", () => {
     const dated = { day: 13, month: 9, hour: 21, minute: 5 };
-    assertEquals(getWordsForShelfTime(dated, true), "teraz", "the live wording outranks the date");
-    assertEquals(getWordsForShelfTime(null, true), "teraz", "and stands without a moment at all");
+    assertEquals(formatShelfTime(dated, true), "teraz", "the live wording outranks the date");
+    assertEquals(formatShelfTime(null, true), "teraz", "and stands without a moment at all");
 });
 
 /**
@@ -1446,13 +1458,25 @@ Deno.test("a fighter carrying everything under every status fits the block exact
 });
 
 Deno.test("a whole number is written as it is, and anything else degrades, never throws", () => {
-    assertEquals(formatWhole(0), "0", "nothing is a figure");
-    assertEquals(formatWhole(1), "1", "and so is its neighbour");
-    assertEquals(formatWhole(-161518), "-161518", "and one below nothing");
-    assertEquals(formatWhole(1.5), "2", "a fraction rounds");
-    assertEquals(formatWhole(Number.NaN), PANEL_WORDS.unknown, "what is no number is unknown");
-    assertEquals(formatWhole(Number.POSITIVE_INFINITY), PANEL_WORDS.unknown, "and so is no end");
-    assertEquals(formatWhole(2 ** 60), PANEL_WORDS.unknown, "and a number past what is held");
+    assertEquals(formatWholeUngrouped(0), "0", "nothing is a figure");
+    assertEquals(formatWholeUngrouped(1), "1", "and so is its neighbour");
+    assertEquals(formatWholeUngrouped(-161518), "-161518", "and one below nothing");
+    assertEquals(formatWholeUngrouped(1.5), "2", "a fraction rounds");
+    assertEquals(
+        formatWholeUngrouped(Number.NaN),
+        PANEL_WORDS.unknown,
+        "what is no number is unknown",
+    );
+    assertEquals(
+        formatWholeUngrouped(Number.POSITIVE_INFINITY),
+        PANEL_WORDS.unknown,
+        "and so is no end",
+    );
+    assertEquals(
+        formatWholeUngrouped(2 ** 60),
+        PANEL_WORDS.unknown,
+        "and a number past what is held",
+    );
 });
 
 Deno.test("a panel waiting for a game says what it cannot see", () => {
@@ -1462,7 +1486,7 @@ Deno.test("a panel waiting for a game says what it cannot see", () => {
 
 Deno.test("a kept fight that will not read is placed by what the shelf knows of it", () => {
     const at = { day: 13, month: 9, hour: 21, minute: 5 };
-    const time = getWordsForShelfTime(at, false);
+    const time = formatShelfTime(at, false);
     assertEquals(formatKeptUnread(at, "Grota (34, 12)"), `${time} · Grota (34, 12)`, "both");
     assertEquals(formatKeptUnread(at, null), time, "a place unstated is left out, not guessed");
     assertEquals(formatKeptUnread(null, "Grota"), "Grota", "and so is a moment unread");

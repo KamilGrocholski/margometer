@@ -9,14 +9,14 @@ export interface ConsolePort {
     writeBrandedLine(kind: string, detail: unknown): void;
 }
 
-export interface PageConsole {
+export interface BrowserConsole {
     error(...values: unknown[]): void;
 }
 
 /** Shown first, so a line of ours is never read as the game's. */
 const BRAND = "MargoMeter/Panel";
 
-export function initPageConsole(console: PageConsole): ConsolePort {
+export function initBrowserConsole(console: BrowserConsole): ConsolePort {
     return {
         writeBrandedLine(kind, detail) {
             // ⚠️ The line is the mark. A console that refuses it has nowhere further to send it,

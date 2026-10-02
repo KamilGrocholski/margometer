@@ -55,7 +55,7 @@ export interface TypeTokens {
      * The window beside the panel. Narrower than the panel because it carries a name and a figure
      * and never a rank or a share, and it is the second thing standing over somebody else's game.
      */
-    standingWidthPixels: number;
+    helperWidthPixels: number;
 }
 
 export const SURFACE = {
@@ -252,7 +252,7 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         markLetterPixels: 7,
         panelWidthPixels: 260,
         tipWidthPixelsMaximum: 250,
-        standingWidthPixels: 210,
+        helperWidthPixels: 210,
     },
     [TYPE_STEP.medium]: {
         fontPixels: 12,
@@ -267,7 +267,7 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         markLetterPixels: 7,
         panelWidthPixels: 274,
         tipWidthPixelsMaximum: 272,
-        standingWidthPixels: 228,
+        helperWidthPixels: 228,
     },
     [TYPE_STEP.large]: {
         fontPixels: 13,
@@ -282,7 +282,7 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         markLetterPixels: 7,
         panelWidthPixels: 306,
         tipWidthPixelsMaximum: 296,
-        standingWidthPixels: 248,
+        helperWidthPixels: 248,
     },
 };
 
@@ -457,7 +457,7 @@ export function getTipHeight(
  * What a card has to stand in: the window, less the air the sheet keeps at either end of it. Null
  * where the page states no height, which is a window nothing here may reason about.
  */
-export function getTipRoom(viewportHeight: number | null): number | null {
+export function getTipHeightAvailable(viewportHeight: number | null): number | null {
     if (viewportHeight === null) return null;
     if (!Number.isFinite(viewportHeight)) return null;
     const room = viewportHeight - 2 * PLACE.insetPixels;
@@ -490,7 +490,7 @@ export function composeStyleSheet(step: TypeStep): string {
     return `${composeFrameRules(tokens)}${composeRegionRules(tokens)}` +
         `${composeOptionsRules(tokens)}` +
         `${composeListRules(tokens)}${composeRowRules(tokens)}${composeUnderListRules()}` +
-        `${composeTipRules(tokens)}${composeStandingRules(tokens)}`;
+        `${composeTipRules(tokens)}${composeHelperRules(tokens)}`;
 }
 
 /**
@@ -859,6 +859,15 @@ function composeUnderListRules(): string {
     return `.${CLASS.pinned}{${shape}}` + `.${CLASS.outside}{${shape}}`;
 }
 
+/**
+ * **It states its own type and its own ink**, because `:host{all:initial}` reaches it and nothing
+ * else does: the tip hangs off the root beside the frame, so `.panel`'s never arrive. Without the
+ * two the card is drawn in the browser's serif at `medium` in black on `raised` — figures nobody
+ * can read, seen in Chrome 152 on 2026-08-29.
+ *
+ * `position:fixed` puts its containing block at the viewport, so the host's `overflow:hidden`
+ * cannot clip it: the host creates none, having no transform, filter or containment.
+ */
 function composeTipRules(tokens: TypeTokens): string {
     // Where a card stands before any window has been moved: against the panel's own corner. It is
     // a distance from the **right** edge, and every placement across is, because a card narrower
@@ -934,15 +943,6 @@ function composeTipTop(): string {
 }
 
 /**
- * **It states its own type and its own ink**, because `:host{all:initial}` reaches it and nothing
- * else does: the tip hangs off the root beside the frame, so `.panel`'s never arrive. Without the
- * two the card is drawn in the browser's serif at `medium` in black on `raised` — figures nobody
- * can read, seen in Chrome 152 on 2026-08-29.
- *
- * `position:fixed` puts its containing block at the viewport, so the host's `overflow:hidden`
- * cannot clip it: the host creates none, having no transform, filter or containment.
- */
-/**
  * The caveat mark, **drawn and not spelled**, in the one rule both places it stands read from.
  *
  * ⚠️ **No font can be relied on for this shape.** Measured in Chrome 152 on 2026-09-15: `ⓘ` comes
@@ -979,17 +979,17 @@ function composeCaveatMarkRule(tokens: TypeTokens): string {
  * the tree order, so a window laid out any other way could cover a control of the panel's and
  * take its press. The layer is stated rather than left to chance.
  */
-function composeStandingRules(tokens: TypeTokens): string {
+function composeHelperRules(tokens: TypeTokens): string {
     const top =
         `clamp(${PLACE.insetPixels}px,var(${TOP_VARIABLES.helper},${PLACE.insetPixels}px),` +
         `calc(100vh - ${PLACE.insetPixels}px))`;
     const left = `var(${VARIABLE_PREFIX}standing-left,calc(100vw - ${PLACE.insetPixels}px - ` +
         `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px) - ` +
-        `var(${SIZE_VARIABLES.helper.width},${tokens.standingWidthPixels}px) - ` +
+        `var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px) - ` +
         `${SPACE_PIXELS.small}px))`;
     return `.${CLASS.standing}{position:fixed;box-sizing:border-box;` +
         `left:${left};top:${top};z-index:${LAYER.standing};` +
-        `width:var(${SIZE_VARIABLES.helper.width},${tokens.standingWidthPixels}px);` +
+        `width:var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px);` +
         `display:flex;flex-direction:column;` +
         `max-height:calc(100vh - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px);` +
         `font:${composeFontBody(tokens)};` +

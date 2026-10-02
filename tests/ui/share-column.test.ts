@@ -19,9 +19,9 @@ import { parseSharePoints } from "#/tests/share-text.ts";
 import {
     NOTHING_SUSPECT,
     PINNED_STANDING,
-    presentDrill,
-    presentPair,
-    presentPart,
+    presentOpenedLevel,
+    presentPairLevel,
+    presentPartLevel,
     presentScreen,
 } from "#/src/ui/panel-reading.ts";
 import {
@@ -132,7 +132,7 @@ function composeSectionsForScreenRow(
     combatantId: number,
 ): Section[] {
     const { roster, statistics } = fight;
-    const drill = presentDrill(statistics, roster, metric, combatantId);
+    const drill = presentOpenedLevel(statistics, roster, metric, combatantId);
     if (drill === null) return [];
     const found: Section[] = [
         {
@@ -153,7 +153,7 @@ function composeSectionsForScreenRow(
     ];
     for (const other of drill.byOpponent.rows) {
         const at = [combatantId, other.combatantId] as const;
-        const pair = presentPair(statistics, roster, metric, at[0], at[1]);
+        const pair = presentPairLevel(statistics, roster, metric, at[0], at[1]);
         if (pair === null) continue;
         found.push({
             where: `${metric}/pair.parts`,
@@ -173,7 +173,7 @@ function composeSectionsForScreenRow(
         ...drill.byElement.rows.map((one) => ({ kind: OPENED_PART.element, element: one.element })),
     ];
     for (const part of parts) {
-        const held = presentPart(statistics, roster, metric, combatantId, part);
+        const held = presentPartLevel(statistics, roster, metric, combatantId, part);
         if (held === null) continue;
         found.push({
             where: `${metric}/part.byOpponent`,

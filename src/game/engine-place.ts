@@ -15,12 +15,12 @@ import {
     getTextField,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
-import { readPageEngines } from "./engine-battle.ts";
+import { readEngines } from "./engine-battle.ts";
 import type { FightPlace } from "./fight-place.ts";
-import { PAGE_READING, type PageReadFailure, PageReadingAbsent } from "./page-reading.ts";
+import { CLIENT_READING, type ClientReadFailure, ClientReadingAbsent } from "./page-reading.ts";
 
 export interface PlacePort {
-    readPlace(): FightPlace | PageReadFailure;
+    readPlace(): FightPlace | ClientReadFailure;
 }
 
 /**
@@ -36,15 +36,15 @@ const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "name", x: "x", y: "y" };
 
 /** The first spelling of the game that says anything wins: two spellings are one game. */
-export function initPagePlace(page: unknown): PlacePort {
+export function initEnginePlace(page: unknown): PlacePort {
     return {
         readPlace() {
-            const read = errors.attempt(() => readPageEngines(page).map(readEnginePlace));
+            const read = errors.attempt(() => readEngines(page).map(readEnginePlace));
             if (read instanceof Error) return read;
             for (const place of read) {
                 if (place !== null) return place;
             }
-            return new PageReadingAbsent(PAGE_READING.place);
+            return new ClientReadingAbsent(CLIENT_READING.place);
         },
     };
 }
@@ -58,8 +58,8 @@ function readEnginePlace(engine: UnknownRecord): FightPlace | null {
         const name = getStatedTextField(map, PLACE_FIELDS, "mapName");
         if (!(name instanceof Error)) mapName = name;
     }
-    const x = hero === null ? null : readCoordinate(hero, "x");
-    const y = hero === null ? null : readCoordinate(hero, "y");
+    const x = hero === null ? null : readHeroCoordinate(hero, "x");
+    const y = hero === null ? null : readHeroCoordinate(hero, "y");
     if (mapName !== null) return { mapName, x, y };
     if (x !== null) return { mapName, x, y };
     if (y === null) return null;
@@ -76,7 +76,7 @@ function readEngineData(engine: UnknownRecord, field: EngineField): UnknownRecor
 }
 
 /** Either spelling, because the client itself does arithmetic on one and compares the other. */
-function readCoordinate(hero: UnknownRecord, field: "x" | "y"): number | null {
+function readHeroCoordinate(hero: UnknownRecord, field: "x" | "y"): number | null {
     const text = getTextField(hero, PLACE_FIELDS, field);
     if (!(text instanceof Error)) {
         if (text !== null) return parseInteger(text);

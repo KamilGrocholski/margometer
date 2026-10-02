@@ -12,27 +12,31 @@ import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { indexAuraTurnsBySkillId, indexShoutsBySkillId } from "#/src/core/aura-standing.ts";
-import { indexWitnessedKeyByBit } from "#/src/core/carried-figure.ts";
+import { indexKeyByStatusBit } from "#/src/core/carried-figure.ts";
 import { indexBlowsGrantedBySkillId } from "#/src/core/fight-decoder.ts";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
-import { initMemoryStore, initPageStore, type PageStorage } from "#/src/game/browser-store.ts";
-import { initPageEngine } from "#/src/game/engine-battle.ts";
-import { initPageHero } from "#/src/game/engine-hero.ts";
-import { initPagePlace } from "#/src/game/engine-place.ts";
-import { initPageTooltip } from "#/src/game/engine-tooltip.ts";
-import { initPageBuild, SCRIPTS_MAXIMUM } from "#/src/game/game-build.ts";
-import { initPageDictionary } from "#/src/game/game-dictionary.ts";
 import {
-    initPageClock,
-    initPageFrames,
-    initPageInterval,
-    type PageDate,
-    type PageFrames,
-    type PageTimers,
+    type BrowserStorage,
+    initBrowserStore,
+    initMemoryStore,
+} from "#/src/game/browser-store.ts";
+import { initEngineBattle } from "#/src/game/engine-battle.ts";
+import { initEngineHero } from "#/src/game/engine-hero.ts";
+import { initEnginePlace } from "#/src/game/engine-place.ts";
+import { initEngineTooltip } from "#/src/game/engine-tooltip.ts";
+import { initClientBuild, SCRIPTS_MAXIMUM } from "#/src/game/game-build.ts";
+import { initClientDictionary } from "#/src/game/game-dictionary.ts";
+import {
+    type BrowserDate,
+    type BrowserFrames,
+    type BrowserTimers,
+    initBrowserClock,
+    initBrowserFrames,
+    initBrowserInterval,
 } from "#/src/game/page-time.ts";
-import { initPageConsole, type PageConsole } from "#/src/game/page-console.ts";
-import { type DownloadAnchor, initPageFile } from "#/src/game/page-file.ts";
-import { initPageSurroundings } from "#/src/game/page-surroundings.ts";
+import { type BrowserConsole, initBrowserConsole } from "#/src/game/page-console.ts";
+import { type DownloadAnchor, initBrowserFile } from "#/src/game/page-file.ts";
+import { initBrowserSurroundings } from "#/src/game/page-surroundings.ts";
 import {
     initRuntime,
     type Runtime,
@@ -73,16 +77,16 @@ export type BootFailure = WindowUnusable | errors.Caught;
  * there and callable is all `isUserscriptWindow` says: a signature is not `typeof`'s to give, and
  * a member of the wrong shape is answered for by the boundary that calls it (`develop ADR 0051`).
  */
-export interface UserscriptWindow extends PageTimers, PageFrames {
+export interface UserscriptWindow extends BrowserTimers, BrowserFrames {
     document: UserscriptDocument;
-    console: PageConsole;
-    Date: PageDate;
+    console: BrowserConsole;
+    Date: BrowserDate;
     URL: { createObjectURL(blob: unknown): string; revokeObjectURL(url: string): void };
     Blob: new (parts: readonly string[], options: { type: string }) => unknown;
     setTimeout(step: () => void, afterMilliseconds: number): number;
     /** Both optional: a private window or a third-party-storage rule is a page with neither. */
-    localStorage?: PageStorage | undefined;
-    sessionStorage?: PageStorage | undefined;
+    localStorage?: BrowserStorage | undefined;
+    sessionStorage?: BrowserStorage | undefined;
     innerWidth?: number | undefined;
     innerHeight?: number | undefined;
 }
@@ -100,7 +104,7 @@ const ANCHOR_TAG = "a";
 export function startMargoMeter(page: unknown): Runtime | null {
     // Read the page's window into ports, and start the runtime on them.
     const started = errors.attempt((): Runtime | null => {
-        const read = errors.attempt(() => readUserscriptWindow(page));
+        const read = errors.attempt(() => readRuntimePorts(page));
         if (read instanceof Error) {
             writeStoodDownLine(page, read);
             return null;
@@ -122,7 +126,7 @@ export function startMargoMeter(page: unknown): Runtime | null {
  */
 function writeStoodDownLine(page: unknown, failure: BootFailure): void {
     // Read the page's own console, or null where it has none.
-    const console = errors.attempt((): PageConsole | null => {
+    const console = errors.attempt((): BrowserConsole | null => {
         if (!isRecord(page)) return null;
         const held = page.console;
         if (!isRecord(held)) return null;
@@ -132,27 +136,27 @@ function writeStoodDownLine(page: unknown, failure: BootFailure): void {
     });
     if (console instanceof Error) return;
     if (console === null) return;
-    initPageConsole(console).writeBrandedLine(failure.name, failure);
+    initBrowserConsole(console).writeBrandedLine(failure.name, failure);
 }
 
 /**
  * The page as the ports the runtime is handed. Reading a member of a page is a call into it, since
  * a getter is the page's own code, so the caller holds this under `errors.attempt`.
  */
-export function readUserscriptWindow(page: unknown): RuntimePorts | WindowUnusable {
+export function readRuntimePorts(page: unknown): RuntimePorts | WindowUnusable {
     if (!isRecord(page)) return new WindowUnusable(WINDOW_PART.window);
     if (!isUserscriptWindow(page)) {
         return new WindowUnusable(lookupWindowPartMissing(page) ?? WINDOW_PART.window);
     }
     return {
-        clock: initPageClock(page.Date),
-        frames: initPageFrames(page),
-        interval: initPageInterval(page),
-        engine: initPageEngine(page),
-        place: initPagePlace(page),
-        hero: initPageHero(page),
-        dictionary: initPageDictionary(page),
-        build: initPageBuild({
+        clock: initBrowserClock(page.Date),
+        frames: initBrowserFrames(page),
+        interval: initBrowserInterval(page),
+        engine: initEngineBattle(page),
+        place: initEnginePlace(page),
+        hero: initEngineHero(page),
+        dictionary: initClientDictionary(page),
+        build: initClientBuild({
             // Read every script's source the page states, up to the bound the build's reader walks.
             readScriptSources: () => {
                 const scripts = page.document.querySelectorAll(SCRIPT_WITH_SOURCE);
@@ -162,19 +166,19 @@ export function readUserscriptWindow(page: unknown): RuntimePorts | WindowUnusab
                 return sources;
             },
         }),
-        surroundings: initPageSurroundings(page),
-        tooltip: initPageTooltip(page),
-        settings: initPageStore(readPageStorage(page, STORAGE_CHOICE.local)),
+        surroundings: initBrowserSurroundings(page),
+        tooltip: initEngineTooltip(page),
+        settings: initBrowserStore(readBrowserStorage(page, STORAGE_CHOICE.local)),
         // The store the reader asked for, or the one that forgets: a reader who chose to keep
         // fights on a browser that lends no store is better served by a panel that forgets between
         // pages than by one that keeps their fights somewhere they did not choose.
         initShelfStore: (choice) => {
             if (choice === STORAGE_CHOICE.memory) return initMemoryStore();
-            const storage = readPageStorage(page, choice);
+            const storage = readBrowserStorage(page, choice);
             if (storage === null) return initMemoryStore();
-            return initPageStore(storage);
+            return initBrowserStore(storage);
         },
-        file: initPageFile({
+        file: initBrowserFile({
             createObjectURL: (blob) => page.URL.createObjectURL(blob),
             revokeObjectURL: (url) => page.URL.revokeObjectURL(url),
             createBlob: (text, type) => new page.Blob([text], { type }),
@@ -182,7 +186,7 @@ export function readUserscriptWindow(page: unknown): RuntimePorts | WindowUnusab
             appendAnchor: (anchor) => page.document.body.append(anchor),
             setTimeout: (step, afterMilliseconds) => void page.setTimeout(step, afterMilliseconds),
         }),
-        console: initPageConsole(page.console),
+        console: initBrowserConsole(page.console),
         document: page.document,
         mountPanel: (panel) => errors.attempt(() => page.document.body.append(panel)),
         // Read the viewport: a page stating one size and not the other states none, as does one
@@ -207,7 +211,7 @@ function isUserscriptWindow(page: UnknownRecord): page is UnknownRecord & Usersc
 
 /** The first part a page lacks, or null where it states every one the add-on calls. */
 function lookupWindowPartMissing(page: UnknownRecord): WindowPart | null {
-    if (!isDocumentOfAPage(page.document)) return WINDOW_PART.document;
+    if (!isUserscriptDocument(page.document)) return WINDOW_PART.document;
     if (!isCallableOn(page.console, "error")) return WINDOW_PART.console;
     if (typeof page.setInterval !== "function") return WINDOW_PART.timers;
     if (typeof page.clearInterval !== "function") return WINDOW_PART.timers;
@@ -220,7 +224,7 @@ function lookupWindowPartMissing(page: UnknownRecord): WindowPart | null {
     return null;
 }
 
-function isDocumentOfAPage(value: unknown): boolean {
+function isUserscriptDocument(value: unknown): boolean {
     if (!isRecord(value)) return false;
     if (typeof value.createElement !== "function") return false;
     if (typeof value.querySelectorAll !== "function") return false;
@@ -230,7 +234,7 @@ function isDocumentOfAPage(value: unknown): boolean {
 /**
  * ⚠️ **A class is not a record.** `typeof` answers `function` of `URL`, `Blob` and `Date`, so
  * `isRecord` refuses all three: they are asked for by `typeof`, and their members not at all. A
- * missing `URL.createObjectURL` costs the file, which `initPageFile` answers for.
+ * missing `URL.createObjectURL` costs the file, which `initBrowserFile` answers for.
  */
 function isCallableOn(held: unknown, name: string): boolean {
     if (!isRecord(held)) return false;
@@ -241,7 +245,7 @@ function isCallableOn(held: unknown, name: string): boolean {
  * The store a browser lends under that name, or null. Reaching the property is itself a read that
  * can throw: a browser forbidding storage throws on the access, before there is a `getItem`.
  */
-function readPageStorage(page: UserscriptWindow, choice: StorageChoice): PageStorage | null {
+function readBrowserStorage(page: UserscriptWindow, choice: StorageChoice): BrowserStorage | null {
     const read = errors.attempt(() => {
         if (choice === STORAGE_CHOICE.session) return page.sessionStorage;
         return page.localStorage;
@@ -265,7 +269,7 @@ export function composeRuntimeTables(): RuntimeTables {
                 turnsBySkillId: indexAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
                 shoutsBySkillId: indexShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
             },
-            witnessedKeyByBit: indexWitnessedKeyByBit(FROZEN_BUFF_BITS.bits),
+            witnessedKeyByBit: indexKeyByStatusBit(FROZEN_BUFF_BITS.bits),
             statusBits: FROZEN_BUFF_BITS.bits,
         },
     };

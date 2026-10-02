@@ -11,7 +11,7 @@ import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import * as errors from "#/libs/errors.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
-import { parseGameBuild, parseGameBundleName } from "#/src/game/game-build.ts";
+import { parseBuildId, parseGameBundleName } from "#/src/game/game-build.ts";
 import { GameSourceError, GameUnreachableError } from "./margometer-tool-error.ts";
 
 export const GAME_CHANNEL = { production: "production", development: "development" } as const;
@@ -52,7 +52,7 @@ export function requireGameChannel(value: string): GameChannel {
  * `__build` a world states beside it names what every world shares, not this bundle (2026-08-25).
  */
 export function requirePageBuild(html: string): string {
-    const build = parseGameBuild(html);
+    const build = parseBuildId(html);
     if (build === null) throw new GameSourceError("no build id on the page — the layout changed");
     assert(!build.includes("/"), "a build is an id rather than a path");
     return build;

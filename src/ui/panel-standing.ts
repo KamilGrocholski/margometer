@@ -17,7 +17,7 @@ import {
 import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import type { TurnStatement } from "#/src/core/fight-session.ts";
 import { type Colour, lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
-import { getPartOfSide, type PanelSidePart } from "./panel-reading.ts";
+import { getSideRelation, type SideRelation } from "./panel-reading.ts";
 import { PANEL_WORDS } from "./panel-words.ts";
 
 /**
@@ -29,7 +29,7 @@ export interface StandingProvoked {
     provokedId: number;
     name: string;
     colour: Colour;
-    sidePart: PanelSidePart;
+    sideRelation: SideRelation;
     turnsElapsed: number;
     turnsStated: number;
 }
@@ -49,7 +49,7 @@ export interface StandingProvocation {
     skillId: number;
     skillName: string;
     casterColour: Colour;
-    casterSidePart: PanelSidePart;
+    casterSidePart: SideRelation;
     provoked: StandingProvoked[];
 }
 
@@ -70,7 +70,7 @@ export interface StandingChargedSkill {
     turnsStated: number;
     state: ChargedSkillState;
     colour: Colour;
-    sidePart: PanelSidePart;
+    sideRelation: SideRelation;
 }
 
 /**
@@ -90,12 +90,12 @@ export type StandingTurnState = VocabularyWord<typeof STANDING_TURN_STATE>;
  * panel but none is going on, or one arrived and its reading would not compose. Never "no fight
  * yet" for the last two, which the panel beside it would contradict.
  */
-export const STANDING_ABSENCE = {
+export const HELPER_ABSENCE = {
     noFightYet: "noFightYet",
     betweenFights: "betweenFights",
     fightUnread: "fightUnread",
 } as const;
-export type StandingAbsence = VocabularyWord<typeof STANDING_ABSENCE>;
+export type HelperAbsence = VocabularyWord<typeof HELPER_ABSENCE>;
 
 /** What the fight says about the turn in hand, which is more than the statement itself. */
 export interface StandingTurn {
@@ -108,10 +108,10 @@ export interface StandingTurn {
 export interface StandingHolder {
     name: string;
     colour: Colour;
-    sidePart: PanelSidePart;
+    sideRelation: SideRelation;
 }
 
-export interface StandingReading {
+export interface HelperReading {
     turnState: StandingTurnState;
     turnOrdinal: number | null;
     /** Null where the payload numbered a turn for nobody the roster holds. */
@@ -139,13 +139,13 @@ export const PROVOKED_MAXIMUM = COMBATANTS_MAXIMUM;
  */
 const CHARGED_ROWS_MAXIMUM = 4;
 
-export function presentStanding(
+export function presentHelper(
     provocations: readonly ProvocationStanding[],
     chargedSkills: readonly ChargedSkillStanding[],
     roster: CombatantRoster,
     readerSide: number | null,
     turn: StandingTurn,
-): StandingReading {
+): HelperReading {
     // Clamped before the fold, so the whole section stays inside the one stated bound and the
     // groups are bounded by what is left of it (**S11**).
     const held = provocations.slice(0, PROVOKED_MAXIMUM);
@@ -157,7 +157,7 @@ export function presentStanding(
         holder: holder === undefined ? null : {
             name: holder.name,
             colour: lookupColourForProfession(holder.profession),
-            sidePart: getPartOfSide(holder.side, readerSide),
+            sideRelation: getSideRelation(holder.side, readerSide),
         },
         provoked: presentStandingProvocations(held, roster, readerSide),
         chargedSkills: presentStandingChargedSkills(chargedSkills, roster, readerSide),
@@ -216,7 +216,7 @@ function presentStandingProvocations(
             skillId: standing.skillId,
             skillName: standing.skillName,
             casterColour: lookupColourForProfession(caster?.profession ?? null),
-            casterSidePart: getPartOfSide(caster?.side ?? null, readerSide),
+            casterSidePart: getSideRelation(caster?.side ?? null, readerSide),
             provoked: [],
         };
         held.provoked.push(presentStandingProvoked(standing, roster, readerSide));
@@ -236,7 +236,7 @@ function presentStandingProvoked(
         provokedId: standing.provokedId,
         name: provoked?.name ?? PANEL_WORDS.withoutTarget,
         colour: lookupColourForProfession(provoked?.profession ?? null),
-        sidePart: getPartOfSide(provoked?.side ?? null, readerSide),
+        sideRelation: getSideRelation(provoked?.side ?? null, readerSide),
         turnsElapsed: standing.turnsElapsed,
         turnsStated: standing.turnsStated,
     };
@@ -270,7 +270,7 @@ function presentStandingChargedSkill(
         turnsStated: standing.turnsStated,
         state: standing.state,
         colour: getColourForCharge(standing.state, combatant?.profession ?? null),
-        sidePart: getPartOfSide(combatant?.side ?? null, readerSide),
+        sideRelation: getSideRelation(combatant?.side ?? null, readerSide),
     };
 }
 

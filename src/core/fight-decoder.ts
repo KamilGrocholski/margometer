@@ -34,9 +34,9 @@ import { encodeHealthPercent, parseHealthPercent } from "./protocol-number.ts";
 import {
     APPLIED_SIGN,
     DAMAGE_HALF,
-    getKeyReading,
     KEY_FAMILY,
     type KeyReading,
+    lookupKeyReading,
     NAME_SEPARATOR,
     RAW_SIGN,
     SKILL_ID_KEY,
@@ -139,7 +139,7 @@ interface MessageReading {
     unreadKeys: string[];
 }
 
-export interface MessageSide {
+export interface StatedEnd {
     readonly combatantId: number;
     readonly healthPercent: number | null;
 }
@@ -151,8 +151,8 @@ export interface MessageParameter {
 }
 
 export interface ProtocolMessage {
-    readonly actor: MessageSide | null;
-    readonly target: MessageSide | null;
+    readonly actor: StatedEnd | null;
+    readonly target: StatedEnd | null;
     readonly parameters: readonly MessageParameter[];
 }
 
@@ -171,8 +171,8 @@ export class SegmentsExceeded extends Error {
     }
 }
 
-export class SideUnreadable extends Error {
-    override readonly name = "SideUnreadable";
+export class EndUnreadable extends Error {
+    override readonly name = "EndUnreadable";
     readonly end: MessageEnd;
 
     constructor(end: MessageEnd) {
@@ -191,7 +191,7 @@ export class ParameterKeyEmpty extends Error {
     }
 }
 
-export type GrammarRefusal = SegmentsExceeded | SideUnreadable | ParameterKeyEmpty;
+export type GrammarRefusal = SegmentsExceeded | EndUnreadable | ParameterKeyEmpty;
 
 /**
  * ⚠️ **One payload can carry a whole fight**: a fight joined underway delivers its log in the
@@ -271,7 +271,7 @@ export function decodePayloadMessages(
     for (const text of texts) {
         const decoded = decodeMessage(text, { ...context, standing });
         if (decoded instanceof Error) {
-            events.push(...decoded.events, decodePayloadMessagesUnknown(decoded));
+            events.push(...decoded.events, decodeUnknownMessageEvent(decoded));
             unread.push(decoded);
         } else {
             events.push(...decoded.events);
@@ -283,7 +283,7 @@ export function decodePayloadMessages(
     return { events, unread, standing };
 }
 
-function decodePayloadMessagesUnknown(unread: UnreadMessage): UnknownMessageEvent {
+function decodeUnknownMessageEvent(unread: UnreadMessage): UnknownMessageEvent {
     assert(unread.keys.length <= unread.text.length, "an unread key is part of its message");
     assert(unread.combatantIds.length <= ENDS_MAXIMUM, "a message names at most two ends");
     return {
@@ -313,11 +313,11 @@ export function decodeMessage(
     }
     const reading = decodeMessageReading(message);
     const isBlow = hasAttackFigure(reading);
-    const own = getAnnouncedSkill(message, reading.skill);
+    const own = decodeAnnouncedSkill(message, reading.skill);
     const announced = lookupAnnouncedForMessage(message, own, context.standing, isBlow);
     if (!isBlow) reading.unreadKeys.push(...reading.procs);
     const events = decodeMessageEvents(message, reading, announced, context.roster, isBlow);
-    const standing = composeStandingAfterMessage(context, events, own);
+    const standing = composeAnnouncementStanding(context, events, own);
     assert(events.length <= message.parameters.length, "a message stays inside its bound");
     if (reading.unreadKeys.length > 0) {
         const combatantIds = getNamedCombatantIds(message);
@@ -338,7 +338,7 @@ export function decodeMessage(
  * not the announcer's own blow**: a message that decoded no blow ends it, and so does another
  * combatant's.
  */
-function composeStandingAfterMessage(
+function composeAnnouncementStanding(
     context: DecodeContext,
     events: readonly BattleEvent[],
     announced: AnnouncedSkill | null,
@@ -395,7 +395,7 @@ function decodeMessageReading(message: ProtocolMessage): MessageReading {
     };
     for (const parameter of message.parameters) {
         const key = parameter.key;
-        const keyReading = getKeyReading(key);
+        const keyReading = lookupKeyReading(key);
         const value = parameter.value;
         let isRead: boolean;
         if (keyReading === null) isRead = false;
@@ -404,13 +404,13 @@ function decodeMessageReading(message: ProtocolMessage): MessageReading {
             assert(key.length > 0, "a key is never empty");
             switch (keyReading.kind) {
                 case KEY_FAMILY.proc:
-                    isRead = addDecoded(reading.procs, key);
+                    isRead = addParameterRead(reading.procs, key);
                     break;
                 case KEY_FAMILY.fled:
-                    isRead = addDecoded(reading.outcomes, decodeFledOutcome());
+                    isRead = addParameterRead(reading.outcomes, decodeFledOutcome());
                     break;
                 case KEY_FAMILY.valuelessDeclaration:
-                    isRead = addDecoded(reading.declared, {
+                    isRead = addParameterRead(reading.declared, {
                         effect: key,
                         amount: null,
                         text: null,
@@ -433,7 +433,7 @@ function decodeMessageReading(message: ProtocolMessage): MessageReading {
             reading.skillKeys -= 1;
         }
     }
-    const read = tallyParametersRead(reading);
+    const read = countParametersRead(reading);
     assert(read === message.parameters.length, "every parameter is read or named unread, once");
     return reading;
 }
@@ -459,7 +459,7 @@ function addValuedKey(
             if (amount === null) return false;
             if (amount < 0) return false;
             assert(Number.isSafeInteger(amount), "a figure read from digits is held exactly");
-            const token = getTokenFromKey(key);
+            const token = parseKeyToken(key);
             if (keyReading.kind === KEY_FAMILY.prevented) {
                 reading.prevented.push({ defence: token, amount });
             } else if (keyReading.kind === KEY_FAMILY.destroyed) {
@@ -470,12 +470,15 @@ function addValuedKey(
             return true;
         }
         case KEY_FAMILY.proc:
-            if (keyReading.doesTakeValue) return addDecoded(reading.procs, key);
+            if (keyReading.doesTakeValue) return addParameterRead(reading.procs, key);
             return false;
         case KEY_FAMILY.healthChange:
-            return addDecoded(reading.healthChanges, decodeHealthChange(key, value, keyReading));
+            return addParameterRead(
+                reading.healthChanges,
+                decodeHealthChange(key, value, keyReading),
+            );
         case KEY_FAMILY.declaration:
-            return addDecoded(reading.declared, {
+            return addParameterRead(reading.declared, {
                 effect: key,
                 amount: parseInteger(value),
                 text: value,
@@ -503,21 +506,21 @@ function addValuedKey(
             reading.skillKeys += 1;
             return true;
         case KEY_FAMILY.outcome:
-            return addDecoded(reading.outcomes, decodeFightOutcome(value, keyReading.result));
+            return addParameterRead(reading.outcomes, decodeFightOutcome(value, keyReading.result));
         case KEY_FAMILY.fled:
-            return addDecoded(reading.outcomes, decodeFledOutcome());
+            return addParameterRead(reading.outcomes, decodeFledOutcome());
         case KEY_FAMILY.unaccountedHealth:
-            return addDecoded(reading.unaccounted, decodeUnaccountedShare(key, value));
+            return addParameterRead(reading.unaccounted, decodeUnaccountedShare(key, value));
         case KEY_FAMILY.namedDamage:
-            return addDecoded(reading.namedDamage, decodeNamedDamage(value));
+            return addParameterRead(reading.namedDamage, decodeNamedDamage(value));
         case KEY_FAMILY.namedHealing:
-            return addDecoded(reading.namedHealing, decodeNamedHealing(key, value));
+            return addParameterRead(reading.namedHealing, decodeNamedHealing(key, value));
         case KEY_FAMILY.valuelessDeclaration:
             return false;
     }
 }
 
-function addDecoded<Decoded>(found: Decoded[], decoded: Decoded | null): boolean {
+function addParameterRead<Decoded>(found: Decoded[], decoded: Decoded | null): boolean {
     if (decoded === null) return false;
     const count = found.push(decoded);
     assert(count > 0, "what was decoded is held");
@@ -533,7 +536,7 @@ function decodeFledOutcome(): FightOutcomeEvent {
 }
 
 /** The client's own token: the key with its sign taken off. */
-function getTokenFromKey(key: string): string {
+function parseKeyToken(key: string): string {
     let token: string;
     if (key.startsWith(RAW_SIGN)) token = key.slice(RAW_SIGN.length);
     else {
@@ -647,7 +650,7 @@ function decodeNamedHealing(
     return { ...named, amount, source: key };
 }
 
-function tallyParametersRead(reading: MessageReading): number {
+function countParametersRead(reading: MessageReading): number {
     return reading.raw.length + reading.applied.length + reading.prevented.length +
         reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
         reading.namedDamage.length + reading.namedHealing.length + reading.unaccounted.length +
@@ -686,7 +689,7 @@ function lookupAnnouncedForMessage(
     return null;
 }
 
-function getAnnouncedSkill(
+function decodeAnnouncedSkill(
     message: ProtocolMessage,
     skill: AnnouncementReading | null,
 ): AnnouncedSkill | null {
@@ -728,7 +731,7 @@ function decodeMessageEvents(
             kind: BATTLE_EVENT.damageToNamedCombatant,
             actorId: message.actor?.combatantId ?? null,
             targetName: named.targetName,
-            targetId: lookupNamedId(roster, named.targetName),
+            targetId: lookupNamedCombatantId(roster, named.targetName),
             targetHealthPercent: named.targetHealthPercent,
             damage: named.damage,
             announced,
@@ -750,7 +753,7 @@ function decodeMessageEvents(
         events.push({
             kind: BATTLE_EVENT.healingToNamedCombatant,
             targetName: restored.targetName,
-            targetId: lookupNamedId(roster, restored.targetName),
+            targetId: lookupNamedCombatantId(roster, restored.targetName),
             targetHealthPercent: restored.targetHealthPercent,
             amount: restored.amount,
             source: restored.source,
@@ -787,7 +790,7 @@ function decodeAttackEvent(
     };
 }
 
-function lookupNamedId(roster: CombatantRoster | null, name: string): number | null {
+function lookupNamedCombatantId(roster: CombatantRoster | null, name: string): number | null {
     if (roster === null) return null;
     return lookupCombatantIdByName(roster, name);
 }
@@ -890,10 +893,10 @@ export function parseProtocolMessage(text: string): ProtocolMessage | GrammarRef
     if (segments instanceof Error) return segments;
     const [actorSegment, targetSegment] = segments;
     assert(actorSegment !== undefined, "text always splits into at least one segment");
-    const actor = parseProtocolMessageSide(actorSegment, MESSAGE_END.actor);
+    const actor = parseProtocolMessageEnd(actorSegment, MESSAGE_END.actor);
     if (actor instanceof Error) return actor;
-    if (targetSegment === undefined) return new SideUnreadable(MESSAGE_END.target);
-    const target = parseProtocolMessageSide(targetSegment, MESSAGE_END.target);
+    if (targetSegment === undefined) return new EndUnreadable(MESSAGE_END.target);
+    const target = parseProtocolMessageEnd(targetSegment, MESSAGE_END.target);
     if (target instanceof Error) return target;
 
     const parameters: MessageParameter[] = [];
@@ -922,13 +925,13 @@ function parseProtocolMessageSegments(text: string): string[] | SegmentsExceeded
         segments.push(text.slice(from, separator));
         from = separator + SEGMENT_SEPARATOR.length;
     }
-    const count = parseProtocolMessageSegmentsCount(text, from);
+    const count = countProtocolMessageSegments(text, from);
     assert(count > SEGMENTS_MAXIMUM, "a message refused for its length is past the bound");
     return new SegmentsExceeded(count, SEGMENTS_MAXIMUM);
 }
 
 /** Counts without allocating: the walk is bounded by the text, one separator per step. */
-function parseProtocolMessageSegmentsCount(text: string, from: number): number {
+function countProtocolMessageSegments(text: string, from: number): number {
     assert(from <= text.length, "the count resumes inside the text");
     let count = SEGMENTS_MAXIMUM + 1;
     let at = text.indexOf(SEGMENT_SEPARATOR, from);
@@ -945,19 +948,19 @@ function parseProtocolMessageSegmentsCount(text: string, from: number): number {
  * Shape and magnitude are one refusal: an id past 2^53 read as its nearest neighbour would charge
  * damage to a combatant who does not exist.
  */
-function parseProtocolMessageSide(
+function parseProtocolMessageEnd(
     segment: string,
     end: MessageEnd,
-): MessageSide | null | SideUnreadable {
+): StatedEnd | null | EndUnreadable {
     if (segment === NO_COMBATANT) return null;
     const separator = segment.indexOf(VALUE_SEPARATOR);
     const idText = separator === -1 ? segment : segment.slice(0, separator);
     const combatantId = parseInteger(idText);
-    if (combatantId === null) return new SideUnreadable(end);
+    if (combatantId === null) return new EndUnreadable(end);
     assert(Number.isSafeInteger(combatantId), "an id read is one held exactly");
     if (separator === -1) return { combatantId, healthPercent: null };
     const healthPercent = parseHealthPercent(segment.slice(separator + 1));
-    if (healthPercent === null) return new SideUnreadable(end);
+    if (healthPercent === null) return new EndUnreadable(end);
     assert(healthPercent >= 0, "a percentage the grammar accepted is never below nothing");
     return { combatantId, healthPercent };
 }
@@ -972,8 +975,8 @@ export function encodeProtocolMessage(message: ProtocolMessage): string {
         "a message written is one the grammar would read",
     );
     const segments = [
-        encodeProtocolMessageSide(message.actor),
-        encodeProtocolMessageSide(message.target),
+        encodeProtocolMessageEnd(message.actor),
+        encodeProtocolMessageEnd(message.target),
     ];
     for (const parameter of message.parameters) {
         assert(parameter.key.length > 0, "every parameter written names its key");
@@ -985,7 +988,7 @@ export function encodeProtocolMessage(message: ProtocolMessage): string {
     return segments.join(SEGMENT_SEPARATOR);
 }
 
-function encodeProtocolMessageSide(side: MessageSide | null): string {
+function encodeProtocolMessageEnd(side: StatedEnd | null): string {
     if (side === null) return NO_COMBATANT;
     const idText = formatInteger(side.combatantId);
     if (side.healthPercent === null) {

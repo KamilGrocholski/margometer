@@ -16,7 +16,7 @@ import { HEALTH_PERCENT_PLACES } from "./protocol-number.ts";
 /** What each combatant held when the fight began. Missing where nothing ever stated them. */
 export type FightEntryHealth = ReadonlyMap<number, number>;
 
-export interface TeamHeal {
+export interface SideHeal {
     casterId: number;
     source: string;
     declaredShare: number;
@@ -35,7 +35,7 @@ const ENDS_MAXIMUM = 2;
  * How far a health read from a two-place percentage can be off. The guards measuring the corpus
  * against it read the band from here, so `HEALTH_PERCENT_PLACES` is spelled once.
  */
-export function deriveHealthTolerance(healthMaximum: number): number {
+export function composeHealthTolerance(healthMaximum: number): number {
     assert(Number.isFinite(healthMaximum), "a maximum to measure against is a number");
     assert(healthMaximum >= 0, "a maximum is never below nothing");
     const places = DECIMAL_BASE ** HEALTH_PERCENT_PLACES;
@@ -58,7 +58,7 @@ export function composeHealthFromPercent(
 }
 
 /** Where an event says a combatant stands, as `[combatantId, percent]`: one reading for all. */
-export function getStatedHealthsFromEvent(event: BattleEvent): [number, number][] {
+export function getHealthPercentsFromEvent(event: BattleEvent): [number, number][] {
     const stated: [number, number][] = [];
     const add = (combatantId: number | null, percent: number | null): void => {
         if (combatantId === null) return;
@@ -96,7 +96,7 @@ export function indexFightEntryHealth(
     assert(roster.byId.size <= COMBATANTS_MAXIMUM, "a roster stays inside its stated bound");
     const entered = new Map<number, number>();
     for (const event of events) {
-        for (const [combatantId, percent] of getStatedHealthsFromEvent(event)) {
+        for (const [combatantId, percent] of getHealthPercentsFromEvent(event)) {
             if (entered.has(combatantId)) continue;
             const maximum = roster.byId.get(combatantId)?.healthMaximum ?? null;
             const health = composeHealthFromPercent(percent, maximum);
@@ -115,16 +115,16 @@ export function indexFightEntryHealth(
  * a side a reducer reached: the help scopes that reduction and the protocol never states the figure
  * it left, so a cast there is refused whole rather than reported short.
  */
-export function indexTeamHeals(
+export function indexSideHeals(
     events: readonly BattleEvent[],
     roster: CombatantRoster,
-): ReadonlyMap<BattleEvent, TeamHeal> {
+): ReadonlyMap<BattleEvent, SideHeal> {
     const entered = indexFightEntryHealth(events, roster);
     const reduced = indexReducedSides(events, roster);
     const held = new Map<number, number>();
-    const heals = new Map<BattleEvent, TeamHeal>();
+    const heals = new Map<BattleEvent, SideHeal>();
     for (const event of events) {
-        const heal = composeTeamHeal(event, roster, entered, held);
+        const heal = composeSideHeal(event, roster, entered, held);
         if (heal !== null) {
             const casterSide = roster.byId.get(heal.casterId)?.side;
             assert(casterSide !== undefined, "a cast is sized only on a side its caster stands on");
@@ -136,7 +136,7 @@ export function indexTeamHeals(
                 }
             }
         }
-        for (const [combatantId, percent] of getStatedHealthsFromEvent(event)) {
+        for (const [combatantId, percent] of getHealthPercentsFromEvent(event)) {
             const maximum = roster.byId.get(combatantId)?.healthMaximum ?? null;
             const health = composeHealthFromPercent(percent, maximum);
             if (health !== null) held.set(combatantId, health);
@@ -167,12 +167,12 @@ function indexReducedSides(events: readonly BattleEvent[], roster: CombatantRost
  * at what they entered the fight with. A member missing any of the three is not sized, and the cast
  * keeps saying so.
  */
-function composeTeamHeal(
+function composeSideHeal(
     event: BattleEvent,
     roster: CombatantRoster,
     entered: FightEntryHealth,
     held: ReadonlyMap<number, number>,
-): TeamHeal | null {
+): SideHeal | null {
     if (event.kind !== BATTLE_EVENT.unaccountedHealth) return null;
     if (event.combatantId === null) return null;
     const casterSide = roster.byId.get(event.combatantId)?.side;

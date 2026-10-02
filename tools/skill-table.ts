@@ -16,7 +16,7 @@ import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import {
     indexAuraTurnsBySkillId,
-    lookupStatedTurns,
+    lookupAuraTurnsStated,
     type SkillEffectTurns,
 } from "#/src/core/aura-standing.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
@@ -308,7 +308,7 @@ export function composeAuraSkills(
 ): AuraSkill[] {
     const found: AuraSkill[] = [];
     for (const skill of skills) {
-        const turns = lookupStatedTurns(skill.effects);
+        const turns = lookupAuraTurnsStated(skill.effects);
         if (turns !== null) found.push({ id: skill.id, turns });
     }
     assertStrictEquals(indexAuraTurnsBySkillId(found).size, found.length, "each is named once");

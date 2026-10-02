@@ -70,7 +70,7 @@ const KEY_BY_BIT_NAME: ReadonlyMap<string, string> = new Map([
 ]);
 
 /** The two bits above at the positions the client registered them. */
-export function indexWitnessedKeyByBit(bits: readonly string[]): Map<number, string> {
+export function indexKeyByStatusBit(bits: readonly string[]): Map<number, string> {
     assert(bits.length <= SOURCES_MAXIMUM, "the client registers a short list of statuses");
     const found = new Map<number, string>();
     for (let bit = 0; bit < bits.length; bit += 1) {
@@ -120,7 +120,7 @@ function lookupCastsOverBearer(
         if (standing.amountByKey.get(key) === undefined) continue;
         const caster = roster.byId.get(standing.casterId);
         if (caster === undefined) continue;
-        if (!doesReachCoverBearer(key, caster.side, bearer.side)) continue;
+        if (!doesKeyReachBearer(key, caster.side, bearer.side)) continue;
         const was = standing.turnsAtCastByCombatantId.get(bearer.combatantId);
         if (was === undefined) continue;
         const turnsElapsed = bearer.turnsTaken - was;
@@ -134,7 +134,7 @@ function lookupCastsOverBearer(
  * The reach is the key's own and never the skill's: one announcement may reach both ways. A key
  * reaches one side, so both sides is the cast's answer and never this one's.
  */
-function doesReachCoverBearer(key: string, casterSide: number, bearerSide: number): boolean {
+function doesKeyReachBearer(key: string, casterSide: number, bearerSide: number): boolean {
     assert(key.length > 0, "a reach is asked of a key");
     assert(Number.isSafeInteger(casterSide), "and between two sides the roster states");
     const reach = lookupKeyReach(key);

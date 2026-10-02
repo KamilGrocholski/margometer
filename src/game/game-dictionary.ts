@@ -7,11 +7,11 @@
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
-import { PAGE_READING, type PageReadFailure, PageReadingAbsent } from "./page-reading.ts";
+import { CLIENT_READING, type ClientReadFailure, ClientReadingAbsent } from "./page-reading.ts";
 
 export interface DictionaryPort {
     /** The category is the client's own filing: an id filed outside `default` needs its name. */
-    readLabel(labelId: string, category?: string): string | PageReadFailure;
+    readLabel(labelId: string, category?: string): string | ClientReadFailure;
 }
 
 /**
@@ -27,7 +27,7 @@ const FULL_STOP = ".";
 /** An entry is a label with at most a hole in it; this is far past any the game states. */
 const ENTRY_LENGTH_MAXIMUM = 4096;
 
-export function initPageDictionary(page: unknown): DictionaryPort {
+export function initClientDictionary(page: unknown): DictionaryPort {
     return {
         readLabel(labelId, category) {
             assert(labelId.length > 0, "an id asked of the client is one the panel named");
@@ -43,14 +43,14 @@ export function initPageDictionary(page: unknown): DictionaryPort {
                 return read;
             });
             if (entry instanceof Error) return entry;
-            if (entry === null) return new PageReadingAbsent(PAGE_READING.label);
+            if (entry === null) return new ClientReadingAbsent(CLIENT_READING.label);
             // An answer past the bound is no label, and the answer is the game's: refused, never
             // asserted against, from inside a card the panel is composing.
             if (entry.length > ENTRY_LENGTH_MAXIMUM) {
-                return new PageReadingAbsent(PAGE_READING.label);
+                return new ClientReadingAbsent(CLIENT_READING.label);
             }
             const label = parseLabel(entry);
-            if (label === null) return new PageReadingAbsent(PAGE_READING.label);
+            if (label === null) return new ClientReadingAbsent(CLIENT_READING.label);
             return label;
         },
     };

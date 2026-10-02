@@ -6,7 +6,7 @@
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
-import { initPageStore, type KeyValueStore, STORE_KEY } from "#/src/game/browser-store.ts";
+import { initBrowserStore, type KeyValueStore, STORE_KEY } from "#/src/game/browser-store.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
 import { initShelfKeeper, type ShelfKeeperOptions } from "#/src/runtime/shelf-keeper.ts";
 import { KEPT_MAXIMUM, type KeptFight } from "#/src/runtime/shelf.ts";
@@ -85,7 +85,7 @@ Deno.test("a store that asks for room takes the newest, and the answer says room
 
 /** A store taking text up to a ceiling, which is the shape a quota answers in. */
 function initCeilingStore(held: Map<string, string>, lengthMaximum: number): KeyValueStore {
-    return initPageStore({
+    return initBrowserStore({
         getItem: (key) => held.get(key) ?? null,
         setItem: (key, value) => {
             if (value.length > lengthMaximum) throw new DOMException("full", "QuotaExceededError");
@@ -134,12 +134,12 @@ Deno.test("a pin toggles, and one the store refuses stands in memory as the read
 Deno.test("a choice moves the fights, then the answer, and empties the old place last", () => {
     const { keeper, getShelf, settings } = initKeeper();
     keeper.keep(composeFight(1));
-    keeper.choose(STORAGE_CHOICE.session);
+    keeper.moveShelf(STORAGE_CHOICE.session);
     assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.session, "the choice is taken");
     assert(getShelf(STORAGE_CHOICE.session).has(STORE_KEY.fights), "the fights moved");
     assert(!getShelf(STORAGE_CHOICE.local).has(STORE_KEY.fights), "and left nothing behind");
     assertStrictEquals(settings.get(STORE_KEY.storage), STORAGE_CHOICE.session, "answered");
-    keeper.choose(STORAGE_CHOICE.session);
+    keeper.moveShelf(STORAGE_CHOICE.session);
     assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.session, "choosing it again is nothing");
     assert(getShelf(STORAGE_CHOICE.session).has(STORE_KEY.fights), "and empties nothing either");
 });
@@ -156,7 +156,7 @@ Deno.test("a fight kept twice under one moment is kept once, and a defect", () =
 Deno.test("a store that took the next fight takes back the answer that it refused one", () => {
     const held = new Map<string, string>();
     let isRefusing = true;
-    const store = initPageStore({
+    const store = initBrowserStore({
         getItem: (key) => held.get(key) ?? null,
         setItem: (key, value) => {
             if (isRefusing) throw new DOMException("full", "QuotaExceededError");
@@ -177,16 +177,20 @@ Deno.test("a reading is held for every fight on the shelf, however many went bef
     for (let at = 1; at <= KEPT_MAXIMUM + 1; at += 1) {
         const fight = composeFight(at);
         keeper.keep(fight);
-        const read = keeper.lookupReading(fight);
+        const read = keeper.lookupKeptReading(fight);
         assert(read !== null, "a fight that reads is read");
-        assertStrictEquals(keeper.lookupReading(fight), read, `fight ${at} is held, not replayed`);
+        assertStrictEquals(
+            keeper.lookupKeptReading(fight),
+            read,
+            `fight ${at} is held, not replayed`,
+        );
     }
 });
 
 Deno.test("a choice the browser will not keep moves nothing, and says so", () => {
     const { keeper, getShelf } = initKeeper({ settings: initRefusingStore() });
     keeper.keep(composeFight(1));
-    keeper.choose(STORAGE_CHOICE.memory);
+    keeper.moveShelf(STORAGE_CHOICE.memory);
     assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.local, "the choice stays as it was");
     assert(getShelf(STORAGE_CHOICE.local).has(STORE_KEY.fights), "and so do the fights");
     assert(keeper.getAnswers().hasChoiceRefused, "which the shelf says outright");
@@ -204,12 +208,16 @@ Deno.test("a kept fight is replayed once, and one that will not replay is marked
     const { keeper, defects } = initKeeper();
     const broken: KeptFight = { ...composeFight(1), payloads: [{ init: 1, m: "not a list" }] };
     keeper.keep(broken);
-    assertStrictEquals(keeper.lookupReading(broken), null, "a fight that will not read is none");
-    assertStrictEquals(keeper.lookupReading(broken), null, "asked again, the same answer");
+    assertStrictEquals(
+        keeper.lookupKeptReading(broken),
+        null,
+        "a fight that will not read is none",
+    );
+    assertStrictEquals(keeper.lookupKeptReading(broken), null, "asked again, the same answer");
     assertStrictEquals(defects.getCounts()[0]?.count, 1, "and marked once, not once per ask");
     const whole = composeFight(2);
     keeper.keep(whole);
-    const read = keeper.lookupReading(whole);
+    const read = keeper.lookupKeptReading(whole);
     assert(read !== null, "a fight that reads is read");
-    assertStrictEquals(keeper.lookupReading(whole), read, "and held rather than read again");
+    assertStrictEquals(keeper.lookupKeptReading(whole), read, "and held rather than read again");
 });

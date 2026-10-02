@@ -20,11 +20,7 @@ import type { KeptFight } from "#/src/runtime/shelf.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import type { ShownScreen } from "#/src/ui/panel-element.ts";
 import { createScreenState, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
-import {
-    STANDING_ABSENCE,
-    type StandingAbsence,
-    type StandingReading,
-} from "#/src/ui/panel-standing.ts";
+import { HELPER_ABSENCE, type HelperAbsence, type HelperReading } from "#/src/ui/panel-standing.ts";
 import { composeFakeDocument } from "#/tests/fake-document.ts";
 import { lookupRecordedFight, replayRecordedFight } from "#/tests/recorded-fights.ts";
 import { RUNTIME_TABLES } from "#/tests/runtime-world.ts";
@@ -78,7 +74,7 @@ Deno.test("a ranking whose two counts disagree is drawn, and said as the screen'
 /** Every part of a frame over one kept fight standing, with a view that keeps what it is handed. */
 function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
     const shown: ShownScreen[] = [];
-    const standings: (StandingReading | StandingAbsence)[] = [];
+    const standings: (HelperReading | HelperAbsence)[] = [];
     const defects = initDefectLedger({ writeBrandedLine: () => {} });
     const parts: FrameParts = {
         screen: createScreenState(false),
@@ -91,10 +87,10 @@ function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
                 hasStoreMadeRoom: false,
                 hasChoiceRefused: false,
             }),
-            lookupReading: () => reading,
+            lookupKeptReading: () => reading,
             keep: () => {},
             pin: () => {},
-            choose: () => {},
+            moveShelf: () => {},
         },
         live: {
             session: createFightSession(SESSION_OPTIONS),
@@ -113,7 +109,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
                 return { undrawn: [] };
             },
             renderWaiting: () => ({ undrawn: [] }),
-            renderStanding: (standing) => {
+            renderHelper: (standing) => {
                 standings.push(standing);
                 return { undrawn: [] };
             },
@@ -153,7 +149,7 @@ Deno.test("the window beside the panel says which reason leaves it nothing live 
     renderFrame(waiting.parts);
     assertEquals(
         waiting.standings,
-        [STANDING_ABSENCE.noFightYet],
+        [HELPER_ABSENCE.noFightYet],
         "no payload over an empty shelf is no fight yet",
     );
 
@@ -161,7 +157,7 @@ Deno.test("the window beside the panel says which reason leaves it nothing live 
     renderFrame(between.parts);
     assertEquals(
         between.standings,
-        [STANDING_ABSENCE.betweenFights],
+        [HELPER_ABSENCE.betweenFights],
         "and over a kept fight the panel draws, never no fight at all",
     );
 
@@ -176,7 +172,7 @@ Deno.test("the window beside the panel says which reason leaves it nothing live 
     renderFrame(broken.parts);
     assertEquals(
         broken.standings,
-        [STANDING_ABSENCE.fightUnread],
+        [HELPER_ABSENCE.fightUnread],
         "a fight that arrived and would not read is never said to be no fight",
     );
     const readings = broken.defects.getCounts().filter((one) => one.kind === DEFECT_KIND.reading);

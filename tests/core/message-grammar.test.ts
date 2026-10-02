@@ -8,13 +8,13 @@
 import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import {
     encodeProtocolMessage,
+    EndUnreadable,
     MESSAGE_END,
     type MessageEnd,
     ParameterKeyEmpty,
     parseProtocolMessage,
     SEGMENTS_MAXIMUM,
     SegmentsExceeded,
-    SideUnreadable,
 } from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
@@ -79,7 +79,7 @@ Deno.test("what the grammar does not cover is refused, and says which end", () =
 });
 
 function expectSideUnreadable(read: unknown, end: MessageEnd, message: string): void {
-    assertInstanceOf(read, SideUnreadable, message);
+    assertInstanceOf(read, EndUnreadable, message);
     assertStrictEquals(read.end, end, message);
 }
 

@@ -11,12 +11,12 @@ import {
     assertStrictEquals,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initPageFrames, type PageFrames } from "#/src/game/page-time.ts";
+import { type BrowserFrames, initBrowserFrames } from "#/src/game/page-time.ts";
 
 Deno.test("a step runs when its frame falls, and a cancel hands back the page's own handle", () => {
     const wound = composeFrames();
     let ran = 0;
-    const requested = initPageFrames(wound.frames).requestFrame(() => void (ran += 1), () => {});
+    const requested = initBrowserFrames(wound.frames).requestFrame(() => void (ran += 1), () => {});
     assertNotInstanceOf(requested, Error, "the page took the step");
     assertStrictEquals(ran, 0, "and ran nothing before the frame fell");
     wound.fall();
@@ -29,7 +29,7 @@ Deno.test("a step runs when its frame falls, and a cancel hands back the page's 
 function composeFrames() {
     const held: (() => void)[] = [];
     const cancelled: number[] = [];
-    const frames: PageFrames = {
+    const frames: BrowserFrames = {
         requestAnimationFrame: (step) => held.push(step) + 40,
         cancelAnimationFrame: (handle) => void cancelled.push(handle),
     };
@@ -39,7 +39,7 @@ function composeFrames() {
 Deno.test("a step that breaks is handed over as a failure and never reaches the frame loop", () => {
     const wound = composeFrames();
     const failures: errors.Caught[] = [];
-    const requested = initPageFrames(wound.frames).requestFrame(() => {
+    const requested = initBrowserFrames(wound.frames).requestFrame(() => {
         throw new AssertionError("a frame of ours broke");
     }, (failure) => failures.push(failure));
     assertNotInstanceOf(requested, Error, "the page took the step");
@@ -50,7 +50,7 @@ Deno.test("a step that breaks is handed over as a failure and never reaches the 
 
 Deno.test("a sink that throws in its turn has nobody left to tell, and reaches nobody", () => {
     const wound = composeFrames();
-    initPageFrames(wound.frames).requestFrame(() => {
+    initBrowserFrames(wound.frames).requestFrame(() => {
         throw new AssertionError("a frame of ours broke");
     }, () => {
         throw new AssertionError("and so did whoever it was told to");
@@ -59,22 +59,22 @@ Deno.test("a sink that throws in its turn has nobody left to tell, and reaches n
 });
 
 Deno.test("a page that will not give a frame says so, and one that won't cancel is let be", () => {
-    const refusing: PageFrames = {
+    const refusing: BrowserFrames = {
         requestAnimationFrame: () => {
             throw new TypeError("a page with no frames to give");
         },
         cancelAnimationFrame: () => {},
     };
-    const requested = initPageFrames(refusing).requestFrame(() => {}, () => {});
+    const requested = initBrowserFrames(refusing).requestFrame(() => {}, () => {});
     assertInstanceOf(requested, Error, "a refusal is answered, never thrown");
     assertInstanceOf(requested, errors.Caught, "as the page's failure");
-    const stubborn: PageFrames = {
+    const stubborn: BrowserFrames = {
         requestAnimationFrame: () => 1,
         cancelAnimationFrame: () => {
             throw new TypeError("a page being torn down");
         },
     };
-    const held = initPageFrames(stubborn).requestFrame(() => {}, () => {});
+    const held = initBrowserFrames(stubborn).requestFrame(() => {}, () => {});
     assertNotInstanceOf(held, Error, "the frame was given");
     held.cancel();
 });

@@ -11,7 +11,7 @@ import type { UnreadMessage } from "#/src/core/fight-decoder.ts";
 import type { PayloadRejected } from "#/src/core/fight-session.ts";
 import type { StoreFailure } from "#/src/game/browser-store.ts";
 import type { EngineFailure } from "#/src/game/engine-battle.ts";
-import type { PageReadFailure } from "#/src/game/page-reading.ts";
+import type { ClientReadFailure } from "#/src/game/page-reading.ts";
 import type { EnvelopeFailure } from "#/src/game/payload-envelope.ts";
 import type { WarriorFailure } from "#/src/game/warrior-snapshot.ts";
 import type { ExportFailure } from "./fight-handover.ts";
@@ -34,7 +34,7 @@ export type RuntimeFailure =
     | FiguresDisagreed
     | ViewFailure
     | WarriorFailure
-    | PageReadFailure
+    | ClientReadFailure
     | errors.Caught;
 
 export const FAILURE_FATE = {
@@ -59,7 +59,7 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     PayloadFieldMalformed: FAILURE_FATE.defect,
     PayloadFieldTooLong: FAILURE_FATE.defect,
     PayloadCombatantRepeated: FAILURE_FATE.defect,
-    CastExceeded: FAILURE_FATE.defect,
+    CombatantsExceeded: FAILURE_FATE.defect,
     EventsExceeded: FAILURE_FATE.defect,
     PayloadsExceeded: FAILURE_FATE.defect,
     UnreadMessage: FAILURE_FATE.shownAsSuspect,
@@ -77,13 +77,13 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     SettingTooLong: FAILURE_FATE.fallbackWithDefect,
     FileUnserializable: FAILURE_FATE.defect,
     FileApiAbsent: FAILURE_FATE.defect,
-    StandingFightAbsent: FAILURE_FATE.defect,
+    ShownFightAbsent: FAILURE_FATE.defect,
     FiguresDisagreed: FAILURE_FATE.defect,
     RegionUndrawn: FAILURE_FATE.defect,
     GestureDropped: FAILURE_FATE.defect,
     WindowUnplaced: FAILURE_FATE.fallbackWithDefect,
     WarriorsAbsent: FAILURE_FATE.shownAsUnknown,
     WarriorsExceeded: FAILURE_FATE.defect,
-    PageReadingAbsent: FAILURE_FATE.shownAsUnknown,
+    ClientReadingAbsent: FAILURE_FATE.shownAsUnknown,
     Caught: FAILURE_FATE.defect,
 };

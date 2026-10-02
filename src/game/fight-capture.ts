@@ -92,7 +92,7 @@ export function prepareCapture(
     if (!isKept) return { callIndex, isOpening, isPastCeiling: false, kept: null };
     const kept: CapturedCall = {
         index: callIndex,
-        payload: prepareCaptureCopy(call.payload),
+        payload: createCaptureCopy(call.payload),
         messages: [...call.messages],
         combatantsBefore: call.combatantsBefore === null ? null : [...call.combatantsBefore],
         combatantsAfter: call.combatantsAfter === null ? null : [...call.combatantsAfter],
@@ -121,7 +121,7 @@ function encodeCaptureState(combatants: WarriorSnapshot | null): string {
  * than `structuredClone`: what is recorded is written as JSON anyway, so anything the round trip
  * cannot carry is dropped now rather than silently at the end.
  */
-function prepareCaptureCopy(value: unknown): unknown {
+function createCaptureCopy(value: unknown): unknown {
     const written = encodeJson(value, 0);
     if (written instanceof Error) return null;
     const read = parseJson(written);

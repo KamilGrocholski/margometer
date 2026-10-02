@@ -15,19 +15,19 @@ import {
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import {
+    initBrowserStore,
     initMemoryStore,
-    initPageStore,
     type KeyValueStore,
     STORE_KEY,
     StoreRefused,
 } from "#/src/game/browser-store.ts";
 import {
+    deleteWindowSize,
     readStorageChoice,
     readTypeStep,
-    readWindowFold,
+    readWindowCollapsed,
     readWindowPosition,
     readWindowSize,
-    removeWindowSize,
     SETTING_KEY,
     type SettingKey,
     SettingTooLong,
@@ -35,7 +35,7 @@ import {
     STORAGE_DEFAULT,
     writeStorageChoice,
     writeTypeStep,
-    writeWindowFold,
+    writeWindowCollapsed,
     writeWindowPosition,
     writeWindowSize,
 } from "#/src/runtime/settings.ts";
@@ -87,7 +87,7 @@ function composeRefusingStore(): KeyValueStore {
     const refuse = (): never => {
         throw REFUSAL;
     };
-    return initPageStore({ getItem: refuse, setItem: refuse, removeItem: refuse });
+    return initBrowserStore({ getItem: refuse, setItem: refuse, removeItem: refuse });
 }
 
 Deno.test("the size of type a reader chose reads back, and nothing chosen is the default", () => {
@@ -134,7 +134,7 @@ Deno.test("a window's size reads back per window, and goes when it is given back
         { width: 1, height: 1 },
         "one is a size",
     );
-    removeWindowSize(store, PANEL_WINDOW.panel);
+    deleteWindowSize(store, PANEL_WINDOW.panel);
     assertEquals(store.read(STORE_KEY.panelSize), null, "given back, it is gone");
     assertEquals(
         readWindowSize(store, PANEL_WINDOW.helper),
@@ -170,40 +170,43 @@ Deno.test("a size that is not two whole numbers above nought is refused by name"
         "and text too long",
     );
     expectStoreRefused(readWindowSize(composeRefusingStore(), PANEL_WINDOW.panel), "a refusal");
-    expectStoreRefused(removeWindowSize(composeRefusingStore(), PANEL_WINDOW.panel), "on removing");
+    expectStoreRefused(deleteWindowSize(composeRefusingStore(), PANEL_WINDOW.panel), "on removing");
 });
 
 Deno.test("a fold is the one mark, and anything else stored there is not read as one", () => {
     const store = initMemoryStore();
-    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), false, "nothing stored: unfolded");
-    writeWindowFold(store, PANEL_WINDOW.panel, true);
+    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.panel), false, "nothing stored: unfolded");
+    writeWindowCollapsed(store, PANEL_WINDOW.panel, true);
     assertEquals(store.read(STORE_KEY.panelFolded), "1", "a fold is stored as the mark");
-    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), true, "and reads back folded");
-    writeWindowFold(store, PANEL_WINDOW.panel, false);
+    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.panel), true, "and reads back folded");
+    writeWindowCollapsed(store, PANEL_WINDOW.panel, false);
     assertEquals(store.read(STORE_KEY.panelFolded), "", "an unfolding leaves empty text");
-    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), false, "which reads unfolded");
+    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.panel), false, "which reads unfolded");
     store.write(STORE_KEY.panelFolded, "yes");
     expectSettingUnreadable(
-        readWindowFold(store, PANEL_WINDOW.panel),
+        readWindowCollapsed(store, PANEL_WINDOW.panel),
         SETTING_KEY.panelFolded,
         "a word nobody here wrote is refused, naming the panel's fold",
     );
-    expectStoreRefused(readWindowFold(composeRefusingStore(), PANEL_WINDOW.helper), "passed on");
+    expectStoreRefused(
+        readWindowCollapsed(composeRefusingStore(), PANEL_WINDOW.helper),
+        "passed on",
+    );
 });
 
 /** Two windows, two folds: one mark over both would put away the wrong window. */
 Deno.test("each window's fold and place are under keys of their own", () => {
     const store = initMemoryStore();
-    writeWindowFold(store, PANEL_WINDOW.helper, true);
+    writeWindowCollapsed(store, PANEL_WINDOW.helper, true);
     assertEquals(store.read(STORE_KEY.helperFolded), "1", "the helper's fold is its own key");
-    assertEquals(readWindowFold(store, PANEL_WINDOW.panel), false, "the panel stays open");
-    assertEquals(readWindowFold(store, PANEL_WINDOW.helper), true, "the helper is folded");
+    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.panel), false, "the panel stays open");
+    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.helper), true, "the helper is folded");
     writeWindowPosition(store, PANEL_WINDOW.helper, { left: 5, top: 6 });
     assertEquals(store.read(STORE_KEY.helperPlace), '{"left":5,"top":6}', "its own place");
     assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), null, "and not the panel's");
     store.write(STORE_KEY.helperFolded, "?");
     expectSettingUnreadable(
-        readWindowFold(store, PANEL_WINDOW.helper),
+        readWindowCollapsed(store, PANEL_WINDOW.helper),
         SETTING_KEY.helperFolded,
         "a failure names the helper's own fold",
     );

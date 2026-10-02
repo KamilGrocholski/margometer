@@ -284,7 +284,7 @@ export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
 }
 
 /** A fight kept once. A second fight under the same moment is refused, never merged. */
-export function keepFight(
+export function writeKeptFight(
     store: KeyValueStore,
     shelf: ShelfContents,
     fight: KeptFight,
@@ -365,7 +365,7 @@ function dropOldestUnpinned(fights: readonly KeptFight[]): KeptFight[] | null {
     return held;
 }
 
-export function pinFight(
+export function writeKeptFightPin(
     store: KeyValueStore,
     shelf: ShelfContents,
     openedAt: number,
@@ -400,7 +400,7 @@ export function writeShelfContents(
 
 /** The key the shelf is under, gone: a reader who moved it wants nothing left behind. */
 export function deleteShelf(store: KeyValueStore): undefined | StoreFailure {
-    return store.remove(SHELF_KEY);
+    return store.delete(SHELF_KEY);
 }
 
 /** What a full shelf keeps: the newest, and everything the reader pinned. */

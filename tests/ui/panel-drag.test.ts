@@ -9,10 +9,10 @@ import {
     clampPosition,
     clampSize,
     composeDefaultPosition,
+    composeHelperPositionAfterTypeStep,
     composeHostStyle,
     composePositionStyle,
     composeSizeBounds,
-    composeStandingAfterStep,
     composeTipAcross,
     type TipAcross,
     type TipWindowPlace,
@@ -22,7 +22,7 @@ import { getBarHeight, PLACE, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-l
 const WINDOW = { width: 1280, height: 900 };
 /** The windows as a reader who chose no size of type sees them. */
 const PANEL_WIDTH = TYPE_TOKENS[TYPE_STEP.small].panelWidthPixels;
-const STANDING_WIDTH = TYPE_TOKENS[TYPE_STEP.small].standingWidthPixels;
+const STANDING_WIDTH = TYPE_TOKENS[TYPE_STEP.small].helperWidthPixels;
 
 /**
  * A round stand-in for the sheet's own bound, so the arithmetic below reads without one. It is the
@@ -270,7 +270,7 @@ Deno.test("a card flipped right stays with its own window, whatever the other is
 Deno.test("the window beside the panel keeps its side as the type changes size", () => {
     const widths = (step: typeof TYPE_STEP.small | typeof TYPE_STEP.large) => ({
         panel: TYPE_TOKENS[step].panelWidthPixels,
-        standing: TYPE_TOKENS[step].standingWidthPixels,
+        standing: TYPE_TOKENS[step].helperWidthPixels,
     });
     const before = widths(TYPE_STEP.small);
     const after = widths(TYPE_STEP.large);
@@ -280,28 +280,38 @@ Deno.test("the window beside the panel keeps its side as the type changes size",
     // Its right edge exactly at the panel's left: beside it, and one pixel further is inside it.
     const touching = { left: panel.left - before.standing, top: 90 };
     assertEquals(
-        composeStandingAfterStep(panel, touching, before, after),
+        composeHelperPositionAfterTypeStep(panel, touching, before, after),
         { left: touching.left - grownStanding, top: 90 },
         "one to the left keeps its right edge where it stood",
     );
     assertEquals(
-        composeStandingAfterStep(panel, { ...touching, left: touching.left + 1 }, before, after),
+        composeHelperPositionAfterTypeStep(
+            panel,
+            { ...touching, left: touching.left + 1 },
+            before,
+            after,
+        ),
         null,
         "one reaching a pixel into the panel is not beside it, and stays",
     );
     const right = { left: panel.left + before.panel, top: 90 };
     assertEquals(
-        composeStandingAfterStep(panel, right, before, after),
+        composeHelperPositionAfterTypeStep(panel, right, before, after),
         { left: right.left + grownPanel, top: 90 },
         "one to the right keeps its distance from the panel's right edge",
     );
     assertEquals(
-        composeStandingAfterStep(panel, { ...right, left: right.left - 1 }, before, after),
+        composeHelperPositionAfterTypeStep(
+            panel,
+            { ...right, left: right.left - 1 },
+            before,
+            after,
+        ),
         null,
         "and one a pixel inside that edge stays",
     );
     assertEquals(
-        composeStandingAfterStep(panel, touching, before, before),
+        composeHelperPositionAfterTypeStep(panel, touching, before, before),
         { left: touching.left, top: 90 },
         "the same size twice moves nothing",
     );

@@ -322,13 +322,13 @@ const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([
     [PROVOCATION_KEY, KEY_REACH.otherSide],
 ]);
 
-const TEAM_WIDE_OPENING = "aura-";
-const TEAM_WIDE_ENDINGS = ["-all", "-allies", "-enemies"];
+const SIDE_WIDE_OPENING = "aura-";
+const SIDE_WIDE_ENDINGS = ["-all", "-allies", "-enemies"];
 /**
- * Team-wide by meaning, carrying neither shape above. `healall_per` is not here because it is
+ * Side-wide by meaning, carrying neither shape above. `healall_per` is not here because it is
  * health rather than a standing, and reaches a row of its own.
  */
-const TEAM_WIDE_KEYS = [PROVOCATION_KEY, SLOW_ALL_KEY, "alllowdmg"];
+const SIDE_WIDE_KEYS = [PROVOCATION_KEY, SLOW_ALL_KEY, "alllowdmg"];
 
 const KEY_READING_BY_KEY: ReadonlyMap<string, KeyReading> = indexKeyReadings();
 /** Keyed by the defence an event names, which is the key with its sign taken off. */
@@ -339,21 +339,21 @@ const DEFENCE_MECHANISM_BY_DEFENCE: ReadonlyMap<string, DefenceMechanism> =
 export function lookupKeyReach(key: string): KeyReach | null {
     assert(key.length > 0, "a reach is asked of a key");
     const reach = REACH_BY_KEY.get(key) ?? null;
-    if (reach !== null) assert(isTeamWideKey(key), "a key reaching a side is a team-wide key");
+    if (reach !== null) assert(isSideWideKey(key), "a key reaching a side is a side-wide key");
     return reach;
 }
 
 /** Whether a key reaches more than one combatant, by its shape or by its meaning. */
-export function isTeamWideKey(key: string): boolean {
+export function isSideWideKey(key: string): boolean {
     assert(key.length > 0, "a key that is asked about is named");
-    if (key.startsWith(TEAM_WIDE_OPENING)) return true;
-    for (const ending of TEAM_WIDE_ENDINGS) {
+    if (key.startsWith(SIDE_WIDE_OPENING)) return true;
+    for (const ending of SIDE_WIDE_ENDINGS) {
         if (key.endsWith(ending)) return true;
     }
-    return TEAM_WIDE_KEYS.includes(key);
+    return SIDE_WIDE_KEYS.includes(key);
 }
 
-export function getKeyReading(key: string): KeyReading | null {
+export function lookupKeyReading(key: string): KeyReading | null {
     assert(key.length > 0, "a key asked about is a key the message wrote");
     const listed = KEY_READING_BY_KEY.get(key);
     if (listed !== undefined) return listed;

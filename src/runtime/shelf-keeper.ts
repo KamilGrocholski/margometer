@@ -19,13 +19,13 @@ import {
     deleteShelf,
     EverySlotPinned,
     FightAlreadyKept,
-    keepFight,
     KEPT_MAXIMUM,
     type KeptFight,
     openShelf,
-    pinFight,
     rotateShelf,
     type ShelfContents,
+    writeKeptFight,
+    writeKeptFightPin,
     writeShelfContents,
 } from "./shelf.ts";
 import type { StorageChoice } from "#/src/ui/panel-choice.ts";
@@ -44,10 +44,10 @@ export interface ShelfKeeper {
     getChoice(): StorageChoice;
     getAnswers(): ShelfAnswers;
     /** Null for a fight the payloads no longer read, which is a fight to stand on no longer. */
-    lookupReading(fight: KeptFight): KeptReading | null;
+    lookupKeptReading(fight: KeptFight): KeptReading | null;
     keep(fight: KeptFight): void;
     pin(openedAt: number): void;
-    choose(choice: StorageChoice): void;
+    moveShelf(choice: StorageChoice): void;
 }
 
 export interface ShelfKeeperOptions {
@@ -95,7 +95,7 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
         getAnswers: () => ({ ...state.answers }),
         // A refusal is held as well: the shelf is walked on every frame, and a fight that will not
         // replay would otherwise be replayed, and marked, once per frame.
-        lookupReading: (fight) => {
+        lookupKeptReading: (fight) => {
             const held = state.readings.get(fight.openedAt);
             if (held !== undefined) return held;
             const { tables, sessionOptions, defects } = state.options;
@@ -117,7 +117,7 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
         // Keep a fight, and hold what the store answered.
         keep: (fight) => {
             const next = [...state.fights, fight];
-            const kept = keepFight(state.store, { fights: state.fights }, fight);
+            const kept = writeKeptFight(state.store, { fights: state.fights }, fight);
             state.answers.isEverySlotPinned = false;
             if (!(kept instanceof Error)) {
                 setShelfWritten(state, kept.contents, rotateShelf(next).length);
@@ -148,7 +148,7 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
                 one.openedAt === openedAt ? { ...one, isPinned: !one.isPinned } : one
             );
             assert(next.length === state.fights.length, "a pin moves no fight on or off the shelf");
-            const pinned = pinFight(
+            const pinned = writeKeptFightPin(
                 state.store,
                 { fights: state.fights },
                 openedAt,
@@ -160,7 +160,7 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
         // Move the shelf to the store chosen. The fights go first, the answer second, and the place
         // they came from is emptied last: a store that refuses them, or a browser that will not
         // keep the answer, leaves the reader's fights where the next page will still look.
-        choose: (choice) => {
+        moveShelf: (choice) => {
             if (choice === state.choice) return;
             const moved = state.options.initShelfStore(choice);
             const written = writeShelfContents(moved, { fights: state.fights });

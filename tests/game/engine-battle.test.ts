@@ -20,10 +20,10 @@ import {
     EngineAbsent,
     EngineAlreadyWrapped,
     type EngineBattle,
-    initPageEngine,
+    initEngineBattle,
     MethodAbsent,
     type PayloadListener,
-    readPageEngines,
+    readEngines,
     WrapCovered,
     type WrapHandle,
 } from "#/src/game/engine-battle.ts";
@@ -77,7 +77,7 @@ function wrapOn(battle: Record<string, unknown>, listener: PayloadListener): Wra
 }
 
 function readBattleOn(battle: Record<string, unknown>): EngineBattle {
-    const read = initPageEngine({ Engine: { battle } }).readBattle();
+    const read = initEngineBattle({ Engine: { battle } }).readBattle();
     assertNotInstanceOf(read, Error, "the page holds a battle");
     return read;
 }
@@ -206,14 +206,14 @@ Deno.test("a detach puts back what was there, and only where ours is outermost",
 
 Deno.test("the page is asked for a game in both spellings, and a call may throw", () => {
     const battle = { updateData: () => 1 };
-    assertEquals(readPageEngines({ Engine: { battle } }), [{ battle }], "the field");
-    assertEquals(readPageEngines({ getEngine: () => ({ battle }) }), [{ battle }], "the call");
-    assertEquals(readPageEngines(null), [], "and a page that is not one is asked nothing");
-    const engine = initPageEngine({});
+    assertEquals(readEngines({ Engine: { battle } }), [{ battle }], "the field");
+    assertEquals(readEngines({ getEngine: () => ({ battle }) }), [{ battle }], "the call");
+    assertEquals(readEngines(null), [], "and a page that is not one is asked nothing");
+    const engine = initEngineBattle({});
     assertInstanceOf(engine.readBattle(), EngineAbsent, "no engine");
-    const idle = initPageEngine({ Engine: { battle: null } });
+    const idle = initEngineBattle({ Engine: { battle: null } });
     assertInstanceOf(idle.readBattle(), BattleAbsent, "no battle");
-    const tearing = initPageEngine({
+    const tearing = initEngineBattle({
         getEngine: () => {
             throw new RangeError("a page being torn down");
         },

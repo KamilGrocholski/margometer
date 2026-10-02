@@ -8,10 +8,10 @@
 import { assert, assertEquals, assertExists } from "@std/assert";
 import {
     composeHealthFromPercent,
-    deriveHealthTolerance,
-    getStatedHealthsFromEvent,
+    composeHealthTolerance,
+    getHealthPercentsFromEvent,
     indexFightEntryHealth,
-    indexTeamHeals,
+    indexSideHeals,
 } from "#/src/core/combatant-health.ts";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
@@ -29,16 +29,16 @@ Deno.test("zero is a reading, and a maximum nobody stated is not", () => {
         null,
         "no maximum, no reading, and never zero",
     );
-    assertEquals(deriveHealthTolerance(0), 1, "a pool of nothing still rounds");
-    assertEquals(deriveHealthTolerance(745), 1, "a small pool is read to the point");
+    assertEquals(composeHealthTolerance(0), 1, "a pool of nothing still rounds");
+    assertEquals(composeHealthTolerance(745), 1, "a small pool is read to the point");
 });
 
 Deno.test("a wider pool is read less exactly, and says so", () => {
     assert(
-        deriveHealthTolerance(325584) > deriveHealthTolerance(745),
+        composeHealthTolerance(325584) > composeHealthTolerance(745),
         "the band a percentage stands for is a share of the pool",
     );
-    assertEquals(deriveHealthTolerance(325584), 17, "the widest pool in `captures/`");
+    assertEquals(composeHealthTolerance(325584), 17, "the widest pool in `captures/`");
 });
 
 Deno.test("the client's own percentage is its health rounded to two places", () => {
@@ -65,7 +65,7 @@ Deno.test("a stated percentage reads back to the health the client holds", () =>
             const health = composeHealthFromPercent(reading.healthPercent, reading.healthMaximum);
             assertExists(health, `${path}: a stated maximum reads`);
             const distance = Math.abs(health - reading.health);
-            const tolerance = deriveHealthTolerance(reading.healthMaximum);
+            const tolerance = composeHealthTolerance(reading.healthMaximum);
             assert(distance <= tolerance, `${path}: ${distance} past a bound of ${tolerance}`);
             if (distance === 0) exact += 1;
             else approximate += 1;
@@ -116,7 +116,7 @@ Deno.test("what states a combatant first is usually an event with no figure at a
                     tables: BLOWS_GRANTED,
                 }).events
             ) {
-                for (const [combatantId] of getStatedHealthsFromEvent(event)) {
+                for (const [combatantId] of getHealthPercentsFromEvent(event)) {
                     if (seen.has(combatantId)) continue;
                     seen.add(combatantId);
                     firstBy.set(event.kind, (firstBy.get(event.kind) ?? 0) + 1);
@@ -180,7 +180,11 @@ Deno.test("the first statement is the one that counts, whatever came after", () 
         800,
         "eight tenths, and not three",
     );
-    assertEquals(getStatedHealthsFromEvent(events[0] ?? events[1] ?? events[0]!)[0]?.[1], 80, "80");
+    assertEquals(
+        getHealthPercentsFromEvent(events[0] ?? events[1] ?? events[0]!)[0]?.[1],
+        80,
+        "80",
+    );
 });
 
 Deno.test("a share is of the maximum, floored, and reaches the caster's own side", () => {
@@ -195,7 +199,7 @@ Deno.test("a share is of the maximum, floored, and reaches the caster's own side
         ],
         { roster, standing: null, tables: BLOWS_GRANTED },
     ).events;
-    const heals = [...indexTeamHeals(events, roster).values()];
+    const heals = [...indexSideHeals(events, roster).values()];
     assertEquals(heals.length, 1, "one cast");
     assertEquals(
         heals[0]?.restoredByCombatantId.get(1),
@@ -227,7 +231,7 @@ Deno.test("a cast cannot put back more than a combatant walked in with", () => {
         ],
         { roster, standing: null, tables: BLOWS_GRANTED },
     ).events;
-    const heals = [...indexTeamHeals(events, roster).values()];
+    const heals = [...indexSideHeals(events, roster).values()];
     assertEquals(
         heals[0]?.restoredByCombatantId.get(1),
         1194,
@@ -254,7 +258,7 @@ Deno.test("a member nobody can size leaves the cast saying so", () => {
         ],
         { roster, standing: null, tables: BLOWS_GRANTED },
     ).events;
-    const heals = [...indexTeamHeals(events, roster).values()];
+    const heals = [...indexSideHeals(events, roster).values()];
     assertEquals(heals[0]?.restoredByCombatantId.get(1), 300, "the one that could be sized is");
     assertEquals(heals[0]?.restoredByCombatantId.has(2), false, "the one that could not is not");
     assertEquals(heals[0]?.isWhole, false, "and the cast goes on saying it is short");
@@ -272,7 +276,7 @@ Deno.test("a cast on a side a reducer reached is refused whole", () => {
         ],
         { roster, standing: null, tables: BLOWS_GRANTED },
     ).events;
-    assertEquals(indexTeamHeals(reduced, roster).size, 0, "nothing is sized where it was cut");
+    assertEquals(indexSideHeals(reduced, roster).size, 0, "nothing is sized where it was cut");
 
     const theirOwn = decodePayloadMessages(
         [
@@ -285,7 +289,7 @@ Deno.test("a cast on a side a reducer reached is refused whole", () => {
         { roster, standing: null, tables: BLOWS_GRANTED },
     ).events;
     assertEquals(
-        indexTeamHeals(theirOwn, roster).size,
+        indexSideHeals(theirOwn, roster).size,
         1,
         "a reducer of ours cuts theirs, not ours",
     );
@@ -302,7 +306,7 @@ Deno.test("every cast in the recordings is sized, and the cap is what does the w
             decodePayloadMessages(one, { roster, standing: null, tables: BLOWS_GRANTED })
                 .events
         );
-        for (const heal of indexTeamHeals(events, roster).values()) {
+        for (const heal of indexSideHeals(events, roster).values()) {
             casts += 1;
             if (heal.isWhole) whole += 1;
             for (const [combatantId, amount] of heal.restoredByCombatantId) {

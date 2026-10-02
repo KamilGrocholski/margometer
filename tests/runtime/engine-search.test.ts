@@ -7,13 +7,13 @@
  */
 
 import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
-import { initPageEngine, SearchAbandoned, type WrapHandle } from "#/src/game/engine-battle.ts";
-import { initPageInterval, type PageTimers } from "#/src/game/page-time.ts";
+import { initEngineBattle, SearchAbandoned, type WrapHandle } from "#/src/game/engine-battle.ts";
+import { type BrowserTimers, initBrowserInterval } from "#/src/game/page-time.ts";
 import {
     type EngineSearch,
+    initEngineSearch,
     LOOKS_MAXIMUM,
     type SearchReport,
-    startEngineSearch,
 } from "#/src/runtime/margometer-runtime.ts";
 
 interface Told {
@@ -26,7 +26,7 @@ interface Told {
 }
 
 interface Clock {
-    timers: PageTimers;
+    timers: BrowserTimers;
     tick: (times: number) => void;
     starts: () => number;
     cancels: () => number;
@@ -106,9 +106,9 @@ function start(
     seen: unknown[] = [],
 ): EngineSearch {
     const listener = { onBeforeCall: () => {}, onPayload: (one: unknown) => void seen.push(one) };
-    return startEngineSearch(
-        initPageEngine(page),
-        initPageInterval(clock.timers),
+    return initEngineSearch(
+        initEngineBattle(page),
+        initBrowserInterval(clock.timers),
         listener,
         report,
     );
@@ -247,7 +247,7 @@ Deno.test("a clock that will not let go leaves a search that is done", () => {
     const { report, told } = composeReport();
     const clock = composeClock();
     let cancels = 0;
-    const refusing: PageTimers = {
+    const refusing: BrowserTimers = {
         setInterval: clock.timers.setInterval,
         clearInterval: (handle) => {
             cancels += 1;
@@ -255,9 +255,9 @@ Deno.test("a clock that will not let go leaves a search that is done", () => {
             throw new RangeError("a clock that will not let go");
         },
     };
-    const search = startEngineSearch(
-        initPageEngine({}),
-        initPageInterval(refusing),
+    const search = initEngineSearch(
+        initEngineBattle({}),
+        initBrowserInterval(refusing),
         { onBeforeCall: () => {}, onPayload: () => {} },
         report,
     );
@@ -300,7 +300,7 @@ Deno.test("the search gives up on the two hundred and fortieth look, as the desi
 Deno.test("a search that is done looks no more, though the page's timer will not stop", () => {
     const { report, told } = composeReport();
     let step: (() => void) | null = null;
-    const stuck: PageTimers = {
+    const stuck: BrowserTimers = {
         setInterval: (given) => {
             step = given;
             return 1;
@@ -316,9 +316,9 @@ Deno.test("a search that is done looks no more, though the page's timer will not
             return {};
         },
     };
-    startEngineSearch(
-        initPageEngine(page),
-        initPageInterval(stuck),
+    initEngineSearch(
+        initEngineBattle(page),
+        initBrowserInterval(stuck),
         { onBeforeCall: () => {}, onPayload: () => {} },
         report,
     );
@@ -330,15 +330,15 @@ Deno.test("a search that is done looks no more, though the page's timer will not
 
 Deno.test("a page that will not start the timer is marked, once, as a look that failed", () => {
     const { report, told } = composeReport();
-    const refusing: PageTimers = {
+    const refusing: BrowserTimers = {
         setInterval: () => {
             throw new RangeError("no timers here");
         },
         clearInterval: () => {},
     };
-    startEngineSearch(
-        initPageEngine({}),
-        initPageInterval(refusing),
+    initEngineSearch(
+        initEngineBattle({}),
+        initBrowserInterval(refusing),
         { onBeforeCall: () => {}, onPayload: () => {} },
         report,
     );
@@ -348,10 +348,10 @@ Deno.test("a page that will not start the timer is marked, once, as a look that 
 
 /**
  * A timer the page will not start is reported on the stack that started the add-on, outside any
- * look's guard, so a report that breaks there must not leave `startEngineSearch` either.
+ * look's guard, so a report that breaks there must not leave `initEngineSearch` either.
  */
 Deno.test("a report that breaks on the starting stack does not leave the start", () => {
-    const refusing: PageTimers = {
+    const refusing: BrowserTimers = {
         setInterval: () => {
             throw new Error("a page with no timers");
         },
@@ -367,9 +367,9 @@ Deno.test("a report that breaks on the starting stack does not leave the start",
         },
     };
     const listener = { onBeforeCall: () => {}, onPayload: () => {} };
-    const search = startEngineSearch(
-        initPageEngine({}),
-        initPageInterval(refusing),
+    const search = initEngineSearch(
+        initEngineBattle({}),
+        initBrowserInterval(refusing),
         listener,
         report,
     );

@@ -21,7 +21,7 @@ import {
     composeStyleSheet,
     getContrastRatio,
     getInkForBar,
-    getTipRoom,
+    getTipHeightAvailable,
     LAYER,
     PLACE,
     SIZE_VARIABLES,
@@ -925,7 +925,7 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
         }
         // As wide as the step says, until a reader sizes the window by its corner.
         const panel = `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px)`;
-        const standing = `var(${SIZE_VARIABLES.helper.width},${tokens.standingWidthPixels}px)`;
+        const standing = `var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px)`;
         const widths = [[CLASS.panel, panel], [CLASS.title, panel], [CLASS.standing, standing]];
         for (const [drawn, width] of widths) {
             const stated = getDeclaration(getRuleBody(sheet, `.${drawn}`), "width");
@@ -973,10 +973,14 @@ Deno.test("a card is trimmed to the room the sheet leaves it, the window less it
     assert(stated.startsWith(opener), `${stated} is a bound on the window's height`);
     const terms = stated.slice(opener.length, stated.length - 1).split(" - ");
     const air = terms.reduce((sum, term) => sum + getPixels(term), 0);
-    assertEquals(getTipRoom(900), 900 - air, "the trim spends the air the sheet spends");
-    assertEquals(getTipRoom(air), null, "a window no taller than the air has no room");
-    assertEquals(getTipRoom(air + 1), 1, "and a pixel past it has that pixel");
-    assertEquals(getTipRoom(null), null, "a page stating no height has no room to reason about");
+    assertEquals(getTipHeightAvailable(900), 900 - air, "the trim spends the air the sheet spends");
+    assertEquals(getTipHeightAvailable(air), null, "a window no taller than the air has no room");
+    assertEquals(getTipHeightAvailable(air + 1), 1, "and a pixel past it has that pixel");
+    assertEquals(
+        getTipHeightAvailable(null),
+        null,
+        "a page stating no height has no room to reason about",
+    );
 });
 
 /**

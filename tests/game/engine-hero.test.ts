@@ -7,8 +7,8 @@
 
 import { assert, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initPageHero } from "#/src/game/engine-hero.ts";
-import { PAGE_READING, PageReadingAbsent } from "#/src/game/page-reading.ts";
+import { initEngineHero } from "#/src/game/engine-hero.ts";
+import { CLIENT_READING, ClientReadingAbsent } from "#/src/game/page-reading.ts";
 
 Deno.test("the hero's id is read off the client's own state, as a number or as text", () => {
     assertStrictEquals(readHeroIdOf(composeEngine(1897)), 1897, "as the page holds it");
@@ -17,7 +17,7 @@ Deno.test("the hero's id is read off the client's own state, as a number or as t
 });
 
 function readHeroIdOf(engine: unknown) {
-    return initPageHero({ Engine: engine }).readHeroId();
+    return initEngineHero({ Engine: engine }).readHeroId();
 }
 
 function composeEngine(id: unknown): Record<string, unknown> {
@@ -33,24 +33,28 @@ Deno.test("an id that names nobody is none, never a guess", () => {
     expectAbsent(readHeroIdOf({ hero: { d: {} } }), "a hero stating no id says nothing");
     expectAbsent(readHeroIdOf({ hero: {} }), "nor does one holding no state");
     expectAbsent(readHeroIdOf({}), "an engine holding no hero says nothing");
-    expectAbsent(initPageHero(null).readHeroId(), "and nor does no page");
+    expectAbsent(initEngineHero(null).readHeroId(), "and nor does no page");
 });
 
 function expectAbsent(read: unknown, message: string): void {
-    assertInstanceOf(read, PageReadingAbsent, message);
-    assertStrictEquals(read.reading, PAGE_READING.hero, `${message}: the reading named`);
+    assertInstanceOf(read, ClientReadingAbsent, message);
+    assertStrictEquals(read.reading, CLIENT_READING.hero, `${message}: the reading named`);
 }
 
 Deno.test("the engine is read by the page's call when the field holds none", () => {
     const page = { getEngine: () => composeEngine(7) };
-    assertStrictEquals(initPageHero(page).readHeroId(), 7, "read through the call");
+    assertStrictEquals(initEngineHero(page).readHeroId(), 7, "read through the call");
 });
 
 Deno.test("the first spelling of the game that states an id is the one read", () => {
     const page = { Engine: composeEngine(7), getEngine: () => composeEngine(8) };
-    assertStrictEquals(initPageHero(page).readHeroId(), 7, "Engine");
+    assertStrictEquals(initEngineHero(page).readHeroId(), 7, "Engine");
     const second = { Engine: { hero: { d: {} } }, getEngine: () => composeEngine(8) };
-    assertStrictEquals(initPageHero(second).readHeroId(), 8, "and the call where Engine has none");
+    assertStrictEquals(
+        initEngineHero(second).readHeroId(),
+        8,
+        "and the call where Engine has none",
+    );
 });
 
 Deno.test("a page tearing itself down is a failure of theirs, not a reading of nothing", () => {
@@ -62,7 +66,7 @@ Deno.test("a page tearing itself down is a failure of theirs, not a reading of n
             },
         },
     };
-    const read = initPageHero(page).readHeroId();
+    const read = initEngineHero(page).readHeroId();
     assertInstanceOf(read, errors.Caught, "a failure of theirs");
     assertStrictEquals(read.cause, thrown, "with its cause");
 });

@@ -19,13 +19,13 @@ import {
 import type { Combatant } from "#/src/core/combatant-roster.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
-    CastExceeded,
+    CombatantsExceeded,
     commitPayload,
+    composeFightView,
     createFightSession,
     EventsExceeded,
     type FightSession,
     type FightView,
-    getFightView,
     getSessionPhase,
     type PayloadCommitted,
     type PayloadRecord,
@@ -52,7 +52,7 @@ const OPENING: PayloadRecord = { ...NOTHING, isInit: true };
 
 Deno.test("a fight nobody has seen is not a fight holding nothing", () => {
     const session = createFightSession(SESSION_OPTIONS);
-    assertStrictEquals(getFightView(session), null, "there is no fight to read");
+    assertStrictEquals(composeFightView(session), null, "there is no fight to read");
     assertStrictEquals(getSessionPhase(session), SESSION_PHASE.waiting, "it waits");
     apply(session, OPENING);
     assertEquals(view(session).events, [], "a fight that opened on nothing holds nothing");
@@ -66,7 +66,7 @@ function apply(session: FightSession, record: PayloadRecord): PayloadCommitted {
 }
 
 function view(session: FightSession): FightView {
-    const found = getFightView(session);
+    const found = composeFightView(session);
     assertExists(found, "a fight stands");
     return found;
 }
@@ -219,7 +219,7 @@ Deno.test("a cast stated twice is one cast, and a fight of twenty survives the r
     assertEquals(view(session).roster.byId.size, COMBATANTS_MAXIMUM, "and the same people");
     const newcomer = [composeCombatant(COMBATANTS_MAXIMUM + 1, "Nowy", 1)];
     const past = preparePayload(session, { ...NOTHING, combatants: newcomer }, BLOWS_GRANTED);
-    assertInstanceOf(past, CastExceeded, "a twenty-first person is past the cast's bound");
+    assertInstanceOf(past, CombatantsExceeded, "a twenty-first person is past the cast's bound");
     assertEquals(
         [past.count, past.maximum],
         [COMBATANTS_MAXIMUM + 1, COMBATANTS_MAXIMUM],

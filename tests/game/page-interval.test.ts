@@ -13,10 +13,10 @@ import {
     assertThrows,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initPageInterval, type PageTimers } from "#/src/game/page-time.ts";
+import { type BrowserTimers, initBrowserInterval } from "#/src/game/page-time.ts";
 
 interface Wound {
-    timers: PageTimers;
+    timers: BrowserTimers;
     fire: () => void;
     started: number[];
     cleared: number[];
@@ -25,7 +25,7 @@ interface Wound {
 Deno.test("a step runs when the timer fires, and a cancel hands back the page's own handle", () => {
     const wound = composeTimers();
     let ran = 0;
-    const started = initPageInterval(wound.timers).every(() => void (ran += 1), 250, () => {});
+    const started = initBrowserInterval(wound.timers).every(() => void (ran += 1), 250, () => {});
     assertNotInstanceOf(started, Error, "the timer took the step");
     assertEquals(wound.started, [250], "at the interval asked for");
     wound.fire();
@@ -61,7 +61,7 @@ function composeTimers(): Wound {
 Deno.test("a step that throws is handed over as a failure and never reaches the timer", () => {
     const wound = composeTimers();
     const failures: errors.Caught[] = [];
-    const started = initPageInterval(wound.timers).every(
+    const started = initBrowserInterval(wound.timers).every(
         () => {
             throw new RangeError("a step of ours");
         },
@@ -79,7 +79,7 @@ Deno.test("a step that throws is handed over as a failure and never reaches the 
 Deno.test("a report that throws is discarded, and the timer still sees nothing", () => {
     const wound = composeTimers();
     let reports = 0;
-    const started = initPageInterval(wound.timers).every(
+    const started = initBrowserInterval(wound.timers).every(
         () => {
             throw new RangeError("a step of ours");
         },
@@ -95,7 +95,7 @@ Deno.test("a report that throws is discarded, and the timer still sees nothing",
 });
 
 Deno.test("a page that refuses to start or stop a timer answers a failure of its own", () => {
-    const refusing = initPageInterval({
+    const refusing = initBrowserInterval({
         setInterval: () => {
             throw new RangeError("no timers here");
         },
@@ -105,7 +105,7 @@ Deno.test("a page that refuses to start or stop a timer answers a failure of its
     assertInstanceOf(refused, Error, "a page that will not start the timer answers");
     assertInstanceOf(refused, errors.Caught, "and says it was theirs");
 
-    const stuck = initPageInterval({
+    const stuck = initBrowserInterval({
         setInterval: () => 1,
         clearInterval: () => {
             throw new RangeError("will not let go");
@@ -119,7 +119,7 @@ Deno.test("a page that refuses to start or stop a timer answers a failure of its
 });
 
 Deno.test("a step repeats every whole millisecond, and one of none is the caller's bug", () => {
-    const interval = initPageInterval(composeTimers().timers);
+    const interval = initBrowserInterval(composeTimers().timers);
     assertNotInstanceOf(
         interval.every(() => {}, 1, () => {}),
         Error,

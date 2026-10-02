@@ -8,29 +8,29 @@
 
 import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { initPageBuild, parseGameBuild, parseGameBundleName } from "#/src/game/game-build.ts";
-import { PAGE_READING, PageReadingAbsent } from "#/src/game/page-reading.ts";
+import { initClientBuild, parseBuildId, parseGameBundleName } from "#/src/game/game-build.ts";
+import { CLIENT_READING, ClientReadingAbsent } from "#/src/game/page-reading.ts";
 
 Deno.test("both names the client has served give up their build", () => {
     assertEquals(
-        parseGameBuild("https://tempest.margonem.pl/js/main.min1786514810315.js"),
+        parseBuildId("https://tempest.margonem.pl/js/main.min1786514810315.js"),
         "1786514810315",
         "the older name, whose id is a millisecond timestamp",
     );
     assertEquals(
-        parseGameBuild("https://luvia.margonem.pl/js/main.min.53XkBRxF.js"),
+        parseBuildId("https://luvia.margonem.pl/js/main.min.53XkBRxF.js"),
         "53XkBRxF",
         "and the newer, whose id is eight characters with a dot in front of it",
     );
 });
 
 Deno.test("a name that is not the bundle's yields nothing at all", () => {
-    assertStrictEquals(parseGameBuild(""), null, "nothing states no build");
-    assertStrictEquals(parseGameBuild("/js/main.min.js"), null, "and neither does no id");
-    assertStrictEquals(parseGameBuild("/js/main.min.7short.js"), null, "nor a short one");
-    assertStrictEquals(parseGameBuild("/js/other.min.53XkBRxF.js"), null, "nor another file");
+    assertStrictEquals(parseBuildId(""), null, "nothing states no build");
+    assertStrictEquals(parseBuildId("/js/main.min.js"), null, "and neither does no id");
+    assertStrictEquals(parseBuildId("/js/main.min.7short.js"), null, "nor a short one");
+    assertStrictEquals(parseBuildId("/js/other.min.53XkBRxF.js"), null, "nor another file");
     assertStrictEquals(
-        parseGameBuild("/js/main.min.53XkBRxF.css"),
+        parseBuildId("/js/main.min.53XkBRxF.css"),
         null,
         "nor the same id under a tail this reader does not answer to",
     );
@@ -38,17 +38,17 @@ Deno.test("a name that is not the bundle's yields nothing at all", () => {
 
 /** W5: the floor is eight, so seven is refused and eight read, in both shapes. */
 Deno.test("an id of eight characters is one, and of seven is not", () => {
-    assertStrictEquals(parseGameBuild("/js/main.min.53XkBRx.js"), null, "seven after the dot");
-    assertStrictEquals(parseGameBuild("/js/main.min.53XkBRxF.js"), "53XkBRxF", "eight after it");
-    assertStrictEquals(parseGameBuild("/js/main.min1786514.js"), null, "seven with no dot");
-    assertStrictEquals(parseGameBuild("/js/main.min17865148.js"), "17865148", "eight with none");
+    assertStrictEquals(parseBuildId("/js/main.min.53XkBRx.js"), null, "seven after the dot");
+    assertStrictEquals(parseBuildId("/js/main.min.53XkBRxF.js"), "53XkBRxF", "eight after it");
+    assertStrictEquals(parseBuildId("/js/main.min1786514.js"), null, "seven with no dot");
+    assertStrictEquals(parseBuildId("/js/main.min17865148.js"), "17865148", "eight with none");
 });
 
 Deno.test("the search goes past a name whose tail does not hold", () => {
     // A page states this name more than once, and only one of them need be the bundle: a reader
     // that stopped at the first `main.min` would answer null for a page that states the answer.
     assertEquals(
-        parseGameBuild("main.min.js and then main.min.53XkBRxF.js"),
+        parseBuildId("main.min.js and then main.min.53XkBRxF.js"),
         "53XkBRxF",
         "the second one answers where the first could not",
     );
@@ -56,18 +56,18 @@ Deno.test("the search goes past a name whose tail does not hold", () => {
 
 Deno.test("the first script naming a build is the page's build", () => {
     const sources = ["/js/jquery.js", "/js/main.min.53XkBRxF.js", "/js/main.min.Bb28FQty.js"];
-    const build = initPageBuild({ readScriptSources: () => sources }).readBuildId();
+    const build = initClientBuild({ readScriptSources: () => sources }).readBuildId();
     assertEquals(build, "53XkBRxF", "the first that names one, and not a later one");
 });
 
 Deno.test("a page naming no build says so, and a source that is not text is passed over", () => {
-    const none = initPageBuild({ readScriptSources: () => ["/js/jquery.js"] }).readBuildId();
-    assertInstanceOf(none, PageReadingAbsent, "no build is absent, never a guess");
-    assertStrictEquals(none.reading, PAGE_READING.build, "and names the reading");
-    const empty = initPageBuild({ readScriptSources: () => [] }).readBuildId();
-    assertInstanceOf(empty, PageReadingAbsent, "and a page with no scripts names none either");
+    const none = initClientBuild({ readScriptSources: () => ["/js/jquery.js"] }).readBuildId();
+    assertInstanceOf(none, ClientReadingAbsent, "no build is absent, never a guess");
+    assertStrictEquals(none.reading, CLIENT_READING.build, "and names the reading");
+    const empty = initClientBuild({ readScriptSources: () => [] }).readBuildId();
+    assertInstanceOf(empty, ClientReadingAbsent, "and a page with no scripts names none either");
     const mixed = [null, 7, { src: "x" }, "/js/main.min.53XkBRxF.js"];
-    const passed = initPageBuild({ readScriptSources: () => mixed }).readBuildId();
+    const passed = initClientBuild({ readScriptSources: () => mixed }).readBuildId();
     assertEquals(passed, "53XkBRxF", "what is not text is passed over, not refused");
 });
 
@@ -78,7 +78,7 @@ Deno.test("a page whose scripts will not be read is a failure of theirs", () => 
             throw thrown;
         },
     };
-    const read = initPageBuild(scripts).readBuildId();
+    const read = initClientBuild(scripts).readBuildId();
     assertInstanceOf(read, errors.Caught, "a failure of theirs");
     assertStrictEquals(read.cause, thrown, "with its cause");
 });
@@ -86,7 +86,7 @@ Deno.test("a page whose scripts will not be read is a failure of theirs", () => 
 /** Probe: an id long enough under a tail that does not hold is passed, and the search goes on. */
 Deno.test("a name of full length whose tail does not hold is passed for the next one", () => {
     assertEquals(
-        parseGameBuild("main.min.53XkBRxF.css then main.min.Bb28FQty.js"),
+        parseBuildId("main.min.53XkBRxF.css then main.min.Bb28FQty.js"),
         "Bb28FQty",
         "the second one answers where the first had the wrong tail",
     );

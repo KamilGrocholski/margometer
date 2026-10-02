@@ -18,9 +18,9 @@ import {
     type FightStandings,
     indexAuraTurnsBySkillId,
     indexShoutsBySkillId,
+    lookupAuraTurnsStated,
     lookupReachOfEffects,
-    lookupStatedTurns,
-    replayFightStandings,
+    replayAuraStandings,
     type StatedSkills,
 } from "#/src/core/aura-standing.ts";
 import {
@@ -30,7 +30,7 @@ import {
 } from "#/src/core/combatant-roster.ts";
 import type { FightView } from "#/src/core/fight-session.ts";
 import * as protocolKeys from "#/src/core/protocol-key.ts";
-import { isTeamWideKey, PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
+import { isSideWideKey, PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { STATED_SKILLS } from "#/tests/frozen-tables.ts";
 import {
     decodeRecordedFight,
@@ -77,13 +77,13 @@ const REACH_CLOSER = "]);";
 const COMMENT_OPENER = "//";
 
 Deno.test("a key reaches a side by its opening, its ending, or by being one of the three", () => {
-    assert(isTeamWideKey("aura-sa_per"), "the opening the table and the wire share");
-    assert(isTeamWideKey("taken_dmg_per-all"), "the table's spelling of what the wire calls -all");
-    assert(isTeamWideKey("+spell-taken_dmg-all"), "and the wire's own");
-    assert(isTeamWideKey("lowheal_per-enemies"), "an ending reaching the other side");
-    assert(isTeamWideKey("shout"), "and a name carrying neither shape");
-    assert(!isTeamWideKey("cooldown"), "a skill's own cooldown reaches nobody");
-    assert(!isTeamWideKey("healall_per"), "and healing is health rather than something standing");
+    assert(isSideWideKey("aura-sa_per"), "the opening the table and the wire share");
+    assert(isSideWideKey("taken_dmg_per-all"), "the table's spelling of what the wire calls -all");
+    assert(isSideWideKey("+spell-taken_dmg-all"), "and the wire's own");
+    assert(isSideWideKey("lowheal_per-enemies"), "an ending reaching the other side");
+    assert(isSideWideKey("shout"), "and a name carrying neither shape");
+    assert(!isSideWideKey("cooldown"), "a skill's own cooldown reaches nobody");
+    assert(!isSideWideKey("healall_per"), "and healing is health rather than something standing");
 });
 
 Deno.test("a cast stands from its own turn, and leaves when its turns have passed", () => {
@@ -152,7 +152,7 @@ function replayStandings(
     stated: StatedSkills,
     roster: CombatantRoster,
 ): FightStandings {
-    return replayFightStandings(composeView(events, roster), stated);
+    return replayAuraStandings(composeView(events, roster), stated);
 }
 
 /** A view holding the events and the cast a sample states, and nothing the walk does not read. */
@@ -750,15 +750,19 @@ Deno.test("the slow a Szadź casts reaches the other side", () => {
 Deno.test("a skill stands for its longest side-wide effect, and a shout dates none of it", () => {
     // `Wyzywający okrzyk` runs one effect for three turns and two for five; the shortest would call
     // the skill over while part of it still stands.
-    const stated = lookupStatedTurns([
+    const stated = lookupAuraTurnsStated([
         { key: "shout", turns: [3, 3] },
         { key: "alllowdmg", turns: [5, 5] },
         { key: "red-sa", turns: [] },
     ]);
     assertStrictEquals(stated, 5, "the longest of those that reach a side");
-    assertStrictEquals(lookupStatedTurns([{ key: "cooldown", turns: [6] }]), null, "none reach");
     assertStrictEquals(
-        lookupStatedTurns([
+        lookupAuraTurnsStated([{ key: "cooldown", turns: [6] }]),
+        null,
+        "none reach",
+    );
+    assertStrictEquals(
+        lookupAuraTurnsStated([
             { key: "shout", turns: [3, 3, 3] },
             { key: "aura-adddmg2_per-meele_physical", turns: [2] },
         ]),
@@ -766,7 +770,7 @@ Deno.test("a skill stands for its longest side-wide effect, and a shout dates no
         "the side-wide half stands on its own turns",
     );
     assertStrictEquals(
-        lookupStatedTurns([{ key: "shout", turns: [3, 3, 3] }]),
+        lookupAuraTurnsStated([{ key: "shout", turns: [3, 3, 3] }]),
         null,
         "and a skill that only shouts reaches no side-wide row",
     );

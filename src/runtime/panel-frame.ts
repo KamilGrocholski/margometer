@@ -11,9 +11,9 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
-import { replayFightStandings } from "#/src/core/aura-standing.ts";
+import { replayAuraStandings } from "#/src/core/aura-standing.ts";
 import type { OutcomeResult } from "#/src/core/battle-event.ts";
-import { type FightView, getFightView } from "#/src/core/fight-session.ts";
+import { composeFightView, type FightView } from "#/src/core/fight-session.ts";
 import type { TooltipPort } from "#/src/game/engine-tooltip.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
 import type { Clock } from "#/src/game/page-time.ts";
@@ -21,9 +21,9 @@ import { type TooltipTables, writeCarriedTooltips } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
 import {
     type FightReading,
-    lookupStandingFight,
-    lookupStandingKept,
-    type StandingFight,
+    lookupShownFight,
+    lookupShownKeptFight,
+    type ShownFight,
     tallyFightReading,
 } from "./fight-reading.ts";
 import type { LiveFight } from "./live-fight.ts";
@@ -44,7 +44,7 @@ import {
     type FightReader,
     type FightSuspicions,
     getEndForPinned,
-    getOutcomeForSeat,
+    getOutcomeForReaderSide,
     HALF_NAMED_OPENED,
     type HalfNamedDrillReading,
     type HalfNamedOpened,
@@ -52,21 +52,21 @@ import {
     lookupPinnedCase,
     type PairReading,
     type PartReading,
-    presentDrill,
-    presentHalfNamed,
-    presentHalfNamedDrill,
-    presentOpenedUnnamed,
-    presentPair,
-    presentPart,
+    presentOpenedLevel,
+    presentPairLevel,
+    presentPartLevel,
     presentScreen,
+    presentUnnamedCutLevel,
+    presentUnnamedLevel,
+    presentUnnamedPairLevel,
     type ShelfRow,
 } from "#/src/ui/panel-reading.ts";
 import { composeListName, OPENED_PART, type ScreenState } from "#/src/ui/panel-screen.ts";
 import {
-    presentStanding,
-    STANDING_ABSENCE,
-    type StandingAbsence,
-    type StandingReading,
+    HELPER_ABSENCE,
+    type HelperAbsence,
+    type HelperReading,
+    presentHelper,
 } from "#/src/ui/panel-standing.ts";
 import {
     CHOICE_REFUSED_ANSWER,
@@ -145,7 +145,7 @@ export function renderFrame(parts: FrameParts): void {
     // Write the carried tooltips, after the engine's own call, where a frame falls: the game
     // rebuilt its tooltips there.
     const tooltips = errors.attempt(() => {
-        const view = getFightView(parts.live.session);
+        const view = composeFightView(parts.live.session);
         if (view === null) return;
         const written = writeCarriedTooltips(view, parts.tables, parts.translate, parts.tooltip);
         if (written instanceof Error) addRegionDefect(parts, written);
@@ -159,15 +159,15 @@ export function renderFrame(parts: FrameParts): void {
         // fight.
         const isShelfEmpty = parts.keeper.getFights().length === 0;
         const read = errors.attempt(() =>
-            presentFrameStanding(parts.live, parts.tables, isShelfEmpty)
+            presentHelperForFrame(parts.live, parts.tables, isShelfEmpty)
         );
         if (read instanceof Error) {
             parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
         }
-        const reading = read instanceof Error ? STANDING_ABSENCE.fightUnread : read;
-        addUndrawn(
+        const reading = read instanceof Error ? HELPER_ABSENCE.fightUnread : read;
+        addUndrawnDefects(
             parts.defects,
-            parts.view.renderStanding(reading, parts.screen.isStandingCollapsed),
+            parts.view.renderHelper(reading, parts.screen.isHelperCollapsed),
         );
     }
     const said = getPanelDefects(parts.defects);
@@ -178,18 +178,22 @@ export function renderFrame(parts: FrameParts): void {
     // because a panel of zeroes over a game that has not started is a claim.
     const drawn = errors.attempt(() => {
         const { screen, keeper, live } = parts;
-        const view = getFightView(live.session);
+        const view = composeFightView(live.session);
         const liveReading = view === null ? null : tallyFightReading(view);
-        const standing = lookupStandingFight(
+        const shownFight = lookupShownFight(
             liveReading,
             screen.openFightId,
             keeper.getFights(),
-            keeper.lookupReading,
+            keeper.lookupKeptReading,
         );
-        if (standing === null) {
-            // A kept fight chosen and still no standing is a fight that no longer reads, and the
+        if (shownFight === null) {
+            // A kept fight chosen and still none shown is a fight that no longer reads, and the
             // reader is told which one rather than that there has been none.
-            const unread = lookupStandingKept(liveReading, screen.openFightId, keeper.getFights());
+            const unread = lookupShownKeptFight(
+                liveReading,
+                screen.openFightId,
+                keeper.getFights(),
+            );
             const keptUnread = unread === undefined ? null : {
                 at: parts.clock.readMoment(unread.openedAt),
                 place: formatFightPlace(unread.place),
@@ -203,14 +207,14 @@ export function renderFrame(parts: FrameParts): void {
                 typeStep: screen.typeStep,
                 windowSizes: screen.windowSizes,
             });
-            addUndrawn(parts.defects, drawnWaiting);
+            addUndrawnDefects(parts.defects, drawnWaiting);
             return;
         }
         assert(
-            standing.reading.view.payloadsApplied > 0,
+            shownFight.reading.view.payloadsApplied > 0,
             "a fight stood on was read from something",
         );
-        const shown = presentFrameScreen(parts, standing, liveReading, said, hasFightToSave);
+        const shown = presentFrameScreen(parts, shownFight, liveReading, said, hasFightToSave);
         // Say where two counts of one figure came out different.
         {
             // The one thing the panel can say about a drawn figure being wrong rather than short,
@@ -227,7 +231,7 @@ export function renderFrame(parts: FrameParts): void {
             if (shown.drill?.hasFiguresDisagreed === true) add(FIGURES_CUT.drill);
             if (shown.pair?.hasFiguresDisagreed === true) add(FIGURES_CUT.pair);
         }
-        addUndrawn(parts.defects, parts.view.render(shown));
+        addUndrawnDefects(parts.defects, parts.view.render(shown));
     });
     if (!(drawn instanceof Error)) return;
     parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: drawn });
@@ -242,7 +246,7 @@ export function renderFrame(parts: FrameParts): void {
         windowSizes: parts.screen.windowSizes,
     };
     assert(waiting.defects.length > 0, "a panel that could not be drawn says why");
-    addUndrawn(parts.defects, parts.view.renderWaiting(waiting));
+    addUndrawnDefects(parts.defects, parts.view.renderWaiting(waiting));
 }
 
 function addRegionDefect(parts: FrameParts, failure: RuntimeFailure): void {
@@ -253,19 +257,19 @@ function addRegionDefect(parts: FrameParts, failure: RuntimeFailure): void {
  * An absence where no payload has arrived: a fight nobody has seen has nothing standing on it, and
  * where the shelf keeps one the panel draws it, so "no fight yet" is said only over an empty shelf.
  */
-function presentFrameStanding(
+function presentHelperForFrame(
     live: LiveFight,
     tables: TooltipTables,
     isShelfEmpty: boolean,
-): StandingReading | StandingAbsence {
-    const view = getFightView(live.session);
+): HelperReading | HelperAbsence {
+    const view = composeFightView(live.session);
     if (view === null) {
-        return isShelfEmpty ? STANDING_ABSENCE.noFightYet : STANDING_ABSENCE.betweenFights;
+        return isShelfEmpty ? HELPER_ABSENCE.noFightYet : HELPER_ABSENCE.betweenFights;
     }
-    const held = replayFightStandings(view, tables.statedSkills);
+    const held = replayAuraStandings(view, tables.statedSkills);
     assert(held.provocations.length <= COMBATANTS_MAXIMUM, "a shout holds people of this fight");
     const turn = { statement: view.turnStatement, isOver: view.isOver, isOnAuto: view.isOnAuto };
-    return presentStanding(
+    return presentHelper(
         held.provocations,
         view.chargedSkills,
         view.roster,
@@ -274,7 +278,7 @@ function presentFrameStanding(
     );
 }
 
-function addUndrawn(defects: DefectLedger, report: RenderReport): void {
+function addUndrawnDefects(defects: DefectLedger, report: RenderReport): void {
     for (const failure of report.undrawn) {
         defects.add({ kind: DEFECT_KIND.region, region: failure.region, failure });
     }
@@ -287,13 +291,13 @@ function formatFightPlace(place: FightPlace | null): string | null {
 
 function presentFrameScreen(
     parts: FrameParts,
-    standing: StandingFight,
+    shownFight: ShownFight,
     liveReading: FightReading | null,
     said: readonly PanelDefect[],
     hasFightToSave: boolean,
 ): ShownScreen {
     const { screen, keeper, live } = parts;
-    const { view, figures } = standing.reading;
+    const { view, figures } = shownFight.reading;
     const reading = presentScreen(
         figures.statistics,
         view.roster,
@@ -302,10 +306,12 @@ function presentFrameScreen(
         view.readerSide,
         getFightSuspicions(view),
     );
-    const opened = presentOpenedReadings(standing.reading, screen);
+    const opened = presentOpenedReadings(shownFight.reading, screen);
     // The row the panel is drawing: the kept one wherever there is no live fight to mark instead.
-    const chosenFight = screen.openFightId ?? standing.kept?.openedAt ?? null;
-    if (standing.kept !== null) assert(chosenFight !== null, "a kept fight on screen is one named");
+    const chosenFight = screen.openFightId ?? shownFight.kept?.openedAt ?? null;
+    if (shownFight.kept !== null) {
+        assert(chosenFight !== null, "a kept fight on screen is one named");
+    }
     assert(reading.rows.length <= COMBATANTS_MAXIMUM, "a ranking holds the fight's cast at most");
     const liveRow = liveReading === null ? null : {
         reading: liveReading,
@@ -330,15 +336,15 @@ function presentFrameScreen(
         defects: said,
         isOnShelf: screen.isOnShelf,
         ...opened,
-        place: formatFightPlaceWords(standing.kept === null ? live.place : standing.kept.place),
+        place: formatFightPlaceWords(shownFight.kept === null ? live.place : shownFight.kept.place),
         card: presentFightCardReading(parts, {
             sizes: reading.sizes,
             unplaced: reading.unplaced,
             outcome: reading.outcome,
-            isLive: standing.kept === null,
-            openedAt: standing.kept?.openedAt ?? live.openedAt,
-            place: standing.kept === null ? live.place : standing.kept.place,
-            readerId: standing.kept === null ? live.readerId : standing.kept.readerId,
+            isLive: shownFight.kept === null,
+            openedAt: shownFight.kept?.openedAt ?? live.openedAt,
+            place: shownFight.kept === null ? live.place : shownFight.kept.place,
+            readerId: shownFight.kept === null ? live.readerId : shownFight.kept.readerId,
             roster: view.roster,
         }),
         isCollapsed: screen.isCollapsed,
@@ -403,7 +409,7 @@ function presentShelfRows(
     const alsoKept = live === null ? undefined : kept.find((one) => one.openedAt === live.openedAt);
     if (live !== null) {
         const { sizes, unplaced } = presentShelfHeadcount(live.reading);
-        const outcome = presentOutcome(live.reading);
+        const outcome = getOutcomeOfReading(live.reading);
         rows.push({
             openedAt: live.openedAt,
             at: parts.clock.readMoment(live.openedAt),
@@ -429,7 +435,7 @@ function presentShelfRows(
     }
     for (const one of [...kept].sort((first, other) => other.openedAt - first.openedAt)) {
         if (one.openedAt === alsoKept?.openedAt) continue;
-        const reading = parts.keeper.lookupReading(one);
+        const reading = parts.keeper.lookupKeptReading(one);
         // A row for a fight nothing can be read out of would state a headcount it does not have.
         if (reading === null) continue;
         rows.push(presentKeptShelfRow(parts, one, reading, chosenId));
@@ -449,10 +455,10 @@ function presentShelfHeadcount(reading: FightReading): { sizes: number[]; unplac
     return headcount;
 }
 
-function presentOutcome(reading: FightReading): OutcomeResult | null {
+function getOutcomeOfReading(reading: FightReading): OutcomeResult | null {
     const outcome = reading.figures.statistics.outcome;
     if (outcome === null) return null;
-    return getOutcomeForSeat(outcome, reading.view.roster, reading.view.readerSide);
+    return getOutcomeForReaderSide(outcome, reading.view.roster, reading.view.readerSide);
 }
 
 function presentKeptShelfRow(
@@ -464,7 +470,7 @@ function presentKeptShelfRow(
     assert(reading.view.payloadsApplied > 0, "a kept row states a fight read from something");
     assert(fight.payloads.length > 0, "and kept from something");
     const { sizes, unplaced } = presentShelfHeadcount(reading);
-    const outcome = presentOutcome(reading);
+    const outcome = getOutcomeOfReading(reading);
     return {
         openedAt: fight.openedAt,
         at: parts.clock.readMoment(fight.openedAt),
@@ -524,23 +530,27 @@ export function presentOpenedReadings(reading: FightReading, screen: ScreenState
     const statistics = reading.figures.statistics;
     const roster = reading.view.roster;
     if (screen.openRowId === null) {
-        const halfNamed = presentOpenedHalfNamed(reading, screen);
-        const halfNamedDrill = presentOpenedHalfNamedDrill(reading, screen);
+        const halfNamed = lookupUnnamedLevel(reading, screen);
+        const halfNamedDrill = lookupUnnamedCutLevel(reading, screen);
         return { drill: null, pair: null, part: null, halfNamed, halfNamedDrill };
     }
-    const drill = presentDrill(statistics, roster, screen.current, screen.openRowId);
+    const drill = presentOpenedLevel(statistics, roster, screen.current, screen.openRowId);
     // A row nobody in the fight is on opens nothing, and nothing under it stands either.
     if (drill === null) {
         return { drill: null, pair: null, part: null, halfNamed: null, halfNamedDrill: null };
     }
     assert(drill.combatantId === screen.openRowId, "the row drawn open is the row opened");
-    const pair = screen.openPairId === null
-        ? null
-        : presentPair(statistics, roster, screen.current, drill.combatantId, screen.openPairId);
+    const pair = screen.openPairId === null ? null : presentPairLevel(
+        statistics,
+        roster,
+        screen.current,
+        drill.combatantId,
+        screen.openPairId,
+    );
     const part = screen.openPart === null
         ? null
-        : presentPart(statistics, roster, screen.current, drill.combatantId, screen.openPart);
-    const halfNamedDrill = presentOpenedUnnamedOfRow(reading, screen, drill);
+        : presentPartLevel(statistics, roster, screen.current, drill.combatantId, screen.openPart);
+    const halfNamedDrill = lookupUnnamedPairLevel(reading, screen, drill);
     return { drill, pair, part, halfNamed: null, halfNamedDrill };
 }
 
@@ -548,7 +558,7 @@ export function presentOpenedReadings(reading: FightReading, screen: ScreenState
  * The end the opened figure left out, where that row opens: the reading composes the level only
  * behind a row that says it opens, so a mark left over from another screen draws nothing.
  */
-function presentOpenedUnnamedOfRow(
+function lookupUnnamedPairLevel(
     reading: FightReading,
     screen: ScreenState,
     drill: DrillReading,
@@ -560,12 +570,12 @@ function presentOpenedUnnamedOfRow(
     if (!unnamed.doesOpenPair) return null;
     const { statistics } = reading.figures;
     const { roster } = reading.view;
-    const held = presentOpenedUnnamed(statistics, roster, screen.current, drill.combatantId);
+    const held = presentUnnamedPairLevel(statistics, roster, screen.current, drill.combatantId);
     if (held === null) return null;
     return getEndForPinned(held.case) === screen.openUnnamedEnd ? held : null;
 }
 
-function presentOpenedHalfNamed(
+function lookupUnnamedLevel(
     reading: FightReading,
     screen: ScreenState,
 ): HalfNamedReading | null {
@@ -574,25 +584,25 @@ function presentOpenedHalfNamed(
     if (kase === null) return null;
     const { statistics } = reading.figures;
     const { roster, readerSide } = reading.view;
-    return presentHalfNamed(statistics, roster, kase, screen.side, readerSide);
+    return presentUnnamedLevel(statistics, roster, kase, screen.side, readerSide);
 }
 
-function presentOpenedHalfNamedDrill(
+function lookupUnnamedCutLevel(
     reading: FightReading,
     screen: ScreenState,
 ): HalfNamedDrillReading | null {
     if (screen.openUnnamedEnd === null) return null;
     const kase = lookupPinnedCase(screen.current, screen.openUnnamedEnd);
     if (kase === null) return null;
-    const opened = lookupHalfNamedOpened(screen);
+    const opened = lookupUnnamedCutPress(screen);
     if (opened === null) return null;
     const { statistics } = reading.figures;
     const { roster, readerSide } = reading.view;
-    return presentHalfNamedDrill(statistics, roster, kase, screen.side, readerSide, opened);
+    return presentUnnamedCutLevel(statistics, roster, kase, screen.side, readerSide, opened);
 }
 
 /** A person or a key, and never both: the way back closes the key first, so one of them is null. */
-function lookupHalfNamedOpened(screen: ScreenState): HalfNamedOpened | null {
+function lookupUnnamedCutPress(screen: ScreenState): HalfNamedOpened | null {
     assert(screen.openUnnamedEnd !== null, "a pinned row's rung is asked of an open pinned row");
     assert(screen.openRowId === null, "a person's row and a pinned row are never open at once");
     if (screen.openPart !== null) {

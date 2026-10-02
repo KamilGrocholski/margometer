@@ -20,7 +20,7 @@ Deno.test("the fates §10.5 names outright are the ones the table holds", () => 
         "an unread message",
     );
     assertStrictEquals(
-        FAILURE_FATES.PageReadingAbsent,
+        FAILURE_FATES.ClientReadingAbsent,
         FAILURE_FATE.shownAsUnknown,
         "a reading the page did not give",
     );

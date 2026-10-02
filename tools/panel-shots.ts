@@ -219,7 +219,7 @@ function composeWindowsSeeded(): string {
     // The shots are taken at the size a reader who chose none reads.
     const drawn = TYPE_TOKENS[TYPE_STEP_DEFAULT];
     const helperOffset = PLACE.insetPixels + drawn.panelWidthPixels + SPACE_PIXELS.wide +
-        drawn.standingWidthPixels;
+        drawn.helperWidthPixels;
     return `(function setWindowsSeeded() {
   try {
     var top = ${PLACE.insetPixels};
