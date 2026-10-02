@@ -10,23 +10,23 @@
 import { assert } from "@std/assert/assert";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
-import type { WarriorSnapshot } from "./warrior-snapshot.ts";
+import type { GameWarriorSnapshot } from "./warrior-snapshot.ts";
 
 export interface CapturedCall {
     index: number;
     payload: unknown;
     messages: readonly string[];
     /** Null where nobody read the engine, never `[]`: the two are different claims. */
-    combatantsBefore: WarriorSnapshot | null;
-    combatantsAfter: WarriorSnapshot | null;
+    combatantsBefore: GameWarriorSnapshot | null;
+    combatantsAfter: GameWarriorSnapshot | null;
 }
 
 /** One call as the engine handed it over, beside the snapshots taken either side of it. */
-export interface EngineCall {
+export interface GameEngineCall {
     payload: unknown;
     messages: readonly string[];
-    combatantsBefore: WarriorSnapshot | null;
-    combatantsAfter: WarriorSnapshot | null;
+    combatantsBefore: GameWarriorSnapshot | null;
+    combatantsAfter: GameWarriorSnapshot | null;
 }
 
 /** The recording being collected, changed by `commitCapture` alone. */
@@ -74,7 +74,7 @@ export function createFightCapture(): FightCapture {
 /** Phase one: whether one more call is kept, and its copy, the recording untouched. */
 export function prepareCapture(
     capture: FightCapture,
-    call: EngineCall,
+    call: GameEngineCall,
     isOpening: boolean,
 ): PreparedCapture {
     const callIndex = isOpening ? 0 : capture.calls.length;
@@ -109,7 +109,7 @@ function encodeCaptureShape(payload: unknown): string {
 }
 
 /** A cast that would not be written is no key at all, and every such state then keys the same. */
-function encodeCaptureState(combatants: WarriorSnapshot | null): string {
+function encodeCaptureState(combatants: GameWarriorSnapshot | null): string {
     const written = encodeJson(combatants ?? [], 0);
     if (written instanceof Error) return "";
     assert(written.length > 0, "a key that was written says something");

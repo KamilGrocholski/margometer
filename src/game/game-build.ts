@@ -7,10 +7,10 @@
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { getEndOfRun } from "#/libs/text-walk.ts";
-import { CLIENT_READING, type ClientReadFailure, ClientReadingAbsent } from "./page-reading.ts";
+import { GAME_VALUE, type GameReadFailure, GameValueAbsent } from "./game-value.ts";
 
-export interface BuildPort {
-    readBuildId(): string | ClientReadFailure;
+export interface GameBuildPort {
+    readBuildId(): string | GameReadFailure;
 }
 
 /** The whole of what this asks a page for: the sources of its scripts. */
@@ -31,7 +31,7 @@ const OPTIONAL_SEPARATOR = ".";
 const LOOKS_MAXIMUM = 256;
 export const SCRIPTS_MAXIMUM = 4096;
 
-export function initClientBuild(scripts: BrowserScripts): BuildPort {
+export function initGameBuild(scripts: BrowserScripts): GameBuildPort {
     return {
         readBuildId() {
             const sources = errors.attempt(() => scripts.readScriptSources());
@@ -40,10 +40,10 @@ export function initClientBuild(scripts: BrowserScripts): BuildPort {
             for (let at = 0; at < walked; at += 1) {
                 const source = sources[at];
                 if (typeof source !== "string") continue;
-                const build = parseBuildId(source);
+                const build = parseGameBuildId(source);
                 if (build !== null) return build;
             }
-            return new ClientReadingAbsent(CLIENT_READING.build);
+            return new GameValueAbsent(GAME_VALUE.build);
         },
     };
 }
@@ -52,7 +52,7 @@ export function initClientBuild(scripts: BrowserScripts): BuildPort {
  * `main.min<build>.js` or `main.min.<build>.js`, null for anything else. A `main.min` whose tail
  * does not hold is not the end of the search: a page states this name more than once.
  */
-export function parseBuildId(text: string): string | null {
+export function parseGameBuildId(text: string): string | null {
     const span = lookupScriptNameSpan(text);
     if (span === null) return null;
     return text.slice(span.buildStart, span.buildEnd);

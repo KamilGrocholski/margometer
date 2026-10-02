@@ -13,7 +13,7 @@ import {
     type TypeStep,
     type WindowSizes,
 } from "./panel-choice.ts";
-import type { OpenedPart, PanelUnnamedEnd } from "./panel-reading.ts";
+import type { OpenedPart, PanelUnnamedEnd } from "./panel-content.ts";
 import {
     getDirectionWordsForMetric,
     getWordsForNoun,

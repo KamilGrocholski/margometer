@@ -8,14 +8,14 @@
 
 import { NO_WINDOW_SIZES, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import type { ShownScreen } from "#/src/ui/panel-element.ts";
-import type { ScreenReading } from "#/src/ui/panel-reading.ts";
+import type { ScreenContent } from "#/src/ui/panel-content.ts";
 import { PANEL_METRIC, type PanelMetric, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 
 /** The name the panel draws its list under where a test is not asking about the name. */
 export const SHOWN_LIST = "shown";
 
 export function composeShownScreen(
-    reading: ScreenReading,
+    reading: ScreenContent,
     metric: PanelMetric = PANEL_METRIC.damageDealt,
 ): ShownScreen {
     return {

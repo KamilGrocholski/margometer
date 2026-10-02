@@ -533,7 +533,7 @@ export function createFabricatedFight(
         // 2026-09-22 at ten a side, level 92: the walk reaches this act once every 41 turns, so
         // how many are still held at the last call falls out of wherever the rounds happened
         // to stop — 20 at 20 rounds, 10 at the default 26, and nothing says so. A fixture for
-        // `PROVOKED_MAXIMUM` (`src/ui/panel-standing.ts`) cannot rest on that. A side nobody is
+        // `PROVOKED_MAXIMUM` (`src/ui/panel-helper.ts`) cannot rest on that. A side nobody is
         // left on shouts at nobody, so a shape whose fight settles before its rounds run out
         // is refused here rather than closing on one shout.
         assert(turns > 0, "a fight closing on shouts ran turns before them");

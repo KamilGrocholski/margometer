@@ -595,11 +595,11 @@ Deno.test("the card stands over the window beside the panel, and both over the f
             const written = rule.split("z-index:")[1] ?? "";
             return Number(written.split(";")[0]);
         };
-        const standing = layerOf(`.${CLASS.standing}{`);
+        const standing = layerOf(`.${CLASS.helper}{`);
         const tip = layerOf(`.${CLASS.tip}{`);
         assertStrictEquals(
             standing,
-            Number(LAYER.standing),
+            Number(LAYER.helper),
             "the window takes the layer it is given",
         );
         assertStrictEquals(tip, Number(LAYER.tip), "and so does the card");
@@ -919,14 +919,14 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
         const sheet = composeStyleSheet(step);
         const tokens = TYPE_TOKENS[step];
         const body = `${tokens.fontPixels}px/${tokens.lineHeightPixels}px`;
-        for (const drawn of [CLASS.panel, CLASS.standing, CLASS.tip]) {
+        for (const drawn of [CLASS.panel, CLASS.helper, CLASS.tip]) {
             const font = getDeclaration(getRuleBody(sheet, `.${drawn}`), "font");
             assert(font?.startsWith(body), `${step}: ${drawn} prints ${font}, not ${body}`);
         }
         // As wide as the step says, until a reader sizes the window by its corner.
-        const panel = `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px)`;
+        const panel = `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px)`;
         const standing = `var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px)`;
-        const widths = [[CLASS.panel, panel], [CLASS.title, panel], [CLASS.standing, standing]];
+        const widths = [[CLASS.panel, panel], [CLASS.title, panel], [CLASS.helper, standing]];
         for (const [drawn, width] of widths) {
             const stated = getDeclaration(getRuleBody(sheet, `.${drawn}`), "width");
             assertEquals(stated, width, `${step}: ${drawn} stands as wide as the step says`);

@@ -10,10 +10,10 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import type { UnreadMessage } from "#/src/core/fight-decoder.ts";
 import type { PayloadRejected } from "#/src/core/fight-session.ts";
 import type { StoreFailure } from "#/src/game/browser-store.ts";
-import type { EngineFailure } from "#/src/game/engine-battle.ts";
-import type { ClientReadFailure } from "#/src/game/page-reading.ts";
+import type { GameEngineFailure } from "#/src/game/game-battle.ts";
+import type { GameReadFailure } from "#/src/game/game-value.ts";
 import type { EnvelopeFailure } from "#/src/game/payload-envelope.ts";
-import type { WarriorFailure } from "#/src/game/warrior-snapshot.ts";
+import type { GameWarriorFailure } from "#/src/game/warrior-snapshot.ts";
 import type { ExportFailure } from "./fight-handover.ts";
 import type { FiguresDisagreed } from "./panel-frame.ts";
 import type { ViewFailure } from "#/src/ui/view-failure.ts";
@@ -22,7 +22,7 @@ import type { SettingFailure } from "./settings.ts";
 import type { ShelfFailure } from "./shelf.ts";
 
 export type RuntimeFailure =
-    | EngineFailure
+    | GameEngineFailure
     | EnvelopeFailure
     | PayloadRejected
     | UnreadMessage
@@ -33,8 +33,8 @@ export type RuntimeFailure =
     | ExportFailure
     | FiguresDisagreed
     | ViewFailure
-    | WarriorFailure
-    | ClientReadFailure
+    | GameWarriorFailure
+    | GameReadFailure
     | errors.Caught;
 
 export const FAILURE_FATE = {
@@ -49,10 +49,10 @@ export type FailureFate = VocabularyWord<typeof FAILURE_FATE>;
 
 /** Keyed by each class's literal `name`, which is what holds the table complete (ADR 0008). */
 export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: FailureFate } = {
-    EngineAbsent: FAILURE_FATE.defect,
-    BattleAbsent: FAILURE_FATE.defect,
-    MethodAbsent: FAILURE_FATE.defect,
-    EngineAlreadyWrapped: FAILURE_FATE.standDown,
+    GameEngineAbsent: FAILURE_FATE.defect,
+    GameBattleAbsent: FAILURE_FATE.defect,
+    GameMethodAbsent: FAILURE_FATE.defect,
+    GameEngineAlreadyWrapped: FAILURE_FATE.standDown,
     SearchAbandoned: FAILURE_FATE.defect,
     WrapCovered: FAILURE_FATE.defect,
     PayloadNotRecord: FAILURE_FATE.defect,
@@ -82,8 +82,8 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     RegionUndrawn: FAILURE_FATE.defect,
     GestureDropped: FAILURE_FATE.defect,
     WindowUnplaced: FAILURE_FATE.fallbackWithDefect,
-    WarriorsAbsent: FAILURE_FATE.shownAsUnknown,
-    WarriorsExceeded: FAILURE_FATE.defect,
-    ClientReadingAbsent: FAILURE_FATE.shownAsUnknown,
+    GameWarriorsAbsent: FAILURE_FATE.shownAsUnknown,
+    GameWarriorsExceeded: FAILURE_FATE.defect,
+    GameValueAbsent: FAILURE_FATE.shownAsUnknown,
     Caught: FAILURE_FATE.defect,
 };

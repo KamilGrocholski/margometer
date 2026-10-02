@@ -42,7 +42,7 @@ All 273 sites were read. Ten changed, and the rest have an empty negative space:
 - **Asserted where the `if` had hidden an impossibility.** The `if` gave way to an assertion,
   because its negative case cannot happen: in `src/core/combatant-health.ts`, a health read off a
   percentage always has a pool, and a sized cast always has a caster's side.
-- **An `else` assertion saying what the compiler does not know.** In `src/runtime/fight-reading.ts`,
+- **An `else` assertion saying what the compiler does not know.** In `src/runtime/fight-state.ts`,
   only an empty shelf names no newest fight.
 - **A value set before the `if` moved into the `else`.** This happened in
   `src/core/fight-decoder.ts` (`getTokenFromKey`), `src/core/fight-session.ts` (`hasClosed`),

@@ -12,41 +12,41 @@ import {
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
-import { getDefenceMechanism, KEY_FAMILY, lookupKeyReading } from "#/src/core/protocol-key.ts";
+import { getDefenceMechanism, KEY_FAMILY, lookupKeyMeaning } from "#/src/core/protocol-key.ts";
 import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 Deno.test("the family rule reads a marker, and the sign says which half", () => {
-    assertEquals(lookupKeyReading("+dmgf"), { kind: KEY_FAMILY.damage, half: "raw" }, "raw");
+    assertEquals(lookupKeyMeaning("+dmgf"), { kind: KEY_FAMILY.damage, half: "raw" }, "raw");
     assertEquals(
-        lookupKeyReading("-dmgf"),
+        lookupKeyMeaning("-dmgf"),
         { kind: KEY_FAMILY.damage, half: "applied" },
         "applied",
     );
     assertEquals(
-        lookupKeyReading("+dmg"),
+        lookupKeyMeaning("+dmg"),
         { kind: KEY_FAMILY.damage, half: "raw" },
         "the plain one",
     );
-    assertStrictEquals(lookupKeyReading("+dm"), null, "a marker cut short is no marker");
-    assertStrictEquals(lookupKeyReading("dmg"), null, "and one at the wrong place is none either");
-    assertStrictEquals(lookupKeyReading("*dmgf"), null, "and one under neither sign is unread");
+    assertStrictEquals(lookupKeyMeaning("+dm"), null, "a marker cut short is no marker");
+    assertStrictEquals(lookupKeyMeaning("dmg"), null, "and one at the wrong place is none either");
+    assertStrictEquals(lookupKeyMeaning("*dmgf"), null, "and one under neither sign is unread");
 });
 
 Deno.test("the pair with no marker is read by name", () => {
-    assertEquals(lookupKeyReading("+thirdatt"), { kind: KEY_FAMILY.damage, half: "raw" }, "raw");
-    const applied = lookupKeyReading("-thirdatt");
+    assertEquals(lookupKeyMeaning("+thirdatt"), { kind: KEY_FAMILY.damage, half: "raw" }, "raw");
+    const applied = lookupKeyMeaning("-thirdatt");
     assertEquals(applied, { kind: KEY_FAMILY.damage, half: "applied" }, "and applied");
 });
 
 Deno.test("a proc's end is the table's, never the sign's", () => {
-    const curse = lookupKeyReading("+legbon_curse");
+    const curse = lookupKeyMeaning("+legbon_curse");
     assertEquals(curse, { kind: KEY_FAMILY.proc, end: "actor", doesTakeValue: false }, "attacker");
-    const cleanse = lookupKeyReading("-legbon_cleanse");
+    const cleanse = lookupKeyMeaning("-legbon_cleanse");
     assertEquals(cleanse, { kind: KEY_FAMILY.proc, end: "target", doesTakeValue: false }, "struck");
-    const tenacity = lookupKeyReading("-tenacity");
+    const tenacity = lookupKeyMeaning("-tenacity");
     assertEquals(tenacity, { kind: KEY_FAMILY.proc, end: "unsettled", doesTakeValue: false }, "?");
-    const weakened = lookupKeyReading("+woundpoison");
+    const weakened = lookupKeyMeaning("+woundpoison");
     assertEquals(weakened, { kind: KEY_FAMILY.proc, end: "actor", doesTakeValue: true }, "valued");
 });
 
@@ -54,31 +54,31 @@ Deno.test("absorption is a pool the blow drains, and a block is a chance", () =>
     assertStrictEquals(getDefenceMechanism("absorb"), "pool", "physical absorption");
     assertStrictEquals(getDefenceMechanism("absorbm"), "pool", "magical absorption");
     assertStrictEquals(getDefenceMechanism("blok"), "chance", "a block");
-    assertEquals(lookupKeyReading("-absorb"), { kind: KEY_FAMILY.prevented }, "still prevented");
+    assertEquals(lookupKeyMeaning("-absorb"), { kind: KEY_FAMILY.prevented }, "still prevented");
     assertThrows(() => getDefenceMechanism("-absorb"), AssertionError, "one this table reads");
     assertThrows(() => getDefenceMechanism("dmgc"), AssertionError, "one this table reads");
 });
 
 Deno.test("a pool's defence shares no token with an element or a health change", () => {
     for (const defence of ["absorb", "absorbm"]) {
-        assertStrictEquals(lookupKeyReading(`-${defence}`)?.kind, KEY_FAMILY.prevented, defence);
+        assertStrictEquals(lookupKeyMeaning(`-${defence}`)?.kind, KEY_FAMILY.prevented, defence);
         assertStrictEquals(defence.startsWith("dmg"), false, `${defence} is no element`);
-        assertStrictEquals(lookupKeyReading(defence), null, `${defence} is no health change`);
+        assertStrictEquals(lookupKeyMeaning(defence), null, `${defence} is no health change`);
     }
 });
 
 Deno.test("a key spelled like what every object carries means nothing", () => {
-    assertStrictEquals(lookupKeyReading("constructor"), null, "not the language's constructor");
-    assertStrictEquals(lookupKeyReading("toString"), null, "nor its method");
+    assertStrictEquals(lookupKeyMeaning("constructor"), null, "not the language's constructor");
+    assertStrictEquals(lookupKeyMeaning("toString"), null, "nor its method");
     assertStrictEquals(
-        lookupKeyReading("whatever_per"),
+        lookupKeyMeaning("whatever_per"),
         null,
         "and a key nobody met means nothing",
     );
 });
 
 Deno.test("an empty key is the grammar's to refuse, so asking about one is a bug", () => {
-    assertThrows(() => lookupKeyReading(""), AssertionError, "a key the message wrote");
+    assertThrows(() => lookupKeyMeaning(""), AssertionError, "a key the message wrote");
 });
 
 Deno.test("every family is reached by a key of its own", () => {
@@ -99,7 +99,7 @@ Deno.test("every family is reached by a key of its own", () => {
         "+oth_dmg",
         "legbon_lastheal",
     ];
-    const reached = new Set(keys.map((key) => lookupKeyReading(key)?.kind));
+    const reached = new Set(keys.map((key) => lookupKeyMeaning(key)?.kind));
     assertEquals([...reached].sort(), Object.values(KEY_FAMILY).sort(), "each family, once");
 });
 
@@ -112,7 +112,7 @@ Deno.test("every key every recording carries means something", () => {
             if (parsed instanceof Error) continue;
             for (const parameter of parsed.parameters) {
                 keys += 1;
-                if (lookupKeyReading(parameter.key) === null) unknown.add(parameter.key);
+                if (lookupKeyMeaning(parameter.key) === null) unknown.add(parameter.key);
             }
         }
     }

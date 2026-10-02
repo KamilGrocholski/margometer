@@ -47,7 +47,7 @@ export type DefenceMechanism = VocabularyWord<typeof DEFENCE_MECHANISM>;
 export const DAMAGE_HALF = { raw: "raw", applied: "applied" } as const;
 export type DamageHalf = VocabularyWord<typeof DAMAGE_HALF>;
 
-export type KeyReading =
+export type KeyMeaning =
     | { kind: typeof KEY_FAMILY.damage; half: DamageHalf }
     | { kind: typeof KEY_FAMILY.prevented }
     | { kind: typeof KEY_FAMILY.destroyed }
@@ -330,7 +330,7 @@ const SIDE_WIDE_ENDINGS = ["-all", "-allies", "-enemies"];
  */
 const SIDE_WIDE_KEYS = [PROVOCATION_KEY, SLOW_ALL_KEY, "alllowdmg"];
 
-const KEY_READING_BY_KEY: ReadonlyMap<string, KeyReading> = indexKeyReadings();
+const KEY_MEANING_BY_KEY: ReadonlyMap<string, KeyMeaning> = indexKeyMeanings();
 /** Keyed by the defence an event names, which is the key with its sign taken off. */
 const DEFENCE_MECHANISM_BY_DEFENCE: ReadonlyMap<string, DefenceMechanism> =
     indexDefenceMechanisms();
@@ -353,16 +353,16 @@ export function isSideWideKey(key: string): boolean {
     return SIDE_WIDE_KEYS.includes(key);
 }
 
-export function lookupKeyReading(key: string): KeyReading | null {
+export function lookupKeyMeaning(key: string): KeyMeaning | null {
     assert(key.length > 0, "a key asked about is a key the message wrote");
-    const listed = KEY_READING_BY_KEY.get(key);
+    const listed = KEY_MEANING_BY_KEY.get(key);
     if (listed !== undefined) return listed;
     if (!key.startsWith(DAMAGE_MARKER, DAMAGE_MARKER_AT)) return null;
     let half: DamageHalf;
     if (key.startsWith(RAW_SIGN)) half = DAMAGE_HALF.raw;
     else if (key.startsWith(APPLIED_SIGN)) half = DAMAGE_HALF.applied;
     else return null;
-    assert(!KEY_READING_BY_KEY.has(key), "a key read by the family rule is in no list");
+    assert(!KEY_MEANING_BY_KEY.has(key), "a key read by the family rule is in no list");
     return { kind: KEY_FAMILY.damage, half };
 }
 
@@ -374,9 +374,9 @@ export function getDefenceMechanism(defence: string): DefenceMechanism {
     return mechanism;
 }
 
-function indexKeyReadings(): Map<string, KeyReading> {
-    const found = new Map<string, KeyReading>();
-    const add = (key: string, reading: KeyReading) => {
+function indexKeyMeanings(): Map<string, KeyMeaning> {
+    const found = new Map<string, KeyMeaning>();
+    const add = (key: string, reading: KeyMeaning) => {
         assert(!found.has(key), "a key belongs to one family");
         found.set(key, reading);
     };

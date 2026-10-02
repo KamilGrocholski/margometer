@@ -11,7 +11,7 @@
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 
-export interface FileSink {
+export interface BrowserFileSink {
     /** The release lands on the browser's clock later, so its failure is handed back apart. */
     writeFile(
         name: string,
@@ -49,7 +49,7 @@ export interface DownloadAnchor {
 const DOWNLOAD_ANCHOR_CLASS = "MargoMeter-download";
 const FILE_TYPE = "application/json";
 
-export function initBrowserFile(downloads: BrowserDownloads | null): FileSink {
+export function initBrowserFile(downloads: BrowserDownloads | null): BrowserFileSink {
     return {
         writeFile(name, text, onLateFailure) {
             assert(name.length > 0, "a file handed over is named");

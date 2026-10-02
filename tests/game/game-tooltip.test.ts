@@ -10,10 +10,10 @@ import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std
 import * as errors from "#/libs/errors.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
-    initEngineTooltip,
+    type GameTooltipPort,
+    initGameTooltip,
     ROWS_WRITTEN_MAXIMUM,
-    type TooltipPort,
-} from "#/src/game/engine-tooltip.ts";
+} from "#/src/game/game-tooltip.ts";
 import { ROWS_BESIDE_THE_STATUSES } from "#/src/ui/panel-words.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 
@@ -52,7 +52,7 @@ Deno.test("a block lands on the fighter it was composed for, and on nobody else"
         composeWarrior(11, "Gracz 1", first),
         composeWarrior(21, "Renegat 1", second),
     ]);
-    const writing = initEngineTooltip(page).writeRows(new Map([[11, ["MargoMeter"]]]));
+    const writing = initGameTooltip(page).writeRows(new Map([[11, ["MargoMeter"]]]));
     assertEquals(writing, { written: 1, asked: 1 }, "one block asked for, one landed");
     assertEquals(first.text, `${THEIRS}<br>MargoMeter`, "under what the game composed");
     assertEquals(second.text, THEIRS, "and the fighter it was not composed for got nothing");
@@ -121,10 +121,10 @@ Deno.test("every row goes over on a call of its own, and an open tooltip is told
 });
 
 /** One fighter, a writer, and the page they stand on — what most of these tests start from. */
-function composeOne(): { registry: Registry; writer: TooltipPort } {
+function composeOne(): { registry: Registry; writer: GameTooltipPort } {
     const registry = composeRegistry();
     const page = composePage([composeWarrior(11, "Gracz 1", registry)]);
-    return { registry, writer: initEngineTooltip(page) };
+    return { registry, writer: initGameTooltip(page) };
 }
 
 /**
@@ -206,7 +206,7 @@ Deno.test("a client with no way to add to a tooltip takes no line, and says so",
     const registry = composeRegistry();
     const page = composePage([composeWarrior(11, "Gracz 1", registry, { hasMethods: false })]);
     assertEquals(
-        initEngineTooltip(page).writeRows(new Map([[11, ["cokolwiek"]]])),
+        initGameTooltip(page).writeRows(new Map([[11, ["cokolwiek"]]])),
         { written: 0, asked: 1 },
         "asked for one and landed none",
     );
@@ -225,7 +225,7 @@ Deno.test("a fighter with no way to take a line costs their own line and nobody 
         composeWarrior(21, "Renegat 1", registries[1]!),
         composeWarrior(31, "Renegat 2", registries[2]!),
     ]);
-    const writing = initEngineTooltip(page).writeRows(
+    const writing = initGameTooltip(page).writeRows(
         new Map([[11, ["a"]], [21, ["b"]], [31, ["c"]]]),
     );
     assertEquals(writing, { written: 2, asked: 3 }, "the two that could take one did");
@@ -244,7 +244,7 @@ Deno.test("any one of the four methods gone costs that fighter's line, and nobod
             composeWarrior(11, "Gracz 1", first, { lacking: method }),
             composeWarrior(21, "Renegat 1", second),
         ]);
-        const writing = initEngineTooltip(page).writeRows(new Map([[11, ["a"]], [21, ["b"]]]));
+        const writing = initGameTooltip(page).writeRows(new Map([[11, ["a"]], [21, ["b"]]]));
         assertEquals(writing, { written: 1, asked: 2 }, `without ${method}, one of two`);
         assertEquals([first.appended, second.appended], [[], ["b"]], `past the one without it`);
     }
@@ -267,7 +267,7 @@ Deno.test("a fighter out of reach for a payload keeps the block remembered on th
         },
     };
     warrior.$ = answering;
-    const writer = initEngineTooltip(composePage([warrior]));
+    const writer = initGameTooltip(composePage([warrior]));
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
     isAnswering = false;
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
@@ -298,7 +298,7 @@ Deno.test("the same words appended by somebody else after ours came off are thei
 Deno.test("a block the game's own text repeats is taken off where ours went on", () => {
     const own = `${THEIRS}<br>MargoMeter<br>Tury wykonane 3<br>theirs after`;
     const registry = composeRegistry(own);
-    const writer = initEngineTooltip(composePage([composeWarrior(11, "Gracz 1", registry)]));
+    const writer = initGameTooltip(composePage([composeWarrior(11, "Gracz 1", registry)]));
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
     assertEquals(registry.text, `${own}<br>MargoMeter<br>Tury wykonane 4`, "theirs stands whole");
@@ -311,7 +311,7 @@ Deno.test("a fighter the page has not drawn is stepped over, not thrown on", () 
         composeWarrior(11, "Gracz 1", first, { hasElement: false }),
         composeWarrior(21, "Renegat 1", second),
     ]);
-    const writing = initEngineTooltip(page).writeRows(new Map([[11, ["a"]], [21, ["b"]]]));
+    const writing = initGameTooltip(page).writeRows(new Map([[11, ["a"]], [21, ["b"]]]));
     assertEquals(writing, { written: 1, asked: 2 }, "the one that is drawn takes its line");
     assertEquals(second.appended, ["b"], "and the other costs nothing");
 });
@@ -321,7 +321,7 @@ Deno.test("a call of theirs that throws costs the lines and never the fight", ()
     const page = composePage([
         composeWarrior(11, "Gracz 1", registry, { doesThrowOnFind: true }),
     ]);
-    const writing = initEngineTooltip(page).writeRows(new Map([[11, ["cokolwiek"]]]));
+    const writing = initGameTooltip(page).writeRows(new Map([[11, ["cokolwiek"]]]));
     assertInstanceOf(writing, Error, "the throw came back as the page's failure");
     assertInstanceOf(writing, errors.Caught, "as the page's failure");
     assertEquals(registry.appended, [], "and did not leave this file with a line half written");
@@ -329,8 +329,8 @@ Deno.test("a call of theirs that throws costs the lines and never the fight", ()
 
 Deno.test("a page with no fight on it takes nothing, which is not a failure", () => {
     const rows = new Map([[11, ["a"]]]);
-    assertEquals(initEngineTooltip({}).writeRows(rows), { written: 0, asked: 1 }, "no game");
-    assertEquals(initEngineTooltip(null).writeRows(rows), { written: 0, asked: 1 }, "no page");
+    assertEquals(initGameTooltip({}).writeRows(rows), { written: 0, asked: 1 }, "no game");
+    assertEquals(initGameTooltip(null).writeRows(rows), { written: 0, asked: 1 }, "no page");
 });
 
 /**
@@ -341,7 +341,7 @@ Deno.test("a page with no fight on it takes nothing, which is not a failure", ()
 Deno.test("a tooltip that is nothing but our block is never deleted to take it off", () => {
     const registry = composeRegistry("");
     const page = composePage([composeWarrior(11, "Gracz 1", registry)]);
-    const writer = initEngineTooltip(page);
+    const writer = initGameTooltip(page);
     writer.writeRows(new Map([[11, ["MargoMeter"]]]));
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 1"]]]));
     assertEquals(registry.replaced, [], "their tooltip was never replaced with nothing");
@@ -354,7 +354,7 @@ Deno.test("a tooltip that is nothing but our block is never deleted to take it o
 Deno.test("the writer remembers one board's worth of fighters, however many fights go by", () => {
     // One page, whose battle is a different board each fight, as the game's own is.
     const page = composePage([]);
-    const writer = initEngineTooltip(page);
+    const writer = initGameTooltip(page);
     for (let fight = 0; fight < 4; fight += 1) {
         const ids = Array.from({ length: COMBATANTS_MAXIMUM }, (_, at) => fight * 1000 + at);
         const board = composePage(
@@ -398,7 +398,7 @@ Deno.test("a throw part way through remembers every block that went on before it
         },
     };
     const page = composePage([composeWarrior(11, "Gracz 1", first), second]);
-    const writer = initEngineTooltip(page);
+    const writer = initGameTooltip(page);
     const rows = new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]);
     assertInstanceOf(writer.writeRows(rows), errors.Caught, "the walk stopped on the throw");
     assertEquals(first.appended.length, 2, "after the first fighter's block went on");

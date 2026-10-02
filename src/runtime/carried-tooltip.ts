@@ -16,11 +16,11 @@ import { type CarriedFigure, tallyCarriedFigures } from "#/src/core/carried-figu
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import type { FightView } from "#/src/core/fight-session.ts";
-import type { TooltipPort, TooltipWritten } from "#/src/game/engine-tooltip.ts";
+import type { GameTooltipPort, TooltipWritten } from "#/src/game/game-tooltip.ts";
 import {
     PANEL_WORDS,
     presentTooltipRows,
-    type TooltipReading,
+    type TooltipContent,
     type TranslateLabel,
 } from "#/src/ui/panel-words.ts";
 
@@ -35,7 +35,7 @@ export function writeCarriedTooltips(
     view: FightView,
     tables: TooltipTables,
     translate: TranslateLabel | null,
-    tooltip: TooltipPort,
+    tooltip: GameTooltipPort,
 ): TooltipWritten | errors.Caught {
     const held = replayAuraStandings(view, tables.statedSkills);
     const figures = new Map<string, CarriedFigure>();
@@ -61,7 +61,7 @@ function presentCarriedTooltip(
     view: FightView,
     held: FightStandings,
     figures: ReadonlyMap<string, CarriedFigure>,
-): TooltipReading {
+): TooltipContent {
     const charging = view.chargedSkills.find((one) => {
         if (one.state !== CHARGED_SKILL_STATE.charging) return false;
         return one.combatantId === combatantId;

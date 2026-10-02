@@ -14,7 +14,7 @@ import {
 import * as errors from "#/libs/errors.ts";
 import type { PanelDefect } from "#/src/ui/panel-element.ts";
 import { MarkValueUnknown, PANEL_INTENT, PANEL_MARK } from "#/src/ui/panel-intent.ts";
-import { NOTHING_SUSPECT, presentScreen, type ScreenReading } from "#/src/ui/panel-reading.ts";
+import { NOTHING_SUSPECT, presentScreen, type ScreenContent } from "#/src/ui/panel-content.ts";
 import { PANEL_METRIC, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import { PANEL_DEFECT_KIND, PANEL_REGION } from "#/src/ui/panel-words.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
@@ -59,7 +59,7 @@ Deno.test("a press whose handler throws is a dropped gesture, and the next one l
     assertEquals(dropped.listener, PANEL_LISTENER.press, "which is the press");
     isRefusing = false;
     pressElement(host, "pointerdown", findMarked(host, PANEL_MARK.fold));
-    assertEquals(asked, [{ kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel }], "then lands");
+    assertEquals(asked, [{ kind: PANEL_INTENT.fold, window: PANEL_WINDOW.meter }], "then lands");
     assertStrictEquals(failures.length, 1, "and the one that landed is no failure");
 });
 
@@ -111,10 +111,10 @@ Deno.test("a render reports every region it left undrawn, and nothing where all 
     assertEquals(panel.render(composeShownScreen(reading)).undrawn, [], "a whole panel");
     const broken = {
         ...reading,
-        get sides(): ScreenReading["sides"] {
+        get sides(): ScreenContent["sides"] {
             throw new RangeError("a summary that will not draw");
         },
-        get suspicions(): ScreenReading["suspicions"] {
+        get suspicions(): ScreenContent["suspicions"] {
             throw new RangeError("and warnings that will not either");
         },
     };
@@ -136,7 +136,7 @@ function isCaughtRangeError(one: RegionUndrawn): boolean {
     return one.cause.cause instanceof RangeError;
 }
 
-function readFight(): ScreenReading {
+function readFight(): ScreenContent {
     const { roster, statistics } = tallyRecordedFight(HILDUR);
     return presentScreen(
         statistics,
@@ -206,7 +206,7 @@ Deno.test("a window that will not open where told stays on the sheet's corner, a
     assertEquals(host.attributes.get("style"), undefined, "the sheet's corner, which is a place");
     assertEquals(
         failures.map((one) => one instanceof WindowUnplaced ? one.window : one.name),
-        [PANEL_WINDOW.panel],
+        [PANEL_WINDOW.meter],
         "and the window that did not open where it was told is named",
     );
 });

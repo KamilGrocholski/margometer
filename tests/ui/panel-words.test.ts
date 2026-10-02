@@ -94,9 +94,9 @@ import {
 } from "#/src/ui/panel-words.ts";
 import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
 import { PANEL_WINDOWS, STORAGE_CHOICES, TYPE_STEPS } from "#/src/ui/panel-choice.ts";
-import { PINNED_CASES, SIDE_RELATION, UNNAMED_END } from "#/src/ui/panel-reading.ts";
+import { PINNED_CASES, SIDE_RELATION, UNNAMED_END } from "#/src/ui/panel-content.ts";
 import { PANEL_NOUN, SCREEN_ORDER, SIDE_CHOICES } from "#/src/ui/panel-screen.ts";
-import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
+import { STANDING_TURN_STATE } from "#/src/ui/panel-helper.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";

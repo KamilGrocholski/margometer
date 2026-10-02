@@ -11,10 +11,10 @@
 import { assert, assertEquals, assertExists } from "@std/assert";
 import type { ShownScreen } from "#/src/ui/panel-element.ts";
 import {
-    type DrillReading,
     getMetricForPinned,
     type NamedPart,
     NOTHING_SUSPECT,
+    type OpenedLevelContent,
     type OpenedPart,
     PINNED_CASES,
     presentOpenedLevel,
@@ -23,8 +23,8 @@ import {
     presentScreen,
     presentUnnamedCutLevel,
     presentUnnamedLevel,
-    type ScreenReading,
-} from "#/src/ui/panel-reading.ts";
+    type ScreenContent,
+} from "#/src/ui/panel-content.ts";
 import { getWordsForUnannounced, NEITHER_END_WORDS, PANEL_WORDS } from "#/src/ui/panel-words.ts";
 import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
 import type { FightStatistics } from "#/src/core/fight-statistics.ts";
@@ -167,7 +167,7 @@ Deno.test("every level stands as tall as it drew, with one card per row and no t
 
 /** One screen of one recording, with nothing open — the view every level is reached from. */
 function composeLevelScreen(
-    reading: ScreenReading,
+    reading: ScreenContent,
     metric: PanelMetric,
     side: PanelSideChoice,
     readerSide: number | null,
@@ -357,7 +357,7 @@ function getPlacesWrongfullyHeld(seen: RegionDrawn, closing: string): string[] {
  * A section whose numbers do not run. ⚠️ **A number is a claim about position, so the two have to
  * be read together**: a row carrying `1.` drawn under a row carrying `5.` is a bar at the bottom
  * of a column saying it is the top of it, which is the one thing a list of bars says without
- * being read (`src/ui/panel-reading.ts`, and the pair's parts in `renderScreen`). Numbering and
+ * being read (`src/ui/panel-content.ts`, and the pair's parts in `renderScreen`). Numbering and
  * ordering come from two layers here — the reading says which place, the sheet says where — and
  * this is the only thing that asks whether they agree. `develop ADR 0079`.
  */
@@ -421,7 +421,7 @@ function addOpenedRungs(walk: LevelWalk, statistics: FightStatistics, roster: Co
  * is an `OpenedPart` and nothing else (`develop ADR 0081`), so a walk taking the two lists of named
  * rows takes every level but the one that row opens, and says nothing about what it missed.
  */
-function composeOpenedParts(drill: DrillReading): OpenedPart[] {
+function composeOpenedParts(drill: OpenedLevelContent): OpenedPart[] {
     const skills = drill.bySkill.rows.filter((one) => one.doesOpenPart).map((one) => one.part);
     const kinds = drill.byElement.rows.filter((one) => one.doesOpenPart).map((
         one,

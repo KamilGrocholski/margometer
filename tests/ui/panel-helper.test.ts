@@ -13,13 +13,13 @@ import { CHARGED_SKILL_STATE, type ChargedSkillStanding } from "#/src/core/charg
 import { COMBATANTS_MAXIMUM, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import type { TurnStatement } from "#/src/core/fight-session.ts";
 import { lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
-import { SIDE_RELATION } from "#/src/ui/panel-reading.ts";
+import { SIDE_RELATION } from "#/src/ui/panel-content.ts";
 import {
     presentHelper,
     PROVOKED_MAXIMUM,
     STANDING_TURN_STATE,
     type StandingTurn,
-} from "#/src/ui/panel-standing.ts";
+} from "#/src/ui/panel-helper.ts";
 import { getWordsForTurnState, PANEL_WORDS } from "#/src/ui/panel-words.ts";
 
 const OURS = 1;

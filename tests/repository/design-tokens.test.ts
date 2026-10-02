@@ -141,7 +141,7 @@ function readTokensSpent(): Record<string, readonly string[]> {
         tipWidth: readStepPixels((tokens) => tokens.tipWidthPixelsMaximum),
         lineHeight: TYPE_STEPS.map(readLineHeightDrawn),
         panelWidth: readStepPixels((tokens) => tokens.panelWidthPixels),
-        standingWidth: readStepPixels((tokens) => tokens.helperWidthPixels),
+        helperWidth: readStepPixels((tokens) => tokens.helperWidthPixels),
         panelInset: [`${PLACE.insetPixels}px`],
         panelLayer: [PLACE.layer],
         radius: [`${SHAPE.radiusPixels}px`],

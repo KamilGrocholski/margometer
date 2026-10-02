@@ -7,7 +7,7 @@ import { assertEquals, assertExists } from "@std/assert";
 import { PANEL_WINDOW, type PanelPosition } from "#/src/ui/panel-choice.ts";
 import type { PanelEvent } from "#/src/ui/panel-document.ts";
 import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
-import { HELPER_ABSENCE } from "#/src/ui/panel-standing.ts";
+import { HELPER_ABSENCE } from "#/src/ui/panel-helper.ts";
 import { GestureDropped, PANEL_LISTENER, type ViewFailure } from "#/src/ui/view-failure.ts";
 import {
     composeFakeDocument,
@@ -32,7 +32,7 @@ Deno.test("only the primary button opens anything, and a press stating none is t
     assertEquals(asked, [], "a second button asks for nothing");
     dispatch(host, "pointerdown", { target: fold, clientY: 10, button: 0 });
     dispatch(host, "pointerdown", { target: fold, clientY: 10 });
-    const folding = { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel };
+    const folding = { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.meter };
     assertEquals(asked, [folding, folding], "the first does, stated or not");
 });
 

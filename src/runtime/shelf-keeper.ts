@@ -13,7 +13,7 @@ import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import type { SessionOptions } from "#/src/core/fight-session.ts";
 import type { KeyValueStore } from "#/src/game/browser-store.ts";
 import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
-import { type KeptReading, replayKeptFight } from "./fight-reading.ts";
+import { type KeptFightState, replayKeptFight } from "./fight-state.ts";
 import { writeStorageChoice } from "./settings.ts";
 import {
     deleteShelf,
@@ -44,7 +44,7 @@ export interface ShelfKeeper {
     getChoice(): StorageChoice;
     getAnswers(): ShelfAnswers;
     /** Null for a fight the payloads no longer read, which is a fight to stand on no longer. */
-    lookupKeptReading(fight: KeptFight): KeptReading | null;
+    lookupKeptFightState(fight: KeptFight): KeptFightState | null;
     keep(fight: KeptFight): void;
     pin(openedAt: number): void;
     moveShelf(choice: StorageChoice): void;
@@ -66,7 +66,7 @@ interface KeeperState {
     fights: readonly KeptFight[];
     answers: ShelfAnswers;
     /** In memory and never in the store: a figure that survives a reload is an older version's. */
-    readings: Map<number, KeptReading | null>;
+    readings: Map<number, KeptFightState | null>;
 }
 
 export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
@@ -95,12 +95,12 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
         getAnswers: () => ({ ...state.answers }),
         // A refusal is held as well: the shelf is walked on every frame, and a fight that will not
         // replay would otherwise be replayed, and marked, once per frame.
-        lookupKeptReading: (fight) => {
+        lookupKeptFightState: (fight) => {
             const held = state.readings.get(fight.openedAt);
             if (held !== undefined) return held;
             const { tables, sessionOptions, defects } = state.options;
             const ran = errors.attempt(() => replayKeptFight(fight, tables, sessionOptions));
-            let reading: KeptReading | null = null;
+            let reading: KeptFightState | null = null;
             if (ran instanceof Error) {
                 defects.add({ kind: DEFECT_KIND.kept, region: null, failure: ran });
             } else reading = ran;
@@ -192,10 +192,10 @@ function setShelfWritten(state: KeeperState, contents: ShelfContents, offered: n
     state.answers.hasStoreRefused = false;
     state.answers.hasStoreMadeRoom = contents.fights.length < offered;
     state.fights = contents.fights;
-    removeUnshelvedReadings(state);
+    removeUnshelvedFightStates(state);
 }
 
-function removeUnshelvedReadings(state: KeeperState): void {
+function removeUnshelvedFightStates(state: KeeperState): void {
     for (const openedAt of [...state.readings.keys()]) {
         if (state.fights.some((one) => one.openedAt === openedAt)) continue;
         state.readings.delete(openedAt);
@@ -208,5 +208,5 @@ function setShelfRefused(state: KeeperState, asked: readonly KeptFight[]): void 
     state.answers.hasStoreRefused = true;
     state.answers.hasStoreMadeRoom = false;
     state.fights = asked;
-    removeUnshelvedReadings(state);
+    removeUnshelvedFightStates(state);
 }

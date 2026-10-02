@@ -133,7 +133,7 @@ than a defect.
   protocol. A wide side is no longer one of these gaps: the bounty fight puts five on the one
   opposite the reader.
 - **No drawn fight.** The panel draws one, and the fight it draws it from is hand-built
-  (`tests/ui/panel-reading.test.ts`).
+  (`tests/ui/panel-content.test.ts`).
 - **No fight broken off by an escape.** The same again, and for a key the corpus has never carried:
   `flee` is read off the client's own branch and the published help, and the panel's `ucieczka` is
   drawn from a fight the fabricator writes (`docs/protocol-keys.md`).

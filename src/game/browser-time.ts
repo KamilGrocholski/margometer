@@ -18,7 +18,7 @@ export interface BrowserMoment {
     minute: number;
 }
 
-export interface Clock {
+export interface BrowserClock {
     readNowMilliseconds(): number;
     readMoment(atMilliseconds: number): BrowserMoment | null;
     /** The moment as a file states it, in the page's own ISO 8601. */
@@ -40,7 +40,7 @@ export interface BrowserDateValue {
     getMinutes?(): number;
 }
 
-export interface FrameScheduler {
+export interface BrowserFrameScheduler {
     requestFrame(
         step: () => void,
         onStepFailure: (failure: errors.Caught) => void,
@@ -62,7 +62,7 @@ export interface IntervalHandle {
     cancel(): void | errors.Caught;
 }
 
-export interface IntervalScheduler {
+export interface BrowserIntervalScheduler {
     every(
         step: () => void,
         everyMilliseconds: number,
@@ -84,7 +84,7 @@ const FIRST_MONTH_OFFSET = 1;
 const HOUR_MAXIMUM = 23;
 const MINUTE_MAXIMUM = 59;
 
-export function initBrowserClock(date: BrowserDate): Clock {
+export function initBrowserClock(date: BrowserDate): BrowserClock {
     return {
         readNowMilliseconds: () => date.now(),
         readMoment(atMilliseconds) {
@@ -129,7 +129,7 @@ function readMomentPart(value: unknown, minimum: number, maximum: number): numbe
     return null;
 }
 
-export function initBrowserFrames(frames: BrowserFrames): FrameScheduler {
+export function initBrowserFrames(frames: BrowserFrames): BrowserFrameScheduler {
     return {
         requestFrame(step, onStepFailure) {
             const guarded = (): void => {
@@ -149,7 +149,7 @@ export function initBrowserFrames(frames: BrowserFrames): FrameScheduler {
     };
 }
 
-export function initBrowserInterval(timers: BrowserTimers): IntervalScheduler {
+export function initBrowserInterval(timers: BrowserTimers): BrowserIntervalScheduler {
     return {
         every(step, everyMilliseconds, onStepFailure) {
             assert(

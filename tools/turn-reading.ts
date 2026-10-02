@@ -50,7 +50,7 @@ type EventKind = BattleEvent["kind"];
  * an announcement states the client's own display text, which is nobody here's to keep
  * (`captures/AGENTS.md`). The payload and the place in it are what a reader opens instead.
  */
-export interface MessageReading {
+export interface ParametersDecoded {
     payload: number;
     at: number;
     /** Identifiers, in the order the message carried them, and never the text beside them. */
@@ -74,7 +74,7 @@ export interface MessageReading {
 /** A recording, and every message of it read. */
 export interface FightMessages {
     name: string;
-    readings: readonly MessageReading[];
+    readings: readonly ParametersDecoded[];
 }
 
 export interface DisputedReading {
@@ -151,14 +151,14 @@ export function composeFightMessages(fights: readonly RecordedFight[]): FightMes
  * across payloads as `src/core/fight-statistics.ts` carries it, and the decoder's own standing
  * starts over at each payload as the session's does.
  */
-function composeMessageReadings(fight: RecordedFight): MessageReading[] {
+function composeMessageReadings(fight: RecordedFight): ParametersDecoded[] {
     const steps = replayRecordedSteps(fight);
     const byOrdinals = new Map<string, TurnBoundary>();
     for (const boundary of composeTurnBoundaries(steps)) {
         byOrdinals.set(`${boundary.from}->${boundary.to}`, boundary);
     }
-    const readings: MessageReading[] = [];
-    let pending: MessageReading[] = [];
+    const readings: ParametersDecoded[] = [];
+    let pending: ParametersDecoded[] = [];
     let stated: number | null = null;
     let place: ReadingPlace = { standing: NO_TURN_STANDING, actorId: null, events: 0 };
     for (const [payload, step] of steps.entries()) {
@@ -188,8 +188,8 @@ function composeMessageReadingsOfStep(
     step: ReplayedStep,
     payload: number,
     before: ReadingPlace,
-): { readings: MessageReading[]; place: ReadingPlace } {
-    const readings: MessageReading[] = [];
+): { readings: ParametersDecoded[]; place: ReadingPlace } {
+    const readings: ParametersDecoded[] = [];
     let standing = before.standing;
     let previousActorId = before.actorId;
     const roster = step.reading.view.roster;
@@ -443,7 +443,7 @@ export function formatReadingWalk(walk: FightMessages): string[] {
     return lines;
 }
 
-function formatReadingWalkLine(reading: MessageReading): string {
+function formatReadingWalkLine(reading: ParametersDecoded): string {
     assert(reading.at >= 0, "a message is numbered from nothing");
     assert(reading.payload >= 0, "and so is the payload it arrived in");
     let opened = "";

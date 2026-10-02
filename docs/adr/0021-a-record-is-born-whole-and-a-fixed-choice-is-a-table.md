@@ -30,7 +30,7 @@ Three questions had none. Read from the parser on 2026-10-01 at `0d87df5`, over 
 - **`any` and the `@ts-` directives.** C13 named the cast and nothing else. `deno lint`'s
   recommended rules, which the gate runs, refuse `any` (`no-explicit-any`), but `ban-ts-comment`
   lets a directive through when it carries a description. The tree held 0 of either.
-- **A shape that changes.** 1 place in the layers that build records: `src/game/engine-battle.ts`
+- **A shape that changes.** 1 place in the layers that build records: `src/game/game-battle.ts`
   typed its wrap `{ [WRAP_MARKER]?: number }` and set the marker after the function was made. No
   `delete` of a property stood there; `src/ui/` and `src/userscript-entry.ts` held 10 optional
   properties, every one typing an object the page hands over.
@@ -69,7 +69,7 @@ a review finding must name the rule it breaks.
 
 ## Consequences
 
-- `src/game/engine-battle.ts` builds its wrap with `Object.assign`, so the function carries its
-  marker from its first reading; the wrap's semantics, a carried-over contract, do not move.
+- `src/game/game-battle.ts` builds its wrap with `Object.assign`, so the function carries its marker
+  from its first reading; the wrap's semantics, a carried-over contract, do not move.
 - `tests/source-tree.ts` reads a node's `operator` and `optional`.
 - A guard for C18 is written when a second case would make its count worth reading.

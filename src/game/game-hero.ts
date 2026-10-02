@@ -14,38 +14,38 @@ import {
     getTextField,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
-import { readEngines } from "./engine-battle.ts";
-import { CLIENT_READING, type ClientReadFailure, ClientReadingAbsent } from "./page-reading.ts";
+import { readGameEngines } from "./game-battle.ts";
+import { GAME_VALUE, type GameReadFailure, GameValueAbsent } from "./game-value.ts";
 
-export interface HeroPort {
-    readHeroId(): number | ClientReadFailure;
+export interface GameHeroPort {
+    readHeroId(): number | GameReadFailure;
 }
 
 /** Production build `Bb28FQty`, fetched 2026-09-27: `this.getId=()=>this.d.id` on the hero. */
-type EngineField = "hero";
+type GameEngineField = "hero";
 type HeldField = "data";
 type HeroField = "id";
 
-const ENGINE_FIELDS: FieldKeys<EngineField> = { hero: "hero" };
+const ENGINE_FIELDS: FieldKeys<GameEngineField> = { hero: "hero" };
 const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const HERO_FIELDS: FieldKeys<HeroField> = { id: "id" };
 
 /** The first spelling of the game that states an id wins: two spellings are one game. */
-export function initEngineHero(page: unknown): HeroPort {
+export function initGameHero(page: unknown): GameHeroPort {
     return {
         readHeroId() {
-            const read = errors.attempt(() => readEngines(page).map(readEngineHeroId));
+            const read = errors.attempt(() => readGameEngines(page).map(readGameHeroId));
             if (read instanceof Error) return read;
             for (const id of read) {
                 if (id !== null) return id;
             }
-            return new ClientReadingAbsent(CLIENT_READING.hero);
+            return new GameValueAbsent(GAME_VALUE.hero);
         },
     };
 }
 
 /** Null where the engine holds no hero, or an id that is not a whole number above nought. */
-function readEngineHeroId(engine: UnknownRecord): number | null {
+function readGameHeroId(engine: UnknownRecord): number | null {
     const held = getRecordField(engine, ENGINE_FIELDS, "hero");
     if (held instanceof Error) return null;
     if (held === null) return null;

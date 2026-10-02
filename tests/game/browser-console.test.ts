@@ -4,7 +4,7 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { initBrowserConsole } from "#/src/game/page-console.ts";
+import { initBrowserConsole } from "#/src/game/browser-console.ts";
 
 Deno.test("the line is branded with the kind, and carries the detail beside it", () => {
     const written: unknown[][] = [];

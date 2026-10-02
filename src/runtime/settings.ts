@@ -35,11 +35,11 @@ import {
 export const SETTING_KEY = {
     storage: "storage",
     typeStep: "type-step",
-    panelPosition: "panel-position",
-    panelFolded: "panel-folded",
+    meterPosition: "meter-position",
+    meterFolded: "meter-folded",
     helperPosition: "helper-position",
     helperFolded: "helper-folded",
-    panelSize: "panel-size",
+    meterSize: "meter-size",
     helperSize: "helper-size",
 } as const;
 export type SettingKey = VocabularyWord<typeof SETTING_KEY>;
@@ -77,23 +77,23 @@ type SizeField = "width" | "height";
 const STORE_KEY_BY_SETTING: { readonly [Key in SettingKey]: StoreKey } = {
     [SETTING_KEY.storage]: STORE_KEY.storage,
     [SETTING_KEY.typeStep]: STORE_KEY.typeStep,
-    [SETTING_KEY.panelPosition]: STORE_KEY.panelPlace,
-    [SETTING_KEY.panelFolded]: STORE_KEY.panelFolded,
+    [SETTING_KEY.meterPosition]: STORE_KEY.panelPlace,
+    [SETTING_KEY.meterFolded]: STORE_KEY.panelFolded,
     [SETTING_KEY.helperPosition]: STORE_KEY.helperPlace,
     [SETTING_KEY.helperFolded]: STORE_KEY.helperFolded,
-    [SETTING_KEY.panelSize]: STORE_KEY.panelSize,
+    [SETTING_KEY.meterSize]: STORE_KEY.panelSize,
     [SETTING_KEY.helperSize]: STORE_KEY.helperSize,
 };
 const FOLD_SETTING_BY_WINDOW: { readonly [Window in PanelWindow]: SettingKey } = {
-    [PANEL_WINDOW.panel]: SETTING_KEY.panelFolded,
+    [PANEL_WINDOW.meter]: SETTING_KEY.meterFolded,
     [PANEL_WINDOW.helper]: SETTING_KEY.helperFolded,
 };
 const POSITION_SETTING_BY_WINDOW: { readonly [Window in PanelWindow]: SettingKey } = {
-    [PANEL_WINDOW.panel]: SETTING_KEY.panelPosition,
+    [PANEL_WINDOW.meter]: SETTING_KEY.meterPosition,
     [PANEL_WINDOW.helper]: SETTING_KEY.helperPosition,
 };
 const SIZE_SETTING_BY_WINDOW: { readonly [Window in PanelWindow]: SettingKey } = {
-    [PANEL_WINDOW.panel]: SETTING_KEY.panelSize,
+    [PANEL_WINDOW.meter]: SETTING_KEY.meterSize,
     [PANEL_WINDOW.helper]: SETTING_KEY.helperSize,
 };
 

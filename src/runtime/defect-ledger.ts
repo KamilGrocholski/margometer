@@ -7,7 +7,7 @@
 
 import { assert } from "@std/assert/assert";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
-import type { ConsolePort } from "#/src/game/page-console.ts";
+import type { BrowserConsolePort } from "#/src/game/browser-console.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
 import { PANEL_REGION, type PanelRegion } from "#/src/ui/panel-words.ts";
 
@@ -50,7 +50,7 @@ const KINDS_COUNT = Object.values(DEFECT_KIND).length;
 /** Every kind, under every region and under none. */
 const ROWS_MAXIMUM = KINDS_COUNT * (Object.values(PANEL_REGION).length + 1);
 
-export function initDefectLedger(console: ConsolePort): DefectLedger {
+export function initDefectLedger(console: BrowserConsolePort): DefectLedger {
     const counts = new Map<string, DefectCount>();
     const written = new Set<DefectKind>();
     return {

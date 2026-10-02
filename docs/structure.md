@@ -89,6 +89,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0020-a-module-one-module-of-its-layer-imports-is-written-in-it.md`                         | a module one sibling imports is written in it, and the page's time is one file                               |
 | `docs/adr/0021-a-record-is-born-whole-and-a-fixed-choice-is-a-table.md`                              | a record has every field from its literal, a fixed choice is a lookup, and `any` and `@ts-` go with the cast |
 | `docs/adr/0022-a-body-nests-five-blocks-deep-and-a-function-that-would-nest-past-it-stays-one.md`    | a body nests five blocks deep, and a function written in its caller past that stays one                      |
+| `docs/adr/0023-a-name-says-whether-a-thing-is-the-games-the-browsers-or-ours.md`                     | a name says whether a thing is the game's, the browser's or ours, and "reading" names one thing              |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
@@ -140,24 +141,24 @@ file comes or goes (ADR 0010).
 | `src/core/protocol-number.ts`    | the numbers the protocol states, in the shapes it states them in                             |
 | `src/core/turn-clock.ts`         | whose turn an event opens, the one clock every figure and status counts turns on             |
 
-| Path                            | For                                                                                        |
-| ------------------------------- | ------------------------------------------------------------------------------------------ |
-| `src/game/browser-store.ts`     | the store a browser lends, wrapped so a refusal is an answer                               |
-| `src/game/engine-battle.ts`     | the running fight on the page, and the wrap of the engine's `updateData`                   |
-| `src/game/engine-hero.ts`       | which combatant is the reader, read off the game client's own state as its hero's id       |
-| `src/game/engine-place.ts`      | where a fight is happening, read off the game client's own state                           |
-| `src/game/engine-tooltip.ts`    | our rows appended to the tooltip the game client shows for a fighter                       |
-| `src/game/fight-capture.ts`     | the fight as it happened, thinned as it is collected, kept for a recording                 |
-| `src/game/fight-place.ts`       | where a fight was fought: the map's name and the reader's square on it                     |
-| `src/game/game-build.ts`        | the build id read out of the client bundle's file name                                     |
-| `src/game/game-dictionary.ts`   | asking the running game client what the reader's own copy calls something                  |
-| `src/game/page-time.ts`         | the page's clock, animation frame and repeating timer, each step guarded at the handover   |
-| `src/game/page-console.ts`      | the page's console: one branded line per kind of failure                                   |
-| `src/game/page-file.ts`         | hands a file to the browser's downloads, through a blob and an object URL                  |
-| `src/game/page-reading.ts`      | a reading of the page's own state that came back empty, shown as unknown                   |
-| `src/game/page-surroundings.ts` | what a recording states about where it was taken: the world and the browser                |
-| `src/game/payload-envelope.ts`  | one engine call read into a `PayloadRecord`, its warrior entries with each mask and charge |
-| `src/game/warrior-snapshot.ts`  | the combatants the running fight holds, copied for a recording                             |
+| Path                               | For                                                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/game/browser-store.ts`        | the store a browser lends, wrapped so a refusal is an answer                               |
+| `src/game/game-battle.ts`          | the running fight on the page, and the wrap of the engine's `updateData`                   |
+| `src/game/game-hero.ts`            | which combatant is the reader, read off the game client's own state as its hero's id       |
+| `src/game/game-place.ts`           | where a fight is happening, read off the game client's own state                           |
+| `src/game/game-tooltip.ts`         | our rows appended to the tooltip the game client shows for a fighter                       |
+| `src/game/fight-capture.ts`        | the fight as it happened, thinned as it is collected, kept for a recording                 |
+| `src/game/fight-place.ts`          | where a fight was fought: the map's name and the reader's square on it                     |
+| `src/game/game-build.ts`           | the build id read out of the client bundle's file name                                     |
+| `src/game/game-dictionary.ts`      | asking the running game client what the reader's own copy calls something                  |
+| `src/game/browser-time.ts`         | the page's clock, animation frame and repeating timer, each step guarded at the handover   |
+| `src/game/browser-console.ts`      | the page's console: one branded line per kind of failure                                   |
+| `src/game/browser-file.ts`         | hands a file to the browser's downloads, through a blob and an object URL                  |
+| `src/game/game-value.ts`           | a value asked of the game that came back empty, shown as unknown                           |
+| `src/game/browser-surroundings.ts` | what a recording states about where it was taken: the world and the browser                |
+| `src/game/payload-envelope.ts`     | one engine call read into a `PayloadRecord`, its warrior entries with each mask and charge |
+| `src/game/warrior-snapshot.ts`     | the combatants the running fight holds, copied for a recording                             |
 
 | Path                                | For                                                                                             |
 | ----------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -166,7 +167,7 @@ file comes or goes (ADR 0010).
 | `src/runtime/failure-fate.ts`       | `FAILURE_FATES`: every failure kind mapped to a fate, held complete by the compiler             |
 | `src/runtime/fight-file.ts`         | the fight as a file: the engine calls and their figures, in the carried-over format             |
 | `src/runtime/fight-handover.ts`     | the fight on screen, handed over as a file                                                      |
-| `src/runtime/fight-reading.ts`      | the view and figures a panel and a file are drawn from, live or replayed from the shelf         |
+| `src/runtime/fight-state.ts`        | the view and figures a panel and a file are drawn from, live or replayed from the shelf         |
 | `src/runtime/live-fight.ts`         | the fight going on, read one engine call at a time, each step under its own guard               |
 | `src/runtime/margometer-runtime.ts` | where the layers meet: settings and shelf opened, engine searched for, each intent executed     |
 | `src/runtime/panel-frame.ts`        | the one drawing per frame: tooltips, the window beside the panel, the panel and its opened rows |
@@ -184,9 +185,9 @@ file comes or goes (ADR 0010).
 | `src/ui/panel-listener.ts` | the one listener handed to the browser, and the guard on it                          |
 | `src/ui/panel-look.ts`     | the panel's tokens, the classes its rules select, and the stylesheet built from both |
 | `src/ui/panel-palette.ts`  | the colours a reading names: the signal inks and the profession palette              |
-| `src/ui/panel-reading.ts`  | one screen's worth of a fight: the rows, in the order they are drawn                 |
+| `src/ui/panel-content.ts`  | one screen's worth of a fight: the rows, in the order they are drawn                 |
 | `src/ui/panel-screen.ts`   | which screen the panel is on, and the questions the strips ask to move it            |
-| `src/ui/panel-standing.ts` | what the window beside the panel says: whose turn, what is charging, who holds whom  |
+| `src/ui/panel-helper.ts`   | what the window beside the panel says: whose turn, what is charging, who holds whom  |
 | `src/ui/panel-words.ts`    | everything the reader reads: the only Polish in `src/`                               |
 | `src/ui/ranked-order.ts`   | the order of a ranking, with a tie-break that keeps it stable                        |
 | `src/ui/view-failure.ts`   | what the panel could not do, as records the runtime counts                           |

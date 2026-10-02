@@ -123,13 +123,13 @@ ${composeGame(place)}
  * (`src/runtime/margometer-runtime.ts`). Both roster names are needed — with only `w` every
  * snapshot read under `warriorsList` comes out empty (`src/game/payload-envelope.ts`).
  *
- * Each fighter carries a `$` of the client's own shape, so what `src/game/engine-tooltip.ts`
+ * Each fighter carries a `$` of the client's own shape, so what `src/game/game-tooltip.ts`
  * writes lands somewhere a test can read it back.
  */
 function composeGame(place: string): string {
     return `window.MARGOMETER_TIPS = {};
 // The client's registry of tooltips is one string per fighter, and these four are all the add-on
-// asks of it (src/game/engine-tooltip.ts). \`told\` counts what an open tooltip was told.
+// asks of it (src/game/game-tooltip.ts). \`told\` counts what an open tooltip was told.
 window.MARGOMETER_TOLD = {};
 var composeTipTarget = function (id) {
   var targets = {
@@ -153,7 +153,7 @@ window.Engine = {
           // Accumulated, not replaced, because the client's own record is one object it
           // mutates — a payload restates only what moved, so a fighter replaced by it loses the
           // name they were introduced under — and a warrior with no name is one
-          // \`readNamedWarriors\` steps over.
+          // \`readGameWarriorsNamed\` steps over.
           window.MARGOMETER_TIPS[id] = "game";
           var held = window.Engine.battle.w[id] || { $: composeTipTarget(id) };
           for (var field in roster[id]) held[field] = roster[id][field];
@@ -172,7 +172,7 @@ window.Engine = {
 /**
  * What the page keeps for a test. `Blob` is wrapped because the panel hands a file over as an
  * object URL it clicks and revokes on the next macrotask (`initBrowserFile`, in
- * `src/game/page-file.ts`) — the text is kept here synchronously, where nothing can lose the race
+ * `src/game/browser-file.ts`) — the text is kept here synchronously, where nothing can lose the race
  * for it.
  */
 function composeProbe(): string {

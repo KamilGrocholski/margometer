@@ -20,12 +20,12 @@ import {
     initBrowserStore,
     initMemoryStore,
 } from "#/src/game/browser-store.ts";
-import { initEngineBattle } from "#/src/game/engine-battle.ts";
-import { initEngineHero } from "#/src/game/engine-hero.ts";
-import { initEnginePlace } from "#/src/game/engine-place.ts";
-import { initEngineTooltip } from "#/src/game/engine-tooltip.ts";
-import { initClientBuild, SCRIPTS_MAXIMUM } from "#/src/game/game-build.ts";
-import { initClientDictionary } from "#/src/game/game-dictionary.ts";
+import { initGameBattle } from "#/src/game/game-battle.ts";
+import { initGameHero } from "#/src/game/game-hero.ts";
+import { initGamePlace } from "#/src/game/game-place.ts";
+import { initGameTooltip } from "#/src/game/game-tooltip.ts";
+import { initGameBuild, SCRIPTS_MAXIMUM } from "#/src/game/game-build.ts";
+import { initGameDictionary } from "#/src/game/game-dictionary.ts";
 import {
     type BrowserDate,
     type BrowserFrames,
@@ -33,10 +33,10 @@ import {
     initBrowserClock,
     initBrowserFrames,
     initBrowserInterval,
-} from "#/src/game/page-time.ts";
-import { type BrowserConsole, initBrowserConsole } from "#/src/game/page-console.ts";
-import { type DownloadAnchor, initBrowserFile } from "#/src/game/page-file.ts";
-import { initBrowserSurroundings } from "#/src/game/page-surroundings.ts";
+} from "#/src/game/browser-time.ts";
+import { type BrowserConsole, initBrowserConsole } from "#/src/game/browser-console.ts";
+import { type DownloadAnchor, initBrowserFile } from "#/src/game/browser-file.ts";
+import { initBrowserSurroundings } from "#/src/game/browser-surroundings.ts";
 import {
     initRuntime,
     type Runtime,
@@ -152,11 +152,11 @@ export function readRuntimePorts(page: unknown): RuntimePorts | WindowUnusable {
         clock: initBrowserClock(page.Date),
         frames: initBrowserFrames(page),
         interval: initBrowserInterval(page),
-        engine: initEngineBattle(page),
-        place: initEnginePlace(page),
-        hero: initEngineHero(page),
-        dictionary: initClientDictionary(page),
-        build: initClientBuild({
+        engine: initGameBattle(page),
+        place: initGamePlace(page),
+        hero: initGameHero(page),
+        dictionary: initGameDictionary(page),
+        build: initGameBuild({
             // Read every script's source the page states, up to the bound the build's reader walks.
             readScriptSources: () => {
                 const scripts = page.document.querySelectorAll(SCRIPT_WITH_SOURCE);
@@ -167,7 +167,7 @@ export function readRuntimePorts(page: unknown): RuntimePorts | WindowUnusable {
             },
         }),
         surroundings: initBrowserSurroundings(page),
-        tooltip: initEngineTooltip(page),
+        tooltip: initGameTooltip(page),
         settings: initBrowserStore(readBrowserStorage(page, STORAGE_CHOICE.local)),
         // The store the reader asked for, or the one that forgets: a reader who chose to keep
         // fights on a browser that lends no store is better served by a panel that forgets between

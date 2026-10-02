@@ -26,7 +26,7 @@ import {
     DEFENCE_MECHANISM,
     getDefenceMechanism,
     KEY_FAMILY,
-    lookupKeyReading,
+    lookupKeyMeaning,
     PROC_END,
     SELF_SOURCED_HEALING_KEYS,
     WOUND_ANNOUNCEMENT_KEY,
@@ -1161,7 +1161,7 @@ function addBlowProcs(
 ): void {
     assert(procs.length <= PROCS_MAXIMUM, "a blow fires no more procs than it is bounded to");
     for (const key of procs) {
-        const reading = lookupKeyReading(key);
+        const reading = lookupKeyMeaning(key);
         assert(reading !== null, "a proc the decoder stated is a key the table reads");
         assert(reading.kind === KEY_FAMILY.proc, "and one it places as a proc");
         if (reading.end === PROC_END.actor) {

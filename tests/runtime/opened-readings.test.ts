@@ -6,9 +6,9 @@
 
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeFightView } from "#/src/core/fight-session.ts";
-import { tallyFightReading } from "#/src/runtime/fight-reading.ts";
-import { presentOpenedReadings } from "#/src/runtime/panel-frame.ts";
-import { lookupPinnedCase, presentOpenedLevel, UNNAMED_END } from "#/src/ui/panel-reading.ts";
+import { tallyFightState } from "#/src/runtime/fight-state.ts";
+import { presentOpenedLevels } from "#/src/runtime/panel-frame.ts";
+import { lookupPinnedCase, presentOpenedLevel, UNNAMED_END } from "#/src/ui/panel-content.ts";
 import { createScreenState, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
 import { lookupRecordedFight, replayRecordedFight } from "#/tests/recorded-fights.ts";
 
@@ -17,7 +17,7 @@ const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.j
 Deno.test("a person's row and the end their figure left out open at once are the rung under it", () => {
     const view = composeFightView(replayRecordedFight(lookupRecordedFight(HILDUR)));
     assertExists(view, "the recording opens a fight");
-    const reading = tallyFightReading(view);
+    const reading = tallyFightState(view);
     const metric = PANEL_METRIC.damageTaken;
     const end = UNNAMED_END.actor;
     assertExists(lookupPinnedCase(metric, end), "this screen has a pinned row to open");
@@ -28,13 +28,13 @@ Deno.test("a person's row and the end their figure left out open at once are the
     assertExists(person, "and somebody whose figure left that end out");
     const screen = { ...createScreenState(false), current: metric };
 
-    const pinned = presentOpenedReadings(reading, { ...screen, openUnnamedEnd: end });
+    const pinned = presentOpenedLevels(reading, { ...screen, openUnnamedEnd: end });
     assert(pinned.halfNamed !== null, "a pinned row alone opens");
-    const row = presentOpenedReadings(reading, { ...screen, openRowId: person });
+    const row = presentOpenedLevels(reading, { ...screen, openRowId: person });
     assert(row.drill !== null, "and so does a person's row alone");
     assertEquals(row.halfNamedDrill, null, "with nothing under it until the end is pressed");
 
-    const both = presentOpenedReadings(reading, {
+    const both = presentOpenedLevels(reading, {
         ...screen,
         openUnnamedEnd: end,
         openRowId: person,
@@ -51,7 +51,7 @@ Deno.test("a person's row and the end their figure left out open at once are the
     );
 
     const other = UNNAMED_END.target;
-    const stray = presentOpenedReadings(reading, {
+    const stray = presentOpenedLevels(reading, {
         ...screen,
         openUnnamedEnd: other,
         openRowId: person,
@@ -67,7 +67,7 @@ Deno.test("a person's row and the end their figure left out open at once are the
 Deno.test("an end left out whose keys fall short of it opens nothing", () => {
     const view = composeFightView(replayRecordedFight(lookupRecordedFight(HILDUR)));
     assertExists(view, "the recording opens a fight");
-    const reading = tallyFightReading(view);
+    const reading = tallyFightState(view);
     const metric = PANEL_METRIC.damageTaken;
     const { statistics } = reading.figures;
     const person = [...view.roster.byId.keys()].find((one) =>
@@ -80,7 +80,7 @@ Deno.test("an end left out whose keys fall short of it opens nothing", () => {
     const drill = presentOpenedLevel(statistics, view.roster, metric, person);
     assertEquals(drill?.byOpponent.unnamed?.doesOpenPair, false, "the row no longer opens");
     const screen = { ...createScreenState(false), current: metric };
-    const both = presentOpenedReadings(reading, {
+    const both = presentOpenedLevels(reading, {
         ...screen,
         openUnnamedEnd: UNNAMED_END.actor,
         openRowId: person,

@@ -11,10 +11,10 @@ import { clamp } from "#/libs/number-range.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { formatInteger } from "#/libs/number-text.ts";
 import type { OutcomeResult } from "#/src/core/battle-event.ts";
-import type { FightMoment, PanelUnnamedEnd, PinnedCase, SideRelation } from "./panel-reading.ts";
+import type { FightMoment, PanelUnnamedEnd, PinnedCase, SideRelation } from "./panel-content.ts";
 import type { PanelWindow, StorageChoice, TypeStep } from "./panel-choice.ts";
 import type { PanelMetric, PanelNoun, PanelSideChoice } from "./panel-screen.ts";
-import type { HelperAbsence, StandingTurnState } from "./panel-standing.ts";
+import type { HelperAbsence, StandingTurnState } from "./panel-helper.ts";
 import type { ChargedSkillState } from "#/src/core/charged-skill.ts";
 import { HASTE_BIT_NAME, SLOW_BIT_NAME } from "#/src/core/carried-figure.ts";
 import { HOLYTOUCH_HEALS_STATED } from "#/src/core/legendary-standing.ts";
@@ -59,7 +59,7 @@ export interface TooltipStatus {
 }
 
 /** One fighter, as the game's own tooltip could honestly restate them. */
-export interface TooltipReading {
+export interface TooltipContent {
     turnsTaken: number;
     /** What they are making ready, or null: an ended charge is Pomocnik's (`develop ADR 0115`). */
     charge: { skillName: string; turnsElapsed: number; turnsStated: number } | null;
@@ -93,7 +93,7 @@ export const PANEL_REGION = {
     /** The card a row opens. It is not a region of the panel's frame, and it is drawn like one. */
     tip: "tip",
     /** The window beside the panel. Its own region, drawn and undrawn like any other. */
-    standing: "standing",
+    helper: "standing",
 } as const;
 export type PanelRegion = VocabularyWord<typeof PANEL_REGION>;
 
@@ -782,7 +782,7 @@ const STORAGE_MEANING_WORDS: Record<StorageChoice, string> = {
 
 /** A line per window in the options, so a reader who sized one is told which goes back. */
 const WINDOW_WORDS: Record<PanelWindow, string> = {
-    panel: "Panel",
+    meter: "Licznik",
     helper: HELPER_WORDS.title,
 };
 
@@ -862,7 +862,7 @@ export const REGION_WORDS: { readonly [Region in PanelRegion]: string } = {
     suspicions: "ostrzeżenia",
     defects: "spisu usterek",
     tip: "szczegółów wiersza",
-    standing: "pomocnika",
+    [PANEL_REGION.helper]: "pomocnika",
 };
 
 /** **L3**: a player is told a part of the panel is missing, never what our code believed. */
@@ -958,13 +958,13 @@ export function getWordsForBlowKey(key: string, translate: TranslateLabel | null
     if (words !== undefined) {
         return words;
     }
-    const stated = getClientWordsForKey(key, translate);
+    const stated = getGameWordsForKey(key, translate);
     if (stated !== null) return stated;
     return key;
 }
 
 /** Null where nobody is asked, where the client has no name, or where the name will not fit. */
-function getClientWordsForKey(key: string, translate: TranslateLabel | null): string | null {
+function getGameWordsForKey(key: string, translate: TranslateLabel | null): string | null {
     if (translate === null) return null;
     const id = CLIENT_ID_BY_UNWORDED_KEY.get(key);
     if (id === undefined) return null;
@@ -1065,7 +1065,7 @@ export function formatCountedNoun(count: number, noun: CountedNoun): string {
  * is fixed, so a row is found where it was last time (`develop ADR 0116`).
  */
 export function presentTooltipRows(
-    reading: TooltipReading,
+    reading: TooltipContent,
     translate: TranslateLabel | null,
     statusBits: readonly string[],
 ): string[] {

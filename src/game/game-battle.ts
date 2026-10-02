@@ -9,26 +9,26 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import {
-    readWarriorSnapshot,
-    type WarriorFailure,
-    type WarriorSnapshot,
+    type GameWarriorFailure,
+    type GameWarriorSnapshot,
+    readGameWarriorSnapshot,
 } from "./warrior-snapshot.ts";
 
-export class EngineAbsent extends Error {
-    override readonly name = "EngineAbsent";
+export class GameEngineAbsent extends Error {
+    override readonly name = "GameEngineAbsent";
 }
 
-export class BattleAbsent extends Error {
-    override readonly name = "BattleAbsent";
+export class GameBattleAbsent extends Error {
+    override readonly name = "GameBattleAbsent";
 }
 
-export class MethodAbsent extends Error {
-    override readonly name = "MethodAbsent";
+export class GameMethodAbsent extends Error {
+    override readonly name = "GameMethodAbsent";
 }
 
 /** A wrap of ours already stands: another copy of the add-on is reading this fight. */
-export class EngineAlreadyWrapped extends Error {
-    override readonly name = "EngineAlreadyWrapped";
+export class GameEngineAlreadyWrapped extends Error {
+    override readonly name = "GameEngineAlreadyWrapped";
 }
 
 export class SearchAbandoned extends Error {
@@ -47,11 +47,11 @@ export class WrapCovered extends Error {
     override readonly name = "WrapCovered";
 }
 
-export type EngineFailure =
-    | EngineAbsent
-    | BattleAbsent
-    | MethodAbsent
-    | EngineAlreadyWrapped
+export type GameEngineFailure =
+    | GameEngineAbsent
+    | GameBattleAbsent
+    | GameMethodAbsent
+    | GameEngineAlreadyWrapped
     | SearchAbandoned
     | WrapCovered;
 
@@ -63,19 +63,19 @@ export interface PayloadListener {
 
 export interface WrapHandle {
     /** Puts back what was there, and only where ours is still the outermost layer. */
-    detach(): undefined | EngineFailure;
+    detach(): undefined | GameEngineFailure;
     /** Failures of ours the wrap caught: the listener guards itself, so this is what escaped. */
     getFailureCount(): number;
     getFirstFailure(): errors.Caught | null;
 }
 
-export interface EngineBattle {
-    wrap(listener: PayloadListener): WrapHandle | EngineFailure;
-    readWarriors(): WarriorSnapshot | WarriorFailure | errors.Caught;
+export interface GameBattle {
+    wrap(listener: PayloadListener): WrapHandle | GameEngineFailure;
+    readGameWarriors(): GameWarriorSnapshot | GameWarriorFailure | errors.Caught;
 }
 
-export interface BattlePort {
-    readBattle(): EngineBattle | EngineFailure | errors.Caught;
+export interface GameBattlePort {
+    readBattle(): GameBattle | GameEngineFailure | errors.Caught;
 }
 
 /** Both spellings are in the wild, and a client renaming either breaks both readers at once. */
@@ -91,20 +91,20 @@ const WRAP_VERSION = 1;
 const FAILURES_MAXIMUM = 1048576;
 
 /** The page's game, in whichever spelling answers. A call into the page may throw: theirs. */
-export function initEngineBattle(page: unknown): BattlePort {
+export function initGameBattle(page: unknown): GameBattlePort {
     return {
         readBattle() {
-            const engines = errors.attempt(() => readEngines(page));
+            const engines = errors.attempt(() => readGameEngines(page));
             if (engines instanceof Error) return engines;
-            if (engines.length === 0) return new EngineAbsent();
-            const battle = lookupEngineBattle(engines);
-            if (battle === null) return new BattleAbsent();
+            if (engines.length === 0) return new GameEngineAbsent();
+            const battle = lookupGameBattle(engines);
+            if (battle === null) return new GameBattleAbsent();
             return {
                 // Put the wrap on the engine's own method.
-                wrap: (listener): WrapHandle | EngineFailure => {
+                wrap: (listener): WrapHandle | GameEngineFailure => {
                     const original = battle[WRAPPED_METHOD];
-                    if (typeof original !== "function") return new MethodAbsent();
-                    if (isOurWrap(original)) return new EngineAlreadyWrapped();
+                    if (typeof original !== "function") return new GameMethodAbsent();
+                    if (isOurWrap(original)) return new GameEngineAlreadyWrapped();
                     const failures: { count: number; first: errors.Caught | null } = {
                         count: 0,
                         first: null,
@@ -144,15 +144,15 @@ export function initEngineBattle(page: unknown): BattlePort {
                         getFirstFailure: () => failures.first,
                     };
                 },
-                readWarriors() {
-                    return errors.attempt(() => readWarriorSnapshot(battle));
+                readGameWarriors() {
+                    return errors.attempt(() => readGameWarriorSnapshot(battle));
                 },
             };
         },
     };
 }
 
-function lookupEngineBattle(engines: readonly Record<string, unknown>[]) {
+function lookupGameBattle(engines: readonly Record<string, unknown>[]) {
     for (const engine of engines) {
         const battle = engine[BATTLE_FIELD];
         if (isWritableRecord(battle)) return battle;
@@ -171,7 +171,7 @@ function isOurWrap(value: unknown): boolean {
 }
 
 /** Both spellings of the game a page holds, in the order tried; a call into the page is theirs. */
-export function readEngines(page: unknown): Record<string, unknown>[] {
+export function readGameEngines(page: unknown): Record<string, unknown>[] {
     if (!isRecord(page)) return [];
     const found: unknown[] = [page[ENGINE_FIELD]];
     const stated = page[ENGINE_CALL_FIELD];
@@ -180,6 +180,6 @@ export function readEngines(page: unknown): Record<string, unknown>[] {
 }
 
 /** The battle a page's game holds, or null; a call into the page may throw, and it is theirs. */
-export function readEngineBattleRecord(page: unknown): Record<string, unknown> | null {
-    return lookupEngineBattle(readEngines(page));
+export function readGameBattleRecord(page: unknown): Record<string, unknown> | null {
+    return lookupGameBattle(readGameEngines(page));
 }

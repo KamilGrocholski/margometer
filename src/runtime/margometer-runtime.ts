@@ -11,33 +11,33 @@ import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import { composeFightView, type SessionOptions } from "#/src/core/fight-session.ts";
 import type { KeyValueStore } from "#/src/game/browser-store.ts";
 import {
-    type BattlePort,
-    EngineAlreadyWrapped,
-    type EngineFailure,
+    type GameBattlePort,
+    GameEngineAlreadyWrapped,
+    type GameEngineFailure,
     type PayloadListener,
     SearchAbandoned,
     type WrapHandle,
-} from "#/src/game/engine-battle.ts";
-import type { HeroPort } from "#/src/game/engine-hero.ts";
-import type { PlacePort } from "#/src/game/engine-place.ts";
-import { ROWS_WRITTEN_MAXIMUM, type TooltipPort } from "#/src/game/engine-tooltip.ts";
-import type { DictionaryPort } from "#/src/game/game-dictionary.ts";
-import type { BuildPort } from "#/src/game/game-build.ts";
+} from "#/src/game/game-battle.ts";
+import type { GameHeroPort } from "#/src/game/game-hero.ts";
+import type { GamePlacePort } from "#/src/game/game-place.ts";
+import { type GameTooltipPort, ROWS_WRITTEN_MAXIMUM } from "#/src/game/game-tooltip.ts";
+import type { GameDictionaryPort } from "#/src/game/game-dictionary.ts";
+import type { GameBuildPort } from "#/src/game/game-build.ts";
 import type {
-    Clock,
+    BrowserClock,
+    BrowserFrameScheduler,
+    BrowserIntervalScheduler,
     FrameHandle,
-    FrameScheduler,
     IntervalHandle,
-    IntervalScheduler,
-} from "#/src/game/page-time.ts";
-import type { ConsolePort } from "#/src/game/page-console.ts";
-import type { FileSink } from "#/src/game/page-file.ts";
-import { type SurroundingsPort, WORLD_UNKNOWN } from "#/src/game/page-surroundings.ts";
+} from "#/src/game/browser-time.ts";
+import type { BrowserConsolePort } from "#/src/game/browser-console.ts";
+import type { BrowserFileSink } from "#/src/game/browser-file.ts";
+import { type BrowserSurroundingsPort, WORLD_UNKNOWN } from "#/src/game/browser-surroundings.ts";
 import type { TooltipTables } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger, initDefectLedger } from "./defect-ledger.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
 import { writeShownFightFile } from "./fight-handover.ts";
-import { lookupShownFight, tallyFightReading } from "./fight-reading.ts";
+import { lookupShownFight, tallyFightState } from "./fight-state.ts";
 import { initLiveFight, type LiveFight } from "./live-fight.ts";
 import { renderFrame } from "./panel-frame.ts";
 import {
@@ -72,22 +72,22 @@ import { ROWS_BESIDE_THE_STATUSES, type TranslateLabel } from "#/src/ui/panel-wo
 import { GestureDropped, RegionUndrawn } from "#/src/ui/view-failure.ts";
 
 export interface RuntimePorts {
-    clock: Clock;
-    frames: FrameScheduler;
-    interval: IntervalScheduler;
-    engine: BattlePort;
-    place: PlacePort;
-    hero: HeroPort;
-    dictionary: DictionaryPort;
-    build: BuildPort;
-    surroundings: SurroundingsPort;
-    tooltip: TooltipPort;
+    clock: BrowserClock;
+    frames: BrowserFrameScheduler;
+    interval: BrowserIntervalScheduler;
+    engine: GameBattlePort;
+    place: GamePlacePort;
+    hero: GameHeroPort;
+    dictionary: GameDictionaryPort;
+    build: GameBuildPort;
+    surroundings: BrowserSurroundingsPort;
+    tooltip: GameTooltipPort;
     /** Where the panel's own choices are kept, which is never the store the shelf is moved to. */
     settings: KeyValueStore;
     /** Never refusing: a browser that lends no store is answered with one that forgets. */
     initShelfStore: (choice: StorageChoice) => KeyValueStore;
-    file: FileSink;
-    console: ConsolePort;
+    file: BrowserFileSink;
+    console: BrowserConsolePort;
     document: PanelDocument;
     mountPanel: (panel: PanelElement) => void | errors.Caught;
     readViewport: () => PanelViewport | null;
@@ -109,7 +109,7 @@ export interface RuntimeOptions {
 export interface Runtime {
     onIntent(intent: PanelIntent): void;
     /** Stops looking, takes the wrap off and cancels the frame asked for. */
-    deinit(): undefined | EngineFailure;
+    deinit(): undefined | GameEngineFailure;
 }
 
 interface RuntimeState {
@@ -121,7 +121,7 @@ interface RuntimeState {
     live: LiveFight;
     view: PanelView;
     translate: TranslateLabel;
-    search: EngineSearch | null;
+    search: GameEngineSearch | null;
     wrap: WrapHandle | null;
     frame: FrameHandle | null;
     isStale: boolean;
@@ -134,15 +134,15 @@ interface RuntimeState {
 export interface SearchReport {
     onAttached(wrap: WrapHandle): void;
     /** A MargoMeter already holds the game, so this copy stands down and never counts. */
-    onStoodDown(failure: EngineFailure): void;
+    onStoodDown(failure: GameEngineFailure): void;
     /** The game is here, and the method it is read by is not: said once, the looking goes on. */
-    onRefused(failure: EngineFailure): void;
-    onAbandoned(failure: EngineFailure): void;
+    onRefused(failure: GameEngineFailure): void;
+    onAbandoned(failure: GameEngineFailure): void;
     /** A look that failed, the first time one does. The looking goes on to its bound. */
     onLookFailed(failure: errors.Caught): void;
 }
 
-export interface EngineSearch {
+export interface GameEngineSearch {
     /** Stops looking. A wrap already on stays on: taking it off is the wrap's own `detach`. */
     stop(): void;
     isDone(): boolean;
@@ -183,11 +183,11 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
         defects,
     });
     const screen = createScreenState(
-        readFoldSetting(ports, defects, PANEL_WINDOW.panel),
+        readFoldSetting(ports, defects, PANEL_WINDOW.meter),
         readFoldSetting(ports, defects, PANEL_WINDOW.helper),
         readSettingOrFallback(defects, readTypeStep(ports.settings), TYPE_STEP_DEFAULT),
         {
-            panel: readSizeSetting(ports, defects, PANEL_WINDOW.panel),
+            meter: readSizeSetting(ports, defects, PANEL_WINDOW.meter),
             helper: readSizeSetting(ports, defects, PANEL_WINDOW.helper),
         },
     );
@@ -246,7 +246,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
                 if (builtState === null) return;
                 markStale(builtState);
             },
-            placement: readPlacementSetting(ports, defects, PANEL_WINDOW.panel, screen),
+            placement: readPlacementSetting(ports, defects, PANEL_WINDOW.meter, screen),
             helperPlacement: readPlacementSetting(ports, defects, PANEL_WINDOW.helper, screen),
             translate,
         });
@@ -272,7 +272,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             isStoodDown: false,
         };
         builtState = state;
-        state.search = initEngineSearch(ports.engine, ports.interval, listener, {
+        state.search = initGameEngineSearch(ports.engine, ports.interval, listener, {
             onAttached: (wrap) => {
                 state.wrap = wrap;
                 markPanelDue(state);
@@ -281,8 +281,8 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
                 state.isStoodDown = true;
                 ports.console.writeBrandedLine(failure.name, failure);
             },
-            onRefused: (failure) => onEngineSearchFailed(state, failure),
-            onAbandoned: (failure) => onEngineSearchFailed(state, failure),
+            onRefused: (failure) => onGameEngineSearchFailed(state, failure),
+            onAbandoned: (failure) => onGameEngineSearchFailed(state, failure),
             onLookFailed: (failure) => ports.console.writeBrandedLine(failure.name, failure),
         });
     }
@@ -413,15 +413,15 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
                 // returned, so its failure is handed the same mark by the sink.
                 const { screen, keeper, live, defects } = state;
                 const view = composeFightView(live.session);
-                const liveReading = view === null ? null : tallyFightReading(view);
+                const liveFightState = view === null ? null : tallyFightState(view);
                 const shown = lookupShownFight(
-                    liveReading,
+                    liveFightState,
                     screen.openFightId,
                     keeper.getFights(),
-                    keeper.lookupKeptReading,
+                    keeper.lookupKeptFightState,
                 );
                 if (shown !== null) {
-                    const applied = shown.reading.view.payloadsApplied;
+                    const applied = shown.state.view.payloadsApplied;
                     assert(applied > 0, "a fight handed over was read from something");
                 }
                 const ports = { ...state.ports, version: state.options.version };
@@ -475,7 +475,7 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
         }
         case PANEL_INTENT.fold: {
             const hasMoved = executeScreenIntent(state.screen, intent);
-            const isCollapsed = intent.window === PANEL_WINDOW.panel
+            const isCollapsed = intent.window === PANEL_WINDOW.meter
                 ? state.screen.isCollapsed
                 : state.screen.isHelperCollapsed;
             void writeWindowCollapsed(state.ports.settings, intent.window, isCollapsed);
@@ -517,8 +517,8 @@ function markPanelDue(state: RuntimeState): void {
     markStale(state);
 }
 
-function onEngineSearchFailed(state: RuntimeState, failure: EngineFailure): void {
-    assert(!(failure instanceof EngineAlreadyWrapped), "a copy that stands down shows nothing");
+function onGameEngineSearchFailed(state: RuntimeState, failure: GameEngineFailure): void {
+    assert(!(failure instanceof GameEngineAlreadyWrapped), "a copy that stands down shows nothing");
     assert(state.wrap === null, "and one holding the game is not looking for it");
     state.defects.add({ kind: DEFECT_KIND.engine, region: null, failure });
     markPanelDue(state);
@@ -530,12 +530,12 @@ function onEngineSearchFailed(state: RuntimeState, failure: EngineFailure): void
  * it finds one or when the game plainly is not coming. A search with no end is something the page
  * pays for forever.
  */
-export function initEngineSearch(
-    engine: BattlePort,
-    interval: IntervalScheduler,
+export function initGameEngineSearch(
+    engine: GameBattlePort,
+    interval: BrowserIntervalScheduler,
     listener: PayloadListener,
     report: SearchReport,
-): EngineSearch {
+): GameEngineSearch {
     const search: Search = {
         looks: 0,
         isDone: false,
@@ -602,7 +602,7 @@ function deinitSearchTimer(search: Search): void {
 
 function executeSearchLook(
     search: Search,
-    engine: BattlePort,
+    engine: GameBattlePort,
     listener: PayloadListener,
     report: SearchReport,
 ): void {
@@ -621,7 +621,7 @@ function executeSearchLook(
         report.onAttached(wrapped);
         return;
     }
-    if (wrapped instanceof EngineAlreadyWrapped) {
+    if (wrapped instanceof GameEngineAlreadyWrapped) {
         deinitSearchTimer(search);
         report.onStoodDown(wrapped);
         return;
@@ -740,7 +740,7 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
                 hasMoved = true;
                 break;
             case PANEL_INTENT.fold:
-                if (intent.window === PANEL_WINDOW.panel) screen.isCollapsed = !screen.isCollapsed;
+                if (intent.window === PANEL_WINDOW.meter) screen.isCollapsed = !screen.isCollapsed;
                 else screen.isHelperCollapsed = !screen.isHelperCollapsed;
                 hasMoved = true;
                 break;

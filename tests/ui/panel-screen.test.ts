@@ -10,7 +10,7 @@ import { assert, assertArrayIncludes, assertEquals } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { tallyFightStatistics } from "#/src/core/fight-statistics.ts";
 import { isOneOf } from "#/libs/vocabulary.ts";
-import { NOTHING_SUSPECT, presentScreen, UNNAMED_END } from "#/src/ui/panel-reading.ts";
+import { NOTHING_SUSPECT, presentScreen, UNNAMED_END } from "#/src/ui/panel-content.ts";
 import {
     composeListName,
     createScreenState,

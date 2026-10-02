@@ -15,8 +15,8 @@ import {
     setTipHidden,
     setTipPosition,
     tallyTipSize,
+    type TipContent,
     type TipNoteTone,
-    type TipReading,
 } from "#/src/ui/panel-element.ts";
 import { CLASS, getTipHeight, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { TYPE_STEP } from "#/src/ui/panel-choice.ts";
@@ -36,7 +36,7 @@ const ONE_LINE_NOTE = "Surowe to obrazenia przed red...";
 /** And one past it, which is the first note that costs two. */
 const TWO_LINE_NOTE = `${ONE_LINE_NOTE}.`;
 
-const HILDUR: TipReading = {
+const HILDUR: TipContent = {
     name: "Hildur Muza Śmierci",
     subtitle: "(83)",
     groups: [
@@ -215,7 +215,7 @@ Deno.test("a name too long for one line is counted as the lines it folds to", ()
 });
 
 /** A card of a name alone, which is the shape the shelf's own row opens (`develop ADR 0084`). */
-function composeNamed(length: number): TipReading {
+function composeNamed(length: number): TipContent {
     return { name: "x".repeat(length), subtitle: null, groups: [] };
 }
 
@@ -338,7 +338,7 @@ Deno.test("a card pinned by one edge releases the other, whichever way round it 
  * its own.
  */
 Deno.test("a card too tall for the window gives up its runs, and says that it did", () => {
-    const tall: TipReading = {
+    const tall: TipContent = {
         name: "Hildur Muza Śmierci",
         subtitle: "(83)",
         groups: [
@@ -399,7 +399,7 @@ Deno.test("a card too tall for the window gives up its runs, and says that it di
 
 /** A window with room for nothing keeps the figures, rather than handing back an empty card. */
 Deno.test("a window too short for even the figures still draws them, and says so", () => {
-    const tall: TipReading = {
+    const tall: TipContent = {
         name: "Hildur",
         subtitle: null,
         groups: [
@@ -618,7 +618,7 @@ Deno.test("nobody under the pointer hides it, and a row nobody drew never opens 
  * without it does not. Thirty says one line either way, which is the other side of the boundary.
  */
 Deno.test("a caveated sentence is counted with the mark the card draws before it", () => {
-    const compose = (length: number, tone: TipNoteTone): TipReading => ({
+    const compose = (length: number, tone: TipNoteTone): TipContent => ({
         name: "Hildur",
         subtitle: null,
         groups: [{ lines: [{ kind: "note", text: "x".repeat(length), tone }] }],

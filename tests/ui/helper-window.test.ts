@@ -18,7 +18,7 @@ import {
     presentHelper,
     PROVOKED_MAXIMUM,
     type StandingTurn,
-} from "#/src/ui/panel-standing.ts";
+} from "#/src/ui/panel-helper.ts";
 import { getWordsForTurnState, HELPER_WORDS, PANEL_WORDS } from "#/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
@@ -453,7 +453,7 @@ Deno.test("a fight holding only a provocation is not a fight where nothing stand
     assertEquals(
         getTextsByClass(getWindow(draw(reading).host), "empty"),
         [getWordsForTurnState("unread")],
-        "the turn is unread, and the standing section says nothing of the sort",
+        "the turn is unread, and the helper says nothing of the sort",
     );
 });
 

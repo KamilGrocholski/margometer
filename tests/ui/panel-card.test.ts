@@ -8,7 +8,7 @@
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
 import { presentCard, TIP_LINE, TIP_NOTE_TONE, type TipGroup } from "#/src/ui/panel-element.ts";
-import { type RowDetail, SIDE_RELATION, type SideRelation } from "#/src/ui/panel-reading.ts";
+import { type RowDetail, SIDE_RELATION, type SideRelation } from "#/src/ui/panel-content.ts";
 import { PANEL_METRIC, type PanelMetric, SCREEN_ORDER } from "#/src/ui/panel-screen.ts";
 import {
     CARD_WORDS,

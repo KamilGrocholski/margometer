@@ -14,7 +14,7 @@ import {
     PLAIN_MARK,
     readPanelIntent,
 } from "#/src/ui/panel-intent.ts";
-import { UNNAMED_END } from "#/src/ui/panel-reading.ts";
+import { UNNAMED_END } from "#/src/ui/panel-content.ts";
 import { OPENED_PART, PANEL_METRIC, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 
 Deno.test("every mark the panel writes states the intent the runtime is handed", () => {
@@ -70,7 +70,7 @@ Deno.test("every mark the panel writes states the intent the runtime is handed",
         [PANEL_MARK.save, "", { kind: PANEL_INTENT.saveFile }],
         [PANEL_MARK.shelf, "", { kind: PANEL_INTENT.shelf }],
         [PANEL_MARK.options, "", { kind: PANEL_INTENT.options }],
-        [PANEL_MARK.fold, "", { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel }],
+        [PANEL_MARK.fold, "", { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.meter }],
         [PANEL_MARK.back, "", { kind: PANEL_INTENT.close }],
     ] as const;
     for (const [mark, value, intent] of cases) {

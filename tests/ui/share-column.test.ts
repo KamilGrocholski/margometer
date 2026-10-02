@@ -23,7 +23,7 @@ import {
     presentPairLevel,
     presentPartLevel,
     presentScreen,
-} from "#/src/ui/panel-reading.ts";
+} from "#/src/ui/panel-content.ts";
 import {
     OPENED_PART,
     type PanelMetric,

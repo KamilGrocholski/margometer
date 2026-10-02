@@ -117,12 +117,12 @@ Deno.test("the size of type a reader chose reads back, and nothing chosen is the
 
 Deno.test("a window's size reads back per window, and goes when it is given back", () => {
     const store = initMemoryStore();
-    for (const window of [PANEL_WINDOW.panel, PANEL_WINDOW.helper]) {
+    for (const window of [PANEL_WINDOW.meter, PANEL_WINDOW.helper]) {
         assertEquals(readWindowSize(store, window), null, `${window}: nothing stored is no size`);
     }
-    writeWindowSize(store, PANEL_WINDOW.panel, { width: 320, height: 350 });
+    writeWindowSize(store, PANEL_WINDOW.meter, { width: 320, height: 350 });
     assertEquals(store.read(STORE_KEY.panelSize), '{"width":320,"height":350}', "as two numbers");
-    assertEquals(readWindowSize(store, PANEL_WINDOW.panel), { width: 320, height: 350 }, "back");
+    assertEquals(readWindowSize(store, PANEL_WINDOW.meter), { width: 320, height: 350 }, "back");
     assertEquals(
         readWindowSize(store, PANEL_WINDOW.helper),
         null,
@@ -134,7 +134,7 @@ Deno.test("a window's size reads back per window, and goes when it is given back
         { width: 1, height: 1 },
         "one is a size",
     );
-    deleteWindowSize(store, PANEL_WINDOW.panel);
+    deleteWindowSize(store, PANEL_WINDOW.meter);
     assertEquals(store.read(STORE_KEY.panelSize), null, "given back, it is gone");
     assertEquals(
         readWindowSize(store, PANEL_WINDOW.helper),
@@ -142,7 +142,7 @@ Deno.test("a window's size reads back per window, and goes when it is given back
         "not the other",
     );
     assertThrows(
-        () => writeWindowSize(store, PANEL_WINDOW.panel, { width: 0, height: 10 }),
+        () => writeWindowSize(store, PANEL_WINDOW.meter, { width: 0, height: 10 }),
         AssertionError,
         "narrower than nothing",
     );
@@ -150,7 +150,7 @@ Deno.test("a window's size reads back per window, and goes when it is given back
 
 Deno.test("a size that is not two whole numbers above nought is refused by name", () => {
     const store = initMemoryStore();
-    const key = SETTING_KEY.panelSize;
+    const key = SETTING_KEY.meterSize;
     const unread = [
         '{"width":0,"height":350}',
         '{"width":320,"height":-1}',
@@ -161,31 +161,31 @@ Deno.test("a size that is not two whole numbers above nought is refused by name"
     ];
     for (const text of unread) {
         store.write(STORE_KEY.panelSize, text);
-        expectSettingUnreadable(readWindowSize(store, PANEL_WINDOW.panel), key, text);
+        expectSettingUnreadable(readWindowSize(store, PANEL_WINDOW.meter), key, text);
     }
     store.write(STORE_KEY.panelSize, `{"width":320,"height":${"0".repeat(4096)}}`);
     assertInstanceOf(
-        readWindowSize(store, PANEL_WINDOW.panel),
+        readWindowSize(store, PANEL_WINDOW.meter),
         SettingTooLong,
         "and text too long",
     );
-    expectStoreRefused(readWindowSize(composeRefusingStore(), PANEL_WINDOW.panel), "a refusal");
-    expectStoreRefused(deleteWindowSize(composeRefusingStore(), PANEL_WINDOW.panel), "on removing");
+    expectStoreRefused(readWindowSize(composeRefusingStore(), PANEL_WINDOW.meter), "a refusal");
+    expectStoreRefused(deleteWindowSize(composeRefusingStore(), PANEL_WINDOW.meter), "on removing");
 });
 
 Deno.test("a fold is the one mark, and anything else stored there is not read as one", () => {
     const store = initMemoryStore();
-    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.panel), false, "nothing stored: unfolded");
-    writeWindowCollapsed(store, PANEL_WINDOW.panel, true);
+    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.meter), false, "nothing stored: unfolded");
+    writeWindowCollapsed(store, PANEL_WINDOW.meter, true);
     assertEquals(store.read(STORE_KEY.panelFolded), "1", "a fold is stored as the mark");
-    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.panel), true, "and reads back folded");
-    writeWindowCollapsed(store, PANEL_WINDOW.panel, false);
+    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.meter), true, "and reads back folded");
+    writeWindowCollapsed(store, PANEL_WINDOW.meter, false);
     assertEquals(store.read(STORE_KEY.panelFolded), "", "an unfolding leaves empty text");
-    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.panel), false, "which reads unfolded");
+    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.meter), false, "which reads unfolded");
     store.write(STORE_KEY.panelFolded, "yes");
     expectSettingUnreadable(
-        readWindowCollapsed(store, PANEL_WINDOW.panel),
-        SETTING_KEY.panelFolded,
+        readWindowCollapsed(store, PANEL_WINDOW.meter),
+        SETTING_KEY.meterFolded,
         "a word nobody here wrote is refused, naming the panel's fold",
     );
     expectStoreRefused(
@@ -199,11 +199,11 @@ Deno.test("each window's fold and place are under keys of their own", () => {
     const store = initMemoryStore();
     writeWindowCollapsed(store, PANEL_WINDOW.helper, true);
     assertEquals(store.read(STORE_KEY.helperFolded), "1", "the helper's fold is its own key");
-    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.panel), false, "the panel stays open");
+    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.meter), false, "the panel stays open");
     assertEquals(readWindowCollapsed(store, PANEL_WINDOW.helper), true, "the helper is folded");
     writeWindowPosition(store, PANEL_WINDOW.helper, { left: 5, top: 6 });
     assertEquals(store.read(STORE_KEY.helperPlace), '{"left":5,"top":6}', "its own place");
-    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), null, "and not the panel's");
+    assertEquals(readWindowPosition(store, PANEL_WINDOW.meter), null, "and not the panel's");
     store.write(STORE_KEY.helperFolded, "?");
     expectSettingUnreadable(
         readWindowCollapsed(store, PANEL_WINDOW.helper),
@@ -214,11 +214,11 @@ Deno.test("each window's fold and place are under keys of their own", () => {
 
 Deno.test("a position survives a reload, and nothing else is read as one", () => {
     const store = initMemoryStore();
-    writeWindowPosition(store, PANEL_WINDOW.panel, { left: 12, top: 34 });
+    writeWindowPosition(store, PANEL_WINDOW.meter, { left: 12, top: 34 });
     assertEquals(store.read(STORE_KEY.panelPlace), '{"left":12,"top":34}', "as develop does");
-    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), { left: 12, top: 34 }, "back");
-    writeWindowPosition(store, PANEL_WINDOW.panel, { left: -3, top: 0 });
-    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), { left: -3, top: 0 }, "zero");
+    assertEquals(readWindowPosition(store, PANEL_WINDOW.meter), { left: 12, top: 34 }, "back");
+    writeWindowPosition(store, PANEL_WINDOW.meter, { left: -3, top: 0 });
+    assertEquals(readWindowPosition(store, PANEL_WINDOW.meter), { left: -3, top: 0 }, "zero");
     const samples: [string, string][] = [
         ["", "nothing stored as empty text is no position"],
         ["{", "and neither is text that was cut short"],
@@ -230,8 +230,8 @@ Deno.test("a position survives a reload, and nothing else is read as one", () =>
     ];
     for (const [text, message] of samples) {
         store.write(STORE_KEY.panelPlace, text);
-        const read = readWindowPosition(store, PANEL_WINDOW.panel);
-        expectSettingUnreadable(read, SETTING_KEY.panelPosition, message);
+        const read = readWindowPosition(store, PANEL_WINDOW.meter);
+        expectSettingUnreadable(read, SETTING_KEY.meterPosition, message);
     }
 });
 
@@ -242,19 +242,19 @@ Deno.test("a position is refused past its length, and read up to it", () => {
         return `${body}${" ".repeat(length - body.length)}`;
     };
     store.write(STORE_KEY.panelPlace, padded(4096));
-    assertEquals(readWindowPosition(store, PANEL_WINDOW.panel), { left: 1, top: 2 }, "at it");
+    assertEquals(readWindowPosition(store, PANEL_WINDOW.meter), { left: 1, top: 2 }, "at it");
     store.write(STORE_KEY.panelPlace, padded(4097));
-    const past = readWindowPosition(store, PANEL_WINDOW.panel);
+    const past = readWindowPosition(store, PANEL_WINDOW.meter);
     assertInstanceOf(past, SettingTooLong, "one past it is too long, and is not parsed");
-    assertStrictEquals(past.key, SETTING_KEY.panelPosition, "naming the panel's place");
+    assertStrictEquals(past.key, SETTING_KEY.meterPosition, "naming the panel's place");
 });
 
 /** A position that is not two whole numbers is the caller's bug, never text nobody can read. */
 Deno.test("a position that is not two whole numbers is never written down", () => {
     const store = initMemoryStore();
     const fraction = { left: 1.5, top: 0 };
-    assertThrows(() => writeWindowPosition(store, PANEL_WINDOW.panel, fraction), AssertionError);
+    assertThrows(() => writeWindowPosition(store, PANEL_WINDOW.meter, fraction), AssertionError);
     const notANumber = { left: 0, top: Number.NaN };
-    assertThrows(() => writeWindowPosition(store, PANEL_WINDOW.panel, notANumber), AssertionError);
+    assertThrows(() => writeWindowPosition(store, PANEL_WINDOW.meter, notANumber), AssertionError);
     assertEquals(store.read(STORE_KEY.panelPlace), null, "and nothing reached the store");
 });

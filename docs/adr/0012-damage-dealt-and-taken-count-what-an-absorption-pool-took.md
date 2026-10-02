@@ -86,7 +86,7 @@ discards.
   - the levels walked;
   - the share columns;
   - the place of the closing row;
-  - the pair recording `tests/ui/panel-reading.test.ts` reads both shapes of pair from.
+  - the pair recording `tests/ui/panel-content.test.ts` reads both shapes of pair from.
 
   Each count returned to its old value with both pools read as a chance. That shows absorption, and
   nothing else, moved them.

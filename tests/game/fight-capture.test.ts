@@ -18,8 +18,8 @@ import {
     CALLS_MAXIMUM,
     commitCapture,
     createFightCapture,
-    type EngineCall,
     type FightCapture,
+    type GameEngineCall,
     prepareCapture,
 } from "#/src/game/fight-capture.ts";
 import type { CapturedCombatant } from "#/src/game/warrior-snapshot.ts";
@@ -56,7 +56,7 @@ Deno.test("every call carrying messages is kept, and a call saying nothing new i
     assertEquals(recording.calls.length, 3, "while a repeat that carries a message is kept");
 });
 
-function capture(recording: FightCapture, call: Partial<EngineCall>, isOpening = false): void {
+function capture(recording: FightCapture, call: Partial<GameEngineCall>, isOpening = false): void {
     const whole = { payload: {}, messages: [], ...NOBODY, ...call };
     commitCapture(recording, prepareCapture(recording, whole, isOpening));
 }

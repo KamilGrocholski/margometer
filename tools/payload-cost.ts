@@ -20,7 +20,7 @@ import {
     SESSION_OPTIONS,
 } from "#/src/core/fight-session.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
-import { tallyFightReading } from "#/src/runtime/fight-reading.ts";
+import { tallyFightState } from "#/src/runtime/fight-state.ts";
 import { startMargoMeter } from "#/src/userscript-entry.ts";
 import { composeFakeWindow, flushFakeFrames } from "#/tests/fake-window.ts";
 import { composeRebuildingBattle } from "#/tests/rebuilding-battle.ts";
@@ -116,7 +116,7 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
             if (view === null) throw new PayloadCostError(`${cost.name} opened no fight`);
             // Time the tally a frame runs, at the call where the fight is longest.
             const started = performance.now();
-            tallyFightReading(view);
+            tallyFightState(view);
             const took = (performance.now() - started) * MICROSECONDS_PER_MILLISECOND;
             cost.tallyMicroseconds = Math.min(cost.tallyMicroseconds, took);
         }

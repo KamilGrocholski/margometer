@@ -10,7 +10,7 @@ import {
     type DownloadAnchor,
     FileApiAbsent,
     initBrowserFile,
-} from "#/src/game/page-file.ts";
+} from "#/src/game/browser-file.ts";
 
 Deno.test("a file goes to the browser through an anchor in the page, released a tick later", () => {
     const page = composeDownloads();

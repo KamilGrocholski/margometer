@@ -80,11 +80,11 @@ async function routePanelPage(page: Page, served: PanelServed): Promise<void> {
  */
 export async function readPanelBoxes(
     page: Page,
-    standingClass: string,
+    helperClass: string,
     tipClass: string,
 ): Promise<PanelBox[] | null> {
     const panel = await page.locator(HOST_SELECTOR).boundingBox();
-    const standing = await page.locator(`${HOST_SELECTOR} .${standingClass}`).boundingBox();
+    const standing = await page.locator(`${HOST_SELECTOR} .${helperClass}`).boundingBox();
     if (panel === null || standing === null) return null;
     const cards = page.locator(`${HOST_SELECTOR} .${tipClass}`);
     const card = await cards.count() === 0 ? null : await cards.first().boundingBox();

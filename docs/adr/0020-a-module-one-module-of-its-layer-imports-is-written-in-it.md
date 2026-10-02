@@ -35,15 +35,15 @@ merged module exports, and keeps its own file named for the subject it holds.
 
 **The layers alone are counted.** The entry, its boot and `src/build-version.ts` stand above the
 layers, and an import across a layer is `docs/design.md` §4's to keep apart, so
-`src/core/fight-figures.ts` stays a file although `src/runtime/fight-reading.ts` alone imports it.
+`src/core/fight-figures.ts` stays a file although `src/runtime/fight-state.ts` alone imports it.
 
 **`panel-tip.ts` and `panel-card.ts` are written into `src/ui/panel-element.ts`**, which then runs
 to some 4100 lines. The maintainer weighed them as subjects of their own and chose the merge: the
 detail window is drawn by the panel and nothing else.
 
-**The page's time is one file**, `src/game/page-time.ts`. No guard asks for it: the clock, the frame
-and the interval are three ports the entry reads, but `docs/design.md` §5 states them as one group,
-"Time and the frame", and three files for one group is the split C10 forbids.
+**The page's time is one file**, `src/game/browser-time.ts`. No guard asks for it: the clock, the
+frame and the interval are three ports the entry reads, but `docs/design.md` §5 states them as one
+group, "Time and the frame", and three files for one group is the split C10 forbids.
 
 Rejected: **one file per layer**, Blow taken to the end. A layer holds more than one subject (the
 decoder and the statistics in `core/`), and `docs/structure.md` stops being a map when every row is

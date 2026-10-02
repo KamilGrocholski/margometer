@@ -10,10 +10,10 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
-import { readEngineBattleRecord } from "./engine-battle.ts";
-import { readNamedWarriors, WARRIOR_ID_KEY } from "./warrior-snapshot.ts";
+import { readGameBattleRecord } from "./game-battle.ts";
+import { readGameWarriorsNamed, WARRIOR_ID_KEY } from "./warrior-snapshot.ts";
 
-export interface TooltipPort {
+export interface GameTooltipPort {
     /** Every fighter the page draws, each with the rows they should carry now, empty or not. */
     writeRows(
         rowsByCombatantId: ReadonlyMap<number, readonly string[]>,
@@ -56,7 +56,7 @@ const CLIENT_BREAK = "<br>";
 
 /**
  * Past the rows one block comes to. `game/` reaches into no `ui/` module, so the composer's own
- * bound is held level with this one by `tests/game/engine-tooltip.test.ts`.
+ * bound is held level with this one by `tests/game/game-tooltip.test.ts`.
  */
 export const ROWS_WRITTEN_MAXIMUM = 20;
 
@@ -66,7 +66,7 @@ export const ROWS_WRITTEN_MAXIMUM = 20;
  * that tooltip and the block goes on again. So every fighter is written on every frame and nobody
  * takes two blocks, whichever of the client's updates rebuilt whom (`develop ADR 0111`).
  */
-export function initEngineTooltip(page: unknown): TooltipPort {
+export function initGameTooltip(page: unknown): GameTooltipPort {
     let blocksById = new Map<number, string>();
     return {
         writeRows(rowsByCombatantId) {
@@ -76,7 +76,7 @@ export function initEngineTooltip(page: unknown): TooltipPort {
             // Write every fighter's block, and forget a fighter the page no longer draws, which
             // keeps one board's worth in memory.
             const walked = errors.attempt(() => {
-                const warriors = readNamedWarriors(readEngineBattleRecord(page));
+                const warriors = readGameWarriorsNamed(readGameBattleRecord(page));
                 if (warriors instanceof Error) return 0;
                 let written = 0;
                 const drawn = new Set<number>();
@@ -86,7 +86,7 @@ export function initEngineTooltip(page: unknown): TooltipPort {
                     drawn.add(id);
                     const block = encodeTooltipBlock(rowsByCombatantId.get(id) ?? []);
                     const was = next.get(id) ?? "";
-                    const stands = writeWarriorBlock(warrior, block, was);
+                    const stands = writeGameWarriorBlock(warrior, block, was);
                     if (stands === null) continue;
                     if (stands) next.set(id, block);
                     else next.delete(id);
@@ -123,7 +123,7 @@ function encodeTooltipBlock(rows: readonly string[]): string {
  * through `tip` with the registry's own string less ours. `tipupdate` goes after the rows, because
  * `concatTip` triggers nothing.
  */
-function writeWarriorBlock(warrior: UnknownRecord, block: string, was: string): boolean | null {
+function writeGameWarriorBlock(warrior: UnknownRecord, block: string, was: string): boolean | null {
     const held = warrior[WARRIOR_ELEMENT_FIELD];
     if (!isRecord(held)) return null;
     const find = held[FIND_METHOD];

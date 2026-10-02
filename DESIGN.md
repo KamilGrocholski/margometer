@@ -165,7 +165,7 @@ legibility.
 | `tipWidth`       | `250px` · `272px` · `296px` — a maximum, and a card is as wide as what it says    |
 | `lineHeight`     | `15px` · `16px` · `18px` — whole pixels, and what a counted card is multiplied by |
 | `panelWidth`     | `260px` · `274px` · `306px` — narrow on purpose: the panel is a guest             |
-| `standingWidth`  | `210px` · `228px` · `248px` — the window beside the panel                         |
+| `helperWidth`    | `210px` · `228px` · `248px` — the window beside the panel                         |
 | `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against                   |
 | `panelLayer`     | `10` — the game's interface layer, and under every window it opens                |
 

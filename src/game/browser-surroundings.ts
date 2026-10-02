@@ -8,7 +8,7 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 
-export interface SurroundingsPort {
+export interface BrowserSurroundingsPort {
     readWorld(): string;
     readUserAgent(): string | null;
 }
@@ -26,7 +26,7 @@ const NAVIGATOR_FIELD = "navigator";
 const USER_AGENT_FIELD = "userAgent";
 const HOST_SEPARATOR = ".";
 
-export function initBrowserSurroundings(page: unknown): SurroundingsPort {
+export function initBrowserSurroundings(page: unknown): BrowserSurroundingsPort {
     return {
         readWorld() {
             const read = errors.attempt(() => readBrowserText(page, LOCATION_FIELD, HOST_FIELD));

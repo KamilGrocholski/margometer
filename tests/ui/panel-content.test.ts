@@ -41,10 +41,10 @@ import type {
     CutPart,
     ElementRow,
     HalfNamedOpened,
-    HalfNamedReading,
     NamedPart,
     OpponentRow,
-} from "#/src/ui/panel-reading.ts";
+    UnnamedLevelContent,
+} from "#/src/ui/panel-content.ts";
 import {
     formatRowSuspicions,
     getOutcomeForReaderSide,
@@ -64,7 +64,7 @@ import {
     presentUnnamedPairLevel,
     SKILLS_MAXIMUM,
     UNNAMED_END,
-} from "#/src/ui/panel-reading.ts";
+} from "#/src/ui/panel-content.ts";
 import {
     formatNoParameterRowSuspicion,
     formatUnknownKeyRowSuspicion,
@@ -1109,7 +1109,7 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
 /**
  * The invariant the level exists to keep: a pinned row is the sum of what stands under it — **of
  * each of its two sections separately**, which is what makes them two cuts of one number rather
- * than two numbers. The people and the kinds are folded from one walk in `src/ui/panel-reading.ts`,
+ * than two numbers. The people and the kinds are folded from one walk in `src/ui/panel-content.ts`,
  * so this holds that walk to the figure the row draws beside it, over every recording, every screen
  * and every choice of side. `develop ADR 0038`, `develop ADR 0039`.
  */
@@ -1121,7 +1121,7 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
 function assertHalfNamedCutTotals(
     statistics: FightStatistics,
     roster: CombatantRoster,
-    held: HalfNamedReading,
+    held: UnnamedLevelContent,
     choice: PanelSideChoice,
     readerSide: number | null,
 ): void {

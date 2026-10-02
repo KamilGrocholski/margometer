@@ -106,7 +106,7 @@ Deno.test("a window stating no size to clamp against leaves the panel where it i
 });
 
 Deno.test("what puts the panel there releases the corner it was anchored to", () => {
-    const style = composePositionStyle({ left: 40, top: 60 }, PANEL_WINDOW.panel);
+    const style = composePositionStyle({ left: 40, top: 60 }, PANEL_WINDOW.meter);
     assertExists(style, "a position of two whole numbers puts the panel somewhere");
     assertStringIncludes(style, "left:40px", "the panel is put where it was dragged to");
     assertStringIncludes(style, "top:60px", "in both directions");
@@ -119,7 +119,7 @@ Deno.test("what puts the panel there releases the corner it was anchored to", ()
     );
     assertStringIncludes(style, "right:auto", "and the corner the sheet anchored to is released");
     assertEquals(
-        composePositionStyle({ left: 40, top: Number.POSITIVE_INFINITY }, PANEL_WINDOW.panel),
+        composePositionStyle({ left: 40, top: Number.POSITIVE_INFINITY }, PANEL_WINDOW.meter),
         null,
         "and a position that is not one writes no style, leaving the sheet's corner standing",
     );
@@ -269,19 +269,19 @@ Deno.test("a card flipped right stays with its own window, whatever the other is
 
 Deno.test("the window beside the panel keeps its side as the type changes size", () => {
     const widths = (step: typeof TYPE_STEP.small | typeof TYPE_STEP.large) => ({
-        panel: TYPE_TOKENS[step].panelWidthPixels,
-        standing: TYPE_TOKENS[step].helperWidthPixels,
+        meter: TYPE_TOKENS[step].panelWidthPixels,
+        helper: TYPE_TOKENS[step].helperWidthPixels,
     });
     const before = widths(TYPE_STEP.small);
     const after = widths(TYPE_STEP.large);
     const panel = { left: 500, top: 100 };
-    const grownStanding = after.standing - before.standing;
-    const grownPanel = after.panel - before.panel;
+    const grownHelper = after.helper - before.helper;
+    const grownMeter = after.meter - before.meter;
     // Its right edge exactly at the panel's left: beside it, and one pixel further is inside it.
-    const touching = { left: panel.left - before.standing, top: 90 };
+    const touching = { left: panel.left - before.helper, top: 90 };
     assertEquals(
         composeHelperPositionAfterTypeStep(panel, touching, before, after),
-        { left: touching.left - grownStanding, top: 90 },
+        { left: touching.left - grownHelper, top: 90 },
         "one to the left keeps its right edge where it stood",
     );
     assertEquals(
@@ -294,10 +294,10 @@ Deno.test("the window beside the panel keeps its side as the type changes size",
         null,
         "one reaching a pixel into the panel is not beside it, and stays",
     );
-    const right = { left: panel.left + before.panel, top: 90 };
+    const right = { left: panel.left + before.meter, top: 90 };
     assertEquals(
         composeHelperPositionAfterTypeStep(panel, right, before, after),
-        { left: right.left + grownPanel, top: 90 },
+        { left: right.left + grownMeter, top: 90 },
         "one to the right keeps its distance from the panel's right edge",
     );
     assertEquals(
@@ -320,7 +320,7 @@ Deno.test("the window beside the panel keeps its side as the type changes size",
 Deno.test("a window is made no narrower than its type and no wider than twice it, on the screen", () => {
     const tokens = TYPE_TOKENS[TYPE_STEP.small];
     const at = { left: 40, top: 40 };
-    const bounds = composeSizeBounds(PANEL_WINDOW.panel, tokens, at, WINDOW);
+    const bounds = composeSizeBounds(PANEL_WINDOW.meter, tokens, at, WINDOW);
     assertEquals(
         bounds.widthMinimum,
         PANEL_WIDTH,
@@ -332,12 +332,12 @@ Deno.test("a window is made no narrower than its type and no wider than twice it
     const helper = composeSizeBounds(PANEL_WINDOW.helper, tokens, at, WINDOW);
     assertEquals(helper.widthMinimum, STANDING_WIDTH, "the other window's type is its own");
     assert(helper.heightMinimum < bounds.heightMinimum, "and it keeps fewer rows than the panel");
-    const near = composeSizeBounds(PANEL_WINDOW.panel, tokens, { left: 1000, top: 40 }, WINDOW);
+    const near = composeSizeBounds(PANEL_WINDOW.meter, tokens, { left: 1000, top: 40 }, WINDOW);
     assertEquals(near.widthMaximum, WINDOW.width - 1000 - PLACE.insetPixels, "the screen's edge");
-    const cramped = composeSizeBounds(PANEL_WINDOW.panel, tokens, { left: 1200, top: 880 }, WINDOW);
+    const cramped = composeSizeBounds(PANEL_WINDOW.meter, tokens, { left: 1200, top: 880 }, WINDOW);
     assertEquals(cramped.widthMaximum, cramped.widthMinimum, "a screen too small gives the least");
     assertEquals(cramped.heightMaximum, cramped.heightMinimum, "both ways");
-    const unplaced = composeSizeBounds(PANEL_WINDOW.panel, tokens, null, null);
+    const unplaced = composeSizeBounds(PANEL_WINDOW.meter, tokens, null, null);
     assertEquals(
         unplaced.widthMaximum,
         PANEL_WIDTH * 2,
@@ -384,7 +384,7 @@ Deno.test("a window's style states its size beside its place, and each alone", (
     const size = { width: 320, height: 350 };
     const place = { left: 40, top: 60 };
     assertEquals(
-        composeHostStyle(place, size, PANEL_WINDOW.panel),
+        composeHostStyle(place, size, PANEL_WINDOW.meter),
         "left:40px;top:60px;--MargoMeter-panel-top:60px;right:auto;" +
             "--MargoMeter-panel-width:320px;--MargoMeter-panel-height:350px;" +
             "--MargoMeter-list-basis:0px;--MargoMeter-list-rows-least:3;--MargoMeter-panel-share:100vh",
@@ -396,9 +396,9 @@ Deno.test("a window's style states its size beside its place, and each alone", (
         "a size with no place, in the other window's",
     );
     assertEquals(
-        composeHostStyle(place, null, PANEL_WINDOW.panel),
-        composePositionStyle(place, PANEL_WINDOW.panel),
+        composeHostStyle(place, null, PANEL_WINDOW.meter),
+        composePositionStyle(place, PANEL_WINDOW.meter),
         "a place with no size is the place",
     );
-    assertEquals(composeHostStyle(null, null, PANEL_WINDOW.panel), null, "and neither is nothing");
+    assertEquals(composeHostStyle(null, null, PANEL_WINDOW.meter), null, "and neither is nothing");
 });

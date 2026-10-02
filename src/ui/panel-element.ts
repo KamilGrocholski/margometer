@@ -65,37 +65,37 @@ import { type Colour, formatColour, lookupColourForProfession, SIGNAL } from "./
 import {
     type ClosingRow,
     type CutPart,
-    type DrillReading,
     type ElementCut,
     type ElementRow,
-    type FightCardReading,
+    type FightCardContent,
     type FightMoment,
     formatRowSuspicions,
     getEndForPinned,
     getSideRelation,
     HALF_NAMED_OPENED,
-    type HalfNamedDrillReading,
-    type HalfNamedReading,
     type HalfNamedRow,
     isRowSuspect,
+    type OpenedLevelContent,
     type OpenedPart,
     type OpponentRow,
-    type PairReading,
+    type PairLevelContent,
     type PanelUnnamedEnd,
-    type PartReading,
+    type PartLevelContent,
     type PersonRow,
     type PinnedRow,
     type PlainRow,
     type RankingRow,
     type RowDetail,
-    type ScreenReading,
+    type ScreenContent,
     type ShelfRow,
     SIDE_RELATION,
     type SideRelation,
     type SkillRow,
     UNNAMED_END,
+    type UnnamedCutLevelContent,
+    type UnnamedLevelContent,
     type UnnamedRow,
-} from "./panel-reading.ts";
+} from "./panel-content.ts";
 import {
     getDirectionForMetric,
     getNounForMetric,
@@ -118,9 +118,9 @@ import {
 } from "./panel-screen.ts";
 import {
     type HelperAbsence,
-    type HelperReading,
+    type HelperContent,
     type StandingChargedSkill,
-} from "./panel-standing.ts";
+} from "./panel-helper.ts";
 import {
     CARD_WORDS,
     CAVEAT,
@@ -236,7 +236,7 @@ interface RowMark {
     stated: string;
 }
 
-interface RowReading {
+interface RowContent {
     name: string;
     figure: number;
     fill: number;
@@ -310,7 +310,7 @@ export interface PanelDefect {
 }
 
 /** A panel with no screen to draw, and which of the two reasons it has for standing there. */
-export interface WaitingReading {
+export interface WaitingContent {
     isCollapsed: boolean;
     defects: readonly PanelDefect[];
     /** A fight may be recorded and still not draw: a reading that would not compose leaves one. */
@@ -320,13 +320,13 @@ export interface WaitingReading {
     /** The kept fight the panel stands on, where it no longer reads: when and where it was. */
     keptUnread: KeptUnread | null;
     /** A reader may want the options before any fight has come, and they are drawn then too. */
-    options: OptionsReading | null;
+    options: OptionsContent | null;
     typeStep: TypeStep;
     windowSizes: WindowSizes;
 }
 
 /** What the options draw: the reader's answers, and what the shelf said about the last one. */
-export interface OptionsReading {
+export interface OptionsContent {
     storage: StorageChoice;
     answers: readonly string[];
 }
@@ -337,7 +337,7 @@ export interface KeptUnread {
 }
 
 export interface ShownScreen {
-    reading: ScreenReading;
+    reading: ScreenContent;
     /**
      * Which list this is — the place a reader stands in, named by `composeListName` in
      * `src/ui/panel-screen.ts`, which owns that fact. It decides nothing that is drawn: it says
@@ -359,7 +359,7 @@ export interface ShownScreen {
     turnHolderId: number | null;
     shelf: readonly ShelfRow[];
     /** Null while the options are away, which is every screen but the one cover. */
-    options: OptionsReading | null;
+    options: OptionsContent | null;
     /** The size the type is drawn at, both windows at once. */
     typeStep: TypeStep;
     /** How big a reader made each window by its corner, which a frame hands to both. */
@@ -373,16 +373,16 @@ export interface ShownScreen {
      */
     defects: readonly PanelDefect[];
     isOnShelf: boolean;
-    drill: DrillReading | null;
-    pair: PairReading | null;
-    part: PartReading | null;
+    drill: OpenedLevelContent | null;
+    pair: PairLevelContent | null;
+    part: PartLevelContent | null;
     /** What stands under a pinned row, where a reader has opened one. Never open beside `drill`. */
-    halfNamed: HalfNamedReading | null;
+    halfNamed: UnnamedLevelContent | null;
     /** A row under a pinned one, or beside `drill` the end that person's figure left out. */
-    halfNamedDrill: HalfNamedDrillReading | null;
+    halfNamedDrill: UnnamedCutLevelContent | null;
     place: PlaceWords | null;
     /** What the fight's line opens, as a shelf row's opens the same (ADR 0014). */
-    card: FightCardReading;
+    card: FightCardContent;
     isCollapsed: boolean;
 }
 
@@ -394,12 +394,12 @@ export interface PanelView {
      * With no draw at all before the first payload, an add-on waiting for a fight and one that
      * died on the way to the page are the same picture.
      */
-    renderWaiting(waiting: WaitingReading): RenderReport;
+    renderWaiting(waiting: WaitingContent): RenderReport;
     /**
      * The window beside the panel, drawn on the same frame. An absence is why there is no live
      * reading, said in one sentence where the reading would stand.
      */
-    renderHelper(reading: HelperReading | HelperAbsence, isCollapsed: boolean): RenderReport;
+    renderHelper(reading: HelperContent | HelperAbsence, isCollapsed: boolean): RenderReport;
 }
 
 export interface PanelViewOptions {
@@ -512,7 +512,7 @@ export interface TipGroup {
     lines: TipLine[];
 }
 
-export interface TipReading {
+export interface TipContent {
     name: string;
     subtitle: string | null;
     groups: TipGroup[];
@@ -522,7 +522,7 @@ export interface TipReading {
  * A **way to compose the card** rather than the card: a fight redraws every few seconds and
  * twenty rows are drawn each time, so composing every one would pay for nineteen nobody opens.
  */
-type TipCompose = () => TipReading;
+type TipCompose = () => TipContent;
 
 /**
  * What the pointer asks, and all it asks. Two windows fill two registers and the card is one, so
@@ -630,18 +630,18 @@ export const TIP_ATTRIBUTE = "data-tip";
 const CRUMB_TIP_KEY = "crumb:back";
 /** The fight's line: one is drawn at a time, and its card is the fight on screen. */
 const FIGHT_TIP_KEY = "fight";
-const STANDING_TIP_PREFIX = "standing:";
+const HELPER_TIP_PREFIX = "standing:";
 /** The one person's row there is only ever one of, whoever is standing on it. */
-const STANDING_NOW_TIP_KEY = `${STANDING_TIP_PREFIX}now`;
+const HELPER_NOW_TIP_KEY = `${HELPER_TIP_PREFIX}now`;
 /**
  * The charge band's, keyed by whoever is making the blow ready: `core/charged-skill.ts` holds
  * one charge per combatant, so one row is one key. A second row under the same key would be
  * refused without a word and would wear its neighbour's card, which is why
- * `tests/ui/panel-standing.test.ts` counts the keys rather than trusting that. `develop ADR 0100`.
+ * `tests/ui/panel-helper.test.ts` counts the keys rather than trusting that. `develop ADR 0100`.
  */
-const STANDING_CHARGE_TIP_PREFIX = `${STANDING_TIP_PREFIX}charge:`;
-const STANDING_HOLDING_TIP_PREFIX = `${STANDING_TIP_PREFIX}holding:`;
-const STANDING_HELD_TIP_PREFIX = `${STANDING_TIP_PREFIX}held:`;
+const HELPER_CHARGE_TIP_PREFIX = `${HELPER_TIP_PREFIX}charge:`;
+const HELPER_HOLDING_TIP_PREFIX = `${HELPER_TIP_PREFIX}holding:`;
+const HELPER_HELD_TIP_PREFIX = `${HELPER_TIP_PREFIX}held:`;
 const TITLE_ATTRIBUTE = "title";
 /**
  * ⚠️ **No face in `system-ui, sans-serif` carries U+2B73 on this machine.** Chrome 152 draws it
@@ -793,7 +793,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         suspicions: renderSlot(document),
         defects: renderSlot(document),
     };
-    const panelGrip = renderSizeGrip(document, PANEL_WINDOW.panel);
+    const meterGrip = renderSizeGrip(document, PANEL_WINDOW.meter);
     const frame = renderElement(document, "div", CLASS.frame);
     // Put every region in the order it is drawn in, inside the frame the fold collapses.
     {
@@ -809,7 +809,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         panel.append(regions.sides);
         panel.append(regions.suspicions);
         panel.append(regions.defects);
-        panel.append(panelGrip);
+        panel.append(meterGrip);
         frame.append(panel);
     }
     let report: UndrawnReport;
@@ -921,7 +921,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             // nothing else (`develop ADR 0091`).
             const viewport = placement?.readViewport() ?? null;
             const tokens = TYPE_TOKENS[getTypeStep()];
-            if (key.startsWith(STANDING_TIP_PREFIX)) {
+            if (key.startsWith(HELPER_TIP_PREFIX)) {
                 const standing = composePlace(helperDrag);
                 return composeTipAcross(standing, viewport, tokens.tipWidthPixelsMaximum);
             }
@@ -953,13 +953,13 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     }
     // The window beside the panel, as one element under the same root — `SECURITY.md`'s guest
     // rule puts everything a reader meets inside one shadow root under one name.
-    const helperWindow = renderElement(document, "div", CLASS.standing);
-    let standingBar = renderHelperBar(document, false);
-    let standingBody = renderSlot(document);
-    const standingGrip = renderSizeGrip(document, PANEL_WINDOW.helper);
-    helperWindow.append(standingBar);
-    helperWindow.append(standingBody);
-    helperWindow.append(standingGrip);
+    const helperWindow = renderElement(document, "div", CLASS.helper);
+    let helperBar = renderHelperBar(document, false);
+    let helperBody = renderSlot(document);
+    const helperGrip = renderSizeGrip(document, PANEL_WINDOW.helper);
+    helperWindow.append(helperBar);
+    helperWindow.append(helperBody);
+    helperWindow.append(helperGrip);
     for (const child of [regions.title, frame, tipHandle.element, helperWindow]) {
         root.append(child);
     }
@@ -1015,15 +1015,15 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     }
     // After the listeners that read a press, and on the same root: a drag is four more of them.
     const wired = { view: options, getTypeStep };
-    const panelWired = { ...wired, window: PANEL_WINDOW.panel, grip: panelGrip };
-    drag = initPanelDragIfPlaced(root, host, () => regions.title, options.placement, panelWired);
-    const helperWired = { ...wired, window: PANEL_WINDOW.helper, grip: standingGrip };
-    const standingBarNow = () => standingBar;
+    const meterWired = { ...wired, window: PANEL_WINDOW.meter, grip: meterGrip };
+    drag = initPanelDragIfPlaced(root, host, () => regions.title, options.placement, meterWired);
+    const helperWired = { ...wired, window: PANEL_WINDOW.helper, grip: helperGrip };
+    const helperBarNow = () => helperBar;
     const helperPlacement = options.helperPlacement;
     helperDrag = initPanelDragIfPlaced(
         root,
         helperWindow,
-        standingBarNow,
+        helperBarNow,
         helperPlacement,
         helperWired,
     );
@@ -1126,7 +1126,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             }
             renderPanelSettled(held);
         });
-    const renderWaiting = (waiting: WaitingReading): RenderReport =>
+    const renderWaiting = (waiting: WaitingContent): RenderReport =>
         report.collect(() => {
             executeRegionStep(report, PANEL_REGION.list, () => drawing.keep());
             register.reset();
@@ -1157,29 +1157,29 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             renderPanelSettled(held);
         });
     const renderHelper = (
-        reading: HelperReading | HelperAbsence,
+        reading: HelperContent | HelperAbsence,
         isCollapsed: boolean,
     ): RenderReport =>
         report.collect(() => {
             // The mark on the frame and the body rendered empty, both — as the panel's fold does.
             // The frame is what stays across a draw, so it is what can say the window is away.
-            executeRegionStep(report, PANEL_REGION.standing, () => {
+            executeRegionStep(report, PANEL_REGION.helper, () => {
                 helperWindow.className = isCollapsed
-                    ? `${CLASS.standing} ${CLASS.standingFolded}`
-                    : CLASS.standing;
+                    ? `${CLASS.helper} ${CLASS.helperFolded}`
+                    : CLASS.helper;
             });
-            standingBar = renderInPlace(
-                standingBar,
-                PANEL_REGION.standing,
+            helperBar = renderInPlace(
+                helperBar,
+                PANEL_REGION.helper,
                 () => renderHelperBar(document, isCollapsed),
             );
             // ⚠️ The two windows keep two registers because they are drawn at two moments: this
             // one goes up first and the panel's own draw resets the panel's register under it,
             // which took every card this window had registered with it (`develop ADR 0086`).
             helperRegister.reset();
-            standingBody = renderInPlace(
-                standingBody,
-                PANEL_REGION.standing,
+            helperBody = renderInPlace(
+                helperBody,
+                PANEL_REGION.helper,
                 () => renderHelperBody(document, helperRegister, reading, isCollapsed),
             );
             helperDrag?.onDrawn();
@@ -1188,7 +1188,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
 }
 
 /** Draw the list while no fight stands: kept unread, unread, or none yet. */
-function renderWaitingList(document: PanelDocument, waiting: WaitingReading): PanelElement {
+function renderWaitingList(document: PanelDocument, waiting: WaitingContent): PanelElement {
     const list = renderListContainer(document, ROWS_WAITING);
     list.className = `${CLASS.list} ${CLASS.listWaiting}`;
     const kept = waiting.keptUnread;
@@ -1203,17 +1203,17 @@ function renderWaitingList(document: PanelDocument, waiting: WaitingReading): Pa
     return list;
 }
 
-/** Draw the standing window's body: whose turn it is, the charges, and who holds whom. */
+/** Draw the helper's body: whose turn it is, the charges, and who holds whom. */
 function renderHelperBody(
     document: PanelDocument,
     register: TipRegister,
-    reading: HelperReading | HelperAbsence,
+    reading: HelperContent | HelperAbsence,
     isCollapsed: boolean,
 ): PanelElement {
     // Folded, the body is rendered empty rather than rendered and hidden — a fight
     // redraws every few seconds, and what is not drawn costs nothing to draw.
     if (isCollapsed) return renderSlot(document);
-    const body = renderElement(document, "div", CLASS.standingBody);
+    const body = renderElement(document, "div", CLASS.helperBody);
     if (typeof reading === "string") {
         body.append(renderEmptyNote(document, getWordsForHelperAbsence(reading)));
         return body;
@@ -1240,7 +1240,7 @@ function renderHelperBody(
             body.append(empty);
         } else {
             body.append(
-                renderHelperPerson(document, register, STANDING_NOW_TIP_KEY, {
+                renderHelperPerson(document, register, HELPER_NOW_TIP_KEY, {
                     name: holder.name,
                     skillName: null,
                     colour: holder.colour,
@@ -1287,7 +1287,7 @@ function renderHelperBody(
                 `${CLASS.rowValue} ${CLASS.figure}`,
                 formatCounter(charged.turnsElapsed, charged.turnsStated),
             );
-            const pips = renderElement(document, "div", CLASS.standingPips);
+            const pips = renderElement(document, "div", CLASS.helperPips);
             const dots: PanelElement[] = [pips];
             // Draw one dot per turn of the charge, lit up to what has passed.
             {
@@ -1304,11 +1304,11 @@ function renderHelperBody(
                     CHARGED_PIPS_MAXIMUM,
                 );
                 for (let turn = 0; turn < stated; turn += 1) {
-                    const lit = turn < charged.turnsElapsed ? ` ${CLASS.standingPipLit}` : "";
+                    const lit = turn < charged.turnsElapsed ? ` ${CLASS.helperPipLit}` : "";
                     const pip = renderElement(
                         document,
                         "div",
-                        `${CLASS.standingPip}${lit}`,
+                        `${CLASS.helperPip}${lit}`,
                     );
                     pips.append(pip);
                     dots.push(pip);
@@ -1323,7 +1323,7 @@ function renderHelperBody(
                 row.append(rule);
                 parts.push(rule);
             }
-            const key = `${STANDING_CHARGE_TIP_PREFIX}${formatWholeUngrouped(charged.combatantId)}`;
+            const key = `${HELPER_CHARGE_TIP_PREFIX}${formatWholeUngrouped(charged.combatantId)}`;
             register.add(key, () => presentChargedSkillTip(charged));
             setRowMarks([row, ...parts], TIP_ATTRIBUTE, key);
             body.append(row);
@@ -1357,7 +1357,7 @@ function renderHelperBody(
             body.append(renderHelperPerson(
                 document,
                 register,
-                `${STANDING_HOLDING_TIP_PREFIX}${cast}`,
+                `${HELPER_HOLDING_TIP_PREFIX}${cast}`,
                 {
                     name: provocation.casterName,
                     skillName: provocation.skillName,
@@ -1378,7 +1378,7 @@ function renderHelperBody(
                 // fails silently the day it moves: the register refuses the second of
                 // two rows without a word, and that row then wears its neighbour's
                 // card.
-                const key = `${STANDING_HELD_TIP_PREFIX}${cast}/${
+                const key = `${HELPER_HELD_TIP_PREFIX}${cast}/${
                     formatWholeUngrouped(holding.provokedId)
                 }`;
                 body.append(renderHelperPerson(document, register, key, {
@@ -1421,7 +1421,7 @@ function renderHeaderRegion(
     // Every part carries the key, because a pointer lands on the innermost one.
     const marked = [line, who];
     // Absent rather than empty where the reading says nothing, and
-    // `ui/panel-reading.ts` says when it does and why the header may not fill the
+    // `ui/panel-content.ts` says when it does and why the header may not fill the
     // silence in.
     const outcome = shown.reading.outcome;
     if (outcome !== null) {
@@ -1806,7 +1806,7 @@ function renderListLevel(
         // Draw whom the figure reached, where the reading fills that cut.
         {
             // One screen fills it and the others are handed an empty cut:
-            // `src/ui/panel-reading.ts` says which screen that is and why.
+            // `src/ui/panel-content.ts` says which screen that is and why.
             const cut = drill.byOpponent;
             const place: CardPlace = {
                 metric: shown.current,
@@ -2166,7 +2166,7 @@ function renderHelperBar(document: PanelDocument, isCollapsed: boolean): PanelEl
     const bar = renderText(
         document,
         "div",
-        CLASS.standingBar,
+        CLASS.helperBar,
         `${GRIP_MARK}${HELPER_WORDS.title}`,
     );
     bar.setAttribute(TITLE_ATTRIBUTE, HELPER_WORDS.drag);
@@ -2246,7 +2246,7 @@ function renderFold(
             held.setTypeStep(typeStep);
         });
         // The window beside the panel keeps the side it stood on as both change size.
-        executeRegionStep(held.report, PANEL_REGION.standing, () => {
+        executeRegionStep(held.report, PANEL_REGION.helper, () => {
             const after = getWindowWidths(held);
             const panel = held.drag?.getPosition() ?? null;
             const standing = held.helperDrag?.getPosition() ?? null;
@@ -2257,9 +2257,9 @@ function renderFold(
         });
     }
     executeRegionStep(held.report, PANEL_REGION.header, () => {
-        held.drag?.setSize(drawn.windowSizes.panel);
+        held.drag?.setSize(drawn.windowSizes.meter);
     });
-    executeRegionStep(held.report, PANEL_REGION.standing, () => {
+    executeRegionStep(held.report, PANEL_REGION.helper, () => {
         held.helperDrag?.setSize(drawn.windowSizes.helper);
     });
     held.regions.title = held.renderInPlace(
@@ -2275,13 +2275,13 @@ function renderFold(
             // so the other order would wipe them.
             bar.textContent = `${GRIP_MARK}${PANEL_WORDS.title}`;
             bar.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.drag);
-            setGripMark(bar, PANEL_WINDOW.panel);
+            setGripMark(bar, PANEL_WINDOW.meter);
             const label = renderText(document, "span", CLASS.titleVersion, held.version);
             // Marked as well as the bar under it. The bar wears `cursor:move` and every child
             // inherits it, so a label that starts no drag is an affordance that lies (`DESIGN.md`)
             // — and this one sits between the name and the controls, where a hand aiming for the
             // bar lands.
-            setGripMark(label, PANEL_WINDOW.panel);
+            setGripMark(label, PANEL_WINDOW.meter);
             bar.append(label);
             // First of the controls, so the three a reader already knew keep their places: the save
             // comes and goes, and a control standing after it would walk along the bar with it.
@@ -2323,8 +2323,8 @@ function renderFold(
 function getWindowWidths(held: PanelDrawing): WindowWidths {
     const tokens = TYPE_TOKENS[held.getTypeStep()];
     return {
-        panel: held.drag?.getWidthPixels() ?? tokens.panelWidthPixels,
-        standing: held.helperDrag?.getWidthPixels() ?? tokens.helperWidthPixels,
+        meter: held.drag?.getWidthPixels() ?? tokens.panelWidthPixels,
+        helper: held.helperDrag?.getWidthPixels() ?? tokens.helperWidthPixels,
     };
 }
 
@@ -2398,7 +2398,7 @@ function renderCrumb(
     return crumb;
 }
 
-function presentCrumbTip(leaving: string): TipReading {
+function presentCrumbTip(leaving: string): TipContent {
     return {
         name: leaving,
         subtitle: null,
@@ -2416,7 +2416,7 @@ function presentCrumbTip(leaving: string): TipReading {
 }
 
 /** What the way back calls the row that is open, which is the row itself and not its level. */
-function getCrumbWordsForUnnamedCut(drill: HalfNamedDrillReading, metric: PanelMetric): string {
+function getCrumbWordsForUnnamedCut(drill: UnnamedCutLevelContent, metric: PanelMetric): string {
     if (drill.opened === HALF_NAMED_OPENED.person) return drill.row.name ?? PANEL_WORDS.unknown;
     return getWordsForKind(getNounForMetric(metric), drill.element);
 }
@@ -2455,7 +2455,7 @@ function renderPanelOptions(
         drawing: ListDrawing;
         register: TipRegister;
     },
-    options: OptionsReading,
+    options: OptionsContent,
     chosen: { typeStep: TypeStep; windowSizes: WindowSizes },
 ): void {
     const { regions, renderInPlace, drawing, register } = drawn;
@@ -2668,7 +2668,7 @@ function composePersonCard(
 
 function renderRow(
     document: PanelDocument,
-    reading: RowReading,
+    reading: RowContent,
     mark: RowMark | null,
     tip: RowTip,
 ): PanelElement {
@@ -2767,7 +2767,7 @@ function renderSideRules(
  * are told apart from the 588 that do not by the cursor and by nothing else. Half a section being
  * pressable and silent about it teaches a reader that none of it is.
  */
-function presentRowTip(reading: RowReading, tip: RowTip, doesOpen: boolean): TipReading {
+function presentRowTip(reading: RowContent, tip: RowTip, doesOpen: boolean): TipContent {
     // The row's own figure and nothing else: a share is a reading of the list rather than a claim
     // the protocol narrowed, so the glyph stands on the line above it (`develop ADR 0089`).
     const stated: TipLine[] = [{
@@ -2821,7 +2821,7 @@ function presentCombatantRow(
     rank: number | null,
     metric: PanelMetric,
     place: PersonPlace,
-): RowReading {
+): RowContent {
     return {
         name: row.name ?? PANEL_WORDS.unknown,
         figure: row.figure,
@@ -2851,7 +2851,7 @@ function getUnnamedEndForMetric(metric: PanelMetric): PanelUnnamedEnd {
         : UNNAMED_END.actor;
 }
 
-function presentUnnamedRow(row: UnnamedRow | PinnedRow, name: string): RowReading {
+function presentUnnamedRow(row: UnnamedRow | PinnedRow, name: string): RowContent {
     return {
         name,
         figure: row.figure,
@@ -2863,7 +2863,7 @@ function presentUnnamedRow(row: UnnamedRow | PinnedRow, name: string): RowReadin
     };
 }
 
-function countRowsForPairLevel(pair: PairReading, floor: number): number {
+function countRowsForPairLevel(pair: PairLevelContent, floor: number): number {
     const parts = pair.parts.length;
     const kinds = pair.byElement.rows.length;
     const needed = (parts === 0 ? 0 : parts + 1) + (kinds === 0 ? 0 : kinds + 1);
@@ -2893,7 +2893,7 @@ function getCaveatForNamedPart(part: OpenedPart, metric: PanelMetric): Caveat | 
     return getCaveatForUnannounced(getNounForMetric(metric));
 }
 
-function presentElementRow(row: ElementRow, noun: PanelNoun, rank: number): RowReading {
+function presentElementRow(row: ElementRow, noun: PanelNoun, rank: number): RowContent {
     return {
         name: getWordsForKind(noun, row.element),
         figure: row.figure,
@@ -3042,7 +3042,7 @@ function renderRestRow(
  * pressed it, and one longer than eleven must not be cut off in the middle of a section — the
  * ceiling on the host is what stops either from reaching past the bottom of the screen.
  */
-function countRowsForOpenedLevel(drill: DrillReading, floor: number): number {
+function countRowsForOpenedLevel(drill: OpenedLevelContent, floor: number): number {
     const opponents = drill.byOpponent;
     let needed = 0;
     if (opponents.rows.length > 0 || opponents.unnamed !== null) {
@@ -3097,7 +3097,7 @@ function renderClosingRowAtPlace(
     return drawn + 1;
 }
 
-function presentSkillRow(row: SkillRow, metric: PanelMetric, rank: number): RowReading {
+function presentSkillRow(row: SkillRow, metric: PanelMetric, rank: number): RowContent {
     const name = getWordsForNamedPart(row.part, metric);
     return {
         name,
@@ -3229,9 +3229,9 @@ function renderHelperPerson(
     tipKey: string,
     person: StandingPerson,
 ): PanelElement {
-    const nested = person.isUnder ? ` ${CLASS.standingUnder}` : "";
+    const nested = person.isUnder ? ` ${CLASS.helperUnder}` : "";
     const castName = person.isUnder ? null : person.skillName;
-    const holding = castName === null ? "" : ` ${CLASS.standingHolding}`;
+    const holding = castName === null ? "" : ` ${CLASS.helperHolding}`;
     const classes = `${CLASS.row} ${CLASS.rowLeaf}${nested}${holding}`;
     const row = renderElement(document, "div", classes);
     const cap = renderElement(document, "div", CLASS.barCap);
@@ -3242,7 +3242,7 @@ function renderHelperPerson(
     const parts = [cap, name];
     if (castName !== null) {
         const between = renderText(document, "span", CLASS.rowShare, HELPER_WORDS.castSeparator);
-        const cast = renderText(document, "span", CLASS.standingCast, castName);
+        const cast = renderText(document, "span", CLASS.helperCast, castName);
         row.append(between);
         row.append(cast);
         parts.push(between, cast);
@@ -3274,7 +3274,7 @@ function renderHelperPerson(
  * figures of the fight are the panel's and never reach this window, so what stands here is the
  * card a skill and a fight on the shelf already get. `develop ADR 0098`.
  */
-function presentHelperPersonTip(person: StandingPerson): TipReading {
+function presentHelperPersonTip(person: StandingPerson): TipContent {
     if (person.turns === null) {
         return { name: person.name, subtitle: person.skillName, groups: [] };
     }
@@ -3297,7 +3297,7 @@ function presentHelperPersonTip(person: StandingPerson): TipReading {
  * turns are the client's own pair, under the word a cast's card already states its own under.
  * `develop ADR 0100`.
  */
-function presentChargedSkillTip(charged: StandingChargedSkill): TipReading {
+function presentChargedSkillTip(charged: StandingChargedSkill): TipContent {
     const stated: TipLine = {
         kind: TIP_LINE.stat,
         label: HELPER_WORDS.turnsPassed,
@@ -3350,7 +3350,7 @@ function presentCaveatNoteLines(groups: readonly TipGroup[]): TipLine[] {
  * the lines it takes, where a line's value neither shrinks nor wraps: a place a line could not hold
  * would be cut on the one card that exists to draw it whole (`develop ADR 0084`).
  */
-function presentFightCard(fight: FightCardReading): TipReading {
+function presentFightCard(fight: FightCardContent): TipContent {
     const counted = formatFightCardCounts(fight);
     const lines: TipLine[] = [];
     // A fight going on is dated by when it opened: the shelf's `teraz` is a row's word, not a date.
@@ -3370,7 +3370,7 @@ function presentFightCard(fight: FightCardReading): TipReading {
 }
 
 /** The line over the ranking, in the words a shelf row uses for how it went. */
-function formatFightCardCounts(fight: FightCardReading): string {
+function formatFightCardCounts(fight: FightCardContent): string {
     const counted = formatSideCounts(fight.sizes, fight.unplaced);
     const outcome = getWordsForShelfOutcome(fight.outcome, fight.isLive);
     if (outcome.length === 0) return counted;
@@ -3402,7 +3402,7 @@ export function createTipRegister(): TipRegister {
     };
 }
 
-export function tallyTipSize(reading: TipReading | null, step: TypeStep): TipSize {
+export function tallyTipSize(reading: TipContent | null, step: TypeStep): TipSize {
     if (reading === null) return { lines: 1, groups: 0 };
     const floors = CHARACTERS_PER_LINE_BY_STEP[step];
     let lines = getTipLinesForCharacters(reading.name.length, floors.name);
@@ -3447,7 +3447,7 @@ function getTipLineCost(line: TipLine, floors: CharactersPerLine): number {
 
 export function renderTip(
     document: PanelDocument,
-    reading: TipReading | null,
+    reading: TipContent | null,
 ): PanelElement {
     const tip = document.createElement("div");
     tip.className = reading === null ? `${CLASS.tip} ${CLASS.tipHidden}` : CLASS.tip;
@@ -3593,10 +3593,10 @@ function composeTipAcrossStyle(across: TipAcross | null): string {
  * up at a run's own edge and the card states it. Unchanged where the page states no height.
  */
 export function composeTipWithin(
-    reading: TipReading,
+    reading: TipContent,
     room: number | null,
     typeStep: TypeStep,
-): TipReading {
+): TipContent {
     if (room === null) return reading;
     if (!Number.isFinite(room)) return reading;
     if (room <= 0) return reading;
@@ -3611,7 +3611,7 @@ export function composeTipWithin(
     return composeTipTrimmed(reading, kept);
 }
 
-function isTipWithin(reading: TipReading, room: number, step: TypeStep): boolean {
+function isTipWithin(reading: TipContent, room: number, step: TypeStep): boolean {
     const height = getTipHeight(tallyTipSize(reading, step), TYPE_TOKENS[step]);
     if (height === null) return true;
     return height <= room;
@@ -3637,7 +3637,7 @@ function isNoteGroup(group: TipGroup): boolean {
 }
 
 /** The card once something was given up: it says so, where a figure's qualifiers are read. */
-function composeTipTrimmed(reading: TipReading, kept: readonly TipGroup[]): TipReading {
+function composeTipTrimmed(reading: TipContent, kept: readonly TipGroup[]): TipContent {
     if (kept.length === reading.groups.length) return reading;
     const said: TipLine = { kind: TIP_LINE.note, text: CARD_WORDS.cut, tone: TIP_NOTE_TONE.plain };
     const last = kept[kept.length - 1];
@@ -3672,7 +3672,7 @@ export function initTipHandle(
     let openKey: string | null = null;
     let openTop = 0;
     let openSize: TipSize = tallyTipSize(null, getTypeStep());
-    const renderTipFor = (key: string, reading: TipReading): void => {
+    const renderTipFor = (key: string, reading: TipContent): void => {
         // Cut here rather than where a card is composed: the one place that knows both it and the
         // window, and on the way in for a card opened and for one a redraw put up again.
         const shown = composeTipWithin(
@@ -3737,7 +3737,7 @@ export function initTipHandle(
  * What a person's row says on demand, at whichever level it stands: every figure a combatant has
  * and not only the one the screen is showing, and both runs and not only the screen's.
  */
-export function presentCard(subject: CardSubject): TipReading {
+export function presentCard(subject: CardSubject): TipContent {
     const groups: TipGroup[] = [
         { lines: presentCardFigureLines(subject.detail, subject.metric, subject.translate) },
     ];

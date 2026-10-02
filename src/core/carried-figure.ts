@@ -22,7 +22,7 @@ export interface CarriedFigure {
 }
 
 /** What a reading of the fight hands over, so this file reads no walk of its own. */
-export interface CarriedFigureReading {
+export interface CarriedFigureInputs {
     statuses: readonly CarriedStatus[];
     standings: readonly AuraStanding[];
     roster: CombatantRoster;
@@ -82,7 +82,7 @@ export function indexKeyByStatusBit(bits: readonly string[]): Map<number, string
 }
 
 /** One row per status a figure can be said of, and none for the rest. */
-export function tallyCarriedFigures(reading: CarriedFigureReading): CarriedFigure[] {
+export function tallyCarriedFigures(reading: CarriedFigureInputs): CarriedFigure[] {
     assert(reading.witnessed.size <= SOURCES_MAXIMUM, "the bits witnessed are a short list");
     const found: CarriedFigure[] = [];
     for (const status of reading.statuses) {

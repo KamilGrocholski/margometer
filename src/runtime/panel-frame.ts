@@ -14,24 +14,24 @@ import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-r
 import { replayAuraStandings } from "#/src/core/aura-standing.ts";
 import type { OutcomeResult } from "#/src/core/battle-event.ts";
 import { composeFightView, type FightView } from "#/src/core/fight-session.ts";
-import type { TooltipPort } from "#/src/game/engine-tooltip.ts";
+import type { GameTooltipPort } from "#/src/game/game-tooltip.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
-import type { Clock } from "#/src/game/page-time.ts";
+import type { BrowserClock } from "#/src/game/browser-time.ts";
 import { type TooltipTables, writeCarriedTooltips } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
 import {
-    type FightReading,
+    type FightState,
     lookupShownFight,
     lookupShownKeptFight,
     type ShownFight,
-    tallyFightReading,
-} from "./fight-reading.ts";
+    tallyFightState,
+} from "./fight-state.ts";
 import type { LiveFight } from "./live-fight.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
 import type { ShelfAnswers, ShelfKeeper } from "./shelf-keeper.ts";
 import { KEPT_MAXIMUM, type KeptFight } from "./shelf.ts";
 import type {
-    OptionsReading,
+    OptionsContent,
     PanelDefect,
     PanelView,
     ShownScreen,
@@ -39,19 +39,17 @@ import type {
 import type { RenderReport } from "#/src/ui/view-failure.ts";
 import {
     composeHeadcount,
-    type DrillReading,
-    type FightCardReading,
+    type FightCardContent,
     type FightReader,
     type FightSuspicions,
     getEndForPinned,
     getOutcomeForReaderSide,
     HALF_NAMED_OPENED,
-    type HalfNamedDrillReading,
     type HalfNamedOpened,
-    type HalfNamedReading,
     lookupPinnedCase,
-    type PairReading,
-    type PartReading,
+    type OpenedLevelContent,
+    type PairLevelContent,
+    type PartLevelContent,
     presentOpenedLevel,
     presentPairLevel,
     presentPartLevel,
@@ -60,14 +58,16 @@ import {
     presentUnnamedLevel,
     presentUnnamedPairLevel,
     type ShelfRow,
-} from "#/src/ui/panel-reading.ts";
+    type UnnamedCutLevelContent,
+    type UnnamedLevelContent,
+} from "#/src/ui/panel-content.ts";
 import { composeListName, OPENED_PART, type ScreenState } from "#/src/ui/panel-screen.ts";
 import {
     HELPER_ABSENCE,
     type HelperAbsence,
-    type HelperReading,
+    type HelperContent,
     presentHelper,
-} from "#/src/ui/panel-standing.ts";
+} from "#/src/ui/panel-helper.ts";
 import {
     CHOICE_REFUSED_ANSWER,
     EVERY_SLOT_PINNED_ANSWER,
@@ -99,24 +99,24 @@ export interface FrameParts {
     live: LiveFight;
     defects: DefectLedger;
     view: PanelView;
-    clock: Clock;
-    tooltip: TooltipPort;
+    clock: BrowserClock;
+    tooltip: GameTooltipPort;
     tables: TooltipTables;
     translate: TranslateLabel;
     /** The world the page is on, which is every kept fight's: a shelf is one origin's store. */
     world: string | null;
 }
 
-export interface OpenedReadings {
-    drill: DrillReading | null;
-    pair: PairReading | null;
-    part: PartReading | null;
-    halfNamed: HalfNamedReading | null;
-    halfNamedDrill: HalfNamedDrillReading | null;
+export interface OpenedLevels {
+    drill: OpenedLevelContent | null;
+    pair: PairLevelContent | null;
+    part: PartLevelContent | null;
+    halfNamed: UnnamedLevelContent | null;
+    halfNamedDrill: UnnamedCutLevelContent | null;
 }
 
 interface LiveRow {
-    reading: FightReading;
+    reading: FightState;
     place: FightPlace | null;
     readerId: number | null;
     openedAt: number;
@@ -179,18 +179,18 @@ export function renderFrame(parts: FrameParts): void {
     const drawn = errors.attempt(() => {
         const { screen, keeper, live } = parts;
         const view = composeFightView(live.session);
-        const liveReading = view === null ? null : tallyFightReading(view);
+        const liveFightState = view === null ? null : tallyFightState(view);
         const shownFight = lookupShownFight(
-            liveReading,
+            liveFightState,
             screen.openFightId,
             keeper.getFights(),
-            keeper.lookupKeptReading,
+            keeper.lookupKeptFightState,
         );
         if (shownFight === null) {
             // A kept fight chosen and still none shown is a fight that no longer reads, and the
             // reader is told which one rather than that there has been none.
             const unread = lookupShownKeptFight(
-                liveReading,
+                liveFightState,
                 screen.openFightId,
                 keeper.getFights(),
             );
@@ -211,10 +211,10 @@ export function renderFrame(parts: FrameParts): void {
             return;
         }
         assert(
-            shownFight.reading.view.payloadsApplied > 0,
+            shownFight.state.view.payloadsApplied > 0,
             "a fight stood on was read from something",
         );
-        const shown = presentFrameScreen(parts, shownFight, liveReading, said, hasFightToSave);
+        const shown = presentFrameScreen(parts, shownFight, liveFightState, said, hasFightToSave);
         // Say where two counts of one figure came out different.
         {
             // The one thing the panel can say about a drawn figure being wrong rather than short,
@@ -261,7 +261,7 @@ function presentHelperForFrame(
     live: LiveFight,
     tables: TooltipTables,
     isShelfEmpty: boolean,
-): HelperReading | HelperAbsence {
+): HelperContent | HelperAbsence {
     const view = composeFightView(live.session);
     if (view === null) {
         return isShelfEmpty ? HELPER_ABSENCE.noFightYet : HELPER_ABSENCE.betweenFights;
@@ -292,12 +292,12 @@ function formatFightPlace(place: FightPlace | null): string | null {
 function presentFrameScreen(
     parts: FrameParts,
     shownFight: ShownFight,
-    liveReading: FightReading | null,
+    liveFightState: FightState | null,
     said: readonly PanelDefect[],
     hasFightToSave: boolean,
 ): ShownScreen {
     const { screen, keeper, live } = parts;
-    const { view, figures } = shownFight.reading;
+    const { view, figures } = shownFight.state;
     const reading = presentScreen(
         figures.statistics,
         view.roster,
@@ -306,15 +306,15 @@ function presentFrameScreen(
         view.readerSide,
         getFightSuspicions(view),
     );
-    const opened = presentOpenedReadings(shownFight.reading, screen);
+    const opened = presentOpenedLevels(shownFight.state, screen);
     // The row the panel is drawing: the kept one wherever there is no live fight to mark instead.
     const chosenFight = screen.openFightId ?? shownFight.kept?.openedAt ?? null;
     if (shownFight.kept !== null) {
         assert(chosenFight !== null, "a kept fight on screen is one named");
     }
     assert(reading.rows.length <= COMBATANTS_MAXIMUM, "a ranking holds the fight's cast at most");
-    const liveRow = liveReading === null ? null : {
-        reading: liveReading,
+    const liveRow = liveFightState === null ? null : {
+        reading: liveFightState,
         place: live.place,
         readerId: live.readerId,
         openedAt: live.openedAt,
@@ -337,7 +337,7 @@ function presentFrameScreen(
         isOnShelf: screen.isOnShelf,
         ...opened,
         place: formatFightPlaceWords(shownFight.kept === null ? live.place : shownFight.kept.place),
-        card: presentFightCardReading(parts, {
+        card: presentFightCardContent(parts, {
             sizes: reading.sizes,
             unplaced: reading.unplaced,
             outcome: reading.outcome,
@@ -357,7 +357,7 @@ function formatFightPlaceWords(place: FightPlace | null): PlaceWords | null {
 }
 
 /** The card a fight's line or its shelf row opens (ADR 0014). */
-function presentFightCardReading(parts: FrameParts, source: FightCardSource): FightCardReading {
+function presentFightCardContent(parts: FrameParts, source: FightCardSource): FightCardContent {
     assert(source.unplaced >= 0, "a card counts nobody fewer than none unplaced");
     return {
         sizes: source.sizes,
@@ -421,7 +421,7 @@ function presentShelfRows(
             isChosen: chosenId === null,
             isPinned: alsoKept?.isPinned ?? false,
             isPinnable: alsoKept !== undefined,
-            card: presentFightCardReading(parts, {
+            card: presentFightCardContent(parts, {
                 sizes,
                 unplaced,
                 outcome,
@@ -435,7 +435,7 @@ function presentShelfRows(
     }
     for (const one of [...kept].sort((first, other) => other.openedAt - first.openedAt)) {
         if (one.openedAt === alsoKept?.openedAt) continue;
-        const reading = parts.keeper.lookupKeptReading(one);
+        const reading = parts.keeper.lookupKeptFightState(one);
         // A row for a fight nothing can be read out of would state a headcount it does not have.
         if (reading === null) continue;
         rows.push(presentKeptShelfRow(parts, one, reading, chosenId));
@@ -446,7 +446,7 @@ function presentShelfRows(
 }
 
 /** Counted as the fight's line counts it, so a row's card says what the line's card says. */
-function presentShelfHeadcount(reading: FightReading): { sizes: number[]; unplaced: number } {
+function presentShelfHeadcount(reading: FightState): { sizes: number[]; unplaced: number } {
     const { roster, readerSide } = reading.view;
     const headcount = composeHeadcount(reading.figures.statistics, roster, readerSide);
     const counted = headcount.sizes.reduce((sum, count) => sum + count, 0);
@@ -455,7 +455,7 @@ function presentShelfHeadcount(reading: FightReading): { sizes: number[]; unplac
     return headcount;
 }
 
-function getOutcomeOfReading(reading: FightReading): OutcomeResult | null {
+function getOutcomeOfReading(reading: FightState): OutcomeResult | null {
     const outcome = reading.figures.statistics.outcome;
     if (outcome === null) return null;
     return getOutcomeForReaderSide(outcome, reading.view.roster, reading.view.readerSide);
@@ -464,7 +464,7 @@ function getOutcomeOfReading(reading: FightReading): OutcomeResult | null {
 function presentKeptShelfRow(
     parts: FrameParts,
     fight: KeptFight,
-    reading: FightReading,
+    reading: FightState,
     chosenId: number | null,
 ): ShelfRow {
     assert(reading.view.payloadsApplied > 0, "a kept row states a fight read from something");
@@ -481,7 +481,7 @@ function presentKeptShelfRow(
         isChosen: chosenId === fight.openedAt,
         isPinned: fight.isPinned,
         isPinnable: true,
-        card: presentFightCardReading(parts, {
+        card: presentFightCardContent(parts, {
             sizes,
             unplaced,
             outcome,
@@ -495,7 +495,7 @@ function presentKeptShelfRow(
 }
 
 /** The options where the reader has them open, and null on every other screen. */
-function presentOptions(parts: FrameParts): OptionsReading | null {
+function presentOptions(parts: FrameParts): OptionsContent | null {
     if (!parts.screen.isOnOptions) return null;
     return {
         storage: parts.keeper.getChoice(),
@@ -526,7 +526,7 @@ function getPanelDefects(defects: DefectLedger): PanelDefect[] {
  * under the person whose figure left it out. A mark that names no figure on this screen opens
  * nothing, which is the answer a mark left over from another screen deserves.
  */
-export function presentOpenedReadings(reading: FightReading, screen: ScreenState): OpenedReadings {
+export function presentOpenedLevels(reading: FightState, screen: ScreenState): OpenedLevels {
     const statistics = reading.figures.statistics;
     const roster = reading.view.roster;
     if (screen.openRowId === null) {
@@ -559,10 +559,10 @@ export function presentOpenedReadings(reading: FightReading, screen: ScreenState
  * behind a row that says it opens, so a mark left over from another screen draws nothing.
  */
 function lookupUnnamedPairLevel(
-    reading: FightReading,
+    reading: FightState,
     screen: ScreenState,
-    drill: DrillReading,
-): HalfNamedDrillReading | null {
+    drill: OpenedLevelContent,
+): UnnamedCutLevelContent | null {
     assert(screen.openRowId === drill.combatantId, "the rung is under the row drawn open");
     if (screen.openUnnamedEnd === null) return null;
     const unnamed = drill.byOpponent.unnamed;
@@ -576,9 +576,9 @@ function lookupUnnamedPairLevel(
 }
 
 function lookupUnnamedLevel(
-    reading: FightReading,
+    reading: FightState,
     screen: ScreenState,
-): HalfNamedReading | null {
+): UnnamedLevelContent | null {
     if (screen.openUnnamedEnd === null) return null;
     const kase = lookupPinnedCase(screen.current, screen.openUnnamedEnd);
     if (kase === null) return null;
@@ -588,9 +588,9 @@ function lookupUnnamedLevel(
 }
 
 function lookupUnnamedCutLevel(
-    reading: FightReading,
+    reading: FightState,
     screen: ScreenState,
-): HalfNamedDrillReading | null {
+): UnnamedCutLevelContent | null {
     if (screen.openUnnamedEnd === null) return null;
     const kase = lookupPinnedCase(screen.current, screen.openUnnamedEnd);
     if (kase === null) return null;

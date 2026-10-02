@@ -17,7 +17,7 @@ import {
 import { isOneOf } from "#/libs/vocabulary.ts";
 import { PANEL_MARK } from "#/src/ui/panel-intent.ts";
 import { CLASS } from "#/src/ui/panel-look.ts";
-import { NOTHING_SUSPECT, presentScreen } from "#/src/ui/panel-reading.ts";
+import { NOTHING_SUSPECT, presentScreen } from "#/src/ui/panel-content.ts";
 import { SCREEN_ORDER, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import {
     DRILL_ROWS,

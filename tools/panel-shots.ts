@@ -259,7 +259,7 @@ export async function writeShot(
 ): Promise<void> {
     const served = { html, scriptName: USERSCRIPT_NAME, script: bundle, viewport: VIEWPORT };
     const page = await openPanelPage(browser, served, shot.steps);
-    const boxes = await readPanelBoxes(page, CLASS.standing, CLASS.tip);
+    const boxes = await readPanelBoxes(page, CLASS.helper, CLASS.tip);
     if (boxes === null) {
         await closePanelPage(page);
         throw new PanelShotError(`${shot.name}: a window stands nowhere on the page`);

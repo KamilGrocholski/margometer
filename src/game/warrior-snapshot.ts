@@ -27,14 +27,14 @@ export interface CapturedCombatant {
     ac: unknown;
 }
 
-export type WarriorSnapshot = readonly CapturedCombatant[];
+export type GameWarriorSnapshot = readonly CapturedCombatant[];
 
-export class WarriorsAbsent extends Error {
-    override readonly name = "WarriorsAbsent";
+export class GameWarriorsAbsent extends Error {
+    override readonly name = "GameWarriorsAbsent";
 }
 
-export class WarriorsExceeded extends Error {
-    override readonly name = "WarriorsExceeded";
+export class GameWarriorsExceeded extends Error {
+    override readonly name = "GameWarriorsExceeded";
     readonly count: number;
     readonly maximum: number;
 
@@ -45,7 +45,7 @@ export class WarriorsExceeded extends Error {
     }
 }
 
-export type WarriorFailure = WarriorsAbsent | WarriorsExceeded;
+export type GameWarriorFailure = GameWarriorsAbsent | GameWarriorsExceeded;
 
 /**
  * Where the running fight keeps its combatants, in the order tried. Each receives every field of a
@@ -62,8 +62,8 @@ const COPIED_KEYS = ["name", "team", "prof", "lvl", "mana", "energy"] as const;
 const SHALLOW_COPIED_KEYS = ["hp", "ac"] as const;
 const NAME_KEY = "name";
 
-export function readWarriorSnapshot(battle: unknown): WarriorSnapshot | WarriorFailure {
-    const named = readNamedWarriors(battle);
+export function readGameWarriorSnapshot(battle: unknown): GameWarriorSnapshot | GameWarriorFailure {
+    const named = readGameWarriorsNamed(battle);
     if (named instanceof Error) return named;
     const snapshot = named.map(readCapturedCombatant);
     assert(snapshot.length === named.length, "every named warrior is copied once");
@@ -94,22 +94,22 @@ function readCapturedCombatant(warrior: UnknownRecord): CapturedCombatant {
  * The warriors themselves, out of whichever collection answers first: the objects the game goes on
  * drawing, so the one other reader of them, the tooltip, writes through their own methods.
  */
-export function readNamedWarriors(battle: unknown): UnknownRecord[] | WarriorFailure {
-    if (!isRecord(battle)) return new WarriorsAbsent();
+export function readGameWarriorsNamed(battle: unknown): UnknownRecord[] | GameWarriorFailure {
+    if (!isRecord(battle)) return new GameWarriorsAbsent();
     for (const collection of WARRIOR_COLLECTIONS) {
         const held = battle[collection];
         if (!isRecord(held)) continue;
-        const named = Object.values(held).filter(isNamedWarrior);
+        const named = Object.values(held).filter(isGameWarriorNamed);
         if (named.length === 0) continue;
         if (named.length > COMBATANTS_MAXIMUM) {
-            return new WarriorsExceeded(named.length, COMBATANTS_MAXIMUM);
+            return new GameWarriorsExceeded(named.length, COMBATANTS_MAXIMUM);
         }
         return named;
     }
-    return new WarriorsAbsent();
+    return new GameWarriorsAbsent();
 }
 
-function isNamedWarrior(value: unknown): value is UnknownRecord {
+function isGameWarriorNamed(value: unknown): value is UnknownRecord {
     if (!isRecord(value)) return false;
     const name = value[NAME_KEY];
     if (typeof name !== "string") return false;

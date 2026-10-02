@@ -10,7 +10,7 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { KEPT_MAXIMUM } from "#/src/runtime/shelf.ts";
 import { SHELF_ROWS_MAXIMUM } from "#/src/ui/panel-element.ts";
-import { NOTHING_SUSPECT, presentScreen, type ShelfRow } from "#/src/ui/panel-reading.ts";
+import { NOTHING_SUSPECT, presentScreen, type ShelfRow } from "#/src/ui/panel-content.ts";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { tallyFightStatistics } from "#/src/core/fight-statistics.ts";
 import { composeFakeDocument } from "#/tests/fake-document.ts";

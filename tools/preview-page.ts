@@ -389,7 +389,7 @@ function composePreviewTipsCardStyle(): string {
 
 /**
  * What the add-on wrote into the game's own tooltips, one block per fighter. It is the real path:
- * the stub's fighters carry a `$` of the client's shape, so `src/game/engine-tooltip.ts` writes
+ * the stub's fighters carry a `$` of the client's shape, so `src/game/game-tooltip.ts` writes
  * through the registry's own methods, and a renamed method shows here as an empty block.
  */
 function composePreviewTooltips(words: PreviewWords): string {

@@ -9,7 +9,7 @@ import type { StatedSkills } from "#/src/core/aura-standing.ts";
 import { createFightSession, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { createFightCapture } from "#/src/game/fight-capture.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
-import { type KeptReading, replayKeptFight } from "#/src/runtime/fight-reading.ts";
+import { type KeptFightState, replayKeptFight } from "#/src/runtime/fight-state.ts";
 import {
     FIGURES_CUT,
     FiguresDisagreed,
@@ -20,7 +20,7 @@ import type { KeptFight } from "#/src/runtime/shelf.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import type { ShownScreen } from "#/src/ui/panel-element.ts";
 import { createScreenState, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
-import { HELPER_ABSENCE, type HelperAbsence, type HelperReading } from "#/src/ui/panel-standing.ts";
+import { HELPER_ABSENCE, type HelperAbsence, type HelperContent } from "#/src/ui/panel-helper.ts";
 import { composeFakeDocument } from "#/tests/fake-document.ts";
 import { lookupRecordedFight, replayRecordedFight } from "#/tests/recorded-fights.ts";
 import { RUNTIME_TABLES } from "#/tests/runtime-world.ts";
@@ -72,9 +72,9 @@ Deno.test("a ranking whose two counts disagree is drawn, and said as the screen'
 });
 
 /** Every part of a frame over one kept fight standing, with a view that keeps what it is handed. */
-function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
+function composeFrameWorld(fight: KeptFight, reading: KeptFightState) {
     const shown: ShownScreen[] = [];
-    const standings: (HelperReading | HelperAbsence)[] = [];
+    const standings: (HelperContent | HelperAbsence)[] = [];
     const defects = initDefectLedger({ writeBrandedLine: () => {} });
     const parts: FrameParts = {
         screen: createScreenState(false),
@@ -87,7 +87,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptReading) {
                 hasStoreMadeRoom: false,
                 hasChoiceRefused: false,
             }),
-            lookupKeptReading: () => reading,
+            lookupKeptFightState: () => reading,
             keep: () => {},
             pin: () => {},
             moveShelf: () => {},

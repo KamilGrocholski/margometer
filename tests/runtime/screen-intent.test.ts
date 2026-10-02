@@ -6,7 +6,7 @@
 import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
 import { executeScreenIntent } from "#/src/runtime/margometer-runtime.ts";
 import { PANEL_INTENT } from "#/src/ui/panel-intent.ts";
-import { UNNAMED_END } from "#/src/ui/panel-reading.ts";
+import { UNNAMED_END } from "#/src/ui/panel-content.ts";
 import { createScreenState, OPENED_PART, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
 
 const PERSON = 469658;

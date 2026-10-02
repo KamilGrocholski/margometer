@@ -17,7 +17,7 @@ import {
     NOTHING_SUSPECT,
     presentScreen,
     type RankingRow,
-} from "#/src/ui/panel-reading.ts";
+} from "#/src/ui/panel-content.ts";
 import { type PanelMetric, SCREEN_ORDER, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { PANEL_WORDS } from "#/src/ui/panel-words.ts";

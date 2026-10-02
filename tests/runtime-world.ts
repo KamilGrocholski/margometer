@@ -8,11 +8,11 @@
 import { assert, assertExists } from "@std/assert";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { initBrowserStore, type KeyValueStore } from "#/src/game/browser-store.ts";
-import { initEngineBattle } from "#/src/game/engine-battle.ts";
-import { initEngineHero } from "#/src/game/engine-hero.ts";
-import { initEnginePlace } from "#/src/game/engine-place.ts";
-import { initEngineTooltip } from "#/src/game/engine-tooltip.ts";
-import { initClientDictionary } from "#/src/game/game-dictionary.ts";
+import { initGameBattle } from "#/src/game/game-battle.ts";
+import { initGameHero } from "#/src/game/game-hero.ts";
+import { initGamePlace } from "#/src/game/game-place.ts";
+import { initGameTooltip } from "#/src/game/game-tooltip.ts";
+import { initGameDictionary } from "#/src/game/game-dictionary.ts";
 import {
     initRuntime,
     type Runtime,
@@ -177,13 +177,13 @@ function composeRuntimePorts(
             },
         },
         interval: { every: () => ({ cancel: () => undefined }) },
-        engine: initEngineBattle(page),
-        place: initEnginePlace(page),
-        hero: initEngineHero(page),
-        dictionary: initClientDictionary(page),
+        engine: initGameBattle(page),
+        place: initGamePlace(page),
+        hero: initGameHero(page),
+        dictionary: initGameDictionary(page),
         build: { readBuildId: () => GAME_BUILD },
         surroundings: { readWorld: () => WORLD, readUserAgent: () => "a browser that said so" },
-        tooltip: initEngineTooltip(page),
+        tooltip: initGameTooltip(page),
         settings: initHeldStore(world.held),
         initShelfStore: (choice) => initHeldStore(world.getShelf(choice)),
         file: {

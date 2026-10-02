@@ -15,44 +15,44 @@ import {
     getTextField,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
-import { readEngines } from "./engine-battle.ts";
+import { readGameEngines } from "./game-battle.ts";
 import type { FightPlace } from "./fight-place.ts";
-import { CLIENT_READING, type ClientReadFailure, ClientReadingAbsent } from "./page-reading.ts";
+import { GAME_VALUE, type GameReadFailure, GameValueAbsent } from "./game-value.ts";
 
-export interface PlacePort {
-    readPlace(): FightPlace | ClientReadFailure;
+export interface GamePlacePort {
+    readPlace(): FightPlace | GameReadFailure;
 }
 
 /**
  * Carried from v1's reading of production build `53XkBRxF` and development build
  * `1781609507010`: the map is `Engine.map.d.name` and the position `Engine.hero.d.x` and `.y`.
  */
-type EngineField = "map" | "hero";
+type GameEngineField = "map" | "hero";
 type HeldField = "data";
 type PlaceField = "mapName" | "x" | "y";
 
-const ENGINE_FIELDS: FieldKeys<EngineField> = { map: "map", hero: "hero" };
+const ENGINE_FIELDS: FieldKeys<GameEngineField> = { map: "map", hero: "hero" };
 const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "name", x: "x", y: "y" };
 
 /** The first spelling of the game that says anything wins: two spellings are one game. */
-export function initEnginePlace(page: unknown): PlacePort {
+export function initGamePlace(page: unknown): GamePlacePort {
     return {
         readPlace() {
-            const read = errors.attempt(() => readEngines(page).map(readEnginePlace));
+            const read = errors.attempt(() => readGameEngines(page).map(readGamePlace));
             if (read instanceof Error) return read;
             for (const place of read) {
                 if (place !== null) return place;
             }
-            return new ClientReadingAbsent(CLIENT_READING.place);
+            return new GameValueAbsent(GAME_VALUE.place);
         },
     };
 }
 
 /** The three fields fail apart rather than together: a map mid-load has none of them. */
-function readEnginePlace(engine: UnknownRecord): FightPlace | null {
-    const map = readEngineData(engine, "map");
-    const hero = readEngineData(engine, "hero");
+function readGamePlace(engine: UnknownRecord): FightPlace | null {
+    const map = readGameEngineRecord(engine, "map");
+    const hero = readGameEngineRecord(engine, "hero");
     let mapName: string | null = null;
     if (map !== null) {
         const name = getStatedTextField(map, PLACE_FIELDS, "mapName");
@@ -66,7 +66,7 @@ function readEnginePlace(engine: UnknownRecord): FightPlace | null {
     return { mapName, x, y };
 }
 
-function readEngineData(engine: UnknownRecord, field: EngineField): UnknownRecord | null {
+function readGameEngineRecord(engine: UnknownRecord, field: GameEngineField): UnknownRecord | null {
     const held = getRecordField(engine, ENGINE_FIELDS, field);
     if (held instanceof Error) return null;
     if (held === null) return null;

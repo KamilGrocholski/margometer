@@ -14,7 +14,7 @@ import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import { type PayloadRecord, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
-import { type KeptReading, replayFightPayloads } from "#/src/runtime/fight-reading.ts";
+import { type KeptFightState, replayFightPayloads } from "#/src/runtime/fight-state.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
 import {
@@ -34,14 +34,14 @@ export interface RecordedMaterial {
 /** A recording beside what the add-on reads it as. */
 export interface ReplayedFight {
     fight: RecordedFight;
-    reading: KeptReading;
+    reading: KeptFightState;
 }
 
 /** One call, what the envelope read of it, and the fight as it stood once that call landed. */
 export interface ReplayedStep {
     update: unknown;
     record: PayloadRecord;
-    reading: KeptReading;
+    reading: KeptFightState;
 }
 
 /** A recording beside every state the add-on read it in, call by call. */
@@ -108,7 +108,7 @@ export function replayRecordedMaterial(material: RecordedMaterial): ReplayedFigh
 }
 
 /** What the first calls of a recording add up to, replayed from its first call. */
-function replayRecordedCalls(fight: RecordedFight, count: number): KeptReading {
+function replayRecordedCalls(fight: RecordedFight, count: number): KeptFightState {
     assert(count >= 0, "a fight is replayed from no fewer calls than none");
     assert(count <= fight.updates.length, "and from no call the recording does not carry");
     const updates = fight.updates.slice(0, count);

@@ -54,7 +54,7 @@ console line, a screenshot — because the file will not say.
    | messages lost, calls dropped, a truncated file | `src/game/fight-capture.ts`                                                           |
    | casts unplaced, figures by nobody, neither end | `src/core/fight-statistics.ts`                                                        |
    | a defect the panel states                      | its kind in `src/runtime/defect-ledger.ts`, its fate in `src/runtime/failure-fate.ts` |
-   | the panel's parts disagree with its whole      | `src/runtime/panel-frame.ts`, `src/ui/panel-reading.ts`                               |
+   | the panel's parts disagree with its whole      | `src/runtime/panel-frame.ts`, `src/ui/panel-content.ts`                               |
    | a figure wrong with no mark at all             | `fight:turns`, `fight:auras`, `panel:drill` over the file, against their documents    |
 
 5. **Hold it before fixing it** — a test that is red on `develop` (**W3**):

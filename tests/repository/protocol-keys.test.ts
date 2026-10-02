@@ -13,7 +13,7 @@ import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
 import {
     DAMAGE_HALF,
     KEY_FAMILY,
-    lookupKeyReading,
+    lookupKeyMeaning,
     SELF_SOURCED_HEALING_KEYS,
     WOUND_TICK_KEY,
 } from "#/src/core/protocol-key.ts";
@@ -305,7 +305,7 @@ Deno.test("every entry names a key the client still composes", () => {
 function isEntryAnswerableByClient(entry: { key: string; verdict: string }): boolean {
     if (entry.verdict === NOT_A_BATTLE_KEY) return false;
     if (entry.key === DAMAGE_FAMILY_HEADING) return false;
-    return lookupKeyReading(entry.key)?.kind !== KEY_FAMILY.damage;
+    return lookupKeyMeaning(entry.key)?.kind !== KEY_FAMILY.damage;
 }
 
 Deno.test("the reader knows a count of occurrences from every other sentence", () => {
@@ -413,7 +413,7 @@ function lookupDecodedCause(key: string): Cause | null {
     if (key === DAMAGE_FAMILY_HEADING) return CAUSE.messageActor;
     if (SELF_SOURCED_HEALING_KEYS.includes(key)) return CAUSE.subjectsOwn;
     if (key === WOUND_TICK_KEY) return CAUSE.woundsAttacker;
-    const reading = lookupKeyReading(key);
+    const reading = lookupKeyMeaning(key);
     if (reading === null) return null;
     switch (reading.kind) {
         case KEY_FAMILY.damage:
@@ -558,12 +558,12 @@ Deno.test("every key src/core/protocol-key.ts reads by name is a key the registe
     const written = new Set(parseRegisteredKeys(REGISTER).map((one) => one.key));
     const missing = keys
         .filter((key) => !written.has(key))
-        .map((key) => `${key}, read as ${lookupKeyReading(key)?.kind}`);
+        .map((key) => `${key}, read as ${lookupKeyMeaning(key)?.kind}`);
     assertEquals(missing, [], "a key read by name is a key the register carries");
 });
 
 /**
- * Every string a file spells that `lookupKeyReading` answers by name. A key the client's family rule
+ * Every string a file spells that `lookupKeyMeaning` answers by name. A key the client's family rule
  * reaches is answered by its shape, and is the family entry's rather than one of its own.
  */
 function readKeysReadByName(file: SourceFile): string[] {
@@ -571,7 +571,7 @@ function readKeysReadByName(file: SourceFile): string[] {
     for (const node of readAstNodes(file, ["Literal"])) {
         if (typeof node.value !== "string") continue;
         if (node.value.length === 0) continue;
-        if (lookupKeyReading(node.value) === null) continue;
+        if (lookupKeyMeaning(node.value) === null) continue;
         const marker = node.value.slice(
             FAMILY_RULE.markerAt,
             FAMILY_RULE.markerAt + FAMILY_RULE.markerLength,

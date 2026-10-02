@@ -177,10 +177,10 @@ Deno.test("a reading is held for every fight on the shelf, however many went bef
     for (let at = 1; at <= KEPT_MAXIMUM + 1; at += 1) {
         const fight = composeFight(at);
         keeper.keep(fight);
-        const read = keeper.lookupKeptReading(fight);
+        const read = keeper.lookupKeptFightState(fight);
         assert(read !== null, "a fight that reads is read");
         assertStrictEquals(
-            keeper.lookupKeptReading(fight),
+            keeper.lookupKeptFightState(fight),
             read,
             `fight ${at} is held, not replayed`,
         );
@@ -209,15 +209,15 @@ Deno.test("a kept fight is replayed once, and one that will not replay is marked
     const broken: KeptFight = { ...composeFight(1), payloads: [{ init: 1, m: "not a list" }] };
     keeper.keep(broken);
     assertStrictEquals(
-        keeper.lookupKeptReading(broken),
+        keeper.lookupKeptFightState(broken),
         null,
         "a fight that will not read is none",
     );
-    assertStrictEquals(keeper.lookupKeptReading(broken), null, "asked again, the same answer");
+    assertStrictEquals(keeper.lookupKeptFightState(broken), null, "asked again, the same answer");
     assertStrictEquals(defects.getCounts()[0]?.count, 1, "and marked once, not once per ask");
     const whole = composeFight(2);
     keeper.keep(whole);
-    const read = keeper.lookupKeptReading(whole);
+    const read = keeper.lookupKeptFightState(whole);
     assert(read !== null, "a fight that reads is read");
-    assertStrictEquals(keeper.lookupKeptReading(whole), read, "and held rather than read again");
+    assertStrictEquals(keeper.lookupKeptFightState(whole), read, "and held rather than read again");
 });

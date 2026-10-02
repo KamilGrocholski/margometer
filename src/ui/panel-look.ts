@@ -170,20 +170,23 @@ export const CLASS = {
     tipSuspect: "tip-suspect",
     /** The sentence's own, and never `tipCaveat` — that one is the glyph cell beside a figure. */
     tipCaveatNote: "tip-caveat-note",
-    /** The window beside the panel: its own bar, its own body, and the rows under each heading. */
-    standing: "MargoMeter-standing",
-    standingBar: "standing-bar",
-    standingBody: "standing-body",
-    standingFolded: "standing-folded",
+    /**
+     * The helper: its own bar, its own body, and the rows under each heading. ⚠️ The classes keep
+     * `develop`'s word for the window, because the sheet is held to `develop`'s byte for byte.
+     */
+    helper: "MargoMeter-standing",
+    helperBar: "standing-bar",
+    helperBody: "standing-body",
+    helperFolded: "standing-folded",
     /** A row nested under the one above it, whoever stands in either. */
-    standingUnder: "standing-under",
+    helperUnder: "standing-under",
     /** The okrzyk a holder is holding somebody with, drawn on their row (`develop ADR 0097`). */
-    standingCast: "standing-cast",
+    helperCast: "standing-cast",
     /** The row that carries one, which is the only row where the name gives way last. */
-    standingHolding: "standing-holding",
-    standingPips: "standing-pips",
-    standingPip: "standing-pip",
-    standingPipLit: "standing-pip-lit",
+    helperHolding: "standing-holding",
+    helperPips: "standing-pips",
+    helperPip: "standing-pip",
+    helperPipLit: "standing-pip-lit",
     /** The corner a window is sized by, in either window (ADR 0013). */
     sizeGrip: "size-grip",
 } as const;
@@ -215,7 +218,7 @@ export const PLACE = {
  * covers it. The frame takes no layer of its own and sits under both.
  */
 export const LAYER = {
-    standing: "2",
+    helper: "2",
     tip: "3",
 } as const;
 
@@ -342,7 +345,7 @@ const LIST_ROWS_SIZED_MINIMUM = 3;
 export const SIZE_VARIABLES: {
     readonly [Window in PanelWindow]: { readonly width: string; readonly height: string };
 } = {
-    [PANEL_WINDOW.panel]: {
+    [PANEL_WINDOW.meter]: {
         width: "--MargoMeter-panel-width",
         height: "--MargoMeter-panel-height",
     },
@@ -353,7 +356,7 @@ export const SIZE_VARIABLES: {
 };
 /** Where a window's top is written. One each: a shared one has the second move the first's top. */
 export const TOP_VARIABLES: { readonly [Window in PanelWindow]: string } = {
-    [PANEL_WINDOW.panel]: "--MargoMeter-panel-top",
+    [PANEL_WINDOW.meter]: "--MargoMeter-panel-top",
     [PANEL_WINDOW.helper]: "--MargoMeter-standing-top",
 };
 /** How many rows a list stands, written on the list. */
@@ -503,12 +506,12 @@ export function composeStyleSheet(step: TypeStep): string {
 function composeFrameRules(tokens: TypeTokens): string {
     // The share binds a panel nobody sized; one sized is bound by the window alone (ADR 0013).
     const share = `var(${SIZED_PANEL_VARIABLES.share},${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh)`;
-    const ceiling = `min(calc(100vh - var(${TOP_VARIABLES.panel}) - ${PLACE.insetPixels}px),` +
+    const ceiling = `min(calc(100vh - var(${TOP_VARIABLES.meter}) - ${PLACE.insetPixels}px),` +
         `${share})`;
-    const width = `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px)`;
+    const width = `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px)`;
     return `:host{all:initial;${composeVariables(tokens)}` +
-        `${TOP_VARIABLES.panel}:${PLACE.insetPixels}px;` +
-        `position:fixed;top:var(${TOP_VARIABLES.panel});right:${PLACE.insetPixels}px;` +
+        `${TOP_VARIABLES.meter}:${PLACE.insetPixels}px;` +
+        `position:fixed;top:var(${TOP_VARIABLES.meter});right:${PLACE.insetPixels}px;` +
         `z-index:${PLACE.layer};display:flex;flex-direction:column;` +
         `max-height:${ceiling};}` +
         `.${CLASS.title}{flex:none;display:flex;align-items:center;` +
@@ -553,7 +556,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         // regions over and under the list do not give way, and a panel shorter than they are drew
         // them past its own foot with no ground under them.
         `box-sizing:border-box;display:flex;flex-direction:column;` +
-        `min-height:var(${SIZE_VARIABLES.panel.height},0);}` +
+        `min-height:var(${SIZE_VARIABLES.meter.height},0);}` +
         `.${CLASS.panel}>*{flex:none;}` +
         // In a sized panel the list takes the room the rest leave it, and never fewer than a few
         // rows; in one nobody sized it is as tall as the rows it promises, and there is no room.
@@ -873,7 +876,7 @@ function composeTipRules(tokens: TypeTokens): string {
     // a distance from the **right** edge, and every placement across is, because a card narrower
     // than the bound has to keep the edge facing its window and not float the difference away.
     const right = `var(${TIP_VARIABLES.right},calc(${PLACE.insetPixels}px + ` +
-        `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px) + ` +
+        `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px) + ` +
         `${SPACE_PIXELS.small}px))`;
     return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
         `left:var(${TIP_VARIABLES.left},auto);right:${right};` +
@@ -984,17 +987,17 @@ function composeHelperRules(tokens: TypeTokens): string {
         `clamp(${PLACE.insetPixels}px,var(${TOP_VARIABLES.helper},${PLACE.insetPixels}px),` +
         `calc(100vh - ${PLACE.insetPixels}px))`;
     const left = `var(${VARIABLE_PREFIX}standing-left,calc(100vw - ${PLACE.insetPixels}px - ` +
-        `var(${SIZE_VARIABLES.panel.width},${tokens.panelWidthPixels}px) - ` +
+        `var(${SIZE_VARIABLES.meter.width},${tokens.panelWidthPixels}px) - ` +
         `var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px) - ` +
         `${SPACE_PIXELS.small}px))`;
-    return `.${CLASS.standing}{position:fixed;box-sizing:border-box;` +
-        `left:${left};top:${top};z-index:${LAYER.standing};` +
+    return `.${CLASS.helper}{position:fixed;box-sizing:border-box;` +
+        `left:${left};top:${top};z-index:${LAYER.helper};` +
         `width:var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px);` +
         `display:flex;flex-direction:column;` +
         `max-height:calc(100vh - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px);` +
         `font:${composeFontBody(tokens)};` +
         `color:var(${VARIABLE_PREFIX}text);}` +
-        `.${CLASS.standingBar}{flex:none;display:flex;align-items:center;` +
+        `.${CLASS.helperBar}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
         `font:${composeFontTitle(tokens)};letter-spacing:0.06em;` +
@@ -1003,8 +1006,8 @@ function composeHelperRules(tokens: TypeTokens): string {
         `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
         `cursor:move;-webkit-user-select:none;user-select:none;touch-action:none;}` +
-        `.${CLASS.standingBar} .${CLASS.control}{margin-left:auto;}` +
-        `.${CLASS.standingBody}{min-height:0;overflow-y:auto;overflow-x:hidden;` +
+        `.${CLASS.helperBar} .${CLASS.control}{margin-left:auto;}` +
+        `.${CLASS.helperBody}{min-height:0;overflow-y:auto;overflow-x:hidden;` +
         `box-sizing:border-box;height:var(${SIZE_VARIABLES.helper.height},auto);` +
         `overscroll-behavior:contain;scrollbar-width:none;` +
         `padding:var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across);` +
@@ -1013,8 +1016,8 @@ function composeHelperRules(tokens: TypeTokens): string {
         `background:var(${VARIABLE_PREFIX}surface);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);}` +
-        `.${CLASS.standing}.${CLASS.standingFolded} .${CLASS.standingBody}{display:none;}` +
-        `.${CLASS.standingUnder}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
+        `.${CLASS.helper}.${CLASS.helperFolded} .${CLASS.helperBody}{display:none;}` +
+        `.${CLASS.helperUnder}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
         // ⚠️ **Three cells on one row, and the order they give way in is stated here rather than
         // left to the panel's own rule.** That rule gives a row's name `flex:1`, which is basis
         // `0` — the name takes what is left rather than what it needs — and measured in Chrome on
@@ -1028,21 +1031,21 @@ function composeHelperRules(tokens: TypeTokens): string {
         // apart. The name keeps its shrink, so a nickname too long for the row still folds rather
         // than running off it. Scoped to the row that carries a cast, because every other row in
         // this window has two cells and wants the panel's rule (`develop ADR 0097`).
-        `.${CLASS.standingHolding} .${CLASS.rowName}{flex:0 1 auto;}` +
-        `.${CLASS.standingCast}{color:var(${VARIABLE_PREFIX}quiet);flex:1 1 0;` +
+        `.${CLASS.helperHolding} .${CLASS.rowName}{flex:0 1 auto;}` +
+        `.${CLASS.helperCast}{color:var(${VARIABLE_PREFIX}quiet);flex:1 1 0;` +
         `min-width:min(${tokens.castWidthPixelsMinimum}px,100%);` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;` +
         `padding-left:var(${VARIABLE_PREFIX}small);}` +
         // One dot per turn of the charge, which is how the game's own bar is cut: it draws
         // `total_turns - 1` dividers across it (build `Cl9U89Zr`, read 2026-09-09). Nothing
         // else in the panel is round, so the shape means this and nothing else.
-        `.${CLASS.standingPips}{position:relative;flex:none;display:flex;align-items:center;` +
+        `.${CLASS.helperPips}{position:relative;flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}half);padding-left:var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.standingPip}{width:${tokens.pipSizePixels}px;height:${tokens.pipSizePixels}px;` +
+        `.${CLASS.helperPip}{width:${tokens.pipSizePixels}px;height:${tokens.pipSizePixels}px;` +
         `border-radius:50%;` +
         `flex:none;background:var(${VARIABLE_PREFIX}border);}` +
-        `.${CLASS.standingPip}.${CLASS.standingPipLit}{background:currentColor;}` +
-        `.${CLASS.standing}.${CLASS.standingFolded} .${CLASS.sizeGrip}{display:none;}` +
+        `.${CLASS.helperPip}.${CLASS.helperPipLit}{background:currentColor;}` +
+        `.${CLASS.helper}.${CLASS.helperFolded} .${CLASS.sizeGrip}{display:none;}` +
         composeSizeGripRules();
 }
 

@@ -39,6 +39,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — W opcjach pod ⚙ główne okno nazywa się teraz „Licznik”, obok „Pomocnika”.
 - **Poprawka** — Sekcja „Poza rankingiem” znika razem z walką, gdy panel się zwija albo znów czeka
   na walkę, zamiast zostawać pod nim.
 - **Poprawka** — Sparowany cios nie kończy już walki ostrzeżeniem, bo panel czyta teraz parowanie i

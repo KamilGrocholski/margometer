@@ -216,7 +216,7 @@ window.addEventListener("resize", setWindowsPlaced);`;
  * two gesture defects. `buttons: 1`, because a move stating none is a hand that has let go.
  */
 function composeWindowDragging(): string {
-    const standing = `.${CLASS.standing}`;
+    const standing = `.${CLASS.helper}`;
     return `var getPanelHost = function () {
   var host = document.querySelector(${JSON.stringify(HOST_SELECTOR)});
   if (host === null) throw new ReferenceError("there is no panel on this page");
@@ -260,7 +260,7 @@ function composeWindowsCornered(): string {
   var box = getPanelHost().getBoundingClientRect();
   var across = ${across};
   var down = getStripBelow();
-  setWindowDragged(${JSON.stringify(GRIP_MARK_BY_WINDOW[PANEL_WINDOW.panel])},
+  setWindowDragged(${JSON.stringify(GRIP_MARK_BY_WINDOW[PANEL_WINDOW.meter])},
     across - ${PLACE.insetPixels} - box.width - box.left, down - box.top);
 };
 

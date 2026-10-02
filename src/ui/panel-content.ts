@@ -240,7 +240,7 @@ export type HalfNamedRow = PersonRow;
  * Every row on it opens onto the other cut of the same fold, and what opens is
  * `docs/drill-levels.md`'s to state.
  */
-export interface HalfNamedReading {
+export interface UnnamedLevelContent {
     case: PinnedCase;
     end: PanelUnnamedEnd;
     total: number;
@@ -268,7 +268,7 @@ export type HalfNamedOpened =
  * What stands under one row of a pinned level: a person's own keys, or a key's own people. The two
  * are the same fold read the two ways round, which is why neither opens any further.
  */
-export type HalfNamedDrillReading =
+export type UnnamedCutLevelContent =
     | {
         opened: typeof HALF_NAMED_OPENED.person;
         case: PinnedCase;
@@ -309,7 +309,7 @@ export interface FightReader {
  * What pointing at a fight says, over the ranking or on a shelf row (ADR 0014): the runtime reads
  * it once for both, and a field it could not read is null rather than a word saying so.
  */
-export interface FightCardReading {
+export interface FightCardContent {
     sizes: readonly number[];
     unplaced: number;
     outcome: OutcomeResult | null;
@@ -336,10 +336,10 @@ export interface ShelfRow {
      * both for as long as the gap between it ending and the next one starting.
      */
     isPinnable: boolean;
-    card: FightCardReading;
+    card: FightCardContent;
 }
 
-export interface ScreenReading {
+export interface ScreenContent {
     rows: RankingRow[];
     outcome: OutcomeResult | null;
     sizes: number[];
@@ -550,7 +550,7 @@ export interface PairPartRow {
  * whole of the figure over it. Two lists would be two columns of shares each coming to some part
  * of a hundred, and sorted apart they would put a large row under a small one.
  */
-export interface PairReading {
+export interface PairLevelContent {
     combatantId: number;
     otherId: number;
     otherName: string | null;
@@ -568,13 +568,13 @@ export interface PairReading {
  * does not have — a name folds every caster's announcement into one row, and this says which of
  * them it came from.
  */
-export interface PartReading {
+export interface PartLevelContent {
     part: OpenedPart;
     total: number;
     byOpponent: OpponentCut;
 }
 
-export interface DrillReading {
+export interface OpenedLevelContent {
     combatantId: number;
     name: string | null;
     profession: string | null;
@@ -779,7 +779,7 @@ export function presentUnnamedLevel(
     kase: PinnedCase,
     choice: PanelSideChoice,
     readerSide: number | null,
-): HalfNamedReading | null {
+): UnnamedLevelContent | null {
     const { parts, part } = composeHalfNamedListing(statistics, roster, kase, choice, readerSide);
     const total = getPinnedFigure(statistics, kase, parts, part);
     if (total <= 0) return null;
@@ -1281,7 +1281,7 @@ export function presentUnnamedCutLevel(
     choice: PanelSideChoice,
     readerSide: number | null,
     opened: HalfNamedOpened,
-): HalfNamedDrillReading | null {
+): UnnamedCutLevelContent | null {
     const { parts, part } = composeHalfNamedListing(statistics, roster, kase, choice, readerSide);
     if (opened.kind === HALF_NAMED_OPENED.person) {
         return composeHalfNamedForPerson(statistics, roster, kase, parts, opened.combatantId);
@@ -1296,7 +1296,7 @@ function composeHalfNamedForPerson(
     kase: PinnedCase,
     parts: readonly HalfNamedPart[],
     combatantId: number,
-): HalfNamedDrillReading | null {
+): UnnamedCutLevelContent | null {
     const held = parts.find((one) => one.combatantId === combatantId);
     if (held === undefined) return null;
     const figures = statistics.byCombatantId.get(combatantId);
@@ -1323,7 +1323,7 @@ function composeHalfNamedForKind(
     kase: PinnedCase,
     listing: HalfNamedListing,
     opened: { kind: typeof HALF_NAMED_OPENED.element; element: string },
-): HalfNamedDrillReading | null {
+): UnnamedCutLevelContent | null {
     const shape = PINNED_SHAPES[kase];
     const found = getHalfNamedByKind(statistics, shape.kinds, listing.parts, opened.element);
     if (found.length === 0) return null;
@@ -1360,7 +1360,7 @@ export function presentUnnamedPairLevel(
     roster: CombatantRoster,
     metric: PanelMetric,
     combatantId: number,
-): HalfNamedDrillReading | null {
+): UnnamedCutLevelContent | null {
     const kase = OPENED_UNNAMED_CASES[metric];
     if (kase === null) return null;
     const figures = statistics.byCombatantId.get(combatantId);
@@ -1422,7 +1422,7 @@ export function presentScreen(
     choice: PanelSideChoice,
     readerSide: number | null,
     suspicions: FightSuspicions,
-): ScreenReading {
+): ScreenContent {
     const found = composeRowsBeforeShares(statistics, roster, metric).filter((row) =>
         isSideListed(row.side, choice, readerSide)
     );
@@ -1815,7 +1815,7 @@ export function presentPartLevel(
     metric: PanelMetric,
     combatantId: number,
     part: OpenedPart,
-): PartReading | null {
+): PartLevelContent | null {
     const figures = statistics.byCombatantId.get(combatantId);
     if (figures === undefined) return null;
     const cut = composePeopleForPart(statistics, figures, metric, combatantId, part);
@@ -2057,7 +2057,7 @@ export function presentPairLevel(
     metric: PanelMetric,
     combatantId: number,
     otherId: number,
-): PairReading | null {
+): PairLevelContent | null {
     const figures = statistics.byCombatantId.get(combatantId);
     if (figures === undefined) return null;
     const total = getPairTotal(figures, metric, otherId);
@@ -2273,7 +2273,7 @@ export function presentOpenedLevel(
     roster: CombatantRoster,
     metric: PanelMetric,
     combatantId: number,
-): DrillReading | null {
+): OpenedLevelContent | null {
     const held = roster.byId.get(combatantId);
     // Every row of a ranking opens, including a combatant nothing has named yet: they are on the
     // list at zero, and a row that drew nothing when it was pressed would leave the panel saying

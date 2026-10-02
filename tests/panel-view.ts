@@ -7,7 +7,7 @@ import {
     initPanelView,
     type PanelView,
     type PanelViewOptions,
-    type WaitingReading,
+    type WaitingContent,
 } from "#/src/ui/panel-element.ts";
 import type { PanelDocument } from "#/src/ui/panel-document.ts";
 import { NO_WINDOW_SIZES, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
@@ -16,7 +16,7 @@ import { NO_WINDOW_SIZES, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 export const TEST_VERSION = "0.0.0-test";
 
 /** Waiting with nothing to say, which is the panel before its first fight. */
-export const NOTHING_WAITING: WaitingReading = {
+export const NOTHING_WAITING: WaitingContent = {
     isCollapsed: false,
     defects: [],
     hasFightToSave: false,

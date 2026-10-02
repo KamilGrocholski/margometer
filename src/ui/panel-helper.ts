@@ -17,7 +17,7 @@ import {
 import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import type { TurnStatement } from "#/src/core/fight-session.ts";
 import { type Colour, lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
-import { getSideRelation, type SideRelation } from "./panel-reading.ts";
+import { getSideRelation, type SideRelation } from "./panel-content.ts";
 import { PANEL_WORDS } from "./panel-words.ts";
 
 /**
@@ -111,7 +111,7 @@ export interface StandingHolder {
     sideRelation: SideRelation;
 }
 
-export interface HelperReading {
+export interface HelperContent {
     turnState: StandingTurnState;
     turnOrdinal: number | null;
     /** Null where the payload numbered a turn for nobody the roster holds. */
@@ -145,7 +145,7 @@ export function presentHelper(
     roster: CombatantRoster,
     readerSide: number | null,
     turn: StandingTurn,
-): HelperReading {
+): HelperContent {
     // Clamped before the fold, so the whole section stays inside the one stated bound and the
     // groups are bounded by what is left of it (**S11**).
     const held = provocations.slice(0, PROVOKED_MAXIMUM);

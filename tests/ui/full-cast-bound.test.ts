@@ -22,8 +22,8 @@ import {
     tallyFightStatistics,
 } from "#/src/core/fight-statistics.ts";
 import type { ShownScreen } from "#/src/ui/panel-element.ts";
-import { NOTHING_SUSPECT, type ScreenReading } from "#/src/ui/panel-reading.ts";
-import { presentScreen, UNNAMED_END } from "#/src/ui/panel-reading.ts";
+import { NOTHING_SUSPECT, type ScreenContent } from "#/src/ui/panel-content.ts";
+import { presentScreen, UNNAMED_END } from "#/src/ui/panel-content.ts";
 import {
     PANEL_METRIC,
     type PanelMetric,
@@ -132,7 +132,7 @@ function drawShownView(shown: ShownScreen): { host: FakeElement; failures: unkno
 }
 
 function composeFullCastScreen(
-    reading: ScreenReading,
+    reading: ScreenContent,
     metric: PanelMetric,
     side: PanelSideChoice,
 ): ShownScreen {

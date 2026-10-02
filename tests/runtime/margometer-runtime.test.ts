@@ -19,12 +19,12 @@ import { isRecord } from "#/libs/unknown-value.ts";
 import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
 import { composeFightView } from "#/src/core/fight-session.ts";
 import { initBrowserStore, type KeyValueStore, STORE_KEY } from "#/src/game/browser-store.ts";
-import { initBrowserFrames } from "#/src/game/page-time.ts";
+import { initBrowserFrames } from "#/src/game/browser-time.ts";
 import { LOOKS_MAXIMUM, type RuntimeTables } from "#/src/runtime/margometer-runtime.ts";
 import { KEPT_MAXIMUM } from "#/src/runtime/shelf.ts";
 import { CLASS, composeStyleSheet } from "#/src/ui/panel-look.ts";
 import { TYPE_STEP, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
-import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
+import { STANDING_TURN_STATE } from "#/src/ui/panel-helper.ts";
 import {
     DEFECT_MARK,
     EVERY_SLOT_PINNED_ANSWER,
@@ -1353,7 +1353,7 @@ Deno.test("a window sized is kept with no frame, comes back after a reload, and 
     const host = world.getHost();
     const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
     const size = { width: 320, height: 350 };
-    world.runtime.onIntent({ kind: "resize", window: "panel", size });
+    world.runtime.onIntent({ kind: "resize", window: "meter", size });
     assertEquals(world.held.get(STORE_KEY.panelSize), '{"width":320,"height":350}', "kept");
     world.flush();
     assertStrictEquals(
@@ -1366,13 +1366,13 @@ Deno.test("a window sized is kept with no frame, comes back after a reload, and 
     assertStringIncludes(style(), "--MargoMeter-panel-width:320px", "it comes back that wide");
     assertStringIncludes(style(), "--MargoMeter-panel-height:350px", "and that tall");
     openOptions(reloaded);
-    const reset = findByMark(reloaded.getHost(), "data-reset-size", "panel");
+    const reset = findByMark(reloaded.getHost(), "data-reset-size", "meter");
     assertExists(reset, "the options offer the size back");
     reloaded.press(reset);
     assertEquals(reloaded.held.get(STORE_KEY.panelSize), undefined, "given back, nothing is kept");
     assertEquals(style().includes("--MargoMeter-panel-width"), false, "and it stands at its type");
     assertEquals(
-        findByMark(reloaded.getHost(), "data-reset-size", "panel"),
+        findByMark(reloaded.getHost(), "data-reset-size", "meter"),
         undefined,
         "with nothing left to give back",
     );
@@ -1381,11 +1381,11 @@ Deno.test("a window sized is kept with no frame, comes back after a reload, and 
 Deno.test("a window sized while the options stand open is offered back in the same frame", () => {
     const world = playRecordedFight();
     openOptions(world);
-    assertEquals(findByMark(world.getHost(), "data-reset-size", "panel"), undefined, "unsized");
-    world.runtime.onIntent({ kind: "resize", window: "panel", size: { width: 320, height: 350 } });
+    assertEquals(findByMark(world.getHost(), "data-reset-size", "meter"), undefined, "unsized");
+    world.runtime.onIntent({ kind: "resize", window: "meter", size: { width: 320, height: 350 } });
     world.flush();
     assertExists(
-        findByMark(world.getHost(), "data-reset-size", "panel"),
+        findByMark(world.getHost(), "data-reset-size", "meter"),
         "the options redrawn on release offer the size back",
     );
 });
@@ -1396,7 +1396,7 @@ Deno.test("a window sized stays that size through the frames after it, and can b
     const updates = readUpdates(HILDUR);
     const half = Math.floor(updates.length / 2);
     for (const payload of updates.slice(0, half)) world.update(payload);
-    world.runtime.onIntent({ kind: "resize", window: "panel", size: { width: 320, height: 350 } });
+    world.runtime.onIntent({ kind: "resize", window: "meter", size: { width: 320, height: 350 } });
     for (const payload of updates.slice(half)) world.update(payload);
     const style = world.getHost().attributes.get("style") ?? "";
     assertStringIncludes(
@@ -1406,7 +1406,7 @@ Deno.test("a window sized stays that size through the frames after it, and can b
     );
     openOptions(world);
     assertExists(
-        findByMark(world.getHost(), "data-reset-size", "panel"),
+        findByMark(world.getHost(), "data-reset-size", "meter"),
         "and the options offer it back without a reload",
     );
 });
@@ -1418,9 +1418,7 @@ Deno.test("a window's size the browser kept unreadable costs the size, and says 
     });
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const host = world.getHost();
-    const standing = getElementsWithin(host).find((one) =>
-        one.className.startsWith(CLASS.standing)
-    );
+    const standing = getElementsWithin(host).find((one) => one.className.startsWith(CLASS.helper));
     assertEquals(
         (standing?.attributes.get("style") ?? "").includes("--MargoMeter-standing-width"),
         false,
@@ -1450,7 +1448,7 @@ Deno.test("a window's fold the browser kept unreadable costs the fold, and says 
 
 Deno.test("where a reader lets go of a window is kept where a reload will look for it", () => {
     const world = playRecordedFight();
-    world.runtime.onIntent({ kind: "move", window: "panel", position: { left: 40, top: 60 } });
+    world.runtime.onIntent({ kind: "move", window: "meter", position: { left: 40, top: 60 } });
     assertEquals(
         world.held.get(STORE_KEY.panelPlace),
         '{"left":40,"top":60}',
@@ -1673,7 +1671,7 @@ Deno.test("a copy that stood down answers an intent with nothing drawn and nothi
     const page = composeBattlePage();
     initRuntimeWorld(page);
     const second = initRuntimeWorld(page);
-    second.runtime.onIntent({ kind: "fold", window: "panel" });
+    second.runtime.onIntent({ kind: "fold", window: "meter" });
     second.flush();
     assertEquals(second.shown, [], "no panel goes up for it");
     assertEquals(second.held.get(STORE_KEY.panelFolded), undefined, "and nothing is written down");
@@ -1689,7 +1687,7 @@ Deno.test("each window goes back where the reader left it, and never where the o
         className: one.className.split(" ")[0],
         style: one.attributes.get("style") ?? "",
     }));
-    const standing = styles.find((one) => one.className === CLASS.standing);
+    const standing = styles.find((one) => one.className === CLASS.helper);
     assertStringIncludes(standing?.style ?? "", "left:300px", "the window beside the panel");
     const placed = styles.filter((one) => one.style.includes("left:40px"));
     assertStrictEquals(placed.length, 1, "and the panel, each at its own");
@@ -1824,9 +1822,9 @@ Deno.test("the window beside the panel folds on its own, and is kept folded apar
     assertEquals(world.held.get(STORE_KEY.helperFolded), "1", "written where a reload looks");
     assertEquals(world.held.get(STORE_KEY.panelFolded), undefined, "and the panel's left alone");
     const standing = getElementsWithin(host)
-        .find((one) => one.className.split(" ")[0] === CLASS.standing);
+        .find((one) => one.className.split(" ")[0] === CLASS.helper);
     assertExists(standing, "the window stands beside the panel");
-    assert(standing.className.split(" ").includes(CLASS.standingFolded), "folded to its bar");
+    assert(standing.className.split(" ").includes(CLASS.helperFolded), "folded to its bar");
     assert(countRows(getPanelWithin(host)) > 0, "while the panel goes on drawing the fight");
 });
 
@@ -1859,7 +1857,7 @@ Deno.test("a window let go of is written down, and costs no frame", () => {
     }));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const before = requested;
-    world.runtime.onIntent({ kind: "move", window: "panel", position: { left: 40, top: 60 } });
+    world.runtime.onIntent({ kind: "move", window: "meter", position: { left: 40, top: 60 } });
     assertStrictEquals(requested, before, "the panel already stands where it was let go");
 });
 

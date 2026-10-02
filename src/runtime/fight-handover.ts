@@ -11,10 +11,10 @@
 import { assert } from "@std/assert/assert";
 import type * as errors from "#/libs/errors.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
-import type { BuildPort } from "#/src/game/game-build.ts";
-import type { Clock } from "#/src/game/page-time.ts";
-import type { FileFailure, FileSink } from "#/src/game/page-file.ts";
-import type { SurroundingsPort } from "#/src/game/page-surroundings.ts";
+import type { GameBuildPort } from "#/src/game/game-build.ts";
+import type { BrowserClock } from "#/src/game/browser-time.ts";
+import type { BrowserFileSink, FileFailure } from "#/src/game/browser-file.ts";
+import type { BrowserSurroundingsPort } from "#/src/game/browser-surroundings.ts";
 import {
     encodeFightFile,
     type FileCalls,
@@ -22,7 +22,7 @@ import {
     type FileSurroundings,
     type FileUnserializable,
 } from "./fight-file.ts";
-import type { FightReading, ShownFight } from "./fight-reading.ts";
+import type { FightState, ShownFight } from "./fight-state.ts";
 
 export class ShownFightAbsent extends Error {
     override readonly name = "ShownFightAbsent";
@@ -32,10 +32,10 @@ export class ShownFightAbsent extends Error {
 export type ExportFailure = ShownFightAbsent | FileUnserializable | FileFailure;
 
 export interface HandoverPorts {
-    clock: Clock;
-    build: BuildPort;
-    surroundings: SurroundingsPort;
-    file: FileSink;
+    clock: BrowserClock;
+    build: GameBuildPort;
+    surroundings: BrowserSurroundingsPort;
+    file: BrowserFileSink;
     version: string;
 }
 
@@ -77,19 +77,19 @@ export function writeShownFightFile(
         }
         const surroundings = readFileSurroundings(ports, now, gameBuild);
         if (surroundings instanceof Error) return surroundings;
-        const subject = composeFileSubject(shown.reading, live.place);
+        const subject = composeFileSubject(shown.state, live.place);
         handover = { calls: live.capture, subject, surroundings };
     } else {
-        const { kept, reading } = shown;
+        const { kept, state } = shown;
         // A replay refuses the whole fight at the first payload it will not read, so every kept
         // payload has its messages: a file whose messages belonged to other calls cannot be
         // written.
-        const read = reading.messagesByPayload.length;
+        const read = state.messagesByPayload.length;
         assert(read === kept.payloads.length, "a kept fight was replayed payload by payload");
         const calls = kept.payloads.map((payload, index) => ({
             index,
             payload,
-            messages: reading.messagesByPayload[index] ?? [],
+            messages: state.messagesByPayload[index] ?? [],
             combatantsBefore: null,
             combatantsAfter: null,
         }));
@@ -98,7 +98,7 @@ export function writeShownFightFile(
         if (surroundings instanceof Error) return surroundings;
         handover = {
             calls: { calls, droppedCalls: null, isTruncated: null },
-            subject: composeFileSubject(reading, kept.place),
+            subject: composeFileSubject(state, kept.place),
             surroundings,
         };
     }
@@ -125,7 +125,7 @@ function readFileSurroundings(
     };
 }
 
-function composeFileSubject(reading: FightReading, place: FightPlace | null): FileSubject {
+function composeFileSubject(reading: FightState, place: FightPlace | null): FileSubject {
     assert(reading.view.payloadsApplied > 0, "a fight handed over was read from something");
     return {
         statistics: reading.figures.statistics,

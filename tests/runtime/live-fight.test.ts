@@ -10,14 +10,14 @@ import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/ass
 import * as errors from "#/libs/errors.ts";
 import { composeFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { initBrowserStore, initMemoryStore, type KeyValueStore } from "#/src/game/browser-store.ts";
-import { initEngineBattle } from "#/src/game/engine-battle.ts";
-import type { HeroPort } from "#/src/game/engine-hero.ts";
-import type { PlacePort } from "#/src/game/engine-place.ts";
+import { initGameBattle } from "#/src/game/game-battle.ts";
+import type { GameHeroPort } from "#/src/game/game-hero.ts";
+import type { GamePlacePort } from "#/src/game/game-place.ts";
 import { commitCapture, createFightCapture, prepareCapture } from "#/src/game/fight-capture.ts";
-import type { BuildPort } from "#/src/game/game-build.ts";
-import { CLIENT_READING, ClientReadingAbsent } from "#/src/game/page-reading.ts";
+import type { GameBuildPort } from "#/src/game/game-build.ts";
+import { GAME_VALUE, GameValueAbsent } from "#/src/game/game-value.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
-import type { WarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
+import type { GameWarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
 import { initLiveFight, type LiveFightOptions } from "#/src/runtime/live-fight.ts";
 import { initShelfKeeper } from "#/src/runtime/shelf-keeper.ts";
@@ -32,7 +32,7 @@ import {
 interface FakeGame {
     page: { Engine: { battle: Record<string, unknown> } };
     /** The warriors the engine's own call leaves behind it, one list per call. */
-    after: readonly WarriorSnapshot[];
+    after: readonly GameWarriorSnapshot[];
 }
 
 const PLACE = { mapName: "Mapa", x: 12, y: 34 };
@@ -91,15 +91,15 @@ Deno.test("every recording played through the wrap is the fight, the file and th
 });
 
 /** The recording's own snapshots after each call, which the fake engine moves its warriors to. */
-function readRecordedAfter(fight: RecordedFight): WarriorSnapshot[] {
+function readRecordedAfter(fight: RecordedFight): GameWarriorSnapshot[] {
     const document = JSON.parse(Deno.readTextFileSync(fight.path));
-    return document.calls.map((call: { combatantsAfter?: WarriorSnapshot | null }) =>
+    return document.calls.map((call: { combatantsAfter?: GameWarriorSnapshot | null }) =>
         call.combatantsAfter ?? []
     );
 }
 
 /** A battle whose own call moves its warriors to what the recording says it left. */
-function composeGame(after: readonly WarriorSnapshot[]): FakeGame {
+function composeGame(after: readonly GameWarriorSnapshot[]): FakeGame {
     const battle: Record<string, unknown> = { warriorsList: {} };
     let call = 0;
     battle.updateData = () => {
@@ -119,9 +119,9 @@ function composeOptions(
     const lines: string[] = [];
     const stale = { count: 0 };
     const opened = { count: 0 };
-    const place: PlacePort = { readPlace: () => PLACE };
-    const hero: HeroPort = { readHeroId: () => READER_ID };
-    const build: BuildPort = { readBuildId: () => "Bb28FQty" };
+    const place: GamePlacePort = { readPlace: () => PLACE };
+    const hero: GameHeroPort = { readHeroId: () => READER_ID };
+    const build: GameBuildPort = { readBuildId: () => "Bb28FQty" };
     const defects = initDefectLedger({ writeBrandedLine: (kind) => lines.push(kind) });
     const keeper = initShelfKeeper({
         settings: initMemoryStore(),
@@ -132,7 +132,7 @@ function composeOptions(
         defects,
     });
     const options: LiveFightOptions = {
-        engine: initEngineBattle(game.page),
+        engine: initGameBattle(game.page),
         clock: STILL_CLOCK,
         place,
         hero,
@@ -199,14 +199,14 @@ Deno.test("a shelf the store refuses is the shelf's answer, and the fight still 
 });
 
 Deno.test("a place the page does not state is unknown, and one it throws on is a defect", () => {
-    const absent: PlacePort = {
-        readPlace: () => new ClientReadingAbsent(CLIENT_READING.place),
+    const absent: GamePlacePort = {
+        readPlace: () => new GameValueAbsent(GAME_VALUE.place),
     };
     const quiet = composeGame([[]]);
     const unknown = composeOptions(quiet, { place: absent });
     assertStrictEquals(playInto(quiet, unknown.options, [{ init: 1 }]).live.place, null, "none");
     assertEquals(unknown.lines, [], "and no defect");
-    const thrown: PlacePort = { readPlace: () => new errors.Caught("torn") };
+    const thrown: GamePlacePort = { readPlace: () => new errors.Caught("torn") };
     const loud = composeGame([[]]);
     const failed = composeOptions(loud, { place: thrown });
     playInto(loud, failed.options, [{ init: 1 }]);
@@ -214,14 +214,14 @@ Deno.test("a place the page does not state is unknown, and one it throws on is a
 });
 
 Deno.test("a hero the page does not state is nobody, and one it throws on is a defect", () => {
-    const absent: HeroPort = { readHeroId: () => new ClientReadingAbsent(CLIENT_READING.hero) };
+    const absent: GameHeroPort = { readHeroId: () => new GameValueAbsent(GAME_VALUE.hero) };
     const quiet = composeGame([[], []]);
     const unknown = composeOptions(quiet, { hero: absent });
     const { live } = playInto(quiet, unknown.options, [{ init: 1 }, { endBattle: 1 }]);
     assertStrictEquals(live.readerId, null, "none");
     assertStrictEquals(unknown.keeper.getFights()[0]?.readerId, null, "and none is kept");
     assertEquals(unknown.lines, [], "and no defect");
-    const thrown: HeroPort = { readHeroId: () => new errors.Caught("torn") };
+    const thrown: GameHeroPort = { readHeroId: () => new errors.Caught("torn") };
     const loud = composeGame([[]]);
     const failed = composeOptions(loud, { hero: thrown });
     playInto(loud, failed.options, [{ init: 1 }]);
@@ -231,7 +231,7 @@ Deno.test("a hero the page does not state is nobody, and one it throws on is a d
 Deno.test("a second fight is asked who the reader is, not told who they were", () => {
     const game = composeGame([[], [], []]);
     let asked = 0;
-    const hero: HeroPort = {
+    const hero: GameHeroPort = {
         readHeroId: () => {
             asked += 1;
             return asked;

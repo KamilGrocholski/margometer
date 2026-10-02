@@ -8,7 +8,7 @@
 Inside an opened row, the `KOMU` or `OD KOGO` cut closes with a row for the end the protocol left
 out: `Nieznany sprawca` on `Otrzymane` and `Leczenie otrzymane`, `Nieznany cel` on `Zadane`. The row
 was a leaf. `docs/drill-levels.md` gave the reason for all half-named rows inside an opened figure:
-the statistics keep no second cut of them. `src/ui/panel-reading.ts` repeated `develop ADR 0038`'s
+the statistics keep no second cut of them. `src/ui/panel-content.ts` repeated `develop ADR 0038`'s
 argument over the pinned level: a pair between somebody and nobody is not a pair.
 
 `develop ADR 0039` removed the premise. Every combatant's part of a half-named figure is kept beside
@@ -52,5 +52,5 @@ screen.
   that draws the level, `presentOpenedUnnamed`, so the two cannot disagree.
 - `docs/drill-levels.md` gains the view. Its register moves `damageTaken · opened · half-named` to
   `always` and adds `unnamed pair · kind · never`. `Zadane` and `Leczenie otrzymane` are held by
-  fights built in `tests/ui/panel-reading.test.ts` until a recording carries them.
+  fights built in `tests/ui/panel-content.test.ts` until a recording carries them.
 - The half-named row on a part's level stays shut. It is already on the third level.

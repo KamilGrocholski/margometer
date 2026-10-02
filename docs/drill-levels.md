@@ -271,5 +271,5 @@ Shapes the code would draw, absent from `captures/`, so no verdict is claimed. E
 - a `neither end` row under a pinned one. `byNeitherEnd` is zero over every recording, so the row
   the code draws for it has never been drawn from material.
 
-`tests/ui/panel-element.test.ts` and `tests/ui/panel-reading.test.ts` draw several of these from
+`tests/ui/panel-element.test.ts` and `tests/ui/panel-content.test.ts` draw several of these from
 fights built by hand, which is where their shape is held.

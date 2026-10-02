@@ -206,8 +206,11 @@ about it. _Avoid_: Error, bug, crash, exception
 
 ## The surfaces
 
-**Panel**: What the add-on draws over the running game, inside its own shadow root. _Avoid_:
-Overlay, HUD, dashboard, widget, window
+**Panel**: What the add-on draws over the running game, inside its own shadow root: two windows, the
+**meter** and the **helper**. _Avoid_: Overlay, HUD, dashboard, widget, window
+
+**Meter**: The panel's main window — the ranking, the levels under it, the options. `Licznik` on
+screen. _Avoid_: Panel, main window, ranking window
 
 **Screen**: One view the panel can be on, reached by the strips that switch. _Avoid_: Tab, page,
 view, mode
@@ -215,7 +218,7 @@ view, mode
 **Collapsed**: The panel folded to its title bar, drawing no screen at all. It is a state the reader
 chose, so it outlives a reload. _Avoid_: Minimized, hidden, closed, docked
 
-**Helper**: The second window, beside the panel, drawing what is **standing** in the fight going on
+**Helper**: The second window, beside the meter, drawing what is **standing** in the fight going on
 — the turn in hand, the charged skills, whom a shout holds. It folds and moves on its own. _Avoid_:
 Standing, sidebar, companion
 
@@ -258,14 +261,15 @@ Fixture, sample, test data, mock, dump
 
 **Game client**: The bundle the game serves and runs in the reader's browser. Two channels:
 **production** at `<world>.margonem.pl`, which decides, and **development** at
-`experimental.margonem.pl`, which is readable but lags. _Avoid_: Engine, the game, upstream, page
+`experimental.margonem.pl`, which is readable but lags. What is the client's is `Game…` in a name
+(**N21**). _Avoid_: Engine, upstream, page
 
 **Engine**: The object inside the game client whose update function we wrap. Narrower than the
-client. _Avoid_: Game, runtime, core
+client, and `GameEngine…` in a name. _Avoid_: runtime, core
 
 **Browser**: The interfaces the browser itself offers the add-on — storage, the clock, frames and
 timers, the console, a download, the page's location and agent. Neither the client's nor the
-engine's, so a port over one is named for the browser. _Avoid_: Page, platform, environment
+engine's, so a port over one is `Browser…` (**N21**). _Avoid_: Page, platform, environment
 
 **Build id**: The identifier of the client bundle we read a claim on, taken from the bundle's
 filename. Not always a number. _Avoid_: Version, revision, hash

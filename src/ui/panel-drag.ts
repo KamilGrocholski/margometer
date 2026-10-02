@@ -65,8 +65,8 @@ interface PanelGrab {
 
 /** How wide the two windows stand, which a change of type moves unless a reader sized them. */
 export interface WindowWidths {
-    panel: number;
-    standing: number;
+    meter: number;
+    helper: number;
 }
 
 /** The least and the most a window may be made, for the type it is drawn in and where it stands. */
@@ -155,12 +155,12 @@ const WIDTH_TIMES_TYPE_MAXIMUM = 2;
  * which the list then scrolls; the window beside it a heading and the row under it.
  */
 const ROWS_BY_WINDOW_MINIMUM: { readonly [Window in PanelWindow]: number } = {
-    [PANEL_WINDOW.panel]: 6,
+    [PANEL_WINDOW.meter]: 6,
     [PANEL_WINDOW.helper]: 3,
 };
-/** What a grip states. The helper's is `develop`'s word for it, which the drawn panel keeps. */
+/** What a grip states: `develop`'s word for each window, which the drawn panel keeps. */
 export const GRIP_MARK_BY_WINDOW: { readonly [Window in PanelWindow]: string } = {
-    [PANEL_WINDOW.panel]: "panel",
+    [PANEL_WINDOW.meter]: "panel",
     [PANEL_WINDOW.helper]: "standing",
 };
 
@@ -251,7 +251,7 @@ export function composeHostStyle(
     const width = formatWholeUngrouped(size.width);
     const height = formatWholeUngrouped(size.height);
     const both = `${variables.width}:${width}px;${variables.height}:${height}px`;
-    const sized = windowName === PANEL_WINDOW.panel ? `${both};${composeSizedPanelStyle()}` : both;
+    const sized = windowName === PANEL_WINDOW.meter ? `${both};${composeSizedPanelStyle()}` : both;
     return placed === null ? sized : `${placed};${sized}`;
 }
 
@@ -356,17 +356,17 @@ export function setGripMark(grip: PanelElement, window: PanelWindow): void {
  * it, and stays. Without this, a larger step stood the window over the panel's own ranks.
  */
 export function composeHelperPositionAfterTypeStep(
-    panel: PanelPosition,
-    standing: PanelPosition,
+    meter: PanelPosition,
+    helper: PanelPosition,
     before: WindowWidths,
     after: WindowWidths,
 ): PanelPosition | null {
-    const helperRight = standing.left + before.standing;
-    if (helperRight <= panel.left) {
-        return { left: standing.left - (after.standing - before.standing), top: standing.top };
+    const helperRight = helper.left + before.helper;
+    if (helperRight <= meter.left) {
+        return { left: helper.left - (after.helper - before.helper), top: helper.top };
     }
-    if (standing.left >= panel.left + before.panel) {
-        return { left: standing.left + (after.panel - before.panel), top: standing.top };
+    if (helper.left >= meter.left + before.meter) {
+        return { left: helper.left + (after.meter - before.meter), top: helper.top };
     }
     return null;
 }

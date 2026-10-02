@@ -46,7 +46,7 @@ test("a size comes back after a reload, and the options give it back", async ({ 
     await panel.page.reload();
     expect((await panel.place()).width, "it comes back as wide as it was left").toBe(sized.width);
     await panel.at("[data-options]").click();
-    await panel.at('[data-reset-size="panel"]').click();
+    await panel.at('[data-reset-size="meter"]').click();
     expect(await panel.stored(SIZE_KEY), "given back, nothing is kept").toBeNull();
     await panel.at("[data-options]").click();
     expect((await panel.place()).width, "and it stands as wide as its type").toBe(before.width);
@@ -58,7 +58,7 @@ test("a window sized is offered back at once, with the options shut or open", as
         y: TALLER,
     });
     await panel.at("[data-options]").click();
-    await expect(panel.at('[data-reset-size="panel"]'), "sized before the options opened")
+    await expect(panel.at('[data-reset-size="meter"]'), "sized before the options opened")
         .toHaveCount(1);
     await setDragged(panel.page, await readCentreOf(panel.page, HELPER_GRIP), {
         x: -40,

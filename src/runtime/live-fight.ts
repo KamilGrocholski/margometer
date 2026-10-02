@@ -17,9 +17,9 @@ import {
     type SessionOptions,
 } from "#/src/core/fight-session.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
-import type { BattlePort, EngineBattle, PayloadListener } from "#/src/game/engine-battle.ts";
-import type { HeroPort } from "#/src/game/engine-hero.ts";
-import type { PlacePort } from "#/src/game/engine-place.ts";
+import type { GameBattle, GameBattlePort, PayloadListener } from "#/src/game/game-battle.ts";
+import type { GameHeroPort } from "#/src/game/game-hero.ts";
+import type { GamePlacePort } from "#/src/game/game-place.ts";
 import {
     commitCapture,
     createFightCapture,
@@ -27,20 +27,20 @@ import {
     prepareCapture,
 } from "#/src/game/fight-capture.ts";
 import type { FightPlace } from "#/src/game/fight-place.ts";
-import type { BuildPort } from "#/src/game/game-build.ts";
-import type { Clock } from "#/src/game/page-time.ts";
-import { type ClientReadFailure, ClientReadingAbsent } from "#/src/game/page-reading.ts";
+import type { GameBuildPort } from "#/src/game/game-build.ts";
+import type { BrowserClock } from "#/src/game/browser-time.ts";
+import { type GameReadFailure, GameValueAbsent } from "#/src/game/game-value.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
-import { WarriorsAbsent, type WarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
+import { GameWarriorsAbsent, type GameWarriorSnapshot } from "#/src/game/warrior-snapshot.ts";
 import { DEFECT_KIND, type DefectKind, type DefectLedger } from "./defect-ledger.ts";
 import type { ShelfKeeper } from "./shelf-keeper.ts";
 
 export interface LiveFightOptions {
-    engine: BattlePort;
-    clock: Clock;
-    place: PlacePort;
-    hero: HeroPort;
-    build: BuildPort;
+    engine: GameBattlePort;
+    clock: BrowserClock;
+    place: GamePlacePort;
+    hero: GameHeroPort;
+    build: GameBuildPort;
     tables: DecoderTables;
     sessionOptions: SessionOptions;
     defects: DefectLedger;
@@ -55,14 +55,14 @@ export interface LiveFightOptions {
 export interface LiveFight {
     session: FightSession;
     capture: FightCapture;
-    snapshotBefore: WarriorSnapshot | null;
+    snapshotBefore: GameWarriorSnapshot | null;
     /** Read once, on the payload that opens a fight: the hero does not move while one is on. */
     place: FightPlace | null;
     /** Read with the place: which combatant the reader is, as the client keys its own warrior. */
     readerId: number | null;
     openedAt: number;
     /** Read once: the game builds its battle while its engine starts, and never again. */
-    battle: EngineBattle | null;
+    battle: GameBattle | null;
 }
 
 export function initLiveFight(options: LiveFightOptions): {
@@ -84,7 +84,7 @@ export function initLiveFight(options: LiveFightOptions): {
                 options,
                 DEFECT_KIND.file,
                 null,
-                () => readLiveWarriors(live, options),
+                () => readLiveGameWarriors(live, options),
             );
         },
         onPayload(payload) {
@@ -99,7 +99,7 @@ export function initLiveFight(options: LiveFightOptions): {
                 options,
                 DEFECT_KIND.file,
                 null,
-                () => readLiveWarriors(live, options),
+                () => readLiveGameWarriors(live, options),
             );
             executeLiveStep(options, DEFECT_KIND.file, undefined, () => {
                 const messages = record === null ? [] : record.messages;
@@ -134,8 +134,8 @@ export function initLiveFight(options: LiveFightOptions): {
                 // Open the fight: its moment, its place and who the reader is.
                 executeLiveStep(options, DEFECT_KIND.reading, undefined, () => {
                     live.openedAt = options.clock.readNowMilliseconds();
-                    live.place = readClientAnswer(options, options.place.readPlace());
-                    live.readerId = readClientAnswer(options, options.hero.readHeroId());
+                    live.place = readGameValue(options, options.place.readPlace());
+                    live.readerId = readGameValue(options, options.hero.readHeroId());
                     options.onFightOpened();
                 });
             }
@@ -148,7 +148,7 @@ export function initLiveFight(options: LiveFightOptions): {
                         payloads,
                         place: live.place,
                         readerId: live.readerId,
-                        gameBuild: readClientAnswer(options, options.build.readBuildId()),
+                        gameBuild: readGameValue(options, options.build.readBuildId()),
                         isPinned: false,
                     };
                     options.keeper.keep(fight);
@@ -177,7 +177,10 @@ function executeLiveStep<Value>(
  * The warriors the battle holds. A battle holding none is a reading of an empty fight, `[]`, as
  * `develop` records it; a snapshot that could not be read is `null`, and a defect.
  */
-function readLiveWarriors(live: LiveFight, options: LiveFightOptions): WarriorSnapshot | null {
+function readLiveGameWarriors(
+    live: LiveFight,
+    options: LiveFightOptions,
+): GameWarriorSnapshot | null {
     if (live.battle === null) {
         const battle = options.engine.readBattle();
         if (battle instanceof Error) {
@@ -186,19 +189,19 @@ function readLiveWarriors(live: LiveFight, options: LiveFightOptions): WarriorSn
         }
         live.battle = battle;
     }
-    const read = live.battle.readWarriors();
+    const read = live.battle.readGameWarriors();
     if (!(read instanceof Error)) return read;
-    if (read instanceof WarriorsAbsent) return [];
+    if (read instanceof GameWarriorsAbsent) return [];
     options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: read });
     return null;
 }
 
 /** Absent is shown as unknown and is no defect; a page that threw while asked is one. */
-function readClientAnswer<Value>(
+function readGameValue<Value>(
     options: LiveFightOptions,
-    read: Value | ClientReadFailure,
+    read: Value | GameReadFailure,
 ): Value | null {
-    if (read instanceof ClientReadingAbsent) return null;
+    if (read instanceof GameValueAbsent) return null;
     if (read instanceof errors.Caught) {
         options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read });
         return null;

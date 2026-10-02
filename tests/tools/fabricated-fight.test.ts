@@ -18,7 +18,7 @@ import { countUnreadMessages } from "#/src/core/fight-statistics.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
-import { replayFightPayloads } from "#/src/runtime/fight-reading.ts";
+import { replayFightPayloads } from "#/src/runtime/fight-state.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
 import { readRecordedFight, type RecordedFight } from "#/tests/recorded-fights.ts";
 import {
@@ -283,7 +283,7 @@ Deno.test("a fight says how far down the script it reached", () => {
  * ten a side, level 92: the script reaches its shout once every 41 turns, so how many were still
  * held at the last call fell out of wherever the rounds stopped — 20 at 20 rounds, 10 at the
  * default 26, with nothing saying which. `PROVOKED_MAXIMUM` is the whole roster
- * (`src/ui/panel-standing.ts`) and the corpus cannot show it, so the fixture for it has to be
+ * (`src/ui/panel-helper.ts`) and the corpus cannot show it, so the fixture for it has to be
  * guaranteed rather than found.
  *
  * ⚠️ **The count alone does not prove the flag did it**: at 20 rounds the rotation already ended on

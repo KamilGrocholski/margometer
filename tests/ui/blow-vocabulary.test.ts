@@ -10,7 +10,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
-import { KEY_FAMILY, lookupKeyReading, PROC_END, type ProcEnd } from "#/src/core/protocol-key.ts";
+import { KEY_FAMILY, lookupKeyMeaning, PROC_END, type ProcEnd } from "#/src/core/protocol-key.ts";
 import {
     CARD_WORDS,
     CLIENT_ID_BY_UNWORDED_KEY,
@@ -233,7 +233,7 @@ Deno.test("every proc the decoder places is placed at an end the register settle
 
 /** The end the key register settles a proc at, or undefined where it holds no such proc. */
 function lookupProcEnd(key: string): ProcEnd | undefined {
-    const reading = lookupKeyReading(key);
+    const reading = lookupKeyMeaning(key);
     if (reading?.kind !== KEY_FAMILY.proc) return undefined;
     return reading.end;
 }

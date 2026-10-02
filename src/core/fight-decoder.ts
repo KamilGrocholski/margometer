@@ -35,8 +35,8 @@ import {
     APPLIED_SIGN,
     DAMAGE_HALF,
     KEY_FAMILY,
-    type KeyReading,
-    lookupKeyReading,
+    type KeyMeaning,
+    lookupKeyMeaning,
     NAME_SEPARATOR,
     RAW_SIGN,
     SKILL_ID_KEY,
@@ -67,7 +67,7 @@ export interface MessageDecoded {
     standing: AnnouncementStanding;
 }
 
-export interface UnreadReading {
+export interface UnreadDetails {
     unreadCause: UnreadCause;
     keys: readonly string[];
     combatantIds: readonly number[];
@@ -77,7 +77,7 @@ export interface UnreadReading {
     standing: AnnouncementStanding;
 }
 
-export class UnreadMessage extends Error implements UnreadReading {
+export class UnreadMessage extends Error implements UnreadDetails {
     override readonly name = "UnreadMessage";
     readonly unreadCause: UnreadCause;
     readonly keys: readonly string[];
@@ -86,7 +86,7 @@ export class UnreadMessage extends Error implements UnreadReading {
     readonly events: readonly BattleEvent[];
     readonly standing: AnnouncementStanding;
 
-    constructor(reading: UnreadReading) {
+    constructor(reading: UnreadDetails) {
         super();
         this.unreadCause = reading.unreadCause;
         this.keys = reading.keys;
@@ -103,36 +103,36 @@ export interface PayloadDecoded {
     standing: AnnouncementStanding;
 }
 
-interface HealthChangeReading {
+interface HealthChangeDecoded {
     source: string;
     amount: number;
     isOnTarget: boolean;
     declared: DeclaredEffect[];
 }
 
-interface NamedTargetReading {
+interface NamedTargetDecoded {
     targetName: string;
     targetHealthPercent: number | null;
 }
 
-interface AnnouncementReading {
+interface AnnouncementDecoded {
     skillName: string;
     skillId: number | null;
 }
 
-interface MessageReading {
+interface ParametersDecoded {
     raw: DamageFigure[];
     applied: DamageFigure[];
     prevented: PreventedDamage[];
     destroyed: DestroyedStatistic[];
     procs: string[];
-    healthChanges: HealthChangeReading[];
-    namedDamage: (NamedTargetReading & { damage: DamageFigure })[];
-    namedHealing: (NamedTargetReading & { amount: number; source: string })[];
+    healthChanges: HealthChangeDecoded[];
+    namedDamage: (NamedTargetDecoded & { damage: DamageFigure })[];
+    namedHealing: (NamedTargetDecoded & { amount: number; source: string })[];
     unaccounted: { source: string; declaredShare: number }[];
     outcomes: FightOutcomeEvent[];
     declared: DeclaredEffect[];
-    skill: AnnouncementReading | null;
+    skill: AnnouncementDecoded | null;
     skillName: string | null;
     skillId: number | null;
     skillKeys: number;
@@ -311,7 +311,7 @@ export function decodeMessage(
             standing: null,
         });
     }
-    const reading = decodeMessageReading(message);
+    const reading = decodeMessageParameters(message);
     const isBlow = hasAttackFigure(reading);
     const own = decodeAnnouncedSkill(message, reading.skill);
     const announced = lookupAnnouncedForMessage(message, own, context.standing, isBlow);
@@ -374,8 +374,8 @@ function getBlowsForAnnouncement(announced: AnnouncedSkill, tables: DecoderTable
 }
 
 /** Every parameter is read, or named unread, and none twice. */
-function decodeMessageReading(message: ProtocolMessage): MessageReading {
-    const reading: MessageReading = {
+function decodeMessageParameters(message: ProtocolMessage): ParametersDecoded {
+    const reading: ParametersDecoded = {
         raw: [],
         applied: [],
         prevented: [],
@@ -395,14 +395,14 @@ function decodeMessageReading(message: ProtocolMessage): MessageReading {
     };
     for (const parameter of message.parameters) {
         const key = parameter.key;
-        const keyReading = lookupKeyReading(key);
+        const keyMeaning = lookupKeyMeaning(key);
         const value = parameter.value;
         let isRead: boolean;
-        if (keyReading === null) isRead = false;
+        if (keyMeaning === null) isRead = false;
         else if (value === null) {
             // Read a key that stands bare, or leave it unread.
             assert(key.length > 0, "a key is never empty");
-            switch (keyReading.kind) {
+            switch (keyMeaning.kind) {
                 case KEY_FAMILY.proc:
                     isRead = addParameterRead(reading.procs, key);
                     break;
@@ -419,7 +419,7 @@ function decodeMessageReading(message: ProtocolMessage): MessageReading {
                 default:
                     isRead = false;
             }
-        } else isRead = addValuedKey(reading, message, key, value, keyReading);
+        } else isRead = addValuedKey(reading, message, key, value, keyMeaning);
         if (!isRead) reading.unreadKeys.push(key);
     }
     // Close the announcement: an id with no name is a skill nothing can put on screen.
@@ -440,15 +440,15 @@ function decodeMessageReading(message: ProtocolMessage): MessageReading {
 
 /** Read a valued key: a value its family cannot read leaves it unread, not asserted. */
 function addValuedKey(
-    reading: MessageReading,
+    reading: ParametersDecoded,
     message: ProtocolMessage,
     key: string,
     value: string,
-    keyReading: KeyReading,
+    keyMeaning: KeyMeaning,
 ): boolean {
     assert(key.length > 0, "a key is never empty");
     assert(message.parameters.length > 0, "a valued key stands in a message that has parameters");
-    switch (keyReading.kind) {
+    switch (keyMeaning.kind) {
         case KEY_FAMILY.damage:
         case KEY_FAMILY.prevented:
         case KEY_FAMILY.destroyed: {
@@ -460,22 +460,22 @@ function addValuedKey(
             if (amount < 0) return false;
             assert(Number.isSafeInteger(amount), "a figure read from digits is held exactly");
             const token = parseKeyToken(key);
-            if (keyReading.kind === KEY_FAMILY.prevented) {
+            if (keyMeaning.kind === KEY_FAMILY.prevented) {
                 reading.prevented.push({ defence: token, amount });
-            } else if (keyReading.kind === KEY_FAMILY.destroyed) {
+            } else if (keyMeaning.kind === KEY_FAMILY.destroyed) {
                 reading.destroyed.push({ statistic: token, amount });
-            } else if (keyReading.half === DAMAGE_HALF.raw) {
+            } else if (keyMeaning.half === DAMAGE_HALF.raw) {
                 reading.raw.push({ element: token, amount });
             } else reading.applied.push({ element: token, amount });
             return true;
         }
         case KEY_FAMILY.proc:
-            if (keyReading.doesTakeValue) return addParameterRead(reading.procs, key);
+            if (keyMeaning.doesTakeValue) return addParameterRead(reading.procs, key);
             return false;
         case KEY_FAMILY.healthChange:
             return addParameterRead(
                 reading.healthChanges,
-                decodeHealthChange(key, value, keyReading),
+                decodeHealthChange(key, value, keyMeaning),
             );
         case KEY_FAMILY.declaration:
             return addParameterRead(reading.declared, {
@@ -487,7 +487,7 @@ function addValuedKey(
         case KEY_FAMILY.customSkillName: {
             // Read the skill's name: one empty or past the bound goes unread. `tcustom` names its
             // user in the target slot, so it is read only where one combatant is named.
-            const isUserNamed = keyReading.kind === KEY_FAMILY.customSkillName
+            const isUserNamed = keyMeaning.kind === KEY_FAMILY.customSkillName
                 ? doesNameOneCombatant(message)
                 : true;
             if (value.length === 0) return false;
@@ -506,7 +506,7 @@ function addValuedKey(
             reading.skillKeys += 1;
             return true;
         case KEY_FAMILY.outcome:
-            return addParameterRead(reading.outcomes, decodeFightOutcome(value, keyReading.result));
+            return addParameterRead(reading.outcomes, decodeFightOutcome(value, keyMeaning.result));
         case KEY_FAMILY.fled:
             return addParameterRead(reading.outcomes, decodeFledOutcome());
         case KEY_FAMILY.unaccountedHealth:
@@ -552,8 +552,8 @@ function parseKeyToken(key: string): string {
 function decodeHealthChange(
     key: string,
     value: string,
-    keyReading: { sign: 1 | -1; isOnTarget: boolean },
-): HealthChangeReading | null {
+    keyMeaning: { sign: 1 | -1; isOnTarget: boolean },
+): HealthChangeDecoded | null {
     const members = value.split(MEMBER_SEPARATOR);
     const magnitude = parseInteger(members[0] ?? "");
     if (magnitude === null) return null;
@@ -562,8 +562,8 @@ function decodeHealthChange(
         declared.push({ effect: key, amount: parseInteger(member), text: member });
     }
     assert(declared.length < members.length, "the health figure is not a declaration");
-    const amount = keyReading.sign * magnitude;
-    return { source: key, amount, isOnTarget: keyReading.isOnTarget, declared };
+    const amount = keyMeaning.sign * magnitude;
+    return { source: key, amount, isOnTarget: keyMeaning.isOnTarget, declared };
 }
 
 /** Both ends the same, or one end unstated: there was never a second name to get wrong. */
@@ -605,7 +605,7 @@ function decodeUnaccountedShare(
     return { source: key, declaredShare };
 }
 
-function decodeNamedDamage(value: string): (NamedTargetReading & { damage: DamageFigure }) | null {
+function decodeNamedDamage(value: string): (NamedTargetDecoded & { damage: DamageFigure }) | null {
     const members = value.split(MEMBER_SEPARATOR);
     if (members.length !== NAMED_DAMAGE_MEMBERS) return null;
     const [amountText = "", element = "", stated = ""] = members;
@@ -621,7 +621,7 @@ function decodeNamedDamage(value: string): (NamedTargetReading & { damage: Damag
 }
 
 /** `Gracz 1(63.00%)`: the name runs to the last opener, so a name may hold one of its own. */
-function parseNamedTarget(text: string): NamedTargetReading | null {
+function parseNamedTarget(text: string): NamedTargetDecoded | null {
     if (!text.endsWith(PERCENT_CLOSER)) return null;
     const opener = text.lastIndexOf(PERCENT_OPENER);
     if (opener <= 0) return null;
@@ -636,7 +636,7 @@ function parseNamedTarget(text: string): NamedTargetReading | null {
 function decodeNamedHealing(
     key: string,
     value: string,
-): (NamedTargetReading & { amount: number; source: string }) | null {
+): (NamedTargetDecoded & { amount: number; source: string }) | null {
     const members = value.split(MEMBER_SEPARATOR);
     if (members.length !== NAMED_HEALING_MEMBERS) return null;
     const [amountText = "", stated = ""] = members;
@@ -650,7 +650,7 @@ function decodeNamedHealing(
     return { ...named, amount, source: key };
 }
 
-function countParametersRead(reading: MessageReading): number {
+function countParametersRead(reading: ParametersDecoded): number {
     return reading.raw.length + reading.applied.length + reading.prevented.length +
         reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
         reading.namedDamage.length + reading.namedHealing.length + reading.unaccounted.length +
@@ -658,7 +658,7 @@ function countParametersRead(reading: MessageReading): number {
         reading.skillKeys + reading.unreadKeys.length;
 }
 
-function hasAttackFigure(reading: MessageReading): boolean {
+function hasAttackFigure(reading: ParametersDecoded): boolean {
     if (reading.raw.length > 0) return true;
     if (reading.applied.length > 0) return true;
     if (reading.prevented.length > 0) return true;
@@ -691,7 +691,7 @@ function lookupAnnouncedForMessage(
 
 function decodeAnnouncedSkill(
     message: ProtocolMessage,
-    skill: AnnouncementReading | null,
+    skill: AnnouncementDecoded | null,
 ): AnnouncedSkill | null {
     if (skill === null) return null;
     assert(skill.skillName.length > 0, "an announcement names something");
@@ -707,7 +707,7 @@ function decodeAnnouncedSkill(
  */
 function decodeMessageEvents(
     message: ProtocolMessage,
-    reading: MessageReading,
+    reading: ParametersDecoded,
     announced: AnnouncedSkill | null,
     roster: CombatantRoster | null,
     isBlow: boolean,
@@ -769,7 +769,7 @@ function decodeMessageEvents(
 
 function decodeAttackEvent(
     message: ProtocolMessage,
-    reading: MessageReading,
+    reading: ParametersDecoded,
     announced: AnnouncedSkill | null,
 ): AttackEvent {
     assert(hasAttackFigure(reading), "an attack states a figure");
@@ -798,7 +798,7 @@ function lookupNamedCombatantId(roster: CombatantRoster | null, name: string): n
 /** What an announcement states about its skill rides it, unless a blow already carries it. */
 function decodeSkillUsedEvent(
     message: ProtocolMessage,
-    reading: MessageReading,
+    reading: ParametersDecoded,
     isBlow: boolean,
 ): BattleEvent {
     const skill = reading.skill;
@@ -822,7 +822,7 @@ function decodeSkillUsedEvent(
  */
 function decodeDeclaration(
     message: ProtocolMessage,
-    reading: MessageReading,
+    reading: ParametersDecoded,
     roster: CombatantRoster | null,
     isBlow: boolean,
 ): BattleEvent | null {

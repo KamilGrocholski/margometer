@@ -7,7 +7,7 @@
  */
 
 import { assert, assertEquals, assertNotInstanceOf } from "@std/assert";
-import { readPayloadEnvelope, readWarriorEntries } from "#/src/game/payload-envelope.ts";
+import { readGameWarriorEntries, readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 const WHOLE = { id: 1, name: "Gracz 1", team: 2, prof: "w", lvl: 40, hp: { max: 745 } };
@@ -26,7 +26,7 @@ Deno.test("a warrior missing what a row needs is passed over, not filled in", ()
 });
 
 function readOne(entry: unknown) {
-    return readWarriorEntries([entry]).combatants[0] ?? null;
+    return readGameWarriorEntries([entry]).combatants[0] ?? null;
 }
 
 Deno.test("a cast is a cast, keyed by id or listed in order", () => {
@@ -76,7 +76,7 @@ Deno.test("a combatant at nothing carries nothing, whatever their mask states", 
 /** A payload's own entry for one combatant, in the shape every recording carries. */
 function readMasks(health: unknown, mask: unknown): [number, number][] {
     const entry = { id: 11, name: "Gracz 1", team: 1, hp: health, buffs: mask };
-    return [...readWarriorEntries([entry]).statusMasksByCombatantId];
+    return [...readGameWarriorEntries([entry]).statusMasksByCombatantId];
 }
 
 /** W5: zero is a boundary. One point left is somebody standing, and they keep what they hold. */
@@ -114,14 +114,14 @@ Deno.test("a charge is read in full, or as none", () => {
 
 function readCharge(stated: unknown) {
     const entry = { id: 5, super_cast: stated };
-    const [statement] = readWarriorEntries([entry]).chargeStatements;
+    const [statement] = readGameWarriorEntries([entry]).chargeStatements;
     assert(statement !== undefined, "every entry with an id states a charge or none");
     return statement;
 }
 
 Deno.test("an entry naming nobody by id states nothing about anybody", () => {
     const nameless = { name: "Gracz 1", team: 1, buffs: 4, super_cast: { name: "Cios" } };
-    const reading = readWarriorEntries([nameless]);
+    const reading = readGameWarriorEntries([nameless]);
     assertEquals(reading.combatants, [], "no combatant");
     assertEquals([...reading.statusMasksByCombatantId], [], "no mask");
     assertEquals(reading.chargeStatements, [], "and no charge, because nobody holds it");

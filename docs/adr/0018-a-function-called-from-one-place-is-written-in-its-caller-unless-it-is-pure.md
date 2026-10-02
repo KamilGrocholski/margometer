@@ -88,7 +88,7 @@ the limit outright. A limit kept for pure functions alone would still cut a long
 the page, which is the split S4 undoes.
 
 Rejected: **purity read off the layer**, `core/` and `libs/` pure and the rest not. `present…` in
-`src/ui/panel-reading.ts` and the `compose…Rules` of `src/ui/panel-look.ts` are pure in a layer that
+`src/ui/panel-content.ts` and the `compose…Rules` of `src/ui/panel-look.ts` are pure in a layer that
 draws, and `src/core/fight-statistics.ts` changes accumulators through 19 `add…` helpers, each
 called once. A layer cannot say which.
 

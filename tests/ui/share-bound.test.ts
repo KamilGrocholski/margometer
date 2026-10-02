@@ -7,7 +7,7 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { CUT_PARTS_MAXIMUM, SKILLS_MAXIMUM } from "#/src/ui/panel-reading.ts";
+import { CUT_PARTS_MAXIMUM, SKILLS_MAXIMUM } from "#/src/ui/panel-content.ts";
 import { formatSharesApportioned, SHARES_MAXIMUM } from "#/src/ui/panel-words.ts";
 import { parseSharePoints } from "#/tests/share-text.ts";
 

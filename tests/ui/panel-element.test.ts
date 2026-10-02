@@ -35,10 +35,10 @@ import {
     presentScreen,
     presentUnnamedLevel,
     presentUnnamedPairLevel,
-    type ScreenReading,
+    type ScreenContent,
     SIDE_RELATION,
     UNNAMED_END,
-} from "#/src/ui/panel-reading.ts";
+} from "#/src/ui/panel-content.ts";
 import { CLASS, composeStyleSheet, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { formatColour, lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
 import {
@@ -144,7 +144,7 @@ Deno.test("the panel goes into a shadow root, under a name of ours", () => {
 });
 
 function draw(
-    reading: ScreenReading,
+    reading: ScreenContent,
     defects: readonly PanelDefect[] = [],
     place: { readerSide: number | null; turnHolderId: number | null } = {
         readerSide: null,
@@ -162,7 +162,7 @@ function draw(
     return panel.element as FakeElement;
 }
 
-function readFight(): ScreenReading {
+function readFight(): ScreenContent {
     const { roster, statistics } = tallyRecordedFight(HILDUR);
     return presentScreen(
         statistics,
@@ -320,7 +320,7 @@ Deno.test("the options answer each question in the shape its answers need", () =
     const host = panel.element as FakeElement;
     assertEquals(
         getTextsByClass(host, "options-window-name"),
-        [getWordsForWindow("panel"), getWordsForWindow("helper")],
+        [getWordsForWindow("meter"), getWordsForWindow("helper")],
         "a line for each window",
     );
     assertEquals(
@@ -545,7 +545,7 @@ function readPinned(
 
 /** The same, off a reading built by hand: no recording pins a figure on either healing screen. */
 function readPinnedCard(
-    reading: ScreenReading,
+    reading: ScreenContent,
     metric: PanelMetric,
     choice: PanelSideChoice,
 ): { pinned: PinnedRow; card: ReturnType<typeof readTip> } {
@@ -1027,7 +1027,7 @@ Deno.test("a region that throws is marked in place, and said once however often 
     const reading = readFight();
     const broken = {
         ...reading,
-        get sides(): ScreenReading["sides"] {
+        get sides(): ScreenContent["sides"] {
             throw new RangeError("a region that will not draw");
         },
     };
@@ -1227,7 +1227,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
     const document = composeFakeDocument();
     const failures: unknown[] = [];
     const reading = readFight();
-    const broken: ScreenReading = {
+    const broken: ScreenContent = {
         ...reading,
         get rows(): never {
             throw new RangeError("a region of ours failed");
@@ -1632,7 +1632,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     pressElement(host, "pointerdown", control);
     assertEquals(
         pressed.at(-1),
-        { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel },
+        { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.meter },
         "and a press on it asks for the fold",
     );
 
@@ -2147,7 +2147,7 @@ Deno.test("a size of type moves the window beside the panel off it, and says whe
     });
     const host = panel.element as FakeElement;
     const standing = () =>
-        getElementsWithin(host).find((one) => one.className.startsWith(CLASS.standing));
+        getElementsWithin(host).find((one) => one.className.startsWith(CLASS.helper));
     const standard = TYPE_TOKENS[TYPE_STEP_DEFAULT];
     const large = TYPE_TOKENS[TYPE_STEP.large];
     // Nobody moved either window: the panel is centred and the other opens against its left.
@@ -2206,12 +2206,12 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
         sized,
         [{
             kind: PANEL_INTENT.resize,
-            window: PANEL_WINDOW.panel,
+            window: PANEL_WINDOW.meter,
             size: { width: 320, height: 350 },
         }],
         "let go, the size is told once",
     );
-    panel.render({ ...shown, windowSizes: { panel: { width: 320, height: 350 }, helper: null } });
+    panel.render({ ...shown, windowSizes: { meter: { width: 320, height: 350 }, helper: null } });
     assertStringIncludes(
         style(),
         "--MargoMeter-panel-width:320px",
@@ -2236,7 +2236,7 @@ Deno.test("the options give back only a window a reader sized, and name which", 
     panel.render({
         ...composeShownScreen(readFight()),
         options,
-        windowSizes: { panel: null, helper: { width: 300, height: 200 } },
+        windowSizes: { meter: null, helper: { width: 300, height: 200 } },
     });
     const host = panel.element as FakeElement;
     const resets = () =>
@@ -2253,7 +2253,7 @@ Deno.test("the options give back only a window a reader sized, and name which", 
     panel.render({
         ...composeShownScreen(readFight()),
         options,
-        windowSizes: { panel: { width: 300, height: 400 }, helper: { width: 300, height: 200 } },
+        windowSizes: { meter: { width: 300, height: 400 }, helper: { width: 300, height: 200 } },
     });
     assertEquals(resets().length, 2, "and both where both were");
 });

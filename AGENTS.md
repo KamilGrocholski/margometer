@@ -359,7 +359,7 @@ TypeScript idiom, with the naming rules stated here.
   check (**A12**). ADR 0001. No `enum`, which emits an object nobody here writes (**S8**), and no
   `Object.freeze`, which would check at run time what `as const` already forbids. **One exception: a
   protocol message's key** stays a `string`, because the set is the game's and grows. The decoder's
-  `lookupKeyReading` decides whether a key means anything, and an unknown one is an unread message,
+  `lookupKeyMeaning` decides whether a key means anything, and an unknown one is an unread message,
   never a type error.
 - **N19. Every union with a `kind` has a vocabulary object**, so the string stands once and every
   variant, construction and `case` reaches it by symbol:
@@ -367,10 +367,15 @@ TypeScript idiom, with the naming rules stated here.
   `{ kind: typeof OPENED_PART.skill }`. The key is the name for code; the value is what reaches a
   console or a file. A failure is a class (**E3**), never a union with a `kind`.
 - **N20. A failure class is named for what failed and how**, a subject and its state:
-  `EngineAbsent`, `StoreRefused`, `PayloadsExceeded`. A union of them that a function answers is
+  `GameEngineAbsent`, `StoreRefused`, `PayloadsExceeded`. A union of them that a function answers is
   `…Failure`, and a tool's thrown class is `…Error` (**E13**). A failure of the bundle never ends in
   `Error`, which names the mechanism `extends Error` already states. ADR 0009. _(`by-reading`
   whether a name says what failed and how)_
+- **N21. A name says whose the thing is.** A port over the game, its `init` and the failures it
+  answers are `Game…`, and `window.Engine` itself is `GameEngine…`; a port over the browser is
+  `Browser…`; what is ours carries neither. The protocol's words `CONTEXT.md` gives are ours and
+  take none. Observation: an `init…` or a port interface in `src/game/` reaching the game or the
+  browser alone whose name carries neither prefix. ADR 0023.
 
 ## Code
 

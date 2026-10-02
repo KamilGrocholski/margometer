@@ -47,7 +47,7 @@ guard leaves it where it is.
   relative order of constants is kept, so none did. The suite, 1,024 tests, is green on the moved
   tree.
 - One comment that had lost its declaration in an earlier move (`OutcomeResult`'s, in
-  `src/ui/panel-reading.ts`) was found by the move and deleted, because `src/core/battle-event.ts`
+  `src/ui/panel-content.ts`) was found by the move and deleted, because `src/core/battle-event.ts`
   documents the vocabulary where it stands.
 
 ## Rejected

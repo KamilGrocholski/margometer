@@ -1,6 +1,6 @@
 /**
  * Which rows of the panel open onto another level, measured over the recordings. Every level is
- * the panel's own reading (`src/ui/panel-reading.ts`) of the fight the runtime's chain replays,
+ * the panel's own reading (`src/ui/panel-content.ts`) of the fight the runtime's chain replays,
  * so the tool walks what a reader would press and decides nothing about it. `docs/drill-levels.md`
  * carries the verdicts; the counts stay here (**V5**).
  *
@@ -16,14 +16,12 @@ import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
 import type { FightStatistics } from "#/src/core/fight-statistics.ts";
 import {
-    type DrillReading,
     getMetricForPinned,
     getTextForNamedPart,
     HALF_NAMED_OPENED,
-    type HalfNamedDrillReading,
     type HalfNamedOpened,
-    type HalfNamedReading,
     NOTHING_SUSPECT,
+    type OpenedLevelContent,
     type OpenedPart,
     type PinnedCase,
     presentOpenedLevel,
@@ -33,8 +31,10 @@ import {
     presentUnnamedCutLevel,
     presentUnnamedLevel,
     presentUnnamedPairLevel,
-    type ScreenReading,
-} from "#/src/ui/panel-reading.ts";
+    type ScreenContent,
+    type UnnamedCutLevelContent,
+    type UnnamedLevelContent,
+} from "#/src/ui/panel-content.ts";
 import { OPENED_PART, type PanelMetric, SCREEN_ORDER, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import {
     formatRecordingName,
@@ -456,7 +456,7 @@ function getPanelFight(replayed: ReplayedFight): PanelFight {
 function presentScreenForEveryone(
     fight: PanelFight,
     screen: PanelMetric,
-): ScreenReading {
+): ScreenContent {
     assert(fight.name.length > 0, "a screen is read off a recording with a name");
     return presentScreen(
         fight.statistics,
@@ -489,7 +489,7 @@ function addCaseToTally(
 function presentHalfNamedForEveryone(
     fight: PanelFight,
     kase: PinnedCase,
-): HalfNamedReading | null {
+): UnnamedLevelContent | null {
     assert(
         fight.name.length > 0,
         "a pinned level is read off a recording with a name",
@@ -507,7 +507,7 @@ function presentUnnamedCut(
     fight: PanelFight,
     kase: PinnedCase,
     opened: HalfNamedOpened,
-): HalfNamedDrillReading | null {
+): UnnamedCutLevelContent | null {
     assert(fight.name.length > 0, "a level is read off a recording with a name");
     return presentUnnamedCutLevel(
         fight.statistics,
@@ -641,7 +641,7 @@ function formatOpenedLines(fight: PanelFight, screen: PanelMetric, combatantId: 
 function formatUnnamedPairLines(
     fight: PanelFight,
     screen: PanelMetric,
-    drill: DrillReading,
+    drill: OpenedLevelContent,
 ): string[] {
     const unnamed = drill.byOpponent.unnamed;
     if (unnamed === null) return [];

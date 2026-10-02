@@ -25,12 +25,12 @@ import { type EnvelopeFailure, readPayloadEnvelope } from "#/src/game/payload-en
 import { CALLS_MAXIMUM } from "#/src/game/fight-capture.ts";
 import { KEPT_MAXIMUM, type KeptFight } from "./shelf.ts";
 
-export interface FightReading {
+export interface FightState {
     view: FightView;
     figures: FightFigures;
 }
 
-export interface KeptReading extends FightReading {
+export interface KeptFightState extends FightState {
     /** One entry per payload replayed: the messages the envelope took back out of it. */
     messagesByPayload: readonly (readonly string[])[];
 }
@@ -40,11 +40,11 @@ export type ReplayFailure = EnvelopeFailure | PayloadRejected;
 
 /** The fight the panel stands on, and the kept one it was read off where that is what it is. */
 export type ShownFight =
-    | { kept: null; reading: FightReading }
-    | { kept: KeptFight; reading: KeptReading };
+    | { kept: null; state: FightState }
+    | { kept: KeptFight; state: KeptFightState };
 
 /** The figures, derived rather than kept, and verified in the one place they are balanced. */
-export function tallyFightReading(view: FightView): FightReading {
+export function tallyFightState(view: FightView): FightState {
     const figures = tallyFightFigures(view);
     verifyFightFigures(figures);
     assert(figures.payloadsApplied === view.payloadsApplied, "tallied off the view it was handed");
@@ -56,7 +56,7 @@ export function replayKeptFight(
     fight: KeptFight,
     tables: DecoderTables,
     options: SessionOptions,
-): KeptReading | null | ReplayFailure {
+): KeptFightState | null | ReplayFailure {
     assert(fight.payloads.length > 0, "a fight kept was kept from something");
     return replayFightPayloads(fight.payloads, tables, options);
 }
@@ -70,7 +70,7 @@ export function replayFightPayloads(
     payloads: readonly unknown[],
     tables: DecoderTables,
     options: SessionOptions,
-): KeptReading | null | ReplayFailure {
+): KeptFightState | null | ReplayFailure {
     assert(payloads.length <= CALLS_MAXIMUM, "a fight replayed is inside a recording's bound");
     const session = createFightSession(options);
     const messagesByPayload: (readonly string[])[] = [];
@@ -84,7 +84,7 @@ export function replayFightPayloads(
     }
     const view = composeFightView(session);
     if (view === null) return null;
-    return { ...tallyFightReading(view), messagesByPayload };
+    return { ...tallyFightState(view), messagesByPayload };
 }
 
 /**
@@ -93,19 +93,19 @@ export function replayFightPayloads(
  * nothing to stand on, or where the kept fight no longer reads (a panel of zeroes is a claim).
  */
 export function lookupShownFight(
-    live: FightReading | null,
+    live: FightState | null,
     openFightId: number | null,
     fights: readonly KeptFight[],
-    lookupKeptReading: (fight: KeptFight) => KeptReading | null,
+    lookupKeptFightState: (fight: KeptFight) => KeptFightState | null,
 ): ShownFight | null {
     const kept = lookupShownKeptFight(live, openFightId, fights);
     if (kept !== undefined) {
-        const reading = lookupKeptReading(kept);
-        if (reading === null) return null;
-        return { kept, reading };
+        const state = lookupKeptFightState(kept);
+        if (state === null) return null;
+        return { kept, state };
     }
     if (live === null) return null;
-    return { kept: null, reading: live };
+    return { kept: null, state: live };
 }
 
 /**
@@ -113,7 +113,7 @@ export function lookupShownFight(
  * is going on. Undefined where the panel stands on the live fight, or on nothing.
  */
 export function lookupShownKeptFight(
-    live: FightReading | null,
+    live: FightState | null,
     openFightId: number | null,
     fights: readonly KeptFight[],
 ): KeptFight | undefined {

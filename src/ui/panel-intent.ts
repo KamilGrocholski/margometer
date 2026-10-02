@@ -19,7 +19,7 @@ import {
     type WindowSize,
 } from "./panel-choice.ts";
 import type { PanelTarget } from "./panel-document.ts";
-import { type OpenedPart, type PanelUnnamedEnd, UNNAMED_END } from "./panel-reading.ts";
+import { type OpenedPart, type PanelUnnamedEnd, UNNAMED_END } from "./panel-content.ts";
 import {
     OPENED_PART,
     type PanelMetric,
@@ -204,7 +204,7 @@ export function readPanelIntent(target: PanelTarget): IntentReading {
         if (target.getAttribute(PANEL_MARK.shelf) !== null) return { kind: PANEL_INTENT.shelf };
         if (target.getAttribute(PANEL_MARK.options) !== null) return { kind: PANEL_INTENT.options };
         if (target.getAttribute(PANEL_MARK.fold) !== null) {
-            return { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel };
+            return { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.meter };
         }
         if (target.getAttribute(PANEL_MARK.back) !== null) return { kind: PANEL_INTENT.close };
     }

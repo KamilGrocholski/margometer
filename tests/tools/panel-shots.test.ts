@@ -10,7 +10,7 @@ import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { type FightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
-import { replayFightPayloads } from "#/src/runtime/fight-reading.ts";
+import { replayFightPayloads } from "#/src/runtime/fight-state.ts";
 import { PANEL_MARK } from "#/src/ui/panel-intent.ts";
 import { PLACE, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
