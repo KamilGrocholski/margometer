@@ -10,6 +10,7 @@
 
 import { assert } from "@std/assert/assert";
 import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
+import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
 import {
     HOLYTOUCH_DECLARATION_KEY,
     HOLYTOUCH_HEAL_KEY,
@@ -50,8 +51,8 @@ export interface LegendaryBonusTally {
 export const HOLYTOUCH_HEALS_STATED = 3;
 
 /** As many holders as a board has combatants. */
-const HOLDERS_MAXIMUM = 64;
-/** Past the ten keys `src/core/protocol-key.ts` names a legendary bonus by. */
+const HOLDERS_MAXIMUM = COMBATANTS_MAXIMUM;
+/** Past the keys `src/core/protocol-key.ts` names a legendary bonus by. */
 const BONUSES_PER_HOLDER_MAXIMUM = 16;
 
 export const NO_LEGENDARY_WALK: LegendaryWalk = {

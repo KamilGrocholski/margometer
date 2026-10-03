@@ -17,9 +17,11 @@ import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { countUnreadMessages } from "#/src/core/fight-statistics.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
+import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { replayFightPayloads } from "#/src/runtime/fight-state.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
+import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import { readRecordedFight, type RecordedFight } from "#/tests/recorded-fights.ts";
 import {
     CLOSING_SHOUTS,
@@ -168,6 +170,24 @@ Deno.test("the fabricated fight puts something in every part of the panel", () =
  * that takes each: the health maximum and the charge to `src/ports/payload-envelope.ts`, the witness
  * of the turn to `tools/turn-count.ts`. A misspelt one reads as a field the game did not send.
  */
+Deno.test("the statuses the script lights are the ones its acts name, as a reader reads them", () => {
+    const lit = new Set<string>();
+    for (const call of FIGHT.calls) {
+        const record = readPayloadEnvelope(call.payload);
+        assert(!(record instanceof Error), "every call the fabricator writes has an envelope");
+        for (const mask of record.statusMasksByCombatantId.values()) {
+            for (const [bit, status] of FROZEN_BUFF_BITS.bits.entries()) {
+                if ((mask & (1 << bit)) !== 0) lit.add(status);
+            }
+        }
+    }
+    assertEquals(
+        [...lit].sort(),
+        ["deep_wound", "fire", "frostbite", "poisoned", "shock", "wound"],
+        "a status the script names reaches the mask under its own bit",
+    );
+});
+
 Deno.test("every key the fabricator spells on its own is one a reader here takes", () => {
     const roster = REPLAY.reading.view.roster;
     for (const warrior of FIGHT.warriors) {

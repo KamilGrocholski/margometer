@@ -6707,8 +6707,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `bigger` — `tests/ui/level-drawn.test.ts`, `tests/ui/panel-content.test.ts`
 - `binding` — `tests/repository/name-shapes.test.ts`, `tests/repository/purity.test.ts`
 - `bindings` — `tests/repository/name-shapes.test.ts`
-- `bit` — `tests/core/carried-status.test.ts`, `tests/ui/panel-words.test.ts`,
-  `tests/userscript-entry.test.ts`
+- `bit` — in 4 files: `tests/`
 - `bits` — `tests/core/fight-session.test.ts`, `tests/tools/frozen-files.test.ts`
 - `bitten` — `tests/core/fight-statistics.test.ts`
 - `blank` — `tests/runtime/fight-file.test.ts`
@@ -6751,7 +6750,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `byName` — `tests/repository/decisions.test.ts`
 - `byProfession` — `tests/repository/captured-fight-register.test.ts`
 - `byVerb` — `tests/repository/name-register.test.ts`
-- `call` — in 12 files: `tests/`
+- `call` — in 13 files: `tests/`
 - `callIndex` — `tests/ports/fight-capture.test.ts`
 - `callback` — `tests/repository/handed-callbacks.test.ts`
 - `called` — in 4 files: `tests/`
@@ -7357,7 +7356,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `listedPart` — `tests/ui/panel-element.test.ts`
 - `listener` — `tests/runtime/live-fight.test.ts`, `tests/runtime/margonem-engine-search.test.ts`
 - `listeners` — `tests/tools/preview-server.test.ts`
-- `lit` — `tests/core/fight-session.test.ts`, `tests/ui/helper-window.test.ts`
+- `lit` — `tests/core/fight-session.test.ts`, `tests/tools/fabricated-fight.test.ts`,
+  `tests/ui/helper-window.test.ts`
 - `literal` — `tests/repository/protocol-keys.test.ts`,
   `tests/repository/regular-expressions.test.ts`
 - `little` — `tests/e2e/panel-card.spec.ts`
@@ -7402,7 +7402,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `markerAt` — `tests/tools/protocol-key-table.test.ts`
 - `markerLength` — `tests/tools/protocol-key-table.test.ts`
 - `marks` — in 5 files: `tests/`
-- `mask` — `tests/core/carried-status.test.ts`
+- `mask` — `tests/core/carried-status.test.ts`, `tests/tools/fabricated-fight.test.ts`
 - `masks` — `tests/core/carried-status.test.ts`, `tests/core/fight-session.test.ts`
 - `matchingNodes` — `tests/source-tree.ts`
 - `material` — in 4 files: `tests/`
@@ -7702,7 +7702,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `receiver` — `tests/core/fight-statistics.test.ts`, `tests/ui/panel-content.test.ts`
 - `receiverId` — `tests/ui/panel-content.test.ts`
 - `reconstructed` — `tests/core/last-heal-rule.test.ts`
-- `record` — in 8 files: `tests/`
+- `record` — in 9 files: `tests/`
 - `recordFile` — `tests/repository/decisions.test.ts`
 - `recorded` — `tests/tools/fabricated-fight.test.ts`
 - `recording` — `tests/core/message-grammar.test.ts`, `tests/e2e/panel-page.ts`,
@@ -7936,7 +7936,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `states` — `tests/ports/recorded-session.test.ts`
 - `statistic` — `tests/ui/panel-words.test.ts`
 - `statistics` — in 16 files: `tests/`
-- `status` — in 4 files: `tests/`
+- `status` — in 5 files: `tests/`
 - `statuses` — `tests/core/carried-status.test.ts`, `tests/ui/panel-words.test.ts`
 - `stayed` — `tests/e2e/panel-card.spec.ts`
 - `staying` — `tests/tools/build-userscript.test.ts`

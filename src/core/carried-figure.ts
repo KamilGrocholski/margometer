@@ -9,7 +9,7 @@
 
 import { assert } from "@std/assert/assert";
 import type { AuraStanding } from "./aura-standing.ts";
-import type { CarriedStatus } from "./carried-status.ts";
+import { type CarriedStatus, STATUS_BITS_MAXIMUM } from "./carried-status.ts";
 import type { CombatantRoster } from "./combatant-roster.ts";
 import { HASTE_AURA_KEY, KEY_REACH, lookupKeyReach, SLOW_ALL_KEY } from "./protocol-key.ts";
 
@@ -71,7 +71,7 @@ const KEY_BY_BIT_NAME: ReadonlyMap<string, string> = new Map([
 
 /** The two bits above at the positions the client registered them. */
 export function indexKeyByStatusBit(bits: readonly string[]): Map<number, string> {
-    assert(bits.length <= SOURCES_MAXIMUM, "the client registers a short list of statuses");
+    assert(bits.length <= STATUS_BITS_MAXIMUM, "the client registers a short list of statuses");
     const keyByStatusBit = new Map<number, string>();
     for (let bit = 0; bit < bits.length; bit += 1) {
         const key = KEY_BY_BIT_NAME.get(bits[bit] ?? "");
@@ -83,7 +83,10 @@ export function indexKeyByStatusBit(bits: readonly string[]): Map<number, string
 
 /** One row per status a figure can be said of, and none for the rest. */
 export function tallyCarriedFigures(inputs: CarriedFigureInputs): CarriedFigure[] {
-    assert(inputs.keyByStatusBit.size <= SOURCES_MAXIMUM, "the bits witnessed are a short list");
+    assert(
+        inputs.keyByStatusBit.size <= STATUS_BITS_MAXIMUM,
+        "the bits witnessed are a short list",
+    );
     const carriedFigures: CarriedFigure[] = [];
     for (const status of inputs.statuses) {
         const key = inputs.keyByStatusBit.get(status.bit);

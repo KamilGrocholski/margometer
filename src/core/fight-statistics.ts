@@ -424,12 +424,12 @@ export function tallyFightStatistics(
             }
             // Keep the wound a blow announced against whoever carries it: a tick arriving on the
             // same message is a later event, and finds it the freshest against that victim.
+            const wound = lookupAnnouncedWound(event);
+            if (wound !== null) tallying.woundByWoundedId.set(wound.woundedId, wound.standing);
             assert(
                 tallying.woundByWoundedId.size <= COMBATANTS_MAXIMUM,
                 "a fight stays inside its bound",
             );
-            const wound = lookupAnnouncedWound(event);
-            if (wound !== null) tallying.woundByWoundedId.set(wound.woundedId, wound.standing);
         }
         if (event.kind === BATTLE_EVENT.damageToNamedCombatant) {
             // Add damage stated against a name to both its ends.
