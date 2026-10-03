@@ -56,7 +56,7 @@ const CONFIGURATION_FILE = "deno.json";
 /** What the pair stands off the seam by, level with the padding the half beside it carries. */
 const SEAM_GUTTER_PIXELS = 32;
 /** Three rows of one fighter under the heading; less than that reads as a column cut off. */
-const TIPS_TALL_MINIMUM_PIXELS = 140;
+const TIPS_TALL_PIXELS_MINIMUM = 140;
 /**
  * The add-on draws on an animation frame, so the panel may not stand yet when the page places it:
  * the page flushes the frames it holds, and past that waits a bounded number of tries (S2).
@@ -305,7 +305,7 @@ var setPageBelowStrip = function () {
  * either window's size places the column again; one left too short to say anything is hidden.
  */
 function composeTipsPlaced(): string {
-    assert(TIPS_TALL_MINIMUM_PIXELS > 0, "a column shorter than something is not worth drawing");
+    assert(TIPS_TALL_PIXELS_MINIMUM > 0, "a column shorter than something is not worth drawing");
     return `var setTipsPlaced = function () {
   var tips = document.getElementById(${JSON.stringify(PREVIEW_TIPS_ID)});
   if (tips === null) return;
@@ -323,7 +323,7 @@ function composeTipsPlaced(): string {
   tips.style.top = Math.round(top) + "px";
   tips.style.width = Math.round(width) + "px";
   tips.style.height = Math.round(tall) + "px";
-  tips.style.visibility = tall < ${TIPS_TALL_MINIMUM_PIXELS} ? "hidden" : "visible";
+  tips.style.visibility = tall < ${TIPS_TALL_PIXELS_MINIMUM} ? "hidden" : "visible";
 };
 
 // Guarded at the handover (E10): a throw out of an observer's callback unwinds into a loop.

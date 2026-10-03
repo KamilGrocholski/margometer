@@ -8,7 +8,7 @@
  *     deno task build 1.2.3      # a release
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import { parse as parseJsonc } from "@std/jsonc";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { BUILD_VERSION } from "#/src/build-version.ts";
@@ -36,8 +36,39 @@ const METADATA_DOWNLOAD_ADDRESS = `${HOMEPAGE}/releases/latest/download/${METADA
 /** Worlds live on subdomains of their own; these are the operator's site, not a world. */
 const NON_WORLD_HOSTS = ["www", "forum", "commons", "pomoc"];
 const MARGONEM_DOMAINS = ["pl", "com"];
-/** Anything by which a built file could leave the browser. */
+/** Anything by which a built file could leave the browser, wherever its text spells it. */
 const OUTBOUND_CALLS = ["fetch(", "XMLHttpRequest", "sendBeacon", "new WebSocket", "EventSource"];
+/**
+ * The same ways out read as names in code. A redirect goes through the ambient `location` and a
+ * beacon through the ambient `navigator`, so the object is what is looked for; one behind a dot is
+ * a property of the page the entry was handed, which is how the add-on knows its world
+ * (`SECURITY.md`).
+ */
+const AMBIENT_WAYS_OUT = [
+    "location",
+    "navigator",
+    "fetch",
+    "XMLHttpRequest",
+    "WebSocket",
+    "EventSource",
+    "sendBeacon",
+    "importScripts",
+    "Worker",
+    "SharedWorker",
+    "Image",
+    "Request",
+];
+/** The tags this add-on builds. One that fetches when it is appended is not among them. */
+const TAGS_BUILT = ["a", "div", "span", "style"];
+const TAG_CALL = "createElement(";
+const QUOTES = ['"', "'", "`"];
+const TEMPLATE_QUOTE = "`";
+const TEMPLATE_HOLE = "${";
+const LINE_COMMENT = "//";
+const BLOCK_COMMENT_OPEN = "/*";
+const BLOCK_COMMENT_CLOSE = "*/";
+const ESCAPE = "\\";
+const WORD_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$";
 /** Sorts below the release of that number, so a copy built here is offered the release. */
 const DEVELOPMENT_SUFFIX = "-dev";
 const DIRECTIVE_KEY_WIDTH = 12;
@@ -161,7 +192,7 @@ export function stampBundleVersion(bundle: string, version: string): string {
 /** The bundle, or a refusal naming every way it could leave the browser. */
 export function requireBundleInBrowser(bundle: string): string {
     assert(bundle.length > 0, "a bundle that is checked says something");
-    const outbound = lookupOutboundCalls(bundle);
+    const outbound = [...lookupOutboundCalls(bundle), ...lookupAmbientWaysOut(bundle)];
     if (outbound.length > 0) {
         throw new UserscriptBuildError(`the file could leave the browser: ${outbound.join(", ")}`);
     }
@@ -172,6 +203,128 @@ export function lookupOutboundCalls(text: string): string[] {
     const outbound = OUTBOUND_CALLS.filter((call) => text.includes(call));
     assert(outbound.length <= OUTBOUND_CALLS.length, "each is named once");
     return outbound;
+}
+
+/** Every ambient way out the code reaches for, and every tag it builds past the four, as `<img>`. */
+export function lookupAmbientWaysOut(text: string): string[] {
+    const code = composeCodeOutsideStrings(text);
+    assertStrictEquals(code.length, text.length, "blanking keeps every offset");
+    const reached = AMBIENT_WAYS_OUT.filter((name) => hasAmbientName(code, name));
+    for (const tag of lookupTagsCreated(text, code)) {
+        if (!TAGS_BUILT.includes(tag)) reached.push(`<${tag}>`);
+    }
+    return reached;
+}
+
+/**
+ * The text with every string body and comment blanked, quotes and offsets kept, so a name read in
+ * it is code. ⚠️ **A regular expression literal is read as code**: none is bundled (C7), and one
+ * holding a quote would turn the walk inside out, which the refusal at its end is there to catch.
+ */
+function composeCodeOutsideStrings(text: string): string {
+    const characters: string[] = [];
+    // The brace depth each open `${` stands at, so the brace closing it returns to the template.
+    const templateDepths: number[] = [];
+    let quote = "";
+    let depth = 0;
+    let index = 0;
+    for (let look = 0; index < text.length; look += 1) {
+        assert(look < text.length, "every step of the walk moves it on");
+        const character = text.charAt(index);
+        const pair = text.slice(index, index + 2);
+        if (quote === "") {
+            if (pair === LINE_COMMENT) {
+                const lineEnd = text.indexOf("\n", index);
+                const end = lineEnd === -1 ? text.length : lineEnd;
+                characters.push(" ".repeat(end - index));
+                index = end;
+                continue;
+            }
+            if (pair === BLOCK_COMMENT_OPEN) {
+                const close = text.indexOf(BLOCK_COMMENT_CLOSE, index + pair.length);
+                if (close === -1) throw new UserscriptBuildError("a comment never closes");
+                const end = close + BLOCK_COMMENT_CLOSE.length;
+                characters.push(" ".repeat(end - index));
+                index = end;
+                continue;
+            }
+            if (character === "{") depth += 1;
+            else if (character === "}") {
+                if (templateDepths.at(-1) === depth) {
+                    templateDepths.pop();
+                    quote = TEMPLATE_QUOTE;
+                } else depth -= 1;
+            } else if (QUOTES.includes(character)) quote = character;
+            characters.push(character);
+            index += 1;
+            continue;
+        }
+        if (character === ESCAPE) {
+            characters.push(" ".repeat(pair.length));
+            index += pair.length;
+            continue;
+        }
+        if (character === quote) {
+            quote = "";
+            characters.push(character);
+            index += 1;
+            continue;
+        }
+        if (quote === TEMPLATE_QUOTE) {
+            if (pair === TEMPLATE_HOLE) {
+                templateDepths.push(depth);
+                quote = "";
+                characters.push(pair);
+                index += pair.length;
+                continue;
+            }
+        }
+        characters.push(" ");
+        index += 1;
+    }
+    if (quote !== "") throw new UserscriptBuildError("a string never closes");
+    if (templateDepths.length > 0) throw new UserscriptBuildError("a template never closes");
+    return characters.join("");
+}
+
+/** ⚠️ **A name behind a dot is a property, not the ambient one**, and a longer word is not it. */
+function hasAmbientName(code: string, name: string): boolean {
+    assert(name.length > 0, "an empty name stands everywhere");
+    let from = 0;
+    for (let look = 0; look <= code.length; look += 1) {
+        const nameAt = code.indexOf(name, from);
+        if (nameAt === -1) return false;
+        from = nameAt + 1;
+        const before = code.charAt(nameAt - 1);
+        if (before === ".") continue;
+        if (isWordCharacter(before)) continue;
+        if (isWordCharacter(code.charAt(nameAt + name.length))) continue;
+        return true;
+    }
+    throw new UserscriptBuildError(`the walk for ${name} ran past the text it walks`);
+}
+
+/** `charAt` past either end answers "", which every string includes, so it is asked first. */
+function isWordCharacter(character: string): boolean {
+    if (character.length === 0) return false;
+    return WORD_CHARACTERS.includes(character);
+}
+
+/** A tag named by a literal, read off the text where the code holds its quotes. */
+function lookupTagsCreated(text: string, code: string): string[] {
+    const tags: string[] = [];
+    let from = 0;
+    for (let look = 0; look <= code.length; look += 1) {
+        const callAt = code.indexOf(TAG_CALL, from);
+        if (callAt === -1) return tags;
+        from = callAt + TAG_CALL.length;
+        const quote = code.charAt(from);
+        if (!QUOTES.includes(quote)) continue;
+        const closes = code.indexOf(quote, from + 1);
+        assertNotStrictEquals(closes, -1, "a string the walk opened, it closed");
+        tags.push(text.slice(from + 1, closes));
+    }
+    throw new UserscriptBuildError("the walk for tags ran past the text it walks");
 }
 
 /** The version `deno.json` declares, marked as no release of it. */
@@ -196,7 +349,11 @@ export function parseDeclaredVersion(configuration: string): string {
     if (declared.length === 0) {
         throw new DeclaredVersionError(`${CONFIGURATION_FILE} declares an empty version`);
     }
-    assertStrictEquals(declared.endsWith(DEVELOPMENT_SUFFIX), false, "a declaration is a release");
+    if (declared.endsWith(DEVELOPMENT_SUFFIX)) {
+        throw new DeclaredVersionError(
+            `${CONFIGURATION_FILE} declares ${declared}, which is no release to build from`,
+        );
+    }
     return declared;
 }
 

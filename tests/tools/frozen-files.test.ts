@@ -5,7 +5,7 @@
  * would re-date all of them.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
@@ -14,7 +14,8 @@ import {
     encodeFrozenBuffModule,
     FROZEN_DATE_FIELD as BUFF_DATE_FIELD,
 } from "#/tools/buff-bit-table.ts";
-import { composeFrozenFiles, lookupHeldDate } from "#/tools/frozen-files.ts";
+import { composeFrozenFiles, lookupHeldDate, prepareFrozenFiles } from "#/tools/frozen-files.ts";
+import { FrozenFilesError } from "#/tools/margometer-tool-error.ts";
 import {
     encodeFrozenHelpModule,
     FROZEN_DATE_FIELD as HELP_DATE_FIELD,
@@ -34,6 +35,8 @@ import {
 const PATHS = ["frozen/a.ts", "frozen/b.ts"];
 const HELD_DATE = "held";
 const READ_DATE = "read";
+/** Two files under `frozen/` no freeze writes, one per text the sample encodes. */
+const ABSENT_PATHS = ["frozen/nobody-froze-a.ts", "frozen/nobody-froze-b.ts"];
 
 Deno.test("a later fetch that gives the same content leaves the held date standing", () => {
     const encode = encodeSample("same");
@@ -52,6 +55,19 @@ function encodeSample(content: string): (date: string) => string[] {
         `export const B = {\n    when: "${date}",\n    also: "${content}",\n};\n`,
     ];
 }
+
+Deno.test("a file nobody froze is no held date, and one that cannot be read is refused", () => {
+    const encode = encodeSample("same");
+    const absent = prepareFrozenFiles(ABSENT_PATHS, "when", READ_DATE, 1, encode);
+    assertStrictEquals(absent.heldDate, null, "a file not there yet is what the freeze writes");
+    assertThrows(
+        () =>
+            prepareFrozenFiles(["frozen/", ...ABSENT_PATHS.slice(1)], "when", READ_DATE, 1, encode),
+        FrozenFilesError,
+        "cannot be read",
+        "a path standing that gives no text is not a file to write over",
+    );
+});
 
 Deno.test("content that moved re-dates every file written off the fetch", () => {
     const held = encodeSample("before")(HELD_DATE);

@@ -33,8 +33,8 @@ whole security model, and everything else is a consequence.
   the ambient `navigator`, while a tag that fetches is made by `createElement` with a tag name this
   add-on does not otherwise use. The page the entry is handed carries `location` and `navigator` of
   its own and reading those is how the add-on knows which world it is in — so what is forbidden is
-  the **ambient** one, and a tag is held by its name against the four this add-on builds. **ADR
-  0076**, which carries the measurement.
+  the **ambient** one, and a tag is held by its name against the four this add-on builds. **develop
+  ADR 0076**, which carries the measurement.
 - **Nothing is automated.** The add-on never sends an action, never chooses a target, never presses
   anything on the reader's behalf.
 - **The engine's own call runs first and its return value comes back untouched.** We wrap the update

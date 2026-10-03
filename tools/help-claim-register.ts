@@ -68,15 +68,15 @@ export function parseHelpClaim(line: string, lineNumber: number): HelpClaim | nu
 export function parseBacktickedPhrases(text: string): string[] {
     const phrases: string[] = [];
     let from = 0;
-    for (let look = 0; look < PHRASES_MAXIMUM; look += 1) {
+    for (let look = 0; look <= PHRASES_MAXIMUM; look += 1) {
         const open = text.indexOf(BACKTICK, from);
         if (open === -1) break;
         const close = text.indexOf(BACKTICK, open + 1);
         if (close === -1) break;
+        assert(phrases.length < PHRASES_MAXIMUM, "a claim names no more phrases than the bound");
         phrases.push(text.slice(open + 1, close));
         from = close + 1;
     }
-    assert(phrases.length <= PHRASES_MAXIMUM, "a claim names no more phrases than the bound");
     assert(
         phrases.every((phrase) => !phrase.includes(BACKTICK)),
         "a phrase carries no delimiter of ours",

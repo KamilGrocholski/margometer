@@ -29,6 +29,7 @@ const TOOL_ERROR_CODE = {
     fabricatedFight: "FabricatedFight",
     margonemReadings: "MargonemReadings",
     payloadCost: "PayloadCost",
+    frozenFiles: "FrozenFiles",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -193,6 +194,13 @@ export class FabricatedFightError extends MargoMeterToolError {
 export class MargonemReadingsError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.margonemReadings, reason, options);
+    }
+}
+
+/** A frozen file that stands and cannot be read, which a freeze would otherwise write over blind. */
+export class FrozenFilesError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.frozenFiles, reason, options);
     }
 }
 

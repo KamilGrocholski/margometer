@@ -62,9 +62,9 @@ const COPIED = ["src", "libs", "frozen", "deno.json", "deno.lock"];
 /** Past the regions there are, which is what a person may ask for at once (S11). */
 export const REGIONS_ASKED_MAXIMUM = 32;
 /** Beside the preview's own, so a panel that gives way and one that does not stand at once. */
-const DEFAULT_PORT = 4175;
+const PORT_DEFAULT = 4175;
 /** Under `dist/`, never `SHOT_DIRECTORY`: a README showing one would show a broken panel. */
-export const DEFAULT_INTO = "dist/giving-way";
+export const INTO_DEFAULT = "dist/giving-way";
 
 /** The flags, with every region asked for checked against the panel's own list. */
 export function readGivingWayFlags(args: readonly string[]): GivingWayFlags {
@@ -88,9 +88,9 @@ export function readGivingWayFlags(args: readonly string[]): GivingWayFlags {
     if (unknown.length > 0) {
         throw new GivingWayError(`no region of the panel is called ${unknown.join(", ")}`);
     }
-    const port = parsed.port === undefined ? DEFAULT_PORT : parseInteger(parsed.port);
+    const port = parsed.port === undefined ? PORT_DEFAULT : parseInteger(parsed.port);
     if (port === null) throw new GivingWayError(`--port ${parsed.port} is not a number`);
-    const into = parsed.into ?? DEFAULT_INTO;
+    const into = parsed.into ?? INTO_DEFAULT;
     if (!relative(resolve(SHOT_DIRECTORY), resolve(into)).startsWith("..")) {
         throw new GivingWayError(`${into} is where the READMEs read their pictures from`);
     }

@@ -3,7 +3,14 @@
  * and each read the add-on's way or refused by name.
  */
 
-import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertStrictEquals,
+    assertStringIncludes,
+    assertThrows,
+} from "@std/assert";
 import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
 import {
     formatRecordingName,
@@ -93,6 +100,19 @@ Deno.test("a file whose calls open no fight is refused when stepped as when repl
     const material = readRecordedMaterial([path]);
     Deno.removeSync(path);
     assertThrows(() => replayMaterialSteps(material), RecordingReadError, "carries no payload");
+});
+
+Deno.test("a call the envelope refuses is refused when stepped, carrying the refusal", () => {
+    const path = Deno.makeTempFileSync({ suffix: ".json" });
+    Deno.writeTextFileSync(path, '{"calls": [{"messages": [], "payload": 5}]}');
+    const material = readRecordedMaterial([path]);
+    Deno.removeSync(path);
+    const [fight] = material.fights;
+    assertExists(fight, "the file itself reads");
+    const refusal = assertThrows(() => replayRecordedSteps(fight), RecordingReadError);
+    assertStringIncludes(refusal.message, "the envelope refused call 0", "naming the call");
+    assert(refusal.cause instanceof Error, "and what the envelope answered travels as its cause");
+    assertStringIncludes(refusal.message, refusal.cause.name, "named where a console shows it");
 });
 
 Deno.test("a cast of nobody is a snapshot, and a call stating none is not", () => {

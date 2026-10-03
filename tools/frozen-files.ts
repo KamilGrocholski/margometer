@@ -8,6 +8,7 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import { lookupQuotedLiteral } from "#/libs/text-walk.ts";
+import { FrozenFilesError } from "./margometer-tool-error.ts";
 
 /** The texts a freeze would write, the date they carry, and the two dates it chose between. */
 export interface FrozenFiles {
@@ -47,7 +48,10 @@ export function prepareFrozenFiles(
 function readHeldText(path: string): string | null {
     assert(path.startsWith("frozen/"), "a freeze writes under frozen/ and nowhere else");
     const text = errors.attempt(() => Deno.readTextFileSync(path));
-    if (text instanceof Error) return null;
+    if (text instanceof Error) {
+        if (text.cause instanceof Deno.errors.NotFound) return null;
+        throw new FrozenFilesError(`${path} stands and cannot be read`, { cause: text });
+    }
     return text;
 }
 

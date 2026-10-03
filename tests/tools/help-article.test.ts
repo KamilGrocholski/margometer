@@ -6,7 +6,13 @@
  * shape and the article it names — the counts themselves are a measurement, not a fixture.
  */
 
-import { assert, assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertStrictEquals,
+    assertStringIncludes,
+    assertThrows,
+} from "@std/assert";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import {
     CACHE_ROOT,
@@ -17,6 +23,7 @@ import {
     isDumpStale,
     lookupFragments,
     MECHANICS_ARTICLE,
+    readCachedHelpArticle,
     requireCachedHelpArticle,
 } from "#/tools/help-article.ts";
 import { HelpArticleError } from "#/tools/margometer-tool-error.ts";
@@ -83,6 +90,29 @@ Deno.test("an article this cannot date is an article it will not answer from", (
         () => requireCachedHelpArticle({ ...whole, article: "9" }, "372"),
         HelpArticleError,
     );
+});
+
+Deno.test("a manifest that stands and cannot be read is refused, and none is no reading", () => {
+    const held = Deno.cwd();
+    const directory = Deno.makeTempDirSync({ prefix: "margometer-cache-" });
+    try {
+        Deno.chdir(directory);
+        assertStrictEquals(
+            readCachedHelpArticle(MECHANICS_ARTICLE),
+            null,
+            "nothing cached is an answer",
+        );
+        // A directory where the manifest stands: there, and no text to read off it.
+        Deno.mkdirSync(`${CACHE_ROOT}${MECHANICS_ARTICLE}/provenance.json`, { recursive: true });
+        assertThrows(
+            () => readCachedHelpArticle(MECHANICS_ARTICLE),
+            HelpArticleError,
+            "cannot be read",
+        );
+    } finally {
+        Deno.chdir(held);
+        Deno.removeSync(directory, { recursive: true });
+    }
 });
 
 Deno.test("counts are deduplicated and sorted, so a re-freeze shows real change only", () => {

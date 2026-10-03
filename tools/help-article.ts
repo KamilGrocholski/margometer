@@ -8,7 +8,7 @@
  *     deno task margonem:help status | fetch | search <phrase> … | freeze [phrase …]
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert } from "@std/assert";
 import { decodeHtmlText } from "#/libs/html-text.ts";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
@@ -16,7 +16,8 @@ import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { parseCitedHelpPhrases, REGISTER_PATH } from "./help-claim-register.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
-import { HelpArticleError, MargonemUnreachableError } from "./margometer-tool-error.ts";
+import { readMargonemAnswerText } from "./margonem-client-source.ts";
+import { HelpArticleError } from "./margometer-tool-error.ts";
 
 export interface CachedHelpArticle {
     article: string;
@@ -145,7 +146,12 @@ function encodeRequiredText(phrase: unknown): string {
 /** What is cached for this article, or null. Absence is an answer; an unreadable file is not. */
 export function readCachedHelpArticle(article: string): CachedHelpArticle | null {
     const text = errors.attempt(() => Deno.readTextFileSync(composeManifestPath(article)));
-    if (text instanceof Error) return null;
+    if (text instanceof Error) {
+        if (text.cause instanceof Deno.errors.NotFound) return null;
+        throw new HelpArticleError(`cache manifest for ${article} cannot be read`, {
+            cause: text,
+        });
+    }
     const parsed = parseJson(text);
     if (parsed instanceof Error) {
         throw new HelpArticleError(`cache manifest for ${article} is unreadable`, {
@@ -216,20 +222,23 @@ export function lookupFragments(
     const needle = phrase.toLocaleLowerCase(LOCALE);
     const haystack = text.toLocaleLowerCase(LOCALE);
     const before = Math.round(context / 3);
+    assert(before <= context, "the text in front of a hit is part of its window");
+    assert(maximum >= 0, "a search shows no fewer fragments than none");
     const excerpts: string[] = [];
     let from = 0;
     let previousEnd = -1;
-    while (excerpts.length < maximum) {
+    // Each look moves past a hit of a phrase that is never empty, so one look per character ends it.
+    for (let look = 0; look <= haystack.length; look += 1) {
+        if (excerpts.length === maximum) return excerpts;
         const hit = haystack.indexOf(needle, from);
-        if (hit === -1) break;
+        if (hit === -1) return excerpts;
         from = hit + needle.length;
         if (hit < previousEnd) continue;
         const end = hit + context;
         excerpts.push(text.slice(Math.max(0, hit - before), end).trim());
         previousEnd = end;
     }
-    assert(before <= context, "the text in front of a hit is part of its window");
-    return excerpts;
+    throw new HelpArticleError(`the walk for "${phrase}" ran past the text it walks`);
 }
 
 /** Whether the dump is past the floor; an unreadable date counts as stale, being no date. */
@@ -256,15 +265,7 @@ export function formatDumpAge(fetchedAt: string, now: number): string {
 export async function writeHelpArticleCache(article: string): Promise<CachedHelpArticle> {
     assert(parseInteger(article) !== null, "an article is asked for by its number");
     const url = `${HELP_HOST}/index/view,${article}`;
-    let response: Response;
-    // The network, which is `tools/`'s own boundary (E5).
-    try {
-        response = await fetch(url);
-    } catch (cause) {
-        throw new MargonemUnreachableError(`${url} did not answer`, { cause });
-    }
-    if (!response.ok) throw new MargonemUnreachableError(`${url} answered ${response.status}`);
-    const text = decodeHtmlText(await response.text());
+    const text = decodeHtmlText(await readMargonemAnswerText(url));
     const directory = `${CACHE_ROOT}${article}/`;
     Deno.mkdirSync(directory, { recursive: true });
     const textPath = `${directory}${TEXT_NAME}`;
@@ -337,5 +338,4 @@ if (import.meta.main) {
             "usage: deno task margonem:help status | fetch | search | freeze",
         );
     }
-    assertStrictEquals(article, MECHANICS_ARTICLE, "the one article combat mechanics are in");
 }

@@ -71,9 +71,9 @@ const BLOCK_OPEN = "{";
 const BLOCK_CLOSE = "}";
 const ESCAPE = "\\";
 /** Past the label count of any switch the client has written, so the walk is a stated bound. */
-const CASE_LABELS_MAXIMUM = 4096;
+export const CASE_LABELS_MAXIMUM = 4096;
 /** Past the number of places `[0]){` or a shape's opening text occurs in three megabytes. */
-const LOOKS_MAXIMUM = 65_536;
+export const LOOKS_MAXIMUM = 65_536;
 const FROZEN_PATH = "frozen/protocol-keys.ts";
 /** The field the reading is dated by, exported so a test holds the frozen file to it. */
 export const FROZEN_DATE_FIELD = "gameBuild";
@@ -213,7 +213,7 @@ export function requireProtocolKeys(bundle: string): string[] {
  */
 function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
     let tailAt = bundle.indexOf(SWITCH_SUBJECT_TAIL, from);
-    for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
+    for (let look = 0; look <= LOOKS_MAXIMUM; look += 1) {
         if (tailAt === -1) return null;
         let start = tailAt;
         while (start > from) {
@@ -226,7 +226,9 @@ function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
         }
         tailAt = bundle.indexOf(SWITCH_SUBJECT_TAIL, tailAt + 1);
     }
-    return null;
+    throw new ProtocolKeyTableError(
+        `more than ${LOOKS_MAXIMUM} places to look for the switch — the walk would stop short`,
+    );
 }
 
 function isNameCharacterAt(source: string, index: number): boolean {
@@ -245,7 +247,7 @@ function isNameCharacterAt(source: string, index: number): boolean {
 function parseCaseLabels(body: string): string[] {
     const labels: string[] = [];
     let from = 0;
-    for (let look = 0; look < CASE_LABELS_MAXIMUM; look += 1) {
+    for (let look = 0; look <= CASE_LABELS_MAXIMUM; look += 1) {
         const keywordAt = body.indexOf(CASE_KEYWORD, from);
         if (keywordAt === -1) return labels;
         from = keywordAt + 1;
@@ -258,8 +260,9 @@ function parseCaseLabels(body: string): string[] {
         labels.push(quoted.text);
         from = terminator + 1;
     }
-    assert(labels.length <= CASE_LABELS_MAXIMUM, "a switch states no more labels than the bound");
-    return labels;
+    throw new ProtocolKeyTableError(
+        `more than ${CASE_LABELS_MAXIMUM} places to look for a label — the walk would stop short`,
+    );
 }
 
 /** The block starting at the first `{` after `from`, brace-matched, strings skipped. */
@@ -321,13 +324,15 @@ function lookupShapeFields(
         throw new ProtocolKeyTableError("a default-branch shape has to open with text");
     }
     let headAt = bundle.indexOf(head.text);
-    for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
+    for (let look = 0; look <= LOOKS_MAXIMUM; look += 1) {
         if (headAt === -1) return null;
         const fields = parseShapeFields(bundle, headAt, steps);
         if (fields !== null) return fields;
         headAt = bundle.indexOf(head.text, headAt + 1);
     }
-    return null;
+    throw new ProtocolKeyTableError(
+        `more than ${LOOKS_MAXIMUM} places to look for a shape — the walk would stop short`,
+    );
 }
 
 /** The shape read straight through from `start`, or null at the first piece that does not hold. */

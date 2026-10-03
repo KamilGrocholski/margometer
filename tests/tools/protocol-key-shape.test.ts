@@ -8,6 +8,7 @@ import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/ass
 import { REGISTER_PATH } from "#/tools/help-claim-register.ts";
 import { ProtocolKeyShapeError } from "#/tools/margometer-tool-error.ts";
 import {
+    CLAIMS_MAXIMUM,
     DAMAGE_FAMILY_HEADING,
     formatShapeLine,
     formatShapeReport,
@@ -15,6 +16,7 @@ import {
     KEY_PLACEMENT,
     KEY_VALUE,
     type KeyShape,
+    parseProseCountClaims,
     parseRegisteredKeys,
     tallyKeyShapes,
 } from "#/tools/protocol-key-shape.ts";
@@ -162,6 +164,17 @@ Deno.test("a phrase outside either vocabulary is refused rather than read as sil
     refused("_Shape:_ some occurrences; anywhere; text", "where a count goes");
     refused("_Shape:_ 1 times; anywhere; text", "a word this reader does not know");
     refused("_Shape:_ 1 occurrences; anywhere", "states 2 claims, not three");
+});
+
+Deno.test("a sentence naming past the bound is refused, and one at it is read whole", () => {
+    const naming = (count: number) =>
+        parseProseCountClaims(
+            `### \`+absorb\` — decoded\n\nBoth occurrences ride ${
+                "captures/a.json,".repeat(count)
+            }in turn.\n`,
+        );
+    assertStrictEquals(naming(CLAIMS_MAXIMUM)[0]?.recordings.length, CLAIMS_MAXIMUM, "at it");
+    assertThrows(() => naming(CLAIMS_MAXIMUM + 1), ProtocolKeyShapeError, "more than");
 });
 
 Deno.test("the line the register writes is the line this formats", () => {

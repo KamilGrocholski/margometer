@@ -9,17 +9,13 @@
  *     deno task margonem:readings status | refresh | preview
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
-import {
-    prepareFrozenBuffBits,
-    requireBuffBits,
-    STATUS_BITS_MAXIMUM,
-    writeFrozenBuffBits,
-} from "./buff-bit-table.ts";
+import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
+import { prepareFrozenBuffBits, requireBuffBits, writeFrozenBuffBits } from "./buff-bit-table.ts";
 import type { FrozenFiles } from "./frozen-files.ts";
 import {
     type CachedMargonemClientSource,
@@ -293,7 +289,7 @@ function formatPreviewKeys(keys: KeyDifference): string {
 
 function formatBitShift(shift: BitShift): string {
     assert(shift.bit >= 0, "a bit is a position");
-    assert(shift.frozen !== shift.lifted, "a shift is a position that differs");
+    assertNotStrictEquals(shift.frozen, shift.lifted, "a shift is a position that differs");
     const bit = formatInteger(shift.bit);
     return `  bit ${bit}  frozen ${shift.frozen ?? "-"}  development ${shift.lifted ?? "-"}`;
 }

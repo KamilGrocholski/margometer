@@ -5,11 +5,8 @@
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
-import {
-    FROZEN_BUFF_BANNER,
-    requireBuffBits,
-    STATUS_BITS_MAXIMUM,
-} from "#/tools/buff-bit-table.ts";
+import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
+import { FROZEN_BUFF_BANNER, LOOKS_MAXIMUM, requireBuffBits } from "#/tools/buff-bit-table.ts";
 import { BuffBitTableError } from "#/tools/margometer-tool-error.ts";
 
 Deno.test("the statuses are the entries filed as a buff, in the order they are registered", () => {
@@ -35,6 +32,21 @@ Deno.test("a bundle registering nothing is refused rather than frozen as an empt
     // An empty reading looks exactly like a game that dropped the feature.
     assertThrows(() => requireBuffBits("var a=1;"), BuffBitTableError, "no status");
     assertThrows(() => requireBuffBits('x("a",null,"debuff")'), BuffBitTableError, "no status");
+});
+
+Deno.test("a bundle past the places the walk looks is refused, and one at them is read", () => {
+    assertThrows(
+        () => requireBuffBits("null,".repeat(LOOKS_MAXIMUM)),
+        BuffBitTableError,
+        "no status",
+        "every place looked at, and none of them a registration",
+    );
+    assertThrows(
+        () => requireBuffBits("null,".repeat(LOOKS_MAXIMUM + 1)),
+        BuffBitTableError,
+        "stop short",
+        "one place past them, which a walk returning what it had would have frozen",
+    );
 });
 
 Deno.test("the frozen bits stand under the banner their generator writes, and fit one mask", () => {

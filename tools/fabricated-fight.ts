@@ -13,7 +13,7 @@
  * `tests/tools/fabricated-fight.test.ts` holds every one of them to it by reading the fight back.
  */
 
-import { assert, assertExists, assertStrictEquals } from "@std/assert";
+import { assert, assertExists, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { normalize } from "@std/path";
 import { encodeJson } from "#/libs/json-text.ts";
@@ -21,6 +21,7 @@ import { clampNumber } from "#/libs/number-range.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
+import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
     CHARGE_BROKEN_KEY,
@@ -44,6 +45,7 @@ import {
     type MessageParameter,
     type StatedEnd,
 } from "#/src/core/fight-decoder.ts";
+import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
 import { encodeHealthPercent } from "#/src/core/protocol-number.ts";
 import {
     CHARGE_FIELDS,
@@ -168,6 +170,9 @@ interface FabricatedElement {
     member: string;
 }
 
+/** A status the client registers, by its own name, which is what keeps its bit off a literal. */
+type FrozenStatus = (typeof FROZEN_BUFF_BITS.bits)[number];
+
 const FABRICATION_ENDINGS: readonly FabricationEnding[] = Object.values(FABRICATION_ENDING);
 export const FABRICATED_DIRECTORY = "fabricated";
 export const FABRICATED_WORLD = "fabricated";
@@ -281,7 +286,7 @@ const SMALL_PLACES = 7;
 const REDUCTION_BASE = 120;
 const REDUCTION_PER_PLACE = 13;
 const ARMOUR_DAMAGE = 5;
-/** More armour, on the blow where a critical hit and a pierce fall together. */
+/** The armour `+critpierce` states destroyed, apart from what the blow's own key states. */
 const ARMOUR_DAMAGE_PIERCED = 2;
 /** A percentage rather than health: the share a wound was weakened by. */
 const WOUND_WEAKENED_PERCENT = 50;
@@ -289,8 +294,6 @@ const WOUND_WEAKENED_PERCENT = 50;
 const CHOICE_PER_ROUND = 3;
 /** How long a status the script put on somebody stands before the round clears it. */
 const STATUS_ROUNDS = 4;
-/** The nine the client words, so a bit past them is a bit nothing would draw. */
-const STATUS_BIT_MAXIMUM = 9;
 
 /** The elements a blow is thrown in, as the pair of keys each is stated on. */
 const ELEMENTS: readonly FabricatedElement[] = [
@@ -309,9 +312,10 @@ const ELEMENTS: readonly FabricatedElement[] = [
  */
 const SHOUT_SKILL: FabricatedSkill = { id: 25, name: "Znak wichru" };
 /**
- * Skills a cast is announced under. Both the ids and the names are invented here: a skill's own
- * name is the game's prose and is not copied into this tree, and no table in this repository
- * states a side-wide duration these could have been taken from.
+ * Skills a cast is announced under. The ids are ones the frozen tables date: every one but the last
+ * stands in `frozen/aura-turns.ts`, and the last only in `frozen/skill-durations.ts`, dated but
+ * reaching no side. Only the names are invented, because a skill's own name is the game's prose
+ * and is not copied into this tree.
  */
 const AURA_SKILLS: readonly FabricatedSkill[] = [
     SHOUT_SKILL,
@@ -529,11 +533,10 @@ export function createFabricatedFight(
     }
     if (shape.doesCloseOnShouts) {
         // Add two turns more, one a side, each spent on the shout that holds everybody standing.
-        // ⚠️ **Where the rotation lands a shout is not a shape anybody chose.** Measured
-        // 2026-09-22 at ten a side, level 92: the walk reaches this act once every 41 turns, so
-        // how many are still held at the last call falls out of wherever the rounds happened
-        // to stop — 20 at 20 rounds, 10 at the default 26, and nothing says so. A fixture for
-        // `PROVOKED_MAXIMUM` (`src/ui/panel-helper.ts`) cannot rest on that. A side nobody is
+        // ⚠️ **Where the rotation lands a shout is not a shape anybody chose.** The walk reaches
+        // this act once in every `ACTS.length` turns, so how many are still held at the last
+        // call falls out of wherever the rounds happened to stop, and nothing says so. A fixture
+        // for `PROVOKED_MAXIMUM` (`src/ui/panel-helper.ts`) cannot rest on that. A side nobody is
         // left on shouts at nobody, so a shape whose fight settles before its rounds run out
         // is refused here rather than closing on one shout.
         assert(turns > 0, "a fight closing on shouts ran turns before them");
@@ -812,7 +815,7 @@ function prepareTurn(
     if (target === null) return null;
     const ally = getAlly(state, actor, ordinal);
     assert(ally.id > 0, "an act that names an ally names somebody");
-    assert(target.id !== actor.id, "and a blow is never thrown at its own thrower");
+    assertNotStrictEquals(target.id, actor.id, "and a blow is never thrown at its own thrower");
     return {
         shape: state.shape,
         actor,
@@ -1040,9 +1043,8 @@ function executePiercingBlow(turn: FabricatedTurn): string[] {
 }
 
 /**
- * The armour boost fires only where a critical hit and a pierce fall on the same blow, which is
- * why this act carries both. 102 blows in `captures/` carry the pair and one carries the key
- * (`docs/protocol-keys.md`).
+ * The blow `docs/protocol-keys.md`'s `+critpierce` entry gives as its evidence: the key beside
+ * `+crit` and `+pierce`, which is the shape the decoder reads it in.
  */
 function executeCriticalPierce(turn: FabricatedTurn): string[] {
     return [executeBlow(turn, [
@@ -1076,8 +1078,8 @@ function executeThirdAttack(turn: FabricatedTurn): string[] {
 }
 
 function executeStunningBlow(turn: FabricatedTurn): string[] {
-    setStatusBit(turn.target, 8, turn.round);
-    setStatusBit(turn.target, 7, turn.round);
+    setStatusBit(turn.target, "shock", turn.round);
+    setStatusBit(turn.target, "frostbite", turn.round);
     return [executeBlow(turn, [
         encodeValueless("+stun"),
         encodeValueless("+stun2"),
@@ -1112,8 +1114,8 @@ function executeEvadedBlow(turn: FabricatedTurn): string[] {
 }
 
 function executeWoundingBlow(turn: FabricatedTurn): string[] {
-    setStatusBit(turn.target, 0, turn.round);
-    setStatusBit(turn.target, 1, turn.round);
+    setStatusBit(turn.target, "deep_wound", turn.round);
+    setStatusBit(turn.target, "wound", turn.round);
     return [executeBlow(turn, [
         encodeValueless("+wound"),
         encodeFigure(WOUND_ANNOUNCEMENT_KEY, composeSmallHealth(turn, 120)),
@@ -1126,7 +1128,7 @@ function executeWoundingBlow(turn: FabricatedTurn): string[] {
  * both (`docs/protocol-keys.md`).
  */
 function executeWeakenedWound(turn: FabricatedTurn): string[] {
-    setStatusBit(turn.target, 0, turn.round);
+    setStatusBit(turn.target, "deep_wound", turn.round);
     return [executeBlow(turn, [
         encodeFigure("+woundpoison", WOUND_WEAKENED_PERCENT),
         encodeFigure("+woundfrost", WOUND_WEAKENED_PERCENT),
@@ -1141,7 +1143,7 @@ function executeWeakenedWound(turn: FabricatedTurn): string[] {
  * `captures/` ride a blow stating this key alone (`docs/protocol-keys.md`).
  */
 function executeAuxiliaryWound(turn: FabricatedTurn): string[] {
-    setStatusBit(turn.target, 0, turn.round);
+    setStatusBit(turn.target, "deep_wound", turn.round);
     return [executeBlow(turn, [encodeValueless("+of_wound")])];
 }
 
@@ -1156,8 +1158,8 @@ function executeWoundTick(turn: FabricatedTurn): string[] {
 function executePoisonTick(turn: FabricatedTurn): string[] {
     assert(turn.target.healthMaximum > 0, "a tick lands where there is a maximum");
     assert(turn.round >= 0, "and on a round the fight has reached");
-    setStatusBit(turn.target, 3, turn.round);
-    setStatusBit(turn.target, 4, turn.round);
+    setStatusBit(turn.target, "poisoned", turn.round);
+    setStatusBit(turn.target, "fire", turn.round);
     const poison = removeHealth(turn.target, composeSmallHealth(turn, 140));
     const stated = `${formatInteger(poison)},${formatInteger(composeSmall(turn, 14))}`;
     const ticked = poison === 0
@@ -1191,7 +1193,7 @@ function executeHealSelf(turn: FabricatedTurn): string[] {
 }
 
 function executeHealAlly(turn: FabricatedTurn): string[] {
-    assert(turn.ally.side === turn.actor.side, "an ally stands on the actor's own side");
+    assertStrictEquals(turn.ally.side, turn.actor.side, "an ally stands on the actor's own side");
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
     const hurt = lookupHurtAlly(turn);
     if (hurt === null) return [executeBlow(turn, [])];
@@ -1214,7 +1216,7 @@ function executeHolyTouch(turn: FabricatedTurn): string[] {
 }
 
 function executeBandage(turn: FabricatedTurn): string[] {
-    assert(turn.ally.side === turn.actor.side, "an ally stands on the actor's own side");
+    assertStrictEquals(turn.ally.side, turn.actor.side, "an ally stands on the actor's own side");
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
     const bandaged = executeHealthGiven(turn, turn.actor, "bandage", 210);
     const carried = executeHealthGiven(turn, turn.ally, "npc_heal", 260);
@@ -1222,7 +1224,7 @@ function executeBandage(turn: FabricatedTurn): string[] {
 }
 
 function executeLastHeal(turn: FabricatedTurn): string[] {
-    assert(turn.ally.side === turn.actor.side, "an ally stands on the actor's own side");
+    assertStrictEquals(turn.ally.side, turn.actor.side, "an ally stands on the actor's own side");
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
     const hurt = lookupHurtAlly(turn);
     if (hurt === null) return [executeBlow(turn, [])];
@@ -1232,7 +1234,7 @@ function executeLastHeal(turn: FabricatedTurn): string[] {
 }
 
 function executeNamedDamage(turn: FabricatedTurn): string[] {
-    assert(turn.ally.side === turn.actor.side, "an ally stands on the actor's own side");
+    assertStrictEquals(turn.ally.side, turn.actor.side, "an ally stands on the actor's own side");
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
     const elementKeys = getElement(turn);
     const dealt = removeHealth(turn.ally, composeSmallHealth(turn, 340));
@@ -1337,9 +1339,9 @@ function executeAuraCast(turn: FabricatedTurn): string[] {
  * ⚠️ **The value is the characters it holds, by name.** `docs/protocol-keys.md` has it as a list
  * in the grammar `winner` uses, and a count there leaves the panel nothing to resolve against the
  * roster — so the fight draws no provocation at all, however many it shouts.
- * Every opponent still standing is named, which stays inside what the published table covers: it
- * gives the shout six characters at skill level 1 and ten at level 10, and a side here never
- * fields more than ten (`requireFabricationShape`).
+ * Every opponent still standing is named, which stays inside what the published table covers: the
+ * characters it gives the shout rise with the skill's level, and at the top one reach as many as a
+ * side here ever fields (`PER_SIDE_MAXIMUM`; `tools/skill-table.ts` reads them off the page).
  */
 function executeShout(turn: FabricatedTurn): string[] {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
@@ -1485,7 +1487,7 @@ function executeLoot(turn: FabricatedTurn): string[] {
 /** A blow: what it threw, what got through, and whatever the act stated beside it. */
 function executeBlow(turn: FabricatedTurn, extra: MessageParameter[]): string {
     assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
-    assert(turn.target.side !== turn.actor.side, "and never at its own side");
+    assertNotStrictEquals(turn.target.side, turn.actor.side, "and never at its own side");
     assert(turn.target.healthMaximum > 0, "and lands where there is a maximum");
     assert(
         extra.every((parameter) => parameter.key.length > 0),
@@ -1545,9 +1547,10 @@ function addHealth(warrior: FabricatedWarrior, asked: number): number {
     return given;
 }
 
-function setStatusBit(warrior: FabricatedWarrior, bit: number, round: number): void {
-    assert(bit >= 0, "a bit of the mask is never below the first");
-    assert(bit < STATUS_BIT_MAXIMUM, "and never past the nine the client words");
+/** The bit is the status's place in the client's own order, so a refreeze that moves one moves it. */
+function setStatusBit(warrior: FabricatedWarrior, status: FrozenStatus, round: number): void {
+    const bit = FROZEN_BUFF_BITS.bits.indexOf(status);
+    assert(bit < STATUS_BITS_MAXIMUM, "a status's bit fits the integer a mask is");
     warrior.statusMask |= 1 << bit;
     warrior.statusClearsAtRound = round + STATUS_ROUNDS;
 }

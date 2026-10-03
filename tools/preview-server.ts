@@ -73,7 +73,7 @@ export interface PreviewState {
 }
 
 const PREVIEW_HOSTNAME = "127.0.0.1";
-const DEFAULT_PORT = 4173;
+const PORT_DEFAULT = 4173;
 /** A preview is watched by the pages one person has open; this is far past that (S11). */
 export const LISTENERS_MAXIMUM = 64;
 /** What a build reads. `tools/` is not here: this process imported it, so a rebuild cannot. */
@@ -158,7 +158,7 @@ export function initPreviewServer(options: PreviewServerOptions = {}): PreviewSe
             : options.appendedScript,
     };
     const server = Deno.serve(
-        { hostname: PREVIEW_HOSTNAME, port: options.port ?? DEFAULT_PORT, onListen: () => {} },
+        { hostname: PREVIEW_HOSTNAME, port: options.port ?? PORT_DEFAULT, onListen: () => {} },
         (request) => answerPreviewRequest(state, new URL(request.url)),
     );
     const watcher = (options.shouldWatch ?? true) ? Deno.watchFs(WATCHED_DIRECTORIES) : null;
@@ -365,7 +365,7 @@ export function readPreviewFlags(args: readonly string[]): {
     fromPaths: string[];
     shouldOpenFabricated: boolean;
 } {
-    let port = DEFAULT_PORT;
+    let port = PORT_DEFAULT;
     let fight: string | null = null;
     let shouldOpenFabricated = false;
     const fromPaths: string[] = [];
@@ -378,8 +378,11 @@ export function readPreviewFlags(args: readonly string[]): {
         if (flagValue === undefined) {
             throw new PreviewServeError(`${args[argumentIndex]} takes a value`);
         }
-        if (args[argumentIndex] === FLAG_PORT) port = parseInteger(flagValue) ?? DEFAULT_PORT;
-        else if (args[argumentIndex] === FLAG_FIGHT) fight = flagValue;
+        if (args[argumentIndex] === FLAG_PORT) {
+            const asked = parseInteger(flagValue);
+            if (asked === null) throw new PreviewServeError(`${FLAG_PORT} ${flagValue} is no port`);
+            port = asked;
+        } else if (args[argumentIndex] === FLAG_FIGHT) fight = flagValue;
         else if (args[argumentIndex] === FLAG_FROM) fromPaths.push(flagValue);
         else throw new PreviewServeError(`${args[argumentIndex]} is not a flag this reads`);
         argumentIndex += 1;

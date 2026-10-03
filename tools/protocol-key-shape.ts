@@ -8,7 +8,7 @@
  *     deno task margonem:shape
  */
 
-import { assert } from "@std/assert";
+import { assert, assertStrictEquals } from "@std/assert";
 import { formatInteger, parseDecimal, parseInteger } from "#/libs/number-text.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import { KEY_FAMILY, type KeyMeaning, lookupKeyMeaning } from "#/src/core/protocol-key.ts";
@@ -125,7 +125,7 @@ const COUNT_WORDS = [
 const WORD_EDGES = "*_`.,;:()[]\"'";
 const SENTENCE_END = ". ";
 /** Past the claims the register carries, and past what a document of its size could state. */
-const CLAIMS_MAXIMUM = 1024;
+export const CLAIMS_MAXIMUM = 1024;
 const CLAIM_SEPARATOR = ";";
 const CLAIMS_PER_LINE = 3;
 /** The corpus carries 119 keys, 2026-09-25: this is past what a protocol change would add. */
@@ -184,7 +184,7 @@ export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
             value: tallyKeyShapesValue(key, tally.values),
         });
     }
-    assert(shapes.length === tallies.size, "every key tallied is a shape");
+    assertStrictEquals(shapes.length, tallies.size, "every key tallied is a shape");
     return shapes;
 }
 
@@ -465,15 +465,14 @@ function isCountWord(word: string): boolean {
 function parseRecordingsNamed(sentence: string): string[] {
     const named: string[] = [];
     let pathAt = sentence.indexOf(RECORDINGS_DIRECTORY);
-    for (let look = 0; look < CLAIMS_MAXIMUM; look += 1) {
-        if (pathAt === -1) break;
+    for (let look = 0; look <= CLAIMS_MAXIMUM; look += 1) {
+        if (pathAt === -1) return named;
         const end = sentence.indexOf(RECORDING_SUFFIX, pathAt);
-        if (end === -1) break;
+        if (end === -1) return named;
         named.push(sentence.slice(pathAt, end + RECORDING_SUFFIX.length));
         pathAt = sentence.indexOf(RECORDINGS_DIRECTORY, end);
     }
-    assert(named.length <= CLAIMS_MAXIMUM, "a sentence names no more paths than the bound");
-    return named;
+    throw new ProtocolKeyShapeError(`a sentence names more than ${CLAIMS_MAXIMUM} recordings`);
 }
 
 /** The line the register writes, formatted from a measurement so nobody types one by hand. */
@@ -529,7 +528,7 @@ export function formatShapeReport(
 function formatShapeReportNote(shape: KeyShape, stated: KeyShape | null | undefined): string {
     if (stated === undefined) return "— no entry";
     if (stated === null) return "— entry states no shape";
-    assert(stated.key === shape.key, "a claim is compared with the key it is about");
+    assertStrictEquals(stated.key, shape.key, "a claim is compared with the key it is about");
     const said = `— states ${
         formatInteger(stated.occurrences)
     }; ${stated.placement}; ${stated.value}`;

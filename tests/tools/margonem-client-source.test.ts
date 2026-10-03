@@ -7,15 +7,20 @@
  * files with nothing between them.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertRejects, assertStrictEquals, assertThrows } from "@std/assert";
 import {
     CACHE_ROOT,
+    readCachedMargonemClientSource,
+    readMargonemAnswerText,
     requireCachedMargonemClientSource,
     requireMargonemChannel,
     requireMargonemWorldPageBuild,
     requireMargonemWorldPageBundleAddress,
 } from "#/tools/margonem-client-source.ts";
-import { MargonemClientSourceError } from "#/tools/margometer-tool-error.ts";
+import {
+    MargonemClientSourceError,
+    MargonemUnreachableError,
+} from "#/tools/margometer-tool-error.ts";
 
 const OLDER_PAGE =
     `<script src="https://tempest.margonem.pl/js/main.min1786514810315.js"></script>`;
@@ -81,6 +86,66 @@ Deno.test("a manifest missing a field is provenance nobody can date", () => {
         () => requireCachedMargonemClientSource("not an object", "production"),
         MargonemClientSourceError,
     );
+});
+
+Deno.test("a manifest that stands and cannot be read is refused, and none is no reading", () => {
+    const held = Deno.cwd();
+    const directory = Deno.makeTempDirSync({ prefix: "margometer-cache-" });
+    try {
+        Deno.chdir(directory);
+        assertStrictEquals(
+            readCachedMargonemClientSource("production"),
+            null,
+            "nothing cached is an answer",
+        );
+        // A directory where the manifest stands: there, and no text to read off it.
+        Deno.mkdirSync(`${CACHE_ROOT}production/provenance.json`, { recursive: true });
+        assertThrows(
+            () => readCachedMargonemClientSource("production"),
+            MargonemClientSourceError,
+            "cannot be read",
+        );
+    } finally {
+        Deno.chdir(held);
+        Deno.removeSync(directory, { recursive: true });
+    }
+});
+
+Deno.test("an answer broken off after its status is a world that did not answer", async () => {
+    const fetchHeld = globalThis.fetch;
+    const broken = new ReadableStream({
+        pull(controller) {
+            controller.error(new TypeError("connection reset"));
+        },
+    });
+    globalThis.fetch = () => Promise.resolve(new Response(broken));
+    try {
+        const refusal = await assertRejects(
+            () => readMargonemAnswerText("https://x.example"),
+            MargonemUnreachableError,
+        );
+        assert(
+            refusal.cause instanceof TypeError,
+            "the runtime's own failure travels as its cause",
+        );
+    } finally {
+        globalThis.fetch = fetchHeld;
+    }
+});
+
+Deno.test("an answer read to its end is the text, and a refusal is no answer", async () => {
+    const fetchHeld = globalThis.fetch;
+    try {
+        globalThis.fetch = () => Promise.resolve(new Response("<html></html>"));
+        assertEquals(await readMargonemAnswerText("https://x.example"), "<html></html>", "whole");
+        globalThis.fetch = () => Promise.resolve(new Response("", { status: 503 }));
+        await assertRejects(
+            () => readMargonemAnswerText("https://x.example"),
+            MargonemUnreachableError,
+        );
+    } finally {
+        globalThis.fetch = fetchHeld;
+    }
 });
 
 Deno.test("git is asked whether the cache is ignored, rather than a comment claiming it", () => {

@@ -10,9 +10,11 @@
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { SkillTableError } from "#/tools/margometer-tool-error.ts";
 import {
+    CACHE_ROOT,
     composeAuraSkills,
     composeGrantedBlows,
     composeShoutSkills,
+    readCachedSkillTable,
     requireSkillsOfMargonemApi,
 } from "#/tools/skill-table.ts";
 
@@ -65,11 +67,38 @@ Deno.test("a page of another shape is refused rather than read off by one", () =
         "a row of the wrong width leaves the table with no row it will take",
     );
     assertThrows(
+        () => requireSkillsOfMargonemApi(composeRow("89", "aura-sa_per=11@8") + short),
+        SkillTableError,
+        "columns",
+        "a row of the wrong width is refused beside rows of the right one",
+    );
+    assertThrows(
         () => requireSkillsOfMargonemApi(""),
         SkillTableError,
         "columns",
         "and so does no page",
     );
+    assertEquals(
+        requireSkillsOfMargonemApi(`<tr><th>id</th></tr>${composeRow("89", "aura-sa_per=11@8")}`)
+            .map((skill) => skill.id),
+        [89],
+        "a row holding no cell is no row of the table",
+    );
+});
+
+Deno.test("a manifest that stands and cannot be read is refused, and none is no reading", () => {
+    const held = Deno.cwd();
+    const directory = Deno.makeTempDirSync({ prefix: "margometer-cache-" });
+    try {
+        Deno.chdir(directory);
+        assertStrictEquals(readCachedSkillTable(), null, "nothing cached is an answer");
+        // A directory where the manifest stands: there, and no text to read off it.
+        Deno.mkdirSync(`${CACHE_ROOT}provenance.json`, { recursive: true });
+        assertThrows(() => readCachedSkillTable(), SkillTableError, "cannot be read");
+    } finally {
+        Deno.chdir(held);
+        Deno.removeSync(directory, { recursive: true });
+    }
 });
 
 Deno.test("a row whose id is not a number is passed over, not read as one", () => {
@@ -82,7 +111,7 @@ Deno.test("a row whose id is not a number is passed over, not read as one", () =
 /**
  * ⚠️ **The shout is the one key whose value is a count of characters** rather than a share, and it
  * is what the panel expands a provocation over. `FROZEN_SKILL_DURATIONS` keeps turns and drops
- * values, so this is the only place the count is read off a page shape. **ADR 0063.**
+ * values, so this is the only place the count is read off a page shape. **develop ADR 0063.**
  */
 Deno.test("a shout is carried by its own turns and by the fewest characters it covers", () => {
     const skills = requireSkillsOfMargonemApi(

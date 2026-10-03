@@ -52,7 +52,7 @@ export interface SourceRow {
     sourcesAtOnce: number;
 }
 
-/** What the two okrzyki come to: one state per character held, whoever shouted last. */
+/** What the two shouts come to: one state per character held, whoever shouted last. */
 export interface ProvocationRow {
     skillId: number;
     skillName: string;
@@ -319,7 +319,7 @@ function formatAuraReportLine(
     cells: readonly string[],
     widths: readonly number[],
 ): string {
-    assert(cells.length === widths.length, "every cell is written in a width of its own");
+    assertStrictEquals(cells.length, widths.length, "every cell is written in a width of its own");
     const aligned = cells.map((cell, column) => cell.padStart(widths[column] ?? 0));
     return `${skillId.padStart(4)}  ${[skillName.padEnd(NAME_WIDTH), ...aligned].join(" ")}`;
 }
@@ -347,7 +347,11 @@ function formatAuraReportSources(rows: readonly SourceRow[]): string[] {
     assert(rows.length <= SKILLS_MAXIMUM, "a report stays inside the register's bound");
     const widths = [6, 8, 9, 7];
     const formatSourceLine = (key: string, cells: readonly string[]): string => {
-        assert(cells.length === widths.length, "every cell is written in a width of its own");
+        assertStrictEquals(
+            cells.length,
+            widths.length,
+            "every cell is written in a width of its own",
+        );
         const aligned = cells.map((cell, column) => cell.padStart(widths[column] ?? 0));
         return [key.padEnd(KEY_WIDTH), ...aligned].join(" ");
     };

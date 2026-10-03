@@ -13,6 +13,7 @@ import {
 import { BUILD_VERSION } from "#/src/build-version.ts";
 import {
     encodeUserscriptBanner,
+    lookupAmbientWaysOut,
     lookupOutboundCalls,
     METADATA_NAME,
     parseDeclaredVersion,
@@ -69,6 +70,39 @@ Deno.test("a reader of the built text flags what would leave the browser", () =>
     );
 });
 
+Deno.test("a way out reached through an object is read as a name in code, and nowhere else", () => {
+    assertEquals(lookupAmbientWaysOut("location.href = to;"), ["location"], "a redirect");
+    assertEquals(lookupAmbientWaysOut("navigator.sendBeacon(to);"), ["navigator"], "a beacon");
+    assertEquals(
+        lookupAmbientWaysOut('document.createElement("img");'),
+        ["<img>"],
+        "a fetching tag",
+    );
+    assertEquals(lookupAmbientWaysOut("const to = `${location.href}`;"), ["location"], "a hole");
+    assertEquals(lookupAmbientWaysOut("const held = new Image();"), ["Image"], "a constructor");
+    const staying = [
+        "const world = page.location.hostname;",
+        'const LOCATION_FIELD = "location";',
+        "// the ambient navigator is somebody else's",
+        "/* location */ const relocation = 1;",
+        'document.createElement("div"); document.createElement(tag);',
+        "const said = `the location ${{ count }.count} times`;",
+        "const quoted = 'a \\' location';",
+    ];
+    for (const code of staying) assertEquals(lookupAmbientWaysOut(code), [], code);
+    assertThrows(
+        () => lookupAmbientWaysOut('const open = "location;'),
+        UserscriptBuildError,
+        "never",
+    );
+    assertThrows(
+        () => requireBundleInBrowser("location.assign(to);"),
+        UserscriptBuildError,
+        "could leave the browser: location",
+        "and a bundle reaching for one is refused, naming it",
+    );
+});
+
 Deno.test("a build writes its version over the constant, and refuses a text without one", () => {
     const said = `const version = "${BUILD_VERSION}"; console.log("${BUILD_VERSION}");`;
     assertEquals(
@@ -85,6 +119,11 @@ Deno.test("the version a build takes by default is the one the configuration dec
     assertThrows(() => parseDeclaredVersion("[]"), DeclaredVersionError, "not a configuration");
     assertThrows(() => parseDeclaredVersion("{}"), DeclaredVersionError, "no version");
     assertThrows(() => parseDeclaredVersion('{"version":""}'), DeclaredVersionError, "empty");
+    assertThrows(
+        () => parseDeclaredVersion('{"version":"0.19.0-dev"}'),
+        DeclaredVersionError,
+        "no release",
+    );
 });
 
 Deno.test("the file that would be installed carries the banner and no way out", async () => {
@@ -94,6 +133,7 @@ Deno.test("the file that would be installed carries the banner and no way out", 
     assertStringIncludes(built, "// @version      1.2.3", "at the version it was built for");
     assert(!built.includes(BUILD_VERSION), "and the panel below says it, not the development one");
     assertEquals(lookupOutboundCalls(built), [], "and nothing in it can leave the browser");
+    assertEquals(lookupAmbientWaysOut(built), [], "not even through an object the page carries");
     assertStringIncludes(built, "startMargoMeter", "the entry is in there beneath it");
     assert(
         built.length < PUBLISHED_BYTES_MAXIMUM,

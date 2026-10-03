@@ -58,6 +58,8 @@ const CELL_OPENER = "| ";
 const CELL_SEPARATOR = "|";
 const BACKTICK = "`";
 const KEY_SEPARATOR = " | ";
+/** A kind row a level under a person: the unnamed pair's, and the unnamed cut's. */
+const NESTED_KIND = "        kind    ";
 /** The side the announcement paragraph counts, as the roster numbers it. */
 const SIDE_COUNTED = 2;
 
@@ -270,6 +272,18 @@ Deno.test("a recording walked row by row names whom each level was opened from",
     assert(
         !lines.some((line) => line.includes("--- damageDealt ---")),
         "a screen nobody asked for is not walked",
+    );
+});
+
+Deno.test("a kind row under a person is worded off the row the panel drew", () => {
+    const nested = readCorpus()
+        .flatMap((replayed) => formatDrillReport(replayed, SCREEN_ORDER))
+        .filter((line) => line.startsWith(NESTED_KIND));
+    assert(nested.length > 0, "the corpus walks a kind row under a person");
+    assertEquals(
+        nested.filter((line) => !line.startsWith(`${NESTED_KIND}leaf `)),
+        [],
+        "both levels it stands on are `never` in the register, and the panel draws them so",
     );
 });
 

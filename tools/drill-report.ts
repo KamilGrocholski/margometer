@@ -330,7 +330,7 @@ function addOpenedLevelToTally(
             addCaseToTally(tally, screen, {
                 rung: DRILL_RUNG.pair,
                 row: DRILL_ROW.kind,
-            }, false);
+            }, kind.doesOpenPart);
         }
         if (pair.byElement.noKind !== null) {
             addCaseToTally(tally, screen, {
@@ -519,7 +519,6 @@ function presentUnnamedCut(
     );
 }
 
-/** What the register calls a part, which is the reader's word for it and not the type's. */
 /** The level a part of an opened figure opens onto: people, and the end the protocol left out. */
 function addPartRungToTally(
     tally: DrillTally,
@@ -652,7 +651,8 @@ function formatUnnamedPairLines(
     assertExists(held, "a row that opens has a level under it");
     if (held.opened !== HALF_NAMED_OPENED.person) return lines;
     for (const kind of held.kinds.rows) {
-        lines.push(`        kind    leaf   ${kind.element} ${formatInteger(kind.figure)}`);
+        const opens = kind.doesOpenPart ? OPENS_WORD : LEAF_WORD;
+        lines.push(`        kind    ${opens}  ${kind.element} ${formatInteger(kind.figure)}`);
     }
     return lines;
 }
@@ -670,7 +670,8 @@ function formatUnnamedLines(fight: PanelFight, pinnedCase: PinnedCase): string[]
         if (under === null) continue;
         if (under.opened !== HALF_NAMED_OPENED.person) continue;
         for (const kind of under.kinds.rows) {
-            lines.push(`        kind    leaf   ${kind.element} ${formatInteger(kind.figure)}`);
+            const opens = kind.doesOpenPart ? OPENS_WORD : LEAF_WORD;
+            lines.push(`        kind    ${opens}  ${kind.element} ${formatInteger(kind.figure)}`);
         }
     }
     if (held.neitherEnd !== null) lines.push("      neither end  leaf");

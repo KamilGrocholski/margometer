@@ -11,6 +11,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { encodeJson } from "#/libs/json-text.ts";
 import { formatInteger } from "#/libs/number-text.ts";
 import { getEndOfRun, isWhitespaceAt, lookupQuotedLiteral } from "#/libs/text-walk.ts";
+import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
 import {
     MARGONEM_CHANNEL,
     readCachedBundle,
@@ -30,13 +31,11 @@ const ARGUMENT_SEPARATOR = ",";
 const ROLE = "buff";
 const CALL_OPEN = "(";
 const CALL_CLOSE = ")";
-/** A mask arrives as one integer, so a bit past the thirty-second is not one this reader holds. */
-export const STATUS_BITS_MAXIMUM = 32;
 /**
  * Past the number of places `null` occurs in a bundle, so the walk stays bounded: 3,989 in
  * production `Bb28FQty` and 4,081 in development `CzdTQ32j` (2026-09-27).
  */
-const LOOKS_MAXIMUM = 65_536;
+export const LOOKS_MAXIMUM = 65_536;
 /** Past the distance from an entry's opening bracket to its arguments, for the same reason. */
 const WALK_BACK_MAXIMUM = 256;
 const FROZEN_PATH = "frozen/buff-bits.ts";
@@ -110,6 +109,11 @@ export function requireBuffBits(bundle: string): string[] {
             names.push(name);
         }
         nothingAt = bundle.indexOf(NOTHING_ARGUMENT, nothingAt + 1);
+    }
+    if (nothingAt !== -1) {
+        throw new BuffBitTableError(
+            `more than ${LOOKS_MAXIMUM} places to look — the walk would stop short of the bundle`,
+        );
     }
     if (names.length === 0) {
         throw new BuffBitTableError("no status is registered in the bundle — the client changed");

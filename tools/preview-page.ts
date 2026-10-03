@@ -124,8 +124,8 @@ const SPLIT_SHORT_PIXELS = 780;
 const INSTALL_NEEDS_MAXIMUM = 4;
 /** What a pressed replay runs for, whatever the recording holds; the step falls out of it. */
 const PLAY_SECONDS = 12;
-const PLAY_STEP_MINIMUM_MILLISECONDS = 90;
-const PLAY_STEP_MAXIMUM_MILLISECONDS = 900;
+const PLAY_STEP_MILLISECONDS_MINIMUM = 90;
+const PLAY_STEP_MILLISECONDS_MAXIMUM = 900;
 /** The game's own page colour, read off v0.10.1's picture of the panel in the game: its ground. */
 const MARGONEM_PAGE_COLOUR = "#14171c";
 /** Counted down from the panel's own layer, so the harness never covers the thing under test. */
@@ -622,8 +622,8 @@ ${start}`;
  * shortest recording and 24,4s on the longest (`captures/`, 2026-09-18).
  */
 function composePreviewPicksHandlers(): string {
-    const least = PLAY_STEP_MINIMUM_MILLISECONDS;
-    const most = PLAY_STEP_MAXIMUM_MILLISECONDS;
+    const least = PLAY_STEP_MILLISECONDS_MINIMUM;
+    const most = PLAY_STEP_MILLISECONDS_MAXIMUM;
     assert(least < most, "a step has room between its bounds");
     return `var getPlayStep = function () {
   var entries = PREVIEW.entryCount;

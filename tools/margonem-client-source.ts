@@ -82,7 +82,12 @@ export function readCachedMargonemClientSource(
     channel: MargonemChannel,
 ): CachedMargonemClientSource | null {
     const text = errors.attempt(() => Deno.readTextFileSync(composeManifestPath(channel)));
-    if (text instanceof Error) return null;
+    if (text instanceof Error) {
+        if (text.cause instanceof Deno.errors.NotFound) return null;
+        throw new MargonemClientSourceError(`cache manifest for ${channel} cannot be read`, {
+            cause: text,
+        });
+    }
     const parsed = parseJson(text);
     if (parsed instanceof Error) {
         throw new MargonemClientSourceError(`cache manifest for ${channel} is unreadable`, {
@@ -174,9 +179,7 @@ export async function writeMargonemClientSourceCache(
     const host = CHANNEL_HOSTS[channel];
     const page = await readMargonemWorldPage(channel);
     const build = requireMargonemWorldPageBuild(page);
-    const bundle =
-        await (await readAnsweredResponse(requireMargonemWorldPageBundleAddress(page, host)))
-            .text();
+    const bundle = await readMargonemAnswerText(requireMargonemWorldPageBundleAddress(page, host));
     const directory = `${CACHE_ROOT}${channel}/`;
     Deno.mkdirSync(directory, { recursive: true });
     const bundlePath = `${directory}${BUNDLE_NAME}`;
@@ -194,17 +197,19 @@ export async function writeMargonemClientSourceCache(
 }
 
 async function readMargonemWorldPage(channel: MargonemChannel): Promise<string> {
-    const html = await (await readAnsweredResponse(CHANNEL_HOSTS[channel])).text();
+    const html = await readMargonemAnswerText(CHANNEL_HOSTS[channel]);
     assert(html.length > 0, "a world that answered said something");
     return html;
 }
 
 /**
- * A request and its answer. The network is one of the two boundaries a tool has (E5): a world that
- * is down throws the runtime's own `TypeError`, and a caller that cannot tell that from a page it
- * read would call a reading stale on the strength of somebody else's outage.
+ * A request and the whole of its answer. The network is one of the two boundaries a tool has (E5):
+ * a world that is down throws the runtime's own `TypeError`, and a caller that cannot tell that from
+ * a page it read would call a reading stale on the strength of somebody else's outage.
+ * ⚠️ **The body arrives after the status**, so a connection dropped mid-answer rejects in `text()`,
+ * not in `fetch`, and the boundary holds both.
  */
-async function readAnsweredResponse(address: string): Promise<Response> {
+export async function readMargonemAnswerText(address: string): Promise<string> {
     assert(address.startsWith("https://"), "a world is asked over the protocol it serves");
     let response: Response;
     try {
@@ -213,7 +218,11 @@ async function readAnsweredResponse(address: string): Promise<Response> {
         throw new MargonemUnreachableError(`${address} did not answer`, { cause: failure });
     }
     if (!response.ok) throw new MargonemUnreachableError(`${address} answered ${response.status}`);
-    return response;
+    try {
+        return await response.text();
+    } catch (failure) {
+        throw new MargonemUnreachableError(`${address} broke off its answer`, { cause: failure });
+    }
 }
 
 /** The build a world is serving right now. */

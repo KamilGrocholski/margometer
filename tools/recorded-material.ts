@@ -154,10 +154,13 @@ export function replayRecordedSteps(fight: RecordedFight): ReplayedStep[] {
     for (const [index, update] of fight.updates.entries()) {
         const record = readPayloadEnvelope(update);
         if (record instanceof Error) {
-            throw new RecordingReadError(`${fight.path}: the envelope refused call ${index}`);
+            throw new RecordingReadError(
+                `${fight.path}: the envelope refused call ${index}, ${record.name}`,
+                { cause: record },
+            );
         }
         const reading = replayRecordedCalls(fight, index + 1);
-        steps.push({ update, record: record, reading });
+        steps.push({ update, record, reading });
     }
     assertStrictEquals(steps.length, fight.updates.length, "every call is a step");
     return steps;

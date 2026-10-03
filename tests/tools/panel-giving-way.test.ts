@@ -15,9 +15,9 @@ import {
     CARD_ANCHOR,
     composeGivingWayShot,
     composeGivingWaySource,
-    DEFAULT_INTO,
     GIVING_WAY_MARKER,
     GIVING_WAY_REGIONS,
+    INTO_DEFAULT,
     PANEL_FILE,
     readGivingWayFlags,
     REGION_ANCHOR,
@@ -94,7 +94,7 @@ Deno.test("the flags a person gives are read, and what is not one is refused", (
             doesShoot: givenFlags.doesShoot,
             into: givenFlags.into,
         },
-        { port: 4190, browser: "/bin/chrome", doesShoot: true, into: DEFAULT_INTO },
+        { port: 4190, browser: "/bin/chrome", doesShoot: true, into: INTO_DEFAULT },
     );
     assertStrictEquals(readGivingWayFlags([]).doesShoot, false, "serving is what it does alone");
     assertThrows(() => readGivingWayFlags(["--port", "four"]), GivingWayError, "not a number");
@@ -108,7 +108,7 @@ Deno.test("the pictures go anywhere but where the READMEs read theirs", () => {
     }
     const beside = readGivingWayFlags(["--into", `${SHOT_DIRECTORY}-giving-way`]);
     assertStrictEquals(beside.into, `${SHOT_DIRECTORY}-giving-way`, "a name beside it is not it");
-    assert(DEFAULT_INTO.startsWith("dist/"), "and by default they go where git carries nothing");
+    assert(INTO_DEFAULT.startsWith("dist/"), "and by default they go where git carries nothing");
 });
 
 /**

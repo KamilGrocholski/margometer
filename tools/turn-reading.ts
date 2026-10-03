@@ -11,7 +11,7 @@
  * are `src/core/`'s. `docs/reading-a-turn.md` carries the register and what it does not claim.
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { formatInteger } from "#/libs/number-text.ts";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
@@ -202,7 +202,7 @@ function composeMessageReadingsOfStep(
             tables: DECODER_TABLES,
         };
         const decoded = decodePayloadMessages([message], context);
-        const turn = readMessageTurn(decoded.events, standing);
+        const turn = replayMessageTurn(decoded.events, standing);
         const parsed = parseProtocolMessage(message);
         const keys = parsed instanceof Error
             ? []
@@ -237,7 +237,7 @@ function composeMessageReadingsOfStep(
 }
 
 /** What one message's events came to under the rule, and the standing they leave for the next. */
-function readMessageTurn(events: readonly BattleEvent[], standing: TurnStanding): MessageTurn {
+function replayMessageTurn(events: readonly BattleEvent[], standing: TurnStanding): MessageTurn {
     const turn: MessageTurn = {
         standing,
         openerId: null,
@@ -253,9 +253,9 @@ function readMessageTurn(events: readonly BattleEvent[], standing: TurnStanding)
             // Read the opener's key where a declaration opened it, as the turn clock reads it.
             {
                 if (event.kind === BATTLE_EVENT.declaration) {
-                    assert(event.declared.length > 0, "a declaration states something");
-                    turn.openerKey = lookupDeclarationOpenerKey(event) ??
-                        event.declared[0]?.effect ?? null;
+                    const key = lookupDeclarationOpenerKey(event);
+                    assertExists(key, "a declaration opens a turn only on a key the clock names");
+                    turn.openerKey = key;
                 } else turn.openerKey = null;
             }
             turn.openerKind = event.kind;
@@ -286,7 +286,10 @@ function composeKeysAddingTurn(
     for (const key of new Set(parameters.map((parameter) => parameter.key))) {
         const kept = parameters.filter((parameter) => parameter.key !== key);
         const without = encodeProtocolMessage({ ...parsed, parameters: kept });
-        const opened = readMessageTurn(decodePayloadMessages([without], context).events, standing);
+        const opened = replayMessageTurn(
+            decodePayloadMessages([without], context).events,
+            standing,
+        );
         if (opened.openerId !== openerId) adding.push(key);
     }
     assert(adding.length <= parameters.length, "a message adds no more keys than it carried");

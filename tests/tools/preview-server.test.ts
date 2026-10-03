@@ -255,6 +255,7 @@ Deno.test("the flags are read by walking them, and one nobody reads is refused",
         { port: 4173, fight: null, fromPaths: ["x"], shouldOpenFabricated: true },
         "and `--fabricated` taking no value, so the flag after it is still read as one",
     );
+    assertThrows(() => readPreviewFlags(["--port", "x"]), PreviewServeError, "--port x");
     assertThrows(() => readPreviewFlags(["--site"]), PreviewServeError, "--site");
     assertThrows(() => readPreviewFlags(["--nothing", "x"]), PreviewServeError, "--nothing");
 });

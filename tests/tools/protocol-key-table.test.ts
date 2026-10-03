@@ -6,13 +6,15 @@
  * lifted from the client's own switch, and keys the server sent during real fights.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
 import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 import { ProtocolKeyTableError } from "#/tools/margometer-tool-error.ts";
 import {
+    CASE_LABELS_MAXIMUM,
     FROZEN_KEY_BANNER,
+    LOOKS_MAXIMUM,
     requireComputedKeyFamily,
     requireProtocolKeys,
 } from "#/tools/protocol-key-table.ts";
@@ -68,6 +70,43 @@ Deno.test("a bundle this no longer recognises stops, rather than shortening the 
         () => requireProtocolKeys("e.manageBattleEffects(t);switch(q[0]){default:f()}"),
         ProtocolKeyTableError,
         "case labels",
+    );
+});
+
+Deno.test("a switch past the labels the walk looks at is refused, and one at them is read", () => {
+    const labelling = (count: number) => {
+        const labels = Array.from({ length: count }, (_, label) => `case"k${label}":b();`);
+        return `e.manageBattleEffects(t);switch(q[0]){${labels.join("")}}`;
+    };
+    assertStrictEquals(
+        requireProtocolKeys(labelling(CASE_LABELS_MAXIMUM)).length,
+        CASE_LABELS_MAXIMUM,
+        "every label at the bound",
+    );
+    assertThrows(
+        () => requireProtocolKeys(labelling(CASE_LABELS_MAXIMUM + 1)),
+        ProtocolKeyTableError,
+        "stop short",
+        "one past it, which a walk returning what it had would have frozen a key short",
+    );
+});
+
+Deno.test("a search past the places it looks is refused rather than answered as absent", () => {
+    const tails = (count: number) => `x.manageBattleEffects(t);${"a[0]);".repeat(count)}`;
+    assertThrows(() => requireProtocolKeys(tails(LOOKS_MAXIMUM)), ProtocolKeyTableError, "found");
+    assertThrows(
+        () => requireProtocolKeys(tails(LOOKS_MAXIMUM + 1)),
+        ProtocolKeyTableError,
+        "stop short",
+        "the switch, one place past the bound",
+    );
+    const heads = (count: number) => "default:".repeat(count);
+    assertThrows(() => requireComputedKeyFamily(heads(LOOKS_MAXIMUM)), ProtocolKeyTableError, "no");
+    assertThrows(
+        () => requireComputedKeyFamily(heads(LOOKS_MAXIMUM + 1)),
+        ProtocolKeyTableError,
+        "stop short",
+        "and a shape, one place past it",
     );
 });
 

@@ -21,7 +21,8 @@ import {
 } from "#/src/core/aura-standing.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
-import { MargonemUnreachableError, SkillTableError } from "./margometer-tool-error.ts";
+import { readMargonemAnswerText } from "./margonem-client-source.ts";
+import { SkillTableError } from "./margometer-tool-error.ts";
 
 export interface CachedSkillTable {
     url: string;
@@ -212,7 +213,10 @@ function encodeFrozenSkills(skills: readonly SkillReading[]): string {
 /** Null where nothing is cached, which is a state and not a failure. */
 export function readCachedSkillTable(): CachedSkillTable | null {
     const text = errors.attempt(() => Deno.readTextFileSync(`${CACHE_ROOT}${MANIFEST_NAME}`));
-    if (text instanceof Error) return null;
+    if (text instanceof Error) {
+        if (text.cause instanceof Deno.errors.NotFound) return null;
+        throw new SkillTableError("the skill manifest cannot be read", { cause: text });
+    }
     const parsed = parseJson(text);
     if (parsed instanceof Error) {
         throw new SkillTableError("the skill manifest is not JSON", { cause: parsed });
@@ -238,7 +242,14 @@ export function requireSkillsOfMargonemApi(html: string): SkillReading[] {
     assert(rows.length <= ROWS_MAXIMUM, "the page stays inside its stated bound");
     for (const row of rows.slice(1)) {
         const cells = parseRowCells(row);
-        if (cells.length !== COLUMNS.length) continue;
+        if (cells.length === 0) continue;
+        if (cells.length !== COLUMNS.length) {
+            throw new SkillTableError(
+                `a row of ${formatInteger(cells.length)} columns where the table serves ${
+                    formatInteger(COLUMNS.length)
+                }`,
+            );
+        }
         const id = parseInteger((cells[IDENTITY_COLUMN] ?? "").trim());
         if (id === null) continue;
         skills.push({ id, effects: parseCellEffects(cells[EFFECTS_COLUMN] ?? "") });
@@ -328,8 +339,8 @@ export function composeAuraSkills(
 /**
  * A shout's value in front of the `@` is a count of characters rather than a share. The turns are
  * the longest stated; the coverage the fewest, because the panel does not know the caster's level
- * and may only rely on what holds at every one. Measured 2026-09-08: both skills state 3 turns at
- * all ten levels, and a coverage rising from 6 to 10.
+ * and may only rely on what holds at every one. What the page comes to is `shouts` in
+ * `frozen/aura-turns.ts`.
  */
 export function composeShoutSkills(
     skills: readonly SkillReading[],
@@ -352,7 +363,7 @@ export function composeShoutSkills(
 
 /**
  * What the table grants beyond a skill's own attack: the fewest at any level, for the reason a
- * shout's coverage is. Measured 2026-09-12: three of 226 skills state it, one value each.
+ * shout's coverage is. The skills stating it are `frozen/blows-granted.ts`.
  */
 export function composeGrantedBlows(
     skills: readonly SkillReading[],
@@ -370,17 +381,7 @@ export function composeGrantedBlows(
 
 /** The page fetched and kept under `.cache/`, beside the date it was fetched on. */
 export async function writeSkillTableCache(): Promise<CachedSkillTable> {
-    let response: Response;
-    // The network, which is `tools/`'s own boundary (E5).
-    try {
-        response = await fetch(SKILLS_ADDRESS);
-    } catch (cause) {
-        throw new MargonemUnreachableError(`${SKILLS_ADDRESS} did not answer`, { cause });
-    }
-    if (!response.ok) {
-        throw new MargonemUnreachableError(`${SKILLS_ADDRESS} answered ${response.status}`);
-    }
-    const html = await response.text();
+    const html = await readMargonemAnswerText(SKILLS_ADDRESS);
     const pagePath = `${CACHE_ROOT}${PAGE_NAME}`;
     Deno.mkdirSync(CACHE_ROOT, { recursive: true });
     Deno.writeTextFileSync(pagePath, html);
