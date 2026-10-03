@@ -1148,6 +1148,19 @@ Deno.test("an id announced with no name is unread, because nothing can put it on
     assertEquals(getOnlyUnread(decode(["1=50.00;0;skillId=239"])), ["skillId"], "the id alone");
 });
 
+Deno.test("an id that is no number is unread, and the name beside it still announces", () => {
+    const events = decode(["1=50.00;2=40.00;tspell=Cios;skillId=x1"]);
+    const unread = events.find((event) => event.kind === BATTLE_EVENT.unknownMessage);
+    assertStrictEquals(unread?.kind, BATTLE_EVENT.unknownMessage, "the message is marked");
+    assertEquals(unread.unreadKeys, ["skillId"], "on the id it could not read");
+    const numbered = decode(["1=50.00;2=40.00;tspell=Cios;skillId=239"]);
+    assertEquals(
+        numbered.filter((event) => event.kind === BATTLE_EVENT.unknownMessage),
+        [],
+        "while an id that is a number leaves nothing unread",
+    );
+});
+
 Deno.test("what an announcement states stands on it, and on no declaration beside it", () => {
     const events = decode([DECLARED_ON_SKILL]);
     const kinds = events.map((event) => event.kind);

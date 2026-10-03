@@ -10,6 +10,7 @@
 import { assert } from "@std/assert/assert";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
+import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
 import { CHARGE_BROKEN_KEY } from "./protocol-key.ts";
 
 /** Charging, or one of the two ends the protocol names. The other endings state nothing. */
@@ -39,10 +40,11 @@ export interface ChargedSkillStanding {
 }
 
 /**
- * Past every charge the corpus has held at once, which is **one**, in every payload of every
- * recording, 2026-09-11. A clamp rather than a bound: a fight holding more draws the first of them.
+ * One charge a combatant: a new one replaces the mark the last one left, so the most that can stand
+ * at once is one each, and the envelope states no more combatants than this. The corpus has held
+ * **one** at once, in every payload of every recording, 2026-09-11.
  */
-export const CHARGED_SKILLS_MAXIMUM = 4;
+export const CHARGED_SKILLS_MAXIMUM = COMBATANTS_MAXIMUM;
 
 /**
  * What stands after this payload: every charge the envelope states, and every one that ended under
@@ -86,7 +88,6 @@ export function prepareChargedSkills(
     for (const statement of statements) {
         const charging = composeChargingStanding(statement);
         if (charging === null) continue;
-        if (standingsNow.length >= CHARGED_SKILLS_MAXIMUM) break;
         standingsNow.push(charging);
     }
     assert(

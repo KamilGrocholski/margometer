@@ -5153,6 +5153,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `sideHealByEvent` — `src/core/fight-figures.ts`
 - `skill` — `src/core/aura-standing.ts`, `src/core/fight-decoder.ts`
 - `skillFigures` — `src/core/fight-statistics.ts`
+- `skillId` — `src/core/fight-decoder.ts`
 - `skillNames` — `src/core/charged-skill.ts`
 - `skillNamesByActorId` — `src/core/charged-skill.ts`
 - `skills` — `src/core/fight-statistics.ts`
@@ -7487,7 +7488,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `nowhere` — `tests/runtime/shelf.test.ts`
 - `number` — `tests/repository/decisions.test.ts`
 - `numberBefore` — `tests/ui/level-drawn.test.ts`
-- `numbered` — `tests/ports/recorded-session.test.ts`, `tests/repository/changelog.test.ts`
+- `numbered` — `tests/core/fight-decoder.test.ts`, `tests/ports/recorded-session.test.ts`,
+  `tests/repository/changelog.test.ts`
 - `numbers` — `tests/repository/documents.test.ts`
 - `object` — `tests/repository/name-register.test.ts`
 - `objections` — `tests/tools/panel-shots.test.ts`
@@ -7589,7 +7591,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `parts` — in 9 files: `tests/`
 - `pass` — `tests/repository/name-register.test.ts`
 - `passed` — `tests/ports/margonem-client-build.test.ts`
-- `past` — in 11 files: `tests/`
+- `past` — in 10 files: `tests/`
 - `pastBound` — `tests/runtime/shelf.test.ts`
 - `pastTheMonth` — `tests/ui/panel-words.test.ts`
 - `path` — in 30 files: `tests/`
@@ -9133,7 +9135,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `tests/`
 
-- `_` — in 18 files: `tests/`
+- `_` — in 19 files: `tests/`
 - `_key` — `tests/ui/card-window.test.ts`
 - `_name` — `tests/runtime/margometer-runtime.test.ts`
 - `_playwright` — `tests/e2e/panel-fixture.ts`
@@ -9201,6 +9203,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `changedNode` — `tests/repository/purity.test.ts`
 - `channels` — `tests/ui/panel-look.test.ts`
 - `character` — in 4 files: `tests/`
+- `charge` — `tests/ui/panel-helper.test.ts`
 - `chargedSkill` — `tests/core/fight-session.test.ts`, `tests/ui/panel-helper.test.ts`
 - `child` — in 6 files: `tests/`
 - `children` — `tests/fake-document.ts`
@@ -9220,7 +9223,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `columns` — `tests/ui/card-window.test.ts`
 - `combatant` — in 10 files: `tests/`
 - `combatantFigures` — `tests/tools/fabricated-fight.test.ts`
-- `combatantId` — in 9 files: `tests/`
+- `combatantId` — in 8 files: `tests/`
 - `combatantIndex` — `tests/ui/panel-content.test.ts`
 - `comparison` — `tests/core/health-witness.test.ts`
 - `compose` — `tests/ui/card-window.test.ts`
@@ -12096,7 +12099,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `legendaryBonuses` — `tests/ui/panel-card.test.ts`, `tests/ui/panel-content.test.ts`
 - `legendaryBonusesReached` — `tests/ui/panel-card.test.ts`
 - `legendaryStandings` — `tests/core/aura-standing.test.ts`
-- `length` — in 18 files: `tests/`
+- `length` — in 19 files: `tests/`
 - `level` — in 19 files: `tests/`
 - `lifted` — `tests/tools/margonem-readings.test.ts`
 - `lightings` — `tests/tools/aura-lifetime.test.ts`

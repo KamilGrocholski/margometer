@@ -131,8 +131,7 @@ export interface HelperContent {
  */
 export const PROVOKED_MAXIMUM = COMBATANTS_MAXIMUM;
 /**
- * The bound `core/charged-skill.ts` already clamps to, past every charge the corpus has ever held
- * at once, which is one.
+ * The bound `core/charged-skill.ts` asserts: one charge a combatant.
  *
  * Every row this window draws carries a card, so the band joins the arithmetic
  * `tests/ui/share-bound.test.ts` holds the card register to (`develop ADR 0100`).

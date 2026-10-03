@@ -6,7 +6,7 @@
  * charge at nothing elapsed is a boundary and has one turn beside it.
  */
 
-import { assertEquals, assertStrictEquals } from "@std/assert";
+import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import {
     CHARGED_SKILL_STATE,
@@ -137,19 +137,13 @@ Deno.test("a new charge replaces the mark the last one left", () => {
     assertStrictEquals(again[0]?.state, "charging", "rather than standing beside it");
 });
 
-Deno.test("more charges than the bound states are clamped rather than refused", () => {
+Deno.test("every combatant on a board may charge at once, and one past the board is a bug", () => {
     const atBound = prepareChargedSkills([], chargingMany(CHARGED_SKILLS_MAXIMUM), [], 10);
     assertStrictEquals(atBound.length, CHARGED_SKILLS_MAXIMUM, "every charge up to the bound");
-    const past = prepareChargedSkills([], chargingMany(CHARGED_SKILLS_MAXIMUM + 1), [], 10);
-    assertStrictEquals(
-        past.length,
-        CHARGED_SKILLS_MAXIMUM,
-        "the band draws what it stated it would",
-    );
-    assertEquals(
-        past.map((standing) => standing.combatantId),
-        atBound.map((standing) => standing.combatantId),
-        "and the ones it draws are the first the envelope stated",
+    assertThrows(
+        () => prepareChargedSkills([], chargingMany(CHARGED_SKILLS_MAXIMUM + 1), [], 10),
+        AssertionError,
+        "what stands now stays inside it too",
     );
 });
 

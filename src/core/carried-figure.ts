@@ -119,7 +119,6 @@ function lookupCastsOverBearer(
     assert(bearer.turnsTaken >= 0, "and a count of turns never runs backwards");
     const castsOverBearer: AuraStanding[] = [];
     for (const aura of auras) {
-        if (castsOverBearer.length >= SOURCES_MAXIMUM) break;
         if (aura.amountByKey.get(key) === undefined) continue;
         const caster = roster.byId.get(aura.casterId);
         if (caster === undefined) continue;
@@ -130,6 +129,7 @@ function lookupCastsOverBearer(
         if (turnsElapsed < 0) continue;
         if (turnsElapsed < aura.turnsStated) castsOverBearer.push(aura);
     }
+    assert(castsOverBearer.length <= SOURCES_MAXIMUM, "a bearer is reached by a bounded few casts");
     return castsOverBearer;
 }
 

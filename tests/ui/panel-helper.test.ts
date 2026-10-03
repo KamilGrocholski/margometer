@@ -15,6 +15,7 @@ import type { TurnStatement } from "#/src/core/fight-session.ts";
 import { lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
 import { SIDE_RELATION } from "#/src/ui/panel-content.ts";
 import {
+    CHARGED_ROWS_MAXIMUM,
     presentHelper,
     PROVOKED_MAXIMUM,
     STANDING_TURN_STATE,
@@ -351,22 +352,36 @@ Deno.test("a character shouted at before they have moved is held, at none of the
 
 /**
  * A probe for **W4**: nothing above made ready more than one blow at once, so the band's own
- * bound moved to one with nothing going red. Four is past every charge the corpus has held at
- * once, and past what `src/core/charged-skill.ts` clamps to; **W5** puts the row at it beside the
- * row past it.
+ * bound moved with nothing going red. The bound is one charge a combatant, which is what
+ * `src/core/charged-skill.ts` asserts; **W5** puts the row at it beside the row past it.
  */
 Deno.test("the band stops at its stated maximum, and one at it is stated whole", () => {
-    const charges = [11, 12, 21, 11, 12].map((combatantId, index) =>
-        composeCharge({ combatantId, skillName: `Cios ${index}` })
+    const charges = Array.from(
+        { length: CHARGED_ROWS_MAXIMUM + 1 },
+        (_, index) =>
+            composeCharge({
+                combatantId: [11, 12, 21][index % 3] ?? 11,
+                skillName: `Cios ${index}`,
+            }),
     );
     const over = presentHelper([], charges, ROSTER, OURS, composeTurn(null));
     assertEquals(
         over.chargedSkills.map((chargedSkill) => chargedSkill.skillName),
-        ["Cios 0", "Cios 1", "Cios 2", "Cios 3"],
+        charges.slice(0, CHARGED_ROWS_MAXIMUM).map((charge) => charge.skillName),
         "past it, the rest are dropped, in the order the fight named them",
     );
-    const atMaximum = presentHelper([], charges.slice(0, 4), ROSTER, OURS, composeTurn(null));
-    assertStrictEquals(atMaximum.chargedSkills.length, 4, "at it, all of them");
+    const atMaximum = presentHelper(
+        [],
+        charges.slice(0, CHARGED_ROWS_MAXIMUM),
+        ROSTER,
+        OURS,
+        composeTurn(null),
+    );
+    assertStrictEquals(
+        atMaximum.chargedSkills.length,
+        CHARGED_ROWS_MAXIMUM,
+        "at it, all of them",
+    );
     const nameless = presentHelper(
         [],
         [composeCharge({ skillName: "" })],

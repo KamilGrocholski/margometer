@@ -539,10 +539,14 @@ function addValuedKey(
             );
             return true;
         }
-        case KEY_FAMILY.skillId:
-            parametersDecoded.skillId = parseInteger(valueText);
+        case KEY_FAMILY.skillId: {
+            // Read the skill's id: one that is no number goes unread, never an id of nobody's.
+            const skillId = parseInteger(valueText);
+            if (skillId === null) return false;
+            parametersDecoded.skillId = skillId;
             parametersDecoded.skillKeysRead += 1;
             return true;
+        }
         case KEY_FAMILY.outcome:
             return addParameterRead(
                 parametersDecoded.outcomes,
