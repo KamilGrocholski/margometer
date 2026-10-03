@@ -157,6 +157,7 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: null, here: ".MargoMeter-card.card-wide" },
     { develop: null, here: ".card-columns" },
     { develop: null, here: ".card-column" },
+    { develop: null, here: ".card-column+.card-column" },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];

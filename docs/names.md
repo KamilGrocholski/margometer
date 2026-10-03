@@ -5494,7 +5494,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `before` — `src/ui/panel-element.ts`
 - `belowRows` — `src/ui/panel-look.ts`
 - `beside` — `src/ui/panel-drag.ts`
-- `between` — `src/ui/panel-element.ts`
+- `between` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
 - `bigger` — `src/ui/panel-content.ts`
 - `block` — `src/ui/panel-element.ts`
 - `body` — `src/ui/panel-element.ts`, `src/ui/panel-words.ts`
