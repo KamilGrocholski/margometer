@@ -77,6 +77,7 @@ const CARD_OTHER_KEYS = [
     "legendaryHeld",
     "legendaryReached",
     "scope",
+    "insideSection",
     "gesture",
     "gestureBack",
     "gestureBackAnywhere",

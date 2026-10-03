@@ -104,6 +104,7 @@ function tallyCardHeight(
         // gesture line. Measured without one it would be a card the panel never draws.
         doesOpen: true,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     });
     const size = tallyCardSize(reading, TYPE_STEP_DEFAULT);

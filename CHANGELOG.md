@@ -43,6 +43,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   te działające przez całą walkę, jak Fasada opieki, są wymienione bez liczby.
 - **Nowość** — Pod nią sekcja „Otrzymane bonusy legendarne” pokazuje cudze bonusy, które trafiły w
   tę postać — na przykład ile razy dostała Klątwę.
+- **Nowość** — Dymki „Nieznany sprawca”, „Nieznany cel” i „Bez podanego typu” oraz wierszy pod nimi
+  mówią na każdym poziomie, czego gra nie podała, a u rozwiniętej postaci też, gdzie ta część jest
+  policzona i z czego się składa.
 - **Zmiana** — Dymek, który nie mieści się w oknie, rozkłada się na dwie kolumny, zamiast chować
   swoje ostatnie sekcje.
 - **Zmiana** — W opcjach pod ⚙ główne okno nazywa się teraz „Licznik”, obok „Pomocnika”.

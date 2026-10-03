@@ -16,6 +16,7 @@ import {
     CAVEAT_MARK,
     formatUnknownKeyRowSuspicion,
     getNoteForCaveat,
+    getNoteForUnnamedEnd,
     PANEL_WORDS,
     SUSPECT_MARK,
 } from "#/src/ui/panel-words.ts";
@@ -122,6 +123,7 @@ Deno.test("the whole fight is a block of its own, and the screen's figure is in 
         metric: PANEL_METRIC.damageTaken,
         doesOpen: true,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     });
     assertEquals(card.name, "Hildur Muza Śmierci", "the name in full");
@@ -206,6 +208,7 @@ Deno.test("a figure before reduction stands in its own run, under no figure", ()
         metric: PANEL_METRIC.damageTaken,
         doesOpen: false,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     });
     const [figures, , striking, struck] = card.groups;
@@ -266,6 +269,7 @@ function readCardOf(detail: RowDetail): string[] {
         metric: PANEL_METRIC.damageTaken,
         doesOpen: false,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     }).groups.flatMap(readGroup);
 }
@@ -338,6 +342,7 @@ Deno.test("the card says what they did when they struck, and what held when they
         metric: PANEL_METRIC.damageTaken,
         doesOpen: true,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     });
     const [, , striking, struck] = card.groups;
@@ -388,6 +393,7 @@ Deno.test("the legendary bonuses stand in a run of their own, the held ones in a
             metric: PANEL_METRIC.damageTaken,
             doesOpen: false,
             isRowNarrower: false,
+            unnamedNote: null,
             // Nobody to ask: every bonus is named in our words (ADR 0030).
             translate: null,
         });
@@ -437,6 +443,7 @@ Deno.test("somebody else's bonuses stand in a run of their own, by their counts"
         metric: PANEL_METRIC.damageTaken,
         doesOpen: false,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     });
     const lines = card.groups.map(readGroup);
@@ -462,6 +469,7 @@ Deno.test("somebody else's bonuses stand in a run of their own, by their counts"
         metric: PANEL_METRIC.damageTaken,
         doesOpen: false,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     }).groups.map(readGroup);
     assert(
@@ -483,6 +491,7 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
         metric: PANEL_METRIC.damageDealt,
         doesOpen: false,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     }).subtitle;
     assertEquals(subtitleOf("b", 41), "Tancerz ostrzy (41)", "both, in one line and in that order");
@@ -538,6 +547,7 @@ Deno.test("a key nothing here words is drawn as the player's own client names it
             metric: PANEL_METRIC.damageDealt,
             doesOpen: false,
             isRowNarrower: false,
+            unnamedNote: null,
             translate,
         }).groups.flatMap((group) => readGroup(group));
     assert(
@@ -572,6 +582,7 @@ Deno.test("a combatant the fight never touched states the figure that was asked,
             metric,
             doesOpen: false,
             isRowNarrower: false,
+            unnamedNote: null,
             translate: null,
         });
     const card = presentUntouchedCard(PANEL_METRIC.damageDealt);
@@ -603,6 +614,7 @@ Deno.test("a part of a figure is drawn from the first point of it, and never bel
                 metric: PANEL_METRIC.damageDealt,
                 doesOpen: false,
                 isRowNarrower: false,
+                unnamedNote: null,
                 translate: null,
             }).groups[0] ?? { lines: [] },
         );
@@ -627,6 +639,7 @@ Deno.test("a card says the gaps that name its own person, and no others", () => 
             metric: PANEL_METRIC.healthRestored,
             doesOpen: false,
             isRowNarrower: false,
+            unnamedNote: null,
             translate: null,
         });
         return card.groups.flatMap((group) => group.lines);
@@ -661,6 +674,7 @@ Deno.test("a card states both of the gaps that can name one person, widest first
         metric: PANEL_METRIC.healthGiven,
         doesOpen: false,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     });
     const notes = card.groups.at(-1);
@@ -680,6 +694,7 @@ Deno.test("a card on a damage screen says nothing about a cast, which puts back 
         metric: PANEL_METRIC.damageDealt,
         doesOpen: false,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     });
     const said = card.groups.flatMap((group) => readGroup(group)).filter((line) =>
@@ -703,6 +718,7 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
             metric,
             doesOpen: false,
             isRowNarrower: false,
+            unnamedNote: null,
             translate: null,
         }).groups.map(readGroup);
     const [firstScreen, ...rest] = SCREEN_ORDER.map(readScreen);
@@ -770,6 +786,7 @@ Deno.test("a run that came to nothing is not drawn, and neither is its heading",
             metric: PANEL_METRIC.damageDealt,
             doesOpen: false,
             isRowNarrower: false,
+            unnamedNote: null,
             translate: null,
         }).groups.flatMap(readGroup).filter((line) => line.startsWith("["));
     assertEquals(
@@ -814,6 +831,7 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
             metric: PANEL_METRIC.damageDealt,
             doesOpen: true,
             isRowNarrower,
+            unnamedNote: null,
             translate: null,
         }).groups.flatMap(readGroup);
     assertEquals(
@@ -833,6 +851,42 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
     );
 });
 
+/**
+ * A person standing under an end the game left out says so on their own card, before the scope:
+ * the scope answers for every figure above it, and this for the row's own (ADR 0034).
+ */
+Deno.test("a card under an end left out says which, before its figures are called the fight's", () => {
+    const note = getNoteForUnnamedEnd("actor", "damage");
+    const notesOf = (unnamedNote: string | null) =>
+        presentCard({
+            name: "Gracz 9",
+            profession: null,
+            sideRelation: SIDE_RELATION.nobody,
+            detail: { ...NOBODY, unreadMessagesUnknownKey: 1 },
+            metric: PANEL_METRIC.damageDealt,
+            doesOpen: true,
+            isRowNarrower: true,
+            unnamedNote,
+            translate: null,
+        }).groups.flatMap(readGroup);
+    assertEquals(
+        notesOf(note),
+        [
+            `[${CARD_WORDS.wholeFight}]`,
+            "**Zadane** 0",
+            `${SUSPECT_MARK}${formatUnknownKeyRowSuspicion(1)}`,
+            note,
+            CARD_WORDS.scope,
+            CARD_WORDS.gesture,
+        ],
+        "after the suspicions and before the scope",
+    );
+    assert(
+        !notesOf(null).includes(note),
+        "and under a figure both ends of which were named, never",
+    );
+});
+
 Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", () => {
     const critical = (blowsCritical: number, blowsStruck: number) =>
         presentCard({
@@ -843,6 +897,7 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
             metric: PANEL_METRIC.damageDealt,
             doesOpen: false,
             isRowNarrower: false,
+            unnamedNote: null,
             translate: null,
         }).groups.flatMap((group) => readGroup(group)).filter((line) =>
             line.startsWith(CARD_WORDS.blowsCritical)
@@ -876,6 +931,7 @@ Deno.test("a card nobody is named on says so, rather than standing on a blank", 
         metric: PANEL_METRIC.damageDealt,
         doesOpen: false,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     });
     assertEquals(card.name, PANEL_WORDS.unknown, "in the word the panel already has for it");
@@ -901,6 +957,7 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
         metric: PANEL_METRIC.damageDealt,
         doesOpen: false,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     });
     const [, counters, striking] = card.groups;
@@ -940,6 +997,7 @@ function readStrikingProcs(procs: readonly { key: string; figure: number }[]): s
         metric: PANEL_METRIC.damageDealt,
         doesOpen: false,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     });
     const [, , striking] = card.groups;
@@ -1029,6 +1087,7 @@ Deno.test("the card says how many turns a combatant took, and only where they to
         metric: PANEL_METRIC.damageDealt,
         doesOpen: true,
         isRowNarrower: false,
+        unnamedNote: null,
         translate: null,
     };
     const readTurnLines = (detail: RowDetail): string[] =>

@@ -2546,6 +2546,11 @@ Deno.test("an end an opened figure left out opens onto that person's own keys", 
         "under the key it moved with, and nothing on it opens",
     );
     assertEquals(held.kinds.noKind, null, "the keys come to the whole of it");
+    assertEquals(
+        drill.byOtherEnd.halfNamed?.kinds,
+        held.kinds,
+        "and the row's card states the very cut the level under it draws",
+    );
     const poisonLevel = presentPartLevel(statistics, roster, metric, struck, {
         kind: OPENED_PART.element,
         element: "poison",
@@ -2555,6 +2560,11 @@ Deno.test("an end an opened figure left out opens onto that person's own keys", 
         poisonLevel.byOtherEnd.halfNamed?.doesOpenPair,
         false,
         "but its end left out stays shut",
+    );
+    assertEquals(
+        poisonLevel.byOtherEnd.halfNamed?.kinds,
+        null,
+        "and its card states no kinds, because none are kept for it",
     );
     assertEquals(
         presentUnnamedPairLevel(statistics, roster, metric, striker),
@@ -2609,6 +2619,11 @@ Deno.test("the other two ends left out open onto keys as well, and healing given
         assertExists(held, `${metric}: onto a level`);
         assert(held.opened === HALF_NAMED_OPENED.person, `${metric}: of their own keys`);
         assertEquals(held.case, pinnedCase, `${metric}: of the figure that end belongs to`);
+        assertEquals(
+            drill.byOtherEnd.halfNamed?.kinds?.rows.map((kind) => [kind.element, kind.figure]),
+            [[key, figure]],
+            `${metric}: and the row's card states the same keys`,
+        );
         assertEquals(
             held.kinds.rows.map((kind) => [kind.element, kind.figure]),
             [[key, figure]],

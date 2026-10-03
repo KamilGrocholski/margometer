@@ -566,15 +566,18 @@ ADR 0100.**
 and names nobody — that is what the row is — but the two lines every leaf gets are not an answer to
 what a reader is looking at. Under the ranking it says three things: what the game did not state,
 whether the figure is already counted in the list above it, and — only where a side is showing —
-what the shown team is to it. Inside an opened figure and under an opened part it says the first
-alone: the other two are about a ranking and a side, and neither level has one. **develop
-ADR 0038.**
+what the shown team is to it. Inside an opened figure and under an opened part it says the first,
+that it is inside the figure over its section, and which row under the list holds it too — never the
+side, because neither level is narrowed by one. Every row standing under a pinned one says the first
+as well, a person's card before the sentence about the fight's figures, and a `no kind` row says no
+kind was stated for it. **develop ADR 0038**, ADR 0034.
 
-**And under the ranking it also states what that figure was dealt with**, in a run of its own
+**And under the ranking it also states what that figure was dealt with**, as it does inside an
+opened figure wherever the level under it is kept and never under a part, in a run of its own
 between the figure and the sentences: the same rows the level under the row draws, ranked the same
 way and worded by the same table, so the card is that level seen early rather than a second reading
 of it. What will not fit on the card is summed into one line rather than dropped, because a run
-short of the figure over it is a run that misstates it. **develop ADR 0041.**
+short of the figure over it is a run that misstates it. **develop ADR 0041**, ADR 0034.
 
 **Both runs stand, on every screen, each under the heading naming its end.** The run about striking
 states what the protocol stated before reduction, the criticals as a share of the blows struck, what

@@ -57,6 +57,7 @@ import {
     getCaveatForUnannounced,
     getDirectionWordsForMetric,
     getNoteForCaveat,
+    getNoteForNoKind,
     getNoteForUnnamedEnd,
     getWordsForCardMetric,
     getWordsForChargedSkill,
@@ -64,6 +65,7 @@ import {
     getWordsForHealthSource,
     getWordsForNothing,
     getWordsForNoun,
+    getWordsForOpenedUnnamedStanding,
     getWordsForOutcome,
     getWordsForPin,
     getWordsForPinnedScope,
@@ -245,6 +247,13 @@ function getSentences(): string[] {
     for (const pinnedCase of PINNED_CASES) {
         sentences.push(getWordsForPinnedStanding(pinnedCase));
         sentences.push(getWordsForPinnedScope(pinnedCase));
+    }
+    // The same rows one level down, and the row no kind was stated for: keyed tables again.
+    for (const metric of SCREEN_ORDER) {
+        sentences.push(getWordsForOpenedUnnamedStanding(metric) ?? "");
+    }
+    for (const noun of PANEL_NOUNS) {
+        sentences.push(getNoteForNoKind(noun));
     }
     // The sentence each caveated figure owes, for the same reason: `CAVEAT_NOTES` is keyed by the
     // caveat and no walk over a table above reaches it.

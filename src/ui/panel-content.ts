@@ -523,6 +523,11 @@ export interface OtherEndCut {
 /** The end the protocol left out of an opened figure, which opens onto that person's own keys. */
 export interface OpponentUnnamedRow extends UnnamedRow {
     doesOpenPair: boolean;
+    /**
+     * What the figure was dealt with, and null wherever the level under the row is not kept: the
+     * card states it only as that level seen early (ADR 0034).
+     */
+    kinds: ElementCut | null;
 }
 
 export interface ElementCut {
@@ -2085,13 +2090,13 @@ function getTotalFromCut(cut: FigureCut): number {
  *
  * That row opens where the level under it, `unnamedOpened`, totals it and nowhere else: the
  * statistics assert the half-named balance over a fight and not per person. Over `captures/` on
- * 2026-09-29 it did in 64 rows of 64.
+ * 2026-09-29 it did in 64 rows of 64. Its card states that level's kinds on the same condition.
  */
 function composeOpponentCut(
     cut: FigureCut,
     statistics: FightStatistics,
     roster: CombatantRoster,
-    totals: { figure: number; unnamedOpened: number | null },
+    totals: { figure: number; unnamedOpened: { total: number; kinds: ElementCut } | null },
     doesOpen: (otherId: number) => boolean,
 ): OtherEndCut {
     const total = totals.figure;
@@ -2116,6 +2121,7 @@ function composeOpponentCut(
     if (unnamed > 0) figures.push(unnamed);
     const shares = formatSharesApportioned(figures, total);
     const largest = getLargestFigure(figures);
+    const keptKinds = totals.unnamedOpened?.total === unnamed ? totals.unnamedOpened.kinds : null;
     return {
         rows: stated.map((row, rowIndex) => ({
             ...row,
@@ -2129,7 +2135,8 @@ function composeOpponentCut(
                 figure: unnamed,
                 fill: getBarFill(unnamed, largest),
                 shareText: shares[stated.length] ?? "",
-                doesOpenPair: totals.unnamedOpened === unnamed,
+                doesOpenPair: keptKinds !== null,
+                kinds: keptKinds,
             }
             : null,
     };
@@ -2376,7 +2383,12 @@ export function presentOpenedLevel(
         cuts.byOtherEnd,
         statistics,
         roster,
-        { figure: total, unnamedOpened: unnamedOpened?.total ?? null },
+        {
+            figure: total,
+            unnamedOpened: unnamedOpened?.opened === HALF_NAMED_OPENED.person
+                ? unnamedOpened
+                : null,
+        },
         (otherId) => getPairTotal(figures, metric, otherId) !== null,
     );
     const byElement = cuts.byElement === null

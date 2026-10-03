@@ -148,6 +148,7 @@ import {
     formatWholeUngrouped,
     getCaveatForUnannounced,
     getNoteForCaveat,
+    getNoteForNoKind,
     getNoteForUnnamedEnd,
     getSubWordsForBlowKey,
     getWordsForBlowKey,
@@ -159,6 +160,7 @@ import {
     getWordsForHelperAbsence,
     getWordsForLegendaryBonus,
     getWordsForNothing,
+    getWordsForOpenedUnnamedStanding,
     getWordsForOutcome,
     getWordsForPin,
     getWordsForPinnedScope,
@@ -207,8 +209,9 @@ interface RowCard {
     figure: string;
     share: string | null;
     /**
-     * What a row with nobody behind it owes beyond its own figure: what the game did not say, and
-     * where the figure stands against the list. `src/ui/panel-words.ts` writes them.
+     * What a row with nobody behind it, or one standing under an end the game left out, owes beyond
+     * its own figure: what the game did not say, and where the figure stands against the list.
+     * `src/ui/panel-words.ts` writes them.
      */
     notes?: readonly string[] | undefined;
     /**
@@ -270,6 +273,8 @@ interface CardPlace {
     metric: PanelMetric;
     translate: TranslateLabel | null;
     isRowNarrower: boolean;
+    /** What the game left out of the figure the row stands under, and null under a named one. */
+    unnamedNote: string | null;
     /** Null where the client named no side of its own, and the card then names none either. */
     readerSide: number | null;
 }
@@ -606,6 +611,11 @@ interface CardSubject {
      * `CARD_WORDS.scope` is what the card then owes the reader.
      */
     isRowNarrower: boolean;
+    /**
+     * Which end the game left out of the figure the row stands under, as the sentence saying so,
+     * and null under a figure both of whose ends it named (ADR 0034).
+     */
+    unnamedNote: string | null;
     /** Asked only for a key this repository has no word for. Null on a page with no game on it. */
     translate: TranslateLabel | null;
 }
@@ -1658,6 +1668,7 @@ function renderListLevel(
             metric: shown.metric,
             translate,
             isRowNarrower: true,
+            unnamedNote: null,
             readerSide: shown.readerSide,
         };
         const person = {
@@ -1674,14 +1685,15 @@ function renderListLevel(
         if (partLevel.byOtherEnd.halfNamed === null) return list;
         // The end the protocol left out of a blow this part carried: it is inside
         // the figure over the level, so the column comes to a hundred with it and
-        // falls short without it.
+        // falls short without it. No cut of a part by the end it left out is
+        // kept, so its card states no run of kinds.
         const end = getUnnamedEndForMetric(shown.metric);
         const card = {
             register,
             key: "reached:nobody",
             figure,
             share,
-            notes: [getNoteForUnnamedEnd(end, getNounForMetric(shown.metric))],
+            notes: formatOpenedUnnamedNotes(shown.metric),
         };
         const rowContent = presentUnnamedRow(
             partLevel.byOtherEnd.halfNamed,
@@ -1753,6 +1765,10 @@ function renderListLevel(
         // and the panel goes no deeper.
         const unnamedCut = shown.unnamedCut;
         const figure = getWordsForMetric(shown.metric);
+        const unnamedNote = getNoteForUnnamedEnd(
+            getEndForPinned(unnamedCut.case),
+            getNounForMetric(shown.metric),
+        );
         if (unnamedCut.opened === HALF_NAMED_OPENED.element) {
             const rows = unnamedCut.rows.length + (unnamedCut.neitherEnd === null ? 0 : 1);
             const list = renderListContainer(
@@ -1767,6 +1783,7 @@ function renderListLevel(
                 doesOpen: false,
                 register,
                 translate: null,
+                unnamedNote,
             });
             return list;
         }
@@ -1780,6 +1797,7 @@ function renderListLevel(
             register,
             figure,
             total: unnamedCut.total,
+            unnamedNote,
         });
         return list;
     }
@@ -1798,18 +1816,21 @@ function renderListLevel(
         );
         const heading = getWordsForHalfNamedCut(unnamed.end);
         list.append(renderSection(document, heading, unnamed.total));
+        const unnamedNote = getNoteForUnnamedEnd(unnamed.end, getNounForMetric(shown.metric));
         renderHalfNamedRows(document, list, shown, {
             rows: unnamed.rows,
             neither: unnamed.neitherEnd,
             doesOpen: true,
             register,
             translate,
+            unnamedNote,
         });
         renderElementSection(document, list, unnamed.kinds, {
             metric: shown.metric,
             register,
             figure: getWordsForMetric(shown.metric),
             total: unnamed.total,
+            unnamedNote,
         });
         return list;
     }
@@ -1833,6 +1854,7 @@ function renderListLevel(
                 metric: shown.metric,
                 translate,
                 isRowNarrower: true,
+                unnamedNote: null,
                 readerSide: shown.readerSide,
             };
             if (cut.rows.length + (cut.halfNamed === null ? 0 : 1) > 0) {
@@ -1859,17 +1881,16 @@ function renderListLevel(
             }
             if (cut.halfNamed !== null) {
                 const end = getUnnamedEndForMetric(shown.metric);
+                // No side sentence: this level is one person's figure, which no
+                // side narrows (ADR 0034).
+                const kinds = cut.halfNamed.kinds;
                 const card = {
                     register,
                     key: "to:nobody",
                     figure,
                     share,
-                    // What the game did not say, and only that: where this figure
-                    // stands is answered by the heading over it — a cut of the one
-                    // person's figure.
-                    notes: [
-                        getNoteForUnnamedEnd(end, getNounForMetric(shown.metric)),
-                    ],
+                    notes: formatOpenedUnnamedNotes(shown.metric),
+                    cut: kinds === null ? undefined : presentKindCutParts(kinds, shown.metric),
                 };
                 const rowContent = presentUnnamedRow(
                     cut.halfNamed,
@@ -1922,6 +1943,7 @@ function renderListLevel(
                     register,
                     figure,
                     key: "skill:rest",
+                    unnamedNote: null,
                 });
             }
         }
@@ -1930,6 +1952,7 @@ function renderListLevel(
             register,
             figure,
             total: opened.total,
+            unnamedNote: null,
         });
         if (opened.total === 0) {
             list.append(renderEmptyNote(document, getWordsForNothing(shown.metric)));
@@ -1957,6 +1980,7 @@ function renderListLevel(
             metric,
             translate,
             isRowNarrower: false,
+            unnamedNote: null,
             readerSide: shown.readerSide,
         },
         place: personContext,
@@ -2005,7 +2029,7 @@ function renderPinnedRows(
                     figure: stated.figure,
                     share: PANEL_WORDS.share,
                     notes: formatPinnedNotes(row, stated.metric, stated.isSideChosen),
-                    cut: presentPinnedCutParts(row, stated.metric),
+                    cut: presentKindCutParts(row.kinds, stated.metric),
                 };
                 const rowContent = presentUnnamedRow(row, getWordsForUnnamedRow(row.end));
                 const mark = { attribute: PANEL_MARK.unnamed, stated: row.end };
@@ -2705,6 +2729,7 @@ function composePersonCard(
             metric: cardContext.metric,
             doesOpen,
             isRowNarrower: cardContext.isRowNarrower,
+            unnamedNote: cardContext.unnamedNote,
             translate: cardContext.translate,
         });
 }
@@ -2882,6 +2907,21 @@ function composeCutPlace(shown: ShownScreen): PersonPlace {
 }
 
 /**
+ * What the end an opened figure left out says: which end the game did not state, that the part is
+ * inside the figure over its section, and which row under the list holds it too. No side: one
+ * person's figure is the same whichever is showing (ADR 0034).
+ */
+function formatOpenedUnnamedNotes(metric: PanelMetric): string[] {
+    const notes = [
+        getNoteForUnnamedEnd(getUnnamedEndForMetric(metric), getNounForMetric(metric)),
+        CARD_WORDS.insideSection,
+    ];
+    const standing = getWordsForOpenedUnnamedStanding(metric);
+    if (standing !== null) notes.push(standing);
+    return notes;
+}
+
+/**
  * Which end an opened figure's cut left out. It follows the **direction** and not the screen: a
  * given screen names no receiver, a received one names nobody who did it. One copy, because the
  * two levels that draw such a row were spelling the same rule two ways.
@@ -2962,6 +3002,7 @@ function renderHalfNamedRows(
         doesOpen: boolean;
         register: CardRegister;
         translate: TranslateLabel | null;
+        unnamedNote: string;
     },
 ): void {
     const { rows, neither, doesOpen, register, translate } = stated;
@@ -2973,6 +3014,7 @@ function renderHalfNamedRows(
         metric: shown.metric,
         translate,
         isRowNarrower: true,
+        unnamedNote: stated.unnamedNote,
         readerSide: shown.readerSide,
     };
     const person = {
@@ -3008,9 +3050,17 @@ function renderElementSection(
     document: PanelDocument,
     list: PanelElement,
     cut: ElementCut,
-    stated: { metric: PanelMetric; register: CardRegister; figure: string; total: number },
+    stated: {
+        metric: PanelMetric;
+        register: CardRegister;
+        figure: string;
+        total: number;
+        /** Said by every row of a cut standing under an end the game left out. */
+        unnamedNote: string | null;
+    },
 ): void {
     if (countElementCutRows(cut) === 0) return;
+    const unnamedNotes = stated.unnamedNote === null ? [] : [stated.unnamedNote];
     list.append(renderSection(document, getWordsForKindCut(stated.metric), stated.total));
     const noun = getNounForMetric(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
@@ -3020,6 +3070,7 @@ function renderElementSection(
             key: `kind:${row.element}`,
             figure: stated.figure,
             share,
+            notes: unnamedNotes,
         };
         const openedPart = { kind: OPENED_PART.element, element: row.element };
         list.append(
@@ -3035,9 +3086,16 @@ function renderElementSection(
         register: stated.register,
         figure: stated.figure,
         key: "kind:rest",
+        unnamedNote: stated.unnamedNote,
     });
     if (cut.noKind === null) return;
-    const card = { register: stated.register, key: "kind:nobody", figure: stated.figure, share };
+    const card = {
+        register: stated.register,
+        key: "kind:nobody",
+        figure: stated.figure,
+        share,
+        notes: [getNoteForNoKind(noun), ...unnamedNotes],
+    };
     const rowContent = presentUnnamedRow(cut.noKind, PANEL_WORDS.withoutKind);
     list.append(renderRow(document, rowContent, null, card));
 }
@@ -3068,15 +3126,17 @@ function renderRestRow(
     document: PanelDocument,
     list: PanelElement,
     rest: PlainRow | UnnamedRow | null,
-    stated: { register: CardRegister; figure: string; key: string },
+    stated: { register: CardRegister; figure: string; key: string; unnamedNote: string | null },
 ): void {
     if (rest === null) return;
+    const notes: string[] = [PANEL_WORDS.restNote];
+    if (stated.unnamedNote !== null) notes.push(stated.unnamedNote);
     const card = {
         register: stated.register,
         key: stated.key,
         figure: stated.figure,
         share: PANEL_WORDS.shareOfFigure,
-        notes: [PANEL_WORDS.restNote],
+        notes,
     };
     const rowContent = presentUnnamedRow(rest, PANEL_WORDS.restOfKinds);
     list.append(renderRow(document, rowContent, null, card));
@@ -3186,18 +3246,20 @@ function formatPinnedNotes(row: PinnedRow, metric: PanelMetric, isSideChosen: bo
 }
 
 /**
- * What a pinned figure was dealt with, stated on the card before anybody presses the row: the same
- * rows the level under it draws, in the same order, worded by the same table. `develop ADR 0041`.
+ * What a half-named figure was dealt with, stated on the card before anybody presses the row: the
+ * same rows the level under it draws, in the same order, worded by the same table. A pinned row
+ * and the end an opened figure left out both draw it, the second only where that level is kept.
+ * `develop ADR 0041`, ADR 0034.
  *
  * What will not fit is summed rather than dropped, so the run always comes to the figure over it.
  */
-function presentPinnedCutParts(row: PinnedRow, metric: PanelMetric): RowCardCut {
-    // Every key is written where the figure is, so a pinned figure's kinds come to the whole of it
-    // and this run needs no row for a shortfall (`src/core/fight-statistics.ts`,
+function presentKindCutParts(kinds: ElementCut, metric: PanelMetric): RowCardCut {
+    // Every key is written where the figure is, so a half-named figure's kinds come to the whole of
+    // it and this run needs no row for a shortfall (`src/core/fight-statistics.ts`,
     // `develop ADR 0039`).
     const parts: Array<{ label: string; stated: string }> = [];
     let rest = 0;
-    for (const [kindIndex, kindRow] of row.kinds.rows.entries()) {
+    for (const [kindIndex, kindRow] of kinds.rows.entries()) {
         if (kindIndex < CARD_CUT_PARTS_MAXIMUM) {
             parts.push({
                 label: getWordsForNamedPart(
@@ -4346,6 +4408,11 @@ function presentCardNoteLines(subject: CardSubject, groups: readonly CardGroup[]
             text: `${SUSPECT_MARK}${suspicion}`,
             tone: CARD_NOTE_TONE.suspect,
         });
+    }
+    // Before the scope: it says what the row's own figure left out, and the scope answers for
+    // every figure above it.
+    if (subject.unnamedNote !== null) {
+        lines.push({ kind: CARD_LINE.note, text: subject.unnamedNote, tone: CARD_NOTE_TONE.plain });
     }
     // Last of the sentences and before the instruction, because it answers for every figure above
     // it rather than for one of them.

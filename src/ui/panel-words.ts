@@ -268,8 +268,8 @@ const CARD_METRIC_WORDS: Record<PanelMetric, string> = {
 /**
  * **The limit, and never our reason for it** (**L3**): a reader is told what cannot be known from
  * what the game sent, not that a decoder of ours found no end to charge. The fourth is drawn by no
- * pinned row — `healthGiven` states no target to leave out — and stands because the same sentence
- * rides the rows inside an opened figure, where the end follows the direction.
+ * row at all — a heal is always written with whoever received it — and stands so that the table is
+ * keyed by every end and noun, as every table here is.
  */
 const UNNAMED_END_NOTES: Record<PanelUnnamedEnd, Record<PanelNoun, string>> = {
     actor: {
@@ -322,6 +322,28 @@ const PINNED_SCOPE_NOTES: Record<PinnedCase, string> = {
 };
 
 /**
+ * Which row under the list holds the end an opened figure left out, by the screen it is opened on.
+ * Named by the label a reader sees on it: `przypięte` already means the shelf's kept fights.
+ * `healthGiven` is null because a heal is always written with whoever received it, so that screen
+ * draws no such row (ADR 0034).
+ */
+const OPENED_UNNAMED_STANDING_NOTES: Record<PanelMetric, string | null> = {
+    damageDealt:
+        `W obrażeniach otrzymanych ta część stoi osobno, w wierszu „${PANEL_WORDS.withoutTarget}” pod listą.`,
+    damageTaken:
+        `Pod listą ta część jest też w wierszu „${PANEL_WORDS.withoutActor}”, razem z resztą takich obrażeń.`,
+    healthGiven: null,
+    healthRestored:
+        `Pod listą ta część jest też w wierszu „${PANEL_WORDS.withoutActor}”, razem z resztą takiego leczenia.`,
+};
+
+/** What a `no kind` row is, by the noun of the figure it closes. */
+const NO_KIND_NOTES: Record<PanelNoun, string> = {
+    damage: "Gra nie mówi, jakiego typu były te obrażenia.",
+    healing: "Gra nie mówi, od czego było to leczenie.",
+};
+
+/**
  * ⚠️ **It says nothing about what the game did or did not state, and that is the point.** It
  * covers two ways of having no end at all — a name matching nobody in the roster, or nothing
  * stated at either end — and a sentence naming one would be false of the other.
@@ -371,6 +393,11 @@ export const CARD_WORDS = {
     struck: "W ciosach przyjętych",
     /** Said only where the row under the card states a narrower figure than the card does. */
     scope: "Liczby z całej walki.",
+    /**
+     * Said by the end left out of an opened figure: the section over it comes to a hundred with
+     * that row, and a reader adding up the rest is otherwise left a part short.
+     */
+    insideSection: "Ta część jest wliczona w sumę nad sekcją — bez niej udziały nie dałyby 100%.",
     /**
      * A heading over a run of parts and **never a sum of them**: points of armour and percentage
      * points of resistance stand under it, and one number over both would be two quantities
@@ -956,6 +983,16 @@ export function getWordsForCardMetric(metric: PanelMetric): string {
 
 export function getNoteForUnnamedEnd(end: PanelUnnamedEnd, noun: PanelNoun): string {
     const words = UNNAMED_END_NOTES[end][noun];
+    return words;
+}
+
+export function getWordsForOpenedUnnamedStanding(metric: PanelMetric): string | null {
+    const words = OPENED_UNNAMED_STANDING_NOTES[metric];
+    return words;
+}
+
+export function getNoteForNoKind(noun: PanelNoun): string {
+    const words = NO_KIND_NOTES[noun];
     return words;
 }
 

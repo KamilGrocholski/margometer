@@ -101,6 +101,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0031-somebody-elses-legendary-bonuses-stand-on-the-card-of-whoever-they-reached.md`          | somebody else's bonuses stand on the card of whoever they reached, under whose they were                     |
 | `docs/adr/0032-the-card-counts-the-legendary-bonuses-that-reached-its-combatant-and-names-no-giver.md` | the card counts the bonuses that reached its combatant, and names no giver                                   |
 | `docs/adr/0033-a-card-too-tall-for-the-window-stands-in-two-columns.md`                                | a card too tall for the window stands in two columns before it gives up a run                                |
+| `docs/adr/0034-every-row-under-an-end-left-out-says-so-at-every-level.md`                              | every row under an end the game left out says so at every level, with its kinds where they are kept          |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

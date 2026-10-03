@@ -33,6 +33,7 @@ import {
     presentPairLevel,
     presentPartLevel,
     presentScreen,
+    presentUnnamedCutLevel,
     presentUnnamedLevel,
     presentUnnamedPairLevel,
     type ScreenContent,
@@ -62,11 +63,14 @@ import {
     formatUndrawn,
     getCaveatForUnannounced,
     getNoteForCaveat,
+    getNoteForNoKind,
     getNoteForUnnamedEnd,
     getWordsForCardMetric,
     getWordsForDamageKind,
     getWordsForHealthSource,
     getWordsForNothing,
+    getWordsForNoun,
+    getWordsForOpenedUnnamedStanding,
     getWordsForOutcome,
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
@@ -765,20 +769,28 @@ Deno.test("a pinned row opens onto the end the game did name, under its own head
 });
 
 /**
- * The same sentence one level down, and only that one: the other two are about a ranking and a
- * side, and a row inside somebody's own figure stands under neither.
+ * What the pinned row says, one level down, worded for a level about one person: what was left
+ * out, that it is inside the figure over the section, and which row under the list holds it too.
+ * Never the side sentence, because no side narrows one person's figure (ADR 0034).
  */
-Deno.test("an end left out inside an opened figure says what was left out, and no more", () => {
+Deno.test("an end left out inside an opened figure says what was left out, and where it stands", () => {
     const { reading, drill } = openFirstRow();
     const document = composeFakeDocument();
     const panel = initTestView(document);
     panel.render({
         ...composeShownScreen(reading),
+        side: "reader" as const,
         opened: {
             ...drill,
             byOtherEnd: {
                 ...drill.byOtherEnd,
-                halfNamed: { figure: 120, fill: 0.1, shareText: "<1%", doesOpenPair: false },
+                halfNamed: {
+                    figure: 120,
+                    fill: 0.1,
+                    shareText: "<1%",
+                    doesOpenPair: false,
+                    kinds: null,
+                },
             },
         },
     });
@@ -795,11 +807,19 @@ Deno.test("an end left out inside an opened figure says what was left out, and n
     assertEquals(unnamedCell.attributes.get("data-unnamed"), undefined, "so it carries no mark");
     pointAtElement(host, "pointermove", unnamedCell, 300);
     const card = readCard(host);
+    const standing = getWordsForOpenedUnnamedStanding("damageDealt");
+    assertExists(standing, "a dealing screen says which row under the list holds it");
+    assertStringIncludes(standing, PANEL_WORDS.withoutTarget, "the row for the same end");
     assertEquals(
         card.notes,
-        [getNoteForUnnamedEnd("target", "damage")],
-        "one sentence, and it is the one about what the game did not say",
+        [getNoteForUnnamedEnd("target", "damage"), CARD_WORDS.insideSection, standing],
+        "what the game did not say, that the section counts it, and where else it stands",
     );
+    assert(
+        !card.notes.includes(getWordsForPinnedScope("takenWithNoTarget")),
+        "never the side sentence: a level about one person is narrowed by no side",
+    );
+    assertEquals(card.headings, [], "and no run of kinds where no level under it is kept");
 });
 
 function openFirstRow() {
@@ -820,6 +840,87 @@ function openFirstRow() {
 }
 
 /**
+ * Where the level under it is kept, the card states that level's kinds before the press, as the
+ * pinned row does: the same rows, worded by the same table (ADR 0034, `develop ADR 0041`).
+ */
+Deno.test("an end left out inside an opened figure states its kinds where the level under it is kept", () => {
+    const { reading, statistics, roster } = readPinnedFight("damageTaken");
+    const opened = reading.rows
+        .map((row) => presentOpenedLevel(statistics, roster, "damageTaken", row.combatantId))
+        .find((drill) => drill?.byOtherEnd.halfNamed?.doesOpenPair === true);
+    assertExists(opened, "somebody on the screen lost health nobody was named for");
+    const halfNamed = opened.byOtherEnd.halfNamed;
+    assertExists(halfNamed, "and the row for it is drawn");
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading, "damageTaken"), opened });
+    const card = readCardByKey(panel.element as FakeElement, "to:nobody");
+    assertEquals(card.headings, [PANEL_WORDS.damageKind], "the card heads the run it draws");
+    assertEquals(card.groups, 3, "the figure, what it was made of, and the sentences");
+    const standing = getWordsForOpenedUnnamedStanding("damageTaken");
+    assertExists(standing, "a receiving screen says which row under the list holds it");
+    assertStringIncludes(standing, PANEL_WORDS.withoutActor, "the row for the same end");
+    assertArrayIncludes(card.notes, [standing], "and the card says it");
+    const kinds = halfNamed.kinds?.rows ?? [];
+    assert(kinds.length > 0, "the level under the row holds kinds");
+    const said = card.stated.filter((line) => line.isSub);
+    assertEquals(
+        said.map((line) => line.label),
+        kinds.map((kind) => getWordsForDamageKind(kind.element)),
+        "one line per kind, in the order the level under the row draws them",
+    );
+    assertEquals(
+        said.map((line) => line.value),
+        kinds.map((kind) => `${formatFigure(kind.figure)} (${kind.shareText})`),
+        "each stating the figure and the share that level states for it",
+    );
+    const total = kinds.reduce((sum, kind) => sum + kind.figure, 0);
+    assertEquals(total, halfNamed.figure, "and the run comes to the figure over it");
+});
+
+/** The card a row opens, read off the row drawn under the given key. */
+function readCardByKey(host: FakeElement, key: string): ReturnType<typeof readCard> {
+    const cell = getElementsWithin(host).find((drawn) => drawn.attributes.get("data-card") === key);
+    assertExists(cell, `the row carded ${key} is drawn`);
+    pointAtElement(host, "pointermove", cell, 300);
+    return readCard(host);
+}
+
+/** A part keeps no cut by the end it left out, so its card says the sentences and states no run. */
+Deno.test("an end left out under an opened part says where it stands, and states no kinds", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading),
+        opened: drill,
+        part: {
+            part: { kind: "plain" as const },
+            total: 120,
+            byOtherEnd: {
+                rows: [],
+                halfNamed: {
+                    figure: 120,
+                    fill: 1,
+                    shareText: "100%",
+                    doesOpenPair: false,
+                    kinds: null,
+                },
+            },
+        },
+    });
+    const card = readCardByKey(panel.element as FakeElement, "reached:nobody");
+    const standing = getWordsForOpenedUnnamedStanding("damageDealt");
+    assertExists(standing, "a dealing screen says which row under the list holds it");
+    assertEquals(
+        card.notes,
+        [getNoteForUnnamedEnd("target", "damage"), CARD_WORDS.insideSection, standing],
+        "the same three sentences as inside the opened figure",
+    );
+    assertEquals(card.headings, [], "and no run of kinds");
+});
+
+/**
  * Where the level under it totals it, the same row opens, and it is pressed as a pinned row is: by
  * the end it leaves out, from any cell of it.
  */
@@ -834,7 +935,13 @@ Deno.test("an end left out inside an opened figure is pressed by that end, from 
             ...drill,
             byOtherEnd: {
                 ...drill.byOtherEnd,
-                halfNamed: { figure: 120, fill: 0.1, shareText: "<1%", doesOpenPair: true },
+                halfNamed: {
+                    figure: 120,
+                    fill: 0.1,
+                    shareText: "<1%",
+                    doesOpenPair: true,
+                    kinds: null,
+                },
             },
         },
     });
@@ -890,12 +997,104 @@ Deno.test("an end left out inside an opened figure opens onto its keys, and back
         [],
         "and nothing on it opens",
     );
+    const [firstKind] = under.kinds.rows;
+    assertExists(firstKind, "the level holds a key");
+    assertEquals(
+        readCardByKey(host, `kind:${firstKind.element}`).notes,
+        [getNoteForUnnamedEnd("actor", "damage")],
+        "and each key says the game did not name who dealt it",
+    );
     assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.withoutActor], "it says what");
     assertEquals(
         getTextsByClass(host, "crumb-back").map((crumb) => crumb.includes(opened.name ?? "")),
         [true],
         "and the way back names the person it was opened from",
     );
+});
+
+/**
+ * Every row under a row naming nobody stands under that same absence, so each says it — a person's
+ * card before the sentence about the fight's figures, a key's beside the instruction (ADR 0034).
+ */
+Deno.test("every row under a pinned row says which end the game left out", () => {
+    const { reading, statistics, roster } = readPinnedFight("damageDealt");
+    const pinned = reading.pinned[0];
+    assertExists(pinned, "this fight pins a figure");
+    const halfNamed = presentUnnamedLevel(statistics, roster, pinned.case, "everyone", null);
+    assertExists(halfNamed, "which opens onto a level");
+    const [person] = halfNamed.rows;
+    const [kind] = halfNamed.kinds.rows;
+    assertExists(person, "the level lists somebody");
+    assertExists(kind, "and a key");
+    const note = getNoteForUnnamedEnd("actor", "damage");
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading),
+        unnamed: {
+            ...halfNamed,
+            kinds: {
+                ...halfNamed.kinds,
+                rest: { figure: 10, fill: 0.1, shareText: "<1%" },
+            },
+        },
+    });
+    const host = panel.element as FakeElement;
+    const personNotes = readCardByKey(host, `named:${person.combatantId}`).notes;
+    assertEquals(
+        personNotes.slice(personNotes.indexOf(note)),
+        [note, CARD_WORDS.scope, CARD_WORDS.gesture],
+        "a person says it, then that the card's figures are the fight's, then that it opens",
+    );
+    assertEquals(
+        readCardByKey(host, `kind:${kind.element}`).notes,
+        [note, CARD_WORDS.gesture],
+        "a key says it, and that it opens",
+    );
+    assertEquals(
+        readCardByKey(host, "kind:rest").notes,
+        [PANEL_WORDS.restNote, note],
+        "and the keys summed past the bound say it after what they are",
+    );
+
+    const cut = presentUnnamedCutLevel(statistics, roster, pinned.case, "everyone", null, {
+        kind: "element",
+        element: kind.element,
+    });
+    assertExists(cut, "a key opens onto its own people");
+    assert(cut.opened === "element", "listed person by person");
+    const [carrier] = cut.rows;
+    assertExists(carrier, "and somebody carries it");
+    panel.render({ ...composeShownScreen(reading), unnamed: halfNamed, unnamedCut: cut });
+    const carrierNotes = readCardByKey(host, `named:${carrier.combatantId}`).notes;
+    assertEquals(
+        carrierNotes.slice(carrierNotes.indexOf(note)),
+        [note, CARD_WORDS.scope],
+        "a person on the third level says it too, and opens nothing",
+    );
+});
+
+/** The rows of a figure both ends of which the game named carry none of it. */
+Deno.test("no row inside an opened figure says an end was left out but the row that stands for it", () => {
+    const { reading, drill } = openFirstRow();
+    const [opponent] = drill.byOtherEnd.rows;
+    const [kind] = drill.byElement.rows;
+    assertExists(opponent, "the opened figure reached somebody");
+    assertExists(kind, "and was dealt with something");
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading), opened: drill });
+    const host = panel.element as FakeElement;
+    const notes = [
+        ...readCardByKey(host, `to:${opponent.combatantId}`).notes,
+        ...readCardByKey(host, `kind:${kind.element}`).notes,
+    ];
+    for (const end of Object.values(UNNAMED_END)) {
+        assert(
+            !notes.includes(getNoteForUnnamedEnd(end, "damage")),
+            `none says the ${end} is unknown`,
+        );
+    }
 });
 
 Deno.test("the fight is totalled in two figures, and a suspicion is said under them", () => {
@@ -1483,6 +1682,44 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
     assertEquals(named[named.length - 1], PANEL_WORDS.withoutKind, "drawn last, under the kinds");
     const figures = getTextsByClass(host, `${CLASS.rowValue} ${CLASS.figure}`);
     assertEquals(figures[figures.length - 1], "140", "at what fell outside every kind");
+    assertEquals(
+        readCardByKey(host, "kind:nobody").notes,
+        [getNoteForNoKind("damage")],
+        "its card says the game named no kind, and nothing about an end it did name",
+    );
+    assertStringIncludes(
+        getNoteForNoKind("damage"),
+        getWordsForNoun("damage").toLowerCase(),
+        "in the words of damage",
+    );
+});
+
+/** The other noun's sentence, on a figure built for it: a key restoring health is not a kind. */
+Deno.test("a part of healing no key was stated for says so in the healing's words", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading, "healthRestored"),
+        opened: {
+            ...drill,
+            byElement: {
+                rows: [],
+                rest: null,
+                noKind: { figure: 140, fill: 0.1, shareText: "<1%" },
+            },
+        },
+    });
+    assertEquals(
+        readCardByKey(panel.element as FakeElement, "kind:nobody").notes,
+        [getNoteForNoKind("healing")],
+        "the healing sentence, never the damage one",
+    );
+    assertStringIncludes(
+        getNoteForNoKind("healing"),
+        getWordsForNoun("healing").toLowerCase(),
+        "in the words of healing",
+    );
 });
 
 Deno.test("pressing a row asks to open it, and the way back asks to close it", () => {
