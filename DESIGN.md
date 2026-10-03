@@ -590,6 +590,12 @@ bonus that fired is counted; one held for the whole fight is named once, in a se
 foot, because a count of it would read as that many firings. A combatant holding none has no such
 run. **ADR 0029.**
 
+**Somebody else's bonuses stand in the run after, under the bonus and then under whose it was.** A
+curse a person threw and one thrown at them never share a line: the first is theirs, the second
+names the thrower in a sub-line. Only a bonus that acts on the blow's other end stands there; one
+held for the whole fight does not, because its one message names the first blow of many.
+**ADR 0031.**
+
 **A count a second key narrows is one row, with the narrower count under it.** The row states what
 the mechanic came to and the line below it says how much of that was the narrower thing — the
 criticals with the ones off the auxiliary weapon under them, the deep wounds with the weakened ones.

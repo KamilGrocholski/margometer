@@ -98,6 +98,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0028-a-storage-key-names-the-window-it-keeps.md`                                           | a storage key is `MargoMeter-` and its setting's word, the meter's and the helper's named                    |
 | `docs/adr/0029-the-legendary-bonuses-stand-in-a-run-of-their-own-on-the-card.md`                     | the legendary bonuses are counted on their holder and read in a run of their own on the card                 |
 | `docs/adr/0030-every-legendary-bonus-is-named-in-our-words-from-the-published-help.md`               | every legendary bonus is named by the published help, and the client is asked about none                     |
+| `docs/adr/0031-somebody-elses-legendary-bonuses-stand-on-the-card-of-whoever-they-reached.md`        | somebody else's bonuses stand on the card of whoever they reached, under whose they were                     |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

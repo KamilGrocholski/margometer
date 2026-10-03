@@ -353,6 +353,23 @@ Deno.test("a row carries the legendary bonuses its holder showed in a real fight
         ],
         "every bonus the fight showed, on the row of whoever held it",
     );
+    const reached = reading.rows.flatMap((row) =>
+        row.detail.legendaryBonusesReached.flatMap((bonus) =>
+            bonus.givers.map((giver) =>
+                `${row.name}: ${bonus.key} by ${giver.name} ${giver.figure}`
+            )
+        )
+    );
+    assertEquals(
+        reached.sort(),
+        [
+            "Gracz 4: +legbon_verycrit by Hildur Muza Śmierci 1",
+            "Hildur Muza Śmierci: +legbon_curse by Gracz 8 1",
+            "Hildur Muza Śmierci: +legbon_verycrit by Gracz 3 1",
+            "Hildur Muza Śmierci: +legbon_verycrit by Gracz 8 1",
+        ],
+        "and every one that reached somebody, on that row, under whose it was (ADR 0031)",
+    );
 });
 
 Deno.test("a share is the row against the fight, and the shares come to one", () => {
@@ -3048,7 +3065,7 @@ function composeStatisticsWithSkills(receiverId: number, names: number): FightSt
         sideHealsUnsized: 0,
         sideHealsStated: 0,
         outcome: null,
-        legendaryBonusesByCombatantId: new Map(),
+        legendaryBonuses: { byHolderId: new Map(), byReachedId: new Map() },
     };
 }
 

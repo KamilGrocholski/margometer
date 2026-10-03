@@ -385,6 +385,11 @@ export const CARD_WORDS = {
     legendary: "Bonusy legendarne",
     legendaryHeld: "Przez całą walkę:",
     /**
+     * Somebody else's bonuses, in the run after: each by its name, and under it whose it was. The
+     * word is the one the screens already use for what reached a combatant (ADR 0031).
+     */
+    legendaryReached: "Otrzymane bonusy",
+    /**
      * The instruction a row gives, and it stands wherever pressing leads somewhere —
      * `DESIGN.md` owns that rule. The right press is not named beside it: a reader on the
      * ranking has nowhere to go back to, so a row's card would promise a gesture that does nothing

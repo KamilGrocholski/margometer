@@ -75,6 +75,7 @@ const CARD_OTHER_KEYS = [
     "destroyed",
     "legendary",
     "legendaryHeld",
+    "legendaryReached",
     "scope",
     "gesture",
     "gestureBack",

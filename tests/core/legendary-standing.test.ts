@@ -234,7 +234,7 @@ Deno.test("each legendary bonus is counted on its holder, whichever way the blow
             { effect: "+injure", amount: 40, text: null },
         ],
     };
-    const counts = tallyLegendaryBonuses([blow, composeLastheal(HOLDER)]);
+    const counts = tallyLegendaryBonuses([blow, composeLastheal(HOLDER)]).byHolderId;
     assertEquals(
         [...counts.get(HOLDER) ?? []],
         [["+legbon_verycrit", 1], ["+legbon_puncture", 1], ["legbon_lastheal", 1]],
@@ -250,22 +250,92 @@ Deno.test("each legendary bonus is counted on its holder, whichever way the blow
 
 /** **W5**: nothing is a boundary, and a bonus whose holder the message names nobody at is too. */
 Deno.test("no event counts nothing, and a bonus on an end nobody stands at is nobody's", () => {
-    assertStrictEquals(tallyLegendaryBonuses([]).size, 0, "no events, no holders");
+    assertStrictEquals(tallyLegendaryBonuses([]).byHolderId.size, 0, "no events, no holders");
+    assertStrictEquals(tallyLegendaryBonuses([]).byReachedId.size, 0, "and nobody reached");
     const unheld: BattleEvent = {
         ...composeDeclaringBlow(HOLDER),
         actorId: null,
         procs: ["+legbon_curse"],
     };
     assertStrictEquals(
-        tallyLegendaryBonuses([unheld]).size,
+        tallyLegendaryBonuses([unheld]).byHolderId.size,
         0,
         "and an actor nobody is holds none",
     );
     const twice = tallyLegendaryBonuses([
         composeDeclaringBlow(HOLDER),
         composeDeclaringBlow(HOLDER),
-    ]);
+    ]).byHolderId;
     assertStrictEquals(twice.get(HOLDER)?.get("+legbon_holytouch"), 2, "one blow is one, two two");
+});
+
+/**
+ * A bonus acts on the blow's other end where the help says it does: a curse on whoever was struck,
+ * a glare on whoever struck. One that acts on its holder alone, or stands for the whole fight,
+ * reaches nobody. ADR 0031.
+ */
+Deno.test("a bonus that acts on the other end is counted there, under whose it was", () => {
+    const blow: BattleEvent = {
+        ...composeDeclaringBlow(HOLDER),
+        targetId: SOMEBODY_ELSE,
+        procs: ["+legbon_curse", "-legbon_glare", "-legbon_cleanse"],
+        declared: [
+            { effect: "+legbon_holytouch", amount: null, text: null },
+            { effect: "-legbon_facade", amount: 13, text: null },
+        ],
+    };
+    const reached = tallyLegendaryBonuses([blow, blow]).byReachedId;
+    assertEquals(
+        [...reached.get(SOMEBODY_ELSE)?.get("+legbon_curse") ?? []],
+        [[HOLDER, 2]],
+        "the struck was cursed twice, and by the striker",
+    );
+    assertEquals(
+        [...reached.get(HOLDER)?.get("-legbon_glare") ?? []],
+        [[SOMEBODY_ELSE, 2]],
+        "and the striker was blinded twice, by the struck",
+    );
+    assertEquals(
+        [...reached.get(SOMEBODY_ELSE)?.keys() ?? []],
+        ["+legbon_curse"],
+        "while the touch, the cleanse and the facade reach nobody but their holders",
+    );
+    assertEquals(
+        [...reached.get(HOLDER)?.keys() ?? []],
+        ["-legbon_glare"],
+        "on either end",
+    );
+});
+
+/**
+ * Over every recording each bonus that acts on the other end reached somebody every time it fired:
+ * no blow carrying one left that end unnamed, measured 2026-10-03.
+ */
+Deno.test("the recordings reach somebody with every bonus that acts on the other end", () => {
+    const holderTotals = new Map<string, number>();
+    const reachedTotals = new Map<string, number>();
+    for (const fight of readRecordedFights()) {
+        const tally = tallyRecordedFight(fight.path).statistics.legendaryBonuses;
+        for (const counts of tally.byHolderId.values()) {
+            for (const [key, count] of counts) {
+                if (!lookupLegendaryBonus(key)?.doesReachOtherEnd) continue;
+                holderTotals.set(key, (holderTotals.get(key) ?? 0) + count);
+            }
+        }
+        for (const giversByKey of tally.byReachedId.values()) {
+            for (const [key, countByGiverId] of giversByKey) {
+                for (const count of countByGiverId.values()) {
+                    reachedTotals.set(key, (reachedTotals.get(key) ?? 0) + count);
+                }
+            }
+        }
+    }
+    assert(holderTotals.size > 0, "the recordings carry a bonus that reaches the other end");
+    assertEquals(
+        Object.fromEntries([...reachedTotals].sort()),
+        Object.fromEntries([...holderTotals].sort()),
+        "as many reached as fired, bonus by bonus",
+    );
 });
 
 /**
@@ -277,7 +347,7 @@ Deno.test("the recordings count each legendary bonus as the register states it",
     const totals = new Map<string, number>();
     for (const fight of readRecordedFights()) {
         const statistics = tallyRecordedFight(fight.path).statistics;
-        for (const counts of statistics.legendaryBonusesByCombatantId.values()) {
+        for (const counts of statistics.legendaryBonuses.byHolderId.values()) {
             for (const [key, count] of counts) {
                 totals.set(key, (totals.get(key) ?? 0) + count);
                 const bonus = lookupLegendaryBonus(key);

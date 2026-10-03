@@ -58,6 +58,7 @@ const HILDUR: RowDetail = {
         { key: "resdmg", figure: 26 },
     ],
     legendaryBonuses: [{ key: "-legbon_cleanse", figure: 1 }],
+    legendaryBonusesReached: [],
     unreadMessagesUnknownKey: 0,
     unreadMessagesNoParameter: 0,
     sideHealsUnsized: 0,
@@ -93,6 +94,7 @@ const NOBODY: RowDetail = {
     damageTakenAbsorbedByDefence: [],
     statisticsDestroyed: [],
     legendaryBonuses: [],
+    legendaryBonusesReached: [],
     unreadMessagesUnknownKey: 0,
     unreadMessagesNoParameter: 0,
     sideHealsUnsized: 0,
@@ -413,6 +415,66 @@ Deno.test("the legendary bonuses stand in a run of their own, the held ones in a
         "a holder of nothing but a held bonus still has the run, and no count in it",
     );
     assertEquals(readLegendary([]), [], "and somebody holding none has no run at all");
+});
+
+/**
+ * A curse a combatant threw and a curse thrown at them never share a line: their own stand in the
+ * first run, and somebody else's in the next, each with whose it was. ADR 0031.
+ */
+Deno.test("somebody else's bonuses stand in a run of their own, each under whose it was", () => {
+    const card = presentCard({
+        name: "Gracz 4",
+        profession: "w",
+        sideRelation: SIDE_RELATION.nobody,
+        detail: {
+            ...NOBODY,
+            legendaryBonuses: [{ key: "+legbon_curse", figure: 1 }],
+            legendaryBonusesReached: [
+                {
+                    key: "+legbon_curse",
+                    figure: 3,
+                    givers: [{ name: "Gracz 2", figure: 2 }, { name: "", figure: 1 }],
+                },
+                { key: "-legbon_glare", figure: 1, givers: [{ name: "Gracz 5", figure: 1 }] },
+            ],
+        },
+        metric: PANEL_METRIC.damageTaken,
+        doesOpen: false,
+        isRowNarrower: false,
+        translate: null,
+    });
+    const lines = card.groups.map(readGroup);
+    assertEquals(
+        lines.find((group) => group[0] === `[${CARD_WORDS.legendary}]`),
+        [`[${CARD_WORDS.legendary}]`, "Klątwa ×1"],
+        "the curse they threw is theirs",
+    );
+    assertEquals(
+        lines.find((group) => group[0] === `[${CARD_WORDS.legendaryReached}]`),
+        [
+            `[${CARD_WORDS.legendaryReached}]`,
+            "Klątwa ×3",
+            "  Gracz 2 ×2",
+            `  ${PANEL_WORDS.unknown} ×1`,
+            "Oślepienie ×1",
+            "  Gracz 5 ×1",
+        ],
+        "and the curses thrown at them are counted apart, under whoever threw them",
+    );
+    const nothingReached = presentCard({
+        name: "Gracz 4",
+        profession: "w",
+        sideRelation: SIDE_RELATION.nobody,
+        detail: NOBODY,
+        metric: PANEL_METRIC.damageTaken,
+        doesOpen: false,
+        isRowNarrower: false,
+        translate: null,
+    }).groups.map(readGroup);
+    assert(
+        !nothingReached.some((group) => group[0] === `[${CARD_WORDS.legendaryReached}]`),
+        "somebody nothing reached has no such run",
+    );
 });
 
 Deno.test("what somebody is stands beside how far along they are, or whichever was said", () => {

@@ -85,6 +85,7 @@ import {
     type PinnedRow,
     type PlainRow,
     type RankingRow,
+    type ReachedBonus,
     type RowDetail,
     type ScreenContent,
     type ShelfRow,
@@ -3787,6 +3788,8 @@ export function presentCard(subject: CardSubject): CardContent {
     groups.push(...presentCardRunGroups(subject.detail, subject.translate));
     const legendary = presentCardLegendaryLines(subject.detail.legendaryBonuses);
     if (legendary.length > 0) groups.push({ lines: legendary });
+    const reached = presentCardReachedLines(subject.detail.legendaryBonusesReached);
+    if (reached.length > 0) groups.push({ lines: reached });
     const notes = presentCardNoteLines(subject, groups);
     if (notes.length > 0) groups.push({ lines: notes });
     return {
@@ -4151,6 +4154,32 @@ function presentCardLegendaryLines(parts: readonly CutPart[]): CardLine[] {
             text: `${CARD_WORDS.legendaryHeld} ${held.join(", ")}.`,
             tone: CARD_NOTE_TONE.plain,
         });
+    }
+    return lines;
+}
+
+/**
+ * Somebody else's legendary bonuses as they acted on this combatant: each by its count, and under
+ * it whose it was, so a curse they threw and a curse thrown at them never share a line (ADR 0031).
+ */
+function presentCardReachedLines(bonuses: readonly ReachedBonus[]): CardLine[] {
+    if (bonuses.length === 0) return [];
+    const lines: CardLine[] = [{ kind: CARD_LINE.heading, text: CARD_WORDS.legendaryReached }];
+    for (const bonus of bonuses.slice(0, CARD_PARTS_MAXIMUM)) {
+        lines.push({
+            kind: CARD_LINE.stat,
+            label: getWordsForLegendaryBonus(bonus.key),
+            stated: formatUses(bonus.figure),
+            isStrong: false,
+            caveat: null,
+        });
+        for (const giver of bonus.givers.slice(0, CARD_PARTS_MAXIMUM)) {
+            lines.push({
+                kind: CARD_LINE.sub,
+                label: giver.name.length > 0 ? giver.name : PANEL_WORDS.unknown,
+                stated: formatUses(giver.figure),
+            });
+        }
     }
     return lines;
 }

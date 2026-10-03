@@ -36,6 +36,15 @@ export interface LegendaryStanding {
 /** How many times each legendary bonus showed itself, by its key, on whoever it belongs to. */
 export type LegendaryBonusesByCombatantId = ReadonlyMap<number, ReadonlyMap<string, number>>;
 
+/** By the bonus's key, by whose it was: how many times it acted on this combatant. */
+export type LegendaryBonusesReached = ReadonlyMap<string, ReadonlyMap<number, number>>;
+
+/** Each bonus twice: on the combatant it belongs to, and on the one it acted on. */
+export interface LegendaryBonusTally {
+    byHolderId: LegendaryBonusesByCombatantId;
+    byReachedId: ReadonlyMap<number, LegendaryBonusesReached>;
+}
+
 /**
  * The holder puts an effect on themselves spread over **three** firings, each healing 6% of their
  * health pool (article `view,372`, read 2026-09-21). ⚠️ **Counted in heals and never in the
@@ -133,14 +142,14 @@ export function composeLegendaryStandings(walk: LegendaryWalk): LegendaryStandin
 }
 
 /**
- * Every legendary bonus the events name, on the row of whoever it belongs to. A blow carries the
- * bonuses as procs and as declarations alike; the heal stated by name carries its key as its
- * source. A bonus whose end the message names nobody at reaches no row.
+ * Every legendary bonus the events name, on the row of whoever it belongs to and, where it acts on
+ * the blow's other end, on that one's too. A blow carries the bonuses as procs and as declarations
+ * alike; the heal stated by name carries its key as its source. A bonus whose holder the message
+ * names nobody at reaches no row, and a bonus nobody can be named as the giver of reaches nobody.
  */
-export function tallyLegendaryBonuses(
-    events: readonly BattleEvent[],
-): LegendaryBonusesByCombatantId {
+export function tallyLegendaryBonuses(events: readonly BattleEvent[]): LegendaryBonusTally {
     const countsByCombatantId = new Map<number, Map<string, number>>();
+    const reachedByCombatantId = new Map<number, Map<string, Map<number, number>>>();
     for (const event of events) {
         let keys: readonly string[];
         let actorId: number | null;
@@ -165,8 +174,19 @@ export function tallyLegendaryBonuses(
             counts.set(key, (counts.get(key) ?? 0) + 1);
             countsByCombatantId.set(holderId, counts);
             assert(counts.size <= BONUSES_PER_HOLDER_MAXIMUM, "a holder shows a bounded few");
+            if (!bonus.doesReachOtherEnd) continue;
+            const reachedId = bonus.end === PROC_END.actor ? targetId : actorId;
+            if (reachedId === null) continue;
+            const giversByKey = reachedByCombatantId.get(reachedId) ??
+                new Map<string, Map<number, number>>();
+            const countByGiverId = giversByKey.get(key) ?? new Map<number, number>();
+            countByGiverId.set(holderId, (countByGiverId.get(holderId) ?? 0) + 1);
+            giversByKey.set(key, countByGiverId);
+            reachedByCombatantId.set(reachedId, giversByKey);
+            assert(giversByKey.size <= BONUSES_PER_HOLDER_MAXIMUM, "and is reached by a few");
         }
     }
     assert(countsByCombatantId.size <= HOLDERS_MAXIMUM, "a board holds a bounded cast");
-    return countsByCombatantId;
+    assert(reachedByCombatantId.size <= HOLDERS_MAXIMUM, "and so does whoever a bonus reached");
+    return { byHolderId: countsByCombatantId, byReachedId: reachedByCombatantId };
 }

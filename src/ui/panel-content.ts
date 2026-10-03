@@ -24,6 +24,7 @@ import {
     type FigureCut,
     type SkillFigures,
 } from "#/src/core/fight-statistics.ts";
+import type { LegendaryBonusesReached } from "#/src/core/legendary-standing.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import {
     getDirectionForMetric,
@@ -123,6 +124,8 @@ export interface RowDetail {
     statisticsDestroyed: readonly CutPart[];
     /** Every legendary bonus that showed itself on them, fired and held alike, under its key. */
     legendaryBonuses: readonly CutPart[];
+    /** Somebody else's bonuses that acted on them, each with whose it was (ADR 0031). */
+    legendaryBonusesReached: readonly ReachedBonus[];
     /**
      * This person's own share of the fight's two suspicions, which is what puts a mark on their row
      * rather than under the whole list (`src/core/fight-statistics.ts` says why neither sums to
@@ -131,6 +134,16 @@ export interface RowDetail {
     unreadMessagesUnknownKey: number;
     unreadMessagesNoParameter: number;
     sideHealsUnsized: number;
+}
+
+/**
+ * A legendary bonus somebody else holds, as it acted on one combatant: how many times in all, and
+ * from whom, biggest first. A giver the roster cannot name has an empty name, which the card words.
+ */
+export interface ReachedBonus {
+    key: string;
+    figure: number;
+    givers: readonly { name: string; figure: number }[];
 }
 
 /**
@@ -1066,7 +1079,11 @@ function composeRowDetailFor(
         statistics.byCombatantId.get(combatantId) ?? createCombatantFigures(),
         roster.byId.get(combatantId)?.level ?? null,
         wasAnyTurnLost(statistics),
-        statistics.legendaryBonusesByCombatantId.get(combatantId) ?? new Map(),
+        statistics.legendaryBonuses.byHolderId.get(combatantId) ?? new Map(),
+        composeReachedBonuses(
+            statistics.legendaryBonuses.byReachedId.get(combatantId) ?? new Map(),
+            roster,
+        ),
     );
 }
 
@@ -1080,6 +1097,7 @@ function composeRowDetail(
     level: number | null,
     wasTurnLostRead: boolean,
     legendaryBonuses: FigureCut,
+    legendaryBonusesReached: readonly ReachedBonus[],
 ): RowDetail {
     return {
         level,
@@ -1107,10 +1125,34 @@ function composeRowDetail(
         damageTakenAbsorbedByDefence: composeCutParts(figures.damageTakenAbsorbedByDefence),
         statisticsDestroyed: composeCutParts(figures.statisticsDestroyed),
         legendaryBonuses: composeCutParts(legendaryBonuses),
+        legendaryBonusesReached,
         unreadMessagesUnknownKey: figures.unreadMessagesUnknownKey,
         unreadMessagesNoParameter: figures.unreadMessagesNoParameter,
         sideHealsUnsized: figures.sideHealsUnsized,
     };
+}
+
+/** The bonuses that reached one combatant, each named for whose it was, biggest first. */
+function composeReachedBonuses(
+    reached: LegendaryBonusesReached,
+    roster: CombatantRoster,
+): ReachedBonus[] {
+    const bonuses: ReachedBonus[] = [];
+    for (const [key, countByGiverId] of reached) {
+        const givers = [...countByGiverId].map(([giverId, figure]) => ({
+            name: roster.byId.get(giverId)?.name ?? "",
+            figure,
+        }));
+        givers.sort((leftGiver, rightGiver) =>
+            getRankedOrder(leftGiver.figure, rightGiver.figure, leftGiver.name, rightGiver.name)
+        );
+        const figure = givers.reduce((sum, giver) => sum + giver.figure, 0);
+        bonuses.push({ key, figure, givers });
+    }
+    bonuses.sort((leftBonus, rightBonus) =>
+        getRankedOrder(leftBonus.figure, rightBonus.figure, leftBonus.key, rightBonus.key)
+    );
+    return bonuses;
 }
 
 function getSkillUses(figures: CombatantFigures): number {

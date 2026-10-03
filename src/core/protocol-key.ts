@@ -49,6 +49,12 @@ export type LegendaryBonusShowing = VocabularyWord<typeof LEGENDARY_BONUS_SHOWIN
 export interface LegendaryBonus {
     end: ProcEnd;
     showing: LegendaryBonusShowing;
+    /**
+     * Whether it acts on the blow's other end, beside its holder: a curse on whoever was struck, a
+     * glare on whoever struck. False for a bonus that acts on its holder alone, and for a held one,
+     * whose one message names only the first blow of a whole fight it acts on.
+     */
+    doesReachOtherEnd: boolean;
 }
 
 /**
@@ -357,19 +363,62 @@ const SIDE_WIDE_KEYS = [PROVOCATION_KEY, SLOW_ALL_KEY, "alllowdmg"];
 /**
  * Every legendary bonus a message names, and whose it is: the end a proc is charged to, or for a
  * declaration the end the published help puts it on (article view,372, read 2026-10-03). The
- * heal stated by name belongs to the one it heals, who is that event's target.
+ * heal stated by name belongs to the one it heals, who is that event's target. The other end is
+ * the help's too, and the recordings agree where a turn witnesses it: over `captures/` on
+ * 2026-10-03 the next thing heard of whoever struck into a glare is a lost turn 8 times of 8, and
+ * of whoever a curse struck 14 of 17 — two struck first, and one fight ended.
  */
 const LEGENDARY_BONUS_BY_KEY: ReadonlyMap<string, LegendaryBonus> = new Map([
-    [HOLYTOUCH_DECLARATION_KEY, { end: PROC_END.actor, showing: LEGENDARY_BONUS_SHOWING.fired }],
-    [VERYCRIT_KEY, { end: PROC_END.actor, showing: LEGENDARY_BONUS_SHOWING.fired }],
-    [CURSE_KEY, { end: PROC_END.actor, showing: LEGENDARY_BONUS_SHOWING.fired }],
-    [ANGUISH_KEY, { end: PROC_END.actor, showing: LEGENDARY_BONUS_SHOWING.fired }],
-    [CLEANSE_KEY, { end: PROC_END.target, showing: LEGENDARY_BONUS_SHOWING.fired }],
-    [GLARE_KEY, { end: PROC_END.target, showing: LEGENDARY_BONUS_SHOWING.fired }],
-    [CRITRED_KEY, { end: PROC_END.target, showing: LEGENDARY_BONUS_SHOWING.fired }],
-    [LASTHEAL_KEY, { end: PROC_END.target, showing: LEGENDARY_BONUS_SHOWING.fired }],
-    [PUNCTURE_KEY, { end: PROC_END.actor, showing: LEGENDARY_BONUS_SHOWING.held }],
-    [FACADE_KEY, { end: PROC_END.target, showing: LEGENDARY_BONUS_SHOWING.held }],
+    [HOLYTOUCH_DECLARATION_KEY, {
+        end: PROC_END.actor,
+        showing: LEGENDARY_BONUS_SHOWING.fired,
+        doesReachOtherEnd: false,
+    }],
+    [VERYCRIT_KEY, {
+        end: PROC_END.actor,
+        showing: LEGENDARY_BONUS_SHOWING.fired,
+        doesReachOtherEnd: true,
+    }],
+    [CURSE_KEY, {
+        end: PROC_END.actor,
+        showing: LEGENDARY_BONUS_SHOWING.fired,
+        doesReachOtherEnd: true,
+    }],
+    [ANGUISH_KEY, {
+        end: PROC_END.actor,
+        showing: LEGENDARY_BONUS_SHOWING.fired,
+        doesReachOtherEnd: true,
+    }],
+    [CLEANSE_KEY, {
+        end: PROC_END.target,
+        showing: LEGENDARY_BONUS_SHOWING.fired,
+        doesReachOtherEnd: false,
+    }],
+    [GLARE_KEY, {
+        end: PROC_END.target,
+        showing: LEGENDARY_BONUS_SHOWING.fired,
+        doesReachOtherEnd: true,
+    }],
+    [CRITRED_KEY, {
+        end: PROC_END.target,
+        showing: LEGENDARY_BONUS_SHOWING.fired,
+        doesReachOtherEnd: true,
+    }],
+    [LASTHEAL_KEY, {
+        end: PROC_END.target,
+        showing: LEGENDARY_BONUS_SHOWING.fired,
+        doesReachOtherEnd: false,
+    }],
+    [PUNCTURE_KEY, {
+        end: PROC_END.actor,
+        showing: LEGENDARY_BONUS_SHOWING.held,
+        doesReachOtherEnd: false,
+    }],
+    [FACADE_KEY, {
+        end: PROC_END.target,
+        showing: LEGENDARY_BONUS_SHOWING.held,
+        doesReachOtherEnd: false,
+    }],
 ]);
 
 const KEY_MEANING_BY_KEY: ReadonlyMap<string, KeyMeaning> = indexKeyMeanings();
@@ -389,7 +438,11 @@ export function lookupKeyReach(key: string): KeyReach | null {
 export function lookupLegendaryBonus(key: string): LegendaryBonus | null {
     assert(key.length > 0, "a bonus is asked of a key");
     const bonus = LEGENDARY_BONUS_BY_KEY.get(key) ?? null;
-    if (bonus !== null) assert(bonus.end !== PROC_END.unsettled, "a bonus held here is somebody's");
+    if (bonus === null) return null;
+    assert(bonus.end !== PROC_END.unsettled, "a bonus held here is somebody's");
+    if (bonus.showing === LEGENDARY_BONUS_SHOWING.held) {
+        assert(!bonus.doesReachOtherEnd, "a held bonus names one blow of the many it acts on");
+    }
     return bonus;
 }
 
