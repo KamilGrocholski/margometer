@@ -31,6 +31,7 @@ import {
     PREVIEW_SAID_SELECTOR,
     PREVIEW_SPLIT_SELECTOR,
     PREVIEW_STRIP_SELECTOR,
+    PREVIEW_TIPS_ID,
     PREVIEW_TIPS_WIDTH_PIXELS,
     type PreviewInstall,
     type PreviewWords,
@@ -55,7 +56,7 @@ const CONFIGURATION_FILE = "deno.json";
 /** What the pair stands off the seam by, level with the padding the half beside it carries. */
 const SEAM_GUTTER_PIXELS = 32;
 /** Three rows of one fighter under the heading; less than that reads as a column cut off. */
-const CARDS_TALL_MINIMUM_PIXELS = 140;
+const TIPS_TALL_MINIMUM_PIXELS = 140;
 /**
  * The add-on draws on an animation frame, so the panel may not stand yet when the page places it:
  * the page flushes the frames it holds, and past that waits a bounded number of tries (S2).
@@ -178,7 +179,7 @@ ${composeWindowsCornered()}
 
 ${composeStripAtTop()}
 
-${composeCardsPlaced()}
+${composeTipsPlaced()}
 
 var setWindowsPlaced = function () {
   var taken = Element.prototype.setPointerCapture;
@@ -189,7 +190,7 @@ var setWindowsPlaced = function () {
     setPageBelowStrip();
     setPanelInCorner();
     setStandingBeside();
-    setCardsPlaced();
+    setTipsPlaced();
   } catch (reason) {
     console.warn("MargoMeter/Preview", reason);
   } finally {
@@ -206,7 +207,7 @@ var setWindowsPlacedOnceDrawn = function () {
     return;
   }
   setWindowsPlaced();
-  setCardsWatched();
+  setTipsWatched();
 };
 
 window.${PROBE_NAME}.flushFrames();
@@ -303,11 +304,11 @@ var setPageBelowStrip = function () {
  * has not, read off the panel as it stands. ⚠️ The panel grows when a row opens, so a change in
  * either window's size places the column again; one left too short to say anything is hidden.
  */
-function composeCardsPlaced(): string {
-    assert(CARDS_TALL_MINIMUM_PIXELS > 0, "a column shorter than something is not worth drawing");
-    return `var setCardsPlaced = function () {
-  var cards = document.getElementById("preview-cards");
-  if (cards === null) return;
+function composeTipsPlaced(): string {
+    assert(TIPS_TALL_MINIMUM_PIXELS > 0, "a column shorter than something is not worth drawing");
+    return `var setTipsPlaced = function () {
+  var tips = document.getElementById(${JSON.stringify(PREVIEW_TIPS_ID)});
+  if (tips === null) return;
   var panel = getPanelHost().getBoundingClientRect();
   var beside = getStandingWindow().getBoundingClientRect();
   var room = window.innerWidth - panel.right - ${SEAM_GUTTER_PIXELS};
@@ -318,23 +319,23 @@ function composeCardsPlaced(): string {
   var left = isBeside ? panel.right + ${SEAM_GUTTER_PIXELS} : beside.left;
   var width = isBeside ? ${PREVIEW_TIPS_WIDTH_PIXELS} : panel.right - beside.left;
   var tall = window.innerHeight - ${PLACE.insetPixels} - top;
-  cards.style.left = Math.round(left) + "px";
-  cards.style.top = Math.round(top) + "px";
-  cards.style.width = Math.round(width) + "px";
-  cards.style.height = Math.round(tall) + "px";
-  cards.style.visibility = tall < ${CARDS_TALL_MINIMUM_PIXELS} ? "hidden" : "visible";
+  tips.style.left = Math.round(left) + "px";
+  tips.style.top = Math.round(top) + "px";
+  tips.style.width = Math.round(width) + "px";
+  tips.style.height = Math.round(tall) + "px";
+  tips.style.visibility = tall < ${TIPS_TALL_MINIMUM_PIXELS} ? "hidden" : "visible";
 };
 
 // Guarded at the handover (E10): a throw out of an observer's callback unwinds into a loop.
 var handleWindowsResized = function () {
   try {
-    setCardsPlaced();
+    setTipsPlaced();
   } catch (reason) {
     console.warn("MargoMeter/Preview", reason);
   }
 };
 
-var setCardsWatched = function () {
+var setTipsWatched = function () {
   if (typeof ResizeObserver !== "function") return;
   try {
     var watcher = new ResizeObserver(handleWindowsResized);

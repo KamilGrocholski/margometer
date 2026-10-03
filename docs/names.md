@@ -657,6 +657,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `readHildur` — `tests/tools/drill-report.test.ts`
 - `readHostStyle` — `tests/e2e/panel-probe.ts`
 - `readIdentity` — `tools/capture-intake.ts`
+- `readIdsLookedUp` — `tests/tools/preview-site.test.ts`
 - `readImportSources` — `tests/source-tree.ts`
 - `readInstallBand` — `tests/tools/preview-site.test.ts`
 - `readKeptFights` — `tests/runtime-world.ts`
@@ -1558,7 +1559,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeCardRules` — `src/ui/panel-look.ts`
 - `composeCardTop` — `src/ui/panel-look.ts`
 - `composeCardTrimmed` — `src/ui/panel-element.ts`
-- `composeCardsPlaced` — `tools/preview-site.ts`
 - `composeCarriedStatuses` — `src/core/carried-status.ts`
 - `composeCast` — `tests/core/aura-standing.test.ts`, `tests/core/carried-figure.test.ts`
 - `composeCastPastItsBound` — `tests/runtime/margometer-runtime.test.ts`
@@ -1817,6 +1817,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeThrowingPage` — `tests/runtime/margonem-engine-search.test.ts`
 - `composeTimers` — `tests/ports/browser-interval.test.ts`
 - `composeTipHolder` — `tests/rebuilding-battle.ts`
+- `composeTipsPlaced` — `tools/preview-site.ts`
 - `composeTreeLines` — `tests/repository/name-register.test.ts`
 - `composeTurn` — `tests/ui/helper-window.test.ts`, `tests/ui/panel-helper.test.ts`
 - `composeTurnBoundaries` — `tools/turn-count.ts`
@@ -3828,7 +3829,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `CALL_OPEN` — `tools/buff-bit-table.ts`
 - `CAPTION_WIDTH` — `tools/decoding-status.ts`, `tools/fight-figures.ts`
 - `CARDS_MAXIMUM` — `tools/card-height.ts`
-- `CARDS_TALL_MINIMUM_PIXELS` — `tools/preview-site.ts`
 - `CARD_ANCHOR` — `tools/panel-giving-way.ts`
 - `CARD_INDENT` — `tools/panel-giving-way.ts`
 - `CASES_FLAG` — `tools/aura-lifetime.ts`
@@ -4037,6 +4037,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `PREVIEW_SPLIT_SELECTOR` — `tools/preview-page.ts`
 - `PREVIEW_STRIP_LAYER` — `tools/preview-page.ts`
 - `PREVIEW_STRIP_SELECTOR` — `tools/preview-page.ts`
+- `PREVIEW_TIPS_ID` — `tools/preview-page.ts`
 - `PREVIEW_TIPS_LAYER` — `tools/preview-page.ts`
 - `PREVIEW_TIPS_WIDTH_PIXELS` — `tools/preview-page.ts`
 - `PREVIEW_WORDS` — `tools/preview-server.ts`
@@ -4118,6 +4119,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `TEXT_ENCODER` — `tools/preview-server.ts`
 - `TEXT_NAME` — `tools/help-article.ts`
 - `THEIRS_ID_FIRST` — `tools/fabricated-fight.ts`
+- `TIPS_TALL_MINIMUM_PIXELS` — `tools/preview-site.ts`
 - `TOOL_ERROR_CODE` — `tools/margometer-tool-error.ts`
 - `TOOL_NAME` — `tools/fabricated-fight.ts`
 - `TURNS_REPORTED_MAXIMUM` — `tools/shout-holding.ts`
@@ -4458,6 +4460,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `LONGEST_RULE` — `tests/style-sheet.ts`
 - `LONG_PLACE` — `tests/e2e/panel-card.spec.ts`
 - `LOOKS_STATED` — `tests/runtime/margonem-engine-search.test.ts`
+- `LOOKUP_OPENING` — `tests/tools/preview-site.test.ts`
 - `LOOT` — `tests/core/fight-statistics.test.ts`
 - `LOST` — `tests/core/fight-decoder.test.ts`
 - `MANIFEST_PATH` — `tests/repository/name-register.test.ts`
@@ -4566,6 +4569,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `PERCENT` — `tests/simulation.ts`, `tests/tools/shout-holding.test.ts`
 - `PERCENT_PLACES` — `tests/core/combatant-health.test.ts`
 - `PERSON` — `tests/runtime/screen-intent.test.ts`
+- `PICKER_ID` — `tests/tools/preview-site.test.ts`
 - `PICTURE_CLOSER` — `tests/repository/readmes.test.ts`
 - `PICTURE_MARK` — `tests/repository/readmes.test.ts`
 - `PIN_BY_ACTION` — `tests/repository/workflows.test.ts`
@@ -7162,7 +7166,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `identifierStart` — `tests/repository/declaration-order.test.ts`
 - `identifiers` — `tests/repository/called-once.test.ts`
 - `idle` — `tests/ports/margonem-engine-battle.test.ts`, `tests/ui/panel-content.test.ts`
-- `ids` — `tests/ports/margonem-engine-tooltip.test.ts`, `tests/ui/panel-content.test.ts`
+- `ids` — `tests/ports/margonem-engine-tooltip.test.ts`, `tests/tools/preview-site.test.ts`,
+  `tests/ui/panel-content.test.ts`
 - `ignored` — `tests/repository/fabricated-fights.test.ts`
 - `imported` — `tests/source-tree.ts`
 - `importer` — `tests/repository/name-shapes.test.ts`, `tests/repository/single-importer.test.ts`
@@ -7295,8 +7300,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `longest` — `tests/core/fight-decoder.test.ts`
 - `longhand` — `tests/ui/panel-look.test.ts`
 - `look` — `tests/core/granted-blow-rule.test.ts`, `tests/ui/panel-words.test.ts`
-- `looked` — `tests/repository/protocol-keys.test.ts`
+- `looked` — `tests/repository/protocol-keys.test.ts`, `tests/tools/preview-site.test.ts`
 - `looks` — `tests/runtime/margonem-engine-search.test.ts`
+- `lookupAt` — `tests/tools/preview-site.test.ts`
 - `lopsided` — `tests/ui/card-window.test.ts`
 - `losing` — `tests/tools/turn-reading.test.ts`
 - `lost` — in 7 files: `tests/`
@@ -7349,7 +7355,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `misnamed` — `tests/repository/names.test.ts`
 - `misplaced` — `tests/repository/declaration-order.test.ts`
 - `missed` — `tests/repository/skill-durations.test.ts`
-- `missing` — in 7 files: `tests/`
+- `missing` — in 8 files: `tests/`
 - `misspelt` — `tests/repository/import-paths.test.ts`
 - `mixed` — `tests/ports/margonem-client-build.test.ts`, `tests/tools/turn-count.test.ts`
 - `module` — `tests/ui/panel-look.test.ts`
@@ -9260,7 +9266,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `host` — in 11 files: `tests/`
 - `html` — `tests/e2e/panel-fixture.ts`
 - `hue` — `tests/ui/panel-look.test.ts`, `tests/ui/panel-palette.test.ts`
-- `id` — in 15 files: `tests/`
+- `id` — in 16 files: `tests/`
 - `identifier` — `tests/repository/called-once.test.ts`
 - `index` — in 22 files: `tests/`
 - `info` — `tests/e2e/panel-fixture.ts`
@@ -14150,6 +14156,7 @@ suite's material.
 - `".preview-said"` — `PREVIEW_SAID_SELECTOR`
 - `".preview-split"` — `PREVIEW_SPLIT_SELECTOR`
 - `".preview-strip"` — `PREVIEW_STRIP_SELECTOR`
+- `"preview-tips"` — `PREVIEW_TIPS_ID`
 
 ### `tools/preview-server.ts`
 

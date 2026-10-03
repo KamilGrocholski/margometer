@@ -19,7 +19,11 @@ import {
     USERSCRIPT_DOWNLOAD_ADDRESS,
     USERSCRIPT_NAME,
 } from "#/tools/build-userscript.ts";
-import { COLUMN_WIDTH_MAXIMUM, PREVIEW_INSTALL_OPENING } from "#/tools/preview-page.ts";
+import {
+    COLUMN_WIDTH_MAXIMUM,
+    PREVIEW_INSTALL_OPENING,
+    PREVIEW_TIPS_ID,
+} from "#/tools/preview-page.ts";
 import {
     composePreviewSiteFiles,
     composeSitePage,
@@ -41,6 +45,9 @@ const LINK_INLINE = `href="data:`;
 /** Every spelling by which a page fetches something of its own accord, but a link. */
 const LOADED_FROM_ELSEWHERE = [`src="http`, "url(http", "@import"];
 const POLISH_LETTERS = "ąćęłńóśźż";
+const LOOKUP_OPENING = `getElementById("`;
+/** The picker the served page draws, which a published one leaves out and its script tolerates. */
+const PICKER_ID = "preview-fight";
 
 Deno.test("every column of text on the page ends before the windows do", () => {
     const widths = composeWidthsBySelector(composeLandingPage());
@@ -91,6 +98,40 @@ Deno.test("the page a visitor lands on is the landing fight, finished, with no p
     assertStringIncludes(page, `"fights":[]`, "and no other recording is offered");
     assert(!page.includes(`id="preview-fight"`), "so there is no picker to choose one with");
 });
+
+Deno.test("every element the page's script looks up by name is one the page draws", () => {
+    const page = composeLandingPage();
+    const looked = readIdsLookedUp(page);
+    assert(
+        looked.includes(PREVIEW_TIPS_ID),
+        "the column of tooltips is looked up, or this reads nothing",
+    );
+    assert(
+        !page.includes(`id="${PICKER_ID}"`),
+        "the picker is the one element left out on purpose",
+    );
+    const missing = looked.filter((id) => id !== PICKER_ID).filter((id) =>
+        !page.includes(`id="${id}"`)
+    );
+    assertEquals(
+        missing,
+        [],
+        "a script looking for an element the page lacks does nothing, silently",
+    );
+});
+
+/** Every id a script on the page names by a literal, in the order it is named. */
+function readIdsLookedUp(text: string): string[] {
+    const ids: string[] = [];
+    let lookupAt = text.indexOf(LOOKUP_OPENING);
+    for (let tried = 0; lookupAt !== -1; tried += 1) {
+        assert(tried <= text.length, "the walk stays inside the text");
+        const opened = lookupAt + LOOKUP_OPENING.length;
+        ids.push(text.slice(opened, text.indexOf(`"`, opened)));
+        lookupAt = text.indexOf(LOOKUP_OPENING, opened);
+    }
+    return ids;
+}
 
 Deno.test("a published page keeps nothing, in its address or in the browser", () => {
     const page = composeLandingPage();
@@ -234,7 +275,7 @@ Deno.test("a published page puts both windows in the corner, and again on every 
     assertStringIncludes(page, "setStandingBeside", "and the window beside it follows");
     assertStringIncludes(
         page,
-        "setStandingBeside();\n    setCardsPlaced();",
+        "setStandingBeside();\n    setTipsPlaced();",
         "and the column of tooltips is placed straight after the windows it stands by",
     );
     assertStringIncludes(page, `addEventListener("resize", setWindowsPlaced)`, "and on a resize");

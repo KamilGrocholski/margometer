@@ -94,6 +94,7 @@ export interface PreviewPageOptions {
 
 /** The band's own tag, spelled once: the site asserts on it and so does its test. */
 export const PREVIEW_INSTALL_OPENING = `<header class="preview-install">`;
+export const PREVIEW_TIPS_ID = "preview-tips";
 export const PREVIEW_TIPS_WIDTH_PIXELS = 272;
 export const PREVIEW_STRIP_SELECTOR = ".preview-strip";
 export const PREVIEW_SPLIT_SELECTOR = ".preview-split";
@@ -408,7 +409,7 @@ function composePreviewTipsCardStyle(): string {
  */
 function composePreviewTooltips(words: PreviewWords): string {
     assert(words.tooltips.length > 0, "the column says what it is showing");
-    return `<aside class="preview-tips" id="preview-tips">` +
+    return `<aside class="preview-tips" id="${PREVIEW_TIPS_ID}">` +
         `<h2>${words.tooltips}</h2><div id="preview-tips-list"></div></aside>\n`;
 }
 
