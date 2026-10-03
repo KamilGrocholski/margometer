@@ -15,9 +15,9 @@ import { waitForFrame } from "./panel-page.ts";
  * The keys the two windows are kept under, named as `STORE_KEY` in `src/ports/browser-store.ts`
  * names them.
  */
-const PLACE_KEY = "MargoMeter-place";
-const STANDING_PLACE_KEY = "MargoMeter-pomocnik-place";
-const STANDING_FOLD_KEY = "MargoMeter-pomocnik-folded";
+const METER_POSITION_KEY = "MargoMeter-meter-position";
+const HELPER_POSITION_KEY = "MargoMeter-helper-position";
+const HELPER_FOLD_KEY = "MargoMeter-helper-folded";
 /** The air the sheet keeps between a window and the card beside it, as `SPACE.small` states it. */
 const GAP = 4;
 const FOLD_MARK = "—";
@@ -59,8 +59,9 @@ test("dragging the window by its bar leaves the panel where it was", async ({ pa
 
     const after = await panel.place();
     expect(after, "the panel did not move").toEqual(before);
-    expect(await panel.stored(PLACE_KEY), "and its stored corner was not written").toBeNull();
-    expect(await panel.stored(STANDING_PLACE_KEY), "the window's own was").not.toBeNull();
+    expect(await panel.stored(METER_POSITION_KEY), "and its stored corner was not written")
+        .toBeNull();
+    expect(await panel.stored(HELPER_POSITION_KEY), "the window's own was").not.toBeNull();
 });
 
 test("each window folds on its own, and both are remembered", async ({ panel }) => {
@@ -77,7 +78,7 @@ test("each window folds on its own, and both are remembered", async ({ panel }) 
         .toHaveText(UNFOLD_MARK);
     await expect(panel.at(".MargoMeter-body.folded"), "the panel stays open").toHaveCount(0);
     await expect(panel.at(".list .row"), "with its ranking drawn").not.toHaveCount(0);
-    expect(await panel.stored(STANDING_FOLD_KEY), "the browser is told").not.toBeNull();
+    expect(await panel.stored(HELPER_FOLD_KEY), "the browser is told").not.toBeNull();
 
     await panel.page.reload();
 

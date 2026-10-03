@@ -7,8 +7,8 @@ import { expect, test } from "./panel-fixture.ts";
 import { readCentreOf, setDragged } from "./panel-probe.ts";
 
 /** The keys a size is written under, named as `STORE_KEY` in `src/ports/browser-store.ts` names them. */
-const SIZE_KEY = "MargoMeter-size";
-const HELPER_SIZE_KEY = "MargoMeter-pomocnik-size";
+const METER_SIZE_KEY = "MargoMeter-meter-size";
+const HELPER_SIZE_KEY = "MargoMeter-helper-size";
 /** Far enough that no rounding could account for it, and inside the window either way. */
 const WIDER = 60;
 const TALLER = 50;
@@ -21,12 +21,13 @@ test("the panel's corner moves with the hand, and the size is written once, on r
     await panel.page.mouse.move(from.x, from.y);
     await panel.page.mouse.down();
     await panel.page.mouse.move(from.x + WIDER, from.y + TALLER, { steps: 4 });
-    expect(await panel.stored(SIZE_KEY), "nothing is written while the hand is on it").toBeNull();
+    expect(await panel.stored(METER_SIZE_KEY), "nothing is written while the hand is on it")
+        .toBeNull();
     await panel.page.mouse.up();
     const after = await panel.place();
     expect(after.width - before.width, "the panel is as much wider as the hand went").toBe(WIDER);
     expect(after.left, "and it grew from where it stood").toBe(before.left);
-    expect(await panel.stored(SIZE_KEY), "let go, the size is written").not.toBeNull();
+    expect(await panel.stored(METER_SIZE_KEY), "let go, the size is written").not.toBeNull();
     const list = await panel.at(".list").boundingBox();
     const body = await panel.at(".meter").boundingBox();
     expect(list?.height ?? 0, "the list takes the room the panel was given").toBeGreaterThan(0);
@@ -47,7 +48,7 @@ test("a size comes back after a reload, and the options give it back", async ({ 
     expect((await panel.place()).width, "it comes back as wide as it was left").toBe(sized.width);
     await panel.at("[data-options]").click();
     await panel.at('[data-reset-size="meter"]').click();
-    expect(await panel.stored(SIZE_KEY), "given back, nothing is kept").toBeNull();
+    expect(await panel.stored(METER_SIZE_KEY), "given back, nothing is kept").toBeNull();
     await panel.at("[data-options]").click();
     expect((await panel.place()).width, "and it stands as wide as its type").toBe(before.width);
 });
@@ -79,7 +80,7 @@ test("the window beside the panel is sized by its own corner, under its own key"
     expect(after?.width, "it stays as wide as its type").toBe(before?.width);
     expect(after?.height ?? 0, "and grows down").toBeGreaterThan(before?.height ?? 0);
     expect(await panel.stored(HELPER_SIZE_KEY), "under its own key").not.toBeNull();
-    expect(await panel.stored(SIZE_KEY), "and not the panel's").toBeNull();
+    expect(await panel.stored(METER_SIZE_KEY), "and not the panel's").toBeNull();
 });
 
 test("a folded window is its bar alone, and its corner goes with its body", async ({ panel }) => {

@@ -25,7 +25,7 @@ import { addGuardedListener } from "./panel-listener.ts";
 import {
     composeSizedPanelStyle,
     getBarHeight,
-    PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM,
+    METER_HEIGHT_VIEWPORT_PERCENT_MAXIMUM,
     PLACE,
     SIZE_GRIP,
     SIZE_VARIABLES,
@@ -209,7 +209,7 @@ export function composeDefaultPosition(
     meterWidthPixels: number,
 ): PanelPosition | null {
     if (viewport === null) return null;
-    const height = viewport.height * PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM / 100;
+    const height = viewport.height * METER_HEIGHT_VIEWPORT_PERCENT_MAXIMUM / 100;
     return clampPosition({
         left: (viewport.width - meterWidthPixels) / 2,
         top: (viewport.height - height) / 2,

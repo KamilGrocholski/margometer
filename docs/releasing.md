@@ -97,7 +97,7 @@ hand:
 - [ ] **Both files are attached** — `margometer.user.js` and `margometer.meta.js`. An installed copy
       polls the second for its next version, and a release without it leaves every copy checking a
       404 for good, silently.
-- [ ] Install the published file into a browser and open a fight. The panel's title bar states the
+- [ ] Install the published file into a browser and open a fight. The meter's title bar states the
       released number.
 - [ ] **The same file is posted to Greasy Fork** — the asset this release attached, never a local
       build. A copy installed there polls Greasy Fork's own copy and never this repository's, so a

@@ -16,12 +16,12 @@ const VISIBLE_LEAST = 64;
 const WINDOW_WIDTH = 1280;
 const WINDOW_HEIGHT = 900;
 /** The one key a drag writes, named as `STORE_KEY` in `src/ports/browser-store.ts` names it. */
-const PLACE_KEY = "MargoMeter-place";
+const METER_POSITION_KEY = "MargoMeter-meter-position";
 /** Enough of the fight to have drawn a panel, and enough left over to land one mid-drag. */
 const PART_WAY = 20;
 
 test("a drag by the bar moves it, and the browser is told where it went", async ({ panel }) => {
-    expect(await panel.stored(PLACE_KEY), "nobody has moved it yet").toBeNull();
+    expect(await panel.stored(METER_POSITION_KEY), "nobody has moved it yet").toBeNull();
     const before = await panel.place();
     const bar = await readPointsAlongBar(panel.page, [20]);
     expect(bar[0]?.isGrip, "the point taken hold of is the bar itself").toBe(true);
@@ -31,7 +31,8 @@ test("a drag by the bar moves it, and the browser is told where it went", async 
     const after = await panel.place();
     expect(after.left - before.left, "it went where it was taken").toBe(ACROSS);
     expect(after.top - before.top, "on both axes").toBe(DOWN);
-    expect(await panel.stored(PLACE_KEY), "and where it landed was written down").not.toBeNull();
+    expect(await panel.stored(METER_POSITION_KEY), "and where it landed was written down").not
+        .toBeNull();
 });
 
 test("the place is written on release, and not once per move", async ({ panel }) => {
@@ -42,10 +43,11 @@ test("the place is written on release, and not once per move", async ({ panel })
     await panel.page.mouse.move(from.x + ACROSS, from.y + DOWN, { steps: 6 });
     const moved = await panel.place();
     expect(moved.left, "the panel has already followed the pointer").toBeGreaterThan(0);
-    expect(await panel.stored(PLACE_KEY), "and nothing is written while it is held").toBeNull();
+    expect(await panel.stored(METER_POSITION_KEY), "and nothing is written while it is held")
+        .toBeNull();
 
     await panel.page.mouse.up();
-    expect(await panel.stored(PLACE_KEY), "the release is what writes it").not.toBeNull();
+    expect(await panel.stored(METER_POSITION_KEY), "the release is what writes it").not.toBeNull();
 });
 
 test("a drag writes a left, a top, and the corner given up", async ({ panel }) => {
@@ -160,7 +162,7 @@ test.describe("a payload landing in the middle of a drag", () => {
     test("keeps the panel in the hand, and sees it let go below itself", async ({ panel }) => {
         await panel.at("[data-fold]").click();
         await expect(panel.at(".MargoMeter-body.folded"), "it is folded to its bar").toHaveCount(1);
-        expect(await panel.stored(PLACE_KEY), "nobody has moved it yet").toBeNull();
+        expect(await panel.stored(METER_POSITION_KEY), "nobody has moved it yet").toBeNull();
         const bar = await readPointsAlongBar(panel.page, [20]);
         const from = { x: bar[0]?.x ?? 0, y: bar[0]?.y ?? 0 };
         await panel.page.mouse.move(from.x, from.y);
@@ -179,7 +181,10 @@ test.describe("a payload landing in the middle of a drag", () => {
             .toBeLessThan(WINDOW_HEIGHT - 1);
 
         await panel.page.mouse.up();
-        expect(await panel.stored(PLACE_KEY), "the release was seen, wherever the hand was")
+        expect(
+            await panel.stored(METER_POSITION_KEY),
+            "the release was seen, wherever the hand was",
+        )
             .not.toBeNull();
         const landed = await panel.place();
         await panel.page.mouse.move(from.x, WINDOW_HEIGHT / 2, { steps: 4 });

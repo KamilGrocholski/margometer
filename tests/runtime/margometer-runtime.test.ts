@@ -1853,7 +1853,7 @@ Deno.test("a shelf of pins says the fight had nowhere to go", () => {
     assert(said.some((answer) => answer.includes(EVERY_SLOT_PINNED_ANSWER)), "every slot is a pin");
 });
 
-Deno.test("the window beside the panel folds on its own, and is kept folded apart from it", () => {
+Deno.test("the helper folds on its own, and is kept folded apart from the meter", () => {
     const world = playRecordedFight();
     const host = world.getHost();
     const control = findByMark(host, "data-helper-fold");

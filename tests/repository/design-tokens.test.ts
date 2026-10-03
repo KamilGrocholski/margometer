@@ -8,7 +8,7 @@ import { assert, assertEquals, assertExists, assertNotStrictEquals } from "@std/
 import {
     CLASS,
     composeStyleSheet,
-    PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM,
+    METER_HEIGHT_VIEWPORT_PERCENT_MAXIMUM,
     PLACE,
     SHAPE,
     SPACE_PIXELS,
@@ -137,7 +137,7 @@ function readTokensSpent(): Record<string, readonly string[]> {
         spaceWide: [`${SPACE_PIXELS.wide}px`],
         fontSize: readStepPixels((tokens) => tokens.fontPixels),
         rowHeight: readStepPixels((tokens) => tokens.rowHeightPixels),
-        maxHeightShare: [`${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh`],
+        maxHeightShare: [`${METER_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh`],
         cardWidth: readStepPixels((tokens) => tokens.cardWidthPixelsMaximum),
         lineHeight: TYPE_STEPS.map(readLineHeightDrawn),
         meterWidth: readStepPixels((tokens) => tokens.meterWidthPixels),

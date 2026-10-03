@@ -12,15 +12,15 @@ import { readPointsAlongBar, setDragged } from "./panel-probe.ts";
 const ACROSS = 120;
 const DOWN = 60;
 /** The keys a reader's own answers are written under, as `STORE_KEY` in `src/ports/browser-store.ts` names them. */
-const PLACE_KEY = "MargoMeter-place";
-const FOLD_KEY = "MargoMeter-folded";
+const METER_POSITION_KEY = "MargoMeter-meter-position";
+const METER_FOLD_KEY = "MargoMeter-meter-folded";
 const STORAGE_KEY = "MargoMeter-storage";
 
 test("the panel comes back where it was left, after a reload nobody staged", async ({ panel }) => {
     const bar = await readPointsAlongBar(panel.page, [20]);
     await setDragged(panel.page, { x: bar[0]?.x ?? 0, y: bar[0]?.y ?? 0 }, { x: ACROSS, y: DOWN });
     const moved = await panel.place();
-    const written = await panel.stored(PLACE_KEY);
+    const written = await panel.stored(METER_POSITION_KEY);
     expect(written, "where it landed was written down").not.toBeNull();
 
     await panel.page.reload();
@@ -29,7 +29,9 @@ test("the panel comes back where it was left, after a reload nobody staged", asy
     const back = await panel.place();
     expect(back.left, "standing where the reader left it").toBe(moved.left);
     expect(back.top, "on both axes").toBe(moved.top);
-    expect(await panel.stored(PLACE_KEY), "off the store the first boot wrote to").toBe(written);
+    expect(await panel.stored(METER_POSITION_KEY), "off the store the first boot wrote to").toBe(
+        written,
+    );
 });
 
 test("everything a reader chose is still chosen, all of it at once", async ({ panel }) => {
@@ -39,12 +41,12 @@ test("everything a reader chose is still chosen, all of it at once", async ({ pa
     await panel.at('[data-storage="session"]').click();
     await panel.at("[data-options]").click();
     await panel.at("[data-fold]").click();
-    const place = await panel.stored(PLACE_KEY);
+    const place = await panel.stored(METER_POSITION_KEY);
 
     await panel.page.reload();
 
-    expect(await panel.stored(PLACE_KEY), "the place").toBe(place);
-    expect(await panel.stored(FOLD_KEY), "the fold").not.toBeNull();
+    expect(await panel.stored(METER_POSITION_KEY), "the place").toBe(place);
+    expect(await panel.stored(METER_FOLD_KEY), "the fold").not.toBeNull();
     expect(await panel.stored(STORAGE_KEY), "and where the shelf is kept").toBe("session");
     await expect(panel.at(".MargoMeter-body.folded"), "the panel comes back folded").toHaveCount(1);
     await panel.at("[data-fold]").click();

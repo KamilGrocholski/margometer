@@ -6,7 +6,7 @@
 import { expect, test } from "./panel-fixture.ts";
 
 /** Named as `STORE_KEY` in `src/ports/browser-store.ts` names it. */
-const TYPE_KEY = "MargoMeter-type";
+const TYPE_KEY = "MargoMeter-type-step";
 /** Each step, the type it prints and the row it draws: `TYPE_TOKENS` in `src/ui/panel-look.ts`. */
 const STEPS = [
     { step: "small", font: "11px", row: 18 },

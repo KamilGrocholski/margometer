@@ -71,7 +71,7 @@ type SizeField = "width" | "height";
 
 /**
  * The fold and the place are stored beside the shelf and never inside it: a shelf that reads back
- * broken is dropped whole, and a reader who folded the panel should not have that undone by it.
+ * broken is dropped whole, and a reader who folded a window should not have that undone by it.
  * The choice of store is kept beside the panel's own state rather than in the store it names.
  */
 const STORE_KEY_BY_SETTING: { readonly [Key in SettingKey]: StoreKey } = {

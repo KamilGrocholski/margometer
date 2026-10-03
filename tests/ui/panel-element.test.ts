@@ -2092,7 +2092,7 @@ Deno.test("a panel that has seen no fight says so, at the height a ranking stand
     const folded = getElementsWithin(host).filter((drawn) =>
         drawn.className.endsWith(CLASS.folded)
     );
-    assertEquals(folded.length, 1, "a reader who folded the panel away keeps it folded");
+    assertEquals(folded.length, 1, "a reader who folded the meter away keeps it folded");
     assertEquals(getTextsByClass(host, "empty"), [], "and nothing under the bar is composed");
 });
 

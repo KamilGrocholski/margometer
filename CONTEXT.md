@@ -215,7 +215,7 @@ screen. _Avoid_: Panel, main window, ranking window
 **Screen**: One view the panel can be on, reached by the strips that switch. _Avoid_: Tab, page,
 view, mode
 
-**Collapsed**: The panel folded to its title bar, drawing no screen at all. It is a state the reader
+**Collapsed**: A window folded to its title bar, drawing no screen at all. It is a state the reader
 chose, so it outlives a reload. _Avoid_: Minimized, hidden, closed, docked
 
 **Helper**: The second window, beside the meter, drawing what is **standing** in the fight going on

@@ -3617,6 +3617,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `MARKUP_ENTITY` — `src/ui/panel-words.ts`
 - `MARKUP_OPENER` — `src/ui/panel-words.ts`
 - `MASK_INK` — `src/ui/panel-look.ts`
+- `METER_HEIGHT_VIEWPORT_PERCENT_MAXIMUM` — `src/ui/panel-look.ts`
 - `MINUS_SIGN` — `src/ui/panel-words.ts`
 - `MONTH_WORDS` — `src/ui/panel-words.ts`
 - `NAMED_ROWS_MAXIMUM` — `src/ui/panel-words.ts`
@@ -3639,7 +3640,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `PALETTE_INDEX_BY_PROFESSION` — `src/ui/panel-palette.ts`
 - `PANEL_DEFECT_KIND` — `src/ui/panel-words.ts`
 - `PANEL_DIRECTION` — `src/ui/panel-screen.ts`
-- `PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM` — `src/ui/panel-look.ts`
 - `PANEL_INTENT` — `src/ui/panel-intent.ts`
 - `PANEL_LISTENER` — `src/ui/view-failure.ts`
 - `PANEL_MARK` — `src/ui/panel-intent.ts`
@@ -3690,7 +3690,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SIDE_ROWS` — `src/ui/panel-content.ts`
 - `SIDE_WORDS` — `src/ui/panel-words.ts`
 - `SIGNAL` — `src/ui/panel-palette.ts`
-- `SIZED_PANEL_VARIABLES` — `src/ui/panel-look.ts`
+- `SIZED_METER_VARIABLES` — `src/ui/panel-look.ts`
 - `SIZE_GRIP` — `src/ui/panel-look.ts`
 - `SIZE_GRIP_ATTRIBUTE` — `src/ui/panel-drag.ts`
 - `SIZE_VARIABLES` — `src/ui/panel-look.ts`
@@ -4322,7 +4322,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FIRST_MONTH` — `tests/ui/panel-words.test.ts`
 - `FIRST_OF_A_PAIR` — `tests/runtime/margometer-runtime.test.ts`
 - `FLED` — `tests/tools/fabricated-fight.test.ts`
-- `FOLD_KEY` — `tests/e2e/panel-fold.spec.ts`, `tests/e2e/panel-reload.spec.ts`
 - `FOLD_MARK` — `tests/e2e/panel-fold.spec.ts`, `tests/e2e/panel-helper.spec.ts`
 - `FOUR_KINDS` — `tests/ui/panel-content.test.ts`, `tests/ui/panel-element.test.ts`
 - `FRAMES_FLUSHED_MAXIMUM` — `tests/e2e/margonem-page.ts`
@@ -4357,7 +4356,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `HEAL_TARGET` — `tests/core/fight-decoder.test.ts`
 - `HELD_BUILD` — `tests/tools/margonem-readings.test.ts`
 - `HELD_DATE` — `tests/tools/frozen-files.test.ts`
+- `HELPER_FOLD_KEY` — `tests/e2e/panel-helper.spec.ts`
 - `HELPER_GRIP` — `tests/e2e/panel-size.spec.ts`
+- `HELPER_POSITION_KEY` — `tests/e2e/panel-helper.spec.ts`
 - `HELPER_SIZE_KEY` — `tests/e2e/panel-size.spec.ts`
 - `HELP_MARK` — `tests/tools/aura-lifetime.test.ts`
 - `HEX_BASE` — `tests/ui/panel-look.test.ts`
@@ -4430,6 +4431,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `MEMBERS_BY_PART` — `tests/userscript-entry.test.ts`
 - `MESSAGES_READ` — `tests/ui/panel-content.test.ts`
 - `METADATA_NAME` — `tests/e2e/build-once.ts`
+- `METER_FOLD_KEY` — `tests/e2e/panel-fold.spec.ts`, `tests/e2e/panel-reload.spec.ts`
+- `METER_POSITION_KEY` — `tests/e2e/panel-drag.spec.ts`, `tests/e2e/panel-helper.spec.ts`,
+  `tests/e2e/panel-reload.spec.ts`
+- `METER_SIZE_KEY` — `tests/e2e/panel-size.spec.ts`
 - `METHOD_NODES` — `tests/repository/event-entries.test.ts`
 - `MILLISECONDS_PER_DAY` — `tests/tools/help-article.test.ts`,
   `tests/tools/margonem-readings.test.ts`
@@ -4528,8 +4533,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `PLACEHOLDER_RULE_OPENER` — `tests/repository/name-shapes.test.ts`
 - `PLACEHOLDER_SEPARATOR` — `tests/repository/name-shapes.test.ts`
 - `PLACES_TO_KEEP` — `tests/e2e/panel-strips.spec.ts`
-- `PLACE_KEY` — `tests/e2e/panel-drag.spec.ts`, `tests/e2e/panel-helper.spec.ts`,
-  `tests/e2e/panel-reload.spec.ts`
 - `PLACE_MARK` — `tests/repository/cited-paths.test.ts`
 - `PLACE_NAME` — `tests/e2e/margonem-page.ts`
 - `PLANS` — `tests/simulation.test.ts`
@@ -4657,7 +4660,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SIGNATURE_NODES` — `tests/repository/name-register.test.ts`,
   `tests/repository/name-shapes.test.ts`
 - `SIGNS` — `tests/repository/protocol-keys.test.ts`
-- `SIZE_KEY` — `tests/e2e/panel-size.spec.ts`
 - `SKILLS_DIRECTORY` — `tests/repository/documents.test.ts`
 - `SKILLS_LINK` — `tests/repository/documents.test.ts`
 - `SKILLS_LINK_TARGET` — `tests/repository/documents.test.ts`
@@ -4677,8 +4679,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SPEED_BIT` — `tests/core/carried-figure.test.ts`
 - `SPEED_UP` — `tests/core/carried-status.test.ts`
 - `STANDARD_PREFIX` — `tests/repository/import-paths.test.ts`
-- `STANDING_FOLD_KEY` — `tests/e2e/panel-helper.spec.ts`
-- `STANDING_PLACE_KEY` — `tests/e2e/panel-helper.spec.ts`
 - `STANDING_WIDTH` — `tests/ui/panel-drag.test.ts`
 - `STATED_SKILLS` — `tests/frozen-tables.ts`, `tests/tools/fabricated-fight.test.ts`
 - `STATUS_OPENER` — `tests/repository/decisions.test.ts`
@@ -12466,7 +12466,7 @@ Each `as const` object of a module, by its keys.
 - `SIDE_CHOICE` — `src/ui/panel-screen.ts`: `everyone`, `reader`, `opposing`
 - `SIDE_RELATION` — `src/ui/panel-content.ts`: `reader`, `opposing`, `nobody`
 - `SIGNAL` — `src/ui/panel-palette.ts`: `ours`, `theirs`, `suspect`, `caveat`, `defect`, `unknown`
-- `SIZED_PANEL_VARIABLES` — `src/ui/panel-look.ts`: `listBasis`, `listRowsLeast`, `share`
+- `SIZED_METER_VARIABLES` — `src/ui/panel-look.ts`: `listBasis`, `listRowsLeast`, `share`
 - `SIZE_GRIP` — `src/ui/panel-look.ts`: `sizePixels`
 - `SPACE_PIXELS` — `src/ui/panel-look.ts`: `half`, `small`, `regionDown`, `regionAcross`, `wide`
 - `STANDING_TURN_STATE` — `src/ui/panel-helper.ts`: `held`, `unread`, `afterFight`, `onAuto`
@@ -13199,14 +13199,14 @@ suite's material.
 ### `src/ports/browser-store.ts`
 
 - `"MargoMeter-fights"` — `STORE_KEY`
-- `"MargoMeter-folded"` — `STORE_KEY`
-- `"MargoMeter-place"` — `STORE_KEY`
-- `"MargoMeter-pomocnik-folded"` — `STORE_KEY`
-- `"MargoMeter-pomocnik-place"` — `STORE_KEY`
-- `"MargoMeter-pomocnik-size"` — `STORE_KEY`
-- `"MargoMeter-size"` — `STORE_KEY`
+- `"MargoMeter-helper-folded"` — `STORE_KEY`
+- `"MargoMeter-helper-position"` — `STORE_KEY`
+- `"MargoMeter-helper-size"` — `STORE_KEY`
+- `"MargoMeter-meter-folded"` — `STORE_KEY`
+- `"MargoMeter-meter-position"` — `STORE_KEY`
+- `"MargoMeter-meter-size"` — `STORE_KEY`
 - `"MargoMeter-storage"` — `STORE_KEY`
-- `"MargoMeter-type"` — `STORE_KEY`
+- `"MargoMeter-type-step"` — `STORE_KEY`
 
 ### `src/ports/browser-surroundings.ts`
 
@@ -13542,12 +13542,12 @@ suite's material.
 - `"--MargoMeter-helper-height"` — `SIZE_VARIABLES`
 - `"--MargoMeter-helper-top"` — `TOP_VARIABLES`
 - `"--MargoMeter-helper-width"` — `SIZE_VARIABLES`
-- `"--MargoMeter-list-basis"` — `SIZED_PANEL_VARIABLES`
-- `"--MargoMeter-list-rows-least"` — `SIZED_PANEL_VARIABLES`
+- `"--MargoMeter-list-basis"` — `SIZED_METER_VARIABLES`
+- `"--MargoMeter-list-rows-least"` — `SIZED_METER_VARIABLES`
 - `"--MargoMeter-meter-height"` — `SIZE_VARIABLES`
+- `"--MargoMeter-meter-share"` — `SIZED_METER_VARIABLES`
 - `"--MargoMeter-meter-top"` — `TOP_VARIABLES`
 - `"--MargoMeter-meter-width"` — `SIZE_VARIABLES`
-- `"--MargoMeter-panel-share"` — `SIZED_PANEL_VARIABLES`
 - `"--MargoMeter-rows"` — `ROWS_VARIABLE`
 - `"-webkit-user-select:none;user-select:none;"` — `NO_SELECTION`
 - `"MargoMeter-body"` — `CLASS`
@@ -14233,6 +14233,7 @@ suite's material.
 - `docs/adr/0025-a-field-names-what-it-holds-and-the-fight-file-keeps-its-keys-through-a-map.md`
 - `docs/adr/0026-a-name-says-margonem-and-the-way-it-is-reached.md`
 - `docs/adr/0027-a-name-says-what-it-holds-and-a-function-what-it-acts-on.md`
+- `docs/adr/0028-a-storage-key-names-the-window-it-keeps.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

@@ -317,14 +317,14 @@ export interface KeyValueStore {
 }
 export const STORE_KEY = {
     fights: "MargoMeter-fights",
-    meterFolded: "MargoMeter-folded",
-    meterPosition: "MargoMeter-place",
-    helperFolded: "MargoMeter-pomocnik-folded",
-    helperPosition: "MargoMeter-pomocnik-place",
+    meterFolded: "MargoMeter-meter-folded",
+    meterPosition: "MargoMeter-meter-position",
+    helperFolded: "MargoMeter-helper-folded",
+    helperPosition: "MargoMeter-helper-position",
     storage: "MargoMeter-storage",
-    typeStep: "MargoMeter-type",
-    meterSize: "MargoMeter-size",
-    helperSize: "MargoMeter-pomocnik-size",
+    typeStep: "MargoMeter-type-step",
+    meterSize: "MargoMeter-meter-size",
+    helperSize: "MargoMeter-helper-size",
 } as const;
 export type StoreKey = VocabularyWord<typeof STORE_KEY>;
 export type StoreFailure =

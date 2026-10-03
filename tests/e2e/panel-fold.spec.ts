@@ -1,13 +1,13 @@
 /**
- * The panel folded away and brought back: what goes, what stays, and what the browser is told.
+ * The meter folded away and brought back: what goes, what stays, and what the browser is told.
  */
 
 import { expect, test } from "./panel-fixture.ts";
 import { readPanelShape } from "./panel-probe.ts";
 
 /** The one key the fold is written under, named as `STORE_KEY` in `src/ports/browser-store.ts` names it. */
-const FOLD_KEY = "MargoMeter-folded";
-/** What the control reads while the panel is open, and while it is away. */
+const METER_FOLD_KEY = "MargoMeter-meter-folded";
+/** What the control reads while the meter is open, and while it is away. */
 const FOLD_MARK = "—";
 const UNFOLD_MARK = "+";
 
@@ -26,8 +26,8 @@ test("folding takes the body away and leaves the bar to bring it back by", async
     await expect(panel.at("[data-fold]"), "the mark turns round").toHaveText(UNFOLD_MARK);
     await expect(panel.at(".MargoMeter-titlebar"), "the bar stays").toHaveCount(1);
     const folded = await panel.place();
-    expect(folded.height, "and the panel takes less of the page").toBeLessThan(open.height);
-    expect(await panel.stored(FOLD_KEY), "the browser is told").not.toBeNull();
+    expect(folded.height, "and the meter takes less of the page").toBeLessThan(open.height);
+    expect(await panel.stored(METER_FOLD_KEY), "the browser is told").not.toBeNull();
 });
 
 test("unfolding gives back exactly what folding took", async ({ panel }) => {

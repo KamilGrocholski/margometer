@@ -197,8 +197,8 @@ export const SPACE_PIXELS = {
     regionAcross: 7,
     wide: 8,
 } as const;
-/** The tallest the panel stands, as a share of the window's height. */
-export const PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM = 66;
+/** The tallest the meter stands, as a share of the browser window's height. */
+export const METER_HEIGHT_VIEWPORT_PERCENT_MAXIMUM = 66;
 
 export const PLACE = {
     insetPixels: 8,
@@ -330,13 +330,13 @@ export const SIZE_GRIP = {
     sizePixels: 12,
 } as const;
 /**
- * What a sized panel states beside its size, and what the sheet reads to lay it out that way: its
- * list starts from nothing and keeps a few rows, and its ceiling is the window's alone.
+ * What a sized meter states beside its size, and what the sheet reads to lay it out that way: its
+ * list starts from nothing and keeps a few rows, and its ceiling is the browser window's alone.
  */
-const SIZED_PANEL_VARIABLES = {
+const SIZED_METER_VARIABLES = {
     listBasis: "--MargoMeter-list-basis",
     listRowsLeast: "--MargoMeter-list-rows-least",
-    share: "--MargoMeter-panel-share",
+    share: "--MargoMeter-meter-share",
 } as const;
 const LIST_ROWS_SIZED_MINIMUM = 3;
 
@@ -469,7 +469,7 @@ export function getCardHeightAvailable(viewportHeight: number | null): number | 
 
 /** The properties a panel states once a reader sized it, written beside the size itself. */
 export function composeSizedPanelStyle(): string {
-    const { listBasis, listRowsLeast, share } = SIZED_PANEL_VARIABLES;
+    const { listBasis, listRowsLeast, share } = SIZED_METER_VARIABLES;
     return `${listBasis}:0px;${listRowsLeast}:${LIST_ROWS_SIZED_MINIMUM};${share}:100vh`;
 }
 
@@ -503,8 +503,8 @@ export function composeStyleSheet(step: TypeStep): string {
  * survive the line above it, and what the panel is moved by.
  */
 function composeFrameRules(tokens: TypeTokens): string {
-    // The share binds a panel nobody sized; one sized is bound by the window alone (ADR 0013).
-    const share = `var(${SIZED_PANEL_VARIABLES.share},${PANEL_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh)`;
+    // The share binds a meter nobody sized; a sized one, the browser window alone (ADR 0013).
+    const share = `var(${SIZED_METER_VARIABLES.share},${METER_HEIGHT_VIEWPORT_PERCENT_MAXIMUM}vh)`;
     const ceiling = `min(calc(100vh - var(${TOP_VARIABLES.meter}) - ${PLACE.insetPixels}px),` +
         `${share})`;
     const width = `var(${SIZE_VARIABLES.meter.width},${tokens.meterWidthPixels}px)`;
@@ -559,8 +559,8 @@ function composeFrameRules(tokens: TypeTokens): string {
         `.${CLASS.meter}>*{flex:none;}` +
         // In a sized panel the list takes the room the rest leave it, and never fewer than a few
         // rows; in one nobody sized it is as tall as the rows it promises, and there is no room.
-        `.${CLASS.meter}>.${CLASS.list}{flex:1 1 var(${SIZED_PANEL_VARIABLES.listBasis},auto);` +
-        `min-height:calc(var(${SIZED_PANEL_VARIABLES.listRowsLeast},0) * ` +
+        `.${CLASS.meter}>.${CLASS.list}{flex:1 1 var(${SIZED_METER_VARIABLES.listBasis},auto);` +
+        `min-height:calc(var(${SIZED_METER_VARIABLES.listRowsLeast},0) * ` +
         `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half)));}` +
         `.${CLASS.slot}{display:none;}`;
 }
