@@ -58,6 +58,7 @@ import {
     composeStyleSheet,
     getCardHeight,
     getCardHeightAvailable,
+    getCardWidthForColumns,
     ROWS_VARIABLE,
     TYPE_TOKENS,
 } from "./panel-look.ts";
@@ -524,6 +525,15 @@ export interface CardContent {
 }
 
 /**
+ * A card as it is drawn for the room there is: its groups, and the one a second column opens at, or
+ * null where one column holds it (ADR 0033).
+ */
+export interface CardLayout {
+    card: CardContent;
+    secondColumnFrom: number | null;
+}
+
+/**
  * A **way to compose the card** rather than the card: a fight redraws every few seconds and
  * twenty rows are drawn each time, so composing every one would pay for nineteen nobody opens.
  */
@@ -919,19 +929,19 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             if (position === null) return null;
             return { position, widthPixels: handle.getWidthPixels() };
         };
-        const composeAcross = (key: string): CardAcross | null => {
+        const composeAcross = (key: string, columns: number): CardAcross | null => {
             // The sheet's own token and never a copy of it: the two spellings drifted on
             // 2026-09-15 and the card, drawn at one width and placed as if it were the other,
             // stood 43px over the rows it explains. It decides the **side** a card opens on and
             // nothing else (`develop ADR 0091`).
             const viewport = placement?.readViewport() ?? null;
-            const tokens = TYPE_TOKENS[getTypeStep()];
+            const widthMaximum = getCardWidthForColumns(TYPE_TOKENS[getTypeStep()], columns);
             if (key.startsWith(HELPER_CARD_PREFIX)) {
                 const helperPlace = composePlace(helperDrag);
-                return composeCardAcross(helperPlace, viewport, tokens.cardWidthPixelsMaximum);
+                return composeCardAcross(helperPlace, viewport, widthMaximum);
             }
             const meterPlace = composePlace(meterDrag);
-            return composeCardAcross(meterPlace, viewport, tokens.cardWidthPixelsMaximum);
+            return composeCardAcross(meterPlace, viewport, widthMaximum);
         };
         cardHandle = initCardHandle(
             document,
@@ -3483,9 +3493,10 @@ function getCardLineCost(line: CardLine, floors: CharactersPerLine): number {
 export function renderCard(
     document: PanelDocument,
     card: CardContent | null,
+    secondColumnFrom: number | null = null,
 ): PanelElement {
     const drawnCard = document.createElement("div");
-    drawnCard.className = card === null ? `${CLASS.card} ${CLASS.cardHidden}` : CLASS.card;
+    drawnCard.className = composeCardClass(card === null, secondColumnFrom !== null);
     if (card === null) return drawnCard;
     // A block rather than a span, because the name folds and an inline box would fold around
     // whatever stood beside it. What its lines cost is `tallyCardSize` above.
@@ -3499,8 +3510,26 @@ export function renderCard(
         subtitle.textContent = card.subtitle;
         drawnCard.append(subtitle);
     }
-    for (const group of card.groups) {
-        // Render one group of the card's lines.
+    // Lay out the two columns, where there are two: the notes stand under both, across the card.
+    const columns = document.createElement("div");
+    columns.className = CLASS.cardColumns;
+    const firstColumn = document.createElement("div");
+    firstColumn.className = CLASS.cardColumn;
+    const secondColumn = document.createElement("div");
+    secondColumn.className = CLASS.cardColumn;
+    const notesFrom = countCardGroupsColumned(card.groups);
+    if (secondColumnFrom !== null) {
+        columns.append(firstColumn);
+        columns.append(secondColumn);
+        drawnCard.append(columns);
+    }
+    for (const [groupIndex, group] of card.groups.entries()) {
+        // Render one group of the card's lines, into the column it stands in.
+        let parent = drawnCard;
+        if (secondColumnFrom !== null) {
+            if (groupIndex < secondColumnFrom) parent = firstColumn;
+            else if (groupIndex < notesFrom) parent = secondColumn;
+        }
         const drawnGroup = document.createElement("div");
         drawnGroup.className = CLASS.cardGroup;
         for (const line of group.lines) {
@@ -3551,9 +3580,29 @@ export function renderCard(
                 drawnGroup.append(drawnLine);
             }
         }
-        drawnCard.append(drawnGroup);
+        parent.append(drawnGroup);
     }
     return drawnCard;
+}
+
+function composeCardClass(isHidden: boolean, isWide: boolean): string {
+    if (isHidden) return `${CLASS.card} ${CLASS.cardHidden}`;
+    if (isWide) return `${CLASS.card} ${CLASS.cardWide}`;
+    return CLASS.card;
+}
+
+/** How many of a card's groups stand in its columns: all of them but a run of notes at the foot. */
+function countCardGroupsColumned(groups: readonly CardGroup[]): number {
+    const lastGroup = groups[groups.length - 1];
+    if (lastGroup === undefined) return 0;
+    if (isNoteGroup(lastGroup)) return groups.length - 1;
+    return groups.length;
+}
+
+/** A run of nothing but notes, which is what a card puts last and what a trim never takes. */
+function isNoteGroup(group: CardGroup): boolean {
+    if (group.lines.length === 0) return false;
+    return group.lines.every((line) => line.kind === CARD_LINE.note);
 }
 
 /**
@@ -3620,36 +3669,68 @@ function composeCardAcrossStyle(across: CardAcross | null): string {
 }
 
 /**
- * The card cut to the room there is, with a line saying so wherever anything was given up.
+ * The card laid out for the room there is: one column where it fits, two where one stands too tall,
+ * and two with its last runs given up where even two do (ADR 0033), with a line saying so wherever
+ * anything was given up. Unchanged where the page states no height.
  *
  * ⚠️ **A card taller than the window is clipped and says nothing about it.** The box carries
  * `overflow:hidden` and takes no pointer: measured on Chrome 152, 2026-09-06, a 533 px card in a
- * 480 px window shows 464 of it and loses the rest without a mark. So what will not fit is given
- * up at a run's own edge and the card states it. Unchanged where the page states no height.
+ * 480 px window shows 464 of it and loses the rest without a mark. So what will not fit even in two
+ * columns is given up at a run's own edge and the card states it.
  */
-export function composeCardWithin(
+export function composeCardLayout(
     card: CardContent,
     room: number | null,
     typeStep: TypeStep,
-): CardContent {
-    if (room === null) return card;
-    if (!Number.isFinite(room)) return card;
-    if (room <= 0) return card;
-    if (isCardWithin(card, room, typeStep)) return card;
+): CardLayout {
+    const whole: CardLayout = { card, secondColumnFrom: null };
+    if (room === null) return whole;
+    if (!Number.isFinite(room)) return whole;
+    if (room <= 0) return whole;
+    if (isCardLayoutWithin(whole, room, typeStep)) return whole;
     let kept: readonly CardGroup[] = card.groups;
+    let laidOut = whole;
     for (let step = 0; step < CARD_GROUPS_MAXIMUM; step += 1) {
+        const trimmed = composeCardTrimmed(card, kept);
+        laidOut = { card: trimmed, secondColumnFrom: lookupCardColumnSplit(trimmed, typeStep) };
+        if (isCardLayoutWithin(laidOut, room, typeStep)) return laidOut;
         const shorter = composeGroupsWithout(kept);
-        if (shorter === null) break;
+        if (shorter === null) return laidOut;
         kept = shorter;
-        if (isCardWithin(composeCardTrimmed(card, kept), room, typeStep)) break;
     }
-    return composeCardTrimmed(card, kept);
+    return laidOut;
 }
 
-function isCardWithin(card: CardContent, room: number, step: TypeStep): boolean {
-    const height = getCardHeight(tallyCardSize(card, step), TYPE_TOKENS[step]);
+function isCardLayoutWithin(layout: CardLayout, room: number, step: TypeStep): boolean {
+    const height = getCardHeight(tallyCardLayoutSize(layout, step), TYPE_TOKENS[step]);
     if (height === null) return true;
     return height <= room;
+}
+
+/**
+ * Where a second column opens: the group that leaves the two columns closest in height, the first
+ * column always holding the fight's own figures. Null where fewer than two groups stand in columns.
+ */
+function lookupCardColumnSplit(card: CardContent, step: TypeStep): number | null {
+    const columned = countCardGroupsColumned(card.groups);
+    if (columned < 2) return null;
+    const floors = CHARACTERS_PER_LINE_BY_STEP[step];
+    const costs = card.groups.slice(0, columned).map((group) =>
+        group.lines.reduce((sum, line) => sum + getCardLineCost(line, floors), 0)
+    );
+    const total = costs.reduce((sum, cost) => sum + cost, 0);
+    let split = 1;
+    let tallerLeast = Number.POSITIVE_INFINITY;
+    let before = 0;
+    for (let candidate = 1; candidate < Math.min(columned, CARD_GROUPS_MAXIMUM); candidate += 1) {
+        before += costs[candidate - 1] ?? 0;
+        const taller = Math.max(before, total - before);
+        if (taller < tallerLeast) {
+            split = candidate;
+            tallerLeast = taller;
+        }
+    }
+    return split;
 }
 
 /**
@@ -3665,12 +3746,6 @@ function composeGroupsWithout(groups: readonly CardGroup[]): CardGroup[] | null 
         : lastIndex;
     if (droppedIndex < 1) return null;
     return [...groups.slice(0, droppedIndex), ...groups.slice(droppedIndex + 1)];
-}
-
-/** A run of nothing but notes, which is what a card puts last and what a trim never takes. */
-function isNoteGroup(group: CardGroup): boolean {
-    if (group.lines.length === 0) return false;
-    return group.lines.every((line) => line.kind === CARD_LINE.note);
 }
 
 /** The card once something was given up: it says so, where a figure's qualifiers are read. */
@@ -3692,6 +3767,30 @@ function composeCardTrimmed(card: CardContent, kept: readonly CardGroup[]): Card
 }
 
 /**
+ * How tall a laid-out card stands, in the counts `getCardHeight` multiplies: the name over both
+ * columns, the taller column, and the notes across the foot.
+ */
+export function tallyCardLayoutSize(layout: CardLayout, step: TypeStep): CardSize {
+    const split = layout.secondColumnFrom;
+    if (split === null) return tallyCardSize(layout.card, step);
+    const card = layout.card;
+    const notesFrom = countCardGroupsColumned(card.groups);
+    const header = tallyCardSize({ ...card, groups: [] }, step);
+    const leftColumn = tallyCardSize({ ...card, groups: card.groups.slice(0, split) }, step);
+    const rightColumn = tallyCardSize(
+        { ...card, groups: card.groups.slice(split, notesFrom) },
+        step,
+    );
+    const notes = tallyCardSize({ ...card, groups: card.groups.slice(notesFrom) }, step);
+    const columnLines = Math.max(leftColumn.lines, rightColumn.lines) - header.lines;
+    const noteLines = notes.lines - header.lines;
+    return {
+        lines: header.lines + columnLines + noteLines,
+        groups: Math.max(leftColumn.groups, rightColumn.groups) + notes.groups,
+    };
+}
+
+/**
  * The card on the page, and the whole of what it remembers: which row it is open for, how tall its
  * card stands and where the pointer left it.
  *
@@ -3703,8 +3802,11 @@ export function initCardHandle(
     document: PanelDocument,
     cardLookup: CardLookup,
     redraw: CardRedraw,
-    /** Asked with the key the card is open for: the two windows do not open on the same side. */
-    getAcross: (key: string) => CardAcross | null = () => null,
+    /**
+     * Asked with the key the card is open for and the columns it is drawn in: the two windows do
+     * not open on the same side, and a card of two columns needs the room of two.
+     */
+    getAcross: (key: string, columns: number) => CardAcross | null = () => null,
     /** Asked as a card opens, never as the panel is built. Null is a page stating no height. */
     getViewportHeight: () => number | null = () => null,
     getTypeStep: () => TypeStep = () => TYPE_STEP_DEFAULT,
@@ -3713,17 +3815,22 @@ export function initCardHandle(
     let openKey: string | null = null;
     let openTop = 0;
     let openSize: CardSize = tallyCardSize(null, getTypeStep());
+    let openColumns = 1;
     const renderCardFor = (key: string, cardComposed: CardContent): void => {
-        // Cut here rather than where a card is composed: the one place that knows both it and the
-        // window, and on the way in for a card opened and for one a redraw put up again.
-        const card = composeCardWithin(
+        // Laid out here rather than where a card is composed: the one place that knows both it and
+        // the window, and on the way in for a card opened and for one a redraw put up again.
+        const layout = composeCardLayout(
             cardComposed,
             getCardHeightAvailable(getViewportHeight()),
             getTypeStep(),
         );
-        openSize = tallyCardSize(card, getTypeStep());
-        cardElement = redraw(cardElement, () => renderCard(document, card));
-        setCardPosition(cardElement, openTop, getAcross(key), openSize, getTypeStep());
+        openSize = tallyCardLayoutSize(layout, getTypeStep());
+        openColumns = layout.secondColumnFrom === null ? 1 : 2;
+        cardElement = redraw(
+            cardElement,
+            () => renderCard(document, layout.card, layout.secondColumnFrom),
+        );
+        setCardPosition(cardElement, openTop, getAcross(key, openColumns), openSize, getTypeStep());
     };
     const hideCard = (): void => {
         if (openKey === null) return;
@@ -3748,7 +3855,13 @@ export function initCardHandle(
                     // and a move inside one pixel would rewrite the same declaration.
                     if (top === openTop) return;
                     openTop = top;
-                    setCardPosition(cardElement, openTop, getAcross(key), openSize, getTypeStep());
+                    setCardPosition(
+                        cardElement,
+                        openTop,
+                        getAcross(key, openColumns),
+                        openSize,
+                        getTypeStep(),
+                    );
                     return;
                 }
             }

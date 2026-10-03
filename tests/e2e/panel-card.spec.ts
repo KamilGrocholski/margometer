@@ -31,6 +31,8 @@ const TO_THE_LEFT = -420;
 const TO_THE_RIGHT = 420;
 /** Under the 549 px the tallest card this corpus composes needs, measured 2026-09-06. */
 const SHORT_WINDOW = 480;
+/** Short enough that not even two columns hold the first row's card. */
+const SHORTER_WINDOW = 320;
 /** What the card says where a run of it was given up. Read in words, as every sentence is. */
 const CUT_NOTE = "Nie wszystko się mieści w tym oknie.";
 /**
@@ -246,19 +248,42 @@ async function readCardHeight(page: import("@playwright/test").Page) {
             bottom: Math.round(card.getBoundingClientRect().bottom),
             viewport: globalThis.innerHeight,
             said: card.textContent ?? "",
+            isWide: card.classList.contains("card-wide"),
         };
     });
 }
 
 /**
- * ⚠️ **A window too short for the card must not take the bottom off it in silence.** The box
- * carries `overflow:hidden` and takes no pointer, so an unmarked cut leaves no scrollbar and no
- * way to reach what has gone — a 533 px card in a 480 px window showing 464 of it, measured
+ * A window too short for the card in one column gets it in two, whole (ADR 0033), counted at the
+ * height the two columns draw: a count under what the box draws is a card the clamp puts off the
+ * screen.
+ */
+test("a window too short for one column gets the card in two, whole", async ({ panel }) => {
+    await panel.page.setViewportSize({ width: 1280, height: SHORT_WINDOW });
+    await panel.at(".list .row").first().hover();
+
+    const seen = await readCardHeight(panel.page);
+    expect(seen, "the card opened").not.toBeNull();
+    if (seen === null) return;
+    expect(seen.isWide, "in two columns").toBe(true);
+    expect(seen.counted, "counted at no less than it draws").toBeGreaterThanOrEqual(seen.drawn - 1);
+    expect(seen.drawn, "and the box shows the whole of what it drew").toBeLessThanOrEqual(
+        seen.shown + 1,
+    );
+    expect(seen.bottom, "with its bottom edge on the screen").toBeLessThanOrEqual(seen.viewport);
+    expect(seen.said, "and nothing given up").not.toContain(CUT_NOTE);
+    await panel.expectHonest("a card in two columns");
+});
+
+/**
+ * ⚠️ **A window too short even for two columns must not take the bottom off the card in silence.**
+ * The box carries `overflow:hidden` and takes no pointer, so an unmarked cut leaves no scrollbar
+ * and no way to reach what has gone — a 533 px card in a 480 px window showing 464 of it, measured
  * unmarked on Chrome 152, 2026-09-06. What will not fit is given up at a run's own edge and the
  * card states it, so nothing goes missing without a mark.
  */
-test("a window too short for the card is told about, not cut around", async ({ panel }) => {
-    await panel.page.setViewportSize({ width: 1280, height: SHORT_WINDOW });
+test("a window too short for two columns is told about, not cut around", async ({ panel }) => {
+    await panel.page.setViewportSize({ width: 1280, height: SHORTER_WINDOW });
     await panel.at(".list .row").first().hover();
 
     const seen = await readCardHeight(panel.page);

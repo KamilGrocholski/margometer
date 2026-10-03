@@ -100,6 +100,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0030-every-legendary-bonus-is-named-in-our-words-from-the-published-help.md`                 | every legendary bonus is named by the published help, and the client is asked about none                     |
 | `docs/adr/0031-somebody-elses-legendary-bonuses-stand-on-the-card-of-whoever-they-reached.md`          | somebody else's bonuses stand on the card of whoever they reached, under whose they were                     |
 | `docs/adr/0032-the-card-counts-the-legendary-bonuses-that-reached-its-combatant-and-names-no-giver.md` | the card counts the bonuses that reached its combatant, and names no giver                                   |
+| `docs/adr/0033-a-card-too-tall-for-the-window-stands-in-two-columns.md`                                | a card too tall for the window stands in two columns before it gives up a run                                |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

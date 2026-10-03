@@ -10,15 +10,22 @@ import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/a
 import {
     type CardContent,
     type CardNoteTone,
-    composeCardWithin,
+    composeCardLayout,
     createCardRegister,
     initCardHandle,
     renderCard,
     setCardHidden,
     setCardPosition,
+    tallyCardLayoutSize,
     tallyCardSize,
 } from "#/src/ui/panel-element.ts";
-import { CLASS, getCardHeight, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
+import {
+    CLASS,
+    getCardHeight,
+    getCardHeightAvailable,
+    getCardWidthForColumns,
+    TYPE_TOKENS,
+} from "#/src/ui/panel-look.ts";
 import { TYPE_STEP } from "#/src/ui/panel-choice.ts";
 import { CARD_WORDS } from "#/src/ui/panel-words.ts";
 import {
@@ -54,6 +61,35 @@ const HILDUR: CardContent = {
             ],
         },
         { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "plain" }] },
+    ],
+};
+
+/** A card of four runs and a note, which is the shape a short window has to answer. */
+const LONG: CardContent = {
+    name: "Hildur Muza Śmierci",
+    subtitle: "(83)",
+    groups: [
+        {
+            lines: [{
+                kind: "stat",
+                label: "Zadane",
+                stated: "354 258",
+                isStrong: true,
+                caveat: null,
+            }],
+        },
+        {
+            lines: [{
+                kind: "stat",
+                label: "Ciosy",
+                stated: "180",
+                isStrong: false,
+                caveat: null,
+            }],
+        },
+        { lines: [{ kind: "heading", text: "W CIOSACH ZADANYCH" }] },
+        { lines: [{ kind: "heading", text: "W CIOSACH PRZYJĘTYCH" }] },
+        { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "suspect" }] },
     ],
 };
 
@@ -348,7 +384,7 @@ Deno.test("a card pinned by one edge releases the other, whichever way round it 
  * panel's own arithmetic — `getCardHeight` — so the test states a room and never a pixel count of
  * its own.
  */
-Deno.test("a card too tall for the window gives up its runs, and says that it did", () => {
+Deno.test("a card too tall for one column stands in two, and gives a run up only past those", () => {
     const tall: CardContent = {
         name: "Hildur Muza Śmierci",
         subtitle: "(83)",
@@ -380,18 +416,26 @@ Deno.test("a card too tall for the window gives up its runs, and says that it di
     assertExists(whole, "the panel can say how tall its own card stands");
 
     assertEquals(
-        composeCardWithin(tall, whole, STEP),
-        tall,
-        "a card with room for it is left alone",
+        composeCardLayout(tall, whole, STEP),
+        { card: tall, secondColumnFrom: null },
+        "a card with room for it is left alone, in one column",
     );
     assertEquals(
-        composeCardWithin(tall, null, STEP),
-        tall,
+        composeCardLayout(tall, null, STEP),
+        { card: tall, secondColumnFrom: null },
         "and so is one in a window nobody sized",
     );
 
-    // Room for one run less than the card holds, which is what a short window comes to.
-    const cut = composeCardWithin(tall, whole - 1, STEP);
+    // **W5**: a pixel short of one column is the boundary, and two columns answer it whole.
+    const twoColumns = composeCardLayout(tall, whole - 1, STEP);
+    assertEquals(twoColumns.card, tall, "a card a pixel too tall gives nothing up (ADR 0033)");
+    assertEquals(twoColumns.secondColumnFrom, 2, "it stands in two columns, split down the middle");
+    const twoHigh = getCardHeight(tallyCardLayoutSize(twoColumns, STEP), TOKENS);
+    assertExists(twoHigh, "and the panel can say how tall the two columns stand");
+    assert(twoHigh <= whole - 1, "which is within the room the one column was not");
+
+    // Room for less than even two columns hold, which is what a very short window comes to.
+    const cut = composeCardLayout(tall, twoHigh - 1, STEP).card;
     const said = cut.groups.flatMap((group) => group.lines);
     assertEquals(cut.groups[0], tall.groups[0], "the four figures are what a card is for");
     assert(
@@ -435,13 +479,95 @@ Deno.test("a window too short for even the figures still draws them, and says so
             { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "plain" }] },
         ],
     };
-    const cut = composeCardWithin(tall, 1, STEP);
+    const cut = composeCardLayout(tall, 1, STEP).card;
     assertEquals(cut.groups[0], tall.groups[0], "the figures are drawn whatever the room");
     assert(
         cut.groups.flatMap((group) => group.lines).some((line) =>
             line.kind === "note" && line.text === CARD_WORDS.cut
         ),
         "and the card says a part of it is not there",
+    );
+});
+
+/**
+ * Two columns as the card draws them: the fight's own figures and what the split leaves in the
+ * first, the rest in the second, and the notes under both — a suspicion is read under every figure
+ * it may concern, not under one column of them. ADR 0033.
+ */
+Deno.test("a card in two columns draws them side by side, and its notes across the foot", () => {
+    const document = composeFakeDocument();
+    const drawn = renderCard(document, LONG, 2) as FakeElement;
+    assertEquals(
+        drawn.className,
+        `${CLASS.card} ${CLASS.cardWide}`,
+        "a card of two is the wide one",
+    );
+    const columns = getElementsWithin(drawn).filter((element) =>
+        element.className === CLASS.cardColumn
+    );
+    assertEquals(columns.length, 2, "two columns stand under the name");
+    const [left, right] = columns;
+    assertExists(left, "the first column");
+    assertExists(right, "and the second");
+    assertEquals(getTextsByClass(left, CLASS.cardHeading), [], "the first holds the figures");
+    assertEquals(
+        getTextsByClass(right, CLASS.cardHeading),
+        ["W CIOSACH ZADANYCH", "W CIOSACH PRZYJĘTYCH"],
+        "and the second the runs past the split",
+    );
+    const noted = `${CLASS.cardNote} ${CLASS.cardSuspect}`;
+    assertEquals(getTextsByClass(left, noted), [], "no note stands in a column");
+    assertEquals(getTextsByClass(right, noted), [], "in either of them");
+    assertEquals(getTextsByClass(drawn, noted), [ONE_LINE_NOTE], "but across the foot");
+    const single = renderCard(document, LONG) as FakeElement;
+    assertEquals(single.className, CLASS.card, "and a card of one is drawn as it always was");
+    assertEquals(
+        getElementsWithin(single).filter((element) => element.className === CLASS.cardColumns),
+        [],
+        "with no columns at all",
+    );
+});
+
+/**
+ * Each column keeps the whole bound, because the floors a note is counted at assume it: a card of
+ * two squeezed into the width of one would fold every sentence past its count. ADR 0033.
+ */
+Deno.test("a card of two columns is as wide as two bounds and the air between them", () => {
+    for (const step of Object.values(TYPE_STEP)) {
+        const bound = TYPE_TOKENS[step].cardWidthPixelsMaximum;
+        const singleWidth = getCardWidthForColumns(TYPE_TOKENS[step], 1);
+        const doubleWidth = getCardWidthForColumns(TYPE_TOKENS[step], 2);
+        assertEquals(singleWidth, bound, `${step}: one column is the bound`);
+        assert(doubleWidth - singleWidth >= bound, `${step}: and the second adds a whole bound`);
+        assert(doubleWidth - 2 * bound < bound, `${step}: and no more than the air between them`);
+    }
+});
+
+/** The split is the one that leaves the two columns closest in height, whatever the order. */
+Deno.test("the second column opens where the two come out closest in height", () => {
+    const lineOf = (label: string) => ({
+        kind: "stat" as const,
+        label,
+        stated: "1",
+        isStrong: false,
+        caveat: null,
+    });
+    const lopsided: CardContent = {
+        name: "Gracz 1",
+        subtitle: null,
+        groups: [
+            { lines: [lineOf("Zadane")] },
+            { lines: [lineOf("a"), lineOf("b"), lineOf("c"), lineOf("d"), lineOf("e")] },
+            { lines: [lineOf("f")] },
+            { lines: [lineOf("g")] },
+        ],
+    };
+    const whole = getCardHeight(tallyCardSize(lopsided, STEP), TOKENS);
+    assertExists(whole, "the card has a height");
+    assertEquals(
+        composeCardLayout(lopsided, whole - 1, STEP).secondColumnFrom,
+        2,
+        "six lines over two, rather than one over seven",
     );
 });
 
@@ -615,6 +741,41 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
     assertEquals(asked.length, 2, "a move on the same row asks again, the card having not moved");
     handle.renderOpen();
     assertEquals(asked, ["helper:12", "helper:12", "helper:12"], "and so does a redraw");
+});
+
+/**
+ * A card of two columns needs the room of two beside its window, so the side it opens on is asked
+ * with the columns it stands in — the bound decides the side, never the card's own width (ADR
+ * 0033, `develop ADR 0091`).
+ */
+Deno.test("the card asks where it may stand with the columns it is drawn in", () => {
+    const document = composeFakeDocument();
+    const register = createCardRegister();
+    const asked: number[] = [];
+    const swap = composeSwap();
+    const whole = getCardHeight(tallyCardSize(LONG, STEP), TOKENS);
+    assertExists(whole, "the long card has a height");
+    // A window a pixel too short for the one column: what the sheet keeps around a card is the
+    // panel's own figure, read off a window of any height.
+    const kept = 1000 - (getCardHeightAvailable(1000) ?? 1000);
+    let viewportHeight = whole - 1 + kept;
+    const handle = initCardHandle(
+        document,
+        register,
+        (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
+        (_key, columns) => {
+            asked.push(columns);
+            return null;
+        },
+        () => viewportHeight,
+        () => STEP,
+    );
+    register.add("row:7", () => LONG);
+    handle.onHover("row:7", 300);
+    assertEquals(asked, [2], "a card too tall for one column asks for the room of two");
+    viewportHeight = whole + kept;
+    handle.renderOpen();
+    assertEquals(asked, [2, 1], "and one that fits asks for the room of one");
 });
 
 Deno.test("nobody under the pointer hides it, and a row nobody drew never opens it", () => {

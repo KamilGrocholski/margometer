@@ -485,19 +485,19 @@ ADR 0031.** And it keeps the place a reader scrolled to: a payload arriving, a f
 opened and left behind all give the list back where they found it, and a level opened for the first
 time starts at its top. **develop ADR 0050.**
 
-**Tooltip.** `surfaceRaised`, **as wide as what it says up to a stated bound**, opens on hover and
-follows the cursor's vertical position. It states its own type and its own ink, because
-`all: initial` on the host reaches it and the panel's own rules do not — a region hanging off the
-root that paints a ground and leaves the rest to inheritance is drawn in the browser's serif, in
-black. It opens beside the window whose row it names — the panel, or the window standing beside it —
-and beside **that** window alone: to its left while there is room there, and to its right once there
-is not. **The side is decided by the bound and never by this card's own width**, or a card of two
-words would find room where the card before it found none and a reader crossing two rows would watch
-it jump the window. What is pinned is the edge **facing** that window, so a card stands the same gap
-from the rows it explains at whatever width it draws. Neither window reads where the other is
-standing. **develop ADR 0090**, **develop ADR 0091.** Its vertical position is clamped between the
-inset and the viewport's foot, and where the two cross the top edge wins: a window hanging off the
-bottom beats one whose first line is off the top.
+**Tooltip.** `surfaceRaised`, **as wide as what it says up to a stated bound** — two of them where
+it stands in two columns, below — opens on hover and follows the cursor's vertical position. It
+states its own type and its own ink, because `all: initial` on the host reaches it and the panel's
+own rules do not — a region hanging off the root that paints a ground and leaves the rest to
+inheritance is drawn in the browser's serif, in black. It opens beside the window whose row it names
+— the panel, or the window standing beside it — and beside **that** window alone: to its left while
+there is room there, and to its right once there is not. **The side is decided by the bound and
+never by this card's own width**, or a card of two words would find room where the card before it
+found none and a reader crossing two rows would watch it jump the window. What is pinned is the edge
+**facing** that window, so a card stands the same gap from the rows it explains at whatever width it
+draws. Neither window reads where the other is standing. **develop ADR 0090**, **develop ADR 0091.**
+Its vertical position is clamped between the inset and the viewport's foot, and where the two cross
+the top edge wins: a window hanging off the bottom beats one whose first line is off the top.
 
 **Nothing here is measured off the document.** The page states its own size, the pointer states
 where it is, and the height is arithmetic — the lines the draw counted times what a line costs, plus
@@ -511,12 +511,15 @@ differ by the machine the reader is on, and which no arithmetic in this tree cou
 height arithmetic survives it: a card is narrower than the bound only where every line on it already
 fits one, so the floor above is never counting a wrap the card no longer has. **develop ADR 0091.**
 
-**A card taller than the window gives up a run rather than being cut around.** The block of the
-fight's own figures stands whatever the window, and so do the notes — a suspicion is a claim about a
-figure above it — so what goes is the counters and the runs between them, the last one first, at a
-run's own edge and never inside one. A card that gave anything up says so, in one sentence. Nothing
-scrolls: the card takes no pointer, because a press on it belongs to the row underneath. **develop
-ADR 0054.**
+**A card taller than the window stands in two columns, and gives up a run only where two are not
+enough.** The block of the fight's own figures opens the first column and stands whatever the
+window; the second column opens at the run that leaves the two closest in height. The notes stand
+across the foot of both, because a suspicion is a claim about a figure above it in either column. A
+card of two columns is as wide as two bounds and the air between them, never wider than the screen,
+and the side it opens on is decided by that width (**ADR 0033**). Where two columns still do not
+fit, what goes is the counters and the runs between them, the last one first, at a run's own edge
+and never inside one. A card that gave anything up says so, in one sentence. Nothing scrolls: the
+card takes no pointer, because a press on it belongs to the row underneath. **develop ADR 0054.**
 
 **Wherever a person's row stands in the panel, the tooltip is a card.** The name in full, then what
 they are and how far along on one line under it — which is where the hue on the bar is finally said

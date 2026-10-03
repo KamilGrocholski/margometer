@@ -157,6 +157,10 @@ export const CLASS = {
     sidesNobody: "sides-nobody",
     card: "MargoMeter-card",
     cardHidden: "card-hidden",
+    /** A card too tall for the window in one column, drawn in two (ADR 0033). */
+    cardWide: "card-wide",
+    cardColumns: "card-columns",
+    cardColumn: "card-column",
     cardName: "card-name",
     cardSubtitle: "card-subtitle",
     cardGroup: "card-group",
@@ -459,6 +463,16 @@ export function getCardHeight(
  * What a card has to stand in: the window, less the air the sheet keeps at either end of it. Null
  * where the page states no height, which is a window nothing here may reason about.
  */
+/**
+ * The widest a card of so many columns may stand: the bound for each, and the air between them. One
+ * number for the sheet that draws it and the placement that decides its side, because two
+ * spellings of the bound drifted once already (`src/ui/panel-element.ts`).
+ */
+export function getCardWidthForColumns(tokens: TypeTokens, columns: number): number {
+    const counted = Number.isSafeInteger(columns) ? Math.max(1, columns) : 1;
+    return counted * tokens.cardWidthPixelsMaximum + (counted - 1) * SPACE_PIXELS.small;
+}
+
 export function getCardHeightAvailable(viewportHeight: number | null): number | null {
     if (viewportHeight === null) return null;
     if (!Number.isFinite(viewportHeight)) return null;
@@ -897,6 +911,14 @@ function composeCardRules(tokens: TypeTokens): string {
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};}` +
         `.${CLASS.cardHidden}{display:none;}` +
+        // Two columns of the one bound each, laid out at the width of both rather than at what
+        // they say: a column at `max-content` would draw its own width and the side the card
+        // opens on is decided by this one (`composeCardAcross` in `src/ui/panel-drag.ts`).
+        `.${CLASS.card}.${CLASS.cardWide}{width:min(${getCardWidthForColumns(tokens, 2)}px,` +
+        `calc(100vw - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px));max-width:none;}` +
+        `.${CLASS.cardColumns}{display:flex;align-items:flex-start;` +
+        `gap:var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.cardColumn}{flex:1 1 0;min-width:0;}` +
         // The one cell on this panel that folds rather than shortening: it is the answer to
         // the name a row had to cut, and an answer cut again is no answer (`DESIGN.md`).
         // `break-word` and not `break-all`, which splits a word where a space was free, nor

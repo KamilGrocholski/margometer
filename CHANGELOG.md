@@ -43,6 +43,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   te działające przez całą walkę, jak Fasada opieki, są wymienione bez liczby.
 - **Nowość** — Pod nią sekcja „Otrzymane bonusy legendarne” pokazuje cudze bonusy, które trafiły w
   tę postać — na przykład ile razy dostała Klątwę.
+- **Zmiana** — Dymek, który nie mieści się w oknie, rozkłada się na dwie kolumny, zamiast chować
+  swoje ostatnie sekcje.
 - **Zmiana** — W opcjach pod ⚙ główne okno nazywa się teraz „Licznik”, obok „Pomocnika”.
 - **Zmiana** — Po tej aktualizacji Licznik i Pomocnik jeden raz wracają na domyślne miejsce i do
   domyślnego rozmiaru, oba rozwinięte, a czcionka do średniej.

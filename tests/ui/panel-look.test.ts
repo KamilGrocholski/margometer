@@ -153,6 +153,10 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: null, here: ".options-step:hover,.options-answer:hover" },
     { develop: null, here: ".options-step.selected,.options-answer.selected" },
     { develop: null, here: ".options-meaning" },
+    // A card too tall for the window in one column stands in two (ADR 0033).
+    { develop: null, here: ".MargoMeter-card.card-wide" },
+    { develop: null, here: ".card-columns" },
+    { develop: null, here: ".card-column" },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
