@@ -480,10 +480,10 @@ over and under the list need it — they never give way, and a panel shorter tha
 them past its own foot. The list takes whatever room is left, never fewer than three rows, rows at
 its top and empty track under them, so the count of bars is the reader's. It scrolls without drawing
 a scrollbar, so it gives up no width to one, and neither does either region that draws a bar outside
-it: a row is inset equally on both sides and a bar means the same length in all three. **ADR 0031.**
-And it keeps the place a reader scrolled to: a payload arriving, a fold, or a level opened and left
-behind all give the list back where they found it, and a level opened for the first time starts at
-its top. **develop ADR 0050.**
+it: a row is inset equally on both sides and a bar means the same length in all three. **develop
+ADR 0031.** And it keeps the place a reader scrolled to: a payload arriving, a fold, or a level
+opened and left behind all give the list back where they found it, and a level opened for the first
+time starts at its top. **develop ADR 0050.**
 
 **Tooltip.** `surfaceRaised`, **as wide as what it says up to a stated bound**, opens on hover and
 follows the cursor's vertical position. It states its own type and its own ink, because
@@ -590,12 +590,10 @@ bonus that fired is counted; one held for the whole fight is named once, in a se
 foot, because a count of it would read as that many firings. A combatant holding none has no such
 run. **ADR 0029.**
 
-**Somebody else's bonuses stand in the run after, under the bonus and then under whose it was.** A
-curse a person threw and one thrown at them never share a line: the first is theirs, the second
-names the throwers under it in one line that folds, each with their count in brackets, so a fight of
-many opponents costs the card the lines their names run to and not a line each. Only a bonus that
+**Somebody else's bonuses stand in the run after, each by its count alone.** A curse a person threw
+and one thrown at them never share a line, and whose each one was is not said. Only a bonus that
 acts on the blow's other end stands there; one held for the whole fight does not, because its one
-message names the first blow of many. **ADR 0031.**
+message names the first blow of many. **ADR 0032.**
 
 **A count a second key narrows is one row, with the narrower count under it.** The row states what
 the mechanic came to and the line below it says how much of that was the narrower thing — the

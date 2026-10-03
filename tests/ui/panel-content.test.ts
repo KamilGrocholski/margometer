@@ -354,21 +354,18 @@ Deno.test("a row carries the legendary bonuses its holder showed in a real fight
         "every bonus the fight showed, on the row of whoever held it",
     );
     const reached = reading.rows.flatMap((row) =>
-        row.detail.legendaryBonusesReached.flatMap((bonus) =>
-            bonus.givers.map((giver) =>
-                `${row.name}: ${bonus.key} by ${giver.name} ${giver.figure}`
-            )
+        row.detail.legendaryBonusesReached.map((cutPart) =>
+            `${row.name}: ${cutPart.key} ${cutPart.figure}`
         )
     );
     assertEquals(
         reached.sort(),
         [
-            "Gracz 4: +legbon_verycrit by Hildur Muza Śmierci 1",
-            "Hildur Muza Śmierci: +legbon_curse by Gracz 8 1",
-            "Hildur Muza Śmierci: +legbon_verycrit by Gracz 3 1",
-            "Hildur Muza Śmierci: +legbon_verycrit by Gracz 8 1",
+            "Gracz 4: +legbon_verycrit 1",
+            "Hildur Muza Śmierci: +legbon_curse 1",
+            "Hildur Muza Śmierci: +legbon_verycrit 2",
         ],
-        "and every one that reached somebody, on that row, under whose it was (ADR 0031)",
+        "and every one that reached somebody, on that row (ADR 0032)",
     );
 });
 

@@ -85,7 +85,6 @@ import {
     type PinnedRow,
     type PlainRow,
     type RankingRow,
-    type ReachedBonus,
     type RowDetail,
     type ScreenContent,
     type ShelfRow,
@@ -4159,28 +4158,20 @@ function presentCardLegendaryLines(parts: readonly CutPart[]): CardLine[] {
 }
 
 /**
- * Somebody else's legendary bonuses as they acted on this combatant: each by its count, and under
- * it whose it was, so a curse they threw and a curse thrown at them never share a line (ADR 0031).
- * The givers stand in one line that folds, each with their count, so ten of them cost the card
- * the lines their names run to rather than ten.
+ * Somebody else's legendary bonuses as they acted on this combatant, each by its count alone, so a
+ * curse they threw and a curse thrown at them never share a line (ADR 0032).
  */
-function presentCardReachedLines(bonuses: readonly ReachedBonus[]): CardLine[] {
-    if (bonuses.length === 0) return [];
+function presentCardReachedLines(parts: readonly CutPart[]): CardLine[] {
+    if (parts.length === 0) return [];
     const lines: CardLine[] = [{ kind: CARD_LINE.heading, text: CARD_WORDS.legendaryReached }];
-    for (const bonus of bonuses.slice(0, CARD_PARTS_MAXIMUM)) {
+    for (const cutPart of parts.slice(0, CARD_PARTS_MAXIMUM)) {
         lines.push({
             kind: CARD_LINE.stat,
-            label: getWordsForLegendaryBonus(bonus.key),
-            stated: formatUses(bonus.figure),
+            label: getWordsForLegendaryBonus(cutPart.key),
+            stated: formatUses(cutPart.figure),
             isStrong: false,
             caveat: null,
         });
-        const givers = bonus.givers.slice(0, CARD_PARTS_MAXIMUM).map((giver) =>
-            `${giver.name.length > 0 ? giver.name : PANEL_WORDS.unknown} (${
-                formatFigure(giver.figure)
-            })`
-        );
-        lines.push({ kind: CARD_LINE.note, text: givers.join(", "), tone: CARD_NOTE_TONE.plain });
     }
     return lines;
 }

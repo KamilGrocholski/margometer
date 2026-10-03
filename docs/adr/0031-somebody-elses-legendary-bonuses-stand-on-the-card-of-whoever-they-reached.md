@@ -1,6 +1,6 @@
 # 0031. Somebody else's legendary bonuses stand on the card of whoever they reached
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR 0032
 - **Date:** 2026-10-03
 
 ## Context

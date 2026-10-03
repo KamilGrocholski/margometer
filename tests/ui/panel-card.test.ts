@@ -419,9 +419,9 @@ Deno.test("the legendary bonuses stand in a run of their own, the held ones in a
 
 /**
  * A curse a combatant threw and a curse thrown at them never share a line: their own stand in the
- * first run, and somebody else's in the next, each with whose it was. ADR 0031.
+ * first run, and somebody else's in the next, each by its count and nothing more. ADR 0032.
  */
-Deno.test("somebody else's bonuses stand in a run of their own, each under whose it was", () => {
+Deno.test("somebody else's bonuses stand in a run of their own, by their counts", () => {
     const card = presentCard({
         name: "Gracz 4",
         profession: "w",
@@ -430,12 +430,8 @@ Deno.test("somebody else's bonuses stand in a run of their own, each under whose
             ...NOBODY,
             legendaryBonuses: [{ key: "+legbon_curse", figure: 1 }],
             legendaryBonusesReached: [
-                {
-                    key: "+legbon_curse",
-                    figure: 3,
-                    givers: [{ name: "Gracz 2", figure: 2 }, { name: "", figure: 1 }],
-                },
-                { key: "-legbon_glare", figure: 1, givers: [{ name: "Gracz 5", figure: 1 }] },
+                { key: "+legbon_curse", figure: 3 },
+                { key: "-legbon_glare", figure: 1 },
             ],
         },
         metric: PANEL_METRIC.damageTaken,
@@ -454,11 +450,9 @@ Deno.test("somebody else's bonuses stand in a run of their own, each under whose
         [
             `[${CARD_WORDS.legendaryReached}]`,
             "Klątwa ×3",
-            `Gracz 2 (2), ${PANEL_WORDS.unknown} (1)`,
             "Oślepienie ×1",
-            "Gracz 5 (1)",
         ],
-        "and the curses thrown at them are counted apart, under whoever threw them",
+        "and the curses thrown at them are counted apart",
     );
     const nothingReached = presentCard({
         name: "Gracz 4",

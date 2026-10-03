@@ -36,13 +36,10 @@ export interface LegendaryStanding {
 /** How many times each legendary bonus showed itself, by its key, on whoever it belongs to. */
 export type LegendaryBonusesByCombatantId = ReadonlyMap<number, ReadonlyMap<string, number>>;
 
-/** By the bonus's key, by whose it was: how many times it acted on this combatant. */
-export type LegendaryBonusesReached = ReadonlyMap<string, ReadonlyMap<number, number>>;
-
 /** Each bonus twice: on the combatant it belongs to, and on the one it acted on. */
 export interface LegendaryBonusTally {
     byHolderId: LegendaryBonusesByCombatantId;
-    byReachedId: ReadonlyMap<number, LegendaryBonusesReached>;
+    byReachedId: LegendaryBonusesByCombatantId;
 }
 
 /**
@@ -149,7 +146,7 @@ export function composeLegendaryStandings(walk: LegendaryWalk): LegendaryStandin
  */
 export function tallyLegendaryBonuses(events: readonly BattleEvent[]): LegendaryBonusTally {
     const countsByCombatantId = new Map<number, Map<string, number>>();
-    const reachedByCombatantId = new Map<number, Map<string, Map<number, number>>>();
+    const reachedByCombatantId = new Map<number, Map<string, number>>();
     for (const event of events) {
         let keys: readonly string[];
         let actorId: number | null;
@@ -177,13 +174,10 @@ export function tallyLegendaryBonuses(events: readonly BattleEvent[]): Legendary
             if (!bonus.doesReachOtherEnd) continue;
             const reachedId = bonus.end === PROC_END.actor ? targetId : actorId;
             if (reachedId === null) continue;
-            const giversByKey = reachedByCombatantId.get(reachedId) ??
-                new Map<string, Map<number, number>>();
-            const countByGiverId = giversByKey.get(key) ?? new Map<number, number>();
-            countByGiverId.set(holderId, (countByGiverId.get(holderId) ?? 0) + 1);
-            giversByKey.set(key, countByGiverId);
-            reachedByCombatantId.set(reachedId, giversByKey);
-            assert(giversByKey.size <= BONUSES_PER_HOLDER_MAXIMUM, "and is reached by a few");
+            const reached = reachedByCombatantId.get(reachedId) ?? new Map<string, number>();
+            reached.set(key, (reached.get(key) ?? 0) + 1);
+            reachedByCombatantId.set(reachedId, reached);
+            assert(reached.size <= BONUSES_PER_HOLDER_MAXIMUM, "and is reached by a bounded few");
         }
     }
     assert(countsByCombatantId.size <= HOLDERS_MAXIMUM, "a board holds a bounded cast");

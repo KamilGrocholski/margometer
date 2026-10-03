@@ -385,8 +385,8 @@ export const CARD_WORDS = {
     legendary: "Bonusy legendarne",
     legendaryHeld: "Przez całą walkę:",
     /**
-     * Somebody else's bonuses, in the run after: each by its name, and under it whose it was. The
-     * word is the one the screens already use for what reached a combatant (ADR 0031).
+     * Somebody else's bonuses, in the run after, each by its name and count. The word is the one
+     * the screens already use for what reached a combatant (ADR 0032).
      */
     legendaryReached: "Otrzymane bonusy legendarne",
     /**

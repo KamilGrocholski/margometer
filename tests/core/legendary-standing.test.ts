@@ -272,9 +272,9 @@ Deno.test("no event counts nothing, and a bonus on an end nobody stands at is no
 /**
  * A bonus acts on the blow's other end where the help says it does: a curse on whoever was struck,
  * a glare on whoever struck. One that acts on its holder alone, or stands for the whole fight,
- * reaches nobody. ADR 0031.
+ * reaches nobody. ADR 0032.
  */
-Deno.test("a bonus that acts on the other end is counted there, under whose it was", () => {
+Deno.test("a bonus that acts on the other end is counted there too", () => {
     const blow: BattleEvent = {
         ...composeDeclaringBlow(HOLDER),
         targetId: SOMEBODY_ELSE,
@@ -285,15 +285,15 @@ Deno.test("a bonus that acts on the other end is counted there, under whose it w
         ],
     };
     const reached = tallyLegendaryBonuses([blow, blow]).byReachedId;
-    assertEquals(
-        [...reached.get(SOMEBODY_ELSE)?.get("+legbon_curse") ?? []],
-        [[HOLDER, 2]],
-        "the struck was cursed twice, and by the striker",
+    assertStrictEquals(
+        reached.get(SOMEBODY_ELSE)?.get("+legbon_curse"),
+        2,
+        "the struck was cursed twice",
     );
-    assertEquals(
-        [...reached.get(HOLDER)?.get("-legbon_glare") ?? []],
-        [[SOMEBODY_ELSE, 2]],
-        "and the striker was blinded twice, by the struck",
+    assertStrictEquals(
+        reached.get(HOLDER)?.get("-legbon_glare"),
+        2,
+        "and the striker was blinded twice",
     );
     assertEquals(
         [...reached.get(SOMEBODY_ELSE)?.keys() ?? []],
@@ -322,11 +322,9 @@ Deno.test("the recordings reach somebody with every bonus that acts on the other
                 holderTotals.set(key, (holderTotals.get(key) ?? 0) + count);
             }
         }
-        for (const giversByKey of tally.byReachedId.values()) {
-            for (const [key, countByGiverId] of giversByKey) {
-                for (const count of countByGiverId.values()) {
-                    reachedTotals.set(key, (reachedTotals.get(key) ?? 0) + count);
-                }
+        for (const counts of tally.byReachedId.values()) {
+            for (const [key, count] of counts) {
+                reachedTotals.set(key, (reachedTotals.get(key) ?? 0) + count);
             }
         }
     }
