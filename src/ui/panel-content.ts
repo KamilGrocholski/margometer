@@ -121,6 +121,8 @@ export interface RowDetail {
     damageDealtAbsorbedByDefence: readonly CutPart[];
     damageTakenAbsorbedByDefence: readonly CutPart[];
     statisticsDestroyed: readonly CutPart[];
+    /** Every legendary bonus that showed itself on them, fired and held alike, under its key. */
+    legendaryBonuses: readonly CutPart[];
     /**
      * This person's own share of the fight's two suspicions, which is what puts a mark on their row
      * rather than under the whole list (`src/core/fight-statistics.ts` says why neither sums to
@@ -1064,6 +1066,7 @@ function composeRowDetailFor(
         statistics.byCombatantId.get(combatantId) ?? createCombatantFigures(),
         roster.byId.get(combatantId)?.level ?? null,
         wasAnyTurnLost(statistics),
+        statistics.legendaryBonusesByCombatantId.get(combatantId) ?? new Map(),
     );
 }
 
@@ -1076,6 +1079,7 @@ function composeRowDetail(
     figures: CombatantFigures,
     level: number | null,
     wasTurnLostRead: boolean,
+    legendaryBonuses: FigureCut,
 ): RowDetail {
     return {
         level,
@@ -1102,6 +1106,7 @@ function composeRowDetail(
         damageDealtAbsorbedByDefence: composeCutParts(figures.damageDealtAbsorbedByDefence),
         damageTakenAbsorbedByDefence: composeCutParts(figures.damageTakenAbsorbedByDefence),
         statisticsDestroyed: composeCutParts(figures.statisticsDestroyed),
+        legendaryBonuses: composeCutParts(legendaryBonuses),
         unreadMessagesUnknownKey: figures.unreadMessagesUnknownKey,
         unreadMessagesNoParameter: figures.unreadMessagesNoParameter,
         sideHealsUnsized: figures.sideHealsUnsized,

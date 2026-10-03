@@ -10,7 +10,14 @@
 import { assert, assertEquals } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
-import { KEY_FAMILY, lookupKeyMeaning, PROC_END, type ProcEnd } from "#/src/core/protocol-key.ts";
+import {
+    KEY_FAMILY,
+    LEGENDARY_BONUS_SHOWING,
+    lookupKeyMeaning,
+    lookupLegendaryBonus,
+    PROC_END,
+    type ProcEnd,
+} from "#/src/core/protocol-key.ts";
 import {
     CARD_WORDS,
     CLIENT_ID_BY_UNWORDED_KEY,
@@ -22,6 +29,7 @@ import {
     getWordsForBlowKey,
     getWordsForDestroyed,
     LABEL_CHARACTERS_MAXIMUM,
+    LEGENDARY_BONUS_WORD_BY_KEY,
     PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
 } from "#/src/ui/panel-words.ts";
@@ -65,6 +73,8 @@ const CARD_OTHER_KEYS = [
     "striking",
     "struck",
     "destroyed",
+    "legendary",
+    "legendaryHeld",
     "scope",
     "gesture",
     "gestureBack",
@@ -252,6 +262,12 @@ Deno.test("no label a card draws is longer than the column it is drawn in", () =
     }
     for (const [key, held] of DESTROYED_WORD_BY_KEY) {
         if (held.name.length > LABEL_CHARACTERS_MAXIMUM) overlong.push(`${key} "${held.name}"`);
+    }
+    // A bonus held for the whole fight is named in a sentence, which wraps; one that fired is a
+    // label in the cut column, and held like any other (ADR 0029).
+    for (const [key, words] of LEGENDARY_BONUS_WORD_BY_KEY) {
+        if (lookupLegendaryBonus(key)?.showing !== LEGENDARY_BONUS_SHOWING.fired) continue;
+        if (words.length > LABEL_CHARACTERS_MAXIMUM) overlong.push(`${key} "${words}"`);
     }
     // ⚠️ **The table the name of this test always covered and the walk never reached.** Until
     // 2026-09-14 `CARD_WORDS.blowLargestTaken` stood at 24 characters against a bound of 22, cut

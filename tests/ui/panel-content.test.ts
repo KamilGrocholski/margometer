@@ -322,6 +322,39 @@ Deno.test("two counts of one figure agreeing is what the reading says, and it sa
     assert(moved.rows.length > 0, "while the screen is still drawn, rows and all");
 });
 
+/**
+ * ⚠️ **The seam between the statistics and the card.** With the bonuses dropped on their way into
+ * a row's detail, every test of the walk and every test of the card stayed green, measured
+ * 2026-10-03: each side is handed what the other would give it. ADR 0029.
+ */
+Deno.test("a row carries the legendary bonuses its holder showed in a real fight", () => {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const reading = presentScreen(
+        statistics,
+        roster,
+        PANEL_METRIC.damageTaken,
+        SIDE_CHOICE.everyone,
+        null,
+        NOTHING_SUSPECT,
+    );
+    const shown = reading.rows.flatMap((row) =>
+        row.detail.legendaryBonuses.map((cutPart) => `${cutPart.key} ${cutPart.figure}`)
+    );
+    assertEquals(
+        shown.sort(),
+        [
+            "+legbon_curse 1",
+            "+legbon_holytouch 1",
+            "+legbon_verycrit 1",
+            "+legbon_verycrit 1",
+            "+legbon_verycrit 1",
+            "-legbon_cleanse 5",
+            "-legbon_facade 1",
+        ],
+        "every bonus the fight showed, on the row of whoever held it",
+    );
+});
+
 Deno.test("a share is the row against the fight, and the shares come to one", () => {
     const { roster, statistics } = tallyRecordedFight(HILDUR);
     const reading = presentScreen(
@@ -3015,6 +3048,7 @@ function composeStatisticsWithSkills(receiverId: number, names: number): FightSt
         sideHealsUnsized: 0,
         sideHealsStated: 0,
         outcome: null,
+        legendaryBonusesByCombatantId: new Map(),
     };
 }
 

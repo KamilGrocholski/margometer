@@ -376,6 +376,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getWordsForHelperAbsence` — `src/ui/panel-words.ts`
 - `getWordsForKind` — `src/ui/panel-element.ts`
 - `getWordsForKindCut` — `src/ui/panel-screen.ts`
+- `getWordsForLegendaryBonus` — `src/ui/panel-words.ts`
 - `getWordsForMetric` — `src/ui/panel-screen.ts`
 - `getWordsForNamedPart` — `src/ui/panel-element.ts`
 - `getWordsForNothing` — `src/ui/panel-words.ts`
@@ -479,6 +480,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupKindOrderFaults` — `tests/repository/changelog.test.ts`
 - `lookupLayer` — `tests/repository/name-register.test.ts`
 - `lookupLayerReach` — `tests/repository/layers.test.ts`
+- `lookupLegendaryBonus` — `src/core/protocol-key.ts`
 - `lookupMargonemEngineBattle` — `src/ports/margonem-engine-battle.ts`
 - `lookupMisnamedExports` — `tests/repository/names.test.ts`
 - `lookupMisnamedFile` — `tests/repository/names.test.ts`
@@ -657,6 +659,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `readKindsSaidShut` — `tests/tools/drill-report.test.ts`
 - `readLabel` — `src/ports/margonem-client-dictionary.ts`, `tests/ui/panel-element.test.ts`
 - `readLayerStacks` — `tests/e2e/panel-layer.spec.ts`
+- `readLegendary` — `tests/ui/panel-card.test.ts`
 - `readLevel` — `tests/e2e/panel-level.spec.ts`
 - `readLine` — `tests/repository/called-once.test.ts`
 - `readLineHeightDrawn` — `tests/repository/design-tokens.test.ts`
@@ -1049,6 +1052,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tallyKeyShapes` — `tools/protocol-key-shape.ts`
 - `tallyKeyShapesPlacement` — `tools/protocol-key-shape.ts`
 - `tallyKeyShapesValue` — `tools/protocol-key-shape.ts`
+- `tallyLegendaryBonuses` — `src/core/legendary-standing.ts`
 - `tallyPercentForBearer` — `src/core/carried-figure.ts`
 - `tallyProvocationRows` — `tools/aura-standing.ts`
 - `tallyRecordedFight` — `tests/recorded-fights.ts`
@@ -1146,6 +1150,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `presentCardDestroyedLines` — `src/ui/panel-element.ts`
 - `presentCardFigureLines` — `src/ui/panel-element.ts`
 - `presentCardFigures` — `src/ui/panel-element.ts`
+- `presentCardLegendaryLines` — `src/ui/panel-element.ts`
 - `presentCardNoteLines` — `src/ui/panel-element.ts`
 - `presentCardPartsMergedByWord` — `src/ui/panel-element.ts`
 - `presentCardProcLines` — `src/ui/panel-element.ts`
@@ -2549,7 +2554,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `translate` — not in N2's table
 
-- `translate` — `tests/runtime/panel-frame.test.ts`
+- `translate` — `tests/runtime/panel-frame.test.ts`, `tests/ui/panel-card.test.ts`
 - `translateLabel` — `src/runtime/margometer-runtime.ts`
 
 ### `trigger` — not in N2's table
@@ -2669,6 +2674,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `HeldByShout` — `src/core/aura-standing.ts`
 - `KeyMeaning` — `src/core/protocol-key.ts`
 - `KeyReach` — `src/core/protocol-key.ts`
+- `LegendaryBonus` — `src/core/protocol-key.ts`
+- `LegendaryBonusShowing` — `src/core/protocol-key.ts`
+- `LegendaryBonusesByCombatantId` — `src/core/legendary-standing.ts`
 - `LegendaryStanding` — `src/core/legendary-standing.ts`
 - `LegendaryWalk` — `src/core/legendary-standing.ts`
 - `MessageDecoded` — `src/core/fight-decoder.ts`
@@ -3323,18 +3331,23 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `src/core/`
 
 - `AMBIGUOUS` — `src/core/combatant-roster.ts`
+- `ANGUISH_KEY` — `src/core/protocol-key.ts`
 - `APPLIED_SIGN` — `src/core/protocol-key.ts`
 - `AURA_REACH` — `src/core/aura-standing.ts`
 - `BATTLE_EVENT` — `src/core/battle-event.ts`
 - `BLOWS_GRANTED_MAXIMUM` — `src/core/fight-decoder.ts`
+- `BONUSES_PER_HOLDER_MAXIMUM` — `src/core/legendary-standing.ts`
 - `CARRIERS_MAXIMUM` — `src/core/carried-status.ts`
 - `CHARGED_SKILLS_MAXIMUM` — `src/core/charged-skill.ts`
 - `CHARGED_SKILL_STATE` — `src/core/charged-skill.ts`
 - `CHARGE_BROKEN_KEY` — `src/core/protocol-key.ts`
+- `CLEANSE_KEY` — `src/core/protocol-key.ts`
 - `COMBATANTS_MAXIMUM` — `src/core/combatant-roster.ts`
 - `CRITICAL_KEY` — `src/core/protocol-key.ts`
 - `CRITICAL_OF_KEY` — `src/core/protocol-key.ts`
 - `CRITICAL_PROC_KEYS` — `src/core/protocol-key.ts`
+- `CRITRED_KEY` — `src/core/protocol-key.ts`
+- `CURSE_KEY` — `src/core/protocol-key.ts`
 - `CUT_MAXIMUM` — `src/core/fight-statistics.ts`
 - `DAMAGE_ELEMENT_PREFIX` — `src/core/fight-decoder.ts`
 - `DAMAGE_HALF` — `src/core/protocol-key.ts`
@@ -3348,6 +3361,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `DEFENCE_MECHANISM_BY_KEY` — `src/core/protocol-key.ts`
 - `DESTROYED_KEYS` — `src/core/protocol-key.ts`
 - `ENDS_MAXIMUM` — `src/core/combatant-health.ts`, `src/core/fight-decoder.ts`
+- `FACADE_KEY` — `src/core/protocol-key.ts`
+- `GLARE_KEY` — `src/core/protocol-key.ts`
 - `HALF_PLACE` — `src/core/combatant-health.ts`
 - `HALVED_FOR_THE_CASTER` — `src/core/carried-figure.ts`
 - `HASTE_AURA_KEY` — `src/core/protocol-key.ts`
@@ -3365,6 +3380,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `KEY_MEANING_BY_KEY` — `src/core/protocol-key.ts`
 - `KEY_REACH` — `src/core/protocol-key.ts`
 - `LASTHEAL_KEY` — `src/core/protocol-key.ts`
+- `LEGENDARY_BONUS_BY_KEY` — `src/core/protocol-key.ts`
+- `LEGENDARY_BONUS_SHOWING` — `src/core/protocol-key.ts`
 - `MEMBER_SEPARATOR` — `src/core/fight-decoder.ts`
 - `MESSAGES_MAXIMUM` — `src/core/fight-decoder.ts`
 - `MESSAGE_END` — `src/core/fight-decoder.ts`
@@ -3389,6 +3406,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `PROC_END` — `src/core/protocol-key.ts`
 - `PROC_END_BY_KEY` — `src/core/protocol-key.ts`
 - `PROVOCATION_KEY` — `src/core/protocol-key.ts`
+- `PUNCTURE_KEY` — `src/core/protocol-key.ts`
 - `RAW_SIGN` — `src/core/protocol-key.ts`
 - `REACH_BY_KEY` — `src/core/protocol-key.ts`
 - `SEGMENTS_MAXIMUM` — `src/core/fight-decoder.ts`
@@ -3415,6 +3433,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `UNREAD_CAUSE` — `src/core/battle-event.ts`
 - `VALUELESS_DECLARATION_KEYS` — `src/core/protocol-key.ts`
 - `VALUE_SEPARATOR` — `src/core/fight-decoder.ts`
+- `VERYCRIT_KEY` — `src/core/protocol-key.ts`
 - `WOUND_ANNOUNCEMENT_KEY` — `src/core/protocol-key.ts`
 - `WOUND_TICK_KEY` — `src/core/protocol-key.ts`
 
@@ -3606,6 +3625,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `LABEL_CHARACTERS_MAXIMUM` — `src/ui/panel-words.ts`
 - `LAYER` — `src/ui/panel-look.ts`
 - `LEADING_STATUS_NAMES` — `src/ui/panel-words.ts`
+- `LEGENDARY_BONUS_WORD_BY_KEY` — `src/ui/panel-words.ts`
 - `LISTS_KEPT_MAXIMUM` — `src/ui/panel-element.ts`
 - `LIST_ROWS_SIZED_MINIMUM` — `src/ui/panel-look.ts`
 - `LIVE_FIGHT_MARK` — `src/ui/panel-intent.ts`
@@ -4881,7 +4901,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `absorbedPart` — `src/core/fight-statistics.ts`
 - `absorbedParts` — `src/core/fight-statistics.ts`
 - `actor` — `src/core/fight-decoder.ts`
-- `actorId` — `src/core/fight-decoder.ts`, `src/core/fight-statistics.ts`
+- `actorId` — `src/core/fight-decoder.ts`, `src/core/fight-statistics.ts`,
+  `src/core/legendary-standing.ts`
 - `actorSegment` — `src/core/fight-decoder.ts`
 - `amount` — `src/core/combatant-health.ts`, `src/core/fight-decoder.ts`,
   `src/core/fight-statistics.ts`
@@ -4905,6 +4926,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `blowsGranted` — `src/core/fight-decoder.ts`
 - `blowsGrantedBySkillId` — `src/core/fight-decoder.ts`
 - `blowsRemaining` — `src/core/fight-decoder.ts`
+- `bonus` — `src/core/legendary-standing.ts`, `src/core/protocol-key.ts`
 - `byId` — `src/core/combatant-roster.ts`
 - `carriedFigures` — `src/core/carried-figure.ts`
 - `carriedStatuses` — `src/core/carried-status.ts`
@@ -4926,7 +4948,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `combatantNames` — `src/core/fight-decoder.ts`
 - `combatants` — `src/core/fight-session.ts`
 - `count` — `src/core/fight-decoder.ts`
-- `counts` — `src/core/fight-session.ts`
+- `counts` — `src/core/fight-session.ts`, `src/core/legendary-standing.ts`
+- `countsByCombatantId` — `src/core/legendary-standing.ts`
 - `cut` — `src/core/fight-statistics.ts`
 - `cutForOtherEnd` — `src/core/fight-statistics.ts`
 - `cutTotal` — `src/core/fight-statistics.ts`
@@ -4983,11 +5006,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isStriking` — `src/core/turn-clock.ts`
 - `isUserNamed` — `src/core/fight-decoder.ts`
 - `isWhole` — `src/core/combatant-health.ts`
-- `key` — in 5 files: `src/core/`
+- `key` — in 6 files: `src/core/`
 - `keyByStatusBit` — `src/core/carried-figure.ts`
 - `keyMeaning` — `src/core/fight-decoder.ts`, `src/core/fight-statistics.ts`
 - `keyMeaningByKey` — `src/core/protocol-key.ts`
-- `keys` — `src/core/fight-decoder.ts`
+- `keys` — `src/core/fight-decoder.ts`, `src/core/legendary-standing.ts`
 - `kind` — `src/core/fight-statistics.ts`
 - `kinds` — `src/core/fight-statistics.ts`
 - `lastHealSpentCombatantIds` — `src/core/legendary-standing.ts`
@@ -5077,6 +5100,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `takenFromNobody` — `src/core/fight-statistics.ts`
 - `tallying` — `src/core/fight-statistics.ts`
 - `target` — `src/core/fight-decoder.ts`, `src/core/fight-statistics.ts`
+- `targetId` — `src/core/legendary-standing.ts`
 - `targetName` — `src/core/fight-decoder.ts`
 - `targetSegment` — `src/core/fight-decoder.ts`
 - `text` — `src/core/fight-decoder.ts`, `src/core/protocol-number.ts`
@@ -5457,6 +5481,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `bigger` — `src/ui/panel-content.ts`
 - `block` — `src/ui/panel-element.ts`
 - `body` — `src/ui/panel-element.ts`, `src/ui/panel-words.ts`
+- `bonus` — `src/ui/panel-element.ts`
 - `both` — `src/ui/panel-drag.ts`
 - `bottom` — `src/ui/panel-drag.ts`
 - `bounds` — `src/ui/panel-drag.ts`
@@ -5551,6 +5576,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `figurePlaced` — `src/ui/panel-content.ts`
 - `figures` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `figuresOnScreen` — `src/ui/panel-content.ts`
+- `fired` — `src/ui/panel-element.ts`
 - `firstCharged` — `src/ui/panel-element.ts`
 - `floors` — `src/ui/panel-element.ts`
 - `folded` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
@@ -5574,6 +5600,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `height` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`
 - `heightMaximum` — `src/ui/panel-drag.ts`
 - `heightMinimum` — `src/ui/panel-drag.ts`
+- `held` — `src/ui/panel-element.ts`
 - `helperBar` — `src/ui/panel-element.ts`
 - `helperBody` — `src/ui/panel-element.ts`
 - `helperDrag` — `src/ui/panel-element.ts`
@@ -5620,6 +5647,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `leaving` — `src/ui/panel-element.ts`
 - `left` — `src/ui/panel-drag.ts`, `src/ui/panel-look.ts`, `src/ui/panel-words.ts`
 - `leftHead` — `src/ui/panel-words.ts`
+- `legendary` — `src/ui/panel-element.ts`
 - `line` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
 - `linear` — `src/ui/panel-look.ts`
 - `lines` — `src/ui/panel-element.ts`
@@ -6569,7 +6597,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-element.test.ts`
 - `blocked` — `tests/core/fight-statistics.test.ts`
 - `blocks` — `tests/runtime/carried-tooltip.test.ts`, `tests/ui/panel-element.test.ts`
-- `blow` — `tests/core/fight-decoder.test.ts`
+- `blow` — `tests/core/fight-decoder.test.ts`, `tests/core/legendary-standing.test.ts`
 - `blowKeys` — `tests/ui/blow-vocabulary.test.ts`
 - `blowMessage` — `tests/ui/panel-content.test.ts`
 - `blows` — in 4 files: `tests/`
@@ -6578,6 +6606,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `board` — `tests/ports/margonem-engine-tooltip.test.ts`
 - `body` — in 8 files: `tests/`
 - `bold` — `tests/ui/panel-card.test.ts`
+- `bonus` — `tests/core/legendary-standing.test.ts`
 - `both` — in 14 files: `tests/`
 - `bound` — `tests/repository/name-shapes.test.ts`, `tests/repository/names.test.ts`
 - `boundNode` — `tests/repository/purity.test.ts`
@@ -6726,10 +6755,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `core` — `tests/repository/layers.test.ts`, `tests/repository/reader-layer.test.ts`
 - `corner` — `tests/e2e/panel-drag.spec.ts`, `tests/e2e/panel-size.spec.ts`
 - `corners` — `tests/e2e/panel-drag.spec.ts`
-- `count` — in 8 files: `tests/`
+- `count` — in 9 files: `tests/`
 - `counted` — in 13 files: `tests/`
 - `counters` — `tests/ui/panel-card.test.ts`
-- `counts` — in 6 files: `tests/`
+- `counts` — in 7 files: `tests/`
 - `covered` — `tests/e2e/panel-layer.spec.ts`
 - `covering` — `tests/e2e/panel-layer.spec.ts`
 - `cramped` — `tests/runtime/shelf.test.ts`, `tests/ui/panel-drag.test.ts`
@@ -6898,7 +6927,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `field` — `tests/e2e/panel-save.spec.ts`, `tests/ports/payload-envelope.test.ts`
 - `fieldText` — `tests/repository/decisions.test.ts`
 - `fieldValue` — `tests/repository/captured-fight-register.test.ts`
-- `fight` — in 44 files: `tests/`
+- `fight` — in 45 files: `tests/`
 - `fightDealt` — `tests/core/fight-statistics.test.ts`
 - `fightIndex` — `tests/runtime/margometer-runtime.test.ts`, `tests/tools/recorded-material.test.ts`
 - `fightNumber` — `tests/runtime/margometer-runtime.test.ts`
@@ -7131,7 +7160,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `keptCalls` — `tests/runtime/live-fight.test.ts`
 - `keptState` — `tests/runtime/shelf-keeper.test.ts`
 - `kepts` — `tests/runtime/margometer-runtime.test.ts`
-- `key` — in 17 files: `tests/`
+- `key` — in 18 files: `tests/`
 - `keyTally` — `tests/tools/turn-reading.test.ts`
 - `keyed` — `tests/ports/payload-envelope.test.ts`, `tests/ports/warrior-entries.test.ts`,
   `tests/ui/panel-element.test.ts`
@@ -7182,7 +7211,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lightings` — `tests/tools/aura-lifetime.test.ts`
 - `line` — in 27 files: `tests/`
 - `lineHeights` — `tests/ui/panel-look.test.ts`
-- `lines` — in 20 files: `tests/`
+- `lines` — in 21 files: `tests/`
 - `linkAt` — `tests/tools/preview-site.test.ts`
 - `list` — in 9 files: `tests/`
 - `listEnd` — `tests/repository/name-shapes.test.ts`
@@ -7683,7 +7712,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `shouted` — `tests/core/aura-standing.test.ts`, `tests/tools/aura-standing.test.ts`,
   `tests/tools/fabricated-fight.test.ts`
 - `shouts` — `tests/tools/aura-standing.test.ts`
-- `shown` — in 6 files: `tests/`
+- `shown` — in 7 files: `tests/`
 - `shut` — `tests/tools/drill-report.test.ts`, `tests/ui/panel-element.test.ts`,
   `tests/ui/panel-look.test.ts`
 - `side` — in 8 files: `tests/`
@@ -7757,7 +7786,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/repository/declaration-order.test.ts`
 - `states` — `tests/ports/recorded-session.test.ts`
 - `statistic` — `tests/ui/panel-words.test.ts`
-- `statistics` — in 15 files: `tests/`
+- `statistics` — in 16 files: `tests/`
 - `status` — in 4 files: `tests/`
 - `statuses` — `tests/core/carried-status.test.ts`, `tests/ui/panel-words.test.ts`
 - `stayed` — `tests/e2e/panel-card.spec.ts`
@@ -7868,7 +7897,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `topRow` — `tests/ui/panel-content.test.ts`, `tests/ui/panel-element.test.ts`
 - `torn` — `tests/ports/browser-clock.test.ts`
 - `total` — in 5 files: `tests/`
-- `totals` — `tests/runtime/margometer-runtime.test.ts`, `tests/ui/panel-content.test.ts`
+- `totals` — `tests/core/legendary-standing.test.ts`, `tests/runtime/margometer-runtime.test.ts`,
+  `tests/ui/panel-content.test.ts`
 - `touching` — `tests/ui/panel-drag.test.ts`
 - `track` — `tests/ui/panel-element.test.ts`
 - `tracked` — `tests/repository/cited-paths.test.ts`, `tests/repository/documents.test.ts`
@@ -7886,8 +7916,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `turns` — in 4 files: `tests/`
 - `turnsElapsed` — `tests/tools/shout-holding.test.ts`
 - `twentieth` — `tests/runtime/shelf.test.ts`
-- `twice` — `tests/core/combatant-roster.test.ts`, `tests/repository/protocol-keys.test.ts`,
-  `tests/ui/panel-look.test.ts`
+- `twice` — in 4 files: `tests/`
 - `two` — in 4 files: `tests/`
 - `twoEnds` — `tests/core/fight-decoder.test.ts`
 - `twoPast` — `tests/libs/unknown-value.test.ts`
@@ -7911,7 +7940,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unfolding` — `tests/runtime/margometer-runtime.test.ts`
 - `ungraded` — `tests/tools/turn-count.test.ts`
 - `unguarded` — `tests/repository/handed-callbacks.test.ts`
-- `unheld` — `tests/repository/design-tokens.test.ts`
+- `unheld` — `tests/core/legendary-standing.test.ts`, `tests/repository/design-tokens.test.ts`
 - `unkept` — `tests/runtime/shelf.test.ts`
 - `unknown` — in 4 files: `tests/`
 - `unknownKey` — `tests/ui/panel-content.test.ts`
@@ -8084,7 +8113,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `counted` — `src/core/fight-statistics.ts`
 - `cut` — `src/core/fight-statistics.ts`
 - `dealer` — `src/core/fight-statistics.ts`
-- `declared` — `src/core/aura-standing.ts`, `src/core/fight-decoder.ts`, `src/core/turn-clock.ts`
+- `declared` — in 4 files: `src/core/`
 - `declaredEffect` — in 4 files: `src/core/`
 - `decoded` — `src/core/fight-decoder.ts`, `src/core/fight-session.ts`
 - `decodedParameters` — `src/core/fight-decoder.ts`
@@ -8463,6 +8492,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `leftRow` — `src/ui/panel-content.ts`
 - `leftSide` — `src/ui/panel-content.ts`
 - `leftSkill` — `src/ui/panel-content.ts`
+- `legendaryBonuses` — `src/ui/panel-content.ts`
 - `level` — `src/ui/panel-content.ts`, `src/ui/panel-words.ts`
 - `limit` — `src/ui/panel-drag.ts`
 - `line` — `src/ui/panel-element.ts`
@@ -9180,6 +9210,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `labelKey` — `tests/ui/blow-vocabulary.test.ts`
 - `layer` — `tests/repository/name-register.test.ts`
 - `left` — in 12 files: `tests/`
+- `legendaryBonuses` — `tests/ui/panel-card.test.ts`
 - `length` — `tests/runtime/settings.test.ts`, `tests/ui/card-window.test.ts`
 - `lengthMaximum` — `tests/runtime/shelf-keeper.test.ts`, `tests/runtime/shelf.test.ts`
 - `letter` — `tests/repository/captured-fight-register.test.ts`
@@ -9593,6 +9624,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `eventsAdded` — `src/core/fight-session.ts`
 - `eventsMaximum` — `src/core/fight-session.ts`
 - `fightOutcome` — `src/core/battle-event.ts`
+- `fired` — `src/core/protocol-key.ts`
 - `fled` — `src/core/battle-event.ts`, `src/core/protocol-key.ts`
 - `grammarRefused` — `src/core/battle-event.ts`
 - `half` — `src/core/protocol-key.ts`
@@ -9616,6 +9648,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `healthRestoredByNobodyByKey` — `src/core/fight-statistics.ts`
 - `healthRestoredToNobody` — `src/core/fight-statistics.ts`
 - `healthRestoredWithoutSkillByKey` — `src/core/fight-statistics.ts`
+- `held` — `src/core/protocol-key.ts`
 - `holytouchHealsByBearerId` — `src/core/legendary-standing.ts`
 - `holytouchHealsReceived` — `src/core/legendary-standing.ts`
 - `id` — `src/core/aura-standing.ts`, `src/core/combatant-roster.ts`, `src/core/fight-decoder.ts`
@@ -9638,6 +9671,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `kinds` — `src/core/fight-statistics.ts`
 - `lastActorId` — `src/core/turn-clock.ts`
 - `lastHealSpentCombatantIds` — `src/core/legendary-standing.ts`
+- `legendaryBonusesByCombatantId` — `src/core/fight-statistics.ts`
 - `legendaryStandings` — `src/core/fight-session.ts`
 - `legendaryWalk` — `src/core/fight-session.ts`
 - `level` — `src/core/combatant-roster.ts`
@@ -9688,6 +9722,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `shoutByProvokedId` — `src/core/aura-standing.ts`
 - `shoutTargetId` — `src/core/aura-standing.ts`
 - `shoutsBySkillId` — `src/core/aura-standing.ts`
+- `showing` — `src/core/protocol-key.ts`
 - `side` — `src/core/carried-figure.ts`, `src/core/combatant-roster.ts`
 - `sideHealByEvent` — `src/core/fight-figures.ts`
 - `sideHealsStated` — `src/core/fight-statistics.ts`
@@ -10150,7 +10185,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `+crit` — `src/ui/panel-words.ts`
 - `+fastarrow` — `src/ui/panel-words.ts`
 - `+freeze` — `src/ui/panel-words.ts`
+- `+legbon_anguish` — `src/ui/panel-words.ts`
 - `+legbon_curse` — `src/ui/panel-words.ts`
+- `+legbon_holytouch` — `src/ui/panel-words.ts`
+- `+legbon_puncture` — `src/ui/panel-words.ts`
 - `+legbon_verycrit` — `src/ui/panel-words.ts`
 - `+of_crit` — `src/ui/panel-words.ts`
 - `+of_wound` — `src/ui/panel-words.ts`
@@ -10173,6 +10211,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `-contra` — `src/ui/panel-words.ts`
 - `-evade` — `src/ui/panel-words.ts`
 - `-legbon_cleanse` — `src/ui/panel-words.ts`
+- `-legbon_critred` — `src/ui/panel-words.ts`
+- `-legbon_facade` — `src/ui/panel-words.ts`
 - `-legbon_glare` — `src/ui/panel-words.ts`
 - `-parry` — `src/ui/panel-words.ts`
 - `-pierceb` — `src/ui/panel-words.ts`
@@ -10428,6 +10468,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `left` — `src/ui/panel-choice.ts`, `src/ui/panel-drag.ts`, `src/ui/panel-look.ts`
 - `legbon_holytouch_heal` — `src/ui/panel-words.ts`
 - `legbon_lastheal` — `src/ui/panel-words.ts`
+- `legendary` — `src/ui/panel-words.ts`
+- `legendaryBonuses` — `src/ui/panel-content.ts`
+- `legendaryHeld` — `src/ui/panel-words.ts`
 - `level` — `src/ui/panel-content.ts`
 - `light` — `src/ui/panel-words.ts`
 - `lineHeightPixels` — `src/ui/panel-look.ts`
@@ -11345,8 +11388,17 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `tests/`
 
 - `$` — `tests/ports/margonem-engine-tooltip.test.ts`, `tests/rebuilding-battle.ts`
+- `+legbon_anguish` — `tests/core/legendary-standing.test.ts`
+- `+legbon_curse` — `tests/core/legendary-standing.test.ts`
+- `+legbon_holytouch` — `tests/core/legendary-standing.test.ts`
+- `+legbon_puncture` — `tests/core/legendary-standing.test.ts`
+- `+legbon_verycrit` — `tests/core/legendary-standing.test.ts`
 - `-3` — `tests/tools/capture-intake.test.ts`
 - `-4` — `tests/tools/capture-intake.test.ts`
+- `-legbon_cleanse` — `tests/core/legendary-standing.test.ts`
+- `-legbon_critred` — `tests/core/legendary-standing.test.ts`
+- `-legbon_facade` — `tests/core/legendary-standing.test.ts`
+- `-legbon_glare` — `tests/core/legendary-standing.test.ts`
 - `1` — `tests/ports/warrior-entries.test.ts`
 - `2` — `tests/runtime/fight-file.test.ts`
 - `7` — `tests/tools/capture-intake.test.ts`
@@ -11363,6 +11415,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `HEALTH_LOSS_WORD_BY_KEY` — `tests/ui/panel-words.test.ts`
 - `HEALTH_SOURCE_WORD_BY_KEY` — `tests/ui/panel-words.test.ts`
 - `HELPER_WORDS` — `tests/ui/panel-words.test.ts`
+- `LEGENDARY_BONUS_WORD_BY_KEY` — `tests/ui/panel-words.test.ts`
 - `MARGOMETER_TIPS` — `tests/e2e/panel-tooltip.spec.ts`
 - `MARGOMETER_TOLD` — `tests/e2e/panel-tooltip.spec.ts`
 - `NAMED_KEY` — `tests/core/aura-standing.test.ts`
@@ -11836,6 +11889,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `leaves` — `tests/e2e/panel-crawler.ts`
 - `ledger` — `tests/runtime/defect-ledger.test.ts`
 - `left` — in 8 files: `tests/`
+- `legbon_lastheal` — `tests/core/legendary-standing.test.ts`
+- `legendaryBonuses` — `tests/ui/panel-card.test.ts`
+- `legendaryBonusesByCombatantId` — `tests/ui/panel-content.test.ts`
 - `legendaryStandings` — `tests/core/aura-standing.test.ts`
 - `length` — in 16 files: `tests/`
 - `level` — in 19 files: `tests/`
@@ -12358,6 +12414,7 @@ Each `as const` object of a module, by its keys.
   `healthChange`, `declaration`, `valuelessDeclaration`, `skillName`, `customSkillName`, `skillId`,
   `outcome`, `fled`, `unaccountedHealth`, `namedDamage`, `namedHealing`
 - `KEY_REACH` — `src/core/protocol-key.ts`: `castersSide`, `otherSide`
+- `LEGENDARY_BONUS_SHOWING` — `src/core/protocol-key.ts`: `fired`, `held`
 - `MESSAGE_END` — `src/core/fight-decoder.ts`: `actor`, `target`
 - `OUTCOME_RESULT` — `src/core/battle-event.ts`: `won`, `lost`, `drawn`, `fled`
 - `PROC_END` — `src/core/protocol-key.ts`: `actor`, `target`, `unsettled`
@@ -12400,7 +12457,8 @@ Each `as const` object of a module, by its keys.
 - `CARD_VARIABLES` — `src/ui/panel-look.ts`: `top`, `left`, `right`, `height`
 - `CARD_WORDS` — `src/ui/panel-words.ts`: `wholeFight`, `raw`, `blows`, `blowsWithoutSkill`,
   `skillUses`, `turns`, `turnsWithLost`, `prevented`, `blowsCritical`, `blowsCriticalOffhand`,
-  `striking`, `struck`, `scope`, `destroyed`, `gesture`, `gestureBack`, `gestureBackAnywhere`, `cut`
+  `striking`, `struck`, `scope`, `destroyed`, `legendary`, `legendaryHeld`, `gesture`,
+  `gestureBack`, `gestureBackAnywhere`, `cut`
 - `CAVEAT` — `src/ui/panel-words.ts`: `reduction`, `turns`, `unannounced`
 - `CLASS` — `src/ui/panel-look.ts`: `title`, `titleVersion`, `control`, `controlLead`, `frame`,
   `folded`, `meter`, `slot`, `header`, `headerLine`, `headerPlace`, `headerPlaceName`,
@@ -13086,9 +13144,11 @@ suite's material.
 - `"+engback"` — `DECLARATION_KEYS`
 - `"+exp"` — `DECLARATION_KEYS`
 - `"+injure"` — `WOUND_ANNOUNCEMENT_KEY`
-- `"+legbon_anguish"` — `VALUELESS_DECLARATION_KEYS`
+- `"+legbon_anguish"` — `ANGUISH_KEY`
+- `"+legbon_curse"` — `CURSE_KEY`
 - `"+legbon_holytouch"` — `HOLYTOUCH_DECLARATION_KEY`
-- `"+legbon_puncture"` — `DECLARATION_KEYS`
+- `"+legbon_puncture"` — `PUNCTURE_KEY`
+- `"+legbon_verycrit"` — `VERYCRIT_KEY`
 - `"+of_crit"` — `CRITICAL_OF_KEY`
 - `"+of_woundmagic"` — `PROCS_WITH_VALUE`
 - `"+of_woundpoison"` — `PROCS_WITH_VALUE`
@@ -13110,8 +13170,10 @@ suite's material.
 - `"-allies"` — `SIDE_WIDE_ENDINGS`
 - `"-endest"` — `DECLARATION_KEYS`
 - `"-enemies"` — `SIDE_WIDE_ENDINGS`
-- `"-legbon_critred"` — `DECLARATION_KEYS`
-- `"-legbon_facade"` — `DECLARATION_KEYS`
+- `"-legbon_cleanse"` — `CLEANSE_KEY`
+- `"-legbon_critred"` — `CRITRED_KEY`
+- `"-legbon_facade"` — `FACADE_KEY`
+- `"-legbon_glare"` — `GLARE_KEY`
 - `"-manadest"` — `DECLARATION_KEYS`
 - `"-poison_lowdmg_per"` — `DECLARATION_KEYS`
 - `"-thirdatt"` — `DAMAGE_KEYS`
@@ -13142,11 +13204,13 @@ suite's material.
 - `"en-regen"` — `DECLARATION_KEYS`
 - `"en-regen-cast"` — `VALUELESS_DECLARATION_KEYS`
 - `"energy"` — `DECLARATION_KEYS`
+- `"fired"` — `LEGENDARY_BONUS_SHOWING`
 - `"fled"` — `KEY_FAMILY`
 - `"heal"` — `HEAL_KEY`
 - `"heal_per-allies"` — `DECLARATION_KEYS`
 - `"heal_per-enemies"` — `DECLARATION_KEYS`
 - `"health-change"` — `KEY_FAMILY`
+- `"held"` — `LEGENDARY_BONUS_SHOWING`
 - `"hp_per-allies"` — `DECLARATION_KEYS`
 - `"hp_per-enemies"` — `DECLARATION_KEYS`
 - `"injure"` — `WOUND_TICK_KEY`
@@ -14234,6 +14298,7 @@ suite's material.
 - `docs/adr/0026-a-name-says-margonem-and-the-way-it-is-reached.md`
 - `docs/adr/0027-a-name-says-what-it-holds-and-a-function-what-it-acts-on.md`
 - `docs/adr/0028-a-storage-key-names-the-window-it-keeps.md`
+- `docs/adr/0029-the-legendary-bonuses-stand-in-a-run-of-their-own-on-the-card.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

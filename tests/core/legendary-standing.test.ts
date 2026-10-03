@@ -9,15 +9,18 @@
  * which fires once stays fired.
  */
 
-import { assertEquals, assertStrictEquals } from "@std/assert";
-import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import { type AttackEvent, BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import {
     composeLegendaryStandings,
     HOLYTOUCH_HEALS_STATED,
     type LegendaryWalk,
     NO_LEGENDARY_WALK,
     prepareLegendaryWalk,
+    tallyLegendaryBonuses,
 } from "#/src/core/legendary-standing.ts";
+import { LEGENDARY_BONUS_SHOWING, lookupLegendaryBonus } from "#/src/core/protocol-key.ts";
+import { readRecordedFights, tallyRecordedFight } from "#/tests/recorded-fights.ts";
 
 const HOLDER = 11;
 const SOMEBODY_ELSE = 12;
@@ -47,7 +50,7 @@ Deno.test("the effect stands for the heals the help gives it, and goes with the 
 });
 
 /** The blow that declares the effect. It rides the **holder's own** attack — article `view,372`. */
-function composeDeclaringBlow(actorId: number): BattleEvent {
+function composeDeclaringBlow(actorId: number): AttackEvent {
     return {
         kind: BATTLE_EVENT.attack,
         actorId,
@@ -215,3 +218,90 @@ function copyWalk(walk: LegendaryWalk) {
         spent: [...walk.lastHealSpentCombatantIds],
     };
 }
+
+/**
+ * Whose a bonus is comes off the table and never off the sign, and a blow carries bonuses two ways:
+ * as procs and as declarations. ADR 0029.
+ */
+Deno.test("each legendary bonus is counted on its holder, whichever way the blow carries it", () => {
+    const blow: BattleEvent = {
+        ...composeDeclaringBlow(HOLDER),
+        targetId: SOMEBODY_ELSE,
+        procs: ["+legbon_verycrit", "-legbon_cleanse"],
+        declared: [
+            { effect: "-legbon_facade", amount: 13, text: null },
+            { effect: "+legbon_puncture", amount: 12, text: null },
+            { effect: "+injure", amount: 40, text: null },
+        ],
+    };
+    const counts = tallyLegendaryBonuses([blow, composeLastheal(HOLDER)]);
+    assertEquals(
+        [...counts.get(HOLDER) ?? []],
+        [["+legbon_verycrit", 1], ["+legbon_puncture", 1], ["legbon_lastheal", 1]],
+        "the striker holds what fires when they strike, and the rescue is the one it healed",
+    );
+    assertEquals(
+        [...counts.get(SOMEBODY_ELSE) ?? []],
+        [["-legbon_cleanse", 1], ["-legbon_facade", 1]],
+        "and the struck holds what fires when they are struck",
+    );
+    assertStrictEquals(counts.size, 2, "and a key that is no bonus reaches nobody");
+});
+
+/** **W5**: nothing is a boundary, and a bonus whose holder the message names nobody at is too. */
+Deno.test("no event counts nothing, and a bonus on an end nobody stands at is nobody's", () => {
+    assertStrictEquals(tallyLegendaryBonuses([]).size, 0, "no events, no holders");
+    const unheld: BattleEvent = {
+        ...composeDeclaringBlow(HOLDER),
+        actorId: null,
+        procs: ["+legbon_curse"],
+    };
+    assertStrictEquals(
+        tallyLegendaryBonuses([unheld]).size,
+        0,
+        "and an actor nobody is holds none",
+    );
+    const twice = tallyLegendaryBonuses([
+        composeDeclaringBlow(HOLDER),
+        composeDeclaringBlow(HOLDER),
+    ]);
+    assertStrictEquals(twice.get(HOLDER)?.get("+legbon_holytouch"), 2, "one blow is one, two two");
+});
+
+/**
+ * The seam: the decoder's spelling against the table's, over every recording. The figures are the
+ * `_Shape:_` lines of `docs/protocol-keys.md`, and a bonus held for the whole fight stands once on
+ * its holder or not at all — which is what keeps it out of the counted ones on the card.
+ */
+Deno.test("the recordings count each legendary bonus as the register states it", () => {
+    const totals = new Map<string, number>();
+    for (const fight of readRecordedFights()) {
+        const statistics = tallyRecordedFight(fight.path).statistics;
+        for (const counts of statistics.legendaryBonusesByCombatantId.values()) {
+            for (const [key, count] of counts) {
+                totals.set(key, (totals.get(key) ?? 0) + count);
+                const bonus = lookupLegendaryBonus(key);
+                assert(bonus !== null, `${fight.path}: ${key} is a bonus the table names`);
+                if (bonus.showing === LEGENDARY_BONUS_SHOWING.held) {
+                    assertStrictEquals(count, 1, `${fight.path}: ${key} stands once on a holder`);
+                }
+            }
+        }
+    }
+    assertEquals(
+        Object.fromEntries([...totals].sort()),
+        {
+            "+legbon_anguish": 21,
+            "+legbon_curse": 17,
+            "+legbon_holytouch": 70,
+            "+legbon_puncture": 11,
+            "+legbon_verycrit": 30,
+            "-legbon_cleanse": 25,
+            "-legbon_critred": 17,
+            "-legbon_facade": 17,
+            "-legbon_glare": 8,
+            "legbon_lastheal": 14,
+        },
+        "every occurrence the register counts, on somebody's row",
+    );
+});

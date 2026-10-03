@@ -21,6 +21,7 @@ import {
 } from "./battle-event.ts";
 import type { SideHeal } from "./combatant-health.ts";
 import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
+import { type LegendaryBonusesByCombatantId, tallyLegendaryBonuses } from "./legendary-standing.ts";
 import {
     CRITICAL_PROC_KEYS,
     DEFENCE_MECHANISM,
@@ -174,6 +175,11 @@ export interface FightStatistics extends UnreadMessageCounts {
     sideHealsStated: number;
     /** Null until the game says the fight is over, which it may never do on a fight left early. */
     outcome: FightOutcome | null;
+    /**
+     * Beside the rows and never on them: a row is what a fight file writes down, and these are
+     * not in its format.
+     */
+    legendaryBonusesByCombatantId: LegendaryBonusesByCombatantId;
 }
 
 /**
@@ -624,6 +630,7 @@ export function tallyFightStatistics(
         sideHealsUnsized: tallying.sideHealsUnsized,
         sideHealsStated: tallying.sideHealsStated,
         outcome: tallying.outcome,
+        legendaryBonusesByCombatantId: tallyLegendaryBonuses(events),
     };
 }
 

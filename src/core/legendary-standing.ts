@@ -1,16 +1,22 @@
 /**
- * The two legendary bonuses a fighter's own tooltip can be honest about: the one still running,
- * and the one that has been spent.
+ * The legendary bonuses: how many times each showed itself on whoever holds it, and the two a
+ * fighter's own tooltip can be honest about now — the one still running, and the one spent.
  *
- * Neither rides a `skillId`, so the published skill table dates neither. The first is counted by
- * its own heals, each of which the payload carries; the second fires once (`develop ADR 0113`).
- * The lighting rides the **holder's own** blow: the help lets it happen only while the bonus's
- * holder is attacking (article `view,372`, read 2026-09-21).
+ * Neither of those two rides a `skillId`, so the published skill table dates neither. The first is
+ * counted by its own heals, each of which the payload carries; the second fires once (`develop ADR
+ * 0113`). The lighting rides the **holder's own** blow: the help lets it happen only while the
+ * bonus's holder is attacking (article `view,372`, read 2026-09-21).
  */
 
 import { assert } from "@std/assert/assert";
 import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
-import { HOLYTOUCH_DECLARATION_KEY, HOLYTOUCH_HEAL_KEY, LASTHEAL_KEY } from "./protocol-key.ts";
+import {
+    HOLYTOUCH_DECLARATION_KEY,
+    HOLYTOUCH_HEAL_KEY,
+    LASTHEAL_KEY,
+    lookupLegendaryBonus,
+    PROC_END,
+} from "./protocol-key.ts";
 
 /** What one fight's bonuses have come to so far, carried payload to payload. */
 export interface LegendaryWalk {
@@ -27,6 +33,9 @@ export interface LegendaryStanding {
     hasSpentLastheal: boolean;
 }
 
+/** How many times each legendary bonus showed itself, by its key, on whoever it belongs to. */
+export type LegendaryBonusesByCombatantId = ReadonlyMap<number, ReadonlyMap<string, number>>;
+
 /**
  * The holder puts an effect on themselves spread over **three** firings, each healing 6% of their
  * health pool (article `view,372`, read 2026-09-21). ⚠️ **Counted in heals and never in the
@@ -36,6 +45,8 @@ export const HOLYTOUCH_HEALS_STATED = 3;
 
 /** As many holders as a board has combatants. */
 const HOLDERS_MAXIMUM = 64;
+/** Past the ten keys `src/core/protocol-key.ts` names a legendary bonus by. */
+const BONUSES_PER_HOLDER_MAXIMUM = 16;
 
 export const NO_LEGENDARY_WALK: LegendaryWalk = {
     holytouchHealsByBearerId: new Map(),
@@ -119,4 +130,43 @@ export function composeLegendaryStandings(walk: LegendaryWalk): LegendaryStandin
     return [...standingByCombatantId.values()].sort((leftStanding, rightStanding) =>
         leftStanding.combatantId - rightStanding.combatantId
     );
+}
+
+/**
+ * Every legendary bonus the events name, on the row of whoever it belongs to. A blow carries the
+ * bonuses as procs and as declarations alike; the heal stated by name carries its key as its
+ * source. A bonus whose end the message names nobody at reaches no row.
+ */
+export function tallyLegendaryBonuses(
+    events: readonly BattleEvent[],
+): LegendaryBonusesByCombatantId {
+    const countsByCombatantId = new Map<number, Map<string, number>>();
+    for (const event of events) {
+        let keys: readonly string[];
+        let actorId: number | null;
+        let targetId: number | null;
+        if (event.kind === BATTLE_EVENT.attack) {
+            keys = [...event.procs, ...event.declared.map((declared) => declared.effect)];
+            actorId = event.actorId;
+            targetId = event.targetId;
+        } else if (event.kind === BATTLE_EVENT.healingToNamedCombatant) {
+            keys = [event.source];
+            actorId = null;
+            targetId = event.targetId;
+        } else {
+            continue;
+        }
+        for (const key of keys) {
+            const bonus = lookupLegendaryBonus(key);
+            if (bonus === null) continue;
+            const holderId = bonus.end === PROC_END.actor ? actorId : targetId;
+            if (holderId === null) continue;
+            const counts = countsByCombatantId.get(holderId) ?? new Map<string, number>();
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+            countsByCombatantId.set(holderId, counts);
+            assert(counts.size <= BONUSES_PER_HOLDER_MAXIMUM, "a holder shows a bounded few");
+        }
+    }
+    assert(countsByCombatantId.size <= HOLDERS_MAXIMUM, "a board holds a bounded cast");
+    return countsByCombatantId;
 }

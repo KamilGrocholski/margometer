@@ -584,6 +584,12 @@ naming blows over it was a claim the figure does not keep (**develop ADR 0088**)
 belongs to is read per key and never off its sign, so the heading is what says whose each line is. A
 run that came to nothing is not drawn, and neither is its heading. **develop ADR 0032.**
 
+**The legendary bonuses stand in a run of their own, after both.** A reader asking what their
+bonuses did reads one place, whichever end of a blow each fires at, so neither blow run names one. A
+bonus that fired is counted; one held for the whole fight is named once, in a sentence at the run's
+foot, because a count of it would read as that many firings. A combatant holding none has no such
+run. **ADR 0029.**
+
 **A count a second key narrows is one row, with the narrower count under it.** The row states what
 the mechanic came to and the line below it says how much of that was the narrower thing — the
 criticals with the ones off the auxiliary weapon under them, the deep wounds with the weakened ones.

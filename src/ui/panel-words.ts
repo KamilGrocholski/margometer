@@ -378,6 +378,13 @@ export const CARD_WORDS = {
      */
     destroyed: "Zniszczone",
     /**
+     * The run of its own the legendary bonuses stand in, at whichever end of a blow each fired —
+     * the line under it names which. Those held for the whole fight stand after the colon in one
+     * sentence, because a count of them would read as a count of firings (ADR 0029).
+     */
+    legendary: "Bonusy legendarne",
+    legendaryHeld: "Przez całą walkę:",
+    /**
      * The instruction a row gives, and it stands wherever pressing leads somewhere —
      * `DESIGN.md` owns that rule. The right press is not named beside it: a reader on the
      * ranking has nowhere to go back to, so a row's card would promise a gesture that does nothing
@@ -618,6 +625,20 @@ export const HEALTH_SOURCE_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Ob
     healall_per: "uleczenie sojuszników",
     npc_heal: "regeneracja potwora",
     bandage: "bandażowanie",
+}));
+
+/**
+ * The legendary bonuses the client's dictionary names in no phrase a column can take, by the name
+ * the published help gives each (article view,372, read 2026-10-03). The other four are the
+ * client's own words, through `CLIENT_ID_BY_UNWORDED_KEY`.
+ */
+export const LEGENDARY_BONUS_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
+    "+legbon_holytouch": "Dotyk anioła",
+    "+legbon_anguish": "Krwawa udręka",
+    "-legbon_critred": "Krytyczna osłona",
+    legbon_lastheal: "Ostatni ratunek",
+    "-legbon_facade": "Fasada opieki",
+    "+legbon_puncture": "Przeszywająca skuteczność",
 }));
 
 export const COUNTED_NOUN_WORDS = {
@@ -978,6 +999,13 @@ function getMargonemClientWordsForKey(
     if (label.length > CLIENT_LABEL_CHARACTERS_MAXIMUM) return null;
     if (label.length === 0) return null;
     return label;
+}
+
+/** Ours, then the player's own client, then the key as the game wrote it. */
+export function getWordsForLegendaryBonus(key: string, translate: TranslateLabel | null): string {
+    const words = LEGENDARY_BONUS_WORD_BY_KEY.get(key);
+    if (words !== undefined) return words;
+    return getMargonemClientWordsForKey(key, translate) ?? key;
 }
 
 /** The word standing under the row a key's count landed on, and `""` where it stands alone. */

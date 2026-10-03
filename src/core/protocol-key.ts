@@ -37,6 +37,21 @@ export const PROC_END = { actor: "actor", target: "target", unsettled: "unsettle
 export type ProcEnd = VocabularyWord<typeof PROC_END>;
 
 /**
+ * How a legendary bonus shows itself: `fired` each time it happens, `held` once a fight on whoever
+ * holds it. Over `captures/` on 2026-10-03 `-legbon_facade` stood 17 times and `+legbon_puncture`
+ * 11, never twice on one combatant in one fight, and the client words both as lasting to the end
+ * of the fight (build `1785244275300`), so a count of them is not a count of anything happening.
+ */
+export const LEGENDARY_BONUS_SHOWING = { fired: "fired", held: "held" } as const;
+export type LegendaryBonusShowing = VocabularyWord<typeof LEGENDARY_BONUS_SHOWING>;
+
+/** Whose a legendary bonus is, read off the event it rides, and how it shows itself. */
+export interface LegendaryBonus {
+    end: ProcEnd;
+    showing: LegendaryBonusShowing;
+}
+
+/**
  * How a defence stops damage. A `pool` is one the character begins the fight with, and what it
  * stops is drained from it point for point, so that damage was spent on the target the way health
  * is; a `chance` is a roll on each blow and takes nothing (ADR 0012).
@@ -98,6 +113,15 @@ export const HOLYTOUCH_DECLARATION_KEY = "+legbon_holytouch";
 export const HOLYTOUCH_HEAL_KEY = "legbon_holytouch_heal";
 /** The legendary bonus that heals once a fight, stated by name inside the value. */
 export const LASTHEAL_KEY = "legbon_lastheal";
+/** The other legendary bonuses, each in two tables: the family it is read in, and whose it is. */
+const CURSE_KEY = "+legbon_curse";
+const VERYCRIT_KEY = "+legbon_verycrit";
+const CLEANSE_KEY = "-legbon_cleanse";
+const GLARE_KEY = "-legbon_glare";
+const PUNCTURE_KEY = "+legbon_puncture";
+const CRITRED_KEY = "-legbon_critred";
+const FACADE_KEY = "-legbon_facade";
+const ANGUISH_KEY = "+legbon_anguish";
 /** The reduction of healing the help scopes to the caster's opposing side. */
 export const HEALING_REDUCER_KEY = "lowheal_per-enemies";
 /** The key an announcement carries when it provokes: its value names the provoked. */
@@ -179,10 +203,10 @@ const PROC_END_BY_KEY: ReadonlyMap<string, ProcEnd> = new Map<string, ProcEnd>([
     ["+of_woundmagic", PROC_END.actor],
     ["+fastarrow", PROC_END.actor],
     ["+acdmg_destroyed", PROC_END.actor],
-    ["+legbon_curse", PROC_END.actor],
-    ["+legbon_verycrit", PROC_END.actor],
-    ["-legbon_cleanse", PROC_END.target],
-    ["-legbon_glare", PROC_END.target],
+    [CURSE_KEY, PROC_END.actor],
+    [VERYCRIT_KEY, PROC_END.actor],
+    [CLEANSE_KEY, PROC_END.target],
+    [GLARE_KEY, PROC_END.target],
     [CHARGE_BROKEN_KEY, PROC_END.unsettled],
     ["+superspell-prevented", PROC_END.unsettled],
     ["-tenacity", PROC_END.unsettled],
@@ -237,13 +261,13 @@ const DECLARATION_KEYS = [
     "+engback",
     "+exp",
     WOUND_ANNOUNCEMENT_KEY,
-    "+legbon_puncture",
+    PUNCTURE_KEY,
     "+ph",
     "+rage",
     "+taken_dmg",
     "-endest",
-    "-legbon_critred",
-    "-legbon_facade",
+    CRITRED_KEY,
+    FACADE_KEY,
     "-manadest",
     "-poison_lowdmg_per",
     "active_absorbdest_per",
@@ -284,7 +308,7 @@ const DECLARATION_KEYS = [
  * `sunshield_per` is composed with none at all.
  */
 const VALUELESS_DECLARATION_KEYS = [
-    "+legbon_anguish",
+    ANGUISH_KEY,
     HOLYTOUCH_DECLARATION_KEY,
     "+spell-taken_dmg-all",
     "en-regen-cast",
@@ -330,6 +354,24 @@ const SIDE_WIDE_ENDINGS = ["-all", "-allies", "-enemies"];
  */
 const SIDE_WIDE_KEYS = [PROVOCATION_KEY, SLOW_ALL_KEY, "alllowdmg"];
 
+/**
+ * Every legendary bonus a message names, and whose it is: the end a proc is charged to, or for a
+ * declaration the end the published help puts it on (article view,372, read 2026-10-03). The
+ * heal stated by name belongs to the one it heals, who is that event's target.
+ */
+const LEGENDARY_BONUS_BY_KEY: ReadonlyMap<string, LegendaryBonus> = new Map([
+    [HOLYTOUCH_DECLARATION_KEY, { end: PROC_END.actor, showing: LEGENDARY_BONUS_SHOWING.fired }],
+    [VERYCRIT_KEY, { end: PROC_END.actor, showing: LEGENDARY_BONUS_SHOWING.fired }],
+    [CURSE_KEY, { end: PROC_END.actor, showing: LEGENDARY_BONUS_SHOWING.fired }],
+    [ANGUISH_KEY, { end: PROC_END.actor, showing: LEGENDARY_BONUS_SHOWING.fired }],
+    [CLEANSE_KEY, { end: PROC_END.target, showing: LEGENDARY_BONUS_SHOWING.fired }],
+    [GLARE_KEY, { end: PROC_END.target, showing: LEGENDARY_BONUS_SHOWING.fired }],
+    [CRITRED_KEY, { end: PROC_END.target, showing: LEGENDARY_BONUS_SHOWING.fired }],
+    [LASTHEAL_KEY, { end: PROC_END.target, showing: LEGENDARY_BONUS_SHOWING.fired }],
+    [PUNCTURE_KEY, { end: PROC_END.actor, showing: LEGENDARY_BONUS_SHOWING.held }],
+    [FACADE_KEY, { end: PROC_END.target, showing: LEGENDARY_BONUS_SHOWING.held }],
+]);
+
 const KEY_MEANING_BY_KEY: ReadonlyMap<string, KeyMeaning> = indexKeyMeanings();
 /** Keyed by the defence an event names, which is the key with its sign taken off. */
 const DEFENCE_MECHANISM_BY_DEFENCE: ReadonlyMap<string, DefenceMechanism> =
@@ -341,6 +383,14 @@ export function lookupKeyReach(key: string): KeyReach | null {
     const reach = REACH_BY_KEY.get(key) ?? null;
     if (reach !== null) assert(isSideWideKey(key), "a key reaching a side is a side-wide key");
     return reach;
+}
+
+/** `null`: the key names no legendary bonus. */
+export function lookupLegendaryBonus(key: string): LegendaryBonus | null {
+    assert(key.length > 0, "a bonus is asked of a key");
+    const bonus = LEGENDARY_BONUS_BY_KEY.get(key) ?? null;
+    if (bonus !== null) assert(bonus.end !== PROC_END.unsettled, "a bonus held here is somebody's");
+    return bonus;
 }
 
 /** Whether a key reaches more than one combatant, by its shape or by its meaning. */

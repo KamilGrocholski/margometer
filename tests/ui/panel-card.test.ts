@@ -57,6 +57,7 @@ const HILDUR: RowDetail = {
         { key: "acdmg", figure: 940 },
         { key: "resdmg", figure: 26 },
     ],
+    legendaryBonuses: [{ key: "-legbon_cleanse", figure: 1 }],
     unreadMessagesUnknownKey: 0,
     unreadMessagesNoParameter: 0,
     sideHealsUnsized: 0,
@@ -91,6 +92,7 @@ const NOBODY: RowDetail = {
     damageDealtAbsorbedByDefence: [],
     damageTakenAbsorbedByDefence: [],
     statisticsDestroyed: [],
+    legendaryBonuses: [],
     unreadMessagesUnknownKey: 0,
     unreadMessagesNoParameter: 0,
     sideHealsUnsized: 0,
@@ -122,7 +124,7 @@ Deno.test("the whole fight is a block of its own, and the screen's figure is in 
     });
     assertEquals(card.name, "Hildur Muza Śmierci", "the name in full");
     assertEquals(card.subtitle, "Paladyn (83)", "what they are and how far along, under it");
-    const [figures, counters, , , notes] = card.groups;
+    const [figures, counters, , , , notes] = card.groups;
     assertExists(figures, "a card states the figures the whole fight is summed over");
     assertEquals(
         readGroup(figures),
@@ -361,10 +363,55 @@ Deno.test("the card says what they did when they struck, and what held when they
             `${CARD_WORDS.prevented} ${CAVEATED} 2\u00a0413`,
             "  blok 2\u00a0413",
             "unik ×3",
-            "-legbon_cleanse ×1",
         ],
         "what was stated before reduction, what stopped part of a blow, and what fired on one",
     );
+    assert(
+        !card.groups.slice(2, 4).flatMap(readGroup).some((line) => line.includes("legbon")),
+        "and a legendary bonus stands in neither run, but in its own (ADR 0029)",
+    );
+});
+
+/**
+ * A legendary bonus is read in one place, whichever end of a blow it fired at: counted where it
+ * fired, and named once in a sentence where it held for the whole fight. ADR 0029.
+ */
+Deno.test("the legendary bonuses stand in a run of their own, the held ones in a sentence", () => {
+    const readLegendary = (legendaryBonuses: RowDetail["legendaryBonuses"]) => {
+        const card = presentCard({
+            name: "Gracz 4",
+            profession: "w",
+            sideRelation: SIDE_RELATION.nobody,
+            detail: { ...NOBODY, legendaryBonuses },
+            metric: PANEL_METRIC.damageTaken,
+            doesOpen: false,
+            isRowNarrower: false,
+            translate: (id) => id === "msg_-legbon_cleanse" ? "Płomienne oczyszczenie" : null,
+        });
+        const lines = card.groups.map(readGroup);
+        return lines.find((group) => group[0] === `[${CARD_WORDS.legendary}]`) ?? [];
+    };
+    assertEquals(
+        readLegendary([
+            { key: "+legbon_holytouch", figure: 3 },
+            { key: "-legbon_cleanse", figure: 2 },
+            { key: "-legbon_facade", figure: 1 },
+            { key: "+legbon_puncture", figure: 1 },
+        ]),
+        [
+            `[${CARD_WORDS.legendary}]`,
+            "Dotyk anioła ×3",
+            "Płomienne oczyszczenie ×2",
+            `${CARD_WORDS.legendaryHeld} Fasada opieki, Przeszywająca skuteczność.`,
+        ],
+        "each fired bonus by its name and count, and the held ones once, with no count",
+    );
+    assertEquals(
+        readLegendary([{ key: "-legbon_facade", figure: 1 }]),
+        [`[${CARD_WORDS.legendary}]`, `${CARD_WORDS.legendaryHeld} Fasada opieki.`],
+        "a holder of nothing but a held bonus still has the run, and no count in it",
+    );
+    assertEquals(readLegendary([]), [], "and somebody holding none has no run at all");
 });
 
 Deno.test("what somebody is stands beside how far along they are, or whichever was said", () => {
@@ -613,6 +660,7 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
             `[${CARD_WORDS.striking}]`,
             `[${CARD_WORDS.destroyed}]`,
             `[${CARD_WORDS.struck}]`,
+            `[${CARD_WORDS.legendary}]`,
         ],
         "somebody who struck and was struck carries both runs, whichever screen they are read on",
     );
@@ -690,6 +738,7 @@ Deno.test("a run that came to nothing is not drawn, and neither is its heading",
             `[${CARD_WORDS.striking}]`,
             `[${CARD_WORDS.destroyed}]`,
             `[${CARD_WORDS.struck}]`,
+            `[${CARD_WORDS.legendary}]`,
         ],
         "somebody who did both has both, and what a blow destroyed sits inside the first",
     );
