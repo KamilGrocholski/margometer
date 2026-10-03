@@ -103,6 +103,11 @@ hand:
       build. A copy installed there polls Greasy Fork's own copy and never this repository's, so a
       release skipped there leaves those copies where they are (**develop ADR 0099**).
 - [ ] The published page states the same number, in its band and in its panel.
+- [ ] **The published page shows the column of the game's tooltips** beside the panel, at 1920 and
+      at 1366 wide. Only that page runs `tools/preview-site.ts`'s script, and nothing in the gate,
+      the browser suite or the pictures drives it in a browser. 0.22.0 went out with the column
+      hidden. A fix to the page alone reaches it only through `main`: the `github-pages` environment
+      deploys from `main` and no other branch (its branch policy, read 2026-10-03).
 - [ ] The release notes read as the changelog section, with the install note under them.
 
 ## What is held by a machine, and what is not
@@ -118,4 +123,4 @@ hand:
 | the file stays inside what the second host takes     | `tests/tools/build-userscript.test.ts` |
 
 Everything else on this page is held by somebody reading it: the audits in step 1, the pictures, and
-the install and the post to the second host in step 5.
+in step 5 the install, the published page and the post to the second host.
