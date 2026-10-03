@@ -37,7 +37,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.22.0] — 2026-10-03
 
 - **Nowość** — Dymek postaci ma osobną sekcję „Bonusy legendarne”: ile razy odpalił każdy bonus, a
   te działające przez całą walkę, jak Fasada opieki, są wymienione bez liczby.
