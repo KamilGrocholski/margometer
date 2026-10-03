@@ -4161,6 +4161,8 @@ function presentCardLegendaryLines(parts: readonly CutPart[]): CardLine[] {
 /**
  * Somebody else's legendary bonuses as they acted on this combatant: each by its count, and under
  * it whose it was, so a curse they threw and a curse thrown at them never share a line (ADR 0031).
+ * The givers stand in one line that folds, each with their count, so ten of them cost the card
+ * the lines their names run to rather than ten.
  */
 function presentCardReachedLines(bonuses: readonly ReachedBonus[]): CardLine[] {
     if (bonuses.length === 0) return [];
@@ -4173,13 +4175,12 @@ function presentCardReachedLines(bonuses: readonly ReachedBonus[]): CardLine[] {
             isStrong: false,
             caveat: null,
         });
-        for (const giver of bonus.givers.slice(0, CARD_PARTS_MAXIMUM)) {
-            lines.push({
-                kind: CARD_LINE.sub,
-                label: giver.name.length > 0 ? giver.name : PANEL_WORDS.unknown,
-                stated: formatUses(giver.figure),
-            });
-        }
+        const givers = bonus.givers.slice(0, CARD_PARTS_MAXIMUM).map((giver) =>
+            `${giver.name.length > 0 ? giver.name : PANEL_WORDS.unknown} (${
+                formatFigure(giver.figure)
+            })`
+        );
+        lines.push({ kind: CARD_LINE.note, text: givers.join(", "), tone: CARD_NOTE_TONE.plain });
     }
     return lines;
 }

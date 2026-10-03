@@ -388,7 +388,7 @@ export const CARD_WORDS = {
      * Somebody else's bonuses, in the run after: each by its name, and under it whose it was. The
      * word is the one the screens already use for what reached a combatant (ADR 0031).
      */
-    legendaryReached: "Otrzymane bonusy",
+    legendaryReached: "Otrzymane bonusy legendarne",
     /**
      * The instruction a row gives, and it stands wherever pressing leads somewhere —
      * `DESIGN.md` owns that rule. The right press is not named beside it: a reader on the

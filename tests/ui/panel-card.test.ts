@@ -454,10 +454,9 @@ Deno.test("somebody else's bonuses stand in a run of their own, each under whose
         [
             `[${CARD_WORDS.legendaryReached}]`,
             "Klątwa ×3",
-            "  Gracz 2 ×2",
-            `  ${PANEL_WORDS.unknown} ×1`,
+            `Gracz 2 (2), ${PANEL_WORDS.unknown} (1)`,
             "Oślepienie ×1",
-            "  Gracz 5 ×1",
+            "Gracz 5 (1)",
         ],
         "and the curses thrown at them are counted apart, under whoever threw them",
     );

@@ -592,9 +592,10 @@ run. **ADR 0029.**
 
 **Somebody else's bonuses stand in the run after, under the bonus and then under whose it was.** A
 curse a person threw and one thrown at them never share a line: the first is theirs, the second
-names the thrower in a sub-line. Only a bonus that acts on the blow's other end stands there; one
-held for the whole fight does not, because its one message names the first blow of many.
-**ADR 0031.**
+names the throwers under it in one line that folds, each with their count in brackets, so a fight of
+many opponents costs the card the lines their names run to and not a line each. Only a bonus that
+acts on the blow's other end stands there; one held for the whole fight does not, because its one
+message names the first blow of many. **ADR 0031.**
 
 **A count a second key narrows is one row, with the narrower count under it.** The row states what
 the mechanic came to and the line below it says how much of that was the narrower thing — the

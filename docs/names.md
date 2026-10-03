@@ -5595,8 +5595,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `from` — `src/ui/panel-drag.ts`, `src/ui/panel-words.ts`
 - `gap` — `src/ui/panel-drag.ts`
 - `given` — `src/ui/panel-content.ts`, `src/ui/panel-words.ts`
-- `giver` — `src/ui/panel-element.ts`
-- `givers` — `src/ui/panel-content.ts`
+- `givers` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `grab` — `src/ui/panel-drag.ts`
 - `grip` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`
 - `group` — `src/ui/panel-element.ts`, `src/ui/panel-helper.ts`, `src/ui/panel-words.ts`
@@ -8471,7 +8470,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getCut` — `src/ui/panel-content.ts`
 - `getTypeStep` — `src/ui/panel-element.ts`
 - `getViewportHeight` — `src/ui/panel-element.ts`
-- `giver` — `src/ui/panel-content.ts`
+- `giver` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `giverId` — `src/ui/panel-content.ts`
 - `grab` — `src/ui/panel-drag.ts`
 - `grip` — `src/ui/panel-drag.ts`
