@@ -3785,7 +3785,7 @@ export function presentCard(subject: CardSubject): CardContent {
     const counters = presentCardCounterLines(subject.detail);
     if (counters.length > 0) groups.push({ lines: counters });
     groups.push(...presentCardRunGroups(subject.detail, subject.translate));
-    const legendary = presentCardLegendaryLines(subject.detail.legendaryBonuses, subject.translate);
+    const legendary = presentCardLegendaryLines(subject.detail.legendaryBonuses);
     if (legendary.length > 0) groups.push({ lines: legendary });
     const notes = presentCardNoteLines(subject, groups);
     if (notes.length > 0) groups.push({ lines: notes });
@@ -4125,16 +4125,13 @@ function presentCardProcSubParts(
  * held for the whole fight are named once, in a sentence, because a count of a bonus standing
  * throughout says something happened that many times, and nothing did.
  */
-function presentCardLegendaryLines(
-    parts: readonly CutPart[],
-    translate: TranslateLabel | null,
-): CardLine[] {
+function presentCardLegendaryLines(parts: readonly CutPart[]): CardLine[] {
     const fired: CardLine[] = [];
     const held: string[] = [];
     for (const cutPart of parts.slice(0, CARD_PARTS_MAXIMUM)) {
         const bonus = lookupLegendaryBonus(cutPart.key);
         if (bonus === null) continue;
-        const label = getWordsForLegendaryBonus(cutPart.key, translate);
+        const label = getWordsForLegendaryBonus(cutPart.key);
         if (bonus.showing === LEGENDARY_BONUS_SHOWING.held) held.push(label);
         else {
             fired.push({

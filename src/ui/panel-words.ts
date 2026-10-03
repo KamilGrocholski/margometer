@@ -364,8 +364,8 @@ export const CARD_WORDS = {
     blowsCriticalOffhand: "bronią pomocniczą",
     /**
      * A heading each, because the two runs stand together and half the keys under them belong to
-     * the other end: `+legbon_curse` fires when its holder attacks and `-legbon_cleanse` when its
-     * holder is hit (`docs/protocol-keys.md`). `develop ADR 0032`.
+     * the other end: `+pierce` fires when its holder attacks and `-evade` when its holder is hit
+     * (`docs/protocol-keys.md`). `develop ADR 0032`.
      */
     striking: "W ciosach zadanych",
     struck: "W ciosach przyjętych",
@@ -438,8 +438,9 @@ export const DEFENCE_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.e
  * What fired beside a blow, in the player's words. Ours, and short: these sit in a column beside a
  * count, so each is the mechanic's name and not a sentence about it.
  *
- * **Not every key in `PROC_END_BY_KEY` has a word here**, and `CLIENT_ID_BY_UNWORDED_KEY`
- * below names the ones that do not and says why. The six keys sharing `ogłuszenie` are one event
+ * **Not every key in `PROC_END_BY_KEY` has a word here**: the legendary bonuses have theirs in
+ * `LEGENDARY_BONUS_WORD_BY_KEY`, and `CLIENT_ID_BY_UNWORDED_KEY` below names the rest and says
+ * why. The six keys sharing `ogłuszenie` are one event
  * the client spells two ways — `+stun`, and the five variants of the monster statistic — which is
  * what `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
  *
@@ -516,21 +517,17 @@ export const LABEL_CHARACTERS_MAXIMUM = 22;
 export const CLIENT_LABEL_CHARACTERS_MAXIMUM = 64;
 
 /**
- * The seven keys this repository has no word for, and what the client calls each in its own
+ * The three keys this repository has no word for, and what the client calls each in its own
  * dictionary. **The panel asks only here** — every other key it draws it has a word of its own for,
  * chosen short enough for the column above, and an answer out of somebody else's program is not.
- * `develop ADR 0024`. Four are legendary bonuses whose published name has not been read; three are
- * what article `view,372` does not carry at all (`develop ADR 0011`).
+ * `develop ADR 0024`. All three are what article `view,372` does not carry at all (`develop ADR
+ * 0011`); the legendary bonuses it does carry are ours since ADR 0030.
  *
  * Every id is spelled by the client, checked against `.cache/game-client/production/main.js` at
- * build `Bb28FQty` on 2026-09-21. Six are `msg_` and the key; `+superspell-dispel` is the one
+ * build `Bb28FQty` on 2026-09-21. Two are `msg_` and the key; `+superspell-dispel` is the one
  * that is not, and it is why this is a table rather than a rule.
  */
 export const CLIENT_ID_BY_UNWORDED_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
-    "+legbon_curse": "msg_+legbon_curse",
-    "+legbon_verycrit": "msg_+legbon_verycrit",
-    "-legbon_cleanse": "msg_-legbon_cleanse",
-    "-legbon_glare": "msg_-legbon_glare",
     "-tenacity": "msg_-tenacity",
     "+superspell-dispel": "msg_+dispel",
     "+superspell-prevented": "msg_+superspell-prevented",
@@ -628,11 +625,15 @@ export const HEALTH_SOURCE_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Ob
 }));
 
 /**
- * The legendary bonuses the client's dictionary names in no phrase a column can take, by the name
- * the published help gives each (article view,372, read 2026-10-03). The other four are the
- * client's own words, through `CLIENT_ID_BY_UNWORDED_KEY`.
+ * Every legendary bonus a message names, by the name the published help gives each (article
+ * view,372, read 2026-10-03), so the card names them whether or not the client can be asked.
+ * ADR 0030.
  */
 export const LEGENDARY_BONUS_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
+    "+legbon_curse": "Klątwa",
+    "+legbon_verycrit": "Cios bardzo krytyczny",
+    "-legbon_cleanse": "Płomienne oczyszczenie",
+    "-legbon_glare": "Oślepienie",
     "+legbon_holytouch": "Dotyk anioła",
     "+legbon_anguish": "Krwawa udręka",
     "-legbon_critred": "Krytyczna osłona",
@@ -993,19 +994,18 @@ function getMargonemClientWordsForKey(
     if (id === undefined) return null;
     const label = translate(id);
     if (label === null) return null;
-    // ⚠️ **The client's bound and not ours.** At 22 this refused three of the seven — their keys
-    // land 56 times over `captures/` — and drew `+superspell-prevented` at a reader who has
-    // a dictionary saying `Zapobiegnięto ładowaniu ciosu specjalnego.`
+    // ⚠️ **The client's bound and not ours.** At 22 this refused three of the seven keys it asked
+    // about on 2026-09-22 — their keys land 56 times over `captures/` — and drew
+    // `+superspell-prevented` at a reader who has a dictionary saying
+    // `Zapobiegnięto ładowaniu ciosu specjalnego.`
     if (label.length > CLIENT_LABEL_CHARACTERS_MAXIMUM) return null;
     if (label.length === 0) return null;
     return label;
 }
 
-/** Ours, then the player's own client, then the key as the game wrote it. */
-export function getWordsForLegendaryBonus(key: string, translate: TranslateLabel | null): string {
-    const words = LEGENDARY_BONUS_WORD_BY_KEY.get(key);
-    if (words !== undefined) return words;
-    return getMargonemClientWordsForKey(key, translate) ?? key;
+/** Ours, or the key as the game wrote it where a bonus joins the game before it joins the table. */
+export function getWordsForLegendaryBonus(key: string): string {
+    return LEGENDARY_BONUS_WORD_BY_KEY.get(key) ?? key;
 }
 
 /** The word standing under the row a key's count landed on, and `""` where it stands alone. */

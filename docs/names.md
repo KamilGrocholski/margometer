@@ -2554,7 +2554,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `translate` — not in N2's table
 
-- `translate` — `tests/runtime/panel-frame.test.ts`, `tests/ui/panel-card.test.ts`
+- `translate` — `tests/runtime/panel-frame.test.ts`
 - `translateLabel` — `src/runtime/margometer-runtime.ts`
 
 ### `trigger` — not in N2's table
@@ -14299,6 +14299,7 @@ suite's material.
 - `docs/adr/0027-a-name-says-what-it-holds-and-a-function-what-it-acts-on.md`
 - `docs/adr/0028-a-storage-key-names-the-window-it-keeps.md`
 - `docs/adr/0029-the-legendary-bonuses-stand-in-a-run-of-their-own-on-the-card.md`
+- `docs/adr/0030-every-legendary-bonus-is-named-in-our-words-from-the-published-help.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

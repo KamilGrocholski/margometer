@@ -386,7 +386,8 @@ Deno.test("the legendary bonuses stand in a run of their own, the held ones in a
             metric: PANEL_METRIC.damageTaken,
             doesOpen: false,
             isRowNarrower: false,
-            translate: (id) => id === "msg_-legbon_cleanse" ? "Płomienne oczyszczenie" : null,
+            // Nobody to ask: every bonus is named in our words (ADR 0030).
+            translate: null,
         });
         const lines = card.groups.map(readGroup);
         return lines.find((group) => group[0] === `[${CARD_WORDS.legendary}]`) ?? [];

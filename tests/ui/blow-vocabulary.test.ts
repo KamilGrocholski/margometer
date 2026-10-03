@@ -129,14 +129,16 @@ Deno.test("what was destroyed carries the unit it was counted in, and never the 
 });
 
 /**
- * The six keys nothing here words, and the client that does. Both directions, because the two
+ * The keys nothing here words, and the client that does. Both directions, because the two
  * failures are different: a key dropping out of the table reaches a reader as raw protocol, and a
  * key joining it that we already word would put somebody else's sentence over our own. **ADR
  * 0024.**
  */
 Deno.test("the panel asks the client for a key it has no word for, and for no other", () => {
     const asked = [...CLIENT_ID_BY_UNWORDED_KEY.keys()];
-    const worded = asked.filter((key) => PROC_WORD_BY_KEY.has(key));
+    const worded = asked.filter((key) =>
+        PROC_WORD_BY_KEY.has(key) || LEGENDARY_BONUS_WORD_BY_KEY.has(key)
+    );
     assertEquals(worded, [], "a key the panel already words is never asked about");
     const known: readonly string[] = FROZEN_PROTOCOL_KEYS.keys;
     const unknown = asked.filter((key) => !known.includes(key));
@@ -144,15 +146,12 @@ Deno.test("the panel asks the client for a key it has no word for, and for no ot
     const unasked: string[] = [];
     for (const key of CARRIED.procs) {
         if (PROC_WORD_BY_KEY.has(key)) continue;
+        if (LEGENDARY_BONUS_WORD_BY_KEY.has(key)) continue;
         if (CLIENT_ID_BY_UNWORDED_KEY.has(key)) continue;
         unasked.push(key);
     }
     assertEquals(unasked, [], "a proc the material carries is worded by us or asked of the client");
-    assertEquals(
-        asked.length,
-        7,
-        "the four legendary bonuses, and the three view,372 does not name",
-    );
+    assertEquals(asked.length, 3, "the three view,372 does not name, and nothing else (ADR 0030)");
 });
 
 /** A page with no game on it is what every test and every browser without the client sees. */
