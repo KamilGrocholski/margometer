@@ -19,8 +19,12 @@ export interface QuotedLiteral {
  */
 export const JAVASCRIPT_QUOTES = "\"'`";
 
-/** Past the longest literal any bundle read here states, so the walk stays a stated bound. */
-const LITERAL_CHARACTERS_MAXIMUM = 65_536;
+/**
+ * Past the farthest two quotes stand apart in any bundle read here, so the walk stays a stated
+ * bound: 33679 characters in development build `COv-iBFt` and 15311 in production build
+ * `DHSqC3Uh`, both fetched 2026-10-02.
+ */
+export const LITERAL_CHARACTERS_MAXIMUM = 65_536;
 /** What HTML and JavaScript both treat as space between the things that mean something. */
 const WHITESPACE = " \t\r\n\f\v";
 
@@ -72,7 +76,7 @@ export function lookupQuotedLiteral(text: string, open: number): QuotedLiteral |
     if (opening === "") return null;
     if (!JAVASCRIPT_QUOTES.includes(opening)) return null;
     let index = open + 1;
-    for (let look = 0; look < LITERAL_CHARACTERS_MAXIMUM; look += 1) {
+    for (let look = 0; look <= LITERAL_CHARACTERS_MAXIMUM; look += 1) {
         const character = text.charAt(index);
         if (character === "") return null;
         if (JAVASCRIPT_QUOTES.includes(character)) {
@@ -81,5 +85,5 @@ export function lookupQuotedLiteral(text: string, open: number): QuotedLiteral |
         }
         index += 1;
     }
-    return null;
+    assert(false, "a literal closes inside the bound on its length");
 }

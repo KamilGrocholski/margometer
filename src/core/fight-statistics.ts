@@ -52,7 +52,7 @@ export interface SkillFigures {
     name: string;
     uses: number;
     damageDealt: number;
-    /** Swings that went out under this announcement, counted the way `blowsStruck` is. */
+    /** Blows that went out under this announcement, counted the way `blowsStruck` is. */
     blows: number;
     damageDealtByOpponent: ReadonlyMap<string, number>;
     healthGiven: number;
@@ -228,7 +228,7 @@ interface TallyingStatistics extends UnreadMessageCounts {
 }
 
 /** The largest cut in `captures/` holds ten elements against twenty people, 2026-08-28. */
-const CUT_MAXIMUM = 64;
+export const CUT_MAXIMUM = 64;
 /** The most one blow fires in `captures/` is 3, 2026-08-30. */
 const PROCS_MAXIMUM = 32;
 /** 81 skills are named across `captures/`, 2026-08-29. */
@@ -457,7 +457,7 @@ export function tallyFightStatistics(
                     amount,
                 );
                 addToCut(dealer.damageDealtByKind, event.damage.element, amount);
-                // The announcement is spent and the count of blows is not: a swing is a swing.
+                // The announcement is spent and the count of blows is not: a blow is a blow.
                 if (event.announced !== null) {
                     const otherEndKey = getOtherEndKey(event.targetId);
                     addSkillDealt(dealer.skills, event.announced, amount, otherEndKey);
@@ -800,11 +800,11 @@ function addBlowDealt(dealer: TallyingFigures, event: AttackEvent, blow: BlowFig
     } else {
         const otherEndKey = getOtherEndKey(event.targetId);
         addSkillDealt(dealer.skills, event.announced, blow.amount, otherEndKey);
-        // Count the swing: a figure stated against a name is not one.
+        // Count the blow: a figure stated against a name is not one.
         {
             assert(
                 event.announced.skillName.length > 0,
-                "a swing is counted under the announcement named",
+                "a blow is counted under the announcement named",
             );
             const skillFigures = addSkillFigures(
                 dealer.skills,
@@ -813,7 +813,7 @@ function addBlowDealt(dealer: TallyingFigures, event: AttackEvent, blow: BlowFig
             skillFigures.blows += 1;
             assert(
                 skillFigures.blows > 0,
-                "a swing that was counted was counted at least once",
+                "a blow that was counted was counted at least once",
             );
         }
     }
@@ -989,8 +989,8 @@ function addHealthRestoredBySource(
 
 function addToCut(cut: Map<string, number>, key: string, amount: number): void {
     assert(key.length > 0, "a cut is kept under a name");
-    assert(cut.size <= CUT_MAXIMUM, "a cut stays inside its stated bound");
     cut.set(key, (cut.get(key) ?? 0) + amount);
+    assert(cut.size <= CUT_MAXIMUM, "a cut stays inside its stated bound");
 }
 
 /**
@@ -1292,7 +1292,7 @@ function tallyTotals(byCombatantId: ReadonlyMap<number, TallyingFigures>): Tally
         totals.healthGiven += figures.healthGiven;
     }
     assert(totals.damageDealt >= totals.damageDealtApplied, "health is a part of what was dealt");
-    assert(totals.healthRestored >= 0, "and neither does a total of health restored");
+    assert(totals.healthRestored >= 0, "a total of health restored never runs below nought");
     return totals;
 }
 

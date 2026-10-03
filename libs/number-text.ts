@@ -24,7 +24,7 @@ export function parseInteger(text: string): number | null {
     return integer;
 }
 
-/** Digits, optionally a point and more digits. No sign. */
+/** Digits, optionally a point and more digits. No sign, and past the largest double is refused. */
 export function parseDecimal(text: string): number | null {
     const point = text.indexOf(POINT);
     if (point === -1) {
@@ -34,8 +34,9 @@ export function parseDecimal(text: string): number | null {
         if (!isDigitRun(text.slice(point + POINT.length))) return null;
     }
     const decimal = Number(text);
-    assert(Number.isFinite(decimal), "a decimal read from digits is a number");
-    assert(decimal >= 0, "and never below nothing, because no sign was admitted");
+    // ⚠️ Digits never read as NaN, but enough of them read as `Infinity`, which states no number.
+    if (!Number.isFinite(decimal)) return null;
+    assert(decimal >= 0, "a decimal read from digits is never below nothing, having no sign");
     return decimal;
 }
 

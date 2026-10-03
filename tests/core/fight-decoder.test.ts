@@ -22,6 +22,8 @@ import {
     decodeMessage,
     decodePayloadMessages,
     type DecoderTables,
+    EndUnreadable,
+    MESSAGE_END,
     MESSAGES_MAXIMUM,
     NAME_LENGTH_MAXIMUM,
     UnreadMessage,
@@ -1058,6 +1060,18 @@ Deno.test("a message read whole is no failure, and one of no parameters is", () 
     assertInstanceOf(empty, UnreadMessage, "a message stating nothing is read as nothing");
     assertStrictEquals(empty.unreadCause, "no-parameter", "and says why");
     assertEquals(empty.events, [], "carrying nothing read");
+});
+
+Deno.test("a message the grammar refuses carries the refusal it met as its cause", () => {
+    const context = { roster: null, announcementStanding: null, tables: BLOWS_GRANTED };
+    const refused = decodeMessage("a;0;x", context);
+    assertInstanceOf(refused, UnreadMessage, "an end that is no number is a message unread");
+    assertStrictEquals(refused.unreadCause, "grammar-refused", "and the grammar refused it");
+    assertInstanceOf(refused.cause, EndUnreadable, "the refusal travels on as its cause");
+    assertStrictEquals(refused.cause.end, MESSAGE_END.actor, "naming the end it could not read");
+    const empty = decodeMessage("0;0", context);
+    assertInstanceOf(empty, UnreadMessage, "a message the grammar took and nothing read");
+    assertStrictEquals(empty.cause, undefined, "met no refusal below it");
 });
 
 Deno.test("a message the grammar refuses ends a standing, as no blow does", () => {

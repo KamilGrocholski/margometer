@@ -346,7 +346,10 @@ export function commitPayload(session: FightSession, prepared: PreparedPayload):
         assert(payloadsApplied === prepared.payloadIndex, "and on the payload it was read against");
     }
     const events = prepared.decoded.events;
-    assert(session.events.length + events.length <= session.options.eventsMaximum, "bounded");
+    assert(
+        session.events.length + events.length <= session.options.eventsMaximum,
+        "a fight's events stay inside the bound its options state",
+    );
     for (const event of events) session.events.push(event);
     session.state = prepared.next;
     let hasClosed: boolean;

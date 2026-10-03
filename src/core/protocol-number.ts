@@ -23,7 +23,7 @@ export function parseHealthPercent(text: string): number | null {
     if (!isDigitRun(text.slice(0, pointIndex))) return null;
     if (!isDigitRun(fraction)) return null;
     const healthPercent = parseDecimal(text);
-    assert(healthPercent !== null, "text of the stated shape is text a decimal is read from");
+    if (healthPercent === null) return null;
     assert(healthPercent >= 0, "a percentage read from digits is never below nothing");
     return healthPercent;
 }

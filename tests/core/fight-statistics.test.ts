@@ -15,6 +15,7 @@ import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     type CombatantFigures,
     countUnreadMessages,
+    CUT_MAXIMUM,
     type FightStatistics,
     tallyFightStatistics,
     verifyFightStatistics,
@@ -1428,4 +1429,41 @@ function composeUnbalanced(
     const byCombatantId = new Map(statistics.byCombatantId);
     byCombatantId.set(2, { ...row, ...change(row) });
     return { ...statistics, byCombatantId };
+}
+
+Deno.test("a cut holds as many kinds as its bound, and one past it is a broken fight", () => {
+    const atBound = tallyFightStatistics(composeBlowsOfKinds(CUT_MAXIMUM), new Map());
+    assertEquals(
+        atBound.byCombatantId.get(1)?.damageDealtByKind.size,
+        CUT_MAXIMUM,
+        "every kind at the bound is cut",
+    );
+    assertThrows(
+        () => tallyFightStatistics(composeBlowsOfKinds(CUT_MAXIMUM + 1), new Map()),
+        AssertionError,
+        "a cut stays inside its stated bound",
+    );
+});
+
+/** One blow of one point per kind, each kind a name of its own, between the same two people. */
+function composeBlowsOfKinds(kindCount: number): BattleEvent[] {
+    const blows: BattleEvent[] = [];
+    for (let kindIndex = 0; kindIndex < kindCount; kindIndex += 1) {
+        const figure = { element: `kind${kindIndex}`, amount: 1 };
+        blows.push({
+            kind: BATTLE_EVENT.attack,
+            actorId: 1,
+            targetId: 2,
+            actorHealthPercent: null,
+            targetHealthPercent: null,
+            raw: [figure],
+            applied: [figure],
+            prevented: [],
+            destroyed: [],
+            procs: [],
+            declared: [],
+            announced: null,
+        });
+    }
+    return blows;
 }

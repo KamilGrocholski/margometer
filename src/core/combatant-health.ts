@@ -160,8 +160,10 @@ function indexReducedSides(events: readonly BattleEvent[], roster: CombatantRost
         if (
             !event.declared.some((declaredEffect) => declaredEffect.effect === HEALING_REDUCER_KEY)
         ) continue;
-        if (event.actorId === null) continue;
-        const casterSide = roster.byId.get(event.actorId)?.side;
+        // A caster nobody can name spared no side anybody can name, so every side is reduced.
+        const casterSide = event.actorId === null
+            ? undefined
+            : roster.byId.get(event.actorId)?.side;
         for (const combatant of roster.byId.values()) {
             if (combatant.side !== casterSide) reducedSides.add(combatant.side);
         }

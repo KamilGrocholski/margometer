@@ -73,6 +73,11 @@ Deno.test("what the grammar does not cover is refused, and says which end", () =
         actor,
         "a health three places wide",
     );
+    expectSideUnreadable(
+        parseProtocolMessage(`1=${"9".repeat(400)}.00;0;step`),
+        actor,
+        "a health past what a number holds",
+    );
     const keyless = parseProtocolMessage("0;0;step;=5");
     assertInstanceOf(keyless, ParameterKeyEmpty, "a value with no key");
     assertStrictEquals(keyless.index, 1, "a value with no key");

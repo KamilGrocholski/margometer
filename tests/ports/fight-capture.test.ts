@@ -21,6 +21,7 @@ import {
     type FightCapture,
     type MargonemEngineCall,
     prepareCapture,
+    SHAPE_KEYS_MAXIMUM,
 } from "#/src/ports/fight-capture.ts";
 import type { CapturedCombatant } from "#/src/ports/margonem-engine-warriors.ts";
 
@@ -197,3 +198,22 @@ Deno.test("a snapshot nobody took is null, and one of nobody is empty", () => {
     capture(held, { combatantsAfter: [SOMEBODY] }, true);
     assertEquals(held.calls[0]?.combatantsAfter, [SOMEBODY], "and one holding somebody holds them");
 });
+
+Deno.test("a payload past the bound on its keys is kept, shaped by the keys the bound reads", () => {
+    const recording = createFightCapture();
+    capture(recording, { payload: composeKeyedPayload(SHAPE_KEYS_MAXIMUM) });
+    assertEquals(recording.calls.length, 1, "a payload at the bound is a shape like any other");
+    capture(recording, { payload: composeKeyedPayload(SHAPE_KEYS_MAXIMUM + 1) });
+    assertEquals(recording.calls.length, 2, "one key past it is kept, and is no other's shape");
+    capture(recording, { payload: composeKeyedPayload(SHAPE_KEYS_MAXIMUM + 2) });
+    assertEquals(recording.droppedCalls, 1, "while past it, only the keys the bound reads count");
+});
+
+/** Keys that sort as they are numbered, so the first of them are the ones the bound reads. */
+function composeKeyedPayload(keyCount: number): Record<string, number> {
+    const payload: Record<string, number> = {};
+    for (let keyIndex = 0; keyIndex < keyCount; keyIndex += 1) {
+        payload[`key${String(keyIndex).padStart(4, "0")}`] = keyIndex;
+    }
+    return payload;
+}

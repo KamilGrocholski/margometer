@@ -789,9 +789,9 @@ export const ROWS_BESIDE_THE_STATUSES = 7;
  * What the heading says about a charge, and nothing where it is still running: there the row is
  * the whole statement. Both ends stand for one turn and then the section is gone.
  *
- * ⚠️ **One of these two words is ours.** The game has a sentence for the break — `msg_+dispel`,
- * „Przerwanie ciosu specjalnego." — and none at all for a blow that simply landed, so `wykonane`
- * is this panel's word and is deliberately the plainest one available (**L3**).
+ * ⚠️ **One of these two words is ours.** The game has a sentence for the break, `msg_+dispel`, and
+ * none at all for a blow that simply landed, so `wykonane` is this panel's word and is deliberately
+ * the plainest one available (**L3**).
  */
 const CHARGED_SKILL_WORDS: Record<ChargedSkillState, string> = {
     charging: "",
@@ -1038,8 +1038,7 @@ function getMargonemClientWordsForKey(
     if (label === null) return null;
     // ⚠️ **The client's bound and not ours.** At 22 this refused three of the seven keys it asked
     // about on 2026-09-22 — their keys land 56 times over `captures/` — and drew
-    // `+superspell-prevented` at a reader who has a dictionary saying
-    // `Zapobiegnięto ładowaniu ciosu specjalnego.`
+    // `+superspell-prevented` at a reader whose dictionary words that key.
     if (label.length > CLIENT_LABEL_CHARACTERS_MAXIMUM) return null;
     if (label.length === 0) return null;
     return label;
@@ -1123,8 +1122,12 @@ export function formatCountedNoun(count: number, noun: CountedNoun): string {
     if (count === 1) return `1 ${noun.one}`;
     const lastTwo = count % HUNDRED;
     const lastDigit = count % TEN;
-    if (lastTwo >= TEEN_FLOOR && lastTwo <= TEEN_CEILING) return `${count} ${noun.many}`;
-    if (lastDigit >= FEW_FLOOR && lastDigit <= FEW_CEILING) return `${count} ${noun.few}`;
+    if (lastTwo >= TEEN_FLOOR) {
+        if (lastTwo <= TEEN_CEILING) return `${count} ${noun.many}`;
+    }
+    if (lastDigit >= FEW_FLOOR) {
+        if (lastDigit <= FEW_CEILING) return `${count} ${noun.few}`;
+    }
     return `${count} ${noun.many}`;
 }
 
@@ -1571,9 +1574,12 @@ export function formatDefect(
     region: PanelRegion | null,
     count: number,
 ): string {
-    const said = kind === PANEL_DEFECT_KIND.region && region !== null
-        ? `Panel nie narysował ${REGION_WORDS[region]}`
-        : DEFECT_WORDS[kind];
+    let said: string;
+    if (kind === PANEL_DEFECT_KIND.region) {
+        said = region === null ? DEFECT_WORDS[kind] : `Panel nie narysował ${REGION_WORDS[region]}`;
+    } else {
+        said = DEFECT_WORDS[kind];
+    }
     const isTallied = Number.isSafeInteger(count) && count > 1;
     const times = isTallied ? ` (${formatWholeUngrouped(count)}×)` : "";
     return `${said}${times}.`;
@@ -1674,7 +1680,9 @@ export function formatSharesApportioned(amounts: readonly number[], whole: numbe
 function formatSharePoints(points: number, isPresent: boolean): string {
     if (!Number.isSafeInteger(points)) return PANEL_WORDS.unknown;
     if (points < 0) return PANEL_WORDS.unknown;
-    if (points === 0 && isPresent) return SHARE_FLOOR;
+    if (points === 0) {
+        if (isPresent) return SHARE_FLOOR;
+    }
     return `${formatWholeUngrouped(points)}%`;
 }
 
@@ -1742,8 +1750,20 @@ export function formatPlaceWords(
     x: number | null,
     y: number | null,
 ): PlaceWords | null {
-    const name = mapName !== null && mapName.length > 0 ? mapName : null;
-    const tile = x === null || y === null ? null : `(${x}, ${y})`;
+    let name: string | null;
+    if (mapName === null) {
+        name = null;
+    } else {
+        name = mapName.length > 0 ? mapName : null;
+    }
+    let tile: string | null;
+    if (x === null) {
+        tile = null;
+    } else if (y === null) {
+        tile = null;
+    } else {
+        tile = `(${formatWholeUngrouped(x)}, ${formatWholeUngrouped(y)})`;
+    }
     if (name === null) {
         if (tile === null) return null;
     }

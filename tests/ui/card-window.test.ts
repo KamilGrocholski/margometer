@@ -14,6 +14,7 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
+import * as errors from "#/libs/errors.ts";
 import {
     type CardContent,
     type CardNoteTone,
@@ -761,6 +762,54 @@ Deno.test("a card hidden where it stood is composed again, not moved", () => {
     const shown = firstCard.replacedBy;
     assertExists(shown, "a move on the same row asks for the card again rather than moving none");
     assertEquals(getTextsByClass(shown, CLASS.cardName), [HILDUR.name], "and it names that row");
+});
+
+/**
+ * A card that throws as it is composed is the panel's to hide (**E12**), and the card standing for
+ * the last row goes with it. Left up under the new row's key, every move along that row would walk
+ * the last row's figures down it, and a reader would read them as this row's.
+ */
+Deno.test("a card that will not compose takes the last row's card down with it", () => {
+    const document = composeFakeDocument();
+    const register = createCardRegister();
+    const failures: errors.Caught[] = [];
+    const handle = initCardHandle(document, register, (standing, compose) => {
+        // The panel's own swap: a throw is told, and the card hidden where it stands.
+        const rendered = errors.attempt(() => {
+            const composed = compose();
+            standing.replaceWith(composed);
+            return composed;
+        });
+        if (!(rendered instanceof errors.Caught)) return rendered;
+        failures.push(rendered);
+        setCardHidden(standing, true);
+        return standing;
+    });
+    const firstCard = handle.element as FakeElement;
+    register.add("row:7", () => HILDUR);
+    register.add("row:8", () => {
+        throw new RangeError("a card of ours that will not compose");
+    });
+    handle.onHover("row:7", 300);
+    const shown = firstCard.replacedBy;
+    assertExists(shown, "the first row opens its card");
+
+    // Through the guard a listener stands behind, so a throw out of the handle is what it drops.
+    const moved = errors.attempt(() => handle.onHover("row:8", 340));
+    assertStrictEquals(moved instanceof errors.Caught, false, "the handle keeps the throw in hand");
+    assertStrictEquals(failures.length, 1, "and the swap is told of it, once");
+    assertEquals(
+        shown.className,
+        `${CLASS.card} ${CLASS.cardHidden}`,
+        "the first row's card does not stay up under the second row",
+    );
+    handle.onHover("row:8", 400);
+    assertEquals(
+        shown.className,
+        `${CLASS.card} ${CLASS.cardHidden}`,
+        "nor does a move along that row put it back up",
+    );
+    assertStrictEquals(failures.length, 2, "since the move asks for the row's own card again");
 });
 
 /**

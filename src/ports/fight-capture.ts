@@ -59,7 +59,9 @@ interface CaptureKept {
  * start of the fight is useless, one without the end still carries material.
  */
 export const CALLS_MAXIMUM = 2000;
-const SHAPE_KEYS_MAXIMUM = 256;
+export const SHAPE_KEYS_MAXIMUM = 256;
+/** Ends the shape of a payload carrying more keys than the bound reads, after the ones it read. */
+const SHAPE_KEYS_PAST_MAXIMUM = "+";
 
 export function createFightCapture(): FightCapture {
     return {
@@ -79,7 +81,7 @@ export function prepareCapture(
 ): PreparedCapture {
     const callIndex = isOpening ? 0 : capture.calls.length;
     assert(callIndex <= CALLS_MAXIMUM, "a recording stays inside its stated bound");
-    if (callIndex >= CALLS_MAXIMUM) {
+    if (callIndex === CALLS_MAXIMUM) {
         return { callIndex, isOpening, isPastCeiling: true, kept: null };
     }
     const shape = encodeCaptureShape(call.payload);
@@ -104,8 +106,10 @@ export function prepareCapture(
 function encodeCaptureShape(payload: unknown): string {
     if (!isRecord(payload)) return "";
     const keys = Object.keys(payload).sort();
-    assert(keys.length <= SHAPE_KEYS_MAXIMUM, "a shape is read off a payload inside its bound");
-    return keys.join(",");
+    if (keys.length <= SHAPE_KEYS_MAXIMUM) return keys.join(",");
+    // A payload is the game's and may carry any number of keys: past the bound the first of them
+    // and a mark are its shape, so its call is still read and kept.
+    return [...keys.slice(0, SHAPE_KEYS_MAXIMUM), SHAPE_KEYS_PAST_MAXIMUM].join(",");
 }
 
 /** A cast that would not be written is no key at all, and every such state then keys the same. */

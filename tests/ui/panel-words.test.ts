@@ -884,6 +884,13 @@ Deno.test("a place is said with as much of it as was known, and nothing where no
     assertEquals(formatPlace(null, null, 34), null, "and half a tile alone says nothing");
     assertEquals(formatPlace(null, null, null), null, "nothing known is said as nothing");
     assertEquals(formatPlace("Mapa", 0, 0), "Mapa (0, 0)", "the corner of a map is a tile");
+    // Through the writer every whole number here goes through, and never interpolated raw.
+    assertEquals(
+        formatPlace("Mapa", Number.NaN, 34),
+        `Mapa (${PANEL_WORDS.unknown}, 34)`,
+        "a tile that is no number is not spelled as one",
+    );
+    assertEquals(formatPlace(null, 12.4, 34), "(12, 34)", "and a tile is a whole one");
 });
 
 Deno.test("a share is spelled in whole points, and a figure too small to round says so", () => {

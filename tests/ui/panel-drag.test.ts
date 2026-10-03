@@ -343,6 +343,11 @@ Deno.test("a window is made no narrower than its type and no wider than twice it
         PANEL_WIDTH * 2,
         "with no screen, twice the type still binds",
     );
+    assertEquals(unplaced.heightMaximum, Number.POSITIVE_INFINITY, "and no height does");
+    // A screen with no place on it says nothing of the room left, so it binds no more than none.
+    const unmoved = composeSizeBounds(PANEL_WINDOW.meter, tokens, null, WINDOW);
+    assertEquals(unmoved.widthMaximum, PANEL_WIDTH * 2, "a window never placed binds at its type");
+    assertEquals(unmoved.heightMaximum, Number.POSITIVE_INFINITY, "and at no height");
 });
 
 Deno.test("a size is held inside its bounds, at each edge from both sides", () => {

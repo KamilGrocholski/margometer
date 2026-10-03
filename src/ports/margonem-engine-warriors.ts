@@ -89,7 +89,10 @@ function readCapturedCombatant(warrior: UnknownRecord): CapturedCombatant {
         const copiedValue = warrior[key];
         copied[key] = isRecord(copiedValue) ? { ...copiedValue } : copiedValue ?? null;
     }
-    assert(Object.keys(copied).length === COPIED_KEYS.length + SHALLOW_COPIED_KEYS.length, "all");
+    assert(
+        Object.keys(copied).length === COPIED_KEYS.length + SHALLOW_COPIED_KEYS.length,
+        "a copy holds every kept key of the warrior, once",
+    );
     const { name, team, prof, lvl, hp, mana, energy, ac } = copied;
     return { id, name, team, prof, lvl, hp, mana, energy, ac };
 }

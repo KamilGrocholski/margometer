@@ -21,6 +21,7 @@ import {
     lookupAuraTurnsStated,
     lookupReachOfEffects,
     replayAuraStandings,
+    STANDINGS_MAXIMUM,
     type StatedSkills,
 } from "#/src/core/aura-standing.ts";
 import {
@@ -193,6 +194,27 @@ function composeBlow(actorId: number): BattleEvent {
         announced: null,
     };
 }
+
+Deno.test("a fight stands as many casts as its bound, and one past it is a broken walk", () => {
+    const skillIds = Array.from(
+        { length: STANDINGS_MAXIMUM + 1 },
+        (_, skillIndex) => skillIndex + 1,
+    );
+    // Each cast is a turn of the caster's, so every one is dated past the walk's length.
+    const turns = skillIds.length + 1;
+    const dated = composeStated(skillIds.map((skillId) => ({ id: skillId, turns })));
+    const casts = skillIds.map((skillId) => composeCast(1, skillId, "+spell-taken_dmg-all"));
+    assertEquals(
+        replayStandings(casts.slice(0, STANDINGS_MAXIMUM), dated, ROSTER).auras.length,
+        STANDINGS_MAXIMUM,
+        "every cast at the bound stands",
+    );
+    assertThrows(
+        () => replayStandings(casts, dated, ROSTER),
+        AssertionError,
+        "a fight stays inside its stated bound",
+    );
+});
 
 Deno.test("another's turn moves nothing, and a second cast refreshes rather than adds", () => {
     const dated = composeStated([{ id: 264, turns: 8 }]);

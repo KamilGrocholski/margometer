@@ -41,7 +41,7 @@ export function writeCarriedTooltips(
     tooltip: MargonemEngineTooltipPort,
 ): TooltipWritten | errors.Caught {
     const fightStandings = replayAuraStandings(view, tables.statedSkills);
-    const figures = new Map<string, CarriedFigure>();
+    const figuresByCombatantAndBit = new Map<string, CarriedFigure>();
     const carried = tallyCarriedFigures({
         statuses: view.carriedStatuses,
         auras: fightStandings.auras,
@@ -50,11 +50,19 @@ export function writeCarriedTooltips(
         keyByStatusBit: tables.keyByStatusBit,
     });
     for (const carriedFigure of carried) {
-        figures.set(`${carriedFigure.combatantId}/${carriedFigure.bit}`, carriedFigure);
+        figuresByCombatantAndBit.set(
+            `${carriedFigure.combatantId}/${carriedFigure.bit}`,
+            carriedFigure,
+        );
     }
     const rowsByCombatantId = new Map<number, readonly string[]>();
     for (const combatantId of view.roster.byId.keys()) {
-        const tooltipContent = presentCarriedTooltip(combatantId, view, fightStandings, figures);
+        const tooltipContent = presentCarriedTooltip(
+            combatantId,
+            view,
+            fightStandings,
+            figuresByCombatantAndBit,
+        );
         rowsByCombatantId.set(
             combatantId,
             presentTooltipRows(tooltipContent, translate, tables.statusBits),
@@ -71,7 +79,7 @@ function presentCarriedTooltip(
     combatantId: number,
     view: FightView,
     fightStandings: FightStandings,
-    figures: ReadonlyMap<string, CarriedFigure>,
+    figuresByCombatantAndBit: ReadonlyMap<string, CarriedFigure>,
 ): TooltipContent {
     const charging = view.chargedSkills.find((chargedSkill) => {
         if (chargedSkill.state !== CHARGED_SKILL_STATE.charging) return false;
@@ -104,11 +112,11 @@ function presentCarriedTooltip(
             fightStandings.provocations.filter((provocation) =>
                 provocation.casterId === combatantId
             ).length,
-        statuses: statuses.map((carriedStatus) => ({
-            bit: carriedStatus.bit,
-            percent: figures.get(`${carriedStatus.combatantId}/${carriedStatus.bit}`)?.percent ??
-                null,
-        })),
+        statuses: statuses.map((carriedStatus) => {
+            const statusKey = `${carriedStatus.combatantId}/${carriedStatus.bit}`;
+            const carriedFigure = figuresByCombatantAndBit.get(statusKey);
+            return { bit: carriedStatus.bit, percent: carriedFigure?.percent ?? null };
+        }),
         holytouchHealsReceived: legendary?.holytouchHealsReceived ?? null,
         hasSpentLastheal: legendary?.hasSpentLastheal ?? false,
         hasJoinedInProgress: view.hasJoinedInProgress,

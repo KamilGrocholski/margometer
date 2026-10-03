@@ -2,8 +2,14 @@
  * The walk: where a run of digits ends, what counts as one, and where a quoted literal closes.
  */
 
-import { assertEquals, assertStrictEquals } from "@std/assert";
-import { getEndOfRun, isDigitAt, isDigitRun, lookupQuotedLiteral } from "#/libs/text-walk.ts";
+import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
+import {
+    getEndOfRun,
+    isDigitAt,
+    isDigitRun,
+    LITERAL_CHARACTERS_MAXIMUM,
+    lookupQuotedLiteral,
+} from "#/libs/text-walk.ts";
 
 Deno.test("a digit is told from its neighbours in the character table", () => {
     assertStrictEquals(isDigitAt("0", 0), true, "the lowest digit is one");
@@ -35,4 +41,18 @@ Deno.test("a quoted literal is read in any of the three quotings, and an open on
     assertStrictEquals(lookupQuotedLiteral(`"ab`, 0), null, "a literal never closed is none");
     assertStrictEquals(lookupQuotedLiteral("ab", 0), null, "and no quote opens none");
     assertStrictEquals(lookupQuotedLiteral("", 0), null);
+});
+
+Deno.test("a literal is read up to the bound on its length, and a walk past it is a broken one", () => {
+    const longest = "a".repeat(LITERAL_CHARACTERS_MAXIMUM);
+    assertEquals(
+        lookupQuotedLiteral(`"${longest}"`, 0),
+        { text: longest, end: LITERAL_CHARACTERS_MAXIMUM + 2 },
+        "a literal at the bound is read",
+    );
+    assertThrows(
+        () => lookupQuotedLiteral(`"${longest}a"`, 0),
+        AssertionError,
+        "a literal closes inside the bound on its length",
+    );
 });

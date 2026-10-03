@@ -1291,6 +1291,38 @@ Deno.test("a region the document will not replace is kept as it was, and said", 
 });
 
 /**
+ * A size of type asks both windows how wide they stand before the sheet changes, and the drag
+ * answers off the page. A page that throws there costs the window beside the panel its move, and
+ * the panel is drawn in the new type all the same.
+ */
+Deno.test("a page that throws as a size of type is read costs the helper, and only it", () => {
+    const document = composeFakeDocument();
+    let willThrow = false;
+    const viewport = () => {
+        if (willThrow) throw new RangeError("a page that will not say how big it is");
+        return { width: 1280, height: 900 };
+    };
+    const size = { width: 300, height: 400 };
+    const panel = initTestView(document, {
+        meterPlacement: { position: null, size, readViewport: viewport },
+        helperPlacement: { position: null, size, readViewport: viewport },
+    });
+    willThrow = true;
+    const report = panel.render({ ...composeShownScreen(readFight()), typeStep: TYPE_STEP.large });
+    const regions = new Set(report.undrawn.map((failure) => failure.region));
+    assert(regions.has(PANEL_REGION.helper), "the failure is charged to the window beside");
+    assertEquals(regions.has(PANEL_REGION.list), false, "and never to the list");
+    const host = panel.element as FakeElement;
+    assert(getTextsByClass(host, "row-name").length > 0, "which is drawn");
+    const sheet = getElementsWithin(host).find((drawn) => drawn.tag === "style");
+    assertStrictEquals(
+        sheet?.textContent,
+        composeStyleSheet(TYPE_STEP.large),
+        "in the type the reader asked for",
+    );
+});
+
+/**
  * A suspicion about one person goes on their row and nowhere else: a sentence under the list
  * qualifies every row on it, and a reader looking at one of them could not tell whether it meant
  * theirs. `DESIGN.md` — put a suspicion where its consequence is.
@@ -1625,6 +1657,33 @@ Deno.test("a ranking row's bar is its profession's, and colourless without one",
     assert(bars.length > 0, "there are rows to draw");
     for (const bar of bars) {
         assert((bar.attributes.get("style") ?? "").includes(nobody), "each takes the colourless");
+    }
+});
+
+/**
+ * The bar's width goes through a writer that asserts a number, and a row is drawn inside the
+ * list's guard: a fill that is none would take every row with it. It draws an empty bar instead,
+ * and the rows around it are drawn as they were.
+ */
+Deno.test("a row whose fill is no number draws an empty bar, and the list stands", () => {
+    const reading = readFight();
+    for (const fill of [Number.NaN, Number.POSITIVE_INFINITY]) {
+        const host = draw({
+            ...reading,
+            rows: reading.rows.map((row, rowIndex) => rowIndex === 0 ? { ...row, fill } : row),
+        });
+        assertEquals(getTextsByClass(host, "undrawn"), [], `${fill}: no region is undrawn`);
+        const rows = getElementsWithin(host).filter((drawn) =>
+            drawn.className === "row drillable" && drawn.attributes.get("data-row") !== undefined
+        );
+        const bars = rows.map((row) => row.children.find((cell) => cell.className === "bar"));
+        assertStrictEquals(rows.length, reading.rows.length, `${fill}: every row is drawn`);
+        assertStrictEquals(bars.includes(undefined), false, `${fill}: each with its bar`);
+        assertStringIncludes(
+            bars[0]?.attributes.get("style") ?? "",
+            "width:0.0%",
+            `${fill}: and that one empty`,
+        );
     }
 });
 
@@ -3442,6 +3501,41 @@ function readList(host: FakeElement): FakeElement {
     assertExists(list, "the panel draws the one region that scrolls");
     return list;
 }
+
+/**
+ * The list a reader is turning is swapped under them rather than replaced, and that swap is the
+ * document's own calls like a replacement is: a refusal there costs the list, and the regions
+ * drawn after it are drawn all the same.
+ */
+Deno.test("a list the document will not swap the rows of is kept as it was, and said", () => {
+    const { panel, shown } = composeScrolledPanel();
+    panel.render(shown);
+    const host = panel.element as FakeElement;
+    const standing = readList(host);
+    const rowsBefore = standing.children.length;
+    const meter = getElementsWithin(host).find((drawn) => drawn.children.includes(standing));
+    assertExists(meter, "the list stands in the panel's own window");
+    // The grip is the window's own and never redrawn, so it is no region under the list.
+    const under = meter.children.slice(meter.children.indexOf(standing) + 1)
+        .filter((drawn) => drawn.className !== CLASS.sizeGrip);
+    assert(under.length > 0, "with regions under it");
+    standing.replaceChildren = () => {
+        throw new RangeError("a node the document will not let go of");
+    };
+    const report = panel.render({ ...shown, defects: [] });
+    assertEquals(
+        report.undrawn.map((failure) => `${failure.name}/${failure.region}`),
+        ["RegionUndrawn/list"],
+        "the failure names the list, and only the list",
+    );
+    assertStrictEquals(readList(host), standing, "and the list a reader had stays put");
+    assertStrictEquals(standing.children.length, rowsBefore, "with the rows it had");
+    assertEquals(
+        under.filter((region) => region.replacedBy === null).map((region) => region.className),
+        [],
+        "while every region under it is drawn again",
+    );
+});
 
 Deno.test("a place nobody has been starts at the top, and the one left keeps its position", () => {
     const { panel, shown } = composeScrolledPanel();

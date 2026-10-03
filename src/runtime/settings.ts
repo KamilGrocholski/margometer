@@ -107,7 +107,7 @@ const POSITION_FIELDS: FieldKeys<PositionField> = { left: "left", top: "top" };
 const SIZE_FIELDS: FieldKeys<SizeField> = { width: "width", height: "height" };
 
 export function readStorageChoice(store: KeyValueStore): StorageChoice | SettingFailure {
-    const storedText = store.read(STORE_KEY_BY_SETTING.storage);
+    const storedText = store.read(STORE_KEY_BY_SETTING[SETTING_KEY.storage]);
     if (storedText instanceof Error) return storedText;
     if (storedText === null) return STORAGE_DEFAULT;
     if (!isOneOf(STORAGE_CHOICES, storedText)) return new SettingUnreadable(SETTING_KEY.storage);
@@ -118,7 +118,7 @@ export function writeStorageChoice(
     store: KeyValueStore,
     choice: StorageChoice,
 ): undefined | SettingFailure {
-    return store.write(STORE_KEY_BY_SETTING.storage, choice);
+    return store.write(STORE_KEY_BY_SETTING[SETTING_KEY.storage], choice);
 }
 
 export function readTypeStep(store: KeyValueStore): TypeStep | SettingFailure {

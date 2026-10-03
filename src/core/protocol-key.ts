@@ -146,7 +146,7 @@ export const WOUND_TICK_KEY = "injure";
 const HEAL_KEY = "heal";
 /** A blow landing critically, and the game's own `of_` spelling of the same. */
 const CRITICAL_KEY = "+crit";
-const CRITICAL_OF_KEY = "+of_crit";
+export const CRITICAL_OF_KEY = "+of_crit";
 export const CRITICAL_PROC_KEYS: readonly string[] = [CRITICAL_KEY, CRITICAL_OF_KEY];
 /**
  * The keys whose giver is the one healed, on the published help's word rather than on the

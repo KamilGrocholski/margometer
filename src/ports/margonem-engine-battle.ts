@@ -2,12 +2,18 @@
  * The running fight on the game's page, and the one change this add-on makes to the game: a wrap
  * of its `updateData` (`docs/design.md` §5, §10.2). The wrap semantics are carried over from
  * `develop`: the engine's own call runs first and its value comes back untouched, its exception
- * reaches the game as it would have, and a failure of ours never leaves this file.
+ * reaches the game as it would have, and a failure of ours never leaves this file. The engine
+ * itself is found here, and what it holds of its map and its hero is read here for every adapter.
  */
 
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
-import { isRecord } from "#/libs/unknown-value.ts";
+import {
+    type FieldKeys,
+    getRecordField,
+    isRecord,
+    type UnknownRecord,
+} from "#/libs/unknown-value.ts";
 import {
     type MargonemEngineWarriorFailure,
     type MargonemEngineWarriorSnapshot,
@@ -46,6 +52,9 @@ export class SearchAbandoned extends Error {
 export class WrapCovered extends Error {
     override readonly name = "WrapCovered";
 }
+
+type MargonemEngineHeldMember = "map" | "hero";
+type HeldField = "data";
 
 export type MargonemEngineFailure =
     | MargonemEngineAbsent
@@ -92,15 +101,24 @@ const WRAP_MARKER = "__margometerBattleWrap";
 const WRAP_VERSION = 1;
 /** Past anything a fight produces: a wrap failing this often has stopped working. */
 const FAILURES_MAXIMUM = 1048576;
+/**
+ * Production build `Bb28FQty`, fetched 2026-09-27, `this.getId=()=>this.d.id`, and v1's reading of
+ * `53XkBRxF`, `Engine.map.d.name`: what the map and the hero hold is their member `d`.
+ */
+const ENGINE_FIELDS: FieldKeys<MargonemEngineHeldMember> = { map: "map", hero: "hero" };
+const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 
 /** The page's game, in whichever spelling answers. A call into the page may throw: theirs. */
 export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngineBattlePort {
     return {
         readBattle() {
-            const engines = errors.attempt(() => readMargonemEngines(browserWindow));
-            if (engines instanceof Error) return engines;
-            if (engines.length === 0) return new MargonemEngineAbsent();
-            const battle = lookupMargonemEngineBattle(engines);
+            const engineAndBattle = errors.attempt(() => {
+                const engines = readMargonemEngines(browserWindow);
+                return { engines, battle: lookupMargonemEngineBattle(engines) };
+            });
+            if (engineAndBattle instanceof Error) return engineAndBattle;
+            if (engineAndBattle.engines.length === 0) return new MargonemEngineAbsent();
+            const battle = engineAndBattle.battle;
             if (battle === null) return new MargonemEngineBattleAbsent();
             return {
                 // Put the wrap on the engine's own method.
@@ -113,17 +131,20 @@ export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngine
                         first: null,
                     };
                     const recordFailure = (failure: errors.Caught): void => {
-                        if (failures.count >= FAILURES_MAXIMUM) return;
+                        if (failures.count === FAILURES_MAXIMUM) return;
                         failures.count += 1;
                         if (failures.first === null) failures.first = failure;
                     };
                     // Two guards and not one: a throw before the call must not skip the reading
                     // after it.
-                    const callEngineUpdate = function (this: unknown, ...args: unknown[]): unknown {
+                    const callEngineUpdate = function (
+                        this: unknown,
+                        ...engineArguments: unknown[]
+                    ): unknown {
                         const before = errors.attempt(() => listener.onBeforeCall());
                         if (before instanceof Error) recordFailure(before);
-                        const answer: unknown = Reflect.apply(original, this, args);
-                        const after = errors.attempt(() => listener.onPayload(args[0]));
+                        const answer: unknown = Reflect.apply(original, this, engineArguments);
+                        const after = errors.attempt(() => listener.onPayload(engineArguments[0]));
                         if (after instanceof Error) recordFailure(after);
                         return answer;
                     };
@@ -189,4 +210,17 @@ export function readMargonemEngines(browserWindow: unknown): Record<string, unkn
 /** The battle a page's game holds, or null; a call into the page may throw, and it is theirs. */
 export function readMargonemEngineBattle(browserWindow: unknown): Record<string, unknown> | null {
     return lookupMargonemEngineBattle(readMargonemEngines(browserWindow));
+}
+
+/** What one member of the engine holds, or null where it holds no record. */
+export function readMargonemEngineRecord(
+    engine: UnknownRecord,
+    member: MargonemEngineHeldMember,
+): UnknownRecord | null {
+    const engineMember = getRecordField(engine, ENGINE_FIELDS, member);
+    if (engineMember instanceof Error) return null;
+    if (engineMember === null) return null;
+    const memberRecord = getRecordField(engineMember, HELD_FIELDS, "data");
+    if (memberRecord instanceof Error) return null;
+    return memberRecord;
 }

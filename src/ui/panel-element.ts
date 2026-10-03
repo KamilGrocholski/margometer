@@ -30,6 +30,7 @@ import {
     STYLE_ATTRIBUTE,
 } from "./panel-document.ts";
 import {
+    CARD_EDGE,
     type CardAcross,
     type CardWindowPlace,
     composeCardAcross,
@@ -197,6 +198,7 @@ import {
 } from "./view-failure.ts";
 import { getRankedOrder } from "./ranked-order.ts";
 import {
+    CRITICAL_OF_KEY,
     CRITICAL_PROC_KEYS,
     LEGENDARY_BONUS_SHOWING,
     lookupLegendaryBonus,
@@ -734,13 +736,12 @@ const DEFECTS_MAXIMUM = Object.values(PANEL_DEFECT_KIND).length;
 
 /**
  * Counted off **an opened row**, the widest screen the panel has: its three sections, each with
- * an unnamed row and a heading, and the two pinned rows. Counted off the ranking it was 128,
- * which a drill reaches; counted with a skill section of names alone it was 384, and on the two
- * screen that section is names **and** the keys no announcement covered. A row past the
+ * an unnamed row and a heading, the skill section's names **and** the keys no announcement
+ * covered, the two pinned rows, the crumb, the fight's line and what no row holds. A row past the
  * bound registers nothing, and `onHover` then hides the card rather than drawing one.
- * `tests/ui/share-bound.test.ts` is where the arithmetic is, against the panel's own constants.
+ * `tests/ui/share-bound.test.ts` holds the arithmetic, against the panel's own constants.
  */
-const CARDS_DRAWN_MAXIMUM = 512;
+export const CARDS_DRAWN_MAXIMUM = 512;
 /**
  * One row per type step. The small one: notes at 242 pixels of type — the window less its padding —
  * in Chrome on 2026-08-29, where the longest note this panel composes ran 104 characters over three
@@ -780,12 +781,10 @@ const CARD_LINES_MAXIMUM = 128;
  * card would be pinned by both edges at once — which is a width nobody chose (`develop ADR 0091`).
  */
 const EDGE_RELEASED = "auto";
-/** Past every card there is: four figures, the counters, both runs and the notes come to five. */
+/** Past every card there is: the figures, the counters, both runs, both legendary groups, notes. */
 const CARD_GROUPS_MAXIMUM = 16;
-/** Past the widest cut a card draws: fourteen worded procs, four destroyed, three defences. */
+/** Past the widest cut a card draws: the worded procs, what a blow destroyed, the defences. */
 const CARD_PARTS_MAXIMUM = 64;
-/** Counted in the line above it rather than beside it, so the card never says it twice. */
-const OFFHAND_CRIT_KEY = "+of_crit";
 /** Headroom rather than a bound anything meets: a reader comes back to a handful of places. */
 const LISTS_KEPT_MAXIMUM = 32;
 /** What a note's tone adds to its class, a space before it where it adds anything. */
@@ -911,7 +910,19 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                 // The same list, drawn again: a payload landing is not a reason to take the region
                 // the reader is turning away from them. Another list is the region replaced, so
                 // the place kept under its own name is what they land on.
-                isRegionKept = name === shownName && renderListRows(regions.list, renderedList);
+                if (name === shownName) {
+                    // The document's own calls, and the region's to lose: what stands is the list
+                    // as it was, at the place the browser already holds for the reader.
+                    const kept = errors.attempt(() => renderListRows(regions.list, renderedList));
+                    if (kept instanceof Error) {
+                        report.add(PANEL_REGION.list, kept);
+                        isRegionKept = true;
+                        return;
+                    }
+                    isRegionKept = kept;
+                } else {
+                    isRegionKept = false;
+                }
                 if (!isRegionKept) {
                     const replaced = errors.attempt(() => regions.list.replaceWith(renderedList));
                     if (replaced instanceof Error) report.add(PANEL_REGION.list, replaced);
@@ -2017,7 +2028,12 @@ function renderPinnedRows(
         figure: getWordsForMetric(shown.metric),
     };
     const isOpen = isLevelOpen(shown);
-    const pinned = !isOpen && !shown.isOnShelf ? shown.ranking.pinned : [];
+    let pinned: readonly PinnedRow[];
+    if (isOpen) {
+        pinned = [];
+    } else {
+        pinned = shown.isOnShelf ? [] : shown.ranking.pinned;
+    }
     const ends = [
         [UNNAMED_END.actor, "pinnedActor"],
         [UNNAMED_END.target, "pinnedTarget"],
@@ -2293,13 +2309,17 @@ function renderFold(
 ): void {
     const { isMeterCollapsed, hasFightToSave, typeStep } = drawn;
     if (typeStep !== panelDrawing.getTypeStep()) {
-        const before = getWindowWidths(panelDrawing);
+        // Read off the page through the drag, and charged to the window beside like the move it
+        // feeds.
+        const before = errors.attempt(() => getWindowWidths(panelDrawing));
+        if (before instanceof Error) panelDrawing.report.add(PANEL_REGION.helper, before);
         executeRegionStep(panelDrawing.report, PANEL_REGION.header, () => {
             panelDrawing.sheet.textContent = composeStyleSheet(typeStep);
             panelDrawing.setTypeStep(typeStep);
         });
         // The window beside the panel keeps the side it stood on as both change size.
         executeRegionStep(panelDrawing.report, PANEL_REGION.helper, () => {
+            if (before instanceof Error) return;
             const after = getWindowWidths(panelDrawing);
             const meterPosition = panelDrawing.meterDrag?.getPosition() ?? null;
             const helperPosition = panelDrawing.helperDrag?.getPosition() ?? null;
@@ -2442,7 +2462,7 @@ function getShownStrip(strip: ScreenStrip, shown: ShownScreen): ScreenStrip {
 
 /**
  * The crumb carries the one card that is not a row's, and it carries it on the way back alone:
- * `getPressFromTarget` walks no ancestors, so the mark on that span reaches the pointer and the
+ * `readPanelIntent` walks no ancestors, so the mark on that span reaches the pointer and the
  * name beside it stays uncovered. Drawn only where a level is open, which is what lets it name a
  * gesture a row's card may not — `develop ADR 0086`.
  */
@@ -2758,7 +2778,10 @@ function renderRow(
     const parts: PanelElement[] = [];
     // Draw the bar as wide as the row's fill, and its cap, both in the row's colour.
     {
-        const width = formatDecimal(Math.min(rowContent.fill, 1) * AS_PERCENT, FILL_PLACES);
+        // The writer asserts a number, and a row is no place to stop the list over its bar: a
+        // fill that is none draws the bar empty.
+        const fill = Number.isFinite(rowContent.fill) ? Math.min(rowContent.fill, 1) : 0;
+        const width = formatDecimal(fill * AS_PERCENT, FILL_PLACES);
         const colour = formatColour(rowContent.colour);
         const bar = renderElement(document, "div", CLASS.bar);
         bar.setAttribute(STYLE_ATTRIBUTE, `width:${width}%;background:${colour}`);
@@ -3151,23 +3174,20 @@ function renderRestRow(
 }
 
 /**
- * A breakdown reached from a list of eleven must not shorten the window under the hand that
- * pressed it, and one longer than eleven must not be cut off in the middle of a section — the
- * ceiling on the host is what stops either from reaching past the bottom of the screen.
+ * A drill level reached from the ranking must not shorten the window under the hand that pressed
+ * it, and one longer than the ranking must not be cut off in the middle of a section — the ceiling
+ * on the host is what stops either from reaching past the bottom of the screen.
  */
 function countRowsForOpenedLevel(opened: OpenedLevelContent, floor: number): number {
     const opponents = opened.byOtherEnd;
     let needed = 0;
-    if (opponents.rows.length > 0 || opponents.halfNamed !== null) {
-        needed += opponents.rows.length + (opponents.halfNamed === null ? 0 : 1) + 1;
-    }
+    const opponentRows = opponents.rows.length + (opponents.halfNamed === null ? 0 : 1);
+    if (opponentRows > 0) needed += opponentRows + 1;
     if (countElementCutRows(opened.byElement) > 0) {
         needed += countElementCutRows(opened.byElement) + 1;
     }
-    if (opened.bySkill.rows.length > 0 || opened.bySkill.closing !== null) {
-        needed += opened.bySkill.rows.length + (opened.bySkill.rest === null ? 0 : 1) +
-            (opened.bySkill.closing === null ? 0 : 1) + 1;
-    }
+    const skillRows = opened.bySkill.rows.length + (opened.bySkill.closing === null ? 0 : 1);
+    if (skillRows > 0) needed += skillRows + (opened.bySkill.rest === null ? 0 : 1) + 1;
     return Math.max(needed, floor);
 }
 
@@ -3238,7 +3258,7 @@ function isLevelOpen(shown: ShownScreen): boolean {
 
 /**
  * What a pinned row says on demand: what the game did not state, where the figure stands against
- * the ranking, and — only where a side is showing — what the shown team is to it.
+ * the ranking, and — only where a side is showing — what the shown side is to it.
  *
  * The third is asked only then because under `Wszyscy` there is no scope to state. Every one of
  * them is `src/ui/panel-words.ts`', keyed by the case rather than by the screen: the same screen
@@ -3433,8 +3453,8 @@ function presentChargedSkillCard(charged: StandingChargedSkill): CardContent {
  * sentence it had not drawn, or a sentence no glyph pointed at. Each is said once however many of
  * its figures wear the mark, and the run is bounded by `CAVEATS`, which is closed (**S11**).
  *
- * A row's card composes its sentences here too (`develop:src/ui/panel-element.ts`), which is what
- * keeps one glyph and one sentence answering to each other wherever either is drawn.
+ * A row's card composes its sentences here too (`presentRowCard`, `presentHelperPersonCard`), which
+ * is what keeps one glyph and one sentence answering to each other wherever either is drawn.
  * `develop ADR 0089`.
  */
 function presentCaveatNoteLines(groups: readonly CardGroup[]): CardLine[] {
@@ -3447,8 +3467,7 @@ function presentCaveatNoteLines(groups: readonly CardGroup[]): CardLine[] {
         }
     }
     // The sentence alone: the mark opening it is drawn from the tone rather than spelled into the
-    // text (`develop ADR 0092`), and `develop:src/ui/panel-card.ts` is where it goes on being
-    // counted.
+    // text (`develop ADR 0092`), and `getCardLineCost` is where it goes on being counted.
     return CAVEATS.filter((caveat) => said.has(caveat)).map((caveat): CardLine => ({
         kind: CARD_LINE.note,
         text: getNoteForCaveat(caveat),
@@ -3736,7 +3755,7 @@ export function setCardPosition(
 function composeCardAcrossStyle(across: CardAcross | null): string {
     if (across === null) return "";
     const edgeOffset = `${Math.max(0, Math.round(across.at))}px`;
-    if (across.edge === "left") {
+    if (across.edge === CARD_EDGE.left) {
         return `;${CARD_VARIABLES.left}:${edgeOffset};${CARD_VARIABLES.right}:${EDGE_RELEASED}`;
     }
     return `;${CARD_VARIABLES.left}:${EDGE_RELEASED};${CARD_VARIABLES.right}:${edgeOffset}`;
@@ -3900,21 +3919,25 @@ export function initCardHandle(
     let openTop = 0;
     let openSize: CardSize = tallyCardSize(null, getTypeStep());
     let openColumns: CardColumns = 1;
-    const renderCardFor = (key: string, cardComposed: CardContent): void => {
-        // Laid out here rather than where a card is composed: the one place that knows both it and
-        // the window, and on the way in for a card opened and for one a redraw put up again.
-        const viewport = readViewport();
-        const room = {
-            heightPixels: getCardHeightAvailable(viewport?.height ?? null),
-            widthPixels: getCardWidthAvailable(viewport?.width ?? null),
-        };
-        const layout = composeCardLayout(cardComposed, room, getTypeStep());
-        openSize = tallyCardLayoutSize(layout, getTypeStep());
-        openColumns = layout.secondColumnFrom === null ? 1 : 2;
-        cardElement = redraw(
-            cardElement,
-            () => renderCard(document, layout.card, layout.secondColumnFrom),
-        );
+    const renderCardFor = (key: string, compose: () => CardContent): void => {
+        // ⚠️ **Composed inside the redraw, never before it.** A card that throws there is hidden
+        // where it stands; composed before it, the throw would leave the last row's card standing
+        // under this row's key, and every move that followed would walk its figures along this row.
+        cardElement = redraw(cardElement, () => {
+            // Laid out here rather than where a card is composed: the one place that knows both
+            // it and the window, and on the way in for a card opened and for one a redraw put up
+            // again.
+            const viewport = readViewport();
+            const room = {
+                heightPixels: getCardHeightAvailable(viewport?.height ?? null),
+                widthPixels: getCardWidthAvailable(viewport?.width ?? null),
+            };
+            const layout = composeCardLayout(compose(), room, getTypeStep());
+            const renderedCard = renderCard(document, layout.card, layout.secondColumnFrom);
+            openSize = tallyCardLayoutSize(layout, getTypeStep());
+            openColumns = layout.secondColumnFrom === null ? 1 : 2;
+            return renderedCard;
+        });
         setCardPosition(cardElement, openTop, getAcross(key, openColumns), openSize, getTypeStep());
     };
     const hideCard = (): void => {
@@ -3957,7 +3980,7 @@ export function initCardHandle(
             }
             openTop = top;
             openKey = key;
-            renderCardFor(key, compose());
+            renderCardFor(key, compose);
         },
         renderOpen(): void {
             const key = openKey;
@@ -3967,7 +3990,7 @@ export function initCardHandle(
                 hideCard();
                 return;
             }
-            renderCardFor(key, compose());
+            renderCardFor(key, compose);
         },
     };
 }
@@ -4174,8 +4197,9 @@ function presentCardDealtLines(detail: RowDetail, translate: TranslateLabel | nu
             isStrong: false,
             caveat: null,
         });
+        // The offhand's critical hits are counted in the line above, so they stand under it.
         const offhand = detail.procsWhenStriking.filter((cutPart) =>
-            cutPart.key === OFFHAND_CRIT_KEY
+            cutPart.key === CRITICAL_OF_KEY
         );
         lines.push(
             ...presentCardPartsMergedByWord(offhand, translate).map((mergedPart): CardLine => ({
@@ -4312,7 +4336,12 @@ function presentCardProcSubParts(
     for (const [label, figureBySubWord] of byWords) {
         const run = [...figureBySubWord].map(([words, figure]) => ({ label: words, figure }));
         run.sort((leftPart, rightPart) =>
-            getRankedOrder(leftPart.figure, rightPart.figure, leftPart.label, rightPart.label)
+            getRankedOrder(
+                leftPart.figure,
+                rightPart.figure,
+                leftPart.label,
+                rightPart.label,
+            )
         );
         folded.set(label, run);
     }

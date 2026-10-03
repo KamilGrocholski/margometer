@@ -678,7 +678,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `readMargonemEngineBattle` — `src/ports/margonem-engine-battle.ts`
 - `readMargonemEngineHeroId` — `src/ports/margonem-engine-hero.ts`
 - `readMargonemEnginePlace` — `src/ports/margonem-engine-place.ts`
-- `readMargonemEngineRecord` — `src/ports/margonem-engine-place.ts`
+- `readMargonemEngineRecord` — `src/ports/margonem-engine-battle.ts`
 - `readMargonemEngineWarriorSnapshot` — `src/ports/margonem-engine-warriors.ts`
 - `readMargonemEngineWarriorsNamed` — `src/ports/margonem-engine-warriors.ts`
 - `readMargonemEngines` — `src/ports/margonem-engine-battle.ts`
@@ -837,7 +837,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `write` — none
 
 - `write` — `src/ports/browser-store.ts`
-- `writeBrandedLine` — in 6 files: `src/ports/`, `tests/`
+- `writeBrandedLine` — in 7 files: `src/ports/`, `tests/`
 - `writeCarriedTooltips` — `src/runtime/carried-tooltip.ts`
 - `writeDevelopmentPreview` — `tools/margonem-readings.ts`
 - `writeFabricatedFight` — `tools/fabricated-fight.ts`
@@ -1548,6 +1548,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeBlow` — `tests/core/aura-standing.test.ts`, `tests/core/carried-status.test.ts`,
   `tests/core/turn-clock.test.ts`
 - `composeBlowLargest` — `src/core/fight-statistics.ts`
+- `composeBlowsOfKinds` — `tests/core/fight-statistics.test.ts`
 - `composeBodyWithout` — `tests/ui/panel-look.test.ts`
 - `composeCachedMargonemClient` — `tests/tools/margonem-readings.test.ts`
 - `composeCardAcross` — `src/ui/panel-drag.ts`
@@ -1659,6 +1660,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeIntakeName` — `tools/capture-intake.ts`
 - `composeKeyDifference` — `tools/margonem-readings.ts`
 - `composeKeyTally` — `tools/turn-reading.ts`
+- `composeKeyedPayload` — `tests/ports/fight-capture.test.ts`
 - `composeKeysAddingTurn` — `tools/turn-reading.ts`
 - `composeLandingPage` — `tests/tools/preview-site.test.ts`
 - `composeLastheal` — `tests/core/legendary-standing.test.ts`
@@ -1851,6 +1853,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isAlphanumericAt` — `tests/repository/names.test.ts`
 - `isAnnouncement` — `tests/core/granted-blow-rule.test.ts`,
   `tests/core/skill-announcement-rule.test.ts`
+- `isAsciiUpperCase` — `libs/html-text.ts`
 - `isBitSet` — `tools/aura-lifetime.ts`
 - `isBlowCritical` — `src/core/fight-statistics.ts`
 - `isBuildCharacterAt` — `src/ports/margonem-client-build.ts`
@@ -2011,6 +2014,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `attach` — not in N2's table
 
 - `attachShadow` — `src/ui/panel-document.ts`, `tests/fake-document.ts`
+
+### `battle` — not in N2's table
+
+- `battle` — `tests/ports/margonem-engine-battle.test.ts`
 
 ### `blow` — not in N2's table
 
@@ -2767,7 +2774,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FileFailure` — `src/ports/browser-file.ts`
 - `FrameHandle` — `src/ports/browser-time.ts`
 - `HealthField` — `src/ports/payload-envelope.ts`
-- `HeldField` — `src/ports/margonem-engine-hero.ts`, `src/ports/margonem-engine-place.ts`
+- `HeldField` — `src/ports/margonem-engine-battle.ts`
 - `HeroField` — `src/ports/margonem-engine-hero.ts`
 - `IntervalHandle` — `src/ports/browser-time.ts`
 - `KeyValueStore` — `src/ports/browser-store.ts`
@@ -2777,7 +2784,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `MargonemEngineBattlePort` — `src/ports/margonem-engine-battle.ts`
 - `MargonemEngineCall` — `src/ports/fight-capture.ts`
 - `MargonemEngineFailure` — `src/ports/margonem-engine-battle.ts`
-- `MargonemEngineField` — `src/ports/margonem-engine-hero.ts`, `src/ports/margonem-engine-place.ts`
+- `MargonemEngineHeldMember` — `src/ports/margonem-engine-battle.ts`
 - `MargonemEngineHeroPort` — `src/ports/margonem-engine-hero.ts`
 - `MargonemEnginePlacePort` — `src/ports/margonem-engine-place.ts`
 - `MargonemEngineTooltipPort` — `src/ports/margonem-engine-tooltip.ts`
@@ -2857,6 +2864,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `CardColumns` — `src/ui/panel-look.ts`
 - `CardCompose` — `src/ui/panel-element.ts`
 - `CardContent` — `src/ui/panel-element.ts`
+- `CardEdge` — `src/ui/panel-drag.ts`
 - `CardFigure` — `src/ui/panel-element.ts`
 - `CardGroup` — `src/ui/panel-element.ts`
 - `CardHandle` — `src/ui/panel-element.ts`
@@ -3474,7 +3482,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `DOWNLOAD_ANCHOR_CLASS` — `src/ports/browser-file.ts`
 - `ENGINE_CALL_FIELD` — `src/ports/margonem-engine-battle.ts`
 - `ENGINE_FIELD` — `src/ports/margonem-engine-battle.ts`
-- `ENGINE_FIELDS` — `src/ports/margonem-engine-hero.ts`, `src/ports/margonem-engine-place.ts`
+- `ENGINE_FIELDS` — `src/ports/margonem-engine-battle.ts`
 - `ENTRY_LENGTH_MAXIMUM` — `src/ports/margonem-client-dictionary.ts`
 - `ENVELOPE_KEYS` — `src/ports/payload-envelope.ts`
 - `FAILURES_MAXIMUM` — `src/ports/margonem-engine-battle.ts`
@@ -3483,7 +3491,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FIRST_MONTH_OFFSET` — `src/ports/browser-time.ts`
 - `FULL_STOP` — `src/ports/margonem-client-dictionary.ts`
 - `HEALTH_FIELDS` — `src/ports/payload-envelope.ts`
-- `HELD_FIELDS` — `src/ports/margonem-engine-hero.ts`, `src/ports/margonem-engine-place.ts`
+- `HELD_FIELDS` — `src/ports/margonem-engine-battle.ts`
 - `HERO_FIELDS` — `src/ports/margonem-engine-hero.ts`
 - `HOLE_MARK` — `src/ports/margonem-client-dictionary.ts`
 - `HOST_FIELD` — `src/ports/browser-surroundings.ts`
@@ -3509,6 +3517,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SCRIPT_NAME_TAIL` — `src/ports/margonem-client-build.ts`
 - `SHALLOW_COPIED_KEYS` — `src/ports/margonem-engine-warriors.ts`
 - `SHAPE_KEYS_MAXIMUM` — `src/ports/fight-capture.ts`
+- `SHAPE_KEYS_PAST_MAXIMUM` — `src/ports/fight-capture.ts`
 - `STORE_KEY` — `src/ports/browser-store.ts`
 - `STORE_KEYS` — `src/ports/browser-store.ts`
 - `STORE_VALUE_LENGTH_MAXIMUM` — `src/ports/browser-store.ts`
@@ -3573,6 +3582,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `CARDS_DRAWN_MAXIMUM` — `src/ui/panel-element.ts`
 - `CARD_ATTRIBUTE` — `src/ui/panel-element.ts`
 - `CARD_CUT_PARTS_MAXIMUM` — `src/ui/panel-element.ts`
+- `CARD_EDGE` — `src/ui/panel-drag.ts`
 - `CARD_GROUPS_MAXIMUM` — `src/ui/panel-element.ts`
 - `CARD_KEY_PLACE` — `src/ui/panel-element.ts`
 - `CARD_LINE` — `src/ui/panel-element.ts`
@@ -3671,7 +3681,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `NO_KIND_NOTES` — `src/ui/panel-words.ts`
 - `NO_SELECTION` — `src/ui/panel-look.ts`
 - `NO_WINDOW_SIZES` — `src/ui/panel-choice.ts`
-- `OFFHAND_CRIT_KEY` — `src/ui/panel-element.ts`
 - `OPENED_PART` — `src/ui/panel-screen.ts`
 - `OPENED_UNNAMED_CASES` — `src/ui/panel-content.ts`
 - `OPENED_UNNAMED_STANDING_NOTES` — `src/ui/panel-words.ts`
@@ -4182,6 +4191,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ANONYMOUS` — `tests/repository/broad-catches.test.ts`
 - `ANOTHER` — `tests/runtime/margometer-runtime.test.ts`
 - `ANSWERS` — `tests/e2e/panel-options.spec.ts`
+- `AROUND_LIST_CARDS` — `tests/ui/share-bound.test.ts`
 - `ASSERT_MODULE` — `tests/repository/assert-imports.test.ts`
 - `ASSERT_NAME` — `tests/repository/assert-imports.test.ts`
 - `ASSERT_PACKAGE` — `tests/repository/assert-imports.test.ts`,
@@ -4677,6 +4687,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SECTION` — `tests/repository/declaration-order.test.ts`
 - `SECTIONS_BEFORE_THE_RULE` — `tests/repository/changelog.test.ts`
 - `SECTIONS_PAST_THEIR_TAG` — `tests/repository/changelog.test.ts`
+- `SECTION_EXTRAS` — `tests/ui/share-bound.test.ts`
 - `SECTION_HEADINGS` — `tests/repository/name-register.test.ts`
 - `SECTION_MARKER` — `tests/repository/protocol-keys.test.ts`
 - `SECTION_OPENER` — in 4 files: `tests/`
@@ -4829,6 +4840,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `WHITE` — `tests/ui/panel-look.test.ts`
 - `WHOLE` — `tests/ports/warrior-entries.test.ts`
 - `WIDER` — `tests/e2e/panel-size.spec.ts`
+- `WIDEST_HELPER_WINDOW` — `tests/ui/share-bound.test.ts`
+- `WIDEST_SCREEN` — `tests/ui/share-bound.test.ts`
 - `WIDEST_SECTION` — `tests/ui/share-bound.test.ts`
 - `WIDTH_DECLARATION` — `tests/tools/preview-site.test.ts`
 - `WIDTH_ROOM` — `tests/ui/card-window.test.ts`
@@ -4890,7 +4903,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SKILL_PATH` — `tests/tools/frozen-files.test.ts`
 - `TICK_KEY` — `tests/core/injure-rule.test.ts`
 - `base` — `tests/e2e/panel-fixture.ts`
-- `errors` — in 20 files: `tests/`
+- `errors` — in 21 files: `tests/`
 - `parseJsonc` — `tests/repository/documents.test.ts`, `tests/repository/name-register.test.ts`
 - `protocolKeys` — `tests/core/aura-standing.test.ts`
 
@@ -4910,7 +4923,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `from` — `libs/html-text.ts`
 - `index` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `integer` — `libs/number-text.ts`
-- `isUpper` — `libs/html-text.ts`
 - `kept` — `libs/html-text.ts`
 - `look` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `name` — `libs/html-text.ts`
@@ -5187,7 +5199,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `callIndex` — `src/ports/fight-capture.ts`
 - `character` — `src/ports/margonem-client-build.ts`
 - `charge` — `src/ports/payload-envelope.ts`
-- `clicked` — `src/ports/browser-file.ts`
 - `collection` — `src/ports/margonem-engine-warriors.ts`
 - `collectionKey` — `src/ports/margonem-engine-warriors.ts`
 - `combatant` — `src/ports/payload-envelope.ts`
@@ -5203,8 +5214,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `end` — `src/ports/browser-surroundings.ts`, `src/ports/margonem-client-build.ts`
 - `energy` — `src/ports/margonem-engine-warriors.ts`
 - `engine` — `src/ports/margonem-engine-battle.ts`
+- `engineAndBattle` — `src/ports/margonem-engine-battle.ts`
 - `engineCandidates` — `src/ports/margonem-engine-battle.ts`
-- `engineMember` — `src/ports/margonem-engine-place.ts`
+- `engineMember` — `src/ports/margonem-engine-battle.ts`
 - `engines` — `src/ports/margonem-engine-battle.ts`
 - `failures` — `src/ports/margonem-engine-battle.ts`
 - `field` — `src/ports/payload-envelope.ts`
@@ -5219,7 +5231,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `hero` — `src/ports/margonem-engine-place.ts`
 - `heroData` — `src/ports/margonem-engine-hero.ts`
 - `heroIds` — `src/ports/margonem-engine-hero.ts`
-- `heroObject` — `src/ports/margonem-engine-hero.ts`
 - `hostText` — `src/ports/browser-surroundings.ts`
 - `hour` — `src/ports/browser-time.ts`
 - `hp` — `src/ports/margonem-engine-warriors.ts`
@@ -5246,7 +5257,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `mask` — `src/ports/payload-envelope.ts`
 - `maximum` — `src/ports/payload-envelope.ts`
 - `member` — `src/ports/browser-surroundings.ts`
-- `memberRecord` — `src/ports/margonem-engine-place.ts`
+- `memberRecord` — `src/ports/margonem-engine-battle.ts`
 - `message` — `src/ports/payload-envelope.ts`
 - `messages` — `src/ports/payload-envelope.ts`
 - `messagesStated` — `src/ports/payload-envelope.ts`
@@ -5309,6 +5320,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `warriorEntries` — `src/ports/payload-envelope.ts`
 - `warriorEntry` — `src/ports/payload-envelope.ts`
 - `warriors` — `src/ports/margonem-engine-tooltip.ts`, `src/ports/payload-envelope.ts`
+- `wasClicked` — `src/ports/browser-file.ts`
 - `world` — `src/ports/browser-surroundings.ts`
 - `wrapper` — `src/ports/margonem-engine-battle.ts`
 - `written` — `src/ports/browser-store.ts`, `src/ports/fight-capture.ts`,
@@ -5342,7 +5354,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `combatantId` — `src/runtime/carried-tooltip.ts`, `src/runtime/margometer-runtime.ts`
 - `committed` — `src/runtime/live-fight.ts`
 - `counted` — `src/runtime/panel-frame.ts`
-- `counts` — `src/runtime/defect-ledger.ts`
+- `countsByRowKey` — `src/runtime/defect-ledger.ts`
 - `cut` — `src/runtime/fight-file.ts`
 - `defectCount` — `src/runtime/defect-ledger.ts`
 - `defects` — `src/runtime/margometer-runtime.ts`, `src/runtime/panel-frame.ts`,
@@ -5350,7 +5362,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `dropped` — `src/runtime/shelf.ts`
 - `encoded` — `src/runtime/fight-handover.ts`, `src/runtime/shelf.ts`
 - `end` — `src/runtime/margometer-runtime.ts`
-- `failure` — `src/runtime/defect-ledger.ts`, `src/runtime/panel-frame.ts`
+- `escaped` — `src/runtime/margometer-runtime.ts`
+- `failure` — `src/runtime/defect-ledger.ts`, `src/runtime/margometer-runtime.ts`,
+  `src/runtime/panel-frame.ts`
 - `fight` — `src/runtime/live-fight.ts`, `src/runtime/shelf-keeper.ts`, `src/runtime/shelf.ts`
 - `fightIndex` — `src/runtime/shelf.ts`
 - `fightStandings` — `src/runtime/carried-tooltip.ts`
@@ -5358,7 +5372,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `src/runtime/shelf-keeper.ts`
 - `fights` — `src/runtime/shelf.ts`
 - `fightsAfter` — `src/runtime/shelf-keeper.ts`, `src/runtime/shelf.ts`
-- `figures` — in 4 files: `src/runtime/`
+- `figures` — `src/runtime/fight-file.ts`, `src/runtime/fight-state.ts`,
+  `src/runtime/panel-frame.ts`
+- `figuresByCombatantAndBit` — `src/runtime/carried-tooltip.ts`
 - `firstLook` — `src/runtime/margometer-runtime.ts`
 - `firstNumber` — `src/runtime/settings.ts`
 - `halfNamedOpened` — `src/runtime/panel-frame.ts`
@@ -5461,6 +5477,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `statedPlace` — `src/runtime/shelf.ts`
 - `statistics` — `src/runtime/fight-file.ts`, `src/runtime/panel-frame.ts`
 - `statusBitsCount` — `src/runtime/margometer-runtime.ts`
+- `statusKey` — `src/runtime/carried-tooltip.ts`
 - `statuses` — `src/runtime/carried-tooltip.ts`
 - `storageChoice` — `src/runtime/margometer-runtime.ts`
 - `store` — `src/runtime/shelf-keeper.ts`
@@ -5613,6 +5630,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `figurePlaced` — `src/ui/panel-content.ts`
 - `figures` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `figuresOnScreen` — `src/ui/panel-content.ts`
+- `fill` — `src/ui/panel-element.ts`
 - `fired` — `src/ui/panel-element.ts`
 - `firstCharged` — `src/ui/panel-element.ts`
 - `firstColumn` — `src/ui/panel-element.ts`
@@ -5745,6 +5763,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `openedAt` — `src/ui/panel-intent.ts`
 - `openedPart` — `src/ui/panel-element.ts`
 - `opening` — `src/ui/panel-drag.ts`
+- `opponentRows` — `src/ui/panel-element.ts`
 - `opponents` — `src/ui/panel-element.ts`
 - `opposing` — `src/ui/panel-element.ts`
 - `otherCombatant` — `src/ui/panel-content.ts`
@@ -5850,6 +5869,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `sized` — `src/ui/panel-drag.ts`
 - `sizes` — `src/ui/panel-content.ts`
 - `skill` — `src/ui/panel-content.ts`
+- `skillRows` — `src/ui/panel-element.ts`
 - `slot` — `src/ui/panel-element.ts`
 - `source` — `src/ui/panel-content.ts`, `src/ui/panel-intent.ts`
 - `spaced` — `src/ui/panel-words.ts`
@@ -5916,6 +5936,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `width` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
 - `widthMaximum` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`
 - `widthMinimum` — `src/ui/panel-drag.ts`
+- `widthTypeMaximum` — `src/ui/panel-drag.ts`
 - `window` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
 - `word` — `src/ui/panel-words.ts`
 - `words` — `src/ui/panel-element.ts`, `src/ui/panel-words.ts`
@@ -6541,7 +6562,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `absentKeys` — `tests/repository/protocol-keys.test.ts`
 - `acted` — `tests/core/turn-clock.test.ts`
 - `action` — `tests/repository/workflows.test.ts`
-- `actor` — `tests/core/message-grammar.test.ts`, `tests/ui/panel-screen.test.ts`
+- `actor` — `tests/core/combatant-health.test.ts`, `tests/core/message-grammar.test.ts`,
+  `tests/ui/panel-screen.test.ts`
 - `actorId` — `tests/core/granted-blow-rule.test.ts`, `tests/core/injure-rule.test.ts`
 - `actors` — `tests/core/npc-heal-rule.test.ts`
 - `addOn` — `tests/repository/captured-fight-register.test.ts`
@@ -6598,7 +6620,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `asset` — `tests/tools/preview-site.test.ts`
 - `astray` — `tests/tools/panel-shots.test.ts`
 - `asynchronous` — `tests/repository/synchronous-bundle.test.ts`
-- `atBound` — in 5 files: `tests/`
+- `atBound` — in 6 files: `tests/`
 - `atFirstCall` — `tests/tools/preview-state.test.ts`
 - `atIntake` — `tests/runtime/fight-file.test.ts`
 - `atMaximum` — `tests/ui/panel-helper.test.ts`
@@ -6717,9 +6739,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `cases` — in 4 files: `tests/`
 - `cast` — in 8 files: `tests/`
 - `caster` — `tests/core/absorption-destruction-rule.test.ts`, `tests/ui/panel-content.test.ts`
+- `casterUnknown` — `tests/core/combatant-health.test.ts`
 - `casters` — `tests/core/absorption-destruction-rule.test.ts`,
   `tests/tools/fabricated-fight.test.ts`
-- `casts` — `tests/core/combatant-health.test.ts`, `tests/repository/type-assertions.test.ts`
+- `casts` — `tests/core/aura-standing.test.ts`, `tests/core/combatant-health.test.ts`,
+  `tests/repository/type-assertions.test.ts`
 - `cause` — `tests/simulation.ts`
 - `caveat` — `tests/ui/panel-element.test.ts`, `tests/ui/panel-words.test.ts`
 - `cell` — in 5 files: `tests/`
@@ -6959,6 +6983,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `eventIndex` — `tests/core/aura-standing.test.ts`
 - `events` — in 14 files: `tests/`
 - `every` — `tests/ui/view-failure.test.ts`
+- `everyTrapThrows` — `tests/runtime/margometer-runtime.test.ts`
 - `everyone` — `tests/ui/panel-content.test.ts`, `tests/ui/panel-element.test.ts`
 - `everything` — `tests/core/last-heal-rule.test.ts`
 - `exact` — `tests/core/combatant-health.test.ts`
@@ -6973,7 +6998,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `failed` — `tests/libs/errors.test.ts`, `tests/runtime/live-fight.test.ts`
 - `failing` — `tests/runtime/margonem-engine-search.test.ts`
 - `failure` — `tests/ui/panel-intent.test.ts`, `tests/userscript-entry.test.ts`
-- `failures` — in 9 files: `tests/`
+- `failures` — in 10 files: `tests/`
 - `fakeElement` — `tests/fake-document.ts`
 - `faked` — `tests/fake-window.ts`
 - `fallen` — `tests/fake-window.ts`, `tests/runtime-world.ts`
@@ -7002,7 +7027,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `file` — in 10 files: `tests/`
 - `fileNames` — `tests/repository/name-register.test.ts`
 - `files` — in 15 files: `tests/`
-- `fill` — `tests/ui/panel-content.test.ts`
+- `fill` — `tests/ui/panel-content.test.ts`, `tests/ui/panel-element.test.ts`
 - `fills` — `tests/ui/panel-look.test.ts`
 - `findings` — `tests/ui/level-drawn.test.ts`, `tests/ui/panel-look.test.ts`
 - `fire` — `tests/runtime/margometer-runtime.test.ts`
@@ -7090,6 +7115,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `grown` — `tests/repository/name-register.test.ts`
 - `grownHelper` — `tests/ui/panel-drag.test.ts`
 - `grownMeter` — `tests/ui/panel-drag.test.ts`
+- `guarded` — `tests/ports/margonem-engine-battle.test.ts`
 - `guarding` — `tests/repository/handed-callbacks.test.ts`
 - `guardingNames` — `tests/repository/handed-callbacks.test.ts`
 - `guards` — `tests/repository/documents.test.ts`
@@ -7225,6 +7251,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `keptState` — `tests/runtime/shelf-keeper.test.ts`
 - `kepts` — `tests/runtime/margometer-runtime.test.ts`
 - `key` — in 18 files: `tests/`
+- `keyIndex` — `tests/ports/fight-capture.test.ts`
 - `keyTally` — `tests/tools/turn-reading.test.ts`
 - `keyed` — `tests/ports/payload-envelope.test.ts`, `tests/ports/warrior-entries.test.ts`,
   `tests/ui/panel-element.test.ts`
@@ -7235,6 +7262,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `killing` — `tests/core/message-grammar.test.ts`
 - `kind` — in 7 files: `tests/`
 - `kindCell` — `tests/ui/panel-element.test.ts`
+- `kindIndex` — `tests/core/fight-statistics.test.ts`
 - `kinds` — in 10 files: `tests/`
 - `kindsSaid` — `tests/simulation.ts`
 - `known` — in 7 files: `tests/`
@@ -7244,7 +7272,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `labels` — `tests/e2e/panel-card.spec.ts`
 - `landed` — `tests/e2e/panel-drag.spec.ts`, `tests/e2e/panel-tooltip.spec.ts`
 - `large` — `tests/runtime/margometer-runtime.test.ts`, `tests/ui/panel-element.test.ts`
-- `largest` — `tests/core/combatant-roster.test.ts`, `tests/ui/panel-element.test.ts`
+- `largest` — `tests/core/combatant-roster.test.ts`, `tests/libs/number-text.test.ts`,
+  `tests/ui/panel-element.test.ts`
 - `lastMember` — `tests/core/last-heal-rule.test.ts`
 - `lastShout` — `tests/core/aura-standing.test.ts`
 - `late` — in 5 files: `tests/`
@@ -7297,7 +7326,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `longDrawn` — `tests/e2e/panel-helper.spec.ts`
 - `longWanted` — `tests/e2e/panel-helper.spec.ts`
 - `longer` — `tests/core/granted-blow-rule.test.ts`, `tests/tools/develop-reports.test.ts`
-- `longest` — `tests/core/fight-decoder.test.ts`
+- `longest` — `tests/core/fight-decoder.test.ts`, `tests/libs/text-walk.test.ts`
 - `longhand` — `tests/ui/panel-look.test.ts`
 - `look` — `tests/core/granted-blow-rule.test.ts`, `tests/ui/panel-words.test.ts`
 - `looked` — `tests/repository/protocol-keys.test.ts`, `tests/tools/preview-site.test.ts`
@@ -7345,7 +7374,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `messages` — in 10 files: `tests/`
 - `messagesRead` — `tests/core/message-grammar.test.ts`
 - `metadata` — `tests/tools/build-userscript.test.ts`
-- `meter` — `tests/ui/panel-look.test.ts`
+- `meter` — `tests/ui/panel-element.test.ts`, `tests/ui/panel-look.test.ts`
 - `method` — `tests/ports/margonem-engine-tooltip.test.ts`,
   `tests/repository/event-entries.test.ts`, `tests/repository/handed-callbacks.test.ts`
 - `methodFunction` — `tests/repository/event-entries.test.ts`
@@ -7365,7 +7394,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `month` — `tests/ui/panel-words.test.ts`
 - `most` — `tests/core/injure-rule.test.ts`
 - `mounts` — `tests/runtime/margometer-runtime.test.ts`
-- `moved` — in 16 files: `tests/`
+- `moved` — in 17 files: `tests/`
 - `movedBySelector` — `tests/ui/panel-look.test.ts`
 - `much` — `tests/e2e/panel-card.spec.ts`
 - `name` — in 36 files: `tests/`
@@ -7658,6 +7687,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `reloaded` — `tests/runtime/margometer-runtime.test.ts`
 - `removed` — `tests/runtime/shelf.test.ts`
 - `renamed` — `tests/ui/panel-look.test.ts`
+- `rendered` — `tests/ui/card-window.test.ts`
 - `reopened` — `tests/core/fight-session.test.ts`, `tests/runtime/margometer-runtime.test.ts`
 - `repeated` — in 4 files: `tests/`
 - `repeats` — `tests/ui/panel-content.test.ts`
@@ -7696,6 +7726,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `rowIndex` — in 6 files: `tests/`
 - `rowValue` — `tests/e2e/panel-card.spec.ts`
 - `rows` — in 23 files: `tests/`
+- `rowsBefore` — `tests/ui/panel-element.test.ts`
 - `rule` — in 4 files: `tests/`
 - `ruleNames` — `tests/repository/documents.test.ts`
 - `rules` — `tests/repository/name-shapes.test.ts`, `tests/repository/purity.test.ts`,
@@ -7762,7 +7793,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `shared` — `tests/core/fight-decoder.test.ts`, `tests/tools/aura-lifetime.test.ts`,
   `tests/ui/level-drawn.test.ts`
 - `shares` — in 8 files: `tests/`
-- `sheet` — `tests/tools/preview-site.test.ts`, `tests/ui/panel-look.test.ts`
+- `sheet` — `tests/tools/preview-site.test.ts`, `tests/ui/panel-element.test.ts`,
+  `tests/ui/panel-look.test.ts`
 - `sheets` — `tests/ui/card-window.test.ts`
 - `shelf` — in 5 files: `tests/`
 - `shelved` — `tests/tools/capture-intake.test.ts`, `tests/tools/decoding-status.test.ts`
@@ -7798,13 +7830,13 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `singleImported` — `tests/repository/single-importer.test.ts`
 - `singleWidth` — `tests/ui/card-window.test.ts`
 - `sinkThrows` — `tests/ports/browser-file.test.ts`
-- `size` — `tests/runtime/margometer-runtime.test.ts`, `tests/ui/card-window.test.ts`,
-  `tests/ui/panel-drag.test.ts`
+- `size` — in 4 files: `tests/`
 - `sized` — in 5 files: `tests/`
 - `sizes` — `tests/runtime/margometer-runtime.test.ts`, `tests/userscript-entry.test.ts`
 - `skewed` — `tests/core/fight-figures.test.ts`
 - `skill` — in 8 files: `tests/`
 - `skillId` — `tests/tools/aura-standing.test.ts`
+- `skillIds` — `tests/core/aura-standing.test.ts`
 - `skillLevel` — `tests/ui/panel-element.test.ts`
 - `skillNumber` — `tests/ui/panel-content.test.ts`
 - `skillPart` — `tests/ui/panel-content.test.ts`
@@ -7941,8 +7973,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `thirdShape` — `tests/e2e/panel-drill.spec.ts`
 - `thirds` — `tests/ui/panel-words.test.ts`
 - `through` — `tests/e2e/panel-fixture.ts`
-- `throwing` — `tests/ports/browser-clock.test.ts`, `tests/ports/browser-surroundings.test.ts`,
-  `tests/ports/margonem-engine-place.test.ts`
+- `throwing` — in 4 files: `tests/`
 - `thrown` — in 5 files: `tests/`
 - `tick` — `tests/core/injure-rule.test.ts`
 - `ticked` — in 4 files: `tests/`
@@ -7987,7 +8018,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `truncated` — `tests/tools/help-article.test.ts`, `tests/tools/margonem-client-source.test.ts`
 - `turn` — `tests/core/aura-standing.test.ts`, `tests/core/carried-status.test.ts`,
   `tests/runtime/margonem-engine-search.test.ts`
-- `turns` — in 4 files: `tests/`
+- `turns` — in 5 files: `tests/`
 - `turnsElapsed` — `tests/tools/shout-holding.test.ts`
 - `twentieth` — `tests/runtime/shelf.test.ts`
 - `twice` — in 4 files: `tests/`
@@ -8023,6 +8054,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unknownKey` — `tests/ui/panel-content.test.ts`
 - `unmarked` — `tests/ports/margonem-engine-battle.test.ts`, `tests/ui/panel-element.test.ts`
 - `unminified` — `tests/tools/buff-bit-table.test.ts`
+- `unmoved` — `tests/ui/panel-drag.test.ts`
 - `unnamed` — in 5 files: `tests/`
 - `unnamedCell` — `tests/ui/panel-element.test.ts`
 - `unnumbered` — `tests/ports/margonem-engine-warriors.test.ts`
@@ -8099,6 +8131,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `widths` — `tests/tools/preview-site.test.ts`, `tests/ui/level-drawn.test.ts`,
   `tests/ui/panel-look.test.ts`
 - `willFail` — `tests/ui/card-window.test.ts`
+- `willThrow` — `tests/ui/panel-element.test.ts`
 - `window` — in 10 files: `tests/`
 - `withCard` — `tests/tools/panel-shots.test.ts`
 - `withOneBlock` — `tests/ports/margonem-engine-tooltip.test.ts`
@@ -8124,6 +8157,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `wrapped` — in 5 files: `tests/`
 - `writableParameters` — `tests/repository/purity.test.ts`
 - `writer` — `tests/ports/margonem-engine-tooltip.test.ts`, `tests/repository/name-register.test.ts`
+- `writes` — `tests/runtime/margometer-runtime.test.ts`
 - `writing` — `tests/ports/margonem-engine-tooltip.test.ts`
 - `written` — in 19 files: `tests/`
 - `writtenLine` — `tests/repository/name-register.test.ts`
@@ -8138,6 +8172,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `call` — `libs/errors.ts`
 - `candidate` — `libs/unknown-value.ts`, `libs/vocabulary.ts`
 - `cause` — `libs/errors.ts`, `libs/json-text.ts`
+- `character` — `libs/html-text.ts`
 - `count` — `libs/unknown-value.ts`
 - `decimal` — `libs/number-text.ts`
 - `encodable` — `libs/json-text.ts`
@@ -8230,7 +8265,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `message` — `src/core/fight-decoder.ts`
 - `name` — `src/core/combatant-roster.ts`, `src/core/fight-decoder.ts`,
   `src/core/fight-statistics.ts`
-- `options` — `src/core/fight-session.ts`
+- `options` — `src/core/fight-decoder.ts`, `src/core/fight-session.ts`
 - `ordinal` — `src/core/charged-skill.ts`
 - `otherEndKey` — `src/core/fight-statistics.ts`
 - `outcomeResult` — `src/core/fight-decoder.ts`
@@ -8281,7 +8316,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `afterMilliseconds` — `src/ports/browser-file.ts`
 - `anchor` — `src/ports/browser-file.ts`
-- `args` — `src/ports/margonem-engine-battle.ts`
 - `atMilliseconds` — `src/ports/browser-time.ts`
 - `battle` — `src/ports/margonem-engine-warriors.ts`
 - `battleCandidate` — `src/ports/margonem-engine-battle.ts`
@@ -8302,7 +8336,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `detail` — `src/ports/browser-console.ts`
 - `dictionaryText` — `src/ports/margonem-client-dictionary.ts`
 - `downloads` — `src/ports/browser-file.ts`
-- `engine` — `src/ports/margonem-engine-hero.ts`, `src/ports/margonem-engine-place.ts`
+- `engine` — `src/ports/margonem-engine-battle.ts`, `src/ports/margonem-engine-hero.ts`,
+  `src/ports/margonem-engine-place.ts`
+- `engineArguments` — `src/ports/margonem-engine-battle.ts`
 - `engineMethod` — `src/ports/margonem-engine-battle.ts`
 - `engines` — `src/ports/margonem-engine-battle.ts`
 - `entries` — `src/ports/payload-envelope.ts`
@@ -8325,6 +8361,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `looks` — `src/ports/margonem-engine-battle.ts`
 - `margonemValue` — `src/ports/margonem-value.ts`
 - `maximum` — in 5 files: `src/ports/`
+- `member` — `src/ports/margonem-engine-battle.ts`
 - `memberName` — `src/ports/browser-surroundings.ts`
 - `minimum` — `src/ports/browser-time.ts`
 - `momentPart` — `src/ports/browser-time.ts`
@@ -8386,7 +8423,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `fightStandings` — `src/runtime/carried-tooltip.ts`
 - `fightState` — `src/runtime/fight-handover.ts`, `src/runtime/panel-frame.ts`
 - `fights` — `src/runtime/fight-state.ts`, `src/runtime/shelf.ts`
-- `figures` — `src/runtime/carried-tooltip.ts`, `src/runtime/fight-file.ts`
+- `figures` — `src/runtime/fight-file.ts`
+- `figuresByCombatantAndBit` — `src/runtime/carried-tooltip.ts`
 - `hasFightToSave` — `src/runtime/panel-frame.ts`
 - `id` — `src/runtime/margometer-runtime.ts`
 - `index` — `src/runtime/fight-handover.ts`
@@ -8476,7 +8514,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `bottom` — `src/ui/panel-look.ts`
 - `bounds` — `src/ui/panel-drag.ts`
 - `card` — `src/ui/panel-element.ts`
-- `cardComposed` — `src/ui/panel-element.ts`
 - `cardContext` — `src/ui/panel-element.ts`
 - `cardKey` — `src/ui/panel-element.ts`
 - `cardLookup` — `src/ui/panel-element.ts`
@@ -9048,7 +9085,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `tests/`
 
-- `_` — in 16 files: `tests/`
+- `_` — in 17 files: `tests/`
 - `_key` — `tests/ui/card-window.test.ts`
 - `_name` — `tests/runtime/margometer-runtime.test.ts`
 - `_playwright` — `tests/e2e/panel-fixture.ts`
@@ -9285,11 +9322,13 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `keptCall` — `tests/runtime/live-fight.test.ts`
 - `key` — in 23 files: `tests/`
 - `keyCell` — `tests/tools/aura-lifetime.test.ts`
+- `keyCount` — `tests/ports/fight-capture.test.ts`
 - `keyIndex` — `tests/ui/panel-element.test.ts`
 - `keyTally` — `tests/tools/turn-reading.test.ts`
 - `keyedNode` — `tests/repository/name-register.test.ts`
 - `keys` — in 4 files: `tests/`
-- `kind` — in 15 files: `tests/`
+- `kind` — in 16 files: `tests/`
+- `kindCount` — `tests/core/fight-statistics.test.ts`
 - `kindMarker` — `tests/repository/changelog.test.ts`
 - `kinds` — `tests/source-tree.ts`
 - `known` — `tests/repository/redacted-names.test.ts`
@@ -9438,6 +9477,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `roster` — in 5 files: `tests/`
 - `route` — `tests/e2e/panel-camera.ts`, `tests/e2e/panel-fixture.ts`
 - `row` — in 18 files: `tests/`
+- `rowIndex` — `tests/ui/panel-element.test.ts`
 - `rowKey` — `tests/tools/turn-reading.test.ts`
 - `rowPoints` — `tests/ui/panel-content.test.ts`
 - `rowSelector` — `tests/e2e/panel-card.spec.ts`
@@ -9486,6 +9526,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `skill` — `tests/repository/skill-durations.test.ts`, `tests/tools/aura-standing.test.ts`,
   `tests/tools/skill-table.test.ts`
 - `skillId` — `tests/core/aura-standing.test.ts`
+- `skillIndex` — `tests/core/aura-standing.test.ts`
 - `skillName` — `tests/core/charged-skill.test.ts`
 - `skillRow` — in 4 files: `tests/`
 - `skills` — `tests/core/aura-standing.test.ts`
@@ -9651,6 +9692,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `castByCasterAndSkill` — `src/core/aura-standing.ts`
 - `casterId` — `src/core/aura-standing.ts`, `src/core/combatant-health.ts`
 - `castersSide` — `src/core/protocol-key.ts`
+- `cause` — `src/core/fight-decoder.ts`
 - `chance` — `src/core/protocol-key.ts`
 - `charge` — `src/core/charged-skill.ts`
 - `chargeStatements` — `src/core/fight-session.ts`
@@ -9882,6 +9924,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `ac` — `src/ports/margonem-engine-warriors.ts`
 - `asked` — `src/ports/margonem-engine-tooltip.ts`
+- `battle` — `src/ports/margonem-engine-battle.ts`
 - `build` — `src/ports/margonem-value.ts`
 - `buildEnd` — `src/ports/margonem-client-build.ts`
 - `buildStart` — `src/ports/margonem-client-build.ts`
@@ -9898,11 +9941,12 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `combatantsBefore` — `src/ports/fight-capture.ts`
 - `count` — `src/ports/margonem-engine-battle.ts`, `src/ports/margonem-engine-warriors.ts`,
   `src/ports/payload-envelope.ts`
-- `data` — `src/ports/margonem-engine-hero.ts`, `src/ports/margonem-engine-place.ts`
+- `data` — `src/ports/margonem-engine-battle.ts`
 - `day` — `src/ports/browser-time.ts`
 - `download` — `src/ports/browser-file.ts`
 - `droppedCalls` — `src/ports/fight-capture.ts`
 - `energy` — `src/ports/margonem-engine-warriors.ts`
+- `engines` — `src/ports/margonem-engine-battle.ts`
 - `field` — `src/ports/payload-envelope.ts`
 - `fights` — `src/ports/browser-store.ts`
 - `first` — `src/ports/margonem-engine-battle.ts`
@@ -9911,8 +9955,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `helperFolded` — `src/ports/browser-store.ts`
 - `helperPosition` — `src/ports/browser-store.ts`
 - `helperSize` — `src/ports/browser-store.ts`
-- `hero` — `src/ports/margonem-engine-hero.ts`, `src/ports/margonem-engine-place.ts`,
-  `src/ports/margonem-value.ts`
+- `hero` — `src/ports/margonem-engine-battle.ts`, `src/ports/margonem-value.ts`
 - `hour` — `src/ports/browser-time.ts`
 - `hp` — `src/ports/margonem-engine-warriors.ts`
 - `href` — `src/ports/browser-file.ts`
@@ -9932,7 +9975,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `looks` — `src/ports/margonem-engine-battle.ts`
 - `lvl` — `src/ports/margonem-engine-warriors.ts`
 - `mana` — `src/ports/margonem-engine-warriors.ts`
-- `map` — `src/ports/margonem-engine-place.ts`
+- `map` — `src/ports/margonem-engine-battle.ts`
 - `mapName` — `src/ports/fight-place.ts`, `src/ports/margonem-engine-place.ts`
 - `maximum` — in 4 files: `src/ports/`
 - `messages` — `src/ports/fight-capture.ts`, `src/ports/payload-envelope.ts`
@@ -10270,6 +10313,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `windowSizes` — `src/runtime/panel-frame.ts`
 - `world` — in 4 files: `src/runtime/`
 - `wrap` — `src/runtime/margometer-runtime.ts`
+- `wrapFailuresMarked` — `src/runtime/margometer-runtime.ts`
 - `x` — `src/runtime/shelf.ts`
 - `y` — `src/runtime/shelf.ts`
 
@@ -10731,7 +10775,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `restNote` — `src/ui/panel-words.ts`
 - `restOfKinds` — `src/ui/panel-words.ts`
 - `restoredWithNoActor` — `src/ui/panel-content.ts`, `src/ui/panel-words.ts`
-- `right` — `src/ui/panel-look.ts`
+- `right` — `src/ui/panel-drag.ts`, `src/ui/panel-look.ts`
 - `row` — `src/ui/panel-content.ts`, `src/ui/panel-intent.ts`, `src/ui/panel-look.ts`
 - `rowApart` — `src/ui/panel-look.ts`
 - `rowCaveat` — `src/ui/panel-look.ts`
@@ -11540,8 +11584,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `abandoned` — `tests/runtime/margonem-engine-search.test.ts`
 - `ac` — `tests/ports/fight-capture.test.ts`, `tests/ports/margonem-engine-warriors.test.ts`
 - `actions/setup-node` — `tests/repository/workflows.test.ts`
-- `actorHealthPercent` — in 6 files: `tests/`
-- `actorId` — in 7 files: `tests/`
+- `actorHealthPercent` — in 7 files: `tests/`
+- `actorId` — in 8 files: `tests/`
 - `addEventListener` — `tests/repository/handed-callbacks.test.ts`
 - `addOnVersion` — in 4 files: `tests/`
 - `added` — `tests/tools/margonem-readings.test.ts`
@@ -11554,12 +11598,12 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `agreeing` — `tests/tools/aura-lifetime.test.ts`
 - `alias` — `tests/repository/name-register.test.ts`
 - `along` — `tests/e2e/panel-probe.ts`
-- `amount` — in 12 files: `tests/`
+- `amount` — in 13 files: `tests/`
 - `amountByKey` — `tests/core/carried-figure.test.ts`
 - `amounts` — `tests/tools/skill-table.test.ts`
 - `anchor` — `tests/ports/browser-file.test.ts`
 - `anchors` — `tests/fake-window.ts`
-- `announced` — in 8 files: `tests/`
+- `announced` — in 9 files: `tests/`
 - `announcedStrikerId` — `tests/core/turn-clock.test.ts`
 - `announcementStanding` — in 17 files: `tests/`
 - `announcementsActor` — `tests/repository/protocol-keys.test.ts`
@@ -11570,7 +11614,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `appended` — `tests/ports/margonem-engine-tooltip.test.ts`, `tests/rebuilding-battle.ts`,
   `tests/runtime/carried-tooltip.test.ts`
 - `appendedScript` — `tests/tools/preview-page.test.ts`
-- `applied` — in 6 files: `tests/`
+- `applied` — in 7 files: `tests/`
 - `args` — in 6 files: `tests/`
 - `argument` — `tests/source-tree.ts`
 - `arguments` — `tests/source-tree.ts`
@@ -11693,7 +11737,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `computed` — `tests/source-tree.ts`
 - `concatTip` — `tests/ports/margonem-engine-tooltip.test.ts`
 - `configFile` — `tests/e2e/build-once.ts`
-- `console` — `tests/fake-window.ts`, `tests/runtime-world.ts`
+- `console` — `tests/fake-window.ts`, `tests/runtime-world.ts`,
+  `tests/runtime/margometer-runtime.test.ts`
 - `constant` — `tests/repository/name-register.test.ts`
 - `constants` — `tests/repository/declaration-order.test.ts`
 - `constructor` — `tests/libs/unknown-value.test.ts`
@@ -11740,7 +11785,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `dealtSign` — `tests/tools/frozen-files.test.ts`, `tests/tools/protocol-key-table.test.ts`
 - `declaration` — `tests/source-tree.ts`
 - `declarations` — `tests/source-tree.ts`
-- `declared` — in 10 files: `tests/`
+- `declared` — in 11 files: `tests/`
 - `deeper` — `tests/e2e/panel-crawler.ts`
 - `defect` — `tests/repository/design-tokens.test.ts`, `tests/ui/panel-look.test.ts`
 - `defects` — in 7 files: `tests/`
@@ -11750,7 +11795,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `depth` — `tests/repository/nesting-depth.test.ts`
 - `description` — `tests/repository/documents.test.ts`
 - `descriptionsRemoved` — `tests/tools/capture-intake.test.ts`
-- `destroyed` — in 7 files: `tests/`
+- `destroyed` — in 8 files: `tests/`
 - `detail` — `tests/ui/panel-card.test.ts`, `tests/ui/panel-element.test.ts`
 - `develop` — `tests/ui/panel-look.test.ts`
 - `dictionary` — `tests/fake-window.ts`, `tests/runtime-world.ts`
@@ -11786,7 +11831,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `effect` — in 7 files: `tests/`
 - `effects` — `tests/tools/frozen-files.test.ts`
 - `either` — `tests/verb-purities.ts`
-- `element` — in 12 files: `tests/`
+- `element` — in 13 files: `tests/`
 - `elements` — `tests/repository/purity.test.ts`, `tests/source-tree.ts`
 - `end` — in 6 files: `tests/`
 - `endBattle` — in 4 files: `tests/`
@@ -12001,7 +12046,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `legendaryBonuses` — `tests/ui/panel-card.test.ts`, `tests/ui/panel-content.test.ts`
 - `legendaryBonusesReached` — `tests/ui/panel-card.test.ts`
 - `legendaryStandings` — `tests/core/aura-standing.test.ts`
-- `length` — in 16 files: `tests/`
+- `length` — in 17 files: `tests/`
 - `level` — in 19 files: `tests/`
 - `lifted` — `tests/tools/margonem-readings.test.ts`
 - `lightings` — `tests/tools/aura-lifetime.test.ts`
@@ -12173,8 +12218,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-look.test.ts`
 - `pressed` — `tests/ui/helper-window.test.ts`
 - `presses` — `tests/e2e/panel-crawler.ts`
-- `prevented` — in 6 files: `tests/`
-- `procs` — in 7 files: `tests/`
+- `prevented` — in 7 files: `tests/`
+- `procs` — in 8 files: `tests/`
 - `procsWhenStriking` — `tests/ui/panel-card.test.ts`
 - `procsWhenStruck` — `tests/ui/panel-card.test.ts`
 - `prof` — in 4 files: `tests/`
@@ -12195,7 +12240,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `range` — `tests/repository/declaration-order.test.ts`, `tests/source-tree.ts`
 - `rank` — `tests/ui/panel-element.test.ts`
 - `ranking` — `tests/shown-screen.ts`, `tests/simulation.ts`, `tests/ui/panel-element.test.ts`
-- `raw` — in 6 files: `tests/`
+- `raw` — in 7 files: `tests/`
 - `reach` — `tests/core/carried-figure.test.ts`, `tests/tools/aura-standing.test.ts`
 - `read` — `tests/e2e/panel-save.spec.ts`, `tests/repository/redacted-names.test.ts`
 - `readDate` — `tests/tools/margonem-readings.test.ts`
@@ -12376,8 +12421,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tag` — `tests/fake-document.ts`
 - `taken` — `tests/tools/turn-count.test.ts`
 - `target` — `tests/fake-document.ts`, `tests/ui/panel-gesture.test.ts`
-- `targetHealthPercent` — in 7 files: `tests/`
-- `targetId` — in 7 files: `tests/`
+- `targetHealthPercent` — in 8 files: `tests/`
+- `targetId` — in 8 files: `tests/`
 - `targetName` — `tests/core/legendary-standing.test.ts`, `tests/repository/redacted-names.test.ts`
 - `tasks` — `tests/repository/name-register.test.ts`
 - `team` — in 7 files: `tests/`
@@ -12561,6 +12606,7 @@ Each `as const` object of a module, by its keys.
 
 ### `src/ui/`
 
+- `CARD_EDGE` — `src/ui/panel-drag.ts`: `left`, `right`
 - `CARD_KEY_PLACE` — `src/ui/panel-element.ts`: `skill`, `pair`, `pairKinds`
 - `CARD_LINE` — `src/ui/panel-element.ts`: `stat`, `sub`, `heading`, `note`
 - `CARD_NOTE_TONE` — `src/ui/panel-element.ts`: `plain`, `suspect`, `caveat`
@@ -13391,6 +13437,10 @@ suite's material.
 - `"unknown"` — `WORLD_UNKNOWN`
 - `"userAgent"` — `USER_AGENT_FIELD`
 
+### `src/ports/fight-capture.ts`
+
+- `"+"` — `SHAPE_KEYS_PAST_MAXIMUM`
+
 ### `src/ports/margonem-client-build.ts`
 
 - `"-"` — `BUILD_DASH`
@@ -13410,20 +13460,18 @@ suite's material.
 - `"Engine"` — `ENGINE_FIELD`
 - `"__margometerBattleWrap"` — `WRAP_MARKER`
 - `"battle"` — `BATTLE_FIELD`
+- `"d"` — `HELD_FIELDS`
 - `"getEngine"` — `ENGINE_CALL_FIELD`
+- `"hero"` — `ENGINE_FIELDS`
+- `"map"` — `ENGINE_FIELDS`
 - `"updateData"` — `WRAPPED_METHOD`
 
 ### `src/ports/margonem-engine-hero.ts`
 
-- `"d"` — `HELD_FIELDS`
-- `"hero"` — `ENGINE_FIELDS`
 - `"id"` — `HERO_FIELDS`
 
 ### `src/ports/margonem-engine-place.ts`
 
-- `"d"` — `HELD_FIELDS`
-- `"hero"` — `ENGINE_FIELDS`
-- `"map"` — `ENGINE_FIELDS`
 - `"name"` — `PLACE_FIELDS`
 - `"x"` — `PLACE_FIELDS`
 - `"y"` — `PLACE_FIELDS`
@@ -13626,14 +13674,15 @@ suite's material.
 - `"data-grip"` — `GRIP_ATTRIBUTE`
 - `"data-size-grip"` — `SIZE_GRIP_ATTRIBUTE`
 - `"helper"` — `GRIP_MARK_BY_WINDOW`
+- `"left"` — `CARD_EDGE`
 - `"meter"` — `GRIP_MARK_BY_WINDOW`
 - `"move"` — `GRAB_KIND`
+- `"right"` — `CARD_EDGE`
 - `"size"` — `GRAB_KIND`
 
 ### `src/ui/panel-element.ts`
 
 - `"+"` — `UNFOLD_MARK`
-- `"+of_crit"` — `OFFHAND_CRIT_KEY`
 - `"MargoMeter-Panel"` — `HOST_NAME`
 - `"auto"` — `EDGE_RELEASED`
 - `"caveat"` — `CARD_NOTE_TONE`

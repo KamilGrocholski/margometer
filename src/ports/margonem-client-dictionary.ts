@@ -1,5 +1,5 @@
 /**
- * Asking the running client what the player's own copy calls something (`docs/design.md` §5). The
+ * Asking the running client what the reader's own copy calls something (`docs/design.md` §5). The
  * panel asks only where this repository has no word of its own, and no sentence of the game's is
  * written down here. What is refused, and why each refusal exists: `develop ADR 0024`.
  */

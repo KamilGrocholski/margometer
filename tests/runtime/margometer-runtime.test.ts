@@ -251,6 +251,34 @@ Deno.test("a document that will not take the panel is tried again, and said once
     assertStrictEquals(world.lines.length, 1, "E9: the console heard it once");
 });
 
+Deno.test("a failure that escaped the payload's guards into the wrap is a defect all the same", () => {
+    let writes = 0;
+    const world = initRuntimeWorld(composeBattlePage(), (built) => ({
+        console: {
+            writeBrandedLine: (kind) => {
+                writes += 1;
+                if (writes === 1) throw new RangeError("a console that refused its first line");
+                built.lines.push(kind);
+            },
+        },
+    }));
+    // A payload that throws when read is a reading defect whose report is the first console line,
+    // so the console refusing it throws past the payload's guards and into the wrap.
+    const everyTrapThrows = new Proxy({}, {
+        get: () => () => {
+            throw new RangeError("a payload that throws when it is read");
+        },
+    });
+    const throwing = new Proxy({}, everyTrapThrows);
+    world.update(throwing);
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    assertEquals(
+        getTextsByClass(world.getHost(), CLASS.defect),
+        [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.reading, null, 2)}`],
+        "the reading that failed, and what its report threw on the way out",
+    );
+});
+
 Deno.test("a page that throws when it is looked at leaves the add-on standing, and says so", () => {
     const page = {
         get Engine(): unknown {
@@ -1246,6 +1274,30 @@ Deno.test("a stopped add-on takes its wrap off and draws no frame it had asked f
         getTextsByClass(findList(world.getHost()), CLASS.empty),
         [PANEL_WORDS.noFightYet],
         "unmoved",
+    );
+});
+
+Deno.test("a stopped add-on whose frame the page would not cancel draws nothing when it falls", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const world = initRuntimeWorld(composeBattlePage(battle), (_, base) => ({
+        frames: {
+            requestFrame: (step, onStepFailure) => {
+                const requested = base.frames.requestFrame(step, onStepFailure);
+                if (requested instanceof Error) return requested;
+                return { cancel: () => undefined };
+            },
+        },
+    }));
+    const [opening] = readUpdates(HILDUR);
+    const wrapped = battle.updateData;
+    assert(typeof wrapped === "function", "the wrap went on");
+    wrapped(opening);
+    assertStrictEquals(world.runtime.deinit(), undefined, "the wrap came off");
+    world.flush();
+    assertEquals(
+        getTextsByClass(findList(world.getHost()), CLASS.empty),
+        [PANEL_WORDS.noFightYet],
+        "the frame that still fell drew nothing",
     );
 });
 

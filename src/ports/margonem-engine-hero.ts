@@ -10,11 +10,10 @@ import * as errors from "#/libs/errors.ts";
 import {
     type FieldKeys,
     getNumberField,
-    getRecordField,
     getTextField,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
-import { readMargonemEngines } from "./margonem-engine-battle.ts";
+import { readMargonemEngineRecord, readMargonemEngines } from "./margonem-engine-battle.ts";
 import { MARGONEM_VALUE, type MargonemReadFailure, MargonemValueAbsent } from "./margonem-value.ts";
 
 export interface MargonemEngineHeroPort {
@@ -22,12 +21,8 @@ export interface MargonemEngineHeroPort {
 }
 
 /** Production build `Bb28FQty`, fetched 2026-09-27: `this.getId=()=>this.d.id` on the hero. */
-type MargonemEngineField = "hero";
-type HeldField = "data";
 type HeroField = "id";
 
-const ENGINE_FIELDS: FieldKeys<MargonemEngineField> = { hero: "hero" };
-const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const HERO_FIELDS: FieldKeys<HeroField> = { id: "id" };
 
 /** The first spelling of the game that states an id wins: two spellings are one game. */
@@ -48,11 +43,7 @@ export function initMargonemEngineHero(browserWindow: unknown): MargonemEngineHe
 
 /** Null where the engine holds no hero, or an id that is not a whole number above nought. */
 function readMargonemEngineHeroId(engine: UnknownRecord): number | null {
-    const heroObject = getRecordField(engine, ENGINE_FIELDS, "hero");
-    if (heroObject instanceof Error) return null;
-    if (heroObject === null) return null;
-    const heroData = getRecordField(heroObject, HELD_FIELDS, "data");
-    if (heroData instanceof Error) return null;
+    const heroData = readMargonemEngineRecord(engine, "hero");
     if (heroData === null) return null;
     let id: number | null;
     // Read the id in either spelling, as a tile is read.

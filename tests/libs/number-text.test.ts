@@ -53,6 +53,13 @@ Deno.test("a decimal is read with a fraction or without one", () => {
     assertStrictEquals(parseDecimal("1.2.3"), null, "and two points state no number at all");
 });
 
+Deno.test("a decimal is read up to the largest double, and refused past it", () => {
+    const largest = `1${"0".repeat(308)}`;
+    assertStrictEquals(parseDecimal(largest), 1e308, "the last power of ten a double holds");
+    assertStrictEquals(parseDecimal(`${largest}0`), null, "and the first one past it");
+    assertStrictEquals(parseDecimal(`${largest}0.5`), null, "however it is spelled");
+});
+
 Deno.test("a decimal is written to the places it was asked for", () => {
     assertStrictEquals(formatDecimal(10 / 3, 2), "3.33", "a number is written to the width asked");
     assertStrictEquals(formatDecimal(0, 0), "0", "nothing is written to no places at all");

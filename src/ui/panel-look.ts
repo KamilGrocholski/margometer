@@ -16,6 +16,7 @@ import {
     type TypeStep,
 } from "./panel-choice.ts";
 import { type Colour, formatColour, SIGNAL } from "./panel-palette.ts";
+import { RANKING_ROWS } from "./panel-content.ts";
 
 /**
  * What follows the type: every length the sheet and the panel spend that a step of type moves.
@@ -323,7 +324,8 @@ const CHANNEL_EXPONENT = 2.4;
 const LUMINANCE_OFFSET = 0.05;
 
 const VARIABLE_PREFIX = "--MargoMeter-";
-const ROWS_BY_DEFAULT = 11;
+/** What a list stands at where it writes no rows of its own: the ranking's height. */
+const ROWS_BY_DEFAULT = RANKING_ROWS;
 const FONT_STACK = "system-ui, sans-serif";
 /** What a border costs the box it is on, at the one width this panel draws one. */
 const RULE_WIDTH = 1;
@@ -444,11 +446,10 @@ export function getInkForBar(hue: Colour): Colour {
  * the rule each run spends over itself, and the padding and border the box reserves inside its own
  * height. Null where the counts handed in are no whole numbers.
  *
- * ⚠️ **One arithmetic, where there were two.** The sheet worked this out again from the counts the
- * draw wrote, which was enough while nothing else needed the number. The panel needs it now — a
- * card taller than the window is cut to the room there is rather than clipped
- * (`src/ui/panel-element.ts`) — and a trim and a clamp at two heights would put the notice on a
- * card that fitted, or leave one that did not without it.
+ * ⚠️ **One arithmetic, for the sheet and the panel alike.** A card taller than the window is cut to
+ * the room there is rather than clipped (`src/ui/panel-element.ts`), and a trim and a clamp worked
+ * out at two heights would put the notice on a card that fitted, or leave one that did not without
+ * it.
  */
 export function getCardHeight(
     size: { lines: number; groups: number },
@@ -551,13 +552,10 @@ function composeFrameRules(tokens: TypeTokens): string {
         // One line whatever the version says: no guard here lays anything out, so a wrap is
         // invisible to the gate.
         `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
-        `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
+        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
         `box-sizing:border-box;width:${width};` +
-        `cursor:move;` +
-        // Safari has never shipped `user-select` unprefixed, so without this a drag by the bar
-        // selects the text under the cursor (`docs/browser-support.md`).
-        `-webkit-user-select:none;user-select:none;touch-action:none;}` +
+        `cursor:move;${NO_SELECTION}touch-action:none;}` +
         // Every width in `TYPE_TOKENS` is a bar measured in one font, and a reader's may ask more:
         // on CI's Ubuntu runner on 2026-09-29 the middle step's bar asked 0.44px past its width and
         // pushed the fold off it.
@@ -565,7 +563,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         `.${CLASS.titleVersion}{opacity:0.7;font-size:${tokens.fontSmallPixels}px;` +
         `min-width:0;overflow:hidden;text-overflow:ellipsis;}` +
         `.${CLASS.control}{padding:0 var(${VARIABLE_PREFIX}small);` +
-        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);` +
         `color:var(${VARIABLE_PREFIX}quiet);background:var(${VARIABLE_PREFIX}surface);` +
         `cursor:pointer;}` +
@@ -579,7 +577,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         `.${CLASS.frame}.${CLASS.folded}{display:none;}` +
         `.${CLASS.meter}{font:${composeFontBody(tokens)};width:${width};position:relative;` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
-        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
         // As tall as a reader made it **at least**: a height is a floor and never a box, because the
         // regions over and under the list do not give way, and a panel shorter than they are drew
@@ -670,7 +668,7 @@ function composeRegionRules(tokens: TypeTokens): string {
         `.${CLASS.strip}{white-space:nowrap;padding:1px var(${VARIABLE_PREFIX}small);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);color:var(${VARIABLE_PREFIX}quiet);` +
         `background:transparent;cursor:pointer;` +
-        `-webkit-user-select:none;user-select:none;}` +
+        `${NO_SELECTION}}` +
         `.${CLASS.strip}.${CLASS.stripCurrent}{color:var(${VARIABLE_PREFIX}text);` +
         `background:var(${VARIABLE_PREFIX}raised);}` +
         `.${CLASS.crumb}{display:flex;gap:var(${VARIABLE_PREFIX}wide);align-items:baseline;` +
@@ -697,12 +695,13 @@ function composeOptionsRules(tokens: TypeTokens): string {
         `.${CLASS.optionsHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
         `font-size:${tokens.fontSmallPixels}px;text-transform:uppercase;}` +
         `.${CLASS.optionsSteps}{display:flex;margin-top:var(${VARIABLE_PREFIX}half);` +
-        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);overflow:hidden;}` +
         `.${CLASS.optionsStep}{flex:1 1 0;height:var(${VARIABLE_PREFIX}row-height);` +
         `line-height:var(${VARIABLE_PREFIX}row-height);text-align:center;white-space:nowrap;` +
-        `color:var(${VARIABLE_PREFIX}quiet);border-left:1px solid var(${VARIABLE_PREFIX}border);` +
-        `cursor:pointer;-webkit-user-select:none;user-select:none;}` +
+        `color:var(${VARIABLE_PREFIX}quiet);` +
+        `border-left:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
+        `cursor:pointer;${NO_SELECTION}}` +
         `.${CLASS.optionsStep}:first-child{border-left:none;}` +
         stepSizes +
         `.${CLASS.optionsWindow}{display:flex;align-items:center;gap:var(${VARIABLE_PREFIX}small);` +
@@ -713,17 +712,17 @@ function composeOptionsRules(tokens: TypeTokens): string {
         `.${CLASS.optionsWindowState}{color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.optionsWindowState}.${CLASS.optionsWindowOwn}{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.optionsReset}{padding:0 var(${VARIABLE_PREFIX}small);` +
-        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
         `background:var(${VARIABLE_PREFIX}raised);color:var(${VARIABLE_PREFIX}text);` +
         `font-size:${tokens.fontSmallPixels}px;` +
         `line-height:calc(var(${VARIABLE_PREFIX}row-height) - var(${VARIABLE_PREFIX}small));` +
-        `cursor:pointer;-webkit-user-select:none;user-select:none;}` +
+        `cursor:pointer;${NO_SELECTION}}` +
         `.${CLASS.optionsAnswer}{display:flex;align-items:center;` +
         `height:var(${VARIABLE_PREFIX}row-height);margin-top:var(${VARIABLE_PREFIX}half);` +
         `padding:0 var(${VARIABLE_PREFIX}small) 0 var(${VARIABLE_PREFIX}half);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);color:var(${VARIABLE_PREFIX}quiet);` +
-        `white-space:nowrap;cursor:pointer;-webkit-user-select:none;user-select:none;}` +
+        `white-space:nowrap;cursor:pointer;${NO_SELECTION}}` +
         // The mark is drawn by the sheet rather than written into the row, so the row stays one
         // node carrying its answer's mark, and a press on the tick is a press on the answer.
         `.${CLASS.optionsAnswer}::before{content:"";flex:none;text-align:center;` +
@@ -773,7 +772,7 @@ function composeListRules(tokens: TypeTokens): string {
         `padding:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.sides}{padding:var(${VARIABLE_PREFIX}region-down) ` +
         `var(${VARIABLE_PREFIX}region-across);` +
-        `border-top:1px solid var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
+        `border-top:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
         `.${CLASS.sidesLine}{display:flex;justify-content:space-between;align-items:baseline;` +
         `font-variant-numeric:tabular-nums;font-weight:600;}` +
         `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;opacity:0.8;` +
@@ -791,11 +790,11 @@ function composeListRules(tokens: TypeTokens): string {
         `.${CLASS.sidesTheirs}{color:var(${VARIABLE_PREFIX}theirs);}` +
         `.${CLASS.sidesNobody}{color:var(${VARIABLE_PREFIX}nobody);}` +
         `.${CLASS.sidesTrack}>*{background:currentColor;}` +
-        `.${CLASS.suspicions}{border-top:1px solid var(${VARIABLE_PREFIX}border);` +
+        `.${CLASS.suspicions}{border-top:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
         `padding-top:var(${VARIABLE_PREFIX}region-down);}` +
         `.${CLASS.suspicion}{color:var(${VARIABLE_PREFIX}suspect);` +
         `padding:0 var(${VARIABLE_PREFIX}region-across) var(${VARIABLE_PREFIX}region-down);}` +
-        `.${CLASS.defects}{border-top:1px solid var(${VARIABLE_PREFIX}border);` +
+        `.${CLASS.defects}{border-top:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
         `padding-top:var(${VARIABLE_PREFIX}region-down);}` +
         `.${CLASS.defect}{color:var(${VARIABLE_PREFIX}defect);` +
         `padding:0 var(${VARIABLE_PREFIX}region-across) var(${VARIABLE_PREFIX}region-down);}`;
@@ -889,7 +888,7 @@ function composeUnderListRules(): string {
     const inset = composeInsetUnderRows(VARIABLE_PREFIX + "region-down");
     const shape = `margin:0 var(${VARIABLE_PREFIX}region-across);` +
         `padding:var(${VARIABLE_PREFIX}region-down) 0 ${inset};` +
-        `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;`;
+        `border-top:${RULE_WIDTH}px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;`;
     return `.${CLASS.pinned}{${shape}}` + `.${CLASS.outside}{${shape}}`;
 }
 
@@ -924,7 +923,7 @@ function composeCardRules(tokens: TypeTokens): string {
         `padding:var(${VARIABLE_PREFIX}small);` +
         `font:${composeFontBody(tokens)};` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}raised);` +
-        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};}` +
         `.${CLASS.cardHidden}{display:none;}` +
         // Two columns of the one bound each, laid out at the width of both rather than at what
@@ -949,7 +948,7 @@ function composeCardRules(tokens: TypeTokens): string {
         `.${CLASS.cardSubtitle}{color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.cardGroup}{margin-top:var(${VARIABLE_PREFIX}small);` +
         `padding-top:var(${VARIABLE_PREFIX}small);` +
-        `border-top:1px solid var(${VARIABLE_PREFIX}border);}` +
+        `border-top:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);}` +
         `.${CLASS.cardLine}{display:flex;justify-content:space-between;` +
         `gap:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.cardLine}.${CLASS.cardStrong}{font-weight:600;}` +
@@ -1046,9 +1045,9 @@ function composeHelperRules(tokens: TypeTokens): string {
         `font:${composeFontTitle(tokens)};letter-spacing:0.06em;` +
         `color:var(${VARIABLE_PREFIX}quiet);white-space:nowrap;` +
         `background:var(${VARIABLE_PREFIX}raised);` +
-        `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
+        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
-        `cursor:move;-webkit-user-select:none;user-select:none;touch-action:none;}` +
+        `cursor:move;${NO_SELECTION}touch-action:none;}` +
         `.${CLASS.helperBar} .${CLASS.control}{margin-left:auto;}` +
         `.${CLASS.helperBody}{min-height:0;overflow-y:auto;overflow-x:hidden;` +
         `box-sizing:border-box;height:var(${SIZE_VARIABLES.helper.height},auto);` +
@@ -1057,7 +1056,7 @@ function composeHelperRules(tokens: TypeTokens): string {
         `padding-bottom:calc(var(${VARIABLE_PREFIX}region-down) - ` +
         `var(${VARIABLE_PREFIX}half));` +
         `background:var(${VARIABLE_PREFIX}surface);` +
-        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);}` +
         `.${CLASS.helper}.${CLASS.helperFolded} .${CLASS.helperBody}{display:none;}` +
         `.${CLASS.helperUnder}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
@@ -1107,7 +1106,7 @@ function composeSizeGripRules(): string {
     return `.${CLASS.sizeGrip}{position:absolute;right:0;bottom:0;` +
         `width:${SIZE_GRIP.sizePixels}px;height:${SIZE_GRIP.sizePixels}px;z-index:1;` +
         `color:var(${VARIABLE_PREFIX}quiet);background:linear-gradient(135deg,${strokes});` +
-        `cursor:nwse-resize;touch-action:none;-webkit-user-select:none;user-select:none;}` +
+        `cursor:nwse-resize;touch-action:none;${NO_SELECTION}}` +
         `.${CLASS.meter}>.${CLASS.sizeGrip}{right:${meterOutside};bottom:${meterOutside};}` +
         `.${CLASS.sizeGrip}:hover{color:var(${VARIABLE_PREFIX}text);}`;
 }

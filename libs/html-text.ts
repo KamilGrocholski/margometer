@@ -70,12 +70,12 @@ export function decodeHtmlText(html: string): string {
         for (let look = 0; look < TAGS_MAXIMUM; look += 1) {
             if (open === -1) break;
             const close = withoutRawText.indexOf(TAG_CLOSE, open + 1);
-            if (close === -1 || close === open + 1) {
-                kept += withoutRawText.slice(from, open + 1);
-                from = open + 1;
-            } else {
+            if (close > open + 1) {
                 kept += `${withoutRawText.slice(from, open)} `;
                 from = close + 1;
+            } else {
+                kept += withoutRawText.slice(from, open + 1);
+                from = open + 1;
             }
             open = withoutRawText.indexOf(TAG_OPEN, from);
         }
@@ -107,13 +107,17 @@ function isSameAsciiTextAt(text: string, from: number, expected: string): boolea
     for (let index = 0; index < expected.length; index += 1) {
         const character = text.charAt(from + index);
         if (character === "") return false;
-        const isUpper = character >= "A" && character <= "Z";
-        const folded = isUpper
+        const folded = isAsciiUpperCase(character)
             ? String.fromCharCode(character.charCodeAt(0) + LOWER_CASE_OFFSET)
             : character;
         if (folded !== expected.charAt(index)) return false;
     }
     return true;
+}
+
+function isAsciiUpperCase(character: string): boolean {
+    if (character < "A") return false;
+    return character <= "Z";
 }
 
 /** Where the matching `</name>` ends, or null where there is none. */
@@ -136,7 +140,7 @@ function composeCollapsedWhitespace(text: string): string {
     let from = 0;
     let index = 0;
     for (let look = 0; look < CHARACTERS_MAXIMUM; look += 1) {
-        if (index >= text.length) break;
+        if (index === text.length) break;
         if (!isWhitespaceAt(text, index)) {
             index += 1;
             continue;
@@ -146,6 +150,6 @@ function composeCollapsedWhitespace(text: string): string {
         from = end;
         index = end;
     }
-    assert(index >= text.length, "every character was walked, which is what the bound is for");
+    assert(index === text.length, "every character was walked, which is what the bound is for");
     return `${collapsed}${text.slice(from)}`.trim();
 }

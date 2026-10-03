@@ -677,7 +677,7 @@ Deno.test("a held character's card states the turns they have taken since the sh
     assertEquals(
         card.stated.map((line) => [line.label, line.value]),
         [[HELPER_WORDS.turnsLeft, "1 z 3"]],
-        "and states a length of their own, counted on their turns (**ADR 0103**)",
+        "and states a length of their own, counted on their turns (**develop ADR 0103**)",
     );
     assertEquals(card.notes, [], "with no sentence under it, because the clock is now theirs");
 });

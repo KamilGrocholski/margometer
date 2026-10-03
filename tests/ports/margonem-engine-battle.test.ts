@@ -224,6 +224,14 @@ Deno.test("the page is asked for a game in both spellings, and a call may throw"
     const answer = tearing.readBattle();
     assertInstanceOf(answer, Error, "a call that throws answers no battle");
     assertInstanceOf(answer, errors.Caught, "and says it was theirs");
+    const guarded = initMargonemEngineBattle({
+        Engine: {
+            get battle() {
+                throw new RangeError("a battle being torn down");
+            },
+        },
+    });
+    assertInstanceOf(guarded.readBattle(), errors.Caught, "nor does a battle that throws read");
 });
 
 Deno.test("the warriors are read off the live battle, and a battle holding none says so", () => {

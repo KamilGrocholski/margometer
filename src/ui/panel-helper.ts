@@ -11,6 +11,7 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import type { ProvocationStanding } from "#/src/core/aura-standing.ts";
 import {
     CHARGED_SKILL_STATE,
+    CHARGED_SKILLS_MAXIMUM,
     type ChargedSkillStanding,
     type ChargedSkillState,
 } from "#/src/core/charged-skill.ts";
@@ -126,18 +127,17 @@ export interface HelperContent {
  * Every character on the board, because **both sides may be shouting and nobody is held twice**:
  * a later shout replaces whatever held somebody (`develop ADR 0062`), so the most that can stand at
  * once is one row each. The corpus cannot show it — every recording in it is ten against one and
- * two is the most it ever held — and a fabricated ten-a-side stands 20 at once, which the bound
- * this replaced clamped to 12.
+ * two is the most it ever held — and a fabricated ten-a-side stands 20 at once.
  */
 export const PROVOKED_MAXIMUM = COMBATANTS_MAXIMUM;
 /**
- * Past every charge the corpus has ever held at once, which is one — and past the bound
- * `core/charged-skill.ts` already clamps to, so this one only ever repeats that answer.
+ * The bound `core/charged-skill.ts` already clamps to, past every charge the corpus has ever held
+ * at once, which is one.
  *
  * Every row this window draws carries a card, so the band joins the arithmetic
- * `develop:tests/ui/share-bound.test.ts` holds the card register to (`develop ADR 0100`).
+ * `tests/ui/share-bound.test.ts` holds the card register to (`develop ADR 0100`).
  */
-const CHARGED_ROWS_MAXIMUM = 4;
+export const CHARGED_ROWS_MAXIMUM = CHARGED_SKILLS_MAXIMUM;
 
 export function presentHelper(
     provocations: readonly ProvocationStanding[],

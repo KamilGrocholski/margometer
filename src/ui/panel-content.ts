@@ -99,7 +99,7 @@ export interface RowDetail {
      * Whether a lost turn was heard **anywhere in this fight**, which is what says the figure above
      * is a measurement rather than a reading that found nothing. The announcement is read by the
      * shape of a sentence, so a world wording it otherwise yields nought for everybody
-     * (`docs/turns-taken.md`), and a nought drawn there would be **E10**'s substitute for a
+     * (`docs/turns-taken.md`), and a nought drawn there would be **E6**'s substitute for a
      * read that never worked. A combatant of their own lost turn carries it true.
      * `develop ADR 0110`.
      */
@@ -652,7 +652,7 @@ export const SKILLS_MAXIMUM = 256;
  * fight scrolls rather than growing the window: a ranking is watched while a fight is on, and a
  * height that changed as combatants joined would move it under the reader's hand.
  */
-const RANKING_ROWS = 11;
+export const RANKING_ROWS = 11;
 const SIDE_ROWS = 10;
 
 /**
@@ -1046,7 +1046,12 @@ function composeHalfNamedRows(
         };
     });
     rows.sort((leftRow, rightRow) =>
-        getRankedOrder(leftRow.figure, rightRow.figure, leftRow.name ?? "", rightRow.name ?? "")
+        getRankedOrder(
+            leftRow.figure,
+            rightRow.figure,
+            leftRow.name ?? "",
+            rightRow.name ?? "",
+        )
     );
     // No bound of its own: a level is cut out of the list above it, which `presentScreen`
     // has already held to `ROWS_MAXIMUM`. One here is a second guard on one hazard, and nothing
@@ -2415,7 +2420,7 @@ export function presentOpenedLevel(
  * carries one**: a section whose rows came to less than the figure over them would be a column of
  * shares adding to ninety-something, which is a panel a reader cannot check.
  *
- * Only the dealing screen counts what stands in it. There the remainder is swings the game
+ * Only the dealing screen counts what stands in it. There the remainder is blows the game
  * announced nothing before, and the count is what a figure alone cannot say; on the healing
  * screens it is health that moved under a key naming no skill, which is not a number of
  * anything.
@@ -2434,7 +2439,7 @@ function composeSkillCut(
     // left out of this sum it would land in `closingFigure`, which says nothing announced the blow.
     const partsTotal = stated.reduce((sum, skillRow) => sum + skillRow.figure, folded.rest);
     // Drawn even where it landed nothing: three blows that were all blocked are three blows, and
-    // a section that skipped them would say the combatant never swung.
+    // a section that skipped them would say the combatant never struck.
     const closingFigure = total - partsTotal;
     // ⚠️ **On the healing screens this is nought by construction**, and it is not asserted
     // (`develop ADR 0051`): one condition in `src/core/fight-statistics.ts` sends a movement to a
@@ -2443,7 +2448,14 @@ function composeSkillCut(
     // — a share divided by the wrong whole — and this one is not: a remainder draws a row of its
     // own, with the figure on it, where a reader can see it and add it up.
     const isCounted = metric === PANEL_METRIC.damageDealt;
-    const hasClosing = closingFigure > 0 || (isCounted && figures.blowsWithoutSkill > 0);
+    let hasClosing: boolean;
+    if (closingFigure > 0) {
+        hasClosing = true;
+    } else if (isCounted) {
+        hasClosing = figures.blowsWithoutSkill > 0;
+    } else {
+        hasClosing = false;
+    }
     const hasRest = folded.rest > 0;
     // ⚠️ **The shares are composed from the clamped figure, never from the bare remainder.** A
     // row drawn at nought beside a share worked out from a figure below nothing prints
@@ -2487,7 +2499,7 @@ function composeSkillCut(
  * `Zadane` at nothing: 285 of the 685 skill rows over `captures/` on 2026-08-30, and 28 of
  * the 81 skills the corpus announces never deal anything at all.
  *
- * A swing that landed nothing still stands, which is what `blows` is for — cast eight times and
+ * A blow that landed nothing still stands, which is what `blows` is for — cast eight times and
  * blocked eight times is a thing the reader did with damage in mind. Not one of those 28 ever
  * struck a blow or stated a figure against a name, so the two claims come apart cleanly.
  */
@@ -2530,7 +2542,7 @@ function composeSkillRowsStated(
     // ⚠️ **The keys stand here and the elements do not, and the two are not the same list.** What
     // a blow was made of is a section of its own, so `dmgd` beside a skill would draw one figure
     // twice; what moved health **outside** a blow reached no skill at all, and leaving it out
-    // closed it into a row named for a swing. `src/ui/panel-words.ts` keeps the two vocabularies
+    // closed it into a row named for a blow. `src/ui/panel-words.ts` keeps the two vocabularies
     // apart for the same reason. `develop ADR 0080`.
     if (metric === PANEL_METRIC.damageTaken) {
         const named = composeSkillRowsReceived(
@@ -2558,7 +2570,10 @@ function composeSkillRowsStated(
         }, composeSourceRows(given.cut));
     }
     return composeFoldsJoined({
-        parts: own.filter((skill) => skill.damageDealt > 0 || skill.blows > 0).map((skill) => ({
+        parts: own.filter((skill) => {
+            if (skill.damageDealt > 0) return true;
+            return skill.blows > 0;
+        }).map((skill) => ({
             part: { kind: OPENED_PART.skill, name: skill.name },
             uses: skill.uses,
             figure: skill.damageDealt,

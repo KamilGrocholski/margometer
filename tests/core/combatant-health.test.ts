@@ -297,6 +297,26 @@ Deno.test("a cast on a side a reducer reached is refused whole", () => {
         1,
         "a reducer of ours cuts theirs, not ours",
     );
+
+    // A reducer whose caster is not known cuts every side, as `develop` cuts them: the side it
+    // spared is the one nobody can name.
+    for (const actor of ["0", "9=100.00"]) {
+        const casterUnknown = decodePayloadMessages(
+            [
+                "1=100.00;0;step",
+                "2=100.00;0;step",
+                `${actor};3=100.00;tspell=Jadowity podmuch;skillId=219;lowheal_per-enemies=27`,
+                "1=50.00;0;poison=11937",
+                "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+            ],
+            { roster, announcementStanding: null, tables: BLOWS_GRANTED },
+        ).events;
+        assertEquals(
+            indexSideHeals(casterUnknown, roster).size,
+            0,
+            `a reducer cast by ${actor} cuts every side`,
+        );
+    }
 });
 
 Deno.test("every cast in the recordings is sized, and the cap is what does the work", () => {

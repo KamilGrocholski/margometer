@@ -126,6 +126,8 @@ interface RuntimeState {
     translate: TranslateLabel;
     search: MargonemEngineSearch | null;
     wrap: WrapHandle | null;
+    /** How many of the failures the wrap counted a frame has already marked. */
+    wrapFailuresMarked: number;
     frame: FrameHandle | null;
     isStale: boolean;
     hasFrameRefused: boolean;
@@ -205,7 +207,8 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
     let state: RuntimeState;
     // Build the state, and start looking for the engine.
     {
-        // The closures below are called by the game and the reader, never while this block runs.
+        // The closures below are called by the game and the reader, never while this block runs,
+        // but for the view's `onFailure`, which the view calls while it is being built.
         const { live: liveFight, listener } = initLiveFight({
             battle: ports.battle,
             clock: ports.clock,
@@ -268,6 +271,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             view,
             search: null,
             wrap: null,
+            wrapFailuresMarked: 0,
             frame: null,
             isStale: false,
             hasFrameRefused: false,
@@ -380,6 +384,22 @@ function onFrame(state: RuntimeState): void {
     assert(state.isStale, "a frame falls only where one was asked for");
     state.isStale = false;
     state.frame = null;
+    // A frame whose cancel the page refused falls on a copy that stood down, and finds nothing.
+    if (state.isStoodDown) return;
+    // Mark what escaped the payload's own guards into the wrap: one defect a frame that finds more.
+    if (state.wrap !== null) {
+        const escaped = state.wrap.getFailureCount();
+        assert(
+            escaped >= state.wrapFailuresMarked,
+            "a wrap's count of failures never runs backwards",
+        );
+        if (escaped > state.wrapFailuresMarked) {
+            const failure = state.wrap.getFirstFailure();
+            assert(failure !== null, "a wrap that counted a failure kept the first of them");
+            state.defects.add({ kind: DEFECT_KIND.reading, region: null, failure });
+            state.wrapFailuresMarked = escaped;
+        }
+    }
     let world: string | null;
     // Read the page's world, or nothing where the page named none: the card leaves the line off.
     {
@@ -638,7 +658,7 @@ function executeSearchLook(
     }
     // The game is here and its method is gone. Said once; the looking ends where a search
     // finding nothing ends, and says nothing then: the game was there, so it was not abandoned.
-    if (search.looks >= LOOKS_MAXIMUM) deinitSearchTimer(search);
+    if (search.looks === LOOKS_MAXIMUM) deinitSearchTimer(search);
     if (search.hasRefused) return;
     search.hasRefused = true;
     report.onRefused(wrapped);

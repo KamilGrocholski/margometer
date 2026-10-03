@@ -10,12 +10,11 @@ import * as errors from "#/libs/errors.ts";
 import {
     type FieldKeys,
     getNumberField,
-    getRecordField,
     getStatedTextField,
     getTextField,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
-import { readMargonemEngines } from "./margonem-engine-battle.ts";
+import { readMargonemEngineRecord, readMargonemEngines } from "./margonem-engine-battle.ts";
 import type { FightPlace } from "./fight-place.ts";
 import { MARGONEM_VALUE, type MargonemReadFailure, MargonemValueAbsent } from "./margonem-value.ts";
 
@@ -27,12 +26,8 @@ export interface MargonemEnginePlacePort {
  * Carried from v1's reading of production build `53XkBRxF` and development build
  * `1781609507010`: the map is `Engine.map.d.name` and the position `Engine.hero.d.x` and `.y`.
  */
-type MargonemEngineField = "map" | "hero";
-type HeldField = "data";
 type PlaceField = "mapName" | "x" | "y";
 
-const ENGINE_FIELDS: FieldKeys<MargonemEngineField> = { map: "map", hero: "hero" };
-const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
 const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "name", x: "x", y: "y" };
 
 /** The first spelling of the game that says anything wins: two spellings are one game. */
@@ -55,10 +50,13 @@ export function initMargonemEnginePlace(browserWindow: unknown): MargonemEngineP
 function readMargonemEnginePlace(engine: UnknownRecord): FightPlace | null {
     const map = readMargonemEngineRecord(engine, "map");
     const hero = readMargonemEngineRecord(engine, "hero");
-    let mapName: string | null = null;
-    if (map !== null) {
+    let mapName: string | null;
+    if (map === null) {
+        mapName = null;
+    } else {
         const name = getStatedTextField(map, PLACE_FIELDS, "mapName");
-        if (!(name instanceof Error)) mapName = name;
+        if (name instanceof Error) mapName = null;
+        else mapName = name;
     }
     const x = hero === null ? null : readHeroCoordinate(hero, "x");
     const y = hero === null ? null : readHeroCoordinate(hero, "y");
@@ -66,18 +64,6 @@ function readMargonemEnginePlace(engine: UnknownRecord): FightPlace | null {
     if (x !== null) return { mapName, x, y };
     if (y === null) return null;
     return { mapName, x, y };
-}
-
-function readMargonemEngineRecord(
-    engine: UnknownRecord,
-    field: MargonemEngineField,
-): UnknownRecord | null {
-    const engineMember = getRecordField(engine, ENGINE_FIELDS, field);
-    if (engineMember instanceof Error) return null;
-    if (engineMember === null) return null;
-    const memberRecord = getRecordField(engineMember, HELD_FIELDS, "data");
-    if (memberRecord instanceof Error) return null;
-    return memberRecord;
 }
 
 /** Either spelling, because the client itself does arithmetic on one and compares the other. */

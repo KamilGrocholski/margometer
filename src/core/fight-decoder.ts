@@ -86,8 +86,9 @@ export class UnreadMessage extends Error implements UnreadDetails {
     readonly events: readonly BattleEvent[];
     readonly announcementStanding: AnnouncementStanding;
 
-    constructor(details: UnreadDetails) {
-        super();
+    /** A message the grammar refused carries the refusal as its `cause`. */
+    constructor(details: UnreadDetails, options?: { cause: GrammarRefusal }) {
+        super(undefined, options);
         this.unreadCause = details.unreadCause;
         this.keys = details.keys;
         this.combatantIds = details.combatantIds;
@@ -309,7 +310,7 @@ export function decodeMessage(
             text,
             events: [],
             announcementStanding: null,
-        });
+        }, { cause: message });
     }
     const parametersDecoded = decodeMessageParameters(message);
     const isBlow = hasAttackFigure(parametersDecoded);
@@ -453,7 +454,10 @@ function decodeMessageParameters(message: ProtocolMessage): ParametersDecoded {
     // Close the announcement: an id with no name is a skill nothing can put on screen.
     {
         assert(parametersDecoded.announcement === null, "a reading's announcement is closed once");
-        assert(parametersDecoded.skillKeysRead >= 0, "a key is counted once");
+        assert(
+            parametersDecoded.skillKeysRead >= 0,
+            "a count of skill keys read never runs below nought",
+        );
         if (parametersDecoded.skillName !== null) {
             parametersDecoded.announcement = {
                 skillName: parametersDecoded.skillName,

@@ -93,6 +93,10 @@ export interface CardWindowPlace {
     widthPixels: number;
 }
 
+/** The edge of the screen a card is measured from. */
+export const CARD_EDGE = { left: "left", right: "right" } as const;
+export type CardEdge = VocabularyWord<typeof CARD_EDGE>;
+
 /**
  * Which edge of the screen a card is measured from, and how far. **Never a left offset for a card
  * standing left of its window**: the card is as wide as what it says (`develop ADR 0091`), so a
@@ -100,7 +104,7 @@ export interface CardWindowPlace {
  * away from the window it belongs to. The edge facing the window is the one that is pinned.
  */
 export interface CardAcross {
-    edge: "left" | "right";
+    edge: CardEdge;
     at: number;
 }
 
@@ -269,17 +273,24 @@ export function composeSizeBounds(
     const widthMinimum = getWindowWidthPixels(panelWindow, tokens);
     const rowCost = tokens.rowHeightPixels + SPACE_PIXELS.half;
     const heightMinimum = ROWS_BY_WINDOW_MINIMUM[panelWindow] * rowCost;
-    let widthMaximum = widthMinimum * WIDTH_TIMES_TYPE_MAXIMUM;
-    let heightMaximum = Number.POSITIVE_INFINITY;
+    const widthTypeMaximum = widthMinimum * WIDTH_TIMES_TYPE_MAXIMUM;
+    let widthMaximum: number;
+    let heightMaximum: number;
     if (viewport !== null) {
         if (position !== null) {
             widthMaximum = Math.min(
-                widthMaximum,
+                widthTypeMaximum,
                 viewport.width - position.left - PLACE.insetPixels,
             );
             heightMaximum = viewport.height - position.top - getBarHeight(tokens) -
                 PLACE.insetPixels;
+        } else {
+            widthMaximum = widthTypeMaximum;
+            heightMaximum = Number.POSITIVE_INFINITY;
         }
+    } else {
+        widthMaximum = widthTypeMaximum;
+        heightMaximum = Number.POSITIVE_INFINITY;
     }
     return {
         widthMinimum,
@@ -331,14 +342,14 @@ export function composeCardAcross(
     if (viewport === null) return null;
     const gap = SPACE_PIXELS.small;
     if (anchor.position.left - cardWidthMaximum - gap >= 0) {
-        return { edge: "right", at: viewport.width - anchor.position.left + gap };
+        return { edge: CARD_EDGE.right, at: viewport.width - anchor.position.left + gap };
     }
     const right = composeWindowRight(anchor);
     // The clamp is the screen and it is spent on the bound, because what the card draws at is not
     // known here. A card narrower than the bound near the right edge therefore stands a little
     // further left than it had to — on the screen, which is what this line is for.
     return {
-        edge: "left",
+        edge: CARD_EDGE.left,
         at: Math.min(right + gap, Math.max(0, viewport.width - cardWidthMaximum)),
     };
 }

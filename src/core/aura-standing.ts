@@ -87,9 +87,9 @@ export interface FightStandings {
 }
 
 /**
- * A cast the table dates, held until the turns it was given have passed. ⚠️ **An okrzyk is two
+ * A cast the table dates, held until the turns it was given have passed. ⚠️ **A shout is two
  * dated halves on one announcement, and the table gives them different lengths**: `Wyzywający
- * okrzyk` shouts for three turns and debuffs for five (`develop ADR 0097`).
+ * okrzyk` holds whom it names for three turns and stands as an aura for five (`develop ADR 0097`).
  */
 interface AuraCast {
     skillId: number;
@@ -123,7 +123,7 @@ interface AuraWalk {
 }
 
 /** Past every cast the corpus holds in one fight, so the walk carries a stated maximum. */
-const STANDINGS_MAXIMUM = 256;
+export const STANDINGS_MAXIMUM = 256;
 
 /**
  * What the keys on one cast say it reaches. ⚠️ **Keys that disagree are a skill reaching both
@@ -196,7 +196,7 @@ export function lookupAuraTurnsStated(effects: readonly SkillEffectTurns[]): num
 /**
  * Both answers off one walk of the fight: what stands on a side, and whom a shout is holding.
  * Either length is counted in turns, taken and lost both, from the turn the cast stood on.
- * ⚠️ **An okrzyk lands in both maps**: its two halves are dated apart, and folding them into one
+ * ⚠️ **A shout lands in both maps**: its two halves are dated apart, and folding them into one
  * row stated the shorter of two lengths for both.
  */
 export function replayAuraStandings(view: FightView, statedSkills: StatedSkills): FightStandings {
@@ -210,6 +210,13 @@ export function replayAuraStandings(view: FightView, statedSkills: StatedSkills)
         turnStanding = addEventTurns(walk.turnsByCombatantId, event, turnStanding);
         const cast = lookupAuraCast(event, statedSkills, walk.turnsByCombatantId);
         if (cast === null) continue;
+        if (cast.turnsStated !== null) {
+            walk.castByCasterAndSkill.set(`${cast.casterId}/${cast.skillId}`, cast);
+        }
+        for (const provokedId of lookupProvokedIds(cast, view.roster)) {
+            const turnsAtShout = walk.turnsByCombatantId.get(provokedId) ?? 0;
+            walk.shoutByProvokedId.set(provokedId, { cast, turnsAtShout });
+        }
         assert(
             walk.castByCasterAndSkill.size <= STANDINGS_MAXIMUM,
             "a fight stays inside its stated bound",
@@ -218,13 +225,6 @@ export function replayAuraStandings(view: FightView, statedSkills: StatedSkills)
             walk.shoutByProvokedId.size <= STANDINGS_MAXIMUM,
             "and so does what it holds people by",
         );
-        if (cast.turnsStated !== null) {
-            walk.castByCasterAndSkill.set(`${cast.casterId}/${cast.skillId}`, cast);
-        }
-        for (const provokedId of lookupProvokedIds(cast, view.roster)) {
-            const turnsAtShout = walk.turnsByCombatantId.get(provokedId) ?? 0;
-            walk.shoutByProvokedId.set(provokedId, { cast, turnsAtShout });
-        }
     }
     return {
         auras: composeAuraStandings(walk),

@@ -61,7 +61,7 @@ export function initBrowserFile(downloads: BrowserDownloads | null): BrowserFile
             if (url instanceof Error) return url;
             // Click the file's anchor: false where the page lends none, and the anchor comes off
             // whether the click threw or not.
-            const clicked = errors.attempt((): boolean => {
+            const wasClicked = errors.attempt((): boolean => {
                 assert(url.length > 0, "a file is clicked under the address the page gave it");
                 const anchor = downloads.createAnchor();
                 if (anchor === null) return false;
@@ -83,8 +83,8 @@ export function initBrowserFile(downloads: BrowserDownloads | null): BrowserFile
             };
             const scheduled = errors.attempt(() => downloads.setTimeout(releaseObjectUrl, 0));
             if (scheduled instanceof Error) return scheduled;
-            if (clicked instanceof Error) return clicked;
-            if (!clicked) return new FileApiAbsent();
+            if (wasClicked instanceof Error) return wasClicked;
+            if (!wasClicked) return new FileApiAbsent();
             return undefined;
         },
     };
