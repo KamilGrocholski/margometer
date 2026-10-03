@@ -60,6 +60,9 @@ export interface TypeTokens {
     helperWidthPixels: number;
 }
 
+/** How many columns a card stands in: one, or two where one stands too tall (ADR 0033). */
+export type CardColumns = 1 | 2;
+
 export const SURFACE = {
     panel: [0x0f, 0x16, 0x1d],
     raised: [0x17, 0x1e, 0x25],
@@ -465,10 +468,9 @@ export function getCardHeight(
  * placement that decides its side, because two spellings of the bound drifted once already
  * (`src/ui/panel-element.ts`).
  */
-export function getCardWidthForColumns(tokens: TypeTokens, columns: number): number {
-    const counted = Number.isSafeInteger(columns) ? Math.max(1, columns) : 1;
+export function getCardWidthForColumns(tokens: TypeTokens, columns: CardColumns): number {
     const between = 2 * SPACE_PIXELS.wide + RULE_WIDTH;
-    return counted * tokens.cardWidthPixelsMaximum + (counted - 1) * between;
+    return columns * tokens.cardWidthPixelsMaximum + (columns - 1) * between;
 }
 
 /**
@@ -479,6 +481,18 @@ export function getCardHeightAvailable(viewportHeight: number | null): number | 
     if (viewportHeight === null) return null;
     if (!Number.isFinite(viewportHeight)) return null;
     const room = viewportHeight - 2 * PLACE.insetPixels;
+    if (room <= 0) return null;
+    return room;
+}
+
+/**
+ * What a card has to stand across: the window, less the air the sheet keeps at either side of it,
+ * which is what the sheet clamps a card of two columns to. Null where the page states no width.
+ */
+export function getCardWidthAvailable(viewportWidth: number | null): number | null {
+    if (viewportWidth === null) return null;
+    if (!Number.isFinite(viewportWidth)) return null;
+    const room = viewportWidth - 2 * PLACE.insetPixels;
     if (room <= 0) return null;
     return room;
 }

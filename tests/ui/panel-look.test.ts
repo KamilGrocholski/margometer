@@ -20,6 +20,8 @@ import {
     composeOptionsStepClass,
     composeStyleSheet,
     getCardHeightAvailable,
+    getCardWidthAvailable,
+    getCardWidthForColumns,
     getContrastRatio,
     getInkForBar,
     LAYER,
@@ -994,6 +996,25 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
             `${step}: and every rule spelling one spells the step's`,
         );
     }
+});
+
+Deno.test("two columns stand only where the sheet leaves them their width", () => {
+    const sheet = composeStyleSheet(TYPE_STEP_DEFAULT);
+    const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.card}.${CLASS.cardWide}`), "width");
+    assertExists(stated, "the sheet states how wide a card of two columns stands");
+    const twoWide = getCardWidthForColumns(TYPE_TOKENS[TYPE_STEP_DEFAULT], 2);
+    const opener = `min(${twoWide}px,calc(100vw - `;
+    assert(stated.startsWith(opener), `${stated} is two bounds, held to the window's width`);
+    const terms = stated.slice(opener.length, stated.length - 2).split(" - ");
+    const air = terms.reduce((sum, term) => sum + getPixels(term), 0);
+    assertEquals(
+        getCardWidthAvailable(1366),
+        1366 - air,
+        "the layout spends the air the sheet spends",
+    );
+    assertEquals(getCardWidthAvailable(air), null, "a window no wider than the air has no room");
+    assertEquals(getCardWidthAvailable(air + 1), 1, "and a pixel past it has that pixel");
+    assertEquals(getCardWidthAvailable(null), null, "a page stating no width has none either");
 });
 
 Deno.test("a card is trimmed to the room the sheet leaves it, the window less its air", () => {

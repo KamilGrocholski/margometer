@@ -515,11 +515,13 @@ fits one, so the floor above is never counting a wrap the card no longer has. **
 enough.** The block of the fight's own figures opens the first column and stands whatever the
 window; the second column opens at the run that leaves the two closest in height. The notes stand
 across the foot of both, because a suspicion is a claim about a figure above it in either column. A
-card of two columns is as wide as two bounds and the air between them, never wider than the screen,
-and the side it opens on is decided by that width (**ADR 0033**). Where two columns still do not
-fit, what goes is the counters and the runs between them, the last one first, at a run's own edge
-and never inside one. A card that gave anything up says so, in one sentence. Nothing scrolls: the
-card takes no pointer, because a press on it belongs to the row underneath. **develop ADR 0054.**
+card of two columns is as wide as two bounds and the air between them, and stands in two only where
+the window holds that width: narrower, each column would fold lines the height never counted. The
+side it opens on is decided by that width (**ADR 0033**). Where two columns still do not fit, or the
+window is too narrow for them, what goes is the counters and the runs between them, the last one
+first, at a run's own edge and never inside one. A card that gave anything up says so, in one
+sentence. Nothing scrolls: the card takes no pointer, because a press on it belongs to the row
+underneath. **develop ADR 0054.**
 
 **Wherever a person's row stands in the panel, the tooltip is a card.** The name in full, then what
 they are and how far along on one line under it — which is where the hue on the bar is finally said

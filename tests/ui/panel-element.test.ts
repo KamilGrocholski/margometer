@@ -64,13 +64,13 @@ import {
     getCaveatForUnannounced,
     getNoteForCaveat,
     getNoteForNoKind,
+    getNoteForOpenedUnnamedStanding,
     getNoteForUnnamedEnd,
     getWordsForCardMetric,
     getWordsForDamageKind,
     getWordsForHealthSource,
     getWordsForNothing,
     getWordsForNoun,
-    getWordsForOpenedUnnamedStanding,
     getWordsForOutcome,
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
@@ -807,7 +807,7 @@ Deno.test("an end left out inside an opened figure says what was left out, and w
     assertEquals(unnamedCell.attributes.get("data-unnamed"), undefined, "so it carries no mark");
     pointAtElement(host, "pointermove", unnamedCell, 300);
     const card = readCard(host);
-    const standing = getWordsForOpenedUnnamedStanding("damageDealt");
+    const standing = getNoteForOpenedUnnamedStanding("damageDealt");
     assertExists(standing, "a dealing screen says which row under the list holds it");
     assertStringIncludes(standing, PANEL_WORDS.withoutTarget, "the row for the same end");
     assertEquals(
@@ -857,7 +857,7 @@ Deno.test("an end left out inside an opened figure states its kinds where the le
     const card = readCardByKey(panel.element as FakeElement, "to:nobody");
     assertEquals(card.headings, [PANEL_WORDS.damageKind], "the card heads the run it draws");
     assertEquals(card.groups, 3, "the figure, what it was made of, and the sentences");
-    const standing = getWordsForOpenedUnnamedStanding("damageTaken");
+    const standing = getNoteForOpenedUnnamedStanding("damageTaken");
     assertExists(standing, "a receiving screen says which row under the list holds it");
     assertStringIncludes(standing, PANEL_WORDS.withoutActor, "the row for the same end");
     assertArrayIncludes(card.notes, [standing], "and the card says it");
@@ -910,7 +910,7 @@ Deno.test("an end left out under an opened part says where it stands, and states
         },
     });
     const card = readCardByKey(panel.element as FakeElement, "reached:nobody");
-    const standing = getWordsForOpenedUnnamedStanding("damageDealt");
+    const standing = getNoteForOpenedUnnamedStanding("damageDealt");
     assertExists(standing, "a dealing screen says which row under the list holds it");
     assertEquals(
         card.notes,

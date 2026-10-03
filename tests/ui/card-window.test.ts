@@ -6,7 +6,14 @@
  * because the arithmetic that would have needed measuring is in the stylesheet and not here.
  */
 
-import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertNotStrictEquals,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import {
     type CardContent,
     type CardNoteTone,
@@ -38,6 +45,8 @@ import {
 /** The step every count below is taken at. */
 const STEP = TYPE_STEP.small;
 const TOKENS = TYPE_TOKENS[STEP];
+/** Wider than two columns at every step, so the width is never what decides a layout here. */
+const WIDTH_ROOM = 4000;
 /** Thirty-two characters, which is the one line a note is counted as holding. */
 const ONE_LINE_NOTE = "Surowe to obrazenia przed red...";
 /** And one past it, which is the first note that costs two. */
@@ -416,18 +425,22 @@ Deno.test("a card too tall for one column stands in two, and gives a run up only
     assertExists(whole, "the panel can say how tall its own card stands");
 
     assertEquals(
-        composeCardLayout(tall, whole, STEP),
+        composeCardLayout(tall, { heightPixels: whole, widthPixels: WIDTH_ROOM }, STEP),
         { card: tall, secondColumnFrom: null },
         "a card with room for it is left alone, in one column",
     );
     assertEquals(
-        composeCardLayout(tall, null, STEP),
+        composeCardLayout(tall, { heightPixels: null, widthPixels: WIDTH_ROOM }, STEP),
         { card: tall, secondColumnFrom: null },
         "and so is one in a window nobody sized",
     );
 
     // **W5**: a pixel short of one column is the boundary, and two columns answer it whole.
-    const twoColumns = composeCardLayout(tall, whole - 1, STEP);
+    const twoColumns = composeCardLayout(
+        tall,
+        { heightPixels: whole - 1, widthPixels: WIDTH_ROOM },
+        STEP,
+    );
     assertEquals(twoColumns.card, tall, "a card a pixel too tall gives nothing up (ADR 0033)");
     assertEquals(twoColumns.secondColumnFrom, 2, "it stands in two columns, split down the middle");
     const twoHigh = getCardHeight(tallyCardLayoutSize(twoColumns, STEP), TOKENS);
@@ -435,7 +448,11 @@ Deno.test("a card too tall for one column stands in two, and gives a run up only
     assert(twoHigh <= whole - 1, "which is within the room the one column was not");
 
     // Room for less than even two columns hold, which is what a very short window comes to.
-    const cut = composeCardLayout(tall, twoHigh - 1, STEP).card;
+    const cut = composeCardLayout(
+        tall,
+        { heightPixels: twoHigh - 1, widthPixels: WIDTH_ROOM },
+        STEP,
+    ).card;
     const said = cut.groups.flatMap((group) => group.lines);
     assertEquals(cut.groups[0], tall.groups[0], "the four figures are what a card is for");
     assert(
@@ -479,7 +496,7 @@ Deno.test("a window too short for even the figures still draws them, and says so
             { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "plain" }] },
         ],
     };
-    const cut = composeCardLayout(tall, 1, STEP).card;
+    const cut = composeCardLayout(tall, { heightPixels: 1, widthPixels: WIDTH_ROOM }, STEP).card;
     assertEquals(cut.groups[0], tall.groups[0], "the figures are drawn whatever the room");
     assert(
         cut.groups.flatMap((group) => group.lines).some((line) =>
@@ -543,6 +560,43 @@ Deno.test("a card of two columns is as wide as two bounds and the air between th
     }
 });
 
+/**
+ * Two columns narrower than two bounds would each fold their notes past the lines counted for them,
+ * and the card would be clipped with nothing said, so a window too narrow for two gives a run up
+ * instead (ADR 0033).
+ */
+Deno.test("a window too narrow for two columns gives a run up rather than squeezing them", () => {
+    const whole = getCardHeight(tallyCardSize(LONG, STEP), TOKENS);
+    assertExists(whole, "the long card has a height");
+    const twoWide = getCardWidthForColumns(TOKENS, 2);
+
+    // **W5**: exactly the width of two columns is the boundary, and a pixel less is past it.
+    const wideEnough = composeCardLayout(
+        LONG,
+        { heightPixels: whole - 1, widthPixels: twoWide },
+        STEP,
+    );
+    assertNotStrictEquals(wideEnough.secondColumnFrom, null, "a window as wide as two holds two");
+    const tooNarrow = composeCardLayout(
+        LONG,
+        { heightPixels: whole - 1, widthPixels: twoWide - 1 },
+        STEP,
+    );
+    assertStrictEquals(tooNarrow.secondColumnFrom, null, "a pixel narrower holds one");
+    assert(
+        tooNarrow.card.groups.flatMap((group) => group.lines).some((line) =>
+            line.kind === "note" && line.text === CARD_WORDS.cut
+        ),
+        "and the card gives a run up, and says so",
+    );
+    assertStrictEquals(
+        composeCardLayout(LONG, { heightPixels: whole - 1, widthPixels: null }, STEP)
+            .secondColumnFrom,
+        null,
+        "a page stating no width is not assumed to hold two",
+    );
+});
+
 /** The split is the one that leaves the two columns closest in height, whatever the order. */
 Deno.test("the second column opens where the two come out closest in height", () => {
     const lineOf = (label: string) => ({
@@ -565,7 +619,11 @@ Deno.test("the second column opens where the two come out closest in height", ()
     const whole = getCardHeight(tallyCardSize(lopsided, STEP), TOKENS);
     assertExists(whole, "the card has a height");
     assertEquals(
-        composeCardLayout(lopsided, whole - 1, STEP).secondColumnFrom,
+        composeCardLayout(
+            lopsided,
+            { heightPixels: whole - 1, widthPixels: WIDTH_ROOM },
+            STEP,
+        ).secondColumnFrom,
         2,
         "six lines over two, rather than one over seven",
     );
@@ -767,7 +825,7 @@ Deno.test("the card asks where it may stand with the columns it is drawn in", ()
             asked.push(columns);
             return null;
         },
-        () => viewportHeight,
+        () => ({ width: WIDTH_ROOM, height: viewportHeight }),
         () => STEP,
     );
     register.add("row:7", () => LONG);

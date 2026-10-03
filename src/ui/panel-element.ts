@@ -38,6 +38,7 @@ import {
     initPanelDrag,
     type PanelDragHandle,
     type PanelPlacement,
+    type PanelViewport,
     setGripMark,
     SIZE_GRIP_ATTRIBUTE,
     type WindowWidths,
@@ -53,11 +54,13 @@ import {
 import { addGuardedListener } from "./panel-listener.ts";
 import {
     CARD_VARIABLES,
+    type CardColumns,
     CLASS,
     composeOptionsStepClass,
     composeStyleSheet,
     getCardHeight,
     getCardHeightAvailable,
+    getCardWidthAvailable,
     getCardWidthForColumns,
     ROWS_VARIABLE,
     TYPE_TOKENS,
@@ -149,6 +152,7 @@ import {
     getCaveatForUnannounced,
     getNoteForCaveat,
     getNoteForNoKind,
+    getNoteForOpenedUnnamedStanding,
     getNoteForUnnamedEnd,
     getSubWordsForBlowKey,
     getWordsForBlowKey,
@@ -160,7 +164,6 @@ import {
     getWordsForHelperAbsence,
     getWordsForLegendaryBonus,
     getWordsForNothing,
-    getWordsForOpenedUnnamedStanding,
     getWordsForOutcome,
     getWordsForPin,
     getWordsForPinnedScope,
@@ -538,6 +541,12 @@ export interface CardLayout {
     secondColumnFrom: number | null;
 }
 
+/** What a card has to stand in, each null where the page states nothing of it. */
+export interface CardRoom {
+    heightPixels: number | null;
+    widthPixels: number | null;
+}
+
 /**
  * A **way to compose the card** rather than the card: a fight redraws every few seconds and
  * twenty rows are drawn each time, so composing every one would pay for nineteen nobody opens.
@@ -758,12 +767,13 @@ const CHARACTERS_PER_LINE_BY_STEP: { readonly [Step in TypeStep]: CharactersPerL
 const NOTE_MARK_CHARACTERS = 2;
 /**
  * Past every card this panel composes: four figures and their parts, the counters, both runs — the
- * criticals, the defences, the procs and what a blow destroyed — and the notes. The tallest card
- * any recording composes is 31 lines and the median 23, over the 1,260 cards the ranking of
- * `captures/` opens on 2026-09-25 — `deno task panel:cards` is what measures it, and
- * this is headroom rather than a limit anything meets.
+ * criticals, the defences, the procs and what a blow destroyed — and the notes. A card counted
+ * short of what it draws is judged to fit a window it overflows, and is clipped without a mark.
+ * `deno task panel:cards` measures it: on 2026-10-03 the tallest of the 1,304 cards `captures/`
+ * opens is 36 lines and the median 24, and of the 80 a ten against ten `tools/fabricated-fight.ts`
+ * writes with no options 68 and 51.
  */
-const CARD_LINES_MAXIMUM = 64;
+const CARD_LINES_MAXIMUM = 128;
 /**
  * What the edge a card is **not** measured from is released to. Both are always written together:
  * leaving one off would let the sheet's own fallback stand beside the offset just written, and the
@@ -939,7 +949,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             if (position === null) return null;
             return { position, widthPixels: handle.getWidthPixels() };
         };
-        const composeAcross = (key: string, columns: number): CardAcross | null => {
+        const composeAcross = (key: string, columns: CardColumns): CardAcross | null => {
             // The sheet's own token and never a copy of it: the two spellings drifted on
             // 2026-09-15 and the card, drawn at one width and placed as if it were the other,
             // stood 43px over the rows it explains. It decides the **side** a card opens on and
@@ -972,7 +982,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                 return previousCard;
             },
             composeAcross,
-            () => placement?.readViewport()?.height ?? null,
+            () => placement?.readViewport() ?? null,
             getTypeStep,
         );
     }
@@ -1881,8 +1891,6 @@ function renderListLevel(
             }
             if (cut.halfNamed !== null) {
                 const end = getUnnamedEndForMetric(shown.metric);
-                // No side sentence: this level is one person's figure, which no
-                // side narrows (ADR 0034).
                 const kinds = cut.halfNamed.kinds;
                 const card = {
                     register,
@@ -2916,7 +2924,7 @@ function formatOpenedUnnamedNotes(metric: PanelMetric): string[] {
         getNoteForUnnamedEnd(getUnnamedEndForMetric(metric), getNounForMetric(metric)),
         CARD_WORDS.insideSection,
     ];
-    const standing = getWordsForOpenedUnnamedStanding(metric);
+    const standing = getNoteForOpenedUnnamedStanding(metric);
     if (standing !== null) notes.push(standing);
     return notes;
 }
@@ -3573,25 +3581,29 @@ export function renderCard(
         drawnCard.append(subtitle);
     }
     // Lay out the two columns, where there are two: the notes stand under both, across the card.
-    const columns = document.createElement("div");
-    columns.className = CLASS.cardColumns;
-    const firstColumn = document.createElement("div");
-    firstColumn.className = CLASS.cardColumn;
-    const secondColumn = document.createElement("div");
-    secondColumn.className = CLASS.cardColumn;
     const notesFrom = countCardGroupsColumned(card.groups);
-    if (secondColumnFrom !== null) {
+    let firstColumn: PanelElement;
+    let secondColumn: PanelElement;
+    if (secondColumnFrom === null) {
+        firstColumn = drawnCard;
+        secondColumn = drawnCard;
+    } else {
+        const columns = document.createElement("div");
+        columns.className = CLASS.cardColumns;
+        firstColumn = document.createElement("div");
+        firstColumn.className = CLASS.cardColumn;
+        secondColumn = document.createElement("div");
+        secondColumn.className = CLASS.cardColumn;
         columns.append(firstColumn);
         columns.append(secondColumn);
         drawnCard.append(columns);
     }
     for (const [groupIndex, group] of card.groups.entries()) {
         // Render one group of the card's lines, into the column it stands in.
-        let parent = drawnCard;
-        if (secondColumnFrom !== null) {
-            if (groupIndex < secondColumnFrom) parent = firstColumn;
-            else if (groupIndex < notesFrom) parent = secondColumn;
-        }
+        let parent: PanelElement;
+        if (groupIndex < (secondColumnFrom ?? notesFrom)) parent = firstColumn;
+        else if (groupIndex < notesFrom) parent = secondColumn;
+        else parent = drawnCard;
         const drawnGroup = document.createElement("div");
         drawnGroup.className = CLASS.cardGroup;
         for (const line of group.lines) {
@@ -3731,9 +3743,10 @@ function composeCardAcrossStyle(across: CardAcross | null): string {
 }
 
 /**
- * The card laid out for the room there is: one column where it fits, two where one stands too tall,
- * and two with its last runs given up where even two do (ADR 0033), with a line saying so wherever
- * anything was given up. Unchanged where the page states no height.
+ * The card laid out for the room there is: one column where it fits, two where one stands too tall
+ * and the window is wide enough for two, and its last runs given up where even that does not hold
+ * (ADR 0033), with a line saying so wherever anything was given up. Unchanged where the page states
+ * no height. Two columns on a window narrower than both would each fold more lines than are counted.
  *
  * ⚠️ **A card taller than the window is clipped and says nothing about it.** The box carries
  * `overflow:hidden` and takes no pointer: measured on Chrome 152, 2026-09-06, a 533 px card in a
@@ -3742,20 +3755,23 @@ function composeCardAcrossStyle(across: CardAcross | null): string {
  */
 export function composeCardLayout(
     card: CardContent,
-    room: number | null,
+    room: Readonly<CardRoom>,
     typeStep: TypeStep,
 ): CardLayout {
     const whole: CardLayout = { card, secondColumnFrom: null };
-    if (room === null) return whole;
-    if (!Number.isFinite(room)) return whole;
-    if (room <= 0) return whole;
-    if (isCardLayoutWithin(whole, room, typeStep)) return whole;
+    const height = room.heightPixels;
+    if (height === null) return whole;
+    if (!Number.isFinite(height)) return whole;
+    if (height <= 0) return whole;
+    if (isCardLayoutWithin(whole, height, typeStep)) return whole;
+    const isTwoColumnsWithin = isCardWidthWithin(room.widthPixels, typeStep);
     let kept: readonly CardGroup[] = card.groups;
     let laidOut = whole;
     for (let step = 0; step < CARD_GROUPS_MAXIMUM; step += 1) {
         const trimmed = composeCardTrimmed(card, kept);
-        laidOut = { card: trimmed, secondColumnFrom: lookupCardColumnSplit(trimmed, typeStep) };
-        if (isCardLayoutWithin(laidOut, room, typeStep)) return laidOut;
+        const split = isTwoColumnsWithin ? lookupCardColumnSplit(trimmed, typeStep) : null;
+        laidOut = { card: trimmed, secondColumnFrom: split };
+        if (isCardLayoutWithin(laidOut, height, typeStep)) return laidOut;
         const shorter = composeGroupsWithout(kept);
         if (shorter === null) return laidOut;
         kept = shorter;
@@ -3767,6 +3783,12 @@ function isCardLayoutWithin(layout: CardLayout, room: number, step: TypeStep): b
     const height = getCardHeight(tallyCardLayoutSize(layout, step), TYPE_TOKENS[step]);
     if (height === null) return true;
     return height <= room;
+}
+
+/** Whether two columns stand at their full width: a window stating no width holds one. */
+function isCardWidthWithin(room: number | null, step: TypeStep): boolean {
+    if (room === null) return false;
+    return getCardWidthForColumns(TYPE_TOKENS[step], 2) <= room;
 }
 
 /**
@@ -3868,24 +3890,25 @@ export function initCardHandle(
      * Asked with the key the card is open for and the columns it is drawn in: the two windows do
      * not open on the same side, and a card of two columns needs the room of two.
      */
-    getAcross: (key: string, columns: number) => CardAcross | null = () => null,
-    /** Asked as a card opens, never as the panel is built. Null is a page stating no height. */
-    getViewportHeight: () => number | null = () => null,
+    getAcross: (key: string, columns: CardColumns) => CardAcross | null = () => null,
+    /** Asked as a card opens, never as the panel is built. Null is a page stating no size. */
+    readViewport: () => PanelViewport | null = () => null,
     getTypeStep: () => TypeStep = () => TYPE_STEP_DEFAULT,
 ): CardHandle {
     let cardElement = renderCard(document, null);
     let openKey: string | null = null;
     let openTop = 0;
     let openSize: CardSize = tallyCardSize(null, getTypeStep());
-    let openColumns = 1;
+    let openColumns: CardColumns = 1;
     const renderCardFor = (key: string, cardComposed: CardContent): void => {
         // Laid out here rather than where a card is composed: the one place that knows both it and
         // the window, and on the way in for a card opened and for one a redraw put up again.
-        const layout = composeCardLayout(
-            cardComposed,
-            getCardHeightAvailable(getViewportHeight()),
-            getTypeStep(),
-        );
+        const viewport = readViewport();
+        const room = {
+            heightPixels: getCardHeightAvailable(viewport?.height ?? null),
+            widthPixels: getCardWidthAvailable(viewport?.width ?? null),
+        };
+        const layout = composeCardLayout(cardComposed, room, getTypeStep());
         openSize = tallyCardLayoutSize(layout, getTypeStep());
         openColumns = layout.secondColumnFrom === null ? 1 : 2;
         cardElement = redraw(

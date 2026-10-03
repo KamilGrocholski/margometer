@@ -986,7 +986,7 @@ export function getNoteForUnnamedEnd(end: PanelUnnamedEnd, noun: PanelNoun): str
     return words;
 }
 
-export function getWordsForOpenedUnnamedStanding(metric: PanelMetric): string | null {
+export function getNoteForOpenedUnnamedStanding(metric: PanelMetric): string | null {
     const words = OPENED_UNNAMED_STANDING_NOTES[metric];
     return words;
 }

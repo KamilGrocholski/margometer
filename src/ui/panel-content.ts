@@ -1417,7 +1417,7 @@ export function presentUnnamedPairLevel(
     roster: CombatantRoster,
     metric: PanelMetric,
     combatantId: number,
-): UnnamedCutLevelContent | null {
+): Extract<UnnamedCutLevelContent, { opened: typeof HALF_NAMED_OPENED.person }> | null {
     const pinnedCase = OPENED_UNNAMED_CASES[metric];
     if (pinnedCase === null) return null;
     const figures = statistics.byCombatantId.get(combatantId);
@@ -2383,12 +2383,7 @@ export function presentOpenedLevel(
         cuts.byOtherEnd,
         statistics,
         roster,
-        {
-            figure: total,
-            unnamedOpened: unnamedOpened?.opened === HALF_NAMED_OPENED.person
-                ? unnamedOpened
-                : null,
-        },
+        { figure: total, unnamedOpened },
         (otherId) => getPairTotal(figures, metric, otherId) !== null,
     );
     const byElement = cuts.byElement === null

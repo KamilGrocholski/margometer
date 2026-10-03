@@ -58,6 +58,7 @@ import {
     getDirectionWordsForMetric,
     getNoteForCaveat,
     getNoteForNoKind,
+    getNoteForOpenedUnnamedStanding,
     getNoteForUnnamedEnd,
     getWordsForCardMetric,
     getWordsForChargedSkill,
@@ -65,7 +66,6 @@ import {
     getWordsForHealthSource,
     getWordsForNothing,
     getWordsForNoun,
-    getWordsForOpenedUnnamedStanding,
     getWordsForOutcome,
     getWordsForPin,
     getWordsForPinnedScope,
@@ -250,7 +250,7 @@ function getSentences(): string[] {
     }
     // The same rows one level down, and the row no kind was stated for: keyed tables again.
     for (const metric of SCREEN_ORDER) {
-        sentences.push(getWordsForOpenedUnnamedStanding(metric) ?? "");
+        sentences.push(getNoteForOpenedUnnamedStanding(metric) ?? "");
     }
     for (const noun of PANEL_NOUNS) {
         sentences.push(getNoteForNoKind(noun));

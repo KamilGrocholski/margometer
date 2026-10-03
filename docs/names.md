@@ -193,6 +193,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getCardHeightAvailable` — `src/ui/panel-look.ts`
 - `getCardLineCost` — `src/ui/panel-element.ts`
 - `getCardLinesForCharacters` — `src/ui/panel-element.ts`
+- `getCardWidthAvailable` — `src/ui/panel-look.ts`
 - `getCardWidthForColumns` — `src/ui/panel-look.ts`
 - `getCaveatForNamedPart` — `src/ui/panel-element.ts`
 - `getCaveatForUnannounced` — `src/ui/panel-words.ts`
@@ -267,6 +268,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getNeitherEndForPinned` — `src/ui/panel-content.ts`
 - `getNoteForCaveat` — `src/ui/panel-words.ts`
 - `getNoteForNoKind` — `src/ui/panel-words.ts`
+- `getNoteForOpenedUnnamedStanding` — `src/ui/panel-words.ts`
 - `getNoteForUnnamedEnd` — `src/ui/panel-words.ts`
 - `getNounForMetric` — `src/ui/panel-screen.ts`
 - `getNumberField` — `libs/unknown-value.ts`
@@ -383,7 +385,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getWordsForNamedPart` — `src/ui/panel-element.ts`
 - `getWordsForNothing` — `src/ui/panel-words.ts`
 - `getWordsForNoun` — `src/ui/panel-words.ts`
-- `getWordsForOpenedUnnamedStanding` — `src/ui/panel-words.ts`
 - `getWordsForOpponentCut` — `src/ui/panel-screen.ts`
 - `getWordsForOutcome` — `src/ui/panel-words.ts`
 - `getWordsForPin` — `src/ui/panel-words.ts`
@@ -1856,6 +1857,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isCamelCase` — `tests/repository/names.test.ts`
 - `isCanonicalPlace` — `tests/repository/documents.test.ts`
 - `isCardLayoutWithin` — `src/ui/panel-element.ts`
+- `isCardWidthWithin` — `src/ui/panel-element.ts`
 - `isCarryingKey` — `tests/core/npc-heal-rule.test.ts`
 - `isCasterHalved` — `src/core/carried-figure.ts`
 - `isCaughtRangeError` — `tests/ui/view-failure.test.ts`
@@ -2851,6 +2853,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `src/ui/`
 
 - `CardAcross` — `src/ui/panel-drag.ts`
+- `CardColumns` — `src/ui/panel-look.ts`
 - `CardCompose` — `src/ui/panel-element.ts`
 - `CardContent` — `src/ui/panel-element.ts`
 - `CardFigure` — `src/ui/panel-element.ts`
@@ -2864,6 +2867,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `CardPlace` — `src/ui/panel-element.ts`
 - `CardRedraw` — `src/ui/panel-element.ts`
 - `CardRegister` — `src/ui/panel-element.ts`
+- `CardRoom` — `src/ui/panel-element.ts`
 - `CardSize` — `src/ui/panel-element.ts`
 - `CardSubject` — `src/ui/panel-element.ts`
 - `CardWindowPlace` — `src/ui/panel-drag.ts`
@@ -4823,6 +4827,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `WIDER` — `tests/e2e/panel-size.spec.ts`
 - `WIDEST_SECTION` — `tests/ui/share-bound.test.ts`
 - `WIDTH_DECLARATION` — `tests/tools/preview-site.test.ts`
+- `WIDTH_ROOM` — `tests/ui/card-window.test.ts`
 - `WINDOW` — `tests/ui/panel-drag.test.ts`
 - `WINDOW_HEIGHT` — `tests/e2e/panel-drag.spec.ts`
 - `WINDOW_WIDTH` — `tests/e2e/panel-drag.spec.ts`
@@ -5564,7 +5569,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `corner` — `src/ui/panel-drag.ts`
 - `costs` — `src/ui/panel-element.ts`
 - `countBySide` — `src/ui/panel-content.ts`
-- `counted` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`, `src/ui/panel-words.ts`
+- `counted` — `src/ui/panel-element.ts`, `src/ui/panel-words.ts`
 - `counter` — `src/ui/panel-element.ts`
 - `counters` — `src/ui/panel-element.ts`
 - `counts` — `src/ui/panel-words.ts`
@@ -5661,6 +5666,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isRegionKept` — `src/ui/panel-element.ts`
 - `isSized` — `src/ui/panel-element.ts`
 - `isTallied` — `src/ui/panel-words.ts`
+- `isTwoColumnsWithin` — `src/ui/panel-element.ts`
 - `kept` — `src/ui/panel-element.ts`, `src/ui/panel-screen.ts`, `src/ui/panel-words.ts`
 - `keptKinds` — `src/ui/panel-content.ts`
 - `key` — in 4 files: `src/ui/`
@@ -5799,7 +5805,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `rightColumn` — `src/ui/panel-element.ts`
 - `rightHead` — `src/ui/panel-words.ts`
 - `rightOfMeter` — `src/ui/panel-drag.ts`
-- `room` — `src/ui/panel-look.ts`
+- `room` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
 - `root` — `src/ui/panel-element.ts`
 - `rounded` — `src/ui/panel-drag.ts`, `src/ui/panel-words.ts`
 - `row` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
@@ -7952,6 +7958,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `told` — `tests/e2e/panel-tooltip.spec.ts`, `tests/runtime/margonem-engine-search.test.ts`
 - `tolerance` — `tests/core/combatant-health.test.ts`, `tests/core/health-witness.test.ts`
 - `tooMany` — `tests/runtime/margometer-runtime.test.ts`
+- `tooNarrow` — `tests/ui/card-window.test.ts`
 - `tool` — `tests/repository/documents.test.ts`
 - `top` — `tests/repository/nesting-depth.test.ts`
 - `topItem` — `tests/repository/declaration-order.test.ts`
@@ -7983,6 +7990,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `twoEnds` — `tests/core/fight-decoder.test.ts`
 - `twoHigh` — `tests/ui/card-window.test.ts`
 - `twoPast` — `tests/libs/unknown-value.test.ts`
+- `twoWide` — `tests/ui/card-window.test.ts`, `tests/ui/panel-look.test.ts`
 - `type` — `tests/repository/purity.test.ts`, `tests/ui/panel-element.test.ts`
 - `types` — `tests/repository/purity.test.ts`
 - `ui` — `tests/repository/reader-layer.test.ts`
@@ -8079,6 +8087,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `whom` — `tests/ui/panel-words.test.ts`
 - `whose` — `tests/ports/payload-envelope.test.ts`
 - `wide` — in 4 files: `tests/`
+- `wideEnough` — `tests/ui/card-window.test.ts`
 - `wider` — `tests/tools/turn-count.test.ts`
 - `width` — in 4 files: `tests/`
 - `widths` — `tests/tools/preview-site.test.ts`, `tests/ui/level-drawn.test.ts`,
@@ -8516,7 +8525,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getCount` — `src/ui/panel-content.ts`
 - `getCut` — `src/ui/panel-content.ts`
 - `getTypeStep` — `src/ui/panel-element.ts`
-- `getViewportHeight` — `src/ui/panel-element.ts`
 - `grab` — `src/ui/panel-drag.ts`
 - `grip` — `src/ui/panel-drag.ts`
 - `ground` — `src/ui/panel-look.ts`
@@ -8624,6 +8632,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `provocations` — `src/ui/panel-helper.ts`
 - `rank` — `src/ui/panel-element.ts`
 - `raw` — `src/ui/panel-element.ts`
+- `readViewport` — `src/ui/panel-element.ts`
 - `readerSide` — `src/ui/panel-content.ts`, `src/ui/panel-helper.ts`
 - `redraw` — `src/ui/panel-element.ts`
 - `region` — `src/ui/panel-element.ts`, `src/ui/panel-words.ts`, `src/ui/view-failure.ts`
@@ -8705,6 +8714,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `variableValue` — `src/ui/panel-look.ts`
 - `viewport` — `src/ui/panel-drag.ts`
 - `viewportHeight` — `src/ui/panel-look.ts`
+- `viewportWidth` — `src/ui/panel-look.ts`
 - `waiting` — `src/ui/panel-element.ts`
 - `wasTurnLostRead` — `src/ui/panel-content.ts`
 - `where` — `src/ui/panel-element.ts`
@@ -10491,6 +10501,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `height` — `src/ui/panel-choice.ts`, `src/ui/panel-drag.ts`, `src/ui/panel-look.ts`
 - `heightMaximum` — `src/ui/panel-drag.ts`
 - `heightMinimum` — `src/ui/panel-drag.ts`
+- `heightPixels` — `src/ui/panel-element.ts`
 - `held` — `src/ui/panel-helper.ts`, `src/ui/panel-words.ts`
 - `helper` — in 5 files: `src/ui/`
 - `helperBar` — `src/ui/panel-look.ts`
@@ -11878,9 +11889,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `healthRestoredByNobody` — `tests/core/fight-statistics.test.ts`, `tests/ui/panel-card.test.ts`
 - `healthRestoredByNobodyByKey` — `tests/core/fight-statistics.test.ts`
 - `healthRestoredToNobody` — `tests/ui/panel-content.test.ts`
-- `height` — in 17 files: `tests/`
+- `height` — in 18 files: `tests/`
 - `heightMaximum` — `tests/ui/panel-drag.test.ts`
 - `heightMinimum` — `tests/ui/panel-drag.test.ts`
+- `heightPixels` — `tests/ui/card-window.test.ts`
 - `held` — in 4 files: `tests/`
 - `heldAtOnce` — `tests/tools/aura-standing.test.ts`
 - `heldDate` — `tests/tools/margonem-readings.test.ts`
@@ -12462,10 +12474,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `weak` — `tests/verb-purities.ts`
 - `wersja` — `tests/tools/capture-intake.test.ts`
 - `where` — `tests/ui/share-column.test.ts`
-- `width` — in 14 files: `tests/`
+- `width` — in 15 files: `tests/`
 - `widthMaximum` — `tests/ui/panel-drag.test.ts`
 - `widthMinimum` — `tests/ui/panel-drag.test.ts`
-- `widthPixels` — `tests/ui/panel-drag.test.ts`
+- `widthPixels` — `tests/ui/card-window.test.ts`, `tests/ui/panel-drag.test.ts`
 - `widths` — `tests/ui/level-drawn.test.ts`
 - `window` — in 6 files: `tests/`
 - `windowAt` — `tests/e2e/panel-layer.spec.ts`
