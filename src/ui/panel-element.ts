@@ -2,7 +2,7 @@
  * The panel, drawn into a document it is handed. It never reaches for one, which is what keeps
  * the surface this asks of a browser declared rather than assumed.
  *
- * Beside it stands the detail window, which outlives every redraw: appended to the root once, the
+ * Beside it stands the card, which outlives every redraw: appended to the root once, the
  * way the one listener is, and filled from a register the drawn rows add to. A card it shows is
  * counted in lines, and the sheet multiplies: **nothing here measures anything**.
  */
@@ -35,7 +35,6 @@ import {
     type CardWindowPlace,
     composeCardAcross,
     composeHelperPositionAfterTypeStep,
-    GRIP_MARK_BY_WINDOW,
     initPanelDrag,
     type PanelDragHandle,
     type PanelPlacement,
@@ -72,6 +71,7 @@ import {
 import { type Colour, formatColour, lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
 import {
     type ClosingRow,
+    CUT_PARTS_MAXIMUM,
     type CutPart,
     type ElementCut,
     type ElementRow,
@@ -562,16 +562,15 @@ type CardCompose = () => CardContent;
  * What the pointer asks, and all it asks. Two windows fill two registers and the card is one, so
  * the handle is handed a reading rather than either register — `develop ADR 0086`.
  */
-interface CardLookup {
-    lookup(key: string): CardCompose | null;
-}
+type CardLookup = (key: string) => CardCompose | null;
 
 /**
  * Filled by every draw and read by the pointer. The key is stated by the row rather than counted
  * off the draw order: a fight reorders its ranking between payloads, and a counted key would let
  * an open card go on describing whichever row now stands in that place.
  */
-interface CardRegister extends CardLookup {
+interface CardRegister {
+    lookup(key: string): CardCompose | null;
     add(key: string, compose: CardCompose): void;
     reset(): void;
 }
@@ -724,11 +723,11 @@ const WAITING_LIST_NAME = "waiting";
  * blow carries in with the seven a bare movement does.
  */
 const CARD_CUT_PARTS_MAXIMUM = 6;
-/** A bar is written to one place: a tenth of a 260-pixel row is a quarter of a pixel. */
+/** A bar is written to one place: a tenth of a percent of a row is under a pixel at every step. */
 const FILL_PLACES = 1;
 const AS_PERCENT = 100;
 
-/** Past every region one render redraws: the panel's body redraws fourteen, the helper two. */
+/** Past every region one render redraws, the panel's body and the helper's together. */
 const UNDRAWN_MAXIMUM = 32;
 
 /** One line per kind at most, which is what the runtime's ledger holds. */
@@ -783,8 +782,6 @@ const CARD_LINES_MAXIMUM = 128;
 const EDGE_RELEASED = "auto";
 /** Past every card there is: the figures, the counters, both runs, both legendary groups, notes. */
 const CARD_GROUPS_MAXIMUM = 16;
-/** Past the widest cut a card draws: the worded procs, what a blow destroyed, the defences. */
-const CARD_PARTS_MAXIMUM = 64;
 /** Headroom rather than a bound anything meets: a reader comes back to a handful of places. */
 const LISTS_KEPT_MAXIMUM = 32;
 /** What a note's tone adds to its class, a space before it where it adds anything. */
@@ -943,7 +940,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     }
     let meterDrag: PanelDragHandle | null = null;
     let helperDrag: PanelDragHandle | null = null;
-    const cardLookup = composeCardLookup(meterRegister, helperRegister);
+    const lookupCard = composeCardLookup(meterRegister, helperRegister);
     const getTypeStep = () => typeStep;
     let cardHandle: CardHandle;
     // Place the card against wherever its own window stands **now**, not where it was wired.
@@ -976,7 +973,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         };
         cardHandle = initCardHandle(
             document,
-            cardLookup,
+            lookupCard,
             // The card, which cannot degrade as a region does. A region's fallback is a sentence
             // standing where it was; the card is a child of the root and the only thing the sheet
             // places, so that sentence would be a block under the panel. A card that will not
@@ -2197,7 +2194,7 @@ function renderSlot(document: PanelDocument): PanelElement {
 /** The corner a window is sized by. Built once, as the frame is, and no redraw replaces it. */
 function renderSizeGrip(document: PanelDocument, window: PanelWindow): PanelElement {
     const grip = renderElement(document, "div", CLASS.sizeGrip);
-    grip.setAttribute(SIZE_GRIP_ATTRIBUTE, GRIP_MARK_BY_WINDOW[window]);
+    grip.setAttribute(SIZE_GRIP_ATTRIBUTE, window);
     grip.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.resizeGrip);
     return grip;
 }
@@ -2227,7 +2224,7 @@ function renderRegion(
  * the one a fight refills every few seconds, and no key is stated by both.
  */
 function composeCardLookup(meterRegister: CardRegister, helperRegister: CardRegister): CardLookup {
-    return { lookup: (key: string) => meterRegister.lookup(key) ?? helperRegister.lookup(key) };
+    return (key: string) => meterRegister.lookup(key) ?? helperRegister.lookup(key);
 }
 
 /** The window's own bar: its own grip, its own fold, and no control that would close it. */
@@ -2348,9 +2345,9 @@ function renderFold(
         panelDrawing.regions.title,
         PANEL_REGION.header,
         () => {
-            // The save is drawn only where there is a fight to hand over. A control that does
-            // nothing is worse than one that is not there (`DESIGN.md`), and an envelope with no
-            // call in it is a file that looks like a saved fight and is not. `develop ADR 0053`.
+            // The save is drawn only where there is a fight to hand over (`DESIGN.md`): an envelope
+            // with no call in it is a file that looks like a saved fight and is not.
+            // `develop ADR 0053`.
             const document = panelDrawing.document;
             const bar = renderElement(document, "div", CLASS.title);
             // Set before the controls are appended, not after: `textContent` replaces every child,
@@ -2588,8 +2585,7 @@ function renderPanelOptions(
         }
         // Say of each window whether it keeps a size of the reader's.
         {
-            // A way back on the window that keeps one and on no other: a control that does nothing
-            // is worse than none (`DESIGN.md`).
+            // A way back on the window that keeps one and on no other (`DESIGN.md`).
             const question = renderOptionsQuestion(document, PANEL_WORDS.windowSize);
             for (const window of PANEL_WINDOWS) {
                 const isSized = chosen.windowSizes[window] !== null;
@@ -3909,7 +3905,7 @@ export function tallyCardLayoutSize(layout: CardLayout, step: TypeStep): CardSiz
  */
 export function initCardHandle(
     document: PanelDocument,
-    cardLookup: CardLookup,
+    lookupCard: CardLookup,
     redraw: CardRedraw,
     /**
      * Asked with the key the card is open for and the columns it is drawn in: the two windows do
@@ -3979,7 +3975,7 @@ export function initCardHandle(
                     return;
                 }
             }
-            const compose = cardLookup.lookup(key);
+            const compose = lookupCard(key);
             if (compose === null) {
                 hideCard();
                 return;
@@ -3991,7 +3987,7 @@ export function initCardHandle(
         renderOpen(): void {
             const key = openKey;
             if (key === null) return;
-            const compose = cardLookup.lookup(key);
+            const compose = lookupCard(key);
             if (compose === null) {
                 hideCard();
                 return;
@@ -4266,7 +4262,7 @@ function presentCardPartsMergedByWord(
     translate: TranslateLabel | null,
 ): Array<{ label: string; figure: number }> {
     const byLabel = new Map<string, number>();
-    for (const cutPart of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+    for (const cutPart of parts.slice(0, CUT_PARTS_MAXIMUM)) {
         const label = getWordsForBlowKey(cutPart.key, translate);
         if (label.length === 0) continue;
         byLabel.set(label, (byLabel.get(label) ?? 0) + cutPart.figure);
@@ -4282,10 +4278,10 @@ function presentCardPartsMergedByWord(
  * Everything but the keys the line above it already counted, which would otherwise read twice, and
  * the legendary bonuses, which stand in a run of their own (ADR 0029).
  *
- * **The count wears the sign, because it shares a column with damage.** A proc that fired thirteen
- * times printed `13` directly over `Największy cios 2 865`, in one right-aligned column of
- * `tabular-nums`, with nothing saying which of the two is a quantity of damage. `×13` is the
- * spelling `formatUses` already gives a count of announcements (`src/ui/panel-words.ts`).
+ * ⚠️ **The count wears the sign, because it shares a column with damage.** Counts and figures of
+ * damage stand in one right-aligned column of `tabular-nums`, and a bare `13` over a damage figure
+ * says nothing of which is a quantity of damage. `×13` is the spelling `formatUses` already gives
+ * a count of announcements (`src/ui/panel-words.ts`).
  */
 function presentCardProcLines(
     parts: readonly CutPart[],
@@ -4329,7 +4325,7 @@ function presentCardProcSubParts(
     translate: TranslateLabel | null,
 ): Map<string, Array<{ label: string; figure: number }>> {
     const byWords = new Map<string, Map<string, number>>();
-    for (const cutPart of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+    for (const cutPart of parts.slice(0, CUT_PARTS_MAXIMUM)) {
         const words = getSubWordsForBlowKey(cutPart.key);
         if (words.length === 0) continue;
         const label = getWordsForBlowKey(cutPart.key, translate);
@@ -4363,7 +4359,7 @@ function presentCardProcSubParts(
 function presentCardLegendaryLines(parts: readonly CutPart[]): CardLine[] {
     const fired: CardLine[] = [];
     const held: string[] = [];
-    for (const cutPart of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+    for (const cutPart of parts.slice(0, CUT_PARTS_MAXIMUM)) {
         const bonus = lookupLegendaryBonus(cutPart.key);
         if (bonus === null) continue;
         const label = getWordsForLegendaryBonus(cutPart.key);
@@ -4397,7 +4393,7 @@ function presentCardLegendaryLines(parts: readonly CutPart[]): CardLine[] {
 function presentCardReachedLines(parts: readonly CutPart[]): CardLine[] {
     if (parts.length === 0) return [];
     const lines: CardLine[] = [{ kind: CARD_LINE.heading, text: CARD_WORDS.legendaryReached }];
-    for (const cutPart of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+    for (const cutPart of parts.slice(0, CUT_PARTS_MAXIMUM)) {
         lines.push({
             kind: CARD_LINE.stat,
             label: getWordsForLegendaryBonus(cutPart.key),
@@ -4416,7 +4412,7 @@ function presentCardReachedLines(parts: readonly CutPart[]): CardLine[] {
 function presentCardDestroyedLines(parts: readonly CutPart[]): CardLine[] {
     if (parts.length === 0) return [];
     const lines: CardLine[] = [{ kind: CARD_LINE.heading, text: CARD_WORDS.destroyed }];
-    for (const cutPart of parts.slice(0, CARD_PARTS_MAXIMUM)) {
+    for (const cutPart of parts.slice(0, CUT_PARTS_MAXIMUM)) {
         if (cutPart.figure <= 0) continue;
         lines.push({
             kind: CARD_LINE.sub,

@@ -695,7 +695,7 @@ function composeHandleUnderTest() {
     const swap = composeSwap();
     const handle = initCardHandle(
         document,
-        register,
+        (key) => register.lookup(key),
         (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
         undefined,
         undefined,
@@ -736,7 +736,7 @@ Deno.test("a card hidden where it stood is composed again, not moved", () => {
     const document = composeFakeDocument();
     const register = createCardRegister();
     let willFail = false;
-    const handle = initCardHandle(document, register, (standing, compose) => {
+    const handle = initCardHandle(document, (key) => register.lookup(key), (standing, compose) => {
         // The panel's own answer to a card that throws: hidden where it stands, nothing replaced.
         if (willFail) {
             setCardHidden(standing, true);
@@ -773,7 +773,7 @@ Deno.test("a card that will not compose takes the last row's card down with it",
     const document = composeFakeDocument();
     const register = createCardRegister();
     const failures: errors.Caught[] = [];
-    const handle = initCardHandle(document, register, (standing, compose) => {
+    const handle = initCardHandle(document, (key) => register.lookup(key), (standing, compose) => {
         // The panel's own swap: a throw is told, and the card hidden where it stands.
         const rendered = errors.attempt(() => {
             const composed = compose();
@@ -824,7 +824,7 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
     const swap = composeSwap();
     const handle = initCardHandle(
         document,
-        register,
+        (key) => register.lookup(key),
         (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
         (key) => {
             asked.push(key);
@@ -868,7 +868,7 @@ Deno.test("the card asks where it may stand with the columns it is drawn in", ()
     let viewportHeight = whole - 1 + kept;
     const handle = initCardHandle(
         document,
-        register,
+        (key) => register.lookup(key),
         (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
         (_key, columns) => {
             asked.push(columns);

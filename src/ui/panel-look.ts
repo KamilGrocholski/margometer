@@ -967,7 +967,7 @@ function composeUnderListRules(): string {
 
 /**
  * **It states its own type and its own ink**, because `:host{all:initial}` reaches it and nothing
- * else does: the card hangs off the root beside the frame, so `.panel`'s never arrive. Without the
+ * else does: the card hangs off the root beside the frame, so `CLASS.meter`'s never arrive. Without the
  * two the card is drawn in the browser's serif at `medium` in black on `raised` — figures nobody
  * can read, seen in Chrome 152 on 2026-08-29.
  *
@@ -1101,7 +1101,7 @@ function composeCaveatMarkRule(tokens: TypeTokens): string {
 
 /**
  * The second window under the one root. It states its own type and its own ink for the reason the
- * card does — `:host{all:initial}` reaches it and `.panel`'s rules never do — and it is
+ * card does — `:host{all:initial}` reaches it and `CLASS.meter`'s rules never do — and it is
  * `position:fixed` for the same reason too: the host is a flex column as wide as the panel, and a plain
  * child of it would stand inside that column and ride the panel's own drag.
  *

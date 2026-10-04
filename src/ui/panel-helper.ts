@@ -126,8 +126,7 @@ export interface HelperContent {
 /**
  * Every character on the board, because **both sides may be shouting and nobody is held twice**:
  * a later shout replaces whatever held somebody (`develop ADR 0062`), so the most that can stand at
- * once is one row each. The corpus cannot show it — every recording in it is ten against one and
- * two is the most it ever held — and a fabricated ten-a-side stands 20 at once.
+ * once is one row each. The corpus cannot show it, and a fabricated ten-a-side stands 20 at once.
  */
 export const PROVOKED_MAXIMUM = COMBATANTS_MAXIMUM;
 /**

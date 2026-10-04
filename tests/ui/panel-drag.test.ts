@@ -348,6 +348,14 @@ Deno.test("a window is made no narrower than its type and no wider than twice it
     const unmoved = composeSizeBounds(PANEL_WINDOW.meter, tokens, null, WINDOW);
     assertEquals(unmoved.widthMaximum, PANEL_WIDTH * 2, "a window never placed binds at its type");
     assertEquals(unmoved.heightMaximum, Number.POSITIVE_INFINITY, "and at no height");
+    // A stored size is held to bounds with no tallest, which is where they are read.
+    const stored = { width: 320, height: 350 };
+    assertEquals(clampSize(stored, unplaced), stored, "a size with no tallest keeps its height");
+    assertEquals(
+        clampSize({ width: 320, height: 1 }, unmoved),
+        { width: 320, height: unmoved.heightMinimum },
+        "and is never held under the shortest",
+    );
 });
 
 Deno.test("a size is held inside its bounds, at each edge from both sides", () => {

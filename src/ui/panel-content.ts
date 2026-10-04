@@ -797,7 +797,7 @@ export function presentUnnamedLevel(
         choice,
         readerSide,
     );
-    const total = getPinnedFigure(statistics, pinnedCase, parts, sideListed);
+    const total = tallyPinnedFigure(statistics, pinnedCase, parts, sideListed);
     if (total <= 0) return null;
     const neither = getNeitherEndForPinned(statistics, pinnedCase, sideListed);
     const largest = getLargestFigure([
@@ -993,7 +993,7 @@ function getSideRelationCharged(sideRelation: SideRelation, metric: PanelMetric)
  * over rows the list already draws, and nobody's row is not one of them. Under one side it drops
  * out too — `getSideRelationCharged` charges from a row, and there is no row to charge from.
  */
-function getPinnedFigure(
+function tallyPinnedFigure(
     statistics: FightStatistics,
     pinnedCase: PinnedCase,
     parts: readonly HalfNamedPart[],
@@ -1107,7 +1107,7 @@ function composeRowDetail(
         damagePrevented: figures.damagePrevented,
         blowsStruck: figures.blowsStruck,
         blowsWithoutSkill: figures.blowsWithoutSkill,
-        skillUses: getSkillUses(figures),
+        skillUses: tallySkillUses(figures),
         turnsTaken: figures.turnsTaken,
         turnsLost: figures.turnsLost,
         wasTurnLostRead,
@@ -1129,7 +1129,7 @@ function composeRowDetail(
     };
 }
 
-function getSkillUses(figures: CombatantFigures): number {
+function tallySkillUses(figures: CombatantFigures): number {
     let uses = 0;
     for (const skill of figures.skills.values()) {
         uses += skill.uses;
@@ -1495,7 +1495,7 @@ export function presentScreen(
     // derived from the list, so the column a reader adds up is the column that was drawn. The
     // strip under the list is composed off the statistics and still totals everybody.
     const listed = sideRows.slice(0, ROWS_MAXIMUM);
-    const total = getListedTotal(statistics, listed, metric, choice);
+    const total = tallyListedTotal(statistics, listed, metric, choice);
     const pinned = composePinnedFigures(statistics, roster, listed, metric, choice, readerSide);
     const sides = composePanelSides(statistics, roster, metric, readerSide);
     const sideListed = getSideRelationListed(choice, readerSide);
@@ -1577,7 +1577,7 @@ function compareRowsByFigureThenId(leftRow: UnsharedRow, rightRow: UnsharedRow):
  * the listed side's under either of the other two. A one-side list whose shares came to a fifth
  * of a percent would be answering a question nobody on that list asked.
  */
-function getListedTotal(
+function tallyListedTotal(
     statistics: FightStatistics,
     rows: readonly UnsharedRow[],
     metric: PanelMetric,
@@ -1616,7 +1616,7 @@ function composePinnedFigures(
             sideListed,
             readerSide,
         );
-        const figure = getPinnedFigure(statistics, pinnedCase, parts, sideListed);
+        const figure = tallyPinnedFigure(statistics, pinnedCase, parts, sideListed);
         // A figure of nothing is not pinned, and its cut is a cut of nothing: the fold below
         // states a figure there is some of, so it is asked only where the row will be drawn.
         if (figure <= 0) continue;
@@ -1729,7 +1729,7 @@ function hasSideTotalDisagreed(
 
 /**
  * Under everybody a figure standing apart **is** the fight's own count, and this asks whether it
- * still is. `getHalfNamedBalance` in `src/core/fight-statistics.ts` is what makes it hold — the
+ * still is. `verifyFightStatistics` in `src/core/fight-statistics.ts` is what makes it hold — the
  * count is the sum of one field across the rows plus what named neither end, and nothing else.
  *
  * It is a reading rather than an assertion (`develop ADR 0051`), and what it holds is worth more
@@ -2041,12 +2041,12 @@ function getPartTotal(
 ): number {
     if (openedPart.kind === OPENED_PART.element) {
         return getCutsForMetric(figures, metric).byElement?.get(openedPart.element) ??
-            getTotalFromCut(cut);
+            tallyCut(cut);
     }
     if (openedPart.kind === OPENED_PART.skill) {
         if (getDirectionForMetric(metric) === PANEL_DIRECTION.given) {
             const skill = figures.skills.get(openedPart.name);
-            if (skill === undefined) return getTotalFromCut(cut);
+            if (skill === undefined) return tallyCut(cut);
             return getNounForMetric(metric) === PANEL_NOUN.damage
                 ? skill.damageDealt
                 : skill.healthGiven;
@@ -2054,7 +2054,7 @@ function getPartTotal(
     }
     // What was received under a name, and what a key gave, are read by folding the same cut the
     // level is: the section above states no second figure for either.
-    return getTotalFromCut(cut);
+    return tallyCut(cut);
 }
 
 /** Healing given has no cut by key, and the empty map says so outright — whose those keys are
@@ -2081,7 +2081,7 @@ function getCutsForMetric(figures: CombatantFigures, metric: PanelMetric): Metri
     };
 }
 
-function getTotalFromCut(cut: FigureCut): number {
+function tallyCut(cut: FigureCut): number {
     let total = 0;
     for (const figure of cut.values()) total += figure;
     return total;
@@ -2201,7 +2201,7 @@ function getPairTotal(
 ): number | null {
     if (getNounForMetric(metric) === PANEL_NOUN.damage) {
         const kinds = getPairKinds(figures, metric, otherId);
-        return kinds === null ? null : getTotalFromCut(kinds);
+        return kinds === null ? null : tallyCut(kinds);
     }
     if (metric === PANEL_METRIC.healthGiven) {
         return figures.healthGivenByReceiver.get(`${otherId}`) ?? null;
@@ -2249,14 +2249,14 @@ function composePairParts(
             getTextForNamedPart(rightPart.part),
         )
     );
-    const partsTotal = getTotalFromParts(stated);
+    const partsTotal = tallyUnsharedPairParts(stated);
     const closingFigure = total - partsTotal;
     // Clamped as the section a skill row closes is (`composeSkillCut`), and the clamp carried
     // out: a remainder below nothing is the parts coming to more than the figure over them, which
     // is a drawn figure being wrong rather than short, and a bar cannot be drawn below nothing.
     const closingFigureClamped = Math.max(closingFigure, 0);
-    const figures = stated.map((pairPart) => pairPart.figure);
-    if (closingFigure !== 0) figures.push(closingFigureClamped);
+    const statedFigures = stated.map((pairPart) => pairPart.figure);
+    const figures = closingFigure === 0 ? statedFigures : [...statedFigures, closingFigureClamped];
     const shares = formatSharesApportioned(figures, total);
     const largest = getLargestFigure(figures);
     const rows: PairPartRow[] = stated.map((pairPart, partIndex) => ({
@@ -2347,7 +2347,7 @@ function getPairGivingEnd(
     return { figures: statistics.byCombatantId.get(combatantId), subject: `${otherId}` };
 }
 
-function getTotalFromParts(parts: readonly UnsharedPairPart[]): number {
+function tallyUnsharedPairParts(parts: readonly UnsharedPairPart[]): number {
     let total = 0;
     for (const pairPart of parts) {
         total += pairPart.figure;

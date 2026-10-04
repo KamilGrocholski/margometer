@@ -18,6 +18,7 @@ import type { HelperAbsence, StandingTurnState } from "./panel-helper.ts";
 import type { ChargedSkillState } from "#/src/core/charged-skill.ts";
 import { HASTE_BIT_NAME, SLOW_BIT_NAME } from "#/src/core/carried-figure.ts";
 import { HOLYTOUCH_HEALS_STATED } from "#/src/core/legendary-standing.ts";
+import { HOLYTOUCH_DECLARATION_KEY, LASTHEAL_KEY } from "#/src/core/protocol-key.ts";
 
 export interface CountedNoun {
     one: string;
@@ -44,7 +45,7 @@ export type Caveat = VocabularyWord<typeof CAVEAT>;
  * imported: `docs/design.md` §4 names no direction from `ui/` to `ports/`.
  *
  * The category is the client's own filing, and it is optional because most of what the panel asks
- * for sits in the default one. `develop:src/game/game-dictionary.ts` is where the shape is
+ * for sits in the default one. `src/ports/margonem-client-dictionary.ts` is where the shape is
  * answered, and the compiler holds the two to each other at every call site the entry composes.
  */
 export type TranslateLabel = (id: string, category?: string) => string | null;
@@ -152,6 +153,7 @@ export const PANEL_WORDS = {
     withoutActor: "Nieznany sprawca",
     withoutTarget: "Nieznany cel",
     unknown: "Nie wiadomo",
+    unknownHowMany: "Nie wiadomo, ile",
     nothingYet: "Nikogo tu jeszcze nie ma.",
     noFightYet: "Nie było jeszcze walki.",
     // Never "no fight yet": there was one, and it is this panel that could not show it.
@@ -544,7 +546,7 @@ export const LABEL_CHARACTERS_MAXIMUM = 22;
  * The same for a label out of the player's own client, which is not ours to keep short: its
  * dictionary runs to 41 characters for the keys asked about (build `1785244275300`, read
  * 2026-09-22), and at 22 three of seven were drawn as the raw key. ⚠️ The label is measured after
- * `getLabelFromEntry` takes the sign and the full stop off. ⚠️ A label past the column is still
+ * `parseLabel` (`src/ports/margonem-client-dictionary.ts`) takes the sign and the full stop off. ⚠️ A label past the column is still
  * cut: the client's words cut, rather than a key the game wrote for itself.
  */
 export const CLIENT_LABEL_CHARACTERS_MAXIMUM = 64;
@@ -583,7 +585,7 @@ export const DESTROYED_WORD_BY_KEY: ReadonlyMap<string, { name: string; unit: st
         critpierce: { name: "pancerz z przebicia", unit: "pkt" },
         resdmg: { name: "odporność", unit: "p.p." },
         // The element rides after a colon rather than after "na", which the bound decides:
-        // `odporność na błyskawice` is 23 characters against LABEL_CHARACTERS_MAXIMUM below,
+        // `odporność na błyskawice` is 23 characters against LABEL_CHARACTERS_MAXIMUM above,
         // and a label past it is cut by the column with nothing saying it was cut.
         resdmgf: { name: "odporność: ogień", unit: "p.p." },
         resdmgc: { name: "odporność: zimno", unit: "p.p." },
@@ -725,7 +727,7 @@ export const HELPER_WORDS = {
     castSeparator: "·",
     /**
      * What a card in this window states its turns under — a cast's, and a charge's since
-     * `develop ADR 0100`. Never `PANEL_WORDS.turns`: that one names the turns a combatant took and
+     * `develop ADR 0100`. Never `CARD_WORDS.turns`: that one names the turns a combatant took and
      * carries the caveat that the game publishes none of them, while both of these are durations
      * the game itself states — the published skill table for a cast, the payload's own envelope
      * for a charge. The pair beside it is bare, `Minęło · 2 z 3` (`develop ADR 0116`).
@@ -742,9 +744,9 @@ export const HELPER_WORDS = {
 } as const;
 
 /**
- * The words the tooltip says and the panel does not. **Two of them are the game's own** — the
- * bonuses are named as `HEALTH_SOURCE_WORD_BY_KEY` names them, so the two surfaces cannot drift
- * into two spellings of one thing (**N13**).
+ * The words the tooltip says and the panel does not. The two bonuses it names are not here: they
+ * are read from `LEGENDARY_BONUS_WORD_BY_KEY`, so the tooltip and the card cannot drift into two
+ * spellings of one thing (**N13**).
  */
 const TOOLTIP_WORDS = {
     /**
@@ -755,8 +757,6 @@ const TOOLTIP_WORDS = {
      */
     provokedBy: "Sprowokowany przez",
     provokedCount: "Prowokuje",
-    holytouch: "Dotyk anioła",
-    lastheal: "Ostatni ratunek",
     /** The bonus fires once a fight, so this is a state and never a count. */
     spent: "wykorzystany",
     turnsTaken: "Tury wykonane",
@@ -1118,8 +1118,8 @@ export function getWordsForDamageKind(kind: string): string {
  * whatever that digit is. Twenty-two takes the few form and twelve does not.
  */
 export function formatCountedNoun(count: number, noun: CountedNoun): string {
-    if (!Number.isSafeInteger(count)) return `${PANEL_WORDS.unknown} ${noun.many}`;
-    if (count < 0) return `${PANEL_WORDS.unknown} ${noun.many}`;
+    if (!Number.isSafeInteger(count)) return `${PANEL_WORDS.unknownHowMany} ${noun.many}`;
+    if (count < 0) return `${PANEL_WORDS.unknownHowMany} ${noun.many}`;
     if (count === 1) return `1 ${noun.one}`;
     const lastTwo = count % HUNDRED;
     const lastDigit = count % TEN;
@@ -1190,11 +1190,13 @@ export function presentTooltipRows(
         const given = tooltip.holytouchHealsReceived;
         const apart = HELPER_WORDS.castSeparator;
         if (tooltip.hasSpentLastheal) {
-            said.push(`${TOOLTIP_WORDS.lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
+            const lastheal = getWordsForLegendaryBonus(LASTHEAL_KEY);
+            said.push(`${lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
         }
         if (given !== null) {
             const heals = formatCounter(given, HOLYTOUCH_HEALS_STATED);
-            said.push(`${TOOLTIP_WORDS.holytouch} ${apart} ${heals}`);
+            const holytouch = getWordsForLegendaryBonus(HOLYTOUCH_DECLARATION_KEY);
+            said.push(`${holytouch} ${apart} ${heals}`);
         }
     }
     // Say whom the fighter provokes, and who holds it provoked.
@@ -1438,11 +1440,12 @@ export function formatUses(uses: number): string {
  */
 export function formatNamesReachedByGap(names: readonly string[], charged: number): string {
     if (charged <= 0) return "";
-    if (charged > NAMED_ROWS_MAXIMUM) {
-        return ` (dotyczy ${composeGenitiveNoun(charged, COUNTED_NOUN_WORDS.combatants)})`;
+    // A list leaving out somebody the roster could not name would read as everybody reached, so
+    // the count stands wherever a name is missing.
+    if (names.length === charged) {
+        if (charged <= NAMED_ROWS_MAXIMUM) return ` (${names.join(", ")})`;
     }
-    if (names.length === 0) return "";
-    return ` (${names.join(", ")})`;
+    return ` (dotyczy ${composeGenitiveNoun(charged, COUNTED_NOUN_WORDS.combatants)})`;
 }
 
 /**

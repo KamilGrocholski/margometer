@@ -58,13 +58,13 @@ export const BROWSER_WINDOW_PART = {
     clock: "clock",
     downloads: "downloads",
 } as const;
-export type WindowPart = VocabularyWord<typeof BROWSER_WINDOW_PART>;
+export type BrowserWindowPart = VocabularyWord<typeof BROWSER_WINDOW_PART>;
 
 export class BrowserWindowUnusable extends Error {
     override readonly name = "BrowserWindowUnusable";
-    readonly missing: WindowPart;
+    readonly missing: BrowserWindowPart;
 
-    constructor(missing: WindowPart) {
+    constructor(missing: BrowserWindowPart) {
         super();
         this.missing = missing;
     }
@@ -215,7 +215,7 @@ function isUserscriptWindow(
 }
 
 /** The first part a page lacks, or null where it states every one the add-on calls. */
-function lookupWindowPartMissing(browserWindow: UnknownRecord): WindowPart | null {
+function lookupWindowPartMissing(browserWindow: UnknownRecord): BrowserWindowPart | null {
     if (!isUserscriptDocument(browserWindow.document)) return BROWSER_WINDOW_PART.document;
     if (!isCallableOn(browserWindow.console, "error")) return BROWSER_WINDOW_PART.console;
     if (typeof browserWindow.setInterval !== "function") return BROWSER_WINDOW_PART.timers;

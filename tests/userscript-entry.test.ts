@@ -20,11 +20,11 @@ import { CLASS } from "#/src/ui/panel-look.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import {
     BROWSER_WINDOW_PART,
+    type BrowserWindowPart,
     BrowserWindowUnusable,
     composeRuntimeTables,
     readRuntimePorts,
     startMargoMeter,
-    type WindowPart,
 } from "#/src/userscript-entry.ts";
 import { getElementsWithin } from "./fake-document.ts";
 import { composeFakeWindow, type FakeWindow, flushFakeFrames } from "./fake-window.ts";
@@ -33,7 +33,7 @@ import { lookupRecordedFight } from "./recorded-fights.ts";
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 const BRANDED_STOOD_DOWN = "MargoMeter/Panel BrowserWindowUnusable";
 /** The members a page lacking one part does not state, by the part the entry names. */
-const MEMBERS_BY_PART: readonly (readonly [WindowPart, readonly string[]])[] = [
+const MEMBERS_BY_PART: readonly (readonly [BrowserWindowPart, readonly string[]])[] = [
     [BROWSER_WINDOW_PART.document, ["document"]],
     [BROWSER_WINDOW_PART.timers, ["setInterval"]],
     [BROWSER_WINDOW_PART.timers, ["clearInterval"]],

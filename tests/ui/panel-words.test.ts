@@ -854,6 +854,9 @@ Deno.test("a count is spelled the three ways Polish spells one", () => {
     assertEquals(formatCountedNoun(4, noun), "4 wiadomości", "and so does four");
     assertEquals(formatCountedNoun(5, noun), "5 wiadomości", "five takes the third");
     assertEquals(formatCountedNoun(0, noun), "0 wiadomości", "and so does nothing at all");
+    const unknown = "Nie wiadomo, ile wiadomości";
+    assertEquals(formatCountedNoun(Number.NaN, noun), unknown, "no count is said as none known");
+    assertEquals(formatCountedNoun(-1, noun), unknown, "and so is one below nothing");
 });
 
 Deno.test("the teens take the third form and the twenties do not", () => {
@@ -1143,6 +1146,16 @@ Deno.test("a suspicion names whom it reaches while they are few, counting them p
         formatNamesReachedByGap([], 7),
         " (dotyczy 7 postaci)",
         "rows the roster could not name are counted, never guessed at",
+    );
+    assertEquals(
+        formatNamesReachedByGap(["Gracz 1"], 2),
+        " (dotyczy 2 postaci)",
+        "and one left unnamed among few turns the names into a count, never into one name",
+    );
+    assertEquals(
+        formatNamesReachedByGap([], 1),
+        " (dotyczy 1 postaci)",
+        "and a gap reaching one nobody can name still says it reaches somebody",
     );
 });
 

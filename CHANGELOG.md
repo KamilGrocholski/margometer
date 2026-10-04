@@ -43,6 +43,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   ich ze starego miejsca po zmianie przechowywania albo części z nich nie dało się odczytać.
 - **Poprawka** — Przyciski na paskach okien mają równą szerokość i ikony stoją na ich środku, a „i”
   w kółku przy liczbie nie siedzi już za wysoko.
+- **Poprawka** — Ostrzeżenie, że liczby mogą być zaniżone, podaje, ilu postaci dotyczy, zamiast
+  wymieniać z imienia tylko te, które dało się nazwać.
 - **Poprawka** — Gdy dodatek jest zainstalowany dwa razy, drugi egzemplarz nie zostawia już na
   ekranie martwego panelu obok działającego.
 - **Poprawka** — Walka, której początku nie dało się odczytać, nie dolicza się już do poprzedniej,

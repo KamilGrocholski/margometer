@@ -162,11 +162,6 @@ const ROWS_BY_WINDOW_MINIMUM: { readonly [Window in PanelWindow]: number } = {
     [PANEL_WINDOW.meter]: 6,
     [PANEL_WINDOW.helper]: 3,
 };
-/** What a grip states: the window it belongs to. */
-export const GRIP_MARK_BY_WINDOW: { readonly [Window in PanelWindow]: string } = {
-    [PANEL_WINDOW.meter]: "meter",
-    [PANEL_WINDOW.helper]: "helper",
-};
 
 /**
  * **Every position downstream of this is whole, finite and safe to write into a style.** A null
@@ -201,12 +196,8 @@ function getPositionWithin(coordinate: number, limit: number): number {
 }
 
 /**
- * The middle of the window, where a panel nobody has moved opens (`DESIGN.md`). It is
- * centred on the **tallest** body the sheet allows rather than the one it has: a panel centred on
- * its waiting bar walks down the screen as rows arrive, and this one stands still.
- *
- * Null where the page states no size, because a position derived from a guess snatches the panel
- * out from under the hand — the sheet's own corner then stands, which is a place and not a guess.
+ * Where a panel nobody has moved opens, centred as `DESIGN.md` states. Null where the page states
+ * no size: a position derived from a guess snatches the panel out from under the hand.
  */
 export function composeDefaultPosition(
     viewport: PanelViewport | null,
@@ -313,9 +304,14 @@ function getWindowWidthPixels(panelWindow: PanelWindow, tokens: TypeTokens): num
 export function clampSize(size: WindowSize, bounds: SizeBounds): WindowSize {
     const width = Number.isFinite(size.width) ? size.width : bounds.widthMinimum;
     const height = Number.isFinite(size.height) ? size.height : bounds.heightMinimum;
+    // ⚠️ A window with no screen or no place has no tallest, and `clampNumber` takes no endless
+    // top: held to it, a stored size on such a page threw where the add-on stands up.
+    const heightHeld = Number.isFinite(bounds.heightMaximum)
+        ? clampNumber(height, bounds.heightMinimum, bounds.heightMaximum)
+        : Math.max(height, bounds.heightMinimum);
     return {
         width: Math.round(clampNumber(width, bounds.widthMinimum, bounds.widthMaximum)),
-        height: Math.round(clampNumber(height, bounds.heightMinimum, bounds.heightMaximum)),
+        height: Math.round(heightHeld),
     };
 }
 
@@ -359,7 +355,7 @@ function composeWindowRight(place: CardWindowPlace): number {
 }
 
 export function setGripMark(grip: PanelElement, window: PanelWindow): void {
-    grip.setAttribute(GRIP_ATTRIBUTE, GRIP_MARK_BY_WINDOW[window]);
+    grip.setAttribute(GRIP_ATTRIBUTE, window);
 }
 
 /**
@@ -401,7 +397,7 @@ export function initPanelDrag(
     let position: PanelPosition | null;
     // Open the window at the reader's place, or the middle of the screen.
     {
-        // A position from the first frame is what lets the detail window and the card answer the
+        // A position from the first frame is what lets the helper and the card answer the
         // side they stand on (`develop ADR 0090`), where a panel left on the sheet's corner has no
         // `left` for either of them to read.
         //
@@ -466,14 +462,16 @@ export function initPanelDrag(
         addRootListener(EVENT_TYPE.press, PANEL_LISTENER.grab, (event) => {
             const started = composePanelDragGrab(event, state, placement, options);
             if (started === null) return;
+            // Without this the browser starts its own text or image drag from the bar.
+            event.preventDefault?.();
             state.grab = started;
-            setPointerHeld(getGrabbedElement(started), true, event.pointerId, options);
+            writePointerCapture(getGrabbedElement(started), true, event.pointerId, options);
         });
         const onDragEnd = (): void => {
             const grab = state.grab;
             if (grab === null) return;
             state.grab = null;
-            setPointerHeld(getGrabbedElement(grab), false, grab.pointerId, options);
+            writePointerCapture(getGrabbedElement(grab), false, grab.pointerId, options);
             const window = options.window;
             if (grab.kind === GRAB_KIND.size) {
                 const size = state.size;
@@ -489,7 +487,7 @@ export function initPanelDrag(
             const grab = state.grab;
             if (grab === null) return;
             // A release the root never saw. Without capture — the forgiving part of a drag,
-            // `setPointerHeld` — a hand letting go outside the panel reports its `pointerup`
+            // `writePointerCapture` — a hand letting go outside the panel reports its `pointerup`
             // elsewhere, and the grab left standing follows the next pointer to cross the panel.
             // No buttons stated is a document reporting none, not a hand that let go, and it is
             // not `0` either.
@@ -523,7 +521,7 @@ export function initPanelDrag(
                 // was on. What is missed then is the release: the drag would go on armed, and
                 // the panel follow the next pointer to cross it with nobody holding it.
                 const grab = state.grab;
-                setPointerHeld(getBar(), true, grab.pointerId, options);
+                writePointerCapture(getBar(), true, grab.pointerId, options);
             }
         },
         setPosition: (positionRequested: PanelPosition) => {
@@ -620,7 +618,7 @@ function composePanelDragGrab(
     const grip = event.target?.getAttribute(GRIP_ATTRIBUTE) ?? null;
     const corner = event.target?.getAttribute(SIZE_GRIP_ATTRIBUTE) ?? null;
     // Both listener sets see every press, so the other window's bar reaches here too.
-    const mark = GRIP_MARK_BY_WINDOW[options.window];
+    const mark = options.window;
     const kind = grip === mark ? GRAB_KIND.move : corner === mark ? GRAB_KIND.size : null;
     if (kind === null) return null;
     const pointer = readPointerFromEvent(event);
@@ -629,8 +627,6 @@ function composePanelDragGrab(
     const from = state.position ??
         composeDefaultPosition(placement.readViewport(), tokens.meterWidthPixels);
     if (from === null) return null;
-    // Without this the browser starts its own text or image drag from the bar.
-    event.preventDefault?.();
     const grab = {
         kind,
         pointerLeft: pointer.left,
@@ -698,7 +694,7 @@ function readCoordinate(coordinate: unknown): number | null {
  * drag because it throws where the drag does not — a pointer a browser no longer considers active
  * is refused, and one refusal inside the drag's own guard would clear the grab and move nothing.
  */
-function setPointerHeld(
+function writePointerCapture(
     bar: PanelElement,
     isHeld: boolean,
     pointerId: number | undefined,

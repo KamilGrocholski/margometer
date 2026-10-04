@@ -11,7 +11,7 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { CLASS, PLACE, SPACE_PIXELS } from "#/src/ui/panel-look.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
-import { GRIP_ATTRIBUTE, GRIP_MARK_BY_WINDOW } from "#/src/ui/panel-drag.ts";
+import { GRIP_ATTRIBUTE } from "#/src/ui/panel-drag.ts";
 import {
     HOST_SELECTOR,
     MARGONEM_CLIENT_SCRIPT_NAME,
@@ -265,14 +265,14 @@ function composeWindowsCornered(): string {
   var box = getPanelHost().getBoundingClientRect();
   var across = ${across};
   var down = getStripBelow();
-  setWindowDragged(${JSON.stringify(GRIP_MARK_BY_WINDOW[PANEL_WINDOW.meter])},
+  setWindowDragged(${JSON.stringify(PANEL_WINDOW.meter)},
     across - ${PLACE.insetPixels} - box.width - box.left, down - box.top);
 };
 
 var setStandingBeside = function () {
   var box = getStandingWindow().getBoundingClientRect();
   var panel = getPanelHost().getBoundingClientRect();
-  setWindowDragged(${JSON.stringify(GRIP_MARK_BY_WINDOW[PANEL_WINDOW.helper])},
+  setWindowDragged(${JSON.stringify(PANEL_WINDOW.helper)},
     panel.left - ${SPACE_PIXELS.small} - box.width - box.left, panel.top - box.top);
 };`;
 }

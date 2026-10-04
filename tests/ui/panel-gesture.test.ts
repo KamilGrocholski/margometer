@@ -97,6 +97,33 @@ Deno.test("a pointer stating no place starts no drag, and the panel stays where 
     assertEquals(host.attributes.get("style"), stood, "a grab from nowhere moves nothing");
 });
 
+Deno.test("a grab on a bar keeps the browser's own drag off it, and a press that grabs nothing not", () => {
+    const panel = initTestView(composeFakeDocument(), {
+        meterPlacement: {
+            position: { left: 40, top: 40 },
+            size: null,
+            readViewport: () => VIEWPORT,
+        },
+    });
+    panel.renderWaiting(NOTHING_WAITING);
+    const host = panel.element as FakeElement;
+    const bar = findGrip(host, "meter");
+    let prevented = 0;
+    const press = (clientX: number): void => {
+        dispatch(host, "pointerdown", {
+            target: bar,
+            clientX,
+            clientY: 50,
+            pointerId: 1,
+            preventDefault: () => void (prevented += 1),
+        });
+    };
+    press(Number.NaN);
+    assertEquals(prevented, 0, "a press from nowhere leaves the browser its own drag");
+    press(100);
+    assertEquals(prevented, 1, "and a grab takes it, once");
+});
+
 Deno.test("a pointer the bar will not hold drops that hold, and the drag still moves", () => {
     const failures: ViewFailure[] = [];
     const panel = initTestView(composeFakeDocument(), {
