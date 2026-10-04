@@ -29,6 +29,7 @@ file comes or goes (ADR 0010).
 
 | Path                                      | For                                                                                       |
 | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `.agents/skills/audit/SKILL.md`           | the skill for auditing the whole tree at one commit, split by layer and verified          |
 | `.agents/skills/commit/SKILL.md`          | the skill for making a commit: the process, and the checklist of what must hold before it |
 | `.agents/skills/fix/SKILL.md`             | the skill for fixing the add-on from a fight file a player saved: replay, reproduce, hold |
 | `.agents/skills/gate/SKILL.md`            | the skill for running the gate and turning a red one into a fix                           |

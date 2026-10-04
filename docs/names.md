@@ -14476,6 +14476,7 @@ suite's material.
 
 - `.agents/`
 - `.agents/skills/`
+- `.agents/skills/audit/`
 - `.agents/skills/commit/`
 - `.agents/skills/fix/`
 - `.agents/skills/gate/`
@@ -14514,6 +14515,7 @@ suite's material.
 
 ## Files
 
+- `.agents/skills/audit/SKILL.md`
 - `.agents/skills/commit/SKILL.md`
 - `.agents/skills/fix/SKILL.md`
 - `.agents/skills/gate/SKILL.md`
