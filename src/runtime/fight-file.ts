@@ -8,7 +8,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { encodeJson, type JsonTextAbsent, type JsonUnwritable } from "#/libs/json-text.ts";
+import { encodeJson, type JsonUnwritable } from "#/libs/json-text.ts";
 import { formatInteger } from "#/libs/number-text.ts";
 import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
 import type {
@@ -58,7 +58,7 @@ export interface FightFile {
 export class FileUnserializable extends Error {
     override readonly name = "FileUnserializable";
 
-    constructor(cause: JsonTextAbsent | JsonUnwritable) {
+    constructor(cause: JsonUnwritable) {
         super(undefined, { cause });
     }
 }

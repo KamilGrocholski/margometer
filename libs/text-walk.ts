@@ -25,19 +25,26 @@ export const JAVASCRIPT_QUOTES = "\"'`";
  * `DHSqC3Uh`, both fetched 2026-10-02.
  */
 export const LITERAL_CHARACTERS_MAXIMUM = 65_536;
+/**
+ * Past the longest run any caller walks, so a run is a stated bound too: 64 characters of a name in
+ * both builds above, 41 of whitespace, 10 of digits, and 93 of whitespace in help article 372 read
+ * 2026-10-04.
+ */
+export const RUN_CHARACTERS_MAXIMUM = 65_536;
 /** What HTML and JavaScript both treat as space between the things that mean something. */
 const WHITESPACE = " \t\r\n\f\v";
 
 export function isDigitAt(text: string, index: number): boolean {
     assert(Number.isSafeInteger(index), "a character is looked for at a whole position");
-    assert(index >= 0, "and inside the text");
+    assert(index >= 0, "never before the text");
     const character = text.charAt(index);
     if (character < "0") return false;
     return character <= "9";
 }
 
 export function isWhitespaceAt(text: string, index: number): boolean {
-    assert(index >= 0, "a character is looked for inside the text");
+    assert(Number.isSafeInteger(index), "a character is looked for at a whole position");
+    assert(index >= 0, "never before the text");
     const character = text.charAt(index);
     if (character === "") return false;
     return WHITESPACE.includes(character);
@@ -50,28 +57,33 @@ export function getEndOfRun(
     isMember: (text: string, index: number) => boolean,
 ): number {
     assert(Number.isSafeInteger(from), "a run starts at a whole position");
-    assert(from >= 0, "inside the text");
+    assert(from >= 0, "never before the text");
     let runEnd = from;
-    while (runEnd < text.length) {
+    for (let look = 0; look < RUN_CHARACTERS_MAXIMUM; look += 1) {
+        if (runEnd >= text.length) break;
         if (!isMember(text, runEnd)) break;
         runEnd += 1;
     }
-    assert(runEnd >= from, "a run never ends before it starts");
+    assert(runEnd - from < RUN_CHARACTERS_MAXIMUM, "a run ends inside the bound on its length");
     assert(runEnd <= Math.max(from, text.length), "and never past the end of what it walked");
     return runEnd;
 }
 
-/** Empty text is no run. */
+/**
+ * Empty text is no run, and neither is text past the bound on one: no number that long is read
+ * exactly, so a reader of it answers no number rather than walking it.
+ */
 export function isDigitRun(text: string): boolean {
     if (text.length === 0) return false;
+    if (text.length >= RUN_CHARACTERS_MAXIMUM) return false;
     const end = getEndOfRun(text, 0, isDigitAt);
     assert(end <= text.length, "a run of digits ends inside the text it was read from");
     return end === text.length;
 }
 
-/** The text inside a quoted literal opening at `open`, and where it ends. */
 export function lookupQuotedLiteral(text: string, open: number): QuotedLiteral | null {
-    assert(open >= 0, "a literal is looked for inside the text");
+    assert(Number.isSafeInteger(open), "a literal is looked for at a whole position");
+    assert(open >= 0, "never before the text");
     const opening = text.charAt(open);
     if (opening === "") return null;
     if (!JAVASCRIPT_QUOTES.includes(opening)) return null;

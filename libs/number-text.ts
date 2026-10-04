@@ -10,6 +10,8 @@ import { assert } from "@std/assert/assert";
 import { isDigitRun } from "./text-walk.ts";
 
 const MINUS = "-";
+/** What `toFixed` writes at most, and throws a `RangeError` past (ECMA-262 §21.1.3.3). */
+const PLACES_MAXIMUM = 100;
 const POINT = ".";
 
 /** Digits with an optional minus, held exactly: past 2^53 is refused, never neighboured. */
@@ -55,5 +57,6 @@ export function formatDecimal(decimal: number, places: number): string {
     assert(Number.isFinite(decimal), "a number written is a number");
     assert(Number.isSafeInteger(places), "and is written to a whole number of places");
     assert(places >= 0, "never fewer than none");
+    assert(places <= PLACES_MAXIMUM, "and never more than the platform writes");
     return decimal.toFixed(places);
 }

@@ -9,7 +9,7 @@
  */
 
 import { assert } from "@std/assert";
-import { decodeHtmlText } from "#/libs/html-text.ts";
+import { decodeHtmlText, HTML_CHARACTERS_MAXIMUM } from "#/libs/html-text.ts";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
@@ -265,7 +265,15 @@ export function formatDumpAge(fetchedAt: string, now: number): string {
 export async function writeHelpArticleCache(article: string): Promise<CachedHelpArticle> {
     assert(parseInteger(article) !== null, "an article is asked for by its number");
     const url = `${HELP_HOST}/index/view,${article}`;
-    const text = decodeHtmlText(await readMargonemAnswerText(url));
+    const page = await readMargonemAnswerText(url);
+    if (page.length > HTML_CHARACTERS_MAXIMUM) {
+        throw new HelpArticleError(
+            `${url} is ${formatInteger(page.length)} characters, past the ${
+                formatInteger(HTML_CHARACTERS_MAXIMUM)
+            } a page is read to`,
+        );
+    }
+    const text = decodeHtmlText(page);
     const directory = `${CACHE_ROOT}${article}/`;
     Deno.mkdirSync(directory, { recursive: true });
     const textPath = `${directory}${TEXT_NAME}`;

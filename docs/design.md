@@ -137,11 +137,7 @@ export type JsonValue = null | boolean | number | string | readonly unknown[] | 
 export class JsonUnreadable extends Error {
     override readonly name = "JsonUnreadable";
 }
-/** A function, a symbol, `undefined`: no JSON text. */
-export class JsonTextAbsent extends Error {
-    override readonly name = "JsonTextAbsent";
-}
-/** The `Caught` of `JSON.stringify` as its `cause`. */
+/** The `Caught` of `JSON.stringify` as its `cause`, or `null` for a value with no JSON text. */
 export class JsonUnwritable extends Error {
     override readonly name = "JsonUnwritable";
 }
@@ -149,7 +145,7 @@ export function parseJson(text: string): JsonValue | JsonUnreadable;
 export function encodeJson(
     encodable: unknown,
     indentSpaces: number,
-): string | JsonTextAbsent | JsonUnwritable;
+): string | JsonUnwritable;
 
 // libs/number-text.ts — one reason to fail each, so `null`
 export function parseInteger(text: string): number | null; // digits, optional minus, safe integer

@@ -24,18 +24,20 @@ export class JsonUnreadable extends Error {
     }
 }
 
-/** A function, a symbol, `undefined`: written as no JSON text rather than refused. */
-export class JsonTextAbsent extends Error {
-    override readonly name = "JsonTextAbsent";
-}
-
+/**
+ * Refused, or a function, a symbol or `undefined`, which have no JSON text: `cause` is `null` for
+ * those. No caller does anything different between the two.
+ */
 export class JsonUnwritable extends Error {
     override readonly name = "JsonUnwritable";
 
-    constructor(cause: errors.Caught) {
+    constructor(cause: errors.Caught | null) {
         super(undefined, { cause });
     }
 }
+
+/** What `JSON.stringify` clamps a larger indent to (ECMA-262 §25.5.2). */
+const INDENT_SPACES_MAXIMUM = 10;
 
 export function parseJson(text: string): JsonValue | JsonUnreadable {
     const parsed = errors.attempt((): JsonValue => {
@@ -58,14 +60,15 @@ export function parseJson(text: string): JsonValue | JsonUnreadable {
 export function encodeJson(
     encodable: unknown,
     indentSpaces: number,
-): string | JsonTextAbsent | JsonUnwritable {
+): string | JsonUnwritable {
     assert(Number.isSafeInteger(indentSpaces), "text is indented by a whole count of spaces");
     assert(indentSpaces >= 0, "of none or more");
+    assert(indentSpaces <= INDENT_SPACES_MAXIMUM, "and no more than the platform writes");
     const written = errors.attempt((): string | undefined =>
         JSON.stringify(encodable, null, indentSpaces)
     );
     if (written instanceof Error) return new JsonUnwritable(written);
-    if (written === undefined) return new JsonTextAbsent();
+    if (written === undefined) return new JsonUnwritable(null);
     assert(written.length > 0, "a value written as text says something");
     return written;
 }

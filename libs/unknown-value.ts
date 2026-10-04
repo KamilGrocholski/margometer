@@ -14,7 +14,6 @@ export interface UnknownRecord {
     readonly [key: string]: unknown;
 }
 
-/** Keys are theirs, fields are ours. */
 export type FieldKeys<Field extends string> = { readonly [Name in Field]: string };
 
 export const FIELD_TYPE = {
@@ -105,8 +104,9 @@ export function getStatedTextField<Field extends string>(
     keys: FieldKeys<Field>,
     field: Field,
 ): string | null | FieldWrongType<Field> {
+    // A field that is no text at all says so, rather than looking like empty text.
     const text = getTextField(record, keys, field);
-    if (text instanceof Error) return new FieldWrongType(field, FIELD_TYPE.statedText);
+    if (text instanceof Error) return text;
     if (text === null) return text;
     if (text.length === 0) {
         return new FieldWrongType(field, FIELD_TYPE.statedText);

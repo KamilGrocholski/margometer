@@ -78,8 +78,8 @@ Deno.test("whether text states anything is a second question, asked separately",
     assertEquals(getStatedTextField({ n: " " }, KEYS, "named"), " ", "a space is something");
     expectWrongType(
         getStatedTextField({ n: 745 }, KEYS, "named"),
-        wrong,
-        "a number states no text",
+        ["named", "text"],
+        "a number is not text at all, and says so rather than looking like empty text",
     );
     assertEquals(getStatedTextField({}, KEYS, "named"), null, "and absent is a fact");
 });

@@ -514,6 +514,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupRecordedFight` — `tests/recorded-fights.ts`
 - `lookupRecordingPaths` — `tools/recorded-material.ts`
 - `lookupRecursiveNames` — `tests/repository/control-flow.test.ts`
+- `lookupReferencedCodePoint` — `libs/html-text.ts`
 - `lookupRegisteredStatusName` — `tools/buff-bit-table.ts`
 - `lookupRegularExpressions` — `tests/repository/regular-expressions.test.ts`
 - `lookupReportKey` — `tests/runtime/fight-file.test.ts`
@@ -1694,6 +1695,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeNameRegister` — `tests/repository/name-register.test.ts`
 - `composeNamed` — `tests/ui/card-window.test.ts`
 - `composeNotesForOpenedRow` — `tests/ui/panel-element.test.ts`
+- `composeNumericReferencesDecoded` — `libs/html-text.ts`
 - `composeOne` — `tests/ports/margonem-engine-tooltip.test.ts`
 - `composeOneCombatantRoster` — `tests/core/fight-statistics.test.ts`
 - `composeOpened` — `tests/runtime/shelf.test.ts`
@@ -1896,6 +1898,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isFabricatedPath` — `tools/fabricated-fight.ts`
 - `isFightOver` — `tools/fabricated-fight.ts`
 - `isGuardedBody` — `tests/repository/handed-callbacks.test.ts`
+- `isHexadecimalDigitAt` — `libs/html-text.ts`
 - `isImportSpeltForItsPlace` — `tests/repository/import-paths.test.ts`
 - `isInvariantBroken` — `tests/simulation.ts`
 - `isKebabCase` — `tests/repository/names.test.ts`
@@ -1947,6 +1950,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isStartedAsync` — `tests/repository/called-once.test.ts`
 - `isStruckAgain` — `tests/core/last-heal-rule.test.ts`
 - `isStunKey` — `tests/tools/turn-count.test.ts`
+- `isTagOpeningAt` — `libs/html-text.ts`
 - `isTooltipTargets` — `src/ports/margonem-engine-tooltip.ts`
 - `isTopLevel` — `tests/repository/name-register.test.ts`, `tests/repository/purity.test.ts`
 - `isTreeComplete` — `tools/develop-reports.ts`
@@ -3277,7 +3281,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `Caught` — `libs/errors.ts`
 - `FieldTooLong` — `libs/unknown-value.ts`
 - `FieldWrongType` — `libs/unknown-value.ts`
-- `JsonTextAbsent` — `libs/json-text.ts`
 - `JsonUnreadable` — `libs/json-text.ts`
 - `JsonUnwritable` — `libs/json-text.ts`
 
@@ -3376,17 +3379,31 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `libs/`
 
-- `CHARACTERS_MAXIMUM` — `libs/html-text.ts`
+- `CODE_POINT_MAXIMUM` — `libs/html-text.ts`
 - `ENTITIES` — `libs/html-text.ts`
+- `ENTITY_AMPERSAND` — `libs/html-text.ts`
 - `FIELD_TYPE` — `libs/unknown-value.ts`
+- `HEXADECIMAL_DIGITS` — `libs/html-text.ts`
+- `HEXADECIMAL_RADIX` — `libs/html-text.ts`
+- `HTML_CHARACTERS_MAXIMUM` — `libs/html-text.ts`
+- `INDENT_SPACES_MAXIMUM` — `libs/json-text.ts`
 - `JAVASCRIPT_QUOTES` — `libs/text-walk.ts`
 - `LITERAL_CHARACTERS_MAXIMUM` — `libs/text-walk.ts`
 - `LOWER_CASE_OFFSET` — `libs/html-text.ts`
 - `MINUS` — `libs/number-text.ts`
+- `NO_BREAK_SPACE_CODE_POINT` — `libs/html-text.ts`
+- `NUMERIC_REFERENCE_CLOSE` — `libs/html-text.ts`
+- `NUMERIC_REFERENCE_HEXADECIMAL` — `libs/html-text.ts`
+- `NUMERIC_REFERENCE_OPEN` — `libs/html-text.ts`
+- `PLACES_MAXIMUM` — `libs/number-text.ts`
 - `POINT` — `libs/number-text.ts`
 - `RAW_TEXT_ELEMENTS` — `libs/html-text.ts`
-- `TAGS_MAXIMUM` — `libs/html-text.ts`
+- `REFERENCE_DIGITS_MAXIMUM` — `libs/html-text.ts`
+- `RUN_CHARACTERS_MAXIMUM` — `libs/text-walk.ts`
+- `SURROGATE_FIRST` — `libs/html-text.ts`
+- `SURROGATE_LAST` — `libs/html-text.ts`
 - `TAG_CLOSE` — `libs/html-text.ts`
+- `TAG_NAME_OPENERS` — `libs/html-text.ts`
 - `TAG_OPEN` — `libs/html-text.ts`
 - `TAG_TERMINATOR` — `libs/html-text.ts`
 - `WHITESPACE` — `libs/text-walk.ts`
@@ -4970,9 +4987,14 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `character` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `close` — `libs/html-text.ts`
+- `codePoint` — `libs/html-text.ts`
 - `collapsed` — `libs/html-text.ts`
 - `decimal` — `libs/number-text.ts`
-- `digits` — `libs/number-text.ts`
+- `decoded` — `libs/html-text.ts`
+- `digits` — `libs/html-text.ts`, `libs/number-text.ts`
+- `digitsAt` — `libs/html-text.ts`
+- `digitsEnd` — `libs/html-text.ts`
+- `digitsFrom` — `libs/html-text.ts`
 - `end` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `entity` — `libs/html-text.ts`
 - `fieldValue` — `libs/unknown-value.ts`
@@ -4980,6 +5002,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `from` — `libs/html-text.ts`
 - `index` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `integer` — `libs/number-text.ts`
+- `isHexadecimal` — `libs/html-text.ts`
 - `kept` — `libs/html-text.ts`
 - `look` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `name` — `libs/html-text.ts`
@@ -6395,7 +6418,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `output` — `tools/build-userscript.ts`, `tools/develop-reports.ts`
 - `own` — `tools/aura-lifetime.ts`, `tools/payload-cost.ts`
 - `ownTurnsEach` — `tools/aura-lifetime.ts`
-- `page` — in 4 files: `tools/`
+- `page` — in 5 files: `tools/`
 - `pageLength` — `tools/skill-table.ts`
 - `pagePath` — `tools/skill-table.ts`
 - `paged` — `tools/margonem-readings.ts`
@@ -7415,7 +7438,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `longDrawn` — `tests/e2e/panel-helper.spec.ts`
 - `longWanted` — `tests/e2e/panel-helper.spec.ts`
 - `longer` — `tests/core/granted-blow-rule.test.ts`, `tests/tools/develop-reports.test.ts`
-- `longest` — `tests/core/fight-decoder.test.ts`, `tests/libs/text-walk.test.ts`
+- `longest` — `tests/core/fight-decoder.test.ts`, `tests/libs/html-text.test.ts`,
+  `tests/libs/text-walk.test.ts`
 - `longhand` — `tests/ui/panel-look.test.ts`
 - `look` — `tests/core/granted-blow-rule.test.ts`, `tests/ui/panel-words.test.ts`
 - `looked` — `tests/repository/protocol-keys.test.ts`, `tests/tools/preview-site.test.ts`
@@ -8274,14 +8298,16 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `character` — `libs/html-text.ts`
 - `count` — `libs/unknown-value.ts`
 - `decimal` — `libs/number-text.ts`
+- `digits` — `libs/html-text.ts`
 - `encodable` — `libs/json-text.ts`
 - `expected` — `libs/html-text.ts`, `libs/unknown-value.ts`
 - `field` — `libs/unknown-value.ts`
 - `from` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `html` — `libs/html-text.ts`
 - `indentSpaces` — `libs/json-text.ts`
-- `index` — `libs/text-walk.ts`
+- `index` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `integer` — `libs/number-text.ts`
+- `isHexadecimal` — `libs/html-text.ts`
 - `isMember` — `libs/text-walk.ts`
 - `key` — `libs/unknown-value.ts`
 - `keys` — `libs/unknown-value.ts`
@@ -13321,17 +13347,21 @@ suite's material.
 
 - `"\""` — `ENTITIES`
 - `"&"` — `ENTITIES`
-- `"&amp;"` — `ENTITIES`
+- `"&#"` — `NUMERIC_REFERENCE_OPEN`
+- `"&amp;"` — `ENTITIES`, `ENTITY_AMPERSAND`
 - `"&gt;"` — `ENTITIES`
 - `"&lt;"` — `ENTITIES`
 - `"&nbsp"` — `ENTITIES`
 - `"&nbsp;"` — `ENTITIES`
 - `"&quot;"` — `ENTITIES`
 - `"/"` — `TAG_TERMINATOR`
+- `"/!?"` — `TAG_NAME_OPENERS`
+- `";"` — `NUMERIC_REFERENCE_CLOSE`
 - `"<"` — `ENTITIES`, `TAG_OPEN`
 - `">"` — `ENTITIES`, `TAG_CLOSE`
 - `"script"` — `RAW_TEXT_ELEMENTS`
 - `"style"` — `RAW_TEXT_ELEMENTS`
+- `"xX"` — `NUMERIC_REFERENCE_HEXADECIMAL`
 
 ### `libs/number-text.ts`
 

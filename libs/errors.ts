@@ -6,7 +6,6 @@
  * boundaries.
  */
 
-/** What a `catch` held, whatever was thrown, as the `cause`. */
 export class Caught extends Error {
     override readonly name = "Caught";
 

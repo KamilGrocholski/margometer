@@ -5,7 +5,7 @@
  * admitted: a sign it did not write, an exponent, a space, a width nothing holds exactly.
  */
 
-import { assertEquals, assertStrictEquals } from "@std/assert";
+import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
 import { formatDecimal, formatInteger, parseDecimal, parseInteger } from "#/libs/number-text.ts";
 
 Deno.test("an integer is read where digits were written, and nowhere else", () => {
@@ -66,4 +66,13 @@ Deno.test("a decimal is written to the places it was asked for", () => {
     assertStrictEquals(formatDecimal(0, 1), "0.0", "and to one place");
     assertStrictEquals(formatDecimal(0, 2), "0.00", "and zero fills the width it was given");
     assertStrictEquals(formatDecimal(10.000000000000002, 1), "10.0", "a tenth stays a tenth");
+});
+
+Deno.test("a decimal is written to as many places as the platform writes, and no more", () => {
+    assertStrictEquals(formatDecimal(1, 100).length, 102, "a hundred places are written");
+    assertThrows(
+        () => formatDecimal(1, 101),
+        AssertionError,
+        "and never more than the platform writes",
+    );
 });

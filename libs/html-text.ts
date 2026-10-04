@@ -5,23 +5,29 @@
  */
 
 import { assert } from "@std/assert/assert";
-import { getEndOfRun, isWhitespaceAt } from "./text-walk.ts";
+import { parseInteger } from "./number-text.ts";
+import { getEndOfRun, isDigitAt, isWhitespaceAt } from "./text-walk.ts";
 
 const TAG_OPEN = "<";
 const TAG_CLOSE = ">";
 const TAG_TERMINATOR = "/";
+/** What may follow `<` for a browser to open a tag there: a letter, `/`, `!` or `?` (WHATWG). */
+const TAG_NAME_OPENERS = "/!?";
 const LOWER_CASE_OFFSET = 32;
 /** Elements whose body is text to a browser and machinery to a reader. */
 const RAW_TEXT_ELEMENTS = ["script", "style"];
-/** Past the tag count of any page these hosts serve, so each walk carries a stated bound. */
-const TAGS_MAXIMUM = 1_048_576;
-/** Past the length of any page these hosts serve, one look per character, for the same reason. */
-const CHARACTERS_MAXIMUM = 1_048_576;
+/**
+ * Past the length of any page these hosts serve, one look per character, so each walk carries a
+ * stated bound: help article 372 was 645 883 characters with 16 662 `<`, and the skill table 99 896
+ * with 4 662, both read 2026-10-04. A page past it is refused by the tool that reads it.
+ */
+export const HTML_CHARACTERS_MAXIMUM = 1_048_576;
 /**
  * The named entities these pages use, in the order they are substituted. ⚠️ **The order is the
  * meaning**: each pass runs over what the one before produced, so `&amp;lt;` becomes `&lt;` and
  * then `<`. `@std/html`'s `unescape` was asked first and answers differently (C17): it substitutes
- * once, and it takes the semicolon, while these pages write `&nbsp` without one.
+ * once, and it takes the semicolon, while these pages write `&nbsp` without one. Numeric references
+ * it decodes as well, and so does this, after `&amp;`, where `NUMERIC_REFERENCE_OPEN` stands.
  */
 const ENTITIES: readonly (readonly [string, string])[] = [
     ["&nbsp;", " "],
@@ -31,9 +37,26 @@ const ENTITIES: readonly (readonly [string, string])[] = [
     ["&gt;", ">"],
     ["&quot;", '"'],
 ];
+const ENTITY_AMPERSAND = "&amp;";
+const NUMERIC_REFERENCE_OPEN = "&#";
+const NUMERIC_REFERENCE_HEXADECIMAL = "xX";
+const NUMERIC_REFERENCE_CLOSE = ";";
+/** The no-break space, read as the space `&nbsp;` is read as. */
+const NO_BREAK_SPACE_CODE_POINT = 160;
+const CODE_POINT_MAXIMUM = 0x10ffff;
+const SURROGATE_FIRST = 0xd800;
+const SURROGATE_LAST = 0xdfff;
+/** Past `&#x10FFFF;` and `&#1114111;`, the longest a reference that names a character runs. */
+const REFERENCE_DIGITS_MAXIMUM = 8;
+const HEXADECIMAL_DIGITS = "0123456789abcdefABCDEF";
+const HEXADECIMAL_RADIX = 16;
 
 /** HTML to text, in the order the steps have to run in. */
 export function decodeHtmlText(html: string): string {
+    assert(
+        html.length <= HTML_CHARACTERS_MAXIMUM,
+        "a page stays inside the length it is walked to",
+    );
     let withoutRawText: string;
     // Take script and style bodies out, tag and contents together.
     {
@@ -42,7 +65,7 @@ export function decodeHtmlText(html: string): string {
         let kept = "";
         let from = 0;
         let open = html.indexOf(TAG_OPEN);
-        for (let look = 0; look < TAGS_MAXIMUM; look += 1) {
+        for (let look = 0; look < HTML_CHARACTERS_MAXIMUM; look += 1) {
             if (open === -1) break;
             const opening = lookupRawTextOpening(html, open);
             const end = opening === null
@@ -62,14 +85,16 @@ export function decodeHtmlText(html: string): string {
         withoutRawText = kept + html.slice(from);
     }
     let text: string;
-    // Take every remaining tag out. `<>` is not one: there has to be a character in it.
+    // Take every remaining tag out. A `<` a browser opens no tag at is text: `<= 20`, `<>`.
     {
         let kept = "";
         let from = 0;
         let open = withoutRawText.indexOf(TAG_OPEN);
-        for (let look = 0; look < TAGS_MAXIMUM; look += 1) {
+        for (let look = 0; look < HTML_CHARACTERS_MAXIMUM; look += 1) {
             if (open === -1) break;
-            const close = withoutRawText.indexOf(TAG_CLOSE, open + 1);
+            const close = isTagOpeningAt(withoutRawText, open + 1)
+                ? withoutRawText.indexOf(TAG_CLOSE, open + 1)
+                : -1;
             if (close > open + 1) {
                 kept += `${withoutRawText.slice(from, open)} `;
                 from = close + 1;
@@ -82,12 +107,83 @@ export function decodeHtmlText(html: string): string {
         assert(open === -1, "every tag was walked, which is what the bound is for");
         text = kept + withoutRawText.slice(from);
     }
-    for (const [entity, character] of ENTITIES) text = text.split(entity).join(character);
+    for (const [entity, character] of ENTITIES) {
+        text = text.split(entity).join(character);
+        if (entity === ENTITY_AMPERSAND) text = composeNumericReferencesDecoded(text);
+    }
     assert(text.length <= html.length, "text is never longer than the markup it was read from");
     return composeCollapsedWhitespace(text);
 }
 
-/** Which raw-text element opens at `open`, and where its opening tag ends. */
+function isTagOpeningAt(html: string, index: number): boolean {
+    const character = html.charAt(index);
+    if (character === "") return false;
+    if (TAG_NAME_OPENERS.includes(character)) return true;
+    if (isAsciiUpperCase(character)) return true;
+    if (character < "a") return false;
+    return character <= "z";
+}
+
+/**
+ * `&#160;` and `&#x2202;` read as the characters they name; one naming no character, or never
+ * closed, stays as it was written. The no-break space reads as a space, as `&nbsp;` does.
+ */
+function composeNumericReferencesDecoded(text: string): string {
+    let decoded = "";
+    let from = 0;
+    let open = text.indexOf(NUMERIC_REFERENCE_OPEN);
+    for (let look = 0; look < HTML_CHARACTERS_MAXIMUM; look += 1) {
+        if (open === -1) break;
+        const digitsAt = open + NUMERIC_REFERENCE_OPEN.length;
+        const isHexadecimal = NUMERIC_REFERENCE_HEXADECIMAL.includes(text.charAt(digitsAt));
+        const digitsFrom = isHexadecimal ? digitsAt + 1 : digitsAt;
+        const digitsEnd = getEndOfRun(
+            text,
+            digitsFrom,
+            isHexadecimal ? isHexadecimalDigitAt : isDigitAt,
+        );
+        const digits = text.slice(digitsFrom, digitsEnd);
+        const codePoint = text.charAt(digitsEnd) === NUMERIC_REFERENCE_CLOSE
+            ? lookupReferencedCodePoint(digits, isHexadecimal)
+            : null;
+        if (codePoint === null) {
+            decoded += text.slice(from, digitsAt);
+            from = digitsAt;
+        } else {
+            const character = codePoint === NO_BREAK_SPACE_CODE_POINT
+                ? " "
+                : String.fromCodePoint(codePoint);
+            decoded += `${text.slice(from, open)}${character}`;
+            from = digitsEnd + NUMERIC_REFERENCE_CLOSE.length;
+        }
+        open = text.indexOf(NUMERIC_REFERENCE_OPEN, from);
+    }
+    assert(open === -1, "every reference was walked, which is what the bound is for");
+    return decoded + text.slice(from);
+}
+
+function isHexadecimalDigitAt(text: string, index: number): boolean {
+    const character = text.charAt(index);
+    if (character === "") return false;
+    return HEXADECIMAL_DIGITS.includes(character);
+}
+
+/** A surrogate half names no character on its own, and the platform would write one anyway. */
+function lookupReferencedCodePoint(digits: string, isHexadecimal: boolean): number | null {
+    if (digits.length === 0) return null;
+    if (digits.length > REFERENCE_DIGITS_MAXIMUM) return null;
+    const codePoint = isHexadecimal
+        ? Number.parseInt(digits, HEXADECIMAL_RADIX)
+        : parseInteger(digits);
+    if (codePoint === null) return null;
+    assert(Number.isSafeInteger(codePoint), "digits short enough read as a whole number");
+    if (codePoint === 0) return null;
+    if (codePoint > CODE_POINT_MAXIMUM) return null;
+    if (codePoint < SURROGATE_FIRST) return codePoint;
+    if (codePoint > SURROGATE_LAST) return codePoint;
+    return null;
+}
+
 function lookupRawTextOpening(html: string, open: number): { name: string; end: number } | null {
     for (const name of RAW_TEXT_ELEMENTS) {
         if (!isSameAsciiTextAt(html, open + 1, name)) continue;
@@ -103,7 +199,8 @@ function lookupRawTextOpening(html: string, open: number): { name: string; end: 
 /** ASCII case folding, and only ASCII: a tag name has nothing else in it. */
 function isSameAsciiTextAt(text: string, from: number, expected: string): boolean {
     assert(expected.length > 0, "a comparison is against something");
-    assert(from >= 0, "and starts inside the text");
+    assert(Number.isSafeInteger(from), "a comparison starts at a whole position");
+    assert(from >= 0, "never before the text");
     for (let index = 0; index < expected.length; index += 1) {
         const character = text.charAt(from + index);
         if (character === "") return false;
@@ -120,10 +217,9 @@ function isAsciiUpperCase(character: string): boolean {
     return character <= "Z";
 }
 
-/** Where the matching `</name>` ends, or null where there is none. */
 function lookupRawTextClosing(html: string, from: number, name: string): number | null {
     assert(name.length > 0, "a closing tag is looked for by name");
-    assert(html.length <= CHARACTERS_MAXIMUM, "a page stays inside the length it is walked to");
+    assert(from > 0, "and after the opening tag it closes");
     for (let index = from; index < html.length; index += 1) {
         if (html.charAt(index) !== TAG_OPEN) continue;
         if (html.charAt(index + 1) !== TAG_TERMINATOR) continue;
@@ -139,7 +235,7 @@ function composeCollapsedWhitespace(text: string): string {
     let collapsed = "";
     let from = 0;
     let index = 0;
-    for (let look = 0; look < CHARACTERS_MAXIMUM; look += 1) {
+    for (let look = 0; look < HTML_CHARACTERS_MAXIMUM; look += 1) {
         if (index === text.length) break;
         if (!isWhitespaceAt(text, index)) {
             index += 1;

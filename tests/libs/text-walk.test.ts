@@ -7,8 +7,10 @@ import {
     getEndOfRun,
     isDigitAt,
     isDigitRun,
+    isWhitespaceAt,
     LITERAL_CHARACTERS_MAXIMUM,
     lookupQuotedLiteral,
+    RUN_CHARACTERS_MAXIMUM,
 } from "#/libs/text-walk.ts";
 
 Deno.test("a digit is told from its neighbours in the character table", () => {
@@ -24,6 +26,28 @@ Deno.test("a run ends where its first non-member stands, and is empty where none
     assertStrictEquals(getEndOfRun("a12", 0, isDigitAt), 0, "and one that never starts is empty");
     assertStrictEquals(getEndOfRun("a12", 1, isDigitAt), 3, "a run may run to the end");
     assertStrictEquals(getEndOfRun("", 0, isDigitAt), 0, "empty text holds no run");
+});
+
+Deno.test("a run is walked up to the bound on its length, and a run reaching it is broken", () => {
+    const longest = " ".repeat(RUN_CHARACTERS_MAXIMUM - 1);
+    assertStrictEquals(
+        getEndOfRun(`${longest}a`, 0, isWhitespaceAt),
+        RUN_CHARACTERS_MAXIMUM - 1,
+        "a run one short of the bound is read",
+    );
+    assertThrows(
+        () => getEndOfRun(`${longest} a`, 0, isWhitespaceAt),
+        AssertionError,
+        "a run ends inside the bound on its length",
+    );
+    assertStrictEquals(isDigitRun("1".repeat(RUN_CHARACTERS_MAXIMUM - 1)), true, "under the bound");
+    assertStrictEquals(isDigitRun("1".repeat(RUN_CHARACTERS_MAXIMUM)), false, "and none at it");
+});
+
+Deno.test("a position is a whole one, never before the text", () => {
+    assertThrows(() => isWhitespaceAt("a b", 1.5), AssertionError, "a whole position");
+    assertThrows(() => isWhitespaceAt("a b", -1), AssertionError, "never before the text");
+    assertThrows(() => lookupQuotedLiteral(`"a"`, 0.5), AssertionError, "a whole position");
 });
 
 Deno.test("digits and nothing else are a run, and empty text is not one", () => {
