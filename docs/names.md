@@ -1010,6 +1010,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `encodeReportPairCut` — `src/runtime/fight-file.ts`
 - `encodeReportRow` — `src/runtime/fight-file.ts`
 - `encodeReportSkills` — `src/runtime/fight-file.ts`
+- `encodeReportTotals` — `src/runtime/fight-file.ts`
 - `encodeRequiredJson` — `tools/capture-intake.ts`
 - `encodeRequiredText` — `tools/buff-bit-table.ts`, `tools/help-article.ts`,
   `tools/protocol-key-table.ts`
@@ -1287,6 +1288,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `formatCitation` — `tests/repository/cited-paths.test.ts`
 - `formatCodeSpan` — `tests/repository/name-register.test.ts`
 - `formatColour` — `src/ui/panel-palette.ts`
+- `formatColumnsLine` — `tools/fight-figures.ts`
 - `formatComparison` — `tools/develop-reports.ts`
 - `formatCostReport` — `tools/payload-cost.ts`
 - `formatCountedNoun` — `src/ui/panel-words.ts`
@@ -2711,6 +2713,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FightSession` — `src/core/fight-session.ts`
 - `FightStandings` — `src/core/aura-standing.ts`
 - `FightStatistics` — `src/core/fight-statistics.ts`
+- `FightTotals` — `src/core/fight-statistics.ts`
 - `FightView` — `src/core/fight-session.ts`
 - `FigureCut` — `src/core/fight-statistics.ts`
 - `GrammarRefusal` — `src/core/fight-decoder.ts`
@@ -3484,6 +3487,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `STATUS_BITS_MAXIMUM` — `src/core/carried-status.ts`
 - `STEP_KEY` — `src/core/protocol-key.ts`
 - `TEXT_KEY` — `src/core/protocol-key.ts`
+- `TOTALLED_FIELDS` — `src/core/fight-statistics.ts`
 - `TURN_LOST_SEPARATOR` — `src/core/fight-decoder.ts`
 - `UNREAD_CAUSE` — `src/core/battle-event.ts`
 - `VALUELESS_DECLARATION_KEYS` — `src/core/protocol-key.ts`
@@ -4800,6 +4804,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `STYLE_ATTRIBUTE` — `tests/ui/level-drawn.test.ts`
 - `SUBTITLE_ON_ONE_LINE` — `tests/ui/card-window.test.ts`
 - `SUITE_PREFIX` — `tests/repository/name-register.test.ts`
+- `SUMMED_FIGURES` — `tests/runtime/fight-file.test.ts`
 - `SUPERSEDED_OPENER` — `tests/repository/decisions.test.ts`
 - `SUPERSEDES_OPENER` — `tests/repository/decisions.test.ts`
 - `SURROUNDINGS` — `tests/runtime/fight-file.test.ts`
@@ -5053,6 +5058,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `eventsAfter` — `src/core/fight-session.ts`
 - `eventsBefore` — `src/core/fight-session.ts`
 - `existing` — `src/core/fight-statistics.ts`
+- `field` — `src/core/fight-statistics.ts`
 - `figure` — `src/core/fight-statistics.ts`
 - `figures` — `src/core/fight-statistics.ts`
 - `fraction` — `src/core/protocol-number.ts`
@@ -7120,6 +7126,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `foreign` — `tests/ports/margonem-engine-battle.test.ts`
 - `forged` — `tests/ports/fight-capture.test.ts`
 - `format` — `tests/repository/documents.test.ts`
+- `fought` — `tests/runtime/fight-file.test.ts`
 - `four` — `tests/runtime/shelf.test.ts`
 - `fraction` — `tests/runtime/settings.test.ts`
 - `fragments` — `tests/tools/help-article.test.ts`
@@ -7185,7 +7192,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `hatch` — `tests/ui/panel-look.test.ts`
 - `hatched` — `tests/ui/panel-element.test.ts`
 - `header` — in 4 files: `tests/`
-- `heading` — in 6 files: `tests/`
+- `heading` — in 7 files: `tests/`
 - `headingIndex` — `tests/register-table.ts`, `tests/repository/design-tokens.test.ts`
 - `headings` — `tests/repository/changelog.test.ts`, `tests/repository/comment-share.test.ts`,
   `tests/ui/panel-element.test.ts`
@@ -7934,7 +7941,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `started` — `tests/ports/browser-interval.test.ts`
 - `starts` — `tests/runtime/margonem-engine-search.test.ts`
 - `state` — in 6 files: `tests/`
-- `stated` — in 37 files: `tests/`
+- `stated` — in 38 files: `tests/`
 - `statedById` — `tests/runtime/carried-tooltip.test.ts`
 - `statedHere` — `tests/core/health-witness.test.ts`
 - `statedName` — `tests/repository/throws.test.ts`
@@ -7989,7 +7996,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `suite` — `tests/repository/name-register.test.ts`
 - `sum` — `tests/ui/share-bound.test.ts`, `tests/ui/share-column.test.ts`
 - `summary` — `tests/e2e/panel-size.spec.ts`
-- `summed` — `tests/repository/comment-share.test.ts`, `tests/runtime/margometer-runtime.test.ts`
+- `summed` — `tests/repository/comment-share.test.ts`, `tests/runtime/fight-file.test.ts`,
+  `tests/runtime/margometer-runtime.test.ts`
 - `surface` — `tests/e2e/panel-layer.spec.ts`, `tests/ui/panel-look.test.ts`
 - `surroundings` — `tests/ports/browser-surroundings.test.ts`
 - `suspectRow` — `tests/ui/panel-content.test.ts`
@@ -8056,8 +8064,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `topRow` — `tests/ui/panel-content.test.ts`, `tests/ui/panel-element.test.ts`
 - `torn` — `tests/ports/browser-clock.test.ts`
 - `total` — in 5 files: `tests/`
-- `totals` — `tests/core/legendary-standing.test.ts`, `tests/runtime/margometer-runtime.test.ts`,
-  `tests/ui/panel-content.test.ts`
+- `totals` — in 4 files: `tests/`
 - `touching` — `tests/ui/panel-drag.test.ts`
 - `track` — `tests/ui/panel-element.test.ts`
 - `tracked` — `tests/repository/cited-paths.test.ts`, `tests/repository/documents.test.ts`
@@ -8543,6 +8550,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `src/runtime/panel-frame.ts`
 - `text` — `src/runtime/settings.ts`
 - `tooltip` — `src/runtime/carried-tooltip.ts`
+- `totals` — `src/runtime/fight-file.ts`
 - `translate` — `src/runtime/carried-tooltip.ts`
 - `version` — `src/runtime/shelf.ts`
 - `view` — `src/runtime/carried-tooltip.ts`, `src/runtime/fight-state.ts`,
@@ -11822,24 +11830,27 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/runtime/margometer-runtime.test.ts`
 - `damageByNeitherEnd` — `tests/ui/panel-content.test.ts`
 - `damageByNeitherEndByKind` — `tests/ui/panel-content.test.ts`
-- `damageDealt` — `tests/ui/panel-card.test.ts`, `tests/ui/panel-content.test.ts`
+- `damageDealt` — `tests/runtime/fight-file.test.ts`, `tests/ui/panel-card.test.ts`,
+  `tests/ui/panel-content.test.ts`
+- `damageDealtAbsorbed` — `tests/runtime/fight-file.test.ts`
 - `damageDealtAbsorbedByDefence` — `tests/ui/panel-card.test.ts`
+- `damageDealtApplied` — `tests/runtime/fight-file.test.ts`
 - `damageDealtByNobody` — `tests/runtime/panel-frame.test.ts`, `tests/ui/panel-content.test.ts`
 - `damageDealtByOpponent` — `tests/ui/panel-content.test.ts`
-- `damageDealtRaw` — `tests/ui/panel-card.test.ts`
+- `damageDealtRaw` — `tests/runtime/fight-file.test.ts`, `tests/ui/panel-card.test.ts`
 - `damageDealtToNobody` — `tests/ui/panel-card.test.ts`
 - `damageDealtToNobodyByKind` — `tests/core/fight-statistics.test.ts`
-- `damagePrevented` — `tests/core/fight-statistics.test.ts`, `tests/ui/panel-card.test.ts`
-- `damagePreventedByDefence` — `tests/core/fight-statistics.test.ts`, `tests/ui/panel-card.test.ts`
-- `damageTaken` — `tests/core/fight-figures.test.ts`, `tests/core/fight-statistics.test.ts`,
+- `damagePrevented` — `tests/core/fight-statistics.test.ts`, `tests/runtime/fight-file.test.ts`,
   `tests/ui/panel-card.test.ts`
-- `damageTakenAbsorbed` — `tests/core/fight-statistics.test.ts`
+- `damagePreventedByDefence` — `tests/core/fight-statistics.test.ts`, `tests/ui/panel-card.test.ts`
+- `damageTaken` — in 4 files: `tests/`
+- `damageTakenAbsorbed` — `tests/core/fight-statistics.test.ts`, `tests/runtime/fight-file.test.ts`
 - `damageTakenAbsorbedByDefence` — `tests/core/fight-statistics.test.ts`,
   `tests/ui/panel-card.test.ts`
-- `damageTakenApplied` — `tests/core/fight-statistics.test.ts`
+- `damageTakenApplied` — `tests/core/fight-statistics.test.ts`, `tests/runtime/fight-file.test.ts`
 - `damageTakenByNobody` — `tests/ui/panel-content.test.ts`
 - `damageTakenFromNobody` — `tests/ui/panel-card.test.ts`
-- `damageTakenRaw` — `tests/ui/panel-card.test.ts`
+- `damageTakenRaw` — `tests/runtime/fight-file.test.ts`, `tests/ui/panel-card.test.ts`
 - `date` — `tests/repository/decisions.test.ts`, `tests/tools/margonem-readings.test.ts`
 - `day` — in 5 files: `tests/`
 - `dealt` — `tests/runtime/fight-file.test.ts`, `tests/tools/capture-intake.test.ts`
@@ -11992,14 +12003,16 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `heal` — `tests/core/last-heal-rule.test.ts`
 - `heals` — `tests/core/legendary-standing.test.ts`
 - `health` — `tests/recorded-fights.ts`
-- `healthGiven` — `tests/ui/panel-card.test.ts`, `tests/ui/panel-content.test.ts`
+- `healthGiven` — `tests/runtime/fight-file.test.ts`, `tests/ui/panel-card.test.ts`,
+  `tests/ui/panel-content.test.ts`
 - `healthGivenByNobody` — `tests/ui/panel-content.test.ts`
 - `healthGivenByReceiver` — `tests/ui/panel-content.test.ts`
 - `healthMaximum` — in 17 files: `tests/`
 - `healthNow` — `tests/recorded-fights.ts`
 - `healthPercent` — in 8 files: `tests/`
 - `healthReadings` — `tests/recorded-fights.ts`
-- `healthRestored` — `tests/core/fight-statistics.test.ts`, `tests/ui/panel-card.test.ts`
+- `healthRestored` — `tests/core/fight-statistics.test.ts`, `tests/runtime/fight-file.test.ts`,
+  `tests/ui/panel-card.test.ts`
 - `healthRestoredByNobody` — `tests/core/fight-statistics.test.ts`, `tests/ui/panel-card.test.ts`
 - `healthRestoredByNobodyByKey` — `tests/core/fight-statistics.test.ts`
 - `healthRestoredToNobody` — `tests/ui/panel-content.test.ts`
@@ -12512,7 +12525,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `top` — in 8 files: `tests/`
 - `total` — `tests/ui/panel-element.test.ts`, `tests/ui/share-column.test.ts`
 - `total_turns` — `tests/ports/warrior-entries.test.ts`
-- `totals` — `tests/runtime/panel-frame.test.ts`, `tests/ui/panel-content.test.ts`
+- `totals` — `tests/runtime/fight-file.test.ts`, `tests/runtime/panel-frame.test.ts`,
+  `tests/ui/panel-content.test.ts`
 - `track` — `tests/repository/design-tokens.test.ts`
 - `tracked` — `tests/repository/name-register.test.ts`
 - `translate` — `tests/panel-view.ts`, `tests/ui/panel-card.test.ts`
@@ -13341,6 +13355,20 @@ suite's material.
 - `"over"` — `SESSION_PHASE`
 - `"underway"` — `SESSION_PHASE`
 - `"waiting"` — `SESSION_PHASE`
+
+### `src/core/fight-statistics.ts`
+
+- `"damageDealt"` — `TOTALLED_FIELDS`
+- `"damageDealtAbsorbed"` — `TOTALLED_FIELDS`
+- `"damageDealtApplied"` — `TOTALLED_FIELDS`
+- `"damageDealtRaw"` — `TOTALLED_FIELDS`
+- `"damagePrevented"` — `TOTALLED_FIELDS`
+- `"damageTaken"` — `TOTALLED_FIELDS`
+- `"damageTakenAbsorbed"` — `TOTALLED_FIELDS`
+- `"damageTakenApplied"` — `TOTALLED_FIELDS`
+- `"damageTakenRaw"` — `TOTALLED_FIELDS`
+- `"healthGiven"` — `TOTALLED_FIELDS`
+- `"healthRestored"` — `TOTALLED_FIELDS`
 
 ### `src/core/protocol-key.ts`
 
@@ -14551,6 +14579,7 @@ suite's material.
 - `docs/adr/0032-the-card-counts-the-legendary-bonuses-that-reached-its-combatant-and-names-no-giver.md`
 - `docs/adr/0033-a-card-too-tall-for-the-window-stands-in-two-columns.md`
 - `docs/adr/0034-every-row-under-an-end-left-out-says-so-at-every-level.md`
+- `docs/adr/0035-a-fights-totals-hold-only-what-is-summed.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

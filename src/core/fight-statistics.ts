@@ -158,10 +158,31 @@ export interface UnreadMessageCounts {
     unreadMessagesGrammarRefused: number;
 }
 
+/** What a fight's totals sum. */
+const TOTALLED_FIELDS = [
+    "damageDealt",
+    "damageTaken",
+    "damageDealtRaw",
+    "damageDealtApplied",
+    "damageTakenRaw",
+    "damageTakenApplied",
+    "damageDealtAbsorbed",
+    "damageTakenAbsorbed",
+    "damagePrevented",
+    "healthRestored",
+    "healthGiven",
+] as const satisfies readonly (keyof CombatantFigures)[];
+
+/**
+ * The figures a sum across combatants means anything for. A count, a cut or a largest blow is a
+ * combatant's, and the same field summed over a fight would be a nought nobody measured.
+ */
+export type FightTotals = Pick<CombatantFigures, typeof TOTALLED_FIELDS[number]>;
+
 export interface FightStatistics extends UnreadMessageCounts {
     byCombatantId: ReadonlyMap<number, CombatantFigures>;
     /** The fight's own sums, here because a total across combatants is never the panel's. */
-    totals: CombatantFigures;
+    totals: FightTotals;
     damageDealtByNobody: number;
     damageTakenByNobody: number;
     healthGivenByNobody: number;
@@ -1276,20 +1297,22 @@ function lookupWoundActorId(tallying: TallyingStatistics, event: HealthChangeEve
     return wound.actorId;
 }
 
-function tallyTotals(byCombatantId: ReadonlyMap<number, TallyingFigures>): TallyingFigures {
-    const totals = createCombatantFigures();
+function tallyTotals(byCombatantId: ReadonlyMap<number, TallyingFigures>): FightTotals {
+    const totals: FightTotals = {
+        damageDealt: 0,
+        damageTaken: 0,
+        damageDealtRaw: 0,
+        damageDealtApplied: 0,
+        damageTakenRaw: 0,
+        damageTakenApplied: 0,
+        damageDealtAbsorbed: 0,
+        damageTakenAbsorbed: 0,
+        damagePrevented: 0,
+        healthRestored: 0,
+        healthGiven: 0,
+    };
     for (const figures of byCombatantId.values()) {
-        totals.damageDealt += figures.damageDealt;
-        totals.damageTaken += figures.damageTaken;
-        totals.damageDealtAbsorbed += figures.damageDealtAbsorbed;
-        totals.damageTakenAbsorbed += figures.damageTakenAbsorbed;
-        totals.damageDealtRaw += figures.damageDealtRaw;
-        totals.damageDealtApplied += figures.damageDealtApplied;
-        totals.damageTakenRaw += figures.damageTakenRaw;
-        totals.damageTakenApplied += figures.damageTakenApplied;
-        totals.damagePrevented += figures.damagePrevented;
-        totals.healthRestored += figures.healthRestored;
-        totals.healthGiven += figures.healthGiven;
+        for (const field of TOTALLED_FIELDS) totals[field] += figures[field];
     }
     assert(totals.damageDealt >= totals.damageDealtApplied, "health is a part of what was dealt");
     assert(totals.healthRestored >= 0, "a total of health restored never runs below nought");

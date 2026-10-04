@@ -14,6 +14,7 @@ import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
 import type {
     CombatantFigures,
     FightStatistics,
+    FightTotals,
     SkillFigures,
 } from "#/src/core/fight-statistics.ts";
 import type { CapturedCall } from "#/src/ports/fight-capture.ts";
@@ -225,7 +226,25 @@ export function encodeFightReport(subject: FileSubject): Record<string, unknown>
         [REPORT_KEY_BY_FIGHT_FIELD.damageByNeitherEnd]: statistics.damageByNeitherEnd,
         roster: [...subject.roster.byId.values()],
         combatants: encodeReportCombatants(statistics),
-        totals: encodeReportRow(statistics.totals),
+        totals: encodeReportTotals(statistics.totals),
+    };
+}
+
+/** Only what is summed: a count or a cut across a whole fight would be a nought nobody measured. */
+function encodeReportTotals(totals: FightTotals): Record<keyof FightTotals, number> {
+    assert(totals.damageDealtRaw >= 0, "a total written into a report is never below nothing");
+    return {
+        damageDealt: totals.damageDealt,
+        damageTaken: totals.damageTaken,
+        damageDealtRaw: totals.damageDealtRaw,
+        damageDealtApplied: totals.damageDealtApplied,
+        damageTakenRaw: totals.damageTakenRaw,
+        damageTakenApplied: totals.damageTakenApplied,
+        damageDealtAbsorbed: totals.damageDealtAbsorbed,
+        damageTakenAbsorbed: totals.damageTakenAbsorbed,
+        damagePrevented: totals.damagePrevented,
+        healthRestored: totals.healthRestored,
+        healthGiven: totals.healthGiven,
     };
 }
 

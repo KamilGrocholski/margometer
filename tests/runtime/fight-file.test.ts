@@ -11,6 +11,7 @@ import {
     assertEquals,
     assertInstanceOf,
     AssertionError,
+    assertStrictEquals,
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
@@ -21,7 +22,11 @@ import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import { tallyFightFigures } from "#/src/core/fight-figures.ts";
 import { composeFightView } from "#/src/core/fight-session.ts";
-import { createCombatantFigures, tallyFightStatistics } from "#/src/core/fight-statistics.ts";
+import {
+    createCombatantFigures,
+    type FightTotals,
+    tallyFightStatistics,
+} from "#/src/core/fight-statistics.ts";
 import { createFightCapture } from "#/src/ports/fight-capture.ts";
 import {
     encodeFightFile,
@@ -43,6 +48,20 @@ import { readRecordedFights, replayRecordedFight } from "#/tests/recorded-fights
  */
 const NEWEST = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";
 const ADD_ON_VERSION = "0.0.0-test";
+/** What a fight's totals hold, spelled here as the file holds them, which is the point. */
+const SUMMED_FIGURES = [
+    "damageDealt",
+    "damageDealtAbsorbed",
+    "damageDealtApplied",
+    "damageDealtRaw",
+    "damagePrevented",
+    "damageTaken",
+    "damageTakenAbsorbed",
+    "damageTakenApplied",
+    "damageTakenRaw",
+    "healthGiven",
+    "healthRestored",
+];
 
 const SURROUNDINGS: FileSurroundings = {
     world: "tempest",
@@ -205,7 +224,7 @@ function lookupReportKey(field: string, renamed: Readonly<Record<string, string>
     return renamed[field] ?? field;
 }
 
-Deno.test("every figure of a row is written, for each combatant and for the totals", () => {
+Deno.test("every figure of a row is written for each combatant, and the totals hold sums", () => {
     const report = encodeFightReport(composeFoughtSubject());
     const owed = Object.keys(createCombatantFigures())
         .map((name) => lookupReportKey(name, REPORT_KEY_BY_ROW_FIELD))
@@ -213,9 +232,22 @@ Deno.test("every figure of a row is written, for each combatant and for the tota
     const combatants = report.combatants;
     assert(isRecord(combatants), "the report holds a row per combatant");
     assertEquals(Object.keys(combatants).sort(), ["1", "2"], "one per combatant it counted");
-    for (const row of [combatants["1"], combatants["2"], report.totals]) {
+    for (const row of [combatants["1"], combatants["2"]]) {
         assert(isRecord(row), "every row is a record");
         assertEquals(Object.keys(row).sort(), owed, "holding every figure a row counts");
+    }
+    const totals = report.totals;
+    assert(isRecord(totals), "the totals are a record");
+    assertEquals(Object.keys(totals).sort(), SUMMED_FIGURES, "holding only what is summed");
+    for (const figure of SUMMED_FIGURES) {
+        let summed = 0;
+        for (const row of [combatants["1"], combatants["2"]]) {
+            assert(isRecord(row), "every row is a record");
+            const stated = row[figure];
+            assert(typeof stated === "number", `${figure} is written as a number`);
+            summed += stated;
+        }
+        assertStrictEquals(totals[figure], summed, `${figure} is what the rows come to`);
     }
     const dealer = combatants["1"];
     assert(isRecord(dealer), "the dealer has a row");
@@ -316,6 +348,20 @@ Deno.test("every recording, replayed and written, reads back whole", () => {
         assertEquals(report.payloads, fight.updates.length, `${fight.path}: every call counted`);
         const roster = JSON.parse(JSON.stringify([...view.roster.byId.values()]));
         assertEquals(report.roster, roster, `${fight.path}: and the cast as it was read`);
+        const combatants = report.combatants;
+        assert(isRecord(combatants), `${fight.path}: a row per combatant`);
+        const totals = report.totals;
+        assert(isRecord(totals), `${fight.path}: and the totals`);
+        for (const figure of SUMMED_FIGURES) {
+            let summed = 0;
+            for (const row of Object.values(combatants)) {
+                assert(isRecord(row), `${fight.path}: every row is a record`);
+                const stated = row[figure];
+                assert(typeof stated === "number", `${fight.path}: ${figure} is a number`);
+                summed += stated;
+            }
+            assertStrictEquals(totals[figure], summed, `${fight.path}: ${figure} is the rows' sum`);
+        }
         files += 1;
     }
     assert(files > 0, "the recordings were there to write");
@@ -337,6 +383,32 @@ Deno.test("a row writes each figure the aggregate counted, and not a stand-in", 
         assertEquals(row[key], figure, `${name} is written as it was counted, under ${key}`);
     }
     assertEquals(row.blowsStruck, 2, "two swings, which is what the row states");
+});
+
+/**
+ * Each sum apart from the rest: in every recording of 2026-10-04, raw and absorbed damage dealt
+ * equal what was taken, and health given equals health restored, so a swap there writes the same.
+ */
+Deno.test("the totals write each sum the aggregate made, and not a stand-in", () => {
+    const fought = composeFoughtSubject();
+    const totals: FightTotals = {
+        damageDealt: 1,
+        damageTaken: 2,
+        damageDealtRaw: 3,
+        damageDealtApplied: 4,
+        damageTakenRaw: 5,
+        damageTakenApplied: 6,
+        damageDealtAbsorbed: 7,
+        damageTakenAbsorbed: 8,
+        damagePrevented: 9,
+        healthRestored: 10,
+        healthGiven: 11,
+    };
+    const report = encodeFightReport({ ...fought, statistics: { ...fought.statistics, totals } });
+    assert(isRecord(report.totals), "the totals are a record");
+    for (const [figure, summed] of Object.entries(totals)) {
+        assertStrictEquals(report.totals[figure], summed, `${figure} is written as it was summed`);
+    }
 });
 
 Deno.test("what qualifies the figures is written as the fight stated it", () => {

@@ -21,6 +21,7 @@ import {
     createCombatantFigures,
     type FightOutcome,
     type FightStatistics,
+    type FightTotals,
     type FigureCut,
     type SkillFigures,
 } from "#/src/core/fight-statistics.ts";
@@ -881,7 +882,7 @@ function composeRowsBeforeShares(
     return rows;
 }
 
-function getFigureForMetric(figures: CombatantFigures, metric: PanelMetric): number {
+function getFigureForMetric(figures: FightTotals, metric: PanelMetric): number {
     const figure = figures[metric];
     return figure;
 }

@@ -14,6 +14,7 @@ import {
     type CombatantFigures,
     countUnreadMessages,
     type FightStatistics,
+    type FightTotals,
     type FigureCut,
     type SkillFigures,
 } from "#/src/core/fight-statistics.ts";
@@ -56,7 +57,7 @@ export function formatFigureReport(replayed: ReplayedFight): string[] {
         HEADINGS.map((heading) => heading.padStart(NUMBER_WIDTH)).join(""),
         ...formatSideLines(statistics, view.roster),
         "  —— the fight together ——",
-        ...formatRowLines("everybody", statistics.totals, view.roster),
+        formatColumnsLine("everybody", statistics.totals),
         ...formatReadingLines(statistics, view.messagesLost),
         ...formatOutcomeLines(statistics),
     ];
@@ -115,6 +116,15 @@ function formatRowLines(
     figures: CombatantFigures,
     roster: CombatantRoster,
 ): string[] {
+    return [
+        formatColumnsLine(label, figures),
+        ...formatDetailLines(figures, roster),
+        ...formatBlowLines(figures),
+    ];
+}
+
+/** The columns alone, which is all a fight's totals hold: its cuts and counts are its combatants'. */
+function formatColumnsLine(label: string, figures: FightTotals): string {
     assert(label.length > 0, "a row is drawn under a label");
     assert(figures.damageDealtRaw >= 0, "and never below nothing");
     const columns = [
@@ -125,11 +135,7 @@ function formatRowLines(
         figures.healthRestored,
         figures.healthGiven,
     ].map((amount) => formatInteger(amount).padStart(NUMBER_WIDTH)).join("");
-    return [
-        `    ${label.slice(0, NAME_WIDTH).padEnd(NAME_WIDTH)}${columns}`,
-        ...formatDetailLines(figures, roster),
-        ...formatBlowLines(figures),
-    ];
+    return `    ${label.slice(0, NAME_WIDTH).padEnd(NAME_WIDTH)}${columns}`;
 }
 
 /** Kept off the numeric columns: these are not in one unit, and a column would say they were. */

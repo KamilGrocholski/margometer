@@ -31,6 +31,19 @@ Deno.test("a recording's report is headed by it and says what the reading could 
     ], "and it ends on who won and who lost, by name");
 });
 
+/** Each column is what the rows above it in `SHORT`'s report come to. */
+Deno.test("the fight together is its columns alone, and the reading follows at once", () => {
+    const material = { material: SHORT, fights: [lookupRecordedFight(SHORT)] };
+    const [replayed] = replayRecordedMaterial(material);
+    const lines = formatFigureReport(replayed!);
+    const heading = lines.indexOf("  —— the fight together ——");
+    assert(heading > 0, "the fight's own line stands under a heading");
+    assertEquals(lines.slice(heading + 1, heading + 3), [
+        "    everybody                       4452      2743      2883         0        99        99",
+        "  —— what the reading could not do ——",
+    ], "one line of sums, with no cut or blow under it");
+});
+
 Deno.test("an empty cut says so, and a cut is written largest first, ties by key", () => {
     assertStrictEquals(formatCutText(new Map(), null), "—", "an empty cut is not a missing line");
     const cut = new Map([["fire", 5], ["cold", 5], ["dmg", 9]]);
