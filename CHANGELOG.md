@@ -41,6 +41,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 - **Poprawka** — Panel mówi, gdy przeglądarka nie pozwoliła zachować zapisanych walk, nie usunęła
   ich ze starego miejsca po zmianie przechowywania albo części z nich nie dało się odczytać.
+- **Poprawka** — Przyciski na paskach okien mają równą szerokość i ikony stoją na ich środku, a „i”
+  w kółku przy liczbie nie siedzi już za wysoko.
 
 ## [0.22.0] — 2026-10-03
 

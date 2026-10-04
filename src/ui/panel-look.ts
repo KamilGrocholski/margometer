@@ -8,6 +8,7 @@
  */
 
 import { clampNumber } from "#/libs/number-range.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     PANEL_WINDOW,
     type PanelWindow,
@@ -43,9 +44,8 @@ export interface TypeTokens {
      * the two okrzyki differ from their first letter, so this shows enough of either to say which.
      */
     castWidthPixelsMinimum: number;
-    /** The caveat mark's ring, across and down, and the letter inside it. */
+    /** The caveat mark's ring, across and down: even, so the letter drawn in it lands mid-ring. */
     markSizePixels: number;
-    markLetterPixels: number;
     meterWidthPixels: number;
     /**
      * How wide a card may stand — **a maximum and not a width**. The card is drawn at `max-content`
@@ -63,6 +63,16 @@ export interface TypeTokens {
 
 /** How many columns a card stands in: one, or two where one stands too tall (ADR 0033). */
 export type CardColumns = 1 | 2;
+
+/** What a bar control draws, which is a shape and never its glyph (ADR 0036). */
+export const BAR_ICON = {
+    options: "options",
+    shelf: "shelf",
+    save: "save",
+    fold: "fold",
+    unfold: "unfold",
+} as const;
+export type BarIcon = VocabularyWord<typeof BAR_ICON>;
 
 export const SURFACE = {
     panel: [0x0f, 0x16, 0x1d],
@@ -233,20 +243,17 @@ export const LAYER = {
  * One row per step. The small one is the size the panel shipped at, and every figure in it was
  * measured in Chrome 152: the rank cell's `20.` at 17.50px on 2026-09-15; the cast floor on
  * 2026-09-18, where `Wyzywa` is 49px and `Prowok` 44px, and a 25-character nickname left a cast
- * with no floor 4px; the ring on 2026-09-15, where a smaller one reads as a speck beside a figure
- * and nine carries no letter at all, and seven is the largest letter that leaves it untouched.
+ * with no floor 4px; the ring on 2026-09-15, where a smaller one reads as a speck beside a figure.
  *
  * The other two were measured in Chrome 154 on 2026-09-28 through this sheet, the method first
  * reproducing the small row: `20.` at 17.50px, 19.09 and 20.69, each cell that plus its 4px of air
  * and rounded up; `Wyzywa` at 49.33px and 53.44, each floor the whole word (the same Chrome reads
- * it 45.22px at the small step, against the 49 above); and the largest letter whose ink stands a
- * clear pixel inside the ring, which is seven in a ring of ten and eight meets it — the small row
- * again — and seven in a ring of twelve at both. A ring of eleven holds only six: an odd ring sets
- * the letter off the half pixel. The widest step's panel is `596f95f`'s. The middle one's bar asks
- * 270px for the name, `0.20.0-dev` and four controls on one line, where the small bar holds them
- * in its 258 and the widest in its 304; the panel is 274 because at 272 `Zwykły cios` behind a
- * caveat mark was drawn in 69.25px of the 70 it needs (Chrome 154, 2026-09-29, the browser suite's
- * recording).
+ * it 45.22px at the small step, against the 49 above); and the ring, twelve at both and never
+ * eleven, because an odd ring sets the letter drawn in it off the half pixel (ADR 0036). The
+ * widest step's panel is `596f95f`'s. The middle one's bar asks 270px for the name, `0.20.0-dev`
+ * and four controls on one line, where the small bar holds them in its 258 and the widest in its
+ * 304; the panel is 274 because at 272 `Zwykły cios` behind a caveat mark was drawn in 69.25px of
+ * the 70 it needs (Chrome 154, 2026-09-29, the browser suite's recording).
  */
 export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
     [TYPE_STEP.small]: {
@@ -259,7 +266,6 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         pipSizePixels: 5,
         castWidthPixelsMinimum: 48,
         markSizePixels: 10,
-        markLetterPixels: 7,
         meterWidthPixels: 260,
         cardWidthPixelsMaximum: 250,
         helperWidthPixels: 210,
@@ -274,7 +280,6 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         pipSizePixels: 5,
         castWidthPixelsMinimum: 50,
         markSizePixels: 12,
-        markLetterPixels: 7,
         meterWidthPixels: 274,
         cardWidthPixelsMaximum: 272,
         helperWidthPixels: 228,
@@ -289,7 +294,6 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         pipSizePixels: 6,
         castWidthPixelsMinimum: 54,
         markSizePixels: 12,
-        markLetterPixels: 7,
         meterWidthPixels: 306,
         cardWidthPixelsMaximum: 296,
         helperWidthPixels: 248,
@@ -329,6 +333,33 @@ const ROWS_BY_DEFAULT = RANKING_ROWS;
 const FONT_STACK = "system-ui, sans-serif";
 /** What a border costs the box it is on, at the one width this panel draws one. */
 const RULE_WIDTH = 1;
+/**
+ * The caveat mark's letter, drawn as a dot over a stem rather than spelled: the clear pixel between
+ * it and the ring above and below, the gap between dot and stem, and the stem's width, which the
+ * dot is as tall as. The stem is even because the ring is, so it stands on whole pixels (ADR 0036).
+ */
+const CAVEAT_LETTER = {
+    clearPixels: 1,
+    gapPixels: 1,
+    stemWidthPixels: 2,
+} as const;
+/**
+ * Each bar icon as the inside of an SVG on a ten-unit square, laid out about its middle: a glyph's
+ * ink stands where its face puts it, and the save arrow's stood two pixels under its box's middle
+ * at every device scale (ADR 0036). The gear's teeth are eight spokes, a quarter-turn apart by two.
+ */
+const BAR_ICON_DRAWINGS: { readonly [Icon in BarIcon]: string } = {
+    [BAR_ICON.options]: "<circle cx='5' cy='5' r='2.4' stroke-width='1.4'/>" +
+        "<path stroke-width='1.6' d='M8.2 5L9.6 5M7.26 7.26L8.25 8.25M5 8.2L5 9.6M2.74 7.26L1.75 " +
+        "8.25M1.8 5L0.4 5M2.74 2.74L1.75 1.75M5 1.8L5 0.4M7.26 2.74L8.25 1.75'/>",
+    [BAR_ICON.shelf]: "<path stroke-width='1.2' d='M1 2H9M1 5H9M1 8H9'/>",
+    [BAR_ICON.save]: "<path stroke-width='1.2' d='M5 1V6.6M2.4 4.2L5 6.8L7.6 4.2M1 9H9'/>",
+    [BAR_ICON.fold]: "<path stroke-width='1.2' d='M1 5H9'/>",
+    [BAR_ICON.unfold]: "<path stroke-width='1.2' d='M1 5H9M5 1V9'/>",
+};
+const BAR_ICONS = Object.values(BAR_ICON);
+/** The air between a bar icon and its control's rule, above and below. */
+const BAR_ICON_INSET_PIXELS = 2;
 /**
  * The corner a window is sized by, drawn inside the window's own corner. Inside, because a box
  * standing past the window is overflow the window then reports, measured in Chrome 154 on
@@ -509,8 +540,25 @@ export function composeSizedPanelStyle(): string {
  * control is the tallest thing on the bar — the air over and under that, and the bar's top rule.
  */
 export function getBarHeight(tokens: TypeTokens): number {
-    const control = tokens.lineHeightTitlePixels + 2 * RULE_WIDTH;
-    return control + 2 * SPACE_PIXELS.small + RULE_WIDTH;
+    return getControlHeightPixels(tokens) + 2 * SPACE_PIXELS.small + RULE_WIDTH;
+}
+
+/** A bar control's box: its line and its two rules. Every control is this tall. */
+export function getControlHeightPixels(tokens: TypeTokens): number {
+    return tokens.lineHeightTitlePixels + 2 * RULE_WIDTH;
+}
+
+/**
+ * And this wide, whatever its mark: a little wider than tall, so the widest mark, `—`, keeps air
+ * at both sides, and one width for all so the four stand as a row of equals (ADR 0036).
+ */
+export function getControlWidthPixels(tokens: TypeTokens): number {
+    return getControlHeightPixels(tokens) + SPACE_PIXELS.small;
+}
+
+/** The class a bar control wears for the icon it draws. */
+export function composeBarIconClass(icon: BarIcon): string {
+    return `${CLASS.control}-${icon}`;
 }
 
 /** The class a step of type wears in the options, so each is written in the size it gives. */
@@ -562,12 +610,18 @@ function composeFrameRules(tokens: TypeTokens): string {
         // The version is what gives way, because a control cut off is one a reader cannot press.
         `.${CLASS.titleVersion}{opacity:0.7;font-size:${tokens.fontSmallPixels}px;` +
         `min-width:0;overflow:hidden;text-overflow:ellipsis;}` +
-        `.${CLASS.control}{padding:0 var(${VARIABLE_PREFIX}small);` +
+        // A box of one size with its icon centred in it, rather than air around a glyph: each mark
+        // is a different width, so padding made a row of four widths (ADR 0036). The mark stays
+        // the control's text at no size, for whoever copies it.
+        `.${CLASS.control}{display:inline-flex;align-items:center;justify-content:center;` +
+        `flex:none;box-sizing:border-box;padding:0;font-size:0;` +
+        `width:${getControlWidthPixels(tokens)}px;height:${getControlHeightPixels(tokens)}px;` +
         `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);` +
         `color:var(${VARIABLE_PREFIX}quiet);background:var(${VARIABLE_PREFIX}surface);` +
         `cursor:pointer;}` +
         `.${CLASS.control}:hover{color:var(${VARIABLE_PREFIX}text);}` +
+        composeBarIconRules(tokens) +
         `.${CLASS.controlLead}{margin-left:auto;}` +
         // A flex item whose overflow is visible refuses to shrink below its own content, so
         // without `min-height:0` the ceiling on the host stops here and never reaches the list.
@@ -591,6 +645,25 @@ function composeFrameRules(tokens: TypeTokens): string {
         `min-height:calc(var(${SIZED_METER_VARIABLES.listRowsLeast},0) * ` +
         `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half)));}` +
         `.${CLASS.slot}{display:none;}`;
+}
+
+/**
+ * The icon a bar control draws: its ink is a mask over the control's own colour, so it follows the
+ * hover as a glyph did. ⚠️ **Spelled prefixed too**: below `docs/browser-support.md`'s floor for
+ * the bare property an unmasked icon is a solid square, which is a defect and not a look.
+ */
+function composeBarIconRules(tokens: TypeTokens): string {
+    const size = getControlHeightPixels(tokens) - 2 * RULE_WIDTH - 2 * BAR_ICON_INSET_PIXELS;
+    let rules = `.${CLASS.control}::before{content:"";flex:none;` +
+        `width:${size}px;height:${size}px;background:currentColor;}`;
+    for (const icon of BAR_ICONS) {
+        const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10' fill='none' " +
+            `stroke='black'>${BAR_ICON_DRAWINGS[icon]}</svg>`;
+        const url = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+        rules += `.${composeBarIconClass(icon)}::before{-webkit-mask-image:${url};` +
+            `mask-image:${url};}`;
+    }
+    return rules;
 }
 
 function composeFontBody(tokens: TypeTokens): string {
@@ -998,20 +1071,32 @@ function composeCardTop(): string {
  *
  * `align-self` because both parents are flex rows that stretch a child by default, and a ring
  * stretched to the line box is the ellipse this rule exists to stop being.
+ *
+ * ⚠️ **The letter is drawn too, and the `i` is kept at no size.** A glyph centred by its em box
+ * leaves its ink where its face puts it, which was off the ring's middle (ADR 0036). A dot and a
+ * stem stand where they are put, and the `i` stays the element's text for whoever copies it.
  */
 function composeCaveatMarkRule(tokens: TypeTokens): string {
-    return `.${CLASS.rowCaveat},.${CLASS.cardCaveat}{box-sizing:border-box;display:inline-flex;` +
-        `align-items:center;justify-content:center;align-self:center;flex:none;` +
+    const marks = `.${CLASS.rowCaveat},.${CLASS.cardCaveat}`;
+    const { clearPixels, gapPixels, stemWidthPixels } = CAVEAT_LETTER;
+    const inside = tokens.markSizePixels - 2 * RULE_WIDTH;
+    const stemTop = clearPixels + stemWidthPixels + gapPixels;
+    return `${marks}{box-sizing:border-box;display:inline-flex;align-self:center;flex:none;` +
+        `position:relative;font-size:0;` +
         `width:${tokens.markSizePixels}px;height:${tokens.markSizePixels}px;` +
         // An ink of its own, as the other three severities have: drawn in the label's colour it was
         // invisible against the label it qualifies. `DESIGN.md` owns the rule and carries
         // the measured distance to every other hue the panel spends.
         `color:var(${VARIABLE_PREFIX}caveat);` +
-        `border:1px solid currentColor;border-radius:50%;` +
-        // The letter inside the ring, and the smallest type on the panel: an `i` at the body's own
-        // size leaves no ring to draw around it, and one a pixel too large meets it at the top.
-        `font-size:${tokens.markLetterPixels}px;font-weight:600;font-style:normal;` +
-        `line-height:1;}`;
+        `border:${RULE_WIDTH}px solid currentColor;border-radius:50%;}` +
+        `.${CLASS.rowCaveat}::before,.${CLASS.cardCaveat}::before,` +
+        `.${CLASS.rowCaveat}::after,.${CLASS.cardCaveat}::after{content:"";position:absolute;` +
+        `left:${(inside - stemWidthPixels) / 2}px;width:${stemWidthPixels}px;` +
+        `background:currentColor;}` +
+        `.${CLASS.rowCaveat}::before,.${CLASS.cardCaveat}::before{` +
+        `top:${clearPixels}px;height:${stemWidthPixels}px;}` +
+        `.${CLASS.rowCaveat}::after,.${CLASS.cardCaveat}::after{` +
+        `top:${stemTop}px;height:${inside - stemTop - clearPixels}px;}`;
 }
 
 /**

@@ -92,9 +92,11 @@ reason the tier column is not enough on its own:
   (`DESIGN.md`), and the distinction is worth stating: the hatch is a second channel on a row that
   is **already labelled in words**, so colour is not left carrying the meaning alone. Chrome's
   number is high because it is the **unprefixed** property; Chrome had `-webkit-mask-image` from 1
-  and Safari from 4, and the prefix is deliberately not spelled. That is where the line sits: below
-  its floor this property degrades and the row still reads, so a prefix would buy back a hatch —
-  while the one property that is prefixed buys back a defect.
+  and Safari from 4, and on the hatch the prefix is deliberately not spelled. That is where the line
+  sits: below its floor this property degrades and the row still reads, so a prefix would buy back a
+  hatch. The bar's icons are the other side of that line (ADR 0036): each is a mask over a solid
+  square, so below the floor an icon is that square and the control says nothing, and they spell
+  `-webkit-mask-image` beside it, under **Prefixed**.
 - **`scrollbar-width: none`** (on `.list`). The platform scrollbar is drawn, and it takes its width
   out of the rows: 15px in Chrome 152, 12px in Firefox 140.13.0esr, both read on 2026-08-31. It is
   taken only while the list overflows, so a payload that fills the list and one that does not walk
@@ -110,6 +112,7 @@ reason the tier column is not enough on its own:
 | --------------------- | ------------- | ------- | ------ |
 | `-webkit-user-select` | 1             | 49      | 3      |
 | `user-select`         | 54            | 69      | never  |
+| `-webkit-mask-image`  | 1             | 53      | 4      |
 
 **Safari has never supported `user-select` unprefixed** — only `-webkit-user-select`, since
 Safari 3. `src/ui/panel-look.ts` spells both, in both of the rules that need them: the title bar the
@@ -118,12 +121,15 @@ did nothing on Safari — dragging the panel selected the text under the cursor,
 that started on a row. That was neither a floor nor a degradation but a defect, filed by the round
 that read this register and fixed by the round after it.
 
-Neither row is a floor on its own, and neither is in the tier arithmetic above. Between them they
-cover every engine in scope; separately they cannot, and one of them says `never`. That `never` is
-why the two sit here rather than in **Settled**: `develop:tests/tools/browser-support.test.ts`
-requires a row carrying one to have a prefixed counterpart spelled by the stylesheet as many times
-as the bare property is, so a third rule reaching for `user-select` cannot quietly leave Safari out
-again.
+`-webkit-mask-image` stands beside `mask-image` in the one rule per bar icon, so an icon is drawn
+wherever either is read; the bare property's floor above is the hatch's.
+
+Neither selection row is a floor on its own, and neither is in the tier arithmetic above. Between
+them they cover every engine in scope; separately they cannot, and one of them says `never`. That
+`never` is why the two sit here rather than in **Settled**:
+`develop:tests/tools/browser-support.test.ts` requires a row carrying one to have a prefixed
+counterpart spelled by the stylesheet as many times as the bare property is, so a third rule
+reaching for `user-select` cannot quietly leave Safari out again.
 
 ### Settled
 
@@ -159,7 +165,7 @@ Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: c
 · `white-space: nowrap` · `width: max-content`
 
 Functions: `calc` · `clamp` · `linear-gradient` · `min` · `repeating-linear-gradient` · `rgb` ·
-`var`
+`url`, only ever over a `data:` SVG the sheet composes, so it reaches no network · `var`
 
 Selectors: `host` · `hover`
 

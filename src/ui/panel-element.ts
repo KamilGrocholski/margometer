@@ -54,9 +54,12 @@ import {
 } from "./panel-intent.ts";
 import { addGuardedListener } from "./panel-listener.ts";
 import {
+    BAR_ICON,
+    type BarIcon,
     CARD_VARIABLES,
     type CardColumns,
     CLASS,
+    composeBarIconClass,
     composeOptionsStepClass,
     composeStyleSheet,
     getCardHeight,
@@ -680,14 +683,11 @@ const HELPER_HOLDING_CARD_PREFIX = `${HELPER_CARD_PREFIX}holding:`;
 const HELPER_HELD_CARD_PREFIX = `${HELPER_CARD_PREFIX}held:`;
 const TITLE_ATTRIBUTE = "title";
 /**
- * ⚠️ **No face in `system-ui, sans-serif` carries U+2B73 on this machine.** Chrome 152 draws it
- * anyway, from a font further down its own fallback, and `fc-list :charset=2b73` on 2026-08-30
- * named one — a coding face nobody installs on purpose. `↓` is the mark the UI sans itself
- * carries. A reader reporting a box here is reporting that, and the swap is one character.
+ * A bar control's text, which is never shown: the sheet draws each control's icon instead (ADR
+ * 0036), so no face has to carry these and a copy of the bar still reads them.
  */
 const SAVE_MARK = "⭳";
 const SHELF_MARK = "☰";
-/** Carried by the face ☰ is drawn in: `fc-list :charset=2699` on 2026-09-27 named DejaVu Sans. */
 const OPTIONS_MARK = "⚙";
 const FOLD_MARK = "—";
 const UNFOLD_MARK = "+";
@@ -2242,6 +2242,7 @@ function renderHelperBar(document: PanelDocument, isCollapsed: boolean): PanelEl
     setGripMark(bar, PANEL_WINDOW.helper);
     bar.append(renderBarControl(document, {
         className: CLASS.control,
+        icon: isCollapsed ? BAR_ICON.unfold : BAR_ICON.fold,
         mark: isCollapsed ? UNFOLD_MARK : FOLD_MARK,
         attribute: PANEL_MARK.helperFold,
         words: isCollapsed ? HELPER_WORDS.expand : HELPER_WORDS.collapse,
@@ -2251,9 +2252,10 @@ function renderHelperBar(document: PanelDocument, isCollapsed: boolean): PanelEl
 
 function renderBarControl(
     document: PanelDocument,
-    stated: { className: string; mark: string; attribute: string; words: string },
+    stated: { className: string; icon: BarIcon; mark: string; attribute: string; words: string },
 ): PanelElement {
-    const control = renderText(document, "span", stated.className, stated.mark);
+    const className = `${stated.className} ${composeBarIconClass(stated.icon)}`;
+    const control = renderText(document, "span", className, stated.mark);
     control.setAttribute(stated.attribute, "");
     control.setAttribute(TITLE_ATTRIBUTE, stated.words);
     return control;
@@ -2372,12 +2374,14 @@ function renderFold(
             // comes and goes, and a control standing after it would walk along the bar with it.
             bar.append(renderBarControl(document, {
                 className: `${CLASS.control} ${CLASS.controlLead}`,
+                icon: BAR_ICON.options,
                 mark: OPTIONS_MARK,
                 attribute: PANEL_MARK.options,
                 words: PANEL_WORDS.openOptions,
             }));
             bar.append(renderBarControl(document, {
                 className: CLASS.control,
+                icon: BAR_ICON.shelf,
                 mark: SHELF_MARK,
                 attribute: PANEL_MARK.shelf,
                 words: PANEL_WORDS.openFights,
@@ -2385,6 +2389,7 @@ function renderFold(
             if (hasFightToSave) {
                 bar.append(renderBarControl(document, {
                     className: CLASS.control,
+                    icon: BAR_ICON.save,
                     mark: SAVE_MARK,
                     attribute: PANEL_MARK.save,
                     words: PANEL_WORDS.saveFight,
@@ -2392,6 +2397,7 @@ function renderFold(
             }
             bar.append(renderBarControl(document, {
                 className: CLASS.control,
+                icon: isMeterCollapsed ? BAR_ICON.unfold : BAR_ICON.fold,
                 mark: isMeterCollapsed ? UNFOLD_MARK : FOLD_MARK,
                 attribute: PANEL_MARK.fold,
                 words: isMeterCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse,

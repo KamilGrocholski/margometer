@@ -217,6 +217,10 @@ The options stand first so the other three keep the places a reader already knew
 hand-over comes and goes, and a control standing after it would walk along the bar with it. Those
 three have no state to say, so their marks read the same always.
 
+**Every control is one box with its icon drawn in the middle**, on both bars, a little wider than
+tall. The icon is a shape and never a glyph: a glyph's ink stands where its face draws it, which is
+not the middle of anything the panel can lay out. **ADR 0036.**
+
 **Header.** One line: what the fight is, as a headcount, how it went, and where it is being fought,
 against the line's far end. **The map's name is the one thing on it that gives way**, and the tile
 after it never does: the headcount and the outcome say what the fight was, and the tile is what
@@ -290,6 +294,10 @@ single condensed face. What a reader met beside a figure was a vertical sliver. 
 is a circle wherever the panel is opened, which a codepoint is not — and the figure this page had
 been quoting all along was the **cell**, which kept its width whatever shape stood inside it.
 **develop ADR 0092.**
+
+**The letter in the ring is drawn too**: a dot over a stem, a clear pixel from the ring above and
+below. A face's `i` stands where the face puts it, which is not the ring's middle. The `i` stays the
+mark's text, at no size, so a copy of the row still reads it. **ADR 0036.**
 
 **A row whose own figure is short wears the suspect mark**, before the name and drawn only there. It
 is not the second channel the paragraph above refuses: that one would stand on every row to say a

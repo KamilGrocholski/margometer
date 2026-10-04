@@ -15,14 +15,17 @@ import {
     assertStringIncludes,
 } from "@std/assert";
 import {
+    BAR_ICON,
     CLASS,
     composeBarColour,
+    composeBarIconClass,
     composeOptionsStepClass,
     composeStyleSheet,
     getCardHeightAvailable,
     getCardWidthAvailable,
     getCardWidthForColumns,
     getContrastRatio,
+    getControlHeightPixels,
     getInkForBar,
     LAYER,
     PLACE,
@@ -76,6 +79,14 @@ const HEX_COLOUR_LENGTH = 7;
 const RGB_OPENER = "rgb(";
 const RGB_CLOSER = ")";
 const CHANNEL_VALUE_MAXIMUM = 255;
+const BAR_ICONS = Object.values(BAR_ICON);
+/** Both places the caveat mark stands, which one rule draws. */
+const CAVEAT_MARKS = `.${CLASS.rowCaveat},.${CLASS.cardCaveat}`;
+/** The letter drawn in it: the dot, and the stem under it. */
+const CAVEAT_DOT = `.${CLASS.rowCaveat}::before,.${CLASS.cardCaveat}::before`;
+const CAVEAT_STEM = `.${CLASS.rowCaveat}::after,.${CLASS.cardCaveat}::after`;
+/** The size of text that is kept and never shown, which the caveat mark's letter is. */
+const UNSHOWN_SIZE = "0";
 /**
  * `develop`'s sheet and the whole of what it imports, at the revision the recordings are read at.
  */
@@ -100,7 +111,10 @@ const DEVELOP_SPELLINGS: readonly (readonly [string, string])[] = [
     [".tip-", ".card-"],
 ];
 
-/** ADR 0013, 0014 and 0015: the rules the options, the sizing and the fight's line move. */
+/**
+ * ADR 0013, 0014, 0015, 0033 and 0036: the rules the options, the sizing, the fight's line, the
+ * card in two columns and the bar's controls and the caveat letter move.
+ */
 const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // The options control stands first on the bar and leads the rest to its far end.
     { develop: ".titlebar-fights", here: ".titlebar-lead" },
@@ -160,6 +174,41 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: null, here: ".card-columns" },
     { develop: null, here: ".card-column" },
     { develop: null, here: ".card-column+.card-column" },
+    // Every bar control one box with its mark centred in it, and the caveat letter drawn as a dot
+    // over a stem rather than spelled (ADR 0036).
+    {
+        develop: ".titlebar-button",
+        here: ".titlebar-button",
+        moved: [
+            "padding",
+            "display",
+            "align-items",
+            "justify-content",
+            "flex",
+            "box-sizing",
+            "font-size",
+            "width",
+            "height",
+        ],
+    },
+    { develop: null, here: `.${CLASS.control}::before` },
+    ...BAR_ICONS.map((icon) => ({ develop: null, here: `.${composeBarIconClass(icon)}::before` })),
+    {
+        develop: CAVEAT_MARKS,
+        here: CAVEAT_MARKS,
+        moved: [
+            "align-items",
+            "justify-content",
+            "position",
+            "font-size",
+            "font-weight",
+            "font-style",
+            "line-height",
+        ],
+    },
+    { develop: null, here: `${CAVEAT_DOT},${CAVEAT_STEM}` },
+    { develop: null, here: CAVEAT_DOT },
+    { develop: null, here: CAVEAT_STEM },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
@@ -437,7 +486,7 @@ Deno.test("the two sides are told apart by more than a hue", () => {
  * without a record naming it is a finding in one of the two. The windows' names are `develop`'s
  * spelled ours first (ADR 0024).
  */
-Deno.test("the style sheet is develop's, but for the rules ADR 0013, 0014 and 0015 move", async () => {
+Deno.test("the style sheet is develop's, but for the rules its decision records move", async () => {
     let develop = await readDevelopStyleSheet();
     for (const [was, is] of DEVELOP_SPELLINGS) {
         assert(develop.includes(was), `develop's sheet spells ${was}, which is why it is renamed`);
@@ -966,13 +1015,15 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
         }
         const card = getDeclaration(getRuleBody(sheet, `.${CLASS.card}`), "max-width");
         assertStringIncludes(card ?? "", `${tokens.cardWidthPixelsMaximum}px`, `${step}: the card`);
-        // Every smaller type the sheet spells is the step's own, and the ring's letter is its own.
-        const letter = `${tokens.markLetterPixels}px`;
-        const ring = readRules(sheet).find((rule) =>
-            rule.selector === `.${CLASS.rowCaveat},.${CLASS.cardCaveat}`
-        );
+        // Every smaller type the sheet spells is the step's own, and the ring's letter is drawn,
+        // so its text stands at no size at all (ADR 0036).
+        const ring = readRules(sheet).find((rule) => rule.selector === CAVEAT_MARKS);
         assertExists(ring, `${step}: the ring is one rule for both places it stands`);
-        assertEquals(getDeclaration(ring.body, "font-size"), letter, `${step}: the ring's letter`);
+        assertEquals(
+            getDeclaration(ring.body, "font-size"),
+            UNSHOWN_SIZE,
+            `${step}: the ring's letter is not spelled`,
+        );
         // The one exception is the options' three steps, each written in the size it gives, in
         // every sheet (ADR 0015): held to those sizes here and left out of the rule below.
         const samples = TYPE_STEPS.map((sample) => `.${composeOptionsStepClass(sample)}`);
@@ -988,7 +1039,7 @@ Deno.test("every step draws both windows and the card in its own type, at its ow
             .filter((rule) => !samples.includes(rule.selector))
             .map((rule) => getDeclaration(rule.body, "font-size"))
             .filter((stated) => stated !== null)
-            .filter((stated) => stated !== letter);
+            .filter((stated) => stated !== UNSHOWN_SIZE);
         assert(small.length > 0, `${step}: the sheet spells a smaller type`);
         assertEquals(
             [...new Set(small)],
@@ -1170,6 +1221,86 @@ Deno.test("the hatch is worn by the row standing apart, and spelled once", () =>
             getDeclaration(getRuleBody(sheet, `.${CLASS.bar}`), "mask-image"),
             null,
             "and a row that holds a place in the ranking draws its bar solid",
+        );
+    }
+});
+
+/**
+ * ⚠️ **Each mark on the bar is a different width**, so padded alike the controls stood at as many
+ * widths (ADR 0036). A box of one size centring its mark makes them a row of equals; that the
+ * browser draws them so is `tests/e2e/panel-type.spec.ts`'s to say.
+ */
+Deno.test("every control on a bar is one box with its icon centred, at every step", () => {
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const control = getRuleBody(sheet, `.${CLASS.control}`);
+        assertEquals(getDeclaration(control, "padding"), "0", `${step}: no air makes a width`);
+        const width = getPixels(getDeclaration(control, "width") ?? "");
+        const height = getPixels(getDeclaration(control, "height") ?? "");
+        assertEquals(
+            height,
+            getControlHeightPixels(TYPE_TOKENS[step]),
+            `${step}: a control is as tall as the bar's height counts it`,
+        );
+        assert(width >= height, `${step}: and at least as wide, so the widest mark has air`);
+        for (const axis of ["justify-content", "align-items"]) {
+            assertEquals(getDeclaration(control, axis), "center", `${step}: its icon is centred`);
+        }
+        // Centred on whole pixels: the air either side of the icon is the same in every axis.
+        const icon = getPixels(
+            getDeclaration(getRuleBody(sheet, `.${CLASS.control}::before`), "width") ?? "",
+        );
+        const border = getPixels((getDeclaration(control, "border") ?? "").split(" ")[0] ?? "");
+        for (const across of [width, height]) {
+            const air = (across - 2 * border - icon) / 2;
+            assert(
+                Number.isInteger(air),
+                `${step}: ${icon}px stands in ${across}px on whole pixels`,
+            );
+        }
+        for (const drawn of BAR_ICONS) {
+            const body = getRuleBody(sheet, `.${composeBarIconClass(drawn)}::before`);
+            const mask = getDeclaration(body, "mask-image");
+            assertStringIncludes(mask ?? "", "data:image/svg+xml,", `${step}: ${drawn} is drawn`);
+            assertStrictEquals(
+                getDeclaration(body, "-webkit-mask-image"),
+                mask,
+                `${step}: and ${drawn} is drawn where only the prefix is read`,
+            );
+        }
+    }
+});
+
+/**
+ * ⚠️ **A glyph's ink sits where its face puts it**, and the ring's `i` sat off its middle (ADR
+ * 0036). The letter is drawn, and what holds it mid-ring is arithmetic: the air either side of the
+ * stem, and over the dot against under the stem.
+ */
+Deno.test("the caveat mark's letter is drawn in the middle of its ring, at every step", () => {
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const ring = getRuleBody(sheet, CAVEAT_MARKS);
+        const size = getPixels(getDeclaration(ring, "width") ?? "");
+        assertEquals(getPixels(getDeclaration(ring, "height") ?? ""), size, `${step}: a ring`);
+        const border = getPixels((getDeclaration(ring, "border") ?? "").split(" ")[0] ?? "");
+        const inside = size - 2 * border;
+        const letter = getRuleBody(sheet, `${CAVEAT_DOT},${CAVEAT_STEM}`);
+        const left = getPixels(getDeclaration(letter, "left") ?? "");
+        const stemWidth = getPixels(getDeclaration(letter, "width") ?? "");
+        assertEquals(left, inside - left - stemWidth, `${step}: as much air right of it as left`);
+        assert(Number.isInteger(left), `${step}: and the letter stands on whole pixels`);
+        const dot = getRuleBody(sheet, CAVEAT_DOT);
+        const stem = getRuleBody(sheet, CAVEAT_STEM);
+        const dotTop = getPixels(getDeclaration(dot, "top") ?? "");
+        const dotHeight = getPixels(getDeclaration(dot, "height") ?? "");
+        const stemTop = getPixels(getDeclaration(stem, "top") ?? "");
+        const stemHeight = getPixels(getDeclaration(stem, "height") ?? "");
+        assert(dotTop > 0, `${step}: the letter stands clear of the ring`);
+        assert(dotTop + dotHeight < stemTop, `${step}: and the dot clear of the stem`);
+        assertEquals(
+            dotTop,
+            inside - stemTop - stemHeight,
+            `${step}: as much air under the letter as over it`,
         );
     }
 });

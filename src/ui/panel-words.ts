@@ -140,8 +140,9 @@ export const TURN_MARK = "▸ ";
 /**
  * Beside the suspect mark and never instead of it: `SUSPECT_MARK` says a figure may be short
  * because this fight could not be read; this one says it is complete and answers a narrower
- * question than its label (`develop ADR 0088`). ⚠️ The letter only — the ring is drawn: no family
- * here carries U+24D8, and the fallback face drew a sliver (`develop ADR 0092`).
+ * question than its label (`develop ADR 0088`). ⚠️ Text that is never shown: the ring is drawn,
+ * because no family here carries U+24D8 (`develop ADR 0092`), and the letter in it is drawn too,
+ * because a face's `i` sits where the face puts it (ADR 0036). This is what a copy of it reads.
  */
 export const CAVEAT_MARK = "i";
 
