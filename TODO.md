@@ -20,18 +20,21 @@
 - [ ] Data: !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
 
 ## Up Next
-- [ ] Fix: Do not interrupt the userspace
-- [ ] Feat: A user SHOULD be able to see his character in the ranking, and `Pomocnik` in an easier way - maybe marker or font color
+- [ ] Refactor: Is the Intent an ok way? Reading an intent might be complicated later.
 - [ ] Fix: A click on a row in `Pomocnik` selects its text
-- [ ] Plan: Should dmg applied and taken take into account only health or also absorbtion?
 - [ ] Check: Do a manual audit
-- [ ] Plan: Add a fight visualization - a simple chart with bars or something
+- [ ] Plan: Mobile version???
 
 ## Done
-- [x] Check: Verify the naming - margometer->margonem, margonem->margometer, internal
-- [x] Fix: !!!IMPORTANT!!! The game's css index should have higher priority than ours
+- [x] Feat: unknown target, source, and so on SHOULD have an information in 2+ level row's tooltip just like the the first level
+- [x] Feat: Add a legbon counter in the tooltip - a new design is needed
+- [x] Fix: Add a second column to the row's tooltip, when there is not enough space for it's content
+- [x] Check: The value of PROVOKED_MAXIMUM SHOULD be 10? NO
+- [x] Refactor: New, more expressive(like a sentence) names for functions, types, variables, interfaces, classes, errors, files, and so on
 
 ## Later
+- [ ] Feat: Create a skill counter - a new tab with a new design is needed
+- [ ] Plan: Add a fight visualization - a simple chart with bars or something
 - [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
 - [ ] Consider adding raw dmg, absorbed, interrupts, and other views - use select as a ui select component, instead of buttons ("Obrazenia" -> "Zadane", etc.)
 - [ ] Start writing specs, and code against tests before v1.0.0 - tests first, at this point I SHOULD exactly know what I want
@@ -41,6 +44,22 @@
 
 ---
 ## History
+
+### Done v0.20.0, v0.21.0
+- [x] Feat: `Nieznany sprawca` SHOULD also open a view from the second level row, e.g. dmg taken -> character row -> `Nieznany sprawca` row
+- [x] Review: /ultrareview claude code
+- [x] Feat: `Pomocnik` SHOULD be scrollable.
+- [x] Feat: Tooltip for kept fight and ranking view info
+- [x] Feat: Attach a user's character name to it's kept fight
+- [x] Feat: Implement new ranking views design
+- [x] Design: Create a new design for ranking views, it SHOULD take less space - fight outcome, place, XvsY, view buttons
+- [x] Feat: Panels SHOULD have options: size change - html textarea like behavior; fontsize change
+- [x] Feat: `Pomocnik` SHOULD show something under its bar, when the init state is active.
+- [x] Feat: dmg applied and taken SHOULD take into account also absorbtion
+- [x] (YES) Plan: Should dmg applied and taken take into account only health or also absorbtion?
+- [x] Feat: A user SHOULD be able to see his character in the ranking, and `Pomocnik` in an easier way - maybe marker or font color
+- [x] Check: Verify the naming - margometer->margonem, margonem->margometer, internal
+- [x] Fix: !!!IMPORTANT!!! The game's css index should have higher priority than ours
 
 ### Done v0.19.0
 - [x] Fix: Game mechanics misunderstood - updating `Pomocnik` and adding tips(ask discord after)
