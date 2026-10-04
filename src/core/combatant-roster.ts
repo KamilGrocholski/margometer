@@ -46,7 +46,6 @@ export function indexCombatantRoster(combatants: readonly Combatant[]): Combatan
         else idByName.set(combatant.name, combatant.id);
     }
     assert(byId.size === combatants.length, "a roster holds everybody it was handed");
-    assert(idByName.size <= byId.size, "a name belongs to somebody in the roster");
     return { byId, idByName };
 }
 

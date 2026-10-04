@@ -76,7 +76,7 @@ export interface SessionOptions {
 
 export type UnreadCounts = { readonly [Cause in UnreadCause]: number };
 
-/** `develop`'s `FightState`, same content, less the messages kept for the file. */
+/** What a fight has said so far, read by the figures and the panel; the messages stay behind. */
 export interface FightView {
     roster: CombatantRoster;
     events: readonly BattleEvent[];

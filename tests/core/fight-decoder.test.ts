@@ -17,13 +17,18 @@ import {
     assertThrows,
 } from "@std/assert";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
-import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import {
+    type CombatantRoster,
+    COMBATANTS_MAXIMUM,
+    indexCombatantRoster,
+} from "#/src/core/combatant-roster.ts";
 import {
     decodeMessage,
     decodePayloadMessages,
     type DecoderTables,
     EndUnreadable,
     MESSAGE_END,
+    MESSAGE_PARTS_MAXIMUM,
     MESSAGES_MAXIMUM,
     NAME_LENGTH_MAXIMUM,
     UnreadMessage,
@@ -1198,4 +1203,49 @@ Deno.test("a turn lost is read by shape: the longest name, and never a sentence 
         BATTLE_EVENT.declaration,
         "and nothing is read without a cast",
     );
+});
+
+/** Every message here is invented: no recording comes near either bound. */
+Deno.test("one message's parts are read up to their bound, and a part past it is unread", () => {
+    const blow = (procs: number) =>
+        ["1=90.00;2=80.00;-dmg=1", ...Array.from({ length: procs }, () => "+pierce")].join(";");
+    const atBound = getOnlyAttack(decode([blow(MESSAGE_PARTS_MAXIMUM)]));
+    if (atBound.kind !== BATTLE_EVENT.attack) return;
+    assertStrictEquals(atBound.procs.length, MESSAGE_PARTS_MAXIMUM, "a full list is read");
+    const events = decode([blow(MESSAGE_PARTS_MAXIMUM + 1)]);
+    const [attack, unread] = events;
+    assertStrictEquals(attack?.kind, BATTLE_EVENT.attack, "the blow is still read");
+    assertStrictEquals(attack.procs.length, MESSAGE_PARTS_MAXIMUM, "as far as its bound");
+    assertStrictEquals(unread?.kind, BATTLE_EVENT.unknownMessage, "and the rest is said unread");
+    assertEquals(unread.unreadKeys, ["+pierce"], "naming the part past the bound");
+});
+
+Deno.test("a shout naming everybody a fight holds is read, and one naming more is unread", () => {
+    const names = (count: number) =>
+        Array.from({ length: count }, (_, index) => `Gracz ${index + 1}`).join(", ");
+    const shout = "1=100.00;1=100.00;tspell=Okrzyk;skillId=1;shout=";
+    const [fullShout] = decode([shout + names(COMBATANTS_MAXIMUM)]);
+    assertStrictEquals(fullShout?.kind, BATTLE_EVENT.skillUsed, "a shout over a full fight");
+    assertEquals(fullShout.declared.map((declared) => declared.effect), ["shout"], "is read");
+    const [used, unread] = decode([shout + names(COMBATANTS_MAXIMUM + 1)]);
+    assertStrictEquals(used?.kind, BATTLE_EVENT.skillUsed, "the skill is still announced");
+    assertEquals(used.declared, [], "without the shout");
+    assertStrictEquals(unread?.kind, BATTLE_EVENT.unknownMessage, "which is said unread");
+    assertEquals(unread.unreadKeys, ["shout"], "by its key");
+});
+
+Deno.test("a second name or id of a skill is unread, never written over the first", () => {
+    const [named, secondName] = decode(["1=100.00;0;tspell=Pierwsza;tspell=Druga"]);
+    assertStrictEquals(named?.kind, BATTLE_EVENT.skillUsed, "the skill is announced");
+    assertStrictEquals(named.skillName, "Pierwsza", "under the first name it was given");
+    assertStrictEquals(secondName?.kind, BATTLE_EVENT.unknownMessage, "and the second is unread");
+    assertEquals(secondName.unreadKeys, ["tspell"], "by its key");
+    const [identified, secondId] = decode(["1=100.00;0;tspell=Pierwsza;skillId=5;skillId=6"]);
+    assertStrictEquals(identified?.kind, BATTLE_EVENT.skillUsed, "one id is read");
+    assertStrictEquals(identified.skillId, 5, "the first");
+    assertStrictEquals(secondId?.kind, BATTLE_EVENT.unknownMessage, "and the second is unread");
+    assertEquals(secondId.unreadKeys, ["skillId"], "by its key");
+    const [bothIds] = decode(["1=100.00;0;skillId=5;skillId=6"]);
+    assertStrictEquals(bothIds?.kind, BATTLE_EVENT.unknownMessage, "with no name, nothing stands");
+    assertEquals(bothIds.unreadKeys, ["skillId", "skillId"], "and both ids are unread");
 });

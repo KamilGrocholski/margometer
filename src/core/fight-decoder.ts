@@ -38,6 +38,7 @@ import {
     type KeyMeaning,
     lookupKeyMeaning,
     NAME_SEPARATOR,
+    PROVOCATION_KEY,
     RAW_SIGN,
     SKILL_ID_KEY,
     TEXT_KEY,
@@ -233,9 +234,18 @@ const NO_WINNER = "?";
  */
 const TURN_LOST_SEPARATOR = " - ";
 const SENTENCE_STOP = ".";
-const ENDS_MAXIMUM = 2;
+export const ENDS_MAXIMUM = 2;
 /** The longest message in `captures/` carries 42 segments, 2026-08-28. */
 export const SEGMENTS_MAXIMUM = 512;
+/**
+ * Past the most parts of one kind a message states, so every list read off one stays bounded
+ * here, where the message is read, and a part past it is unread: 20 declarations and 20 named
+ * targets in one message, 7 damage figures and 3 procs, over the 36 recordings in `captures/` on
+ * 2026-10-04.
+ */
+export const MESSAGE_PARTS_MAXIMUM = 32;
+/** One name and one id: a second of either is unread. */
+const SKILL_KEYS_READ_MAXIMUM = 2;
 
 const SEGMENT_SEPARATOR = ";";
 const VALUE_SEPARATOR = "=";
@@ -330,7 +340,6 @@ export function decodeMessage(
         isBlow,
     );
     const announcementStanding = composeAnnouncementStanding(context, events, announcedHere);
-    assert(events.length <= message.parameters.length, "a message stays inside its bound");
     if (parametersDecoded.unreadKeys.length > 0) {
         const combatantIds = getNamedCombatantIds(message);
         const unreadCause = UNREAD_CAUSE.unknownKey;
@@ -453,10 +462,9 @@ function decodeMessageParameters(message: ProtocolMessage): ParametersDecoded {
     }
     // Close the announcement: an id with no name is a skill nothing can put on screen.
     {
-        assert(parametersDecoded.announcement === null, "a reading's announcement is closed once");
         assert(
-            parametersDecoded.skillKeysRead >= 0,
-            "a count of skill keys read never runs below nought",
+            parametersDecoded.skillKeysRead <= SKILL_KEYS_READ_MAXIMUM,
+            "a message names its skill once by name and once by id, at most",
         );
         if (parametersDecoded.skillName !== null) {
             parametersDecoded.announcement = {
@@ -499,13 +507,15 @@ function addValuedKey(
             assert(Number.isSafeInteger(amount), "a figure read from digits is held exactly");
             const token = parseKeyToken(key);
             if (keyMeaning.kind === KEY_FAMILY.prevented) {
-                parametersDecoded.prevented.push({ defence: token, amount });
-            } else if (keyMeaning.kind === KEY_FAMILY.destroyed) {
-                parametersDecoded.destroyed.push({ statistic: token, amount });
-            } else if (keyMeaning.half === DAMAGE_HALF.raw) {
-                parametersDecoded.raw.push({ element: token, amount });
-            } else parametersDecoded.applied.push({ element: token, amount });
-            return true;
+                return addParameterRead(parametersDecoded.prevented, { defence: token, amount });
+            }
+            if (keyMeaning.kind === KEY_FAMILY.destroyed) {
+                return addParameterRead(parametersDecoded.destroyed, { statistic: token, amount });
+            }
+            if (keyMeaning.half === DAMAGE_HALF.raw) {
+                return addParameterRead(parametersDecoded.raw, { element: token, amount });
+            }
+            return addParameterRead(parametersDecoded.applied, { element: token, amount });
         }
         case KEY_FAMILY.proc:
             if (keyMeaning.doesTakeValue) return addParameterRead(parametersDecoded.procs, key);
@@ -516,6 +526,12 @@ function addValuedKey(
                 decodeHealthChange(key, valueText, keyMeaning),
             );
         case KEY_FAMILY.declaration:
+            // A shout naming more characters than a fight holds is unread, so the names a shout
+            // holds stay inside the cast wherever they are read.
+            if (key === PROVOCATION_KEY) {
+                const names = valueText.split(NAME_SEPARATOR).filter((name) => name.length > 0);
+                if (names.length > COMBATANTS_MAXIMUM) return false;
+            }
             return addParameterRead(parametersDecoded.declared, {
                 effect: key,
                 amount: parseInteger(valueText),
@@ -531,6 +547,8 @@ function addValuedKey(
             if (valueText.length === 0) return false;
             if (valueText.length > NAME_LENGTH_MAXIMUM) return false;
             if (!isUserNamed) return false;
+            // A second name is unread, never written over the first.
+            if (parametersDecoded.skillName !== null) return false;
             parametersDecoded.skillName = valueText;
             parametersDecoded.skillKeysRead += 1;
             assert(
@@ -543,6 +561,7 @@ function addValuedKey(
             // Read the skill's id: one that is no number goes unread, never an id of nobody's.
             const skillId = parseInteger(valueText);
             if (skillId === null) return false;
+            if (parametersDecoded.skillId !== null) return false;
             parametersDecoded.skillId = skillId;
             parametersDecoded.skillKeysRead += 1;
             return true;
@@ -571,10 +590,12 @@ function addValuedKey(
     }
 }
 
+/** A part past the bound on one message's parts is unread, as one that does not decode is. */
 function addParameterRead<Decoded>(decodedParameters: Decoded[], decoded: Decoded | null): boolean {
     if (decoded === null) return false;
+    if (decodedParameters.length >= MESSAGE_PARTS_MAXIMUM) return false;
     const count = decodedParameters.push(decoded);
-    assert(count > 0, "what was decoded is held");
+    assert(count <= MESSAGE_PARTS_MAXIMUM, "a message's parts stay inside their stated bound");
     return true;
 }
 

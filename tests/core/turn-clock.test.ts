@@ -3,14 +3,22 @@
  * against. The events are written out in the shape the decoder hands over.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    AssertionError,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import {
     type AttackEvent,
     BATTLE_EVENT,
     type BattleEvent,
     type DeclarationEvent,
 } from "#/src/core/battle-event.ts";
+import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
+    addEventTurns,
     composeTurnStanding,
     lookupDeclarationOpenerKey,
     lookupTurnOpener,
@@ -136,4 +144,18 @@ Deno.test("a declaration between an action and its preparation keeps who acted",
         composeDeclaration(3, "prepare"),
     ]);
     assertEquals(openers, [3, null, null], "the preparation still rides the action before it");
+});
+
+Deno.test("a clock runs for as many combatants as a fight holds, and one more is a broken fight", () => {
+    const turnsByCombatantId = new Map<number, number>();
+    for (let actorId = 1; actorId <= COMBATANTS_MAXIMUM; actorId += 1) {
+        addEventTurns(turnsByCombatantId, { ...ANNOUNCEMENT, actorId }, NO_TURN_STANDING);
+    }
+    assertStrictEquals(turnsByCombatantId.size, COMBATANTS_MAXIMUM, "a full fight is counted");
+    const oneMore = { ...ANNOUNCEMENT, actorId: COMBATANTS_MAXIMUM + 1 };
+    assertThrows(
+        () => addEventTurns(turnsByCombatantId, oneMore, NO_TURN_STANDING),
+        AssertionError,
+        "a clock runs for no more than a fight",
+    );
 });

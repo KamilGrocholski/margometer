@@ -10,7 +10,12 @@
 import { assert } from "@std/assert/assert";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { BATTLE_EVENT, type BattleEvent, type DeclaredEffect } from "./battle-event.ts";
-import { type CombatantRoster, lookupCombatantIdByName } from "./combatant-roster.ts";
+import {
+    type CombatantRoster,
+    COMBATANTS_MAXIMUM,
+    lookupCombatantIdByName,
+} from "./combatant-roster.ts";
+import { MESSAGE_PARTS_MAXIMUM } from "./fight-decoder.ts";
 import type { FightView } from "./fight-session.ts";
 import {
     isSideWideKey,
@@ -130,7 +135,10 @@ export const STANDINGS_MAXIMUM = 256;
  * sides, not a reading that failed**: `Wyzywający okrzyk` does both in one announcement.
  */
 export function lookupReachOfEffects(effects: readonly { effect: string }[]): AuraReach | null {
-    assert(effects.length <= STANDINGS_MAXIMUM, "a cast states a bounded list of effects");
+    assert(
+        effects.length <= MESSAGE_PARTS_MAXIMUM,
+        "a cast states no more than a message is read to",
+    );
     let castReach: AuraReach | null = null;
     for (const declaredEffect of effects) {
         const reach = lookupKeyReach(declaredEffect.effect);
@@ -284,7 +292,7 @@ function parseShoutNames(declared: readonly DeclaredEffect[]): string[] {
             if (name.length > 0) shoutNames.push(name);
         }
     }
-    assert(shoutNames.length <= STANDINGS_MAXIMUM, "a shout names no more than the stated bound");
+    assert(shoutNames.length <= COMBATANTS_MAXIMUM, "a shout names no more than a fight holds");
     return shoutNames;
 }
 

@@ -21,6 +21,7 @@ import {
 } from "./battle-event.ts";
 import type { SideHeal } from "./combatant-health.ts";
 import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
+import { MESSAGE_PARTS_MAXIMUM } from "./fight-decoder.ts";
 import { type LegendaryBonusTally, tallyLegendaryBonuses } from "./legendary-standing.ts";
 import {
     CRITICAL_PROC_KEYS,
@@ -250,8 +251,6 @@ interface TallyingStatistics extends UnreadMessageCounts {
 
 /** The largest cut in `captures/` holds ten elements against twenty people, 2026-08-28. */
 export const CUT_MAXIMUM = 64;
-/** The most one blow fires in `captures/` is 3, 2026-08-30. */
-const PROCS_MAXIMUM = 32;
 /** 81 skills are named across `captures/`, 2026-08-29. */
 const SKILLS_MAXIMUM = 256;
 
@@ -553,8 +552,8 @@ export function tallyFightStatistics(
                 const stated = { source: event.source, announced: null };
                 addHealthGiven(tallying, giverId, event.amount, event.targetId, stated);
                 assert(
-                    figures.healthRestored >= event.amount,
-                    "a total only grows by what it was handed",
+                    Number.isSafeInteger(figures.healthRestored),
+                    "a total stays inside what a number holds exactly",
                 );
             }
         }
@@ -592,10 +591,6 @@ export function tallyFightStatistics(
                 const skills = addCombatantFigures(tallying.byCombatantId, event.actorId).skills;
                 const skillFigures = addSkillFigures(skills, event.skillName);
                 skillFigures.uses += 1;
-                assert(
-                    skillFigures.uses > 0,
-                    "an announcement that was counted was counted at least once",
-                );
             }
         }
         // Count the turn the event opens: one with no actor named reaches no row, as blows do.
@@ -609,10 +604,6 @@ export function tallyFightStatistics(
                 );
                 const figures = addCombatantFigures(tallying.byCombatantId, openerId);
                 figures.turnsTaken += 1;
-                assert(
-                    figures.turnsTaken > 0,
-                    "a turn that was counted was counted at least once",
-                );
             }
         }
         if (event.kind === BATTLE_EVENT.turnLost) {
@@ -627,10 +618,6 @@ export function tallyFightStatistics(
                     event.combatantId,
                 );
                 figures.turnsLost += 1;
-                assert(
-                    figures.turnsLost > 0,
-                    "a turn that was lost was lost at least once",
-                );
             }
         }
     }
@@ -832,10 +819,6 @@ function addBlowDealt(dealer: TallyingFigures, event: AttackEvent, blow: BlowFig
                 event.announced.skillName,
             );
             skillFigures.blows += 1;
-            assert(
-                skillFigures.blows > 0,
-                "a blow that was counted was counted at least once",
-            );
         }
     }
     addDamageFiguresToCut(dealer.damageDealtByKind, blow.kinds);
@@ -862,8 +845,8 @@ function addBlowDealt(dealer: TallyingFigures, event: AttackEvent, blow: BlowFig
     {
         assert(blow.amount >= 0, "a blow lands no less than nothing");
         assert(
-            event.destroyed.length <= CUT_MAXIMUM,
-            "and destroys inside its stated bound",
+            event.destroyed.length <= MESSAGE_PARTS_MAXIMUM,
+            "and destroys no more than one message is read to state",
         );
         dealer.damageDealtBlowLargest = composeBlowLargest(
             dealer.damageDealtBlowLargest,
@@ -961,9 +944,6 @@ function lookupAnnouncedWound(
         if (declared.amount <= 0) continue;
         announcedWound = { woundedId, standing: { actorId, amount: declared.amount } };
     }
-    if (announcedWound !== null) {
-        assert(announcedWound.standing.amount > 0, "a wound kept takes something off");
-    }
     return announcedWound;
 }
 
@@ -986,7 +966,6 @@ function addUnplacedCast(tallying: TallyingStatistics, casterId: number | null):
     assert(Number.isSafeInteger(casterId), "a cast is charged to somebody the protocol named");
     const figures = addCombatantFigures(tallying.byCombatantId, casterId);
     figures.sideHealsUnsized += 1;
-    assert(figures.sideHealsUnsized > 0, "a suspicion charged to a row is one the row now carries");
 }
 
 /**
@@ -1059,9 +1038,9 @@ function addCutForOtherEnd(
     otherEndKey: string,
 ): Map<string, number> {
     assert(otherEndKey.length > 0, "the other end of a movement is named before it is cut by");
-    assert(cut.size <= COMBATANTS_MAXIMUM, "a fight cuts by the people who are in it");
     const cutForOtherEnd = cut.get(otherEndKey) ?? new Map<string, number>();
     cut.set(otherEndKey, cutForOtherEnd);
+    assert(cut.size <= COMBATANTS_MAXIMUM, "a fight cuts by the people who are in it");
     return cutForOtherEnd;
 }
 
@@ -1114,7 +1093,7 @@ function tallyBlowFigures(event: AttackEvent): BlowFigures {
     const applied = tallyDamageAmounts(event.applied);
     assert(raw >= 0, "a blow puts out no less than nothing");
     assert(applied >= 0, "and lands no less than nothing");
-    assert(event.prevented.length <= CUT_MAXIMUM, "and is stopped inside its stated bound");
+    assert(event.prevented.length <= MESSAGE_PARTS_MAXIMUM, "and is stopped as far as it is read");
     const kinds = [...event.applied];
     const absorbedParts: PreventedDamage[] = [];
     const preventedParts: PreventedDamage[] = [];
@@ -1182,7 +1161,7 @@ function composeBlowLargest(largestSoFar: number, amount: number): number {
 }
 
 function isBlowCritical(procs: readonly string[]): boolean {
-    assert(procs.length <= PROCS_MAXIMUM, "a blow fires no more procs than it is bounded to");
+    assert(procs.length <= MESSAGE_PARTS_MAXIMUM, "a blow fires no more procs than it is read to");
     return procs.some((key) => CRITICAL_PROC_KEYS.includes(key));
 }
 
@@ -1195,7 +1174,7 @@ function addBlowProcs(
     target: TallyingFigures | null,
     procs: readonly string[],
 ): void {
-    assert(procs.length <= PROCS_MAXIMUM, "a blow fires no more procs than it is bounded to");
+    assert(procs.length <= MESSAGE_PARTS_MAXIMUM, "a blow fires no more procs than it is read to");
     for (const key of procs) {
         const keyMeaning = lookupKeyMeaning(key);
         assert(keyMeaning !== null, "a proc the decoder stated is a key the table reads");
@@ -1232,7 +1211,8 @@ function addBlowWithNoTarget(
 }
 
 function addDamageFiguresToCut(cut: Map<string, number>, kinds: readonly DamageFigure[]): void {
-    assert(kinds.length <= CUT_MAXIMUM, "a blow carries its kinds inside the stated bound");
+    // A blow's kinds are what it applied and what drained a pool, each bounded where it was read.
+    assert(kinds.length <= MESSAGE_PARTS_MAXIMUM * 2, "a blow carries its kinds inside the bound");
     for (const kind of kinds) {
         assert(kind.amount >= 0, "a kind of a blow lands no less than nothing");
         addToCut(cut, kind.element, kind.amount);
@@ -1262,7 +1242,10 @@ function addDamageTakenApplied(target: TallyingFigures, amount: number): void {
 function addRestoredToNobody(tallying: TallyingStatistics, amount: number): void {
     assert(amount >= 0, "health that came back never came back below nothing");
     tallying.healthRestoredToNobody += amount;
-    assert(tallying.healthRestoredToNobody >= amount, "a total only grows by what it was handed");
+    assert(
+        Number.isSafeInteger(tallying.healthRestoredToNobody),
+        "a total stays inside what a number holds exactly",
+    );
 }
 
 /**

@@ -10,6 +10,7 @@ import { assert } from "@std/assert/assert";
 import { clampNumber } from "#/libs/number-range.ts";
 import { BATTLE_EVENT, type BattleEvent } from "./battle-event.ts";
 import { type CombatantRoster, COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
+import { ENDS_MAXIMUM } from "./fight-decoder.ts";
 import { HEALING_REDUCER_KEY } from "./protocol-key.ts";
 import { HEALTH_PERCENT_PLACES } from "./protocol-number.ts";
 
@@ -21,7 +22,7 @@ export interface SideHeal {
     source: string;
     declaredShare: number;
     restoredByCombatantId: ReadonlyMap<number, number>;
-    /** False where a side-mate could not be sized, so the cast is still counted as missing. */
+    /** False where a side-mate could not be sized, so the cast is still counted as unsized. */
     isWhole: boolean;
 }
 
@@ -29,7 +30,6 @@ const PERCENT_WHOLE = 100;
 const DECIMAL_BASE = 10;
 /** Two places stand for a band half a place wide, and the health behind it is that share. */
 const HALF_PLACE = 0.5;
-const ENDS_MAXIMUM = 2;
 
 /**
  * How far a health read from a two-place percentage can be off. The guards measuring the corpus
@@ -135,10 +135,9 @@ export function indexSideHeals(
                 heals.set(event, heal);
                 // What a cast put back is health the next one cannot put back again.
                 for (const [combatantId, amount] of heal.restoredByCombatantId) {
-                    healthByCombatantId.set(
-                        combatantId,
-                        (healthByCombatantId.get(combatantId) ?? 0) + amount,
-                    );
+                    const healthNow = healthByCombatantId.get(combatantId);
+                    assert(healthNow !== undefined, "a cast is sized only over health it read");
+                    healthByCombatantId.set(combatantId, healthNow + amount);
                 }
             }
         }

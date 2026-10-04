@@ -8,6 +8,7 @@
 
 import { assert } from "@std/assert/assert";
 import { BATTLE_EVENT, type BattleEvent, type DeclarationEvent } from "./battle-event.ts";
+import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
 import { PREPARE_KEY, STEP_KEY } from "./protocol-key.ts";
 
 /**
@@ -75,6 +76,8 @@ function addTurn(turnsByCombatantId: Map<number, number>, combatantId: number | 
     const turnsTaken = turnsByCombatantId.get(combatantId) ?? 0;
     assert(turnsTaken >= 0, "a count of turns is never below nothing");
     turnsByCombatantId.set(combatantId, turnsTaken + 1);
+    // The ids a fight's messages name are its rows', held to the same bound.
+    assert(turnsByCombatantId.size <= COMBATANTS_MAXIMUM, "a clock runs for no more than a fight");
 }
 
 /**

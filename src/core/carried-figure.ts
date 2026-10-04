@@ -8,7 +8,7 @@
  */
 
 import { assert } from "@std/assert/assert";
-import type { AuraStanding } from "./aura-standing.ts";
+import { type AuraStanding, STANDINGS_MAXIMUM } from "./aura-standing.ts";
 import { type CarriedStatus, STATUS_BITS_MAXIMUM } from "./carried-status.ts";
 import type { CombatantRoster } from "./combatant-roster.ts";
 import { HASTE_AURA_KEY, KEY_REACH, lookupKeyReach, SLOW_ALL_KEY } from "./protocol-key.ts";
@@ -115,7 +115,7 @@ function lookupCastsOverBearer(
     bearer: Bearer,
     key: string,
 ): AuraStanding[] {
-    assert(auras.length <= SOURCES_MAXIMUM * SOURCES_MAXIMUM, "a walk over casts is bounded");
+    assert(auras.length <= STANDINGS_MAXIMUM, "a walk over casts is bounded as the casts are");
     assert(bearer.turnsTaken >= 0, "and a count of turns never runs backwards");
     const castsOverBearer: AuraStanding[] = [];
     for (const aura of auras) {
@@ -162,10 +162,11 @@ function tallyPercentForBearer(
     assert(casts.length <= SOURCES_MAXIMUM, "and over the casts the walk above bounded");
     if (isCasterHalved(auras, bearer.combatantId, key)) return null;
     if (casts.length === 0) return null;
-    const amountsDescending = casts.map((cast) => cast.amountByKey.get(key) ?? 0).sort((
-        leftAmount,
-        rightAmount,
-    ) => rightAmount - leftAmount);
+    const amountsDescending = casts.map((cast) => {
+        const amount = cast.amountByKey.get(key);
+        assert(amount !== undefined, "a cast over the bearer states the key it was walked for");
+        return amount;
+    }).sort((leftAmount, rightAmount) => rightAmount - leftAmount);
     let summed = 0;
     for (let amountIndex = 0; amountIndex < SOURCES_COUNTED; amountIndex += 1) {
         summed += amountsDescending[amountIndex] ?? 0;
