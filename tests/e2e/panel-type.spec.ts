@@ -15,6 +15,7 @@ const STEPS = [
     { step: "large", font: "13px", row: 21 },
 ];
 const CONTROLS = ["[data-options]", "[data-shelf]", "[data-save]", "[data-fold]"];
+const SVG_MASK_OPENER = 'url("data:image/svg+xml,';
 
 test("every size of type draws its own row, keeps the bar whole, and reaches both windows", async ({ panel }) => {
     for (const { step, font, row } of STEPS) {
@@ -69,9 +70,16 @@ test("every bar icon is drawn about the middle of its square, folded and not", a
     for (const isFolded of [false, true]) {
         const selectors = [...CONTROLS, "[data-helper-fold]"];
         for (const selector of selectors) {
-            const middle = await panel.at(selector).evaluate((control) => {
+            // The fold redraws on the next frame, and a mask read before it holds no drawing.
+            await expect.poll(
+                () =>
+                    panel.at(selector).evaluate((control) => {
+                        return getComputedStyle(control, "::before").maskImage;
+                    }),
+                `${selector}: wears its drawing`,
+            ).toContain(SVG_MASK_OPENER);
+            const middle = await panel.at(selector).evaluate((control, opener) => {
                 const mask = getComputedStyle(control, "::before").maskImage;
-                const opener = 'url("data:image/svg+xml,';
                 const drawing = decodeURIComponent(mask.slice(opener.length, mask.length - 2));
                 const parsed = new DOMParser().parseFromString(drawing, "image/svg+xml");
                 const svg = document.importNode(parsed.documentElement, true);
@@ -83,7 +91,7 @@ test("every bar icon is drawn about the middle of its square, folded and not", a
                     across: box.x + box.width / 2 - view.width / 2,
                     down: box.y + box.height / 2 - view.height / 2,
                 };
-            });
+            }, SVG_MASK_OPENER);
             expect(Math.abs(middle.across), `${selector}: centred across`).toBeLessThan(0.01);
             expect(Math.abs(middle.down), `${selector}: and down`).toBeLessThan(0.01);
         }
