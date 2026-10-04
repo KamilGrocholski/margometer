@@ -13,11 +13,6 @@ export interface MargonemClientBuildPort {
     readBuildId(): string | MargonemReadFailure;
 }
 
-/** The whole of what this asks a page for: the sources of its scripts. */
-export interface BrowserScripts {
-    readScriptSources(): readonly unknown[];
-}
-
 /**
  * What both shapes the client has served have in common. Until 2026-08-25 a bundle was
  * `main.min1786514810315.js`, thirteen digits of timestamp; read 2026-08-25, `tempest` and `luvia`
@@ -30,13 +25,16 @@ const SCRIPT_NAME_TAIL = ".js";
 const OPTIONAL_SEPARATOR = ".";
 const BUILD_DASH = "-";
 /** A page states a handful of scripts, and a source names the bundle at most a few times. */
-const LOOKS_MAXIMUM = 256;
+export const LOOKS_MAXIMUM = 256;
 export const SCRIPTS_MAXIMUM = 4096;
 
-export function initMargonemClientBuild(scripts: BrowserScripts): MargonemClientBuildPort {
+/** `readScriptSources` is the whole of what this asks a page for. */
+export function initMargonemClientBuild(
+    readScriptSources: () => readonly unknown[],
+): MargonemClientBuildPort {
     return {
         readBuildId() {
-            const sources = errors.attempt(() => scripts.readScriptSources());
+            const sources = errors.attempt(() => readScriptSources());
             if (sources instanceof Error) return sources;
             const walked = Math.min(sources.length, SCRIPTS_MAXIMUM);
             for (let scriptIndex = 0; scriptIndex < walked; scriptIndex += 1) {

@@ -58,9 +58,9 @@ function readBrowserText(browserWindow: unknown, memberName: string, field: stri
 }
 
 /**
- * ⚠️ **A page with no hostname gives `""`**, and the first label of `""` is `""` — not nullish, so
- * a recording carried a world of nothing and a file named with a hole where the answer goes. Seen
- * on a `file://` page, in v1.
+ * ⚠️ **A page with no hostname gives `""`**, a `file://` page among them, and the first label of
+ * `""` is `""` — not nullish, so a world of nothing would reach the recording and leave a hole in
+ * the file's name where the answer goes.
  */
 export function parseWorld(host: string): string {
     const end = host.indexOf(HOST_SEPARATOR);

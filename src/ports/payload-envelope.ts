@@ -174,20 +174,22 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
         if (ordinals.length > QUEUE_ENTRIES_MAXIMUM) {
             return new PayloadFieldTooLong("turnStatement", ordinals.length, QUEUE_ENTRIES_MAXIMUM);
         }
-        let least: number | null = null;
+        // The least ordinal is looked up under the key it was read from: `07` reads as 7, and
+        // the queue holds it as `07`.
+        let least: { ordinal: number; key: string } | null = null;
         for (const ordinalText of ordinals) {
             const ordinal = parseInteger(ordinalText);
             if (ordinal === null) return new PayloadFieldMalformed("turnStatement");
-            if (least === null) least = ordinal;
-            else if (ordinal < least) least = ordinal;
+            if (least === null) least = { ordinal, key: ordinalText };
+            else if (ordinal < least.ordinal) least = { ordinal, key: ordinalText };
         }
         if (least === null) {
             turnStatement = null;
             break readTurn;
         }
-        const combatantId = queue[`${least}`];
+        const combatantId = queue[least.key];
         if (typeof combatantId !== "number") return new PayloadFieldMalformed("turnStatement");
-        turnStatement = { ordinal: least, combatantId };
+        turnStatement = { ordinal: least.ordinal, combatantId };
     }
     let warriors: unknown[];
     // Read the warrior entries, as a list.

@@ -39,6 +39,13 @@ export interface FightCapture {
     statesSeen: Set<string>;
 }
 
+/** What `prepareCapture` reads of the recording, and nothing it could change. */
+interface FightCaptureReading {
+    readonly calls: readonly CapturedCall[];
+    readonly shapesSeen: ReadonlySet<string>;
+    readonly statesSeen: ReadonlySet<string>;
+}
+
 export interface PreparedCapture {
     /** How many calls the recording it was prepared against held; a fight that opens holds none. */
     readonly callIndex: number;
@@ -75,8 +82,8 @@ export function createFightCapture(): FightCapture {
 
 /** Phase one: whether one more call is kept, and its copy, the recording untouched. */
 export function prepareCapture(
-    capture: FightCapture,
-    call: MargonemEngineCall,
+    capture: FightCaptureReading,
+    call: Readonly<MargonemEngineCall>,
     isOpening: boolean,
 ): PreparedCapture {
     const callIndex = isOpening ? 0 : capture.calls.length;
@@ -84,8 +91,8 @@ export function prepareCapture(
     if (callIndex === CALLS_MAXIMUM) {
         return { callIndex, isOpening, isPastCeiling: true, kept: null };
     }
-    const shape = encodeCaptureShape(call.payload);
-    const state = encodeCaptureState(call.combatantsAfter);
+    const shape = composeCaptureShapeKey(call.payload);
+    const state = composeCaptureStateKey(call.combatantsAfter);
     let isKept: boolean;
     if (isOpening) isKept = true;
     else if (call.messages.length > 0) isKept = true;
@@ -103,7 +110,7 @@ export function prepareCapture(
 }
 
 /** Which keys the payload carried, so a call introducing one nobody has seen is kept. */
-function encodeCaptureShape(payload: unknown): string {
+function composeCaptureShapeKey(payload: unknown): string {
     if (!isRecord(payload)) return "";
     const keys = Object.keys(payload).sort();
     if (keys.length <= SHAPE_KEYS_MAXIMUM) return keys.join(",");
@@ -113,7 +120,7 @@ function encodeCaptureShape(payload: unknown): string {
 }
 
 /** A cast that would not be written is no key at all, and every such state then keys the same. */
-function encodeCaptureState(combatants: MargonemEngineWarriorSnapshot | null): string {
+function composeCaptureStateKey(combatants: MargonemEngineWarriorSnapshot | null): string {
     const written = encodeJson(combatants ?? [], 0);
     if (written instanceof Error) return "";
     assert(written.length > 0, "a key that was written says something");

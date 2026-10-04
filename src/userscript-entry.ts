@@ -159,17 +159,15 @@ export function readRuntimePorts(browserWindow: unknown): RuntimePorts | Browser
         place: initMargonemEnginePlace(browserWindow),
         hero: initMargonemEngineHero(browserWindow),
         dictionary: initMargonemClientDictionary(browserWindow),
-        build: initMargonemClientBuild({
-            // Read every script's source the page states, up to the bound the build's reader walks.
-            readScriptSources: () => {
-                const scripts = browserWindow.document.querySelectorAll(SCRIPT_WITH_SOURCE);
-                const walked = Math.min(scripts.length, SCRIPTS_MAXIMUM);
-                const sources: unknown[] = [];
-                for (let scriptIndex = 0; scriptIndex < walked; scriptIndex += 1) {
-                    sources.push(scripts[scriptIndex]?.src);
-                }
-                return sources;
-            },
+        // Read every script's source the page states, up to the bound the build's reader walks.
+        build: initMargonemClientBuild(() => {
+            const scripts = browserWindow.document.querySelectorAll(SCRIPT_WITH_SOURCE);
+            const walked = Math.min(scripts.length, SCRIPTS_MAXIMUM);
+            const sources: unknown[] = [];
+            for (let scriptIndex = 0; scriptIndex < walked; scriptIndex += 1) {
+                sources.push(scripts[scriptIndex]?.src);
+            }
+            return sources;
         }),
         surroundings: initBrowserSurroundings(browserWindow),
         tooltip: initMargonemEngineTooltip(browserWindow),

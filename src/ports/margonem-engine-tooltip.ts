@@ -90,9 +90,10 @@ export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngin
                     const blockBefore = nextBlocksById.get(id) ?? "";
                     const isBlockOn = writeMargonemEngineWarriorBlock(warrior, block, blockBefore);
                     if (isBlockOn === null) continue;
-                    if (isBlockOn) nextBlocksById.set(id, block);
-                    else nextBlocksById.delete(id);
-                    if (isBlockOn) written += 1;
+                    if (isBlockOn) {
+                        nextBlocksById.set(id, block);
+                        written += 1;
+                    } else nextBlocksById.delete(id);
                 }
                 for (const id of [...nextBlocksById.keys()]) {
                     if (!drawnIds.has(id)) nextBlocksById.delete(id);
@@ -146,8 +147,14 @@ function writeMargonemEngineWarriorBlock(
         if (blockBefore === block) return true;
         const theirs = registryText.slice(0, blockIndex) +
             registryText.slice(blockIndex + blockBefore.length);
-        // An empty string is the client's word for deleting the tooltip, which is not ours to do.
-        if (theirs.length === 0) return null;
+        // An empty string is the client's word for deleting the tooltip, which is not ours to do:
+        // a tooltip that is our block alone is replaced by the new one whole, or left standing.
+        if (theirs.length === 0) {
+            if (block.length === 0) return null;
+            targets.tip(block);
+            targets.trigger(TELL_EVENT);
+            return true;
+        }
         targets.tip(theirs);
     }
     if (block.length === 0) return false;

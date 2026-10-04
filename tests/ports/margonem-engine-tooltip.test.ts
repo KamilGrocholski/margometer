@@ -355,16 +355,19 @@ Deno.test("a page with no fight on it takes nothing, which is not a failure", ()
 
 /**
  * An empty string is the client's word for deleting a tooltip. A registry holding our block and
- * nothing else has no string of theirs to go back to, so the block stays rather than the tooltip
- * going.
+ * nothing else has no string of theirs to go back to, so a new block replaces it whole, and no
+ * block leaves it standing, rather than the tooltip going.
  */
-Deno.test("a tooltip that is nothing but our block is never deleted to take it off", () => {
+Deno.test("a tooltip that is nothing but our block takes the new one whole, never emptied", () => {
     const registry = composeRegistry("");
     const page = composePage([composeWarrior(11, "Gracz 1", registry)]);
     const writer = initMargonemEngineTooltip(page);
     writer.writeRows(new Map([[11, ["MargoMeter"]]]));
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 1"]]]));
-    assertEquals(registry.replaced, [], "their tooltip was never replaced with nothing");
+    assertEquals(registry.replaced.includes(""), false, "their tooltip was never emptied");
+    assertEquals(registry.text, "<br>MargoMeter<br>Tury wykonane 1", "and holds the new block");
+    writer.writeRows(new Map([[11, []]]));
+    assertEquals(registry.text, "<br>MargoMeter<br>Tury wykonane 1", "which nothing takes off");
 });
 
 /**

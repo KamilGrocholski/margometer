@@ -160,6 +160,8 @@ Deno.test("the queue's least ordinal is the turn in hand, and the rest is foreca
     assertEquals(stated, { ordinal: 7, combatantId: 11 }, "the least, wherever it is listed");
     assertStrictEquals(readOk({ turns_warriors: {} }).turnStatement, null, "an empty queue");
     assertStrictEquals(readOk({}).turnStatement, null, "and no queue at all");
+    const padded = readOk({ turns_warriors: { "08": 12, "07": 11 } }).turnStatement;
+    assertEquals(padded, { ordinal: 7, combatantId: 11 }, "an ordinal is found as it was keyed");
 });
 
 Deno.test("an empty message is passed over, and counts as lost against what was stated", () => {

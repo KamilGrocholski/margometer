@@ -10,8 +10,10 @@ import { assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import {
     initMargonemClientBuild,
+    LOOKS_MAXIMUM,
     parseMargonemClientBuildId,
     parseMargonemClientBundleName,
+    SCRIPTS_MAXIMUM,
 } from "#/src/ports/margonem-client-build.ts";
 import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
 
@@ -102,30 +104,26 @@ Deno.test("the search goes past a name whose tail does not hold", () => {
 
 Deno.test("the first script naming a build is the page's build", () => {
     const sources = ["/js/jquery.js", "/js/main.min.53XkBRxF.js", "/js/main.min.Bb28FQty.js"];
-    const build = initMargonemClientBuild({ readScriptSources: () => sources }).readBuildId();
+    const build = initMargonemClientBuild(() => sources).readBuildId();
     assertStrictEquals(build, "53XkBRxF", "the first that names one, and not a later one");
 });
 
 Deno.test("a page naming no build says so, and a source that is not text is passed over", () => {
-    const none = initMargonemClientBuild({ readScriptSources: () => ["/js/jquery.js"] })
-        .readBuildId();
+    const none = initMargonemClientBuild(() => ["/js/jquery.js"]).readBuildId();
     assertInstanceOf(none, MargonemValueAbsent, "no build is absent, never a guess");
     assertStrictEquals(none.value, MARGONEM_VALUE.build, "and names the reading");
-    const empty = initMargonemClientBuild({ readScriptSources: () => [] }).readBuildId();
+    const empty = initMargonemClientBuild(() => []).readBuildId();
     assertInstanceOf(empty, MargonemValueAbsent, "and a page with no scripts names none either");
     const mixed = [null, 7, { src: "x" }, "/js/main.min.53XkBRxF.js"];
-    const passed = initMargonemClientBuild({ readScriptSources: () => mixed }).readBuildId();
+    const passed = initMargonemClientBuild(() => mixed).readBuildId();
     assertStrictEquals(passed, "53XkBRxF", "what is not text is passed over, not refused");
 });
 
 Deno.test("a page whose scripts will not be read is a failure of theirs", () => {
     const thrown = new TypeError("the document is gone");
-    const scripts = {
-        readScriptSources: (): readonly unknown[] => {
-            throw thrown;
-        },
-    };
-    const answer = initMargonemClientBuild(scripts).readBuildId();
+    const answer = initMargonemClientBuild((): readonly unknown[] => {
+        throw thrown;
+    }).readBuildId();
     assertInstanceOf(answer, errors.Caught, "a failure of theirs");
     assertStrictEquals(answer.cause, thrown, "with its cause");
 });
@@ -156,4 +154,22 @@ Deno.test("the bundle's whole name is read where the id is, in both shapes the c
         null,
         "and so is another file",
     );
+});
+
+Deno.test("the scripts are walked up to their bound, and one past it is not read", () => {
+    const decoys = (count: number) => Array.from({ length: count }, () => "/js/jquery.js");
+    const atBound = [...decoys(SCRIPTS_MAXIMUM - 1), "/js/main.min.53XkBRxF.js"];
+    assertStrictEquals(initMargonemClientBuild(() => atBound).readBuildId(), "53XkBRxF");
+    const pastBound = [...decoys(SCRIPTS_MAXIMUM), "/js/main.min.53XkBRxF.js"];
+    assertInstanceOf(
+        initMargonemClientBuild(() => pastBound).readBuildId(),
+        MargonemValueAbsent,
+        "a script past the bound names nothing",
+    );
+});
+
+Deno.test("a source is searched up to its bound on looks, and a name past it is not found", () => {
+    const named = (decoys: number) => `${"main.min.x ".repeat(decoys)}main.min.53XkBRxF.js`;
+    assertStrictEquals(parseMargonemClientBuildId(named(LOOKS_MAXIMUM - 1)), "53XkBRxF");
+    assertStrictEquals(parseMargonemClientBuildId(named(LOOKS_MAXIMUM)), null, "one look too many");
 });

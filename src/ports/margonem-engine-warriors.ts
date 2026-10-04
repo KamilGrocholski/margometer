@@ -10,6 +10,7 @@
 import { assert } from "@std/assert/assert";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
+import { WARRIOR_FIELDS } from "./payload-envelope.ts";
 
 /**
  * One combatant as the running fight holds them. The keys are the client's own and are the file's
@@ -56,13 +57,24 @@ export type MargonemEngineWarriorFailure =
  * a collection under that name too; whichever answers with named combatants first is the one used.
  */
 const WARRIOR_COLLECTIONS = ["warriorsList", "warriors"] as const;
-/** The id the game draws a warrior under; `originalId` is only ever a fallback for a recording. */
-export const WARRIOR_ID_KEY = "id";
+/**
+ * The engine's warrior is built from the payload's entry key for key, so the keys the envelope
+ * reads are spelled once, in `WARRIOR_FIELDS`. The id is the one the game draws a warrior under;
+ * `originalId` is only ever a fallback for a recording.
+ */
+export const WARRIOR_ID_KEY = WARRIOR_FIELDS.id;
 const IDENTITY_KEYS = [WARRIOR_ID_KEY, "originalId"] as const;
-const COPIED_KEYS = ["name", "team", "prof", "lvl", "mana", "energy"] as const;
+const COPIED_KEYS = [
+    WARRIOR_FIELDS.name,
+    WARRIOR_FIELDS.side,
+    WARRIOR_FIELDS.profession,
+    WARRIOR_FIELDS.level,
+    "mana",
+    "energy",
+] as const;
 /** Live objects the game goes on mutating: held by reference, the after reads as the before. */
-const SHALLOW_COPIED_KEYS = ["hp", "ac"] as const;
-const NAME_KEY = "name";
+const SHALLOW_COPIED_KEYS = [WARRIOR_FIELDS.health, "ac"] as const;
+const NAME_KEY = WARRIOR_FIELDS.name;
 
 export function readMargonemEngineWarriorSnapshot(
     battle: unknown,
