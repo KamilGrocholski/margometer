@@ -150,8 +150,8 @@ evidence.
 
 - `captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json` — the oldest, written
   before the header settled: no `droppedCalls`, no `isTruncated`, and the only one carrying
-  `render`, the game's own composed sentences, which nothing in this tree reads. Also the only fight
-  against more than one opponent.
+  `render`, the game's own composed sentences, which nothing in this tree reads. Also the first
+  fight against more than one opponent.
 - `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` — carries `walka`, the fight
   number, from the format that could hold more than one fight per recording.
 - `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json` — the only duel
@@ -162,11 +162,11 @@ evidence.
   player at both ends, and the first written from side 2. It is what settled whom a shout holds
   (**develop ADR 0064**) and it is the whole of the evidence for it.
 - `captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json` — the first fight the
-  game settled by itself, and one of three. Every payload carries `auto`, the whole battle arrives
-  in one engine call with no snapshot before it, and the two calls after it carry snapshots and no
-  messages at all. So it contributes nothing to the health witness, for the same reason the duel
-  does not (`tests/core/health-witness.test.ts`), and its opening call has to be unwound in full to
-  say what anybody entered with.
+  game settled by itself, of the seven `captures/` held on 2026-10-04. Every payload carries `auto`,
+  the whole battle arrives in one engine call with no snapshot before it, and the two calls after it
+  carry snapshots and no messages at all. So it contributes nothing to the health witness, for the
+  same reason the duel does not (`tests/core/health-witness.test.ts`), and its opening call has to
+  be unwound in full to say what anybody entered with.
 
   Because of that its entry health comes entirely from stated percentages rather than from a
   snapshot — the first snapshot after the battle has every player clamped to zero, which says where
@@ -190,10 +190,10 @@ evidence.
   It is also the only fight **entered by hand and finished on auto**: the opening call states `auto`
   as `0`, the third states `1`, and 304 of the 308 messages arrive in the closing call. Unlike the
   other auto recording it still has an opening snapshot, so the health witness judges it in full
-  rather than declining it. Of the four keys it brought, `+stun2` and `npc_heal` are in one other
-  recording each — the Mamlambo fight of 2026-09-06, against the same monster — while `anguish` and
-  `+legbon_anguish` arrived here first and are in both Draugr fights of the same day
-  (`docs/protocol-keys.md`).
+  rather than declining it. Of the four keys it brought, `+stun2` and `npc_heal` are in two other
+  recordings each on 2026-10-04 — the Mamlambo fights of 2026-09-06 and 2026-09-14, against the same
+  monster — while `anguish` and `+legbon_anguish` arrived here first and are in both Draugr fights
+  of the same day (`docs/protocol-keys.md`).
 
 - `captures/2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json` — the second fight the game
   settled by itself, in the same shape as the first: `auto` on every payload, all 462 messages in
@@ -251,12 +251,11 @@ evidence.
   something that is not a blow: seven poison ticks state their own reduction beside them, which is
   what moved that key and `poison` to the weakest placement the register has.
 
-- `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` — the **largest recording in
-  the material** and the one against the entry above's opponent thirteen minutes later, with a
-  different party. 715 messages over 111 engine calls, and 110 of those calls carry a snapshot: it
-  is the first `luvia` recording split turn by turn rather than arriving with most of its log in the
-  opening call, which is what makes it the widest health witness the corpus has — 1 083 comparisons
-  against 107 for its sibling, and no disagreement anywhere.
+- `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` — the one against the entry
+  above's opponent thirteen minutes later, with a different party. 715 messages over 111 engine
+  calls, and 110 of those calls carry a snapshot: it is the first `luvia` recording split turn by
+  turn rather than arriving with most of its log in the opening call, which is what makes it a wide
+  health witness — 1 083 comparisons against 107 for its sibling, and no disagreement anywhere.
 
   ⚠️ **The only recording carrying `lowheal_per-enemies`, and it is evidence for the sizing rather
   than against it.** For one day it was read the other way: a fight declaring the reducer anywhere
@@ -284,8 +283,8 @@ evidence.
   ⚠️ **It is the only recording carrying `surpass_bonus_total`**, and it is what that key needed:
   the corpus already held the same monster at the same level met by ten players, so the two together
   say the value is a percentage over the monster's pool rather than a figure of its own
-  (`docs/protocol-keys.md`). Nothing else here is fought by fewer than nine, which is why no earlier
-  recording could carry it.
+  (`docs/protocol-keys.md`). No other fight against this monster here is fought by fewer than ten,
+  which is why no earlier recording could carry it.
 
 - `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` — the first recording on build
   `Cl9U89Zr`, and the first to carry a key the decoder could not read since the corpus last read
@@ -293,10 +292,10 @@ evidence.
   and `+critpierce`, armour destroyed beside `+acdmg` rather than inside it
   (`docs/protocol-keys.md`).
 
-  ⚠️ **`+critpierce` is why this one recording was worth more than its size.** 102 blows in
-  `captures/` carry `+crit` and `+pierce` together and this is the only one of them carrying the
-  key, so what it reports is somebody holding the effect rather than the two procs meeting — a claim
-  no single recording could have made.
+  ⚠️ **`+critpierce` is why this one recording was worth more than its size.** 105 blows in
+  `captures/` on 2026-10-04 carry `+crit` and `+pierce` together and this is the only one of them
+  carrying the key, so what it reports is somebody holding the effect rather than the two procs
+  meeting — a claim no single recording could have made.
 
   It is also the third fight against this monster, and the third carrying `+stun2-c`. The entry for
   that key had written down what a third would settle: nothing. It did not.

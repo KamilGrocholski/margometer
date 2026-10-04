@@ -130,10 +130,9 @@ hovering a fighter and reading the window answered the same question twice, diff
 `develop ADR 0108` ended it by taking both sections away: the bearer's clock is the only one still
 drawn, and the tooltip is where it is drawn.
 
-**The published help states whose turns for ten of its keys, and six of them are ours.** Each row is
-a clause counted in `frozen/help-phrases.ts` and cited by that key's entry in
-`docs/protocol-keys.md`, so the reading is re-earned rather than remembered (article `view,372`,
-read 2026-09-15).
+**The published help states whose turns for the keys below, one clause per row.** Each row is a
+clause counted in `frozen/help-phrases.ts` and cited by that key's entry in `docs/protocol-keys.md`,
+so the reading is re-earned rather than remembered (article `view,372`, read 2026-09-15).
 
 | clause                                   | keys it stands under                                                                                       | whose turns   |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------- |
@@ -249,8 +248,7 @@ and `taken_dmg_per-all` states it sharper: the two **highest** such sources. So 
 and a third is dropped: three `Szadź` at 14, 14 and 12 come to 28, not 40 and not 14.
 
 ⚠️ **A source is a combatant, not a cast.** The help counts sources from different characters, so
-two casts by one character are one source — which is what the window already does by refreshing
-rather than adding a row.
+two casts by one character are one source.
 
 ⚠️ **Two keys carry no such sentence at all** — `active_decblock_per-enemies` and
 `lowheal_per-enemies`. That is a gap in the source, not a licence to add without end.
@@ -327,9 +325,9 @@ claim — were the okrzyki one shape, skill 25 would read five here rather than 
 `src/core/aura-standing.ts` had `shout` reaching the **caster's** side, which is backwards: the
 help's effect table forces the affected to attack the character who used the skill, and over
 `captures/` **168 of 168 characters named across 166 announcements stand opposite the caster**, none
-on their own side. So `Prowokujący okrzyk` reaches both — it provokedCount the other side and raises
-its own — and `Wyzywający okrzyk` reaches only the other, its `both` having come from nothing but
-that entry.
+on their own side. So `Prowokujący okrzyk` reaches both — it provokes the other side and raises its
+own — and `Wyzywający okrzyk` reaches only the other, its `both` having come from nothing but that
+entry.
 
 |  id | skill              | on | fights | at once | stated | reaches  |
 | --: | ------------------ | -: | -----: | ------: | -----: | -------- |
@@ -370,9 +368,8 @@ count. `develop ADR 0064`, superseding `develop ADR 0063` in part.
 `alllowdmg` and `active_decblock_per-enemies` for five turns and `shout` for three; dated as an aura
 it held a character two turns after the game had let them go.
 
-⚠️ **One recording is a fight between players, and every other is N against one.** So `at once` and
-`names` are 2 for `Wyzywający okrzyk` and 1 for everything else: the corpus shows a shout naming
-more than one exactly once, and shows it at two.
+⚠️ **The corpus shows a shout naming more than one character exactly once, and shows it at two.** So
+`at once` and `names` are 2 for `Wyzywający okrzyk` and 1 for everything else.
 
 `casters` counts the combatants ever seen holding somebody with it; `fights` the recordings it holds
 in; `at once` the most characters it held at one moment; `stated` what the published table gives the

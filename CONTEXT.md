@@ -65,8 +65,8 @@ hardest figure at each end is not one of them**, and the panel states it nowhere
 puts against a name raises it without ever having been a swing, so it stands above the largest
 actual blow on 15 of the 296 rows over the recordings (**develop ADR 0087**, **develop ADR 0088**).
 It is read in the handed-over fight file and in `deno task fight:figures`. The decoder's own event
-kind spells it `attack`: that is the data contract's word (`core/battle-event.ts`), which
-**ARCHITECTURE.md** protects and this file does not rename. _Avoid_: Swing, exchange, hit
+kind spells it `attack`: that is the data contract's word (`src/core/battle-event.ts`), which
+`docs/design.md` carries over unchanged and this file does not rename. _Avoid_: Swing, exchange, hit
 
 **Hit**: A single damage number inside a blow. One blow can carry several. _Avoid_: Strike, instance
 
@@ -179,8 +179,7 @@ unexplained
 
 **Unread**: A message the decoder could not turn into meaning, counted under the cause that left it
 so. **It carries no figure**, which is what separates it from everything above: a total may be short
-by it and nothing anywhere can say by how much. `AGENTS.md` **N15** names this word as one of this
-file's own and it was not in it until 2026-09-13. _Avoid_: Failed, skipped, dropped
+by it and nothing anywhere can say by how much. _Avoid_: Failed, skipped, dropped
 
 **Suspect**: A drawn figure that may be short, because something feeding it could not be read.
 Marked next to the figure it concerns, never in a banner. _Avoid_: Warning, error, invalid

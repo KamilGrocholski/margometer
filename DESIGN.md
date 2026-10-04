@@ -2,10 +2,10 @@
 
 ## What this document is
 
-**A specification, not a description.** The tokens below are carried from the panel v1 shipped
-(`git show v0.10.1:src/ui/panel-look.ts`) and the rules from what that panel had to satisfy. Nothing
-here is evidence that anything is drawn yet — `develop:ARCHITECTURE.md` carries what exists, and
-what of this document the tree does not yet meet.
+**A specification, not a description.** The tokens below are the sheet's (`src/ui/panel-look.ts`,
+held to this document by `tests/repository/design-tokens.test.ts`), and the rules are what the panel
+has to satisfy. Nothing here is evidence that anything is drawn: a rule the panel does not meet is a
+finding in one of the two.
 
 ## North star
 

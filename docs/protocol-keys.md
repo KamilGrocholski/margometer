@@ -770,8 +770,8 @@ name of the bonus raising each. `ELEMENT_WORD_BY_KEY` in `src/ui/panel-words.ts`
 
 The one member of the family above with an entry of its own, because it is the one the published
 help names. **Obrażenia nieuchronne**: applied damage the ordinary defences do not reach, which is
-the word the panel draws it under — the game's own here, and not this repository's, where **ADR
-0011** words the other nine.
+the word the panel draws it under — the game's own here, and not this repository's, where develop
+ADR 0011 words the other nine.
 
 _Health:_ moves health
 
@@ -803,8 +803,8 @@ which is settled against `+taken_dmg` below, and against this key not at all.
 ### `+thirdatt` — decoded
 
 The **Third Blow** rolled: an extra auxiliary attack fired alongside the ordinary one, stated raw.
-Damage the shape above cannot reach, because the key carries no `dmg` marker — `fight-decoder.ts`
-names this pair instead, which is the one exception the family rule has.
+Damage the shape above cannot reach, because the key carries no `dmg` marker — `DAMAGE_KEYS` in
+`src/core/protocol-key.ts` names this pair instead, which is the one exception the family rule has.
 
 _Shape:_ 37 occurrences; on a blow; a whole number
 
@@ -1061,8 +1061,8 @@ the blow it rides already reports its damage.
 
 ⚠️ **No recording carries it, and the file that prompted this entry is not one.** A fight handed
 over on 2026-09-16 against a Choukker on `luvia`, build `Bb28FQty`, states the key twice and states
-no snapshot beside it, so an intake refuses it and it is a report rather than evidence (**ADR
-0053**). It would not have settled the variant either: all thirteen of that monster's blows carry
+no snapshot beside it, so an intake refuses it and it is a report rather than evidence (develop ADR
+0053). It would not have settled the variant either: all thirteen of that monster's blows carry
 `+dmgf`, so nothing in them tells a fire-shaped stun from any other — the wall `+stun2-c` above
 stands at, reached a second time. What the key is comes from the client, which is where `-c`'s
 answer came from too, and a snapshot has nothing to say about a proc that moves no health.
@@ -1328,12 +1328,11 @@ _Evidence:_ production build `Bb28FQty` (read 2026-09-21), where the branch comp
 `msg_+superspell-prevented`, and the client's dictionary at build `1785244275300` for what that id
 names. 1 occurrence on `captures/2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0.json`, on a blow
 also carrying `-legbon_glare`, which the client's dictionary names for the blinding view,372 gives
-among the four effects able to break a charge (`src/core/charged-skill.ts`), and after which the
-game states a turn lost by the combatant who swung. Whose the proc is stays refused for the reason
-`+superspell-dispel`'s entry gives: the message names both ends, and neither the article nor the
-client's sentence names a person. Every `super_cast` over every recording stands on a monster (read
-2026-09-21), which is an inference from material rather than a statement of the game's, so it
-settles nothing here.
+among the four effects able to break a charge, and after which the game states a turn lost by the
+combatant who swung. Whose the proc is stays refused for the reason `+superspell-dispel`'s entry
+gives: the message names both ends, and neither the article nor the client's sentence names a
+person. Every `super_cast` over every recording stands on a monster (read 2026-09-21), which is an
+inference from material rather than a statement of the game's, so it settles nothing here.
 
 ### `+acdmg_destroyed` — decoded
 
@@ -1533,11 +1532,11 @@ many blow messages more (**develop ADR 0078**).
 
 ⚠️ **Its absence says something too, and it is not "no extra blows".** The table is keyed by this id
 and holds a **player's** skills, so an announcement without one is a question it cannot be asked:
-371 of the 3,500 announcements over `captures/` carry `tspell` without `skillId`, and 364 of those
-are an NPC's. There the reach falls to the bound `src/core/fight-decoder.ts` states. Every id any
-announcement did carry is one the table carries — 0 exceptions of 3,129, 2026-09-12 — which is what
-makes a missing id the whole of that case, and `tests/repository/skill-durations.test.ts` re-earns
-it.
+371 of the 3,500 announcements over `captures/` on 2026-09-12 carry `tspell` without `skillId`, and
+364 of those are an NPC's. There the reach falls to the bound `src/core/fight-decoder.ts` states.
+Every id any announcement did carry is one the table carries — 0 exceptions of 3,129, 2026-09-12 —
+which is what makes a missing id the whole of that case, and
+`tests/repository/skill-durations.test.ts` re-earns it.
 
 _Shape:_ 3512 occurrences; on a skill announcement; a whole number
 
@@ -2552,9 +2551,10 @@ _Shape:_ 183 occurrences; alone in its message; no value
 
 _Help:_ names `step`
 
-_Evidence:_ not documented. Article view,372 (read 2026-08-09) was searched for `step`; the only hit
-is inside a longer Polish word, which is the false positive this register warns about rather than a
-mention. Every occurrence is valueless and alone, always with an actor and never a target.
+_Evidence:_ the mechanic is article 372 §2.3 (read 2026-09-02), as above; the key itself is not
+printed there — view,372 (read 2026-08-09) searched for `step` hits only inside a longer Polish
+word, the false positive this register warns about. Every occurrence is valueless and alone, always
+with an actor and never a target.
 
 ### `prepare` — decoded
 
@@ -2592,7 +2592,8 @@ _Help:_ names nothing of `txt`
 
 _Evidence:_ not documented — article view,372 (read 2026-08-09), searched for `txt`, which does not
 occur. Every occurrence is alone in its message, naming no combatant at all — which is why it opens
-no turn and continues the one it follows.
+no turn of its own; a line announcing a lost turn passes its holder's clock all the same
+(`src/core/turn-clock.ts`).
 
 ### `+exp` — decoded
 
@@ -2677,11 +2678,12 @@ does not accumulate, and it is overwritten by the freshest value applied to that
 word the rule `injure` carries, at 10% where that one is 15%, and off a critical hit where that one
 is off a monster's attack.
 
-⚠️ **It is not `injure` under another name, and the join is where they part.** The wound join (**ADR
-0022**) charges a wound to the attacker its announcement named, because the announcement states the
-figure and the figure identifies which application is ticking. `+critwound` states **no figure at
-all** — see the entry below — so the same reading is not available here, and adopting it by analogy
-would be charging damage to somebody on the strength of a resemblance. `[ASK]`, and material first.
+⚠️ **It is not `injure` under another name, and the join is where they part.** The wound join
+(develop ADR 0022) charges a wound to the attacker its announcement named, because the announcement
+states the figure and the figure identifies which application is ticking. `+critwound` states **no
+figure at all** — see the entry below — so the same reading is not available here, and adopting it
+by analogy would be charging damage to somebody on the strength of a resemblance. `[ASK]`, and
+material first.
 
 _Help:_ names `critwound`
 

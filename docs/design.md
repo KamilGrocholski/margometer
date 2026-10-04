@@ -1,9 +1,10 @@
 # MargoMeter, rewritten: interfaces, signatures, process
 
-**Status: target.** Nothing here is implemented on this branch yet. This document is a design
-constraint, not evidence that a feature exists (`AGENTS.md`, "Target is not proof"). It owns the
-architecture — layers, ports, types, the process and the failure map. The rules that bind the code
-are `AGENTS.md`'s, and this document cites them rather than restating them.
+**Status: the architecture the tree is built to.** This document is a design constraint, not
+evidence that a feature exists (`AGENTS.md`, "Target is not proof"): a signature here that the code
+does not match is a finding in one of the two. It owns the architecture — layers, ports, types, the
+process and the failure map. The rules that bind the code are `AGENTS.md`'s, and this document cites
+them rather than restating them.
 
 The design was drawn on 2026-09-24 against `develop` @ `fa1dcce`. Every figure below that describes
 the old tree was measured there, on that date.
@@ -18,9 +19,9 @@ What the old tree does that this design does not, measured on `develop` @ `fa1dc
   `ShelfWriting`). Nothing checks that every failure met a fate.
 - **`src/userscript-entry.ts` is 1925 lines** and holds the boot, the session, the shelf, the
   settings, the export, the drawing and the defects at once.
-- **The panel redraws on every call to `updateData`** (`src/userscript-entry.ts:1912`), including
+- **The panel redraws on every call to `updateData`** (`develop:src/userscript-entry.ts`), including
   the calls the game keeps making after a fight is over. On the first recording, thinning dropped
-  565 of 569 calls for carrying nothing new (`src/ports/fight-capture.ts`).
+  565 of 569 calls for carrying nothing new (`develop:src/game/fight-capture.ts`).
 - **Figures are recomputed from nothing on every draw**, not once per change.
 - **`compose` starts 310 of the 680 functions in `src/` and `libs/`**, and means four things there:
   building a stateful object, a computation, building DOM, and composing Polish text.
@@ -157,14 +158,14 @@ export function formatDecimal(decimal: number, places: number): string;
 /** Unlike the usual clamp: where `maximum < minimum` the minimum wins. */
 export function clampNumber(number: number, minimum: number, maximum: number): number;
 
-// libs/tally-order.ts
-export function compareTallies(
-    one: readonly [string, number],
-    other: readonly [string, number],
-): number;
-
-// libs/text-walk.ts — as on `develop`: isDigitAt, getEndOfRun, isDigitRun
+// libs/text-walk.ts — walking text: isDigitAt, isWhitespaceAt, getEndOfRun, isDigitRun,
+// lookupQuotedLiteral, and the bounds each walk carries
+// libs/html-text.ts — markup read as the words a person would have seen in it
+export function decodeHtmlText(html: string): string;
 ```
+
+The order a ranking is drawn in is the panel's, not a library's: `getRankedOrder` in
+`src/ui/ranked-order.ts`.
 
 What is deliberately **not** here:
 
@@ -182,7 +183,7 @@ What is deliberately **not** here:
 
 ```
 frozen/                   the game's published tables, as `develop` @ `fa1dcce` froze them
-libs/                     result, vocabulary, readers of text, numbers, JSON, unknown values
+libs/                     errors, vocabulary, readers of text, numbers, JSON, markup, unknown values
 src/core/                 grammar → decoder → session → figures → standings (pure, deterministic)
 src/ports/                ports over Margonem and the browser: engine, warriors, envelope, store,
                           place, dictionary, tooltip, file
@@ -191,7 +192,8 @@ src/ui/                   reading → DOM; throws nothing, asserts nothing; gest
 src/userscript-entry.ts   composing the ports and starting; nothing else
 ```
 
-Dependencies point one way: `core → libs`; `ports → core (types), libs`; `ui → core (types), libs`;
+Dependencies point one way: `core → libs`; `ports → core, libs`; `ui → core, libs`, where what
+`ports` and `ui` take from core is its types and the bounds and vocabularies it owns;
 `runtime → everything below it`; the entry → `runtime`, `ports`, `ui`, `core` and `frozen/`, which
 is the one layer holding a frozen reading and handing it on. `libs/` and `frozen/` import no layer.
 
@@ -309,7 +311,7 @@ export interface TooltipWritten {
 export interface KeyValueStore {
     read(key: StoreKey): string | null | StoreFailure; // null: no such key, a fact
     write(key: StoreKey, storedText: string): undefined | StoreFailure;
-    remove(key: StoreKey): undefined | StoreFailure;
+    delete(key: StoreKey): undefined | StoreFailure;
 }
 export const STORE_KEY = {
     fights: "MargoMeter-fights",
@@ -376,7 +378,7 @@ export interface DecoderTables {
 export type AnnouncementStanding = StandingAnnouncement | null;
 export interface DecodeContext {
     roster: CombatantRoster | null;
-    standing: AnnouncementStanding;
+    announcementStanding: AnnouncementStanding;
     tables: DecoderTables;
 }
 
@@ -386,7 +388,7 @@ export function decodeMessage(
 ): MessageDecoded | UnreadMessage;
 export interface MessageDecoded {
     events: readonly BattleEvent[];
-    standing: AnnouncementStanding;
+    announcementStanding: AnnouncementStanding;
 }
 /** A class, `name` "UnreadMessage", holding the reading below; `cause` stays the lower failure's. */
 export interface UnreadDetails {
@@ -396,7 +398,7 @@ export interface UnreadDetails {
     text: string;
     /** What was read beside the unread keys, so a blow with a new proc keeps its damage. */
     events: readonly BattleEvent[];
-    standing: AnnouncementStanding;
+    announcementStanding: AnnouncementStanding;
 }
 
 /** `src/core/protocol-key.ts`: the one owner of what a key means. `null` is `unknown-key`. */
@@ -410,7 +412,7 @@ export function decodePayloadMessages(
 export interface PayloadDecoded {
     events: readonly BattleEvent[];
     unread: readonly UnreadMessage[];
-    standing: AnnouncementStanding;
+    announcementStanding: AnnouncementStanding;
 }
 ```
 
@@ -531,7 +533,7 @@ export function tallyFightFigures(view: FightView): FightFigures;
 export function verifyFightFigures(figures: FightFigures): void;
 export interface FightFigures {
     statistics: FightStatistics;
-    heals: ReadonlyMap<BattleEvent, SideHeal>;
+    sideHealByEvent: ReadonlyMap<BattleEvent, SideHeal>;
     payloadsApplied: number;
 }
 ```
@@ -685,18 +687,8 @@ export interface DefectCount {
     first: RuntimeFailure;
 }
 
-// Settings: field by field; a failure falls back to the default and leaves a defect
-export interface Settings {
-    storage: StorageChoice;
-    typeStep: TypeStep; // the screen state carries it, as it carries the folds
-    meter: WindowSetting;
-    helper: WindowSetting;
-}
-export interface WindowSetting {
-    position: PanelPosition | null;
-    isCollapsed: boolean;
-    size: WindowSize | null; // the width and the body's height a reader gave it by its corner
-}
+// Settings: field by field — the storage choice, the type step, and per window its fold, its
+// position and its size; a failure falls back to the default and leaves a defect
 /**
  * One reader and one writer per field rather than a generic pair: a value typed by its key needs a
  * conditional type, and narrowing into one needs a cast, which C13 refuses in `src/`.
@@ -776,7 +768,7 @@ export interface ShelfKeeper {
     lookupKeptFightState(fight: KeptFight): KeptFightState | null; // replayed once, a refusal included
     keep(fight: KeptFight): void;
     pin(openedAt: number): void; // a toggle, as develop's pin is
-    choose(choice: StorageChoice): void; // fights first, the answer second, the old place last
+    moveShelf(choice: StorageChoice): void; // fights first, the answer second, the old place last
 }
 
 // A payload and an intent change state at once; drawing waits for one frame
@@ -786,7 +778,7 @@ export interface Runtime {
 }
 export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runtime;
 export interface RuntimeOptions {
-    version: string;
+    addOnVersion: string;
     tables: { decoder: DecoderTables; tooltip: TooltipTables };
     sessionOptions: SessionOptions;
 }
@@ -794,7 +786,7 @@ export interface RuntimePorts {
     clock: BrowserClock;
     frames: BrowserFrameScheduler;
     interval: BrowserIntervalScheduler;
-    engine: MargonemEngineBattlePort;
+    battle: MargonemEngineBattlePort;
     place: MargonemEnginePlacePort;
     hero: MargonemEngineHeroPort;
     dictionary: MargonemClientDictionaryPort;
@@ -869,12 +861,12 @@ export function presentHelper(
 
 export function initPanelView(document: PanelDocument, options: PanelViewOptions): PanelView;
 export interface PanelViewOptions {
-    version: string;
+    addOnVersion: string;
     typeStep: TypeStep; // the first sheet, and where a window nobody moved opens
     onIntent: (intent: PanelIntent) => void;
     /** What failed while no render was running: a gesture, a card, a window's opening place. */
     onFailure: (failure: ViewFailure) => void;
-    placement: PanelPlacement | null;
+    meterPlacement: PanelPlacement | null;
     helperPlacement: PanelPlacement | null;
     translate: TranslateLabel | null;
 }
@@ -1071,9 +1063,10 @@ where the card stands — and reaches neither the runtime nor the session, so it
   `docs/captured-fights.md` names every one, held by
   `tests/repository/captured-fight-register.test.ts`.
 - **The file format stays `formatVersion` 4.** `encodeFightFile` writes the fields `develop`'s
-  `composeCaptureText` writes. A name changing in code (`combatantsBefore` becomes `snapshotBefore`
-  in `PayloadRecord`) never reaches a key in the file, because the keys are spelled once, in the
-  file module's own field map. Intake keeps reading versions 1 to 4.
+  `composeCaptureText` writes, but for `report.totals`, which holds only the figures summed (ADR
+  0035). A name changing in code (`combatantsBefore` is the live fight's `snapshotBefore`) never
+  reaches a key in the file, because the keys are spelled once, in the file module's own field map.
+  Intake keeps reading versions 1 to 4.
 - **The shelf (`MargoMeter-fights`, version 3) stays** as well. It holds the same thinned calls.
 - **No format change is needed.** A call's time was wanted only to measure the period of a tick, and
   this design has no tick.
@@ -1125,8 +1118,9 @@ What `tests/simulation.test.ts` holds, on every recording and every seed:
 
 **The rewrite is proven against `develop`.** On every recording, the figures this branch draws equal
 the figures `develop` @ `fa1dcce` draws, except where a decision record names a departure: ADR 0012
-counts what an absorption pool took, and states which lines of the report that moves. Any other
-difference is a finding in one of the two, never a golden value to move (`AGENTS.md` W8).
+counts what an absorption pool took, and states which lines of the report that moves; ADR 0035 keeps
+out of `report.totals` the figures it never summed. Any other difference is a finding in one of the
+two, never a golden value to move (`AGENTS.md` W8).
 
 ## 13. Open
 

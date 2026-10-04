@@ -2,9 +2,9 @@
  * The fight as it happened, kept so a reader can write it to a file (`docs/design.md` §7, §11).
  *
  * Thinned as it is collected, in the game's stack: every call carrying messages is kept, and so is
- * every call introducing a payload shape or a combatant state not seen before. On the first real
- * recording that dropped 565 of 569 calls, because the game polls `updateData` long after a fight
- * is over, without losing anything a kept call does not carry.
+ * every call introducing a payload shape or a combatant state not seen before. The game polls
+ * `updateData` long after a fight is over, so that drops most calls without losing anything a kept
+ * call does not carry (`docs/design.md` §1 measures it).
  */
 
 import { assert } from "@std/assert/assert";
