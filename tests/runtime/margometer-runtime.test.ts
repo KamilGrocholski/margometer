@@ -1239,10 +1239,32 @@ function initSearchingWorld(page: Record<string, unknown>) {
     return { world, fire };
 }
 
-Deno.test("a game whose method is gone puts the panel up waiting, and the looking goes on", () => {
-    const { world } = initSearchingWorld(composeBattlePage({}));
+Deno.test("a game whose method is gone puts the panel up saying so, once the looking stops", () => {
+    const { world, fire } = initSearchingWorld(composeBattlePage({}));
+    fire(LOOKS_MAXIMUM - 2);
+    assertEquals(world.shown, [], "no panel while the looking goes on");
+    assertEquals(world.lines, [], "and nothing said");
+    fire(1);
     assertStrictEquals(world.shown.length, 1, "the panel stands over a game it cannot read");
     assertEquals(world.lines, [PANEL_DEFECT_KIND.engine], "and says why, once");
+});
+
+/** `docs/design.md` §10.1: a copy that stood down puts no panel up, refused at first or not. */
+Deno.test("a copy refused at first stands down when another wraps the game, and shows nothing", () => {
+    const battle: Record<string, unknown> = {};
+    const page = composeBattlePage(battle);
+    const holdingCopy = initSearchingWorld(page);
+    const refusedCopy = initSearchingWorld(page);
+    holdingCopy.fire(3);
+    refusedCopy.fire(3);
+    assertEquals(refusedCopy.world.shown, [], "a refused copy puts nothing up while it looks");
+    battle.updateData = () => 1;
+    holdingCopy.fire(1);
+    refusedCopy.fire(LOOKS_MAXIMUM);
+    assertEquals(refusedCopy.world.shown, [], "and the copy that stood down never puts a panel up");
+    assertEquals(refusedCopy.world.lines.length, 1, "saying it stood down, once");
+    holdingCopy.world.update({ init: 1, m: [], mi: [] });
+    assertStrictEquals(holdingCopy.world.shown.length, 1, "while the copy holding the game draws");
 });
 
 Deno.test("a page that lends no frame is drawn at once, and says so once", () => {

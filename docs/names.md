@@ -1920,6 +1920,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isPastBoundInCaller` — `tests/repository/called-once.test.ts`
 - `isPastItsTurn` — `src/core/charged-skill.ts`
 - `isPayloadNarrated` — `tools/turn-count.ts`
+- `isPayloadOpening` — `src/ports/payload-envelope.ts`
 - `isPinnedPersonKept` — `src/ui/panel-content.ts`
 - `isPoolRaiseAmong` — `tests/core/health-witness.test.ts`
 - `isPoolRaiseDeclared` — `tests/core/health-witness.test.ts`
@@ -5481,6 +5482,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `id` — `src/runtime/fight-file.ts`, `src/runtime/shelf.ts`
 - `innerCut` — `src/runtime/fight-file.ts`
 - `isCollapsed` — `src/runtime/margometer-runtime.ts`
+- `isOpening` — `src/runtime/live-fight.ts`
 - `isShelfEmpty` — `src/runtime/panel-frame.ts`
 - `keeper` — `src/runtime/margometer-runtime.ts`, `src/runtime/panel-frame.ts`
 - `keptFight` — `src/runtime/fight-handover.ts`, `src/runtime/fight-state.ts`,
@@ -7302,6 +7304,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `holders` — `tests/repository/name-register.test.ts`, `tests/ui/panel-words.test.ts`
 - `holdersByValue` — `tests/repository/name-register.test.ts`
 - `holding` — `tests/ui/helper-window.test.ts`
+- `holdingCopy` — `tests/runtime/margometer-runtime.test.ts`
 - `holed` — `tests/runtime/shelf.test.ts`
 - `host` — in 13 files: `tests/`
 - `html` — `tests/e2e/panel-fixture.ts`
@@ -7801,7 +7804,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `refreshed` — `tests/core/aura-standing.test.ts`
 - `refusal` — `tests/tools/margonem-client-source.test.ts`, `tests/tools/recorded-material.test.ts`
 - `refusals` — `tests/runtime/margometer-runtime.test.ts`
-- `refused` — in 12 files: `tests/`
+- `refused` — in 13 files: `tests/`
+- `refusedCopy` — `tests/runtime/margometer-runtime.test.ts`
 - `refusing` — in 6 files: `tests/`
 - `region` — `tests/ui/panel-look.test.ts`, `tests/ui/panel-words.test.ts`
 - `regions` — `tests/e2e/panel-probe.ts`, `tests/ui/panel-element.test.ts`
@@ -10299,7 +10303,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `hasFightToSave` — `src/runtime/panel-frame.ts`
 - `hasFrameRefused` — `src/runtime/margometer-runtime.ts`
 - `hasJoinedInProgress` — `src/runtime/carried-tooltip.ts`, `src/runtime/panel-frame.ts`
-- `hasRefused` — `src/runtime/margometer-runtime.ts`
 - `hasSpentLastheal` — `src/runtime/carried-tooltip.ts`
 - `hasStoreMadeRoom` — `src/runtime/shelf-keeper.ts`
 - `hasStoreRefused` — `src/runtime/shelf-keeper.ts`
@@ -10334,6 +10337,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isMounted` — `src/runtime/margometer-runtime.ts`
 - `isOnAuto` — `src/runtime/panel-frame.ts`
 - `isOnShelf` — `src/runtime/panel-frame.ts`
+- `isOpening` — `src/runtime/live-fight.ts`
 - `isOver` — `src/runtime/fight-file.ts`, `src/runtime/fight-handover.ts`,
   `src/runtime/panel-frame.ts`
 - `isPinnable` — `src/runtime/panel-frame.ts`
@@ -10404,6 +10408,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `readerId` — `src/runtime/live-fight.ts`, `src/runtime/panel-frame.ts`, `src/runtime/shelf.ts`
 - `readerSide` — `src/runtime/panel-frame.ts`
 - `reading` — `src/runtime/defect-ledger.ts`
+- `record` — `src/runtime/live-fight.ts`
 - `region` — in 5 files: `src/runtime/`
 - `report` — `src/runtime/fight-file.ts`
 - `roster` — in 4 files: `src/runtime/`

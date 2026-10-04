@@ -161,10 +161,11 @@ export function renderFrame(parts: FrameParts): void {
         const helperRead = errors.attempt(() =>
             presentHelperForFrame(parts.live, parts.tables, isShelfEmpty)
         );
+        let helper: HelperContent | HelperAbsence;
         if (helperRead instanceof Error) {
             parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: helperRead });
-        }
-        const helper = helperRead instanceof Error ? HELPER_ABSENCE.fightUnread : helperRead;
+            helper = HELPER_ABSENCE.fightUnread;
+        } else helper = helperRead;
         addUndrawnDefects(
             parts.defects,
             parts.view.renderHelper(helper, parts.screen.isHelperCollapsed),

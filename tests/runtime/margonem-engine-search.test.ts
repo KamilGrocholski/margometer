@@ -189,14 +189,16 @@ Deno.test("a reader already on the game means this copy stands down", () => {
     assertEquals(seen, [], "so the second never counts a thing");
 });
 
-Deno.test("a game whose method is gone is refused, said once, and left alone at the bound", () => {
+Deno.test("a game whose method is gone is refused at the bound, said once, and left alone", () => {
     const { report, told } = composeReport();
     const clock = composeClock();
     const search = start({ Engine: { battle: {} } }, clock, report);
-    clock.tick(5);
-    assertStrictEquals(told.refusals, 1, "said once, not once a look");
+    clock.tick(LOOKS_MAXIMUM - 2);
+    assertStrictEquals(told.refusals, 0, "nothing is said while the looking goes on");
+    clock.tick(1);
+    assertStrictEquals(told.refusals, 1, "and the refusal is said when it stops");
     clock.tick(300);
-    assertStrictEquals(told.refusals, 1, "the refusal was said once");
+    assertStrictEquals(told.refusals, 1, "once");
     assertEquals(told.failures, [], "and no look past the bound was reported as a failure");
     assertEquals(told.abandoned, [], "nor as a page with no game on it, which this page has");
     assert(search.isDone(), "and the looking ended at the bound");
@@ -211,7 +213,7 @@ Deno.test("a method that arrives after a refusal is wrapped on the next look", (
     clock.tick(3);
     battle.updateData = () => 1;
     clock.tick(1);
-    assertStrictEquals(told.refusals, 1, "the refusal was said once");
+    assertStrictEquals(told.refusals, 0, "a refusal the next look undid is never said");
     assertStrictEquals(told.wraps.length, 1, "and the method is wrapped once it is there");
 });
 

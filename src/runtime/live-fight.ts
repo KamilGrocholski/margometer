@@ -13,6 +13,7 @@ import {
     createFightSession,
     type FightSession,
     type PayloadCommitted,
+    type PayloadRecord,
     preparePayload,
     type SessionOptions,
 } from "#/src/core/fight-session.ts";
@@ -34,7 +35,7 @@ import type { FightPlace } from "#/src/ports/fight-place.ts";
 import type { MargonemClientBuildPort } from "#/src/ports/margonem-client-build.ts";
 import type { BrowserClock } from "#/src/ports/browser-time.ts";
 import { type MargonemReadFailure, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
-import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
+import { isPayloadOpening, readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
 import {
     MargonemEngineWarriorsAbsent,
     type MargonemEngineWarriorSnapshot,
@@ -95,17 +96,25 @@ export function initLiveFight(options: LiveFightOptions): {
             );
         },
         onPayload(payload) {
-            // Read the payload, each step under its own guard.
-            const record = executeLiveStep(options, DEFECT_KIND.reading, null, () => {
-                const payloadRecord = readPayloadEnvelope(payload);
-                if (!(payloadRecord instanceof Error)) return payloadRecord;
-                options.defects.add({
-                    kind: DEFECT_KIND.reading,
-                    region: null,
-                    failure: payloadRecord,
-                });
-                return null;
-            });
+            // Read the payload, each step under its own guard. Whether it opens a fight is read
+            // apart where the envelope refuses it, since a refused opening still ends the last.
+            const { record, isOpening } = executeLiveStep(
+                options,
+                DEFECT_KIND.reading,
+                { record: null, isOpening: false },
+                (): { record: PayloadRecord | null; isOpening: boolean } => {
+                    const payloadRecord = readPayloadEnvelope(payload);
+                    if (!(payloadRecord instanceof Error)) {
+                        return { record: payloadRecord, isOpening: payloadRecord.isInit };
+                    }
+                    options.defects.add({
+                        kind: DEFECT_KIND.reading,
+                        region: null,
+                        failure: payloadRecord,
+                    });
+                    return { record: null, isOpening: isPayloadOpening(payload) };
+                },
+            );
             const snapshotAfter = executeLiveStep(
                 options,
                 DEFECT_KIND.file,
@@ -120,7 +129,7 @@ export function initLiveFight(options: LiveFightOptions): {
                     combatantsBefore: liveFight.snapshotBefore,
                     combatantsAfter: snapshotAfter,
                 };
-                const prepared = prepareCapture(liveFight.capture, call, record?.isInit ?? false);
+                const prepared = prepareCapture(liveFight.capture, call, isOpening);
                 commitCapture(liveFight.capture, prepared);
             });
             // Commit the record, or leave a defect where it will not prepare.
@@ -141,6 +150,11 @@ export function initLiveFight(options: LiveFightOptions): {
                     return commitPayload(liveFight.session, prepared);
                 },
             );
+            // A refused opening still ends the fight before it: the session starts empty, and the
+            // next call opens the new fight as one joined in progress, never the old one going on.
+            if (committed === null) {
+                if (isOpening) liveFight.session = createFightSession(options.sessionOptions);
+            }
             if (committed?.hasOpened === true) {
                 // Open the fight: its moment, its place and who the reader is.
                 executeLiveStep(options, DEFECT_KIND.reading, undefined, () => {

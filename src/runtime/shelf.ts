@@ -28,19 +28,19 @@ import type { FightPlace } from "#/src/ports/fight-place.ts";
 
 export interface KeptFight {
     /** Stated by the caller, which owns the clock. Zero is a moment like any other. */
-    openedAt: number;
+    readonly openedAt: number;
     /** One payload per call the game made, thinned as a recording is thinned. */
-    payloads: readonly unknown[];
-    place: FightPlace | null;
+    readonly payloads: readonly unknown[];
+    readonly place: FightPlace | null;
     /**
      * The hero's id as the client stated it when the fight opened, which is how its own warrior is
      * keyed (ADR 0014). Null on a fight kept before the id was, and on a page that stated none.
      */
-    readerId: number | null;
+    readonly readerId: number | null;
     /** Which client it was read off, so a fight re-read later says what it was recorded on. */
-    margonemClientBuild: string | null;
+    readonly margonemClientBuild: string | null;
     /** Kept by the reader against the rotation. */
-    isPinned: boolean;
+    readonly isPinned: boolean;
 }
 
 export interface ShelfContents {

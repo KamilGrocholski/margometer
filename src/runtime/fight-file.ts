@@ -193,7 +193,7 @@ export function encodeFightFile(
  */
 function encodeFightFileName(surroundings: FileSurroundings): string {
     assert(surroundings.addOnVersion.length > 0, "a file is named for the build that wrote it");
-    const momentForName = surroundings.capturedAt.split(":").join("-").split(".").join("-");
+    const momentForName = surroundings.capturedAt.replaceAll(":", "-").replaceAll(".", "-");
     assert(!momentForName.includes(":"), "and for a moment no file system objects to");
     assert(!momentForName.includes("."), "nor one a file's own extension could be read out of");
     const build = surroundings.margonemClientBuild ?? NOTHING_STATED;

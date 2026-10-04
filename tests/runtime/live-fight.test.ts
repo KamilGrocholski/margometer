@@ -284,6 +284,21 @@ Deno.test("a second fight opening on the same listener starts its file and its r
     assertStrictEquals(opened.count, 2, "and each opening was said");
 });
 
+/** `docs/design.md` §7: the opening is read on its own, whatever else the envelope refuses. */
+Deno.test("an opening the envelope refuses still ends the fight before it", () => {
+    const margonem = composeMargonem([[], [], [], []]);
+    const { options, keeper, lines } = composeOptions(margonem);
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const refused = { init: 1, m: "not a list" };
+    const { live } = playInto(margonem, options, [{ init: 1 }, end, refused, { m: ["0;0;txt=b"] }]);
+    assertEquals(lines, [DEFECT_KIND.reading], "the refusal is a reading defect");
+    assertStrictEquals(live.capture.calls.length, 2, "the file starts at the refused opening");
+    const view = composeFightView(live.session);
+    assertStrictEquals(view?.payloadsApplied, 1, "the session holds the new fight alone");
+    assertStrictEquals(view?.events.length, 1, "with its own events and none of the old");
+    assertStrictEquals(keeper.getFights().length, 1, "while the fight that ended stays kept");
+});
+
 Deno.test("a payload past a bound the session states is a defect, and the fight stands", () => {
     const margonem = composeMargonem([[], []]);
     const sessionOptions = { ...SESSION_OPTIONS, payloadsMaximum: 1 };

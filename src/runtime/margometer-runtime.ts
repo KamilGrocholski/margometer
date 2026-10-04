@@ -87,7 +87,6 @@ export interface RuntimePorts {
     tooltip: MargonemEngineTooltipPort;
     /** Where the panel's own choices are kept, which is never the store the shelf is moved to. */
     settings: KeyValueStore;
-    /** Never refusing: a browser that lends no store is answered with one that forgets. */
     /** A browser that lends no store under that name answers so, and the keeper decides. */
     initShelfStore: (choice: StorageChoice) => KeyValueStore | StoreUnavailable;
     file: BrowserFileSink;
@@ -141,7 +140,11 @@ export interface SearchReport {
     onAttached(wrap: WrapHandle): void;
     /** A MargoMeter already holds the game, so this copy stands down and never counts. */
     onStoodDown(failure: MargonemEngineFailure): void;
-    /** The game is here, and the method it is read by is not: said once, the looking goes on. */
+    /**
+     * The game is here and the method it is read by is not, still when the looking stops. Said
+     * then and not before, as a game that never came is: a copy that put a panel up at the first
+     * refusal and stood down at a later look left that panel standing.
+     */
     onRefused(failure: MargonemEngineFailure): void;
     onAbandoned(failure: MargonemEngineFailure): void;
     /** A look that failed, the first time one does. The looking goes on to its bound. */
@@ -157,7 +160,6 @@ export interface MargonemEngineSearch {
 interface Search {
     looks: number;
     isDone: boolean;
-    hasRefused: boolean;
     hasFailed: boolean;
     handle: IntervalHandle | null;
 }
@@ -570,7 +572,6 @@ export function initMargonemEngineSearch(
     const search: Search = {
         looks: 0,
         isDone: false,
-        hasRefused: false,
         hasFailed: false,
         handle: null,
     };
@@ -657,11 +658,10 @@ function executeSearchLook(
         report.onStoodDown(wrapped);
         return;
     }
-    // The game is here and its method is gone. Said once; the looking ends where a search
-    // finding nothing ends, and says nothing then: the game was there, so it was not abandoned.
-    if (search.looks === LOOKS_MAXIMUM) deinitSearchTimer(search);
-    if (search.hasRefused) return;
-    search.hasRefused = true;
+    // The game is here and its method is gone. The looking ends where a search finding nothing
+    // ends, and the refusal is said there: the game was there, so it was not abandoned.
+    if (search.looks < LOOKS_MAXIMUM) return;
+    deinitSearchTimer(search);
     report.onRefused(wrapped);
 }
 

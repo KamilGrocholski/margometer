@@ -217,7 +217,7 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
         ids.add(combatant.id);
     }
     return {
-        isInit: Object.hasOwn(payload, ENVELOPE_KEYS.isInit),
+        isInit: isPayloadOpening(payload),
         isEnd: Object.hasOwn(payload, ENVELOPE_KEYS.isEnd),
         messages,
         messagesStated: messagesStated === null ? null : messagesStated.length,
@@ -421,4 +421,13 @@ function readPayloadWarriorHealth(warriorEntry: UnknownRecord, field: HealthFiel
         if (figure <= 0) return null;
     }
     return figure;
+}
+
+/**
+ * Whether the game opened a fight with this call, read on its own: a call the envelope refuses still
+ * ends the fight before it.
+ */
+export function isPayloadOpening(payload: unknown): boolean {
+    if (!isRecord(payload)) return false;
+    return Object.hasOwn(payload, ENVELOPE_KEYS.isInit);
 }

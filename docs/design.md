@@ -640,7 +640,9 @@ export type MargonemEngineWarriorFailure =
 A warrior entry the payload restates only in part (it carries only what moved) is not a combatant
 stated in full, and is passed over rather than refused: that is how the game writes. What is refused
 is the shape around the entries: a field of the wrong type, a list past its bound, an id stated
-twice.
+twice. Whether a call opens a fight is read apart from the rest (`isPayloadOpening`): a refused
+opening still starts the file anew and leaves the session empty, so the next call opens the new
+fight as one joined in progress rather than running on in the one that ended.
 
 Capture has no failure of its own. The ceiling is a state of the file and not an error: it stops
 collecting, counts what it dropped and says its tail is missing (`isTruncated`), which the format
@@ -948,14 +950,17 @@ initRuntime(ports, options)
    ─▶ initPanelView           readWindowPosition × 2: a failure → the sheet's corner, a "kept" defect
    ─▶ look for the engine every 250 ms, at most 240 times
         MargonemEngineAlreadyWrapped        → stand down, one console line, no panel
-        MargonemEngineMethodAbsent, abandoned     → an "engine" defect, markStale: the panel waits
+        MargonemEngineMethodAbsent, abandoned  → at the last look only, an "engine" defect,
+                                     markStale: the panel waits
         a look that threw           → one console line; the looking goes on
         found                       → engine.wrap(listener), markStale
 the first frame draws and mounts   a failure → a "mount" defect, tried again at the next frame
 ```
 
 No frame is asked for before the wrap is on or the game is given up on, so the panel goes up at the
-first frame, as `develop` puts it up when the wrap goes on.
+first frame, as `develop` puts it up when the wrap goes on. A missing method is the game given up on
+only at the last look: a copy that put its panel up at the first refusal and stood down at a later
+one would leave that panel on the page.
 
 ### 10.2 The game's stack: `onPayload`, called inside `updateData`
 
