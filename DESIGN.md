@@ -22,9 +22,11 @@ panel shouting, and without colour being the only thing that says so.
 
 Quotable, and each one settles a real argument.
 
-- **The Guest Rule.** Nothing of ours reaches past the shadow root, and nothing of the game's
-  reaches in. `all: initial` on the host — plus prefixed custom properties, which `all: initial`
-  does **not** reset.
+- **The Guest Rule.** Nothing of ours reaches past the shadow root but one thing, and nothing of the
+  game's reaches in. The one thing is rows of text in the tooltip the game already shows for a
+  fighter, written through the client's own methods — no node and no style of ours (`SECURITY.md`
+  owns what is written and how). `all: initial` on the host — plus prefixed custom properties, which
+  `all: initial` does **not** reset.
 - **The Token Rule.** A raw hex, pixel or radius in a rule is a bug. Every value comes from a token.
 - **The Colour Never Alone Rule.** Colour never carries meaning by itself. It always accompanies a
   label, a number or a shape.
