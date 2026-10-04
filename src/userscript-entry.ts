@@ -19,6 +19,7 @@ import {
     type BrowserStorage,
     initBrowserStore,
     initMemoryStore,
+    StoreUnavailable,
 } from "#/src/ports/browser-store.ts";
 import { initMargonemEngineBattle } from "#/src/ports/margonem-engine-battle.ts";
 import { initMargonemEngineHero } from "#/src/ports/margonem-engine-hero.ts";
@@ -173,13 +174,12 @@ export function readRuntimePorts(browserWindow: unknown): RuntimePorts | Browser
         surroundings: initBrowserSurroundings(browserWindow),
         tooltip: initMargonemEngineTooltip(browserWindow),
         settings: initBrowserStore(readBrowserStorage(browserWindow, STORAGE_CHOICE.local)),
-        // The store the reader asked for, or the one that forgets: a reader who chose to keep
-        // fights on a browser that lends no store is better served by a panel that forgets between
-        // pages than by one that keeps their fights somewhere they did not choose.
+        // The store the reader asked for, the one that forgets, or the answer that the browser
+        // lends none under that name, which the keeper turns into a defect.
         initShelfStore: (storageChoice) => {
             if (storageChoice === STORAGE_CHOICE.memory) return initMemoryStore();
             const storage = readBrowserStorage(browserWindow, storageChoice);
-            if (storage === null) return initMemoryStore();
+            if (storage === null) return new StoreUnavailable();
             return initBrowserStore(storage);
         },
         file: initBrowserFile({

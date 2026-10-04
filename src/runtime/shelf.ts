@@ -47,6 +47,11 @@ export interface ShelfContents {
     readonly fights: readonly KeptFight[];
 }
 
+/** What a shelf opened to, and how many of the fights it held did not read back. */
+export interface ShelfOpened extends ShelfContents {
+    readonly fightsUnreadable: number;
+}
+
 /** The rotation is stated, never silent: what a write left on the shelf, and what it dropped. */
 export interface ShelfWritten {
     contents: ShelfContents;
@@ -66,6 +71,17 @@ export class ShelfUnwritable extends Error {
 
     constructor(options?: ErrorOptions) {
         super(undefined, options);
+    }
+}
+
+/** Fights the store held that this version does not read back, dropped and counted. */
+export class KeptFightsUnreadable extends Error {
+    override readonly name = "KeptFightsUnreadable";
+    readonly count: number;
+
+    constructor(count: number) {
+        super();
+        this.count = count;
     }
 }
 
@@ -125,6 +141,7 @@ export type ShelfFailure =
     | ShelfUnreadable
     | ShelfUnwritable
     | ShelfVersionUnknown
+    | KeptFightsUnreadable
     | EverySlotPinned
     | RotationRefused
     | FightAlreadyKept
@@ -161,13 +178,13 @@ const FIGHT_FIELDS: FieldKeys<FightField> = {
 const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "mapName", x: "x", y: "y" };
 
 /**
- * At start: durable state into memory. A fight that does not read back is dropped, and the rest of
- * the shelf stands; a shelf that does not read back at all is a failure the reader is told about.
+ * At start: durable state into memory. A fight that does not read back is dropped and counted, and
+ * the rest of the shelf stands; a shelf that does not read back at all is a failure.
  */
-export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
+export function openShelf(store: KeyValueStore): ShelfOpened | ShelfFailure {
     const stored = store.read(SHELF_KEY);
     if (stored instanceof Error) return stored;
-    if (stored === null) return { fights: [] };
+    if (stored === null) return { fights: [], fightsUnreadable: 0 };
     const parsed = parseJson(stored);
     if (parsed instanceof Error) return new ShelfUnreadable({ cause: parsed });
     if (!isRecord(parsed)) return new ShelfUnreadable();
@@ -292,7 +309,9 @@ export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure {
         if (fight !== null) fights.push(fight);
     }
     assert(fights.length <= KEPT_MAXIMUM, "a shelf read back stays inside its stated bound");
-    return { fights };
+    const fightsUnreadable = (listed ?? []).length - fights.length;
+    assert(fightsUnreadable >= 0, "a fight read back is one the store held");
+    return { fights, fightsUnreadable };
 }
 
 /** A fight kept once. A second fight under the same moment is refused, never merged. */

@@ -723,7 +723,7 @@ export type SettingFailure = StoreFailure | SettingUnreadable | SettingTooLong; 
 
 // The shelf
 /** At start: durable state into memory, as TigerBeetle's `open`. */
-export function openShelf(store: KeyValueStore): ShelfContents | ShelfFailure;
+export function openShelf(store: KeyValueStore): ShelfOpened | ShelfFailure; // and `fightsUnreadable`
 export function writeKeptFight(
     store: KeyValueStore,
     shelf: ShelfContents,
@@ -750,6 +750,7 @@ export type ShelfFailure =
     | ShelfUnreadable // the JSON or field failure below it as its `cause`, where there is one
     | ShelfUnwritable
     | ShelfVersionUnknown // `version`, null where none was stated
+    | KeptFightsUnreadable // `count`: the fights a shelf held and did not read back
     | EverySlotPinned // `maximum`
     | RotationRefused // `attempts`; the store's last refusal as its `cause`
     | FightAlreadyKept // `openedAt`
@@ -803,7 +804,7 @@ export interface RuntimePorts {
     surroundings: BrowserSurroundingsPort;
     tooltip: MargonemEngineTooltipPort;
     settings: KeyValueStore;
-    initShelfStore(choice: StorageChoice): KeyValueStore; // never refusing: memory at worst
+    initShelfStore(choice: StorageChoice): KeyValueStore | StoreUnavailable; // the keeper decides
     file: BrowserFileSink;
     console: BrowserConsolePort;
     document: PanelDocument; // the runtime makes the view, which is handed its own callbacks
@@ -1020,9 +1021,12 @@ goes without a mark.
 | `EnvelopeFailure`                               | `defect` "reading"     | the defects section: what could not be done, how often |
 | `Caught`                                        | `defect` of its step   | as above; one console line per kind                    |
 | `hasFiguresDisagreed` (data, not a failure)     | `defect` "figures"     | as above                                               |
-| `StoreFailure` on choosing a store              | `fallback-with-defect` | memory; the options say it was refused                 |
+| `StoreUnavailable` opening the shelf            | `fallback-with-defect` | memory; a "kept" defect                                |
+| `StoreUnavailable` on choosing a store          | `shelf-answer`         | nothing moves; the shelf's answer row                  |
+| `StoreFailure` emptying the place left          | `defect` "kept"        | the move stands; a copy stayed behind                  |
 | `ShelfFailure` on a write                       | `shelf-answer`         | the shelf's answer row                                 |
 | `ShelfUnreadable`, `ShelfVersionUnknown`        | `fallback-with-defect` | an empty shelf; a "kept" defect                        |
+| `KeptFightsUnreadable`                          | `defect` "kept"        | the rest of the shelf; the fights lost, counted        |
 | `FightAlreadyKept`                              | `defect` "keeping"     | the fight is not kept twice                            |
 | `SettingFailure`                                | `fallback-with-defect` | the default place, fold, size or type; a "kept" defect |
 | `RegionUndrawn`                                 | `defect` "region"      | an undrawn mark where the region stands                |

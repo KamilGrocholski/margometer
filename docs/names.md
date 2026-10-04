@@ -1690,6 +1690,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeNotesForOpenedRow` — `tests/ui/panel-element.test.ts`
 - `composeOne` — `tests/ports/margonem-engine-tooltip.test.ts`
 - `composeOneCombatantRoster` — `tests/core/fight-statistics.test.ts`
+- `composeOpened` — `tests/runtime/shelf.test.ts`
 - `composeOpenedParts` — `tests/ui/level-drawn.test.ts`
 - `composeOpenerTally` — `tools/turn-reading.ts`
 - `composeOpeningPosition` — `src/ui/panel-drag.ts`
@@ -2874,6 +2875,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ShelfField` — `src/runtime/shelf.ts`
 - `ShelfKeeper` — `src/runtime/shelf-keeper.ts`
 - `ShelfKeeperOptions` — `src/runtime/shelf-keeper.ts`
+- `ShelfOpened` — `src/runtime/shelf.ts`
 - `ShelfWritten` — `src/runtime/shelf.ts`
 - `ShownFight` — `src/runtime/fight-state.ts`
 - `SizeField` — `src/runtime/settings.ts`
@@ -3308,6 +3310,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FightNotKept` — `src/runtime/shelf.ts`
 - `FiguresDisagreed` — `src/runtime/panel-frame.ts`
 - `FileUnserializable` — `src/runtime/fight-file.ts`
+- `KeptFightsUnreadable` — `src/runtime/shelf.ts`
 - `RotationRefused` — `src/runtime/shelf.ts`
 - `SettingTooLong` — `src/runtime/settings.ts`
 - `SettingUnreadable` — `src/runtime/settings.ts`
@@ -4580,6 +4583,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ONE_LINE_NOTE` — `tests/ui/card-window.test.ts`
 - `OPENED_AT` — `tests/runtime/live-fight.test.ts`
 - `OPENED_AT_A_PATH` — `tests/tools/preview-server.test.ts`
+- `OPENED_EMPTY` — `tests/runtime/shelf.test.ts`
 - `OPENERS_HEADING` — `tests/tools/turn-reading.test.ts`
 - `OPENING` — `tests/core/fight-session.test.ts`
 - `OPENS_NOTE` — `tests/e2e/panel-card.spec.ts`
@@ -5382,7 +5386,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `carriedFigure` — `src/runtime/carried-tooltip.ts`
 - `caster` — `src/runtime/carried-tooltip.ts`
 - `charging` — `src/runtime/carried-tooltip.ts`
-- `chosen` — `src/runtime/fight-state.ts`
+- `chosen` — `src/runtime/fight-state.ts`, `src/runtime/shelf-keeper.ts`
 - `chosenFightOpenedAt` — `src/runtime/panel-frame.ts`
 - `combatant` — `src/runtime/panel-frame.ts`
 - `combatantId` — `src/runtime/carried-tooltip.ts`, `src/runtime/margometer-runtime.ts`
@@ -5393,12 +5397,12 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `defectCount` — `src/runtime/defect-ledger.ts`
 - `defects` — `src/runtime/margometer-runtime.ts`, `src/runtime/panel-frame.ts`,
   `src/runtime/shelf-keeper.ts`
+- `deleted` — `src/runtime/shelf-keeper.ts`
 - `dropped` — `src/runtime/shelf.ts`
 - `encoded` — `src/runtime/fight-handover.ts`, `src/runtime/shelf.ts`
 - `end` — `src/runtime/margometer-runtime.ts`
 - `escaped` — `src/runtime/margometer-runtime.ts`
-- `failure` — `src/runtime/defect-ledger.ts`, `src/runtime/margometer-runtime.ts`,
-  `src/runtime/panel-frame.ts`
+- `failure` — in 4 files: `src/runtime/`
 - `fight` — `src/runtime/live-fight.ts`, `src/runtime/shelf-keeper.ts`, `src/runtime/shelf.ts`
 - `fightIndex` — `src/runtime/shelf.ts`
 - `fightStandings` — `src/runtime/carried-tooltip.ts`
@@ -5406,6 +5410,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `src/runtime/shelf-keeper.ts`
 - `fights` — `src/runtime/shelf.ts`
 - `fightsAfter` — `src/runtime/shelf-keeper.ts`, `src/runtime/shelf.ts`
+- `fightsUnreadable` — `src/runtime/shelf.ts`
 - `figures` — `src/runtime/fight-file.ts`, `src/runtime/fight-state.ts`,
   `src/runtime/panel-frame.ts`
 - `figuresByCombatantAndBit` — `src/runtime/carried-tooltip.ts`
@@ -7081,7 +7086,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `firstCall` — `tests/e2e/panel-save.spec.ts`, `tests/runtime/fight-file.test.ts`,
   `tests/runtime/margometer-runtime.test.ts`
 - `firstCard` — `tests/ui/card-window.test.ts`
-- `firstFailure` — `tests/ports/margonem-engine-battle.test.ts`
+- `firstFailure` — `tests/ports/margonem-engine-battle.test.ts`,
+  `tests/runtime/shelf-keeper.test.ts`
 - `firstFight` — `tests/e2e/panel-shelf.spec.ts`, `tests/ports/recorded-session.test.ts`
 - `firstFile` — `tests/tools/frozen-files.test.ts`
 - `firstKind` — `tests/ui/panel-element.test.ts`
@@ -7971,7 +7977,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `struck` — in 7 files: `tests/`
 - `struckAgain` — `tests/core/last-heal-rule.test.ts`
 - `structurePaths` — `tests/repository/documents.test.ts`
-- `stubborn` — `tests/ports/browser-frame.test.ts`
+- `stubborn` — `tests/ports/browser-frame.test.ts`, `tests/runtime/shelf-keeper.test.ts`
 - `stuck` — `tests/ports/browser-interval.test.ts`, `tests/runtime/margonem-engine-search.test.ts`
 - `stunned` — `tests/tools/turn-count.test.ts`
 - `stuns` — `tests/tools/turn-count.test.ts`
@@ -8457,7 +8463,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `chosenFightOpenedAt` — `src/runtime/fight-state.ts`, `src/runtime/panel-frame.ts`
 - `combatantId` — `src/runtime/carried-tooltip.ts`
 - `contents` — `src/runtime/shelf-keeper.ts`
-- `count` — `src/runtime/panel-frame.ts`
+- `count` — `src/runtime/panel-frame.ts`, `src/runtime/shelf.ts`
 - `cut` — `src/runtime/fight-file.ts`, `src/runtime/panel-frame.ts`
 - `defect` — `src/runtime/defect-ledger.ts`
 - `defectCount` — `src/runtime/defect-ledger.ts`
@@ -9599,7 +9605,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `step` — in 11 files: `tests/`
 - `store` — `tests/runtime/shelf.test.ts`
 - `stored` — in 6 files: `tests/`
-- `storedText` — `tests/fake-window.ts`, `tests/runtime-world.ts`
+- `storedText` — `tests/fake-window.ts`, `tests/runtime-world.ts`,
+  `tests/runtime/shelf-keeper.test.ts`
 - `strings` — `tests/repository/name-register.test.ts`
 - `strip` — `tests/ui/panel-element.test.ts`, `tests/ui/panel-screen.test.ts`
 - `strong` — `tests/repository/called-once.test.ts`
@@ -10077,6 +10084,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FileApiAbsent` — `src/runtime/failure-fate.ts`
 - `FileUnserializable` — `src/runtime/failure-fate.ts`
 - `GestureDropped` — `src/runtime/failure-fate.ts`
+- `KeptFightsUnreadable` — `src/runtime/failure-fate.ts`
 - `MargonemEngineAbsent` — `src/runtime/failure-fate.ts`
 - `MargonemEngineAlreadyWrapped` — `src/runtime/failure-fate.ts`
 - `MargonemEngineBattleAbsent` — `src/runtime/failure-fate.ts`
@@ -10134,7 +10142,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `src/runtime/live-fight.ts`
 - `console` — `src/runtime/margometer-runtime.ts`
 - `contents` — `src/runtime/shelf.ts`
-- `count` — `src/runtime/defect-ledger.ts`, `src/runtime/panel-frame.ts`
+- `count` — `src/runtime/defect-ledger.ts`, `src/runtime/panel-frame.ts`, `src/runtime/shelf.ts`
 - `cut` — `src/runtime/panel-frame.ts`
 - `damageByNeitherEnd` — `src/runtime/fight-file.ts`
 - `damageDealt` — `src/runtime/fight-file.ts`
@@ -10184,6 +10192,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `fightState` — `src/runtime/fight-state.ts`, `src/runtime/panel-frame.ts`
 - `fightStatesByOpenedAt` — `src/runtime/shelf-keeper.ts`
 - `fights` — `src/runtime/shelf-keeper.ts`, `src/runtime/shelf.ts`
+- `fightsUnreadable` — `src/runtime/shelf.ts`
 - `figures` — `src/runtime/defect-ledger.ts`, `src/runtime/fight-state.ts`
 - `file` — `src/runtime/defect-ledger.ts`, `src/runtime/fight-handover.ts`,
   `src/runtime/margometer-runtime.ts`
@@ -11917,6 +11926,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `fightName` — `tests/tools/preview-page.test.ts`
 - `fightPlace` — `tests/shown-screen.ts`, `tests/ui/panel-element.test.ts`
 - `fights` — in 9 files: `tests/`
+- `fightsUnreadable` — `tests/runtime/shelf.test.ts`
 - `figure` — in 5 files: `tests/`
 - `figures` — `tests/runtime/panel-frame.test.ts`, `tests/ui/level-drawn.test.ts`
 - `file` — `tests/runtime-world.ts`, `tests/runtime/margometer-runtime.test.ts`

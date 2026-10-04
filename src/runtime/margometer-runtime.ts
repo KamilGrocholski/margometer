@@ -9,7 +9,7 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import { composeFightView, type SessionOptions } from "#/src/core/fight-session.ts";
-import type { KeyValueStore } from "#/src/ports/browser-store.ts";
+import type { KeyValueStore, StoreUnavailable } from "#/src/ports/browser-store.ts";
 import {
     MargonemEngineAlreadyWrapped,
     type MargonemEngineBattlePort,
@@ -88,7 +88,8 @@ export interface RuntimePorts {
     /** Where the panel's own choices are kept, which is never the store the shelf is moved to. */
     settings: KeyValueStore;
     /** Never refusing: a browser that lends no store is answered with one that forgets. */
-    initShelfStore: (choice: StorageChoice) => KeyValueStore;
+    /** A browser that lends no store under that name answers so, and the keeper decides. */
+    initShelfStore: (choice: StorageChoice) => KeyValueStore | StoreUnavailable;
     file: BrowserFileSink;
     console: BrowserConsolePort;
     document: PanelDocument;

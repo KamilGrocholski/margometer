@@ -33,6 +33,7 @@ import {
     openShelf,
     RotationRefused,
     type ShelfContents,
+    type ShelfOpened,
     ShelfUnreadable,
     ShelfVersionUnknown,
     writeKeptFight,
@@ -41,6 +42,7 @@ import {
 import { readRecordedFights, replayRecordedFight } from "#/tests/recorded-fights.ts";
 
 const EMPTY: ShelfContents = { fights: [] };
+const OPENED_EMPTY: ShelfOpened = { fights: [], fightsUnreadable: 0 };
 
 /** `develop`'s `writeKeptFights` of `composeFight(7)`, as it stood in a store on 2026-09-24. */
 const DEVELOP_SHELF = '{"version":3,"fights":[{"openedAt":7,"payloads":[{"init":1,"w":{"1":' +
@@ -52,9 +54,9 @@ Deno.test("what is written comes back as it went on, in develop's own text", () 
     const kept = writeKeptFight(store, EMPTY, composeFight(7));
     assertEquals(kept, { contents: { fights: [composeFight(7)] }, droppedOpenedAt: [] }, "all");
     assertEquals(store.read(STORE_KEY.fights), DEVELOP_SHELF, "the text develop writes");
-    assertEquals(openShelf(store), { fights: [composeFight(7)] }, "and gives it back whole");
+    assertEquals(openShelf(store), composeOpened([composeFight(7)]), "and gives it back whole");
     const fromDevelop = composeStoreHolding(DEVELOP_SHELF);
-    assertEquals(openShelf(fromDevelop), { fights: [composeFight(7)] }, "a develop shelf too");
+    assertEquals(openShelf(fromDevelop), composeOpened([composeFight(7)]), "a develop shelf too");
 });
 
 function composeFight(openedAt: number, isPinned = false): KeptFight {
@@ -68,6 +70,10 @@ function composeFight(openedAt: number, isPinned = false): KeptFight {
         margonemClientBuild: "1786441768914",
         isPinned,
     };
+}
+
+function composeOpened(fights: readonly KeptFight[]): ShelfOpened {
+    return { fights, fightsUnreadable: 0 };
 }
 
 function composeStoreHolding(text: string): KeyValueStore {
@@ -87,7 +93,7 @@ Deno.test("the reader's id goes on beside the fight and comes back, and only whe
         `${DEVELOP_SHELF.slice(0, -3)},"readerId":1}]}`,
         "after everything develop wrote, so a develop shelf is this one less a field (ADR 0014)",
     );
-    assertEquals(openShelf(store), { fights: [withReader] }, "and it comes back with the fight");
+    assertEquals(openShelf(store), composeOpened([withReader]), "and it comes back with the fight");
 });
 
 Deno.test("an id that does not read back is nobody's, and the fight stands without it", () => {
@@ -95,7 +101,7 @@ Deno.test("an id that does not read back is nobody's, and the fight stands witho
         const text = `${DEVELOP_SHELF.slice(0, -3)},"readerId":${stated}}]}`;
         assertEquals(
             openShelf(composeStoreHolding(text)),
-            { fights: [composeFight(7)] },
+            composeOpened([composeFight(7)]),
             `${stated} is no id, and costs the fight nothing`,
         );
     }
@@ -106,7 +112,7 @@ Deno.test("a store that will not have it says so, rather than throwing", () => {
     const kept = writeKeptFight(refusing, EMPTY, composeFight(1));
     assertInstanceOf(kept, RotationRefused, "room for nothing keeps nothing");
     assertStrictEquals(kept.attempts, 2, "not even an empty shelf");
-    assertEquals(openShelf(refusing), EMPTY, "and the shelf reads back empty");
+    assertEquals(openShelf(refusing), OPENED_EMPTY, "and the shelf reads back empty");
     const absent = initBrowserStore(null);
     const written = writeKeptFight(absent, EMPTY, composeFight(1));
     assertInstanceOf(written, StoreUnavailable, "no store is an answer");
@@ -145,7 +151,11 @@ Deno.test("a shelf nobody can read is refused, never trusted into a figure", () 
     assertStrictEquals(none.version, null, "as none");
     const notListed = composeStoreHolding('{"version":3,"fights":"none"}');
     assertInstanceOf(openShelf(notListed), ShelfUnreadable, "fights, a list");
-    assertEquals(openShelf(initMemoryStore()), EMPTY, "while nothing stored is an empty shelf");
+    assertEquals(
+        openShelf(initMemoryStore()),
+        OPENED_EMPTY,
+        "while nothing stored is an empty shelf",
+    );
 });
 
 /**
@@ -172,6 +182,12 @@ Deno.test("one fight nobody can read costs that fight and not the shelf", () => 
         '{"openedAt":2,"payloads":"none"},{"openedAt":"soon","payloads":[{"init":1}]},' +
         '{"openedAt":-1,"payloads":[{"init":1}]},{"openedAt":0,"payloads":[{"init":1}]}]}';
     assertEquals(readOpenedAt(composeStoreHolding(half)), [1, 0], "the whole ones, zero included");
+    const opened = openShelf(composeStoreHolding(half));
+    assert(!(opened instanceof Error), "the shelf reads back");
+    assertStrictEquals(opened.fightsUnreadable, 3, "and counts the three it could not");
+    const whole = openShelf(composeStoreHolding(DEVELOP_SHELF));
+    assert(!(whole instanceof Error), "a whole shelf reads back");
+    assertStrictEquals(whole.fightsUnreadable, 0, "and counts none");
 });
 
 Deno.test("the shelf holds its stated maximum, oldest dropped first, and says which went", () => {

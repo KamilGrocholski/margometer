@@ -11,7 +11,11 @@ import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import type { SessionOptions } from "#/src/core/fight-session.ts";
-import type { KeyValueStore } from "#/src/ports/browser-store.ts";
+import {
+    initMemoryStore,
+    type KeyValueStore,
+    StoreUnavailable,
+} from "#/src/ports/browser-store.ts";
 import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
 import { type KeptFightState, replayKeptFight } from "./fight-state.ts";
 import { writeStorageChoice } from "./settings.ts";
@@ -21,6 +25,7 @@ import {
     FightAlreadyKept,
     KEPT_MAXIMUM,
     type KeptFight,
+    KeptFightsUnreadable,
     openShelf,
     rotateShelf,
     type ShelfContents,
@@ -52,7 +57,7 @@ export interface ShelfKeeper {
 
 export interface ShelfKeeperOptions {
     settings: KeyValueStore;
-    initShelfStore: (choice: StorageChoice) => KeyValueStore;
+    initShelfStore: (choice: StorageChoice) => KeyValueStore | StoreUnavailable;
     choice: StorageChoice;
     tables: DecoderTables;
     sessionOptions: SessionOptions;
@@ -70,10 +75,23 @@ interface KeeperState {
 }
 
 export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
-    const store = options.initShelfStore(options.choice);
+    let store: KeyValueStore;
+    // Open the store the reader chose, or one that forgets where the browser lends none: a panel
+    // that forgets between pages serves them better than one keeping fights where they did not
+    // choose, and the defect says it forgets.
+    {
+        const chosen = options.initShelfStore(options.choice);
+        if (chosen instanceof StoreUnavailable) {
+            options.defects.add({ kind: DEFECT_KIND.kept, region: null, failure: chosen });
+            store = initMemoryStore();
+        } else store = chosen;
+    }
     const opened = openShelf(store);
     if (opened instanceof Error) {
         options.defects.add({ kind: DEFECT_KIND.kept, region: null, failure: opened });
+    } else if (opened.fightsUnreadable > 0) {
+        const failure = new KeptFightsUnreadable(opened.fightsUnreadable);
+        options.defects.add({ kind: DEFECT_KIND.kept, region: null, failure });
     }
     const state: KeeperState = {
         options,
@@ -170,6 +188,11 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
         moveShelf: (storageChoice) => {
             if (storageChoice === state.choice) return;
             const targetStore = state.options.initShelfStore(storageChoice);
+            if (targetStore instanceof StoreUnavailable) {
+                state.answers.hasStoreRefused = true;
+                state.answers.hasStoreMadeRoom = false;
+                return;
+            }
             const written = writeShelfContents(targetStore, { fights: state.fights });
             if (written instanceof Error) {
                 state.answers.hasStoreRefused = true;
@@ -180,9 +203,15 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
             state.answers.hasChoiceRefused = answered instanceof Error;
             if (answered instanceof Error) return;
             // ⚠️ A copy the old store will not let go of is the reader's fights left where they
-            // were, which `develop` leaves unsaid as well: nothing is lost, and the answer already
-            // stands.
-            void deleteShelf(state.store);
+            // asked them not to be: nothing is lost, and the defect says a copy stayed behind.
+            const deleted = deleteShelf(state.store);
+            if (deleted instanceof Error) {
+                state.options.defects.add({
+                    kind: DEFECT_KIND.kept,
+                    region: null,
+                    failure: deleted,
+                });
+            }
             const offered = state.fights.length;
             assert(written.contents.fights.length <= offered, "a shelf moved grows by nothing");
             state.choice = storageChoice;

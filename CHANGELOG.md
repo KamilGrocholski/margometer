@@ -37,6 +37,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Panel mówi, gdy przeglądarka nie pozwoliła zachować zapisanych walk, nie usunęła
+  ich ze starego miejsca po zmianie przechowywania albo części z nich nie dało się odczytać.
+
 ## [0.22.0] — 2026-10-03
 
 - **Nowość** — Dymek postaci ma osobną sekcję „Bonusy legendarne”: ile razy odpalił każdy bonus, a

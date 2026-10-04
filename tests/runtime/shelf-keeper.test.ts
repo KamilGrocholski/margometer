@@ -6,10 +6,15 @@
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
-import { initBrowserStore, type KeyValueStore, STORE_KEY } from "#/src/ports/browser-store.ts";
+import {
+    initBrowserStore,
+    type KeyValueStore,
+    STORE_KEY,
+    StoreUnavailable,
+} from "#/src/ports/browser-store.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
 import { initShelfKeeper, type ShelfKeeperOptions } from "#/src/runtime/shelf-keeper.ts";
-import { KEPT_MAXIMUM, type KeptFight } from "#/src/runtime/shelf.ts";
+import { KEPT_MAXIMUM, type KeptFight, KeptFightsUnreadable } from "#/src/runtime/shelf.ts";
 import { STORAGE_CHOICE, type StorageChoice } from "#/src/ui/panel-choice.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { initHeldStore, initRefusingStore } from "#/tests/runtime-world.ts";
@@ -214,6 +219,64 @@ Deno.test("a shelf that does not read back is an empty one, and a defect said on
     assertEquals(keeper.getFights(), [], "nothing to stand on");
     assertEquals(lines, [DEFECT_KIND.kept], "and what it held is said to be lost");
     assertStrictEquals(defects.getCounts()[0]?.count, 1, "once");
+});
+
+Deno.test("fights the store held that do not read back are counted in one defect", () => {
+    const held = new Map([[
+        STORE_KEY.fights,
+        '{"version":3,"fights":[{"openedAt":1,"payloads":[{"init":1}]},{"openedAt":2}]}',
+    ]]);
+    const { keeper, lines, defects } = initKeeper({ initShelfStore: () => initHeldStore(held) });
+    assertEquals(keeper.getFights().map((fight) => fight.openedAt), [1], "the whole one stands");
+    assertEquals(lines, [DEFECT_KIND.kept], "and the one that did not is said");
+    const firstFailure = defects.getCounts()[0]?.first;
+    assert(firstFailure instanceof KeptFightsUnreadable, "as fights the store held and lost");
+    assertStrictEquals(firstFailure.count, 1, "counted");
+});
+
+Deno.test("a browser lending no store keeps the shelf in memory, and says it forgets", () => {
+    const { keeper, lines, defects } = initKeeper({
+        initShelfStore: (choice) =>
+            choice === STORAGE_CHOICE.local ? new StoreUnavailable() : initHeldStore(new Map()),
+    });
+    keeper.keep(composeFight(1));
+    assertEquals(keeper.getFights().map((fight) => fight.openedAt), [1], "the fight stands");
+    assertEquals(keeper.getAnswers().hasStoreRefused, false, "kept where it can be");
+    assertEquals(lines, [DEFECT_KIND.kept], "and the store it could not have is said");
+    assert(defects.getCounts()[0]?.first instanceof StoreUnavailable, "as the store refused");
+});
+
+Deno.test("a choice of a store the browser lends none of moves nothing, and says so", () => {
+    const { keeper, getShelf, settings } = initKeeper({
+        initShelfStore: (choice) =>
+            choice === STORAGE_CHOICE.session ? new StoreUnavailable() : initHeldStore(new Map()),
+    });
+    keeper.keep(composeFight(1));
+    keeper.moveShelf(STORAGE_CHOICE.session);
+    assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.local, "the choice stays as it was");
+    assert(keeper.getAnswers().hasStoreRefused, "and the shelf says the store refused");
+    assertStrictEquals(settings.get(STORE_KEY.storage), undefined, "with nothing answered");
+    assertStrictEquals(getShelf(STORAGE_CHOICE.session).size, 0, "nor written");
+});
+
+Deno.test("an old place that will not let go of the fights is a defect, the move stands", () => {
+    const held = new Map<string, string>();
+    const stubborn = initBrowserStore({
+        getItem: (key) => held.get(key) ?? null,
+        setItem: (key, storedText) => void held.set(key, storedText),
+        removeItem: () => {
+            throw new RangeError("a store that will not let go");
+        },
+    });
+    const { keeper, lines } = initKeeper({
+        initShelfStore: (choice) =>
+            choice === STORAGE_CHOICE.local ? stubborn : initHeldStore(new Map()),
+    });
+    keeper.keep(composeFight(1));
+    keeper.moveShelf(STORAGE_CHOICE.memory);
+    assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.memory, "the choice is taken");
+    assert(held.has(STORE_KEY.fights), "while a copy stayed behind");
+    assertEquals(lines, [DEFECT_KIND.kept], "which is said");
 });
 
 Deno.test("a kept fight is replayed once, and one that will not replay is marked once", () => {
