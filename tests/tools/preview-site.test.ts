@@ -2,7 +2,8 @@
  * The published page, composed and read back without writing a file. What matters is everything a
  * page cannot ask a process for: its addresses are relative, it keeps nothing, and nothing in it
  * reconnects to a route that is not there. Each is silent when it is wrong — a page that loads
- * cleanly and shows nothing. That it draws a panel in Chrome is checked by driving it.
+ * cleanly and shows nothing. Nothing drives it in a browser: `docs/releasing.md` has it opened by
+ * hand at each release.
  */
 
 import {
@@ -45,7 +46,10 @@ const LINK_INLINE = `href="data:`;
 /** Every spelling by which a page fetches something of its own accord, but a link. */
 const LOADED_FROM_ELSEWHERE = [`src="http`, "url(http", "@import"];
 const POLISH_LETTERS = "ąćęłńóśźż";
-const LOOKUP_OPENING = `getElementById("`;
+/** Both ways the page's script looks an element up by its id, the platform's and its own. */
+const LOOKUP_OPENINGS = [`getElementById("`, `getPreviewElement("`];
+/** Looked up through the script's own helper, so a reader of the platform's call alone misses it. */
+const LOOKED_UP_BY_HELPER = "preview-next";
 /** The picker the served page draws, which a published one leaves out and its script tolerates. */
 const PICKER_ID = "preview-fight";
 
@@ -106,6 +110,7 @@ Deno.test("every element the page's script looks up by name is one the page draw
         looked.includes(PREVIEW_TIPS_ID),
         "the column of tooltips is looked up, or this reads nothing",
     );
+    assert(looked.includes(LOOKED_UP_BY_HELPER), "and the script's own helper is read as well");
     assert(
         !page.includes(`id="${PICKER_ID}"`),
         "the picker is the one element left out on purpose",
@@ -120,15 +125,17 @@ Deno.test("every element the page's script looks up by name is one the page draw
     );
 });
 
-/** Every id a script on the page names by a literal, in the order it is named. */
+/** Every id a script on the page names by a literal, by either way of looking one up. */
 function readIdsLookedUp(text: string): string[] {
     const ids: string[] = [];
-    let lookupAt = text.indexOf(LOOKUP_OPENING);
-    for (let tried = 0; lookupAt !== -1; tried += 1) {
-        assert(tried <= text.length, "the walk stays inside the text");
-        const opened = lookupAt + LOOKUP_OPENING.length;
-        ids.push(text.slice(opened, text.indexOf(`"`, opened)));
-        lookupAt = text.indexOf(LOOKUP_OPENING, opened);
+    for (const opening of LOOKUP_OPENINGS) {
+        let lookupAt = text.indexOf(opening);
+        for (let tried = 0; lookupAt !== -1; tried += 1) {
+            assert(tried <= text.length, "the walk stays inside the text");
+            const opened = lookupAt + opening.length;
+            ids.push(text.slice(opened, text.indexOf(`"`, opened)));
+            lookupAt = text.indexOf(opening, opened);
+        }
     }
     return ids;
 }

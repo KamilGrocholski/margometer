@@ -99,11 +99,22 @@ Deno.test("the flags a person gives are read, and what is not one is refused", (
     assertStrictEquals(readGivingWayFlags([]).doesShoot, false, "serving is what it does alone");
     assertThrows(() => readGivingWayFlags(["--port", "four"]), GivingWayError, "not a number");
     assertThrows(() => readGivingWayFlags(["list"]), GivingWayError, "not a flag this reads");
+    assertThrows(
+        () => readGivingWayFlags(["--regoin", "card"]),
+        GivingWayError,
+        "--regoin is not a flag this reads",
+    );
 });
 
 /** `screenshots/` is the set a README shows, and a picture of a defect there reads as the panel. */
 Deno.test("the pictures go anywhere but where the READMEs read theirs", () => {
-    for (const into of [SHOT_DIRECTORY, `${SHOT_DIRECTORY}/under`, `./${SHOT_DIRECTORY}`]) {
+    const inside = [
+        SHOT_DIRECTORY,
+        `${SHOT_DIRECTORY}/under`,
+        `./${SHOT_DIRECTORY}`,
+        `${SHOT_DIRECTORY}/..under`,
+    ];
+    for (const into of inside) {
         assertThrows(() => readGivingWayFlags(["--into", into]), GivingWayError, "READMEs");
     }
     const beside = readGivingWayFlags(["--into", `${SHOT_DIRECTORY}-giving-way`]);

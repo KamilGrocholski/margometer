@@ -20,9 +20,9 @@ import {
     type DecodeContext,
     decodePayloadMessages,
     encodeProtocolMessage,
-    MESSAGES_MAXIMUM,
     parseProtocolMessage,
 } from "#/src/core/fight-decoder.ts";
+import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { PREPARE_KEY } from "#/src/core/protocol-key.ts";
 import {
     composeTurnStanding,
@@ -38,6 +38,7 @@ import {
     formatRecordingName,
     lookupRecordingPaths,
     readRecordedMaterial,
+    RECORDINGS_MAXIMUM,
     type ReplayedStep,
     replayRecordedSteps,
 } from "./recorded-material.ts";
@@ -129,7 +130,6 @@ interface ReadingArguments {
 }
 
 const ARGUMENTS_MAXIMUM = 256;
-const RECORDINGS_MAXIMUM = 4096;
 const OPENER_WIDTH = 32;
 const KEY_WIDTH = 32;
 const NAME_WIDTH = 68;
@@ -175,7 +175,12 @@ function composeMessageReadings(fight: RecordedFight): ParametersDecoded[] {
         stated = arriving.ordinal;
     }
     readings.push(...pending);
-    assert(readings.length <= MESSAGES_MAXIMUM, "a recording states no more messages than it may");
+    // A whole recording, so the session's bound and not one payload's: every message read leaves
+    // an event behind it, so no more messages are read than a fight holds events.
+    assert(
+        readings.length <= SESSION_OPTIONS.eventsMaximum,
+        "a recording states no more messages than a fight holds",
+    );
     return readings;
 }
 
@@ -476,7 +481,15 @@ function formatReadingWalkLine(reading: ParametersDecoded): string {
 
 export function parseReadingArguments(stated: readonly string[]): ReadingArguments {
     assert(stated.length <= ARGUMENTS_MAXIMUM, "a run is given no more arguments than are read");
-    const parsed = parseArgs([...stated], { boolean: ["keys"] });
+    const parsed = parseArgs([...stated], {
+        boolean: ["keys"],
+        unknown: (argument, flag) => {
+            // A flag misspelt would be kept as a key nobody reads, and the run would answer
+            // something else than was asked; a path is read from `_`.
+            if (flag === undefined) return true;
+            throw new TurnReadingError(`${argument} is not a flag this reads`);
+        },
+    });
     const paths = lookupRecordingPaths(parsed._);
     if (paths === null) {
         throw new TurnReadingError("a recording is named by a path and never by a number");

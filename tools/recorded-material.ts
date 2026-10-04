@@ -6,6 +6,7 @@
  * add-on composes at its start: nothing here decodes or tallies on its own.
  */
 
+import { basename } from "@std/path";
 import { assert, assertStrictEquals } from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
 import * as errors from "#/libs/errors.ts";
@@ -50,9 +51,9 @@ export interface SteppedFight {
     steps: readonly ReplayedStep[];
 }
 
-const RECORDINGS_MAXIMUM = 1_000;
+/** Past every recording `captures/` holds, the one bound every tool reading them shares. */
+export const RECORDINGS_MAXIMUM = 1_000;
 export const RECORDING_SUFFIX = ".json";
-const PATH_SEPARATOR = "/";
 export const DECODER_TABLES: DecoderTables = composeRuntimeTables().decoder;
 
 /**
@@ -169,10 +170,7 @@ export function replayRecordedSteps(fight: RecordedFight): ReplayedStep[] {
 /** The heading a report stands under: the file's own name, the directory and suffix off. */
 export function formatRecordingName(path: string): string {
     assert(path.length > 0, "a recording is named by its path");
-    const fileName = path.split(PATH_SEPARATOR).at(-1) ?? path;
-    const name = fileName.endsWith(RECORDING_SUFFIX)
-        ? fileName.slice(0, fileName.length - RECORDING_SUFFIX.length)
-        : fileName;
+    const name = basename(path, RECORDING_SUFFIX);
     assert(name.length > 0, "and answers under a name that says something");
     return name;
 }

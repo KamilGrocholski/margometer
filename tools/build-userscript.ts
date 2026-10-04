@@ -359,6 +359,7 @@ export function parseDeclaredVersion(configuration: string): string {
 
 if (import.meta.main) {
     const version = Deno.args[0] ?? readDevelopmentVersion();
+    if (version.length === 0) throw new UserscriptBuildError("a build is asked for at no version");
     const written = await writeUserscript(version);
     console.log(`${written} at ${version}`);
 }

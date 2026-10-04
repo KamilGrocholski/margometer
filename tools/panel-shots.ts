@@ -28,6 +28,7 @@ import {
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
 import { readUserscriptFiles, USERSCRIPT_NAME } from "./build-userscript.ts";
 import { PanelShotError } from "./margometer-tool-error.ts";
+import { BUNDLE_SOURCE_PATHS } from "./panel-giving-way.ts";
 import { LANDING_RECORDING, readSiteVersion } from "./preview-site.ts";
 import { formatRecordingName } from "./recorded-material.ts";
 
@@ -142,9 +143,13 @@ async function writePanelShots(version: string): Promise<PanelShotRecord> {
     let commit: string;
     // Read the commit the set comes from, or refuse: a set over uncommitted work names no build.
     {
-        const carried = readGitText(["status", "--porcelain", "--", "src"]);
+        // Whatever the bundle is built from, and not `src/` alone: an edit under `libs/` is drawn
+        // in the pictures as surely as one under `src/`.
+        const carried = readGitText(["status", "--porcelain", "--", ...BUNDLE_SOURCE_PATHS]);
         if (carried.length > 0) {
-            throw new PanelShotError(`src/ carries what no commit holds:\n${carried}`);
+            throw new PanelShotError(
+                `the bundle's sources carry what no commit holds:\n${carried}`,
+            );
         }
         commit = readGitText(["rev-parse", "HEAD"]);
         assert(!commit.includes("\n"), "a set names one commit");

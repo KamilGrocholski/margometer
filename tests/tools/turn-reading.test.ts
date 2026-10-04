@@ -368,6 +368,11 @@ Deno.test("a recording is named by a path, and a bare number is refused", () => 
     const paths = [DISPUTED];
     assertEquals(parseReadingArguments(paths), { isKeys: false, paths }, "and the paths as named");
     assertThrows(() => parseReadingArguments(["12"]), TurnReadingError, "never by a number");
+    assertThrows(
+        () => parseReadingArguments(["--key", "x.json"]),
+        TurnReadingError,
+        "--key is not a flag this reads",
+    );
 });
 
 /**

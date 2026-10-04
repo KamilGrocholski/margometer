@@ -425,4 +425,9 @@ Deno.test("a recording is named by a path, and a bare number is refused", () => 
     const paths = [BOAR, UNNARRATED];
     assertEquals(parseTurnArguments(paths), { isCases: false, paths }, "and the paths as named");
     assertThrows(() => parseTurnArguments(["12"]), TurnCountError, "never by a number");
+    assertThrows(
+        () => parseTurnArguments(["--case", "captures/x.json"]),
+        TurnCountError,
+        "--case is not a flag this reads",
+    );
 });

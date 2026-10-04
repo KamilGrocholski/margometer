@@ -18,10 +18,7 @@ interface ClauseRow {
 }
 
 const REGISTER_PATH = "docs/auras-standing.md";
-/**
- * The key register this section's clauses are cited from. It is `develop`'s until this tree
- * carries one, so it is read out of git at the revision `develop:` names.
- */
+/** The key register this section's clauses are cited from. */
 const KEY_REGISTER_PATH = "docs/protocol-keys.md";
 const HEADING = "## Whose turns a length is counted in";
 const BIT_CELLS = 10;

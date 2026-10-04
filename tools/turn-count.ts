@@ -28,6 +28,7 @@ import {
     formatRecordingName,
     lookupRecordingPaths,
     readRecordedMaterial,
+    RECORDINGS_MAXIMUM,
     type ReplayedStep,
     replayRecordedSteps,
 } from "./recorded-material.ts";
@@ -123,7 +124,6 @@ export const TURN_VERDICTS: readonly TurnVerdict[] = Object.values(TURN_VERDICT)
  */
 export const WITNESS_KEYS = { holder: "current" } as const;
 const ARGUMENTS_MAXIMUM = 256;
-const RECORDINGS_MAXIMUM = 4096;
 const NAME_WIDTH = 68;
 const VERDICT_WIDTH = 16;
 const COLUMN_WIDTH = 9;
@@ -534,7 +534,15 @@ function formatTurnWalkLine(boundary: TurnBoundary): string {
 
 export function parseTurnArguments(stated: readonly string[]): TurnArguments {
     assert(stated.length <= ARGUMENTS_MAXIMUM, "a run is given no more arguments than are read");
-    const parsed = parseArgs([...stated], { boolean: ["cases"] });
+    const parsed = parseArgs([...stated], {
+        boolean: ["cases"],
+        unknown: (argument, flag) => {
+            // A flag misspelt would be kept as a key nobody reads, and the run would answer
+            // something else than was asked; a path is read from `_`.
+            if (flag === undefined) return true;
+            throw new TurnCountError(`${argument} is not a flag this reads`);
+        },
+    });
     const paths = lookupRecordingPaths(parsed._);
     if (paths === null) {
         throw new TurnCountError("a recording is named by a path and never by a number");

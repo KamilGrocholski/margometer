@@ -34,9 +34,9 @@ export interface FrozenHelpCounts extends FrozenFiles {
 
 const HELP_HOST = "https://pomoc.margonem.pl";
 /**
- * "Mechanika walk", the only article carrying combat mechanics. Exported so the frozen counts are
- * held to naming the article they were taken from: pointing the tool elsewhere once left every
- * count describing a document the tool no longer read.
+ * "Mechanika walk", the only article carrying combat mechanics. ⚠️ Exported so the frozen counts
+ * are held to naming the article they were taken from: a tool pointed at another would leave every
+ * count describing a document it no longer reads.
  */
 export const MECHANICS_ARTICLE = "372";
 /** Ignored by git, and exported for the reason `tools/margonem-client-source.ts` gives. */

@@ -1753,6 +1753,12 @@ if (import.meta.main) {
     const parsed = parseArgs(Deno.args, {
         string: [OUTPUT_FLAG, PER_SIDE_FLAG, ROUNDS_FLAG, LEVEL_FLAG, ENDING_FLAG],
         boolean: [CLOSING_SHOUTS_FLAG],
+        unknown: (argument, flag) => {
+            // A flag misspelt would be kept as a key nobody reads, and the run would answer
+            // something else than was asked; a path is read from `_`.
+            if (flag === undefined) return true;
+            throw new FabricatedFightError(`${argument} is not a flag this reads`);
+        },
     });
     const shape = requireFabricationShape(
         readShapeFlag(parsed[PER_SIDE_FLAG], PER_SIDE_DEFAULT, PER_SIDE_FLAG),

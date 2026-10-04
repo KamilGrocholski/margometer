@@ -177,7 +177,15 @@ function parseCardArguments(stated: readonly string[]): CardArguments {
     if (stated.length > ARGUMENTS_MAXIMUM) {
         throw new CardHeightError(`more than ${ARGUMENTS_MAXIMUM} arguments`);
     }
-    const parsed = parseArgs([...stated], { boolean: ["tallest"] });
+    const parsed = parseArgs([...stated], {
+        boolean: ["tallest"],
+        unknown: (argument, flag) => {
+            // A flag misspelt would be kept as a key nobody reads, and the run would answer
+            // something else than was asked; a path is read from `_`.
+            if (flag === undefined) return true;
+            throw new CardHeightError(`${argument} is not a flag this reads`);
+        },
+    });
     const paths = lookupRecordingPaths(parsed._);
     if (paths === null) {
         throw new CardHeightError("a recording is named by a path and never by a number");

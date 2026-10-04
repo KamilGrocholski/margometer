@@ -1,6 +1,6 @@
 /**
- * A release's body, cut out of a changelog written here. This branch keeps no `CHANGELOG.md` yet,
- * so the tool is held on samples and refuses a tree without one.
+ * A release's body, cut out of a changelog written here. The tool is held on samples, so a case
+ * the tree's own `CHANGELOG.md` does not carry is held as well.
  */
 
 import { assertEquals, assertStrictEquals, assertStringIncludes, assertThrows } from "@std/assert";

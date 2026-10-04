@@ -86,6 +86,32 @@ Deno.test("a combatant nobody says is a player or a monster is refused, never gu
     assertThrows(() => composePseudonymisedRecording(fight), CaptureIntakeError, "combatant 11");
 });
 
+Deno.test("a name is replaced where it stands whole, and found inside a word it is refused", () => {
+    const fight = composeFight();
+    const call = (fight.calls as { messages: string[] }[])[0]!;
+    call.messages.push("0;0;winner=Anna", "0;0;+oth_dmg=12,Anna(8.97%)");
+    const named = JSON.stringify(composePseudonymisedRecording(fight).recording);
+    assertStringIncludes(named, "winner=Gracz 1", "a name after a key's sign is whole");
+    assertStringIncludes(named, ",Gracz 1(8.97%)", "and so is one between a comma and a bracket");
+    call.messages.push("1;0;tspell=Annałowy cios");
+    assertThrows(
+        () => composePseudonymisedRecording(fight),
+        CaptureIntakeError,
+        "stands inside a longer word",
+    );
+});
+
+Deno.test("a monster named with a player's name in it is refused, never half replaced", () => {
+    const fight = composeFight();
+    const payload = (fight.calls as { payload: { w: Record<string, unknown> } }[])[0]!.payload;
+    payload.w["-5"] = { id: -5, name: "Annałowy wódz", npc: 1 };
+    assertThrows(
+        () => composePseudonymisedRecording(fight),
+        CaptureIntakeError,
+        "is named with the player name",
+    );
+});
+
 Deno.test("two players sharing a name are refused, since a message carries only the text", () => {
     const fight = composeFight();
     const payload = (fight.calls as { payload: { w: Record<string, unknown> } }[])[0]!.payload;

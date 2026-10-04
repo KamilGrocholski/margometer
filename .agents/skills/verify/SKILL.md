@@ -18,7 +18,7 @@ to see.
 ## The server
 
 ```bash
-deno task preview        # http://127.0.0.1:8000/
+deno task preview        # http://127.0.0.1:4173/
 ```
 
 The index lists every recording under `captures/`. `/fight/<name>?through=<n>` opens the page the

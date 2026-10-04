@@ -98,6 +98,15 @@ const INDENT_SPACES = 2;
 const VALUES_MAXIMUM = 4_194_304;
 /** A fight holds twenty, and each is named at most a handful of times. */
 const NAMES_MAXIMUM = 4096;
+/**
+ * What stands beside a name where the game writes one whole: over `captures/` on 2026-10-04 a
+ * label stood at a string's start or end, or beside one of these, and nowhere else.
+ */
+const NAME_EDGES = ",;=() <>";
+/** The longest string in `captures/` runs to 1110 characters, measured 2026-10-04. */
+const TEXT_CHARACTERS_MAXIMUM = 1_048_576;
+/** Stands where a name was replaced, so what was kept never joins across it. */
+const KEPT_BREAK = "\u0000";
 /** A slug and a version are typed at a terminal; this is far past either. */
 const OFFERED_MAXIMUM = 256;
 const ADMITTED_MAXIMUM = 4096;
@@ -230,14 +239,41 @@ export function composePseudonymisedRecording(recording: unknown): Pseudonymisat
     requireEveryCombatantDecided(roll);
     const substitutions = indexNameSubstitutions(roll);
     const pairs = composeSubstitutionOrder(substitutions);
+    requireNoNameInsideAnother(roll, pairs);
     let changed = 0;
+    // One walk, longest name first at each place, and a name only where it stands whole: a short
+    // nickname inside a skill's or a monster's name is refused rather than replaced into it.
     const substituteNames = (text: string): string => {
-        let substituted = text;
-        for (const [name, label] of pairs) {
-            const parts = substituted.split(name);
-            if (parts.length === 1) continue;
-            changed += parts.length - 1;
-            substituted = parts.join(label);
+        if (text.length > TEXT_CHARACTERS_MAXIMUM) {
+            throw new CaptureIntakeError(
+                `a string of ${text.length} characters, past the ${TEXT_CHARACTERS_MAXIMUM} read`,
+            );
+        }
+        let substituted = "";
+        let kept = "";
+        let index = 0;
+        for (let look = 0; look <= TEXT_CHARACTERS_MAXIMUM; look += 1) {
+            if (index >= text.length) break;
+            const pair = isNameEdgeAt(text, index - 1)
+                ? lookupWholeNameAt(text, index, pairs)
+                : null;
+            if (pair === null) {
+                substituted += text.charAt(index);
+                kept += text.charAt(index);
+                index += 1;
+            } else {
+                substituted += pair[1];
+                kept += KEPT_BREAK;
+                index += pair[0].length;
+                changed += 1;
+            }
+        }
+        const inside = pairs.find(([name]) => kept.includes(name));
+        if (inside !== undefined) {
+            throw new CaptureIntakeError(
+                `the name \`${inside[0]}\` stands inside a longer word — replacing it would ` +
+                    "mangle that word, so a person decides",
+            );
         }
         return substituted;
     };
@@ -349,8 +385,8 @@ function indexNameSubstitutions(roll: CombatantRoll): Map<string, string> {
 
 /**
  * Longest name first, so a nickname inside another is not mutilated by it; and a label that is
- * also somebody's name is refused, since a sequential substitution over those eats itself. The
- * add-on cannot write that; a file edited by hand can.
+ * also somebody's name is refused, since a file with both cannot be told apart once substituted.
+ * The add-on cannot write that; a file edited by hand can.
  */
 function composeSubstitutionOrder(substitutions: ReadonlyMap<string, string>): [string, string][] {
     const pairs = [...substitutions]
@@ -362,6 +398,42 @@ function composeSubstitutionOrder(substitutions: ReadonlyMap<string, string>): [
     throw new CaptureIntakeError(
         `the name \`${collision[0]}\` is also a replacement label — the file looks hand-edited`,
     );
+}
+
+/** A monster named with a player's whole name in it would lose part of its own name. */
+function requireNoNameInsideAnother(
+    roll: CombatantRoll,
+    pairs: readonly (readonly [string, string])[],
+): void {
+    for (const [id, names] of roll.namesById) {
+        if (roll.isPlayerById.get(id) === true) continue;
+        for (const monsterName of names) {
+            const held = pairs.find(([name]) => monsterName.includes(name));
+            if (held === undefined) continue;
+            throw new CaptureIntakeError(
+                `the monster \`${monsterName}\` is named with the player name \`${held[0]}\` in ` +
+                    "it — replacing it would mangle the monster, so a person decides",
+            );
+        }
+    }
+}
+
+function isNameEdgeAt(text: string, index: number): boolean {
+    if (index < 0) return true;
+    if (index >= text.length) return true;
+    return NAME_EDGES.includes(text.charAt(index));
+}
+
+function lookupWholeNameAt(
+    text: string,
+    index: number,
+    pairs: readonly (readonly [string, string])[],
+): readonly [string, string] | null {
+    for (const pair of pairs) {
+        if (!text.startsWith(pair[0], index)) continue;
+        if (isNameEdgeAt(text, index + pair[0].length)) return pair;
+    }
+    return null;
 }
 
 /** Every string in the document mapped, the keys left alone: they are ids, kept in order. */

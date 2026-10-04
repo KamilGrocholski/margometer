@@ -5,7 +5,7 @@
  * the table is read back and held to what the tool produces.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { type HoldingRow, tallyHoldingReading, tallyStruckShare } from "#/tools/shout-holding.ts";
 import { readRecordedMaterial, replayRecordedMaterial } from "#/tools/recorded-material.ts";
@@ -86,12 +86,17 @@ Deno.test("a shout is total for the turns the table dates it, and falls after", 
         MEASURED.baseline.atShouter,
         MEASURED.baseline.atSomebodyElse,
     );
+    const heldShare = tallyStruckShare(held.atShouter, held.atSomebodyElse);
+    const freedShare = tallyStruckShare(freed.atShouter, freed.atSomebodyElse);
+    assertExists(baseline, "blows were struck before the shout");
+    assertExists(heldShare, "and inside the stated turns");
+    assertExists(freedShare, "and past them");
     assert(
-        tallyStruckShare(held.atShouter, held.atSomebodyElse) > baseline,
+        heldShare > baseline,
         "inside the stated turns they strike the shouter more than they did before the shout",
     );
     assert(
-        tallyStruckShare(freed.atShouter, freed.atSomebodyElse) < baseline,
+        freedShare < baseline,
         "and past them they strike the shouter less, which is the edge the clock stands on",
     );
 });
@@ -104,7 +109,7 @@ function tallyStruck(rows: readonly HoldingRow[]): { atShouter: number; atSomebo
 }
 
 Deno.test("a share over no blows is none, and one blow is all or nothing", () => {
-    assertStrictEquals(tallyStruckShare(0, 0), 0, "no blows struck is no share, not a division");
+    assertStrictEquals(tallyStruckShare(0, 0), null, "no blows struck is no share, not a nought");
     assertStrictEquals(tallyStruckShare(1, 0), 100, "one blow at the shouter is all of them");
     assertStrictEquals(tallyStruckShare(0, 1), 0, "and one elsewhere is none");
 });

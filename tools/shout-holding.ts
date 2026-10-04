@@ -55,6 +55,8 @@ interface Episode {
 
 /** Past the turns any shout the table dates runs for, so the report stays a stated bound. */
 const TURNS_REPORTED_MAXIMUM = 8;
+/** Over no blows, where a share would be a number nobody measured. */
+const NO_SHARE = "—";
 /** Past the episodes one corpus can hold, so each walk carries one. */
 const EPISODES_MAXIMUM = 65536;
 const TURN_WIDTH = 11;
@@ -180,12 +182,15 @@ function addStruck(tally: StruckTally, isAtShouter: boolean): void {
     assert(tally.atSomebodyElse >= 0, "and neither is a count of the blows elsewhere");
 }
 
-/** A share as whole percent, which is what a register states and a guard re-earns. */
-export function tallyStruckShare(atShouter: number, atSomebodyElse: number): number {
+/**
+ * A share as whole percent, which is what a register states and a guard re-earns. Null over no
+ * blows at all, which is no share rather than a share of nothing (E6).
+ */
+export function tallyStruckShare(atShouter: number, atSomebodyElse: number): number | null {
     const total = atShouter + atSomebodyElse;
     assert(atShouter >= 0, "a share is taken over blows that were counted");
     assert(atSomebodyElse >= 0, "and over the blows that went elsewhere as well");
-    if (total === 0) return 0;
+    if (total === 0) return null;
     const share = Math.round(100 * atShouter / total);
     assert(share <= 100, "a share of the blows struck is no more than all of them");
     return share;
@@ -194,18 +199,23 @@ export function tallyStruckShare(atShouter: number, atSomebodyElse: number): num
 function formatHoldingReport(reading: HoldingReading): string[] {
     const { episodes, atShouter, atSomebodyElse } = reading.baseline;
     assert(episodes > 0, "a report stands on at least one episode");
-    const before = formatInteger(tallyStruckShare(atShouter, atSomebodyElse));
+    const before = formatStruckShare(tallyStruckShare(atShouter, atSomebodyElse));
     return [
-        `${formatInteger(episodes)} episodes; before the shout ${before}% of their blows ` +
+        `${formatInteger(episodes)} episodes; before the shout ${before} of their blows ` +
         `already went at whoever would shout`,
         `${"turn".padStart(TURN_WIDTH)}  at shouter  elsewhere  share`,
         ...reading.rows.map((row) => {
             const share = tallyStruckShare(row.atShouter, row.atSomebodyElse);
             return `${formatInteger(row.turnsElapsed).padStart(TURN_WIDTH)}  ` +
                 `${formatInteger(row.atShouter).padStart(10)}  ` +
-                `${formatInteger(row.atSomebodyElse).padStart(9)}  ${formatInteger(share)}%`;
+                `${formatInteger(row.atSomebodyElse).padStart(9)}  ${formatStruckShare(share)}`;
         }),
     ];
+}
+
+function formatStruckShare(share: number | null): string {
+    if (share === null) return NO_SHARE;
+    return `${formatInteger(share)}%`;
 }
 
 if (import.meta.main) {

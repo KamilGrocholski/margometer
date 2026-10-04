@@ -9,18 +9,15 @@
  *     deno task fight:cost [recording.json …]
  */
 
-import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
+import { assert, assertExists, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
+import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import {
-    commitPayload,
-    composeFightView,
-    createFightSession,
-    preparePayload,
-    SESSION_OPTIONS,
-} from "#/src/core/fight-session.ts";
-import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
-import { tallyFightState } from "#/src/runtime/fight-state.ts";
+    type KeptFightState,
+    replayFightPayloads,
+    tallyFightState,
+} from "#/src/runtime/fight-state.ts";
 import { startMargoMeter } from "#/src/userscript-entry.ts";
 import { composeFakeWindow, flushFakeFrames } from "#/tests/fake-window.ts";
 import { composeRebuildingBattle } from "#/tests/rebuilding-battle.ts";
@@ -54,6 +51,17 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
         messages: fight.updates.map(() => 0),
         tallyMicroseconds: Number.POSITIVE_INFINITY,
     }));
+    // Read each fight once, through the chain the add-on reads it by, refusing a recording the
+    // add-on would refuse: the tally is timed over this reading, and its messages are counted off it.
+    const readings: KeptFightState[] = material.fights.map((fight) => {
+        const reading = replayFightPayloads(fight.updates, DECODER_TABLES, SESSION_OPTIONS);
+        const name = formatRecordingName(fight.path);
+        if (reading instanceof Error) {
+            throw new PayloadCostError(`${name}: a call was refused`, { cause: reading });
+        }
+        if (reading === null) throw new PayloadCostError(`${name} opened no fight`);
+        return reading;
+    });
     for (let run = 0; run < runs; run += 1) {
         for (const [fightIndex, fight] of material.fights.entries()) {
             const cost = costs[fightIndex];
@@ -89,7 +97,8 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
                 timeMargonemEngineUpdate,
                 "the add-on wraps the game's method",
             );
-            const session = createFightSession(SESSION_OPTIONS);
+            const reading = readings[fightIndex];
+            assert(reading !== undefined, "every fight has its reading");
             for (const [index, update] of fight.updates.entries()) {
                 // Time the payload as the game calls it, less what the game's own method took.
                 const started = performance.now();
@@ -101,28 +110,15 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
                     took,
                 );
                 flushFakeFrames(window);
-                // Keep a session of the tally's own, refusing a recording the add-on would refuse.
-                const record = readPayloadEnvelope(update);
-                if (record instanceof Error) {
-                    throw new PayloadCostError(`${cost.name}: call ${index} has no envelope`, {
-                        cause: record,
-                    });
-                }
-                const prepared = preparePayload(session, record, DECODER_TABLES);
-                if (prepared instanceof Error) {
-                    throw new PayloadCostError(`${cost.name}: call ${index} was refused`, {
-                        cause: prepared,
-                    });
-                }
-                commitPayload(session, prepared);
-                cost.messages[index] = record.messages.length;
+                const messagesRead: readonly string[] | undefined =
+                    reading.messagesByPayload[index];
+                assertExists(messagesRead, "the reading holds every call the recording does");
+                cost.messages[index] = messagesRead.length;
             }
             assertStrictEquals(window.lines.length, 0, "a recording timed left no failure behind");
-            const view = composeFightView(session);
-            if (view === null) throw new PayloadCostError(`${cost.name} opened no fight`);
             // Time the tally a frame runs, at the call where the fight is longest.
             const started = performance.now();
-            tallyFightState(view);
+            tallyFightState(reading.view);
             const took = (performance.now() - started) * MICROSECONDS_PER_MILLISECOND;
             cost.tallyMicroseconds = Math.min(cost.tallyMicroseconds, took);
         }

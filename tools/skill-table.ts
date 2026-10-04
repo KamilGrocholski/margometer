@@ -127,7 +127,7 @@ export function writeFrozenSkillTable(): FrozenSkillTable {
  * one of them moving re-dates the others, because they date together.
  */
 export function prepareFrozenSkillTable(): FrozenSkillTable {
-    const { cached, skills } = requireCachedSkills();
+    const { cached, skills } = readCachedSkills();
     const auras = composeAuraSkills(skills);
     const shouts = composeShoutSkills(skills);
     const granted = composeGrantedBlows(skills);
@@ -143,7 +143,7 @@ export function prepareFrozenSkillTable(): FrozenSkillTable {
 }
 
 /** The page as it was cached, refused rather than guessed at where nothing is. */
-function requireCachedSkills(): { cached: CachedSkillTable; skills: SkillReading[] } {
+function readCachedSkills(): { cached: CachedSkillTable; skills: SkillReading[] } {
     const cached = readCachedSkillTable();
     if (cached === null) {
         throw new SkillTableError("nothing cached — run `deno task margonem:skills fetch` first");
@@ -382,6 +382,9 @@ export function composeGrantedBlows(
 /** The page fetched and kept under `.cache/`, beside the date it was fetched on. */
 export async function writeSkillTableCache(): Promise<CachedSkillTable> {
     const html = await readMargonemAnswerText(SKILLS_ADDRESS);
+    // Checked before anything is written: an empty answer written over a good cache leaves every
+    // later freeze with nothing to read.
+    if (html.length === 0) throw new SkillTableError(`${SKILLS_ADDRESS} answered nothing`);
     const pagePath = `${CACHE_ROOT}${PAGE_NAME}`;
     Deno.mkdirSync(CACHE_ROOT, { recursive: true });
     Deno.writeTextFileSync(pagePath, html);
@@ -392,7 +395,6 @@ export async function writeSkillTableCache(): Promise<CachedSkillTable> {
         throw new SkillTableError("the skill manifest could not be written", { cause: written });
     }
     Deno.writeTextFileSync(`${CACHE_ROOT}${MANIFEST_NAME}`, `${written}\n`);
-    assert(html.length > 0, "a page that was fetched says something");
     return cached;
 }
 
@@ -402,7 +404,7 @@ if (import.meta.main) {
         const cached = readCachedSkillTable();
         if (cached === null) console.log("skill table   nothing cached");
         else {
-            const count = formatInteger(requireCachedSkills().skills.length);
+            const count = formatInteger(readCachedSkills().skills.length);
             console.log(`skill table   cached ${cached.fetchedAt}  ${count} skills`);
         }
     } else if (command === "fetch") {

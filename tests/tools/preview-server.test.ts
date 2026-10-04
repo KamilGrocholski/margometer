@@ -1,7 +1,7 @@
 /**
  * The routes a preview server answers, held against a bundle that is handed in: which page a
  * request gets and what a reload stream says. A real bundle would add a subprocess to each, so the
- * bundler is injected rather than run. That the page draws a panel is checked by driving it.
+ * bundler is injected rather than run. Nothing drives the page in a browser (`docs/releasing.md`).
  */
 
 import {

@@ -13,7 +13,7 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { copy } from "@std/fs";
-import { relative, resolve } from "@std/path";
+import { relative, resolve, SEPARATOR } from "@std/path";
 import { parseInteger } from "#/libs/number-text.ts";
 import { isOneOf } from "#/libs/vocabulary.ts";
 import { PANEL_MARK } from "#/src/ui/panel-intent.ts";
@@ -58,11 +58,12 @@ export const CARD_ANCHOR = "                    const renderedCard = render();\n
 /** The card's guard stands as deep as its anchor, so the line written into it does too. */
 const CARD_INDENT = CARD_ANCHOR.slice(0, CARD_ANCHOR.indexOf("const"));
 /** Everything the bundle entry reaches, and the lock its imports resolve by. */
-const COPIED = ["src", "libs", "frozen", "deno.json", "deno.lock"];
+export const BUNDLE_SOURCE_PATHS = ["src", "libs", "frozen", "deno.json", "deno.lock"];
 /** Past the regions there are, which is what a person may ask for at once (S11). */
 export const REGIONS_ASKED_MAXIMUM = 32;
 /** Beside the preview's own, so a panel that gives way and one that does not stand at once. */
 const PORT_DEFAULT = 4175;
+const PARENT = "..";
 /** Under `dist/`, never `SHOT_DIRECTORY`: a README showing one would show a broken panel. */
 export const INTO_DEFAULT = "dist/giving-way";
 
@@ -72,6 +73,11 @@ export function readGivingWayFlags(args: readonly string[]): GivingWayFlags {
         string: ["region", "port", "into", "browser"],
         boolean: ["shots"],
         collect: ["region"],
+        unknown: (argument, flag) => {
+            // A flag misspelt would be kept as a key nobody reads, and every region would give way.
+            if (flag === undefined) return true;
+            throw new GivingWayError(`${argument} is not a flag this reads`);
+        },
     });
     if (parsed._.length > 0) {
         throw new GivingWayError(`${parsed._.join(" ")} is not a flag this reads`);
@@ -91,7 +97,10 @@ export function readGivingWayFlags(args: readonly string[]): GivingWayFlags {
     const port = parsed.port === undefined ? PORT_DEFAULT : parseInteger(parsed.port);
     if (port === null) throw new GivingWayError(`--port ${parsed.port} is not a number`);
     const into = parsed.into ?? INTO_DEFAULT;
-    if (!relative(resolve(SHOT_DIRECTORY), resolve(into)).startsWith("..")) {
+    // Outside the pictures is a path that climbs out of them: `..pictures` is a name inside.
+    const fromPictures = relative(resolve(SHOT_DIRECTORY), resolve(into));
+    const isOutside = fromPictures === PARENT || fromPictures.startsWith(`${PARENT}${SEPARATOR}`);
+    if (!isOutside) {
         throw new GivingWayError(`${into} is where the READMEs read their pictures from`);
     }
     return {
@@ -183,7 +192,7 @@ async function readGivingWayBundle(regions: readonly PanelRegion[]): Promise<str
     assert(regions.length > 0, "a build that gives way is told what gives way");
     const root = await Deno.makeTempDir({ prefix: "margometer-giving-way-" });
     try {
-        for (const name of COPIED) await copy(name, `${root}/${name}`);
+        for (const name of BUNDLE_SOURCE_PATHS) await copy(name, `${root}/${name}`);
         const source = await Deno.readTextFile(PANEL_FILE);
         const written = composeGivingWaySource(source, regions);
         await Deno.writeTextFile(`${root}/${PANEL_FILE}`, written);

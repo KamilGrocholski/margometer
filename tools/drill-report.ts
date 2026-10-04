@@ -697,7 +697,16 @@ function parseDrillArguments(stated: readonly string[]): DrillArguments {
     if (stated.length > ARGUMENTS_MAXIMUM) {
         throw new DrillReportError(`more than ${ARGUMENTS_MAXIMUM} arguments`);
     }
-    const parsed = parseArgs([...stated], { boolean: ["cases"], string: ["screen"] });
+    const parsed = parseArgs([...stated], {
+        boolean: ["cases"],
+        string: ["screen"],
+        unknown: (argument, flag) => {
+            // A flag misspelt would be kept as a key nobody reads, and the run would answer
+            // something else than was asked; a path is read from `_`.
+            if (flag === undefined) return true;
+            throw new DrillReportError(`${argument} is not a flag this reads`);
+        },
+    });
     if (parsed.screen === "") throw new DrillReportError("--screen was given no screen to walk");
     const paths = lookupRecordingPaths(parsed._);
     if (paths === null) {
