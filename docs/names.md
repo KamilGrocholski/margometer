@@ -7119,7 +7119,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `empty` — in 11 files: `tests/`
 - `enclosing` — `tests/repository/handed-callbacks.test.ts`
 - `encode` — `tests/tools/frozen-files.test.ts`
-- `end` — in 8 files: `tests/`
+- `end` — in 9 files: `tests/`
 - `ended` — `tests/core/aura-standing.test.ts`, `tests/core/fight-decoder.test.ts`
 - `endless` — `tests/libs/unknown-value.test.ts`
 - `ends` — in 5 files: `tests/`
@@ -8055,7 +8055,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `standing` — in 21 files: `tests/`
 - `standingRow` — `tests/e2e/panel-card.spec.ts`
 - `standings` — in 4 files: `tests/`
-- `start` — `tests/repository/captured-fight-register.test.ts`,
+- `start` — `tests/e2e/panel-type.spec.ts`, `tests/repository/captured-fight-register.test.ts`,
   `tests/repository/control-flow.test.ts`
 - `started` — `tests/ports/browser-interval.test.ts`
 - `starts` — `tests/runtime/margonem-engine-search.test.ts`
@@ -8248,7 +8248,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unpaired` — `tests/ui/panel-palette.test.ts`
 - `unplaced` — in 5 files: `tests/`
 - `unprinted` — `tests/ui/panel-words.test.ts`
-- `unread` — in 7 files: `tests/`
+- `unread` — in 8 files: `tests/`
 - `unreadable` — `tests/tools/capture-intake.test.ts`
 - `unrecognised` — `tests/tools/protocol-key-table.test.ts`
 - `unsaid` — `tests/ui/panel-element.test.ts`
@@ -12309,7 +12309,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `max` — in 5 files: `tests/`
 - `maxHeightShare` — `tests/repository/design-tokens.test.ts`
 - `maximum` — `tests/ports/margonem-engine-warriors.test.ts`, `tests/ports/payload-envelope.test.ts`
-- `message` — in 4 files: `tests/`
+- `message` — in 5 files: `tests/`
 - `messageActor` — `tests/repository/protocol-keys.test.ts`
 - `messages` — in 9 files: `tests/`
 - `messagesLost` — `tests/core/aura-standing.test.ts`, `tests/runtime/fight-file.test.ts`,
@@ -12710,8 +12710,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unnamedNote` — `tests/ui/panel-card.test.ts`
 - `unplaced` — `tests/shown-screen.ts`, `tests/ui/panel-element.test.ts`,
   `tests/ui/shelf-bound.test.ts`
-- `unread` — `tests/core/aura-standing.test.ts`, `tests/core/fight-decoder.test.ts`,
-  `tests/recorded-fights.ts`
+- `unread` — in 4 files: `tests/`
 - `unreadCause` — `tests/core/fight-statistics.test.ts`, `tests/tools/decoding-status.test.ts`
 - `unreadKeys` — `tests/core/fight-statistics.test.ts`, `tests/tools/decoding-status.test.ts`
 - `unreadMessagesGrammarRefused` — `tests/ui/panel-content.test.ts`

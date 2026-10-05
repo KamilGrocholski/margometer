@@ -70,28 +70,37 @@ test("every bar icon is drawn about the middle of its square, folded and not", a
     for (const isFolded of [false, true]) {
         const selectors = [...CONTROLS, "[data-helper-fold]"];
         for (const selector of selectors) {
-            // The fold redraws on the next frame, and a mask read before it holds no drawing.
-            await expect.poll(
-                () =>
-                    panel.at(selector).evaluate((control) => {
-                        return getComputedStyle(control, "::before").maskImage;
-                    }),
-                `${selector}: wears its drawing`,
-            ).toContain(SVG_MASK_OPENER);
-            const middle = await panel.at(selector).evaluate((control, opener) => {
-                const mask = getComputedStyle(control, "::before").maskImage;
-                const drawing = decodeURIComponent(mask.slice(opener.length, mask.length - 2));
-                const parsed = new DOMParser().parseFromString(drawing, "image/svg+xml");
-                const svg = document.importNode(parsed.documentElement, true);
-                document.body.append(svg);
-                const box = (svg as unknown as SVGGraphicsElement).getBBox();
-                svg.remove();
-                const view = (svg as unknown as SVGSVGElement).viewBox.baseVal;
-                return {
-                    across: box.x + box.width / 2 - view.width / 2,
-                    down: box.y + box.height / 2 - view.height / 2,
-                };
-            }, SVG_MASK_OPENER);
+            // ⚠️ Waited for and measured in one read: the fold redraws on the next frame, and a
+            // mask read apart from the wait that found it may no longer be a drawing.
+            let middle = { unread: "", across: Number.NaN, down: Number.NaN };
+            await expect.poll(async () => {
+                middle = await panel.at(selector).evaluate((control, opener) => {
+                    const mask = getComputedStyle(control, "::before").maskImage;
+                    const start = mask.indexOf(opener);
+                    const end = mask.lastIndexOf('")');
+                    const unread = {
+                        unread: `mask-image: ${mask}`,
+                        across: Number.NaN,
+                        down: Number.NaN,
+                    };
+                    if (start < 0) return unread;
+                    if (end < start) return unread;
+                    const drawing = decodeURIComponent(mask.slice(start + opener.length, end));
+                    const parsed = new DOMParser().parseFromString(drawing, "image/svg+xml");
+                    const svg = document.importNode(parsed.documentElement, true);
+                    if (!(svg instanceof SVGSVGElement)) return unread;
+                    document.body.append(svg);
+                    const box = svg.getBBox();
+                    svg.remove();
+                    const view = svg.viewBox.baseVal;
+                    return {
+                        unread: "",
+                        across: box.x + box.width / 2 - view.width / 2,
+                        down: box.y + box.height / 2 - view.height / 2,
+                    };
+                }, SVG_MASK_OPENER);
+                return middle.unread;
+            }, { message: `${selector}: wears a drawing that parses` }).toBe("");
             expect(Math.abs(middle.across), `${selector}: centred across`).toBeLessThan(0.01);
             expect(Math.abs(middle.down), `${selector}: and down`).toBeLessThan(0.01);
         }
