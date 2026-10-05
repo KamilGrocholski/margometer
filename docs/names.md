@@ -176,7 +176,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `get` — strong
 
-- `get` — in 4 files: `tests/`
+- `get` — in 5 files: `tests/`
 - `getAirAround` — `tests/ui/panel-look.test.ts`
 - `getAllComments` — `tests/source-tree.ts`
 - `getAlly` — `tools/fabricated-fight.ts`
@@ -404,7 +404,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `set` — weak
 
-- `set` — `tests/ui/panel-look.test.ts`
+- `set` — `tests/ports/margonem-engine-battle.test.ts`,
+  `tests/runtime/margonem-engine-search.test.ts`, `tests/ui/panel-look.test.ts`
 - `setAttribute` — `src/ui/panel-document.ts`, `tests/fake-document.ts`
 - `setBuiltOnce` — `tests/e2e/build-once.ts`
 - `setCardHidden` — `src/ui/panel-element.ts`
@@ -1911,6 +1912,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isLowerAt` — `tests/repository/names.test.ts`
 - `isLowerOrDigitAt` — `tests/repository/names.test.ts`
 - `isMargonemEngineWarriorNamed` — `src/ports/margonem-engine-warriors.ts`
+- `isMarked` — `tests/ports/margonem-engine-battle.test.ts`
 - `isNameCharacter` — `tests/repository/declaration-order.test.ts`
 - `isNameCharacterAt` — `tools/protocol-key-table.ts`
 - `isNameEdgeAt` — `tools/capture-intake.ts`
@@ -2363,6 +2365,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `now` — not in N2's table
 
 - `now` — `src/ports/browser-time.ts`, `tests/ports/browser-clock.test.ts`
+
+### `original` — not in N2's table
+
+- `original` — `tests/runtime/margonem-engine-search.test.ts`
 
 ### `padded` — not in N2's table
 
@@ -3320,6 +3326,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `MargonemEngineAlreadyWrapped` — `src/ports/margonem-engine-battle.ts`
 - `MargonemEngineBattleAbsent` — `src/ports/margonem-engine-battle.ts`
 - `MargonemEngineMethodAbsent` — `src/ports/margonem-engine-battle.ts`
+- `MargonemEngineMethodUnwritable` — `src/ports/margonem-engine-battle.ts`
 - `MargonemEngineWarriorsAbsent` — `src/ports/margonem-engine-warriors.ts`
 - `MargonemEngineWarriorsExceeded` — `src/ports/margonem-engine-warriors.ts`
 - `MargonemValueAbsent` — `src/ports/margonem-value.ts`
@@ -6727,7 +6734,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `afterRow` — `tests/e2e/panel-drag.spec.ts`
 - `afterTheYear` — `tests/ui/panel-words.test.ts`
 - `afterUnplaced` — `tests/core/aura-standing.test.ts`
-- `again` — in 6 files: `tests/`
+- `again` — in 7 files: `tests/`
 - `agreed` — `tests/tools/develop-reports.test.ts`, `tests/tools/turn-count.test.ts`,
   `tests/ui/panel-content.test.ts`
 - `agreeing` — `tests/repository/design-tokens.test.ts`
@@ -6813,7 +6820,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `besideZero` — `tests/ports/margonem-engine-place.test.ts`
 - `between` — in 4 files: `tests/`
 - `bigger` — `tests/ui/level-drawn.test.ts`, `tests/ui/panel-content.test.ts`
-- `binding` — `tests/repository/name-shapes.test.ts`, `tests/repository/purity.test.ts`
+- `binding` — `tests/ports/margonem-engine-battle.test.ts`, `tests/repository/name-shapes.test.ts`,
+  `tests/repository/purity.test.ts`
 - `bindings` — `tests/repository/name-shapes.test.ts`
 - `bit` — in 4 files: `tests/`
 - `bits` — `tests/core/fight-session.test.ts`, `tests/tools/frozen-files.test.ts`
@@ -6838,8 +6846,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `border` — `tests/ui/panel-look.test.ts`
 - `both` — in 14 files: `tests/`
 - `bothIds` — `tests/core/fight-decoder.test.ts`
-- `bound` — `tests/repository/name-shapes.test.ts`, `tests/repository/names.test.ts`,
-  `tests/ui/card-window.test.ts`
+- `bound` — in 4 files: `tests/`
 - `boundNode` — `tests/repository/purity.test.ts`
 - `boundaries` — `tests/tools/turn-count.test.ts`
 - `bounded` — `tests/core/granted-blow-rule.test.ts`, `tests/tools/turn-count.test.ts`
@@ -7358,7 +7365,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `idle` — `tests/ports/margonem-engine-battle.test.ts`, `tests/ui/panel-content.test.ts`
 - `ids` — `tests/ports/margonem-engine-tooltip.test.ts`, `tests/tools/preview-site.test.ts`,
   `tests/ui/panel-content.test.ts`
-- `ignored` — `tests/repository/fabricated-fights.test.ts`
+- `ignored` — `tests/ports/margonem-engine-battle.test.ts`,
+  `tests/repository/fabricated-fights.test.ts`
+- `ignoring` — `tests/ports/margonem-engine-battle.test.ts`
 - `illegible` — `tests/runtime/panel-frame.test.ts`
 - `imported` — `tests/source-tree.ts`, `tests/tools/panel-shots.test.ts`
 - `importer` — `tests/repository/name-shapes.test.ts`, `tests/repository/single-importer.test.ts`
@@ -7478,7 +7487,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `listStart` — `tests/repository/name-shapes.test.ts`
 - `listed` — in 11 files: `tests/`
 - `listedPart` — `tests/ui/panel-element.test.ts`
-- `listener` — `tests/runtime/live-fight.test.ts`, `tests/runtime/margonem-engine-search.test.ts`
+- `listener` — `tests/ports/margonem-engine-battle.test.ts`, `tests/runtime/live-fight.test.ts`,
+  `tests/runtime/margonem-engine-search.test.ts`
 - `listeners` — `tests/tools/preview-server.test.ts`
 - `lit` — `tests/core/fight-session.test.ts`, `tests/tools/fabricated-fight.test.ts`,
   `tests/ui/helper-window.test.ts`
@@ -7544,8 +7554,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `messagesRead` — `tests/core/message-grammar.test.ts`
 - `metadata` — `tests/tools/build-userscript.test.ts`
 - `meter` — `tests/ui/panel-element.test.ts`, `tests/ui/panel-look.test.ts`
-- `method` — `tests/ports/margonem-engine-tooltip.test.ts`,
-  `tests/repository/event-entries.test.ts`, `tests/repository/handed-callbacks.test.ts`
+- `method` — in 4 files: `tests/`
 - `methodFunction` — `tests/repository/event-entries.test.ts`
 - `metric` — in 7 files: `tests/`
 - `midStrike` — `tests/core/granted-blow-rule.test.ts`
@@ -8089,7 +8098,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `storageIndex` — `tests/e2e/panel-shelf.spec.ts`, `tests/e2e/panel-strips.spec.ts`
 - `storageOption` — `tests/runtime/margometer-runtime.test.ts`
 - `store` — in 6 files: `tests/`
-- `stored` — in 4 files: `tests/`
+- `stored` — in 5 files: `tests/`
 - `strange` — `tests/e2e/panel-boot.spec.ts`
 - `stray` — `tests/runtime/margometer-runtime.test.ts`, `tests/runtime/opened-readings.test.ts`
 - `strays` — `tests/ui/panel-intent.test.ts`
@@ -9567,7 +9576,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `messageReading` — `tests/tools/turn-reading.test.ts`
 - `messages` — in 6 files: `tests/`
 - `meter` — `tests/e2e/panel-options.spec.ts`, `tests/e2e/panel-type.spec.ts`
-- `method` — `tests/ports/margonem-engine-tooltip.test.ts`
+- `method` — `tests/ports/margonem-engine-battle.test.ts`,
+  `tests/ports/margonem-engine-tooltip.test.ts`
 - `metric` — in 7 files: `tests/`
 - `moved` — `tests/ui/panel-look.test.ts`
 - `name` — in 25 files: `tests/`
@@ -10234,6 +10244,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `MargonemEngineAlreadyWrapped` — `src/runtime/failure-fate.ts`
 - `MargonemEngineBattleAbsent` — `src/runtime/failure-fate.ts`
 - `MargonemEngineMethodAbsent` — `src/runtime/failure-fate.ts`
+- `MargonemEngineMethodUnwritable` — `src/runtime/failure-fate.ts`
 - `MargonemEngineWarriorsAbsent` — `src/runtime/failure-fate.ts`
 - `MargonemEngineWarriorsExceeded` — `src/runtime/failure-fate.ts`
 - `MargonemValueAbsent` — `src/runtime/failure-fate.ts`
@@ -12317,7 +12328,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `meter` — `tests/ui/panel-drag.test.ts`, `tests/ui/panel-element.test.ts`
 - `meterPlacement` — in 4 files: `tests/`
 - `meterWidth` — `tests/repository/design-tokens.test.ts`
-- `method` — `tests/libs/unknown-value.test.ts`
+- `method` — `tests/libs/unknown-value.test.ts`, `tests/ports/margonem-engine-battle.test.ts`
 - `metric` — in 8 files: `tests/`
 - `mi` — `tests/ports/payload-envelope.test.ts`, `tests/runtime/margometer-runtime.test.ts`
 - `midStrike` — `tests/core/granted-blow-rule.test.ts`

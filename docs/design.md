@@ -269,6 +269,7 @@ export type MargonemEngineFailure =
     | MargonemEngineAbsent // neither spelling answered
     | MargonemEngineBattleAbsent
     | MargonemEngineMethodAbsent // the method's name is spelled by the adapter alone
+    | MargonemEngineMethodUnwritable // the wrap did not read back; the engine's own is put back
     | MargonemEngineAlreadyWrapped // another copy's wrap marker is present
     | SearchAbandoned // `looks` and `maximum`
     | WrapCovered; // somebody wrapped over us; only ours comes off
@@ -937,7 +938,8 @@ initRuntime(ports, options)
    ─▶ initPanelView           readWindowPosition × 2: a failure → the sheet's corner, a "kept" defect
    ─▶ look for the engine every 250 ms, at most 240 times
         MargonemEngineAlreadyWrapped        → stand down, one console line, no panel
-        MargonemEngineMethodAbsent, abandoned  → at the last look only, an "engine" defect,
+        MargonemEngineMethodAbsent, MargonemEngineMethodUnwritable, abandoned
+                                    → at the last look only, an "engine" defect,
                                      markStale: the panel waits
         a look that threw           → one console line; the looking goes on
         found                       → engine.wrap(listener), markStale
@@ -1027,6 +1029,7 @@ goes without a mark.
 | `MargonemReadFailure`                           | `shown-as-unknown`     | no place line; our word instead of the game's          |
 | `MargonemEngineAlreadyWrapped`, `BootFailure`   | `stand-down`           | no panel, one console line                             |
 | `SearchAbandoned`, `MargonemEngineMethodAbsent` | `defect` "engine"      | the panel waits, one console line                      |
+| `MargonemEngineMethodUnwritable`                | `defect` "engine"      | as above; the engine's own method stands               |
 
 ### 10.6 Where a broad catch stands
 

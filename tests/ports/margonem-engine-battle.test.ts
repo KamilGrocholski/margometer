@@ -9,6 +9,7 @@
 import {
     assert,
     assertEquals,
+    assertFalse,
     assertInstanceOf,
     assertNotInstanceOf,
     assertStrictEquals,
@@ -22,6 +23,7 @@ import {
     type MargonemEngineBattle,
     MargonemEngineBattleAbsent,
     MargonemEngineMethodAbsent,
+    MargonemEngineMethodUnwritable,
     type PayloadListener,
     readMargonemEngines,
     WrapCovered,
@@ -180,6 +182,44 @@ Deno.test("a second copy of the add-on stands down, as does a battle with nothin
     const notMethod = readBattleOn({ updateData: 5 }).wrap(composeListener({}));
     assertInstanceOf(notMethod, MargonemEngineMethodAbsent, "or a value that is none");
 });
+
+Deno.test("a method that will not hold the wrap is left the engine's own, and says so", () => {
+    const held = composeHeld(1);
+    const original = held.battle.updateData;
+    const ignoring: Record<string, unknown> = {};
+    Object.defineProperty(ignoring, "updateData", { get: () => original, set: () => {} });
+    const ignored = readBattleOn(ignoring).wrap(composeListener({}));
+    assertInstanceOf(ignored, MargonemEngineMethodUnwritable, "a write the page ignores");
+    assertStrictEquals(ignoring.updateData, original, "leaves the engine's own standing");
+
+    const stored: { method: unknown } = { method: original };
+    const binding: Record<string, unknown> = {};
+    Object.defineProperty(binding, "updateData", {
+        get: () => {
+            const method = stored.method;
+            assert(typeof method === "function", "the page stores a method");
+            return method.bind(binding);
+        },
+        set: (method: unknown) => void (stored.method = method),
+    });
+    const seen: unknown[] = [];
+    const listener = composeListener({ onPayload: (payload) => void seen.push(payload) });
+    const bound = readBattleOn(binding).wrap(listener);
+    assertInstanceOf(bound, MargonemEngineMethodUnwritable, "a getter answering another function");
+    // What goes back is what the getter answered, the engine's own bound to the battle.
+    assertFalse(isMarked(stored.method), "has no wrap of ours left in it");
+    const again = readBattleOn(binding).wrap(listener);
+    assertInstanceOf(again, MargonemEngineMethodUnwritable, "and the next look is refused alike");
+    assertFalse(isMarked(stored.method), "with no layer of ours left under it");
+    callUpdate(binding, binding, [{ m: [] }]);
+    assertEquals(held.calls.length, 1, "so the engine is called once");
+    assertEquals(seen, [], "and no copy of ours reads the payload");
+});
+
+function isMarked(method: unknown): boolean {
+    assert(typeof method === "function", "a method is stored");
+    return "__margometerBattleWrap" in method;
+}
 
 /** By the marker's presence, whatever its value: any MargoMeter is a second count. */
 Deno.test("another build's wrap is recognised by its marker alone", () => {

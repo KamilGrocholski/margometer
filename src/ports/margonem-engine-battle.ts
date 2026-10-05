@@ -6,7 +6,6 @@
  * itself is found here, and what it holds of its map and its hero is read here for every adapter.
  */
 
-import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import {
     type FieldKeys,
@@ -30,6 +29,15 @@ export class MargonemEngineBattleAbsent extends Error {
 
 export class MargonemEngineMethodAbsent extends Error {
     override readonly name = "MargonemEngineMethodAbsent";
+}
+
+/**
+ * The method took the wrap and does not hand it back: a property the page will not let be written,
+ * or one whose getter answers something else. The engine's own is put back, so no second layer
+ * goes on at the next look.
+ */
+export class MargonemEngineMethodUnwritable extends Error {
+    override readonly name = "MargonemEngineMethodUnwritable";
 }
 
 /** A wrap of ours already stands: another copy of the add-on is reading this fight. */
@@ -60,6 +68,7 @@ export type MargonemEngineFailure =
     | MargonemEngineAbsent
     | MargonemEngineBattleAbsent
     | MargonemEngineMethodAbsent
+    | MargonemEngineMethodUnwritable
     | MargonemEngineAlreadyWrapped
     | SearchAbandoned
     | WrapCovered;
@@ -152,14 +161,12 @@ export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngine
                         [WRAP_MARKER]: WRAP_VERSION,
                     });
                     battle[WRAPPED_METHOD] = wrapper;
-                    assert(
-                        isOurWrap(battle[WRAPPED_METHOD]),
-                        "the wrap that went on says whose it is",
-                    );
-                    assert(
-                        battle[WRAPPED_METHOD] !== original,
-                        "and stands where the engine's own stood",
-                    );
+                    // ⚠️ A wrap that does not read back is one the next look cannot see, and would
+                    // go on again over it.
+                    if (battle[WRAPPED_METHOD] !== wrapper) {
+                        battle[WRAPPED_METHOD] = original;
+                        return new MargonemEngineMethodUnwritable();
+                    }
                     return {
                         detach() {
                             if (battle[WRAPPED_METHOD] !== wrapper) return new WrapCovered();

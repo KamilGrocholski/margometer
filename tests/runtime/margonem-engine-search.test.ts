@@ -205,6 +205,21 @@ Deno.test("a game whose method is gone is refused at the bound, said once, and l
     assertStrictEquals(clock.cancels(), 1, "letting the timer go");
 });
 
+Deno.test("a method that will not hold the wrap is refused at the bound, and never layered", () => {
+    const { report, told } = composeReport();
+    const clock = composeClock();
+    const original = () => 1;
+    const battle: Record<string, unknown> = {};
+    Object.defineProperty(battle, "updateData", { get: () => original, set: () => {} });
+    const search = start({ Engine: { battle } }, clock, report);
+    clock.tick(LOOKS_MAXIMUM - 1);
+    assertStrictEquals(told.refusals, 1, "the refusal is said when the looking stops");
+    assertEquals(told.failures, [], "and no look threw on the way");
+    assertStrictEquals(told.wraps.length, 0, "no wrap was handed to anybody");
+    assertStrictEquals(battle.updateData, original, "and the engine's own method stands");
+    assert(search.isDone(), "the looking ended at the bound");
+});
+
 Deno.test("a method that arrives after a refusal is wrapped on the next look", () => {
     const { report, told } = composeReport();
     const clock = composeClock();

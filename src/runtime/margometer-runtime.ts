@@ -658,8 +658,9 @@ function executeSearchLook(
         report.onStoodDown(wrapped);
         return;
     }
-    // The game is here and its method is gone. The looking ends where a search finding nothing
-    // ends, and the refusal is said there: the game was there, so it was not abandoned.
+    // The game is here and its method is gone, or will not hold the wrap. The looking ends where a
+    // search finding nothing ends, and the refusal is said there: the game was there, so it was
+    // not abandoned.
     if (search.looks < LOOKS_MAXIMUM) return;
     deinitSearchTimer(search);
     report.onRefused(wrapped);

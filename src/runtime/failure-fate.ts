@@ -52,6 +52,7 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     MargonemEngineAbsent: FAILURE_FATE.defect,
     MargonemEngineBattleAbsent: FAILURE_FATE.defect,
     MargonemEngineMethodAbsent: FAILURE_FATE.defect,
+    MargonemEngineMethodUnwritable: FAILURE_FATE.defect,
     MargonemEngineAlreadyWrapped: FAILURE_FATE.standDown,
     SearchAbandoned: FAILURE_FATE.defect,
     WrapCovered: FAILURE_FATE.defect,
