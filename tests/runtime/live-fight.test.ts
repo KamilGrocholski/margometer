@@ -208,7 +208,7 @@ Deno.test("a shelf the store refuses is the shelf's answer, and the fight still 
     assert(composeFightView(live.session)?.isOver === true, "and the fight is over all the same");
 });
 
-Deno.test("a place the page does not state is unknown, and one it throws on is a defect", () => {
+Deno.test("a place the page does not state is unknown, and so is one it throws on", () => {
     const absent: MargonemEnginePlacePort = {
         readPlace: () => new MargonemValueAbsent(MARGONEM_VALUE.place),
     };
@@ -219,11 +219,12 @@ Deno.test("a place the page does not state is unknown, and one it throws on is a
     const thrown: MargonemEnginePlacePort = { readPlace: () => new errors.Caught("torn") };
     const loud = composeMargonem([[]]);
     const failed = composeOptions(loud, { place: thrown });
-    playInto(loud, failed.options, [{ init: 1 }]);
-    assertEquals(failed.lines, [DEFECT_KIND.reading], "a page that threw leaves a mark");
+    const torn = playInto(loud, failed.options, [{ init: 1 }]).live.place;
+    assertStrictEquals(torn, null, "a page that threw states no place");
+    assertEquals(failed.lines, [], "and no defect: the place stands as unknown");
 });
 
-Deno.test("a hero the page does not state is nobody, and one it throws on is a defect", () => {
+Deno.test("a hero the page does not state is nobody, and so is one it throws on", () => {
     const absent: MargonemEngineHeroPort = {
         readHeroId: () => new MargonemValueAbsent(MARGONEM_VALUE.hero),
     };
@@ -236,8 +237,9 @@ Deno.test("a hero the page does not state is nobody, and one it throws on is a d
     const thrown: MargonemEngineHeroPort = { readHeroId: () => new errors.Caught("torn") };
     const loud = composeMargonem([[]]);
     const failed = composeOptions(loud, { hero: thrown });
-    playInto(loud, failed.options, [{ init: 1 }]);
-    assertEquals(failed.lines, [DEFECT_KIND.reading], "a page that threw leaves a mark");
+    const torn = playInto(loud, failed.options, [{ init: 1 }]).live.readerId;
+    assertStrictEquals(torn, null, "a page that threw states no reader");
+    assertEquals(failed.lines, [], "and no defect: the reader stands as unknown");
 });
 
 Deno.test("a second fight is asked who the reader is, not told who they were", () => {

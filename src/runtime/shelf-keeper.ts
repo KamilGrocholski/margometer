@@ -23,6 +23,7 @@ import {
     deleteShelf,
     EverySlotPinned,
     FightAlreadyKept,
+    isShelfSuperseded,
     KEPT_MAXIMUM,
     type KeptFight,
     KeptFightsUnreadable,
@@ -89,6 +90,9 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
     const opened = openShelf(store);
     if (opened instanceof Error) {
         options.defects.add({ kind: DEFECT_KIND.kept, region: null, failure: opened });
+        // ⚠️ The next fight kept would write over a shelf this page could not read, so the page
+        // keeps its fights in memory and the stored text stays as it was.
+        if (!isShelfSuperseded(opened)) store = initMemoryStore();
     } else if (opened.fightsUnreadable > 0) {
         const failure = new KeptFightsUnreadable(opened.fightsUnreadable);
         options.defects.add({ kind: DEFECT_KIND.kept, region: null, failure });

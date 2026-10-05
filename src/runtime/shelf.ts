@@ -314,6 +314,14 @@ export function openShelf(store: KeyValueStore): ShelfOpened | ShelfFailure {
     return { fights, fightsUnreadable };
 }
 
+/** An older version's shelf is dropped whole; a newer one's is another add-on's to read. */
+export function isShelfSuperseded(failure: ShelfFailure): boolean {
+    if (!(failure instanceof ShelfVersionUnknown)) return false;
+    assert(failure.version !== SHELF_VERSION, "a shelf of this version is read, not refused");
+    if (failure.version === null) return false;
+    return failure.version < SHELF_VERSION;
+}
+
 /** A fight kept once. A second fight under the same moment is refused, never merged. */
 export function writeKeptFight(
     store: KeyValueStore,

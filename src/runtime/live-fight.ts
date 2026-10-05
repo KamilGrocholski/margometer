@@ -159,8 +159,8 @@ export function initLiveFight(options: LiveFightOptions): {
                 // Open the fight: its moment, its place and who the reader is.
                 executeLiveStep(options, DEFECT_KIND.reading, undefined, () => {
                     liveFight.openedAt = options.clock.readNowMilliseconds();
-                    liveFight.place = readMargonemValue(options, options.place.readPlace());
-                    liveFight.readerId = readMargonemValue(options, options.hero.readHeroId());
+                    liveFight.place = readMargonemValue(options.place.readPlace());
+                    liveFight.readerId = readMargonemValue(options.hero.readHeroId());
                     options.onFightOpened();
                 });
             }
@@ -173,10 +173,7 @@ export function initLiveFight(options: LiveFightOptions): {
                         payloads,
                         place: liveFight.place,
                         readerId: liveFight.readerId,
-                        margonemClientBuild: readMargonemValue(
-                            options,
-                            options.build.readBuildId(),
-                        ),
+                        margonemClientBuild: readMargonemValue(options.build.readBuildId()),
                         isPinned: false,
                     };
                     options.keeper.keep(fight);
@@ -224,15 +221,9 @@ function readLiveMargonemEngineWarriors(
     return null;
 }
 
-/** Absent is shown as unknown and is no defect; a page that threw while asked is one. */
-function readMargonemValue<Value>(
-    options: LiveFightOptions,
-    margonemValue: Value | MargonemReadFailure,
-): Value | null {
+/** Absent or thrown while asked, the page's state is shown as unknown and is no defect. */
+function readMargonemValue<Value>(margonemValue: Value | MargonemReadFailure): Value | null {
     if (margonemValue instanceof MargonemValueAbsent) return null;
-    if (margonemValue instanceof errors.Caught) {
-        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: margonemValue });
-        return null;
-    }
+    if (margonemValue instanceof errors.Caught) return null;
     return margonemValue;
 }

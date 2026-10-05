@@ -172,9 +172,6 @@ export function renderFrame(parts: FrameParts): void {
         );
     }
     const defects = getPanelDefects(parts.defects);
-    // Asked without decoding anything: a fight that will not read is still worth handing over.
-    const hasFightToSave = parts.live.capture.calls.length > 0 ||
-        parts.keeper.getFights().length > 0;
     // Draw the panel, or waiting where there is nothing to stand on — no fight and an empty shelf —
     // because a panel of zeroes over a game that has not started is a claim.
     const rendered = errors.attempt(() => {
@@ -199,10 +196,11 @@ export function renderFrame(parts: FrameParts): void {
                 at: parts.clock.readMoment(unreadKeptFight.openedAt),
                 place: formatFightPlace(unreadKeptFight.place),
             };
+            // A file is written from a fight's reading, so one that does not read has none.
             const waiting = {
                 isMeterCollapsed: screen.isMeterCollapsed,
                 defects,
-                hasFightToSave,
+                hasFightToSave: false,
             };
             const renderedWaiting = parts.view.renderWaiting({
                 ...waiting,
@@ -224,7 +222,6 @@ export function renderFrame(parts: FrameParts): void {
             shownFight,
             liveFightState,
             defects,
-            hasFightToSave,
         );
         // Say where two counts of one figure came out different.
         {
@@ -250,6 +247,10 @@ export function renderFrame(parts: FrameParts): void {
     });
     if (!(rendered instanceof Error)) return;
     parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: rendered });
+    // A panel that threw while drawn may stand on a fight that reads, and the file is how it is
+    // handed over: asked without decoding anything again.
+    const hasFightToSave = parts.live.capture.calls.length > 0 ||
+        parts.keeper.getFights().length > 0;
     const waiting = {
         isMeterCollapsed: parts.screen.isMeterCollapsed,
         defects: getPanelDefects(parts.defects),
@@ -312,7 +313,6 @@ function presentFrameScreen(
     shownFight: ShownFight,
     liveFightState: FightState | null,
     defects: readonly PanelDefect[],
-    hasFightToSave: boolean,
 ): ShownScreen {
     const { screen, keeper, live: liveFight } = parts;
     const { view, figures } = shownFight.fightState;
@@ -350,7 +350,7 @@ function presentFrameScreen(
         options: presentOptions(parts),
         typeStep: screen.typeStep,
         windowSizes: screen.windowSizes,
-        hasFightToSave,
+        hasFightToSave: true,
         shelfAnswers: presentShelfAnswers(keeper.getAnswers()),
         defects,
         isOnShelf: screen.isOnShelf,

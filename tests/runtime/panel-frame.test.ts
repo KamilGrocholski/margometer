@@ -18,7 +18,7 @@ import {
 } from "#/src/runtime/panel-frame.ts";
 import type { KeptFight } from "#/src/runtime/shelf.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
-import type { ShownScreen } from "#/src/ui/panel-element.ts";
+import type { ShownScreen, WaitingContent } from "#/src/ui/panel-element.ts";
 import { createScreenState, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
 import { HELPER_ABSENCE, type HelperAbsence, type HelperContent } from "#/src/ui/panel-helper.ts";
 import { composeFakeDocument } from "#/tests/fake-document.ts";
@@ -72,8 +72,9 @@ Deno.test("a ranking whose two counts disagree is drawn, and said as the screen'
 });
 
 /** Every part of a frame over one kept fight standing, with a view that keeps what it is handed. */
-function composeFrameWorld(fight: KeptFight, reading: KeptFightState) {
+function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
     const shown: ShownScreen[] = [];
+    const waited: WaitingContent[] = [];
     const standings: (HelperContent | HelperAbsence)[] = [];
     const defects = initDefectLedger({ writeBrandedLine: () => {} });
     const parts: FrameParts = {
@@ -108,7 +109,10 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState) {
                 shown.push(screen);
                 return { undrawn: [] };
             },
-            renderWaiting: () => ({ undrawn: [] }),
+            renderWaiting: (waiting) => {
+                waited.push(waiting);
+                return { undrawn: [] };
+            },
             renderHelper: (standing) => {
                 standings.push(standing);
                 return { undrawn: [] };
@@ -132,7 +136,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState) {
             ? defectCount.first.cut
             : defectCount.first.name
         );
-    return { parts, shown, standings, defects, readFiguresSaid };
+    return { parts, shown, waited, standings, defects, readFiguresSaid };
 }
 
 Deno.test("the window beside the panel says which reason leaves it nothing live to read", () => {
@@ -182,4 +186,30 @@ Deno.test("the window beside the panel says which reason leaves it nothing live 
         defectCount.kind === DEFECT_KIND.reading
     );
     assertStrictEquals(readings.length, 1, "and what would not compose is a defect");
+});
+
+Deno.test("a kept fight that reads has its save, and one that does not read has none", () => {
+    const fight: KeptFight = {
+        openedAt: 1,
+        payloads: lookupRecordedFight(HILDUR).updates,
+        place: null,
+        readerId: null,
+        margonemClientBuild: null,
+        isPinned: false,
+    };
+    const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);
+    assert(!(replayed instanceof Error), "the recording replays");
+    assert(replayed !== null, "into a fight");
+    const legible = composeFrameWorld(fight, replayed);
+    renderFrame(legible.parts);
+    assertStrictEquals(
+        legible.shown[0]?.hasFightToSave,
+        true,
+        "a file is written from its reading",
+    );
+
+    const illegible = composeFrameWorld(fight, null);
+    renderFrame(illegible.parts);
+    assertStrictEquals(illegible.shown.length, 0, "a fight that does not read is not drawn");
+    assertStrictEquals(illegible.waited[0]?.hasFightToSave, false, "and has no file to hand over");
 });

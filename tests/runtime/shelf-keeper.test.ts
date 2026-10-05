@@ -221,6 +221,25 @@ Deno.test("a shelf that does not read back is an empty one, and a defect said on
     assertStrictEquals(defects.getCounts()[0]?.count, 1, "once");
 });
 
+Deno.test("a shelf that did not read stays as it was stored, and the page keeps in memory", () => {
+    for (const stored of ["{", '{"version":4,"fights":[]}']) {
+        const held = new Map([[STORE_KEY.fights, stored]]);
+        const { keeper } = initKeeper({ initShelfStore: () => initHeldStore(held) });
+        keeper.keep(composeFight(1));
+        assertEquals(keeper.getFights().map((fight) => fight.openedAt), [1], stored);
+        assertStrictEquals(held.get(STORE_KEY.fights), stored, "nothing written over it");
+    }
+});
+
+Deno.test("an older version's shelf is dropped whole, and the next fight replaces it", () => {
+    const stored = '{"version":2,"fights":[]}';
+    const held = new Map([[STORE_KEY.fights, stored]]);
+    const { keeper, lines } = initKeeper({ initShelfStore: () => initHeldStore(held) });
+    assertEquals(lines, [DEFECT_KIND.kept], "what it held is said to be lost");
+    keeper.keep(composeFight(1));
+    assert(held.get(STORE_KEY.fights) !== stored, "and the store holds this version's shelf");
+});
+
 Deno.test("fights the store held that do not read back are counted in one defect", () => {
     const held = new Map([[
         STORE_KEY.fights,

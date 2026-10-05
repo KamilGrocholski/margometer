@@ -938,7 +938,8 @@ composeRuntimeTables     the frozen readings indexed, under the start's guard, n
 initRuntime(ports, options)
    ─▶ readStorageChoice, readTypeStep, readWindowCollapsed × 2, readWindowSize × 2
                               a failure → the default, and a "kept" defect
-   ─▶ openShelf               a failure → an empty shelf, and a "kept" defect
+   ─▶ openShelf               a failure → memory, the stored shelf left unless an older version's,
+                              and a "kept" defect
    ─▶ initPanelView           readWindowPosition × 2: a failure → the sheet's corner, a "kept" defect
    ─▶ look for the engine every 250 ms, at most 240 times
         MargonemEngineAlreadyWrapped        → stand down, one console line, no panel
@@ -1018,7 +1019,8 @@ goes without a mark.
 | `StoreUnavailable` on choosing a store          | `shelf-answer`         | nothing moves; the shelf's answer row                  |
 | `StoreFailure` emptying the place left          | `defect` "kept"        | the move stands; a copy stayed behind                  |
 | `ShelfFailure` on a write                       | `shelf-answer`         | the shelf's answer row                                 |
-| `ShelfUnreadable`, `ShelfVersionUnknown`        | `fallback-with-defect` | an empty shelf; a "kept" defect                        |
+| `ShelfUnreadable`, `ShelfVersionUnknown`        | `fallback-with-defect` | memory, the stored shelf untouched; a "kept" defect    |
+| `ShelfVersionUnknown` of an older version       | `fallback-with-defect` | an empty shelf, written over next; a "kept" defect     |
 | `KeptFightsUnreadable`                          | `defect` "kept"        | the rest of the shelf; the fights lost, counted        |
 | `FightAlreadyKept`                              | `defect` "keeping"     | the fight is not kept twice                            |
 | `SettingFailure`                                | `fallback-with-defect` | the default place, fold, size or type; a "kept" defect |

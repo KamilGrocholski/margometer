@@ -54,6 +54,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   zraniła, a nie „Nieznanemu sprawcy”.
 - **Poprawka** — Potwór, który leczy się i uderza w jednej turze, ma tę turę policzoną raz, a cios
   stoi pod umiejętnością, której użył.
+- **Poprawka** — Zapisane walki, których panel nie umiał odczytać, nie są już zastępowane następną
+  walką; nowe walki są wtedy pamiętane tylko do odświeżenia strony.
+- **Poprawka** — Przycisk zapisu walki do pliku nie pojawia się przy walce, której panel nie
+  odczytał, zamiast przy każdym kliknięciu zgłaszać usterkę „Panel nie przygotował pliku z walką”.
+- **Poprawka** — Gdy gra nie odpowie, gdzie toczy się walka albo kto w niej gra, panel zostawia
+  tylko tę informację pustą, zamiast zgłaszać, że nie przeliczył walki.
 
 ## [0.22.0] — 2026-10-03
 
