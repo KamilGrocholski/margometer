@@ -154,6 +154,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `executeScreenIntent` — `src/runtime/margometer-runtime.ts`
 - `executeSearchBound` — `src/runtime/margometer-runtime.ts`
 - `executeSearchLook` — `src/runtime/margometer-runtime.ts`
+- `executeShelvedFightReplays` — `src/runtime/shelf-keeper.ts`
 - `executeShout` — `tools/fabricated-fight.ts`
 - `executeSideHeal` — `tools/fabricated-fight.ts`
 - `executeStance` — `tools/fabricated-fight.ts`
@@ -246,6 +247,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getId` — `tests/ports/margonem-engine-hero.test.ts`
 - `getInkForBar` — `src/ui/panel-look.ts`
 - `getItem` — in 9 files: `src/ports/`, `tests/`
+- `getKeptFightStates` — `src/runtime/shelf-keeper.ts`, `tests/runtime/panel-frame.test.ts`
 - `getKeyForNamedPart` — `src/ui/panel-element.ts`
 - `getKeyTallyOrder` — `tools/turn-reading.ts`
 - `getKeysShared` — `tests/ui/level-drawn.test.ts`
@@ -476,7 +478,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupHurtAlly` — `tools/fabricated-fight.ts`
 - `lookupImportedPath` — `tests/source-tree.ts`
 - `lookupImportsUpward` — `tests/repository/layers.test.ts`
-- `lookupKeptFightState` — `src/runtime/shelf-keeper.ts`, `tests/runtime/panel-frame.test.ts`
 - `lookupKeyMeaning` — `src/core/protocol-key.ts`
 - `lookupKeyReach` — `src/core/protocol-key.ts`
 - `lookupKindOrderFaults` — `tests/repository/changelog.test.ts`
@@ -1460,7 +1461,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `removeHealth` — `tools/fabricated-fight.ts`
 - `removeItem` — in 8 files: `src/ports/`, `tests/`
 - `removeSkillDescriptions` — `tools/capture-intake.ts`
-- `removeUnshelvedFightStates` — `src/runtime/shelf-keeper.ts`
 
 ### `create` — strong
 
@@ -5512,6 +5512,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `keptFight` — `src/runtime/fight-handover.ts`, `src/runtime/fight-state.ts`,
   `src/runtime/panel-frame.ts`
 - `keptFightState` — `src/runtime/fight-state.ts`
+- `keptFightStatesByOpenedAt` — `src/runtime/panel-frame.ts`
 - `keptFights` — `src/runtime/panel-frame.ts`
 - `keptFightsNewestFirst` — `src/runtime/panel-frame.ts`
 - `keptOpenedAts` — `src/runtime/shelf.ts`
@@ -5564,7 +5565,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `refused` — `src/runtime/shelf.ts`
 - `region` — `src/runtime/defect-ledger.ts`
 - `remaining` — `src/runtime/shelf.ts`
-- `rememberedFightState` — `src/runtime/shelf-keeper.ts`
 - `rendered` — `src/runtime/panel-frame.ts`
 - `renderedWaiting` — `src/runtime/panel-frame.ts`
 - `requested` — `src/runtime/margometer-runtime.ts`
@@ -7170,7 +7170,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `field` — `tests/e2e/panel-save.spec.ts`, `tests/ports/payload-envelope.test.ts`
 - `fieldText` — `tests/repository/decisions.test.ts`
 - `fieldValue` — `tests/repository/captured-fight-register.test.ts`
-- `fight` — in 45 files: `tests/`
+- `fight` — in 44 files: `tests/`
 - `fightDealt` — `tests/core/fight-statistics.test.ts`
 - `fightIndex` — `tests/runtime/margometer-runtime.test.ts`, `tests/tools/recorded-material.test.ts`
 - `fightNumber` — `tests/runtime/margometer-runtime.test.ts`
@@ -7319,6 +7319,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `held` — in 44 files: `tests/`
 - `heldPlace` — `tests/e2e/panel-drag.spec.ts`
 - `heldShare` — `tests/tools/shout-holding.test.ts`
+- `heldState` — `tests/runtime/shelf-keeper.test.ts`
 - `heldString` — `tests/repository/name-register.test.ts`
 - `heldValue` — `tests/repository/name-register.test.ts`
 - `help` — `tests/tools/frozen-files.test.ts`
@@ -7973,7 +7974,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-look.test.ts`
 - `sheets` — `tests/ui/card-window.test.ts`
 - `shelf` — in 5 files: `tests/`
-- `shelved` — `tests/tools/capture-intake.test.ts`, `tests/tools/decoding-status.test.ts`
+- `shelved` — `tests/runtime/shelf-keeper.test.ts`, `tests/tools/capture-intake.test.ts`,
+  `tests/tools/decoding-status.test.ts`
 - `shelves` — `tests/runtime-world.ts`, `tests/runtime/shelf-keeper.test.ts`
 - `shifted` — `tests/ui/panel-element.test.ts`
 - `short` — in 7 files: `tests/`
@@ -8306,7 +8308,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `week` — `tests/tools/help-article.test.ts`
 - `where` — in 5 files: `tests/`
 - `which` — `tests/e2e/panel-drill.spec.ts`
-- `whole` — in 22 files: `tests/`
+- `whole` — in 21 files: `tests/`
 - `whom` — `tests/ui/panel-words.test.ts`
 - `whose` — `tests/ports/payload-envelope.test.ts`
 - `wide` — in 4 files: `tests/`
@@ -8619,6 +8621,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isPinned` — `src/runtime/shelf.ts`
 - `isShelfEmpty` — `src/runtime/panel-frame.ts`
 - `keptFight` — in 4 files: `src/runtime/`
+- `keptFightStatesByOpenedAt` — `src/runtime/fight-state.ts`
 - `key` — `src/runtime/settings.ts`
 - `kind` — `src/runtime/live-fight.ts`, `src/runtime/panel-frame.ts`
 - `leftFight` — `src/runtime/panel-frame.ts`
@@ -8628,7 +8631,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `liveFightState` — `src/runtime/fight-state.ts`, `src/runtime/panel-frame.ts`
 - `liveHandover` — `src/runtime/fight-handover.ts`
 - `liveRow` — `src/runtime/panel-frame.ts`
-- `lookupKeptFightState` — `src/runtime/fight-state.ts`
 - `margonemClientBuild` — `src/runtime/fight-handover.ts`
 - `margonemValue` — `src/runtime/live-fight.ts`
 - `maximum` — `src/runtime/shelf.ts`
@@ -9518,6 +9520,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isRowNarrower` — `tests/ui/panel-card.test.ts`
 - `items` — `tests/repository/declaration-order.test.ts`
 - `keptCall` — `tests/runtime/live-fight.test.ts`
+- `keptFight` — `tests/runtime/shelf-keeper.test.ts`
 - `key` — in 23 files: `tests/`
 - `keyCell` — `tests/tools/aura-lifetime.test.ts`
 - `keyCount` — `tests/ports/fight-capture.test.ts`
@@ -9536,7 +9539,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `labelId` — `tests/simulation.ts`
 - `labelKey` — `tests/ui/blow-vocabulary.test.ts`
 - `layer` — `tests/repository/name-register.test.ts`
-- `left` — in 12 files: `tests/`
+- `left` — in 13 files: `tests/`
 - `legendaryBonuses` — `tests/ui/panel-card.test.ts`
 - `length` — `tests/runtime/settings.test.ts`, `tests/ui/card-window.test.ts`
 - `lengthMaximum` — `tests/runtime/shelf-keeper.test.ts`, `tests/runtime/shelf.test.ts`
@@ -9668,7 +9671,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/runtime/margonem-engine-search.test.ts`
 - `response` — `tests/tools/preview-server.test.ts`
 - `rest` — `tests/runtime/shelf.test.ts`
-- `right` — in 11 files: `tests/`
+- `right` — in 12 files: `tests/`
 - `root` — `tests/fake-document.ts`, `tests/repository/cited-paths.test.ts`,
   `tests/repository/comment-share.test.ts`
 - `rootDirectory` — `tests/e2e/build-once.ts`, `tests/e2e/panel-page.ts`

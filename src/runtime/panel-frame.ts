@@ -182,7 +182,7 @@ export function renderFrame(parts: FrameParts): void {
             liveFightState,
             screen.chosenFightOpenedAt,
             keeper.getFights(),
-            keeper.lookupKeptFightState,
+            keeper.getKeptFightStates(),
         );
         if (shownFight === null) {
             // A kept fight chosen and still none shown is a fight that no longer reads, and the
@@ -428,6 +428,7 @@ function presentShelfRows(
     chosenFightOpenedAt: number | null,
 ): ShelfRow[] {
     const keptFights = parts.keeper.getFights().slice(0, KEPT_MAXIMUM);
+    const keptFightStatesByOpenedAt = parts.keeper.getKeptFightStates();
     const rows: ShelfRow[] = [];
     const alsoKept = liveRow === null
         ? undefined
@@ -463,7 +464,8 @@ function presentShelfRows(
     );
     for (const keptFight of keptFightsNewestFirst) {
         if (keptFight.openedAt === alsoKept?.openedAt) continue;
-        const fightState = parts.keeper.lookupKeptFightState(keptFight);
+        const fightState = keptFightStatesByOpenedAt.get(keptFight.openedAt);
+        assert(fightState !== undefined, "a kept fight's reading is held while it is kept");
         // A row for a fight nothing can be read out of would state a headcount it does not have.
         if (fightState === null) continue;
         rows.push(presentKeptShelfRow(parts, keptFight, fightState, chosenFightOpenedAt));

@@ -96,11 +96,12 @@ export function lookupShownFight(
     liveFightState: FightState | null,
     chosenFightOpenedAt: number | null,
     fights: readonly KeptFight[],
-    lookupKeptFightState: (fight: KeptFight) => KeptFightState | null,
+    keptFightStatesByOpenedAt: ReadonlyMap<number, KeptFightState | null>,
 ): ShownFight | null {
     const keptFight = lookupShownKeptFight(liveFightState, chosenFightOpenedAt, fights);
     if (keptFight !== undefined) {
-        const keptFightState = lookupKeptFightState(keptFight);
+        const keptFightState = keptFightStatesByOpenedAt.get(keptFight.openedAt);
+        assert(keptFightState !== undefined, "a fight on the shelf has its reading held");
         if (keptFightState === null) return null;
         return { keptFight, fightState: keptFightState };
     }

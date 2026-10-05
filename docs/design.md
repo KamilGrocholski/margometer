@@ -759,7 +759,7 @@ export interface ShelfKeeper {
     getFights(): readonly KeptFight[];
     getChoice(): StorageChoice;
     getAnswers(): ShelfAnswers; // every slot pinned, refused, room made, choice refused
-    lookupKeptFightState(fight: KeptFight): KeptFightState | null; // replayed once, a refusal included
+    getKeptFightStates(): ReadonlyMap<number, KeptFightState | null>; // replayed as kept, a refusal included
     keep(fight: KeptFight): void;
     pin(openedAt: number): void; // a toggle, as develop's pin is
     moveShelf(choice: StorageChoice): void; // fights first, the answer second, the old place last

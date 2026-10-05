@@ -13,6 +13,7 @@ import {
     StoreUnavailable,
 } from "#/src/ports/browser-store.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
+import type { KeptFightState } from "#/src/runtime/fight-state.ts";
 import { initShelfKeeper, type ShelfKeeperOptions } from "#/src/runtime/shelf-keeper.ts";
 import { KEPT_MAXIMUM, type KeptFight, KeptFightsUnreadable } from "#/src/runtime/shelf.ts";
 import { STORAGE_CHOICE, type StorageChoice } from "#/src/ui/panel-choice.ts";
@@ -191,17 +192,27 @@ Deno.test("a store that took the next fight takes back the answer that it refuse
 
 Deno.test("a reading is held for every fight on the shelf, however many went before", () => {
     const { keeper } = initKeeper();
+    let heldState: KeptFightState | null = null;
     for (let openedAt = 1; openedAt <= KEPT_MAXIMUM + 1; openedAt += 1) {
-        const fight = composeFight(openedAt);
-        keeper.keep(fight);
-        const keptState = keeper.lookupKeptFightState(fight);
+        keeper.keep(composeFight(openedAt));
+        if (heldState !== null) {
+            assertStrictEquals(
+                keeper.getKeptFightStates().get(openedAt - 1),
+                heldState,
+                `fight ${openedAt - 1} is held, not replayed, when the next is kept`,
+            );
+        }
+        const keptState = keeper.getKeptFightStates().get(openedAt);
+        assert(keptState !== undefined, `fight ${openedAt} is replayed as it is kept`);
         assert(keptState !== null, "a fight that reads is read");
-        assertStrictEquals(
-            keeper.lookupKeptFightState(fight),
-            keptState,
-            `fight ${openedAt} is held, not replayed`,
-        );
+        heldState = keptState;
     }
+    const shelved = keeper.getFights().map((keptFight) => keptFight.openedAt);
+    assertEquals(
+        [...keeper.getKeptFightStates().keys()].sort((left, right) => left - right),
+        shelved.sort((left, right) => left - right),
+        "a reading for every fight on the shelf, and none for a fight rotated off it",
+    );
 });
 
 Deno.test("a choice the browser will not keep moves nothing, and says so", () => {
@@ -303,18 +314,19 @@ Deno.test("a kept fight is replayed once, and one that will not replay is marked
     const broken: KeptFight = { ...composeFight(1), payloads: [{ init: 1, m: "not a list" }] };
     keeper.keep(broken);
     assertStrictEquals(
-        keeper.lookupKeptFightState(broken),
+        keeper.getKeptFightStates().get(1),
         null,
         "a fight that will not read is none",
     );
-    assertStrictEquals(keeper.lookupKeptFightState(broken), null, "asked again, the same answer");
-    assertStrictEquals(defects.getCounts()[0]?.count, 1, "and marked once, not once per ask");
-    const whole = composeFight(2);
-    keeper.keep(whole);
-    const keptState = keeper.lookupKeptFightState(whole);
+    keeper.keep(composeFight(2));
+    assertStrictEquals(keeper.getKeptFightStates().get(1), null, "and stays none");
+    assertStrictEquals(defects.getCounts()[0]?.count, 1, "marked once, not once per shelf change");
+    const keptState = keeper.getKeptFightStates().get(2);
+    assert(keptState !== undefined, "a fight kept is replayed as it is kept");
     assert(keptState !== null, "a fight that reads is read");
+    keeper.keep(composeFight(3));
     assertStrictEquals(
-        keeper.lookupKeptFightState(whole),
+        keeper.getKeptFightStates().get(2),
         keptState,
         "and held rather than read again",
     );

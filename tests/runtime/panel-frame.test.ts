@@ -88,7 +88,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
                 hasStoreMadeRoom: false,
                 hasChoiceRefused: false,
             }),
-            lookupKeptFightState: () => reading,
+            getKeptFightStates: () => new Map([[fight.openedAt, reading]]),
             keep: () => {},
             pin: () => {},
             moveShelf: () => {},

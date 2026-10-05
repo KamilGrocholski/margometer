@@ -448,7 +448,7 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
                     liveFightState,
                     screen.chosenFightOpenedAt,
                     keeper.getFights(),
-                    keeper.lookupKeptFightState,
+                    keeper.getKeptFightStates(),
                 );
                 if (shownFight !== null) {
                     const applied = shownFight.fightState.view.payloadsApplied;
