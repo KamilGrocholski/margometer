@@ -123,7 +123,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
             readMoment: () => null,
             readTimestampText: () => "",
         },
-        tooltip: { writeRows: () => ({ written: 0, asked: 0 }) },
+        tooltip: { writeRows: () => ({ written: 0, refused: 0 }) },
         tables: RUNTIME_TABLES.tooltip,
         translate: () => null,
         world: null,

@@ -20,6 +20,7 @@ import type {
     MargonemEngineTooltipPort,
     TooltipWritten,
 } from "#/src/ports/margonem-engine-tooltip.ts";
+import type { MargonemEngineWarriorsExceeded } from "#/src/ports/margonem-engine-warriors.ts";
 import {
     PANEL_WORDS,
     presentTooltipRows,
@@ -39,7 +40,7 @@ export function writeCarriedTooltips(
     tables: TooltipTables,
     translate: TranslateLabel | null,
     tooltip: MargonemEngineTooltipPort,
-): TooltipWritten | errors.Caught {
+): TooltipWritten | MargonemEngineWarriorsExceeded | errors.Caught {
     const fightStandings = replayAuraStandings(view, tables.statedSkills);
     const figuresByCombatantAndBit = new Map<string, CarriedFigure>();
     const carried = tallyCarriedFigures({

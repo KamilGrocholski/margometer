@@ -9,25 +9,35 @@
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { readMargonemEngineBattle } from "./margonem-engine-battle.ts";
-import { readMargonemEngineWarriorsNamed, WARRIOR_ID_KEY } from "./margonem-engine-warriors.ts";
+import {
+    MargonemEngineWarriorsExceeded,
+    readMargonemEngineWarriorsNamed,
+    WARRIOR_ID_KEY,
+} from "./margonem-engine-warriors.ts";
 
 export interface MargonemEngineTooltipPort {
     /** Every fighter the page draws, each with the rows they should carry now, empty or not. */
     writeRows(
         rowsByCombatantId: ReadonlyMap<number, readonly string[]>,
-    ): TooltipWritten | errors.Caught;
+    ): TooltipWritten | MargonemEngineWarriorsExceeded | errors.Caught;
 }
 
 /**
- * How many blocks landed of how many were composed. A client that renamed a method throws nothing,
- * so the count is the only sign of it.
+ * How many blocks stand, and how many drawn fighters held a tooltip this file could not write to.
+ * A client that renamed a method throws nothing, so `refused` is the only sign of it; a fighter the
+ * page has not drawn is neither.
  */
 export interface TooltipWritten {
     written: number;
-    asked: number;
+    refused: number;
 }
+
+/** What one fighter's tooltip came to: our block on it, none, left as it was, or out of reach. */
+const BLOCK_LANDING = { on: "on", off: "off", kept: "kept", refused: "refused" } as const;
+type BlockLanding = VocabularyWord<typeof BLOCK_LANDING>;
 
 /** The client's jQuery set of one fighter's tooltip holders, narrowed to the calls made of it. */
 interface TooltipTargets {
@@ -79,8 +89,9 @@ export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngin
                 const warriors = readMargonemEngineWarriorsNamed(
                     readMargonemEngineBattle(browserWindow),
                 );
-                if (warriors instanceof Error) return 0;
-                let written = 0;
+                if (warriors instanceof MargonemEngineWarriorsExceeded) return warriors;
+                const counts: TooltipWritten = { written: 0, refused: 0 };
+                if (warriors instanceof Error) return counts;
                 const drawnIds = new Set<number>();
                 for (const warrior of warriors) {
                     const id = warrior[WARRIOR_ID_KEY];
@@ -88,12 +99,15 @@ export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngin
                     drawnIds.add(id);
                     const block = encodeTooltipBlock(rowsByCombatantId.get(id) ?? []);
                     const blockBefore = nextBlocksById.get(id) ?? "";
-                    const isBlockOn = writeMargonemEngineWarriorBlock(warrior, block, blockBefore);
-                    if (isBlockOn === null) continue;
-                    if (isBlockOn) {
+                    const landing = writeMargonemEngineWarriorBlock(warrior, block, blockBefore);
+                    if (landing === BLOCK_LANDING.on) {
                         nextBlocksById.set(id, block);
-                        written += 1;
-                    } else nextBlocksById.delete(id);
+                        counts.written += 1;
+                    } else if (landing === BLOCK_LANDING.off) {
+                        nextBlocksById.delete(id);
+                    } else if (landing === BLOCK_LANDING.refused) {
+                        if (block.length > 0) counts.refused += 1;
+                    } else assert(landing === BLOCK_LANDING.kept, "a tooltip left as it was");
                 }
                 for (const id of [...nextBlocksById.keys()]) {
                     if (!drawnIds.has(id)) nextBlocksById.delete(id);
@@ -102,14 +116,17 @@ export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngin
                     nextBlocksById.size <= COMBATANTS_MAXIMUM,
                     "remembered blocks stay one board's worth",
                 );
-                return written;
+                return counts;
             });
             // ⚠️ Kept whatever the walk came to: a block that went on before a throw of theirs,
             // forgotten, would be looked for as the old one and put on a second time.
             blocksById = nextBlocksById;
             if (blocksWritten instanceof Error) return blocksWritten;
-            assert(blocksWritten <= asked, "no more blocks landed than were composed");
-            return { written: blocksWritten, asked };
+            assert(
+                blocksWritten.written + blocksWritten.refused <= asked,
+                "no more blocks landed or were refused than were composed",
+            );
+            return blocksWritten;
         },
     };
 }
@@ -123,8 +140,9 @@ function encodeTooltipBlock(rows: readonly string[]): string {
 }
 
 /**
- * Whether the block stands on the fighter once written, or null where no tooltip this file can
- * reach holds one, which keeps whatever stood there. ⚠️ **The break between the rows is the
+ * Whether the block stands on the fighter once written; kept where the page has drawn no tooltip
+ * for them, which keeps whatever stood there; refused where it has and the client will not let it
+ * be written. ⚠️ **The break between the rows is the
  * client's own**: a block goes on through `concatTip`, which writes the `<br>`, and comes off
  * through `tip` with the registry's own string less ours. `tipupdate` goes after the rows, because
  * `concatTip` triggers nothing.
@@ -133,34 +151,34 @@ function writeMargonemEngineWarriorBlock(
     warrior: UnknownRecord,
     block: string,
     blockBefore: string,
-): boolean | null {
+): BlockLanding {
     const warriorElement = warrior[WARRIOR_ELEMENT_FIELD];
-    if (!isRecord(warriorElement)) return null;
+    if (!isRecord(warriorElement)) return BLOCK_LANDING.kept;
     const find = warriorElement[FIND_METHOD];
-    if (typeof find !== "function") return null;
+    if (typeof find !== "function") return BLOCK_LANDING.refused;
     const targets: unknown = Reflect.apply(find, warriorElement, [TOOLTIP_TARGETS]);
-    if (!isTooltipTargets(targets)) return null;
+    if (!isTooltipTargets(targets)) return BLOCK_LANDING.refused;
     const registryText = targets.getTipData();
-    if (typeof registryText !== "string") return null;
+    if (typeof registryText !== "string") return BLOCK_LANDING.refused;
     const blockIndex = blockBefore.length === 0 ? -1 : registryText.lastIndexOf(blockBefore);
     if (blockIndex !== -1) {
-        if (blockBefore === block) return true;
+        if (blockBefore === block) return BLOCK_LANDING.on;
         const theirs = registryText.slice(0, blockIndex) +
             registryText.slice(blockIndex + blockBefore.length);
         // An empty string is the client's word for deleting the tooltip, which is not ours to do:
         // a tooltip that is our block alone is replaced by the new one whole, or left standing.
         if (theirs.length === 0) {
-            if (block.length === 0) return null;
+            if (block.length === 0) return BLOCK_LANDING.kept;
             targets.tip(block);
             targets.trigger(TELL_EVENT);
-            return true;
+            return BLOCK_LANDING.on;
         }
         targets.tip(theirs);
     }
-    if (block.length === 0) return false;
+    if (block.length === 0) return BLOCK_LANDING.off;
     for (const row of block.split(CLIENT_BREAK).slice(1)) targets.concatTip(row);
     targets.trigger(TELL_EVENT);
-    return true;
+    return BLOCK_LANDING.on;
 }
 
 /**

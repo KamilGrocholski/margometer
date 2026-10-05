@@ -21,6 +21,7 @@ import { composeFightView } from "#/src/core/fight-session.ts";
 import { initBrowserStore, type KeyValueStore, STORE_KEY } from "#/src/ports/browser-store.ts";
 import { initBrowserFrames } from "#/src/ports/browser-time.ts";
 import { LOOKS_MAXIMUM, type RuntimeTables } from "#/src/runtime/margometer-runtime.ts";
+import { MargonemEngineTooltipRefused } from "#/src/runtime/panel-frame.ts";
 import { KEPT_MAXIMUM } from "#/src/runtime/shelf.ts";
 import { CLASS, composeStyleSheet } from "#/src/ui/panel-look.ts";
 import { TYPE_STEP, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
@@ -1152,7 +1153,7 @@ Deno.test("a call that is no payload is recorded under no messages but its own",
     assertEquals(second.messages, [], "and the second carries no messages, having stated none");
 });
 
-Deno.test("a battle that cannot be snapshotted costs the file, and the panel reads on", () => {
+Deno.test("a battle that cannot be snapshotted costs the file and the tooltips, and the panel reads on", () => {
     const clean = playRecordedFight();
     const battle = { updateData: () => 1, warriorsList: composeCastPastItsBound() };
     const world = initRuntimeWorld(composeBattlePage(battle));
@@ -1160,9 +1161,16 @@ Deno.test("a battle that cannot be snapshotted costs the file, and the panel rea
     const host = world.getHost();
     assertEquals(getRankingTexts(host), getRankingTexts(clean.getHost()), "the fight read whole");
     const said = getTextsByClass(host, CLASS.defect);
-    assertStrictEquals(said.length, 1, "and one line says what could not be done");
-    assertStringIncludes(said[0] ?? "", formatDefect(PANEL_DEFECT_KIND.file, null, 1).slice(0, -1));
-    assertStrictEquals(world.lines.length, 1, "E9: the console hears it once");
+    assertStrictEquals(said.length, 2, "and a line says each thing that could not be done");
+    const fileSaid = formatDefect(PANEL_DEFECT_KIND.file, null, 1).slice(0, -1);
+    assert(said.some((line) => line.includes(fileSaid)), "the file, which needs the board");
+    const regionSaid = formatDefect(PANEL_DEFECT_KIND.region, null, 1).slice(0, -1);
+    assert(said.some((line) => line.includes(regionSaid)), "and the tooltips, written to nobody");
+    assertEquals(
+        [...world.lines].sort(),
+        [PANEL_DEFECT_KIND.file, PANEL_DEFECT_KIND.region],
+        "E9: the console hears each once",
+    );
 });
 
 /** One more fighter than a fight holds, which every reader of a cast refuses. */
@@ -1852,6 +1860,29 @@ Deno.test("a tooltip the client will not take is said on the panel, and the figh
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     assertStrictEquals(countRows(findList(world.getHost())), 11, "the panel draws the fight");
     assertEquals(world.lines, [PANEL_DEFECT_KIND.region], "and the tooltips are said, once");
+});
+
+Deno.test("a tooltip the client lets nothing onto is said on the panel, though nothing threw", () => {
+    const heard: unknown[] = [];
+    const world = initRuntimeWorld(composeBattlePage(), (world) => ({
+        tooltip: { writeRows: () => ({ written: 3, refused: 1 }) },
+        console: {
+            writeBrandedLine: (kind, detail) => {
+                world.lines.push(kind);
+                heard.push(detail);
+            },
+        },
+    }));
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    assertStrictEquals(countRows(findList(world.getHost())), 11, "the panel draws the fight");
+    assertEquals(world.lines, [PANEL_DEFECT_KIND.region], "and the refusal is said, once");
+    assertInstanceOf(heard[0], MargonemEngineTooltipRefused, "as the refusal it is");
+    assertStrictEquals(heard[0].refused, 1, "counting the fighters it cost");
+    const quiet = initRuntimeWorld(composeBattlePage(), () => ({
+        tooltip: { writeRows: () => ({ written: 3, refused: 0 }) },
+    }));
+    for (const payload of readUpdates(HILDUR)) quiet.update(payload);
+    assertEquals(quiet.lines, [], "while blocks that all landed say nothing");
 });
 
 Deno.test("a kept fight opens at its own top, whatever place the live one was left at", () => {

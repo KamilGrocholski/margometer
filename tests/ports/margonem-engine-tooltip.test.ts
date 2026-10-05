@@ -14,6 +14,7 @@ import {
     type MargonemEngineTooltipPort,
     ROWS_WRITTEN_MAXIMUM,
 } from "#/src/ports/margonem-engine-tooltip.ts";
+import { MargonemEngineWarriorsExceeded } from "#/src/ports/margonem-engine-warriors.ts";
 import { ROWS_BESIDE_THE_STATUSES } from "#/src/ui/panel-words.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 
@@ -53,7 +54,7 @@ Deno.test("a block lands on the fighter it was composed for, and on nobody else"
         composeWarrior(21, "Renegat 1", secondRegistry),
     ]);
     const writing = initMargonemEngineTooltip(page).writeRows(new Map([[11, ["MargoMeter"]]]));
-    assertEquals(writing, { written: 1, asked: 1 }, "one block asked for, one landed");
+    assertEquals(writing, { written: 1, refused: 0 }, "one block asked for, one landed");
     assertEquals(firstRegistry.text, `${THEIRS}<br>MargoMeter`, "under what the game composed");
     assertEquals(
         secondRegistry.text,
@@ -194,7 +195,7 @@ Deno.test("a fighter left with nothing to say is left with what the game compose
     const { registry, writer } = composeOne();
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
     const writing = writer.writeRows(new Map([[11, []]]));
-    assertEquals(writing, { written: 0, asked: 0 }, "nothing asked for, nothing standing");
+    assertEquals(writing, { written: 0, refused: 0 }, "nothing asked for, nothing standing");
     assertEquals(registry.text, THEIRS, "and the tooltip is the game's again");
     const fresh = composeOne();
     fresh.writer.writeRows(new Map([[11, []]]));
@@ -211,8 +212,8 @@ Deno.test("a client with no way to add to a tooltip takes no line, and says so",
     const page = composePage([composeWarrior(11, "Gracz 1", registry, { hasMethods: false })]);
     assertEquals(
         initMargonemEngineTooltip(page).writeRows(new Map([[11, ["cokolwiek"]]])),
-        { written: 0, asked: 1 },
-        "asked for one and landed none",
+        { written: 0, refused: 1 },
+        "asked for one, landed none, and refused it",
     );
     assertEquals(registry.text, THEIRS, "and nothing was written anywhere");
 });
@@ -232,7 +233,7 @@ Deno.test("a fighter with no way to take a line costs their own line and nobody 
     const writing = initMargonemEngineTooltip(page).writeRows(
         new Map([[11, ["a"]], [21, ["b"]], [31, ["c"]]]),
     );
-    assertEquals(writing, { written: 2, asked: 3 }, "the two that could take one did");
+    assertEquals(writing, { written: 2, refused: 1 }, "the two that could take one did");
     assertEquals(
         registries.map((registry) => registry.appended),
         [[], ["b"], ["c"]],
@@ -251,7 +252,7 @@ Deno.test("any one of the four methods gone costs that fighter's line, and nobod
         const writing = initMargonemEngineTooltip(page).writeRows(
             new Map([[11, ["a"]], [21, ["b"]]]),
         );
-        assertEquals(writing, { written: 1, asked: 2 }, `without ${method}, one of two`);
+        assertEquals(writing, { written: 1, refused: 1 }, `without ${method}, one of two`);
         assertEquals(
             [firstRegistry.appended, secondRegistry.appended],
             [[], ["b"]],
@@ -324,8 +325,41 @@ Deno.test("a fighter the page has not drawn is stepped over, not thrown on", () 
         composeWarrior(21, "Renegat 1", secondRegistry),
     ]);
     const writing = initMargonemEngineTooltip(page).writeRows(new Map([[11, ["a"]], [21, ["b"]]]));
-    assertEquals(writing, { written: 1, asked: 2 }, "the one that is drawn takes its line");
+    assertEquals(
+        writing,
+        { written: 1, refused: 0 },
+        "the one drawn takes its line, and the other is no refusal",
+    );
     assertEquals(secondRegistry.appended, ["b"], "and the other costs nothing");
+});
+
+Deno.test("a refusal is counted where a block was asked for, and nowhere else", () => {
+    const page = composePage([
+        composeWarrior(11, "Gracz 1", composeRegistry(), { hasMethods: false }),
+        { id: 21, name: "Renegat 1", $: {} },
+    ]);
+    const writer = initMargonemEngineTooltip(page);
+    assertEquals(
+        writer.writeRows(new Map([[11, []], [21, []]])),
+        { written: 0, refused: 0 },
+        "no rows for either is nothing refused",
+    );
+    assertEquals(
+        writer.writeRows(new Map([[11, []], [21, ["b"]]])),
+        { written: 0, refused: 1 },
+        "while an element with no way to find its tooltip refuses the one it was asked for",
+    );
+});
+
+Deno.test("a board past its bound is a failure of its own, and nobody is written to", () => {
+    const registries = Array.from({ length: COMBATANTS_MAXIMUM + 1 }, () => composeRegistry());
+    const page = composePage(
+        registries.map((registry, index) => composeWarrior(index, `Gracz ${index}`, registry)),
+    );
+    const writing = initMargonemEngineTooltip(page).writeRows(new Map([[0, ["a"]]]));
+    assertInstanceOf(writing, MargonemEngineWarriorsExceeded, "said, not taken as nobody drawn");
+    assertStrictEquals(writing.count, COMBATANTS_MAXIMUM + 1, "with the count the page held");
+    assertEquals(registries[0]?.appended, [], "and no block went on");
 });
 
 Deno.test("a call of theirs that throws costs the lines and never the fight", () => {
@@ -343,12 +377,12 @@ Deno.test("a page with no fight on it takes nothing, which is not a failure", ()
     const rows = new Map([[11, ["a"]]]);
     assertEquals(
         initMargonemEngineTooltip({}).writeRows(rows),
-        { written: 0, asked: 1 },
+        { written: 0, refused: 0 },
         "no game",
     );
     assertEquals(
         initMargonemEngineTooltip(null).writeRows(rows),
-        { written: 0, asked: 1 },
+        { written: 0, refused: 0 },
         "no page",
     );
 });
@@ -385,7 +419,7 @@ Deno.test("the writer remembers one board's worth of fighters, however many figh
         );
         page.Engine.battle = board.Engine.battle;
         const writing = writer.writeRows(new Map(ids.map((id) => [id, ["MargoMeter"]])));
-        const whole = { written: COMBATANTS_MAXIMUM, asked: COMBATANTS_MAXIMUM };
+        const whole = { written: COMBATANTS_MAXIMUM, refused: 0 };
         assertEquals(writing, whole, `fight ${fight} is written whole`);
     }
 });
@@ -393,7 +427,7 @@ Deno.test("the writer remembers one board's worth of fighters, however many figh
 /** **W5: zero is a boundary.** Nothing asked for is nothing written, and it is not an absence. */
 Deno.test("no block asked for is no block written, and the counts say both", () => {
     const { registry, writer } = composeOne();
-    assertEquals(writer.writeRows(new Map()), { written: 0, asked: 0 }, "asked nothing");
+    assertEquals(writer.writeRows(new Map()), { written: 0, refused: 0 }, "asked nothing");
     assert(registry.appended.length === 0, "and wrote nothing");
     assertStrictEquals(registry.told, 0, "and told nothing");
 });

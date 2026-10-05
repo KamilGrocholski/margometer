@@ -37,6 +37,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Gdy gra przestanie przyjmować dopiski panelu w dymkach postaci, panel o tym mówi,
+  zamiast po cichu ich nie pokazywać.
+
 ## [0.22.1] — 2026-10-05
 
 - **Poprawka** — Panel mówi, gdy przeglądarka nie pozwoliła zachować zapisanych walk, nie usunęła

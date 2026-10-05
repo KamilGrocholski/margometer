@@ -15,7 +15,7 @@ import type { MargonemReadFailure } from "#/src/ports/margonem-value.ts";
 import type { EnvelopeFailure } from "#/src/ports/payload-envelope.ts";
 import type { MargonemEngineWarriorFailure } from "#/src/ports/margonem-engine-warriors.ts";
 import type { ExportFailure } from "./fight-handover.ts";
-import type { FiguresDisagreed } from "./panel-frame.ts";
+import type { FiguresDisagreed, MargonemEngineTooltipRefused } from "./panel-frame.ts";
 import type { ViewFailure } from "#/src/ui/view-failure.ts";
 import type { FileUnserializable } from "./fight-file.ts";
 import type { SettingFailure } from "./settings.ts";
@@ -32,6 +32,7 @@ export type RuntimeFailure =
     | FileUnserializable
     | ExportFailure
     | FiguresDisagreed
+    | MargonemEngineTooltipRefused
     | ViewFailure
     | MargonemEngineWarriorFailure
     | MargonemReadFailure
@@ -85,6 +86,7 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     WindowUnplaced: FAILURE_FATE.fallbackWithDefect,
     MargonemEngineWarriorsAbsent: FAILURE_FATE.shownAsUnknown,
     MargonemEngineWarriorsExceeded: FAILURE_FATE.defect,
+    MargonemEngineTooltipRefused: FAILURE_FATE.defect,
     MargonemValueAbsent: FAILURE_FATE.shownAsUnknown,
     Caught: FAILURE_FATE.defect,
 };

@@ -300,12 +300,12 @@ export interface MargonemEngineTooltipPort {
      */
     writeRows(
         rowsByCombatantId: ReadonlyMap<number, readonly string[]>,
-    ): TooltipWritten | errors.Caught;
+    ): TooltipWritten | MargonemEngineWarriorsExceeded | errors.Caught;
 }
-/** A client that renamed a method throws nothing, so the count is the only sign of it. */
+/** A client that renamed a method throws nothing, so `refused` is the only sign of it. */
 export interface TooltipWritten {
     written: number;
-    asked: number;
+    refused: number; // drawn fighters asked for a block whose tooltip would not take one
 }
 
 // Browser storage
@@ -1025,6 +1025,7 @@ goes without a mark.
 | `WindowUnplaced`                                | `fallback-with-defect` | the sheet's corner; a "mount" defect                   |
 | `ExportFailure`, `FileFailure`                  | `defect` "file"        | as above                                               |
 | a tooltip write that threw                      | `defect` "region"      | the game's tooltip without our rows                    |
+| `MargonemEngineTooltipRefused`                  | `defect` "region"      | as above, for the fighters it counts                   |
 | a setting write refused                         | none                   | the reader's choice stands; the next visit is poorer   |
 | `MargonemReadFailure`                           | `shown-as-unknown`     | no place line; our word instead of the game's          |
 | `MargonemEngineAlreadyWrapped`, `BootFailure`   | `stand-down`           | no panel, one console line                             |

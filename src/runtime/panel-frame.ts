@@ -93,6 +93,17 @@ export class FiguresDisagreed extends Error {
     }
 }
 
+/** Drawn fighters whose tooltip the client would not let a block onto: a method gone or renamed. */
+export class MargonemEngineTooltipRefused extends Error {
+    override readonly name = "MargonemEngineTooltipRefused";
+    readonly refused: number;
+
+    constructor(refused: number) {
+        super();
+        this.refused = refused;
+    }
+}
+
 export interface FrameParts {
     screen: ScreenState;
     keeper: ShelfKeeper;
@@ -149,7 +160,9 @@ export function renderFrame(parts: FrameParts): void {
         if (view === null) return;
         const written = writeCarriedTooltips(view, parts.tables, parts.translate, parts.tooltip);
         if (written instanceof Error) addRegionDefect(parts, written);
-        else assert(written.written <= written.asked, "no block lands that was not composed");
+        else if (written.refused > 0) {
+            addRegionDefect(parts, new MargonemEngineTooltipRefused(written.refused));
+        } else assert(written.refused === 0, "a frame whose blocks all landed marks nothing");
     });
     if (tooltips instanceof Error) addRegionDefect(parts, tooltips);
     // Draw the window beside the panel, before the panel.
