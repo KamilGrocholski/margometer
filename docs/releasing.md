@@ -39,9 +39,10 @@ deno task panel:shots --release
 
 `--release` puts the declared number on the panel instead of the `-dev` mark a build nobody tagged
 wears. The shoot is allowed over this edit because `tools/panel-shots.ts` refuses uncommitted work
-under `src/` and nowhere else. **One commit and not two**, because `tests/tools/panel-shots.test.ts`
-holds the set to the declaration: bump first and the set states the release before it, shoot first
-and it states a number the tree does not declare.
+in what the bundle is built from, but for a `deno.json` that differs in its version alone. **One
+commit and not two**, because `tests/tools/panel-shots.test.ts` holds the set to the declaration:
+bump first and the set states the release before it, shoot first and it states a number the tree
+does not declare.
 
 - [ ] **Open every one.** No machine can say whether the state in a picture is reachable
       (`DESIGN.md`, _The Frame Is Not A Screen Rule_).

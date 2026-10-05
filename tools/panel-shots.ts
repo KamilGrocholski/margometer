@@ -10,7 +10,9 @@
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
+import { parse as parseJsonc } from "@std/jsonc";
 import { encodeJson } from "#/libs/json-text.ts";
+import { isRecord } from "#/libs/unknown-value.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { PANEL_MARK, type PanelMark } from "#/src/ui/panel-intent.ts";
 import { STORE_KEY } from "#/src/ports/browser-store.ts";
@@ -26,7 +28,7 @@ import {
     writePanelPicture,
 } from "#/tests/e2e/panel-camera.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
-import { readUserscriptFiles, USERSCRIPT_NAME } from "./build-userscript.ts";
+import { CONFIGURATION_FILE, readUserscriptFiles, USERSCRIPT_NAME } from "./build-userscript.ts";
 import { PanelShotError } from "./margometer-tool-error.ts";
 import { BUNDLE_SOURCE_PATHS } from "./panel-giving-way.ts";
 import { LANDING_RECORDING, readSiteVersion } from "./preview-site.ts";
@@ -145,7 +147,15 @@ async function writePanelShots(version: string): Promise<PanelShotRecord> {
     {
         // Whatever the bundle is built from, and not `src/` alone: an edit under `libs/` is drawn
         // in the pictures as surely as one under `src/`.
-        const carried = readGitText(["status", "--porcelain", "--", ...BUNDLE_SOURCE_PATHS]);
+        let carried = readGitText(["status", "--porcelain", "--", ...BUNDLE_SOURCE_PATHS]);
+        // ⚠️ A release declares its number before the set is taken, uncommitted, and the set
+        // states it (`docs/releasing.md`, step 2): that one edit is not work the set stands over.
+        const committed = readGitText(["show", `HEAD:${CONFIGURATION_FILE}`]);
+        const worked = Deno.readTextFileSync(CONFIGURATION_FILE);
+        if (isSameBesideVersion(committed, worked)) {
+            carried = carried.split("\n").filter((line) => !line.endsWith(` ${CONFIGURATION_FILE}`))
+                .join("\n");
+        } else assert(carried.includes(CONFIGURATION_FILE), "a configuration changed is carried");
         if (carried.length > 0) {
             throw new PanelShotError(
                 `the bundle's sources carry what no commit holds:\n${carried}`,
@@ -198,6 +208,20 @@ function readGitText(args: readonly string[]): string {
     const asked = new Deno.Command("git", { args: [...args], stderr: "piped" }).outputSync();
     if (!asked.success) throw new PanelShotError(`git would not answer ${args.join(" ")}`);
     return new TextDecoder().decode(asked.stdout).trim();
+}
+
+/** Whether two configurations build alike: the same in everything but the version declared. */
+export function isSameBesideVersion(committed: string, worked: string): boolean {
+    assert(committed.length > 0, "a configuration committed says something");
+    const before: unknown = parseJsonc(committed);
+    const after: unknown = parseJsonc(worked);
+    if (!isRecord(before)) return false;
+    if (!isRecord(after)) return false;
+    const beforeText = encodeJson({ ...before, version: null }, 0);
+    const afterText = encodeJson({ ...after, version: null }, 0);
+    if (beforeText instanceof Error) return false;
+    if (afterText instanceof Error) return false;
+    return beforeText === afterText;
 }
 
 /**

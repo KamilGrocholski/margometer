@@ -1943,6 +1943,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isRowSuspect` — `src/ui/panel-content.ts`
 - `isSame` — `tests/core/last-heal-rule.test.ts`
 - `isSameAsciiTextAt` — `libs/html-text.ts`
+- `isSameBesideVersion` — `tools/panel-shots.ts`
 - `isSameRange` — `tests/repository/name-register.test.ts`, `tests/source-tree.ts`
 - `isSectionDrawn` — `tests/ui/panel-element.test.ts`
 - `isShapeFigureWithin` — `tools/fabricated-fight.ts`
@@ -4999,7 +5000,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `tools/`
 
 - `errors` — in 10 files: `tools/`
-- `parseJsonc` — `tools/build-userscript.ts`
+- `parseJsonc` — `tools/build-userscript.ts`, `tools/panel-shots.ts`
 
 ### `tests/`
 
@@ -6102,7 +6103,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `added` — `tools/margonem-readings.ts`
 - `adding` — `tools/turn-reading.ts`
 - `advance` — `tools/turn-count.ts`
-- `after` — `tools/buff-bit-table.ts`
+- `after` — `tools/buff-bit-table.ts`, `tools/panel-shots.ts`
+- `afterText` — `tools/panel-shots.ts`
 - `age` — `tools/help-article.ts`
 - `ahead` — `tools/fabricated-fight.ts`
 - `aligned` — `tools/aura-standing.ts`
@@ -6136,7 +6138,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `bare` — `tools/preview-state.ts`
 - `baseline` — `tools/shout-holding.ts`
 - `battle` — `tools/payload-cost.ts`
-- `before` — in 4 files: `tools/`
+- `before` — in 5 files: `tools/`
+- `beforeText` — `tools/panel-shots.ts`
 - `beside` — `tools/fabricated-fight.ts`
 - `bindings` — `tools/preview-page.ts`
 - `bit` — `tools/aura-lifetime.ts`, `tools/fabricated-fight.ts`, `tools/margonem-readings.ts`
@@ -6203,6 +6206,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `combatantId` — `tools/aura-lifetime.ts`, `tools/turn-count.ts`, `tools/turn-reading.ts`
 - `command` — in 5 files: `tools/`
 - `commit` — `tools/panel-shots.ts`
+- `committed` — `tools/panel-shots.ts`
 - `common` — `tools/aura-lifetime.ts`
 - `comparison` — `tools/develop-reports.ts`
 - `composed` — `tools/capture-intake.ts`
@@ -6687,6 +6691,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `word` — `tools/protocol-key-shape.ts`
 - `wordIndex` — `tools/protocol-key-shape.ts`
 - `words` — `tools/protocol-key-shape.ts`
+- `worked` — `tools/panel-shots.ts`
 - `world` — `tools/capture-intake.ts`
 - `wound` — `tools/fabricated-fight.ts`
 - `wrapped` — `tools/payload-cost.ts`
@@ -6967,6 +6972,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `comment` — `tests/repository/comment-share.test.ts`, `tests/source-tree.ts`
 - `commentTexts` — `tests/source-tree.ts`
 - `commented` — `tests/core/aura-standing.test.ts`
+- `committed` — `tests/tools/panel-shots.test.ts`
 - `compared` — `tests/ports/margonem-engine-warriors.test.ts`
 - `comparison` — `tests/tools/develop-reports.test.ts`
 - `compose` — `tests/tools/preview-state.test.ts`, `tests/ui/panel-look.test.ts`
@@ -7355,7 +7361,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-content.test.ts`
 - `ignored` — `tests/repository/fabricated-fights.test.ts`
 - `illegible` — `tests/runtime/panel-frame.test.ts`
-- `imported` — `tests/source-tree.ts`
+- `imported` — `tests/source-tree.ts`, `tests/tools/panel-shots.test.ts`
 - `importer` — `tests/repository/name-shapes.test.ts`, `tests/repository/single-importer.test.ts`
 - `importers` — `tests/repository/single-importer.test.ts`
 - `importersByModule` — `tests/repository/single-importer.test.ts`
@@ -9034,6 +9040,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `combatant` — `tools/fabricated-fight.ts`
 - `combatantId` — `tools/drill-report.ts`
 - `command` — `tools/develop-reports.ts`
+- `committed` — `tools/panel-shots.ts`
 - `comparison` — `tools/develop-reports.ts`
 - `configuration` — `tools/build-userscript.ts`
 - `context` — `tools/help-article.ts`, `tools/turn-reading.ts`
@@ -9124,7 +9131,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `levelTurns` — `tools/skill-table.ts`
 - `lifted` — `tools/margonem-readings.ts`
 - `lightings` — `tools/aura-lifetime.ts`
-- `line` — in 6 files: `tools/`
+- `line` — in 7 files: `tools/`
 - `lineCount` — `tools/card-height.ts`
 - `lineNumber` — `tools/help-claim-register.ts`, `tools/protocol-key-shape.ts`
 - `listeners` — `tools/preview-server.ts`
@@ -9271,6 +9278,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `widths` — `tools/aura-standing.ts`
 - `word` — `tools/protocol-key-shape.ts`
 - `words` — `tools/preview-page.ts`
+- `worked` — `tools/panel-shots.ts`
 
 ### `tests/`
 

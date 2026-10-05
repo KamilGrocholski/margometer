@@ -41,11 +41,11 @@ Quotable, and each one settles a real argument.
   the panel and never resizes what still drew.
 - **The Frame Is Not A Screen Rule.** A screenshot is a crop of a real screen. Two halves, held by
   different things: the tool **refuses to shoot** while anything the bundle is built from carries
-  uncommitted changes and records the commit beside the set, so "this came from a real build" is
-  checkable. Whether the state shown is **reachable** is not checkable from a PNG, so it is a
-  standing obligation rather than a rule: **open every picture before committing it.** v1 shipped
-  four green shots of the same screen from a driver that clicked nothing, and the only symptom was
-  three files of identical size.
+  uncommitted changes, the release's own version declaration aside, and records the commit beside
+  the set, so "this came from a real build" is checkable. Whether the state shown is **reachable**
+  is not checkable from a PNG, so it is a standing obligation rather than a rule: **open every
+  picture before committing it.** v1 shipped four green shots of the same screen from a driver that
+  clicked nothing, and the only symptom was three files of identical size.
 
 ## Colour
 

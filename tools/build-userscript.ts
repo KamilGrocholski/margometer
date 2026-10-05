@@ -23,7 +23,7 @@ export interface UserscriptFiles {
 }
 
 export const BUNDLE_ENTRY = "src/userscript-boot.ts";
-const CONFIGURATION_FILE = "deno.json";
+export const CONFIGURATION_FILE = "deno.json";
 const OUTPUT_DIRECTORY = "dist";
 /** The name the built file is served under anywhere, `dist/` included. */
 export const USERSCRIPT_NAME = "margometer.user.js";

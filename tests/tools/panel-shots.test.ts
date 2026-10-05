@@ -22,6 +22,7 @@ import {
     BROWSER_VARIABLE,
     composePanelShots,
     composeShotClip,
+    isSameBesideVersion,
     lookupShotEntry,
     SHOT_DIRECTORY,
     SHOT_MOMENT,
@@ -195,4 +196,15 @@ Deno.test("a panel that never reached its corner is refused, not photographed", 
 Deno.test("both runs that drive a browser name the same variable", () => {
     const config = Deno.readTextFileSync("playwright.config.ts");
     assert(config.includes(`BROWSER_VARIABLE = "${BROWSER_VARIABLE}";`), "one spelling, twice");
+});
+
+Deno.test("a release's own number is no work under the set, and anything beside it is", () => {
+    const committed =
+        '{\n    // The last version released.\n    "version": "0.22.0",\n    "imports": {}\n}';
+    const declared = committed.replace('"0.22.0"', '"0.22.1"');
+    assert(isSameBesideVersion(committed, committed), "an untouched configuration");
+    assert(isSameBesideVersion(committed, declared), "the number a release declares");
+    const imported = declared.replace('"imports": {}', '"imports": { "@std/x": "jsr:@std/x" }');
+    assert(!isSameBesideVersion(committed, imported), "an import the bundle would build with");
+    assert(!isSameBesideVersion(committed, "[]"), "and one that is no configuration");
 });
