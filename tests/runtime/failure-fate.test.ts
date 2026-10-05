@@ -28,6 +28,11 @@ Deno.test("the fates §10.5 names outright are the ones the table holds", () => 
         FAILURE_FATE.shownAsUnknown,
         "a reading the page did not give",
     );
-    assertStrictEquals(FAILURE_FATES.Caught, FAILURE_FATE.defect, "a bug of ours");
+    assertStrictEquals(
+        FAILURE_FATES.Caught,
+        FAILURE_FATE.byPlace,
+        "a throw, a defect of its step or a reading of the page unknown",
+    );
+    assertStrictEquals(FAILURE_FATES.StoreRefused, FAILURE_FATE.byPlace, "a store, by its place");
     assertStrictEquals(FAILURE_FATES.EverySlotPinned, FAILURE_FATE.shelfAnswer, "a shelf");
 });

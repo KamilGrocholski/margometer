@@ -10291,6 +10291,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `blowsWithoutSkill` — `src/runtime/fight-file.ts`
 - `build` — `src/runtime/fight-handover.ts`, `src/runtime/live-fight.ts`,
   `src/runtime/margometer-runtime.ts`
+- `byPlace` — `src/runtime/failure-fate.ts`
 - `calls` — `src/runtime/fight-file.ts`, `src/runtime/fight-handover.ts`
 - `capture` — `src/runtime/fight-handover.ts`, `src/runtime/live-fight.ts`
 - `capturedAt` — `src/runtime/fight-file.ts`, `src/runtime/fight-handover.ts`
@@ -12832,7 +12833,7 @@ Each `as const` object of a module, by its keys.
 - `DEFECT_KIND` — `src/runtime/defect-ledger.ts`: `kept`, `keeping`, `mount`, `region`, `reading`,
   `figures`, `gesture`, `file`, `engine`
 - `FAILURE_FATE` — `src/runtime/failure-fate.ts`: `shownAsUnknown`, `shownAsSuspect`, `defect`,
-  `shelfAnswer`, `fallbackWithDefect`, `standDown`
+  `shelfAnswer`, `fallbackWithDefect`, `standDown`, `byPlace`
 - `FIGURES_CUT` — `src/runtime/panel-frame.ts`: `screen`, `drill`, `pair`
 - `FILE_FIELD` — `src/runtime/fight-file.ts`: `formatVersion`, `addOnVersion`, `capturedAt`,
   `world`, `margonemClientBuild`, `userAgent`, `report`, `droppedCalls`, `isTruncated`, `calls`,
@@ -13809,6 +13810,7 @@ suite's material.
 
 ### `src/runtime/failure-fate.ts`
 
+- `"by-place"` — `FAILURE_FATE`
 - `"defect"` — `FAILURE_FATE`
 - `"fallback-with-defect"` — `FAILURE_FATE`
 - `"shelf-answer"` — `FAILURE_FATE`

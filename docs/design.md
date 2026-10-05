@@ -1010,8 +1010,9 @@ goes without a mark.
 | `hasJoinedInProgress` (data, not a failure)     | `shown-as-suspect`     | "joined in progress"                                   |
 | `EnvelopeFailure`                               | `defect` "reading"     | the defects section: what could not be done, how often |
 | `Caught`                                        | `defect` of its step   | as above; one console line per kind                    |
-| `hasFiguresDisagreed` (data, not a failure)     | `defect` "figures"     | as above                                               |
-| `StoreUnavailable` opening the shelf            | `fallback-with-defect` | memory; a "kept" defect                                |
+| `Caught` reading the page's state               | `shown-as-unknown`     | our word instead of the game's, and no defect          |
+| `FiguresDisagreed`                              | `defect` "figures"     | as above                                               |
+| `StoreFailure` opening the shelf                | `fallback-with-defect` | memory; a "kept" defect                                |
 | `StoreUnavailable` on choosing a store          | `shelf-answer`         | nothing moves; the shelf's answer row                  |
 | `StoreFailure` emptying the place left          | `defect` "kept"        | the move stands; a copy stayed behind                  |
 | `ShelfFailure` on a write                       | `shelf-answer`         | the shelf's answer row                                 |
@@ -1028,6 +1029,11 @@ goes without a mark.
 | `MargonemEngineTooltipRefused`                  | `defect` "region"      | as above, for the fighters it counts                   |
 | a setting write refused                         | none                   | the reader's choice stands; the next visit is poorer   |
 | `MargonemReadFailure`                           | `shown-as-unknown`     | no place line; our word instead of the game's          |
+| `MargonemEngineWarriorsAbsent`                  | none                   | a board of nobody: no tooltip, a file with no fighters |
+| `MargonemEngineWarriorsExceeded`                | `defect` "file"        | a file with no board; and "region" for the tooltips    |
+| `MargonemEngineAbsent`, `…BattleAbsent`, a look | none                   | a look that found nothing; the search runs on          |
+| `MargonemEngineAbsent`, `…BattleAbsent`, a file | `defect` "file"        | a file with no board                                   |
+| `WrapCovered`                                   | none                   | returned by `deinit`, which only a test calls          |
 | `MargonemEngineAlreadyWrapped`, `BootFailure`   | `stand-down`           | no panel, one console line                             |
 | `SearchAbandoned`, `MargonemEngineMethodAbsent` | `defect` "engine"      | the panel waits, one console line                      |
 | `MargonemEngineMethodUnwritable`                | `defect` "engine"      | as above; the engine's own method stands               |

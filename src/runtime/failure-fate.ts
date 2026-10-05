@@ -2,7 +2,8 @@
  * Every failure meets a fate, and the compiler holds the table complete (`AGENTS.md` E7,
  * `docs/design.md` §10.5): a class added to `RuntimeFailure` without an entry fails `deno check`.
  * The step that meets a failure carries its fate out, and nothing reads this table at run time:
- * `tests/simulation.ts` holds every kind the console hears to one of its names.
+ * `tests/simulation.ts` holds every kind the console hears to one of its names. A class met in
+ * places that do different things with it is `byPlace`, and §10.5 gives a row to each place.
  */
 
 import type * as errors from "#/libs/errors.ts";
@@ -45,18 +46,19 @@ export const FAILURE_FATE = {
     shelfAnswer: "shelf-answer",
     fallbackWithDefect: "fallback-with-defect",
     standDown: "stand-down",
+    byPlace: "by-place",
 } as const;
 export type FailureFate = VocabularyWord<typeof FAILURE_FATE>;
 
 /** Keyed by each class's literal `name`, which is what holds the table complete (ADR 0008). */
 export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: FailureFate } = {
-    MargonemEngineAbsent: FAILURE_FATE.defect,
-    MargonemEngineBattleAbsent: FAILURE_FATE.defect,
+    MargonemEngineAbsent: FAILURE_FATE.byPlace,
+    MargonemEngineBattleAbsent: FAILURE_FATE.byPlace,
     MargonemEngineMethodAbsent: FAILURE_FATE.defect,
     MargonemEngineMethodUnwritable: FAILURE_FATE.defect,
     MargonemEngineAlreadyWrapped: FAILURE_FATE.standDown,
     SearchAbandoned: FAILURE_FATE.defect,
-    WrapCovered: FAILURE_FATE.defect,
+    WrapCovered: FAILURE_FATE.byPlace,
     PayloadNotRecord: FAILURE_FATE.defect,
     PayloadFieldMalformed: FAILURE_FATE.defect,
     PayloadFieldTooLong: FAILURE_FATE.defect,
@@ -65,9 +67,9 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     EventsExceeded: FAILURE_FATE.defect,
     PayloadsExceeded: FAILURE_FATE.defect,
     UnreadMessage: FAILURE_FATE.shownAsSuspect,
-    StoreUnavailable: FAILURE_FATE.fallbackWithDefect,
-    StoreRefused: FAILURE_FATE.fallbackWithDefect,
-    StoreValueTooLong: FAILURE_FATE.fallbackWithDefect,
+    StoreUnavailable: FAILURE_FATE.byPlace,
+    StoreRefused: FAILURE_FATE.byPlace,
+    StoreValueTooLong: FAILURE_FATE.byPlace,
     ShelfUnreadable: FAILURE_FATE.fallbackWithDefect,
     ShelfUnwritable: FAILURE_FATE.shelfAnswer,
     ShelfVersionUnknown: FAILURE_FATE.fallbackWithDefect,
@@ -84,9 +86,9 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     RegionUndrawn: FAILURE_FATE.defect,
     GestureDropped: FAILURE_FATE.defect,
     WindowUnplaced: FAILURE_FATE.fallbackWithDefect,
-    MargonemEngineWarriorsAbsent: FAILURE_FATE.shownAsUnknown,
+    MargonemEngineWarriorsAbsent: FAILURE_FATE.byPlace,
     MargonemEngineWarriorsExceeded: FAILURE_FATE.defect,
     MargonemEngineTooltipRefused: FAILURE_FATE.defect,
     MargonemValueAbsent: FAILURE_FATE.shownAsUnknown,
-    Caught: FAILURE_FATE.defect,
+    Caught: FAILURE_FATE.byPlace,
 };
