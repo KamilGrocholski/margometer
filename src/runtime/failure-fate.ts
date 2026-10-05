@@ -73,7 +73,6 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     EverySlotPinned: FAILURE_FATE.shelfAnswer,
     RotationRefused: FAILURE_FATE.shelfAnswer,
     FightAlreadyKept: FAILURE_FATE.defect,
-    FightNotKept: FAILURE_FATE.shelfAnswer,
     SettingUnreadable: FAILURE_FATE.fallbackWithDefect,
     SettingTooLong: FAILURE_FATE.fallbackWithDefect,
     FileUnserializable: FAILURE_FATE.defect,

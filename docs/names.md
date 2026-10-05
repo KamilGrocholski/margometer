@@ -1488,7 +1488,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `delete` — none
 
 - `delete` — `src/ports/browser-store.ts`
-- `deleteKeptFight` — `src/runtime/shelf.ts`
 - `deleteShelf` — `src/runtime/shelf.ts`
 - `deleteWindowSize` — `src/runtime/settings.ts`
 
@@ -3338,7 +3337,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `EverySlotPinned` — `src/runtime/shelf.ts`
 - `FightAlreadyKept` — `src/runtime/shelf.ts`
-- `FightNotKept` — `src/runtime/shelf.ts`
 - `FiguresDisagreed` — `src/runtime/panel-frame.ts`
 - `FileUnserializable` — `src/runtime/fight-file.ts`
 - `KeptFightsUnreadable` — `src/runtime/shelf.ts`
@@ -7861,7 +7859,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/runtime/carried-tooltip.test.ts`
 - `released` — `tests/repository/changelog.test.ts`, `tests/runtime/shelf.test.ts`
 - `reloaded` — `tests/runtime/margometer-runtime.test.ts`
-- `removed` — `tests/runtime/shelf.test.ts`
 - `renamed` — `tests/ui/panel-look.test.ts`
 - `rendered` — `tests/ui/card-window.test.ts`
 - `reopened` — `tests/core/fight-session.test.ts`, `tests/runtime/margometer-runtime.test.ts`
@@ -8236,7 +8233,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ungraded` — `tests/tools/turn-count.test.ts`
 - `unguarded` — `tests/repository/handed-callbacks.test.ts`
 - `unheld` — `tests/core/legendary-standing.test.ts`, `tests/repository/design-tokens.test.ts`
-- `unkept` — `tests/runtime/shelf.test.ts`
 - `unknown` — in 5 files: `tests/`
 - `unknownKey` — `tests/ui/panel-content.test.ts`
 - `unmarked` — `tests/ports/margonem-engine-battle.test.ts`, `tests/ui/panel-element.test.ts`
@@ -10226,7 +10222,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `EventsExceeded` — `src/runtime/failure-fate.ts`
 - `EverySlotPinned` — `src/runtime/failure-fate.ts`
 - `FightAlreadyKept` — `src/runtime/failure-fate.ts`
-- `FightNotKept` — `src/runtime/failure-fate.ts`
 - `FiguresDisagreed` — `src/runtime/failure-fate.ts`
 - `FileApiAbsent` — `src/runtime/failure-fate.ts`
 - `FileUnserializable` — `src/runtime/failure-fate.ts`

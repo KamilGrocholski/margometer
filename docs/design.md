@@ -725,11 +725,6 @@ export function writeKeptFightPin(
     openedAt: number,
     isPinned: boolean,
 ): ShelfWritten | ShelfFailure;
-export function deleteKeptFight(
-    store: KeyValueStore,
-    shelf: ShelfContents,
-    openedAt: number,
-): ShelfWritten | ShelfFailure;
 /** The rotation is stated, never silent. */
 export interface ShelfWritten {
     contents: ShelfContents;
@@ -743,8 +738,7 @@ export type ShelfFailure =
     | KeptFightsUnreadable // `count`: the fights a shelf held and did not read back
     | EverySlotPinned // `maximum`
     | RotationRefused // `attempts`; the store's last refusal as its `cause`
-    | FightAlreadyKept // `openedAt`
-    | FightNotKept; // `openedAt`
+    | FightAlreadyKept; // `openedAt`
 
 // The file
 /**

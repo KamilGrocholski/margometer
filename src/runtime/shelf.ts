@@ -126,16 +126,6 @@ export class FightAlreadyKept extends Error {
     }
 }
 
-export class FightNotKept extends Error {
-    override readonly name = "FightNotKept";
-    readonly openedAt: number;
-
-    constructor(openedAt: number, options?: ErrorOptions) {
-        super(undefined, options);
-        this.openedAt = openedAt;
-    }
-}
-
 export type ShelfFailure =
     | StoreFailure
     | ShelfUnreadable
@@ -144,8 +134,7 @@ export type ShelfFailure =
     | KeptFightsUnreadable
     | EverySlotPinned
     | RotationRefused
-    | FightAlreadyKept
-    | FightNotKept;
+    | FightAlreadyKept;
 
 type ShelfField = "version" | "fights";
 type FightField =
@@ -419,22 +408,13 @@ export function writeKeptFightPin(
     openedAt: number,
     isPinned: boolean,
 ): ShelfWritten | ShelfFailure {
-    if (!shelf.fights.some((keptFight) => keptFight.openedAt === openedAt)) {
-        return new FightNotKept(openedAt);
-    }
+    assert(
+        shelf.fights.some((keptFight) => keptFight.openedAt === openedAt),
+        "a pin is asked of a fight the shelf keeps",
+    );
     const fightsAfter = shelf.fights.map((keptFight) =>
         keptFight.openedAt === openedAt ? { ...keptFight, isPinned } : keptFight
     );
-    return writeShelf(store, shelf, fightsAfter);
-}
-
-export function deleteKeptFight(
-    store: KeyValueStore,
-    shelf: ShelfContents,
-    openedAt: number,
-): ShelfWritten | ShelfFailure {
-    const fightsAfter = shelf.fights.filter((keptFight) => keptFight.openedAt !== openedAt);
-    if (fightsAfter.length === shelf.fights.length) return new FightNotKept(openedAt);
     return writeShelf(store, shelf, fightsAfter);
 }
 

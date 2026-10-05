@@ -24,10 +24,8 @@ import {
 } from "#/src/ports/browser-store.ts";
 import { composeFightView } from "#/src/core/fight-session.ts";
 import {
-    deleteKeptFight,
     EverySlotPinned,
     FightAlreadyKept,
-    FightNotKept,
     KEPT_MAXIMUM,
     type KeptFight,
     openShelf,
@@ -304,21 +302,20 @@ Deno.test("a pin outranks the store's refusal, and a shelf of pins too long is r
     assertStrictEquals(pins.attempts, 1, "after the one offer");
 });
 
-Deno.test("a fight is kept once, and a fight not kept is neither pinned nor removed", () => {
+Deno.test("a fight is kept once, and a pin on a fight not kept is a bug of the caller's", () => {
     const store = initMemoryStore();
     const shelf = keepAll(store, [composeFight(1)]);
     const again = writeKeptFight(store, shelf, composeFight(1));
     assertInstanceOf(again, FightAlreadyKept, "one moment");
     assertStrictEquals(again.openedAt, 1, "named by it");
-    const pinned = writeKeptFightPin(store, shelf, 2, true);
-    assertInstanceOf(pinned, FightNotKept, "a pin on nobody's fight");
-    assertStrictEquals(pinned.openedAt, 2, "named by its moment");
-    const unkept = deleteKeptFight(store, shelf, 2);
-    assertInstanceOf(unkept, FightNotKept, "and a removal");
-    assertStrictEquals(unkept.openedAt, 2, "named the same way");
-    const removed = deleteKeptFight(store, shelf, 1);
-    assertEquals(removed, { contents: EMPTY, droppedOpenedAt: [] }, "the kept one goes");
-    assertEquals(readOpenedAt(store), [], "and a reload finds it gone");
+    assertThrows(
+        () => writeKeptFightPin(store, shelf, 2, true),
+        AssertionError,
+        "a pin is asked of a fight the shelf keeps",
+    );
+    const pinned = writeKeptFightPin(store, shelf, 1, true);
+    assert(!(pinned instanceof Error), "the kept one takes its pin");
+    assertEquals(readOpenedAt(store), [1], "and a reload finds it still kept");
     assertThrows(
         () => writeKeptFight(store, EMPTY, { ...composeFight(3), payloads: [] }),
         AssertionError,
