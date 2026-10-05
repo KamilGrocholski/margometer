@@ -6204,6 +6204,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `commit` — `tools/panel-shots.ts`
 - `common` — `tools/aura-lifetime.ts`
 - `comparison` — `tools/develop-reports.ts`
+- `composed` — `tools/capture-intake.ts`
 - `contested` — `tools/turn-reading.ts`
 - `context` — `tools/develop-reports.ts`, `tools/turn-reading.ts`
 - `cost` — `tools/payload-cost.ts`
@@ -6530,7 +6531,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `replayedFight` — `tools/card-height.ts`, `tools/drill-report.ts`
 - `report` — `tools/protocol-key-shape.ts`
 - `response` — `tools/margonem-client-source.ts`
-- `rest` — `tools/changelog.ts`, `tools/protocol-key-shape.ts`
+- `rest` — `tools/capture-intake.ts`, `tools/changelog.ts`, `tools/protocol-key-shape.ts`
 - `restored` — `tools/fabricated-fight.ts`
 - `rewrite` — `tools/develop-reports.ts`
 - `rewriteLines` — `tools/develop-reports.ts`

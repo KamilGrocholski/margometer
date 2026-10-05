@@ -570,6 +570,20 @@ export function composeIntakeName(recording: unknown, slug: string): string {
         throw new CaptureIntakeError(`\`${FILE_FIELD.world}\` is \`${world}\`, not a name part`);
     }
     if (!isSlugText(slug)) throw new CaptureIntakeError(`\`${slug}\` is not a kebab-case slug`);
+    // The day and the world stand in front of the slug already, so a slug opening with either
+    // files it twice: `2026-10-04-tempest-tempest-grupa-vs-umibozu` had to be deleted by hand.
+    for (const composed of [day, world]) {
+        if (slug === composed) {
+            throw new CaptureIntakeError(`\`${slug}\` is what the name carries already`);
+        }
+        if (slug.startsWith(`${composed}-`)) {
+            const rest = slug.slice(composed.length + 1);
+            throw new CaptureIntakeError(
+                `\`${slug}\` opens with \`${composed}\`, which the name carries already: ` +
+                    `pass \`--name ${rest}\``,
+            );
+        }
+    }
     const build = readEnvelopeVersion(envelope, FILE_FIELD.margonemClientBuild);
     const addOn = readEnvelopeVersion(envelope, FILE_FIELD.addOnVersion);
     return `${day}-${world}-${slug}-${build}-${addOn}${RECORDING_SUFFIX}`;

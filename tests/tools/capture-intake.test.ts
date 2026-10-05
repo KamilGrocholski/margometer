@@ -193,6 +193,31 @@ Deno.test("a file is named for its day, world, fight, build and version, or `non
     );
 });
 
+/** The day and the world are composed in front of the slug, so a slug carrying them is refused. */
+Deno.test("a slug opening with the day or the world is refused, naming the slug to pass", () => {
+    const fight = composeFight();
+    assertThrows(
+        () => composeIntakeName(fight, "tempest-grupa-vs-wilk"),
+        CaptureIntakeError,
+        "pass `--name grupa-vs-wilk`",
+    );
+    assertThrows(
+        () => composeIntakeName(fight, "2026-09-25-grupa-vs-wilk"),
+        CaptureIntakeError,
+        "pass `--name grupa-vs-wilk`",
+    );
+    assertThrows(() => composeIntakeName(fight, "tempest"), CaptureIntakeError, "already");
+    // The samples that must not flag: the world inside a word, and later in the slug.
+    assertStrictEquals(
+        composeIntakeName(fight, "tempestowa-grupa"),
+        "2026-09-25-tempest-tempestowa-grupa-1785244275300-0.20.0.json",
+    );
+    assertStrictEquals(
+        composeIntakeName(fight, "grupa-vs-tempest"),
+        "2026-09-25-tempest-grupa-vs-tempest-1785244275300-0.20.0.json",
+    );
+});
+
 Deno.test("a slug is lower-case words joined by single dashes", () => {
     assert(isSlugText("a"));
     assert(isSlugText("grupa-vs-hildur-1"));
