@@ -49,6 +49,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   ekranie martwego panelu obok działającego.
 - **Poprawka** — Walka, której początku nie dało się odczytać, nie dolicza się już do poprzedniej,
   tylko trafia do zapisanych walk osobno.
+- **Poprawka** — Szeroki zamach nie wywołuje już ostrzeżenia, że części walki nie dało się odczytać.
+- **Poprawka** — Obrażenia po zranieniu, które gra podaje jako osłabione, liczą się postaci, która
+  zraniła, a nie „Nieznanemu sprawcy”.
+- **Poprawka** — Potwór, który leczy się i uderza w jednej turze, ma tę turę policzoną raz, a cios
+  stoi pod umiejętnością, której użył.
 
 ## [0.22.0] — 2026-10-03
 

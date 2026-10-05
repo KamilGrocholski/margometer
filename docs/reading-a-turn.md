@@ -31,7 +31,10 @@ Four steps, and the rule is applied at the third:
    it, and then to that announcer's own blow messages: as many further as the published table says
    that skill grants, or, where the announcement names no id the table could be asked by, as far as
    a stated bound allows (**develop ADR 0078**). Past the glued message it reaches a blow and
-   nothing else. So what a message decodes to depends on the ones before it, and on nothing else.
+   nothing else, and a glued message that only heals the announcer hands it on unspent, so the blow
+   after that heal is still the announcement's: the game numbers one turn for the three at both
+   boundaries `captures/2026-10-04-tempest-grupa-vs-umibozu-DHSqC3Uh-0.22.0.json` grades it on. So
+   what a message decodes to depends on the ones before it, and on nothing else.
    `src/core/fight-decoder.ts` owns the gluing.
 2. **One message becomes one or more events.** A blow, the health it moved, the damage it dealt to
    somebody it named, the announcement it rode — each is an event of its own, and nothing on any of
@@ -65,7 +68,7 @@ message actor, which is why the two now answer alike. Reading the second as nobo
 33 turns across the corpus, 16 of them where the game's own numbering could see it.
 
 The third row is where the suppression stops, and it is load-bearing: health moving on a combatant
-is not that combatant acting, so a preparation after one opens a turn. The corpus stands 171
+is not that combatant acting, so a preparation after one opens a turn. The corpus stands 177
 preparations on that shape.
 
 ## The register
@@ -96,10 +99,10 @@ event kind and, for a declaration, the key that decided it.
 
 | opened by             | turns |
 | --------------------- | ----- |
-| `skill-used`          | 3940  |
-| `attack`              | 1824  |
-| `declaration/prepare` | 208   |
-| `declaration/step`    | 183   |
+| `skill-used`          | 4102  |
+| `attack`              | 1855  |
+| `declaration/prepare` | 216   |
+| `declaration/step`    | 185   |
 
 ## The keys a turn was read off
 
@@ -132,69 +135,69 @@ reduction against each of them. That register counts the occurrences; this one c
 
 | key                           | messages | opened | adds | lost |
 | ----------------------------- | -------- | ------ | ---- | ---- |
-| `tspell`                      | 3933     | 3933   | 3933 | 0    |
-| `skillId`                     | 3512     | 3512   | 0    | 0    |
-| `+dmgd`                       | 1881     | 967    | 0    | 0    |
-| `-dmgd`                       | 1881     | 967    | 0    | 0    |
-| `+resdmg`                     | 1524     | 626    | 0    | 0    |
-| `+dmg`                        | 1993     | 571    | 0    | 0    |
-| `+dmgc`                       | 1605     | 571    | 0    | 0    |
-| `-dmg`                        | 1993     | 571    | 0    | 0    |
-| `-dmga`                       | 1454     | 548    | 0    | 0    |
-| `active_absorbdest_per`       | 541      | 541    | 0    | 0    |
-| `+taken_dmg`                  | 1431     | 533    | 0    | 0    |
-| `+acdmg`                      | 1179     | 530    | 0    | 0    |
-| `-dmgc`                       | 1512     | 530    | 0    | 0    |
-| `combo-max`                   | 463      | 463    | 0    | 0    |
-| `+crit`                       | 1045     | 392    | 0    | 0    |
-| `+dmgl`                       | 894      | 337    | 0    | 0    |
-| `active_decblock_per`         | 319      | 319    | 0    | 0    |
-| `+oth_dmg`                    | 522      | 305    | 0    | 0    |
+| `tspell`                      | 4095     | 4095   | 4095 | 0    |
+| `skillId`                     | 3658     | 3658   | 0    | 0    |
+| `+dmgd`                       | 1925     | 993    | 0    | 0    |
+| `-dmgd`                       | 1925     | 993    | 0    | 0    |
+| `+resdmg`                     | 1558     | 626    | 0    | 0    |
+| `+dmg`                        | 2085     | 576    | 0    | 0    |
+| `-dmg`                        | 2085     | 576    | 0    | 0    |
+| `+dmgc`                       | 1637     | 571    | 0    | 0    |
+| `active_absorbdest_per`       | 564      | 564    | 0    | 0    |
+| `-dmga`                       | 1520     | 558    | 0    | 0    |
+| `+taken_dmg`                  | 1497     | 543    | 0    | 0    |
+| `+acdmg`                      | 1212     | 536    | 0    | 0    |
+| `-dmgc`                       | 1544     | 530    | 0    | 0    |
+| `combo-max`                   | 488      | 488    | 0    | 0    |
+| `+crit`                       | 1079     | 400    | 0    | 0    |
+| `active_decblock_per`         | 341      | 341    | 0    | 0    |
+| `+dmgl`                       | 917      | 337    | 0    | 0    |
+| `+oth_dmg`                    | 555      | 328    | 0    | 0    |
 | `+dmgf`                       | 732      | 295    | 0    | 0    |
-| `-dmgl`                       | 811      | 295    | 0    | 0    |
-| `-poison_lowdmg_per`          | 577      | 251    | 0    | 0    |
-| `+pierce`                     | 457      | 244    | 0    | 0    |
-| `prepare`                     | 363      | 208    | 208  | 0    |
+| `-dmgl`                       | 834      | 295    | 0    | 0    |
+| `-poison_lowdmg_per`          | 714      | 263    | 0    | 0    |
+| `+pierce`                     | 466      | 251    | 0    | 0    |
+| `prepare`                     | 378      | 216    | 216  | 0    |
 | `-dmgf`                       | 558      | 199    | 0    | 0    |
-| `-absorb`                     | 631      | 186    | 0    | 0    |
-| `step`                        | 183      | 183    | 183  | 0    |
-| `shout`                       | 174      | 174    | 0    | 0    |
-| `active_block_per`            | 159      | 159    | 0    | 0    |
-| `mana`                        | 144      | 144    | 0    | 0    |
-| `-blok`                       | 300      | 135    | 0    | 0    |
-| `allslow_per`                 | 134      | 134    | 0    | 0    |
-| `healall_per`                 | 132      | 132    | 0    | 0    |
-| `heal_target`                 | 129      | 129    | 0    | 0    |
-| `active_decblock_per-enemies` | 126      | 126    | 0    | 0    |
-| `alllowdmg`                   | 126      | 126    | 0    | 0    |
+| `-absorb`                     | 631      | 185    | 0    | 0    |
+| `step`                        | 185      | 185    | 185  | 0    |
+| `shout`                       | 182      | 182    | 0    | 0    |
+| `active_block_per`            | 166      | 166    | 0    | 0    |
+| `mana`                        | 149      | 149    | 0    | 0    |
+| `healall_per`                 | 138      | 138    | 0    | 0    |
+| `-blok`                       | 302      | 136    | 0    | 0    |
+| `allslow_per`                 | 136      | 136    | 0    | 0    |
+| `active_decblock_per-enemies` | 134      | 134    | 0    | 0    |
+| `alllowdmg`                   | 134      | 134    | 0    | 0    |
+| `heal_target`                 | 131      | 131    | 0    | 0    |
 | `aura-sa_per`                 | 104      | 104    | 0    | 0    |
-| `+dmgo`                       | 442      | 91     | 0    | 0    |
-| `-dmgo`                       | 426      | 91     | 0    | 0    |
-| `energy`                      | 84       | 84     | 0    | 0    |
+| `+dmgo`                       | 474      | 96     | 0    | 0    |
+| `-dmgo`                       | 456      | 94     | 0    | 0    |
+| `energy`                      | 90       | 90     | 0    | 0    |
+| `+spell-taken_dmg-all`        | 75       | 75     | 0    | 0    |
 | `+abdest_per`                 | 260      | 71     | 0    | 0    |
 | `+abmdest_per`                | 260      | 71     | 0    | 0    |
-| `+spell-taken_dmg-all`        | 69       | 69     | 0    | 0    |
 | `-absorbm`                    | 317      | 59     | 0    | 0    |
+| `aura-ac_per`                 | 48       | 48     | 0    | 0    |
 | `aura-adddmg2_per-meele`      | 48       | 48     | 0    | 0    |
-| `+injure`                     | 84       | 47     | 0    | 0    |
-| `aura-ac_per`                 | 46       | 46     | 0    | 0    |
-| `aura-resall`                 | 46       | 46     | 0    | 0    |
-| `-evade`                      | 65       | 38     | 0    | 0    |
-| `+fastarrow`                  | 65       | 30     | 0    | 0    |
-| `+acdmg_destroyed`            | 50       | 24     | 0    | 0    |
+| `aura-resall`                 | 48       | 48     | 0    | 0    |
+| `+injure`                     | 93       | 47     | 0    | 0    |
+| `-evade`                      | 77       | 45     | 0    | 0    |
+| `+fastarrow`                  | 68       | 32     | 0    | 0    |
+| `+acdmg_destroyed`            | 51       | 24     | 0    | 0    |
 | `+legbon_holytouch`           | 70       | 22     | 0    | 0    |
-| `+engback`                    | 388      | 21     | 0    | 0    |
+| `+engback`                    | 404      | 21     | 0    | 0    |
+| `+thirdatt`                   | 48       | 20     | 0    | 0    |
+| `-thirdatt`                   | 47       | 19     | 0    | 0    |
 | `+crush_physical`             | 23       | 15     | 0    | 0    |
-| `+thirdatt`                   | 37       | 15     | 0    | 0    |
-| `-thirdatt`                   | 37       | 15     | 0    | 0    |
+| `-legbon_critred`             | 21       | 15     | 0    | 0    |
 | `+legbon_anguish`             | 21       | 14     | 0    | 0    |
-| `+stun2`                      | 13       | 13     | 0    | 0    |
 | `+stun2-c`                    | 19       | 13     | 0    | 0    |
-| `+legbon_verycrit`            | 30       | 11     | 0    | 0    |
-| `-legbon_critred`             | 17       | 11     | 0    | 0    |
-| `+of_crit`                    | 90       | 10     | 0    | 0    |
+| `+legbon_verycrit`            | 32       | 11     | 0    | 0    |
+| `+stun2`                      | 14       | 11     | 0    | 0    |
+| `+of_crit`                    | 93       | 10     | 0    | 0    |
 | `-pierceb`                    | 12       | 9      | 0    | 0    |
-| `+critsa`                     | 54       | 8      | 0    | 0    |
+| `+critsa`                     | 55       | 8      | 0    | 0    |
 | `-legbon_facade`              | 17       | 8      | 0    | 0    |
 | `-legbon_cleanse`             | 25       | 7      | 0    | 0    |
 | `tcustom`                     | 7        | 7      | 7    | 0    |
@@ -203,11 +206,12 @@ reduction against each of them. That register counts the occurrences; this one c
 | `+woundpoison`                | 6        | 5      | 0    | 0    |
 | `en-regen-cast`               | 5        | 5      | 0    | 0    |
 | `+absorbm`                    | 18       | 4      | 0    | 0    |
-| `+legbon_curse`               | 17       | 4      | 0    | 0    |
+| `+legbon_curse`               | 19       | 4      | 0    | 0    |
 | `-legbon_glare`               | 8        | 4      | 0    | 0    |
 | `legbon_lastheal`             | 13       | 4      | 0    | 0    |
 | `lowheal_per-enemies`         | 4        | 4      | 0    | 0    |
-| `+critslow_per`               | 21       | 2      | 0    | 0    |
+| `+critslow_per`               | 24       | 2      | 0    | 0    |
+| `+swing`                      | 2        | 2      | 0    | 0    |
 | `+wound`                      | 18       | 2      | 0    | 0    |
 | `-contra`                     | 3        | 2      | 0    | 0    |
 | `-endest`                     | 11       | 2      | 0    | 0    |
@@ -217,14 +221,14 @@ reduction against each of them. That register counts the occurrences; this one c
 | `+superspell-prevented`       | 1        | 1      | 0    | 0    |
 | `-arrowblock`                 | 1        | 1      | 0    | 0    |
 | `-manadest`                   | 2        | 1      | 0    | 0    |
-| `-tenacity`                   | 20       | 1      | 0    | 0    |
+| `-tenacity`                   | 21       | 1      | 0    | 0    |
 | `bandage`                     | 1        | 1      | 0    | 0    |
 | `critmval-allies`             | 1        | 1      | 0    | 0    |
 | `critval-allies`              | 1        | 1      | 0    | 0    |
 | `removeslow-allies`           | 1        | 1      | 0    | 0    |
 | `removestun-allies`           | 1        | 1      | 0    | 0    |
 | `sunshield_per`               | 1        | 1      | 0    | 0    |
-| `txt`                         | 463      | 0      | 0    | 434  |
+| `txt`                         | 498      | 0      | 0    | 468  |
 
 ## What this cannot answer
 

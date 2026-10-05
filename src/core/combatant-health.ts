@@ -26,7 +26,7 @@ export interface SideHeal {
     isWhole: boolean;
 }
 
-const PERCENT_WHOLE = 100;
+export const PERCENT_WHOLE = 100;
 const DECIMAL_BASE = 10;
 /** Two places stand for a band half a place wide, and the health behind it is that share. */
 const HALF_PLACE = 0.5;

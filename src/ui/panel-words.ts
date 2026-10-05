@@ -29,9 +29,9 @@ export interface CountedNoun {
 /**
  * Every figure whose label names more than the figure counts: a closed set, so a card's sentences
  * are bounded (S11), in the order they stand. The row closing a damage section carries the third,
- * which is why the name is not the card's (N9). `Ciosy` was left out: `+swing` is absent from every
- * recording, so its sentence would stand for a case no material carries (`develop ADR 0088`,
- * `0089`).
+ * which is why the name is not the card's (N9). `Ciosy` has none: a `+swing` is one blow, its
+ * further targets riding the same message as damage against a name (`docs/protocol-keys.md`), so
+ * the count names what it counts (`develop ADR 0088`, `0089`).
  */
 export const CAVEAT = {
     reduction: "reduction",
@@ -510,6 +510,7 @@ export const PROC_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entr
     "+of_woundpoison": "głęboka rana",
     "+of_woundmagic": "głęboka rana",
     "+fastarrow": "szybka strzała",
+    "+swing": "szeroki zamach",
     "+acdmg_destroyed": "pancerz zniszczony",
     "-evade": "unik",
     "-parry": "parowanie",

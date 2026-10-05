@@ -371,7 +371,7 @@ export function decodeMessage(
 /**
  * How far an announcement still reaches, one message on. ⚠️ **The chain breaks on anything that is
  * not the announcer's own blow**: a message that decoded no blow ends it, and so does another
- * combatant's.
+ * combatant's — except the glued message healing the announcer and nothing else, which hands it on.
  */
 function composeAnnouncementStanding(
     context: DecodeContext,
@@ -385,7 +385,13 @@ function composeAnnouncementStanding(
     const announcementStanding = context.announcementStanding;
     if (announcementStanding === null) return null;
     const attack = events.find((event) => event.kind === BATTLE_EVENT.attack);
-    if (attack === undefined) return null;
+    if (attack === undefined) {
+        // The game numbers one turn for the announcement, the heal and the blow after it
+        // (`2026-10-04-tempest-grupa-vs-umibozu`, ordinals 52 → 54 and 219 → 225).
+        if (!announcementStanding.isGlued) return null;
+        if (!isHealingAnnouncerOnly(events, announcementStanding.announced)) return null;
+        return { ...announcementStanding, isGlued: false };
+    }
     if (attack.kind !== BATTLE_EVENT.attack) return null;
     if (attack.actorId !== announcementStanding.announced.actorId) return null;
     assert(
@@ -396,6 +402,25 @@ function composeAnnouncementStanding(
     assert(blowsRemaining >= 0, "a standing spends no more blows than it was given");
     if (blowsRemaining === 0) return null;
     return { announced: announcementStanding.announced, blowsRemaining, isGlued: false };
+}
+
+/** Whether the message did nothing but put health back on the announcer. */
+function isHealingAnnouncerOnly(
+    events: readonly BattleEvent[],
+    announced: Readonly<AnnouncedSkill>,
+): boolean {
+    assert(announced.skillName.length > 0, "a standing announcement names something");
+    assert(
+        events.every((event) => event.kind !== BATTLE_EVENT.attack),
+        "only a message that struck no blow is asked whether it hands a standing on",
+    );
+    if (announced.actorId === null) return false;
+    if (events.length === 0) return false;
+    return events.every((event) => {
+        if (event.kind !== BATTLE_EVENT.healthChange) return false;
+        if (event.combatantId !== announced.actorId) return false;
+        return event.amount >= 0;
+    });
 }
 
 /**

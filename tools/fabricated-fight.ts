@@ -1110,6 +1110,7 @@ function executeEvadedBlow(turn: FabricatedTurn): string[] {
         encodeValueless(CHARGE_BROKEN_KEY),
         encodeValueless("+superspell-prevented"),
         encodeValueless("+fastarrow"),
+        encodeValueless("+swing"),
     ])];
 }
 

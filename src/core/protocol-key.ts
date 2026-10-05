@@ -208,6 +208,7 @@ const PROC_END_BY_KEY: ReadonlyMap<string, ProcEnd> = new Map<string, ProcEnd>([
     ["+of_woundpoison", PROC_END.actor],
     ["+of_woundmagic", PROC_END.actor],
     ["+fastarrow", PROC_END.actor],
+    ["+swing", PROC_END.actor],
     ["+acdmg_destroyed", PROC_END.actor],
     [CURSE_KEY, PROC_END.actor],
     [VERYCRIT_KEY, PROC_END.actor],

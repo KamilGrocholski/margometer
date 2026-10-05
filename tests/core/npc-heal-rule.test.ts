@@ -96,7 +96,8 @@ Deno.test("the recordings carrying the key are the ones the reading was read on"
             NPC_HEAL,
             "captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json",
             "captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json",
+            "captures/2026-10-04-tempest-grupa-vs-umibozu-DHSqC3Uh-0.22.0.json",
         ],
-        "three recordings, and a fourth would want reading too, 2026-09-14",
+        "four recordings, and a fifth would want reading too, 2026-10-04",
     );
 });

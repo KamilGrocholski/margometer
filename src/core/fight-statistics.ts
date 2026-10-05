@@ -19,7 +19,7 @@ import {
     type PreventedDamage,
     UNREAD_CAUSE,
 } from "./battle-event.ts";
-import type { SideHeal } from "./combatant-health.ts";
+import { PERCENT_WHOLE, type SideHeal } from "./combatant-health.ts";
 import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
 import { MESSAGE_PARTS_MAXIMUM } from "./fight-decoder.ts";
 import { type LegendaryBonusTally, tallyLegendaryBonuses } from "./legendary-standing.ts";
@@ -1268,14 +1268,34 @@ function lookupGiverId(
 
 /**
  * Whose wound a tick belongs to, or nobody. The freshest wound against that victim is the one
- * ticking, and a tick states exactly the figure that wound announced (`develop ADR 0022`).
+ * ticking, and a tick states the figure that wound announced (`develop ADR 0022`) — or that figure
+ * weakened by the percentage it states beside it, rounded up.
  */
 function lookupWoundActorId(tallying: TallyingStatistics, event: HealthChangeEvent): number | null {
     if (event.source !== WOUND_TICK_KEY) return null;
     if (event.combatantId === null) return null;
     const wound = tallying.woundByWoundedId.get(event.combatantId);
     if (wound === undefined) return null;
-    if (wound.amount !== -event.amount) return null;
+    assert(wound.amount > 0, "a wound kept announced a figure");
+    let woundTicking: number;
+    if (event.declared.length > 0) {
+        // One weakening at most: the client splits the value into two members and no more.
+        if (event.declared.length > 1) return null;
+        const weakeningPercent = event.declared[0]?.amount ?? null;
+        if (weakeningPercent === null) return null;
+        if (weakeningPercent < 0) return null;
+        // Weakened by all of it, a tick would state nothing, and none does.
+        if (weakeningPercent >= PERCENT_WHOLE) return null;
+        // Rounded up: all 23 ticks weakened by 10 in `captures/` are, and 737 → 664 rules out
+        // rounding to nearest (`2026-10-04-tempest-grupa-vs-umibozu`, 2026-10-04).
+        woundTicking = Math.ceil(
+            (wound.amount * (PERCENT_WHOLE - weakeningPercent)) / PERCENT_WHOLE,
+        );
+    } else {
+        woundTicking = wound.amount;
+    }
+    assert(woundTicking > 0, "a wound ticks for something, weakened or whole");
+    if (woundTicking !== -event.amount) return null;
     assert(Number.isSafeInteger(wound.actorId), "a wound was left by somebody named");
     return wound.actorId;
 }

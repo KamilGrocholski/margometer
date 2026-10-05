@@ -304,7 +304,7 @@ Deno.test("what opened the turns partitions them, and the keys all but the blows
         turns += openerTally.turns;
         if (openerTally.opener === BATTLE_EVENT.attack) blows += openerTally.turns;
     }
-    assertStrictEquals(turns, 6155, "every turn the recordings opened, 2026-10-02");
+    assertStrictEquals(turns, 6358, "every turn the recordings opened, 2026-10-04");
     let adds = 0;
     for (const keyTally of composeKeyTally(getWalks())) adds += keyTally.adds;
     assertStrictEquals(adds + blows, turns, "a turn is added by a key or opened by a blow");

@@ -164,14 +164,14 @@ one bearer carried it.
 | status                | lit | shared | together | apart | agreeing | apart+agree | own | runs | longest |
 | --------------------- | --: | -----: | -------: | ----: | -------: | ----------: | --: | ---: | ------: |
 | `deep_wound`          |   7 |      0 |        0 |     0 |        0 |           0 |   9 |    2 |       9 |
-| `wound`               |  43 |      0 |        0 |     0 |        0 |           0 |   3 |   16 |      17 |
+| `wound`               |  50 |      0 |        0 |     0 |        0 |           0 |   3 |   17 |      17 |
 | `critical_deep_wound` |   0 |      0 |        0 |     0 |        0 |           0 |   0 |    0 |       0 |
-| `poisoned`            |  38 |      1 |        0 |     1 |        1 |           1 |   5 |    6 |      53 |
+| `poisoned`            |  47 |      2 |        0 |     2 |        1 |           1 |   5 |   16 |      53 |
 | `fire`                |  19 |      0 |        0 |     0 |        0 |           0 |   2 |   10 |       6 |
-| `swow_down`           |  71 |     12 |        1 |    11 |        2 |           2 |   3 |   24 |      56 |
-| `speed_up`            |  84 |     18 |        3 |    15 |        7 |           6 |   8 |   29 |      23 |
+| `swow_down`           |  74 |     13 |        1 |    12 |        2 |           2 |   3 |   25 |      56 |
+| `speed_up`            |  88 |     18 |        3 |    15 |        7 |           6 |   8 |   29 |      23 |
 | `frostbite`           |   0 |      0 |        0 |     0 |        0 |           0 |   0 |    0 |       0 |
-| `shock`               |  11 |      0 |        0 |     0 |        0 |           0 |   3 |    4 |      20 |
+| `shock`               |  16 |      0 |        0 |     0 |        0 |           0 |   3 |    8 |      20 |
 
 ⚠️ **`apart+agree` is the column that settles it.** One moment lights several bearers, each carries
 it for the same count of their own turns, and they go out at different moments. A clock on the
@@ -282,10 +282,10 @@ one combatant held it twice. `at once` is the most that ever stood together.
 
 | key                           | two | past two | one twice | at once |
 | ----------------------------- | --: | -------: | --------: | ------: |
-| `+spell-taken_dmg-all`        | 177 |        0 |         0 |       2 |
+| `+spell-taken_dmg-all`        | 248 |        0 |         0 |       2 |
 | `active_decblock_per-enemies` |   3 |        0 |         0 |       2 |
 | `alllowdmg`                   |   3 |        0 |         0 |       2 |
-| `allslow_per`                 | 558 |       96 |         0 |       3 |
+| `allslow_per`                 | 586 |       96 |         0 |       3 |
 | `aura-ac_per`                 | 115 |        0 |         0 |       2 |
 | `aura-resall`                 | 115 |        0 |         0 |       2 |
 | `aura-sa_per`                 | 370 |       98 |         0 |       4 |
@@ -332,12 +332,12 @@ entry.
 |  id | skill              | on | fights | at once | stated | reaches  |
 | --: | ------------------ | -: | -----: | ------: | -----: | -------- |
 |  25 | Prowokujący okrzyk |  4 |      6 |       1 |      2 | both     |
-|  76 | Aura ochrony       | 13 |     16 |       2 |      8 | caster's |
+|  76 | Aura ochrony       | 13 |     17 |       2 |      8 | caster's |
 |  89 | Podwójny dech      | 19 |     20 |       4 |      8 | caster's |
-| 123 | Szadź              | 25 |     24 |       3 |      8 | other    |
-| 188 | Wyzywający okrzyk  | 11 |     18 |       2 |      5 | other    |
+| 123 | Szadź              | 26 |     25 |       3 |      8 | other    |
+| 188 | Wyzywający okrzyk  | 12 |     19 |       2 |      5 | other    |
 | 219 | Jadowity podmuch   |  1 |      1 |       1 |      8 | other    |
-| 264 | Piętno bestii      | 15 |     18 |       2 |      8 | other    |
+| 264 | Piętno bestii      | 16 |     19 |       2 |      8 | other    |
 
 **The published table dates more skills than the corpus has ever cast**, and the ones missing here
 are missing for want of a recording rather than by a verdict: the guard holds the register to what
@@ -379,7 +379,7 @@ announcement of it was ever seen to list.
 |  id | skill              | casters | fights | at once | stated | covers | names |
 | --: | ------------------ | ------: | -----: | ------: | -----: | -----: | ----: |
 |  25 | Prowokujący okrzyk |       3 |      5 |       1 |      3 |      6 |     1 |
-| 188 | Wyzywający okrzyk  |       9 |     15 |       2 |      3 |      6 |     2 |
+| 188 | Wyzywający okrzyk  |      10 |     16 |       2 |      3 |      6 |     2 |
 
 ## How long a shout holds somebody
 
@@ -399,20 +399,20 @@ episode stops at the next shout of any kind, because a later one replaces whatev
 
 | turn | at the shouter | elsewhere | share |
 | ---: | -------------: | --------: | ----: |
-|    1 |             77 |         0 |  100% |
-|    2 |             63 |         0 |  100% |
-|    3 |             50 |         2 |   96% |
-|    4 |             29 |         6 |   83% |
-|    5 |             20 |         7 |   74% |
-|    6 |              7 |         7 |   50% |
-|    7 |              4 |         4 |   50% |
-|    8 |              4 |         6 |   40% |
+|    1 |             78 |         0 |  100% |
+|    2 |             68 |         0 |  100% |
+|    3 |             56 |         2 |   97% |
+|    4 |             29 |         7 |   81% |
+|    5 |             21 |         9 |   70% |
+|    6 |              6 |         8 |   43% |
+|    7 |              4 |         5 |   44% |
+|    8 |              4 |         5 |   44% |
 
 ⚠️ **The baseline is what those three rows have to beat, and it is high.** The same characters,
-before the shout named them, already sent 77% of their blows at whoever would shout — most
+before the shout named them, already sent 76% of their blows at whoever would shout — most
 recordings are a group against one, so there is not much else to hit. The first three turns stand at
-190 of 192 against that, the fourth still above it, and the fifth onwards falls **through** it
-(`captures/`, 2026-10-02).
+202 of 204 against that, the fourth still above it, and the fifth onwards falls **through** it
+(`captures/`, 2026-10-04).
 
 **The edge sits exactly where the published table puts it.** The table gives a shout three turns,
 and three of the held character's own turns is where the share stops being total. On the caster's

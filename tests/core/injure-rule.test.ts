@@ -21,7 +21,11 @@ import {
 } from "#/src/core/fight-statistics.ts";
 import { WOUND_ANNOUNCEMENT_KEY, WOUND_TICK_KEY as TICK_KEY } from "#/src/core/protocol-key.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
-import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
+import {
+    lookupRecordedFight,
+    readRecordedFights,
+    tallyRecordedFight,
+} from "#/tests/recorded-fights.ts";
 
 /** A victim wounded by three different attackers, which is what makes *freshest* a claim. */
 const THREE_ATTACKERS = "captures/2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json";
@@ -39,6 +43,7 @@ const WOUND =
 Deno.test("every tick lands on a victim already wounded, stating what that wound announced", () => {
     let ticks = 0;
     let wounds = 0;
+    let weakened = 0;
     for (const fight of readRecordedFights()) {
         const path = fight.path;
         const freshestByWounded = new Map<number, string>();
@@ -64,12 +69,34 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
             ticks += 1;
             const wound = freshestByWounded.get(parsed.actor.combatantId);
             assertExists(wound, `${path}: a tick on a victim carrying no wound`);
-            assertEquals(tick.value, wound, `${path}: a tick stating what no wound announced`);
+            assertExists(tick.value, `${path}: a tick stating no figure`);
+            assertEquals(
+                tick.value,
+                formatTickExpected(wound, tick.value),
+                `${path}: a tick stating what no wound announced`,
+            );
+            if (tick.value !== wound) weakened += 1;
         }
     }
     assert(ticks > 0, "an empty reading of the material is a finding, not a pass");
     assert(wounds > 0, "and a walk finding no wound to tick against is another");
+    assertEquals(weakened, 23, "the ticks the material states weakened, 2026-10-04");
 });
+
+/**
+ * What a tick against that wound states, worked out here rather than read off the code. The client
+ * composes a second member as the percentage the figure was weakened by
+ * (`msg_injure %name% %val0% %val1%`), and the figure before it is the wound's, weakened and
+ * rounded up.
+ */
+function formatTickExpected(announced: string, tickValue: string): string {
+    const members = tickValue.split(",");
+    if (members.length === 1) return announced;
+    assertEquals(members.length, 2, "a tick states its figure and one weakening at most");
+    const weakeningPercent = Number(members[1]);
+    const ticking = Math.ceil((Number(announced) * (100 - weakeningPercent)) / 100);
+    return `${ticking},${members[1]}`;
+}
 
 function parseOrFail(text: string, path: string): ProtocolMessage {
     const parsed = parseProtocolMessage(text);
@@ -191,4 +218,63 @@ Deno.test("a tick stating anything else is charged to nobody, not to the nearest
     assertEquals(victim.damageTakenByOpponent.get(`${ATTACKER}`), 658, "only the blow is theirs");
     assertEquals(victim.damageTakenFromNobody, 97, "the tick is taken from nobody");
     assertEquals(statistics.damageDealtByNobody, 97, "and dealt by nobody");
+});
+
+/**
+ * A tick weakened by a percentage it states beside the figure: 98 weakened by 10 is 88.2, and the
+ * game rounds it up. 88 is what rounding to nearest or down would state, so it is the sample that
+ * must not join.
+ */
+Deno.test("a tick weakened as it says, rounded up, is charged to whoever left the wound", () => {
+    const statistics = tallyFightWithTick("89,10");
+    const attacker = statistics.byCombatantId.get(ATTACKER);
+    assertExists(attacker, "the attacker has a row");
+    assertEquals(
+        attacker.damageDealtByKind.get(TICK_KEY),
+        89,
+        "the weakened tick is dealt by them",
+    );
+    assertEquals(statistics.damageDealtByNobody, 0, "and none of it is dealt by nobody");
+
+    const rounded = tallyFightWithTick("88,10");
+    const roundedAttacker = rounded.byCombatantId.get(ATTACKER);
+    assertExists(roundedAttacker, "the attacker still has a row, from the blow");
+    assertEquals(roundedAttacker.damageDealtByKind.get(TICK_KEY), undefined, "88 is not theirs");
+    assertEquals(rounded.damageDealtByNobody, 88, "and is dealt by nobody");
+});
+
+Deno.test("a weakening of 0 or 1 leaves the wound its own, and one of 100 joins nothing", () => {
+    const whole = tallyFightWithTick("98,0");
+    assertEquals(
+        whole.byCombatantId.get(ATTACKER)?.damageDealtByKind.get(TICK_KEY),
+        98,
+        "a weakening of nothing leaves the wound's own figure, charged to who left it",
+    );
+    assertEquals(whole.damageDealtByNobody, 0, "the whole wound is theirs");
+    const weakened = tallyFightWithTick("98,1");
+    assertEquals(
+        weakened.byCombatantId.get(ATTACKER)?.damageDealtByKind.get(TICK_KEY),
+        98,
+        "a weakening of one percent is still charged to who left the wound",
+    );
+    assertEquals(weakened.damageDealtByNobody, 0, "97.02 rounds up to the wound's own figure");
+    const emptied = tallyFightWithTick("1,100");
+    assertEquals(emptied.damageDealtByNobody, 1, "weakened by all of it, no wound is ticking");
+});
+
+/** The join over the material: a tick the rule above holds is a tick charged to somebody. */
+Deno.test("no recording charges a wound's tick to nobody", () => {
+    let recordings = 0;
+    for (const fight of readRecordedFights()) {
+        const statistics = tallyRecordedFight(fight.path).statistics;
+        for (const [combatantId, figures] of statistics.byCombatantId) {
+            assertEquals(
+                figures.damageTakenFromNobodyByKind.get(TICK_KEY),
+                undefined,
+                `${fight.path}: ${combatantId} took a wound's tick from nobody`,
+            );
+        }
+        recordings += 1;
+    }
+    assert(recordings > 0, "the material holds a recording to ask");
 });

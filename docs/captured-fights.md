@@ -36,7 +36,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `2 vs 1`  | `1`        |
 | `5 vs 1`  | `1`        |
 | `9 vs 1`  | `1`        |
-| `10 vs 1` | `26`       |
+| `10 vs 1` | `27`       |
 
 ## The fights
 
@@ -78,6 +78,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json`                 | `1 vs 1`  | `theirs won` | `1 player · t 1 · level 64`                                 | `1 player · m 1 · level 64`                       | `9492`               |
 | `captures/2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0.json`                 | `10 vs 1` | `ours won`   | `10 players · b 1, m 3, p 2, t 3, w 1 · levels 73–101`      | `1 NPC · p 1 · level 83`                          | `209110`             |
 | `captures/2026-10-02-luvia-grupa-vs-amaimon-auto-BTPBneEN-0.21.0.json`            | `10 vs 1` | `ours won`   | `10 players · b 1, h 1, m 4, p 1, t 1, w 2 · levels 83–105` | `1 NPC · p 1 · level 83`                          | `209110`             |
+| `captures/2026-10-04-tempest-grupa-vs-umibozu-DHSqC3Uh-0.22.0.json`               | `10 vs 1` | `ours won`   | `10 players · b 1, h 2, m 2, p 1, w 4 · levels 103–136`     | `1 NPC · b 1 · level 114`                         | `370386`             |
 
 ## The recordings
 
@@ -119,6 +120,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json`                 | `luvia`        | `Bb28FQty`      | `0.17.0`      | `12`  | `55`     |
 | `captures/2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0.json`                 | `luvia`        | `Bb28FQty`      | `0.17.0`      | `126` | `836`    |
 | `captures/2026-10-02-luvia-grupa-vs-amaimon-auto-BTPBneEN-0.21.0.json`            | `luvia`        | `BTPBneEN`      | `0.21.0`      | `2`   | `655`    |
+| `captures/2026-10-04-tempest-grupa-vs-umibozu-DHSqC3Uh-0.22.0.json`               | `tempest`      | `DHSqC3Uh`      | `0.22.0`      | `95`  | `697`    |
 
 ## What the material does not hold
 

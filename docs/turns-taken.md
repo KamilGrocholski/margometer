@@ -148,6 +148,7 @@ stated, and every turn before it is one the span never saw.
 | 2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0                 | `always`        | 8     | 8      | 13      | 12    | 1     | 1    | 3      |
 | 2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0                 | `always`        | 122   | 122    | 238     | 226   | 12    | 12   | 2      |
 | 2026-10-02-luvia-grupa-vs-amaimon-auto-BTPBneEN-0.21.0            | `in a lump`     | —     | —      | —       | —     | —     | —    | —      |
+| 2026-10-04-tempest-grupa-vs-umibozu-DHSqC3Uh-0.22.0               | `always`        | 91    | 91     | 238     | 204   | 34    | 34   | 3      |
 
 ## What the register says
 
@@ -156,8 +157,8 @@ time it can be asked.** No boundary of one turn is placed `elsewhere`, on any re
 sharp test and it is unbeaten; what it is not is most of the evidence, because a boundary of one
 turn is the minority case.
 
-**Where the game numbers several, the count agrees on all but three boundaries in the corpus.** 1241
-of the 1244 graded agree, 2026-09-25. The three that do not are a short list rather than a tendency:
+**Where the game numbers several, the count agrees on all but three boundaries in the corpus.** 1332
+of the 1335 graded agree, 2026-10-04. The three that do not are a short list rather than a tendency:
 each is short by a single turn, and `deno task fight:turns captures/<file>.json` names each by its
 two ordinals. A recording carrying one is `sometimes`, which is what the verdict is for.
 
@@ -216,8 +217,8 @@ stopped working — the one failure the shape fails **silently** at — so
 recording, never a licence to bend either figure. It licenses no figure either way: the corpus
 carries 140 stuns against 410 lost turns, and six recordings read lost turns with no stun at all.
 
-**The two columns are close and are not held to be equal.** Over the corpus the ordinal says 226
-turns went missing where the game announces 211: exact on 19 of the 23 recordings that can be asked,
+**The two columns are close and are not held to be equal.** Over the corpus the ordinal says 260
+turns went missing where the game announces 245: exact on 20 of the 24 recordings that can be asked,
 one turn apart on three more, and one that is not. Before **develop ADR 0057** they were exact on
 nine, and on nine others the game announced **more** lost turns than the ordinal had room for —
 which is the over-count seen from the other side. The gate holds both as numbers rather than forcing
@@ -279,7 +280,7 @@ reading `a01bf11` refused, and it is not what `grooove.pl` does either.
 
 ## What this cannot answer
 
-- **How many turns a fight ran.** The ordinal span would say, and it is not drawn: 24 of the 27
+- **How many turns a fight ran.** The ordinal span would say, and it is not drawn: 25 of the 28
   recordings the game numbered open on an ordinal past 1, as far as 260 (`opened` above), so the
   span is short by the turns before it, an amount nothing states where the recording joined a fight
   already in progress, and a fight the game numbered once has no span at all. No figure on the panel
@@ -291,7 +292,7 @@ reading `a01bf11` refused, and it is not what `grooove.pl` does either.
   count is zero on everybody, and the card states no second figure at all rather than a nought — so
   nothing on screen becomes false. What it still cannot say is **which** of the two a quiet fight
   is: a fight where nobody was stunned and a world this reading cannot hear draw the same card. 4 of
-  the 36 recordings are quiet that way. That is the cost of reading a shape rather than a key
+  the 37 recordings are quiet that way. That is the cost of reading a shape rather than a key
   (**develop ADR 0110**), and it is carried rather than closed — the stun keys above make the
   failure loud without making the quiet fight legible.
 

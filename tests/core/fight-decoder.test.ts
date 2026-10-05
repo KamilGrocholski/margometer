@@ -132,6 +132,23 @@ const GRANTED_SECOND = "441390=100.00;-10000249=99.40;+pierce;+dmgd=809;+dmgf=10
 /** The same recording: the message the game sent straight after the pair, which is not a blow. */
 const STEP_AFTER = "459132=98.49;0;step";
 /**
+ * `2026-10-04-tempest-grupa-vs-umibozu-DHSqC3Uh-0.22.0.json`: a monster's announcement with no id,
+ * the heal it gave itself on the message glued to it, and its blow after that. The game numbers one
+ * turn for the three.
+ */
+const SELF_HEALING_ANNOUNCEMENT = "-10007253;0;tspell=Kuya Kuya";
+const SELF_HEAL = "-10007253=95.94;439765=58.51;npc_heal=29631";
+const BLOW_AFTER_SELF_HEAL = "-10007253=95.94;439765=55.15;-poison_lowdmg_per=20;+dmg=2571;" +
+    "+dmgo=2437;+acdmg=60;-dmg=575;-dmgo=447";
+/** The same recording: a heal on a combatant other than the announcer. */
+const HEAL_ON_ANOTHER = "471804=22.40;0;heal=512";
+/**
+ * No recording carries these after an announcement: a tick taking health off the announcer, and a
+ * message that decodes to nothing at all.
+ */
+const TICK_ON_ANNOUNCER = "-10007253=95.90;0;poison=42";
+const NOTHING_READ = "-10007253=95.90;0;whatever_per=30";
+/**
  * ⚠️ **No recording carries the one skill the table grants two attacks to.** Its announcement is
  * written out here because only a grant of two puts a blow this decoder must refuse *inside* what
  * a standing still has left to spend — at a grant of one the budget runs out first, and the
@@ -409,6 +426,33 @@ Deno.test("another combatant's blow ends a reach the table could not bound", () 
     assertEquals(attacks.length, 3, "all three blows are read");
     assertEquals(attacks[1]?.announced, null, "the blow that is not the announcer's takes none");
     assertEquals(attacks[2]?.announced, null, "and the standing does not step over it to reach on");
+});
+
+Deno.test("a glued heal on the announcer hands the reach on to the blow after it", () => {
+    const handed = decode([SELF_HEALING_ANNOUNCEMENT, SELF_HEAL, BLOW_AFTER_SELF_HEAL]);
+    const blow = handed.find((event) => event.kind === "attack");
+    assertStrictEquals(blow?.kind, "attack", "the blow after the heal is read");
+    assertEquals(blow.announced?.skillName, "Kuya Kuya", "and rides the announcement");
+
+    const elsewhere = decode([SELF_HEALING_ANNOUNCEMENT, HEAL_ON_ANOTHER, BLOW_AFTER_SELF_HEAL]);
+    const plain = elsewhere.find((event) => event.kind === "attack");
+    assertStrictEquals(plain?.kind, "attack", "a blow after somebody else's heal is read");
+    assertEquals(plain.announced, null, "and rides nothing, because that heal ended the reach");
+
+    const twice = decode([SELF_HEALING_ANNOUNCEMENT, SELF_HEAL, SELF_HEAL, BLOW_AFTER_SELF_HEAL]);
+    const late = twice.find((event) => event.kind === "attack");
+    assertStrictEquals(late?.kind, "attack", "a blow after a second heal is read");
+    assertEquals(late.announced, null, "and only the glued message hands the reach on");
+
+    const ticked = decode([SELF_HEALING_ANNOUNCEMENT, TICK_ON_ANNOUNCER, BLOW_AFTER_SELF_HEAL]);
+    const struck = ticked.find((event) => event.kind === "attack");
+    assertStrictEquals(struck?.kind, "attack", "a blow after a tick on the announcer is read");
+    assertEquals(struck.announced, null, "and health taken off them hands nothing on");
+
+    const unread = decode([SELF_HEALING_ANNOUNCEMENT, NOTHING_READ, BLOW_AFTER_SELF_HEAL]);
+    const after = unread.find((event) => event.kind === "attack");
+    assertStrictEquals(after?.kind, "attack", "a blow after a message nothing was read from");
+    assertEquals(after.announced, null, "rides nothing: a heal is what hands a reach on");
 });
 
 Deno.test("a name the game did not take from its table is read where one is named", () => {

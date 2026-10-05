@@ -909,10 +909,10 @@ Deno.test("every point a kind cut is made of states its kind, on every recording
     }
     // Zero is a boundary (**W5**): a walk that opened nothing would agree with every screen it
     // never cut, so the count it reached is stated beside what it found.
-    assertEquals(cut, 2251, "the kind rows the corpus draws, 2026-10-02");
+    assertEquals(cut, 2351, "the kind rows the corpus draws, 2026-10-04");
     // What a blow never carried, and what the cut would have had to call unknown before the key
     // it moved under was read as a kind: 639,400 over `captures/`, measured 2026-09-06.
-    assertEquals(byKey, 710381, "and the health that moved outside a blow is named by its key");
+    assertEquals(byKey, 775402, "and the health that moved outside a blow is named by its key");
 });
 
 /**
@@ -1521,8 +1521,8 @@ Deno.test("a one-side list divides by the figure the strip states for that side"
             }
         }
     }
-    assertEquals(checked, 576, "every seat of the corpus, on every screen, both ways round");
-    assertEquals(charged, 102, "and this many of them stand over a figure charged to that side");
+    assertEquals(checked, 592, "every seat of the corpus, on every screen, both ways round");
+    assertEquals(charged, 106, "and this many of them stand over a figure charged to that side");
 });
 
 /**
@@ -1567,8 +1567,8 @@ Deno.test("what one side dealt with no striker named is what the other took from
             together += apart?.figure ?? 0;
         }
     }
-    assertEquals(seats, 72, "every seat of the corpus reads the mirror");
-    assertEquals(together, 680118, "and this is what it comes to over all of them");
+    assertEquals(seats, 74, "every seat of the corpus reads the mirror");
+    assertEquals(together, 737527, "and this is what it comes to over all of them");
 });
 
 /**
@@ -1934,7 +1934,7 @@ Deno.test("every recording states how it ended, and every seat in it reads a wor
         readRecordedFights().map((fight) => fight.path).length,
         "every recording carries an outcome",
     );
-    assertEquals(seats, 72, "and every one of them states two sides apiece");
+    assertEquals(seats, 74, "and every one of them states two sides apiece");
 });
 
 /**
@@ -3274,8 +3274,8 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
     }
     assertEquals(
         [...places.entries()].sort((left, right) => left[0] - right[0]),
-        [[1, 159], [2, 65], [3, 47], [4, 18], [5, 6], [6, 3]],
-        "every section the corpus draws one in, 2026-10-02",
+        [[1, 159], [2, 69], [3, 48], [4, 21], [5, 7], [6, 3]],
+        "every section the corpus draws one in, 2026-10-04",
     );
 });
 
@@ -3316,7 +3316,7 @@ Deno.test("a pair states its parts largest first, the closing row among them", (
             }
         }
     }
-    assertEquals(closing, 470, "and the pairs a closing row stands in, 2026-10-02");
+    assertEquals(closing, 484, "and the pairs a closing row stands in, 2026-10-04");
 });
 
 /**

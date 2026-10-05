@@ -47,7 +47,7 @@ const NO_GRANTS: DecoderTables = { blowsGrantedBySkillId: new Map() };
 const TABLES = { table: BLOWS_GRANTED, none: NO_GRANTS } as const;
 
 /**
- * The whole of what the corpus grants, measured 2026-10-02: 255 announcements are followed by two
+ * The whole of what the corpus grants, measured 2026-10-04: 261 announcements are followed by two
  * of their own blows and none by three, and the three skills behind them are the two the table
  * grants an attack to and one it has never heard of.
  */
@@ -60,7 +60,7 @@ Deno.test("a run of the announcer's own blows is two at most, and only for three
     }
     assertEquals(
         [...longer.entries()].sort(),
-        [["Podwójne trafienie", 186], ["Podwójny strzał", 66], ["Struna płomienna", 3]],
+        [["Podwójne trafienie", 186], ["Podwójny strzał", 72], ["Struna płomienna", 3]],
         "the skills that strike twice, and how often the corpus caught each",
     );
 });
@@ -152,7 +152,7 @@ Deno.test("a second blow is reached by the table where it can, and by the bound 
         bounded += 1;
         assert(granted >= run.blows.length - 1, `${run.skillName}: more blows than it grants`);
     }
-    assertStrictEquals(bounded, 252, "what the table bounds");
+    assertStrictEquals(bounded, 258, "what the table bounds");
     assertStrictEquals(reached, 3, "and what the bound reaches, because the table cannot");
 });
 
@@ -172,7 +172,7 @@ Deno.test("a granted blow carries damage and nothing a second reading would plac
             }
         }
     }
-    assertStrictEquals(blowsRead, 255, "every second blow the corpus holds was read");
+    assertStrictEquals(blowsRead, 261, "every second blow the corpus holds was read");
 });
 
 /**
@@ -180,7 +180,7 @@ Deno.test("a granted blow carries damage and nothing a second reading would plac
  * before this decision**: a reach the table could not bound is not the table's to take away, so
  * the three blows it reaches stay reached. The empty column isolates the table's own contribution.
  */
-Deno.test("the table reaches 252 blows, and the bound reaches three the table cannot", () => {
+Deno.test("the table reaches 258 blows, and the bound reaches three the table cannot", () => {
     const counted = new Map<string, { plain: number; plainApplied: number }>();
     for (const [name, tables] of Object.entries(TABLES)) {
         let plain = 0;
@@ -197,12 +197,12 @@ Deno.test("the table reaches 252 blows, and the bound reaches three the table ca
     }
     assertEquals(
         counted.get("table"),
-        { plain: 1824, plainApplied: 2341838 },
+        { plain: 1855, plainApplied: 2403978 },
         "what stands behind no announcement once both halves of the rule have run",
     );
     assertEquals(
         counted.get("none"),
-        { plain: 2076, plainApplied: 2497601 },
+        { plain: 2113, plainApplied: 2568536 },
         "and what the bound alone leaves, which is the table's own contribution measured",
     );
 });
@@ -246,7 +246,7 @@ Deno.test("the table the tests carry is the three skills that grant a blow", () 
 /**
  * ⚠️ **`Zwykły cios` is a measured claim.** Every blow standing under no announcement opened a turn
  * of its own, so the two readings of one message, whose action it was and whose skill it was,
- * answer alike. The empty table proves the walk still counts: 252 blows fall back into the row, and
+ * answer alike. The empty table proves the walk still counts: 258 blows fall back into the row, and
  * every one of them stands mid-strike.
  */
 Deno.test("every blow the closing row holds opened a turn of its own", () => {
@@ -269,12 +269,12 @@ Deno.test("every blow the closing row holds opened a turn of its own", () => {
     }
     assertEquals(
         counted.get("table"),
-        { plain: 1824, midStrike: 0 },
+        { plain: 1855, midStrike: 0 },
         "the row is exactly the blows the game numbered a turn for",
     );
     assertEquals(
         counted.get("none"),
-        { plain: 2076, midStrike: 252 },
+        { plain: 2113, midStrike: 258 },
         "and without the table's reach the walk still finds what it is looking for",
     );
 });
