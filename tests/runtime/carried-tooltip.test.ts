@@ -16,6 +16,13 @@ const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.j
 const DUET = "captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json";
 /** A fight carrying `legbon_lastheal`, read 2026-09-25 with `git grep` at `fa1dcce`. */
 const LAST_RESCUED = "captures/2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json";
+/**
+ * A `Podwójny dech` whose caster has taken eight turns since it while one bearer took six, read
+ * 2026-10-06 over `captures/` through `src/`: the payload and the bearer it stands at.
+ */
+const OUTRUN_HASTE = "captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json";
+const OUTRUN_PAYLOAD_INDEX = 81;
+const OUTRUN_BEARER_ID = 21719;
 const ADD_ON_ROW = "MargoMeter";
 
 /**
@@ -226,4 +233,22 @@ Deno.test("a status carried with a figure states it, and states the fighter's ow
         }).length;
     }
     assert(figured > 0, "the fight carries a slow with a figure, and a row says it");
+});
+
+/**
+ * ⚠️ **Held at the seam, where the side-wide standings would stand in for the casts.** Two hastes
+ * at 20 stand over the bearer on their own clock; on the first caster's that one has run out, so
+ * the standings would leave the row at 20 (`docs/auras-standing.md`).
+ */
+Deno.test("a haste whose caster outran the bearer still adds to the bearer's figure", () => {
+    const { page, registries } = composeRebuildingBattle();
+    const world = initRuntimeWorld(page);
+    const updates = lookupRecordedFight(OUTRUN_HASTE).updates;
+    for (const payload of updates.slice(0, OUTRUN_PAYLOAD_INDEX + 1)) world.update(payload);
+    const rows = registries.get(OUTRUN_BEARER_ID)?.text.split("<br>") ?? [];
+    assertEquals(
+        rows.filter((row) => row.startsWith("speed_up: ")),
+        ["speed_up: 40%"],
+        "both sources, each counted on the bearer's own turns",
+    );
 });

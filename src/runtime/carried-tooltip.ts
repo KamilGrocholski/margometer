@@ -44,7 +44,7 @@ export function writeCarriedTooltips(
     const figuresByCombatantAndBit = new Map<string, CarriedFigure>();
     const carried = tallyCarriedFigures({
         statuses: view.carriedStatuses,
-        auras: fightStandings.auras,
+        casts: fightStandings.casts,
         roster: view.roster,
         turnsByCombatantId: view.turnsByCombatantId,
         keyByStatusBit: tables.keyByStatusBit,

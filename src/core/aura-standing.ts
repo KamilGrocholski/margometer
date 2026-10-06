@@ -87,7 +87,13 @@ export interface AuraStanding {
 
 /** What one walk of a fight answers, which is two things and not one. */
 export interface FightStandings {
+    /** What stands on a side, each cast dropped once its caster has taken the turns it was given. */
     auras: AuraStanding[];
+    /**
+     * Every dated cast, the last of each caster's skill, whether its caster has outrun it or not:
+     * a bearer counts one on their own turns (`docs/auras-standing.md`).
+     */
+    casts: AuraStanding[];
     provocations: ProvocationStanding[];
 }
 
@@ -169,7 +175,8 @@ export function replayAuraStandings(view: FightView, statedSkills: StatedSkills)
         );
     }
     return {
-        auras: composeAuraStandings(walk),
+        auras: composeDatedCasts(walk).filter((cast) => cast.turnsElapsed < cast.turnsStated),
+        casts: composeDatedCasts(walk),
         provocations: composeProvocationStandings(walk),
     };
 }
@@ -266,17 +273,19 @@ function lookupProvokedIds(cast: AuraCast, roster: CombatantRoster): number[] {
     return provokedIds;
 }
 
-/** Elapsed against stated, and a cast whose turns have run out is no longer standing. */
-function composeAuraStandings(walk: AuraWalk): AuraStanding[] {
-    const auraStandings: AuraStanding[] = [];
+/**
+ * Every cast the walk holds, elapsed in its caster's turns against what the table states, run out
+ * or not. Built afresh on each call, so the two lists the walk answers share no record (S9).
+ */
+function composeDatedCasts(walk: AuraWalk): AuraStanding[] {
+    const datedCasts: AuraStanding[] = [];
     for (const cast of walk.castByCasterAndSkill.values()) {
         const turnsStated = cast.turnsStated;
-        assert(turnsStated !== null, "a cast standing on a side is one the table dates");
+        assert(turnsStated !== null, "a cast the walk holds is one the table dates");
         const turnsTakenNow = walk.turnsByCombatantId.get(cast.casterId) ?? cast.turnsAtCast;
         const turnsElapsed = turnsTakenNow - cast.turnsAtCast;
         assert(turnsElapsed >= 0, "a caster never takes fewer turns than they had at the cast");
-        if (turnsElapsed >= turnsStated) continue;
-        auraStandings.push({
+        datedCasts.push({
             skillId: cast.skillId,
             skillName: cast.skillName,
             casterId: cast.casterId,
@@ -288,8 +297,8 @@ function composeAuraStandings(walk: AuraWalk): AuraStanding[] {
             turnsAtCastByCombatantId: cast.turnsAtCastByCombatantId,
         });
     }
-    assert(auraStandings.length <= walk.castByCasterAndSkill.size, "no more stands than was cast");
-    return auraStandings;
+    assert(datedCasts.length === walk.castByCasterAndSkill.size, "every cast held is dated once");
+    return datedCasts;
 }
 
 /**

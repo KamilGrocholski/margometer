@@ -24,7 +24,8 @@ export interface CarriedFigure {
 /** What a reading of the fight hands over, so this file reads no walk of its own. */
 export interface CarriedFigureInputs {
     statuses: readonly CarriedStatus[];
-    auras: readonly AuraStanding[];
+    /** Every dated cast, cut here on the bearer's clock and never on the caster's. */
+    casts: readonly AuraStanding[];
     roster: CombatantRoster;
     /** Turns taken per combatant, the clock a cast is held to while it stands on a bearer. */
     turnsByCombatantId: ReadonlyMap<number, number>;
@@ -98,8 +99,8 @@ export function tallyCarriedFigures(inputs: CarriedFigureInputs): CarriedFigure[
         if (combatant === undefined) continue;
         const turnsTaken = inputs.turnsByCombatantId.get(status.combatantId) ?? 0;
         const bearer = { combatantId: status.combatantId, side: combatant.side, turnsTaken };
-        const casts = lookupCastsOverBearer(inputs.auras, inputs.roster, bearer, key);
-        const percent = tallyPercentForBearer(inputs.auras, casts, bearer, key);
+        const casts = lookupCastsOverBearer(inputs.casts, inputs.roster, bearer, key);
+        const percent = tallyPercentForBearer(casts, bearer, key);
         carriedFigures.push({ combatantId: status.combatantId, bit: status.bit, percent });
     }
     assert(carriedFigures.length <= inputs.statuses.length, "no more rows than statuses handed in");
@@ -108,29 +109,29 @@ export function tallyCarriedFigures(inputs: CarriedFigureInputs): CarriedFigure[
 
 /**
  * The casts of one key still standing **over this bearer**: reaching their side, and inside the
- * turns the table gives them, counted on the bearer's own clock. ⚠️ **A standing is dropped on the
- * caster's turns** (`develop ADR 0101`), so one whose caster has stopped taking them outlives its
- * own length for everybody else; asked on the bearer's clock it goes when it should.
+ * turns the table gives them, counted on the bearer's own clock from the cast. ⚠️ **Never on the
+ * caster's** (`docs/auras-standing.md`): a caster who outruns the bearer would end a cast the bearer
+ * still carries, and one who stops taking turns would stand it past its own length.
  */
 function lookupCastsOverBearer(
-    auras: readonly AuraStanding[],
+    casts: readonly AuraStanding[],
     roster: CombatantRoster,
     bearer: Bearer,
     key: string,
 ): AuraStanding[] {
-    assert(auras.length <= STANDINGS_MAXIMUM, "a walk over casts is bounded as the casts are");
+    assert(casts.length <= STANDINGS_MAXIMUM, "a walk over casts is bounded as the casts are");
     assert(bearer.turnsTaken >= 0, "and a count of turns never runs backwards");
     const castsOverBearer: AuraStanding[] = [];
-    for (const aura of auras) {
-        if (aura.amountByKey.get(key) === undefined) continue;
-        const caster = roster.byId.get(aura.casterId);
+    for (const cast of casts) {
+        if (cast.amountByKey.get(key) === undefined) continue;
+        const caster = roster.byId.get(cast.casterId);
         if (caster === undefined) continue;
         if (!doesKeyReachBearer(key, caster.side, bearer.side)) continue;
-        const turnsAtCast = aura.turnsAtCastByCombatantId.get(bearer.combatantId);
+        const turnsAtCast = cast.turnsAtCastByCombatantId.get(bearer.combatantId);
         if (turnsAtCast === undefined) continue;
         const turnsElapsed = bearer.turnsTaken - turnsAtCast;
         if (turnsElapsed < 0) continue;
-        if (turnsElapsed < aura.turnsStated) castsOverBearer.push(aura);
+        if (turnsElapsed < cast.turnsStated) castsOverBearer.push(cast);
     }
     assert(castsOverBearer.length <= SOURCES_MAXIMUM, "a bearer is reached by a bounded few casts");
     return castsOverBearer;
@@ -156,14 +157,13 @@ function doesKeyReachBearer(key: string, casterSide: number, bearerSide: number)
  * announced nowhere, so the figure would be a part passing itself off as the whole.
  */
 function tallyPercentForBearer(
-    auras: readonly AuraStanding[],
     casts: readonly AuraStanding[],
     bearer: Bearer,
     key: string,
 ): number | null {
     assert(key.length > 0, "a figure is asked of a key");
     assert(casts.length <= SOURCES_MAXIMUM, "and over the casts the walk above bounded");
-    if (isCasterHalved(auras, bearer.combatantId, key)) return null;
+    if (isCasterHalved(casts, bearer.combatantId, key)) return null;
     if (casts.length === 0) return null;
     // A source is a caster, at their highest cast (`docs/auras-standing.md`).
     const highestByCasterId = new Map<number, number>();
@@ -184,16 +184,19 @@ function tallyPercentForBearer(
     return summed;
 }
 
-/** True where this bearer is one of the casters a key hands a different amount to. */
+/**
+ * True where one of the casts over this bearer is their own, of a key that hands its caster a
+ * different amount. Their own cast is dated on their own clock, which is the caster's as well.
+ */
 function isCasterHalved(
-    auras: readonly AuraStanding[],
+    casts: readonly AuraStanding[],
     combatantId: number,
     key: string,
 ): boolean {
     assert(Number.isSafeInteger(combatantId), "a bearer is asked about by identity");
     if (!HALVED_FOR_THE_CASTER.includes(key)) return false;
-    return auras.some((aura) => {
-        if (aura.casterId !== combatantId) return false;
-        return aura.amountByKey.get(key) !== undefined;
+    return casts.some((cast) => {
+        if (cast.casterId !== combatantId) return false;
+        return cast.amountByKey.get(key) !== undefined;
     });
 }

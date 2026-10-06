@@ -9,16 +9,25 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { type AuraStanding } from "#/src/core/aura-standing.ts";
+import { type AuraStanding, replayAuraStandings } from "#/src/core/aura-standing.ts";
+import type { BattleEvent } from "#/src/core/battle-event.ts";
 import { indexKeyByStatusBit, tallyCarriedFigures } from "#/src/core/carried-figure.ts";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
+import type { FightView } from "#/src/core/fight-session.ts";
+import { addEventTurns, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { STATED_SKILLS } from "#/tests/frozen-tables.ts";
 
 const OURS = 1;
 const THEIRS = 2;
 const SPEED_BIT = 6;
 const SLOW_BIT = 5;
 const WITNESSED = indexKeyByStatusBit(FROZEN_BUFF_BITS.bits);
+
+/** `Szadź` as the frozen table dates it, eight turns, cast from across the board. */
+const FROST_SKILL_ID = 123;
+const FROST_CASTER_ID = 21;
+const BEARER_ID = 12;
 
 const ROSTER = indexCombatantRoster([
     { id: 11, name: "Gracz 1", side: OURS, profession: "w", level: 40, healthMaximum: 100 },
@@ -37,13 +46,13 @@ Deno.test("a cast reaching their side stands on the bearer while their own turns
 });
 
 function readFigure(
-    auras: readonly AuraStanding[],
+    casts: readonly AuraStanding[],
     bit: number,
     turnsByCombatantId: ReadonlyMap<number, number>,
 ) {
     const figures = tallyCarriedFigures({
         statuses: [{ combatantId: 12, bit, turnsElapsed: 4 }],
-        auras,
+        casts,
         roster: ROSTER,
         turnsByCombatantId,
         keyByStatusBit: WITNESSED,
@@ -67,10 +76,10 @@ function composeCast(over: Partial<AuraStanding> & { key: string; amount: number
 }
 
 /**
- * ⚠️ **The failure this file was written for.** A standing is dropped on the **caster's** turns
- * (`develop ADR 0101`), so a cast whose caster stops taking them stands on for ever — and a row
- * dated from it read `21 z 8 tur` over `captures/`. Held to the bearer's clock it goes when
- * it should, and takes its figure with it rather than leaving one the clock will not back.
+ * ⚠️ **The failure this file was written for.** A cast whose caster stops taking turns never runs
+ * out on the caster's clock — and a row dated from such a cast read `21 z 8 tur` over `captures/`.
+ * Held to the bearer's clock it goes when it should, and takes its figure with it rather than
+ * leaving one the clock will not back.
  */
 Deno.test("a cast the bearer has outrun says nothing", () => {
     const standings = [composeCast({ key: "aura-sa_per", amount: 20 })];
@@ -124,10 +133,24 @@ Deno.test("the caster of a key the help halves for them gets no figure", () => {
     assertStrictEquals(figure?.percent, null, "half of twenty is not a figure anybody published");
 });
 
+/** Every dated cast is handed in, so the bearer's own is asked about only while it stands on them. */
+Deno.test("a caster whose own haste has run out on them takes another's figure whole", () => {
+    const standings = [
+        composeCast({ key: "aura-sa_per", amount: 20, casterId: 12 }),
+        composeCast({
+            key: "aura-sa_per",
+            amount: 20,
+            turnsAtCastByCombatantId: new Map([[11, 8], [12, 8], [13, 8], [21, 8]]),
+        }),
+    ];
+    const figure = readFigure(standings, SPEED_BIT, new Map([[12, 9]]));
+    assertStrictEquals(figure?.percent, 20, "their own ran out at eight, the other is one turn in");
+});
+
 Deno.test("a status no key is witnessed on gets no row at all", () => {
     const figures = tallyCarriedFigures({
         statuses: [{ combatantId: 12, bit: 3, turnsElapsed: 4 }],
-        auras: [composeCast({ key: "aura-sa_per", amount: 20 })],
+        casts: [composeCast({ key: "aura-sa_per", amount: 20 })],
         roster: ROSTER,
         turnsByCombatantId: new Map([[12, 1]]),
         keyByStatusBit: WITNESSED,
@@ -195,4 +218,100 @@ Deno.test("a cast dated after the bearer's own count stands on nothing yet", () 
     })];
     const figure = readFigure(standings, SPEED_BIT, new Map([[12, 3]]));
     assertStrictEquals(figure?.percent, null, "a clock behind the cast is no clock inside it");
+});
+
+/**
+ * ⚠️ **The failure the bearer's clock was chosen for**: the side-wide standings drop a cast on its
+ * caster's turns, so a caster who took eight turns while the slowed took six ended a `Szadź` the
+ * bearer still carried, and the row stated no figure (`docs/auras-standing.md`).
+ */
+Deno.test("a caster who outruns the bearer leaves the figure standing on the bearer", () => {
+    const events = [
+        composeBlowBy(BEARER_ID),
+        composeFrostCast(),
+        ...Array.from({ length: 8 }, () => composeBlowBy(FROST_CASTER_ID)),
+        ...Array.from({ length: 6 }, () => composeBlowBy(BEARER_ID)),
+    ];
+    const figure = replayFrostFigure(events);
+    assertStrictEquals(
+        figure?.percent,
+        14,
+        "six of the bearer's eight turns, whatever the caster's",
+    );
+});
+
+/** The figure on the bearer's slow, off the walk the tooltip reads and the clock the view keeps. */
+function replayFrostFigure(events: readonly BattleEvent[]) {
+    const turnsByCombatantId = new Map<number, number>();
+    let turnStanding = NO_TURN_STANDING;
+    for (const event of events) {
+        turnStanding = addEventTurns(turnsByCombatantId, event, turnStanding);
+    }
+    const view: FightView = {
+        roster: ROSTER,
+        events,
+        unread: { "unknown-key": 0, "no-parameter": 0, "grammar-refused": 0 },
+        messagesLost: 0,
+        messagesRead: events.length,
+        hasJoinedInProgress: false,
+        isOver: false,
+        readerSide: null,
+        turnStatement: null,
+        isOnAuto: false,
+        payloadsApplied: 1,
+        chargedSkills: [],
+        carriedStatuses: [{ combatantId: BEARER_ID, bit: SLOW_BIT, turnsElapsed: 1 }],
+        legendaryStandings: [],
+        turnsByCombatantId,
+    };
+    const figures = tallyCarriedFigures({
+        statuses: view.carriedStatuses,
+        casts: replayAuraStandings(view, STATED_SKILLS).casts,
+        roster: ROSTER,
+        turnsByCombatantId,
+        keyByStatusBit: WITNESSED,
+    });
+    return figures[0];
+}
+
+function composeFrostCast(): BattleEvent {
+    return {
+        kind: "skill-used",
+        actorId: FROST_CASTER_ID,
+        targetId: BEARER_ID,
+        actorHealthPercent: 100,
+        targetHealthPercent: null,
+        skillName: "Szadź",
+        skillId: FROST_SKILL_ID,
+        declared: [{ effect: "allslow_per", amount: 14, text: null }],
+    };
+}
+
+/** A blow standing behind no announcement, which opens a turn of whoever struck it. */
+function composeBlowBy(actorId: number): BattleEvent {
+    return {
+        kind: "attack",
+        actorId,
+        targetId: actorId === BEARER_ID ? FROST_CASTER_ID : BEARER_ID,
+        actorHealthPercent: 100,
+        targetHealthPercent: 90,
+        raw: [{ element: "physical", amount: 10 }],
+        applied: [{ element: "physical", amount: 10 }],
+        prevented: [],
+        destroyed: [],
+        procs: [],
+        declared: [],
+        announced: null,
+    };
+}
+
+Deno.test("a bearer who outruns the caster has the figure gone", () => {
+    const events = [
+        composeBlowBy(BEARER_ID),
+        composeFrostCast(),
+        ...Array.from({ length: 2 }, () => composeBlowBy(FROST_CASTER_ID)),
+        ...Array.from({ length: 8 }, () => composeBlowBy(BEARER_ID)),
+    ];
+    const figure = replayFrostFigure(events);
+    assertStrictEquals(figure?.percent, null, "eight of their eight, though the caster took two");
 });
