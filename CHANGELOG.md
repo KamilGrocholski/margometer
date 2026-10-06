@@ -66,6 +66,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   panel mówi, że jej nie zapisał — wcześniej znikała z listy przy każdym wczytaniu strony.
 - **Poprawka** — Przyspieszenie i spowolnienie w dymku postaci liczą się na turach tej postaci, więc
   nie znikają, gdy rzucający zdąży wykonać więcej tur niż ona.
+- **Poprawka** — Usterka przy obsłudze myszy mówi „Panel nie zareagował na mysz”, bo dotyczy też
+  przeciągania i najechania, a nie tylko kliknięcia.
 
 ## [0.22.1] — 2026-10-05
 

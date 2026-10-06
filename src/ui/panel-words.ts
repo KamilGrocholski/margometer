@@ -929,7 +929,7 @@ const DEFECT_WORDS: Record<PanelDefectKind, string> = {
     region: "Panel nie narysował jednej ze swoich części",
     reading: "Panel nie przeliczył tej walki",
     figures: "Liczby w panelu nie zgadzają się ze sobą",
-    gesture: "Panel nie wykonał kliknięcia",
+    gesture: "Panel nie zareagował na mysz",
     file: "Panel nie przygotował pliku z walką",
     // A panel waiting for a game says what it cannot see.
     engine: "Nie widać walki w grze",
