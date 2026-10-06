@@ -94,8 +94,9 @@ this language does not have would be**; each states what binds instead.
   assert**, across `libs/`, `src/core/`, `src/ports/`, `src/runtime/` and `tools/`, counting the
   closures a file writes inside its functions as the functions they are. A function handed nothing
   has no precondition a caller could break; one **E12** forbids to assert has none it may state.
-  **The floor a machine holds this to sits below the two**, so that deleting an assertion **A12**
-  calls no assertion is never what reddens the gate. `develop ADR 0007`, `0051`, `0074`.
+  **No guard counts it yet, so it is held by reading**; a guard that comes sets its floor below the
+  two, so that deleting an assertion **A12** calls no assertion never reddens the gate.
+  `develop ADR 0007`, `0051`, `0074`.
 - **S6.** Declare at the smallest possible scope, `const` by default, at the point of use.
 - **S7.** Every return value is used or explicitly discarded; every parameter is checked. Held by
   the compiler.

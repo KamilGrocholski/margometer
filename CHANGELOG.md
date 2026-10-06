@@ -7,8 +7,7 @@
     **Poprawka** — and the kinds run in that order inside a version.
   - **One sentence, and it is the whole entry.** A player reads a section to decide whether to
     update, and stops at the first line that is not about that. Whoever wants the detail has the
-    history. The rule is younger than the file: `0.17.0` and every section below it were written
-    under the old one.
+    history. ⚠️ `0.17.0` and every section below it keep the longer entries of an older rule.
   - From the player's side, in what they can see in the game and in the panel. Never a word of
     ours and never a key of the game's (AGENTS.md **L3**). The test: would somebody who plays
     Margonem and has never seen the code understand it?
@@ -17,10 +16,8 @@
   - Written against the last released number, never against the last state of the branch. A
     regression this cycle opened and closed before the release is not an entry — nobody outside
     ever had it, so its fix is not a change anybody can see.
-  - At a release: move `[Niewydane]` under the new number with its date, bump `version` in
-    `deno.json`, and push in the order AGENTS.md **G7** states. The rest is
-    `.github/workflows/release.yml`, which takes this version's section as the body of the
-    release (`tools/changelog.ts`) and attaches the built files.
+  - At a release, `docs/releasing.md` is every step; `.github/workflows/release.yml` takes this
+    version's section as the body of the release (`tools/changelog.ts`).
 
   A section past its tag is not touched — somebody already has that release.
 
