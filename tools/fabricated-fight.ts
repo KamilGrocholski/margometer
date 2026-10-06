@@ -21,7 +21,7 @@ import { clampNumber } from "#/libs/number-range.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
-import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
     CHARGE_BROKEN_KEY,
@@ -149,14 +149,15 @@ interface FabricatedTurn {
 }
 
 /**
- * What one act writes. `doesOpenTurn` is stated rather than read back: an act carrying only a
- * declaration is not a turn to `src/core/fight-statistics.ts`, so the script adds a `step` beside
- * it and the game's own numbering agrees with what the panel counts.
+ * What one act adds to a turn: the messages it states, into the list it is handed, and what they
+ * move on the turn's combatants. `doesOpenTurn` is stated rather than read back: an act carrying
+ * only a declaration is not a turn to `src/core/fight-statistics.ts`, so the script adds a `step`
+ * beside it and the game's own numbering agrees with what the panel counts.
  */
 interface FabricatedAct {
     name: string;
     doesOpenTurn: boolean;
-    execute: (turn: FabricatedTurn) => string[];
+    add: (turn: FabricatedTurn, messages: string[]) => void;
 }
 
 interface FabricatedSkill {
@@ -171,7 +172,7 @@ interface FabricatedElement {
 }
 
 /** A status the client registers, by its own name, which is what keeps its bit off a literal. */
-type FrozenStatus = (typeof FROZEN_BUFF_BITS.bits)[number];
+type FrozenStatus = (typeof FROZEN_STATUS_BITS.bits)[number];
 
 const FABRICATION_ENDINGS: readonly FabricationEnding[] = Object.values(FABRICATION_ENDING);
 export const FABRICATED_DIRECTORY = "fabricated";
@@ -345,7 +346,7 @@ const LOOT_SENTENCE = "Skrzynia stanęła otworem.";
  * Named apart from the list below, because a fight closing on shouts reaches for this one act by
  * itself and two spellings of it would drift.
  */
-const SHOUT_ACT: FabricatedAct = { name: "a shout", doesOpenTurn: true, execute: executeShout };
+const SHOUT_ACT: FabricatedAct = { name: "a shout", doesOpenTurn: true, add: addShout };
 
 /**
  * The script. One entry is one turn, and the fight walks this list round after round, so a key
@@ -353,47 +354,47 @@ const SHOUT_ACT: FabricatedAct = { name: "a shout", doesOpenTurn: true, execute:
  * fight shorter than this list reaches its head only — which is what `actsReached` reports.
  */
 const ACTS: readonly FabricatedAct[] = [
-    { name: "a plain blow", doesOpenTurn: true, execute: executePlainBlow },
-    { name: "a critical blow", doesOpenTurn: true, execute: executeCriticalBlow },
-    { name: "an off-hand critical", doesOpenTurn: true, execute: executeOffhandBlow },
-    { name: "a piercing blow", doesOpenTurn: true, execute: executePiercingBlow },
-    { name: "a critical pierce", doesOpenTurn: true, execute: executeCriticalPierce },
-    { name: "a blow against absorption", doesOpenTurn: true, execute: executeAbsorbedBlow },
-    { name: "a blow breaking armour", doesOpenTurn: true, execute: executeArmourBreakingBlow },
-    { name: "a third attack", doesOpenTurn: true, execute: executeThirdAttack },
-    { name: "a stunning blow", doesOpenTurn: true, execute: executeStunningBlow },
-    { name: "a cursed blow", doesOpenTurn: true, execute: executeCursedBlow },
-    { name: "a blow evaded", doesOpenTurn: true, execute: executeEvadedBlow },
-    { name: "a wounding blow", doesOpenTurn: true, execute: executeWoundingBlow },
-    { name: "a wound weakened", doesOpenTurn: true, execute: executeWeakenedWound },
-    { name: "a wound off the other hand", doesOpenTurn: true, execute: executeAuxiliaryWound },
-    { name: "a wound ticking", doesOpenTurn: false, execute: executeWoundTick },
-    { name: "poison and fire ticking", doesOpenTurn: false, execute: executePoisonTick },
-    { name: "light and anguish ticking", doesOpenTurn: false, execute: executeLightTick },
-    { name: "healing oneself", doesOpenTurn: false, execute: executeHealSelf },
-    { name: "healing an ally", doesOpenTurn: true, execute: executeHealAlly },
-    { name: "a holy touch", doesOpenTurn: false, execute: executeHolyTouch },
-    { name: "a bandage", doesOpenTurn: false, execute: executeBandage },
-    { name: "healing stated by name", doesOpenTurn: true, execute: executeLastHeal },
-    { name: "damage stated by name", doesOpenTurn: true, execute: executeNamedDamage },
-    { name: "a blow from nobody", doesOpenTurn: false, execute: executeBlowFromNobody },
-    { name: "a blow at nobody", doesOpenTurn: true, execute: executeBlowAtNobody },
-    { name: "health lost between nobody", doesOpenTurn: false, execute: executeLossToNobody },
-    { name: "health coming back to nobody", doesOpenTurn: false, execute: executeHealToNobody },
-    { name: "healing a whole side", doesOpenTurn: true, execute: executeSideHeal },
-    { name: "an aura cast", doesOpenTurn: true, execute: executeAuraCast },
+    { name: "a plain blow", doesOpenTurn: true, add: addPlainBlow },
+    { name: "a critical blow", doesOpenTurn: true, add: addCriticalBlow },
+    { name: "an off-hand critical", doesOpenTurn: true, add: addOffhandBlow },
+    { name: "a piercing blow", doesOpenTurn: true, add: addPiercingBlow },
+    { name: "a critical pierce", doesOpenTurn: true, add: addCriticalPierce },
+    { name: "a blow against absorption", doesOpenTurn: true, add: addAbsorbedBlow },
+    { name: "a blow breaking armour", doesOpenTurn: true, add: addArmourBreakingBlow },
+    { name: "a third attack", doesOpenTurn: true, add: addThirdAttack },
+    { name: "a stunning blow", doesOpenTurn: true, add: addStunningBlow },
+    { name: "a cursed blow", doesOpenTurn: true, add: addCursedBlow },
+    { name: "a blow evaded", doesOpenTurn: true, add: addEvadedBlow },
+    { name: "a wounding blow", doesOpenTurn: true, add: addWoundingBlow },
+    { name: "a wound weakened", doesOpenTurn: true, add: addWeakenedWound },
+    { name: "a wound off the other hand", doesOpenTurn: true, add: addAuxiliaryWound },
+    { name: "a wound ticking", doesOpenTurn: false, add: addWoundTick },
+    { name: "poison and fire ticking", doesOpenTurn: false, add: addPoisonTick },
+    { name: "light and anguish ticking", doesOpenTurn: false, add: addLightTick },
+    { name: "healing oneself", doesOpenTurn: false, add: addHealSelf },
+    { name: "healing an ally", doesOpenTurn: true, add: addHealAlly },
+    { name: "a holy touch", doesOpenTurn: false, add: addHolyTouch },
+    { name: "a bandage", doesOpenTurn: false, add: addBandage },
+    { name: "healing stated by name", doesOpenTurn: true, add: addLastHeal },
+    { name: "damage stated by name", doesOpenTurn: true, add: addNamedDamage },
+    { name: "a blow from nobody", doesOpenTurn: false, add: addBlowFromNobody },
+    { name: "a blow at nobody", doesOpenTurn: true, add: addBlowAtNobody },
+    { name: "health lost between nobody", doesOpenTurn: false, add: addLossToNobody },
+    { name: "health coming back to nobody", doesOpenTurn: false, add: addHealToNobody },
+    { name: "healing a whole side", doesOpenTurn: true, add: addSideHeal },
+    { name: "an aura cast", doesOpenTurn: true, add: addAuraCast },
     SHOUT_ACT,
-    { name: "a cast on the allies", doesOpenTurn: true, execute: executeAlliesCast },
-    { name: "a cast on the enemies", doesOpenTurn: true, execute: executeEnemiesCast },
-    { name: "a stance", doesOpenTurn: false, execute: executeStance },
-    { name: "resources declared", doesOpenTurn: false, execute: executeResources },
-    { name: "statuses standing", doesOpenTurn: false, execute: executeStandingStatuses },
-    { name: "legendary bonuses standing", doesOpenTurn: false, execute: executeLegendaryBonuses },
-    { name: "a bard's song", doesOpenTurn: true, execute: executeBardSong },
-    { name: "a step", doesOpenTurn: true, execute: encodeStep },
-    { name: "a skill made ready", doesOpenTurn: true, execute: executePrepare },
-    { name: "a turn spent on nothing", doesOpenTurn: true, execute: executeTurnLost },
-    { name: "the log saying something else", doesOpenTurn: false, execute: executeLoot },
+    { name: "a cast on the allies", doesOpenTurn: true, add: addAlliesCast },
+    { name: "a cast on the enemies", doesOpenTurn: true, add: addEnemiesCast },
+    { name: "a stance", doesOpenTurn: false, add: addStance },
+    { name: "resources declared", doesOpenTurn: false, add: addResources },
+    { name: "statuses standing", doesOpenTurn: false, add: addStandingStatuses },
+    { name: "legendary bonuses standing", doesOpenTurn: false, add: addLegendaryBonuses },
+    { name: "a bard's song", doesOpenTurn: true, add: addBardSong },
+    { name: "a step", doesOpenTurn: true, add: addStep },
+    { name: "a skill made ready", doesOpenTurn: true, add: addPrepare },
+    { name: "a turn spent on nothing", doesOpenTurn: true, add: addTurnLost },
+    { name: "the log saying something else", doesOpenTurn: false, add: addLoot },
 ];
 
 /**
@@ -877,9 +878,10 @@ function addTurnCall(state: FabricationState, turn: FabricatedTurn, act: Fabrica
     const before = encodeSnapshot(state);
     // An act whose figures all came out at nothing writes nothing, and the step is then the whole
     // of the turn.
-    const messages = act.execute(turn);
+    const messages: string[] = [];
+    act.add(turn, messages);
     if (act.doesOpenTurn) assert(messages.length > 0, "an act opening a turn leaves a message");
-    else messages.push(...encodeStep(turn));
+    else addStep(turn, messages);
     const indexes = addMessageIndexes(state, messages);
     addTurnStatement(state, turn.actor);
     const payload: Record<string, unknown> = {
@@ -1025,71 +1027,71 @@ function encodeValueless(key: string): MessageParameter {
     return { key, value: null };
 }
 
-function executePlainBlow(turn: FabricatedTurn): string[] {
-    return [executeBlow(turn, [])];
+function addPlainBlow(turn: FabricatedTurn, messages: string[]): void {
+    addBlow(turn, messages, []);
 }
 
-function executeCriticalBlow(turn: FabricatedTurn): string[] {
-    return [executeBlow(turn, [
+function addCriticalBlow(turn: FabricatedTurn, messages: string[]): void {
+    addBlow(turn, messages, [
         encodeValueless("+crit"),
         encodeFigure("+actdmg", composeSmall(turn, 4)),
         encodeFigure("-blok", composeSmallHealth(turn, 210)),
-    ])];
+    ]);
 }
 
-function executeOffhandBlow(turn: FabricatedTurn): string[] {
-    return [executeBlow(turn, [
+function addOffhandBlow(turn: FabricatedTurn, messages: string[]): void {
+    addBlow(turn, messages, [
         encodeValueless("+of_crit"),
         encodeFigure("+resdmg", composeSmallHealth(turn, 31)),
         encodeFigure("+resdmgf", composeSmallHealth(turn, 29)),
         encodeFigure("+resdmgc", composeSmallHealth(turn, 23)),
         encodeFigure("+resdmgl", composeSmallHealth(turn, 19)),
-    ])];
+    ]);
 }
 
-function executePiercingBlow(turn: FabricatedTurn): string[] {
-    return [executeBlow(turn, [encodeValueless("+pierce"), encodeValueless("-pierceb")])];
+function addPiercingBlow(turn: FabricatedTurn, messages: string[]): void {
+    addBlow(turn, messages, [encodeValueless("+pierce"), encodeValueless("-pierceb")]);
 }
 
 /**
  * The blow `docs/protocol-keys.md`'s `+critpierce` entry gives as its evidence: the key beside
  * `+crit` and `+pierce`, which is the shape the decoder reads it in.
  */
-function executeCriticalPierce(turn: FabricatedTurn): string[] {
-    return [executeBlow(turn, [
+function addCriticalPierce(turn: FabricatedTurn, messages: string[]): void {
+    addBlow(turn, messages, [
         encodeValueless("+crit"),
         encodeValueless("+pierce"),
         encodeFigure("+critpierce", composeScaled(turn.shape, ARMOUR_DAMAGE_PIERCED)),
-    ])];
+    ]);
 }
 
-function executeAbsorbedBlow(turn: FabricatedTurn): string[] {
-    return [executeBlow(turn, [
+function addAbsorbedBlow(turn: FabricatedTurn, messages: string[]): void {
+    addBlow(turn, messages, [
         encodeFigure("-absorb", composeSmallHealth(turn, 140)),
         encodeFigure("-absorbm", composeSmallHealth(turn, 95)),
         encodeFigure("+abdest_per", composeSmall(turn, 12)),
         encodeFigure("+abmdest_per", composeSmall(turn, 9)),
-    ])];
+    ]);
 }
 
-function executeArmourBreakingBlow(turn: FabricatedTurn): string[] {
-    return [executeBlow(turn, [
+function addArmourBreakingBlow(turn: FabricatedTurn, messages: string[]): void {
+    addBlow(turn, messages, [
         encodeValueless("+acdmg_destroyed"),
         encodeFigure("-dmga", composeSmallHealth(turn, 60)),
-    ])];
+    ]);
 }
 
-function executeThirdAttack(turn: FabricatedTurn): string[] {
-    return [executeBlow(turn, [
+function addThirdAttack(turn: FabricatedTurn, messages: string[]): void {
+    addBlow(turn, messages, [
         encodeFigure("+thirdatt", composeSmallHealth(turn, 260)),
         encodeFigure("-thirdatt", composeSmallHealth(turn, 190)),
-    ])];
+    ]);
 }
 
-function executeStunningBlow(turn: FabricatedTurn): string[] {
+function addStunningBlow(turn: FabricatedTurn, messages: string[]): void {
     setStatusBit(turn.target, "shock", turn.round);
     setStatusBit(turn.target, "frostbite", turn.round);
-    return [executeBlow(turn, [
+    addBlow(turn, messages, [
         encodeValueless("+stun"),
         encodeValueless("+stun2"),
         encodeValueless("+stun2-c"),
@@ -1097,20 +1099,20 @@ function executeStunningBlow(turn: FabricatedTurn): string[] {
         encodeValueless("+stun2-f"),
         encodeValueless("+stun2-l"),
         encodeValueless("+freeze"),
-    ])];
+    ]);
 }
 
-function executeCursedBlow(turn: FabricatedTurn): string[] {
-    return [executeBlow(turn, [
+function addCursedBlow(turn: FabricatedTurn, messages: string[]): void {
+    addBlow(turn, messages, [
         encodeValueless("+legbon_curse"),
         encodeValueless("+legbon_verycrit"),
         encodeValueless("-legbon_cleanse"),
         encodeValueless("-legbon_glare"),
-    ])];
+    ]);
 }
 
-function executeEvadedBlow(turn: FabricatedTurn): string[] {
-    return [executeBlow(turn, [
+function addEvadedBlow(turn: FabricatedTurn, messages: string[]): void {
+    addBlow(turn, messages, [
         encodeValueless("-evade"),
         encodeValueless("-parry"),
         encodeValueless("-contra"),
@@ -1120,16 +1122,16 @@ function executeEvadedBlow(turn: FabricatedTurn): string[] {
         encodeValueless("+superspell-prevented"),
         encodeValueless("+fastarrow"),
         encodeValueless("+swing"),
-    ])];
+    ]);
 }
 
-function executeWoundingBlow(turn: FabricatedTurn): string[] {
+function addWoundingBlow(turn: FabricatedTurn, messages: string[]): void {
     setStatusBit(turn.target, "deep_wound", turn.round);
     setStatusBit(turn.target, "wound", turn.round);
-    return [executeBlow(turn, [
+    addBlow(turn, messages, [
         encodeValueless("+wound"),
         encodeFigure(WOUND_ANNOUNCEMENT_KEY, composeSmallHealth(turn, 120)),
-    ])];
+    ]);
 }
 
 /**
@@ -1137,119 +1139,123 @@ function executeWoundingBlow(turn: FabricatedTurn): string[] {
  * arrives in. `+wound` is not beside it: the client composes one sentence or the other, never
  * both (`docs/protocol-keys.md`).
  */
-function executeWeakenedWound(turn: FabricatedTurn): string[] {
+function addWeakenedWound(turn: FabricatedTurn, messages: string[]): void {
     setStatusBit(turn.target, "deep_wound", turn.round);
-    return [executeBlow(turn, [
+    addBlow(turn, messages, [
         encodeFigure("+woundpoison", WOUND_WEAKENED_PERCENT),
         encodeFigure("+woundfrost", WOUND_WEAKENED_PERCENT),
         encodeFigure("+woundmagic", WOUND_WEAKENED_PERCENT),
         encodeFigure("+of_woundpoison", WOUND_WEAKENED_PERCENT),
         encodeFigure("+of_woundmagic", WOUND_WEAKENED_PERCENT),
-    ])];
+    ]);
 }
 
 /**
  * The wound an auxiliary weapon left, and `+wound` is not beside it: both occurrences in
  * `captures/` ride a blow stating this key alone (`docs/protocol-keys.md`).
  */
-function executeAuxiliaryWound(turn: FabricatedTurn): string[] {
+function addAuxiliaryWound(turn: FabricatedTurn, messages: string[]): void {
     setStatusBit(turn.target, "deep_wound", turn.round);
-    return [executeBlow(turn, [encodeValueless("+of_wound")])];
+    addBlow(turn, messages, [encodeValueless("+of_wound")]);
 }
 
-function executeWoundTick(turn: FabricatedTurn): string[] {
+function addWoundTick(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.target.healthMaximum > 0, "a tick lands where there is a maximum");
     assert(turn.round >= 0, "and on a round the fight has reached");
-    const injure = executeHealthTaken(turn, turn.target, WOUND_TICK_KEY, 175);
-    const wound = executeHealthTaken(turn, turn.target, "wound", 130);
-    return [injure, wound].filter((message) => message !== null);
+    addHealthTaken(turn, messages, turn.target, WOUND_TICK_KEY, 175);
+    addHealthTaken(turn, messages, turn.target, "wound", 130);
 }
 
-function executePoisonTick(turn: FabricatedTurn): string[] {
+function addPoisonTick(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.target.healthMaximum > 0, "a tick lands where there is a maximum");
     assert(turn.round >= 0, "and on a round the fight has reached");
     setStatusBit(turn.target, "poisoned", turn.round);
     setStatusBit(turn.target, "fire", turn.round);
     const poison = removeHealth(turn.target, composeSmallHealth(turn, 140));
     const stated = `${formatInteger(poison)},${formatInteger(composeSmall(turn, 14))}`;
-    const ticked = poison === 0
-        ? null
-        : encodeHealthChange(turn.target, [encodeValued("poison", stated)]);
-    const fire = executeHealthTaken(turn, turn.target, "fire", 96);
-    return [ticked, fire].filter((message) => message !== null);
+    if (poison > 0) {
+        messages.push(encodeHealthChange(turn.target, [encodeValued("poison", stated)]));
+    }
+    addHealthTaken(turn, messages, turn.target, "fire", 96);
 }
 
-function executeLightTick(turn: FabricatedTurn): string[] {
+function addLightTick(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.target.healthMaximum > 0, "a tick lands where there is a maximum");
     assert(turn.round >= 0, "and on a round the fight has reached");
-    const light = executeHealthTaken(turn, turn.target, "light", 88);
+    addHealthTaken(turn, messages, turn.target, "light", 88);
     const anguish = removeHealth(turn.ally, composeSmallHealth(turn, 74));
-    const ached = anguish === 0 ? null : encodeHealthChange(turn.ally, [
-        encodeFigure("anguish", anguish),
-        encodeValueless("+legbon_anguish"),
-    ]);
-    return [light, ached].filter((message) => message !== null);
+    if (anguish > 0) {
+        messages.push(encodeHealthChange(turn.ally, [
+            encodeFigure("anguish", anguish),
+            encodeValueless("+legbon_anguish"),
+        ]));
+    }
 }
 
-function executeHealSelf(turn: FabricatedTurn): string[] {
+function addHealSelf(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a turn is taken by somebody still standing");
     assert(turn.actor.health <= turn.actor.healthMaximum, "and nobody stands above full");
     const restored = addHealth(turn.actor, composeSmallHealth(turn, 430));
-    if (restored === 0) return [];
-    return [encodeHealthChange(turn.actor, [
+    if (restored === 0) return;
+    messages.push(encodeHealthChange(turn.actor, [
         encodeFigure("heal", restored),
         encodeFigure("afterheal", composeSmallHealth(turn, 18)),
-    ])];
+    ]));
 }
 
-function executeHealAlly(turn: FabricatedTurn): string[] {
+function addHealAlly(turn: FabricatedTurn, messages: string[]): void {
     assertStrictEquals(turn.ally.side, turn.actor.side, "an ally stands on the actor's own side");
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
     const hurt = lookupHurtAlly(turn);
-    if (hurt === null) return [executeBlow(turn, [])];
+    if (hurt === null) {
+        addBlow(turn, messages, []);
+        return;
+    }
     const given = addHealth(hurt, composeSmallHealth(turn, 640));
-    return [encodeMessage(encodeSide(turn.actor), encodeSide(hurt), [
+    messages.push(encodeMessage(encodeSide(turn.actor), encodeSide(hurt), [
         ...encodeAnnouncement(getPlainSkill(turn)),
         encodeFigure("heal_target", given),
-    ])];
+    ]));
 }
 
-function executeHolyTouch(turn: FabricatedTurn): string[] {
+function addHolyTouch(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a turn is taken by somebody still standing");
     assert(turn.actor.health <= turn.actor.healthMaximum, "and nobody stands above full");
     const given = addHealth(turn.actor, composeSmallHealth(turn, 380));
-    if (given === 0) return [];
-    return [encodeHealthChange(turn.actor, [
+    if (given === 0) return;
+    messages.push(encodeHealthChange(turn.actor, [
         encodeValueless(HOLYTOUCH_DECLARATION_KEY),
         encodeFigure(HOLYTOUCH_HEAL_KEY, given),
-    ])];
+    ]));
 }
 
-function executeBandage(turn: FabricatedTurn): string[] {
+function addBandage(turn: FabricatedTurn, messages: string[]): void {
     assertStrictEquals(turn.ally.side, turn.actor.side, "an ally stands on the actor's own side");
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
-    const bandaged = executeHealthGiven(turn, turn.actor, "bandage", 210);
-    const carried = executeHealthGiven(turn, turn.ally, "npc_heal", 260);
-    return [bandaged, carried].filter((message) => message !== null);
+    addHealthGiven(turn, messages, turn.actor, "bandage", 210);
+    addHealthGiven(turn, messages, turn.ally, "npc_heal", 260);
 }
 
-function executeLastHeal(turn: FabricatedTurn): string[] {
+function addLastHeal(turn: FabricatedTurn, messages: string[]): void {
     assertStrictEquals(turn.ally.side, turn.actor.side, "an ally stands on the actor's own side");
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
     const hurt = lookupHurtAlly(turn);
-    if (hurt === null) return [executeBlow(turn, [])];
+    if (hurt === null) {
+        addBlow(turn, messages, []);
+        return;
+    }
     const given = addHealth(hurt, composeSmallHealth(turn, 300));
     const stated = `${formatInteger(given)},${encodeNamedText(hurt)}`;
-    return [executeBlow(turn, [encodeValued(LASTHEAL_KEY, stated)])];
+    addBlow(turn, messages, [encodeValued(LASTHEAL_KEY, stated)]);
 }
 
-function executeNamedDamage(turn: FabricatedTurn): string[] {
+function addNamedDamage(turn: FabricatedTurn, messages: string[]): void {
     assertStrictEquals(turn.ally.side, turn.actor.side, "an ally stands on the actor's own side");
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
     const elementKeys = getElement(turn);
     const dealt = removeHealth(turn.ally, composeSmallHealth(turn, 340));
     const stated = `${formatInteger(dealt)},${elementKeys.member},${encodeNamedText(turn.ally)}`;
-    return [executeBlow(turn, [encodeValued("+oth_dmg", stated)])];
+    addBlow(turn, messages, [encodeValued("+oth_dmg", stated)]);
 }
 
 /**
@@ -1257,31 +1263,31 @@ function executeNamedDamage(turn: FabricatedTurn): string[] {
  * under the ranking rather than on a row, because the row it would go on is exactly the one
  * nobody named. `CONTEXT.md` calls this half-named.
  */
-function executeBlowFromNobody(turn: FabricatedTurn): string[] {
+function addBlowFromNobody(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.target.healthMaximum > 0, "a blow lands where there is a maximum");
     const elementKeys = getElement(turn);
     const raw = composeFigure(turn, FIGURE_RAW_BASE);
     const applied = removeHealth(turn.target, raw - composeReduction(turn));
-    return [encodeMessage(null, encodeSide(turn.target), [
+    messages.push(encodeMessage(null, encodeSide(turn.target), [
         encodeFigure(elementKeys.raw, raw),
         encodeFigure(elementKeys.applied, applied),
-    ])];
+    ]));
 }
 
 /**
  * The other half-named shape, and a different claim: the striker is named and the struck end is
  * nobody. No health moves, because the combatant it would move on is the one left out.
  */
-function executeBlowAtNobody(turn: FabricatedTurn): string[] {
+function addBlowAtNobody(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a turn is taken by somebody still standing");
     const elementKeys = getElement(turn);
     const raw = composeFigure(turn, FIGURE_RAW_BASE);
     const applied = raw - composeReduction(turn);
     assert(applied >= 0, "no blow lands below nothing");
-    return [encodeMessage(encodeSide(turn.actor), null, [
+    messages.push(encodeMessage(encodeSide(turn.actor), null, [
         encodeFigure(elementKeys.raw, raw),
         encodeFigure(elementKeys.applied, applied),
-    ])];
+    ]));
 }
 
 /**
@@ -1289,11 +1295,11 @@ function executeBlowAtNobody(turn: FabricatedTurn): string[] {
  * to no side — the end that would decide one is the end that is missing — so the panel draws it
  * under the ranking as a claim of its own (`CONTEXT.md`).
  */
-function executeLossToNobody(turn: FabricatedTurn): string[] {
+function addLossToNobody(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.round >= 0, "a tick lands on a round the fight has reached");
     const lost = composeSmallHealth(turn, 260);
     const stated = `${formatInteger(lost)},${formatInteger(composeSmall(turn, 11))}`;
-    return [encodeMessage(null, null, [encodeValued("poison", stated)])];
+    messages.push(encodeMessage(null, null, [encodeValued("poison", stated)]));
 }
 
 /**
@@ -1301,18 +1307,18 @@ function executeLossToNobody(turn: FabricatedTurn): string[] {
  * It reaches no row at all, so the only place it can be seen is the section under the list —
  * which is the whole of what that section is for (`develop ADR 0082`).
  */
-function executeHealToNobody(turn: FabricatedTurn): string[] {
+function addHealToNobody(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.round >= 0, "a movement lands on a round the fight has reached");
     const restored = composeSmallHealth(turn, 315);
     assert(restored >= 0, "health that came back never came back below nothing");
-    return [encodeMessage(null, null, [encodeFigure("heal", restored)])];
+    messages.push(encodeMessage(null, null, [encodeFigure("heal", restored)]));
 }
 
 /**
  * The share is applied to the side before the message states it, so the percentages the message
  * carries are the ones the panel will size the share against.
  */
-function executeSideHeal(turn: FabricatedTurn): string[] {
+function addSideHeal(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
     assert(
         turn.side.every((combatant) => combatant.side === turn.actor.side),
@@ -1322,27 +1328,27 @@ function executeSideHeal(turn: FabricatedTurn): string[] {
     for (const standing of turn.side) {
         addHealth(standing, Math.round(standing.healthMaximum * share / WHOLE_PERCENT));
     }
-    return [encodeMessage(encodeSide(turn.actor), null, [
+    messages.push(encodeMessage(encodeSide(turn.actor), null, [
         ...encodeAnnouncement(getAuraSkill(turn)),
         encodeValued("healall_per", formatInteger(share)),
         encodeFigure(HEALING_REDUCER_KEY, composeSmall(turn, 27)),
-    ])];
+    ]));
 }
 
-function executeAuraCast(turn: FabricatedTurn): string[] {
+function addAuraCast(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
     assert(
         turn.side.every((combatant) => combatant.side === turn.actor.side),
         "and only their own",
     );
-    return [encodeMessage(encodeSide(turn.actor), null, [
+    messages.push(encodeMessage(encodeSide(turn.actor), null, [
         ...encodeAnnouncement(getAuraSkill(turn)),
         encodeFigure("aura-ac_per", composeSmall(turn, 15)),
         encodeFigure("aura-resall", composeSmall(turn, 20)),
         encodeFigure(HASTE_AURA_KEY, composeSmall(turn, 11)),
         encodeFigure("aura-adddmg2_per-meele", composeSmall(turn, 8)),
         encodeValueless("sunshield_per"),
-    ])];
+    ]));
 }
 
 /**
@@ -1354,14 +1360,14 @@ function executeAuraCast(turn: FabricatedTurn): string[] {
  * side here ever fields (`PER_SIDE_MAXIMUM`; `tools/skill-table.ts` reads them off the page, as
  * fetched 2026-10-06).
  */
-function executeShout(turn: FabricatedTurn): string[] {
+function addShout(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
     assert(
         turn.side.every((combatant) => combatant.side === turn.actor.side),
         "and only their own",
     );
     assert(turn.opposing.length > 0, "and a shout names the characters it holds");
-    return [encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
+    messages.push(encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
         ...encodeAnnouncement(SHOUT_SKILL),
         encodeValued(
             PROVOCATION_KEY,
@@ -1369,16 +1375,16 @@ function executeShout(turn: FabricatedTurn): string[] {
         ),
         encodeFigure(SLOW_ALL_KEY, composeSmall(turn, 25)),
         encodeFigure("alllowdmg", composeSmall(turn, 16)),
-    ])];
+    ]));
 }
 
-function executeAlliesCast(turn: FabricatedTurn): string[] {
+function addAlliesCast(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
     assert(
         turn.side.every((combatant) => combatant.side === turn.actor.side),
         "and only their own",
     );
-    return [encodeMessage(encodeSide(turn.actor), null, [
+    messages.push(encodeMessage(encodeSide(turn.actor), null, [
         ...encodeAnnouncement(getAuraSkill(turn)),
         encodeFigure("critval-allies", composeSmall(turn, 12)),
         encodeFigure("critmval-allies", composeSmall(turn, 10)),
@@ -1387,42 +1393,42 @@ function executeAlliesCast(turn: FabricatedTurn): string[] {
         encodeValueless("removedot-allies"),
         encodeFigure("heal_per-allies", composeSmall(turn, 18)),
         encodeFigure("hp_per-allies", composeSmall(turn, 9)),
-    ])];
+    ]));
 }
 
-function executeEnemiesCast(turn: FabricatedTurn): string[] {
+function addEnemiesCast(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
     assert(
         turn.side.every((combatant) => combatant.side === turn.actor.side),
         "and only their own",
     );
-    return [encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
+    messages.push(encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
         ...encodeAnnouncement(getAuraSkill(turn)),
         encodeFigure("poison_lowdmg_per-enemies", composeSmall(turn, 27)),
         encodeFigure("active_decblock_per-enemies", composeSmall(turn, 19)),
         encodeFigure("-poison_lowdmg_per", composeSmall(turn, 14)),
         encodeFigure("heal_per-enemies", composeSmall(turn, 15)),
         encodeFigure("hp_per-enemies", composeSmall(turn, 7)),
-    ])];
+    ]));
 }
 
-function executeStance(turn: FabricatedTurn): string[] {
+function addStance(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a declaration is made by somebody still standing");
     assert(turn.ordinal >= 0, "on a turn the fight has numbered");
-    return [encodeMessage(encodeSide(turn.actor), null, [
+    messages.push(encodeMessage(encodeSide(turn.actor), null, [
         encodeFigure("active_block_per", composeSmall(turn, 24)),
         encodeFigure("active_decblock_per", composeSmall(turn, 18)),
         encodeFigure("active_absorbdest_per", composeSmall(turn, 13)),
         encodeFigure("resfire_per", composeSmall(turn, 13)),
         encodeFigure("resfrost_per", composeSmall(turn, 13)),
         encodeFigure("reslight_per", composeSmall(turn, 13)),
-    ])];
+    ]));
 }
 
-function executeResources(turn: FabricatedTurn): string[] {
+function addResources(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a declaration is made by somebody still standing");
     assert(turn.ordinal >= 0, "on a turn the fight has numbered");
-    return [encodeMessage(encodeSide(turn.actor), null, [
+    messages.push(encodeMessage(encodeSide(turn.actor), null, [
         encodeFigure("mana", composeSmall(turn, 40)),
         encodeFigure("energy", composeSmall(turn, 25)),
         encodeFigure("en-regen", composeSmall(turn, 6)),
@@ -1430,13 +1436,13 @@ function executeResources(turn: FabricatedTurn): string[] {
         encodeFigure("+engback", composeSmall(turn, 9)),
         encodeFigure("-endest", composeSmall(turn, 7)),
         encodeFigure("-manadest", composeSmall(turn, 9)),
-    ])];
+    ]));
 }
 
-function executeStandingStatuses(turn: FabricatedTurn): string[] {
+function addStandingStatuses(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a declaration is made by somebody still standing");
     assert(turn.ordinal >= 0, "on a turn the fight has numbered");
-    return [encodeMessage(encodeSide(turn.actor), null, [
+    messages.push(encodeMessage(encodeSide(turn.actor), null, [
         encodeFigure("+absorb", composeSmallHealth(turn, 320)),
         encodeFigure("+absorbm", composeSmallHealth(turn, 240)),
         encodeFigure("+taken_dmg", composeSmall(turn, 21)),
@@ -1444,59 +1450,61 @@ function executeStandingStatuses(turn: FabricatedTurn): string[] {
         encodeFigure("+crush_physical", composeSmall(turn, 17)),
         encodeFigure("+rage", composeSmall(turn, 26)),
         encodeFigure("+critsa", composeSmall(turn, 11)),
-    ])];
+    ]));
 }
 
-function executeLegendaryBonuses(turn: FabricatedTurn): string[] {
+function addLegendaryBonuses(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a declaration is made by somebody still standing");
     assert(turn.ordinal >= 0, "on a turn the fight has numbered");
-    return [encodeMessage(encodeSide(turn.actor), null, [
+    messages.push(encodeMessage(encodeSide(turn.actor), null, [
         encodeFigure("-legbon_critred", composeSmall(turn, 13)),
         encodeFigure("+legbon_puncture", composeSmall(turn, 19)),
         encodeFigure("-legbon_facade", composeSmall(turn, 15)),
         encodeFigure("+critslow_per", composeSmall(turn, 23)),
         encodeFigure("+critpoison_per", composeSmall(turn, 20)),
         encodeFigure("combo-max", composeSmall(turn, 3)),
-    ])];
+    ]));
 }
 
 /** The one announcement that carries no id, which is why nothing can date what it put on a side. */
-function executeBardSong(turn: FabricatedTurn): string[] {
+function addBardSong(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a song is sung by somebody still standing");
     assert(BARD_SONG.length > 0, "and is sung under a name");
-    return [encodeMessage(encodeSide(turn.actor), null, [encodeValued("tcustom", BARD_SONG)])];
+    messages.push(
+        encodeMessage(encodeSide(turn.actor), null, [encodeValued("tcustom", BARD_SONG)]),
+    );
 }
 
-function encodeStep(turn: FabricatedTurn): string[] {
+function addStep(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a step is taken by somebody still standing");
     assert(turn.actor.id > 0, "and by somebody the payload names");
-    return [encodeMessage(encodeSide(turn.actor), null, [encodeValueless(STEP_KEY)])];
+    messages.push(encodeMessage(encodeSide(turn.actor), null, [encodeValueless(STEP_KEY)]));
 }
 
-function executePrepare(turn: FabricatedTurn): string[] {
+function addPrepare(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a skill is made ready by somebody standing");
     const percent = formatInteger(clampNumber(composeSmall(turn, 70), 0, WHOLE_PERCENT));
     assert(CHARGED_SKILL.length > 0, "and is made ready under a name");
-    return [encodeMessage(encodeSide(turn.actor), null, [
+    messages.push(encodeMessage(encodeSide(turn.actor), null, [
         encodeValued(PREPARE_KEY, `${CHARGED_SKILL}(${percent}%)`),
-    ])];
+    ]));
 }
 
-function executeTurnLost(turn: FabricatedTurn): string[] {
+function addTurnLost(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.actor.name.length > 0, "a turn lost is lost by somebody named");
     assert(!TURN_LOST_TAIL.endsWith("."), "and the sentence carries no full stop");
     const sentence = `${turn.actor.name}${TURN_LOST_SEPARATOR}${TURN_LOST_TAIL}`;
-    return [encodeMessage(null, null, [encodeValued(TEXT_KEY, sentence)])];
+    messages.push(encodeMessage(null, null, [encodeValued(TEXT_KEY, sentence)]));
 }
 
-function executeLoot(turn: FabricatedTurn): string[] {
+function addLoot(turn: FabricatedTurn, messages: string[]): void {
     assert(LOOT_SENTENCE.endsWith("."), "a line about something else ends in a stop");
     assert(turn.actor.name.length > 0, "and the turn it rides was taken by somebody");
-    return [encodeMessage(null, null, [encodeValued(TEXT_KEY, LOOT_SENTENCE)])];
+    messages.push(encodeMessage(null, null, [encodeValued(TEXT_KEY, LOOT_SENTENCE)]));
 }
 
 /** A blow: what it threw, what got through, and whatever the act stated beside it. */
-function executeBlow(turn: FabricatedTurn, extra: MessageParameter[]): string {
+function addBlow(turn: FabricatedTurn, messages: string[], extra: MessageParameter[]): void {
     assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
     assertNotStrictEquals(turn.target.side, turn.actor.side, "and never at its own side");
     assert(turn.target.healthMaximum > 0, "and lands where there is a maximum");
@@ -1508,12 +1516,12 @@ function executeBlow(turn: FabricatedTurn, extra: MessageParameter[]): string {
     const raw = composeFigure(turn, FIGURE_RAW_BASE);
     const applied = removeHealth(turn.target, raw - composeReduction(turn));
     assert(applied <= raw, "no more gets through a blow than the blow threw");
-    return encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
+    messages.push(encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
         encodeFigure(elementKeys.raw, raw),
         encodeFigure("+acdmg", composeScaled(turn.shape, ARMOUR_DAMAGE)),
         encodeFigure(elementKeys.applied, applied),
         ...extra,
-    ]);
+    ]));
 }
 
 function encodeFigure(key: string, amount: number): MessageParameter {
@@ -1560,7 +1568,7 @@ function addHealth(combatant: FabricatedCombatant, asked: number): number {
 
 /** The bit is the status's place in the client's own order, so a refreeze that moves one moves it. */
 function setStatusBit(combatant: FabricatedCombatant, status: FrozenStatus, round: number): void {
-    const bit = FROZEN_BUFF_BITS.bits.indexOf(status);
+    const bit = FROZEN_STATUS_BITS.bits.indexOf(status);
     assert(bit < STATUS_BITS_MAXIMUM, "a status's bit fits the integer a mask is");
     combatant.statusMask |= 1 << bit;
     combatant.statusClearsAtRound = round + STATUS_ROUNDS;
@@ -1630,33 +1638,31 @@ function encodeHealthChange(
  * step.** A second take before the first message is composed states the first figure against the
  * health the second left, and the panel reads a percentage that never stood.
  */
-function executeHealthTaken(
+function addHealthTaken(
     turn: FabricatedTurn,
+    messages: string[],
     combatant: FabricatedCombatant,
     key: string,
     figure: number,
-): string | null {
+): void {
     assert(figure > 0, "a figure taken is composed from a base above nothing");
-    return encodeMovedHealth(
-        combatant,
-        key,
-        removeHealth(combatant, composeScaled(turn.shape, figure)),
-    );
+    const moved = removeHealth(combatant, composeScaled(turn.shape, figure));
+    const stated = encodeMovedHealth(combatant, key, moved);
+    if (stated !== null) messages.push(stated);
 }
 
 /** The same the other way, and one step for the same reason. */
-function executeHealthGiven(
+function addHealthGiven(
     turn: FabricatedTurn,
+    messages: string[],
     combatant: FabricatedCombatant,
     key: string,
     figure: number,
-): string | null {
+): void {
     assert(figure > 0, "a figure given is composed from a base above nothing");
-    return encodeMovedHealth(
-        combatant,
-        key,
-        addHealth(combatant, composeScaled(turn.shape, figure)),
-    );
+    const moved = addHealth(combatant, composeScaled(turn.shape, figure));
+    const stated = encodeMovedHealth(combatant, key, moved);
+    if (stated !== null) messages.push(stated);
 }
 
 /** A movement of health, or nothing where the figure came out at nothing. */

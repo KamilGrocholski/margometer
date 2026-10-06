@@ -141,7 +141,7 @@ reading that gave every key the caster's clock was never the help's, and the key
 rows are every team-wide key the help dates at all. It dates none of the others, `shout` included.
 
 **What the mask does, measured over `captures/`.** The status mask `develop ADR 0061` set aside —
-`w[].buffs`, one integer per combatant in every payload, its bits named in `frozen/buff-bits.ts` —
+`w[].buffs`, one integer per combatant in every payload, its bits named in `frozen/status-bits.ts` —
 is the only channel that says what somebody is carrying right now. `tools/aura-lifetime.ts` asks it
 one question: where one moment lights a status on several combatants, do they all lose it together.
 

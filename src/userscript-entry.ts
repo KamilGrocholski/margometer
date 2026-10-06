@@ -7,7 +7,7 @@
 
 import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { FROZEN_BLOWS_GRANTED } from "#/frozen/blows-granted.ts";
-import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
@@ -279,8 +279,8 @@ export function composeRuntimeTables(): RuntimeTables {
                 auraTurnsBySkillId: indexAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
                 shoutsBySkillId: indexShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
             },
-            keyByStatusBit: indexKeyByStatusBit(FROZEN_BUFF_BITS.bits),
-            statusBits: FROZEN_BUFF_BITS.bits,
+            keyByStatusBit: indexKeyByStatusBit(FROZEN_STATUS_BITS.bits),
+            statusBits: FROZEN_STATUS_BITS.bits,
         },
     };
 }

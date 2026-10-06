@@ -12,10 +12,14 @@
 import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
-import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
 import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
-import { prepareFrozenBuffBits, requireBuffBits, writeFrozenBuffBits } from "./buff-bit-table.ts";
+import {
+    prepareFrozenStatusBits,
+    requireStatusBits,
+    writeFrozenStatusBits,
+} from "./status-bit-table.ts";
 import type { FrozenFiles } from "./frozen-files.ts";
 import {
     type CachedMargonemClientSource,
@@ -82,7 +86,7 @@ export const EXIT_UNASKED = 2;
 export const EXIT_AHEAD = 1;
 /** Every reading this routine reports on, so a row quietly dropped fails rather than hides. */
 const READINGS_REPORTED = 7;
-const NAME_COLUMN = 14;
+const NAME_COLUMN = 16;
 const SAYS_COLUMN = 80;
 /** The loud ones end a work round; `current` is the quiet one. */
 const VERDICT_WORDS: Readonly<Record<ReadingVerdict, string>> = {
@@ -124,9 +128,9 @@ async function writeReadingsStatus(): Promise<void> {
                 client === null ? null : prepareFrozenKeyTable(),
             ),
             composeFrozenState(
-                "frozen buffs",
+                "frozen statuses",
                 "bits",
-                client === null ? null : prepareFrozenBuffBits(),
+                client === null ? null : prepareFrozenStatusBits(),
             ),
             composeDumpState(
                 "help dump",
@@ -227,7 +231,7 @@ async function writeRefreshedReadings(): Promise<void> {
     const client = await writeMargonemClientSourceCache(CHANNEL);
     console.log(`${"client".padEnd(NAME_COLUMN)} build ${client.build} → ${client.bundlePath}`);
     console.log(formatRefreshLine("frozen keys", "keys", writeFrozenKeyTable()));
-    console.log(formatRefreshLine("frozen buffs", "bits", writeFrozenBuffBits()));
+    console.log(formatRefreshLine("frozen statuses", "bits", writeFrozenStatusBits()));
     const dump = await writeHelpArticleCache(MECHANICS_ARTICLE);
     const dumped = `${formatInteger(dump.textLength)} characters → ${dump.textPath}`;
     console.log(`${"help dump".padEnd(NAME_COLUMN)} ${dumped}`);
@@ -266,7 +270,7 @@ async function writeDevelopmentPreview(): Promise<void> {
     }
     const bundle = readCachedBundle(PREVIEW_CHANNEL);
     const keys = composeKeyDifference(FROZEN_PROTOCOL_KEYS.keys, requireProtocolKeys(bundle));
-    const bits = composeBitShifts(FROZEN_BUFF_BITS.bits, requireBuffBits(bundle));
+    const bits = composeBitShifts(FROZEN_STATUS_BITS.bits, requireStatusBits(bundle));
     const frozenBuild = FROZEN_PROTOCOL_KEYS.gameBuild;
     console.log(
         `${PREVIEW_CHANNEL.padEnd(NAME_COLUMN)} build ${cached.build}, frozen ${frozenBuild}`,

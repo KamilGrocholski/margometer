@@ -16,7 +16,7 @@ const TOOL_ERROR_CODE = {
     margonemUnreachable: "MargonemUnreachable",
     protocolKeyTable: "ProtocolKeyTable",
     protocolKeyShape: "ProtocolKeyShape",
-    buffBitTable: "BuffBitTable",
+    statusBitTable: "StatusBitTable",
     skillTable: "SkillTable",
     helpArticle: "HelpArticle",
     panelShot: "PanelShot",
@@ -114,9 +114,9 @@ export class ProtocolKeyShapeError extends MargoMeterToolError {
 }
 
 /** The client's status bits could not be lifted out of its bundle. */
-export class BuffBitTableError extends MargoMeterToolError {
+export class StatusBitTableError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
-        super(TOOL_ERROR_CODE.buffBitTable, reason, options);
+        super(TOOL_ERROR_CODE.statusBitTable, reason, options);
     }
 }
 

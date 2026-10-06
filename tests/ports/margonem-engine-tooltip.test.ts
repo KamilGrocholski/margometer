@@ -16,7 +16,7 @@ import {
 } from "#/src/ports/margonem-engine-tooltip.ts";
 import { MargonemEngineWarriorsExceeded } from "#/src/ports/margonem-engine-warriors.ts";
 import { ROWS_BESIDE_THE_STATUSES } from "#/src/ui/panel-words.ts";
-import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 
 /** One fighter's registry entry, and every call the writer made of it. */
 interface Registry {
@@ -29,7 +29,7 @@ interface Registry {
 }
 
 /** The most rows the composer hands over for one fighter: a row per status, and the rest. */
-const TOOLTIP_ROWS_MAXIMUM = FROZEN_BUFF_BITS.bits.length + ROWS_BESIDE_THE_STATUSES;
+const TOOLTIP_ROWS_MAXIMUM = FROZEN_STATUS_BITS.bits.length + ROWS_BESIDE_THE_STATUSES;
 
 /** What the game composes for a fighter before anybody adds to it. */
 const THEIRS = '<div class="nick">Gracz</div>';

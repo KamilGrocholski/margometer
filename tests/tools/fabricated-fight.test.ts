@@ -21,7 +21,7 @@ import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { replayFightPayloads } from "#/src/runtime/fight-state.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
-import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { readRecordedFight, type RecordedFight } from "#/tests/recorded-fights.ts";
 import {
     CLOSING_SHOUTS,
@@ -171,7 +171,7 @@ Deno.test("the statuses the script lights are the ones its acts name, as a reade
         const record = readPayloadEnvelope(call.payload);
         assert(!(record instanceof Error), "every call the fabricator writes has an envelope");
         for (const mask of record.statusMasksByCombatantId.values()) {
-            for (const [bit, status] of FROZEN_BUFF_BITS.bits.entries()) {
+            for (const [bit, status] of FROZEN_STATUS_BITS.bits.entries()) {
                 if ((mask & (1 << bit)) !== 0) lit.add(status);
             }
         }

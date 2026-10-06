@@ -10,7 +10,7 @@
 
 import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
-import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import {
     formatRecordingName,
     readRecordedMaterial,
@@ -108,7 +108,7 @@ function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
     for (const [stepIndex, step] of steps.entries()) {
         const carried = new Map<string, StandingRun>();
         for (const status of step.reading.view.carriedStatuses) {
-            if (status.bit >= FROZEN_BUFF_BITS.bits.length) continue;
+            if (status.bit >= FROZEN_STATUS_BITS.bits.length) continue;
             const key = `${formatInteger(status.combatantId)}/${formatInteger(status.bit)}`;
             const before = standing.get(key);
             let litAt: number | null;
@@ -170,7 +170,7 @@ function composeLightingRows(name: string, runs: readonly StatusRun[]): Lighting
 function composeLightingRow(name: string, gathered: readonly StatusRun[]): LightingRow {
     const [firstRun] = gathered;
     assertExists(firstRun, "a lighting stands on at least one bearer");
-    const bitName = FROZEN_BUFF_BITS.bits[firstRun.bit];
+    const bitName = FROZEN_STATUS_BITS.bits[firstRun.bit];
     assertExists(bitName, "and on a status the frozen table names");
     const endings = new Set(gathered.map((run) => run.wentOutAt));
     const ownTurnsEach = gathered.map((run) => run.ownTurns).sort((turns, otherTurns) =>
@@ -195,7 +195,7 @@ function composeLightingRow(name: string, gathered: readonly StatusRun[]): Light
  */
 export function tallyBitRows(lightings: readonly LightingRow[]): BitRow[] {
     const rows: BitRow[] = [];
-    for (const [bit, bitName] of FROZEN_BUFF_BITS.bits.entries()) {
+    for (const [bit, bitName] of FROZEN_STATUS_BITS.bits.entries()) {
         const mine = lightings.filter((row) => row.bit === bit);
         const shared = mine.filter((row) => row.bearers > 1);
         const apart = shared.filter((row) => row.endings > 1);
@@ -213,7 +213,7 @@ export function tallyBitRows(lightings: readonly LightingRow[]): BitRow[] {
             ownTurnsLongest: Math.max(0, ...mine.flatMap((row) => row.ownTurnsEach)),
         });
     }
-    assertStrictEquals(rows.length, FROZEN_BUFF_BITS.bits.length, "every frozen bit has a row");
+    assertStrictEquals(rows.length, FROZEN_STATUS_BITS.bits.length, "every frozen bit has a row");
     assert(
         rows.every((row) => row.together + row.apart <= row.lightings),
         "and no row shares more lightings than it saw",

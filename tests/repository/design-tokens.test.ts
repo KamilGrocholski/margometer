@@ -130,7 +130,7 @@ function readTokensSpent(): Record<string, readonly string[]> {
         suspect: [formatColour(SIGNAL.suspect)],
         caveat: [formatColour(SIGNAL.caveat)],
         defect: [formatColour(SIGNAL.defect)],
-        UNKNOWN_COLOUR: [formatColour(SIGNAL.unknown)],
+        "SIGNAL.unknown": [formatColour(SIGNAL.unknown)],
         spaceHalf: [`${SPACE_PIXELS.half}px`],
         spaceSmall: [`${SPACE_PIXELS.small}px`],
         spaceRegion: [`${SPACE_PIXELS.regionDown}px`, `${SPACE_PIXELS.regionAcross}px`],

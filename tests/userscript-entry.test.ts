@@ -14,7 +14,7 @@ import {
 } from "@std/assert";
 import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { FROZEN_BLOWS_GRANTED } from "#/frozen/blows-granted.ts";
-import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { STORE_KEY } from "#/src/ports/browser-store.ts";
 import { CLASS } from "#/src/ui/panel-look.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
@@ -154,11 +154,14 @@ Deno.test("the tables the add-on runs on are the frozen readings, every one of t
     }
     assertStrictEquals(
         tables.tooltip.statusBits,
-        FROZEN_BUFF_BITS.bits,
+        FROZEN_STATUS_BITS.bits,
         "the mask is the client's",
     );
     for (const bit of tables.tooltip.keyByStatusBit.keys()) {
-        assert(bit < FROZEN_BUFF_BITS.bits.length, `bit ${bit} is a position in the client's mask`);
+        assert(
+            bit < FROZEN_STATUS_BITS.bits.length,
+            `bit ${bit} is a position in the client's mask`,
+        );
     }
 });
 

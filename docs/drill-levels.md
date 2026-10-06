@@ -16,13 +16,13 @@ deno task panel:drill captures/<file>.json  # one recording, level by level
 deno task panel:drill --screen healthGiven  # one screen of it
 ```
 
-## The views, at three levels
+## The levels, three deep
 
 `DESIGN.md` owns the shape — three levels, a branch under the ranking and one under a pinned row,
 and a row that opens wherever a level stands under it (`develop ADR 0034`). This table names the
-views that shape draws, as `tools/drill-report.ts` names them.
+levels that shape draws, as `tools/drill-report.ts` names them.
 
-| view           | level | what it lists                                             | how a reader gets there                                      |
+| level          | depth | what it lists                                             | how a reader gets there                                      |
 | -------------- | ----- | --------------------------------------------------------- | ------------------------------------------------------------ |
 | `ranking`      | 1     | one row per combatant, by the chosen figure               | the screen a strip opens on                                  |
 | `opened`       | 2     | that combatant's figure, in up to three cuts              | pressing a ranking row                                       |

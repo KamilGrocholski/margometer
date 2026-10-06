@@ -46,7 +46,7 @@ import {
 import { DrillReportError } from "./margometer-tool-error.ts";
 
 /**
- * The views, named by what a reader did to get there. `pair`, `part` and `unnamed pair` are three
+ * The levels, named by what a reader did to get there. `pair`, `part` and `unnamed pair` are three
  * shapes of the third level rather than one under the other, and `unnamed` is opened from a pinned
  * row under the ranking rather than from a row on it (`develop ADR 0038`).
  */

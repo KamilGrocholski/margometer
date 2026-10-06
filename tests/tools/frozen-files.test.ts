@@ -13,14 +13,14 @@ import {
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
-import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
 import { FROZEN_SKILL_DURATIONS } from "#/frozen/skill-durations.ts";
 import {
-    encodeFrozenBuffModule,
-    FROZEN_DATE_FIELD as BUFF_DATE_FIELD,
-} from "#/tools/buff-bit-table.ts";
+    encodeFrozenStatusModule,
+    FROZEN_DATE_FIELD as STATUS_DATE_FIELD,
+} from "#/tools/status-bit-table.ts";
 import {
     composeFrozenFiles,
     lookupHeldDate,
@@ -142,8 +142,8 @@ Deno.test("every frozen reading states its date in the field its tool reads it f
     const keys = readHeldDate("frozen/protocol-keys.ts", KEY_DATE_FIELD);
     assertStrictEquals(keys, FROZEN_PROTOCOL_KEYS.gameBuild, "the key table");
     assertStrictEquals(
-        readHeldDate("frozen/buff-bits.ts", BUFF_DATE_FIELD),
-        FROZEN_BUFF_BITS.gameBuild,
+        readHeldDate("frozen/status-bits.ts", STATUS_DATE_FIELD),
+        FROZEN_STATUS_BITS.gameBuild,
     );
     const help = readHeldDate("frozen/help-phrases.ts", HELP_DATE_FIELD);
     assertStrictEquals(help, FROZEN_HELP_PHRASES.fetchedAt, "the help counts");
@@ -157,8 +157,8 @@ Deno.test("every encoder writes its date in the field its freeze reads it back f
     const family = { marker: "dmg", markerAt: 1, markerLength: 3, dealtSign: "+" };
     const keys = encodeFrozenKeyModule(HELD_DATE, ["blok"], family);
     assertStrictEquals(lookupHeldDate(keys, KEY_DATE_FIELD), HELD_DATE, "the key table");
-    const bits = encodeFrozenBuffModule(HELD_DATE, ["wound"]);
-    assertStrictEquals(lookupHeldDate(bits, BUFF_DATE_FIELD), HELD_DATE, "the bit order");
+    const bits = encodeFrozenStatusModule(HELD_DATE, ["wound"]);
+    assertStrictEquals(lookupHeldDate(bits, STATUS_DATE_FIELD), HELD_DATE, "the bit order");
     const help = encodeFrozenHelpModule("372", HELD_DATE, [["( fire )", 2]]);
     assertStrictEquals(lookupHeldDate(help, HELP_DATE_FIELD), HELD_DATE, "the help counts");
     const skill = { id: 1, effects: [] };

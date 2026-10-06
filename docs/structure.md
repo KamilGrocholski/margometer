@@ -116,10 +116,10 @@ file comes or goes (ADR 0010).
 | `frozen/AGENTS.md`          | the rules for the dated readings of the game: written by tooling, never by hand            |
 | `frozen/aura-turns.ts`      | the skills reaching more than one combatant, and the turns the published table gives each  |
 | `frozen/blows-granted.ts`   | the skills the published table grants an extra attack, and the fewest granted at any level |
-| `frozen/buff-bits.ts`       | the statuses a combatant's `buffs` mask is read by, in bit order, with the build id        |
 | `frozen/help-phrases.ts`    | counts of phrases in one article of the published help                                     |
 | `frozen/protocol-keys.ts`   | every protocol key the game client branches on, with the build id                          |
 | `frozen/skill-durations.ts` | skill ids, effect keys and the turns the published table states for each                   |
+| `frozen/status-bits.ts`     | the statuses a combatant's `buffs` mask is read by, in bit order, with the build id        |
 
 | Path                    | For                                                                                    |
 | ----------------------- | -------------------------------------------------------------------------------------- |
@@ -216,7 +216,6 @@ file comes or goes (ADR 0010).
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `tools/aura-lifetime.ts`          | how long a status stands on the mask, and whether one lighting goes out together: `fight:life`                           |
 | `tools/aura-standing.ts`          | what stands on a side, whom a shout holds, how many sources stand at once: `fight:auras`                                 |
-| `tools/buff-bit-table.ts`         | lifts the statuses the `buffs` mask is read by from the client bundle: `margonem:buffs`                                  |
 | `tools/build-userscript.ts`       | builds the userscript a reader installs, and checks the built text: `build`                                              |
 | `tools/capture-intake.ts`         | turns a recording the add-on wrote into material in `captures/`: `capture:intake`                                        |
 | `tools/card-height.ts`            | how tall the card a ranking row opens stands, over the recordings: `panel:cards`                                         |
@@ -244,6 +243,7 @@ file comes or goes (ADR 0010).
 | `tools/recorded-material.ts`      | the recordings a tool reports on, each fight replayed through the runtime's chain, whole or call by call                 |
 | `tools/shout-holding.ts`          | whom a character a shout named strikes, turn by turn after it: `fight:shout`                                             |
 | `tools/skill-table.ts`            | every published skill and the turns its effects run for: `margonem:skills`                                               |
+| `tools/status-bit-table.ts`       | lifts the statuses the `buffs` mask is read by from the client bundle: `margonem:statuses`                               |
 | `tools/turn-count.ts`             | the turns each recording's combatants took, graded against the game's numbering: `fight:turns`                           |
 | `tools/turn-reading.ts`           | what each message came to under the turn rule, and the openers in dispute: `fight:openers`                               |
 

@@ -95,11 +95,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `prepareCapture` — `src/ports/fight-capture.ts`
 - `prepareCarriedStatusWalk` — `src/core/carried-status.ts`
 - `prepareChargedSkills` — `src/core/charged-skill.ts`
-- `prepareFrozenBuffBits` — `tools/buff-bit-table.ts`
 - `prepareFrozenFiles` — `tools/frozen-files.ts`
 - `prepareFrozenHelpCounts` — `tools/help-article.ts`
 - `prepareFrozenKeyTable` — `tools/protocol-key-table.ts`
 - `prepareFrozenSkillTable` — `tools/skill-table.ts`
+- `prepareFrozenStatusBits` — `tools/status-bit-table.ts`
 - `prepareLegendaryWalk` — `src/core/legendary-standing.ts`
 - `prepareLightingTurnByBit` — `src/core/carried-status.ts`
 - `prepareNamedCombatantIds` — `src/core/fight-session.ts`
@@ -117,57 +117,14 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `execute` — none
 
-- `executeAbsorbedBlow` — `tools/fabricated-fight.ts`
-- `executeAlliesCast` — `tools/fabricated-fight.ts`
-- `executeArmourBreakingBlow` — `tools/fabricated-fight.ts`
-- `executeAuraCast` — `tools/fabricated-fight.ts`
-- `executeAuxiliaryWound` — `tools/fabricated-fight.ts`
-- `executeBandage` — `tools/fabricated-fight.ts`
-- `executeBardSong` — `tools/fabricated-fight.ts`
-- `executeBlow` — `tools/fabricated-fight.ts`
-- `executeBlowAtNobody` — `tools/fabricated-fight.ts`
-- `executeBlowFromNobody` — `tools/fabricated-fight.ts`
-- `executeCriticalBlow` — `tools/fabricated-fight.ts`
-- `executeCriticalPierce` — `tools/fabricated-fight.ts`
-- `executeCursedBlow` — `tools/fabricated-fight.ts`
-- `executeEnemiesCast` — `tools/fabricated-fight.ts`
-- `executeEvadedBlow` — `tools/fabricated-fight.ts`
-- `executeHealAlly` — `tools/fabricated-fight.ts`
-- `executeHealSelf` — `tools/fabricated-fight.ts`
-- `executeHealToNobody` — `tools/fabricated-fight.ts`
-- `executeHealthGiven` — `tools/fabricated-fight.ts`
-- `executeHealthTaken` — `tools/fabricated-fight.ts`
-- `executeHolyTouch` — `tools/fabricated-fight.ts`
-- `executeLastHeal` — `tools/fabricated-fight.ts`
-- `executeLegendaryBonuses` — `tools/fabricated-fight.ts`
-- `executeLightTick` — `tools/fabricated-fight.ts`
 - `executeLiveStep` — `src/runtime/live-fight.ts`
 - `executeLookFailed` — `src/runtime/margometer-runtime.ts`
-- `executeLoot` — `tools/fabricated-fight.ts`
-- `executeLossToNobody` — `tools/fabricated-fight.ts`
-- `executeNamedDamage` — `tools/fabricated-fight.ts`
-- `executeOffhandBlow` — `tools/fabricated-fight.ts`
-- `executePiercingBlow` — `tools/fabricated-fight.ts`
-- `executePlainBlow` — `tools/fabricated-fight.ts`
-- `executePoisonTick` — `tools/fabricated-fight.ts`
-- `executePrepare` — `tools/fabricated-fight.ts`
 - `executeRegionStep` — `src/ui/panel-element.ts`
-- `executeResources` — `tools/fabricated-fight.ts`
 - `executeScreenIntent` — `src/runtime/margometer-runtime.ts`
 - `executeSearchBound` — `src/runtime/margometer-runtime.ts`
 - `executeSearchLook` — `src/runtime/margometer-runtime.ts`
 - `executeSearchReport` — `src/runtime/margometer-runtime.ts`
 - `executeShelvedFightReplays` — `src/runtime/shelf-keeper.ts`
-- `executeShout` — `tools/fabricated-fight.ts`
-- `executeSideHeal` — `tools/fabricated-fight.ts`
-- `executeStance` — `tools/fabricated-fight.ts`
-- `executeStandingStatuses` — `tools/fabricated-fight.ts`
-- `executeStunningBlow` — `tools/fabricated-fight.ts`
-- `executeThirdAttack` — `tools/fabricated-fight.ts`
-- `executeTurnLost` — `tools/fabricated-fight.ts`
-- `executeWeakenedWound` — `tools/fabricated-fight.ts`
-- `executeWoundTick` — `tools/fabricated-fight.ts`
-- `executeWoundingBlow` — `tools/fabricated-fight.ts`
 
 ### `verify` — strong
 
@@ -518,7 +475,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupRecordingPaths` — `tools/recorded-material.ts`
 - `lookupRecursiveNames` — `tests/repository/control-flow.test.ts`
 - `lookupRefused` — `src/ui/panel-element.ts`
-- `lookupRegisteredStatusName` — `tools/buff-bit-table.ts`
+- `lookupRegisteredStatusName` — `tools/status-bit-table.ts`
 - `lookupRegularExpressions` — `tests/repository/regular-expressions.test.ts`
 - `lookupReportKey` — `tests/runtime/fight-file.test.ts`
 - `lookupRetiredWords` — `tests/repository/names.test.ts`
@@ -845,11 +802,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `writeDevelopmentPreview` — `tools/margonem-readings.ts`
 - `writeFabricatedFight` — `tools/fabricated-fight.ts`
 - `writeFile` — in 4 files: `src/ports/`, `tests/`
-- `writeFrozenBuffBits` — `tools/buff-bit-table.ts`
 - `writeFrozenFiles` — `tools/frozen-files.ts`
 - `writeFrozenHelpCounts` — `tools/help-article.ts`
 - `writeFrozenKeyTable` — `tools/protocol-key-table.ts`
 - `writeFrozenSkillTable` — `tools/skill-table.ts`
+- `writeFrozenStatusBits` — `tools/status-bit-table.ts`
 - `writeGivingWayShots` — `tools/panel-giving-way.ts`
 - `writeHelpArticleCache` — `tools/help-article.ts`
 - `writeHelpSearchReport` — `tools/help-article.ts`
@@ -1011,11 +968,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `encodeFigure` — `tools/fabricated-fight.ts`
 - `encodeFigureRecord` — `tools/fabricated-fight.ts`
 - `encodeFledClosing` — `tools/fabricated-fight.ts`
-- `encodeFrozenBuffModule` — `tools/buff-bit-table.ts`
 - `encodeFrozenHelpModule` — `tools/help-article.ts`
 - `encodeFrozenKeyModule` — `tools/protocol-key-table.ts`
 - `encodeFrozenSkillTexts` — `tools/skill-table.ts`
 - `encodeFrozenSkills` — `tools/skill-table.ts`
+- `encodeFrozenStatusModule` — `tools/status-bit-table.ts`
 - `encodeHealthChange` — `tools/fabricated-fight.ts`
 - `encodeHealthPercent` — `src/core/protocol-number.ts`
 - `encodeHealthRecord` — `tools/fabricated-fight.ts`
@@ -1035,15 +992,14 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `encodeReportSkills` — `src/runtime/fight-file.ts`
 - `encodeReportTotals` — `src/runtime/fight-file.ts`
 - `encodeRequiredJson` — `tools/capture-intake.ts`
-- `encodeRequiredText` — `tools/buff-bit-table.ts`, `tools/help-article.ts`,
-  `tools/protocol-key-table.ts`
+- `encodeRequiredText` — `tools/help-article.ts`, `tools/protocol-key-table.ts`,
+  `tools/status-bit-table.ts`
 - `encodeSample` — `tests/tools/frozen-files.test.ts`
 - `encodeSettledClosing` — `tools/fabricated-fight.ts`
 - `encodeSide` — `tools/fabricated-fight.ts`
 - `encodeSideNames` — `tools/fabricated-fight.ts`
 - `encodeSnapshot` — `tools/fabricated-fight.ts`
 - `encodeStandingCombatant` — `tools/fabricated-fight.ts`
-- `encodeStep` — `tools/fabricated-fight.ts`
 - `encodeTooltipBlock` — `src/ports/margonem-engine-tooltip.ts`
 - `encodeTurnQueue` — `tools/fabricated-fight.ts`
 - `encodeUserscriptBanner` — `tools/build-userscript.ts`
@@ -1427,8 +1383,18 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `add` — weak
 
 - `add` — `src/runtime/defect-ledger.ts`, `src/ui/panel-element.ts`
+- `addAbsorbedBlow` — `tools/fabricated-fight.ts`
+- `addAlliesCast` — `tools/fabricated-fight.ts`
 - `addAnnouncedName` — `src/core/charged-skill.ts`
+- `addArmourBreakingBlow` — `tools/fabricated-fight.ts`
+- `addAuraCast` — `tools/fabricated-fight.ts`
+- `addAuxiliaryWound` — `tools/fabricated-fight.ts`
+- `addBandage` — `tools/fabricated-fight.ts`
+- `addBardSong` — `tools/fabricated-fight.ts`
+- `addBlow` — `tools/fabricated-fight.ts`
+- `addBlowAtNobody` — `tools/fabricated-fight.ts`
 - `addBlowDealt` — `src/core/fight-statistics.ts`
+- `addBlowFromNobody` — `tools/fabricated-fight.ts`
 - `addBlowProcs` — `src/core/fight-statistics.ts`
 - `addBlowTaken` — `src/core/fight-statistics.ts`
 - `addBlowWithNoTarget` — `src/core/fight-statistics.ts`
@@ -1436,11 +1402,16 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `addCaseToTally` — `tools/drill-report.ts`
 - `addCombatantFigures` — `src/core/fight-statistics.ts`
 - `addComparison` — `tests/core/health-witness.test.ts`
+- `addCriticalBlow` — `tools/fabricated-fight.ts`
+- `addCriticalPierce` — `tools/fabricated-fight.ts`
+- `addCursedBlow` — `tools/fabricated-fight.ts`
 - `addCutForOtherEnd` — `src/core/fight-statistics.ts`
 - `addDamageDealtApplied` — `src/core/fight-statistics.ts`
 - `addDamageFiguresToCut` — `src/core/fight-statistics.ts`
 - `addDamageFiguresToOtherEndCut` — `src/core/fight-statistics.ts`
 - `addDamageTakenApplied` — `src/core/fight-statistics.ts`
+- `addEnemiesCast` — `tools/fabricated-fight.ts`
+- `addEvadedBlow` — `tools/fabricated-fight.ts`
 - `addEventListener` — `src/ui/panel-document.ts`, `tests/fake-document.ts`,
   `tests/tools/preview-state.test.ts`
 - `addEventTurns` — `src/core/turn-clock.ts`
@@ -1449,40 +1420,68 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `addFileDefect` — `src/runtime/margometer-runtime.ts`
 - `addFoldedCut` — `src/ui/panel-content.ts`
 - `addGuardedListener` — `src/ui/panel-listener.ts`
+- `addHealAlly` — `tools/fabricated-fight.ts`
+- `addHealSelf` — `tools/fabricated-fight.ts`
+- `addHealToNobody` — `tools/fabricated-fight.ts`
 - `addHealth` — `tools/fabricated-fight.ts`
-- `addHealthGiven` — `src/core/fight-statistics.ts`
+- `addHealthGiven` — `src/core/fight-statistics.ts`, `tools/fabricated-fight.ts`
 - `addHealthLost` — `src/core/fight-statistics.ts`
 - `addHealthRestored` — `src/core/fight-statistics.ts`
 - `addHealthRestoredBySource` — `src/core/fight-statistics.ts`
+- `addHealthTaken` — `tools/fabricated-fight.ts`
+- `addHolyTouch` — `tools/fabricated-fight.ts`
 - `addKeyMeaning` — `src/core/protocol-key.ts`
+- `addLastHeal` — `tools/fabricated-fight.ts`
+- `addLegendaryBonuses` — `tools/fabricated-fight.ts`
 - `addLevel` — `tests/ui/level-drawn.test.ts`
+- `addLightTick` — `tools/fabricated-fight.ts`
+- `addLoot` — `tools/fabricated-fight.ts`
+- `addLossToNobody` — `tools/fabricated-fight.ts`
 - `addMessageIndexes` — `tools/fabricated-fight.ts`
 - `addName` — `tests/repository/name-register.test.ts`
+- `addNamedDamage` — `tools/fabricated-fight.ts`
 - `addNamedDamageTaken` — `src/core/fight-statistics.ts`
+- `addOffhandBlow` — `tools/fabricated-fight.ts`
 - `addOpenedLevelToTally` — `tools/drill-report.ts`
 - `addOpenedRungs` — `tests/ui/level-drawn.test.ts`
 - `addParameterRead` — `src/core/fight-decoder.ts`
 - `addPartRungToTally` — `tools/drill-report.ts`
+- `addPiercingBlow` — `tools/fabricated-fight.ts`
 - `addPinnedLevelToTally` — `tools/drill-report.ts`
 - `addPinnedRungs` — `tests/ui/level-drawn.test.ts`
+- `addPlainBlow` — `tools/fabricated-fight.ts`
+- `addPoisonTick` — `tools/fabricated-fight.ts`
+- `addPrepare` — `tools/fabricated-fight.ts`
 - `addProseCountClaims` — `tools/protocol-key-shape.ts`
 - `addRegionDefect` — `src/runtime/panel-frame.ts`
+- `addResources` — `tools/fabricated-fight.ts`
 - `addRestoredToNobody` — `src/core/fight-statistics.ts`
 - `addRootListener` — `src/ui/panel-drag.ts`
+- `addShout` — `tools/fabricated-fight.ts`
+- `addSideHeal` — `tools/fabricated-fight.ts`
 - `addSkillDealt` — `src/core/fight-statistics.ts`
 - `addSkillFigures` — `src/core/fight-statistics.ts`
 - `addSkillRestored` — `src/core/fight-statistics.ts`
+- `addStance` — `tools/fabricated-fight.ts`
+- `addStandingStatuses` — `tools/fabricated-fight.ts`
 - `addStatedPercent` — `src/core/combatant-health.ts`
 - `addStatusRows` — `src/ui/panel-words.ts`
+- `addStep` — `tools/fabricated-fight.ts`
 - `addStruck` — `tools/shout-holding.ts`
+- `addStunningBlow` — `tools/fabricated-fight.ts`
+- `addThirdAttack` — `tools/fabricated-fight.ts`
 - `addToCut` — `src/core/fight-statistics.ts`
 - `addTurn` — `src/core/turn-clock.ts`
 - `addTurnCall` — `tools/fabricated-fight.ts`
+- `addTurnLost` — `tools/fabricated-fight.ts`
 - `addTurnStatement` — `tools/fabricated-fight.ts`
 - `addUndrawnDefects` — `src/runtime/panel-frame.ts`
 - `addUnplacedCast` — `src/core/fight-statistics.ts`
 - `addValuedKey` — `src/core/fight-decoder.ts`
 - `addViewFailureGuarded` — `src/ui/view-failure.ts`
+- `addWeakenedWound` — `tools/fabricated-fight.ts`
+- `addWoundTick` — `tools/fabricated-fight.ts`
+- `addWoundingBlow` — `tools/fabricated-fight.ts`
 
 ### `remove` — weak
 
@@ -1529,7 +1528,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `require` — strong
 
 - `requireBlockBody` — `tools/protocol-key-table.ts`
-- `requireBuffBits` — `tools/buff-bit-table.ts`
 - `requireBundleInBrowser` — `tools/build-userscript.ts`
 - `requireCachedArticleText` — `tools/help-article.ts`
 - `requireCachedHelpArticle` — `tools/help-article.ts`
@@ -1537,7 +1535,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `requireCachedSkillTable` — `tools/skill-table.ts`
 - `requireCallsCarried` — `tools/capture-intake.ts`
 - `requireComputedKeyFamily` — `tools/protocol-key-table.ts`
-- `requireEndOfWhitespace` — `tools/buff-bit-table.ts`
+- `requireEndOfWhitespace` — `tools/status-bit-table.ts`
 - `requireEveryCombatantDecided` — `tools/capture-intake.ts`
 - `requireFabricationShape` — `tools/fabricated-fight.ts`
 - `requireMargonemChannel` — `tools/margonem-client-source.ts`
@@ -1549,6 +1547,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `requireScreens` — `tools/drill-report.ts`
 - `requireSkillsOfMargonemApi` — `tools/skill-table.ts`
 - `requireSnapshotsCarried` — `tools/capture-intake.ts`
+- `requireStatusBits` — `tools/status-bit-table.ts`
 
 ### `expect` — strong
 
@@ -2505,7 +2504,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `registering` — not in N2's table
 
-- `registering` — `tests/tools/buff-bit-table.test.ts`
+- `registering` — `tests/tools/status-bit-table.test.ts`
 
 ### `release` — not in N2's table
 
@@ -2612,7 +2611,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `spaced` — not in N2's table
 
-- `spaced` — `tests/tools/buff-bit-table.test.ts`
+- `spaced` — `tests/tools/status-bit-table.test.ts`
 
 ### `speak` — not in N2's table
 
@@ -3461,7 +3460,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `tools/`
 
-- `BuffBitTableError` — `tools/margometer-tool-error.ts`
 - `CaptureIntakeError` — `tools/margometer-tool-error.ts`
 - `CardHeightError` — `tools/margometer-tool-error.ts`
 - `ChangelogError` — `tools/margometer-tool-error.ts`
@@ -3483,6 +3481,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ProtocolKeyTableError` — `tools/margometer-tool-error.ts`
 - `RecordingReadError` — `tools/margometer-tool-error.ts`
 - `SkillTableError` — `tools/margometer-tool-error.ts`
+- `StatusBitTableError` — `tools/margometer-tool-error.ts`
 - `TurnCountError` — `tools/margometer-tool-error.ts`
 - `TurnReadingError` — `tools/margometer-tool-error.ts`
 - `UserscriptBuildError` — `tools/margometer-tool-error.ts`
@@ -3999,10 +3998,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `FROZEN_AURA_TURNS` — `frozen/aura-turns.ts`
 - `FROZEN_BLOWS_GRANTED` — `frozen/blows-granted.ts`
-- `FROZEN_BUFF_BITS` — `frozen/buff-bits.ts`
 - `FROZEN_HELP_PHRASES` — `frozen/help-phrases.ts`
 - `FROZEN_PROTOCOL_KEYS` — `frozen/protocol-keys.ts`
 - `FROZEN_SKILL_DURATIONS` — `frozen/skill-durations.ts`
+- `FROZEN_STATUS_BITS` — `frozen/status-bits.ts`
 
 ### `tools/`
 
@@ -4011,7 +4010,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `AMBIENT_WAYS_OUT` — `tools/build-userscript.ts`
 - `ANNOUNCEMENT_FAMILIES` — `tools/protocol-key-shape.ts`
 - `ARGUMENTS_MAXIMUM` — in 4 files: `tools/`
-- `ARGUMENT_SEPARATOR` — `tools/buff-bit-table.ts`
+- `ARGUMENT_SEPARATOR` — `tools/status-bit-table.ts`
 - `ARMOUR_BASE` — `tools/fabricated-fight.ts`
 - `ARMOUR_DAMAGE` — `tools/fabricated-fight.ts`
 - `ARMOUR_DAMAGE_PIERCED` — `tools/fabricated-fight.ts`
@@ -4034,8 +4033,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `CACHE_ROOT` — `tools/help-article.ts`, `tools/margonem-client-source.ts`, `tools/skill-table.ts`
 - `CALLS_MAXIMUM` — `tools/capture-intake.ts`
 - `CALL_BEFORE_ENGLISH` — `tools/capture-intake.ts`
-- `CALL_CLOSE` — `tools/buff-bit-table.ts`
-- `CALL_OPEN` — `tools/buff-bit-table.ts`
+- `CALL_CLOSE` — `tools/status-bit-table.ts`
+- `CALL_OPEN` — `tools/status-bit-table.ts`
 - `CAPTION_WIDTH` — `tools/decoding-status.ts`, `tools/fight-figures.ts`
 - `CARDS_MAXIMUM` — `tools/card-height.ts`
 - `CARD_ANCHOR` — `tools/panel-giving-way.ts`
@@ -4134,13 +4133,13 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FROZEN_AURA_PATH` — `tools/skill-table.ts`
 - `FROZEN_BLOWS_BANNER` — `tools/skill-table.ts`
 - `FROZEN_BLOWS_PATH` — `tools/skill-table.ts`
-- `FROZEN_BUFF_BANNER` — `tools/buff-bit-table.ts`
 - `FROZEN_DATE_FIELD` — in 4 files: `tools/`
 - `FROZEN_DIRECTORY` — `tools/frozen-files.ts`
 - `FROZEN_HELP_BANNER` — `tools/help-article.ts`
 - `FROZEN_KEY_BANNER` — `tools/protocol-key-table.ts`
 - `FROZEN_PATH` — in 4 files: `tools/`
 - `FROZEN_SKILL_BANNER` — `tools/skill-table.ts`
+- `FROZEN_STATUS_BANNER` — `tools/status-bit-table.ts`
 - `GIVING_WAY_MARKER` — `tools/panel-giving-way.ts`
 - `GIVING_WAY_REGIONS` — `tools/panel-giving-way.ts`
 - `GRID_PLACES` — `tools/fabricated-fight.ts`
@@ -4183,7 +4182,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `LINE_COMMENT` — `tools/build-userscript.ts`
 - `LISTENERS_MAXIMUM` — `tools/preview-server.ts`
 - `LOCALE` — `tools/help-article.ts`
-- `LOOKS_MAXIMUM` — `tools/buff-bit-table.ts`, `tools/protocol-key-table.ts`
+- `LOOKS_MAXIMUM` — `tools/protocol-key-table.ts`, `tools/status-bit-table.ts`
 - `LOOT_SENTENCE` — `tools/fabricated-fight.ts`
 - `MANA_STATED` — `tools/fabricated-fight.ts`
 - `MANIFEST_FIELDS` — `tools/margonem-client-source.ts`
@@ -4206,7 +4205,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `NOBODY_NAMED` — `tools/drill-report.ts`
 - `NON_WORLD_HOSTS` — `tools/build-userscript.ts`
 - `NOTHING` — `tools/fight-figures.ts`
-- `NOTHING_ARGUMENT` — `tools/buff-bit-table.ts`
+- `NOTHING_ARGUMENT` — `tools/status-bit-table.ts`
 - `NOTHING_CACHED` — `tools/margonem-readings.ts`
 - `NOTHING_SETTLES` — `tools/aura-standing.ts`
 - `NO_SHARE` — `tools/shout-holding.ts`
@@ -4279,7 +4278,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `REMOVED_COUNT` — `tools/capture-intake.ts`
 - `REMOVED_DESCRIPTION` — `tools/capture-intake.ts`
 - `REMOVED_DESCRIPTIONS` — `tools/capture-intake.ts`
-- `ROLE` — `tools/buff-bit-table.ts`
+- `ROLE` — `tools/status-bit-table.ts`
 - `ROUNDS_DEFAULT` — `tools/fabricated-fight.ts`
 - `ROUNDS_FLAG` — `tools/fabricated-fight.ts`
 - `ROWS_MAXIMUM` — `tools/skill-table.ts`
@@ -4367,7 +4366,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `VERSION_HEADING_OPENER` — `tools/changelog.ts`
 - `VERSION_PUNCTUATION` — `tools/capture-intake.ts`
 - `VIEWPORT` — `tools/panel-shots.ts`
-- `WALK_BACK_MAXIMUM` — `tools/buff-bit-table.ts`
+- `WALK_BACK_MAXIMUM` — `tools/status-bit-table.ts`
 - `WHOLE_PERCENT` — `tools/fabricated-fight.ts`
 - `WINDOWS_ACROSS_PIXELS` — `tools/preview-page.ts`
 - `WINDOWS_WAIT_EVERY_MILLISECONDS` — `tools/preview-site.ts`
@@ -5172,12 +5171,12 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `tests/`
 
-- `BUFF_DATE_FIELD` — `tests/tools/frozen-files.test.ts`
 - `HELP_DATE_FIELD` — `tests/tools/frozen-files.test.ts`
 - `KEY_DATE_FIELD` — `tests/tools/frozen-files.test.ts`
 - `SKILLS_KEPT_MAXIMUM` — `tests/ui/panel-content.test.ts`
 - `SKILL_DATE_FIELD` — `tests/tools/frozen-files.test.ts`
 - `SKILL_PATH` — `tests/tools/frozen-files.test.ts`
+- `STATUS_DATE_FIELD` — `tests/tools/frozen-files.test.ts`
 - `TICK_KEY` — `tests/core/injure-rule.test.ts`
 - `base` — `tests/e2e/panel-fixture.ts`
 - `errors` — in 22 files: `tests/`
@@ -6291,7 +6290,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `tools/`
 
-- `ached` — `tools/fabricated-fight.ts`
 - `across` — `tools/preview-site.ts`
 - `act` — `tools/fabricated-fight.ts`
 - `actor` — `tools/fabricated-fight.ts`
@@ -6300,7 +6298,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `added` — `tools/margonem-readings.ts`
 - `adding` — `tools/turn-reading.ts`
 - `advance` — `tools/turn-count.ts`
-- `after` — `tools/buff-bit-table.ts`, `tools/panel-shots.ts`
+- `after` — `tools/panel-shots.ts`, `tools/status-bit-table.ts`
 - `afterText` — `tools/panel-shots.ts`
 - `age` — `tools/help-article.ts`
 - `ahead` — `tools/fabricated-fight.ts`
@@ -6331,7 +6329,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `aurasText` — `tools/skill-table.ts`
 - `awaiting` — `tools/fabricated-fight.ts`
 - `band` — `tools/preview-page.ts`
-- `bandaged` — `tools/fabricated-fight.ts`
 - `bare` — `tools/preview-state.ts`
 - `baseline` — `tools/shout-holding.ts`
 - `battle` — `tools/payload-cost.ts`
@@ -6341,7 +6338,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `bindings` — `tools/preview-page.ts`
 - `bit` — `tools/aura-lifetime.ts`, `tools/fabricated-fight.ts`, `tools/margonem-readings.ts`
 - `bitName` — `tools/aura-lifetime.ts`
-- `bits` — `tools/buff-bit-table.ts`, `tools/margonem-readings.ts`
+- `bits` — `tools/margonem-readings.ts`, `tools/status-bit-table.ts`
 - `block` — `tools/protocol-key-table.ts`
 - `blows` — `tools/skill-table.ts`
 - `blowsText` — `tools/skill-table.ts`
@@ -6373,7 +6370,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `caption` — `tools/fight-figures.ts`
 - `capturedAt` — `tools/capture-intake.ts`
 - `card` — `tools/panel-giving-way.ts`
-- `carried` — in 5 files: `tools/`
+- `carried` — in 4 files: `tools/`
 - `cases` — `tools/aura-lifetime.ts`, `tools/drill-report.ts`
 - `casterIds` — `tools/aura-standing.ts`
 - `casterIdsByKey` — `tools/aura-standing.ts`
@@ -6497,7 +6494,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `file` — `tools/preview-site.ts`
 - `files` — `tools/build-userscript.ts`, `tools/preview-site.ts`
 - `finished` — `tools/build-userscript.ts`
-- `fire` — `tools/fabricated-fight.ts`
 - `firstHeld` — `tools/frozen-files.ts`
 - `firstIndex` — `tools/turn-count.ts`
 - `firstRow` — `tools/panel-shots.ts`
@@ -6548,7 +6544,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `index` — in 8 files: `tools/`
 - `indexes` — `tools/fabricated-fight.ts`
 - `indices` — `tools/turn-count.ts`
-- `injure` — `tools/fabricated-fight.ts`
 - `inside` — `tools/capture-intake.ts`
 - `intake` — `tools/capture-intake.ts`
 - `into` — `tools/panel-giving-way.ts`
@@ -6588,7 +6583,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `levelValue` — `tools/skill-table.ts`
 - `liftedKeys` — `tools/margonem-readings.ts`
 - `liftedName` — `tools/margonem-readings.ts`
-- `light` — `tools/fabricated-fight.ts`
 - `lightings` — `tools/aura-lifetime.ts`
 - `line` — in 5 files: `tools/`
 - `lineEnd` — `tools/build-userscript.ts`
@@ -6629,19 +6623,19 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `mode` — `tools/aura-lifetime.ts`
 - `monsterName` — `tools/capture-intake.ts`
 - `most` — `tools/preview-page.ts`
-- `moved` — in 4 files: `tools/`
+- `moved` — in 5 files: `tools/`
 - `name` — in 10 files: `tools/`
 - `nameAt` — `tools/build-userscript.ts`
 - `named` — in 8 files: `tools/`
 - `namedBySkillId` — `tools/aura-standing.ts`
-- `names` — `tools/buff-bit-table.ts`, `tools/capture-intake.ts`, `tools/develop-reports.ts`
+- `names` — `tools/capture-intake.ts`, `tools/develop-reports.ts`, `tools/status-bit-table.ts`
 - `needle` — `tools/help-article.ts`
 - `newer` — `tools/develop-reports.ts`
 - `nonPlayer` — `tools/capture-intake.ts`
 - `normalised` — `tools/fabricated-fight.ts`
 - `note` — `tools/protocol-key-shape.ts`
 - `notes` — `tools/card-height.ts`
-- `nothingAt` — `tools/buff-bit-table.ts`
+- `nothingAt` — `tools/status-bit-table.ts`
 - `now` — `tools/margonem-readings.ts`, `tools/shout-holding.ts`
 - `occurrences` — `tools/protocol-key-shape.ts`
 - `offered` — `tools/capture-intake.ts`
@@ -6743,7 +6737,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `restored` — `tools/fabricated-fight.ts`
 - `rewrite` — `tools/develop-reports.ts`
 - `rewriteLines` — `tools/develop-reports.ts`
-- `role` — `tools/buff-bit-table.ts`
+- `role` — `tools/status-bit-table.ts`
 - `roll` — `tools/capture-intake.ts`
 - `root` — `tools/panel-giving-way.ts`
 - `roster` — `tools/drill-report.ts`, `tools/turn-reading.ts`
@@ -6752,7 +6746,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `rows` — in 4 files: `tools/`
 - `ruleAt` — `tools/protocol-key-shape.ts`
 - `run` — `tools/aura-lifetime.ts`, `tools/payload-cost.ts`
-- `runEnd` — `tools/buff-bit-table.ts`
+- `runEnd` — `tools/status-bit-table.ts`
 - `rungs` — `tools/drill-report.ts`
 - `runs` — `tools/aura-lifetime.ts`
 - `runsByLength` — `tools/aura-lifetime.ts`
@@ -6766,7 +6760,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `section` — `tools/changelog.ts`, `tools/develop-reports.ts`
 - `sections` — `tools/develop-reports.ts`
 - `sentence` — `tools/fabricated-fight.ts`, `tools/protocol-key-shape.ts`
-- `separator` — `tools/buff-bit-table.ts`
+- `separator` — `tools/status-bit-table.ts`
 - `served` — `tools/margonem-client-source.ts`, `tools/panel-shots.ts`
 - `server` — `tools/preview-server.ts`
 - `settings` — `tools/preview-page.ts`
@@ -6848,7 +6842,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `textPath` — `tools/help-article.ts`
 - `textWritten` — `tools/help-article.ts`
 - `texts` — `tools/frozen-files.ts`
-- `ticked` — `tools/fabricated-fight.ts`
 - `tips` — `tools/preview-page.ts`
 - `tipsStyle` — `tools/preview-page.ts`
 - `told` — `tools/preview-server.ts`
@@ -6861,7 +6854,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `turnsAtGoingOut` — `tools/aura-lifetime.ts`
 - `turnsAtShout` — `tools/shout-holding.ts`
 - `turnsNow` — `tools/aura-lifetime.ts`
-- `twice` — `tools/buff-bit-table.ts`
+- `twice` — `tools/status-bit-table.ts`
 - `unasked` — `tools/margonem-readings.ts`
 - `undecided` — `tools/capture-intake.ts`
 - `under` — `tools/drill-report.ts`
@@ -6900,7 +6893,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `words` — `tools/protocol-key-shape.ts`
 - `worked` — `tools/panel-shots.ts`
 - `world` — `tools/capture-intake.ts`
-- `wound` — `tools/fabricated-fight.ts`
 - `wrapped` — `tools/payload-cost.ts`
 - `writing` — `tools/preview-state.ts`
 - `written` — in 11 files: `tools/`
@@ -8524,7 +8516,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unknown` — in 5 files: `tests/`
 - `unknownKey` — `tests/ui/panel-content.test.ts`
 - `unmarked` — `tests/ports/margonem-engine-battle.test.ts`, `tests/ui/panel-element.test.ts`
-- `unminified` — `tests/tools/buff-bit-table.test.ts`
+- `unminified` — `tests/tools/status-bit-table.test.ts`
 - `unmoved` — `tests/ui/panel-drag.test.ts`
 - `unnamed` — in 5 files: `tests/`
 - `unnamedCell` — `tests/ui/panel-element.test.ts`
@@ -9300,13 +9292,13 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `auras` — `tools/skill-table.ts`
 - `base` — `tools/fabricated-fight.ts`
 - `before` — `tools/fabricated-fight.ts`, `tools/turn-count.ts`, `tools/turn-reading.ts`
-- `bits` — `tools/buff-bit-table.ts`
+- `bits` — `tools/status-bit-table.ts`
 - `body` — `tools/protocol-key-table.ts`
 - `boundary` — `tools/turn-count.ts`
 - `box` — `tools/panel-shots.ts`
 - `boxes` — `tools/panel-shots.ts`
 - `browser` — `tools/panel-shots.ts`
-- `build` — `tools/buff-bit-table.ts`, `tools/protocol-key-table.ts`
+- `build` — `tools/protocol-key-table.ts`, `tools/status-bit-table.ts`
 - `bundle` — in 4 files: `tools/`
 - `cached` — `tools/margonem-readings.ts`
 - `call` — `tools/build-userscript.ts`, `tools/capture-intake.ts`, `tools/fabricated-fight.ts`
@@ -9389,7 +9381,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `flag` — in 6 files: `tools/`
 - `flags` — `tools/panel-giving-way.ts`
 - `fled` — `tools/fabricated-fight.ts`
-- `from` — `tools/buff-bit-table.ts`, `tools/protocol-key-table.ts`
+- `from` — `tools/protocol-key-table.ts`, `tools/status-bit-table.ts`
 - `fromPaths` — `tools/preview-server.ts`
 - `frozen` — `tools/frozen-files.ts`, `tools/margonem-readings.ts`
 - `gathered` — `tools/aura-lifetime.ts`
@@ -9435,7 +9427,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `mapped` — `tools/capture-intake.ts`
 - `material` — in 8 files: `tools/`
 - `maximum` — `tools/fabricated-fight.ts`, `tools/help-article.ts`
-- `message` — `tools/fabricated-fight.ts`, `tools/turn-reading.ts`
+- `message` — `tools/turn-reading.ts`
 - `messages` — `tools/fabricated-fight.ts`
 - `messagesLost` — `tools/fight-figures.ts`
 - `microseconds` — `tools/payload-cost.ts`
@@ -9447,7 +9439,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `named` — `tools/help-article.ts`, `tools/recorded-material.ts`
 - `names` — `tools/capture-intake.ts`
 - `need` — `tools/preview-page.ts`
-- `nothingAt` — `tools/buff-bit-table.ts`
+- `nothingAt` — `tools/status-bit-table.ts`
 - `now` — `tools/help-article.ts`, `tools/margonem-readings.ts`
 - `opened` — `tools/drill-report.ts`
 - `openedPart` — `tools/drill-report.ts`
@@ -9488,7 +9480,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `placement` — `tools/protocol-key-shape.ts`
 - `placements` — `tools/protocol-key-shape.ts`
 - `port` — `tools/preview-server.ts`
-- `position` — `tools/buff-bit-table.ts`
+- `position` — `tools/status-bit-table.ts`
 - `readDate` — `tools/frozen-files.ts`
 - `reading` — `tools/shout-holding.ts`, `tools/turn-reading.ts`
 - `reason` — `tools/margometer-tool-error.ts`
@@ -11546,7 +11538,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `aura-resall` — `frozen/help-phrases.ts`
 - `aura-sa_per` — `frozen/help-phrases.ts`
 - `bandage` — `frozen/help-phrases.ts`
-- `bits` — `frozen/buff-bits.ts`
+- `bits` — `frozen/status-bits.ts`
 - `blok` — `frozen/help-phrases.ts`
 - `blowsGrantedMinimum` — `frozen/blows-granted.ts`
 - `cleanse` — `frozen/help-phrases.ts`
@@ -11585,7 +11577,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `fizyczne` — `frozen/help-phrases.ts`
 - `flee` — `frozen/help-phrases.ts`
 - `freeze` — `frozen/help-phrases.ts`
-- `gameBuild` — `frozen/buff-bits.ts`, `frozen/protocol-keys.ts`
+- `gameBuild` — `frozen/protocol-keys.ts`, `frozen/status-bits.ts`
 - `glare` — `frozen/help-phrases.ts`
 - `heal_per-allies` — `frozen/help-phrases.ts`
 - `heal_per-enemies` — `frozen/help-phrases.ts`
@@ -11659,6 +11651,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `actor` — `tools/fabricated-fight.ts`
 - `actorId` — `tools/turn-reading.ts`
 - `actsReached` — `tools/fabricated-fight.ts`
+- `add` — `tools/fabricated-fight.ts`
 - `added` — `tools/margonem-readings.ts`
 - `adding` — `tools/turn-reading.ts`
 - `address` — `tools/preview-page.ts`, `tools/preview-server.ts`, `tools/preview-site.ts`
@@ -11698,7 +11691,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `boundary` — `tools/turn-reading.ts`
 - `bounded` — `tools/turn-count.ts`
 - `browser` — `tools/panel-giving-way.ts`
-- `buffBitTable` — `tools/margometer-tool-error.ts`
 - `build` — `tools/capture-intake.ts`, `tools/margonem-client-source.ts`
 - `bundlePath` — `tools/margonem-client-source.ts`
 - `cache-control` — `tools/preview-server.ts`
@@ -11766,7 +11758,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `events` — `tools/shout-holding.ts`, `tools/turn-reading.ts`
 - `eventsByKind` — `tools/decoding-status.ts`
 - `exact` — `tools/turn-count.ts`
-- `execute` — `tools/fabricated-fight.ts`
 - `fabricatedBy` — `tools/fabricated-fight.ts`
 - `fabricatedFight` — `tools/margometer-tool-error.ts`
 - `fabricatedShape` — `tools/fabricated-fight.ts`
@@ -12010,6 +12001,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `statementOrdinal` — `tools/fabricated-fight.ts`
 - `statistics` — `tools/drill-report.ts`
 - `status` — `tools/preview-server.ts`
+- `statusBitTable` — `tools/margometer-tool-error.ts`
 - `statusClearsAtRound` — `tools/fabricated-fight.ts`
 - `statusMask` — `tools/fabricated-fight.ts`
 - `stderr` — `tools/build-userscript.ts`, `tools/develop-reports.ts`, `tools/panel-shots.ts`
@@ -12116,10 +12108,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `PROC_SUB_WORD_BY_KEY` — `tests/ui/panel-words.test.ts`
 - `PROC_WORD_BY_KEY` — `tests/ui/panel-words.test.ts`
 - `PROFESSION_WORD_BY_KEY` — `tests/ui/panel-words.test.ts`
+- `SIGNAL.unknown` — `tests/repository/design-tokens.test.ts`
 - `STATUS_CATEGORY` — `tests/ui/panel-words.test.ts`
 - `THOUSAND_SEPARATOR` — `tests/ui/panel-words.test.ts`
 - `UNANNOUNCED_CAVEATS` — `tests/ui/panel-words.test.ts`
-- `UNKNOWN_COLOUR` — `tests/repository/design-tokens.test.ts`
 - `URL` — `tests/fake-window.ts`
 - `__margometerBattleWrap` — `tests/ports/margonem-engine-battle.test.ts`
 - `_t` — `tests/ports/margonem-client-dictionary.test.ts`, `tests/simulation.ts`
@@ -13290,10 +13282,10 @@ Each `as const` object of a module, by its keys.
 
 - `FROZEN_AURA_TURNS` — `frozen/aura-turns.ts`: `fetchedAt`, `skills`, `shouts`
 - `FROZEN_BLOWS_GRANTED` — `frozen/blows-granted.ts`: `fetchedAt`, `skills`
-- `FROZEN_BUFF_BITS` — `frozen/buff-bits.ts`: `gameBuild`, `bits`
 - `FROZEN_HELP_PHRASES` — `frozen/help-phrases.ts`: `article`, `fetchedAt`, `counts`
 - `FROZEN_PROTOCOL_KEYS` — `frozen/protocol-keys.ts`: `gameBuild`, `computedFamily`, `keys`
 - `FROZEN_SKILL_DURATIONS` — `frozen/skill-durations.ts`: `fetchedAt`, `skills`
+- `FROZEN_STATUS_BITS` — `frozen/status-bits.ts`: `gameBuild`, `bits`
 
 ### `tools/`
 
@@ -13322,7 +13314,7 @@ Each `as const` object of a module, by its keys.
 - `SHOT_MOMENT` — `tools/panel-shots.ts`: `underway`, `over`
 - `TOOL_ERROR_CODE` — `tools/margometer-tool-error.ts`: `userscriptBuild`, `declaredVersion`,
   `recordingRead`, `developReport`, `changelog`, `captureIntake`, `margonemClientSource`,
-  `margonemUnreachable`, `protocolKeyTable`, `protocolKeyShape`, `buffBitTable`, `skillTable`,
+  `margonemUnreachable`, `protocolKeyTable`, `protocolKeyShape`, `statusBitTable`, `skillTable`,
   `helpArticle`, `panelShot`, `previewServe`, `drillReport`, `cardHeight`, `givingWay`, `turnCount`,
   `turnReading`, `fabricatedFight`, `margonemReadings`, `payloadCost`, `frozenFiles`
 - `TURN_OUTCOME` — `tools/turn-count.ts`: `exact`, `over`, `under`
@@ -13355,19 +13347,6 @@ the game's keys and fields, the store's keys, the sheet's classes and variables,
 attributes. Text is left out: a string with a space or a letter past ASCII, one opening with a
 digit, which is a figure or a date, and a word a `…_WORDS` table holds for the reader. So is a
 suite's material.
-
-### `frozen/buff-bits.ts`
-
-- `"DHSqC3Uh"` — `FROZEN_BUFF_BITS`
-- `"critical_deep_wound"` — `FROZEN_BUFF_BITS`
-- `"deep_wound"` — `FROZEN_BUFF_BITS`
-- `"fire"` — `FROZEN_BUFF_BITS`
-- `"frostbite"` — `FROZEN_BUFF_BITS`
-- `"poisoned"` — `FROZEN_BUFF_BITS`
-- `"shock"` — `FROZEN_BUFF_BITS`
-- `"speed_up"` — `FROZEN_BUFF_BITS`
-- `"swow_down"` — `FROZEN_BUFF_BITS`
-- `"wound"` — `FROZEN_BUFF_BITS`
 
 ### `frozen/protocol-keys.ts`
 
@@ -13786,6 +13765,19 @@ suite's material.
 - `"woundchance"` — `FROZEN_SKILL_DURATIONS`
 - `"wounddmgbon_perw"` — `FROZEN_SKILL_DURATIONS`
 - `"woundred"` — `FROZEN_SKILL_DURATIONS`
+
+### `frozen/status-bits.ts`
+
+- `"DHSqC3Uh"` — `FROZEN_STATUS_BITS`
+- `"critical_deep_wound"` — `FROZEN_STATUS_BITS`
+- `"deep_wound"` — `FROZEN_STATUS_BITS`
+- `"fire"` — `FROZEN_STATUS_BITS`
+- `"frostbite"` — `FROZEN_STATUS_BITS`
+- `"poisoned"` — `FROZEN_STATUS_BITS`
+- `"shock"` — `FROZEN_STATUS_BITS`
+- `"speed_up"` — `FROZEN_STATUS_BITS`
+- `"swow_down"` — `FROZEN_STATUS_BITS`
+- `"wound"` — `FROZEN_STATUS_BITS`
 
 ### `libs/html-text.ts`
 
@@ -14582,16 +14574,6 @@ suite's material.
 
 - `"--cases"` — `CASES_FLAG`
 
-### `tools/buff-bit-table.ts`
-
-- `"("` — `CALL_OPEN`
-- `")"` — `CALL_CLOSE`
-- `","` — `ARGUMENT_SEPARATOR`
-- `"buff"` — `ROLE`
-- `"frozen/buff-bits.ts"` — `FROZEN_PATH`
-- `"gameBuild"` — `FROZEN_DATE_FIELD`
-- `"null"` — `NOTHING_ARGUMENT`
-
 ### `tools/build-userscript.ts`
 
 - `"\""` — `QUOTES`
@@ -14792,7 +14774,6 @@ suite's material.
 
 ### `tools/margometer-tool-error.ts`
 
-- `"BuffBitTable"` — `TOOL_ERROR_CODE`
 - `"CaptureIntake"` — `TOOL_ERROR_CODE`
 - `"CardHeight"` — `TOOL_ERROR_CODE`
 - `"Changelog"` — `TOOL_ERROR_CODE`
@@ -14813,6 +14794,7 @@ suite's material.
 - `"ProtocolKeyTable"` — `TOOL_ERROR_CODE`
 - `"RecordingRead"` — `TOOL_ERROR_CODE`
 - `"SkillTable"` — `TOOL_ERROR_CODE`
+- `"StatusBitTable"` — `TOOL_ERROR_CODE`
 - `"TurnCount"` — `TOOL_ERROR_CODE`
 - `"TurnReading"` — `TOOL_ERROR_CODE`
 - `"UserscriptBuild"` — `TOOL_ERROR_CODE`
@@ -14965,6 +14947,16 @@ suite's material.
 - `"skills.html"` — `PAGE_NAME`
 - `"tags"` — `COLUMNS`
 
+### `tools/status-bit-table.ts`
+
+- `"("` — `CALL_OPEN`
+- `")"` — `CALL_CLOSE`
+- `","` — `ARGUMENT_SEPARATOR`
+- `"buff"` — `ROLE`
+- `"frozen/status-bits.ts"` — `FROZEN_PATH`
+- `"gameBuild"` — `FROZEN_DATE_FIELD`
+- `"null"` — `NOTHING_ARGUMENT`
+
 ### `tools/turn-count.ts`
 
 - `"always"` — `TURN_VERDICT`
@@ -14994,13 +14986,13 @@ suite's material.
 - `fight:openers`
 - `fight:shout`
 - `fight:turns`
-- `margonem:buffs`
 - `margonem:client`
 - `margonem:help`
 - `margonem:keys`
 - `margonem:readings`
 - `margonem:shape`
 - `margonem:skills`
+- `margonem:statuses`
 - `names`
 - `panel:cards`
 - `panel:drill`
@@ -15146,10 +15138,10 @@ suite's material.
 - `frozen/AGENTS.md`
 - `frozen/aura-turns.ts`
 - `frozen/blows-granted.ts`
-- `frozen/buff-bits.ts`
 - `frozen/help-phrases.ts`
 - `frozen/protocol-keys.ts`
 - `frozen/skill-durations.ts`
+- `frozen/status-bits.ts`
 - `libs/errors.ts`
 - `libs/html-text.ts`
 - `libs/json-text.ts`
@@ -15379,7 +15371,6 @@ suite's material.
 - `tests/style-sheet.ts`
 - `tests/tools/aura-lifetime.test.ts`
 - `tests/tools/aura-standing.test.ts`
-- `tests/tools/buff-bit-table.test.ts`
 - `tests/tools/build-userscript.test.ts`
 - `tests/tools/capture-intake.test.ts`
 - `tests/tools/card-height.test.ts`
@@ -15405,6 +15396,7 @@ suite's material.
 - `tests/tools/recorded-material.test.ts`
 - `tests/tools/shout-holding.test.ts`
 - `tests/tools/skill-table.test.ts`
+- `tests/tools/status-bit-table.test.ts`
 - `tests/tools/turn-count.test.ts`
 - `tests/tools/turn-reading.test.ts`
 - `tests/ui/blow-vocabulary.test.ts`
@@ -15433,7 +15425,6 @@ suite's material.
 - `tests/verb-purities.ts`
 - `tools/aura-lifetime.ts`
 - `tools/aura-standing.ts`
-- `tools/buff-bit-table.ts`
 - `tools/build-userscript.ts`
 - `tools/capture-intake.ts`
 - `tools/card-height.ts`
@@ -15461,5 +15452,6 @@ suite's material.
 - `tools/recorded-material.ts`
 - `tools/shout-holding.ts`
 - `tools/skill-table.ts`
+- `tools/status-bit-table.ts`
 - `tools/turn-count.ts`
 - `tools/turn-reading.ts`

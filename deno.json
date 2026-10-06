@@ -71,7 +71,7 @@
         "margonem:client": "deno run -A tools/margonem-client-source.ts",
         // Every key the client branches on, and the bits a status mask is read by.
         "margonem:keys": "deno run -A tools/protocol-key-table.ts",
-        "margonem:buffs": "deno run -A tools/buff-bit-table.ts",
+        "margonem:statuses": "deno run -A tools/status-bit-table.ts",
         // Every skill the game publishes, and the turns each effect runs for.
         "margonem:skills": "deno run -A tools/skill-table.ts",
         // The published help, cached and searched, and the counts `docs/protocol-keys.md`'s claims

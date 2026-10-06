@@ -84,7 +84,7 @@ printed on a bar at present, and the pair is what proves the tint keeps every hu
 | `suspect`        | `#ed9c00` | A figure that may be short.                                   |
 | `caveat`         | `#6bb5ff` | A figure answering a narrower question than its label.        |
 | `defect`         | `#ed78ff` | What the panel itself could not do.                           |
-| `UNKNOWN_COLOUR` | `#9299a0` | Desaturated on purpose: unknown is the absence of a category. |
+| `SIGNAL.unknown` | `#9299a0` | Desaturated on purpose: unknown is the absence of a category. |
 
 `ours` and `theirs` are **not** green-good and red-bad: they are two sides, and the panel takes no
 view on which one the reader should be pleased about. **They are this sheet's names and nothing

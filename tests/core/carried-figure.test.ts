@@ -15,14 +15,14 @@ import { indexKeyByStatusBit, tallyCarriedFigures } from "#/src/core/carried-fig
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import type { FightView } from "#/src/core/fight-session.ts";
 import { addEventTurns, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
-import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { STATED_SKILLS } from "#/tests/frozen-tables.ts";
 
 const OURS = 1;
 const THEIRS = 2;
 const SPEED_BIT = 6;
 const SLOW_BIT = 5;
-const WITNESSED = indexKeyByStatusBit(FROZEN_BUFF_BITS.bits);
+const WITNESSED = indexKeyByStatusBit(FROZEN_STATUS_BITS.bits);
 
 /** `Szadź` as the frozen table dates it, eight turns, cast from across the board. */
 const FROST_SKILL_ID = 123;

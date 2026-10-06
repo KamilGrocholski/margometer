@@ -67,6 +67,8 @@ const CITED_WHILE_ABSENT = [
     "tests/repository/frozen-readings.test.ts",
     "docs/adr/0004-the-frozen-readings-are-develops-at-the-revision.md → " +
     "tests/recording-revision.ts",
+    // The status table before the maintainer's buff-to-status rename of 2026-10-06.
+    "docs/adr/0004-the-frozen-readings-are-develops-at-the-revision.md → frozen/buff-bits.ts",
     // The pin this decision removed.
     "docs/adr/0005-the-readings-are-refreshed-here.md → tests/repository/frozen-readings.test.ts",
 ];

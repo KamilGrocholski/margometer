@@ -6,7 +6,7 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { type BitRow, replayLightingRows, tallyBitRows } from "#/tools/aura-lifetime.ts";
 import { readRecordedMaterial, replayMaterialSteps } from "#/tools/recorded-material.ts";
@@ -100,7 +100,7 @@ Deno.test("the register names the statuses the client registers, in the client's
     const documented = parseBitRows(Deno.readTextFileSync(REGISTER_PATH));
     assertEquals(
         documented.map((row) => row.bitName),
-        [...FROZEN_BUFF_BITS.bits],
+        [...FROZEN_STATUS_BITS.bits],
         "the register's rows against the frozen bit table, in order",
     );
 });
