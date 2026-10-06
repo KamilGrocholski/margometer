@@ -59,11 +59,12 @@ export interface TooltipStatus {
     percent: number | null;
 }
 
-/** One fighter, as the game's own tooltip could honestly restate them. */
+/**
+ * One fighter, as the game's own tooltip could honestly restate them. ⚠️ **Never the charge**: the
+ * game's tooltip draws that itself, above our block (ADR 0038).
+ */
 export interface TooltipContent {
     turnsTaken: number;
-    /** What they are making ready, or null: an ended charge is Pomocnik's (`develop ADR 0115`). */
-    charge: { skillName: string; turnsElapsed: number; turnsStated: number } | null;
     /** Whoever is holding them with an okrzyk, and how far through the shout's turns they are. */
     provokedBy: { name: string; turnsElapsed: number; turnsStated: number } | null;
     /** How many characters their own okrzyk is holding. Never their names — `develop ADR 0103`. */
@@ -776,8 +777,8 @@ const MARKUP_OPENER = "<";
 const MARKUP_ENTITY = "&";
 /**
  * Every row one fighter can put up, **counted off the parts rather than off the corpus**: the
- * add-on's own name, the charge, the okrzyk from either end, the two legendary bonuses, the turns
- * taken, and one row per status the client registers.
+ * add-on's own name, the okrzyk from either end, the two legendary bonuses, the turns taken, and
+ * one row per status the client registers.
  *
  * ⚠️ **A figure taken off the corpus was the wrong figure here.** The tallest block over
  * `captures/` is seven (`develop:design/dziesiec/measured.json`), and a fabricated ten-a-side
@@ -785,7 +786,7 @@ const MARKUP_ENTITY = "&";
  * happening. It clamps rather than asserts, because a fighter with one thing more to say is not a
  * reason to stop drawing (**A11**, `develop ADR 0051`).
  */
-export const ROWS_BESIDE_THE_STATUSES = 7;
+export const ROWS_BESIDE_THE_STATUSES = 6;
 
 /**
  * What the heading says about a charge, and nothing where it is still running: there the row is
@@ -1160,20 +1161,6 @@ export function presentTooltipRows(
             if (tooltip.turnsTaken > 0) {
                 said.push(`${TOOLTIP_WORDS.turnsTaken} ${formatFigure(tooltip.turnsTaken)}`);
             }
-        }
-    }
-    // Say the skill being charged, and how far its charge has run.
-    {
-        // ⚠️ **Counts up, with no noun**: the client's own pair, as Pomocnik draws it. The okrzyk's
-        // `1 z 3` counts down and carries no noun either, so the row's own name is all that tells
-        // the two directions apart. `develop ADR 0115`, `develop ADR 0116`.
-        const charge = tooltip.charge;
-        if (charge !== null) {
-            const apart = HELPER_WORDS.castSeparator;
-            const passed = formatCounter(charge.turnsElapsed, charge.turnsStated);
-            said.push(
-                `${HELPER_WORDS.chargedSkill} ${apart} ${charge.skillName} ${apart} ${passed}`,
-            );
         }
     }
     // Say what stands of the legendary heals.

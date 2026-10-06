@@ -5529,7 +5529,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `carried` — `src/runtime/carried-tooltip.ts`
 - `carriedFigure` — `src/runtime/carried-tooltip.ts`
 - `caster` — `src/runtime/carried-tooltip.ts`
-- `charging` — `src/runtime/carried-tooltip.ts`
 - `chosen` — `src/runtime/fight-state.ts`, `src/runtime/shelf-keeper.ts`
 - `chosenFightOpenedAt` — `src/runtime/panel-frame.ts`
 - `combatant` — `src/runtime/panel-frame.ts`
@@ -5746,7 +5745,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `cell` — `src/ui/panel-element.ts`
 - `channel` — `src/ui/panel-look.ts`
 - `channelIndex` — `src/ui/panel-look.ts`
-- `charge` — `src/ui/panel-words.ts`
 - `charged` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `child` — `src/ui/panel-element.ts`
 - `choice` — `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
@@ -5972,7 +5970,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `partName` — `src/ui/panel-screen.ts`
 - `parts` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`, `src/ui/panel-words.ts`
 - `partsTotal` — `src/ui/panel-content.ts`
-- `passed` — `src/ui/panel-words.ts`
 - `percent` — `src/ui/panel-words.ts`
 - `person` — `src/ui/panel-element.ts`
 - `personContext` — `src/ui/panel-element.ts`
@@ -6986,7 +6983,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `character` — in 13 files: `tests/`
 - `characterIndex` — `tests/repository/cited-paths.test.ts`, `tests/repository/documents.test.ts`,
   `tests/repository/type-assertions.test.ts`
-- `charge` — `tests/core/fight-session.test.ts`, `tests/runtime/carried-tooltip.test.ts`
+- `charge` — `tests/core/fight-session.test.ts`
 - `charged` — in 6 files: `tests/`
 - `charges` — `tests/ui/panel-helper.test.ts`
 - `charging` — `tests/tools/panel-shots.test.ts`, `tests/ui/helper-window.test.ts`
@@ -7463,6 +7460,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isAppended` — `tests/runtime/carried-tooltip.test.ts`
 - `isAt` — `tests/core/health-witness.test.ts`
 - `isBreak` — `tests/repository/names.test.ts`
+- `isChargingById` — `tests/runtime/carried-tooltip.test.ts`
 - `isConstructor` — `tests/repository/regular-expressions.test.ts`
 - `isExported` — `tests/repository/declaration-order.test.ts`
 - `isFolded` — `tests/e2e/panel-type.spec.ts`
@@ -7485,7 +7483,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isTick` — `tests/core/wound-rule.test.ts`
 - `isTold` — `tests/runtime/carried-tooltip.test.ts`
 - `isTop` — `tests/repository/name-register.test.ts`
-- `isTurnsFirst` — `tests/runtime/carried-tooltip.test.ts`
 - `isWrite` — `tests/simulation.ts`
 - `items` — `tests/repository/declaration-order.test.ts`
 - `joined` — `tests/core/fight-session.test.ts`, `tests/runtime/carried-tooltip.test.ts`,
@@ -7981,7 +7978,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `roundTripped` — `tests/runtime/fight-file.test.ts`
 - `rounded` — `tests/core/combatant-health.test.ts`, `tests/core/injure-rule.test.ts`
 - `roundedAttacker` — `tests/core/injure-rule.test.ts`
-- `row` — in 27 files: `tests/`
+- `row` — in 26 files: `tests/`
 - `rowCells` — `tests/register-table.ts`
 - `rowHeight` — `tests/ui/panel-look.test.ts`
 - `rowIndex` — in 6 files: `tests/`
@@ -8147,8 +8144,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `started` — `tests/ports/browser-interval.test.ts`
 - `starts` — `tests/runtime/margonem-engine-search.test.ts`
 - `state` — in 6 files: `tests/`
-- `stated` — in 39 files: `tests/`
-- `statedById` — `tests/runtime/carried-tooltip.test.ts`
+- `stated` — in 38 files: `tests/`
 - `statedHere` — `tests/core/health-witness.test.ts`
 - `statedName` — `tests/repository/throws.test.ts`
 - `statement` — in 4 files: `tests/`
@@ -8316,7 +8312,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unclaused` — `tests/tools/aura-lifetime.test.ts`
 - `uncounted` — `tests/repository/protocol-keys.test.ts`
 - `undated` — `tests/tools/frozen-files.test.ts`
-- `under` — in 10 files: `tests/`
+- `under` — in 9 files: `tests/`
 - `underAnnouncement` — `tests/tools/drill-report.test.ts`
 - `underway` — `tests/ui/helper-window.test.ts`, `tests/ui/panel-helper.test.ts`
 - `undisputed` — `tests/tools/turn-reading.test.ts`
@@ -8686,7 +8682,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `carriedStatus` — `src/runtime/carried-tooltip.ts`
 - `category` — `src/runtime/margometer-runtime.ts`
 - `cause` — `src/runtime/fight-file.ts`
-- `chargedSkill` — `src/runtime/carried-tooltip.ts`
 - `choice` — `src/runtime/margometer-runtime.ts`, `src/runtime/settings.ts`,
   `src/runtime/shelf-keeper.ts`
 - `chosenFightOpenedAt` — `src/runtime/fight-state.ts`, `src/runtime/panel-frame.ts`
@@ -9889,8 +9884,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `trimmed` — `tests/core/aura-standing.test.ts`, `tests/repository/workflows.test.ts`
 - `turns` — `tests/core/aura-standing.test.ts`, `tests/tools/turn-count.test.ts`
 - `turnsByCombatantId` — `tests/core/carried-figure.test.ts`
-- `turnsElapsed` — `tests/core/charged-skill.test.ts`, `tests/ui/panel-words.test.ts`
-- `turnsStated` — `tests/core/charged-skill.test.ts`, `tests/ui/panel-words.test.ts`
+- `turnsElapsed` — `tests/core/charged-skill.test.ts`
+- `turnsStated` — `tests/core/charged-skill.test.ts`
 - `type` — in 5 files: `tests/`
 - `unnamedNote` — `tests/ui/panel-card.test.ts`
 - `update` — `tests/ports/recorded-session.test.ts`
@@ -10381,7 +10376,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `capturedAt` — `src/runtime/fight-file.ts`, `src/runtime/fight-handover.ts`
 - `card` — `src/runtime/panel-frame.ts`
 - `cause` — `src/runtime/fight-file.ts`, `src/runtime/shelf.ts`
-- `charge` — `src/runtime/carried-tooltip.ts`
 - `choice` — `src/runtime/margometer-runtime.ts`, `src/runtime/shelf-keeper.ts`
 - `clock` — in 4 files: `src/runtime/`
 - `combatantId` — `src/runtime/panel-frame.ts`
@@ -10583,7 +10577,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `sideHealsUnsized` — `src/runtime/fight-file.ts`
 - `size` — `src/runtime/margometer-runtime.ts`
 - `sizes` — `src/runtime/panel-frame.ts`
-- `skillName` — `src/runtime/carried-tooltip.ts`
 - `skills` — `src/runtime/fight-file.ts`
 - `snapshotBefore` — `src/runtime/live-fight.ts`
 - `standDown` — `src/runtime/failure-fate.ts`
@@ -10738,7 +10731,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `cause` — `src/ui/view-failure.ts`
 - `caveat` — `src/ui/panel-element.ts`, `src/ui/panel-palette.ts`
 - `character` — `src/ui/panel-words.ts`
-- `charge` — `src/ui/panel-words.ts`
 - `chargedSkill` — `src/ui/panel-words.ts`
 - `chargedSkills` — `src/ui/panel-helper.ts`
 - `charging` — `src/ui/panel-words.ts`
@@ -11152,7 +11144,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `sizes` — `src/ui/panel-content.ts`
 - `skill` — `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`, `src/ui/panel-screen.ts`
 - `skillId` — `src/ui/panel-helper.ts`
-- `skillName` — `src/ui/panel-element.ts`, `src/ui/panel-helper.ts`, `src/ui/panel-words.ts`
+- `skillName` — `src/ui/panel-element.ts`, `src/ui/panel-helper.ts`
 - `skillUses` — `src/ui/panel-content.ts`, `src/ui/panel-words.ts`
 - `skills` — `src/ui/panel-words.ts`
 - `slot` — `src/ui/panel-look.ts`
@@ -12020,7 +12012,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-look.test.ts`
 - `channel` — `tests/e2e/panel-camera.ts`, `tests/tools/margonem-client-source.test.ts`,
   `tests/tools/margonem-readings.test.ts`
-- `charge` — in 4 files: `tests/`
+- `charge` — `tests/core/charged-skill.test.ts`, `tests/core/fight-session.test.ts`,
+  `tests/ports/warrior-entries.test.ts`
 - `chargeStatements` — `tests/core/fight-figures.test.ts`, `tests/core/fight-session.test.ts`
 - `chargedSkills` — `tests/core/aura-standing.test.ts`
 - `charging` — `tests/ports/recorded-session.test.ts`
@@ -12682,7 +12675,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `sizes` — `tests/shown-screen.ts`, `tests/ui/panel-element.test.ts`,
   `tests/ui/shelf-bound.test.ts`
 - `skillId` — in 9 files: `tests/`
-- `skillName` — in 12 files: `tests/`
+- `skillName` — in 11 files: `tests/`
 - `skillUses` — `tests/ui/panel-card.test.ts`
 - `skills` — `tests/tools/capture-intake.test.ts`
 - `snapshotBefore` — `tests/runtime/panel-frame.test.ts`
@@ -14856,6 +14849,7 @@ suite's material.
 - `docs/adr/0035-a-fights-totals-hold-only-what-is-summed.md`
 - `docs/adr/0036-the-caveat-letter-is-drawn-and-every-bar-control-is-one-box.md`
 - `docs/adr/0037-a-browser-api-this-program-calls-is-a-boundary.md`
+- `docs/adr/0038-a-fighter-s-tooltip-leaves-the-charge-to-the-game.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

@@ -106,6 +106,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0035-a-fights-totals-hold-only-what-is-summed.md`                                            | a fight's totals hold only the figures that are summed, and the file stays version 4                         |
 | `docs/adr/0036-the-caveat-letter-is-drawn-and-every-bar-control-is-one-box.md`                         | the caveat letter is drawn as a dot over a stem, and every bar control is one box with its mark centred      |
 | `docs/adr/0037-a-browser-api-this-program-calls-is-a-boundary.md`                                      | a browser API the add-on calls is a seventh boundary, and a tool's file system is one of its boundaries      |
+| `docs/adr/0038-a-fighter-s-tooltip-leaves-the-charge-to-the-game.md`                                   | a fighter's tooltip leaves the charge to the game's own section, and Pomocnik keeps its own                  |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

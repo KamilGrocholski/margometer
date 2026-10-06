@@ -6,7 +6,7 @@
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { isRecord } from "#/libs/unknown-value.ts";
-import { PANEL_WORDS } from "#/src/ui/panel-words.ts";
+import { HELPER_WORDS, PANEL_WORDS } from "#/src/ui/panel-words.ts";
 import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
 import { composeRebuildingBattle } from "#/tests/rebuilding-battle.ts";
 import { initRuntimeWorld } from "#/tests/runtime-world.ts";
@@ -75,49 +75,34 @@ Deno.test("an open tooltip is told to draw again exactly when rows went on", () 
 
 /**
  * ⚠️ **Held at the seam, against the envelope itself.** The witness is the game's own `super_cast`,
- * followed payload by payload: the row stands exactly where one is stated, under the turns taken
- * or under the name, with the client's own pair (`develop ADR 0115`, `0116`).
+ * followed payload by payload: whoever it states charging carries no charge row of ours, because
+ * the game's tooltip says the charge itself above our block (ADR 0038).
  */
-Deno.test("a charge row stands on whoever the envelope states charging, under the turns", () => {
+Deno.test("a fighter the envelope states charging carries no charge row of ours", () => {
     const wrong: string[] = [];
     let charged = 0;
     for (const fight of readRecordedFights()) {
         const { page, registries } = composeRebuildingBattle();
         const world = initRuntimeWorld(page);
-        const statedById = new Map<number, string | null>();
+        const isChargingById = new Map<number, boolean>();
         for (const [index, payload] of fight.updates.entries()) {
             world.update(payload);
             const warriors = isRecord(payload) && isRecord(payload.w) ? payload.w : {};
             for (const [id, warrior] of Object.entries(warriors)) {
                 if (!isRecord(warrior)) continue;
-                const charge = warrior.super_cast;
-                const row = isRecord(charge)
-                    ? `Cios specjalny · ${charge.name} · ${charge.turn} z ${charge.total_turns}`
-                    : null;
-                statedById.set(Number(id), row);
+                isChargingById.set(Number(id), isRecord(warrior.super_cast));
             }
             for (const [id, registry] of registries) {
-                const rows = registry.text.split("<br>");
-                const stated = statedById.get(id) ?? null;
-                const drawn = rows.filter((row) => row.startsWith("Cios specjalny"));
-                if (stated === null) {
-                    if (drawn.length > 0) wrong.push(`${fight.path} #${index}: ${id} ${drawn[0]}`);
-                    continue;
-                }
-                charged += 1;
-                const opening = rows.indexOf(ADD_ON_ROW) + 1;
-                const isTurnsFirst = (rows[opening] ?? "").startsWith("Tury wykonane");
-                const under = rows[isTurnsFirst ? opening + 1 : opening] ?? "";
-                if (under !== stated) wrong.push(`${fight.path} #${index}: ${id} ${under}`);
+                if (isChargingById.get(id) === true) charged += 1;
+                const drawn = registry.text.split("<br>").filter((row) =>
+                    row.startsWith(HELPER_WORDS.chargedSkill)
+                );
+                if (drawn.length > 0) wrong.push(`${fight.path} #${index}: ${id} ${drawn[0]}`);
             }
         }
     }
-    assertEquals(
-        wrong.slice(0, 5),
-        [],
-        `a charge row disagreed with the envelope ${wrong.length}×`,
-    );
-    assert(charged > 0, "the recordings carry fighters charging, and their rows were read");
+    assertEquals(wrong.slice(0, 5), [], `a charge row of ours was drawn ${wrong.length}×`);
+    assert(charged > 0, "the recordings carry fighters charging, and their blocks were read");
 });
 
 /**

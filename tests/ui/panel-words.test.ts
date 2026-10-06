@@ -177,7 +177,6 @@ const MONTHS_IN_YEAR = 12;
 /** A fighter with nothing standing on them, so a test says only what it is about. */
 const NOTHING_CARRIED = {
     turnsTaken: 0,
-    charge: null,
     provokedBy: null,
     provokedCount: 0,
     statuses: [],
@@ -212,7 +211,6 @@ const HOLDER_CLOSERS = ["type ", "export type ", "interface ", "export interface
 /** Everything one fighter can be at once, so a test about order has every row to order. */
 const CARRYING_EVERYTHING = {
     turnsTaken: 14,
-    charge: { skillName: "Pożoga", turnsElapsed: 2, turnsStated: 4 },
     provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
     provokedCount: 10,
     statuses: [
@@ -375,7 +373,6 @@ function getSentencesFromTooltip(): string[] {
             {
                 ...NOTHING_CARRIED,
                 turnsTaken: 14,
-                charge: { skillName: "Cios", turnsElapsed: bit - 3, turnsStated: 1 },
                 provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
                 provokedCount: 2,
                 statuses: [{ bit, percent: 39 }],
@@ -544,7 +541,6 @@ Deno.test("every row that names a thing and qualifies it is punctuated alike", (
     const said = presentTooltipRows(
         {
             ...NOTHING_CARRIED,
-            charge: { skillName: "Pożoga", turnsElapsed: 2, turnsStated: 4 },
             provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
             statuses: [{ bit: 3, percent: null }],
             holytouchHealsReceived: 1,
@@ -556,8 +552,8 @@ Deno.test("every row that names a thing and qualifies it is punctuated alike", (
     const carrying = said.filter((row) => row.includes(" z ") || row.includes("wykorzystany"));
     assertEquals(
         carrying.length,
-        4,
-        "the charge, the okrzyk and both legendary bonuses, and no status",
+        3,
+        "the okrzyk and both legendary bonuses, and no status",
     );
     for (const row of carrying) {
         assertStringIncludes(row, HELPER_WORDS.castSeparator, `${row} stands its parts apart`);
@@ -620,45 +616,6 @@ Deno.test("a label the client answers with markup is refused rather than escaped
         [],
         "the answer is the client's, and one this repository cannot use is left alone",
     );
-});
-
-/**
- * ⚠️ **The charge restates the client's pair, counting up**, where the provocation a row below it
- * counts down (`develop ADR 0115`): Pomocnik draws the same pair for the same charge, and a
- * remainder here would be a second number for it. The missing noun is what tells the two fractions
- * apart, so the row is asserted whole — at nought, a charge just begun, and at the whole, the turn
- * it lands on.
- */
-Deno.test("a charge says the blow and how much of it has passed, as the client states it", () => {
-    const row = (turnsElapsed: number, turnsStated: number) =>
-        presentTooltipRows(
-            {
-                ...NOTHING_CARRIED,
-                charge: { skillName: "Pożoga", turnsElapsed, turnsStated },
-            },
-            null,
-            FROZEN_BUFF_BITS.bits,
-        )[1];
-    assertEquals(row(0, 4), "Cios specjalny · Pożoga · 0 z 4", "just begun");
-    assertEquals(row(2, 4), "Cios specjalny · Pożoga · 2 z 4", "half through");
-    assertEquals(row(4, 4), "Cios specjalny · Pożoga · 4 z 4", "and on the last turn");
-    assertEquals(row(0, 1), "Cios specjalny · Pożoga · 0 z 1", "a charge of one turn, begun");
-    assertEquals(row(1, 1), "Cios specjalny · Pożoga · 1 z 1", "and at its other end");
-    assertEquals(row(5, 4), `Cios specjalny · Pożoga · ${PANEL_WORDS.unknown}`, "past the whole");
-    assertEquals(row(-1, 4), `Cios specjalny · Pożoga · ${PANEL_WORDS.unknown}`, "below none");
-});
-
-/** A blow's name is the client's, so one carrying markup is refused like any label of theirs. */
-Deno.test("a charge whose name carries markup puts no row in", () => {
-    const said = presentTooltipRows(
-        {
-            ...NOTHING_CARRIED,
-            charge: { skillName: "<b>Pożoga</b>", turnsElapsed: 0, turnsStated: 2 },
-        },
-        null,
-        FROZEN_BUFF_BITS.bits,
-    );
-    assertEquals(said, [], "nothing else to say, so the tooltip is left as the game made it");
 });
 
 /** **W5: zero is a boundary.** Nothing carried composes no row, which is not an empty one. */
@@ -1393,7 +1350,6 @@ Deno.test("the rows stand in the one order the maintainer set", () => {
     assertEquals(presentTooltipRows(CARRYING_EVERYTHING, null, FROZEN_BUFF_BITS.bits), [
         "MargoMeter",
         "Tury wykonane 14",
-        "Cios specjalny · Pożoga · 2 z 4",
         "Ostatni ratunek · wykorzystany",
         "Dotyk anioła · 1 z 3",
         "Prowokuje 10 postaci",
@@ -1416,7 +1372,7 @@ Deno.test("a block past its stated maximum is cut to it, and one at it is drawn 
     const atTheBound = presentTooltipRows(
         {
             ...CARRYING_EVERYTHING,
-            statuses: many(TOOLTIP_ROWS_MAXIMUM - 7),
+            statuses: many(TOOLTIP_ROWS_MAXIMUM - 6),
         },
         null,
         FROZEN_BUFF_BITS.bits,

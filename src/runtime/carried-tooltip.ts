@@ -1,8 +1,8 @@
 /**
  * The add-on's own rows onto every fighter the game draws a tooltip for (`docs/design.md` §10.4),
- * gathered from the readers that know part of it: the envelope says what they are making ready,
- * the mask what stands on them, the announcements how much, the clock how long, and the two
- * legendary bonuses what is running and what is spent.
+ * gathered from the readers that know part of it: the mask says what stands on them, the
+ * announcements how much, the clock how long, and the two legendary bonuses what is running and
+ * what is spent.
  */
 
 import { assert } from "@std/assert/assert";
@@ -13,7 +13,6 @@ import {
     type StatedSkills,
 } from "#/src/core/aura-standing.ts";
 import { type CarriedFigure, tallyCarriedFigures } from "#/src/core/carried-figure.ts";
-import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import type { FightView } from "#/src/core/fight-session.ts";
 import type {
@@ -82,10 +81,6 @@ function presentCarriedTooltip(
     fightStandings: FightStandings,
     figuresByCombatantAndBit: ReadonlyMap<string, CarriedFigure>,
 ): TooltipContent {
-    const charging = view.chargedSkills.find((chargedSkill) => {
-        if (chargedSkill.state !== CHARGED_SKILL_STATE.charging) return false;
-        return chargedSkill.combatantId === combatantId;
-    });
     const legendary = view.legendaryStandings.find((legendaryStanding) =>
         legendaryStanding.combatantId === combatantId
     );
@@ -99,11 +94,6 @@ function presentCarriedTooltip(
     assert(statuses.length <= view.carriedStatuses.length, "a fighter carries part of the fight");
     return {
         turnsTaken: view.turnsByCombatantId.get(combatantId) ?? 0,
-        charge: charging === undefined ? null : {
-            skillName: charging.skillName,
-            turnsElapsed: charging.turnsElapsed,
-            turnsStated: charging.turnsStated,
-        },
         provokedBy: provoked === undefined ? null : {
             name: caster?.name ?? PANEL_WORDS.withoutActor,
             turnsElapsed: provoked.turnsElapsed,

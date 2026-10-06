@@ -41,6 +41,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 - **Poprawka** — Gdy gra przestanie przyjmować dopiski panelu w dymkach postaci, panel o tym mówi,
   zamiast po cichu ich nie pokazywać.
+- **Poprawka** — Dymek postaci w walce nie pokazuje już dwa razy ciosu specjalnego, który ładuje:
+  gra pisze go tam sama, więc panel go nie powtarza.
 
 ## [0.22.1] — 2026-10-05
 
