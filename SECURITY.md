@@ -47,9 +47,11 @@ whole security model, and everything else is a consequence.
   time.
 - **One thing is written out, and it is text.** The add-on appends rows of its own to the tooltip
   the game already shows for a fighter — one call to the client's own `concatTip` per row, which
-  holds its tooltips as strings in a registry of its own and writes the break between them itself,
-  so a block of rows still costs this add-on no markup. **No node is made, moved, removed or
-  styled**, and nothing of ours stands on the page.
+  holds its tooltips as strings in a registry of its own and writes the break before each row
+  itself. Where our block was all the registry held, the first row goes through the client's `tip`
+  instead, because an empty string there would delete the tooltip. Either way a block of rows costs
+  this add-on no markup. **No node is made, moved, removed or styled**, and nothing of ours stands
+  on the page.
 - **What is read back is our own block, and only to take it off.** The registry's string is read
   with the client's `getTipData` to find the block this add-on left there; a changed one comes off
   through the client's `tip`, handed that string less ours, and whatever else stands in it — the

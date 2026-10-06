@@ -38,6 +38,18 @@ export interface TooltipWritten {
 const BLOCK_LANDING = { on: "on", off: "off", kept: "kept", refused: "refused" } as const;
 type BlockLanding = VocabularyWord<typeof BLOCK_LANDING>;
 
+/** Our block as composed, and the string the registry holds it as, which is what is looked for. */
+interface RememberedBlock {
+    readonly composed: string;
+    readonly held: string;
+}
+
+/** What one fighter's tooltip came to, and the block left on it where that is `on`. */
+interface BlockLanded {
+    readonly landing: BlockLanding;
+    readonly blockLeft: RememberedBlock | null;
+}
+
 /** The client's jQuery set of one fighter's tooltip holders, narrowed to the calls made of it. */
 interface TooltipTargets {
     getTipData(): unknown;
@@ -76,7 +88,7 @@ export const ROWS_WRITTEN_MAXIMUM = 20;
  * takes two blocks, whichever of the client's updates rebuilt whom (`develop ADR 0111`).
  */
 export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngineTooltipPort {
-    let blocksById = new Map<number, string>();
+    let blocksById = new Map<number, RememberedBlock>();
     return {
         writeRows(rowsByCombatantId) {
             const asked = [...rowsByCombatantId.values()].filter((rows) => rows.length > 0).length;
@@ -107,10 +119,16 @@ export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngin
                 const counts: TooltipWritten = { written: 0, refused: 0 };
                 for (const [id, warrior] of warriorsById) {
                     const block = encodeTooltipBlock(rowsByCombatantId.get(id) ?? []);
-                    const blockBefore = nextBlocksById.get(id) ?? "";
-                    const landing = writeMargonemEngineWarriorBlock(warrior, block, blockBefore);
+                    const blockBefore = nextBlocksById.get(id) ?? null;
+                    const { landing, blockLeft } = writeMargonemEngineWarriorBlock(
+                        warrior,
+                        block,
+                        blockBefore,
+                    );
                     if (landing === BLOCK_LANDING.on) {
-                        nextBlocksById.set(id, block);
+                        assert(blockLeft !== null, "a block on is a block remembered");
+                        assert(blockLeft.composed === block, "and the one composed now");
+                        nextBlocksById.set(id, blockLeft);
                         counts.written += 1;
                     } else if (landing === BLOCK_LANDING.off) {
                         nextBlocksById.delete(id);
@@ -141,7 +159,7 @@ export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngin
     };
 }
 
-/** The block as `concatTip` leaves it in the registry, which is what is looked for next time. */
+/** The block as `concatTip` leaves it after text of theirs: the client's break before every row. */
 function encodeTooltipBlock(rows: readonly string[]): string {
     assert(rows.length <= ROWS_WRITTEN_MAXIMUM, "a block handed over is a stated length");
     const text = rows.map((row) => `${CLIENT_BREAK}${row}`).join("");
@@ -150,45 +168,57 @@ function encodeTooltipBlock(rows: readonly string[]): string {
 }
 
 /**
- * Whether the block stands on the fighter once written; kept where the page has drawn no tooltip
- * for them, which keeps whatever stood there; refused where it has and the client will not let it
- * be written. ⚠️ **The break between the rows is the
- * client's own**: a block goes on through `concatTip`, which writes the `<br>`, and comes off
- * through `tip` with the registry's own string less ours. `tipupdate` goes after the rows, because
- * `concatTip` triggers nothing.
+ * Whether the block stands on the fighter once written, and as what; kept where the page has drawn
+ * no tooltip for them, which keeps whatever stood there; refused where it has and the client will
+ * not let it be written. ⚠️ **Every break is the client's own**: a row goes on through `concatTip`,
+ * which writes the `<br>` before it, and a block comes off through `tip` with the registry's own
+ * string less ours. `tipupdate` goes after the rows, because `concatTip` triggers nothing.
  */
 function writeMargonemEngineWarriorBlock(
     warrior: UnknownRecord,
     block: string,
-    blockBefore: string,
-): BlockLanding {
+    blockBefore: RememberedBlock | null,
+): BlockLanded {
+    const kept = { landing: BLOCK_LANDING.kept, blockLeft: null };
+    const refused = { landing: BLOCK_LANDING.refused, blockLeft: null };
     const warriorElement = warrior[WARRIOR_ELEMENT_FIELD];
-    if (!isRecord(warriorElement)) return BLOCK_LANDING.kept;
+    if (!isRecord(warriorElement)) return kept;
     const find = warriorElement[FIND_METHOD];
-    if (typeof find !== "function") return BLOCK_LANDING.refused;
+    if (typeof find !== "function") return refused;
     const targets: unknown = Reflect.apply(find, warriorElement, [TOOLTIP_TARGETS]);
-    if (!isTooltipTargets(targets)) return BLOCK_LANDING.refused;
+    if (!isTooltipTargets(targets)) return refused;
     const registryText = targets.getTipData();
-    if (typeof registryText !== "string") return BLOCK_LANDING.refused;
-    const blockIndex = blockBefore.length === 0 ? -1 : registryText.lastIndexOf(blockBefore);
-    if (blockIndex !== -1) {
-        if (blockBefore === block) return BLOCK_LANDING.on;
-        const theirs = registryText.slice(0, blockIndex) +
-            registryText.slice(blockIndex + blockBefore.length);
-        // An empty string is the client's word for deleting the tooltip, which is not ours to do:
-        // a tooltip that is our block alone is replaced by the new one whole, or left standing.
-        if (theirs.length === 0) {
-            if (block.length === 0) return BLOCK_LANDING.kept;
-            targets.tip(block);
-            targets.trigger(TELL_EVENT);
-            return BLOCK_LANDING.on;
+    if (typeof registryText !== "string") return refused;
+    const rows = block.split(CLIENT_BREAK).slice(1);
+    if (blockBefore !== null) {
+        const blockIndex = registryText.lastIndexOf(blockBefore.held);
+        if (blockIndex !== -1) {
+            if (blockBefore.composed === block) {
+                return { landing: BLOCK_LANDING.on, blockLeft: blockBefore };
+            }
+            const theirs = registryText.slice(0, blockIndex) +
+                registryText.slice(blockIndex + blockBefore.held.length);
+            // ⚠️ An empty string is the client's word for deleting the tooltip, which is not ours
+            // to do: a tooltip that is our block alone is left standing, or takes the first row
+            // through `tip` and the rest through `concatTip`, and holds no break before the first.
+            if (theirs.length === 0) {
+                if (block.length === 0) return kept;
+                const [firstRow, ...laterRows] = rows;
+                assert(firstRow !== undefined, "a block composed holds a row");
+                assert(firstRow.length > 0, "a tooltip is never replaced by nothing");
+                targets.tip(firstRow);
+                for (const row of laterRows) targets.concatTip(row);
+                targets.trigger(TELL_EVENT);
+                const blockLeft = { composed: block, held: rows.join(CLIENT_BREAK) };
+                return { landing: BLOCK_LANDING.on, blockLeft };
+            }
+            targets.tip(theirs);
         }
-        targets.tip(theirs);
     }
-    if (block.length === 0) return BLOCK_LANDING.off;
-    for (const row of block.split(CLIENT_BREAK).slice(1)) targets.concatTip(row);
+    if (block.length === 0) return { landing: BLOCK_LANDING.off, blockLeft: null };
+    for (const row of rows) targets.concatTip(row);
     targets.trigger(TELL_EVENT);
-    return BLOCK_LANDING.on;
+    return { landing: BLOCK_LANDING.on, blockLeft: { composed: block, held: block } };
 }
 
 /**

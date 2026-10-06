@@ -23,6 +23,8 @@ interface Registry {
     text: string;
     appended: string[];
     replaced: string[];
+    /** Every `tip` handed a break the registry did not hold, which would be a tag of ours. */
+    breaksWritten: string[];
     told: number;
 }
 
@@ -31,6 +33,9 @@ const TOOLTIP_ROWS_MAXIMUM = FROZEN_BUFF_BITS.bits.length + ROWS_BESIDE_THE_STAT
 
 /** What the game composes for a fighter before anybody adds to it. */
 const THEIRS = '<div class="nick">Gracz</div>';
+
+/** Every registry this file composes, so that one case reads what every `tip` was handed. */
+const REGISTRIES: Registry[] = [];
 
 /**
  * ⚠️ **One bound, two spellings, and only a guard keeps them level.** `ports/` reaches into no
@@ -64,7 +69,9 @@ Deno.test("a block lands on the fighter it was composed for, and on nobody else"
 });
 
 function composeRegistry(text: string = THEIRS): Registry {
-    return { text, appended: [], replaced: [], told: 0 };
+    const registry = { text, appended: [], replaced: [], breaksWritten: [], told: 0 };
+    REGISTRIES.push(registry);
+    return registry;
 }
 
 function composePage(warriors: unknown[]) {
@@ -85,6 +92,9 @@ function composeWarrior(id: number, name: string, registry: Registry, over: {
         getTipData: () => registry.text,
         tip: (content: string) => {
             registry.replaced.push(content);
+            if (content.includes("<br>")) {
+                if (!isCutFromText(registry.text, content)) registry.breaksWritten.push(content);
+            }
             registry.text = content;
         },
         concatTip: (row: string) => {
@@ -109,6 +119,19 @@ function composeWarrior(id: number, name: string, registry: Registry, over: {
     };
     if (over.hasElement === false) return { id, name };
     return { id, name, $: jqueryObject };
+}
+
+/** Whether `content` is `text` with one run cut out of it: theirs, less a block of ours. */
+function isCutFromText(text: string, content: string): boolean {
+    if (content.length >= text.length) return false;
+    for (let cutIndex = 0; cutIndex <= content.length; cutIndex += 1) {
+        const before = content.slice(0, cutIndex);
+        const after = content.slice(cutIndex);
+        if (text.startsWith(before)) {
+            if (text.endsWith(after)) return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -389,19 +412,34 @@ Deno.test("a page with no fight on it takes nothing, which is not a failure", ()
 
 /**
  * An empty string is the client's word for deleting a tooltip. A registry holding our block and
- * nothing else has no string of theirs to go back to, so a new block replaces it whole, and no
- * block leaves it standing, rather than the tooltip going.
+ * nothing else has no string of theirs to go back to, so a new block goes on through `tip` with its
+ * first row and `concatTip` with the rest, and no block leaves it standing, rather than the tooltip
+ * going. What it then holds opens on no break, and that is what the next payload looks for.
  */
-Deno.test("a tooltip that is nothing but our block takes the new one whole, never emptied", () => {
+Deno.test("a tooltip that is nothing but our block takes the new one row by row, never emptied", () => {
     const registry = composeRegistry("");
     const page = composePage([composeWarrior(11, "Gracz 1", registry)]);
     const writer = initMargonemEngineTooltip(page);
     writer.writeRows(new Map([[11, ["MargoMeter"]]]));
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 1"]]]));
-    assertEquals(registry.replaced.includes(""), false, "their tooltip was never emptied");
-    assertEquals(registry.text, "<br>MargoMeter<br>Tury wykonane 1", "and holds the new block");
+    assertEquals(registry.replaced, ["MargoMeter"], "the first row went over through tip, alone");
+    assertEquals(
+        registry.appended,
+        ["MargoMeter", "Tury wykonane 1"],
+        "and every other row through concatTip",
+    );
+    assertEquals(registry.text, "MargoMeter<br>Tury wykonane 1", "so it holds the new block");
+    writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 2"]]]));
+    assertEquals(
+        registry.text,
+        "MargoMeter<br>Tury wykonane 2",
+        "which the next payload found and replaced, leaving one block",
+    );
+    const told = registry.told;
+    writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 2"]]]));
+    assertStrictEquals(registry.told, told, "and found unchanged, is not written again");
     writer.writeRows(new Map([[11, []]]));
-    assertEquals(registry.text, "<br>MargoMeter<br>Tury wykonane 1", "which nothing takes off");
+    assertEquals(registry.text, "MargoMeter<br>Tury wykonane 2", "nor taken off");
 });
 
 /**
@@ -539,4 +577,14 @@ Deno.test("a fighter the walk never reached keeps the block remembered on them",
     isThrowing = false;
     writer.writeRows(rows);
     assertEquals(registry.text, `${THEIRS}<br>MargoMeter<br>Tury wykonane 3`, "one block still");
+});
+
+/**
+ * ⚠️ **`SECURITY.md`'s promise, held over every case above.** A `tip` carrying a `<br>` the registry
+ * did not already hold is a tag this add-on wrote, on whichever path it took. Runs last, so that
+ * every registry composed before it has been written through.
+ */
+Deno.test("no tip in any case above was handed a break of ours", () => {
+    const breaksWritten = REGISTRIES.flatMap((registry) => registry.breaksWritten);
+    assertEquals(breaksWritten, [], "every break in the registries is the client's own");
 });
