@@ -67,7 +67,7 @@ Deno.test("the register reader finds the register, and nothing else in the file"
     const sample = `${REGISTER_HEADING}\n\n| screen | level | row | opens |\n| - | - | - | - |\n` +
         "| `healthGiven` | `opened` | `skill` | `sometimes` |\n";
     assertEquals(
-        readRegisterRows(sample).map(formatRegisterKey),
+        parseRegisterRows(sample).map(formatRegisterKey),
         ["healthGiven | opened | skill | sometimes"],
         "the reader works",
     );
@@ -76,18 +76,18 @@ Deno.test("the register reader finds the register, and nothing else in the file"
     const elsewhere = "| `healthGiven` | `opened` | `skill` | `sometimes` |\n" +
         `${REGISTER_HEADING}\n| \`always\` | every row of this kind opens |\n` +
         "| screen | level | row | opens |\n";
-    assertEquals(readRegisterRows(elsewhere), [], "a table outside the register is not one");
+    assertEquals(parseRegisterRows(elsewhere), [], "a table outside the register is not one");
 });
 
 /**
  * The register's own table and no other in the file, read by the heading it sits under: the
  * document carries four other tables, and a reader that took them would count vocabularies.
  */
-function readRegisterRows(text: string): RegisterRow[] {
+function parseRegisterRows(text: string): RegisterRow[] {
     const rows: RegisterRow[] = [];
-    for (const line of readSectionLines(text, REGISTER_HEADING)) {
+    for (const line of parseSectionLines(text, REGISTER_HEADING)) {
         if (!line.startsWith(CELL_OPENER)) continue;
-        const [screen, rung, row, verdict] = readRowCells(line).map(readBareCell);
+        const [screen, rung, row, verdict] = parseRowCells(line).map(parseBareCell);
         if (screen === undefined) continue;
         if (rung === undefined) continue;
         if (row === undefined) continue;
@@ -98,7 +98,7 @@ function readRegisterRows(text: string): RegisterRow[] {
 }
 
 /** The lines under a heading, up to the next heading of its rank. */
-function readSectionLines(text: string, heading: string): string[] {
+function parseSectionLines(text: string, heading: string): string[] {
     const lines = text.split("\n");
     const opened = lines.findIndex((line) => line.startsWith(heading));
     if (opened === -1) return [];
@@ -107,19 +107,19 @@ function readSectionLines(text: string, heading: string): string[] {
     return closed === -1 ? rest : rest.slice(0, closed);
 }
 
-function readRowCells(line: string): string[] {
+function parseRowCells(line: string): string[] {
     const cells = line.split(CELL_SEPARATOR).map((cell) => cell.trim());
     return cells.slice(1, -1);
 }
 
 /** The backticks are the document's, not the vocabulary's, so they come off before comparing. */
-function readBareCell(cell: string): string {
-    const spans = readBackticked(cell);
+function parseBareCell(cell: string): string {
+    const spans = parseBackticked(cell);
     return spans[0] ?? cell;
 }
 
 /** Every run between a pair of backticks on one line, in the order written. */
-function readBackticked(line: string): string[] {
+function parseBackticked(line: string): string[] {
     const spans: string[] = [];
     let backtickAt = line.indexOf(BACKTICK);
     // The bound is the line's own length: a line holds fewer pairs than it holds characters.
@@ -142,7 +142,7 @@ function formatRegisterKey(registerRow: RegisterRow): string {
 Deno.test("the register names every case the panel produces, and no case it does not", () => {
     const measured = new Set(tallyDrillCases(readCorpus()).map(formatRegisterKey));
     const written = new Set(
-        readRegisterRows(Deno.readTextFileSync(REGISTER_PATH)).map(formatRegisterKey),
+        parseRegisterRows(Deno.readTextFileSync(REGISTER_PATH)).map(formatRegisterKey),
     );
     assert(written.size > 0, "the register carries rows");
     assertEquals(
@@ -289,17 +289,17 @@ Deno.test("a kind row under a person is worded off the row the panel drew", () =
 
 Deno.test("every verdict of `sometimes` is explained, and every explanation is of one", () => {
     const sample = `${SOMETIMES_HEADING}\n\n### \`healthGiven\` · \`skill\`\n\nWhy.\n`;
-    assertEquals(readExplainedCells(sample), ["healthGiven | skill"], "the reader works");
+    assertEquals(parseExplainedCells(sample), ["healthGiven | skill"], "the reader works");
     // The sample it must not flag: the same heading standing outside the section, and one inside
     // it naming a single thing, which is not a cell.
     const elsewhere = `### \`healthGiven\` · \`skill\`\n${SOMETIMES_HEADING}\n\n### \`kind\`\n`;
-    assertEquals(readExplainedCells(elsewhere), [], "a heading outside the section is not one");
+    assertEquals(parseExplainedCells(elsewhere), [], "a heading outside the section is not one");
     const register = Deno.readTextFileSync(REGISTER_PATH);
-    const uncertain = readRegisterRows(register)
+    const uncertain = parseRegisterRows(register)
         .filter((registerRow) => registerRow.verdict === DRILL_VERDICT.sometimes)
         .map((registerRow) => [registerRow.screen, registerRow.row].join(KEY_SEPARATOR));
     assert(uncertain.length > 0, "the register carries a verdict that depends on something");
-    const explained = readExplainedCells(register);
+    const explained = parseExplainedCells(register);
     assertEquals(
         uncertain.filter((cell) => !explained.includes(cell)).sort(),
         [],
@@ -317,11 +317,11 @@ Deno.test("every verdict of `sometimes` is explained, and every explanation is o
  * unit because `deno fmt` never wraps one, where the paragraph under it is wrapped at a hundred
  * columns.
  */
-function readExplainedCells(text: string): string[] {
+function parseExplainedCells(text: string): string[] {
     const cells: string[] = [];
-    for (const line of readSectionLines(text, SOMETIMES_HEADING)) {
+    for (const line of parseSectionLines(text, SOMETIMES_HEADING)) {
         if (!line.startsWith("### ")) continue;
-        const [screen, row] = readBackticked(line);
+        const [screen, row] = parseBackticked(line);
         if (screen === undefined) continue;
         if (row === undefined) continue;
         cells.push([screen, row].join(KEY_SEPARATOR));
@@ -332,16 +332,22 @@ function readExplainedCells(text: string): string[] {
 /**
  * ⚠️ **The half of the register nothing else holds.** The table says what each cell's verdict is;
  * this says which kinds are the shut ones, which is the sentence that goes stale when a row starts
- * opening, as `closing` did a release before anything asked.
+ * opening.
  */
 Deno.test("the kinds said to stay shut are the kinds that stay shut, both ways round", () => {
     const sample = `${SHUT_HEADING}\n\n${SHUT_OPENING} \`kind\` and\n\`closing\` — and so on.\n`;
-    assertEquals(readKindsSaidShut(sample), ["closing", "kind"], "the reader works");
+    assertEquals(parseKindsSaidShut(sample), ["closing", "kind"], "the reader works");
     // The two it must not flag: the sentence standing outside the section, and a paragraph of the
     // section that is not the one naming them.
     const elsewhere = `${SHUT_OPENING} \`kind\`.\n${SHUT_HEADING}\n\nSomething else, \`skill\`.\n`;
-    assertEquals(readKindsSaidShut(elsewhere), [], "a sentence outside the section is not one");
-    const said = readKindsSaidShut(Deno.readTextFileSync(REGISTER_PATH));
+    assertEquals(parseKindsSaidShut(elsewhere), [], "a sentence outside the section is not one");
+    const later = `${SHUT_HEADING}\n\n${SHUT_OPENING} \`kind\`.\n\nLater, \`closing\`.\n`;
+    assertEquals(
+        parseKindsSaidShut(later),
+        ["kind"],
+        "nor is a paragraph after the one naming them",
+    );
+    const said = parseKindsSaidShut(Deno.readTextFileSync(REGISTER_PATH));
     assert(said.length > 0, "the document names the kinds that stay shut");
     const shut = new Set<string>();
     for (const drillCase of tallyDrillCases(readCorpus())) {
@@ -366,24 +372,25 @@ Deno.test("the kinds said to stay shut are the kinds that stay shut, both ways r
  * paragraph because `deno fmt` owns where it wraps. Only a run that is a row kind is taken: the
  * paragraph cites a path and a task in backticks beside the kinds.
  */
-function readKindsSaidShut(text: string): string[] {
+function parseKindsSaidShut(text: string): string[] {
     let said = "";
-    for (const line of readSectionLines(text, SHUT_HEADING)) {
-        if (said.length > 0 && line.length === 0) break;
-        if (said.length === 0 && !line.startsWith(SHUT_OPENING)) continue;
+    for (const line of parseSectionLines(text, SHUT_HEADING)) {
+        if (said.length > 0) {
+            if (line.length === 0) break;
+        } else if (!line.startsWith(SHUT_OPENING)) continue;
         said = `${said} ${line}`;
     }
     const kinds = new Set<string>();
-    for (const named of readBackticked(said)) {
+    for (const named of parseBackticked(said)) {
         if (isOneOf(DRILL_ROWS, named)) kinds.add(named);
     }
     return [...kinds].sort();
 }
 
 /**
- * ⚠️ **The paragraph that overturned this document's earlier claim stands on figures read once.**
- * A figure arguing a point is the last one that may be left unearned, because the argument goes on
- * reading as though it were measured.
+ * ⚠️ **The paragraph on what stands under an announcement argues from figures.** A figure arguing a
+ * point is the last one that may be left unearned, because the argument goes on reading as though
+ * it were measured.
  */
 Deno.test("what stands under an announcement is what the register says it is", () => {
     let dealtTotal = 0;
@@ -403,7 +410,7 @@ Deno.test("what stands under an announcement is what the register says it is", (
     }
     assert(dealtTotal > 0, "the corpus holds damage dealt to take a share of");
     assert(onSide > 0, "and combatants on the side the paragraph is about");
-    const register = readUnwrapped(Deno.readTextFileSync(REGISTER_PATH));
+    const register = parseUnwrapped(Deno.readTextFileSync(REGISTER_PATH));
     const share = ((underAnnouncement / dealtTotal) * 100).toFixed(1);
     assertStringIncludes(
         register,
@@ -423,7 +430,7 @@ Deno.test("what stands under an announcement is what the register says it is", (
 });
 
 /** The document as one line, because `deno fmt` owns where its sentences break. */
-function readUnwrapped(text: string): string {
+function parseUnwrapped(text: string): string {
     return text.split("\n").join(" ").split(" ").filter((word) => word.length > 0).join(" ");
 }
 

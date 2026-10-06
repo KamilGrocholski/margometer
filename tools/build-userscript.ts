@@ -10,6 +10,7 @@
 
 import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import { parse as parseJsonc } from "@std/jsonc";
+import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { BUILD_VERSION } from "#/src/build-version.ts";
 import { DeclaredVersionError, UserscriptBuildError } from "./margometer-tool-error.ts";
@@ -78,9 +79,21 @@ export async function writeUserscript(version: string): Promise<string> {
     assert(version.length > 0, "a build states the version it is");
     const files = await readUserscriptFiles(version);
     const script = `${OUTPUT_DIRECTORY}/${USERSCRIPT_NAME}`;
-    await Deno.mkdir(OUTPUT_DIRECTORY, { recursive: true });
-    await Deno.writeTextFile(script, files.script);
-    await Deno.writeTextFile(`${OUTPUT_DIRECTORY}/${METADATA_NAME}`, files.metadata);
+    const metadata = `${OUTPUT_DIRECTORY}/${METADATA_NAME}`;
+    const made = errors.attempt(() => Deno.mkdirSync(OUTPUT_DIRECTORY, { recursive: true }));
+    if (made instanceof errors.Caught) {
+        throw new UserscriptBuildError(`${OUTPUT_DIRECTORY} cannot be made`, { cause: made });
+    }
+    const scriptWritten = errors.attempt(() => Deno.writeTextFileSync(script, files.script));
+    if (scriptWritten instanceof errors.Caught) {
+        throw new UserscriptBuildError(`${script} cannot be written`, { cause: scriptWritten });
+    }
+    const metadataWritten = errors.attempt(() => Deno.writeTextFileSync(metadata, files.metadata));
+    if (metadataWritten instanceof errors.Caught) {
+        throw new UserscriptBuildError(`${metadata} cannot be written`, {
+            cause: metadataWritten,
+        });
+    }
     return script;
 }
 
@@ -100,7 +113,12 @@ export async function readUserscriptFiles(
     {
         assert(entryPath.length > 0, "a bundler is told what to read");
         assert(root.length > 0, "and which tree to read it in");
-        const output = await Deno.makeTempFile({ prefix: "margometer-", suffix: ".js" });
+        const output = errors.attempt(() =>
+            Deno.makeTempFileSync({ prefix: "margometer-", suffix: ".js" })
+        );
+        if (output instanceof errors.Caught) {
+            throw new UserscriptBuildError("no file for the bundler to write", { cause: output });
+        }
         assert(output.length > 0, "a bundler is told where to write");
         const bundling = new Deno.Command(Deno.execPath(), {
             args: [
@@ -118,14 +136,28 @@ export async function readUserscriptFiles(
             stdout: "piped",
             stderr: "piped",
         });
-        const finished = await bundling.output();
-        if (!finished.success) {
-            await Deno.remove(output);
+        // A subprocess is a boundary of a tool's (E5), and only an awaited `try` holds a rejection.
+        let finished: Deno.CommandOutput;
+        try {
+            finished = await bundling.output();
+        } catch (failure) {
+            throw new UserscriptBuildError("the bundler would not start", { cause: failure });
+        }
+        const bundled = finished.success
+            ? errors.attempt(() => Deno.readTextFileSync(output))
+            : null;
+        const removed = errors.attempt(() => Deno.removeSync(output));
+        if (removed instanceof errors.Caught) {
+            throw new UserscriptBuildError(`${output} cannot be removed`, { cause: removed });
+        }
+        if (bundled === null) {
             const said = new TextDecoder().decode(finished.stderr);
             throw new UserscriptBuildError(`the bundler refused: ${said}`);
         }
-        bundle = await Deno.readTextFile(output);
-        await Deno.remove(output);
+        if (bundled instanceof errors.Caught) {
+            throw new UserscriptBuildError(`${output} cannot be read`, { cause: bundled });
+        }
+        bundle = bundled;
         if (bundle.length === 0) throw new UserscriptBuildError("the bundler wrote nothing");
     }
     const stamped = requireBundleInBrowser(stampBundleVersion(bundle, version));
@@ -329,7 +361,13 @@ function lookupTagsCreated(text: string, code: string): string[] {
 
 /** The version `deno.json` declares, marked as no release of it. */
 export function readDevelopmentVersion(): string {
-    const declared = parseDeclaredVersion(Deno.readTextFileSync(CONFIGURATION_FILE));
+    const configuration = errors.attempt(() => Deno.readTextFileSync(CONFIGURATION_FILE));
+    if (configuration instanceof errors.Caught) {
+        throw new DeclaredVersionError(`${CONFIGURATION_FILE} cannot be read`, {
+            cause: configuration,
+        });
+    }
+    const declared = parseDeclaredVersion(configuration);
     const version = `${declared}${DEVELOPMENT_SUFFIX}`;
     assert(version.startsWith(declared), "a development build names the work it is built from");
     return version;
@@ -338,7 +376,12 @@ export function readDevelopmentVersion(): string {
 /** `deno.json` carries comments, which `JSON.parse` refuses and `@std/jsonc` reads. */
 export function parseDeclaredVersion(configuration: string): string {
     assert(configuration.length > 0, "a configuration that was read says something");
-    const parsed: unknown = parseJsonc(configuration);
+    const parsed = errors.attempt(() => parseJsonc(configuration));
+    if (parsed instanceof errors.Caught) {
+        throw new DeclaredVersionError(`${CONFIGURATION_FILE} is not JSON with comments`, {
+            cause: parsed,
+        });
+    }
     if (!isRecord(parsed)) {
         throw new DeclaredVersionError(`${CONFIGURATION_FILE} is not a configuration`);
     }

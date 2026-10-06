@@ -11,6 +11,7 @@
 
 import { assert, assertStrictEquals } from "@std/assert";
 import { parse as parseJsonc } from "@std/jsonc";
+import * as errors from "#/libs/errors.ts";
 import { encodeJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
@@ -18,7 +19,7 @@ import { PANEL_MARK, type PanelMark } from "#/src/ui/panel-intent.ts";
 import { STORE_KEY } from "#/src/ports/browser-store.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { CLASS, PLACE, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
-import { composePanelPage } from "#/tests/e2e/margonem-page.ts";
+import { composePanelPage, MARGONEM_ENGINE_PRESENCE } from "#/tests/e2e/margonem-page.ts";
 import {
     closePanelPage,
     launchPanelBrowser,
@@ -30,8 +31,8 @@ import {
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
 import { CONFIGURATION_FILE, readUserscriptFiles, USERSCRIPT_NAME } from "./build-userscript.ts";
 import { PanelShotError } from "./margometer-tool-error.ts";
-import { BUNDLE_SOURCE_PATHS } from "./panel-giving-way.ts";
-import { LANDING_RECORDING, readSiteVersion } from "./preview-site.ts";
+import { BUNDLE_SOURCE_PATHS } from "./preview-server.ts";
+import { LANDING_RECORDING, PREVIEW_SITE_WORDS, readSiteVersion } from "./preview-site.ts";
 import { formatRecordingName } from "./recorded-material.ts";
 
 /**
@@ -80,7 +81,7 @@ export const BROWSER_VARIABLE = "MARGOMETER_BROWSER";
  * The payload the underway pictures are taken after: a fight going on with exactly one charge
  * standing and a turn of it left, far enough in that the ranking is filled. The test beside this
  * re-earns it over the recording, so a number that stops qualifying reddens rather than quietly
- * shifting what five of the pictures are of.
+ * shifting what the underway pictures are of.
  */
 export const UNDERWAY_ENTRY = 78;
 /**
@@ -213,8 +214,11 @@ function readGitText(args: readonly string[]): string {
 /** Whether two configurations build alike: the same in everything but the version declared. */
 export function isSameBesideVersion(committed: string, worked: string): boolean {
     assert(committed.length > 0, "a configuration committed says something");
-    const before: unknown = parseJsonc(committed);
-    const after: unknown = parseJsonc(worked);
+    // A configuration that does not parse is not one that builds alike, so it is carried.
+    const before = errors.attempt(() => parseJsonc(committed));
+    const after = errors.attempt(() => parseJsonc(worked));
+    if (before instanceof Error) return false;
+    if (after instanceof Error) return false;
     if (!isRecord(before)) return false;
     if (!isRecord(after)) return false;
     const beforeText = encodeJson({ ...before, version: null }, 0);
@@ -232,9 +236,9 @@ export function composeShotPage(calls: readonly unknown[], fedThrough: number): 
     const html = composePanelPage({
         calls,
         fedThrough,
-        engine: "before",
+        engine: MARGONEM_ENGINE_PRESENCE.before,
         doesLoadTwice: false,
-        place: "Podgląd",
+        place: PREVIEW_SITE_WORDS.placeName,
         userscriptName: USERSCRIPT_NAME,
         beforeBundle: `<script>${composeWindowsSeeded()}</script>\n`,
     });
@@ -249,7 +253,7 @@ export function composeShotPage(calls: readonly unknown[], fedThrough: number): 
 function composeWindowsSeeded(): string {
     // The shots are taken at the size a reader who chose none reads.
     const drawn = TYPE_TOKENS[TYPE_STEP_DEFAULT];
-    const helperOffset = PLACE.insetPixels + drawn.meterWidthPixels + SPACE_PIXELS.wide +
+    const helperOffset = PLACE.insetPixels + drawn.meterWidthPixels + SPACE_PIXELS.small +
         drawn.helperWidthPixels;
     return `(function setWindowsSeeded() {
   try {

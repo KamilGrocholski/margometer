@@ -12,6 +12,7 @@ import {
     assertExists,
     assertStrictEquals,
     assertStringIncludes,
+    assertThrows,
 } from "@std/assert";
 import { STORE_KEY } from "#/src/ports/browser-store.ts";
 import {
@@ -33,6 +34,7 @@ import {
 } from "#/tools/preview-site.ts";
 import { formatRecordingName } from "#/tools/recorded-material.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
+import { PreviewServeError } from "#/tools/margometer-tool-error.ts";
 
 /** Unmistakable on a page, so a test meaning the stated version cannot pass on a real one. */
 const VERSION = "1.2.3";
@@ -218,8 +220,12 @@ function isWrittenInPolish(text: string): boolean {
 }
 
 Deno.test("the reader of a language flags a Polish sentence and not an English one", () => {
-    assertEquals(isWrittenInPolish("ile każdy zadał"), true, "a Polish sentence is read as one");
-    assertEquals(isWrittenInPolish("a damage meter"), false, "and one in ours is not");
+    assertStrictEquals(
+        isWrittenInPolish("ile każdy zadał"),
+        true,
+        "a Polish sentence is read as one",
+    );
+    assertStrictEquals(isWrittenInPolish("a damage meter"), false, "and one in ours is not");
     assertEquals(
         readTextInClassName(`<p class="preview-lede">co się stało</p>`, "preview-lede"),
         "co się stało",
@@ -307,6 +313,19 @@ Deno.test("a release run states the declared number, and any other run marks it"
     const declared = parseDeclaredVersion(Deno.readTextFileSync("deno.json"));
     assertStrictEquals(readSiteVersion(["--release"]), declared);
     assertStrictEquals(readSiteVersion([]), `${declared}-dev`);
+});
+
+Deno.test("a flag misspelt is refused rather than read as a run that is no release", () => {
+    assertThrows(() => readSiteVersion(["--relase"]), PreviewServeError, "--relase");
+    assertThrows(() => readSiteVersion(["release"]), PreviewServeError, "release");
+});
+
+Deno.test("a page that finds no panel says so once, when the wait runs out", () => {
+    const page = composeLandingPage();
+    const waited = page.indexOf("if (windowsTries < ");
+    assert(waited > 0, "the page waits a bounded number of tries for the panel");
+    const given = page.indexOf(`console.warn("MargoMeter/Preview", "no panel stood`, waited);
+    assert(given > waited, "and the try past the bound is a console line, not silence");
 });
 
 Deno.test("the site is one page and the two scripts it names", async () => {

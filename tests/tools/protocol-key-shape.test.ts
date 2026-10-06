@@ -9,6 +9,7 @@ import { REGISTER_PATH } from "#/tools/help-claim-register.ts";
 import { ProtocolKeyShapeError } from "#/tools/margometer-tool-error.ts";
 import {
     CLAIMS_MAXIMUM,
+    CLAIMS_PER_LINE,
     DAMAGE_FAMILY_HEADING,
     formatShapeLine,
     formatShapeReport,
@@ -159,11 +160,13 @@ Deno.test("a phrase outside either vocabulary is refused rather than read as sil
             reason,
         );
     };
-    refused("_Shape:_ 1 occurrences; on a hunch; text", "not one of the five");
-    refused("_Shape:_ 1 occurrences; anywhere; a word", "not one of the four");
+    const placements = Object.values(KEY_PLACEMENT).length;
+    const values = Object.values(KEY_VALUE).length;
+    refused("_Shape:_ 1 occurrences; on a hunch; text", `not one of the ${placements}`);
+    refused("_Shape:_ 1 occurrences; anywhere; a word", `not one of the ${values}`);
     refused("_Shape:_ some occurrences; anywhere; text", "where a count goes");
     refused("_Shape:_ 1 times; anywhere; text", "a word this reader does not know");
-    refused("_Shape:_ 1 occurrences; anywhere", "states 2 claims, not three");
+    refused("_Shape:_ 1 occurrences; anywhere", `states 2 claims, not ${CLAIMS_PER_LINE}`);
 });
 
 Deno.test("a sentence naming past the bound is refused, and one at it is read whole", () => {

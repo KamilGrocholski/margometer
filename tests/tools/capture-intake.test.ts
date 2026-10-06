@@ -86,6 +86,21 @@ Deno.test("a combatant nobody says is a player or a monster is refused, never gu
     assertThrows(() => composePseudonymisedRecording(fight), CaptureIntakeError, "combatant 11");
 });
 
+Deno.test("a combatant stated a player in one payload and a monster in another is refused", () => {
+    const fight = composeFight();
+    const calls = fight.calls as Record<string, unknown>[];
+    const again = { index: 1, messages: [], payload: { w: { "7": { id: 7, npc: 0 } } } };
+    calls.push(again);
+    const named = composePseudonymisedRecording(fight);
+    assertEquals(named.substitutions.get("Anna"), "Gracz 1", "the same word twice is one word");
+    again.payload.w["7"].npc = 1;
+    assertThrows(
+        () => composePseudonymisedRecording(fight),
+        CaptureIntakeError,
+        "combatant 7 is stated both a player and a monster",
+    );
+});
+
 Deno.test("a name is replaced where it stands whole, and found inside a word it is refused", () => {
     const fight = composeFight();
     const call = (fight.calls as { messages: string[] }[])[0]!;
@@ -119,12 +134,12 @@ Deno.test("two players sharing a name are refused, since a message carries only 
     assertThrows(() => composePseudonymisedRecording(fight), CaptureIntakeError, "share the name");
 });
 
-Deno.test("an ability's prose goes, a marker already there stays, and a strange layout stops", () => {
+Deno.test("a skill's prose goes, a marker already there stays, and a strange layout stops", () => {
     const fight = composeFight();
     const skills = (fight.calls as { payload: { skills: string[] } }[])[0]!.payload.skills;
     assertStrictEquals(removeSkillDescriptions(fight).removed, 1);
     assertStrictEquals(skills[5], REMOVED_DESCRIPTION);
-    assertStrictEquals(skills[1], "Cios", "the ability's name is functional and stays");
+    assertStrictEquals(skills[1], "Cios", "the skill's name is functional and stays");
     assertStrictEquals(removeSkillDescriptions(fight).removed, 0, "a second pass removes nothing");
     skills[5] = "(opis z gry — zdjęty, NOTICE.md)";
     assertStrictEquals(removeSkillDescriptions(fight).removed, 0, "nor does an older marker");
@@ -186,6 +201,11 @@ Deno.test("a file is named for its day, world, fight, build and version, or `non
     assertStrictEquals(composeIntakeName(unstated, "a"), "2026-09-25-tempest-a-none-none.json");
     assertThrows(() => composeIntakeName(fight, "Grupa"), CaptureIntakeError, "kebab-case");
     assertThrows(() => composeIntakeName({ ...fight, gameBuild: "../x" }, "a"), CaptureIntakeError);
+    assertThrows(
+        () => composeIntakeName({ ...fight, gameBuild: "1/2" }, "a"),
+        CaptureIntakeError,
+        "not something a name carries",
+    );
     assertThrows(() => composeIntakeName({ ...fight, world: "a/b" }, "a"), CaptureIntakeError);
     assertThrows(
         () => composeIntakeName({ ...fight, capturedAt: "2026-9-25" }, "a"),

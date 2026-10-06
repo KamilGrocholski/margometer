@@ -9,7 +9,7 @@
  * ⚠️ **Not material, and never becomes it.** Every figure below was invented by the script in
  * this file, so nothing read off one of these says anything about the game. They go to
  * `fabricated/`, which git does not carry; an output path outside it is refused. The envelope and
- * warrior keys are the adapters' (N13); a message key is the decoder's, and
+ * combatant keys are the adapters' (N13); a message key is the decoder's, and
  * `tests/tools/fabricated-fight.test.ts` holds every one of them to it by reading the fight back.
  */
 
@@ -62,9 +62,9 @@ import { FabricatedFightError } from "./margometer-tool-error.ts";
 import { WITNESS_KEYS } from "./turn-count.ts";
 
 /**
- * How the script ends the fight: one side left standing, or an escape breaking it off. The corpus
- * carries none of the second, so the second is the only way the panel's `ucieczka` can be looked
- * at at all.
+ * How the script ends the fight: a winner named, the reader's side wherever anybody on it still
+ * stands, or an escape breaking it off. The corpus carries none of the second, so the second is the
+ * only way the panel's `ucieczka` can be looked at at all.
  */
 export const FABRICATION_ENDING = { settled: "settled", fled: "fled" } as const;
 export type FabricationEnding = VocabularyWord<typeof FABRICATION_ENDING>;
@@ -84,7 +84,7 @@ export interface FabricationShape {
 }
 
 /** One of the cast, and where the script has left them. */
-export interface FabricatedWarrior {
+export interface FabricatedCombatant {
     id: number;
     name: string;
     side: number;
@@ -107,7 +107,7 @@ export interface FabricatedCall {
 
 export interface FabricatedFight {
     shape: FabricationShape;
-    warriors: FabricatedWarrior[];
+    combatants: FabricatedCombatant[];
     calls: FabricatedCall[];
     /**
      * How many of the scripted acts a fight this long reached. A short fight walks the head of the
@@ -120,7 +120,7 @@ export interface FabricatedFight {
 /** The fight as it stands while the script runs it. */
 interface FabricationState {
     shape: FabricationShape;
-    warriors: FabricatedWarrior[];
+    combatants: FabricatedCombatant[];
     calls: FabricatedCall[];
     messagesWritten: number;
     round: number;
@@ -137,13 +137,13 @@ interface FabricationState {
 /** One combatant's turn: who acts, on whom, beside whom, and who else shares the side. */
 interface FabricatedTurn {
     shape: FabricationShape;
-    actor: FabricatedWarrior;
-    target: FabricatedWarrior;
-    ally: FabricatedWarrior;
+    actor: FabricatedCombatant;
+    target: FabricatedCombatant;
+    ally: FabricatedCombatant;
     /** Everyone still standing on the actor's side, for the acts that reach a whole one. */
-    side: FabricatedWarrior[];
+    side: FabricatedCombatant[];
     /** Everyone still standing against them, for the one act that names whom it holds. */
-    opposing: FabricatedWarrior[];
+    opposing: FabricatedCombatant[];
     round: number;
     ordinal: number;
 }
@@ -248,27 +248,30 @@ const FLED_KEY = "flee";
 const OUTPUT_DEFAULT = `${FABRICATED_DIRECTORY}/10v10-long.json`;
 const PATH_SEPARATOR = "/";
 
-const SIDE_OURS = 1;
-const SIDE_THEIRS = 2;
+const READER_SIDE = 1;
+const OPPOSING_SIDE = 2;
 /** Both of them, where a walk has to reach each in turn. Read, never written (**S9**). */
-const SIDES: readonly number[] = [SIDE_OURS, SIDE_THEIRS];
-/** A side of ten, which with the far side is the whole a roster holds. */
+const SIDES: readonly number[] = [READER_SIDE, OPPOSING_SIDE];
+/** Half of what a roster holds, so the two sides fill it. */
 const PER_SIDE_MAXIMUM = COMBATANTS_MAXIMUM / 2;
 const PER_SIDE_DEFAULT = PER_SIDE_MAXIMUM;
 const ROUNDS_DEFAULT = 26;
 const LEVEL_DEFAULT = 92;
 /** Past what the script's figures were composed for, so a level asked for carries a bound. */
 const LEVEL_MAXIMUM = 500;
-const OURS_ID_FIRST = 500001;
-const THEIRS_ID_FIRST = 600001;
-/** The six the game has, spread over ten places so every profession stands on both sides. */
+const READER_SIDE_ID_FIRST = 500001;
+const OPPOSING_SIDE_ID_FIRST = 600001;
+/**
+ * The six letters the recordings state (`src/ui/panel-palette.ts`), spread over ten places so every
+ * profession stands on both sides.
+ */
 const PROFESSIONS = ["w", "m", "p", "t", "h", "b", "w", "t", "m", "p"];
 /** Invented, like every figure here: the client draws its cast on a grid, and this is a row. */
 const GRID_PLACES = 10;
 /** The queue the client draws is ten deep whatever the sides came to. */
 const TURN_QUEUE_WIDTH = 10;
 const LEVEL_STEP = 3;
-/** Chosen so the first of a side at `LEVEL_DEFAULT` stands on 12400. */
+/** With `HEALTH_BASE`, the pool the first of a side stands on at a level: invented, as all here. */
 const HEALTH_PER_LEVEL = 130;
 const HEALTH_BASE = 440;
 const HEALTH_STEP = 830;
@@ -384,8 +387,8 @@ const ACTS: readonly FabricatedAct[] = [
     { name: "a cast on the enemies", doesOpenTurn: true, execute: executeEnemiesCast },
     { name: "a stance", doesOpenTurn: false, execute: executeStance },
     { name: "resources declared", doesOpenTurn: false, execute: executeResources },
-    { name: "buffs standing", doesOpenTurn: false, execute: executeStandingBuffs },
-    { name: "legendary buffs standing", doesOpenTurn: false, execute: executeLegendaryBuffs },
+    { name: "statuses standing", doesOpenTurn: false, execute: executeStandingStatuses },
+    { name: "legendary bonuses standing", doesOpenTurn: false, execute: executeLegendaryBonuses },
     { name: "a bard's song", doesOpenTurn: true, execute: executeBardSong },
     { name: "a step", doesOpenTurn: true, execute: encodeStep },
     { name: "a skill made ready", doesOpenTurn: true, execute: executePrepare },
@@ -395,8 +398,8 @@ const ACTS: readonly FabricatedAct[] = [
 
 /**
  * ⚠️ **A shape past one of these is refused rather than asserted**: it is what a reader typed,
- * and both bounds belong to somebody else. Twenty combatants is what a roster holds
- * (`src/core/combatant-roster.ts`); two thousand calls is where collecting stops
+ * and both bounds belong to somebody else. `COMBATANTS_MAXIMUM` is what a roster holds
+ * (`src/core/combatant-roster.ts`); `CALLS_MAXIMUM` is where collecting stops
  * (`src/ports/fight-capture.ts`), and a replay asserts against it, so a longer fight writes a file
  * nothing in this repository can open.
  */
@@ -460,10 +463,10 @@ export function formatFabricationShape(shape: FabricationShape): string {
 export function createFabricatedFight(
     shape: FabricationShape = requireFabricationShape(),
 ): FabricatedFight {
-    const warriors = createFabricatedWarriors(shape);
+    const combatants = createFabricatedCombatants(shape);
     const state: FabricationState = {
         shape,
-        warriors,
+        combatants,
         calls: [],
         messagesWritten: 0,
         round: 0,
@@ -483,8 +486,11 @@ export function createFabricatedFight(
             [CLIENT_FIELDS.skillsDisabled]: [],
             [CLIENT_FIELDS.skillsComboMaximum]: [],
             [CLIENT_FIELDS.skills]: ["-1", "", "", "", "", "", "", "", "", ""],
-            [ENVELOPE_KEYS.combatants]: encodeWarriorsById(state.warriors, encodeOpeningWarrior),
-            [ENVELOPE_KEYS.readerSide]: SIDE_OURS,
+            [ENVELOPE_KEYS.combatants]: encodeCombatantsById(
+                state.combatants,
+                encodeOpeningCombatant,
+            ),
+            [ENVELOPE_KEYS.readerSide]: READER_SIDE,
             [ENVELOPE_KEYS.messages]: messages,
             [ENVELOPE_KEYS.messagesStated]: indexes,
             [CLIENT_FIELDS.poolTime]: {
@@ -507,17 +513,17 @@ export function createFabricatedFight(
             // Reset the statuses that ran out by this round.
             {
                 assert(state.round >= 0, "a round is never below the first");
-                for (const warrior of state.warriors) {
-                    if (warrior.statusMask === 0) continue;
-                    if (warrior.statusClearsAtRound > state.round) continue;
-                    warrior.statusMask = 0;
+                for (const combatant of state.combatants) {
+                    if (combatant.statusMask === 0) continue;
+                    if (combatant.statusClearsAtRound > state.round) continue;
+                    combatant.statusMask = 0;
                 }
                 assert(
-                    state.warriors.every((combatant) => combatant.statusMask >= 0),
+                    state.combatants.every((combatant) => combatant.statusMask >= 0),
                     "a mask is never below nothing",
                 );
             }
-            for (const actor of state.warriors) {
+            for (const actor of state.combatants) {
                 if (!isStanding(actor)) continue;
                 if (isFightOver(state)) break addRounds;
                 const turn = prepareTurn(state, actor, turns);
@@ -564,7 +570,7 @@ export function createFabricatedFight(
     }
     // Add how the fight ends: the two sides as text, and what the log says after them.
     {
-        const survivor = state.warriors.find(isStanding);
+        const survivor = state.combatants.find(isStanding);
         assertExists(survivor, "a fight ends with somebody left standing");
         assert(state.calls.length > 1, "and after the calls that got it there");
         addTurnStatement(state, survivor);
@@ -575,7 +581,10 @@ export function createFabricatedFight(
         assert(messages.length > 0, "a fight that ends says so");
         const payload: Record<string, unknown> = {
             [ENVELOPE_KEYS.isEnd]: 1,
-            [ENVELOPE_KEYS.combatants]: encodeWarriorsById(state.warriors, encodeStandingWarrior),
+            [ENVELOPE_KEYS.combatants]: encodeCombatantsById(
+                state.combatants,
+                encodeStandingCombatant,
+            ),
             [ENVELOPE_KEYS.messages]: messages,
             [ENVELOPE_KEYS.messagesStated]: addMessageIndexes(state, messages),
             [CLIENT_FIELDS.move]: -1,
@@ -584,39 +593,40 @@ export function createFabricatedFight(
     }
     assert(state.calls.length > 1, "a fabricated fight carries more than its opening");
     assert(state.calls.length <= CALLS_MAXIMUM, "and stays inside its stated bound");
-    return { shape, warriors, calls: state.calls, actsReached: Math.min(turns, ACTS.length) };
+    return { shape, combatants, calls: state.calls, actsReached: Math.min(turns, ACTS.length) };
 }
 
-function createFabricatedWarriors(shape: FabricationShape): FabricatedWarrior[] {
-    const warriors: FabricatedWarrior[] = [];
+function createFabricatedCombatants(shape: FabricationShape): FabricatedCombatant[] {
+    const combatants: FabricatedCombatant[] = [];
     for (let place = 0; place < shape.perSide; place += 1) {
-        warriors.push(createFabricatedWarrior(shape, SIDE_OURS, place));
-        warriors.push(createFabricatedWarrior(shape, SIDE_THEIRS, place));
+        combatants.push(createFabricatedCombatant(shape, READER_SIDE, place));
+        combatants.push(createFabricatedCombatant(shape, OPPOSING_SIDE, place));
     }
-    assertStrictEquals(warriors.length, shape.perSide * 2, "both sides are fielded in full");
+    assertStrictEquals(combatants.length, shape.perSide * 2, "both sides are fielded in full");
     assertStrictEquals(
-        new Set(warriors.map((combatant) => combatant.id)).size,
-        warriors.length,
+        new Set(combatants.map((combatant) => combatant.id)).size,
+        combatants.length,
         "each once",
     );
-    return warriors;
+    return combatants;
 }
 
-function createFabricatedWarrior(
+function createFabricatedCombatant(
     shape: FabricationShape,
     side: number,
     place: number,
-): FabricatedWarrior {
+): FabricatedCombatant {
     assert(place >= 0, "a place on a side is never below the first");
     assert(place < shape.perSide, "and never past the number a side holds");
-    const isOurs = side === SIDE_OURS;
-    const named = isOurs ? place + 1 : shape.perSide + place + 1;
+    const isReaderSide = side === READER_SIDE;
+    const named = isReaderSide ? place + 1 : shape.perSide + place + 1;
     const step = composeScaled(shape, HEALTH_STEP);
-    const healthMaximum = composeHealthCeiling(shape.level) + place * step + (isOurs ? 0 : step);
+    const healthMaximum = composeHealthCeiling(shape.level) + place * step +
+        (isReaderSide ? 0 : step);
     const profession = PROFESSIONS[place % PROFESSIONS.length];
     assertExists(profession, "every place on a side fights as one of the professions");
     return {
-        id: (isOurs ? OURS_ID_FIRST : THEIRS_ID_FIRST) + place,
+        id: (isReaderSide ? READER_SIDE_ID_FIRST : OPPOSING_SIDE_ID_FIRST) + place,
         name: `Gracz ${formatInteger(named)}`,
         side,
         profession,
@@ -642,46 +652,46 @@ function composeScaled(shape: FabricationShape, figure: number): number {
 
 /** What the panel would have seen of each combatant, which is the snapshot the format carries. */
 function encodeSnapshot(state: FabricationState): CapturedCombatant[] {
-    const taken = state.warriors.map((warrior): CapturedCombatant => ({
-        id: warrior.id,
-        name: warrior.name,
-        team: warrior.side,
-        prof: warrior.profession,
-        lvl: warrior.level,
-        hp: encodeHealthRecord(warrior),
+    const taken = state.combatants.map((combatant): CapturedCombatant => ({
+        id: combatant.id,
+        name: combatant.name,
+        team: combatant.side,
+        prof: combatant.profession,
+        lvl: combatant.level,
+        hp: encodeHealthRecord(combatant),
         mana: MANA_STATED,
         energy: ENERGY_STATED,
-        ac: encodeArmour(warrior),
+        ac: encodeArmour(combatant),
     }));
-    assertStrictEquals(taken.length, state.warriors.length, "a snapshot holds every combatant");
+    assertStrictEquals(taken.length, state.combatants.length, "a snapshot holds every combatant");
     assert(taken.length > 0, "and a fight has combatants to hold");
     return taken;
 }
 
-function encodeHealthRecord(warrior: FabricatedWarrior): Record<string, unknown> {
-    assert(warrior.healthMaximum > 0, "a combatant states the maximum it stands against");
-    assert(warrior.health >= 0, "and health that is never below nothing");
+function encodeHealthRecord(combatant: FabricatedCombatant): Record<string, unknown> {
+    assert(combatant.healthMaximum > 0, "a combatant states the maximum it stands against");
+    assert(combatant.health >= 0, "and health that is never below nothing");
     return {
-        [HEALTH_FIELDS.maximum]: warrior.healthMaximum,
-        [HEALTH_FIELDS.now]: warrior.health,
-        [CLIENT_FIELDS.healthPercent]: getHealthPercent(warrior),
+        [HEALTH_FIELDS.maximum]: combatant.healthMaximum,
+        [HEALTH_FIELDS.now]: combatant.health,
+        [CLIENT_FIELDS.healthPercent]: getHealthPercent(combatant),
     };
 }
 
-function getHealthPercent(warrior: FabricatedWarrior): number {
-    assert(warrior.healthMaximum > 0, "a combatant has a maximum to stand against");
-    const share = warrior.health * WHOLE_PERCENT / warrior.healthMaximum;
+function getHealthPercent(combatant: FabricatedCombatant): number {
+    assert(combatant.healthMaximum > 0, "a combatant has a maximum to stand against");
+    const share = combatant.health * WHOLE_PERCENT / combatant.healthMaximum;
     assert(share >= 0, "a percentage of health is never below nothing");
     return clampNumber(share, 0, WHOLE_PERCENT);
 }
 
-function encodeArmour(warrior: FabricatedWarrior): Record<string, unknown> {
-    assert(warrior.level > 0, "armour is stated for a combatant fighting at a level");
-    return encodeFigureRecord(ARMOUR_BASE + warrior.level);
+function encodeArmour(combatant: FabricatedCombatant): Record<string, unknown> {
+    assert(combatant.level > 0, "armour is stated for a combatant fighting at a level");
+    return encodeFigureRecord(ARMOUR_BASE + combatant.level);
 }
 
 function encodeFigureRecord(figure: number): Record<string, unknown> {
-    assert(Number.isSafeInteger(figure), "a figure a warrior states is a whole number");
+    assert(Number.isSafeInteger(figure), "a figure a combatant states is a whole number");
     assert(figure >= 0, "and never below nothing");
     return { [CLIENT_FIELDS.figureNow]: figure, [CLIENT_FIELDS.figureBonus]: 0 };
 }
@@ -692,7 +702,7 @@ function encodeFigureRecord(figure: number): Record<string, unknown> {
  * message that opens no turn and rides no act.
  */
 function encodeOpeningDeclarations(state: FabricationState): string[] {
-    const stated = state.warriors.find((combatant) => combatant.side === SIDE_THEIRS);
+    const stated = state.combatants.find((combatant) => combatant.side === OPPOSING_SIDE);
     assertExists(stated, "an opening declaration is made about somebody in the fight");
     return [encodeMessage(encodeSide(stated), null, [
         encodeValued("surpass_bonus_total", formatInteger(14)),
@@ -712,47 +722,49 @@ function addMessageIndexes(state: FabricationState, messages: readonly string[])
     return indexes;
 }
 
-function encodeWarriorsById(
-    warriors: readonly FabricatedWarrior[],
-    encode: (warrior: FabricatedWarrior) => Record<string, unknown>,
+function encodeCombatantsById(
+    combatants: readonly FabricatedCombatant[],
+    encode: (combatant: FabricatedCombatant) => Record<string, unknown>,
 ): Record<string, unknown> {
-    assert(warriors.length > 0, "a warrior map states somebody");
+    assert(combatants.length > 0, "a combatant map states somebody");
     const encoded: Record<string, unknown> = {};
-    for (const warrior of warriors) encoded[formatInteger(warrior.id)] = encode(warrior);
-    assertStrictEquals(Object.keys(encoded).length, warriors.length, "every combatant, once");
+    for (const combatant of combatants) encoded[formatInteger(combatant.id)] = encode(combatant);
+    assertStrictEquals(Object.keys(encoded).length, combatants.length, "every combatant, once");
     return encoded;
 }
 
-/** The opening call's record: every field the client's own warrior map carries. */
-function encodeOpeningWarrior(warrior: FabricatedWarrior): Record<string, unknown> {
-    assert(warrior.level > 0, "a warrior states the level it fights at");
-    assert(warrior.profession.length > 0, "and the profession it fights as");
+/** The opening call's record: every field the client's own combatant map carries. */
+function encodeOpeningCombatant(combatant: FabricatedCombatant): Record<string, unknown> {
+    assert(combatant.level > 0, "a combatant states the level it fights at");
+    assert(combatant.profession.length > 0, "and the profession it fights as");
     const encoded: Record<string, unknown> = {
-        [CLIENT_FIELDS.originalId]: warrior.id,
-        [WARRIOR_FIELDS.id]: warrior.id,
-        [WARRIOR_FIELDS.name]: warrior.name,
-        [WARRIOR_FIELDS.side]: warrior.side,
-        [WARRIOR_FIELDS.profession]: warrior.profession,
-        [WARRIOR_FIELDS.level]: warrior.level,
+        [CLIENT_FIELDS.originalId]: combatant.id,
+        [WARRIOR_FIELDS.id]: combatant.id,
+        [WARRIOR_FIELDS.name]: combatant.name,
+        [WARRIOR_FIELDS.side]: combatant.side,
+        [WARRIOR_FIELDS.profession]: combatant.profession,
+        [WARRIOR_FIELDS.level]: combatant.level,
         [INTAKE_KEYS.nonPlayer]: 0,
-        [WARRIOR_FIELDS.statuses]: warrior.statusMask,
-        [WARRIOR_FIELDS.health]: encodeHealthRecord(warrior),
-        [CLIENT_FIELDS.otherLevel]: warrior.level,
-        [CLIENT_FIELDS.gender]: warrior.side === SIDE_OURS ? "m" : "k",
-        [CLIENT_FIELDS.gridRow]: warrior.id % GRID_PLACES,
-        [CLIENT_FIELDS.icon]: `kuf/kuf_${warrior.profession}.gif`,
+        [WARRIOR_FIELDS.statuses]: combatant.statusMask,
+        [WARRIOR_FIELDS.health]: encodeHealthRecord(combatant),
+        [CLIENT_FIELDS.otherLevel]: combatant.level,
+        [CLIENT_FIELDS.gender]: combatant.side === READER_SIDE ? "m" : "k",
+        [CLIENT_FIELDS.gridRow]: combatant.id % GRID_PLACES,
+        [CLIENT_FIELDS.icon]: `kuf/kuf_${combatant.profession}.gif`,
         [CLIENT_FIELDS.mana]: MANA_STATED,
         [CLIENT_FIELDS.energy]: ENERGY_STATED,
-        [CLIENT_FIELDS.armour]: encodeArmour(warrior),
+        [CLIENT_FIELDS.armour]: encodeArmour(combatant),
         [CLIENT_FIELDS.resistanceFire]: encodeFigureRecord(20),
         [CLIENT_FIELDS.resistanceFrost]: encodeFigureRecord(15),
         [CLIENT_FIELDS.resistanceLight]: encodeFigureRecord(10),
         [CLIENT_FIELDS.act]: encodeFigureRecord(30),
         [CLIENT_FIELDS.focus]: 0,
         [CLIENT_FIELDS.combo]: 0,
-        [CLIENT_FIELDS.cooldowns]: warrior.id === OURS_ID_FIRST ? [[SHOUT_SKILL.id, 3]] : [],
+        [CLIENT_FIELDS.cooldowns]: combatant.id === READER_SIDE_ID_FIRST
+            ? [[SHOUT_SKILL.id, 3]]
+            : [],
     };
-    if (warrior.id === THEIRS_ID_FIRST) {
+    if (combatant.id === OPPOSING_SIDE_ID_FIRST) {
         encoded[WARRIOR_FIELDS.charge] = {
             [CHARGE_FIELDS.name]: CHARGED_SKILL,
             [CHARGE_FIELDS.turnsElapsed]: 2,
@@ -774,7 +786,7 @@ function addCall(
     before: CapturedCombatant[],
 ): void {
     assert(state.calls.length < CALLS_MAXIMUM, "a fabricated fight stays inside its bound");
-    assertStrictEquals(before.length, state.warriors.length, "and snapshots every combatant");
+    assertStrictEquals(before.length, state.combatants.length, "and snapshots every combatant");
     state.calls.push({
         index: state.calls.length,
         payload,
@@ -784,22 +796,23 @@ function addCall(
     });
 }
 
-function isStanding(warrior: FabricatedWarrior): boolean {
-    assert(warrior.health >= 0, "health never falls below nothing");
-    assert(warrior.healthMaximum > 0, "and stands against a maximum");
-    return warrior.health > 0;
+function isStanding(combatant: FabricatedCombatant): boolean {
+    assert(combatant.health >= 0, "health never falls below nothing");
+    assert(combatant.healthMaximum > 0, "and stands against a maximum");
+    return combatant.health > 0;
 }
 
 function isFightOver(state: FabricationState): boolean {
-    assert(state.warriors.length > 0, "a fight that is asked about has combatants");
-    if (getStandingOnSide(state, SIDE_OURS).length === 0) return true;
-    return getStandingOnSide(state, SIDE_THEIRS).length === 0;
+    assert(state.combatants.length > 0, "a fight that is asked about has combatants");
+    if (getStandingOnSide(state, READER_SIDE).length === 0) return true;
+    return getStandingOnSide(state, OPPOSING_SIDE).length === 0;
 }
 
-function getStandingOnSide(state: FabricationState, side: number): FabricatedWarrior[] {
-    const standing = state.warriors.filter((combatant) =>
-        combatant.side === side && isStanding(combatant)
-    );
+function getStandingOnSide(state: FabricationState, side: number): FabricatedCombatant[] {
+    const standing = state.combatants.filter((combatant) => {
+        if (combatant.side === side) return isStanding(combatant);
+        return false;
+    });
     assert(standing.length <= state.shape.perSide, "a side holds no more than it fielded");
     assert(standing.every(isStanding), "and everyone left on it is standing");
     return standing;
@@ -807,7 +820,7 @@ function getStandingOnSide(state: FabricationState, side: number): FabricatedWar
 
 function prepareTurn(
     state: FabricationState,
-    actor: FabricatedWarrior,
+    actor: FabricatedCombatant,
     ordinal: number,
 ): FabricatedTurn | null {
     const target = lookupOpponent(state, actor, ordinal);
@@ -833,10 +846,10 @@ function prepareTurn(
  */
 function lookupOpponent(
     state: FabricationState,
-    actor: FabricatedWarrior,
+    actor: FabricatedCombatant,
     ordinal: number,
-): FabricatedWarrior | null {
-    const opposingSide = actor.side === SIDE_OURS ? SIDE_THEIRS : SIDE_OURS;
+): FabricatedCombatant | null {
+    const opposingSide = actor.side === READER_SIDE ? OPPOSING_SIDE : READER_SIDE;
     const standing = getStandingOnSide(state, opposingSide);
     if (standing.length === 0) return null;
     const chosen = standing[(ordinal + state.round * CHOICE_PER_ROUND) % standing.length];
@@ -847,9 +860,9 @@ function lookupOpponent(
 /** The actor themselves where nobody else is left: a turn is never skipped for want of a second. */
 function getAlly(
     state: FabricationState,
-    actor: FabricatedWarrior,
+    actor: FabricatedCombatant,
     ordinal: number,
-): FabricatedWarrior {
+): FabricatedCombatant {
     const beside = getStandingOnSide(state, actor.side).filter((combatant) =>
         combatant.id !== actor.id
     );
@@ -870,9 +883,9 @@ function addTurnCall(state: FabricationState, turn: FabricatedTurn, act: Fabrica
     const indexes = addMessageIndexes(state, messages);
     addTurnStatement(state, turn.actor);
     const payload: Record<string, unknown> = {
-        [ENVELOPE_KEYS.combatants]: encodeWarriorsById(
-            getStatedWarriors(state, turn),
-            encodeStandingWarrior,
+        [ENVELOPE_KEYS.combatants]: encodeCombatantsById(
+            getStatedCombatants(state, turn),
+            encodeStandingCombatant,
         ),
         [ENVELOPE_KEYS.messages]: messages,
         [ENVELOPE_KEYS.messagesStated]: indexes,
@@ -883,7 +896,7 @@ function addTurnCall(state: FabricationState, turn: FabricatedTurn, act: Fabrica
 }
 
 /** The statement the payload before this turn was waiting to make: whose turn is arriving. */
-function addTurnStatement(state: FabricationState, acting: FabricatedWarrior): void {
+function addTurnStatement(state: FabricationState, acting: FabricatedCombatant): void {
     const awaiting = state.awaiting;
     if (awaiting === null) return;
     assert(acting.id > 0, "a statement names the combatant whose turn is arriving");
@@ -902,16 +915,13 @@ function addTurnStatement(state: FabricationState, acting: FabricatedWarrior): v
 function encodeTurnQueue(
     state: FabricationState,
     ordinal: number,
-    acting: FabricatedWarrior,
+    acting: FabricatedCombatant,
 ): Record<string, number> {
-    const standing = state.warriors.filter(isStanding);
+    const standing = state.combatants.filter(isStanding);
     assert(standing.length > 0, "there is somebody left to put in the queue");
     assert(ordinal > 0, "and the game numbers a turn from one upwards");
-    const opens = clampNumber(
-        standing.findIndex((combatant) => combatant.id === acting.id),
-        0,
-        standing.length - 1,
-    );
+    const opens = standing.findIndex((combatant) => combatant.id === acting.id);
+    assert(opens >= 0, "the combatant whose turn arrives is standing");
     const queue: Record<string, number> = {};
     for (let ahead = 0; ahead < TURN_QUEUE_WIDTH; ahead += 1) {
         const chosen = standing[(opens + ahead) % standing.length];
@@ -927,27 +937,27 @@ function encodeTurnQueue(
  * client sends the volatile subset rather than the whole cast, and a mask that goes unstated is a
  * status the panel would still see standing after the script cleared it.
  */
-function getStatedWarriors(state: FabricationState, turn: FabricatedTurn): FabricatedWarrior[] {
+function getStatedCombatants(state: FabricationState, turn: FabricatedTurn): FabricatedCombatant[] {
     const named = new Set([turn.actor.id, turn.target.id, turn.ally.id]);
-    const stated = state.warriors.filter((combatant) =>
+    const stated = state.combatants.filter((combatant) =>
         named.has(combatant.id) || combatant.statusMask !== 0
     );
     assert(stated.length > 0, "a payload states somebody");
-    assert(stated.length <= state.warriors.length, "and no more than the cast it was built from");
+    assert(stated.length <= state.combatants.length, "and no more than the cast it was built from");
     return stated;
 }
 
 /** The mid-fight record: the volatile subset, which is what the corpus carries after the first. */
-function encodeStandingWarrior(warrior: FabricatedWarrior): Record<string, unknown> {
-    assert(warrior.id > 0, "a warrior stated mid-fight is named by its id");
-    assert(warrior.statusMask >= 0, "and by a mask that is never below nothing");
+function encodeStandingCombatant(combatant: FabricatedCombatant): Record<string, unknown> {
+    assert(combatant.id > 0, "a combatant stated mid-fight is named by its id");
+    assert(combatant.statusMask >= 0, "and by a mask that is never below nothing");
     return {
-        [WARRIOR_FIELDS.id]: warrior.id,
-        [WARRIOR_FIELDS.health]: encodeHealthRecord(warrior),
-        [WARRIOR_FIELDS.statuses]: warrior.statusMask,
+        [WARRIOR_FIELDS.id]: combatant.id,
+        [WARRIOR_FIELDS.health]: encodeHealthRecord(combatant),
+        [WARRIOR_FIELDS.statuses]: combatant.statusMask,
         [CLIENT_FIELDS.mana]: MANA_STATED,
         [CLIENT_FIELDS.energy]: ENERGY_STATED,
-        [CLIENT_FIELDS.armour]: encodeArmour(warrior),
+        [CLIENT_FIELDS.armour]: encodeArmour(combatant),
     };
 }
 
@@ -957,15 +967,15 @@ function encodeStandingWarrior(warrior: FabricatedWarrior): Record<string, unkno
  * experience is paid and no honour changes hands, because a fight nobody finished settles none of
  * that. Inventing a figure here would be a claim about the game.
  */
-function encodeFledClosing(fled: FabricatedWarrior): string[] {
+function encodeFledClosing(fled: FabricatedCombatant): string[] {
     assert(isStanding(fled), "the one who escapes is still standing");
     return [encodeMessage(encodeSide(fled), null, [encodeValueless(FLED_KEY)])];
 }
 
 /** The two sides named, and the spoils the winner is paid after them. */
 function encodeSettledClosing(state: FabricationState): string[] {
-    const won = getStandingOnSide(state, SIDE_OURS).length > 0 ? SIDE_OURS : SIDE_THEIRS;
-    const lost = won === SIDE_OURS ? SIDE_THEIRS : SIDE_OURS;
+    const won = getStandingOnSide(state, READER_SIDE).length > 0 ? READER_SIDE : OPPOSING_SIDE;
+    const lost = won === READER_SIDE ? OPPOSING_SIDE : READER_SIDE;
     assert(getStandingOnSide(state, won).length > 0, "the side that won has somebody standing");
     return [
         encodeMessage(null, null, [encodeValued(OUTCOME_WINNER_KEY, encodeSideNames(state, won))]),
@@ -978,7 +988,7 @@ function encodeSettledClosing(state: FabricationState): string[] {
 }
 
 function encodeSideNames(state: FabricationState, side: number): string {
-    const named = state.warriors.filter((combatant) => combatant.side === side).map((combatant) =>
+    const named = state.combatants.filter((combatant) => combatant.side === side).map((combatant) =>
         combatant.name
     );
     assertStrictEquals(named.length, state.shape.perSide, "a side named names all of its own");
@@ -997,10 +1007,10 @@ function encodeMessage(
     return written;
 }
 
-function encodeSide(warrior: FabricatedWarrior): StatedEnd {
-    assert(warrior.id > 0, "a combatant a message names has an id");
-    assert(warrior.name.length > 0, "and a name");
-    return { combatantId: warrior.id, healthPercent: getHealthPercent(warrior) };
+function encodeSide(combatant: FabricatedCombatant): StatedEnd {
+    assert(combatant.id > 0, "a combatant a message names has an id");
+    assert(combatant.name.length > 0, "and a name");
+    return { combatantId: combatant.id, healthPercent: getHealthPercent(combatant) };
 }
 
 function encodeValued(key: string, text: string): MessageParameter {
@@ -1341,7 +1351,8 @@ function executeAuraCast(turn: FabricatedTurn): string[] {
  * roster — so the fight draws no provocation at all, however many it shouts.
  * Every opponent still standing is named, which stays inside what the published table covers: the
  * characters it gives the shout rise with the skill's level, and at the top one reach as many as a
- * side here ever fields (`PER_SIDE_MAXIMUM`; `tools/skill-table.ts` reads them off the page).
+ * side here ever fields (`PER_SIDE_MAXIMUM`; `tools/skill-table.ts` reads them off the page, as
+ * fetched 2026-10-06).
  */
 function executeShout(turn: FabricatedTurn): string[] {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
@@ -1422,7 +1433,7 @@ function executeResources(turn: FabricatedTurn): string[] {
     ])];
 }
 
-function executeStandingBuffs(turn: FabricatedTurn): string[] {
+function executeStandingStatuses(turn: FabricatedTurn): string[] {
     assert(isStanding(turn.actor), "a declaration is made by somebody still standing");
     assert(turn.ordinal >= 0, "on a turn the fight has numbered");
     return [encodeMessage(encodeSide(turn.actor), null, [
@@ -1436,7 +1447,7 @@ function executeStandingBuffs(turn: FabricatedTurn): string[] {
     ])];
 }
 
-function executeLegendaryBuffs(turn: FabricatedTurn): string[] {
+function executeLegendaryBonuses(turn: FabricatedTurn): string[] {
     assert(isStanding(turn.actor), "a declaration is made by somebody still standing");
     assert(turn.ordinal >= 0, "on a turn the fight has numbered");
     return [encodeMessage(encodeSide(turn.actor), null, [
@@ -1512,11 +1523,11 @@ function encodeFigure(key: string, amount: number): MessageParameter {
 }
 
 /** `Gracz 7(63.00%)` — how the protocol writes a combatant inside a value. */
-function encodeNamedText(warrior: FabricatedWarrior): string {
-    const percent = encodeHealthPercent(getHealthPercent(warrior));
-    assert(warrior.name.length > 0, "a figure stated against a name has a name");
+function encodeNamedText(combatant: FabricatedCombatant): string {
+    const percent = encodeHealthPercent(getHealthPercent(combatant));
+    assert(combatant.name.length > 0, "a figure stated against a name has a name");
     assert(percent.includes("."), "and the percentage the game writes beside it");
-    return `${warrior.name}(${percent}%)`;
+    return `${combatant.name}(${percent}%)`;
 }
 
 /** The two halves of an announcement, which the client sends in one breath. */
@@ -1530,29 +1541,29 @@ function encodeAnnouncement(skill: FabricatedSkill): MessageParameter[] {
 }
 
 /** Clamped at the health left, so what the message states is what the combatant lost. */
-function removeHealth(warrior: FabricatedWarrior, asked: number): number {
+function removeHealth(combatant: FabricatedCombatant, asked: number): number {
     assert(asked >= 0, "a figure taken is never below nothing");
-    const taken = clampNumber(asked, 0, warrior.health);
-    warrior.health -= taken;
-    assert(warrior.health >= 0, "and leaves health that is never below nothing");
+    const taken = clampNumber(asked, 0, combatant.health);
+    combatant.health -= taken;
+    assert(combatant.health >= 0, "and leaves health that is never below nothing");
     return taken;
 }
 
 /** The same the other way, clamped at the maximum so nobody is restored past full. */
-function addHealth(warrior: FabricatedWarrior, asked: number): number {
+function addHealth(combatant: FabricatedCombatant, asked: number): number {
     assert(asked >= 0, "a figure restored is never below nothing");
-    const given = clampNumber(asked, 0, warrior.healthMaximum - warrior.health);
-    warrior.health += given;
-    assert(warrior.health <= warrior.healthMaximum, "and never past the whole of it");
+    const given = clampNumber(asked, 0, combatant.healthMaximum - combatant.health);
+    combatant.health += given;
+    assert(combatant.health <= combatant.healthMaximum, "and never past the whole of it");
     return given;
 }
 
 /** The bit is the status's place in the client's own order, so a refreeze that moves one moves it. */
-function setStatusBit(warrior: FabricatedWarrior, status: FrozenStatus, round: number): void {
+function setStatusBit(combatant: FabricatedCombatant, status: FrozenStatus, round: number): void {
     const bit = FROZEN_BUFF_BITS.bits.indexOf(status);
     assert(bit < STATUS_BITS_MAXIMUM, "a status's bit fits the integer a mask is");
-    warrior.statusMask |= 1 << bit;
-    warrior.statusClearsAtRound = round + STATUS_ROUNDS;
+    combatant.statusMask |= 1 << bit;
+    combatant.statusClearsAtRound = round + STATUS_ROUNDS;
 }
 
 function composeFigure(turn: FabricatedTurn, base: number): number {
@@ -1606,12 +1617,12 @@ function getPlainSkill(turn: FabricatedTurn): FabricatedSkill {
 
 /** Health moving outside a blow, stated on the combatant it happened to. */
 function encodeHealthChange(
-    warrior: FabricatedWarrior,
+    combatant: FabricatedCombatant,
     parameters: readonly MessageParameter[],
 ): string {
     assert(parameters.length > 0, "a movement of health states the key it arrived on");
-    assert(warrior.id > 0, "and the combatant it happened to");
-    return encodeMessage(encodeSide(warrior), null, parameters);
+    assert(combatant.id > 0, "and the combatant it happened to");
+    return encodeMessage(encodeSide(combatant), null, parameters);
 }
 
 /**
@@ -1621,35 +1632,43 @@ function encodeHealthChange(
  */
 function executeHealthTaken(
     turn: FabricatedTurn,
-    warrior: FabricatedWarrior,
+    combatant: FabricatedCombatant,
     key: string,
     figure: number,
 ): string | null {
     assert(figure > 0, "a figure taken is composed from a base above nothing");
     return encodeMovedHealth(
-        warrior,
+        combatant,
         key,
-        removeHealth(warrior, composeScaled(turn.shape, figure)),
+        removeHealth(combatant, composeScaled(turn.shape, figure)),
     );
 }
 
 /** The same the other way, and one step for the same reason. */
 function executeHealthGiven(
     turn: FabricatedTurn,
-    warrior: FabricatedWarrior,
+    combatant: FabricatedCombatant,
     key: string,
     figure: number,
 ): string | null {
     assert(figure > 0, "a figure given is composed from a base above nothing");
-    return encodeMovedHealth(warrior, key, addHealth(warrior, composeScaled(turn.shape, figure)));
+    return encodeMovedHealth(
+        combatant,
+        key,
+        addHealth(combatant, composeScaled(turn.shape, figure)),
+    );
 }
 
 /** A movement of health, or nothing where the figure came out at nothing. */
-function encodeMovedHealth(warrior: FabricatedWarrior, key: string, moved: number): string | null {
+function encodeMovedHealth(
+    combatant: FabricatedCombatant,
+    key: string,
+    moved: number,
+): string | null {
     assert(moved >= 0, "a figure moved is never below nothing");
     assert(key.length > 0, "and names the key it arrived on");
     if (moved === 0) return null;
-    return encodeHealthChange(warrior, [encodeFigure(key, moved)]);
+    return encodeHealthChange(combatant, [encodeFigure(key, moved)]);
 }
 
 /**
@@ -1658,9 +1677,9 @@ function encodeMovedHealth(warrior: FabricatedWarrior, key: string, moved: numbe
  * and moved no health, which is a reading the panel is right to refuse. Null where the whole side
  * is at full health, and the caller throws a blow instead.
  */
-function lookupHurtAlly(turn: FabricatedTurn): FabricatedWarrior | null {
+function lookupHurtAlly(turn: FabricatedTurn): FabricatedCombatant | null {
     assert(turn.side.length > 0, "an ally is looked for on a side with somebody on it");
-    let hurt: FabricatedWarrior | null = null;
+    let hurt: FabricatedCombatant | null = null;
     for (const ally of turn.side) {
         if (ally.health >= ally.healthMaximum) continue;
         if (hurt === null) hurt = ally;
@@ -1785,7 +1804,7 @@ if (import.meta.main) {
     const messages = fight.calls.reduce((sum, call) => sum + call.messages.length, 0);
     console.log(path);
     console.log(
-        `${fight.warriors.length} combatants, ${shape.perSide} a side, every one a player,` +
+        `${fight.combatants.length} combatants, ${shape.perSide} a side, every one a player,` +
             ` levels ${shape.level} upwards`,
     );
     console.log(`${fight.calls.length} calls, ${messages} messages`);

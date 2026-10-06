@@ -41,6 +41,19 @@ const NOTHING = "—";
 const HEADINGS = ["raw(blow)", "applied", "taken", "prevented", "restored", "given"];
 const DETAIL_INDENT = "      ";
 
+/** Every recording where no path was named, the files named otherwise, as a terminal prints it. */
+export function formatRecordedFigures(paths: readonly string[]): string {
+    return formatMaterialFigures(readRecordedMaterial(paths));
+}
+
+/** The whole report over material already chosen, which is how `fight:develop` narrows it. */
+export function formatMaterialFigures(material: RecordedMaterial): string {
+    const replayed = replayRecordedMaterial(material);
+    const lines = [`material ${material.material}`, ...replayed.flatMap(formatFigureReport)];
+    assert(lines.length > replayed.length, "every recording read is reported");
+    return `${lines.join("\n")}\n`;
+}
+
 /** The lines `develop` prints for one recording, from the blank line over its heading down. */
 export function formatFigureReport(replayed: ReplayedFight): string[] {
     const { view, figures } = replayed.reading;
@@ -76,12 +89,12 @@ function formatSideLines(statistics: FightStatistics, roster: CombatantRoster): 
             (sideGroup[0] ?? Number.MAX_SAFE_INTEGER) -
             (otherSideGroup[0] ?? Number.MAX_SAFE_INTEGER),
     );
-    const readDealt = (id: number): number =>
+    const getDealt = (id: number): number =>
         statistics.byCombatantId.get(id)?.damageDealtApplied ?? 0;
     for (const [side, members] of sides) {
         const caption = side === null ? "no side the roster gives" : `side ${side}`;
         lines.push(`  —— ${caption} (${formatInteger(members.length)}) ——`);
-        const ranked = [...members].sort((id, otherId) => readDealt(otherId) - readDealt(id));
+        const ranked = [...members].sort((id, otherId) => getDealt(otherId) - getDealt(id));
         for (const id of ranked) {
             const figures = statistics.byCombatantId.get(id);
             const label = roster.byId.get(id)?.name ?? `id ${formatInteger(id)}`;
@@ -253,20 +266,8 @@ export function formatCutText(cut: FigureCut, roster: CombatantRoster | null): s
     return written.join("  ");
 }
 
-/** Every recording where no path was named, the files named otherwise, as a terminal prints it. */
-export function formatRecordedFigures(paths: readonly string[]): string {
-    return formatMaterialFigures(readRecordedMaterial(paths));
-}
-
-/** The whole report over material already chosen, which is how `fight:develop` narrows it. */
-export function formatMaterialFigures(material: RecordedMaterial): string {
-    const replayed = replayRecordedMaterial(material);
-    const lines = [`material ${material.material}`, ...replayed.flatMap(formatFigureReport)];
-    assert(lines.length > replayed.length, "every recording read is reported");
-    return `${lines.join("\n")}\n`;
-}
-
 if (import.meta.main) {
     const text = formatRecordedFigures(Deno.args);
-    await Deno.stdout.write(new TextEncoder().encode(text));
+    assert(text.endsWith("\n"), "a report ends its last line");
+    console.log(text.slice(0, -1));
 }

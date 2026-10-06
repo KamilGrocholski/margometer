@@ -5,7 +5,7 @@
  * held rather than assumed.
  */
 
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals, assertStringIncludes } from "@std/assert";
 import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { MARGONEM_CLIENT_SCRIPT_NAME } from "#/tests/e2e/margonem-page.ts";
 import { USERSCRIPT_NAME } from "#/tools/build-userscript.ts";
@@ -17,6 +17,9 @@ import {
     type PreviewInstall,
     type PreviewPageOptions,
     type PreviewWords,
+    SEAM_GUTTER_PIXELS,
+    SPLIT_FROM_PIXELS,
+    WINDOWS_ACROSS_PIXELS,
 } from "#/tools/preview-page.ts";
 
 const INSTALL: PreviewInstall = {
@@ -151,16 +154,20 @@ Deno.test("the store is taken away, and what the add-on keeps lives only in the 
         getItem(key: string): string | null;
         setItem(key: string, stored: string): void;
     };
-    assert(window["localStorage"] === store, "the browser's store is replaced by the page's");
-    assert(window["sessionStorage"] === store, "and so is the other one, by the same");
-    assertEquals(store.getItem("carried"), "1", "which starts with what the address carried");
+    assertStrictEquals(
+        window["localStorage"],
+        store,
+        "the browser's store is replaced by the page's",
+    );
+    assertStrictEquals(window["sessionStorage"], store, "and so is the other one, by the same");
+    assertStrictEquals(store.getItem("carried"), "1", "which starts with what the address carried");
     store.setItem("kept", "2");
     assertEquals(
         held["kept"],
         "2",
         "and keeps what the add-on writes in the page, not the browser",
     );
-    assertEquals(store.getItem("absent"), null, "and answers nothing for what nobody wrote");
+    assertStrictEquals(store.getItem("absent"), null, "and answers nothing for what nobody wrote");
 });
 
 Deno.test("the second half of the driver is the caller's, and so is the sentence over it", () => {
@@ -277,6 +284,16 @@ Deno.test("a published page stands its band in the middle of its half, heading a
         ".preview-install h1",
         "the heading among them",
     );
+});
+
+Deno.test("the page splits only where the half past the seam holds both windows", () => {
+    const half = SPLIT_FROM_PIXELS / 2;
+    assert(
+        half >= WINDOWS_ACROSS_PIXELS + SEAM_GUTTER_PIXELS,
+        `a half of ${half}px at the split cannot hold the pair and the gutter off the seam`,
+    );
+    const dressed = composePreviewPage({ ...composeOptions(CALLS), install: INSTALL });
+    assertStringIncludes(dressed, `@media (min-width: ${SPLIT_FROM_PIXELS}px)`, "at that width");
 });
 
 Deno.test("what has to be true stands above the offer, numbered, and what follows below", () => {

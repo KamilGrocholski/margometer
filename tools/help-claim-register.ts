@@ -5,6 +5,7 @@
  */
 
 import { assert } from "@std/assert";
+import { HelpArticleError } from "./margometer-tool-error.ts";
 
 export interface HelpClaim {
     line: number;
@@ -33,7 +34,9 @@ export function parseCitedHelpPhrases(text: string): string[] {
     }
     const sorted = [...phrases].sort();
     assert(sorted.length <= text.length, "no more phrases than characters to have written them in");
-    assert(sorted.every((phrase) => phrase.length > 0), "a phrase that was cited says something");
+    if (sorted.includes("")) {
+        throw new HelpArticleError(`${REGISTER_PATH} cites an empty phrase, which says nothing`);
+    }
     return sorted;
 }
 
@@ -60,7 +63,9 @@ export function parseHelpClaim(line: string, lineNumber: number): HelpClaim | nu
         if (!body.startsWith(OCCURRENCE_CLAIM)) return null;
     }
     const phrases = parseBacktickedPhrases(body);
-    assert(phrases.length > 0, "a claim names at least one phrase");
+    if (phrases.length === 0) {
+        throw new HelpArticleError(`${REGISTER_PATH}:${lineNumber} makes a claim naming no phrase`);
+    }
     return { line: lineNumber, isSilent, phrases };
 }
 
@@ -73,7 +78,11 @@ export function parseBacktickedPhrases(text: string): string[] {
         if (open === -1) break;
         const close = text.indexOf(BACKTICK, open + 1);
         if (close === -1) break;
-        assert(phrases.length < PHRASES_MAXIMUM, "a claim names no more phrases than the bound");
+        if (phrases.length === PHRASES_MAXIMUM) {
+            throw new HelpArticleError(
+                `a claim names more than the ${PHRASES_MAXIMUM} phrases one is read for`,
+            );
+        }
         phrases.push(text.slice(open + 1, close));
         from = close + 1;
     }

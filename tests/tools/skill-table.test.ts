@@ -14,8 +14,11 @@ import {
     composeAuraSkills,
     composeGrantedBlows,
     composeShoutSkills,
+    EFFECTS_MAXIMUM,
+    prepareFrozenSkillTable,
     readCachedSkillTable,
     requireSkillsOfMargonemApi,
+    ROWS_MAXIMUM,
 } from "#/tools/skill-table.ts";
 
 Deno.test("a duration is read off the level it is stated on, and none where none is", () => {
@@ -95,6 +98,45 @@ Deno.test("a manifest that stands and cannot be read is refused, and none is no 
         // A directory where the manifest stands: there, and no text to read off it.
         Deno.mkdirSync(`${CACHE_ROOT}provenance.json`, { recursive: true });
         assertThrows(() => readCachedSkillTable(), SkillTableError, "cannot be read");
+    } finally {
+        Deno.chdir(held);
+        Deno.removeSync(directory, { recursive: true });
+    }
+});
+
+Deno.test("a page is read up to its bound in rows and refused one past it", () => {
+    const serving = (count: number) =>
+        Array.from({ length: count }, (_, rowIndex) => composeRow(String(rowIndex), "")).join("");
+    assertStrictEquals(requireSkillsOfMargonemApi(serving(ROWS_MAXIMUM)).length, ROWS_MAXIMUM);
+    assertThrows(
+        () => requireSkillsOfMargonemApi(serving(ROWS_MAXIMUM + 1)),
+        SkillTableError,
+        "more than",
+    );
+});
+
+Deno.test("a skill is read up to its bound in effects and refused one past it", () => {
+    const stating = (count: number) =>
+        composeRow("7", Array.from({ length: count }, () => "aura-sa_per=11@8").join(";"));
+    const [skill] = requireSkillsOfMargonemApi(stating(EFFECTS_MAXIMUM));
+    assertStrictEquals(skill?.effects.length, EFFECTS_MAXIMUM, "at the bound, every effect");
+    assertThrows(
+        () => requireSkillsOfMargonemApi(stating(EFFECTS_MAXIMUM + 1)),
+        SkillTableError,
+        "more than",
+    );
+});
+
+Deno.test("a manifest naming a page that is gone is refused, naming what fetches one", () => {
+    const held = Deno.cwd();
+    const directory = Deno.makeTempDirSync({ prefix: "margometer-cache-" });
+    try {
+        Deno.chdir(directory);
+        const pagePath = `${CACHE_ROOT}skills.html`;
+        const manifest = { url: "u", fetchedAt: "t", pagePath, pageLength: 1 };
+        Deno.mkdirSync(CACHE_ROOT, { recursive: true });
+        Deno.writeTextFileSync(`${CACHE_ROOT}provenance.json`, JSON.stringify(manifest));
+        assertThrows(() => prepareFrozenSkillTable(), SkillTableError, "margonem:skills fetch");
     } finally {
         Deno.chdir(held);
         Deno.removeSync(directory, { recursive: true });

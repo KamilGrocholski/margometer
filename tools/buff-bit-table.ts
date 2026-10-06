@@ -7,16 +7,17 @@
  *     deno task margonem:buffs [freeze]
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert } from "@std/assert";
 import { encodeJson } from "#/libs/json-text.ts";
 import { formatInteger } from "#/libs/number-text.ts";
-import { getEndOfRun, isWhitespaceAt, lookupQuotedLiteral } from "#/libs/text-walk.ts";
-import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
 import {
-    MARGONEM_CHANNEL,
-    readCachedBundle,
-    requireCachedBuild,
-} from "./margonem-client-source.ts";
+    isWhitespaceAt,
+    lookupEndOfRun,
+    lookupQuotedLiteral,
+    RUN_CHARACTERS_MAXIMUM,
+} from "#/libs/text-walk.ts";
+import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
+import { MARGONEM_CHANNEL, readCachedBuild, readCachedBundle } from "./margonem-client-source.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { BuffBitTableError } from "./margometer-tool-error.ts";
 
@@ -58,7 +59,7 @@ export function writeFrozenBuffBits(): FrozenFiles {
 
 /** The bit order the cached bundle gives, dated by the first build that gave it (ADR 0011). */
 export function prepareFrozenBuffBits(): FrozenFiles {
-    const build = requireCachedBuild();
+    const build = readCachedBuild();
     const bits = requireBuffBits(readCachedBundle(MARGONEM_CHANNEL.production));
     assert(bits.length > 0, "a table that is frozen counts something");
     return prepareFrozenFiles(
@@ -105,7 +106,11 @@ export function requireBuffBits(bundle: string): string[] {
         if (nothingAt === -1) break;
         const name = lookupRegisteredStatusName(bundle, nothingAt);
         if (name !== null) {
-            assert(names.length < STATUS_BITS_MAXIMUM, "a mask holds no more bits than an integer");
+            if (names.length === STATUS_BITS_MAXIMUM) {
+                throw new BuffBitTableError(
+                    `more than the ${STATUS_BITS_MAXIMUM} statuses a mask holds bits for`,
+                );
+            }
             names.push(name);
         }
         nothingAt = bundle.indexOf(NOTHING_ARGUMENT, nothingAt + 1);
@@ -118,7 +123,10 @@ export function requireBuffBits(bundle: string): string[] {
     if (names.length === 0) {
         throw new BuffBitTableError("no status is registered in the bundle — the client changed");
     }
-    assertStrictEquals(new Set(names).size, names.length, "each status is named at one position");
+    const twice = names.find((name, position) => names.indexOf(name) !== position);
+    if (twice !== undefined) {
+        throw new BuffBitTableError(`\`${twice}\` is registered at two bits — the client changed`);
+    }
     return names;
 }
 
@@ -129,23 +137,34 @@ export function requireBuffBits(bundle: string): string[] {
  */
 function lookupRegisteredStatusName(bundle: string, nothingAt: number): string | null {
     assert(nothingAt >= 0, "an entry is looked for inside the bundle");
-    const after = getEndOfRun(bundle, nothingAt + NOTHING_ARGUMENT.length, isWhitespaceAt);
+    const after = requireEndOfWhitespace(bundle, nothingAt + NOTHING_ARGUMENT.length);
     if (bundle.charAt(after) !== ARGUMENT_SEPARATOR) return null;
-    const role = lookupQuotedLiteral(bundle, getEndOfRun(bundle, after + 1, isWhitespaceAt));
+    const role = lookupQuotedLiteral(bundle, requireEndOfWhitespace(bundle, after + 1));
     if (role === null) return null;
     if (role.text !== ROLE) return null;
-    if (bundle.charAt(getEndOfRun(bundle, role.end, isWhitespaceAt)) !== CALL_CLOSE) return null;
+    if (bundle.charAt(requireEndOfWhitespace(bundle, role.end)) !== CALL_CLOSE) return null;
     const separator = bundle.lastIndexOf(ARGUMENT_SEPARATOR, nothingAt);
     if (separator === -1) return null;
-    if (getEndOfRun(bundle, separator + 1, isWhitespaceAt) !== nothingAt) return null;
+    if (requireEndOfWhitespace(bundle, separator + 1) !== nothingAt) return null;
     const open = bundle.lastIndexOf(CALL_OPEN, separator);
     if (open === -1) return null;
     if (open < nothingAt - WALK_BACK_MAXIMUM) return null;
-    const name = lookupQuotedLiteral(bundle, getEndOfRun(bundle, open + 1, isWhitespaceAt));
+    const name = lookupQuotedLiteral(bundle, requireEndOfWhitespace(bundle, open + 1));
     if (name === null) return null;
-    if (getEndOfRun(bundle, name.end, isWhitespaceAt) !== separator) return null;
+    if (requireEndOfWhitespace(bundle, name.end) !== separator) return null;
     if (name.text.length === 0) return null;
     return name.text;
+}
+
+/** Where a run of whitespace ends, refused where it runs past what a walk reads in one go. */
+function requireEndOfWhitespace(bundle: string, from: number): number {
+    const runEnd = lookupEndOfRun(bundle, from, RUN_CHARACTERS_MAXIMUM, isWhitespaceAt);
+    if (runEnd === null) {
+        throw new BuffBitTableError(
+            `whitespace at ${from} runs past the ${RUN_CHARACTERS_MAXIMUM} characters read`,
+        );
+    }
+    return runEnd;
 }
 
 if (import.meta.main) {
@@ -156,7 +175,7 @@ if (import.meta.main) {
         console.log(`${moved} ${count} bits from build ${frozen.date} → ${FROZEN_PATH}`);
     } else {
         const bits = requireBuffBits(readCachedBundle(MARGONEM_CHANNEL.production));
-        console.log(`${formatInteger(bits.length)} bits in build ${requireCachedBuild()}`);
+        console.log(`${formatInteger(bits.length)} bits in build ${readCachedBuild()}`);
         for (const [index, name] of bits.entries()) {
             console.log(`  bit ${formatInteger(index)}  ${name}`);
         }

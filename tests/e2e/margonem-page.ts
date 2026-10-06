@@ -26,8 +26,13 @@ declare global {
     var margometerE2e: PanelProbe;
 }
 
-/** When the game stands up, relative to the bundle looking for one. */
-export type MargonemEnginePresence = "before" | "late" | "none";
+/**
+ * When the game stands up, relative to the bundle looking for one. The type is spelled out of the
+ * object here rather than through `libs/vocabulary.ts`, because this file imports nothing.
+ */
+export const MARGONEM_ENGINE_PRESENCE = { before: "before", late: "late", none: "none" } as const;
+export type MargonemEnginePresence =
+    (typeof MARGONEM_ENGINE_PRESENCE)[keyof typeof MARGONEM_ENGINE_PRESENCE];
 
 export interface PanelPageOptions {
     calls: readonly unknown[];
@@ -86,9 +91,9 @@ const ENGINE_LATE_MILLISECONDS = 700;
 export function composePanelPage(options: PanelPageOptions): string {
     const settings = JSON.stringify({ calls: options.calls, fedThrough: options.fedThrough })
         .split("<").join("\\u003c");
-    const margonem = options.engine === "none"
+    const margonem = options.engine === MARGONEM_ENGINE_PRESENCE.none
         ? ""
-        : options.engine === "late"
+        : options.engine === MARGONEM_ENGINE_PRESENCE.late
         ? composeMargonemLate(options.place)
         : composeMargonem(options.place);
     const directory = options.scriptDirectory ?? "/";

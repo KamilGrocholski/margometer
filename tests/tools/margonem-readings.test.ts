@@ -6,7 +6,7 @@
  * only the second catches a reader that has stopped comparing anything.
  */
 
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { assert, assertEquals, assertNotStrictEquals, assertStringIncludes } from "@std/assert";
 import type { CachedMargonemClientSource } from "#/tools/margonem-client-source.ts";
 import type { FrozenFiles } from "#/tools/frozen-files.ts";
 import {
@@ -130,6 +130,7 @@ Deno.test("a world that did not answer is said as that, and never as a stale rea
     assert(!formatReadingLine(unasked).includes("STALE"), "never wearing the other verdict");
     assert(EXIT_STALE > 0, "a reading that went behind never ends a work round quietly");
     assert(EXIT_UNASKED > 0, "and neither does a world that could not be asked");
+    assertNotStrictEquals(EXIT_STALE, EXIT_UNASKED, "and a caller tells the two apart by the exit");
 });
 
 Deno.test("a preview names the keys development adds and drops, and nothing it shares", () => {

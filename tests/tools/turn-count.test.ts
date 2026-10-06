@@ -26,6 +26,7 @@ import { isOneOf } from "#/libs/vocabulary.ts";
 import { TurnCountError } from "#/tools/margometer-tool-error.ts";
 import { replayRecordedSteps } from "#/tools/recorded-material.ts";
 import {
+    ARGUMENTS_MAXIMUM,
     composeTurnBoundaries,
     composeTurnGrades,
     formatCaseReport,
@@ -425,6 +426,12 @@ Deno.test("a recording is named by a path, and a bare number is refused", () => 
     const paths = [BOAR, UNNARRATED];
     assertEquals(parseTurnArguments(paths), { isCases: false, paths }, "and the paths as named");
     assertThrows(() => parseTurnArguments(["12"]), TurnCountError, "never by a number");
+    const naming = (count: number) => Array.from({ length: count }, () => BOAR);
+    assertStrictEquals(
+        parseTurnArguments(naming(ARGUMENTS_MAXIMUM)).paths.length,
+        ARGUMENTS_MAXIMUM,
+    );
+    assertThrows(() => parseTurnArguments(naming(ARGUMENTS_MAXIMUM + 1)), TurnCountError, "more");
     assertThrows(
         () => parseTurnArguments(["--case", "captures/x.json"]),
         TurnCountError,

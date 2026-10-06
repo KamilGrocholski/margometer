@@ -24,6 +24,7 @@ import {
     REGIONS_ASKED_MAXIMUM,
 } from "#/tools/panel-giving-way.ts";
 import { SHOT_DIRECTORY } from "#/tools/panel-shots.ts";
+import { PORT_MAXIMUM } from "#/tools/preview-server.ts";
 
 Deno.test("both guards this edits are still the panel's, and each stands once", () => {
     const source = Deno.readTextFileSync(PANEL_FILE);
@@ -98,6 +99,12 @@ Deno.test("the flags a person gives are read, and what is not one is refused", (
     );
     assertStrictEquals(readGivingWayFlags([]).doesShoot, false, "serving is what it does alone");
     assertThrows(() => readGivingWayFlags(["--port", "four"]), GivingWayError, "not a number");
+    assertStrictEquals(readGivingWayFlags(["--port", "0"]).port, 0, "nought is any free port");
+    const lastPort = String(PORT_MAXIMUM);
+    assertStrictEquals(readGivingWayFlags(["--port", lastPort]).port, PORT_MAXIMUM, "and the last");
+    const past = String(PORT_MAXIMUM + 1);
+    assertThrows(() => readGivingWayFlags(["--port", past]), GivingWayError, "outside");
+    assertThrows(() => readGivingWayFlags(["--port=-1"]), GivingWayError, "outside");
     assertThrows(() => readGivingWayFlags(["list"]), GivingWayError, "not a flag this reads");
     assertThrows(
         () => readGivingWayFlags(["--regoin", "card"]),

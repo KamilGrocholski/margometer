@@ -76,8 +76,11 @@ const PREVIEW_HOSTNAME = "127.0.0.1";
 const PORT_DEFAULT = 4173;
 /** A preview is watched by the pages one person has open; this is far past that (S11). */
 export const LISTENERS_MAXIMUM = 64;
-/** What a build reads. `tools/` is not here: this process imported it, so a rebuild cannot. */
-const WATCHED_DIRECTORIES = ["src", "libs", "frozen"];
+/**
+ * Everything the bundle entry reaches, and the lock its imports resolve by: what a rebuild reads.
+ * `tools/` is not here: this process imported it, so a rebuild cannot.
+ */
+export const BUNDLE_SOURCE_PATHS = ["src", "libs", "frozen", "deno.json", "deno.lock"];
 /** Collapses the pair of events one save fires, and a format-on-save touching several files. */
 const REBUILD_QUIET_MILLISECONDS = 60;
 /** So a proxy between the browser and this process cannot close an idle stream on its own. */
@@ -88,7 +91,9 @@ const FLAG_FIGHT = "--fight";
 const FLAG_FROM = "--from";
 const FLAG_FABRICATED = "--fabricated";
 /** Past every shape a person makes to look at one (S11). */
-const FROM_PATHS_MAXIMUM = 64;
+export const FROM_PATHS_MAXIMUM = 64;
+/** The last port TCP numbers; nought asks the system for any free one. */
+export const PORT_MAXIMUM = 65_535;
 const TEXT_ENCODER = new TextEncoder();
 const HTML_TYPE = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" };
 const SCRIPT_TYPE = {
@@ -161,7 +166,7 @@ export function initPreviewServer(options: PreviewServerOptions = {}): PreviewSe
         { hostname: PREVIEW_HOSTNAME, port: options.port ?? PORT_DEFAULT, onListen: () => {} },
         (request) => answerPreviewRequest(state, new URL(request.url)),
     );
-    const watcher = (options.shouldWatch ?? true) ? Deno.watchFs(WATCHED_DIRECTORIES) : null;
+    const watcher = (options.shouldWatch ?? true) ? Deno.watchFs(BUNDLE_SOURCE_PATHS) : null;
     // The drain answers a promise nobody awaits, so its rejection needs a reader (E11).
     if (watcher !== null) {
         readFileEvents(watcher, state).then(() => {}, (failure: unknown) => {
@@ -180,7 +185,8 @@ export function initPreviewServer(options: PreviewServerOptions = {}): PreviewSe
         stop: async () => {
             watcher?.close();
             if (keepAlive !== null) clearInterval(keepAlive);
-            for (const listener of state.listeners) errors.attempt(() => listener.close());
+            // A stream the page already closed has nothing left to be told.
+            for (const listener of state.listeners) void errors.attempt(() => listener.close());
             state.listeners.clear();
             await server.shutdown();
         },
@@ -381,14 +387,50 @@ export function readPreviewFlags(args: readonly string[]): {
         if (args[argumentIndex] === FLAG_PORT) {
             const asked = parseInteger(flagValue);
             if (asked === null) throw new PreviewServeError(`${FLAG_PORT} ${flagValue} is no port`);
+            if (!isPortInRange(asked)) {
+                throw new PreviewServeError(
+                    `${FLAG_PORT} ${flagValue} is outside 0 to ${PORT_MAXIMUM}`,
+                );
+            }
             port = asked;
         } else if (args[argumentIndex] === FLAG_FIGHT) fight = flagValue;
-        else if (args[argumentIndex] === FLAG_FROM) fromPaths.push(flagValue);
-        else throw new PreviewServeError(`${args[argumentIndex]} is not a flag this reads`);
+        else if (args[argumentIndex] === FLAG_FROM) {
+            if (fromPaths.length === FROM_PATHS_MAXIMUM) {
+                throw new PreviewServeError(
+                    `no more than ${FROM_PATHS_MAXIMUM} ${FLAG_FROM} at once`,
+                );
+            }
+            fromPaths.push(flagValue);
+        } else throw new PreviewServeError(`${args[argumentIndex]} is not a flag this reads`);
         argumentIndex += 1;
     }
-    assert(fromPaths.length <= args.length, "no more paths than were given");
+    assert(fromPaths.length <= FROM_PATHS_MAXIMUM, "the paths stay inside their bound");
     return { port, fight, fromPaths, shouldOpenFabricated };
+}
+
+/** Whether a number is one a server can listen on. */
+export function isPortInRange(port: number): boolean {
+    assert(Number.isSafeInteger(port), "a port is asked about as a whole number");
+    if (port < 0) return false;
+    return port <= PORT_MAXIMUM;
+}
+
+/**
+ * The paths a preview opens: those `--from` named and the fabricated fights after them, refused
+ * together past the bound, since each list may stand inside it on its own.
+ */
+export function composeOpenedPaths(
+    fromPaths: readonly string[],
+    fabricatedPaths: readonly string[],
+): string[] {
+    const opened = [...fromPaths, ...fabricatedPaths];
+    if (opened.length > FROM_PATHS_MAXIMUM) {
+        throw new PreviewServeError(
+            `more than ${FROM_PATHS_MAXIMUM} fights opened beside the rest`,
+        );
+    }
+    assertStrictEquals(opened.length, fromPaths.length + fabricatedPaths.length, "every path once");
+    return opened;
 }
 
 /**
@@ -427,15 +469,16 @@ export function readFabricatedPaths(directory: string): string[] {
 
 if (import.meta.main) {
     const flags = readPreviewFlags(Deno.args);
-    const fromPaths = flags.shouldOpenFabricated
-        ? [...flags.fromPaths, ...readFabricatedPaths(FABRICATED_DIRECTORY)]
-        : flags.fromPaths;
+    const fromPaths = composeOpenedPaths(
+        flags.fromPaths,
+        flags.shouldOpenFabricated ? readFabricatedPaths(FABRICATED_DIRECTORY) : [],
+    );
     const preview = initPreviewServer({ port: flags.port, fromPaths });
     const opening = flags.fight === null
         ? preview.url
         : `${preview.url}/?fight=${encodeURIComponent(flags.fight)}`;
     console.log(`preview  ${opening}`);
-    console.log(`watching ${WATCHED_DIRECTORIES.join(", ")}: a change there rebuilds and reloads`);
+    console.log(`watching ${BUNDLE_SOURCE_PATHS.join(", ")}: a change there rebuilds and reloads`);
     console.log("a change in tools/ does not, because this process already imported it: restart");
     for (const signal of ["SIGINT", "SIGTERM"] as const) {
         Deno.addSignalListener(signal, () => {

@@ -31,7 +31,12 @@ import {
     type ShotStep,
     writeShot,
 } from "./panel-shots.ts";
-import { initPreviewServer } from "./preview-server.ts";
+import {
+    BUNDLE_SOURCE_PATHS,
+    initPreviewServer,
+    isPortInRange,
+    PORT_MAXIMUM,
+} from "./preview-server.ts";
 import { LANDING_RECORDING } from "./preview-site.ts";
 
 export interface GivingWayFlags {
@@ -57,8 +62,6 @@ export const CARD_ANCHOR = "                    const renderedCard = render();\n
     "                    previousCard.replaceWith(renderedCard);\n";
 /** The card's guard stands as deep as its anchor, so the line written into it does too. */
 const CARD_INDENT = CARD_ANCHOR.slice(0, CARD_ANCHOR.indexOf("const"));
-/** Everything the bundle entry reaches, and the lock its imports resolve by. */
-export const BUNDLE_SOURCE_PATHS = ["src", "libs", "frozen", "deno.json", "deno.lock"];
 /** Past the regions there are, which is what a person may ask for at once (S11). */
 export const REGIONS_ASKED_MAXIMUM = 32;
 /** Beside the preview's own, so a panel that gives way and one that does not stand at once. */
@@ -96,11 +99,11 @@ export function readGivingWayFlags(args: readonly string[]): GivingWayFlags {
     }
     const port = parsed.port === undefined ? PORT_DEFAULT : parseInteger(parsed.port);
     if (port === null) throw new GivingWayError(`--port ${parsed.port} is not a number`);
+    if (!isPortInRange(port)) {
+        throw new GivingWayError(`--port ${port} is outside 0 to ${PORT_MAXIMUM}`);
+    }
     const into = parsed.into ?? INTO_DEFAULT;
-    // Outside the pictures is a path that climbs out of them: `..pictures` is a name inside.
-    const fromPictures = relative(resolve(SHOT_DIRECTORY), resolve(into));
-    const isOutside = fromPictures === PARENT || fromPictures.startsWith(`${PARENT}${SEPARATOR}`);
-    if (!isOutside) {
+    if (!isOutsidePictures(into)) {
         throw new GivingWayError(`${into} is where the READMEs read their pictures from`);
     }
     return {
@@ -110,6 +113,14 @@ export function readGivingWayFlags(args: readonly string[]): GivingWayFlags {
         browser: parsed.browser ?? null,
         doesShoot: parsed.shots,
     };
+}
+
+/** Whether a path climbs out of the pictures: `..pictures` is a name inside them. */
+function isOutsidePictures(into: string): boolean {
+    assert(into.length > 0, "a directory is named by something");
+    const fromPictures = relative(resolve(SHOT_DIRECTORY), resolve(into));
+    if (fromPictures === PARENT) return true;
+    return fromPictures.startsWith(`${PARENT}${SEPARATOR}`);
 }
 
 /**

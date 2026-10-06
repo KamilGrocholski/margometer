@@ -5,7 +5,7 @@
  * which also says what they may touch: a location, a history, the probe, and the store.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import {
     composePreviewStateReading,
     composePreviewStateWriting,
@@ -23,7 +23,7 @@ Deno.test("what the harness writes into the address is what it reads back out of
     const held = { place: `{"left":10,"top":20}`, folded: "1" };
     const hash = composeHashOfShown(held, { entry: 7, screen: "damageTaken" });
     const reading = readStateFromHash(hash);
-    assertEquals(reading.entry, 7, "the entry the replay stopped at");
+    assertStrictEquals(reading.entry, 7, "the entry the replay stopped at");
     assertEquals(reading.screen, "damageTaken", "the screen the panel was on");
     assertEquals(reading.store, held, "and every value the add-on had put in the store");
 });
@@ -65,7 +65,7 @@ Deno.test("an address nobody composed reads as no state rather than as a wrong o
         const hash of ["", "#", "#e", "#e=", "#e=-1", "#e=1.5", "#e=x", "#k=not-json", "#k=[1,2]"]
     ) {
         const reading = readStateFromHash(hash);
-        assertEquals(reading.entry, null, `${hash} states no entry`);
+        assertStrictEquals(reading.entry, null, `${hash} states no entry`);
         assertEquals(reading.store, {}, `${hash} states nothing the store should hold`);
     }
     const half = readStateFromHash("#e=3&k=%7B%22a%22%3A1%7D");
@@ -81,7 +81,7 @@ Deno.test("a value too long for an address does not travel, and one at the edge 
     );
     assertEquals(reading.store["edge"], edge, "the longest value that fits is carried");
     assertEquals(reading.store["over"], undefined, "and the first one past it is left behind");
-    assertEquals(reading.entry, 0, "zero is an entry, and the one the empty panel stands at");
+    assertStrictEquals(reading.entry, 0, "zero is an entry, and the one the empty panel stands at");
     const atFirstCall = readStateFromHash(composeHashOfShown({}, { entry: 1, screen: null }));
     assertEquals(atFirstCall.entry, 1, "and one past it is the first call");
 });
@@ -103,7 +103,7 @@ Deno.test("a store too big for the whole address is dropped, and the rest still 
     const hash = composeHashOfShown(held, { entry: 4, screen: "healthGiven" });
     assert(hash.length <= STATE_TEXT_MAXIMUM, "an address stays inside the length it states");
     const reading = readStateFromHash(hash);
-    assertEquals(reading.entry, 4, "the entry survives the store being left behind");
+    assertStrictEquals(reading.entry, 4, "the entry survives the store being left behind");
     assertEquals(reading.screen, "healthGiven", "and so does the screen");
     assertEquals(reading.store, {}, "the store is the part that goes, whole");
 });

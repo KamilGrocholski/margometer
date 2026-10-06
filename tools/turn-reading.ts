@@ -1,6 +1,5 @@
 /**
- * How a message becomes a turn, message by message, and where that reading and the game disagree:
- * `develop:tools/turn-reading.ts` at `DEVELOP_REVISION`, printing its text.
+ * How a message becomes a turn, message by message, and where that reading and the game disagree.
  *
  *     deno task fight:openers                        the disputed openers, over the recordings
  *     deno task fight:openers --keys                 what opened every turn, and what a key adds
@@ -51,7 +50,7 @@ type EventKind = BattleEvent["kind"];
  * an announcement states the client's own display text, which is nobody here's to keep
  * (`captures/AGENTS.md`). The payload and the place in it are what a reader opens instead.
  */
-export interface ParametersDecoded {
+export interface MessageReading {
     payload: number;
     at: number;
     /** Identifiers, in the order the message carried them, and never the text beside them. */
@@ -75,7 +74,7 @@ export interface ParametersDecoded {
 /** A recording, and every message of it read. */
 export interface FightMessages {
     name: string;
-    readings: readonly ParametersDecoded[];
+    readings: readonly MessageReading[];
 }
 
 export interface DisputedReading {
@@ -129,7 +128,7 @@ interface ReadingArguments {
     paths: string[];
 }
 
-const ARGUMENTS_MAXIMUM = 256;
+export const ARGUMENTS_MAXIMUM = 256;
 const OPENER_WIDTH = 32;
 const KEY_WIDTH = 32;
 const NAME_WIDTH = 68;
@@ -151,14 +150,14 @@ export function composeFightMessages(fights: readonly RecordedFight[]): FightMes
  * across payloads as `src/core/fight-statistics.ts` carries it, and the decoder's own standing
  * starts over at each payload as the session's does.
  */
-function composeMessageReadings(fight: RecordedFight): ParametersDecoded[] {
+function composeMessageReadings(fight: RecordedFight): MessageReading[] {
     const steps = replayRecordedSteps(fight);
     const byOrdinals = new Map<string, TurnBoundary>();
     for (const boundary of composeTurnBoundaries(steps)) {
         byOrdinals.set(`${boundary.from}->${boundary.to}`, boundary);
     }
-    const readings: ParametersDecoded[] = [];
-    let pending: ParametersDecoded[] = [];
+    const readings: MessageReading[] = [];
+    let pending: MessageReading[] = [];
     let stated: number | null = null;
     let place: ReadingPlace = { standing: NO_TURN_STANDING, actorId: null, events: 0 };
     for (const [payload, step] of steps.entries()) {
@@ -193,8 +192,8 @@ function composeMessageReadingsOfStep(
     step: ReplayedStep,
     payload: number,
     before: ReadingPlace,
-): { readings: ParametersDecoded[]; place: ReadingPlace } {
-    const readings: ParametersDecoded[] = [];
+): { readings: MessageReading[]; place: ReadingPlace } {
+    const readings: MessageReading[] = [];
     let standing = before.standing;
     let previousActorId = before.actorId;
     const roster = step.reading.view.roster;
@@ -463,7 +462,7 @@ export function formatReadingWalk(walk: FightMessages): string[] {
     return lines;
 }
 
-function formatReadingWalkLine(reading: ParametersDecoded): string {
+function formatReadingWalkLine(reading: MessageReading): string {
     assert(reading.at >= 0, "a message is numbered from nothing");
     assert(reading.payload >= 0, "and so is the payload it arrived in");
     let opened = "";
@@ -480,7 +479,9 @@ function formatReadingWalkLine(reading: ParametersDecoded): string {
 }
 
 export function parseReadingArguments(stated: readonly string[]): ReadingArguments {
-    assert(stated.length <= ARGUMENTS_MAXIMUM, "a run is given no more arguments than are read");
+    if (stated.length > ARGUMENTS_MAXIMUM) {
+        throw new TurnReadingError(`more than ${ARGUMENTS_MAXIMUM} arguments`);
+    }
     const parsed = parseArgs([...stated], {
         boolean: ["keys"],
         unknown: (argument, flag) => {

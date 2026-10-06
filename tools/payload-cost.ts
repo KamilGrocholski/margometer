@@ -102,7 +102,7 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
             for (const [index, update] of fight.updates.entries()) {
                 // Time the payload as the game calls it, less what the game's own method took.
                 const started = performance.now();
-                Reflect.apply(wrapped, margonemEngineBattle, [update]);
+                void Reflect.apply(wrapped, margonemEngineBattle, [update]);
                 const tookMilliseconds = performance.now() - started - margonemEngineMilliseconds;
                 const took = tookMilliseconds * MICROSECONDS_PER_MILLISECOND;
                 cost.payloadMicroseconds[index] = Math.min(
@@ -118,7 +118,7 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
             assertStrictEquals(window.lines.length, 0, "a recording timed left no failure behind");
             // Time the tally a frame runs, at the call where the fight is longest.
             const started = performance.now();
-            tallyFightState(reading.view);
+            void tallyFightState(reading.view);
             const took = (performance.now() - started) * MICROSECONDS_PER_MILLISECOND;
             cost.tallyMicroseconds = Math.min(cost.tallyMicroseconds, took);
         }

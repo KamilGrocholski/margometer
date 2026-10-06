@@ -1,6 +1,6 @@
 /**
  * How many turns a fight's combatants took, and how that count stands against the game's own
- * numbering of them: `develop:tools/turn-count.ts` at `DEVELOP_REVISION`, printing its text.
+ * numbering of them.
  *
  *     deno task fight:turns                        the register, over the recordings
  *     deno task fight:turns --cases                the counts behind each verdict
@@ -123,7 +123,7 @@ export const TURN_VERDICTS: readonly TurnVerdict[] = Object.values(TURN_VERDICT)
  * this, so it is spelled here, the one reader of it (N13).
  */
 export const WITNESS_KEYS = { holder: "current" } as const;
-const ARGUMENTS_MAXIMUM = 256;
+export const ARGUMENTS_MAXIMUM = 256;
 const NAME_WIDTH = 68;
 const VERDICT_WIDTH = 16;
 const COLUMN_WIDTH = 9;
@@ -533,7 +533,9 @@ function formatTurnWalkLine(boundary: TurnBoundary): string {
 }
 
 export function parseTurnArguments(stated: readonly string[]): TurnArguments {
-    assert(stated.length <= ARGUMENTS_MAXIMUM, "a run is given no more arguments than are read");
+    if (stated.length > ARGUMENTS_MAXIMUM) {
+        throw new TurnCountError(`more than ${ARGUMENTS_MAXIMUM} arguments`);
+    }
     const parsed = parseArgs([...stated], {
         boolean: ["cases"],
         unknown: (argument, flag) => {

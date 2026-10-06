@@ -127,7 +127,7 @@ const SENTENCE_END = ". ";
 /** Past the claims the register carries, and past what a document of its size could state. */
 export const CLAIMS_MAXIMUM = 1024;
 const CLAIM_SEPARATOR = ";";
-const CLAIMS_PER_LINE = 3;
+export const CLAIMS_PER_LINE = 3;
 /** The corpus carries 119 keys, 2026-09-25: this is past what a protocol change would add. */
 const KEYS_MAXIMUM = 4096;
 const KEY_COLUMN = 26;
@@ -288,7 +288,9 @@ function parseShapeLine(key: string, line: string): KeyShape | null {
         claim.trim()
     );
     if (claims.length !== CLAIMS_PER_LINE) {
-        throw new ProtocolKeyShapeError(`${key} states ${claims.length} claims, not three`);
+        throw new ProtocolKeyShapeError(
+            `${key} states ${claims.length} claims, not ${formatInteger(CLAIMS_PER_LINE)}`,
+        );
     }
     const [counted, placement, valueClaim] = claims;
     assert(counted !== undefined, "a line split in three has a first claim");
@@ -320,7 +322,11 @@ function parseShapeLineOccurrences(key: string, claim: string): number {
 /** A phrase outside the list is refused rather than read as silence. */
 function parseShapeLinePlacement(key: string, claim: string): KeyPlacement {
     if (!isOneOf(KEY_PLACEMENTS, claim)) {
-        throw new ProtocolKeyShapeError(`${key} sits "${claim}", which is not one of the five`);
+        throw new ProtocolKeyShapeError(
+            `${key} sits "${claim}", which is not one of the ${
+                formatInteger(KEY_PLACEMENTS.length)
+            }`,
+        );
     }
     assert(claim.length > 0, "a placement read is one of the phrases");
     return claim;
@@ -328,7 +334,11 @@ function parseShapeLinePlacement(key: string, claim: string): KeyPlacement {
 
 function parseShapeLineValue(key: string, claim: string): KeyValue {
     if (!isOneOf(KEY_VALUES, claim)) {
-        throw new ProtocolKeyShapeError(`${key} carries "${claim}", which is not one of the four`);
+        throw new ProtocolKeyShapeError(
+            `${key} carries "${claim}", which is not one of the ${
+                formatInteger(KEY_VALUES.length)
+            }`,
+        );
     }
     assert(claim.length > 0, "a value kind read is one of the phrases");
     return claim;
@@ -557,5 +567,5 @@ if (import.meta.main) {
         material,
         Deno.readTextFileSync(REGISTER_PATH),
     );
-    await Deno.stdout.write(new TextEncoder().encode(report));
+    console.log(report.trimEnd());
 }

@@ -12,7 +12,11 @@ import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { PLACE, SHAPE, SPACE_PIXELS, SURFACE, TEXT, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { formatColour, SIGNAL } from "#/src/ui/panel-palette.ts";
-import { composePanelPage, PROBE_NAME } from "#/tests/e2e/margonem-page.ts";
+import {
+    composePanelPage,
+    MARGONEM_ENGINE_PRESENCE,
+    PROBE_NAME,
+} from "#/tests/e2e/margonem-page.ts";
 import { USERSCRIPT_NAME } from "./build-userscript.ts";
 import {
     composePreviewStateBare,
@@ -103,6 +107,8 @@ export const PREVIEW_SAID_SELECTOR = ".preview-said";
 export const WINDOWS_ACROSS_PIXELS = PLACE.insetPixels +
     TYPE_TOKENS[TYPE_STEP_DEFAULT].meterWidthPixels + SPACE_PIXELS.small +
     TYPE_TOKENS[TYPE_STEP_DEFAULT].helperWidthPixels;
+/** What the pair stands off the seam by, level with the padding the half beside it carries. */
+export const SEAM_GUTTER_PIXELS = 32;
 /** Air past the windows, so the text never runs up against them. */
 const COLUMN_AIR_PIXELS = 58;
 /**
@@ -111,14 +117,13 @@ const COLUMN_AIR_PIXELS = 58;
  */
 export const COLUMN_WIDTH_MAXIMUM = `min(46em, calc(100vw - ${
     WINDOWS_ACROSS_PIXELS + COLUMN_AIR_PIXELS
-}px), calc(50vw - 64px))`;
+}px), calc(50vw - ${2 * SEAM_GUTTER_PIXELS}px))`;
 /**
- * Below this the page is one column: 1024 is the first standard width whose half clears the pair.
+ * Below this the page is one column: from here up, the half right of the seam holds the pair with
+ * the gutter off the seam, and the window's right edge is where the pair ends.
  */
-export const SPLIT_FROM_PIXELS = 1024;
-/**
- * Below this height the left half tightens: a 1280×720 screen leaves Chrome about 577px of page.
- */
+export const SPLIT_FROM_PIXELS = 2 * (WINDOWS_ACROSS_PIXELS + SEAM_GUTTER_PIXELS);
+/** Below this height the left half tightens. */
 const SPLIT_SHORT_PIXELS = 780;
 /** Past which nobody reads as far as the button (S11). */
 const INSTALL_NEEDS_MAXIMUM = 4;
@@ -161,7 +166,7 @@ export function composePreviewPage(options: PreviewPageOptions): string {
     return composePanelPage({
         calls: options.calls,
         fedThrough: 0,
-        engine: "before",
+        engine: MARGONEM_ENGINE_PRESENCE.before,
         doesLoadTwice: false,
         place: options.words.placeName,
         userscriptName: USERSCRIPT_NAME,
@@ -341,8 +346,9 @@ function composeSplitStyle(): string {
 .preview-stage { display: none; }
 @media (min-width: ${SPLIT_FROM_PIXELS}px) {
   .preview-split { display: flex; align-items: stretch; min-height: 100vh; box-sizing: border-box; }
-  .preview-said { width: 50vw; flex-shrink: 0; box-sizing: border-box; padding: 32px;
-    background: ${formatColour(SURFACE.panel)}; border-right: 1px solid ${border};
+  .preview-said { width: 50vw; flex-shrink: 0; box-sizing: border-box;
+    padding: ${SEAM_GUTTER_PIXELS}px; background: ${formatColour(SURFACE.panel)};
+    border-right: 1px solid ${border};
     display: flex; flex-direction: column; align-items: center; overflow-y: auto; }
   .preview-stage { display: block; flex-grow: 1; background: ${MARGONEM_PAGE_COLOUR}; }
   .preview-install { padding: 0; }
@@ -618,8 +624,8 @@ ${start}`;
 }
 
 /**
- * Playing runs for a stated time and the step falls out of it: a fixed tick ran 0,22s on the
- * shortest recording and 24,4s on the longest (`captures/`, 2026-09-18).
+ * Playing runs for a stated time and the step falls out of it: a fixed tick ran 0.22 s on the
+ * shortest recording and 24.4 s on the longest (`captures/`, 2026-09-18).
  */
 function composePreviewPicksHandlers(): string {
     const least = PLAY_STEP_MILLISECONDS_MINIMUM;

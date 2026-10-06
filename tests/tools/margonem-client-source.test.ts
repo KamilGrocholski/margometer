@@ -10,6 +10,7 @@
 import { assert, assertEquals, assertRejects, assertStrictEquals, assertThrows } from "@std/assert";
 import {
     CACHE_ROOT,
+    readCachedBundle,
     readCachedMargonemClientSource,
     readMargonemAnswerText,
     requireCachedMargonemClientSource,
@@ -111,6 +112,34 @@ Deno.test("a manifest that stands and cannot be read is refused, and none is no 
     }
 });
 
+Deno.test("a manifest naming a bundle that is gone is refused, naming what fetches one", () => {
+    const held = Deno.cwd();
+    const directory = Deno.makeTempDirSync({ prefix: "margometer-cache-" });
+    try {
+        Deno.chdir(directory);
+        const bundlePath = `${CACHE_ROOT}production/main.js`;
+        const manifest = {
+            channel: "production",
+            build: "b",
+            host: "h",
+            fetchedAt: "t",
+            bundlePath,
+        };
+        Deno.mkdirSync(`${CACHE_ROOT}production`, { recursive: true });
+        Deno.writeTextFileSync(`${CACHE_ROOT}production/provenance.json`, JSON.stringify(manifest));
+        assertThrows(
+            () => readCachedBundle("production"),
+            MargonemClientSourceError,
+            "margonem:client fetch production",
+        );
+        Deno.writeTextFileSync(bundlePath, "var a;");
+        assertStrictEquals(readCachedBundle("production"), "var a;", "and one standing is read");
+    } finally {
+        Deno.chdir(held);
+        Deno.removeSync(directory, { recursive: true });
+    }
+});
+
 Deno.test("an answer broken off after its status is a world that did not answer", async () => {
     const fetchHeld = globalThis.fetch;
     const broken = new ReadableStream({
@@ -151,5 +180,5 @@ Deno.test("an answer read to its end is the text, and a refusal is no answer", a
 Deno.test("git is asked whether the cache is ignored, rather than a comment claiming it", () => {
     const asked = new Deno.Command("git", { args: ["check-ignore", CACHE_ROOT] }).outputSync();
     assert(CACHE_ROOT.startsWith(".cache/"), "the cache sits where the ignore rule names");
-    assertEquals(asked.success, true, `git does not ignore ${CACHE_ROOT}`);
+    assertStrictEquals(asked.success, true, `git does not ignore ${CACHE_ROOT}`);
 });

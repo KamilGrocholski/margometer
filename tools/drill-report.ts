@@ -649,7 +649,7 @@ function formatUnnamedPairLines(
     const lines = [`      half-named  opens  ${formatInteger(unnamed.figure)}`];
     const held = presentUnnamedPairLevel(fight.statistics, fight.roster, screen, drill.combatantId);
     assertExists(held, "a row that opens has a level under it");
-    if (held.opened !== HALF_NAMED_OPENED.person) return lines;
+    assert(held.opened === HALF_NAMED_OPENED.person, "and the level is one person's own keys");
     for (const kind of held.kinds.rows) {
         const opens = kind.doesOpenPart ? OPENS_WORD : LEAF_WORD;
         lines.push(`        kind    ${opens}  ${kind.element} ${formatInteger(kind.figure)}`);
@@ -660,7 +660,7 @@ function formatUnnamedPairLines(
 /** One pinned row opened: the end the game did name, and what named neither. */
 function formatUnnamedLines(fight: PanelFight, pinnedCase: PinnedCase): string[] {
     const held = presentHalfNamedForEveryone(fight, pinnedCase);
-    if (held === null) return [];
+    assertExists(held, "a pinned row that is drawn has a level under it");
     const lines = [`    ${pinnedCase} — ${formatInteger(held.total)}`];
     for (const person of held.rows) {
         const named = person.name ?? NOBODY_NAMED;
@@ -668,7 +668,7 @@ function formatUnnamedLines(fight: PanelFight, pinnedCase: PinnedCase): string[]
         const opened = { kind: HALF_NAMED_OPENED.person, combatantId: person.combatantId };
         const under = presentUnnamedCut(fight, pinnedCase, opened);
         if (under === null) continue;
-        if (under.opened !== HALF_NAMED_OPENED.person) continue;
+        assert(under.opened === HALF_NAMED_OPENED.person, "a person opens onto their own keys");
         for (const kind of under.kinds.rows) {
             const opens = kind.doesOpenPart ? OPENS_WORD : LEAF_WORD;
             lines.push(`        kind    ${opens}  ${kind.element} ${formatInteger(kind.figure)}`);
@@ -682,7 +682,7 @@ function formatUnnamedLines(fight: PanelFight, pinnedCase: PinnedCase): string[]
         const opened = { kind: HALF_NAMED_OPENED.element, element: kind.element };
         const under = presentUnnamedCut(fight, pinnedCase, opened);
         if (under === null) continue;
-        if (under.opened !== HALF_NAMED_OPENED.element) continue;
+        assert(under.opened === HALF_NAMED_OPENED.element, "and a key onto whoever carries it");
         for (const row of under.rows) {
             const named = row.name ?? NOBODY_NAMED;
             lines.push(`        person  leaf   ${named} ${formatInteger(row.figure)}`);

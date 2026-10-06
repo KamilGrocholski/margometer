@@ -53,6 +53,84 @@ const DEVELOP_RECORDINGS = "captures";
 const FIGURES_TASK = "fight:figures";
 const DECODING_TASK = "fight:decoding";
 
+/**
+ * What `develop` prints for `task`, from its own tree taken out of git at `revision`. The
+ * recordings go with it, read by its reader exactly as it reads them on its own branch.
+ */
+function readDevelopReport(revision: string, task: string): string {
+    assert(revision.length > 0, "develop is read at a revision");
+    assert(task.length > 0, "and by one of its tasks");
+    const directory = `${CACHE_DIRECTORY}/develop-${revision}`;
+    if (!isTreeComplete(directory)) {
+        // Write the tree out afresh, so nothing a half-finished run left behind is read.
+        const emptied = errors.attempt(() => emptyDirSync(directory));
+        if (emptied instanceof errors.Caught) {
+            throw new DevelopReportError(`${directory} cannot be emptied`, { cause: emptied });
+        }
+        const archive = `${directory}.tar`;
+        runDevelopCommand("git", [
+            "archive",
+            "--output",
+            archive,
+            revision,
+            ...DEVELOP_PATHS,
+            DEVELOP_RECORDINGS,
+        ]);
+        runDevelopCommand("tar", ["-xf", archive, "-C", directory]);
+        const removed = errors.attempt(() => Deno.removeSync(archive));
+        if (removed instanceof errors.Caught) {
+            throw new DevelopReportError(`${archive} cannot be removed`, { cause: removed });
+        }
+        const marked = errors.attempt(() =>
+            Deno.writeTextFileSync(`${directory}/${COMPLETE_MARK}`, `${revision}\n`)
+        );
+        if (marked instanceof errors.Caught) {
+            throw new DevelopReportError(`${directory} cannot be marked whole`, { cause: marked });
+        }
+        assert(isTreeComplete(directory), "a tree taken out is marked whole");
+    }
+    const output = errors.attempt(() =>
+        new Deno.Command(Deno.execPath(), {
+            args: ["task", "--quiet", task],
+            cwd: directory,
+            stdout: "piped",
+            stderr: "piped",
+        }).outputSync()
+    );
+    if (output instanceof errors.Caught) {
+        throw new DevelopReportError(`develop's ${task} would not start`, { cause: output });
+    }
+    if (!output.success) {
+        const said = new TextDecoder().decode(output.stderr);
+        throw new DevelopReportError(`develop's ${task} exited ${output.code}: ${said}`);
+    }
+    const text = new TextDecoder().decode(output.stdout);
+    assert(text.length > 0, "a report that ran says something");
+    return text;
+}
+
+function isTreeComplete(directory: string): boolean {
+    assert(directory.length > 0, "a tree is looked for somewhere");
+    const mark = errors.attempt(() => Deno.statSync(`${directory}/${COMPLETE_MARK}`));
+    if (!(mark instanceof Error)) return mark.isFile;
+    if (mark.cause instanceof Deno.errors.NotFound) return false;
+    throw new DevelopReportError(`${directory} cannot be looked at`, { cause: mark });
+}
+
+function runDevelopCommand(command: string, args: readonly string[]): void {
+    assert(command.length > 0, "a subprocess is named");
+    const output = errors.attempt(() =>
+        new Deno.Command(command, { args: [...args], stderr: "piped" }).outputSync()
+    );
+    if (output instanceof errors.Caught) {
+        throw new DevelopReportError(`${command} would not start`, { cause: output });
+    }
+    if (!output.success) {
+        const said = new TextDecoder().decode(output.stderr);
+        throw new DevelopReportError(`${command} ${args.join(" ")} answered: ${said}`);
+    }
+}
+
 /** Two figures reports, held recording by recording. */
 export function compareReportSections(developText: string, rewriteText: string): ReportComparison {
     return compareSectionMaps(indexReportSections(developText), indexReportSections(rewriteText));
@@ -108,9 +186,19 @@ export function compareWholeReports(
 
 /** The lines of a text, the blank ones a printer ends on left out. */
 function splitReportLines(text: string): string[] {
-    const lines = text.split("\n");
-    assert(lines.length <= LINES_MAXIMUM, "a report stays inside the lines it is bounded to");
+    const lines = parseReportLines(text);
     while (lines.at(-1) === "") lines.pop();
+    return lines;
+}
+
+/** A report's lines, refused past the bound: a printer running away is not a report. */
+function parseReportLines(text: string): string[] {
+    const lines = text.split("\n");
+    if (lines.length > LINES_MAXIMUM) {
+        throw new DevelopReportError(
+            `a report of ${lines.length} lines, past the ${LINES_MAXIMUM} read`,
+        );
+    }
     return lines;
 }
 
@@ -119,14 +207,13 @@ function splitReportLines(text: string): string[] {
  * no recording's, and the blank line closing a section is the next heading's.
  */
 export function indexReportSections(text: string): Map<string, string[]> {
-    const lines = text.split("\n");
-    assert(lines.length <= LINES_MAXIMUM, "a report stays inside the lines it is bounded to");
+    const lines = parseReportLines(text);
     const sections = new Map<string, string[]>();
     let openSection: string[] | null = null;
     for (const line of lines) {
         const name = lookupHeadingName(line);
         if (name !== null) {
-            assertStrictEquals(sections.has(name), false, `${name} is reported once`);
+            if (sections.has(name)) throw new DevelopReportError(`${name} is reported twice`);
             openSection = [];
             sections.set(name, openSection);
         } else if (openSection !== null) openSection.push(line);
@@ -134,10 +221,11 @@ export function indexReportSections(text: string): Map<string, string[]> {
     for (const section of sections.values()) {
         while (section.at(-1) === "") section.pop();
     }
-    assert(
-        sections.size <= SECTIONS_MAXIMUM,
-        "a report stays inside the sections it is bounded to",
-    );
+    if (sections.size > SECTIONS_MAXIMUM) {
+        throw new DevelopReportError(
+            `a report of ${sections.size} sections, past the ${SECTIONS_MAXIMUM} read`,
+        );
+    }
     return sections;
 }
 
@@ -177,63 +265,6 @@ function formatDifferenceLines(difference: ReportDifference): string[] {
     ];
     assert(context.length <= CONTEXT_LINES, "the context is the lines just over the difference");
     return lines;
-}
-
-/**
- * What `develop` prints for `task`, from its own tree taken out of git at `revision`. The
- * recordings go with it, read by its reader exactly as it reads them on its own branch.
- */
-function readDevelopReport(revision: string, task: string): string {
-    assert(revision.length > 0, "develop is read at a revision");
-    assert(task.length > 0, "and by one of its tasks");
-    const directory = `${CACHE_DIRECTORY}/develop-${revision}`;
-    if (!isTreeComplete(directory)) {
-        // Write the tree out afresh, so nothing a half-finished run left behind is read.
-        emptyDirSync(directory);
-        const archive = `${directory}.tar`;
-        runDevelopCommand("git", [
-            "archive",
-            "--output",
-            archive,
-            revision,
-            ...DEVELOP_PATHS,
-            DEVELOP_RECORDINGS,
-        ]);
-        runDevelopCommand("tar", ["-xf", archive, "-C", directory]);
-        Deno.removeSync(archive);
-        Deno.writeTextFileSync(`${directory}/${COMPLETE_MARK}`, `${revision}\n`);
-        assert(isTreeComplete(directory), "a tree taken out is marked whole");
-    }
-    const output = new Deno.Command(Deno.execPath(), {
-        args: ["task", "--quiet", task],
-        cwd: directory,
-        stdout: "piped",
-        stderr: "piped",
-    }).outputSync();
-    if (!output.success) {
-        const said = new TextDecoder().decode(output.stderr);
-        throw new DevelopReportError(`develop's ${task} exited ${output.code}: ${said}`);
-    }
-    const text = new TextDecoder().decode(output.stdout);
-    assert(text.length > 0, "a report that ran says something");
-    return text;
-}
-
-function isTreeComplete(directory: string): boolean {
-    assert(directory.length > 0, "a tree is looked for somewhere");
-    const mark = errors.attempt(() => Deno.statSync(`${directory}/${COMPLETE_MARK}`));
-    if (!(mark instanceof Error)) return mark.isFile;
-    if (mark.cause instanceof Deno.errors.NotFound) return false;
-    throw new DevelopReportError(`${directory} cannot be looked at`, { cause: mark });
-}
-
-function runDevelopCommand(command: string, args: readonly string[]): void {
-    assert(command.length > 0, "a subprocess is named");
-    const output = new Deno.Command(command, { args: [...args], stderr: "piped" }).outputSync();
-    if (!output.success) {
-        const said = new TextDecoder().decode(output.stderr);
-        throw new DevelopReportError(`${command} ${args.join(" ")} answered: ${said}`);
-    }
 }
 
 /**

@@ -56,6 +56,13 @@ Deno.test("the keys come out of the switch, whatever the bundler's taste", () =>
     );
 });
 
+Deno.test("a subject named by a letter at either end of either case is a name", () => {
+    for (const name of ["a", "z", "A", "Z"]) {
+        const bundle = `e.manageBattleEffects(t);switch(${name}[0]){case"blok":b()}`;
+        assertEquals(requireProtocolKeys(bundle), ["blok"], `a subject named ${name}`);
+    }
+});
+
 Deno.test("a word ending in case, or a key closing on something else, is not a label", () => {
     const bundle = 'e.manageBattleEffects(t);switch(q[0]){case"blok":b();showcase"x":c();' +
         'case"open"+"y":d();case "spaced" :f()}';
@@ -121,11 +128,25 @@ Deno.test("the family the client recognises by shape is read in both orders", ()
     assertThrows(() => requireComputedKeyFamily("var a=1;"), ProtocolKeyTableError);
 });
 
+Deno.test("an offset or a length past a whole number is refused, each by its name", () => {
+    const past = "9".repeat(20);
+    assertThrows(
+        () => requireComputedKeyFamily(NEWER_BUNDLE.replace("substr(1,", `substr(${past},`)),
+        ProtocolKeyTableError,
+        "marker offset",
+    );
+    assertThrows(
+        () => requireComputedKeyFamily(NEWER_BUNDLE.replace(",3)", `,${past})`)),
+        ProtocolKeyTableError,
+        "marker length",
+    );
+});
+
 Deno.test("the frozen table says which build it came from, and holds no repetition", () => {
     const { keys, gameBuild: build, computedFamily } = FROZEN_PROTOCOL_KEYS;
     assert(keys.length > 0, "a table that was lifted names something");
     assert(build.length >= 8, "a build id is at least the eight characters both forms share");
-    assertEquals(new Set(keys).size, keys.length, "a key is named once");
+    assertStrictEquals(new Set(keys).size, keys.length, "a key is named once");
     assertEquals([...keys], [...keys].sort(), "and the order is the one a re-freeze reproduces");
     assert(computedFamily.marker.length > 0, "the family has a marker");
     assert(computedFamily.dealtSign.length > 0, "and a sign saying whose figure it is");

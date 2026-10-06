@@ -11,6 +11,7 @@ import { AURA_REACH, type AuraReach } from "#/src/core/aura-standing.ts";
 import {
     type AuraRow,
     type ProvocationRow,
+    REACH_WORDS,
     type SourceRow,
     tallyAuraRows,
     tallyProvocationRows,
@@ -57,10 +58,7 @@ function parseRegisterRows(text: string): AuraRow[] {
 
 /** The register writes a reach as a word; `—` is nothing settling it, and never a side. */
 function parseReach(said: string): AuraReach | null {
-    if (said === "caster's") return AURA_REACH.castersSide;
-    if (said === "other") return AURA_REACH.otherSide;
-    if (said === "both") return AURA_REACH.bothSides;
-    return null;
+    return Object.values(AURA_REACH).find((reach) => REACH_WORDS[reach] === said) ?? null;
 }
 
 Deno.test("a shout is dated by its own row, and covers what that row states", () => {

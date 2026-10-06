@@ -4,7 +4,11 @@
  */
 
 import { assertEquals, assertStrictEquals, assertStringIncludes, assertThrows } from "@std/assert";
-import { composeReleaseNotes, lookupChangelogSection } from "#/tools/changelog.ts";
+import {
+    CHANGELOG_LINES_MAXIMUM,
+    composeReleaseNotes,
+    lookupChangelogSection,
+} from "#/tools/changelog.ts";
 import { ChangelogError } from "#/tools/margometer-tool-error.ts";
 
 const CHANGELOG = [
@@ -50,4 +54,17 @@ Deno.test("the notes are the section and how to install, and a missing one is re
         ChangelogError,
         "says nothing",
     );
+});
+
+Deno.test("a changelog past its bound on lines is refused, and one at the bound is read", () => {
+    const atBound = `${CHANGELOG}${
+        "\n".repeat(CHANGELOG_LINES_MAXIMUM - CHANGELOG.split("\n").length)
+    }`;
+    assertStrictEquals(
+        atBound.split("\n").length,
+        CHANGELOG_LINES_MAXIMUM,
+        "the sample sits on it",
+    );
+    assertStringIncludes(lookupChangelogSection(atBound, "0.20.0") ?? "", "Rewritten");
+    assertThrows(() => lookupChangelogSection(`${atBound}\n`, "0.20.0"), ChangelogError, "past");
 });

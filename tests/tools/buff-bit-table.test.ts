@@ -5,6 +5,7 @@
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { RUN_CHARACTERS_MAXIMUM } from "#/libs/text-walk.ts";
 import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
 import { FROZEN_BUFF_BANNER, LOOKS_MAXIMUM, requireBuffBits } from "#/tools/buff-bit-table.ts";
 import { BuffBitTableError } from "#/tools/margometer-tool-error.ts";
@@ -46,6 +47,36 @@ Deno.test("a bundle past the places the walk looks is refused, and one at them i
         BuffBitTableError,
         "stop short",
         "one place past them, which a walk returning what it had would have frozen",
+    );
+});
+
+Deno.test("more statuses than a mask has bits are refused, and as many as it has are read", () => {
+    const registering = (count: number) =>
+        Array.from({ length: count }, (_, index) => `x("s${index}",null,"buff")`).join(";");
+    assertEquals(requireBuffBits(registering(STATUS_BITS_MAXIMUM)).length, STATUS_BITS_MAXIMUM);
+    assertThrows(
+        () => requireBuffBits(registering(STATUS_BITS_MAXIMUM + 1)),
+        BuffBitTableError,
+        "a mask holds",
+    );
+});
+
+Deno.test("a status registered at two bits is refused, and two statuses are read", () => {
+    assertEquals(requireBuffBits('x("a",null,"buff");x("b",null,"buff")'), ["a", "b"]);
+    assertThrows(
+        () => requireBuffBits('x("a",null,"buff");x("a",null,"buff")'),
+        BuffBitTableError,
+        "two bits",
+    );
+});
+
+Deno.test("whitespace running past the walk's bound is refused, and up to it is read", () => {
+    const spaced = (count: number) => `x("a",null${" ".repeat(count)},"buff")`;
+    assertEquals(requireBuffBits(spaced(RUN_CHARACTERS_MAXIMUM - 1)), ["a"], "under the bound");
+    assertThrows(
+        () => requireBuffBits(spaced(RUN_CHARACTERS_MAXIMUM)),
+        BuffBitTableError,
+        "runs past",
     );
 });
 

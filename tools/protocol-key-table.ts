@@ -11,6 +11,7 @@
 import { assert, assertNotStrictEquals } from "@std/assert";
 import { encodeJson } from "#/libs/json-text.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import {
     getEndOfRun,
     isDigitAt,
@@ -18,11 +19,7 @@ import {
     JAVASCRIPT_QUOTES,
     lookupQuotedLiteral,
 } from "#/libs/text-walk.ts";
-import {
-    MARGONEM_CHANNEL,
-    readCachedBundle,
-    requireCachedBuild,
-} from "./margonem-client-source.ts";
+import { MARGONEM_CHANNEL, readCachedBuild, readCachedBundle } from "./margonem-client-source.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { ProtocolKeyTableError } from "./margometer-tool-error.ts";
 
@@ -38,7 +35,14 @@ export interface ComputedKeyFamily {
     dealtSign: string;
 }
 
-type DefaultBranchField = "marker" | "markerAt" | "markerLength" | "dealtSign";
+/** The fields the default branch states, each a field of `ComputedKeyFamily`. */
+const DEFAULT_BRANCH_FIELD = {
+    marker: "marker",
+    markerAt: "markerAt",
+    markerLength: "markerLength",
+    dealtSign: "dealtSign",
+} as const;
+type DefaultBranchField = VocabularyWord<typeof DEFAULT_BRANCH_FIELD>;
 
 /** One piece of a shape, in the order it is read; a capture names the field it holds. */
 type ShapeStep =
@@ -72,7 +76,10 @@ const BLOCK_CLOSE = "}";
 const ESCAPE = "\\";
 /** Past the label count of any switch the client has written, so the walk is a stated bound. */
 export const CASE_LABELS_MAXIMUM = 4096;
-/** Past the number of places `[0]){` or a shape's opening text occurs in three megabytes. */
+/**
+ * Past the places `[0])` or a shape's opening text occurs in a bundle: 135 and 255 of them in the
+ * 2.8 MB production bundle of build `DHSqC3Uh`, 2026-10-06.
+ */
 export const LOOKS_MAXIMUM = 65_536;
 const FROZEN_PATH = "frozen/protocol-keys.ts";
 /** The field the reading is dated by, exported so a test holds the frozen file to it. */
@@ -87,27 +94,27 @@ const DEFAULT_BRANCH_SHAPES: readonly (readonly ShapeStep[])[] = [
         { kind: SHAPE_STEP.text, text: "default:" },
         { kind: SHAPE_STEP.segmentKey },
         { kind: SHAPE_STEP.text, text: ".substr(" },
-        { kind: SHAPE_STEP.digits, field: "markerAt" },
+        { kind: SHAPE_STEP.digits, field: DEFAULT_BRANCH_FIELD.markerAt },
         { kind: SHAPE_STEP.text, text: "," },
-        { kind: SHAPE_STEP.digits, field: "markerLength" },
+        { kind: SHAPE_STEP.digits, field: DEFAULT_BRANCH_FIELD.markerLength },
         { kind: SHAPE_STEP.text, text: ")==" },
-        { kind: SHAPE_STEP.quoted, field: "marker" },
+        { kind: SHAPE_STEP.quoted, field: DEFAULT_BRANCH_FIELD.marker },
         { kind: SHAPE_STEP.text, text: "?" },
         { kind: SHAPE_STEP.segmentKey },
         { kind: SHAPE_STEP.text, text: ".charAt(0)==" },
-        { kind: SHAPE_STEP.quoted, field: "dealtSign" },
+        { kind: SHAPE_STEP.quoted, field: DEFAULT_BRANCH_FIELD.dealtSign },
     ],
     [
         { kind: SHAPE_STEP.text, text: "default:" },
-        { kind: SHAPE_STEP.quoted, field: "marker" },
+        { kind: SHAPE_STEP.quoted, field: DEFAULT_BRANCH_FIELD.marker },
         { kind: SHAPE_STEP.text, text: "==" },
         { kind: SHAPE_STEP.segmentKey },
         { kind: SHAPE_STEP.text, text: ".substr(" },
-        { kind: SHAPE_STEP.digits, field: "markerAt" },
+        { kind: SHAPE_STEP.digits, field: DEFAULT_BRANCH_FIELD.markerAt },
         { kind: SHAPE_STEP.text, text: "," },
-        { kind: SHAPE_STEP.digits, field: "markerLength" },
+        { kind: SHAPE_STEP.digits, field: DEFAULT_BRANCH_FIELD.markerLength },
         { kind: SHAPE_STEP.text, text: ")?" },
-        { kind: SHAPE_STEP.quoted, field: "dealtSign" },
+        { kind: SHAPE_STEP.quoted, field: DEFAULT_BRANCH_FIELD.dealtSign },
         { kind: SHAPE_STEP.text, text: "==" },
         { kind: SHAPE_STEP.segmentKey },
         { kind: SHAPE_STEP.text, text: ".charAt(0)" },
@@ -134,7 +141,7 @@ export function writeFrozenKeyTable(): FrozenFiles {
 
 /** The table the cached bundle gives, dated by the first build that gave it (ADR 0011). */
 export function prepareFrozenKeyTable(): FrozenFiles {
-    const build = requireCachedBuild();
+    const build = readCachedBuild();
     const bundle = readCachedBundle(MARGONEM_CHANNEL.production);
     const keys = requireProtocolKeys(bundle);
     const family = requireComputedKeyFamily(bundle);
@@ -171,10 +178,14 @@ ${written}
 /** The family on one line, spaced the way this tree writes an object, since it is read here. */
 function encodeFamilyText(family: ComputedKeyFamily): string {
     const fields = [
-        `${encodeRequiredText("marker")}: ${encodeRequiredText(family.marker)}`,
-        `${encodeRequiredText("markerAt")}: ${formatInteger(family.markerAt)}`,
-        `${encodeRequiredText("markerLength")}: ${formatInteger(family.markerLength)}`,
-        `${encodeRequiredText("dealtSign")}: ${encodeRequiredText(family.dealtSign)}`,
+        `${encodeRequiredText(DEFAULT_BRANCH_FIELD.marker)}: ${encodeRequiredText(family.marker)}`,
+        `${encodeRequiredText(DEFAULT_BRANCH_FIELD.markerAt)}: ${formatInteger(family.markerAt)}`,
+        `${encodeRequiredText(DEFAULT_BRANCH_FIELD.markerLength)}: ${
+            formatInteger(family.markerLength)
+        }`,
+        `${encodeRequiredText(DEFAULT_BRANCH_FIELD.dealtSign)}: ${
+            encodeRequiredText(family.dealtSign)
+        }`,
     ];
     assert(family.markerLength > 0, "a marker has something in it");
     return `{ ${fields.join(", ")} }`;
@@ -195,7 +206,7 @@ export function requireProtocolKeys(bundle: string): string[] {
         throw new ProtocolKeyTableError(`no ${SWITCH_ANCHOR} in the bundle — it was restructured`);
     }
     // Searched from the anchor rather than over the whole bundle: `x[0]){` is an ordinary shape,
-    // and the first one in three megabytes belongs to whatever is earliest, not to this switch.
+    // and the first one in the whole bundle belongs to whatever is earliest, not to this switch.
     const subject = lookupSwitchSubjectStart(bundle, anchor);
     if (subject === null) {
         throw new ProtocolKeyTableError(`${SWITCH_ANCHOR} found but not the switch on the key`);
@@ -234,9 +245,16 @@ function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
 function isNameCharacterAt(source: string, index: number): boolean {
     const character = source.charAt(index);
     if (character === "") return false;
-    if (character >= "a" && character <= "z") return true;
-    if (character >= "A" && character <= "Z") return true;
+    if (isCharacterWithin(character, "a", "z")) return true;
+    if (isCharacterWithin(character, "A", "Z")) return true;
     return NAME_CHARACTERS.includes(character);
+}
+
+/** Whether one character stands from `lowest` to `highest`, both counted, in code-unit order. */
+function isCharacterWithin(character: string, lowest: string, highest: string): boolean {
+    assert(lowest <= highest, "a range runs forwards");
+    if (character < lowest) return false;
+    return character <= highest;
 }
 
 /**
@@ -298,14 +316,17 @@ export function requireComputedKeyFamily(bundle: string): ComputedKeyFamily {
             "no computed key family in the default branch — the client changed how it routes keys",
         );
     }
-    const marker = familyFields.get("marker") ?? "";
-    const dealtSign = familyFields.get("dealtSign") ?? "";
-    const markerAt = parseInteger(familyFields.get("markerAt") ?? "");
-    const markerLength = parseInteger(familyFields.get("markerLength") ?? "");
+    const marker = familyFields.get(DEFAULT_BRANCH_FIELD.marker) ?? "";
+    const dealtSign = familyFields.get(DEFAULT_BRANCH_FIELD.dealtSign) ?? "";
+    const markerAt = parseInteger(familyFields.get(DEFAULT_BRANCH_FIELD.markerAt) ?? "");
+    const markerLength = parseInteger(familyFields.get(DEFAULT_BRANCH_FIELD.markerLength) ?? "");
     // That the fields are there is ours to guarantee: the shape read them all or none. What the
     // client wrote inside them is not, so the offsets are refused rather than coerced.
-    if (markerAt === null || markerLength === null) {
-        throw new ProtocolKeyTableError("the default branch's offsets do not read as numbers");
+    if (markerAt === null) {
+        throw new ProtocolKeyTableError("the default branch's marker offset is not a number");
+    }
+    if (markerLength === null) {
+        throw new ProtocolKeyTableError("the default branch's marker length is not a number");
     }
     assert(marker.length > 0, "a family is recognised by a marker that says something");
     assert(dealtSign.length > 0, "and by a sign saying whose figure it is");
@@ -319,8 +340,9 @@ function lookupShapeFields(
 ): Map<DefaultBranchField, string> | null {
     const head = steps[0];
     // Every shape opens with a literal, which is what the search hunts for; reading at every
-    // position of three megabytes instead is why one that does not is refused.
-    if (head === undefined || head.kind !== SHAPE_STEP.text) {
+    // position of the bundle instead is why one that does not is refused.
+    if (head === undefined) throw new ProtocolKeyTableError("a default-branch shape is empty");
+    if (head.kind !== SHAPE_STEP.text) {
         throw new ProtocolKeyTableError("a default-branch shape has to open with text");
     }
     let headAt = bundle.indexOf(head.text);
@@ -378,7 +400,7 @@ if (import.meta.main) {
         const bundle = readCachedBundle(MARGONEM_CHANNEL.production);
         const count = formatInteger(requireProtocolKeys(bundle).length);
         const family = requireComputedKeyFamily(bundle);
-        console.log(`${count} keys plus the ${family.marker} family in ${requireCachedBuild()}`);
+        console.log(`${count} keys plus the ${family.marker} family in ${readCachedBuild()}`);
         console.log(`run with \`freeze\` to write ${FROZEN_PATH}`);
     }
 }

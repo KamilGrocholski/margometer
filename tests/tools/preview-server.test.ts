@@ -20,9 +20,12 @@ import {
 } from "#/tools/fabricated-fight.ts";
 import { PreviewServeError, UserscriptBuildError } from "#/tools/margometer-tool-error.ts";
 import {
+    composeOpenedPaths,
+    FROM_PATHS_MAXIMUM,
     initPreviewServer,
     LISTENERS_MAXIMUM,
     openPreviewEvents,
+    PORT_MAXIMUM,
     readFabricatedPaths,
     readPreviewFlags,
     RELOAD_SCRIPT,
@@ -43,11 +46,11 @@ Deno.test("the page route draws what it was asked for, and refuses what nobody f
         assertExists(asked, "there is a second recording to ask for by name");
         const answer = await fetch(`${preview.url}/?fight=${encodeURIComponent(asked)}&entry=3`);
         const page = await answer.text();
-        assertEquals(answer.status, 200, "a recording that exists is drawn");
+        assertStrictEquals(answer.status, 200, "a recording that exists is drawn");
         assertStringIncludes(page, asked, "and the page says which one it is");
         assertStringIncludes(page, `"entryIndex":3`, "stopping where the address said");
         const missing = await fetch(`${preview.url}/?fight=nobody-recorded-this`);
-        assertEquals(missing.status, 404, "and a name nobody filed is refused");
+        assertStrictEquals(missing.status, 404, "and a name nobody filed is refused");
         await missing.body?.cancel();
     } finally {
         await preview.stop();
@@ -97,7 +100,7 @@ Deno.test("an entry is clamped into the fight, and one that is no number is refu
             assertStringIncludes(page, `"entryIndex":${opened}`, `${asked} opens at ${opened}`);
         }
         const refused = await fetch(`${preview.url}/?entry=two`);
-        assertEquals(refused.status, 400, "a count nobody can read is not guessed at");
+        assertStrictEquals(refused.status, 400, "a count nobody can read is not guessed at");
         await refused.body?.cancel();
     } finally {
         await preview.stop();
@@ -133,7 +136,7 @@ Deno.test("the calls route hands a fight over with no page in front of it", asyn
         assert(Array.isArray(calls), "the calls arrive as a list");
         assert(calls.length > 0, "with something in it to feed");
         const unnamed = await fetch(`${preview.url}/calls`);
-        assertEquals(unnamed.status, 404, "nothing asks for calls without saying whose");
+        assertStrictEquals(unnamed.status, 404, "nothing asks for calls without saying whose");
         await unnamed.body?.cancel();
     } finally {
         await preview.stop();
@@ -146,10 +149,14 @@ Deno.test("the bundle is served under its name, and the decoy is never a miss", 
         const answer = await fetch(`${preview.url}/margometer.user.js`);
         assertEquals(await answer.text(), BUNDLE, "what was built is what is served");
         const decoy = await fetch(`${preview.url}/main.min1785244275300.js`);
-        assertEquals(decoy.status, 200, "only its `src` is read, and a miss is a console line");
+        assertStrictEquals(
+            decoy.status,
+            200,
+            "only its `src` is read, and a miss is a console line",
+        );
         await decoy.body?.cancel();
         const elsewhere = await fetch(`${preview.url}/elsewhere`);
-        assertEquals(elsewhere.status, 404, "while a path nobody serves is a miss");
+        assertStrictEquals(elsewhere.status, 404, "while a path nobody serves is a miss");
         await elsewhere.body?.cancel();
     } finally {
         await preview.stop();
@@ -164,7 +171,7 @@ Deno.test("a tree that does not build answers the script with the log, not a bla
     });
     try {
         const answer = await fetch(`${preview.url}/margometer.user.js`);
-        assertEquals(answer.status, 500, "the page's script is refused");
+        assertStrictEquals(answer.status, 500, "the page's script is refused");
         assertStringIncludes(await answer.text(), "line 1", "and says why");
     } finally {
         await preview.stop();
@@ -217,7 +224,7 @@ Deno.test("a fight opened at a path is drawn beside the recordings", async () =>
     const preview = initTestServer([path]);
     try {
         const answer = await fetch(`${preview.url}/?fight=opened-at-a-path`);
-        assertEquals(answer.status, 200, "a fight opened at a path is one the server draws");
+        assertStrictEquals(answer.status, 200, "a fight opened at a path is one the server draws");
         assertStringIncludes(await answer.text(), "opened-at-a-path", "and says which one");
         assert(!readRecordingNames().includes("opened-at-a-path"), "while captures/ is untouched");
     } finally {
@@ -260,6 +267,40 @@ Deno.test("the flags are read by walking them, and one nobody reads is refused",
     assertThrows(() => readPreviewFlags(["--nothing", "x"]), PreviewServeError, "--nothing");
 });
 
+Deno.test("a port is read from nought to the last there is, and refused either side", () => {
+    assertStrictEquals(readPreviewFlags(["--port", String(PORT_MAXIMUM)]).port, PORT_MAXIMUM);
+    assertStrictEquals(readPreviewFlags(["--port", "0"]).port, 0, "nought asks for any free one");
+    const past = String(PORT_MAXIMUM + 1);
+    assertThrows(() => readPreviewFlags(["--port", past]), PreviewServeError, past);
+    assertThrows(() => readPreviewFlags(["--port", "-1"]), PreviewServeError, "--port -1");
+});
+
+Deno.test("paths are read up to the bound and refused one past it", () => {
+    const naming = (count: number) =>
+        readPreviewFlags(
+            Array.from({ length: count }, (_, pathIndex) => ["--from", `p${pathIndex}`]).flat(),
+        );
+    assertStrictEquals(naming(FROM_PATHS_MAXIMUM).fromPaths.length, FROM_PATHS_MAXIMUM);
+    assertThrows(() => naming(FROM_PATHS_MAXIMUM + 1), PreviewServeError, "no more than");
+});
+
+Deno.test("paths named and fabricated fights are bound together, not each on its own", () => {
+    const paths = (count: number, prefix: string) =>
+        Array.from({ length: count }, (_, pathIndex) => `${prefix}${pathIndex}`);
+    const half = FROM_PATHS_MAXIMUM / 2;
+    assertEquals(composeOpenedPaths(["a"], ["b"]), ["a", "b"], "named ones first");
+    assertStrictEquals(
+        composeOpenedPaths(paths(half, "a"), paths(half, "b")).length,
+        FROM_PATHS_MAXIMUM,
+        "at the bound",
+    );
+    assertThrows(
+        () => composeOpenedPaths(paths(half, "a"), paths(half + 1, "b")),
+        PreviewServeError,
+        "more than",
+    );
+});
+
 /**
  * `fabricated/` is ignored by version control and is absent on the machine running the gate, so
  * the directory here is a temporary one, and both ways it can be missing its fights are refused.
@@ -290,7 +331,7 @@ Deno.test("every fabricated fight in the directory is drawn beside the recording
     const preview = initTestServer(paths);
     try {
         const answer = await fetch(`${preview.url}/?fight=duel`);
-        assertEquals(answer.status, 200, "a fabricated fight is one the server draws");
+        assertStrictEquals(answer.status, 200, "a fabricated fight is one the server draws");
         assertStringIncludes(await answer.text(), "duel", "and says which one");
     } finally {
         await preview.stop();

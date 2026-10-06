@@ -9,6 +9,7 @@
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
+import { parseArgs } from "@std/cli";
 import { CLASS, PLACE, SPACE_PIXELS } from "#/src/ui/panel-look.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
 import { GRIP_ATTRIBUTE } from "#/src/ui/panel-drag.ts";
@@ -19,12 +20,14 @@ import {
 } from "#/tests/e2e/margonem-page.ts";
 import { lookupRecordedFight, type RecordedFight } from "#/tests/recorded-fights.ts";
 import {
+    CONFIGURATION_FILE,
     parseDeclaredVersion,
     readDevelopmentVersion,
     readUserscriptFiles,
     USERSCRIPT_DOWNLOAD_ADDRESS,
     USERSCRIPT_NAME,
 } from "./build-userscript.ts";
+import { PreviewServeError } from "./margometer-tool-error.ts";
 import {
     composePreviewPage,
     PREVIEW_INSTALL_OPENING,
@@ -35,6 +38,7 @@ import {
     PREVIEW_TIPS_WIDTH_PIXELS,
     type PreviewInstall,
     type PreviewWords,
+    SEAM_GUTTER_PIXELS,
     SPLIT_FROM_PIXELS,
     WINDOWS_ACROSS_PIXELS,
 } from "./preview-page.ts";
@@ -51,10 +55,7 @@ export const LANDING_RECORDING = "captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9
 const OUTPUT_DIRECTORY = "dist/preview";
 const LANDING_PAGE = "index.html";
 const HOMEPAGE = "https://github.com/KamilGrocholski/margometer";
-const RELEASE_FLAG = "--release";
-const CONFIGURATION_FILE = "deno.json";
-/** What the pair stands off the seam by, level with the padding the half beside it carries. */
-const SEAM_GUTTER_PIXELS = 32;
+const RELEASE_FLAG = "release";
 /** Three rows of one fighter under the heading; less than that reads as a column cut off. */
 const TIPS_TALL_PIXELS_MINIMUM = 140;
 /**
@@ -68,7 +69,8 @@ const OPENING_HOLD_MILLISECONDS = 2600;
 /** Slower than a pressed replay: a visitor who pressed nothing is watching, not waiting. */
 const OPENING_STEP_MILLISECONDS = 300;
 
-const PREVIEW_SITE_WORDS: PreviewWords = {
+/** Exported so the pictures name the place the published page names. */
+export const PREVIEW_SITE_WORDS: PreviewWords = {
     language: "pl",
     title: "MargoMeter — podgląd",
     placeName: "Podgląd",
@@ -170,7 +172,7 @@ function composeSiteInstall(version: string): PreviewInstall {
  * centred. By their own bars, never through the store: a card reads the position the panel keeps,
  * which a place written behind its back does not move (`develop ADR 0099`). Again on every resize,
  * since a narrower window leaves the panel at what was a corner in the old one. A page that finds
- * no panel is still a page, so a failure is one console line.
+ * no panel is still a page, so a failure, the wait for one run out included, is one console line.
  */
 function composeSiteWindows(): string {
     return `${composeWindowDragging()}
@@ -203,7 +205,11 @@ var windowsTries = 0;
 var setWindowsPlacedOnceDrawn = function () {
   windowsTries += 1;
   if (document.querySelector(${JSON.stringify(HOST_SELECTOR)}) === null) {
-    if (windowsTries < ${WINDOWS_WAIT_TRIES}) window.setTimeout(setWindowsPlacedOnceDrawn, ${WINDOWS_WAIT_EVERY_MILLISECONDS});
+    if (windowsTries < ${WINDOWS_WAIT_TRIES}) {
+      window.setTimeout(setWindowsPlacedOnceDrawn, ${WINDOWS_WAIT_EVERY_MILLISECONDS});
+    } else {
+      console.warn("MargoMeter/Preview", "no panel stood after ${WINDOWS_WAIT_TRIES} tries");
+    }
     return;
   }
   setWindowsPlaced();
@@ -252,8 +258,8 @@ var setWindowDragged = function (mark, acrossBy, downBy) {
 /**
  * The panel against the edge the page gives it, and the window beside it on the side the panel
  * leaves, tops level. The edge is the window's right while the page is one column, and a line past
- * the seam once it is two: against the window's own edge the pair left 274px of empty half at
- * 1512, and centred in the half a 4K screen put 723px of nothing either side of it.
+ * the seam once it is two: against the window's own edge the pair left most of a wide half empty,
+ * and centred in the half it stood far from both the seam and the edge on a large screen.
  */
 function composeWindowsCornered(): string {
     assert(PLACE.insetPixels > 0, "a corner stands off the edge by what the sheet leaves");
@@ -437,9 +443,18 @@ if (PREVIEW_STATE.entry === null) {
 }`;
 }
 
-/** The release number where the run says it stands on the release tree, marked `-dev` otherwise. */
+/**
+ * The release number where the run says it stands on the release tree, marked `-dev` otherwise. A
+ * flag misspelt is refused: kept as a key nobody reads, a release would state a `-dev` build.
+ */
 export function readSiteVersion(args: readonly string[]): string {
-    if (!args.includes(RELEASE_FLAG)) return readDevelopmentVersion();
+    const parsed = parseArgs([...args], {
+        boolean: [RELEASE_FLAG],
+        unknown: (argument) => {
+            throw new PreviewServeError(`${argument} is not an argument this reads`);
+        },
+    });
+    if (!parsed[RELEASE_FLAG]) return readDevelopmentVersion();
     return parseDeclaredVersion(Deno.readTextFileSync(CONFIGURATION_FILE));
 }
 

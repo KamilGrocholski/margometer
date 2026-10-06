@@ -1,8 +1,9 @@
 /**
  * `docs/auras-standing.md`'s shout register against every recording, both ways round. The claim it
- * holds is the one the panel's clock rests on: the held character strikes whoever shouted for three
- * of their own turns. A register nobody re-earns is a measurement that outlives its material, so
- * the table is read back and held to what the tool produces.
+ * holds is the one the panel's clock rests on: the held character strikes whoever shouted for the
+ * turns of their own that `frozen/aura-turns.ts` states a shout runs. A register nobody re-earns
+ * is a measurement that outlives its material, so the table is read back and held to what the tool
+ * produces.
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";

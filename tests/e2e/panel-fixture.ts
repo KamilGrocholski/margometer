@@ -18,6 +18,7 @@ import {
     composePanelPage,
     HOST_SELECTOR,
     MARGONEM_CLIENT_SCRIPT_NAME,
+    MARGONEM_ENGINE_PRESENCE,
     type MargonemEnginePresence,
     type PanelPageOptions,
     PLACE_NAME,
@@ -94,7 +95,7 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
         option: true,
     }],
     fedThrough: ["all", { option: true }],
-    engine: ["before", { option: true }],
+    engine: [MARGONEM_ENGINE_PRESENCE.before, { option: true }],
     doesLoadTwice: [false, { option: true }],
     doesFakeClock: [false, { option: true }],
     place: [PLACE_NAME, { option: true }],
@@ -153,7 +154,7 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
         await page.goto(`${PAGE_ORIGIN}/`);
         // A page standing no game up puts no panel in the document, and that is what its own
         // spec is about; every other test starts on a panel that has already drawn.
-        if (engine === "before") await page.waitForSelector(HOST_SELECTOR);
+        if (engine === MARGONEM_ENGINE_PRESENCE.before) await page.waitForSelector(HOST_SELECTOR);
         await use(composePanelHandle(page, built.version, async () => {
             const empty = composePanelPage({ ...options, fedThrough: 0 });
             await setPageServed(page, built.script, empty);

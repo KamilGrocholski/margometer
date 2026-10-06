@@ -87,8 +87,8 @@ Deno.test("the set was taken at a version this tree is", () => {
 });
 
 /**
- * Five of the set stand on a fight going on, with a charge that has pips left to light, and the
- * shelf on one that ended. Proved both ways: the entry that must pass, and the end, which must not.
+ * Every picture of the set but the shelf stands on a fight going on, with a charge that has pips
+ * left to light, and the shelf on one that ended. Proved both ways: the entry that must pass, and the end, which must not.
  */
 Deno.test("the moment the underway pictures are taken at is one a fight is going at", () => {
     const fight = lookupRecordedFight(LANDING_RECORDING);
@@ -106,7 +106,7 @@ Deno.test("the moment the underway pictures are taken at is one a fight is going
     assertEquals(
         lookupUnderwayObjections(viewAt(UNDERWAY_ENTRY)),
         [],
-        "the entry the five are taken at",
+        "the entry the underway pictures are taken at",
     );
     const end = lookupUnderwayObjections(viewAt(fight.updates.length));
     assert(end.includes("the fight had already ended"), "and the end of it is not one");
@@ -145,9 +145,10 @@ Deno.test("a moment is where in the fight the picture is taken", () => {
 Deno.test("the set is taken at both moments, and the shelf at only the end", () => {
     const shots = composePanelShots();
     assert(shots.every((shot) => shot.name.endsWith(".png")), "every picture is named as one");
+    const underway = shots.filter((shot) => shot.moment === SHOT_MOMENT.underway);
+    assertStrictEquals(underway.length, shots.length - 1, "every picture but one is of it going");
     const over = shots.filter((shot) => shot.moment === SHOT_MOMENT.over).map((shot) => shot.name);
-    assertEquals(over, ["panel-shelf.png"], "a fight is kept where it reaches its end");
-    assert(shots.some((shot) => shot.moment === SHOT_MOMENT.underway), "and five are of it going");
+    assertEquals(over, ["panel-shelf.png"], "and that one is the shelf, kept where a fight ends");
 });
 
 Deno.test("the card is photographed over a person's row, never over the fight's line", () => {
@@ -207,4 +208,5 @@ Deno.test("a release's own number is no work under the set, and anything beside 
     const imported = declared.replace('"imports": {}', '"imports": { "@std/x": "jsr:@std/x" }');
     assert(!isSameBesideVersion(committed, imported), "an import the bundle would build with");
     assert(!isSameBesideVersion(committed, "[]"), "and one that is no configuration");
+    assert(!isSameBesideVersion(committed, "{"), "nor one that does not parse, which is carried");
 });

@@ -11,10 +11,13 @@ import {
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
+import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
 import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
 import {
     formatRecordingName,
+    lookupRecordingPaths,
     readRecordedMaterial,
+    RECORDINGS_MAXIMUM,
     replayMaterialSteps,
     replayRecordedMaterial,
     replayRecordedSteps,
@@ -63,6 +66,40 @@ function expectRefused(path: string, reason: string): void {
     const error = assertThrows(() => readRecordedMaterial([path]), RecordingReadError);
     assertStrictEquals(error.message, `${path} ${reason}`);
 }
+
+Deno.test("a file is read up to its bound in calls and refused one past it", () => {
+    const listing = (count: number) => {
+        const path = Deno.makeTempFileSync({ suffix: ".json" });
+        const call = '{"messages": [], "payload": {}}';
+        Deno.writeTextFileSync(path, `{"calls": [${Array(count).fill(call).join(",")}]}`);
+        return path;
+    };
+    const atBound = listing(CALLS_MAXIMUM);
+    const material = readRecordedMaterial([atBound]);
+    Deno.removeSync(atBound);
+    assertStrictEquals(material.fights[0]?.updates.length, CALLS_MAXIMUM, "every call, at it");
+    const pastBound = listing(CALLS_MAXIMUM + 1);
+    expectRefused(pastBound, `lists more than ${CALLS_MAXIMUM} calls`);
+    Deno.removeSync(pastBound);
+});
+
+Deno.test("a command line names recordings up to the bound and is refused one past it", () => {
+    const naming = (count: number) => Array.from({ length: count }, () => STEPPED);
+    assertStrictEquals(
+        lookupRecordingPaths(naming(RECORDINGS_MAXIMUM))?.length,
+        RECORDINGS_MAXIMUM,
+    );
+    assertThrows(
+        () => lookupRecordingPaths(naming(RECORDINGS_MAXIMUM + 1)),
+        RecordingReadError,
+        "no more than",
+    );
+    assertThrows(
+        () => readRecordedMaterial(naming(RECORDINGS_MAXIMUM + 1)),
+        RecordingReadError,
+        "no more than",
+    );
+});
 
 Deno.test("a file with a call the add-on refuses is refused, naming why", () => {
     const path = Deno.makeTempFileSync({ suffix: ".json" });

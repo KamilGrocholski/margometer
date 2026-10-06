@@ -30,8 +30,8 @@ export interface CachedMargonemClientSource {
 
 const MARGONEM_CHANNELS = Object.values(MARGONEM_CHANNEL);
 /**
- * Production is any world; they all serve the same build. `tempest` is the one most recordings in
- * `captures/` came from, so a claim read here stays comparable with the material.
+ * Production is any world; they all serve the same build. `tempest` was the world most recordings
+ * in `captures/` came from on 2026-10-06, so a claim read here stays comparable with the material.
  */
 const CHANNEL_HOSTS: Readonly<Record<MargonemChannel, string>> = {
     [MARGONEM_CHANNEL.production]: "https://tempest.margonem.pl",
@@ -104,7 +104,7 @@ function composeManifestPath(channel: MargonemChannel): string {
 }
 
 /** The build a frozen table would be lifted from, refusing rather than reading an empty cache. */
-export function requireCachedBuild(): string {
+export function readCachedBuild(): string {
     const cached = readCachedMargonemClientSource(MARGONEM_CHANNEL.production);
     if (cached === null) {
         throw new MargonemClientSourceError(
@@ -167,7 +167,13 @@ export function readCachedBundle(channel: MargonemChannel): string {
             `nothing cached for ${channel} — run \`deno task margonem:client fetch ${channel}\``,
         );
     }
-    const bundle = Deno.readTextFileSync(cached.bundlePath);
+    const bundle = errors.attempt(() => Deno.readTextFileSync(cached.bundlePath));
+    if (bundle instanceof Error) {
+        throw new MargonemClientSourceError(
+            `${cached.bundlePath} cannot be read — run \`deno task margonem:client fetch ${channel}\``,
+            { cause: bundle },
+        );
+    }
     assert(bundle.length > 0, "a bundle that was cached says something");
     return bundle;
 }

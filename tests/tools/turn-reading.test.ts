@@ -28,6 +28,7 @@ import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { TurnReadingError } from "#/tools/margometer-tool-error.ts";
 import { readRecordedMaterial, replayRecordedMaterial } from "#/tools/recorded-material.ts";
 import {
+    ARGUMENTS_MAXIMUM,
     composeDisputedReadings,
     composeDisputeRegister,
     composeFightMessages,
@@ -368,6 +369,16 @@ Deno.test("a recording is named by a path, and a bare number is refused", () => 
     const paths = [DISPUTED];
     assertEquals(parseReadingArguments(paths), { isKeys: false, paths }, "and the paths as named");
     assertThrows(() => parseReadingArguments(["12"]), TurnReadingError, "never by a number");
+    const naming = (count: number) => Array.from({ length: count }, () => DISPUTED);
+    assertStrictEquals(
+        parseReadingArguments(naming(ARGUMENTS_MAXIMUM)).paths.length,
+        ARGUMENTS_MAXIMUM,
+    );
+    assertThrows(
+        () => parseReadingArguments(naming(ARGUMENTS_MAXIMUM + 1)),
+        TurnReadingError,
+        "more",
+    );
     assertThrows(
         () => parseReadingArguments(["--key", "x.json"]),
         TurnReadingError,

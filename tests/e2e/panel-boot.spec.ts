@@ -7,7 +7,7 @@
  */
 
 import { expect, test } from "./panel-fixture.ts";
-import { ENGINE_ANSWER, HOST_SELECTOR } from "./margonem-page.ts";
+import { ENGINE_ANSWER, HOST_SELECTOR, MARGONEM_ENGINE_PRESENCE } from "./margonem-page.ts";
 import { waitForFrame } from "./panel-page.ts";
 
 /** The line every failure of the add-on's own is branded with, in the one console it holds. */
@@ -49,7 +49,7 @@ test("the wrap hands the game its own answer back", async ({ panel }) => {
 });
 
 test.describe("a page that offers no game", () => {
-    test.use({ engine: "none", doesFakeClock: true });
+    test.use({ engine: MARGONEM_ENGINE_PRESENCE.none, doesFakeClock: true });
 
     test("draws nothing while it looks, then a panel saying why it waits", async ({ panel, honesty }) => {
         honesty.allow(ENGINE_FAILURE_SEARCH_ABANDONED);
@@ -76,7 +76,7 @@ test.describe("a page that offers no game", () => {
 });
 
 test.describe("a game that arrives after the first look", () => {
-    test.use({ engine: "late", fedThrough: "none" });
+    test.use({ engine: MARGONEM_ENGINE_PRESENCE.late, fedThrough: "none" });
 
     test("still gets a panel, on a later poll", async ({ panel }) => {
         await expect(panel.host, "a later poll found the game and drew").toHaveCount(1);

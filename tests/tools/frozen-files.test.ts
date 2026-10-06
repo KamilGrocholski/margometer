@@ -5,7 +5,14 @@
  * would re-date all of them.
  */
 
-import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    AssertionError,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
@@ -14,7 +21,12 @@ import {
     encodeFrozenBuffModule,
     FROZEN_DATE_FIELD as BUFF_DATE_FIELD,
 } from "#/tools/buff-bit-table.ts";
-import { composeFrozenFiles, lookupHeldDate, prepareFrozenFiles } from "#/tools/frozen-files.ts";
+import {
+    composeFrozenFiles,
+    lookupHeldDate,
+    prepareFrozenFiles,
+    writeFrozenFiles,
+} from "#/tools/frozen-files.ts";
 import { FrozenFilesError } from "#/tools/margometer-tool-error.ts";
 import {
     encodeFrozenHelpModule,
@@ -81,8 +93,8 @@ Deno.test("content that moved re-dates every file written off the fetch", () => 
 Deno.test("one file of a set moving re-dates the set, and a missing file is a moved one", () => {
     const encode = encodeSample("same");
     const [firstFile, secondFile] = encode(HELD_DATE);
-    assert(firstFile !== undefined, "the sample writes a first file");
-    assert(secondFile !== undefined, "and a second");
+    assertExists(firstFile, "the sample writes a first file");
+    assertExists(secondFile, "and a second");
     const edited = [firstFile, `${secondFile}// by hand\n`];
     const moved = composeFrozenFiles(PATHS, edited, HELD_DATE, READ_DATE, 1, encode);
     assertStrictEquals(moved.hasMoved, true, "the second file no longer is what the fetch gives");
@@ -91,6 +103,28 @@ Deno.test("one file of a set moving re-dates the set, and a missing file is a mo
     assertStrictEquals(missing.hasMoved, true, "a file nobody wrote yet is written");
     const undated = composeFrozenFiles(PATHS, [firstFile, secondFile], null, READ_DATE, 1, encode);
     assertStrictEquals(undated.hasMoved, true, "and so is a set whose date cannot be read");
+});
+
+Deno.test("a freeze naming a path outside frozen/ is refused, and one inside it is not", () => {
+    const standing = composeFrozenFiles(
+        PATHS,
+        encodeSample("same")(HELD_DATE),
+        HELD_DATE,
+        READ_DATE,
+        1,
+        encodeSample("same"),
+    );
+    assertStrictEquals(
+        standing.hasMoved,
+        false,
+        "nothing is written by the sample that must not flag",
+    );
+    writeFrozenFiles(standing);
+    assertThrows(
+        () => writeFrozenFiles({ ...standing, paths: ["docs/elsewhere.ts", PATHS[1]!] }),
+        AssertionError,
+        "under frozen/",
+    );
 });
 
 Deno.test("the held date is read off the field an encoder writes, and nowhere else", () => {

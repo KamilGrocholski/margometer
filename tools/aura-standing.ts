@@ -9,7 +9,7 @@
  * holds the document to what this produces, both ways.
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import { AURA_REACH, type AuraReach, replayAuraStandings } from "#/src/core/aura-standing.ts";
@@ -37,9 +37,8 @@ export interface AuraRow {
 }
 
 /**
- * One effect key, and how many casts of it stood together at a moment. The published help caps a
- * standing effect at two sources from different players, so a moment with three is one where the
- * panel would have to drop one.
+ * One effect key, and how many casts of it stood together at a moment, against the cap on sources
+ * `docs/auras-standing.md` states under "How much it comes to".
  */
 export interface SourceRow {
     key: string;
@@ -81,210 +80,11 @@ const KEY_WIDTH = 30;
 const STATED_SKILLS = composeRuntimeTables().tooltip.statedSkills;
 /** `—` is nothing settling it, and never both. */
 const NOTHING_SETTLES = "—";
-const REACH_WORDS = {
+export const REACH_WORDS = {
     [AURA_REACH.castersSide]: "caster's",
     [AURA_REACH.otherSide]: "other",
     [AURA_REACH.bothSides]: "both",
 } as const satisfies Record<AuraReach, string>;
-
-/**
- * Every step of every recording, because what stands is a reading of a **moment**: `at once` is
- * the most that ever stood together, and by the last payload of a fight some have run out.
- */
-export function tallyAuraRows(stepped: readonly SteppedFight[]): AuraRow[] {
-    const tallies = new Map<number, SkillTally<AuraRow>>();
-    for (const { fight, steps } of stepped) {
-        for (const step of steps) {
-            const held = replayAuraStandings(step.reading.view, STATED_SKILLS);
-            // Add what stands at this moment to the register.
-            {
-                const atOnce = new Map<number, number>();
-                for (const standing of held.auras) {
-                    atOnce.set(standing.skillId, (atOnce.get(standing.skillId) ?? 0) + 1);
-                    const tally = tallies.get(standing.skillId) ?? {
-                        row: {
-                            skillId: standing.skillId,
-                            skillName: standing.skillName,
-                            casters: 0,
-                            recordings: 0,
-                            standingAtOnce: 0,
-                            turnsStated: standing.turnsStated,
-                            reach: standing.reach,
-                        },
-                        casterIds: new Set<number>(),
-                        paths: new Set<string>(),
-                    };
-                    tally.casterIds.add(standing.casterId);
-                    tally.paths.add(fight.path);
-                    tally.row.reach = standing.reach;
-                    tallies.set(standing.skillId, tally);
-                }
-                for (const [skillId, count] of atOnce) {
-                    const tally = tallies.get(skillId);
-                    assert(
-                        tally !== undefined,
-                        "a skill standing at a moment is registered by then",
-                    );
-                    if (count > tally.row.standingAtOnce) tally.row.standingAtOnce = count;
-                }
-                assert(atOnce.size <= SKILLS_MAXIMUM, "a moment stays inside the stated bound");
-                assert(tallies.size <= SKILLS_MAXIMUM, "and so does the register it is added to");
-            }
-        }
-    }
-    const rows: AuraRow[] = [];
-    for (const tally of tallies.values()) {
-        rows.push({ ...tally.row, casters: tally.casterIds.size, recordings: tally.paths.size });
-    }
-    assertStrictEquals(rows.length, tallies.size, "a skill is registered once");
-    assert(rows.every((row) => row.turnsStated > 0), "and each carries the turns it was dated by");
-    return rows.sort((left, right) => left.skillId - right.skillId);
-}
-
-/**
- * How many sources of one key stand together, over every moment of every recording. A source is a
- * combatant, not a cast: the help counts sources from different players, so two casts by one
- * combatant are one source, and the panel refreshes them into one row.
- */
-export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
-    const tallies = new Map<string, SourceRow>();
-    for (const { steps } of stepped) {
-        const keysByCast = new Map<string, readonly string[]>();
-        for (const step of steps) {
-            const view = step.reading.view;
-            // Add the team-wide keys each cast declared, a later cast of theirs replacing it.
-            {
-                for (const event of view.events) {
-                    if (event.kind !== BATTLE_EVENT.skillUsed) continue;
-                    if (event.actorId === null) continue;
-                    const keys = event.declared.map((declared) => declared.effect).filter(
-                        isSideWideKey,
-                    );
-                    if (keys.length === 0) continue;
-                    keysByCast.set(`${event.actorId}/${event.skillId}`, [...new Set(keys)]);
-                }
-                assert(keysByCast.size <= view.events.length, "a cast is registered off an event");
-            }
-            const held = replayAuraStandings(view, STATED_SKILLS).auras;
-            const casterIdsByKey = new Map<string, number[]>();
-            for (const aura of held) {
-                for (const key of keysByCast.get(`${aura.casterId}/${aura.skillId}`) ?? []) {
-                    casterIdsByKey.set(key, [...(casterIdsByKey.get(key) ?? []), aura.casterId]);
-                }
-            }
-            assert(casterIdsByKey.size <= SKILLS_MAXIMUM, "a moment stays inside its bound");
-            // Add this moment's sources to the register.
-            {
-                for (const [key, casterIds] of casterIdsByKey) {
-                    const row = tallies.get(key) ?? {
-                        key,
-                        momentsWithTwo: 0,
-                        momentsPastTwo: 0,
-                        momentsFromOne: 0,
-                        sourcesAtOnce: 0,
-                    };
-                    const sources = new Set(casterIds).size;
-                    assert(sources > 0, "a key standing stands from somebody");
-                    if (sources === 2) row.momentsWithTwo += 1;
-                    else if (sources > 2) row.momentsPastTwo += 1;
-                    if (casterIds.length > sources) row.momentsFromOne += 1;
-                    if (sources > row.sourcesAtOnce) row.sourcesAtOnce = sources;
-                    tallies.set(key, row);
-                }
-                assert(
-                    tallies.size <= SKILLS_MAXIMUM,
-                    "the register stays inside its stated bound",
-                );
-            }
-        }
-    }
-    const rows = [...tallies.values()].filter((row) => row.sourcesAtOnce > 1);
-    assert(rows.length <= tallies.size, "a row reported is a row tallied");
-    // Plain comparison rather than `localeCompare`: the keys are the game's own ASCII spellings,
-    // and `docs/browser-support.md` registers that construct as spelled nowhere in this tree.
-    return rows.sort((left, right) => (left.key < right.key ? -1 : 1));
-}
-
-/** The same walk, over what a shout holds rather than over what stands on a side. */
-export function tallyProvocationRows(stepped: readonly SteppedFight[]): ProvocationRow[] {
-    const tallies = new Map<number, SkillTally<ProvocationRow>>();
-    for (const { fight, steps } of stepped) {
-        for (const step of steps) {
-            const view = step.reading.view;
-            const held = replayAuraStandings(view, STATED_SKILLS).provocations;
-            const atOnce = new Map<number, number>();
-            for (const provocation of held) {
-                atOnce.set(provocation.skillId, (atOnce.get(provocation.skillId) ?? 0) + 1);
-                const tally = tallies.get(provocation.skillId) ?? {
-                    row: {
-                        skillId: provocation.skillId,
-                        skillName: provocation.skillName,
-                        casters: 0,
-                        recordings: 0,
-                        heldAtOnce: 0,
-                        turnsStated: provocation.turnsStated,
-                        coverageMinimum: STATED_SKILLS.shoutsBySkillId.get(provocation.skillId)
-                            ?.coverageMinimum ?? 0,
-                        namedAtOnce: 0,
-                    },
-                    casterIds: new Set<number>(),
-                    paths: new Set<string>(),
-                };
-                tally.casterIds.add(provocation.casterId);
-                tally.paths.add(fight.path);
-                tallies.set(provocation.skillId, tally);
-            }
-            const namedBySkillId = indexNamedBySkillId(view.events);
-            // Add this moment's holding and naming to the register.
-            {
-                for (const [skillId, count] of atOnce) {
-                    const tally = tallies.get(skillId);
-                    assert(
-                        tally !== undefined,
-                        "a shout holding somebody at a moment is registered by then",
-                    );
-                    if (count > tally.row.heldAtOnce) tally.row.heldAtOnce = count;
-                }
-                for (const [skillId, count] of namedBySkillId) {
-                    const tally = tallies.get(skillId);
-                    if (tally === undefined) continue;
-                    if (count > tally.row.namedAtOnce) tally.row.namedAtOnce = count;
-                }
-                assert(
-                    tallies.size <= SKILLS_MAXIMUM,
-                    "the register stays inside its stated bound",
-                );
-            }
-        }
-    }
-    const rows: ProvocationRow[] = [];
-    for (const tally of tallies.values()) {
-        rows.push({ ...tally.row, casters: tally.casterIds.size, recordings: tally.paths.size });
-    }
-    assertStrictEquals(rows.length, tallies.size, "a skill is registered once");
-    return rows.sort((left, right) => left.skillId - right.skillId);
-}
-
-/** The most characters one announcement of a skill named, by the skill it was announced on. */
-function indexNamedBySkillId(events: readonly BattleEvent[]): Map<number, number> {
-    const namedBySkillId = new Map<number, number>();
-    for (const event of events) {
-        if (event.kind !== BATTLE_EVENT.skillUsed) continue;
-        if (event.skillId === null) continue;
-        for (const declared of event.declared) {
-            if (declared.effect !== PROVOCATION_KEY) continue;
-            if (declared.text === null) continue;
-            const named = declared.text.split(NAME_SEPARATOR).filter((name) =>
-                name.length > 0
-            ).length;
-            if (named > (namedBySkillId.get(event.skillId) ?? 0)) {
-                namedBySkillId.set(event.skillId, named);
-            }
-        }
-    }
-    assert(namedBySkillId.size <= SKILLS_MAXIMUM, "no more skills named than the stated bound");
-    return namedBySkillId;
-}
 
 /** The three reports, one after another, as a terminal prints them. */
 function formatAuraReport(stepped: readonly SteppedFight[], material: string): string[] {
@@ -365,6 +165,203 @@ function formatAuraReportSources(rows: readonly SourceRow[]): string[] {
         return formatSourceLine(row.key, figures.map(formatInteger));
     });
     return [formatSourceLine("key", ["two", "past two", "one twice", "at once"]), ...lines];
+}
+
+/**
+ * Every step of every recording, because what stands is a reading of a **moment**: `at once` is
+ * the most that ever stood together, and by the last payload of a fight some have run out.
+ */
+export function tallyAuraRows(stepped: readonly SteppedFight[]): AuraRow[] {
+    const tallies = new Map<number, SkillTally<AuraRow>>();
+    for (const { fight, steps } of stepped) {
+        for (const step of steps) {
+            const held = replayAuraStandings(step.reading.view, STATED_SKILLS);
+            // Add what stands at this moment to the register.
+            {
+                const atOnce = new Map<number, number>();
+                for (const standing of held.auras) {
+                    atOnce.set(standing.skillId, (atOnce.get(standing.skillId) ?? 0) + 1);
+                    const tally = tallies.get(standing.skillId) ?? {
+                        row: {
+                            skillId: standing.skillId,
+                            skillName: standing.skillName,
+                            casters: 0,
+                            recordings: 0,
+                            standingAtOnce: 0,
+                            turnsStated: standing.turnsStated,
+                            reach: standing.reach,
+                        },
+                        casterIds: new Set<number>(),
+                        paths: new Set<string>(),
+                    };
+                    tally.casterIds.add(standing.casterId);
+                    tally.paths.add(fight.path);
+                    tally.row.reach = standing.reach;
+                    tallies.set(standing.skillId, tally);
+                }
+                for (const [skillId, count] of atOnce) {
+                    const tally = tallies.get(skillId);
+                    assertExists(tally, "a skill standing at a moment is registered by then");
+                    if (count > tally.row.standingAtOnce) tally.row.standingAtOnce = count;
+                }
+                assert(atOnce.size <= SKILLS_MAXIMUM, "a moment stays inside the stated bound");
+                assert(tallies.size <= SKILLS_MAXIMUM, "and so does the register it is added to");
+            }
+        }
+    }
+    const rows: AuraRow[] = [];
+    for (const tally of tallies.values()) {
+        rows.push({ ...tally.row, casters: tally.casterIds.size, recordings: tally.paths.size });
+    }
+    assertStrictEquals(rows.length, tallies.size, "a skill is registered once");
+    assert(rows.every((row) => row.turnsStated > 0), "and each carries the turns it was dated by");
+    return rows.sort((left, right) => left.skillId - right.skillId);
+}
+
+/**
+ * How many sources of one key stand together, over every moment of every recording. A source is a
+ * combatant, not a cast, as `docs/auras-standing.md` reads the help, so the casts of one are one.
+ */
+export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
+    const tallies = new Map<string, SourceRow>();
+    for (const { steps } of stepped) {
+        const keysByCast = new Map<string, readonly string[]>();
+        for (const step of steps) {
+            const view = step.reading.view;
+            // Add the team-wide keys each cast declared, a later cast of theirs replacing it.
+            {
+                for (const event of view.events) {
+                    if (event.kind !== BATTLE_EVENT.skillUsed) continue;
+                    if (event.actorId === null) continue;
+                    const keys = event.declared.map((declared) => declared.effect).filter(
+                        isSideWideKey,
+                    );
+                    if (keys.length === 0) continue;
+                    keysByCast.set(`${event.actorId}/${event.skillId}`, [...new Set(keys)]);
+                }
+                assert(keysByCast.size <= view.events.length, "a cast is registered off an event");
+            }
+            const held = replayAuraStandings(view, STATED_SKILLS).auras;
+            const casterIdsByKey = new Map<string, number[]>();
+            for (const aura of held) {
+                for (const key of keysByCast.get(`${aura.casterId}/${aura.skillId}`) ?? []) {
+                    casterIdsByKey.set(key, [...(casterIdsByKey.get(key) ?? []), aura.casterId]);
+                }
+            }
+            assert(casterIdsByKey.size <= SKILLS_MAXIMUM, "a moment stays inside its bound");
+            // Add this moment's sources to the register.
+            {
+                for (const [key, casterIds] of casterIdsByKey) {
+                    const row = tallies.get(key) ?? {
+                        key,
+                        momentsWithTwo: 0,
+                        momentsPastTwo: 0,
+                        momentsFromOne: 0,
+                        sourcesAtOnce: 0,
+                    };
+                    const sources = new Set(casterIds).size;
+                    assert(sources > 0, "a key standing stands from somebody");
+                    if (sources === 2) row.momentsWithTwo += 1;
+                    else if (sources > 2) row.momentsPastTwo += 1;
+                    if (casterIds.length > sources) row.momentsFromOne += 1;
+                    if (sources > row.sourcesAtOnce) row.sourcesAtOnce = sources;
+                    tallies.set(key, row);
+                }
+                assert(
+                    tallies.size <= SKILLS_MAXIMUM,
+                    "the register stays inside its stated bound",
+                );
+            }
+        }
+    }
+    const rows = [...tallies.values()].filter((row) => row.sourcesAtOnce > 1);
+    assert(rows.length <= tallies.size, "a row reported is a row tallied");
+    // Plain comparison rather than `localeCompare`: the keys are the game's own ASCII spellings,
+    // and `docs/browser-support.md` registers that construct as spelled nowhere in this tree.
+    return rows.sort((left, right) => (left.key < right.key ? -1 : 1));
+}
+
+/** The same walk, over what a shout holds rather than over what stands on a side. */
+export function tallyProvocationRows(stepped: readonly SteppedFight[]): ProvocationRow[] {
+    const tallies = new Map<number, SkillTally<ProvocationRow>>();
+    for (const { fight, steps } of stepped) {
+        for (const step of steps) {
+            const view = step.reading.view;
+            const held = replayAuraStandings(view, STATED_SKILLS).provocations;
+            const atOnce = new Map<number, number>();
+            for (const provocation of held) {
+                atOnce.set(provocation.skillId, (atOnce.get(provocation.skillId) ?? 0) + 1);
+                // The walk holds somebody only for a shout the same table states.
+                const shoutStated = STATED_SKILLS.shoutsBySkillId.get(provocation.skillId);
+                assertExists(shoutStated, "a shout holding somebody is one the table states");
+                const tally = tallies.get(provocation.skillId) ?? {
+                    row: {
+                        skillId: provocation.skillId,
+                        skillName: provocation.skillName,
+                        casters: 0,
+                        recordings: 0,
+                        heldAtOnce: 0,
+                        turnsStated: provocation.turnsStated,
+                        coverageMinimum: shoutStated.coverageMinimum,
+                        namedAtOnce: 0,
+                    },
+                    casterIds: new Set<number>(),
+                    paths: new Set<string>(),
+                };
+                tally.casterIds.add(provocation.casterId);
+                tally.paths.add(fight.path);
+                tallies.set(provocation.skillId, tally);
+            }
+            const namedBySkillId = indexNamedBySkillId(view.events);
+            // Add this moment's holding and naming to the register.
+            {
+                for (const [skillId, count] of atOnce) {
+                    const tally = tallies.get(skillId);
+                    assertExists(
+                        tally,
+                        "a shout holding somebody at a moment is registered by then",
+                    );
+                    if (count > tally.row.heldAtOnce) tally.row.heldAtOnce = count;
+                }
+                for (const [skillId, count] of namedBySkillId) {
+                    const tally = tallies.get(skillId);
+                    if (tally === undefined) continue;
+                    if (count > tally.row.namedAtOnce) tally.row.namedAtOnce = count;
+                }
+                assert(
+                    tallies.size <= SKILLS_MAXIMUM,
+                    "the register stays inside its stated bound",
+                );
+            }
+        }
+    }
+    const rows: ProvocationRow[] = [];
+    for (const tally of tallies.values()) {
+        rows.push({ ...tally.row, casters: tally.casterIds.size, recordings: tally.paths.size });
+    }
+    assertStrictEquals(rows.length, tallies.size, "a skill is registered once");
+    return rows.sort((left, right) => left.skillId - right.skillId);
+}
+
+/** The most characters one announcement of a skill named, by the skill it was announced on. */
+function indexNamedBySkillId(events: readonly BattleEvent[]): Map<number, number> {
+    const namedBySkillId = new Map<number, number>();
+    for (const event of events) {
+        if (event.kind !== BATTLE_EVENT.skillUsed) continue;
+        if (event.skillId === null) continue;
+        for (const declared of event.declared) {
+            if (declared.effect !== PROVOCATION_KEY) continue;
+            if (declared.text === null) continue;
+            const named = declared.text.split(NAME_SEPARATOR).filter((name) =>
+                name.length > 0
+            ).length;
+            if (named > (namedBySkillId.get(event.skillId) ?? 0)) {
+                namedBySkillId.set(event.skillId, named);
+            }
+        }
+    }
+    assert(namedBySkillId.size <= SKILLS_MAXIMUM, "no more skills named than the stated bound");
+    return namedBySkillId;
 }
 
 if (import.meta.main) {

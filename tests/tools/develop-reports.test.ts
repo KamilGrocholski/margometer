@@ -3,7 +3,7 @@
  * own tree is left to `deno task fight:develop`, because it runs another branch's program.
  */
 
-import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
+import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import {
     compareReportSections,
     compareWholeReports,
@@ -11,6 +11,7 @@ import {
     indexReportSections,
     selectDevelopMaterial,
 } from "#/tools/develop-reports.ts";
+import { DevelopReportError } from "#/tools/margometer-tool-error.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
 
 const SHORT_NAME = "2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none";
@@ -38,8 +39,8 @@ Deno.test("a report is cut at its headings, above the first and trailing blanks 
     assertStrictEquals(indexReportSections("material captures/\n").size, 0, "none is none");
     assertThrows(
         () => indexReportSections("=== one ===\n=== one ===\n"),
-        AssertionError,
-        "one is reported once",
+        DevelopReportError,
+        "one is reported twice",
     );
 });
 

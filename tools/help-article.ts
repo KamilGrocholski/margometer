@@ -34,7 +34,8 @@ export interface FrozenHelpCounts extends FrozenFiles {
 
 const HELP_HOST = "https://pomoc.margonem.pl";
 /**
- * "Mechanika walk", the only article carrying combat mechanics. ⚠️ Exported so the frozen counts
+ * "Mechanika walk", its title in the dump fetched 2026-10-06: the article every claim of
+ * `docs/protocol-keys.md` cites. ⚠️ Exported so the frozen counts
  * are held to naming the article they were taken from: a tool pointed at another would leave every
  * count describing a document it no longer reads.
  */
@@ -78,7 +79,11 @@ export function prepareFrozenHelpCounts(
     named: readonly string[],
 ): FrozenHelpCounts {
     const { cached, text } = requireCachedArticleText(article);
-    const cited = parseCitedHelpPhrases(Deno.readTextFileSync(REGISTER_PATH));
+    const register = errors.attempt(() => Deno.readTextFileSync(REGISTER_PATH));
+    if (register instanceof errors.Caught) {
+        throw new HelpArticleError(`${REGISTER_PATH} cannot be read`, { cause: register });
+    }
+    const cited = parseCitedHelpPhrases(register);
     if (cited.length === 0) {
         throw new HelpArticleError(`${REGISTER_PATH} cites no phrase, and freeze counts nothing`);
     }
@@ -102,7 +107,10 @@ function requireCachedArticleText(article: string): { cached: CachedHelpArticle;
             `nothing cached for article ${article} — run \`deno task margonem:help fetch\``,
         );
     }
-    const text = Deno.readTextFileSync(cached.textPath);
+    const text = errors.attempt(() => Deno.readTextFileSync(cached.textPath));
+    if (text instanceof errors.Caught) {
+        throw new HelpArticleError(`${cached.textPath} cannot be read`, { cause: text });
+    }
     assert(text.length > 0, "a dump that was cached says something");
     return { cached, text };
 }
@@ -186,9 +194,9 @@ export function requireCachedHelpArticle(manifest: unknown, article: string): Ca
             throw new HelpArticleError(`cache manifest for ${article}: ${field} is not stated`);
         }
     }
-    assert(typeof url === "string", "the address was checked above");
-    assert(typeof fetchedAt === "string", "and so was the date");
-    assert(typeof textPath === "string", "and so was the path");
+    assert(typeof url === "string", "a manifest admitted states its address as text");
+    assert(typeof fetchedAt === "string", "and the moment it was fetched");
+    assert(typeof textPath === "string", "and where its text stands");
     return { article, url, fetchedAt, textPath, textLength };
 }
 
@@ -275,9 +283,15 @@ export async function writeHelpArticleCache(article: string): Promise<CachedHelp
     }
     const text = decodeHtmlText(page);
     const directory = `${CACHE_ROOT}${article}/`;
-    Deno.mkdirSync(directory, { recursive: true });
+    const made = errors.attempt(() => Deno.mkdirSync(directory, { recursive: true }));
+    if (made instanceof errors.Caught) {
+        throw new HelpArticleError(`${directory} cannot be made`, { cause: made });
+    }
     const textPath = `${directory}${TEXT_NAME}`;
-    Deno.writeTextFileSync(textPath, text);
+    const textWritten = errors.attempt(() => Deno.writeTextFileSync(textPath, text));
+    if (textWritten instanceof errors.Caught) {
+        throw new HelpArticleError(`${textPath} cannot be written`, { cause: textWritten });
+    }
     const fetchedAt = new Date().toISOString();
     const cached = { article, url, fetchedAt, textPath, textLength: text.length };
     const written = encodeJson(cached, INDENT_SPACES);
@@ -286,7 +300,13 @@ export async function writeHelpArticleCache(article: string): Promise<CachedHelp
             cause: written,
         });
     }
-    Deno.writeTextFileSync(composeManifestPath(article), `${written}\n`);
+    const manifestPath = composeManifestPath(article);
+    const manifestWritten = errors.attempt(() =>
+        Deno.writeTextFileSync(manifestPath, `${written}\n`)
+    );
+    if (manifestWritten instanceof errors.Caught) {
+        throw new HelpArticleError(`${manifestPath} cannot be written`, { cause: manifestWritten });
+    }
     return cached;
 }
 

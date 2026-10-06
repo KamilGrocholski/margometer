@@ -10,15 +10,19 @@
 
 import { assert } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { METADATA_NAME, parseDeclaredVersion, USERSCRIPT_NAME } from "./build-userscript.ts";
+import {
+    CONFIGURATION_FILE,
+    METADATA_NAME,
+    parseDeclaredVersion,
+    USERSCRIPT_NAME,
+} from "./build-userscript.ts";
 import { ChangelogError } from "./margometer-tool-error.ts";
 
 const CHANGELOG_FILE = "CHANGELOG.md";
-const CONFIGURATION_FILE = "deno.json";
 const VERSION_HEADING_OPENER = "## [";
 const SECTION_OPENER = "## ";
 /** Far past any changelog a person keeps; a file longer than this is not one. */
-const CHANGELOG_LINES_MAXIMUM = 100_000;
+export const CHANGELOG_LINES_MAXIMUM = 100_000;
 const USAGE = "usage: deno task release:notes version | notes <version>";
 /**
  * A release attaches both of our files and the two source archives GitHub adds and will not let
@@ -57,7 +61,11 @@ export function composeReleaseNotes(changelog: string, version: string): string 
 export function lookupChangelogSection(changelog: string, version: string): string | null {
     assert(version.length > 0, "a section is asked for by the version it is about");
     const lines = changelog.split("\n");
-    assert(lines.length <= CHANGELOG_LINES_MAXIMUM, "a changelog stays inside its bound");
+    if (lines.length > CHANGELOG_LINES_MAXIMUM) {
+        throw new ChangelogError(
+            `${CHANGELOG_FILE} runs to ${lines.length} lines, past the ${CHANGELOG_LINES_MAXIMUM} read`,
+        );
+    }
     const opener = `${VERSION_HEADING_OPENER}${version}]`;
     const start = lines.findIndex((line) => line.startsWith(opener));
     if (start === -1) return null;

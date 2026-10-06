@@ -5,7 +5,7 @@
  * written off one fetch are decided together, because they date together.
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import { lookupQuotedLiteral } from "#/libs/text-walk.ts";
 import { FrozenFilesError } from "./margometer-tool-error.ts";
@@ -24,6 +24,8 @@ export interface FrozenFiles {
 /** The field a generated module dates itself by, as its encoder indents it. */
 const DATE_INDENT = "\n    ";
 const DATE_SEPARATOR = ": ";
+/** Where a freeze writes, and nowhere else. */
+const FROZEN_DIRECTORY = "frozen/";
 
 /**
  * Reads what stands at each path and decides the date. The held date is read off the first file
@@ -46,7 +48,7 @@ export function prepareFrozenFiles(
 
 /** A file nobody froze yet is an answer, not a failure: the freeze writes it. */
 function readHeldText(path: string): string | null {
-    assert(path.startsWith("frozen/"), "a freeze writes under frozen/ and nowhere else");
+    assert(path.startsWith(FROZEN_DIRECTORY), "a freeze reads under frozen/ and nowhere else");
     const text = errors.attempt(() => Deno.readTextFileSync(path));
     if (text instanceof Error) {
         if (text.cause instanceof Deno.errors.NotFound) return null;
@@ -109,10 +111,16 @@ function composeFrozenFilesMoved(
 /** Writes the files where they moved, and leaves them alone where they did not. */
 export function writeFrozenFiles(frozen: FrozenFiles): void {
     assertStrictEquals(frozen.texts.length, frozen.paths.length, "one text per path");
+    for (const path of frozen.paths) {
+        assert(path.startsWith(FROZEN_DIRECTORY), "a freeze writes under frozen/ and nowhere else");
+    }
     if (!frozen.hasMoved) return;
     for (const [index, path] of frozen.paths.entries()) {
         const text = frozen.texts[index];
-        assert(text !== undefined, "every path has its text");
-        Deno.writeTextFileSync(path, text);
+        assertExists(text, "every path has its text");
+        const written = errors.attempt(() => Deno.writeTextFileSync(path, text));
+        if (written instanceof errors.Caught) {
+            throw new FrozenFilesError(`${path} cannot be written`, { cause: written });
+        }
     }
 }

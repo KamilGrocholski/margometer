@@ -61,7 +61,9 @@ export const DECODER_TABLES: DecoderTables = composeRuntimeTables().decoder;
  * `12` as a number, and a recording is named by its path.
  */
 export function lookupRecordingPaths(named: readonly (string | number)[]): string[] | null {
-    assert(named.length <= RECORDINGS_MAXIMUM, "a tool is named no more files than it reads");
+    if (named.length > RECORDINGS_MAXIMUM) {
+        throw new RecordingReadError(`no more than ${RECORDINGS_MAXIMUM} recordings at once`);
+    }
     const paths = named.filter((argument): argument is string => typeof argument === "string");
     if (paths.length < named.length) return null;
     return paths;
@@ -69,7 +71,9 @@ export function lookupRecordingPaths(named: readonly (string | number)[]): strin
 
 /** The recordings where no path was named, the files named otherwise. */
 export function readRecordedMaterial(paths: readonly string[]): RecordedMaterial {
-    assert(paths.length <= RECORDINGS_MAXIMUM, "a tool is named no more files than it reads");
+    if (paths.length > RECORDINGS_MAXIMUM) {
+        throw new RecordingReadError(`no more than ${RECORDINGS_MAXIMUM} recordings at once`);
+    }
     if (paths.length === 0) {
         const fights = readRecordedFights();
         assert(fights.length <= RECORDINGS_MAXIMUM, "the recordings stay inside their bound");
@@ -93,8 +97,10 @@ export function readRecordingFile(path: string): RecordedFight {
         throw new RecordingReadError(`${path} is not JSON`, { cause: document });
     }
     if (!isRecord(document)) throw new RecordingReadError(`${path} is not a record`);
-    if (!Array.isArray(document[FILE_FIELD.calls])) {
-        throw new RecordingReadError(`${path} lists no calls`);
+    const calls = document[FILE_FIELD.calls];
+    if (!Array.isArray(calls)) throw new RecordingReadError(`${path} lists no calls`);
+    if (calls.length > CALLS_MAXIMUM) {
+        throw new RecordingReadError(`${path} lists more than ${CALLS_MAXIMUM} calls`);
     }
     return readRecordedFight(path, document);
 }

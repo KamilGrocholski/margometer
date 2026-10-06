@@ -47,7 +47,7 @@ import {
 import { composeTurnGrades, TURN_VERDICT, WITNESS_KEYS } from "#/tools/turn-count.ts";
 
 const DECODED_VERDICT = "decoded";
-/** What the script holds, read off the fight that reaches all of it rather than stated here. */
+/** How many acts the script holds, stated here so an act added or lost is seen to move it. */
 const ACTS_SCRIPTED = 41;
 /** The rounds a shape nobody argued with runs, read off that shape rather than spelled again. */
 const DEFAULT_ROUNDS = requireFabricationShape().rounds;
@@ -76,7 +76,7 @@ Deno.test("what the fabricator writes states every key the register calls decode
     const registered = parseRegisteredKeys(Deno.readTextFileSync(REGISTER_PATH));
     assert(registered.length > 0, "the register names keys");
     const messages = [...FIGHT.calls, ...FLED.calls].flatMap((call) => call.messages);
-    const stated = new Set(messages.flatMap(readMessageKeys));
+    const stated = new Set(messages.flatMap(parseMessageKeys));
     assert(stated.size > 0, "and the fabricated fight states keys of its own");
     const unstated = registered
         .filter((registeredKey) => registeredKey.verdict === DECODED_VERDICT)
@@ -87,7 +87,7 @@ Deno.test("what the fabricator writes states every key the register calls decode
 });
 
 /** The keys one message states, off the grammar the decoder reads it by. */
-function readMessageKeys(message: string): string[] {
+function parseMessageKeys(message: string): string[] {
     const parsed = parseProtocolMessage(message);
     assert(!(parsed instanceof Error), `${message} is a message the grammar reads`);
     return parsed.parameters.map((parameter) => parameter.key);
@@ -115,9 +115,9 @@ Deno.test("the fabricated fight fields ten players against ten", () => {
     const combatants = [...view.roster.byId.values()];
     assertStrictEquals(combatants.length, COMBATANTS_MAXIMUM, "a fabricated fight fields twenty");
     assertStrictEquals(view.readerSide, 1, "and states which side the reader is on");
-    const ours = combatants.filter((combatant) => combatant.side === view.readerSide);
-    assertStrictEquals(ours.length, 10, "ten of them ours");
-    assertStrictEquals(combatants.length - ours.length, 10, "and ten of them theirs");
+    const onReaderSide = combatants.filter((combatant) => combatant.side === view.readerSide);
+    assertStrictEquals(onReaderSide.length, 10, "ten of them on the reader's side");
+    assertStrictEquals(combatants.length - onReaderSide.length, 10, "and ten on the other");
     const professions = new Set(combatants.map((combatant) => combatant.profession));
     assert(professions.size >= 4, "across more than one profession");
 });
@@ -165,11 +165,6 @@ Deno.test("the fabricated fight puts something in every part of the panel", () =
     assert(statistics.healthRestoredToNobody > 0, "and came back to nobody named either");
 });
 
-/**
- * The client's keys the fabricator spells for want of an exported map (N13), held to the reader
- * that takes each: the health maximum and the charge to `src/ports/payload-envelope.ts`, the witness
- * of the turn to `tools/turn-count.ts`. A misspelt one reads as a field the game did not send.
- */
 Deno.test("the statuses the script lights are the ones its acts name, as a reader reads them", () => {
     const lit = new Set<string>();
     for (const call of FIGHT.calls) {
@@ -188,14 +183,19 @@ Deno.test("the statuses the script lights are the ones its acts name, as a reade
     );
 });
 
+/**
+ * The client's keys the fabricator spells for want of an exported map (N13), held to the reader
+ * that takes each: the health maximum and the charge to `src/ports/payload-envelope.ts`, the witness
+ * of the turn to `tools/turn-count.ts`. A misspelt one reads as a field the game did not send.
+ */
 Deno.test("every key the fabricator spells on its own is one a reader here takes", () => {
     const roster = REPLAY.reading.view.roster;
-    for (const warrior of FIGHT.warriors) {
-        const combatant = roster.byId.get(warrior.id);
-        assertExists(combatant, `${warrior.name} is in the roster`);
+    for (const fabricated of FIGHT.combatants) {
+        const combatant = roster.byId.get(fabricated.id);
+        assertExists(combatant, `${fabricated.name} is in the roster`);
         assertStrictEquals(
             combatant.healthMaximum,
-            warrior.healthMaximum,
+            fabricated.healthMaximum,
             "at the maximum it states",
         );
     }
@@ -206,7 +206,8 @@ Deno.test("every key the fabricator spells on its own is one a reader here takes
     // A payload naming no holder is passed over by the grading, so the witness is counted here.
     const witnessed = DUEL.calls.filter((call) => {
         const holder = getNumberField(call.payload, WITNESS_KEYS, "holder");
-        return !(holder instanceof Error) && holder !== null;
+        if (holder instanceof Error) return false;
+        return holder !== null;
     });
     assertStrictEquals(witnessed.length, DUEL.calls.length - 1, "each call but the last names one");
     const [grade] = composeTurnGrades([readFabricatedFight(DUEL, "duel")]);
@@ -273,9 +274,9 @@ Deno.test("the shape a fight was composed at is readable off the shape itself", 
  * kills outright — the fight ends in round one and states a fraction of the register.
  */
 Deno.test("a fight at another level is fought at that level's figures", () => {
-    assertStrictEquals(DUEL.warriors.length, 2, "one a side is two combatants");
+    assertStrictEquals(DUEL.combatants.length, 2, "one a side is two combatants");
     assert(
-        DUEL.warriors.every((warrior) => warrior.healthMaximum < 2000),
+        DUEL.combatants.every((combatant) => combatant.healthMaximum < 2000),
         "small pools at level 5",
     );
     const replay = replayFabricatedFight(DUEL, "duel");

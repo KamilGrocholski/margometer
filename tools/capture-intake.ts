@@ -1,6 +1,6 @@
 /**
  * How a recording the add-on wrote becomes material: its report dropped, every player's name
- * replaced, the game's ability prose taken out, and a file in `captures/` named for the day, world,
+ * replaced, the game's skill prose taken out, and a file in `captures/` named for the day, world,
  * fight, build and version it states. Committing it is a person's step, after reading it.
  *
  * ⚠️ **Neither redaction is complete.** Names are known only where a combatant id carries them,
@@ -60,10 +60,10 @@ interface MappingTask {
 }
 
 /**
- * The game's keys only intake reads, spelled once (N13): who is a monster, and the ability list
+ * The game's keys only intake reads, spelled once (N13): who is a monster, and the skill list
  * whose prose goes. Nothing in `src/` reads either.
  */
-export const INTAKE_KEYS = { nonPlayer: "npc", abilities: "skills" } as const;
+export const INTAKE_KEYS = { nonPlayer: "npc", skills: "skills" } as const;
 /** Written by this tool and by nothing else, which is why they are spelled here. */
 const SUBSTITUTED_COUNT = "namesSubstituted";
 const REMOVED_COUNT = "descriptionsRemoved";
@@ -96,7 +96,7 @@ const CALL_BEFORE_ENGLISH: Readonly<Record<string, string>> = {
 const INDENT_SPACES = 2;
 /** The largest recording in `captures/` holds 55,095 values, measured 2026-08-29. */
 const VALUES_MAXIMUM = 4_194_304;
-/** A fight holds twenty, and each is named at most a handful of times. */
+/** A fight holds `COMBATANTS_MAXIMUM`, and each is named at most a handful of times. */
 const NAMES_MAXIMUM = 4096;
 /**
  * What stands beside a name where the game writes one whole: over `captures/` on 2026-10-04 a
@@ -112,9 +112,13 @@ const OFFERED_MAXIMUM = 256;
 const ADMITTED_MAXIMUM = 4096;
 const CALLS_MAXIMUM = 100_000;
 const DAY_SHAPE = "dddd-dd-dd";
+/** What a slug is made of besides its single dashes, walked rather than matched (C7). */
+const SLUG_CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789";
+const VERSION_CHARACTERS = `${SLUG_CHARACTERS}ABCDEFGHIJKLMNOPQRSTUVWXYZ`;
+const VERSION_PUNCTUATION = ".-";
 const RECORDING_SUFFIX = ".json";
 /**
- * What replaces an ability description. Visible on purpose: a blank would read as "the game sent
+ * What replaces a skill description. Visible on purpose: a blank would read as "the game sent
  * nothing here", and a recording that misstates what the server said is worse than a marked gap.
  */
 export const REMOVED_DESCRIPTION = "(description from the game — removed, NOTICE.md)";
@@ -129,10 +133,58 @@ const REMOVED_DESCRIPTIONS: readonly string[] = [
 ];
 /**
  * ⚠️ **A claim about the game**, measured on `develop`'s recording of 2026-08-06 (world `tempest`,
- * build `1785244275300`): 70 fields for 7 abilities, the description sixth in each group of ten.
+ * build `1785244275300`): 70 fields for 7 skills, the description sixth in each group of ten.
  */
-const FIELDS_PER_ABILITY = 10;
+const FIELDS_PER_SKILL = 10;
 const DESCRIPTION_FIELD = 5;
+
+/** Read, checked, redacted and written; what was substituted goes to the screen and nowhere else. */
+function writeIntake(source: string, slug: string): string {
+    assert(source.length > 0, "a recording is read from somewhere");
+    const text = errors.attempt(() => Deno.readTextFileSync(source));
+    if (text instanceof Error) {
+        throw new CaptureIntakeError(`${source} cannot be read`, { cause: text });
+    }
+    const parsed = parseJson(text);
+    if (parsed instanceof Error) {
+        throw new CaptureIntakeError(`${source} is not JSON`, { cause: parsed });
+    }
+    // Spelled in English before anything is asked of it, and refused for carrying nothing before
+    // it is refused for a world it never got as far as stating.
+    const recording = composeRecordingInEnglish(parsed);
+    requireCallsCarried(recording);
+    requireSnapshotsCarried(source, recording);
+    const target = `${RECORDINGS_DIRECTORY}${composeIntakeName(recording, slug)}`;
+    // Material is never overwritten: a recording already here is evidence a test stands on.
+    // A stat that fails for any reason but absence is not leave to write.
+    const standing = errors.attempt(() => Deno.statSync(target));
+    if (standing instanceof errors.Caught) {
+        if (!(standing.cause instanceof Deno.errors.NotFound)) {
+            throw new CaptureIntakeError(`${target} cannot be checked for standing material`, {
+                cause: standing,
+            });
+        }
+    } else throw new CaptureIntakeError(`${target} already exists — nothing overwritten`);
+    const intake = composeIntake(recording);
+    requireRecordingIsNew(source, intake.recording, readRecordedFights());
+    const written = errors.attempt(() => Deno.writeTextFileSync(target, intake.text));
+    if (written instanceof errors.Caught) {
+        throw new CaptureIntakeError(`${target} cannot be written`, { cause: written });
+    }
+    console.log(`wrote ${target}`);
+    console.log(
+        `  ${intake.changed} nickname occurrences substituted, ` +
+            `${intake.removed} skill descriptions removed, ` +
+            `counted figures ${intake.wasReportRemoved ? "removed" : "absent"}`,
+    );
+    // To the screen only: a file tying a nickname to its label would be worse than the nickname.
+    for (const [name, label] of intake.substitutions) console.log(`  ${name} → ${label}`);
+    console.log("");
+    console.log("Still yours, and no test closes it: read `txt=`, `shout=` and `loser=` in the");
+    console.log("messages with your eyes. A nickname tied to no combatant id walks through.");
+    console.log("Then run `deno task fight:decoding` over it, and commit it.");
+    return target;
+}
 
 /**
  * Three steps, in the order that matters. The report goes first: it only takes data away, and it
@@ -295,14 +347,39 @@ function indexCombatantRoll(recording: unknown): CombatantRoll {
                 if (!isRecord(stated)) continue;
                 const id = readIdentity(stated[WARRIOR_FIELDS.id]) ?? readIdentity(key);
                 if (id === null) continue;
-                const nonPlayer = readIdentity(stated[INTAKE_KEYS.nonPlayer]);
-                if (nonPlayer !== null) roll.isPlayerById.set(id, nonPlayer === 0);
                 setRollName(roll, id, stated[WARRIOR_FIELDS.name]);
+                const nonPlayer = readIdentity(stated[INTAKE_KEYS.nonPlayer]);
+                if (nonPlayer === null) continue;
+                // One payload saying player and another monster is a file nobody can redact with
+                // certainty: the last word would decide whether a nickname is kept.
+                const isPlayer = nonPlayer === 0;
+                if (roll.isPlayerById.get(id) === !isPlayer) {
+                    throw new CaptureIntakeError(
+                        `combatant ${id} is stated both a player and a monster by ` +
+                            `\`${INTAKE_KEYS.nonPlayer}\` — a person decides which`,
+                    );
+                }
+                roll.isPlayerById.set(id, isPlayer);
             }
         }
-        indexCombatantRollSnapshots(roll, call);
+        // Add the names the snapshots carry, which say nothing of who is a player.
+        {
+            const sides = [call[FILE_FIELD.combatantsBefore], call[FILE_FIELD.combatantsAfter]];
+            for (const side of sides) {
+                if (!Array.isArray(side)) continue;
+                for (const stated of side) {
+                    if (!isRecord(stated)) continue;
+                    const id = readIdentity(stated[WARRIOR_FIELDS.id]);
+                    if (id !== null) setRollName(roll, id, stated[WARRIOR_FIELDS.name]);
+                }
+            }
+        }
     }
-    assert(roll.namesById.size <= NAMES_MAXIMUM, "a roll names no more than it is bounded to");
+    if (roll.namesById.size > NAMES_MAXIMUM) {
+        throw new CaptureIntakeError(
+            `${roll.namesById.size} combatants named, past the ${NAMES_MAXIMUM} a roll holds`,
+        );
+    }
     return roll;
 }
 
@@ -310,20 +387,12 @@ function readRecordingCalls(recording: unknown): UnknownRecord[] {
     if (!isRecord(recording)) return [];
     const stated = recording[FILE_FIELD.calls];
     if (!Array.isArray(stated)) return [];
-    assert(stated.length <= CALLS_MAXIMUM, "a recording stays inside its stated bound");
-    return stated.filter(isRecord);
-}
-
-function indexCombatantRollSnapshots(roll: CombatantRoll, call: UnknownRecord): void {
-    const sides = [call[FILE_FIELD.combatantsBefore], call[FILE_FIELD.combatantsAfter]];
-    for (const side of sides) {
-        if (!Array.isArray(side)) continue;
-        for (const stated of side) {
-            if (!isRecord(stated)) continue;
-            const id = readIdentity(stated[WARRIOR_FIELDS.id]);
-            if (id !== null) setRollName(roll, id, stated[WARRIOR_FIELDS.name]);
-        }
+    if (stated.length > CALLS_MAXIMUM) {
+        throw new CaptureIntakeError(
+            `\`${FILE_FIELD.calls}\` holds ${stated.length}, past the ${CALLS_MAXIMUM} read`,
+        );
     }
+    return stated.filter(isRecord);
 }
 
 /** An id as the game states one: a whole number, or its digits as text. */
@@ -339,7 +408,11 @@ function setRollName(roll: CombatantRoll, id: number, name: unknown): void {
     if (name.length === 0) return;
     const known = roll.namesById.get(id) ?? new Set<string>();
     known.add(name);
-    assert(known.size <= NAMES_MAXIMUM, "a combatant stays inside the names one is seen under");
+    if (known.size > NAMES_MAXIMUM) {
+        throw new CaptureIntakeError(
+            `combatant ${id} is named ${known.size} ways, past the ${NAMES_MAXIMUM} read`,
+        );
+    }
     roll.namesById.set(id, known);
 }
 
@@ -370,16 +443,22 @@ function indexNameSubstitutions(roll: CombatantRoll): Map<string, string> {
         const label = `Gracz ${order + 1}`;
         for (const name of roll.namesById.get(id) ?? []) {
             const standing = substitutions.get(name);
-            if (standing !== undefined && standing !== label) {
-                throw new CaptureIntakeError(
-                    `two players share the name \`${name}\` — a message carries only the text, so ` +
-                        "a substitution cannot tell them apart",
-                );
+            if (standing !== undefined) {
+                if (standing !== label) {
+                    throw new CaptureIntakeError(
+                        `two players share the name \`${name}\` — a message carries only the ` +
+                            "text, so a substitution cannot tell them apart",
+                    );
+                }
             }
             substitutions.set(name, label);
         }
     }
-    assert(substitutions.size <= NAMES_MAXIMUM, "a name is substituted once");
+    if (substitutions.size > NAMES_MAXIMUM) {
+        throw new CaptureIntakeError(
+            `${substitutions.size} player names, past the ${NAMES_MAXIMUM} substituted`,
+        );
+    }
     return substitutions;
 }
 
@@ -445,7 +524,11 @@ function composeMappedValue(root: unknown, mapText: (text: string) => string): u
         const task = pending.pop();
         if (task === undefined) break;
         steps += 1;
-        assert(steps <= VALUES_MAXIMUM, "the walk stays inside its stated bound");
+        if (steps > VALUES_MAXIMUM) {
+            throw new CaptureIntakeError(
+                `the recording holds past the ${VALUES_MAXIMUM} values read`,
+            );
+        }
         const walkedValue = task.value;
         if (typeof walkedValue === "string") {
             task.hold(mapText(walkedValue));
@@ -469,7 +552,7 @@ function composeMappedValue(root: unknown, mapText: (text: string) => string): u
 }
 
 /**
- * Without the ability descriptions the game wrote: licensing, not caution, since they are whole
+ * Without the skill descriptions the game wrote: licensing, not caution, since they are whole
  * sentences by the game's authors. An array that is not whole groups of ten is a layout this does
  * not understand, and cutting the sixth field out of it would remove the wrong thing.
  */
@@ -478,24 +561,24 @@ export function removeSkillDescriptions(recording: unknown): DescriptionRemoval 
     for (const call of readRecordingCalls(recording)) {
         const payload = call[FILE_FIELD.payload];
         if (!isRecord(payload)) continue;
-        const abilities = payload[INTAKE_KEYS.abilities];
-        if (!Array.isArray(abilities)) continue;
-        if (abilities.length % FIELDS_PER_ABILITY !== 0) {
+        const skills = payload[INTAKE_KEYS.skills];
+        if (!Array.isArray(skills)) continue;
+        if (skills.length % FIELDS_PER_SKILL !== 0) {
             throw new CaptureIntakeError(
-                `\`${FILE_FIELD.payload}.${INTAKE_KEYS.abilities}\` holds ${abilities.length} ` +
-                    `fields, not whole groups of ${FIELDS_PER_ABILITY} — the layout changed`,
+                `\`${FILE_FIELD.payload}.${INTAKE_KEYS.skills}\` holds ${skills.length} ` +
+                    `fields, not whole groups of ${FIELDS_PER_SKILL} — the layout changed`,
             );
         }
         for (
             let descriptionAt = DESCRIPTION_FIELD;
-            descriptionAt < abilities.length;
-            descriptionAt += FIELDS_PER_ABILITY
+            descriptionAt < skills.length;
+            descriptionAt += FIELDS_PER_SKILL
         ) {
-            const stated = abilities[descriptionAt];
+            const stated = skills[descriptionAt];
             if (typeof stated !== "string") continue;
             if (stated.length === 0) continue;
             if (REMOVED_DESCRIPTIONS.includes(stated)) continue;
-            abilities[descriptionAt] = REMOVED_DESCRIPTION;
+            skills[descriptionAt] = REMOVED_DESCRIPTION;
             removed += 1;
         }
     }
@@ -571,7 +654,7 @@ export function composeIntakeName(recording: unknown, slug: string): string {
     }
     if (!isSlugText(slug)) throw new CaptureIntakeError(`\`${slug}\` is not a kebab-case slug`);
     // The day and the world stand in front of the slug already, so a slug opening with either
-    // files it twice: `2026-10-04-tempest-tempest-grupa-vs-umibozu` had to be deleted by hand.
+    // files the fight under them twice, and only a person deleting the file undoes it.
     for (const composed of [day, world]) {
         if (slug === composed) {
             throw new CaptureIntakeError(`\`${slug}\` is what the name carries already`);
@@ -621,15 +704,10 @@ function isVersionText(text: string): boolean {
     if (text.length > OFFERED_MAXIMUM) return false;
     const characters = [...text];
     for (const [position, character] of characters.entries()) {
-        const isLetter = (character >= "a" && character <= "z") ||
-            (character >= "A" && character <= "Z");
-        const isDigit = character >= "0" && character <= "9";
-        const isPunctuation = character === "." || character === "-";
-        if (!isLetter && !isDigit && !isPunctuation) return false;
-        if (isPunctuation) {
+        if (VERSION_PUNCTUATION.includes(character)) {
             if (position === 0) return false;
             if (position === characters.length - 1) return false;
-        }
+        } else if (!VERSION_CHARACTERS.includes(character)) return false;
     }
     return characters.length > 0;
 }
@@ -642,54 +720,13 @@ export function isSlugText(text: string): boolean {
     if (text.endsWith("-")) return false;
     let wasDash = false;
     for (const character of text) {
-        const isLetter = character >= "a" && character <= "z";
-        const isDigit = character >= "0" && character <= "9";
         const isDash = character === "-";
-        if (!isLetter && !isDigit && !isDash) return false;
-        if (isDash && wasDash) return false;
+        if (isDash) {
+            if (wasDash) return false;
+        } else if (!SLUG_CHARACTERS.includes(character)) return false;
         wasDash = isDash;
     }
     return true;
-}
-
-/** Read, checked, redacted and written; what was substituted goes to the screen and nowhere else. */
-function writeIntake(source: string, slug: string): string {
-    assert(source.length > 0, "a recording is read from somewhere");
-    const text = errors.attempt(() => Deno.readTextFileSync(source));
-    if (text instanceof Error) {
-        throw new CaptureIntakeError(`${source} cannot be read`, { cause: text });
-    }
-    const parsed = parseJson(text);
-    if (parsed instanceof Error) {
-        throw new CaptureIntakeError(`${source} is not JSON`, { cause: parsed });
-    }
-    // Spelled in English before anything is asked of it, and refused for carrying nothing before
-    // it is refused for a world it never got as far as stating.
-    const recording = composeRecordingInEnglish(parsed);
-    requireCallsCarried(recording);
-    requireSnapshotsCarried(source, recording);
-    const target = `${RECORDINGS_DIRECTORY}${composeIntakeName(recording, slug)}`;
-    // Material is never overwritten: a recording already here is evidence a test stands on.
-    const standing = errors.attempt(() => Deno.statSync(target));
-    if (!(standing instanceof Error)) {
-        throw new CaptureIntakeError(`${target} already exists — nothing overwritten`);
-    }
-    const intake = composeIntake(recording);
-    requireRecordingIsNew(source, intake.recording, readRecordedFights());
-    Deno.writeTextFileSync(target, intake.text);
-    console.log(`wrote ${target}`);
-    console.log(
-        `  ${intake.changed} nickname occurrences substituted, ` +
-            `${intake.removed} ability descriptions removed, ` +
-            `counted figures ${intake.wasReportRemoved ? "removed" : "absent"}`,
-    );
-    // To the screen only: a file tying a nickname to its label would be worse than the nickname.
-    for (const [name, label] of intake.substitutions) console.log(`  ${name} → ${label}`);
-    console.log("");
-    console.log("Still yours, and no test closes it: read `txt=`, `shout=` and `loser=` in the");
-    console.log("messages with your eyes. A nickname tied to no combatant id walks through.");
-    console.log("Then run `deno task fight:decoding` over it, and commit it.");
-    return target;
 }
 
 if (import.meta.main) {

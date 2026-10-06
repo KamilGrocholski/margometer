@@ -116,6 +116,7 @@ Deno.test("a build writes its version over the constant, and refuses a text with
 
 Deno.test("the version a build takes by default is the one the configuration declares", () => {
     assertEquals(parseDeclaredVersion('{ // ours\n "version": "0.19.0" }'), "0.19.0", "a comment");
+    assertThrows(() => parseDeclaredVersion("{"), DeclaredVersionError, "not JSON with comments");
     assertThrows(() => parseDeclaredVersion("[]"), DeclaredVersionError, "not a configuration");
     assertThrows(() => parseDeclaredVersion("{}"), DeclaredVersionError, "no version");
     assertThrows(() => parseDeclaredVersion('{"version":""}'), DeclaredVersionError, "empty");
