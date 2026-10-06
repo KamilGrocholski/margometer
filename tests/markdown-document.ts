@@ -1,7 +1,8 @@
 /**
- * The pieces of a markdown register a guard reads: a table row as its cells, the document's
- * backticks taken off, and the document's prose as one line. Shared, because a reader that stopped
- * finding its subject in one guard's copy would go on working in another's.
+ * The pieces of a markdown register a guard reads: a section between two headings, a table row as
+ * its cells, the document's backticks taken off, and the document's prose as one line. Shared,
+ * because a reader that stopped finding its subject in one guard's copy would go on working in
+ * another's.
  */
 
 import { assert } from "@std/assert";
@@ -32,6 +33,15 @@ function parseTableCellsBare(cell: string): string {
     const close = cell.indexOf(BACKTICK, open + 1);
     if (close === -1) return cell;
     return cell.slice(open + 1, close);
+}
+
+/** The text between a heading and the next one named, which is where a table stands. */
+export function parseSection(text: string, opening: string, closing: string): string {
+    const start = text.indexOf(`\n${opening}\n`);
+    assert(start !== -1, `the document has a section ${opening}`);
+    const end = text.indexOf(`\n${closing}\n`, start);
+    assert(end !== -1, `and one ${closing} after it`);
+    return text.slice(start, end);
 }
 
 /**

@@ -1,15 +1,17 @@
 # Browser support
 
 What the shipped userscript needs from a browser, measured off the tree rather than assumed.
-`develop:tests/tools/browser-support.test.ts` holds the CSS half to the stylesheet, both halves'
-rows to the files they name, and the floor to the arithmetic over them. A **new** construct is held
-by something else and more coarsely — the bundle is type-checked a second time as a browser program,
-and the section on it says how far that reaches.
+`tests/repository/browser-support.test.ts` holds the CSS half to the stylesheet, the DOM and
+JavaScript rows to the files they name, and the floor to the arithmetic over them. A **new**
+construct is held by something else and more coarsely — the bundle is type-checked a second time as
+a browser program, and the section on it says how far that reaches.
 
 The register exists because nothing else could notice. `tools/build-userscript.ts` bundles with
-`minify: false` and no `target`, so **the ES level of the source is the ES level a player's browser
-must have** — there is no downlevelling anywhere and no polyfill of anything. A round that reaches
-for a newer construct raises the bar for every player, silently, and the gate goes green.
+`deno bundle --platform=browser`, which is not asked to minify and takes no target (Deno 2.9.7,
+2026-10-06), so **the ES level of the source is the ES level a player's browser must have** — there
+is no downlevelling anywhere and no polyfill of anything: `??` and `?.` stand in the built file as
+the source spells them. A round that reaches for a newer construct raises the bar for every player,
+silently, and the gate goes green.
 
 **Read at:** 2026-08-18. Every version below comes from MDN's `browser-compat-data`, read that day
 at `https://raw.githubusercontent.com/mdn/browser-compat-data/main/`. Versions are the **first**
@@ -61,13 +63,14 @@ What follows from it:
 
 ## CSS
 
-The stylesheet is one string, `composeStyleSheet()` in `src/ui/panel-look.ts`, so what it spells is
-enumerable: every property, every `property: value` pair, every function and every selector. The
-guard reads that enumeration and requires each one to appear below, in a table or in the settled
-list. A property added with no entry here fails the gate, **and so does an entry here naming
-something the sheet no longer spells** — a register that only grows describes a panel that stopped
-existing. `line-height` and `first-of-type` outlived their rules that way, and were found by the
-guard's first run on 2026-08-29.
+The stylesheet is one string for each step of type, `composeStyleSheet` in `src/ui/panel-look.ts`,
+so what it spells is enumerable: every property, every `property: value` pair, every function and
+every pseudo-class or pseudo-element. The guard reads that enumeration at every step and requires
+each one to appear below, in a table or in the settled list. A property added with no entry here
+fails the gate, **and so does an entry here naming something the sheet no longer spells** — a
+register that only grows describes a panel that stopped existing. `line-height` and `first-of-type`
+outlived their rules that way, and were found by the guard's first run on 2026-08-29;
+`font-style: normal` did too, and was found on 2026-10-06.
 
 ### What sets the floor
 
@@ -127,66 +130,69 @@ wherever either is read; the bare property's floor above is the hatch's.
 Neither selection row is a floor on its own, and neither is in the tier arithmetic above. Between
 them they cover every engine in scope; separately they cannot, and one of them says `never`. That
 `never` is why the two sit here rather than in **Settled**:
-`develop:tests/tools/browser-support.test.ts` requires a row carrying one to have a prefixed
-counterpart spelled by the stylesheet as many times as the bare property is, so a third rule
-reaching for `user-select` cannot quietly leave Safari out again.
+`tests/repository/browser-support.test.ts` requires a row carrying one to have a prefixed
+counterpart spelled by the stylesheet as many times as the bare property is, at every step of type,
+so a third rule reaching for `user-select` cannot quietly leave Safari out again.
 
 ### Settled
 
-Everything else `composeStyleSheet()` spells. Each predates both tiers in every engine in scope by
-years, so no version is quoted: the claim is only that it is below the floor, and the floor is set
-above.
+Everything else `composeStyleSheet` spells, at any step of type. Each predates both tiers in every
+engine in scope by years, so no version is quoted: the claim is only that it is below the floor, and
+the floor is set above. `border-left`, `content`, `::after`, `::before`, `:first-child`,
+`justify-content: flex-end`, `max-width: none` and `white-space: pre` were read on **2026-10-06**,
+from the same source, to hold that claim: the latest first release among them is `flex-end` in a
+flex container, Chrome 21, Firefox 20 and Safari 7.
 
 Properties: `align-items` · `align-self` · `all` · `background` · `border` · `border-bottom` ·
-`border-radius` · `border-top` · `bottom` · `box-shadow` · `box-sizing` · `color` · `cursor` ·
-`display` · `flex` · `flex-direction` · `flex-wrap` · `font` · `font-size` · `font-style` ·
-`font-variant-numeric` · `font-weight` · `gap` · `height` · `justify-content` · `left` ·
-`letter-spacing` · `line-height` · `margin` · `margin-bottom` · `margin-left` · `margin-right` ·
-`margin-top` · `max-height` · `max-width` · `min-height` · `min-width` · `opacity` · `overflow` ·
-`overflow-wrap` · `overflow-x` · `overflow-y` · `order` · `padding` · `padding-bottom` ·
-`padding-left` · `padding-right` · `padding-top` · `pointer-events` · `position` · `right` ·
-`text-align` · `text-overflow` · `text-transform` · `top` · `touch-action` · `white-space` · `width`
-· `z-index`
+`border-left` · `border-radius` · `border-top` · `bottom` · `box-shadow` · `box-sizing` · `color` ·
+`content` · `cursor` · `display` · `flex` · `flex-direction` · `flex-wrap` · `font` · `font-size` ·
+`font-style` · `font-variant-numeric` · `font-weight` · `gap` · `height` · `justify-content` ·
+`left` · `letter-spacing` · `line-height` · `margin` · `margin-bottom` · `margin-left` ·
+`margin-right` · `margin-top` · `max-height` · `max-width` · `min-height` · `min-width` · `opacity`
+· `overflow` · `overflow-wrap` · `overflow-x` · `overflow-y` · `order` · `padding` ·
+`padding-bottom` · `padding-left` · `padding-right` · `padding-top` · `pointer-events` · `position`
+· `right` · `text-align` · `text-overflow` · `text-transform` · `top` · `touch-action` ·
+`white-space` · `width` · `z-index`
 
 Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: center` ·
 `align-items: flex-start` · `align-self: center` · `align-self: flex-start` · `align-self: stretch`
 · `all: initial` · `background: currentColor` · `background: transparent` · `border: currentColor` ·
-`border: solid` · `border-bottom: none` · `border-top: dashed` · `border-top: solid` ·
-`box-shadow: inset` · `box-sizing: border-box` · `color: inherit` · `cursor: help` · `cursor: move`
-· `cursor: nwse-resize` · `cursor: pointer` · `display: block` · `display: flex` ·
-`display: inline-flex` · `display: none` · `flex: auto` · `flex: none` · `flex-direction: column` ·
-`flex-wrap: wrap` · `font: sans-serif` · `font: system-ui` · `font-style: italic` ·
-`font-style: normal` · `font-variant-numeric: tabular-nums` · `justify-content: center` ·
-`justify-content: space-between` · `margin-left: auto` · `mask-image: transparent` ·
-`overflow: hidden` · `overflow-wrap: break-word` · `overflow-x: hidden` · `overflow-y: auto` ·
-`pointer-events: none` · `position: absolute` · `position: fixed` · `position: relative` ·
-`position: sticky` · `scrollbar-width: none` · `text-align: center` · `text-align: right` ·
-`text-overflow: ellipsis` · `text-transform: uppercase` · `touch-action: none` · `user-select: none`
-· `white-space: nowrap` · `width: max-content`
+`border: solid` · `border-bottom: none` · `border-left: none` · `border-left: solid` ·
+`border-top: dashed` · `border-top: solid` · `box-shadow: inset` · `box-sizing: border-box` ·
+`color: inherit` · `cursor: help` · `cursor: move` · `cursor: nwse-resize` · `cursor: pointer` ·
+`display: block` · `display: flex` · `display: inline-flex` · `display: none` · `flex: auto` ·
+`flex: none` · `flex-direction: column` · `flex-wrap: wrap` · `font: sans-serif` · `font: system-ui`
+· `font-style: italic` · `font-variant-numeric: tabular-nums` · `justify-content: center` ·
+`justify-content: flex-end` · `justify-content: space-between` · `margin-left: auto` ·
+`mask-image: transparent` · `max-width: none` · `overflow: hidden` · `overflow-wrap: break-word` ·
+`overflow-x: hidden` · `overflow-y: auto` · `pointer-events: none` · `position: absolute` ·
+`position: fixed` · `position: relative` · `position: sticky` · `scrollbar-width: none` ·
+`text-align: center` · `text-align: right` · `text-overflow: ellipsis` · `text-transform: uppercase`
+· `touch-action: none` · `user-select: none` · `white-space: nowrap` · `white-space: pre` ·
+`width: max-content`
 
 Functions: `calc` · `clamp` · `linear-gradient` · `min` · `repeating-linear-gradient` · `rgb` ·
 `url`, only ever over a `data:` SVG the sheet composes, so it reaches no network · `var`
 
-Selectors: `host` · `hover`
+Selectors: `after` · `before` · `first-child` · `host` · `hover`
 
 ## The DOM
 
-| Construct               | Where                        | Chrome / Edge | Firefox | Safari |
-| ----------------------- | ---------------------------- | ------------- | ------- | ------ |
-| `replaceChildren`       | `src/ui/panel-element.ts`    | 86            | 78      | 14     |
-| `attachShadow`          | `src/ui/panel-element.ts`    | 53            | 63      | 10     |
-| `setPointerCapture`     | `src/ui/panel-element.ts`    | 55            | 59      | 13     |
-| `offsetX`, `offsetY`    | `src/ui/panel-drag.ts`       | 1             | 39      | 1      |
-| `getBoundingClientRect` | `src/ui/panel-element.ts`    | 2             | 3       | 4      |
-| `contains`              | `src/ui/panel-element.ts`    | 16            | 9       | 1.1    |
-| `scrollTop`             | `src/ui/panel-element.ts`    | 1             | 1       | 1      |
-| `Blob`                  | `src/userscript-entry.ts`    | 5             | 4       | 6      |
-| `createObjectURL`       | `src/userscript-entry.ts`    | 19            | 19      | 6      |
-| `localStorage`          | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
-| `sessionStorage`        | `src/userscript-entry.ts`    | 4             | 2       | 4      |
-| `getItem`               | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
-| `setItem`               | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
-| `removeItem`            | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
+| Construct            | Where                        | Chrome / Edge | Firefox | Safari |
+| -------------------- | ---------------------------- | ------------- | ------- | ------ |
+| `replaceChildren`    | `src/ui/panel-element.ts`    | 86            | 78      | 14     |
+| `attachShadow`       | `src/ui/panel-element.ts`    | 53            | 63      | 10     |
+| `setPointerCapture`  | `src/ui/panel-drag.ts`       | 55            | 59      | 13     |
+| `offsetX`, `offsetY` | `src/ui/panel-drag.ts`       | 1             | 39      | 1      |
+| `contains`           | `src/ui/panel-element.ts`    | 16            | 9       | 1.1    |
+| `scrollTop`          | `src/ui/panel-element.ts`    | 1             | 1       | 1      |
+| `Blob`               | `src/userscript-entry.ts`    | 5             | 4       | 6      |
+| `createObjectURL`    | `src/userscript-entry.ts`    | 19            | 19      | 6      |
+| `localStorage`       | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
+| `sessionStorage`     | `src/userscript-entry.ts`    | 4             | 2       | 4      |
+| `getItem`            | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
+| `setItem`            | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
+| `removeItem`         | `src/ports/browser-store.ts` | 4             | 3.5     | 4      |
 
 The five storage rows were read on **2026-08-26**, `contains` on **2026-09-09** and the offsets on
 **2026-09-28**, from the same source as the rest; every other row carries the date at the top of
@@ -197,20 +203,20 @@ supports it perfectly.
 ⚠️ **The quota is not in this register, and its absence is the entry.** How much an origin may keep
 differs by engine, by profile and by how much that origin already holds, and none of it is readable
 from a page. The add-on therefore never predicts one: it writes, catches the refusal, gives up its
-oldest unpinned fight and writes again (`src/ports/browser-store.ts`,
-`develop:src/game/kept-fights.ts`). That matters more here than anywhere else in this table, because
-the origin is shared with the game — which keeps everything under one key, rewrites it whole on
-every change, and catches nothing (`git show v0.10.1:docs/specs/a-fight-you-can-go-back-to.md`).
+oldest unpinned fight and writes again (`src/ports/browser-store.ts`, `dropOldestUnpinned` in
+`src/runtime/shelf.ts`). That matters more here than anywhere else in this table, because the origin
+is shared with the game — which keeps everything under one key, rewrites it whole on every change,
+and catches nothing (`git show v0.10.1:docs/specs/a-fight-you-can-go-back-to.md`).
 
 ⚠️ **This is the half that is not complete, and saying so is the point.** The CSS above is
 enumerable and the JavaScript below is held by a compiler; the DOM is neither. What bounds it
 instead is the discipline `SECURITY.md` states — the panel is handed its document and never reaches
-for one: `src/ui/` takes it as an argument and reaches for no browser global at all — `PanelNode`,
-`PanelHost` and `PanelDocument` in `src/ui/panel-element.ts` are the whole slice it uses, and
-`HostPage` in `src/userscript-entry.ts` is the whole slice the entry point uses. That is guarded by
-`develop:tests/repository/sources.test.ts`, so the surface stays declared rather than ambient, and
-the table above stays readable against those declarations by a person. It is not guarded to be
-exhaustive, and nothing here claims it is.
+for one: `src/ui/` takes it as an argument and reaches for no browser global at all — the interfaces
+of `src/ui/panel-document.ts` are the whole slice it uses, and `BrowserWindow` and
+`UserscriptDocument` in `src/userscript-entry.ts` the whole slice the entry point uses. The first
+half is guarded by `tests/repository/browser-globals.test.ts`, so the surface stays declared rather
+than ambient, and the table above stays readable against those declarations by a person. It is not
+guarded to be exhaustive, and nothing here claims it is.
 
 Nothing needing a manager's cooperation is used: no `GM_*`, no `fetch`, `XMLHttpRequest`,
 `WebSocket` or `sendBeacon` (`SECURITY.md` owns that surface), no `innerHTML`, no `eval`, no
@@ -227,14 +233,13 @@ half cannot be pinned at all; and narrowing `lib` from `esnext` to `es2022` stil
 sources are not one enumerable string, so nothing can list what they reach for.
 
 What **is** held is the register going stale, which is the failure that has happened twice:
-`develop:tests/tools/browser-support.test.ts` requires each row below to name a construct the file
-beside it still spells, and re-earns both tiers at the top as the maximum over the rows under them.
-`develop:ARCHITECTURE.md` carries the rest as a known gap. The two constructs that decide where the
-floor is:
+`tests/repository/browser-support.test.ts` requires each row below, and each row of the DOM table
+above, to name a construct the file beside it still spells, and re-earns both tiers at the top as
+the maximum over the rows under them. The two constructs that decide where the floor is:
 
 | Construct       | Where                   | Chrome / Edge | Firefox | Safari |
 | --------------- | ----------------------- | ------------- | ------- | ------ |
-| `ErrorOptions`  | `libs/errors.ts`        | 93            | 91      | 15     |
+| `ErrorOptions`  | `src/runtime/shelf.ts`  | 93            | 91      | 15     |
 | `Object.hasOwn` | `libs/unknown-value.ts` | 93            | 92      | 15.4   |
 
 `ErrorOptions` is why the lib is ES2022 and not ES2021, and it is a **runtime** dependency: every
@@ -322,10 +327,11 @@ it exists for that browser.
 Three answers, and they are different: _not looked at_, _looked at and clean_, and _a finding_.
 
 - **Only Chrome has ever been run.** Every version above is read from `browser-compat-data`, not
-  observed. The one engine this repository drives is Chrome: `develop:tools/panel-screenshots.ts`
-  looks for it by name and asks for no other, and `deno task e2e` pins the channel (**develop ADR
-  0047**). Firefox is on the machine that wrote this and the panel has never been opened in it by
-  anything here; Safari is on no machine this repository has. Both are **not looked at**.
+  observed. The one engine this repository drives is Chrome: `tools/panel-shots.ts` launches it
+  through `tests/e2e/panel-camera.ts`, which asks for the `chrome` channel by name unless handed a
+  path, and `deno task e2e` pins the same channel (**develop ADR 0047**). Firefox is on the machine
+  that wrote this and the panel has never been opened in it by anything here; Safari is on no
+  machine this repository has. Both are **not looked at**.
 - **Three decisions name an engine other than the one that is run**, and each says so where it is
   written: the `user-select` prefix Safari has never shipped without, the glyph width a star was
   measured at in Firefox, and the blob a download is read from after the click returns in Firefox.

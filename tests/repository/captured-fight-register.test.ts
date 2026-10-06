@@ -11,6 +11,7 @@ import { isRecord } from "#/libs/unknown-value.ts";
 import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { FILE_FIELD, NOTHING_STATED } from "#/src/runtime/fight-file.ts";
 import { INTAKE_KEYS } from "#/tools/capture-intake.ts";
+import { parseSection } from "#/tests/markdown-document.ts";
 import { readRecordedFights, type RecordedFight } from "#/tests/recorded-fights.ts";
 
 interface RecordedWarrior {
@@ -144,7 +145,7 @@ Deno.test("what the register states of each recording is what the recording stat
 
 Deno.test("the cast each row states is the cast the recording's payloads state", () => {
     const register = Deno.readTextFileSync(REGISTER_PATH);
-    const rows = readRecordingRows(readSection(register, CAST_HEADING, RECORDINGS_HEADING));
+    const rows = readRecordingRows(parseSection(register, CAST_HEADING, RECORDINGS_HEADING));
     let checked = 0;
     for (const fight of readRecordedFights()) {
         const row = rows.find((cells) => cells[0] === fight.path);
@@ -160,15 +161,6 @@ Deno.test("the cast each row states is the cast the recording's payloads state",
     }
     assertEquals(checked, readRecordedFights().length, "every recording's cast was re-earned");
 });
-
-/** The text between a heading and the next one named, which is where a table stands. */
-function readSection(text: string, opening: string, closing: string): string {
-    const start = text.indexOf(`\n${opening}\n`);
-    assert(start !== -1, `the register has a section ${opening}`);
-    const end = text.indexOf(`\n${closing}\n`, start);
-    assert(end !== -1, `and one ${closing} after it`);
-    return text.slice(start, end);
-}
 
 function readReaderSide(fight: RecordedFight): number {
     let side: number | null = null;
@@ -245,7 +237,7 @@ Deno.test("the census of shapes is the shapes the recordings actually are", () =
         const shape = `${ours} vs ${cast.length - ours}`;
         counted.set(shape, (counted.get(shape) ?? 0) + 1);
     }
-    const stated = readRecordingTableRows(readSection(register, CENSUS_HEADING, CAST_HEADING));
+    const stated = readRecordingTableRows(parseSection(register, CENSUS_HEADING, CAST_HEADING));
     assertEquals(
         stated.map((cells) => cells.join(" ")).sort(),
         [...counted].map(([shape, count]) => `${shape} ${count}`).sort(),

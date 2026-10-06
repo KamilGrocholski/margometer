@@ -588,6 +588,8 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/single-importer.test.ts`         | C9                                                     |
 | `tests/repository/comment-share.test.ts`           | C4, C16                                                |
 | `tests/repository/design-tokens.test.ts`           | `DESIGN.md`                                            |
+| `tests/repository/browser-support.test.ts`         | `docs/browser-support.md`                              |
+| `tests/repository/browser-globals.test.ts`         | `SECURITY.md`: the panel is handed its document        |
 | `tests/repository/changelog.test.ts`               | `CHANGELOG.md`                                         |
 | `tests/repository/documents.test.ts`               | this file                                              |
 | `tests/repository/decisions.test.ts`               | `docs/adr/`                                            |
