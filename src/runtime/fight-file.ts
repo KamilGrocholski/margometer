@@ -1,7 +1,8 @@
 /**
  * The fight as a file a reader hands over: the calls the game made, and the figures they came to
- * (`docs/design.md` §8, §11). The format is `develop`'s version 4, carried over unchanged, and this
- * file is the one place its field names are spelled.
+ * (`docs/design.md` §8, §11). The envelope and its calls are `develop`'s version 4; the report
+ * follows this version's figures (ADR 0012, ADR 0035). This file is the one place its field names
+ * are spelled.
  *
  * ⚠️ **Nothing is redacted here, and that is the design.** The file carries real nicknames and the
  * game's own prose, and never enters git: intake deals with both, once (`SECURITY.md`).
@@ -64,8 +65,9 @@ export class FileUnserializable extends Error {
 }
 
 /**
- * The key a figure is written under where its name here has moved on from `develop`'s: the format
- * is version 4, carried over unchanged, so a renamed figure keeps the key the files already hold.
+ * The key a figure is written under where only its name here moved on from `develop`'s: such a
+ * figure keeps the key the files already hold (ADR 0025). A cut whose meaning moved is written
+ * under its new name instead (ADR 0012).
  */
 export const REPORT_KEY_BY_ROW_FIELD = {
     sideHealsUnsized: "castsUnplaced",
@@ -163,7 +165,9 @@ export function encodeFightFile(
         "a build it could not read is absent, never empty",
     );
     assert(surroundings.userAgent !== "", "and so is a browser that said nothing of itself");
-    if (calls.droppedCalls !== null) assert(calls.droppedCalls >= 0, "none dropped, or more");
+    if (calls.droppedCalls !== null) {
+        assert(calls.droppedCalls >= 0, "a recording drops no fewer calls than none");
+    }
     const written = encodeJson({
         [FILE_FIELD.formatVersion]: FILE_FORMAT_VERSION,
         [FILE_FIELD.addOnVersion]: surroundings.addOnVersion,
@@ -232,7 +236,7 @@ export function encodeFightReport(subject: FileSubject): Record<string, unknown>
 
 /** Only what is summed: a count or a cut across a whole fight would be a nought nobody measured. */
 function encodeReportTotals(totals: FightTotals): Record<keyof FightTotals, number> {
-    assert(totals.damageDealtRaw >= 0, "a total written into a report is never below nothing");
+    assert(totals.damageDealtRaw >= 0, "the raw damage a report totals is never below nothing");
     return {
         damageDealt: totals.damageDealt,
         damageTaken: totals.damageTaken,
@@ -259,7 +263,7 @@ function encodeReportCombatants(statistics: FightStatistics): Record<string, Rep
 }
 
 function encodeReportRow(figures: CombatantFigures): ReportRow {
-    assert(figures.damageDealtRaw >= 0, "a figure written into a report is never below nothing");
+    assert(figures.damageDealtRaw >= 0, "the raw damage a row reports is never below nothing");
     const cut = encodeReportCut;
     const pair = encodeReportPairCut;
     return {

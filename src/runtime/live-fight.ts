@@ -7,6 +7,7 @@
  * the reading behind it, and the panel would stand on the last payload with nothing saying so.
  */
 
+import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
 import {
     commitPayload,
@@ -56,6 +57,8 @@ export interface LiveFightOptions {
     keeper: ShelfKeeper;
     /** On the payload that opens a fight, once its moment and its place are read. */
     onFightOpened: () => void;
+    /** On the payload that closes a fight, once the shelf has answered, whatever it answered. */
+    onFightKept: () => void;
     /** Asks for one frame; later marks before it arrives do nothing. */
     markStale: () => void;
 }
@@ -68,8 +71,10 @@ export interface LiveFight {
     place: FightPlace | null;
     /** Read with the place: which combatant the reader is, as the client keys its own warrior. */
     readerId: number | null;
-    openedAt: number;
-    /** Read once: the game builds its battle while its engine starts, and never again. */
+    /** Read as a fight opens; null where the clock would not say, with its refusal beside it. */
+    openedAt: number | null;
+    openedAtRefusal: errors.Caught | null;
+    /** Read once: the engine builds one battle (`initMargonemEngineSearch`). */
     margonemEngineBattle: MargonemEngineBattle | null;
 }
 
@@ -83,7 +88,8 @@ export function initLiveFight(options: LiveFightOptions): {
         snapshotBefore: null,
         place: null,
         readerId: null,
-        openedAt: 0,
+        openedAt: null,
+        openedAtRefusal: null,
         margonemEngineBattle: null,
     };
     const listener: PayloadListener = {
@@ -156,28 +162,56 @@ export function initLiveFight(options: LiveFightOptions): {
                 if (isOpening) liveFight.session = createFightSession(options.sessionOptions);
             }
             if (committed?.hasOpened === true) {
-                // Open the fight: its moment, its place and who the reader is.
+                // Open the fight: its moment, its place and who the reader is. None of the last
+                // fight's stands in, so the moment is read apart, before any step that can break.
+                const now = errors.attempt(() => options.clock.readNowMilliseconds());
+                if (now instanceof errors.Caught) {
+                    liveFight.openedAt = null;
+                    liveFight.openedAtRefusal = now;
+                } else {
+                    liveFight.openedAt = now;
+                    liveFight.openedAtRefusal = null;
+                }
+                liveFight.place = null;
+                liveFight.readerId = null;
                 executeLiveStep(options, DEFECT_KIND.reading, undefined, () => {
-                    liveFight.openedAt = options.clock.readNowMilliseconds();
-                    liveFight.place = readMargonemValue(options.place.readPlace());
-                    liveFight.readerId = readMargonemValue(options.hero.readHeroId());
+                    liveFight.place = lookupMargonemValue(options.place.readPlace());
+                    liveFight.readerId = lookupMargonemValue(options.hero.readHeroId());
                     options.onFightOpened();
                 });
             }
             if (committed?.hasClosed === true) {
-                // Keep the closed fight on the shelf.
+                // Keep the closed fight on the shelf. ⚠️ A row is keyed by the moment its fight
+                // opened, and one with none is given none: another fight's would merge their rows.
                 executeLiveStep(options, DEFECT_KIND.keeping, undefined, () => {
+                    const openedAt = liveFight.openedAt;
+                    if (openedAt === null) {
+                        const refusal = liveFight.openedAtRefusal;
+                        assert(refusal !== null, "a fight opened with no moment kept why");
+                        options.defects.add({
+                            kind: DEFECT_KIND.keeping,
+                            region: null,
+                            failure: refusal,
+                        });
+                        return;
+                    }
                     const payloads = liveFight.capture.calls.map((call) => call.payload);
                     const fight = {
-                        openedAt: liveFight.openedAt,
+                        openedAt,
                         payloads,
                         place: liveFight.place,
                         readerId: liveFight.readerId,
-                        margonemClientBuild: readMargonemValue(options.build.readBuildId()),
+                        margonemClientBuild: lookupMargonemValue(options.build.readBuildId()),
                         isPinned: false,
                     };
                     options.keeper.keep(fight);
                 });
+                executeLiveStep(
+                    options,
+                    DEFECT_KIND.reading,
+                    undefined,
+                    () => options.onFightKept(),
+                );
             }
             executeLiveStep(options, DEFECT_KIND.reading, undefined, () => options.markStale());
         },
@@ -222,7 +256,7 @@ function readLiveMargonemEngineWarriors(
 }
 
 /** Absent or thrown while asked, the page's state is shown as unknown and is no defect. */
-function readMargonemValue<Value>(margonemValue: Value | MargonemReadFailure): Value | null {
+function lookupMargonemValue<Value>(margonemValue: Value | MargonemReadFailure): Value | null {
     if (margonemValue instanceof MargonemValueAbsent) return null;
     if (margonemValue instanceof errors.Caught) return null;
     return margonemValue;

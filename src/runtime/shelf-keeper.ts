@@ -37,7 +37,7 @@ import {
 } from "./shelf.ts";
 import type { StorageChoice } from "#/src/ui/panel-choice.ts";
 
-/** The four things that can go wrong with a shelf, of which at most three ever hold at once. */
+/** What the store last answered about the shelf, one flag an answer. */
 export interface ShelfAnswers {
     isEverySlotPinned: boolean;
     hasStoreRefused: boolean;
@@ -75,6 +75,9 @@ interface KeeperState {
     /** In memory and never in the store: a figure that survives a reload is an older version's. */
     fightStatesByOpenedAt: Map<number, KeptFightState | null>;
 }
+
+/** Every answer but one of the two a single write gives: a store refused it, or made room. */
+export const SHELF_ANSWERS_MAXIMUM = 3;
 
 export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
     let store: KeyValueStore;
@@ -173,7 +176,11 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
         // they came from is emptied last: a store that refuses them, or a browser that will not
         // keep the answer, leaves the reader's fights where the next page will still look.
         moveShelf: (storageChoice) => {
-            if (storageChoice === state.choice) return;
+            // The store in effect chosen again: a choice the browser would not keep is moot.
+            if (storageChoice === state.choice) {
+                state.answers.hasChoiceRefused = false;
+                return;
+            }
             const targetStore = state.options.initShelfStore(storageChoice);
             if (targetStore instanceof StoreUnavailable) {
                 state.answers.hasStoreRefused = true;

@@ -58,7 +58,7 @@ import {
     writeWindowSize,
 } from "./settings.ts";
 import { initShelfKeeper, type ShelfKeeper } from "./shelf-keeper.ts";
-import { KEPT_MAXIMUM } from "./shelf.ts";
+import { KEPT_MAXIMUM, type KeptFight } from "./shelf.ts";
 import {
     PANEL_WINDOW,
     type PanelWindow,
@@ -140,15 +140,18 @@ export interface SearchReport {
     onAttached(wrap: WrapHandle): void;
     /** A MargoMeter already holds the game, so this copy stands down and never counts. */
     onStoodDown(failure: MargonemEngineFailure): void;
-    /**
-     * The game is here and the method it is read by is not, still when the looking stops. Said
-     * then and not before, as a game that never came is: a copy that put a panel up at the first
-     * refusal and stood down at a later look left that panel standing.
-     */
+    /** The game is here and its method is not, when the looking stops (`docs/design.md` §10.1). */
     onRefused(failure: MargonemEngineFailure): void;
     onAbandoned(failure: MargonemEngineFailure): void;
     /** A look that failed, the first time one does. The looking goes on to its bound. */
     onLookFailed(failure: errors.Caught): void;
+}
+
+export interface MargonemEngineSearchOptions {
+    battle: MargonemEngineBattlePort;
+    interval: BrowserIntervalScheduler;
+    listener: PayloadListener;
+    report: SearchReport;
 }
 
 export interface MargonemEngineSearch {
@@ -165,7 +168,10 @@ interface Search {
 }
 
 const LOOK_EVERY_MILLISECONDS = 250;
-/** Four looks a second for a minute. A game that has not arrived by then is not arriving. */
+/**
+ * `develop`'s bound (`develop ADR 0043`), and a choice rather than a measurement: no recording says
+ * how long the game takes to start.
+ */
 export const LOOKS_MAXIMUM = 240;
 
 export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runtime {
@@ -177,7 +183,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
         "every row a fighter can be given fits the block the tooltip writer takes",
     );
     const defects = initDefectLedger(ports.console);
-    const storageChoice = readSettingOrFallback(
+    const storageChoice = recoverSetting(
         defects,
         readStorageChoice(ports.settings),
         STORAGE_DEFAULT,
@@ -193,7 +199,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
     const screen = createScreenState(
         readFoldSetting(ports, defects, PANEL_WINDOW.meter),
         readFoldSetting(ports, defects, PANEL_WINDOW.helper),
-        readSettingOrFallback(defects, readTypeStep(ports.settings), TYPE_STEP_DEFAULT),
+        recoverSetting(defects, readTypeStep(ports.settings), TYPE_STEP_DEFAULT),
         {
             meter: readSizeSetting(ports, defects, PANEL_WINDOW.meter),
             helper: readSizeSetting(ports, defects, PANEL_WINDOW.helper),
@@ -230,6 +236,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
                 if (screen.chosenFightOpenedAt !== null) return;
                 resetScreenOpened(screen);
             },
+            onFightKept: () => resetScreenFightDropped(screen, keeper.getFights()),
             markStale: () => markStale(state),
         });
         // The view reports a window it cannot place while it is being built, before `state` exists.
@@ -282,18 +289,23 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
             isStoodDown: false,
         };
         builtState = state;
-        state.search = initMargonemEngineSearch(ports.battle, ports.interval, listener, {
-            onAttached: (wrap) => {
-                state.wrap = wrap;
-                markPanelDue(state);
+        state.search = initMargonemEngineSearch({
+            battle: ports.battle,
+            interval: ports.interval,
+            listener,
+            report: {
+                onAttached: (wrap) => {
+                    state.wrap = wrap;
+                    markPanelDue(state);
+                },
+                onStoodDown: (failure) => {
+                    state.isStoodDown = true;
+                    ports.console.writeBrandedLine(failure.name, failure);
+                },
+                onRefused: (failure) => onMargonemEngineSearchFailed(state, failure),
+                onAbandoned: (failure) => onMargonemEngineSearchFailed(state, failure),
+                onLookFailed: (failure) => ports.console.writeBrandedLine(failure.name, failure),
             },
-            onStoodDown: (failure) => {
-                state.isStoodDown = true;
-                ports.console.writeBrandedLine(failure.name, failure);
-            },
-            onRefused: (failure) => onMargonemEngineSearchFailed(state, failure),
-            onAbandoned: (failure) => onMargonemEngineSearchFailed(state, failure),
-            onLookFailed: (failure) => ports.console.writeBrandedLine(failure.name, failure),
         });
     }
     return {
@@ -323,8 +335,21 @@ function resetScreenOpened(screen: ScreenState): void {
     screen.openPart = null;
 }
 
+/**
+ * A kept fight chosen and no longer kept is no fight to stand on: the panel goes back to the live
+ * one, or the newest kept, and closes what was opened in the fight that went.
+ */
+function resetScreenFightDropped(screen: ScreenState, fights: readonly KeptFight[]): void {
+    assert(fights.length <= KEPT_MAXIMUM, "a shelf looked through is inside its bound");
+    const chosenFightOpenedAt = screen.chosenFightOpenedAt;
+    if (chosenFightOpenedAt === null) return;
+    if (fights.some((keptFight) => keptFight.openedAt === chosenFightOpenedAt)) return;
+    screen.chosenFightOpenedAt = null;
+    resetScreenOpened(screen);
+}
+
 /** A value the reader stored that does not read back costs that value, and says so. */
-function readSettingOrFallback<Value>(
+function recoverSetting<Value>(
     defects: DefectLedger,
     storedSetting: Value | SettingFailure,
     fallback: Value,
@@ -339,7 +364,7 @@ function readFoldSetting(
     defects: DefectLedger,
     panelWindow: PanelWindow,
 ): boolean {
-    return readSettingOrFallback(defects, readWindowCollapsed(ports.settings, panelWindow), false);
+    return recoverSetting(defects, readWindowCollapsed(ports.settings, panelWindow), false);
 }
 
 function readSizeSetting(
@@ -347,7 +372,7 @@ function readSizeSetting(
     defects: DefectLedger,
     panelWindow: PanelWindow,
 ): WindowSize | null {
-    const size = readSettingOrFallback(defects, readWindowSize(ports.settings, panelWindow), null);
+    const size = recoverSetting(defects, readWindowSize(ports.settings, panelWindow), null);
     if (size !== null) {
         assert(size.width > 0, "a window is put back at a width it can stand at");
         assert(size.height > 0, "and a height");
@@ -355,10 +380,7 @@ function readSizeSetting(
     return size;
 }
 
-/**
- * The first mark asks for a frame; later marks before it arrives do nothing. A page that lends no
- * frame is drawn at once, as `develop` draws, and says so once.
- */
+/** The first mark asks for a frame; a page lending none draws at once (`docs/design.md` §10.4). */
 function markStale(state: RuntimeState): void {
     if (state.isStoodDown) return;
     if (state.isStale) return;
@@ -464,12 +486,15 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
             shouldDraw = executeScreenIntent(state.screen, intent);
             break;
         }
+        // A store that made room can drop the fight on screen, on a pin as on a move.
         case PANEL_INTENT.pin:
             state.keeper.pin(intent.openedAt);
+            resetScreenFightDropped(state.screen, state.keeper.getFights());
             shouldDraw = true;
             break;
         case PANEL_INTENT.storage:
             state.keeper.moveShelf(intent.choice);
+            resetScreenFightDropped(state.screen, state.keeper.getFights());
             shouldDraw = true;
             break;
         // Once per drag rather than once per frame, and no frame: the panel already stands
@@ -530,7 +555,7 @@ function readPlacementSetting(
     panelWindow: PanelWindow,
     screen: ScreenState,
 ): PanelPlacement {
-    const position = readSettingOrFallback(
+    const position = recoverSetting(
         defects,
         readWindowPosition(ports.settings, panelWindow),
         null,
@@ -558,17 +583,16 @@ function onMargonemEngineSearchFailed(state: RuntimeState, failure: MargonemEngi
 }
 
 /**
- * Getting the wrap onto the game (§10.1). The game builds its battle once, while its engine starts,
- * and a userscript may arrive on either side of that: so this looks, keeps looking, and stops when
- * it finds one or when the game plainly is not coming. A search with no end is something the page
- * pays for forever.
+ * Getting the wrap onto the game (§10.1). The engine builds one battle as it starts, and a
+ * userscript may arrive on either side of that: so this looks, keeps looking, and stops when it
+ * finds one or when the game plainly is not coming. A search with no end is something the page
+ * pays for forever. Production build `DHSqC3Uh`, fetched 2026-10-06, writes an engine's `battle`
+ * in one place, its start: `this.battle=new Battle,this.battle.init()`.
  */
 export function initMargonemEngineSearch(
-    battlePort: MargonemEngineBattlePort,
-    interval: BrowserIntervalScheduler,
-    listener: PayloadListener,
-    report: SearchReport,
+    options: MargonemEngineSearchOptions,
 ): MargonemEngineSearch {
+    const { battle: battlePort, interval, listener, report } = options;
     const search: Search = {
         looks: 0,
         isDone: false,

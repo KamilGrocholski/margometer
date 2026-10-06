@@ -4,7 +4,7 @@
  * as a fight that happened.
  */
 
-import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
+import { assertEquals, assertInstanceOf, assertStrictEquals, assertThrows } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import { type BrowserDate, initBrowserClock } from "#/src/ports/browser-time.ts";
 
@@ -18,20 +18,40 @@ Deno.test("a moment is read as the reader's own day and time, the month counted 
 });
 
 /** A page clock answering whatever the test says, for every moment asked about. */
-function composeDate(parts: Record<string, number | undefined>): BrowserDate {
+function composeDate(
+    parts: Record<string, number | undefined>,
+    now: unknown = 1234,
+    timestampText: unknown = "2026-09-13T21:05:00.000Z",
+): BrowserDate {
     return class {
         getDate = parts.day === undefined ? undefined : () => parts.day;
         getMonth = parts.month === undefined ? undefined : () => parts.month;
         getHours = parts.hour === undefined ? undefined : () => parts.hour;
         getMinutes = parts.minute === undefined ? undefined : () => parts.minute;
-        toISOString(): string {
-            return "2026-09-13T21:05:00.000Z";
+        toISOString(): unknown {
+            return timestampText;
         }
-        static now(): number {
-            return 1234;
+        static now(): unknown {
+            return now;
         }
     } as unknown as BrowserDate;
 }
+
+Deno.test("a now that is no whole millisecond past nought is the page's failure, not a moment", () => {
+    const readNowWith = (now: unknown) =>
+        initBrowserClock(composeDate(SEPTEMBER, now)).readNowMilliseconds();
+    assertInstanceOf(readNowWith(1.5), errors.Caught, "a fraction of one");
+    assertInstanceOf(readNowWith(Number.NaN), errors.Caught, "no number at all");
+    assertInstanceOf(readNowWith("1234"), errors.Caught, "and a number written as text");
+    assertInstanceOf(readNowWith(-1), errors.Caught, "a moment before the clock's nought");
+    assertStrictEquals(readNowWith(0), 0, "and the nought itself, which is a moment");
+    assertStrictEquals(readNowWith(1), 1, "as the one after it is");
+});
+
+Deno.test("a moment written down as no text is the page's failure, not a file's moment", () => {
+    const clock = initBrowserClock(composeDate(SEPTEMBER, 1234, 20260913));
+    assertInstanceOf(clock.readTimestampText(0), errors.Caught, "a number where text was asked");
+});
 
 Deno.test("a clock answering a day outside the calendar answers no moment at all", () => {
     const readMomentWith = (parts: Record<string, number | undefined>) =>
@@ -66,19 +86,25 @@ Deno.test("a clock answering a day outside the calendar answers no moment at all
     assertEquals(readMomentWith({ minute: undefined }), null, "and a document that lends no clock");
 });
 
-Deno.test("a moment off every clock is no moment, and one that throws is none either", () => {
+Deno.test("a moment off every clock is never asked about, and a clock that throws says none", () => {
     const clock = initBrowserClock(composeDate(SEPTEMBER));
-    assertEquals(clock.readMoment(Number.NaN), null, "a moment that is no number");
+    assertThrows(() => clock.readMoment(Number.NaN), Error, "a clock stated");
+    assertThrows(() => clock.readMoment(0.5), Error, "a clock stated");
     const throwing = class {
         constructor() {
             throw new RangeError("a clock torn down");
         }
         static now(): number {
-            return 0;
+            throw new RangeError("a clock torn down");
         }
     } as unknown as BrowserDate;
     const torn = initBrowserClock(throwing);
     assertEquals(torn.readMoment(0), null, "a clock that throws answers no moment");
+    assertInstanceOf(
+        torn.readNowMilliseconds(),
+        errors.Caught,
+        "and no now, as the page's failure",
+    );
     const text = torn.readTimestampText(0);
     assertInstanceOf(text, Error, "and no file's moment either");
     assertInstanceOf(text, errors.Caught, "as the page's failure");

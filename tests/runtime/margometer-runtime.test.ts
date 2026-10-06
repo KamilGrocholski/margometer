@@ -1958,6 +1958,111 @@ Deno.test("a shelf of pins says the fight had nowhere to go", () => {
     assert(said.some((answer) => answer.includes(EVERY_SLOT_PINNED_ANSWER)), "every slot is a pin");
 });
 
+/**
+ * A kept fight on screen that leaves the shelf is no fight to stand on, and a row opened in it
+ * would find the same person in the next: a party keeps its ids from one fight to the next.
+ */
+Deno.test("a fight on screen the rotation drops gives the screen back, with nothing open", () => {
+    const world = initRuntimeWorld(composeBattlePage(), (built) => {
+        const payloads = [{ init: 1, m: ["0;0;winner=Gracz 1"], endBattle: 1 }];
+        const fights = [{ openedAt: 1, payloads: readUpdates(FIRST_OF_A_PAIR), isPinned: false }];
+        for (let openedAt = 2; openedAt <= KEPT_MAXIMUM; openedAt += 1) {
+            fights.push({ openedAt, payloads, isPinned: false });
+        }
+        built.getShelf("local").set(STORE_KEY.fights, JSON.stringify({ version: 3, fights }));
+        return {};
+    });
+    const host = world.getHost();
+    openShelfScreen(world);
+    const oldest = findByMark(host, "data-fight", "1");
+    assertExists(oldest, "the oldest fight kept is a row");
+    world.press(oldest);
+    const name = getElementsWithin(host).find((fakeElement) => {
+        if (fakeElement.className !== CLASS.rowName) return false;
+        const stated = fakeElement.attributes.get("data-row");
+        if (stated === undefined) return false;
+        return !stated.startsWith("-");
+    });
+    assertExists(name, "it has a player's row to open");
+    world.press(name);
+    assertExists(getRegion(host, CLASS.crumb), "which stands open");
+    for (const payload of readUpdates(SECOND_OF_A_PAIR)) world.update(payload);
+    const keptOpenedAts = readKeptFights(world.getShelf("local")).map((fight) => fight.openedAt);
+    assert(!keptOpenedAts.includes(1), "the fight ending pushed the oldest off a full shelf");
+    assertEquals(getRegion(host, CLASS.crumb), undefined, "and the panel left it, closed");
+});
+
+/** A store that made room on a move or a pin can drop the fight on screen as the rotation can. */
+Deno.test("a fight on screen a store made room by gives the screen back, on a move", () => {
+    const sessionHeld = new Map<string, string>();
+    const world = initRuntimeWorld(composeBattlePage(), (built) => {
+        built.getShelf("local").set(STORE_KEY.fights, composeSmallShelf(2, false));
+        return {
+            initShelfStore: (choice) =>
+                choice === "session"
+                    ? initStoreRefusingOnce(sessionHeld)
+                    : initHeldStore(built.getShelf(choice)),
+        };
+    });
+    chooseKeptFight(world, "1");
+    openOptions(world);
+    chooseStorage(world, "session");
+    assertEquals(readKeptFights(sessionHeld).map((fight) => fight.openedAt), [2], "room was made");
+    openShelfScreen(world);
+    assertEquals(readChosenFights(world), ["2"], "by the fight on screen, so the newest stands");
+});
+
+function chooseKeptFight(world: RuntimeWorld, openedAt: string): void {
+    openShelfScreen(world);
+    const row = findByMark(world.getHost(), "data-fight", openedAt);
+    assertExists(row, `the shelf draws the fight kept at ${openedAt}`);
+    world.press(row);
+}
+
+/** The fights the shelf screen standing open marks as the one on screen. */
+function readChosenFights(world: RuntimeWorld): (string | undefined)[] {
+    return getElementsWithin(world.getHost())
+        .filter((fakeElement) => fakeElement.className.includes(CLASS.rowChosen))
+        .map((fakeElement) => fakeElement.attributes.get("data-fight"));
+}
+
+Deno.test("a fight on screen a store made room by gives the screen back, on a pin", () => {
+    const held = new Map([[STORE_KEY.fights as string, composeSmallShelf(2, false)]]);
+    const world = initRuntimeWorld(composeBattlePage(), () => ({
+        initShelfStore: () => initStoreRefusingOnce(held),
+    }));
+    chooseKeptFight(world, "1");
+    openShelfScreen(world);
+    const pin = findByMark(world.getHost(), "data-pin", "2");
+    assertExists(pin, "the newer fight carries a pin");
+    world.press(pin);
+    assertEquals(readKeptFights(held).map((fight) => fight.openedAt), [2], "room was made");
+    assertEquals(readChosenFights(world), ["2"], "by the fight on screen, so the newest stands");
+});
+
+/** A fight kept at nought is a moment like any other, so the live row's key is never one. */
+Deno.test("a page whose clock will not say now draws its fight, and keeps and hands over none", () => {
+    const world = initRuntimeWorld(composeBattlePage(), (built) => {
+        const payloads = [{ init: 1, m: ["0;0;winner=Gracz 1"], endBattle: 1 }];
+        const shelf = { version: 3, fights: [{ openedAt: 0, payloads, isPinned: false }] };
+        built.getShelf("local").set(STORE_KEY.fights, JSON.stringify(shelf));
+        const clock = { ...built.ports.clock, readNowMilliseconds: () => new errors.Caught("") };
+        return { clock };
+    });
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    const host = world.getHost();
+    assertStrictEquals(countRows(findList(host)), 11, "every one of the fight's combatants");
+    const keptOpenedAts = readKeptFights(world.getShelf("local")).map((fight) => fight.openedAt);
+    assertEquals(keptOpenedAts, [0], "and no row kept under no moment");
+    openShelfRowCard(world);
+    assertStrictEquals(countRows(getPanelWithin(host)), 2, "the shelf holds the fight going on");
+    assertEquals(readCardCounts(world), "10 vs 1", "whose row opens its own card");
+    openShelfScreen(world);
+    pressSave(world);
+    assertEquals(world.saved, [], "a file states when it was taken, and none is");
+    assertEquals(world.lines, [PANEL_DEFECT_KIND.keeping, PANEL_DEFECT_KIND.file], "each said");
+});
+
 Deno.test("the helper folds on its own, and is kept folded apart from the meter", () => {
     const world = playRecordedFight();
     const host = world.getHost();

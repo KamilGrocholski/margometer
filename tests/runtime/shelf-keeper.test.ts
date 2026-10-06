@@ -222,6 +222,9 @@ Deno.test("a choice the browser will not keep moves nothing, and says so", () =>
     assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.local, "the choice stays as it was");
     assert(getShelf(STORAGE_CHOICE.local).has(STORE_KEY.fights), "and so do the fights");
     assert(keeper.getAnswers().hasChoiceRefused, "which the shelf says outright");
+    keeper.moveShelf(STORAGE_CHOICE.local);
+    assert(!keeper.getAnswers().hasChoiceRefused, "until the store in effect is chosen again");
+    assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.local, "which moves nothing");
 });
 
 Deno.test("a shelf that does not read back is an empty one, and a defect said once", () => {

@@ -125,6 +125,7 @@ function composeOptions(
     const lines: string[] = [];
     const stale = { count: 0 };
     const opened = { count: 0 };
+    const kept = { count: 0 };
     const place: MargonemEnginePlacePort = { readPlace: () => PLACE };
     const hero: MargonemEngineHeroPort = { readHeroId: () => READER_ID };
     const build: MargonemClientBuildPort = { readBuildId: () => "Bb28FQty" };
@@ -150,12 +151,15 @@ function composeOptions(
         onFightOpened: () => {
             opened.count += 1;
         },
+        onFightKept: () => {
+            kept.count += 1;
+        },
         markStale: () => {
             stale.count += 1;
         },
         ...overrides,
     };
-    return { options, lines, stale, keeper, opened };
+    return { options, lines, stale, keeper, opened, kept };
 }
 
 function playInto(margonem: FakeMargonem, options: LiveFightOptions, payloads: readonly unknown[]) {
@@ -312,4 +316,46 @@ Deno.test("a payload past a bound the session states is a defect, and the fight 
         1,
         "on the fight that stood",
     );
+});
+
+Deno.test("a fight the clock gives no moment is kept under none, and that is said", () => {
+    const margonem = composeMargonem([[], []]);
+    const refusing = { ...STILL_CLOCK, readNowMilliseconds: () => new errors.Caught("no clock") };
+    const { options, lines, keeper, kept } = composeOptions(margonem, { clock: refusing });
+    const { live } = playInto(margonem, options, [{ init: 1 }, { endBattle: 1 }]);
+    assertStrictEquals(live.openedAt, null, "the fight opened at no moment anybody stated");
+    assertEquals(keeper.getFights(), [], "so no row stands for it, at nought or anywhere else");
+    assertEquals(lines, [DEFECT_KIND.keeping], "and the panel says it kept nothing");
+    assertStrictEquals(kept.count, 1, "while the shelf's answer is still handed on");
+});
+
+Deno.test("a second fight whose opening breaks takes nothing of the first's", () => {
+    const margonem = composeMargonem([[], [], [], []]);
+    let moments = 0;
+    const clock = {
+        ...STILL_CLOCK,
+        readNowMilliseconds: () => {
+            moments += 1;
+            return moments === 1 ? OPENED_AT : new errors.Caught("a clock gone");
+        },
+    };
+    let places = 0;
+    const place: MargonemEnginePlacePort = {
+        readPlace: () => {
+            places += 1;
+            if (places === 1) return PLACE;
+            throw new Error("a place that breaks our step");
+        },
+    };
+    const { options, lines, keeper, kept } = composeOptions(margonem, { clock, place });
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const { live } = playInto(margonem, options, [{ init: 1 }, end, { init: 1 }, end]);
+    assertEquals(
+        [live.openedAt, live.place, live.readerId],
+        [null, null, null],
+        "no moment, no place and no reader carried over from the fight before",
+    );
+    assertEquals(keeper.getFights().map((fight) => fight.openedAt), [OPENED_AT], "one row");
+    assertEquals(lines, [DEFECT_KIND.reading, DEFECT_KIND.keeping], "the break, and no keeping");
+    assertStrictEquals(kept.count, 2, "each close handed on the shelf's answer");
 });

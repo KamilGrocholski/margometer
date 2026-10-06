@@ -200,8 +200,25 @@ export function writeWindowPosition(
     position: PanelPosition,
 ): undefined | SettingFailure {
     const key = POSITION_SETTING_BY_WINDOW[panelWindow];
-    const text = `{"left":${formatInteger(position.left)},"top":${formatInteger(position.top)}}`;
+    const text = encodeWholePair(POSITION_FIELDS, ["left", "top"], [position.left, position.top]);
     return store.write(STORE_KEY_BY_SETTING[key], text);
+}
+
+/**
+ * Two whole numbers under two names, as `parseWholePair` reads them back. Spelled rather than
+ * handed to `JSON.stringify`, so a number that is no whole one is caught by `formatInteger`.
+ */
+function encodeWholePair<Field extends string>(
+    fields: FieldKeys<Field>,
+    names: readonly [Field, Field],
+    numbers: readonly [number, number],
+): string {
+    const firstKey = fields[names[0]];
+    const secondKey = fields[names[1]];
+    assert(firstKey !== secondKey, "a pair is written under two names");
+    const firstNumber = formatInteger(numbers[0]);
+    const secondNumber = formatInteger(numbers[1]);
+    return `{"${firstKey}":${firstNumber},"${secondKey}":${secondNumber}}`;
 }
 
 /**
@@ -233,7 +250,7 @@ export function writeWindowSize(
     assert(size.width > 0, "a window made narrower than nothing is our bug");
     assert(size.height > 0, "and so is one made shorter than nothing");
     const key = SIZE_SETTING_BY_WINDOW[panelWindow];
-    const text = `{"width":${formatInteger(size.width)},"height":${formatInteger(size.height)}}`;
+    const text = encodeWholePair(SIZE_FIELDS, ["width", "height"], [size.width, size.height]);
     return store.write(STORE_KEY_BY_SETTING[key], text);
 }
 

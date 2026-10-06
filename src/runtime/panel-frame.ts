@@ -28,7 +28,7 @@ import {
 } from "./fight-state.ts";
 import type { LiveFight } from "./live-fight.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
-import type { ShelfAnswers, ShelfKeeper } from "./shelf-keeper.ts";
+import { SHELF_ANSWERS_MAXIMUM, type ShelfAnswers, type ShelfKeeper } from "./shelf-keeper.ts";
 import { KEPT_MAXIMUM, type KeptFight } from "./shelf.ts";
 import type {
     OptionsContent,
@@ -114,7 +114,10 @@ export interface FrameParts {
     tooltip: MargonemEngineTooltipPort;
     tables: TooltipTables;
     translate: TranslateLabel;
-    /** The world the page is on, which is every kept fight's: a shelf is one origin's store. */
+    /**
+     * The world the page is on, which is every kept fight's: a world is read off the page's host
+     * (`src/ports/browser-surroundings.ts`), and a browser keeps a store for each origin apart.
+     */
     world: string | null;
 }
 
@@ -130,7 +133,7 @@ interface LiveRow {
     fightState: FightState;
     place: FightPlace | null;
     readerId: number | null;
-    openedAt: number;
+    openedAt: number | null;
 }
 
 /** What a fight's card is read from, whichever of the live fight or a kept one it is. */
@@ -139,14 +142,18 @@ interface FightCardSource {
     unplaced: number;
     outcome: OutcomeResult | null;
     isLive: boolean;
-    openedAt: number;
+    openedAt: number | null;
     place: FightPlace | null;
     readerId: number | null;
     roster: CombatantRoster;
 }
 
-/** The four answers a shelf can give, of which at most three ever hold at once. */
-const SHELF_ANSWERS_MAXIMUM = 3;
+/**
+ * The live row's key where the clock gave its fight no moment. The row the panel draws takes a
+ * number, and the shelf reads back no moment below nought (`src/runtime/shelf.ts`), so this one
+ * is the live row's alone: nothing is pinned or shown by it, and its card states no time.
+ */
+const LIVE_ROW_UNTIMED_KEY = -1;
 
 export function renderFrame(parts: FrameParts): void {
     assert(
@@ -400,7 +407,7 @@ function presentFightCardContent(parts: FrameParts, source: FightCardSource): Fi
         unplaced: source.unplaced,
         outcome: source.outcome,
         isLive: source.isLive,
-        at: parts.clock.readMoment(source.openedAt),
+        at: source.openedAt === null ? null : parts.clock.readMoment(source.openedAt),
         place: formatFightPlace(source.place),
         world: parts.world,
         reader: lookupFightReader(source.roster, source.readerId),
@@ -449,9 +456,10 @@ function presentShelfRows(
     if (liveRow !== null) {
         const { sizes, unplaced } = presentShelfHeadcount(liveRow.fightState);
         const outcome = getOutcomeOfReading(liveRow.fightState);
+        const liveOpenedAt = liveRow.openedAt;
         rows.push({
-            openedAt: liveRow.openedAt,
-            at: parts.clock.readMoment(liveRow.openedAt),
+            openedAt: liveOpenedAt ?? LIVE_ROW_UNTIMED_KEY,
+            at: liveOpenedAt === null ? null : parts.clock.readMoment(liveOpenedAt),
             sizes,
             place: formatFightPlace(liveRow.place),
             outcome,
@@ -557,7 +565,10 @@ function presentShelfAnswers(shelfAnswers: ShelfAnswers): string[] {
     if (shelfAnswers.hasStoreRefused) {
         assert(!shelfAnswers.hasStoreMadeRoom, "a store refused, or made room");
     }
-    assert(answers.length <= SHELF_ANSWERS_MAXIMUM, "at most three of the four ever hold at once");
+    assert(
+        answers.length <= SHELF_ANSWERS_MAXIMUM,
+        "a shelf states only answers that hold together",
+    );
     return answers;
 }
 

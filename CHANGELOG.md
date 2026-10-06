@@ -50,6 +50,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   gra pisze go tam sama, więc panel go nie powtarza.
 - **Poprawka** — Spowolnienie i przyspieszenie w dymku postaci liczą dwa czary tej samej postaci
   jako jedno źródło, tak jak mówi pomoc gry.
+- **Poprawka** — Gdy oglądana zapisana walka wypadnie z listy, bo przyszła nowa albo zabrakło
+  miejsca, panel wraca do bieżącej walki i nie zostawia otwartego wiersza z tamtej.
+- **Poprawka** — Kolejna walka nie pokazuje już miejsca ani twojej postaci z poprzedniej, gdy panel
+  nie zdołał ich odczytać na jej początku.
+- **Poprawka** — Gdy przeglądarka nie poda godziny rozpoczęcia walki, panel nie zapisuje jej już pod
+  1 stycznia 1970 ani razem z poprzednią walką, tylko mówi, że jej nie zapisał.
+- **Poprawka** — Ostrzeżenie, że przeglądarka nie zapamiętała wyboru miejsca na walki, znika, gdy
+  ponownie wybierzesz miejsce, w którym walki już są.
 
 ## [0.22.1] — 2026-10-05
 

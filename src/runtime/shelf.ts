@@ -202,6 +202,11 @@ export function openShelf(store: KeyValueStore): ShelfOpened | ShelfFailure {
                 fight = null;
                 break readFight;
             }
+            // A moment is the key a row's marks carry, and a mark reads back whole numbers alone.
+            if (!Number.isSafeInteger(openedAt)) {
+                fight = null;
+                break readFight;
+            }
             if (openedAt < 0) {
                 fight = null;
                 break readFight;
@@ -322,12 +327,13 @@ export function writeKeptFight(
     if (shelf.fights.some((keptFight) => keptFight.openedAt === fight.openedAt)) {
         return new FightAlreadyKept(fight.openedAt);
     }
+    assert(shelf.fights.length <= KEPT_MAXIMUM, "a fight is kept onto a shelf inside its bound");
     const fightsAfter = [...shelf.fights, fight];
     const pinned = fightsAfter.filter((keptFight) => keptFight.isPinned).length;
     if (pinned >= KEPT_MAXIMUM) {
         if (fightsAfter.length > KEPT_MAXIMUM) return new EverySlotPinned(KEPT_MAXIMUM);
     }
-    return writeShelf(store, shelf, fightsAfter);
+    return writeShelf(store, fightsAfter);
 }
 
 /**
@@ -337,7 +343,6 @@ export function writeKeptFight(
  */
 function writeShelf(
     store: KeyValueStore,
-    before: ShelfContents,
     fights: readonly KeptFight[],
 ): ShelfWritten | ShelfFailure {
     let offered = rotateShelf(fights);
@@ -358,7 +363,6 @@ function writeShelf(
                 dropped.length + offered.length === fights.length,
                 "every fight offered is kept or dropped",
             );
-            assert(before.fights.length <= KEPT_MAXIMUM, "the shelf before was inside its bound");
             return { contents: { fights: offered }, droppedOpenedAt: dropped };
         }
         if (written instanceof StoreUnavailable) return written;
@@ -412,10 +416,11 @@ export function writeKeptFightPin(
         shelf.fights.some((keptFight) => keptFight.openedAt === openedAt),
         "a pin is asked of a fight the shelf keeps",
     );
+    assert(shelf.fights.length <= KEPT_MAXIMUM, "on a shelf inside its bound");
     const fightsAfter = shelf.fights.map((keptFight) =>
         keptFight.openedAt === openedAt ? { ...keptFight, isPinned } : keptFight
     );
-    return writeShelf(store, shelf, fightsAfter);
+    return writeShelf(store, fightsAfter);
 }
 
 /**
@@ -427,7 +432,7 @@ export function writeShelfContents(
     shelf: ShelfContents,
 ): ShelfWritten | ShelfFailure {
     assert(shelf.fights.length <= KEPT_MAXIMUM, "a shelf moved is inside its stated bound");
-    return writeShelf(store, shelf, shelf.fights);
+    return writeShelf(store, shelf.fights);
 }
 
 /** The key the shelf is under, gone: a reader who moved it wants nothing left behind. */

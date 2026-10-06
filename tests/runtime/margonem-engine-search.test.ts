@@ -113,12 +113,12 @@ function start(
         onBeforeCall: () => {},
         onPayload: (payload: unknown) => void seen.push(payload),
     };
-    return initMargonemEngineSearch(
-        initMargonemEngineBattle(page),
-        initBrowserInterval(clock.timers),
+    return initMargonemEngineSearch({
+        battle: initMargonemEngineBattle(page),
+        interval: initBrowserInterval(clock.timers),
         listener,
         report,
-    );
+    });
 }
 
 Deno.test("a game that arrives late is waited for, and the timer stops when it is found", () => {
@@ -279,12 +279,12 @@ Deno.test("a clock that will not let go leaves a search that is done", () => {
             throw new RangeError("a clock that will not let go");
         },
     };
-    const search = initMargonemEngineSearch(
-        initMargonemEngineBattle({}),
-        initBrowserInterval(refusing),
-        { onBeforeCall: () => {}, onPayload: () => {} },
+    const search = initMargonemEngineSearch({
+        battle: initMargonemEngineBattle({}),
+        interval: initBrowserInterval(refusing),
+        listener: { onBeforeCall: () => {}, onPayload: () => {} },
         report,
-    );
+    });
     clock.tick(300);
     assertStrictEquals(cancels, 1, "the search stopped once, though the clock refused it");
     assert(search.isDone(), "and says it is done");
@@ -340,12 +340,12 @@ Deno.test("a search that is done looks no more, though the page's timer will not
             return {};
         },
     };
-    initMargonemEngineSearch(
-        initMargonemEngineBattle(page),
-        initBrowserInterval(stuck),
-        { onBeforeCall: () => {}, onPayload: () => {} },
+    initMargonemEngineSearch({
+        battle: initMargonemEngineBattle(page),
+        interval: initBrowserInterval(stuck),
+        listener: { onBeforeCall: () => {}, onPayload: () => {} },
         report,
-    );
+    });
     for (let turn = 0; turn < 300; turn += 1) (step as (() => void) | null)?.();
     assertStrictEquals(looks, LOOKS_MAXIMUM, "the timer went on firing, and nothing looked");
     assertEquals(told.failures, [], "and no look past the end failed");
@@ -360,12 +360,12 @@ Deno.test("a page that will not start the timer is marked, once, as a look that 
         },
         clearInterval: () => {},
     };
-    initMargonemEngineSearch(
-        initMargonemEngineBattle({}),
-        initBrowserInterval(refusing),
-        { onBeforeCall: () => {}, onPayload: () => {} },
+    initMargonemEngineSearch({
+        battle: initMargonemEngineBattle({}),
+        interval: initBrowserInterval(refusing),
+        listener: { onBeforeCall: () => {}, onPayload: () => {} },
         report,
-    );
+    });
     assertStrictEquals(told.failures.length, 1, "the refusal is marked");
     assertEquals(told.abandoned, [], "and the one look that ran was not the last");
 });
@@ -391,11 +391,11 @@ Deno.test("a report that breaks on the starting stack does not leave the start",
         },
     };
     const listener = { onBeforeCall: () => {}, onPayload: () => {} };
-    const search = initMargonemEngineSearch(
-        initMargonemEngineBattle({}),
-        initBrowserInterval(refusing),
+    const search = initMargonemEngineSearch({
+        battle: initMargonemEngineBattle({}),
+        interval: initBrowserInterval(refusing),
         listener,
         report,
-    );
+    });
     assertStrictEquals(search.isDone(), false, "the search stood up, with nothing escaping it");
 });

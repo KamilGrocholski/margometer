@@ -100,6 +100,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
             place: null,
             readerId: null,
             openedAt: 0,
+            openedAtRefusal: null,
             margonemEngineBattle: null,
         },
         defects,

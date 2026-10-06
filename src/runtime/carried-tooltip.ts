@@ -91,7 +91,6 @@ function presentCarriedTooltip(
     const statuses = view.carriedStatuses.filter((carriedStatus) =>
         carriedStatus.combatantId === combatantId
     );
-    assert(statuses.length <= view.carriedStatuses.length, "a fighter carries part of the fight");
     return {
         turnsTaken: view.turnsByCombatantId.get(combatantId) ?? 0,
         provokedBy: provoked === undefined ? null : {

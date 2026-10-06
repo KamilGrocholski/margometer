@@ -188,6 +188,17 @@ Deno.test("one fight nobody can read costs that fight and not the shelf", () => 
     assertStrictEquals(whole.fightsUnreadable, 0, "and counts none");
 });
 
+/** A moment is the key a row's marks carry, and a mark reads a whole number back or nothing. */
+Deno.test("a fight kept at a fraction of a moment is dropped, and one at a whole moment is read", () => {
+    const fraction = '{"version":3,"fights":[{"openedAt":1.5,"payloads":[{"init":1}]}]}';
+    assertEquals(readOpenedAt(composeStoreHolding(fraction)), [], "a moment no mark can carry");
+    const whole = '{"version":3,"fights":[{"openedAt":2,"payloads":[{"init":1}]}]}';
+    assertEquals(readOpenedAt(composeStoreHolding(whole)), [2], "and the whole one beside it");
+    const past = Number.MAX_SAFE_INTEGER + 1;
+    const huge = `{"version":3,"fights":[{"openedAt":${past},"payloads":[{"init":1}]}]}`;
+    assertEquals(readOpenedAt(composeStoreHolding(huge)), [], "and one past whole numbers' reach");
+});
+
 Deno.test("the shelf holds its stated maximum, oldest dropped first, and says which went", () => {
     const store = initMemoryStore();
     const shelf = keepAll(

@@ -1,8 +1,9 @@
 /**
  * The page's time (`docs/design.md` §5): its clock, which owns every moment the runtime states; its
  * animation frame, the one moment the panel draws; its own timer, for a step that repeats until it
- * is cancelled (§10.1). The clock reads the page's own `Date` and answers null where it will not
- * read one: a row with no time says nothing rather than saying `00:00`. A hidden tab gets no
+ * is cancelled (§10.1). The clock reads the page's own `Date`: a moment it will not read is null,
+ * since a row with no time says nothing rather than saying `00:00`, and a now or a moment written
+ * down it will not state is its failure, which the step that asked marks. A hidden tab gets no
  * frames, and nobody is looking at it. A step is ours and the browser calls it, so it is guarded
  * where it is handed over (`AGENTS.md` E10): a throw out of it lands in a loop that drops it.
  */
@@ -19,7 +20,9 @@ export interface BrowserMoment {
 }
 
 export interface BrowserClock {
-    readNowMilliseconds(): number;
+    /** A whole millisecond past the clock's nought, which is what the shelf reads a moment as. */
+    readNowMilliseconds(): number | errors.Caught;
+    /** Asked only of a moment `readNowMilliseconds` or the shelf stated. */
     readMoment(atMilliseconds: number): BrowserMoment | null;
     /** The moment as a file states it, in the page's own ISO 8601. */
     readTimestampText(atMilliseconds: number): string | errors.Caught;
@@ -86,9 +89,21 @@ const MINUTE_MAXIMUM = 59;
 
 export function initBrowserClock(date: BrowserDate): BrowserClock {
     return {
-        readNowMilliseconds: () => date.now(),
+        // ⚠️ A page's `Date` is somebody else's, and a now that is no whole millisecond past nought
+        // breaks it as a throw would: it is answered as one, and nothing is kept under it.
+        readNowMilliseconds: () =>
+            errors.attempt((): number => {
+                const now: unknown = date.now();
+                assert(typeof now === "number", "a page's now is a number");
+                assert(Number.isSafeInteger(now), "of whole milliseconds");
+                assert(now >= 0, "counted from the clock's nought");
+                return now;
+            }),
         readMoment(atMilliseconds) {
-            if (!Number.isFinite(atMilliseconds)) return null;
+            assert(
+                Number.isSafeInteger(atMilliseconds),
+                "a moment asked about is one a clock stated",
+            );
             // Read the moment: a day, a month, an hour and a minute, or null for any one refused.
             const moment = errors.attempt((): BrowserMoment | null => {
                 // ⚠️ **The day is held to the same refusal as the time**: a shelf of twenty fights
@@ -113,9 +128,12 @@ export function initBrowserClock(date: BrowserDate): BrowserClock {
         },
         readTimestampText(atMilliseconds) {
             assert(Number.isFinite(atMilliseconds), "a moment written down is one on the clock");
-            const timestampText = errors.attempt(() => new date(atMilliseconds).toISOString());
-            if (timestampText instanceof Error) return timestampText;
-            return String(timestampText);
+            // A text that is no text breaks the page's `Date` as a throw would, and is answered so.
+            return errors.attempt((): string => {
+                const timestampText: unknown = new date(atMilliseconds).toISOString();
+                assert(typeof timestampText === "string", "a page's clock writes a moment as text");
+                return timestampText;
+            });
         },
     };
 }

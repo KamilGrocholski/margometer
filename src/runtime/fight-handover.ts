@@ -65,6 +65,7 @@ export function writeShownFightFile(
     let handover: Handover;
     if (shownFight.keptFight === null) {
         const now = ports.clock.readNowMilliseconds();
+        if (now instanceof Error) return now;
         let margonemClientBuild: string | null;
         // Read the build: one the page will not state is absent, and no failure of the file's.
         {
@@ -96,7 +97,8 @@ export function writeShownFightFile(
             combatantsBefore: null,
             combatantsAfter: null,
         }));
-        // The world and the browser are the page's: a shelf is read out of one origin's store.
+        // The world is the page's, for the reason `FrameParts.world` gives in
+        // `src/runtime/panel-frame.ts`, and the browser is the one handing the fight over.
         const surroundings = readFileSurroundings(
             ports,
             keptFight.openedAt,
