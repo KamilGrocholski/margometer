@@ -28,7 +28,7 @@ export class StoreUnavailable extends Error {
     override readonly name = "StoreUnavailable";
 }
 
-/** A quota refusal is an answer. */
+/** A refusal the browser threw is an answer: a write past its quota, or any call it forbids. */
 export class StoreRefused extends Error {
     override readonly name = "StoreRefused";
 

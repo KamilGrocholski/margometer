@@ -1,6 +1,7 @@
 /**
  * Where a fight is happening, asked of the client's own state, because the protocol says none of
- * it: its only candidate, `battleground`, is the picture behind the fight and two worlds share one.
+ * it: its only candidate, `battleground`, is the picture behind the fight, and over `captures/` on
+ * 2026-10-06 one picture, `dd4.jpg`, stands behind fights on two worlds, tempest and luvia.
  * Properties, never `getCords()`: calling into somebody else's program is a larger intrusion than
  * reading it.
  */
@@ -23,8 +24,9 @@ export interface MargonemEnginePlacePort {
 }
 
 /**
- * Carried from v1's reading of production build `53XkBRxF` and development build
- * `1781609507010`: the map is `Engine.map.d.name` and the position `Engine.hero.d.x` and `.y`.
+ * The map's name under its member `d`, by the reading `src/ports/margonem-engine-battle.ts` quotes;
+ * the position is `Engine.hero.d.x` and `.y`, carried from v1's reading of production build
+ * `53XkBRxF` and development build `1781609507010`.
  */
 type PlaceField = "mapName" | "x" | "y";
 

@@ -221,6 +221,62 @@ function isMarked(method: unknown): boolean {
     return "__margometerBattleWrap" in method;
 }
 
+/**
+ * ⚠️ **Deno runs these tests strict, and the bundle runs sloppy.** A write to a read-only property
+ * throws in one and is silent in the other, and only a data property shows the difference: the
+ * accessors above take the write in both, so they cannot tell a refusal answered from one thrown.
+ */
+Deno.test("a method the page made read-only, or guards with a throw, is refused alike", () => {
+    const held = composeHeld(1);
+    const original = held.battle.updateData;
+    const frozen: Record<string, unknown> = {};
+    Object.defineProperty(frozen, "updateData", { value: original, writable: false });
+    const refused = readBattleOn(frozen).wrap(composeListener({}));
+    assertInstanceOf(
+        refused,
+        MargonemEngineMethodUnwritable,
+        "a read-only method refuses the wrap",
+    );
+    assertStrictEquals(refused.cause, null, "with nothing thrown");
+    assertStrictEquals(frozen.updateData, original, "and the engine's own stands");
+
+    const guarded: Record<string, unknown> = {};
+    Object.defineProperty(guarded, "updateData", {
+        get: () => original,
+        set: () => {
+            throw new TypeError("a page that will not be written to");
+        },
+    });
+    const thrown = readBattleOn(guarded).wrap(composeListener({}));
+    assertInstanceOf(thrown, MargonemEngineMethodUnwritable, "a setter that throws refuses it");
+    assertInstanceOf(thrown.cause, errors.Caught, "and what it threw is the cause");
+    assertInstanceOf(thrown.cause.cause, TypeError, "as the page threw it");
+});
+
+Deno.test("a detach the page will not let be written leaves ours standing, and says so", () => {
+    const held = composeHeld(1);
+    const wrap = wrapOn(held.battle, composeListener({}));
+    const wrapper = held.battle.updateData;
+    Object.defineProperty(held.battle, "updateData", { value: wrapper, writable: false });
+    const refused = wrap.detach();
+    assertInstanceOf(refused, MargonemEngineMethodUnwritable, "a read-only method refuses it");
+    assertStrictEquals(refused.cause, null, "with nothing thrown");
+    assertStrictEquals(held.battle.updateData, wrapper, "and ours is where it was");
+
+    const second = composeHeld(1);
+    const guardedWrap = wrapOn(second.battle, composeListener({}));
+    const secondWrapper = second.battle.updateData;
+    Object.defineProperty(second.battle, "updateData", {
+        get: () => secondWrapper,
+        set: () => {
+            throw new TypeError("a page that will not be written to");
+        },
+    });
+    const thrown = guardedWrap.detach();
+    assertInstanceOf(thrown, MargonemEngineMethodUnwritable, "a setter that throws refuses it");
+    assertInstanceOf(thrown.cause, errors.Caught, "and what it threw is the cause");
+});
+
 /** By the marker's presence, whatever its value: any MargoMeter is a second count. */
 Deno.test("another build's wrap is recognised by its marker alone", () => {
     const foreign = Object.assign(() => 1, { __margometerBattleWrap: 99 });

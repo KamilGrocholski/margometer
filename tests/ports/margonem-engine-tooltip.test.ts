@@ -1,5 +1,5 @@
 /**
- * The one thing this add-on puts outside itself, and every shape that takes none of it.
+ * The rows this add-on writes into a fighter's tooltip, and every shape that takes none of them.
  *
  * What is checked is the refusals, because the success is one call. A client that renamed the
  * method, a fighter the page has not drawn, a jQuery object that throws — each must cost the line
@@ -466,4 +466,77 @@ Deno.test("a throw part way through remembers every block that went on before it
         `${THEIRS}<br>MargoMeter<br>Tury wykonane 3`,
         "and it stays one block",
     );
+});
+
+/**
+ * **S11 on the path that throws.** A fight ending on a fighter whose call throws is still a board
+ * the page drew, so what it no longer draws is forgotten there too, or every such fight would add
+ * a board's worth that no later fight sheds.
+ */
+Deno.test("fight after fight ending on a throw of theirs remembers one board's worth", () => {
+    const page = composePage([]);
+    const writer = initMargonemEngineTooltip(page);
+    for (let fight = 0; fight < 4; fight += 1) {
+        const ids = Array.from({ length: COMBATANTS_MAXIMUM }, (_, index) => fight * 1000 + index);
+        const board = composePage(
+            ids.map((id, index) =>
+                composeWarrior(id, `Gracz ${id}`, composeRegistry(), {
+                    doesThrowOnFind: index === COMBATANTS_MAXIMUM - 1,
+                })
+            ),
+        );
+        page.Engine.battle = board.Engine.battle;
+        const writing = writer.writeRows(new Map(ids.map((id) => [id, ["MargoMeter"]])));
+        assertInstanceOf(writing, errors.Caught, `fight ${fight} stops on the throw, and says so`);
+    }
+});
+
+/**
+ * The page's collection is theirs, and nothing stops it holding one id under two keys. Counted
+ * twice, a fighter would land two blocks against the one composed for them.
+ */
+Deno.test("a fighter the page holds twice takes one block, counted once", () => {
+    const firstRegistry = composeRegistry();
+    const secondRegistry = composeRegistry();
+    const page = composePage([
+        composeWarrior(11, "Gracz 1", firstRegistry),
+        composeWarrior(11, "Gracz 1", secondRegistry),
+    ]);
+    const writing = initMargonemEngineTooltip(page).writeRows(new Map([[11, ["MargoMeter"]]]));
+    assertEquals(writing, { written: 1, refused: 0 }, "one block asked for, one landed");
+    assertEquals(firstRegistry.appended, ["MargoMeter"], "on the first the page holds");
+    assertEquals(secondRegistry.appended, [], "and not again on the second");
+});
+
+/**
+ * ⚠️ **What is forgotten is a fighter not drawn, never one not reached.** A throw ends the walk
+ * before the fighters after it; their blocks still stand, and forgotten they would take a second.
+ */
+Deno.test("a fighter the walk never reached keeps the block remembered on them", () => {
+    const registry = composeRegistry();
+    let isThrowing = false;
+    const throwing = {
+        id: 21,
+        name: "Renegat 1",
+        $: {
+            find: () => {
+                if (isThrowing) throw new TypeError("a page being torn down");
+                return {
+                    getTipData: () => THEIRS,
+                    tip: () => {},
+                    concatTip: () => {},
+                    trigger: () => {},
+                };
+            },
+        },
+    };
+    const page = composePage([throwing, composeWarrior(11, "Gracz 1", registry)]);
+    const writer = initMargonemEngineTooltip(page);
+    const rows = new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]);
+    writer.writeRows(rows);
+    isThrowing = true;
+    assertInstanceOf(writer.writeRows(rows), errors.Caught, "the walk stopped before them");
+    isThrowing = false;
+    writer.writeRows(rows);
+    assertEquals(registry.text, `${THEIRS}<br>MargoMeter<br>Tury wykonane 3`, "one block still");
 });

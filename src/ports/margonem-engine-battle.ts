@@ -1,9 +1,8 @@
 /**
- * The running fight on the game's page, and the one change this add-on makes to the game: a wrap
- * of its `updateData` (`docs/design.md` §5, §10.2). The wrap semantics are carried over from
- * `develop`: the engine's own call runs first and its value comes back untouched, its exception
- * reaches the game as it would have, and a failure of ours never leaves this file. The engine
- * itself is found here, and what it holds of its map and its hero is read here for every adapter.
+ * The running fight on the game's page, and the wrap of its `updateData` (`docs/design.md` §5,
+ * §10.2). What the wrap promises the page is `SECURITY.md`'s, under "The reading boundary", and is
+ * carried over from `develop`. The engine itself is found here, and what it holds of its map and
+ * its hero is read here for every adapter.
  */
 
 import * as errors from "#/libs/errors.ts";
@@ -32,12 +31,17 @@ export class MargonemEngineMethodAbsent extends Error {
 }
 
 /**
- * The method took the wrap and does not hand it back: a property the page will not let be written,
- * or one whose getter answers something else. The engine's own is put back, so no second layer
- * goes on at the next look.
+ * The method will not take a write of ours, or does not hand it back: a property the page will not
+ * let be written, a setter that throws, or a getter answering something else. At the wrap the
+ * engine's own is put back, so no second layer goes on at the next look; at the detach ours stays.
+ * The cause is what the page threw, and null where it threw nothing.
  */
 export class MargonemEngineMethodUnwritable extends Error {
     override readonly name = "MargonemEngineMethodUnwritable";
+
+    constructor(cause: errors.Caught | null) {
+        super(undefined, { cause });
+    }
 }
 
 /** A wrap of ours already stands: another copy of the add-on is reading this fight. */
@@ -160,18 +164,31 @@ export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngine
                     const wrapper = Object.assign(callEngineUpdate, {
                         [WRAP_MARKER]: WRAP_VERSION,
                     });
-                    battle[WRAPPED_METHOD] = wrapper;
-                    // ⚠️ A wrap that does not read back is one the next look cannot see, and would
-                    // go on again over it.
-                    if (battle[WRAPPED_METHOD] !== wrapper) {
-                        battle[WRAPPED_METHOD] = original;
-                        return new MargonemEngineMethodUnwritable();
+                    // ⚠️ A write the page refuses throws in strict code and is silent in the bundle's
+                    // sloppy code, so it goes through `Reflect.set`, which does neither; and a wrap
+                    // that does not read back is one the next look cannot see, and would go on
+                    // again over it.
+                    const isWrapStanding = errors.attempt((): boolean => {
+                        void Reflect.set(battle, WRAPPED_METHOD, wrapper);
+                        if (battle[WRAPPED_METHOD] === wrapper) return true;
+                        void Reflect.set(battle, WRAPPED_METHOD, original);
+                        return false;
+                    });
+                    if (isWrapStanding instanceof Error) {
+                        return new MargonemEngineMethodUnwritable(isWrapStanding);
                     }
+                    if (!isWrapStanding) return new MargonemEngineMethodUnwritable(null);
                     return {
                         detach() {
-                            if (battle[WRAPPED_METHOD] !== wrapper) return new WrapCovered();
-                            battle[WRAPPED_METHOD] = original;
-                            return undefined;
+                            const detached = errors.attempt(() => {
+                                if (battle[WRAPPED_METHOD] !== wrapper) return new WrapCovered();
+                                if (Reflect.set(battle, WRAPPED_METHOD, original)) return undefined;
+                                return new MargonemEngineMethodUnwritable(null);
+                            });
+                            if (detached instanceof errors.Caught) {
+                                return new MargonemEngineMethodUnwritable(detached);
+                            }
+                            return detached;
                         },
                         getFailureCount: () => failures.count,
                         getFirstFailure: () => failures.first,
@@ -185,17 +202,12 @@ export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngine
     };
 }
 
-function lookupMargonemEngineBattle(engines: readonly Record<string, unknown>[]) {
+function lookupMargonemEngineBattle(engines: readonly UnknownRecord[]): UnknownRecord | null {
     for (const engine of engines) {
         const battle = engine[BATTLE_FIELD];
-        if (isWritableRecord(battle)) return battle;
+        if (isRecord(battle)) return battle;
     }
     return null;
-}
-
-/** The battle is written to once, by the wrap, which `isRecord`'s read-only reading refuses. */
-function isWritableRecord(battleCandidate: unknown): battleCandidate is Record<string, unknown> {
-    return isRecord(battleCandidate);
 }
 
 function isOurWrap(engineMethod: unknown): boolean {
@@ -204,18 +216,18 @@ function isOurWrap(engineMethod: unknown): boolean {
 }
 
 /** Both spellings of the game a page holds, in the order tried; a call into the page is theirs. */
-export function readMargonemEngines(browserWindow: unknown): Record<string, unknown>[] {
+export function readMargonemEngines(browserWindow: unknown): UnknownRecord[] {
     if (!isRecord(browserWindow)) return [];
     const engineCandidates: unknown[] = [browserWindow[ENGINE_FIELD]];
     const getEngine = browserWindow[ENGINE_CALL_FIELD];
     if (typeof getEngine === "function") {
         engineCandidates.push(Reflect.apply(getEngine, browserWindow, []));
     }
-    return engineCandidates.filter(isWritableRecord);
+    return engineCandidates.filter(isRecord);
 }
 
 /** The battle a page's game holds, or null; a call into the page may throw, and it is theirs. */
-export function readMargonemEngineBattle(browserWindow: unknown): Record<string, unknown> | null {
+export function readMargonemEngineBattle(browserWindow: unknown): UnknownRecord | null {
     return lookupMargonemEngineBattle(readMargonemEngines(browserWindow));
 }
 

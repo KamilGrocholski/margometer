@@ -24,7 +24,10 @@ const TRANSLATE_FIELD = "_t";
 const DIRECTION_SIGNS = "+-";
 const HOLE_MARK = "%";
 const FULL_STOP = ".";
-/** An entry is a label with at most a hole in it; this is far past any the game states. */
+/**
+ * An entry is a label with at most a hole in it. The longest of the 5301 in the dictionary of
+ * production build `1785244275300`, fetched 2026-08-04, runs to 1920 characters (read 2026-10-06).
+ */
 const ENTRY_LENGTH_MAXIMUM = 4096;
 
 export function initMargonemClientDictionary(browserWindow: unknown): MargonemClientDictionaryPort {
@@ -83,7 +86,7 @@ export function parseLabel(dictionaryText: string): string | null {
     return label;
 }
 
-/** Two marks with nothing between them is a hole, and any second mark is by definition that. */
+/** A hole opens at one mark and closes at the next, so any second mark closes one. */
 function hasHole(dictionaryText: string): boolean {
     assert(
         dictionaryText.length <= ENTRY_LENGTH_MAXIMUM,

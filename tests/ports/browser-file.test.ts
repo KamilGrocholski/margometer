@@ -61,6 +61,22 @@ Deno.test("a page that lends nothing to download with is answered, and nothing i
     assertEquals(anchorless.calls.at(-1), "revoke blob:1", "and the address it took is released");
 });
 
+/** The address is the page's answer, so an empty one is a page that lent nothing to download by. */
+Deno.test("an empty address from the page is answered, and nothing is clicked", () => {
+    const page = composeDownloads({
+        createObjectURL: () => {
+            page.calls.push("url");
+            return "";
+        },
+    });
+    const written = initBrowserFile(page.downloads).writeFile("fight.json", "{}", () => {});
+    assertInstanceOf(written, FileApiAbsent, "absent, rather than a broken invariant of ours");
+    assertEquals(page.calls, ["url"], "and no anchor was made for it");
+    const shortest = composeDownloads({ createObjectURL: () => "b" });
+    const clicked = initBrowserFile(shortest.downloads).writeFile("fight.json", "{}", () => {});
+    assertStrictEquals(clicked, undefined, "while an address of one character is clicked");
+});
+
 Deno.test("a click that throws takes the anchor off all the same, as the page's failure", () => {
     const page = composeDownloads({}, () => {
         throw new TypeError("a page being torn down");

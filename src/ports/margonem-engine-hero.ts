@@ -20,7 +20,7 @@ export interface MargonemEngineHeroPort {
     readHeroId(): number | MargonemReadFailure;
 }
 
-/** Production build `Bb28FQty`, fetched 2026-09-27: `this.getId=()=>this.d.id` on the hero. */
+/** Under the hero's member `d`, by the reading `src/ports/margonem-engine-battle.ts` quotes. */
 type HeroField = "id";
 
 const HERO_FIELDS: FieldKeys<HeroField> = { id: "id" };

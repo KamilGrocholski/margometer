@@ -17,8 +17,10 @@ export interface BrowserSurroundingsPort {
 export const WORLD_UNKNOWN = "unknown";
 
 /**
- * ⚠️ **Read through the prototype, not as own fields**: a browser keeps `navigator.userAgent` on
- * `Navigator.prototype`, so the own-field readers of `libs/unknown-value.ts` would find nothing.
+ * ⚠️ **Read through the prototype, not as own fields**: Web IDL defines an interface's attributes
+ * as accessors on its interface prototype object, unless marked `[LegacyUnforgeable]`, so
+ * `navigator.userAgent` stands on `Navigator.prototype` and the own-field readers of
+ * `libs/unknown-value.ts` would find nothing.
  */
 const LOCATION_FIELD = "location";
 const HOST_FIELD = "hostname";

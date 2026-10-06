@@ -3,9 +3,10 @@
  * (`docs/design.md` §5). A file rather than the clipboard, because a recording runs to hundreds of
  * kilobytes; a blob and an object URL are ordinary page APIs, and nothing leaves the browser.
  *
- * ⚠️ **The anchor goes into the document, and the URL is released on the next tick.** Clicking a
- * detached node and revoking at once is tolerated by Chromium and can abort the download in
- * Firefox, which reads the blob after the click returns: nothing throws, and no file arrives.
+ * ⚠️ **The anchor goes into the document, and the URL is released on the next tick.** Firefox reads
+ * the blob after the click returns, so clicking a detached node and revoking at once can abort the
+ * download there: nothing throws, and no file arrives. That is the reading this was decided on, and
+ * no engine but Chrome has been run here (`docs/browser-support.md`, "Not checked").
  */
 
 import { assert } from "@std/assert/assert";
@@ -32,7 +33,6 @@ export interface BrowserDownloads {
     revokeObjectURL(url: string): void;
     createBlob(text: string, type: string): unknown;
     createAnchor(): DownloadAnchor | null;
-    /** Into the document: Firefox reads the blob after the click returns, off a node it finds. */
     appendAnchor(anchor: DownloadAnchor): void;
     setTimeout(step: () => void, afterMilliseconds: number): void;
 }
@@ -59,10 +59,11 @@ export function initBrowserFile(downloads: BrowserDownloads | null): BrowserFile
                 return downloads.createObjectURL(downloads.createBlob(text, FILE_TYPE));
             });
             if (url instanceof Error) return url;
+            // An address is the page's answer, so an empty one is refused rather than asserted.
+            if (url.length === 0) return new FileApiAbsent();
             // Click the file's anchor: false where the page lends none, and the anchor comes off
             // whether the click threw or not.
             const wasClicked = errors.attempt((): boolean => {
-                assert(url.length > 0, "a file is clicked under the address the page gave it");
                 const anchor = downloads.createAnchor();
                 if (anchor === null) return false;
                 anchor.href = url;

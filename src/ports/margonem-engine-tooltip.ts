@@ -1,9 +1,8 @@
 /**
- * The one thing this add-on puts **outside** itself, and the whole of it: rows of ours appended to
- * the tooltip the game already shows for a fighter, through the client's own methods
- * (`docs/design.md` §5). That registry holds tooltips as strings, so no node is made, moved or
- * styled, and the game rewrites a fighter's entry whenever it updates them. What is read back is
- * our own block and nothing else: `develop ADR 0105`, `0107`, `0111`.
+ * Rows of ours appended to the tooltip the game already shows for a fighter, and our own block
+ * found again and taken off, through the client's own methods (`docs/design.md` §5). What this file
+ * may write and read back is `SECURITY.md`'s, under "The reading boundary"; what it cost to decide
+ * is `develop ADR 0105`, `0107` and `0111`.
  */
 
 import { assert } from "@std/assert/assert";
@@ -82,21 +81,31 @@ export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngin
         writeRows(rowsByCombatantId) {
             const asked = [...rowsByCombatantId.values()].filter((rows) => rows.length > 0).length;
             assert(asked <= COMBATANTS_MAXIMUM, "no more blocks than a fight puts on a board");
-            const nextBlocksById = new Map(blocksById);
-            // Write every fighter's block, and forget a fighter the page no longer draws, which
-            // keeps one board's worth in memory.
-            const blocksWritten = errors.attempt(() => {
+            // Read the fighters the page draws, each id once: a collection of theirs that repeats
+            // one holds one fighter, and its block is written and counted once.
+            const warriorsById = errors.attempt(() => {
                 const warriors = readMargonemEngineWarriorsNamed(
                     readMargonemEngineBattle(browserWindow),
                 );
-                if (warriors instanceof MargonemEngineWarriorsExceeded) return warriors;
-                const counts: TooltipWritten = { written: 0, refused: 0 };
-                if (warriors instanceof Error) return counts;
-                const drawnIds = new Set<number>();
+                if (warriors instanceof Error) return warriors;
+                const drawnById = new Map<number, UnknownRecord>();
                 for (const warrior of warriors) {
                     const id = warrior[WARRIOR_ID_KEY];
                     if (typeof id !== "number") continue;
-                    drawnIds.add(id);
+                    if (drawnById.has(id)) continue;
+                    drawnById.set(id, warrior);
+                }
+                assert(drawnById.size <= warriors.length, "a fighter drawn is one the page holds");
+                return drawnById;
+            });
+            if (warriorsById instanceof MargonemEngineWarriorsExceeded) return warriorsById;
+            if (warriorsById instanceof errors.Caught) return warriorsById;
+            if (warriorsById instanceof Error) return { written: 0, refused: 0 };
+            const nextBlocksById = new Map(blocksById);
+            // Write every fighter's block.
+            const blocksWritten = errors.attempt(() => {
+                const counts: TooltipWritten = { written: 0, refused: 0 };
+                for (const [id, warrior] of warriorsById) {
                     const block = encodeTooltipBlock(rowsByCombatantId.get(id) ?? []);
                     const blockBefore = nextBlocksById.get(id) ?? "";
                     const landing = writeMargonemEngineWarriorBlock(warrior, block, blockBefore);
@@ -109,17 +118,18 @@ export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngin
                         if (block.length > 0) counts.refused += 1;
                     } else assert(landing === BLOCK_LANDING.kept, "a tooltip left as it was");
                 }
-                for (const id of [...nextBlocksById.keys()]) {
-                    if (!drawnIds.has(id)) nextBlocksById.delete(id);
-                }
-                assert(
-                    nextBlocksById.size <= COMBATANTS_MAXIMUM,
-                    "remembered blocks stay one board's worth",
-                );
                 return counts;
             });
-            // ⚠️ Kept whatever the walk came to: a block that went on before a throw of theirs,
-            // forgotten, would be looked for as the old one and put on a second time.
+            // ⚠️ Forget a fighter the page no longer draws, and keep the rest, whatever the walk
+            // came to: a block that went on before a throw of theirs, or one on a fighter the walk
+            // never reached, forgotten, would be looked for as the old one and go on a second time.
+            for (const id of [...nextBlocksById.keys()]) {
+                if (!warriorsById.has(id)) nextBlocksById.delete(id);
+            }
+            assert(
+                nextBlocksById.size <= COMBATANTS_MAXIMUM,
+                "remembered blocks stay one board's worth",
+            );
             blocksById = nextBlocksById;
             if (blocksWritten instanceof Error) return blocksWritten;
             assert(
