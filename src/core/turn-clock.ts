@@ -76,7 +76,7 @@ function addTurn(turnsByCombatantId: Map<number, number>, combatantId: number | 
     const turnsTaken = turnsByCombatantId.get(combatantId) ?? 0;
     assert(turnsTaken >= 0, "a count of turns is never below nothing");
     turnsByCombatantId.set(combatantId, turnsTaken + 1);
-    // The ids a fight's messages name are its rows', held to the same bound.
+    // The session refuses a fight naming more people than this, wherever it names them.
     assert(turnsByCombatantId.size <= COMBATANTS_MAXIMUM, "a clock runs for no more than a fight");
 }
 

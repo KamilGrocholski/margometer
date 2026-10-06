@@ -108,7 +108,10 @@ export const APPLIED_SIGN = "-";
 /** Free text for the client's own log, and the one key nothing is kept from. */
 export const TEXT_KEY = "txt";
 export const SKILL_ID_KEY = "skillId";
-/** A combatant moving: one of the two default actions a turn can go on (article 372 §2.3). */
+/**
+ * A combatant moving: one of the two default actions a turn can go on (article 372 §2.3, read
+ * 2026-09-02).
+ */
 export const STEP_KEY = "step";
 /** A skill being made ready, the other way a turn passes with nothing struck. */
 export const PREPARE_KEY = "prepare";
@@ -335,8 +338,8 @@ const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([
     [HEALING_REDUCER_KEY, KEY_REACH.otherSide],
     ["active_decblock_per-enemies", KEY_REACH.otherSide],
     ["poison_lowdmg_per-enemies", KEY_REACH.otherSide],
-    // ⚠️ The one the register does not settle. Measured over `captures/` 2026-09-09: after
-    // a `Szadź` the opposing combatant carries `swow_down` in 77 casts of 77.
+    // ⚠️ The one the register does not settle, so it is measured instead: after a `Szadź` the
+    // opposing combatant carries `swow_down` (`docs/auras-standing.md`).
     [SLOW_ALL_KEY, KEY_REACH.otherSide],
     ["aura-adddmg2_per-meele", KEY_REACH.castersSide],
     ["aura-ac_per", KEY_REACH.castersSide],
@@ -348,8 +351,8 @@ const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([
     ["removeslow-allies", KEY_REACH.castersSide],
     ["removestun-allies", KEY_REACH.castersSide],
     // The affected are forced to attack the character who used the skill: you do not force an
-    // ally to strike you. Over `captures/` 2026-09-22, 168 of 168 characters named across
-    // 166 announcements stand opposite the caster.
+    // ally to strike you, and every character a shout names stands opposite its caster
+    // (`docs/auras-standing.md`, _The register_).
     [PROVOCATION_KEY, KEY_REACH.otherSide],
 ]);
 
@@ -466,7 +469,6 @@ export function lookupKeyMeaning(key: string): KeyMeaning | null {
     if (key.startsWith(RAW_SIGN)) half = DAMAGE_HALF.raw;
     else if (key.startsWith(APPLIED_SIGN)) half = DAMAGE_HALF.applied;
     else return null;
-    assert(!KEY_MEANING_BY_KEY.has(key), "a key read by the family rule is in no list");
     return { kind: KEY_FAMILY.damage, half };
 }
 

@@ -7,7 +7,14 @@
  * reddens whichever test reaches it.
  */
 
-import { assert, assertEquals, assertExists, AssertionError, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    AssertionError,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import { indexSideHeals, type SideHeal } from "#/src/core/combatant-health.ts";
 import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
@@ -1467,3 +1474,29 @@ function composeBlowsOfKinds(kindCount: number): BattleEvent[] {
     }
     return blows;
 }
+
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: the two keys that fight ended on.
+ * The draw and the escape are probes, as `tests/core/fight-decoder.test.ts` says of each.
+ */
+Deno.test("a fight's end holds each side on its own key, and a draw and an escape apart", () => {
+    const ended = tally(
+        decode(["0;0;winner=Gracz 1", "0;0;loser=Odyniec, Odyniec, Locha"], null),
+        new Map(),
+    );
+    assertEquals(
+        ended.outcome,
+        {
+            wonNames: ["Gracz 1"],
+            lostNames: ["Odyniec", "Odyniec", "Locha"],
+            isDrawn: false,
+            isFled: false,
+        },
+        "the winners and the losers, each off the key that names them",
+    );
+    const drawn = tally(decode(["0;0;winner=?"], null), new Map()).outcome;
+    assertEquals([drawn?.isDrawn, drawn?.isFled], [true, false], "a draw is no escape");
+    const fled = tally(decode(["500001=94.75;0;flee"], null), new Map()).outcome;
+    assertEquals([fled?.isDrawn, fled?.isFled], [false, true], "and an escape is no draw");
+    assertStrictEquals(tally([], new Map()).outcome, null, "a fight that never said is not over");
+});

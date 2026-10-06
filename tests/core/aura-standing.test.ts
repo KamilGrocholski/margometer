@@ -21,6 +21,7 @@ import {
     lookupAuraTurnsStated,
     lookupReachOfEffects,
     replayAuraStandings,
+    SKILL_EFFECTS_MAXIMUM,
     STANDINGS_MAXIMUM,
     type StatedSkills,
 } from "#/src/core/aura-standing.ts";
@@ -816,5 +817,16 @@ Deno.test("a skill stands for its longest side-wide effect, and a shout dates no
         lookupAuraTurnsStated([{ key: "shout", turns: [3, 3, 3] }]),
         null,
         "and a skill that only shouts reaches no side-wide row",
+    );
+});
+
+Deno.test("a skill is dated over its stated bound of effects, and one past it is a bug", () => {
+    const effects = (count: number) =>
+        Array.from({ length: count }, () => ({ key: "alllowdmg", turns: [5] }));
+    assertStrictEquals(lookupAuraTurnsStated(effects(SKILL_EFFECTS_MAXIMUM)), 5, "at the bound");
+    assertThrows(
+        () => lookupAuraTurnsStated(effects(SKILL_EFFECTS_MAXIMUM + 1)),
+        AssertionError,
+        "a skill states a bounded list of effects",
     );
 });

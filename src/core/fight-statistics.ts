@@ -18,10 +18,11 @@ import {
     OUTCOME_RESULT,
     type PreventedDamage,
     UNREAD_CAUSE,
+    type UnreadCause,
 } from "./battle-event.ts";
 import { PERCENT_WHOLE, type SideHeal } from "./combatant-health.ts";
 import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
-import { MESSAGE_PARTS_MAXIMUM } from "./fight-decoder.ts";
+import { ENDS_MAXIMUM, MESSAGE_PARTS_MAXIMUM } from "./fight-decoder.ts";
 import { type LegendaryBonusTally, tallyLegendaryBonuses } from "./legendary-standing.ts";
 import {
     CRITICAL_PROC_KEYS,
@@ -253,69 +254,12 @@ interface TallyingStatistics extends UnreadMessageCounts {
 export const CUT_MAXIMUM = 64;
 /** 81 skills are named across `captures/`, 2026-08-29. */
 const SKILLS_MAXIMUM = 256;
-
-export function countUnreadMessages(counted: UnreadMessageCounts): number {
-    const unread = counted.unreadMessagesUnknownKey + counted.unreadMessagesNoParameter +
-        counted.unreadMessagesGrammarRefused;
-    assert(Number.isSafeInteger(unread), "a count of messages stays inside what a number holds");
-    assert(unread >= 0, "and never falls below none");
-    return unread;
-}
-
-export function createCombatantFigures(): TallyingFigures {
-    return {
-        damageDealt: 0,
-        damageTaken: 0,
-        damageDealtRaw: 0,
-        damageDealtApplied: 0,
-        damageTakenRaw: 0,
-        damageTakenApplied: 0,
-        damageDealtAbsorbed: 0,
-        damageTakenAbsorbed: 0,
-        damagePrevented: 0,
-        healthRestored: 0,
-        healthGiven: 0,
-        damageTakenFromNobody: 0,
-        damageDealtToNobody: 0,
-        healthRestoredByNobody: 0,
-        damageTakenFromNobodyByKind: new Map(),
-        damageDealtToNobodyByKind: new Map(),
-        healthRestoredByNobodyByKey: new Map(),
-        healthRestoredByGiver: new Map(),
-        healthGivenByReceiver: new Map(),
-        healthRestoredByKey: new Map(),
-        healthRestoredWithoutSkillByKey: new Map(),
-        damageTakenWithoutSkillByKey: new Map(),
-        damageDealtWithoutSkillByKey: new Map(),
-        damageDealtWithoutSkillByOpponentAndKey: new Map(),
-        damageDealtWithoutSkillByOpponent: new Map(),
-        damageTakenWithoutSkillByOpponent: new Map(),
-        healthGivenWithoutSkillByReceiverAndKey: new Map(),
-        damageDealtByKind: new Map(),
-        damageTakenByKind: new Map(),
-        damageDealtByOpponent: new Map(),
-        damageTakenByOpponent: new Map(),
-        damageDealtByOpponentAndKind: new Map(),
-        damageTakenByOpponentAndKind: new Map(),
-        skills: new Map(),
-        blowsStruck: 0,
-        blowsWithoutSkill: 0,
-        turnsTaken: 0,
-        turnsLost: 0,
-        blowsCritical: 0,
-        damageDealtBlowLargest: 0,
-        damageTakenBlowLargest: 0,
-        procsWhenStriking: new Map(),
-        procsWhenStruck: new Map(),
-        damagePreventedByDefence: new Map(),
-        damageDealtAbsorbedByDefence: new Map(),
-        damageTakenAbsorbedByDefence: new Map(),
-        statisticsDestroyed: new Map(),
-        unreadMessagesUnknownKey: 0,
-        unreadMessagesNoParameter: 0,
-        sideHealsUnsized: 0,
-    };
-}
+/** The fight-wide count each cause adds to: the compiler holds every cause to one. */
+const UNREAD_COUNT_BY_CAUSE: { readonly [Cause in UnreadCause]: keyof UnreadMessageCounts } = {
+    [UNREAD_CAUSE.unknownKey]: "unreadMessagesUnknownKey",
+    [UNREAD_CAUSE.noParameter]: "unreadMessagesNoParameter",
+    [UNREAD_CAUSE.grammarRefused]: "unreadMessagesGrammarRefused",
+};
 
 /**
  * The figures, and what a share stated about a side came to once it was sized. The sizing is
@@ -347,19 +291,8 @@ export function tallyFightStatistics(
         if (event.kind === BATTLE_EVENT.unknownMessage) {
             // Count the unread message under its cause, and charge it to each end it named.
             const { unreadCause, combatantIds } = event;
-            if (unreadCause === UNREAD_CAUSE.unknownKey) {
-                tallying.unreadMessagesUnknownKey += 1;
-            }
-            if (unreadCause === UNREAD_CAUSE.noParameter) {
-                tallying.unreadMessagesNoParameter += 1;
-            }
-            if (unreadCause === UNREAD_CAUSE.grammarRefused) {
-                tallying.unreadMessagesGrammarRefused += 1;
-            }
-            assert(
-                combatantIds.length <= COMBATANTS_MAXIMUM,
-                "a message names ends inside the bound",
-            );
+            assert(combatantIds.length <= ENDS_MAXIMUM, "a message names at most its two ends");
+            tallying[UNREAD_COUNT_BY_CAUSE[unreadCause]] += 1;
             if (unreadCause === UNREAD_CAUSE.grammarRefused) {
                 assert(
                     combatantIds.length === 0,
@@ -569,14 +502,11 @@ export function tallyFightStatistics(
             );
             if (event.result === OUTCOME_RESULT.drawn) {
                 tallying.outcome = { ...outcomeSoFar, isDrawn: true };
-            }
-            if (event.result === OUTCOME_RESULT.fled) {
+            } else if (event.result === OUTCOME_RESULT.fled) {
                 tallying.outcome = { ...outcomeSoFar, isFled: true };
-            }
-            if (event.result === OUTCOME_RESULT.won) {
+            } else if (event.result === OUTCOME_RESULT.won) {
                 tallying.outcome = { ...outcomeSoFar, wonNames: [...event.combatantNames] };
-            }
-            if (event.result === OUTCOME_RESULT.lost) {
+            } else {
                 tallying.outcome = { ...outcomeSoFar, lostNames: [...event.combatantNames] };
             }
             assert(tallying.outcome !== null, "a fight that stated its end holds one");
@@ -1320,6 +1250,69 @@ function tallyTotals(byCombatantId: ReadonlyMap<number, TallyingFigures>): Fight
     assert(totals.damageDealt >= totals.damageDealtApplied, "health is a part of what was dealt");
     assert(totals.healthRestored >= 0, "a total of health restored never runs below nought");
     return totals;
+}
+
+export function countUnreadMessages(counted: UnreadMessageCounts): number {
+    const unread = counted.unreadMessagesUnknownKey + counted.unreadMessagesNoParameter +
+        counted.unreadMessagesGrammarRefused;
+    assert(Number.isSafeInteger(unread), "a count of messages stays inside what a number holds");
+    assert(unread >= 0, "and never falls below none");
+    return unread;
+}
+
+export function createCombatantFigures(): TallyingFigures {
+    return {
+        damageDealt: 0,
+        damageTaken: 0,
+        damageDealtRaw: 0,
+        damageDealtApplied: 0,
+        damageTakenRaw: 0,
+        damageTakenApplied: 0,
+        damageDealtAbsorbed: 0,
+        damageTakenAbsorbed: 0,
+        damagePrevented: 0,
+        healthRestored: 0,
+        healthGiven: 0,
+        damageTakenFromNobody: 0,
+        damageDealtToNobody: 0,
+        healthRestoredByNobody: 0,
+        damageTakenFromNobodyByKind: new Map(),
+        damageDealtToNobodyByKind: new Map(),
+        healthRestoredByNobodyByKey: new Map(),
+        healthRestoredByGiver: new Map(),
+        healthGivenByReceiver: new Map(),
+        healthRestoredByKey: new Map(),
+        healthRestoredWithoutSkillByKey: new Map(),
+        damageTakenWithoutSkillByKey: new Map(),
+        damageDealtWithoutSkillByKey: new Map(),
+        damageDealtWithoutSkillByOpponentAndKey: new Map(),
+        damageDealtWithoutSkillByOpponent: new Map(),
+        damageTakenWithoutSkillByOpponent: new Map(),
+        healthGivenWithoutSkillByReceiverAndKey: new Map(),
+        damageDealtByKind: new Map(),
+        damageTakenByKind: new Map(),
+        damageDealtByOpponent: new Map(),
+        damageTakenByOpponent: new Map(),
+        damageDealtByOpponentAndKind: new Map(),
+        damageTakenByOpponentAndKind: new Map(),
+        skills: new Map(),
+        blowsStruck: 0,
+        blowsWithoutSkill: 0,
+        turnsTaken: 0,
+        turnsLost: 0,
+        blowsCritical: 0,
+        damageDealtBlowLargest: 0,
+        damageTakenBlowLargest: 0,
+        procsWhenStriking: new Map(),
+        procsWhenStruck: new Map(),
+        damagePreventedByDefence: new Map(),
+        damageDealtAbsorbedByDefence: new Map(),
+        damageTakenAbsorbedByDefence: new Map(),
+        statisticsDestroyed: new Map(),
+        unreadMessagesUnknownKey: 0,
+        unreadMessagesNoParameter: 0,
+        sideHealsUnsized: 0,
+    };
 }
 
 /** The balances in one place: assertions only. */

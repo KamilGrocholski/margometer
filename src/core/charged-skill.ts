@@ -41,8 +41,8 @@ export interface ChargedSkillStanding {
 
 /**
  * One charge a combatant: a new one replaces the mark the last one left, so the most that can stand
- * at once is one each, and the envelope states no more combatants than this. The corpus has held
- * **one** at once, in every payload of every recording, 2026-09-11.
+ * at once is one each, and the session refuses a fight naming more people than this. The corpus
+ * has held **one** at once, in every payload of every recording, 2026-09-11.
  */
 export const CHARGED_SKILLS_MAXIMUM = COMBATANTS_MAXIMUM;
 
@@ -69,7 +69,7 @@ export function prepareChargedSkills(
     const standingsNow: ChargedSkillStanding[] = [];
     for (const standingBefore of chargedSkillStandings) {
         const statement = statementByCombatantId.get(standingBefore.combatantId);
-        if (statement?.charge !== undefined) {
+        if (statement !== undefined) {
             if (statement.charge !== null) continue;
         }
         if (standingBefore.state !== CHARGED_SKILL_STATE.charging) {

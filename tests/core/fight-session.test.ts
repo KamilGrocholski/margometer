@@ -34,6 +34,7 @@ import {
     SESSION_OPTIONS,
     SESSION_PHASE,
 } from "#/src/core/fight-session.ts";
+import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 
 const NOTHING: PayloadRecord = {
@@ -323,4 +324,47 @@ Deno.test("a legendary run lit in one payload counts the heals of the next", () 
         standing.holytouchHealsReceived
     );
     assertEquals(heals, [1], "the run carries into the payload after its lighting");
+});
+
+/**
+ * Probes, every one: no recording names anybody its payloads never seat, 0 of 23407 ends over the
+ * 37 recordings in `captures/` on 2026-10-06. A row stands for whoever is named, seated or not,
+ * so the bound on a fight counts them all.
+ */
+Deno.test("a fight naming a twenty-first person anywhere is refused, and twenty are not", () => {
+    const blowFrom = (combatantId: number) => `${combatantId};2=90.00;+dmg=5;-dmg=5`;
+    const nearlyFull = composeFullCast().slice(1);
+    const session = createFightSession(SESSION_OPTIONS);
+    apply(session, { ...OPENING, combatants: nearlyFull, messages: [blowFrom(998)] });
+    assertStrictEquals(view(session).events.length, 1, "nineteen seated and one named are twenty");
+    const past = preparePayload(session, { ...NOTHING, messages: [blowFrom(999)] }, BLOWS_GRANTED);
+    assertInstanceOf(past, CombatantsExceeded, "and one more named by a message is past it");
+    assertEquals([past.count, past.maximum], [COMBATANTS_MAXIMUM + 1, COMBATANTS_MAXIMUM], "say");
+    assertStrictEquals(view(session).events.length, 1, "leaving the fight as it stood");
+
+    const full = createFightSession(SESSION_OPTIONS);
+    apply(full, { ...OPENING, combatants: composeFullCast() });
+    const masked = { ...NOTHING, statusMasksByCombatantId: new Map([[999, 1]]) };
+    const charge = { skillName: "Cios", turnsElapsed: 0, turnsStated: 2 };
+    const charged = { ...NOTHING, chargeStatements: [{ combatantId: 999, charge }] };
+    for (const record of [masked, charged]) {
+        const refused = preparePayload(full, record, BLOWS_GRANTED);
+        assertInstanceOf(refused, CombatantsExceeded, "so is one carrying a mask or a charge");
+    }
+    const seated = preparePayload(full, { ...NOTHING, messages: [blowFrom(2)] }, BLOWS_GRANTED);
+    assert(!(seated instanceof Error), "while a full fight naming its own people is read");
+});
+
+/** A fight the add-on wrote down is replayed through a session, so a session holds all of it. */
+Deno.test("a session holds every call a capture keeps", () => {
+    assert(SESSION_OPTIONS.payloadsMaximum >= CALLS_MAXIMUM, "a kept fight replays whole");
+});
+
+/** A probe: the corpus keys warriors by id, so no recording states one twice in a payload. */
+Deno.test("two entries for one combatant stand one charge", () => {
+    const session = createFightSession(SESSION_OPTIONS);
+    const charge = { skillName: "Cios", turnsElapsed: 0, turnsStated: 2 };
+    const chargeStatements = [{ combatantId: 4, charge }, { combatantId: 4, charge }];
+    apply(session, { ...OPENING, chargeStatements });
+    assertStrictEquals(view(session).chargedSkills.length, 1, "one combatant, one charge");
 });

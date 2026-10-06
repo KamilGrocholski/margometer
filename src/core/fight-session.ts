@@ -9,7 +9,7 @@
 
 import { assert } from "@std/assert/assert";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
-import { type BattleEvent, UNREAD_CAUSE, type UnreadCause } from "./battle-event.ts";
+import { BATTLE_EVENT, type BattleEvent, UNREAD_CAUSE, type UnreadCause } from "./battle-event.ts";
 import {
     type Combatant,
     type CombatantRoster,
@@ -154,6 +154,8 @@ interface SessionState {
     readonly chargedSkills: readonly ChargedSkillStanding[];
     readonly carriedStatusWalk: CarriedStatusWalk;
     readonly legendaryWalk: LegendaryWalk;
+    /** Everybody the fight has named, seated or not: what the bound on a cast counts. */
+    readonly namedCombatantIds: ReadonlySet<number>;
 }
 
 export interface FightSession {
@@ -168,7 +170,7 @@ export interface PreparedPayload {
     readonly payloadIndex: number;
     readonly isOpening: boolean;
     readonly decoded: PayloadDecoded;
-    readonly next: SessionState;
+    readonly stateAfter: SessionState;
 }
 
 export interface PayloadCommitted {
@@ -179,13 +181,19 @@ export interface PayloadCommitted {
 }
 
 /**
+ * Past every call a capture keeps (`CALLS_MAXIMUM`, `src/ports/fight-capture.ts`, held above it by
+ * `tests/core/fight-session.test.ts`), so a fight the add-on wrote down replays whole.
+ */
+const PAYLOADS_MAXIMUM = 65536;
+
+/**
  * The longest fight in `captures/` decodes to 811 events, 2026-08-28. The event bound stays
  * above the decoder's bound on one payload, because every message leaves at least one event: a
  * bound equal to that one could never be the one that fires.
  */
 export const SESSION_OPTIONS: SessionOptions = {
     eventsMaximum: MESSAGES_MAXIMUM * 2,
-    payloadsMaximum: MESSAGES_MAXIMUM * 2,
+    payloadsMaximum: PAYLOADS_MAXIMUM,
     combatantsMaximum: COMBATANTS_MAXIMUM,
 };
 
@@ -236,10 +244,25 @@ export function preparePayload(
     if (eventsAfter > options.eventsMaximum) {
         return new EventsExceeded(eventsAfter, options.eventsMaximum);
     }
-    const stateAfter = preparePayloadStanding(stateBefore, record, decoded, combatants);
+    const namedCombatantIds = prepareNamedCombatantIds(
+        stateBefore?.namedCombatantIds ?? new Set(),
+        combatants,
+        record,
+        decoded.events,
+    );
+    if (namedCombatantIds.size > options.combatantsMaximum) {
+        return new CombatantsExceeded(namedCombatantIds.size, options.combatantsMaximum);
+    }
+    const stateAfter = preparePayloadStanding(
+        stateBefore,
+        record,
+        decoded,
+        combatants,
+        namedCombatantIds,
+    );
     assert(stateAfter.payloadsApplied === payloadsApplied, "a payload prepared is counted once");
     const payloadIndex = stateBefore?.payloadsApplied ?? 0;
-    return { payloadIndex, isOpening: stateBefore === null, decoded, next: stateAfter };
+    return { payloadIndex, isOpening: stateBefore === null, decoded, stateAfter };
 }
 
 /**
@@ -267,11 +290,71 @@ function preparePayloadCombatants(
     return combatants;
 }
 
+/**
+ * Everybody the fight has named so far: seated by the envelope, named by a message, or carrying a
+ * mask or a charge. A row stands for each, seated or not, so the help's bound on a fight counts
+ * them all, and it is checked here, where the last of them is known (`AGENTS.md` E1).
+ */
+function prepareNamedCombatantIds(
+    namedBefore: ReadonlySet<number>,
+    combatants: readonly Combatant[],
+    record: PayloadRecord,
+    events: readonly BattleEvent[],
+): Set<number> {
+    const namedCombatantIds = new Set(namedBefore);
+    for (const combatant of combatants) namedCombatantIds.add(combatant.id);
+    for (const combatantId of record.statusMasksByCombatantId.keys()) {
+        namedCombatantIds.add(combatantId);
+    }
+    for (const statement of record.chargeStatements) namedCombatantIds.add(statement.combatantId);
+    for (const event of events) {
+        // Add whoever the event names: at its ends, and on the announcement it rides.
+        let eventCombatantIds: readonly (number | null)[];
+        switch (event.kind) {
+            case BATTLE_EVENT.attack:
+            case BATTLE_EVENT.damageToNamedCombatant:
+                eventCombatantIds = [
+                    event.actorId,
+                    event.targetId,
+                    event.announced?.actorId ?? null,
+                ];
+                break;
+            case BATTLE_EVENT.skillUsed:
+                eventCombatantIds = [event.actorId, event.targetId];
+                break;
+            case BATTLE_EVENT.healthChange:
+            case BATTLE_EVENT.unaccountedHealth:
+                eventCombatantIds = [event.combatantId, event.announced?.actorId ?? null];
+                break;
+            case BATTLE_EVENT.healingToNamedCombatant:
+                eventCombatantIds = [event.targetId];
+                break;
+            case BATTLE_EVENT.declaration:
+            case BATTLE_EVENT.turnLost:
+                eventCombatantIds = [event.combatantId];
+                break;
+            case BATTLE_EVENT.unknownMessage:
+                eventCombatantIds = event.combatantIds;
+                break;
+            case BATTLE_EVENT.fightOutcome:
+                eventCombatantIds = [];
+                break;
+        }
+        for (const combatantId of eventCombatantIds) {
+            if (combatantId !== null) namedCombatantIds.add(combatantId);
+        }
+    }
+    assert(namedCombatantIds.size >= namedBefore.size, "nobody named before is forgotten");
+    assert(namedCombatantIds.size >= combatants.length, "and everybody seated is named");
+    return namedCombatantIds;
+}
+
 function preparePayloadStanding(
     stateBefore: SessionState | null,
     record: PayloadRecord,
     decoded: PayloadDecoded,
     combatants: readonly Combatant[],
+    namedCombatantIds: ReadonlySet<number>,
 ): SessionState {
     // Kept once seen: a payload saying nothing about it would otherwise end the auto fight a reader
     // is watching. No payload states an auto fight and a queue at once (`captures/`
@@ -280,9 +363,18 @@ function preparePayloadStanding(
     const turnStatement = isOnAuto
         ? null
         : (record.turnStatement ?? stateBefore?.turnStatement ?? null);
+    // The last charge each combatant's entries state: a partial entry beside a full one for the
+    // same id would otherwise stand two charges on one combatant.
+    const chargeStatementByCombatantId = new Map(
+        record.chargeStatements.map((statement) => [statement.combatantId, statement]),
+    );
+    assert(
+        chargeStatementByCombatantId.size <= namedCombatantIds.size,
+        "a charge is held by somebody the fight named",
+    );
     const chargedSkills = prepareChargedSkills(
         stateBefore?.chargedSkills ?? [],
-        record.chargeStatements,
+        [...chargeStatementByCombatantId.values()],
         decoded.events,
         turnStatement?.ordinal ?? null,
     );
@@ -313,6 +405,7 @@ function preparePayloadStanding(
             stateBefore?.legendaryWalk ?? NO_LEGENDARY_WALK,
             events,
         ),
+        namedCombatantIds,
     };
 }
 
@@ -351,9 +444,9 @@ export function commitPayload(session: FightSession, prepared: PreparedPayload):
         "a fight's events stay inside the bound its options state",
     );
     for (const event of events) session.events.push(event);
-    session.state = prepared.next;
+    session.state = prepared.stateAfter;
     let hasClosed: boolean;
-    if (prepared.next.isOver) hasClosed = prepared.isOpening || !wasOver;
+    if (prepared.stateAfter.isOver) hasClosed = prepared.isOpening || !wasOver;
     else hasClosed = false;
     return {
         hasOpened: prepared.isOpening,

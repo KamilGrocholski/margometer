@@ -3,8 +3,9 @@
  * §7). This runs in the game's stack: it is bounded by the message count, and it builds arrays and
  * records of its own, so nothing reads the game's object after it returns.
  *
- * Every bound on what the game sent is checked here, once, and refused as a failure; past this
- * file the same bounds are assertions (`AGENTS.md` E1).
+ * Every bound one payload can show is checked here, once, and refused as a failure; the bound on
+ * everybody a fight names is the session's, which alone sees every payload. Past those two the same
+ * bounds are assertions (`AGENTS.md` E1).
  */
 
 import { assert } from "@std/assert/assert";
@@ -194,8 +195,9 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
     let warriors: unknown[];
     // Read the warrior entries, as a list.
     {
-        // The client keys its warriors by id in every payload of `captures/` carrying any; a list
-        // of them is the same people in order, and is read so.
+        // The client keys its warriors by id in every payload of `captures/` carrying any, 1422
+        // over 37 recordings on 2026-10-06; a list of them is the same people in order, and is
+        // read so.
         const keyed = getRecordField(payload, ENVELOPE_KEYS, "combatants");
         if (keyed instanceof Error) {
             const listed = getListField(payload, ENVELOPE_KEYS, "combatants", COMBATANTS_MAXIMUM);
@@ -243,13 +245,18 @@ function createEnvelopeFailure(failure: FieldFailure<EnvelopeField>): EnvelopeFa
 /**
  * A whole number stated as a number or as its text: the recordings state `"1"`, and the client
  * compares loosely, so a stricter reading would stop finding it the day the game sends the other.
+ * A number with a fraction is neither.
  */
 function readPayloadEnvelopeInteger(
     payload: UnknownRecord,
     field: "readerSide" | "isOnAuto",
 ): number | null | PayloadFieldMalformed {
     const asNumber = getNumberField(payload, ENVELOPE_KEYS, field);
-    if (!(asNumber instanceof Error)) return asNumber;
+    if (!(asNumber instanceof Error)) {
+        if (asNumber === null) return null;
+        if (!Number.isSafeInteger(asNumber)) return new PayloadFieldMalformed(field);
+        return asNumber;
+    }
     const asText = getTextField(payload, ENVELOPE_KEYS, field);
     if (asText instanceof Error) return new PayloadFieldMalformed(field, { cause: asText });
     assert(asText !== null, "a field of the wrong type for a number is present");
@@ -397,8 +404,7 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
                 charge = null;
                 break readCharge;
             }
-            const stood = { skillName, turnsElapsed };
-            charge = { ...stood, turnsStated };
+            charge = { skillName, turnsElapsed, turnsStated };
         }
         warriorEntries.chargeStatements.push({ combatantId: id, charge });
     }

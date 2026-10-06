@@ -12,9 +12,12 @@ import { isDigitRun } from "#/libs/text-walk.ts";
 /** Every percentage in `captures/` is written to two places, 18215 of them, 2026-08-28. */
 export const HEALTH_PERCENT_PLACES = 2;
 
+/** Everything left: a share of a pool is never more than the pool, and one past it is unread. */
+const HEALTH_PERCENT_MAXIMUM = 100;
+
 const POINT = ".";
 
-/** `70.07`: a whole part, a point, and exactly the places the protocol writes. */
+/** `70.07`: a whole part, a point, exactly the places the protocol writes, and no more than all. */
 export function parseHealthPercent(text: string): number | null {
     const pointIndex = text.indexOf(POINT);
     if (pointIndex === -1) return null;
@@ -24,6 +27,7 @@ export function parseHealthPercent(text: string): number | null {
     if (!isDigitRun(fraction)) return null;
     const healthPercent = parseDecimal(text);
     if (healthPercent === null) return null;
+    if (healthPercent > HEALTH_PERCENT_MAXIMUM) return null;
     assert(healthPercent >= 0, "a percentage read from digits is never below nothing");
     return healthPercent;
 }

@@ -167,7 +167,7 @@ export interface FightOutcomeEvent {
 export interface UnaccountedHealthEvent {
     kind: typeof BATTLE_EVENT.unaccountedHealth;
     source: string;
-    /** The caster, off the actor slot: 8 of the 115 in `captures/` name another target. */
+    /** The caster, off the actor slot and never the target (`docs/auras-standing.md`). */
     combatantId: number | null;
     declaredShare: number;
     announced: AnnouncedSkill | null;

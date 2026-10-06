@@ -152,6 +152,22 @@ Deno.test("the two highest add, whatever order they arrived in, and a third does
     assertStrictEquals(figure?.percent, 39, "twenty and nineteen, and never the five");
 });
 
+/**
+ * A probe: no key was ever held twice by one combatant over `captures/`
+ * (`docs/auras-standing.md`), so only this sample tells a source from a cast.
+ */
+Deno.test("two casts by one caster are one source, at the higher of the two", () => {
+    const byOneCaster = [
+        composeCast({ key: "aura-sa_per", amount: 14, skillId: 123 }),
+        composeCast({ key: "aura-sa_per", amount: 12, skillId: 298 }),
+    ];
+    const alone = readFigure(byOneCaster, SPEED_BIT, new Map([[12, 1]]));
+    assertStrictEquals(alone?.percent, 14, "one character's two casts stand as the higher one");
+    const another = composeCast({ key: "aura-sa_per", amount: 10, casterId: 13, skillId: 89 });
+    const beside = readFigure([...byOneCaster, another], SPEED_BIT, new Map([[12, 1]]));
+    assertStrictEquals(beside?.percent, 24, "and the second source is another character's");
+});
+
 Deno.test("a cast reaching the caster's side stands on nobody across the board", () => {
     const standings = [composeCast({ key: "aura-sa_per", amount: 20, casterId: 21 })];
     const figure = readFigure(standings, SPEED_BIT, new Map([[12, 1]]));

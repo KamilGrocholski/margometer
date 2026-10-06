@@ -32,6 +32,7 @@ export interface CombatantRoster {
 export const COMBATANTS_MAXIMUM = 20;
 
 const AMBIGUOUS = null;
+const NOBODY = null;
 
 /** The envelope has bounded the cast and refused a repeated id already; here both are asserted. */
 export function indexCombatantRoster(combatants: readonly Combatant[]): CombatantRoster {
@@ -52,7 +53,8 @@ export function indexCombatantRoster(combatants: readonly Combatant[]): Combatan
 /** `null`: ambiguous, or nobody. */
 export function lookupCombatantIdByName(roster: CombatantRoster, name: string): number | null {
     assert(name.length > 0, "a name to resolve is never empty");
-    const combatantId = roster.idByName.get(name) ?? AMBIGUOUS;
+    const combatantId = roster.idByName.get(name);
+    if (combatantId === undefined) return NOBODY;
     if (combatantId === AMBIGUOUS) return AMBIGUOUS;
     assert(roster.byId.get(combatantId)?.name === name, "a name resolves to somebody who holds it");
     return combatantId;

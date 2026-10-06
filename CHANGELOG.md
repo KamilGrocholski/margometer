@@ -48,6 +48,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   zamiast po cichu ich nie pokazywać.
 - **Poprawka** — Dymek postaci w walce nie pokazuje już dwa razy ciosu specjalnego, który ładuje:
   gra pisze go tam sama, więc panel go nie powtarza.
+- **Poprawka** — Spowolnienie i przyspieszenie w dymku postaci liczą dwa czary tej samej postaci
+  jako jedno źródło, tak jak mówi pomoc gry.
 
 ## [0.22.1] — 2026-10-05
 

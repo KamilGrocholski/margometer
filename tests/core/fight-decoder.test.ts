@@ -27,6 +27,7 @@ import {
     decodePayloadMessages,
     type DecoderTables,
     EndUnreadable,
+    HEALTH_CHANGE_MEMBERS_MAXIMUM,
     MESSAGE_END,
     MESSAGE_PARTS_MAXIMUM,
     MESSAGES_MAXIMUM,
@@ -1292,4 +1293,54 @@ Deno.test("a second name or id of a skill is unread, never written over the firs
     const [bothIds] = decode(["1=100.00;0;skillId=5;skillId=6"]);
     assertStrictEquals(bothIds?.kind, BATTLE_EVENT.unknownMessage, "with no name, nothing stands");
     assertEquals(bothIds.unreadKeys, ["skillId", "skillId"], "and both ids are unread");
+});
+
+/**
+ * Probes, every one: no recording comes near either bound, 2 members and 10 names a side at most
+ * over the 37 recordings in `captures/` on 2026-10-06.
+ */
+Deno.test("a side naming everybody a fight holds is read, and one naming more is unread", () => {
+    const names = (count: number) =>
+        Array.from({ length: count }, (_, index) => `Gracz ${index + 1}`).join(", ");
+    const [won] = decode([`0;0;winner=${names(COMBATANTS_MAXIMUM)}`]);
+    assertStrictEquals(won?.kind, BATTLE_EVENT.fightOutcome, "a side as wide as a fight");
+    assertStrictEquals(won.combatantNames.length, COMBATANTS_MAXIMUM, "is read whole");
+    assertEquals(
+        getOnlyUnread(decode([`0;0;loser=${names(COMBATANTS_MAXIMUM + 1)}`])),
+        ["loser"],
+        "and one naming a character more is unread by its key",
+    );
+});
+
+Deno.test("health stated with members up to their bound is read, and past it is unread", () => {
+    const tick = (members: number) => `1=50.00;0;poison=136${",20".repeat(members - 1)}`;
+    const [moved] = decode([tick(HEALTH_CHANGE_MEMBERS_MAXIMUM)]);
+    assertStrictEquals(moved?.kind, BATTLE_EVENT.healthChange, "a value at the bound");
+    assertStrictEquals(moved.amount, -136, "keeps its figure");
+    assertStrictEquals(
+        moved.declared.length,
+        HEALTH_CHANGE_MEMBERS_MAXIMUM - 1,
+        "and everything stated beside it",
+    );
+    assertEquals(
+        getOnlyUnread(decode([tick(HEALTH_CHANGE_MEMBERS_MAXIMUM + 1)])),
+        ["poison"],
+        "and a member past it leaves the key unread",
+    );
+});
+
+/** No recording states more than everything: 100.00 at the most, 2026-10-06. */
+Deno.test("a share past the whole of a pool is unread, at an end and against a name", () => {
+    const context = { roster: null, announcementStanding: null, tables: BLOWS_GRANTED };
+    assertNotInstanceOf(decodeMessage("1=100.00;0;step", context), Error, "everything left");
+    const refused = decodeMessage("1=100.01;0;step", context);
+    assertInstanceOf(refused, UnreadMessage, "and a hundredth more at an end is no end");
+    assertStrictEquals(refused.unreadCause, "grammar-refused", "which the grammar refuses");
+    assertInstanceOf(refused.cause, EndUnreadable, "as an end it could not read");
+    const whole = decode(["1=50.00;2=50.00;+oth_dmg=5,,Gracz 3(100.00%)"])[0];
+    assertStrictEquals(whole?.kind, BATTLE_EVENT.damageToNamedCombatant, "a name at everything");
+    assertStrictEquals(whole.targetHealthPercent, 100, "stands where it is stated");
+    const past = decode(["1=50.00;2=50.00;+oth_dmg=5,,Gracz 3(100.01%)"])[0];
+    assertStrictEquals(past?.kind, BATTLE_EVENT.damageToNamedCombatant, "and one past it");
+    assertStrictEquals(past.targetHealthPercent, null, "keeps its figure and no share");
 });

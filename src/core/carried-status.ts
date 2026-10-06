@@ -9,6 +9,7 @@
 
 import { assert } from "@std/assert/assert";
 import type { BattleEvent } from "./battle-event.ts";
+import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
 import { addEventTurns, NO_TURN_STANDING, type TurnStanding } from "./turn-clock.ts";
 
 /** One status one combatant is holding, with what has passed of it on their own clock. */
@@ -30,8 +31,8 @@ export interface CarriedStatusWalk {
 
 /** A mask arrives as one integer, so a bit past the thirty-second is not one this reader holds. */
 export const STATUS_BITS_MAXIMUM = 32;
-/** Past the combatants any fight puts on a board: a mask may name a warrior the cast does not. */
-const CARRIERS_MAXIMUM = 64;
+/** One carrier a combatant: the session refuses a fight naming more people than a fight holds. */
+const CARRIERS_MAXIMUM = COMBATANTS_MAXIMUM;
 
 export const NO_CARRIED_STATUS_WALK: CarriedStatusWalk = {
     turnStanding: NO_TURN_STANDING,

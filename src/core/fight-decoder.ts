@@ -209,11 +209,19 @@ export const MESSAGES_MAXIMUM = 32768;
  * `develop:docs/unannounced-damage.md` carries the measurement, `develop ADR 0078` the rule.
  */
 const BLOWS_GRANTED_MAXIMUM = 4;
-/** A skill's name is a phrase; the longest in `captures/` is far short, 2026-09-01. */
+/**
+ * A skill's name is a phrase: the longest runs 28 characters over the 37 recordings in `captures/`
+ * on 2026-10-06.
+ */
 export const NAME_LENGTH_MAXIMUM = 4096;
 
 /** This family may state a second member after the health figure. It is not health. */
 const MEMBER_SEPARATOR = ",";
+/**
+ * The health figure and what was stated beside it, past the two members any value of the family
+ * carries over the 37 recordings in `captures/` on 2026-10-06. A value past it is unread.
+ */
+export const HEALTH_CHANGE_MEMBERS_MAXIMUM = 8;
 /**
  * `amount,element,name(percent%)`. A blank middle member is the plain element, not one of its own:
  * 314 of the 1131 occurrences in `captures/` write it blank, 2026-08-28.
@@ -652,6 +660,7 @@ function decodeHealthChange(
     keyMeaning: { sign: 1 | -1; isOnTarget: boolean },
 ): HealthChangeDecoded | null {
     const members = valueText.split(MEMBER_SEPARATOR);
+    if (members.length > HEALTH_CHANGE_MEMBERS_MAXIMUM) return null;
     const magnitude = parseInteger(members[0] ?? "");
     if (magnitude === null) return null;
     const declared: DeclaredEffect[] = [];
@@ -670,7 +679,10 @@ function doesNameOneCombatant(message: ProtocolMessage): boolean {
     return message.actor.combatantId === message.target.combatantId;
 }
 
-/** `loser=?` is not a side of that name, so it is left unread rather than read as a draw. */
+/**
+ * `loser=?` is not a side of that name, so it is left unread rather than read as a draw; so is a
+ * side naming more characters than a fight holds.
+ */
 function decodeFightOutcome(
     valueText: string,
     outcomeResult: typeof OUTCOME_RESULT.won | typeof OUTCOME_RESULT.lost,
@@ -685,6 +697,7 @@ function decodeFightOutcome(
         };
     }
     const combatantNames = valueText.split(NAME_SEPARATOR);
+    if (combatantNames.length > COMBATANTS_MAXIMUM) return null;
     if (combatantNames.some((combatantName) => combatantName.length === 0)) return null;
     if (combatantNames.some((combatantName) => combatantName.startsWith(" "))) return null;
     assert(combatantNames.length > 0, "a side that is named has at least one member");
@@ -846,8 +859,8 @@ function decodeMessageEvents(
         events.push({
             kind: BATTLE_EVENT.unaccountedHealth,
             source: unaccounted.source,
-            // The actor, always: 8 of the 115 in `captures/` name somebody else in the
-            // target, and reading that slot would credit the wrong combatant with the cast.
+            // The actor, always: the target slot may name somebody else, and reading it would
+            // credit the wrong combatant with the cast (`docs/auras-standing.md`).
             combatantId: message.actor?.combatantId ?? null,
             declaredShare: unaccounted.declaredShare,
             announced,

@@ -152,6 +152,12 @@ Deno.test("the reader's side and the game's own running are read as text or as a
         "any number but none is on, as the client's `parseInt` reads it",
     );
     assertStrictEquals(readOk({}).isOnAuto, null, "and silence is neither");
+    // Probes: every number the recordings state for either is whole, 2026-10-06.
+    const halfSide = readPayloadEnvelope({ myteam: 1.5 });
+    assertInstanceOf(halfSide, PayloadFieldMalformed, "a number with a fraction is no side");
+    assertStrictEquals(halfSide.field, "readerSide", "and says which field");
+    const halfAuto = readPayloadEnvelope({ auto: 0.5 });
+    assertInstanceOf(halfAuto, PayloadFieldMalformed, "nor is it on or off");
 });
 
 /** `develop ADR 0072` and the queue's own reading: only the least entry is a statement. */

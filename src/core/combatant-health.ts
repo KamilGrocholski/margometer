@@ -115,8 +115,9 @@ export function indexFightEntryHealth(
 
 /**
  * Every cast in a fight, sized against where each member stood when it landed. Nothing is sized on
- * a side a reducer reached: the help scopes that reduction and the protocol never states the figure
- * it left, so a cast there is refused whole rather than reported short.
+ * a side a reducer reached: the help scopes that reduction (`docs/protocol-keys.md`,
+ * `lowheal_per-enemies`) and the protocol never states the figure it left, so a cast there is
+ * refused whole rather than reported short.
  */
 export function indexSideHeals(
     events: readonly BattleEvent[],

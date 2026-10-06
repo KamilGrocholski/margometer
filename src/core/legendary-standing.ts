@@ -107,8 +107,9 @@ export function prepareLegendaryWalk(
 /**
  * What stands now, one row per combatant either bonus has anything to say about. A run that has
  * given its stated heals leaves on the payload that carried the last of them. ⚠️ **A run the game
- * stops short stands until the fight ends**: no run over `captures/` outlived its heals, so
- * a turn bound would be a guess.
+ * stops short stands until the fight ends**: every run left short over `captures/` was one the
+ * fight ended inside (35 recordings, 2026-09-23, `develop ADR 0113`), so a turn bound would be a
+ * guess.
  */
 export function composeLegendaryStandings(walk: LegendaryWalk): LegendaryStanding[] {
     const standingByCombatantId = new Map<number, LegendaryStanding>();

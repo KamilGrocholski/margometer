@@ -2,9 +2,9 @@
  * What one skill put on more than one combatant, who cast it, and how far through it is; and whom
  * a shout is holding (`docs/design.md` §6.6).
  *
- * The protocol announces the cast and never mentions it again: no confirmation, no refresh and no
- * expiry anywhere in `captures/`. So the length a cast runs for is the published table's
- * word and never a reading, and the table is handed in by whoever holds it.
+ * The protocol announces the cast and never mentions it again (`docs/auras-standing.md`,
+ * `develop ADR 0059`). So the length a cast runs for is the published table's word and never a
+ * reading, and the table is handed in by whoever holds it.
  */
 
 import { assert } from "@std/assert/assert";
@@ -127,79 +127,13 @@ interface AuraWalk {
     turnsByCombatantId: Map<number, number>;
 }
 
-/** Past every cast the corpus holds in one fight, so the walk carries a stated maximum. */
+/**
+ * Past the pairs of caster and skill one fight announces: 38 at the most over the 37 recordings in
+ * `captures/` on 2026-10-06.
+ */
 export const STANDINGS_MAXIMUM = 256;
-
-/**
- * What the keys on one cast say it reaches. ⚠️ **Keys that disagree are a skill reaching both
- * sides, not a reading that failed**: `Wyzywający okrzyk` does both in one announcement.
- */
-export function lookupReachOfEffects(effects: readonly { effect: string }[]): AuraReach | null {
-    assert(
-        effects.length <= MESSAGE_PARTS_MAXIMUM,
-        "a cast states no more than a message is read to",
-    );
-    let castReach: AuraReach | null = null;
-    for (const declaredEffect of effects) {
-        const reach = lookupKeyReach(declaredEffect.effect);
-        if (reach === null) continue;
-        if (castReach === null) castReach = reach;
-        else if (castReach !== reach) castReach = AURA_REACH.bothSides;
-    }
-    return castReach;
-}
-
-/** The aura table, keyed by skill, handed over by whoever holds the frozen reading. */
-export function indexAuraTurnsBySkillId(
-    skills: readonly { id: number; turns: number }[],
-): Map<number, number> {
-    const auraTurnsBySkillId = new Map<number, number>();
-    for (const skill of skills) {
-        assert(skill.turns > 0, "a skill in the table runs for a stated number of turns");
-        auraTurnsBySkillId.set(skill.id, skill.turns);
-    }
-    assert(auraTurnsBySkillId.size === skills.length, "and each of them is named once");
-    return auraTurnsBySkillId;
-}
-
-/** The shouts the table dates, keyed as the aura turns are, and handed over the same way. */
-export function indexShoutsBySkillId(
-    skills: readonly { id: number; turns: number; coverageMinimum: number }[],
-): Map<number, ShoutStated> {
-    const shoutsBySkillId = new Map<number, ShoutStated>();
-    for (const skill of skills) {
-        assert(skill.turns > 0, "a shout in the table holds for a stated number of turns");
-        assert(skill.coverageMinimum > 0, "and covers at least one character");
-        shoutsBySkillId.set(skill.id, {
-            turns: skill.turns,
-            coverageMinimum: skill.coverageMinimum,
-        });
-    }
-    assert(shoutsBySkillId.size === skills.length, "and each of them is named once");
-    return shoutsBySkillId;
-}
-
-/**
- * How long the published table says a skill stands on a side: ⚠️ **the longest of its side-wide
- * effects**, since a skill running one for three turns and another for five is not over at three.
- * The shout half is dated by its own row and takes no part: skill 25 shouts for 3 turns and stands
- * on its side for 2 (`frozen/skill-durations.ts`, read 2026-09-21), and the longest over both stood
- * the aura a turn past the table. Null where no effect reaches a side. `tools/skill-table.ts`
- * freezes the aura table by this, so the rule and the table cannot be two readings.
- */
-export function lookupAuraTurnsStated(effects: readonly SkillEffectTurns[]): number | null {
-    assert(effects.length <= STANDINGS_MAXIMUM, "a skill states a bounded list of effects");
-    let longest = 0;
-    for (const effect of effects) {
-        if (effect.key === PROVOCATION_KEY) continue;
-        if (!isSideWideKey(effect.key)) continue;
-        for (const turns of effect.turns) {
-            if (turns > longest) longest = turns;
-        }
-    }
-    assert(longest >= 0, "a duration that was read is not below nothing");
-    return longest === 0 ? null : longest;
-}
+/** Past the 8 effects the longest skill states in `frozen/skill-durations.ts` of 2026-10-02. */
+export const SKILL_EFFECTS_MAXIMUM = 32;
 
 /**
  * Both answers off one walk of the fight: what stands on a side, and whom a shout is holding.
@@ -230,8 +164,8 @@ export function replayAuraStandings(view: FightView, statedSkills: StatedSkills)
             "a fight stays inside its stated bound",
         );
         assert(
-            walk.shoutByProvokedId.size <= STANDINGS_MAXIMUM,
-            "and so does what it holds people by",
+            walk.shoutByProvokedId.size <= COMBATANTS_MAXIMUM,
+            "and holds nobody the cast does not",
         );
     }
     return {
@@ -386,4 +320,75 @@ function composeProvocationStandings(walk: AuraWalk): ProvocationStanding[] {
         "no more are held than were shouted at",
     );
     return provocationStandings;
+}
+
+/**
+ * What the keys on one cast say it reaches. ⚠️ **Keys that disagree are a skill reaching both
+ * sides, not a reading that failed**: `Wyzywający okrzyk` does both in one announcement.
+ */
+export function lookupReachOfEffects(effects: readonly { effect: string }[]): AuraReach | null {
+    assert(
+        effects.length <= MESSAGE_PARTS_MAXIMUM,
+        "a cast states no more than a message is read to",
+    );
+    let castReach: AuraReach | null = null;
+    for (const declaredEffect of effects) {
+        const reach = lookupKeyReach(declaredEffect.effect);
+        if (reach === null) continue;
+        if (castReach === null) castReach = reach;
+        else if (castReach !== reach) castReach = AURA_REACH.bothSides;
+    }
+    return castReach;
+}
+
+/** The aura table, keyed by skill, handed over by whoever holds the frozen reading. */
+export function indexAuraTurnsBySkillId(
+    skills: readonly { id: number; turns: number }[],
+): Map<number, number> {
+    const auraTurnsBySkillId = new Map<number, number>();
+    for (const skill of skills) {
+        assert(skill.turns > 0, "a skill in the table runs for a stated number of turns");
+        auraTurnsBySkillId.set(skill.id, skill.turns);
+    }
+    assert(auraTurnsBySkillId.size === skills.length, "and each of them is named once");
+    return auraTurnsBySkillId;
+}
+
+/** The shouts the table dates, keyed as the aura turns are, and handed over the same way. */
+export function indexShoutsBySkillId(
+    skills: readonly { id: number; turns: number; coverageMinimum: number }[],
+): Map<number, ShoutStated> {
+    const shoutsBySkillId = new Map<number, ShoutStated>();
+    for (const skill of skills) {
+        assert(skill.turns > 0, "a shout in the table holds for a stated number of turns");
+        assert(skill.coverageMinimum > 0, "and covers at least one character");
+        shoutsBySkillId.set(skill.id, {
+            turns: skill.turns,
+            coverageMinimum: skill.coverageMinimum,
+        });
+    }
+    assert(shoutsBySkillId.size === skills.length, "and each of them is named once");
+    return shoutsBySkillId;
+}
+
+/**
+ * How long the published table says a skill stands on a side: ⚠️ **the longest of its side-wide
+ * effects**, since a skill running one for three turns and another for five is not over at three.
+ * The shout half is dated by its own row and takes no part: skill 25 shouts for 3 turns and stands
+ * on its side for 2 (`frozen/skill-durations.ts`, read 2026-09-21), and the longest over both stood
+ * the aura a turn past the table. Null where no effect reaches a side. `tools/skill-table.ts`
+ * freezes the aura table by this, so the rule and the table cannot be two readings.
+ */
+export function lookupAuraTurnsStated(effects: readonly SkillEffectTurns[]): number | null {
+    assert(effects.length <= SKILL_EFFECTS_MAXIMUM, "a skill states a bounded list of effects");
+    let longest = 0;
+    for (const effect of effects) {
+        if (effect.key === PROVOCATION_KEY) continue;
+        if (!isSideWideKey(effect.key)) continue;
+        for (const turns of effect.turns) {
+            if (turns > longest) longest = turns;
+        }
+    }
+    assert(longest >= 0, "a duration that was read is not below nothing");
+    return longest === 0 ? null : longest;
 }

@@ -46,7 +46,10 @@ interface Bearer {
  */
 const SOURCES_COUNTED = 2;
 
-/** Past the casts of one key that ever stood over one bearer, which the corpus puts at four. */
+/**
+ * Past the casts of one key that ever stood over one bearer, which `docs/auras-standing.md` counts
+ * under _How many sources stand together_.
+ */
 const SOURCES_MAXIMUM = 32;
 
 /**
@@ -162,11 +165,18 @@ function tallyPercentForBearer(
     assert(casts.length <= SOURCES_MAXIMUM, "and over the casts the walk above bounded");
     if (isCasterHalved(auras, bearer.combatantId, key)) return null;
     if (casts.length === 0) return null;
-    const amountsDescending = casts.map((cast) => {
+    // A source is a caster, at their highest cast (`docs/auras-standing.md`).
+    const highestByCasterId = new Map<number, number>();
+    for (const cast of casts) {
         const amount = cast.amountByKey.get(key);
         assert(amount !== undefined, "a cast over the bearer states the key it was walked for");
-        return amount;
-    }).sort((leftAmount, rightAmount) => rightAmount - leftAmount);
+        const highest = highestByCasterId.get(cast.casterId) ?? amount;
+        highestByCasterId.set(cast.casterId, Math.max(highest, amount));
+    }
+    assert(highestByCasterId.size <= casts.length, "no more sources than casts");
+    const amountsDescending = [...highestByCasterId.values()].sort((leftAmount, rightAmount) =>
+        rightAmount - leftAmount
+    );
     let summed = 0;
     for (let amountIndex = 0; amountIndex < SOURCES_COUNTED; amountIndex += 1) {
         summed += amountsDescending[amountIndex] ?? 0;

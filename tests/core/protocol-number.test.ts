@@ -23,6 +23,8 @@ Deno.test("a percentage is read at the width the recordings state and no other",
     assertStrictEquals(parseHealthPercent("70"), null, "a percentage always carries its fraction");
     assertStrictEquals(parseHealthPercent(".07"), null, "and its whole part");
     assertStrictEquals(parseHealthPercent("-1.00"), null, "and is never below nothing");
+    assertStrictEquals(parseHealthPercent("100.01"), null, "nor above everything");
+    assertStrictEquals(parseHealthPercent("150.00"), null, "however far above it");
 });
 
 Deno.test("a percentage writes back at the width it is read at", () => {

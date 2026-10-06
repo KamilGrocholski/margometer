@@ -20,7 +20,6 @@ import {
 export interface FightFigures {
     statistics: FightStatistics;
     sideHealByEvent: ReadonlyMap<BattleEvent, SideHeal>;
-    /** What the view had applied when these were tallied: the key a caller memoises on. */
     payloadsApplied: number;
 }
 
