@@ -44,6 +44,10 @@ export interface ShelfAnswers {
     /** The store took the fights and asked for room: not the same answer as one that took none. */
     hasStoreMadeRoom: boolean;
     hasChoiceRefused: boolean;
+    /** The place chosen would not take the fights, which stayed where they were. */
+    hasMoveRefused: boolean;
+    /** A pin the store would not write: every fight stands where it was, the pin in memory. */
+    hasPinRefused: boolean;
 }
 
 export interface ShelfKeeper {
@@ -76,8 +80,11 @@ interface KeeperState {
     fightStatesByOpenedAt: Map<number, KeptFightState | null>;
 }
 
-/** Every answer but one of the two a single write gives: a store refused it, or made room. */
-export const SHELF_ANSWERS_MAXIMUM = 3;
+/**
+ * One answer of each kind at once: every slot pinned, a fight refused or room made for it, a move
+ * refused or its choice, and a pin refused.
+ */
+export const SHELF_ANSWERS_MAXIMUM = 4;
 
 export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
     let store: KeyValueStore;
@@ -111,6 +118,8 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
             hasStoreRefused: false,
             hasStoreMadeRoom: false,
             hasChoiceRefused: false,
+            hasMoveRefused: false,
+            hasPinRefused: false,
         },
         fightStatesByOpenedAt: new Map(),
     };
@@ -144,7 +153,14 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
                 });
                 return;
             }
-            setShelfRefused(state, rotateShelf(fightsAfter));
+            // Refused: the fight stays a row, as the reader asked, beside the answer.
+            {
+                const asked = rotateShelf(fightsAfter);
+                assert(asked.length <= KEPT_MAXIMUM, "what a reader asked for is inside the bound");
+                state.answers.hasStoreRefused = true;
+                state.answers.hasStoreMadeRoom = false;
+                state.fights = asked;
+            }
             executeShelvedFightReplays(state);
         },
         // Pin a fight, or take its pin off.
@@ -168,8 +184,12 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
                 openedAt,
                 !fight.isPinned,
             );
-            if (written instanceof Error) setShelfRefused(state, fightsAfter);
-            else setShelfWritten(state, written.contents, fightsAfter.length);
+            if (written instanceof Error) {
+                // ⚠️ Not a fight refused: the store holds every fight as it did, so the answer says
+                // only that the pin did not go down.
+                state.answers.hasPinRefused = true;
+                state.fights = fightsAfter;
+            } else setShelfWritten(state, written.contents, fightsAfter.length);
             executeShelvedFightReplays(state);
         },
         // Move the shelf to the store chosen. The fights go first, the answer second, and the place
@@ -179,20 +199,19 @@ export function initShelfKeeper(options: ShelfKeeperOptions): ShelfKeeper {
             // The store in effect chosen again: a choice the browser would not keep is moot.
             if (storageChoice === state.choice) {
                 state.answers.hasChoiceRefused = false;
+                state.answers.hasMoveRefused = false;
                 return;
             }
+            // A move answers once: refused, its choice refused, or taken.
+            state.answers.hasChoiceRefused = false;
             const targetStore = state.options.initShelfStore(storageChoice);
             if (targetStore instanceof StoreUnavailable) {
-                state.answers.hasStoreRefused = true;
-                state.answers.hasStoreMadeRoom = false;
+                state.answers.hasMoveRefused = true;
                 return;
             }
             const written = writeShelfContents(targetStore, { fights: state.fights });
-            if (written instanceof Error) {
-                state.answers.hasStoreRefused = true;
-                state.answers.hasStoreMadeRoom = false;
-                return;
-            }
+            state.answers.hasMoveRefused = written instanceof Error;
+            if (written instanceof Error) return;
             const answered = writeStorageChoice(state.options.settings, storageChoice);
             state.answers.hasChoiceRefused = answered instanceof Error;
             if (answered instanceof Error) return;
@@ -256,12 +275,7 @@ function setShelfWritten(state: KeeperState, contents: ShelfContents, offered: n
     assert(offered <= KEPT_MAXIMUM, "and was offered a shelf inside its bound");
     state.answers.hasStoreRefused = false;
     state.answers.hasStoreMadeRoom = contents.fights.length < offered;
+    // The whole shelf went down, the pin held in memory with it.
+    state.answers.hasPinRefused = false;
     state.fights = contents.fights;
-}
-
-function setShelfRefused(state: KeeperState, asked: readonly KeptFight[]): void {
-    assert(asked.length <= KEPT_MAXIMUM, "what a reader asked for is inside the shelf's bound");
-    state.answers.hasStoreRefused = true;
-    state.answers.hasStoreMadeRoom = false;
-    state.fights = asked;
 }

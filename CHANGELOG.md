@@ -63,6 +63,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   znikała bez słowa.
 - **Poprawka** — Gdy panel nie może pokazać szczegółów wiersza, zgłasza to jako usterkę, zamiast po
   prostu nic nie pokazywać.
+- **Poprawka** — Gdy przeglądarka odmówi przeniesienia zapisanych walk albo zapisu przypięcia, panel
+  mówi dokładnie to, zamiast twierdzić, że walka przepadła.
+- **Poprawka** — Walka, której części panel nie odczytał, nie trafia już do zapisanych walk, tylko
+  panel mówi, że jej nie zapisał — wcześniej znikała z listy przy każdym wczytaniu strony.
 
 ## [0.22.1] — 2026-10-05
 

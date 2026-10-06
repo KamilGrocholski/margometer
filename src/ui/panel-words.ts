@@ -855,6 +855,11 @@ export const EVERY_SLOT_PINNED_ANSWER =
 export const CHOICE_REFUSED_ANSWER =
     "Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było.";
 
+export const MOVE_REFUSED_ANSWER =
+    "Wybrane miejsce nie przyjęło zapisanych walk — zostały tam, gdzie były.";
+
+export const PIN_REFUSED_ANSWER = "Przeglądarka nie zapisała przypięcia.";
+
 /** The labels on the card a fight opens, from its line or its shelf row (ADR 0014). */
 export const FIGHT_CARD_WORDS = {
     when: "Kiedy",

@@ -42,6 +42,7 @@ import {
     type MargonemEngineWarriorSnapshot,
 } from "#/src/ports/margonem-engine-warriors.ts";
 import { DEFECT_KIND, type DefectKind, type DefectLedger } from "./defect-ledger.ts";
+import type { ReplayFailure } from "./fight-state.ts";
 import type { ShelfKeeper } from "./shelf-keeper.ts";
 
 export interface LiveFightOptions {
@@ -74,6 +75,11 @@ export interface LiveFight {
     /** Read as a fight opens; null where the clock would not say, with its refusal beside it. */
     openedAt: number | null;
     openedAtRefusal: errors.Caught | null;
+    /**
+     * The first payload of this fight the envelope or the session refused, cleared as a fight
+     * opens: a fight with a gap is read on live, and never kept.
+     */
+    payloadRefusal: ReplayFailure | null;
     /** Read once: the engine builds one battle (`initMargonemEngineSearch`). */
     margonemEngineBattle: MargonemEngineBattle | null;
 }
@@ -90,6 +96,7 @@ export function initLiveFight(options: LiveFightOptions): {
         readerId: null,
         openedAt: null,
         openedAtRefusal: null,
+        payloadRefusal: null,
         margonemEngineBattle: null,
     };
     const listener: PayloadListener = {
@@ -111,6 +118,7 @@ export function initLiveFight(options: LiveFightOptions): {
                 (): { record: PayloadRecord | null; isOpening: boolean } => {
                     const payloadRecord = readPayloadEnvelope(payload);
                     if (!(payloadRecord instanceof Error)) {
+                        if (payloadRecord.isInit) liveFight.payloadRefusal = null;
                         return { record: payloadRecord, isOpening: payloadRecord.isInit };
                     }
                     options.defects.add({
@@ -118,7 +126,11 @@ export function initLiveFight(options: LiveFightOptions): {
                         region: null,
                         failure: payloadRecord,
                     });
-                    return { record: null, isOpening: isPayloadOpening(payload) };
+                    const isRefusedOpening = isPayloadOpening(payload);
+                    // A refused opening is the first call the capture keeps of the next fight.
+                    if (isRefusedOpening) liveFight.payloadRefusal = null;
+                    liveFight.payloadRefusal ??= payloadRecord;
+                    return { record: null, isOpening: isRefusedOpening };
                 },
             );
             const snapshotAfter = executeLiveStep(
@@ -151,6 +163,7 @@ export function initLiveFight(options: LiveFightOptions): {
                             region: null,
                             failure: prepared,
                         });
+                        liveFight.payloadRefusal ??= prepared;
                         return null;
                     }
                     return commitPayload(liveFight.session, prepared);
@@ -192,6 +205,16 @@ export function initLiveFight(options: LiveFightOptions): {
                             kind: DEFECT_KIND.keeping,
                             region: null,
                             failure: refusal,
+                        });
+                        return;
+                    }
+                    // ⚠️ A gap mid-fight replays to figures that look right, so a fight read
+                    // past a refused payload is said not kept, once, rather than shelved.
+                    if (liveFight.payloadRefusal !== null) {
+                        options.defects.add({
+                            kind: DEFECT_KIND.keeping,
+                            region: null,
+                            failure: liveFight.payloadRefusal,
                         });
                         return;
                     }

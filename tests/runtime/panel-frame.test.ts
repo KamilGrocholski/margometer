@@ -21,6 +21,12 @@ import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import type { ShownScreen, WaitingContent } from "#/src/ui/panel-element.ts";
 import { createScreenState, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
 import { HELPER_ABSENCE, type HelperAbsence, type HelperContent } from "#/src/ui/panel-helper.ts";
+import {
+    EVERY_SLOT_PINNED_ANSWER,
+    MOVE_REFUSED_ANSWER,
+    PIN_REFUSED_ANSWER,
+    STORE_REFUSED_ANSWER,
+} from "#/src/ui/panel-words.ts";
 import { composeFakeDocument } from "#/tests/fake-document.ts";
 import { lookupRecordedFight, replayRecordedFight } from "#/tests/recorded-fights.ts";
 import { RUNTIME_TABLES } from "#/tests/runtime-world.ts";
@@ -87,6 +93,8 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
                 hasStoreRefused: false,
                 hasStoreMadeRoom: false,
                 hasChoiceRefused: false,
+                hasMoveRefused: false,
+                hasPinRefused: false,
             }),
             getKeptFightStates: () => new Map([[fight.openedAt, reading]]),
             keep: () => {},
@@ -101,6 +109,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
             readerId: null,
             openedAt: 0,
             openedAtRefusal: null,
+            payloadRefusal: null,
             margonemEngineBattle: null,
         },
         defects,
@@ -256,4 +265,41 @@ Deno.test("the live row carries the moment it was given, and none where the cloc
         ],
         "and one with no moment states none, has nothing to pin, and stands beside the kept one",
     );
+});
+
+/** The bound on answers is the most that can stand together, and two answers to one move cannot. */
+Deno.test("every shelf answer that can stand at once is drawn, and two answers to a move are not", () => {
+    const fight: KeptFight = {
+        openedAt: 1,
+        payloads: lookupRecordedFight(HILDUR).updates,
+        place: null,
+        readerId: null,
+        margonemClientBuild: null,
+        isPinned: false,
+    };
+    const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);
+    assert(!(replayed instanceof Error), "the recording replays");
+    assert(replayed !== null, "into a fight");
+    const answered = {
+        isEverySlotPinned: true,
+        hasStoreRefused: true,
+        hasStoreMadeRoom: false,
+        hasChoiceRefused: false,
+        hasMoveRefused: true,
+        hasPinRefused: true,
+    };
+    const crowded = composeFrameWorld(fight, replayed);
+    crowded.parts.keeper = { ...crowded.parts.keeper, getAnswers: () => answered };
+    renderFrame(crowded.parts);
+    assertEquals(
+        crowded.shown[0]?.shelfAnswers,
+        [EVERY_SLOT_PINNED_ANSWER, STORE_REFUSED_ANSWER, MOVE_REFUSED_ANSWER, PIN_REFUSED_ANSWER],
+        "one of each kind, in the order the shelf says them",
+    );
+    const torn = composeFrameWorld(fight, replayed);
+    const twice = { ...answered, isEverySlotPinned: false, hasChoiceRefused: true };
+    assertStrictEquals(Object.values(twice).filter(Boolean).length, 4, "inside the bound");
+    torn.parts.keeper = { ...torn.parts.keeper, getAnswers: () => twice };
+    renderFrame(torn.parts);
+    assertStrictEquals(torn.shown.length, 0, "a move refused and its choice refused is a bug");
 });

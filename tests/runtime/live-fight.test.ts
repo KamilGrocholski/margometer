@@ -8,7 +8,7 @@
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { composeFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
+import { CombatantsExceeded, composeFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import {
     initBrowserStore,
     initMemoryStore,
@@ -159,7 +159,7 @@ function composeOptions(
         },
         ...overrides,
     };
-    return { options, lines, stale, keeper, opened, kept };
+    return { options, lines, stale, keeper, opened, kept, defects };
 }
 
 function playInto(margonem: FakeMargonem, options: LiveFightOptions, payloads: readonly unknown[]) {
@@ -358,4 +358,71 @@ Deno.test("a second fight whose opening breaks takes nothing of the first's", ()
     assertEquals(keeper.getFights().map((fight) => fight.openedAt), [OPENED_AT], "one row");
     assertEquals(lines, [DEFECT_KIND.reading, DEFECT_KIND.keeping], "the break, and no keeping");
     assertStrictEquals(kept.count, 2, "each close handed on the shelf's answer");
+});
+
+/** A gap mid-fight replays to figures that look right, so the fight is read on and kept nowhere. */
+Deno.test("a fight read past a payload the envelope refused is not kept, said once at close", () => {
+    const margonem = composeMargonem([[], [], []]);
+    const { options, lines, keeper, kept, defects } = composeOptions(margonem);
+    const refused = { m: "not a list" };
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const { live } = playInto(margonem, options, [{ init: 1, m: ["0;0;txt=a"] }, refused, end]);
+    assertStrictEquals(
+        composeFightView(live.session)?.isOver,
+        true,
+        "the fight read on to its end",
+    );
+    assertEquals(keeper.getFights(), [], "and was put on no shelf");
+    assertEquals(lines, [DEFECT_KIND.reading, DEFECT_KIND.keeping], "the gap, then no keeping");
+    const keeping = defects.getCounts().find((row) => row.kind === DEFECT_KIND.keeping);
+    const reading = defects.getCounts().find((row) => row.kind === DEFECT_KIND.reading);
+    assertStrictEquals(keeping?.count, 1, "said once");
+    assertStrictEquals(keeping?.first, reading?.first, "carrying the refusal that made the gap");
+    assertStrictEquals(kept.count, 1, "while the close is still handed on");
+});
+
+Deno.test("a fight read past a payload the session refused is not kept either", () => {
+    const margonem = composeMargonem([[], [], []]);
+    const sessionOptions = { ...SESSION_OPTIONS, combatantsMaximum: 1 };
+    const { options, keeper, defects } = composeOptions(margonem, { sessionOptions });
+    const crowded = { m: ["5;2=90.00;+dmg=5;-dmg=5", "6;2=90.00;+dmg=5;-dmg=5"] };
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const { live } = playInto(margonem, options, [{ init: 1, m: ["0;0;txt=a"] }, crowded, end]);
+    assertStrictEquals(
+        composeFightView(live.session)?.isOver,
+        true,
+        "the fight read on to its end",
+    );
+    assertEquals(keeper.getFights(), [], "and was put on no shelf");
+    const keeping = defects.getCounts().find((row) => row.kind === DEFECT_KIND.keeping);
+    assert(keeping?.first instanceof CombatantsExceeded, "the refusal the session gave");
+});
+
+Deno.test("a gap in one fight costs that fight, and the next one opened is kept", () => {
+    const margonem = composeMargonem([[], [], [], [], []]);
+    let moments = OPENED_AT;
+    const clock = {
+        ...STILL_CLOCK,
+        readNowMilliseconds: () => {
+            moments += 1;
+            return moments;
+        },
+    };
+    const { options, keeper, lines } = composeOptions(margonem, { clock });
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    playInto(margonem, options, [{ init: 1 }, { m: "not a list" }, end, { init: 1 }, end]);
+    assertEquals(keeper.getFights().map((fight) => fight.openedAt), [OPENED_AT + 2], "the second");
+    assertEquals(lines, [DEFECT_KIND.reading, DEFECT_KIND.keeping], "and the first said unkept");
+});
+
+Deno.test("an opening the envelope refuses starts the next fight's gap, not the last one's", () => {
+    const margonem = composeMargonem([[], [], [], []]);
+    const sessionOptions = { ...SESSION_OPTIONS, combatantsMaximum: 1 };
+    const { options } = composeOptions(margonem, { sessionOptions });
+    const crowded = { m: ["5;2=90.00;+dmg=5;-dmg=5", "6;2=90.00;+dmg=5;-dmg=5"] };
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const refused = { init: 1, m: "not a list" };
+    const { live } = playInto(margonem, options, [{ init: 1 }, crowded, end, refused]);
+    assert(live.payloadRefusal !== null, "the new fight opened on a refusal");
+    assert(!(live.payloadRefusal instanceof CombatantsExceeded), "its own, not the last fight's");
 });

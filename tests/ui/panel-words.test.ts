@@ -82,10 +82,12 @@ import {
     HEALTH_SOURCE_WORD_BY_KEY,
     HELPER_WORDS,
     LEGENDARY_BONUS_WORD_BY_KEY,
+    MOVE_REFUSED_ANSWER,
     NEITHER_END_WORDS,
     PANEL_DEFECT_KIND,
     PANEL_REGION,
     PANEL_WORDS,
+    PIN_REFUSED_ANSWER,
     presentTooltipRows,
     PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
@@ -281,6 +283,7 @@ function getSentences(): string[] {
     }
     sentences.push(STORE_REFUSED_ANSWER, STORE_MADE_ROOM_ANSWER);
     sentences.push(EVERY_SLOT_PINNED_ANSWER, CHOICE_REFUSED_ANSWER);
+    sentences.push(MOVE_REFUSED_ANSWER, PIN_REFUSED_ANSWER);
     sentences.push(...getSentencesFromChoices());
     for (const region of Object.values(PANEL_REGION)) {
         sentences.push(formatUndrawn(region));

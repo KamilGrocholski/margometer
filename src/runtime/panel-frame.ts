@@ -73,6 +73,8 @@ import {
     EVERY_SLOT_PINNED_ANSWER,
     formatPlace,
     formatPlaceWords,
+    MOVE_REFUSED_ANSWER,
+    PIN_REFUSED_ANSWER,
     type PlaceWords,
     STORE_MADE_ROOM_ANSWER,
     STORE_REFUSED_ANSWER,
@@ -554,9 +556,14 @@ function presentShelfAnswers(shelfAnswers: ShelfAnswers): string[] {
     if (shelfAnswers.hasStoreRefused) answers.push(STORE_REFUSED_ANSWER);
     if (shelfAnswers.hasStoreMadeRoom) answers.push(STORE_MADE_ROOM_ANSWER);
     if (shelfAnswers.hasChoiceRefused) answers.push(CHOICE_REFUSED_ANSWER);
+    if (shelfAnswers.hasMoveRefused) answers.push(MOVE_REFUSED_ANSWER);
+    if (shelfAnswers.hasPinRefused) answers.push(PIN_REFUSED_ANSWER);
     // A refusal and room made are answers to one write, so the two never stand together.
     if (shelfAnswers.hasStoreRefused) {
         assert(!shelfAnswers.hasStoreMadeRoom, "a store refused, or made room");
+    }
+    if (shelfAnswers.hasMoveRefused) {
+        assert(!shelfAnswers.hasChoiceRefused, "a move is refused, or its choice is");
     }
     assert(
         answers.length <= SHELF_ANSWERS_MAXIMUM,

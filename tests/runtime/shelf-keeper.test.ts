@@ -30,6 +30,8 @@ Deno.test("a fight kept is on the shelf and in the store, and the answers say no
         hasStoreRefused: false,
         hasStoreMadeRoom: false,
         hasChoiceRefused: false,
+        hasMoveRefused: false,
+        hasPinRefused: false,
     };
     assertEquals(keeper.getAnswers(), quiet, "and nothing needed saying");
 });
@@ -148,7 +150,36 @@ Deno.test("a pin toggles, and one the store refuses stands in memory as the read
     refusing.keeper.keep(composeFight(1));
     refusing.keeper.pin(1);
     assertStrictEquals(refusing.keeper.getFights()[0]?.isPinned, true, "the reader's answer");
-    assert(refusing.keeper.getAnswers().hasStoreRefused, "beside the store's");
+    assert(refusing.keeper.getAnswers().hasPinRefused, "beside the store's");
+});
+
+Deno.test("a pin the store refuses is said as a pin, and the fights as safe as they were", () => {
+    const held = new Map<string, string>();
+    let isRefusing = false;
+    const store = initBrowserStore({
+        getItem: (key) => held.get(key) ?? null,
+        setItem: (key, stored) => {
+            if (isRefusing) throw new DOMException("full", "QuotaExceededError");
+            held.set(key, stored);
+        },
+        removeItem: (key) => void held.delete(key),
+    });
+    const { keeper } = initKeeper({ initShelfStore: () => store });
+    keeper.keep(composeFight(1));
+    isRefusing = true;
+    keeper.pin(1);
+    const answers = keeper.getAnswers();
+    assert(answers.hasPinRefused, "the pin did not go down");
+    assert(!answers.hasStoreRefused, "which is not a fight the store refused");
+    isRefusing = false;
+    keeper.keep(composeFight(2));
+    assert(!keeper.getAnswers().hasPinRefused, "a shelf written takes the pin down with it");
+    assert(held.get(STORE_KEY.fights)?.includes('"isPinned":true'), "as the store now holds");
+    isRefusing = true;
+    keeper.pin(2);
+    isRefusing = false;
+    keeper.pin(2);
+    assert(!keeper.getAnswers().hasPinRefused, "and so does the next pin the store takes");
 });
 
 Deno.test("a choice moves the fights, then the answer, and empties the old place last", () => {
@@ -289,9 +320,48 @@ Deno.test("a choice of a store the browser lends none of moves nothing, and says
     keeper.keep(composeFight(1));
     keeper.moveShelf(STORAGE_CHOICE.session);
     assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.local, "the choice stays as it was");
-    assert(keeper.getAnswers().hasStoreRefused, "and the shelf says the store refused");
+    assert(keeper.getAnswers().hasMoveRefused, "and the shelf says the move was refused");
+    assert(!keeper.getAnswers().hasStoreRefused, "not that a fight went unsaved");
     assertStrictEquals(settings.get(STORE_KEY.storage), undefined, "with nothing answered");
     assertStrictEquals(getShelf(STORAGE_CHOICE.session).size, 0, "nor written");
+});
+
+Deno.test("a place that will not take the fights leaves them where they were, and says so", () => {
+    const held = new Map<string, string>();
+    const { keeper, settings } = initKeeper({
+        initShelfStore: (choice) =>
+            choice === STORAGE_CHOICE.session ? initRefusingStore() : initHeldStore(held),
+    });
+    keeper.keep(composeFight(1));
+    keeper.moveShelf(STORAGE_CHOICE.session);
+    assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.local, "the choice stays as it was");
+    assert(held.has(STORE_KEY.fights), "and so do the fights");
+    assertStrictEquals(settings.get(STORE_KEY.storage), undefined, "with nothing answered");
+    assert(keeper.getAnswers().hasMoveRefused, "the move refused");
+    assert(!keeper.getAnswers().hasStoreRefused, "and no fight said lost");
+    keeper.moveShelf(STORAGE_CHOICE.local);
+    assert(!keeper.getAnswers().hasMoveRefused, "until the store in effect is chosen again");
+    keeper.moveShelf(STORAGE_CHOICE.session);
+    keeper.moveShelf(STORAGE_CHOICE.memory);
+    assertStrictEquals(keeper.getChoice(), STORAGE_CHOICE.memory, "or a move is taken");
+    assert(!keeper.getAnswers().hasMoveRefused, "which takes the answer back");
+});
+
+Deno.test("a move answers once: refused, or its choice refused, never both", () => {
+    const { keeper } = initKeeper({
+        settings: initRefusingStore(),
+        initShelfStore: (choice) =>
+            choice === STORAGE_CHOICE.session ? new StoreUnavailable() : initHeldStore(new Map()),
+    });
+    keeper.keep(composeFight(1));
+    keeper.moveShelf(STORAGE_CHOICE.memory);
+    assert(keeper.getAnswers().hasChoiceRefused, "the choice was not kept");
+    keeper.moveShelf(STORAGE_CHOICE.session);
+    assert(keeper.getAnswers().hasMoveRefused, "the next move was refused");
+    assert(!keeper.getAnswers().hasChoiceRefused, "and the last move's answer gave way to it");
+    keeper.moveShelf(STORAGE_CHOICE.memory);
+    assert(keeper.getAnswers().hasChoiceRefused, "as the move's gives way to the choice's");
+    assert(!keeper.getAnswers().hasMoveRefused, "the other way round");
 });
 
 Deno.test("an old place that will not let go of the fights is a defect, the move stands", () => {

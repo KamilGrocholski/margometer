@@ -767,7 +767,7 @@ export type ExportFailure = ShownFightAbsent | FileUnserializable | FileFailure;
 export interface ShelfKeeper {
     getFights(): readonly KeptFight[];
     getChoice(): StorageChoice;
-    getAnswers(): ShelfAnswers; // every slot pinned, refused, room made, choice refused
+    getAnswers(): ShelfAnswers; // every slot pinned, refused, room made, choice, move or pin refused
     getKeptFightStates(): ReadonlyMap<number, KeptFightState | null>; // replayed as kept, a refusal included
     keep(fight: KeptFight): void;
     pin(openedAt: number): void; // a toggle, as develop's pin is
@@ -967,7 +967,8 @@ one would leave that panel on the page.
 onBeforeCall ─ errors.attempt(readMargonemEngineWarriorSnapshot) ─▶ snapshotBefore | null
 [the game's original runs; its exception reaches the game untouched, and we do nothing]
 onPayload(payload) ─ errors.attempt:
-   readPayloadEnvelope     a failure → a "reading" defect
+   readPayloadEnvelope     an opening, refused or not, clears the refusal the fight held;
+                           a failure → a "reading" defect, and the fight's first refusal held
    readMargonemEngineWarriorSnapshot     after the original → snapshotAfter | null
    prepareCapture          → commitCapture: the call kept or counted, beside the session's payload
    preparePayload          a value → commitPayload → unread counted (suspect)
@@ -975,10 +976,13 @@ onPayload(payload) ─ errors.attempt:
                                    the place and the reader reset, then read; the screen
                                    reset where no kept fight is chosen
                                  hasClosed → no moment: a "keeping" defect, and nothing kept;
+                                   a refusal held: a "keeping" defect carrying it, and nothing
+                                   kept, because a gap replays to figures that look right;
                                    else ShelfKeeper.keep → the shelf's answers; then a chosen
                                    fight the shelf no longer holds is cleared
                                    (resetScreenFightDropped)
-                           a failure → a bound the options state: a "reading" defect
+                           a failure → a bound the options state: a "reading" defect, and the
+                                 fight's first refusal held
                            assertion → a "reading" defect; the session untouched
    markStale               the first mark asks for a frame
 end: no DOM; cost bounded by the message count; a JSON copy only of a call thinning keeps
@@ -1025,13 +1029,14 @@ goes without a mark.
 | `PayloadRejected`                               | `defect` "reading"     | the defects section; the fight read so far stands      |
 | `hasJoinedInProgress` (data, not a failure)     | `shown-as-suspect`     | "joined in progress"                                   |
 | `EnvelopeFailure`                               | `defect` "reading"     | the defects section: what could not be done, how often |
+| `EnvelopeFailure`, `PayloadRejected` at a close | `defect` "keeping"     | the fight read on live, and not kept                   |
 | `Caught`                                        | `defect` of its step   | as above; one console line per kind                    |
 | `Caught` reading the page's state               | `shown-as-unknown`     | our word instead of the game's, and no defect          |
 | `FiguresDisagreed`                              | `defect` "figures"     | as above                                               |
 | `StoreFailure` opening the shelf                | `fallback-with-defect` | memory; a "kept" defect                                |
 | `StoreUnavailable` on choosing a store          | `shelf-answer`         | nothing moves; the shelf's answer row                  |
 | `StoreFailure` emptying the place left          | `defect` "kept"        | the move stands; a copy stayed behind                  |
-| `ShelfFailure` on a write                       | `shelf-answer`         | the shelf's answer row                                 |
+| `ShelfFailure` on a write                       | `shelf-answer`         | the answer row: a fight, a pin or a move not saved     |
 | `ShelfUnreadable`, `ShelfVersionUnknown`        | `fallback-with-defect` | memory, the stored shelf untouched; a "kept" defect    |
 | `ShelfVersionUnknown` of an older version       | `fallback-with-defect` | an empty shelf, written over next; a "kept" defect     |
 | `KeptFightsUnreadable`                          | `defect` "kept"        | the rest of the shelf; the fights lost, counted        |

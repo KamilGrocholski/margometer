@@ -35,8 +35,10 @@ import {
     formatPlace,
     getWordsForTurnState,
     HELPER_WORDS,
+    MOVE_REFUSED_ANSWER,
     PANEL_DEFECT_KIND,
     PANEL_WORDS,
+    PIN_REFUSED_ANSWER,
     STORE_MADE_ROOM_ANSWER,
     STORE_REFUSED_ANSWER,
 } from "#/src/ui/panel-words.ts";
@@ -1015,10 +1017,14 @@ Deno.test("a store that will not take the fights leaves them where they were", (
         ["na stałe"],
         "which the strip says",
     );
+    const said = getTextsByClass(world.getHost(), CLASS.suspicion);
     assert(
-        getTextsByClass(world.getHost(), CLASS.suspicion)
-            .some((suspicion) => suspicion.includes(STORE_REFUSED_ANSWER)),
-        "and the options say the store would not take them",
+        said.some((suspicion) => suspicion.includes(MOVE_REFUSED_ANSWER)),
+        "and the options say the place would not take them",
+    );
+    assert(
+        !said.some((suspicion) => suspicion.includes(STORE_REFUSED_ANSWER)),
+        "never that a fight went unsaved",
     );
 });
 
@@ -1194,9 +1200,15 @@ Deno.test("a payload the fight refuses is said on the panel, and the next one is
     const host = world.getHost();
     assertEquals(getRankingTexts(host), getRankingTexts(clean.getHost()), "the fight around it");
     const said = getTextsByClass(host, CLASS.defect);
-    assertStrictEquals(said.length, 1, "and one line says the panel refused it");
+    assertStrictEquals(said.length, 2, "one line says the panel refused it, one what that cost");
     assertStringIncludes(said[0] ?? "", formatDefect(PANEL_DEFECT_KIND.reading, null, 1));
-    assertStrictEquals(world.lines.length, 1, "E9: the console hears it once");
+    assertStringIncludes(said[1] ?? "", formatDefect(PANEL_DEFECT_KIND.keeping, null, 1));
+    assertEquals(
+        world.getShelf("local").has(STORE_KEY.fights),
+        false,
+        "a fight with a gap is not kept",
+    );
+    assertStrictEquals(world.lines.length, 2, "E9: the console hears each kind once");
 });
 
 Deno.test("a window that will not say its size costs the panel its place, and no more", () => {
@@ -1947,6 +1959,42 @@ function readShelfAnswers(world: RuntimeWorld): string[] {
     openShelfScreen(world);
     return getTextsByClass(world.getHost(), CLASS.suspicion);
 }
+
+Deno.test("a store that will not take the fight says it was not saved", () => {
+    const world = initRuntimeWorld(composeBattlePage(), () => ({
+        initShelfStore: () => initRefusingStore(),
+    }));
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    const said = readShelfAnswers(world);
+    assert(said.some((answer) => answer.includes(STORE_REFUSED_ANSWER)), "the fight is not kept");
+});
+
+Deno.test("a pin the store will not write is said as a pin, and not as a fight lost", () => {
+    const held = new Map<string, string>();
+    let isRefusing = false;
+    const world = initRuntimeWorld(composeBattlePage(), () => ({
+        initShelfStore: () =>
+            initBrowserStore({
+                getItem: (key) => held.get(key) ?? null,
+                setItem: (key, stored) => {
+                    if (isRefusing) throw new DOMException("full", "QuotaExceededError");
+                    held.set(key, stored);
+                },
+                removeItem: (key) => void held.delete(key),
+            }),
+    }));
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    isRefusing = true;
+    openShelfScreen(world);
+    const pin = getElementsWithin(world.getHost()).find((fakeElement) =>
+        fakeElement.className.startsWith(CLASS.rowPin)
+    );
+    assertExists(pin, "the fight on the shelf carries a pin");
+    world.press(pin);
+    const said = getTextsByClass(world.getHost(), CLASS.suspicion);
+    assert(said.some((answer) => answer.includes(PIN_REFUSED_ANSWER)), "the pin did not go down");
+    assert(!said.some((answer) => answer.includes(STORE_REFUSED_ANSWER)), "the fight still did");
+});
 
 Deno.test("a shelf of pins says the fight had nowhere to go", () => {
     const world = initRuntimeWorld(composeBattlePage(), (built) => {
