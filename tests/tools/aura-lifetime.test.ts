@@ -5,7 +5,7 @@
  * table is proved by a row it must take and a row it must not.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { type BitRow, replayLightingRows, tallyBitRows } from "#/tools/aura-lifetime.ts";
@@ -112,7 +112,7 @@ Deno.test("every clause the document cites is counted, and cited by the keys it 
     const counts = new Map<string, number>(Object.entries(FROZEN_HELP_PHRASES.counts));
     for (const row of clauses) {
         const counted = counts.get(row.clause);
-        assert(counted !== undefined, `${row.clause}: the frozen counts carry it`);
+        assertExists(counted, `${row.clause}: the frozen counts carry it`);
         assert(counted > 0, `${row.clause}: and the help says it at least once`);
         for (const key of row.keys) {
             const said = lookupHelpLine(register, key);

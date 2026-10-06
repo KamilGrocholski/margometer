@@ -1,18 +1,16 @@
 /**
- * How long a status really stands on a combatant, read off the mask each payload restates as the
- * add-on reads it, so a combatant who has fallen carries nothing (`src/ports/payload-envelope.ts`).
- * It asks one question: when one moment lights a status on several combatants at once, do they all
- * lose it at one moment, or each at their own Nth turn. The clock is the figures' own, turns taken
- * and lost both; `docs/auras-standing.md` is this report written down.
+ * How long a status really stands on a combatant, read off what the add-on says each one carries
+ * after each payload (`src/core/carried-status.ts`), so a combatant who has fallen carries nothing
+ * and a run is as long as the add-on counts it, on the bearer's own clock. It asks one question:
+ * when one moment lights a status on several combatants at once, do they all lose it at one
+ * moment, or each at their own Nth turn. `docs/auras-standing.md` is this report written down.
  *
  *     deno task fight:life [--cases] [recording.json …]
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
-import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
-import type { FightStatistics } from "#/src/core/fight-statistics.ts";
 import {
     formatRecordingName,
     readRecordedMaterial,
@@ -27,7 +25,7 @@ interface StatusRun {
     bit: number;
     litAt: number;
     wentOutAt: number;
-    /** Turns of their own, taken and lost both, from the lighting to the going out. */
+    /** Turns of their own on the add-on's clock, from the lighting to the step it went out. */
     ownTurns: number;
 }
 
@@ -65,8 +63,13 @@ export interface BitRow {
     ownTurnsLongest: number;
 }
 
-interface OpenRun {
-    litAt: number;
+/** A status standing at one step, as the add-on counted it there. */
+interface StandingRun {
+    combatantId: number;
+    bit: number;
+    /** Null where it already stood at the recording's first payload: no lighting was seen. */
+    litAt: number | null;
+    turnsElapsed: number;
     turnsAtLighting: number;
 }
 
@@ -83,7 +86,7 @@ export function replayLightingRows(stepped: readonly SteppedFight[]): LightingRo
     const lightings: LightingRow[] = [];
     for (const { fight, steps } of stepped) {
         const name = formatRecordingName(fight.path);
-        for (const row of indexLightingRows(name, replayStatusRuns(steps))) lightings.push(row);
+        for (const row of composeLightingRows(name, replayStatusRuns(steps))) lightings.push(row);
     }
     assert(lightings.length <= RUNS_MAXIMUM, "the corpus holds no more lightings than the bound");
     assert(
@@ -93,100 +96,82 @@ export function replayLightingRows(stepped: readonly SteppedFight[]): LightingRo
     return lightings;
 }
 
-/** Every run of every status in one recording, closed ones only: an open one has no length. */
+/**
+ * Every run of every status in one recording, closed ones only: an open one has no length. A run
+ * lights at the step the add-on first says it is carried and goes out at the first step it no
+ * longer does. A bit the frozen table does not name is passed over, having no row to land in.
+ */
 function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
-    const closed: StatusRun[] = [];
-    const open = new Map<string, OpenRun>();
-    const held = new Map<string, boolean>();
     assert(steps.length <= STEPS_MAXIMUM, "a recording carries no more payloads than the bound");
+    const closed: StatusRun[] = [];
+    let standing = new Map<string, StandingRun>();
     for (const [stepIndex, step] of steps.entries()) {
-        const turnsByCombatantId = indexTurnsByCombatantId(step.reading.figures.statistics);
-        for (const [combatantId, mask] of step.record.statusMasksByCombatantId) {
-            // Hold one combatant's mask at this step against what they held at the step before.
-            const clock = turnsByCombatantId.get(combatantId) ?? 0;
-            assert(clock >= 0, "a combatant's clock never runs behind the start of the fight");
-            assert(stepIndex >= 0, "and a payload is at a place in the recording");
-            for (let bit = 0; bit < FROZEN_BUFF_BITS.bits.length; bit += 1) {
-                const key = `${formatInteger(combatantId)}/${formatInteger(bit)}`;
-                const has = isBitSet(mask, bit);
-                const was = held.get(key);
-                held.set(key, has);
-                if (was === undefined) continue;
-                if (!was) {
-                    if (has) open.set(key, { litAt: stepIndex, turnsAtLighting: clock });
-                    continue;
-                }
-                if (has) continue;
-                const opened = open.get(key);
-                if (opened === undefined) continue;
-                // Close the run that went out at this step.
-                {
-                    open.delete(key);
-                    assert(
-                        clock >= opened.turnsAtLighting,
-                        "a clock never runs backwards over one recording",
-                    );
-                    assert(
-                        opened.litAt <= stepIndex,
-                        "and a status goes out no earlier than it lit",
-                    );
-                    closed.push({
-                        combatantId,
-                        bit,
-                        litAt: opened.litAt,
-                        wentOutAt: stepIndex,
-                        ownTurns: clock - opened.turnsAtLighting,
-                    });
-                }
-            }
+        const carried = new Map<string, StandingRun>();
+        for (const status of step.reading.view.carriedStatuses) {
+            if (status.bit >= FROZEN_BUFF_BITS.bits.length) continue;
+            const key = `${formatInteger(status.combatantId)}/${formatInteger(status.bit)}`;
+            const before = standing.get(key);
+            let litAt: number | null;
+            if (before !== undefined) {
+                assert(
+                    status.turnsElapsed >= before.turnsElapsed,
+                    "a run's clock never runs backwards",
+                );
+                litAt = before.litAt;
+            } else if (stepIndex === 0) litAt = null;
+            else litAt = stepIndex;
+            const turnsNow = step.reading.view.turnsByCombatantId.get(status.combatantId) ?? 0;
+            carried.set(key, {
+                combatantId: status.combatantId,
+                bit: status.bit,
+                litAt,
+                turnsElapsed: status.turnsElapsed,
+                turnsAtLighting: before?.turnsAtLighting ?? turnsNow - status.turnsElapsed,
+            });
         }
+        for (const [key, run] of standing) {
+            if (carried.has(key)) continue;
+            if (run.litAt === null) continue;
+            // ⚠️ The length runs to the step it went out at, as the published lengths count it:
+            // the last turn it stood at is one short of that, or more where a payload skipped.
+            const turnsAtGoingOut = step.reading.view.turnsByCombatantId.get(run.combatantId) ?? 0;
+            assert(run.litAt < stepIndex, "a status goes out after the step it lit at");
+            assert(
+                turnsAtGoingOut >= run.turnsAtLighting,
+                "a clock never runs backwards over one recording",
+            );
+            closed.push({
+                combatantId: run.combatantId,
+                bit: run.bit,
+                litAt: run.litAt,
+                wentOutAt: stepIndex,
+                ownTurns: turnsAtGoingOut - run.turnsAtLighting,
+            });
+        }
+        standing = carried;
     }
     assert(closed.length <= RUNS_MAXIMUM, "a recording holds no more runs than the bound");
     return closed;
 }
 
-/**
- * Turns taken and lost both, which is the clock `src/core/aura-standing.ts` counts a cast on: a
- * turn granted and spent on nothing still passed for whoever is carrying it.
- */
-function indexTurnsByCombatantId(statistics: FightStatistics): Map<number, number> {
-    const turnsByCombatantId = new Map<number, number>();
-    for (const [combatantId, figures] of statistics.byCombatantId) {
-        assert(figures.turnsTaken >= 0, "a clock counts turns taken and never owes them");
-        assert(figures.turnsLost >= 0, "and counts turns lost the same way");
-        turnsByCombatantId.set(combatantId, figures.turnsTaken + figures.turnsLost);
-    }
-    assert(
-        turnsByCombatantId.size <= statistics.byCombatantId.size,
-        "no more clocks than combatants",
-    );
-    return turnsByCombatantId;
-}
-
-function isBitSet(mask: number, bit: number): boolean {
-    assert(bit >= 0, "a bit is looked for at a position");
-    assert(bit < STATUS_BITS_MAXIMUM, "and inside the integer a mask arrives as");
-    return (mask >> bit & 1) === 1;
-}
-
 /** The runs of one recording gathered into cohorts: one status, one step, everyone it lit on. */
-function indexLightingRows(name: string, runs: readonly StatusRun[]): LightingRow[] {
+function composeLightingRows(name: string, runs: readonly StatusRun[]): LightingRow[] {
     const byMoment = new Map<string, StatusRun[]>();
     for (const run of runs) {
         const key = `${formatInteger(run.bit)}/${formatInteger(run.litAt)}`;
         byMoment.set(key, [...(byMoment.get(key) ?? []), run]);
     }
     assert(name.length > 0, "the runs of a recording are gathered under its name");
-    const rows = [...byMoment.values()].map((gathered) => indexLightingRowsOne(name, gathered));
+    const rows = [...byMoment.values()].map((gathered) => composeLightingRow(name, gathered));
     assertStrictEquals(rows.length, byMoment.size, "every moment gathered is a moment reported");
     return rows.sort((row, otherRow) => row.litAt - otherRow.litAt);
 }
 
-function indexLightingRowsOne(name: string, gathered: readonly StatusRun[]): LightingRow {
+function composeLightingRow(name: string, gathered: readonly StatusRun[]): LightingRow {
     const [firstRun] = gathered;
-    assert(firstRun !== undefined, "a lighting stands on at least one bearer");
+    assertExists(firstRun, "a lighting stands on at least one bearer");
     const bitName = FROZEN_BUFF_BITS.bits[firstRun.bit];
-    assert(bitName !== undefined, "and on a status the frozen table names");
+    assertExists(bitName, "and on a status the frozen table names");
     const endings = new Set(gathered.map((run) => run.wentOutAt));
     const ownTurnsEach = gathered.map((run) => run.ownTurns).sort((turns, otherTurns) =>
         turns - otherTurns

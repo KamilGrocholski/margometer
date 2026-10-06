@@ -144,6 +144,13 @@ rows are every team-wide key the help dates at all. It dates none of the others,
 is the only channel that says what somebody is carrying right now. `tools/aura-lifetime.ts` asks it
 one question: where one moment lights a status on several combatants, do they all lose it together.
 
+⚠️ **The mask can carry a bit the table does not name.** Bit 10 (1024) stands in
+`captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json` and
+`captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json` (read 2026-10-06), past the nine
+statuses production build `DHSqC3Uh` registers. Its `updateWarriorBuffs` walks `c<9`, so the client
+draws nothing for it, and the add-on names nothing either: `src/core/carried-figure.ts` passes over
+a bit with no key, and so does the register below.
+
 ```bash
 deno task fight:life                  # the register below
 deno task fight:life --cases          # every lighting that reached more than one bearer
