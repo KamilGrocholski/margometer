@@ -536,9 +536,8 @@ Deno.test("a status nothing dates, just lit, says no length at all", () => {
 /**
  * ⚠️ **A block is read down its left edge**, so a row that names a thing and then says something
  * about it is punctuated the same way in every row that does it, and the way the game punctuates
- * its own rows above ours, `Pancerz: 120` (ADR 0039). The legendary pair once ran the name into
- * the figure and the rows above them did not — found by drawing the whole block, which is the
- * only place they stand together.
+ * its own rows above ours, `Pancerz: 120` (ADR 0039). A row punctuated unlike its neighbours shows
+ * only where the whole block stands together, so the test draws it whole.
  */
 Deno.test("every row that names a thing and qualifies it is punctuated alike", () => {
     const said = presentTooltipRows(

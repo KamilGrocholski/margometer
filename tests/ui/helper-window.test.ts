@@ -582,14 +582,14 @@ Deno.test("a fight charging nothing draws no band at all", () => {
 Deno.test("a charge names the figures the game states, and never a percentage", () => {
     const reading = presentHelper(
         [],
-        [composeCharge({ turnsElapsed: 1, turnsStated: 2 })],
+        [composeCharge({ turnsElapsed: 1, turnsStated: 4 })],
         ROSTER,
         OURS,
         composeTurn(null),
     );
     const { host } = draw(reading);
     const figures = getTextsByClass(getWindow(host), "row-value figure");
-    assertEquals(figures.includes("1 tura"), true, "what is left of what the game states");
+    assertEquals(figures.includes("3 tury"), true, "what is left of what the game states");
     assertEquals(figures.some((figure) => figure.includes("%")), false, "and no share of anything");
 });
 
@@ -793,7 +793,7 @@ Deno.test("the holder's card states no length, because the length is not the cas
 Deno.test("the card of a charge names the blow whole, whoever is making it, and the turns", () => {
     const reading = presentHelper(
         [],
-        [composeCutCharge()],
+        [{ ...composeCutCharge(), turnsElapsed: 1 }],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -812,7 +812,7 @@ Deno.test("the card of a charge names the blow whole, whoever is making it, and 
     );
     assertEquals(
         card.stated.map((line) => [line.label, line.value]),
-        [[HELPER_WORDS.turnsLeft, "2 tury"]],
+        [[HELPER_WORDS.turnsLeft, "3 tury"]],
         "the turns left, under the word a held character's card states its own under",
     );
 });
