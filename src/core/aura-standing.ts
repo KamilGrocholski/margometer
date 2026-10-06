@@ -81,7 +81,11 @@ export interface AuraStanding {
     shoutTargetId: number | null;
     /** What the announcement stated each key at, carried and never totalled here. */
     amountByKey: ReadonlyMap<string, number>;
-    /** Everybody's own turn count as the cast stood, so a bearer can be dated on their own. */
+    /**
+     * Everybody's own turn count as the cast stood, so a bearer can be dated on their own: whoever
+     * had taken no turn yet is absent. ⚠️ **So would be anybody seated after the cast**, which the
+     * view states no moment of (`docs/auras-standing.md`).
+     */
     turnsAtCastByCombatantId: ReadonlyMap<number, number>;
 }
 

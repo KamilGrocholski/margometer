@@ -315,3 +315,17 @@ Deno.test("a bearer who outruns the caster has the figure gone", () => {
     const figure = replayFrostFigure(events);
     assertStrictEquals(figure?.percent, null, "eight of their eight, though the caster took two");
 });
+
+/**
+ * ⚠️ **The cast's count holds only whoever had taken a turn**: read as a missing date, a cast at
+ * the very start of a fight would reach nobody who had not acted before it
+ * (`docs/auras-standing.md`).
+ */
+Deno.test("a cast landing before the bearer's first turn stands on them from none", () => {
+    const landed = [composeFrostCast()];
+    assertStrictEquals(replayFrostFigure(landed)?.percent, 14, "no turn yet, and it stands");
+    const sevenIn = [...landed, ...Array.from({ length: 7 }, () => composeBlowBy(BEARER_ID))];
+    assertStrictEquals(replayFrostFigure(sevenIn)?.percent, 14, "seven of their eight from none");
+    const eightIn = [...sevenIn, composeBlowBy(BEARER_ID)];
+    assertStrictEquals(replayFrostFigure(eightIn)?.percent, null, "and the eighth runs it out");
+});

@@ -23,6 +23,12 @@ const LAST_RESCUED = "captures/2026-08-15-tempest-grupa-vs-hildur-1-178651481031
 const OUTRUN_HASTE = "captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json";
 const OUTRUN_PAYLOAD_INDEX = 81;
 const OUTRUN_BEARER_ID = 21719;
+/**
+ * A `Podwójny dech` inside the opening payload, landing before two bearers had taken a turn, read
+ * 2026-10-06 over `captures/` through `src/`: the two bearers it reaches from none.
+ */
+const OPENING_HASTE = "captures/2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json";
+const OPENING_BEARER_IDS = [439250, 459132];
 const ADD_ON_ROW = "MargoMeter";
 
 /**
@@ -251,4 +257,20 @@ Deno.test("a haste whose caster outran the bearer still adds to the bearer's fig
         ["speed_up: 40%"],
         "both sources, each counted on the bearer's own turns",
     );
+});
+
+/** Held at the seam, where the walk's count of turns leaves out whoever had taken none. */
+Deno.test("a haste cast before a fighter's first turn states its figure on them", () => {
+    const { page, registries } = composeRebuildingBattle();
+    const world = initRuntimeWorld(page);
+    const [opening] = lookupRecordedFight(OPENING_HASTE).updates;
+    world.update(opening);
+    for (const bearerId of OPENING_BEARER_IDS) {
+        const rows = registries.get(bearerId)?.text.split("<br>") ?? [];
+        assertEquals(
+            rows.filter((row) => row.startsWith("speed_up: ")),
+            ["speed_up: 20%"],
+            `${bearerId} is reached by a cast that landed before their first turn`,
+        );
+    }
 });

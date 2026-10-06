@@ -68,6 +68,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   nie znikają, gdy rzucający zdąży wykonać więcej tur niż ona.
 - **Poprawka** — Usterka przy obsłudze myszy mówi „Panel nie zareagował na mysz”, bo dotyczy też
   przeciągania i najechania, a nie tylko kliknięcia.
+- **Poprawka** — Przyspieszenie rzucone na początku walki pokazuje się w dymku także postaci, które
+  nie wykonały jeszcze żadnej tury.
 
 ## [0.22.1] — 2026-10-05
 

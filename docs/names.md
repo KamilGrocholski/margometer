@@ -4793,6 +4793,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `OPENED_EMPTY` — `tests/runtime/shelf.test.ts`
 - `OPENERS_HEADING` — `tests/tools/turn-reading.test.ts`
 - `OPENING` — `tests/core/fight-session.test.ts`
+- `OPENING_BEARER_IDS` — `tests/runtime/carried-tooltip.test.ts`
+- `OPENING_HASTE` — `tests/runtime/carried-tooltip.test.ts`
 - `OPENS_NOTE` — `tests/e2e/panel-card.spec.ts`
 - `OPPOSING_SIDE` — `tests/ui/panel-helper.test.ts`
 - `OTHER` — `tests/runtime/screen-intent.test.ts`, `tests/tools/develop-reports.test.ts`
@@ -7008,6 +7010,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/level-drawn.test.ts`
 - `baseline` — `tests/tools/shout-holding.test.ts`
 - `battle` — in 8 files: `tests/`
+- `bearerId` — `tests/runtime/carried-tooltip.test.ts`
 - `before` — in 22 files: `tests/`
 - `beforeMidnight` — `tests/ui/panel-words.test.ts`
 - `beforeTheHour` — `tests/ui/panel-words.test.ts`
@@ -7329,6 +7332,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `east` — `tests/ports/margonem-engine-place.test.ts`
 - `edge` — `tests/e2e/panel-options.spec.ts`, `tests/tools/preview-state.test.ts`
 - `edited` — `tests/runtime/margometer-runtime.test.ts`, `tests/tools/frozen-files.test.ts`
+- `eightIn` — `tests/core/carried-figure.test.ts`
 - `elapsed` — `tests/core/aura-standing.test.ts`
 - `elementOfClass` — `tests/ui/panel-scroll.test.ts`
 - `elements` — `tests/core/fight-decoder.test.ts`
@@ -7671,7 +7675,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `labelClaims` — `tests/repository/protocol-keys.test.ts`
 - `labelIndex` — `tests/e2e/panel-card.spec.ts`, `tests/repository/browser-support.test.ts`
 - `labels` — `tests/e2e/panel-card.spec.ts`, `tests/tools/protocol-key-table.test.ts`
-- `landed` — `tests/e2e/panel-drag.spec.ts`, `tests/e2e/panel-tooltip.spec.ts`
+- `landed` — `tests/core/carried-figure.test.ts`, `tests/e2e/panel-drag.spec.ts`,
+  `tests/e2e/panel-tooltip.spec.ts`
 - `large` — `tests/runtime/margometer-runtime.test.ts`, `tests/ui/panel-element.test.ts`
 - `largest` — `tests/core/combatant-roster.test.ts`, `tests/libs/number-text.test.ts`,
   `tests/ui/panel-element.test.ts`
@@ -8226,6 +8231,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `settings` — `tests/e2e/margonem-page.ts`, `tests/repository/documents.test.ts`,
   `tests/runtime/shelf-keeper.test.ts`
 - `settled` — `tests/repository/browser-support.test.ts`, `tests/tools/fabricated-fight.test.ts`
+- `sevenIn` — `tests/core/carried-figure.test.ts`
 - `shape` — in 5 files: `tests/`
 - `shapeChanges` — `tests/repository/record-shapes.test.ts`
 - `shapes` — `tests/ports/fight-capture.test.ts`, `tests/tools/protocol-key-shape.test.ts`,
