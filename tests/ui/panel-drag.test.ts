@@ -20,7 +20,7 @@ import {
 import { getBarHeight, PLACE, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 
 const WINDOW = { width: 1280, height: 900 };
-/** The windows as a reader who chose no size of type sees them. */
+/** The windows at the small step of type, which the arithmetic below is written against. */
 const PANEL_WIDTH = TYPE_TOKENS[TYPE_STEP.small].meterWidthPixels;
 const STANDING_WIDTH = TYPE_TOKENS[TYPE_STEP.small].helperWidthPixels;
 
@@ -103,6 +103,11 @@ Deno.test("a window stating no size to clamp against leaves the panel where it i
         { left: 0, top: 0 },
         "and a position that is not one at all is the corner in both",
     );
+    assertEquals(
+        clampPosition({ left: Number.MAX_VALUE, top: Number.MAX_SAFE_INTEGER }, null),
+        { left: 0, top: Number.MAX_SAFE_INTEGER },
+        "with nothing to clamp against, a number too big to write is the corner as well",
+    );
 });
 
 Deno.test("what puts the panel there releases the corner it was anchored to", () => {
@@ -126,7 +131,7 @@ Deno.test("what puts the panel there releases the corner it was anchored to", ()
 });
 
 Deno.test("the detail opens on the side of the panel that has room for it", () => {
-    // Where the sheet puts the panel, which is where it stays until somebody drags it: the whole
+    // A panel against the window's right edge, where the sheet's own corner stands it: the whole
     // right-hand side of the window is behind it, so the detail opens to its left — pinned by its
     // right edge, a gap from the window's left, whatever width the card turns out to draw at.
     assertEquals(
@@ -170,12 +175,12 @@ function composePlace(left: number, widthPixels = PANEL_WIDTH): CardWindowPlace 
 
 /** The screen's right edge, which is what a card standing left of its window is measured from. */
 function composeFromRight(windowWidth: number, windowLeft: number): CardAcross {
-    return { edge: "right", at: windowWidth - windowLeft + GAP };
+    return { edge: "right", offsetPixels: windowWidth - windowLeft + GAP };
 }
 
 /** The screen's left edge, which is what a card flipped to the other side is measured from. */
 function composeFromLeft(distance: number): CardAcross {
-    return { edge: "left", at: distance };
+    return { edge: "left", offsetPixels: distance };
 }
 
 /**
@@ -200,9 +205,9 @@ Deno.test("the side a card opens on is the same for every card the window holds"
 });
 
 /**
- * The second window is 210px wide against the panel's 260, so a card flipped off its left edge
- * lands 50px short of where the panel's own would — on the panel, which is what the second half of
- * this holds it against (`develop ADR 0090`).
+ * The second window is narrower than the panel (`STANDING_WIDTH` against `PANEL_WIDTH`), so a card
+ * flipped off its left edge lands short of where the panel's own would by the difference — on the
+ * panel, which is what the second half of this holds it against (`develop ADR 0090`).
  */
 Deno.test("a card from the window beside the panel opens beside that window", () => {
     assertEquals(
@@ -233,10 +238,10 @@ Deno.test("a card from the window beside the panel opens beside that window", ()
 });
 
 /**
- * ⚠️ **The two windows are placed apart, and nothing reads the other's corner.** A flip that
- * stepped past both put the panel's own card beyond the second window the moment the panel was
- * dragged left of it — 264 away from the panel it belongs to, at 449, against a window the reader
- * was not pointing at. Reported on the branch that introduced it (`develop ADR 0090`).
+ * ⚠️ **The two windows are placed apart, and nothing reads the other's corner.** A flip that steps
+ * past both puts the panel's own card beyond the second window the moment the panel is dragged
+ * left of it — 264 away from the panel it belongs to, at 449, against a window the reader is not
+ * pointing at (`develop ADR 0090`).
  */
 Deno.test("a card flipped right stays with its own window, whatever the other is doing", () => {
     const WINDOW_LEFT = 235;

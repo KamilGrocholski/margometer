@@ -54,6 +54,20 @@ export class WindowUnplaced extends Error {
     }
 }
 
+/**
+ * A row's card the register would not take — a key empty, already stated, or past the bound — so
+ * the row draws with nothing on hover. It reaches a reader as the card's region undrawn.
+ */
+export class CardRefused extends Error {
+    override readonly name = "CardRefused";
+    readonly key: string;
+
+    constructor(key: string) {
+        super();
+        this.key = key;
+    }
+}
+
 export type ViewFailure = RegionUndrawn | GestureDropped | WindowUnplaced;
 
 /** A region that could not draw stands undrawn in place. */

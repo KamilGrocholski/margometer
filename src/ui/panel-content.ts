@@ -19,6 +19,7 @@ import {
 import {
     type CombatantFigures,
     createCombatantFigures,
+    CUT_MAXIMUM,
     type FightOutcome,
     type FightStatistics,
     type FightTotals,
@@ -192,6 +193,15 @@ const HALF_NAMED_FIELD = {
     healthRestoredByNobody: "healthRestoredByNobody",
 } as const;
 type HalfNamedField = VocabularyWord<typeof HALF_NAMED_FIELD>;
+
+/** The fight-wide figure a screen keeps off every combatant's row, as the statistics hold it. */
+const HALF_NAMED_TOTAL_FIELD = {
+    damageDealtByNobody: "damageDealtByNobody",
+    damageTakenByNobody: "damageTakenByNobody",
+    healthGivenByNobody: "healthGivenByNobody",
+    healthRestoredToNobody: "healthRestoredToNobody",
+} as const;
+type HalfNamedTotalField = VocabularyWord<typeof HALF_NAMED_TOTAL_FIELD>;
 
 /** And the same figure cut by the key it was stated under, which is what it was dealt with. */
 const HALF_NAMED_KIND_FIELD = {
@@ -635,21 +645,22 @@ interface UnsharedPairPart {
     figure: number;
 }
 
-/**
- * A row for everybody a fight holds, counted off the roster rather than typed beside it: the
- * twenty was already in this file under its own name, two lines below, and one of the two would
- * have moved without the other.
- */
+/** A row for everybody a fight holds, counted off the roster rather than typed beside it. */
 const ROWS_MAXIMUM = COMBATANTS_MAXIMUM;
-/** As many parts as the widest cut a card draws: the kinds, the defences, the procs. */
-export const CUT_PARTS_MAXIMUM = 64;
 /**
- * What one combatant's own skills are kept inside: 81 names over `captures/`, 2026-08-29.
+ * As many parts as the widest cut a card draws — the kinds, the defences, the procs — which is
+ * the cut `src/core/fight-statistics.ts` keeps. A fold over several people's cuts is held to it
+ * too, and sums what it will not give a row to.
+ */
+export const CUT_PARTS_MAXIMUM = CUT_MAXIMUM;
+/**
+ * The names a fold of the skills that reached one receiver gives rows to, past which the figure
+ * is summed into one row (`develop ADR 0055`): 81 names over `captures/`, 2026-08-29.
  */
 export const SKILLS_MAXIMUM = 256;
 /**
  * The ranking's height, in bars. Ten is the most one side fields and eleven the most a whole fight
- * does, measured over `captures/`, where a group fight is ten of ours against one. A bigger
+ * does, measured over the 37 recordings of `captures/` on 2026-10-06. A bigger
  * fight scrolls rather than growing the window: a ranking is watched while a fight is on, and a
  * height that changed as combatants joined would move it under the reader's hand.
  */
@@ -708,6 +719,19 @@ const PINNED_SHAPES: Record<PinnedCase, PinnedShape> = {
 export const PINNED_CASES = Object.values(PINNED_CASE);
 
 /**
+ * The one fight-wide figure each screen keeps off every combatant's row. Three of them already
+ * reach a pinned row standing apart, so under everybody they are inside the count twice over —
+ * once here and once as that row — and the two are held to each other by `hasPinnedTotalDisagreed`.
+ * The fourth reaches no row at all, which is what the section under the list is for.
+ */
+const HALF_NAMED_TOTAL_FIELD_BY_METRIC: Record<PanelMetric, HalfNamedTotalField> = {
+    damageDealt: HALF_NAMED_TOTAL_FIELD.damageDealtByNobody,
+    damageTaken: HALF_NAMED_TOTAL_FIELD.damageTakenByNobody,
+    healthGiven: HALF_NAMED_TOTAL_FIELD.healthGivenByNobody,
+    healthRestored: HALF_NAMED_TOTAL_FIELD.healthRestoredToNobody,
+};
+
+/**
  * Which of the five an opened row's own end-left-out is a part of: the figure stands on that
  * person's row, cut by key, whichever screen pins it. Healing given keeps no health given to
  * nobody, so its row stays shut.
@@ -728,7 +752,7 @@ export const NOTHING_SUSPECT: FightSuspicions = {
 /** The list below is the bound, not anything a fight can do. */
 const WARNINGS_MAXIMUM = 6;
 /** And a row carries the three of the six that can be charged to one person. */
-const ROW_WARNINGS = 3;
+const ROW_WARNINGS_MAXIMUM = 3;
 
 export function getEndForPinned(pinnedCase: PinnedCase): PanelUnnamedEnd {
     return PINNED_SHAPES[pinnedCase].end;
@@ -768,7 +792,7 @@ export function formatRowSuspicions(detail: RowDetail, metric: PanelMetric): str
     if (getNounForMetric(metric) === PANEL_NOUN.healing) {
         said.push(formatUnplacedHealRowSuspicion(detail.sideHealsUnsized));
     }
-    return said.filter((sentence) => sentence.length > 0).slice(0, ROW_WARNINGS);
+    return said.filter((sentence) => sentence.length > 0).slice(0, ROW_WARNINGS_MAXIMUM);
 }
 
 /**
@@ -1146,15 +1170,13 @@ function composeCutParts(cut: FigureCut): CutPart[] {
     const parts: CutPart[] = [];
     for (const [key, figure] of cut) {
         if (figure > 0) parts.push({ key, figure });
-        // The panel's own bound and not `core/`'s (**S11**): nothing here may lean on an
-        // assertion a layer below it makes, and that layer's own cut is narrower, so a card
-        // drawn over any recording loses nothing to this.
-        if (parts.length >= CUT_PARTS_MAXIMUM) break;
     }
     parts.sort((leftPart, rightPart) =>
         getRankedOrder(leftPart.figure, rightPart.figure, leftPart.key, rightPart.key)
     );
-    return parts;
+    // The panel's own bound (**S11**), cut after the order so what it leaves out is the smallest.
+    // It is the same number `core/` keeps a cut inside, so a card loses nothing to it.
+    return parts.slice(0, CUT_PARTS_MAXIMUM);
 }
 
 /**
@@ -1252,7 +1274,9 @@ function composeElementCut(
         // is a person who did nothing, and this is a nothing that has no person.
         if (figure > 0) stated.push({ element, figure });
     }
-    stated.sort(compareElementRows);
+    stated.sort((leftRow, rightRow) =>
+        getRankedOrder(leftRow.figure, rightRow.figure, leftRow.element, rightRow.element)
+    );
     const unnamed = total - partsTotal;
     const figures = stated.map((elementRow) => elementRow.figure);
     if (rest > 0) figures.push(rest);
@@ -1282,15 +1306,6 @@ function composeElementCut(
             }
             : null,
     };
-}
-
-/** By figure, then by the token, so a cut redrawn without changing states the same order. */
-function compareElementRows(leftRow: { element: string; figure: number }, rightRow: {
-    element: string;
-    figure: number;
-}): number {
-    if (leftRow.figure !== rightRow.figure) return rightRow.figure - leftRow.figure;
-    return leftRow.element < rightRow.element ? -1 : 1;
 }
 
 /** Whoever carries one key of a half-named figure, with the part of it their row holds. */
@@ -1356,7 +1371,7 @@ function composeHalfNamedForPerson(
         statistics,
         roster,
         [personPart],
-        ["100%"],
+        [formatShareRounded(1)],
         personPart.figure,
     );
     if (row === undefined) return null;
@@ -1435,7 +1450,7 @@ export function presentUnnamedPairLevel(
         statistics,
         roster,
         [{ combatantId, figure }],
-        ["100%"],
+        [formatShareRounded(1)],
         figure,
     );
     if (row === undefined) return null;
@@ -1489,7 +1504,7 @@ export function presentScreen(
     const sideRows = composeRowsBeforeShares(statistics, roster, metric).filter((row) =>
         isSideListed(row.side, choice, readerSide)
     );
-    sideRows.sort(compareRowsByFigureThenId);
+    sideRows.sort(getRowOrderByFigureThenId);
     // **S11, and it is where the bound has to be**: after the sort, so a cast past it costs the
     // smallest figures rather than whichever rows the fold reached last, and before every figure
     // derived from the list, so the column a reader adds up is the column that was drawn. The
@@ -1532,20 +1547,21 @@ export function presentScreen(
         shareText: shares[rowIndex] ?? "",
         detail: composeRowDetailFor(statistics, roster, row.combatantId),
     }));
+    let hasFiguresDisagreed: boolean;
+    // The rows holding **more** than the screen's own count is the other side of `unplaced`,
+    // and the one that says a drawn figure is wrong rather than short.
+    if (screenTotal < figurePlaced) {
+        hasFiguresDisagreed = true;
+    } else if (hasSideTotalDisagreed(whole, sides, sideListed)) {
+        hasFiguresDisagreed = true;
+    } else {
+        hasFiguresDisagreed = pinned.some((pinnedFigure) =>
+            hasPinnedTotalDisagreed(statistics, pinnedFigure.case, pinnedFigure.figure, sideListed)
+        );
+    }
     return {
         rows,
-        // The rows holding **more** than the screen's own count is the other side of `unplaced`,
-        // and the one that says a drawn figure is wrong rather than short.
-        hasFiguresDisagreed: screenTotal < figurePlaced ||
-            hasSideTotalDisagreed(whole, sides, sideListed) ||
-            pinned.some((pinnedFigure) =>
-                hasPinnedTotalDisagreed(
-                    statistics,
-                    pinnedFigure.case,
-                    pinnedFigure.figure,
-                    sideListed,
-                )
-            ),
+        hasFiguresDisagreed,
         outcome: getFightOutcomeForReaderSide(statistics, roster, readerSide),
         ...composeHeadcount(statistics, roster, readerSide),
         total,
@@ -1567,7 +1583,7 @@ export function presentScreen(
 }
 
 /** By figure, then by id — a tie broken by something that does not move between draws. */
-function compareRowsByFigureThenId(leftRow: UnsharedRow, rightRow: UnsharedRow): number {
+function getRowOrderByFigureThenId(leftRow: UnsharedRow, rightRow: UnsharedRow): number {
     if (leftRow.figure !== rightRow.figure) return rightRow.figure - leftRow.figure;
     return leftRow.combatantId - rightRow.combatantId;
 }
@@ -1641,33 +1657,33 @@ function composePanelSides(
 ): PanelSides | null {
     if (readerSide === null) return null;
     const totals: Record<SideRelation, number> = { reader: 0, opposing: 0, nobody: 0 };
+    // The half-named figure a side is charged with is the pinned row standing apart on this
+    // screen, read off `PINNED_SHAPES`; a screen pinning nothing apart charges nothing.
+    const apartCase = lookupApartCase(metric);
+    const apartField = apartCase === null ? null : PINNED_SHAPES[apartCase].field;
     for (const [combatantId, figures] of statistics.byCombatantId) {
         const sideRelation = getSideRelation(
             roster.byId.get(combatantId)?.side ?? null,
             readerSide,
         );
         totals[sideRelation] += getFigureForMetric(figures, metric);
-        totals[getSideRelationCharged(sideRelation, metric)] += getHalfNamedAtNamedEnd(
-            figures,
-            metric,
-        );
+        if (apartField !== null) {
+            totals[getSideRelationCharged(sideRelation, metric)] += figures[apartField];
+        }
     }
-    totals.nobody += getNeitherEndForMetric(statistics, metric);
+    // What names neither end belongs to no side at all.
+    if (apartCase !== null) totals.nobody += getNeitherEndForPinned(statistics, apartCase, null);
     return totals;
 }
 
-function getHalfNamedAtNamedEnd(figures: CombatantFigures, metric: PanelMetric): number {
-    if (metric === PANEL_METRIC.damageDealt) return figures.damageTakenFromNobody;
-    if (metric === PANEL_METRIC.damageTaken) return figures.damageDealtToNobody;
-    if (metric === PANEL_METRIC.healthGiven) return figures.healthRestoredByNobody;
-    return 0;
-}
-
-/** What names neither end, which belongs to no side at all and is only ever damage. */
-function getNeitherEndForMetric(statistics: FightStatistics, metric: PanelMetric): number {
-    if (metric === PANEL_METRIC.damageDealt) return statistics.damageByNeitherEnd;
-    if (metric === PANEL_METRIC.damageTaken) return statistics.damageByNeitherEnd;
-    return 0;
+/** The pinned row a screen stands apart from its list, or null where it pins none apart. */
+function lookupApartCase(metric: PanelMetric): PinnedCase | null {
+    const apartCases = PINNED_CASES.filter((pinnedCase) => {
+        const shape = PINNED_SHAPES[pinnedCase];
+        if (shape.metric !== metric) return false;
+        return shape.placing === PINNED_PLACING.apart;
+    });
+    return apartCases[0] ?? null;
 }
 
 /**
@@ -1690,25 +1706,12 @@ function getCountedTotal(
 ): number {
     if (sideListed === null) {
         return getFigureForMetric(statistics.totals, metric) +
-            getHalfNamedTotalForMetric(statistics, metric);
+            statistics[HALF_NAMED_TOTAL_FIELD_BY_METRIC[metric]];
     }
     if (sides === null) return 0;
     if (sideListed === SIDE_RELATION.reader) return sides.reader;
     if (sideListed === SIDE_RELATION.opposing) return sides.opposing;
     return sides.nobody;
-}
-
-/**
- * The one fight-wide figure each screen keeps off every combatant's row. Three of them already
- * reach a pinned row standing apart, so under everybody they are inside the count twice over —
- * once here and once as that row — and the two are held to each other by `hasPinnedTotalDisagreed`.
- * The fourth reaches no row at all, which is what the section under the list is for.
- */
-function getHalfNamedTotalForMetric(statistics: FightStatistics, metric: PanelMetric): number {
-    if (metric === PANEL_METRIC.damageDealt) return statistics.damageDealtByNobody;
-    if (metric === PANEL_METRIC.damageTaken) return statistics.damageTakenByNobody;
-    if (metric === PANEL_METRIC.healthGiven) return statistics.healthGivenByNobody;
-    return statistics.healthRestoredToNobody;
 }
 
 /**
@@ -1745,7 +1748,7 @@ function hasPinnedTotalDisagreed(
     if (sideListed !== null) return false;
     const shape = PINNED_SHAPES[pinnedCase];
     if (shape.placing === PINNED_PLACING.cut) return false;
-    return total !== getHalfNamedTotalForMetric(statistics, shape.metric);
+    return total !== statistics[HALF_NAMED_TOTAL_FIELD_BY_METRIC[shape.metric]];
 }
 
 /**
@@ -1788,8 +1791,8 @@ function composePinnedRows(
  * Widening to narrowing. The first four qualify every screen; a cast nobody could place puts back
  * health, so saying it on a damage screen would put a suspicion on a figure that cannot carry it.
  * Each of the three unread causes is its own sentence, because each is its own thing to be short of
- * (`develop ADR 0070`), and a fight is short of one of them at a time in every case anybody has
- * seen.
+ * (`develop ADR 0070`). Over the 37 recordings of `captures/` on 2026-10-06 none is short of any of
+ * them, so the order two would stand in is one no recording has drawn.
  */
 function composeSuspicions(
     statistics: FightStatistics,
@@ -2121,7 +2124,7 @@ function composeOpponentCut(
             figure,
         });
     }
-    stated.sort(compareRowsByFigureThenId);
+    stated.sort(getRowOrderByFigureThenId);
     const unnamed = total - partsTotal;
     const figures = stated.map((unsharedRow) => unsharedRow.figure);
     if (unnamed > 0) figures.push(unnamed);
@@ -2435,7 +2438,7 @@ function composeSkillCut(
 ): SkillCut {
     const folded = composeSkillRows(statistics, figures, metric, combatantId);
     const stated = folded.rows;
-    stated.sort(compareSkillRows);
+    stated.sort(getSkillRowOrder);
     // What the bound would not give a row to counts as held, because the game **did** name it:
     // left out of this sum it would land in `closingFigure`, which says nothing announced the blow.
     const partsTotal = stated.reduce((sum, skillRow) => sum + skillRow.figure, folded.rest);
@@ -2684,7 +2687,7 @@ function getGivenSourceCut(figures: CombatantFigures): { cut: FigureCut; rest: n
 }
 
 /** Largest first, and a tie broken by the text a part is named with — `ranked-order.ts` owns it. */
-function compareSkillRows(leftSkill: UnsharedSkill, rightSkill: UnsharedSkill): number {
+function getSkillRowOrder(leftSkill: UnsharedSkill, rightSkill: UnsharedSkill): number {
     return getRankedOrder(
         leftSkill.figure,
         rightSkill.figure,

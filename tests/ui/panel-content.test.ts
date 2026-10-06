@@ -46,6 +46,7 @@ import type {
     UnnamedLevelContent,
 } from "#/src/ui/panel-content.ts";
 import {
+    CUT_PARTS_MAXIMUM,
     formatRowSuspicions,
     getOutcomeForReaderSide,
     getTextForNamedPart,
@@ -108,8 +109,7 @@ const POISON = "-255967=19.27;0;poison=140,14";
 const NEITHER_END = "0;0;+dmg=700;-dmg=700";
 /**
  * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: an announcement and the
- * swing under it,
- * which a block stopped in full.
+ * swing under it, which a block stopped in full.
  */
 const BLOCKED = [
     "114881=95.35;195782=96.83;tspell=Błyskawiczny cios;skillId=209",
@@ -235,7 +235,6 @@ Deno.test("the witness for a lost turn is the fight's, on every recording", () =
             NOTHING_SUSPECT,
         );
         for (const row of reading.rows) {
-            if (row.detail === null) continue;
             if (row.detail.wasTurnLostRead === lost) continue;
             wrong.push(`${replay.name} ${row.name}: ${row.detail.wasTurnLostRead} for ${lost}`);
         }
@@ -245,6 +244,13 @@ Deno.test("the witness for a lost turn is the fight's, on every recording", () =
     assert(quiet > 0, "and some fight heard none, or it is never false");
 });
 
+/**
+ * The panel's own cross-check, over the material rather than over one fight.
+ *
+ * `hasFiguresDisagreed` is raised where a side's total and the whole come out different, which is a
+ * drawn figure that is **wrong** rather than short — the entry turns it into a defect a reader sees
+ * (`develop ADR 0051`). Every recording is read against every screen and side choice.
+ */
 Deno.test("no recording makes the panel contradict itself, on any screen or side", () => {
     const { replays } = tallyEveryRecording();
     assert(replays.length > 0, "there is material to read");
@@ -408,7 +414,7 @@ Deno.test("a combatant who did nothing is drawn at nothing, not left out", () =>
     assertEquals(
         reading.rows.length,
         new Set(reading.rows.map((row) => row.combatantId)).size,
-        "1",
+        "every combatant stands on one row of the ranking",
     );
 });
 
@@ -504,15 +510,6 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
     }
 });
 
-/**
- * The panel's own cross-check, over the material rather than over one fight.
- *
- * `hasFiguresDisagreed` is raised where a side's total and the whole come out different, which is a
- * drawn figure that is **wrong** rather than short — the entry turns it into a defect a reader sees
- * (`develop ADR 0051`). It was proved reachable on one hand-built fight and false on one recording;
- * nothing asked the corpus. Measured 2026-09-11: 360 readings, thirty recordings against four
- * screens and three side choices, and not one of them contradicts itself.
- */
 /** Each payload's messages decoded against a roster, as the session hands the decoder a payload. */
 function decodeFightMessages(
     messages: readonly string[],
@@ -910,8 +907,8 @@ Deno.test("every point a kind cut is made of states its kind, on every recording
     // Zero is a boundary (**W5**): a walk that opened nothing would agree with every screen it
     // never cut, so the count it reached is stated beside what it found.
     assertEquals(cut, 2351, "the kind rows the corpus draws, 2026-10-04");
-    // What a blow never carried, and what the cut would have had to call unknown before the key
-    // it moved under was read as a kind: 639,400 over `captures/`, measured 2026-09-06.
+    // What a blow never carried, which the cut would have to call unknown were the key it moved
+    // under not read as a kind.
     assertEquals(byKey, 775402, "and the health that moved outside a blow is named by its key");
 });
 
@@ -1091,6 +1088,7 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
         [700],
         "under everybody it is drawn",
     );
+    assertEquals(everyone.sides?.nobody, 700, "and the strip charges it to nobody");
     for (const choice of [SIDE_CHOICE.reader, SIDE_CHOICE.opposing] as const) {
         const narrowed = presentScreen(
             statistics,
@@ -1104,6 +1102,13 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
     }
 });
 
+/**
+ * The invariant the level exists to keep: a pinned row is the sum of what stands under it — **of
+ * each of its two sections separately**, which is what makes them two cuts of one number rather
+ * than two numbers. The people and the kinds are folded from one walk in `src/ui/panel-content.ts`,
+ * so this holds that walk to the figure the row draws beside it, over every recording, every screen
+ * and every choice of side. `develop ADR 0038`, `develop ADR 0039`.
+ */
 Deno.test("a pinned row is the whole of what stands under it, on every list", () => {
     let opened = 0;
     let people = 0;
@@ -1165,13 +1170,6 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
     assert(kinds > 0, "and the material says what each was dealt with");
 });
 
-/**
- * The invariant the level exists to keep: a pinned row is the sum of what stands under it — **of
- * each of its two sections separately**, which is what makes them two cuts of one number rather
- * than two numbers. The people and the kinds are folded from one walk in `src/ui/panel-content.ts`,
- * so this holds that walk to the figure the row draws beside it, over every recording, every screen
- * and every choice of side. `develop ADR 0038`, `develop ADR 0039`.
- */
 /**
  * And the level under each row of it. Both shapes come off one fold, so what is checked here is
  * that neither reading of it loses a point: a person's keys total their own figure, a key's people
@@ -1655,6 +1653,15 @@ Deno.test("a giver the protocol left out is charged to the side the health reach
         [],
         "nor received any",
     );
+    const whole = presentScreen(
+        statistics,
+        TWO_SIDES,
+        PANEL_METRIC.healthGiven,
+        SIDE_CHOICE.everyone,
+        1,
+        NOTHING_SUSPECT,
+    );
+    assertStrictEquals(whole.hasFiguresDisagreed, false, "under everybody it is the fight's count");
 });
 
 Deno.test("healing given is a screen of its own, and the two halves come to one figure", () => {
@@ -1763,9 +1770,8 @@ Deno.test("healing no giver can be read for is apart on one screen and a cut on 
 
 /**
  * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` carries two healers announcing
- * `Leczenie ran`, which
- * is what makes the merge legible: the received screen has no column for whose cast it was, so
- * two rows under one name would be two figures a reader cannot tell apart.
+ * `Leczenie ran`, which is what makes the merge legible: the received screen has no column for
+ * whose cast it was, so two rows under one name would be two figures a reader cannot tell apart.
  */
 Deno.test("what reached somebody is cut by the skill's name, whoever announced it", () => {
     const { roster, statistics } = tallyRecordedFight(HILDUR);
@@ -2050,10 +2056,10 @@ Deno.test("a pair states what passed between the two, and nothing that did not",
 
 /**
  * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, the combatant at 475890: twenty
- * blows, every one of
- * them announced, and damage stated against a name beside them. The closing row is the remainder
- * of the figure rather than a second reading of it, so a cut that spent the announcement on the
- * blows alone left this combatant a row counting nought blows with a third of their damage in it.
+ * blows, every one of them announced, and damage stated against a name beside them. The closing
+ * row is the remainder of the figure rather than a second reading of it, so a cut that spent the
+ * announcement on the blows alone leaves this combatant a row counting nought blows with a third
+ * of their damage in it.
  */
 Deno.test("what a skill dealt holds the figures stated against a name, not only the blows", () => {
     const { roster, statistics } = tallyRecordedFight(HILDUR);
@@ -2251,8 +2257,7 @@ Deno.test("a healing section names the keys the game stated, and closes against 
 
 /**
  * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: five healers, four announced skills
- * between them,
- * and health moving under `heal` with nothing announced in front of it.
+ * between them, and health moving under `heal` with nothing announced in front of it.
  *
  * The pair is read off the giving end whichever way round the screen asks, so the two screens see
  * the same section — which is what the transpose here holds. What one gave the other is one fact.
@@ -2361,6 +2366,13 @@ Deno.test("a healing pair opens whatever its level holds, one key included", () 
     assert(keys > 0, "and some of those name a key, which is the row this level was opened for");
 });
 
+/**
+ * A shape the recordings do not carry, held by a fight built by hand.
+ *
+ * Measured over `captures/` on 2026-08-29: one announced heal restores anything at all, and
+ * it restores it to the combatant who announced it. So an announcement reaching somebody **else**
+ * is written out here rather than waiting for a recording of it.
+ */
 Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announced it", () => {
     const { roster } = tallyRecordedFight(HILDUR);
     const [healer, healed] = [...roster.byId.keys()];
@@ -2412,13 +2424,6 @@ Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announce
     assertEquals(cast.byOtherEnd.rows[0]?.combatantId, healer, "who is the one who announced it");
 });
 
-/**
- * A shape the recordings do not carry, held by a fight built by hand.
- *
- * Measured over `captures/` on 2026-08-29: one announced heal restores anything at all, and
- * it restores it to the combatant who announced it. So an announcement reaching somebody **else**
- * is written out here rather than waiting for a recording of it.
- */
 /** The movement an announcement put behind it, aimed wherever the case being written needs it. */
 function composeAnnouncedHeal(
     announced: { skillName: string; skillId: number; actorId: number },
@@ -3094,8 +3099,8 @@ function composeStatisticsWithSkills(receiverId: number, names: number): FightSt
 Deno.test("a section coming to more than its figure is drawn at nought, and answered for", () => {
     const { roster, statistics } = tallyRecordedFight(HILDUR);
     const metric: PanelMetric = PANEL_METRIC.damageDealt;
-    const swung = [...statistics.byCombatantId].find(([, one]) =>
-        one.skills.size > 0 && one.blowsWithoutSkill > 0
+    const swung = [...statistics.byCombatantId].find(([, figures]) =>
+        figures.skills.size > 0 && figures.blowsWithoutSkill > 0
     );
     assertExists(swung, "the recording holds somebody who announced and also swung plainly");
     const [combatantId, figures] = swung;
@@ -3263,7 +3268,7 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
                 const plain = drill.bySkill.closing;
                 if (plain === null) continue;
                 if (plain.figure === 0) continue;
-                assertExists(plain.rank, "the closing row of a damage section holds a place");
+                assert(plain.rank > 0, "the closing row of a damage section holds a place");
                 const bigger = drill.bySkill.rows.filter((skillRow) =>
                     skillRow.figure > plain.figure
                 );
@@ -3369,4 +3374,55 @@ Deno.test("a cast past the bound costs the smallest figures, and never the list"
         NOTHING_SUSPECT,
     );
     assertStrictEquals(whole.rows.length, COMBATANTS_MAXIMUM, "a full cast is drawn whole");
+});
+
+/**
+ * A cut wider than a card draws keeps its largest parts. The bound is taken after the order, so
+ * a part arriving last in the cut and largest in it is the first the card states.
+ */
+Deno.test("a cut past the bound keeps its largest parts, wherever they arrived", () => {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const [striker] = [...statistics.byCombatantId.keys()];
+    assertExists(striker, "the fight holds somebody to cut");
+    const procs = new Map<string, number>();
+    for (let index = 0; index < CUT_PARTS_MAXIMUM; index += 1) procs.set(`small-${index}`, 1);
+    procs.set("largest", 1000);
+    const figures = statistics.byCombatantId.get(striker)!;
+    const widened = new Map(statistics.byCombatantId);
+    widened.set(striker, { ...figures, procsWhenStriking: procs });
+    const reading = presentScreen(
+        { ...statistics, byCombatantId: widened },
+        roster,
+        PANEL_METRIC.damageDealt,
+        SIDE_CHOICE.everyone,
+        null,
+        NOTHING_SUSPECT,
+    );
+    const row = reading.rows.find((rankingRow) => rankingRow.combatantId === striker);
+    assertExists(row, "the striker is ranked");
+    const parts = row.detail.procsWhenStriking;
+    assertStrictEquals(parts.length, CUT_PARTS_MAXIMUM, "the card draws the bound and no more");
+    assertEquals(parts[0], { key: "largest", figure: 1000 }, "and the largest part leads it");
+});
+
+Deno.test("two kinds at one figure stand in the order of their keys, wherever they arrived", () => {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const [striker] = [...statistics.byCombatantId.keys()];
+    assertExists(striker, "the fight holds somebody to cut");
+    const figures = statistics.byCombatantId.get(striker)!;
+    const widened = new Map(statistics.byCombatantId);
+    const tied = new Map([["fire", 100], ["cold", 100]]);
+    widened.set(striker, { ...figures, damageDealt: 200, damageDealtByKind: tied });
+    const level = presentOpenedLevel(
+        { ...statistics, byCombatantId: widened },
+        roster,
+        PANEL_METRIC.damageDealt,
+        striker,
+    );
+    assertExists(level, "the striker's row opens");
+    assertEquals(
+        level.byElement.rows.map((elementRow) => elementRow.element),
+        ["cold", "fire"],
+        "a tie is broken by the key, so a redraw states the same order",
+    );
 });

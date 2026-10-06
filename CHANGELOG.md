@@ -58,6 +58,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   1 stycznia 1970 ani razem z poprzednią walką, tylko mówi, że jej nie zapisał.
 - **Poprawka** — Ostrzeżenie, że przeglądarka nie zapamiętała wyboru miejsca na walki, znika, gdy
   ponownie wybierzesz miejsce, w którym walki już są.
+- **Poprawka** — Panel pokazuje każdą usterkę, którą zgłasza; wcześniej, gdy było ich dużo, część
+  znikała bez słowa.
+- **Poprawka** — Gdy panel nie może pokazać szczegółów wiersza, zgłasza to jako usterkę, zamiast po
+  prostu nic nie pokazywać.
 
 ## [0.22.1] — 2026-10-05
 

@@ -80,6 +80,32 @@ function findGrip(host: FakeElement, grip: string): FakeElement {
     return bar;
 }
 
+Deno.test("a window opened with no place is dragged from its own opening, not the panel's", () => {
+    const drag = (isSizedAtOpening: boolean): PanelIntent[] => {
+        const asked: PanelIntent[] = [];
+        let isPageSized = isSizedAtOpening;
+        const panel = initTestView(composeFakeDocument(), {
+            onIntent: (intent) => asked.push(intent),
+            helperPlacement: {
+                position: null,
+                size: null,
+                readViewport: () => isPageSized ? VIEWPORT : null,
+            },
+        });
+        panel.renderHelper(HELPER_ABSENCE.noFightYet, false);
+        isPageSized = true;
+        const host = panel.element as FakeElement;
+        const bar = findGrip(host, "helper");
+        dragOnElement(host, "pointerdown", bar, { clientX: 610, clientY: 50 });
+        dragOnElement(host, "pointermove", bar, { clientX: 650, clientY: 90 });
+        dragOnElement(host, "pointerup", bar, { clientX: 650, clientY: 90 });
+        return asked;
+    };
+    const opened = drag(true);
+    assertEquals(opened.length, 1, "a window opened in its place reports the one move");
+    assertEquals(drag(false), opened, "and one the page gave no size to moves from the same place");
+});
+
 Deno.test("a pointer stating no place starts no drag, and the panel stays where it stood", () => {
     const panel = initTestView(composeFakeDocument(), {
         meterPlacement: {

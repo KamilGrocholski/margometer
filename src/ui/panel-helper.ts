@@ -40,7 +40,7 @@ export interface StandingProvoked {
  * characters is two counts, on two clocks, so the figure sits on the row of whoever is carrying it
  * — `develop ADR 0103`, superseding `develop ADR 0067` on the half that put it here.
  *
- * The okrzyk is named here because the two of them are not one state: the table dates their
+ * The shout is named here because the two of them are not one state: the table dates their
  * side-wide halves apart, so which one holds somebody is something a reader acts on.
  * `develop ADR 0097`.
  */
@@ -194,7 +194,7 @@ function getStandingTurnState(turn: StandingTurn, hasHolder: boolean): StandingT
  * a character cannot arrive twice. That is what keeps this clear of the alternative
  * `develop ADR 0062` rejected. `develop ADR 0067`.
  *
- * ⚠️ **The fold takes the cast and not the caster**, because the group is drawn under the okrzyk's
+ * ⚠️ **The fold takes the cast and not the caster**, because the group is drawn under the shout's
  * name: one caster shouting both of them would otherwise be one group under one name, and the name
  * would be wrong for half of it. No moment in `captures/` shows that, so what this holds is
  * the label rather than a reading anything has seen go wrong. `develop ADR 0097`.

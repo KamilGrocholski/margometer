@@ -105,7 +105,7 @@ export type CardEdge = VocabularyWord<typeof CARD_EDGE>;
  */
 export interface CardAcross {
     edge: CardEdge;
-    at: number;
+    offsetPixels: number;
 }
 
 /** What the panel keeps of a drag once the listeners are on. */
@@ -148,7 +148,7 @@ export interface PanelDragOptions {
  * A panel dragged off the edge cannot be dragged back, because the grab area goes with it.
  * A title bar's worth stays on screen each way.
  */
-const VISIBLE_MINIMUM = 64;
+const VISIBLE_PIXELS_MINIMUM = 64;
 export const GRIP_ATTRIBUTE = "data-grip";
 /** The corner's mark, stating the window the way `GRIP_ATTRIBUTE` does. */
 export const SIZE_GRIP_ATTRIBUTE = "data-size-grip";
@@ -178,8 +178,8 @@ export function clampPosition(
         };
     }
     return {
-        left: getPositionWithin(position.left, viewport.width - VISIBLE_MINIMUM),
-        top: getPositionWithin(position.top, viewport.height - VISIBLE_MINIMUM),
+        left: getPositionWithin(position.left, viewport.width - VISIBLE_PIXELS_MINIMUM),
+        top: getPositionWithin(position.top, viewport.height - VISIBLE_PIXELS_MINIMUM),
     };
 }
 
@@ -189,8 +189,10 @@ export function clampPosition(
  */
 function getPositionWithin(coordinate: number, limit: number): number {
     if (!Number.isFinite(coordinate)) return 0;
-    if (!Number.isFinite(limit)) return Math.round(coordinate);
-    const rounded = Math.round(clampNumber(coordinate, 0, limit));
+    let clamped: number;
+    if (Number.isFinite(limit)) clamped = clampNumber(coordinate, 0, limit);
+    else clamped = coordinate;
+    const rounded = Math.round(clamped);
     if (!Number.isSafeInteger(rounded)) return 0;
     return rounded;
 }
@@ -338,7 +340,7 @@ export function composeCardAcross(
     if (viewport === null) return null;
     const gap = SPACE_PIXELS.small;
     if (anchor.position.left - cardWidthMaximum - gap >= 0) {
-        return { edge: CARD_EDGE.right, at: viewport.width - anchor.position.left + gap };
+        return { edge: CARD_EDGE.right, offsetPixels: viewport.width - anchor.position.left + gap };
     }
     const right = composeWindowRight(anchor);
     // The clamp is the screen and it is spent on the bound, because what the card draws at is not
@@ -346,7 +348,7 @@ export function composeCardAcross(
     // further left than it had to — on the screen, which is what this line is for.
     return {
         edge: CARD_EDGE.left,
-        at: Math.min(right + gap, Math.max(0, viewport.width - cardWidthMaximum)),
+        offsetPixels: Math.min(right + gap, Math.max(0, viewport.width - cardWidthMaximum)),
     };
 }
 
@@ -414,7 +416,7 @@ export function initPanelDrag(
             if (opening === null) return null;
             const clamped = clampPosition(opening, placement.readViewport());
             const style = composePositionStyle(clamped, options.window);
-            if (style === null) return opening;
+            if (style === null) return null;
             host.setAttribute(STYLE_ATTRIBUTE, style);
             return clamped;
         });
@@ -625,7 +627,7 @@ function composePanelDragGrab(
     if (pointer === null) return null;
     const tokens = options.getTypeTokens();
     const from = state.position ??
-        composeDefaultPosition(placement.readViewport(), tokens.meterWidthPixels);
+        composeOpeningPosition(options.window, placement.readViewport(), tokens);
     if (from === null) return null;
     const grab = {
         kind,

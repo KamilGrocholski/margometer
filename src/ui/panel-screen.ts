@@ -83,7 +83,7 @@ export interface ScreenStrip {
 
 export const SCREEN_ORDER = Object.values(PANEL_METRIC);
 
-/** A pair with no row here is a screen that does not exist: healing has no prevented half. */
+/** Each screen as its noun and direction: the four are every pair the two strips can make. */
 const SCREEN_AXES: Record<PanelMetric, ScreenAxes> = {
     damageDealt: { noun: PANEL_NOUN.damage, direction: PANEL_DIRECTION.given },
     damageTaken: { noun: PANEL_NOUN.damage, direction: PANEL_DIRECTION.received },
@@ -112,8 +112,8 @@ const OPPONENT_WORDS: Record<PanelMetric, string> = {
 };
 
 /**
- * Healing given has no cut by key and its entry is never read. It stays: an exhaustive table
- * makes a fifth screen a question the compiler asks.
+ * The heading over a cut by key. On healing given it heads the cut of the pinned row of health
+ * given by nobody the game named (`PINNED_CASE.givenWithNoActor`).
  */
 const KIND_WORDS: Record<PanelMetric, string> = {
     damageDealt: PANEL_WORDS.damageKind,

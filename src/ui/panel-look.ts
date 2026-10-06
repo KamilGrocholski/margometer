@@ -40,8 +40,8 @@ export interface TypeTokens {
     /** A dot small enough that four of them and a figure fit the window's own width. */
     pipSizePixels: number;
     /**
-     * The least an okrzyk's name is drawn at, so a long nickname on the same row cannot erase it:
-     * the two okrzyki differ from their first letter, so this shows enough of either to say which.
+     * The least a shout's name is drawn at, so a long nickname on the same row cannot erase it:
+     * the two shouts differ from their first letter, so this shows enough of either to say which.
      */
     castWidthPixelsMinimum: number;
     /** The caveat mark's ring, across and down: even, so the letter drawn in it lands mid-ring. */
@@ -197,7 +197,7 @@ export const CLASS = {
     helperFolded: "helper-folded",
     /** A row nested under the one above it, whoever stands in either. */
     helperUnder: "helper-under",
-    /** The okrzyk a holder is holding somebody with, drawn on their row (`develop ADR 0097`). */
+    /** The shout a holder is holding somebody with, drawn on their row (`develop ADR 0097`). */
     helperCast: "helper-cast",
     /** The row that carries one, which is the only row where the name gives way last. */
     helperHolding: "helper-holding",
@@ -240,19 +240,19 @@ export const LAYER = {
 } as const;
 
 /**
- * One row per step. The small one is the size the panel shipped at, and every figure in it was
- * measured in Chrome 152: the rank cell's `20.` at 17.50px on 2026-09-15; the cast floor on
- * 2026-09-18, where `Wyzywa` is 49px and `Prowok` 44px, and a 25-character nickname left a cast
- * with no floor 4px; the ring on 2026-09-15, where a smaller one reads as a speck beside a figure.
+ * One row per step. Every figure in the small one was measured in Chrome 152: the rank cell's
+ * `20.` at 17.50px on 2026-09-15; the cast floor on 2026-09-18, where `Wyzywa` is 49px and
+ * `Prowok` 44px, and a 25-character nickname left a cast with no floor 4px; the ring on
+ * 2026-09-15, where a smaller one reads as a speck beside a figure.
  *
  * The other two were measured in Chrome 154 on 2026-09-28 through this sheet, the method first
  * reproducing the small row: `20.` at 17.50px, 19.09 and 20.69, each cell that plus its 4px of air
  * and rounded up; `Wyzywa` at 49.33px and 53.44, each floor the whole word (the same Chrome reads
  * it 45.22px at the small step, against the 49 above); and the ring, twelve at both and never
  * eleven, because an odd ring sets the letter drawn in it off the half pixel (ADR 0036). The
- * widest step's panel is `596f95f`'s. The middle one's bar asks 270px for the name, `0.20.0-dev`
- * and four controls on one line, where the small bar holds them in its 258 and the widest in its
- * 304; the panel is 274 because at 272 `Zwykły cios` behind a caveat mark was drawn in 69.25px of
+ * widest step's panel width is the one measured at `596f95f`. The middle one's bar asks 270px for
+ * the name, `0.20.0-dev` and four controls on one line, where the small bar holds them in its 258
+ * and the widest in its 304; the panel is 274 because at 272 `Zwykły cios` behind a caveat mark was drawn in 69.25px of
  * the 70 it needs (Chrome 154, 2026-09-29, the browser suite's recording).
  */
 export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
@@ -332,7 +332,9 @@ const VARIABLE_PREFIX = "--MargoMeter-";
 const ROWS_BY_DEFAULT = RANKING_ROWS;
 const FONT_STACK = "system-ui, sans-serif";
 /** What a border costs the box it is on, at the one width this panel draws one. */
-const RULE_WIDTH = 1;
+const RULE_WIDTH_PIXELS = 1;
+/** The profession's cap on a row's left edge, which the chosen row's inset is drawn over. */
+const CAP_WIDTH_PIXELS = 3;
 /**
  * The caveat mark's letter, drawn as a dot over a stem rather than spelled: the clear pixel between
  * it and the ring above and below, the gap between dot and stem, and the stem's width, which the
@@ -490,18 +492,18 @@ export function getCardHeight(
     const air = SPACE_PIXELS.small;
     if (!Number.isSafeInteger(size.lines)) return null;
     if (!Number.isSafeInteger(size.groups)) return null;
-    const runs = size.groups * (2 * air + RULE_WIDTH);
-    return size.lines * line + runs + 2 * air + 2 * RULE_WIDTH;
+    const runs = size.groups * (2 * air + RULE_WIDTH_PIXELS);
+    return size.lines * line + runs + 2 * air + 2 * RULE_WIDTH_PIXELS;
 }
 
 /**
  * The widest a card of so many columns may stand: the bound for each, and between two of them the
  * air on either side of the rule that parts them. One number for the sheet that draws it and the
- * placement that decides its side, because two spellings of the bound drifted once already
- * (`src/ui/panel-element.ts`).
+ * placement that decides its side, because two spellings of one bound drift apart with nothing
+ * to notice it (`src/ui/panel-element.ts`).
  */
 export function getCardWidthForColumns(tokens: TypeTokens, columns: CardColumns): number {
-    const between = 2 * SPACE_PIXELS.wide + RULE_WIDTH;
+    const between = 2 * SPACE_PIXELS.wide + RULE_WIDTH_PIXELS;
     return columns * tokens.cardWidthPixelsMaximum + (columns - 1) * between;
 }
 
@@ -540,12 +542,12 @@ export function composeSizedPanelStyle(): string {
  * control is the tallest thing on the bar — the air over and under that, and the bar's top rule.
  */
 export function getBarHeight(tokens: TypeTokens): number {
-    return getControlHeightPixels(tokens) + 2 * SPACE_PIXELS.small + RULE_WIDTH;
+    return getControlHeightPixels(tokens) + 2 * SPACE_PIXELS.small + RULE_WIDTH_PIXELS;
 }
 
 /** A bar control's box: its line and its two rules. Every control is this tall. */
 export function getControlHeightPixels(tokens: TypeTokens): number {
-    return tokens.lineHeightTitlePixels + 2 * RULE_WIDTH;
+    return tokens.lineHeightTitlePixels + 2 * RULE_WIDTH_PIXELS;
 }
 
 /**
@@ -600,7 +602,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         // One line whatever the version says: no guard here lays anything out, so a wrap is
         // invisible to the gate.
         `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
-        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
+        `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
         `box-sizing:border-box;width:${width};` +
         `cursor:move;${NO_SELECTION}touch-action:none;}` +
@@ -616,7 +618,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         `.${CLASS.control}{display:inline-flex;align-items:center;justify-content:center;` +
         `flex:none;box-sizing:border-box;padding:0;font-size:0;` +
         `width:${getControlWidthPixels(tokens)}px;height:${getControlHeightPixels(tokens)}px;` +
-        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);` +
         `color:var(${VARIABLE_PREFIX}quiet);background:var(${VARIABLE_PREFIX}surface);` +
         `cursor:pointer;}` +
@@ -631,7 +633,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         `.${CLASS.frame}.${CLASS.folded}{display:none;}` +
         `.${CLASS.meter}{font:${composeFontBody(tokens)};width:${width};position:relative;` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
-        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
         // As tall as a reader made it **at least**: a height is a floor and never a box, because the
         // regions over and under the list do not give way, and a panel shorter than they are drew
@@ -653,7 +655,7 @@ function composeFrameRules(tokens: TypeTokens): string {
  * the bare property an unmasked icon is a solid square, which is a defect and not a look.
  */
 function composeBarIconRules(tokens: TypeTokens): string {
-    const size = getControlHeightPixels(tokens) - 2 * RULE_WIDTH - 2 * BAR_ICON_INSET_PIXELS;
+    const size = getControlHeightPixels(tokens) - 2 * RULE_WIDTH_PIXELS - 2 * BAR_ICON_INSET_PIXELS;
     let rules = `.${CLASS.control}::before{content:"";flex:none;` +
         `width:${size}px;height:${size}px;background:currentColor;}`;
     for (const icon of BAR_ICONS) {
@@ -768,12 +770,12 @@ function composeOptionsRules(tokens: TypeTokens): string {
         `.${CLASS.optionsHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
         `font-size:${tokens.fontSmallPixels}px;text-transform:uppercase;}` +
         `.${CLASS.optionsSteps}{display:flex;margin-top:var(${VARIABLE_PREFIX}half);` +
-        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);overflow:hidden;}` +
         `.${CLASS.optionsStep}{flex:1 1 0;height:var(${VARIABLE_PREFIX}row-height);` +
         `line-height:var(${VARIABLE_PREFIX}row-height);text-align:center;white-space:nowrap;` +
         `color:var(${VARIABLE_PREFIX}quiet);` +
-        `border-left:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
+        `border-left:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `cursor:pointer;${NO_SELECTION}}` +
         `.${CLASS.optionsStep}:first-child{border-left:none;}` +
         stepSizes +
@@ -785,7 +787,7 @@ function composeOptionsRules(tokens: TypeTokens): string {
         `.${CLASS.optionsWindowState}{color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.optionsWindowState}.${CLASS.optionsWindowOwn}{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.optionsReset}{padding:0 var(${VARIABLE_PREFIX}small);` +
-        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
         `background:var(${VARIABLE_PREFIX}raised);color:var(${VARIABLE_PREFIX}text);` +
         `font-size:${tokens.fontSmallPixels}px;` +
@@ -845,7 +847,7 @@ function composeListRules(tokens: TypeTokens): string {
         `padding:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.sides}{padding:var(${VARIABLE_PREFIX}region-down) ` +
         `var(${VARIABLE_PREFIX}region-across);` +
-        `border-top:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
+        `border-top:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
         `.${CLASS.sidesLine}{display:flex;justify-content:space-between;align-items:baseline;` +
         `font-variant-numeric:tabular-nums;font-weight:600;}` +
         `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;opacity:0.8;` +
@@ -863,11 +865,12 @@ function composeListRules(tokens: TypeTokens): string {
         `.${CLASS.sidesTheirs}{color:var(${VARIABLE_PREFIX}theirs);}` +
         `.${CLASS.sidesNobody}{color:var(${VARIABLE_PREFIX}nobody);}` +
         `.${CLASS.sidesTrack}>*{background:currentColor;}` +
-        `.${CLASS.suspicions}{border-top:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
+        `.${CLASS.suspicions}{` +
+        `border-top:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `padding-top:var(${VARIABLE_PREFIX}region-down);}` +
         `.${CLASS.suspicion}{color:var(${VARIABLE_PREFIX}suspect);` +
         `padding:0 var(${VARIABLE_PREFIX}region-across) var(${VARIABLE_PREFIX}region-down);}` +
-        `.${CLASS.defects}{border-top:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
+        `.${CLASS.defects}{border-top:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `padding-top:var(${VARIABLE_PREFIX}region-down);}` +
         `.${CLASS.defect}{color:var(${VARIABLE_PREFIX}defect);` +
         `padding:0 var(${VARIABLE_PREFIX}region-across) var(${VARIABLE_PREFIX}region-down);}`;
@@ -895,7 +898,7 @@ function composeRowRules(tokens: TypeTokens): string {
         `.${CLASS.row}.${CLASS.rowLeaf}{cursor:help;}` +
         `.${CLASS.bar}{position:absolute;left:0;top:0;bottom:0;` +
         `opacity:var(${VARIABLE_PREFIX}bar-tint);}` +
-        `.${CLASS.barCap}{position:absolute;left:0;top:0;bottom:0;width:3px;` +
+        `.${CLASS.barCap}{position:absolute;left:0;top:0;bottom:0;width:${CAP_WIDTH_PIXELS}px;` +
         `border-radius:${cap};}` +
         `.${CLASS.rowRank},.${CLASS.rowName},.${CLASS.rowValue}{position:relative;}` +
         `.${CLASS.rowRank}{color:var(${VARIABLE_PREFIX}quiet);` +
@@ -909,7 +912,8 @@ function composeRowRules(tokens: TypeTokens): string {
         `white-space:nowrap;flex:1;}` +
         // Before the name and never in place of it: the name is the cell that shortens, and a mark
         // taking width from it every row would be the cost develop ADR 0023 refused. This one is
-        // drawn on the rows a suspicion reaches, which is none of the rows in `captures/`.
+        // drawn on the rows a suspicion reaches: none of the 1,348 ranking rows the 37
+        // recordings of `captures/` draw on the four screens, measured on 2026-10-06.
         `.${CLASS.rowSuspect}{position:relative;color:var(${VARIABLE_PREFIX}suspect);flex:none;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
         // Beside the suspect mark and under the same argument: it reaches the row closing a damage
@@ -923,12 +927,13 @@ function composeRowRules(tokens: TypeTokens): string {
         // `develop ADR 0066` the cost.
         `.${CLASS.rowTurn}{position:relative;color:var(${VARIABLE_PREFIX}quiet);flex:none;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
-        // The edge opposite the cap: the left three pixels are the profession's, and the open
+        // The edge opposite the cap: the left `CAP_WIDTH_PIXELS` are the profession's, and the open
         // row's inset shadow is on that side too. `develop ADR 0065`.
         `.${CLASS.rowSide}{position:absolute;right:0;top:0;bottom:0;width:2px;` +
         `border-radius:0 ${capRight} ${capRight} 0;background:currentColor;}` +
         `.${CLASS.rowSize}{flex:none;padding-right:var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.row}.${CLASS.rowChosen}{box-shadow:inset 3px 0 0 var(${VARIABLE_PREFIX}text);}` +
+        `.${CLASS.row}.${CLASS.rowChosen}{box-shadow:inset ${CAP_WIDTH_PIXELS}px 0 0 ` +
+        `var(${VARIABLE_PREFIX}text);}` +
         // ★ and ☆ measured 13.87px each in Firefox on 2026-08-26, and the row walked sideways
         // under the hand that pressed it.
         `.${CLASS.rowPin}{position:relative;cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);` +
@@ -945,7 +950,7 @@ function composeRowRules(tokens: TypeTokens): string {
         // inside a section too: a sum a bound left undrawn stands there, and a solid bar on it
         // would read as a place in an order it holds none of. Which rows those are, and the figure
         // that earned them the accent, are `DESIGN.md`'s — spelled there and not again
-        // here, because the two copies of that figure had already drifted apart once (**C15**).
+        // here, because two copies of one figure drift apart (**C15**).
         `.${CLASS.row}.${CLASS.rowApart} .${CLASS.bar}{opacity:0.4;` +
         `mask-image:repeating-linear-gradient(` +
         `-45deg,var(${VARIABLE_PREFIX}mask) 0 4px,transparent 4px 8px);}` +
@@ -961,15 +966,15 @@ function composeUnderListRules(): string {
     const inset = composeInsetUnderRows(VARIABLE_PREFIX + "region-down");
     const shape = `margin:0 var(${VARIABLE_PREFIX}region-across);` +
         `padding:var(${VARIABLE_PREFIX}region-down) 0 ${inset};` +
-        `border-top:${RULE_WIDTH}px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;`;
+        `border-top:${RULE_WIDTH_PIXELS}px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;`;
     return `.${CLASS.pinned}{${shape}}` + `.${CLASS.outside}{${shape}}`;
 }
 
 /**
  * **It states its own type and its own ink**, because `:host{all:initial}` reaches it and nothing
- * else does: the card hangs off the root beside the frame, so `CLASS.meter`'s never arrive. Without the
- * two the card is drawn in the browser's serif at `medium` in black on `raised` — figures nobody
- * can read, seen in Chrome 152 on 2026-08-29.
+ * else does: the card hangs off the root beside the frame, so `CLASS.meter`'s never arrive.
+ * Without the two the card is drawn in the browser's serif at `medium` in black on `raised` —
+ * figures nobody can read, seen in Chrome 152 on 2026-08-29.
  *
  * `position:fixed` puts its containing block at the viewport, so the host's `overflow:hidden`
  * cannot clip it: the host creates none, having no transform, filter or containment.
@@ -996,7 +1001,7 @@ function composeCardRules(tokens: TypeTokens): string {
         `padding:var(${VARIABLE_PREFIX}small);` +
         `font:${composeFontBody(tokens)};` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}raised);` +
-        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};}` +
         `.${CLASS.cardHidden}{display:none;}` +
         // Two columns of the one bound each, laid out at the width of both rather than at what
@@ -1010,7 +1015,7 @@ function composeCardRules(tokens: TypeTokens): string {
         `.${CLASS.cardColumns}{display:flex;gap:var(${VARIABLE_PREFIX}wide);}` +
         `.${CLASS.cardColumn}{flex:1 1 0;min-width:0;}` +
         `.${CLASS.cardColumn}+.${CLASS.cardColumn}{padding-left:var(${VARIABLE_PREFIX}wide);` +
-        `border-left:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);}` +
+        `border-left:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);}` +
         // The one cell on this panel that folds rather than shortening: it is the answer to
         // the name a row had to cut, and an answer cut again is no answer (`DESIGN.md`).
         // `break-word` and not `break-all`, which splits a word where a space was free, nor
@@ -1021,7 +1026,7 @@ function composeCardRules(tokens: TypeTokens): string {
         `.${CLASS.cardSubtitle}{color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.cardGroup}{margin-top:var(${VARIABLE_PREFIX}small);` +
         `padding-top:var(${VARIABLE_PREFIX}small);` +
-        `border-top:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);}` +
+        `border-top:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);}` +
         `.${CLASS.cardLine}{display:flex;justify-content:space-between;` +
         `gap:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.cardLine}.${CLASS.cardStrong}{font-weight:600;}` +
@@ -1079,7 +1084,7 @@ function composeCardTop(): string {
 function composeCaveatMarkRule(tokens: TypeTokens): string {
     const marks = `.${CLASS.rowCaveat},.${CLASS.cardCaveat}`;
     const { clearPixels, gapPixels, stemWidthPixels } = CAVEAT_LETTER;
-    const inside = tokens.markSizePixels - 2 * RULE_WIDTH;
+    const inside = tokens.markSizePixels - 2 * RULE_WIDTH_PIXELS;
     const stemTop = clearPixels + stemWidthPixels + gapPixels;
     return `${marks}{box-sizing:border-box;display:inline-flex;align-self:center;flex:none;` +
         `position:relative;font-size:0;` +
@@ -1088,7 +1093,7 @@ function composeCaveatMarkRule(tokens: TypeTokens): string {
         // invisible against the label it qualifies. `DESIGN.md` owns the rule and carries
         // the measured distance to every other hue the panel spends.
         `color:var(${VARIABLE_PREFIX}caveat);` +
-        `border:${RULE_WIDTH}px solid currentColor;border-radius:50%;}` +
+        `border:${RULE_WIDTH_PIXELS}px solid currentColor;border-radius:50%;}` +
         `.${CLASS.rowCaveat}::before,.${CLASS.cardCaveat}::before,` +
         `.${CLASS.rowCaveat}::after,.${CLASS.cardCaveat}::after{content:"";position:absolute;` +
         `left:${(inside - stemWidthPixels) / 2}px;width:${stemWidthPixels}px;` +
@@ -1102,8 +1107,8 @@ function composeCaveatMarkRule(tokens: TypeTokens): string {
 /**
  * The second window under the one root. It states its own type and its own ink for the reason the
  * card does — `:host{all:initial}` reaches it and `CLASS.meter`'s rules never do — and it is
- * `position:fixed` for the same reason too: the host is a flex column as wide as the panel, and a plain
- * child of it would stand inside that column and ride the panel's own drag.
+ * `position:fixed` for the same reason too: the host is a flex column as wide as the panel, and a
+ * plain child of it would stand inside that column and ride the panel's own drag.
  *
  * ⚠️ **Positioned, and deliberately so.** A positioned element paints over a static one whatever
  * the tree order, so a window laid out any other way could cover a control of the panel's and
@@ -1113,10 +1118,10 @@ function composeHelperRules(tokens: TypeTokens): string {
     const top =
         `clamp(${PLACE.insetPixels}px,var(${TOP_VARIABLES.helper},${PLACE.insetPixels}px),` +
         `calc(100vh - ${PLACE.insetPixels}px))`;
-    const left = `var(${VARIABLE_PREFIX}helper-left,calc(100vw - ${PLACE.insetPixels}px - ` +
+    const left = `calc(100vw - ${PLACE.insetPixels}px - ` +
         `var(${SIZE_VARIABLES.meter.width},${tokens.meterWidthPixels}px) - ` +
         `var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px) - ` +
-        `${SPACE_PIXELS.small}px))`;
+        `${SPACE_PIXELS.small}px)`;
     return `.${CLASS.helper}{position:fixed;box-sizing:border-box;` +
         `left:${left};top:${top};z-index:${LAYER.helper};` +
         `width:var(${SIZE_VARIABLES.helper.width},${tokens.helperWidthPixels}px);` +
@@ -1130,7 +1135,7 @@ function composeHelperRules(tokens: TypeTokens): string {
         `font:${composeFontTitle(tokens)};letter-spacing:0.06em;` +
         `color:var(${VARIABLE_PREFIX}quiet);white-space:nowrap;` +
         `background:var(${VARIABLE_PREFIX}raised);` +
-        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
+        `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
         `cursor:move;${NO_SELECTION}touch-action:none;}` +
         `.${CLASS.helperBar} .${CLASS.control}{margin-left:auto;}` +
@@ -1141,19 +1146,19 @@ function composeHelperRules(tokens: TypeTokens): string {
         `padding-bottom:calc(var(${VARIABLE_PREFIX}region-down) - ` +
         `var(${VARIABLE_PREFIX}half));` +
         `background:var(${VARIABLE_PREFIX}surface);` +
-        `border:${RULE_WIDTH}px solid var(${VARIABLE_PREFIX}border);` +
+        `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);}` +
         `.${CLASS.helper}.${CLASS.helperFolded} .${CLASS.helperBody}{display:none;}` +
         `.${CLASS.helperUnder}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
         // ⚠️ **Three cells on one row, and the order they give way in is stated here rather than
         // left to the panel's own rule.** That rule gives a row's name `flex:1`, which is basis
         // `0` — the name takes what is left rather than what it needs — and measured in Chrome on
-        // 2026-09-18 it drew `Gracz 4` at 3px of the 42 it wanted, because the okrzyk beside it
+        // 2026-09-18 it drew `Gracz 4` at 3px of the 42 it wanted, because the shout beside it
         // had claimed the row's width as its basis first. A nickname cut to `Gracz…` has lost the
         // digit that tells two players apart, which is the whole of what a name is for here.
         //
         // So on this row the name is sized by its own text and the **cast** takes what is left:
-        // cutting the okrzyk costs less, because the two spellings differ in their first word —
+        // cutting the shout costs less, because the two spellings differ in their first word —
         // `Prowokujący okrzyk` against `Wyzywający okrzyk` — so a clipped end still tells them
         // apart. The name keeps its shrink, so a nickname too long for the row still folds rather
         // than running off it. Scoped to the row that carries a cast, because every other row in
@@ -1187,7 +1192,7 @@ function composeSizeGripRules(): string {
     // the helper does not, so the meter's corner stands a rule further out to meet the window's
     // edge. Measured in Chrome 154 on 2026-09-28, where at one offset a 60px drag made the meter
     // 59px wider.
-    const meterOutside = `-${RULE_WIDTH}px`;
+    const meterOutside = `-${RULE_WIDTH_PIXELS}px`;
     return `.${CLASS.sizeGrip}{position:absolute;right:0;bottom:0;` +
         `width:${SIZE_GRIP.sizePixels}px;height:${SIZE_GRIP.sizePixels}px;z-index:1;` +
         `color:var(${VARIABLE_PREFIX}quiet);background:linear-gradient(135deg,${strokes});` +

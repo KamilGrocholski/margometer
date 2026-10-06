@@ -36,6 +36,7 @@ import {
     presentUnnamedCutLevel,
     presentUnnamedLevel,
     presentUnnamedPairLevel,
+    RANKING_ROWS,
     type ScreenContent,
     SIDE_RELATION,
     UNNAMED_END,
@@ -2372,7 +2373,11 @@ Deno.test("a panel that has seen no fight says so, at the height a ranking stand
         [PANEL_WORDS.noFightYet],
         "saying what is missing",
     );
-    assertEquals(list.attributes.get("style"), "--MargoMeter-rows:11", "at the ranking's height");
+    assertEquals(
+        list.attributes.get("style"),
+        `--MargoMeter-rows:${RANKING_ROWS}`,
+        "at the ranking's height",
+    );
     // Nothing else: there is no screen to pick, no row to open and nothing to total, so a strip
     // would be a control over a fight that is not on.
     assertEquals(

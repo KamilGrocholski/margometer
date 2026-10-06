@@ -78,7 +78,7 @@ test("the card opens under the pointer, and names the row it describes", async (
 
 /**
  * ⚠️ **The one claim about the card that characters cannot make.**
- * `MAXIMUM_LABEL_CHARACTERS` counts a label's letters as a stand-in for the column's width, and
+ * `LABEL_CHARACTERS_MAXIMUM` counts a label's letters as a stand-in for the column's width, and
  * the glyph a caveated figure wears is a cell of its own — so the count cannot see what it costs
  * the label beside it. A cut label reads as a shorter label and nothing says it was cut.
  * **`develop ADR 0088`.**

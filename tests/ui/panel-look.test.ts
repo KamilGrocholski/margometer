@@ -1091,11 +1091,6 @@ Deno.test("a card is trimmed to the room the sheet leaves it, the window less it
 });
 
 /**
- * A figure is one word and its cell never gives way; the words beside it are what shortens. The
- * separator inside a figure is `src/ui/panel-words.ts`'s to keep unbreakable — this holds the
- * cells around it, which is the other half of the same rule.
- */
-/**
  * The other side of the rule below, and the one cell written against it. Every other run of words
  * on this panel is cut where it will not fit, because its height is counted as one line. The name a
  * card opens with is the **answer** to a name a row had to cut (`develop ADR 0084`), and an answer
@@ -1146,6 +1141,11 @@ function getShorteningMissing(sheet: string, selector: string): string[] {
     return missing;
 }
 
+/**
+ * A figure is one word and its cell never gives way; the words beside it are what shortens. The
+ * separator inside a figure is `src/ui/panel-words.ts`'s to keep unbreakable — this holds the
+ * cells around it, which is the other half of the same rule.
+ */
 Deno.test("a cell carrying a figure refuses to fold, and its neighbour shortens", () => {
     // A reader is proved by a sample it must flag and one it must not.
     assertEquals(

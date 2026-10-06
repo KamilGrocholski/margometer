@@ -27,6 +27,7 @@ import {
     type PanelDocument,
     type PanelElement,
     type PanelRoot,
+    type PanelTarget,
     STYLE_ATTRIBUTE,
 } from "./panel-document.ts";
 import {
@@ -92,6 +93,7 @@ import {
     type PersonRow,
     type PinnedRow,
     type PlainRow,
+    RANKING_ROWS,
     type RankingRow,
     type RowDetail,
     type ScreenContent,
@@ -193,6 +195,7 @@ import {
 } from "./panel-words.ts";
 import {
     addViewFailureGuarded,
+    CardRefused,
     GestureDropped,
     PANEL_LISTENER,
     RegionUndrawn,
@@ -302,7 +305,7 @@ interface PersonPlace {
 interface HelperPerson {
     name: string;
     /**
-     * The okrzyk this row is about, or null where no cast is. Drawn beside whoever cast it and
+     * The shout this row is about, or null where no cast is. Drawn beside whoever cast it and
      * never on a row nested under them, where the row above already names it — the card says it
      * either way, because a card is read away from the row it came from.
      */
@@ -320,7 +323,7 @@ interface HelperPerson {
     isNested: boolean;
 }
 
-/** What the panel could not do, as the runtime counted it: one line per kind, worded here. */
+/** What the panel could not do, as the runtime counted it: a line per kind and region. */
 export interface PanelDefect {
     kind: PanelDefectKind;
     /** The region this row of the kind left undrawn, and null where the kind is none's. */
@@ -445,7 +448,7 @@ export interface PanelViewOptions {
  * or to the sink where none was — a card opened under the pointer draws between two frames.
  */
 interface UndrawnReport {
-    add(region: PanelRegion, cause: errors.Caught): void;
+    add(region: PanelRegion, cause: errors.Caught | CardRefused): void;
     collect(render: () => void): RenderReport;
 }
 
@@ -572,6 +575,8 @@ type CardLookup = (key: string) => CardCompose | null;
 interface CardRegister {
     lookup(key: string): CardCompose | null;
     add(key: string, compose: CardCompose): void;
+    /** The first row refused since the last reset, which the draw reports; null where none was. */
+    lookupRefused(): CardRefused | null;
     reset(): void;
 }
 
@@ -657,7 +662,12 @@ const HOST_NAME = "MargoMeter-Panel";
  * and one that does not say which build made it is a claim about no particular version.
  */
 const VERSION_ATTRIBUTE = "data-margometer-version";
-/** Four is every charge length the corpus states, and a clamp on a figure the game hands us. */
+/**
+ * A clamp on a figure the game hands us. Measured over `captures/` through `readPayloadEnvelope`
+ * on 2026-10-06: its 37 recordings state 380 charges, running one to four turns. Eight is twice
+ * the longest, and a charge past it draws eight dots beside a counter that still states it whole,
+ * so what the clamp costs is dots and never the figure — no defect is owed.
+ */
 const CHARGED_PIPS_MAXIMUM = 8;
 export const CARD_ATTRIBUTE = "data-card";
 /**
@@ -674,7 +684,7 @@ const HELPER_NOW_CARD_KEY = `${HELPER_CARD_PREFIX}now`;
 /**
  * The charge band's, keyed by whoever is making the blow ready: `core/charged-skill.ts` holds
  * one charge per combatant, so one row is one key. A second row under the same key would be
- * refused without a word and would wear its neighbour's card, which is why
+ * refused, reported as the card undrawn, and would wear its neighbour's card, which is why
  * `tests/ui/panel-helper.test.ts` counts the keys rather than trusting that. `develop ADR 0100`.
  */
 const HELPER_CHARGE_CARD_PREFIX = `${HELPER_CARD_PREFIX}charge:`;
@@ -706,7 +716,7 @@ const PRIMARY_BUTTON = 0;
 export const SHELF_ROWS_MAXIMUM = 21;
 const PIN_MARK = "★";
 const UNPINNED_MARK = "☆";
-const ROWS_WAITING = 11;
+const ROWS_WAITING = RANKING_ROWS;
 /**
  * How tall the shelf stands, which is its own answer and never the ranking's: no side narrows a
  * shelf and the strip that narrows one is not drawn over it, so a shelf reading the ranking's
@@ -727,11 +737,19 @@ const CARD_CUT_PARTS_MAXIMUM = 6;
 const FILL_PLACES = 1;
 const AS_PERCENT = 100;
 
-/** Past every region one render redraws, the panel's body and the helper's together. */
+/**
+ * Past every region one render redraws, the panel's body and the helper's together. Measured on
+ * 2026-10-06 with a fake document refusing every region twice over, once drawn and once put in
+ * place: a render reported 28. A failure past it goes to the sink rather than nowhere (E9).
+ */
 const UNDRAWN_MAXIMUM = 32;
 
-/** One line per kind at most, which is what the runtime's ledger holds. */
-const DEFECTS_MAXIMUM = Object.values(PANEL_DEFECT_KIND).length;
+/**
+ * One line per kind under every region and under none, which is the shape of the runtime's
+ * ledger: `tests/ui/view-failure.test.ts` fills a ledger to it and draws every row.
+ */
+export const DEFECTS_MAXIMUM = Object.values(PANEL_DEFECT_KIND).length *
+    (Object.values(PANEL_REGION).length + 1);
 
 /**
  * Counted off **an opened row**, the widest screen the panel has: its three sections, each with
@@ -855,6 +873,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                     return;
                 }
                 if (collected.length < UNDRAWN_MAXIMUM) collected.push(failure);
+                else addViewFailureGuarded(options.onFailure, failure);
             },
             // ⚠️ Every step of a render stands under a guard of its own, so nothing leaves
             // `render` with the report still collecting. A step added unguarded would take the
@@ -1042,8 +1061,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             options.onIntent({ kind: PANEL_INTENT.close });
         }, options.onFailure);
         addGuardedListener(root, EVENT_TYPE.move, PANEL_LISTENER.hover, (event) => {
-            const target = event.target;
-            onHover(target === null ? null : target.getAttribute(CARD_ATTRIBUTE), event.clientY);
+            onHover(readCardKey(event.target), event.clientY);
         }, options.onFailure);
         // What closes the card. `pointerleave` does not bubble and a shadow root is not on the
         // composed path of one dispatched to an element, so the one listener would never see it;
@@ -1052,8 +1070,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         // apart: a crossing that lands on the same row's mark is not a leaving, and reading it
         // keeps the card from being thrown away and rebuilt four times on the way across the row.
         addGuardedListener(root, EVENT_TYPE.leave, PANEL_LISTENER.leave, (event) => {
-            const went = event.relatedTarget ?? null;
-            onHover(went === null ? null : went.getAttribute(CARD_ATTRIBUTE), event.clientY);
+            onHover(readCardKey(event.relatedTarget ?? null), event.clientY);
         }, options.onFailure);
     }
     // After the listeners that read a press, and on the same root: a drag is four more of them.
@@ -1141,7 +1158,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                     () => renderListLevel(document, meterRegister, shown, options.translate),
                 );
                 renderPinnedRows(document, regions, renderInPlace, meterRegister, shown);
-                // Draw what stands under the list: past the ranking, the sides, warnings, defects.
+                // Draw what stands under the list: the outside row, sides, suspicions and defects.
                 regions.outside = renderInPlace(
                     regions.outside,
                     PANEL_REGION.outside,
@@ -1173,6 +1190,8 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                     () => renderDefects(document, shown.defects),
                 );
             }
+            const refused = meterRegister.lookupRefused();
+            if (refused !== null) report.add(PANEL_REGION.card, refused);
             renderPanelSettled(panelDrawing);
         });
     const renderWaiting = (waiting: WaitingContent): RenderReport =>
@@ -1231,9 +1250,21 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                 PANEL_REGION.helper,
                 () => renderHelperBody(document, helperRegister, helper, isCollapsed),
             );
+            const refused = helperRegister.lookupRefused();
+            if (refused !== null) report.add(PANEL_REGION.card, refused);
             helperDrag?.onDrawn();
         });
     return { element: host, render: renderScreen, renderWaiting, renderHelper };
+}
+
+/**
+ * The card the node under the pointer is marked with, as `readPanelIntent` reads a mark: a text
+ * node or the root itself has nothing to read one off, and states no card.
+ */
+function readCardKey(target: PanelTarget | null): string | null {
+    if (target === null) return null;
+    if (typeof target.getAttribute !== "function") return null;
+    return target.getAttribute(CARD_ATTRIBUTE);
 }
 
 /** Draw the list while no fight stands: kept unread, unread, or none yet. */
@@ -1398,7 +1429,7 @@ function renderHelperBody(
         );
         for (const provocation of helper.provocations) {
             // The fold's own key, so a card is filed under the cast rather than under
-            // the person: one caster shouting both okrzyki stands twice
+            // the person: one caster casting both shouts stands twice
             // (`develop ADR 0097`).
             const cast = `${formatWholeUngrouped(provocation.casterId)}/${
                 formatWholeUngrouped(provocation.skillId)
@@ -1512,7 +1543,7 @@ function renderNounStrips(
     const strips = renderElement(document, "div", CLASS.strips);
     for (const strip of presentNounStrips(shown.metric)) {
         strips.append(
-            renderStrip(document, PANEL_MARK.screen, getShownStrip(strip, shown)),
+            renderStrip(document, PANEL_MARK.screen, strip),
         );
     }
     return strips;
@@ -1527,14 +1558,14 @@ function renderDirectionStrips(
     const strips = renderElement(document, "div", CLASS.strips);
     for (const strip of presentDirectionStrips(shown.metric)) {
         strips.append(
-            renderStrip(document, PANEL_MARK.screen, getShownStrip(strip, shown)),
+            renderStrip(document, PANEL_MARK.screen, strip),
         );
     }
     if (shown.readerSide === null) return strips;
     strips.append(renderElement(document, "span", CLASS.stripsGap));
     for (const strip of presentSideStrips(shown.side)) {
         strips.append(
-            renderStrip(document, PANEL_MARK.side, getShownStrip(strip, shown)),
+            renderStrip(document, PANEL_MARK.side, strip),
         );
     }
     return strips;
@@ -2453,11 +2484,6 @@ function renderStrip(
     stripElement.setAttribute(attribute, strip.name);
     stripElement.textContent = strip.words;
     return stripElement;
-}
-
-function getShownStrip(strip: ScreenStrip, shown: ShownScreen): ScreenStrip {
-    if (!shown.isOnShelf) return strip;
-    return { ...strip, isCurrent: false };
 }
 
 /**
@@ -3403,7 +3429,7 @@ function renderHelperPerson(
 }
 
 /**
- * What a person's row had to cut, handed back whole: the name, the okrzyk the row is about under
+ * What a person's row had to cut, handed back whole: the name, the shout the row is about under
  * it, and the turns wherever the row states them. **It is not the ranking's person card** — the
  * figures of the fight are the panel's and never reach this window, so what stands here is the
  * card a skill and a fight on the shelf already get. `develop ADR 0098`.
@@ -3517,20 +3543,35 @@ function addFightCardLine(lines: CardLine[], label: string, stated: string): voi
 
 export function createCardRegister(): CardRegister {
     const composeByKey = new Map<string, CardCompose>();
+    let refused: CardRefused | null = null;
     return {
         // A row with no name, one already registered, or one past the bound is left without a
-        // card. What that costs is detail on hover, and never the draw it arrived in (**E12**).
+        // card, and the first of them is kept for the draw to report (**E12**). What that costs
+        // is detail on hover, and never the draw it arrived in.
         add(key: string, compose: CardCompose): void {
-            if (key.length === 0) return;
-            if (composeByKey.has(key)) return;
-            if (composeByKey.size >= CARDS_DRAWN_MAXIMUM) return;
-            composeByKey.set(key, compose);
+            let isRefused: boolean;
+            if (key.length === 0) {
+                isRefused = true;
+            } else if (composeByKey.has(key)) {
+                isRefused = true;
+            } else {
+                isRefused = composeByKey.size >= CARDS_DRAWN_MAXIMUM;
+            }
+            if (!isRefused) {
+                composeByKey.set(key, compose);
+            } else if (refused === null) {
+                refused = new CardRefused(key);
+            }
         },
         lookup(key: string): CardCompose | null {
             return composeByKey.get(key) ?? null;
         },
+        lookupRefused(): CardRefused | null {
+            return refused;
+        },
         reset(): void {
             composeByKey.clear();
+            refused = null;
         },
     };
 }
@@ -3753,7 +3794,7 @@ export function setCardPosition(
  */
 function composeCardAcrossStyle(across: CardAcross | null): string {
     if (across === null) return "";
-    const edgeOffset = `${Math.max(0, Math.round(across.at))}px`;
+    const edgeOffset = `${Math.max(0, Math.round(across.offsetPixels))}px`;
     if (across.edge === CARD_EDGE.left) {
         return `;${CARD_VARIABLES.left}:${edgeOffset};${CARD_VARIABLES.right}:${EDGE_RELEASED}`;
     }

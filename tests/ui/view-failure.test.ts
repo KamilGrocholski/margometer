@@ -12,13 +12,19 @@ import {
     assertStrictEquals,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import type { PanelDefect } from "#/src/ui/panel-element.ts";
+import { DEFECTS_MAXIMUM, type PanelDefect } from "#/src/ui/panel-element.ts";
+import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
+import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
+import { SIDE_RELATION } from "#/src/ui/panel-content.ts";
+import { type HelperContent, STANDING_TURN_STATE } from "#/src/ui/panel-helper.ts";
+import { SIGNAL } from "#/src/ui/panel-palette.ts";
 import { MarkValueUnknown, PANEL_INTENT, PANEL_MARK } from "#/src/ui/panel-intent.ts";
 import { NOTHING_SUSPECT, presentScreen, type ScreenContent } from "#/src/ui/panel-content.ts";
 import { PANEL_METRIC, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import { PANEL_DEFECT_KIND, PANEL_REGION } from "#/src/ui/panel-words.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
 import {
+    CardRefused,
     GestureDropped,
     PANEL_LISTENER,
     RegionUndrawn,
@@ -88,6 +94,23 @@ Deno.test("a mark with a value nothing of ours writes drops the gesture and asks
     assertStrictEquals(dropped.listener, PANEL_LISTENER.press, "of the press");
     assertInstanceOf(dropped.cause, MarkValueUnknown, "and the drop names the mark that strayed");
     assertStrictEquals(dropped.cause.mark, PANEL_MARK.screen, "which is the screen's");
+});
+
+Deno.test("a pointer over a node with nothing to read a mark off drops no gesture", () => {
+    const failures: ViewFailure[] = [];
+    const panel = initTestView(composeFakeDocument(), {
+        onFailure: (failure) => failures.push(failure),
+    });
+    panel.renderWaiting(NOTHING_WAITING);
+    const host = panel.element as FakeElement;
+    // A text node, as a browser can hand one: no `getAttribute` to read a card off.
+    const textNode = {} as unknown as FakeElement;
+    for (const type of ["pointermove", "pointerout"]) {
+        for (const handle of host.rootListeners.get(type) ?? []) {
+            handle({ target: textNode, relatedTarget: textNode, clientY: 0 });
+        }
+    }
+    assertEquals(failures, [], "it states no card, and neither listener is dropped");
 });
 
 Deno.test("a sink that throws is not the browser's to hear", () => {
@@ -218,25 +241,73 @@ Deno.test("a window that will not open where told stays on the sheet's corner, a
     );
 });
 
-Deno.test("the defects handed in are worded here, one line per kind at most", () => {
-    const kinds = Object.values(PANEL_DEFECT_KIND);
+Deno.test("every row the runtime's ledger can hold is drawn, a region's beside its kind's", () => {
     const draw = (defects: readonly PanelDefect[]): string[] => {
         const panel = initTestView(composeFakeDocument());
         panel.render({ ...composeShownScreen(readFight()), defects });
         return getTextsByClass(panel.element as FakeElement, "defect");
     };
-    const every = kinds.map((kind) => ({ kind, region: null, count: 2 }));
-    assertEquals(draw(every).length, kinds.length, "every kind there is, at the bound, is said");
+    // Fill a ledger with every kind under every region and under none, which is all it can hold.
+    const ledger = initDefectLedger({ writeBrandedLine: () => {} });
+    const failure = new errors.Caught("a defect");
+    for (const kind of Object.values(DEFECT_KIND)) {
+        ledger.add({ kind, region: null, failure });
+        for (const region of Object.values(PANEL_REGION)) ledger.add({ kind, region, failure });
+    }
+    const held = ledger.getCounts().map(({ kind, region, count }) => ({ kind, region, count }));
+    assertStrictEquals(held.length, DEFECTS_MAXIMUM, "the panel's bound is the ledger's shape");
+    assertEquals(draw(held).length, DEFECTS_MAXIMUM, "and every row the ledger holds is said");
+    assertEquals(draw([...held, held[0]!]).length, DEFECTS_MAXIMUM, "and a line past it is not");
     assertEquals(
-        draw([...every, { kind: PANEL_DEFECT_KIND.region, region: PANEL_REGION.list, count: 1 }])
-            .length,
-        kinds.length,
-        "and a line past it is not",
-    );
-    assertEquals(
-        draw([{ kind: PANEL_DEFECT_KIND.region, region: PANEL_REGION.list, count: 3 }]),
-        ["✖ Panel nie narysował listy (3×)."],
-        "worded with the region it cost and how often",
+        draw([
+            { kind: PANEL_DEFECT_KIND.region, region: null, count: 1 },
+            { kind: PANEL_DEFECT_KIND.region, region: PANEL_REGION.list, count: 3 },
+        ]),
+        ["✖ Panel nie narysował jednej ze swoich części.", "✖ Panel nie narysował listy (3×)."],
+        "a region's row beside its kind's own, worded with the region it cost and how often",
     );
     assertEquals(draw([]), [], "and none is no block at all");
+});
+
+Deno.test("a row whose card the register refuses leaves the card undrawn, said once a draw", () => {
+    const charge = {
+        combatantId: 7,
+        name: "Hildur",
+        skillName: "Lodowe Pandemonium",
+        turnsElapsed: 1,
+        turnsStated: 3,
+        state: CHARGED_SKILL_STATE.charging,
+        colour: SIGNAL.ours,
+        sideRelation: SIDE_RELATION.reader,
+    };
+    const panel = initTestView(composeFakeDocument());
+    const draw = (chargedSkills: HelperContent["chargedSkills"]) => {
+        return panel.renderHelper({
+            turnState: STANDING_TURN_STATE.held,
+            turnOrdinal: null,
+            turnHolder: null,
+            provocations: [],
+            chargedSkills,
+        }, false).undrawn;
+    };
+    assertEquals(draw([charge]), [], "one charge a combatant is one key, and nothing is refused");
+    const undrawn = draw([charge, charge, charge]);
+    assertStrictEquals(undrawn.length, 1, "two rows under one key are said once, not per row");
+    const [refusal] = undrawn;
+    assertEquals(refusal?.region, PANEL_REGION.card, "as the card's region undrawn");
+    assertInstanceOf(refusal?.cause, CardRefused, "and the refusal is its cause");
+    assertEquals(refusal.cause.key, "helper:charge:7", "naming the key it refused");
+    assertEquals(draw([charge]), [], "and the next draw starts with nothing refused");
+    // The panel's own register, which the ranking fills, reports a refusal the same way.
+    const meter = initTestView(composeFakeDocument());
+    const reading = readFight();
+    const [leader] = reading.rows;
+    assertExists(leader, "the fight ranks somebody");
+    const twice = meter.render(composeShownScreen({ ...reading, rows: [...reading.rows, leader] }));
+    assertEquals(
+        twice.undrawn.map((failure) => [failure.region, failure.cause instanceof CardRefused]),
+        [[PANEL_REGION.card, true]],
+        "a row ranked twice is one refusal, on the panel as beside it",
+    );
+    assertEquals(meter.render(composeShownScreen(reading)).undrawn, [], "and none once it is not");
 });

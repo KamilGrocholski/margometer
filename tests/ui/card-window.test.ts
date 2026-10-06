@@ -18,6 +18,7 @@ import * as errors from "#/libs/errors.ts";
 import {
     type CardContent,
     type CardNoteTone,
+    CARDS_DRAWN_MAXIMUM,
     composeCardLayout,
     createCardRegister,
     initCardHandle,
@@ -118,9 +119,10 @@ Deno.test("a row is looked up by the name it stated, and by no other", () => {
     register.add("row:7", compose);
     assertEquals(register.lookup("row:7"), compose, "and one that was drawn says what it drew");
     assertEquals(register.lookup("row:8"), null, "which reaches no neighbour");
+    assertEquals(register.lookupRefused(), null, "and a row registered is no refusal");
     // Two rows answering to one name must not stop the draw: the first stands and the second is
-    // refused, so what a clash costs is a card on hover and never the panel — **E12**, develop ADR
-    // 0051.
+    // refused and kept for the draw to report, so what a clash costs is a card on hover and never
+    // the panel — **E12**, develop ADR 0051.
     const composeClashing = () => HILDUR;
     register.add("row:7", composeClashing);
     assertEquals(
@@ -130,8 +132,31 @@ Deno.test("a row is looked up by the name it stated, and by no other", () => {
     );
     register.add("", compose);
     assertEquals(register.lookup(""), null, "as does a row with no name to be looked up by");
+    assertEquals(register.lookupRefused()?.key, "row:7", "the first refusal is the one kept");
     register.reset();
     assertEquals(register.lookup("row:7"), null, "a redraw starts with nothing said about any row");
+    assertEquals(register.lookupRefused(), null, "and nothing refused");
+    register.add("", compose);
+    assertEquals(register.lookupRefused()?.key, "", "a row with no name is refused too");
+});
+
+Deno.test("the register holds a card for every row up to its bound, and refuses the next", () => {
+    const register = createCardRegister();
+    for (let index = 0; index < CARDS_DRAWN_MAXIMUM; index += 1) {
+        register.add(`row:${index}`, () => HILDUR);
+    }
+    assertEquals(register.lookupRefused(), null, "a draw at the bound refuses nothing");
+    register.add(`row:${CARDS_DRAWN_MAXIMUM}`, () => HILDUR);
+    assertEquals(
+        register.lookup(`row:${CARDS_DRAWN_MAXIMUM}`),
+        null,
+        "the row past it has no card",
+    );
+    assertEquals(
+        register.lookupRefused()?.key,
+        `row:${CARDS_DRAWN_MAXIMUM}`,
+        "and is the refusal the draw reports",
+    );
 });
 
 Deno.test("the card draws a line for each of the three kinds, marked as the kind it is", () => {
@@ -349,7 +374,7 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     );
     // A panel that has never been dragged keeps the side the sheet states, so nothing is written
     // across: the one written here is the panel saying it has moved.
-    setCardPosition(card, 100, { edge: "left", at: 42.6 }, size, STEP);
+    setCardPosition(card, 100, { edge: "left", offsetPixels: 42.6 }, size, STEP);
     assertEquals(
         card.attributes.get("style"),
         "--MargoMeter-card-top:100px;--MargoMeter-card-height:118px;" +
@@ -369,14 +394,14 @@ Deno.test("a card pinned by one edge releases the other, whichever way round it 
     const card = renderCard(document, HILDUR) as FakeElement;
     const size = tallyCardSize(HILDUR, STEP);
 
-    setCardPosition(card, 0, { edge: "right", at: 272 }, size, STEP);
+    setCardPosition(card, 0, { edge: "right", offsetPixels: 272 }, size, STEP);
     assertStringIncludes(
         card.attributes.get("style") ?? "",
         "--MargoMeter-card-left:auto;--MargoMeter-card-right:272px",
         "a card standing left of its window is measured from the screen's right edge",
     );
 
-    setCardPosition(card, 0, { edge: "left", at: 330 }, size, STEP);
+    setCardPosition(card, 0, { edge: "left", offsetPixels: 330 }, size, STEP);
     assertStringIncludes(
         card.attributes.get("style") ?? "",
         "--MargoMeter-card-left:330px;--MargoMeter-card-right:auto",
@@ -829,7 +854,7 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
         (key) => {
             asked.push(key);
             const distance = key === "helper:12" ? 255 : 507;
-            return { edge: "left", at: distance };
+            return { edge: "left", offsetPixels: distance };
         },
     );
     const firstCard = handle.element as FakeElement;

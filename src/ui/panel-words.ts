@@ -65,9 +65,9 @@ export interface TooltipStatus {
  */
 export interface TooltipContent {
     turnsTaken: number;
-    /** Whoever is holding them with an okrzyk, and how far through the shout's turns they are. */
+    /** Whoever is holding them with a shout, and how far through the shout's turns they are. */
     provokedBy: { name: string; turnsElapsed: number; turnsStated: number } | null;
-    /** How many characters their own okrzyk is holding. Never their names — `develop ADR 0103`. */
+    /** How many characters their own shout is holding. Never their names — `develop ADR 0103`. */
     provokedCount: number;
     /** What the mask says stands on them, with what the announcements over them come to. */
     statuses: readonly TooltipStatus[];
@@ -226,11 +226,11 @@ const NOTHING_WORDS: Record<PanelMetric, string> = {
 /**
  * The closing row of a skills section, which is the figure no announcement covered.
  *
- * ⚠️ **The two healing entries are never read, and they stay.** What no announcement covered on a
- * healing screen
- * is named by the key the game stated it under and stands as a row of its own, so nothing is left
- * to close against. The table is exhaustive for the reason every table here is: a fifth screen
- * becomes a question the compiler asks rather than one inheriting whichever wording came first.
+ * ⚠️ **The two healing entries draw only where the figures disagree.** What no announcement
+ * covered on a healing screen is named by the key the game stated it under and stands as a row of
+ * its own, so the remainder there is nought by construction (`composeSkillCut` in
+ * `src/ui/panel-content.ts`), and a row under these words is a figure a reader can add up and
+ * find wrong.
  */
 const UNANNOUNCED_WORDS: Record<PanelMetric, string> = {
     damageDealt: "Zwykły cios",
@@ -257,8 +257,8 @@ const DIRECTION_WORDS: Record<PanelMetric, string> = {
 
 const SIDE_WORDS: Record<PanelSideChoice, string> = {
     everyone: "Wszyscy",
-    reader: "My",
-    opposing: "Oni",
+    reader: PANEL_WORDS.ourSide,
+    opposing: PANEL_WORDS.theirSide,
 };
 
 /** Spelled both ways round: `Leczenie` alone means either, and here the two stand together. */
@@ -547,9 +547,10 @@ export const LABEL_CHARACTERS_MAXIMUM = 22;
 /**
  * The same for a label out of the player's own client, which is not ours to keep short: its
  * dictionary runs to 41 characters for the keys asked about (build `1785244275300`, read
- * 2026-09-22), and at 22 three of seven were drawn as the raw key. ⚠️ The label is measured after
- * `parseLabel` (`src/ports/margonem-client-dictionary.ts`) takes the sign and the full stop off. ⚠️ A label past the column is still
- * cut: the client's words cut, rather than a key the game wrote for itself.
+ * 2026-09-22), past the bound our own words keep to. ⚠️ The label is measured after `parseLabel`
+ * (`src/ports/margonem-client-dictionary.ts`) takes the sign and the full stop off. ⚠️ A label
+ * past the column is still cut: the client's words cut, rather than a key the game wrote for
+ * itself.
  */
 export const CLIENT_LABEL_CHARACTERS_MAXIMUM = 64;
 
@@ -558,7 +559,7 @@ export const CLIENT_LABEL_CHARACTERS_MAXIMUM = 64;
  * dictionary. **The panel asks only here** — every other key it draws it has a word of its own for,
  * chosen short enough for the column above, and an answer out of somebody else's program is not.
  * `develop ADR 0024`. All three are what article `view,372` does not carry at all (`develop ADR
- * 0011`); the legendary bonuses it does carry are ours since ADR 0030.
+ * 0011`); the legendary bonuses it does carry are worded here (ADR 0030).
  *
  * Every id is spelled by the client, checked against `.cache/game-client/production/main.js` at
  * build `Bb28FQty` on 2026-09-21. Two are `msg_` and the key; `+superspell-dispel` is the one
@@ -716,15 +717,15 @@ const HUNDRED = 100;
 /** The window beside the panel: the turn in hand, what is being made ready, and who holds whom. */
 export const HELPER_WORDS = {
     title: "Pomocnik",
-    drag: "Przeciągnij, żeby przesunąć",
+    drag: PANEL_WORDS.drag,
     collapse: "Zwiń Pomocnika",
     expand: "Rozwiń Pomocnika",
     now: "Teraz",
     nothingHappens: "Nic się nie dzieje.",
-    /** The two okrzyki share one state, so they share one heading — `develop ADR 0062`. */
+    /** The two shouts share one state, so they share one heading — `develop ADR 0062`. */
     provocation: "Prowokacja",
     /**
-     * Between whoever is holding somebody and the okrzyk they hold them with — `develop ADR 0097`.
+     * Between whoever is holding somebody and the shout they hold them with — `develop ADR 0097`.
      */
     castSeparator: "·",
     /**
@@ -753,7 +754,7 @@ const TOOLTIP_WORDS = {
     provokedCount: "Prowokuje",
     /** The bonus fires once a fight, so this is a state and never a count. */
     spent: "wykorzystany",
-    turnsTaken: "Tury wykonane",
+    turnsTaken: CARD_WORDS.turns,
 } as const;
 
 /**
@@ -769,14 +770,14 @@ const MARKUP_OPENER = "<";
 const MARKUP_ENTITY = "&";
 /**
  * Every row one fighter can put up, **counted off the parts rather than off the corpus**: the
- * add-on's own name, the okrzyk from either end, the two legendary bonuses, the turns taken, and
+ * add-on's own name, the shout from either end, the two legendary bonuses, the turns taken, and
  * one row per status the client registers.
  *
- * ⚠️ **A figure taken off the corpus was the wrong figure here.** The tallest block over
+ * ⚠️ **A figure taken off the corpus is the wrong figure here.** The tallest block over
  * `captures/` is seven (`develop:design/dziesiec/measured.json`), and a fabricated ten-a-side
- * already stands eleven — so a bound set at what had been seen was one row above what was
- * happening. It clamps rather than asserts, because a fighter with one thing more to say is not a
- * reason to stop drawing (**A11**, `develop ADR 0051`).
+ * stands eleven — a bound set at what has been seen falls short of what happens. It clamps rather
+ * than asserts, because a fighter with one thing more to say is not a reason to stop drawing
+ * (**A11**, `develop ADR 0051`).
  */
 export const ROWS_BESIDE_THE_STATUSES = 6;
 
@@ -925,7 +926,7 @@ const DEFECT_WORDS: Record<PanelDefectKind, string> = {
     figures: "Liczby w panelu nie zgadzają się ze sobą",
     gesture: "Panel nie wykonał kliknięcia",
     file: "Panel nie przygotował pliku z walką",
-    // Chosen by the maintainer on 2026-09-24: a panel waiting for a game says what it cannot see.
+    // A panel waiting for a game says what it cannot see.
     engine: "Nie widać walki w grze",
 };
 
@@ -1031,9 +1032,6 @@ function getMargonemClientWordsForKey(
     if (id === undefined) return null;
     const label = translate(id);
     if (label === null) return null;
-    // ⚠️ **The client's bound and not ours.** At 22 this refused three of the seven keys it asked
-    // about on 2026-09-22 — their keys land 56 times over `captures/` — and drew
-    // `+superspell-prevented` at a reader whose dictionary words that key.
     if (label.length > CLIENT_LABEL_CHARACTERS_MAXIMUM) return null;
     if (label.length === 0) return null;
     return label;
@@ -1109,7 +1107,9 @@ export function getWordsForDamageKind(kind: string): string {
 
 /**
  * One, a few, or many: Polish picks by the last digit, except in the teens, where it picks many
- * whatever that digit is. Twenty-two takes the few form and twelve does not.
+ * whatever that digit is. Twenty-two takes the few form and twelve does not. `Intl.PluralRules`
+ * for `pl` picks the same form for every whole number from nought up (V8 15.0, 2026-10-06); it
+ * also picks one for a count below nought or not whole, which this says is not known instead.
  */
 export function formatCountedNoun(count: number, noun: CountedNoun): string {
     if (!Number.isSafeInteger(count)) return `${PANEL_WORDS.unknownHowMany} ${noun.many}`;
@@ -1260,8 +1260,9 @@ function doesRowCarryMarkup(row: string): boolean {
 
 /**
  * The client's word for a status, or the key as the game wrote it — the second and third rungs of
- * `develop ADR 0024`, and there is no first here: this repository has no word of its own for any of
- * the nine, and inventing one would put a made-up label where the game already has a real one.
+ * `develop ADR 0024`, and there is no first here: this repository has no word of its own for any
+ * bit of the mask, and inventing one would put a made-up label where the game already has a real
+ * one.
  */
 function getWordsForStatusBit(
     bit: number,
@@ -1384,8 +1385,7 @@ export function formatShelfTime(moment: FightMoment | null, isLive: boolean): st
 function formatTwoDigits(momentPart: number): string {
     if (!Number.isSafeInteger(momentPart)) return "";
     if (momentPart < 0) return "";
-    const digits = formatWholeUngrouped(momentPart);
-    return digits.length >= TWO_DIGITS ? digits : `0${digits}`;
+    return formatWholeUngrouped(momentPart).padStart(TWO_DIGITS, "0");
 }
 
 /**
@@ -1561,9 +1561,9 @@ export function formatDefect(
     } else {
         said = DEFECT_WORDS[kind];
     }
-    const isTallied = Number.isSafeInteger(count) && count > 1;
-    const times = isTallied ? ` (${formatWholeUngrouped(count)}×)` : "";
-    return `${said}${times}.`;
+    if (!Number.isSafeInteger(count)) return `${said}.`;
+    if (count <= 1) return `${said}.`;
+    return `${said} (${formatWholeUngrouped(count)}×).`;
 }
 
 /**

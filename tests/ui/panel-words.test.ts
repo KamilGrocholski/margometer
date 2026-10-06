@@ -500,7 +500,7 @@ Deno.test("a length says the turns it has left, and refuses what is not inside i
  * bit does not. What stands is said, with the figure a cast over the bearer comes to.
  */
 Deno.test("a status says that it stands, and never for how long", () => {
-    for (let bit = 0; bit < 9; bit += 1) {
+    for (let bit = 0; bit < FROZEN_BUFF_BITS.bits.length; bit += 1) {
         for (const percent of [null, 20]) {
             const said = presentTooltipRows(
                 { ...NOTHING_CARRIED, statuses: [{ bit, percent }] },
@@ -1502,6 +1502,11 @@ Deno.test("a whole number is written as it is, and anything else degrades, never
 Deno.test("a panel waiting for a game says what it cannot see", () => {
     assertEquals(formatDefect(PANEL_DEFECT_KIND.engine, null, 1), "Nie widać walki w grze.");
     assertEquals(formatDefect(PANEL_DEFECT_KIND.engine, null, 3), "Nie widać walki w grze (3×).");
+    assertEquals(
+        formatDefect(PANEL_DEFECT_KIND.engine, null, Number.POSITIVE_INFINITY),
+        "Nie widać walki w grze.",
+        "a tally that is no count is not drawn as one",
+    );
 });
 
 Deno.test("a kept fight that will not read is placed by what the shelf knows of it", () => {

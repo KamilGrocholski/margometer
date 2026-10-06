@@ -655,7 +655,7 @@ Deno.test("the card of a row holding somebody hands back the name and the okrzyk
  * **W5: zero is a boundary.** The card above states one figure and this one states none, which is
  * the difference between a card with a run and a card that is a name and a line under it.
  */
-Deno.test("a held character's card states the turns they have taken since the shout", () => {
+Deno.test("a held character's card states the turns the shout has left on them", () => {
     const reading = presentHelper(
         [composeProvocation(21, 11)],
         [],
