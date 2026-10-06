@@ -294,6 +294,19 @@ Deno.test("a page that throws when it is looked at leaves the add-on standing, a
     assertStrictEquals(world.runtime.deinit(), undefined, "and there is no wrap to take off");
 });
 
+Deno.test("a page's timer that will not stop is said on the page's console, once", () => {
+    const world = initRuntimeWorld({}, () => ({
+        interval: {
+            every: () => ({ cancel: () => new errors.Caught("a clock that will not let go") }),
+        },
+    }));
+    assertEquals(world.lines, [], "a search still looking has said nothing");
+    world.runtime.deinit();
+    assertEquals(world.lines, ["Caught"], "the clock's refusal reached the page's console");
+    world.runtime.deinit();
+    assertStrictEquals(world.lines.length, 1, "and a runtime stopped again says nothing more");
+});
+
 /**
  * Standing up reads what the browser kept, and every reader of it degrades on its own: a store
  * somebody edited costs what was in it, and never the add-on.

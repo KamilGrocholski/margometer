@@ -36,3 +36,16 @@ Deno.test("the fates §10.5 names outright are the ones the table holds", () => 
     assertStrictEquals(FAILURE_FATES.StoreRefused, FAILURE_FATE.byPlace, "a store, by its place");
     assertStrictEquals(FAILURE_FATES.EverySlotPinned, FAILURE_FATE.shelfAnswer, "a shelf");
 });
+
+Deno.test("a failure that leaves no mark by design is none, and never by its place", () => {
+    assertStrictEquals(
+        FAILURE_FATES.WrapCovered,
+        FAILURE_FATE.none,
+        "a wrap covered, which only a test's detach meets",
+    );
+    assertStrictEquals(
+        FAILURE_FATES.MargonemEngineWarriorsAbsent,
+        FAILURE_FATE.none,
+        "a board of nobody, for the file and the tooltip alike",
+    );
+});

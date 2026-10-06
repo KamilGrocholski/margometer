@@ -829,6 +829,7 @@ export const FAILURE_FATE = {
     shelfAnswer: "shelf-answer",
     fallbackWithDefect: "fallback-with-defect",
     standDown: "stand-down",
+    none: "none", // leaves no mark by design, wherever it is met: §10.5 says why
     byPlace: "by-place", // met in places that do different things with it: a row each in §10.5
 } as const;
 export type FailureFate = VocabularyWord<typeof FAILURE_FATE>;
@@ -1048,24 +1049,28 @@ goes without a mark.
 | `ExportFailure`, `FileFailure`                  | `defect` "file"        | as above                                               |
 | a tooltip write that threw                      | `defect` "region"      | the game's tooltip without our rows                    |
 | `MargonemEngineTooltipRefused`                  | `defect` "region"      | as above, for the fighters it counts                   |
-| a setting write refused                         | none                   | the reader's choice stands; the next visit is poorer   |
+| a setting write refused                         | `none`                 | the reader's choice stands; the next visit is poorer   |
 | `MargonemReadFailure`                           | `shown-as-unknown`     | no place line; our word instead of the game's          |
-| `MargonemEngineWarriorsAbsent`                  | none                   | a board of nobody: no tooltip, a file with no fighters |
+| `MargonemEngineWarriorsAbsent`                  | `none`                 | a board of nobody: no tooltip, a file with no fighters |
 | `MargonemEngineWarriorsExceeded`                | `defect` "file"        | a file with no board; and "region" for the tooltips    |
-| `MargonemEngineAbsent`, `…BattleAbsent`, a look | none                   | a look that found nothing; the search runs on          |
+| `MargonemEngineAbsent`, `…BattleAbsent`, a look | `none`                 | a look that found nothing; the search runs on          |
 | `MargonemEngineAbsent`, `…BattleAbsent`, a file | `defect` "file"        | a file with no board                                   |
-| `WrapCovered`                                   | none                   | returned by `deinit`, which only a test calls          |
+| `WrapCovered`                                   | `none`                 | returned by `deinit`, which only a test calls          |
 | `MargonemEngineAlreadyWrapped`, `BootFailure`   | `stand-down`           | no panel, one console line                             |
 | `SearchAbandoned`, `MargonemEngineMethodAbsent` | `defect` "engine"      | the panel waits, one console line                      |
 | `MargonemEngineMethodUnwritable`                | `defect` "engine"      | as above; the engine's own method stands               |
-| `MargonemEngineMethodUnwritable` on a detach    | none                   | returned by `deinit`, which only a test calls          |
+| `MargonemEngineMethodUnwritable` on a detach    | `none`                 | returned by `deinit`, which only a test calls          |
+| `Caught` from the search's own report           | console line           | nothing on the panel; one console line, the first time |
+| `Caught` cancelling the search's timer          | console line           | a search done, its timer ticking; one console line     |
 | `Caught` from a clock that will not state now   | `defect` "keeping"     | at a fight's close: the fight is not kept              |
 | `Caught` from a clock, on a handover            | `defect` "file"        | no file                                                |
 
 A class `FAILURE_FATES` marks `by-place` — `Caught`, the three of `StoreFailure`,
-`MargonemEngineAbsent`, `…BattleAbsent`, `WrapCovered` and `MargonemEngineWarriorsAbsent` — is met
-in places that do different things with it, so its fate is the row of the place it was met in,
-above.
+`MargonemEngineAbsent` and `…BattleAbsent` — is met in places that do different things with it, so
+its fate is the row of the place it was met in, above. A class it marks `none` leaves no mark
+wherever it is met, by design: `WrapCovered` is met only by a detach, which only a test calls, and
+`MargonemEngineWarriorsAbsent` is a board with nobody on it, which the file and the tooltip both
+take as empty.
 
 ### 10.6 Where a broad catch stands
 

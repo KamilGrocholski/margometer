@@ -152,6 +152,8 @@ export interface MargonemEngineSearchOptions {
     interval: BrowserIntervalScheduler;
     listener: PayloadListener;
     report: SearchReport;
+    /** Where a report that breaks and a timer that will not stop are said, once each. */
+    console: BrowserConsolePort;
 }
 
 export interface MargonemEngineSearch {
@@ -164,7 +166,9 @@ interface Search {
     looks: number;
     isDone: boolean;
     hasFailed: boolean;
+    hasReportFailed: boolean;
     handle: IntervalHandle | null;
+    console: BrowserConsolePort;
 }
 
 const LOOK_EVERY_MILLISECONDS = 250;
@@ -306,6 +310,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
                 onAbandoned: (failure) => onMargonemEngineSearchFailed(state, failure),
                 onLookFailed: (failure) => ports.console.writeBrandedLine(failure.name, failure),
             },
+            console: ports.console,
         });
     }
     return {
@@ -597,13 +602,12 @@ export function initMargonemEngineSearch(
         looks: 0,
         isDone: false,
         hasFailed: false,
+        hasReportFailed: false,
         handle: null,
+        console: options.console,
     };
-    // ⚠️ The report is ours and may break, and two of its calls stand on the stack that started
-    // the add-on, outside any look's guard. One guard here covers all of them: a report that
-    // breaks has nowhere further to go, and the search has already counted the look it failed on.
     const onLookFailure = (failure: errors.Caught): void => {
-        void errors.attempt(() => executeLookFailed(search, report, failure));
+        executeLookFailed(search, report, failure);
     };
     // ⚠️ The first look runs on the stack that started the add-on, where only the game's own page
     // stands above it; every look after it runs in the browser's timer. One guard for both.
@@ -632,28 +636,45 @@ function executeLookFailed(
 ): void {
     if (!search.hasFailed) {
         search.hasFailed = true;
-        report.onLookFailed(failure);
+        executeSearchReport(search, () => report.onLookFailed(failure));
     }
     executeSearchBound(search, report);
+}
+
+/**
+ * ⚠️ The report is ours and may break. Broken inside a look it would read as the look failing,
+ * which is said once, so a later look that failed would go unsaid; broken on the stack that started
+ * the add-on it would stand the add-on down. So each call is guarded here, and the console is the
+ * mark, the first time.
+ */
+function executeSearchReport(search: Search, reportCall: () => void): void {
+    const reported = errors.attempt(reportCall);
+    if (!(reported instanceof Error)) return;
+    if (search.hasReportFailed) return;
+    search.hasReportFailed = true;
+    search.console.writeBrandedLine(reported.name, reported);
 }
 
 function executeSearchBound(search: Search, report: SearchReport): void {
     if (search.looks < LOOKS_MAXIMUM) return;
     if (search.isDone) return;
     deinitSearchTimer(search);
-    report.onAbandoned(new SearchAbandoned(search.looks, LOOKS_MAXIMUM));
+    const abandoned = new SearchAbandoned(search.looks, LOOKS_MAXIMUM);
+    executeSearchReport(search, () => report.onAbandoned(abandoned));
 }
 
 /**
  * ⚠️ The clock is the page's, and a cancel it refuses leaves a search that is done and a timer that
- * finds it done at every tick, which is the one thing the refusal can cost; so it is not reported.
+ * finds it done at every tick. The console says so: the handle is let go of before the cancel, so
+ * a search says it once.
  */
 function deinitSearchTimer(search: Search): void {
     search.isDone = true;
     const handle = search.handle;
     search.handle = null;
     if (handle === null) return;
-    void handle.cancel();
+    const cancelled = handle.cancel();
+    if (cancelled instanceof Error) search.console.writeBrandedLine(cancelled.name, cancelled);
 }
 
 function executeSearchLook(
@@ -674,12 +695,12 @@ function executeSearchLook(
     const wrapped = battle.wrap(listener);
     if (!(wrapped instanceof Error)) {
         deinitSearchTimer(search);
-        report.onAttached(wrapped);
+        executeSearchReport(search, () => report.onAttached(wrapped));
         return;
     }
     if (wrapped instanceof MargonemEngineAlreadyWrapped) {
         deinitSearchTimer(search);
-        report.onStoodDown(wrapped);
+        executeSearchReport(search, () => report.onStoodDown(wrapped));
         return;
     }
     // The game is here and its method is gone, or will not hold the wrap. The looking ends where a
@@ -687,7 +708,7 @@ function executeSearchLook(
     // not abandoned.
     if (search.looks < LOOKS_MAXIMUM) return;
     deinitSearchTimer(search);
-    report.onRefused(wrapped);
+    executeSearchReport(search, () => report.onRefused(wrapped));
 }
 
 /**

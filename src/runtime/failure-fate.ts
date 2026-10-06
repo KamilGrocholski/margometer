@@ -3,7 +3,8 @@
  * `docs/design.md` §10.5): a class added to `RuntimeFailure` without an entry fails `deno check`.
  * The step that meets a failure carries its fate out, and nothing reads this table at run time:
  * `tests/simulation.ts` holds every kind the console hears to one of its names. A class met in
- * places that do different things with it is `byPlace`, and §10.5 gives a row to each place.
+ * places that do different things with it is `byPlace`, and §10.5 gives a row to each place. One
+ * that leaves no mark by design, wherever it is met, is `none`, and its row there says why.
  */
 
 import type * as errors from "#/libs/errors.ts";
@@ -46,6 +47,7 @@ export const FAILURE_FATE = {
     shelfAnswer: "shelf-answer",
     fallbackWithDefect: "fallback-with-defect",
     standDown: "stand-down",
+    none: "none",
     byPlace: "by-place",
 } as const;
 export type FailureFate = VocabularyWord<typeof FAILURE_FATE>;
@@ -58,7 +60,7 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     MargonemEngineMethodUnwritable: FAILURE_FATE.defect,
     MargonemEngineAlreadyWrapped: FAILURE_FATE.standDown,
     SearchAbandoned: FAILURE_FATE.defect,
-    WrapCovered: FAILURE_FATE.byPlace,
+    WrapCovered: FAILURE_FATE.none,
     PayloadNotRecord: FAILURE_FATE.defect,
     PayloadFieldMalformed: FAILURE_FATE.defect,
     PayloadFieldTooLong: FAILURE_FATE.defect,
@@ -86,7 +88,7 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     RegionUndrawn: FAILURE_FATE.defect,
     GestureDropped: FAILURE_FATE.defect,
     WindowUnplaced: FAILURE_FATE.fallbackWithDefect,
-    MargonemEngineWarriorsAbsent: FAILURE_FATE.byPlace,
+    MargonemEngineWarriorsAbsent: FAILURE_FATE.none,
     MargonemEngineWarriorsExceeded: FAILURE_FATE.defect,
     MargonemEngineTooltipRefused: FAILURE_FATE.defect,
     MargonemValueAbsent: FAILURE_FATE.shownAsUnknown,

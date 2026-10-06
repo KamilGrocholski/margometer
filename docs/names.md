@@ -156,6 +156,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `executeScreenIntent` — `src/runtime/margometer-runtime.ts`
 - `executeSearchBound` — `src/runtime/margometer-runtime.ts`
 - `executeSearchLook` — `src/runtime/margometer-runtime.ts`
+- `executeSearchReport` — `src/runtime/margometer-runtime.ts`
 - `executeShelvedFightReplays` — `src/runtime/shelf-keeper.ts`
 - `executeShout` — `tools/fabricated-fight.ts`
 - `executeSideHeal` — `tools/fabricated-fight.ts`
@@ -839,7 +840,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `write` — none
 
 - `write` — `src/ports/browser-store.ts`
-- `writeBrandedLine` — in 8 files: `src/ports/`, `tests/`
+- `writeBrandedLine` — in 9 files: `src/ports/`, `tests/`
 - `writeCarriedTooltips` — `src/runtime/carried-tooltip.ts`
 - `writeDevelopmentPreview` — `tools/margonem-readings.ts`
 - `writeFabricatedFight` — `tools/fabricated-fight.ts`
@@ -4985,6 +4986,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SIGNATURE_NODES` — `tests/repository/name-register.test.ts`,
   `tests/repository/name-shapes.test.ts`
 - `SIGNS` — `tests/repository/protocol-keys.test.ts`
+- `SILENT_CONSOLE` — `tests/runtime/margonem-engine-search.test.ts`
 - `SKILLS_DIRECTORY` — `tests/repository/documents.test.ts`
 - `SKILLS_LINK` — `tests/repository/documents.test.ts`
 - `SKILLS_LINK_TARGET` — `tests/repository/documents.test.ts`
@@ -5178,7 +5180,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SKILL_PATH` — `tests/tools/frozen-files.test.ts`
 - `TICK_KEY` — `tests/core/injure-rule.test.ts`
 - `base` — `tests/e2e/panel-fixture.ts`
-- `errors` — in 21 files: `tests/`
+- `errors` — in 22 files: `tests/`
 - `parseJsonc` — `tests/repository/documents.test.ts`, `tests/repository/name-register.test.ts`
 - `protocolKeys` — `tests/core/aura-standing.test.ts`
 
@@ -5631,6 +5633,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `src/runtime/`
 
+- `abandoned` — `src/runtime/margometer-runtime.ts`
 - `addOnVersion` — `src/runtime/fight-file.ts`
 - `alsoKept` — `src/runtime/panel-frame.ts`
 - `amount` — `src/runtime/fight-file.ts`
@@ -5646,6 +5649,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `builtState` — `src/runtime/margometer-runtime.ts`
 - `call` — `src/runtime/live-fight.ts`
 - `calls` — `src/runtime/fight-handover.ts`
+- `cancelled` — `src/runtime/margometer-runtime.ts`
 - `capturedAt` — `src/runtime/fight-handover.ts`
 - `carried` — `src/runtime/carried-tooltip.ts`
 - `carriedFigure` — `src/runtime/carried-tooltip.ts`
@@ -5759,6 +5763,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `rendered` — `src/runtime/panel-frame.ts`
 - `renderedWaiting` — `src/runtime/panel-frame.ts`
 - `report` — `src/runtime/margometer-runtime.ts`
+- `reported` — `src/runtime/margometer-runtime.ts`
 - `requested` — `src/runtime/margometer-runtime.ts`
 - `roster` — `src/runtime/panel-frame.ts`
 - `rotated` — `src/runtime/shelf.ts`
@@ -6909,6 +6914,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `_` — `tests/ports/margonem-engine-warriors.test.ts`
 - `_dropped` — `tests/tools/help-article.test.ts`, `tests/tools/margonem-client-source.test.ts`
 - `abandoned` — `tests/runtime/margonem-engine-search.test.ts`
+- `abandons` — `tests/runtime/margonem-engine-search.test.ts`
 - `above` — in 4 files: `tests/`
 - `absent` — in 7 files: `tests/`
 - `absentKeys` — `tests/repository/protocol-keys.test.ts`
@@ -7058,6 +7064,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `boxes` — `tests/e2e/panel-camera.ts`, `tests/e2e/panel-marks.spec.ts`
 - `breach` — `tests/repository/purity.test.ts`
 - `breaches` — `tests/repository/event-entries.test.ts`, `tests/repository/purity.test.ts`
+- `breaking` — `tests/runtime/margonem-engine-search.test.ts`
 - `breaksWritten` — `tests/ports/margonem-engine-tooltip.test.ts`
 - `broken` — in 10 files: `tests/`
 - `build` — in 4 files: `tests/`
@@ -7275,7 +7282,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `descendant` — in 4 files: `tests/`
 - `design` — `tests/repository/event-entries.test.ts`
 - `destroyed` — `tests/ui/blow-vocabulary.test.ts`
-- `detail` — `tests/ports/browser-console.test.ts`, `tests/simulation.ts`
+- `detail` — `tests/ports/browser-console.test.ts`, `tests/runtime/margonem-engine-search.test.ts`,
+  `tests/simulation.ts`
 - `develop` — `tests/repository/cited-paths.test.ts`, `tests/ui/panel-look.test.ts`
 - `developKept` — `tests/ui/panel-look.test.ts`
 - `developRules` — `tests/ui/panel-look.test.ts`
@@ -7338,11 +7346,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `empty` — in 11 files: `tests/`
 - `enclosing` — `tests/repository/handed-callbacks.test.ts`
 - `encode` — `tests/tools/frozen-files.test.ts`
-- `end` — in 10 files: `tests/`
+- `end` — in 11 files: `tests/`
 - `ended` — `tests/core/aura-standing.test.ts`, `tests/core/fight-decoder.test.ts`,
   `tests/core/fight-statistics.test.ts`
 - `endless` — `tests/libs/unknown-value.test.ts`
-- `ends` — in 5 files: `tests/`
+- `ends` — in 6 files: `tests/`
 - `engine` — in 6 files: `tests/`
 - `engineBattle` — `tests/ports/margonem-engine-battle.test.ts`
 - `engineOwn` — `tests/runtime/margometer-runtime.test.ts`
@@ -7661,7 +7669,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `keys` — in 15 files: `tests/`
 - `keysFound` — `tests/repository/browser-suite-keys.test.ts`
 - `killing` — `tests/core/message-grammar.test.ts`
-- `kind` — in 9 files: `tests/`
+- `kind` — in 10 files: `tests/`
 - `kindCell` — `tests/ui/panel-element.test.ts`
 - `kindIndex` — `tests/core/fight-statistics.test.ts`
 - `kinds` — in 10 files: `tests/`
@@ -7707,7 +7715,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lightings` — `tests/tools/aura-lifetime.test.ts`
 - `line` — in 27 files: `tests/`
 - `lineHeights` — `tests/ui/panel-look.test.ts`
-- `lines` — in 21 files: `tests/`
+- `lines` — in 22 files: `tests/`
 - `linkAt` — `tests/tools/preview-site.test.ts`
 - `list` — in 9 files: `tests/`
 - `listEnd` — `tests/repository/name-shapes.test.ts`
@@ -8625,6 +8633,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `wounds` — `tests/core/injure-rule.test.ts`
 - `wrap` — `tests/ports/margonem-engine-battle.test.ts`
 - `wrapped` — in 5 files: `tests/`
+- `wrappedBattle` — `tests/runtime/margonem-engine-search.test.ts`
 - `wrapper` — `tests/ports/margonem-engine-battle.test.ts`
 - `writableParameters` — `tests/repository/purity.test.ts`
 - `writer` — `tests/ports/margonem-engine-tooltip.test.ts`, `tests/repository/name-register.test.ts`
@@ -8934,6 +8943,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `refused` — `src/runtime/panel-frame.ts`
 - `region` — `src/runtime/panel-frame.ts`
 - `report` — `src/runtime/margometer-runtime.ts`, `src/runtime/panel-frame.ts`
+- `reportCall` — `src/runtime/margometer-runtime.ts`
 - `rightFight` — `src/runtime/panel-frame.ts`
 - `roster` — `src/runtime/panel-frame.ts`
 - `screen` — `src/runtime/margometer-runtime.ts`, `src/runtime/panel-frame.ts`
@@ -9691,7 +9701,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `derived` — `tests/repository/declaration-order.test.ts`
 - `descendant` — in 6 files: `tests/`
 - `design` — `tests/repository/event-entries.test.ts`
-- `detail` — in 4 files: `tests/`
+- `detail` — in 5 files: `tests/`
 - `develop` — `tests/ui/panel-look.test.ts`
 - `directories` — `tests/source-tree.ts`
 - `directory` — `tests/repository/import-paths.test.ts`, `tests/repository/name-register.test.ts`
@@ -9816,7 +9826,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `keyTally` — `tests/tools/turn-reading.test.ts`
 - `keyedNode` — `tests/repository/name-register.test.ts`
 - `keys` — in 4 files: `tests/`
-- `kind` — in 16 files: `tests/`
+- `kind` — in 17 files: `tests/`
 - `kindCount` — `tests/core/fight-statistics.test.ts`
 - `kindMarker` — `tests/repository/changelog.test.ts`
 - `kinds` — `tests/source-tree.ts`
@@ -10664,6 +10674,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `hasJoinedInProgress` — `src/runtime/carried-tooltip.ts`, `src/runtime/panel-frame.ts`
 - `hasMoveRefused` — `src/runtime/shelf-keeper.ts`
 - `hasPinRefused` — `src/runtime/shelf-keeper.ts`
+- `hasReportFailed` — `src/runtime/margometer-runtime.ts`
 - `hasSpentLastheal` — `src/runtime/carried-tooltip.ts`
 - `hasStoreMadeRoom` — `src/runtime/shelf-keeper.ts`
 - `hasStoreRefused` — `src/runtime/shelf-keeper.ts`
@@ -10742,6 +10753,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `mount` — `src/runtime/defect-ledger.ts`
 - `mountPanel` — `src/runtime/margometer-runtime.ts`
 - `name` — in 6 files: `src/runtime/`
+- `none` — `src/runtime/failure-fate.ts`
 - `onFightKept` — `src/runtime/live-fight.ts`
 - `onFightOpened` — `src/runtime/live-fight.ts`
 - `opened` — `src/runtime/panel-frame.ts`
@@ -12273,7 +12285,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `computed` — `tests/source-tree.ts`
 - `concatTip` — `tests/ports/margonem-engine-tooltip.test.ts`
 - `configFile` — `tests/e2e/build-once.ts`
-- `console` — in 8 files: `tests/`
+- `console` — in 9 files: `tests/`
 - `constant` — `tests/repository/name-register.test.ts`
 - `constants` — `tests/repository/declaration-order.test.ts`
 - `constructor` — `tests/libs/unknown-value.test.ts`
@@ -13160,7 +13172,7 @@ Each `as const` object of a module, by its keys.
 - `DEFECT_KIND` — `src/runtime/defect-ledger.ts`: `kept`, `keeping`, `mount`, `region`, `reading`,
   `figures`, `gesture`, `file`, `engine`
 - `FAILURE_FATE` — `src/runtime/failure-fate.ts`: `shownAsUnknown`, `shownAsSuspect`, `defect`,
-  `shelfAnswer`, `fallbackWithDefect`, `standDown`, `byPlace`
+  `shelfAnswer`, `fallbackWithDefect`, `standDown`, `none`, `byPlace`
 - `FIGURES_CUT` — `src/runtime/panel-frame.ts`: `screen`, `drill`, `pair`
 - `FILE_FIELD` — `src/runtime/fight-file.ts`: `formatVersion`, `addOnVersion`, `capturedAt`,
   `world`, `margonemClientBuild`, `userAgent`, `report`, `droppedCalls`, `isTruncated`, `calls`,
@@ -14154,6 +14166,7 @@ suite's material.
 - `"by-place"` — `FAILURE_FATE`
 - `"defect"` — `FAILURE_FATE`
 - `"fallback-with-defect"` — `FAILURE_FATE`
+- `"none"` — `FAILURE_FATE`
 - `"shelf-answer"` — `FAILURE_FATE`
 - `"shown-as-suspect"` — `FAILURE_FATE`
 - `"shown-as-unknown"` — `FAILURE_FATE`

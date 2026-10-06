@@ -7,12 +7,14 @@
  */
 
 import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
+import * as errors from "#/libs/errors.ts";
 import {
     initMargonemEngineBattle,
     SearchAbandoned,
     type WrapHandle,
 } from "#/src/ports/margonem-engine-battle.ts";
 import { type BrowserTimers, initBrowserInterval } from "#/src/ports/browser-time.ts";
+import type { BrowserConsolePort } from "#/src/ports/browser-console.ts";
 import {
     initMargonemEngineSearch,
     LOOKS_MAXIMUM,
@@ -41,6 +43,8 @@ interface BrowserClock {
  * because every other case reads the bound off the module and would pass whatever it said.
  */
 const LOOKS_STATED = 240;
+/** For a case about what the report hears, where what the console hears is another case's. */
+const SILENT_CONSOLE: BrowserConsolePort = { writeBrandedLine: () => {} };
 
 Deno.test("a game already on the page is wrapped at the first look, with no clock started", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };
@@ -118,6 +122,7 @@ function start(
         interval: initBrowserInterval(clock.timers),
         listener,
         report,
+        console: SILENT_CONSOLE,
     });
 }
 
@@ -252,7 +257,7 @@ function composeThrowingPage(): Record<string, unknown> {
     };
 }
 
-Deno.test("a look of ours that throws is marked once, and the timer never sees it", () => {
+Deno.test("a report of ours that throws is said on the console, and is no look that failed", () => {
     const { report, told } = composeReport();
     const clock = composeClock();
     const failing: SearchReport = {
@@ -261,10 +266,54 @@ Deno.test("a look of ours that throws is marked once, and the timer never sees i
             throw new RangeError("a refusal that would not be said");
         },
     };
-    start({ Engine: { battle: {} } }, clock, failing);
+    const lines: [string, unknown][] = [];
+    initMargonemEngineSearch({
+        battle: initMargonemEngineBattle({ Engine: { battle: {} } }),
+        interval: initBrowserInterval(clock.timers),
+        listener: { onBeforeCall: () => {}, onPayload: () => {} },
+        report: failing,
+        console: { writeBrandedLine: (kind, detail) => void lines.push([kind, detail]) },
+    });
     clock.tick(300);
-    assertStrictEquals(told.failures.length, 1, "the look that threw was reported, once");
+    assertStrictEquals(lines.length, 1, "the report that threw was said, once");
+    const [kind, detail] = lines[0]!;
+    assertInstanceOf(detail, errors.Caught, "carrying what the report threw");
+    assertStrictEquals(kind, detail.name, "under its own kind");
+    assertEquals(told.failures, [], "and no look was reported as failing for it");
     assertStrictEquals(clock.cancels(), 1, "and the search still ended at its bound");
+});
+
+Deno.test("each end of a search whose report throws is said on the console, once", () => {
+    const wrappedBattle: Record<string, unknown> = { updateData: () => 1 };
+    start({ Engine: { battle: wrappedBattle } }, composeClock(), composeReport().report);
+    const ends: [keyof SearchReport, unknown][] = [
+        ["onAttached", { Engine: { battle: { updateData: () => 1 } } }],
+        ["onStoodDown", { Engine: { battle: wrappedBattle } }],
+        ["onAbandoned", {}],
+    ];
+    for (const [end, page] of ends) {
+        const { report, told } = composeReport();
+        const breaking: SearchReport = {
+            ...report,
+            [end]: () => {
+                throw new RangeError("an end that would not be said");
+            },
+        };
+        const lines: [string, unknown][] = [];
+        const clock = composeClock();
+        const search = initMargonemEngineSearch({
+            battle: initMargonemEngineBattle(page),
+            interval: initBrowserInterval(clock.timers),
+            listener: { onBeforeCall: () => {}, onPayload: () => {} },
+            report: breaking,
+            console: { writeBrandedLine: (kind, detail) => void lines.push([kind, detail]) },
+        });
+        clock.tick(LOOKS_MAXIMUM);
+        assert(search.isDone(), `${end}: the search ended`);
+        assertStrictEquals(lines.length, 1, `${end}: and the report that threw was said`);
+        assertInstanceOf(lines[0]![1], errors.Caught, `${end}: carrying what it threw`);
+        assertEquals(told.failures, [], `${end}: and no look was reported as failing for it`);
+    }
 });
 
 Deno.test("a clock that will not let go leaves a search that is done", () => {
@@ -284,11 +333,72 @@ Deno.test("a clock that will not let go leaves a search that is done", () => {
         interval: initBrowserInterval(refusing),
         listener: { onBeforeCall: () => {}, onPayload: () => {} },
         report,
+        console: SILENT_CONSOLE,
     });
     clock.tick(300);
     assertStrictEquals(cancels, 1, "the search stopped once, though the clock refused it");
     assert(search.isDone(), "and says it is done");
     assertStrictEquals(told.abandoned.length, 1, "having said so once");
+});
+
+Deno.test("a clock that will not let go is said once on the console, and never again", () => {
+    const { report, told } = composeReport();
+    const clock = composeClock();
+    const refusing: BrowserTimers = {
+        setInterval: clock.timers.setInterval,
+        clearInterval: () => {
+            throw new RangeError("a clock that will not let go");
+        },
+    };
+    const lines: [string, unknown][] = [];
+    const search = initMargonemEngineSearch({
+        battle: initMargonemEngineBattle({}),
+        interval: initBrowserInterval(refusing),
+        listener: { onBeforeCall: () => {}, onPayload: () => {} },
+        report,
+        console: { writeBrandedLine: (kind, detail) => void lines.push([kind, detail]) },
+    });
+    assertEquals(lines, [], "nothing is said while the looking goes on");
+    clock.tick(LOOKS_MAXIMUM);
+    assertStrictEquals(told.abandoned.length, 1, "the search ran out, and let go of its timer");
+    assertStrictEquals(lines.length, 1, "the refusal was said");
+    const [kind, detail] = lines[0]!;
+    assertInstanceOf(detail, errors.Caught, "carrying what the page threw");
+    assertStrictEquals(kind, detail.name, "under its own kind");
+    search.stop();
+    assertStrictEquals(lines.length, 1, "and a search stopped again says nothing more");
+});
+
+Deno.test("a report that breaks is said once on the console, though it breaks again", () => {
+    let abandons = 0;
+    const breaking: SearchReport = {
+        onAttached: () => {},
+        onStoodDown: () => {},
+        onRefused: () => {},
+        onAbandoned: () => {
+            abandons += 1;
+            throw new RangeError("an abandon that would not be said");
+        },
+        onLookFailed: () => {
+            throw new RangeError("a failure that would not be said");
+        },
+    };
+    const lines: [string, unknown][] = [];
+    const clock = composeClock();
+    initMargonemEngineSearch({
+        battle: initMargonemEngineBattle(composeThrowingPage()),
+        interval: initBrowserInterval(clock.timers),
+        listener: { onBeforeCall: () => {}, onPayload: () => {} },
+        report: breaking,
+        console: { writeBrandedLine: (kind, detail) => void lines.push([kind, detail]) },
+    });
+    assertStrictEquals(lines.length, 1, "the report that broke on the first look was said");
+    const [kind, detail] = lines[0]!;
+    assertInstanceOf(detail, errors.Caught, "carrying what the report threw");
+    assertStrictEquals(kind, detail.name, "under its own kind");
+    clock.tick(300);
+    assertStrictEquals(abandons, 1, "the report broke again, at the bound");
+    assertStrictEquals(lines.length, 1, "and that was not said a second time");
 });
 
 Deno.test("a search stopped from outside stops its timer, and looks no more", () => {
@@ -345,6 +455,7 @@ Deno.test("a search that is done looks no more, though the page's timer will not
         interval: initBrowserInterval(stuck),
         listener: { onBeforeCall: () => {}, onPayload: () => {} },
         report,
+        console: SILENT_CONSOLE,
     });
     for (let turn = 0; turn < 300; turn += 1) (step as (() => void) | null)?.();
     assertStrictEquals(looks, LOOKS_MAXIMUM, "the timer went on firing, and nothing looked");
@@ -365,6 +476,7 @@ Deno.test("a page that will not start the timer is marked, once, as a look that 
         interval: initBrowserInterval(refusing),
         listener: { onBeforeCall: () => {}, onPayload: () => {} },
         report,
+        console: SILENT_CONSOLE,
     });
     assertStrictEquals(told.failures.length, 1, "the refusal is marked");
     assertEquals(told.abandoned, [], "and the one look that ran was not the last");
@@ -396,6 +508,7 @@ Deno.test("a report that breaks on the starting stack does not leave the start",
         interval: initBrowserInterval(refusing),
         listener,
         report,
+        console: SILENT_CONSOLE,
     });
     assertStrictEquals(search.isDone(), false, "the search stood up, with nothing escaping it");
 });
