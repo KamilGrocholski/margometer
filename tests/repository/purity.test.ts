@@ -8,7 +8,7 @@
  * reading, as they are outside S1's.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import {
     type AstNode,
     composeSample,
@@ -81,9 +81,9 @@ Deno.test("each verb's purity is read off N2's table, and a predicate's off N8",
 });
 
 Deno.test("a function's verb is the lower-case run its name opens with", () => {
-    assertEquals(readVerb("tallyFightFigures"), "tally", "a verb and its object");
-    assertEquals(readVerb("add"), "add", "a verb alone");
-    assertEquals(readVerb("settle"), "settle", "a longer word is not the shorter verb");
+    assertStrictEquals(readVerb("tallyFightFigures"), "tally", "a verb and its object");
+    assertStrictEquals(readVerb("add"), "add", "a verb alone");
+    assertStrictEquals(readVerb("settle"), "settle", "a longer word is not the shorter verb");
 });
 
 Deno.test("a strong or weak function calling one of none is flagged, and a read is not", () => {

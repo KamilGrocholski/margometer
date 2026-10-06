@@ -6,7 +6,7 @@
  * a strip that reaches nothing and a screen no strip reaches are the same defect from either end.
  */
 
-import { assert, assertArrayIncludes, assertEquals } from "@std/assert";
+import { assert, assertArrayIncludes, assertEquals, assertStrictEquals } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { tallyFightStatistics } from "#/src/core/fight-statistics.ts";
 import { isOneOf } from "#/libs/vocabulary.ts";
@@ -40,7 +40,11 @@ Deno.test("every screen names a figure a reading can be composed for", () => {
             null,
             NOTHING_SUSPECT,
         );
-        assertEquals(reading.total, 0, `${screen} composes, and an empty fight totals nothing`);
+        assertStrictEquals(
+            reading.total,
+            0,
+            `${screen} composes, and an empty fight totals nothing`,
+        );
     }
     assert(SCREEN_ORDER.length > 1, "there is more than one screen to reach for");
 });
@@ -48,7 +52,7 @@ Deno.test("every screen names a figure a reading can be composed for", () => {
 Deno.test("every screen has words of its own, and no two share them", () => {
     const said = SCREEN_ORDER.map((screen) => getWordsForMetric(screen));
     for (const words of said) assert(words.length > 0, "a screen a reader can reach is named");
-    assertEquals(new Set(said).size, said.length, "and two screens never say the same thing");
+    assertStrictEquals(new Set(said).size, said.length, "and two screens never say the same thing");
 });
 
 Deno.test("a name no screen answers to moves nothing", () => {
@@ -61,18 +65,22 @@ Deno.test("a name no screen answers to moves nothing", () => {
 Deno.test("a panel opens on a screen it can draw, folded as the reader last left it", () => {
     const state = createScreenState(false);
     assertArrayIncludes(SCREEN_ORDER, [state.metric], "the opening screen is one of them");
-    assertEquals(state.metric, PANEL_METRIC.damageDealt, "and it is what the reader did");
-    assertEquals(
+    assertStrictEquals(state.metric, PANEL_METRIC.damageDealt, "and it is what the reader did");
+    assertStrictEquals(
         state.side,
         SIDE_CHOICE.everyone,
         "and lists everybody before a reader narrows it",
     );
-    assertEquals(
+    assertStrictEquals(
         state.isMeterCollapsed,
         false,
         "and a reader who folded nothing away opens unfolded",
     );
-    assertEquals(createScreenState(true).isMeterCollapsed, true, "while one who did opens folded");
+    assertStrictEquals(
+        createScreenState(true).isMeterCollapsed,
+        true,
+        "while one who did opens folded",
+    );
 });
 
 Deno.test("a name no side answers to moves nothing either", () => {
@@ -90,17 +98,25 @@ Deno.test("every screen is reachable through the two rows, and every strip reach
             reached.add(strip.name);
         }
     }
-    assertEquals(reached.size, SCREEN_ORDER.length, "and no screen is left with no way in");
+    assertStrictEquals(reached.size, SCREEN_ORDER.length, "and no screen is left with no way in");
 });
 
 Deno.test("one strip is marked on each row, and it is the screen the panel is on", () => {
     for (const screen of SCREEN_ORDER) {
         const nouns = presentNounStrips(screen);
         const directions = presentDirectionStrips(screen);
-        assertEquals(nouns.filter((strip) => strip.isCurrent).length, 1, "one noun is marked");
-        assertEquals(directions.filter((strip) => strip.isCurrent).length, 1, "and one direction");
+        assertStrictEquals(
+            nouns.filter((strip) => strip.isCurrent).length,
+            1,
+            "one noun is marked",
+        );
+        assertStrictEquals(
+            directions.filter((strip) => strip.isCurrent).length,
+            1,
+            "and one direction",
+        );
         const marked = directions.find((strip) => strip.isCurrent);
-        assertEquals(marked?.name, screen, "and the marked direction is the screen itself");
+        assertStrictEquals(marked?.name, screen, "and the marked direction is the screen itself");
     }
 });
 
@@ -110,19 +126,19 @@ Deno.test("one strip is marked on each row, and it is the screen the panel is on
  */
 Deno.test("crossing between the nouns keeps the direction, or says there is none to keep", () => {
     const fromDealt = presentNounStrips(PANEL_METRIC.damageDealt).find((strip) => !strip.isCurrent);
-    assertEquals(
+    assertStrictEquals(
         fromDealt?.name,
         PANEL_METRIC.healthGiven,
         "damage given crosses to healing given",
     );
     const fromTaken = presentNounStrips(PANEL_METRIC.damageTaken).find((strip) => !strip.isCurrent);
-    assertEquals(
+    assertStrictEquals(
         fromTaken?.name,
         PANEL_METRIC.healthRestored,
         "and damage taken to healing received",
     );
     const back = presentNounStrips(PANEL_METRIC.healthGiven).find((strip) => !strip.isCurrent);
-    assertEquals(
+    assertStrictEquals(
         back?.name,
         PANEL_METRIC.damageDealt,
         "and the crossing goes back the way it came",
@@ -148,19 +164,19 @@ Deno.test("the direction strip draws the noun's own screens and nobody else's", 
 Deno.test("the side strip offers every choice there is, one of them marked", () => {
     for (const choice of SIDE_CHOICES) {
         const strips = presentSideStrips(choice);
-        assertEquals(strips.length, SIDE_CHOICES.length, "every choice is on the strip");
-        assertEquals(
+        assertStrictEquals(strips.length, SIDE_CHOICES.length, "every choice is on the strip");
+        assertStrictEquals(
             strips.filter((strip) => strip.isCurrent).length,
             1,
             "and one of them is marked",
         );
-        assertEquals(
+        assertStrictEquals(
             strips.find((strip) => strip.isCurrent)?.name,
             choice,
             "the one that was chosen",
         );
     }
-    assertEquals(
+    assertStrictEquals(
         new Set(presentSideStrips(SIDE_CHOICE.everyone).map((strip) => strip.words)).size,
         3,
         "worded apart",
@@ -170,7 +186,7 @@ Deno.test("the side strip offers every choice there is, one of them marked", () 
 Deno.test("a place a reader stands in is named, and every field of it counts", () => {
     const screen = createScreenState(false);
     const placeName = composeListName(screen, FIGHT);
-    assertEquals(
+    assertStrictEquals(
         composeListName(screen, FIGHT),
         placeName,
         "the same place twice is the same name",
@@ -191,7 +207,7 @@ Deno.test("a place a reader stands in is named, and every field of it counts", (
         moved.push(name);
     }
     assert(!moved.includes(placeName), "and none of them is the place they started from");
-    assertEquals(moved.length, 5, "five fields, five places");
+    assertStrictEquals(moved.length, 5, "five fields, five places");
 });
 
 Deno.test("a part names its own kind, so two of them never share a place", () => {
@@ -222,7 +238,11 @@ Deno.test("the shelf is a place of its own, whatever screen stands under it", ()
     screen.metric = PANEL_METRIC.healthGiven;
     screen.side = SIDE_CHOICE.opposing;
     screen.openedCombatantId = 469657;
-    assertEquals(composeListName(screen, FIGHT), shelf, "the shelf covers the screens it is over");
+    assertStrictEquals(
+        composeListName(screen, FIGHT),
+        shelf,
+        "the shelf covers the screens it is over",
+    );
     screen.isOnShelf = false;
     assert(composeListName(screen, FIGHT) !== shelf, "and the screen under it is somewhere else");
 });
@@ -237,12 +257,20 @@ Deno.test("the options are a place of their own, and not the shelf's", () => {
     assert(options !== shelf, "two covers, two places");
     screen.metric = PANEL_METRIC.healthGiven;
     screen.openedCombatantId = 469657;
-    assertEquals(composeListName(screen, FIGHT), options, "whatever screen stands under them");
+    assertStrictEquals(
+        composeListName(screen, FIGHT),
+        options,
+        "whatever screen stands under them",
+    );
 });
 
 Deno.test("a fight is part of the place, so a new one is nobody's position", () => {
     const screen = createScreenState(false);
     const placeName = composeListName(screen, FIGHT);
     assert(composeListName(screen, FIGHT + 1) !== placeName, "another fight is another place");
-    assertEquals(composeListName(screen, FIGHT), placeName, "and the fight itself is where it was");
+    assertStrictEquals(
+        composeListName(screen, FIGHT),
+        placeName,
+        "and the fight itself is where it was",
+    );
 });

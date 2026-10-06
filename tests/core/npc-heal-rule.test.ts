@@ -6,7 +6,7 @@
  * (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages, parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
@@ -25,9 +25,13 @@ Deno.test("the key is read wherever it stands, including where it states nothing
     const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
     const restored = decodePayloadMessages(fight.messages, context).events
         .filter((event) => event.kind === "health-change" && event.source === KEY);
-    assertEquals(restored.length, 3, "every occurrence became an event, 2026-08-30");
+    assertStrictEquals(restored.length, 3, "every occurrence became an event, 2026-08-30");
     const figures = restored.map((event) => event.kind === "health-change" ? event.amount : null);
-    assertEquals(figures.filter((figure) => figure === 0).length, 1, "one of them states nothing");
+    assertStrictEquals(
+        figures.filter((figure) => figure === 0).length,
+        1,
+        "one of them states nothing",
+    );
     assert(figures.every((figure) => figure !== null), "and none of the three was dropped");
 });
 
@@ -60,7 +64,7 @@ Deno.test("the restoration is the actor's, whichever combatant the other slot na
             actors.add(parsed.actor.combatantId);
             targets.add(parsed.target.combatantId);
         }
-        assertEquals(actors.size, 1, `${path}: one combatant is restored throughout`);
+        assertStrictEquals(actors.size, 1, `${path}: one combatant is restored throughout`);
         assert(targets.size > 1, `${path}: the other slot names several, so neither is the other`);
 
         const [healed] = [...actors];
@@ -68,7 +72,11 @@ Deno.test("the restoration is the actor's, whichever combatant the other slot na
         const context = { roster, announcementStanding: null, tables: BLOWS_GRANTED };
         for (const event of decodePayloadMessages(messages, context).events) {
             if (event.kind !== "health-change") continue;
-            assertEquals(event.combatantId, healed, `${path}: every event lands on the actor`);
+            assertStrictEquals(
+                event.combatantId,
+                healed,
+                `${path}: every event lands on the actor`,
+            );
             assert(event.amount >= 0, `${path}: and puts health back rather than taking it`);
         }
     }

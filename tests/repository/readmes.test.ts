@@ -5,7 +5,7 @@
  * which `screenshots/taken-at.json` names.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 
@@ -75,7 +75,7 @@ function readShotPaths(): string[] {
     const directory = SHOTS_PATH.slice(0, SHOTS_PATH.lastIndexOf("/") + 1);
     return shots.map((shot) => {
         assert(isRecord(shot), "each a record");
-        assert(typeof shot.name === "string", "carrying its file's name");
+        assertStrictEquals(typeof shot.name, "string", "carrying its file's name");
         return directory + shot.name;
     });
 }

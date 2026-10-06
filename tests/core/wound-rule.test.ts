@@ -7,7 +7,7 @@
  * (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { getHealthPercentsFromEvent } from "#/src/core/combatant-health.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
@@ -50,7 +50,7 @@ Deno.test("every tick takes the percentage stated before it down by its own figu
             // The killing tick is the one the arithmetic cannot reach: the figure would take the
             // player past zero and the game states zero, which is the floor and not a reading.
             if (expected < 0) {
-                assertEquals(event.healthPercent, 0, "a tick past zero is stated as zero");
+                assertStrictEquals(event.healthPercent, 0, "a tick past zero is stated as zero");
                 past += 1;
             } else {
                 const off = Math.abs(expected - event.healthPercent);
@@ -60,8 +60,8 @@ Deno.test("every tick takes the percentage stated before it down by its own figu
         }
         for (const [id, percent] of getHealthPercentsFromEvent(event)) percentById.set(id, percent);
     }
-    assertEquals(closed, 14, "every tick the arithmetic can reach closes on it, 2026-08-30");
-    assertEquals(past, 1, "and the one it cannot is the killing tick");
+    assertStrictEquals(closed, 14, "every tick the arithmetic can reach closes on it, 2026-08-30");
+    assertStrictEquals(past, 1, "and the one it cannot is the killing tick");
 });
 
 Deno.test("the key is read as damage, and all of it lands on the combatant it ticks on", () => {
@@ -72,12 +72,12 @@ Deno.test("the key is read as damage, and all of it lands on the combatant it ti
         if (event.kind !== "health-change") return false;
         return event.source === TICK_KEY;
     });
-    assertEquals(ticked.length, 15, "the material carries this many ticks, 2026-08-30");
+    assertStrictEquals(ticked.length, 15, "the material carries this many ticks, 2026-08-30");
     const victims = new Set<number>();
     for (const event of ticked) {
         assertStrictEquals(event.kind, "health-change", "a tick is a health change");
         assertExists(event.combatantId, "naming whose health moved");
         victims.add(event.combatantId);
     }
-    assertEquals(victims.size, 1, "and every one of them names the same combatant");
+    assertStrictEquals(victims.size, 1, "and every one of them names the same combatant");
 });

@@ -62,7 +62,7 @@ Deno.test("a press whose handler throws is a dropped gesture, and the next one l
     assertStrictEquals(failures.length, 1, "the gesture is dropped, and said once");
     const [dropped] = failures;
     assertInstanceOf(dropped, GestureDropped, "as a gesture, and one that names its listener");
-    assertEquals(dropped.listener, PANEL_LISTENER.press, "which is the press");
+    assertStrictEquals(dropped.listener, PANEL_LISTENER.press, "which is the press");
     isRefusing = false;
     pressElement(host, "pointerdown", findMarked(host, PANEL_MARK.fold));
     assertEquals(asked, [{ kind: PANEL_INTENT.fold, window: PANEL_WINDOW.meter }], "then lands");
@@ -195,7 +195,11 @@ Deno.test("a card that will not draw under the pointer is told to the sink as th
     const card = host.shadow?.find((shadowChild) =>
         shadowChild.className.startsWith("MargoMeter-card")
     );
-    assertEquals(card?.className, "MargoMeter-card card-hidden", "and the card standing hides");
+    assertStrictEquals(
+        card?.className,
+        "MargoMeter-card card-hidden",
+        "and the card standing hides",
+    );
 });
 
 Deno.test("a region kept after a refused replace is the one the next draw replaces", () => {
@@ -215,7 +219,7 @@ Deno.test("a region kept after a refused replace is the one the next draw replac
     kept.replaceWith = replaceWith;
     panel.render(composeShownScreen(reading));
     assertExists(kept.replacedBy, "the header the reader kept is the one the next draw replaced");
-    assertEquals(readHeaders().length, 1, "and the panel holds one header, not two");
+    assertStrictEquals(readHeaders().length, 1, "and the panel holds one header, not two");
 });
 
 Deno.test("a window that will not open where told stays on the sheet's corner, and says so", () => {
@@ -231,7 +235,11 @@ Deno.test("a window that will not open where told stays on the sheet's corner, a
         },
     });
     const host = panel.element as FakeElement;
-    assertEquals(host.attributes.get("style"), undefined, "the sheet's corner, which is a place");
+    assertStrictEquals(
+        host.attributes.get("style"),
+        undefined,
+        "the sheet's corner, which is a place",
+    );
     assertEquals(
         failures.map((failure) =>
             failure instanceof WindowUnplaced ? failure.window : failure.name
@@ -257,8 +265,16 @@ Deno.test("every row the runtime's ledger can hold is drawn, a region's beside i
     const held = ledger.getCounts().map(({ kind, region, count }) => ({ kind, region, count }));
     assertStrictEquals(DEFECTS_MAXIMUM, ROWS_MAXIMUM, "the panel's bound is the ledger's own");
     assertStrictEquals(held.length, DEFECTS_MAXIMUM, "and a full ledger holds that many rows");
-    assertEquals(draw(held).length, DEFECTS_MAXIMUM, "and every row the ledger holds is said");
-    assertEquals(draw([...held, held[0]!]).length, DEFECTS_MAXIMUM, "and a line past it is not");
+    assertStrictEquals(
+        draw(held).length,
+        DEFECTS_MAXIMUM,
+        "and every row the ledger holds is said",
+    );
+    assertStrictEquals(
+        draw([...held, held[0]!]).length,
+        DEFECTS_MAXIMUM,
+        "and a line past it is not",
+    );
     assertEquals(
         draw([
             { kind: PANEL_DEFECT_KIND.region, region: null, count: 1 },
@@ -295,9 +311,9 @@ Deno.test("a row whose card the register refuses leaves the card undrawn, said o
     const undrawn = draw([charge, charge, charge]);
     assertStrictEquals(undrawn.length, 1, "two rows under one key are said once, not per row");
     const [refusal] = undrawn;
-    assertEquals(refusal?.region, PANEL_REGION.card, "as the card's region undrawn");
+    assertStrictEquals(refusal?.region, PANEL_REGION.card, "as the card's region undrawn");
     assertInstanceOf(refusal?.cause, CardRefused, "and the refusal is its cause");
-    assertEquals(refusal.cause.key, "helper:charge:7", "naming the key it refused");
+    assertStrictEquals(refusal.cause.key, "helper:charge:7", "naming the key it refused");
     assertEquals(draw([charge]), [], "and the next draw starts with nothing refused");
     // The panel's own register, which the ranking fills, reports a refusal the same way.
     const meter = initTestView(composeFakeDocument());

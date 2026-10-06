@@ -5,7 +5,7 @@
  * keeps this file a reader rather than a caller.
  */
 
-import { assert, assertInstanceOf, assertStrictEquals } from "@std/assert";
+import { assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import { initMargonemEngineHero } from "#/src/ports/margonem-engine-hero.ts";
 import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
@@ -87,5 +87,9 @@ Deno.test("the client's own method for this is never called", () => {
     };
     assertStrictEquals(readHeroIdOf(engine), 1897, "the id is read");
     assertStrictEquals(called, 0, "by reading a property, never by calling into their program");
-    assert(typeof engine.hero.getId === "function", "though the method was there to be called");
+    assertStrictEquals(
+        typeof engine.hero.getId,
+        "function",
+        "though the method was there to be called",
+    );
 });

@@ -478,12 +478,19 @@ function composeSightings(files: readonly FileNames[]): NameSighting[] {
 
 Deno.test("a name in many files is counted, and one in few is placed", () => {
     const few = ["src/core/a.ts", "tests/b.test.ts"];
-    assertEquals(formatEntry("`x`", few), "- `x` — `src/core/a.ts`, `tests/b.test.ts`", "placed");
+    assertStrictEquals(
+        formatEntry("`x`", few),
+        "- `x` — `src/core/a.ts`, `tests/b.test.ts`",
+        "placed",
+    );
     const many = ["libs/a.ts", "libs/b.ts", "src/ui/c.ts", "tests/d.test.ts"];
-    assertEquals(formatEntry("`x`", many), "- `x` — in 4 files: `libs/`, `src/ui/`, `tests/`");
-    assertEquals(formatCodeSpan("a`b"), "``a`b``", "a backtick inside widens the span");
-    assertEquals(formatCodeSpan("`"), "`` ` ``", "and one at an edge pads it");
-    assertEquals(lookupLayer("src/userscript-boot.ts"), "src/", "an entry is the bare layer");
+    assertStrictEquals(
+        formatEntry("`x`", many),
+        "- `x` — in 4 files: `libs/`, `src/ui/`, `tests/`",
+    );
+    assertStrictEquals(formatCodeSpan("a`b"), "``a`b``", "a backtick inside widens the span");
+    assertStrictEquals(formatCodeSpan("`"), "`` ` ``", "and one at an edge pads it");
+    assertStrictEquals(lookupLayer("src/userscript-boot.ts"), "src/", "an entry is the bare layer");
 });
 
 /** One line of a list: the name, then where it stands or how widely. */

@@ -75,7 +75,7 @@ Deno.test("a position is put on a list and never on a slot", () => {
     const slot = composeElementOfClass(CLASS.slot);
     writeTopOfList(slot, SOMEWHERE_DOWN);
     assertStrictEquals(slot.scrollTop, 0, "and a slot is left exactly as it was");
-    assertEquals(readTopOfList(slot), null, "and is not asked about a position either");
+    assertStrictEquals(readTopOfList(slot), null, "and is not asked about a position either");
 });
 
 /**

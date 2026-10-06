@@ -82,16 +82,20 @@ Deno.test("the envelope is the one every admitted recording already carries", ()
     const composed = Object.keys(written);
     // The one key the other way: intake takes the figures back off before admitting.
     assertEquals(composed.filter((key) => key !== "report"), owed, "the same keys, in that order");
-    assertEquals(
+    assertStrictEquals(
         composed[composed.indexOf("report") + 1],
         "droppedCalls",
         "and the figures stand above the calls, where a reader opening the file meets them",
     );
-    assertEquals(written.formatVersion, 4, "the envelope that may carry them says which one it is");
-    assertEquals(written.addOnVersion, ADD_ON_VERSION, "with the build that wrote it");
-    assertEquals(written.world, "tempest", "the world it was taken on");
-    assertEquals(written.gameBuild, "53XkBRxF", "the client's own build");
-    assertEquals(written.isTruncated, false, "and a tail nothing was cut off");
+    assertStrictEquals(
+        written.formatVersion,
+        4,
+        "the envelope that may carry them says which one it is",
+    );
+    assertStrictEquals(written.addOnVersion, ADD_ON_VERSION, "with the build that wrote it");
+    assertStrictEquals(written.world, "tempest", "the world it was taken on");
+    assertStrictEquals(written.gameBuild, "53XkBRxF", "the client's own build");
+    assertStrictEquals(written.isTruncated, false, "and a tail nothing was cut off");
 });
 
 function readFile(text: string): UnknownRecord {
@@ -122,28 +126,48 @@ Deno.test("a recording nobody measured says null, where one measured says a numb
     const kept = readFile(
         writeFile({ calls: [call], droppedCalls: null, isTruncated: null }, null).text,
     );
-    assertEquals(kept.droppedCalls, null, "what nobody counted is absent, never none dropped");
-    assertEquals(kept.isTruncated, null, "and a tail nobody could ask about is not a whole one");
+    assertStrictEquals(
+        kept.droppedCalls,
+        null,
+        "what nobody counted is absent, never none dropped",
+    );
+    assertStrictEquals(
+        kept.isTruncated,
+        null,
+        "and a tail nobody could ask about is not a whole one",
+    );
     const calls = kept.calls;
     assert(Array.isArray(calls), "the calls are a list");
     const firstCall = calls[0];
     assert(isRecord(firstCall), "and each one a record");
-    assertEquals(firstCall.index, 0, "numbered as it was kept");
+    assertStrictEquals(firstCall.index, 0, "numbered as it was kept");
     assertEquals(firstCall.payload, { foo: 1 }, "carrying the payload as the game sent it");
-    assertEquals(firstCall.combatantsBefore, null, "a snapshot nobody read is absent, never empty");
-    assertEquals(firstCall.combatantsAfter, null, "on either side of the call");
+    assertStrictEquals(
+        firstCall.combatantsBefore,
+        null,
+        "a snapshot nobody read is absent, never empty",
+    );
+    assertStrictEquals(firstCall.combatantsAfter, null, "on either side of the call");
     assertEquals(firstCall.messages, ["one"], "while what was read is written as it was read");
 
     const live = readFile(writeFile(LIVE_EMPTY, null).text);
-    assertEquals(live.droppedCalls, 0, "a recording collected live counted, and none were");
-    assertEquals(live.isTruncated, false, "and says its tail is whole, which is a measurement");
+    assertStrictEquals(live.droppedCalls, 0, "a recording collected live counted, and none were");
+    assertStrictEquals(
+        live.isTruncated,
+        false,
+        "and says its tail is whole, which is a measurement",
+    );
 });
 
 Deno.test("a recording that could not read its surroundings says so rather than inventing", () => {
     const blind = { ...SURROUNDINGS, margonemClientBuild: null, userAgent: null };
     const written = readFile(writeFile(LIVE_EMPTY, null, blind).text);
-    assertEquals(written.gameBuild, null, "a build nobody stated is absent, never a stand-in");
-    assertEquals(written.userAgent, null, "and so is a browser that said nothing of itself");
+    assertStrictEquals(
+        written.gameBuild,
+        null,
+        "a build nobody stated is absent, never a stand-in",
+    );
+    assertStrictEquals(written.userAgent, null, "and so is a browser that said nothing of itself");
     assertThrows(
         () => encodeFightFile(LIVE_EMPTY, null, { ...SURROUNDINGS, margonemClientBuild: "" }),
         AssertionError,
@@ -158,12 +182,16 @@ Deno.test("a recording that could not read its surroundings says so rather than 
 
 Deno.test("the figures travel with the calls, and nothing is written where none were read", () => {
     const blank = readFile(writeFile(LIVE_EMPTY, null).text);
-    assertEquals(blank.report, null, "a fight nobody read is said to be none, never an empty one");
+    assertStrictEquals(
+        blank.report,
+        null,
+        "a fight nobody read is said to be none, never an empty one",
+    );
 
     const text = writeFile(LIVE_EMPTY, composeEmptySubject()).text;
     const report = readFile(text).report;
     assert(isRecord(report), "a fight that was read is written into the recording beside it");
-    assertEquals(report.payloads, 1, "with what it was built from");
+    assertStrictEquals(report.payloads, 1, "with what it was built from");
     assertEquals(report.combatants, {}, "and a cast of nobody, which is a reading and not a gap");
     assert(!("addOnVersion" in report), "what qualifies the numbers stands once, in the envelope");
     assert(!text.includes('MargoMeter"'), "so the add-on's name is not in the file twice");
@@ -184,7 +212,7 @@ function composeEmptySubject(): FileSubject {
 
 Deno.test("a file is named for the world, both versions and the moment", () => {
     const name = writeFile(LIVE_EMPTY, null).name;
-    assertEquals(
+    assertStrictEquals(
         name,
         `margometer-tempest-53XkBRxF-${ADD_ON_VERSION}-2026-08-29T10-11-12-345Z.json`,
         "the world, the game's build, ours, then the moment",
@@ -345,7 +373,11 @@ Deno.test("every recording, replayed and written, reads back whole", () => {
         );
         const report = roundTripped.report;
         assert(isRecord(report), `${fight.path}: the report`);
-        assertEquals(report.payloads, fight.updates.length, `${fight.path}: every call counted`);
+        assertStrictEquals(
+            report.payloads,
+            fight.updates.length,
+            `${fight.path}: every call counted`,
+        );
         const roster = JSON.parse(JSON.stringify([...view.roster.byId.values()]));
         assertEquals(report.roster, roster, `${fight.path}: and the cast as it was read`);
         const combatants = report.combatants;
@@ -380,9 +412,9 @@ Deno.test("a row writes each figure the aggregate counted, and not a stand-in", 
     for (const [name, figure] of Object.entries(counted)) {
         if (typeof figure !== "number") continue;
         const key = lookupReportKey(name, REPORT_KEY_BY_ROW_FIELD);
-        assertEquals(row[key], figure, `${name} is written as it was counted, under ${key}`);
+        assertStrictEquals(row[key], figure, `${name} is written as it was counted, under ${key}`);
     }
-    assertEquals(row.blowsStruck, 2, "two swings, which is what the row states");
+    assertStrictEquals(row.blowsStruck, 2, "two swings, which is what the row states");
 });
 
 /**
@@ -422,12 +454,12 @@ Deno.test("what qualifies the figures is written as the fight stated it", () => 
     };
     const report = encodeFightReport(subject);
     assertEquals(report.place, place, "where it was fought");
-    assertEquals(report.payloads, 2, "what it was built from");
-    assertEquals(report.messagesLost, 3, "what never reached the decoder");
-    assertEquals(report.isOver, true, "and whether it ended");
+    assertStrictEquals(report.payloads, 2, "what it was built from");
+    assertStrictEquals(report.messagesLost, 3, "what never reached the decoder");
+    assertStrictEquals(report.isOver, true, "and whether it ended");
     const open = encodeFightReport({ ...subject, isOver: false, place: null });
-    assertEquals(open.isOver, false, "a fight still going says so");
-    assertEquals(open.place, null, "and a place nobody read is none");
+    assertStrictEquals(open.isOver, false, "a fight still going says so");
+    assertStrictEquals(open.place, null, "and a place nobody read is none");
 });
 
 Deno.test("a recording is indented, so a difference between two is a thing a person reads", () => {

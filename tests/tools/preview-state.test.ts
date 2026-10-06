@@ -24,7 +24,7 @@ Deno.test("what the harness writes into the address is what it reads back out of
     const hash = composeHashOfShown(held, { entry: 7, screen: "damageTaken" });
     const reading = readStateFromHash(hash);
     assertStrictEquals(reading.entry, 7, "the entry the replay stopped at");
-    assertEquals(reading.screen, "damageTaken", "the screen the panel was on");
+    assertStrictEquals(reading.screen, "damageTaken", "the screen the panel was on");
     assertEquals(reading.store, held, "and every value the add-on had put in the store");
 });
 
@@ -69,7 +69,11 @@ Deno.test("an address nobody composed reads as no state rather than as a wrong o
         assertEquals(reading.store, {}, `${hash} states nothing the store should hold`);
     }
     const half = readStateFromHash("#e=3&k=%7B%22a%22%3A1%7D");
-    assertEquals(half.entry, 3, "an entry beside a store nobody could read is still an entry");
+    assertStrictEquals(
+        half.entry,
+        3,
+        "an entry beside a store nobody could read is still an entry",
+    );
     assertEquals(half.store, {}, "and a value that is not text is not carried");
 });
 
@@ -79,11 +83,15 @@ Deno.test("a value too long for an address does not travel, and one at the edge 
     const reading = readStateFromHash(
         composeHashOfShown({ edge, over }, { entry: 0, screen: null }),
     );
-    assertEquals(reading.store["edge"], edge, "the longest value that fits is carried");
-    assertEquals(reading.store["over"], undefined, "and the first one past it is left behind");
+    assertStrictEquals(reading.store["edge"], edge, "the longest value that fits is carried");
+    assertStrictEquals(
+        reading.store["over"],
+        undefined,
+        "and the first one past it is left behind",
+    );
     assertStrictEquals(reading.entry, 0, "zero is an entry, and the one the empty panel stands at");
     const atFirstCall = readStateFromHash(composeHashOfShown({}, { entry: 1, screen: null }));
-    assertEquals(atFirstCall.entry, 1, "and one past it is the first call");
+    assertStrictEquals(atFirstCall.entry, 1, "and one past it is the first call");
 });
 
 /** The shelf is the value this is about: whole in the address it would take the rest down. */
@@ -91,8 +99,12 @@ Deno.test("one value nobody could carry does not take the small ones down with i
     const shelf = "x".repeat(STATE_TEXT_MAXIMUM * 2);
     const held = { shelf, place: `{"left":10,"top":20}` };
     const reading = readStateFromHash(composeHashOfShown(held, { entry: 2, screen: null }));
-    assertEquals(reading.store["place"], held.place, "the setting beside it still travels");
-    assertEquals(reading.store["shelf"], undefined, "and the one nobody could carry does not");
+    assertStrictEquals(reading.store["place"], held.place, "the setting beside it still travels");
+    assertStrictEquals(
+        reading.store["shelf"],
+        undefined,
+        "and the one nobody could carry does not",
+    );
 });
 
 Deno.test("a store too big for the whole address is dropped, and the rest still travels", () => {
@@ -104,6 +116,6 @@ Deno.test("a store too big for the whole address is dropped, and the rest still 
     assert(hash.length <= STATE_TEXT_MAXIMUM, "an address stays inside the length it states");
     const reading = readStateFromHash(hash);
     assertStrictEquals(reading.entry, 4, "the entry survives the store being left behind");
-    assertEquals(reading.screen, "healthGiven", "and so does the screen");
+    assertStrictEquals(reading.screen, "healthGiven", "and so does the screen");
     assertEquals(reading.store, {}, "the store is the part that goes, whole");
 });

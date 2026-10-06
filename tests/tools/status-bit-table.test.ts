@@ -3,7 +3,7 @@
  * its text. The position a name is registered at is the bit it reads, so order is what is held.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { RUN_CHARACTERS_MAXIMUM } from "#/libs/text-walk.ts";
 import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
@@ -57,7 +57,10 @@ Deno.test("a bundle past the places the walk looks is refused, and one at them i
 Deno.test("more statuses than a mask has bits are refused, and as many as it has are read", () => {
     const registering = (count: number) =>
         Array.from({ length: count }, (_, index) => `x("s${index}",null,"buff")`).join(";");
-    assertEquals(requireStatusBits(registering(STATUS_BITS_MAXIMUM)).length, STATUS_BITS_MAXIMUM);
+    assertStrictEquals(
+        requireStatusBits(registering(STATUS_BITS_MAXIMUM)).length,
+        STATUS_BITS_MAXIMUM,
+    );
     assertThrows(
         () => requireStatusBits(registering(STATUS_BITS_MAXIMUM + 1)),
         StatusBitTableError,
@@ -92,7 +95,7 @@ Deno.test("the frozen bits stand under the banner their generator writes, and fi
     );
     assert(FROZEN_STATUS_BITS.bits.length > 0, "the table names a bit");
     assert(FROZEN_STATUS_BITS.bits.length <= STATUS_BITS_MAXIMUM, "and fits the integer a mask is");
-    assertEquals(
+    assertStrictEquals(
         new Set(FROZEN_STATUS_BITS.bits).size,
         FROZEN_STATUS_BITS.bits.length,
         "each once",

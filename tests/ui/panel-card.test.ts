@@ -6,7 +6,13 @@
  * wrong thing.
  */
 
-import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
+import {
+    assert,
+    assertArrayIncludes,
+    assertEquals,
+    assertExists,
+    assertStrictEquals,
+} from "@std/assert";
 import { CARD_LINE, CARD_NOTE_TONE, type CardGroup, presentCard } from "#/src/ui/panel-element.ts";
 import { type RowDetail, SIDE_RELATION, type SideRelation } from "#/src/ui/panel-content.ts";
 import { PANEL_METRIC, type PanelMetric, SCREEN_ORDER } from "#/src/ui/panel-screen.ts";
@@ -126,8 +132,8 @@ Deno.test("the whole fight is a block of its own, and the screen's figure is in 
         unnamedNote: null,
         translate: null,
     });
-    assertEquals(card.name, "Hildur Muza Śmierci", "the name in full");
-    assertEquals(card.subtitle, "Paladyn (83)", "what they are and how far along, under it");
+    assertStrictEquals(card.name, "Hildur Muza Śmierci", "the name in full");
+    assertStrictEquals(card.subtitle, "Paladyn (83)", "what they are and how far along, under it");
     const [figures, counters, , , , notes] = card.groups;
     assertExists(figures, "a card states the figures the whole fight is summed over");
     assertEquals(
@@ -281,7 +287,7 @@ function readCardOf(detail: RowDetail): string[] {
  */
 Deno.test("a figure naming more than it counts wears a mark, and the mark has a sentence", () => {
     const said = readCardOf(HILDUR);
-    assertEquals(
+    assertStrictEquals(
         said.filter((line) => line === REDUCTION_NOTE).length,
         1,
         "three figures of the reduction stand on this card and the sentence is said once",
@@ -314,17 +320,17 @@ Deno.test("a caveat and a suspicion stand on one card, each under its own mark",
     const marked = said.filter((line) =>
         line.startsWith(CAVEATED) || line.startsWith(SUSPECT_MARK)
     );
-    assertEquals(
+    assertStrictEquals(
         marked.filter((line) => line.startsWith(CAVEATED)).length,
         2,
         "the two sentences a caveated figure owes stand under the caveat's mark",
     );
-    assertEquals(
+    assertStrictEquals(
         marked.filter((line) => line.startsWith(SUSPECT_MARK)).length,
         1,
         "and the one a message nobody could read owes stands under the other",
     );
-    assertEquals(marked.length, 3, "and no sentence wears both marks or neither");
+    assertStrictEquals(marked.length, 3, "and no sentence wears both marks or neither");
 });
 
 /**
@@ -494,28 +500,40 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
         unnamedNote: null,
         translate: null,
     }).subtitle;
-    assertEquals(subtitleOf("b", 41), "Tancerz ostrzy (41)", "both, in one line and in that order");
-    assertEquals(subtitleOf("b", null), "Tancerz ostrzy", "a profession with no level beside it");
-    assertEquals(subtitleOf(null, 41), "(41)", "and a level with nothing to say what they are");
-    assertEquals(subtitleOf(null, null), null, "neither is no line at all");
+    assertStrictEquals(
+        subtitleOf("b", 41),
+        "Tancerz ostrzy (41)",
+        "both, in one line and in that order",
+    );
+    assertStrictEquals(
+        subtitleOf("b", null),
+        "Tancerz ostrzy",
+        "a profession with no level beside it",
+    );
+    assertStrictEquals(
+        subtitleOf(null, 41),
+        "(41)",
+        "and a level with nothing to say what they are",
+    );
+    assertStrictEquals(subtitleOf(null, null), null, "neither is no line at all");
     // The word the row's rule is drawn against: colour never carries a meaning alone, and this is
     // the label it carries (`develop ADR 0065`). A fight with no seat to read from says none of it.
-    assertEquals(
+    assertStrictEquals(
         subtitleOf("b", 41, SIDE_RELATION.reader),
         "Tancerz ostrzy (41) · My",
         "and whose side they stand on, last, because it is the panel's answer and not the game's",
     );
-    assertEquals(
+    assertStrictEquals(
         subtitleOf("b", 41, SIDE_RELATION.opposing),
         "Tancerz ostrzy (41) · Oni",
         "either way round",
     );
-    assertEquals(
+    assertStrictEquals(
         subtitleOf(null, null, SIDE_RELATION.reader),
         "My",
         "the side alone where nothing else was said",
     );
-    assertEquals(
+    assertStrictEquals(
         subtitleOf(null, null, SIDE_RELATION.nobody),
         null,
         "and nothing at all where none was",
@@ -523,7 +541,11 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
     // A letter the table does not hold reaches the reader as the game wrote it, rather than as an
     // invented name or as nothing: the panel colours the six the recordings state, and a seventh
     // would arrive from the game and not from here.
-    assertEquals(subtitleOf("z", 41), "z (41)", "a profession nobody has worded is passed through");
+    assertStrictEquals(
+        subtitleOf("z", 41),
+        "z (41)",
+        "a profession nobody has worded is passed through",
+    );
 });
 
 /**
@@ -586,8 +608,16 @@ Deno.test("a combatant the fight never touched states the figure that was asked,
             translate: null,
         });
     const card = presentUntouchedCard(PANEL_METRIC.damageDealt);
-    assertEquals(card.subtitle, null, "and a line drawn for neither is a question, not an answer");
-    assertEquals(card.groups.length, 1, "and nothing they did is nothing to put under a rule");
+    assertStrictEquals(
+        card.subtitle,
+        null,
+        "and a line drawn for neither is a question, not an answer",
+    );
+    assertStrictEquals(
+        card.groups.length,
+        1,
+        "and nothing they did is nothing to put under a rule",
+    );
     const [figures] = card.groups;
     assertExists(figures, "the one asked for still stands: zero happened, and is not unknown");
     assertEquals(
@@ -654,7 +684,7 @@ Deno.test("a card says the gaps that name its own person, and no others", () => 
     );
     const charged = readNotes({ ...NOBODY, unreadMessagesUnknownKey: 2 })
         .filter((line) => line.kind === CARD_LINE.note && line.tone === CARD_NOTE_TONE.suspect);
-    assertEquals(charged.length, 1, "and the person a gap does name carries that one");
+    assertStrictEquals(charged.length, 1, "and the person a gap does name carries that one");
     assert(
         charged[0]?.kind === CARD_LINE.note && charged[0].text.startsWith(SUSPECT_MARK),
         "drawn as a suspicion, which is a mark as well as a colour",
@@ -680,7 +710,7 @@ Deno.test("a card states both of the gaps that can name one person, widest first
     const notes = card.groups.at(-1);
     assertExists(notes, "the suspicions are the last thing the card says");
     const said = readGroup(notes).filter((line) => line.startsWith(SUSPECT_MARK));
-    assertEquals(said.length, 2, "this person's own, and nothing that names anybody else");
+    assertStrictEquals(said.length, 2, "this person's own, and nothing that names anybody else");
     assert(said[0]?.includes("z jej udziałem"), "what went unread with them in comes first");
     assert(said[1]?.includes("jej leczenia"), "then the cast of theirs nobody could place");
 });
@@ -934,7 +964,7 @@ Deno.test("a card nobody is named on says so, rather than standing on a blank", 
         unnamedNote: null,
         translate: null,
     });
-    assertEquals(card.name, PANEL_WORDS.unknown, "in the word the panel already has for it");
+    assertStrictEquals(card.name, PANEL_WORDS.unknown, "in the word the panel already has for it");
 });
 
 Deno.test("two keys the panel words the same way are one line, not two of one word", () => {

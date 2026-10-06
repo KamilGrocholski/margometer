@@ -28,22 +28,34 @@ const KEYS = {
 } as const;
 
 Deno.test("a record is keyed, so nothing and a list are not records", () => {
-    assertEquals(isRecord({ m: [] }), true, "a keyed object is one");
-    assertEquals(isRecord({}), true, "and so is a keyed object stating nothing");
-    assertEquals(isRecord([]), false, "a list is read by its order, not by its names");
-    assertEquals(isRecord(["0;0;txt=a"]), false, "however much it looks like a payload's cargo");
-    assertEquals(isRecord(null), false, "and `typeof null` says object where nothing is there");
-    assertEquals(isRecord("m"), false, "text is not a record either");
+    assertStrictEquals(isRecord({ m: [] }), true, "a keyed object is one");
+    assertStrictEquals(isRecord({}), true, "and so is a keyed object stating nothing");
+    assertStrictEquals(isRecord([]), false, "a list is read by its order, not by its names");
+    assertStrictEquals(
+        isRecord(["0;0;txt=a"]),
+        false,
+        "however much it looks like a payload's cargo",
+    );
+    assertStrictEquals(
+        isRecord(null),
+        false,
+        "and `typeof null` says object where nothing is there",
+    );
+    assertStrictEquals(isRecord("m"), false, "text is not a record either");
 });
 
 Deno.test("a number is read only where a number was stated", () => {
     const wrong = ["figure", "number"] as const;
-    assertEquals(getNumberField({ f: 0 }, KEYS, "figure"), 0, "zero is a reading");
-    assertEquals(getNumberField({ f: 1 }, KEYS, "figure"), 1, "and so is its neighbour");
-    assertEquals(getNumberField({ f: -161518 }, KEYS, "figure"), -161518, "and below it");
-    assertEquals(getNumberField({}, KEYS, "figure"), null, "absent is a fact, not a failure");
+    assertStrictEquals(getNumberField({ f: 0 }, KEYS, "figure"), 0, "zero is a reading");
+    assertStrictEquals(getNumberField({ f: 1 }, KEYS, "figure"), 1, "and so is its neighbour");
+    assertStrictEquals(getNumberField({ f: -161518 }, KEYS, "figure"), -161518, "and below it");
+    assertStrictEquals(getNumberField({}, KEYS, "figure"), null, "absent is a fact, not a failure");
     const held = { f: undefined };
-    assertEquals(getNumberField(held, KEYS, "figure"), null, "and so is a key holding nothing");
+    assertStrictEquals(
+        getNumberField(held, KEYS, "figure"),
+        null,
+        "and so is a key holding nothing",
+    );
     expectWrongType(getNumberField({ f: "745" }, KEYS, "figure"), wrong, "text is not a number");
     expectWrongType(getNumberField({ f: Number.NaN }, KEYS, "figure"), wrong, "nor is NaN");
     const endless = { f: Number.POSITIVE_INFINITY };
@@ -63,34 +75,34 @@ function expectWrongType(
 
 Deno.test("text is read wherever text was stated, saying something or not", () => {
     const wrong = ["named", "text"] as const;
-    assertEquals(getTextField({ n: "Gracz 1" }, KEYS, "named"), "Gracz 1", "text is text");
-    assertEquals(getTextField({ n: "" }, KEYS, "named"), "", "and empty text is text");
-    assertEquals(getTextField({}, KEYS, "named"), null, "absent is a fact");
+    assertStrictEquals(getTextField({ n: "Gracz 1" }, KEYS, "named"), "Gracz 1", "text is text");
+    assertStrictEquals(getTextField({ n: "" }, KEYS, "named"), "", "and empty text is text");
+    assertStrictEquals(getTextField({}, KEYS, "named"), null, "absent is a fact");
     expectWrongType(getTextField({ n: 745 }, KEYS, "named"), wrong, "a number is not text at all");
     expectWrongType(getTextField({ n: null }, KEYS, "named"), wrong, "and neither is null");
 });
 
 Deno.test("whether text states anything is a second question, asked separately", () => {
     const wrong = ["named", "stated-text"] as const;
-    assertEquals(getStatedTextField({ n: "Gracz 1" }, KEYS, "named"), "Gracz 1", "says it");
+    assertStrictEquals(getStatedTextField({ n: "Gracz 1" }, KEYS, "named"), "Gracz 1", "says it");
     expectWrongType(
         getStatedTextField({ n: "" }, KEYS, "named"),
         wrong,
         "empty text states nothing",
     );
-    assertEquals(getStatedTextField({ n: " " }, KEYS, "named"), " ", "a space is something");
+    assertStrictEquals(getStatedTextField({ n: " " }, KEYS, "named"), " ", "a space is something");
     expectWrongType(
         getStatedTextField({ n: 745 }, KEYS, "named"),
         ["named", "text"],
         "a number is not text at all, and says so rather than looking like empty text",
     );
-    assertEquals(getStatedTextField({}, KEYS, "named"), null, "and absent is a fact");
+    assertStrictEquals(getStatedTextField({}, KEYS, "named"), null, "and absent is a fact");
 });
 
 Deno.test("a record field is a record, and a list or nothing is not one", () => {
     const wrong = ["nested", "record"] as const;
     assertEquals(getRecordField({ r: { a: 1 } }, KEYS, "nested"), { a: 1 }, "a record");
-    assertEquals(getRecordField({}, KEYS, "nested"), null, "absent is a fact");
+    assertStrictEquals(getRecordField({}, KEYS, "nested"), null, "absent is a fact");
     expectWrongType(getRecordField({ r: [] }, KEYS, "nested"), wrong, "a list is not a record");
     expectWrongType(getRecordField({ r: null }, KEYS, "nested"), wrong, "nor is null");
 });
@@ -103,7 +115,7 @@ Deno.test("a list is read up to its bound, and past it is too long rather than c
     expectTooLong(getListField({ l: [1] }, KEYS, "listed", 0), past, "one past a bound of none");
     const twoPast = [2, 1] as const;
     expectTooLong(getListField({ l: [1, 2] }, KEYS, "listed", 1), twoPast, "and one past one");
-    assertEquals(getListField({}, KEYS, "listed", 1), null, "absent is a fact");
+    assertStrictEquals(getListField({}, KEYS, "listed", 1), null, "absent is a fact");
     expectWrongType(getListField({ l: { 0: 1 } }, KEYS, "listed", 1), wrong, "a record is no list");
 });
 
@@ -119,9 +131,13 @@ function expectTooLong(
 }
 
 Deno.test("a field answers only what the record itself holds, however a key is spelled", () => {
-    assertEquals(getRecordField({}, KEYS, "inherited"), null, "not the language's constructor");
-    assertEquals(getRecordField({}, KEYS, "method"), null, "nor its method");
-    assertEquals(getNumberField({}, KEYS, "method"), null, "whichever reader asks");
+    assertStrictEquals(
+        getRecordField({}, KEYS, "inherited"),
+        null,
+        "not the language's constructor",
+    );
+    assertStrictEquals(getRecordField({}, KEYS, "method"), null, "nor its method");
+    assertStrictEquals(getNumberField({}, KEYS, "method"), null, "whichever reader asks");
     const own = { constructor: 5 };
-    assertEquals(getNumberField(own, KEYS, "inherited"), 5, "and an own one is read");
+    assertStrictEquals(getNumberField(own, KEYS, "inherited"), 5, "and an own one is read");
 });

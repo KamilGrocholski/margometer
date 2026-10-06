@@ -60,8 +60,12 @@ Deno.test("a block lands on the fighter it was composed for, and on nobody else"
     ]);
     const writing = initMargonemEngineTooltip(page).writeRows(new Map([[11, ["MargoMeter"]]]));
     assertEquals(writing, { written: 1, refused: 0 }, "one block asked for, one landed");
-    assertEquals(firstRegistry.text, `${THEIRS}<br>MargoMeter`, "under what the game composed");
-    assertEquals(
+    assertStrictEquals(
+        firstRegistry.text,
+        `${THEIRS}<br>MargoMeter`,
+        "under what the game composed",
+    );
+    assertStrictEquals(
         secondRegistry.text,
         THEIRS,
         "and the fighter it was not composed for got nothing",
@@ -165,7 +169,7 @@ Deno.test("the same rows written again leave one block, and touch nothing", () =
     writer.writeRows(rows);
     const once = registry.text;
     writer.writeRows(rows);
-    assertEquals(registry.text, once, "the registry says what it said after the first write");
+    assertStrictEquals(registry.text, once, "the registry says what it said after the first write");
     assertStrictEquals(registry.appended.length, 2, "no row went over a second time");
     assertStrictEquals(registry.told, 1, "and an unchanged tooltip is not told to draw again");
 });
@@ -175,7 +179,7 @@ Deno.test("changed rows take the old block off before the new one goes on", () =
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
     assertEquals(registry.replaced, [THEIRS], "their own string went back, less ours");
-    assertEquals(
+    assertStrictEquals(
         registry.text,
         `${THEIRS}<br>MargoMeter<br>Tury wykonane 4`,
         "and one block stands on it, the new one",
@@ -193,7 +197,11 @@ Deno.test("a tooltip the game rebuilt takes the block again, and only once", () 
     writer.writeRows(rows);
     registry.text = THEIRS;
     writer.writeRows(rows);
-    assertEquals(registry.text, `${THEIRS}<br>MargoMeter<br>Tury wykonane 3`, "one block again");
+    assertStrictEquals(
+        registry.text,
+        `${THEIRS}<br>MargoMeter<br>Tury wykonane 3`,
+        "one block again",
+    );
     assertEquals(registry.replaced, [], "and nothing of theirs was cut to put it there");
 });
 
@@ -203,7 +211,7 @@ Deno.test("what somebody else appended after the block stays where it stood", ()
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
     registry.text = `${registry.text}<br>somebody else`;
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
-    assertEquals(
+    assertStrictEquals(
         registry.text,
         `${THEIRS}<br>somebody else<br>MargoMeter<br>Tury wykonane 4`,
         "theirs stands, and ours is the one block",
@@ -219,7 +227,7 @@ Deno.test("a fighter left with nothing to say is left with what the game compose
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
     const writing = writer.writeRows(new Map([[11, []]]));
     assertEquals(writing, { written: 0, refused: 0 }, "nothing asked for, nothing standing");
-    assertEquals(registry.text, THEIRS, "and the tooltip is the game's again");
+    assertStrictEquals(registry.text, THEIRS, "and the tooltip is the game's again");
     const fresh = composeOne();
     fresh.writer.writeRows(new Map([[11, []]]));
     assertEquals(fresh.registry.replaced, [], "while one that never carried a block is untouched");
@@ -238,7 +246,7 @@ Deno.test("a client with no way to add to a tooltip takes no line, and says so",
         { written: 0, refused: 1 },
         "asked for one, landed none, and refused it",
     );
-    assertEquals(registry.text, THEIRS, "and nothing was written anywhere");
+    assertStrictEquals(registry.text, THEIRS, "and nothing was written anywhere");
 });
 
 /**
@@ -308,13 +316,13 @@ Deno.test("a fighter out of reach for a payload keeps the block remembered on th
     isAnswering = true;
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
     const withOneBlock = `${THEIRS}<br>MargoMeter<br>Tury wykonane 4`;
-    assertEquals(registry.text, withOneBlock, "a tooltip that answered nothing once");
+    assertStrictEquals(registry.text, withOneBlock, "a tooltip that answered nothing once");
     warrior.$ = undefined;
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 5"]]]));
     warrior.$ = answering;
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 5"]]]));
     const two = `${THEIRS}<br>MargoMeter<br>Tury wykonane 5`;
-    assertEquals(registry.text, two, "and a fighter drawn without an element once");
+    assertStrictEquals(registry.text, two, "and a fighter drawn without an element once");
 });
 
 /** A block taken off is forgotten, so what is looked for next is never words that are not ours. */
@@ -325,7 +333,7 @@ Deno.test("the same words appended by somebody else after ours came off are thei
     registry.text = `${registry.text}<br>MargoMeter<br>Tury wykonane 3`;
     const theirs = registry.text;
     writer.writeRows(new Map([[11, []]]));
-    assertEquals(registry.text, theirs, "left where they stand");
+    assertStrictEquals(registry.text, theirs, "left where they stand");
 });
 
 /** Ours went on last, so the last copy of its words is the one that is ours. */
@@ -337,7 +345,11 @@ Deno.test("a block the game's own text repeats is taken off where ours went on",
     );
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]));
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 4"]]]));
-    assertEquals(registry.text, `${own}<br>MargoMeter<br>Tury wykonane 4`, "theirs stands whole");
+    assertStrictEquals(
+        registry.text,
+        `${own}<br>MargoMeter<br>Tury wykonane 4`,
+        "theirs stands whole",
+    );
 });
 
 Deno.test("a fighter the page has not drawn is stepped over, not thrown on", () => {
@@ -428,9 +440,9 @@ Deno.test("a tooltip that is nothing but our block takes the new one row by row,
         ["MargoMeter", "Tury wykonane 1"],
         "and every other row through concatTip",
     );
-    assertEquals(registry.text, "MargoMeter<br>Tury wykonane 1", "so it holds the new block");
+    assertStrictEquals(registry.text, "MargoMeter<br>Tury wykonane 1", "so it holds the new block");
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 2"]]]));
-    assertEquals(
+    assertStrictEquals(
         registry.text,
         "MargoMeter<br>Tury wykonane 2",
         "which the next payload found and replaced, leaving one block",
@@ -439,7 +451,7 @@ Deno.test("a tooltip that is nothing but our block takes the new one row by row,
     writer.writeRows(new Map([[11, ["MargoMeter", "Tury wykonane 2"]]]));
     assertStrictEquals(registry.told, told, "and found unchanged, is not written again");
     writer.writeRows(new Map([[11, []]]));
-    assertEquals(registry.text, "MargoMeter<br>Tury wykonane 2", "nor taken off");
+    assertStrictEquals(registry.text, "MargoMeter<br>Tury wykonane 2", "nor taken off");
 });
 
 /**
@@ -466,7 +478,7 @@ Deno.test("the writer remembers one board's worth of fighters, however many figh
 Deno.test("no block asked for is no block written, and the counts say both", () => {
     const { registry, writer } = composeOne();
     assertEquals(writer.writeRows(new Map()), { written: 0, refused: 0 }, "asked nothing");
-    assert(registry.appended.length === 0, "and wrote nothing");
+    assertStrictEquals(registry.appended.length, 0, "and wrote nothing");
     assertStrictEquals(registry.told, 0, "and told nothing");
 });
 
@@ -496,10 +508,10 @@ Deno.test("a throw part way through remembers every block that went on before it
     const writer = initMargonemEngineTooltip(page);
     const rows = new Map([[11, ["MargoMeter", "Tury wykonane 3"]]]);
     assertInstanceOf(writer.writeRows(rows), errors.Caught, "the walk stopped on the throw");
-    assertEquals(firstRegistry.appended.length, 2, "after the first fighter's block went on");
+    assertStrictEquals(firstRegistry.appended.length, 2, "after the first fighter's block went on");
     isThrowing = false;
     writer.writeRows(rows);
-    assertEquals(
+    assertStrictEquals(
         firstRegistry.text,
         `${THEIRS}<br>MargoMeter<br>Tury wykonane 3`,
         "and it stays one block",
@@ -576,7 +588,11 @@ Deno.test("a fighter the walk never reached keeps the block remembered on them",
     assertInstanceOf(writer.writeRows(rows), errors.Caught, "the walk stopped before them");
     isThrowing = false;
     writer.writeRows(rows);
-    assertEquals(registry.text, `${THEIRS}<br>MargoMeter<br>Tury wykonane 3`, "one block still");
+    assertStrictEquals(
+        registry.text,
+        `${THEIRS}<br>MargoMeter<br>Tury wykonane 3`,
+        "one block still",
+    );
 });
 
 /**

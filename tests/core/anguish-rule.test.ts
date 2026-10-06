@@ -6,7 +6,7 @@
  * nothing to stand on (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { BATTLE_EVENT } from "#/src/core/battle-event.ts";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import {
@@ -37,10 +37,14 @@ Deno.test("every tick names its victim in the actor slot and nobody at the other
             if (!carries) continue;
             ticks += 1;
             assertExists(parsed.actor, `${fight.path}: a tick states whose health moved`);
-            assertEquals(parsed.target, null, `${fight.path}: and states nobody at the other end`);
+            assertStrictEquals(
+                parsed.target,
+                null,
+                `${fight.path}: and states nobody at the other end`,
+            );
         }
     }
-    assertEquals(ticks, 74, "every tick the material carries was read, 2026-10-02");
+    assertStrictEquals(ticks, 74, "every tick the material carries was read, 2026-10-02");
 });
 
 function parseOrFail(text: string, path: string): ProtocolMessage {
@@ -56,7 +60,7 @@ Deno.test("the announcement carries no figure, so nothing says which application
             for (const parameter of parseOrFail(message, fight.path).parameters) {
                 if (parameter.key !== ANNOUNCEMENT_KEY) continue;
                 announcements += 1;
-                assertEquals(
+                assertStrictEquals(
                     parameter.value,
                     null,
                     `${fight.path}: an announcement stating a figure`,
@@ -64,7 +68,11 @@ Deno.test("the announcement carries no figure, so nothing says which application
             }
         }
     }
-    assertEquals(announcements, 21, "every announcement the material carries was read, 2026-10-02");
+    assertStrictEquals(
+        announcements,
+        21,
+        "every announcement the material carries was read, 2026-10-02",
+    );
 });
 
 Deno.test("a tick is charged to its victim, and to nobody who applied the bleed", () => {
@@ -75,23 +83,23 @@ Deno.test("a tick is charged to its victim, and to nobody who applied the bleed"
         const applier = parsed.actor?.combatantId;
         if (applier !== undefined) appliers.add(applier);
     }
-    assertEquals(appliers.size, 2, "two combatants apply the bleed in this fight");
+    assertStrictEquals(appliers.size, 2, "two combatants apply the bleed in this fight");
 
     const ticked = decodeTwoAppliers().filter((event) =>
         event.kind === BATTLE_EVENT.healthChange && event.source === TICK_KEY
     );
-    assertEquals(ticked.length, 25, "and this many ticks come back off it");
+    assertStrictEquals(ticked.length, 25, "and this many ticks come back off it");
     const victims = new Set<number>();
     for (const event of ticked) {
         assertStrictEquals(event.kind, BATTLE_EVENT.healthChange, "a tick is a health change");
         assert(event.amount < 0, "a bleed takes health rather than putting it back");
-        assertEquals(event.announced, null, "and nothing announced the tick itself");
+        assertStrictEquals(event.announced, null, "and nothing announced the tick itself");
         // Not `add(combatantId)`: a reading off the empty slot answers null for every tick, and a
         // set of one null is a set of one, which is what a first draft of this test accepted.
         assertExists(event.combatantId, "a tick names whose health moved");
         victims.add(event.combatantId);
     }
-    assertEquals(victims.size, 1, "every tick lands on the one victim both appliers reached");
+    assertStrictEquals(victims.size, 1, "every tick lands on the one victim both appliers reached");
     for (const applier of appliers) {
         assert(!victims.has(applier), "and never on whoever applied it");
     }
@@ -117,7 +125,15 @@ Deno.test("the bleed reaches the victim's own figures and credits nobody with de
     verifyFightStatistics(only);
     const victim = [...only.byCombatantId.entries()][0];
     assertExists(victim, "the victim has a row of their own");
-    assertEquals(only.byCombatantId.size, 1, "and is the only combatant the ticks name");
-    assertEquals(victim[1].damageTakenApplied, total, "who is charged the whole of the bleed");
-    assertEquals(only.damageDealtByNobody, total, "while it is dealt by nobody the protocol named");
+    assertStrictEquals(only.byCombatantId.size, 1, "and is the only combatant the ticks name");
+    assertStrictEquals(
+        victim[1].damageTakenApplied,
+        total,
+        "who is charged the whole of the bleed",
+    );
+    assertStrictEquals(
+        only.damageDealtByNobody,
+        total,
+        "while it is dealt by nobody the protocol named",
+    );
 });

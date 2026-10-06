@@ -5,7 +5,7 @@
  * that keeps this file a reader rather than a caller.
  */
 
-import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
+import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import { initMargonemEnginePlace } from "#/src/ports/margonem-engine-place.ts";
 import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
@@ -109,8 +109,16 @@ Deno.test("the client's own method for this is never called", () => {
         { mapName: "Tempest", x: 12, y: 34 },
         "the place is read",
     );
-    assertEquals(called, 0, "by reading properties, never by calling into somebody else's program");
-    assert(typeof engine.hero.getCords === "function", "though the method was there to be called");
+    assertStrictEquals(
+        called,
+        0,
+        "by reading properties, never by calling into somebody else's program",
+    );
+    assertStrictEquals(
+        typeof engine.hero.getCords,
+        "function",
+        "though the method was there to be called",
+    );
 });
 
 /** Probes, each the answer to a mutation that lit nothing (W4). */

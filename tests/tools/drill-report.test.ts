@@ -12,6 +12,7 @@ import {
     assertArrayIncludes,
     assertEquals,
     assertExists,
+    assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
 import { isOneOf } from "#/libs/vocabulary.ts";
@@ -219,17 +220,25 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
             .filter((fakeElement) => fakeElement.className.split(" ")[0] === CLASS.row);
         assert(drawn.length > 0, `${screen}: the ranking drew rows`);
         const opening = drawn.filter((fakeElement) => fakeElement.attributes.has(PANEL_MARK.row));
-        assertEquals(opening.length, reading.rows.length, `${screen}: every combatant row opens`);
+        assertStrictEquals(
+            opening.length,
+            reading.rows.length,
+            `${screen}: every combatant row opens`,
+        );
         // A pinned row is marked by an end rather than by a combatant: nobody stands behind it to
         // be named by an id (`develop ADR 0038`).
         const pinned = drawn.filter((fakeElement) =>
             fakeElement.attributes.has(PANEL_MARK.unnamed)
         );
-        assertEquals(pinned.length, reading.pinned.length, `${screen}: every pinned row opens`);
+        assertStrictEquals(
+            pinned.length,
+            reading.pinned.length,
+            `${screen}: every pinned row opens`,
+        );
         for (const row of drawn) {
             const doesOpen = row.attributes.has(PANEL_MARK.row) ||
                 row.attributes.has(PANEL_MARK.unnamed);
-            assertEquals(
+            assertStrictEquals(
                 row.className.split(" ").includes(CLASS.rowDrillable),
                 doesOpen,
                 `${screen}: a row's cursor says what its mark says`,
@@ -242,7 +251,11 @@ Deno.test("the report is the composition, a line per case under one heading", ()
     const cases = tallyDrillCases(readHildur());
     const lines = formatCaseReport(cases);
     assertStringIncludes(lines[0] ?? "", "verdict", "the table is headed");
-    assertEquals(lines.length, cases.length + 1, "and holds a line per case under that heading");
+    assertStrictEquals(
+        lines.length,
+        cases.length + 1,
+        "and holds a line per case under that heading",
+    );
     cases.forEach((drillCase, index) => {
         const line = lines[index + 1] ?? "";
         for (const word of [drillCase.screen, drillCase.rung, drillCase.row, drillCase.verdict]) {

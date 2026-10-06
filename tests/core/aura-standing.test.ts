@@ -205,7 +205,7 @@ Deno.test("a fight stands as many casts as its bound, and one past it is a broke
     const turns = skillIds.length + 1;
     const dated = composeStated(skillIds.map((skillId) => ({ id: skillId, turns })));
     const casts = skillIds.map((skillId) => composeCast(1, skillId, "+spell-taken_dmg-all"));
-    assertEquals(
+    assertStrictEquals(
         replayStandings(casts.slice(0, STANDINGS_MAXIMUM), dated, ROSTER).auras.length,
         STANDINGS_MAXIMUM,
         "every cast at the bound stands",

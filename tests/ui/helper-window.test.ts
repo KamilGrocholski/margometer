@@ -71,17 +71,17 @@ Deno.test("whoever holds the turn is drawn as a person, hue, side and all", () =
         OURS,
         composeTurn({ ordinal: 48, combatantId: 21 }),
     );
-    assertEquals(reading.turnHolder?.name, "Renegat 1", "the roster places whoever holds it");
+    assertStrictEquals(reading.turnHolder?.name, "Renegat 1", "the roster places whoever holds it");
     const { host } = draw(reading);
     const row = getElementsWithin(getWindow(host))
         .find((descendant) => descendant.className.split(" ")[0] === "row");
     assertExists(row, "and they are drawn as a row");
-    assertEquals(
+    assertStrictEquals(
         row.children.find((child) => child.className === "bar-cap")?.getAttribute("style"),
         `background:${formatColour(lookupColourForProfession("t"))}`,
         "wearing their own profession's hue",
     );
-    assertEquals(
+    assertStrictEquals(
         row.children.find((child) => child.className === "row-side")?.getAttribute("style"),
         `color:${formatColour(SIGNAL.theirs)}`,
         "and the rule saying which side they stand on",
@@ -100,7 +100,7 @@ Deno.test("whoever holds the turn is drawn as a person, hue, side and all", () =
         },
     );
     const alone = getElementsWithin(getWindow(draw(seatless).host));
-    assertEquals(
+    assertStrictEquals(
         alone.filter((descendant) => descendant.className === "bar-cap").length,
         1,
         "the cap stands",
@@ -155,7 +155,11 @@ Deno.test("a turn the game has stopped numbering is not drawn, and the window sa
     );
     assertStrictEquals(underway.turnState, "held", "a fight being fought is one being numbered");
     assertStrictEquals(underway.turnOrdinal, 267, "so the ordinal is drawn");
-    assertEquals(underway.turnHolder?.name, "Renegat 1", "and whoever the game numbered it for");
+    assertStrictEquals(
+        underway.turnHolder?.name,
+        "Renegat 1",
+        "and whoever the game numbered it for",
+    );
 
     const after = presentHelper(
         [],
@@ -332,8 +336,9 @@ Deno.test("the window's fold is its own, and never the panel's", () => {
     const control = getElementsWithin(getWindow(host))
         .find((descendant) => descendant.attributes.get("data-helper-fold") !== undefined);
     assertExists(control, "the window's bar carries a fold of its own");
-    assert(
-        control.attributes.get("data-fold") === undefined,
+    assertStrictEquals(
+        control.attributes.get("data-fold"),
+        undefined,
         "and never the panel's, which would put both windows away at once",
     );
     pressElement(host, "pointerdown", control);
@@ -449,7 +454,7 @@ Deno.test("a holder the roster cannot place is still drawn, and says so", () => 
     const rows = getElementsWithin(getWindow(host)).filter((descendant) =>
         descendant.className.split(" ")[0] === "row"
     );
-    assertEquals(
+    assertStrictEquals(
         rows[0]?.children.filter((child) => child.className === "row-side").length,
         0,
         "and nothing places them on a side, so they wear no rule",
@@ -520,7 +525,7 @@ Deno.test("a charge wears the hue of whoever is making it, and one dot per turn"
 
     const { host } = draw(reading);
     const window = getWindow(host);
-    assertEquals(
+    assertStrictEquals(
         getTextsByClass(window, "section-words").includes(HELPER_WORDS.chargedSkill),
         true,
         "the band heads itself with the game's own name for it",
@@ -560,7 +565,7 @@ Deno.test("a charge that is over wears no hue, and the heading says which end it
         assertExists(charged, `a ${state} charge is still drawn for its turn`);
         assertStrictEquals(charged.colour, SIGNAL.unknown, "in no profession's hue");
         const { host } = draw(reading);
-        assertEquals(
+        assertStrictEquals(
             getTextsByClass(getWindow(host), "figure").includes(said),
             true,
             `the heading says ${said} beside the band's own name`,
@@ -572,7 +577,7 @@ Deno.test("a fight charging nothing draws no band at all", () => {
     const reading = presentHelper([], [], ROSTER, OURS, composeTurn(null));
     assertEquals(reading.chargedSkills, [], "nothing is being made ready");
     const { host } = draw(reading);
-    assertEquals(
+    assertStrictEquals(
         getTextsByClass(getWindow(host), "section-words").includes(HELPER_WORDS.chargedSkill),
         false,
         "so the window looks exactly as it did before this band existed",
@@ -589,8 +594,12 @@ Deno.test("a charge names the figures the game states, and never a percentage", 
     );
     const { host } = draw(reading);
     const figures = getTextsByClass(getWindow(host), "row-value figure");
-    assertEquals(figures.includes("3 tury"), true, "what is left of what the game states");
-    assertEquals(figures.some((figure) => figure.includes("%")), false, "and no share of anything");
+    assertStrictEquals(figures.includes("3 tury"), true, "what is left of what the game states");
+    assertStrictEquals(
+        figures.some((figure) => figure.includes("%")),
+        false,
+        "and no share of anything",
+    );
 });
 
 Deno.test("every person's row in the window carries a card, and no two share one", () => {
@@ -947,10 +956,14 @@ Deno.test("a card open over a row the window stopped drawing closes at the next 
     );
     assertExists(row, "the charge's row carries a card");
     pointAtElement(host, "pointermove", row, 200);
-    assertEquals(readCard(host).className, "MargoMeter-card", "which opens under the pointer");
+    assertStrictEquals(
+        readCard(host).className,
+        "MargoMeter-card",
+        "which opens under the pointer",
+    );
     panel.renderHelper(presentHelper([], [], ROSTER, OURS, composeTurn(null)), false);
     panel.renderWaiting({ ...NOTHING_WAITING });
-    assertEquals(
+    assertStrictEquals(
         readCard(host).className,
         "MargoMeter-card card-hidden",
         "and closes once the row it named is gone",

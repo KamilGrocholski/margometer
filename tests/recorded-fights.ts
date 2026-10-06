@@ -115,7 +115,7 @@ export function readRecordedFight(path: string, document: unknown): RecordedFigh
         assert(Array.isArray(carried), `${path} states the messages a call carried`);
         const messages: string[] = [];
         for (const message of carried) {
-            assert(typeof message === "string", `${path} carries a message as text`);
+            assertStrictEquals(typeof message, "string", `${path} carries a message as text`);
             messages.push(message);
         }
         payloads.push(messages);

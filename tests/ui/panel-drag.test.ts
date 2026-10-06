@@ -3,7 +3,13 @@
  * and it is where they left it when they come back.
  */
 
-import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import { PANEL_WINDOW, TYPE_STEP } from "#/src/ui/panel-choice.ts";
 import {
     type CardAcross,
@@ -80,7 +86,7 @@ Deno.test("a panel nobody has moved opens in the middle of the window", () => {
         "a window smaller than the panel puts it against the corner rather than off the screen",
     );
     // Not a guess: a drag from a guessed origin snatches the panel out from under the hand.
-    assertEquals(
+    assertStrictEquals(
         composeDefaultPosition(null, PANEL_WIDTH),
         null,
         "and nothing where the page states no size",
@@ -123,7 +129,7 @@ Deno.test("what puts the panel there releases the corner it was anchored to", ()
         "the ceiling is told where the top is",
     );
     assertStringIncludes(style, "right:auto", "and the corner the sheet anchored to is released");
-    assertEquals(
+    assertStrictEquals(
         composePositionStyle({ left: 40, top: Number.POSITIVE_INFINITY }, PANEL_WINDOW.meter),
         null,
         "and a position that is not one writes no style, leaving the sheet's corner standing",
@@ -156,12 +162,12 @@ Deno.test("the detail opens on the side of the panel that has room for it", () =
         composeFromLeft(517),
         "and one pixel less is not",
     );
-    assertEquals(
+    assertStrictEquals(
         composeCardAcross(null, WINDOW, MAXIMUM_CARD_WIDTH),
         null,
         "a panel nobody moved is placed",
     );
-    assertEquals(
+    assertStrictEquals(
         composeCardAcross(composePlace(20), null, MAXIMUM_CARD_WIDTH),
         null,
         "by the sheet, and so is one in a page that will not say how big it is",
@@ -289,7 +295,7 @@ Deno.test("the window beside the panel keeps its side as the type changes size",
         { left: touching.left - grownHelper, top: 90 },
         "one to the left keeps its right edge where it stood",
     );
-    assertEquals(
+    assertStrictEquals(
         composeHelperPositionAfterTypeStep(
             panel,
             { ...touching, left: touching.left + 1 },
@@ -305,7 +311,7 @@ Deno.test("the window beside the panel keeps its side as the type changes size",
         { left: right.left + grownMeter, top: 90 },
         "one to the right keeps its distance from the panel's right edge",
     );
-    assertEquals(
+    assertStrictEquals(
         composeHelperPositionAfterTypeStep(
             panel,
             { ...right, left: right.left - 1 },
@@ -326,33 +332,53 @@ Deno.test("a window is made no narrower than its type and no wider than twice it
     const tokens = TYPE_TOKENS[TYPE_STEP.small];
     const position = { left: 40, top: 40 };
     const bounds = composeSizeBounds(PANEL_WINDOW.meter, tokens, position, WINDOW);
-    assertEquals(
+    assertStrictEquals(
         bounds.widthMinimum,
         PANEL_WIDTH,
         "the bar holds its controls at its type's width",
     );
-    assertEquals(bounds.widthMaximum, PANEL_WIDTH * 2, "and a window twice that is the widest");
+    assertStrictEquals(
+        bounds.widthMaximum,
+        PANEL_WIDTH * 2,
+        "and a window twice that is the widest",
+    );
     const tallest = WINDOW.height - position.top - getBarHeight(tokens) - PLACE.insetPixels;
-    assertEquals(bounds.heightMaximum, tallest, "the tallest body reaches the foot of the screen");
+    assertStrictEquals(
+        bounds.heightMaximum,
+        tallest,
+        "the tallest body reaches the foot of the screen",
+    );
     const helper = composeSizeBounds(PANEL_WINDOW.helper, tokens, position, WINDOW);
-    assertEquals(helper.widthMinimum, STANDING_WIDTH, "the other window's type is its own");
+    assertStrictEquals(helper.widthMinimum, STANDING_WIDTH, "the other window's type is its own");
     assert(helper.heightMinimum < bounds.heightMinimum, "and it keeps fewer rows than the panel");
     const near = composeSizeBounds(PANEL_WINDOW.meter, tokens, { left: 1000, top: 40 }, WINDOW);
-    assertEquals(near.widthMaximum, WINDOW.width - 1000 - PLACE.insetPixels, "the screen's edge");
+    assertStrictEquals(
+        near.widthMaximum,
+        WINDOW.width - 1000 - PLACE.insetPixels,
+        "the screen's edge",
+    );
     const cramped = composeSizeBounds(PANEL_WINDOW.meter, tokens, { left: 1200, top: 880 }, WINDOW);
-    assertEquals(cramped.widthMaximum, cramped.widthMinimum, "a screen too small gives the least");
-    assertEquals(cramped.heightMaximum, cramped.heightMinimum, "both ways");
+    assertStrictEquals(
+        cramped.widthMaximum,
+        cramped.widthMinimum,
+        "a screen too small gives the least",
+    );
+    assertStrictEquals(cramped.heightMaximum, cramped.heightMinimum, "both ways");
     const unplaced = composeSizeBounds(PANEL_WINDOW.meter, tokens, null, null);
-    assertEquals(
+    assertStrictEquals(
         unplaced.widthMaximum,
         PANEL_WIDTH * 2,
         "with no screen, twice the type still binds",
     );
-    assertEquals(unplaced.heightMaximum, Number.POSITIVE_INFINITY, "and no height does");
+    assertStrictEquals(unplaced.heightMaximum, Number.POSITIVE_INFINITY, "and no height does");
     // A screen with no place on it says nothing of the room left, so it binds no more than none.
     const unmoved = composeSizeBounds(PANEL_WINDOW.meter, tokens, null, WINDOW);
-    assertEquals(unmoved.widthMaximum, PANEL_WIDTH * 2, "a window never placed binds at its type");
-    assertEquals(unmoved.heightMaximum, Number.POSITIVE_INFINITY, "and at no height");
+    assertStrictEquals(
+        unmoved.widthMaximum,
+        PANEL_WIDTH * 2,
+        "a window never placed binds at its type",
+    );
+    assertStrictEquals(unmoved.heightMaximum, Number.POSITIVE_INFINITY, "and at no height");
     // A stored size is held to bounds with no tallest, which is where they are read.
     const stored = { width: 320, height: 350 };
     assertEquals(clampSize(stored, unplaced), stored, "a size with no tallest keeps its height");
@@ -401,22 +427,26 @@ Deno.test("a size is held inside its bounds, at each edge from both sides", () =
 Deno.test("a window's style states its size beside its place, and each alone", () => {
     const size = { width: 320, height: 350 };
     const place = { left: 40, top: 60 };
-    assertEquals(
+    assertStrictEquals(
         composeHostStyle(place, size, PANEL_WINDOW.meter),
         "left:40px;top:60px;--MargoMeter-meter-top:60px;right:auto;" +
             "--MargoMeter-meter-width:320px;--MargoMeter-meter-height:350px;" +
             "--MargoMeter-list-basis:0px;--MargoMeter-list-rows-least:3;--MargoMeter-meter-share:100vh",
         "both, in the panel's own properties, with the list and the ceiling a sized panel states",
     );
-    assertEquals(
+    assertStrictEquals(
         composeHostStyle(null, size, PANEL_WINDOW.helper),
         "--MargoMeter-helper-width:320px;--MargoMeter-helper-height:350px",
         "a size with no place, in the other window's",
     );
-    assertEquals(
+    assertStrictEquals(
         composeHostStyle(place, null, PANEL_WINDOW.meter),
         composePositionStyle(place, PANEL_WINDOW.meter),
         "a place with no size is the place",
     );
-    assertEquals(composeHostStyle(null, null, PANEL_WINDOW.meter), null, "and neither is nothing");
+    assertStrictEquals(
+        composeHostStyle(null, null, PANEL_WINDOW.meter),
+        null,
+        "and neither is nothing",
+    );
 });

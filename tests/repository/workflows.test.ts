@@ -4,7 +4,7 @@
  * in one of them is silent — the gate a person runs and the one a release runs stop being the same.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 
 const WORKFLOWS_DIRECTORY = ".github/workflows/";
 const USES_MARK = "uses: ";
@@ -54,6 +54,10 @@ Deno.test("every workflow pins each runtime, and pins the one every other workfl
     assertEquals([...pinsByAction.keys()].sort(), Object.keys(PIN_BY_ACTION).sort(), "both read");
     for (const [action, pins] of pinsByAction) {
         assert(!pins.has(null), `${action} is pinned wherever it is used`);
-        assertEquals(pins.size, 1, `${action} is pinned to one version: ${[...pins].join(", ")}`);
+        assertStrictEquals(
+            pins.size,
+            1,
+            `${action} is pinned to one version: ${[...pins].join(", ")}`,
+        );
     }
 });

@@ -6,7 +6,7 @@
  * snapshots state the maximum. Where the two disagree, the disagreement is the finding.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import type { BattleEvent } from "#/src/core/battle-event.ts";
 import {
     composeHealthFromPercent,
@@ -215,7 +215,11 @@ Deno.test("one payload moves health with no message saying so, and it is pinned 
         unexplained: [],
     };
     for (const fight of readRecordedFights()) witnessRecording(fight, reading);
-    assertEquals(reading.vanished.length, 1, "the material carries exactly one, and it is known");
+    assertStrictEquals(
+        reading.vanished.length,
+        1,
+        "the material carries exactly one, and it is known",
+    );
     assert(
         reading.vanished[0]?.includes("2026-08-06-tempest-grupa-vs-hildur-1785244275300-none"),
         "entry 83 of that fight: the boss loses 8062 with both its messages about other people",

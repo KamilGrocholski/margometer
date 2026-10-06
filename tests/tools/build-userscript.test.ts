@@ -7,6 +7,7 @@ import {
     assert,
     assertEquals,
     assertRejects,
+    assertStrictEquals,
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
@@ -61,7 +62,11 @@ Deno.test("a reader of the built text flags what would leave the browser", () =>
     assertEquals(lookupOutboundCalls("const a = 1;"), [], "ordinary code carries none");
     assertEquals(lookupOutboundCalls("await fetch(url)"), ["fetch("], "a request is one");
     assertEquals(lookupOutboundCalls("new WebSocket(url)"), ["new WebSocket"], "so is this");
-    assertEquals(requireBundleInBrowser("const a = 1;"), "const a = 1;", "a bundle staying passes");
+    assertStrictEquals(
+        requireBundleInBrowser("const a = 1;"),
+        "const a = 1;",
+        "a bundle staying passes",
+    );
     assertThrows(
         () => requireBundleInBrowser("navigator.sendBeacon(url)"),
         UserscriptBuildError,
@@ -105,17 +110,25 @@ Deno.test("a way out reached through an object is read as a name in code, and no
 
 Deno.test("a build writes its version over the constant, and refuses a text without one", () => {
     const said = `const version = "${BUILD_VERSION}"; console.log("${BUILD_VERSION}");`;
-    assertEquals(
+    assertStrictEquals(
         stampBundleVersion(said, "1.2.3"),
         'const version = "1.2.3"; console.log("1.2.3");',
         "every place the bundler inlined it is written over, not the first",
     );
-    assertEquals(stampBundleVersion(said, BUILD_VERSION), said, "and itself over itself is itself");
+    assertStrictEquals(
+        stampBundleVersion(said, BUILD_VERSION),
+        said,
+        "and itself over itself is itself",
+    );
     assertThrows(() => stampBundleVersion("const v = 1;", "1.2.3"), UserscriptBuildError, "1.2.3");
 });
 
 Deno.test("the version a build takes by default is the one the configuration declares", () => {
-    assertEquals(parseDeclaredVersion('{ // ours\n "version": "0.19.0" }'), "0.19.0", "a comment");
+    assertStrictEquals(
+        parseDeclaredVersion('{ // ours\n "version": "0.19.0" }'),
+        "0.19.0",
+        "a comment",
+    );
     assertThrows(() => parseDeclaredVersion("{"), DeclaredVersionError, "not JSON with comments");
     assertThrows(() => parseDeclaredVersion("[]"), DeclaredVersionError, "not a configuration");
     assertThrows(() => parseDeclaredVersion("{}"), DeclaredVersionError, "no version");
@@ -141,7 +154,11 @@ Deno.test("the file that would be installed carries the banner and no way out", 
         "inside what a host that forbids minifying takes",
     );
     const metadata = await Deno.readTextFile(`dist/${METADATA_NAME}`);
-    assertEquals(metadata, encodeUserscriptBanner("1.2.3"), "the metadata file is the banner");
+    assertStrictEquals(
+        metadata,
+        encodeUserscriptBanner("1.2.3"),
+        "the metadata file is the banner",
+    );
     assert(built.startsWith(metadata), "which is what an installed copy polls");
 });
 

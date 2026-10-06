@@ -6,7 +6,7 @@
  * subject, and only the second catches one that finds too much.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
@@ -91,15 +91,23 @@ const KEY_OWNER_PATH = "src/core/protocol-key.ts";
 Deno.test("the reader knows a help claim from every other line", () => {
     const named = parseHelpClaim("_Help:_ names `verycrit`", 1);
     assertEquals(named?.phrases, ["verycrit"], "the reader flags its own sample");
-    assertEquals(named?.isSilent, false, "and reads it as an occurrence");
+    assertStrictEquals(named?.isSilent, false, "and reads it as an occurrence");
 
     const silent = parseHelpClaim("*Help:* names nothing of `tenacity`, `ten`", 9);
     assertEquals(silent?.phrases, ["tenacity", "ten"], "both phrases of a silence are read");
-    assertEquals(silent?.isSilent, true, "and the claim is read as one");
+    assertStrictEquals(silent?.isSilent, true, "and the claim is read as one");
 
-    assertEquals(parseHelpClaim("_Shape:_ 26 occurrences; on a blow", 1), null, "another line");
-    assertEquals(parseHelpClaim("the help names `heal` somewhere", 1), null, "and prose");
-    assertEquals(parseHelpClaim("_Help:_ says `heal`", 1), null, "and a claim of neither kind");
+    assertStrictEquals(
+        parseHelpClaim("_Shape:_ 26 occurrences; on a blow", 1),
+        null,
+        "another line",
+    );
+    assertStrictEquals(parseHelpClaim("the help names `heal` somewhere", 1), null, "and prose");
+    assertStrictEquals(
+        parseHelpClaim("_Help:_ says `heal`", 1),
+        null,
+        "and a claim of neither kind",
+    );
 });
 
 Deno.test("the frozen table counts exactly what the register cites, and nothing besides", () => {
@@ -335,7 +343,7 @@ Deno.test("the reader knows a count of occurrences from every other sentence", (
     );
 
     const spelled = parseProseCountClaims("### `+absorb` — decoded\n\nBoth occurrences ride it.\n");
-    assertEquals(spelled.length, 1, "a figure spelled as a word is a figure");
+    assertStrictEquals(spelled.length, 1, "a figure spelled as a word is a figure");
 
     const scoped = parseProseCountClaims(
         "### `-absorb` — decoded\n\n45 occurrences on `captures/one.json`, every one valued.\n",
@@ -359,12 +367,12 @@ Deno.test("the reader knows a count of occurrences from every other sentence", (
 });
 
 Deno.test("the rule this guard holds the register to is the register's own", () => {
-    assertEquals(
+    assertStrictEquals(
         parseStatedCountRule("x **A count of occurrences in prose names them.** y"),
         "A count of occurrences in prose names them.",
         "the rule is read off the sentence that states it",
     );
-    assertEquals(
+    assertStrictEquals(
         parseStatedCountRule("**A count of occurrences in prose\nnames them.**"),
         "A count of occurrences in prose names them.",
         "and over the sentence rather than the line, because the formatter wraps one",
@@ -410,8 +418,12 @@ Deno.test("the register and the decoder agree on which keys move health, both wa
         "a line that is not a health verdict",
     );
     assert(lookupDecodedCause("-dmg") !== null, "the applied half of a blow moves health");
-    assert(lookupDecodedCause("+dmg") === null, "and the raw half is what it was before reduction");
-    assert(lookupDecodedCause("+crit") === null, "a proc carries no figure at all");
+    assertStrictEquals(
+        lookupDecodedCause("+dmg"),
+        null,
+        "and the raw half is what it was before reduction",
+    );
+    assertStrictEquals(lookupDecodedCause("+crit"), null, "a proc carries no figure at all");
 
     const said = new Set(
         parseLabelClaims(REGISTER, HEALTH_MARKER)
@@ -455,10 +467,26 @@ function lookupDecodedCause(key: string): Cause | null {
 }
 
 Deno.test("the register and the decoder agree on who each figure is charged to, both ways", () => {
-    assertEquals(lookupDecodedCause("-dmg"), CAUSE.messageActor, "the applied half is the actor's");
-    assertEquals(lookupDecodedCause("+dmg"), null, "the raw half charges nobody with anything");
-    assertEquals(lookupDecodedCause("heal_target"), CAUSE.announcementsActor, "the target slot");
-    assertEquals(lookupDecodedCause("poison"), CAUSE.nobody, "a tick nothing names is nobody's");
+    assertStrictEquals(
+        lookupDecodedCause("-dmg"),
+        CAUSE.messageActor,
+        "the applied half is the actor's",
+    );
+    assertStrictEquals(
+        lookupDecodedCause("+dmg"),
+        null,
+        "the raw half charges nobody with anything",
+    );
+    assertStrictEquals(
+        lookupDecodedCause("heal_target"),
+        CAUSE.announcementsActor,
+        "the target slot",
+    );
+    assertStrictEquals(
+        lookupDecodedCause("poison"),
+        CAUSE.nobody,
+        "a tick nothing names is nobody's",
+    );
 
     const said = new Map(
         parseLabelClaims(REGISTER, CAUSE_MARKER).map((
@@ -504,7 +532,11 @@ Deno.test("every entry states its evidence or says whose it takes", () => {
 
 Deno.test("no key opens an entry twice", () => {
     const twice = parseRegisteredKeys("### `+crit` — decoded\n### `+crit` — investigated\n");
-    assertEquals(twice.length, 2, "the reader takes both headings rather than collapsing them");
+    assertStrictEquals(
+        twice.length,
+        2,
+        "the reader takes both headings rather than collapsing them",
+    );
     const seen = new Map<string, number>();
     const repeated: string[] = [];
     for (const registeredKey of parseRegisteredKeys(REGISTER)) {

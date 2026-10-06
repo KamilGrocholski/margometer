@@ -209,7 +209,11 @@ Deno.test("a shelf the store refuses is the shelf's answer, and the fight still 
     const { live } = playInto(margonem, options, [{ init: 1 }, { endBattle: 1 }]);
     assert(keeper.getAnswers().hasStoreRefused, "the answer is the store's");
     assertEquals(lines, [], "which is an answer and not a defect");
-    assert(composeFightView(live.session)?.isOver === true, "and the fight is over all the same");
+    assertStrictEquals(
+        composeFightView(live.session)?.isOver,
+        true,
+        "and the fight is over all the same",
+    );
 });
 
 Deno.test("a place the page does not state is unknown, and so is one it throws on", () => {

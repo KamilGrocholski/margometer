@@ -6,7 +6,13 @@
  * only the second catches a reader that has stopped comparing anything.
  */
 
-import { assert, assertEquals, assertNotStrictEquals, assertStringIncludes } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertNotStrictEquals,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import type { CachedMargonemClientSource } from "#/tools/margonem-client-source.ts";
 import type { FrozenFiles } from "#/tools/frozen-files.ts";
 import {
@@ -47,16 +53,16 @@ Deno.test("a row says which reading it is about and what the verdict was", () =>
 });
 
 Deno.test("the cached bundle is current only where it is the one being served", () => {
-    assertEquals(
+    assertStrictEquals(
         composeMargonemClientState("abc", composeCachedMargonemClient("abc")).verdict,
         "current",
     );
-    assertEquals(
+    assertStrictEquals(
         composeMargonemClientState("abc", composeCachedMargonemClient("xyz")).verdict,
         "stale",
     );
     const absent = composeMargonemClientState("abc", null);
-    assertEquals(absent.verdict, "stale", "a cache nobody filled is not current either");
+    assertStrictEquals(absent.verdict, "stale", "a cache nobody filled is not current either");
     assertStringIncludes(absent.says, "nothing cached", "which the row says rather than implies");
 });
 
@@ -73,13 +79,17 @@ function composeCachedMargonemClient(build: string): CachedMargonemClientSource 
 Deno.test("a frozen reading is current where a freeze off the cache would leave it standing", () => {
     const kept = composeDecidedFreeze({ hasMoved: false, heldDate: HELD_BUILD, date: HELD_BUILD });
     const currentState = composeFrozenState("frozen keys", "keys", kept);
-    assertEquals(currentState.verdict, "current", "a newer build that gave the same keys");
+    assertStrictEquals(currentState.verdict, "current", "a newer build that gave the same keys");
     assertStringIncludes(currentState.says, READ_BUILD, "the row states the build it read");
     assertStringIncludes(currentState.says, HELD_BUILD, "and the one the table is still dated by");
     const moved = composeDecidedFreeze({ hasMoved: true, heldDate: HELD_BUILD, date: READ_BUILD });
-    assertEquals(composeFrozenState("frozen keys", "keys", moved).verdict, "stale", "keys moved");
+    assertStrictEquals(
+        composeFrozenState("frozen keys", "keys", moved).verdict,
+        "stale",
+        "keys moved",
+    );
     const absent = composeFrozenState("frozen keys", "keys", null);
-    assertEquals(absent.verdict, "stale", "a cache nobody filled is not current either");
+    assertStrictEquals(absent.verdict, "stale", "a cache nobody filled is not current either");
     assertStringIncludes(absent.says, "nothing cached", "which the row says rather than implies");
 });
 
@@ -100,22 +110,22 @@ Deno.test("a refresh says whether it rewrote a reading or left it standing", () 
 
 Deno.test("a fetched page goes stale on a floor, and the day before it does not", () => {
     const momentAfterDays = (days: number) => READ_AT_MILLISECONDS + days * MILLISECONDS_PER_DAY;
-    assertEquals(
+    assertStrictEquals(
         composeDumpState("help dump", "v", READ_AT, momentAfterDays(0)).verdict,
         "current",
         "now",
     );
-    assertEquals(
+    assertStrictEquals(
         composeDumpState("help dump", "v", READ_AT, momentAfterDays(6)).verdict,
         "current",
         "at six",
     );
-    assertEquals(
+    assertStrictEquals(
         composeDumpState("help dump", "v", READ_AT, momentAfterDays(7)).verdict,
         "stale",
         "at seven",
     );
-    assertEquals(
+    assertStrictEquals(
         composeDumpState("help dump", "v", null, momentAfterDays(7)).verdict,
         "stale",
         "none cached",
@@ -125,8 +135,8 @@ Deno.test("a fetched page goes stale on a floor, and the day before it does not"
 Deno.test("a world that did not answer is said as that, and never as a stale reading", () => {
     // The fix for one is to wait and for the other to refresh, so the row a person reads names it.
     const unasked = composeUnaskedMargonemClientState("https://tempest.margonem.pl did not answer");
-    assertEquals(unasked.verdict, "unknown", "nobody could ask, so nothing is claimed");
-    assertEquals(unasked.name, "client", "and it stands in the row that needed the network");
+    assertStrictEquals(unasked.verdict, "unknown", "nobody could ask, so nothing is claimed");
+    assertStrictEquals(unasked.name, "client", "and it stands in the row that needed the network");
     assert(!formatReadingLine(unasked).includes("STALE"), "never wearing the other verdict");
     assert(EXIT_STALE > 0, "a reading that went behind never ends a work round quietly");
     assert(EXIT_UNASKED > 0, "and neither does a world that could not be asked");

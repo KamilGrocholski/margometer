@@ -6,7 +6,7 @@
  * points of their pool comes to (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { getHealthPercentsFromEvent } from "#/src/core/combatant-health.ts";
 import { decodePayloadMessages, parseProtocolMessage } from "#/src/core/fight-decoder.ts";
@@ -48,7 +48,7 @@ Deno.test("the figure is health, and raises the percentage stated before it by i
         }
         for (const [id, percent] of getHealthPercentsFromEvent(event)) percentById.set(id, percent);
     }
-    assertEquals(healed, 1, "the one occurrence the material carries, 2026-08-30");
+    assertStrictEquals(healed, 1, "the one occurrence the material carries, 2026-08-30");
 });
 
 Deno.test("one recording carries it, and a second would have to be read as well", () => {

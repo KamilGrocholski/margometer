@@ -307,7 +307,7 @@ Deno.test("a browser lending no store keeps the shelf in memory, and says it for
     });
     keeper.keep(composeFight(1));
     assertEquals(keeper.getFights().map((fight) => fight.openedAt), [1], "the fight stands");
-    assertEquals(keeper.getAnswers().hasStoreRefused, false, "kept where it can be");
+    assertStrictEquals(keeper.getAnswers().hasStoreRefused, false, "kept where it can be");
     assertEquals(lines, [DEFECT_KIND.kept], "and the store it could not have is said");
     assert(defects.getCounts()[0]?.first instanceof StoreUnavailable, "as the store refused");
 });

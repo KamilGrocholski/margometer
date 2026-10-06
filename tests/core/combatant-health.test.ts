@@ -5,7 +5,7 @@
  * would carry, so the reading can be checked against the client rather than against itself.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import {
     composeHealthFromPercent,
     composeHealthTolerance,
@@ -21,16 +21,16 @@ import { readRecordedFights } from "#/tests/recorded-fights.ts";
 const PERCENT_PLACES = 100;
 
 Deno.test("zero is a reading, and a maximum nobody stated is not", () => {
-    assertEquals(composeHealthFromPercent(0, 745), 0, "nothing left is a measurement");
-    assertEquals(composeHealthFromPercent(100, 745), 745, "a full pool reads back exactly");
-    assertEquals(composeHealthFromPercent(50, 745), 373, "a half is rounded, not truncated");
-    assertEquals(
+    assertStrictEquals(composeHealthFromPercent(0, 745), 0, "nothing left is a measurement");
+    assertStrictEquals(composeHealthFromPercent(100, 745), 745, "a full pool reads back exactly");
+    assertStrictEquals(composeHealthFromPercent(50, 745), 373, "a half is rounded, not truncated");
+    assertStrictEquals(
         composeHealthFromPercent(50, null),
         null,
         "no maximum, no reading, and never zero",
     );
-    assertEquals(composeHealthTolerance(0), 1, "a pool of nothing still rounds");
-    assertEquals(composeHealthTolerance(745), 1, "a small pool is read to the point");
+    assertStrictEquals(composeHealthTolerance(0), 1, "a pool of nothing still rounds");
+    assertStrictEquals(composeHealthTolerance(745), 1, "a small pool is read to the point");
 });
 
 Deno.test("a wider pool is read less exactly, and says so", () => {
@@ -38,7 +38,7 @@ Deno.test("a wider pool is read less exactly, and says so", () => {
         composeHealthTolerance(325584) > composeHealthTolerance(745),
         "the band a percentage stands for is a share of the pool",
     );
-    assertEquals(composeHealthTolerance(325584), 17, "the widest pool in `captures/`");
+    assertStrictEquals(composeHealthTolerance(325584), 17, "the widest pool in `captures/`");
 });
 
 Deno.test("the client's own percentage is its health rounded to two places", () => {
@@ -49,7 +49,7 @@ Deno.test("the client's own percentage is its health rounded to two places", () 
             assert(reading.healthMaximum > 0, `${path}: a pool of nothing`);
             const exact = (reading.health / reading.healthMaximum) * 100;
             const rounded = Math.round(exact * PERCENT_PLACES) / PERCENT_PLACES;
-            assertEquals(reading.healthPercent, rounded, `${path}: ${reading.combatantId}`);
+            assertStrictEquals(reading.healthPercent, rounded, `${path}: ${reading.combatantId}`);
             readingsChecked += 1;
         }
     }
@@ -151,7 +151,7 @@ Deno.test("a combatant nothing states is left out rather than guessed at", () =>
         level: 40,
         healthMaximum: 745,
     }]);
-    assertEquals(
+    assertStrictEquals(
         indexFightEntryHealth([], roster).size,
         0,
         "a fight nobody spoke of enters none",
@@ -162,7 +162,11 @@ Deno.test("a combatant nothing states is left out rather than guessed at", () =>
         healthPercent: null,
         declared: [{ effect: "step", amount: null, text: null }],
     }], roster);
-    assertEquals(unstated.size, 0, "and neither does an event that names somebody and no health");
+    assertStrictEquals(
+        unstated.size,
+        0,
+        "and neither does an event that names somebody and no health",
+    );
 });
 
 Deno.test("the first statement is the one that counts, whatever came after", () => {
@@ -179,12 +183,12 @@ Deno.test("the first statement is the one that counts, whatever came after", () 
         announcementStanding: null,
         tables: BLOWS_GRANTED,
     }).events;
-    assertEquals(
+    assertStrictEquals(
         indexFightEntryHealth(events, roster).get(1),
         800,
         "eight tenths, and not three",
     );
-    assertEquals(
+    assertStrictEquals(
         getHealthPercentsFromEvent(events[0] ?? events[1] ?? events[0]!)[0]?.[1],
         80,
         "80",
@@ -204,15 +208,19 @@ Deno.test("a share is of the maximum, floored, and reaches the caster's own side
         { roster, announcementStanding: null, tables: BLOWS_GRANTED },
     ).events;
     const heals = [...indexSideHeals(events, roster).values()];
-    assertEquals(heals.length, 1, "one cast");
-    assertEquals(
+    assertStrictEquals(heals.length, 1, "one cast");
+    assertStrictEquals(
         heals[0]?.restoredByCombatantId.get(1),
         7162,
         "thirty hundredths of 23874, floored",
     );
-    assertEquals(heals[0]?.restoredByCombatantId.get(2), 3000, "and of 10000 for the other");
-    assertEquals(heals[0]?.restoredByCombatantId.has(3), false, "the other side is not reached");
-    assertEquals(heals[0]?.isWhole, true, "and every member of the side was sized");
+    assertStrictEquals(heals[0]?.restoredByCombatantId.get(2), 3000, "and of 10000 for the other");
+    assertStrictEquals(
+        heals[0]?.restoredByCombatantId.has(3),
+        false,
+        "the other side is not reached",
+    );
+    assertStrictEquals(heals[0]?.isWhole, true, "and every member of the side was sized");
 });
 
 /** A side of two and an opponent, so a cast has somebody to reach and somebody to miss. */
@@ -236,12 +244,12 @@ Deno.test("a cast cannot put back more than a combatant walked in with", () => {
         { roster, announcementStanding: null, tables: BLOWS_GRANTED },
     ).events;
     const heals = [...indexSideHeals(events, roster).values()];
-    assertEquals(
+    assertStrictEquals(
         heals[0]?.restoredByCombatantId.get(1),
         1194,
         "what was lost, not what a share is",
     );
-    assertEquals(
+    assertStrictEquals(
         heals[0]?.restoredByCombatantId.get(2),
         3000,
         "while the share still binds below it",
@@ -263,9 +271,17 @@ Deno.test("a member nobody can size leaves the cast saying so", () => {
         { roster, announcementStanding: null, tables: BLOWS_GRANTED },
     ).events;
     const heals = [...indexSideHeals(events, roster).values()];
-    assertEquals(heals[0]?.restoredByCombatantId.get(1), 300, "the one that could be sized is");
-    assertEquals(heals[0]?.restoredByCombatantId.has(2), false, "the one that could not is not");
-    assertEquals(heals[0]?.isWhole, false, "and the cast goes on saying it is short");
+    assertStrictEquals(
+        heals[0]?.restoredByCombatantId.get(1),
+        300,
+        "the one that could be sized is",
+    );
+    assertStrictEquals(
+        heals[0]?.restoredByCombatantId.has(2),
+        false,
+        "the one that could not is not",
+    );
+    assertStrictEquals(heals[0]?.isWhole, false, "and the cast goes on saying it is short");
 });
 
 Deno.test("a cast on a side a reducer reached is refused whole", () => {
@@ -280,7 +296,11 @@ Deno.test("a cast on a side a reducer reached is refused whole", () => {
         ],
         { roster, announcementStanding: null, tables: BLOWS_GRANTED },
     ).events;
-    assertEquals(indexSideHeals(reduced, roster).size, 0, "nothing is sized where it was cut");
+    assertStrictEquals(
+        indexSideHeals(reduced, roster).size,
+        0,
+        "nothing is sized where it was cut",
+    );
 
     const theirOwn = decodePayloadMessages(
         [
@@ -292,7 +312,7 @@ Deno.test("a cast on a side a reducer reached is refused whole", () => {
         ],
         { roster, announcementStanding: null, tables: BLOWS_GRANTED },
     ).events;
-    assertEquals(
+    assertStrictEquals(
         indexSideHeals(theirOwn, roster).size,
         1,
         "a reducer of ours cuts theirs, not ours",
@@ -311,7 +331,7 @@ Deno.test("a cast on a side a reducer reached is refused whole", () => {
             ],
             { roster, announcementStanding: null, tables: BLOWS_GRANTED },
         ).events;
-        assertEquals(
+        assertStrictEquals(
             indexSideHeals(casterUnknown, roster).size,
             0,
             `a reducer cast by ${actor} cuts every side`,
@@ -344,7 +364,7 @@ Deno.test("every cast in the recordings is sized, and the cap is what does the w
             }
         }
     }
-    assertEquals(casts, 138, "every occurrence the corpus holds is sized");
-    assertEquals(whole, casts, "and every one of them reaches its whole side");
+    assertStrictEquals(casts, 138, "every occurrence the corpus holds is sized");
+    assertStrictEquals(whole, casts, "and every one of them reaches its whole side");
     assert(capped > atShare, "the cap binds more figures than the share does");
 });

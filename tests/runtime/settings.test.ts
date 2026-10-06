@@ -51,12 +51,12 @@ const REFUSAL = new DOMException("this browser forbids storage", "SecurityError"
 
 Deno.test("the store a reader chose reads back, and nothing chosen is the default", () => {
     const store = initMemoryStore();
-    assertEquals(readStorageChoice(store), STORAGE_DEFAULT, "nothing stored is the default");
+    assertStrictEquals(readStorageChoice(store), STORAGE_DEFAULT, "nothing stored is the default");
     assertStrictEquals(STORAGE_DEFAULT, STORAGE_CHOICE.local, "which is the browser's own store");
     for (const choice of Object.values(STORAGE_CHOICE)) {
         writeStorageChoice(store, choice);
-        assertEquals(readStorageChoice(store), choice, `${choice} reads back as itself`);
-        assertEquals(store.read(STORE_KEY.storage), choice, "and is stored as its own word");
+        assertStrictEquals(readStorageChoice(store), choice, `${choice} reads back as itself`);
+        assertStrictEquals(store.read(STORE_KEY.storage), choice, "and is stored as its own word");
     }
 });
 
@@ -92,7 +92,7 @@ function composeRefusingStore(): KeyValueStore {
 
 Deno.test("the size of type a reader chose reads back, and nothing chosen is the default", () => {
     const store = initMemoryStore();
-    assertEquals(readTypeStep(store), TYPE_STEP_DEFAULT, "nothing stored is the default");
+    assertStrictEquals(readTypeStep(store), TYPE_STEP_DEFAULT, "nothing stored is the default");
     assertStrictEquals(
         TYPE_STEP_DEFAULT,
         TYPE_STEP.medium,
@@ -100,8 +100,8 @@ Deno.test("the size of type a reader chose reads back, and nothing chosen is the
     );
     for (const step of TYPE_STEPS) {
         writeTypeStep(store, step);
-        assertEquals(readTypeStep(store), step, `${step} reads back as itself`);
-        assertEquals(store.read(STORE_KEY.typeStep), step, "and is stored as its own word");
+        assertStrictEquals(readTypeStep(store), step, `${step} reads back as itself`);
+        assertStrictEquals(store.read(STORE_KEY.typeStep), step, "and is stored as its own word");
     }
     store.write(STORE_KEY.typeStep, "13");
     expectSettingUnreadable(
@@ -118,12 +118,20 @@ Deno.test("the size of type a reader chose reads back, and nothing chosen is the
 Deno.test("a window's size reads back per window, and goes when it is given back", () => {
     const store = initMemoryStore();
     for (const window of [PANEL_WINDOW.meter, PANEL_WINDOW.helper]) {
-        assertEquals(readWindowSize(store, window), null, `${window}: nothing stored is no size`);
+        assertStrictEquals(
+            readWindowSize(store, window),
+            null,
+            `${window}: nothing stored is no size`,
+        );
     }
     writeWindowSize(store, PANEL_WINDOW.meter, { width: 320, height: 350 });
-    assertEquals(store.read(STORE_KEY.meterSize), '{"width":320,"height":350}', "as two numbers");
+    assertStrictEquals(
+        store.read(STORE_KEY.meterSize),
+        '{"width":320,"height":350}',
+        "as two numbers",
+    );
     assertEquals(readWindowSize(store, PANEL_WINDOW.meter), { width: 320, height: 350 }, "back");
-    assertEquals(
+    assertStrictEquals(
         readWindowSize(store, PANEL_WINDOW.helper),
         null,
         "and the other window's is its own",
@@ -135,7 +143,7 @@ Deno.test("a window's size reads back per window, and goes when it is given back
         "one is a size",
     );
     deleteWindowSize(store, PANEL_WINDOW.meter);
-    assertEquals(store.read(STORE_KEY.meterSize), null, "given back, it is gone");
+    assertStrictEquals(store.read(STORE_KEY.meterSize), null, "given back, it is gone");
     assertEquals(
         readWindowSize(store, PANEL_WINDOW.helper),
         { width: 1, height: 1 },
@@ -175,13 +183,25 @@ Deno.test("a size that is not two whole numbers above nought is refused by name"
 
 Deno.test("a fold is the one mark, and anything else stored there is not read as one", () => {
     const store = initMemoryStore();
-    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.meter), false, "nothing stored: unfolded");
+    assertStrictEquals(
+        readWindowCollapsed(store, PANEL_WINDOW.meter),
+        false,
+        "nothing stored: unfolded",
+    );
     writeWindowCollapsed(store, PANEL_WINDOW.meter, true);
-    assertEquals(store.read(STORE_KEY.meterFolded), "1", "a fold is stored as the mark");
-    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.meter), true, "and reads back folded");
+    assertStrictEquals(store.read(STORE_KEY.meterFolded), "1", "a fold is stored as the mark");
+    assertStrictEquals(
+        readWindowCollapsed(store, PANEL_WINDOW.meter),
+        true,
+        "and reads back folded",
+    );
     writeWindowCollapsed(store, PANEL_WINDOW.meter, false);
-    assertEquals(store.read(STORE_KEY.meterFolded), "", "an unfolding leaves empty text");
-    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.meter), false, "which reads unfolded");
+    assertStrictEquals(store.read(STORE_KEY.meterFolded), "", "an unfolding leaves empty text");
+    assertStrictEquals(
+        readWindowCollapsed(store, PANEL_WINDOW.meter),
+        false,
+        "which reads unfolded",
+    );
     store.write(STORE_KEY.meterFolded, "yes");
     expectSettingUnreadable(
         readWindowCollapsed(store, PANEL_WINDOW.meter),
@@ -198,12 +218,20 @@ Deno.test("a fold is the one mark, and anything else stored there is not read as
 Deno.test("each window's fold and place are under keys of their own", () => {
     const store = initMemoryStore();
     writeWindowCollapsed(store, PANEL_WINDOW.helper, true);
-    assertEquals(store.read(STORE_KEY.helperFolded), "1", "the helper's fold is its own key");
-    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.meter), false, "the panel stays open");
-    assertEquals(readWindowCollapsed(store, PANEL_WINDOW.helper), true, "the helper is folded");
+    assertStrictEquals(store.read(STORE_KEY.helperFolded), "1", "the helper's fold is its own key");
+    assertStrictEquals(
+        readWindowCollapsed(store, PANEL_WINDOW.meter),
+        false,
+        "the panel stays open",
+    );
+    assertStrictEquals(
+        readWindowCollapsed(store, PANEL_WINDOW.helper),
+        true,
+        "the helper is folded",
+    );
     writeWindowPosition(store, PANEL_WINDOW.helper, { left: 5, top: 6 });
-    assertEquals(store.read(STORE_KEY.helperPosition), '{"left":5,"top":6}', "its own place");
-    assertEquals(readWindowPosition(store, PANEL_WINDOW.meter), null, "and not the panel's");
+    assertStrictEquals(store.read(STORE_KEY.helperPosition), '{"left":5,"top":6}', "its own place");
+    assertStrictEquals(readWindowPosition(store, PANEL_WINDOW.meter), null, "and not the panel's");
     store.write(STORE_KEY.helperFolded, "?");
     expectSettingUnreadable(
         readWindowCollapsed(store, PANEL_WINDOW.helper),
@@ -215,7 +243,11 @@ Deno.test("each window's fold and place are under keys of their own", () => {
 Deno.test("a position survives a reload, and nothing else is read as one", () => {
     const store = initMemoryStore();
     writeWindowPosition(store, PANEL_WINDOW.meter, { left: 12, top: 34 });
-    assertEquals(store.read(STORE_KEY.meterPosition), '{"left":12,"top":34}', "as develop does");
+    assertStrictEquals(
+        store.read(STORE_KEY.meterPosition),
+        '{"left":12,"top":34}',
+        "as develop does",
+    );
     assertEquals(readWindowPosition(store, PANEL_WINDOW.meter), { left: 12, top: 34 }, "back");
     writeWindowPosition(store, PANEL_WINDOW.meter, { left: -3, top: 0 });
     assertEquals(readWindowPosition(store, PANEL_WINDOW.meter), { left: -3, top: 0 }, "zero");
@@ -256,5 +288,5 @@ Deno.test("a position that is not two whole numbers is never written down", () =
     assertThrows(() => writeWindowPosition(store, PANEL_WINDOW.meter, fraction), AssertionError);
     const notANumber = { left: 0, top: Number.NaN };
     assertThrows(() => writeWindowPosition(store, PANEL_WINDOW.meter, notANumber), AssertionError);
-    assertEquals(store.read(STORE_KEY.meterPosition), null, "and nothing reached the store");
+    assertStrictEquals(store.read(STORE_KEY.meterPosition), null, "and nothing reached the store");
 });

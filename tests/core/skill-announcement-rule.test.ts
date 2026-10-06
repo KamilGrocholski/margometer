@@ -6,7 +6,7 @@
  * (`docs/protocol-keys.md`).
  */
 
-import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
+import { assert, assertArrayIncludes, assertExists, assertStrictEquals } from "@std/assert";
 import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
@@ -123,7 +123,7 @@ Deno.test("three keys state their figure on the announcement itself, and name an
     // holds.
     assert((counted.get("heal_target") ?? 0) > 0, "the material states healing at a target");
     assert((counted.get("healall_per") ?? 0) > 0, "and healing across a side");
-    assertEquals(counted.get("bandage"), 1, "the last of them stated once");
+    assertStrictEquals(counted.get("bandage"), 1, "the last of them stated once");
 });
 
 Deno.test("the reducer of a side's healing stands on an announcement too", () => {
@@ -133,5 +133,5 @@ Deno.test("the reducer of a side's healing stands on an announcement too", () =>
         stated += 1;
         assert(isAnnouncement(keys), `${path}: a reduction on a message announcing no skill`);
     }
-    assertEquals(stated, 4, "every occurrence the material carries, 2026-08-30");
+    assertStrictEquals(stated, 4, "every occurrence the material carries, 2026-08-30");
 });

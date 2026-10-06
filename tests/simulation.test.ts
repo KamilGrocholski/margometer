@@ -5,7 +5,7 @@
  * of the page's is always met as the page's, and never as a broken invariant of ours.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import { StoreRefused } from "#/src/ports/browser-store.ts";
 import { readRecordedFights } from "./recorded-fights.ts";
@@ -36,7 +36,7 @@ Deno.test("under every plan, on every recording, the game never meets a throw of
             const where = `${fight.path}, seed ${plan.seed}`;
             const faulted = runSimulation(plan, fight.updates);
             assert(!faulted.hasThrownIntoMargonem, `${where}: a throw of ours reached the game`);
-            assertEquals(faulted.ranking, alone.ranking, `${where}: the figures moved`);
+            assertStrictEquals(faulted.ranking, alone.ranking, `${where}: the figures moved`);
             assertEquals(faulted.unhandledKinds, [], `${where}: a failure met no fate`);
             assert(
                 !faulted.hasInvariantBroken,

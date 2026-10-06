@@ -7,7 +7,7 @@
  * pass by being skipped.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
@@ -42,7 +42,7 @@ Deno.test("git is told to carry no fabricated fight", () => {
 Deno.test("the formatter is told to walk past a fabricated fight", () => {
     const configuration = Deno.readTextFileSync(CONFIGURATION_FILE);
     const named = configuration.split(`"${FABRICATED_DIRECTORY}/"`).length - 1;
-    assertEquals(
+    assertStrictEquals(
         named,
         EXCLUSIONS,
         `${CONFIGURATION_FILE} excludes ${FABRICATED_DIRECTORY}/ in ${named} lists, not` +

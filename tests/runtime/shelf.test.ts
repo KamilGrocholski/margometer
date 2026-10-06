@@ -51,7 +51,7 @@ Deno.test("what is written comes back as it went on, in develop's own text", () 
     const store = initMemoryStore();
     const kept = writeKeptFight(store, EMPTY, composeFight(7));
     assertEquals(kept, { contents: { fights: [composeFight(7)] }, droppedOpenedAt: [] }, "all");
-    assertEquals(store.read(STORE_KEY.fights), DEVELOP_SHELF, "the text develop writes");
+    assertStrictEquals(store.read(STORE_KEY.fights), DEVELOP_SHELF, "the text develop writes");
     assertEquals(openShelf(store), composeOpened([composeFight(7)]), "and gives it back whole");
     const fromDevelop = composeStoreHolding(DEVELOP_SHELF);
     assertEquals(openShelf(fromDevelop), composeOpened([composeFight(7)]), "a develop shelf too");
@@ -85,7 +85,7 @@ Deno.test("the reader's id goes on beside the fight and comes back, and only whe
     const withReader = { ...composeFight(7), readerId: 1 };
     writeKeptFight(store, EMPTY, withReader);
     const text = store.read(STORE_KEY.fights);
-    assert(typeof text === "string", "the shelf is written");
+    assertStrictEquals(typeof text, "string", "the shelf is written");
     assertStrictEquals(
         text,
         `${DEVELOP_SHELF.slice(0, -3)},"readerId":1}]}`,
@@ -205,12 +205,12 @@ Deno.test("the shelf holds its stated maximum, oldest dropped first, and says wh
         store,
         Array.from({ length: KEPT_MAXIMUM }, (_, openedAt) => composeFight(openedAt)),
     );
-    assertEquals(shelf.fights.length, KEPT_MAXIMUM, "twenty fit without dropping one");
+    assertStrictEquals(shelf.fights.length, KEPT_MAXIMUM, "twenty fit without dropping one");
     const written = writeKeptFight(store, shelf, composeFight(KEPT_MAXIMUM));
     assert(!(written instanceof Error), "the twenty-first is kept");
     assertEquals(written.droppedOpenedAt, [0], "and the oldest went, which the answer names");
-    assertEquals(readOpenedAt(store)[0], 1, "as a reload finds");
-    assertEquals(readOpenedAt(store).length, KEPT_MAXIMUM, "at the bound");
+    assertStrictEquals(readOpenedAt(store)[0], 1, "as a reload finds");
+    assertStrictEquals(readOpenedAt(store).length, KEPT_MAXIMUM, "at the bound");
 });
 
 /** Every fight kept in turn onto one shelf, as the runtime keeps them. */
@@ -237,7 +237,7 @@ Deno.test("a pin outranks the rotation, and the oldest unpinned goes instead", (
     assertEquals(readOpenedAt(store).slice(0, 3), [0, 1, 3], "the pinned two stayed");
     const opened = openShelf(store);
     assert(!(opened instanceof Error), "the shelf reads back");
-    assertEquals(opened.fights.filter((fight) => fight.isPinned).length, 2, "pins survive");
+    assertStrictEquals(opened.fights.filter((fight) => fight.isPinned).length, 2, "pins survive");
 });
 
 Deno.test("a shelf with every slot pinned refuses the newest rather than dropping one", () => {
@@ -256,7 +256,11 @@ Deno.test("a shelf with every slot pinned refuses the newest rather than droppin
     const refused = writeKeptFight(store, shelf, composeFight(KEPT_MAXIMUM));
     assertInstanceOf(refused, EverySlotPinned, "the twenty-first has nowhere to go");
     assertStrictEquals(refused.maximum, KEPT_MAXIMUM, "past the shelf's bound");
-    assertEquals(readOpenedAt(store).length, KEPT_MAXIMUM, "and what the reader pinned is there");
+    assertStrictEquals(
+        readOpenedAt(store).length,
+        KEPT_MAXIMUM,
+        "and what the reader pinned is there",
+    );
     const released = writeKeptFightPin(store, shelf, 0, false);
     assert(!(released instanceof Error), "one slot unpinned");
     const arrives = writeKeptFight(store, released.contents, composeFight(KEPT_MAXIMUM));
@@ -380,7 +384,7 @@ Deno.test("a fight off the shelf reads as the fight that went on it, through one
     const watched = composeFightView(replayRecordedFight(fight));
     assert(replayedOffShelf !== null, "a fight off the shelf is a fight");
     assert(watched !== null, "and so is the one that was watched");
-    assertEquals(
+    assertStrictEquals(
         replayedOffShelf.payloadsApplied,
         payloads.length,
         "every call went on and came back",
@@ -390,9 +394,17 @@ Deno.test("a fight off the shelf reads as the fight that went on it, through one
         watched.events,
         "the same events, by the code that is running now",
     );
-    assertEquals(replayedOffShelf.roster.byId.size, watched.roster.byId.size, "and the same cast");
-    assertEquals(replayedOffShelf.readerSide, watched.readerSide, "the reader's own side included");
-    assertEquals(
+    assertStrictEquals(
+        replayedOffShelf.roster.byId.size,
+        watched.roster.byId.size,
+        "and the same cast",
+    );
+    assertStrictEquals(
+        replayedOffShelf.readerSide,
+        watched.readerSide,
+        "the reader's own side included",
+    );
+    assertStrictEquals(
         replayedOffShelf.messagesLost,
         watched.messagesLost,
         "and what nobody read is re-counted",

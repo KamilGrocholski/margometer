@@ -9,7 +9,7 @@
  * the material most likely to carry a leak.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { BATTLE_EVENT, type BattleEvent, OUTCOME_RESULT } from "#/src/core/battle-event.ts";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { NAME_SEPARATOR, PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
@@ -48,7 +48,7 @@ Deno.test("a name the roster lacks is flagged, one it holds is not, and each is 
     ];
     const unplaced = lookupUnplacedNames(events, new Set(roster.idByName.keys()));
     assertEquals(unplaced.outside, ["Leak", "Other", "Third"], "an outcome, a shout and a target");
-    assertEquals(unplaced.read, 5, "and free prose is not a list of names");
+    assertStrictEquals(unplaced.read, 5, "and free prose is not a list of names");
 });
 
 function lookupUnplacedNames(

@@ -6,23 +6,23 @@
  * that is how the game writes, and never a fault in what it wrote.
  */
 
-import { assert, assertEquals, assertNotInstanceOf } from "@std/assert";
+import { assert, assertEquals, assertNotInstanceOf, assertStrictEquals } from "@std/assert";
 import { readPayloadEnvelope, readPayloadWarriorEntries } from "#/src/ports/payload-envelope.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 const WHOLE = { id: 1, name: "Gracz 1", team: 2, prof: "w", lvl: 40, hp: { max: 745 } };
 
 Deno.test("a warrior missing what a row needs is passed over, not filled in", () => {
-    assertEquals(readOne(WHOLE)?.healthMaximum, 745, "a whole warrior reads");
-    assertEquals(readOne({ ...WHOLE, team: undefined }), null, "no side, no row");
-    assertEquals(readOne({ ...WHOLE, name: "" }), null, "an empty name is none");
-    assertEquals(readOne({ ...WHOLE, name: 7 }), null, "and a name that is no text is none");
-    assertEquals(readOne({ ...WHOLE, id: "1" }), null, "an id that is no number is none");
-    assertEquals(readOne(null), null, "and `null` is not a warrior");
+    assertStrictEquals(readOne(WHOLE)?.healthMaximum, 745, "a whole warrior reads");
+    assertStrictEquals(readOne({ ...WHOLE, team: undefined }), null, "no side, no row");
+    assertStrictEquals(readOne({ ...WHOLE, name: "" }), null, "an empty name is none");
+    assertStrictEquals(readOne({ ...WHOLE, name: 7 }), null, "and a name that is no text is none");
+    assertStrictEquals(readOne({ ...WHOLE, id: "1" }), null, "an id that is no number is none");
+    assertStrictEquals(readOne(null), null, "and `null` is not a warrior");
     const bare = readOne({ id: 1, name: "Gracz 1", team: 2 });
-    assertEquals(bare?.healthMaximum, null, "what the game did not state stays unstated");
-    assertEquals(bare?.level, null, "rather than standing in as a zero");
-    assertEquals(bare?.profession, null, "and a profession nobody stated is none");
+    assertStrictEquals(bare?.healthMaximum, null, "what the game did not state stays unstated");
+    assertStrictEquals(bare?.level, null, "rather than standing in as a zero");
+    assertStrictEquals(bare?.profession, null, "and a profession nobody stated is none");
 });
 
 function readOne(warriorEntry: unknown) {
@@ -38,7 +38,7 @@ Deno.test("a cast is a cast, keyed by id or listed in order", () => {
         "the client keys them by id, which is what every payload does",
     );
     assertNotInstanceOf(listed, Error, "and a list of the same people is read");
-    assertEquals(keyed.combatants.length, 1, "one combatant");
+    assertStrictEquals(keyed.combatants.length, 1, "one combatant");
     assertEquals(listed.combatants, keyed.combatants, "the same cast either way");
 });
 
@@ -54,14 +54,18 @@ Deno.test("a payload states the whole cast or none of it", () => {
             else moved += 1;
         }
     }
-    assertEquals(whole, fights.length, "each recording opens with its cast, once");
+    assertStrictEquals(whole, fights.length, "each recording opens with its cast, once");
     assert(moved > whole, "and every call after it states only what moved");
 });
 
 Deno.test("a pool of nothing is a pool nobody stated, never an assertion", () => {
-    assertEquals(readOne({ ...WHOLE, hp: { max: 0 } })?.healthMaximum, null, "nothing");
-    assertEquals(readOne({ ...WHOLE, hp: { max: -5 } })?.healthMaximum, null, "below it");
-    assertEquals(readOne({ ...WHOLE, hp: { max: 1 } })?.healthMaximum, 1, "and one is a pool");
+    assertStrictEquals(readOne({ ...WHOLE, hp: { max: 0 } })?.healthMaximum, null, "nothing");
+    assertStrictEquals(readOne({ ...WHOLE, hp: { max: -5 } })?.healthMaximum, null, "below it");
+    assertStrictEquals(
+        readOne({ ...WHOLE, hp: { max: 1 } })?.healthMaximum,
+        1,
+        "and one is a pool",
+    );
 });
 
 /**
@@ -102,14 +106,34 @@ Deno.test("a charge is read in full, or as none", () => {
         combatantId: 5,
         charge: { skillName: "Cios", turnsElapsed: 1, turnsStated: 3 },
     }, "all three stated");
-    assertEquals(readCharge(undefined).charge, null, "an entry stating none ends one");
-    assertEquals(readCharge({ ...full, name: "" }).charge, null, "a nameless charge is none");
-    assertEquals(readCharge({ ...full, turn: undefined }).charge, null, "half the pair is none");
-    assertEquals(readCharge({ ...full, total_turns: "3" }).charge, null, "and so is text");
-    assertEquals(readCharge({ ...full, turn: -1 }).charge, null, "a count below nothing is none");
-    assertEquals(readCharge({ ...full, turn: 4 }).charge, null, "and one past the whole is none");
-    assertEquals(readCharge({ ...full, turn: 3 }).charge?.turnsElapsed, 3, "the whole is not");
-    assertEquals(readCharge({ ...full, turn: 0 }).charge?.turnsElapsed, 0, "nor is none elapsed");
+    assertStrictEquals(readCharge(undefined).charge, null, "an entry stating none ends one");
+    assertStrictEquals(readCharge({ ...full, name: "" }).charge, null, "a nameless charge is none");
+    assertStrictEquals(
+        readCharge({ ...full, turn: undefined }).charge,
+        null,
+        "half the pair is none",
+    );
+    assertStrictEquals(readCharge({ ...full, total_turns: "3" }).charge, null, "and so is text");
+    assertStrictEquals(
+        readCharge({ ...full, turn: -1 }).charge,
+        null,
+        "a count below nothing is none",
+    );
+    assertStrictEquals(
+        readCharge({ ...full, turn: 4 }).charge,
+        null,
+        "and one past the whole is none",
+    );
+    assertStrictEquals(
+        readCharge({ ...full, turn: 3 }).charge?.turnsElapsed,
+        3,
+        "the whole is not",
+    );
+    assertStrictEquals(
+        readCharge({ ...full, turn: 0 }).charge?.turnsElapsed,
+        0,
+        "nor is none elapsed",
+    );
 });
 
 function readCharge(stated: unknown) {

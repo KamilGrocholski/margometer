@@ -5,7 +5,7 @@
  * recordings are read by `tests/recorded-fights.ts`, the one reader every suite goes through.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
@@ -37,13 +37,13 @@ const PART_MARK = " · ";
 
 Deno.test("the reader knows a census row from every other line", () => {
     const row = "| `captures/a.json` | `tempest` | `1` | `0.9.0` | `4` | `18` |";
-    assertEquals(readRecordingRows(row).length, 1, "a row naming a recording is one");
+    assertStrictEquals(readRecordingRows(row).length, 1, "a row naming a recording is one");
     assertEquals(readRecordingRows("| `1 vs 1` | `3` |"), [], "a row naming no recording is not");
     assertEquals(readRecordingRows("prose about `captures/a.json`"), [], "and neither is prose");
     // The sample the reader must not take for a census row: a fight's row states six cells too.
-    assertEquals(isCountText("18"), true, "a count is digits");
-    assertEquals(isCountText("1 NPC · m 1 · level 100"), false, "and a cast is not one");
-    assertEquals(isCountText(""), false, "nor is a cell that says nothing");
+    assertStrictEquals(isCountText("18"), true, "a count is digits");
+    assertStrictEquals(isCountText("1 NPC · m 1 · level 100"), false, "and a cast is not one");
+    assertStrictEquals(isCountText(""), false, "nor is a cell that says nothing");
 });
 
 /** The rows whose first cell names a recording, which is what a census row looks like. */
@@ -129,18 +129,26 @@ Deno.test("what the register states of each recording is what the recording stat
         );
         assertExists(counted, `${fight.path}: no row states its world, versions, calls, messages`);
         const path = fight.path;
-        assertEquals(counted[1], readEnvelopeText(path, FILE_FIELD.world), `${path}: the world`);
-        assertEquals(
+        assertStrictEquals(
+            counted[1],
+            readEnvelopeText(path, FILE_FIELD.world),
+            `${path}: the world`,
+        );
+        assertStrictEquals(
             counted[2],
             readEnvelopeText(path, FILE_FIELD.margonemClientBuild),
             `${path}: build`,
         );
-        assertEquals(counted[3], readEnvelopeText(path, FILE_FIELD.addOnVersion), `${path}: ours`);
-        assertEquals(counted[4], String(fight.updates.length), `${path}: the calls`);
-        assertEquals(counted[5], String(fight.messages.length), `${path}: the messages`);
+        assertStrictEquals(
+            counted[3],
+            readEnvelopeText(path, FILE_FIELD.addOnVersion),
+            `${path}: ours`,
+        );
+        assertStrictEquals(counted[4], String(fight.updates.length), `${path}: the calls`);
+        assertStrictEquals(counted[5], String(fight.messages.length), `${path}: the messages`);
         checked += 1;
     }
-    assertEquals(checked, readRecordedFights().length, "every recording was re-earned");
+    assertStrictEquals(checked, readRecordedFights().length, "every recording was re-earned");
 });
 
 Deno.test("the cast each row states is the cast the recording's payloads state", () => {
@@ -154,12 +162,20 @@ Deno.test("the cast each row states is the cast the recording's payloads state",
         const cast = [...indexRecordedWarriors(fight).values()];
         const ours = cast.filter((warrior) => warrior.side === seat);
         const theirs = cast.filter((warrior) => warrior.side !== seat);
-        assertEquals(row[1], `${ours.length} vs ${theirs.length}`, `${fight.path}: the shape`);
-        assertEquals(row[3], formatCastText(ours), `${fight.path}: the reader's side`);
-        assertEquals(row[4], formatCastText(theirs), `${fight.path}: and the other`);
+        assertStrictEquals(
+            row[1],
+            `${ours.length} vs ${theirs.length}`,
+            `${fight.path}: the shape`,
+        );
+        assertStrictEquals(row[3], formatCastText(ours), `${fight.path}: the reader's side`);
+        assertStrictEquals(row[4], formatCastText(theirs), `${fight.path}: and the other`);
         checked += 1;
     }
-    assertEquals(checked, readRecordedFights().length, "every recording's cast was re-earned");
+    assertStrictEquals(
+        checked,
+        readRecordedFights().length,
+        "every recording's cast was re-earned",
+    );
 });
 
 function readReaderSide(fight: RecordedFight): number {

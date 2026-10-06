@@ -249,8 +249,9 @@ function addPinnedLevelToTally(tally: DrillTally, fight: PanelFight, pinnedCase:
             };
             const under = presentUnnamedCut(fight, pinnedCase, opened);
             if (under === null) continue;
-            assert(
-                under.opened === HALF_NAMED_OPENED.person,
+            assertStrictEquals(
+                under.opened,
+                HALF_NAMED_OPENED.person,
                 "a person opens onto their own keys",
             );
             for (const kind of under.kinds.rows) {
@@ -268,8 +269,9 @@ function addPinnedLevelToTally(tally: DrillTally, fight: PanelFight, pinnedCase:
             };
             const under = presentUnnamedCut(fight, pinnedCase, opened);
             if (under === null) continue;
-            assert(
-                under.opened === HALF_NAMED_OPENED.element,
+            assertStrictEquals(
+                under.opened,
+                HALF_NAMED_OPENED.element,
                 "and a key onto whoever carries it",
             );
             for (const person of under.rows) {
@@ -355,8 +357,9 @@ function addOpenedLevelToTally(
                     combatantId,
                 );
                 assertExists(held, "a row that opens has a level under it");
-                assert(
-                    held.opened === HALF_NAMED_OPENED.person,
+                assertStrictEquals(
+                    held.opened,
+                    HALF_NAMED_OPENED.person,
                     "and the level is one person's own keys",
                 );
                 const kindPlace = {
@@ -649,7 +652,11 @@ function formatUnnamedPairLines(
     const lines = [`      half-named  opens  ${formatInteger(unnamed.figure)}`];
     const held = presentUnnamedPairLevel(fight.statistics, fight.roster, screen, drill.combatantId);
     assertExists(held, "a row that opens has a level under it");
-    assert(held.opened === HALF_NAMED_OPENED.person, "and the level is one person's own keys");
+    assertStrictEquals(
+        held.opened,
+        HALF_NAMED_OPENED.person,
+        "and the level is one person's own keys",
+    );
     for (const kind of held.kinds.rows) {
         const opens = kind.doesOpenPart ? OPENS_WORD : LEAF_WORD;
         lines.push(`        kind    ${opens}  ${kind.element} ${formatInteger(kind.figure)}`);
@@ -668,7 +675,11 @@ function formatUnnamedLines(fight: PanelFight, pinnedCase: PinnedCase): string[]
         const opened = { kind: HALF_NAMED_OPENED.person, combatantId: person.combatantId };
         const under = presentUnnamedCut(fight, pinnedCase, opened);
         if (under === null) continue;
-        assert(under.opened === HALF_NAMED_OPENED.person, "a person opens onto their own keys");
+        assertStrictEquals(
+            under.opened,
+            HALF_NAMED_OPENED.person,
+            "a person opens onto their own keys",
+        );
         for (const kind of under.kinds.rows) {
             const opens = kind.doesOpenPart ? OPENS_WORD : LEAF_WORD;
             lines.push(`        kind    ${opens}  ${kind.element} ${formatInteger(kind.figure)}`);
@@ -682,7 +693,11 @@ function formatUnnamedLines(fight: PanelFight, pinnedCase: PinnedCase): string[]
         const opened = { kind: HALF_NAMED_OPENED.element, element: kind.element };
         const under = presentUnnamedCut(fight, pinnedCase, opened);
         if (under === null) continue;
-        assert(under.opened === HALF_NAMED_OPENED.element, "and a key onto whoever carries it");
+        assertStrictEquals(
+            under.opened,
+            HALF_NAMED_OPENED.element,
+            "and a key onto whoever carries it",
+        );
         for (const row of under.rows) {
             const named = row.name ?? NOBODY_NAMED;
             lines.push(`        person  leaf   ${named} ${formatInteger(row.figure)}`);

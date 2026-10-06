@@ -60,8 +60,12 @@ Deno.test("a rule is read off the line that opens it, and a sentence naming one 
         prefix: "E",
         number: 12,
     }, "a rule whose name is bold with its title");
-    assertEquals(readRuleName("- **Send anything over the network**"), null, "a Never is not");
-    assertEquals(readRuleName("  the rule **E4** names"), null, "nor a reference");
+    assertStrictEquals(
+        readRuleName("- **Send anything over the network**"),
+        null,
+        "a Never is not",
+    );
+    assertStrictEquals(readRuleName("  the rule **E4** names"), null, "nor a reference");
 });
 
 /** The rule a line opens, or null where it opens none. */
@@ -280,8 +284,12 @@ Deno.test("a skill's header is read off its frontmatter, and a line of its body 
         name: "gate",
         description: "Run it.",
     }, "the two fields the frontmatter states");
-    assertEquals(readSkillHeader(sample.slice(4).join("\n")), null, "a body with no frontmatter");
-    assertEquals(
+    assertStrictEquals(
+        readSkillHeader(sample.slice(4).join("\n")),
+        null,
+        "a body with no frontmatter",
+    );
+    assertStrictEquals(
         readSkillHeader(sample.slice(0, 3).join("\n")),
         null,
         "a frontmatter never closed",

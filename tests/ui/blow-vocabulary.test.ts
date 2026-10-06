@@ -7,7 +7,7 @@
  * subject and one that finds too much fail differently, and only the pair catches both.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
@@ -99,15 +99,23 @@ Deno.test("every defence and every statistic a recording states is one the panel
 });
 
 Deno.test("a key no table holds travels as the game wrote it, and none is invented", () => {
-    assertEquals(getWordsForBlowKey("+crit", null), "krytyk", "a proc the table holds is worded");
-    assertEquals(getWordsForBlowKey("blok", null), "blok", "and so is a defence");
-    assertEquals(
+    assertStrictEquals(
+        getWordsForBlowKey("+crit", null),
+        "krytyk",
+        "a proc the table holds is worded",
+    );
+    assertStrictEquals(getWordsForBlowKey("blok", null), "blok", "and so is a defence");
+    assertStrictEquals(
         getWordsForBlowKey("-tenacity", null),
         "-tenacity",
         "a key nothing has named reaches the reader as the game wrote it, sign and all",
     );
-    assertEquals(getWordsForDestroyed("acdmg"), "pancerz", "a statistic the table holds is worded");
-    assertEquals(
+    assertStrictEquals(
+        getWordsForDestroyed("acdmg"),
+        "pancerz",
+        "a statistic the table holds is worded",
+    );
+    assertStrictEquals(
         getWordsForDestroyed("newstat"),
         "newstat",
         "and one it does not is passed through",
@@ -115,15 +123,15 @@ Deno.test("a key no table holds travels as the game wrote it, and none is invent
 });
 
 Deno.test("what was destroyed carries the unit it was counted in, and never the wrong one", () => {
-    assertEquals(formatDestroyed("acdmg", 940), "940 pkt", "armour is counted in points");
-    assertEquals(
+    assertStrictEquals(formatDestroyed("acdmg", 940), "940 pkt", "armour is counted in points");
+    assertStrictEquals(
         formatDestroyed("resdmg", 26),
         "26 p.p.",
         "and resistance in percentage points, which is why the two are never totalled",
     );
     // The sample that must not flag: a statistic no table holds states its figure and no unit,
     // because inventing one would be inventing what the number counts.
-    assertEquals(
+    assertStrictEquals(
         formatDestroyed("newstat", 5),
         "5",
         "a statistic nobody has placed states none",
@@ -153,13 +161,17 @@ Deno.test("the panel asks the client for a key it has no word for, and for no ot
         unasked.push(key);
     }
     assertEquals(unasked, [], "a proc the material carries is worded by us or asked of the client");
-    assertEquals(asked.length, 3, "the three view,372 does not name, and nothing else (ADR 0030)");
+    assertStrictEquals(
+        asked.length,
+        3,
+        "the three view,372 does not name, and nothing else (ADR 0030)",
+    );
 });
 
 /** A page with no game on it is what every test and every browser without the client sees. */
 Deno.test("a key with no word travels as the game wrote it where nobody can be asked", () => {
-    assertEquals(getWordsForBlowKey("-tenacity", null), "-tenacity", "with no reader at all");
-    assertEquals(
+    assertStrictEquals(getWordsForBlowKey("-tenacity", null), "-tenacity", "with no reader at all");
+    assertStrictEquals(
         getWordsForBlowKey("-tenacity", () => null),
         "-tenacity",
         "and with a reader the client has no name for it in",
@@ -177,10 +189,18 @@ Deno.test("a key the panel words is never asked about, reader present or not", (
         asked.push(id);
         return "somebody else's word";
     };
-    assertEquals(getWordsForBlowKey("+crit", spy), "krytyk", "a proc we word is worded by us");
-    assertEquals(getWordsForBlowKey("blok", spy), "blok", "and so is a defence");
+    assertStrictEquals(
+        getWordsForBlowKey("+crit", spy),
+        "krytyk",
+        "a proc we word is worded by us",
+    );
+    assertStrictEquals(getWordsForBlowKey("blok", spy), "blok", "and so is a defence");
     assertEquals(asked, [], "and neither was put to the client");
-    assertEquals(getWordsForBlowKey("-tenacity", spy), "somebody else's word", "one we do not");
+    assertStrictEquals(
+        getWordsForBlowKey("-tenacity", spy),
+        "somebody else's word",
+        "one we do not",
+    );
     assertEquals(asked, ["msg_-tenacity"], "reaches it, under the id the table names");
 });
 
@@ -196,7 +216,11 @@ Deno.test("a key nothing here has placed is not put to the client either", () =>
         asked.push(id);
         return "a name";
     };
-    assertEquals(getWordsForBlowKey("+newkey", spy), "+newkey", "it travels as the game wrote it");
+    assertStrictEquals(
+        getWordsForBlowKey("+newkey", spy),
+        "+newkey",
+        "it travels as the game wrote it",
+    );
     assertEquals(asked, [], "and no id of it was ever asked for");
 });
 
@@ -209,8 +233,12 @@ Deno.test("a key nothing here has placed is not put to the client either", () =>
 Deno.test("a client label longer than the bound is refused, and one that fits is taken", () => {
     const fitting = "x".repeat(CLIENT_LABEL_CHARACTERS_MAXIMUM);
     const overlong = "x".repeat(CLIENT_LABEL_CHARACTERS_MAXIMUM + 1);
-    assertEquals(getWordsForBlowKey("-tenacity", () => fitting), fitting, "a label at the bound");
-    assertEquals(
+    assertStrictEquals(
+        getWordsForBlowKey("-tenacity", () => fitting),
+        fitting,
+        "a label at the bound",
+    );
+    assertStrictEquals(
         getWordsForBlowKey("-tenacity", () => overlong),
         "-tenacity",
         "and one past it falls back on the key rather than taking anything a dictionary says",
@@ -224,23 +252,31 @@ Deno.test("every proc the decoder places is placed at an end the register settle
     }
     assertEquals(unplaced, [], "a proc the material carries is one this table places");
     // The two the register refuses an end: they are decoded, and charged to nobody on purpose.
-    assertEquals(
+    assertStrictEquals(
         lookupProcEnd("-tenacity"),
         "unsettled",
         "whose it is has not been established",
     );
-    assertEquals(
+    assertStrictEquals(
         lookupProcEnd("+superspell-dispel"),
         "unsettled",
         "and neither has whose this is",
     );
-    assertEquals(
+    assertStrictEquals(
         lookupProcEnd("+superspell-prevented"),
         "unsettled",
         "nor whose charge the blow kept from being made ready",
     );
-    assertEquals(lookupProcEnd("+crit"), PROC_END.actor, "a crit is the doing of whoever swung");
-    assertEquals(lookupProcEnd("-evade"), PROC_END.target, "and an evade of whoever was swung at");
+    assertStrictEquals(
+        lookupProcEnd("+crit"),
+        PROC_END.actor,
+        "a crit is the doing of whoever swung",
+    );
+    assertStrictEquals(
+        lookupProcEnd("-evade"),
+        PROC_END.target,
+        "and an evade of whoever was swung at",
+    );
 });
 
 /** The end the key register settles a proc at, or undefined where it holds no such proc. */
@@ -317,10 +353,14 @@ Deno.test("a key naming a sub-line is a key a row already counts", () => {
         "every key narrowing a row lands on the row `+wound` opened",
     );
     // The sample that must not flag: the bare announcement and the crit stand alone.
-    assertEquals(getSubWordsForBlowKey("+wound"), "", "nothing weakened a bare wound");
-    assertEquals(getSubWordsForBlowKey("+crit"), "", "and a crit narrows no row of this kind");
+    assertStrictEquals(getSubWordsForBlowKey("+wound"), "", "nothing weakened a bare wound");
+    assertStrictEquals(
+        getSubWordsForBlowKey("+crit"),
+        "",
+        "and a crit narrows no row of this kind",
+    );
     // And the one that must: a weakened wound says so under the row it was counted in.
-    assertEquals(getSubWordsForBlowKey("+woundpoison"), "osłabiona", "a weakened one does");
+    assertStrictEquals(getSubWordsForBlowKey("+woundpoison"), "osłabiona", "a weakened one does");
 });
 
 /** Every key the recordings actually carried, read through the decoder rather than off the text. */

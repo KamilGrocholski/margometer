@@ -27,7 +27,7 @@ Deno.test("the shelf list draws exactly one row more than the shelf keeps", () =
 
 Deno.test("a full shelf with a fight still running draws, rather than going undrawn", () => {
     const rows = composeFullShelf();
-    assertEquals(
+    assertStrictEquals(
         rows.length,
         KEPT_MAXIMUM + 1,
         "the reported case is a shelf one row past keeping",

@@ -6,7 +6,7 @@
  * arithmetic is held here instead (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
@@ -59,7 +59,7 @@ const SAME_PERCENT = 0.005;
 
 Deno.test("the bonus fires under the share of the pool the help documents", () => {
     const occurrences = getOccurrences();
-    assertEquals(occurrences.length, 14, "every occurrence the material carries, 2026-09-09");
+    assertStrictEquals(occurrences.length, 14, "every occurrence the material carries, 2026-09-09");
     let closest = 0;
     for (const occurrence of occurrences) {
         // What they hold after, less what was put back, is what the blow left them on.
@@ -202,8 +202,8 @@ Deno.test("the damage that pairs with the bonus is the segments stating its own 
         );
         closed += 1;
     }
-    assertEquals(closed, 6, "every occurrence the segments can chain, 2026-08-30");
-    assertEquals(refused, 1, "and the one a share of the side moved out of reach first");
+    assertStrictEquals(closed, 6, "every occurrence the segments can chain, 2026-08-30");
+    assertStrictEquals(refused, 1, "and the one a share of the side moved out of reach first");
 });
 
 /**

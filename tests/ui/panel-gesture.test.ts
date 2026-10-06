@@ -3,7 +3,7 @@
  * window is dragged and reported moved, and what a pointer that states no place does.
  */
 
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { PANEL_WINDOW, type PanelPosition } from "#/src/ui/panel-choice.ts";
 import type { PanelEvent } from "#/src/ui/panel-document.ts";
 import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
@@ -102,7 +102,7 @@ Deno.test("a window opened with no place is dragged from its own opening, not th
         return asked;
     };
     const opened = drag(true);
-    assertEquals(opened.length, 1, "a window opened in its place reports the one move");
+    assertStrictEquals(opened.length, 1, "a window opened in its place reports the one move");
     assertEquals(drag(false), opened, "and one the page gave no size to moves from the same place");
 });
 
@@ -120,7 +120,7 @@ Deno.test("a pointer stating no place starts no drag, and the panel stays where 
     const stood = host.attributes.get("style");
     dragOnElement(host, "pointerdown", bar, { clientX: Number.NaN, clientY: 50 });
     dragOnElement(host, "pointermove", bar, { clientX: 400, clientY: 400 });
-    assertEquals(host.attributes.get("style"), stood, "a grab from nowhere moves nothing");
+    assertStrictEquals(host.attributes.get("style"), stood, "a grab from nowhere moves nothing");
 });
 
 Deno.test("a grab on a bar keeps the browser's own drag off it, and a press that grabs nothing not", () => {
@@ -145,9 +145,9 @@ Deno.test("a grab on a bar keeps the browser's own drag off it, and a press that
         });
     };
     press(Number.NaN);
-    assertEquals(prevented, 0, "a press from nowhere leaves the browser its own drag");
+    assertStrictEquals(prevented, 0, "a press from nowhere leaves the browser its own drag");
     press(100);
-    assertEquals(prevented, 1, "and a grab takes it, once");
+    assertStrictEquals(prevented, 1, "and a grab takes it, once");
 });
 
 Deno.test("a pointer the bar will not hold drops that hold, and the drag still moves", () => {
@@ -175,7 +175,7 @@ Deno.test("a pointer the bar will not hold drops that hold, and the drag still m
         [PANEL_LISTENER.capture],
         "the hold is what was dropped",
     );
-    assertEquals(
+    assertStrictEquals(
         host.attributes.get("style"),
         "left:140px;top:140px;--MargoMeter-meter-top:140px;right:auto",
         "and the panel went on following the hand",

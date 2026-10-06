@@ -8,7 +8,7 @@
  * one key is a row wearing its neighbour's card — the register refuses the second quietly.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import type { ShownScreen } from "#/src/ui/panel-element.ts";
 import {
     getMetricForPinned,
@@ -162,7 +162,7 @@ Deno.test("every level stands as tall as it drew, with one card per row and no t
     );
     // The reader is proved by what it reached as well as by what it passed: a walk that stopped
     // opening rows would agree with every level it never drew.
-    assertEquals(walked, 17_494, "every level the corpus draws, 2026-10-04");
+    assertStrictEquals(walked, 17_494, "every level the corpus draws, 2026-10-04");
 });
 
 /** One screen of one recording, with nothing open — the view every level is reached from. */
@@ -213,7 +213,7 @@ function readRegionDrawn(shown: ShownScreen): RegionDrawn {
     assertExists(list, "every screen the panel draws stands a list somewhere");
     const stated = list.attributes.get(STYLE_ATTRIBUTE) ?? "";
     const [named, count] = stated.split(":");
-    assertEquals(named, ROWS_VARIABLE, "and a list states its height and nothing else");
+    assertStrictEquals(named, ROWS_VARIABLE, "and a list states its height and nothing else");
     return {
         promised: Number(count),
         drawn: list.children.length,
@@ -522,17 +522,17 @@ Deno.test("a figure a reader cannot read is found, and one they can is left alon
         [],
         "zero is a measurement and a figure is a figure",
     );
-    assertEquals(
+    assertStrictEquals(
         getFiguresUnreadable({ ...NOTHING_DRAWN, figures: [NOT_KNOWN] }).length,
         1,
         "a figure that is not a number is a defect where a number was drawn",
     );
-    assertEquals(
+    assertStrictEquals(
         getFiguresUnreadable({ ...NOTHING_DRAWN, figures: ["-12"] }).length,
         1,
         "and so is one below nothing",
     );
-    assertEquals(
+    assertStrictEquals(
         getFiguresUnreadable({ ...NOTHING_DRAWN, widths: ["width:-30.0%;background:#fff"] }).length,
         1,
         "a bar the browser will drop the width of is the same defect one step later",
@@ -585,7 +585,7 @@ Deno.test("a row stating no place is read as apart, and one stating a place is n
         [],
         "a numbered row in the order and a blank one drawn apart are the two shapes drawn right",
     );
-    assertEquals(
+    assertStrictEquals(
         getPlacesMismarked({
             ...NOTHING_DRAWN,
             places: [{ stated: "", isApart: false, name: "", isSectionOpened: false }],
@@ -593,7 +593,7 @@ Deno.test("a row stating no place is read as apart, and one stating a place is n
         1,
         "a row holding no place and not saying so is the row this was written for",
     );
-    assertEquals(
+    assertStrictEquals(
         getPlacesMismarked({
             ...NOTHING_DRAWN,
             places: [{ stated: "7.", isApart: true, name: "", isSectionOpened: false }],
@@ -640,7 +640,7 @@ Deno.test("the closing row is read as holding a place, and the row summing a bou
         [],
         "the two shapes this decision settled, and a named row beside them",
     );
-    assertEquals(
+    assertStrictEquals(
         getPlacesWrongfullyHeld({
             ...NOTHING_DRAWN,
             places: [{ stated: "", isApart: true, name: closing, isSectionOpened: false }],
@@ -648,7 +648,7 @@ Deno.test("the closing row is read as holding a place, and the row summing a bou
         1,
         "the closing row back outside the order is what this was written for",
     );
-    assertEquals(
+    assertStrictEquals(
         getPlacesWrongfullyHeld({
             ...NOTHING_DRAWN,
             places: [{
@@ -686,7 +686,7 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
                 const bigger = drill.bySkill.rows.filter((skillRow) =>
                     skillRow.figure > plain.figure
                 );
-                assertEquals(plain.rank, bigger.length + 1, `${path}: its figure decides`);
+                assertStrictEquals(plain.rank, bigger.length + 1, `${path}: its figure decides`);
                 places.set(plain.rank, (places.get(plain.rank) ?? 0) + 1);
             }
         }
@@ -733,5 +733,5 @@ Deno.test("a pair states its parts largest first, the closing row among them", (
             }
         }
     }
-    assertEquals(closing, 484, "and the pairs a closing row stands in, 2026-10-04");
+    assertStrictEquals(closing, 484, "and the pairs a closing row stands in, 2026-10-04");
 });

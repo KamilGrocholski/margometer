@@ -393,8 +393,8 @@ Deno.test("a share is the row against the fight, and the shares come to one", ()
         assert(row.shareText.endsWith("%"), "and every row states its share of the whole");
         fill = Math.max(fill, row.fill);
     }
-    assertEquals(fill, 1, "the biggest figure on the screen fills its row");
-    assertEquals(reading.total, statistics.totals.damageDealt, "the total is the fight's");
+    assertStrictEquals(fill, 1, "the biggest figure on the screen fills its row");
+    assertStrictEquals(reading.total, statistics.totals.damageDealt, "the total is the fight's");
 });
 
 Deno.test("a combatant who did nothing is drawn at nothing, not left out", () => {
@@ -411,8 +411,10 @@ Deno.test("a combatant who did nothing is drawn at nothing, not left out", () =>
     );
     const idle = reading.rows.filter((row) => row.figure === 0);
     assert(idle.length > 0, "in this fight somebody dealt no damage at all");
-    for (const row of idle) assertEquals(row.shareText, "0%", "nothing measured, not unknown");
-    assertEquals(
+    for (const row of idle) {
+        assertStrictEquals(row.shareText, "0%", "nothing measured, not unknown");
+    }
+    assertStrictEquals(
         reading.rows.length,
         new Set(reading.rows.map((row) => row.combatantId)).size,
         "every combatant stands on one row of the ranking",
@@ -431,12 +433,16 @@ Deno.test("a fight that has just opened draws its whole cast at nothing", () => 
         null,
         NOTHING_SUSPECT,
     );
-    assertEquals(reading.rows.length, roster.byId.size, "everybody in the fight is on the screen");
-    assertEquals(reading.total, 0, "and nothing has happened yet");
+    assertStrictEquals(
+        reading.rows.length,
+        roster.byId.size,
+        "everybody in the fight is on the screen",
+    );
+    assertStrictEquals(reading.total, 0, "and nothing has happened yet");
     for (const row of reading.rows) {
-        assertEquals(row.figure, 0, "each of them at nothing");
-        assertEquals(row.shareText, "0%", "with no share of a fight that has none");
-        assertEquals(row.fill, 0, "and no bar drawn for a figure nobody has yet");
+        assertStrictEquals(row.figure, 0, "each of them at nothing");
+        assertStrictEquals(row.shareText, "0%", "with no share of a fight that has none");
+        assertStrictEquals(row.fill, 0, "and no bar drawn for a figure nobody has yet");
         assertExists(row.name, "and named, because the roster knew them before they acted");
     }
 });
@@ -451,9 +457,21 @@ Deno.test("a figure nobody can be charged with stands apart from the rows", () =
         null,
         NOTHING_SUSPECT,
     );
-    assertEquals(dealt.pinned.length, 1, "the dealing side pins the end the protocol left out");
-    assertEquals(dealt.pinned[0]?.end, UNNAMED_END.actor, "which on that screen is the actor");
-    assertEquals(dealt.pinned[0]?.figure, statistics.damageDealtByNobody, "at the figure it holds");
+    assertStrictEquals(
+        dealt.pinned.length,
+        1,
+        "the dealing side pins the end the protocol left out",
+    );
+    assertStrictEquals(
+        dealt.pinned[0]?.end,
+        UNNAMED_END.actor,
+        "which on that screen is the actor",
+    );
+    assertStrictEquals(
+        dealt.pinned[0]?.figure,
+        statistics.damageDealtByNobody,
+        "at the figure it holds",
+    );
     assert((dealt.pinned[0]?.figure ?? 0) > 0, "and in this fight there is such a figure");
     const taken = presentScreen(
         statistics,
@@ -465,7 +483,11 @@ Deno.test("a figure nobody can be charged with stands apart from the rows", () =
     );
     // Zero on this recording, which is the boundary the other side of the same rule: a figure of
     // nothing is not pinned at all, because a row saying nothing was lost states a loss.
-    assertEquals(statistics.damageTakenByNobody, 0, "every blow in this fight found somebody");
+    assertStrictEquals(
+        statistics.damageTakenByNobody,
+        0,
+        "every blow in this fight found somebody",
+    );
     assertEquals(
         taken.pinned.map((pinnedRow) => pinnedRow.placing),
         [PINNED_PLACING.cut],
@@ -483,7 +505,11 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
         null,
         NOTHING_SUSPECT,
     );
-    assertEquals(countUnreadMessages(whole.statistics), 0, "every key this fight carries is read");
+    assertStrictEquals(
+        countUnreadMessages(whole.statistics),
+        0,
+        "every key this fight carries is read",
+    );
     assertEquals(readable.suspicions, [], "so nothing on the screen is qualified");
 
     // A probe, because no recording carries an unread key any more: the next protocol change is
@@ -497,7 +523,11 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
         null,
         NOTHING_SUSPECT,
     );
-    assertEquals(short.suspicions.length, 1, "a key nobody read qualifies the figure beside it");
+    assertStrictEquals(
+        short.suspicions.length,
+        1,
+        "a key nobody read qualifies the figure beside it",
+    );
     for (const metric of SCREENS) {
         const any = presentScreen(
             tallyFightStatistics(events, new Map()),
@@ -507,7 +537,11 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
             null,
             NOTHING_SUSPECT,
         );
-        assertEquals(any.suspicions.length, 1, `${metric}: an unread key could carry anything`);
+        assertStrictEquals(
+            any.suspicions.length,
+            1,
+            `${metric}: an unread key could carry anything`,
+        );
     }
 });
 
@@ -528,7 +562,7 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
         tallyRecordedFight(HILDUR).view.events,
         new Map(),
     );
-    assertEquals(
+    assertStrictEquals(
         countUnreadMessages(unplaced),
         0,
         "nothing here is unread, so the casts are the whole of it",
@@ -536,7 +570,7 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
     assert(unplaced.sideHealsUnsized > 0, "and a cast went unplaced");
     // Every cast this fight stated is unsized here, so the two counts are the same figure — which
     // is what makes the sentence say *all of them* rather than a bare number (`develop ADR 0070`).
-    assertEquals(
+    assertStrictEquals(
         unplaced.sideHealsStated,
         unplaced.sideHealsUnsized,
         "none of them could be sized",
@@ -556,7 +590,7 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
         "the casts nobody could size, out of the casts the fight stated",
     );
     assert(statistics.sideHealsStated > 0, "and the fight read whole states the same casts");
-    assertEquals(statistics.sideHealsUnsized, 0, "with every one of them sized");
+    assertStrictEquals(statistics.sideHealsUnsized, 0, "with every one of them sized");
     for (const metric of SCREENS) {
         const reading = presentScreen(
             unplaced,
@@ -567,7 +601,7 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
             NOTHING_SUSPECT,
         );
         if (metric === PANEL_METRIC.healthRestored || metric === PANEL_METRIC.healthGiven) {
-            assertEquals(
+            assertStrictEquals(
                 reading.suspicions.length,
                 1,
                 "what a cast puts back is health, so both halves of it may be short",
@@ -604,11 +638,15 @@ Deno.test("every recording composes every screen without inventing a row", () =>
                 NOTHING_SUSPECT,
             );
             const ids = new Set(reading.rows.map((row) => row.combatantId));
-            assertEquals(ids.size, reading.rows.length, `${path}: a combatant drawn twice`);
+            assertStrictEquals(ids.size, reading.rows.length, `${path}: a combatant drawn twice`);
             for (const row of reading.rows) {
                 assert(row.figure >= 0, `${path}: a figure below nothing`);
                 if (row.name === null) continue;
-                assertEquals(row.name, roster.byId.get(row.combatantId)?.name, `${path}: a name`);
+                assertStrictEquals(
+                    row.name,
+                    roster.byId.get(row.combatantId)?.name,
+                    `${path}: a name`,
+                );
             }
         }
     }
@@ -633,8 +671,12 @@ Deno.test("an opened row states the same figure, cut by whom each blow reached",
         topRow.combatantId,
     );
     assertExists(drill, "a screen with a cut opens");
-    assertEquals(drill.total, topRow.figure, "an opened row states the figure its row stated");
-    assertEquals(drill.name, topRow.name, "and belongs to the same combatant");
+    assertStrictEquals(
+        drill.total,
+        topRow.figure,
+        "an opened row states the figure its row stated",
+    );
+    assertStrictEquals(drill.name, topRow.name, "and belongs to the same combatant");
     let dealt = 0;
     for (const row of drill.byOtherEnd.rows) dealt += row.figure;
     assert(dealt > 0, "in this fight the blows reached somebody");
@@ -670,12 +712,16 @@ Deno.test("the same figure is cut a second time, by the kind of damage each blow
     for (const row of drill.byElement.rows) dealt += row.figure;
     // Unlike the cut by whom, this one accounts for the whole figure: a blow the protocol tied to
     // nobody still states what it was dealt with, and what no blow carried is stated as its own.
-    assertEquals(
+    assertStrictEquals(
         dealt + (drill.byElement.noKind?.figure ?? 0),
         drill.total,
         "every point of the figure is in one kind or in none of them",
     );
-    assertEquals(drill.byElement.noKind, null, "in this fight nothing was lost outside a blow");
+    assertStrictEquals(
+        drill.byElement.noKind,
+        null,
+        "in this fight nothing was lost outside a blow",
+    );
     assert(drill.byElement.rows.length > 1, "and the blows carried more than one kind");
     for (const [rowIndex, row] of drill.byElement.rows.entries()) {
         assert(row.element.length > 0, "a kind is the token the protocol stated");
@@ -737,11 +783,19 @@ Deno.test("a screen that cuts by nobody still cuts by what the blows carried", (
     const drill = presentOpenedLevel(alone, roster, PANEL_METRIC.damageTaken, -10000249);
     assertExists(drill, "the row opens");
     assertEquals(drill.byOtherEnd.rows, [], "with nobody at the other end of the blow");
-    assertEquals(drill.byOtherEnd.halfNamed?.figure, 40, "which the cut says outright");
-    assertEquals(drill.byElement.rows.length, 1, "and one kind of damage all the same");
-    assertEquals(drill.byElement.rows[0]?.element, "dmgf", "the one the protocol stated");
-    assertEquals(drill.byElement.rows[0]?.figure, 40, "at what landed, never what was put out");
-    assertEquals(drill.byElement.rows[0]?.shareText, "100%", "the whole of this row's figure");
+    assertStrictEquals(drill.byOtherEnd.halfNamed?.figure, 40, "which the cut says outright");
+    assertStrictEquals(drill.byElement.rows.length, 1, "and one kind of damage all the same");
+    assertStrictEquals(drill.byElement.rows[0]?.element, "dmgf", "the one the protocol stated");
+    assertStrictEquals(
+        drill.byElement.rows[0]?.figure,
+        40,
+        "at what landed, never what was put out",
+    );
+    assertStrictEquals(
+        drill.byElement.rows[0]?.shareText,
+        "100%",
+        "the whole of this row's figure",
+    );
 });
 
 /**
@@ -757,7 +811,7 @@ Deno.test("what a pool took stands under the skill that swung and as a kind of i
     for (const [metric, combatantId] of ends as [PanelMetric, number][]) {
         const drill = presentOpenedLevel(statistics, roster, metric, combatantId);
         assertExists(drill, `${metric}: the row opens`);
-        assertEquals(drill.total, 427, `${metric}: at what landed and what the pools took`);
+        assertStrictEquals(drill.total, 427, `${metric}: at what landed and what the pools took`);
         assertEquals(
             drill.byElement.rows.map((kind) => [kind.element, kind.figure]),
             [["absorbm", 294], ["dmgd", 81], ["absorb", 44], ["dmgc", 8]],
@@ -768,7 +822,7 @@ Deno.test("what a pool took stands under the skill that swung and as a kind of i
             [427],
             `${metric}: the whole of it under the announcement`,
         );
-        assertEquals(
+        assertStrictEquals(
             drill.bySkill.closing,
             null,
             `${metric}: and nothing closing into a plain blow`,
@@ -795,8 +849,8 @@ Deno.test("a row's detail carries what a pool took, as the figures counted it", 
             const taken = row.detail.damageTakenAbsorbedByDefence;
             const sum = (parts: readonly CutPart[]) =>
                 parts.reduce((all, cutPart) => all + cutPart.figure, 0);
-            assertEquals(sum(dealt), figures?.damageDealtAbsorbed ?? 0, `${metric}: dealing`);
-            assertEquals(sum(taken), figures?.damageTakenAbsorbed ?? 0, `${metric}: struck`);
+            assertStrictEquals(sum(dealt), figures?.damageDealtAbsorbed ?? 0, `${metric}: dealing`);
+            assertStrictEquals(sum(taken), figures?.damageTakenAbsorbed ?? 0, `${metric}: struck`);
             drained += sum(dealt) + sum(taken);
         }
     }
@@ -810,7 +864,7 @@ Deno.test("every screen opens, and a row belonging to nobody in the fight opens 
     for (const screen of SCREENS) {
         const drill = presentOpenedLevel(statistics, roster, screen, held);
         assertExists(drill, `${screen}: a row on every screen opens onto its own figure`);
-        assertEquals(
+        assertStrictEquals(
             drill.total,
             drill.byOtherEnd.rows.reduce(
                 (sum, otherEnd) => sum + otherEnd.figure,
@@ -838,17 +892,21 @@ Deno.test("every screen opens, and a row belonging to nobody in the fight opens 
     // which is the state every fight is in for its first payloads. Over `captures/` on
     // 2026-08-29 every recording names everybody before it ends, so the fight is stood up here.
     const opening = tallyFightStatistics([], new Map());
-    assertEquals(opening.byCombatantId.size, 0, "a fight nothing has happened in names nobody");
+    assertStrictEquals(
+        opening.byCombatantId.size,
+        0,
+        "a fight nothing has happened in names nobody",
+    );
     const opened = presentOpenedLevel(opening, roster, PANEL_METRIC.damageDealt, held);
     assertExists(opened, "and a row of it still opens");
-    assertEquals(opened.total, 0, "onto a figure of nothing");
+    assertStrictEquals(opened.total, 0, "onto a figure of nothing");
     assertEquals(opened.byOtherEnd.rows, [], "with no cut of it at all");
-    assertEquals(
+    assertStrictEquals(
         presentOpenedLevel(opening, roster, PANEL_METRIC.damageDealt, 0),
         null,
         "while a row belonging to nobody in the fight still opens nothing",
     );
-    assertEquals(
+    assertStrictEquals(
         presentOpenedLevel(statistics, roster, PANEL_METRIC.damageDealt, 0),
         null,
         "and a row belonging to nobody in the fight opens nothing at all",
@@ -863,11 +921,15 @@ Deno.test("health that went down outside a blow is a kind of its own, named by i
     const alone = tallyFightStatistics(events, new Map());
     const drill = presentOpenedLevel(alone, roster, PANEL_METRIC.damageTaken, POISONED_ID);
     assertExists(drill, "the row opens");
-    assertEquals(drill.byElement.rows.length, 1, "with one kind under it");
-    assertEquals(drill.byElement.rows[0]?.element, "poison", "the key the protocol stated");
-    assertEquals(drill.byElement.rows[0]?.figure, 140, "at what went out under it");
-    assertEquals(drill.byElement.noKind, null, "and nothing left over for no kind at all");
-    assertEquals(drill.byOtherEnd.halfNamed?.figure, 140, "while nobody is named for doing it");
+    assertStrictEquals(drill.byElement.rows.length, 1, "with one kind under it");
+    assertStrictEquals(drill.byElement.rows[0]?.element, "poison", "the key the protocol stated");
+    assertStrictEquals(drill.byElement.rows[0]?.figure, 140, "at what went out under it");
+    assertStrictEquals(drill.byElement.noKind, null, "and nothing left over for no kind at all");
+    assertStrictEquals(
+        drill.byOtherEnd.halfNamed?.figure,
+        140,
+        "while nobody is named for doing it",
+    );
 });
 
 /**
@@ -891,7 +953,7 @@ Deno.test("every point a kind cut is made of states its kind, on every recording
                 assertExists(drill, `${path}: ${metric} cuts further`);
                 const stated = drill.byElement.rows.reduce((sum, kind) => sum + kind.figure, 0);
                 cut += drill.byElement.rows.length;
-                assertEquals(
+                assertStrictEquals(
                     drill.byElement.noKind,
                     null,
                     `${path}: ${metric} holds a figure no kind was written for`,
@@ -901,16 +963,24 @@ Deno.test("every point a kind cut is made of states its kind, on every recording
                     if (!HEALTH_LOSS_WORD_BY_KEY.has(row.element)) continue;
                     byKey += row.figure;
                 }
-                assertEquals(stated, drill.total, `${path}: the kinds come to the whole figure`);
+                assertStrictEquals(
+                    stated,
+                    drill.total,
+                    `${path}: the kinds come to the whole figure`,
+                );
             }
         }
     }
     // Zero is a boundary (**W5**): a walk that opened nothing would agree with every screen it
     // never cut, so the count it reached is stated beside what it found.
-    assertEquals(cut, 2351, "the kind rows the corpus draws, 2026-10-04");
+    assertStrictEquals(cut, 2351, "the kind rows the corpus draws, 2026-10-04");
     // What a blow never carried, which the cut would have to call unknown were the key it moved
     // under not read as a kind.
-    assertEquals(byKey, 775402, "and the health that moved outside a blow is named by its key");
+    assertStrictEquals(
+        byKey,
+        775402,
+        "and the health that moved outside a blow is named by its key",
+    );
 });
 
 /**
@@ -949,8 +1019,14 @@ Deno.test("a side lists that side alone, and the two sides together are everybod
     );
     assert(ours.rows.length > 0, "somebody is on the reader's side");
     assert(theirs.rows.length > 0, "and somebody is opposite them");
-    assertEquals(ours.rows.length + theirs.rows.length, everyone.rows.length, "and nobody is lost");
-    for (const row of ours.rows) assertEquals(row.side, readerSide, "a listed row is on that side");
+    assertStrictEquals(
+        ours.rows.length + theirs.rows.length,
+        everyone.rows.length,
+        "and nobody is lost",
+    );
+    for (const row of ours.rows) {
+        assertStrictEquals(row.side, readerSide, "a listed row is on that side");
+    }
     for (const row of theirs.rows) assert(row.side !== readerSide, "and the other list is not");
 });
 
@@ -968,14 +1044,14 @@ Deno.test("a share on one side's list is a share of that side, and the shares co
     );
     let figure = 0;
     for (const row of ours.rows) figure += row.figure;
-    assertEquals(ours.total, figure, "the total is the list's own, not the fight's");
+    assertStrictEquals(ours.total, figure, "the total is the list's own, not the fight's");
     assert(ours.total < statistics.totals.damageDealt, "which is less than the whole fight");
     const shares = ours.rows.map((row) => Number(row.shareText.slice(0, -1)));
     const apart = ours.pinned.filter((pinnedRow) => pinnedRow.placing === PINNED_PLACING.apart);
     // The pinned figure is a part of this side like any row, so the hundred is theirs together.
     const pinned = apart.map((pinnedRow) => Number(pinnedRow.shareText.slice(0, -1)));
     const together = [...shares, ...pinned].reduce((sum, share) => sum + share, 0);
-    assertEquals(together, 100, "and every part of it together is that side, once");
+    assertStrictEquals(together, 100, "and every part of it together is that side, once");
 });
 
 /**
@@ -993,8 +1069,8 @@ Deno.test("a side that did nothing on this screen is drawn, at nothing", () => {
         NOTHING_SUSPECT,
     );
     assert(empty.rows.length > 0, "the people are still on the list");
-    assertEquals(empty.total, 0, "and the list totals nothing");
-    for (const row of empty.rows) assertEquals(row.shareText, "0%", "no share of a nothing");
+    assertStrictEquals(empty.total, 0, "and the list totals nothing");
+    for (const row of empty.rows) assertStrictEquals(row.shareText, "0%", "no share of a nothing");
     assert(
         statistics.totals.damageDealt > 0,
         "while the fight this roster came from has one",
@@ -1020,15 +1096,15 @@ Deno.test("a reader whose own side nobody stated is shown everybody, whatever wa
             null,
             NOTHING_SUSPECT,
         );
-        assertEquals(
+        assertStrictEquals(
             reading.rows.length,
             everyone.rows.length,
             `${choice}: nobody is filtered out`,
         );
-        assertEquals(reading.total, everyone.total, "and the total stays the fight's own");
+        assertStrictEquals(reading.total, everyone.total, "and the total stays the fight's own");
         // The height goes with the list rather than with the strip: a window a row shorter than
         // the ranking is the shape of a side, and there is no side here to have narrowed to.
-        assertEquals(
+        assertStrictEquals(
             reading.rowsVisibleCount,
             everyone.rowsVisibleCount,
             `${choice}: a list of everybody stands as tall as one`,
@@ -1055,7 +1131,7 @@ Deno.test("a list narrowed to one side stands at the height of one", () => {
         readRows(SIDE_CHOICE.reader) < everyone,
         "one side is a shorter window than the whole fight",
     );
-    assertEquals(
+    assertStrictEquals(
         readRows(SIDE_CHOICE.opposing),
         readRows(SIDE_CHOICE.reader),
         "and both sides are the same shape",
@@ -1074,8 +1150,12 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
     assertExists(readerSide, "the fight states a side");
     const events = decodeFightMessages([NEITHER_END], roster, BLOWS_GRANTED);
     const statistics = tallyFightStatistics(events, new Map());
-    assertEquals(statistics.damageByNeitherEnd, 700, "the fight is one blow naming neither end");
-    assertEquals(statistics.byCombatantId.size, 0, "and it stands on nobody's row");
+    assertStrictEquals(
+        statistics.damageByNeitherEnd,
+        700,
+        "the fight is one blow naming neither end",
+    );
+    assertStrictEquals(statistics.byCombatantId.size, 0, "and it stands on nobody's row");
     const everyone = presentScreen(
         statistics,
         roster,
@@ -1089,7 +1169,7 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
         [700],
         "under everybody it is drawn",
     );
-    assertEquals(everyone.sides?.nobody, 700, "and the strip charges it to nobody");
+    assertStrictEquals(everyone.sides?.nobody, 700, "and the strip charges it to nobody");
     for (const choice of [SIDE_CHOICE.reader, SIDE_CHOICE.opposing] as const) {
         const narrowed = presentScreen(
             statistics,
@@ -1146,13 +1226,25 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
                             held !== null,
                             `${metric} ${choice}: a drawn row opens onto a level`,
                         );
-                        assertEquals(held.total, pinned.figure, `${metric} ${choice}: same figure`);
+                        assertStrictEquals(
+                            held.total,
+                            pinned.figure,
+                            `${metric} ${choice}: same figure`,
+                        );
                         const under = held.rows.reduce((sum, row) => sum + row.figure, 0) +
                             (held.neitherEnd?.figure ?? 0);
-                        assertEquals(under, pinned.figure, `${metric} ${choice}: the level totals`);
+                        assertStrictEquals(
+                            under,
+                            pinned.figure,
+                            `${metric} ${choice}: the level totals`,
+                        );
                         const dealt = held.kinds.rows.reduce((sum, kind) => sum + kind.figure, 0);
-                        assertEquals(dealt, pinned.figure, `${metric} ${choice}: the kinds total`);
-                        assertEquals(
+                        assertStrictEquals(
+                            dealt,
+                            pinned.figure,
+                            `${metric} ${choice}: the kinds total`,
+                        );
+                        assertStrictEquals(
                             held.kinds.noKind,
                             null,
                             `${metric} ${choice}: nothing of it falls outside a key`,
@@ -1193,14 +1285,14 @@ function assertHalfNamedCutTotals(
             HALF_NAMED_OPENED.person,
             "onto what their own share was dealt with",
         );
-        assertEquals(under.total, person.figure, "at their own figure and no other");
+        assertStrictEquals(under.total, person.figure, "at their own figure and no other");
         const dealt = under.kinds.rows.reduce((sum, kind) => sum + kind.figure, 0);
-        assertEquals(dealt, person.figure, "which its keys come to exactly");
-        assertEquals(under.kinds.noKind, null, "with nothing of it outside a key");
+        assertStrictEquals(dealt, person.figure, "which its keys come to exactly");
+        assertStrictEquals(under.kinds.noKind, null, "with nothing of it outside a key");
     }
     for (const kind of held.kinds.rows) {
         const under = open({ kind: HALF_NAMED_OPENED.element, element: kind.element });
-        assertEquals(
+        assertStrictEquals(
             under !== null,
             kind.doesOpenPart,
             `${kind.element}: opens where a row holds it`,
@@ -1211,10 +1303,10 @@ function assertHalfNamedCutTotals(
             HALF_NAMED_OPENED.element,
             "a key opens onto whoever carries it",
         );
-        assertEquals(under.total, kind.figure, "at the key's own figure");
+        assertStrictEquals(under.total, kind.figure, "at the key's own figure");
         const carried = under.rows.reduce((sum, row) => sum + row.figure, 0) +
             (under.neitherEnd?.figure ?? 0);
-        assertEquals(carried, kind.figure, "which its people come to exactly");
+        assertStrictEquals(carried, kind.figure, "which its people come to exactly");
     }
 }
 
@@ -1229,12 +1321,16 @@ Deno.test("a pinned row opens onto the end the game did name, and never onto a g
     assertExists(pinnedCase, "damage dealt pins the striker the game left out");
     const held = presentUnnamedLevel(statistics, roster, pinnedCase, SIDE_CHOICE.everyone, null);
     assertExists(held, "and this fight has such a figure");
-    assertEquals(held.end, UNNAMED_END.actor, "the row goes on saying which end was left out");
+    assertStrictEquals(
+        held.end,
+        UNNAMED_END.actor,
+        "the row goes on saying which end was left out",
+    );
     assert(held.rows.length > 0, "and the level under it names the other one");
     for (const row of held.rows) {
         const figures = statistics.byCombatantId.get(row.combatantId);
         assertExists(figures, "a row on the level is somebody the statistics hold");
-        assertEquals(
+        assertStrictEquals(
             row.figure,
             figures.damageTakenFromNobody,
             "and carries what they took from nobody, not a share of anything",
@@ -1258,7 +1354,7 @@ Deno.test("a half-named point opens a level, and none at all opens nothing", () 
         decodeFightMessages([], roster, BLOWS_GRANTED),
         new Map(),
     );
-    assertEquals(
+    assertStrictEquals(
         presentUnnamedLevel(nothing, roster, pinnedCase, SIDE_CHOICE.everyone, null),
         null,
         "a fight with no such figure opens nothing",
@@ -1268,7 +1364,7 @@ Deno.test("a half-named point opens a level, and none at all opens nothing", () 
     const statistics = tallyFightStatistics(events, new Map());
     const held = presentUnnamedLevel(statistics, roster, pinnedCase, SIDE_CHOICE.everyone, null);
     assertExists(held, "and one point of it opens a level");
-    assertEquals(held.total, 1, "of that one point");
+    assertStrictEquals(held.total, 1, "of that one point");
     assertEquals(held.rows.map((row) => row.combatantId), [struck.id], "under whoever took it");
     assertEquals(
         held.kinds.rows.map((row) => [row.element, row.figure]),
@@ -1295,14 +1391,14 @@ Deno.test("a pinned row says what its figure was dealt with, key by key", () => 
         "the keys the protocol stated it under, ranked by the figure",
     );
     const dealt = held.kinds.rows.reduce((sum, kind) => sum + kind.figure, 0);
-    assertEquals(dealt, held.total, "and they are the whole of it");
+    assertStrictEquals(dealt, held.total, "and they are the whole of it");
     const reached = held.rows.reduce((sum, row) => sum + row.figure, 0);
-    assertEquals(
+    assertStrictEquals(
         reached,
         held.total,
         "as are the people, which is what makes them two cuts of one",
     );
-    assertEquals(
+    assertStrictEquals(
         held.kinds.rows.every((kind) => kind.doesOpenPart),
         true,
         "and each opens, because somebody's row carries it",
@@ -1347,9 +1443,17 @@ Deno.test("a pinned row carries the cut the level under it draws, on every recor
                     held.kinds.rows.map((kind) => [kind.element, kind.figure, kind.shareText]),
                     `${path} ${row.case}: the row states the level's own rows`,
                 );
-                assertEquals(row.kinds.noKind, null, `${path} ${row.case}: and nothing besides`);
+                assertStrictEquals(
+                    row.kinds.noKind,
+                    null,
+                    `${path} ${row.case}: and nothing besides`,
+                );
                 const kinds = row.kinds.rows.reduce((sum, kind) => sum + kind.figure, 0);
-                assertEquals(kinds, row.figure, `${path} ${row.case}: coming to the figure itself`);
+                assertStrictEquals(
+                    kinds,
+                    row.figure,
+                    `${path} ${row.case}: coming to the figure itself`,
+                );
                 pinnedRowsRead += 1;
             }
         }
@@ -1376,7 +1480,7 @@ Deno.test("a key opened carries the part of it nobody's row holds", () => {
     assertExists(pinnedCase, "damage dealt pins the striker the game left out");
     const held = presentUnnamedLevel(statistics, roster, pinnedCase, SIDE_CHOICE.everyone, null);
     assertExists(held, "the figure is pinned, so it opens");
-    assertEquals(held.total, 701, "one point on a row, seven hundred on nobody's");
+    assertStrictEquals(held.total, 701, "one point on a row, seven hundred on nobody's");
     assertEquals(
         held.kinds.rows.map((kind) => [kind.element, kind.figure]),
         [["dmg", 701]],
@@ -1396,8 +1500,8 @@ Deno.test("a key opened carries the part of it nobody's row holds", () => {
     assertExists(under, "which opens, because somebody's row carries part of it");
     assertStrictEquals(under.opened, HALF_NAMED_OPENED.element, "onto whoever carries it");
     assertEquals(under.rows.map((row) => row.figure), [1], "the point that is on a row");
-    assertEquals(under.neitherEnd?.figure, 700, "and the seven hundred that is on none");
-    assertEquals(under.total, 701, "which is the figure the key above it states");
+    assertStrictEquals(under.neitherEnd?.figure, 700, "and the seven hundred that is on none");
+    assertStrictEquals(under.total, 701, "which is the figure the key above it states");
 });
 
 /**
@@ -1415,8 +1519,12 @@ Deno.test("a blow with nobody at the far end opens onto whoever struck it", () =
         BLOWS_GRANTED,
     );
     const statistics = tallyFightStatistics(events, new Map());
-    assertEquals(statistics.damageTakenByNobody, 500, "the blow found nobody");
-    assertEquals(statistics.damageByNeitherEnd, 0, "but it was struck by somebody the game named");
+    assertStrictEquals(statistics.damageTakenByNobody, 500, "the blow found nobody");
+    assertStrictEquals(
+        statistics.damageByNeitherEnd,
+        0,
+        "but it was struck by somebody the game named",
+    );
     const pinnedCase = lookupPinnedCase(PANEL_METRIC.damageTaken, UNNAMED_END.target);
     assertExists(pinnedCase, "damage taken pins the target the game left out");
     const held = presentUnnamedLevel(
@@ -1427,14 +1535,14 @@ Deno.test("a blow with nobody at the far end opens onto whoever struck it", () =
         striker.side,
     );
     assertExists(held, "the figure is pinned, so it opens");
-    assertEquals(
+    assertStrictEquals(
         held.end,
         UNNAMED_END.target,
         "the row goes on saying the target was the end left out",
     );
     assertEquals(held.rows.map((row) => row.combatantId), [striker.id], "and names who swung");
-    assertEquals(held.rows[0]?.figure, 500, "at the whole of the figure");
-    assertEquals(held.neitherEnd, null, "with nothing left over, because one end was named");
+    assertStrictEquals(held.rows[0]?.figure, 500, "at the whole of the figure");
+    assertStrictEquals(held.neitherEnd, null, "with nothing left over, because one end was named");
     assertEquals(
         held.kinds.rows.map((kind) => [kind.element, kind.figure]),
         [["dmg", 500]],
@@ -1464,15 +1572,19 @@ Deno.test("what named neither end closes the level it is inside", () => {
     );
     assertExists(held, "the figure is pinned, so it opens");
     assertEquals(held.rows, [], "and nobody stands under it, because nobody was named");
-    assertEquals(held.neitherEnd?.figure, 700, "the whole of it closes against what named no end");
-    assertEquals(held.total, 700, "which is the figure the row states");
+    assertStrictEquals(
+        held.neitherEnd?.figure,
+        700,
+        "the whole of it closes against what named no end",
+    );
+    assertStrictEquals(held.total, 700, "which is the figure the row states");
     assertEquals(
         held.kinds.rows.map((kind) => [kind.element, kind.figure]),
         [["dmg", 700]],
         "and it still says what it was dealt with: a key is stated against the movement itself",
     );
     for (const choice of [SIDE_CHOICE.reader, SIDE_CHOICE.opposing] as const) {
-        assertEquals(
+        assertStrictEquals(
             presentUnnamedLevel(statistics, roster, pinnedCase, choice, readerSide),
             null,
             `${choice}: no side is charged with it, so no side opens it`,
@@ -1509,7 +1621,7 @@ Deno.test("a one-side list divides by the figure the strip states for that side"
                     const apart = reading.pinned
                         .filter((pinnedRow) => pinnedRow.placing === PINNED_PLACING.apart)
                         .reduce((sum, pinnedRow) => sum + pinnedRow.figure, 0);
-                    assertEquals(
+                    assertStrictEquals(
                         reading.total + apart,
                         choice === SIDE_CHOICE.reader ? sides.reader : sides.opposing,
                         `${path}: ${metric} under ${choice} is that side's own figure`,
@@ -1520,8 +1632,12 @@ Deno.test("a one-side list divides by the figure the strip states for that side"
             }
         }
     }
-    assertEquals(checked, 592, "every seat of the corpus, on every screen, both ways round");
-    assertEquals(charged, 106, "and this many of them stand over a figure charged to that side");
+    assertStrictEquals(checked, 592, "every seat of the corpus, on every screen, both ways round");
+    assertStrictEquals(
+        charged,
+        106,
+        "and this many of them stand over a figure charged to that side",
+    );
 });
 
 /**
@@ -1557,7 +1673,7 @@ Deno.test("what one side dealt with no striker named is what the other took from
                 pinnedRow.placing === PINNED_PLACING.apart
             );
             const cut = taken.pinned.find((pinnedRow) => pinnedRow.placing === PINNED_PLACING.cut);
-            assertEquals(
+            assertStrictEquals(
                 apart?.figure ?? 0,
                 cut?.figure ?? 0,
                 `${path}: what we dealt with no striker is what they took from nobody`,
@@ -1566,8 +1682,8 @@ Deno.test("what one side dealt with no striker named is what the other took from
             together += apart?.figure ?? 0;
         }
     }
-    assertEquals(seats, 74, "every seat of the corpus reads the mirror");
-    assertEquals(together, 737527, "and this is what it comes to over all of them");
+    assertStrictEquals(seats, 74, "every seat of the corpus reads the mirror");
+    assertStrictEquals(together, 737527, "and this is what it comes to over all of them");
 });
 
 /**
@@ -1636,14 +1752,14 @@ Deno.test("a giver the protocol left out is charged to the side the health reach
         [PINNED_PLACING.apart],
         "no row of ours holds it",
     );
-    assertEquals(given.pinned[0]?.figure, 500, "at the whole of the figure");
+    assertStrictEquals(given.pinned[0]?.figure, 500, "at the whole of the figure");
     const restored = presentMetricScreen(PANEL_METRIC.healthRestored, SIDE_CHOICE.reader);
     assertEquals(
         restored.pinned.map((pinnedRow) => pinnedRow.placing),
         [PINNED_PLACING.cut],
         "the row that got it does",
     );
-    assertEquals(restored.pinned[0]?.figure, 500, "at the same figure, said once");
+    assertStrictEquals(restored.pinned[0]?.figure, 500, "at the same figure, said once");
     assertEquals(
         presentMetricScreen(PANEL_METRIC.healthGiven, SIDE_CHOICE.opposing).pinned,
         [],
@@ -1684,7 +1800,7 @@ Deno.test("healing given is a screen of its own, and the two halves come to one 
         NOTHING_SUSPECT,
     );
     assert(given.total > 0, "somebody in this fight put health back");
-    assertEquals(
+    assertStrictEquals(
         given.total + (given.pinned[0]?.figure ?? 0),
         received.total,
         "and every point given is a point somebody received",
@@ -1722,19 +1838,19 @@ Deno.test("healing no giver can be read for is apart on one screen and a cut on 
         [PINNED_PLACING.apart],
         "no row above it holds it",
     );
-    assertEquals(
+    assertStrictEquals(
         given.pinned[0]?.end,
         UNNAMED_END.actor,
         "and the end it could not name is the giver",
     );
-    assertEquals(given.pinned[0]?.figure, 400, "at the whole of the figure");
+    assertStrictEquals(given.pinned[0]?.figure, 400, "at the whole of the figure");
     const received = presentMetricScreen(PANEL_METRIC.healthRestored);
     assertEquals(
         received.pinned.map((pinnedRow) => pinnedRow.placing),
         [PINNED_PLACING.cut],
         "the rows there hold it",
     );
-    assertEquals(received.pinned[0]?.figure, 400, "at the same figure, said once");
+    assertStrictEquals(received.pinned[0]?.figure, 400, "at the same figure, said once");
     // Both open onto the same person, because on both screens the end the game named is whoever
     // the health reached. No recording pins either, so this is where the two cases are held.
     for (
@@ -1748,19 +1864,23 @@ Deno.test("healing no giver can be read for is apart on one screen and a cut on 
             null,
         );
         assertExists(held, `${pinnedCase}: the pinned row opens`);
-        assertEquals(held.end, UNNAMED_END.actor, `${pinnedCase}: onto the end the game did name`);
-        assertEquals(held.total, 400, `${pinnedCase}: at the figure the row states`);
+        assertStrictEquals(
+            held.end,
+            UNNAMED_END.actor,
+            `${pinnedCase}: onto the end the game did name`,
+        );
+        assertStrictEquals(held.total, 400, `${pinnedCase}: at the figure the row states`);
         assertEquals(
             held.rows.map((row) => row.figure),
             [400],
             `${pinnedCase}: on one person's row`,
         );
-        assertEquals(
+        assertStrictEquals(
             held.rows[0]?.combatantId,
             healed,
             `${pinnedCase}: whoever the health reached`,
         );
-        assertEquals(held.neitherEnd, null, `${pinnedCase}: healing never names neither end`);
+        assertStrictEquals(held.neitherEnd, null, `${pinnedCase}: healing never names neither end`);
         assertEquals(
             held.kinds.rows.map((kind) => [kind.element, kind.figure]),
             [["bandage", 400]],
@@ -1794,7 +1914,7 @@ Deno.test("what reached somebody is cut by the skill's name, whoever announced i
     );
     assertExists(drill, "and their row opens");
     const names = drill.bySkill.rows.map((skillRow) => getTextForNamedPart(skillRow.part));
-    assertEquals(names.length, new Set(names).size, "no name is drawn twice");
+    assertStrictEquals(names.length, new Set(names).size, "no name is drawn twice");
     assertArrayIncludes(names, ["Leczenie ran"], "the skill both healers announced is one row");
     const held = drill.bySkill.rows.reduce((sum, skillRow) => sum + skillRow.figure, 0);
     assert(held <= drill.total, "and the rows hold no more than the figure they cut");
@@ -1848,8 +1968,8 @@ Deno.test("a skill whose swings all landed nothing still stands, at nothing", ()
     assertExists(drill, "the combatant who swung has a row that opens");
     const names = drill.bySkill.rows.map((skillRow) => getTextForNamedPart(skillRow.part));
     assertEquals(names, ["Błyskawiczny cios"], "the skill that swung is the one row drawn");
-    assertEquals(drill.bySkill.rows[0]?.figure, 0, "standing at what the block left of it");
-    assertEquals(drill.bySkill.rows[0]?.uses, 1, "and saying it was announced once");
+    assertStrictEquals(drill.bySkill.rows[0]?.figure, 0, "standing at what the block left of it");
+    assertStrictEquals(drill.bySkill.rows[0]?.uses, 1, "and saying it was announced once");
 });
 
 Deno.test("healing given and received come to one figure in every recording", () => {
@@ -1871,7 +1991,7 @@ Deno.test("healing given and received come to one figure in every recording", ()
             null,
             NOTHING_SUSPECT,
         );
-        assertEquals(
+        assertStrictEquals(
             given.total + (given.pinned[0]?.figure ?? 0),
             received.total,
             `${path}: a point put back is counted once at each end`,
@@ -1914,7 +2034,7 @@ Deno.test("a fight that ended says so from a seat, and says nothing without one"
         NOTHING_SUSPECT,
     );
     // Not a loss and not a win: a fight the panel cannot place is not a fight it may call either.
-    assertEquals(seatless.outcome, null, "a reader whose seat nobody stated is told nothing");
+    assertStrictEquals(seatless.outcome, null, "a reader whose seat nobody stated is told nothing");
 });
 
 Deno.test("every recording states how it ended, and every seat in it reads a word", () => {
@@ -1936,12 +2056,12 @@ Deno.test("every recording states how it ended, and every seat in it reads a wor
             seats += 1;
         }
     }
-    assertEquals(
+    assertStrictEquals(
         stated,
         readRecordedFights().map((fight) => fight.path).length,
         "every recording carries an outcome",
     );
-    assertEquals(seats, 74, "and every one of them states two sides apiece");
+    assertStrictEquals(seats, 74, "and every one of them states two sides apiece");
 });
 
 /**
@@ -1960,14 +2080,14 @@ Deno.test("a figure the rows already hold is a cut of them, not another part of 
     );
     const cut = taken.pinned.find((pinnedRow) => pinnedRow.placing === PINNED_PLACING.cut);
     assertExists(cut, "in this fight somebody was struck by nobody the game named");
-    assertEquals(cut.end, UNNAMED_END.actor, "and what it says is missing is who struck");
+    assertStrictEquals(cut.end, UNNAMED_END.actor, "and what it says is missing is who struck");
     const rows = taken.rows.map((row) => Number(row.shareText.slice(0, -1)));
     const together = rows.reduce((sum, share) => sum + share, 0);
     // The rows come to the whole on their own: the cut states a share of the same whole and adds
     // nothing to it, which is the overlap being drawn rather than hidden.
-    assertEquals(together, 100, "the ranked rows are the whole screen by themselves");
+    assertStrictEquals(together, 100, "the ranked rows are the whole screen by themselves");
     assert(cut.figure > 0, "while the cut still states a figure of its own");
-    assertEquals(taken.total, statistics.totals.damageTaken, "and the total is the fight's");
+    assertStrictEquals(taken.total, statistics.totals.damageTaken, "and the total is the fight's");
 
     const dealt = presentScreen(
         statistics,
@@ -1982,7 +2102,11 @@ Deno.test("a figure the rows already hold is a cut of them, not another part of 
     const dealtRows = dealt.rows.map((row) => Number(row.shareText.slice(0, -1)));
     const dealtTogether = dealtRows.reduce((sum, share) => sum + share, 0);
     const pinnedShare = Number(apart.shareText.slice(0, -1));
-    assertEquals(dealtTogether + pinnedShare, 100, "and there it is one of the parts of the whole");
+    assertStrictEquals(
+        dealtTogether + pinnedShare,
+        100,
+        "and there it is one of the parts of the whole",
+    );
 });
 
 Deno.test("a pair states what passed between the two, and nothing that did not", () => {
@@ -2015,12 +2139,16 @@ Deno.test("a pair states what passed between the two, and nothing that did not",
         otherEnd.combatantId,
     );
     assertExists(pair, "the pair opens");
-    assertEquals(pair.total, otherEnd.figure, "at the figure the row that opened it stated");
-    assertEquals(pair.otherName, otherEnd.name, "and about the combatant that row named");
+    assertStrictEquals(pair.total, otherEnd.figure, "at the figure the row that opened it stated");
+    assertStrictEquals(pair.otherName, otherEnd.name, "and about the combatant that row named");
     const kinds = pair.byElement.rows.reduce((sum, kind) => sum + kind.figure, 0);
-    assertEquals(kinds, pair.total, "the kinds between them come to what passed between them");
+    assertStrictEquals(
+        kinds,
+        pair.total,
+        "the kinds between them come to what passed between them",
+    );
     const parts = pair.parts.reduce((sum, partRow) => sum + partRow.figure, 0);
-    assertEquals(
+    assertStrictEquals(
         parts,
         pair.total,
         "and so do the skills announced for it and the blows nothing stood in front of",
@@ -2068,10 +2196,18 @@ Deno.test("what a skill dealt holds the figures stated against a name, not only 
     const drill = presentOpenedLevel(statistics, roster, PANEL_METRIC.damageDealt, combatantId);
     assertExists(drill, "the row opens");
     const held = drill.bySkill.rows.reduce((sum, skillRow) => sum + skillRow.figure, 0);
-    assertEquals(held, drill.total, "the skills hold the whole of what this combatant dealt");
-    assertEquals(drill.bySkill.closing, null, "so no row for a blow nothing announced is drawn");
+    assertStrictEquals(held, drill.total, "the skills hold the whole of what this combatant dealt");
+    assertStrictEquals(
+        drill.bySkill.closing,
+        null,
+        "so no row for a blow nothing announced is drawn",
+    );
     const figures = statistics.byCombatantId.get(combatantId);
-    assertEquals(figures?.blowsWithoutSkill, 0, "which is the count that row would have stated");
+    assertStrictEquals(
+        figures?.blowsWithoutSkill,
+        0,
+        "which is the count that row would have stated",
+    );
     assert((figures?.blowsStruck ?? 0) > 0, "and the blows themselves were struck all the same");
 });
 
@@ -2111,7 +2247,7 @@ Deno.test("every person row inside an opened row opens onto the pair under it", 
             );
             assertExists(pair, "and every row of its cut names a pair");
             assert(otherEnd.doesOpenPair, "which is what the row above it is marked with");
-            assertEquals(pair.total, otherEnd.figure, "at the figure that was pressed");
+            assertStrictEquals(pair.total, otherEnd.figure, "at the figure that was pressed");
             const named = pair.parts.filter((partRow) => partRow.part.kind === OPENED_PART.skill);
             if (pair.byElement.rows.length > 1 || named.length > 0) says += 1;
             else repeats += 1;
@@ -2159,13 +2295,13 @@ Deno.test("a part opened states the figure of the row that opened it, self-casts
                         row.part,
                     );
                     if (!row.doesOpenPart) {
-                        assertEquals(held, null, `${path}: a row marked shut opens nothing`);
+                        assertStrictEquals(held, null, `${path}: a row marked shut opens nothing`);
                         continue;
                     }
                     assertExists(held, `${path}: a part marked as opening opens`);
                     const seen = `${metric} ${row.part.kind}`;
                     levels.set(seen, (levels.get(seen) ?? 0) + 1);
-                    assertEquals(
+                    assertStrictEquals(
                         held.total,
                         row.figure,
                         `${path}: ${metric} states the figure of the row it was opened from`,
@@ -2174,7 +2310,7 @@ Deno.test("a part opened states the figure of the row that opened it, self-casts
                         (sum, otherEnd) => sum + otherEnd.figure,
                         0,
                     );
-                    assertEquals(
+                    assertStrictEquals(
                         reached + (held.byOtherEnd.halfNamed?.figure ?? 0),
                         held.total,
                         `${path}: and the people under it come to the whole of it`,
@@ -2227,13 +2363,13 @@ Deno.test("a healing section names the keys the game stated, and closes against 
                 const cut = drill.bySkill;
                 if (cut.rows.length === 0) continue;
                 sections += 1;
-                assertEquals(
+                assertStrictEquals(
                     cut.closing,
                     null,
                     `${path}: a healing section closes against nothing`,
                 );
                 const held = cut.rows.reduce((sum, row) => sum + row.figure, 0);
-                assertEquals(held, drill.total, `${path}: and holds the whole of the figure`);
+                assertStrictEquals(held, drill.total, `${path}: and holds the whole of the figure`);
                 for (const row of cut.rows) {
                     if (row.part.kind === OPENED_PART.skill) announced += 1;
                     else stated += 1;
@@ -2241,8 +2377,8 @@ Deno.test("a healing section names the keys the game stated, and closes against 
                     // keeps a key per person — the giving side, where the pair names whose cause
                     // it is. The receiving side keeps the key flat, so there is nobody to list.
                     if (row.part.kind !== OPENED_PART.source) continue;
-                    assertEquals(row.uses, null, `${path}: a key counts nothing`);
-                    assertEquals(
+                    assertStrictEquals(row.uses, null, `${path}: a key counts nothing`);
+                    assertStrictEquals(
                         row.doesOpenPart,
                         metric === PANEL_METRIC.healthGiven,
                         `${path}: and opens where the screen keeps a cut of it`,
@@ -2290,13 +2426,17 @@ Deno.test("a healing pair says what passed between the two, and says it from bot
                 );
                 assertExists(pair, "and every row of its cut names a pair");
                 pairs += 1;
-                assertEquals(
+                assertStrictEquals(
                     pair.total,
                     otherEnd.figure,
                     "at the figure the row that opened it said",
                 );
                 const held = pair.parts.reduce((sum, partRow) => sum + partRow.figure, 0);
-                assertEquals(held, pair.total, "and its parts come to the whole of that figure");
+                assertStrictEquals(
+                    held,
+                    pair.total,
+                    "and its parts come to the whole of that figure",
+                );
                 // No closing row on a healing screen: what no announcement covered is named by
                 // the key the game stated it under, so nothing is left over to close against.
                 assert(
@@ -2324,7 +2464,7 @@ Deno.test("a healing pair says what passed between the two, and says it from bot
     );
     assertExists(given, "the healer's own screen states the pair");
     assertExists(received, "and so does the healed combatant's");
-    assertEquals(given.total, received.total, "at one figure, whichever end asks");
+    assertStrictEquals(given.total, received.total, "at one figure, whichever end asks");
     assertEquals(given.parts, received.parts, "made of the same parts, in the same order");
 });
 
@@ -2354,7 +2494,11 @@ Deno.test("a healing pair opens whatever its level holds, one key included", () 
                     assertExists(pair, "a row of the cut names a pair");
                     assert(otherEnd.doesOpenPair, `${path}: and the row above it says so`);
                     opened += 1;
-                    assertEquals(pair.total, otherEnd.figure, `${path}: at the figure pressed`);
+                    assertStrictEquals(
+                        pair.total,
+                        otherEnd.figure,
+                        `${path}: at the figure pressed`,
+                    );
                     if (pair.parts.length > 1) continue;
                     repeats += 1;
                     if (pair.parts[0]?.part.kind === OPENED_PART.source) keys += 1;
@@ -2400,16 +2544,16 @@ Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announce
         skillRow.part.kind === OPENED_PART.skill && skillRow.part.name === announced.skillName
     );
     assertExists(row, "onto the skill they announced");
-    assertEquals(row.figure, 500, "at what it put back");
-    assertEquals(row.uses, 1, "and how many times it was announced");
+    assertStrictEquals(row.figure, 500, "at what it put back");
+    assertStrictEquals(row.uses, 1, "and how many times it was announced");
     assert(row.doesOpenPart, "and it opens, because there is a level under it");
 
     const skillPart = { kind: OPENED_PART.skill, name: announced.skillName };
     const skill = presentPartLevel(statistics, roster, PANEL_METRIC.healthGiven, healer, skillPart);
     assertExists(skill, "the skill opens");
-    assertEquals(skill.total, 500, "at the figure the row that opened it stated");
-    assertEquals(skill.byOtherEnd.rows.length, 1, "onto the one person it reached");
-    assertEquals(skill.byOtherEnd.rows[0]?.combatantId, healed, "who is that person");
+    assertStrictEquals(skill.total, 500, "at the figure the row that opened it stated");
+    assertStrictEquals(skill.byOtherEnd.rows.length, 1, "onto the one person it reached");
+    assertStrictEquals(skill.byOtherEnd.rows[0]?.combatantId, healed, "who is that person");
     assert(!(skill.byOtherEnd.rows[0]?.doesOpenPair ?? true), "and nothing on this rung opens");
 
     // The same skill cast on nobody but the one who announced it: the level names them, which is
@@ -2420,9 +2564,13 @@ Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announce
     assert(own.bySkill.rows[0]?.doesOpenPart ?? false, "and the skill on it opens too");
     const cast = presentPartLevel(alone, roster, PANEL_METRIC.healthGiven, healer, skillPart);
     assertExists(cast, "which is what asking for that level answers");
-    assertEquals(cast.total, 500, "at the whole of what the announcement put back");
-    assertEquals(cast.byOtherEnd.rows.length, 1, "onto the one person it reached");
-    assertEquals(cast.byOtherEnd.rows[0]?.combatantId, healer, "who is the one who announced it");
+    assertStrictEquals(cast.total, 500, "at the whole of what the announcement put back");
+    assertStrictEquals(cast.byOtherEnd.rows.length, 1, "onto the one person it reached");
+    assertStrictEquals(
+        cast.byOtherEnd.rows[0]?.combatantId,
+        healer,
+        "who is the one who announced it",
+    );
 });
 
 /** The movement an announcement put behind it, aimed wherever the case being written needs it. */
@@ -2482,7 +2630,7 @@ Deno.test("a kind opened states the whole of the row, nobody's share included", 
     assertExists(drill, "the struck combatant's row opens");
     const kind = drill.byElement.rows.find((row) => row.element === "poison");
     assertExists(kind, "onto the kind both movements were made of");
-    assertEquals(kind.figure, 500, "at the two of them together");
+    assertStrictEquals(kind.figure, 500, "at the two of them together");
     assert(kind.doesOpenPart, "and it opens, because one of them named who dealt it");
 
     const poisonLevel = presentPartLevel(statistics, roster, PANEL_METRIC.damageTaken, struck, {
@@ -2490,10 +2638,14 @@ Deno.test("a kind opened states the whole of the row, nobody's share included", 
         element: "poison",
     });
     assertExists(poisonLevel, "the kind opens");
-    assertEquals(poisonLevel.total, 500, "at the figure the row that opened it stated");
-    assertEquals(poisonLevel.byOtherEnd.rows.length, 1, "onto the one striker the protocol named");
-    assertEquals(poisonLevel.byOtherEnd.rows[0]?.figure, 300, "at what they dealt");
-    assertEquals(
+    assertStrictEquals(poisonLevel.total, 500, "at the figure the row that opened it stated");
+    assertStrictEquals(
+        poisonLevel.byOtherEnd.rows.length,
+        1,
+        "onto the one striker the protocol named",
+    );
+    assertStrictEquals(poisonLevel.byOtherEnd.rows[0]?.figure, 300, "at what they dealt");
+    assertStrictEquals(
         poisonLevel.byOtherEnd.halfNamed?.figure,
         200,
         "and the tick nobody was named for stands beside them, so the column comes to a hundred",
@@ -2538,20 +2690,28 @@ Deno.test("an end an opened figure left out opens onto that person's own keys", 
     const metric = PANEL_METRIC.damageTaken;
     const drill = presentOpenedLevel(statistics, roster, metric, struck);
     assertExists(drill, "the struck combatant's row opens");
-    assertEquals(drill.byOtherEnd.halfNamed?.figure, 200, "the end left out is the bare tick");
+    assertStrictEquals(
+        drill.byOtherEnd.halfNamed?.figure,
+        200,
+        "the end left out is the bare tick",
+    );
     assert(drill.byOtherEnd.halfNamed?.doesOpenPair, "and it opens");
     const held = presentUnnamedPairLevel(statistics, roster, metric, struck);
     assertExists(held, "onto a level");
-    assert(held.opened === HALF_NAMED_OPENED.person, "which is one person's own keys");
-    assertEquals(held.case, PINNED_CASE.takenWithNoActor, "of the figure no striker was named for");
-    assertEquals(held.row.combatantId, struck, "and theirs");
-    assertEquals(held.total, 200, "at the figure the row stated");
+    assertStrictEquals(held.opened, HALF_NAMED_OPENED.person, "which is one person's own keys");
+    assertStrictEquals(
+        held.case,
+        PINNED_CASE.takenWithNoActor,
+        "of the figure no striker was named for",
+    );
+    assertStrictEquals(held.row.combatantId, struck, "and theirs");
+    assertStrictEquals(held.total, 200, "at the figure the row stated");
     assertEquals(
         held.kinds.rows.map((kind) => [kind.element, kind.figure, kind.doesOpenPart]),
         [["poison", 200, false]],
         "under the key it moved with, and nothing on it opens",
     );
-    assertEquals(held.kinds.noKind, null, "the keys come to the whole of it");
+    assertStrictEquals(held.kinds.noKind, null, "the keys come to the whole of it");
     assertEquals(
         drill.byOtherEnd.halfNamed?.kinds,
         held.kinds,
@@ -2562,17 +2722,17 @@ Deno.test("an end an opened figure left out opens onto that person's own keys", 
         element: "poison",
     });
     assertExists(poisonLevel, "a part of the figure opens as well");
-    assertEquals(
+    assertStrictEquals(
         poisonLevel.byOtherEnd.halfNamed?.doesOpenPair,
         false,
         "but its end left out stays shut",
     );
-    assertEquals(
+    assertStrictEquals(
         poisonLevel.byOtherEnd.halfNamed?.kinds,
         null,
         "and its card states no kinds, because none are kept for it",
     );
-    assertEquals(
+    assertStrictEquals(
         presentUnnamedPairLevel(statistics, roster, metric, striker),
         null,
         "and somebody whose figure left nothing out has no such level",
@@ -2619,12 +2779,16 @@ Deno.test("the other two ends left out open onto keys as well, and healing given
     for (const [metric, pinnedCase, key, figure] of cases) {
         const drill = presentOpenedLevel(statistics, roster, metric, striker);
         assertExists(drill, `${metric}: the row opens`);
-        assertEquals(drill.byOtherEnd.halfNamed?.figure, figure, `${metric}: onto an end left out`);
+        assertStrictEquals(
+            drill.byOtherEnd.halfNamed?.figure,
+            figure,
+            `${metric}: onto an end left out`,
+        );
         assert(drill.byOtherEnd.halfNamed?.doesOpenPair, `${metric}: which opens`);
         const held = presentUnnamedPairLevel(statistics, roster, metric, striker);
         assertExists(held, `${metric}: onto a level`);
-        assert(held.opened === HALF_NAMED_OPENED.person, `${metric}: of their own keys`);
-        assertEquals(held.case, pinnedCase, `${metric}: of the figure that end belongs to`);
+        assertStrictEquals(held.opened, HALF_NAMED_OPENED.person, `${metric}: of their own keys`);
+        assertStrictEquals(held.case, pinnedCase, `${metric}: of the figure that end belongs to`);
         assertEquals(
             drill.byOtherEnd.halfNamed?.kinds?.rows.map((kind) => [kind.element, kind.figure]),
             [[key, figure]],
@@ -2636,7 +2800,7 @@ Deno.test("the other two ends left out open onto keys as well, and healing given
             `${metric}: under the key it moved with`,
         );
     }
-    assertEquals(
+    assertStrictEquals(
         presentUnnamedPairLevel(statistics, roster, PANEL_METRIC.healthGiven, striker),
         null,
         "health given to nobody is kept nowhere, so that row has no level",
@@ -2651,14 +2815,22 @@ Deno.test("a reading short of its own start or of a message says so, on every sc
             hasJoinedInProgress: true,
             messagesRead: MESSAGES_READ,
         });
-        assertEquals(joined.suspicions.length, 1, `${metric}: a start nobody saw shortens it`);
+        assertStrictEquals(
+            joined.suspicions.length,
+            1,
+            `${metric}: a start nobody saw shortens it`,
+        );
 
         const lost = presentScreen(statistics, roster, metric, SIDE_CHOICE.everyone, null, {
             messagesLost: 3,
             hasJoinedInProgress: false,
             messagesRead: MESSAGES_READ,
         });
-        assertEquals(lost.suspicions.length, 1, `${metric}: and so does a message that never came`);
+        assertStrictEquals(
+            lost.suspicions.length,
+            1,
+            `${metric}: and so does a message that never came`,
+        );
 
         const whole = presentScreen(statistics, roster, metric, SIDE_CHOICE.everyone, null, {
             messagesLost: 0,
@@ -2681,7 +2853,7 @@ Deno.test("what shortens a reading is said before what shortens one figure on it
         null,
         { messagesLost: 2, hasJoinedInProgress: true, messagesRead: MESSAGES_READ },
     );
-    assertEquals(
+    assertStrictEquals(
         reading.suspicions.length,
         3,
         "three of them, the rest needing an unsized cast and a message of another shape",
@@ -2719,7 +2891,7 @@ Deno.test("a suspicion about one person qualifies the screens their figure is on
     );
     const caster = reading.rows.find((row) => row.combatantId === 1);
     assertExists(caster, "the caster is on the list");
-    assertEquals(caster.detail.sideHealsUnsized, 1, "carrying the cast nobody could place");
+    assertStrictEquals(caster.detail.sideHealsUnsized, 1, "carrying the cast nobody could place");
 
     assert(
         isRowSuspect(caster.detail, PANEL_METRIC.healthGiven),
@@ -2736,7 +2908,7 @@ Deno.test("a suspicion about one person qualifies the screens their figure is on
     );
 
     const said = formatRowSuspicions(caster.detail, PANEL_METRIC.healthGiven);
-    assertEquals(said.length, 1, "and the mark opens onto one sentence");
+    assertStrictEquals(said.length, 1, "and the mark opens onto one sentence");
     assert(said[0]?.includes("jej leczenia"), "saying whose leczenie is short, not the fight's");
     assertEquals(
         formatRowSuspicions(caster.detail, PANEL_METRIC.damageDealt),
@@ -2800,7 +2972,7 @@ Deno.test("what could not be read is said under the cause that left it so", () =
             { messagesLost: 0, hasJoinedInProgress: false, messagesRead: MESSAGES_READ },
         ).suspicions;
     const unknownKey = readSuspicions("1=100.00;0;whatever_per=30");
-    assertEquals(unknownKey.length, 1, "a key with no meaning yet is one sentence");
+    assertStrictEquals(unknownKey.length, 1, "a key with no meaning yet is one sentence");
     assertStringIncludes(
         unknownKey[0] ?? "",
         "co znaczyła",
@@ -2808,11 +2980,11 @@ Deno.test("what could not be read is said under the cause that left it so", () =
     );
 
     const empty = readSuspicions("1=100.00;0");
-    assertEquals(empty.length, 1, "a message carrying nothing to read is another");
+    assertStrictEquals(empty.length, 1, "a message carrying nothing to read is another");
     assertStringIncludes(empty[0] ?? "", "żadnej liczby", "saying there was no figure in it");
 
     const refused = readSuspicions("gracz;0");
-    assertEquals(refused.length, 1, "and a grammar nobody could take apart is a third");
+    assertStrictEquals(refused.length, 1, "and a grammar nobody could take apart is a third");
     assertStringIncludes(refused[0] ?? "", "rozłożyć na słowa", "saying the words would not come");
     assert(
         !refused[0]?.includes("("),
@@ -2835,15 +3007,15 @@ Deno.test("a row says which of the two causes that can name it left its figure s
         return statistics.byCombatantId.get(1);
     };
     const unknownKey = readRow("1=100.00;0;whatever_per=30");
-    assertEquals(
+    assertStrictEquals(
         unknownKey?.unreadMessagesUnknownKey,
         1,
         "the key with no meaning is charged here",
     );
-    assertEquals(unknownKey?.unreadMessagesNoParameter, 0, "and never to the other count");
+    assertStrictEquals(unknownKey?.unreadMessagesNoParameter, 0, "and never to the other count");
     const empty = readRow("1=100.00;0");
-    assertEquals(empty?.unreadMessagesNoParameter, 1, "and the empty message to its own");
-    assertEquals(empty?.unreadMessagesUnknownKey, 0, "and never to the other one either");
+    assertStrictEquals(empty?.unreadMessagesNoParameter, 1, "and the empty message to its own");
+    assertStrictEquals(empty?.unreadMessagesUnknownKey, 0, "and never to the other one either");
 
     const both = presentScreen(
         tallyFightStatistics(
@@ -2862,11 +3034,15 @@ Deno.test("a row says which of the two causes that can name it left its figure s
     ).rows.find((row) => row.combatantId === 1);
     assertExists(both, "the row both causes named is on the list");
     const rows = formatRowSuspicions(both.detail, PANEL_METRIC.damageDealt);
-    assertEquals(rows.length, 2, "a row short under both says both");
+    assertStrictEquals(rows.length, 2, "a row short under both says both");
     // The sentences themselves, so what a row says is one function and not two: that neither
     // carries a denominator is `tests/ui/panel-words.test.ts`, where the words are.
-    assertEquals(rows[0], formatUnknownKeyRowSuspicion(1), "the meaning nobody has first");
-    assertEquals(rows[1], formatNoParameterRowSuspicion(1), "then the one carrying no figure");
+    assertStrictEquals(rows[0], formatUnknownKeyRowSuspicion(1), "the meaning nobody has first");
+    assertStrictEquals(
+        rows[1],
+        formatNoParameterRowSuspicion(1),
+        "then the one carrying no figure",
+    );
 });
 
 Deno.test("a message that went unread marks the rows it named, on every screen", () => {
@@ -2887,7 +3063,11 @@ Deno.test("a message that went unread marks the rows it named, on every screen",
             NOTHING_SUSPECT,
         );
         const named = reading.rows.filter((row) => isRowSuspect(row.detail, metric));
-        assertEquals(named.length, 2, `${metric}: the two ends the message named, and nobody else`);
+        assertStrictEquals(
+            named.length,
+            2,
+            `${metric}: the two ends the message named, and nobody else`,
+        );
         const suspectRow = named[0];
         assertExists(suspectRow, `${metric}: one of them is a row the panel draws`);
         const said = formatRowSuspicions(suspectRow.detail, metric);
@@ -2903,7 +3083,7 @@ Deno.test("a drawn fight reads the same from every seat, and from none", () => {
     const { roster } = tallyRecordedFight(HILDUR);
     const events = decodeFightMessages(["0;0;winner=?"], roster, BLOWS_GRANTED);
     const drawn = tallyFightStatistics(events, new Map());
-    assertEquals(drawn.outcome?.isDrawn, true, "the fight the decoder read is a draw");
+    assertStrictEquals(drawn.outcome?.isDrawn, true, "the fight the decoder read is a draw");
     const sides = [...new Set([...roster.byId.values()].map((combatant) => combatant.side))];
     assert(sides.length > 1, "the fight has two seats to read it from");
     for (const side of [...sides, null]) {
@@ -2915,7 +3095,11 @@ Deno.test("a drawn fight reads the same from every seat, and from none", () => {
             side,
             NOTHING_SUSPECT,
         );
-        assertEquals(reading.outcome, OUTCOME_RESULT.drawn, `seat ${side}: a draw is nobody's win`);
+        assertStrictEquals(
+            reading.outcome,
+            OUTCOME_RESULT.drawn,
+            `seat ${side}: a draw is nobody's win`,
+        );
     }
 });
 
@@ -2927,8 +3111,8 @@ Deno.test("a fight an escape broke off reads the same from every seat, and from 
     const { roster } = tallyRecordedFight(HILDUR);
     const events = decodeFightMessages(["500001=94.75;0;flee"], roster, BLOWS_GRANTED);
     const fled = tallyFightStatistics(events, new Map());
-    assertEquals(fled.outcome?.isFled, true, "the fight the decoder read was broken off");
-    assertEquals(fled.outcome?.isDrawn, false, "which is not the same claim as a draw");
+    assertStrictEquals(fled.outcome?.isFled, true, "the fight the decoder read was broken off");
+    assertStrictEquals(fled.outcome?.isDrawn, false, "which is not the same claim as a draw");
     const sides = [...new Set([...roster.byId.values()].map((combatant) => combatant.side))];
     assert(sides.length > 1, "the fight has two seats to read it from");
     for (const side of [...sides, null]) {
@@ -2940,7 +3124,7 @@ Deno.test("a fight an escape broke off reads the same from every seat, and from 
             side,
             NOTHING_SUSPECT,
         );
-        assertEquals(
+        assertStrictEquals(
             reading.outcome,
             OUTCOME_RESULT.fled,
             `seat ${side}: an escape is nobody's win`,
@@ -2964,10 +3148,10 @@ Deno.test("an escape outranks a side the protocol named, from either seat", () =
     );
     const outcome = tallyFightStatistics(events, new Map()).outcome;
     assertExists(outcome, "the fight states how it ended");
-    assertEquals(outcome.isFled, true, "the escape is held");
+    assertStrictEquals(outcome.isFled, true, "the escape is held");
     assertEquals(outcome.wonNames, [named.name], "and so is the side the protocol named");
     for (const side of [...new Set([...roster.byId.values()].map((combatant) => combatant.side))]) {
-        assertEquals(
+        assertStrictEquals(
             getOutcomeForReaderSide(outcome, roster, side),
             OUTCOME_RESULT.fled,
             `seat ${side}: the interruption is the word, not the win`,
@@ -2995,7 +3179,7 @@ Deno.test("a row's card states the turns the figures hold, and not a count besid
     for (const row of reading.rows) {
         const figures = statistics.byCombatantId.get(row.combatantId);
         if (figures === undefined) continue;
-        assertEquals(
+        assertStrictEquals(
             row.detail.turnsTaken,
             figures.turnsTaken,
             `${row.combatantId}: the card states the turns the aggregate counted`,
@@ -3031,13 +3215,21 @@ Deno.test("a section past its own bound sums what is left, and never calls it un
     const drill = presentOpenedLevel(statistics, roster, PANEL_METRIC.damageTaken, receiverId);
     assertExists(drill, "the row opens");
 
-    assertEquals(drill.total, NAMES_PAST_THE_BOUND, "every announcement reached this combatant");
+    assertStrictEquals(
+        drill.total,
+        NAMES_PAST_THE_BOUND,
+        "every announcement reached this combatant",
+    );
     assert(drill.bySkill.rows.length < NAMES_PAST_THE_BOUND, "more names than the section draws");
     assertExists(drill.bySkill.rest, "so what it could not draw is a row of its own");
-    assertEquals(drill.bySkill.closing, null, "and the closing row makes no claim it cannot make");
+    assertStrictEquals(
+        drill.bySkill.closing,
+        null,
+        "and the closing row makes no claim it cannot make",
+    );
 
     const drawn = drill.bySkill.rows.reduce((sum, skillRow) => sum + skillRow.figure, 0);
-    assertEquals(
+    assertStrictEquals(
         drawn + drill.bySkill.rest.figure,
         drill.total,
         "the rows and the sum under them come to the figure over them",
@@ -3175,7 +3367,11 @@ Deno.test("what the screen counts and no row holds stands under the list", () =>
         null,
         NOTHING_SUSPECT,
     );
-    assertEquals(whole.outsideRanking, null, "a real fight leaves nothing outside the ranking");
+    assertStrictEquals(
+        whole.outsideRanking,
+        null,
+        "a real fight leaves nothing outside the ranking",
+    );
 
     const outside = 1000;
     const short = presentScreen(
@@ -3208,7 +3404,11 @@ Deno.test("rows coming to more than the screen counts is answered for", () => {
         null,
         NOTHING_SUSPECT,
     );
-    assertEquals(over.outsideRanking, null, "nothing stands outside a list that holds too much");
+    assertStrictEquals(
+        over.outsideRanking,
+        null,
+        "nothing stands outside a list that holds too much",
+    );
     assertStrictEquals(over.hasFiguresDisagreed, true, "and the panel says the counts disagree");
 });
 
@@ -3272,10 +3472,14 @@ Deno.test("a pair whose parts outrun its figure closes at nought, and says so", 
     ]);
     const pair = presentPairLevel(statistics, roster, PANEL_METRIC.damageDealt, 1, 2);
     assertExists(pair, "the pair opens");
-    assertEquals(pair.total, 60, "at the figure the kinds between them state");
+    assertStrictEquals(pair.total, 60, "at the figure the kinds between them state");
     const closing = pair.parts.find((partRow) => partRow.part.kind === OPENED_PART.plain);
-    assertEquals(closing?.figure, 0, "the closing row is drawn at nought rather than below it");
-    assertEquals(closing?.fill, 0, "with no bar below nothing");
+    assertStrictEquals(
+        closing?.figure,
+        0,
+        "the closing row is drawn at nought rather than below it",
+    );
+    assertStrictEquals(closing?.fill, 0, "with no bar below nothing");
     assert(pair.hasFiguresDisagreed, "and the reading says the figures disagree");
 });
 
@@ -3302,7 +3506,7 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
                 const bigger = drill.bySkill.rows.filter((skillRow) =>
                     skillRow.figure > plain.figure
                 );
-                assertEquals(plain.rank, bigger.length + 1, `${path}: its figure decides`);
+                assertStrictEquals(plain.rank, bigger.length + 1, `${path}: its figure decides`);
                 places.set(plain.rank, (places.get(plain.rank) ?? 0) + 1);
             }
         }
@@ -3351,7 +3555,7 @@ Deno.test("a pair states its parts largest first, the closing row among them", (
             }
         }
     }
-    assertEquals(closing, 484, "and the pairs a closing row stands in, 2026-10-04");
+    assertStrictEquals(closing, 484, "and the pairs a closing row stands in, 2026-10-04");
 });
 
 /**

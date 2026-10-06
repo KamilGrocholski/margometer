@@ -91,8 +91,12 @@ Deno.test("the reader of widths finds a capped rule and an uncapped one alike", 
     const widths = composeWidthsBySelector(
         `.one { margin: 0; max-width: ${COLUMN_WIDTH_MAXIMUM}; }\n.other { max-width: 46em; }`,
     );
-    assertEquals(widths.get(".one"), COLUMN_WIDTH_MAXIMUM, "the capped rule is read as capped");
-    assertEquals(widths.get(".other"), "46em", "and the uncapped one is not read as capped");
+    assertStrictEquals(
+        widths.get(".one"),
+        COLUMN_WIDTH_MAXIMUM,
+        "the capped rule is read as capped",
+    );
+    assertStrictEquals(widths.get(".other"), "46em", "and the uncapped one is not read as capped");
 });
 
 Deno.test("the page a visitor lands on is the landing fight, finished, with no picker", () => {
@@ -226,12 +230,12 @@ Deno.test("the reader of a language flags a Polish sentence and not an English o
         "a Polish sentence is read as one",
     );
     assertStrictEquals(isWrittenInPolish("a damage meter"), false, "and one in ours is not");
-    assertEquals(
+    assertStrictEquals(
         readTextInClassName(`<p class="preview-lede">co się stało</p>`, "preview-lede"),
         "co się stało",
         "and the sentence is taken from the element that carries it",
     );
-    assertEquals(readTextInClassName("<p>no class</p>", "preview-lede"), null, "or nothing");
+    assertStrictEquals(readTextInClassName("<p>no class</p>", "preview-lede"), null, "or nothing");
 });
 
 Deno.test("the button hands over the file an installed copy polls for its next version", () => {
@@ -239,7 +243,11 @@ Deno.test("the button hands over the file an installed copy polls for its next v
     // in the one address every installed copy polls strands all of them, silently.
     const asset = "https://github.com/KamilGrocholski/margometer" +
         "/releases/latest/download/margometer.user.js";
-    assertEquals(USERSCRIPT_DOWNLOAD_ADDRESS, asset, "the release's own asset, at its address");
+    assertStrictEquals(
+        USERSCRIPT_DOWNLOAD_ADDRESS,
+        asset,
+        "the release's own asset, at its address",
+    );
     assertStringIncludes(composeLandingPage(), `href="${asset}"`, "which the button offers");
     assertStringIncludes(encodeUserscriptBanner(VERSION), asset, "and the file it hands polls");
 });

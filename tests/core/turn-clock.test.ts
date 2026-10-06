@@ -3,13 +3,7 @@
  * against. The events are written out in the shape the decoder hands over.
  */
 
-import {
-    assert,
-    assertEquals,
-    AssertionError,
-    assertStrictEquals,
-    assertThrows,
-} from "@std/assert";
+import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
 import {
     type AttackEvent,
     BATTLE_EVENT,
@@ -113,10 +107,10 @@ Deno.test("a declaration opens on its step before its preparation, and on neithe
     };
     assertStrictEquals(lookupDeclarationOpenerKey(both), "step", "the step, whatever the order");
     const alone = composeDeclaration(3, "prepare");
-    assert(alone.kind === BATTLE_EVENT.declaration, "a declaration was composed");
+    assertStrictEquals(alone.kind, BATTLE_EVENT.declaration, "a declaration was composed");
     assertStrictEquals(lookupDeclarationOpenerKey(alone), "prepare", "a preparation alone");
     const neither = composeDeclaration(3, "txt");
-    assert(neither.kind === BATTLE_EVENT.declaration, "a declaration was composed");
+    assertStrictEquals(neither.kind, BATTLE_EVENT.declaration, "a declaration was composed");
     assertStrictEquals(lookupDeclarationOpenerKey(neither), null, "and a log line opens nothing");
     const acted = lookupOpeners([composeBlow(3, false), both]);
     assertEquals(acted, [3, 3], "so a step beside a preparation is a turn even after an action");

@@ -21,7 +21,7 @@ const TALLEST_LISTED = 12;
 
 Deno.test("a recording opens a card per ranking row on every screen, and the report sums them", () => {
     const heights = tallyCardHeights(replayRecordedMaterial(readRecordedMaterial([HILDUR])));
-    assertEquals(heights.length % SCREEN_ORDER.length, 0, "the same rows on every screen");
+    assertStrictEquals(heights.length % SCREEN_ORDER.length, 0, "the same rows on every screen");
     for (const screen of SCREEN_ORDER) {
         assert(heights.some((height) => height.screen === screen), `${screen} opens cards`);
     }

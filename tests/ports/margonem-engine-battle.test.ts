@@ -52,7 +52,7 @@ Deno.test("the engine's own call runs first, and its value comes back untouched"
     const answer = callUpdate(held.battle, self, [{ m: [] }, 2]);
     assertStrictEquals(answer, "the engine's own answer", "the value is the engine's");
     assertEquals(seen, [{ m: [] }], "and the payload reached us once, as the first argument");
-    assertEquals(held.calls.length, 1, "the engine was called once");
+    assertStrictEquals(held.calls.length, 1, "the engine was called once");
     assertStrictEquals(held.calls[0]?.thisArg, self, "on the object the game called it on");
     assertEquals(
         held.calls[0]?.args,
@@ -212,7 +212,7 @@ Deno.test("a method that will not hold the wrap is left the engine's own, and sa
     assertInstanceOf(again, MargonemEngineMethodUnwritable, "and the next look is refused alike");
     assertFalse(isMarked(stored.method), "with no layer of ours left under it");
     callUpdate(binding, binding, [{ m: [] }]);
-    assertEquals(held.calls.length, 1, "so the engine is called once");
+    assertStrictEquals(held.calls.length, 1, "so the engine is called once");
     assertEquals(seen, [], "and no copy of ours reads the payload");
 });
 

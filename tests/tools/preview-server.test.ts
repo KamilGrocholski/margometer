@@ -147,7 +147,7 @@ Deno.test("the bundle is served under its name, and the decoy is never a miss", 
     const preview = initTestServer();
     try {
         const answer = await fetch(`${preview.url}/margometer.user.js`);
-        assertEquals(await answer.text(), BUNDLE, "what was built is what is served");
+        assertStrictEquals(await answer.text(), BUNDLE, "what was built is what is served");
         const decoy = await fetch(`${preview.url}/main.min1785244275300.js`);
         assertStrictEquals(
             decoy.status,

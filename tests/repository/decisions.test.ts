@@ -4,7 +4,7 @@
  * replaced it, and that one names it back, so neither half of a replacement stands alone.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 
 interface DecisionRecord {
     number: number;
@@ -87,7 +87,7 @@ function formatDecisionNumber(number: number): string {
 
 Deno.test("every decision is dated, and carries a status a record can hold", () => {
     for (const record of readDecisionRecords()) {
-        assertEquals(record.date.length, DATE_LENGTH, `${record.path} is dated as a day`);
+        assertStrictEquals(record.date.length, DATE_LENGTH, `${record.path} is dated as a day`);
         assert(!Number.isNaN(Date.parse(record.date)), `${record.path}: the date is one`);
         if (record.status === ACCEPTED) continue;
         assert(record.status.startsWith(SUPERSEDED_OPENER), `${record.path}: a status it can hold`);
@@ -102,14 +102,18 @@ Deno.test("a record superseded names its replacement, and the replacement names 
         if (record.status.startsWith(SUPERSEDED_OPENER)) {
             const replacing = byName.get(record.status.slice(SUPERSEDED_OPENER.length));
             assertExists(replacing, `${record.path} is superseded by a record that exists`);
-            assertEquals(replacing.supersedes, name, `${replacing.path} names what it replaced`);
+            assertStrictEquals(
+                replacing.supersedes,
+                name,
+                `${replacing.path} names what it replaced`,
+            );
         }
         if (record.supersedes === null) continue;
         const replaced = byName.get(record.supersedes);
         assertExists(replaced, `${record.path} supersedes a record that exists`);
         assert(replaced !== record, `${record.path} never supersedes itself`);
         const status = `${SUPERSEDED_OPENER}${name}`;
-        assertEquals(replaced.status, status, `${replaced.path} says it was replaced`);
+        assertStrictEquals(replaced.status, status, `${replaced.path} says it was replaced`);
     }
 });
 

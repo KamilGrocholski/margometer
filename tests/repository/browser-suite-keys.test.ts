@@ -4,7 +4,7 @@
  * names, so a key renamed in `src/ports/browser-store.ts` reddens here rather than in a browser.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { STORE_KEY } from "#/src/ports/browser-store.ts";
 import {
     composeSample,
@@ -26,7 +26,7 @@ Deno.test("a key constant holding a word no store key is, is flagged", () => {
         'const HOST_SELECTOR = "#MargoMeter-Panel";',
     ]);
     const sampleKeys = readSuiteKeys(sample);
-    assertEquals(sampleKeys.found, 2, "both key constants are read, and the selector is not");
+    assertStrictEquals(sampleKeys.found, 2, "both key constants are read, and the selector is not");
     assertEquals(
         sampleKeys.unknown,
         ['sample.ts:2 PLACE_KEY holds "MargoMeter-plac"'],

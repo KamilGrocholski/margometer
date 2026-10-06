@@ -229,7 +229,7 @@ Deno.test("every word the panel says says something", () => {
     const sentences = getSentences();
     assert(sentences.length > 10, "the panel has words to say");
     for (const sentence of sentences) {
-        assertEquals(sentence.trim(), sentence, `${sentence} carries space it does not need`);
+        assertStrictEquals(sentence.trim(), sentence, `${sentence} carries space it does not need`);
     }
 });
 
@@ -404,14 +404,14 @@ Deno.test("each way a fight can end has its own word, and no two share one", () 
         fled: "ucieczka",
     };
     for (const [outcome, word] of Object.entries(said)) {
-        assertEquals(
+        assertStrictEquals(
             getWordsForOutcome(outcome as OutcomeResult),
             word,
             `${outcome} is the word a reader reads for it`,
         );
     }
     const words = Object.values(said);
-    assertEquals(new Set(words).size, words.length, "and no ending borrows another's word");
+    assertStrictEquals(new Set(words).size, words.length, "and no ending borrows another's word");
 });
 
 /**
@@ -429,10 +429,18 @@ Deno.test("the block handed to the game says whose it is, and carries no markup"
     );
     const title = said[0];
     assertExists(title, "a status carried composes a row");
-    assertEquals(title, "MargoMeter", "the name stands alone, over the rows and not inside one");
+    assertStrictEquals(
+        title,
+        "MargoMeter",
+        "the name stands alone, over the rows and not inside one",
+    );
     for (const row of said) {
-        assertEquals(row.includes("<"), false, "and no row opens markup in somebody else's string");
-        assertEquals(row.includes("&"), false, "nor an entity in one");
+        assertStrictEquals(
+            row.includes("<"),
+            false,
+            "and no row opens markup in somebody else's string",
+        );
+        assertStrictEquals(row.includes("&"), false, "nor an entity in one");
     }
 });
 
@@ -450,8 +458,8 @@ Deno.test("the add-on names itself once, however many rows it has", () => {
         null,
         FROZEN_STATUS_BITS.bits,
     );
-    assertEquals(said.length, 3, "the name, a status and a count of turns");
-    assertEquals(said.filter((row) => row.includes("MargoMeter")).length, 1, "named once");
+    assertStrictEquals(said.length, 3, "the name, a status and a count of turns");
+    assertStrictEquals(said.filter((row) => row.includes("MargoMeter")).length, 1, "named once");
 });
 
 /**
@@ -467,7 +475,7 @@ Deno.test("a status with no figure to its name says no share beside it", () => {
         null,
         FROZEN_STATUS_BITS.bits,
     );
-    assertEquals(bare[1]?.includes("%"), false, "no figure where none may be said");
+    assertStrictEquals(bare[1]?.includes("%"), false, "no figure where none may be said");
     const figured = presentTooltipRows(
         {
             ...NOTHING_CARRIED,
@@ -487,13 +495,13 @@ Deno.test("a status with no figure to its name says no share beside it", () => {
  * turn none is left.
  */
 Deno.test("a length says the turns it has left, and refuses what is not inside it", () => {
-    assertEquals(formatTurnsLeft(4, 5), "1 tura", "one left, in its own form");
-    assertEquals(formatTurnsLeft(0, 5), "5 tur", "the whole of it, just begun");
-    assertEquals(formatTurnsLeft(1, 3), "2 tury", "two to four take the second form");
-    assertEquals(formatTurnsLeft(5, 5), "0 tur", "and none is drawn");
-    assertEquals(formatTurnsLeft(-1, 5), PANEL_WORDS.unknown, "below none is not");
-    assertEquals(formatTurnsLeft(6, 5), PANEL_WORDS.unknown, "nor more than there was");
-    assertEquals(formatTurnsLeft(1.5, 5), PANEL_WORDS.unknown, "nor half a turn");
+    assertStrictEquals(formatTurnsLeft(4, 5), "1 tura", "one left, in its own form");
+    assertStrictEquals(formatTurnsLeft(0, 5), "5 tur", "the whole of it, just begun");
+    assertStrictEquals(formatTurnsLeft(1, 3), "2 tury", "two to four take the second form");
+    assertStrictEquals(formatTurnsLeft(5, 5), "0 tur", "and none is drawn");
+    assertStrictEquals(formatTurnsLeft(-1, 5), PANEL_WORDS.unknown, "below none is not");
+    assertStrictEquals(formatTurnsLeft(6, 5), PANEL_WORDS.unknown, "nor more than there was");
+    assertStrictEquals(formatTurnsLeft(1.5, 5), PANEL_WORDS.unknown, "nor half a turn");
 });
 
 /**
@@ -510,9 +518,13 @@ Deno.test("a status says that it stands, and never for how long", () => {
                 null,
                 FROZEN_STATUS_BITS.bits,
             );
-            assertEquals(said.length, 2, "the name, and the status under it");
-            assertEquals(said[1]?.includes("tur"), false, `bit ${bit} carries no count of turns`);
-            assertEquals(said[1]?.includes("·"), false, "and nothing set apart beside it");
+            assertStrictEquals(said.length, 2, "the name, and the status under it");
+            assertStrictEquals(
+                said[1]?.includes("tur"),
+                false,
+                `bit ${bit} carries no count of turns`,
+            );
+            assertStrictEquals(said[1]?.includes("·"), false, "and nothing set apart beside it");
         }
     }
 });
@@ -532,8 +544,8 @@ Deno.test("a status nothing dates, just lit, says no length at all", () => {
         null,
         FROZEN_STATUS_BITS.bits,
     );
-    assertEquals(said.length, 2, "the name, and the status still said under it");
-    assertEquals(said[1]?.includes("0"), false, "and no count of nought is said beside it");
+    assertStrictEquals(said.length, 2, "the name, and the status still said under it");
+    assertStrictEquals(said[1]?.includes("0"), false, "and no count of nought is said beside it");
 });
 
 /**
@@ -556,7 +568,7 @@ Deno.test("every row that names a thing and qualifies it is punctuated alike", (
     );
     const bare = FROZEN_STATUS_BITS.bits[3];
     const carrying = said.slice(1).filter((row) => row !== bare);
-    assertEquals(
+    assertStrictEquals(
         carrying.length,
         3,
         "the okrzyk and both legendary bonuses, and not the status that says only that it stands",
@@ -576,7 +588,7 @@ Deno.test("a provocation is said at the end it is read from", () => {
         null,
         FROZEN_STATUS_BITS.bits,
     );
-    assertEquals(
+    assertStrictEquals(
         held[1],
         "Sprowokowany przez: Gracz 2 (2 tury)",
         "the held fighter is told who holds them, and how many of their turns it still has",
@@ -590,27 +602,39 @@ Deno.test("a provocation is said at the end it is read from", () => {
             null,
             FROZEN_STATUS_BITS.bits,
         )[1];
-    assertEquals(left(3), "Sprowokowany przez: Gracz 2 (0 tur)", "the last turn it holds them");
-    assertEquals(left(2), "Sprowokowany przez: Gracz 2 (1 tura)", "one is one, in its own form");
-    assertEquals(left(0), "Sprowokowany przez: Gracz 2 (3 tury)", "and all of it, just cast");
-    assertEquals(
+    assertStrictEquals(
+        left(3),
+        "Sprowokowany przez: Gracz 2 (0 tur)",
+        "the last turn it holds them",
+    );
+    assertStrictEquals(
+        left(2),
+        "Sprowokowany przez: Gracz 2 (1 tura)",
+        "one is one, in its own form",
+    );
+    assertStrictEquals(left(0), "Sprowokowany przez: Gracz 2 (3 tury)", "and all of it, just cast");
+    assertStrictEquals(
         left(4),
         `Sprowokowany przez: Gracz 2 (${PANEL_WORDS.unknown})`,
         "past what the table gives it",
     );
-    assertEquals(
+    assertStrictEquals(
         left(-1),
         `Sprowokowany przez: Gracz 2 (${PANEL_WORDS.unknown})`,
         "below none",
     );
     const shouting = (provokedCount: number) =>
         presentTooltipRows({ ...NOTHING_CARRIED, provokedCount }, null, FROZEN_STATUS_BITS.bits)[1];
-    assertEquals(shouting(10), "Prowokuje: 10 postaci", "the shouter is told how many, not whom");
-    assertEquals(shouting(1), "Prowokuje: 1 postać", "one is one, in the noun's own form");
-    assertEquals(shouting(2), "Prowokuje: 2 postacie", "two to four take the second");
-    assertEquals(shouting(12), "Prowokuje: 12 postaci", "and a teen never does");
-    assertEquals(shouting(22), "Prowokuje: 22 postacie", "while twenty-two does");
-    assertEquals(shouting(0), undefined, "and holding nobody says nothing");
+    assertStrictEquals(
+        shouting(10),
+        "Prowokuje: 10 postaci",
+        "the shouter is told how many, not whom",
+    );
+    assertStrictEquals(shouting(1), "Prowokuje: 1 postać", "one is one, in the noun's own form");
+    assertStrictEquals(shouting(2), "Prowokuje: 2 postacie", "two to four take the second");
+    assertStrictEquals(shouting(12), "Prowokuje: 12 postaci", "and a teen never does");
+    assertStrictEquals(shouting(22), "Prowokuje: 22 postacie", "while twenty-two does");
+    assertStrictEquals(shouting(0), undefined, "and holding nobody says nothing");
 });
 
 /**
@@ -626,12 +650,12 @@ Deno.test("Dotyk anioła says the heals it has given, out of the three it gives"
             null,
             FROZEN_STATUS_BITS.bits,
         )[1];
-    assertEquals(row(0), "Dotyk anioła: 0/3", "lit, and nothing healed yet");
-    assertEquals(row(1), "Dotyk anioła: 1/3", "one heal is one");
-    assertEquals(row(2), "Dotyk anioła: 2/3", "and the last before it goes");
-    assertEquals(row(3), "Dotyk anioła: 3/3", "and all three, the turn it goes out on");
-    assertEquals(row(4), `Dotyk anioła: ${PANEL_WORDS.unknown}`, "past the three it gives");
-    assertEquals(row(-1), `Dotyk anioła: ${PANEL_WORDS.unknown}`, "below none");
+    assertStrictEquals(row(0), "Dotyk anioła: 0/3", "lit, and nothing healed yet");
+    assertStrictEquals(row(1), "Dotyk anioła: 1/3", "one heal is one");
+    assertStrictEquals(row(2), "Dotyk anioła: 2/3", "and the last before it goes");
+    assertStrictEquals(row(3), "Dotyk anioła: 3/3", "and all three, the turn it goes out on");
+    assertStrictEquals(row(4), `Dotyk anioła: ${PANEL_WORDS.unknown}`, "past the three it gives");
+    assertStrictEquals(row(-1), `Dotyk anioła: ${PANEL_WORDS.unknown}`, "below none");
 });
 
 Deno.test("a label the client answers with markup is refused rather than escaped", () => {
@@ -830,7 +854,11 @@ Deno.test("a quoted key is skipped and the value beside it is not", () => {
     assertEquals(held, ["głęboka rana"], "the value is read and the key it is filed under is not");
     assertEquals(getLineTexts(`    spent: "wykorzystany",`), ["wykorzystany"], "an unquoted key");
     assertEquals(getLineTexts(`const SEPARATOR = "·";`), ["·"], "a lone value is still read");
-    assertEquals(isReadableText("·"), false, "and the check beside this one is what drops it");
+    assertStrictEquals(
+        isReadableText("·"),
+        false,
+        "and the check beside this one is what drops it",
+    );
     // ⚠️ **The colon has to be the next thing that is not a space.** A value standing before
     // one — a ternary, an object closing on the same line — is a word somebody reads.
     assertEquals(getLineTexts(`    at: isHeld ? "tak" : "nie",`), ["tak", "nie"], "both branches");
@@ -838,24 +866,32 @@ Deno.test("a quoted key is skipped and the value beside it is not", () => {
 
 Deno.test("a count is spelled the three ways Polish spells one", () => {
     const noun = COUNTED_NOUN_WORDS.messages;
-    assertEquals(formatCountedNoun(1, noun), "1 wiadomość", "one takes the first form");
-    assertEquals(formatCountedNoun(2, noun), "2 wiadomości", "two takes the second");
-    assertEquals(formatCountedNoun(4, noun), "4 wiadomości", "and so does four");
-    assertEquals(formatCountedNoun(5, noun), "5 wiadomości", "five takes the third");
-    assertEquals(formatCountedNoun(0, noun), "0 wiadomości", "and so does nothing at all");
+    assertStrictEquals(formatCountedNoun(1, noun), "1 wiadomość", "one takes the first form");
+    assertStrictEquals(formatCountedNoun(2, noun), "2 wiadomości", "two takes the second");
+    assertStrictEquals(formatCountedNoun(4, noun), "4 wiadomości", "and so does four");
+    assertStrictEquals(formatCountedNoun(5, noun), "5 wiadomości", "five takes the third");
+    assertStrictEquals(formatCountedNoun(0, noun), "0 wiadomości", "and so does nothing at all");
     const unknown = "Nie wiadomo, ile wiadomości";
-    assertEquals(formatCountedNoun(Number.NaN, noun), unknown, "no count is said as none known");
-    assertEquals(formatCountedNoun(-1, noun), unknown, "and so is one below nothing");
+    assertStrictEquals(
+        formatCountedNoun(Number.NaN, noun),
+        unknown,
+        "no count is said as none known",
+    );
+    assertStrictEquals(formatCountedNoun(-1, noun), unknown, "and so is one below nothing");
 });
 
 Deno.test("the teens take the third form and the twenties do not", () => {
     const noun = COUNTED_NOUN_WORDS.fights;
-    assertEquals(formatCountedNoun(12, noun), "12 walk", "twelve is not two");
-    assertEquals(formatCountedNoun(14, noun), "14 walk", "nor is fourteen four");
-    assertEquals(formatCountedNoun(22, noun), "22 walki", "but twenty-two is");
-    assertEquals(formatCountedNoun(24, noun), "24 walki", "and so is twenty-four");
-    assertEquals(formatCountedNoun(25, noun), "25 walk", "while twenty-five is not");
-    assertEquals(formatCountedNoun(112, noun), "112 walk", "a hundred and twelve is a teen too");
+    assertStrictEquals(formatCountedNoun(12, noun), "12 walk", "twelve is not two");
+    assertStrictEquals(formatCountedNoun(14, noun), "14 walk", "nor is fourteen four");
+    assertStrictEquals(formatCountedNoun(22, noun), "22 walki", "but twenty-two is");
+    assertStrictEquals(formatCountedNoun(24, noun), "24 walki", "and so is twenty-four");
+    assertStrictEquals(formatCountedNoun(25, noun), "25 walk", "while twenty-five is not");
+    assertStrictEquals(
+        formatCountedNoun(112, noun),
+        "112 walk",
+        "a hundred and twelve is a teen too",
+    );
 });
 
 Deno.test("every noun states its three forms, and they are not one form thrice", () => {
@@ -868,34 +904,46 @@ Deno.test("every noun states its three forms, and they are not one form thrice",
 });
 
 Deno.test("a place is said with as much of it as was known, and nothing where none was", () => {
-    assertEquals(formatPlace("Mapa", 12, 34), "Mapa (12, 34)", "both, the map first");
-    assertEquals(formatPlace("Mapa", null, null), "Mapa", "the map alone stands alone");
-    assertEquals(formatPlace(null, 12, 34), "(12, 34)", "and so does the tile");
+    assertStrictEquals(formatPlace("Mapa", 12, 34), "Mapa (12, 34)", "both, the map first");
+    assertStrictEquals(formatPlace("Mapa", null, null), "Mapa", "the map alone stands alone");
+    assertStrictEquals(formatPlace(null, 12, 34), "(12, 34)", "and so does the tile");
     // Half a tile is not a tile: a pair with one number missing states a place that is not one.
-    assertEquals(formatPlace("Mapa", 12, null), "Mapa", "half a tile is left unsaid");
-    assertEquals(formatPlace(null, null, 34), null, "and half a tile alone says nothing");
-    assertEquals(formatPlace(null, null, null), null, "nothing known is said as nothing");
-    assertEquals(formatPlace("Mapa", 0, 0), "Mapa (0, 0)", "the corner of a map is a tile");
+    assertStrictEquals(formatPlace("Mapa", 12, null), "Mapa", "half a tile is left unsaid");
+    assertStrictEquals(formatPlace(null, null, 34), null, "and half a tile alone says nothing");
+    assertStrictEquals(formatPlace(null, null, null), null, "nothing known is said as nothing");
+    assertStrictEquals(formatPlace("Mapa", 0, 0), "Mapa (0, 0)", "the corner of a map is a tile");
     // Through the writer every whole number here goes through, and never interpolated raw.
-    assertEquals(
+    assertStrictEquals(
         formatPlace("Mapa", Number.NaN, 34),
         `Mapa (${PANEL_WORDS.unknown}, 34)`,
         "a tile that is no number is not spelled as one",
     );
-    assertEquals(formatPlace(null, 12.4, 34), "(12, 34)", "and a tile is a whole one");
+    assertStrictEquals(formatPlace(null, 12.4, 34), "(12, 34)", "and a tile is a whole one");
 });
 
 Deno.test("a share is spelled in whole points, and a figure too small to round says so", () => {
-    assertEquals(formatShareRounded(0.516), "52%", "whole points, the way every row prints one");
-    assertEquals(formatShareRounded(0), "0%", "zero happened and measured nothing");
-    assertEquals(formatShareRounded(1), "100%", "and the whole of a fight is the whole of it");
+    assertStrictEquals(
+        formatShareRounded(0.516),
+        "52%",
+        "whole points, the way every row prints one",
+    );
+    assertStrictEquals(formatShareRounded(0), "0%", "zero happened and measured nothing");
+    assertStrictEquals(
+        formatShareRounded(1),
+        "100%",
+        "and the whole of a fight is the whole of it",
+    );
     // The floor and the measurement stand apart: one says too small to print, the other says none.
-    assertEquals(formatShareRounded(0.0004), "<1%", "a share too small to print is not zero");
+    assertStrictEquals(formatShareRounded(0.0004), "<1%", "a share too small to print is not zero");
     // A share outside the whole must not stop the panel: it is held to the ends instead, and one
     // that is not a number at all says so — **E12**, develop ADR 0051.
-    assertEquals(formatShareRounded(1.5), "100%", "more than the whole is drawn as the whole");
-    assertEquals(formatShareRounded(-1), "0%", "and below nothing is drawn as nothing");
-    assertEquals(
+    assertStrictEquals(
+        formatShareRounded(1.5),
+        "100%",
+        "more than the whole is drawn as the whole",
+    );
+    assertStrictEquals(formatShareRounded(-1), "0%", "and below nothing is drawn as nothing");
+    assertStrictEquals(
         formatShareRounded(Number.NaN),
         PANEL_WORDS.unknown,
         "while a share that is not a number is said as not known, which is not zero",
@@ -911,9 +959,13 @@ Deno.test("a figure that is not one is said as not known, and never as a number"
     for (
         const nonFigure of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, 1e21]
     ) {
-        assertEquals(formatFigure(nonFigure), PANEL_WORDS.unknown, `${nonFigure} is not a figure`);
+        assertStrictEquals(
+            formatFigure(nonFigure),
+            PANEL_WORDS.unknown,
+            `${nonFigure} is not a figure`,
+        );
     }
-    assertEquals(formatFigure(0), "0", "while zero happened, and is written as it was");
+    assertStrictEquals(formatFigure(0), "0", "while zero happened, and is written as it was");
 });
 
 Deno.test("a count of things that is not a count says so, and still says what of", () => {
@@ -927,29 +979,29 @@ Deno.test("a count of things that is not a count says so, and still says what of
         PANEL_WORDS.unknown,
         "and neither is one below nothing, which no announcement could come to",
     );
-    assertEquals(formatUses(3), "×3", "and one that is is drawn as it stands");
+    assertStrictEquals(formatUses(3), "×3", "and one that is is drawn as it stands");
 });
 
 Deno.test("a figure is spaced the way the game spaces one, from three digits up", () => {
-    assertEquals(formatFigure(0), "0", "zero is one digit and stays one");
-    assertEquals(formatFigure(999), "999", "three digits are a group already");
-    assertEquals(formatFigure(1000), "1\u00a0000", "and the fourth is what opens a gap");
-    assertEquals(
+    assertStrictEquals(formatFigure(0), "0", "zero is one digit and stays one");
+    assertStrictEquals(formatFigure(999), "999", "three digits are a group already");
+    assertStrictEquals(formatFigure(1000), "1\u00a0000", "and the fourth is what opens a gap");
+    assertStrictEquals(
         formatFigure(141710),
         "141\u00a0710",
         "the figure the panel was photographed on",
     );
-    assertEquals(
+    assertStrictEquals(
         formatFigure(1234567),
         "1\u00a0234\u00a0567",
         "two gaps, at every third digit",
     );
-    assertEquals(
+    assertStrictEquals(
         formatFigure(-1000),
         "-1\u00a0000",
         "a sign never joins the digits behind it",
     );
-    assertEquals(formatFigure(1000.4), "1\u00a0000", "a figure is drawn as a whole number");
+    assertStrictEquals(formatFigure(1000.4), "1\u00a0000", "a figure is drawn as a whole number");
 });
 
 /**
@@ -972,7 +1024,7 @@ Deno.test("a figure never offers a place to break, and never spaces what it shou
 Deno.test("a set of shares adds to the whole it is a share of", () => {
     // Rounded a row at a time these print 33%, 33% and 33%, which is a column that does not sum.
     const thirds = formatSharesApportioned([1, 1, 1], 3);
-    assertEquals(getPointsFromShares(thirds), 100, "the points left over are handed out");
+    assertStrictEquals(getPointsFromShares(thirds), 100, "the points left over are handed out");
     assertEquals(
         formatSharesApportioned([1, 0], 1),
         ["100%", "0%"],
@@ -984,7 +1036,7 @@ Deno.test("a set of shares adds to the whole it is a share of", () => {
         "a whole of nothing states no share",
     );
     // A whole holding a figure the screen does not draw: the shares are right to add to less.
-    assertEquals(
+    assertStrictEquals(
         getPointsFromShares(formatSharesApportioned([1, 1], 4)),
         50,
         "half a whole is half",
@@ -1008,26 +1060,38 @@ Deno.test("two of a figure print one share, and the column still adds up", () =>
     // by row the first two of the three would take a point each and print 6% beside 5%.
     const tie = formatSharesApportioned([1, 1, 1, 2, 13], 18);
     assertEquals(tie, ["5%", "5%", "5%", "12%", "73%"], "equal figures print equal shares");
-    assertEquals(getPointsFromShares(tie), 100, "and the column still comes to the whole");
+    assertStrictEquals(getPointsFromShares(tie), 100, "and the column still comes to the whole");
     // A group that fits is paid whole: two points left, two members, both take one.
     assertEquals(formatSharesApportioned([1, 1, 4], 6), ["17%", "17%", "66%"], "a group that fits");
     // Three equal thirds: the group of three cannot be paid out of the one point left, so the
     // column adding up wins over the evenness and the earliest row takes it.
     const split = formatSharesApportioned([1, 1, 1], 3);
-    assertEquals(getPointsFromShares(split), 100, "a tie is split where nothing else can pay");
+    assertStrictEquals(
+        getPointsFromShares(split),
+        100,
+        "a tie is split where nothing else can pay",
+    );
     assertEquals(split, ["34%", "33%", "33%"], "earliest row first, so nothing flickers");
 });
 
 Deno.test("a key health moved under is worded, and one nobody named travels as written", () => {
-    assertEquals(getWordsForHealthSource("heal"), "przywracanie życia", "the key most of it comes");
-    assertEquals(
+    assertStrictEquals(
+        getWordsForHealthSource("heal"),
+        "przywracanie życia",
+        "the key most of it comes",
+    );
+    assertStrictEquals(
         getWordsForHealthSource("bandage"),
         "bandażowanie",
         "under, and the rarest of them",
     );
     // What the game sends and nobody here has named is shown as the game wrote it: a row that
     // vanished or read "nieznane" would hide a real figure behind our own ignorance.
-    assertEquals(getWordsForHealthSource("heal_of_2027"), "heal_of_2027", "a key nobody has named");
+    assertStrictEquals(
+        getWordsForHealthSource("heal_of_2027"),
+        "heal_of_2027",
+        "a key nobody has named",
+    );
     for (const [key, words] of HEALTH_SOURCE_WORD_BY_KEY) {
         assert(words.length > 0, `${key}: a key the table holds is worded`);
         assert(!words.includes("%"), `${key}: a hole in a sentence is not a word for a column`);
@@ -1041,7 +1105,11 @@ Deno.test("a suspicion about what never arrived counts in all three Polish forms
     assertStringIncludes(lost(5), "5 wiadomości", "and five the third");
     // Nothing to warn about is nothing said. The empty sentence is dropped where it is drawn,
     // rather than stopping the draw it arrived in — **E12**, develop ADR 0051.
-    assertEquals(formatLostMessageSuspicion(0, SAID_OUT_OF), "", "nothing lost is nothing to say");
+    assertStrictEquals(
+        formatLostMessageSuspicion(0, SAID_OUT_OF),
+        "",
+        "nothing lost is nothing to say",
+    );
 });
 
 /**
@@ -1115,13 +1183,13 @@ Deno.test("a suspicion about one person states its count out of nothing", () => 
  * would be a second ranking drawn in a paragraph.
  */
 Deno.test("a suspicion names whom it reaches while they are few, counting them past that", () => {
-    assertEquals(formatNamesReachedByGap([], 0), "", "a gap naming nobody names nobody");
-    assertEquals(
+    assertStrictEquals(formatNamesReachedByGap([], 0), "", "a gap naming nobody names nobody");
+    assertStrictEquals(
         formatNamesReachedByGap(["Gracz 1", "Gracz 2"], 2),
         " (Gracz 1, Gracz 2)",
         "two are read faster as names than as a number",
     );
-    assertEquals(
+    assertStrictEquals(
         formatNamesReachedByGap(["Gracz 1", "Gracz 2", "Gracz 3"], 3),
         " (Gracz 1, Gracz 2, Gracz 3)",
         "and three is what still fits beside a count",
@@ -1131,17 +1199,17 @@ Deno.test("a suspicion names whom it reaches while they are few, counting them p
         "dotyczy 4 postaci",
         "the fourth turns the list into a count, and the names are dropped whole",
     );
-    assertEquals(
+    assertStrictEquals(
         formatNamesReachedByGap([], 7),
         " (dotyczy 7 postaci)",
         "rows the roster could not name are counted, never guessed at",
     );
-    assertEquals(
+    assertStrictEquals(
         formatNamesReachedByGap(["Gracz 1"], 2),
         " (dotyczy 2 postaci)",
         "and one left unnamed among few turns the names into a count, never into one name",
     );
-    assertEquals(
+    assertStrictEquals(
         formatNamesReachedByGap([], 1),
         " (dotyczy 1 postaci)",
         "and a gap reaching one nobody can name still says it reaches somebody",
@@ -1238,17 +1306,25 @@ Deno.test("what destroys absorption is named as the defence line names it", () =
 });
 
 Deno.test("a kind the help does not name is left out rather than invented", () => {
-    assertEquals(
+    assertStrictEquals(
         ELEMENT_WORD_BY_KEY.get("dmgg"),
         undefined,
         "the one kind no source names carries no word",
     );
-    assertEquals(getWordsForDamageKind("dmgg"), "dmgg", "and reaches a reader as the game's token");
+    assertStrictEquals(
+        getWordsForDamageKind("dmgg"),
+        "dmgg",
+        "and reaches a reader as the game's token",
+    );
 });
 
 Deno.test("a pool among the kinds of damage is the defence's own word", () => {
-    assertEquals(getWordsForDamageKind("absorb"), "absorpcja", "the physical pool");
-    assertEquals(getWordsForDamageKind("absorbm"), "absorpcja magiczna", "and the magical one");
+    assertStrictEquals(getWordsForDamageKind("absorb"), "absorpcja", "the physical pool");
+    assertStrictEquals(
+        getWordsForDamageKind("absorbm"),
+        "absorpcja magiczna",
+        "and the magical one",
+    );
 });
 
 /**
@@ -1286,12 +1362,12 @@ Deno.test("every month a kept fight can fall in spells its own word", () => {
  * other, and a row that dropped it would be a fight the shelf holds and cannot date.
  */
 Deno.test("a moment on either edge of the calendar is still a moment", () => {
-    assertEquals(
+    assertStrictEquals(
         formatShelfTime({ day: 1, month: FIRST_MONTH, hour: 0, minute: 0 }, false),
         "01 sty 00:00",
         "the first minute of the year reads back, because zero is a reading",
     );
-    assertEquals(
+    assertStrictEquals(
         formatShelfTime({ day: 31, month: MONTHS_IN_YEAR, hour: 23, minute: 59 }, false),
         "31 gru 23:59",
         "and so does the last",
@@ -1304,25 +1380,25 @@ Deno.test("a moment on either edge of the calendar is still a moment", () => {
  */
 Deno.test("a day nobody can name leaves the row saying nothing", () => {
     const beforeTheYear = { day: 1, month: FIRST_MONTH - 1, hour: 21, minute: 5 };
-    assertEquals(formatShelfTime(beforeTheYear, false), "", "no month, so no date");
+    assertStrictEquals(formatShelfTime(beforeTheYear, false), "", "no month, so no date");
     const afterTheYear = { day: 1, month: MONTHS_IN_YEAR + 1, hour: 21, minute: 5 };
-    assertEquals(formatShelfTime(afterTheYear, false), "", "on both sides of the twelve");
+    assertStrictEquals(formatShelfTime(afterTheYear, false), "", "on both sides of the twelve");
     const noDay = { day: 0, month: 9, hour: 21, minute: 5 };
-    assertEquals(formatShelfTime(noDay, false), "", "and a day the calendar does not have");
+    assertStrictEquals(formatShelfTime(noDay, false), "", "and a day the calendar does not have");
     const pastTheMonth = { day: 32, month: 9, hour: 21, minute: 5 };
-    assertEquals(formatShelfTime(pastTheMonth, false), "", "on both sides of the day too");
+    assertStrictEquals(formatShelfTime(pastTheMonth, false), "", "on both sides of the day too");
     const beforeMidnight = { day: 13, month: 9, hour: -1, minute: 5 };
-    assertEquals(formatShelfTime(beforeMidnight, false), "", "an hour before the day began");
+    assertStrictEquals(formatShelfTime(beforeMidnight, false), "", "an hour before the day began");
     const beforeTheHour = { day: 13, month: 9, hour: 21, minute: -1 };
-    assertEquals(formatShelfTime(beforeTheHour, false), "", "and a minute before the hour");
-    assertEquals(formatShelfTime(null, false), "", "as does a moment that never read back");
+    assertStrictEquals(formatShelfTime(beforeTheHour, false), "", "and a minute before the hour");
+    assertStrictEquals(formatShelfTime(null, false), "", "as does a moment that never read back");
 });
 
 /** The fight going on now is dated by nothing, because it is still happening. */
 Deno.test("the live row says when it is without a date", () => {
     const dated = { day: 13, month: 9, hour: 21, minute: 5 };
-    assertEquals(formatShelfTime(dated, true), "teraz", "the live wording outranks the date");
-    assertEquals(formatShelfTime(null, true), "teraz", "and stands without a moment at all");
+    assertStrictEquals(formatShelfTime(dated, true), "teraz", "the live wording outranks the date");
+    assertStrictEquals(formatShelfTime(null, true), "teraz", "and stands without a moment at all");
 });
 
 /**
@@ -1338,7 +1414,7 @@ Deno.test("a fight the panel walked into says nothing about turns taken", () => 
         null,
         FROZEN_STATUS_BITS.bits,
     );
-    assertEquals(whole.length, 2, "seen whole, the count stands under the name");
+    assertStrictEquals(whole.length, 2, "seen whole, the count stands under the name");
     assertStringIncludes(whole[1] ?? "", "14", "and it is the count");
     const late = presentTooltipRows(
         {
@@ -1368,7 +1444,7 @@ Deno.test("walking in late costs the turns and nothing else", () => {
         null,
         FROZEN_STATUS_BITS.bits,
     );
-    assertEquals(late.length, 2, "the name and the status it still knows");
+    assertStrictEquals(late.length, 2, "the name and the status it still knows");
     assertStringIncludes(late[1] ?? "", "20%", "the figure stands, because now is now");
 });
 
@@ -1409,7 +1485,7 @@ Deno.test("a block past its stated maximum is cut to it, and one at it is drawn 
         null,
         FROZEN_STATUS_BITS.bits,
     );
-    assertEquals(atTheBound.length, TOOLTIP_ROWS_MAXIMUM, "every row it was allowed stands");
+    assertStrictEquals(atTheBound.length, TOOLTIP_ROWS_MAXIMUM, "every row it was allowed stands");
     const past = presentTooltipRows(
         {
             ...CARRYING_EVERYTHING,
@@ -1418,8 +1494,12 @@ Deno.test("a block past its stated maximum is cut to it, and one at it is drawn 
         null,
         FROZEN_STATUS_BITS.bits,
     );
-    assertEquals(past.length, TOOLTIP_ROWS_MAXIMUM, "and one row more is cut to the same length");
-    assertEquals(past[0], "MargoMeter", "the name is never what the cut takes");
+    assertStrictEquals(
+        past.length,
+        TOOLTIP_ROWS_MAXIMUM,
+        "and one row more is cut to the same length",
+    );
+    assertStrictEquals(past[0], "MargoMeter", "the name is never what the cut takes");
 });
 
 /**
@@ -1481,21 +1561,21 @@ Deno.test("a fighter carrying everything under every status fits the block exact
 });
 
 Deno.test("a whole number is written as it is, and anything else degrades, never throws", () => {
-    assertEquals(formatWholeUngrouped(0), "0", "nothing is a figure");
-    assertEquals(formatWholeUngrouped(1), "1", "and so is its neighbour");
-    assertEquals(formatWholeUngrouped(-161518), "-161518", "and one below nothing");
-    assertEquals(formatWholeUngrouped(1.5), "2", "a fraction rounds");
-    assertEquals(
+    assertStrictEquals(formatWholeUngrouped(0), "0", "nothing is a figure");
+    assertStrictEquals(formatWholeUngrouped(1), "1", "and so is its neighbour");
+    assertStrictEquals(formatWholeUngrouped(-161518), "-161518", "and one below nothing");
+    assertStrictEquals(formatWholeUngrouped(1.5), "2", "a fraction rounds");
+    assertStrictEquals(
         formatWholeUngrouped(Number.NaN),
         PANEL_WORDS.unknown,
         "what is no number is unknown",
     );
-    assertEquals(
+    assertStrictEquals(
         formatWholeUngrouped(Number.POSITIVE_INFINITY),
         PANEL_WORDS.unknown,
         "and so is no end",
     );
-    assertEquals(
+    assertStrictEquals(
         formatWholeUngrouped(2 ** 60),
         PANEL_WORDS.unknown,
         "and a number past what is held",
@@ -1503,9 +1583,12 @@ Deno.test("a whole number is written as it is, and anything else degrades, never
 });
 
 Deno.test("a panel waiting for a game says what it cannot see", () => {
-    assertEquals(formatDefect(PANEL_DEFECT_KIND.engine, null, 1), "Nie widać walki w grze.");
-    assertEquals(formatDefect(PANEL_DEFECT_KIND.engine, null, 3), "Nie widać walki w grze (3×).");
-    assertEquals(
+    assertStrictEquals(formatDefect(PANEL_DEFECT_KIND.engine, null, 1), "Nie widać walki w grze.");
+    assertStrictEquals(
+        formatDefect(PANEL_DEFECT_KIND.engine, null, 3),
+        "Nie widać walki w grze (3×).",
+    );
+    assertStrictEquals(
         formatDefect(PANEL_DEFECT_KIND.engine, null, Number.POSITIVE_INFINITY),
         "Nie widać walki w grze.",
         "a tally that is no count is not drawn as one",
@@ -1515,10 +1598,18 @@ Deno.test("a panel waiting for a game says what it cannot see", () => {
 Deno.test("a kept fight that will not read is placed by what the shelf knows of it", () => {
     const moment = { day: 13, month: 9, hour: 21, minute: 5 };
     const time = formatShelfTime(moment, false);
-    assertEquals(formatKeptUnread(moment, "Grota (34, 12)"), `${time} · Grota (34, 12)`, "both");
-    assertEquals(formatKeptUnread(moment, null), time, "a place unstated is left out, not guessed");
-    assertEquals(formatKeptUnread(null, "Grota"), "Grota", "and so is a moment unread");
-    assertEquals(formatKeptUnread(null, null), "", "which leaves nothing to say at all");
+    assertStrictEquals(
+        formatKeptUnread(moment, "Grota (34, 12)"),
+        `${time} · Grota (34, 12)`,
+        "both",
+    );
+    assertStrictEquals(
+        formatKeptUnread(moment, null),
+        time,
+        "a place unstated is left out, not guessed",
+    );
+    assertStrictEquals(formatKeptUnread(null, "Grota"), "Grota", "and so is a moment unread");
+    assertStrictEquals(formatKeptUnread(null, null), "", "which leaves nothing to say at all");
 });
 
 function getUnmistakableKeys(): string[] {

@@ -6,7 +6,7 @@
  * what a reading is handed is the hue alone.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import {
     formatColour,
     lookupColourForProfession,
@@ -22,7 +22,11 @@ const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
 
 Deno.test("a profession keeps its colour, and one the game did not state is colourless", () => {
     const taken = PROFESSIONS.map((profession) => lookupColourForProfession(profession));
-    assertEquals(new Set(taken).size, PROFESSIONS.length, "each of the six takes a hue of its own");
+    assertStrictEquals(
+        new Set(taken).size,
+        PROFESSIONS.length,
+        "each of the six takes a hue of its own",
+    );
     for (const colour of taken) {
         assert(PALETTE_COLOURS.some((hue) => hue === colour), `${colour} comes out of the palette`);
     }
@@ -109,8 +113,12 @@ function getUnpairedProfessions(
 }
 
 Deno.test("a profession the table does not word travels as the game wrote it", () => {
-    assertEquals(getWordsForProfession("p"), "Paladyn", "a letter the table holds is worded");
-    assertEquals(getWordsForProfession("z"), "z", "and a seventh the game invents is passed on");
+    assertStrictEquals(getWordsForProfession("p"), "Paladyn", "a letter the table holds is worded");
+    assertStrictEquals(
+        getWordsForProfession("z"),
+        "z",
+        "and a seventh the game invents is passed on",
+    );
 });
 
 Deno.test("a profession nobody has a hue for is drawn as the absence of one", () => {

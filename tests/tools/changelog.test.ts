@@ -3,7 +3,7 @@
  * the tree's own `CHANGELOG.md` does not carry is held as well.
  */
 
-import { assertEquals, assertStrictEquals, assertStringIncludes, assertThrows } from "@std/assert";
+import { assertStrictEquals, assertStringIncludes, assertThrows } from "@std/assert";
 import {
     CHANGELOG_LINES_MAXIMUM,
     composeReleaseNotes,
@@ -48,7 +48,7 @@ Deno.test("the notes are the section and how to install, and a missing one is re
     assertStringIncludes(notes, "kliknij **`margometer.user.js`**");
     assertStringIncludes(notes, "`margometer.meta.js` to plik służbowy");
     const error = assertThrows(() => composeReleaseNotes(CHANGELOG, "9.9.9"), ChangelogError);
-    assertEquals(error.name, "MargoMeterTool/Changelog");
+    assertStrictEquals(error.name, "MargoMeterTool/Changelog");
     assertThrows(
         () => composeReleaseNotes("## [1.0.0]\n\n## [0.9.0]\n", "1.0.0"),
         ChangelogError,

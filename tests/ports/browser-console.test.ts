@@ -3,7 +3,7 @@
  * console that refuses it is not the exception the page sees.
  */
 
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { initBrowserConsole } from "#/src/ports/browser-console.ts";
 
 Deno.test("the line is branded with the kind, and carries the detail beside it", () => {
@@ -23,5 +23,5 @@ Deno.test("a console that throws is discarded without escaping", () => {
         },
     });
     port.writeBrandedLine("engine", null);
-    assertEquals(asked, 1, "the console was asked, and its refusal went no further");
+    assertStrictEquals(asked, 1, "the console was asked, and its refusal went no further");
 });

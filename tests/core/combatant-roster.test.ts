@@ -5,7 +5,7 @@
  * combatants called the same thing, and one really does hold no snapshot at all.
  */
 
-import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import { assert, assertStrictEquals, assertThrows } from "@std/assert";
 import { AssertionError } from "@std/assert/assertion-error";
 import {
     type Combatant,
@@ -22,18 +22,30 @@ const NOBODY = "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-178651481
 
 Deno.test("a name two combatants answer to resolves to nobody", () => {
     const roster = indexCombatantRoster(lookupRecordedFight(TWO_OF_A_NAME).combatants);
-    assertEquals(lookupCombatantIdByName(roster, "Odyniec"), null, "a shared name names nobody");
-    assertEquals(lookupCombatantIdByName(roster, "Gracz 1"), 482845, "a name of one resolves");
-    assertEquals(lookupCombatantIdByName(roster, "Nikt"), null, "a name nobody holds resolves");
+    assertStrictEquals(
+        lookupCombatantIdByName(roster, "Odyniec"),
+        null,
+        "a shared name names nobody",
+    );
+    assertStrictEquals(
+        lookupCombatantIdByName(roster, "Gracz 1"),
+        482845,
+        "a name of one resolves",
+    );
+    assertStrictEquals(
+        lookupCombatantIdByName(roster, "Nikt"),
+        null,
+        "a name nobody holds resolves",
+    );
 });
 
 Deno.test("a roster of nothing holds nobody, and a roster of one holds one", () => {
     const empty = indexCombatantRoster(lookupRecordedFight(NOBODY).combatants);
-    assertEquals(empty.byId.size, 0, "a recording with no snapshot states no combatant");
-    assertEquals(lookupCombatantIdByName(empty, "Gracz 1"), null, "and resolves no name");
+    assertStrictEquals(empty.byId.size, 0, "a recording with no snapshot states no combatant");
+    assertStrictEquals(lookupCombatantIdByName(empty, "Gracz 1"), null, "and resolves no name");
     const soloRoster = indexCombatantRoster([composeTestCombatant(1, "Gracz 1")]);
-    assertEquals(soloRoster.byId.size, 1, "one combatant is a roster");
-    assertEquals(
+    assertStrictEquals(soloRoster.byId.size, 1, "one combatant is a roster");
+    assertStrictEquals(
         lookupCombatantIdByName(soloRoster, "Gracz 1"),
         1,
         "and answers to their own name",
@@ -75,7 +87,11 @@ Deno.test("a name that has gone ambiguous never comes back", () => {
         composeTestCombatant(2, "Odyniec"),
         composeTestCombatant(3, "Odyniec"),
     ];
-    assertEquals(lookupCombatantIdByName(indexCombatantRoster(listed), "Odyniec"), null, "nobody");
+    assertStrictEquals(
+        lookupCombatantIdByName(indexCombatantRoster(listed), "Odyniec"),
+        null,
+        "nobody",
+    );
 });
 
 Deno.test("every recording composes a roster of its own people", () => {
@@ -84,14 +100,14 @@ Deno.test("every recording composes a roster of its own people", () => {
     for (const fight of readRecordedFights()) {
         const combatants = fight.combatants;
         const roster = indexCombatantRoster(combatants);
-        assertEquals(
+        assertStrictEquals(
             roster.byId.size,
             new Set(combatants.map((combatant) => combatant.id)).size,
             fight.path,
         );
         for (const [name, id] of roster.idByName) {
             if (id === null) continue;
-            assertEquals(
+            assertStrictEquals(
                 roster.byId.get(id)?.name,
                 name,
                 `${fight.path}: a name resolves to its own`,
@@ -104,5 +120,5 @@ Deno.test("every recording composes a roster of its own people", () => {
         );
     }
     assert(largest > 1, "the recordings hold fights of more than one person");
-    assertEquals(sidesSeen, 2, "a fight has two sides, and neither is favoured here");
+    assertStrictEquals(sidesSeen, 2, "a fight has two sides, and neither is favoured here");
 });

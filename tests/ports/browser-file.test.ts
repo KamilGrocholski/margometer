@@ -20,7 +20,11 @@ Deno.test("a file goes to the browser through an anchor in the page, released a 
     assertEquals([page.anchor.download, page.anchor.href], ["fight.json", "blob:1"], "named");
     assertStrictEquals(page.anchor.className, "MargoMeter-download", "under a class of ours");
     page.timers.shift()?.();
-    assertEquals(page.calls.at(-1), "revoke blob:1", "and the address released after the click");
+    assertStrictEquals(
+        page.calls.at(-1),
+        "revoke blob:1",
+        "and the address released after the click",
+    );
 });
 
 function composeDownloads(over: Partial<BrowserDownloads> = {}, click = () => {}) {
@@ -58,7 +62,11 @@ Deno.test("a page that lends nothing to download with is answered, and nothing i
     const refused = initBrowserFile(anchorless.downloads).writeFile("fight.json", "{}", () => {});
     assertInstanceOf(refused, FileApiAbsent, "no anchor");
     anchorless.timers.shift()?.();
-    assertEquals(anchorless.calls.at(-1), "revoke blob:1", "and the address it took is released");
+    assertStrictEquals(
+        anchorless.calls.at(-1),
+        "revoke blob:1",
+        "and the address it took is released",
+    );
 });
 
 /** The address is the page's answer, so an empty one is a page that lent nothing to download by. */

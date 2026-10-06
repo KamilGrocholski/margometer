@@ -92,7 +92,11 @@ Deno.test("a combatant stated a player in one payload and a monster in another i
     const again = { index: 1, messages: [], payload: { w: { "7": { id: 7, npc: 0 } } } };
     calls.push(again);
     const named = composePseudonymisedRecording(fight);
-    assertEquals(named.substitutions.get("Anna"), "Gracz 1", "the same word twice is one word");
+    assertStrictEquals(
+        named.substitutions.get("Anna"),
+        "Gracz 1",
+        "the same word twice is one word",
+    );
     again.payload.w["7"].npc = 1;
     assertThrows(
         () => composePseudonymisedRecording(fight),

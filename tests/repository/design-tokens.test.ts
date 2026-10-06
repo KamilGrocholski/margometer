@@ -4,7 +4,13 @@
  * in `src/ui/panel-look.ts` otherwise leaves the document quoting the number it used to be, green.
  */
 
-import { assert, assertEquals, assertExists, assertNotStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertNotStrictEquals,
+    assertStrictEquals,
+} from "@std/assert";
 import {
     CLASS,
     composeStyleSheet,
@@ -81,11 +87,19 @@ Deno.test("a value that moved is reported, and one that stood still is not", () 
     const agreeing = new Map([["rowHeight", ["18px"]], ["spaceRegion", ["5px", "7px"]]]);
     assertEquals(lookupDisagreements(agreeing, spent), [], "a page quoting what the panel spends");
     const moved = new Map([["rowHeight", ["21px"]]]);
-    assertEquals(lookupDisagreements(moved, spent).length, 1, "and one quoting what it used to");
+    assertStrictEquals(
+        lookupDisagreements(moved, spent).length,
+        1,
+        "and one quoting what it used to",
+    );
     // A row short of a value it used to state is the half a reader skims past: the figure left
     // standing is still right, so nothing on the page looks wrong.
     const halved = new Map([["spaceRegion", ["5px"]]]);
-    assertEquals(lookupDisagreements(halved, spent).length, 1, "a row that dropped one of two");
+    assertStrictEquals(
+        lookupDisagreements(halved, spent).length,
+        1,
+        "a row that dropped one of two",
+    );
 });
 
 /** What the document quotes that the panel does not spend, one line per row that disagrees. */

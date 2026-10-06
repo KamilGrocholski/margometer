@@ -115,11 +115,11 @@ const SUBTITLE_ON_ONE_LINE = 32;
 Deno.test("a row is looked up by the name it stated, and by no other", () => {
     const register = createCardRegister();
     const compose = () => HILDUR;
-    assertEquals(register.lookup("row:7"), null, "a row nobody drew has nothing to say");
+    assertStrictEquals(register.lookup("row:7"), null, "a row nobody drew has nothing to say");
     register.add("row:7", compose);
     assertEquals(register.lookup("row:7"), compose, "and one that was drawn says what it drew");
-    assertEquals(register.lookup("row:8"), null, "which reaches no neighbour");
-    assertEquals(register.lookupRefused(), null, "and a row registered is no refusal");
+    assertStrictEquals(register.lookup("row:8"), null, "which reaches no neighbour");
+    assertStrictEquals(register.lookupRefused(), null, "and a row registered is no refusal");
     // Two rows answering to one name must not stop the draw: the first stands and the second is
     // refused and kept for the draw to report, so what a clash costs is a card on hover and never
     // the panel — **E12**, develop ADR 0051.
@@ -131,13 +131,17 @@ Deno.test("a row is looked up by the name it stated, and by no other", () => {
         "and a second row of that name changes nothing",
     );
     register.add("", compose);
-    assertEquals(register.lookup(""), null, "as does a row with no name to be looked up by");
-    assertEquals(register.lookupRefused()?.key, "row:7", "the first refusal is the one kept");
+    assertStrictEquals(register.lookup(""), null, "as does a row with no name to be looked up by");
+    assertStrictEquals(register.lookupRefused()?.key, "row:7", "the first refusal is the one kept");
     register.reset();
-    assertEquals(register.lookup("row:7"), null, "a redraw starts with nothing said about any row");
-    assertEquals(register.lookupRefused(), null, "and nothing refused");
+    assertStrictEquals(
+        register.lookup("row:7"),
+        null,
+        "a redraw starts with nothing said about any row",
+    );
+    assertStrictEquals(register.lookupRefused(), null, "and nothing refused");
     register.add("", compose);
-    assertEquals(register.lookupRefused()?.key, "", "a row with no name is refused too");
+    assertStrictEquals(register.lookupRefused()?.key, "", "a row with no name is refused too");
 });
 
 Deno.test("the register holds a card for every row up to its bound, and refuses the next", () => {
@@ -145,14 +149,14 @@ Deno.test("the register holds a card for every row up to its bound, and refuses 
     for (let index = 0; index < CARDS_DRAWN_MAXIMUM; index += 1) {
         register.add(`row:${index}`, () => HILDUR);
     }
-    assertEquals(register.lookupRefused(), null, "a draw at the bound refuses nothing");
+    assertStrictEquals(register.lookupRefused(), null, "a draw at the bound refuses nothing");
     register.add(`row:${CARDS_DRAWN_MAXIMUM}`, () => HILDUR);
-    assertEquals(
+    assertStrictEquals(
         register.lookup(`row:${CARDS_DRAWN_MAXIMUM}`),
         null,
         "the row past it has no card",
     );
-    assertEquals(
+    assertStrictEquals(
         register.lookupRefused()?.key,
         `row:${CARDS_DRAWN_MAXIMUM}`,
         "and is the refusal the draw reports",
@@ -185,7 +189,7 @@ Deno.test("the card draws a line for each of the three kinds, marked as the kind
         ],
         "the figure the screen shows is the one in bold, and the part of it is the one indented",
     );
-    assertEquals(card.className, CLASS.card, "a card with something to say is not hidden");
+    assertStrictEquals(card.className, CLASS.card, "a card with something to say is not hidden");
 });
 
 /** Every line's own class, in the order the card drew them. */
@@ -206,12 +210,12 @@ Deno.test("a row with nothing further to say draws a name, and nobody hovered dr
     assertEquals(getTextsByClass(bare, CLASS.cardValue), [], "and nothing under it");
     assertEquals(getTextsByClass(bare, CLASS.cardSubtitle), [], "not even an empty line for one");
     const nothing = renderCard(document, null) as FakeElement;
-    assertEquals(
+    assertStrictEquals(
         nothing.className,
         `${CLASS.card} ${CLASS.cardHidden}`,
         "nobody hovered is hidden",
     );
-    assertEquals(nothing.children.length, 0, "and says nothing at all");
+    assertStrictEquals(nothing.children.length, 0, "and says nothing at all");
 });
 
 Deno.test("a suspicion on the card wears the mark as well as the colour", () => {
@@ -269,28 +273,32 @@ Deno.test("how tall a card stands is counted, and a note as the lines it wraps t
  * pointer.
  */
 Deno.test("a name too long for one line is counted as the lines it folds to", () => {
-    assertEquals(
+    assertStrictEquals(
         tallyCardSize(composeNamed(NAME_ON_ONE_LINE), STEP).lines,
         1,
         "what a line holds stands on one",
     );
-    assertEquals(
+    assertStrictEquals(
         tallyCardSize(composeNamed(NAME_ON_ONE_LINE + 1), STEP).lines,
         2,
         "and one character past it costs the whole of the next line",
     );
-    assertEquals(
+    assertStrictEquals(
         tallyCardSize(composeNamed(NAME_ON_ONE_LINE * 2 + 1), STEP).lines,
         3,
         "which goes on holding past the second line as well",
     );
     // Zero is a boundary, and a card with no name to draw still stands on the line it is drawn on.
-    assertEquals(
+    assertStrictEquals(
         tallyCardSize(composeNamed(0), STEP).lines,
         1,
         "a name of nothing is still a line",
     );
-    assertEquals(tallyCardSize(composeNamed(1), STEP).lines, 1, "and so is a name of one letter");
+    assertStrictEquals(
+        tallyCardSize(composeNamed(1), STEP).lines,
+        1,
+        "and so is a name of one letter",
+    );
 });
 
 /** A card of a name alone, which is the shape the shelf's own row opens (`develop ADR 0084`). */
@@ -307,12 +315,12 @@ function composeNamed(length: number): CardContent {
 Deno.test("a name is counted on a lower floor than a sentence, because it is drawn bold", () => {
     const between = NAME_ON_ONE_LINE + 1;
     assert(between <= SUBTITLE_ON_ONE_LINE, "there is a length the two floors answer differently");
-    assertEquals(
+    assertStrictEquals(
         tallyCardSize(composeNamed(between), STEP).lines,
         2,
         "a name of that length has folded",
     );
-    assertEquals(
+    assertStrictEquals(
         tallyCardSize({
             name: "x",
             subtitle: null,
@@ -333,18 +341,22 @@ Deno.test("the line under the name is counted as the lines it folds to", () => {
     const cost = (length: number): number =>
         tallyCardSize({ ...named, subtitle: "x".repeat(length) }, STEP).lines -
         tallyCardSize(named, STEP).lines;
-    assertEquals(cost(SUBTITLE_ON_ONE_LINE), 1, "what a line holds costs one");
-    assertEquals(cost(SUBTITLE_ON_ONE_LINE + 1), 2, "and one character past it costs two");
-    assertEquals(cost(0), 1, "a line saying nothing is still drawn, so it still costs one");
+    assertStrictEquals(cost(SUBTITLE_ON_ONE_LINE), 1, "what a line holds costs one");
+    assertStrictEquals(cost(SUBTITLE_ON_ONE_LINE + 1), 2, "and one character past it costs two");
+    assertStrictEquals(cost(0), 1, "a line saying nothing is still drawn, so it still costs one");
 });
 
 Deno.test("hiding and showing write the class, and nothing else moves", () => {
     const document = composeFakeDocument();
     const card = renderCard(document, HILDUR) as FakeElement;
     setCardHidden(card, true);
-    assertEquals(card.className, `${CLASS.card} ${CLASS.cardHidden}`, "hidden wears the mark");
+    assertStrictEquals(
+        card.className,
+        `${CLASS.card} ${CLASS.cardHidden}`,
+        "hidden wears the mark",
+    );
     setCardHidden(card, false);
-    assertEquals(card.className, CLASS.card, "and shown takes it off again");
+    assertStrictEquals(card.className, CLASS.card, "and shown takes it off again");
     assertEquals(getTextsByClass(card, CLASS.cardName), [HILDUR.name], "what it says is untouched");
 });
 
@@ -357,7 +369,7 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     const card = renderCard(document, HILDUR) as FakeElement;
     const size = tallyCardSize(HILDUR, STEP);
     setCardPosition(card, 292.33333333333, null, size, STEP);
-    assertEquals(
+    assertStrictEquals(
         card.attributes.get("style"),
         "--MargoMeter-card-top:292px;--MargoMeter-card-height:118px",
         "a fractional `clientY` on a scaled display is not a place anybody can see",
@@ -375,7 +387,7 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     // A panel that has never been dragged keeps the side the sheet states, so nothing is written
     // across: the one written here is the panel saying it has moved.
     setCardPosition(card, 100, { edge: "left", offsetPixels: 42.6 }, size, STEP);
-    assertEquals(
+    assertStrictEquals(
         card.attributes.get("style"),
         "--MargoMeter-card-top:100px;--MargoMeter-card-height:118px;" +
             "--MargoMeter-card-left:43px;--MargoMeter-card-right:auto",
@@ -410,8 +422,12 @@ Deno.test("a card pinned by one edge releases the other, whichever way round it 
 
     setCardPosition(card, 0, null, size, STEP);
     const sheets = card.attributes.get("style") ?? "";
-    assertEquals(sheets.includes("card-left"), false, "a panel nobody moved writes no edge at all");
-    assertEquals(sheets.includes("card-right"), false, "and the sheet's own corner stands");
+    assertStrictEquals(
+        sheets.includes("card-left"),
+        false,
+        "a panel nobody moved writes no edge at all",
+    );
+    assertStrictEquals(sheets.includes("card-right"), false, "and the sheet's own corner stands");
 });
 
 /**
@@ -468,7 +484,11 @@ Deno.test("a card too tall for one column stands in two, and gives a run up only
         STEP,
     );
     assertEquals(twoColumns.card, tall, "a card a pixel too tall gives nothing up (ADR 0033)");
-    assertEquals(twoColumns.secondColumnFrom, 2, "it stands in two columns, split down the middle");
+    assertStrictEquals(
+        twoColumns.secondColumnFrom,
+        2,
+        "it stands in two columns, split down the middle",
+    );
     const twoHigh = getCardHeight(tallyCardLayoutSize(twoColumns, STEP), TOKENS);
     assertExists(twoHigh, "and the panel can say how tall the two columns stand");
     assert(twoHigh <= whole - 1, "which is within the room the one column was not");
@@ -540,7 +560,7 @@ Deno.test("a window too short for even the figures still draws them, and says so
 Deno.test("a card in two columns draws them side by side, and its notes across the foot", () => {
     const document = composeFakeDocument();
     const drawn = renderCard(document, LONG, 2) as FakeElement;
-    assertEquals(
+    assertStrictEquals(
         drawn.className,
         `${CLASS.card} ${CLASS.cardWide}`,
         "a card of two is the wide one",
@@ -548,7 +568,7 @@ Deno.test("a card in two columns draws them side by side, and its notes across t
     const columns = getElementsWithin(drawn).filter((element) =>
         element.className === CLASS.cardColumn
     );
-    assertEquals(columns.length, 2, "two columns stand under the name");
+    assertStrictEquals(columns.length, 2, "two columns stand under the name");
     const [left, right] = columns;
     assertExists(left, "the first column");
     assertExists(right, "and the second");
@@ -563,7 +583,7 @@ Deno.test("a card in two columns draws them side by side, and its notes across t
     assertEquals(getTextsByClass(right, noted), [], "in either of them");
     assertEquals(getTextsByClass(drawn, noted), [ONE_LINE_NOTE], "but across the foot");
     const single = renderCard(document, LONG) as FakeElement;
-    assertEquals(single.className, CLASS.card, "and a card of one is drawn as it always was");
+    assertStrictEquals(single.className, CLASS.card, "and a card of one is drawn as it always was");
     assertEquals(
         getElementsWithin(single).filter((element) => element.className === CLASS.cardColumns),
         [],
@@ -580,7 +600,7 @@ Deno.test("a card of two columns is as wide as two bounds and the air between th
         const bound = TYPE_TOKENS[step].cardWidthPixelsMaximum;
         const singleWidth = getCardWidthForColumns(TYPE_TOKENS[step], 1);
         const doubleWidth = getCardWidthForColumns(TYPE_TOKENS[step], 2);
-        assertEquals(singleWidth, bound, `${step}: one column is the bound`);
+        assertStrictEquals(singleWidth, bound, `${step}: one column is the bound`);
         assert(doubleWidth - singleWidth >= bound, `${step}: and the second adds a whole bound`);
         assert(doubleWidth - 2 * bound < bound, `${step}: and no more than the air between them`);
     }
@@ -644,7 +664,7 @@ Deno.test("the second column opens where the two come out closest in height", ()
     };
     const whole = getCardHeight(tallyCardSize(lopsided, STEP), TOKENS);
     assertExists(whole, "the card has a height");
-    assertEquals(
+    assertStrictEquals(
         composeCardLayout(
             lopsided,
             { heightPixels: whole - 1, widthPixels: WIDTH_ROOM },
@@ -657,7 +677,7 @@ Deno.test("the second column opens where the two come out closest in height", ()
 
 Deno.test("the detail follows the pointer, and lets go of a row that stopped being drawn", () => {
     const { register, handle, first: firstCard } = composeHandleUnderTest();
-    assertEquals(
+    assertStrictEquals(
         firstCard.className,
         `${CLASS.card} ${CLASS.cardHidden}`,
         "a panel starts saying none",
@@ -698,7 +718,7 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
     const later = shown.replacedBy;
     assertExists(later, "a redraw puts the same row's detail up again");
     assertEquals(getTextsByClass(later, CLASS.cardValue), ["400 000"], "with the new one");
-    assertEquals(
+    assertStrictEquals(
         later.attributes.get("style"),
         "--MargoMeter-card-top:480px;--MargoMeter-card-height:64px",
         "and a card that shrank says so, or the sheet clamps it against a height it no longer has",
@@ -706,12 +726,12 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
 
     register.reset();
     handle.renderOpen();
-    assertEquals(
+    assertStrictEquals(
         later.className,
         `${CLASS.card} ${CLASS.cardHidden}`,
         "a row gone takes its detail",
     );
-    assertEquals(later.replacedBy, null, "which is hidden in place rather than drawn again");
+    assertStrictEquals(later.replacedBy, null, "which is hidden in place rather than drawn again");
 });
 
 function composeHandleUnderTest() {
@@ -746,7 +766,11 @@ Deno.test("a move inside one pixel writes nothing, because there is nowhere new 
     assertExists(shown, "a row hovered opens the detail");
     shown.attributes.delete("style");
     handle.onHover("row:7", 412.4);
-    assertEquals(shown.attributes.get("style"), undefined, "a move that rounds to the same place");
+    assertStrictEquals(
+        shown.attributes.get("style"),
+        undefined,
+        "a move that rounds to the same place",
+    );
     handle.onHover("row:7", 413);
     assertExists(shown.attributes.get("style"), "and a move to the next one does write");
 });
@@ -776,7 +800,7 @@ Deno.test("a card hidden where it stood is composed again, not moved", () => {
     register.add("row:7", () => HILDUR);
     willFail = true;
     handle.onHover("row:7", 412);
-    assertEquals(
+    assertStrictEquals(
         firstCard.className,
         `${CLASS.card} ${CLASS.cardHidden}`,
         "the card is hidden in place",
@@ -823,13 +847,13 @@ Deno.test("a card that will not compose takes the last row's card down with it",
     const moved = errors.attempt(() => handle.onHover("row:8", 340));
     assertStrictEquals(moved instanceof errors.Caught, false, "the handle keeps the throw in hand");
     assertStrictEquals(failures.length, 1, "and the swap is told of it, once");
-    assertEquals(
+    assertStrictEquals(
         shown.className,
         `${CLASS.card} ${CLASS.cardHidden}`,
         "the first row's card does not stay up under the second row",
     );
     handle.onHover("row:8", 400);
-    assertEquals(
+    assertStrictEquals(
         shown.className,
         `${CLASS.card} ${CLASS.cardHidden}`,
         "nor does a move along that row put it back up",
@@ -870,7 +894,11 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
     );
 
     handle.onHover("helper:12", 360);
-    assertEquals(asked.length, 2, "a move on the same row asks again, the card having not moved");
+    assertStrictEquals(
+        asked.length,
+        2,
+        "a move on the same row asks again, the card having not moved",
+    );
     handle.renderOpen();
     assertEquals(asked, ["helper:12", "helper:12", "helper:12"], "and so does a redraw");
 });
@@ -914,14 +942,18 @@ Deno.test("nobody under the pointer hides it, and a row nobody drew never opens 
     const { register, handle, first: firstCard } = composeHandleUnderTest();
     handle.onHover("row:404", 200);
     assertEquals(firstCard.replacedBy, null, "a key the draw never registered draws nothing");
-    assertEquals(firstCard.className, `${CLASS.card} ${CLASS.cardHidden}`, "and leaves it hidden");
+    assertStrictEquals(
+        firstCard.className,
+        `${CLASS.card} ${CLASS.cardHidden}`,
+        "and leaves it hidden",
+    );
 
     register.add("row:7", () => HILDUR);
     handle.onHover("row:7", 200);
     const shown = firstCard.replacedBy;
     assertExists(shown, "a key it did register opens it");
     handle.onHover(null, 200);
-    assertEquals(
+    assertStrictEquals(
         shown.className,
         `${CLASS.card} ${CLASS.cardHidden}`,
         "and leaving hides it again",
@@ -950,9 +982,13 @@ Deno.test("a caveated sentence is counted with the mark the card draws before it
         tallyCardSize(compose(length, "caveat"), STEP).lines -
         tallyCardSize(compose(length, "plain"), STEP).lines;
 
-    assertEquals(cost(31), 1, "thirty-one characters and a mark run to a second line");
-    assertEquals(cost(30), 0, "thirty and a mark still stand on one, which is the other side");
-    assertEquals(
+    assertStrictEquals(cost(31), 1, "thirty-one characters and a mark run to a second line");
+    assertStrictEquals(
+        cost(30),
+        0,
+        "thirty and a mark still stand on one, which is the other side",
+    );
+    assertStrictEquals(
         tallyCardSize(compose(31, "plain"), STEP).lines,
         tallyCardSize(compose(30, "plain"), STEP).lines,
         "and neither length wraps on its own, so the line the mark bought is the mark's",

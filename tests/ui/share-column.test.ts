@@ -9,9 +9,9 @@
 
 import {
     assert,
-    assertEquals,
     AssertionError,
     assertNotStrictEquals,
+    assertStrictEquals,
     assertThrows,
 } from "@std/assert";
 import { SHARE_FLOOR } from "#/src/ui/panel-words.ts";
@@ -72,7 +72,11 @@ Deno.test("every column of shares the panel draws comes to a hundred", () => {
                         const sum = getShareSum(section);
                         if (sum === null) continue;
                         drawn += 1;
-                        assertEquals(sum, HUNDRED, `${path}: ${section.where} comes to ${sum}`);
+                        assertStrictEquals(
+                            sum,
+                            HUNDRED,
+                            `${path}: ${section.where} comes to ${sum}`,
+                        );
                         for (const row of section.rows) {
                             expectShareTellsNothingFromSomething(
                                 `${path}: ${section.where}`,
@@ -86,7 +90,7 @@ Deno.test("every column of shares the panel draws comes to a hundred", () => {
     }
     // The reader is proved by what it found as well as by what it passed: a sweep that stopped
     // reaching the rungs would agree with every screen it never opened.
-    assertEquals(drawn, 53_941, "every column the corpus draws, 2026-10-04");
+    assertStrictEquals(drawn, 53_941, "every column the corpus draws, 2026-10-04");
 });
 
 /** The ranking of one screen for one seat, and every rung the rows on it open onto. */
@@ -214,7 +218,11 @@ function getShareSum(section: Section): number | null {
 function expectShareTellsNothingFromSomething(where: string, row: ShareRow): void {
     assert(row.figure >= 0, `${where}: a row drawn holds no less than nothing`);
     if (row.figure === 0) {
-        assertEquals(row.shareText, NO_SHARE, `${where}: a row holding nothing states a share`);
+        assertStrictEquals(
+            row.shareText,
+            NO_SHARE,
+            `${where}: a row holding nothing states a share`,
+        );
         return;
     }
     assertNotStrictEquals(
@@ -232,16 +240,16 @@ Deno.test("a column short of the whole is read as short", () => {
         { figure: 600, shareText: "60%" },
         { figure: 340, shareText: "34%" },
     ], 1000);
-    assertEquals(getShareSum(short), 94, "the reader adds a column that misses the hundred");
+    assertStrictEquals(getShareSum(short), 94, "the reader adds a column that misses the hundred");
     const floored = composeSection("made up", [
         { figure: 994, shareText: "99%" },
         { figure: 1, shareText: SHARE_FLOOR },
         { figure: 5, shareText: "1%" },
     ], 1000);
-    assertEquals(getShareSum(floored), 100, "a row below a point costs the column no point");
-    assertEquals(getShareSum(composeSection("made up", [], 1000)), null, "an undrawn column");
+    assertStrictEquals(getShareSum(floored), 100, "a row below a point costs the column no point");
+    assertStrictEquals(getShareSum(composeSection("made up", [], 1000)), null, "an undrawn column");
     const whole: ShareRow[] = [{ figure: 1, shareText: "100%" }];
-    assertEquals(getShareSum(composeSection("made up", whole, 0)), null, "or one of nothing");
+    assertStrictEquals(getShareSum(composeSection("made up", whole, 0)), null, "or one of nothing");
 });
 
 function composeSection(where: string, rows: ShareRow[], total: number): Section {

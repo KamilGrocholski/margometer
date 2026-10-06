@@ -7,7 +7,7 @@
  * `tools/preview-server.ts` answers requests for it and `tools/preview-site.ts` writes it down.
  */
 
-import { assert, assertStringIncludes } from "@std/assert";
+import { assert, assertStrictEquals, assertStringIncludes } from "@std/assert";
 import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { PLACE, SHAPE, SPACE_PIXELS, SURFACE, TEXT, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
@@ -197,7 +197,7 @@ function composeOwnScope(script: string): string {
 /** Somebody else's material, on its way into a tag it must not be able to close. */
 function composeEscapedJson(material: unknown): string {
     const written = JSON.stringify(material);
-    assert(typeof written === "string", "what a page carries is written out as text");
+    assertStrictEquals(typeof written, "string", "what a page carries is written out as text");
     return written.split("<").join("\\u003c");
 }
 

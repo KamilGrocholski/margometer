@@ -89,12 +89,12 @@ Deno.test("every recording is read whole, by the count the payloads themselves s
 Deno.test("a fight whose calls carry no snapshot still has a cast", () => {
     const fight = lookupRecordedFight(NO_SNAPSHOTS);
     const replayed = view(replayRecordedFight(fight), fight.path);
-    assertEquals(fight.combatants.length, 0, "the snapshots state nobody");
-    assertEquals(replayed.roster.byId.size, 3, "and the opening payload states all three");
+    assertStrictEquals(fight.combatants.length, 0, "the snapshots state nobody");
+    assertStrictEquals(replayed.roster.byId.size, 3, "and the opening payload states all three");
     const placed = replayed.events.filter((event) =>
         event.kind === "damage-to-named-combatant" && event.targetId !== null
     );
-    assertEquals(placed.length, 1, "so the figure stated against a name lands on somebody");
+    assertStrictEquals(placed.length, 1, "so the figure stated against a name lands on somebody");
 });
 
 /**
@@ -128,7 +128,7 @@ Deno.test("no recording states a fight the game runs itself and a turn at once",
                 continue;
             }
             running += 1;
-            assertEquals(record.turnStatement, null, `${fight.path}: numbers no turn`);
+            assertStrictEquals(record.turnStatement, null, `${fight.path}: numbers no turn`);
         }
     }
     assert(running > 0, "the corpus carries payloads stating a fight the game ran itself");

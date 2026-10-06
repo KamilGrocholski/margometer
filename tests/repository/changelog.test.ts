@@ -9,6 +9,7 @@ import {
     assert,
     assertEquals,
     assertExists,
+    assertStrictEquals,
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
@@ -57,12 +58,12 @@ Deno.test("a section stops where the next one opens", () => {
     const headings = section.split("\n").filter((line) => line.startsWith(VERSION_HEADING));
     assertEquals(headings, [], "a section that runs on announces its neighbour as its own");
     const sample = "## [1.0.0]\n\n- one\n\n## [0.9.0]\n\n- other\n";
-    assertEquals(
+    assertStrictEquals(
         lookupChangelogSection(sample, "1.0.0"),
         "- one",
         "the reader stops on its sample",
     );
-    assertEquals(
+    assertStrictEquals(
         lookupChangelogSection(sample, "0.9.0"),
         "- other",
         "and reads the last one whole",
@@ -101,7 +102,11 @@ Deno.test("a version number in the middle of an entry is not mistaken for its he
 });
 
 Deno.test("a version with no section is null rather than empty text", () => {
-    assertEquals(lookupChangelogSection(CHANGELOG, "9.9.9"), null, "nothing is said about it");
+    assertStrictEquals(
+        lookupChangelogSection(CHANGELOG, "9.9.9"),
+        null,
+        "nothing is said about it",
+    );
     assertThrows(
         () => composeReleaseNotes(CHANGELOG, "9.9.9"),
         ChangelogError,
@@ -143,7 +148,7 @@ Deno.test("the kinds run in the stated order inside every version", () => {
     const kept = "## [1.0.0]\n\n- **Nowość** — a\n\n- **Zmiana** — b\n\n- **Poprawka** — c\n";
     assertEquals(lookupKindOrderFaults(kept), [], "a section in order states no fault");
     const broken = "## [1.0.0]\n\n- **Poprawka** — a\n\n- **Nowość** — b\n";
-    assertEquals(lookupKindOrderFaults(broken).length, 1, "and one out of order states one");
+    assertStrictEquals(lookupKindOrderFaults(broken).length, 1, "and one out of order states one");
 
     const faults = lookupKindOrderFaults(CHANGELOG)
         .filter((fault) => !SECTIONS_PAST_THEIR_TAG.some((past) => fault.startsWith(`${past}:`)));
@@ -211,9 +216,17 @@ Deno.test("an entry from the rule down is one sentence", () => {
     );
 
     const broken = "## [1.0.0]\n\n- **Nowość** — Panel liczy tury. Karta je pokazuje.\n";
-    assertEquals(lookupSentenceFaults(broken, null).length, 1, "a second sentence states a fault");
+    assertStrictEquals(
+        lookupSentenceFaults(broken, null).length,
+        1,
+        "a second sentence states a fault",
+    );
     const wrapped = "## [1.0.0]\n\n- **Nowość** — Panel liczy tury.\n  Karta je pokazuje.\n";
-    assertEquals(lookupSentenceFaults(wrapped, null).length, 1, "and states it across a wrap too");
+    assertStrictEquals(
+        lookupSentenceFaults(wrapped, null).length,
+        1,
+        "and states it across a wrap too",
+    );
 
     const faults = lookupSentenceFaults(CHANGELOG, SECTIONS_BEFORE_THE_RULE);
     assertEquals(faults, [], "a sentence a player reads past the line they came for");

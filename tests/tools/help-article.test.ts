@@ -34,28 +34,35 @@ const MILLISECONDS_PER_DAY = 86_400_000;
 
 Deno.test("two hits inside one window read as one fragment, and two far apart as two", () => {
     const near = `${"a".repeat(50)}NEEDLE${"b".repeat(10)}NEEDLE${"c".repeat(50)}`;
-    assertEquals(lookupFragments(near, "needle", 90, 6).length, 1, "one window, one slice");
-    assertEquals(countOccurrences(near, "needle"), 2, "though the count still says two");
+    assertStrictEquals(lookupFragments(near, "needle", 90, 6).length, 1, "one window, one slice");
+    assertStrictEquals(countOccurrences(near, "needle"), 2, "though the count still says two");
 
     // Keying a repeat on the fragment's first characters collapses two hits preceded by the same
     // content — a table, a repeated heading — and the hit from elsewhere vanishes silently.
     const block = `${"x".repeat(40)}NEEDLE${"y".repeat(40)}`;
     const far = `${block}${"z".repeat(500)}${block}`;
     const fragments = lookupFragments(far, "needle", 90, 6);
-    assertEquals(fragments.length, 2, "identical surroundings are not the same hit");
-    assertEquals(fragments[0]?.slice(0, 60), fragments[1]?.slice(0, 60) ?? "", "identical, kept");
+    assertStrictEquals(fragments.length, 2, "identical surroundings are not the same hit");
+    assertStrictEquals(
+        fragments[0]?.slice(0, 60),
+        fragments[1]?.slice(0, 60) ?? "",
+        "identical, kept",
+    );
 });
 
 Deno.test("a search states what it will not do", () => {
     const text = Array.from({ length: 5 }, () => `NEEDLE${"q".repeat(400)}`).join("");
-    assertEquals(lookupFragments(text, "needle", 100, 3).length, 3, "no more than asked for");
+    assertStrictEquals(lookupFragments(text, "needle", 100, 3).length, 3, "no more than asked for");
     assertEquals(lookupFragments(text, "absent", 100, 3), [], "and nothing where there is nothing");
     assertThrows(() => lookupFragments(text, "", 100, 3), HelpArticleError, "empty phrase");
 });
 
 Deno.test("a dump says how old it is, and says it loudly once it is worth re-fetching", () => {
-    assertEquals(formatDumpAge(READ_AT, READ_AT_MILLISECONDS), "read 2026-08-09 12:00 UTC, today");
-    assertEquals(
+    assertStrictEquals(
+        formatDumpAge(READ_AT, READ_AT_MILLISECONDS),
+        "read 2026-08-09 12:00 UTC, today",
+    );
+    assertStrictEquals(
         formatDumpAge(READ_AT, READ_AT_MILLISECONDS + MILLISECONDS_PER_DAY),
         "read 2026-08-09 12:00 UTC, yesterday",
         "the day after",
@@ -83,7 +90,11 @@ Deno.test("an article this cannot date is an article it will not answer from", (
         textPath: ".cache/help/372/text.txt",
         textLength: 400132,
     };
-    assertEquals(requireCachedHelpArticle(whole, "372").textLength, 400132, "a whole manifest");
+    assertStrictEquals(
+        requireCachedHelpArticle(whole, "372").textLength,
+        400132,
+        "a whole manifest",
+    );
     const { fetchedAt: _dropped, ...truncated } = whole;
     assertThrows(() => requireCachedHelpArticle(truncated, "372"), HelpArticleError);
     assertThrows(
@@ -122,7 +133,7 @@ Deno.test("counts are deduplicated and sorted, so a re-freeze shows real change 
 });
 
 Deno.test("the frozen counts name the article they were taken from", () => {
-    assertEquals(FROZEN_HELP_PHRASES.article, MECHANICS_ARTICLE, "the one this tool reads");
+    assertStrictEquals(FROZEN_HELP_PHRASES.article, MECHANICS_ARTICLE, "the one this tool reads");
     assert(FROZEN_HELP_PHRASES.fetchedAt.length > 0, "and the dump they were taken from");
     assert(Object.keys(FROZEN_HELP_PHRASES.counts).length > 0, "there are counts in the table");
     assert(CACHE_ROOT.startsWith(".cache/"), "the dump itself stays where nothing publishes it");

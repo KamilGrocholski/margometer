@@ -84,7 +84,7 @@ Deno.test("a section as wide as the panel allows states a share on every row", (
         "one share is written for every row that was drawn",
     );
     const sum = shares.reduce((held, text) => held + parseSharePoints(text), 0);
-    assertEquals(sum, HUNDRED, "and the column a reader adds up comes to the whole");
+    assertStrictEquals(sum, HUNDRED, "and the column a reader adds up comes to the whole");
 });
 
 /** The sample it must flag: past the writer's own bound the answer is short, and says nothing. */
@@ -109,7 +109,7 @@ Deno.test("the writer answers at its own bound, at one row, and at none", () => 
     const shares = formatSharesApportioned(full, full.length);
     assertStrictEquals(shares.length, SHARES_MAXIMUM, "a column exactly as wide as the bound");
     const sum = shares.reduce((held, text) => held + parseSharePoints(text), 0);
-    assertEquals(sum, HUNDRED, "and it still comes to the whole");
+    assertStrictEquals(sum, HUNDRED, "and it still comes to the whole");
 
     const alone = formatSharesApportioned([7], 7);
     assertStrictEquals(alone.length, 1, "one row is one share");

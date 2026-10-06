@@ -7,7 +7,7 @@
  * files with nothing between them.
  */
 
-import { assert, assertEquals, assertRejects, assertStrictEquals, assertThrows } from "@std/assert";
+import { assert, assertRejects, assertStrictEquals, assertThrows } from "@std/assert";
 import {
     CACHE_ROOT,
     readCachedBundle,
@@ -28,9 +28,17 @@ const OLDER_PAGE =
 const NEWER_PAGE = `<script src="/js/main.min.53XkBRxF.js"></script>`;
 
 Deno.test("both names the client has served give up their build and their file", () => {
-    assertEquals(requireMargonemWorldPageBuild(OLDER_PAGE), "1786514810315", "the older name's id");
-    assertEquals(requireMargonemWorldPageBuild(NEWER_PAGE), "53XkBRxF", "and the newer one's");
-    assertEquals(
+    assertStrictEquals(
+        requireMargonemWorldPageBuild(OLDER_PAGE),
+        "1786514810315",
+        "the older name's id",
+    );
+    assertStrictEquals(
+        requireMargonemWorldPageBuild(NEWER_PAGE),
+        "53XkBRxF",
+        "and the newer one's",
+    );
+    assertStrictEquals(
         requireMargonemWorldPageBundleAddress(NEWER_PAGE, "https://tempest.margonem.pl"),
         "https://tempest.margonem.pl/js/main.min.53XkBRxF.js",
         "the file is asked for under the name the page states, dot and all",
@@ -53,8 +61,8 @@ Deno.test("a page that names no client is a page this refuses", () => {
 });
 
 Deno.test("a channel is one of the two, and nothing off a prototype", () => {
-    assertEquals(requireMargonemChannel("production"), "production", "the one that decides");
-    assertEquals(requireMargonemChannel("development"), "development", "the one for reading");
+    assertStrictEquals(requireMargonemChannel("production"), "production", "the one that decides");
+    assertStrictEquals(requireMargonemChannel("development"), "development", "the one for reading");
     // A lookup walking the prototype chain accepted `toString` once and sent a fetch at a function.
     assertThrows(() => requireMargonemChannel("toString"), MargonemClientSourceError);
     assertThrows(() => requireMargonemChannel("constructor"), MargonemClientSourceError);
@@ -68,7 +76,7 @@ Deno.test("a manifest missing a field is provenance nobody can date", () => {
         fetchedAt: "2026-08-25T21:29:23.840Z",
         bundlePath: ".cache/game-client/production/main.js",
     };
-    assertEquals(
+    assertStrictEquals(
         requireCachedMargonemClientSource(whole, "production").build,
         "53XkBRxF",
         "a whole one",
@@ -166,7 +174,11 @@ Deno.test("an answer read to its end is the text, and a refusal is no answer", a
     const fetchHeld = globalThis.fetch;
     try {
         globalThis.fetch = () => Promise.resolve(new Response("<html></html>"));
-        assertEquals(await readMargonemAnswerText("https://x.example"), "<html></html>", "whole");
+        assertStrictEquals(
+            await readMargonemAnswerText("https://x.example"),
+            "<html></html>",
+            "whole",
+        );
         globalThis.fetch = () => Promise.resolve(new Response("", { status: 503 }));
         await assertRejects(
             () => readMargonemAnswerText("https://x.example"),

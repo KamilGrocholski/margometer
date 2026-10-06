@@ -93,7 +93,7 @@ Deno.test("figures are tallied from a fight that exists, and say what they stand
     const figures = tallyFightFigures(view);
     verifyFightFigures(figures);
     assertStrictEquals(figures.payloadsApplied, 1, "on its one payload");
-    assertEquals(figures.statistics.byCombatantId.size, 0, "holding nobody's figures");
+    assertStrictEquals(figures.statistics.byCombatantId.size, 0, "holding nobody's figures");
     assertThrows(
         () => tallyFightFigures({ ...view, payloadsApplied: 0 }),
         AssertionError,

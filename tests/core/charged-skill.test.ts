@@ -23,7 +23,7 @@ const BLOW = "Symfonia żywiołów";
 
 Deno.test("a charge opens at nothing elapsed, and the next turn stands beside it", () => {
     const opened = prepareChargedSkills([], charging(0), [], 10);
-    assertEquals(opened.length, 1, "the envelope stated one charge and one stands");
+    assertStrictEquals(opened.length, 1, "the envelope stated one charge and one stands");
     assertStrictEquals(opened[0]?.turnsElapsed, 0, "a charge that has just opened has run none");
     assertStrictEquals(opened[0]?.state, "charging", "and is running rather than over");
 
@@ -39,14 +39,18 @@ function charging(turnsElapsed: number, turnsStated = 3): ChargedSkillStatement[
 Deno.test("a payload saying nothing about the combatant leaves the charge standing", () => {
     const opened = prepareChargedSkills([], charging(1), [], 10);
     const silent = prepareChargedSkills(opened, [], [], 11);
-    assertEquals(silent.length, 1, "a payload states only what moved, so silence changes nothing");
+    assertStrictEquals(
+        silent.length,
+        1,
+        "a payload states only what moved, so silence changes nothing",
+    );
     assertStrictEquals(silent[0]?.turnsElapsed, 1, "and the charge is where it was left");
 });
 
 Deno.test("the blow's own announcement is what says it struck", () => {
     const opened = prepareChargedSkills([], charging(3), [], 10);
     const struck = prepareChargedSkills(opened, stateless(), announce(BLOW), 11);
-    assertEquals(struck.length, 1, "a charge that landed leaves a mark rather than nothing");
+    assertStrictEquals(struck.length, 1, "a charge that landed leaves a mark rather than nothing");
     assertStrictEquals(struck[0]?.state, "struck", "and the mark says which end it came to");
     assertStrictEquals(struck[0]?.turnsElapsed, 3, "holding the figures it stopped on");
 });
@@ -115,7 +119,7 @@ Deno.test("a mark stands the turn it was made on and no longer", () => {
     assertStrictEquals(struck[0]?.endedAtOrdinal, 11, "the mark remembers the turn it was made on");
 
     const sameTurn = prepareChargedSkills(struck, [], [], 11);
-    assertEquals(sameTurn.length, 1, "the turn it ended on is the turn it is still drawn");
+    assertStrictEquals(sameTurn.length, 1, "the turn it ended on is the turn it is still drawn");
 
     const nextTurn = prepareChargedSkills(sameTurn, [], [], 12);
     assertEquals(nextTurn, [], "and one turn later there is nothing left to draw");
@@ -133,7 +137,7 @@ Deno.test("a new charge replaces the mark the last one left", () => {
     const struck = prepareChargedSkills(opened, stateless(), announce(BLOW), 11);
     assertStrictEquals(struck[0]?.state, "struck", "a mark stands after the blow landed");
     const again = prepareChargedSkills(struck, charging(0, 4), [], 11);
-    assertEquals(again.length, 1, "and the charge that starts under it takes its place");
+    assertStrictEquals(again.length, 1, "and the charge that starts under it takes its place");
     assertStrictEquals(again[0]?.state, "charging", "rather than standing beside it");
 });
 
@@ -169,7 +173,7 @@ Deno.test("a blow of the same name landed by somebody else ends no charge of one
         [],
         1,
     );
-    assertEquals(both.length, 2, "two combatants make the same blow ready");
+    assertStrictEquals(both.length, 2, "two combatants make the same blow ready");
     const announcedByPlayer: BattleEvent[] = announce(BLOW).map((event) =>
         event.kind === BATTLE_EVENT.skillUsed ? { ...event, actorId: PLAYER } : event
     );

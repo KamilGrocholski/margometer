@@ -4,7 +4,7 @@
  * pair with a mark naming the other end, which no row of that screen writes.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { composeFightView } from "#/src/core/fight-session.ts";
 import { tallyFightState } from "#/src/runtime/fight-state.ts";
 import { presentOpenedLevels } from "#/src/runtime/panel-frame.ts";
@@ -33,7 +33,7 @@ Deno.test("a person's row and the end their figure left out open at once are the
     assert(pinned.unnamed !== null, "a pinned row alone opens");
     const row = presentOpenedLevels(reading, { ...screen, openedCombatantId: person });
     assert(row.opened !== null, "and so does a person's row alone");
-    assertEquals(row.unnamedCut, null, "with nothing under it until the end is pressed");
+    assertStrictEquals(row.unnamedCut, null, "with nothing under it until the end is pressed");
 
     const both = presentOpenedLevels(reading, {
         ...screen,
@@ -41,11 +41,11 @@ Deno.test("a person's row and the end their figure left out open at once are the
         openedCombatantId: person,
     });
     assert(both.opened !== null, "the two open at once keep the person's figure");
-    assertEquals(both.unnamed, null, "and draw no pinned level beside it");
+    assertStrictEquals(both.unnamed, null, "and draw no pinned level beside it");
     assertExists(both.unnamedCut, "but the rung under it");
-    assert(both.unnamedCut.opened === "person", "which is that person's own keys");
-    assertEquals(both.unnamedCut.row.combatantId, person, "and nobody else's");
-    assertEquals(
+    assertStrictEquals(both.unnamedCut.opened, "person", "which is that person's own keys");
+    assertStrictEquals(both.unnamedCut.row.combatantId, person, "and nobody else's");
+    assertStrictEquals(
         both.unnamedCut.total,
         both.opened.byOtherEnd.halfNamed?.figure,
         "totalling the row it was opened from",
@@ -57,7 +57,7 @@ Deno.test("a person's row and the end their figure left out open at once are the
         openUnnamedEnd: otherEnd,
         openedCombatantId: person,
     });
-    assertEquals(stray.unnamedCut, null, "a mark naming the other end opens nothing here");
+    assertStrictEquals(stray.unnamedCut, null, "a mark naming the other end opens nothing here");
 });
 
 /**
@@ -80,12 +80,12 @@ Deno.test("an end left out whose keys fall short of it opens nothing", () => {
     assertExists(figures, "and their figures are kept");
     figures.damageTakenFromNobody -= 1;
     const drill = presentOpenedLevel(statistics, view.roster, metric, person);
-    assertEquals(drill?.byOtherEnd.halfNamed?.doesOpenPair, false, "the row no longer opens");
+    assertStrictEquals(drill?.byOtherEnd.halfNamed?.doesOpenPair, false, "the row no longer opens");
     const screen = { ...createScreenState(false), metric: metric };
     const both = presentOpenedLevels(reading, {
         ...screen,
         openUnnamedEnd: UNNAMED_END.actor,
         openedCombatantId: person,
     });
-    assertEquals(both.unnamedCut, null, "and a press left over on it draws nothing");
+    assertStrictEquals(both.unnamedCut, null, "and a press left over on it draws nothing");
 });

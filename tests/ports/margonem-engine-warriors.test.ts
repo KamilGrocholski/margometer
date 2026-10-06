@@ -203,7 +203,7 @@ Deno.test("what a payload states about a combatant is what the snapshot states",
                     withoutSnapshot += 1;
                     // A fight the game had already run itself arrives in a single call and
                     // snapshots nobody, so its whole cast is held back and none of it compared.
-                    assertEquals(
+                    assertStrictEquals(
                         snapshots.size,
                         0,
                         `${fight.path}: only a fight snapshotting nobody`,
@@ -220,5 +220,9 @@ Deno.test("what a payload states about a combatant is what the snapshot states",
         }
     }
     assert(compared > 100, "the recordings state their people twice over, and often");
-    assertEquals(withoutSnapshot, 14, "and all of them in the recordings that snapshot nobody");
+    assertStrictEquals(
+        withoutSnapshot,
+        14,
+        "and all of them in the recordings that snapshot nobody",
+    );
 });

@@ -89,7 +89,11 @@ Deno.test("a turn the game has stopped numbering is not stated, and the state sa
     const underway = presentHelper([], [], ROSTER, READER_SIDE, composeTurn(stated));
     assertStrictEquals(underway.turnState, STANDING_TURN_STATE.held, "a fight being numbered");
     assertStrictEquals(underway.turnOrdinal, 267, "so the ordinal is stated");
-    assertEquals(underway.turnHolder?.name, "Renegat 1", "and whoever the game numbered it for");
+    assertStrictEquals(
+        underway.turnHolder?.name,
+        "Renegat 1",
+        "and whoever the game numbered it for",
+    );
 
     const after = presentHelper([], [], ROSTER, READER_SIDE, composeTurn(stated, { isOver: true }));
     assertStrictEquals(after.turnState, STANDING_TURN_STATE.afterFight, "an ended fight");

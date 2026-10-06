@@ -81,10 +81,10 @@ Deno.test("preparing touches nothing, and a payload lands once", () => {
         BLOWS_GRANTED,
     );
     assert(!(prepared instanceof Error), "the payload is prepared");
-    assertEquals(view(session).events.length, 1, "and the fight has not moved");
-    assertEquals(view(session).payloadsApplied, 1, "not by a payload either");
+    assertStrictEquals(view(session).events.length, 1, "and the fight has not moved");
+    assertStrictEquals(view(session).payloadsApplied, 1, "not by a payload either");
     commitPayload(session, prepared);
-    assertEquals(view(session).events.length, 2, "until it is committed");
+    assertStrictEquals(view(session).events.length, 2, "until it is committed");
     assertThrows(
         () => commitPayload(session, prepared),
         AssertionError,
@@ -101,8 +101,8 @@ Deno.test("a fight that opens replaces the one standing before it", () => {
     const opened = apply(session, { ...OPENING, messages: ["0;0;txt=c"] });
     assert(opened.hasOpened, "a new one opened");
     const fight = view(session);
-    assertEquals(fight.payloadsApplied, 1, "on its own payload");
-    assertEquals(fight.events.length, 1, "with its own events");
+    assertStrictEquals(fight.payloadsApplied, 1, "on its own payload");
+    assertStrictEquals(fight.events.length, 1, "with its own events");
     assertStrictEquals(fight.readerSide, null, "and none of the side the last one stated");
     assertFalse(fight.isOver, "and is not over");
 });
@@ -110,14 +110,14 @@ Deno.test("a fight that opens replaces the one standing before it", () => {
 Deno.test("a payload says how many messages it carried, and the count is held to it", () => {
     const session = createFightSession(SESSION_OPTIONS);
     apply(session, { ...OPENING, messagesStated: 3, messages: ["0;0;txt=a", "0;0;txt=b"] });
-    assertEquals(view(session).messagesLost, 1, "one was stated and not read");
-    assertEquals(view(session).messagesRead, 2, "beside the two that were");
+    assertStrictEquals(view(session).messagesLost, 1, "one was stated and not read");
+    assertStrictEquals(view(session).messagesRead, 2, "beside the two that were");
     apply(session, { ...NOTHING, messagesStated: 2, messages: ["0;0;txt=c"] });
-    assertEquals(view(session).messagesLost, 2, "and every call adds to the count");
+    assertStrictEquals(view(session).messagesLost, 2, "and every call adds to the count");
     apply(session, { ...NOTHING, messagesStated: null, messages: ["0;0;txt=d"] });
-    assertEquals(view(session).messagesLost, 2, "a count nobody stated loses nothing");
+    assertStrictEquals(view(session).messagesLost, 2, "a count nobody stated loses nothing");
     apply(session, { ...NOTHING, messagesStated: 0, messages: [] });
-    assertEquals(view(session).messagesRead, 4, "and a payload with none adds none");
+    assertStrictEquals(view(session).messagesRead, 4, "and a payload with none adds none");
 });
 
 Deno.test("what a payload could not read is counted by why", () => {
@@ -126,7 +126,11 @@ Deno.test("what a payload could not read is counted by why", () => {
     const unread = view(session).unread;
     assertEquals(unread, { "unknown-key": 1, "no-parameter": 1, "grammar-refused": 1 }, "each");
     apply(session, { ...NOTHING, messages: ["0;0;txt=a"] });
-    assertEquals(view(session).unread["unknown-key"], 1, "and a message read whole adds none");
+    assertStrictEquals(
+        view(session).unread["unknown-key"],
+        1,
+        "and a message read whole adds none",
+    );
 });
 
 Deno.test("the reader's own side is kept once seen, and cleared when a fight opens", () => {
@@ -197,7 +201,7 @@ Deno.test("a payload past a bound moves nothing, and closes no fight", () => {
         [2, 1],
         "and says which bound, by how much",
     );
-    assertEquals(view(session).payloadsApplied, 1, "the fight stands on the one it had");
+    assertStrictEquals(view(session).payloadsApplied, 1, "the fight stands on the one it had");
     assertFalse(view(session).isOver, "and the end it carried closed nothing");
     const reopened = preparePayload(session, OPENING, BLOWS_GRANTED);
     assert(!(reopened instanceof Error), "a fight that opens is counted from none, so it fits");
@@ -209,7 +213,11 @@ Deno.test("a fight past its bound on events is refused at the bound and not befo
     const full = new Array(options.eventsMaximum / 2).fill("0;0;txt=a");
     apply(session, { ...OPENING, messages: full });
     apply(session, { ...NOTHING, messages: full });
-    assertEquals(view(session).events.length, options.eventsMaximum, "a fight at the bound stands");
+    assertStrictEquals(
+        view(session).events.length,
+        options.eventsMaximum,
+        "a fight at the bound stands",
+    );
     const past = preparePayload(session, { ...NOTHING, messages: ["0;0;txt=b"] }, BLOWS_GRANTED);
     assert(past instanceof Error, "one event past it is refused");
     assertInstanceOf(past, EventsExceeded, "as too many events");
@@ -218,9 +226,9 @@ Deno.test("a fight past its bound on events is refused at the bound and not befo
 Deno.test("a cast stated twice is one cast, and a fight of twenty survives the restatement", () => {
     const session = createFightSession(SESSION_OPTIONS);
     apply(session, { ...OPENING, combatants: composeFullCast() });
-    assertEquals(view(session).roster.byId.size, COMBATANTS_MAXIMUM, "everybody in it");
+    assertStrictEquals(view(session).roster.byId.size, COMBATANTS_MAXIMUM, "everybody in it");
     apply(session, { ...NOTHING, combatants: composeFullCast() });
-    assertEquals(view(session).roster.byId.size, COMBATANTS_MAXIMUM, "and the same people");
+    assertStrictEquals(view(session).roster.byId.size, COMBATANTS_MAXIMUM, "and the same people");
     const newcomer = [composeCombatant(COMBATANTS_MAXIMUM + 1, "Nowy", 1)];
     const past = preparePayload(session, { ...NOTHING, combatants: newcomer }, BLOWS_GRANTED);
     assertInstanceOf(past, CombatantsExceeded, "a twenty-first person is past the cast's bound");
@@ -263,7 +271,7 @@ Deno.test("a fight that opens past a bound leaves the one standing, whole", () =
     const cast = [composeCombatant(1, "Gracz 1", 1), composeCombatant(2, "Gracz 2", 2)];
     const refused = preparePayload(session, { ...OPENING, combatants: cast }, BLOWS_GRANTED);
     assert(refused instanceof Error, "a fight opening on two people is past a bound of one");
-    assertEquals(view(session).events.length, 1, "the fight that stood keeps its events");
+    assertStrictEquals(view(session).events.length, 1, "the fight that stood keeps its events");
     assertFalse(view(session).hasJoinedInProgress, "and was not made a fight joined late");
 });
 

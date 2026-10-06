@@ -6,7 +6,7 @@
  * the share the caster's (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { parseProtocolMessage, type ProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
@@ -51,7 +51,7 @@ Deno.test("a caster never reports two different shares, in a fight or across the
             shareByCaster.set(report.caster, report.share);
             continue;
         }
-        assertEquals(
+        assertStrictEquals(
             report.share,
             stated,
             `${report.path}: caster ${report.caster} reported two different shares`,
@@ -109,7 +109,11 @@ Deno.test("a caster carries their own share from one fight into the next", () =>
         const shares = new Set(
             reports.filter((report) => report.caster === caster).map((report) => report.share),
         );
-        assertEquals(shares.size, 1, `caster ${caster} reported differently in different fights`);
+        assertStrictEquals(
+            shares.size,
+            1,
+            `caster ${caster} reported differently in different fights`,
+        );
         travelled += 1;
     }
     assert(travelled > 0, "somebody appears in two fights, or the claim is about nothing");

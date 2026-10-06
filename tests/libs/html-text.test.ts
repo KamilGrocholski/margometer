@@ -1,94 +1,162 @@
 /** Every sample here is invented: no sentence of the pages this walks enters the repository. */
 
-import { assert, assertEquals, AssertionError, assertThrows } from "@std/assert";
+import { assert, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
 import { decodeHtmlText, HTML_CHARACTERS_MAXIMUM } from "#/libs/html-text.ts";
 import { RUN_CHARACTERS_MAXIMUM } from "#/libs/text-walk.ts";
 
 Deno.test("what a browser reads as machinery never reaches the search", () => {
     // Strip tags before script bodies and the page's own code reaches a search as documentation.
     const text = decodeHtmlText("<p>Blok</p><script>var evade = 1;</script><p>Unik</p>");
-    assertEquals(text, "Blok Unik", "the script's body came out with its tag");
+    assertStrictEquals(text, "Blok Unik", "the script's body came out with its tag");
     assert(!text.includes("evade"), "and took the name inside it along");
-    assertEquals(decodeHtmlText("<style>a{b:c}</style><p>1 &lt; 2</p>"), "1 < 2", "style too");
-    assertEquals(decodeHtmlText("<SCRIPT>x</SCRIPT>a"), "a", "whatever case the tag is in");
-    assertEquals(decodeHtmlText("a <script>b"), "a b", "an unclosed one keeps its body");
-    assertEquals(decodeHtmlText("<script>x</script >a"), "a", "a closing tag may carry a space");
+    assertStrictEquals(
+        decodeHtmlText("<style>a{b:c}</style><p>1 &lt; 2</p>"),
+        "1 < 2",
+        "style too",
+    );
+    assertStrictEquals(decodeHtmlText("<SCRIPT>x</SCRIPT>a"), "a", "whatever case the tag is in");
+    assertStrictEquals(decodeHtmlText("a <script>b"), "a b", "an unclosed one keeps its body");
+    assertStrictEquals(
+        decodeHtmlText("<script>x</script >a"),
+        "a",
+        "a closing tag may carry a space",
+    );
 });
 
 Deno.test("an element is the one its whole name names, and not one its name begins", () => {
-    assertEquals(
+    assertStrictEquals(
         decodeHtmlText("<styled-note>a</styled-note>"),
         "a",
         "a name that starts as `style` is another element, whose words are read",
     );
-    assertEquals(decodeHtmlText("<style type=x>a{b:c}</style>b"), "b", "a name ends at a space");
-    assertEquals(decodeHtmlText("<style/>a{b:c}</style>b"), "b", "and at a slash");
+    assertStrictEquals(
+        decodeHtmlText("<style type=x>a{b:c}</style>b"),
+        "b",
+        "a name ends at a space",
+    );
+    assertStrictEquals(decodeHtmlText("<style/>a{b:c}</style>b"), "b", "and at a slash");
 });
 
 Deno.test("an entity is unescaped once, as a browser shows it", () => {
-    assertEquals(decodeHtmlText("<p>a &amp;lt; b</p>"), "a &lt; b", "an escaped `&lt;` is shown");
-    assertEquals(decodeHtmlText("<p>a&amp;nbsp;b</p>"), "a&nbsp;b", "and so is an escaped space");
-    assertEquals(decodeHtmlText("<p>a&nbsp;b</p>"), "a b", "a space that was not one is one");
-    assertEquals(decodeHtmlText("<p>a&nbspb</p>"), "a b", "with or without its semicolon");
-    assertEquals(decodeHtmlText("<p>a &gt; b</p>"), "a > b", "a greater-than sign");
-    assertEquals(decodeHtmlText("<p>&quot;a&quot;</p>"), '"a"', "a quotation mark");
-    assertEquals(decodeHtmlText("max x &in; X"), "max x \u2208 X", "and an element-of sign");
-    assertEquals(decodeHtmlText("a &b; c&"), "a &b; c&", "while a name no browser knows stays");
+    assertStrictEquals(
+        decodeHtmlText("<p>a &amp;lt; b</p>"),
+        "a &lt; b",
+        "an escaped `&lt;` is shown",
+    );
+    assertStrictEquals(
+        decodeHtmlText("<p>a&amp;nbsp;b</p>"),
+        "a&nbsp;b",
+        "and so is an escaped space",
+    );
+    assertStrictEquals(decodeHtmlText("<p>a&nbsp;b</p>"), "a b", "a space that was not one is one");
+    assertStrictEquals(decodeHtmlText("<p>a&nbspb</p>"), "a b", "with or without its semicolon");
+    assertStrictEquals(decodeHtmlText("<p>a &gt; b</p>"), "a > b", "a greater-than sign");
+    assertStrictEquals(decodeHtmlText("<p>&quot;a&quot;</p>"), '"a"', "a quotation mark");
+    assertStrictEquals(decodeHtmlText("max x &in; X"), "max x \u2208 X", "and an element-of sign");
+    assertStrictEquals(
+        decodeHtmlText("a &b; c&"),
+        "a &b; c&",
+        "while a name no browser knows stays",
+    );
 });
 
 Deno.test("a numeric reference reads as the character it names, and one naming none stays", () => {
-    assertEquals(decodeHtmlText("a&#160;b"), "a b", "a no-break space is a space, as `&nbsp;` is");
-    assertEquals(decodeHtmlText("&#8730;2"), "\u221a2", "a decimal reference names its character");
-    assertEquals(decodeHtmlText("&#x221A;2"), "\u221a2", "and so does a hexadecimal one");
-    assertEquals(decodeHtmlText("a&amp;#160;b"), "a&#160;b", "escaped once more, it is shown");
-    assertEquals(decodeHtmlText("&#160 a"), "&#160 a", "one never closed is text");
-    assertEquals(decodeHtmlText("&#;"), "&#;", "and so is one with no digits");
-    assertEquals(decodeHtmlText("&#x;"), "&#x;", "in either base");
-    assertEquals(decodeHtmlText("a&#"), "a&#", "or one the text ends inside");
-    assertEquals(decodeHtmlText("&#0;"), "&#0;", "or one naming the character nothing is");
-    assertEquals(decodeHtmlText("&#1;"), "\u0001", "while the character after it is one");
-    assertEquals(decodeHtmlText("&#xD7FF;"), "\ud7ff", "the last character before the halves");
-    assertEquals(decodeHtmlText("&#xD800;"), "&#xD800;", "and not the first half of one");
-    assertEquals(decodeHtmlText("&#xDFFF;"), "&#xDFFF;", "nor the last");
-    assertEquals(decodeHtmlText("&#xE000;"), "\ue000", "while the first after them is one");
-    assertEquals(decodeHtmlText("&#1114112;"), "&#1114112;", "or one past the last there is");
-    assertEquals(decodeHtmlText("&#1114111;"), "\u{10ffff}", "while the last is one");
+    assertStrictEquals(
+        decodeHtmlText("a&#160;b"),
+        "a b",
+        "a no-break space is a space, as `&nbsp;` is",
+    );
+    assertStrictEquals(
+        decodeHtmlText("&#8730;2"),
+        "\u221a2",
+        "a decimal reference names its character",
+    );
+    assertStrictEquals(decodeHtmlText("&#x221A;2"), "\u221a2", "and so does a hexadecimal one");
+    assertStrictEquals(
+        decodeHtmlText("a&amp;#160;b"),
+        "a&#160;b",
+        "escaped once more, it is shown",
+    );
+    assertStrictEquals(decodeHtmlText("&#160 a"), "&#160 a", "one never closed is text");
+    assertStrictEquals(decodeHtmlText("&#;"), "&#;", "and so is one with no digits");
+    assertStrictEquals(decodeHtmlText("&#x;"), "&#x;", "in either base");
+    assertStrictEquals(decodeHtmlText("a&#"), "a&#", "or one the text ends inside");
+    assertStrictEquals(decodeHtmlText("&#0;"), "&#0;", "or one naming the character nothing is");
+    assertStrictEquals(decodeHtmlText("&#1;"), "\u0001", "while the character after it is one");
+    assertStrictEquals(
+        decodeHtmlText("&#xD7FF;"),
+        "\ud7ff",
+        "the last character before the halves",
+    );
+    assertStrictEquals(decodeHtmlText("&#xD800;"), "&#xD800;", "and not the first half of one");
+    assertStrictEquals(decodeHtmlText("&#xDFFF;"), "&#xDFFF;", "nor the last");
+    assertStrictEquals(decodeHtmlText("&#xE000;"), "\ue000", "while the first after them is one");
+    assertStrictEquals(decodeHtmlText("&#1114112;"), "&#1114112;", "or one past the last there is");
+    assertStrictEquals(decodeHtmlText("&#1114111;"), "\u{10ffff}", "while the last is one");
 });
 
 Deno.test("zeros in front of a reference name nothing, however many a page writes", () => {
-    assertEquals(decodeHtmlText("&#000000065;"), "A", "past the most digits a name has");
-    assertEquals(decodeHtmlText("&#x00010FFFF;"), "\u{10ffff}", "in either base");
-    assertEquals(decodeHtmlText("&#00;"), "&#00;", "and zeros alone still name nothing");
+    assertStrictEquals(decodeHtmlText("&#000000065;"), "A", "past the most digits a name has");
+    assertStrictEquals(decodeHtmlText("&#x00010FFFF;"), "\u{10ffff}", "in either base");
+    assertStrictEquals(decodeHtmlText("&#00;"), "&#00;", "and zeros alone still name nothing");
     const zeros = "0".repeat(RUN_CHARACTERS_MAXIMUM);
-    assertEquals(decodeHtmlText(`&#${zeros}65;`), "A", "past the bound on a run, too");
-    assertEquals(decodeHtmlText("&#10000000;"), "&#10000000;", "while eight digits are past one");
+    assertStrictEquals(decodeHtmlText(`&#${zeros}65;`), "A", "past the bound on a run, too");
+    assertStrictEquals(
+        decodeHtmlText("&#10000000;"),
+        "&#10000000;",
+        "while eight digits are past one",
+    );
 });
 
 Deno.test("a `<` a browser opens no tag at is text, and one it does is not", () => {
-    assertEquals(decodeHtmlText("HP &lt;50% i <b>ok</b>"), "HP <50% i ok", "an escaped one stays");
-    assertEquals(decodeHtmlText("a <= 2 <b>c</b>"), "a <= 2 c", "a sign before a tag stays");
-    assertEquals(decodeHtmlText("a <120 lvl<br>"), "a <120 lvl", "and so does one before a digit");
-    assertEquals(decodeHtmlText("a</b>b"), "a b", "a closing tag opens on its slash");
-    assertEquals(decodeHtmlText("a<!-- b -->c"), "a c", "a comment on its mark");
-    assertEquals(decodeHtmlText("a<?b?>c"), "a c", "and an instruction on its question mark");
-    assertEquals(decodeHtmlText("a<Zb>c"), "a c", "a tag opens on a letter of either case");
+    assertStrictEquals(
+        decodeHtmlText("HP &lt;50% i <b>ok</b>"),
+        "HP <50% i ok",
+        "an escaped one stays",
+    );
+    assertStrictEquals(decodeHtmlText("a <= 2 <b>c</b>"), "a <= 2 c", "a sign before a tag stays");
+    assertStrictEquals(
+        decodeHtmlText("a <120 lvl<br>"),
+        "a <120 lvl",
+        "and so does one before a digit",
+    );
+    assertStrictEquals(decodeHtmlText("a</b>b"), "a b", "a closing tag opens on its slash");
+    assertStrictEquals(decodeHtmlText("a<!-- b -->c"), "a c", "a comment on its mark");
+    assertStrictEquals(decodeHtmlText("a<?b?>c"), "a c", "and an instruction on its question mark");
+    assertStrictEquals(decodeHtmlText("a<Zb>c"), "a c", "a tag opens on a letter of either case");
 });
 
 Deno.test("a `>` inside a comment or a quoted value closes nothing", () => {
-    assertEquals(decodeHtmlText("a<!-- b > c -->d"), "a d", "a comment closes at its own mark");
-    assertEquals(decodeHtmlText("a<!-->b"), "a b", "and one written closed is closed");
-    assertEquals(decodeHtmlText("a<!--->b"), "a b", "however many dashes close it");
-    assertEquals(decodeHtmlText("a<!-- <script> -->b"), "a b", "and opens no element inside");
-    assertEquals(decodeHtmlText('a<b title="1>2">c'), "a c", "a quoted value holds its `>`");
-    assertEquals(decodeHtmlText("a<b title = '1>2'>c"), "a c", "in either quoting");
-    assertEquals(decodeHtmlText('a<b c"d>e'), "a e", "while a quote outside a value is a letter");
-    assertEquals(decodeHtmlText('a<!b="1>2">c'), 'a 2">c', "while `<!` closes at its first `>`");
-    assertEquals(decodeHtmlText('a<?b="1>2">c'), 'a 2">c', "and so does `<?`");
+    assertStrictEquals(
+        decodeHtmlText("a<!-- b > c -->d"),
+        "a d",
+        "a comment closes at its own mark",
+    );
+    assertStrictEquals(decodeHtmlText("a<!-->b"), "a b", "and one written closed is closed");
+    assertStrictEquals(decodeHtmlText("a<!--->b"), "a b", "however many dashes close it");
+    assertStrictEquals(decodeHtmlText("a<!-- <script> -->b"), "a b", "and opens no element inside");
+    assertStrictEquals(decodeHtmlText('a<b title="1>2">c'), "a c", "a quoted value holds its `>`");
+    assertStrictEquals(decodeHtmlText("a<b title = '1>2'>c"), "a c", "in either quoting");
+    assertStrictEquals(
+        decodeHtmlText('a<b c"d>e'),
+        "a e",
+        "while a quote outside a value is a letter",
+    );
+    assertStrictEquals(
+        decodeHtmlText('a<!b="1>2">c'),
+        'a 2">c',
+        "while `<!` closes at its first `>`",
+    );
+    assertStrictEquals(decodeHtmlText('a<?b="1>2">c'), 'a 2">c', "and so does `<?`");
 });
 
 Deno.test("a page is read up to the bound on its length, and a page past it is a broken call", () => {
     const longest = "a".repeat(HTML_CHARACTERS_MAXIMUM);
-    assertEquals(decodeHtmlText(longest).length, HTML_CHARACTERS_MAXIMUM, "a page at the bound");
+    assertStrictEquals(
+        decodeHtmlText(longest).length,
+        HTML_CHARACTERS_MAXIMUM,
+        "a page at the bound",
+    );
     assertThrows(
         () => decodeHtmlText(`${longest}a`),
         AssertionError,
@@ -98,14 +166,14 @@ Deno.test("a page is read up to the bound on its length, and a page past it is a
 
 Deno.test("whitespace is walked under the bound on a page, never under the one on a run", () => {
     const run = " ".repeat(RUN_CHARACTERS_MAXIMUM - 1);
-    assertEquals(decodeHtmlText(`${run}a`), "a", "a run one short of the bound on a run");
-    assertEquals(decodeHtmlText(`${run} a`), "a", "and one at it, which a page may write");
+    assertStrictEquals(decodeHtmlText(`${run}a`), "a", "a run one short of the bound on a run");
+    assertStrictEquals(decodeHtmlText(`${run} a`), "a", "and one at it, which a page may write");
     const page = " ".repeat(HTML_CHARACTERS_MAXIMUM);
-    assertEquals(decodeHtmlText(page), "", "and one as long as a page is");
+    assertStrictEquals(decodeHtmlText(page), "", "and one as long as a page is");
 });
 
 Deno.test("whitespace is one space between words and none around them", () => {
-    assertEquals(decodeHtmlText("  <b>a</b>\n\t <i>b</i>  "), "a b");
-    assertEquals(decodeHtmlText(""), "", "nothing is nothing");
-    assertEquals(decodeHtmlText("a<>b"), "a<>b", "and `<>` is not a tag");
+    assertStrictEquals(decodeHtmlText("  <b>a</b>\n\t <i>b</i>  "), "a b");
+    assertStrictEquals(decodeHtmlText(""), "", "nothing is nothing");
+    assertStrictEquals(decodeHtmlText("a<>b"), "a<>b", "and `<>` is not a tag");
 });

@@ -4,7 +4,7 @@
  * place and recorded as a defect (E12).
  */
 
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import {
     composeSample,
     readImportSources,
@@ -23,7 +23,7 @@ Deno.test("an assertion the reader's layer imports is flagged, and one elsewhere
         'src/ui/panel-sample.ts imports "@std/assert/assert"',
     ], "the panel asserts nothing");
     const entryFile = { ...sample, path: "src/userscript-entry.ts" };
-    assertEquals(lookupReaderAsserts(entryFile).length, 1, "and neither does the entry");
+    assertStrictEquals(lookupReaderAsserts(entryFile).length, 1, "and neither does the entry");
     const core = { ...sample, path: "src/core/sample.ts" };
     assertEquals(lookupReaderAsserts(core), [], "while core asserts as it should");
 });

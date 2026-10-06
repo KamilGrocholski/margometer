@@ -96,14 +96,18 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
     const world = initRuntimeWorld(composeBattlePage(battle));
     assertNotStrictEquals(battle.updateData, engineOwn, "the game was found and wrapped");
     for (const payload of readUpdates(HILDUR)) {
-        assertEquals(world.update(payload), "the engine's own answer", "its value is untouched");
+        assertStrictEquals(
+            world.update(payload),
+            "the engine's own answer",
+            "its value is untouched",
+        );
     }
     assertEquals(world.lines, [], "and nothing of ours failed along the way");
-    assertEquals(world.shown.length, 1, "one panel on the page, however many calls arrived");
+    assertStrictEquals(world.shown.length, 1, "one panel on the page, however many calls arrived");
     const rows = getElementsWithin(findList(world.getHost())).filter((fakeElement) =>
         fakeElement.className.split(" ")[0] === CLASS.row
     );
-    assertEquals(rows.length, 11, "the fight's eleven combatants, each with a row");
+    assertStrictEquals(rows.length, 11, "the fight's eleven combatants, each with a row");
     // The panel spaces its thousands on a gap that does not break.
     const figures = rows.map((row) =>
         Number(
@@ -151,7 +155,7 @@ Deno.test("every recording plays through without a word of failure", () => {
 
 Deno.test("a panel goes up when the reading starts, saying there has been no fight yet", () => {
     const world = initRuntimeWorld(composeBattlePage());
-    assertEquals(world.shown.length, 1, "one panel, put up the moment the reading started");
+    assertStrictEquals(world.shown.length, 1, "one panel, put up the moment the reading started");
     const host = world.getHost();
     assertEquals(
         getTextsByClass(findList(host), CLASS.empty),
@@ -164,7 +168,7 @@ Deno.test("a panel goes up when the reading starts, saying there has been no fig
         "no strips",
     );
     for (const payload of readUpdates(HILDUR)) world.update(payload);
-    assertEquals(world.shown.length, 1, "the same panel is still the one on the page");
+    assertStrictEquals(world.shown.length, 1, "the same panel is still the one on the page");
     assert(countRows(findList(host)) > 0, "which now draws the fight");
 });
 
@@ -336,15 +340,15 @@ Deno.test("a reader presses a screen and the panel goes there, and nowhere else"
         getElementsWithin(host)
             .find((fakeElement) => fakeElement.className.includes(CLASS.stripCurrent))
             ?.attributes.get("data-screen");
-    assertEquals(currentScreen(), "damageDealt", "the panel opens on what the reader did");
+    assertStrictEquals(currentScreen(), "damageDealt", "the panel opens on what the reader did");
     const taken = findByMark(host, "data-screen", "damageTaken");
     assertExists(taken, "there is a screen to press");
     world.press(taken);
-    assertEquals(currentScreen(), "damageTaken", "and pressing it takes the panel there");
+    assertStrictEquals(currentScreen(), "damageTaken", "and pressing it takes the panel there");
     const stray = world.ports.document.createElement("div") as FakeElement;
     stray.setAttribute("data-screen", "whateverTheGameCalls");
     world.press(stray);
-    assertEquals(currentScreen(), "damageTaken", "and a screen nobody has moves nothing");
+    assertStrictEquals(currentScreen(), "damageTaken", "and a screen nobody has moves nothing");
 });
 
 /** The add-on stood up on a page of its own, with a recording replayed through its wrap. */
@@ -372,23 +376,23 @@ Deno.test("a reader presses the other side of a fight against one, and the panel
                 return fakeElement.attributes.has("data-side");
             })
             ?.attributes.get("data-side");
-    assertEquals(chosen(), "everyone", "the panel opens on everybody in the fight");
+    assertStrictEquals(chosen(), "everyone", "the panel opens on everybody in the fight");
     const opposing = findByMark(host, "data-side", "opposing");
     assertExists(opposing, "there is a side to press");
     world.press(opposing);
-    assertEquals(chosen(), "opposing", "and pressing it takes the panel to the other side");
+    assertStrictEquals(chosen(), "opposing", "and pressing it takes the panel to the other side");
     const reader = findByMark(host, "data-side", "reader");
     assertExists(reader, "and a side of the reader's own to press");
     world.press(reader);
-    assertEquals(chosen(), "reader", "which the panel goes to as well");
+    assertStrictEquals(chosen(), "reader", "which the panel goes to as well");
     assertEquals(world.lines, [], "with nothing of ours failing either way");
 });
 
 Deno.test("a fight that ends goes on the shelf, once, and comes back after a reload", () => {
     const world = playRecordedFight();
     const kept = readKeptFights(world.getShelf("local"));
-    assertEquals(kept.length, 1, "one fight, however many calls said it was over");
-    assertEquals(
+    assertStrictEquals(kept.length, 1, "one fight, however many calls said it was over");
+    assertStrictEquals(
         kept[0]?.margonemClientBuild,
         MARGONEM_CLIENT_BUILD,
         "under the build the page stated it on",
@@ -448,22 +452,30 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
     const host = world.getHost();
     const rows = (within: FakeElement) => countRows(getPanelWithin(within));
     assert(rows(host) > 0, "the panel opens drawing the fight");
-    assertEquals(world.held.get(STORE_KEY.meterFolded), undefined, "and nothing is stored yet");
+    assertStrictEquals(
+        world.held.get(STORE_KEY.meterFolded),
+        undefined,
+        "and nothing is stored yet",
+    );
     const folding = findByMark(host, "data-fold");
     assertExists(folding, "there is a control to press");
     world.press(folding);
-    assertEquals(rows(host), 0, "pressing it folds the panel to its bar");
-    assertEquals(world.held.get(STORE_KEY.meterFolded), "1", "and says so where a reload looks");
+    assertStrictEquals(rows(host), 0, "pressing it folds the panel to its bar");
+    assertStrictEquals(
+        world.held.get(STORE_KEY.meterFolded),
+        "1",
+        "and says so where a reload looks",
+    );
 
     const again = reloadRuntimeWorld(world);
     for (const payload of readUpdates(HILDUR)) again.update(payload);
     const reopened = again.getHost();
-    assertEquals(rows(reopened), 0, "the panel comes back folded, as the reader left it");
+    assertStrictEquals(rows(reopened), 0, "the panel comes back folded, as the reader left it");
     const unfolding = findByMark(reopened, "data-fold");
     assertExists(unfolding, "the bar still carries its control");
     again.press(unfolding);
     assert(rows(reopened) > 0, "which brings the fight back");
-    assertEquals(again.held.get(STORE_KEY.meterFolded), "", "and stores the unfolding too");
+    assertStrictEquals(again.held.get(STORE_KEY.meterFolded), "", "and stores the unfolding too");
 });
 
 Deno.test("the fight is handed over counted as well as raw, and the two agree", () => {
@@ -475,8 +487,8 @@ Deno.test("the fight is handed over counted as well as raw, and the two agree", 
     assert(Array.isArray(entries), "the calls the game made are in the file");
     const report = written.report;
     assert(isRecord(report), "and the figures the panel drew from them stand beside them");
-    assertEquals(report.payloads, entries.length, "built from every call the file carries");
-    assertEquals(report.isOver, true, "of a fight this one saw the end of");
+    assertStrictEquals(report.payloads, entries.length, "built from every call the file carries");
+    assertStrictEquals(report.isOver, true, "of a fight this one saw the end of");
     const counted = report.combatants;
     assert(isRecord(counted), "with a row for each combatant the aggregate counted");
     const totals = report.totals;
@@ -485,7 +497,7 @@ Deno.test("the fight is handed over counted as well as raw, and the two agree", 
         if (!isRecord(row)) return sum;
         return sum + (typeof row.damageDealtApplied === "number" ? row.damageDealtApplied : 0);
     }, 0);
-    assertEquals(totals.damageDealtApplied, summed, "which come to what the rows come to");
+    assertStrictEquals(totals.damageDealtApplied, summed, "which come to what the rows come to");
     // Each row's dealt is its health and what a pool took, which this fight holds a row of.
     let drained = 0;
     for (const row of Object.values(counted)) {
@@ -493,7 +505,11 @@ Deno.test("the fight is handed over counted as well as raw, and the two agree", 
         const { damageDealt, damageDealtApplied, damageDealtAbsorbed } = row;
         assert(typeof damageDealtAbsorbed === "number", "a row states what a pool took");
         assert(typeof damageDealtApplied === "number", "and the health");
-        assertEquals(damageDealt, damageDealtApplied + damageDealtAbsorbed, "which are its dealt");
+        assertStrictEquals(
+            damageDealt,
+            damageDealtApplied + damageDealtAbsorbed,
+            "which are its dealt",
+        );
         drained += damageDealtAbsorbed;
     }
     assert(drained > 0, "and a pool took part of what somebody dealt in it");
@@ -532,11 +548,11 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
     const world = initRuntimeWorld(composeBattlePage(composeRecordingBattle()));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     assertEquals(world.lines, [], "nothing of ours failed while it recorded");
-    assertEquals(world.saved.length, 0, "and nothing is saved until the control is pressed");
+    assertStrictEquals(world.saved.length, 0, "and nothing is saved until the control is pressed");
     pressSave(world);
-    assertEquals(world.saved.length, 1, "one file when it is");
+    assertStrictEquals(world.saved.length, 1, "one file when it is");
     const capturedStamp = CAPTURED_AT.split(":").join("-").split(".").join("-");
-    assertEquals(
+    assertStrictEquals(
         world.saved[0]?.name,
         `margometer-${WORLD}-${MARGONEM_CLIENT_BUILD}-${TEST_VERSION}-${capturedStamp}.json`,
         "named for the world, both builds and the moment it was asked for",
@@ -549,8 +565,12 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
     );
     const entries = written.calls;
     assert(Array.isArray(entries), "carrying the calls the game made");
-    assertEquals(entries.length, readUpdates(HILDUR).length, "every call, as material thinned");
-    assertEquals(written.droppedCalls, 0, "and the file says nothing was dropped");
+    assertStrictEquals(
+        entries.length,
+        readUpdates(HILDUR).length,
+        "every call, as material thinned",
+    );
+    assertStrictEquals(written.droppedCalls, 0, "and the file says nothing was dropped");
     const firstCall = entries[0];
     assert(isRecord(firstCall), "an entry is a record");
     const keys = ["index", "payload", "messages", "combatantsBefore", "combatantsAfter"];
@@ -568,11 +588,15 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
 
 Deno.test("a panel with no fight anywhere carries no control to hand one over", () => {
     const world = initRuntimeWorld(composeBattlePage(composeRecordingBattle()));
-    assertEquals(findByMark(world.getHost(), "data-save"), undefined, "no control for nothing");
+    assertStrictEquals(
+        findByMark(world.getHost(), "data-save"),
+        undefined,
+        "no control for nothing",
+    );
     const [opening] = readUpdates(HILDUR);
     world.update(opening);
     pressSave(world);
-    assertEquals(world.saved.length, 1, "one call is a fight, and the bar hands it over");
+    assertStrictEquals(world.saved.length, 1, "one call is a fight, and the bar hands it over");
 });
 
 /** The file that started this: an envelope with no call in it, off a panel on a kept fight. */
@@ -580,7 +604,7 @@ Deno.test("the fight handed over is the one on screen, kept ones included", () =
     const world = playRecordedFight();
     const again = reloadRuntimeWorld(world);
     pressSave(again);
-    assertEquals(
+    assertStrictEquals(
         again.saved.length,
         1,
         "the bar offers the fight it is drawing, and hands it over",
@@ -592,14 +616,22 @@ Deno.test("the fight handed over is the one on screen, kept ones included", () =
     assert(calls.length <= readUpdates(HILDUR).length, "and no more than were made");
     const report = written.report;
     assert(isRecord(report), "with the figures the panel drew beside them");
-    assertEquals(report.payloads, calls.length, "built from every call the file carries");
-    assertEquals(report.isOver, true, "of a fight this one saw the end of");
+    assertStrictEquals(report.payloads, calls.length, "built from every call the file carries");
+    assertStrictEquals(report.isOver, true, "of a fight this one saw the end of");
     const firstCall = calls[0];
     assert(isRecord(firstCall), "and each call is a record");
-    assertEquals(firstCall.combatantsBefore, null, "a snapshot the shelf never kept is absent");
-    assertEquals(firstCall.combatantsAfter, null, "on either side of the call");
+    assertStrictEquals(
+        firstCall.combatantsBefore,
+        null,
+        "a snapshot the shelf never kept is absent",
+    );
+    assertStrictEquals(firstCall.combatantsAfter, null, "on either side of the call");
     assert(Array.isArray(firstCall.messages), "while the messages come back out of the payload");
-    assertEquals(written.droppedCalls, null, "and what nobody counted is not counted as none");
+    assertStrictEquals(
+        written.droppedCalls,
+        null,
+        "and what nobody counted is not counted as none",
+    );
 });
 
 Deno.test("the shelf has a screen of its own, and its control toggles", () => {
@@ -609,12 +641,16 @@ Deno.test("the shelf has a screen of its own, and its control toggles", () => {
     const figures = rows();
     assert(figures > 1, "the panel is on the figures, with a row for each of them");
     openShelfScreen(world);
-    assertEquals(rows(), 1, "and on the shelf, where the live and the kept fight are one row");
+    assertStrictEquals(
+        rows(),
+        1,
+        "and on the shelf, where the live and the kept fight are one row",
+    );
     assertEquals(getTextsByClass(host, CLASS.rowTime), ["teraz"], "the one going on now");
     const pins = getElementsWithin(host).filter((fakeElement) =>
         fakeElement.className.startsWith(CLASS.rowPin)
     );
-    assertEquals(pins.length, 1, "and it carries a pin, being a fight the rotation can drop");
+    assertStrictEquals(pins.length, 1, "and it carries a pin, being a fight the rotation can drop");
     assertEquals(getTextsByClass(host, CLASS.crumbHere), ["Walki"], "the shelf says what it is");
     assertEquals(
         getElementsWithin(host).filter((fakeElement) => fakeElement.className === CLASS.sides),
@@ -624,10 +660,10 @@ Deno.test("the shelf has a screen of its own, and its control toggles", () => {
     const back = getRegion(host, CLASS.crumbBack);
     assertExists(back, "the shelf carries the way back");
     world.press(back);
-    assertEquals(rows(), figures, "which gives the figures back");
+    assertStrictEquals(rows(), figures, "which gives the figures back");
     openShelfScreen(world);
     openShelfScreen(world);
-    assertEquals(rows(), figures, "and so does the control that put the shelf up");
+    assertStrictEquals(rows(), figures, "and so does the control that put the shelf up");
 });
 
 function getRegion(host: FakeElement, className: string): FakeElement | undefined {
@@ -643,7 +679,11 @@ Deno.test("a browser that will not have the shelf is answered, not argued with",
     }));
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     assertEquals(world.lines, [], "a refusal is not a failure of ours");
-    assertEquals(world.shown.length, 1, "and the panel goes on drawing the fight it is watching");
+    assertStrictEquals(
+        world.shown.length,
+        1,
+        "and the panel goes on drawing the fight it is watching",
+    );
 });
 
 Deno.test("a page with no game draws nothing and says why, once", () => {
@@ -656,10 +696,14 @@ Deno.test("a second copy of the add-on stands down and never draws", () => {
     const page = composeBattlePage();
     const firstWorld = initRuntimeWorld(page);
     const secondWorld = initRuntimeWorld(page);
-    assertEquals(secondWorld.lines.length, 1, "the second copy stands down, and says so once");
+    assertStrictEquals(
+        secondWorld.lines.length,
+        1,
+        "the second copy stands down, and says so once",
+    );
     firstWorld.update({ init: 1, m: [], mi: [] });
     assertEquals(secondWorld.shown, [], "while it never puts a panel on the page");
-    assertEquals(firstWorld.shown.length, 1, "and the first has the one panel there is");
+    assertStrictEquals(firstWorld.shown.length, 1, "and the first has the one panel there is");
 });
 
 Deno.test("a reader opens a row, and every way out of it leads back to the screen", () => {
@@ -667,7 +711,7 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     const host = world.getHost();
     const before = countListRows(host);
     assert(before > 0, "the screen has rows to open");
-    assertEquals(countRowsThatOpen(host), before, "every one of them openable");
+    assertStrictEquals(countRowsThatOpen(host), before, "every one of them openable");
     const name = getRegion(host, CLASS.rowName);
     assertExists(name, "and a reader presses the name inside one");
     world.press(name);
@@ -682,12 +726,16 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     });
     assertExists(otherName, "there is somebody to open");
     world.press(otherName);
-    assertEquals(countRowsThatOpen(host), 0, "and on that rung nothing opens any further");
+    assertStrictEquals(countRowsThatOpen(host), 0, "and on that rung nothing opens any further");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "one rung at a time");
+    assertStrictEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "one rung at a time");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
-    assertEquals(getRegion(host, CLASS.crumb), undefined, "and pressing it again closes the row");
-    assertEquals(countListRows(host), before, "leaving the screen as it was");
+    assertStrictEquals(
+        getRegion(host, CLASS.crumb),
+        undefined,
+        "and pressing it again closes the row",
+    );
+    assertStrictEquals(countListRows(host), before, "leaving the screen as it was");
 
     // What survives a change of screen: the person a reader went into stays, and a side does not.
     const again = getRegion(host, CLASS.rowName);
@@ -697,11 +745,19 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     const taken = findByMark(host, "data-screen", "damageTaken");
     assertExists(taken, "there is another screen to reach for");
     world.press(taken);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, opened, "the same person stays");
+    assertStrictEquals(
+        getRegion(host, CLASS.crumbHere)?.textContent,
+        opened,
+        "the same person stays",
+    );
     const side = findByMark(host, "data-side", "reader");
     assertExists(side, "and a side to narrow to");
     world.press(side);
-    assertEquals(getRegion(host, CLASS.crumb), undefined, "which closes it: it may not hold them");
+    assertStrictEquals(
+        getRegion(host, CLASS.crumb),
+        undefined,
+        "which closes it: it may not hold them",
+    );
 });
 
 function countListRows(host: FakeElement): number {
@@ -733,7 +789,7 @@ Deno.test("a way back with no rung to leave moves nothing, and redraws nothing",
     assertExists(opened, "the bar standing after that draw");
     world.press(host, "contextmenu");
     assertExists(opened.replacedBy, "a way back off a rung is a draw");
-    assertEquals(getRegion(host, CLASS.crumb), undefined, "and the rung is left");
+    assertStrictEquals(getRegion(host, CLASS.crumb), undefined, "and the rung is left");
 });
 
 /** The four screens pin five different figures, so the row of that name there is another one. */
@@ -749,33 +805,49 @@ Deno.test("a reader opens a pinned row, and it does not follow them to the next 
     };
     const name = pinnedName();
     assertExists(name, "this fight pins a figure nobody was named for");
-    assertEquals(name.textContent, PANEL_WORDS.withoutActor, "and says which end it left out");
-    assertEquals(name.attributes.get("data-unnamed"), "actor", "marked by that end");
+    assertStrictEquals(
+        name.textContent,
+        PANEL_WORDS.withoutActor,
+        "and says which end it left out",
+    );
+    assertStrictEquals(name.attributes.get("data-unnamed"), "actor", "marked by that end");
     world.press(name);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, PANEL_WORDS.withoutActor, "open");
-    assertEquals(pinnedName(), undefined, "and the pinned row itself is off the screen");
+    assertStrictEquals(
+        getRegion(host, CLASS.crumbHere)?.textContent,
+        PANEL_WORDS.withoutActor,
+        "open",
+    );
+    assertStrictEquals(pinnedName(), undefined, "and the pinned row itself is off the screen");
     const person = getElementsWithin(host).find((fakeElement) => {
         if (fakeElement.className !== CLASS.rowName) return false;
         return fakeElement.attributes.get("data-row") !== undefined;
     });
     assertExists(person, "the level names whom the game did state, each opening further");
     world.press(person);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person.textContent, "one rung");
+    assertStrictEquals(
+        getRegion(host, CLASS.crumbHere)?.textContent,
+        person.textContent,
+        "one rung",
+    );
     const kinds = getElementsWithin(host).filter((fakeElement) => {
         return (fakeElement.attributes.get("data-card") ?? "").startsWith("kind:");
     });
     assert(kinds.length > 0, "which is the keys their share of the figure moved under");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, PANEL_WORDS.withoutActor, "back");
+    assertStrictEquals(
+        getRegion(host, CLASS.crumbHere)?.textContent,
+        PANEL_WORDS.withoutActor,
+        "back",
+    );
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
-    assertEquals(getRegion(host, CLASS.crumb), undefined, "the way back closes it");
+    assertStrictEquals(getRegion(host, CLASS.crumb), undefined, "the way back closes it");
     const reopened = pinnedName();
     assertExists(reopened, "and puts the pinned row back under the ranking");
     world.press(reopened);
     const taken = findByMark(host, "data-screen", "damageTaken");
     assertExists(taken, "there is another screen to reach for");
     world.press(taken);
-    assertEquals(getRegion(host, CLASS.crumb), undefined, "a change of screen closes it");
+    assertStrictEquals(getRegion(host, CLASS.crumb), undefined, "a change of screen closes it");
 });
 
 Deno.test("a reader opens what a figure was made of, and the way back is one rung", () => {
@@ -793,12 +865,16 @@ Deno.test("a reader opens what a figure was made of, and the way back is one run
     assertExists(announcementName, "an announcement inside it is pressed by its own name");
     const named = announcementName.textContent;
     world.press(announcementName);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, named, "that announcement");
+    assertStrictEquals(getRegion(host, CLASS.crumbHere)?.textContent, named, "that announcement");
     assert(countRows(getPanelWithin(host)) > 0, "listing whom it reached");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "back one rung");
+    assertStrictEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "back one rung");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
-    assertEquals(getRegion(host, CLASS.crumb), undefined, "and the next press closes the row");
+    assertStrictEquals(
+        getRegion(host, CLASS.crumb),
+        undefined,
+        "and the next press closes the row",
+    );
 });
 
 Deno.test("a row belonging to nobody in the fight opens nothing", () => {
@@ -807,7 +883,7 @@ Deno.test("a row belonging to nobody in the fight opens nothing", () => {
     const stray = world.ports.document.createElement("div") as FakeElement;
     stray.setAttribute("data-row", "whoeverTheGameCalls");
     world.press(stray);
-    assertEquals(
+    assertStrictEquals(
         getRegion(host, CLASS.crumb),
         undefined,
         "a row that is not a number opens nothing",
@@ -815,7 +891,11 @@ Deno.test("a row belonging to nobody in the fight opens nothing", () => {
     const absent = world.ports.document.createElement("div") as FakeElement;
     absent.setAttribute("data-row", "0");
     world.press(absent);
-    assertEquals(getRegion(host, CLASS.crumb), undefined, "and neither does one nobody holds");
+    assertStrictEquals(
+        getRegion(host, CLASS.crumb),
+        undefined,
+        "and neither does one nobody holds",
+    );
 });
 
 Deno.test("the place a fight is fought reaches the bar, and goes on the shelf with it", () => {
@@ -926,7 +1006,7 @@ Deno.test("a fight that opens puts the reader back on the ranking", () => {
     const person = getRegion(host, CLASS.crumbHere)?.textContent;
     assertExists(person, "the crumb says whose row it is");
     for (const payload of readUpdates(SECOND_OF_A_PAIR)) world.update(payload);
-    assertEquals(
+    assertStrictEquals(
         getRegion(host, CLASS.crumb),
         undefined,
         "the next fight is drawn from its ranking",
@@ -945,15 +1025,19 @@ Deno.test("a pin is the reader's own answer, and the shelf keeps it", () => {
         assertExists(drawnPin, "the fight on the shelf carries a pin");
         return drawnPin;
     };
-    assertEquals(pin().textContent, "☆", "which starts saying nothing was pinned");
+    assertStrictEquals(pin().textContent, "☆", "which starts saying nothing was pinned");
     const before = countRows(getPanelWithin(host));
     world.press(pin());
-    assertEquals(pin().textContent, "★", "and says so after it is pressed");
-    assertEquals(countRows(getPanelWithin(host)), before, "a pin opens no fight");
-    assertEquals(readKeptFights(world.getShelf("local"))[0]?.isPinned, true, "written down");
+    assertStrictEquals(pin().textContent, "★", "and says so after it is pressed");
+    assertStrictEquals(countRows(getPanelWithin(host)), before, "a pin opens no fight");
+    assertStrictEquals(readKeptFights(world.getShelf("local"))[0]?.isPinned, true, "written down");
     world.press(pin());
-    assertEquals(pin().textContent, "☆", "pressed again it is the other answer");
-    assertEquals(readKeptFights(world.getShelf("local"))[0]?.isPinned, false, "written as readily");
+    assertStrictEquals(pin().textContent, "☆", "pressed again it is the other answer");
+    assertStrictEquals(
+        readKeptFights(world.getShelf("local"))[0]?.isPinned,
+        false,
+        "written as readily",
+    );
 });
 
 Deno.test("where the shelf is kept is the reader's answer, and the fights travel with it", () => {
@@ -962,18 +1046,30 @@ Deno.test("where the shelf is kept is the reader's answer, and the fights travel
     openOptions(world);
     assert(world.getShelf("local").has(STORE_KEY.fights), "the fight is where nothing was asked");
     chooseStorage(world, "session");
-    assertEquals(readKeptFights(world.getShelf("session")).length, 1, "where the reader asked");
-    assertEquals(world.getShelf("local").has(STORE_KEY.fights), false, "and the old place emptied");
-    assertEquals(world.held.get(STORE_KEY.storage), "session", "the answer itself is kept");
+    assertStrictEquals(
+        readKeptFights(world.getShelf("session")).length,
+        1,
+        "where the reader asked",
+    );
+    assertStrictEquals(
+        world.getShelf("local").has(STORE_KEY.fights),
+        false,
+        "and the old place emptied",
+    );
+    assertStrictEquals(world.held.get(STORE_KEY.storage), "session", "the answer itself is kept");
     assertEquals(
         getStorageChosen(host),
         ["do zamknięcia karty"],
         "and the strip marks it",
     );
     chooseStorage(world, "memory");
-    assertEquals(world.getShelf("session").has(STORE_KEY.fights), false, "what was there is gone");
+    assertStrictEquals(
+        world.getShelf("session").has(STORE_KEY.fights),
+        false,
+        "what was there is gone",
+    );
     openShelfScreen(world);
-    assertEquals(countRows(getPanelWithin(host)), 1, "and the fight is still on the shelf");
+    assertStrictEquals(countRows(getPanelWithin(host)), 1, "and the fight is still on the shelf");
 });
 
 function chooseStorage(world: RuntimeWorld, name: string): void {
@@ -1002,7 +1098,7 @@ Deno.test("a browser that will not keep the answer moves nothing, and says so", 
     const host = world.getHost();
     openOptions(world);
     chooseStorage(world, "memory");
-    assertEquals(world.getShelf("local").has(STORE_KEY.fights), true, "the fights stay put");
+    assertStrictEquals(world.getShelf("local").has(STORE_KEY.fights), true, "the fights stay put");
     assertEquals(
         getStorageChosen(host),
         ["na stałe"],
@@ -1023,8 +1119,12 @@ Deno.test("a store that will not take the fights leaves them where they were", (
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     openOptions(world);
     chooseStorage(world, "session");
-    assertEquals(world.getShelf("local").has(STORE_KEY.fights), true, "where the next page looks");
-    assertEquals(world.held.get(STORE_KEY.storage), undefined, "and so does the answer");
+    assertStrictEquals(
+        world.getShelf("local").has(STORE_KEY.fights),
+        true,
+        "where the next page looks",
+    );
+    assertStrictEquals(world.held.get(STORE_KEY.storage), undefined, "and so does the answer");
     assertEquals(
         getStorageChosen(world.getHost()),
         ["na stałe"],
@@ -1047,7 +1147,11 @@ Deno.test("the options open from the bar, and every way off a screen leaves them
     const here = () => getTextsByClass(host, CLASS.crumbHere);
     openOptions(world);
     assertEquals(here(), [PANEL_WORDS.options], "the options cover the screen");
-    assertEquals(countRows(getPanelWithin(host)), 0, "with no row of the fight's beside them");
+    assertStrictEquals(
+        countRows(getPanelWithin(host)),
+        0,
+        "with no row of the fight's beside them",
+    );
     openShelfScreen(world);
     assertEquals(here(), [PANEL_WORDS.fights], "the shelf takes their place rather than stacking");
     openOptions(world);
@@ -1066,7 +1170,11 @@ Deno.test("the options answer before any fight has come, and the answer is kept"
     openOptions(world);
     assertEquals(getTextsByClass(host, CLASS.crumbHere), [PANEL_WORDS.options], "they stand");
     chooseStorage(world, "memory");
-    assertEquals(world.held.get(STORE_KEY.storage), "memory", "and a choice made there is kept");
+    assertStrictEquals(
+        world.held.get(STORE_KEY.storage),
+        "memory",
+        "and a choice made there is kept",
+    );
     assertEquals(
         getStorageChosen(host),
         ["tylko teraz"],
@@ -1082,7 +1190,11 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     const live = drawnFigures();
     assert(live.length > 0, "the panel is drawing the fight that just ended");
     openShelfScreen(world);
-    assertEquals(countRows(getPanelWithin(host)), 1, "the fight that ended, as the one going on");
+    assertStrictEquals(
+        countRows(getPanelWithin(host)),
+        1,
+        "the fight that ended, as the one going on",
+    );
     openShelfScreen(world);
     for (const payload of readUpdates(ANOTHER)) world.update(payload);
     const now = drawnFigures();
@@ -1092,7 +1204,7 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
         if (fakeElement.className.split(" ")[0] !== CLASS.row) return false;
         return fakeElement.attributes.get("data-fight") !== "live";
     });
-    assertEquals(kepts.length, 1, "the shelf holds the fight that ended before this one");
+    assertStrictEquals(kepts.length, 1, "the shelf holds the fight that ended before this one");
     const held = kepts[0];
     assertExists(held, "and it is the one this test opened with");
     world.press(held);
@@ -1102,8 +1214,8 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     const marked = getElementsWithin(host).filter((fakeElement) =>
         fakeElement.className.includes(CLASS.rowChosen)
     );
-    assertEquals(marked.length, 1, "and the shelf marks which fight is on screen");
-    assertEquals(marked[0]?.attributes.get("data-fight") === "live", false, "the kept one");
+    assertStrictEquals(marked.length, 1, "and the shelf marks which fight is on screen");
+    assertStrictEquals(marked[0]?.attributes.get("data-fight") === "live", false, "the kept one");
 });
 
 Deno.test("a fight that has ended is handed over whole, snapshots and all", () => {
@@ -1121,7 +1233,7 @@ Deno.test("a fight that has ended is handed over whole, snapshots and all", () =
     assert(isRecord(firstCall), "and each of them a record");
     assert(Array.isArray(firstCall.combatantsBefore), "with the snapshots the shelf never keeps");
     assert(Array.isArray(firstCall.combatantsAfter), "on either side of the call");
-    assertEquals(written.droppedCalls, 0, "and a dropped count that was really counted");
+    assertStrictEquals(written.droppedCalls, 0, "and a dropped count that was really counted");
 });
 
 Deno.test("a fight the reader walked into says so on the panel", () => {
@@ -1155,7 +1267,11 @@ Deno.test("a kept fight that will not replay costs its row, and not the live fig
         [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.kept, null, 1)}`],
         "one defect, for the shelf",
     );
-    assertEquals(world.lines.length, 1, "said once on the console, however many frames walked it");
+    assertStrictEquals(
+        world.lines.length,
+        1,
+        "said once on the console, however many frames walked it",
+    );
 });
 
 Deno.test("a call that is no payload is recorded under no messages but its own", () => {
@@ -1166,7 +1282,7 @@ Deno.test("a call that is no payload is recorded under no messages but its own",
     pressSave(world);
     const calls = readSavedFile(world).calls;
     assert(Array.isArray(calls), "carrying the calls");
-    assertEquals(calls.length, 2, "both of them, the second for the shape nobody had seen");
+    assertStrictEquals(calls.length, 2, "both of them, the second for the shape nobody had seen");
     const second = calls[1];
     assert(isRecord(second), "each a record");
     assertEquals(second.messages, [], "and the second carries no messages, having stated none");
@@ -1216,7 +1332,7 @@ Deno.test("a payload the fight refuses is said on the panel, and the next one is
     assertStrictEquals(said.length, 2, "one line says the panel refused it, one what that cost");
     assertStringIncludes(said[0] ?? "", formatDefect(PANEL_DEFECT_KIND.reading, null, 1));
     assertStringIncludes(said[1] ?? "", formatDefect(PANEL_DEFECT_KIND.keeping, null, 1));
-    assertEquals(
+    assertStrictEquals(
         world.getShelf("local").has(STORE_KEY.fights),
         false,
         "a fight with a gap is not kept",
@@ -1295,7 +1411,7 @@ Deno.test("a copy refused at first stands down when another wraps the game, and 
     holdingCopy.fire(1);
     refusedCopy.fire(LOOKS_MAXIMUM);
     assertEquals(refusedCopy.world.shown, [], "and the copy that stood down never puts a panel up");
-    assertEquals(refusedCopy.world.lines.length, 1, "saying it stood down, once");
+    assertStrictEquals(refusedCopy.world.lines.length, 1, "saying it stood down, once");
     holdingCopy.world.update({ init: 1, m: [], mi: [] });
     assertStrictEquals(holdingCopy.world.shown.length, 1, "while the copy holding the game draws");
 });
@@ -1423,7 +1539,7 @@ Deno.test("a stopped copy answers no press, and draws no call that still reaches
     assertExists(folding, "there is a control to press");
     assertInstanceOf(world.runtime.deinit(), Error, "ours cannot come off from under theirs");
     world.press(folding);
-    assertEquals(world.held.get(STORE_KEY.meterFolded), undefined, "the press kept nothing");
+    assertStrictEquals(world.held.get(STORE_KEY.meterFolded), undefined, "the press kept nothing");
     world.update({ init: 1, m: ["0;0;txt=a"] });
     const drawn = countRows(findList(world.getHost()));
     assert(drawn > 0, "no frame drew the fight that call opened, which has nobody in it");
@@ -1442,13 +1558,17 @@ Deno.test("a size of type chosen redraws both windows in it, and comes back afte
         getElementsWithin(host).find((fakeElement) => fakeElement.tag === "style")?.textContent;
     const drawn = sheet();
     assertStrictEquals(drawn, composeStyleSheet(TYPE_STEP_DEFAULT), "it opens at the default");
-    assertEquals(world.held.get(STORE_KEY.typeStep), undefined, "with nothing stored");
+    assertStrictEquals(world.held.get(STORE_KEY.typeStep), undefined, "with nothing stored");
     openOptions(world);
     const large = findByMark(host, "data-type-step", TYPE_STEP.large);
     assertExists(large, "the options offer the largest step");
     world.press(large);
     assertStrictEquals(sheet(), composeStyleSheet(TYPE_STEP.large), "the sheet is that step's");
-    assertEquals(world.held.get(STORE_KEY.typeStep), TYPE_STEP.large, "and the choice is kept");
+    assertStrictEquals(
+        world.held.get(STORE_KEY.typeStep),
+        TYPE_STEP.large,
+        "and the choice is kept",
+    );
     const bar = getElementsWithin(host).find((fakeElement) =>
         fakeElement.className === CLASS.title
     );
@@ -1491,7 +1611,7 @@ Deno.test("a window sized is kept with no frame, comes back after a reload, and 
     );
     const size = { width: 320, height: 350 };
     world.runtime.onIntent({ kind: "resize", window: "meter", size });
-    assertEquals(world.held.get(STORE_KEY.meterSize), '{"width":320,"height":350}', "kept");
+    assertStrictEquals(world.held.get(STORE_KEY.meterSize), '{"width":320,"height":350}', "kept");
     world.flush();
     assertStrictEquals(
         bar?.replacedBy,
@@ -1506,9 +1626,17 @@ Deno.test("a window sized is kept with no frame, comes back after a reload, and 
     const reset = findByMark(reloaded.getHost(), "data-reset-size", "meter");
     assertExists(reset, "the options offer the size back");
     reloaded.press(reset);
-    assertEquals(reloaded.held.get(STORE_KEY.meterSize), undefined, "given back, nothing is kept");
-    assertEquals(style().includes("--MargoMeter-meter-width"), false, "and it stands at its type");
-    assertEquals(
+    assertStrictEquals(
+        reloaded.held.get(STORE_KEY.meterSize),
+        undefined,
+        "given back, nothing is kept",
+    );
+    assertStrictEquals(
+        style().includes("--MargoMeter-meter-width"),
+        false,
+        "and it stands at its type",
+    );
+    assertStrictEquals(
         findByMark(reloaded.getHost(), "data-reset-size", "meter"),
         undefined,
         "with nothing left to give back",
@@ -1518,7 +1646,11 @@ Deno.test("a window sized is kept with no frame, comes back after a reload, and 
 Deno.test("a window sized while the options stand open is offered back in the same frame", () => {
     const world = playRecordedFight();
     openOptions(world);
-    assertEquals(findByMark(world.getHost(), "data-reset-size", "meter"), undefined, "unsized");
+    assertStrictEquals(
+        findByMark(world.getHost(), "data-reset-size", "meter"),
+        undefined,
+        "unsized",
+    );
     world.runtime.onIntent({ kind: "resize", window: "meter", size: { width: 320, height: 350 } });
     world.flush();
     assertExists(
@@ -1558,7 +1690,7 @@ Deno.test("a window's size the browser kept unreadable costs the size, and says 
     const standing = getElementsWithin(host).find((fakeElement) =>
         fakeElement.className.startsWith(CLASS.helper)
     );
-    assertEquals(
+    assertStrictEquals(
         (standing?.attributes.get("style") ?? "").includes("--MargoMeter-helper-width"),
         false,
         "the window stands at its type",
@@ -1588,7 +1720,7 @@ Deno.test("a window's fold the browser kept unreadable costs the fold, and says 
 Deno.test("where a reader lets go of a window is kept where a reload will look for it", () => {
     const world = playRecordedFight();
     world.runtime.onIntent({ kind: "move", window: "meter", position: { left: 40, top: 60 } });
-    assertEquals(
+    assertStrictEquals(
         world.held.get(STORE_KEY.meterPosition),
         '{"left":40,"top":60}',
         "written once, where a reload will look",
@@ -1662,20 +1794,20 @@ Deno.test("the fight's line and its shelf row say who the reader was, and it out
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const said = readFightCard(world);
     assertEquals(readCard(world.getHost()).name, ["Mapa Testowa (12, 34)"], "where, whole");
-    assertEquals(said.get(FIGHT_CARD_WORDS.world), WORLD, "on the world the page is on");
+    assertStrictEquals(said.get(FIGHT_CARD_WORDS.world), WORLD, "on the world the page is on");
     const character = said.get(FIGHT_CARD_WORDS.character);
-    assertEquals(character, reader.name, "as the combatant the hero's id keys");
+    assertStrictEquals(character, reader.name, "as the combatant the hero's id keys");
     assert(said.has(FIGHT_CARD_WORDS.profession), "with their profession and level under it");
     assert(said.has(FIGHT_CARD_WORDS.when), "and when it opened");
     const again = reloadRuntimeWorld(world);
-    assertEquals(
+    assertStrictEquals(
         readFightCard(again).get(FIGHT_CARD_WORDS.character),
         character,
         "a kept fight names the reader it was read with, with no fight going on to ask",
     );
     openShelfRowCard(again);
     const card = readCard(again.getHost());
-    assertEquals(
+    assertStrictEquals(
         new Map(card.stated.map((statement) => [statement.label, statement.value])).get(
             FIGHT_CARD_WORDS.character,
         ),
@@ -1717,12 +1849,16 @@ Deno.test("a shelf row's card counts the unplaced the fight's line counts, live 
     world.update({ endBattle: 1 });
     readFightCard(world);
     const counted = readCardCounts(world);
-    assertEquals(counted, "1 vs 1 +1", "the line's card counts the one the roster never seated");
+    assertStrictEquals(
+        counted,
+        "1 vs 1 +1",
+        "the line's card counts the one the roster never seated",
+    );
     openShelfRowCard(world);
-    assertEquals(readCardCounts(world), counted, "and the live row's card counts them too");
+    assertStrictEquals(readCardCounts(world), counted, "and the live row's card counts them too");
     const again = reloadRuntimeWorld(world);
     openShelfRowCard(again);
-    assertEquals(readCardCounts(again), counted, "as does the kept row's, after a reload");
+    assertStrictEquals(readCardCounts(again), counted, "as does the kept row's, after a reload");
 });
 
 /** The headcount the open card names, without how the fight went. */
@@ -1735,19 +1871,23 @@ Deno.test("a shelf row's card counts nobody unplaced where the fight's line coun
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     readFightCard(world);
     const counted = readCardCounts(world);
-    assertEquals(counted, "10 vs 1", "the line's card counts everybody seated, and nobody else");
+    assertStrictEquals(
+        counted,
+        "10 vs 1",
+        "the line's card counts everybody seated, and nobody else",
+    );
     openShelfRowCard(world);
-    assertEquals(readCardCounts(world), counted, "and so does the live row's card");
+    assertStrictEquals(readCardCounts(world), counted, "and so does the live row's card");
     const again = reloadRuntimeWorld(world);
     openShelfRowCard(again);
-    assertEquals(readCardCounts(again), counted, "as does the kept row's, after a reload");
+    assertStrictEquals(readCardCounts(again), counted, "as does the kept row's, after a reload");
 });
 
 Deno.test("a page stating no hero leaves the card with no character, and says nothing of it", () => {
     const world = initRuntimeWorld(composePlacedPage());
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     const said = readFightCard(world);
-    assertEquals(said.has(FIGHT_CARD_WORDS.character), false, "no line for nobody");
+    assertStrictEquals(said.has(FIGHT_CARD_WORDS.character), false, "no line for nobody");
     assertEquals(world.lines, [], "and no defect");
 });
 
@@ -1808,9 +1948,17 @@ Deno.test("a key under a pinned row opens whom it reached, and the way back is o
     });
     assertExists(key, "the level names the keys its figure moved under");
     world.press(key);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, key.textContent, "opened by key");
+    assertStrictEquals(
+        getRegion(host, CLASS.crumbHere)?.textContent,
+        key.textContent,
+        "opened by key",
+    );
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, PANEL_WORDS.withoutActor, "back");
+    assertStrictEquals(
+        getRegion(host, CLASS.crumbHere)?.textContent,
+        PANEL_WORDS.withoutActor,
+        "back",
+    );
 });
 
 /** A copy that stood down holds no panel, so an intent reaching it is somebody else's mistake. */
@@ -1821,7 +1969,11 @@ Deno.test("a copy that stood down answers an intent with nothing drawn and nothi
     second.runtime.onIntent({ kind: "fold", window: "meter" });
     second.flush();
     assertEquals(second.shown, [], "no panel goes up for it");
-    assertEquals(second.held.get(STORE_KEY.meterFolded), undefined, "and nothing is written down");
+    assertStrictEquals(
+        second.held.get(STORE_KEY.meterFolded),
+        undefined,
+        "and nothing is written down",
+    );
 });
 
 Deno.test("each window goes back where the reader left it, and never where the other was", () => {
@@ -2050,7 +2202,7 @@ Deno.test("a fight on screen the rotation drops gives the screen back, with noth
     for (const payload of readUpdates(SECOND_OF_A_PAIR)) world.update(payload);
     const keptOpenedAts = readKeptFights(world.getShelf("local")).map((fight) => fight.openedAt);
     assert(!keptOpenedAts.includes(1), "the fight ending pushed the oldest off a full shelf");
-    assertEquals(getRegion(host, CLASS.crumb), undefined, "and the panel left it, closed");
+    assertStrictEquals(getRegion(host, CLASS.crumb), undefined, "and the panel left it, closed");
 });
 
 /** A store that made room on a move or a pin can drop the fight on screen as the rotation can. */
@@ -2117,7 +2269,7 @@ Deno.test("a page whose clock will not say now draws its fight, and keeps and ha
     assertEquals(keptOpenedAts, [0], "and no row kept under no moment");
     openShelfRowCard(world);
     assertStrictEquals(countRows(getPanelWithin(host)), 2, "the shelf holds the fight going on");
-    assertEquals(readCardCounts(world), "10 vs 1", "whose row opens its own card");
+    assertStrictEquals(readCardCounts(world), "10 vs 1", "whose row opens its own card");
     openShelfScreen(world);
     pressSave(world);
     assertEquals(world.saved, [], "a file states when it was taken, and none is");
@@ -2130,8 +2282,12 @@ Deno.test("the helper folds on its own, and is kept folded apart from the meter"
     const control = findByMark(host, "data-helper-fold");
     assertExists(control, "the window carries a fold of its own");
     world.press(control);
-    assertEquals(world.held.get(STORE_KEY.helperFolded), "1", "written where a reload looks");
-    assertEquals(world.held.get(STORE_KEY.meterFolded), undefined, "and the panel's left alone");
+    assertStrictEquals(world.held.get(STORE_KEY.helperFolded), "1", "written where a reload looks");
+    assertStrictEquals(
+        world.held.get(STORE_KEY.meterFolded),
+        undefined,
+        "and the panel's left alone",
+    );
     const standing = getElementsWithin(host)
         .find((fakeElement) => fakeElement.className.split(" ")[0] === CLASS.helper);
     assertExists(standing, "the window stands beside the panel");
@@ -2211,9 +2367,9 @@ Deno.test("a change of screen keeps the person opened, and lets go of the pair",
     const taken = findByMark(host, "data-screen", "damageTaken");
     assertExists(taken, "another screen to reach for");
     world.press(taken);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "the person, alone");
+    assertStrictEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "the person, alone");
     world.press(getRegion(host, CLASS.crumbBack) ?? host);
-    assertEquals(getRegion(host, CLASS.crumb), undefined, "so one way back closes the row");
+    assertStrictEquals(getRegion(host, CLASS.crumb), undefined, "so one way back closes the row");
 });
 
 Deno.test("a screen chosen while the shelf is up takes the panel off the shelf", () => {
@@ -2240,7 +2396,7 @@ Deno.test("a fight that opens leaves a reader on a kept fight where they were", 
     assertExists(person, "open");
     const [opening] = readUpdates(THIRD);
     world.update(opening);
-    assertEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "and still open");
+    assertStrictEquals(getRegion(host, CLASS.crumbHere)?.textContent, person, "and still open");
 });
 
 Deno.test("a kept fight's file says which client it was fought under, and where", () => {
@@ -2249,7 +2405,7 @@ Deno.test("a kept fight's file says which client it was fought under, and where"
     const again = reloadRuntimeWorld(world);
     pressSave(again);
     const written = readSavedFile(again);
-    assertEquals(written.gameBuild, MARGONEM_CLIENT_BUILD, "the build kept beside the fight");
+    assertStrictEquals(written.gameBuild, MARGONEM_CLIENT_BUILD, "the build kept beside the fight");
     const report = written.report;
     assert(isRecord(report), "with the report beside the calls");
     assertEquals(report.place, { mapName: "Mapa Testowa", x: 12, y: 34 }, "and its place");
@@ -2258,5 +2414,5 @@ Deno.test("a kept fight's file says which client it was fought under, and where"
 Deno.test("a file says which browser wrote it, in the browser's own words", () => {
     const world = playRecordedFight();
     pressSave(world);
-    assertEquals(readSavedFile(world).userAgent, "a browser that said so", "as it said");
+    assertStrictEquals(readSavedFile(world).userAgent, "a browser that said so", "as it said");
 });

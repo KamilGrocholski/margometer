@@ -100,7 +100,7 @@ Deno.test("every recording reaches the picker, and the fight itself reaches the 
 
 Deno.test("a recording's calls reach the page without opening a tag", () => {
     const page = composePreviewPage(composeOptions(["</script><b>"]));
-    assertEquals(page.split("<b>").length - 1, 0, "no call reaches the page as markup");
+    assertStrictEquals(page.split("<b>").length - 1, 0, "no call reaches the page as markup");
     assertStringIncludes(page, "\\u003c/script>", "the opening bracket is written as an escape");
     assertStringIncludes(page, `id="preview-settings"`, "and the harness's own settings are data");
 });
@@ -162,7 +162,7 @@ Deno.test("the store is taken away, and what the add-on keeps lives only in the 
     assertStrictEquals(window["sessionStorage"], store, "and so is the other one, by the same");
     assertStrictEquals(store.getItem("carried"), "1", "which starts with what the address carried");
     store.setItem("kept", "2");
-    assertEquals(
+    assertStrictEquals(
         held["kept"],
         "2",
         "and keeps what the add-on writes in the page, not the browser",
@@ -328,7 +328,11 @@ Deno.test("the scripts are asked for under the directory the caller answers on",
 
 Deno.test("nothing the harness draws is named as the add-on's", () => {
     const page = composePreviewPage(composeOptions(CALLS));
-    assertEquals(page.split("MargoMeter-").length - 1, 0, "`MargoMeter-` still means the add-on's");
+    assertStrictEquals(
+        page.split("MargoMeter-").length - 1,
+        0,
+        "`MargoMeter-` still means the add-on's",
+    );
     assertStringIncludes(page, "preview-strip", "the harness names its own chrome for itself");
 });
 

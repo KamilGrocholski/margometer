@@ -42,19 +42,39 @@ const SOMEBODY: CapturedCombatant = {
 Deno.test("every call carrying messages is kept, and a call saying nothing new is dropped", () => {
     const recording = createFightCapture();
     capture(recording, { payload: { init: "1" } }, true);
-    assertEquals(recording.calls.length, 1, "the call opening a fight is a shape nobody has seen");
-    assertEquals(recording.droppedCalls, 0, "so nothing is dropped for it");
+    assertStrictEquals(
+        recording.calls.length,
+        1,
+        "the call opening a fight is a shape nobody has seen",
+    );
+    assertStrictEquals(recording.droppedCalls, 0, "so nothing is dropped for it");
 
     capture(recording, { payload: { init: "1" } }, true);
-    assertEquals(recording.calls.length, 1, "a second opening starts the recording over, not adds");
+    assertStrictEquals(
+        recording.calls.length,
+        1,
+        "a second opening starts the recording over, not adds",
+    );
 
     capture(recording, { payload: { m: ["x"] }, messages: ["x"] });
-    assertEquals(recording.calls.length, 2, "a call carrying a message is kept whatever it says");
+    assertStrictEquals(
+        recording.calls.length,
+        2,
+        "a call carrying a message is kept whatever it says",
+    );
     capture(recording, { payload: { m: ["x"] } });
-    assertEquals(recording.calls.length, 2, "and one repeating a shape with nothing to say is not");
-    assertEquals(recording.droppedCalls, 1, "it is counted instead, where the file will state it");
+    assertStrictEquals(
+        recording.calls.length,
+        2,
+        "and one repeating a shape with nothing to say is not",
+    );
+    assertStrictEquals(
+        recording.droppedCalls,
+        1,
+        "it is counted instead, where the file will state it",
+    );
     capture(recording, { payload: { m: ["x"] }, messages: ["y"] });
-    assertEquals(recording.calls.length, 3, "while a repeat that carries a message is kept");
+    assertStrictEquals(recording.calls.length, 3, "while a repeat that carries a message is kept");
 });
 
 function capture(
@@ -70,19 +90,35 @@ Deno.test("a shape nobody has seen is kept even where the call says nothing", ()
     const recording = createFightCapture();
     capture(recording, { payload: { poll: 1 } });
     capture(recording, { payload: { poll: 1, auto: "1" } });
-    assertEquals(recording.calls.length, 2, "a payload carrying a key not seen before is kept");
+    assertStrictEquals(
+        recording.calls.length,
+        2,
+        "a payload carrying a key not seen before is kept",
+    );
     capture(recording, { payload: { auto: "1", poll: 1 } });
-    assertEquals(recording.droppedCalls, 1, "and the same keys in another order are no new shape");
+    assertStrictEquals(
+        recording.droppedCalls,
+        1,
+        "and the same keys in another order are no new shape",
+    );
 });
 
 Deno.test("a state nobody has seen is kept even where the payload says nothing", () => {
     const recording = createFightCapture();
     capture(recording, { payload: { poll: 1 } });
     capture(recording, { payload: { poll: 1 }, combatantsAfter: [SOMEBODY] });
-    assertEquals(recording.calls.length, 2, "health that moved is kept though the payload repeats");
-    assertEquals(recording.droppedCalls, 0, "and nothing is dropped for it");
+    assertStrictEquals(
+        recording.calls.length,
+        2,
+        "health that moved is kept though the payload repeats",
+    );
+    assertStrictEquals(recording.droppedCalls, 0, "and nothing is dropped for it");
     capture(recording, { payload: { poll: 1 }, combatantsAfter: [SOMEBODY] });
-    assertEquals(recording.droppedCalls, 1, "a state already seen is no reason to keep a call");
+    assertStrictEquals(
+        recording.droppedCalls,
+        1,
+        "a state already seen is no reason to keep a call",
+    );
 });
 
 Deno.test("a call prepared leaves the recording as it was, and only its commit keeps it", () => {
@@ -91,11 +127,11 @@ Deno.test("a call prepared leaves the recording as it was, and only its commit k
     const shapes = [...recording.shapesSeen];
     const call = { payload: { other: 1 }, messages: ["x"], ...NOBODY };
     const prepared = prepareCapture(recording, call, false);
-    assertEquals(recording.calls.length, 1, "the recording prepared against keeps its calls");
+    assertStrictEquals(recording.calls.length, 1, "the recording prepared against keeps its calls");
     assertEquals([...recording.shapesSeen], shapes, "and the shapes it had seen");
     commitCapture(recording, prepared);
-    assertEquals(recording.calls.length, 2, "while the commit holds the new call");
-    assertEquals(createFightCapture().calls.length, 0, "and a new recording is empty");
+    assertStrictEquals(recording.calls.length, 2, "while the commit holds the new call");
+    assertStrictEquals(createFightCapture().calls.length, 0, "and a new recording is empty");
 });
 
 Deno.test("a call prepared against one recording lands on no other", () => {
@@ -108,7 +144,11 @@ Deno.test("a call prepared against one recording lands on no other", () => {
     const opening = prepareCapture(recording, call, true);
     capture(recording, { payload: { most: 1 }, messages: ["z"] });
     commitCapture(recording, opening);
-    assertEquals(recording.calls.length, 1, "while an opening starts over, whatever came before");
+    assertStrictEquals(
+        recording.calls.length,
+        1,
+        "while an opening starts over, whatever came before",
+    );
 });
 
 Deno.test("a recording stops at its ceiling rather than dropping its start", () => {
@@ -116,17 +156,25 @@ Deno.test("a recording stops at its ceiling rather than dropping its start", () 
     for (let callIndex = 0; callIndex < CALLS_MAXIMUM; callIndex += 1) {
         capture(recording, { payload: { at: callIndex }, messages: [`${callIndex}`] });
     }
-    assertEquals(recording.calls.length, CALLS_MAXIMUM, "every call up to the ceiling is kept");
+    assertStrictEquals(
+        recording.calls.length,
+        CALLS_MAXIMUM,
+        "every call up to the ceiling is kept",
+    );
     assertFalse(recording.isTruncated, "and a recording at its ceiling has lost nothing yet");
     capture(recording, { payload: { past: 1 }, messages: ["past"] });
-    assertEquals(recording.calls.length, CALLS_MAXIMUM, "the call past it is not kept");
+    assertStrictEquals(recording.calls.length, CALLS_MAXIMUM, "the call past it is not kept");
     assertEquals(recording.calls[0]?.messages, ["0"], "and the first call is still the first");
     assert(recording.isTruncated, "the recording says its tail is missing");
-    assertEquals(recording.droppedCalls, 1, "and counts what it did not keep");
+    assertStrictEquals(recording.droppedCalls, 1, "and counts what it did not keep");
     capture(recording, { payload: { init: 1 } }, true);
-    assertEquals(recording.calls.length, 1, "a fight that opens starts over under the ceiling");
+    assertStrictEquals(
+        recording.calls.length,
+        1,
+        "a fight that opens starts over under the ceiling",
+    );
     assertFalse(recording.isTruncated, "and says nothing of the tail of the fight before it");
-    assertEquals(recording.droppedCalls, 0, "nor counts what that fight dropped");
+    assertStrictEquals(recording.droppedCalls, 0, "nor counts what that fight dropped");
 });
 
 Deno.test("a call kept past the ceiling is a call nobody prepared", () => {
@@ -150,13 +198,21 @@ Deno.test("a fight that opens has seen no shape and no state of the fight before
     capture(recording, { payload: { init: 1 } }, true);
     capture(recording, { payload: { poll: 1 }, messages: ["x"] });
     capture(recording, { payload: { init: 1 }, combatantsAfter: [SOMEBODY] });
-    assertEquals(recording.calls.length, 3, "the fight before saw a poll and somebody standing");
+    assertStrictEquals(
+        recording.calls.length,
+        3,
+        "the fight before saw a poll and somebody standing",
+    );
     capture(recording, { payload: { init: 1 } }, true);
     capture(recording, { payload: { poll: 1 } });
-    assertEquals(recording.calls.length, 2, "a shape seen only before the opening is new again");
+    assertStrictEquals(
+        recording.calls.length,
+        2,
+        "a shape seen only before the opening is new again",
+    );
     capture(recording, { payload: { init: 1 }, combatantsAfter: [SOMEBODY] });
-    assertEquals(recording.calls.length, 3, "and so is a state seen only before it");
-    assertEquals(recording.droppedCalls, 0, "so neither is dropped");
+    assertStrictEquals(recording.calls.length, 3, "and so is a state seen only before it");
+    assertStrictEquals(recording.droppedCalls, 0, "so neither is dropped");
 });
 
 Deno.test("what the game goes on changing is copied, not held by reference", () => {
@@ -178,7 +234,11 @@ Deno.test("a payload the round trip cannot carry is kept as null, with its call"
     cycle.self = cycle;
     const recording = createFightCapture();
     capture(recording, { payload: cycle, messages: ["0;0;txt=a"] }, true);
-    assertEquals(recording.calls.length, 1, "the call is kept, because its messages were read");
+    assertStrictEquals(
+        recording.calls.length,
+        1,
+        "the call is kept, because its messages were read",
+    );
     assertStrictEquals(
         recording.calls[0]?.payload,
         null,
@@ -202,11 +262,23 @@ Deno.test("a snapshot nobody took is null, and one of nobody is empty", () => {
 Deno.test("a payload past the bound on its keys is kept, shaped by the keys the bound reads", () => {
     const recording = createFightCapture();
     capture(recording, { payload: composeKeyedPayload(SHAPE_KEYS_MAXIMUM) });
-    assertEquals(recording.calls.length, 1, "a payload at the bound is a shape like any other");
+    assertStrictEquals(
+        recording.calls.length,
+        1,
+        "a payload at the bound is a shape like any other",
+    );
     capture(recording, { payload: composeKeyedPayload(SHAPE_KEYS_MAXIMUM + 1) });
-    assertEquals(recording.calls.length, 2, "one key past it is kept, and is no other's shape");
+    assertStrictEquals(
+        recording.calls.length,
+        2,
+        "one key past it is kept, and is no other's shape",
+    );
     capture(recording, { payload: composeKeyedPayload(SHAPE_KEYS_MAXIMUM + 2) });
-    assertEquals(recording.droppedCalls, 1, "while past it, only the keys the bound reads count");
+    assertStrictEquals(
+        recording.droppedCalls,
+        1,
+        "while past it, only the keys the bound reads count",
+    );
 });
 
 /** Keys that sort as they are numbered, so the first of them are the ones the bound reads. */

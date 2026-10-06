@@ -108,9 +108,13 @@ Deno.test("a value no mark of ours writes is a failure naming the mark, never a 
 });
 
 Deno.test("a press on nothing of ours asks for nothing; marks are read in develop's order", () => {
-    assertEquals(readPanelIntent(composeTarget({})), null, "an unmarked element");
+    assertStrictEquals(readPanelIntent(composeTarget({})), null, "an unmarked element");
     const bareTarget = { getAttribute: undefined } as unknown as PanelTarget;
-    assertEquals(readPanelIntent(bareTarget), null, "and a node that states no attributes at all");
+    assertStrictEquals(
+        readPanelIntent(bareTarget),
+        null,
+        "and a node that states no attributes at all",
+    );
     // Two marks on one node are read in `develop`'s order: the row before the way back.
     const both = composeTarget({ [PANEL_MARK.row]: "7", [PANEL_MARK.back]: "" });
     assertEquals(readPanelIntent(both), { kind: PANEL_INTENT.openRow, combatantId: 7 });
