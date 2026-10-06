@@ -28,7 +28,7 @@ What the old tree does that this design does not, measured on `develop` @ `fa1dc
 
 What is carried over unchanged: the data contract `BattleEvent` (`develop:src/core/battle-event.ts`,
 and changing it is `[ASK]`), the wrap semantics (the original first, its value untouched, one
-layer), the recording file format (§11) and the six boundaries of `AGENTS.md`'s error rules.
+layer), the recording file format (§11) and the boundaries of `AGENTS.md`'s error rules.
 
 ## 2. Principles
 
@@ -1040,14 +1040,15 @@ goes without a mark.
 
 ### 10.6 Where a broad catch stands
 
-| Boundary                       | Where                                                                                                                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the add-on standing up         | `readRuntimePorts` and `initRuntime` under `errors.attempt`, in the entry                                                                                                 |
-| the wrapped engine call        | `PayloadListener.onBeforeCall` and `onPayload`                                                                                                                            |
-| one render region              | `errors.attempt` per region in `PanelView.render`                                                                                                                         |
-| browser storage                | `errors.attempt` inside the `KeyValueStore` implementation                                                                                                                |
-| the game's own page state      | `errors.attempt` in `MargonemEnginePlacePort`, `MargonemEngineHeroPort`, `MargonemClientDictionaryPort`, `MargonemClientBuildPort`, `MargonemEngineTooltipPort`, warriors |
-| a callback somebody else calls | a DOM listener and `onFrame`, under `errors.attempt`                                                                                                                      |
+| Boundary                         | Where                                                                                                                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the add-on standing up           | `readRuntimePorts` and `initRuntime` under `errors.attempt`, in the entry                                                                                                 |
+| the wrapped engine call          | `PayloadListener.onBeforeCall` and `onPayload`                                                                                                                            |
+| one render region                | `errors.attempt` per region in `PanelView.render`                                                                                                                         |
+| browser storage                  | `errors.attempt` inside the `KeyValueStore` implementation                                                                                                                |
+| the game's own page state        | `errors.attempt` in `MargonemEnginePlacePort`, `MargonemEngineHeroPort`, `MargonemClientDictionaryPort`, `MargonemClientBuildPort`, `MargonemEngineTooltipPort`, warriors |
+| a browser API this program calls | `errors.attempt` inside `BrowserConsolePort`, `BrowserSurroundingsPort`, `BrowserClock`, `BrowserFrameScheduler`, `BrowserIntervalScheduler`, `BrowserFileSink`           |
+| a callback somebody else calls   | a DOM listener, `onFrame`, the interval's step and the file's timeout, under `errors.attempt`                                                                             |
 
 ### 10.7 The card: `onHover`, in the root listener, under its guard
 

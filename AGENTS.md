@@ -214,20 +214,21 @@ The shapes are `docs/design.md` §3; the fate of each failure is its §10.5.
   holds a call into code this project did not write or our own at a boundary, and which answers what
   the call returned or a `Caught` carrying what was thrown. Each call to it sits at one of **E5**'s
   boundaries. Any other `catch` is a bug.
-- **E5. There are six boundaries in the add-on, and they are enumerable.** A new one is `[ASK]`,
+- **E5. There are seven boundaries in the add-on, and they are enumerable.** A new one is `[ASK]`,
   because an unlisted broad catch is indistinguishable from a swallowed bug. Where each stands is
-  `docs/design.md` §10.6.
+  `docs/design.md` §10.6. ADR 0037.
 
-  | Boundary                       | Direction | A failure there becomes               |
-  | ------------------------------ | --------- | ------------------------------------- |
-  | the add-on standing up         | inbound   | a copy that stood down, and said so   |
-  | the wrapped engine call        | inbound   | a payload that did not land           |
-  | one render region              | outbound  | that region undrawn, in place         |
-  | browser storage                | outbound  | a refusal, which is an answer         |
-  | the game's own page state      | outbound  | a reading marked unknown              |
-  | a callback somebody else calls | inbound   | that gesture or frame dropped, marked |
+  | Boundary                         | Direction | A failure there becomes               |
+  | -------------------------------- | --------- | ------------------------------------- |
+  | the add-on standing up           | inbound   | a copy that stood down, and said so   |
+  | the wrapped engine call          | inbound   | a payload that did not land           |
+  | one render region                | outbound  | that region undrawn, in place         |
+  | browser storage                  | outbound  | a refusal, which is an answer         |
+  | the game's own page state        | outbound  | a reading marked unknown              |
+  | a browser API this program calls | outbound  | what the calling step makes of it     |
+  | a callback somebody else calls   | inbound   | that gesture or frame dropped, marked |
 
-  In `tools/` the boundaries are the network and a subprocess.
+  In `tools/` the boundaries are the network, a subprocess and the file system.
 - **E6. `null` or a failure: the reason decides.** `T | null` in a domain type means the protocol
   did not state it, which is a fact. A reading returns `T | null` where it has **one** reason to
   fail and its name already says it (`parseInteger`); it returns a failure where it has more than

@@ -14764,6 +14764,7 @@ suite's material.
 - `docs/adr/0034-every-row-under-an-end-left-out-says-so-at-every-level.md`
 - `docs/adr/0035-a-fights-totals-hold-only-what-is-summed.md`
 - `docs/adr/0036-the-caveat-letter-is-drawn-and-every-bar-control-is-one-box.md`
+- `docs/adr/0037-a-browser-api-this-program-calls-is-a-boundary.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

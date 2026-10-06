@@ -69,8 +69,8 @@ were left (**G3**).
       never happen (**E1**, **A8**).
 - [ ] Every call site branches on what can fail, and nothing substitutes zero for a failed read
       (**E2**, **E6**).
-- [ ] A new broad catch is `attempt`, at one of the six boundaries, and a new boundary was asked for
-      (**E4**, **E5**).
+- [ ] A new broad catch is `attempt`, at one of **E5**'s boundaries, and a new boundary was asked
+      for (**E4**, **E5**).
 - [ ] Every failure leaves its mark, and reaches the console once per kind (**E9**).
 - [ ] A callback handed to the browser or the game is guarded at the handover (**E10**).
 - [ ] A path from the game into our code has a boundary on it (**E12**, **A7**).
