@@ -108,6 +108,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0037-a-browser-api-this-program-calls-is-a-boundary.md`                                      | a browser API the add-on calls is a seventh boundary, and a tool's file system is one of its boundaries                  |
 | `docs/adr/0038-a-fighter-s-tooltip-leaves-the-charge-to-the-game.md`                                   | a fighter's tooltip leaves the charge to the game's own section, and Pomocnik keeps its own                              |
 | `docs/adr/0039-a-tooltip-row-is-written-as-the-game-writes-its-own.md`                                 | a tooltip row is a label, a colon and its value, heals as `1/3` and turns left as `(2 tury)`, as the game writes its own |
+| `docs/adr/0040-pomocnik-says-the-turns-a-length-has-left.md`                                           | every length Pomocnik draws is the turns it has left with their noun, and the charge's dots stay                         |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

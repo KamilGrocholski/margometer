@@ -363,7 +363,7 @@ Deno.test("a shout is drawn under whoever is holding it, and the turns are the h
     );
     assertEquals(
         getTextsByClass(getWindow(host), "row-value figure"),
-        ["1 z 3"],
+        ["1 tura"],
         "the length stands on the character being held, and never on whoever holds them",
     );
     const rows = getElementsWithin(getWindow(host)).filter((descendant) =>
@@ -589,7 +589,7 @@ Deno.test("a charge names the figures the game states, and never a percentage", 
     );
     const { host } = draw(reading);
     const figures = getTextsByClass(getWindow(host), "row-value figure");
-    assertEquals(figures.includes("1 z 2"), true, "what has passed of what the game states");
+    assertEquals(figures.includes("1 tura"), true, "what is left of what the game states");
     assertEquals(figures.some((figure) => figure.includes("%")), false, "and no share of anything");
 });
 
@@ -676,7 +676,7 @@ Deno.test("a held character's card states the turns they have taken since the sh
     );
     assertEquals(
         card.stated.map((line) => [line.label, line.value]),
-        [[HELPER_WORDS.turnsLeft, "1 z 3"]],
+        [[HELPER_WORDS.turnsLeft, "1 tura"]],
         "and states a length of their own, counted on their turns (**develop ADR 0103**)",
     );
     assertEquals(card.notes, [], "with no sentence under it, because the clock is now theirs");
@@ -812,8 +812,8 @@ Deno.test("the card of a charge names the blow whole, whoever is making it, and 
     );
     assertEquals(
         card.stated.map((line) => [line.label, line.value]),
-        [[HELPER_WORDS.turnsPassed, "2 z 4"]],
-        "under the word a cast's card states its own turns under",
+        [[HELPER_WORDS.turnsLeft, "2 tury"]],
+        "the turns left, under the word a held character's card states its own under",
     );
 });
 

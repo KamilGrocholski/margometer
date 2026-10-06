@@ -29,7 +29,6 @@ import {
     formatCardSubtitle,
     formatChargedSkillSubtitle,
     formatCountedNoun,
-    formatCounter,
     formatDefect,
     formatDestroyed,
     formatFigure,
@@ -47,6 +46,7 @@ import {
     formatShelfTime,
     formatSideCounts,
     formatTurnOrdinal,
+    formatTurnsLeft,
     formatUndrawn,
     formatUnknownKeyRowSuspicion,
     formatUnknownKeySuspicion,
@@ -477,18 +477,20 @@ Deno.test("a status with no figure to its name says no share beside it", () => {
 });
 
 /**
- * The one pair every counter draws since `develop ADR 0116`, up or down, and the two ends it
- * refuses. A figure **below** nought and one past what is stated are both a subtraction somebody
- * got backwards — neither is a figure, so neither is drawn as one. Nought itself is drawn: a shout
- * holds somebody through the turn its length runs out on, and a charge opens on none passed.
+ * The turns a length has left, wherever the tooltip or Pomocnik draws one (ADR 0040), and the two
+ * ends it refuses. A figure **below** nought and one past what is stated are both a subtraction
+ * somebody got backwards — neither is a figure, so neither is drawn as one. Nought itself is
+ * drawn: a shout holds somebody through the turn its length runs out on, and a charge lands on the
+ * turn none is left.
  */
-Deno.test("a counter is a bare pair, and refuses what is not inside it", () => {
-    assertEquals(formatCounter(1, 5), "1 z 5", "one of five, and no noun");
-    assertEquals(formatCounter(5, 5), "5 z 5", "and the whole of it");
-    assertEquals(formatCounter(0, 5), "0 z 5", "and none is drawn");
-    assertEquals(formatCounter(-1, 5), PANEL_WORDS.unknown, "below none is not");
-    assertEquals(formatCounter(6, 5), PANEL_WORDS.unknown, "nor more than there was");
-    assertEquals(formatCounter(1.5, 5), PANEL_WORDS.unknown, "nor half a turn");
+Deno.test("a length says the turns it has left, and refuses what is not inside it", () => {
+    assertEquals(formatTurnsLeft(4, 5), "1 tura", "one left, in its own form");
+    assertEquals(formatTurnsLeft(0, 5), "5 tur", "the whole of it, just begun");
+    assertEquals(formatTurnsLeft(1, 3), "2 tury", "two to four take the second form");
+    assertEquals(formatTurnsLeft(5, 5), "0 tur", "and none is drawn");
+    assertEquals(formatTurnsLeft(-1, 5), PANEL_WORDS.unknown, "below none is not");
+    assertEquals(formatTurnsLeft(6, 5), PANEL_WORDS.unknown, "nor more than there was");
+    assertEquals(formatTurnsLeft(1.5, 5), PANEL_WORDS.unknown, "nor half a turn");
 });
 
 /**

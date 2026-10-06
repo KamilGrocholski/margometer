@@ -1311,7 +1311,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `formatComparison` — `tools/develop-reports.ts`
 - `formatCostReport` — `tools/payload-cost.ts`
 - `formatCountedNoun` — `src/ui/panel-words.ts`
-- `formatCounter` — `src/ui/panel-words.ts`
 - `formatCutText` — `tools/fight-figures.ts`
 - `formatDecimal` — `libs/number-text.ts`
 - `formatDecisionName` — `tests/repository/decisions.test.ts`
@@ -1398,11 +1397,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `formatTallyKey` — `tests/tools/turn-reading.test.ts`
 - `formatTickExpected` — `tests/core/injure-rule.test.ts`
 - `formatTooltipFraction` — `src/ui/panel-words.ts`
-- `formatTooltipTurnsLeft` — `src/ui/panel-words.ts`
 - `formatTurnOrdinal` — `src/ui/panel-words.ts`
 - `formatTurnWalk` — `tools/turn-count.ts`
 - `formatTurnWalkLine` — `tools/turn-count.ts`
 - `formatTurns` — `src/ui/panel-words.ts`
+- `formatTurnsLeft` — `src/ui/panel-words.ts`
 - `formatTwoDigits` — `src/ui/panel-words.ts`
 - `formatUndrawn` — `src/ui/panel-words.ts`
 - `formatUnknownKeyRowSuspicion` — `src/ui/panel-words.ts`
@@ -11208,7 +11207,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `turnsElapsed` — `src/ui/panel-helper.ts`, `src/ui/panel-words.ts`
 - `turnsLeft` — `src/ui/panel-words.ts`
 - `turnsLost` — `src/ui/panel-content.ts`
-- `turnsPassed` — `src/ui/panel-words.ts`
 - `turnsStated` — `src/ui/panel-helper.ts`, `src/ui/panel-words.ts`
 - `turnsTaken` — `src/ui/panel-content.ts`, `src/ui/panel-words.ts`
 - `turnsWithLost` — `src/ui/panel-words.ts`
@@ -12982,7 +12980,7 @@ Each `as const` object of a module, by its keys.
 - `HALF_NAMED_OPENED` — `src/ui/panel-content.ts`: `person`, `element`
 - `HELPER_ABSENCE` — `src/ui/panel-helper.ts`: `noFightYet`, `betweenFights`, `fightUnread`
 - `HELPER_WORDS` — `src/ui/panel-words.ts`: `title`, `drag`, `collapse`, `expand`, `now`,
-  `nothingHappens`, `provocation`, `castSeparator`, `turnsPassed`, `turnsLeft`, `chargedSkill`
+  `nothingHappens`, `provocation`, `castSeparator`, `turnsLeft`, `chargedSkill`
 - `LAYER` — `src/ui/panel-look.ts`: `helper`, `card`
 - `LIVE_FIGHT_WORDS` — `src/ui/panel-words.ts`: `time`, `outcome`
 - `NEITHER_END_WORDS` — `src/ui/panel-words.ts`: `label`, `note`
@@ -14858,6 +14856,7 @@ suite's material.
 - `docs/adr/0037-a-browser-api-this-program-calls-is-a-boundary.md`
 - `docs/adr/0038-a-fighter-s-tooltip-leaves-the-charge-to-the-game.md`
 - `docs/adr/0039-a-tooltip-row-is-written-as-the-game-writes-its-own.md`
+- `docs/adr/0040-pomocnik-says-the-turns-a-length-has-left.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

@@ -139,7 +139,6 @@ import {
     FIGHT_CARD_WORDS,
     formatCardSubtitle,
     formatChargedSkillSubtitle,
-    formatCounter,
     formatDefect,
     formatDestroyed,
     formatFigure,
@@ -150,6 +149,7 @@ import {
     formatSideCounts,
     formatTurnOrdinal,
     formatTurns,
+    formatTurnsLeft,
     formatUndrawn,
     formatUses,
     formatWholeUngrouped,
@@ -1334,7 +1334,7 @@ function renderHelperBody(
                 document,
                 "span",
                 `${CLASS.rowValue} ${CLASS.figure}`,
-                formatCounter(charged.turnsElapsed, charged.turnsStated),
+                formatTurnsLeft(charged.turnsElapsed, charged.turnsStated),
             );
             const pips = renderElement(document, "div", CLASS.helperPips);
             const dots: PanelElement[] = [pips];
@@ -1438,10 +1438,7 @@ function renderHelperBody(
                     skillName: provocation.skillName,
                     colour: holding.colour,
                     sideRelation: holding.sideRelation,
-                    turns: formatCounter(
-                        holding.turnsStated - holding.turnsElapsed,
-                        holding.turnsStated,
-                    ),
+                    turns: formatTurnsLeft(holding.turnsElapsed, holding.turnsStated),
                     turnsCaveat: null,
                     isNested: true,
                 }));
@@ -3430,15 +3427,15 @@ function presentHelperPersonCard(person: HelperPerson): CardContent {
 
 /**
  * What a charge's row had to cut, handed back whole: the blow's name, whoever is making it ready
- * — which the row says in a hue and nowhere in words — and what became of it at either end. The
- * turns are the client's own pair, under the word a cast's card already states its own under.
- * `develop ADR 0100`.
+ * — which the row says in a hue and nowhere in words — and what became of it at either end
+ * (`develop ADR 0100`). The turns are those left, under the word a held character's card states
+ * its own under (ADR 0040).
  */
 function presentChargedSkillCard(charged: StandingChargedSkill): CardContent {
     const stated: CardLine = {
         kind: CARD_LINE.stat,
-        label: HELPER_WORDS.turnsPassed,
-        stated: formatCounter(charged.turnsElapsed, charged.turnsStated),
+        label: HELPER_WORDS.turnsLeft,
+        stated: formatTurnsLeft(charged.turnsElapsed, charged.turnsStated),
         isStrong: false,
         caveat: null,
     };

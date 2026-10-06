@@ -728,17 +728,9 @@ export const HELPER_WORDS = {
      */
     castSeparator: "·",
     /**
-     * What a card in this window states its turns under — a cast's, and a charge's since
-     * `develop ADR 0100`. Never `CARD_WORDS.turns`: that one names the turns a combatant took and
-     * carries the caveat that the game publishes none of them, while both of these are durations
-     * the game itself states — the published skill table for a cast, the payload's own envelope
-     * for a charge. The pair beside it is bare, `Minęło · 2 z 3` (`develop ADR 0116`).
-     */
-    turnsPassed: "Minęło",
-    /**
-     * What a length **this panel** counts says instead, since `develop ADR 0109`: the figure beside
-     * it is what is left, not what has gone. `turnsPassed` stays for the charge, whose pair is the
-     * client's own and is restated rather than counted.
+     * What a card in this window states a length under, a charge's and a shout's alike: the turns
+     * left, as the game writes a charge's (ADR 0040). Never `CARD_WORDS.turns`: that one names the
+     * turns a combatant took and carries the caveat that the game publishes none of them.
      */
     turnsLeft: "Zostało",
     /** The game's own name for it, taken from the client's own label — **N13**, **L2**. */
@@ -1189,7 +1181,7 @@ export function presentTooltipRows(
         }
         const provoker = tooltip.provokedBy;
         if (provoker !== null) {
-            const left = formatTooltipTurnsLeft(provoker.turnsElapsed, provoker.turnsStated);
+            const left = formatTurnsLeft(provoker.turnsElapsed, provoker.turnsStated);
             said.push(`${TOOLTIP_WORDS.provokedBy}: ${provoker.name} (${left})`);
         }
     }
@@ -1210,19 +1202,6 @@ function formatTooltipFraction(figure: number, stated: number): string {
     if (figure < 0) return PANEL_WORDS.unknown;
     if (stated < figure) return PANEL_WORDS.unknown;
     return `${formatWholeUngrouped(figure)}/${formatWholeUngrouped(stated)}`;
-}
-
-/**
- * `2 tury`, the turns a length has left, as the game writes a charge's. ⚠️ **Nought is drawn**: a
- * shout stands while its turns are `<=` what the table gives it (`core/aura-standing.ts`), so a held
- * character's last turn arrives as none left.
- */
-function formatTooltipTurnsLeft(turnsElapsed: number, turnsStated: number): string {
-    if (!Number.isSafeInteger(turnsElapsed)) return PANEL_WORDS.unknown;
-    if (!Number.isSafeInteger(turnsStated)) return PANEL_WORDS.unknown;
-    if (turnsElapsed < 0) return PANEL_WORDS.unknown;
-    if (turnsStated < turnsElapsed) return PANEL_WORDS.unknown;
-    return formatCountedNoun(turnsStated - turnsElapsed, COUNTED_NOUN_WORDS.turns);
 }
 
 /**
@@ -1299,6 +1278,21 @@ function getWordsForStatusBit(
     return said;
 }
 
+/**
+ * `2 tury`, the turns a length has left, as the game writes a charge's: every length the tooltip
+ * and Pomocnik draw (ADR 0039, ADR 0040). A figure below none or past what is stated is a
+ * subtraction somebody got backwards, so it is not drawn as one. ⚠️ **Nought is drawn**: a shout
+ * stands while its turns are `<=` what the table gives it (`core/aura-standing.ts`), so a held
+ * character's last turn arrives as none left, and a charge lands on the turn none is left.
+ */
+export function formatTurnsLeft(turnsElapsed: number, turnsStated: number): string {
+    if (!Number.isSafeInteger(turnsElapsed)) return PANEL_WORDS.unknown;
+    if (!Number.isSafeInteger(turnsStated)) return PANEL_WORDS.unknown;
+    if (turnsElapsed < 0) return PANEL_WORDS.unknown;
+    if (turnsStated < turnsElapsed) return PANEL_WORDS.unknown;
+    return formatCountedNoun(turnsStated - turnsElapsed, COUNTED_NOUN_WORDS.turns);
+}
+
 export function getWordsForChargedSkill(state: ChargedSkillState): string {
     const words = CHARGED_SKILL_WORDS[state];
     return words;
@@ -1314,24 +1308,6 @@ export function formatChargedSkillSubtitle(name: string, state: ChargedSkillStat
     const said = getWordsForChargedSkill(state);
     if (said.length === 0) return name;
     return `${name} ${HELPER_WORDS.castSeparator} ${said}`;
-}
-
-/**
- * `2 z 4` — every counter the panel draws, counting up or down, and **never with a noun**: the
- * row's own name says what is counted (`develop ADR 0116`). The tooltip writes the game's way
- * instead (ADR 0039). Nothing here computes the
- * percentage the pair comes to.
- *
- * ⚠️ **Nought is drawn at either end.** A charge's first turn arrives as none passed, and a shout
- * stands while its turns are `<=` what the table gives it (`core/aura-standing.ts`), so a held
- * character's last turn arrives as none left.
- */
-export function formatCounter(figure: number, stated: number): string {
-    if (!Number.isSafeInteger(figure)) return PANEL_WORDS.unknown;
-    if (!Number.isSafeInteger(stated)) return PANEL_WORDS.unknown;
-    if (figure < 0) return PANEL_WORDS.unknown;
-    if (stated < figure) return PANEL_WORDS.unknown;
-    return `${formatWholeUngrouped(figure)} z ${formatWholeUngrouped(stated)}`;
 }
 
 export function getWordsForTurnState(state: StandingTurnState): string {
