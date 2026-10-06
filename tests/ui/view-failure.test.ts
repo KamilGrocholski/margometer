@@ -14,7 +14,7 @@ import {
 import * as errors from "#/libs/errors.ts";
 import { DEFECTS_MAXIMUM, type PanelDefect } from "#/src/ui/panel-element.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
-import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
+import { DEFECT_KIND, initDefectLedger, ROWS_MAXIMUM } from "#/src/runtime/defect-ledger.ts";
 import { SIDE_RELATION } from "#/src/ui/panel-content.ts";
 import { type HelperContent, STANDING_TURN_STATE } from "#/src/ui/panel-helper.ts";
 import { SIGNAL } from "#/src/ui/panel-palette.ts";
@@ -248,14 +248,15 @@ Deno.test("every row the runtime's ledger can hold is drawn, a region's beside i
         return getTextsByClass(panel.element as FakeElement, "defect");
     };
     // Fill a ledger with every kind under every region and under none, which is all it can hold.
-    const ledger = initDefectLedger({ writeBrandedLine: () => {} });
+    const ledger = initDefectLedger({ console: { writeBrandedLine: () => {} } });
     const failure = new errors.Caught("a defect");
     for (const kind of Object.values(DEFECT_KIND)) {
         ledger.add({ kind, region: null, failure });
         for (const region of Object.values(PANEL_REGION)) ledger.add({ kind, region, failure });
     }
     const held = ledger.getCounts().map(({ kind, region, count }) => ({ kind, region, count }));
-    assertStrictEquals(held.length, DEFECTS_MAXIMUM, "the panel's bound is the ledger's shape");
+    assertStrictEquals(DEFECTS_MAXIMUM, ROWS_MAXIMUM, "the panel's bound is the ledger's own");
+    assertStrictEquals(held.length, DEFECTS_MAXIMUM, "and a full ledger holds that many rows");
     assertEquals(draw(held).length, DEFECTS_MAXIMUM, "and every row the ledger holds is said");
     assertEquals(draw([...held, held[0]!]).length, DEFECTS_MAXIMUM, "and a line past it is not");
     assertEquals(

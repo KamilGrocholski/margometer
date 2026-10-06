@@ -336,7 +336,8 @@ export interface FightCardContent {
 }
 
 export interface ShelfRow {
-    openedAt: number;
+    /** Null on the live row alone, where the clock gave its fight no moment: nothing kept it. */
+    openedAt: number | null;
     at: FightMoment | null;
     sizes: number[];
     place: string | null;

@@ -22,6 +22,7 @@ import {
     type CombatantFigures,
     countUnreadMessages,
     createCombatantFigures,
+    SKILLS_MAXIMUM as SKILLS_KEPT_MAXIMUM,
     tallyFightStatistics,
 } from "#/src/core/fight-statistics.ts";
 import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
@@ -3085,6 +3086,35 @@ function composeStatisticsWithSkills(receiverId: number, names: number): FightSt
         legendaryBonuses: { byHolderId: new Map(), byReachedId: new Map() },
     };
 }
+
+/**
+ * The fold walks every striker, so it may meet more names than `core/` keeps for one; what it must
+ * never do is fold the names of a single striker, which `core/` already bounds. **W5**: this is
+ * the bound's own side, and "a section past its own bound" above is the side past it.
+ */
+Deno.test("every skill one striker can be kept with is drawn on a row of its own", () => {
+    assert(
+        SKILLS_MAXIMUM >= SKILLS_KEPT_MAXIMUM,
+        `${SKILLS_MAXIMUM} rows is under the ${SKILLS_KEPT_MAXIMUM} skills one striker is kept with`,
+    );
+    const receiverId = 1;
+    const roster = indexCombatantRoster([
+        {
+            id: receiverId,
+            name: "Odbiorca",
+            side: 1,
+            level: 100,
+            profession: "w",
+            healthMaximum: null,
+        },
+        { id: 2, name: "Nadawca", side: 2, level: 100, profession: "m", healthMaximum: null },
+    ]);
+    const statistics = composeStatisticsWithSkills(receiverId, SKILLS_KEPT_MAXIMUM);
+    const drill = presentOpenedLevel(statistics, roster, PANEL_METRIC.damageTaken, receiverId);
+    assertExists(drill, "the row opens");
+    assertStrictEquals(drill.bySkill.rows.length, SKILLS_KEPT_MAXIMUM, "each name is a row");
+    assertStrictEquals(drill.bySkill.rest, null, "and nothing is folded into a sum");
+});
 
 /**
  * The same claim one level down, and the one this file had no test for at all: the rows of a

@@ -148,13 +148,6 @@ interface FightCardSource {
     roster: CombatantRoster;
 }
 
-/**
- * The live row's key where the clock gave its fight no moment. The row the panel draws takes a
- * number, and the shelf reads back no moment below nought (`src/runtime/shelf.ts`), so this one
- * is the live row's alone: nothing is pinned or shown by it, and its card states no time.
- */
-const LIVE_ROW_UNTIMED_KEY = -1;
-
 export function renderFrame(parts: FrameParts): void {
     assert(
         parts.keeper.getFights().length <= KEPT_MAXIMUM,
@@ -458,7 +451,7 @@ function presentShelfRows(
         const outcome = getOutcomeOfReading(liveRow.fightState);
         const liveOpenedAt = liveRow.openedAt;
         rows.push({
-            openedAt: liveOpenedAt ?? LIVE_ROW_UNTIMED_KEY,
+            openedAt: liveOpenedAt,
             at: liveOpenedAt === null ? null : parts.clock.readMoment(liveOpenedAt),
             sizes,
             place: formatFightPlace(liveRow.place),

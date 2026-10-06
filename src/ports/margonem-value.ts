@@ -16,11 +16,11 @@ export type MargonemValue = VocabularyWord<typeof MARGONEM_VALUE>;
 
 export class MargonemValueAbsent extends Error {
     override readonly name = "MargonemValueAbsent";
-    readonly value: MargonemValue;
+    readonly reading: MargonemValue;
 
-    constructor(margonemValue: MargonemValue) {
+    constructor(reading: MargonemValue) {
         super();
-        this.value = margonemValue;
+        this.reading = reading;
     }
 }
 

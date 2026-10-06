@@ -31,7 +31,7 @@ Deno.test("the first defect of a kind writes one line, and the rest are counted"
 function composeLedger() {
     const lines: [string, unknown][] = [];
     const ledger = initDefectLedger({
-        writeBrandedLine: (kind, detail) => void lines.push([kind, detail]),
+        console: { writeBrandedLine: (kind, detail) => void lines.push([kind, detail]) },
     });
     return { ledger, lines };
 }

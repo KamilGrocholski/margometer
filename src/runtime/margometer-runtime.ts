@@ -182,7 +182,7 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
         statusBitsCount + ROWS_BESIDE_THE_STATUSES <= ROWS_WRITTEN_MAXIMUM,
         "every row a fighter can be given fits the block the tooltip writer takes",
     );
-    const defects = initDefectLedger(ports.console);
+    const defects = initDefectLedger({ console: ports.console });
     const storageChoice = recoverSetting(
         defects,
         readStorageChoice(ports.settings),

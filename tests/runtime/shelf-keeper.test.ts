@@ -43,7 +43,9 @@ function initKeeper(over: Partial<ShelfKeeperOptions> = {}) {
         return held;
     };
     const settings = new Map<string, string>();
-    const defects = initDefectLedger({ writeBrandedLine: (kind) => void lines.push(kind) });
+    const defects = initDefectLedger({
+        console: { writeBrandedLine: (kind) => void lines.push(kind) },
+    });
     const keeper = initShelfKeeper({
         settings: initHeldStore(settings),
         initShelfStore: (choice) => initHeldStore(getShelf(choice)),

@@ -76,7 +76,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
     const shown: ShownScreen[] = [];
     const waited: WaitingContent[] = [];
     const standings: (HelperContent | HelperAbsence)[] = [];
-    const defects = initDefectLedger({ writeBrandedLine: () => {} });
+    const defects = initDefectLedger({ console: { writeBrandedLine: () => {} } });
     const parts: FrameParts = {
         screen: createScreenState(false),
         keeper: {
@@ -213,4 +213,47 @@ Deno.test("a kept fight that reads has its save, and one that does not read has 
     renderFrame(illegible.parts);
     assertStrictEquals(illegible.shown.length, 0, "a fight that does not read is not drawn");
     assertStrictEquals(illegible.waited[0]?.hasFightToSave, false, "and has no file to hand over");
+});
+
+/**
+ * The live fight is a shelf row whether or not the clock gave it a moment. Given one that a kept
+ * fight carries, the two are one row with a pin; given none, the live row states none and has
+ * nothing to pin, and the kept fight stands beside it.
+ */
+Deno.test("the live row carries the moment it was given, and none where the clock gave none", () => {
+    const fight: KeptFight = {
+        openedAt: 1,
+        payloads: lookupRecordedFight(HILDUR).updates,
+        place: null,
+        readerId: null,
+        margonemClientBuild: null,
+        isPinned: false,
+    };
+    const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);
+    assert(!(replayed instanceof Error), "the recording replays");
+    assert(replayed !== null, "into a fight");
+    const readShelf = (openedAt: number | null) => {
+        const world = composeFrameWorld(fight, replayed);
+        world.parts.live.session = replayRecordedFight(lookupRecordedFight(HILDUR));
+        world.parts.live.openedAt = openedAt;
+        renderFrame(world.parts);
+        return (world.shown[0]?.shelf ?? []).map((shelfRow) => ({
+            openedAt: shelfRow.openedAt,
+            isLive: shelfRow.isLive,
+            isPinnable: shelfRow.isPinnable,
+        }));
+    };
+    assertEquals(
+        readShelf(fight.openedAt),
+        [{ openedAt: fight.openedAt, isLive: true, isPinnable: true }],
+        "the live fight a kept one shares a moment with is one row, pinned by that moment",
+    );
+    assertEquals(
+        readShelf(null),
+        [
+            { openedAt: null, isLive: true, isPinnable: false },
+            { openedAt: fight.openedAt, isLive: false, isPinnable: true },
+        ],
+        "and one with no moment states none, has nothing to pin, and stands beside the kept one",
+    );
 });

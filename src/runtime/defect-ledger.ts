@@ -44,13 +44,17 @@ export interface DefectLedger {
     getCounts(): readonly DefectCount[];
 }
 
+export interface DefectLedgerOptions {
+    console: BrowserConsolePort;
+}
+
 /** A count past this is a count that has stopped meaning anything but "all the time". */
 const COUNT_MAXIMUM = 1048576;
 const KINDS_COUNT = Object.values(DEFECT_KIND).length;
 /** Every kind, under every region and under none. */
-const ROWS_MAXIMUM = KINDS_COUNT * (Object.values(PANEL_REGION).length + 1);
+export const ROWS_MAXIMUM = KINDS_COUNT * (Object.values(PANEL_REGION).length + 1);
 
-export function initDefectLedger(browserConsole: BrowserConsolePort): DefectLedger {
+export function initDefectLedger(options: DefectLedgerOptions): DefectLedger {
     const countsByRowKey = new Map<string, DefectCount>();
     const kindsWritten = new Set<DefectKind>();
     return {
@@ -69,7 +73,7 @@ export function initDefectLedger(browserConsole: BrowserConsolePort): DefectLedg
             );
             if (kindsWritten.has(kind)) return;
             kindsWritten.add(kind);
-            browserConsole.writeBrandedLine(kind, failure);
+            options.console.writeBrandedLine(kind, failure);
         },
         getCounts() {
             const rows = [...countsByRowKey.values()].map((defectCount) => ({ ...defectCount }));

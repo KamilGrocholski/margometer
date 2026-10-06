@@ -54,7 +54,7 @@ Deno.test("a page with no game on it lends no dictionary", () => {
 
 function expectAbsent(answer: unknown, message: string): void {
     assertInstanceOf(answer, MargonemValueAbsent, message);
-    assertStrictEquals(answer.value, MARGONEM_VALUE.label, `${message}: the reading named`);
+    assertStrictEquals(answer.reading, MARGONEM_VALUE.label, `${message}: the reading named`);
 }
 
 Deno.test("a reader answers what the client answers, and nothing where it answers nothing", () => {

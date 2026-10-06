@@ -295,7 +295,7 @@ export interface MargonemClientDictionaryPort {
 export interface MargonemClientBuildPort {
     readBuildId(): string | MargonemReadFailure;
 }
-/** `MargonemValueAbsent` names the reading: "place", "label" or "build". */
+/** `MargonemValueAbsent` names the reading: "place", "hero", "label" or "build". */
 export type MargonemReadFailure = MargonemValueAbsent | errors.Caught;
 
 // The one write into the game: rows of its tooltip, every fighter the page draws at once

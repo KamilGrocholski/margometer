@@ -112,7 +112,7 @@ Deno.test("the first script naming a build is the page's build", () => {
 Deno.test("a page naming no build says so, and a source that is not text is passed over", () => {
     const none = initMargonemClientBuild(() => ["/js/jquery.js"]).readBuildId();
     assertInstanceOf(none, MargonemValueAbsent, "no build is absent, never a guess");
-    assertStrictEquals(none.value, MARGONEM_VALUE.build, "and names the reading");
+    assertStrictEquals(none.reading, MARGONEM_VALUE.build, "and names the reading");
     const empty = initMargonemClientBuild(() => []).readBuildId();
     assertInstanceOf(empty, MargonemValueAbsent, "and a page with no scripts names none either");
     const mixed = [null, 7, { src: "x" }, "/js/main.min.53XkBRxF.js"];

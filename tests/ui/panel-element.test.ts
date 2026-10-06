@@ -2360,6 +2360,70 @@ Deno.test("a shelf row opens the fight's card, with the place its own cell had t
     );
 });
 
+/**
+ * The live row is the live fight's, whatever moment it carries: kept, it has one and a pin acts on
+ * it; with no moment from the clock it is a row nothing has kept, so there is nothing to pin, and
+ * its card and its press stand on the live fight's word, which no kept fight's moment can be.
+ */
+Deno.test("the live row is pressed and pointed at by its word, with a moment and without", () => {
+    const moment = { day: 13, month: 9, hour: 21, minute: 5 };
+    const card = {
+        sizes: [10, 1],
+        unplaced: 0,
+        outcome: null,
+        isLive: true,
+        at: moment,
+        place: null,
+        world: null,
+        reader: null,
+    };
+    const timedRow = {
+        openedAt: 17,
+        at: moment,
+        sizes: [10, 1],
+        place: null,
+        outcome: null,
+        isLive: true,
+        isChosen: true,
+        isPinned: false,
+        isPinnable: true,
+        card,
+    };
+    const untimedRow = {
+        ...timedRow,
+        openedAt: null,
+        at: null,
+        isPinnable: false,
+        card: { ...card, at: null },
+    };
+    for (const [shelfRow, pinnedAt] of [[timedRow, "17"], [untimedRow, undefined]] as const) {
+        const said = shelfRow.openedAt === null ? "with no moment" : "with a moment";
+        const document = composeFakeDocument();
+        const pressed: PanelIntent[] = [];
+        const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+        panel.render({ ...composeShownScreen(readFight()), shelf: [shelfRow], isOnShelf: true });
+        const host = panel.element as FakeElement;
+        const drawn = getElementsWithin(host);
+        const row = drawn.find((element) => element.attributes.get("data-card") === "shelf:live");
+        assertExists(row, `${said}: the live row is a card under the live fight's word`);
+        assertStrictEquals(row.attributes.get("data-fight"), "live", `${said}: and pressed by it`);
+        const pins = drawn.filter((element) => element.attributes.has("data-pin"));
+        assertEquals(
+            pins.map((pin) => pin.attributes.get("data-pin")),
+            pinnedAt === undefined ? [] : [pinnedAt],
+            `${said}: a pin stands on the moment it was kept by, and on nothing else`,
+        );
+        pointAtElement(host, "pointermove", row, 120);
+        assertEquals(
+            readCard(host).stated.map((line) => line.label),
+            pinnedAt === undefined ? [] : [FIGHT_CARD_WORDS.when],
+            `${said}: its card states a time only where there was one`,
+        );
+        pressElement(host, "pointerdown", row);
+        assertEquals(pressed, [{ kind: PANEL_INTENT.showLive }], `${said}: a press shows it`);
+    }
+});
+
 Deno.test("a panel that has seen no fight says so, at the height a ranking stands at", () => {
     const document = composeFakeDocument();
     const panel = initTestView(document);

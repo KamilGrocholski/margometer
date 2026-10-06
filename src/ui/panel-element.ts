@@ -1677,18 +1677,13 @@ function renderListLevel(
             );
             for (const cell of [time, size, where, outcome]) row.append(cell);
             const parts = [row, time, size, where, outcome];
-            register.add(
-                `shelf:${fight.openedAt}`,
-                () => presentFightCard(fight.card),
-            );
-            setRowMarks(parts, CARD_ATTRIBUTE, `shelf:${fight.openedAt}`);
-            // A moment would have to be one no kept fight could carry, and there is
-            // no such moment.
-            setRowMarks(
-                parts,
-                PANEL_MARK.fight,
-                fight.isLive ? LIVE_FIGHT_MARK : `${fight.openedAt}`,
-            );
+            // The live row is keyed by its word and never by a moment: the clock may
+            // have given it none, and a moment that could not be a kept fight's
+            // does not exist.
+            const rowKey = fight.isLive ? LIVE_FIGHT_MARK : `${fight.openedAt}`;
+            register.add(`shelf:${rowKey}`, () => presentFightCard(fight.card));
+            setRowMarks(parts, CARD_ATTRIBUTE, `shelf:${rowKey}`);
+            setRowMarks(parts, PANEL_MARK.fight, rowKey);
             list.append(row);
         }
         return list;

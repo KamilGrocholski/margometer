@@ -129,7 +129,7 @@ function composeOptions(
     const place: MargonemEnginePlacePort = { readPlace: () => PLACE };
     const hero: MargonemEngineHeroPort = { readHeroId: () => READER_ID };
     const build: MargonemClientBuildPort = { readBuildId: () => "Bb28FQty" };
-    const defects = initDefectLedger({ writeBrandedLine: (kind) => lines.push(kind) });
+    const defects = initDefectLedger({ console: { writeBrandedLine: (kind) => lines.push(kind) } });
     const keeper = initShelfKeeper({
         settings: initMemoryStore(),
         initShelfStore: () => shelfStore,

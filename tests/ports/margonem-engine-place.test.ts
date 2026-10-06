@@ -56,7 +56,7 @@ Deno.test("what the page will not say is null, and a page saying nothing is no p
 
 function expectAbsent(answer: unknown, message: string): void {
     assertInstanceOf(answer, MargonemValueAbsent, message);
-    assertStrictEquals(answer.value, MARGONEM_VALUE.place, `${message}: the reading named`);
+    assertStrictEquals(answer.reading, MARGONEM_VALUE.place, `${message}: the reading named`);
 }
 
 Deno.test("the engine is read by the page's call when the field holds none", () => {

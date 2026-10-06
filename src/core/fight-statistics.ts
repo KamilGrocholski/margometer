@@ -253,7 +253,7 @@ interface TallyingStatistics extends UnreadMessageCounts {
 /** The largest cut in `captures/` holds ten elements against twenty people, 2026-08-28. */
 export const CUT_MAXIMUM = 64;
 /** 81 skills are named across `captures/`, 2026-08-29. */
-const SKILLS_MAXIMUM = 256;
+export const SKILLS_MAXIMUM = 256;
 /** The fight-wide count each cause adds to: the compiler holds every cause to one. */
 const UNREAD_COUNT_BY_CAUSE: { readonly [Cause in UnreadCause]: keyof UnreadMessageCounts } = {
     [UNREAD_CAUSE.unknownKey]: "unreadMessagesUnknownKey",
