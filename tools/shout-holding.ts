@@ -29,9 +29,13 @@ export interface HoldingRow {
     atSomebodyElse: number;
 }
 
-/** What the same characters were doing before a shout named them, which a row has to beat. */
+/**
+ * What the same characters were doing before a shout first named them, which a row has to beat:
+ * each pair of whoever shouted and whoever was held is read once, up to its own first shout.
+ */
 export interface HoldingBaseline {
     episodes: number;
+    pairs: number;
     atShouter: number;
     atSomebodyElse: number;
 }
@@ -53,6 +57,8 @@ interface Episode {
     turnsAtShout: number;
 }
 
+/** The row a report states the baseline on, in the column the turns stand in. */
+export const BASELINE_TURN = "before";
 /** Past the turns any shout the table dates runs for, so the report stays a stated bound. */
 const TURNS_REPORTED_MAXIMUM = 8;
 /** Over no blows, where a share would be a number nobody measured. */
@@ -68,9 +74,11 @@ export function tallyHoldingReading(replayed: readonly ReplayedFight[]): Holding
     const byTurn = new Map<number, StruckTally>();
     const baseline: StruckTally = { atShouter: 0, atSomebodyElse: 0 };
     let episodes = 0;
+    let pairs = 0;
     for (const { reading } of replayed) {
         const events = reading.view.events;
         const clocks = replayClocks(events);
+        const provokedIdsByCasterId = new Map<number, Set<number>>();
         for (const episode of replayEpisodes(reading.view, clocks)) {
             episodes += 1;
             assert(episodes <= EPISODES_MAXIMUM, "a corpus holds no more episodes than its bound");
@@ -100,8 +108,17 @@ export function tallyHoldingReading(replayed: readonly ReplayedFight[]): Holding
                     byTurn.set(elapsed, tally);
                 }
             }
-            // Add the same pair before the shout landed, which is what a turn's share has to beat.
+            // Add the pair's blows before its first shout, which is what a turn's share has to beat.
             {
+                // Once per pair: before a later shout stand the blows an earlier one forced, and
+                // blows the first shout's baseline already counted. Episodes come in event order.
+                const provokedIds = provokedIdsByCasterId.get(episode.casterId) ??
+                    new Set<number>();
+                if (provokedIds.has(episode.provokedId)) continue;
+                provokedIds.add(episode.provokedId);
+                provokedIdsByCasterId.set(episode.casterId, provokedIds);
+                pairs += 1;
+                assert(pairs <= episodes, "a pair stands on at least one episode of its own");
                 assert(
                     episode.at <= events.length,
                     "a baseline is read from before the shout landed",
@@ -123,7 +140,7 @@ export function tallyHoldingReading(replayed: readonly ReplayedFight[]): Holding
     );
     assert(rows.length <= TURNS_REPORTED_MAXIMUM + 1, "no more turns reported than the bound");
     assert(episodes >= rows.length, "a turn reported stands on at least one episode");
-    return { rows, baseline: { episodes, ...baseline } };
+    return { rows, baseline: { episodes, pairs, ...baseline } };
 }
 
 /**
@@ -197,20 +214,24 @@ export function tallyStruckShare(atShouter: number, atSomebodyElse: number): num
 }
 
 function formatHoldingReport(reading: HoldingReading): string[] {
-    const { episodes, atShouter, atSomebodyElse } = reading.baseline;
+    const { episodes, pairs, atShouter, atSomebodyElse } = reading.baseline;
     assert(episodes > 0, "a report stands on at least one episode");
-    const before = formatStruckShare(tallyStruckShare(atShouter, atSomebodyElse));
+    assert(pairs > 0, "and on at least one pair");
     return [
-        `${formatInteger(episodes)} episodes; before the shout ${before} of their blows ` +
-        `already went at whoever would shout`,
+        `${formatInteger(episodes)} episodes over ${formatInteger(pairs)} pairs; ` +
+        `${BASELINE_TURN} is each pair up to the first shout that named it`,
         `${"turn".padStart(TURN_WIDTH)}  at shouter  elsewhere  share`,
-        ...reading.rows.map((row) => {
-            const share = tallyStruckShare(row.atShouter, row.atSomebodyElse);
-            return `${formatInteger(row.turnsElapsed).padStart(TURN_WIDTH)}  ` +
-                `${formatInteger(row.atShouter).padStart(10)}  ` +
-                `${formatInteger(row.atSomebodyElse).padStart(9)}  ${formatStruckShare(share)}`;
-        }),
+        formatHoldingLine(BASELINE_TURN, atShouter, atSomebodyElse),
+        ...reading.rows.map((row) =>
+            formatHoldingLine(formatInteger(row.turnsElapsed), row.atShouter, row.atSomebodyElse)
+        ),
     ];
+}
+
+function formatHoldingLine(turn: string, atShouter: number, atSomebodyElse: number): string {
+    const share = tallyStruckShare(atShouter, atSomebodyElse);
+    return `${turn.padStart(TURN_WIDTH)}  ${formatInteger(atShouter).padStart(10)}  ` +
+        `${formatInteger(atSomebodyElse).padStart(9)}  ${formatStruckShare(share)}`;
 }
 
 function formatStruckShare(share: number | null): string {

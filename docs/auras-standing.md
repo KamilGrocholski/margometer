@@ -96,12 +96,13 @@ takes the clock off `casterId`, so one cast leaves every row at one moment. The 
 to whoever is carrying it, and the mask goes out per bearer. `develop ADR 0101` carries what
 follows.
 
-**One surface counts on the bearer already.** The line the add-on writes into the game's own tooltip
-stands beside **one fighter**, so it dates a status by the cast reaching their side and counts it in
-**their** turns — `src/core/carried-figure.ts`, off the turn count every cast now carries for
-everybody as it stood. A cast the bearer has already outrun dates nothing there, and takes its
-figure with it: a standing is dropped on the caster's turns, so one whose caster has stopped taking
-them outlives its own length for everybody else.
+**One surface counts on the bearer.** The line the add-on writes into the game's own tooltip stands
+beside **one fighter**, so it dates a status by the cast reaching their side and counts it in
+**their** turns — `src/core/carried-figure.ts`, off the turn count every cast carries for everybody
+as it stood. It is handed every dated cast rather than what stands on a side, so the caster's clock
+cuts nothing there: a caster who outruns the bearer leaves the cast standing on them until their own
+turns run it out, and one who has stopped taking turns holds it no longer than its length. A cast
+the bearer has already outrun dates nothing, and takes its figure with it.
 
 ⚠️ **The mask's own count is a different reading, and not a worse one.** It says how long the bit
 has been lit for that bearer, which begins when a payload first restates them carrying it — turns
@@ -395,33 +396,39 @@ deno task fight:shout captures/<one>  # the same over one recording
 
 `turn` is how many of the **held character's own** turns had opened when the blow was struck; an
 episode stops at the next shout of any kind, because a later one replaces whatever held them
-(`develop ADR 0062`). `share` is what went at whoever shouted.
+(`develop ADR 0062`). `share` is what went at whoever shouted. `before` is the baseline: each pair
+of whoever shouted and whoever was held, up to the **first** shout that named that pair, each blow
+once a pair — before a later shout stand the blows an earlier one forced.
 
-| turn | at the shouter | elsewhere | share |
-| ---: | -------------: | --------: | ----: |
-|    1 |             78 |         0 |  100% |
-|    2 |             68 |         0 |  100% |
-|    3 |             56 |         2 |   97% |
-|    4 |             29 |         7 |   81% |
-|    5 |             21 |         9 |   70% |
-|    6 |              6 |         8 |   43% |
-|    7 |              4 |         5 |   44% |
-|    8 |              4 |         5 |   44% |
+| turn   | at the shouter | elsewhere | share |
+| ------ | -------------: | --------: | ----: |
+| before |             19 |        26 |   42% |
+| 1      |             78 |         0 |  100% |
+| 2      |             68 |         0 |  100% |
+| 3      |             56 |         2 |   97% |
+| 4      |             29 |         7 |   81% |
+| 5      |             21 |         9 |   70% |
+| 6      |              6 |         8 |   43% |
+| 7      |              4 |         5 |   44% |
+| 8      |              4 |         5 |   44% |
 
-⚠️ **The baseline is what those three rows have to beat, and it is high.** The same characters,
-before the shout named them, already sent 76% of their blows at whoever would shout — most
-recordings are a group against one, so there is not much else to hit. The first three turns stand at
-202 of 204 against that, the fourth still above it, and the fifth onwards falls **through** it
-(`captures/`, 2026-10-04).
+⚠️ **The baseline is what those rows have to beat, and it is thin.** The same characters, before the
+first shout that named them, sent 19 of 45 blows at whoever would shout: a shout mostly lands in a
+fight's opening turns, before the held character has struck much. Where two casters shouted at one
+character, a blow before both counts in both pairs, and a blow at whoever shouted first counts as
+elsewhere for the other. The first three turns stand at 202 of 204 against it; the fourth and the
+fifth are still well above it, and from the sixth on the share is back at it, 14 of 32 (`captures/`,
+37 recordings, 2026-10-06).
 
 **The edge sits exactly where the published table puts it.** The table gives a shout three turns,
-and three of the held character's own turns is where the share stops being total. On the caster's
+and three of the held character's own turns is where the share stops being total. Past them it does
+not fall at once: it comes down over the fourth and fifth turns to the baseline. On the caster's
 turns the same blows show no edge at all — which is the same finding as the auras', on a different
 witness.
 
 ⚠️ **The tail is thin and is not the claim.** Six turns in, an episode has usually ended or been
 replaced, so what those rows report is a handful of blows. What the register stands on is the first
-four rows and the baseline under them.
+three rows against every row after them; the baseline under them is 45 blows, thin as well.
 
 ⚠️ **`covers` is reported and drawn nowhere.** No reading takes it as an input (`develop ADR 0064`);
 it is here because it is a true reading of the published table and `tests/tools/skill-table.test.ts`
