@@ -121,7 +121,7 @@ export const DRILL_RUNGS = Object.values(DRILL_RUNG);
 export const DRILL_ROWS = Object.values(DRILL_ROW);
 export const DRILL_VERDICTS = Object.values(DRILL_VERDICT);
 /** A run names a screen and a handful of recordings; this is far past that. */
-const ARGUMENTS_MAXIMUM = 256;
+export const ARGUMENTS_MAXIMUM = 256;
 /** The row each part of a figure opens onto; the part no announcement stood behind closes it. */
 const ROW_BY_PART: Record<OpenedPart["kind"], DrillRow> = {
     [OPENED_PART.skill]: DRILL_ROW.skill,
@@ -708,7 +708,7 @@ function formatUnnamedLines(fight: PanelFight, pinnedCase: PinnedCase): string[]
     return lines;
 }
 
-function parseDrillArguments(stated: readonly string[]): DrillArguments {
+export function parseDrillArguments(stated: readonly string[]): DrillArguments {
     if (stated.length > ARGUMENTS_MAXIMUM) {
         throw new DrillReportError(`more than ${ARGUMENTS_MAXIMUM} arguments`);
     }

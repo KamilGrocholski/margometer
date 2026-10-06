@@ -50,8 +50,8 @@ interface CardArguments {
  * screens is 1,260. The bound is loud rather than a clamp, because a walk that stopped counting
  * would report a median over the cards it reached and read like one over all of them.
  */
-const CARDS_MAXIMUM = 65_536;
-const ARGUMENTS_MAXIMUM = 64;
+export const CARDS_MAXIMUM = 65_536;
+export const ARGUMENTS_MAXIMUM = 64;
 /** How many of the tallest `--tallest` names, which is a screenful and not a bound on anything. */
 const TALLEST_LISTED = 12;
 
@@ -59,12 +59,7 @@ const TALLEST_LISTED = 12;
 export function tallyCardHeights(replayed: readonly ReplayedFight[]): CardHeight[] {
     const heights: CardHeight[] = [];
     for (const replayedFight of replayed) {
-        for (const height of tallyFightCardHeights(replayedFight)) {
-            if (heights.length >= CARDS_MAXIMUM) {
-                throw new CardHeightError(`more cards than the ${CARDS_MAXIMUM} a run holds`);
-            }
-            heights.push(height);
-        }
+        for (const height of tallyFightCardHeights(replayedFight)) addCardHeight(heights, height);
     }
     assert(heights.length >= replayed.length, "every fight opens at least one card");
     return heights;
@@ -122,6 +117,18 @@ function tallyCardHeight(
     };
 }
 
+/**
+ * One card more, or refused at the bound. ⚠️ Held card by card: a fight opens its cards a row on
+ * every screen at a time, so a count checked per fight would stand past the bound before it saw it.
+ */
+export function addCardHeight(heights: CardHeight[], height: CardHeight): void {
+    assert(heights.length <= CARDS_MAXIMUM, "a run never stood past its bound");
+    if (heights.length >= CARDS_MAXIMUM) {
+        throw new CardHeightError(`more cards than the ${CARDS_MAXIMUM} a run holds`);
+    }
+    heights.push(height);
+}
+
 export function formatHeightReport(heights: readonly CardHeight[]): string[] {
     assert(heights.length > 0, "a report is written over cards that were measured");
     const lines = heights.map((height) => height.lines).toSorted((count, otherCount) =>
@@ -173,7 +180,7 @@ export function formatTallestReport(heights: readonly CardHeight[]): string[] {
     );
 }
 
-function parseCardArguments(stated: readonly string[]): CardArguments {
+export function parseCardArguments(stated: readonly string[]): CardArguments {
     if (stated.length > ARGUMENTS_MAXIMUM) {
         throw new CardHeightError(`more than ${ARGUMENTS_MAXIMUM} arguments`);
     }

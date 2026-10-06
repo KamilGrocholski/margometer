@@ -95,22 +95,22 @@ const CALL_BEFORE_ENGLISH: Readonly<Record<string, string>> = {
 };
 const INDENT_SPACES = 2;
 /** The largest recording in `captures/` holds 55,095 values, measured 2026-08-29. */
-const VALUES_MAXIMUM = 4_194_304;
+export const VALUES_MAXIMUM = 4_194_304;
 /** A fight holds `COMBATANTS_MAXIMUM`, and each is named at most a handful of times. */
-const NAMES_MAXIMUM = 4096;
+export const NAMES_MAXIMUM = 4096;
 /**
  * What stands beside a name where the game writes one whole: over `captures/` on 2026-10-04 a
  * label stood at a string's start or end, or beside one of these, and nowhere else.
  */
 const NAME_EDGES = ",;=() <>";
 /** The longest string in `captures/` runs to 1110 characters, measured 2026-10-04. */
-const TEXT_CHARACTERS_MAXIMUM = 1_048_576;
+export const TEXT_CHARACTERS_MAXIMUM = 1_048_576;
 /** Stands where a name was replaced, so what was kept never joins across it. */
 const KEPT_BREAK = "\u0000";
 /** A slug and a version are typed at a terminal; this is far past either. */
 const OFFERED_MAXIMUM = 256;
 const ADMITTED_MAXIMUM = 4096;
-const CALLS_MAXIMUM = 100_000;
+export const CALLS_MAXIMUM = 100_000;
 const DAY_SHAPE = "dddd-dd-dd";
 /** What a slug is made of besides its single dashes, walked rather than matched (C7). */
 const SLUG_CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789";

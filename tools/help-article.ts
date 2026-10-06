@@ -273,15 +273,7 @@ export function formatDumpAge(fetchedAt: string, now: number): string {
 export async function writeHelpArticleCache(article: string): Promise<CachedHelpArticle> {
     assert(parseInteger(article) !== null, "an article is asked for by its number");
     const url = `${HELP_HOST}/index/view,${article}`;
-    const page = await readMargonemAnswerText(url);
-    if (page.length > HTML_CHARACTERS_MAXIMUM) {
-        throw new HelpArticleError(
-            `${url} is ${formatInteger(page.length)} characters, past the ${
-                formatInteger(HTML_CHARACTERS_MAXIMUM)
-            } a page is read to`,
-        );
-    }
-    const text = decodeHtmlText(page);
+    const text = requireHelpArticleText(url, await readMargonemAnswerText(url));
     const directory = `${CACHE_ROOT}${article}/`;
     const made = errors.attempt(() => Deno.mkdirSync(directory, { recursive: true }));
     if (made instanceof errors.Caught) {
@@ -308,6 +300,19 @@ export async function writeHelpArticleCache(article: string): Promise<CachedHelp
         throw new HelpArticleError(`${manifestPath} cannot be written`, { cause: manifestWritten });
     }
     return cached;
+}
+
+/** A fetched page as the text a search reads, refused past the length a page is walked to. */
+export function requireHelpArticleText(url: string, page: string): string {
+    assert(url.length > 0, "a page is fetched from somewhere");
+    if (page.length > HTML_CHARACTERS_MAXIMUM) {
+        throw new HelpArticleError(
+            `${url} is ${formatInteger(page.length)} characters, past the ${
+                formatInteger(HTML_CHARACTERS_MAXIMUM)
+            } a page is read to`,
+        );
+    }
+    return decodeHtmlText(page);
 }
 
 /** How many phrases found nothing, so silence is visible to a script and not only on screen. */

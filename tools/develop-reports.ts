@@ -40,8 +40,8 @@ export interface ReportComparison {
 const HEADING_OPEN = "=== ";
 const HEADING_CLOSE = " ===";
 /** Past the corpus by an order of magnitude: 35 recordings and 4571 lines, 2026-09-25. */
-const SECTIONS_MAXIMUM = 1_000;
-const LINES_MAXIMUM = 200_000;
+export const SECTIONS_MAXIMUM = 1_000;
+export const LINES_MAXIMUM = 200_000;
 const CONTEXT_LINES = 3;
 /** Where `develop`'s tree is taken out to; `.cache/` is git's to ignore. */
 const CACHE_DIRECTORY = ".cache";

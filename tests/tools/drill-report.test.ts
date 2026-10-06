@@ -14,6 +14,7 @@ import {
     assertExists,
     assertStrictEquals,
     assertStringIncludes,
+    assertThrows,
 } from "@std/assert";
 import { isOneOf } from "#/libs/vocabulary.ts";
 import { PANEL_MARK } from "#/src/ui/panel-intent.ts";
@@ -21,6 +22,7 @@ import { CLASS } from "#/src/ui/panel-look.ts";
 import { NOTHING_SUSPECT, presentScreen } from "#/src/ui/panel-content.ts";
 import { SCREEN_ORDER, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import {
+    ARGUMENTS_MAXIMUM,
     DRILL_ROWS,
     DRILL_RUNG,
     DRILL_RUNGS,
@@ -28,8 +30,10 @@ import {
     DRILL_VERDICTS,
     formatCaseReport,
     formatDrillReport,
+    parseDrillArguments,
     tallyDrillCases,
 } from "#/tools/drill-report.ts";
+import { DrillReportError } from "#/tools/margometer-tool-error.ts";
 import {
     readRecordedMaterial,
     type ReplayedFight,
@@ -452,3 +456,17 @@ function formatGrouped(figure: number): string {
     assert(Number.isSafeInteger(figure), "a figure written into prose is a whole number");
     return figure.toLocaleString("en-US");
 }
+
+Deno.test("arguments are read up to their bound, and refused one past it", () => {
+    const naming = (count: number) => Array.from({ length: count }, () => HILDUR);
+    assertStrictEquals(
+        parseDrillArguments(naming(ARGUMENTS_MAXIMUM)).paths.length,
+        ARGUMENTS_MAXIMUM,
+        "every path, at the bound",
+    );
+    assertThrows(
+        () => parseDrillArguments(naming(ARGUMENTS_MAXIMUM + 1)),
+        DrillReportError,
+        `more than ${ARGUMENTS_MAXIMUM} arguments`,
+    );
+});

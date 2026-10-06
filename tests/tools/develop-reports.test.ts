@@ -9,6 +9,8 @@ import {
     compareWholeReports,
     formatComparison,
     indexReportSections,
+    LINES_MAXIMUM,
+    SECTIONS_MAXIMUM,
     selectDevelopMaterial,
 } from "#/tools/develop-reports.ts";
 import { DevelopReportError } from "#/tools/margometer-tool-error.ts";
@@ -120,4 +122,28 @@ Deno.test("a recording develop never read is named apart, and the rest are compa
     assertEquals(newer.newer, [OTHER_NAME], "one admitted since is named");
     assertEquals(newer.shared.fights, [shortFight], "and left out of what is compared");
     assertStrictEquals(newer.shared.material, "captures/", "under the material it was taken from");
+});
+
+Deno.test("a report is read up to its bound on lines, and refused one past it", () => {
+    // A heading, the lines under it, and the empty line after the printer's last newline.
+    const atBound = `=== one ===\n${"  payloads 1\n".repeat(LINES_MAXIMUM - 2)}`;
+    assertStrictEquals(atBound.split("\n").length, LINES_MAXIMUM, "the sample sits on it");
+    const sections = indexReportSections(atBound);
+    assertStrictEquals(sections.get("one")?.length, LINES_MAXIMUM - 2, "every line, at the bound");
+    const pastBound = `${atBound}\n`;
+    const past = `a report of ${LINES_MAXIMUM + 1} lines, past the ${LINES_MAXIMUM}`;
+    assertThrows(() => indexReportSections(pastBound), DevelopReportError, past);
+    assertThrows(() => compareWholeReports("decoding", "", pastBound), DevelopReportError, past);
+});
+
+Deno.test("a report is read up to its bound on sections, and refused one past it", () => {
+    const reporting = (count: number) =>
+        Array.from({ length: count }, (_, order) => `=== r${order} ===\n  payloads 1`).join("\n");
+    const atBound = indexReportSections(reporting(SECTIONS_MAXIMUM));
+    assertStrictEquals(atBound.size, SECTIONS_MAXIMUM, "every section, at the bound");
+    assertThrows(
+        () => indexReportSections(reporting(SECTIONS_MAXIMUM + 1)),
+        DevelopReportError,
+        `a report of ${SECTIONS_MAXIMUM + 1} sections, past the ${SECTIONS_MAXIMUM}`,
+    );
 });

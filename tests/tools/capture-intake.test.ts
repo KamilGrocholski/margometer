@@ -12,16 +12,20 @@ import {
     assertThrows,
 } from "@std/assert";
 import {
+    CALLS_MAXIMUM,
     composeIntake,
     composeIntakeName,
     composePseudonymisedRecording,
     composeRecordingInEnglish,
     isSlugText,
+    NAMES_MAXIMUM,
     REMOVED_DESCRIPTION,
     removeSkillDescriptions,
     requireCallsCarried,
     requireRecordingIsNew,
     requireSnapshotsCarried,
+    TEXT_CHARACTERS_MAXIMUM,
+    VALUES_MAXIMUM,
 } from "#/tools/capture-intake.ts";
 import { CaptureIntakeError } from "#/tools/margometer-tool-error.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
@@ -250,4 +254,112 @@ Deno.test("a slug is lower-case words joined by single dashes", () => {
     assertStrictEquals(isSlugText("a-"), false);
     assertStrictEquals(isSlugText("a--b"), false);
     assertStrictEquals(isSlugText("a_b"), false);
+});
+
+Deno.test("a roll holds as many combatants as its bound, and one more is refused", () => {
+    const monsters = (count: number) =>
+        Array.from({ length: count }, (_, order) => [-1 - order, `Wilk ${order}`] as const);
+    const atBound = composePseudonymisedRecording(
+        composeRosterRecording(monsters(NAMES_MAXIMUM), 1),
+    );
+    assertStrictEquals(atBound.substitutions.size, 0, "at the bound, every monster keeps its name");
+    assertThrows(
+        () => composePseudonymisedRecording(composeRosterRecording(monsters(NAMES_MAXIMUM + 1), 1)),
+        CaptureIntakeError,
+        `${NAMES_MAXIMUM + 1} combatants named, past the ${NAMES_MAXIMUM}`,
+    );
+});
+
+/** One payload whose roster states each id under its name, all players or all monsters. */
+function composeRosterRecording(
+    named: readonly (readonly [number, string])[],
+    nonPlayer: number,
+): Record<string, unknown> {
+    const warriors: Record<string, unknown> = {};
+    for (const [order, [id, name]] of named.entries()) {
+        warriors[`entry${order}`] = { id, name, npc: nonPlayer };
+    }
+    return { calls: [{ index: 0, messages: [], payload: { w: warriors } }] };
+}
+
+Deno.test("one combatant is read under as many names as the bound, and one more is refused", () => {
+    const names = (count: number) =>
+        Array.from({ length: count }, (_, order) => [-1, `Wilk ${order}`] as const);
+    const atBound = composePseudonymisedRecording(composeRosterRecording(names(NAMES_MAXIMUM), 1));
+    assertStrictEquals(atBound.changed, 0, "at the bound, the monster's every name is kept");
+    assertThrows(
+        () => composePseudonymisedRecording(composeRosterRecording(names(NAMES_MAXIMUM + 1), 1)),
+        CaptureIntakeError,
+        `combatant -1 is named ${NAMES_MAXIMUM + 1} ways, past the ${NAMES_MAXIMUM}`,
+    );
+});
+
+Deno.test("players' names are substituted up to the bound, and one more is refused", () => {
+    // Two players, so neither one's names nor the roll reaches its own bound first.
+    const half = NAMES_MAXIMUM / 2;
+    const names = (id: number, count: number) =>
+        Array.from({ length: count }, (_, order) => [id, `p${id}x${order}`] as const);
+    const atBound = composePseudonymisedRecording(
+        composeRosterRecording([...names(1, half), ...names(2, half)], 0),
+    );
+    assertStrictEquals(atBound.substitutions.size, NAMES_MAXIMUM, "every name, at the bound");
+    assertStrictEquals(atBound.changed, NAMES_MAXIMUM, "and each replaced where it stands");
+    assertThrows(
+        () =>
+            composePseudonymisedRecording(
+                composeRosterRecording([...names(1, half), ...names(2, half + 1)], 0),
+            ),
+        CaptureIntakeError,
+        `${NAMES_MAXIMUM + 1} player names, past the ${NAMES_MAXIMUM}`,
+    );
+});
+
+Deno.test("a recording is read up to its bound on calls, and refused one past it", () => {
+    const calling = (count: number) => ({ calls: new Array(count).fill({ index: 0 }) });
+    requireCallsCarried(calling(CALLS_MAXIMUM));
+    assertThrows(
+        () => requireCallsCarried(calling(CALLS_MAXIMUM + 1)),
+        CaptureIntakeError,
+        `holds ${CALLS_MAXIMUM + 1}, past the ${CALLS_MAXIMUM}`,
+    );
+});
+
+Deno.test("a recording is walked up to its bound on values, and refused one past it", () => {
+    const atBound = composePseudonymisedRecording(composeValues(VALUES_MAXIMUM));
+    assertStrictEquals(atBound.changed, 0, "at the bound, every value is walked and kept");
+    assertThrows(
+        () => composePseudonymisedRecording(composeValues(VALUES_MAXIMUM + 1)),
+        CaptureIntakeError,
+        `past the ${VALUES_MAXIMUM} values read`,
+    );
+});
+
+/**
+ * A recording whose walk takes exactly `count` steps: itself, its one list, and lists of noughts in
+ * it. Short lists keep the walk's worklist short, and one list stands many times over, since the
+ * walk does not ask whether it saw a value before.
+ */
+function composeValues(count: number): Record<string, unknown> {
+    const width = 2048;
+    const noughts = new Array(width).fill(0);
+    const lists: unknown[] = [];
+    let remaining = count - 2;
+    while (remaining > 0) {
+        const length = Math.min(width, remaining - 1);
+        lists.push(length === width ? noughts : noughts.slice(0, length));
+        remaining -= length + 1;
+    }
+    return { filler: lists };
+}
+
+Deno.test("a string is read up to its bound on characters, and refused one past it", () => {
+    const writing = (count: number) => ({ filler: "x".repeat(count) });
+    const atBound = composePseudonymisedRecording(writing(TEXT_CHARACTERS_MAXIMUM));
+    assertEquals(atBound.recording, writing(TEXT_CHARACTERS_MAXIMUM), "every character, at it");
+    const past = TEXT_CHARACTERS_MAXIMUM + 1;
+    assertThrows(
+        () => composePseudonymisedRecording(writing(past)),
+        CaptureIntakeError,
+        `a string of ${past} characters, past the ${TEXT_CHARACTERS_MAXIMUM}`,
+    );
 });

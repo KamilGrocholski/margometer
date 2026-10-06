@@ -13,6 +13,7 @@ import {
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
+import { HTML_CHARACTERS_MAXIMUM } from "#/libs/html-text.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import {
     CACHE_ROOT,
@@ -25,6 +26,7 @@ import {
     MECHANICS_ARTICLE,
     readCachedHelpArticle,
     requireCachedHelpArticle,
+    requireHelpArticleText,
 } from "#/tools/help-article.ts";
 import { HelpArticleError } from "#/tools/margometer-tool-error.ts";
 
@@ -149,5 +151,16 @@ Deno.test("the frozen phrases stand under the banner their generator writes", ()
     assert(
         frozen.startsWith(FROZEN_HELP_BANNER),
         "frozen/help-phrases.ts was written by an older version of its generator",
+    );
+});
+
+Deno.test("a fetched page is read up to its bound on characters, and refused one past it", () => {
+    const url = "https://help.invalid/index/view,1";
+    const atBound = requireHelpArticleText(url, "x".repeat(HTML_CHARACTERS_MAXIMUM));
+    assertStrictEquals(atBound.length, HTML_CHARACTERS_MAXIMUM, "every character, at the bound");
+    assertThrows(
+        () => requireHelpArticleText(url, "x".repeat(HTML_CHARACTERS_MAXIMUM + 1)),
+        HelpArticleError,
+        "characters, past the",
     );
 });

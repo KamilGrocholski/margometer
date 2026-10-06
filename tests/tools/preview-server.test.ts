@@ -318,6 +318,27 @@ Deno.test("a directory with no fabricated fight in it is refused, loudly", () =>
     }
 });
 
+Deno.test("a directory is read up to the bound on fabricated fights, and refused one past it", () => {
+    const directory = Deno.makeTempDirSync();
+    try {
+        const fill = (count: number) => {
+            for (let fightIndex = 0; fightIndex < count; fightIndex += 1) {
+                Deno.writeTextFileSync(`${directory}/fight-${fightIndex}.json`, "{}");
+            }
+        };
+        fill(FROM_PATHS_MAXIMUM);
+        assertStrictEquals(readFabricatedPaths(directory).length, FROM_PATHS_MAXIMUM, "at it");
+        fill(FROM_PATHS_MAXIMUM + 1);
+        assertThrows(
+            () => readFabricatedPaths(directory),
+            PreviewServeError,
+            `holds more fights than ${FROM_PATHS_MAXIMUM}`,
+        );
+    } finally {
+        Deno.removeSync(directory, { recursive: true });
+    }
+});
+
 Deno.test("every fabricated fight in the directory is drawn beside the recordings", async () => {
     const directory = Deno.makeTempDirSync();
     const shape = requireFabricationShape(1, 8, 5);
