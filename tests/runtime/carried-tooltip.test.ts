@@ -165,9 +165,9 @@ Deno.test("a shout is said on both ends of it, and the two ends agree", () => {
             const rows = [...registries.values()].flatMap((registry) =>
                 registry.text.split("<br>")
             );
-            const provoked = rows.filter((row) => row.startsWith("Sprowokowany przez "));
+            const provoked = rows.filter((row) => row.startsWith("Sprowokowany przez: "));
             const counted = rows
-                .filter((row) => row.startsWith("Prowokuje "))
+                .filter((row) => row.startsWith("Prowokuje: "))
                 .reduce((sum, row) => sum + Number(row.split(" ")[1]), 0);
             if (counted !== provoked.length) wrong.push(`${fight.path} #${index}: ${counted}`);
             const unnamed = provoked.filter((row) => row.includes(PANEL_WORDS.withoutActor));
@@ -221,7 +221,7 @@ Deno.test("a status carried with a figure states it, and states the fighter's ow
         world.update(payload);
         const rows = [...registries.values()].flatMap((registry) => registry.text.split("<br>"));
         figured += rows.filter((row) => {
-            if (!row.startsWith("swow_down ")) return false;
+            if (!row.startsWith("swow_down: ")) return false;
             return row.endsWith("%");
         }).length;
     }

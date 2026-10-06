@@ -1140,7 +1140,8 @@ export function formatCountedNoun(count: number, noun: CountedNoun): string {
  * (production build `Bb28FQty`, read 2026-09-21; `develop ADR 0111`). The first row is the add-on's
  * name alone, the guest rule of `SECURITY.md`. ⚠️ Each row lands in HTML somebody else
  * composed, so a row carrying markup is refused rather than escaped (`develop ADR 0024`). The order
- * is fixed, so a row is found where it was last time (`develop ADR 0116`).
+ * is fixed, so a row is found where it was last time (`develop ADR 0116`), and a row is written as
+ * the game writes its own above it, `Pancerz: 120` (ADR 0039).
  */
 export function presentTooltipRows(
     tooltip: TooltipContent,
@@ -1159,48 +1160,37 @@ export function presentTooltipRows(
         // suspect, it is a wrong number.
         if (!tooltip.hasJoinedInProgress) {
             if (tooltip.turnsTaken > 0) {
-                said.push(`${TOOLTIP_WORDS.turnsTaken} ${formatFigure(tooltip.turnsTaken)}`);
+                said.push(`${TOOLTIP_WORDS.turnsTaken}: ${formatFigure(tooltip.turnsTaken)}`);
             }
         }
     }
     // Say what stands of the legendary heals.
     {
-        // ⚠️ **A row naming a thing and then saying something about it carries the separator**,
-        // the way a status and a provocation do. Without it `Dotyk anioła 1 z 3` runs the name
-        // into the figure and reads as one phrase, while the rows around it read as two — measured
-        // by eye over a drawn block, 2026-09-22, which is the only place the whole set stands
-        // together.
-        //
         // **Dotyk anioła counts up, in heals**, while the provocation below it counts down, in
         // turns: each heal is on the wire and nothing dates a turn it ends on (`develop ADR 0113`).
-        // ⚠️ **Neither fraction carries a noun** (`develop ADR 0116`), so the row's name is all
-        // that says which way one runs.
+        // The heals are a bare pair, as the game writes its energy; the turns carry their noun,
+        // as it writes a charge's (ADR 0039).
         const given = tooltip.holytouchHealsReceived;
-        const apart = HELPER_WORDS.castSeparator;
         if (tooltip.hasSpentLastheal) {
             const lastheal = getWordsForLegendaryBonus(LASTHEAL_KEY);
-            said.push(`${lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
+            said.push(`${lastheal}: ${TOOLTIP_WORDS.spent}`);
         }
         if (given !== null) {
-            const heals = formatCounter(given, HOLYTOUCH_HEALS_STATED);
+            const heals = formatTooltipFraction(given, HOLYTOUCH_HEALS_STATED);
             const holytouch = getWordsForLegendaryBonus(HOLYTOUCH_DECLARATION_KEY);
-            said.push(`${holytouch} ${apart} ${heals}`);
+            said.push(`${holytouch}: ${heals}`);
         }
     }
     // Say whom the fighter provokes, and who holds it provoked.
     {
         if (tooltip.provokedCount > 0) {
             const counted = formatCountedNoun(tooltip.provokedCount, COUNTED_NOUN_WORDS.combatants);
-            said.push(`${TOOLTIP_WORDS.provokedCount} ${counted}`);
+            said.push(`${TOOLTIP_WORDS.provokedCount}: ${counted}`);
         }
         const provoker = tooltip.provokedBy;
         if (provoker !== null) {
-            const left = formatCounter(
-                provoker.turnsStated - provoker.turnsElapsed,
-                provoker.turnsStated,
-            );
-            const apart = HELPER_WORDS.castSeparator;
-            said.push(`${TOOLTIP_WORDS.provokedBy} ${provoker.name} ${apart} ${left}`);
+            const left = formatTooltipTurnsLeft(provoker.turnsElapsed, provoker.turnsStated);
+            said.push(`${TOOLTIP_WORDS.provokedBy}: ${provoker.name} (${left})`);
         }
     }
     const words = { translate, statusBits, rowsMaximum };
@@ -1211,6 +1201,28 @@ export function presentTooltipRows(
     // The name takes a row of the bound like any other, so a block handed over is never longer
     // than the maximum however many rows were composed.
     return [ADD_ON_NAME, ...kept].slice(0, rowsMaximum);
+}
+
+/** `1/3`, as the game writes its energy and mana, and our word where the pair cannot stand. */
+function formatTooltipFraction(figure: number, stated: number): string {
+    if (!Number.isSafeInteger(figure)) return PANEL_WORDS.unknown;
+    if (!Number.isSafeInteger(stated)) return PANEL_WORDS.unknown;
+    if (figure < 0) return PANEL_WORDS.unknown;
+    if (stated < figure) return PANEL_WORDS.unknown;
+    return `${formatWholeUngrouped(figure)}/${formatWholeUngrouped(stated)}`;
+}
+
+/**
+ * `2 tury`, the turns a length has left, as the game writes a charge's. ⚠️ **Nought is drawn**: a
+ * shout stands while its turns are `<=` what the table gives it (`core/aura-standing.ts`), so a held
+ * character's last turn arrives as none left.
+ */
+function formatTooltipTurnsLeft(turnsElapsed: number, turnsStated: number): string {
+    if (!Number.isSafeInteger(turnsElapsed)) return PANEL_WORDS.unknown;
+    if (!Number.isSafeInteger(turnsStated)) return PANEL_WORDS.unknown;
+    if (turnsElapsed < 0) return PANEL_WORDS.unknown;
+    if (turnsStated < turnsElapsed) return PANEL_WORDS.unknown;
+    return formatCountedNoun(turnsStated - turnsElapsed, COUNTED_NOUN_WORDS.turns);
 }
 
 /**
@@ -1232,7 +1244,7 @@ function addStatusRows(
     for (const status of statuses) {
         if (said.length >= words.rowsMaximum) break;
         const word = getWordsForStatusBit(status.bit, words.translate, words.statusBits);
-        const percent = status.percent === null ? "" : ` ${formatWholeUngrouped(status.percent)}%`;
+        const percent = status.percent === null ? "" : `: ${formatWholeUngrouped(status.percent)}%`;
         said.push(`${word}${percent}`);
     }
 }
@@ -1305,8 +1317,9 @@ export function formatChargedSkillSubtitle(name: string, state: ChargedSkillStat
 }
 
 /**
- * `2 z 4` — every counter the panel and the tooltip draw, counting up or down, and **never with a
- * noun**: the row's own name says what is counted (`develop ADR 0116`). Nothing here computes the
+ * `2 z 4` — every counter the panel draws, counting up or down, and **never with a noun**: the
+ * row's own name says what is counted (`develop ADR 0116`). The tooltip writes the game's way
+ * instead (ADR 0039). Nothing here computes the
  * percentage the pair comes to.
  *
  * ⚠️ **Nought is drawn at either end.** A charge's first turn arrives as none passed, and a shout

@@ -1397,6 +1397,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `formatTallestReport` — `tools/card-height.ts`
 - `formatTallyKey` — `tests/tools/turn-reading.test.ts`
 - `formatTickExpected` — `tests/core/injure-rule.test.ts`
+- `formatTooltipFraction` — `src/ui/panel-words.ts`
+- `formatTooltipTurnsLeft` — `src/ui/panel-words.ts`
 - `formatTurnOrdinal` — `src/ui/panel-words.ts`
 - `formatTurnWalk` — `tools/turn-count.ts`
 - `formatTurnWalkLine` — `tools/turn-count.ts`
@@ -2301,6 +2303,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `layer` — not in N2's table
 
 - `layerOf` — `tests/ui/panel-look.test.ts`
+
+### `left` — not in N2's table
+
+- `left` — `tests/ui/panel-words.test.ts`
 
 ### `line` — not in N2's table
 
@@ -5700,7 +5706,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `after` — `src/ui/panel-element.ts`
 - `air` — `src/ui/panel-look.ts`
 - `answer` — `src/ui/panel-element.ts`
-- `apart` — `src/ui/panel-words.ts`
 - `apartClass` — `src/ui/panel-element.ts`
 - `applied` — `src/ui/panel-drag.ts`
 - `axes` — `src/ui/panel-screen.ts`
@@ -9025,6 +9030,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `totals` — `src/ui/panel-content.ts`
 - `translate` — `src/ui/panel-element.ts`, `src/ui/panel-words.ts`
 - `turn` — `src/ui/panel-helper.ts`
+- `turnsElapsed` — `src/ui/panel-words.ts`
+- `turnsStated` — `src/ui/panel-words.ts`
 - `type` — `src/ui/panel-document.ts`, `src/ui/panel-drag.ts`, `src/ui/panel-listener.ts`
 - `typeStep` — `src/ui/panel-element.ts`, `src/ui/panel-screen.ts`
 - `typeStepChosen` — `src/ui/panel-element.ts`
@@ -9884,7 +9891,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `trimmed` — `tests/core/aura-standing.test.ts`, `tests/repository/workflows.test.ts`
 - `turns` — `tests/core/aura-standing.test.ts`, `tests/tools/turn-count.test.ts`
 - `turnsByCombatantId` — `tests/core/carried-figure.test.ts`
-- `turnsElapsed` — `tests/core/charged-skill.test.ts`
+- `turnsElapsed` — `tests/core/charged-skill.test.ts`, `tests/ui/panel-words.test.ts`
 - `turnsStated` — `tests/core/charged-skill.test.ts`
 - `type` — in 5 files: `tests/`
 - `unnamedNote` — `tests/ui/panel-card.test.ts`
@@ -14850,6 +14857,7 @@ suite's material.
 - `docs/adr/0036-the-caveat-letter-is-drawn-and-every-bar-control-is-one-box.md`
 - `docs/adr/0037-a-browser-api-this-program-calls-is-a-boundary.md`
 - `docs/adr/0038-a-fighter-s-tooltip-leaves-the-charge-to-the-game.md`
+- `docs/adr/0039-a-tooltip-row-is-written-as-the-game-writes-its-own.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

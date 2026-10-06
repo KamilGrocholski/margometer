@@ -533,9 +533,10 @@ Deno.test("a status nothing dates, just lit, says no length at all", () => {
 
 /**
  * ⚠️ **A block is read down its left edge**, so a row that names a thing and then says something
- * about it is punctuated the same way in every row that does it. The legendary pair ran the name
- * into the figure and the rows above them did not — found by drawing the whole block, which is
- * the only place they stand together.
+ * about it is punctuated the same way in every row that does it, and the way the game punctuates
+ * its own rows above ours, `Pancerz: 120` (ADR 0039). The legendary pair once ran the name into
+ * the figure and the rows above them did not — found by drawing the whole block, which is the
+ * only place they stand together.
  */
 Deno.test("every row that names a thing and qualifies it is punctuated alike", () => {
     const said = presentTooltipRows(
@@ -549,14 +550,15 @@ Deno.test("every row that names a thing and qualifies it is punctuated alike", (
         null,
         FROZEN_BUFF_BITS.bits,
     );
-    const carrying = said.filter((row) => row.includes(" z ") || row.includes("wykorzystany"));
+    const bare = FROZEN_BUFF_BITS.bits[3];
+    const carrying = said.slice(1).filter((row) => row !== bare);
     assertEquals(
         carrying.length,
         3,
-        "the okrzyk and both legendary bonuses, and no status",
+        "the okrzyk and both legendary bonuses, and not the status that says only that it stands",
     );
     for (const row of carrying) {
-        assertStringIncludes(row, HELPER_WORDS.castSeparator, `${row} stands its parts apart`);
+        assertStringIncludes(row, ": ", `${row} stands its name apart from what it says`);
     }
 });
 
@@ -572,23 +574,46 @@ Deno.test("a provocation is said at the end it is read from", () => {
     );
     assertEquals(
         held[1],
-        "Sprowokowany przez Gracz 2 · 2 z 3",
+        "Sprowokowany przez: Gracz 2 (2 tury)",
         "the held fighter is told who holds them, and how many of their turns it still has",
+    );
+    const left = (turnsElapsed: number) =>
+        presentTooltipRows(
+            {
+                ...NOTHING_CARRIED,
+                provokedBy: { name: "Gracz 2", turnsElapsed, turnsStated: 3 },
+            },
+            null,
+            FROZEN_BUFF_BITS.bits,
+        )[1];
+    assertEquals(left(3), "Sprowokowany przez: Gracz 2 (0 tur)", "the last turn it holds them");
+    assertEquals(left(2), "Sprowokowany przez: Gracz 2 (1 tura)", "one is one, in its own form");
+    assertEquals(left(0), "Sprowokowany przez: Gracz 2 (3 tury)", "and all of it, just cast");
+    assertEquals(
+        left(4),
+        `Sprowokowany przez: Gracz 2 (${PANEL_WORDS.unknown})`,
+        "past what the table gives it",
+    );
+    assertEquals(
+        left(-1),
+        `Sprowokowany przez: Gracz 2 (${PANEL_WORDS.unknown})`,
+        "below none",
     );
     const shouting = (provokedCount: number) =>
         presentTooltipRows({ ...NOTHING_CARRIED, provokedCount }, null, FROZEN_BUFF_BITS.bits)[1];
-    assertEquals(shouting(10), "Prowokuje 10 postaci", "the shouter is told how many, not whom");
-    assertEquals(shouting(1), "Prowokuje 1 postać", "one is one, in the noun's own form");
-    assertEquals(shouting(2), "Prowokuje 2 postacie", "two to four take the second");
-    assertEquals(shouting(12), "Prowokuje 12 postaci", "and a teen never does");
-    assertEquals(shouting(22), "Prowokuje 22 postacie", "while twenty-two does");
+    assertEquals(shouting(10), "Prowokuje: 10 postaci", "the shouter is told how many, not whom");
+    assertEquals(shouting(1), "Prowokuje: 1 postać", "one is one, in the noun's own form");
+    assertEquals(shouting(2), "Prowokuje: 2 postacie", "two to four take the second");
+    assertEquals(shouting(12), "Prowokuje: 12 postaci", "and a teen never does");
+    assertEquals(shouting(22), "Prowokuje: 22 postacie", "while twenty-two does");
     assertEquals(shouting(0), undefined, "and holding nobody says nothing");
 });
 
 /**
  * ⚠️ **The provocation counts down in turns and Dotyk anioła counts up in heals**, in one tooltip
- * (`develop ADR 0113`), and neither fraction carries a noun (`develop ADR 0116`) — so the row is
- * asserted whole, at nought — a row lit and not yet healed — and one under the bound.
+ * (`develop ADR 0113`): the turns carry their noun and the heals are a bare pair, as the game
+ * writes its energy (ADR 0039) — so the row is asserted whole, at nought — a row lit and not yet
+ * healed — and one under the bound.
  */
 Deno.test("Dotyk anioła says the heals it has given, out of the three it gives", () => {
     const row = (healsGiven: number) =>
@@ -597,9 +622,12 @@ Deno.test("Dotyk anioła says the heals it has given, out of the three it gives"
             null,
             FROZEN_BUFF_BITS.bits,
         )[1];
-    assertEquals(row(0), "Dotyk anioła · 0 z 3", "lit, and nothing healed yet");
-    assertEquals(row(1), "Dotyk anioła · 1 z 3", "one heal is one");
-    assertEquals(row(2), "Dotyk anioła · 2 z 3", "and the last before it goes");
+    assertEquals(row(0), "Dotyk anioła: 0/3", "lit, and nothing healed yet");
+    assertEquals(row(1), "Dotyk anioła: 1/3", "one heal is one");
+    assertEquals(row(2), "Dotyk anioła: 2/3", "and the last before it goes");
+    assertEquals(row(3), "Dotyk anioła: 3/3", "and all three, the turn it goes out on");
+    assertEquals(row(4), `Dotyk anioła: ${PANEL_WORDS.unknown}`, "past the three it gives");
+    assertEquals(row(-1), `Dotyk anioła: ${PANEL_WORDS.unknown}`, "below none");
 });
 
 Deno.test("a label the client answers with markup is refused rather than escaped", () => {
@@ -1349,13 +1377,13 @@ Deno.test("walking in late costs the turns and nothing else", () => {
 Deno.test("the rows stand in the one order the maintainer set", () => {
     assertEquals(presentTooltipRows(CARRYING_EVERYTHING, null, FROZEN_BUFF_BITS.bits), [
         "MargoMeter",
-        "Tury wykonane 14",
-        "Ostatni ratunek · wykorzystany",
-        "Dotyk anioła · 1 z 3",
-        "Prowokuje 10 postaci",
-        "Sprowokowany przez Gracz 2 · 2 z 3",
-        "swow_down 14%",
-        "speed_up 20%",
+        "Tury wykonane: 14",
+        "Ostatni ratunek: wykorzystany",
+        "Dotyk anioła: 1/3",
+        "Prowokuje: 10 postaci",
+        "Sprowokowany przez: Gracz 2 (2 tury)",
+        "swow_down: 14%",
+        "speed_up: 20%",
         "poisoned",
     ]);
 });
