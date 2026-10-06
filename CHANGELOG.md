@@ -873,8 +873,9 @@ wersję sam.
   wierszach, a przy tej samej nazwie po obu stronach widać wreszcie, kto jest czyj.
 - **Poprawka** — Leczenie rzucone na kogoś innego trafiało w całości do puli „bez sprawcy", choć gra
   podaje, kto leczył. Teraz zapisuje się leczącemu, a przypis w stopce liczy już tylko to, czego
-  naprawdę nie da się nikomu przypisać — samo „Przywrócono N punktów życia" i tykające efekty. W
-  drużynie z uzdrowicielem ta różnica potrafi iść w setki tysięcy punktów.
+  naprawdę nie da się nikomu przypisać — życie, przy którym gra mówi tylko, ile wróciło, a nie kto
+  je przywrócił, i tykające efekty. W drużynie z uzdrowicielem ta różnica potrafi iść w setki
+  tysięcy punktów.
 
 ## [0.4.0] — 2026-08-04
 
@@ -967,8 +968,8 @@ tylko w repozytorium — jedyną drogą było zbudowanie pliku u siebie.
 - **Poprawka** — Leczenia bez sprawcy nie było widać nigdzie — w starciu z Hildur 133 867 punktów.
   Teraz stoi w stopce, obok trucizny.
 - **Poprawka** — Walki z bossami meldowały nierozpoznane linie, a leczenie drużyny znikało.
-  „Uleczono X o N punktów życia" nie było w ogóle rozumiane, więc kilkadziesiąt tysięcy wyleczonych
-  punktów po prostu nie istniało.
+  Komunikat gry o uleczeniu kogoś z drużyny nie był w ogóle rozumiany, więc kilkadziesiąt tysięcy
+  wyleczonych punktów po prostu nie istniało.
 - **Poprawka** — Leczenie cudzą ręką dopisywało się leczonemu. Teraz jako własne liczy się tylko to,
   co postać rzuciła na siebie.
 - **Poprawka** — Cios o trzech liczbach potrafił trafić w niewłaściwy rodzaj obrażeń: gdy przeciwnik
