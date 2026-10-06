@@ -39,8 +39,11 @@ Deno.test("a record is keyed, so nothing and a list are not records", () => {
 Deno.test("a number is read only where a number was stated", () => {
     const wrong = ["figure", "number"] as const;
     assertEquals(getNumberField({ f: 0 }, KEYS, "figure"), 0, "zero is a reading");
+    assertEquals(getNumberField({ f: 1 }, KEYS, "figure"), 1, "and so is its neighbour");
     assertEquals(getNumberField({ f: -161518 }, KEYS, "figure"), -161518, "and below it");
     assertEquals(getNumberField({}, KEYS, "figure"), null, "absent is a fact, not a failure");
+    const held = { f: undefined };
+    assertEquals(getNumberField(held, KEYS, "figure"), null, "and so is a key holding nothing");
     expectWrongType(getNumberField({ f: "745" }, KEYS, "figure"), wrong, "text is not a number");
     expectWrongType(getNumberField({ f: Number.NaN }, KEYS, "figure"), wrong, "nor is NaN");
     const endless = { f: Number.POSITIVE_INFINITY };

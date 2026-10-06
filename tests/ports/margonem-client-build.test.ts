@@ -8,11 +8,12 @@
 
 import { assertInstanceOf, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
+import { RUN_CHARACTERS_MAXIMUM } from "#/libs/text-walk.ts";
 import {
     initMargonemClientBuild,
-    LOOKS_MAXIMUM,
     parseMargonemClientBuildId,
     parseMargonemClientBundleName,
+    SCRIPT_NAME_LOOKS_MAXIMUM,
     SCRIPTS_MAXIMUM,
 } from "#/src/ports/margonem-client-build.ts";
 import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
@@ -170,6 +171,27 @@ Deno.test("the scripts are walked up to their bound, and one past it is not read
 
 Deno.test("a source is searched up to its bound on looks, and a name past it is not found", () => {
     const named = (decoys: number) => `${"main.min.x ".repeat(decoys)}main.min.53XkBRxF.js`;
-    assertStrictEquals(parseMargonemClientBuildId(named(LOOKS_MAXIMUM - 1)), "53XkBRxF");
-    assertStrictEquals(parseMargonemClientBuildId(named(LOOKS_MAXIMUM)), null, "one look too many");
+    assertStrictEquals(
+        parseMargonemClientBuildId(named(SCRIPT_NAME_LOOKS_MAXIMUM - 1)),
+        "53XkBRxF",
+    );
+    assertStrictEquals(
+        parseMargonemClientBuildId(named(SCRIPT_NAME_LOOKS_MAXIMUM)),
+        null,
+        "one look too many",
+    );
+});
+
+Deno.test("an id is read up to the bound on a run, and one reaching it is no id", () => {
+    const longest = "a".repeat(RUN_CHARACTERS_MAXIMUM - 1);
+    assertStrictEquals(parseMargonemClientBuildId(`main.min.${longest}.js`), longest, "under it");
+    const reaching = "a".repeat(RUN_CHARACTERS_MAXIMUM);
+    assertStrictEquals(parseMargonemClientBuildId(`main.min.${reaching}.js`), null, "at it");
+    assertStrictEquals(
+        parseMargonemClientBuildId(`main.min.${reaching}.js main.min.53XkBRxF.js`),
+        "53XkBRxF",
+        "and the search goes on past it",
+    );
+    const page = initMargonemClientBuild(() => [`/js/main.min.${reaching}.js`]).readBuildId();
+    assertInstanceOf(page, MargonemValueAbsent, "a page naming one names no build");
 });

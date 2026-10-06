@@ -9,6 +9,7 @@ import {
     isDigitRun,
     isWhitespaceAt,
     LITERAL_CHARACTERS_MAXIMUM,
+    lookupEndOfRun,
     lookupQuotedLiteral,
     RUN_CHARACTERS_MAXIMUM,
 } from "#/libs/text-walk.ts";
@@ -42,6 +43,28 @@ Deno.test("a run is walked up to the bound on its length, and a run reaching it 
     );
     assertStrictEquals(isDigitRun("1".repeat(RUN_CHARACTERS_MAXIMUM - 1)), true, "under the bound");
     assertStrictEquals(isDigitRun("1".repeat(RUN_CHARACTERS_MAXIMUM)), false, "and none at it");
+});
+
+Deno.test("a run is walked up to the bound its caller states, and one reaching it is none", () => {
+    assertStrictEquals(lookupEndOfRun("12a", 0, 3, isDigitAt), 2, "a run one short of the bound");
+    assertStrictEquals(lookupEndOfRun("123a", 0, 3, isDigitAt), null, "and one reaching it");
+    assertStrictEquals(lookupEndOfRun("a", 0, 1, isDigitAt), 0, "no run is under a bound of one");
+    assertStrictEquals(
+        lookupEndOfRun("1", 0, 1, isDigitAt),
+        null,
+        "while one character reaches it",
+    );
+    assertStrictEquals(lookupEndOfRun("a12", 1, 3, isDigitAt), 3, "counted from where it starts");
+    assertThrows(() => lookupEndOfRun("1", 0, 0, isDigitAt), AssertionError, "of at least one");
+});
+
+Deno.test("whitespace is what HTML and JavaScript both take for it, and nothing else", () => {
+    assertStrictEquals(isWhitespaceAt("\f", 0), true, "a form feed is");
+    assertStrictEquals(
+        isWhitespaceAt("\v", 0),
+        false,
+        "while a vertical tab is JavaScript's alone",
+    );
 });
 
 Deno.test("a position is a whole one, never before the text", () => {

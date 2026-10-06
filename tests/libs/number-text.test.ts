@@ -5,7 +5,7 @@
  * admitted: a sign it did not write, an exponent, a space, a width nothing holds exactly.
  */
 
-import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
+import { AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
 import { formatDecimal, formatInteger, parseDecimal, parseInteger } from "#/libs/number-text.ts";
 
 Deno.test("an integer is read where digits were written, and nowhere else", () => {
@@ -31,11 +31,11 @@ Deno.test("a number no reading holds exactly is refused rather than neighboured"
     assertStrictEquals(parseInteger("-9007199254740992"), null, "and the one below it");
 });
 
-Deno.test("what was read writes back as the text it was read from", () => {
+Deno.test("an integer writes as the text of its value, which holds no sign on a zero", () => {
     assertStrictEquals(formatInteger(0), "0", "zero writes as one character");
     assertStrictEquals(formatInteger(-0), "0", "and so does the zero with a sign on it");
     assertStrictEquals(formatInteger(-161518), "-161518", "an id below nothing keeps its sign");
-    assertEquals(parseInteger("-0"), -0, "which is the zero that was read");
+    assertStrictEquals(parseInteger("-0"), -0, "though a zero read with a sign holds it");
 });
 
 Deno.test("a decimal is read with a fraction or without one", () => {
@@ -66,6 +66,16 @@ Deno.test("a decimal is written to the places it was asked for", () => {
     assertStrictEquals(formatDecimal(0, 1), "0.0", "and to one place");
     assertStrictEquals(formatDecimal(0, 2), "0.00", "and zero fills the width it was given");
     assertStrictEquals(formatDecimal(10.000000000000002, 1), "10.0", "a tenth stays a tenth");
+});
+
+Deno.test("a decimal is written in digits up to where the platform turns to an exponent", () => {
+    const largest = 999_999_999_999_999_900_000;
+    assertStrictEquals(formatDecimal(largest, 0), "999999999999999868928", "the last below 1e21");
+    assertStrictEquals(formatDecimal(-largest, 0), "-999999999999999868928", "and above -1e21");
+    const message = "and one the platform writes in digits";
+    assertThrows(() => formatDecimal(1e21, 0), AssertionError, message);
+    assertThrows(() => formatDecimal(-1e21, 0), AssertionError, message);
+    assertStrictEquals(formatDecimal(-0, 1), "0.0", "and the zero with a sign writes none");
 });
 
 Deno.test("a decimal is written to as many places as the platform writes, and no more", () => {

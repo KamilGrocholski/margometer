@@ -6,7 +6,7 @@
 
 import { assert } from "@std/assert/assert";
 import * as errors from "#/libs/errors.ts";
-import { getEndOfRun } from "#/libs/text-walk.ts";
+import { lookupEndOfRun, RUN_CHARACTERS_MAXIMUM } from "#/libs/text-walk.ts";
 import { MARGONEM_VALUE, type MargonemReadFailure, MargonemValueAbsent } from "./margonem-value.ts";
 
 export interface MargonemClientBuildPort {
@@ -24,8 +24,11 @@ const SCRIPT_NAME_HEAD = "main.min";
 const SCRIPT_NAME_TAIL = ".js";
 const OPTIONAL_SEPARATOR = ".";
 const BUILD_DASH = "-";
-/** A page states a handful of scripts, and a source names the bundle at most a few times. */
-export const LOOKS_MAXIMUM = 256;
+/**
+ * Past what a page states: `tempest` and `experimental` each served four scripts with a source and
+ * named `main.min` once, read 2026-10-06.
+ */
+export const SCRIPT_NAME_LOOKS_MAXIMUM = 256;
 export const SCRIPTS_MAXIMUM = 4096;
 
 /** `readScriptSources` is the whole of what this asks a page for. */
@@ -63,13 +66,20 @@ function lookupScriptNameSpan(
     text: string,
 ): { nameStart: number; buildStart: number; buildEnd: number } | null {
     let from = 0;
-    for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
+    for (let look = 0; look < SCRIPT_NAME_LOOKS_MAXIMUM; look += 1) {
         const head = text.indexOf(SCRIPT_NAME_HEAD, from);
         if (head === -1) return null;
         from = head + 1;
         let buildStart = head + SCRIPT_NAME_HEAD.length;
         if (text.charAt(buildStart) === OPTIONAL_SEPARATOR) buildStart += 1;
-        const buildEnd = getEndOfRun(text, buildStart, isBuildCharacterAt);
+        // A run past the bound on one is no id the client served, and the search goes on.
+        const buildEnd = lookupEndOfRun(
+            text,
+            buildStart,
+            RUN_CHARACTERS_MAXIMUM,
+            isBuildCharacterAt,
+        );
+        if (buildEnd === null) continue;
         if (buildEnd - buildStart < BUILD_CHARACTERS_MINIMUM) continue;
         if (!text.startsWith(SCRIPT_NAME_TAIL, buildEnd)) continue;
         assert(head < buildStart, "a name starts before the id inside it");

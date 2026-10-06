@@ -27,12 +27,16 @@ export const JAVASCRIPT_QUOTES = "\"'`";
 export const LITERAL_CHARACTERS_MAXIMUM = 65_536;
 /**
  * Past the longest run any caller walks, so a run is a stated bound too: 64 characters of a name in
- * both builds above, 41 of whitespace, 10 of digits, and 93 of whitespace in help article 372 read
- * 2026-10-04.
+ * both builds above, 41 of whitespace and 10 of digits, read 2026-10-04. Markup walks its own
+ * runs under the bound on a page, which a page's whitespace may pass.
  */
 export const RUN_CHARACTERS_MAXIMUM = 65_536;
-/** What HTML and JavaScript both treat as space between the things that mean something. */
-const WHITESPACE = " \t\r\n\f\v";
+/**
+ * What HTML and JavaScript both treat as space between the things that mean something. `\v` is
+ * JavaScript's alone, and neither build `hb9Z0D4r` nor `DHSqC3Uh` holds one, both fetched
+ * 2026-10-06.
+ */
+const WHITESPACE = " \t\r\n\f";
 
 export function isDigitAt(text: string, index: number): boolean {
     assert(Number.isSafeInteger(index), "a character is looked for at a whole position");
@@ -50,23 +54,40 @@ export function isWhitespaceAt(text: string, index: number): boolean {
     return WHITESPACE.includes(character);
 }
 
-/** Answers `from` where nothing matched, which is how a caller tells a run from none. */
+/** For text past the edge that read it, where a run reaching the bound is a bug of ours (E1). */
 export function getEndOfRun(
     text: string,
     from: number,
     isMember: (text: string, index: number) => boolean,
 ): number {
+    const runEnd = lookupEndOfRun(text, from, RUN_CHARACTERS_MAXIMUM, isMember);
+    assert(runEnd !== null, "a run ends inside the bound on its length");
+    return runEnd;
+}
+
+/**
+ * Answers `from` where nothing matched, which is how a caller tells a run from none, and null
+ * where the run reaches `maximum`: text from outside answers that as its own failure (E1).
+ */
+export function lookupEndOfRun(
+    text: string,
+    from: number,
+    maximum: number,
+    isMember: (text: string, index: number) => boolean,
+): number | null {
     assert(Number.isSafeInteger(from), "a run starts at a whole position");
     assert(from >= 0, "never before the text");
+    assert(Number.isSafeInteger(maximum), "a run is bounded by a whole count of characters");
+    assert(maximum > 0, "of at least one");
     let runEnd = from;
-    for (let look = 0; look < RUN_CHARACTERS_MAXIMUM; look += 1) {
+    for (let look = 0; look < maximum; look += 1) {
         if (runEnd >= text.length) break;
         if (!isMember(text, runEnd)) break;
         runEnd += 1;
     }
-    assert(runEnd - from < RUN_CHARACTERS_MAXIMUM, "a run ends inside the bound on its length");
-    assert(runEnd <= Math.max(from, text.length), "and never past the end of what it walked");
-    return runEnd;
+    assert(runEnd <= Math.max(from, text.length), "a run never ends past the text it walked");
+    if (runEnd - from < maximum) return runEnd;
+    return null;
 }
 
 /**

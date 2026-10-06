@@ -464,6 +464,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupDirectives` — `tests/repository/type-assertions.test.ts`
 - `lookupDisagreements` — `tests/repository/design-tokens.test.ts`
 - `lookupEnclosingFunction` — `tests/source-tree.ts`
+- `lookupEndOfRun` — `libs/text-walk.ts`
 - `lookupEndedState` — `src/core/charged-skill.ts`
 - `lookupErrorClasses` — `tests/repository/throws.test.ts`
 - `lookupEventBreaches` — `tests/repository/event-entries.test.ts`
@@ -492,8 +493,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupMisspeltImports` — `tests/repository/import-paths.test.ts`
 - `lookupModuleStates` — `tests/repository/purity.test.ts`
 - `lookupNamedCombatantId` — `src/core/fight-decoder.ts`
+- `lookupNamedReference` — `libs/html-text.ts`
 - `lookupNewestFight` — `src/runtime/fight-state.ts`
 - `lookupNonNullAssertions` — `tests/repository/non-null-assertions.test.ts`
+- `lookupNumericReference` — `libs/html-text.ts`
 - `lookupOpeners` — `tests/core/turn-clock.test.ts`
 - `lookupOpponent` — `tools/fabricated-fight.ts`
 - `lookupOutboundCalls` — `tools/build-userscript.ts`
@@ -511,7 +514,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupRecordedFight` — `tests/recorded-fights.ts`
 - `lookupRecordingPaths` — `tools/recorded-material.ts`
 - `lookupRecursiveNames` — `tests/repository/control-flow.test.ts`
-- `lookupReferencedCodePoint` — `libs/html-text.ts`
 - `lookupRegisteredStatusName` — `tools/buff-bit-table.ts`
 - `lookupRegularExpressions` — `tests/repository/regular-expressions.test.ts`
 - `lookupReportKey` — `tests/runtime/fight-file.test.ts`
@@ -530,6 +532,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupShownKeptFight` — `src/runtime/fight-state.ts`
 - `lookupSingleImported` — `tests/repository/single-importer.test.ts`
 - `lookupSwitchSubjectStart` — `tools/protocol-key-table.ts`
+- `lookupTagClose` — `libs/html-text.ts`
+- `lookupTagEnd` — `libs/html-text.ts`
 - `lookupTagsCreated` — `tools/build-userscript.ts`
 - `lookupThrows` — `tests/repository/throws.test.ts`
 - `lookupTopDeclaration` — `tests/repository/nesting-depth.test.ts`
@@ -922,6 +926,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `parseReach` — `tests/tools/aura-standing.test.ts`
 - `parseReadingArguments` — `tools/turn-reading.ts`
 - `parseRecordingsNamed` — `tools/protocol-key-shape.ts`
+- `parseReferencedCodePoint` — `libs/html-text.ts`
 - `parseRegisterHeading` — `tools/protocol-key-shape.ts`
 - `parseRegisterRows` — `tests/tools/aura-standing.test.ts`, `tests/tools/turn-count.test.ts`,
   `tests/tools/turn-reading.test.ts`
@@ -968,6 +973,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `decode` — `tests/core/fight-decoder.test.ts`, `tests/core/fight-statistics.test.ts`
 - `decodeAnnouncedSkill` — `src/core/fight-decoder.ts`
 - `decodeAttackEvent` — `src/core/fight-decoder.ts`
+- `decodeCharacterReferences` — `libs/html-text.ts`
 - `decodeDeclaration` — `src/core/fight-decoder.ts`
 - `decodeFightMessages` — `tests/ui/panel-content.test.ts`
 - `decodeFightOutcome` — `src/core/fight-decoder.ts`
@@ -1715,7 +1721,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeNameRegister` — `tests/repository/name-register.test.ts`
 - `composeNamed` — `tests/ui/card-window.test.ts`
 - `composeNotesForOpenedRow` — `tests/ui/panel-element.test.ts`
-- `composeNumericReferencesDecoded` — `libs/html-text.ts`
 - `composeOne` — `tests/ports/margonem-engine-tooltip.test.ts`
 - `composeOneCombatantRoster` — `tests/core/fight-statistics.test.ts`
 - `composeOpened` — `tests/runtime/shelf.test.ts`
@@ -1981,6 +1986,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isStartedAsync` — `tests/repository/called-once.test.ts`
 - `isStruckAgain` — `tests/core/last-heal-rule.test.ts`
 - `isStunKey` — `tests/tools/turn-count.test.ts`
+- `isTagNameEndAt` — `libs/html-text.ts`
 - `isTagOpeningAt` — `libs/html-text.ts`
 - `isTightCharacter` — `tests/repository/browser-support.test.ts`
 - `isTooltipTargets` — `src/ports/margonem-engine-tooltip.ts`
@@ -1997,6 +2003,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isWritableCollection` — `tests/repository/purity.test.ts`
 - `isWritableRecord` — `src/ports/margonem-engine-battle.ts`
 - `isWrittenInPolish` — `tests/tools/preview-site.test.ts`
+- `isZeroAt` — `libs/html-text.ts`
 
 ### `was` — strong
 
@@ -2726,6 +2733,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `libs/`
 
+- `CharacterReference` — `libs/html-text.ts`
 - `FieldFailure` — `libs/unknown-value.ts`
 - `FieldKeys` — `libs/unknown-value.ts`
 - `FieldType` — `libs/unknown-value.ts`
@@ -3437,10 +3445,15 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `libs/`
 
+- `ATTRIBUTE_EQUALS` — `libs/html-text.ts`
+- `ATTRIBUTE_QUOTES` — `libs/html-text.ts`
+- `BOGUS_COMMENT_OPENERS` — `libs/html-text.ts`
 - `CODE_POINT_MAXIMUM` — `libs/html-text.ts`
-- `ENTITIES` — `libs/html-text.ts`
-- `ENTITY_AMPERSAND` — `libs/html-text.ts`
+- `COMMENT_CLOSE` — `libs/html-text.ts`
+- `COMMENT_CLOSE_FROM` — `libs/html-text.ts`
+- `COMMENT_OPEN` — `libs/html-text.ts`
 - `FIELD_TYPE` — `libs/unknown-value.ts`
+- `FIXED_MAGNITUDE_MAXIMUM` — `libs/number-text.ts`
 - `HEXADECIMAL_DIGITS` — `libs/html-text.ts`
 - `HEXADECIMAL_RADIX` — `libs/html-text.ts`
 - `HTML_CHARACTERS_MAXIMUM` — `libs/html-text.ts`
@@ -3449,6 +3462,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `LITERAL_CHARACTERS_MAXIMUM` — `libs/text-walk.ts`
 - `LOWER_CASE_OFFSET` — `libs/html-text.ts`
 - `MINUS` — `libs/number-text.ts`
+- `NAMED_REFERENCES` — `libs/html-text.ts`
 - `NO_BREAK_SPACE_CODE_POINT` — `libs/html-text.ts`
 - `NUMERIC_REFERENCE_CLOSE` — `libs/html-text.ts`
 - `NUMERIC_REFERENCE_HEXADECIMAL` — `libs/html-text.ts`
@@ -3457,6 +3471,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `POINT` — `libs/number-text.ts`
 - `RAW_TEXT_ELEMENTS` — `libs/html-text.ts`
 - `REFERENCE_DIGITS_MAXIMUM` — `libs/html-text.ts`
+- `REFERENCE_OPEN` — `libs/html-text.ts`
 - `RUN_CHARACTERS_MAXIMUM` — `libs/text-walk.ts`
 - `SURROGATE_FIRST` — `libs/html-text.ts`
 - `SURROGATE_LAST` — `libs/html-text.ts`
@@ -3465,6 +3480,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `TAG_OPEN` — `libs/html-text.ts`
 - `TAG_TERMINATOR` — `libs/html-text.ts`
 - `WHITESPACE` — `libs/text-walk.ts`
+- `ZERO` — `libs/html-text.ts`
 
 ### `src/core/`
 
@@ -3611,7 +3627,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `HOUR_MAXIMUM` — `src/ports/browser-time.ts`
 - `IDENTITY_KEYS` — `src/ports/margonem-engine-warriors.ts`
 - `LOCATION_FIELD` — `src/ports/browser-surroundings.ts`
-- `LOOKS_MAXIMUM` — `src/ports/margonem-client-build.ts`
 - `MARGONEM_VALUE` — `src/ports/margonem-value.ts`
 - `MINUTE_MAXIMUM` — `src/ports/browser-time.ts`
 - `MONTH_MAXIMUM` — `src/ports/browser-time.ts`
@@ -3626,6 +3641,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ROWS_WRITTEN_MAXIMUM` — `src/ports/margonem-engine-tooltip.ts`
 - `SCRIPTS_MAXIMUM` — `src/ports/margonem-client-build.ts`
 - `SCRIPT_NAME_HEAD` — `src/ports/margonem-client-build.ts`
+- `SCRIPT_NAME_LOOKS_MAXIMUM` — `src/ports/margonem-client-build.ts`
 - `SCRIPT_NAME_TAIL` — `src/ports/margonem-client-build.ts`
 - `SHALLOW_COPIED_KEYS` — `src/ports/margonem-engine-warriors.ts`
 - `SHAPE_KEYS_MAXIMUM` — `src/ports/fight-capture.ts`
@@ -5088,36 +5104,42 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `libs/`
 
+- `bogusClose` — `libs/html-text.ts`
 - `character` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `close` — `libs/html-text.ts`
 - `codePoint` — `libs/html-text.ts`
 - `collapsed` — `libs/html-text.ts`
+- `commentClose` — `libs/html-text.ts`
 - `decimal` — `libs/number-text.ts`
 - `decoded` — `libs/html-text.ts`
-- `digits` — `libs/html-text.ts`, `libs/number-text.ts`
+- `digits` — `libs/number-text.ts`
 - `digitsAt` — `libs/html-text.ts`
 - `digitsEnd` — `libs/html-text.ts`
 - `digitsFrom` — `libs/html-text.ts`
+- `elementEnd` — `libs/html-text.ts`
 - `end` — `libs/html-text.ts`, `libs/text-walk.ts`
-- `entity` — `libs/html-text.ts`
 - `fieldValue` — `libs/unknown-value.ts`
 - `folded` — `libs/html-text.ts`
 - `from` — `libs/html-text.ts`
 - `index` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `integer` — `libs/number-text.ts`
 - `isHexadecimal` — `libs/html-text.ts`
+- `isValueNext` — `libs/html-text.ts`
 - `kept` — `libs/html-text.ts`
 - `look` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `name` — `libs/html-text.ts`
+- `nameEnd` — `libs/html-text.ts`
 - `open` — `libs/html-text.ts`
 - `opening` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `parsed` — `libs/json-text.ts`
 - `parsedText` — `libs/json-text.ts`
 - `point` — `libs/number-text.ts`
+- `quote` — `libs/html-text.ts`
+- `reference` — `libs/html-text.ts`
 - `runEnd` — `libs/text-walk.ts`
 - `text` — `libs/html-text.ts`, `libs/number-text.ts`, `libs/unknown-value.ts`
-- `withoutRawText` — `libs/html-text.ts`
 - `written` — `libs/json-text.ts`
+- `zerosEnd` — `libs/html-text.ts`
 
 ### `src/core/`
 
@@ -7393,7 +7415,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-content.test.ts`
 - `height` — `tests/ui/panel-look.test.ts`, `tests/userscript-entry.test.ts`
 - `heights` — `tests/tools/card-height.test.ts`
-- `held` — in 44 files: `tests/`
+- `held` — in 45 files: `tests/`
 - `heldPlace` — `tests/e2e/panel-drag.spec.ts`
 - `heldShare` — `tests/tools/shout-holding.test.ts`
 - `heldState` — `tests/runtime/shelf-keeper.test.ts`
@@ -7576,8 +7598,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `longDrawn` — `tests/e2e/panel-helper.spec.ts`
 - `longWanted` — `tests/e2e/panel-helper.spec.ts`
 - `longer` — `tests/core/granted-blow-rule.test.ts`, `tests/tools/develop-reports.test.ts`
-- `longest` — `tests/core/fight-decoder.test.ts`, `tests/libs/html-text.test.ts`,
-  `tests/libs/text-walk.test.ts`
+- `longest` — in 4 files: `tests/`
 - `longhand` — `tests/ui/panel-look.test.ts`
 - `look` — `tests/core/granted-blow-rule.test.ts`, `tests/ui/panel-words.test.ts`
 - `looked` — `tests/repository/protocol-keys.test.ts`, `tests/tools/preview-site.test.ts`
@@ -7619,7 +7640,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `members` — in 5 files: `tests/`
 - `memory` — `tests/ports/browser-store.test.ts`
 - `mentions` — `tests/repository/called-once.test.ts`, `tests/repository/declaration-order.test.ts`
-- `message` — in 13 files: `tests/`
+- `message` — in 14 files: `tests/`
 - `messagePosition` — `tests/tools/turn-reading.test.ts`
 - `messageReading` — `tests/tools/turn-reading.test.ts`
 - `messages` — in 10 files: `tests/`
@@ -7773,7 +7794,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `owner` — `tests/repository/declaration-order.test.ts`, `tests/repository/protocol-keys.test.ts`
 - `pad` — `tests/repository/name-register.test.ts`
 - `padded` — `tests/ports/payload-envelope.test.ts`
-- `page` — in 14 files: `tests/`
+- `page` — in 15 files: `tests/`
 - `pagePart` — `tests/userscript-entry.test.ts`
 - `painted` — `tests/ui/panel-look.test.ts`
 - `pair` — in 6 files: `tests/`
@@ -7902,7 +7923,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `reached` — in 11 files: `tests/`
 - `reachedCell` — `tests/ui/panel-element.test.ts`
 - `reachedTotals` — `tests/core/legendary-standing.test.ts`
-- `reaching` — `tests/repository/browser-globals.test.ts`
+- `reaching` — `tests/ports/margonem-client-build.test.ts`,
+  `tests/repository/browser-globals.test.ts`
 - `readPreviewState` — `tests/tools/preview-state.test.ts`
 - `readable` — `tests/ui/panel-content.test.ts`
 - `reader` — `tests/runtime/margometer-runtime.test.ts`, `tests/tools/preview-server.test.ts`
@@ -7994,7 +8016,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `rules` — `tests/repository/name-shapes.test.ts`, `tests/repository/purity.test.ts`,
   `tests/style-sheet.ts`
 - `rulesFromN22` — `tests/repository/name-shapes.test.ts`
-- `run` — `tests/core/granted-blow-rule.test.ts`
+- `run` — `tests/core/granted-blow-rule.test.ts`, `tests/libs/html-text.test.ts`
 - `rung` — `tests/tools/drill-report.test.ts`
 - `running` — in 4 files: `tests/`
 - `runs` — `tests/core/granted-blow-rule.test.ts`, `tests/repository/browser-support.test.ts`
@@ -8445,6 +8467,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `writtenLines` — `tests/repository/name-register.test.ts`
 - `wrong` — in 6 files: `tests/`
 - `yOnly` — `tests/runtime/shelf.test.ts`
+- `zeros` — `tests/libs/html-text.test.ts`
 
 ## Parameters
 
@@ -8469,7 +8492,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isMember` — `libs/text-walk.ts`
 - `key` — `libs/unknown-value.ts`
 - `keys` — `libs/unknown-value.ts`
-- `maximum` — `libs/number-range.ts`, `libs/unknown-value.ts`
+- `maximum` — `libs/number-range.ts`, `libs/text-walk.ts`, `libs/unknown-value.ts`
 - `minimum` — `libs/number-range.ts`
 - `name` — `libs/html-text.ts`
 - `number` — `libs/number-range.ts`
@@ -9946,6 +9969,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `libs/`
 
 - `cause` — `libs/errors.ts`, `libs/json-text.ts`
+- `character` — `libs/html-text.ts`
 - `count` — `libs/unknown-value.ts`
 - `end` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `expected` — `libs/unknown-value.ts`
@@ -13534,20 +13558,26 @@ suite's material.
 
 ### `libs/html-text.ts`
 
-- `"\""` — `ENTITIES`
-- `"&"` — `ENTITIES`
+- `"!?"` — `BOGUS_COMMENT_OPENERS`
+- `"\""` — `NAMED_REFERENCES`
+- `"\"'"` — `ATTRIBUTE_QUOTES`
+- `"&"` — `NAMED_REFERENCES`, `REFERENCE_OPEN`
 - `"&#"` — `NUMERIC_REFERENCE_OPEN`
-- `"&amp;"` — `ENTITIES`, `ENTITY_AMPERSAND`
-- `"&gt;"` — `ENTITIES`
-- `"&lt;"` — `ENTITIES`
-- `"&nbsp"` — `ENTITIES`
-- `"&nbsp;"` — `ENTITIES`
-- `"&quot;"` — `ENTITIES`
+- `"&amp;"` — `NAMED_REFERENCES`
+- `"&gt;"` — `NAMED_REFERENCES`
+- `"&in;"` — `NAMED_REFERENCES`
+- `"&lt;"` — `NAMED_REFERENCES`
+- `"&nbsp"` — `NAMED_REFERENCES`
+- `"&nbsp;"` — `NAMED_REFERENCES`
+- `"&quot;"` — `NAMED_REFERENCES`
+- `"-->"` — `COMMENT_CLOSE`
 - `"/"` — `TAG_TERMINATOR`
 - `"/!?"` — `TAG_NAME_OPENERS`
 - `";"` — `NUMERIC_REFERENCE_CLOSE`
-- `"<"` — `ENTITIES`, `TAG_OPEN`
-- `">"` — `ENTITIES`, `TAG_CLOSE`
+- `"<"` — `NAMED_REFERENCES`, `TAG_OPEN`
+- `"<!--"` — `COMMENT_OPEN`
+- `"="` — `ATTRIBUTE_EQUALS`
+- `">"` — `NAMED_REFERENCES`, `TAG_CLOSE`
 - `"script"` — `RAW_TEXT_ELEMENTS`
 - `"style"` — `RAW_TEXT_ELEMENTS`
 - `"xX"` — `NUMERIC_REFERENCE_HEXADECIMAL`

@@ -12,9 +12,11 @@ import { isDigitRun } from "./text-walk.ts";
 const MINUS = "-";
 /** What `toFixed` writes at most, and throws a `RangeError` past (ECMA-262 §21.1.3.3). */
 const PLACES_MAXIMUM = 100;
+/** Below it `toFixed` writes digits, and from it an exponent (ECMA-262 §21.1.3.3). */
+const FIXED_MAGNITUDE_MAXIMUM = 1e21;
 const POINT = ".";
 
-/** Digits with an optional minus, held exactly: past 2^53 is refused, never neighboured. */
+/** Digits with an optional minus, held exactly: from 2^53 on, refused, never neighboured. */
 export function parseInteger(text: string): number | null {
     const digits = text.startsWith(MINUS) ? text.slice(MINUS.length) : text;
     if (!isDigitRun(digits)) return null;
@@ -26,7 +28,7 @@ export function parseInteger(text: string): number | null {
     return integer;
 }
 
-/** Digits, optionally a point and more digits. No sign, and past the largest double is refused. */
+/** No sign, and past the largest double is refused. */
 export function parseDecimal(text: string): number | null {
     const point = text.indexOf(POINT);
     if (point === -1) {
@@ -55,6 +57,7 @@ export function formatInteger(integer: number): string {
  */
 export function formatDecimal(decimal: number, places: number): string {
     assert(Number.isFinite(decimal), "a number written is a number");
+    assert(Math.abs(decimal) < FIXED_MAGNITUDE_MAXIMUM, "and one the platform writes in digits");
     assert(Number.isSafeInteger(places), "and is written to a whole number of places");
     assert(places >= 0, "never fewer than none");
     assert(places <= PLACES_MAXIMUM, "and never more than the platform writes");

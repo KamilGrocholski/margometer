@@ -56,7 +56,6 @@ export function parseJson(text: string): JsonValue | JsonUnreadable {
     return parsed;
 }
 
-/** `indentSpaces` where a person will read the result; none where only a reader will. */
 export function encodeJson(
     encodable: unknown,
     indentSpaces: number,

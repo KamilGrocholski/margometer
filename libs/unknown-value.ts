@@ -77,14 +77,16 @@ export function getNumberField<Field extends string>(
     return fieldValue;
 }
 
-/** `undefined` where the record does not hold the key itself, whatever its prototype holds. */
+/**
+ * `undefined` where the record does not hold the key itself, whatever its prototype holds, and
+ * where it holds `undefined` under it: a reader takes both as absent.
+ */
 function getOwnValue(record: UnknownRecord, key: string): unknown {
     assert(key.length > 0, "a key read is a key somebody spelled");
     if (!Object.hasOwn(record, key)) return undefined;
     return record[key];
 }
 
-/** Text, empty text included: text saying nothing is text. */
 export function getTextField<Field extends string>(
     record: UnknownRecord,
     keys: FieldKeys<Field>,
