@@ -132,15 +132,15 @@ than a defect.
   — and in none of them is a group facing a group, so nothing here says what the panel does when
   both sides heal, resurrect and drink at scale.
 - **No fight of more than two sides.** Two is all the material holds, so a third is untested on real
-  protocol. A wide side is no longer one of these gaps: the bounty fight puts five on the one
-  opposite the reader.
+  protocol. A wide side is not one of these gaps: the bounty fight puts five on the one opposite the
+  reader.
 - **No drawn fight.** The panel draws one, and the fight it draws it from is hand-built
   (`tests/ui/panel-content.test.ts`).
 - **No fight broken off by an escape.** The same again, and for a key the corpus has never carried:
   `flee` is read off the client's own branch and the published help, and the panel's `ucieczka` is
   drawn from a fight the fabricator writes (`docs/protocol-keys.md`).
-- **Three worlds, and one of them once.** Everything but the duel and the recordings from `luvia`
-  comes from `tempest`; the duel is the one that happened once.
+- **Three worlds, and one of them once.** Everything but the experimental duel and the recordings
+  from `luvia` comes from `tempest`; the experimental duel is the one that happened once.
 
 A loss **is** held, in more than one recording — which is what the outcome column is for, since
 nothing else in the tables would say so.
@@ -179,15 +179,14 @@ evidence.
 
 - `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json` — **the first recording naming
   no build**, which is what its build column says. The add-on writes `null` where the page did not
-  state one, and until this file arrived `git show v0.10.1:tools/fight-dump-parser.ts` refused to
-  read one at all (`git show v0.10.1:docs/specs/2026-08-25-a-recording-that-names-no-build.md`). So
+  state one (`git show v0.10.1:docs/specs/2026-08-25-a-recording-that-names-no-build.md`). So
   nothing dates it against the client, and a claim about how the game composed a message is not one
   this recording can settle — the messages, the snapshots and the percentages in it are unaffected.
-  All three recordings of that day arrived the same way, and the reason turned out not to be the
-  page: the client had started naming its bundle `main.min.53XkBRxF.js`, and the reader knew only
-  ids that were numbers (`src/ports/margonem-client-build.ts`). It reads both now, so a recording
-  made after 2026-08-25 carries a build again — these three cannot, being evidence
-  (`captures/AGENTS.md`), and their column is a fact about them for good.
+  All three recordings of that day name none, and the page is not why: the client names its bundle
+  `main.min.53XkBRxF.js`, which the reader the add-on carried that day did not take for an id.
+  `src/ports/margonem-client-build.ts` reads both shapes, so a recording made after 2026-08-25
+  carries a build — these three cannot, being evidence (`captures/AGENTS.md`), and their column is a
+  fact about them for good.
 
   It is also the only fight **entered by hand and finished on auto**: the opening call states `auto`
   as `0`, the third states `1`, and 304 of the 308 messages arrive in the closing call. Unlike the
@@ -260,13 +259,13 @@ evidence.
   health witness — 1 083 comparisons against 107 for its sibling, and no disagreement anywhere.
 
   ⚠️ **The only recording carrying `lowheal_per-enemies`, and it is evidence for the sizing rather
-  than against it.** For one day it was read the other way: a fight declaring the reducer anywhere
-  had none of its casts sized, so all three of its `healall_per` casts were counted as healing
-  nobody could place and its two casters were the first rows any recording had marked. The help
-  scopes the effect to the caster's opponents and all four occurrences here are declared by one of
-  ours at the monster — nothing of ours was reduced, and the three casts are sized
-  (`develop:docs/adr/0010-sizing-a-share-onto-a-side.md`). Two of them stand alone in their engine
-  call, which is where the twenty comparisons that check them against the snapshots come from.
+  than against it.** ⚠️ A reading that leaves every cast unsized in a fight declaring the reducer
+  anywhere counts all three of its `healall_per` casts as healing nobody can place, and marks its
+  two casters. The help scopes the effect to the caster's opponents and all four occurrences here
+  are declared by one of ours at the monster — nothing of ours is reduced, and the three casts are
+  sized (`develop:docs/adr/0010-sizing-a-share-onto-a-side.md`). Two of them stand alone in their
+  engine call, which is where the twenty comparisons that check them against the snapshots come
+  from.
 
   Two more things it settles, both by having a third of something. `+stun2-c` had been read on four
   occurrences in one recording; its five here ride the same monster's blows and are followed
@@ -299,17 +298,17 @@ evidence.
   carrying the key, so what it reports is somebody holding the effect rather than the two procs
   meeting — a claim no single recording could have made.
 
-  It is also the third fight against this monster, and the third carrying `+stun2-c`. The entry for
-  that key had written down what a third would settle: nothing. It did not.
+  It is also the third fight against this monster, and the third carrying `+stun2-c`, which settles
+  nothing more about that key (`docs/protocol-keys.md`).
 
 - `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json` — **six players and no
   monster**, which makes it the largest fight here with nobody's side held by the game, and the only
   one where more than three stood opposite the reader. It is a bounty fight: the log opens with the
   game taking a share of the gold off everybody carrying a warrant, before anybody moves. The five
-  opposite stand at levels 300 to 303 against a corpus whose next highest is 120, and that is what
-  the recording is for — at those levels characters carry effects nobody below them does, and four
-  protocol keys reach this tree for the first time here: `heal_per-enemies`, `hp_per-allies`,
-  `sunshield_per` and `+actdmg` (`docs/protocol-keys.md`).
+  opposite stand at levels 300 to 303 against a corpus whose next highest is 136 (the cast column
+  above, 2026-10-06), and that is what the recording is for — at those levels characters carry
+  effects nobody below them does, and four protocol keys reach this tree for the first time here:
+  `heal_per-enemies`, `hp_per-allies`, `sunshield_per` and `+actdmg` (`docs/protocol-keys.md`).
 
   ⚠️ **One of them gains 500 points of health that no message announces**, and the answer is
   `hp_per-allies`. The pool a percentage is read against grows on the initiation layer and the
@@ -326,15 +325,13 @@ evidence.
   Its one engine call states `auto`, carries all 276 messages, and states an empty cast on either
   side of itself: unlike the three auto fights above it there is no trailing call to snapshot
   anybody. So it contributes nothing to the health witness, and the cast is `payload.w` with nothing
-  to check it against. Two guards that had been reading the snapshots now read the payloads, where
-  the same cast was available all along (`tests/repository/redacted-names.test.ts`,
-  `tests/core/npc-heal-rule.test.ts`), and the one whose subject **is** the comparison counts what
-  the snapshots hold back by that property rather than by a recording's name
-  (`tests/ports/warrior-entries.test.ts`).
+  to check it against. ⚠️ A guard reading the cast reads it off the payloads, never the snapshots
+  (`tests/repository/redacted-names.test.ts`, `tests/core/npc-heal-rule.test.ts`), and the one whose
+  subject **is** the comparison counts what the snapshots hold back by that property rather than by
+  a recording's name (`tests/ports/warrior-entries.test.ts`).
 
-  ⚠️ **It is the only recording carrying `+of_wound`**, and the register had written down that none
-  did. It is `+wound`'s twin off the auxiliary weapon, and both occurrences ride blows of one
-  player's (`docs/protocol-keys.md`).
+  ⚠️ **It is the only recording carrying `+of_wound`.** It is `+wound`'s twin off the auxiliary
+  weapon, and both occurrences ride blows of one player's (`docs/protocol-keys.md`).
 
   It is also the third carrying `npc_heal`, and it re-earns that key's reading rather than resting
   on it: three casts of 1724 against a pool of 43092, four points of it apiece, which is what the
@@ -348,10 +345,9 @@ evidence.
   recording and not about the boss.
 
 - `captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json` — **the only recording carrying
-  `-manadest`**, and the register had written down that none did. Mana is a pool no total here
-  keeps, so the key is read as a declaration beside `-endest` (`docs/protocol-keys.md`). The
-  fabricated fight states it too, and that is never material — it is what stands where `captures/`
-  is silent (`tools/fabricated-fight.ts`).
+  `-manadest`**. Mana is a pool no total here keeps, so the key is read as a declaration beside
+  `-endest` (`docs/protocol-keys.md`). The fabricated fight states it too, and that is never
+  material — it is what stands where `captures/` is silent (`tools/fabricated-fight.ts`).
 
   ⚠️ **It carries `-endest` as well, and both keys state one figure for the whole fight** — 10 twice
   and 4 three times — where the published help describes a bonus weakening by 5% of its initial

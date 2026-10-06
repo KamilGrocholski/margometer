@@ -22,10 +22,9 @@ assets, and the text of its published help. Ability descriptions are stripped fr
 they are admitted. Where this repository states what an effect does, it does so in its own words,
 with a locator and a read date, and never by quoting a sentence.
 
-**Player nicknames never enter this repository.** They are substituted by tooling before a recording
-is admitted, never by hand, and a recording that cannot be redacted is refused.
-
-Client sources fetched for reading live only in `.cache/`, outside git.
+Player nicknames never enter this repository (`AGENTS.md`, _Never_; `captures/AGENTS.md` says how
+intake keeps them out). Where fetched client sources live is `SECURITY.md`'s, under _The game's own
+sources_.
 
 ## Deno standard library
 
@@ -33,8 +32,7 @@ The userscript built from this repository bundles modules from the Deno standard
 MIT licensed. Copyright the Deno authors. The bundle is a combined work of this project's code and
 those modules; the licences of both apply to their own parts.
 
-This is a change from MargoMeter v1, which shipped no third-party code. The reasoning is recorded in
-`develop:docs/adr/0001-deno-instead-of-bun.md`.
+Why the bundle carries it is recorded in `develop:docs/adr/0001-deno-instead-of-bun.md`.
 
 ## The published preview
 

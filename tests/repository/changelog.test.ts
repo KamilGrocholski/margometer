@@ -270,7 +270,7 @@ function parseChangelogEntries(text: string): ChangelogEntry[] {
  * Where a sentence closes inside an entry, walked rather than matched — **C7**.
  *
  * ⚠️ **A full stop is not a sentence end on its own.** `0.17.0` carries two of them and a quoted
- * sentence of the game's — `„Walka się skończyła." i tyle` — carries a third. A close is a stop
+ * sentence of the panel's — `„Walka się skończyła." i tyle` — carries a third. A close is a stop
  * that ends the text, or one followed by a space and then a capital.
  */
 function lookupSentenceEnds(text: string): number[] {

@@ -21,7 +21,7 @@ exists.
 
 ## The reading boundary
 
-The add-on **reads**, and writes one line of text where the game already draws one. That is the
+The add-on **reads**, and writes rows of text in the tooltip the game already draws. That is the
 whole security model, and everything else is a consequence.
 
 - **Nothing leaves the browser.** No `fetch`, no `XMLHttpRequest`, no `WebSocket`, no `sendBeacon`,
@@ -33,16 +33,16 @@ whole security model, and everything else is a consequence.
   the ambient `navigator`, while a tag that fetches is made by `createElement` with a tag name this
   add-on does not otherwise use. The page the entry is handed carries `location` and `navigator` of
   its own and reading those is how the add-on knows which world it is in — so what is forbidden is
-  the **ambient** one, and a tag is held by its name against the four this add-on builds. **develop
-  ADR 0076**, which carries the measurement.
+  the **ambient** one, and a tag is held by its name against the tags `TAGS_BUILT` lists in
+  `tools/build-userscript.ts`. **develop ADR 0076**, which carries the measurement.
 - **Nothing is automated.** The add-on never sends an action, never chooses a target, never presses
   anything on the reader's behalf.
 - **The engine's own call runs first and its return value comes back untouched.** We wrap the update
   function; we do not replace it. One wrap, and a detach that removes only ours.
 - **No exception of ours escapes into the page.** Every call crossing into somebody else's program,
   or arriving from one, is wrapped — every such boundary is enumerated, and **E5** is where the list
-  lives (`AGENTS.md`). How many there are is that table's to say and drifted twice here. A bug of
-  ours degrades to a missing panel section.
+  lives (`AGENTS.md`). How many there are is that table's to say. A bug of ours degrades to a
+  missing panel section.
 - **Where another MargoMeter already holds the engine, we stand down** rather than wrap a second
   time.
 - **One thing is written out, and it is text.** The add-on appends rows of its own to the tooltip
@@ -77,7 +77,8 @@ whole security model, and everything else is a consequence.
 
 - The origin belongs to the game, not to us. **No quota is ever assumed**, and a refusal to store is
   an answer the panel handles, not an error it throws. `localStorage` can throw for merely being
-  _read_ where the browser forbids it, which is one of the places a broad catch is correct.
+  _read_ where the browser forbids site data, which is one of the places a broad catch is correct —
+  a claim no engine, version or date stands behind here yet (**V3**).
 - State that survives a reload is **validated on read**. Anything unrecognised is dropped, never
   trusted into a figure.
 - Nothing is written that the reader did not produce by playing. No identifiers of ours, no
@@ -97,12 +98,12 @@ whole security model, and everything else is a consequence.
 
 `captures/` is raw protocol from real fights, and real fights have real people in them.
 
-- **Player nicknames never enter this repository.** They are substituted by tooling before a
-  recording is admitted, never by hand.
+- **Player nicknames never enter this repository**, and captured material is never edited to make
+  anything pass: both are `AGENTS.md`'s _Never_. How intake substitutes the nicknames is
+  `captures/AGENTS.md`'s.
 - Ability descriptions are stripped for the same reason the rest of the game's prose stays out: it
-  is somebody else's work.
+  is somebody else's work (`NOTICE.md`).
 - A recording the intake tool cannot redact is **refused**, not admitted with a warning.
-- Never edit captured material to make anything pass (`captures/AGENTS.md`).
 
 ## The game's own sources
 
@@ -124,10 +125,8 @@ The bundle carries Deno standard-library modules alongside our own code. Two obl
 
 ## Verification
 
-- `deno lint`, `deno check` and the tests are the mechanical enforcement, and a warning fails the
-  gate.
-- **Never turn off a compiler flag, a lint rule or a guard to make something pass.** That is
-  `[ASK]`, and the answer is usually that the code is wrong.
+- The gate, and what may never be turned off to pass it, are `AGENTS.md`'s (**S10**, **W1**, _Ask
+  first_).
 - A rule about this file's subject matter is held by a guard wherever a machine can hold it — the
   outbound-call ban and the name prefixes both are, over what is actually in the tree rather than
   over the nodes we remember adding.

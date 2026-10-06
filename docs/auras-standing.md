@@ -28,9 +28,9 @@ what tells a shout from a whole-team cast. The window draws none of it (`develop
 **The game's own statement answers `on whom`, and the tooltip is where it is drawn.** `w[].buffs`
 says what each combatant is carrying right now, so a fighter's own tooltip states a row per status
 they hold, counted in **their own** turns (`develop ADR 0107`). It names no caster, so it settles
-nothing about who a cast reached; that is still refused, now on three readings rather than one
-(`develop ADR 0104`). The window beside the panel draws none of this: what is true of one fighter is
-said on that fighter (`develop ADR 0108`).
+nothing about who a cast reached; that is refused, on three readings (`develop ADR 0104`). The
+window beside the panel draws none of this: what is true of one fighter is said on that fighter
+(`develop ADR 0108`).
 
 ⚠️ **Listing the side's members would be wrong about one cast in seven**, which is what that reading
 found after a `Podwójny dech`: the caster's whole side carries the matching status bit on most casts
@@ -49,11 +49,9 @@ caster's side is pointed at — and the announcement's target slot names one of 
 why it resolves against the roster and agrees with the value (`develop ADR 0061`,
 `develop ADR 0064`).
 
-⚠️ **This paragraph said the opposite for a while, and the section below always said it right.**
-Before `develop ADR 0064` the value was read as a target rather than as a list of bearers, and the
-sentence survived the reading that replaced it — two statements of one mechanism, drifting without
-looking different. What the value is remains _What a shout holds_'s to say, and this one points at
-it rather than restating it.
+⚠️ **What the value is, is _What a shout holds_'s to say**, and this section points at it rather
+than restating it: two statements of one mechanism drift without looking different, and the value is
+a list of bearers, never a target (`develop ADR 0064`).
 
 ⚠️ **`allslow_per` is the one key the register does not settle** — it lists it among the effects
 changing attack speed and never says whose. Measured instead: after a `Szadź`, the combatant on the
@@ -61,12 +59,10 @@ changing attack speed and never says whose. Measured instead: after a `Szadź`, 
 
 ## What is drawn, and what is not
 
-**A cast reaching a side is drawn nowhere.** The window beside the panel drew one row per skill and
-the casters under it, each with `3 z 8 tur`, until `develop ADR 0108` took the section away: the
-figure was counted in the **caster's** turns while the effect runs on each bearer's
-(`develop ADR 0101`), and a cast has no bearer to count on that this reading may name
-(`develop ADR 0061`). What the register below holds is unchanged — it is read from the recordings,
-not from the panel.
+**A cast reaching a side is drawn nowhere** (`develop ADR 0108`). A length beside it would be
+counted in the **caster's** turns while the effect runs on each bearer's (`develop ADR 0101`), and a
+cast has no bearer to count on that this reading may name (`develop ADR 0061`). The register below
+is read from the recordings, not from the panel.
 
 **What a fighter is carrying is drawn on that fighter**, in the game's own tooltip: a row per
 status, with the table's total beside it wherever one figure may be said of that bearer
@@ -79,7 +75,7 @@ it would be a count of what this add-on happened to see.
 
 **A shout is drawn under whoever threw it**, with the characters it holds as rows under that, and
 **a length on each of those rows** — a shout runs on the turns of whoever it holds, so two
-characters held by one cast are not the same number of turns in (`develop ADR 0103`). The okrzyk is
+characters held by one cast are not the same number of turns in (`develop ADR 0103`). The shout is
 named beside the holder, because the table dates the two of them apart (`develop ADR 0097`).
 
 ⚠️ **A skill stating several team-wide effects is dated by the longest of them.**
@@ -124,11 +120,9 @@ instead, as `develop`'s tool read it, a run whose bearer fell holding it never g
 never counted: over `captures/` on 2026-09-25 that reading lit `poisoned` 21 times where the
 add-on's lights it 38, and `swow_down` 46 where the add-on's lights it 71.
 
-**The two numbers a reader saw for one effect are now one.** The window beside the panel drew a
-cast's length on the caster's clock and, beside it, the mask's bare count on the bearer's — so
-hovering a fighter and reading the window answered the same question twice, differently.
-`develop ADR 0108` ended it by taking both sections away: the bearer's clock is the only one still
-drawn, and the tooltip is where it is drawn.
+**A reader is given one clock for one effect**: the bearer's, in the tooltip, and nothing in the
+window beside the panel (`develop ADR 0108`). A cast's length on the caster's clock beside the
+mask's count on the bearer's answers the same question twice, differently.
 
 **The published help states whose turns for the keys below, one clause per row.** Each row is a
 clause counted in `frozen/help-phrases.ts` and cited by that key's entry in `docs/protocol-keys.md`,
@@ -142,8 +136,8 @@ so the reading is re-earned rather than remembered (article `view,372`, read 202
 
 ⚠️ **The help does not state one rule, it states one per key.** The last row is the control: the
 single-target spelling of the same effect is dated to the caster, and the side-wide one is not. So a
-reading that gave every key the caster's clock was never the help's, and the six above are every
-team-wide key the help dates at all. It dates none of the others, `shout` included.
+reading that gave every key the caster's clock was never the help's, and the keys of the first two
+rows are every team-wide key the help dates at all. It dates none of the others, `shout` included.
 
 **What the mask does, measured over `captures/`.** The status mask `develop ADR 0061` set aside —
 `w[].buffs`, one integer per combatant in every payload, its bits named in `frozen/buff-bits.ts` —
@@ -205,12 +199,11 @@ two skills (`develop ADR 0112` carries what that reading came to):
 what joins that bit to the attribute the help dates; nothing joins `deep_wound`, so it is dated by
 neither source and the table above leaves it out.
 
-⚠️ **The refresh above is why `own` is the right column to read them against, and 38 is not.** The
-help's own table marks trucizna as not overwritten: a further application only lengthens how long
-the damage runs. So a bit held for far longer than five is a run of applications and never an effect
-that outlived its length. A reader was shown `38 tur` beside a five-turn trucizna before
-`develop ADR 0109` took the mask's count off the row, and `develop ADR 0112` took every count off
-it.
+⚠️ **The refresh above is why `own` is the right column to read them against, and the mask's own
+count is not.** The help's own table marks trucizna as not overwritten: a further application only
+lengthens how long the damage runs. So a bit held for far longer than five is a run of applications
+and never an effect that outlived its length, and a row states no count beside it
+(`develop ADR 0109`, `develop ADR 0112`).
 
 ⚠️ **`swow_down` does not land on a published figure, and the register already said so.**
 `allslow_per` is the one key this document does not settle, and the mask does not name which cast
@@ -220,7 +213,8 @@ column.
 ⚠️ **No bit stands for a provocation**, so a shout's length is witnessed by nothing in this section.
 It is witnessed all the same, by what the held character does rather than by what the mask says —
 the register at the foot of this document carries that reading, and `develop ADR 0103` is what the
-panel does with it. The help dates `shout` nowhere, and it no longer has to.
+panel does with it. The help dates `shout` nowhere, and what the held character does dates it
+instead.
 
 ## How much it comes to
 
@@ -291,9 +285,10 @@ one combatant held it twice. `at once` is the most that ever stood together.
 | `aura-sa_per`                 | 370 |       98 |         0 |       4 |
 | `shout`                       |  15 |        0 |         0 |       2 |
 
-The last three arrived with `develop ADR 0097`: an okrzyk stands on a side now, so the keys it
-announces are counted here like any other. `shout` is in the table because it rides a cast that
-stands, and its own row below is what says whom it holds.
+`active_decblock_per-enemies`, `alllowdmg` and `shout` are here because a shout stands on a side
+(`develop ADR 0097`): the first two are the side-wide half `Wyzywający okrzyk` announces, counted
+like any other key, and `shout` rides a cast that stands, with its own row below saying whom it
+holds.
 
 **The cap is reachable on the material this repository holds**, which is unusual for anything in
 this document: `Szadź` and `Podwójny dech` both stand past two sources, so a panel that summed every
@@ -315,19 +310,17 @@ heading. `stated` is what the published table gives it, and what a row leaves on
 draws none of it**: a cast reaching a whole side says nothing about whom, because there is nothing
 to say (`develop ADR 0062`). The column is here so the claim stays re-earnable.
 
-**The two okrzyki are in this table as well as in the one below**, because the published table dates
+**The two shouts are in this table as well as in the one below**, because the published table dates
 their two halves apart and each half is a thing that stands: `Wyzywający okrzyk` shouts for three
 turns and debuffs the other side for five. Its `stated` here is the side-wide half's and never the
 shout's, which is the register below's. `develop ADR 0097`, and the two rows are what holds the
-claim — were the okrzyki one shape, skill 25 would read five here rather than two.
+claim — were the two shouts one shape, skill 25 would read five here rather than two.
 
-⚠️ **Both `reaches` verdicts moved on 2026-09-22, and the shout is why.**
-`src/core/aura-standing.ts` had `shout` reaching the **caster's** side, which is backwards: the
-help's effect table forces the affected to attack the character who used the skill, and over
-`captures/` **168 of 168 characters named across 166 announcements stand opposite the caster**, none
-on their own side. So `Prowokujący okrzyk` reaches both — it provokes the other side and raises its
-own — and `Wyzywający okrzyk` reaches only the other, its `both` having come from nothing but that
-entry.
+⚠️ **A shout reaches the side opposite its caster, never the caster's own.** The help's effect table
+forces the affected to attack the character who used the skill, and over `captures/` **168 of 168
+characters named across 166 announcements stand opposite the caster**, none on their own side (read
+2026-09-22). So `Prowokujący okrzyk` reaches both — it provokes the other side and raises its own —
+and `Wyzywający okrzyk` reaches only the other.
 
 |  id | skill              | on | fights | at once | stated | reaches  |
 | --: | ------------------ | -: | -----: | ------: | -----: | -------- |
@@ -366,7 +359,7 @@ count. `develop ADR 0064`, superseding `develop ADR 0063` in part.
 
 ⚠️ **The shout is dated by its own row and never by the skill's longest.** `Wyzywający okrzyk` runs
 `alllowdmg` and `active_decblock_per-enemies` for five turns and `shout` for three; dated as an aura
-it held a character two turns after the game had let them go.
+it would hold a character two turns after the game lets them go.
 
 ⚠️ **The corpus shows a shout naming more than one character exactly once, and shows it at two.** So
 `at once` and `names` are 2 for `Wyzywający okrzyk` and 1 for everything else.
@@ -423,6 +416,6 @@ witness.
 replaced, so what those rows report is a handful of blows. What the register stands on is the first
 four rows and the baseline under them.
 
-⚠️ **`covers` is reported and drawn nowhere.** It was the input to the expansion `develop ADR 0064`
-removed; it stays here because it is a true reading of the published table and
-`tests/tools/skill-table.test.ts` holds how it is read.
+⚠️ **`covers` is reported and drawn nowhere.** No reading takes it as an input (`develop ADR 0064`);
+it is here because it is a true reading of the published table and `tests/tools/skill-table.test.ts`
+holds how it is read.

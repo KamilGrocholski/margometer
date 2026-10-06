@@ -105,12 +105,11 @@ MargoMeter does not, and will not within this horizon:
 
 ## Language
 
-The reader's language is Polish: the panel, `README.md`, `CHANGELOG.md` and the release notes.
-Everything else — code, comments, tests, this document, commits, ADRs — is English. `AGENTS.md`
-**L1–L3** binds.
+The reader's language is Polish: the panel, `README.md`, `CHANGELOG.md` and the release notes. What
+that makes Polish and what stays English is `AGENTS.md`'s **L1–L3**.
 
 ## Governance
 
-The maintainer decides direction. `TODO.md` is their hand-kept list and no tool writes to it. A
+The maintainer decides direction. `TODO.md` is their hand-kept list (`AGENTS.md`, _Never_). A
 decision that is costly or surprising to reverse gets an ADR (`docs/adr/`); everything else lives in
 the commit that made it.

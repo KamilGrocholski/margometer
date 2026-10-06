@@ -1,7 +1,7 @@
 # Releasing
 
-Every step of cutting a release, in order. A release happens a few times a year and is run by one
-person, which is the interval at which an unwritten sequence is re-derived wrongly.
+Every step of cutting a release, in order. A release is run by one person, and a sequence nobody
+wrote down is re-derived wrongly between one release and the next.
 
 **Each step names what it is and cites what owns it.** Nothing here restates a rule: where a step
 ends in a pointer, that pointer is where the rule lives.
@@ -79,8 +79,7 @@ git tag "v${version}" && git push origin "v${version}"
 
 ⚠️ **`main` is advanced before it is pushed, and forgetting it fails silently.** The local `main` is
 still standing on the release before this one, so `git push origin main` pushes that, matches the
-remote, and answers `Everything up-to-date`, which reads exactly like the push having worked. It
-cost a takt on `v0.12.0`.
+remote, and answers `Everything up-to-date`, which reads exactly like the push having worked.
 
 `git fetch . develop:main` is the advance without a checkout, and it **refuses anything but a
 fast-forward**, which is what **G6** asks of `main`. Measured on git 2.39.5, 2026-09-01: a rewind
@@ -106,8 +105,8 @@ hand:
 - [ ] The published page states the same number, in its band and in its panel.
 - [ ] **The published page shows the column of the game's tooltips** beside the panel, at 1920 and
       at 1366 wide. Only that page runs `tools/preview-site.ts`'s script, and nothing in the gate,
-      the browser suite or the pictures drives it in a browser. 0.22.0 went out with the column
-      hidden. A fix to the page alone reaches it only through `main`: the `github-pages` environment
+      the browser suite or the pictures drives it in a browser, so a column hidden there ships
+      green. A fix to the page alone reaches it only through `main`: the `github-pages` environment
       deploys from `main` and no other branch (its branch policy, read 2026-10-03).
 - [ ] The release notes read as the changelog section, with the install note under them.
 

@@ -35,17 +35,17 @@ layer), the recording file format (§11) and the boundaries of `AGENTS.md`'s err
 TigerStyle, translated to an add-on that is a guest in somebody else's page. The binding form of
 each is the `AGENTS.md` rule named beside it.
 
-| #  | Principle                                 | What it means here                                                                                                                                                                                                         |
-| -- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| T1 | Two kinds of error.                       | An operating error is expected and is returned as an `Error` of its own class, beside the value. A programmer error is a broken invariant, asserted, and caught only by `errors.attempt` at a boundary. `AGENTS.md` E1–E4. |
-| T2 | A limit on everything.                    | Every collection states a maximum, and capacities are fixed when a fight opens. S11.                                                                                                                                       |
-| T3 | In somebody else's stack, only what must. | In the game's stack: reading the envelope, copying for the file, `preparePayload`/`commitPayload`. The cost is bounded by the message count; nothing throws past `errors.attempt`. No drawing.                             |
-| T4 | A deterministic core.                     | `core/` is pure transitions `(state, input) → value \| failure`. All I/O goes through ports, so a simulator replays recordings with injected faults — the VOPR idea.                                                       |
-| T5 | Parse, don't validate.                    | A value from the game is read into a type of ours at the edge in `ports/`, and every bound on it is checked there, once. Above the edge nothing is `unknown`, and a bound broken there is a bug of ours: an assertion.     |
-| T6 | Explicit control flow.                    | A failure comes back beside the value, with no box and no `map`/`andThen`. Every call site writes `if (value instanceof Error)`, or asks for the class it expects. S1.                                                     |
-| T7 | Absent in the protocol is not a failure.  | `T \| null` in a domain type means "the protocol did not state it", which is a fact. A failure class means "reading failed". E6.                                                                                           |
-| T8 | Batch where the cost is.                  | A payload and a click only mark the panel stale. One scheduled frame computes and draws once, however many changes arrived. There is no queue, because there is nothing to hold in one.                                    |
-| T9 | State changes where they are seen.        | A step that changes state is read in its caller, in the order it runs, and what is pulled out into a function of its own is pure: Carmack's inlining, with D's strengths of purity. `AGENTS.md` S4, P1–P4.                 |
+| #  | Principle                                 | What it means here                                                                                                                                                                                         |
+| -- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1 | Two kinds of error.                       | A failure that can happen is returned beside the value; a broken invariant is an assertion. `AGENTS.md` E1–E4.                                                                                             |
+| T2 | A limit on everything.                    | Every collection states a maximum, and capacities are fixed when a fight opens. S11.                                                                                                                       |
+| T3 | In somebody else's stack, only what must. | In the game's stack: reading the envelope, copying for the file, `preparePayload`/`commitPayload`. The cost is bounded by the message count; nothing throws past `errors.attempt`. No drawing.             |
+| T4 | A deterministic core.                     | `core/` is pure transitions `(state, input) → value \| failure`. All I/O goes through ports, so a simulator replays recordings with injected faults — the VOPR idea.                                       |
+| T5 | Parse, don't validate.                    | A value from the game becomes a type of ours at the edge in `ports/`, which checks its bounds once. E1.                                                                                                    |
+| T6 | Explicit control flow.                    | A failure comes back beside the value, and every call site branches on it. E2, S1.                                                                                                                         |
+| T7 | Absent in the protocol is not a failure.  | `null` is what the protocol did not state; a failure is a reading that failed. E6.                                                                                                                         |
+| T8 | Batch where the cost is.                  | A payload and a click only mark the panel stale. One scheduled frame computes and draws once, however many changes arrived. There is no queue, because there is nothing to hold in one.                    |
+| T9 | State changes where they are seen.        | A step that changes state is read in its caller, in the order it runs, and what is pulled out into a function of its own is pure: Carmack's inlining, with D's strengths of purity. `AGENTS.md` S4, P1–P4. |
 
 ## 3. Foundation: `libs/`
 
@@ -158,8 +158,8 @@ export function formatDecimal(decimal: number, places: number): string;
 /** Unlike the usual clamp: where `maximum < minimum` the minimum wins. */
 export function clampNumber(number: number, minimum: number, maximum: number): number;
 
-// libs/text-walk.ts — walking text: isDigitAt, isWhitespaceAt, getEndOfRun, isDigitRun,
-// lookupQuotedLiteral, and the bounds each walk carries
+// libs/text-walk.ts — walking text: isDigitAt, isWhitespaceAt, getEndOfRun, lookupEndOfRun,
+// isDigitRun, lookupQuotedLiteral, and the bounds each walk carries
 // libs/html-text.ts — markup read as the words a person would have seen in it
 export function decodeHtmlText(html: string): string;
 ```
@@ -182,7 +182,8 @@ What is deliberately **not** here:
 ## 4. Layers
 
 ```
-frozen/                   the game's published tables, as `develop` @ `fa1dcce` froze them
+frozen/                   the game's published tables, dated readings `deno task margonem:readings`
+                          writes (ADR 0005, `frozen/AGENTS.md`)
 libs/                     errors, vocabulary, readers of text, numbers, JSON, markup, unknown values
 src/core/                 grammar → decoder → session → figures → standings (pure, deterministic)
 src/ports/                ports over Margonem and the browser: engine, warriors, envelope, store,
@@ -209,8 +210,12 @@ an object an `init…` builds, which holds what it wraps.
 ```ts
 // Time and the frame
 export interface BrowserClock {
-    readNowMilliseconds(): number;
-    /** The reader's own day and time, or null where the page's `Date` will not read one. */
+    /** Read under `errors.attempt`: a now that is no whole millisecond past nought is a `Caught`. */
+    readNowMilliseconds(): number | errors.Caught;
+    /**
+     * The reader's own day and time, or null where the page's `Date` will not read one. Asked only
+     * of a moment `readNowMilliseconds` or the shelf stated.
+     */
     readMoment(atMilliseconds: number): BrowserMoment | null;
     /** The moment as a file states it, in the page's own ISO 8601. */
     readTimestampText(atMilliseconds: number): string | errors.Caught;
@@ -269,7 +274,8 @@ export type MargonemEngineFailure =
     | MargonemEngineAbsent // neither spelling answered
     | MargonemEngineBattleAbsent
     | MargonemEngineMethodAbsent // the method's name is spelled by the adapter alone
-    | MargonemEngineMethodUnwritable // the wrap did not read back; the engine's own is put back
+    | MargonemEngineMethodUnwritable // a write the page refused or threw on: at the wrap the engine's
+    //                                  own is put back, at the detach ours stays; cause: Caught | null
     | MargonemEngineAlreadyWrapped // another copy's wrap marker is present
     | SearchAbandoned // `looks` and `maximum`
     | WrapCovered; // somebody wrapped over us; only ours comes off
@@ -468,7 +474,7 @@ export interface PreparedPayload {
     readonly payloadIndex: number; // what the standing it was read against had applied
     readonly isOpening: boolean; // `init`, or the first payload the session sees
     readonly decoded: PayloadDecoded;
-    readonly next: SessionState; // everything but the events, which commit appends
+    readonly stateAfter: SessionState; // everything but the events, which commit appends
 }
 export interface PayloadCommitted {
     hasOpened: boolean;
@@ -478,7 +484,8 @@ export interface PayloadCommitted {
 }
 /**
  * A fight past a bound the options state, each stating its `count` and `maximum`; what stands is
- * left whole.
+ * left whole. `CombatantsExceeded` counts everybody the fight has named: seated by the envelope, at
+ * either end of a message or on the announcement it rides, or carrying a mask or a charge.
  */
 export type PayloadRejected = CombatantsExceeded | EventsExceeded | PayloadsExceeded;
 
@@ -549,7 +556,7 @@ assertions, because they are invariants rather than failures. The two parts are 
 pool absorbed, and a defence's pool or chance is `src/core/protocol-key.ts`'s to say (ADR 0012). A
 disagreement that _can_ happen (`hasFiguresDisagreed`) stays data.
 
-Figures are tallied once per frame, and only when something changed, memoised on `payloadsApplied`.
+A live fight's figures are tallied again each frame (§10.4), and nothing holds them between frames.
 They are not folded in as payloads arrive: sizing a team heal reads messages from later payloads.
 
 ### 6.6 Standings
@@ -617,8 +624,8 @@ export type EnvelopeFailure =
  * cost in the game's stack does not grow. `snapshotAfter` reads the fight after the original.
  */
 export function prepareCapture(
-    capture: FightCapture,
-    call: MargonemEngineCall, // the payload, its messages, and the snapshots either side
+    capture: FightCaptureReading, // the calls and the two sets seen, read-only (P3)
+    call: Readonly<MargonemEngineCall>, // the payload, its messages, and the snapshots either side
     isOpening: boolean,
 ): PreparedCapture; // the call's copy where it is kept; the recording untouched
 /** Appends rather than copies, so a call costs the same at the end of a fight as at its start. */
@@ -743,9 +750,10 @@ export type ShelfFailure =
 
 // The file
 /**
- * The inverse of `decode`: meaning into the structure of a file, version 4 byte for byte. The calls
- * are the live capture's, or a kept fight's payloads with the messages the envelope reads back out
- * of them; the report is the figures. `addOnVersion` arrives in `surroundings` with the build.
+ * The inverse of `decode`: meaning into the structure of a file, `formatVersion` 4. The calls are
+ * the live capture's, or a kept fight's payloads with the messages the envelope reads back out of
+ * them, in `develop`'s envelope; the report follows the figures (ADR 0012, ADR 0035).
+ * `addOnVersion` arrives in `surroundings` with the build.
  */
 export function encodeFightFile(
     calls: FileCalls,
@@ -809,6 +817,7 @@ export type RuntimeFailure =
     | FileUnserializable
     | ExportFailure // no fight on screen, a file that will not encode, a sink that refused
     | FiguresDisagreed // two counts of one figure came out different
+    | MargonemEngineTooltipRefused // drawn fighters whose tooltip would not take a block
     | ViewFailure // RegionUndrawn, GestureDropped, WindowUnplaced
     | MargonemEngineWarriorFailure
     | MargonemReadFailure
@@ -820,6 +829,7 @@ export const FAILURE_FATE = {
     shelfAnswer: "shelf-answer",
     fallbackWithDefect: "fallback-with-defect",
     standDown: "stand-down",
+    byPlace: "by-place", // met in places that do different things with it: a row each in §10.5
 } as const;
 export type FailureFate = VocabularyWord<typeof FAILURE_FATE>;
 /** Keyed by each class's literal `name`, so a class with no entry fails `deno check` (ADR 0008). */
@@ -877,7 +887,7 @@ export interface RenderReport {
 }
 // Each a class `extends Error`, with what was caught as its `cause`.
 export type ViewFailure =
-    | RegionUndrawn // `region`
+    | RegionUndrawn // `region`; the cause a `Caught`, or a `CardRefused` for a card's key
     | GestureDropped // `listener`
     | WindowUnplaced; // `window`
 
@@ -957,12 +967,17 @@ one would leave that panel on the page.
 onBeforeCall ─ errors.attempt(readMargonemEngineWarriorSnapshot) ─▶ snapshotBefore | null
 [the game's original runs; its exception reaches the game untouched, and we do nothing]
 onPayload(payload) ─ errors.attempt:
-   readPayloadEnvelope     a failure → a "reading" defect (and messagesLost, where countable)
+   readPayloadEnvelope     a failure → a "reading" defect
    readMargonemEngineWarriorSnapshot     after the original → snapshotAfter | null
    prepareCapture          → commitCapture: the call kept or counted, beside the session's payload
    preparePayload          a value → commitPayload → unread counted (suspect)
-                                 hasOpened → the moment and the place, the screen reset
-                                 hasClosed → ShelfKeeper.keep → the shelf's answers
+                                 hasOpened → the moment, read on its own under errors.attempt;
+                                   the place and the reader reset, then read; the screen
+                                   reset where no kept fight is chosen
+                                 hasClosed → no moment: a "keeping" defect, and nothing kept;
+                                   else ShelfKeeper.keep → the shelf's answers; then a chosen
+                                   fight the shelf no longer holds is cleared
+                                   (resetScreenFightDropped)
                            a failure → a bound the options state: a "reading" defect
                            assertion → a "reading" defect; the session untouched
    markStale               the first mark asks for a frame
@@ -974,7 +989,8 @@ end: no DOM; cost bounded by the message count; a JSON copy only of a call thinn
 ```
 listener ─ reads a PanelIntent off data-* (isOneOf; unknown → GestureDropped)
    the intent executed in place: the screen moves, and the options and the shelf never cover it
-      together; the keeper pins and moves the shelf; a fold is written; a size of type is
+      together; the keeper pins and moves the shelf, and either clears a chosen fight the
+      shelf dropped to make room (resetScreenFightDropped); a fold is written; a size of type is
       written, and asks for a frame only where it moved; a move is written and asks for no
       frame, and a resize asks for one only while the options stand open; a size given back is
       removed and asks for one; a save writes the file or a "file" defect
@@ -1037,18 +1053,26 @@ goes without a mark.
 | `MargonemEngineAlreadyWrapped`, `BootFailure`   | `stand-down`           | no panel, one console line                             |
 | `SearchAbandoned`, `MargonemEngineMethodAbsent` | `defect` "engine"      | the panel waits, one console line                      |
 | `MargonemEngineMethodUnwritable`                | `defect` "engine"      | as above; the engine's own method stands               |
+| `MargonemEngineMethodUnwritable` on a detach    | none                   | returned by `deinit`, which only a test calls          |
+| `Caught` from a clock that will not state now   | `defect` "keeping"     | at a fight's close: the fight is not kept              |
+| `Caught` from a clock, on a handover            | `defect` "file"        | no file                                                |
+
+A class `FAILURE_FATES` marks `by-place` — `Caught`, the three of `StoreFailure`,
+`MargonemEngineAbsent`, `…BattleAbsent`, `WrapCovered` and `MargonemEngineWarriorsAbsent` — is met
+in places that do different things with it, so its fate is the row of the place it was met in,
+above.
 
 ### 10.6 Where a broad catch stands
 
-| Boundary                         | Where                                                                                                                                                                     |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the add-on standing up           | `readRuntimePorts` and `initRuntime` under `errors.attempt`, in the entry                                                                                                 |
-| the wrapped engine call          | `PayloadListener.onBeforeCall` and `onPayload`                                                                                                                            |
-| one render region                | `errors.attempt` per region in `PanelView.render`                                                                                                                         |
-| browser storage                  | `errors.attempt` inside the `KeyValueStore` implementation                                                                                                                |
-| the game's own page state        | `errors.attempt` in `MargonemEnginePlacePort`, `MargonemEngineHeroPort`, `MargonemClientDictionaryPort`, `MargonemClientBuildPort`, `MargonemEngineTooltipPort`, warriors |
-| a browser API this program calls | `errors.attempt` inside `BrowserConsolePort`, `BrowserSurroundingsPort`, `BrowserClock`, `BrowserFrameScheduler`, `BrowserIntervalScheduler`, `BrowserFileSink`           |
-| a callback somebody else calls   | a DOM listener, `onFrame`, the interval's step and the file's timeout, under `errors.attempt`                                                                             |
+| Boundary                         | Where                                                                                                                                                                                                                                                                                               |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the add-on standing up           | `readRuntimePorts` and `initRuntime` under `errors.attempt`, in the entry                                                                                                                                                                                                                           |
+| the wrapped engine call          | `PayloadListener.onBeforeCall` and `onPayload`                                                                                                                                                                                                                                                      |
+| one render region                | `errors.attempt` per region in `PanelView.render`                                                                                                                                                                                                                                                   |
+| browser storage                  | `errors.attempt` inside the `KeyValueStore` implementation                                                                                                                                                                                                                                          |
+| the game's own page state        | `errors.attempt` in `MargonemEngineBattlePort` (its read, the wrap's write, the detach), `MargonemEnginePlacePort`, `MargonemEngineHeroPort`, `MargonemClientDictionaryPort`, `MargonemClientBuildPort`, `MargonemEngineTooltipPort` (reading the board, and the walk writing each block), warriors |
+| a browser API this program calls | `errors.attempt` inside `BrowserConsolePort`, `BrowserSurroundingsPort`, `BrowserClock`, `BrowserFrameScheduler`, `BrowserIntervalScheduler`, `BrowserFileSink`                                                                                                                                     |
+| a callback somebody else calls   | a DOM listener, `onFrame`, the interval's step and the file's timeout, under `errors.attempt`                                                                                                                                                                                                       |
 
 ### 10.7 The card: `onHover`, in the root listener, under its guard
 
@@ -1065,9 +1089,9 @@ where the card stands — and reaches neither the runtime nor the session, so it
 
 ## 11. Recorded material and the file format
 
-- **The recordings are `captures/`**, brought over byte for byte from `develop` @ `fa1dcce` and read
-  off the tree by `tests/recorded-fights.ts`. `tools/capture-intake.ts` admits a new one there, and
-  `docs/captured-fights.md` names every one, held by
+- **The recordings are `captures/`**: those `develop` @ `fa1dcce` held, byte for byte, and those
+  `tools/capture-intake.ts` has admitted since (`AGENTS.md`, _Ask first_), read off the tree by
+  `tests/recorded-fights.ts`. `docs/captured-fights.md` names every one, held by
   `tests/repository/captured-fight-register.test.ts`.
 - **The file format stays `formatVersion` 4.** `encodeFightFile` writes the fields `develop`'s
   `composeCaptureText` writes, but for `report.totals`, which holds only the figures summed (ADR
@@ -1111,6 +1135,7 @@ export interface SimulationReport {
     hasThrownIntoMargonem: boolean; // from the game's call, the start, or a frame
     ranking: string; // what the last frame drew, compared with a run left alone
     kindsSaid: string[]; // every kind of failure the console heard
+    hasInvariantBroken: boolean; // one of those stands, down its causes, on an assertion
     unhandledKinds: string[]; // those `FAILURE_FATES` has no fate for
     faultsInjected: number;
 }
@@ -1131,9 +1156,9 @@ two, never a golden value to move (`AGENTS.md` W8).
 
 ## 13. Open
 
-- The most messages one payload carried: 627, in
-  `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`, over the 35 recordings of
-  `captures/` on 2026-09-25. That is also the bound on the work `preparePayload` does in the game's
-  stack.
+- The most messages one payload carried: 655, in
+  `captures/2026-10-02-luvia-grupa-vs-amaimon-auto-BTPBneEN-0.21.0.json`, over the 37 recordings of
+  `captures/` on 2026-10-06. The bound on the work `preparePayload` does in the game's stack is
+  `MESSAGES_MAXIMUM` (`src/core/fight-decoder.ts`), not the corpus.
 - Drawing once per frame moves the moment the panel is current: the frame after a payload rather
   than the payload itself. `tests/e2e/AGENTS.md` says how the browser suite waits for it.

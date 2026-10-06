@@ -30,19 +30,20 @@ Between the rows the panel counts correctly, draws every figure and every warnin
 in the scrollbar and one hatch — so calling those browsers unsupported would be false, and calling
 them fully supported would be too.
 
-Every current desktop release clears both. In Firefox the two rows are now one number: nothing
-cosmetic asks for more than `Object.hasOwn` already does, so there is no Firefox where the panel
-counts correctly and draws wrongly. Chrome's upper row is `scrollbar-width` at 121 and Safari's is
-the same property at 18.2; below either, the list draws the platform scrollbar and pays its width
-out of the rows.
+Every current desktop release clears both. In Firefox the two rows are one number: nothing cosmetic
+asks for more than `Object.hasOwn` already does, so there is no Firefox where the panel counts
+correctly and draws wrongly. Chrome's upper row is `scrollbar-width` at 121 and Safari's is the same
+property at 18.2; below either, the list draws the platform scrollbar and pays its width out of the
+rows.
 
 ⚠️ **One property is spelled twice, once with a `-webkit-` prefix**, because Safari answers it under
 no other name — see `### Prefixed` below.
 
 ## The one it is developed against
 
-**Chrome is the browser this add-on is developed and measured against, from 2026-08-29.** It is what
-most people playing Margonem use, and the floor above is what everybody else gets.
+**Chrome is the browser this add-on is developed and measured against, by the maintainer's decision
+of 2026-08-29**, taken as the browser most people playing Margonem use — a judgement, and no
+measurement in this repository stands behind it. The floor above is what everybody else gets.
 
 The two are different claims and the distinction is the point of this section. The floor says which
 engines the panel works on, and it still covers three. This says which engine a **measurement** is
@@ -68,9 +69,7 @@ so what it spells is enumerable: every property, every `property: value` pair, e
 every pseudo-class or pseudo-element. The guard reads that enumeration at every step and requires
 each one to appear below, in a table or in the settled list. A property added with no entry here
 fails the gate, **and so does an entry here naming something the sheet no longer spells** — a
-register that only grows describes a panel that stopped existing. `line-height` and `first-of-type`
-outlived their rules that way, and were found by the guard's first run on 2026-08-29;
-`font-style: normal` did too, and was found on 2026-10-06.
+register that only grows describes a panel that stopped existing.
 
 ### What sets the floor
 
@@ -84,12 +83,12 @@ outlived their rules that way, and were found by the guard's first run on 2026-0
 What each one looks like below its floor, which is the whole content of a cosmetic floor and the
 reason the tier column is not enough on its own:
 
-- **`overscroll-behavior: contain`** (`src/ui/panel-look.ts`, on `.list`). A wheel that runs out of
-  the list turns into a scroll of the game underneath. That is the one degradation here that reaches
-  outside the panel, which is why it is `runs` and not `looks`: we are a guest on someone else's
-  page. The versions above are its first support; the engines mark that support partial, and the
-  excluded case — a scroll container with no scrollable overflow — is not the panel's, whose list
-  overflows whenever the rule matters.
+- **`overscroll-behavior: contain`** (`src/ui/panel-look.ts`, on `.list` and on the helper's body).
+  A wheel that runs out of the list turns into a scroll of the game underneath. That is the one
+  degradation here that reaches outside the panel, which is why it is `runs` and not `looks`: we are
+  a guest on someone else's page. The versions above are its first support; the engines mark that
+  support partial, and the excluded case — a scroll container with no scrollable overflow — is not
+  the panel's, whose list overflows whenever the rule matters.
 - **`mask-image`** (on `.row.apart .bar`). The bar of a row with no place in the ranking loses its
   diagonal hatch and renders solid. Cosmetic rather than a failure of _The Colour Never Alone Rule_
   (`DESIGN.md`), and the distinction is worth stating: the hatch is a second channel on a row that
@@ -100,14 +99,14 @@ reason the tier column is not enough on its own:
   hatch. The bar's icons are the other side of that line (ADR 0036): each is a mask over a solid
   square, so below the floor an icon is that square and the control says nothing, and they spell
   `-webkit-mask-image` beside it, under **Prefixed**.
-- **`scrollbar-width: none`** (on `.list`). The platform scrollbar is drawn, and it takes its width
-  out of the rows: 15px in Chrome 152, 12px in Firefox 140.13.0esr, both read on 2026-08-31. It is
-  taken only while the list overflows, so a payload that fills the list and one that does not walk
-  the rows sideways between them, and `.pinned` and `.sides-region` — which draw a bar of their own
-  and never scroll — do not walk with them, so a bar means two lengths for as long as the platform
-  bar is up. That is the worst degradation on this page, and it is bought deliberately: above the
-  floor no region gives up anything and the rows are inset equally on both sides. **develop
-  ADR 0031.**
+- **`scrollbar-width: none`** (on `.list` and on the helper's body). The platform scrollbar is
+  drawn, and it takes its width out of the rows: 15px in Chrome 152, 12px in Firefox 140.13.0esr,
+  both read on 2026-08-31. It is taken only while the list overflows, so a payload that fills the
+  list and one that does not walk the rows sideways between them, and `.pinned` and `.sides-region`
+  — which draw a bar of their own and never scroll — do not walk with them, so a bar means two
+  lengths for as long as the platform bar is up. That is the worst degradation on this page, and it
+  is bought deliberately: above the floor no region gives up anything and the rows are inset equally
+  on both sides. **develop ADR 0031.**
 
 ### Prefixed
 
@@ -118,11 +117,10 @@ reason the tier column is not enough on its own:
 | `-webkit-mask-image`  | 1             | 53      | 4      |
 
 **Safari has never supported `user-select` unprefixed** — only `-webkit-user-select`, since
-Safari 3. `src/ui/panel-look.ts` spells both, in both of the rules that need them: the title bar the
-panel is dragged by, and the strips. While it spelled only the standard property, the declaration
-did nothing on Safari — dragging the panel selected the text under the cursor, and so did a drag
-that started on a row. That was neither a floor nor a degradation but a defect, filed by the round
-that read this register and fixed by the round after it.
+Safari 3. `src/ui/panel-look.ts` spells both, together, in every rule that needs them — the bars a
+window is dragged by, the strips, the rows, the options' answers and the size grip. ⚠️ The standard
+property alone does nothing on Safari: dragging the panel selects the text under the cursor, and so
+does a drag that starts on a row — neither a floor nor a degradation, but a defect.
 
 `-webkit-mask-image` stands beside `mask-image` in the one rule per bar icon, so an icon is drawn
 wherever either is read; the bare property's floor above is the hatch's.
@@ -225,17 +223,16 @@ page's CSP has nothing of ours to refuse.
 
 ## JavaScript
 
-⚠️ **A construct reaching past this floor still passes the gate, and neither compiler option that
-would stop it works here.** Measured 2026-08-30 by probing `libs/number-text.ts` and restoring it
-from a copy: `deno check` **ignores** `target` in `deno.json` and prints that it did, so the syntax
-half cannot be pinned at all; and narrowing `lib` from `esnext` to `es2022` still accepts
-`findLast`, which is ES2023, so the member half is not pinned either. Unlike the stylesheet, the
-sources are not one enumerable string, so nothing can list what they reach for.
+⚠️ **A construct reaching past this floor can still pass the gate.** Measured 2026-08-30 by probing
+`libs/number-text.ts` and restoring it from a copy: `deno check` **ignores** `target` in `deno.json`
+and prints that it did, so the syntax half cannot be pinned at all. The member half is pinned only
+to a year, by the second type-check over `project/browser-lib.json` below. Unlike the stylesheet,
+the sources are not one enumerable string, so nothing can list what they reach for.
 
-What **is** held is the register going stale, which is the failure that has happened twice:
-`tests/repository/browser-support.test.ts` requires each row below, and each row of the DOM table
-above, to name a construct the file beside it still spells, and re-earns both tiers at the top as
-the maximum over the rows under them. The two constructs that decide where the floor is:
+What **is** held is the register going stale: `tests/repository/browser-support.test.ts` requires
+each row below, and each row of the DOM table above, to name a construct the file beside it still
+spells, and re-earns both tiers at the top as the maximum over the rows under them. The two
+constructs that decide where the floor is:
 
 | Construct       | Where                   | Chrome / Edge | Firefox | Safari |
 | --------------- | ----------------------- | ------------- | ------- | ------ |
@@ -266,10 +263,9 @@ refuses it — `error TS1501`. Dropped to `ES2017` for the same probe, the compi
 This tree states no `target`, so none of that check is in force here — and **C7** is what stands
 instead: there is no pattern in `src/` or `tools/` to check.
 
-⚠️ **The rest of the language is held by an ES level, and `deno.ns` is why it was thought not to
-be.** `project/browser-lib.json` type-checks the bundle with `lib` of `dom`, `dom.iterable` and
-`es2022`, and the gate runs it. The obvious version of this was tried on 2026-08-30 and reported as
-not working, because narrowing `lib` while `deno.ns` stands beside it changes nothing: that library
+⚠️ **The rest of the language is held by an ES level, and only without `deno.ns`.**
+`project/browser-lib.json` type-checks the bundle with `lib` of `dom`, `dom.iterable` and `es2022`,
+and the gate runs it. Narrowing `lib` while `deno.ns` stands beside it changes nothing: that library
 carries the current TypeScript definitions whatever ES level is named. Measured 2026-09-10, on
 `Array.prototype.findLast`, ES2023:
 
@@ -302,10 +298,9 @@ maximum over the rows. A tool may spell either harmlessly, because tools never s
 library member the engine lacks fails at the call, which is a place: something reached for it, and
 the failure is that thing's size. A pattern whose syntax the engine cannot parse is an _early_
 SyntaxError — it is refused while the file is being read, before a line of it has run. The bundle
-never parses, so the reader sees no panel and no console line of ours. `new RegExp` differs only in
-when — `src/ports/margonem-client-build.ts` builds two at module scope, so those throw while the
-add-on is starting. There is no degraded state to describe here, which is why the `[ASK]`
-`AGENTS.md` puts on a construct that raises the floor binds with nothing to weigh.
+never parses, so the reader sees no panel and no console line of ours. There is no degraded state to
+describe here, which is why the `[ASK]` `AGENTS.md` puts on a construct that raises the floor binds
+with nothing to weigh.
 
 ## Installing it
 
@@ -317,6 +312,10 @@ reader's permission before it may run anything.
 | Firefox       | Tampermonkey, Violentmonkey, Greasemonkey | Install the extension. Nothing else.                                                                                                                                              |
 | Chrome / Edge | Tampermonkey, Violentmonkey               | Install the extension, then turn on **Allow User Scripts** on the extension's own page in `chrome://extensions`. Without it no userscript runs at all, and the failure is silent. |
 | Safari        | Userscripts, Tampermonkey for Safari      | Install the app, then enable it in Safari's extension settings.                                                                                                                   |
+
+What the table says of each browser and manager was read off the vendors' and the managers' own
+pages, and no version or date was kept with it (**V3**): it is unverified until somebody reads it
+again and dates it.
 
 The banner asks for nothing unusual — `@grant none`, `@noframes`, `@run-at document-idle`, no
 `@require` and no `@resource` — so no manager is excluded by what the script needs, only by whether
@@ -337,10 +336,10 @@ Three answers, and they are different: _not looked at_, _looked at and clean_, a
   measured at in Firefox, and the blob a download is read from after the click returns in Firefox.
   Whether any of the three still holds is **not looked at** — what is written beside each is the
   reading it was decided on.
-- **Mobile is out of scope, and not only because of a browser.** The detail card opens on
-  `pointerover` and the panel is moved by dragging its title bar; a touch screen has no hover and no
-  cursor to outrun. The limit is the panel's design, not the platform's support, so a manager that
-  runs on a phone would not make it usable. That is **a finding**, and it belongs to the panel
-  rather than to this register.
+- **Mobile is out of scope, and not only because of a browser.** The card opens on `pointermove` and
+  closes on `pointerout`, and the panel is moved by dragging its title bar; a touch screen has no
+  hover and no cursor to outrun. The limit is the panel's design, not the platform's support, so a
+  manager that runs on a phone would not make it usable. That is **a finding**, and it belongs to
+  the panel rather than to this register.
 - **Chrome's user-scripts toggle is documented from the vendor's page, not reproduced.** Nobody here
-  has clicked it.
+  has clicked it, and no Chrome version or date of that reading was kept (**V3**).

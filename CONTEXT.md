@@ -31,8 +31,8 @@ format, log
 published help numbers them from 1 upward and gives one to a single character at a time. What is
 counted and shown are both halves of what was seen: a turn **taken**, and a turn granted and spent
 on nothing, which the game announces itself. Their sum is still not the turns somebody was given.
-**Nothing divides by it**: no rate, no per-turn share, and no fight-wide total, because a fight the
-reader walked into is short by an amount nothing states. _Avoid_: Round, tick, action
+**Nothing divides by it** — no rate, no per-turn share, no fight-wide total (**develop ADR 0048**).
+_Avoid_: Round, tick, action
 
 ## The people
 
@@ -62,11 +62,11 @@ _Avoid_: Source/destination, attacker/victim, from/to
 **Blow**: One attack by one combatant, and the unit the counted figures are counted in. It carries
 the hits, the procs and what it destroyed, so the criticals are a share of the blows struck. **The
 hardest figure at each end is not one of them**, and the panel states it nowhere: damage the game
-puts against a name raises it without ever having been a swing, so it stands above the largest
-actual blow on 15 of the 296 rows over the recordings (**develop ADR 0087**, **develop ADR 0088**).
-It is read in the handed-over fight file and in `deno task fight:figures`. The decoder's own event
-kind spells it `attack`: that is the data contract's word (`src/core/battle-event.ts`), which
-`docs/design.md` carries over unchanged and this file does not rename. _Avoid_: Swing, exchange, hit
+puts against a name raises it without ever having been a swing, so it can stand above the largest
+actual blow (**develop ADR 0087**, **develop ADR 0088**). It is read in the handed-over fight file
+and in `deno task fight:figures`. The decoder's own event kind spells it `attack`: that is the data
+contract's word (`src/core/battle-event.ts`), which `docs/design.md` carries over unchanged and this
+file does not rename. _Avoid_: Swing, exchange, hit
 
 **Hit**: A single damage number inside a blow. One blow can carry several. _Avoid_: Strike, instance
 
@@ -95,14 +95,12 @@ one unit either. _Avoid_: Shredded, debuffed, broken
 
 **Caveat**: A drawn figure whose label names more than the figure counts, whatever the recording —
 the protocol states it over fewer messages than the word covers, or reports one component of what
-the word names. Marked in a glyph of its own — beside the figure, or on the row whose own figure is
-the narrower one — and said as one sentence at the foot of the card, once however many figures there
-carry that sentence. **Not a Suspect**, which says a figure may be short because something in _this_
-fight could not be read: a caveated figure is complete and still answers a narrower question, so a
-recording with nothing unread in it carries every caveat it ever did, and one glyph over both would
-make the permanent look temporary and the temporary look permanent. **develop ADR 0088**, whose mark
-got an ink and a row in **develop ADR 0089**. _Avoid_: Warning, footnote, asterisk, disclaimer,
-approximate, suspect
+the word names. Where it is marked and said is `DESIGN.md`'s **Caveat mark**. **Not a Suspect**,
+which says a figure may be short because something in _this_ fight could not be read: a caveated
+figure is complete and still answers a narrower question, so a recording with nothing unread in it
+carries every caveat it ever did, and one glyph over both would make the permanent look temporary
+and the temporary look permanent. **develop ADR 0088**, whose mark got an ink and a row in **develop
+ADR 0089**. _Avoid_: Warning, footnote, asterisk, disclaimer, approximate, suspect
 
 **Element**: Damage type — fire, cold, physical and the rest — taken from the key. _Avoid_: School,
 type, damage type
@@ -153,8 +151,8 @@ fight? _Avoid_: Metadata, informational, noise
 
 ## What could not be read
 
-These four are different claims, and collapsing any two of them is how a number that might be wrong
-comes to look like a number that is right.
+These are different claims, and collapsing any two of them is how a number that might be wrong comes
+to look like a number that is right.
 
 **Unattributed**: A number the log does not tie to any actor. Shown, never guessed. It may still be
 charged to a **side** where the game named the other end. _Avoid_: Unknown, orphan, misc
@@ -181,8 +179,8 @@ unexplained
 so. **It carries no figure**, which is what separates it from everything above: a total may be short
 by it and nothing anywhere can say by how much. _Avoid_: Failed, skipped, dropped
 
-**Suspect**: A drawn figure that may be short, because something feeding it could not be read.
-Marked next to the figure it concerns, never in a banner. _Avoid_: Warning, error, invalid
+**Suspect**: A drawn figure that may be short, because something feeding it could not be read. Where
+it is marked is `DESIGN.md`'s _Suspect Is Adjacent Rule_. _Avoid_: Warning, error, invalid
 
 **Undrawn**: A panel section that could not be rendered at all, replaced in place by a marker.
 _Avoid_: Crashed, broken, failed
@@ -244,8 +242,9 @@ expansion, breakdown, sub-panel
 **Outside the ranking**: The section under the list, and the figure standing in it: what a screen's
 own count holds and no row of it does. **A measurement, never a category** — it is the screen
 counted a second time, from the statistics rather than from the rows, so anything that stops
-reaching a row lands in it and nothing is ever written to put it there. Zero on every recording.
-_Avoid_: Other, remainder, misc, pozostałe
+reaching a row lands in it and nothing is ever written to put it there. It holds nothing on any
+screen of the 37 recordings of `captures/`, every seat and side (read through `presentScreen`,
+2026-10-06). _Avoid_: Other, remainder, misc, pozostałe
 
 **Cut**: What one drill level states a figure by — the element it was dealt with, or the combatant
 at the other end of the blow. A cut of one combatant's figure, never of the fight's. _Avoid_:

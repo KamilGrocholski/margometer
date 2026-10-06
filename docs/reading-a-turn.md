@@ -19,9 +19,9 @@ deno task fight:openers captures/<file>.json   # one recording, message by messa
 ```
 
 ⚠️ **No message is written down here, and none is printed.** A `prepare` states the client's own
-display text and so does an announcement, which is nobody here's to keep (`captures/AGENTS.md`). The
-register names a payload and a message by number and the walk prints the message's **keys**; the
-message itself is one file away, in `captures/`, where it already lives.
+display text and so does an announcement, which is nobody here's to keep (`AGENTS.md`, _Never_;
+`NOTICE.md`). The register names a payload and a message by number and the walk prints the message's
+**keys**; the message itself is one file away, in `captures/`, where it already lives.
 
 ## What a message goes through
 
@@ -52,8 +52,8 @@ an announcement, the damage a blow reports by name, and a declaration; everythin
 to a standing of nobody — a tick of poison, a figure the protocol half-named, a message that went
 unread.
 
-That is the mechanism the register below exposes, and until **develop ADR 0057** it turned on a
-distinction that is about **how damage is reported** rather than about turns:
+That is the mechanism the register below exposes, and it turns on a distinction that is about **how
+damage is reported** rather than about turns (**develop ADR 0057**):
 
 | the message before states   | it decodes to                 | the standing after it | a `prepare` next |
 | --------------------------- | ----------------------------- | --------------------- | ---------------- |
@@ -64,8 +64,9 @@ distinction that is about **how damage is reported** rather than about turns:
 The first two are one combatant striking. `docs/protocol-keys.md` owns what each key means, and it
 is the protocol's own split: a blow aimed at the message's target carries the first, and damage that
 landed on somebody the message names carries the second — whose cause that register reads off the
-message actor, which is why the two now answer alike. Reading the second as nobody's action opened
-33 turns across the corpus, 16 of them where the game's own numbering could see it.
+message actor, which is why the two answer alike. ⚠️ Read as nobody's action, the second opens 33
+turns across the corpus, 16 of them where the game's own numbering can see it (measured for
+**develop ADR 0057**).
 
 The third row is where the suppression stops, and it is load-bearing: health moving on a combatant
 is not that combatant acting, so a preparation after one opens a turn. The corpus stands 177

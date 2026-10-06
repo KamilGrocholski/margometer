@@ -18,12 +18,9 @@ deno task panel:drill --screen healthGiven  # one screen of it
 
 ## The views, at three levels
 
-**The panel is three levels deep, and the third has several shapes on each of its two branches.**
-`pair`, `part` and `unnamed pair` are each a press away from `opened` and none is reachable from
-another, so a reader counting how far down they can go counts three. `unnamed` sits on the second
-level off a branch of its own — it is opened from a row standing under the ranking rather than from
-one on it — and `unnamed cut` is that branch's third, reached from either of the two sections
-`unnamed` draws.
+`DESIGN.md` owns the shape — three levels, a branch under the ranking and one under a pinned row,
+and a row that opens wherever a level stands under it (`develop ADR 0034`). This table names the
+views that shape draws, as `tools/drill-report.ts` names them.
 
 | view           | level | what it lists                                             | how a reader gets there                                      |
 | -------------- | ----- | --------------------------------------------------------- | ------------------------------------------------------------ |
@@ -35,21 +32,14 @@ one on it — and `unnamed cut` is that branch's third, reached from either of t
 | `unnamed pair` | 3     | the end that person's figure left out, by key             | pressing the half-named row in the opened row's cut          |
 | `unnamed cut`  | 3     | one person's own keys, or one key's own people            | pressing either kind of row on the `unnamed` level           |
 
-**A row opens wherever there is a level under it.** What decides it is never whether that level
-would say something new — a cut of one row states what the figure over it was made of, which the
-heading never does, and a reader who cannot press a row learns nothing at all. What stays shut is
-what the statistics keep no second cut of, and `develop ADR 0034` carries the argument.
-
-**Nothing on the third level opens, on either branch.** Every row on the second does: under a pinned
-row the two sections are one fold read both ways round, so a person opens onto their own keys and a
-key onto its own people, and past that there is nothing kept to draw. The half-named row inside an
-opened figure reaches the same keys from the other side: that person's own part of the figure the
-pinned row stands for, kept beside it by `develop ADR 0039`. The rungs are entered by different
-marks: a person carries `data-row`, a pinned row and a half-named row inside an opened figure carry
-`data-unnamed` naming the end they leave out, and a part carries one of `data-skill`, `data-source`
-and `data-kind` — one attribute per kind of row, so what a press asks for is read off the node
-rather than parsed out of it. Every mark goes on the row **and on every cell in it**, because a
-listener reads what was pressed off the node under the hand and walks no ancestors.
+The half-named row inside an opened figure reaches the keys of the `unnamed` level from the other
+side: that person's own part of the figure the pinned row stands for, kept beside it by
+`develop ADR 0039`. The rungs are entered by different marks: a person carries `data-row`, a pinned
+row and a half-named row inside an opened figure carry `data-unnamed` naming the end they leave out,
+and a part carries one of `data-skill`, `data-source` and `data-kind` — one attribute per kind of
+row, so what a press asks for is read off the node rather than parsed out of it. Every mark goes on
+the row **and on every cell in it**, because a listener reads what was pressed off the node under
+the hand and walks no ancestors.
 
 ## The kinds of row
 
@@ -132,10 +122,7 @@ A verdict outside that list is refused rather than read as silence.
 
 One heading per cell, and the heading names the screen and the kind of row, because that pair is
 what the register keys a verdict by. **How many of each open is not written here** — the counts
-change with the next recording and `deno task panel:drill --cases` states them (**V5**). This
-section said _the one cell_ until 2026-09-13, while the register had held two since
-`develop ADR 0081`, and the figures it carried beside that had gone stale by a whole release of new
-material.
+change with the next recording and `deno task panel:drill --cases` states them (**V5**).
 
 ### `damageTaken` · `kind`
 
@@ -195,35 +182,33 @@ A row that opens nothing is not a row that says nothing. What no announcement co
 in its section so the parts add up to the figure over them, and the two screens do it differently.
 
 **On the damage screens it closes into `Zwykły cios`**, which takes a place among the rows above it
-since `develop ADR 0079` — it holds the blows the game numbered a turn for and named no skill to,
-and that is a thing the game names. It is also the one row of a list wearing the caveat mark,
-because what the game names there is that the blows landed and not what they were dealt with
-(`develop ADR 0089`). Since `develop ADR 0080` it holds nothing else: health that went out under a
-key, without a blow carrying it, stands under that key here as it always did on healing. Under
-`damageDealt` that row also carries how many blows — the question a plain attack raises, and a
-number the figure alone cannot state. The count is that screen's alone: the protocol states no
-number of anything against one opponent rather than another, and on `damageTaken` the announcement
-was somebody else's, so a count read off the reader's own row would be their own swings under
-somebody else's heading. **On the healing screens nothing closes at all**: health that moved outside
-an announcement still moved under a key the game named, so the section lists those keys as `source`
-rows. `DESIGN.md` owns that rule; `docs/protocol-keys.md` owns what each key means.
+(`develop ADR 0079`) — it holds the blows the game numbered a turn for and named no skill to, and
+that is a thing the game names. It is also the one row of a list wearing the caveat mark, because
+what the game names there is that the blows landed and not what they were dealt with
+(`develop ADR 0089`). It holds nothing else (`develop ADR 0080`): health that went out under a key,
+without a blow carrying it, stands under that key here as it does on healing. Under `damageDealt`
+that row also carries how many blows — the question a plain attack raises, and a number the figure
+alone cannot state. The count is that screen's alone: the protocol states no number of anything
+against one opponent rather than another, and on `damageTaken` the announcement was somebody else's,
+so a count read off the reader's own row would be their own swings under somebody else's heading.
+**On the healing screens nothing closes at all**: health that moved outside an announcement still
+moved under a key the game named, so the section lists those keys as `source` rows. `DESIGN.md` owns
+that rule; `docs/protocol-keys.md` owns what each key means.
 
 ## An announcement is kept on the row that made it
 
-⚠️ **This document said the opposite until 2026-08-31, and the recordings said otherwise all
-along.** It read: _nothing announces a blow you take; the protocol names what hit you and never what
-the other side chose_ — which was a claim about the protocol standing on a fact about our own
-aggregation. The protocol does announce, on both sides: 34 of the 41 combatants on side 2 across
-`captures/` announce something, Amaimon, Hildur, Draugr, Centaur and Mamlambo among them, and 80.9%
+⚠️ **The protocol announces on both sides, and _nothing announces a blow you take_ is a trap**
+(`develop ADR 0078`): a claim about the protocol standing on a fact about our own aggregation. 34 of
+the 41 combatants on side 2 across the 37 recordings of `captures/` announce something, Amaimon,
+Hildur, Draugr, Centaur and Mamlambo among them (`deno task fight:figures`, 2026-10-06), and 80.9%
 of all damage dealt in the corpus stands under an announcement — 11,200,306 of 13,851,581, read
-2026-10-04, what a pool took counted in as ADR 0012 counts it. `develop ADR 0078` was worth 147,082
-of the health alone when it was read on 2026-09-12, and that share has not been re-earned since.
+2026-10-04, what a pool took counted in as ADR 0012 counts it.
 
 What is true is narrower. `SkillFigures` hangs off the record of whoever **made** the announcement,
 so a figure somebody received carries no announcement of its own. `damageTaken` therefore reads its
 `skill` rows off the striker's row and closes the rest against `Zwykły cios` — the same walk
-`healthRestored` has always made over `healthGivenByReceiver`, `getPairGivingEnd` turning on the
-direction rather than on the noun.
+`healthRestored` makes over `healthGivenByReceiver`, `getPairGivingEnd` turning on the direction
+rather than on the noun.
 
 **Which is what a received skill row opens onto.** A section folds every caster's announcement under
 one name — two healers both announcing `Leczenie ran` are one row — and the level under it is the
@@ -268,8 +253,9 @@ Shapes the code would draw, absent from `captures/`, so no verdict is claimed. E
 - a `no kind` row on any level that could hold one. Under a pinned row it is not absent but
   impossible, which is the bullet above rather than this one;
 - a `half-named` row on the third level, under a part;
-- a `neither end` row under a pinned one. `damageByNeitherEnd` is zero over every recording, so the
-  row the code draws for it has never been drawn from material.
+- a `neither end` row under a pinned one. `damageByNeitherEnd` is zero on each of the 37 recordings
+  of `captures/` (`deno task fight:figures`, "named neither end", 2026-10-06), so the row the code
+  draws for it is drawn from no material.
 
 `tests/ui/panel-element.test.ts` and `tests/ui/panel-content.test.ts` draw several of these from
 fights built by hand, which is where their shape is held.
