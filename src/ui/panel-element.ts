@@ -10,6 +10,7 @@
 import { formatDecimal } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import {
     PANEL_WINDOW,
     PANEL_WINDOWS,
@@ -1361,12 +1362,6 @@ function renderHelperBody(
                 `background:${formatColour(charged.colour)}`,
             );
             const name = renderText(document, "span", CLASS.rowName, charged.skillName);
-            const counter = renderText(
-                document,
-                "span",
-                `${CLASS.rowValue} ${CLASS.figure}`,
-                formatTurnsLeft(charged.turnsElapsed, charged.turnsStated),
-            );
             const pips = renderElement(document, "div", CLASS.helperPips);
             const dots: PanelElement[] = [pips];
             // Draw one dot per turn of the charge, lit up to what has passed.
@@ -1397,8 +1392,20 @@ function renderHelperBody(
             row.append(cap);
             row.append(name);
             row.append(pips);
-            row.append(counter);
-            const parts = [cap, name, ...dots, counter];
+            const parts = [cap, name, ...dots];
+            // An ended charge draws no cell rather than an empty one, which would leave a
+            // gap the holder's row, drawing no length either, does not leave (ADR 0041).
+            const turnsLeft = formatChargedSkillTurnsLeft(charged);
+            if (turnsLeft !== null) {
+                const counter = renderText(
+                    document,
+                    "span",
+                    `${CLASS.rowValue} ${CLASS.figure}`,
+                    turnsLeft,
+                );
+                row.append(counter);
+                parts.push(counter);
+            }
             for (const rule of renderSideRules(document, charged.sideRelation)) {
                 row.append(rule);
                 parts.push(rule);
@@ -3450,21 +3457,32 @@ function presentHelperPersonCard(person: HelperPerson): CardContent {
  * What a charge's row had to cut, handed back whole: the blow's name, whoever is making it ready
  * — which the row says in a hue and nowhere in words — and what became of it at either end
  * (`develop ADR 0100`). The turns are those left, under the word a held character's card states
- * its own under (ADR 0040).
+ * its own under (ADR 0040), and only while it is still being made ready (ADR 0041).
  */
 function presentChargedSkillCard(charged: StandingChargedSkill): CardContent {
+    const name = charged.skillName;
+    const subtitle = formatChargedSkillSubtitle(charged.name, charged.state);
+    const turnsLeft = formatChargedSkillTurnsLeft(charged);
+    if (turnsLeft === null) return { name, subtitle, groups: [] };
     const stated: CardLine = {
         kind: CARD_LINE.stat,
         label: HELPER_WORDS.turnsLeft,
-        stated: formatTurnsLeft(charged.turnsElapsed, charged.turnsStated),
+        stated: turnsLeft,
         isStrong: false,
         caveat: null,
     };
-    return {
-        name: charged.skillName,
-        subtitle: formatChargedSkillSubtitle(charged.name, charged.state),
-        groups: [{ lines: [stated] }],
-    };
+    return { name, subtitle, groups: [{ lines: [stated] }] };
+}
+
+/**
+ * The turns a charge has left, or null once it has ended either way, where the dots and the word
+ * naming that end say how far it got (ADR 0041).
+ */
+function formatChargedSkillTurnsLeft(charged: Readonly<StandingChargedSkill>): string | null {
+    if (charged.state === CHARGED_SKILL_STATE.charging) {
+        return formatTurnsLeft(charged.turnsElapsed, charged.turnsStated);
+    }
+    return null;
 }
 
 /**

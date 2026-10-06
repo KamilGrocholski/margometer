@@ -571,9 +571,10 @@ walk over them. **develop ADR 0098**, widened by **develop ADR 0100**.
 **A blow being made ready is a row like any other, so it answers the same way.** Its name folds
 whole, and under it stands whoever is making it ready — which is the one place that person is named
 in words, the row having only their hue — with what became of the blow beside them at either end.
-Then the turns the client's own envelope states, under the word a cast's card uses. The band's
-heading says what became of the first charge; each card says what became of its own. **develop
-ADR 0100.**
+Then, while it is still being made ready, the turns it has left, under the word a cast's card uses;
+a charge that ended states no length on its card or its row, and its dots say how far it got. The
+band's heading says what became of the first charge; each card says what became of its own.
+**develop ADR 0100**, ADR 0041.
 
 **A row the protocol left an end of says which end, and where its figure stands.** It is not a card
 and names nobody — that is what the row is — but the two lines every leaf gets are not an answer to

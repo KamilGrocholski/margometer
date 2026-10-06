@@ -848,6 +848,62 @@ Deno.test("a charge that is over says on its own card which end it came to", () 
 });
 
 /**
+ * ADR 0041. A charge that ended draws no length: beside the word naming its end, the turns it had
+ * left are a future that never runs. A broken one stopped mid-way and a struck one ran out, so the
+ * one the old counter would have said `3 tury` of and the one it would have said `0 tur` of are
+ * both here, beside one still being made ready that keeps its count.
+ */
+Deno.test("an ended charge states no length on its row or its card, and a charging one does", () => {
+    const cases = [
+        ["charging", 1, 1, "3 tury"],
+        ["broken", 1, 1, null],
+        ["struck", 4, 4, null],
+    ] as const;
+    for (const [state, turnsElapsed, litExpected, turnsLeft] of cases) {
+        const reading = presentHelper(
+            [],
+            [{ ...composeCutCharge(state), turnsElapsed }],
+            ROSTER,
+            OURS,
+            composeTurn(null),
+        );
+        const { host } = draw(reading);
+        const row = getElementsWithin(getWindow(host))
+            .find((descendant) => descendant.getAttribute("data-card") === "helper:charge:21");
+        assertExists(row, `a ${state} charge stands as a row`);
+        const pips = getElementsWithin(row).filter((descendant) =>
+            descendant.className.split(" ")[0] === "helper-pip"
+        );
+        assertStrictEquals(pips.length, 4, `a ${state} charge keeps a dot per turn it runs`);
+        assertStrictEquals(
+            pips.filter((pip) => pip.className.includes("helper-pip-lit")).length,
+            litExpected,
+            `and the ${state} charge's dots say how far it got`,
+        );
+        assertEquals(
+            getElementsWithin(row)
+                .filter((descendant) => descendant.className.split(" ").includes("row-value"))
+                .map((descendant) => descendant.textContent),
+            turnsLeft === null ? [] : [turnsLeft],
+            `the ${state} charge's row states the turns left only while it is being made ready`,
+        );
+        pointAtElement(host, "pointermove", row, 200);
+        const card = readCard(host);
+        assertEquals(card.name, [CUT_BLOW], `the ${state} charge's card still names the blow`);
+        assertEquals(
+            card.stated.map((line) => [line.label, line.value]),
+            turnsLeft === null ? [] : [[HELPER_WORDS.turnsLeft, turnsLeft]],
+            `and the ${state} charge's card states the turns left only while it is being made ready`,
+        );
+        assertStrictEquals(
+            card.groups,
+            turnsLeft === null ? 0 : 1,
+            `so the ${state} charge's card holds no empty run under its name`,
+        );
+    }
+});
+
+/**
  * Every dot is a node in its own right, and a card is read off the node under the hand and never
  * walked up from. Unmarked, the run of them is the widest hole on the row.
  */

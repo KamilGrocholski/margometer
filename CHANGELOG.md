@@ -43,7 +43,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   „Dotyk anioła: 1/3” i „Spowolnienie: 14%”, a prowokacja mówi, ile tur jeszcze trzyma, na przykład
   „(2 tury)”.
 - **Zmiana** — Pomocnik przy ładowanym ciosie specjalnym i przy prowokacji mówi, ile tur zostało, na
-  przykład „2 tury”, tak jak dymek gry, zamiast „2 z 4”.
+  przykład „2 tury”, tak jak dymek gry, zamiast „2 z 4”; przy ciosie przerwanym albo wykonanym nie
+  podaje tur — zostają kropki i słowo, co się z nim stało.
 - **Poprawka** — Gdy gra przestanie przyjmować dopiski panelu w dymkach postaci, panel o tym mówi,
   zamiast po cichu ich nie pokazywać.
 - **Poprawka** — Dymek postaci w walce nie pokazuje już dwa razy ciosu specjalnego, który ładuje:

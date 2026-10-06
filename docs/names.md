@@ -1311,6 +1311,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `formatCaseReport` — `tools/drill-report.ts`, `tools/turn-count.ts`
 - `formatCastText` — `tests/repository/captured-fight-register.test.ts`
 - `formatChargedSkillSubtitle` — `src/ui/panel-words.ts`
+- `formatChargedSkillTurnsLeft` — `src/ui/panel-element.ts`
 - `formatCitation` — `tests/repository/cited-paths.test.ts`
 - `formatCodeSpan` — `tests/repository/name-register.test.ts`
 - `formatColour` — `src/ui/panel-palette.ts`
@@ -6217,6 +6218,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `trimmed` — `src/ui/panel-element.ts`
 - `turn` — `src/ui/panel-element.ts`
 - `turnsCell` — `src/ui/panel-element.ts`
+- `turnsLeft` — `src/ui/panel-element.ts`
 - `typeStep` — `src/ui/panel-element.ts`
 - `undrawn` — `src/ui/panel-element.ts`
 - `unnamed` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
@@ -7076,7 +7078,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `carrierNotes` — `tests/ui/panel-element.test.ts`
 - `carries` — `tests/core/anguish-rule.test.ts`
 - `carrying` — in 5 files: `tests/`
-- `cases` — in 4 files: `tests/`
+- `cases` — in 5 files: `tests/`
 - `cast` — in 8 files: `tests/`
 - `caster` — `tests/core/absorption-destruction-rule.test.ts`, `tests/ui/panel-content.test.ts`
 - `casterUnknown` — `tests/core/combatant-health.test.ts`
@@ -7691,6 +7693,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `listeners` — `tests/tools/preview-server.test.ts`
 - `lit` — `tests/core/fight-session.test.ts`, `tests/tools/fabricated-fight.test.ts`,
   `tests/ui/helper-window.test.ts`
+- `litExpected` — `tests/ui/helper-window.test.ts`
 - `literal` — `tests/repository/protocol-keys.test.ts`,
   `tests/repository/regular-expressions.test.ts`
 - `little` — `tests/e2e/panel-card.spec.ts`
@@ -8448,7 +8451,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/runtime/margonem-engine-search.test.ts`
 - `turns` — in 5 files: `tests/`
 - `turnsByCombatantId` — `tests/core/turn-clock.test.ts`
-- `turnsElapsed` — `tests/tools/shout-holding.test.ts`
+- `turnsElapsed` — `tests/tools/shout-holding.test.ts`, `tests/ui/helper-window.test.ts`
+- `turnsLeft` — `tests/ui/helper-window.test.ts`
 - `twentieth` — `tests/runtime/shelf.test.ts`
 - `twice` — in 6 files: `tests/`
 - `two` — in 4 files: `tests/`
@@ -15076,6 +15080,7 @@ suite's material.
 - `docs/adr/0038-a-fighter-s-tooltip-leaves-the-charge-to-the-game.md`
 - `docs/adr/0039-a-tooltip-row-is-written-as-the-game-writes-its-own.md`
 - `docs/adr/0040-pomocnik-says-the-turns-a-length-has-left.md`
+- `docs/adr/0041-an-ended-charge-draws-no-length.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`
