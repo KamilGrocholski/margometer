@@ -252,12 +252,10 @@ and every other nought on that fight is a measurement. Where nobody did, the car
 Two independent readings were looked at before this one was settled, and neither is a source this
 repository can lean on — but what they do says which figure is the one to show.
 
-**The game's client does not count turns at all.** `newTurn(data.current)` decides whether it is the
-reader's move and sets a sound; `updateTurnPredictions(turns)` walks the queue with
-`for (let i in
-turns)` and reads only its values, never its keys. Development build `1781609507010`,
-read 2026-09-02. The turn-loss sentence is in neither the client nor its dictionary, so the server
-composes it.
+**The game's client does not count turns at all.** `newTurn` decides whether it is the reader's move
+and sets a sound; `updateTurnPredictions` walks the queue by its values and never reads its keys.
+Development build `1781609507010`, read 2026-09-02. The turn-loss sentence is in neither the client
+nor its dictionary, so the server composes it.
 
 **`grooove.pl` counts blows, not turns.** Its fight viewer keeps one `X.Xtury` per combatant and
 increments it in three kinds of place: a block firing after any log entry that carried a dealt

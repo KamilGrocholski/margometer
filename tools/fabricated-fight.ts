@@ -314,8 +314,7 @@ const SHOUT_SKILL: FabricatedSkill = { id: 25, name: "Znak wichru" };
 /**
  * Skills a cast is announced under. The ids are ones the frozen tables date: every one but the last
  * stands in `frozen/aura-turns.ts`, and the last only in `frozen/skill-durations.ts`, dated but
- * reaching no side. Only the names are invented, because a skill's own name is the game's prose
- * and is not copied into this tree.
+ * reaching no side.
  */
 const AURA_SKILLS: readonly FabricatedSkill[] = [
     SHOUT_SKILL,

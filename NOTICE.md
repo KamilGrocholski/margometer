@@ -12,12 +12,15 @@ Garmory. It is not affiliated with, endorsed by, or approved by the operator.
 **What is here.** Raw battle protocol captured from real fights, in `captures/`, and the functional
 names the protocol uses — keys, field names, identifiers — wherever the code and the documents must
 spell them. Functional names are how a machine addresses a thing; they are not the operator's
-authored text.
+authored text. The game's own names for abilities and items stand where a document or a comment must
+say which one it means: a name is not a sentence. A few words of the published help stand as a
+locator, in `frozen/help-phrases.ts` and the entries citing them, where a guard finds them in the
+help to hold the entry to its source.
 
 **What is deliberately not here.** The game's own displayed sentences, its client source, its
 assets, and the text of its published help. Ability descriptions are stripped from recordings before
 they are admitted. Where this repository states what an effect does, it does so in its own words,
-with a locator and a read date, and never by quotation.
+with a locator and a read date, and never by quoting a sentence.
 
 **Player nicknames never enter this repository.** They are substituted by tooling before a recording
 is admitted, never by hand, and a recording that cannot be redacted is refused.
