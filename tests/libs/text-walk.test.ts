@@ -21,6 +21,9 @@ import {
     RUN_CHARACTERS_MAXIMUM,
 } from "#/libs/text-walk.ts";
 
+/** One backslash, spelt where a raw template cannot end on one. */
+const ESCAPE = "\\";
+
 Deno.test("a digit is told from its neighbours in the character table", () => {
     assertStrictEquals(isDigitAt("0", 0), true, "the lowest digit is one");
     assertStrictEquals(isDigitAt("9", 0), true, "and so is the highest");
@@ -99,13 +102,30 @@ Deno.test("a quoted literal is read in any of the three quotings, and an open on
     assertStrictEquals(lookupQuotedLiteral("", 0), null);
 });
 
+Deno.test("a literal closes on the quote that opened it, and an escape takes what follows", () => {
+    assertEquals(lookupQuotedLiteral(`"a'b"`, 0), { text: "a'b", end: 5 }, "another quote is text");
+    assertStrictEquals(lookupQuotedLiteral(`"a'`, 0), null, "and closes nothing");
+    assertEquals(
+        lookupQuotedLiteral(String.raw`"a\"b"`, 0),
+        { text: String.raw`a\"b`, end: 6 },
+        "an escaped quote of its own kind is text",
+    );
+    assertEquals(
+        lookupQuotedLiteral(String.raw`"a\\"b`, 0),
+        { text: String.raw`a\\`, end: 5 },
+        "and an escaped escape leaves the quote after it closing",
+    );
+    assertStrictEquals(lookupQuotedLiteral(`"a${ESCAPE}`, 0), null, "an escape at the end too");
+});
+
 /** Text a literal is looked for in comes from outside, so one past the bound is an answer. */
 Deno.test("a literal is read up to the bound on its length, and one past it is answered so", () => {
-    const longest = "a".repeat(LITERAL_CHARACTERS_MAXIMUM);
+    // The bound counts looks, and the closing quote is one of them, as a run's end is.
+    const longest = "a".repeat(LITERAL_CHARACTERS_MAXIMUM - 1);
     assertEquals(
         lookupQuotedLiteral(`"${longest}"`, 0),
-        { text: longest, end: LITERAL_CHARACTERS_MAXIMUM + 2 },
-        "a literal at the bound is read",
+        { text: longest, end: LITERAL_CHARACTERS_MAXIMUM + 1 },
+        "the longest literal under the bound is read",
     );
     const past = lookupQuotedLiteral(`"${longest}a"`, 0);
     assertInstanceOf(past, LiteralTooLong, "and one past it is too long, not none");

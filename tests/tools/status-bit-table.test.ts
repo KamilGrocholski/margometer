@@ -89,9 +89,9 @@ Deno.test("whitespace running past the walk's bound is refused, and up to it is 
 
 Deno.test("a literal running past the walk's bound is refused, and one at it is read", () => {
     const naming = (count: number) => `x("a",null,"${"b".repeat(count)}");y("c",null,"buff")`;
-    assertEquals(requireStatusBits(naming(LITERAL_CHARACTERS_MAXIMUM)), ["c"], "at the bound");
+    assertEquals(requireStatusBits(naming(LITERAL_CHARACTERS_MAXIMUM - 1)), ["c"], "at the bound");
     assertThrows(
-        () => requireStatusBits(naming(LITERAL_CHARACTERS_MAXIMUM + 1)),
+        () => requireStatusBits(naming(LITERAL_CHARACTERS_MAXIMUM)),
         StatusBitTableError,
         "runs past",
     );

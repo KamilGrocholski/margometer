@@ -103,12 +103,12 @@ Deno.test("a label or a run past what a walk reads is refused, and one at it is 
     const labelled = (count: number) =>
         `e.manageBattleEffects(t);switch(q[0]){case"${"k".repeat(count)}":b();case"blok":c()}`;
     assertStrictEquals(
-        requireProtocolKeys(labelled(LITERAL_CHARACTERS_MAXIMUM)).length,
+        requireProtocolKeys(labelled(LITERAL_CHARACTERS_MAXIMUM - 1)).length,
         2,
         "a label at the bound",
     );
     assertThrows(
-        () => requireProtocolKeys(labelled(LITERAL_CHARACTERS_MAXIMUM + 1)),
+        () => requireProtocolKeys(labelled(LITERAL_CHARACTERS_MAXIMUM)),
         ProtocolKeyTableError,
         "runs past",
     );

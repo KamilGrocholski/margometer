@@ -51,7 +51,7 @@ export function parseJson(text: string): JsonValue | JsonUnreadable {
         assert(isRecord(parsedText), "JSON text parses into a value JSON has");
         return parsedText;
     });
-    if (parsed instanceof Error) return new JsonUnreadable(parsed);
+    if (parsed instanceof errors.Caught) return new JsonUnreadable(parsed);
     assert(text.length > 0, "text that parsed says something");
     return parsed;
 }
@@ -66,7 +66,7 @@ export function encodeJson(
     const written = errors.attempt((): string | undefined =>
         JSON.stringify(encodable, null, indentSpaces)
     );
-    if (written instanceof Error) return new JsonUnwritable(written);
+    if (written instanceof errors.Caught) return new JsonUnwritable(written);
     if (written === undefined) return new JsonUnwritable(null);
     assert(written.length > 0, "a value written as text says something");
     return written;

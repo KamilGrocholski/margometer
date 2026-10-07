@@ -25,10 +25,11 @@ export class LiteralTooLong extends Error {
 
 /**
  * Any of the three quotings JavaScript has, because which one a build uses is the bundler's taste
- * and not the source's meaning. The class admits a mismatched pair, which no valid source holds,
- * and every use sits inside a longer shape that decides what it is reading.
+ * and not the source's meaning. A literal closes on the quote that opened it, and every use sits
+ * inside a longer shape that decides what it is reading.
  */
 export const JAVASCRIPT_QUOTES = "\"'`";
+const ESCAPE = "\\";
 
 /**
  * Past the farthest two quotes stand apart in any bundle read here, so the walk stays a stated
@@ -125,10 +126,14 @@ export function lookupQuotedLiteral(
     if (opening === "") return null;
     if (!JAVASCRIPT_QUOTES.includes(opening)) return null;
     let index = open + 1;
-    for (let look = 0; look <= LITERAL_CHARACTERS_MAXIMUM; look += 1) {
+    let isEscaped = false;
+    for (let look = 0; look < LITERAL_CHARACTERS_MAXIMUM; look += 1) {
         const character = text.charAt(index);
         if (character === "") return null;
-        if (JAVASCRIPT_QUOTES.includes(character)) {
+        // An escape takes the character after it whole, a quote of the literal's own kind included.
+        if (isEscaped) isEscaped = false;
+        else if (character === ESCAPE) isEscaped = true;
+        else if (character === opening) {
             assert(index > open, "a literal closes after it opened");
             return { text: text.slice(open + 1, index), end: index + 1 };
         }

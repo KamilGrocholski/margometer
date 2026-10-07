@@ -3603,6 +3603,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `COMMENT_OPEN` — `libs/html-text.ts`
 - `CONTROLS_C1_FIRST` — `libs/html-text.ts`
 - `CONTROLS_C1_LAST` — `libs/html-text.ts`
+- `ESCAPE` — `libs/text-walk.ts`
 - `FIELD_TYPE` — `libs/unknown-value.ts`
 - `FIXED_MAGNITUDE_MAXIMUM` — `libs/number-text.ts`
 - `HEXADECIMAL_DIGITS` — `libs/html-text.ts`
@@ -4691,6 +4692,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ENTRY_MARK` — `tests/tools/aura-lifetime.test.ts`
 - `ENVELOPE` — `tests/e2e/panel-save.spec.ts`
 - `ERROR_NAME` — `tests/repository/throws.test.ts`
+- `ESCAPE` — `tests/libs/text-walk.test.ts`
 - `EVADED` — `tests/core/fight-statistics.test.ts`
 - `EVIDENCE_DELEGATIONS` — `tests/repository/protocol-keys.test.ts`
 - `EVIDENCE_MARKER` — `tests/repository/protocol-keys.test.ts`
@@ -5324,6 +5326,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `from` — `libs/html-text.ts`
 - `index` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `integer` — `libs/number-text.ts`
+- `isEscaped` — `libs/text-walk.ts`
 - `isHexadecimal` — `libs/html-text.ts`
 - `isValueNext` — `libs/html-text.ts`
 - `kept` — `libs/html-text.ts`
@@ -14064,6 +14067,7 @@ suite's material.
 ### `libs/text-walk.ts`
 
 - ``"\"'`"`` — `JAVASCRIPT_QUOTES`
+- `"\\"` — `ESCAPE`
 
 ### `libs/unknown-value.ts`
 

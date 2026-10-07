@@ -136,11 +136,11 @@ Deno.test("the held date is read off the field an encoder writes, and nowhere el
     assertStrictEquals(lookupHeldDate("export const A = { when: 1 };", "when"), null, "nor one");
     const dated = (count: number) => `\n    when: "${"2".repeat(count)}"`;
     assertStrictEquals(
-        lookupHeldDate(dated(LITERAL_CHARACTERS_MAXIMUM), "when")?.length,
-        LITERAL_CHARACTERS_MAXIMUM,
+        lookupHeldDate(dated(LITERAL_CHARACTERS_MAXIMUM - 1), "when")?.length,
+        LITERAL_CHARACTERS_MAXIMUM - 1,
     );
     assertThrows(
-        () => lookupHeldDate(dated(LITERAL_CHARACTERS_MAXIMUM + 1), "when"),
+        () => lookupHeldDate(dated(LITERAL_CHARACTERS_MAXIMUM), "when"),
         FrozenFilesError,
         "runs past",
     );
