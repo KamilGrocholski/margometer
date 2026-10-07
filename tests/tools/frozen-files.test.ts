@@ -27,6 +27,7 @@ import {
     prepareFrozenFiles,
     writeFrozenFiles,
 } from "#/tools/frozen-files.ts";
+import { LITERAL_CHARACTERS_MAXIMUM } from "#/libs/text-walk.ts";
 import { FrozenFilesError } from "#/tools/margometer-tool-error.ts";
 import {
     encodeFrozenHelpModule,
@@ -134,6 +135,16 @@ Deno.test("the held date is read off the field an encoder writes, and nowhere el
     assertStrictEquals(lookupHeldDate(text, "gameBuild"), null, "a field it lacks is no date");
     assertStrictEquals(lookupHeldDate('\n    when: "",\n', "when"), null, "nor is an empty one");
     assertStrictEquals(lookupHeldDate("export const A = { when: 1 };", "when"), null, "nor one");
+    const dated = (count: number) => `\n    when: "${"2".repeat(count)}"`;
+    assertStrictEquals(
+        lookupHeldDate(dated(LITERAL_CHARACTERS_MAXIMUM), "when")?.length,
+        LITERAL_CHARACTERS_MAXIMUM,
+    );
+    assertThrows(
+        () => lookupHeldDate(dated(LITERAL_CHARACTERS_MAXIMUM + 1), "when"),
+        FrozenFilesError,
+        "runs past",
+    );
 });
 
 Deno.test("every frozen reading states its date in the field its tool reads it from", () => {

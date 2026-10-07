@@ -12,6 +12,17 @@ export interface QuotedLiteral {
     end: number;
 }
 
+/** A literal opened and not closed inside the bound on one: text from outside answers it so. */
+export class LiteralTooLong extends Error {
+    override readonly name = "LiteralTooLong";
+    readonly maximum: number;
+
+    constructor(maximum: number) {
+        super();
+        this.maximum = maximum;
+    }
+}
+
 /**
  * Any of the three quotings JavaScript has, because which one a build uses is the bundler's taste
  * and not the source's meaning. The class admits a mismatched pair, which no valid source holds,
@@ -77,6 +88,7 @@ export function lookupEndOfRun(
 ): number | null {
     assert(Number.isSafeInteger(from), "a run starts at a whole position");
     assert(from >= 0, "never before the text");
+    assert(from <= text.length, "nor past its end");
     assert(Number.isSafeInteger(maximum), "a run is bounded by a whole count of characters");
     assert(maximum > 0, "of at least one");
     let runEnd = from;
@@ -85,7 +97,7 @@ export function lookupEndOfRun(
         if (!isMember(text, runEnd)) break;
         runEnd += 1;
     }
-    assert(runEnd <= Math.max(from, text.length), "a run never ends past the text it walked");
+    assert(runEnd <= text.length, "a run never ends past the text it walked");
     if (runEnd - from < maximum) return runEnd;
     return null;
 }
@@ -102,7 +114,11 @@ export function isDigitRun(text: string): boolean {
     return end === text.length;
 }
 
-export function lookupQuotedLiteral(text: string, open: number): QuotedLiteral | null {
+/** Null where no literal opens at `open` or none closes before the text ends. */
+export function lookupQuotedLiteral(
+    text: string,
+    open: number,
+): QuotedLiteral | null | LiteralTooLong {
     assert(Number.isSafeInteger(open), "a literal is looked for at a whole position");
     assert(open >= 0, "never before the text");
     const opening = text.charAt(open);
@@ -118,5 +134,5 @@ export function lookupQuotedLiteral(text: string, open: number): QuotedLiteral |
         }
         index += 1;
     }
-    assert(false, "a literal closes inside the bound on its length");
+    return new LiteralTooLong(LITERAL_CHARACTERS_MAXIMUM);
 }

@@ -1545,6 +1545,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `requireCachedSkillTable` — `tools/skill-table.ts`
 - `requireCallsCarried` — `tools/capture-intake.ts`
 - `requireComputedKeyFamily` — `tools/protocol-key-table.ts`
+- `requireEndOfRun` — `tools/protocol-key-table.ts`
 - `requireEndOfWhitespace` — `tools/status-bit-table.ts`
 - `requireEveryCombatantDecided` — `tools/capture-intake.ts`
 - `requireFabricationShape` — `tools/fabricated-fight.ts`
@@ -1553,7 +1554,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `requireMargonemWorldPageBuild` — `tools/margonem-client-source.ts`
 - `requireMargonemWorldPageBundleAddress` — `tools/margonem-client-source.ts`
 - `requireNoNameInsideAnother` — `tools/capture-intake.ts`
+- `requirePageInsideBound` — `tools/skill-table.ts`
 - `requireProtocolKeys` — `tools/protocol-key-table.ts`
+- `requireQuotedLiteral` — `tools/protocol-key-table.ts`, `tools/status-bit-table.ts`
 - `requireRecordingIsNew` — `tools/capture-intake.ts`
 - `requireScreens` — `tools/drill-report.ts`
 - `requireSkillsOfMargonemApi` — `tools/skill-table.ts`
@@ -2218,6 +2221,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `currentScreen` — `tests/runtime/margometer-runtime.test.ts`
 
+### `dated` — not in N2's table
+
+- `dated` — `tests/tools/frozen-files.test.ts`
+
 ### `decoys` — not in N2's table
 
 - `decoys` — `tests/ports/margonem-client-build.test.ts`
@@ -2340,6 +2347,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `kept` — `tests/ui/panel-look.test.ts`
 
+### `labelled` — not in N2's table
+
+- `labelled` — `tests/tools/protocol-key-table.test.ts`
+
 ### `labelling` — not in N2's table
 
 - `labelling` — `tests/tools/protocol-key-table.test.ts`
@@ -2438,7 +2449,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `naming` — not in N2's table
 
-- `naming` — in 8 files: `tests/`
+- `naming` — in 9 files: `tests/`
 
 ### `navigator` — not in N2's table
 
@@ -2467,7 +2478,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `padded` — not in N2's table
 
-- `padded` — `tests/runtime/settings.test.ts`
+- `padded` — `tests/runtime/settings.test.ts`, `tests/tools/skill-table.test.ts`
 
 ### `panel` — not in N2's table
 
@@ -2664,7 +2675,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `spaced` — not in N2's table
 
-- `spaced` — `tests/tools/status-bit-table.test.ts`
+- `spaced` — `tests/tools/protocol-key-table.test.ts`, `tests/tools/status-bit-table.test.ts`
 
 ### `split` — not in N2's table
 
@@ -3460,6 +3471,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FieldWrongType` — `libs/unknown-value.ts`
 - `JsonUnreadable` — `libs/json-text.ts`
 - `JsonUnwritable` — `libs/json-text.ts`
+- `LiteralTooLong` — `libs/text-walk.ts`
 
 ### `src/core/`
 
@@ -3568,6 +3580,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `COMMENT_CLOSE` — `libs/html-text.ts`
 - `COMMENT_CLOSE_FROM` — `libs/html-text.ts`
 - `COMMENT_OPEN` — `libs/html-text.ts`
+- `CONTROLS_C1_FIRST` — `libs/html-text.ts`
+- `CONTROLS_C1_LAST` — `libs/html-text.ts`
 - `FIELD_TYPE` — `libs/unknown-value.ts`
 - `FIXED_MAGNITUDE_MAXIMUM` — `libs/number-text.ts`
 - `HEXADECIMAL_DIGITS` — `libs/html-text.ts`
@@ -5292,6 +5306,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isValueNext` — `libs/html-text.ts`
 - `kept` — `libs/html-text.ts`
 - `look` — `libs/html-text.ts`, `libs/text-walk.ts`
+- `marker` — `libs/html-text.ts`
 - `name` — `libs/html-text.ts`
 - `nameEnd` — `libs/html-text.ts`
 - `open` — `libs/html-text.ts`
@@ -6684,7 +6699,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `listed` — `tools/preview-server.ts`
 - `listener` — `tools/preview-server.ts`
 - `litAt` — `tools/aura-lifetime.ts`
-- `literal` — `tools/frozen-files.ts`
+- `literal` — `tools/frozen-files.ts`, `tools/protocol-key-table.ts`, `tools/status-bit-table.ts`
 - `look` — in 8 files: `tools/`
 - `lost` — `tools/fabricated-fight.ts`, `tools/turn-count.ts`, `tools/turn-reading.ts`
 - `lostNow` — `tools/turn-count.ts`
@@ -6838,7 +6853,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `rows` — in 4 files: `tools/`
 - `ruleAt` — `tools/protocol-key-shape.ts`
 - `run` — `tools/aura-lifetime.ts`, `tools/payload-cost.ts`
-- `runEnd` — `tools/status-bit-table.ts`
+- `runEnd` — `tools/protocol-key-table.ts`, `tools/status-bit-table.ts`
 - `rungs` — `tools/drill-report.ts`
 - `runs` — `tools/aura-lifetime.ts`
 - `runsByLength` — `tools/aura-lifetime.ts`
@@ -8074,7 +8089,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `parts` — in 9 files: `tests/`
 - `pass` — `tests/repository/name-register.test.ts`
 - `passed` — `tests/ports/margonem-client-build.test.ts`
-- `past` — in 17 files: `tests/`
+- `past` — in 18 files: `tests/`
 - `pastBound` — in 4 files: `tests/`
 - `pastMidnight` — `tests/ui/panel-words.test.ts`
 - `pastTheHour` — `tests/ui/panel-words.test.ts`
@@ -8267,7 +8282,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `roundTripped` — `tests/runtime/fight-file.test.ts`
 - `rounded` — `tests/core/combatant-health.test.ts`, `tests/core/injure-rule.test.ts`
 - `roundedAttacker` — `tests/core/injure-rule.test.ts`
-- `row` — in 26 files: `tests/`
+- `row` — in 27 files: `tests/`
 - `rowCells` — `tests/register-table.ts`
 - `rowHeight` — `tests/ui/panel-look.test.ts`
 - `rowIndex` — in 6 files: `tests/`
@@ -9527,6 +9542,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `install` — `tools/preview-page.ts`
 - `into` — `tools/panel-giving-way.ts`
 - `isAtShouter` — `tools/shout-holding.ts`
+- `isMember` — `tools/protocol-key-table.ts`
 - `key` — in 8 files: `tools/`
 - `keyCount` — `tools/decoding-status.ts`
 - `keys` — `tools/margonem-readings.ts`, `tools/protocol-key-table.ts`
@@ -9564,6 +9580,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `need` — `tools/preview-page.ts`
 - `nothingAt` — `tools/status-bit-table.ts`
 - `now` — `tools/help-article.ts`, `tools/margonem-readings.ts`
+- `open` — `tools/protocol-key-table.ts`, `tools/status-bit-table.ts`
 - `opened` — `tools/drill-report.ts`
 - `openedPart` — `tools/drill-report.ts`
 - `opener` — `tools/turn-reading.ts`
@@ -9671,7 +9688,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tally` — in 6 files: `tools/`
 - `target` — `tools/fabricated-fight.ts`
 - `task` — `tools/develop-reports.ts`
-- `text` — in 11 files: `tools/`
+- `text` — in 12 files: `tools/`
 - `turn` — `tools/fabricated-fight.ts`, `tools/shout-holding.ts`
 - `turns` — `tools/aura-lifetime.ts`, `tools/shout-holding.ts`
 - `turnsElapsed` — `tools/shout-holding.ts`
@@ -9797,7 +9814,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `context` — `tests/source-tree.ts`
 - `control` — `tests/e2e/panel-type.spec.ts`, `tests/ui/panel-element.test.ts`
 - `controller` — `tests/tools/margonem-client-source.test.ts`
-- `count` — in 29 files: `tests/`
+- `count` — in 30 files: `tests/`
 - `countClaim` — `tests/repository/protocol-keys.test.ts`
 - `crumb` — `tests/ui/panel-element.test.ts`
 - `cutPart` — `tests/ui/panel-content.test.ts`
@@ -9961,7 +9978,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `layer` — `tests/repository/name-register.test.ts`
 - `left` — in 13 files: `tests/`
 - `legendaryBonuses` — `tests/ui/panel-card.test.ts`
-- `length` — `tests/runtime/settings.test.ts`, `tests/ui/card-window.test.ts`
+- `length` — `tests/runtime/settings.test.ts`, `tests/tools/skill-table.test.ts`,
+  `tests/ui/card-window.test.ts`
 - `lengthMaximum` — `tests/runtime/shelf-keeper.test.ts`, `tests/runtime/shelf.test.ts`
 - `letter` — `tests/repository/captured-fight-register.test.ts`
 - `level` — `tests/ui/panel-card.test.ts`
@@ -10284,8 +10302,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `expected` — `libs/unknown-value.ts`
 - `field` — `libs/unknown-value.ts`
 - `list` — `libs/unknown-value.ts`
-- `maximum` — `libs/unknown-value.ts`
-- `name` — in 4 files: `libs/`
+- `maximum` — `libs/text-walk.ts`, `libs/unknown-value.ts`
+- `name` — in 5 files: `libs/`
 - `number` — `libs/unknown-value.ts`
 - `record` — `libs/unknown-value.ts`
 - `statedText` — `libs/unknown-value.ts`

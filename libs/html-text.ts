@@ -33,8 +33,8 @@ const RAW_TEXT_ELEMENTS = ["script", "style"];
 /**
  * Past the length of any page these hosts serve, one look per character, so each walk carries a
  * stated bound: help article 372 was 645 883 characters with 16 662 `<`, and the skill table 99 896
- * with 4 662, both read 2026-10-04. `tools/help-article.ts` refuses a longer page before it reaches
- * here; any other caller is held by the assertion.
+ * with 4 662, both read 2026-10-04. Every caller refuses a longer page before it reaches here
+ * (`tools/help-article.ts`, `tools/skill-table.ts`), so the assertion holds a bug of ours.
  */
 export const HTML_CHARACTERS_MAXIMUM = 1_048_576;
 const REFERENCE_OPEN = "&";
@@ -62,6 +62,9 @@ const NO_BREAK_SPACE_CODE_POINT = 160;
 const CODE_POINT_MAXIMUM = 0x10ffff;
 const SURROGATE_FIRST = 0xd800;
 const SURROGATE_LAST = 0xdfff;
+/** The C1 controls, which a browser reads through windows-1252 rather than as themselves. */
+const CONTROLS_C1_FIRST = 0x80;
+const CONTROLS_C1_LAST = 0x9f;
 /** Past `1114111`, the most digits that name a character once the zeros in front are passed. */
 const REFERENCE_DIGITS_MAXIMUM = 8;
 const ZERO = "0";
@@ -225,8 +228,9 @@ function isTagOpeningAt(html: string, index: number): boolean {
 }
 
 /**
- * ⚠️ Where a browser shows U+FFFD for a reference naming no character, or reads one with no `;`,
- * this keeps what was written. The no-break space reads as a space, as `&nbsp;` does.
+ * ⚠️ Where a browser shows U+FFFD for a reference naming no character, reads one with no `;`, or
+ * reads `&#128;`–`&#159;` through windows-1252, this keeps what was written; so it does an unclosed
+ * comment. The no-break space reads as a space, as `&nbsp;` does.
  */
 function decodeCharacterReferences(text: string): string {
     assert(text.length <= HTML_CHARACTERS_MAXIMUM, "text stays inside the length it is walked to");
@@ -254,7 +258,10 @@ function decodeCharacterReferences(text: string): string {
 function lookupNumericReference(text: string, open: number): CharacterReference | null {
     assert(text.startsWith(NUMERIC_REFERENCE_OPEN, open), "a numeric reference opens on its mark");
     const digitsAt = open + NUMERIC_REFERENCE_OPEN.length;
-    const isHexadecimal = NUMERIC_REFERENCE_HEXADECIMAL.includes(text.charAt(digitsAt));
+    // ⚠️ `includes("")` is true, so a `&#` ending the text would read as hexadecimal past it.
+    const marker = text.charAt(digitsAt);
+    if (marker === "") return null;
+    const isHexadecimal = NUMERIC_REFERENCE_HEXADECIMAL.includes(marker);
     const digitsFrom = isHexadecimal ? digitsAt + 1 : digitsAt;
     // A page may write any number of zeros in front, and they name nothing.
     const zerosEnd = lookupEndOfRun(text, digitsFrom, HTML_CHARACTERS_MAXIMUM, isZeroAt);
@@ -289,7 +296,10 @@ function isHexadecimalDigitAt(text: string, index: number): boolean {
     return HEXADECIMAL_DIGITS.includes(character);
 }
 
-/** A surrogate half names no character on its own, and the platform would write one anyway. */
+/**
+ * A surrogate half names no character on its own, and the platform would write one anyway; a C1
+ * control is not the character a browser shows for it.
+ */
 function parseReferencedCodePoint(digits: string, isHexadecimal: boolean): number | null {
     assert(digits.length < REFERENCE_DIGITS_MAXIMUM, "digits past the longest name are not read");
     if (digits.length === 0) return null;
@@ -299,6 +309,9 @@ function parseReferencedCodePoint(digits: string, isHexadecimal: boolean): numbe
     assert(codePoint !== null, "digits walked as digits read as a number");
     assert(codePoint > 0, "and as one above nothing, its zeros passed");
     if (codePoint > CODE_POINT_MAXIMUM) return null;
+    if (codePoint >= CONTROLS_C1_FIRST) {
+        if (codePoint <= CONTROLS_C1_LAST) return null;
+    }
     if (codePoint < SURROGATE_FIRST) return codePoint;
     if (codePoint > SURROGATE_LAST) return codePoint;
     return null;

@@ -9,6 +9,7 @@
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
 import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
+import { LITERAL_CHARACTERS_MAXIMUM, RUN_CHARACTERS_MAXIMUM } from "#/libs/text-walk.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 import { ProtocolKeyTableError } from "#/tools/margometer-tool-error.ts";
 import {
@@ -95,6 +96,29 @@ Deno.test("a switch past the labels the walk looks at is refused, and one at the
         ProtocolKeyTableError,
         "stop short",
         "one past it, which a walk returning what it had would have frozen a key short",
+    );
+});
+
+Deno.test("a label or a run past what a walk reads is refused, and one at it is read", () => {
+    const labelled = (count: number) =>
+        `e.manageBattleEffects(t);switch(q[0]){case"${"k".repeat(count)}":b();case"blok":c()}`;
+    assertStrictEquals(
+        requireProtocolKeys(labelled(LITERAL_CHARACTERS_MAXIMUM)).length,
+        2,
+        "a label at the bound",
+    );
+    assertThrows(
+        () => requireProtocolKeys(labelled(LITERAL_CHARACTERS_MAXIMUM + 1)),
+        ProtocolKeyTableError,
+        "runs past",
+    );
+    const spaced = (count: number) =>
+        `e.manageBattleEffects(t);switch(q[0]){case${" ".repeat(count)}"blok":b()}`;
+    assertEquals(requireProtocolKeys(spaced(RUN_CHARACTERS_MAXIMUM - 1)), ["blok"], "under it");
+    assertThrows(
+        () => requireProtocolKeys(spaced(RUN_CHARACTERS_MAXIMUM)),
+        ProtocolKeyTableError,
+        "goes past",
     );
 });
 

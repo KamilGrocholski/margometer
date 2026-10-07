@@ -13,11 +13,14 @@ import { encodeJson } from "#/libs/json-text.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import {
-    getEndOfRun,
     isDigitAt,
     isWhitespaceAt,
     JAVASCRIPT_QUOTES,
+    LiteralTooLong,
+    lookupEndOfRun,
     lookupQuotedLiteral,
+    type QuotedLiteral,
+    RUN_CHARACTERS_MAXIMUM,
 } from "#/libs/text-walk.ts";
 import { MARGONEM_CHANNEL, readCachedBuild, readCachedBundle } from "./margonem-client-source.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
@@ -231,7 +234,7 @@ function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
             if (!isNameCharacterAt(bundle, start - 1)) break;
             start -= 1;
         }
-        const block = getEndOfRun(bundle, tailAt + SWITCH_SUBJECT_TAIL.length, isWhitespaceAt);
+        const block = requireEndOfRun(bundle, tailAt + SWITCH_SUBJECT_TAIL.length, isWhitespaceAt);
         if (start < tailAt) {
             if (bundle.charAt(block) === BLOCK_OPEN) return start;
         }
@@ -240,6 +243,21 @@ function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
     throw new ProtocolKeyTableError(
         `more than ${LOOKS_MAXIMUM} places to look for the switch — the walk would stop short`,
     );
+}
+
+/** Where a run ends, refused where it runs past what a walk reads in one go: the bundle is theirs. */
+function requireEndOfRun(
+    source: string,
+    from: number,
+    isMember: (text: string, index: number) => boolean,
+): number {
+    const runEnd = lookupEndOfRun(source, from, RUN_CHARACTERS_MAXIMUM, isMember);
+    if (runEnd === null) {
+        throw new ProtocolKeyTableError(
+            `a run at ${from} goes past the ${RUN_CHARACTERS_MAXIMUM} characters read`,
+        );
+    }
+    return runEnd;
 }
 
 function isNameCharacterAt(source: string, index: number): boolean {
@@ -270,10 +288,10 @@ function parseCaseLabels(body: string): string[] {
         if (keywordAt === -1) return labels;
         from = keywordAt + 1;
         if (isNameCharacterAt(body, keywordAt - 1)) continue;
-        const open = getEndOfRun(body, keywordAt + CASE_KEYWORD.length, isWhitespaceAt);
-        const quoted = lookupQuotedLiteral(body, open);
+        const open = requireEndOfRun(body, keywordAt + CASE_KEYWORD.length, isWhitespaceAt);
+        const quoted = requireQuotedLiteral(body, open);
         if (quoted === null) continue;
-        const terminator = getEndOfRun(body, quoted.end, isWhitespaceAt);
+        const terminator = requireEndOfRun(body, quoted.end, isWhitespaceAt);
         if (body.charAt(terminator) !== LABEL_TERMINATOR) continue;
         labels.push(quoted.text);
         from = terminator + 1;
@@ -281,6 +299,18 @@ function parseCaseLabels(body: string): string[] {
     throw new ProtocolKeyTableError(
         `more than ${CASE_LABELS_MAXIMUM} places to look for a label — the walk would stop short`,
     );
+}
+
+/** The literal opening at `open`, or null; refused where it runs past what a walk reads. */
+function requireQuotedLiteral(source: string, open: number): QuotedLiteral | null {
+    const literal = lookupQuotedLiteral(source, open);
+    if (literal instanceof LiteralTooLong) {
+        throw new ProtocolKeyTableError(
+            `a literal at ${open} runs past the ${literal.maximum} characters read`,
+            { cause: literal },
+        );
+    }
+    return literal;
 }
 
 /** The block starting at the first `{` after `from`, brace-matched, strings skipped. */
@@ -370,17 +400,17 @@ function parseShapeFields(
             if (!bundle.startsWith(step.text, index)) return null;
             index += step.text.length;
         } else if (step.kind === SHAPE_STEP.segmentKey) {
-            const name = getEndOfRun(bundle, index, isNameCharacterAt);
+            const name = requireEndOfRun(bundle, index, isNameCharacterAt);
             if (name === index) return null;
             if (!bundle.startsWith(SEGMENT_INDEX, name)) return null;
             index = name + SEGMENT_INDEX.length;
         } else if (step.kind === SHAPE_STEP.digits) {
-            const digits = getEndOfRun(bundle, index, isDigitAt);
+            const digits = requireEndOfRun(bundle, index, isDigitAt);
             if (digits === index) return null;
             fields.set(step.field, bundle.slice(index, digits));
             index = digits;
         } else {
-            const quoted = lookupQuotedLiteral(bundle, index);
+            const quoted = requireQuotedLiteral(bundle, index);
             if (quoted === null) return null;
             fields.set(step.field, quoted.text);
             index = quoted.end;

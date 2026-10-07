@@ -2,13 +2,20 @@
  * The walk: where a run of digits ends, what counts as one, and where a quoted literal closes.
  */
 
-import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
+import {
+    assertEquals,
+    assertInstanceOf,
+    AssertionError,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import {
     getEndOfRun,
     isDigitAt,
     isDigitRun,
     isWhitespaceAt,
     LITERAL_CHARACTERS_MAXIMUM,
+    LiteralTooLong,
     lookupEndOfRun,
     lookupQuotedLiteral,
     RUN_CHARACTERS_MAXIMUM,
@@ -56,6 +63,8 @@ Deno.test("a run is walked up to the bound its caller states, and one reaching i
     );
     assertStrictEquals(lookupEndOfRun("a12", 1, 3, isDigitAt), 3, "counted from where it starts");
     assertThrows(() => lookupEndOfRun("1", 0, 0, isDigitAt), AssertionError, "of at least one");
+    assertStrictEquals(lookupEndOfRun("12", 2, 3, isDigitAt), 2, "a run at the text's end is none");
+    assertThrows(() => lookupEndOfRun("12", 3, 3, isDigitAt), AssertionError, "nor past its end");
 });
 
 Deno.test("whitespace is what HTML and JavaScript both take for it, and nothing else", () => {
@@ -90,16 +99,15 @@ Deno.test("a quoted literal is read in any of the three quotings, and an open on
     assertStrictEquals(lookupQuotedLiteral("", 0), null);
 });
 
-Deno.test("a literal is read up to the bound on its length, and a walk past it is a broken one", () => {
+/** Text a literal is looked for in comes from outside, so one past the bound is an answer. */
+Deno.test("a literal is read up to the bound on its length, and one past it is answered so", () => {
     const longest = "a".repeat(LITERAL_CHARACTERS_MAXIMUM);
     assertEquals(
         lookupQuotedLiteral(`"${longest}"`, 0),
         { text: longest, end: LITERAL_CHARACTERS_MAXIMUM + 2 },
         "a literal at the bound is read",
     );
-    assertThrows(
-        () => lookupQuotedLiteral(`"${longest}a"`, 0),
-        AssertionError,
-        "a literal closes inside the bound on its length",
-    );
+    const past = lookupQuotedLiteral(`"${longest}a"`, 0);
+    assertInstanceOf(past, LiteralTooLong, "and one past it is too long, not none");
+    assertStrictEquals(past.maximum, LITERAL_CHARACTERS_MAXIMUM, "saying the bound");
 });

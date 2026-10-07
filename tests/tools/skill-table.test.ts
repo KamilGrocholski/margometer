@@ -8,6 +8,7 @@
  */
 
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import { HTML_CHARACTERS_MAXIMUM } from "#/libs/html-text.ts";
 import { SKILLS_DATED_MAXIMUM } from "#/src/core/aura-standing.ts";
 import { SkillTableError } from "#/tools/margometer-tool-error.ts";
 import {
@@ -113,6 +114,21 @@ Deno.test("a page is read up to its bound in rows and refused one past it", () =
         () => requireSkillsOfMargonemApi(serving(ROWS_MAXIMUM + 1)),
         SkillTableError,
         "more than",
+    );
+});
+
+Deno.test("a page past the length one is walked to is refused before a row is read", () => {
+    const row = composeRow("7", "");
+    const padded = (length: number) => `${row}${" ".repeat(length - row.length)}`;
+    assertStrictEquals(
+        requireSkillsOfMargonemApi(padded(HTML_CHARACTERS_MAXIMUM)).length,
+        1,
+        "a page at the bound is read",
+    );
+    assertThrows(
+        () => requireSkillsOfMargonemApi(padded(HTML_CHARACTERS_MAXIMUM + 1)),
+        SkillTableError,
+        "past the",
     );
 });
 

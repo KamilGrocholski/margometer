@@ -12,8 +12,10 @@ import { encodeJson } from "#/libs/json-text.ts";
 import { formatInteger } from "#/libs/number-text.ts";
 import {
     isWhitespaceAt,
+    LiteralTooLong,
     lookupEndOfRun,
     lookupQuotedLiteral,
+    type QuotedLiteral,
     RUN_CHARACTERS_MAXIMUM,
 } from "#/libs/text-walk.ts";
 import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
@@ -141,7 +143,7 @@ function lookupRegisteredStatusName(bundle: string, nothingAt: number): string |
     assert(nothingAt >= 0, "an entry is looked for inside the bundle");
     const after = requireEndOfWhitespace(bundle, nothingAt + NOTHING_ARGUMENT.length);
     if (bundle.charAt(after) !== ARGUMENT_SEPARATOR) return null;
-    const role = lookupQuotedLiteral(bundle, requireEndOfWhitespace(bundle, after + 1));
+    const role = requireQuotedLiteral(bundle, requireEndOfWhitespace(bundle, after + 1));
     if (role === null) return null;
     if (role.text !== ROLE) return null;
     if (bundle.charAt(requireEndOfWhitespace(bundle, role.end)) !== CALL_CLOSE) return null;
@@ -151,11 +153,23 @@ function lookupRegisteredStatusName(bundle: string, nothingAt: number): string |
     const open = bundle.lastIndexOf(CALL_OPEN, separator);
     if (open === -1) return null;
     if (open < nothingAt - WALK_BACK_MAXIMUM) return null;
-    const name = lookupQuotedLiteral(bundle, requireEndOfWhitespace(bundle, open + 1));
+    const name = requireQuotedLiteral(bundle, requireEndOfWhitespace(bundle, open + 1));
     if (name === null) return null;
     if (requireEndOfWhitespace(bundle, name.end) !== separator) return null;
     if (name.text.length === 0) return null;
     return name.text;
+}
+
+/** The literal opening at `open`, or null; refused where it runs past what a walk reads. */
+function requireQuotedLiteral(bundle: string, open: number): QuotedLiteral | null {
+    const literal = lookupQuotedLiteral(bundle, open);
+    if (literal instanceof LiteralTooLong) {
+        throw new StatusBitTableError(
+            `a literal at ${open} runs past the ${literal.maximum} characters read`,
+            { cause: literal },
+        );
+    }
+    return literal;
 }
 
 /** Where a run of whitespace ends, refused where it runs past what a walk reads in one go. */

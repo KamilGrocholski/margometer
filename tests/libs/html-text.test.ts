@@ -81,6 +81,7 @@ Deno.test("a numeric reference reads as the character it names, and one naming n
     assertStrictEquals(decodeHtmlText("&#;"), "&#;", "and so is one with no digits");
     assertStrictEquals(decodeHtmlText("&#x;"), "&#x;", "in either base");
     assertStrictEquals(decodeHtmlText("a&#"), "a&#", "or one the text ends inside");
+    assertStrictEquals(decodeHtmlText("a&#x"), "a&#x", "past its base, too");
     assertStrictEquals(decodeHtmlText("&#0;"), "&#0;", "or one naming the character nothing is");
     assertStrictEquals(decodeHtmlText("&#1;"), "\u0001", "while the character after it is one");
     assertStrictEquals(
@@ -88,6 +89,10 @@ Deno.test("a numeric reference reads as the character it names, and one naming n
         "\ud7ff",
         "the last character before the halves",
     );
+    assertStrictEquals(decodeHtmlText("&#127;"), "\u007f", "the last character before C1");
+    assertStrictEquals(decodeHtmlText("&#128;"), "&#128;", "and not the first C1 control");
+    assertStrictEquals(decodeHtmlText("&#x9F;"), "&#x9F;", "nor the last, which a browser remaps");
+    assertStrictEquals(decodeHtmlText("a&#xA0;b"), "a b", "while the first after them reads");
     assertStrictEquals(decodeHtmlText("&#xD800;"), "&#xD800;", "and not the first half of one");
     assertStrictEquals(decodeHtmlText("&#xDFFF;"), "&#xDFFF;", "nor the last");
     assertStrictEquals(decodeHtmlText("&#xE000;"), "\ue000", "while the first after them is one");

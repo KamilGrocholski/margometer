@@ -5,7 +5,7 @@
 
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
-import { RUN_CHARACTERS_MAXIMUM } from "#/libs/text-walk.ts";
+import { LITERAL_CHARACTERS_MAXIMUM, RUN_CHARACTERS_MAXIMUM } from "#/libs/text-walk.ts";
 import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
 import {
     FROZEN_STATUS_BANNER,
@@ -82,6 +82,16 @@ Deno.test("whitespace running past the walk's bound is refused, and up to it is 
     assertEquals(requireStatusBits(spaced(RUN_CHARACTERS_MAXIMUM - 1)), ["a"], "under the bound");
     assertThrows(
         () => requireStatusBits(spaced(RUN_CHARACTERS_MAXIMUM)),
+        StatusBitTableError,
+        "runs past",
+    );
+});
+
+Deno.test("a literal running past the walk's bound is refused, and one at it is read", () => {
+    const naming = (count: number) => `x("a",null,"${"b".repeat(count)}");y("c",null,"buff")`;
+    assertEquals(requireStatusBits(naming(LITERAL_CHARACTERS_MAXIMUM)), ["c"], "at the bound");
+    assertThrows(
+        () => requireStatusBits(naming(LITERAL_CHARACTERS_MAXIMUM + 1)),
         StatusBitTableError,
         "runs past",
     );

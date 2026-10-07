@@ -9,7 +9,7 @@
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
-import { decodeHtmlText } from "#/libs/html-text.ts";
+import { decodeHtmlText, HTML_CHARACTERS_MAXIMUM } from "#/libs/html-text.ts";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
@@ -253,6 +253,7 @@ function requireCachedSkillTable(manifest: unknown): CachedSkillTable {
 
 /** Rows carrying exactly the columns named above; a page of another shape is refused. */
 export function requireSkillsOfMargonemApi(html: string): SkillReading[] {
+    requirePageInsideBound(html);
     const skills: SkillReading[] = [];
     // What stands before the first row is the page around the table, and no row.
     const rows = html.split(ROW_OPEN).slice(1);
@@ -284,6 +285,16 @@ export function requireSkillsOfMargonemApi(html: string): SkillReading[] {
         "a skill once",
     );
     return skills;
+}
+
+/** A page past the length one is walked to, refused before a row of it is read. */
+function requirePageInsideBound(html: string): void {
+    if (html.length <= HTML_CHARACTERS_MAXIMUM) return;
+    throw new SkillTableError(
+        `the skill table is ${formatInteger(html.length)} characters, past the ${
+            formatInteger(HTML_CHARACTERS_MAXIMUM)
+        } a page is read to`,
+    );
 }
 
 /** The cells of one row, as the text a person would have seen in each. */
@@ -413,6 +424,7 @@ export async function writeSkillTableCache(): Promise<CachedSkillTable> {
     // Checked before anything is written: an empty answer written over a good cache leaves every
     // later freeze with nothing to read.
     if (html.length === 0) throw new SkillTableError(`${SKILLS_ADDRESS} answered nothing`);
+    requirePageInsideBound(html);
     const pagePath = `${CACHE_ROOT}${PAGE_NAME}`;
     Deno.mkdirSync(CACHE_ROOT, { recursive: true });
     Deno.writeTextFileSync(pagePath, html);
