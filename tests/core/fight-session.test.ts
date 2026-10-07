@@ -60,6 +60,7 @@ const CUT_KEY_SAMPLES: readonly (readonly [string, string])[] = [
     ["an element struck at a name", "1=50.00;2=50.00;+oth_dmg=15,z,Gracz 1(50.00%)"],
     ["a source of healing at a name", "1=50.00;0;legbon_lastheal=40,Gracz 1(50.00%)"],
     ["a share of a side", "1=50.00;1=50.00;tspell=Cios;skillId=79;healall_per=30"],
+    ["a pool's part under every element it could take from", "1=50.00;2=50.00;-absorbm=3"],
 ];
 
 Deno.test("a fight nobody has seen is not a fight holding nothing", () => {

@@ -79,8 +79,9 @@ protocol's own percentages witness, so it leaves out what a pool absorbed. Their
 
 **Absorbed**: Damage an absorption pool — physical or magical — took instead of health. The pool is
 one the character began the fight with, so an absorbed point is part of what was dealt and taken. It
-is a kind of its own beside the elements, never a share of one, because the protocol states one
-figure per pool and not per element. _Avoid_: Shielded, soaked
+is no kind of damage: it stands under the element it took from, or under every element it could have
+taken from where the blow carried several, and never as a share of one, because the protocol states
+one figure per pool and not per element (ADR 0045). _Avoid_: Shielded, soaked
 
 **Prevented**: Damage the protocol says a defence stopped that drains nothing — a block. One
 component of the reduction and never the whole: armour and resistance also reduce and are not

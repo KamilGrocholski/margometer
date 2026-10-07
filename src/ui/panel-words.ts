@@ -19,6 +19,7 @@ import type { ChargedSkillState } from "#/src/core/charged-skill.ts";
 import { HASTE_BIT_NAME, SLOW_BIT_NAME } from "#/src/core/carried-figure.ts";
 import { HOLYTOUCH_HEALS_STATED } from "#/src/core/legendary-standing.ts";
 import { HOLYTOUCH_DECLARATION_KEY, LASTHEAL_KEY } from "#/src/core/protocol-key.ts";
+import { KIND_ELEMENTS_SEPARATOR } from "#/src/core/fight-statistics.ts";
 
 export interface CountedNoun {
     one: string;
@@ -188,6 +189,8 @@ export const PANEL_WORDS = {
     healthSource: "OD CZEGO",
     skills: "CZYM",
     withoutKind: "Bez podanego typu",
+    /** Between the last two kinds a pool's part may have been, when the blow does not say which. */
+    eitherKind: "lub",
     /** What a bound would not give a row to, summed. Never the row that closes a section: that
      * one is what the game named nothing for, and this is what it named (`develop ADR 0055`). */
     restOfKinds: "pozostałe",
@@ -459,10 +462,10 @@ const CAVEAT_NOTES: Record<Caveat, string> = {
 
 /**
  * The defence that stopped part of a blow, in the game's own word (`develop ADR 0077`), drawn as
- * sub-lines under `Zatrzymane` and, for a pool, under `Zadane` and `Otrzymane` and among the kinds
- * of damage (ADR 0012); each word is held to the frozen counts by its test. Keyed by the
- * client's token with no sign, the way an element is: the sign says which half of the blow it was,
- * not which defence.
+ * sub-lines under `Zatrzymane` and, for a pool, under `Zadane` and `Otrzymane` (ADR 0012), and
+ * never among the kinds of damage (ADR 0045); each word is held to the frozen counts by its test.
+ * Keyed by the client's token with no sign, the way an element is: the sign says which half of the
+ * blow it was, not which defence.
  */
 export const DEFENCE_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
     blok: "blok",
@@ -1104,12 +1107,20 @@ export function getWordsForHealthSource(source: string): string {
     return words;
 }
 
-/** What a figure was made of: an element, a key health went out under, or a pool it drained. */
+/**
+ * What a figure was made of: an element, a key health went out under, or the elements a pool's
+ * part stands under together, which is said as one of them (ADR 0045).
+ */
 export function getWordsForDamageKind(kind: string): string {
-    const words = ELEMENT_WORD_BY_KEY.get(kind) ?? HEALTH_LOSS_WORD_BY_KEY.get(kind) ??
-        DEFENCE_WORD_BY_KEY.get(kind);
-    if (words === undefined) return kind;
-    return words;
+    const words = ELEMENT_WORD_BY_KEY.get(kind) ?? HEALTH_LOSS_WORD_BY_KEY.get(kind);
+    if (words !== undefined) return words;
+    if (!kind.includes(KIND_ELEMENTS_SEPARATOR)) return kind;
+    const elementWords = kind.split(KIND_ELEMENTS_SEPARATOR).map((element) => {
+        return ELEMENT_WORD_BY_KEY.get(element) ?? element;
+    });
+    const leadingWords = elementWords.slice(0, -1).join(", ");
+    const lastWord = elementWords[elementWords.length - 1] ?? "";
+    return `${leadingWords} ${PANEL_WORDS.eitherKind} ${lastWord}`;
 }
 
 /**

@@ -854,10 +854,11 @@ Deno.test("a screen that cuts by nobody still cuts by what the blows carried", (
 
 /**
  * A pool's part rides the blow, so it stands wherever the blow does: under the announcement that
- * swung it, and as a kind of its own. Were it in the figure and in neither cut, the skill section
- * would close it into `Zwykły cios`, which says the game announced nothing (ADR 0012).
+ * swung it, and under the element it took from. Were it in the figure and in neither cut, the
+ * skill section would close it into `Zwykły cios`, which says the game announced nothing (ADR
+ * 0012, ADR 0045).
  */
-Deno.test("what a pool took stands under the skill that swung and as a kind of its own", () => {
+Deno.test("what a pool took stands under the skill that swung and the element it took", () => {
     const { roster } = tallyRecordedFight(HILDUR);
     const events = decodeFightMessages(DRAINED, roster, BLOWS_GRANTED);
     const statistics = tallyFightStatistics(events, new Map());
@@ -868,8 +869,8 @@ Deno.test("what a pool took stands under the skill that swung and as a kind of i
         assertStrictEquals(drill.total, 427, `${metric}: at what landed and what the pools took`);
         assertEquals(
             drill.byElement.rows.map((kind) => [kind.element, kind.figure]),
-            [["absorbm", 294], ["dmgd", 81], ["absorb", 44], ["dmgc", 8]],
-            `${metric}: each pool a kind beside the two elements, and no element given a share`,
+            [["dmgf|dmgc", 294], ["dmgd", 125], ["dmgc", 8]],
+            `${metric}: a pool under its one element, or under both it could have taken from`,
         );
         assertEquals(
             drill.bySkill.rows.map((skillRow) => skillRow.figure),
@@ -1027,7 +1028,7 @@ Deno.test("every point a kind cut is made of states its kind, on every recording
     }
     // Zero is a boundary (**W5**): a walk that opened nothing would agree with every screen it
     // never cut, so the count it reached is stated beside what it found.
-    assertStrictEquals(cut, 2351, "the kind rows the corpus draws, 2026-10-04");
+    assertStrictEquals(cut, 2208, "the kind rows the corpus draws, 2026-10-07");
     // What a blow never carried, which the cut would have to call unknown were the key it moved
     // under not read as a kind.
     assertStrictEquals(

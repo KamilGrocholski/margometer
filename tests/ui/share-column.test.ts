@@ -90,7 +90,7 @@ Deno.test("every column of shares the panel draws comes to a hundred", () => {
     }
     // The reader is proved by what it found as well as by what it passed: a sweep that stopped
     // reaching the rungs would agree with every screen it never opened.
-    assertStrictEquals(drawn, 53_941, "every column the corpus draws, 2026-10-04");
+    assertStrictEquals(drawn, 53_226, "every column the corpus draws, 2026-10-07");
 });
 
 /** The ranking of one screen for one seat, and every rung the rows on it open onto. */

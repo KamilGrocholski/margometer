@@ -28,6 +28,8 @@ import {
     CRITICAL_PROC_KEYS,
     DEFENCE_MECHANISM,
     getDefenceMechanism,
+    getElementsAbsorbed,
+    isDefence,
     KEY_FAMILY,
     lookupKeyMeaning,
     PROC_END,
@@ -255,6 +257,8 @@ interface TallyingStatistics extends UnreadMessageCounts {
  * refuses a fight cutting by more names (`CutKeysExceeded`), so past it this is an assertion.
  */
 export const CUT_MAXIMUM = 64;
+/** Between the elements a pool's part stands under where the blow does not say which it took. */
+export const KIND_ELEMENTS_SEPARATOR = "|";
 /** 81 skills are named across `captures/`, 2026-08-29; past it, `SkillsExceeded`. */
 export const SKILLS_MAXIMUM = 256;
 /** The fight-wide count each cause adds to: the compiler holds every cause to one. */
@@ -1017,9 +1021,9 @@ function addSkillFigures(
 }
 
 /**
- * A pool's part joins the kind cut under the defence's own name, beside the elements: one blow
- * lands in several elements and the protocol states one figure per pool, so no element is ever
- * credited with any of it (ADR 0012).
+ * A pool's part joins the kind cut under the element of the blow it took from. The protocol states
+ * one figure per pool, so where several of its elements rode the blow no one of them is credited
+ * with any of it: the part stands under all of them at once (ADR 0012, ADR 0045).
  */
 function tallyBlowFigures(event: AttackEvent): BlowFigures {
     const raw = tallyDamageAmounts(event.raw);
@@ -1034,7 +1038,8 @@ function tallyBlowFigures(event: AttackEvent): BlowFigures {
     for (const stopped of event.prevented) {
         if (getDefenceMechanism(stopped.defence) === DEFENCE_MECHANISM.pool) {
             absorbedParts.push(stopped);
-            kinds.push({ element: stopped.defence, amount: stopped.amount });
+            const element = composeKindAbsorbed(event.raw, stopped.defence);
+            kinds.push({ element, amount: stopped.amount });
             absorbed += stopped.amount;
         } else preventedParts.push(stopped);
     }
@@ -1055,6 +1060,30 @@ function tallyDamageAmounts(figures: readonly DamageFigure[]): number {
     }
     assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
     return total;
+}
+
+/**
+ * The raw half and not the applied one: an element a pool took whole is missing from what landed.
+ * A pool that rode none of its elements took from one of them all the same, so it stands under
+ * every one of them rather than under a kind nobody stated.
+ */
+function composeKindAbsorbed(raw: readonly DamageFigure[], defence: string): string {
+    assert(raw.length <= MESSAGE_PARTS_MAXIMUM, "a blow puts out as far as it is read");
+    const elementsAbsorbed = getElementsAbsorbed(defence);
+    assert(elementsAbsorbed.length > 0, "a pool takes from some element");
+    const candidates: string[] = [];
+    for (const element of elementsAbsorbed) {
+        for (const figure of raw) {
+            if (figure.element !== element) continue;
+            if (figure.amount <= 0) continue;
+            candidates.push(element);
+            break;
+        }
+    }
+    assert(candidates.length <= elementsAbsorbed.length, "each element is a candidate once");
+    const elements = candidates.length === 0 ? elementsAbsorbed : candidates;
+    assert(elements.length > 0, "a pool's part stands under some element");
+    return elements.join(KIND_ELEMENTS_SEPARATOR);
 }
 
 function addSkillDealt(
@@ -1255,6 +1284,21 @@ function tallyTotals(byCombatantId: ReadonlyMap<number, TallyingFigures>): Fight
     return totals;
 }
 
+/** The kind each pool's part of a blow stands under, for a bound counted before the tally. */
+export function composeKindsAbsorbed(event: AttackEvent): string[] {
+    assert(
+        event.prevented.length <= MESSAGE_PARTS_MAXIMUM,
+        "a blow is stopped as far as it is read",
+    );
+    const kinds: string[] = [];
+    for (const stopped of event.prevented) {
+        if (getDefenceMechanism(stopped.defence) === DEFENCE_MECHANISM.chance) continue;
+        kinds.push(composeKindAbsorbed(event.raw, stopped.defence));
+    }
+    assert(kinds.length <= event.prevented.length, "and no pool stands under two kinds");
+    return kinds;
+}
+
 export function countUnreadMessages(counted: UnreadMessageCounts): number {
     const unread = counted.unreadMessagesUnknownKey + counted.unreadMessagesNoParameter +
         counted.unreadMessagesGrammarRefused;
@@ -1344,7 +1388,10 @@ export function verifyFightStatistics(statistics: FightStatistics): void {
     for (const figures of statistics.byCombatantId.values()) verifyDefenceMechanisms(figures);
 }
 
-/** The negative space of the defence cuts: a pool is never prevented, a chance never absorbed. */
+/**
+ * The negative space of the defence cuts: a pool is never prevented, a chance never absorbed, and
+ * neither is a kind of damage.
+ */
 function verifyDefenceMechanisms(figures: CombatantFigures): void {
     for (const defence of figures.damagePreventedByDefence.keys()) {
         const mechanism = getDefenceMechanism(defence);
@@ -1357,6 +1404,12 @@ function verifyDefenceMechanisms(figures: CombatantFigures): void {
     for (const defence of figures.damageTakenAbsorbedByDefence.keys()) {
         const mechanism = getDefenceMechanism(defence);
         assert(mechanism === DEFENCE_MECHANISM.pool, "what was absorbed drained a pool");
+    }
+    for (const kind of figures.damageDealtByKind.keys()) {
+        assert(!isDefence(kind), "a defence is no kind of damage");
+    }
+    for (const kind of figures.damageTakenByKind.keys()) {
+        assert(!isDefence(kind), "a defence is no kind of damage");
     }
 }
 

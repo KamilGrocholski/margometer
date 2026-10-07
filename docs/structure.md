@@ -113,6 +113,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0042-e10-guards-the-handovers-of-what-the-bundle-carries.md`                                 | E10 binds the bundle's handovers, which its guard reads; a page `tools/` writes is said by the browser                   |
 | `docs/adr/0043-a-heal-of-its-own-announcer-hands-the-announcement-on.md`                               | a message that only heals its announcer hands the announcement on, so the blow after it opens no turn                    |
 | `docs/adr/0044-assertion-density-is-held-where-it-stands-and-only-rises.md`                            | each directory S5 names holds the assertion density it stood at, to a tenth, and it only rises                           |
+| `docs/adr/0045-a-pools-part-stands-under-the-elements-it-could-take-from.md`                           | a pool's part stands under the one element it could take from, or under all of them as one or another                    |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

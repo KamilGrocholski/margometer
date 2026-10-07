@@ -562,8 +562,9 @@ asserted.
 
 The balances — dealt, dealt against its two parts, restored, half-named and the rest — stay
 assertions, because they are invariants rather than failures. The two parts are health and what a
-pool absorbed, and a defence's pool or chance is `src/core/protocol-key.ts`'s to say (ADR 0012). A
-disagreement that _can_ happen (`hasFiguresDisagreed`) stays data.
+pool absorbed, and a defence's pool or chance, and the elements a pool takes from, are
+`src/core/protocol-key.ts`'s to say (ADR 0012, ADR 0045). A disagreement that _can_ happen
+(`hasFiguresDisagreed`) stays data.
 
 A live fight's figures are tallied again each frame (§10.4), and nothing holds them between frames.
 They are not folded in as payloads arrive: sizing a team heal reads messages from later payloads.

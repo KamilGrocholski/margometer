@@ -225,8 +225,8 @@ Deno.test("what was dealt is what landed and what a pool took, and never the raw
     const kinds = [...statistics.byCombatantId.get(-10000249)?.damageTakenByKind ?? []];
     assertEquals(
         kinds,
-        [["dmgd", 81], ["dmgc", 8], ["absorb", 44], ["absorbm", 294]],
-        "and a pool is a kind of its own beside the elements, never shared out among them",
+        [["dmgd", 125], ["dmgc", 8], ["dmgf|dmgc", 294]],
+        "a pool under the one element it could take from, or under all of them, never shared out",
     );
 });
 
@@ -720,12 +720,12 @@ Deno.test("a blow is cut by what it was dealt with and by whom it reached", () =
         new Map(),
     );
     const dealer = statistics.byCombatantId.get(467968);
-    assertStrictEquals(dealer?.damageDealtByKind.get("dmgd"), 1012, "the element the key names");
     assertStrictEquals(
-        dealer?.damageDealtByKind.get("absorb"),
-        545,
-        "and the pool that took the rest",
+        dealer?.damageDealtByKind.get("dmgd"),
+        1557,
+        "the element the key names, with what the pool took of it",
     );
+    assertStrictEquals(dealer?.damageDealtByKind.get("absorb"), undefined, "and no pool as a kind");
     assertStrictEquals(
         dealer?.damageDealtByOpponent.get("-10000249"),
         1557,
@@ -734,11 +734,52 @@ Deno.test("a blow is cut by what it was dealt with and by whom it reached", () =
     const target = statistics.byCombatantId.get(-10000249);
     assertStrictEquals(
         target?.damageTakenByKind.get("dmgd"),
-        1012,
+        1557,
         "the same figure, the other way",
     );
-    assertStrictEquals(target?.damageTakenByKind.get("absorb"), 545, "the pool as well");
     assertStrictEquals(target?.damageTakenByOpponent.get("467968"), 1557, "and from whom");
+});
+
+/**
+ * Probes: what each pool takes from is the published help's (`src/core/protocol-key.ts`), and the
+ * raw half says which of those elements the blow put out. Zero, one and two of them are each a case.
+ */
+Deno.test("a pool's part stands under the one element it took from, or under every candidate", () => {
+    const roster = indexCombatantRoster(PROBE_ROSTER_TWO_SIDES);
+    const tallyTakenByKind = (blow: string) => {
+        const statistics = tally(decode([`1=90.00;2=80.00;${blow}`], roster), new Map());
+        return [...statistics.byCombatantId.get(2)?.damageTakenByKind ?? []];
+    };
+    assertEquals(
+        tallyTakenByKind("+dmg=100;+dmgo=40;-absorb=5;-dmg=60;-dmgo=30"),
+        [["dmg", 65], ["dmgo", 30]],
+        "auxiliary damage is no absorption's to take",
+    );
+    assertEquals(
+        tallyTakenByKind("+dmgf=50;+dmgd=40;-absorbm=50;-dmgd=30"),
+        [["dmgd", 30], ["dmgf", 50]],
+        "an element a pool took whole is still the one it took from",
+    );
+    assertEquals(
+        tallyTakenByKind("+dmgf=0;+dmgc=50;-absorbm=5;-dmgc=40"),
+        [["dmgc", 45]],
+        "an element that put out nothing is none a pool took from",
+    );
+    assertEquals(
+        tallyTakenByKind("+dmgc=50;+dmgl=40;-absorbm=20;-dmgc=30;-dmgl=40"),
+        [["dmgc", 30], ["dmgl", 40], ["dmgc|dmgl", 20]],
+        "two of the pool's elements, and neither credited with any of it",
+    );
+    assertEquals(
+        tallyTakenByKind("+dmg=100;+dmgd=50;-absorb=10;-dmg=60;-dmgd=40"),
+        [["dmg", 60], ["dmgd", 40], ["dmg|dmgd", 10]],
+        "the same of the physical pool",
+    );
+    assertEquals(
+        tallyTakenByKind("+dmgd=50;-absorbm=7;-dmgd=40"),
+        [["dmgd", 40], ["dmgf|dmgc|dmgl", 7]],
+        "and a pool none of whose elements rode the blow stands under every one of them",
+    );
 });
 
 Deno.test("every cut of a combatant comes to that combatant's own total", () => {
@@ -754,10 +795,10 @@ Deno.test("every cut of a combatant comes to that combatant's own total", () => 
                 figures.damageDealt,
                 `${path}: ${combatantId} dealt by kind`,
             );
-            let takenByKind = 0;
-            for (const amount of figures.damageTakenByKind.values()) takenByKind += amount;
+            let tallyTakenByKind = 0;
+            for (const amount of figures.damageTakenByKind.values()) tallyTakenByKind += amount;
             assertStrictEquals(
-                takenByKind,
+                tallyTakenByKind,
                 figures.damageTaken,
                 `${path}: ${combatantId} taken by kind`,
             );
@@ -1072,9 +1113,9 @@ Deno.test("what a pool took on a blow missing an end is counted where its health
     );
     assertStrictEquals(struck?.damageTakenFromNobody, 65, "and the one struck took it from nobody");
     assertStrictEquals(
-        struck?.damageTakenFromNobodyByKind.get("absorb"),
-        5,
-        "the pool as its own kind",
+        struck?.damageTakenFromNobodyByKind.get("dmg"),
+        65,
+        "the pool under the element it took from",
     );
     const toNobody = tally(decode(["1=90.00;0;+dmg=100;-absorb=5;-dmg=60"], roster), new Map());
     const striker = toNobody.byCombatantId.get(1);
@@ -1085,9 +1126,9 @@ Deno.test("what a pool took on a blow missing an end is counted where its health
     );
     assertStrictEquals(striker?.damageDealtToNobody, 65, "and the striker dealt it to nobody");
     assertStrictEquals(
-        striker?.damageDealtToNobodyByKind.get("absorb"),
-        5,
-        "the pool as its own kind",
+        striker?.damageDealtToNobodyByKind.get("dmg"),
+        65,
+        "the pool under the element it took from",
     );
     assertStrictEquals(
         striker?.damageDealtAbsorbed,

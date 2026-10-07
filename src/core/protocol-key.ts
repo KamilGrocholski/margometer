@@ -65,6 +65,12 @@ export interface LegendaryBonus {
 export const DEFENCE_MECHANISM = { pool: "pool", chance: "chance" } as const;
 export type DefenceMechanism = VocabularyWord<typeof DEFENCE_MECHANISM>;
 
+/** A defence, and the elements a pool takes from: none for a chance, which takes nothing. */
+interface Defence {
+    mechanism: DefenceMechanism;
+    elementsAbsorbed: readonly string[];
+}
+
 export const DAMAGE_HALF = { raw: "raw", applied: "applied" } as const;
 export type DamageHalf = VocabularyWord<typeof DAMAGE_HALF>;
 
@@ -167,11 +173,18 @@ const DAMAGE_KEYS = ["+thirdatt", "-thirdatt"];
 /**
  * The mechanism is the published help's, article view,372 (read 2026-09-27): absorption and magical
  * absorption are drawn from the pool the character entered the fight with; a block is a chance.
+ * The elements are the same article's (read 2026-10-07): absorption reduces physical damage, never
+ * auxiliary, and ranged only for whoever learned `absorbd`; magical absorption reduces fire, cold
+ * and lightning. Over `captures/` on 2026-10-07 no pool's figure rode a blow without one of its
+ * elements in the raw half.
  */
-const DEFENCE_MECHANISM_BY_KEY: ReadonlyMap<string, DefenceMechanism> = new Map([
-    ["-absorb", DEFENCE_MECHANISM.pool],
-    ["-absorbm", DEFENCE_MECHANISM.pool],
-    ["-blok", DEFENCE_MECHANISM.chance],
+const DEFENCE_BY_KEY: ReadonlyMap<string, Defence> = new Map([
+    ["-absorb", { mechanism: DEFENCE_MECHANISM.pool, elementsAbsorbed: ["dmg", "dmgd"] }],
+    [
+        "-absorbm",
+        { mechanism: DEFENCE_MECHANISM.pool, elementsAbsorbed: ["dmgf", "dmgc", "dmgl"] },
+    ],
+    ["-blok", { mechanism: DEFENCE_MECHANISM.chance, elementsAbsorbed: [] }],
 ]);
 const DESTROYED_KEYS = [
     "+acdmg",
@@ -427,8 +440,7 @@ const LEGENDARY_BONUS_BY_KEY: ReadonlyMap<string, LegendaryBonus> = new Map([
 
 const KEY_MEANING_BY_KEY: ReadonlyMap<string, KeyMeaning> = indexKeyMeanings();
 /** Keyed by the defence an event names, which is the key with its sign taken off. */
-const DEFENCE_MECHANISM_BY_DEFENCE: ReadonlyMap<string, DefenceMechanism> =
-    indexDefenceMechanisms();
+const DEFENCE_BY_DEFENCE: ReadonlyMap<string, Defence> = indexDefences();
 
 /** `null`: the key reaches no side anybody has stated. */
 export function lookupKeyReach(key: string): KeyReach | null {
@@ -475,9 +487,23 @@ export function lookupKeyMeaning(key: string): KeyMeaning | null {
 /** How the defence an event names stopped its damage. Only this table's keys reach an event. */
 export function getDefenceMechanism(defence: string): DefenceMechanism {
     assert(defence.length > 0, "a defence asked about is one an event named");
-    const mechanism = DEFENCE_MECHANISM_BY_DEFENCE.get(defence);
-    assert(mechanism !== undefined, "every defence an event names is one this table reads");
-    return mechanism;
+    const listed = DEFENCE_BY_DEFENCE.get(defence);
+    assert(listed !== undefined, "every defence an event names is one this table reads");
+    return listed.mechanism;
+}
+
+/** The elements a pool takes from, and none for a defence that is a chance. */
+export function getElementsAbsorbed(defence: string): readonly string[] {
+    assert(defence.length > 0, "a defence asked about is one an event named");
+    const listed = DEFENCE_BY_DEFENCE.get(defence);
+    assert(listed !== undefined, "every defence an event names is one this table reads");
+    return listed.elementsAbsorbed;
+}
+
+/** Whether a token is a defence's, which an element or a health change never is. */
+export function isDefence(token: string): boolean {
+    assert(token.length > 0, "a token asked about is one somebody stated");
+    return DEFENCE_BY_DEFENCE.has(token);
 }
 
 function indexKeyMeanings(): Map<string, KeyMeaning> {
@@ -492,7 +518,7 @@ function indexKeyMeanings(): Map<string, KeyMeaning> {
             half: key.startsWith(RAW_SIGN) ? DAMAGE_HALF.raw : DAMAGE_HALF.applied,
         });
     }
-    for (const key of DEFENCE_MECHANISM_BY_KEY.keys()) {
+    for (const key of DEFENCE_BY_KEY.keys()) {
         addKeyMeaning(key, { kind: KEY_FAMILY.prevented });
     }
     for (const key of DESTROYED_KEYS) addKeyMeaning(key, { kind: KEY_FAMILY.destroyed });
@@ -526,17 +552,19 @@ function indexKeyMeanings(): Map<string, KeyMeaning> {
     return keyMeaningByKey;
 }
 
-function indexDefenceMechanisms(): Map<string, DefenceMechanism> {
-    const mechanismByDefence = new Map<string, DefenceMechanism>();
-    for (const [key, mechanism] of DEFENCE_MECHANISM_BY_KEY) {
+function indexDefences(): Map<string, Defence> {
+    const defenceByDefence = new Map<string, Defence>();
+    for (const [key, defence] of DEFENCE_BY_KEY) {
         assert(key.startsWith(APPLIED_SIGN), "a defence stops damage on the applied side");
-        const defence = key.slice(APPLIED_SIGN.length);
-        assert(!mechanismByDefence.has(defence), "a defence is named by one key");
-        mechanismByDefence.set(defence, mechanism);
+        if (defence.mechanism === DEFENCE_MECHANISM.pool) {
+            assert(defence.elementsAbsorbed.length > 0, "a pool takes from some element");
+        } else {
+            assert(defence.elementsAbsorbed.length === 0, "and a chance takes from none");
+        }
+        const token = key.slice(APPLIED_SIGN.length);
+        assert(!defenceByDefence.has(token), "a defence is named by one key");
+        defenceByDefence.set(token, defence);
     }
-    assert(
-        mechanismByDefence.size === DEFENCE_MECHANISM_BY_KEY.size,
-        "every defence key is indexed",
-    );
-    return mechanismByDefence;
+    assert(defenceByDefence.size === DEFENCE_BY_KEY.size, "every defence key is indexed");
+    return defenceByDefence;
 }

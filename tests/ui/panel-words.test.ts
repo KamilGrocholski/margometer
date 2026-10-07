@@ -101,6 +101,7 @@ import {
     STORE_REFUSED_ANSWER,
 } from "#/src/ui/panel-words.ts";
 import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
+import { getElementsAbsorbed } from "#/src/core/protocol-key.ts";
 import { initBrowserClock } from "#/src/ports/browser-time.ts";
 import { PANEL_WINDOWS, STORAGE_CHOICES, TYPE_STEPS } from "#/src/ui/panel-choice.ts";
 import { PINNED_CASES, SIDE_RELATION, UNNAMED_END } from "#/src/ui/panel-content.ts";
@@ -214,6 +215,7 @@ const PANEL_WORD_ENDINGS: Record<keyof typeof PANEL_WORDS, Ending> = {
     healthSource: ENDING.bare,
     skills: ENDING.bare,
     withoutKind: ENDING.bare,
+    eitherKind: ENDING.bare,
     restOfKinds: ENDING.bare,
     outsideRanking: ENDING.bare,
     outsideRow: ENDING.bare,
@@ -1683,12 +1685,40 @@ Deno.test("a kind the help does not name is left out rather than invented", () =
     );
 });
 
-Deno.test("a pool among the kinds of damage is the defence's own word", () => {
-    assertStrictEquals(getWordsForDamageKind("absorb"), "absorpcja", "the physical pool");
+/**
+ * **N13**: the elements a pool takes from are spelled in `src/core/protocol-key.ts` as well as in
+ * the column's words, and this holds the two to one vocabulary.
+ */
+Deno.test("every element a pool takes from is one the column has a word for", () => {
+    for (const defence of ["absorb", "absorbm"]) {
+        const elements = getElementsAbsorbed(defence);
+        assert(elements.length > 0, `${defence} takes from some element`);
+        for (const element of elements) {
+            assertExists(ELEMENT_WORD_BY_KEY.get(element), `${defence}: ${element} is worded`);
+        }
+    }
+});
+
+Deno.test("a pool's part the blow does not place is said as one kind or another", () => {
     assertStrictEquals(
-        getWordsForDamageKind("absorbm"),
-        "absorpcja magiczna",
-        "and the magical one",
+        getWordsForDamageKind("dmgc|dmgl"),
+        "zimno lub błyskawice",
+        "two elements",
+    );
+    assertStrictEquals(
+        getWordsForDamageKind("dmgf|dmgc|dmgl"),
+        "ogień, zimno lub błyskawice",
+        "and three",
+    );
+    assertStrictEquals(
+        getWordsForDamageKind("dmgc|dmgg"),
+        "zimno lub dmgg",
+        "an element without a word reaches a reader as the game's token",
+    );
+    assertStrictEquals(
+        getWordsForDamageKind("absorb"),
+        "absorb",
+        "and a pool is no kind of damage at all",
     );
 });
 

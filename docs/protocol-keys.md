@@ -854,8 +854,8 @@ file accepts for a key that moves health.
 ### `-absorb` — decoded
 
 Damage physical absorption stopped before it reached the target's health. It is drawn from a pool
-the character began the fight with, so it is counted as dealt and taken, under a kind of its own
-(ADR 0012).
+the character began the fight with, so it is counted as dealt and taken (ADR 0012), under the
+element it took from (ADR 0045).
 
 _Shape:_ 631 occurrences; on a blow; a whole number
 

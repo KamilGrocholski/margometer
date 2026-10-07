@@ -36,7 +36,7 @@ import {
     NO_LEGENDARY_WALK,
     prepareLegendaryWalk,
 } from "./legendary-standing.ts";
-import { CUT_MAXIMUM, SKILLS_MAXIMUM } from "./fight-statistics.ts";
+import { composeKindsAbsorbed, CUT_MAXIMUM, SKILLS_MAXIMUM } from "./fight-statistics.ts";
 import {
     CHARGED_SKILLS_MAXIMUM,
     type ChargedSkillStanding,
@@ -454,6 +454,7 @@ function prepareCutKeys(
                 eventCutKeys = [
                     ...event.raw.map((figure) => figure.element),
                     ...event.applied.map((figure) => figure.element),
+                    ...composeKindsAbsorbed(event),
                 ];
                 break;
             case BATTLE_EVENT.damageToNamedCombatant:
