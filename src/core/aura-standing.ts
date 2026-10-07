@@ -83,8 +83,8 @@ export interface AuraStanding {
     amountByKey: ReadonlyMap<string, number>;
     /**
      * Everybody's own turn count as the cast stood, so a bearer can be dated on their own: whoever
-     * had taken no turn yet is absent. ⚠️ **So would be anybody seated after the cast**, which the
-     * view states no moment of (`docs/auras-standing.md`).
+     * was seated by then and had taken no turn yet at nought, and whoever was seated after it
+     * absent (`docs/auras-standing.md`).
      */
     turnsAtCastByCombatantId: ReadonlyMap<number, number>;
 }
@@ -137,11 +137,14 @@ interface AuraWalk {
     turnsByCombatantId: Map<number, number>;
 }
 
+/** Past the 12 skills `frozen/aura-turns.ts` dates, fetched 2026-10-02. */
+export const SKILLS_DATED_MAXIMUM = 16;
 /**
- * Past the pairs of caster and skill one fight announces: 38 at the most over the 37 recordings in
- * `captures/` on 2026-10-06.
+ * A cast held per caster and skill: every caster the clock counts, at every skill the table dates.
+ * Over the 37 recordings in `captures/` on 2026-10-06 one fight announced 38 pairs of caster and
+ * skill at the most, and no fight held more than 11 the table dates.
  */
-export const STANDINGS_MAXIMUM = 256;
+export const STANDINGS_MAXIMUM = COMBATANTS_MAXIMUM * SKILLS_DATED_MAXIMUM;
 /** Past the 8 effects the longest skill states in `frozen/skill-durations.ts` of 2026-10-02. */
 export const SKILL_EFFECTS_MAXIMUM = 32;
 
@@ -158,9 +161,15 @@ export function replayAuraStandings(view: FightView, statedSkills: StatedSkills)
         turnsByCombatantId: new Map(),
     };
     let turnStanding = NO_TURN_STANDING;
-    for (const event of view.events) {
+    for (const [eventIndex, event] of view.events.entries()) {
         turnStanding = addEventTurns(walk.turnsByCombatantId, event, turnStanding);
-        const cast = lookupAuraCast(event, statedSkills, walk.turnsByCombatantId);
+        const cast = lookupAuraCast(
+            event,
+            statedSkills,
+            walk.turnsByCombatantId,
+            view.eventsAtSeatingByCombatantId,
+            eventIndex,
+        );
         if (cast === null) continue;
         if (cast.turnsStated !== null) {
             walk.castByCasterAndSkill.set(`${cast.casterId}/${cast.skillId}`, cast);
@@ -194,6 +203,8 @@ function lookupAuraCast(
     event: BattleEvent,
     statedSkills: StatedSkills,
     turnsByCombatantId: ReadonlyMap<number, number>,
+    eventsAtSeatingByCombatantId: ReadonlyMap<number, number>,
+    eventIndex: number,
 ): AuraCast | null {
     if (event.kind !== BATTLE_EVENT.skillUsed) return null;
     if (event.actorId === null) return null;
@@ -221,10 +232,37 @@ function lookupAuraCast(
         shoutTargetId: isShout ? event.targetId : null,
         shout,
         amountByKey: indexAmountByKey(event.declared),
-        // Copied rather than held: the walk goes on counting, and a cast dated by a map that keeps
-        // moving would be dated by wherever the fight ended (S9).
-        turnsAtCastByCombatantId: new Map(turnsByCombatantId),
+        turnsAtCastByCombatantId: composeTurnsAtCast(
+            turnsByCombatantId,
+            eventsAtSeatingByCombatantId,
+            eventIndex,
+        ),
     };
+}
+
+/**
+ * Everybody's turns as a cast stands, copied rather than held: the walk goes on counting, and a
+ * cast dated by a map that keeps moving would be dated by wherever the fight ended (S9). Whoever
+ * was seated by the event the cast is, and had taken no turn yet, stands at nought.
+ */
+function composeTurnsAtCast(
+    turnsByCombatantId: ReadonlyMap<number, number>,
+    eventsAtSeatingByCombatantId: ReadonlyMap<number, number>,
+    eventIndex: number,
+): Map<number, number> {
+    assert(eventIndex >= 0, "a cast stands at an event of the fight");
+    const turnsAtCastByCombatantId = new Map<number, number>();
+    for (const [combatantId, eventsAtSeating] of eventsAtSeatingByCombatantId) {
+        if (eventsAtSeating <= eventIndex) turnsAtCastByCombatantId.set(combatantId, 0);
+    }
+    for (const [combatantId, turnsTaken] of turnsByCombatantId) {
+        turnsAtCastByCombatantId.set(combatantId, turnsTaken);
+    }
+    assert(
+        turnsAtCastByCombatantId.size <= COMBATANTS_MAXIMUM,
+        "a cast dates nobody the fight does not count",
+    );
+    return turnsAtCastByCombatantId;
 }
 
 /** The characters a shout named, off the value the announcement carried. */
@@ -358,6 +396,7 @@ export function lookupReachOfEffects(effects: readonly { effect: string }[]): Au
 export function indexAuraTurnsBySkillId(
     skills: readonly { id: number; turns: number }[],
 ): Map<number, number> {
+    assert(skills.length <= SKILLS_DATED_MAXIMUM, "the table dates a bounded few skills");
     const auraTurnsBySkillId = new Map<number, number>();
     for (const skill of skills) {
         assert(skill.turns > 0, "a skill in the table runs for a stated number of turns");

@@ -520,6 +520,7 @@ export interface FightView {
     carriedStatuses: readonly CarriedStatus[];
     legendaryStandings: readonly LegendaryStanding[];
     turnsByCombatantId: ReadonlyMap<number, number>;
+    eventsAtSeatingByCombatantId: ReadonlyMap<number, number>; // the events held when first seated
 }
 export interface SessionOptions {
     eventsMaximum: number;

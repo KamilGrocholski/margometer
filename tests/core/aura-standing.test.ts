@@ -22,18 +22,21 @@ import {
     lookupReachOfEffects,
     replayAuraStandings,
     SKILL_EFFECTS_MAXIMUM,
+    SKILLS_DATED_MAXIMUM,
     STANDINGS_MAXIMUM,
     type StatedSkills,
 } from "#/src/core/aura-standing.ts";
 import {
     type Combatant,
     type CombatantRoster,
+    COMBATANTS_MAXIMUM,
     indexCombatantRoster,
 } from "#/src/core/combatant-roster.ts";
 import type { FightView } from "#/src/core/fight-session.ts";
 import * as protocolKeys from "#/src/core/protocol-key.ts";
 import { isSideWideKey, PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { STATED_SKILLS } from "#/tests/frozen-tables.ts";
+import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import {
     decodeRecordedFight,
     lookupRecordedFight,
@@ -157,7 +160,10 @@ function replayStandings(
     return replayAuraStandings(composeView(events, roster), stated);
 }
 
-/** A view holding the events and the cast a sample states, and nothing the walk does not read. */
+/**
+ * A view holding the events and the cast a sample states, and nothing the walk does not read:
+ * everybody seated from the start, as every recording seats them.
+ */
 function composeView(events: readonly BattleEvent[], roster: CombatantRoster): FightView {
     return {
         roster,
@@ -175,6 +181,9 @@ function composeView(events: readonly BattleEvent[], roster: CombatantRoster): F
         carriedStatuses: [],
         legendaryStandings: [],
         turnsByCombatantId: new Map(),
+        eventsAtSeatingByCombatantId: new Map(
+            [...roster.byId.keys()].map((combatantId) => [combatantId, 0]),
+        ),
     };
 }
 
@@ -196,24 +205,62 @@ function composeBlow(actorId: number): BattleEvent {
     };
 }
 
+/**
+ * Every caster a fight counts, at every skill a table may date, is the bound; past it only a table
+ * that went round its own index can reach the walk.
+ */
 Deno.test("a fight stands as many casts as its bound, and one past it is a broken walk", () => {
     const skillIds = Array.from(
-        { length: STANDINGS_MAXIMUM + 1 },
+        { length: SKILLS_DATED_MAXIMUM },
         (_, skillIndex) => skillIndex + 1,
     );
     // Each cast is a turn of the caster's, so every one is dated past the walk's length.
     const turns = skillIds.length + 1;
     const dated = composeStated(skillIds.map((skillId) => ({ id: skillId, turns })));
-    const casts = skillIds.map((skillId) => composeCast(1, skillId, "+spell-taken_dmg-all"));
+    const casts = Array.from({ length: COMBATANTS_MAXIMUM }, (_, casterIndex) => casterIndex + 1)
+        .flatMap((casterId) =>
+            skillIds.map((skillId) => composeCast(casterId, skillId, "+spell-taken_dmg-all"))
+        );
     assertStrictEquals(
-        replayStandings(casts.slice(0, STANDINGS_MAXIMUM), dated, ROSTER).auras.length,
+        replayStandings(casts, dated, ROSTER).auras.length,
         STANDINGS_MAXIMUM,
         "every cast at the bound stands",
     );
+    const skillPastId = SKILLS_DATED_MAXIMUM + 1;
+    const datedPast: StatedSkills = {
+        ...dated,
+        auraTurnsBySkillId: new Map([...dated.auraTurnsBySkillId, [skillPastId, turns]]),
+    };
+    const castPast = composeCast(1, skillPastId, "+spell-taken_dmg-all");
     assertThrows(
-        () => replayStandings(casts, dated, ROSTER),
+        () => replayStandings([...casts, castPast], datedPast, ROSTER),
         AssertionError,
         "a fight stays inside its stated bound",
+    );
+});
+
+Deno.test("a table dating more skills than its bound is refused, and one at it is indexed", () => {
+    const skills = Array.from(
+        { length: SKILLS_DATED_MAXIMUM + 1 },
+        (_, skillIndex) => ({ id: skillIndex + 1, turns: 2 }),
+    );
+    assertStrictEquals(
+        indexAuraTurnsBySkillId(skills.slice(0, SKILLS_DATED_MAXIMUM)).size,
+        SKILLS_DATED_MAXIMUM,
+        "a table at the bound is indexed whole",
+    );
+    assertThrows(
+        () => indexAuraTurnsBySkillId(skills),
+        AssertionError,
+        "the table dates a bounded few skills",
+    );
+});
+
+/** The walk's bound is the frozen table's size times the fight's, so the table is held to it. */
+Deno.test("the frozen table dates no more skills than the walk's bound allows", () => {
+    assert(
+        COMBATANTS_MAXIMUM * FROZEN_AURA_TURNS.skills.length <= STANDINGS_MAXIMUM,
+        "the walk's bound holds every caster at every skill the frozen table dates",
     );
 });
 
@@ -769,7 +816,26 @@ Deno.test("the turns a cast stood on are the turns as it stood, not as the fight
     const events = [composeCast(1, 264, "+spell-taken_dmg-all"), ...composeTurns(2, 3)];
     const held = replayStandings(events, dated, ROSTER).auras[0];
     assertStrictEquals(held?.turnsAtCastByCombatantId.get(1), 1, "the caster's turn of the cast");
-    assertStrictEquals(held?.turnsAtCastByCombatantId.get(2), undefined, "and nobody else's yet");
+    assertStrictEquals(held?.turnsAtCastByCombatantId.get(2), 0, "and nobody else's yet");
+});
+
+/**
+ * A cast dates whoever was seated by the event it is, from nought where they had taken no turn,
+ * and leaves out whoever sat down after it. **W5**: seated at the cast's own event is seated by it.
+ */
+Deno.test("a cast's count holds whoever was seated by it, and nobody seated after", () => {
+    const dated = composeStated([{ id: 264, turns: 8 }]);
+    const events = [composeBlow(1), composeCast(1, 264, "+spell-taken_dmg-all")];
+    const readTurnsAtCast = (eventsAtSeating: number) => {
+        const view = {
+            ...composeView(events, ROSTER),
+            eventsAtSeatingByCombatantId: new Map([[1, 0], [2, eventsAtSeating], [9, 0]]),
+        };
+        return replayAuraStandings(view, dated).auras[0]?.turnsAtCastByCombatantId.get(2);
+    };
+    assertStrictEquals(readTurnsAtCast(0), 0, "seated before it, with no turn yet, at nought");
+    assertStrictEquals(readTurnsAtCast(1), 0, "and seated by the payload carrying it, the same");
+    assertStrictEquals(readTurnsAtCast(2), undefined, "seated after it, nowhere in its count");
 });
 
 Deno.test("a turn lost is a turn that passed for whoever is carrying a cast", () => {

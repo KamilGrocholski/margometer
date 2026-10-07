@@ -210,6 +210,16 @@ Deno.test("a slow cast from across the board stands on the bearer", () => {
     assertStrictEquals(figure?.percent, 14, "the other side's slow is the one that slows them");
 });
 
+Deno.test("a cast whose count leaves the bearer out never reached them", () => {
+    const standings = [composeCast({
+        key: "aura-sa_per",
+        amount: 20,
+        turnsAtCastByCombatantId: new Map([[11, 0], [13, 0], [21, 0]]),
+    })];
+    const figure = readFigure(standings, SPEED_BIT, new Map([[12, 1]]));
+    assertStrictEquals(figure?.percent, null, "whoever sat down after it carries none of it");
+});
+
 Deno.test("a cast dated after the bearer's own count stands on nothing yet", () => {
     const standings = [composeCast({
         key: "aura-sa_per",
@@ -240,8 +250,11 @@ Deno.test("a caster who outruns the bearer leaves the figure standing on the bea
     );
 });
 
-/** The figure on the bearer's slow, off the walk the tooltip reads and the clock the view keeps. */
-function replayFrostFigure(events: readonly BattleEvent[]) {
+/**
+ * The figure on the bearer's slow, off the walk the tooltip reads and the clock the view keeps:
+ * everybody seated from the start unless the bearer's moment says otherwise.
+ */
+function replayFrostFigure(events: readonly BattleEvent[], bearerEventsAtSeating = 0) {
     const turnsByCombatantId = new Map<number, number>();
     let turnStanding = NO_TURN_STANDING;
     for (const event of events) {
@@ -263,6 +276,12 @@ function replayFrostFigure(events: readonly BattleEvent[]) {
         carriedStatuses: [{ combatantId: BEARER_ID, bit: SLOW_BIT, turnsElapsed: 1 }],
         legendaryStandings: [],
         turnsByCombatantId,
+        eventsAtSeatingByCombatantId: new Map(
+            [...ROSTER.byId.keys()].map((combatantId) => [
+                combatantId,
+                combatantId === BEARER_ID ? bearerEventsAtSeating : 0,
+            ]),
+        ),
     };
     const figures = tallyCarriedFigures({
         statuses: view.carriedStatuses,
@@ -328,4 +347,16 @@ Deno.test("a cast landing before the bearer's first turn stands on them from non
     assertStrictEquals(replayFrostFigure(sevenIn)?.percent, 14, "seven of their eight from none");
     const eightIn = [...sevenIn, composeBlowBy(BEARER_ID)];
     assertStrictEquals(replayFrostFigure(eightIn)?.percent, null, "and the eighth runs it out");
+});
+
+/**
+ * ⚠️ **A later payload may seat somebody new**, and a count that leaves them out read as no turn
+ * yet would date them from a cast that landed before they sat down. **W5**: seated by the cast's
+ * own event is seated before it.
+ */
+Deno.test("a bearer seated after a cast is not reached by it, and one seated by it is", () => {
+    const events = [composeBlowBy(FROST_CASTER_ID), composeFrostCast(), composeBlowBy(BEARER_ID)];
+    assertStrictEquals(replayFrostFigure(events, 0)?.percent, 14, "seated before it, no turn yet");
+    assertStrictEquals(replayFrostFigure(events, 1)?.percent, 14, "seated by the cast's own event");
+    assertStrictEquals(replayFrostFigure(events, 2)?.percent, null, "and seated after it, none");
 });

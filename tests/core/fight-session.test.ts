@@ -256,6 +256,36 @@ function composeCombatant(id: number, name: string, side: number): Combatant {
     return { id, name, side, profession: "w", level: 100, healthMaximum: 1000 };
 }
 
+/**
+ * A later payload may seat somebody, and a cast is compared against the moment they sat down: the
+ * events the fight held before the payload that seated them, kept through every restatement.
+ */
+Deno.test("the moment somebody is first seated is the events the fight held, and it is kept", () => {
+    const session = createFightSession(SESSION_OPTIONS);
+    const [opener, newcomer] = [
+        composeCombatant(1, "Gracz 1", 1),
+        composeCombatant(2, "Gracz 2", 2),
+    ];
+    apply(session, { ...OPENING, combatants: [opener], messages: ["0;0;txt=a", "0;0;txt=b"] });
+    assertEquals(
+        [...view(session).eventsAtSeatingByCombatantId],
+        [[1, 0]],
+        "whoever the opening seats sat down at nought",
+    );
+    apply(session, { ...NOTHING, combatants: [opener, newcomer], messages: ["0;0;txt=c"] });
+    assertEquals(
+        [...view(session).eventsAtSeatingByCombatantId],
+        [[1, 0], [2, 2]],
+        "a newcomer at the events before their payload, and a restatement at the first moment",
+    );
+    apply(session, { ...OPENING, combatants: [newcomer] });
+    assertEquals(
+        [...view(session).eventsAtSeatingByCombatantId],
+        [[2, 0]],
+        "and a fight that opens seats from nought",
+    );
+});
+
 Deno.test("a name stated by two people resolves to nobody, however often each is stated", () => {
     const cast = [composeCombatant(1, "Odyniec", 1), composeCombatant(2, "Odyniec", 2)];
     const session = createFightSession(SESSION_OPTIONS);

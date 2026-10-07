@@ -112,7 +112,7 @@ export function tallyCarriedFigures(inputs: CarriedFigureInputs): CarriedFigure[
  * turns the table gives them, counted on the bearer's own clock from the cast. ⚠️ **Never on the
  * caster's** (`docs/auras-standing.md`): a caster who outruns the bearer would end a cast the bearer
  * still carries, and one who stops taking turns would stand it past its own length. A bearer the
- * cast's count leaves out had taken no turn yet, and is dated from none.
+ * cast's count leaves out was seated after it, and it never reached them.
  */
 function lookupCastsOverBearer(
     casts: readonly AuraStanding[],
@@ -128,7 +128,8 @@ function lookupCastsOverBearer(
         const caster = roster.byId.get(cast.casterId);
         if (caster === undefined) continue;
         if (!doesKeyReachBearer(key, caster.side, bearer.side)) continue;
-        const turnsAtCast = cast.turnsAtCastByCombatantId.get(bearer.combatantId) ?? 0;
+        const turnsAtCast = cast.turnsAtCastByCombatantId.get(bearer.combatantId);
+        if (turnsAtCast === undefined) continue;
         const turnsElapsed = bearer.turnsTaken - turnsAtCast;
         if (turnsElapsed < 0) continue;
         if (turnsElapsed < cast.turnsStated) castsOverBearer.push(cast);

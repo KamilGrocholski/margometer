@@ -102,14 +102,14 @@ beside **one fighter**, so it dates a status by the cast reaching their side and
 as it stood. It is handed every dated cast rather than what stands on a side, so the caster's clock
 cuts nothing there: a caster who outruns the bearer leaves the cast standing on them until their own
 turns run it out, and one who has stopped taking turns holds it no longer than its length. A cast
-the bearer has already outrun dates nothing, and takes its figure with it. A bearer who had taken no
-turn yet when the cast landed is counted from none, so a cast at the very start of a fight reaches
-them as it reaches everybody who had acted.
+the bearer has already outrun dates nothing, and takes its figure with it. A bearer seated by the
+time the cast landed who had taken no turn yet is counted from none, so a cast at the very start of
+a fight reaches them as it reaches everybody who had acted.
 
-⚠️ **The count a cast carries cannot tell a bearer with no turn yet from one seated after it.** The
-session lets a later payload seat somebody new, and the view says nowhere when it did, so such a
-bearer would be dated from the cast too. Over `captures/` on 2026-10-06 nobody is seated past the
-opening payload.
+⚠️ **A bearer seated after a cast is not reached by it.** The session lets a later payload seat
+somebody new, so the view states when each combatant first sat down, counted in the events the fight
+held, and the count a cast carries leaves out whoever sat down after it. Over `captures/` on
+2026-10-06 nobody is seated past the opening payload.
 
 ⚠️ **The mask's own count is a different reading, and not a worse one.** It says how long the bit
 has been lit for that bearer, which begins when a payload first restates them carrying it — turns

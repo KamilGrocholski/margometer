@@ -98,6 +98,11 @@ export interface FightView {
     carriedStatuses: readonly CarriedStatus[];
     legendaryStandings: readonly LegendaryStanding[];
     turnsByCombatantId: ReadonlyMap<number, number>;
+    /**
+     * How many events the fight held when each combatant was first seated, which is the moment a
+     * cast is compared against: one at an index below it landed before they sat down.
+     */
+    eventsAtSeatingByCombatantId: ReadonlyMap<number, number>;
 }
 
 export class CombatantsExceeded extends Error {
@@ -156,6 +161,7 @@ interface SessionState {
     readonly legendaryWalk: LegendaryWalk;
     /** Everybody the fight has named, seated or not: what the bound on a cast counts. */
     readonly namedCombatantIds: ReadonlySet<number>;
+    readonly eventsAtSeatingByCombatantId: ReadonlyMap<number, number>;
 }
 
 export interface FightSession {
@@ -253,16 +259,46 @@ export function preparePayload(
     if (namedCombatantIds.size > options.combatantsMaximum) {
         return new CombatantsExceeded(namedCombatantIds.size, options.combatantsMaximum);
     }
+    const eventsAtSeatingByCombatantId = prepareEventsAtSeating(
+        stateBefore?.eventsAtSeatingByCombatantId ?? new Map(),
+        combatants,
+        eventsBefore,
+    );
     const stateAfter = preparePayloadStanding(
         stateBefore,
         record,
         decoded,
         combatants,
         namedCombatantIds,
+        eventsAtSeatingByCombatantId,
     );
     assert(stateAfter.payloadsApplied === payloadsApplied, "a payload prepared is counted once");
     const payloadIndex = stateBefore?.payloadsApplied ?? 0;
     return { payloadIndex, isOpening: stateBefore === null, decoded, stateAfter };
+}
+
+/**
+ * When each combatant the payload leaves seated first sat down, counted in the events the fight
+ * held before this payload's own: a payload's warriors are seated before its messages are read,
+ * so a cast in the payload that seats somebody reaches them. A restatement keeps the first moment.
+ */
+function prepareEventsAtSeating(
+    eventsAtSeatingBefore: ReadonlyMap<number, number>,
+    combatants: readonly Combatant[],
+    eventsBefore: number,
+): Map<number, number> {
+    assert(eventsBefore >= 0, "a moment is a count of events");
+    const eventsAtSeatingByCombatantId = new Map<number, number>();
+    for (const combatant of combatants) {
+        const eventsAtSeating = eventsAtSeatingBefore.get(combatant.id) ?? eventsBefore;
+        assert(eventsAtSeating <= eventsBefore, "nobody was seated after the payload seating them");
+        eventsAtSeatingByCombatantId.set(combatant.id, eventsAtSeating);
+    }
+    assert(
+        eventsAtSeatingByCombatantId.size === combatants.length,
+        "a moment for everybody seated, and nobody else",
+    );
+    return eventsAtSeatingByCombatantId;
 }
 
 /**
@@ -355,6 +391,7 @@ function preparePayloadStanding(
     decoded: PayloadDecoded,
     combatants: readonly Combatant[],
     namedCombatantIds: ReadonlySet<number>,
+    eventsAtSeatingByCombatantId: ReadonlyMap<number, number>,
 ): SessionState {
     // Kept once seen: a payload saying nothing about it would otherwise end the auto fight a reader
     // is watching. No payload states an auto fight and a queue at once (`captures/`
@@ -406,6 +443,7 @@ function preparePayloadStanding(
             events,
         ),
         namedCombatantIds,
+        eventsAtSeatingByCombatantId,
     };
 }
 
@@ -478,5 +516,6 @@ export function composeFightView(session: FightSession): FightView | null {
         carriedStatuses: composeCarriedStatuses(state.carriedStatusWalk),
         legendaryStandings: composeLegendaryStandings(state.legendaryWalk),
         turnsByCombatantId: state.carriedStatusWalk.turnsByCombatantId,
+        eventsAtSeatingByCombatantId: state.eventsAtSeatingByCombatantId,
     };
 }
