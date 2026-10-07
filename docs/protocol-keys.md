@@ -648,9 +648,9 @@ the material, both forms.
 
 Healing by a share of **maximum** health, floored, reaching every combatant on the caster's side and
 nobody on the other, and capped. The caster is the actor, and usually the target as well — but eight
-of the 115 messages state a different id there, so reading the caster from the target slot would
-credit the wrong combatant. Read the actor slot, and read it always: the eight are the whole reason
-this sentence names a slot rather than a habit.
+of 115 messages over `captures/` on 2026-08-27 stated a different id there, so reading the caster
+from the target slot would credit the wrong combatant. Read the actor slot, and read it always: the
+eight are the whole reason this sentence names a slot rather than a habit.
 
 ⚠️ **A partly sized cast keeps both events.** Where six of eight side-mates could be sized, the
 figures for the six are drawn _and_ the cast goes on being counted as missing, so a partial answer
@@ -968,11 +968,11 @@ Production build `1786514810315` composes `msg_-pierceb` with no `%val%` hole, w
 it to the flag family rather than to the declarations; the development build `1781609507010` carries
 the same branch with its original comment.
 
-⚠️ **Four of the eight are documented, and this file said none of them were.** The claim rested on
-four phrases — `legbon`, `tenacity`, `acdmg_destroyed` and `dispel` — and not one of them is a name
-the help prints. The help joins an article to a key through the engine name in parentheses, and for
-this family that name is the key's **stem**: `verycrit`, `curse`, `cleanse`, `holytouch`. Searched
-by the stem (read 2026-08-09), the help answers to all four and describes each in full.
+⚠️ **Four of the eight are documented, and a search by the wrong phrase finds none of them.**
+`legbon`, `tenacity`, `acdmg_destroyed` and `dispel` are not names the help prints. The help joins
+an article to a key through the engine name in parentheses, and for this family that name is the
+key's **stem**: `verycrit`, `curse`, `cleanse`, `holytouch`. Searched by the stem (read 2026-08-09),
+the help answers to all four and describes each in full.
 
 ### `+stun` — decoded
 
@@ -1003,8 +1003,8 @@ the Player two turns, during which no block, evade, parry or arrow-block can occ
 `1786514810315` composes `msg_+stun2-d` with no `%val%`, on the same switch as `msg_+stun` and
 `msg_+acdmg_destroyed`. 4 occurrences on
 `captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`, and none elsewhere as
-the set stood 2026-08-24. Two of the other four have arrived since — `+stun2` and `+stun2-c`, each
-in one recording — and `-f` and `-l` are in none.
+the set stood 2026-08-24. Of the other four, `+stun2` and `+stun2-c` are in the material now, and
+`-f` and `-l` in none.
 
 ### `+stun2` — decoded
 
@@ -1037,10 +1037,9 @@ carries `+dmgc` in all of them — 23 of 23 on
 `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`, 20 of 20 on
 `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`, 11 of 11 on
 `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` — so nothing there distinguishes a
-frost-shaped stun from any other, and production states only that the key composes a sentence. A
-second recording did not settle it, and this entry said a third against this monster would not
-either; the third arrived on 2026-09-11 and did not. The variant is the development build's answer —
-see the evidence below.
+frost-shaped stun from any other, and production states only that the key composes a sentence. No
+recording against this monster settles it. The variant is the development build's answer — see the
+evidence below.
 
 _Shape:_ 19 occurrences; on a blow; no value
 
@@ -1171,8 +1170,7 @@ on `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`.
 
 ### `-legbon_glare` — decoded
 
-The third of the siblings `+legbon_curse`'s entry names, and the one that entry predicted would
-arrive in a later capture. It did, and has kept arriving: what it carries is the `_Shape:_` line
+The third of the siblings `+legbon_curse`'s entry names. What it carries is the `_Shape:_` line
 below, which is the only place a count of it lives.
 
 _Shape:_ 8 occurrences; on a blow; no value
@@ -1581,13 +1579,11 @@ every recording as the set stood 2026-08-26: seven occurrences, five in
 `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`, each naming one combatant in both
 slots.
 
-⚠️ **The second recording is where this key stopped being a curiosity.** The 2 occurrences in
-`captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json` are the only messages over every
-recording that state a declaration under a name the game did not take from its skill table —
-`aura-ac_per` and `aura-resall` on one, `critval-allies` and `critmval-allies` on the other — and
-the second pair had no entry in this register at all. So the claim that declarations ride `tspell`
-was refuted by the same file that brought two keys in, and both halves are held in one place now
-(`tests/core/skill-announcement-rule.test.ts`).
+⚠️ **Declarations do not always ride `tspell`.** The 2 occurrences in
+`captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json` are the only messages over the set
+as it stood 2026-08-26 that state a declaration under a name the game did not take from its skill
+table — `aura-ac_per` and `aura-resall` on one, `critval-allies` and `critmval-allies` on the other
+— and both halves are held in one place (`tests/core/skill-announcement-rule.test.ts`).
 
 ### `+injure` — decoded
 
@@ -1968,11 +1964,10 @@ pool the fight was entered with (read 2026-08-25). A searched silence is a silen
 that were searched, and an effect the article names something else entirely walks through it. The
 verdict stands on the article's own words: nothing in it says whose pool gains.
 
-⚠️ **Three occurrences, two recordings, and the same value on every one of them.** Two sit on the
-same announced ability, cast by the same combatant, in
-`captures/2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json` — the ability goes unnamed
-here because its name is the game's own and not ours to print (`AGENTS.md`) — where each states 15
-while `-absorbm` beside them states 2 247 and 1 774; the third states 15 as well, in
+⚠️ **Three occurrences, two recordings, and the same value on every one of them**, over the corpus
+on 2026-08-25: two sit on the same announced ability, cast by the same combatant, in
+`captures/2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json`, where each states 15 while
+`-absorbm` beside them states 2 247 and 1 774; the third states 15 as well, in
 `captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json`. That is far too little
 material to read a rule off, and none is read: the verdict rests on the unit, the way `-endest`'s
 does, and the unit is what makes the figure safe to show and impossible to total.
@@ -2344,7 +2339,7 @@ its caster (read 2026-09-08). So one key has two readings — names on the wire,
 uses, and the one the panel reads the provoked off (**develop ADR 0064**).
 `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json` carries
 `shout=Gracz 3, Gracz 2`, both of the opposing side, and ends with `winner=Gracz 2, Gracz 3` in the
-same shape. Every other recording is N against one and names one.
+same shape. Every other shout in the corpus names one, as `docs/auras-standing.md` measures it.
 
 The client agrees without settling it: it interpolates the value **whole** into `msg_shout`'s
 `%name%`, the sentence saying whose attention was drawn to whom, where the neighbouring `frost`
@@ -2620,8 +2615,8 @@ _Evidence:_ article view,372 at the heading _Punkty Honoru_ (read 2026-08-12), w
 points as a currency awarded to the winner of a player-versus- player duel and taken from the loser,
 with the conditions a fight has to meet to be fought for them and the order the figure is computed
 in. Production build `1786514810315` composes it as `msg_+ph %val%`. Its 1 occurrence is the last
-message of `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`, the only
-duel between two players in this material.
+message of `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`, a duel
+between two players.
 
 ### `en-regen` — decoded
 

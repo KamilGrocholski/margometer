@@ -27,12 +27,11 @@ tag, type
 **Protocol**: The grammar of payloads, messages and keys — our only data source. _Avoid_: API,
 format, log
 
-**Turn**: One action by one combatant, which is the game's own definition and not ours — the
-published help numbers them from 1 upward and gives one to a single character at a time. What is
-counted and shown are both halves of what was seen: a turn **taken**, and a turn granted and spent
-on nothing, which the game announces itself. Their sum is still not the turns somebody was given.
-**Nothing divides by it** — no rate, no per-turn share, no fight-wide total (**develop ADR 0048**).
-_Avoid_: Round, tick, action
+**Turn**: One action by one combatant, which is the game's own definition and not ours
+(`docs/turns-taken.md` gives the help's words and their date). What is counted and shown are both
+halves of what was seen: a turn **taken**, and a turn granted and spent on nothing, which the game
+announces itself. Their sum is still not the turns somebody was given. **Nothing divides by it** —
+no rate, no per-turn share, no fight-wide total (**develop ADR 0048**). _Avoid_: Round, tick, action
 
 ## The people
 

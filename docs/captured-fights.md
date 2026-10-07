@@ -156,13 +156,12 @@ evidence.
   fight against more than one opponent.
 - `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` — carries `walka`, the fight
   number, from the format that could hold more than one fight per recording.
-- `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json` — the only duel
+- `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json` — the first duel
   between two players, and the only recording from `experimental`, whose build lags production
-  (`docs/protocol-keys.md` says why production is what a claim is read on). The keys it brought were
-  read the day it arrived (`05d712f`).
-- `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json` — the other recording with a
-  player at both ends, and the first written from side 2. It is what settled whom a shout holds
-  (**develop ADR 0064**) and it is the whole of the evidence for it.
+  (`docs/protocol-keys.md` says why production is what a claim is read on).
+- `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json` — a recording with a player at
+  both ends that is no duel, and the first written from side 2. It is what settled whom a shout
+  holds (**develop ADR 0064**) and it is the whole of the evidence for it.
 - `captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json` — the first fight the
   game settled by itself, of the seven `captures/` held on 2026-10-04. Every payload carries `auto`,
   the whole battle arrives in one engine call with no snapshot before it, and the two calls after it
@@ -173,9 +172,9 @@ evidence.
   Because of that its entry health comes entirely from stated percentages rather than from a
   snapshot — the first snapshot after the battle has every player clamped to zero, which says where
   they stand and not how much reached them. A percentage is worth about a point and a half on these
-  pools, so five of the eleven land within one of their maximum. That is what caught a defect in the
-  reader: one of the five landed a point _over_, and the allowance meant to absorb exactly that was
-  smaller than a health point on their pool (`develop:docs/adr/0010-sizing-a-share-onto-a-side.md`).
+  pools, so five of the eleven land within one of their maximum. ⚠️ One of the five lands a point
+  _over_, so an allowance meant to absorb that must be at least a health point on their pool
+  (`develop:docs/adr/0010-sizing-a-share-onto-a-side.md`).
 
 - `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json` — **the first recording naming
   no build**, which is what its build column says. The add-on writes `null` where the page did not
@@ -250,7 +249,7 @@ evidence.
   damage from poison and which the panel had no word for (`docs/protocol-keys.md`,
   `src/ui/panel-words.ts`). It is also the first recording carrying `-poison_lowdmg_per` on
   something that is not a blow: seven poison ticks state their own reduction beside them, which is
-  what moved that key and `poison` to the weakest placement the register has.
+  why that key and `poison` stand at the weakest placement the register has.
 
 - `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` — the one against the entry
   above's opponent thirteen minutes later, with a different party. 715 messages over 111 engine
@@ -267,8 +266,8 @@ evidence.
   engine call, which is where the twenty comparisons that check them against the snapshots come
   from.
 
-  Two more things it settles, both by having a third of something. `+stun2-c` had been read on four
-  occurrences in one recording; its five here ride the same monster's blows and are followed
+  Two more things it settles, both by having a third of something. `+stun2-c` stands on four
+  occurrences in one other recording; its five here ride the same monster's blows and are followed
   one-to-one by a turn-loss message, which its sibling's four were not — and all 20 of that
   monster's blows carry `+dmgc` here too, so a second recording still cannot say which variant it
   is. And `active_absorbdest_per` gained a third declared share, `6`: three casters announce in this

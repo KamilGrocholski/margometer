@@ -49,8 +49,8 @@ does not declare.
 - [ ] The title bar reads the bare number in every one of them, and `screenshots/taken-at.json`
       states it unmarked.
 
-How a section is written and what the move is: the header comment of `CHANGELOG.md`. Why the section
-is the body of the release, and why the declaration is in one place: **develop ADR 0018**.
+How a section is written: the header comment of `CHANGELOG.md`. Why the section is the body of the
+release, and why the declaration is in one place: **develop ADR 0018**.
 
 ```
 build(release): <the number>, and what it is

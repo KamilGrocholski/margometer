@@ -55,7 +55,7 @@ a list of bearers, never a target (`develop ADR 0064`).
 
 ⚠️ **`allslow_per` is the one key the register does not settle** — it lists it among the effects
 changing attack speed and never says whose. Measured instead: after a `Szadź`, the combatant on the
-**opposing** side carries `swow_down` in 77 casts of 77.
+**opposing** side carries `swow_down` in 77 casts of 77, over `captures/` as it stood on 2026-09-09.
 
 ## What is drawn, and what is not
 
@@ -376,8 +376,8 @@ count. `develop ADR 0064`, superseding `develop ADR 0063` in part.
 `alllowdmg` and `active_decblock_per-enemies` for five turns and `shout` for three; dated as an aura
 it would hold a character two turns after the game lets them go.
 
-⚠️ **The corpus shows a shout naming more than one character exactly once, and shows it at two.** So
-`at once` and `names` are 2 for `Wyzywający okrzyk` and 1 for everything else.
+⚠️ **Over `captures/` on 2026-10-04 a shout names more than one character exactly once, and names
+two.** So `at once` and `names` are 2 for `Wyzywający okrzyk` and 1 for everything else.
 
 `casters` counts the combatants ever seen holding somebody with it; `fights` the recordings it holds
 in; `at once` the most characters it held at one moment; `stated` what the published table gives the
@@ -392,8 +392,8 @@ announcement of it was ever seen to list.
 ## How long a shout holds somebody
 
 **Something does witness a shout's end, and it is what the held character does.** The protocol never
-mentions the cast again, so `develop ADR 0059` filed the length as unwitnessed; what it did not look
-at is whom the provoked then strike. `tools/shout-holding.ts` walks every recording for it, and
+mentions the cast again, and `develop ADR 0059` files the length as unwitnessed; the witness is whom
+the provoked then strike. `tools/shout-holding.ts` walks every recording for it, and
 `develop ADR 0103` is what the panel does with the answer.
 
 ```bash

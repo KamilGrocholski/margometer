@@ -102,9 +102,10 @@ neighbour, and clears 8.40:1 on the panel, 7.75:1 on a card and 7.33:1 on a row.
 its own because the label's will not do: a glyph in `textQuiet` standing beside a label in
 `textQuiet` is a mark nobody sees.
 
-**No signal and no profession share a hue, and the closest pair of the twelve stands 64.6 apart.**
-That is a rule and not a happy result: an exemption by where a colour stands — one in a bar, the
-other beside a figure — is held by nothing, so none is granted.
+**No signal and no profession share a hue, and the closest pair of the twelve stands 64.6 apart**,
+measured the same way off `src/ui/panel-palette.ts` on 2026-10-07. That is a rule and not a happy
+result: an exemption by where a colour stands — one in a bar, the other beside a figure — is held by
+nothing, so none is granted.
 
 ### The palette
 
@@ -287,13 +288,12 @@ the turn mark, and it is the one mark whose cost is held rather than reasoned ab
 wearing it takes off a level's longest skill name is `tests/e2e/panel-marks.spec.ts`'s to say.
 **develop ADR 0089.**
 
-**And it is the one mark this panel draws rather than spells.** The codepoint `ⓘ` measures 5.5px of
-ink against 8.67 for `O` at the panel's own 11px, and the same 5.5 under `system-ui`, `sans-serif`,
-DejaVu Sans, Liberation Sans, Noto Sans, Arial, Segoe UI, Cantarell and Ubuntu alike, none of them
-carrying U+24D8 and every one falling back to a single condensed face (measured 2026-09-15): beside
-a figure it is a vertical sliver. A ring with a border is a circle wherever the panel is opened,
-which a codepoint is not. ⚠️ The **cell** keeps its width whatever shape stands inside it, so a
-width measured off the cell says nothing about the mark. **develop ADR 0092.**
+**And it is the one mark this panel draws rather than spells**: no font can be relied on for the
+codepoint `ⓘ`, which comes to a vertical sliver beside a figure. The measurement stands beside the
+rule in `src/ui/panel-look.ts`, and the sweep it was taken over in **develop ADR 0092**. A ring with
+a border is a circle wherever the panel is opened, which a codepoint is not. ⚠️ The **cell** keeps
+its width whatever shape stands inside it, so a width measured off the cell says nothing about the
+mark. **develop ADR 0092.**
 
 **The letter in the ring is drawn too**: a dot over a stem, a clear pixel from the ring above and
 below. A face's `i` stands where the face puts it, which is not the ring's middle. The `i` stays the
