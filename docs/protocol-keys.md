@@ -2588,8 +2588,10 @@ repository entirely.
 One thing is **read** from it and still nothing kept: whether the line announces a turn its holder
 spent on nothing. It is told by shape and never by its words — the text opens with a combatant's own
 name and the separator the game puts after it, and the game's other lines about a combatant end in a
-full stop. The decoder resolves the name against the roster and passes on an id (**develop ADR
-0049**); `docs/turns-taken.md` carries what that comes to.
+full stop: over `captures/` on 2026-10-07, 472 lines open with a seated name and the separator, the
+4 about something else end in a full stop, and the other 468 are the turns lost. The decoder
+resolves the name against the roster and passes on an id (**develop ADR 0049**);
+`docs/turns-taken.md` carries what that comes to.
 
 _Shape:_ 498 occurrences; alone in its message; text
 
