@@ -36,6 +36,7 @@ import {
     NO_LEGENDARY_WALK,
     prepareLegendaryWalk,
 } from "./legendary-standing.ts";
+import { CUT_MAXIMUM, SKILLS_MAXIMUM } from "./fight-statistics.ts";
 import {
     CHARGED_SKILLS_MAXIMUM,
     type ChargedSkillStanding,
@@ -117,6 +118,19 @@ export class CombatantsExceeded extends Error {
     }
 }
 
+/** The names the figures are cut by, over one fight: the game may spell a new element anywhere. */
+export class CutKeysExceeded extends Error {
+    override readonly name = "CutKeysExceeded";
+    readonly count: number;
+    readonly maximum: number;
+
+    constructor(count: number, maximum: number) {
+        super();
+        this.count = count;
+        this.maximum = maximum;
+    }
+}
+
 export class EventsExceeded extends Error {
     override readonly name = "EventsExceeded";
     readonly count: number;
@@ -141,8 +155,26 @@ export class PayloadsExceeded extends Error {
     }
 }
 
-/** A fight past a bound the options state. What stands is left whole. */
-export type PayloadRejected = CombatantsExceeded | EventsExceeded | PayloadsExceeded;
+/** The skill names one fight announces, each of which a row of the figures is kept under. */
+export class SkillsExceeded extends Error {
+    override readonly name = "SkillsExceeded";
+    readonly count: number;
+    readonly maximum: number;
+
+    constructor(count: number, maximum: number) {
+        super();
+        this.count = count;
+        this.maximum = maximum;
+    }
+}
+
+/** A fight past a bound the options or the figures state. What stands is left whole. */
+export type PayloadRejected =
+    | CombatantsExceeded
+    | CutKeysExceeded
+    | EventsExceeded
+    | PayloadsExceeded
+    | SkillsExceeded;
 
 /** Everything a payload leaves standing, but the events, which are appended rather than copied. */
 interface SessionState {
@@ -161,6 +193,9 @@ interface SessionState {
     readonly legendaryWalk: LegendaryWalk;
     /** Everybody the fight has named, seated or not: what the bound on a cast counts. */
     readonly namedCombatantIds: ReadonlySet<number>;
+    /** Every name a cut of the figures is kept under, and every skill a row is: what they count. */
+    readonly cutKeys: ReadonlySet<string>;
+    readonly skillNames: ReadonlySet<string>;
     readonly eventsAtSeatingByCombatantId: ReadonlyMap<number, number>;
 }
 
@@ -169,6 +204,15 @@ export interface FightSession {
     /** Null until a payload has arrived: a fight nobody has seen is not a fight with no figures. */
     state: SessionState | null;
     events: BattleEvent[];
+}
+
+/** What the payload's own preparing already settled, carried into the state it leaves. */
+interface PreparedStanding {
+    combatants: readonly Combatant[];
+    namedCombatantIds: ReadonlySet<number>;
+    cutKeys: ReadonlySet<string>;
+    skillNames: ReadonlySet<string>;
+    eventsAtSeatingByCombatantId: ReadonlyMap<number, number>;
 }
 
 export interface PreparedPayload {
@@ -259,19 +303,24 @@ export function preparePayload(
     if (namedCombatantIds.size > options.combatantsMaximum) {
         return new CombatantsExceeded(namedCombatantIds.size, options.combatantsMaximum);
     }
+    const cutKeys = prepareCutKeys(stateBefore?.cutKeys ?? new Set(), decoded.events);
+    if (cutKeys.size > CUT_MAXIMUM) return new CutKeysExceeded(cutKeys.size, CUT_MAXIMUM);
+    const skillNames = prepareSkillNames(stateBefore?.skillNames ?? new Set(), decoded.events);
+    if (skillNames.size > SKILLS_MAXIMUM) {
+        return new SkillsExceeded(skillNames.size, SKILLS_MAXIMUM);
+    }
     const eventsAtSeatingByCombatantId = prepareEventsAtSeating(
         stateBefore?.eventsAtSeatingByCombatantId ?? new Map(),
         combatants,
         eventsBefore,
     );
-    const stateAfter = preparePayloadStanding(
-        stateBefore,
-        record,
-        decoded,
+    const stateAfter = preparePayloadStanding(stateBefore, record, decoded, {
         combatants,
         namedCombatantIds,
+        cutKeys,
+        skillNames,
         eventsAtSeatingByCombatantId,
-    );
+    });
     assert(stateAfter.payloadsApplied === payloadsApplied, "a payload prepared is counted once");
     const payloadIndex = stateBefore?.payloadsApplied ?? 0;
     return { payloadIndex, isOpening: stateBefore === null, decoded, stateAfter };
@@ -385,14 +434,78 @@ function prepareNamedCombatantIds(
     return namedCombatantIds;
 }
 
+/**
+ * Every name a cut of damage or health is kept under, over the whole fight: an element, or the key
+ * health moved by, which share the cut of what a combatant took. The damage family reads any
+ * `±dmg…` key, so the game may spell a new element in any message; the bound is checked here,
+ * where the last of them is known (`AGENTS.md` E1), and asserted by the tally past it. A defence, a
+ * statistic and a proc are cut by the table's own keys, which no message adds to.
+ */
+function prepareCutKeys(
+    cutKeysBefore: ReadonlySet<string>,
+    events: readonly BattleEvent[],
+): Set<string> {
+    const cutKeys = new Set(cutKeysBefore);
+    for (const event of events) {
+        // Add every name the event cuts a figure by.
+        let eventCutKeys: readonly string[];
+        switch (event.kind) {
+            case BATTLE_EVENT.attack:
+                eventCutKeys = [
+                    ...event.raw.map((figure) => figure.element),
+                    ...event.applied.map((figure) => figure.element),
+                ];
+                break;
+            case BATTLE_EVENT.damageToNamedCombatant:
+                eventCutKeys = [event.damage.element];
+                break;
+            case BATTLE_EVENT.healthChange:
+            case BATTLE_EVENT.healingToNamedCombatant:
+            case BATTLE_EVENT.unaccountedHealth:
+                eventCutKeys = [event.source];
+                break;
+            case BATTLE_EVENT.skillUsed:
+            case BATTLE_EVENT.declaration:
+            case BATTLE_EVENT.turnLost:
+            case BATTLE_EVENT.unknownMessage:
+            case BATTLE_EVENT.fightOutcome:
+                eventCutKeys = [];
+                break;
+        }
+        for (const cutKey of eventCutKeys) cutKeys.add(cutKey);
+    }
+    assert(cutKeys.size >= cutKeysBefore.size, "no name cut by before is forgotten");
+    return cutKeys;
+}
+
+/**
+ * Every skill the fight has announced, by the name a row of the figures is kept under. A blow or a
+ * movement rides an announcement of its own payload, so its name is counted there.
+ */
+function prepareSkillNames(
+    skillNamesBefore: ReadonlySet<string>,
+    events: readonly BattleEvent[],
+): Set<string> {
+    const skillNames = new Set(skillNamesBefore);
+    for (const event of events) {
+        if (event.kind === BATTLE_EVENT.skillUsed) skillNames.add(event.skillName);
+    }
+    for (const event of events) {
+        if (!("announced" in event)) continue;
+        if (event.announced === null) continue;
+        assert(skillNames.has(event.announced.skillName), "what a blow rides was announced");
+    }
+    assert(skillNames.size >= skillNamesBefore.size, "no skill announced before is forgotten");
+    return skillNames;
+}
+
 function preparePayloadStanding(
     stateBefore: SessionState | null,
     record: PayloadRecord,
     decoded: PayloadDecoded,
-    combatants: readonly Combatant[],
-    namedCombatantIds: ReadonlySet<number>,
-    eventsAtSeatingByCombatantId: ReadonlyMap<number, number>,
+    prepared: Readonly<PreparedStanding>,
 ): SessionState {
+    const { combatants, namedCombatantIds, eventsAtSeatingByCombatantId } = prepared;
     // Kept once seen: a payload saying nothing about it would otherwise end the auto fight a reader
     // is watching. No payload states an auto fight and a queue at once (`captures/`
     // 2026-09-09), so what the game stated before it took the fight over is not the turn in hand.
@@ -443,6 +556,8 @@ function preparePayloadStanding(
             events,
         ),
         namedCombatantIds,
+        cutKeys: prepared.cutKeys,
+        skillNames: prepared.skillNames,
         eventsAtSeatingByCombatantId,
     };
 }

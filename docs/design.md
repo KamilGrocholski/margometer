@@ -483,11 +483,19 @@ export interface PayloadCommitted {
     unreadAdded: number;
 }
 /**
- * A fight past a bound the options state, each stating its `count` and `maximum`; what stands is
- * left whole. `CombatantsExceeded` counts everybody the fight has named: seated by the envelope, at
- * either end of a message or on the announcement it rides, or carrying a mask or a charge.
+ * A fight past a bound the options or the figures state, each stating its `count` and `maximum`;
+ * what stands is left whole. `CombatantsExceeded` counts everybody the fight has named: seated by
+ * the envelope, at either end of a message or on the announcement it rides, or carrying a mask or a
+ * charge. `CutKeysExceeded` counts every name a cut of the figures is kept under, and
+ * `SkillsExceeded` every skill announced, against the figures' own `CUT_MAXIMUM` and
+ * `SKILLS_MAXIMUM`: the game may spell a new element or a new skill in any message.
  */
-export type PayloadRejected = CombatantsExceeded | EventsExceeded | PayloadsExceeded;
+export type PayloadRejected =
+    | CombatantsExceeded
+    | CutKeysExceeded
+    | EventsExceeded
+    | PayloadsExceeded
+    | SkillsExceeded;
 
 /** What the envelope hands the session. Core owns the type because core reads it (§4). */
 export interface PayloadRecord {

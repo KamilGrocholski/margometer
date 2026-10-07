@@ -250,9 +250,12 @@ interface TallyingStatistics extends UnreadMessageCounts {
     outcome: FightOutcome | null;
 }
 
-/** The largest cut in `captures/` holds ten elements against twenty people, 2026-08-28. */
+/**
+ * The largest cut in `captures/` holds ten elements against twenty people, 2026-08-28. The session
+ * refuses a fight cutting by more names (`CutKeysExceeded`), so past it this is an assertion.
+ */
 export const CUT_MAXIMUM = 64;
-/** 81 skills are named across `captures/`, 2026-08-29. */
+/** 81 skills are named across `captures/`, 2026-08-29; past it, `SkillsExceeded`. */
 export const SKILLS_MAXIMUM = 256;
 /** The fight-wide count each cause adds to: the compiler holds every cause to one. */
 const UNREAD_COUNT_BY_CAUSE: { readonly [Cause in UnreadCause]: keyof UnreadMessageCounts } = {

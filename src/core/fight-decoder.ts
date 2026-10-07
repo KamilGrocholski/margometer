@@ -392,7 +392,7 @@ function composeAnnouncementStanding(
     }
     const announcementStanding = context.announcementStanding;
     if (announcementStanding === null) return null;
-    const attack = events.find((event) => event.kind === BATTLE_EVENT.attack);
+    const attack = events.find((event): event is AttackEvent => event.kind === BATTLE_EVENT.attack);
     if (attack === undefined) {
         // The game numbers one turn for the announcement, the heal and the blow after it
         // (`2026-10-04-tempest-grupa-vs-umibozu`, ordinals 52 → 54 and 219 → 225).
@@ -400,7 +400,6 @@ function composeAnnouncementStanding(
         if (!isHealingAnnouncerOnly(events, announcementStanding.announced)) return null;
         return { ...announcementStanding, isGlued: false };
     }
-    if (attack.kind !== BATTLE_EVENT.attack) return null;
     if (attack.actorId !== announcementStanding.announced.actorId) return null;
     assert(
         announcementStanding.blowsRemaining > 0,
@@ -559,11 +558,16 @@ function addValuedKey(
                 decodeHealthChange(key, valueText, keyMeaning),
             );
         case KEY_FAMILY.declaration:
-            // A shout naming more characters than a fight holds is unread, so the names a shout
-            // holds stay inside the cast wherever they are read.
+            // A shout naming more characters than a fight holds is unread, and so is a second
+            // shout in one message, as a second skill name is: the names a cast holds stay inside
+            // the cast wherever they are read.
             if (key === PROVOCATION_KEY) {
                 const names = valueText.split(NAME_SEPARATOR).filter((name) => name.length > 0);
                 if (names.length > COMBATANTS_MAXIMUM) return false;
+                const isShoutRead = parametersDecoded.declared.some((declaredEffect) =>
+                    declaredEffect.effect === PROVOCATION_KEY
+                );
+                if (isShoutRead) return false;
             }
             return addParameterRead(parametersDecoded.declared, {
                 effect: key,
@@ -1091,6 +1095,10 @@ function parseProtocolMessageEnd(
     const combatantId = parseInteger(idText);
     if (combatantId === null) return new EndUnreadable(end);
     assert(Number.isSafeInteger(combatantId), "an id read is one held exactly");
+    // Only the spelling the game writes is read, and the bare `0` above is the only nobody: `00`,
+    // `-0` or `0=50.00` read as somebody would be a combatant the writer cannot write back.
+    if (formatInteger(combatantId) !== idText) return new EndUnreadable(end);
+    if (combatantId === 0) return new EndUnreadable(end);
     if (separatorIndex === -1) return { combatantId, healthPercent: null };
     const healthPercent = parseHealthPercent(segment.slice(separatorIndex + 1));
     if (healthPercent === null) return new EndUnreadable(end);

@@ -1383,6 +1383,21 @@ Deno.test("a shout naming everybody a fight holds is read, and one naming more i
     assertEquals(unread.unreadKeys, ["shout"], "by its key");
 });
 
+/** Each shout inside the bound, two of them past it: a cast holds the names of one. */
+Deno.test("a second shout in one message is unread, so a cast never holds two", () => {
+    const names = (from: number) =>
+        Array.from({ length: COMBATANTS_MAXIMUM }, (_, index) => `Gracz ${from + index}`).join(
+            ", ",
+        );
+    const [used, unread] = decode([
+        `1=100.00;1=100.00;tspell=Okrzyk;skillId=1;shout=${names(1)};shout=${names(21)}`,
+    ]);
+    assertStrictEquals(used?.kind, BATTLE_EVENT.skillUsed, "the skill is announced");
+    assertEquals(used.declared.map((declared) => declared.text), [names(1)], "with the first");
+    assertStrictEquals(unread?.kind, BATTLE_EVENT.unknownMessage, "and the second is unread");
+    assertEquals(unread.unreadKeys, ["shout"], "by its key");
+});
+
 Deno.test("a second name or id of a skill is unread, never written over the first", () => {
     const [named, secondName] = decode(["1=100.00;0;tspell=Pierwsza;tspell=Druga"]);
     assertStrictEquals(named?.kind, BATTLE_EVENT.skillUsed, "the skill is announced");

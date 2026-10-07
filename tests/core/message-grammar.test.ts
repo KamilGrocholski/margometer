@@ -78,6 +78,15 @@ Deno.test("what the grammar does not cover is refused, and says which end", () =
         actor,
         "a health past what a number holds",
     );
+    expectSideUnreadable(parseProtocolMessage("00;0;step"), actor, "nobody spelt as two zeros");
+    expectSideUnreadable(parseProtocolMessage("-0;0;step"), actor, "or behind a minus");
+    expectSideUnreadable(parseProtocolMessage("0;0=50.00;step"), target, "or with a health");
+    expectSideUnreadable(parseProtocolMessage("07;0;step"), actor, "and an id with a zero ahead");
+    assertEquals(
+        parseOrFail("-7;0;step").actor,
+        { combatantId: -7, healthPercent: null },
+        "while an id behind a minus is somebody, as the game writes its monsters",
+    );
     const keyless = parseProtocolMessage("0;0;step;=5");
     assertInstanceOf(keyless, ParameterKeyEmpty, "a value with no key");
     assertStrictEquals(keyless.index, 1, "a value with no key");

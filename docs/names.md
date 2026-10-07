@@ -95,6 +95,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `prepareCapture` — `src/ports/fight-capture.ts`
 - `prepareCarriedStatusWalk` — `src/core/carried-status.ts`
 - `prepareChargedSkills` — `src/core/charged-skill.ts`
+- `prepareCutKeys` — `src/core/fight-session.ts`
 - `prepareEventsAtSeating` — `src/core/fight-session.ts`
 - `prepareFrozenFiles` — `tools/frozen-files.ts`
 - `prepareFrozenHelpCounts` — `tools/help-article.ts`
@@ -108,6 +109,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `preparePayloadCombatants` — `src/core/fight-session.ts`
 - `preparePayloadStanding` — `src/core/fight-session.ts`
 - `preparePayloadUnread` — `src/core/fight-session.ts`
+- `prepareSkillNames` — `src/core/fight-session.ts`
 - `prepareStoreWrite` — `src/ports/browser-store.ts`
 - `prepareTurn` — `tools/fabricated-fight.ts`
 
@@ -2901,6 +2903,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `PayloadRecord` — `src/core/fight-session.ts`
 - `PayloadRejected` — `src/core/fight-session.ts`
 - `PreparedPayload` — `src/core/fight-session.ts`
+- `PreparedStanding` — `src/core/fight-session.ts`
 - `PreventedDamage` — `src/core/battle-event.ts`
 - `ProcEnd` — `src/core/protocol-key.ts`
 - `ProtocolMessage` — `src/core/fight-decoder.ts`
@@ -3456,11 +3459,13 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `src/core/`
 
 - `CombatantsExceeded` — `src/core/fight-session.ts`
+- `CutKeysExceeded` — `src/core/fight-session.ts`
 - `EndUnreadable` — `src/core/fight-decoder.ts`
 - `EventsExceeded` — `src/core/fight-session.ts`
 - `ParameterKeyEmpty` — `src/core/fight-decoder.ts`
 - `PayloadsExceeded` — `src/core/fight-session.ts`
 - `SegmentsExceeded` — `src/core/fight-decoder.ts`
+- `SkillsExceeded` — `src/core/fight-session.ts`
 - `UnreadMessage` — `src/core/fight-decoder.ts`
 
 ### `src/ports/`
@@ -3690,7 +3695,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SLOW_ALL_KEY` — `src/core/protocol-key.ts`
 - `SLOW_BIT_NAME` — `src/core/carried-figure.ts`
 - `SOURCES_COUNTED` — `src/core/carried-figure.ts`
-- `SOURCES_MAXIMUM` — `src/core/carried-figure.ts`
 - `STANDINGS_MAXIMUM` — `src/core/aura-standing.ts`
 - `STATUS_BITS_MAXIMUM` — `src/core/carried-status.ts`
 - `STEP_KEY` — `src/core/protocol-key.ts`
@@ -4577,6 +4581,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `CUSTOM_PROPERTY_OPENER` — `tests/repository/browser-support.test.ts`
 - `CUT_BLOW` — `tests/ui/helper-window.test.ts`
 - `CUT_HEADINGS` — `tests/ui/panel-element.test.ts`
+- `CUT_KEY_SAMPLES` — `tests/core/fight-session.test.ts`
 - `CUT_NAME` — `tests/ui/helper-window.test.ts`
 - `CUT_NOTE` — `tests/e2e/panel-card.spec.ts`
 - `CUT_ROSTER` — `tests/ui/helper-window.test.ts`
@@ -5346,6 +5351,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `countsByCombatantId` — `src/core/legendary-standing.ts`
 - `cut` — `src/core/fight-statistics.ts`
 - `cutForOtherEnd` — `src/core/fight-statistics.ts`
+- `cutKey` — `src/core/fight-session.ts`
+- `cutKeys` — `src/core/fight-session.ts`
 - `cutTotal` — `src/core/fight-statistics.ts`
 - `damage` — `src/core/fight-decoder.ts`
 - `datedCasts` — `src/core/aura-standing.ts`
@@ -5367,6 +5374,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `entryHealthByCombatantId` — `src/core/combatant-health.ts`
 - `event` — in 7 files: `src/core/`
 - `eventCombatantIds` — `src/core/fight-session.ts`
+- `eventCutKeys` — `src/core/fight-session.ts`
 - `eventIndex` — `src/core/aura-standing.ts`
 - `events` — `src/core/fight-decoder.ts`, `src/core/fight-session.ts`
 - `eventsAfter` — `src/core/fight-session.ts`
@@ -5405,6 +5413,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isOnAuto` — `src/core/fight-session.ts`
 - `isRead` — `src/core/fight-decoder.ts`
 - `isShout` — `src/core/aura-standing.ts`
+- `isShoutRead` — `src/core/fight-decoder.ts`
 - `isStriking` — `src/core/turn-clock.ts`
 - `isUserNamed` — `src/core/fight-decoder.ts`
 - `isWhole` — `src/core/combatant-health.ts`
@@ -5483,7 +5492,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `skill` — `src/core/aura-standing.ts`, `src/core/fight-decoder.ts`
 - `skillFigures` — `src/core/fight-statistics.ts`
 - `skillId` — `src/core/fight-decoder.ts`
-- `skillNames` — `src/core/charged-skill.ts`
+- `skillNames` — `src/core/charged-skill.ts`, `src/core/fight-session.ts`
 - `skillNamesByActorId` — `src/core/charged-skill.ts`
 - `skills` — `src/core/fight-statistics.ts`
 - `source` — `src/core/combatant-health.ts`
@@ -7014,7 +7023,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `anchor` — in 4 files: `tests/`
 - `anchorless` — `tests/ports/browser-file.test.ts`
 - `annotation` — `tests/repository/purity.test.ts`
-- `announced` — in 8 files: `tests/`
+- `announced` — in 9 files: `tests/`
 - `announcedByPlayer` — `tests/core/charged-skill.test.ts`
 - `announcement` — `tests/core/message-grammar.test.ts`
 - `announcementName` — `tests/runtime/margometer-runtime.test.ts`
@@ -7108,7 +7117,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `blow` — `tests/core/fight-decoder.test.ts`, `tests/core/legendary-standing.test.ts`
 - `blowKeys` — `tests/ui/blow-vocabulary.test.ts`
 - `blowMessage` — `tests/ui/panel-content.test.ts`
-- `blows` — in 4 files: `tests/`
+- `blows` — in 5 files: `tests/`
 - `blowsRead` — `tests/core/granted-blow-rule.test.ts`
 - `blue` — `tests/ui/panel-look.test.ts`
 - `board` — `tests/ports/margonem-engine-tooltip.test.ts`
@@ -7889,7 +7898,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `moved` — in 17 files: `tests/`
 - `movedBySelector` — `tests/ui/panel-look.test.ts`
 - `much` — `tests/e2e/panel-card.spec.ts`
-- `name` — in 40 files: `tests/`
+- `name` — in 41 files: `tests/`
 - `nameCell` — `tests/ui/panel-element.test.ts`
 - `named` — in 30 files: `tests/`
 - `nameless` — in 4 files: `tests/`
@@ -8261,7 +8270,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `saids` — `tests/ui/panel-words.test.ts`
 - `same` — `tests/tools/margonem-readings.test.ts`
 - `sameTurn` — `tests/core/charged-skill.test.ts`
-- `sample` — in 33 files: `tests/`
+- `sample` — in 34 files: `tests/`
 - `sampleCitations` — `tests/repository/cited-paths.test.ts`
 - `sampleKeys` — `tests/repository/browser-suite-keys.test.ts`,
   `tests/repository/protocol-keys.test.ts`
@@ -8421,7 +8430,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/repository/declaration-order.test.ts`
 - `states` — `tests/ports/recorded-session.test.ts`
 - `statistic` — `tests/ui/panel-words.test.ts`
-- `statistics` — in 16 files: `tests/`
+- `statistics` — in 17 files: `tests/`
 - `status` — in 5 files: `tests/`
 - `statuses` — `tests/core/carried-status.test.ts`, `tests/ui/panel-words.test.ts`
 - `stayed` — `tests/e2e/panel-card.spec.ts`
@@ -8790,6 +8799,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `count` — `src/core/fight-session.ts`
 - `counted` — `src/core/fight-statistics.ts`
 - `cut` — `src/core/fight-statistics.ts`
+- `cutKeysBefore` — `src/core/fight-session.ts`
 - `dealer` — `src/core/fight-statistics.ts`
 - `declared` — in 4 files: `src/core/`
 - `declaredEffect` — in 4 files: `src/core/`
@@ -8805,9 +8815,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `eventIndex` — `src/core/aura-standing.ts`
 - `events` — in 7 files: `src/core/`
 - `eventsAtSeatingBefore` — `src/core/fight-session.ts`
-- `eventsAtSeatingByCombatantId` — `src/core/aura-standing.ts`, `src/core/fight-session.ts`
+- `eventsAtSeatingByCombatantId` — `src/core/aura-standing.ts`
 - `eventsBefore` — `src/core/fight-session.ts`
-- `figure` — `src/core/fight-statistics.ts`
+- `figure` — `src/core/fight-session.ts`, `src/core/fight-statistics.ts`
 - `figures` — `src/core/fight-figures.ts`, `src/core/fight-statistics.ts`
 - `from` — `src/core/fight-decoder.ts`
 - `giverId` — `src/core/fight-statistics.ts`
@@ -8834,7 +8844,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `name` — `src/core/combatant-roster.ts`, `src/core/fight-decoder.ts`,
   `src/core/fight-statistics.ts`
 - `namedBefore` — `src/core/fight-session.ts`
-- `namedCombatantIds` — `src/core/fight-session.ts`
 - `options` — `src/core/fight-decoder.ts`, `src/core/fight-session.ts`
 - `ordinal` — `src/core/charged-skill.ts`
 - `otherEndKey` — `src/core/fight-statistics.ts`
@@ -8855,6 +8864,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `sideHealByEvent` — `src/core/fight-statistics.ts`
 - `skill` — `src/core/fight-decoder.ts`
 - `skillName` — `src/core/charged-skill.ts`
+- `skillNamesBefore` — `src/core/fight-session.ts`
 - `skillNamesByActorId` — `src/core/charged-skill.ts`
 - `skills` — `src/core/aura-standing.ts`, `src/core/fight-decoder.ts`,
   `src/core/fight-statistics.ts`
@@ -9852,7 +9862,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `font` — `tests/ui/panel-element.test.ts`
 - `fragment` — `tests/e2e/panel-fixture.ts`
 - `frames` — `tests/runtime-world.ts`
-- `from` — `tests/core/last-heal-rule.test.ts`, `tests/e2e/panel-probe.ts`
+- `from` — `tests/core/fight-decoder.test.ts`, `tests/core/last-heal-rule.test.ts`,
+  `tests/e2e/panel-probe.ts`
 - `fromPaths` — `tests/tools/preview-server.test.ts`
 - `functions` — `tests/repository/declaration-order.test.ts`,
   `tests/repository/handed-callbacks.test.ts`, `tests/source-tree.ts`
@@ -10311,6 +10322,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `count` — `src/core/fight-session.ts`
 - `coverageMinimum` — `src/core/aura-standing.ts`
 - `customSkillName` — `src/core/protocol-key.ts`
+- `cutKeys` — `src/core/fight-session.ts`
 - `damage` — `src/core/battle-event.ts`, `src/core/fight-decoder.ts`, `src/core/protocol-key.ts`
 - `damageByNeitherEnd` — `src/core/fight-statistics.ts`
 - `damageByNeitherEndByKind` — `src/core/fight-statistics.ts`
@@ -10473,6 +10485,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `skillId` — in 4 files: `src/core/`
 - `skillKeysRead` — `src/core/fight-decoder.ts`
 - `skillName` — in 5 files: `src/core/`
+- `skillNames` — `src/core/fight-session.ts`
 - `skillUsed` — `src/core/battle-event.ts`
 - `skills` — `src/core/fight-statistics.ts`
 - `source` — in 4 files: `src/core/`
@@ -10632,6 +10645,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `Caught` — `src/runtime/failure-fate.ts`
 - `CombatantsExceeded` — `src/runtime/failure-fate.ts`
+- `CutKeysExceeded` — `src/runtime/failure-fate.ts`
 - `EventsExceeded` — `src/runtime/failure-fate.ts`
 - `EverySlotPinned` — `src/runtime/failure-fate.ts`
 - `FightAlreadyKept` — `src/runtime/failure-fate.ts`
@@ -10663,6 +10677,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ShelfUnwritable` — `src/runtime/failure-fate.ts`
 - `ShelfVersionUnknown` — `src/runtime/failure-fate.ts`
 - `ShownFightAbsent` — `src/runtime/failure-fate.ts`
+- `SkillsExceeded` — `src/runtime/failure-fate.ts`
 - `StoreRefused` — `src/runtime/failure-fate.ts`
 - `StoreUnavailable` — `src/runtime/failure-fate.ts`
 - `StoreValueTooLong` — `src/runtime/failure-fate.ts`

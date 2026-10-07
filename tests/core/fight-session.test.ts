@@ -23,6 +23,7 @@ import {
     commitPayload,
     composeFightView,
     createFightSession,
+    CutKeysExceeded,
     EventsExceeded,
     type FightSession,
     type FightView,
@@ -33,7 +34,9 @@ import {
     preparePayload,
     SESSION_OPTIONS,
     SESSION_PHASE,
+    SkillsExceeded,
 } from "#/src/core/fight-session.ts";
+import { CUT_MAXIMUM, SKILLS_MAXIMUM, tallyFightStatistics } from "#/src/core/fight-statistics.ts";
 import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 
@@ -50,6 +53,14 @@ const NOTHING: PayloadRecord = {
     chargeStatements: [],
 };
 const OPENING: PayloadRecord = { ...NOTHING, isInit: true };
+/** One message per name a cut is kept under, each adding one name and nothing else. */
+const CUT_KEY_SAMPLES: readonly (readonly [string, string])[] = [
+    ["an element struck before reduction", "1=50.00;2=50.00;+dmgz=5"],
+    ["a source of health", "1=50.00;2=50.00;heal_target=5"],
+    ["an element struck at a name", "1=50.00;2=50.00;+oth_dmg=15,z,Gracz 1(50.00%)"],
+    ["a source of healing at a name", "1=50.00;0;legbon_lastheal=40,Gracz 1(50.00%)"],
+    ["a share of a side", "1=50.00;1=50.00;tspell=Cios;skillId=79;healall_per=30"],
+];
 
 Deno.test("a fight nobody has seen is not a fight holding nothing", () => {
     const session = createFightSession(SESSION_OPTIONS);
@@ -221,6 +232,76 @@ Deno.test("a fight past its bound on events is refused at the bound and not befo
     const past = preparePayload(session, { ...NOTHING, messages: ["0;0;txt=b"] }, BLOWS_GRANTED);
     assert(past instanceof Error, "one event past it is refused");
     assertInstanceOf(past, EventsExceeded, "as too many events");
+});
+
+/**
+ * Each message inside every bound on one message, and a fight of them past the bound on a cut: the
+ * damage family reads any `±dmg…` key, so the game may spell a new element in any message. A fight
+ * at the bound is tallied whole; the one past it is refused here, before the tally's assertion.
+ */
+Deno.test("a fight cutting its figures by more names than a cut holds is refused, not asserted", () => {
+    const session = createFightSession(SESSION_OPTIONS);
+    const blows = Array.from(
+        { length: CUT_MAXIMUM },
+        (_, index) => `1=50.00;2=50.00;-dmgk${index}=5`,
+    );
+    apply(session, { ...OPENING, messages: blows });
+    const statistics = tallyFightStatistics(view(session).events, new Map());
+    assertStrictEquals(
+        statistics.byCombatantId.get(1)?.damageDealtByKind.size,
+        CUT_MAXIMUM,
+        "a fight at the bound is tallied whole",
+    );
+    const past = preparePayload(
+        session,
+        { ...NOTHING, messages: [`1=50.00;2=50.00;-dmgk${CUT_MAXIMUM}=5`] },
+        BLOWS_GRANTED,
+    );
+    assertInstanceOf(past, CutKeysExceeded, "and one name past it is refused");
+    assertEquals([past.count, past.maximum], [CUT_MAXIMUM + 1, CUT_MAXIMUM], "saying by how much");
+});
+
+Deno.test("every name a cut is kept under counts against its bound", () => {
+    for (const [name, sample] of CUT_KEY_SAMPLES) {
+        const session = createFightSession(SESSION_OPTIONS);
+        const blows = Array.from(
+            { length: CUT_MAXIMUM - 1 },
+            (_, index) => `1=50.00;2=50.00;-dmgk${index}=5`,
+        );
+        apply(session, { ...OPENING, messages: [...blows, sample] });
+        const past = preparePayload(
+            session,
+            { ...NOTHING, messages: [`1=50.00;2=50.00;-dmgk${CUT_MAXIMUM}=5`] },
+            BLOWS_GRANTED,
+        );
+        assertInstanceOf(past, CutKeysExceeded, `${name} is counted`);
+    }
+});
+
+Deno.test("a fight announcing more skills than its rows hold is refused, not asserted", () => {
+    const session = createFightSession(SESSION_OPTIONS);
+    const announced = Array.from(
+        { length: SKILLS_MAXIMUM },
+        (_, index) => `1=50.00;2=50.00;tspell=Cios ${index};-dmgk=5`,
+    );
+    apply(session, { ...OPENING, messages: announced });
+    const statistics = tallyFightStatistics(view(session).events, new Map());
+    assertStrictEquals(
+        statistics.byCombatantId.get(1)?.skills.size,
+        SKILLS_MAXIMUM,
+        "a fight at the bound is tallied whole",
+    );
+    const past = preparePayload(
+        session,
+        { ...NOTHING, messages: [`1=50.00;2=50.00;tspell=Cios ${SKILLS_MAXIMUM};-dmgk=5`] },
+        BLOWS_GRANTED,
+    );
+    assertInstanceOf(past, SkillsExceeded, "and one skill past it is refused");
+    assertEquals(
+        [past.count, past.maximum],
+        [SKILLS_MAXIMUM + 1, SKILLS_MAXIMUM],
+        "saying by how much",
+    );
 });
 
 Deno.test("a cast stated twice is one cast, and a fight of twenty survives the restatement", () => {

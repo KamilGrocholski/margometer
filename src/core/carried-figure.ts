@@ -48,12 +48,6 @@ interface Bearer {
 const SOURCES_COUNTED = 2;
 
 /**
- * Past the casts of one key that ever stood over one bearer, which `docs/auras-standing.md` counts
- * under _How many sources stand together_.
- */
-const SOURCES_MAXIMUM = 32;
-
-/**
  * The keys whose published help gives the caster a different amount from everybody else: half the
  * speed-up for whoever cast it (`docs/auras-standing.md`). What the half rounds to is stated
  * nowhere, so the caster's own row carries **no figure** rather than an invented one.
@@ -134,7 +128,10 @@ function lookupCastsOverBearer(
         if (turnsElapsed < 0) continue;
         if (turnsElapsed < cast.turnsStated) castsOverBearer.push(cast);
     }
-    assert(castsOverBearer.length <= SOURCES_MAXIMUM, "a bearer is reached by a bounded few casts");
+    assert(
+        castsOverBearer.length <= casts.length,
+        "a bearer is reached by some of the casts walked",
+    );
     return castsOverBearer;
 }
 
@@ -163,7 +160,7 @@ function tallyPercentForBearer(
     key: string,
 ): number | null {
     assert(key.length > 0, "a figure is asked of a key");
-    assert(casts.length <= SOURCES_MAXIMUM, "and over the casts the walk above bounded");
+    assert(casts.length <= STANDINGS_MAXIMUM, "and over the casts the walk above bounded");
     if (isCasterHalved(casts, bearer.combatantId, key)) return null;
     if (casts.length === 0) return null;
     // A source is a caster, at their highest cast (`docs/auras-standing.md`).
