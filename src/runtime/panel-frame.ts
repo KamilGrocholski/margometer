@@ -82,7 +82,13 @@ import {
 } from "#/src/ui/panel-words.ts";
 
 /** Which level of the panel two counts of one figure came out different on. */
-export const FIGURES_CUT = { screen: "screen", drill: "drill", pair: "pair" } as const;
+export const FIGURES_CUT = {
+    screen: "screen",
+    drill: "drill",
+    pair: "pair",
+    part: "part",
+    helper: "helper",
+} as const;
 export type FiguresCut = VocabularyWord<typeof FIGURES_CUT>;
 
 export class FiguresDisagreed extends Error {
@@ -180,7 +186,16 @@ export function renderFrame(parts: FrameParts): void {
         if (helperRead instanceof Error) {
             parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: helperRead });
             helper = HELPER_ABSENCE.fightUnread;
-        } else helper = helperRead;
+        } else {
+            helper = helperRead;
+            if (isHelperFiguresDisagreed(helperRead)) {
+                parts.defects.add({
+                    kind: DEFECT_KIND.figures,
+                    region: null,
+                    failure: new FiguresDisagreed(FIGURES_CUT.helper),
+                });
+            }
+        }
         addUndrawnDefects(
             parts.defects,
             parts.view.renderHelper(helper, parts.screen.isHelperCollapsed),
@@ -257,6 +272,9 @@ export function renderFrame(parts: FrameParts): void {
             if (shownScreen.pair?.hasFiguresDisagreed === true) {
                 addFiguresDisagreed(FIGURES_CUT.pair);
             }
+            if (shownScreen.part?.hasFiguresDisagreed === true) {
+                addFiguresDisagreed(FIGURES_CUT.part);
+            }
         }
         addUndrawnDefects(parts.defects, parts.view.render(shownScreen));
     });
@@ -310,6 +328,12 @@ function presentHelperForFrame(
         view.readerSide,
         turn,
     );
+}
+
+/** Whether the window's reading carried out a broken invariant; a window with no fight carries none. */
+function isHelperFiguresDisagreed(helper: HelperContent | HelperAbsence): boolean {
+    if (typeof helper === "string") return false;
+    return helper.hasFiguresDisagreed;
 }
 
 function addUndrawnDefects(defects: DefectLedger, report: RenderReport): void {

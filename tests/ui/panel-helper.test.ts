@@ -407,4 +407,6 @@ Deno.test("the band stops at its stated maximum, and one at it is stated whole",
         composeTurn(null),
     );
     assertEquals(nameless.chargedSkills, [], "and a charge naming no blow is not a row");
+    assert(nameless.hasFiguresDisagreed, "but a broken invariant, carried out to be said");
+    assert(!atMaximum.hasFiguresDisagreed, "while charges core named carry nothing out");
 });

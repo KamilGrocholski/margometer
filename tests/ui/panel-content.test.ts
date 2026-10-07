@@ -690,6 +690,38 @@ Deno.test("an opened row states the same figure, cut by whom each blow reached",
     }
 });
 
+/** Core keys the other end by id; a key that is no id is a broken invariant, and it is said. */
+Deno.test("a cut keyed by something that is no id is passed over, and carried out", () => {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const [combatantId, figures] =
+        [...statistics.byCombatantId].find(([, held]) => held.damageDealtByOpponent.size > 0) ?? [];
+    assertExists(combatantId, "somebody in the fight dealt damage to somebody");
+    assertExists(figures, "and is tallied");
+    const whole = presentOpenedLevel(statistics, roster, PANEL_METRIC.damageDealt, combatantId);
+    assertStrictEquals(whole?.hasFiguresDisagreed, false, "a cut core wrote says nothing wrong");
+    const keyedBadly = {
+        ...figures,
+        damageDealtByOpponent: new Map([...figures.damageDealtByOpponent, ["nobody", 1]]),
+    };
+    const brokenStatistics = {
+        ...statistics,
+        byCombatantId: new Map([...statistics.byCombatantId, [combatantId, keyedBadly]]),
+    };
+    const broken = presentOpenedLevel(
+        brokenStatistics,
+        roster,
+        PANEL_METRIC.damageDealt,
+        combatantId,
+    );
+    assertStrictEquals(broken?.byOtherEnd.hasFiguresDisagreed, true, "the cut carries it out");
+    assertStrictEquals(broken?.hasFiguresDisagreed, true, "and so does the level it stands in");
+    assertEquals(
+        broken?.byOtherEnd.rows.map((row) => row.combatantId),
+        whole?.byOtherEnd.rows.map((row) => row.combatantId),
+        "with no row drawn for it",
+    );
+});
+
 Deno.test("the same figure is cut a second time, by the kind of damage each blow carried", () => {
     const { roster, statistics } = tallyRecordedFight(HILDUR);
     const reading = presentScreen(

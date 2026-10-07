@@ -121,6 +121,11 @@ export interface HelperContent {
     provocations: StandingProvocation[];
     /** What is being made ready, and what became of it. Empty draws no section at all. */
     chargedSkills: StandingChargedSkill[];
+    /**
+     * A charge standing with no name, which core never hands over: passed over rather than drawn
+     * as a blank row, and carried out so the entry turns it into a defect (**E12**).
+     */
+    hasFiguresDisagreed: boolean;
 }
 
 /**
@@ -159,6 +164,7 @@ export function presentHelper(
         },
         provocations: presentStandingProvocations(provocationsBounded, roster, readerSide),
         chargedSkills: presentStandingChargedSkills(chargedSkills, roster, readerSide),
+        hasFiguresDisagreed: chargedSkills.some((standing) => standing.skillName.length === 0),
     };
 }
 

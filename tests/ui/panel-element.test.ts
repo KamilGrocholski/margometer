@@ -943,7 +943,9 @@ Deno.test("an end left out under an opened part says where it stands, and states
                     doesOpenPair: false,
                     kinds: null,
                 },
+                hasFiguresDisagreed: false,
             },
+            hasFiguresDisagreed: false,
         },
     });
     const card = readCardByKey(panel.element as FakeElement, "reached:nobody");
@@ -2889,7 +2891,11 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
         ...composeShownScreen(reading, "healthGiven"),
         // The same person, carried onto a screen they did nothing on: one press of a strip away,
         // because the strips carry an opened row from screen to screen.
-        opened: { ...drill, total: 0, byOtherEnd: { rows: [], halfNamed: null } },
+        opened: {
+            ...drill,
+            total: 0,
+            byOtherEnd: { rows: [], halfNamed: null, hasFiguresDisagreed: false },
+        },
     });
     const host = panel.element as FakeElement;
     assertEquals(
@@ -2940,7 +2946,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
     // under the hand that pressed it.
     const small = {
         ...drill,
-        byOtherEnd: { rows: [], halfNamed: null },
+        byOtherEnd: { rows: [], halfNamed: null, hasFiguresDisagreed: false },
         bySkill: { rows: [], rest: null, closing: null, hasFiguresDisagreed: false },
         byElement: { rows: drill.byElement.rows.slice(0, 2), rest: null, noKind: null },
     };
@@ -2974,7 +2980,11 @@ Deno.test("a level that grows while the fight goes on grows the region it is dra
     // The level as it stands early in a fight: fewer rows than the ranking promised.
     const early = {
         ...drill,
-        byOtherEnd: { rows: drill.byOtherEnd.rows.slice(0, 1), halfNamed: null },
+        byOtherEnd: {
+            rows: drill.byOtherEnd.rows.slice(0, 1),
+            halfNamed: null,
+            hasFiguresDisagreed: false,
+        },
         bySkill: { rows: [], rest: null, closing: null, hasFiguresDisagreed: false },
         byElement: { rows: [], rest: null, noKind: null },
     };
@@ -3078,7 +3088,7 @@ Deno.test("a lone row of a section names what the heading over it never does", (
     const alone = {
         ...drill,
         total: only.figure,
-        byOtherEnd: { rows: [], halfNamed: null },
+        byOtherEnd: { rows: [], halfNamed: null, hasFiguresDisagreed: false },
         byElement: { rows: [], rest: null, noKind: null },
         bySkill: { rows: [only], rest: null, closing: null, hasFiguresDisagreed: false },
     };

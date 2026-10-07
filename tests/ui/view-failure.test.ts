@@ -446,6 +446,7 @@ Deno.test("a row whose card the register refuses leaves the card undrawn, said o
             turnHolder: null,
             provocations: [],
             chargedSkills,
+            hasFiguresDisagreed: false,
         }, false).undrawn;
     };
     assertEquals(draw([charge]), [], "one charge a combatant is one key, and nothing is refused");

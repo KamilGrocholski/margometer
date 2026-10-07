@@ -531,6 +531,11 @@ export interface OtherEndRow extends PersonRow {
 export interface OtherEndCut {
     rows: OtherEndRow[];
     halfNamed: OpponentUnnamedRow | null;
+    /**
+     * A cut keyed by something that is no id, which core never writes: passed over rather than
+     * named, and carried out so the entry turns it into a defect (**E12**).
+     */
+    hasFiguresDisagreed: boolean;
 }
 
 /** The end the protocol left out of an opened figure, which opens onto that person's own keys. */
@@ -594,6 +599,8 @@ export interface PartLevelContent {
     part: OpenedPart;
     total: number;
     byOtherEnd: OtherEndCut;
+    /** The answer its cut states, where the part is the level a reader opened. */
+    hasFiguresDisagreed: boolean;
 }
 
 export interface OpenedLevelContent {
@@ -1905,16 +1912,18 @@ export function presentPartLevel(
     const cut = composePeopleForPart(statistics, figures, metric, combatantId, openedPart);
     if (cut === null) return null;
     const total = getPartTotal(figures, metric, openedPart, cut);
+    const byOtherEnd = composeOpponentCut(
+        cut,
+        statistics,
+        roster,
+        { figure: total, unnamedOpened: null },
+        () => false,
+    );
     return {
         part: openedPart,
         total,
-        byOtherEnd: composeOpponentCut(
-            cut,
-            statistics,
-            roster,
-            { figure: total, unnamedOpened: null },
-            () => false,
-        ),
+        byOtherEnd,
+        hasFiguresDisagreed: byOtherEnd.hasFiguresDisagreed,
     };
 }
 
@@ -2097,9 +2106,13 @@ function composeOpponentCut(
     const total = totals.figure;
     const stated: UnsharedRow[] = [];
     let partsTotal = 0;
+    let hasFiguresDisagreed = false;
     for (const [named, figure] of cut) {
         const otherId = parseInteger(named);
-        if (otherId === null) continue;
+        if (otherId === null) {
+            hasFiguresDisagreed = true;
+            continue;
+        }
         partsTotal += figure;
         const combatant = roster.byId.get(otherId);
         stated.push({
@@ -2134,6 +2147,7 @@ function composeOpponentCut(
                 kinds: keptKinds,
             }
             : null,
+        hasFiguresDisagreed,
     };
 }
 
@@ -2401,7 +2415,7 @@ export function presentOpenedLevel(
         bySkill,
         byElement,
         total,
-        hasFiguresDisagreed: bySkill.hasFiguresDisagreed,
+        hasFiguresDisagreed: bySkill.hasFiguresDisagreed || byOtherEnd.hasFiguresDisagreed,
     };
 }
 

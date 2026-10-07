@@ -1958,6 +1958,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isFightOver` — `tools/fabricated-fight.ts`
 - `isGuardedBody` — `tests/repository/handed-callbacks.test.ts`
 - `isHealingAnnouncerOnly` — `src/core/fight-decoder.ts`
+- `isHelperFiguresDisagreed` — `src/runtime/panel-frame.ts`
 - `isHexadecimalDigitAt` — `libs/html-text.ts`
 - `isImportSpeltForItsPlace` — `tests/repository/import-paths.test.ts`
 - `isInvariantBroken` — `tests/simulation.ts`
@@ -7198,7 +7199,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `breaches` — `tests/repository/event-entries.test.ts`, `tests/repository/purity.test.ts`
 - `breaking` — `tests/runtime/live-fight.test.ts`, `tests/runtime/margonem-engine-search.test.ts`
 - `breaksWritten` — `tests/ports/margonem-engine-tooltip.test.ts`
-- `broken` — in 11 files: `tests/`
+- `broken` — in 12 files: `tests/`
+- `brokenStatistics` — `tests/ui/panel-content.test.ts`
 - `build` — in 4 files: `tests/`
 - `built` — `tests/e2e/build-once.ts`, `tests/repository/regular-expressions.test.ts`,
   `tests/tools/build-userscript.test.ts`
@@ -7807,6 +7809,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `keyTally` — `tests/tools/turn-reading.test.ts`
 - `keyed` — `tests/ports/payload-envelope.test.ts`, `tests/ports/warrior-entries.test.ts`,
   `tests/ui/panel-element.test.ts`
+- `keyedBadly` — `tests/ui/panel-content.test.ts`
 - `keyedPast` — `tests/ports/payload-envelope.test.ts`
 - `keyless` — `tests/core/message-grammar.test.ts`
 - `keys` — in 15 files: `tests/`
@@ -9066,6 +9069,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `src/runtime/shelf.ts`
 - `figures` — `src/runtime/fight-file.ts`
 - `figuresByCombatantAndBit` — `src/runtime/carried-tooltip.ts`
+- `helper` — `src/runtime/panel-frame.ts`
 - `id` — `src/runtime/margometer-runtime.ts`
 - `index` — `src/runtime/fight-handover.ts`
 - `intent` — `src/runtime/margometer-runtime.ts`
@@ -10870,7 +10874,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `healthRestoredToNobody` — `src/runtime/fight-file.ts`
 - `healthRestoredWithoutSkillByKey` — `src/runtime/fight-file.ts`
 - `height` — `src/runtime/settings.ts`
-- `helper` — `src/runtime/margometer-runtime.ts`
+- `helper` — `src/runtime/margometer-runtime.ts`, `src/runtime/panel-frame.ts`
 - `helperFolded` — `src/runtime/settings.ts`
 - `helperPlacement` — `src/runtime/margometer-runtime.ts`
 - `helperPosition` — `src/runtime/settings.ts`
@@ -11246,7 +11250,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `half` — `src/ui/panel-look.ts`
 - `halfNamed` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `hasFightToSave` — `src/ui/panel-element.ts`
-- `hasFiguresDisagreed` — `src/ui/panel-content.ts`
+- `hasFiguresDisagreed` — `src/ui/panel-content.ts`, `src/ui/panel-helper.ts`
 - `hasJoinedInProgress` — `src/ui/panel-content.ts`, `src/ui/panel-words.ts`
 - `hasSpentLastheal` — `src/ui/panel-words.ts`
 - `header` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`, `src/ui/panel-words.ts`
@@ -12672,7 +12676,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `hasElement` — `tests/ports/margonem-engine-tooltip.test.ts`
 - `hasEngine` — `tests/ports/margonem-engine-battle.test.ts`
 - `hasFightToSave` — `tests/panel-view.ts`, `tests/shown-screen.ts`
-- `hasFiguresDisagreed` — `tests/ui/panel-element.test.ts`
+- `hasFiguresDisagreed` — `tests/ui/panel-element.test.ts`, `tests/ui/view-failure.test.ts`
 - `hasInvariantBroken` — `tests/simulation.ts`
 - `hasJoinedInProgress` — in 4 files: `tests/`
 - `hasMethods` — `tests/ports/margonem-engine-tooltip.test.ts`
@@ -13418,7 +13422,7 @@ Each `as const` object of a module, by its keys.
   `figures`, `gesture`, `file`, `engine`
 - `FAILURE_FATE` — `src/runtime/failure-fate.ts`: `shownAsUnknown`, `shownAsSuspect`, `defect`,
   `shelfAnswer`, `fallbackWithDefect`, `standDown`, `none`, `byPlace`
-- `FIGURES_CUT` — `src/runtime/panel-frame.ts`: `screen`, `drill`, `pair`
+- `FIGURES_CUT` — `src/runtime/panel-frame.ts`: `screen`, `drill`, `pair`, `part`, `helper`
 - `FILE_FIELD` — `src/runtime/fight-file.ts`: `formatVersion`, `addOnVersion`, `capturedAt`,
   `world`, `margonemClientBuild`, `userAgent`, `report`, `droppedCalls`, `isTruncated`, `calls`,
   `index`, `payload`, `messages`, `combatantsBefore`, `combatantsAfter`
@@ -14459,7 +14463,9 @@ suite's material.
 ### `src/runtime/panel-frame.ts`
 
 - `"drill"` — `FIGURES_CUT`
+- `"helper"` — `FIGURES_CUT`
 - `"pair"` — `FIGURES_CUT`
+- `"part"` — `FIGURES_CUT`
 - `"screen"` — `FIGURES_CUT`
 
 ### `src/runtime/settings.ts`
