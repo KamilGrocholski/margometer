@@ -6,8 +6,15 @@
  * of the wrong type is a failure that names our field and the type it was read as.
  */
 
-import { assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
 import {
+    assertEquals,
+    assertInstanceOf,
+    AssertionError,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
+import {
+    type FieldKeys,
     FieldTooLong,
     FieldWrongType,
     getListField,
@@ -140,4 +147,22 @@ Deno.test("a field answers only what the record itself holds, however a key is s
     assertStrictEquals(getNumberField({}, KEYS, "method"), null, "whichever reader asks");
     const own = { constructor: 5 };
     assertStrictEquals(getNumberField(own, KEYS, "inherited"), 5, "and an own one is read");
+});
+
+/** A map is ours, so a field it gives no key of its own, or no text, is a bug of ours, and said. */
+Deno.test("a field is read under its map's own key, and a map lacking one is a broken one", () => {
+    const lacking = {} as FieldKeys<"toString">;
+    assertThrows(
+        () => getNumberField({ toString: 5 }, lacking, "toString"),
+        AssertionError,
+        "every field read is given a key",
+        "a field the map holds no key for never finds one on the map's prototype",
+    );
+    const untyped = { figure: 5 } as unknown as FieldKeys<"figure">;
+    assertThrows(
+        () => getNumberField({}, untyped, "figure"),
+        AssertionError,
+        "and the key is text",
+        "and a key that is no text is refused before the record is read",
+    );
 });

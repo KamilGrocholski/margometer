@@ -66,7 +66,7 @@ export function getNumberField<Field extends string>(
     keys: FieldKeys<Field>,
     field: Field,
 ): number | null | FieldWrongType<Field> {
-    const fieldValue = getOwnValue(record, keys[field]);
+    const fieldValue = getFieldValue(record, keys, field);
     if (fieldValue === undefined) return null;
     if (typeof fieldValue !== "number") {
         return new FieldWrongType(field, FIELD_TYPE.number);
@@ -75,6 +75,22 @@ export function getNumberField<Field extends string>(
         return new FieldWrongType(field, FIELD_TYPE.number);
     }
     return fieldValue;
+}
+
+/**
+ * The field's value under the key its map gives it. The map is read for its own key alone: a field
+ * the map does not hold would otherwise find `toString` or `constructor` on its prototype and read
+ * the record under a function's name.
+ */
+function getFieldValue<Field extends string>(
+    record: UnknownRecord,
+    keys: FieldKeys<Field>,
+    field: Field,
+): unknown {
+    assert(Object.hasOwn(keys, field), "every field read is given a key");
+    const key: unknown = keys[field];
+    assert(typeof key === "string", "and the key is text");
+    return getOwnValue(record, key);
 }
 
 /**
@@ -92,7 +108,7 @@ export function getTextField<Field extends string>(
     keys: FieldKeys<Field>,
     field: Field,
 ): string | null | FieldWrongType<Field> {
-    const fieldValue = getOwnValue(record, keys[field]);
+    const fieldValue = getFieldValue(record, keys, field);
     if (fieldValue === undefined) return null;
     if (typeof fieldValue !== "string") {
         return new FieldWrongType(field, FIELD_TYPE.text);
@@ -121,7 +137,7 @@ export function getRecordField<Field extends string>(
     keys: FieldKeys<Field>,
     field: Field,
 ): UnknownRecord | null | FieldWrongType<Field> {
-    const fieldValue = getOwnValue(record, keys[field]);
+    const fieldValue = getFieldValue(record, keys, field);
     if (fieldValue === undefined) return null;
     if (!isRecord(fieldValue)) {
         return new FieldWrongType(field, FIELD_TYPE.record);
@@ -138,7 +154,7 @@ export function getListField<Field extends string>(
 ): readonly unknown[] | null | FieldFailure<Field> {
     assert(Number.isSafeInteger(maximum), "a list is bounded by a whole count");
     assert(maximum >= 0, "of none or more");
-    const fieldValue = getOwnValue(record, keys[field]);
+    const fieldValue = getFieldValue(record, keys, field);
     if (fieldValue === undefined) return null;
     if (!Array.isArray(fieldValue)) {
         return new FieldWrongType(field, FIELD_TYPE.list);

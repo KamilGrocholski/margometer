@@ -187,6 +187,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getEngine` — in 4 files: `tests/`
 - `getEnglishWords` — `tests/ui/panel-words.test.ts`
 - `getFailureCount` — `src/ports/margonem-engine-battle.ts`
+- `getFieldValue` — `libs/unknown-value.ts`
 - `getFightOutcomeForReaderSide` — `src/ui/panel-content.ts`
 - `getFightSuspicions` — `src/runtime/panel-frame.ts`
 - `getFights` — `src/runtime/shelf-keeper.ts`, `tests/runtime/panel-frame.test.ts`
@@ -5337,6 +5338,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isHexadecimal` — `libs/html-text.ts`
 - `isValueNext` — `libs/html-text.ts`
 - `kept` — `libs/html-text.ts`
+- `key` — `libs/unknown-value.ts`
 - `look` — `libs/html-text.ts`, `libs/text-walk.ts`
 - `marker` — `libs/html-text.ts`
 - `name` — `libs/html-text.ts`
@@ -7831,6 +7833,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `labelClaims` — `tests/repository/protocol-keys.test.ts`
 - `labelIndex` — `tests/e2e/panel-card.spec.ts`, `tests/repository/browser-support.test.ts`
 - `labels` — `tests/e2e/panel-card.spec.ts`, `tests/tools/protocol-key-table.test.ts`
+- `lacking` — `tests/libs/unknown-value.test.ts`
 - `landed` — `tests/core/carried-figure.test.ts`, `tests/e2e/panel-drag.spec.ts`,
   `tests/e2e/panel-tooltip.spec.ts`
 - `large` — `tests/runtime/margometer-runtime.test.ts`, `tests/ui/panel-element.test.ts`
@@ -8710,7 +8713,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `untold` — `tests/tools/turn-count.test.ts`
 - `untouched` — `tests/ui/panel-card.test.ts`
 - `untried` — `tests/repository/protocol-keys.test.ts`
-- `untyped` — `tests/repository/changelog.test.ts`
+- `untyped` — `tests/libs/unknown-value.test.ts`, `tests/repository/changelog.test.ts`
 - `unused` — `tests/runtime/failure-fate.test.ts`
 - `unworded` — `tests/ui/blow-vocabulary.test.ts`
 - `unwritten` — `tests/tools/turn-count.test.ts`, `tests/tools/turn-reading.test.ts`
@@ -13265,6 +13268,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/runtime/margonem-engine-search.test.ts`
 - `title` — in 4 files: `tests/`
 - `to` — `tests/tools/turn-reading.test.ts`
+- `toString` — `tests/libs/unknown-value.test.ts`
 - `together` — `tests/tools/aura-lifetime.test.ts`
 - `told` — in 4 files: `tests/`
 - `tone` — `tests/ui/card-window.test.ts`
