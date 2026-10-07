@@ -887,7 +887,11 @@ function addTurnCall(state: FabricationState, turn: FabricatedTurn, act: Fabrica
     addTurnStatement(state, turn.actor);
     const payload: Record<string, unknown> = {
         [ENVELOPE_KEYS.combatants]: encodeCombatantsById(
-            getStatedCombatants(state, turn),
+            getStatedCombatants(state.combatants, state.round, [
+                turn.actor.id,
+                turn.target.id,
+                turn.ally.id,
+            ]),
             encodeStandingCombatant,
         ),
         [ENVELOPE_KEYS.messages]: messages,
@@ -933,26 +937,6 @@ function encodeTurnQueue(
     }
     assertStrictEquals(Object.keys(queue).length, TURN_QUEUE_WIDTH, "as wide as the client's");
     return queue;
-}
-
-/**
- * Whom a mid-fight payload states: the three the turn named, everybody carrying a mask, and
- * everybody whose mask this round cleared. The client sends the volatile subset rather than the
- * whole cast, and a mask that goes unstated is a status the panel would still see standing after
- * the script cleared it.
- */
-function getStatedCombatants(state: FabricationState, turn: FabricatedTurn): FabricatedCombatant[] {
-    const named = new Set([turn.actor.id, turn.target.id, turn.ally.id]);
-    const stated = state.combatants.filter((combatant) => {
-        if (named.has(combatant.id)) return true;
-        if (combatant.statusMask !== 0) return true;
-        // A mask set by the script clears at a round past the first, never at the default nought.
-        if (combatant.statusClearsAtRound === 0) return false;
-        return combatant.statusClearsAtRound === state.round;
-    });
-    assert(stated.length > 0, "a payload states somebody");
-    assert(stated.length <= state.combatants.length, "and no more than the cast it was built from");
-    return stated;
 }
 
 /** The mid-fight record: the volatile subset, which is what the corpus carries after the first. */
@@ -1778,6 +1762,31 @@ function readEndingFlag(stated: string | undefined): FabricationEnding {
     throw new FabricatedFightError(
         `--${ENDING_FLAG} ${stated} is none of ${FABRICATION_ENDINGS.join(", ")}`,
     );
+}
+
+/**
+ * Whom a mid-fight payload states: the three the turn named, everybody carrying a mask, and
+ * everybody whose mask this round cleared. The client sends the volatile subset rather than the
+ * whole cast, and a mask that goes unstated is a status the panel would still see standing after
+ * the script cleared it.
+ */
+export function getStatedCombatants(
+    combatants: readonly FabricatedCombatant[],
+    round: number,
+    namedIds: readonly number[],
+): FabricatedCombatant[] {
+    assert(round >= 0, "a round is never below the first");
+    const named = new Set(namedIds);
+    const stated = combatants.filter((combatant) => {
+        if (named.has(combatant.id)) return true;
+        if (combatant.statusMask !== 0) return true;
+        // A mask set by the script clears at a round past the first, never at the default nought.
+        if (combatant.statusClearsAtRound === 0) return false;
+        return combatant.statusClearsAtRound === round;
+    });
+    assert(stated.length > 0, "a payload states somebody");
+    assert(stated.length <= combatants.length, "and no more than the cast it was built from");
+    return stated;
 }
 
 /** True where the envelope wears either mark a fabricated fight carries in its file. */

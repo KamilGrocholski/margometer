@@ -33,6 +33,7 @@ import {
     FABRICATION_ENDING,
     FABRICATION_FIELDS,
     formatFabricationShape,
+    getStatedCombatants,
     isFabricatedPath,
     requireFabricationShape,
 } from "#/tools/fabricated-fight.ts";
@@ -433,5 +434,37 @@ Deno.test("a fight closing on shouts says so in its shape, and the default says 
             .calls.length - FIGHT.calls.length,
         CLOSING_SHOUTS,
         "the flag adds the two turns and nothing else, so a fight without it is the same fight",
+    );
+});
+
+/**
+ * A mask the script clears goes out at nought in the round it clears, before the bearer's own turn
+ * names them: unstated, a reader would see the status standing past the script's clear.
+ */
+Deno.test("a combatant whose mask the round cleared is stated, and one cleared before is not", () => {
+    const [seated] = FIGHT.combatants;
+    assertExists(seated, "the fight seats somebody");
+    const seat = (id: number, statusMask: number, statusClearsAtRound: number) => ({
+        ...seated,
+        id,
+        statusMask,
+        statusClearsAtRound,
+    });
+    const cast = [
+        seat(1, 0, 0),
+        seat(2, 4, 7),
+        seat(3, 0, 5),
+        seat(4, 0, 4),
+        seat(5, 0, 0),
+    ];
+    assertEquals(
+        getStatedCombatants(cast, 5, [1]).map((combatant) => combatant.id),
+        [1, 2, 3],
+        "the one named, the one carrying a mask, and the one whose mask cleared this round",
+    );
+    assertEquals(
+        getStatedCombatants(cast, 0, [1]).map((combatant) => combatant.id),
+        [1, 2],
+        "and at the first round nobody whose mask was never set",
     );
 });

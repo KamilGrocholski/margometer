@@ -2664,6 +2664,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `saying` — `tests/tools/protocol-key-shape.test.ts`
 
+### `seat` — not in N2's table
+
+- `seat` — `tests/tools/fabricated-fight.test.ts`
+
 ### `select` — not in N2's table
 
 - `selectDevelopMaterial` — `tools/develop-reports.ts`
@@ -7269,7 +7273,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `carries` — `tests/core/anguish-rule.test.ts`
 - `carrying` — in 5 files: `tests/`
 - `cases` — in 5 files: `tests/`
-- `cast` — in 8 files: `tests/`
+- `cast` — in 9 files: `tests/`
 - `castPast` — `tests/core/aura-standing.test.ts`
 - `caster` — `tests/core/absorption-destruction-rule.test.ts`, `tests/ui/panel-content.test.ts`
 - `casterUnknown` — `tests/core/combatant-health.test.ts`
@@ -8385,7 +8389,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `script` — `tests/repository/browser-support.test.ts`
 - `search` — `tests/runtime/margonem-engine-search.test.ts`
 - `seat` — `tests/repository/captured-fight-register.test.ts`
-- `seated` — `tests/core/fight-session.test.ts`
+- `seated` — `tests/core/fight-session.test.ts`, `tests/tools/fabricated-fight.test.ts`
 - `seatless` — in 4 files: `tests/`
 - `seats` — `tests/ui/panel-content.test.ts`, `tests/ui/share-column.test.ts`
 - `second` — in 6 files: `tests/`
@@ -9646,6 +9650,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `moved` — `tools/fabricated-fight.ts`
 - `name` — in 10 files: `tools/`
 - `named` — `tools/help-article.ts`, `tools/recorded-material.ts`
+- `namedIds` — `tools/fabricated-fight.ts`
 - `names` — `tools/capture-intake.ts`
 - `need` — `tools/preview-page.ts`
 - `nothingAt` — `tools/status-bit-table.ts`
@@ -10264,6 +10269,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `statement` — in 5 files: `tests/`
 - `statistics` — `tests/ui/level-drawn.test.ts`, `tests/ui/panel-content.test.ts`
 - `status` — `tests/core/carried-status.test.ts`, `tests/core/fight-session.test.ts`
+- `statusClearsAtRound` — `tests/tools/fabricated-fight.test.ts`
+- `statusMask` — `tests/tools/fabricated-fight.test.ts`
 - `stem` — `tests/repository/names.test.ts`
 - `step` — in 11 files: `tests/`
 - `store` — `tests/runtime/shelf.test.ts`
@@ -12769,7 +12776,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `hp` — in 5 files: `tests/`
 - `href` — `tests/fake-window.ts`, `tests/ports/browser-file.test.ts`
 - `html` — `tests/e2e/panel-camera.ts`
-- `id` — in 29 files: `tests/`
+- `id` — in 30 files: `tests/`
 - `imported` — `tests/source-tree.ts`
 - `imports` — `tests/repository/declaration-order.test.ts`
 - `includeDirs` — `tests/source-tree.ts`
@@ -13231,6 +13238,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `statistics` — in 7 files: `tests/`
 - `statisticsDestroyed` — `tests/ui/panel-card.test.ts`
 - `status` — in 4 files: `tests/`
+- `statusClearsAtRound` — `tests/tools/fabricated-fight.test.ts`
+- `statusMask` — `tests/tools/fabricated-fight.test.ts`
 - `statusMasksByCombatantId` — `tests/core/fight-figures.test.ts`,
   `tests/core/fight-session.test.ts`
 - `statuses` — `tests/core/carried-figure.test.ts`, `tests/ui/panel-words.test.ts`
