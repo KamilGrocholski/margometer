@@ -19,6 +19,7 @@ import {
     type ReplayedFight,
     replayRecordedMaterial,
 } from "./recorded-material.ts";
+import { RecordingReadError } from "./margometer-tool-error.ts";
 
 /** What a run counted, before anything is worded. */
 export interface DecodingStatus {
@@ -81,7 +82,11 @@ export function tallyDecodingStatus(replayed: readonly ReplayedFight[]): Decodin
                 status.messagesWithoutParameter += 1;
             }
             for (const key of event.unreadKeys) unreadKeys.set(key, (unreadKeys.get(key) ?? 0) + 1);
-            assert(unreadKeys.size <= TALLY_MAXIMUM, "a tally stays inside its stated bound");
+            if (unreadKeys.size > TALLY_MAXIMUM) {
+                throw new RecordingReadError(
+                    `the recordings leave more keys unread than the ${TALLY_MAXIMUM} tallied`,
+                );
+            }
         }
     }
     assertStrictEquals(eventsByKind.size, BATTLE_EVENTS.length, "every kind has one line");

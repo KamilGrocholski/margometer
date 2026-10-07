@@ -20,6 +20,7 @@ import {
     replayMaterialSteps,
     type SteppedFight,
 } from "./recorded-material.ts";
+import { RecordingReadError } from "./margometer-tool-error.ts";
 
 /** One skill, over whatever material was replayed. */
 export interface AuraRow {
@@ -204,8 +205,11 @@ export function tallyAuraRows(stepped: readonly SteppedFight[]): AuraRow[] {
                     assertExists(tally, "a skill standing at a moment is registered by then");
                     if (count > tally.row.standingAtOnce) tally.row.standingAtOnce = count;
                 }
-                assert(atOnce.size <= SKILLS_MAXIMUM, "a moment stays inside the stated bound");
-                assert(tallies.size <= SKILLS_MAXIMUM, "and so does the register it is added to");
+                if (tallies.size > SKILLS_MAXIMUM) {
+                    throw new RecordingReadError(
+                        `the recordings hold more skills than the ${SKILLS_MAXIMUM} registered`,
+                    );
+                }
             }
         }
     }
@@ -248,7 +252,11 @@ export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
                     casterIdsByKey.set(key, [...(casterIdsByKey.get(key) ?? []), aura.casterId]);
                 }
             }
-            assert(casterIdsByKey.size <= SKILLS_MAXIMUM, "a moment stays inside its bound");
+            if (casterIdsByKey.size > SKILLS_MAXIMUM) {
+                throw new RecordingReadError(
+                    `a moment holds more keys than the ${SKILLS_MAXIMUM} registered`,
+                );
+            }
             // Add this moment's sources to the register.
             {
                 for (const [key, casterIds] of casterIdsByKey) {
@@ -360,7 +368,11 @@ function indexNamedBySkillId(events: readonly BattleEvent[]): Map<number, number
             }
         }
     }
-    assert(namedBySkillId.size <= SKILLS_MAXIMUM, "no more skills named than the stated bound");
+    if (namedBySkillId.size > SKILLS_MAXIMUM) {
+        throw new RecordingReadError(
+            `the recordings shout more skills than the ${SKILLS_MAXIMUM} registered`,
+        );
+    }
     return namedBySkillId;
 }
 

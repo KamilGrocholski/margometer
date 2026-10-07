@@ -20,6 +20,7 @@ import {
     type ReplayedFight,
     replayRecordedMaterial,
 } from "./recorded-material.ts";
+import { RecordingReadError } from "./margometer-tool-error.ts";
 
 /** One of the held character's turns after a shout, over whatever material was walked. */
 export interface HoldingRow {
@@ -81,7 +82,11 @@ export function tallyHoldingReading(replayed: readonly ReplayedFight[]): Holding
         const provokedIdsByCasterId = new Map<number, Set<number>>();
         for (const episode of replayEpisodes(reading.view, clocks)) {
             episodes += 1;
-            assert(episodes <= EPISODES_MAXIMUM, "a corpus holds no more episodes than its bound");
+            if (episodes > EPISODES_MAXIMUM) {
+                throw new RecordingReadError(
+                    `the recordings hold more episodes than the ${EPISODES_MAXIMUM} walked`,
+                );
+            }
             // Add the episode's blows, by how many of the held character's own turns had opened.
             {
                 // It stops at the next shout of any kind: a later one replaces whatever held them
@@ -183,7 +188,11 @@ function replayEpisodes(view: FightView, clocks: readonly Map<number, number>[])
             });
         }
     }
-    assert(episodes.length <= EPISODES_MAXIMUM, "a fight holds no more episodes than the bound");
+    if (episodes.length > EPISODES_MAXIMUM) {
+        throw new RecordingReadError(
+            `a recording holds more episodes than the ${EPISODES_MAXIMUM} walked`,
+        );
+    }
     return episodes;
 }
 

@@ -19,6 +19,7 @@ import {
     replayMaterialSteps,
     type SteppedFight,
 } from "./recorded-material.ts";
+import { RecordingReadError } from "./margometer-tool-error.ts";
 
 /** One combatant carrying one status from the step it lit to the step it went out. */
 interface StatusRun {
@@ -87,7 +88,11 @@ export function replayLightingRows(stepped: readonly SteppedFight[]): LightingRo
         const name = formatRecordingName(fight.path);
         for (const row of composeLightingRows(name, replayStatusRuns(steps))) lightings.push(row);
     }
-    assert(lightings.length <= RUNS_MAXIMUM, "the corpus holds no more lightings than the bound");
+    if (lightings.length > RUNS_MAXIMUM) {
+        throw new RecordingReadError(
+            `the recordings hold more lightings than the ${RUNS_MAXIMUM} walked`,
+        );
+    }
     assert(
         lightings.every((row) => row.fight.length > 0),
         "and every lighting names its recording",
@@ -149,7 +154,9 @@ function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
         }
         standing = carried;
     }
-    assert(closed.length <= RUNS_MAXIMUM, "a recording holds no more runs than the bound");
+    if (closed.length > RUNS_MAXIMUM) {
+        throw new RecordingReadError(`a recording holds more runs than the ${RUNS_MAXIMUM} walked`);
+    }
     return closed;
 }
 

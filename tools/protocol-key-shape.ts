@@ -149,7 +149,11 @@ export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
     for (const { fight, reading } of replayed) {
         for (const message of reading.messagesByPayload.flat()) {
             // Add what one message says of each key it carries.
-            assert(tallies.size <= KEYS_MAXIMUM, "a tally stays inside its stated bound");
+            if (tallies.size > KEYS_MAXIMUM) {
+                throw new ProtocolKeyShapeError(
+                    `the recordings carry more keys than the ${KEYS_MAXIMUM} tallied`,
+                );
+            }
             const parsed = parseProtocolMessage(message);
             if (parsed instanceof Error) {
                 throw new ProtocolKeyShapeError(
