@@ -1,10 +1,10 @@
 /**
  * The fight as it happened, kept so a reader can write it to a file (`docs/design.md` §7, §11).
  *
- * Thinned as it is collected, in the game's stack: every call carrying messages is kept, and so is
- * every call introducing a payload shape or a combatant state not seen before. The game polls
- * `updateData` long after a fight is over, so that drops most calls without losing anything a kept
- * call does not carry (`docs/design.md` §1 measures it).
+ * Thinned as it is collected, in the game's stack: every call carrying messages is kept, so is
+ * every call the envelope refused, and so is every call introducing a payload shape or a combatant
+ * state not seen before. The game polls `updateData` long after a fight is over, so that drops most
+ * calls without losing anything a kept call does not carry (`docs/design.md` §1 measures it).
  */
 
 import { assert } from "@std/assert/assert";
@@ -36,6 +36,8 @@ export class CaptureCallsExceeded extends Error {
 export interface MargonemEngineCall {
     payload: unknown;
     messages: readonly string[];
+    /** Its messages were never read, so none stand above to say it carried any. */
+    wasRefused: boolean;
     combatantsBefore: MargonemEngineWarriorSnapshot | null;
     combatantsAfter: MargonemEngineWarriorSnapshot | null;
 }
@@ -104,6 +106,8 @@ export function prepareCapture(
     let isKept: boolean;
     if (isOpening) isKept = true;
     else if (call.messages.length > 0) isKept = true;
+    // The call a reading defect is about: the file is all the fix has to reproduce it from.
+    else if (call.wasRefused) isKept = true;
     else if (!capture.shapesSeen.has(shape)) isKept = true;
     else isKept = !capture.statesSeen.has(state);
     // Thinned before the ceiling is asked: a call that says nothing new is lost to nobody, so

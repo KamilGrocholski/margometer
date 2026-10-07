@@ -155,6 +155,7 @@ export function initLiveFight(options: LiveFightOptions): {
                     const call = {
                         payload,
                         messages,
+                        wasRefused: record === null,
                         combatantsBefore: liveFight.snapshotBefore,
                         combatantsAfter: snapshotAfter,
                     };

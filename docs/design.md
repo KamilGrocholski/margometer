@@ -635,7 +635,7 @@ export type EnvelopeFailure =
  */
 export function prepareCapture(
     capture: FightCaptureReading, // the calls and the two sets seen, read-only (P3)
-    call: Readonly<MargonemEngineCall>, // the payload, its messages, and the snapshots either side
+    call: Readonly<MargonemEngineCall>, // the payload, its messages or their refusal, the snapshots
     isOpening: boolean,
 ): PreparedCapture; // the call's copy where it is kept; the recording untouched
 /** Appends rather than copies, so a call costs the same at the end of a fight as at its start. */

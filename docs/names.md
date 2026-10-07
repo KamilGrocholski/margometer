@@ -10796,6 +10796,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `turnsElapsed` — `src/ports/payload-envelope.ts`
 - `turnsStated` — `src/ports/payload-envelope.ts`
 - `typeStep` — `src/ports/browser-store.ts`
+- `wasRefused` — `src/ports/fight-capture.ts`
 - `written` — `src/ports/margonem-engine-tooltip.ts`
 - `x` — `src/ports/fight-place.ts`, `src/ports/margonem-engine-place.ts`
 - `y` — `src/ports/fight-place.ts`, `src/ports/margonem-engine-place.ts`
@@ -11110,6 +11111,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `version` — `src/runtime/shelf.ts`
 - `view` — `src/runtime/fight-state.ts`, `src/runtime/margometer-runtime.ts`,
   `src/runtime/panel-frame.ts`
+- `wasRefused` — `src/runtime/live-fight.ts`
 - `width` — `src/runtime/settings.ts`
 - `windowSizes` — `src/runtime/panel-frame.ts`
 - `world` — in 4 files: `src/runtime/`
@@ -13434,6 +13436,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `walk` — `tests/source-tree.ts`
 - `warriors` — `tests/ports/margonem-engine-warriors.test.ts`
 - `warriorsList` — in 6 files: `tests/`
+- `wasRefused` — `tests/ports/fight-capture.test.ts`, `tests/runtime/live-fight.test.ts`
 - `wasTurnLostRead` — `tests/ui/panel-card.test.ts`
 - `weak` — `tests/verb-purities.ts`
 - `wersja` — `tests/tools/capture-intake.test.ts`

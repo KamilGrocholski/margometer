@@ -87,7 +87,12 @@ Deno.test("every recording played through the wrap is the fight, the file and th
             const record = readPayloadEnvelope(payload);
             assert(!(record instanceof Error), `${fight.path}: a recorded call reads`);
             const combatantsBefore = callIndex === 0 ? [] : after[callIndex - 1] ?? [];
-            const call = { payload, messages: record.messages, combatantsBefore };
+            const call = {
+                payload,
+                messages: record.messages,
+                wasRefused: false,
+                combatantsBefore,
+            };
             const prepared = prepareCapture(
                 capture,
                 { ...call, combatantsAfter: after[callIndex] ?? [] },
@@ -195,15 +200,19 @@ function playInto(margonem: FakeMargonem, options: LiveFightOptions, payloads: r
     return { live, wrapped };
 }
 
+/** The refused call repeats the shape and the state before it, so only its refusal keeps it. */
 Deno.test("a call the envelope refuses is a defect, and the file still keeps the call", () => {
-    const margonem = composeMargonem([[], []]);
+    const margonem = composeMargonem([[], [], []]);
     const { options, lines } = composeOptions(margonem);
-    const { live } = playInto(margonem, options, [{ init: 1, m: ["0;0;txt=a"] }, {
-        m: "not a list",
-    }]);
+    const { live } = playInto(margonem, options, [
+        { init: 1, m: ["0;0;txt=a"] },
+        { m: ["0;0;txt=b"] },
+        { m: ["0;0;txt=c", 5] },
+    ]);
     assertEquals(lines, [DEFECT_KIND.reading], "the refusal is a reading defect, said once");
-    assertStrictEquals(composeFightView(live.session)?.payloadsApplied, 1, "the fight read on");
-    assertStrictEquals(live.capture.calls.length, 2, "and the file lost neither call");
+    assertStrictEquals(composeFightView(live.session)?.payloadsApplied, 2, "the fight read on");
+    assertStrictEquals(live.capture.calls.length, 3, "and the file lost no call");
+    assertStrictEquals(live.capture.droppedCalls, 0, "the refused one least of all");
 });
 
 Deno.test("a fight is kept once, whatever arrives after its end", () => {
