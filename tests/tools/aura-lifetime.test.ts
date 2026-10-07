@@ -5,11 +5,12 @@
  * table is proved by a row it must take and a row it must not.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals, assertThrows } from "@std/assert";
 import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { type BitRow, replayLightingRows, tallyBitRows } from "#/tools/aura-lifetime.ts";
 import { readRecordedMaterial, replayMaterialSteps } from "#/tools/recorded-material.ts";
+import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
 import { parseTableInteger, parseTableRows } from "#/tests/register-table.ts";
 
 interface ClauseRow {
@@ -172,4 +173,20 @@ Deno.test("the readers take the row they must and leave the row they must not", 
     assertStrictEquals(parseClauseRows(clause).length, 1, "a clause row is read");
     const unclaused = `${HEADING}\n\n| \`aura-sa_per\` | \`something\` | x |\n`;
     assertStrictEquals(parseClauseRows(unclaused).length, 0, "a row naming no clause is not one");
+});
+
+/** What the recordings hold is the tool's input, so a walk past its bound is refused, not asserted. */
+Deno.test("the lightings and the runs a walk holds are refused past their bound", () => {
+    const stepped = replayMaterialSteps(readRecordedMaterial([]));
+    assertStrictEquals(
+        replayLightingRows(stepped, LIGHTINGS.length).length,
+        LIGHTINGS.length,
+        "every lighting the corpus holds, at the bound",
+    );
+    assertThrows(
+        () => replayLightingRows(stepped, LIGHTINGS.length - 1),
+        RecordingReadError,
+        "lightings",
+    );
+    assertThrows(() => replayLightingRows(stepped, 0), RecordingReadError, "a recording holds");
 });

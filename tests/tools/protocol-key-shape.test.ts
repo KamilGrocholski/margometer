@@ -268,3 +268,11 @@ Deno.test("the report counts a disagreement per key, and never a family member",
     assert(lines.some((line) => line.endsWith("— no entry")), "and a key with no entry");
     assert(lines.some((line) => line.endsWith(`— ${DAMAGE_FAMILY_HEADING}`)), "the family's own");
 });
+
+/** What the recordings hold is the tool's input, so a tally past its bound is refused. */
+Deno.test("the keys a tally holds are refused past their bound", () => {
+    const replayed = replayRecordedMaterial(readRecordedMaterial([]));
+    const keys = tallyKeyShapes(replayed).length;
+    assertStrictEquals(tallyKeyShapes(replayed, keys).length, keys, "every key, at the bound");
+    assertThrows(() => tallyKeyShapes(replayed, keys - 1), ProtocolKeyShapeError, "more keys");
+});

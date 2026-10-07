@@ -55,8 +55,12 @@ export function formatMaterialStatus(material: RecordedMaterial): string {
 }
 
 /** Every figure of the report, over every fight of the material. */
-export function tallyDecodingStatus(replayed: readonly ReplayedFight[]): DecodingStatus {
+export function tallyDecodingStatus(
+    replayed: readonly ReplayedFight[],
+    tallyMaximum = TALLY_MAXIMUM,
+): DecodingStatus {
     assert(replayed.length > 0, "a status is counted over something");
+    assert(tallyMaximum <= TALLY_MAXIMUM, "a tally is bounded no further than its own bound");
     // Every kind seeded at zero: a family that stopped being read shows as a nought on its line.
     const eventsByKind = new Map<string, number>(BATTLE_EVENTS.map((kind) => [kind, 0]));
     const unreadKeys = new Map<string, number>();
@@ -82,9 +86,9 @@ export function tallyDecodingStatus(replayed: readonly ReplayedFight[]): Decodin
                 status.messagesWithoutParameter += 1;
             }
             for (const key of event.unreadKeys) unreadKeys.set(key, (unreadKeys.get(key) ?? 0) + 1);
-            if (unreadKeys.size > TALLY_MAXIMUM) {
+            if (unreadKeys.size > tallyMaximum) {
                 throw new RecordingReadError(
-                    `the recordings leave more keys unread than the ${TALLY_MAXIMUM} tallied`,
+                    `the recordings leave more keys unread than the ${tallyMaximum} tallied`,
                 );
             }
         }

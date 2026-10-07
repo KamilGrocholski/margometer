@@ -143,17 +143,16 @@ const VALUE_COLUMN = 15;
 const COUNT_WIDTH = 7;
 
 /** Every key the recordings carry, and the three claims each earns, in code-unit order of key. */
-export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
+export function tallyKeyShapes(
+    replayed: readonly ReplayedFight[],
+    keysMaximum = KEYS_MAXIMUM,
+): KeyShape[] {
     assert(replayed.length > 0, "a measurement is taken over something");
+    assert(keysMaximum <= KEYS_MAXIMUM, "a tally is bounded no further than its own bound");
     const tallies = new Map<string, ShapeTally>();
     for (const { fight, reading } of replayed) {
         for (const message of reading.messagesByPayload.flat()) {
             // Add what one message says of each key it carries.
-            if (tallies.size > KEYS_MAXIMUM) {
-                throw new ProtocolKeyShapeError(
-                    `the recordings carry more keys than the ${KEYS_MAXIMUM} tallied`,
-                );
-            }
             const parsed = parseProtocolMessage(message);
             if (parsed instanceof Error) {
                 throw new ProtocolKeyShapeError(
@@ -181,6 +180,12 @@ export function tallyKeyShapes(replayed: readonly ReplayedFight[]): KeyShape[] {
                 for (const placement of [...tally.placements]) {
                     if (!placements.has(placement)) tally.placements.delete(placement);
                 }
+            }
+            // Past the bound by no more than one message's keys, which the grammar bounds.
+            if (tallies.size > keysMaximum) {
+                throw new ProtocolKeyShapeError(
+                    `the recordings carry more keys than the ${keysMaximum} tallied`,
+                );
             }
         }
     }

@@ -6,7 +6,7 @@
  * produces.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals, assertThrows } from "@std/assert";
 import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { ENVELOPE_KEYS, HEALTH_FIELDS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
@@ -17,6 +17,7 @@ import {
     tallyStruckShare,
 } from "#/tools/shout-holding.ts";
 import { readRecordedMaterial, replayRecordedMaterial } from "#/tools/recorded-material.ts";
+import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
 import { readRecordedFight, type RecordedFight } from "#/tests/recorded-fights.ts";
 import { parseTableInteger, parseTableRows } from "#/tests/register-table.ts";
 
@@ -213,4 +214,21 @@ Deno.test("the reader takes the row it must and leaves the row it must not", () 
     assertStrictEquals(parseHoldingRows(heading).length, 0, "a heading row is not a reading");
     const wide = `${HEADING}\n\n| 2 | 61 | 0 | 100% | 8 |\n`;
     assertStrictEquals(parseHoldingRows(wide).length, 0, "and neither is a row of five");
+});
+
+/** What the recordings hold is the tool's input, so a walk past its bound is refused. */
+Deno.test("the episodes a walk holds are refused past their bound", () => {
+    const replayed = replayRecordedMaterial(readRecordedMaterial([]));
+    const total = MEASURED.baseline.episodes;
+    assertStrictEquals(
+        tallyHoldingReading(replayed, total).baseline.episodes,
+        total,
+        "every episode, at the bound",
+    );
+    assertThrows(
+        () => tallyHoldingReading(replayed, total - 1),
+        RecordingReadError,
+        "the recordings hold",
+    );
+    assertThrows(() => tallyHoldingReading(replayed, 0), RecordingReadError, "a recording holds");
 });

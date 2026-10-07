@@ -70,8 +70,12 @@ const TURN_WIDTH = 11;
 const STATED_SKILLS = composeRuntimeTables().tooltip.statedSkills;
 
 /** Every episode over the material. */
-export function tallyHoldingReading(replayed: readonly ReplayedFight[]): HoldingReading {
+export function tallyHoldingReading(
+    replayed: readonly ReplayedFight[],
+    episodesMaximum = EPISODES_MAXIMUM,
+): HoldingReading {
     assert(replayed.length > 0, "a walk stands on at least one recording");
+    assert(episodesMaximum <= EPISODES_MAXIMUM, "a walk is bounded no further than its own bound");
     const byTurn = new Map<number, StruckTally>();
     const baseline: StruckTally = { atShouter: 0, atSomebodyElse: 0 };
     let episodes = 0;
@@ -80,11 +84,11 @@ export function tallyHoldingReading(replayed: readonly ReplayedFight[]): Holding
         const events = reading.view.events;
         const clocks = replayClocks(events);
         const provokedIdsByCasterId = new Map<number, Set<number>>();
-        for (const episode of replayEpisodes(reading.view, clocks)) {
+        for (const episode of replayEpisodes(reading.view, clocks, episodesMaximum)) {
             episodes += 1;
-            if (episodes > EPISODES_MAXIMUM) {
+            if (episodes > episodesMaximum) {
                 throw new RecordingReadError(
-                    `the recordings hold more episodes than the ${EPISODES_MAXIMUM} walked`,
+                    `the recordings hold more episodes than the ${episodesMaximum} walked`,
                 );
             }
             // Add the episode's blows, by how many of the held character's own turns had opened.
@@ -166,7 +170,11 @@ function replayClocks(events: readonly BattleEvent[]): Map<number, number>[] {
 }
 
 /** Every shout, resolved to the characters it named, with each one's own clock at the moment. */
-function replayEpisodes(view: FightView, clocks: readonly Map<number, number>[]): Episode[] {
+function replayEpisodes(
+    view: FightView,
+    clocks: readonly Map<number, number>[],
+    episodesMaximum: number,
+): Episode[] {
     const episodes: Episode[] = [];
     for (const [eventIndex, event] of view.events.entries()) {
         if (event.kind !== BATTLE_EVENT.skillUsed) continue;
@@ -188,9 +196,9 @@ function replayEpisodes(view: FightView, clocks: readonly Map<number, number>[])
             });
         }
     }
-    if (episodes.length > EPISODES_MAXIMUM) {
+    if (episodes.length > episodesMaximum) {
         throw new RecordingReadError(
-            `a recording holds more episodes than the ${EPISODES_MAXIMUM} walked`,
+            `a recording holds more episodes than the ${episodesMaximum} walked`,
         );
     }
     return episodes;

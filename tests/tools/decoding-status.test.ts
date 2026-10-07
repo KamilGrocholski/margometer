@@ -3,7 +3,7 @@
  * `deno task fight:develop`'s to show; these hold what the counts say about the material.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { BATTLE_EVENT, type BattleEvent, UNREAD_CAUSE } from "#/src/core/battle-event.ts";
 import { formatStatusReport, tallyDecodingStatus } from "#/tools/decoding-status.ts";
 import {
@@ -12,6 +12,7 @@ import {
     replayRecordedMaterial,
 } from "#/tools/recorded-material.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
+import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
 
 const SHORT = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
 
@@ -69,4 +70,24 @@ Deno.test("a recording stating no snapshot is named, and a material with none sa
     const named = formatStatusReport({ material: SHORT, fights: [shelved] }, [replayed]);
     assert(named.includes("no snapshot             1"), "one is counted");
     assert(named.includes("  2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none"), "and named");
+});
+
+/** What the recordings hold is the tool's input, so a tally past its bound is refused. */
+Deno.test("the keys a status leaves unread are refused past their bound", () => {
+    const replayed = replayShort();
+    const unread = {
+        kind: BATTLE_EVENT.unknownMessage,
+        message: "",
+        unreadCause: UNREAD_CAUSE.unknownKey,
+        unreadKeys: ["alpha", "zeta"],
+        combatantIds: [],
+    };
+    const view = { ...replayed.reading.view, events: [...replayed.reading.view.events, unread] };
+    const withUnread = [{ ...replayed, reading: { ...replayed.reading, view } }];
+    assertStrictEquals(
+        tallyDecodingStatus(withUnread, 2).unreadKeysByFrequency.length,
+        2,
+        "both keys, at the bound",
+    );
+    assertThrows(() => tallyDecodingStatus(withUnread, 1), RecordingReadError, "unread");
 });

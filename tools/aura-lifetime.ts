@@ -81,16 +81,22 @@ const NAME_WIDTH = 22;
 const CASES_FLAG = "--cases";
 
 /** Every lighting over the material, recording by recording. */
-export function replayLightingRows(stepped: readonly SteppedFight[]): LightingRow[] {
+export function replayLightingRows(
+    stepped: readonly SteppedFight[],
+    runsMaximum = RUNS_MAXIMUM,
+): LightingRow[] {
     assert(stepped.length > 0, "a walk stands on at least one recording");
+    assert(runsMaximum <= RUNS_MAXIMUM, "a walk is bounded no further than the tool's own bound");
     const lightings: LightingRow[] = [];
     for (const { fight, steps } of stepped) {
         const name = formatRecordingName(fight.path);
-        for (const row of composeLightingRows(name, replayStatusRuns(steps))) lightings.push(row);
+        for (const row of composeLightingRows(name, replayStatusRuns(steps, runsMaximum))) {
+            lightings.push(row);
+        }
     }
-    if (lightings.length > RUNS_MAXIMUM) {
+    if (lightings.length > runsMaximum) {
         throw new RecordingReadError(
-            `the recordings hold more lightings than the ${RUNS_MAXIMUM} walked`,
+            `the recordings hold more lightings than the ${runsMaximum} walked`,
         );
     }
     assert(
@@ -105,7 +111,7 @@ export function replayLightingRows(stepped: readonly SteppedFight[]): LightingRo
  * lights at the step the add-on first says it is carried and goes out at the first step it no
  * longer does. A bit the frozen table does not name is passed over, having no row to land in.
  */
-function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
+function replayStatusRuns(steps: readonly ReplayedStep[], runsMaximum: number): StatusRun[] {
     assert(steps.length <= CALLS_MAXIMUM, "a recording carries no more payloads than the bound");
     const closed: StatusRun[] = [];
     let standing = new Map<string, StandingRun>();
@@ -154,8 +160,8 @@ function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
         }
         standing = carried;
     }
-    if (closed.length > RUNS_MAXIMUM) {
-        throw new RecordingReadError(`a recording holds more runs than the ${RUNS_MAXIMUM} walked`);
+    if (closed.length > runsMaximum) {
+        throw new RecordingReadError(`a recording holds more runs than the ${runsMaximum} walked`);
     }
     return closed;
 }

@@ -172,7 +172,11 @@ function formatAuraReportSources(rows: readonly SourceRow[]): string[] {
  * Every step of every recording, because what stands is a reading of a **moment**: `at once` is
  * the most that ever stood together, and by the last payload of a fight some have run out.
  */
-export function tallyAuraRows(stepped: readonly SteppedFight[]): AuraRow[] {
+export function tallyAuraRows(
+    stepped: readonly SteppedFight[],
+    skillsMaximum = SKILLS_MAXIMUM,
+): AuraRow[] {
+    assert(skillsMaximum <= SKILLS_MAXIMUM, "a register is bounded no further than its own bound");
     const tallies = new Map<number, SkillTally<AuraRow>>();
     for (const { fight, steps } of stepped) {
         for (const step of steps) {
@@ -205,9 +209,9 @@ export function tallyAuraRows(stepped: readonly SteppedFight[]): AuraRow[] {
                     assertExists(tally, "a skill standing at a moment is registered by then");
                     if (count > tally.row.standingAtOnce) tally.row.standingAtOnce = count;
                 }
-                if (tallies.size > SKILLS_MAXIMUM) {
+                if (tallies.size > skillsMaximum) {
                     throw new RecordingReadError(
-                        `the recordings hold more skills than the ${SKILLS_MAXIMUM} registered`,
+                        `the recordings hold more skills than the ${skillsMaximum} registered`,
                     );
                 }
             }
@@ -226,7 +230,11 @@ export function tallyAuraRows(stepped: readonly SteppedFight[]): AuraRow[] {
  * How many sources of one key stand together, over every moment of every recording. A source is a
  * combatant, not a cast, as `docs/auras-standing.md` reads the help, so the casts of one are one.
  */
-export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
+export function tallySourceRows(
+    stepped: readonly SteppedFight[],
+    keysMaximum = SKILLS_MAXIMUM,
+): SourceRow[] {
+    assert(keysMaximum <= SKILLS_MAXIMUM, "a register is bounded no further than its own bound");
     const tallies = new Map<string, SourceRow>();
     for (const { steps } of stepped) {
         const keysByCast = new Map<string, readonly string[]>();
@@ -252,9 +260,9 @@ export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
                     casterIdsByKey.set(key, [...(casterIdsByKey.get(key) ?? []), aura.casterId]);
                 }
             }
-            if (casterIdsByKey.size > SKILLS_MAXIMUM) {
+            if (casterIdsByKey.size > keysMaximum) {
                 throw new RecordingReadError(
-                    `a moment holds more keys than the ${SKILLS_MAXIMUM} registered`,
+                    `a moment holds more keys than the ${keysMaximum} registered`,
                 );
             }
             // Add this moment's sources to the register.
@@ -290,7 +298,11 @@ export function tallySourceRows(stepped: readonly SteppedFight[]): SourceRow[] {
 }
 
 /** The same walk, over what a shout holds rather than over what stands on a side. */
-export function tallyProvocationRows(stepped: readonly SteppedFight[]): ProvocationRow[] {
+export function tallyProvocationRows(
+    stepped: readonly SteppedFight[],
+    skillsMaximum = SKILLS_MAXIMUM,
+): ProvocationRow[] {
+    assert(skillsMaximum <= SKILLS_MAXIMUM, "a register is bounded no further than its own bound");
     const tallies = new Map<number, SkillTally<ProvocationRow>>();
     for (const { fight, steps } of stepped) {
         for (const step of steps) {
@@ -320,7 +332,7 @@ export function tallyProvocationRows(stepped: readonly SteppedFight[]): Provocat
                 tally.paths.add(fight.path);
                 tallies.set(provocation.skillId, tally);
             }
-            const namedBySkillId = indexNamedBySkillId(view.events);
+            const namedBySkillId = indexNamedBySkillId(view.events, skillsMaximum);
             // Add this moment's holding and naming to the register.
             {
                 for (const [skillId, count] of atOnce) {
@@ -352,7 +364,10 @@ export function tallyProvocationRows(stepped: readonly SteppedFight[]): Provocat
 }
 
 /** The most characters one announcement of a skill named, by the skill it was announced on. */
-function indexNamedBySkillId(events: readonly BattleEvent[]): Map<number, number> {
+function indexNamedBySkillId(
+    events: readonly BattleEvent[],
+    skillsMaximum: number,
+): Map<number, number> {
     const namedBySkillId = new Map<number, number>();
     for (const event of events) {
         if (event.kind !== BATTLE_EVENT.skillUsed) continue;
@@ -368,9 +383,9 @@ function indexNamedBySkillId(events: readonly BattleEvent[]): Map<number, number
             }
         }
     }
-    if (namedBySkillId.size > SKILLS_MAXIMUM) {
+    if (namedBySkillId.size > skillsMaximum) {
         throw new RecordingReadError(
-            `the recordings shout more skills than the ${SKILLS_MAXIMUM} registered`,
+            `the recordings shout more skills than the ${skillsMaximum} registered`,
         );
     }
     return namedBySkillId;

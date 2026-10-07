@@ -5,7 +5,7 @@
  * the document never states.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { AURA_REACH, type AuraReach } from "#/src/core/aura-standing.ts";
 import {
@@ -18,6 +18,7 @@ import {
     tallySourceRows,
 } from "#/tools/aura-standing.ts";
 import { readRecordedMaterial, replayMaterialSteps } from "#/tools/recorded-material.ts";
+import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
 import { parseTableInteger, parseTableRows } from "#/tests/register-table.ts";
 
 const REGISTER_PATH = "docs/auras-standing.md";
@@ -233,4 +234,15 @@ Deno.test("nothing is held longer than it was given, and every row holds somebod
         assert(row.heldAtOnce > 0, `${row.skillName}: and held at least one character`);
         assert(row.turnsStated > 0, `${row.skillName}: for the turns the table gives it`);
     }
+});
+
+/** What the recordings hold is the tool's input, so a register past its bound is refused. */
+Deno.test("the skills, keys and shouts a register holds are refused past their bound", () => {
+    const skills = tallyAuraRows(STEPPED).length;
+    assertStrictEquals(tallyAuraRows(STEPPED, skills).length, skills, "every skill, at the bound");
+    assertThrows(() => tallyAuraRows(STEPPED, skills - 1), RecordingReadError, "more skills");
+    assert(tallySourceRows(STEPPED).length > 0, "the corpus stands keys at a moment");
+    assertThrows(() => tallySourceRows(STEPPED, 0), RecordingReadError, "a moment holds");
+    assert(tallyProvocationRows(STEPPED).length > 0, "and shouts");
+    assertThrows(() => tallyProvocationRows(STEPPED, 0), RecordingReadError, "shout more skills");
 });
