@@ -120,7 +120,7 @@ export interface PanelDragHandle {
     /** Stand the window here as a drag would leave it, and tell whoever a drag tells. */
     setPosition(position: PanelPosition): void;
     /** How wide the window stands now: its size where it has one, its type's where it has none. */
-    getWidthPixels(): number;
+    readWidthPixels(): number;
     /** The size a frame hands in. A frame landing while the corner is held is not the hand's. */
     setSize(size: WindowSize | null): void;
 }
@@ -406,7 +406,7 @@ export function initPanelDrag(
         // Write the style the window stands in now.
         // A position that writes no style leaves the host on the sheet's own corner, which is a
         // place — and the window is still there to be grabbed (**E12**).
-        const applied = getPanelDragSize(state, placement, options);
+        const applied = readPanelDragSize(state, placement, options);
         const style = composeHostStyle(state.position, applied, options.window);
         if (style === null) return;
         if (style === state.written) return;
@@ -439,9 +439,14 @@ export function initPanelDrag(
             addViewFailureGuarded(options.onFailure, new WindowUnplaced(options.window, opened));
             state.position = null;
             state.written = null;
+            // A size the reader gave stands on the sheet's corner too, where the page takes it.
+            const sized = errors.attempt(writeHostStyle);
+            if (sized instanceof Error) {
+                addViewFailureGuarded(options.onFailure, new WindowUnplaced(options.window, sized));
+                state.written = null;
+            }
         }
     }
-    writeHostStyle();
     // Listen for the grab, the drag and the release.
     {
         const addRootListener = (
@@ -528,8 +533,8 @@ export function initPanelDrag(
             writeHostStyle();
             options.onIntent({ kind: PANEL_INTENT.move, window: options.window, position });
         },
-        getWidthPixels: () => {
-            const applied = getPanelDragSize(state, placement, options);
+        readWidthPixels: () => {
+            const applied = readPanelDragSize(state, placement, options);
             return applied?.width ?? getWindowWidthPixels(options.window, options.getTypeTokens());
         },
         setSize: (size: WindowSize | null) => {
@@ -541,7 +546,7 @@ export function initPanelDrag(
 }
 
 /** The size the reader chose, bound by the type the window is drawn in and where it stands now. */
-function getPanelDragSize(
+function readPanelDragSize(
     state: PanelDragState,
     placement: PanelPlacement,
     options: PanelDragOptions,

@@ -98,6 +98,17 @@ export interface UserscriptDocument extends PanelDocument {
     body: { append(appendedElement: PanelElement | DownloadAnchor): void };
 }
 
+/** The functions the add-on calls on a page, each under the part a page lacking it is refused for. */
+const WINDOW_FUNCTIONS: readonly (readonly [string, BrowserWindowPart])[] = [
+    ["setInterval", BROWSER_WINDOW_PART.timers],
+    ["clearInterval", BROWSER_WINDOW_PART.timers],
+    ["setTimeout", BROWSER_WINDOW_PART.timers],
+    ["requestAnimationFrame", BROWSER_WINDOW_PART.frames],
+    ["cancelAnimationFrame", BROWSER_WINDOW_PART.frames],
+    ["Date", BROWSER_WINDOW_PART.clock],
+    ["Blob", BROWSER_WINDOW_PART.downloads],
+    ["URL", BROWSER_WINDOW_PART.downloads],
+];
 const SCRIPT_WITH_SOURCE = "script[src]";
 const ANCHOR_TAG = "a";
 
@@ -218,16 +229,9 @@ function isUserscriptWindow(
 function lookupWindowPartMissing(browserWindow: UnknownRecord): BrowserWindowPart | null {
     if (!isUserscriptDocument(browserWindow.document)) return BROWSER_WINDOW_PART.document;
     if (!isCallableOn(browserWindow.console, "error")) return BROWSER_WINDOW_PART.console;
-    if (typeof browserWindow.setInterval !== "function") return BROWSER_WINDOW_PART.timers;
-    if (typeof browserWindow.clearInterval !== "function") return BROWSER_WINDOW_PART.timers;
-    if (typeof browserWindow.setTimeout !== "function") return BROWSER_WINDOW_PART.timers;
-    if (typeof browserWindow.requestAnimationFrame !== "function") {
-        return BROWSER_WINDOW_PART.frames;
+    for (const [member, windowPart] of WINDOW_FUNCTIONS) {
+        if (typeof browserWindow[member] !== "function") return windowPart;
     }
-    if (typeof browserWindow.cancelAnimationFrame !== "function") return BROWSER_WINDOW_PART.frames;
-    if (typeof browserWindow.Date !== "function") return BROWSER_WINDOW_PART.clock;
-    if (typeof browserWindow.Blob !== "function") return BROWSER_WINDOW_PART.downloads;
-    if (typeof browserWindow.URL !== "function") return BROWSER_WINDOW_PART.downloads;
     return null;
 }
 

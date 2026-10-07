@@ -971,13 +971,13 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         // drawn: placed against the panel, a card from the second window opened straight over
         // that window's own lower rows (`develop ADR 0090`).
         const placement = options.meterPlacement;
-        const composePlace = (handle: PanelDragHandle | null): CardWindowPlace | null => {
+        const readCardWindowPlace = (handle: PanelDragHandle | null): CardWindowPlace | null => {
             const position = handle?.getPosition() ?? null;
             if (handle === null) return null;
             if (position === null) return null;
-            return { position, widthPixels: handle.getWidthPixels() };
+            return { position, widthPixels: handle.readWidthPixels() };
         };
-        const composeAcross = (key: string, columns: CardColumns): CardAcross | null => {
+        const readCardAcross = (key: string, columns: CardColumns): CardAcross | null => {
             // The sheet's own token and never a copy of it: the two spellings drifted on
             // 2026-09-15 and the card, drawn at one width and placed as if it were the other,
             // stood 43px over the rows it explains. It decides the **side** a card opens on and
@@ -985,10 +985,10 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             const viewport = placement?.readViewport() ?? null;
             const widthMaximum = getCardWidthForColumns(TYPE_TOKENS[getTypeStep()], columns);
             if (key.startsWith(HELPER_CARD_PREFIX)) {
-                const helperPlace = composePlace(helperDrag);
+                const helperPlace = readCardWindowPlace(helperDrag);
                 return composeCardAcross(helperPlace, viewport, widthMaximum);
             }
-            const meterPlace = composePlace(meterDrag);
+            const meterPlace = readCardWindowPlace(meterDrag);
             return composeCardAcross(meterPlace, viewport, widthMaximum);
         };
         cardHandle = initCardHandle(
@@ -1009,7 +1009,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                 setCardHidden(previousCard, true);
                 return previousCard;
             },
-            composeAcross,
+            readCardAcross,
             () => placement?.readViewport() ?? null,
             getTypeStep,
         );
@@ -2054,24 +2054,25 @@ function renderPinnedRows(
         isSideChosen: shown.side !== SIDE_CHOICE.everyone,
         figure: getWordsForMetric(shown.metric),
     };
-    const isOpen = isLevelOpen(shown);
-    let pinned: readonly PinnedRow[];
-    if (isOpen) {
-        pinned = [];
-    } else {
-        pinned = shown.isOnShelf ? [] : shown.ranking.pinned;
-    }
     const ends = [
         [UNNAMED_END.actor, "pinnedActor"],
         [UNNAMED_END.target, "pinnedTarget"],
     ] as const;
     for (const [end, regionName] of ends) {
-        const row = pinned.find((pinnedRow) => pinnedRow.end === end) ?? null;
         regions[regionName] = renderInPlace(
             regions[regionName],
             PANEL_REGION.pinned,
             () => {
-                // Draw the row, or the slot that keeps its place.
+                // Draw the row, or the slot that keeps its place. Which row it is is asked
+                // **inside** the guard, as the sides' summary is: a reading that throws on being
+                // asked costs this row, not the panel.
+                let pinned: readonly PinnedRow[];
+                if (isLevelOpen(shown)) {
+                    pinned = [];
+                } else {
+                    pinned = shown.isOnShelf ? [] : shown.ranking.pinned;
+                }
+                const row = pinned.find((pinnedRow) => pinnedRow.end === end) ?? null;
                 if (row === null) return renderSlot(document);
                 const block = renderElement(document, "div", CLASS.pinned);
                 const card = {
@@ -2340,7 +2341,7 @@ function renderFold(
     if (typeStep !== panelDrawing.getTypeStep()) {
         // Read off the page through the drag, and charged to the window beside like the move it
         // feeds.
-        const before = errors.attempt(() => getWindowWidths(panelDrawing));
+        const before = errors.attempt(() => readWindowWidths(panelDrawing));
         if (before instanceof Error) panelDrawing.report.add(PANEL_REGION.helper, before);
         executeRegionStep(panelDrawing.report, PANEL_REGION.header, () => {
             panelDrawing.sheet.textContent = composeStyleSheet(typeStep);
@@ -2349,7 +2350,7 @@ function renderFold(
         // The window beside the panel keeps the side it stood on as both change size.
         executeRegionStep(panelDrawing.report, PANEL_REGION.helper, () => {
             if (before instanceof Error) return;
-            const after = getWindowWidths(panelDrawing);
+            const after = readWindowWidths(panelDrawing);
             const meterPosition = panelDrawing.meterDrag?.getPosition() ?? null;
             const helperPosition = panelDrawing.helperDrag?.getPosition() ?? null;
             if (meterPosition === null) return;
@@ -2440,11 +2441,11 @@ function renderFold(
 }
 
 /** How wide each window stands now, which a change of type moves and a size may not. */
-function getWindowWidths(panelDrawing: PanelDrawing): WindowWidths {
+function readWindowWidths(panelDrawing: PanelDrawing): WindowWidths {
     const tokens = TYPE_TOKENS[panelDrawing.getTypeStep()];
     return {
-        meter: panelDrawing.meterDrag?.getWidthPixels() ?? tokens.meterWidthPixels,
-        helper: panelDrawing.helperDrag?.getWidthPixels() ?? tokens.helperWidthPixels,
+        meter: panelDrawing.meterDrag?.readWidthPixels() ?? tokens.meterWidthPixels,
+        helper: panelDrawing.helperDrag?.readWidthPixels() ?? tokens.helperWidthPixels,
     };
 }
 
@@ -3962,7 +3963,7 @@ export function initCardHandle(
      * Asked with the key the card is open for and the columns it is drawn in: the two windows do
      * not open on the same side, and a card of two columns needs the room of two.
      */
-    getAcross: (key: string, columns: CardColumns) => CardAcross | null = () => null,
+    readAcross: (key: string, columns: CardColumns) => CardAcross | null = () => null,
     /** Asked as a card opens, never as the panel is built. Null is a page stating no size. */
     readViewport: () => PanelViewport | null = () => null,
     getTypeStep: () => TypeStep = () => TYPE_STEP_DEFAULT,
@@ -3991,7 +3992,13 @@ export function initCardHandle(
             openColumns = layout.secondColumnFrom === null ? 1 : 2;
             return renderedCard;
         });
-        setCardPosition(cardElement, openTop, getAcross(key, openColumns), openSize, getTypeStep());
+        setCardPosition(
+            cardElement,
+            openTop,
+            readAcross(key, openColumns),
+            openSize,
+            getTypeStep(),
+        );
     };
     const hideCard = (): void => {
         if (openKey === null) return;
@@ -4019,7 +4026,7 @@ export function initCardHandle(
                     setCardPosition(
                         cardElement,
                         openTop,
-                        getAcross(key, openColumns),
+                        readAcross(key, openColumns),
                         openSize,
                         getTypeStep(),
                     );

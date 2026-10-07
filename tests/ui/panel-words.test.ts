@@ -101,6 +101,7 @@ import {
     STORE_REFUSED_ANSWER,
 } from "#/src/ui/panel-words.ts";
 import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
+import { initBrowserClock } from "#/src/ports/browser-time.ts";
 import { PANEL_WINDOWS, STORAGE_CHOICES, TYPE_STEPS } from "#/src/ui/panel-choice.ts";
 import { PINNED_CASES, SIDE_RELATION, UNNAMED_END } from "#/src/ui/panel-content.ts";
 import { PANEL_NOUN, SCREEN_ORDER, SIDE_CHOICES } from "#/src/ui/panel-screen.ts";
@@ -884,19 +885,42 @@ Deno.test("Dotyk anioła says the heals it has given, out of the three it gives"
     assertStrictEquals(row(-1), `Dotyk anioła: ${PANEL_WORDS.unknown}`, "below none");
 });
 
-Deno.test("a label the client answers with markup is refused rather than escaped", () => {
-    const speak = (id: string) => id === "speed_up" ? "<b>szybko</b>" : null;
+/**
+ * The client's word is the second rung of `develop ADR 0024` and the key the third: a word carrying
+ * markup is refused as an empty or an overlong one is, and the status still stands, under its key.
+ */
+Deno.test("a label the client answers with markup is refused, and the key stands instead", () => {
+    const rows = (said: string) =>
+        presentTooltipRows(
+            { ...NOTHING_CARRIED, statuses: [{ bit: 6, percent: null }] },
+            (id: string) => id === "speed_up" ? said : null,
+            FROZEN_STATUS_BITS.bits,
+        );
+    assertEquals(rows("<b>szybko</b>"), ["MargoMeter", "speed_up"], "a tag is not escaped");
+    assertEquals(rows("szybko &amp; dalej"), ["MargoMeter", "speed_up"], "nor is an entity");
+    assertEquals(rows("Przyspieszenie"), ["MargoMeter", "Przyspieszenie"], "a plain word is used");
+});
+
+/** The client walks the bits it registers and draws nothing past them (`docs/auras-standing.md`). */
+Deno.test("a bit the client registers no status for is no row", () => {
+    const past = FROZEN_STATUS_BITS.bits.length;
     assertEquals(
         presentTooltipRows(
-            {
-                ...NOTHING_CARRIED,
-                statuses: [{ bit: 6, percent: null }],
-            },
-            speak,
+            { ...NOTHING_CARRIED, statuses: [{ bit: past, percent: null }] },
+            null,
             FROZEN_STATUS_BITS.bits,
         ),
         [],
-        "the answer is the client's, and one this repository cannot use is left alone",
+        "nothing is said of it, not even that it is unknown",
+    );
+    assertEquals(
+        presentTooltipRows(
+            { ...NOTHING_CARRIED, statuses: [{ bit: past - 1, percent: null }] },
+            null,
+            FROZEN_STATUS_BITS.bits,
+        ).length,
+        2,
+        "while the last bit it registers is a row",
     );
 });
 
@@ -1732,7 +1756,54 @@ Deno.test("a day nobody can name leaves the row saying nothing", () => {
     assertStrictEquals(formatShelfTime(beforeMidnight, false), "", "an hour before the day began");
     const beforeTheHour = { day: 13, month: 9, hour: 21, minute: -1 };
     assertStrictEquals(formatShelfTime(beforeTheHour, false), "", "and a minute before the hour");
+    const pastMidnight = { day: 13, month: 9, hour: 24, minute: 5 };
+    assertStrictEquals(
+        formatShelfTime(pastMidnight, false),
+        "",
+        "on both sides of the day's hours",
+    );
+    const pastTheHour = { day: 13, month: 9, hour: 21, minute: 60 };
+    assertStrictEquals(formatShelfTime(pastTheHour, false), "", "and of the hour's minutes");
+    const halfAnHour = { day: 13, month: 9, hour: 1.5, minute: 5 };
+    assertStrictEquals(formatShelfTime(halfAnHour, false), "", "and an hour that is no whole one");
+    const halfAMinute = { day: 13, month: 9, hour: 21, minute: 0.5 };
+    assertStrictEquals(formatShelfTime(halfAMinute, false), "", "nor a minute");
     assertStrictEquals(formatShelfTime(null, false), "", "as does a moment that never read back");
+});
+
+/**
+ * The clock refuses a moment past the calendar's edges and the row refuses it again, so every
+ * moment the clock answers is one the row dates: the two pairs of edges are held level here.
+ */
+Deno.test("every moment the clock reads back is one the shelf can date", () => {
+    const readAt = (day: number, monthFromZero: number, hour: number, minute: number) => {
+        const PartsDate = class {
+            static now(): number {
+                return 0;
+            }
+            toISOString(): string {
+                return "";
+            }
+            getDate(): number {
+                return day;
+            }
+            getMonth(): number {
+                return monthFromZero;
+            }
+            getHours(): number {
+                return hour;
+            }
+            getMinutes(): number {
+                return minute;
+            }
+        };
+        return initBrowserClock(PartsDate).readMoment(0);
+    };
+    assertStrictEquals(formatShelfTime(readAt(1, 0, 0, 0), false), "01 sty 00:00", "the first");
+    assertStrictEquals(formatShelfTime(readAt(31, 11, 23, 59), false), "31 gru 23:59", "the last");
+    assertStrictEquals(readAt(32, 11, 23, 59), null, "and past the day the clock answers none");
+    assertStrictEquals(readAt(31, 11, 24, 59), null, "nor past the hour");
+    assertStrictEquals(readAt(31, 11, 23, 60), null, "nor past the minute");
 });
 
 /** The fight going on now is dated by nothing, because it is still happening. */

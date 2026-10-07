@@ -58,6 +58,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   ponownie wybierzesz miejsce, w którym walki już są.
 - **Poprawka** — Panel pokazuje każdą usterkę, którą zgłasza; wcześniej, gdy było ich dużo, część
   znikała bez słowa.
+- **Poprawka** — Dymek postaci nie dopisuje już „Nie wiadomo” przy stanie, którego gra sama w nim
+  nie pokazuje.
+- **Poprawka** — Stan, którego nazwę gra podaje w formie nienadającej się do dymka, nie znika już z
+  dopisków panelu, tylko stoi pod nazwą, jaką gra nadaje mu w kodzie.
 - **Poprawka** — Gdy panel nie może pokazać szczegółów wiersza, zgłasza to jako usterkę, zamiast po
   prostu nic nie pokazywać.
 - **Poprawka** — Gdy przeglądarka odmówi przeniesienia zapisanych walk albo zapisu przypięcia, panel

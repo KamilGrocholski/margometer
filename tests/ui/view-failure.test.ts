@@ -175,6 +175,23 @@ function readFight(): ScreenContent {
     );
 }
 
+Deno.test("pinned rows that will not be read cost their own two regions, not the panel", () => {
+    const panel = initTestView(composeFakeDocument());
+    const reading = readFight();
+    const broken = {
+        ...reading,
+        get pinned(): ScreenContent["pinned"] {
+            throw new RangeError("pinned rows that will not be read");
+        },
+    };
+    const report = panel.render(composeShownScreen(broken));
+    assertEquals(
+        report.undrawn.map((regionUndrawn) => regionUndrawn.region),
+        [PANEL_REGION.pinned, PANEL_REGION.pinned],
+        "each pinned row's own region, and nothing past them",
+    );
+});
+
 Deno.test("a card that will not draw under the pointer is told to the sink as the card", () => {
     const document = composeFakeDocument();
     const failures: ViewFailure[] = [];
@@ -297,6 +314,80 @@ Deno.test("a window whose place the page will not take opens on the corner, and 
         host.attributes.get("style"),
         "a drag landing where the window was to open writes that place, the refused write unheld",
     );
+});
+
+/**
+ * A size the reader gave is written on the corner too, under a guard of its own: a page refusing
+ * every style the window asks for leaves a panel on the sheet's corner, never no panel at all.
+ */
+Deno.test("a sized window whose place and size the page will not take still opens", () => {
+    const failures: ViewFailure[] = [];
+    let refusals = 0;
+    const document = composeFakeDocument();
+    const createElement = document.createElement;
+    document.createElement = (tag: string) => {
+        const created = createElement(tag);
+        const setAttribute = created.setAttribute;
+        created.setAttribute = (name: string, attributeValue: string) => {
+            if (name === "style") {
+                refusals += 1;
+                throw new RangeError("a style the page will not take");
+            }
+            setAttribute(name, attributeValue);
+        };
+        return created;
+    };
+    const panel = initTestView(document, {
+        onFailure: (failure) => failures.push(failure),
+        meterPlacement: {
+            position: null,
+            size: { width: 320, height: 350 },
+            readViewport: () => VIEWPORT,
+        },
+    });
+    const host = panel.element as FakeElement;
+    assertStrictEquals(host.attributes.get("style"), undefined, "the sheet's corner, unwritten");
+    assertStrictEquals(refusals, 2, "the place refused, then the size alone");
+    assertEquals(
+        failures.map((failure) =>
+            failure instanceof WindowUnplaced ? failure.window : failure.name
+        ),
+        [PANEL_WINDOW.meter, PANEL_WINDOW.meter],
+        "and each refusal is named",
+    );
+});
+
+Deno.test("a sized window whose place the page refuses keeps its size on the corner", () => {
+    const failures: ViewFailure[] = [];
+    let isRefusing = true;
+    const document = composeFakeDocument();
+    const createElement = document.createElement;
+    document.createElement = (tag: string) => {
+        const created = createElement(tag);
+        const setAttribute = created.setAttribute;
+        created.setAttribute = (name: string, attributeValue: string) => {
+            if (name === "style") {
+                if (isRefusing) {
+                    isRefusing = false;
+                    throw new RangeError("a place the page will not take");
+                }
+            }
+            setAttribute(name, attributeValue);
+        };
+        return created;
+    };
+    const panel = initTestView(document, {
+        onFailure: (failure) => failures.push(failure),
+        meterPlacement: {
+            position: null,
+            size: { width: 320, height: 350 },
+            readViewport: () => VIEWPORT,
+        },
+    });
+    const style = (panel.element as FakeElement).attributes.get("style") ?? "";
+    assert(style.includes("320px"), "the size the reader gave stands");
+    assert(!style.includes("left"), "on the sheet's corner");
+    assertStrictEquals(failures.length, 1, "and the refused place is named once");
 });
 
 Deno.test("every row the runtime's ledger can hold is drawn, a region's beside its kind's", () => {

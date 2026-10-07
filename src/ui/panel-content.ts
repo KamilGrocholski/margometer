@@ -25,6 +25,7 @@ import {
     type FightTotals,
     type FigureCut,
     type SkillFigures,
+    SKILLS_MAXIMUM as SKILLS_KEPT_MAXIMUM,
 } from "#/src/core/fight-statistics.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import {
@@ -601,8 +602,8 @@ export interface OpenedLevelContent {
     profession: string | null;
     byOtherEnd: OtherEndCut;
     /**
-     * What the figure was done with, on the screen the protocol states it for. Empty on the
-     * others: what hit you is named and what the other side chose never is.
+     * What the figure was done with: the skill announced ahead of it, on every screen whose
+     * movement an announcement can ride.
      */
     bySkill: SkillCut;
     byElement: ElementCut;
@@ -656,9 +657,10 @@ const ROWS_MAXIMUM = COMBATANTS_MAXIMUM;
 export const CUT_PARTS_MAXIMUM = CUT_MAXIMUM;
 /**
  * The names a fold of the skills that reached one receiver gives rows to, past which the figure
- * is summed into one row (`develop ADR 0055`): 81 names over `captures/`, 2026-08-29.
+ * is summed into one row (`develop ADR 0055`): the skills a fight keeps, which is
+ * `src/core/fight-statistics.ts`'s bound.
  */
-export const SKILLS_MAXIMUM = 256;
+export const SKILLS_MAXIMUM = SKILLS_KEPT_MAXIMUM;
 /**
  * The ranking's height, in bars. Ten is the most one side fields and eleven the most a whole fight
  * does, measured over the 37 recordings of `captures/` on 2026-10-06. A bigger
@@ -1079,9 +1081,8 @@ function composeHalfNamedRows(
             rightRow.name ?? "",
         )
     );
-    // No bound of its own: a level is cut out of the list above it, which `presentScreen`
-    // has already held to `ROWS_MAXIMUM`. One here is a second guard on one hazard, and nothing
-    // can reach it — **W4**.
+    // No bound of its own: a part is one combatant's row, and `core/fight-statistics.ts` holds a
+    // fight's rows inside `COMBATANTS_MAXIMUM`.
     return rows;
 }
 
@@ -2045,8 +2046,8 @@ function getPartTotal(
     return tallyCut(cut);
 }
 
-/** Healing given has no cut by key, and the empty map says so outright — whose those keys are
- * is `core/fight-statistics.ts`'s to state, and it does. */
+/** Healing given has no cut by key, so it answers none, and its caller draws an empty cut — whose
+ * those keys are is `core/fight-statistics.ts`'s to state, and it does. */
 function getCutsForMetric(figures: CombatantFigures, metric: PanelMetric): MetricCuts {
     if (metric === PANEL_METRIC.damageDealt) {
         return {

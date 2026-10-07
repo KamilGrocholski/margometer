@@ -248,8 +248,9 @@ Deno.test("the witness for a lost turn is the fight's, on every recording", () =
 /**
  * The panel's own cross-check, over the material rather than over one fight.
  *
- * `hasFiguresDisagreed` is raised where a side's total and the whole come out different, which is a
- * drawn figure that is **wrong** rather than short — the entry turns it into a defect a reader sees
+ * `hasFiguresDisagreed` is raised where the rows hold more than the screen's own count, or a pinned
+ * row's figure and the total it is pinned against come out different: a drawn figure that is
+ * **wrong** rather than short — the entry turns it into a defect a reader sees
  * (`develop ADR 0051`). Every recording is read against every screen and side choice.
  */
 Deno.test("no recording makes the panel contradict itself, on any screen or side", () => {

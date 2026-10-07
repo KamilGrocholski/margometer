@@ -875,6 +875,8 @@ const FIRST_MONTH = 1;
 /** The calendar's own edges. A month outside its own is caught by finding no word for it. */
 const FIRST_DAY = 1;
 const DAY_MAXIMUM = 31;
+const HOUR_MAXIMUM = 23;
+const MINUTE_MAXIMUM = 59;
 /**
  * The months as a Polish calendar shortens them: three letters each, so a dated column is one
  * width whichever month it falls in. A word rather than a number because two numbers either side
@@ -1251,9 +1253,10 @@ function getTrailingStatuses(
     statuses: readonly TooltipStatus[],
     statusBits: readonly string[],
 ): TooltipStatus[] {
+    // A bit the client registers no status for is one it draws nothing for, and neither does this.
     return statuses.filter((status) => {
         const name = statusBits[status.bit];
-        if (name === undefined) return true;
+        if (name === undefined) return false;
         return !LEADING_STATUS_NAMES.includes(name);
     });
 }
@@ -1281,6 +1284,7 @@ function getWordsForStatusBit(
     if (said === null) return key;
     if (said.length === 0) return key;
     if (said.length > CLIENT_LABEL_CHARACTERS_MAXIMUM) return key;
+    if (doesRowCarryMarkup(said)) return key;
     return said;
 }
 
@@ -1375,16 +1379,19 @@ export function formatKeptUnread(moment: FightMoment | null, place: string | nul
 export function formatShelfTime(moment: FightMoment | null, isLive: boolean): string {
     if (isLive) return LIVE_FIGHT_WORDS.time;
     if (moment === null) return "";
-    if (moment.hour < 0) return "";
-    if (moment.minute < 0) return "";
+    if (moment.hour > HOUR_MAXIMUM) return "";
+    if (moment.minute > MINUTE_MAXIMUM) return "";
     if (moment.day < FIRST_DAY) return "";
     if (moment.day > DAY_MAXIMUM) return "";
     const month = MONTH_WORDS[moment.month - FIRST_MONTH];
     if (month === undefined) return "";
     const day = formatTwoDigits(moment.day);
     if (day === "") return "";
-    const clock = `${formatTwoDigits(moment.hour)}:${formatTwoDigits(moment.minute)}`;
-    return `${day} ${month} ${clock}`;
+    const hour = formatTwoDigits(moment.hour);
+    if (hour === "") return "";
+    const minute = formatTwoDigits(moment.minute);
+    if (minute === "") return "";
+    return `${day} ${month} ${hour}:${minute}`;
 }
 
 function formatTwoDigits(momentPart: number): string {
