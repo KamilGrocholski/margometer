@@ -11,6 +11,7 @@
 import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
+import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
 import {
     formatRecordingName,
     readRecordedMaterial,
@@ -73,8 +74,6 @@ interface StandingRun {
     turnsAtLighting: number;
 }
 
-/** Past the payload count of the longest recording, so each walk carries a stated bound. */
-const STEPS_MAXIMUM = 4096;
 /** Past the number of lightings one recording can hold, for the same reason. */
 const RUNS_MAXIMUM = 65536;
 const NAME_WIDTH = 22;
@@ -102,7 +101,7 @@ export function replayLightingRows(stepped: readonly SteppedFight[]): LightingRo
  * longer does. A bit the frozen table does not name is passed over, having no row to land in.
  */
 function replayStatusRuns(steps: readonly ReplayedStep[]): StatusRun[] {
-    assert(steps.length <= STEPS_MAXIMUM, "a recording carries no more payloads than the bound");
+    assert(steps.length <= CALLS_MAXIMUM, "a recording carries no more payloads than the bound");
     const closed: StatusRun[] = [];
     let standing = new Map<string, StandingRun>();
     for (const [stepIndex, step] of steps.entries()) {

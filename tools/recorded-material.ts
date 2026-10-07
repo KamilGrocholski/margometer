@@ -51,6 +51,11 @@ export interface SteppedFight {
     steps: readonly ReplayedStep[];
 }
 
+/**
+ * The game's keys only the tools read, spelled once (N13): who is a monster, and the skill list
+ * whose prose an intake takes out. Nothing in `src/` reads either.
+ */
+export const INTAKE_KEYS = { nonPlayer: "npc", skills: "skills" } as const;
 /** Past every recording `captures/` holds, the one bound every tool reading them shares. */
 export const RECORDINGS_MAXIMUM = 1_000;
 export const RECORDING_SUFFIX = ".json";

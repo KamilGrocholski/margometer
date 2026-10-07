@@ -59,21 +59,42 @@ Deno.test("one figure changed is one difference, at the line it stands on", () =
     assertEquals(comparison.agreedNames, ["two"]);
     assertStrictEquals(comparison.differences.length, 1);
     assertStrictEquals(comparison.differences[0]!.name, "one");
-    assertStrictEquals(comparison.differences[0]!.lineIndex, 1, "the line under the payloads");
+    assertEquals(comparison.differences[0]!.lineIndices, [1], "the line under the payloads");
     assertEquals(formatComparison("figures", comparison), [
-        "≠ one, line 2 of its report",
+        "≠ one, 1 lines of its report",
         "      payloads 4",
+        "  line 2",
         "  -     Gracz 1        99",
         "  +     Gracz 1       100",
         "figures: 1 agree, 1 differ",
     ]);
 });
 
+/** A line known to differ never hides the ones after it, which is what the comparison is for. */
+Deno.test("every line two reports differ on is a line of the difference, not the first alone", () => {
+    const status = "recordings   35\nmessages   13862\nlost   0\n";
+    const twice = status.replace("35", "36").replace("lost   0", "lost   1");
+    const difference = compareWholeReports("decoding", status, twice).differences[0]!;
+    assertEquals(difference.lineIndices, [0, 2], "the first and the last");
+    assertEquals(
+        formatComparison("decoding", { agreedNames: [], differences: [difference] }).slice(1, -1),
+        [
+            "  line 1",
+            "  - recordings   35",
+            "  + recordings   36",
+            "  line 3",
+            "  - lost   0",
+            "  + lost   1",
+        ],
+        "each shown with both sides",
+    );
+});
+
 Deno.test("a report one line longer differs where the shorter one ends", () => {
     const longer = REPORT.replace("  payloads 2", "  payloads 2\n  still going");
     const difference = compareReportSections(REPORT, longer).differences[0]!;
     assertStrictEquals(difference.name, "two");
-    assertStrictEquals(difference.lineIndex, 1);
+    assertEquals(difference.lineIndices, [1]);
     const shown = formatComparison("figures", { agreedNames: [], differences: [difference] });
     assertEquals(shown.slice(-3, -1), ["  - (develop's report ends)", "  +   still going"]);
 });
@@ -106,9 +127,9 @@ Deno.test("a whole report is one section, its trailing blanks aside", () => {
     assertEquals(agreed.agreedNames, ["decoding"], "a printer's last newline is not a line");
     const changed = compareWholeReports("decoding", status, status.replace("13862", "13861"));
     assertStrictEquals(changed.differences[0]!.name, "decoding");
-    assertStrictEquals(changed.differences[0]!.lineIndex, 1);
+    assertEquals(changed.differences[0]!.lineIndices, [1]);
     const empty = compareWholeReports("decoding", "", status);
-    assertStrictEquals(empty.differences[0]!.lineIndex, 0, "an empty report differs at once");
+    assertEquals(empty.differences[0]!.lineIndices, [0, 1], "an empty report differs at once");
 });
 
 Deno.test("a recording develop never read is named apart, and the rest are compared", () => {

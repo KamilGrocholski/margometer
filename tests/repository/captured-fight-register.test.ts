@@ -10,7 +10,7 @@ import { parseJson } from "#/libs/json-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { FILE_FIELD, NOTHING_STATED } from "#/src/runtime/fight-file.ts";
-import { INTAKE_KEYS } from "#/tools/capture-intake.ts";
+import { INTAKE_KEYS } from "#/tools/recorded-material.ts";
 import { parseSection } from "#/tests/markdown-document.ts";
 import { readRecordedFights, type RecordedFight } from "#/tests/recorded-fights.ts";
 

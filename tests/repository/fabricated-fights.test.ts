@@ -9,14 +9,8 @@
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
-import { isRecord } from "#/libs/unknown-value.ts";
-import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { RECORDINGS_DIRECTORY } from "#/tests/recording-sources.ts";
-import {
-    FABRICATED_DIRECTORY,
-    FABRICATED_WORLD,
-    FABRICATION_FIELDS,
-} from "#/tools/fabricated-fight.ts";
+import { FABRICATED_DIRECTORY, isFabricatedEnvelope } from "#/tools/fabricated-fight.ts";
 
 const IGNORE_FILE = ".gitignore";
 const CONFIGURATION_FILE = "deno.json";
@@ -57,13 +51,6 @@ Deno.test("the reader knows a fabricated envelope from a recording's", () => {
     assert(!isFabricatedEnvelope({ isFabricated: false }), "nor a field saying it is not one");
     assert(!isFabricatedEnvelope("tempest"), "and text is not an envelope at all");
 });
-
-/** True where the envelope wears either mark a fabricated fight carries. */
-function isFabricatedEnvelope(document: unknown): boolean {
-    if (!isRecord(document)) return false;
-    if (document[FABRICATION_FIELDS.isFabricated] === true) return true;
-    return document[FILE_FIELD.world] === FABRICATED_WORLD;
-}
 
 Deno.test("no recording in the evidence directory is a fight nobody fought", () => {
     const paths = [...Deno.readDirSync(RECORDINGS_DIRECTORY)]

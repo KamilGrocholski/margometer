@@ -20,6 +20,7 @@ import { encodeJson } from "#/libs/json-text.ts";
 import { clampNumber } from "#/libs/number-range.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
+import { isRecord } from "#/libs/unknown-value.ts";
 import { isOneOf, type VocabularyWord } from "#/libs/vocabulary.ts";
 import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
@@ -56,7 +57,7 @@ import {
 import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
 import type { CapturedCombatant } from "#/src/ports/margonem-engine-warriors.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
-import { INTAKE_KEYS } from "./capture-intake.ts";
+import { INTAKE_KEYS } from "./recorded-material.ts";
 import { readDevelopmentVersion } from "./build-userscript.ts";
 import { FabricatedFightError } from "./margometer-tool-error.ts";
 import { WITNESS_KEYS } from "./turn-count.ts";
@@ -935,15 +936,20 @@ function encodeTurnQueue(
 }
 
 /**
- * Whom a mid-fight payload states: the three the turn named, and everybody carrying a mask. The
- * client sends the volatile subset rather than the whole cast, and a mask that goes unstated is a
- * status the panel would still see standing after the script cleared it.
+ * Whom a mid-fight payload states: the three the turn named, everybody carrying a mask, and
+ * everybody whose mask this round cleared. The client sends the volatile subset rather than the
+ * whole cast, and a mask that goes unstated is a status the panel would still see standing after
+ * the script cleared it.
  */
 function getStatedCombatants(state: FabricationState, turn: FabricatedTurn): FabricatedCombatant[] {
     const named = new Set([turn.actor.id, turn.target.id, turn.ally.id]);
-    const stated = state.combatants.filter((combatant) =>
-        named.has(combatant.id) || combatant.statusMask !== 0
-    );
+    const stated = state.combatants.filter((combatant) => {
+        if (named.has(combatant.id)) return true;
+        if (combatant.statusMask !== 0) return true;
+        // A mask set by the script clears at a round past the first, never at the default nought.
+        if (combatant.statusClearsAtRound === 0) return false;
+        return combatant.statusClearsAtRound === state.round;
+    });
     assert(stated.length > 0, "a payload states somebody");
     assert(stated.length <= state.combatants.length, "and no more than the cast it was built from");
     return stated;
@@ -1772,6 +1778,13 @@ function readEndingFlag(stated: string | undefined): FabricationEnding {
     throw new FabricatedFightError(
         `--${ENDING_FLAG} ${stated} is none of ${FABRICATION_ENDINGS.join(", ")}`,
     );
+}
+
+/** True where the envelope wears either mark a fabricated fight carries in its file. */
+export function isFabricatedEnvelope(document: unknown): boolean {
+    if (!isRecord(document)) return false;
+    if (document[FABRICATION_FIELDS.isFabricated] === true) return true;
+    return document[FILE_FIELD.world] === FABRICATED_WORLD;
 }
 
 if (import.meta.main) {

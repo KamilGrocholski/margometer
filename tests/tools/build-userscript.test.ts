@@ -16,6 +16,7 @@ import {
     encodeUserscriptBanner,
     lookupAmbientWaysOut,
     lookupOutboundCalls,
+    lookupStyleFetches,
     METADATA_NAME,
     parseDeclaredVersion,
     readUserscriptFiles,
@@ -56,6 +57,26 @@ Deno.test("the add-on stays off the operator's own site, bare domain included", 
     assertStringIncludes(banner, "@exclude      https://margonem.pl/*", "the bare domain");
     assertStringIncludes(banner, "@exclude      https://forum.margonem.pl/*", "the forum");
     assertStringIncludes(banner, "@match        https://*.margonem.pl/*", "while worlds match");
+});
+
+/** `SECURITY.md`: no image or stylesheet request of ours. The sheet is a string the code builds. */
+Deno.test("a stylesheet naming anything but inline data is flagged, and inline data is not", () => {
+    const inline = 'const sheet = ".a{mask:url(\\"data:image/svg+xml,%3Csvg%3E\\")}";';
+    assertEquals(lookupStyleFetches(inline), [], "an escaped quote and inline data");
+    assertEquals(lookupStyleFetches("b{mask:url(data:x)}"), [], "and inline data bare");
+    assertEquals(
+        lookupStyleFetches('b{mask:url("https://host/x.svg")}'),
+        ['url("https'],
+        "a host is a request",
+    );
+    assertEquals(lookupStyleFetches("b{mask:url(x.svg)}"), ["url(x.svg"], "and so is a path");
+    assertEquals(lookupStyleFetches('@import "x.css";'), ["@import"], "and an import");
+    assertThrows(
+        () => requireBundleInBrowser('const sheet = "b{mask:url(https://host/x.svg)}";'),
+        UserscriptBuildError,
+        "url(",
+        "and the build refuses it",
+    );
 });
 
 Deno.test("a reader of the built text flags what would leave the browser", () => {

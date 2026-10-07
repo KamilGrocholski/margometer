@@ -127,7 +127,10 @@ export function formatStatusReport(
         formatStatusCountLine("no parameter", status.messagesWithoutParameter),
         formatStatusCountLine("messages lost", status.messagesLost),
         "",
-        "recordings stating no snapshot, which an intake refuses (develop ADR 0053)",
+        // ⚠️ `develop`'s own words, its decision record numbered as it numbers them: this report is
+        // held to `develop`'s byte for byte (`fight:develop`), and a line changed here differs on
+        // every run.
+        "recordings stating no snapshot, which an intake refuses (ADR 0053)",
         ...(shelved.length === 0
             ? ["  every recording states one"]
             : shelved.map((name) => `  ${name}`)),

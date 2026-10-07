@@ -11,8 +11,8 @@ import {
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
+import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
 import {
-    CALLS_MAXIMUM,
     composeIntake,
     composeIntakeName,
     composePseudonymisedRecording,
@@ -22,6 +22,7 @@ import {
     REMOVED_DESCRIPTION,
     removeSkillDescriptions,
     requireCallsCarried,
+    requireRecordingFought,
     requireRecordingIsNew,
     requireSnapshotsCarried,
     TEXT_CHARACTERS_MAXIMUM,
@@ -182,6 +183,29 @@ Deno.test("a file with no call, or with no snapshot on any call, is not material
     requireSnapshotsCarried("x.json", {
         calls: [{ messages: [], payload: {}, combatantsBefore: [] }],
     });
+});
+
+Deno.test("a call the corpus's reader would refuse is refused with intake's own class", () => {
+    const mute = { calls: [{ payload: {}, combatantsBefore: [] }] };
+    assertThrows(
+        () => requireSnapshotsCarried("x.json", mute),
+        CaptureIntakeError,
+        "not a recording the corpus can read",
+    );
+});
+
+Deno.test("a fight nobody fought is refused by either mark, and a recording is not", () => {
+    assertThrows(
+        () => requireRecordingFought("x.json", { isFabricated: true, world: "tempest" }),
+        CaptureIntakeError,
+        "fabricated",
+    );
+    assertThrows(
+        () => requireRecordingFought("x.json", { world: "fabricated" }),
+        CaptureIntakeError,
+        "fabricated",
+    );
+    requireRecordingFought("x.json", { isFabricated: false, world: "tempest" });
 });
 
 Deno.test("a fight already in the corpus is refused by its payloads, whatever its envelope", () => {

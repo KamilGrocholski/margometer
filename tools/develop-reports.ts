@@ -28,8 +28,11 @@ export interface ReportDifference {
     /** Null where that side printed nothing under the name at all. */
     developLines: readonly string[] | null;
     rewriteLines: readonly string[] | null;
-    /** The first line the two differ on; the shorter one's length where one runs out. */
-    lineIndex: number;
+    /**
+     * Every line the two differ on, ascending, each past the shorter one included: one known
+     * difference never hides the lines after it. `[0]` where one side printed nothing.
+     */
+    lineIndices: readonly number[];
 }
 
 export interface ReportComparison {
@@ -145,9 +148,9 @@ function compareSectionMaps(
     for (const name of names) {
         const developLines = develop.get(name) ?? null;
         const rewriteLines = rewrite.get(name) ?? null;
-        const lineIndex = lookupFirstDifference(developLines, rewriteLines);
-        if (lineIndex === null) comparison.agreedNames.push(name);
-        else comparison.differences.push({ name, developLines, rewriteLines, lineIndex });
+        const lineIndices = indexDifferentLines(developLines, rewriteLines);
+        if (lineIndices.length === 0) comparison.agreedNames.push(name);
+        else comparison.differences.push({ name, developLines, rewriteLines, lineIndices });
     }
     assertStrictEquals(
         comparison.agreedNames.length + comparison.differences.length,
@@ -157,19 +160,20 @@ function compareSectionMaps(
     return comparison;
 }
 
-/** Null where the two are alike line for line; zero where one side has nothing to compare. */
-function lookupFirstDifference(
+/** Empty where the two are alike line for line; zero alone where one side has nothing. */
+function indexDifferentLines(
     developLines: readonly string[] | null,
     rewriteLines: readonly string[] | null,
-): number | null {
-    if (developLines === null) return 0;
-    if (rewriteLines === null) return 0;
-    const shorter = Math.min(developLines.length, rewriteLines.length);
-    for (let index = 0; index < shorter; index += 1) {
-        if (developLines[index] !== rewriteLines[index]) return index;
+): number[] {
+    if (developLines === null) return [0];
+    if (rewriteLines === null) return [0];
+    const longer = Math.max(developLines.length, rewriteLines.length);
+    assert(longer <= LINES_MAXIMUM, "both reports were read inside the bound on lines");
+    const lineIndices: number[] = [];
+    for (let index = 0; index < longer; index += 1) {
+        if (developLines[index] !== rewriteLines[index]) lineIndices.push(index);
     }
-    if (developLines.length === rewriteLines.length) return null;
-    return shorter;
+    return lineIndices;
 }
 
 /** Two reports with no sections, held as one text under the task that printed them. */
@@ -255,14 +259,21 @@ function formatDifferenceLines(difference: ReportDifference): string[] {
     const heading = `≠ ${difference.name}`;
     if (difference.developLines === null) return [heading, "  develop prints nothing for it"];
     if (difference.rewriteLines === null) return [heading, "  this branch prints nothing for it"];
-    const start = Math.max(0, difference.lineIndex - CONTEXT_LINES);
-    const context = difference.developLines.slice(start, difference.lineIndex);
+    const [firstIndex] = difference.lineIndices;
+    assert(firstIndex !== undefined, "a difference differs on a line");
+    const start = Math.max(0, firstIndex - CONTEXT_LINES);
+    const context = difference.developLines.slice(start, firstIndex);
     const lines = [
-        `${heading}, line ${formatInteger(difference.lineIndex + 1)} of its report`,
+        `${heading}, ${formatInteger(difference.lineIndices.length)} lines of its report`,
         ...context.map((line) => `    ${line}`),
-        `  - ${difference.developLines[difference.lineIndex] ?? "(develop's report ends)"}`,
-        `  + ${difference.rewriteLines[difference.lineIndex] ?? "(this branch's report ends)"}`,
     ];
+    for (const lineIndex of difference.lineIndices) {
+        lines.push(
+            `  line ${formatInteger(lineIndex + 1)}`,
+            `  - ${difference.developLines[lineIndex] ?? "(develop's report ends)"}`,
+            `  + ${difference.rewriteLines[lineIndex] ?? "(this branch's report ends)"}`,
+        );
+    }
     assert(context.length <= CONTEXT_LINES, "the context is the lines just over the difference");
     return lines;
 }

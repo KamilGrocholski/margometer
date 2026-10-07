@@ -13,10 +13,12 @@ import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-r
 import {
     type CombatantFigures,
     countUnreadMessages,
+    CUT_MAXIMUM,
     type FightStatistics,
     type FightTotals,
     type FigureCut,
     type SkillFigures,
+    SKILLS_MAXIMUM,
 } from "#/src/core/fight-statistics.ts";
 import { getRankedOrder } from "#/src/ui/ranked-order.ts";
 import {
@@ -27,10 +29,6 @@ import {
     replayRecordedMaterial,
 } from "./recorded-material.ts";
 
-/** As many members as the widest cut a card draws: the kinds, the defences, the procs. */
-const CUT_PARTS_MAXIMUM = 64;
-/** What one combatant's own skills are kept inside, as `develop` bounds them. */
-const SKILLS_MAXIMUM = 256;
 const NAME_WIDTH = 26;
 const NUMBER_WIDTH = 10;
 /** Past the longest caption below, so the column of figures is a column. */
@@ -249,7 +247,7 @@ function formatOutcomeLines(statistics: FightStatistics): string[] {
  * a blow are combatant ids, put back through the roster: an id nobody can read places nothing.
  */
 export function formatCutText(cut: FigureCut, roster: CombatantRoster | null): string {
-    assert(cut.size <= CUT_PARTS_MAXIMUM, "a cut stays inside the parts a card draws");
+    assert(cut.size <= CUT_MAXIMUM, "a cut stays inside the parts the figures keep");
     if (cut.size === 0) return NOTHING;
     const written = [...cut]
         .sort((cutPart, otherCutPart) =>

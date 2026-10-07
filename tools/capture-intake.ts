@@ -15,6 +15,7 @@ import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
+import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
 import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { FILE_FIELD, NOTHING_STATED } from "#/src/runtime/fight-file.ts";
 import {
@@ -23,7 +24,9 @@ import {
     type RecordedFight,
 } from "#/tests/recorded-fights.ts";
 import { RECORDINGS_DIRECTORY } from "#/tests/recording-sources.ts";
+import { isFabricatedEnvelope } from "./fabricated-fight.ts";
 import { CaptureIntakeError } from "./margometer-tool-error.ts";
+import { INTAKE_KEYS } from "./recorded-material.ts";
 
 export interface Pseudonymisation {
     recording: unknown;
@@ -59,11 +62,6 @@ interface MappingTask {
     hold(mapped: unknown): void;
 }
 
-/**
- * The game's keys only intake reads, spelled once (N13): who is a monster, and the skill list
- * whose prose goes. Nothing in `src/` reads either.
- */
-export const INTAKE_KEYS = { nonPlayer: "npc", skills: "skills" } as const;
 /** Written by this tool and by nothing else, which is why they are spelled here. */
 const SUBSTITUTED_COUNT = "namesSubstituted";
 const REMOVED_COUNT = "descriptionsRemoved";
@@ -110,7 +108,6 @@ const KEPT_BREAK = "\u0000";
 /** A slug and a version are typed at a terminal; this is far past either. */
 const OFFERED_MAXIMUM = 256;
 const ADMITTED_MAXIMUM = 4096;
-export const CALLS_MAXIMUM = 100_000;
 const DAY_SHAPE = "dddd-dd-dd";
 /** What a slug is made of besides its single dashes, walked rather than matched (C7). */
 const SLUG_CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -152,6 +149,7 @@ function writeIntake(source: string, slug: string): string {
     // Spelled in English before anything is asked of it, and refused for carrying nothing before
     // it is refused for a world it never got as far as stating.
     const recording = composeRecordingInEnglish(parsed);
+    requireRecordingFought(source, recording);
     requireCallsCarried(recording);
     requireSnapshotsCarried(source, recording);
     const target = `${RECORDINGS_DIRECTORY}${composeIntakeName(recording, slug)}`;
@@ -599,11 +597,28 @@ export function requireCallsCarried(recording: unknown): void {
  * (`develop ADR 0053`). The rule is the tests' reader's, so intake and the corpus share one.
  */
 export function requireSnapshotsCarried(path: string, recording: unknown): void {
-    if (readRecordedFight(path, recording).hasSnapshot) return;
+    if (readOfferedFight(path, recording).hasSnapshot) return;
     throw new CaptureIntakeError(
         `no call states \`${FILE_FIELD.combatantsBefore}\` or \`${FILE_FIELD.combatantsAfter}\`` +
             " — a fight read back off the shelf, and the snapshots are what the decoder is held to",
     );
+}
+
+/** The corpus's own reader, a shape it refuses refused with intake's class, its words the cause. */
+function readOfferedFight(path: string, recording: unknown): RecordedFight {
+    const fight = errors.attempt(() => readRecordedFight(path, recording));
+    if (fight instanceof errors.Caught) {
+        throw new CaptureIntakeError(`${path} is not a recording the corpus can read`, {
+            cause: fight,
+        });
+    }
+    return fight;
+}
+
+/** A fight nobody fought is never material, and once in `captures/` only a person takes it out. */
+export function requireRecordingFought(path: string, recording: unknown): void {
+    if (!isFabricatedEnvelope(recording)) return;
+    throw new CaptureIntakeError(`${path} is a fabricated fight, which is never material`);
 }
 
 /**
@@ -617,7 +632,7 @@ export function requireRecordingIsNew(
     admitted: readonly RecordedFight[],
 ): void {
     assert(admitted.length <= ADMITTED_MAXIMUM, "the material compared against is bounded");
-    const offered = encodeRequiredJson(readRecordedFight(path, recording).updates);
+    const offered = encodeRequiredJson(readOfferedFight(path, recording).updates);
     for (const fight of admitted) {
         if (encodeRequiredJson(fight.updates) !== offered) continue;
         throw new CaptureIntakeError(

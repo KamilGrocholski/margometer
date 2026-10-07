@@ -59,6 +59,13 @@ const AMBIENT_WAYS_OUT = [
     "Image",
     "Request",
 ];
+/**
+ * A stylesheet fetches what it names, wherever in the text it is spelled: the panel's own sheet is
+ * a string, which the names above are not read in. Only inline data is fetched from nowhere.
+ */
+const STYLE_URL_OPEN = "url(";
+const STYLE_IMPORT = "@import";
+const INLINE_SCHEME = "data:";
 /** The tags this add-on builds. One that fetches when it is appended is not among them. */
 const TAGS_BUILT = ["a", "div", "span", "style"];
 const TAG_CALL = "createElement(";
@@ -224,7 +231,11 @@ export function stampBundleVersion(bundle: string, version: string): string {
 /** The bundle, or a refusal naming every way it could leave the browser. */
 export function requireBundleInBrowser(bundle: string): string {
     assert(bundle.length > 0, "a bundle that is checked says something");
-    const outbound = [...lookupOutboundCalls(bundle), ...lookupAmbientWaysOut(bundle)];
+    const outbound = [
+        ...lookupOutboundCalls(bundle),
+        ...lookupAmbientWaysOut(bundle),
+        ...lookupStyleFetches(bundle),
+    ];
     if (outbound.length > 0) {
         throw new UserscriptBuildError(`the file could leave the browser: ${outbound.join(", ")}`);
     }
@@ -235,6 +246,25 @@ export function lookupOutboundCalls(text: string): string[] {
     const outbound = OUTBOUND_CALLS.filter((call) => text.includes(call));
     assert(outbound.length <= OUTBOUND_CALLS.length, "each is named once");
     return outbound;
+}
+
+/** Every `url(` naming something other than inline data, and every `@import`, as written. */
+export function lookupStyleFetches(text: string): string[] {
+    const fetched: string[] = text.includes(STYLE_IMPORT) ? [STYLE_IMPORT] : [];
+    let urlAt = text.indexOf(STYLE_URL_OPEN);
+    for (let look = 0; look < text.length; look += 1) {
+        if (urlAt === -1) break;
+        // Past the quote that may open the target, and the escape a string puts before it.
+        let targetAt = urlAt + STYLE_URL_OPEN.length;
+        if (text.startsWith(ESCAPE, targetAt)) targetAt += ESCAPE.length;
+        if (QUOTES.includes(text.charAt(targetAt))) targetAt += 1;
+        if (!text.startsWith(INLINE_SCHEME, targetAt)) {
+            fetched.push(text.slice(urlAt, targetAt + INLINE_SCHEME.length));
+        }
+        urlAt = text.indexOf(STYLE_URL_OPEN, urlAt + STYLE_URL_OPEN.length);
+    }
+    assert(urlAt === -1, "every reference was walked, which is what the bound is for");
+    return fetched;
 }
 
 /** Every ambient way out the code reaches for, and every tag it builds past the four, as `<img>`. */
