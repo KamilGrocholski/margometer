@@ -18,18 +18,21 @@ to see.
 ## The server
 
 ```bash
-deno task preview        # http://127.0.0.1:4173/
+deno task preview                    # http://127.0.0.1:4173/
+deno task preview --port 4199 --fight <name>
 ```
 
-The index lists every recording under `captures/`. `/fight/<name>?through=<n>` opens the page the
-browser suite drives (`tests/e2e/margonem-page.ts`) with the fight fed `n` calls in, the whole fight
-where `n` is missing or out of range. A strip at the bottom left steps it: `+1`, `+10`, `all`,
-`restart`, and the counter writes `through` back into the address.
+`/` is the only page. It opens the page the browser suite drives (`tests/e2e/margonem-page.ts`) over
+the landing fight of `tools/preview-site.ts`, fed to its end. `?fight=<name>` opens another
+recording, named as under `captures/` without `.json`, and `&entry=<n>` stops it `n` calls in. The
+picker at the top lists every recording, and the strip beside it steps the fight: `to start`, `◀`,
+`▶`, `play`, `to end`. `--fight` only names the address the server prints: a page opened without
+`?fight=` still lands on the landing fight. The flags are the docblock of `tools/preview-server.ts`.
 
-A change under `src/`, `libs/` or `frozen/` rebuilds and reloads every open page where it was. A
-rebuild that **fails** does not reload: the strip prints the bundler's first line and the last good
-bundle stays up. `tools/` and `tests/` are not watched, so editing the server or the page means
-restarting it.
+A change under `src/`, `libs/`, `frozen/`, `deno.json` or `deno.lock` rebuilds and reloads every
+open page where it was. A rebuild that **fails** does not reload: the label beside the picker turns
+from `build ok` to the failure, with the log under it, and the last good bundle stays up. `tools/`
+and `tests/` are not watched, so editing the server or the page means restarting it.
 
 ## The published page
 
@@ -85,5 +88,8 @@ Presses and hovers are addressed by attribute: `[data-screen]`, `[data-side]`, `
   press reads the panel as it stood before it. Wait for a frame first.
 - **The world reads as the first label of the hostname**, `127` on the server. Correct behaviour,
   not a fault to chase.
+- **A server may already hold the port.** A second `deno task preview` on the same port dies with
+  `AddrInUse`, and the one already listening may be the maintainer's. Leave it up and start another
+  with `--port`.
 - **The build script is a decoy.** `main.min<build>.js` is answered empty: only its `src` is read,
   for the build id a saved recording names.
