@@ -21,7 +21,7 @@ Deno.test("a step runs when its frame falls, and a cancel hands back the page's 
     assertStrictEquals(ran, 0, "and ran nothing before the frame fell");
     wound.fall();
     assertStrictEquals(ran, 1, "then once");
-    requested.cancel();
+    assertNotInstanceOf(requested.cancel(), Error, "the cancel is answered");
     assertEquals(wound.cancelled, [41], "with the handle the page gave");
 });
 
@@ -58,7 +58,7 @@ Deno.test("a sink that throws in its turn has nobody left to tell, and reaches n
     wound.fall();
 });
 
-Deno.test("a page that will not give a frame says so, and one that won't cancel is let be", () => {
+Deno.test("a page that will not give a frame or cancel one answers a failure of its own", () => {
     const refusing: BrowserFrames = {
         requestAnimationFrame: () => {
             throw new TypeError("a page with no frames to give");
@@ -76,5 +76,7 @@ Deno.test("a page that will not give a frame says so, and one that won't cancel 
     };
     const held = initBrowserFrames(stubborn).requestFrame(() => {}, () => {});
     assertNotInstanceOf(held, Error, "the frame was given");
-    held.cancel();
+    const cancelled = held.cancel();
+    assertInstanceOf(cancelled, Error, "a page that will not cancel it answers, never throws");
+    assertInstanceOf(cancelled, errors.Caught, "as its own failure");
 });

@@ -51,8 +51,8 @@ export interface BrowserFrameScheduler {
 }
 
 export interface FrameHandle {
-    /** A cancel the page refuses leaves a frame that finds nothing to do; it is not reported. */
-    cancel(): void;
+    /** A cancel the page refuses is answered, and leaves a frame that finds nothing to do. */
+    cancel(): void | errors.Caught;
 }
 
 /** The whole of what this asks a page for. A browser's `window` satisfies it. */
@@ -159,9 +159,7 @@ export function initBrowserFrames(frames: BrowserFrames): BrowserFrameScheduler 
             const handle = errors.attempt(() => frames.requestAnimationFrame(runGuardedStep));
             if (handle instanceof Error) return handle;
             return {
-                cancel() {
-                    void errors.attempt(() => frames.cancelAnimationFrame(handle));
-                },
+                cancel: () => errors.attempt(() => frames.cancelAnimationFrame(handle)),
             };
         },
     };

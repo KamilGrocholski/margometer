@@ -6,8 +6,15 @@
  * their own; only a fight run through the listener shows that it hands each what it was tested on.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertInstanceOf,
+    assertStrictEquals,
+} from "@std/assert";
 import * as errors from "#/libs/errors.ts";
+import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import { CombatantsExceeded, composeFightView, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import {
     initBrowserStore,
@@ -50,6 +57,12 @@ const STILL_CLOCK = {
     readMoment: () => null,
     readTimestampText: () => "2026-09-25T10:00:00.000Z",
 };
+
+/** A table granting less than nothing, which breaks the walk at the first announcement it dates. */
+const TABLES_GRANTING_LESS_THAN_NOTHING: DecoderTables = {
+    blowsGrantedBySkillId: { get: () => -1 } as unknown as ReadonlyMap<number, number>,
+};
+const ANNOUNCEMENT = "441390=100.00;-10000249=99.60;tspell=Podwójne trafienie;skillId=239";
 
 Deno.test("every recording played through the wrap is the fight, the file and the shelf", () => {
     let fights = 0;
@@ -400,6 +413,59 @@ Deno.test("a fight read past a payload the session refused is not kept either", 
     assertEquals(keeper.getFights(), [], "and was put on no shelf");
     const keeping = defects.getCounts().find((row) => row.kind === DEFECT_KIND.keeping);
     assert(keeping?.first instanceof CombatantsExceeded, "the refusal the session gave");
+});
+
+Deno.test("a fight read past a payload whose reading broke is not kept, said once at close", () => {
+    const margonem = composeMargonem([[], [], [], [], []]);
+    let moments = OPENED_AT;
+    const clock = {
+        ...STILL_CLOCK,
+        readNowMilliseconds: () => {
+            moments += 1;
+            return moments;
+        },
+    };
+    const { options, lines, keeper, kept, defects } = composeOptions(margonem, {
+        clock,
+        tables: TABLES_GRANTING_LESS_THAN_NOTHING,
+    });
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const broken = { m: [ANNOUNCEMENT] };
+    const { live } = playInto(margonem, options, [{ init: 1 }, end, { init: 1 }, broken, end]);
+    assertStrictEquals(
+        composeFightView(live.session)?.isOver,
+        true,
+        "the fight read on to its end",
+    );
+    assertEquals(lines, [DEFECT_KIND.reading, DEFECT_KIND.keeping], "the break, then no keeping");
+    assertEquals(
+        keeper.getFights().map((fight) => fight.openedAt),
+        [OPENED_AT + 1],
+        "the shelf holds the fight before it, and nothing more",
+    );
+    const keeping = defects.getCounts().find((row) => row.kind === DEFECT_KIND.keeping);
+    const reading = defects.getCounts().find((row) => row.kind === DEFECT_KIND.reading);
+    assertStrictEquals(keeping?.count, 1, "said once");
+    assertInstanceOf(keeping?.first, errors.Caught, "as the break it was");
+    assertStrictEquals(keeping?.first, reading?.first, "carrying the break that made the gap");
+    assertStrictEquals(kept.count, 2, "while each close is still handed on");
+});
+
+Deno.test("a payload that breaks the envelope as it is read leaves the fight unkept too", () => {
+    const margonem = composeMargonem([[], [], []]);
+    const { options, lines, keeper, defects } = composeOptions(margonem);
+    const breaking = {
+        get m(): unknown {
+            throw new TypeError("a payload that breaks as it is read");
+        },
+    };
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const { live } = playInto(margonem, options, [{ init: 1 }, breaking, end]);
+    assertStrictEquals(live.capture.calls.length, 3, "the file lost no call");
+    assertEquals(lines, [DEFECT_KIND.reading, DEFECT_KIND.keeping], "the break, then no keeping");
+    assertEquals(keeper.getFights(), [], "and the fight was put on no shelf");
+    const keeping = defects.getCounts().find((row) => row.kind === DEFECT_KIND.keeping);
+    assertInstanceOf(keeping?.first, errors.Caught, "the break, carried to the close");
 });
 
 Deno.test("a gap in one fight costs that fight, and the next one opened is kept", () => {

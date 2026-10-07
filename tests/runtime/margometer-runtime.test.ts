@@ -1448,23 +1448,29 @@ Deno.test("a stopped add-on takes its wrap off and draws no frame it had asked f
     );
 });
 
-Deno.test("a stopped add-on whose frame the page would not cancel draws nothing when it falls", () => {
+Deno.test("a stopped add-on whose frame the page would not cancel says so, and draws nothing", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };
-    const world = initRuntimeWorld(composeBattlePage(battle), (_, base) => ({
-        frames: {
-            requestFrame: (step, onStepFailure) => {
-                const requested = base.frames.requestFrame(step, onStepFailure);
-                if (requested instanceof Error) return requested;
-                return { cancel: () => undefined };
+    const queue: (() => void)[] = [];
+    const world = initRuntimeWorld(composeBattlePage(battle), () => ({
+        frames: initBrowserFrames({
+            requestAnimationFrame: (step) => queue.push(step),
+            cancelAnimationFrame: () => {
+                throw new TypeError("a page that will not cancel it");
             },
-        },
+        }),
     }));
+    queue.shift()?.();
     const [opening] = readUpdates(HILDUR);
     const wrapped = battle.updateData;
     assert(typeof wrapped === "function", "the wrap went on");
     wrapped(opening);
+    assertEquals(world.lines, [], "a frame asked for has said nothing");
     assertStrictEquals(world.runtime.deinit(), undefined, "the wrap came off");
-    world.flush();
+    assertEquals(world.lines, ["Caught"], "the page's refusal reached the page's console");
+    world.runtime.deinit();
+    assertStrictEquals(world.lines.length, 1, "and a runtime stopped again says nothing more");
+    assertStrictEquals(queue.length, 1, "while the frame it asked for still stands");
+    queue.shift()?.();
     assertEquals(
         getTextsByClass(findList(world.getHost()), CLASS.empty),
         [PANEL_WORDS.noFightYet],

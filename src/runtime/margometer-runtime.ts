@@ -318,8 +318,12 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
         // Stop looking, take the wrap off, and cancel the frame asked for.
         deinit: () => {
             state.search?.stop();
-            state.frame?.cancel();
+            // A cancel the page refuses is said on the console, once: the frame is let go of here.
+            const cancelled = state.frame?.cancel();
             state.frame = null;
+            if (cancelled instanceof Error) {
+                ports.console.writeBrandedLine(cancelled.name, cancelled);
+            }
             state.isStoodDown = true;
             if (state.search !== null) {
                 assert(state.search.isDone(), "a stopped add-on looks no further");

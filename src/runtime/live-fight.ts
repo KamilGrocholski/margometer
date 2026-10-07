@@ -76,10 +76,10 @@ export interface LiveFight {
     openedAt: number | null;
     openedAtRefusal: errors.Caught | null;
     /**
-     * The first payload of this fight the envelope or the session refused, cleared as a fight
-     * opens: a fight with a gap is read on live, and never kept.
+     * The first payload of this fight the envelope or the session refused, or whose reading broke
+     * an invariant, cleared as a fight opens: a fight with a gap is read on live, and never kept.
      */
-    payloadRefusal: ReplayFailure | null;
+    payloadRefusal: ReplayFailure | errors.Caught | null;
     /** Read once: the engine builds one battle (`initMargonemEngineSearch`). */
     margonemEngineBattle: MargonemEngineBattle | null;
 }
@@ -111,9 +111,9 @@ export function initLiveFight(options: LiveFightOptions): {
         onPayload(payload) {
             // Read the payload, each step under its own guard. Whether it opens a fight is read
             // apart where the envelope refuses it, since a refused opening still ends the last.
-            const { record, isOpening } = executeLiveStep(
+            const { record, isOpening } = executeLiveReading(
+                liveFight,
                 options,
-                DEFECT_KIND.reading,
                 { record: null, isOpening: false },
                 (): { record: PayloadRecord | null; isOpening: boolean } => {
                     const payloadRecord = readPayloadEnvelope(payload);
@@ -151,9 +151,9 @@ export function initLiveFight(options: LiveFightOptions): {
                 commitCapture(liveFight.capture, prepared);
             });
             // Commit the record, or leave a defect where it will not prepare.
-            const committed = record === null ? null : executeLiveStep(
+            const committed = record === null ? null : executeLiveReading(
+                liveFight,
                 options,
-                DEFECT_KIND.reading,
                 null,
                 (): PayloadCommitted | null => {
                     const prepared = preparePayload(liveFight.session, record, options.tables);
@@ -252,6 +252,24 @@ function executeLiveStep<Value>(
     const ran = errors.attempt(step);
     if (!(ran instanceof errors.Caught)) return ran;
     options.defects.add({ kind, region: null, failure: ran });
+    return fallback;
+}
+
+/**
+ * ⚠️ A reading step that broke an invariant leaves the same gap a refusal does, and a kept fight
+ * with a gap is refused whole when the shelf replays it: so its first throw is held as the fight's
+ * refusal too, and the close keeps nothing.
+ */
+function executeLiveReading<Value>(
+    liveFight: LiveFight,
+    options: LiveFightOptions,
+    fallback: Value,
+    step: () => Value,
+): Value {
+    const ran = errors.attempt(step);
+    if (!(ran instanceof errors.Caught)) return ran;
+    options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: ran });
+    liveFight.payloadRefusal ??= ran;
     return fallback;
 }
 

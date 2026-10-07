@@ -118,6 +118,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `execute` — none
 
+- `executeLiveReading` — `src/runtime/live-fight.ts`
 - `executeLiveStep` — `src/runtime/live-fight.ts`
 - `executeLookFailed` — `src/runtime/margometer-runtime.ts`
 - `executeRegionStep` — `src/ui/panel-element.ts`
@@ -137,7 +138,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `get` — strong
 
-- `get` — in 5 files: `tests/`
+- `get` — in 6 files: `tests/`
 - `getAirAround` — `tests/ui/panel-look.test.ts`
 - `getAllComments` — `tests/source-tree.ts`
 - `getAlly` — `tools/fabricated-fight.ts`
@@ -2378,6 +2379,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `lost` — `tests/ui/panel-words.test.ts`
 
+### `m` — not in N2's table
+
+- `m` — `tests/runtime/live-fight.test.ts`
+
 ### `many` — not in N2's table
 
 - `many` — `tests/ui/panel-words.test.ts`
@@ -4428,7 +4433,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ALPHABET` — `tests/ui/panel-palette.test.ts`
 - `ALTERNATIVE_SEPARATOR` — `tests/verb-purities.ts`
 - `ANNOUNCED` — `tests/core/fight-statistics.test.ts`
-- `ANNOUNCEMENT` — in 4 files: `tests/`
+- `ANNOUNCEMENT` — in 5 files: `tests/`
 - `ANNOUNCEMENT_ELSEWHERE` — `tests/core/fight-decoder.test.ts`
 - `ANNOUNCEMENT_KEY` — `tests/core/absorption-destruction-rule.test.ts`,
   `tests/core/anguish-rule.test.ts`
@@ -5077,6 +5082,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `TABLES` — `tests/core/granted-blow-rule.test.ts`, `tests/frozen-tables.ts`,
   `tests/ui/panel-words.test.ts`
 - `TABLES_DATING_NOTHING` — `tests/runtime/margometer-runtime.test.ts`
+- `TABLES_GRANTING_LESS_THAN_NOTHING` — `tests/runtime/live-fight.test.ts`
 - `TABLE_NAME_KEY` — `tests/core/skill-announcement-rule.test.ts`
 - `TABLE_OPENER` — `tests/repository/design-tokens.test.ts`
 - `TALLER` — `tests/e2e/panel-size.spec.ts`
@@ -7096,9 +7102,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `boxes` — `tests/e2e/panel-camera.ts`, `tests/e2e/panel-marks.spec.ts`
 - `breach` — `tests/repository/purity.test.ts`
 - `breaches` — `tests/repository/event-entries.test.ts`, `tests/repository/purity.test.ts`
-- `breaking` — `tests/runtime/margonem-engine-search.test.ts`
+- `breaking` — `tests/runtime/live-fight.test.ts`, `tests/runtime/margonem-engine-search.test.ts`
 - `breaksWritten` — `tests/ports/margonem-engine-tooltip.test.ts`
-- `broken` — in 10 files: `tests/`
+- `broken` — in 11 files: `tests/`
 - `build` — in 4 files: `tests/`
 - `built` — `tests/e2e/build-once.ts`, `tests/repository/regular-expressions.test.ts`,
   `tests/tools/build-userscript.test.ts`
@@ -12246,7 +12252,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `blows` — in 4 files: `tests/`
 - `blowsCritical` — `tests/ui/panel-card.test.ts`
 - `blowsGrantedBySkillId` — `tests/core/fight-decoder.test.ts`,
-  `tests/core/granted-blow-rule.test.ts`
+  `tests/core/granted-blow-rule.test.ts`, `tests/runtime/live-fight.test.ts`
 - `blowsGrantedMinimum` — `tests/tools/skill-table.test.ts`
 - `blowsStruck` — `tests/ui/panel-card.test.ts`
 - `blowsWithoutSkill` — `tests/ui/panel-card.test.ts`
