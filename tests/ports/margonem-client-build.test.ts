@@ -45,6 +45,23 @@ Deno.test("an id carrying a dash is read whole", () => {
     );
 });
 
+/**
+ * The id is the vendor chunk's from production `DHSqC3Uh` (fetched 2026-10-06), put under the
+ * bundle's name: no bundle served has carried an underscore yet, and its siblings already do.
+ */
+Deno.test("an id carrying an underscore is read whole", () => {
+    assertStrictEquals(
+        parseMargonemClientBuildId('<script src="/js/main.min.8bk8V_m0.js"></script>'),
+        "8bk8V_m0",
+        "the underscore is part of the id, not where it ends",
+    );
+    assertStrictEquals(
+        parseMargonemClientBundleName('<script src="/js/main.min.8bk8V_m0.js"></script>'),
+        "main.min.8bk8V_m0.js",
+        "and of the bundle's name",
+    );
+});
+
 Deno.test("a name that is not the bundle's yields nothing at all", () => {
     assertStrictEquals(parseMargonemClientBuildId(""), null, "nothing states no build");
     assertStrictEquals(

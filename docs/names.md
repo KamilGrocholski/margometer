@@ -3782,6 +3782,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `BRAND` — `src/ports/browser-console.ts`
 - `BUILD_CHARACTERS_MINIMUM` — `src/ports/margonem-client-build.ts`
 - `BUILD_DASH` — `src/ports/margonem-client-build.ts`
+- `BUILD_UNDERSCORE` — `src/ports/margonem-client-build.ts`
 - `CALLS_MAXIMUM` — `src/ports/fight-capture.ts`
 - `CHARGE_FIELDS` — `src/ports/payload-envelope.ts`
 - `CLIENT_BREAK` — `src/ports/margonem-engine-tooltip.ts`
@@ -14406,6 +14407,7 @@ suite's material.
 - `"-"` — `BUILD_DASH`
 - `"."` — `OPTIONAL_SEPARATOR`
 - `".js"` — `SCRIPT_NAME_TAIL`
+- `"_"` — `BUILD_UNDERSCORE`
 - `"main.min"` — `SCRIPT_NAME_HEAD`
 
 ### `src/ports/margonem-client-dictionary.ts`

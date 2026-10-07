@@ -17,13 +17,17 @@ export interface MargonemClientBuildPort {
  * What both shapes the client has served have in common. Until 2026-08-25 a bundle was
  * `main.min1786514810315.js`, thirteen digits of timestamp; read 2026-08-25, `tempest` and `luvia`
  * both serve `/js/main.min.53XkBRxF.js`, a dot and eight characters of mixed case. Read 2026-10-02,
- * `experimental` serves `/js/main.min.COv-iBFt.js`: an id may carry a dash.
+ * `experimental` serves `/js/main.min.COv-iBFt.js`: an id may carry a dash. Its siblings carry an
+ * underscore: production `DHSqC3Uh` (fetched 2026-10-06) imports `./vendors.min.8bk8V_m0.js` and
+ * development `BgP3Cxfl` (fetched 2026-10-07) `./rolldown-runtime.min.7_rZTKki.js`. One hasher
+ * names every chunk, so the bundle's own id is drawn from the same alphabet.
  */
 const BUILD_CHARACTERS_MINIMUM = 8;
 const SCRIPT_NAME_HEAD = "main.min";
 const SCRIPT_NAME_TAIL = ".js";
 const OPTIONAL_SEPARATOR = ".";
 const BUILD_DASH = "-";
+const BUILD_UNDERSCORE = "_";
 /**
  * Past what a page states: `tempest` and `experimental` each served four scripts with a source and
  * named `main.min` once, read 2026-10-06.
@@ -88,10 +92,11 @@ function lookupScriptNameSpan(
     return null;
 }
 
-/** A letter, a digit or a dash: every character an id the client served has carried. */
+/** A letter, a digit, a dash or an underscore: the alphabet the client's chunks are named in. */
 function isBuildCharacterAt(text: string, index: number): boolean {
     const character = text.charAt(index);
     if (character === BUILD_DASH) return true;
+    if (character === BUILD_UNDERSCORE) return true;
     if (character >= "0") {
         if (character <= "9") return true;
     }
