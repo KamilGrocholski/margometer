@@ -244,8 +244,9 @@ The shapes are `docs/design.md` §3; the fate of each failure is its §10.5.
   its boundary, where a reader can see it. Where a failure also reaches the console it is one
   branded entry, once per kind, never per render. `develop ADR 0025`.
 - **E10. Every callback handed to an API this project did not author is guarded at the handover** —
-  an event listener, a frame callback. A throw out of one unwinds into a dispatch loop that drops
-  it, so the gesture does nothing and no mark reaches anybody. `develop ADR 0043`.
+  an event listener, a frame callback — in what the bundle carries: `src/`, and the `libs/` modules
+  it reaches. A throw out of one unwinds into a dispatch loop that drops it, so the gesture does
+  nothing and no mark reaches anybody. `develop ADR 0043`, ADR 0042.
 - **E11. A promise is awaited, or handed a rejection handler in the same statement.** One exception:
   the top-level `if (import.meta.main)` block of a tool, where a loud throw is the mark and the exit
   code is what a person and CI read. `develop ADR 0043`.

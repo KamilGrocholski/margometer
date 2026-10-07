@@ -15390,6 +15390,7 @@ suite's material.
 - `docs/adr/0039-a-tooltip-row-is-written-as-the-game-writes-its-own.md`
 - `docs/adr/0040-pomocnik-says-the-turns-a-length-has-left.md`
 - `docs/adr/0041-an-ended-charge-draws-no-length.md`
+- `docs/adr/0042-e10-guards-the-handovers-of-what-the-bundle-carries.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

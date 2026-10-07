@@ -332,7 +332,7 @@ function composeTipsPlaced(): string {
   tips.style.visibility = tall < ${TIPS_TALL_PIXELS_MINIMUM} ? "hidden" : "visible";
 };
 
-// Guarded at the handover (E10): a throw out of an observer's callback unwinds into a loop.
+// Guarded so a throw while placing the tips is one warning line, not an error on a published page.
 var handleWindowsResized = function () {
   try {
     setTipsPlaced();
