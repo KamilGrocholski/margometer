@@ -1702,9 +1702,9 @@ function lookupHurtAlly(turn: FabricatedTurn): FabricatedCombatant | null {
 }
 
 /** The file, marked three ways so nobody reads it as a recording. */
-export function encodeFabricatedFight(fight: FabricatedFight): string {
+export function encodeFabricatedFight(fight: FabricatedFight, version: string): string {
     assert(fight.calls.length > 0, "a file is written from a fight that carries calls");
-    const version = readDevelopmentVersion();
+    assert(version.length > 0, "and by a version of the tool that wrote it");
     const written = encodeJson({
         [FILE_FIELD.formatVersion]: FILE_FORMAT_VERSION,
         [FABRICATION_FIELDS.isFabricated]: true,
@@ -1819,7 +1819,7 @@ if (import.meta.main) {
     }
     const path = asked ?? OUTPUT_DEFAULT;
     const fight = createFabricatedFight(shape);
-    writeFabricatedFight(path, encodeFabricatedFight(fight));
+    writeFabricatedFight(path, encodeFabricatedFight(fight, readDevelopmentVersion()));
     const messages = fight.calls.reduce((sum, call) => sum + call.messages.length, 0);
     console.log(path);
     console.log(

@@ -24,7 +24,7 @@ import {
 import {
     composeFrozenFiles,
     lookupHeldDate,
-    prepareFrozenFiles,
+    readFrozenFiles,
     writeFrozenFiles,
 } from "#/tools/frozen-files.ts";
 import { LITERAL_CHARACTERS_MAXIMUM } from "#/libs/text-walk.ts";
@@ -71,11 +71,10 @@ function encodeSample(content: string): (date: string) => string[] {
 
 Deno.test("a file nobody froze is no held date, and one that cannot be read is refused", () => {
     const encode = encodeSample("same");
-    const absent = prepareFrozenFiles(ABSENT_PATHS, "when", READ_DATE, 1, encode);
+    const absent = readFrozenFiles(ABSENT_PATHS, "when", READ_DATE, 1, encode);
     assertStrictEquals(absent.heldDate, null, "a file not there yet is what the freeze writes");
     assertThrows(
-        () =>
-            prepareFrozenFiles(["frozen/", ...ABSENT_PATHS.slice(1)], "when", READ_DATE, 1, encode),
+        () => readFrozenFiles(["frozen/", ...ABSENT_PATHS.slice(1)], "when", READ_DATE, 1, encode),
         FrozenFilesError,
         "cannot be read",
         "a path standing that gives no text is not a file to write over",

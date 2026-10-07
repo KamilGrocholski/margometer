@@ -208,7 +208,7 @@ export const MESSAGES_MAXIMUM = 32768;
  * the same: too high and a combatant's plain blows are charged to what it announced before them.
  * `develop:docs/unannounced-damage.md` carries the measurement, `develop ADR 0078` the rule.
  */
-const BLOWS_GRANTED_MAXIMUM = 4;
+export const BLOWS_GRANTED_MAXIMUM = 4;
 /**
  * A skill's name is a phrase: the longest runs 28 characters over the 37 recordings in `captures/`
  * on 2026-10-06.

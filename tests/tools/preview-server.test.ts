@@ -18,13 +18,14 @@ import {
     encodeFabricatedFight,
     requireFabricationShape,
 } from "#/tools/fabricated-fight.ts";
+import { readDevelopmentVersion } from "#/tools/build-userscript.ts";
 import { PreviewServeError, UserscriptBuildError } from "#/tools/margometer-tool-error.ts";
 import {
+    answerPreviewEvents,
     composeOpenedPaths,
     FROM_PATHS_MAXIMUM,
     initPreviewServer,
     LISTENERS_MAXIMUM,
-    openPreviewEvents,
     PORT_MAXIMUM,
     readFabricatedPaths,
     readPreviewFlags,
@@ -180,7 +181,7 @@ Deno.test("a tree that does not build answers the script with the log, not a bla
 
 Deno.test("a page listening is told a rebuild, and one gone is dropped", async () => {
     const listeners = new Set<ReloadListener>();
-    const opened = openPreviewEvents(listeners);
+    const opened = answerPreviewEvents(listeners);
     assertStrictEquals(opened.headers.get("content-type"), "text/event-stream");
     assertStrictEquals(listeners.size, 1, "the page is held");
     const reader = opened.body!.getReader();
@@ -198,7 +199,7 @@ Deno.test("a page listening is told a rebuild, and one gone is dropped", async (
 
 Deno.test("a stream that closed under a page is dropped the next time pages are told", () => {
     const listeners = new Set<ReloadListener>();
-    openPreviewEvents(listeners);
+    answerPreviewEvents(listeners);
     const [held] = [...listeners];
     held!.close();
     tellPreviewListeners(listeners, "rebuilt", "ok");
@@ -209,10 +210,10 @@ Deno.test("past the bound a page is refused a stream rather than held", () => {
     const listeners = new Set<ReloadListener>();
     const opened: Response[] = [];
     for (let index = 0; index < LISTENERS_MAXIMUM; index += 1) {
-        opened.push(openPreviewEvents(listeners));
+        opened.push(answerPreviewEvents(listeners));
     }
     assertStrictEquals(listeners.size, LISTENERS_MAXIMUM);
-    assertStrictEquals(openPreviewEvents(listeners).status, 503, "one past the bound is refused");
+    assertStrictEquals(answerPreviewEvents(listeners).status, 503, "one past the bound is refused");
     assert(opened.every((response) => response.status === 200), "and every one up to it was not");
     for (const response of opened) response.body!.cancel();
 });
@@ -272,7 +273,9 @@ Deno.test("a port is read from nought to the last there is, and refused either s
     assertStrictEquals(readPreviewFlags(["--port", "0"]).port, 0, "nought asks for any free one");
     const past = String(PORT_MAXIMUM + 1);
     assertThrows(() => readPreviewFlags(["--port", past]), PreviewServeError, past);
-    assertThrows(() => readPreviewFlags(["--port", "-1"]), PreviewServeError, "--port -1");
+    assertThrows(() => readPreviewFlags(["--port", "-1"]), PreviewServeError, "-1");
+    assertThrows(() => readPreviewFlags(["--port=-1"]), PreviewServeError, "--port -1");
+    assertStrictEquals(readPreviewFlags(["--port=4180"]).port, 4180, "and a value after `=`");
 });
 
 Deno.test("paths are read up to the bound and refused one past it", () => {
@@ -344,7 +347,7 @@ Deno.test("every fabricated fight in the directory is drawn beside the recording
     const shape = requireFabricationShape(1, 8, 5);
     Deno.writeTextFileSync(
         `${directory}/duel.json`,
-        encodeFabricatedFight(createFabricatedFight(shape)),
+        encodeFabricatedFight(createFabricatedFight(shape), readDevelopmentVersion()),
     );
     Deno.writeTextFileSync(`${directory}/notes.txt`, "not a fight");
     const paths = readFabricatedPaths(directory);

@@ -39,11 +39,6 @@ const NOTHING = "—";
 const HEADINGS = ["raw(blow)", "applied", "taken", "prevented", "restored", "given"];
 const DETAIL_INDENT = "      ";
 
-/** Every recording where no path was named, the files named otherwise, as a terminal prints it. */
-export function formatRecordedFigures(paths: readonly string[]): string {
-    return formatMaterialFigures(readRecordedMaterial(paths));
-}
-
 /** The whole report over material already chosen, which is how `fight:develop` narrows it. */
 export function formatMaterialFigures(material: RecordedMaterial): string {
     const replayed = replayRecordedMaterial(material);
@@ -265,7 +260,8 @@ export function formatCutText(cut: FigureCut, roster: CombatantRoster | null): s
 }
 
 if (import.meta.main) {
-    const text = formatRecordedFigures(Deno.args);
+    // Every recording where no path was named, the files named otherwise.
+    const text = formatMaterialFigures(readRecordedMaterial(Deno.args));
     assert(text.endsWith("\n"), "a report ends its last line");
     console.log(text.slice(0, -1));
 }

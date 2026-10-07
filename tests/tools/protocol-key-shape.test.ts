@@ -16,12 +16,18 @@ import {
     isDocumentedByFamily,
     KEY_PLACEMENT,
     KEY_VALUE,
+    KEYS_MAXIMUM,
     type KeyShape,
     parseProseCountClaims,
     parseRegisteredKeys,
     tallyKeyShapes,
+    WORDS_MAXIMUM,
 } from "#/tools/protocol-key-shape.ts";
-import { readRecordedMaterial, replayRecordedMaterial } from "#/tools/recorded-material.ts";
+import {
+    readRecordedMaterial,
+    RECORDINGS_MAXIMUM,
+    replayRecordedMaterial,
+} from "#/tools/recorded-material.ts";
 
 const REGISTER = Deno.readTextFileSync(REGISTER_PATH);
 const MEASURED = tallyKeyShapes(replayRecordedMaterial(readRecordedMaterial([])));
@@ -176,8 +182,50 @@ Deno.test("a sentence naming past the bound is refused, and one at it is read wh
                 "captures/a.json,".repeat(count)
             }in turn.\n`,
         );
-    assertStrictEquals(naming(CLAIMS_MAXIMUM)[0]?.recordings.length, CLAIMS_MAXIMUM, "at it");
-    assertThrows(() => naming(CLAIMS_MAXIMUM + 1), ProtocolKeyShapeError, "more than");
+    assertStrictEquals(
+        naming(RECORDINGS_MAXIMUM)[0]?.recordings.length,
+        RECORDINGS_MAXIMUM,
+        "at it",
+    );
+    assertThrows(() => naming(RECORDINGS_MAXIMUM + 1), ProtocolKeyShapeError, "more than");
+    const spaced = parseProseCountClaims(
+        `### \`+absorb\` — decoded\n\nBoth occurrences ride ${
+            "captures/a.json ".repeat(RECORDINGS_MAXIMUM)
+        }in turn.\n`,
+    );
+    assertStrictEquals(
+        spaced[0]?.recordings.length,
+        RECORDINGS_MAXIMUM,
+        "named as prose names them",
+    );
+});
+
+Deno.test("a sentence past its bound on words is refused, and one at it is read", () => {
+    const saying = (count: number) =>
+        parseProseCountClaims(
+            `### \`+absorb\` — decoded\n\nBoth occurrences${" w".repeat(count - 2)}\n`,
+        );
+    assertStrictEquals(saying(WORDS_MAXIMUM).length, 1, "a sentence at the bound is a claim");
+    assertThrows(() => saying(WORDS_MAXIMUM + 1), ProtocolKeyShapeError, "past");
+});
+
+Deno.test("a register past its bound on keys is refused, and one at it is read", () => {
+    const opening = (count: number) =>
+        parseRegisteredKeys(
+            Array.from({ length: count }, (_, keyIndex) => `### \`k${keyIndex}\` — decoded\n`)
+                .join(""),
+        );
+    assertStrictEquals(opening(KEYS_MAXIMUM).length, KEYS_MAXIMUM, "every key at it");
+    assertThrows(() => opening(KEYS_MAXIMUM + 1), ProtocolKeyShapeError, "more than");
+});
+
+Deno.test("a register past its bound on claims is refused, and one at it is read", () => {
+    const claiming = (count: number) =>
+        parseProseCountClaims(
+            `### \`+absorb\` — decoded\n\n${"Both occurrences. ".repeat(count)}\n`,
+        );
+    assertStrictEquals(claiming(CLAIMS_MAXIMUM).length, CLAIMS_MAXIMUM, "every claim at it");
+    assertThrows(() => claiming(CLAIMS_MAXIMUM + 1), ProtocolKeyShapeError, "more than");
 });
 
 Deno.test("the line the register writes is the line this formats", () => {

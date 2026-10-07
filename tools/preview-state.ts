@@ -29,23 +29,23 @@ const STATE_STORE_NAME = "k";
 export function composePreviewStateReading(): string {
     const reading = `var getPreviewWholeFromText = function (text) {
   if (text.length === 0) return null;
-  var value = Number(text);
-  if (!isFinite(value)) return null;
-  if (Math.floor(value) !== value) return null;
-  if (value < 0) return null;
-  return value;
+  var whole = Number(text);
+  if (!isFinite(whole)) return null;
+  if (Math.floor(whole) !== whole) return null;
+  if (whole < 0) return null;
+  return whole;
 };
 
 var getPreviewStoreFromText = function (text) {
   var held = {};
-  var read = JSON.parse(text);
-  if (read === null) return held;
-  if (typeof read !== "object") return held;
-  var names = Object.keys(read);
-  for (var at = 0; at < names.length; at += 1) {
-    var value = read[names[at]];
-    if (typeof value === "string") {
-      if (value.length <= ${STATE_VALUE_MAXIMUM}) held[names[at]] = value;
+  var stored = JSON.parse(text);
+  if (stored === null) return held;
+  if (typeof stored !== "object") return held;
+  var names = Object.keys(stored);
+  for (var index = 0; index < names.length; index += 1) {
+    var storedText = stored[names[index]];
+    if (typeof storedText === "string") {
+      if (storedText.length <= ${STATE_VALUE_MAXIMUM}) held[names[index]] = storedText;
     }
   }
   return held;
@@ -75,14 +75,14 @@ function composePreviewStateParser(): string {
   if (text.length > ${STATE_TEXT_MAXIMUM}) return state;
   var parts = text.split("&");
   try {
-    for (var at = 0; at < parts.length; at += 1) {
-      var mark = parts[at].indexOf("=");
+    for (var index = 0; index < parts.length; index += 1) {
+      var mark = parts[index].indexOf("=");
       if (mark > 0) {
-        var name = parts[at].slice(0, mark);
-        var value = decodeURIComponent(parts[at].slice(mark + 1));
-        if (name === ${entryName}) state.entry = getPreviewWholeFromText(value);
-        if (name === ${screen}) state.screen = value;
-        if (name === ${store}) state.store = getPreviewStoreFromText(value);
+        var name = parts[index].slice(0, mark);
+        var partText = decodeURIComponent(parts[index].slice(mark + 1));
+        if (name === ${entryName}) state.entry = getPreviewWholeFromText(partText);
+        if (name === ${screen}) state.screen = partText;
+        if (name === ${store}) state.store = getPreviewStoreFromText(partText);
       }
     }
   } catch (refusal) {
@@ -118,8 +118,8 @@ function composePreviewStatePanel(): string {
 
 var getPreviewPanelRoot = function () {
   var nodes = document.body.children;
-  for (var at = 0; at < nodes.length; at += 1) {
-    if (nodes[at].shadowRoot) return nodes[at].shadowRoot;
+  for (var index = 0; index < nodes.length; index += 1) {
+    if (nodes[index].shadowRoot) return nodes[index].shadowRoot;
   }
   return null;
 };
@@ -136,10 +136,10 @@ var setPreviewScreenWatched = function (root) {
 
 var setPreviewScreenRestored = function (root) {
   if (shownScreen === null) return;
-  var found = root.querySelectorAll("[${PANEL_MARK.screen}]");
-  for (var at = 0; at < found.length; at += 1) {
-    if (found[at].getAttribute(${mark}) === shownScreen) {
-      found[at].dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, composed: true }));
+  var strips = root.querySelectorAll("[${PANEL_MARK.screen}]");
+  for (var index = 0; index < strips.length; index += 1) {
+    if (strips[index].getAttribute(${mark}) === shownScreen) {
+      strips[index].dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, composed: true }));
       return;
     }
   }
@@ -159,8 +159,8 @@ function composePreviewStateHash(): string {
   var held = PREVIEW_STORE.readAll();
   var kept = {};
   var names = Object.keys(held);
-  for (var at = 0; at < names.length; at += 1) {
-    if (held[names[at]].length <= ${STATE_VALUE_MAXIMUM}) kept[names[at]] = held[names[at]];
+  for (var index = 0; index < names.length; index += 1) {
+    if (held[names[index]].length <= ${STATE_VALUE_MAXIMUM}) kept[names[index]] = held[names[index]];
   }
   parts.push(${JSON.stringify(STATE_STORE_NAME)} + "=" + encodeURIComponent(JSON.stringify(kept)));
   var whole = "#" + parts.join("&");

@@ -46,11 +46,6 @@ const CAPTION_WIDTH = 18;
 const TALLY_MAXIMUM = 1_000_000;
 const BATTLE_EVENTS = Object.values(BATTLE_EVENT);
 
-/** Every recording where no path was named, the files named otherwise, as a terminal prints it. */
-function formatDecodingStatus(paths: readonly string[]): string {
-    return formatMaterialStatus(readRecordedMaterial(paths));
-}
-
 /** The whole report over material already chosen, which is how `fight:develop` narrows it. */
 export function formatMaterialStatus(material: RecordedMaterial): string {
     const lines = formatStatusReport(material, replayRecordedMaterial(material));
@@ -158,7 +153,8 @@ function formatStatusTallyLines(tally: Tally): string[] {
 }
 
 if (import.meta.main) {
-    const text = formatDecodingStatus(Deno.args);
+    // Every recording where no path was named, the files named otherwise.
+    const text = formatMaterialStatus(readRecordedMaterial(Deno.args));
     assert(text.endsWith("\n"), "a report ends its last line");
     console.log(text.slice(0, -1));
 }

@@ -5,7 +5,8 @@
 
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
-import { formatCutText, formatFigureReport, formatRecordedFigures } from "#/tools/fight-figures.ts";
+import { formatCutText, formatFigureReport, formatMaterialFigures } from "#/tools/fight-figures.ts";
+import { readRecordedMaterial } from "#/tools/recorded-material.ts";
 import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
 import { replayRecordedMaterial } from "#/tools/recorded-material.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
@@ -65,10 +66,10 @@ Deno.test("an id in a cut is named through the roster, and a key that is no id i
 });
 
 Deno.test("a file on disk is reported under its path, and one that is not there is refused", () => {
-    const text = formatRecordedFigures([SHORT]);
+    const text = formatMaterialFigures(readRecordedMaterial([SHORT]));
     assert(text.startsWith(`material ${SHORT}\n\n=== `), "the material is the path it was handed");
     assertStrictEquals(text.split("\n=== ").length, 2, "and one file is one report");
     const missing = `${SHORT}.missing`;
-    const error = assertThrows(() => formatRecordedFigures([missing]), RecordingReadError);
+    const error = assertThrows(() => readRecordedMaterial([missing]), RecordingReadError);
     assertStrictEquals(error.name, "MargoMeterTool/RecordingRead");
 });

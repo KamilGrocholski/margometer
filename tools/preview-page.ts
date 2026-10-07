@@ -453,9 +453,9 @@ var playTimer = null;
 var shownFight = null;
 
 var getPreviewElement = function (id) {
-  var found = document.getElementById(id);
-  if (found === null) throw new ReferenceError("preview is missing " + id);
-  return found;
+  var element = document.getElementById(id);
+  if (element === null) throw new ReferenceError("preview is missing " + id);
+  return element;
 };
 
 var countLabel = getPreviewElement("preview-count");
@@ -467,11 +467,11 @@ var renderCount = function () {
 
 var renderPicker = function () {
   if (picker === null) return;
-  for (var at = 0; at < PREVIEW.fights.length; at += 1) {
+  for (var index = 0; index < PREVIEW.fights.length; index += 1) {
     var option = document.createElement("option");
-    option.value = PREVIEW.fights[at].address;
-    option.textContent = PREVIEW.fights[at].name;
-    option.selected = PREVIEW.fights[at].name === PREVIEW.fightName;
+    option.value = PREVIEW.fights[index].address;
+    option.textContent = PREVIEW.fights[index].name;
+    option.selected = PREVIEW.fights[index].name === PREVIEW.fightName;
     picker.append(option);
   }
 };
@@ -528,9 +528,9 @@ var appendTip = function (said, id) {
   var who = document.createElement("b");
   who.textContent = window.Engine.battle.w[id][${name}] || id;
   block.append(who);
-  for (var at = 0; at < rows.length; at += 1) {
+  for (var index = 0; index < rows.length; index += 1) {
     var row = document.createElement("span");
-    row.textContent = rows[at];
+    row.textContent = rows[index];
     block.append(row);
   }
   said.append(block);
@@ -593,8 +593,8 @@ function composePreviewPicksShown(doesStartFromEmpty: boolean): string {
   setFedTo(1);
 };`;
     return `var getFightByAddress = function (address) {
-  for (var at = 0; at < PREVIEW.fights.length; at += 1) {
-    if (PREVIEW.fights[at].address === address) return PREVIEW.fights[at];
+  for (var index = 0; index < PREVIEW.fights.length; index += 1) {
+    if (PREVIEW.fights[index].address === address) return PREVIEW.fights[index];
   }
   return null;
 };
@@ -708,21 +708,21 @@ export function composePreviewStore(): string {
     getItem: function (key) {
       return Object.prototype.hasOwnProperty.call(held, key) ? held[key] : null;
     },
-    setItem: function (key, value) { held[key] = String(value); },
+    setItem: function (key, stored) { held[key] = String(stored); },
     removeItem: function (key) { delete held[key]; },
     readAll: function () {
       var copy = {};
       var names = Object.keys(held);
-      for (var at = 0; at < names.length; at += 1) copy[names[at]] = held[names[at]];
+      for (var index = 0; index < names.length; index += 1) copy[names[index]] = held[names[index]];
       return copy;
     }
   };
 })();
 (function setNothingKept() {
   var names = ["localStorage", "sessionStorage"];
-  for (var at = 0; at < names.length; at += 1) {
+  for (var index = 0; index < names.length; index += 1) {
     try {
-      Object.defineProperty(window, names[at], { value: PREVIEW_STORE, configurable: true });
+      Object.defineProperty(window, names[index], { value: PREVIEW_STORE, configurable: true });
     } catch (refusal) {
       void refusal;
     }

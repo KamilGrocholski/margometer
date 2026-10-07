@@ -1,8 +1,8 @@
 /**
  * The panel, photographed, one picture per state worth showing, into `screenshots/` with
  * `taken-at.json` naming the commit, version, recording and moment of the set. `DESIGN.md` owns the
- * rule this obeys, _The Frame Is Not A Screen Rule_: it refuses to shoot while `src/` carries
- * anything no commit holds. The page is `tests/e2e/margonem-page.ts`, driven in Chrome by Playwright
+ * rule this obeys, _The Frame Is Not A Screen Rule_, and what it refuses to shoot from. The page
+ * is `tests/e2e/margonem-page.ts`, driven in Chrome by Playwright
  * as the browser suite drives it, with both windows seeded in the corner the READMEs show.
  * Whether a state shown is reachable no picture says: opening every one before committing stays.
  *
@@ -207,7 +207,10 @@ async function writePanelShots(version: string): Promise<PanelShotRecord> {
 
 function readGitText(args: readonly string[]): string {
     const asked = new Deno.Command("git", { args: [...args], stderr: "piped" }).outputSync();
-    if (!asked.success) throw new PanelShotError(`git would not answer ${args.join(" ")}`);
+    if (!asked.success) {
+        const said = new TextDecoder().decode(asked.stderr).trim();
+        throw new PanelShotError(`git would not answer ${args.join(" ")}: ${said}`);
+    }
     return new TextDecoder().decode(asked.stdout).trim();
 }
 

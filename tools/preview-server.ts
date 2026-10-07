@@ -12,6 +12,8 @@
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
+import { debounce } from "@std/async/debounce";
+import { parseArgs } from "@std/cli";
 import { clampNumber } from "#/libs/number-range.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
@@ -53,6 +55,8 @@ export interface PreviewServerOptions {
 export interface PreviewServer {
     url: string;
     port: number;
+    /** The name of every fight it serves, which is what `--fight` may ask for. */
+    fightNames: readonly string[];
     stop(): Promise<void>;
 }
 
@@ -86,10 +90,10 @@ const REBUILD_QUIET_MILLISECONDS = 60;
 /** So a proxy between the browser and this process cannot close an idle stream on its own. */
 const KEEP_ALIVE_EVERY_MILLISECONDS = 15000;
 const FAILURE_LINE = "MargoMeterTool/Preview";
-const FLAG_PORT = "--port";
-const FLAG_FIGHT = "--fight";
-const FLAG_FROM = "--from";
-const FLAG_FABRICATED = "--fabricated";
+const FLAG_PORT = "port";
+const FLAG_FIGHT = "fight";
+const FLAG_FROM = "from";
+const FLAG_FABRICATED = "fabricated";
 /** Past every shape a person makes to look at one (S11). */
 export const FROM_PATHS_MAXIMUM = 64;
 /** The last port TCP numbers; nought asks the system for any free one. */
@@ -182,6 +186,7 @@ export function initPreviewServer(options: PreviewServerOptions = {}): PreviewSe
     return {
         url: `http://${PREVIEW_HOSTNAME}:${port}`,
         port,
+        fightNames: state.fights.map((fight) => fight.name),
         stop: async () => {
             watcher?.close();
             if (keepAlive !== null) clearInterval(keepAlive);
@@ -220,35 +225,31 @@ async function readPreviewBundle(): Promise<string> {
 
 /** Drains the watcher until it is closed, which is what `stop` does to end this. */
 async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Promise<void> {
-    let pending: ReturnType<typeof setTimeout> | null = null;
+    // Read the bundle rebuilt once the events go quiet, and tell every page listening how it went.
+    const rebuild = debounce(() => {
+        state.readBundle().then((script) => {
+            state.script = script;
+            console.log(`rebuilt, ${state.listeners.size} page(s) told to reload`);
+            tellPreviewListeners(state.listeners, "rebuilt", "ok");
+        }, (failure: unknown) => {
+            if (!(failure instanceof UserscriptBuildError)) throw failure;
+            console.log(`the tree does not build: ${failure.message.split("\n")[0]}`);
+            tellPreviewListeners(state.listeners, "failed", failure.message);
+        }).then(() => {}, (failure: unknown) => {
+            console.error(FAILURE_LINE, failure);
+        });
+    }, REBUILD_QUIET_MILLISECONDS);
     for await (const event of watcher) {
         if (event.kind === "access") continue;
-        if (pending !== null) clearTimeout(pending);
-        pending = setTimeout(() => {
-            pending = null;
-            // Read the bundle rebuilt, and tell every page listening how the build went.
-            {
-                state.readBundle().then((script) => {
-                    state.script = script;
-                    console.log(`rebuilt, ${state.listeners.size} page(s) told to reload`);
-                    tellPreviewListeners(state.listeners, "rebuilt", "ok");
-                }, (failure: unknown) => {
-                    if (!(failure instanceof UserscriptBuildError)) throw failure;
-                    console.log(`the tree does not build: ${failure.message.split("\n")[0]}`);
-                    tellPreviewListeners(state.listeners, "failed", failure.message);
-                }).then(() => {}, (failure: unknown) => {
-                    console.error(FAILURE_LINE, failure);
-                });
-            }
-        }, REBUILD_QUIET_MILLISECONDS);
+        rebuild();
     }
-    if (pending !== null) clearTimeout(pending);
+    rebuild.clear();
 }
 
 /** Every request; the event stream holds its connection open and is the server's own. */
 async function answerPreviewRequest(state: PreviewState, url: URL): Promise<Response> {
     assert(url.pathname.startsWith("/"), "a request names a path");
-    if (url.pathname === "/reload") return openPreviewEvents(state.listeners);
+    if (url.pathname === "/reload") return answerPreviewEvents(state.listeners);
     if (url.pathname === `/${USERSCRIPT_NAME}`) {
         // Answer the bundle, built on first asking: a tree that does not build answers 500.
         try {
@@ -321,7 +322,7 @@ function composeFightLinks(fights: readonly ServedFight[]): PreviewFightLink[] {
 }
 
 /** A stream the page listens on for a rebuild; refused past the bound rather than held. */
-export function openPreviewEvents(listeners: Set<ReloadListener>): Response {
+export function answerPreviewEvents(listeners: Set<ReloadListener>): Response {
     if (listeners.size >= LISTENERS_MAXIMUM) return new Response("too many", { status: 503 });
     let held: ReloadListener | null = null;
     const body = new ReadableStream<Uint8Array>({
@@ -362,8 +363,8 @@ export function tellPreviewListeners(
 }
 
 /**
- * The flags, walked: `--port N`, `--fight NAME`, `--from PATH` as often as it is given, and
- * `--fabricated`, the one taking no value.
+ * The flags: `--port N`, `--fight NAME`, `--from PATH` as often as it is given, and `--fabricated`,
+ * the one taking no value.
  */
 export function readPreviewFlags(args: readonly string[]): {
     port: number;
@@ -371,41 +372,40 @@ export function readPreviewFlags(args: readonly string[]): {
     fromPaths: string[];
     shouldOpenFabricated: boolean;
 } {
-    let port = PORT_DEFAULT;
-    let fight: string | null = null;
-    let shouldOpenFabricated = false;
-    const fromPaths: string[] = [];
-    for (let argumentIndex = 0; argumentIndex < args.length; argumentIndex += 1) {
-        if (args[argumentIndex] === FLAG_FABRICATED) {
-            shouldOpenFabricated = true;
-            continue;
-        }
-        const flagValue = args[argumentIndex + 1];
-        if (flagValue === undefined) {
-            throw new PreviewServeError(`${args[argumentIndex]} takes a value`);
-        }
-        if (args[argumentIndex] === FLAG_PORT) {
-            const asked = parseInteger(flagValue);
-            if (asked === null) throw new PreviewServeError(`${FLAG_PORT} ${flagValue} is no port`);
-            if (!isPortInRange(asked)) {
-                throw new PreviewServeError(
-                    `${FLAG_PORT} ${flagValue} is outside 0 to ${PORT_MAXIMUM}`,
-                );
-            }
-            port = asked;
-        } else if (args[argumentIndex] === FLAG_FIGHT) fight = flagValue;
-        else if (args[argumentIndex] === FLAG_FROM) {
-            if (fromPaths.length === FROM_PATHS_MAXIMUM) {
-                throw new PreviewServeError(
-                    `no more than ${FROM_PATHS_MAXIMUM} ${FLAG_FROM} at once`,
-                );
-            }
-            fromPaths.push(flagValue);
-        } else throw new PreviewServeError(`${args[argumentIndex]} is not a flag this reads`);
-        argumentIndex += 1;
+    const parsed = parseArgs([...args], {
+        string: [FLAG_PORT, FLAG_FIGHT, FLAG_FROM],
+        boolean: [FLAG_FABRICATED],
+        collect: [FLAG_FROM],
+        unknown: (argument, flag) => {
+            // A flag misspelt would be kept as a key nobody reads, and the preview would open on
+            // what it was not asked for.
+            if (flag === undefined) return true;
+            throw new PreviewServeError(`${argument} is not a flag this reads`);
+        },
+    });
+    if (parsed._.length > 0) {
+        throw new PreviewServeError(`${parsed._.join(" ")} is not a flag this reads`);
     }
-    assert(fromPaths.length <= FROM_PATHS_MAXIMUM, "the paths stay inside their bound");
-    return { port, fight, fromPaths, shouldOpenFabricated };
+    let port = PORT_DEFAULT;
+    if (parsed.port !== undefined) {
+        const asked = parseInteger(parsed.port);
+        if (asked === null) throw new PreviewServeError(`--${FLAG_PORT} ${parsed.port} is no port`);
+        if (!isPortInRange(asked)) {
+            throw new PreviewServeError(
+                `--${FLAG_PORT} ${parsed.port} is outside 0 to ${PORT_MAXIMUM}`,
+            );
+        }
+        port = asked;
+    }
+    if (parsed.from.length > FROM_PATHS_MAXIMUM) {
+        throw new PreviewServeError(`no more than ${FROM_PATHS_MAXIMUM} --${FLAG_FROM} at once`);
+    }
+    return {
+        port,
+        fight: parsed.fight ?? null,
+        fromPaths: parsed.from,
+        shouldOpenFabricated: parsed.fabricated,
+    };
 }
 
 /** Whether a number is one a server can listen on. */
@@ -474,6 +474,12 @@ if (import.meta.main) {
         flags.shouldOpenFabricated ? readFabricatedPaths(FABRICATED_DIRECTORY) : [],
     );
     const preview = initPreviewServer({ port: flags.port, fromPaths });
+    if (flags.fight !== null) {
+        if (!preview.fightNames.includes(flags.fight)) {
+            await preview.stop();
+            throw new PreviewServeError(`--fight ${flags.fight} names no fight this serves`);
+        }
+    }
     const opening = flags.fight === null
         ? preview.url
         : `${preview.url}/?fight=${encodeURIComponent(flags.fight)}`;

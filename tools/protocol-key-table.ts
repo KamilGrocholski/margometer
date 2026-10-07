@@ -23,7 +23,7 @@ import {
     RUN_CHARACTERS_MAXIMUM,
 } from "#/libs/text-walk.ts";
 import { MARGONEM_CHANNEL, readCachedBuild, readCachedBundle } from "./margonem-client-source.ts";
-import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
+import { type FrozenFiles, readFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { ProtocolKeyTableError } from "./margometer-tool-error.ts";
 
 /**
@@ -137,19 +137,19 @@ export const FROZEN_KEY_BANNER =
 
 /** The table written to `frozen/`, where it moved. */
 export function writeFrozenKeyTable(): FrozenFiles {
-    const frozen = prepareFrozenKeyTable();
+    const frozen = readFrozenKeyTable();
     writeFrozenFiles(frozen);
     return frozen;
 }
 
 /** The table the cached bundle gives, dated by the first build that gave it (ADR 0011). */
-export function prepareFrozenKeyTable(): FrozenFiles {
+export function readFrozenKeyTable(): FrozenFiles {
     const build = readCachedBuild();
     const bundle = readCachedBundle(MARGONEM_CHANNEL.production);
     const keys = requireProtocolKeys(bundle);
     const family = requireComputedKeyFamily(bundle);
     assert(keys.length > 0, "a table that is frozen counts something");
-    return prepareFrozenFiles(
+    return readFrozenFiles(
         [FROZEN_PATH],
         FROZEN_DATE_FIELD,
         build,

@@ -292,7 +292,7 @@ export function composeTurnBoundaries(steps: readonly ReplayedStep[]): TurnBound
     let isNarrated = true;
     for (const step of steps) {
         if (isNarrated) isNarrated = isPayloadNarrated(step.update, expected);
-        expected = getMessageIndexAfter(step.update, expected);
+        expected = lookupMessageIndexAfter(step.update) ?? expected;
         const statistics = step.reading.figures.statistics;
         const takenNow = indexTurnsByCombatantId(statistics, (figures) => figures.turnsTaken);
         const lostNow = indexTurnsByCombatantId(statistics, (figures) => figures.turnsLost);
@@ -353,12 +353,15 @@ function readMessageIndices(update: unknown): number[] | null {
     return indices;
 }
 
-/** Where the game's own numbering of the messages stands once this payload's are in. */
-function getMessageIndexAfter(update: unknown, expected: number | null): number | null {
+/**
+ * Where the game's own numbering of the messages stands once this payload's are in, or null where
+ * the payload numbers none.
+ */
+function lookupMessageIndexAfter(update: unknown): number | null {
     const indices = readMessageIndices(update);
-    if (indices === null) return expected;
+    if (indices === null) return null;
     const lastIndex = indices.at(-1);
-    if (lastIndex === undefined) return expected;
+    if (lastIndex === undefined) return null;
     assert(Number.isSafeInteger(lastIndex), "a message is numbered by a whole number");
     assert(lastIndex >= 0, "and numbered from the fight's own start");
     return lastIndex + 1;

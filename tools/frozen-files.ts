@@ -32,7 +32,7 @@ const FROZEN_DIRECTORY = "frozen/";
  * rather than off an import, because a refresh rewrites the files under a module this process has
  * already bound.
  */
-export function prepareFrozenFiles(
+export function readFrozenFiles(
     paths: readonly string[],
     dateField: string,
     readDate: string,

@@ -15,7 +15,7 @@ import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { parseCitedHelpPhrases, REGISTER_PATH } from "./help-claim-register.ts";
-import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
+import { type FrozenFiles, readFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { readMargonemAnswerText } from "./margonem-client-source.ts";
 import { HelpArticleError } from "./margometer-tool-error.ts";
 
@@ -68,17 +68,17 @@ export const FROZEN_HELP_BANNER =
  * phrase is counted before a claim cites it, and one no claim cites any more is dropped.
  */
 export function writeFrozenHelpCounts(article: string, named: readonly string[]): FrozenHelpCounts {
-    const frozen = prepareFrozenHelpCounts(article, named);
+    const frozen = readFrozenHelpCounts(article, named);
     writeFrozenFiles(frozen);
     return frozen;
 }
 
 /** The counts the cached dump gives, dated by the first dump that gave them (ADR 0011). */
-export function prepareFrozenHelpCounts(
+export function readFrozenHelpCounts(
     article: string,
     named: readonly string[],
 ): FrozenHelpCounts {
-    const { cached, text } = requireCachedArticleText(article);
+    const { cached, text } = readCachedArticleText(article);
     const register = errors.attempt(() => Deno.readTextFileSync(REGISTER_PATH));
     if (register instanceof errors.Caught) {
         throw new HelpArticleError(`${REGISTER_PATH} cannot be read`, { cause: register });
@@ -89,7 +89,7 @@ export function prepareFrozenHelpCounts(
     }
     const counts = countPhrases(text, [...cited, ...named]);
     assert(counts.length > 0, "a table that is frozen counts something");
-    const frozen = prepareFrozenFiles(
+    const frozen = readFrozenFiles(
         [FROZEN_PATH],
         FROZEN_DATE_FIELD,
         cached.fetchedAt,
@@ -100,7 +100,7 @@ export function prepareFrozenHelpCounts(
 }
 
 /** Refuses rather than fetching behind the caller's back: a claim is dated by its dump. */
-function requireCachedArticleText(article: string): { cached: CachedHelpArticle; text: string } {
+function readCachedArticleText(article: string): { cached: CachedHelpArticle; text: string } {
     const cached = readCachedHelpArticle(article);
     if (cached === null) {
         throw new HelpArticleError(
@@ -317,7 +317,7 @@ export function requireHelpArticleText(url: string, page: string): string {
 
 /** How many phrases found nothing, so silence is visible to a script and not only on screen. */
 function writeHelpSearchReport(article: string, phrases: readonly string[]): number {
-    const { cached, text } = requireCachedArticleText(article);
+    const { cached, text } = readCachedArticleText(article);
     const age = formatDumpAge(cached.fetchedAt, Date.now());
     console.log(`article view,${article} — ${formatInteger(text.length)} characters (${age})\n`);
     let missing = 0;

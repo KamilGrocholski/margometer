@@ -37,6 +37,7 @@ import {
     requireFabricationShape,
 } from "#/tools/fabricated-fight.ts";
 import { REGISTER_PATH } from "#/tools/help-claim-register.ts";
+import { readDevelopmentVersion } from "#/tools/build-userscript.ts";
 import { FabricatedFightError } from "#/tools/margometer-tool-error.ts";
 import { DAMAGE_FAMILY_HEADING, parseRegisteredKeys } from "#/tools/protocol-key-shape.ts";
 import {
@@ -217,7 +218,7 @@ Deno.test("every key the fabricator spells on its own is one a reader here takes
 
 /** The fight as the file a reader would open, read back the way a tool reads a recording. */
 function readFabricatedFight(fight: FabricatedFight, name: string): RecordedFight {
-    const document = parseJson(encodeFabricatedFight(fight));
+    const document = parseJson(encodeFabricatedFight(fight, readDevelopmentVersion()));
     assert(!(document instanceof Error), "a fabricated fight is written as JSON");
     return readRecordedFight(`${FABRICATED_DIRECTORY}/${name}.json`, document);
 }
@@ -230,7 +231,7 @@ Deno.test("a fabricated fight is written only where git is told not to look", ()
 });
 
 Deno.test("the file a fabricated fight is written as says so three times over", () => {
-    const document = parseJson(encodeFabricatedFight(FIGHT));
+    const document = parseJson(encodeFabricatedFight(FIGHT, readDevelopmentVersion()));
     assert(!(document instanceof Error), "the file is JSON");
     assert(isRecord(document), "and an envelope");
     const envelope = document;

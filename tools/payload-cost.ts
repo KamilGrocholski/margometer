@@ -9,6 +9,7 @@
  *     deno task fight:cost [recording.json …]
  */
 
+import { parseArgs } from "@std/cli";
 import { assert, assertExists, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
@@ -173,7 +174,7 @@ function formatCostReport(costs: readonly FightCost[], material: string): string
 }
 
 if (import.meta.main) {
-    const paths = lookupRecordingPaths(Deno.args);
+    const paths = lookupRecordingPaths(parseArgs([...Deno.args])._);
     if (paths === null) {
         throw new PayloadCostError("a recording is named by a path and never by a number");
     }

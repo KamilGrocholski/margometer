@@ -1,8 +1,10 @@
 /**
  * Which rows of the panel open onto another level, measured over the recordings. Every level is
- * the panel's own reading (`src/ui/panel-content.ts`) of the fight the runtime's chain replays,
- * so the tool walks what a reader would press and decides nothing about it. `docs/drill-levels.md`
- * carries the verdicts; the counts stay here (**V5**).
+ * the panel's own reading (`src/ui/panel-content.ts`) of the fight the runtime's chain replays.
+ * Where a reading carries whether a row opens, that is the verdict; where it does not, the tool
+ * states one, and the ranking's and the pinned rows' are held against the drawn panel by
+ * `tests/tools/drill-report.test.ts`. `docs/drill-levels.md` carries the verdicts; the counts stay
+ * here (**V5**).
  *
  *     deno task panel:drill --cases                 the verdicts, with the counts behind them
  *     deno task panel:drill [recording.json …]      one recording, level by level
@@ -155,7 +157,7 @@ export function tallyDrillCases(
         for (const screen of SCREEN_ORDER) {
             // Add every case one screen of the fight draws.
             const reading = presentScreenForEveryone(fight, screen);
-            // The one verdict no reading can answer: a ranking row's mark is written by the
+            // A verdict no reading answers: a ranking row's mark is written by the
             // element layer without asking anybody, so it is stated here and held against the
             // drawn panel by `tests/tools/drill-report.test.ts`.
             for (const row of reading.rows) {

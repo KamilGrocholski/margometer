@@ -9,7 +9,8 @@
 
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { HTML_CHARACTERS_MAXIMUM } from "#/libs/html-text.ts";
-import { SKILLS_DATED_MAXIMUM } from "#/src/core/aura-standing.ts";
+import { SKILL_EFFECTS_MAXIMUM, SKILLS_DATED_MAXIMUM } from "#/src/core/aura-standing.ts";
+import { BLOWS_GRANTED_MAXIMUM } from "#/src/core/fight-decoder.ts";
 import { SkillTableError } from "#/tools/margometer-tool-error.ts";
 import {
     CACHE_ROOT,
@@ -17,8 +18,8 @@ import {
     composeGrantedBlows,
     composeShoutSkills,
     EFFECTS_MAXIMUM,
-    prepareFrozenSkillTable,
     readCachedSkillTable,
+    readFrozenSkillTable,
     requireSkillsOfMargonemApi,
     ROWS_MAXIMUM,
 } from "#/tools/skill-table.ts";
@@ -171,7 +172,7 @@ Deno.test("a manifest naming a page that is gone is refused, naming what fetches
         const manifest = { url: "u", fetchedAt: "t", pagePath, pageLength: 1 };
         Deno.mkdirSync(CACHE_ROOT, { recursive: true });
         Deno.writeTextFileSync(`${CACHE_ROOT}provenance.json`, JSON.stringify(manifest));
-        assertThrows(() => prepareFrozenSkillTable(), SkillTableError, "margonem:skills fetch");
+        assertThrows(() => readFrozenSkillTable(), SkillTableError, "margonem:skills fetch");
     } finally {
         Deno.chdir(held);
         Deno.removeSync(directory, { recursive: true });
@@ -255,6 +256,30 @@ Deno.test("a grant stated per level is carried at the fewest the page states", (
         [{ id: 283, blowsGrantedMinimum: 2 }],
         "the panel does not know the caster's level, so it relies on what holds at every one",
     );
+});
+
+/** What the add-on asserts of the tables is refused at the page, both sides of each edge. */
+Deno.test("a shout or a grant the add-on could not hold is refused, and the least it holds is read", () => {
+    const shouting = (effect: string) =>
+        composeShoutSkills(requireSkillsOfMargonemApi(composeRow("188", effect)));
+    assertEquals(shouting("shout=1@1"), [{ id: 188, turns: 1, coverageMinimum: 1 }], "the least");
+    assertThrows(() => shouting("shout=1@0"), SkillTableError, "no turn");
+    assertThrows(() => shouting("shout=0@1"), SkillTableError, "covering nobody");
+    const granting = (count: number) =>
+        composeGrantedBlows(requireSkillsOfMargonemApi(composeRow("239", `add_attacks=${count}`)));
+    assertEquals(granting(1), [{ id: 239, blowsGrantedMinimum: 1 }], "one blow is a grant");
+    assertThrows(() => granting(0), SkillTableError, "no blow");
+    assertEquals(
+        granting(BLOWS_GRANTED_MAXIMUM - 1),
+        [{ id: 239, blowsGrantedMinimum: BLOWS_GRANTED_MAXIMUM - 1 }],
+        "as many as an announcement reaches",
+    );
+    assertThrows(() => granting(BLOWS_GRANTED_MAXIMUM), SkillTableError, "past the");
+});
+
+/** The tool reads as many effects as the add-on does, so no row it freezes asserts there. */
+Deno.test("a skill's effects are bounded where the add-on bounds them", () => {
+    assertStrictEquals(EFFECTS_MAXIMUM, SKILL_EFFECTS_MAXIMUM, "one bound, the add-on's");
 });
 
 Deno.test("a grant the page writes as arithmetic is carried nowhere", () => {

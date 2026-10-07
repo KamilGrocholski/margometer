@@ -19,6 +19,7 @@ import { ProtocolKeyShapeError } from "./margometer-tool-error.ts";
 import {
     readRecordedMaterial,
     RECORDING_SUFFIX,
+    RECORDINGS_MAXIMUM,
     type ReplayedFight,
     replayRecordedMaterial,
 } from "./recorded-material.ts";
@@ -126,10 +127,16 @@ const WORD_EDGES = "*_`.,;:()[]\"'";
 const SENTENCE_END = ". ";
 /** Past the claims the register carries, and past what a document of its size could state. */
 export const CLAIMS_MAXIMUM = 1024;
+/**
+ * Past the words of any sentence the register writes: 104 at most over its 129 entries, read
+ * 2026-10-07. A sentence naming many recordings is words as well, so this stands past
+ * `RECORDINGS_MAXIMUM`, the most one sentence may name.
+ */
+export const WORDS_MAXIMUM = 16_384;
 const CLAIM_SEPARATOR = ";";
 export const CLAIMS_PER_LINE = 3;
 /** The corpus carries 119 keys, 2026-09-25: this is past what a protocol change would add. */
-const KEYS_MAXIMUM = 4096;
+export const KEYS_MAXIMUM = 4096;
 const KEY_COLUMN = 26;
 const PLACEMENT_COLUMN = 30;
 const VALUE_COLUMN = 15;
@@ -248,6 +255,11 @@ export function parseRegisteredKeys(text: string): RegisteredKey[] {
     for (const [offset, line] of text.split("\n").entries()) {
         const heading = parseRegisterHeading(line, offset + 1);
         if (heading !== null) {
+            if (entries.length === KEYS_MAXIMUM) {
+                throw new ProtocolKeyShapeError(
+                    `the register opens more than ${KEYS_MAXIMUM} keys`,
+                );
+            }
             entries.push(heading);
             continue;
         }
@@ -430,6 +442,11 @@ function addProseCountClaims(
     if (paragraph.length === 0) return;
     for (const sentence of paragraph.split(SENTENCE_END)) {
         if (!isCountingSentence(sentence)) continue;
+        if (claims.length === CLAIMS_MAXIMUM) {
+            throw new ProtocolKeyShapeError(
+                `the register makes more than ${CLAIMS_MAXIMUM} claims`,
+            );
+        }
         claims.push({ key, line, sentence, recordings: parseRecordingsNamed(sentence) });
     }
 }
@@ -453,9 +470,12 @@ function isCountingSentence(sentence: string): boolean {
             assert(end >= start, "a word trimmed from both ends has not crossed itself");
         }
         const word = raw.slice(start, end);
-        if (word.length > 0) words.push(word);
+        if (word.length === 0) continue;
+        if (words.length === WORDS_MAXIMUM) {
+            throw new ProtocolKeyShapeError(`a sentence runs past ${WORDS_MAXIMUM} words`);
+        }
+        words.push(word);
     }
-    assert(words.length <= CLAIMS_MAXIMUM, "a sentence holds no more words than the bound");
     for (const [wordIndex, word] of words.entries()) {
         if (!word.toLowerCase().startsWith(OCCURRENCE_STEM)) continue;
         if (wordIndex === 0) continue;
@@ -475,14 +495,16 @@ function isCountWord(word: string): boolean {
 function parseRecordingsNamed(sentence: string): string[] {
     const named: string[] = [];
     let pathAt = sentence.indexOf(RECORDINGS_DIRECTORY);
-    for (let look = 0; look <= CLAIMS_MAXIMUM; look += 1) {
+    for (let look = 0; look <= RECORDINGS_MAXIMUM; look += 1) {
         if (pathAt === -1) return named;
         const end = sentence.indexOf(RECORDING_SUFFIX, pathAt);
         if (end === -1) return named;
         named.push(sentence.slice(pathAt, end + RECORDING_SUFFIX.length));
         pathAt = sentence.indexOf(RECORDINGS_DIRECTORY, end);
     }
-    throw new ProtocolKeyShapeError(`a sentence names more than ${CLAIMS_MAXIMUM} recordings`);
+    throw new ProtocolKeyShapeError(
+        `a sentence names more than the ${RECORDINGS_MAXIMUM} recordings a corpus holds`,
+    );
 }
 
 /** The line the register writes, formatted from a measurement so nobody types one by hand. */

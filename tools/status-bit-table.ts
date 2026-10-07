@@ -20,7 +20,7 @@ import {
 } from "#/libs/text-walk.ts";
 import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
 import { MARGONEM_CHANNEL, readCachedBuild, readCachedBundle } from "./margonem-client-source.ts";
-import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
+import { type FrozenFiles, readFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { StatusBitTableError } from "./margometer-tool-error.ts";
 
 /**
@@ -54,17 +54,17 @@ export const FROZEN_STATUS_BANNER =
 
 /** The bit order written to `frozen/`, where it moved. */
 export function writeFrozenStatusBits(): FrozenFiles {
-    const frozen = prepareFrozenStatusBits();
+    const frozen = readFrozenStatusBits();
     writeFrozenFiles(frozen);
     return frozen;
 }
 
 /** The bit order the cached bundle gives, dated by the first build that gave it (ADR 0011). */
-export function prepareFrozenStatusBits(): FrozenFiles {
+export function readFrozenStatusBits(): FrozenFiles {
     const build = readCachedBuild();
     const bits = requireStatusBits(readCachedBundle(MARGONEM_CHANNEL.production));
     assert(bits.length > 0, "a table that is frozen counts something");
-    return prepareFrozenFiles(
+    return readFrozenFiles(
         [FROZEN_PATH],
         FROZEN_DATE_FIELD,
         build,

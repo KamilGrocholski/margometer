@@ -16,7 +16,7 @@ import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
 import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
 import {
-    prepareFrozenStatusBits,
+    readFrozenStatusBits,
     requireStatusBits,
     writeFrozenStatusBits,
 } from "./status-bit-table.ts";
@@ -33,20 +33,20 @@ import {
     formatDumpAge,
     isDumpStale,
     MECHANICS_ARTICLE,
-    prepareFrozenHelpCounts,
     readCachedHelpArticle,
+    readFrozenHelpCounts,
     writeFrozenHelpCounts,
     writeHelpArticleCache,
 } from "./help-article.ts";
 import { MargonemReadingsError, MargonemUnreachableError } from "./margometer-tool-error.ts";
 import {
-    prepareFrozenKeyTable,
+    readFrozenKeyTable,
     requireProtocolKeys,
     writeFrozenKeyTable,
 } from "./protocol-key-table.ts";
 import {
-    prepareFrozenSkillTable,
     readCachedSkillTable,
+    readFrozenSkillTable,
     writeFrozenSkillTable,
     writeSkillTableCache,
 } from "./skill-table.ts";
@@ -125,12 +125,12 @@ async function writeReadingsStatus(): Promise<void> {
             composeFrozenState(
                 "frozen keys",
                 "keys",
-                client === null ? null : prepareFrozenKeyTable(),
+                client === null ? null : readFrozenKeyTable(),
             ),
             composeFrozenState(
                 "frozen statuses",
                 "bits",
-                client === null ? null : prepareFrozenStatusBits(),
+                client === null ? null : readFrozenStatusBits(),
             ),
             composeDumpState(
                 "help dump",
@@ -141,13 +141,13 @@ async function writeReadingsStatus(): Promise<void> {
             composeFrozenState(
                 "frozen help",
                 "phrases",
-                dump === null ? null : prepareFrozenHelpCounts(MECHANICS_ARTICLE, []),
+                dump === null ? null : readFrozenHelpCounts(MECHANICS_ARTICLE, []),
             ),
             composeDumpState("skill dump", "skills", table?.fetchedAt ?? null, now),
             composeFrozenState(
                 "frozen skills",
                 "skills",
-                table === null ? null : prepareFrozenSkillTable(),
+                table === null ? null : readFrozenSkillTable(),
             ),
         ];
         assertStrictEquals(states.length, READINGS_REPORTED, "every reading was reported on");
