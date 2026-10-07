@@ -18,6 +18,7 @@ import {
     indexAuraTurnsBySkillId,
     lookupAuraTurnsStated,
     type SkillEffectTurns,
+    SKILLS_DATED_MAXIMUM,
 } from "#/src/core/aura-standing.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { type FrozenFiles, prepareFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
@@ -349,6 +350,11 @@ export function composeAuraSkills(
     for (const skill of skills) {
         const turns = lookupAuraTurnsStated(skill.effects);
         if (turns !== null) auraSkills.push({ id: skill.id, turns });
+    }
+    if (auraSkills.length > SKILLS_DATED_MAXIMUM) {
+        throw new SkillTableError(
+            `more than ${SKILLS_DATED_MAXIMUM} skills reach a side, past what the add-on dates`,
+        );
     }
     assertStrictEquals(
         indexAuraTurnsBySkillId(auraSkills).size,

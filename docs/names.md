@@ -2516,6 +2516,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `querySelectorAll` — `src/userscript-entry.ts`, `tests/fake-window.ts`
 
+### `reaching` — not in N2's table
+
+- `reaching` — `tests/tools/skill-table.test.ts`
+
 ### `record` — not in N2's table
 
 - `recordFailure` — `src/ports/margonem-engine-battle.ts`

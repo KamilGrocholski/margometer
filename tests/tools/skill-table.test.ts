@@ -8,6 +8,7 @@
  */
 
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import { SKILLS_DATED_MAXIMUM } from "#/src/core/aura-standing.ts";
 import { SkillTableError } from "#/tools/margometer-tool-error.ts";
 import {
     CACHE_ROOT,
@@ -122,6 +123,24 @@ Deno.test("a skill is read up to its bound in effects and refused one past it", 
     assertStrictEquals(skill?.effects.length, EFFECTS_MAXIMUM, "at the bound, every effect");
     assertThrows(
         () => requireSkillsOfMargonemApi(stating(EFFECTS_MAXIMUM + 1)),
+        SkillTableError,
+        "more than",
+    );
+});
+
+Deno.test("the skills reaching a side are carried up to their bound and refused one past it", () => {
+    const reaching = (count: number) =>
+        requireSkillsOfMargonemApi(
+            Array.from({ length: count }, (_, rowIndex) =>
+                composeRow(String(rowIndex + 1), "aura-sa_per=11@8")).join(""),
+        );
+    assertStrictEquals(
+        composeAuraSkills(reaching(SKILLS_DATED_MAXIMUM)).length,
+        SKILLS_DATED_MAXIMUM,
+        "at the bound, every one",
+    );
+    assertThrows(
+        () => composeAuraSkills(reaching(SKILLS_DATED_MAXIMUM + 1)),
         SkillTableError,
         "more than",
     );
