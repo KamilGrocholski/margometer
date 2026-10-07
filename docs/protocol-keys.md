@@ -276,14 +276,15 @@ _Cause:_ the message actor
 write it as a single space. The client spends that member on one thing — `<b class=dmg"+D[1]+">`,
 production build `1785244275300` — and a class attribute of `"dmg "` is the class `dmg`, so the game
 makes no distinction there. Read literally it made `dmg` a second element beside `dmg`, splitting
-107 952 points of physical damage into two rows nothing on screen could tell apart. Held by
-`tests/core/fight-decoder.test.ts`.
+107 952 points of physical damage into two rows nothing on screen could tell apart (the corpus as it
+stood on 2026-08-13). Held by `tests/core/fight-decoder.test.ts`.
 
 _Shape:_ 1430 occurrences; on a message reporting damage; text
 
 _Evidence:_ in every call where a target lost more health than the attack accounted for, the
-shortfall equalled this amount exactly — 110, 247 and 123 in three separate calls. Three independent
-confirmations on real material, which is why this is not read off the client's sentence template.
+shortfall equalled this amount exactly — 110, 247 and 123 in three separate calls (the corpus as it
+stood on 2026-08-09). Three independent confirmations on real material, which is why this is not
+read off the client's sentence template.
 
 ### `legbon_lastheal` — decoded
 
@@ -353,7 +354,8 @@ Health restored to, or lost by, the combatant in the **actor** slot of a message
 nobody: `<combatant>=<percent>;0;heal=<amount>`. The slot holds the subject here rather than an
 attacker, and no message of this shape names anyone else. Read as a positive health change; the
 client will state a loss with a negative amount, which needs no special case because the figure is
-signed.
+signed (production build `DHSqC3Uh`, fetched 2026-10-06, words the figure gained or lost by its
+sign).
 
 _Health:_ moves health
 
@@ -602,7 +604,8 @@ _Help:_ names `holytouch`
 
 _Evidence:_ found by the witness rather than looked for. With `heal`, `poison` and `injure` read,
 three comparisons still disagreed, all for one combatant and all by the same six percentage points —
-`legbon_holytouch_heal=976` against a maximum of 16278. Reading it closed them.
+`legbon_holytouch_heal=976` against a maximum of 16278, in the corpus as it stood on 2026-08-06.
+Reading it closed them.
 
 ### `injure` — decoded
 
@@ -618,9 +621,9 @@ _Shape:_ 222 occurrences; alone in its message; text
 
 _Evidence:_ it could not be settled at all until `heal` and `poison` were read, because every call
 containing it also contains one of those and the witness declined them all. Once they were read, the
-residue was exact: after `-10000249=99.95;0;injure=148` the stated percentage sat 148 below the
-arithmetic, and reading it as damage turned that disagreement, and eighty-odd others, into
-agreements.
+residue was exact, over the corpus as it stood on 2026-08-06: after `-10000249=99.95;0;injure=148`
+the stated percentage sat 148 below the arithmetic, and reading it as damage turned that
+disagreement, and eighty-odd others, into agreements.
 
 ⚠️ **Every tick has an attacker the protocol named, and `*Cause:*` above is where that is read.**
 The wound arrives carrying the figure its own announcement stated, and the help says a victim
@@ -717,9 +720,10 @@ else. The share is of the maximum — 7162 restored on a maximum of 23874 at 30%
 combatant's remaining 8749 would be 2624. It floors: a share landing on 5629.5 moved 5629. Capping
 at the entry health reproduces every reading whose entry health the capture holds, and the readings
 that separate the two caps sat exactly at their entry health while short of maximum and gained
-nothing. Dropping the cap entirely reports 81% more healing than happened. Held by
-`tests/core/combatant-health.test.ts`, which also holds the exclusion: something has to be excluded
-for a missing entry health and something has to survive it, or the cap is confirmed against nothing.
+nothing. Dropping the cap entirely reports 81% more healing than happened (the corpus as it stood on
+2026-08-14). Held by `tests/core/combatant-health.test.ts`, which also holds the exclusion:
+something has to be excluded for a missing entry health and something has to survive it, or the cap
+is confirmed against nothing.
 
 ### `bandage` — decoded
 
@@ -818,9 +822,9 @@ _Help:_ names `thirdatt`, `trzeci cios`
 _Evidence:_ article view,372 at the engine name `of-thirdatt` (read 2026-08-09) describes the event
 as an additional auxiliary attack rolled between the main weapon's minimum and maximum damage, and
 says its damage is reduced by the same effects as other auxiliary damage — which is the raw and
-applied pair the protocol sends. Measured here: 932 → 507, 1130 → 694, 968 → 540, raw above applied
-in all three. Production build `1786514810315` renders it into the same column the default damage
-branch writes to.
+applied pair the protocol sends. Measured over the corpus as it stood on 2026-08-12: 932 → 507, 1130
+→ 694, 968 → 540, raw above applied in all three. Production build `1786514810315` renders it into
+the same column the default damage branch writes to.
 
 **Alongside is the load-bearing word, and it is guarded rather than read.** A granted attack
 arriving as a message of its own would make `blowsWithoutSkill` — the count `Zwykły cios` draws —
@@ -1288,7 +1292,8 @@ the event happened.
 ### `-tenacity` — decoded
 
 Tenacity fired on this blow. What it does is not established here, and neither is whose it is: the
-protocol states nothing but that it happened, and article view,372 does not carry the name.
+protocol states nothing but that it happened, and article view,372 does not carry the name (read
+2026-10-06).
 
 _Shape:_ 21 occurrences; on a blow; no value
 
@@ -1296,7 +1301,8 @@ _Help:_ names nothing of `tenacity`
 
 _Evidence:_ the shared measurement. Every occurrence over every recording sits on a message naming
 **both** ends, so no recording of this shape can say whose the proc is however many arrive (read
-2026-09-17). What would settle it is an article, and view,372 does not carry the name.
+2026-09-17). What would settle it is an article, and view,372 does not carry the name (read
+2026-10-06).
 
 ### `+superspell-dispel` — decoded
 
@@ -1312,9 +1318,9 @@ _Evidence:_ the shared measurement, and production build `1785244275300`, where 
 `msg_+dispel`. 3 occurrences on
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`. The stem that worked for the
 four above was tried here too: `dispel` is the name the client's own sentence uses, and the article
-carries neither it nor `superspell`. Every occurrence over every recording names **both** ends, as
-`-tenacity`'s do, so what is left open here is open to an article and not to more material (read
-2026-09-17).
+carries neither it nor `superspell` (read 2026-10-06). Every occurrence over every recording names
+**both** ends, as `-tenacity`'s do, so what is left open here is open to an article and not to more
+material (read 2026-09-17).
 
 ### `+superspell-prevented` — decoded
 
@@ -1333,9 +1339,10 @@ names. 1 occurrence on `captures/2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17
 also carrying `-legbon_glare`, which the client's dictionary names for the blinding view,372 gives
 among the four effects able to break a charge, and after which the game states a turn lost by the
 combatant who swung. Whose the proc is stays refused for the reason `+superspell-dispel`'s entry
-gives: the message names both ends, and neither the article nor the client's sentence names a
-person. Every `super_cast` over every recording stands on a monster (read 2026-09-21), which is an
-inference from material rather than a statement of the game's, so it settles nothing here.
+gives: the message names both ends, and neither the article (read 2026-10-06) nor the client's
+sentence names a person. Every `super_cast` over every recording stands on a monster (read
+2026-09-21), which is an inference from material rather than a statement of the game's, so it
+settles nothing here.
 
 ### `+acdmg_destroyed` — decoded
 
@@ -1349,8 +1356,8 @@ _Help:_ names nothing of `acdmg_destroyed`, `destroyed`
 _Evidence:_ the shared measurement. 2 occurrences on
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, both on a message that also
 carries `+acdmg`. The stem rule does not rescue this one and is worth saying so: stripping to
-`acdmg` lands on the article for the _figure_ key below, which is a different key and would document
-the wrong thing.
+`acdmg` lands on the article for the _figure_ key below (read 2026-10-06), which is a different key
+and would document the wrong thing.
 
 ### `+acdmg` — decoded
 
@@ -1434,9 +1441,9 @@ composes `msg_+resdmg`, `msg_+resdmgc` and `msg_+resdmgl` the same way — all f
 development build `1781609507010`, which keeps each branch's rendered sentence in a comment beside
 it: this one names fire, where `-c`'s names cold and `-l`'s lightning. The sentences themselves stay
 in that bundle and are not copied here (`AGENTS.md`). The published help names `resdmg` and none of
-the three narrowed keys, so what the unit is comes from the entry above rather than from an article
-of its own. None of the three states a `_Help:_` line: the claim would be one the frozen table has
-never counted, because `deno task margonem:help` has searched `resdmg` alone.
+the three narrowed keys (read 2026-10-06), so what the unit is comes from the entry above rather
+than from an article of its own. None of the three states a `_Help:_` line: the claim would be one
+the frozen table has never counted, because `deno task margonem:help` has searched `resdmg` alone.
 
 ### `+resdmgc` — decoded
 
@@ -1634,9 +1641,9 @@ rather than on any blow. The two keys above are what the share then removes, and
 later messages.
 
 ⚠️ The same name also appears in a **second switch** in the same module, the one composing skill
-descriptions. That switch is not about battle messages, and the frozen table is bounded by brace
-balance so it holds only the battle one — the trap of matching a name rather than the shape it
-stands in, met again here.
+descriptions (production build `DHSqC3Uh`, fetched 2026-10-06, spells it twice). That switch is not
+about battle messages, and the frozen table is bounded by brace balance so it holds only the battle
+one — the trap of matching a name rather than the shape it stands in, met again here.
 
 _Shape:_ 564 occurrences; on a skill announcement; a whole number
 
@@ -1941,7 +1948,8 @@ settles nothing — which combatant a figure belongs to comes from the help and 
 (this section's own preamble). Asked again on 2026-09-22 it answers twice over: absorption is
 generated with every blow **performed**, as the effect of a skill (`absagain_per`), and the effect
 table gives that effect as restoring part of the absorption **after an attack that hit**. A blow
-**performed** is the holder's own, so the pool that refills is the **striker's**.
+**performed** is the holder's own, so the pool that refills is the **striker's**; the published
+skill table's skills carrying the effect say the same of it (fetched 2026-10-06, `+absorb` below).
 
 ⚠️ **The second clause alone would not have settled it.** An attack that hit reads both ways in the
 help's Polish — an attack they landed, or one that landed on them — and the first clause is what
@@ -1961,8 +1969,7 @@ name — `absorb`, `absorbd`, `absorbm`, and the passives `absorb_per`, `absorbm
 `active_absorbdest_per`, `redabdest_per` — finds none of it: the article files it as `absagain_per`,
 restoring a share of absorption and magical absorption after an attack that landed, capped at the
 pool the fight was entered with (read 2026-08-25). A searched silence is a silence over the names
-that were searched, and an effect the article names something else entirely walks through it. The
-verdict stands on the article's own words: nothing in it says whose pool gains.
+that were searched, and an effect the article names something else entirely walks through it.
 
 ⚠️ **Three occurrences, two recordings, and the same value on every one of them**, over the corpus
 on 2026-08-25: two sit on the same announced ability, cast by the same combatant, in
@@ -1978,11 +1985,13 @@ Absorption **returned to the pool** by this blow: the physical twin of the key a
 `-absorb` is damage absorption stopped and is counted as dealt and taken; this one is the pool being
 refilled, so adding it to the key it resembles would count points of absorption as points of damage.
 
-⚠️ **The help documents the effect and still does not settle whose pool gained.** `absagain_per` is
-the article's name for it and `+absorbm` above carries what it says. What it does not say is whether
-the attack that triggers the renewal is one the character landed or one they took, and the message
-does not say either: both keys name an attacker and the combatant whose absorption stopped damage,
-and state nowhere which of the two gained. So both stay declarations.
+⚠️ **The pool that gains is the striker's, as for `+absorbm` above.** The published skill table
+gives `absagain_per` to skills 7, 9, 12, 59 and 90 alone (fetched 2026-10-06), and describes the
+renewal of the two that are not a school's mastery as coming with a blow their holder deals; every
+occurrence here rides a blow whose actor deals magical damage, the school those masteries belong to.
+The message still names an attacker and the combatant whose absorption stopped damage, and says
+which gained nowhere, so both keys stay declarations: carrying the figure on a row is a decision,
+not an unknown.
 
 _Shape:_ 8 occurrences; on a blow; a whole number
 
@@ -2278,9 +2287,9 @@ paladin of theirs with no target beside it. The published table carries it on sk
 
 ### `hp_per-enemies` — decoded
 
-The same pool raise turned on the other side, and the one of the four the article does not document.
-Read because the client settles it: a message carrying it would otherwise raise a defect against a
-key the three entries above explain between them.
+The same pool raise turned on the other side, and the one of the four the article does not document
+(read 2026-10-06). Read because the client settles it: a message carrying it would otherwise raise a
+defect against a key the three entries above explain between them.
 
 ⚠️ **No `_Shape:_` line and no `_Help:_` line, and neither silence is an oversight.** No recording
 carries it as the set stood 2026-09-16. And a claim about the article is stated in this register's
@@ -2942,5 +2951,5 @@ same client module.
 
 _Evidence:_ they appeared in the first key list because it was gathered by grepping the whole
 module, which holds three switches. Bounding each switch by brace balance removed them, and they are
-absent from the production battle switch entirely. Recorded so nobody spends a second afternoon on
-them.
+absent from the production battle switch entirely (`frozen/protocol-keys.ts`, build `DHSqC3Uh`).
+Recorded so nobody spends a second afternoon on them.
