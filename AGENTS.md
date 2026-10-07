@@ -596,6 +596,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/decisions.test.ts`               | `docs/adr/`                                            |
 | `tests/repository/workflows.test.ts`               | `.github/workflows/`                                   |
 | `tests/repository/readmes.test.ts`                 | the two READMEs                                        |
+| `tests/ui/panel-words.test.ts`                     | L2, L3                                                 |
 | `deno check --config project/browser-lib.json`     | the browser floor                                      |
 | `requireBundleInBrowser` in the build              | Never: the network                                     |
 | `.claude/settings.json`, for Claude Code alone     | G1, G8, W2, Ask first: `captures/`, `frozen/AGENTS.md` |
