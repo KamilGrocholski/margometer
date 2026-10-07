@@ -396,7 +396,23 @@ export function initPanelDrag(
     placement: PanelPlacement,
     options: PanelDragOptions,
 ): PanelDragHandle {
-    let position: PanelPosition | null;
+    const state: PanelDragState = {
+        position: null,
+        size: placement.size,
+        grab: null,
+        written: null,
+    };
+    const writeHostStyle = () => {
+        // Write the style the window stands in now.
+        // A position that writes no style leaves the host on the sheet's own corner, which is a
+        // place — and the window is still there to be grabbed (**E12**).
+        const applied = getPanelDragSize(state, placement, options);
+        const style = composeHostStyle(state.position, applied, options.window);
+        if (style === null) return;
+        if (style === state.written) return;
+        state.written = style;
+        host.setAttribute(STYLE_ATTRIBUTE, style);
+    };
     // Open the window at the reader's place, or the middle of the screen.
     {
         // A position from the first frame is what lets the helper and the card answer the
@@ -413,35 +429,18 @@ export function initPanelDrag(
                     placement.readViewport(),
                     options.getTypeTokens(),
                 );
-            if (opening === null) return null;
-            const clamped = clampPosition(opening, placement.readViewport());
-            const style = composePositionStyle(clamped, options.window);
-            if (style === null) return null;
-            host.setAttribute(STYLE_ATTRIBUTE, style);
-            return clamped;
+            state.position = opening === null
+                ? null
+                : clampPosition(opening, placement.readViewport());
+            writeHostStyle();
+            return state.position;
         });
         if (opened instanceof Error) {
             addViewFailureGuarded(options.onFailure, new WindowUnplaced(options.window, opened));
-            position = null;
-        } else position = opened;
+            state.position = null;
+            state.written = null;
+        }
     }
-    const state: PanelDragState = {
-        position,
-        size: placement.size,
-        grab: null,
-        written: null,
-    };
-    const writeHostStyle = () => {
-        // Write the style the window stands in now.
-        // A position that writes no style leaves the host on the sheet's own corner, which is a
-        // place — and the window is still there to be grabbed (**E12**).
-        const applied = getPanelDragSize(state, placement, options);
-        const style = composeHostStyle(state.position, applied, options.window);
-        if (style === null) return;
-        if (style === state.written) return;
-        state.written = style;
-        host.setAttribute(STYLE_ATTRIBUTE, style);
-    };
     writeHostStyle();
     // Listen for the grab, the drag and the release.
     {
@@ -501,11 +500,8 @@ export function initPanelDrag(
             if (pointer === null) return;
             const viewport = placement.readViewport();
             if (grab.kind === GRAB_KIND.move) {
-                writePanelDragPosition(
-                    state,
-                    composeDraggedPosition(grab, pointer, viewport),
-                    writeHostStyle,
-                );
+                state.position = composeDraggedPosition(grab, pointer, viewport);
+                writeHostStyle();
                 return;
             }
             state.size = composeDraggedSize(grab, pointer, state, placement, options);
@@ -527,15 +523,10 @@ export function initPanelDrag(
             }
         },
         setPosition: (positionRequested: PanelPosition) => {
-            writePanelDragPosition(
-                state,
-                clampPosition(positionRequested, placement.readViewport()),
-                writeHostStyle,
-            );
-            const position = state.position;
-            if (position !== null) {
-                options.onIntent({ kind: PANEL_INTENT.move, window: options.window, position });
-            }
+            const position = clampPosition(positionRequested, placement.readViewport());
+            state.position = position;
+            writeHostStyle();
+            options.onIntent({ kind: PANEL_INTENT.move, window: options.window, position });
         },
         getWidthPixels: () => {
             const applied = getPanelDragSize(state, placement, options);
@@ -562,17 +553,6 @@ function getPanelDragSize(
         state.size,
         composeSizeBounds(options.window, tokens, state.position, viewport),
     );
-}
-
-function writePanelDragPosition(
-    state: PanelDragState,
-    position: PanelPosition,
-    writeHostStyle: () => void,
-): void {
-    if (!Number.isSafeInteger(position.left)) return;
-    if (!Number.isSafeInteger(position.top)) return;
-    state.position = position;
-    writeHostStyle();
 }
 
 /** Where a window nobody has moved opens, which is not the same place for both of them. */

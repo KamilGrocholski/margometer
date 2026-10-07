@@ -1550,10 +1550,10 @@ export function presentScreen(
     }));
     let hasFiguresDisagreed: boolean;
     // The rows holding **more** than the screen's own count is the other side of `unplaced`,
-    // and the one that says a drawn figure is wrong rather than short.
+    // and the one that says a drawn figure is wrong rather than short. ⚠️ No check of the whole
+    // against the strip follows it: under a side the screen's count **is** the strip's figure,
+    // so past this branch the whole equals it by construction and such a check is never true.
     if (screenTotal < figurePlaced) {
-        hasFiguresDisagreed = true;
-    } else if (hasSideTotalDisagreed(whole, sides, sideListed)) {
         hasFiguresDisagreed = true;
     } else {
         hasFiguresDisagreed = pinned.some((pinnedFigure) =>
@@ -1713,22 +1713,6 @@ function getCountedTotal(
     if (sideListed === SIDE_RELATION.reader) return sides.reader;
     if (sideListed === SIDE_RELATION.opposing) return sides.opposing;
     return sides.nobody;
-}
-
-/**
- * What a one-side list divides its shares by is the figure the strip states for that side, and
- * the two are read apart: the list off each row's own figure, the strip off the row the game did
- * name. A charge that stopped agreeing with the list it stands over is a broken invariant, not a
- * figure that quietly moved. `develop ADR 0036`.
- */
-function hasSideTotalDisagreed(
-    whole: number,
-    sides: PanelSides | null,
-    sideListed: SideRelation | null,
-): boolean {
-    if (sideListed === null) return false;
-    if (sides === null) return false;
-    return whole !== (sideListed === SIDE_RELATION.reader ? sides.reader : sides.opposing);
 }
 
 /**

@@ -181,7 +181,7 @@ export const PANEL_WORDS = {
     openFights: "Pokaż albo schowaj zapisane walki",
     openOptions: "Pokaż albo schowaj opcje",
     back: "skład",
-    shelfEmpty: "Nie ma jeszcze zapisanych walk",
+    shelfEmpty: "Nie ma jeszcze zapisanych walk.",
     dealtTo: "KOMU",
     takenFrom: "OD KOGO",
     damageKind: "TYP OBRAŻEŃ",

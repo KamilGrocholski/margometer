@@ -2,9 +2,10 @@
  * What the reader reads, held to what it must never say.
  *
  * Reading a sentence back from the module that wrote it would hold the two to be the same and
- * neither to be right, so nothing here compares a word to itself. What is checked is the two
- * things a sentence can be wrong about whatever it says: that it carries none of our vocabulary
- * and no key of the game's, and that a count is spelled the way Polish spells one.
+ * neither to be right, so nothing here compares a word to itself. What is checked is what a
+ * sentence can be wrong about whatever it says: that it carries none of our vocabulary, no key of
+ * the game's and no English word, that it closes as the others of its kind close, and that a count
+ * is spelled the way Polish spells one.
  */
 
 import {
@@ -14,6 +15,7 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import {
     CARD_WORDS,
@@ -64,6 +66,7 @@ import {
     getWordsForChargedSkill,
     getWordsForDamageKind,
     getWordsForHealthSource,
+    getWordsForHelperAbsence,
     getWordsForNothing,
     getWordsForNoun,
     getWordsForOutcome,
@@ -101,10 +104,33 @@ import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
 import { PANEL_WINDOWS, STORAGE_CHOICES, TYPE_STEPS } from "#/src/ui/panel-choice.ts";
 import { PINNED_CASES, SIDE_RELATION, UNNAMED_END } from "#/src/ui/panel-content.ts";
 import { PANEL_NOUN, SCREEN_ORDER, SIDE_CHOICES } from "#/src/ui/panel-screen.ts";
-import { STANDING_TURN_STATE } from "#/src/ui/panel-helper.ts";
+import { HELPER_ABSENCE, STANDING_TURN_STATE } from "#/src/ui/panel-helper.ts";
 import { FROZEN_STATUS_BITS } from "#/frozen/status-bits.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
+
+/**
+ * How a kind of text closes, which tells a reader what it is: a sentence closes on a full stop, a
+ * lead-in on the colon that opens what follows, a label, a name or a hint on no mark at all, and
+ * a unit as its abbreviation is spelled, which is no punctuation.
+ */
+const ENDING = {
+    fullStop: "fullStop",
+    colon: "colon",
+    bare: "bare",
+    spelled: "spelled",
+} as const;
+type Ending = VocabularyWord<typeof ENDING>;
+
+/** One text the panel draws, the vocabulary it came from, and the way its kind closes. */
+interface Said {
+    source: string;
+    ending: Ending;
+    text: string;
+}
+
+/** What a sentence or a lead-in may close on, and so what a label may not. */
+const CLOSING_MARKS = ".:;,!?…";
 
 /** What a block may run to: a row per status the client names, and the rows beside them. */
 const TOOLTIP_ROWS_MAXIMUM = FROZEN_STATUS_BITS.bits.length + ROWS_BESIDE_THE_STATUSES;
@@ -145,6 +171,153 @@ const MARGONEM_CLIENT_KEYS = getUnmistakableKeys();
 const SAID_OUT_OF = 412;
 
 /**
+ * ⚠️ **Three tables hold sentences beside labels, so each key's ending is decided here**, and a key
+ * the module adds fails `deno check` until somebody says which it is. A hint shown on hover — a
+ * `title` — is a label: none of the panel's closes on a mark. A note under a figure, and what an
+ * empty list says, are sentences.
+ */
+const PANEL_WORD_ENDINGS: Record<keyof typeof PANEL_WORDS, Ending> = {
+    title: ENDING.bare,
+    withoutActor: ENDING.bare,
+    withoutTarget: ENDING.bare,
+    unknown: ENDING.bare,
+    unknownHowMany: ENDING.bare,
+    nothingYet: ENDING.fullStop,
+    noFightYet: ENDING.fullStop,
+    fightUnread: ENDING.fullStop,
+    keptUnread: ENDING.fullStop,
+    noSides: ENDING.bare,
+    fights: ENDING.bare,
+    backFromFights: ENDING.bare,
+    options: ENDING.bare,
+    backFromOptions: ENDING.bare,
+    storage: ENDING.bare,
+    typeSize: ENDING.bare,
+    windowSize: ENDING.bare,
+    resizeHint: ENDING.fullStop,
+    sizeOwn: ENDING.bare,
+    sizeDefault: ENDING.bare,
+    sizeReset: ENDING.bare,
+    resizeGrip: ENDING.bare,
+    ourSide: ENDING.bare,
+    theirSide: ENDING.bare,
+    withoutSide: ENDING.bare,
+    wholeFight: ENDING.bare,
+    openFights: ENDING.bare,
+    openOptions: ENDING.bare,
+    back: ENDING.bare,
+    shelfEmpty: ENDING.fullStop,
+    dealtTo: ENDING.bare,
+    takenFrom: ENDING.bare,
+    damageKind: ENDING.bare,
+    healthSource: ENDING.bare,
+    skills: ENDING.bare,
+    withoutKind: ENDING.bare,
+    restOfKinds: ENDING.bare,
+    outsideRanking: ENDING.bare,
+    outsideRow: ENDING.bare,
+    outsideNote: ENDING.fullStop,
+    restNote: ENDING.fullStop,
+    share: ENDING.bare,
+    shareOfFigure: ENDING.bare,
+    drag: ENDING.bare,
+    collapse: ENDING.bare,
+    expand: ENDING.bare,
+    saveFight: ENDING.bare,
+};
+const CARD_WORD_ENDINGS: Record<keyof typeof CARD_WORDS, Ending> = {
+    wholeFight: ENDING.bare,
+    raw: ENDING.bare,
+    blows: ENDING.bare,
+    blowsWithoutSkill: ENDING.bare,
+    skillUses: ENDING.bare,
+    turns: ENDING.bare,
+    turnsWithLost: ENDING.bare,
+    prevented: ENDING.bare,
+    blowsCritical: ENDING.bare,
+    blowsCriticalOffhand: ENDING.bare,
+    striking: ENDING.bare,
+    struck: ENDING.bare,
+    scope: ENDING.fullStop,
+    insideSection: ENDING.fullStop,
+    destroyed: ENDING.bare,
+    legendary: ENDING.bare,
+    legendaryHeld: ENDING.colon,
+    legendaryReached: ENDING.bare,
+    gesture: ENDING.bare,
+    gestureBack: ENDING.bare,
+    gestureBackAnywhere: ENDING.bare,
+    cut: ENDING.fullStop,
+};
+const HELPER_WORD_ENDINGS: Record<keyof typeof HELPER_WORDS, Ending> = {
+    title: ENDING.bare,
+    drag: ENDING.bare,
+    collapse: ENDING.bare,
+    expand: ENDING.bare,
+    now: ENDING.bare,
+    nothingHappens: ENDING.fullStop,
+    provocation: ENDING.bare,
+    castSeparator: ENDING.bare,
+    turnsLeft: ENDING.bare,
+    chargedSkill: ENDING.bare,
+};
+
+/**
+ * Words English has and Polish does not, none of which a Polish sentence may carry. ⚠️ **Not
+ * `a`, `i`, `do`, `no`, `by`, `on`, `to`, `we` or `was`**, each a Polish word as well, and not
+ * `panel`, which the defects open on. Over `captures/` on 2026-10-06 the game sent none of these
+ * but inside a key, in markup or in the redaction note, and no skill or map name carries one.
+ */
+const ENGLISH_WORDS = [
+    "the",
+    "and",
+    "of",
+    "is",
+    "not",
+    "with",
+    "for",
+    "from",
+    "this",
+    "that",
+    "it",
+    "are",
+    "be",
+    "or",
+    "has",
+    "have",
+    "will",
+    "can",
+    "damage",
+    "fight",
+    "heal",
+    "healing",
+    "health",
+    "turn",
+    "turns",
+    "unknown",
+    "none",
+    "total",
+    "side",
+    "player",
+    "dealt",
+    "taken",
+    "given",
+    "missing",
+    "failed",
+    "error",
+    "warning",
+    "attack",
+    "enemy",
+    "source",
+    "window",
+    "options",
+    "back",
+    "save",
+    "pinned",
+    "crit",
+];
+
+/**
  * Every table of words the module exports, walked for its values rather than named one by one.
  *
  * **Written as a record so each table carries its own name**, which is what the holder check at
@@ -171,6 +344,7 @@ const PANEL_NOUNS = Object.values(PANEL_NOUN);
 const TURN_STATES = Object.values(STANDING_TURN_STATE);
 const PANEL_OUTCOMES = Object.values(OUTCOME_RESULT);
 const CHARGED_STATES = Object.values(CHARGED_SKILL_STATE);
+const HELPER_ABSENCES = Object.values(HELPER_ABSENCE);
 
 /** The calendar the shelf's dates are counted over, which is nobody's constant to share. */
 const FIRST_MONTH = 1;
@@ -234,63 +408,97 @@ Deno.test("every word the panel says says something", () => {
 });
 
 function getSentences(): string[] {
-    const sentences = Object.values(PANEL_WORDS).map((words) => String(words));
+    return getSaid().map((said) => said.text);
+}
+
+/**
+ * Every text the panel draws, each with the vocabulary it came from and the way its kind closes.
+ * The checks above read the texts and the ending check reads the kinds, so a word reaching one
+ * reaches both.
+ */
+function getSaid(): Said[] {
+    const saids: Said[] = [];
+    const add = (source: string, ending: Ending, texts: readonly string[]) => {
+        for (const text of texts) saids.push({ source, ending, text });
+    };
+    for (const [key, ending] of Object.entries(PANEL_WORD_ENDINGS)) {
+        add(`PANEL_WORDS.${key}`, ending, [String(PANEL_WORDS[key as keyof typeof PANEL_WORDS])]);
+    }
+    for (const [key, ending] of Object.entries(CARD_WORD_ENDINGS)) {
+        add(`CARD_WORDS.${key}`, ending, [String(CARD_WORDS[key as keyof typeof CARD_WORDS])]);
+    }
+    for (const [key, ending] of Object.entries(HELPER_WORD_ENDINGS)) {
+        add(`HELPER_WORDS.${key}`, ending, [
+            String(HELPER_WORDS[key as keyof typeof HELPER_WORDS]),
+        ]);
+    }
     for (const noun of Object.values(COUNTED_NOUN_WORDS)) {
-        sentences.push(noun.one, noun.few, noun.many);
+        add("COUNTED_NOUN_WORDS", ENDING.bare, [noun.one, noun.few, noun.many]);
     }
     // What a half-named row says, for the same reason: the tables behind these are keyed and a
     // walk over `PANEL_WORDS` reaches none of them.
     for (const end of Object.values(UNNAMED_END)) {
-        sentences.push(getNoteForUnnamedEnd(end, PANEL_NOUN.damage));
-        sentences.push(getNoteForUnnamedEnd(end, PANEL_NOUN.healing));
+        add("UNNAMED_END_NOTES", ENDING.fullStop, [
+            getNoteForUnnamedEnd(end, PANEL_NOUN.damage),
+            getNoteForUnnamedEnd(end, PANEL_NOUN.healing),
+        ]);
     }
     for (const pinnedCase of PINNED_CASES) {
-        sentences.push(getWordsForPinnedStanding(pinnedCase));
-        sentences.push(getWordsForPinnedScope(pinnedCase));
+        add("PINNED_PLACING_NOTES", ENDING.fullStop, [getWordsForPinnedStanding(pinnedCase)]);
+        add("PINNED_SCOPE_NOTES", ENDING.fullStop, [getWordsForPinnedScope(pinnedCase)]);
     }
     // The same rows one level down, and the row no kind was stated for: keyed tables again.
     for (const metric of SCREEN_ORDER) {
-        sentences.push(getNoteForOpenedUnnamedStanding(metric) ?? "");
+        const note = getNoteForOpenedUnnamedStanding(metric) ?? "";
+        add("OPENED_UNNAMED_STANDING_NOTES", ENDING.fullStop, [note]);
     }
-    for (const noun of PANEL_NOUNS) {
-        sentences.push(getNoteForNoKind(noun));
-    }
+    for (const noun of PANEL_NOUNS) add("NO_KIND_NOTES", ENDING.fullStop, [getNoteForNoKind(noun)]);
     // The sentence each caveated figure owes, for the same reason: `CAVEAT_NOTES` is keyed by the
     // caveat and no walk over a table above reaches it.
-    for (const caveat of CAVEATS) sentences.push(getNoteForCaveat(caveat));
-    sentences.push(NEITHER_END_WORDS.label, NEITHER_END_WORDS.note);
+    for (const caveat of CAVEATS) add("CAVEAT_NOTES", ENDING.fullStop, [getNoteForCaveat(caveat)]);
+    add("NEITHER_END_WORDS.label", ENDING.bare, [NEITHER_END_WORDS.label]);
+    add("NEITHER_END_WORDS.note", ENDING.fullStop, [NEITHER_END_WORDS.note]);
     // ⚠️ **What the panel says it could not do**, which `DEFECT_WORDS` carries and its own
     // docblock cites **L3** for. `PANEL_WORDS` does not hold them and a walk over it reached
     // none: measured 2026-09-11 by putting `oth_dmg` into one, which the checks below read past.
     // The region kind takes a region, so every one of those is asked as well.
     for (const kind of Object.values(PANEL_DEFECT_KIND)) {
-        sentences.push(formatDefect(kind, null, 1));
+        add("formatDefect", ENDING.fullStop, [formatDefect(kind, null, 1)]);
         for (const region of Object.values(PANEL_REGION)) {
-            sentences.push(formatDefect(kind, region, 2));
+            add("formatDefect", ENDING.fullStop, [formatDefect(kind, region, 2)]);
         }
     }
-    sentences.push(...getSentencesFromSuspicions());
+    add("suspicions", ENDING.fullStop, getSentencesFromSuspicions());
     // ⚠️ **Every table the module keeps, and every word it hands out that a table does not.**
     // Measured 2026-09-18 by putting `oth_dmg` into the first worded value of every table in
     // `src/ui/panel-words.ts` and running this file: all but one lit, and the one that did not
-    // is `CLIENT_ID_BY_UNWORDED_KEY`, which `HOLDS_NO_WORD` excuses by name.
-    for (const table of Object.values(TABLES)) {
+    // is `CLIENT_ID_BY_UNWORDED_KEY`, which `HOLDS_NO_WORD` excuses by name. The two holding
+    // sentences beside labels are walked key by key above.
+    for (const [name, table] of Object.entries(TABLES)) {
+        if (table === CARD_WORDS) continue;
+        if (table === HELPER_WORDS) continue;
         const words = table instanceof Map ? [...table.values()] : Object.values(table);
-        for (const word of words) sentences.push(String(word));
+        add(name, ENDING.bare, words.map((word) => String(word)));
     }
     for (const [statistic, held] of DESTROYED_WORD_BY_KEY) {
-        sentences.push(held.name, held.unit, formatDestroyed(statistic, 12));
+        add("DESTROYED_WORD_BY_KEY", ENDING.bare, [held.name]);
+        add("DESTROYED_WORD_BY_KEY", ENDING.spelled, [held.unit, formatDestroyed(statistic, 12)]);
     }
-    sentences.push(STORE_REFUSED_ANSWER, STORE_MADE_ROOM_ANSWER);
-    sentences.push(EVERY_SLOT_PINNED_ANSWER, CHOICE_REFUSED_ANSWER);
-    sentences.push(MOVE_REFUSED_ANSWER, PIN_REFUSED_ANSWER);
-    sentences.push(...getSentencesFromChoices());
+    add("answers", ENDING.fullStop, [
+        STORE_REFUSED_ANSWER,
+        STORE_MADE_ROOM_ANSWER,
+        EVERY_SLOT_PINNED_ANSWER,
+        CHOICE_REFUSED_ANSWER,
+        MOVE_REFUSED_ANSWER,
+        PIN_REFUSED_ANSWER,
+    ]);
+    saids.push(...getSaidFromChoices());
     for (const region of Object.values(PANEL_REGION)) {
-        sentences.push(formatUndrawn(region));
+        add("formatUndrawn", ENDING.fullStop, [formatUndrawn(region)]);
     }
     // A word that says nothing where there is nothing to say is not a sentence: `held` is the
     // state with a turn to draw, and a shelf neither live nor ended has no word to stand under.
-    return sentences.filter((sentence) => sentence.length > 0);
+    return saids.filter((said) => said.text.length > 0);
 }
 
 /** Every sentence a suspicion is said in, the fight's and a row's both. */
@@ -315,46 +523,64 @@ function getSentencesFromSuspicions(): string[] {
 }
 
 /** Every word handed out per screen, side, noun, choice, state or ending. */
-function getSentencesFromChoices(): string[] {
-    const sentences: string[] = [];
+function getSaidFromChoices(): Said[] {
+    const saids: Said[] = [];
+    const add = (source: string, ending: Ending, texts: readonly string[]) => {
+        for (const text of texts) saids.push({ source, ending, text });
+    };
     for (const metric of SCREEN_ORDER) {
-        sentences.push(getWordsForNothing(metric));
-        sentences.push(getWordsForUnannounced(metric));
-        sentences.push(getDirectionWordsForMetric(metric));
-        sentences.push(getWordsForCardMetric(metric));
+        add("NOTHING_WORDS", ENDING.fullStop, [getWordsForNothing(metric)]);
+        add("UNANNOUNCED_WORDS", ENDING.bare, [getWordsForUnannounced(metric)]);
+        add("DIRECTION_WORDS", ENDING.bare, [getDirectionWordsForMetric(metric)]);
+        add("CARD_METRIC_WORDS", ENDING.bare, [getWordsForCardMetric(metric)]);
     }
-    for (const noun of PANEL_NOUNS) sentences.push(getWordsForNoun(noun));
-    for (const choice of SIDE_CHOICES) sentences.push(getWordsForSide(choice));
-    for (const choice of STORAGE_CHOICES) sentences.push(getWordsForStorage(choice));
-    for (const step of TYPE_STEPS) sentences.push(getWordsForTypeStep(step));
-    for (const choice of STORAGE_CHOICES) sentences.push(getWordsForStorageMeaning(choice));
-    for (const window of PANEL_WINDOWS) sentences.push(getWordsForWindow(window));
-    for (const state of TURN_STATES) sentences.push(getWordsForTurnState(state));
+    for (const noun of PANEL_NOUNS) add("NOUN_WORDS", ENDING.bare, [getWordsForNoun(noun)]);
+    for (const choice of SIDE_CHOICES) add("SIDE_WORDS", ENDING.bare, [getWordsForSide(choice)]);
+    for (const choice of STORAGE_CHOICES) {
+        add("STORAGE_WORDS", ENDING.bare, [getWordsForStorage(choice)]);
+        add("STORAGE_MEANING_WORDS", ENDING.fullStop, [getWordsForStorageMeaning(choice)]);
+    }
+    for (const step of TYPE_STEPS) add("TYPE_STEP_WORDS", ENDING.bare, [getWordsForTypeStep(step)]);
+    for (const window of PANEL_WINDOWS) {
+        add("WINDOW_WORDS", ENDING.bare, [getWordsForWindow(window)]);
+    }
+    for (const state of TURN_STATES) {
+        add("TURN_STATE_WORDS", ENDING.fullStop, [getWordsForTurnState(state)]);
+    }
+    // What the window beside the panel says where it draws no fight: the panel's own sentences,
+    // so they close as the panel's do.
+    for (const absence of HELPER_ABSENCES) {
+        add("HELPER_ABSENCE_WORDS", ENDING.fullStop, [getWordsForHelperAbsence(absence)]);
+    }
     for (const outcome of PANEL_OUTCOMES) {
-        sentences.push(getWordsForOutcome(outcome));
-        sentences.push(getWordsForShelfOutcome(outcome, false));
+        add("OUTCOME_WORDS", ENDING.bare, [getWordsForOutcome(outcome)]);
+        add("getWordsForShelfOutcome", ENDING.bare, [getWordsForShelfOutcome(outcome, false)]);
     }
-    sentences.push(getWordsForShelfOutcome(null, true));
-    sentences.push(getWordsForPin(true), getWordsForPin(false));
+    add("getWordsForShelfOutcome", ENDING.bare, [getWordsForShelfOutcome(null, true)]);
+    add("getWordsForPin", ENDING.bare, [getWordsForPin(true), getWordsForPin(false)]);
     // What is composed rather than held: a word spelled into a template is reached by no walk
     // over the tables above, and `tura` and `teraz` are both spelled that way.
-    sentences.push(formatTurnOrdinal(3), formatShelfTime(null, true));
+    add("formatTurnOrdinal", ENDING.bare, [formatTurnOrdinal(3)]);
+    add("formatShelfTime", ENDING.bare, [formatShelfTime(null, true)]);
     // Every month, because the twelve are spelled into the same template and a walk over the
     // tables reaches none of them either.
     for (let month = FIRST_MONTH; month <= MONTHS_IN_YEAR; month += 1) {
-        sentences.push(formatShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
+        const moment = { day: 1, month, hour: 0, minute: 0 };
+        add("formatShelfTime", ENDING.bare, [formatShelfTime(moment, false)]);
     }
-    sentences.push(formatSideCounts([4, 4], 2), formatShelfSize([4, 4]));
-    sentences.push(String(formatCardSubtitle("w", 120, SIDE_RELATION.reader)));
-    sentences.push(...getSentencesFromTooltip());
+    add("formatSideCounts", ENDING.bare, [formatSideCounts([4, 4], 2)]);
+    add("formatShelfSize", ENDING.bare, [formatShelfSize([4, 4])]);
+    const subtitle = formatCardSubtitle("w", 120, SIDE_RELATION.reader);
+    add("formatCardSubtitle", ENDING.bare, [String(subtitle)]);
+    add("presentTooltipRows", ENDING.bare, getSentencesFromTooltip());
     // ⚠️ **Both ends of a charge, because one of them hid behind the card.** `przerwane` reached
     // no check at all and `wykonane` passed as a tail of `Tury wykonane`, which is the shape the
     // holder check below no longer accepts (`develop ADR 0109`).
     for (const state of CHARGED_STATES) {
-        sentences.push(getWordsForChargedSkill(state));
-        sentences.push(formatChargedSkillSubtitle("Cios", state));
+        add("CHARGED_SKILL_WORDS", ENDING.bare, [getWordsForChargedSkill(state)]);
+        add("formatChargedSkillSubtitle", ENDING.bare, [formatChargedSkillSubtitle("Cios", state)]);
     }
-    return sentences;
+    return saids;
 }
 
 /**
@@ -705,6 +931,121 @@ Deno.test("no sentence carries a key of the game's", () => {
         }
     }
     assertEquals(wrong, [], "a key is how a message was assembled, not what happened in a fight");
+});
+
+/**
+ * ⚠️ **A full stop dropped from one sentence passed every check above**, and so did a sentence
+ * left in English: neither is a word of ours or a key of the game's (found 2026-10-06). Each kind
+ * closes one way, so a sentence closing unlike its kind is the one somebody got wrong.
+ */
+Deno.test("every text closes as the others of its kind do", () => {
+    const saids = getSaid();
+    for (const ending of Object.values(ENDING)) {
+        assert(saids.some((said) => said.ending === ending), `some text closes as ${ending} does`);
+    }
+    assertEquals(getEndingFaults(saids), [], "a sentence closes on its mark, and a label on none");
+});
+
+function getEndingFaults(saids: readonly Said[]): string[] {
+    const faults: string[] = [];
+    for (const said of saids) {
+        if (doesTextClose(said.text, said.ending)) continue;
+        faults.push(`${said.source}: "${said.text}" does not close as ${said.ending} does`);
+    }
+    return faults;
+}
+
+function doesTextClose(text: string, ending: Ending): boolean {
+    if (ending === ENDING.spelled) return true;
+    if (ending === ENDING.fullStop) return text.endsWith(".");
+    if (ending === ENDING.colon) return text.endsWith(":");
+    return !CLOSING_MARKS.includes(text.slice(-1));
+}
+
+Deno.test("no text carries an English word", () => {
+    const wrong: string[] = [];
+    for (const sentence of getSentences()) {
+        for (const word of getEnglishWords(sentence)) wrong.push(`${sentence} says ${word}`);
+    }
+    assertEquals(wrong, [], "the reader reads Polish, and a word left in English is lost on them");
+});
+
+/** The words of a text that are English, matched whole: `notatka` carries `not` and is none. */
+function getEnglishWords(text: string): string[] {
+    const words: string[] = [];
+    let word = "";
+    for (const character of `${text} `) {
+        // A letter is what has two cases, which takes in every Polish one and no digit or mark.
+        if (character.toLowerCase() !== character.toUpperCase()) {
+            word += character.toLowerCase();
+            continue;
+        }
+        if (ENGLISH_WORDS.includes(word)) words.push(word);
+        word = "";
+    }
+    return words;
+}
+
+/**
+ * The two readers above, each proved by a sample it must flag and a sample it must not. The real
+ * vocabularies are the larger sample of the second kind, and the two cases above read them.
+ */
+Deno.test("the ending reader flags a text closed unlike its kind, and passes one closed alike", () => {
+    const sample = (ending: Ending, text: string): Said => ({ source: "sample", ending, text });
+    assertEquals(
+        getEndingFaults([sample(ENDING.fullStop, "Nie było jeszcze walki")]),
+        ['sample: "Nie było jeszcze walki" does not close as fullStop does'],
+        "a sentence missing its full stop",
+    );
+    assertStrictEquals(
+        getEndingFaults([sample(ENDING.bare, "Walki.")]).length,
+        1,
+        "a label closed as a sentence",
+    );
+    assertStrictEquals(
+        getEndingFaults([sample(ENDING.bare, "Walki:")]).length,
+        1,
+        "or on any other mark",
+    );
+    assertStrictEquals(
+        getEndingFaults([sample(ENDING.colon, "Przez całą walkę")]).length,
+        1,
+        "a lead-in missing its colon",
+    );
+    assertEquals(
+        getEndingFaults([
+            sample(ENDING.fullStop, "Nie było jeszcze walki."),
+            sample(ENDING.bare, "Walki"),
+            sample(ENDING.bare, "Sprowokowany przez: Gracz 2 (2 tury)"),
+            sample(ENDING.colon, "Przez całą walkę:"),
+            sample(ENDING.spelled, "12 p.p."),
+        ]),
+        [],
+        "while each closed as its kind closes passes, a colon inside a label among them",
+    );
+});
+
+Deno.test("the English reader flags an English word, and no Polish one spelled alike", () => {
+    assertEquals(
+        getEnglishWords("Panel nie narysował the listy."),
+        ["the"],
+        "a word English has",
+    );
+    assertEquals(
+        getEnglishWords("Nie wiadomo, kto zadał damage — wiadomo tylko, kto je otrzymał."),
+        ["damage"],
+        "and one of the fight's own, closing on a mark",
+    );
+    assertEquals(
+        getEnglishWords("To nie on, a my — no i do was, by panel stał, i we wtorek też."),
+        [],
+        "while a Polish word English also spells is Polish",
+    );
+    assertEquals(
+        getEnglishWords("Notatka formy dla Andrzeja, Theodora i Isabeli."),
+        [],
+        "and an English word inside a Polish one is no word at all",
+    );
 });
 
 Deno.test("every word the module holds reaches the checks above, or says why it does not", () => {

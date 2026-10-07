@@ -23,6 +23,7 @@ import { NOTHING_SUSPECT, presentScreen, type ScreenContent } from "#/src/ui/pan
 import { PANEL_METRIC, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import { PANEL_DEFECT_KIND, PANEL_REGION } from "#/src/ui/panel-words.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
+import { GRIP_ATTRIBUTE } from "#/src/ui/panel-drag.ts";
 import {
     CardRefused,
     GestureDropped,
@@ -33,6 +34,7 @@ import {
 } from "#/src/ui/view-failure.ts";
 import {
     composeFakeDocument,
+    dragOnElement,
     type FakeElement,
     getElementsWithin,
     getTextsByClass,
@@ -44,6 +46,8 @@ import { tallyRecordedFight } from "#/tests/recorded-fights.ts";
 import { composeShownScreen } from "#/tests/shown-screen.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
+/** A screen the meter opens on, for the one test that opens it somewhere. */
+const VIEWPORT = { width: 1280, height: 900 };
 
 Deno.test("a press whose handler throws is a dropped gesture, and the next one lands", () => {
     const failures: ViewFailure[] = [];
@@ -246,6 +250,52 @@ Deno.test("a window that will not open where told stays on the sheet's corner, a
         ),
         [PANEL_WINDOW.meter],
         "and the window that did not open where it was told is named",
+    );
+});
+
+/**
+ * ⚠️ **A place the page would not take is not a place written.** The opening writes its style
+ * under the same guard as its reads; a style remembered as written when the page refused it would
+ * be skipped by the first drag that lands on the same place, and the window would stay on the
+ * sheet's corner with the drag believing it had moved it.
+ */
+Deno.test("a window whose place the page will not take opens on the corner, and is dragged", () => {
+    const failures: ViewFailure[] = [];
+    const document = composeFakeDocument();
+    let isRefusing = true;
+    const createElement = document.createElement;
+    document.createElement = (tag: string) => {
+        const created = createElement(tag);
+        const setAttribute = created.setAttribute;
+        created.setAttribute = (name: string, attributeValue: string) => {
+            if (isRefusing) {
+                if (name === "style") throw new RangeError("a style the page will not take");
+            }
+            setAttribute(name, attributeValue);
+        };
+        return created;
+    };
+    const panel = initTestView(document, {
+        onFailure: (failure) => failures.push(failure),
+        meterPlacement: { position: null, size: null, readViewport: () => VIEWPORT },
+    });
+    isRefusing = false;
+    const host = panel.element as FakeElement;
+    assertStrictEquals(host.attributes.get("style"), undefined, "the sheet's corner, unwritten");
+    assertEquals(
+        failures.map((failure) =>
+            failure instanceof WindowUnplaced ? failure.window : failure.name
+        ),
+        [PANEL_WINDOW.meter],
+        "and the window the page refused is named",
+    );
+    panel.renderWaiting(NOTHING_WAITING);
+    const bar = findMarked(host, GRIP_ATTRIBUTE);
+    dragOnElement(host, "pointerdown", bar, { clientX: 100, clientY: 20 });
+    dragOnElement(host, "pointermove", bar, { clientX: 100, clientY: 20 });
+    assertExists(
+        host.attributes.get("style"),
+        "a drag landing where the window was to open writes that place, the refused write unheld",
     );
 });
 
