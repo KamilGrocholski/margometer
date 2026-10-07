@@ -27,6 +27,8 @@ import type {
 import type { MargonemEngineHeroPort } from "#/src/ports/margonem-engine-hero.ts";
 import type { MargonemEnginePlacePort } from "#/src/ports/margonem-engine-place.ts";
 import {
+    CALLS_MAXIMUM,
+    CaptureCallsExceeded,
     commitCapture,
     createFightCapture,
     type FightCapture,
@@ -114,6 +116,7 @@ export function initLiveFight(options: LiveFightOptions): {
             const { record, isOpening } = executeLiveReading(
                 liveFight,
                 options,
+                DEFECT_KIND.reading,
                 { record: null, isOpening: false },
                 (): { record: PayloadRecord | null; isOpening: boolean } => {
                     const payloadRecord = readPayloadEnvelope(payload);
@@ -139,21 +142,35 @@ export function initLiveFight(options: LiveFightOptions): {
                 null,
                 () => readLiveMargonemEngineWarriors(liveFight, options),
             );
-            executeLiveStep(options, DEFECT_KIND.file, undefined, () => {
-                const messages = record === null ? [] : record.messages;
-                const call = {
-                    payload,
-                    messages,
-                    combatantsBefore: liveFight.snapshotBefore,
-                    combatantsAfter: snapshotAfter,
-                };
-                const prepared = prepareCapture(liveFight.capture, call, isOpening);
-                commitCapture(liveFight.capture, prepared);
-            });
+            // Capture the call. ⚠️ The shelf keeps the payloads the capture holds, so a call it did
+            // not take is a gap in the fight kept, and an opening it did not take would leave the
+            // last fight's calls under the next one.
+            const isCaptured = executeLiveReading(
+                liveFight,
+                options,
+                DEFECT_KIND.file,
+                false,
+                () => {
+                    const messages = record === null ? [] : record.messages;
+                    const call = {
+                        payload,
+                        messages,
+                        combatantsBefore: liveFight.snapshotBefore,
+                        combatantsAfter: snapshotAfter,
+                    };
+                    const prepared = prepareCapture(liveFight.capture, call, isOpening);
+                    commitCapture(liveFight.capture, prepared);
+                    return true;
+                },
+            );
+            if (!isCaptured) {
+                if (isOpening) liveFight.capture = createFightCapture();
+            }
             // Commit the record, or leave a defect where it will not prepare.
             const committed = record === null ? null : executeLiveReading(
                 liveFight,
                 options,
+                DEFECT_KIND.reading,
                 null,
                 (): PayloadCommitted | null => {
                     const prepared = preparePayload(liveFight.session, record, options.tables);
@@ -177,7 +194,7 @@ export function initLiveFight(options: LiveFightOptions): {
             if (committed?.hasOpened === true) {
                 // Open the fight: its moment, its place and who the reader is. None of the last
                 // fight's stands in, so the moment is read apart, before any step that can break.
-                const now = errors.attempt(() => options.clock.readNowMilliseconds());
+                const now = options.clock.readNowMilliseconds();
                 if (now instanceof errors.Caught) {
                     liveFight.openedAt = null;
                     liveFight.openedAtRefusal = now;
@@ -209,12 +226,21 @@ export function initLiveFight(options: LiveFightOptions): {
                         return;
                     }
                     // ⚠️ A gap mid-fight replays to figures that look right, so a fight read
-                    // past a refused payload is said not kept, once, rather than shelved.
+                    // past a refused payload is said not kept, once, rather than shelved; and so
+                    // is one whose capture stopped at its ceiling, which holds no close.
                     if (liveFight.payloadRefusal !== null) {
                         options.defects.add({
                             kind: DEFECT_KIND.keeping,
                             region: null,
                             failure: liveFight.payloadRefusal,
+                        });
+                        return;
+                    }
+                    if (liveFight.capture.isTruncated) {
+                        options.defects.add({
+                            kind: DEFECT_KIND.keeping,
+                            region: null,
+                            failure: new CaptureCallsExceeded(CALLS_MAXIMUM),
                         });
                         return;
                     }
@@ -256,19 +282,20 @@ function executeLiveStep<Value>(
 }
 
 /**
- * ⚠️ A reading step that broke an invariant leaves the same gap a refusal does, and a kept fight
- * with a gap is refused whole when the shelf replays it: so its first throw is held as the fight's
- * refusal too, and the close keeps nothing.
+ * ⚠️ A reading step, or the capture the shelf keeps from, that broke an invariant leaves the same
+ * gap a refusal does, and a kept fight with a gap is refused whole when the shelf replays it: so its
+ * first throw is held as the fight's refusal too, and the close keeps nothing.
  */
 function executeLiveReading<Value>(
     liveFight: LiveFight,
     options: LiveFightOptions,
+    kind: DefectKind,
     fallback: Value,
     step: () => Value,
 ): Value {
     const ran = errors.attempt(step);
     if (!(ran instanceof errors.Caught)) return ran;
-    options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: ran });
+    options.defects.add({ kind, region: null, failure: ran });
     liveFight.payloadRefusal ??= ran;
     return fallback;
 }

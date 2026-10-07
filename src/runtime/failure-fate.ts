@@ -12,6 +12,7 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import type { UnreadMessage } from "#/src/core/fight-decoder.ts";
 import type { PayloadRejected } from "#/src/core/fight-session.ts";
 import type { StoreFailure } from "#/src/ports/browser-store.ts";
+import type { CaptureCallsExceeded } from "#/src/ports/fight-capture.ts";
 import type { MargonemEngineFailure } from "#/src/ports/margonem-engine-battle.ts";
 import type { MargonemReadFailure } from "#/src/ports/margonem-value.ts";
 import type { EnvelopeFailure } from "#/src/ports/payload-envelope.ts";
@@ -27,6 +28,7 @@ export type RuntimeFailure =
     | MargonemEngineFailure
     | EnvelopeFailure
     | PayloadRejected
+    | CaptureCallsExceeded
     | UnreadMessage
     | StoreFailure
     | ShelfFailure
@@ -57,7 +59,7 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     MargonemEngineAbsent: FAILURE_FATE.byPlace,
     MargonemEngineBattleAbsent: FAILURE_FATE.byPlace,
     MargonemEngineMethodAbsent: FAILURE_FATE.defect,
-    MargonemEngineMethodUnwritable: FAILURE_FATE.defect,
+    MargonemEngineMethodUnwritable: FAILURE_FATE.byPlace,
     MargonemEngineAlreadyWrapped: FAILURE_FATE.standDown,
     SearchAbandoned: FAILURE_FATE.defect,
     WrapCovered: FAILURE_FATE.none,
@@ -70,6 +72,7 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     EventsExceeded: FAILURE_FATE.defect,
     PayloadsExceeded: FAILURE_FATE.defect,
     SkillsExceeded: FAILURE_FATE.defect,
+    CaptureCallsExceeded: FAILURE_FATE.defect,
     UnreadMessage: FAILURE_FATE.shownAsSuspect,
     StoreUnavailable: FAILURE_FATE.byPlace,
     StoreRefused: FAILURE_FATE.byPlace,

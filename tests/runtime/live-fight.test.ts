@@ -24,7 +24,13 @@ import {
 import { initMargonemEngineBattle } from "#/src/ports/margonem-engine-battle.ts";
 import type { MargonemEngineHeroPort } from "#/src/ports/margonem-engine-hero.ts";
 import type { MargonemEnginePlacePort } from "#/src/ports/margonem-engine-place.ts";
-import { commitCapture, createFightCapture, prepareCapture } from "#/src/ports/fight-capture.ts";
+import {
+    CALLS_MAXIMUM,
+    CaptureCallsExceeded,
+    commitCapture,
+    createFightCapture,
+    prepareCapture,
+} from "#/src/ports/fight-capture.ts";
 import type { MargonemClientBuildPort } from "#/src/ports/margonem-client-build.ts";
 import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.ts";
 import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
@@ -495,4 +501,70 @@ Deno.test("an opening the envelope refuses starts the next fight's gap, not the 
     const { live } = playInto(margonem, options, [{ init: 1 }, crowded, end, refused]);
     assert(live.payloadRefusal !== null, "the new fight opened on a refusal");
     assert(!(live.payloadRefusal instanceof CombatantsExceeded), "its own, not the last fight's");
+});
+
+Deno.test("a call the capture could not take leaves the fight unkept, said once at close", () => {
+    const margonem = composeMargonem([[], [], []]);
+    const { options, lines, keeper, defects } = composeOptions(margonem);
+    const unlisted = composeUnlistedPayload({ m: ["0;0;txt=b"] });
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const { live } = playInto(margonem, options, [{ init: 1 }, unlisted, end]);
+    assertStrictEquals(
+        composeFightView(live.session)?.events.length,
+        2,
+        "the reading lost nothing",
+    );
+    assertEquals(lines, [DEFECT_KIND.file, DEFECT_KIND.keeping], "the file's gap, then no keeping");
+    assertEquals(keeper.getFights(), [], "and the fight was put on no shelf");
+    const keeping = defects.getCounts().find((row) => row.kind === DEFECT_KIND.keeping);
+    const file = defects.getCounts().find((row) => row.kind === DEFECT_KIND.file);
+    assertInstanceOf(keeping?.first, errors.Caught, "the break, carried to the close");
+    assertStrictEquals(keeping?.first, file?.first, "and the same one");
+});
+
+/** A payload the envelope reads, whose keys the capture cannot list: a throw inside our step. */
+function composeUnlistedPayload(payload: Record<string, unknown>): Record<string, unknown> {
+    return new Proxy(payload, {
+        ownKeys() {
+            throw new TypeError("a payload whose keys cannot be listed");
+        },
+    });
+}
+
+Deno.test("an opening the capture could not take leaves none of the last fight's calls", () => {
+    const margonem = composeMargonem([[], [], [], []]);
+    const { options } = composeOptions(margonem);
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const unlisted = composeUnlistedPayload({ init: 1 });
+    const { live } = playInto(margonem, options, [{ init: 1 }, end, unlisted, {
+        m: ["0;0;txt=b"],
+    }]);
+    assertStrictEquals(live.capture.calls.length, 1, "the file holds the new fight's call alone");
+});
+
+/** No recording comes near the ceiling: 126 kept calls at most over `captures/`, 2026-10-07. */
+Deno.test("a fight whose capture stopped at its ceiling is not kept, and that is said", () => {
+    const calls = CALLS_MAXIMUM + 1;
+    const margonem = composeMargonem(new Array(calls).fill([]));
+    const { options, lines, keeper, defects } = composeOptions(margonem);
+    const steps = Array.from({ length: CALLS_MAXIMUM - 1 }, () => ({ m: ["0;0;txt=a"] }));
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const { live } = playInto(margonem, options, [{ init: 1 }, ...steps, end]);
+    assertStrictEquals(live.capture.calls.length, CALLS_MAXIMUM, "the file stopped at its ceiling");
+    assertStrictEquals(composeFightView(live.session)?.isOver, true, "the fight read to its end");
+    assertEquals(keeper.getFights(), [], "and was put on no shelf, its close unrecorded");
+    assertEquals(lines, [DEFECT_KIND.keeping], "which is said");
+    const keeping = defects.getCounts().find((row) => row.kind === DEFECT_KIND.keeping);
+    assertInstanceOf(keeping?.first, CaptureCallsExceeded, "as the ceiling");
+    assertStrictEquals(keeping.first.maximum, CALLS_MAXIMUM, "naming it");
+});
+
+Deno.test("a fight whose capture closes on its ceiling is kept", () => {
+    const margonem = composeMargonem(new Array(CALLS_MAXIMUM).fill([]));
+    const { options, keeper } = composeOptions(margonem);
+    const steps = Array.from({ length: CALLS_MAXIMUM - 2 }, () => ({ m: ["0;0;txt=a"] }));
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const { live } = playInto(margonem, options, [{ init: 1 }, ...steps, end]);
+    assertStrictEquals(live.capture.calls.length, CALLS_MAXIMUM, "a file at its ceiling");
+    assertStrictEquals(keeper.getFights().length, 1, "holding the close, is kept");
 });

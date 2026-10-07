@@ -199,6 +199,22 @@ Deno.test("a fight kept at a fraction of a moment is dropped, and one at a whole
     assertEquals(readOpenedAt(composeStoreHolding(huge)), [], "and one past whole numbers' reach");
 });
 
+/** The shelf writes no second fight under one moment; a store it did not write may hold one. */
+Deno.test("a second fight under a moment already read is one nobody can read", () => {
+    const twice = '{"version":3,"fights":[{"openedAt":4,"payloads":[{"init":1}]},' +
+        '{"openedAt":4,"payloads":[{"init":1},{"endBattle":1}]},' +
+        '{"openedAt":5,"payloads":[{"init":1}]}]}';
+    const opened = openShelf(composeStoreHolding(twice));
+    assert(!(opened instanceof Error), "the shelf reads back");
+    assertEquals(
+        opened.fights.map((fight) => fight.openedAt),
+        [4, 5],
+        "the first under each moment",
+    );
+    assertStrictEquals(opened.fights[0]?.payloads.length, 1, "and not the second written under it");
+    assertStrictEquals(opened.fightsUnreadable, 1, "which is counted as not read back");
+});
+
 Deno.test("the shelf holds its stated maximum, oldest dropped first, and says which went", () => {
     const store = initMemoryStore();
     const shelf = keepAll(

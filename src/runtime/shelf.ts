@@ -211,6 +211,12 @@ export function openShelf(store: KeyValueStore): ShelfOpened | ShelfFailure {
                 fight = null;
                 break readFight;
             }
+            // A moment keys one row, and the shelf writes no second fight under it: one read twice
+            // would share the first one's figures, and a pin on it would hold both.
+            if (fights.some((keptFight) => keptFight.openedAt === openedAt)) {
+                fight = null;
+                break readFight;
+            }
             const payloads = getListField(storedFight, FIGHT_FIELDS, "payloads", CALLS_MAXIMUM);
             if (payloads instanceof Error) {
                 fight = null;

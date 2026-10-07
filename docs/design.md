@@ -231,7 +231,7 @@ export interface BrowserFrameScheduler {
     ): FrameHandle | errors.Caught;
 }
 export interface FrameHandle {
-    cancel(): void;
+    cancel(): void | errors.Caught;
 }
 /**
  * The page's `setInterval`, for the search for the engine (§10.1). The step is guarded where it is
@@ -980,7 +980,9 @@ onPayload(payload) ─ errors.attempt:
    readPayloadEnvelope     an opening, refused or not, clears the refusal the fight held;
                            a failure → a "reading" defect, and the fight's first refusal held
    readMargonemEngineWarriorSnapshot     after the original → snapshotAfter | null
-   prepareCapture          → commitCapture: the call kept or counted, beside the session's payload
+   prepareCapture          → commitCapture: the call kept or counted, beside the session's payload;
+                           assertion → a "file" defect, and the fight's first refusal held; an
+                                 opening it did not take starts the capture anew
    preparePayload          a value → commitPayload → unread counted (suspect)
                                  hasOpened → the moment, read on its own under errors.attempt;
                                    the place and the reader reset, then read; the screen
@@ -988,12 +990,15 @@ onPayload(payload) ─ errors.attempt:
                                  hasClosed → no moment: a "keeping" defect, and nothing kept;
                                    a refusal held: a "keeping" defect carrying it, and nothing
                                    kept, because a gap replays to figures that look right;
+                                   a capture stopped at its ceiling: a "keeping" defect
+                                   (`CaptureCallsExceeded`), and nothing kept;
                                    else ShelfKeeper.keep → the shelf's answers; then a chosen
                                    fight the shelf no longer holds is cleared
                                    (resetScreenFightDropped)
                            a failure → a bound the options state: a "reading" defect, and the
                                  fight's first refusal held
-                           assertion → a "reading" defect; the session untouched
+                           assertion → a "reading" defect, and the fight's first refusal
+                                 held; the session untouched
    markStale               the first mark asks for a frame
 end: no DOM; cost bounded by the message count; a JSON copy only of a call thinning keeps
 ```
@@ -1040,6 +1045,8 @@ goes without a mark.
 | `hasJoinedInProgress` (data, not a failure)     | `shown-as-suspect`     | "joined in progress"                                   |
 | `EnvelopeFailure`                               | `defect` "reading"     | the defects section: what could not be done, how often |
 | `EnvelopeFailure`, `PayloadRejected` at a close | `defect` "keeping"     | the fight read on live, and not kept                   |
+| `Caught` reading or capturing, at a close       | `defect` "keeping"     | as above                                               |
+| `CaptureCallsExceeded`                          | `defect` "keeping"     | as above: a capture holding no close is not kept       |
 | `Caught`                                        | `defect` of its step   | as above; one console line per kind                    |
 | `Caught` reading the page's state               | `shown-as-unknown`     | our word instead of the game's, and no defect          |
 | `FiguresDisagreed`                              | `defect` "figures"     | as above                                               |
@@ -1071,15 +1078,16 @@ goes without a mark.
 | `MargonemEngineMethodUnwritable` on a detach    | `none`                 | returned by `deinit`, which only a test calls          |
 | `Caught` from the search's own report           | console line           | nothing on the panel; one console line, the first time |
 | `Caught` cancelling the search's timer          | console line           | a search done, its timer ticking; one console line     |
+| `Caught` cancelling the frame                   | console line           | a frame that finds nothing to do; one console line     |
 | `Caught` from a clock that will not state now   | `defect` "keeping"     | at a fight's close: the fight is not kept              |
 | `Caught` from a clock, on a handover            | `defect` "file"        | no file                                                |
 
 A class `FAILURE_FATES` marks `by-place` — `Caught`, the three of `StoreFailure`,
-`MargonemEngineAbsent` and `…BattleAbsent` — is met in places that do different things with it, so
-its fate is the row of the place it was met in, above. A class it marks `none` leaves no mark
-wherever it is met, by design: `WrapCovered` is met only by a detach, which only a test calls, and
-`MargonemEngineWarriorsAbsent` is a board with nobody on it, which the file and the tooltip both
-take as empty.
+`MargonemEngineAbsent`, `…BattleAbsent` and `MargonemEngineMethodUnwritable` — is met in places that
+do different things with it, so its fate is the row of the place it was met in, above. A class it
+marks `none` leaves no mark wherever it is met, by design: `WrapCovered` is met only by a detach,
+which only a test calls, and `MargonemEngineWarriorsAbsent` is a board with nobody on it, which the
+file and the tooltip both take as empty.
 
 ### 10.6 Where a broad catch stands
 

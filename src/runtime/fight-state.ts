@@ -51,14 +51,15 @@ export function tallyFightState(view: FightView): FightState {
     return { view, figures };
 }
 
-/** Null where the kept payloads opened no fight, which is no fight to stand on. */
 export function replayKeptFight(
     fight: KeptFight,
     tables: DecoderTables,
     options: SessionOptions,
-): KeptFightState | null | ReplayFailure {
+): KeptFightState | ReplayFailure {
     assert(fight.payloads.length > 0, "a fight kept was kept from something");
-    return replayFightPayloads(fight.payloads, tables, options);
+    const replayed = replayFightPayloads(fight.payloads, tables, options);
+    assert(replayed !== null, "a payload replayed is a fight to stand on");
+    return replayed;
 }
 
 /**
