@@ -183,17 +183,18 @@ in its section so the parts add up to the figure over them, and the two screens 
 
 **On the damage screens it closes into `Zwykły cios`**, which takes a place among the rows above it
 (`develop ADR 0079`) — it holds the blows the game numbered a turn for and named no skill to, and
-that is a thing the game names. It is also the one row of a list wearing the caveat mark, because
-what the game names there is that the blows landed and not what they were dealt with
-(`develop ADR 0089`). It holds nothing else (`develop ADR 0080`): health that went out under a key,
-without a blow carrying it, stands under that key here as it does on healing. Under `damageDealt`
-that row also carries how many blows — the question a plain attack raises, and a number the figure
-alone cannot state. The count is that screen's alone: the protocol states no number of anything
-against one opponent rather than another, and on `damageTaken` the announcement was somebody else's,
-so a count read off the reader's own row would be their own swings under somebody else's heading.
-**On the healing screens nothing closes at all**: health that moved outside an announcement still
-moved under a key the game named, so the section lists those keys as `source` rows. `DESIGN.md` owns
-that rule; `docs/protocol-keys.md` owns what each key means.
+that is a thing the game names. It wears the caveat mark, because what the game names there is that
+the blows landed and not what they were dealt with (`develop ADR 0089`). The one other row wearing
+it is a kind naming several elements, whose part the game states once for the whole blow (ADR 0045).
+`Zwykły cios` holds nothing else (`develop ADR 0080`): health that went out under a key, without a
+blow carrying it, stands under that key here as it does on healing. Under `damageDealt` that row
+also carries how many blows — the question a plain attack raises, and a number the figure alone
+cannot state. The count is that screen's alone: the protocol states no number of anything against
+one opponent rather than another, and on `damageTaken` the announcement was somebody else's, so a
+count read off the reader's own row would be their own swings under somebody else's heading. **On
+the healing screens nothing closes at all**: health that moved outside an announcement still moved
+under a key the game named, so the section lists those keys as `source` rows. `DESIGN.md` owns that
+rule; `docs/protocol-keys.md` owns what each key means.
 
 ## An announcement is kept on the row that made it
 

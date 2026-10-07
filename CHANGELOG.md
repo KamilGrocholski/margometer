@@ -45,7 +45,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — W „Typie obrażeń” nie ma już absorpcji ani absorpcji magicznej, bo to, co przyjęła na
   siebie absorpcja, liczy się do obrażeń, które zatrzymała, na przykład do zimna, a gdy gra nie
   mówi, które z kilku obrażeń ciosu przyjęła, wiersz nazywa je razem, na przykład „zimno lub
-  błyskawice”.
+  błyskawice”, a znaczek przy nim wyjaśnia w dymku, dlaczego nie wiadomo dokładniej.
 - **Poprawka** — Gdy gra przestanie przyjmować dopiski panelu w dymkach postaci, panel o tym mówi,
   zamiast po cichu ich nie pokazywać.
 - **Poprawka** — Dymek postaci w walce nie pokazuje już dwa razy ciosu specjalnego, który ładuje:

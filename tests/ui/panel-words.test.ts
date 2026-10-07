@@ -56,6 +56,7 @@ import {
     formatUnplacedHealSuspicion,
     formatUses,
     formatWholeUngrouped,
+    getCaveatForKind,
     getCaveatForUnannounced,
     getDirectionWordsForMetric,
     getNoteForCaveat,
@@ -1697,6 +1698,12 @@ Deno.test("every element a pool takes from is one the column has a word for", ()
             assertExists(ELEMENT_WORD_BY_KEY.get(element), `${defence}: ${element} is worded`);
         }
     }
+});
+
+Deno.test("a kind naming several elements owes the sentence, and one naming one does not", () => {
+    assertStrictEquals(getCaveatForKind("dmgc|dmgl"), CAVEAT.undivided, "several elements");
+    assertStrictEquals(getCaveatForKind("dmgc"), null, "one element");
+    assertStrictEquals(getCaveatForKind("injure"), null, "a key health went out under");
 });
 
 Deno.test("a pool's part the blow does not place is said as one kind or another", () => {

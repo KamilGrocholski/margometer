@@ -41,10 +41,11 @@ mechanism. The candidates are read off the raw half, because an element a pool t
 from the applied half.
 
 **Where the blow carried several of the pool's elements, the part stands under all of them at once,
-said as one or another: `zimno lub błyskawice`.** The protocol states one figure per pool. A row
-that names every candidate states everything it says, and claims no element it does not. Where none
-of the pool's elements rode the blow, the part stands under every one of them, since it took from
-one of those all the same. No recording holds that case yet.
+said as one or another: `zimno lub błyskawice`.** The protocol states one figure per pool, and why
+no split of it can be recovered is `docs/protocol-keys.md`'s, at `-absorbm`. A row that names every
+candidate states everything it says, and claims no element it does not. Where none of the pool's
+elements rode the blow, the part stands under every one of them, since it took from one of those all
+the same. No recording holds that case yet.
 
 **The figures do not move.** `Zadane`, `Otrzymane`, the hardest blow, the cuts by the other end and
 by skill, and the lines of what a pool took under `Zadane` and `Otrzymane` stay as ADR 0012 drew

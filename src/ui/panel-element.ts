@@ -156,6 +156,7 @@ import {
     formatUndrawn,
     formatUses,
     formatWholeUngrouped,
+    getCaveatForKind,
     getCaveatForUnannounced,
     getNoteForCaveat,
     getNoteForNoKind,
@@ -1793,6 +1794,7 @@ function renderListLevel(
                     figure,
                     share,
                     key: getKeyForNamedPart(CARD_KEY_PLACE.pairKinds, openedPart),
+                    caveat: getCaveatForNamedPart(openedPart, shown.metric),
                 };
                 list.append(
                     renderRow(
@@ -3026,9 +3028,11 @@ function getKeyForNamedPart(where: CardKeyPlace, openedPart: OpenedPart): string
 /**
  * What a part row owes, asked wherever one is drawn: the same row stands on two levels, and a
  * caveat the deeper one drops leaves a reader at the bottom of the drill with no ring and no
- * sentence (`develop ADR 0089`). Every other kind of part names what it was, so none owes one.
+ * sentence (`develop ADR 0089`). A kind owes one where it names several elements; every other kind
+ * of part names what it was, so none owes one.
  */
 function getCaveatForNamedPart(openedPart: OpenedPart, metric: PanelMetric): Caveat | null {
+    if (openedPart.kind === OPENED_PART.element) return getCaveatForKind(openedPart.element);
     if (openedPart.kind !== OPENED_PART.plain) return null;
     return getCaveatForUnannounced(getNounForMetric(metric));
 }
@@ -3124,14 +3128,15 @@ function renderElementSection(
     const noun = getNounForMetric(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
     for (const [rowIndex, row] of cut.rows.entries()) {
+        const openedPart = { kind: OPENED_PART.element, element: row.element };
         const card = {
             register: stated.register,
             key: `kind:${row.element}`,
             figure: stated.figure,
             share,
             notes: unnamedNotes,
+            caveat: getCaveatForNamedPart(openedPart, stated.metric),
         };
-        const openedPart = { kind: OPENED_PART.element, element: row.element };
         list.append(
             renderRow(
                 document,

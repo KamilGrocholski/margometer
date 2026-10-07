@@ -30,14 +30,16 @@ export interface CountedNoun {
 /**
  * Every figure whose label names more than the figure counts: a closed set, so a card's sentences
  * are bounded (S11), in the order they stand. The row closing a damage section carries the third,
- * which is why the name is not the card's (N9). `Ciosy` has none: a `+swing` is one blow, its
- * further targets riding the same message as damage against a name (`docs/protocol-keys.md`), so
- * the count names what it counts (`develop ADR 0088`, `0089`).
+ * which is why the name is not the card's (N9), and a kind naming several elements the fourth (ADR
+ * 0045). `Ciosy` has none: a `+swing` is one blow, its further targets riding the same message as
+ * damage against a name (`docs/protocol-keys.md`), so the count names what it counts
+ * (`develop ADR 0088`, `0089`).
  */
 export const CAVEAT = {
     reduction: "reduction",
     turns: "turns",
     unannounced: "unannounced",
+    undivided: "undivided",
 } as const;
 export type Caveat = VocabularyWord<typeof CAVEAT>;
 
@@ -451,13 +453,16 @@ export const CARD_WORDS = {
  * two numbers, and `z tych liczb` voids every subtraction instead of forbidding one. `turns` is
  * written to 60 characters, so it wraps to two lines of the card and not three. ⚠️ `unannounced`
  * says the game names no skill there, and not whether our reading missed one: that half is ours,
- * and `develop:docs/unannounced-damage.md` carries it.
+ * and `develop:docs/unannounced-damage.md` carries it. `undivided` says the game states one figure
+ * for the whole blow, which is why the row names more than one kind (`docs/protocol-keys.md`).
  */
 const CAVEAT_NOTES: Record<Caveat, string> = {
     reduction:
         "Pancerza ani odporności gra nie podaje, więc z tych liczb nie wyliczysz całej redukcji.",
     turns: "Gra nie podaje, ile tur ktoś dostał, tylko co w nich zrobił.",
     unannounced: "Gra nie mówi, czym te ciosy zadano — wiadomo tylko, że padły.",
+    undivided:
+        "Absorpcję gra podaje jedną liczbą na cały cios, więc nie wiadomo, ile z niej przypada na który typ.",
 };
 
 /**
@@ -1004,6 +1009,12 @@ export function getNoteForNoKind(noun: PanelNoun): string {
 
 export function getCaveatForUnannounced(noun: PanelNoun): Caveat | null {
     return UNANNOUNCED_CAVEATS[noun];
+}
+
+/** A kind that names more than one element is a pool's part the blow did not place (ADR 0045). */
+export function getCaveatForKind(kind: string): Caveat | null {
+    if (!kind.includes(KIND_ELEMENTS_SEPARATOR)) return null;
+    return CAVEAT.undivided;
 }
 
 export function getWordsForPinnedStanding(pinnedCase: PinnedCase): string {

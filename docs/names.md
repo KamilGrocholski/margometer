@@ -154,6 +154,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getCardLinesForCharacters` — `src/ui/panel-element.ts`
 - `getCardWidthAvailable` — `src/ui/panel-look.ts`
 - `getCardWidthForColumns` — `src/ui/panel-look.ts`
+- `getCaveatForKind` — `src/ui/panel-words.ts`
 - `getCaveatForNamedPart` — `src/ui/panel-element.ts`
 - `getCaveatForUnannounced` — `src/ui/panel-words.ts`
 - `getCellsBeforeMarks` — `tests/ui/panel-element.test.ts`
@@ -4742,6 +4743,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FILES_MAXIMUM` — `tests/source-tree.ts`
 - `FILE_SUFFIXES` — `tests/repository/names.test.ts`
 - `FILL_GROUNDS` — `tests/ui/panel-look.test.ts`
+- `FIRE_AND_COLD_DEALER_ID` — `tests/ui/panel-element.test.ts`
 - `FIRST` — `tests/runtime/defect-ledger.test.ts`
 - `FIRST_MONTH` — `tests/ui/panel-words.test.ts`
 - `FIRST_OF_A_PAIR` — `tests/runtime/margometer-runtime.test.ts`
@@ -4797,6 +4799,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `HEX_COLOUR_LENGTH` — `tests/ui/panel-look.test.ts`
 - `HEX_DIGITS` — `tests/ui/panel-look.test.ts`
 - `HILDUR` — in 13 files: `tests/`
+- `HILDUR_ID` — `tests/ui/panel-element.test.ts`
 - `HILDUR_NAME` — `tests/tools/card-height.test.ts`
 - `HISTORY_MARK` — `tests/repository/cited-paths.test.ts`
 - `HISTORY_SPLIT` — `tests/repository/cited-paths.test.ts`
@@ -7847,6 +7850,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isTick` — `tests/core/wound-rule.test.ts`
 - `isTold` — `tests/runtime/carried-tooltip.test.ts`
 - `isTop` — `tests/repository/name-register.test.ts`
+- `isUndivided` — `tests/ui/panel-element.test.ts`
 - `isWrite` — `tests/simulation.ts`
 - `items` — `tests/repository/declaration-order.test.ts`
 - `joined` — `tests/core/fight-session.test.ts`, `tests/runtime/carried-tooltip.test.ts`,
@@ -8490,7 +8494,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `sightings` — `tests/repository/name-register.test.ts`
 - `signals` — `tests/ui/panel-look.test.ts`
 - `silent` — in 5 files: `tests/`
-- `single` — `tests/ui/card-window.test.ts`
+- `single` — `tests/ui/card-window.test.ts`, `tests/ui/panel-element.test.ts`
 - `singleImported` — `tests/repository/single-importer.test.ts`
 - `singleWidth` — `tests/ui/card-window.test.ts`
 - `sinkThrows` — `tests/ports/browser-file.test.ts`
@@ -8729,6 +8733,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `underway` — `tests/tools/panel-shots.test.ts`, `tests/ui/helper-window.test.ts`,
   `tests/ui/panel-helper.test.ts`
 - `undisputed` — `tests/tools/turn-reading.test.ts`
+- `undivided` — `tests/ui/panel-element.test.ts`
 - `undrawn` — `tests/ui/view-failure.test.ts`
 - `undressed` — `tests/ui/panel-element.test.ts`
 - `unexpected` — `tests/e2e/panel-fixture.ts`
@@ -11702,6 +11707,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `typeSize` — `src/ui/panel-words.ts`
 - `typeStep` — `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`, `src/ui/panel-screen.ts`
 - `unannounced` — `src/ui/panel-words.ts`
+- `undivided` — `src/ui/panel-words.ts`
 - `undrawn` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`, `src/ui/view-failure.ts`
 - `unfold` — `src/ui/panel-look.ts`
 - `unit` — `src/ui/panel-words.ts`
@@ -13088,7 +13094,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `port` — `tests/tools/panel-giving-way.test.ts`, `tests/tools/preview-server.test.ts`
 - `ports` — `tests/runtime-world.ts`
 - `position` — in 5 files: `tests/`
-- `prefix` — in 6 files: `tests/`
+- `prefix` — in 7 files: `tests/`
 - `pressed` — `tests/ui/helper-window.test.ts`
 - `presses` — `tests/e2e/panel-crawler.ts`
 - `prevented` — in 9 files: `tests/`
@@ -13532,7 +13538,7 @@ Each `as const` object of a module, by its keys.
   `skillUses`, `turns`, `turnsWithLost`, `prevented`, `blowsCritical`, `blowsCriticalOffhand`,
   `striking`, `struck`, `scope`, `insideSection`, `destroyed`, `legendary`, `legendaryHeld`,
   `legendaryReached`, `gesture`, `gestureBack`, `gestureBackAnywhere`, `cut`
-- `CAVEAT` — `src/ui/panel-words.ts`: `reduction`, `turns`, `unannounced`
+- `CAVEAT` — `src/ui/panel-words.ts`: `reduction`, `turns`, `unannounced`, `undivided`
 - `CAVEAT_LETTER` — `src/ui/panel-look.ts`: `clearPixels`, `gapPixels`, `stemWidthPixels`
 - `CLASS` — `src/ui/panel-look.ts`: `title`, `titleVersion`, `control`, `controlLead`, `frame`,
   `folded`, `meter`, `slot`, `header`, `headerLine`, `headerPlace`, `headerPlaceName`,
@@ -14890,6 +14896,7 @@ suite's material.
 - `"suspicions"` — `PANEL_REGION`
 - `"turns"` — `CAVEAT`
 - `"unannounced"` — `CAVEAT`
+- `"undivided"` — `CAVEAT`
 
 ### `src/ui/view-failure.ts`
 

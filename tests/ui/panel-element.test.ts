@@ -13,7 +13,7 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
-import { tallyFightStatistics } from "#/src/core/fight-statistics.ts";
+import { KIND_ELEMENTS_SEPARATOR, tallyFightStatistics } from "#/src/core/fight-statistics.ts";
 import { isOneOf } from "#/libs/vocabulary.ts";
 import {
     PANEL_WINDOW,
@@ -47,6 +47,7 @@ import {
     getNounForMetric,
     getWordsForMetric,
     OPENED_PART,
+    PANEL_METRIC,
     type PanelMetric,
     type PanelSideChoice,
     presentDirectionStrips,
@@ -56,6 +57,7 @@ import {
 } from "#/src/ui/panel-screen.ts";
 import {
     CARD_WORDS,
+    CAVEAT,
     CHOICE_REFUSED_ANSWER,
     FIGHT_CARD_WORDS,
     formatCardSubtitle,
@@ -108,6 +110,9 @@ import { getDeclaration, getRuleBody } from "#/tests/style-sheet.ts";
 const SOMEWHERE_DOWN = 240;
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
+/** `HILDUR`'s one NPC, and a mage whose every blow into its magical pool burned and froze at once. */
+const HILDUR_ID = -10000249;
+const FIRE_AND_COLD_DEALER_ID = 469657;
 /** Whose row on _leczenie dane_ opens onto a skill that reached somebody else. */
 const HEALER = 469657;
 /**
@@ -3837,12 +3842,14 @@ Deno.test("a row closing a pair says what it says one level up, and its neighbou
             (row) => row.attributes.get("data-card")?.startsWith("pair-") === true,
         );
         const closing = rows.find((row) => row.attributes.get("data-card") === "pair-skill:plain");
-        // Every other part of a pair names what it was, so a mark on one would point at nothing.
+        // Every other part of a pair names what it was, so a mark on one would point at nothing,
+        // but for a kind naming several elements, which owes a sentence of its own.
         for (const row of rows) {
             if (row === closing) continue;
+            const isUndivided = row.attributes.get("data-card")?.includes(KIND_ELEMENTS_SEPARATOR);
             assertStrictEquals(
                 row.children.filter((cell) => cell.className === CLASS.rowCaveat).length,
-                0,
+                isUndivided === true ? 1 : 0,
                 `${metric}: a part the game named wears no mark`,
             );
         }
@@ -3863,6 +3870,58 @@ Deno.test("a row closing a pair says what it says one level up, and its neighbou
         );
     }
     assert(drawn > 0, "a screen of this fight drew the row, so the walk above read one");
+});
+
+/**
+ * The game states a pool's part as one figure per blow, so a kind naming several elements is the
+ * one kind row that names more than its figure counts (ADR 0045). Both levels draw it, and on
+ * both a row of one element must stay bare: a mark on every kind would point at nothing.
+ */
+Deno.test("a kind naming several elements wears the mark, and its card says why", () => {
+    const metric = PANEL_METRIC.damageTaken;
+    const note = getNoteForCaveat(CAVEAT.undivided);
+    const { reading, statistics, roster } = readPinnedFight(metric, "everyone");
+    const drill = presentOpenedLevel(statistics, roster, metric, HILDUR_ID);
+    assertExists(drill, "the NPC's row opens");
+    const pair = presentPairLevel(statistics, roster, metric, HILDUR_ID, FIRE_AND_COLD_DEALER_ID);
+    assertExists(pair, "and so does what one mage dealt it");
+    const levels = [
+        { opened: drill, pair: null, prefix: "kind:" },
+        { opened: drill, pair, prefix: "pair-kinds-kind:" },
+    ];
+    for (const level of levels) {
+        const document = composeFakeDocument();
+        const panel = initTestView(document);
+        panel.render({ ...composeShownScreen(reading, metric), ...level });
+        const host = panel.element as FakeElement;
+        // Rows alone: the card window beside the list carries the same key on nodes of its own.
+        const rows = getElementsWithin(host).filter((row) => {
+            if (!row.className.split(" ").includes(CLASS.row)) return false;
+            return row.attributes.get("data-card")?.startsWith(level.prefix) === true;
+        });
+        let undivided = 0;
+        let single = 0;
+        for (const row of rows) {
+            const key = row.attributes.get("data-card") ?? "";
+            const isUndivided = key.includes(KIND_ELEMENTS_SEPARATOR);
+            assertStrictEquals(
+                row.children.filter((cell) => cell.className === CLASS.rowCaveat).length,
+                isUndivided ? 1 : 0,
+                `${key}: the mark stands on a kind naming several elements and on no other`,
+            );
+            pointAtElement(host, "pointermove", row, 300);
+            assertStrictEquals(
+                readCard(host).notes.includes(note),
+                isUndivided,
+                `${key}: and the card says the game gave one figure for the whole blow`,
+            );
+            if (isUndivided) undivided += 1;
+            else single += 1;
+        }
+        // Both sides of the mark are read, or a level drawing only one of them passes either way.
+        assert(undivided > 0, `${level.prefix} the level draws a kind naming several elements`);
+        assert(single > 0, `${level.prefix} and a kind naming one`);
+    }
 });
 
 /**

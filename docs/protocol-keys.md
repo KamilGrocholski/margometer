@@ -878,6 +878,17 @@ since.
 The same for magical absorption, which the help documents against fire, cold and lightning rather
 than physical damage, with a higher cap.
 
+⚠️ **One figure per blow, never per element, and the split is not recoverable.** The help's order of
+reduction within a blow (article view,372, read 2026-10-07) is armour, then both absorptions, then
+the elemental resistances. What a pool took of each element therefore depends on the target's
+armour, its resistance to each element and what was left in the pool, and the log states none of
+them. On `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, call 10, a blow puts
+out fire 1989 and cold 841, lands fire 96 and cold 8, and states `-absorbm=1629`. Cold may have
+given the pool anything from 0 to 833 of it, and fire the rest. Every split in between agrees with
+the message, so the part stands under every element that could have given it (ADR 0045). Sharing it
+in proportion would state a figure the game never gave. Physical absorption meets the same where
+physical and ranged damage ride one blow.
+
 _Shape:_ 317 occurrences; on a blow; a whole number
 
 _Help:_ names `absorbm`, `absorpcja magiczna`
