@@ -64,19 +64,7 @@ export function writeShownFightFile(
     // because what it says is when it was taken off.
     let handover: Handover;
     if (shownFight.keptFight === null) {
-        const now = ports.clock.readNowMilliseconds();
-        if (now instanceof Error) return now;
-        let margonemClientBuild: string | null;
-        // Read the build: one the page will not state is absent, and no failure of the file's.
-        {
-            const buildId = ports.build.readBuildId();
-            if (buildId instanceof Error) margonemClientBuild = null;
-            else {
-                assert(buildId.length > 0, "a build the page stated says something");
-                margonemClientBuild = buildId;
-            }
-        }
-        const surroundings = readFileSurroundings(ports, now, margonemClientBuild);
+        const surroundings = readLiveFileSurroundings(ports);
         if (surroundings instanceof Error) return surroundings;
         const subject = composeFileSubject(shownFight.fightState, liveHandover.place);
         handover = { calls: liveHandover.capture, subject, surroundings };
@@ -116,6 +104,23 @@ export function writeShownFightFile(
     return ports.file.writeFile(encoded.name, encoded.text, onLateFailure);
 }
 
+/** The moment a live file states is now, because what it says is when it was taken off. */
+function readLiveFileSurroundings(ports: HandoverPorts): FileSurroundings | errors.Caught {
+    const now = ports.clock.readNowMilliseconds();
+    if (now instanceof Error) return now;
+    let margonemClientBuild: string | null;
+    // Read the build: one the page will not state is absent, and no failure of the file's.
+    {
+        const buildId = ports.build.readBuildId();
+        if (buildId instanceof Error) margonemClientBuild = null;
+        else {
+            assert(buildId.length > 0, "a build the page stated says something");
+            margonemClientBuild = buildId;
+        }
+    }
+    return readFileSurroundings(ports, now, margonemClientBuild);
+}
+
 function readFileSurroundings(
     ports: HandoverPorts,
     atMilliseconds: number,
@@ -144,4 +149,21 @@ function composeFileSubject(fightState: FightState, place: FightPlace | null): F
         messagesLost: fightState.view.messagesLost,
         isOver: fightState.view.isOver,
     };
+}
+
+/**
+ * The live fight's calls alone, with no report: what a fight whose figures will not tally is
+ * handed over as, because that is the fight a file is most needed of (`docs/design.md` §10.3).
+ */
+export function writeLiveCallsFile(
+    liveHandover: LiveHandover,
+    ports: HandoverPorts,
+    onLateFailure: (failure: errors.Caught) => void,
+): undefined | ExportFailure {
+    assert(liveHandover.capture.calls.length > 0, "a file of calls is written from some");
+    const surroundings = readLiveFileSurroundings(ports);
+    if (surroundings instanceof Error) return surroundings;
+    const encoded = encodeFightFile(liveHandover.capture, null, surroundings);
+    if (encoded instanceof Error) return encoded;
+    return ports.file.writeFile(encoded.name, encoded.text, onLateFailure);
 }

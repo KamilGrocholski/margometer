@@ -44,7 +44,7 @@ export interface MargonemEngineCall {
 export interface FightCapture {
     calls: CapturedCall[];
     droppedCalls: number;
-    /** Whether the ceiling was reached, so the file says its tail is missing. */
+    /** Whether a call that would have been kept came past the ceiling, so the tail is missing. */
     isTruncated: boolean;
     shapesSeen: Set<string>;
     statesSeen: Set<string>;
@@ -99,9 +99,6 @@ export function prepareCapture(
 ): PreparedCapture {
     const callIndex = isOpening ? 0 : capture.calls.length;
     assert(callIndex <= CALLS_MAXIMUM, "a recording stays inside its stated bound");
-    if (callIndex === CALLS_MAXIMUM) {
-        return { callIndex, isOpening, isPastCeiling: true, kept: null };
-    }
     const shape = composeCaptureShapeKey(call.payload);
     const state = composeCaptureStateKey(call.combatantsAfter);
     let isKept: boolean;
@@ -109,7 +106,12 @@ export function prepareCapture(
     else if (call.messages.length > 0) isKept = true;
     else if (!capture.shapesSeen.has(shape)) isKept = true;
     else isKept = !capture.statesSeen.has(state);
+    // Thinned before the ceiling is asked: a call that says nothing new is lost to nobody, so
+    // only one that would have been kept makes a recording short of its tail.
     if (!isKept) return { callIndex, isOpening, isPastCeiling: false, kept: null };
+    if (callIndex === CALLS_MAXIMUM) {
+        return { callIndex, isOpening, isPastCeiling: true, kept: null };
+    }
     const keptCall: CapturedCall = {
         index: callIndex,
         payload: createCaptureCopy(call.payload),
@@ -160,6 +162,7 @@ export function commitCapture(capture: FightCapture, prepared: PreparedCapture):
         // Start over: a fight that opens is a recording of its own.
         capture.calls = [];
         capture.droppedCalls = 0;
+        capture.isTruncated = false;
         capture.shapesSeen = new Set();
         capture.statesSeen = new Set();
     } else {
@@ -169,7 +172,8 @@ export function commitCapture(capture: FightCapture, prepared: PreparedCapture):
             "a call lands on the recording it was read against",
         );
     }
-    capture.isTruncated = prepared.isPastCeiling;
+    // Once short of its tail, a recording stays so: a call dropped after it loses nothing more.
+    if (prepared.isPastCeiling) capture.isTruncated = true;
     const kept = prepared.kept;
     if (kept === null) {
         capture.droppedCalls += 1;

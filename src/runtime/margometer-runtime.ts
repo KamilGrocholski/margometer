@@ -39,7 +39,7 @@ import { type BrowserSurroundingsPort, WORLD_UNKNOWN } from "#/src/ports/browser
 import type { TooltipTables } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger, initDefectLedger } from "./defect-ledger.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
-import { writeShownFightFile } from "./fight-handover.ts";
+import { writeLiveCallsFile, writeShownFightFile } from "./fight-handover.ts";
 import { lookupShownFight, tallyFightState } from "./fight-state.ts";
 import { initLiveFight, type LiveFight } from "./live-fight.ts";
 import { renderFrame } from "./panel-frame.ts";
@@ -469,12 +469,14 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
     switch (intent.kind) {
         case PANEL_INTENT.saveFile: {
             // Everything under a file reaches `core/`, whose assertion costs the file alone.
+            let isTallied = false;
             const saved = errors.attempt(() => {
                 // The release of the file lands on the browser's clock after this has
                 // returned, so its failure is handed the same mark by the sink.
                 const { screen, keeper, live: liveFight, defects } = state;
                 const view = composeFightView(liveFight.session);
                 const liveFightState = view === null ? null : tallyFightState(view);
+                isTallied = true;
                 const shownFight = lookupShownFight(
                     liveFightState,
                     screen.chosenFightOpenedAt,
@@ -491,7 +493,10 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
                 });
                 if (written instanceof Error) addFileDefect(defects, written);
             });
-            if (saved instanceof Error) addFileDefect(state.defects, saved);
+            if (saved instanceof Error) {
+                addFileDefect(state.defects, saved);
+                if (!isTallied) writeLiveCallsFallback(state);
+            }
             shouldDraw = executeScreenIntent(state.screen, intent);
             break;
         }
@@ -552,6 +557,23 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
             break;
     }
     if (shouldDraw) markStale(state);
+}
+
+/**
+ * A live fight whose figures will not tally is handed over as its calls alone, with no report: the
+ * fight a file is most needed of. A kept fight chosen on screen is not the live one, so it has none.
+ */
+function writeLiveCallsFallback(state: RuntimeState): void {
+    const { screen, live: liveFight, defects } = state;
+    if (screen.chosenFightOpenedAt !== null) return;
+    if (liveFight.capture.calls.length === 0) return;
+    const ports = { ...state.ports, addOnVersion: state.options.addOnVersion };
+    const written = errors.attempt(() =>
+        writeLiveCallsFile(liveFight, ports, (failure) => {
+            addFileDefect(defects, failure);
+        })
+    );
+    if (written instanceof Error) addFileDefect(defects, written);
 }
 
 function addFileDefect(defects: DefectLedger, failure: RuntimeFailure): void {

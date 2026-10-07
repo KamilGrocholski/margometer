@@ -642,7 +642,7 @@ export function commitCapture(capture: FightCapture, prepared: PreparedCapture):
 export interface FightCapture {
     calls: CapturedCall[];
     droppedCalls: number;
-    isTruncated: boolean; // the ceiling was reached: the file says its tail is missing
+    isTruncated: boolean; // a call worth keeping came past the ceiling: the tail is missing
     shapesSeen: Set<string>;
     statesSeen: Set<string>;
 }
@@ -1012,7 +1012,8 @@ listener ─ reads a PanelIntent off data-* (isOneOf; unknown → GestureDropped
       shelf dropped to make room (resetScreenFightDropped); a fold is written; a size of type is
       written, and asks for a frame only where it moved; a move is written and asks for no
       frame, and a resize asks for one only while the options stand open; a size given back is
-      removed and asks for one; a save writes the file or a "file" defect
+      removed and asks for one; a save writes the file or a "file" defect, and a live fight
+      whose figures will not tally is written as its calls alone, with no report
    true → markStale
 ```
 

@@ -177,6 +177,21 @@ Deno.test("a recording stops at its ceiling rather than dropping its start", () 
     assertStrictEquals(recording.droppedCalls, 0, "nor counts what that fight dropped");
 });
 
+/** The game polls long after a fight ends: a poll past the ceiling loses nothing worth keeping. */
+Deno.test("a call past the ceiling cuts the tail only where it would have been kept", () => {
+    const recording = createFightCapture();
+    for (let callIndex = 0; callIndex < CALLS_MAXIMUM; callIndex += 1) {
+        capture(recording, { payload: { at: callIndex }, messages: [`${callIndex}`] });
+    }
+    capture(recording, { payload: { at: 0 }, messages: [] });
+    assertFalse(recording.isTruncated, "a poll saying nothing new loses nothing");
+    assertStrictEquals(recording.droppedCalls, 1, "and is counted as dropped all the same");
+    capture(recording, { payload: { at: 0 }, messages: ["said"] });
+    assert(recording.isTruncated, "a call with messages past it is a tail lost");
+    capture(recording, { payload: { at: 0 }, messages: [] });
+    assert(recording.isTruncated, "and a poll after it does not take that back");
+});
+
 Deno.test("a call kept past the ceiling is a call nobody prepared", () => {
     const recording = createFightCapture();
     for (let callIndex = 0; callIndex < CALLS_MAXIMUM; callIndex += 1) {

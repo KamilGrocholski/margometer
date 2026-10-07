@@ -648,6 +648,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `readLinesForFigure` — `tests/ui/panel-card.test.ts`
 - `readList` — `tests/ui/panel-element.test.ts`
 - `readListedDocuments` — `tests/repository/documents.test.ts`
+- `readLiveFileSurroundings` — `src/runtime/fight-handover.ts`
 - `readLiveMargonemEngineWarriors` — `src/runtime/live-fight.ts`
 - `readLoadedMarks` — `tests/tools/preview-site.test.ts`
 - `readMargonemAnswerText` — `tools/margonem-client-source.ts`
@@ -826,6 +827,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `writeIntake` — `tools/capture-intake.ts`
 - `writeKeptFight` — `src/runtime/shelf.ts`
 - `writeKeptFightPin` — `src/runtime/shelf.ts`
+- `writeLiveCallsFallback` — `src/runtime/margometer-runtime.ts`
+- `writeLiveCallsFile` — `src/runtime/fight-handover.ts`
 - `writeMargonemClientSourceCache` — `tools/margonem-client-source.ts`
 - `writeMargonemClientStatusReport` — `tools/margonem-client-source.ts`
 - `writeMargonemEngineWarriorBlock` — `src/ports/margonem-engine-tooltip.ts`
@@ -5823,6 +5826,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isOpening` — `src/runtime/live-fight.ts`
 - `isRefusedOpening` — `src/runtime/live-fight.ts`
 - `isShelfEmpty` — `src/runtime/panel-frame.ts`
+- `isTallied` — `src/runtime/margometer-runtime.ts`
 - `keeper` — `src/runtime/margometer-runtime.ts`, `src/runtime/panel-frame.ts`
 - `keptFight` — `src/runtime/fight-handover.ts`, `src/runtime/fight-state.ts`,
   `src/runtime/panel-frame.ts`
