@@ -3932,6 +3932,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `HALF_NAMED_OPENED` — `src/ui/panel-content.ts`
 - `HALF_NAMED_TOTAL_FIELD` — `src/ui/panel-content.ts`
 - `HALF_NAMED_TOTAL_FIELD_BY_METRIC` — `src/ui/panel-content.ts`
+- `HEADING_LETTER_SPACING_EM` — `src/ui/panel-look.ts`
 - `HEADING_TINT` — `src/ui/panel-look.ts`
 - `HEALTH_LOSS_WORD_BY_KEY` — `src/ui/panel-words.ts`
 - `HEALTH_SOURCE_WORD_BY_KEY` — `src/ui/panel-words.ts`
@@ -3963,6 +3964,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `MARKUP_ENTITY` — `src/ui/panel-words.ts`
 - `MARKUP_OPENER` — `src/ui/panel-words.ts`
 - `MASK_INK` — `src/ui/panel-look.ts`
+- `MASK_STRIPE_PIXELS` — `src/ui/panel-look.ts`
 - `METER_HEIGHT_VIEWPORT_PERCENT_MAXIMUM` — `src/ui/panel-look.ts`
 - `MINUS_SIGN` — `src/ui/panel-words.ts`
 - `MINUTE_MAXIMUM` — `src/ui/panel-words.ts`
@@ -4023,6 +4025,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ROWS_VARIABLE` — `src/ui/panel-look.ts`
 - `ROWS_WAITING` — `src/ui/panel-element.ts`
 - `ROW_INK_DROP_PIXELS` — `src/ui/panel-look.ts`
+- `ROW_SIDE_WIDTH_PIXELS` — `src/ui/panel-look.ts`
 - `ROW_WARNINGS_MAXIMUM` — `src/ui/panel-content.ts`
 - `RULE_WIDTH_PIXELS` — `src/ui/panel-look.ts`
 - `SAVE_MARK` — `src/ui/panel-element.ts`
@@ -4034,6 +4037,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SHELF_LIST_NAME` — `src/ui/panel-screen.ts`
 - `SHELF_MARK` — `src/ui/panel-element.ts`
 - `SHELF_ROWS_MAXIMUM` — `src/ui/panel-element.ts`
+- `SIDES_TRACK_HEIGHT_PIXELS` — `src/ui/panel-look.ts`
 - `SIDE_CHOICE` — `src/ui/panel-screen.ts`
 - `SIDE_CHOICES` — `src/ui/panel-screen.ts`
 - `SIDE_PART_WORDS` — `src/ui/panel-words.ts`
@@ -4055,6 +4059,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `STORAGE_WORDS` — `src/ui/panel-words.ts`
 - `STORE_MADE_ROOM_ANSWER` — `src/ui/panel-words.ts`
 - `STORE_REFUSED_ANSWER` — `src/ui/panel-words.ts`
+- `STRIP_PADDING_DOWN_PIXELS` — `src/ui/panel-look.ts`
 - `STYLE_ATTRIBUTE` — `src/ui/panel-document.ts`
 - `SURFACE` — `src/ui/panel-look.ts`
 - `SUSPECT_MARK` — `src/ui/panel-words.ts`
@@ -4066,6 +4071,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `THOUSAND_GROUPS_MAXIMUM` — `src/ui/panel-words.ts`
 - `THOUSAND_SEPARATOR` — `src/ui/panel-words.ts`
 - `TITLE_ATTRIBUTE` — `src/ui/panel-element.ts`
+- `TITLE_LETTER_SPACING_EM` — `src/ui/panel-look.ts`
 - `TOOLTIP_WORDS` — `src/ui/panel-words.ts`
 - `TOP_VARIABLES` — `src/ui/panel-look.ts`
 - `TURN_MARK` — `src/ui/panel-words.ts`
@@ -11244,7 +11250,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `given` — `src/ui/panel-screen.ts`
 - `givenWithNoActor` — `src/ui/panel-content.ts`, `src/ui/panel-words.ts`
 - `grab` — `src/ui/panel-drag.ts`, `src/ui/view-failure.ts`
-- `grip` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`
+- `grip` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
 - `groups` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
 - `h` — `src/ui/panel-words.ts`
 - `half` — `src/ui/panel-look.ts`
@@ -13482,7 +13488,7 @@ Each `as const` object of a module, by its keys.
 - `HELPER_ABSENCE` — `src/ui/panel-helper.ts`: `noFightYet`, `betweenFights`, `fightUnread`
 - `HELPER_WORDS` — `src/ui/panel-words.ts`: `title`, `drag`, `collapse`, `expand`, `now`,
   `nothingHappens`, `provocation`, `castSeparator`, `turnsLeft`, `chargedSkill`
-- `LAYER` — `src/ui/panel-look.ts`: `helper`, `card`
+- `LAYER` — `src/ui/panel-look.ts`: `section`, `grip`, `helper`, `card`
 - `LIVE_FIGHT_WORDS` — `src/ui/panel-words.ts`: `time`, `outcome`
 - `NEITHER_END_WORDS` — `src/ui/panel-words.ts`: `label`, `note`
 - `OPENED_PART` — `src/ui/panel-screen.ts`: `skill`, `source`, `element`, `plain`

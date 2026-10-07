@@ -235,6 +235,9 @@ export const PLACE = {
  * covers it. The frame takes no layer of its own and sits under both.
  */
 export const LAYER = {
+    /** A section's heading over the rows scrolling under it, and the size grip over the list. */
+    section: "1",
+    grip: "1",
     helper: "2",
     card: "3",
 } as const;
@@ -333,6 +336,16 @@ const ROWS_BY_DEFAULT = RANKING_ROWS;
 const FONT_STACK = "system-ui, sans-serif";
 /** What a border costs the box it is on, at the one width this panel draws one. */
 const RULE_WIDTH_PIXELS = 1;
+/** The air above and below a strip's word: a hair, so the strips stand a word high. */
+const STRIP_PADDING_DOWN_PIXELS = 1;
+const SIDES_TRACK_HEIGHT_PIXELS = SPACE_PIXELS.small;
+/** The side's edge on a row: `DESIGN.md`'s two-pixel rule. */
+const ROW_SIDE_WIDTH_PIXELS = 2;
+/** One stripe of the mask a row standing apart wears; the gap after it is as wide again. */
+const MASK_STRIPE_PIXELS = 4;
+/** Every heading the panel draws stands its letters apart by the same; the title by less. */
+const HEADING_LETTER_SPACING_EM = 0.08;
+const TITLE_LETTER_SPACING_EM = 0.06;
 /** The profession's cap on a row's left edge, which the chosen row's inset is drawn over. */
 const CAP_WIDTH_PIXELS = 3;
 /**
@@ -597,7 +610,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         `.${CLASS.title}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
-        `font:${composeFontTitle(tokens)};letter-spacing:0.06em;` +
+        `font:${composeFontTitle(tokens)};letter-spacing:${TITLE_LETTER_SPACING_EM}em;` +
         `color:var(${VARIABLE_PREFIX}quiet);` +
         // One line whatever the version says: no guard here lays anything out, so a wrap is
         // invisible to the gate.
@@ -740,7 +753,8 @@ function composeRegionRules(tokens: TypeTokens): string {
         `padding:${region};padding-bottom:0;}` +
         `.${CLASS.strips}+.${CLASS.strips}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
         `.${CLASS.stripsGap}{flex:1;}` +
-        `.${CLASS.strip}{white-space:nowrap;padding:1px var(${VARIABLE_PREFIX}small);` +
+        `.${CLASS.strip}{white-space:nowrap;` +
+        `padding:${STRIP_PADDING_DOWN_PIXELS}px var(${VARIABLE_PREFIX}small);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);color:var(${VARIABLE_PREFIX}quiet);` +
         `background:transparent;cursor:pointer;` +
         `${NO_SELECTION}}` +
@@ -767,7 +781,8 @@ function composeOptionsRules(tokens: TypeTokens): string {
     ).join("");
     return `.${CLASS.optionsQuestion}{padding:var(${VARIABLE_PREFIX}wide) ` +
         `var(${VARIABLE_PREFIX}region-across) 0;}` +
-        `.${CLASS.optionsHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
+        `.${CLASS.optionsHeading}{color:var(${VARIABLE_PREFIX}heading);` +
+        `letter-spacing:${HEADING_LETTER_SPACING_EM}em;` +
         `font-size:${tokens.fontSmallPixels}px;text-transform:uppercase;}` +
         `.${CLASS.optionsSteps}{display:flex;margin-top:var(${VARIABLE_PREFIX}half);` +
         `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
@@ -831,9 +846,9 @@ function composeListRules(tokens: TypeTokens): string {
         `.${CLASS.sectionWords}{min-width:0;overflow:hidden;text-overflow:ellipsis;` +
         `white-space:nowrap;}` +
         `.${CLASS.section}{position:sticky;` +
-        `top:calc(0px - var(${VARIABLE_PREFIX}region-down));z-index:1;` +
+        `top:calc(0px - var(${VARIABLE_PREFIX}region-down));z-index:${LAYER.section};` +
         `background:var(${VARIABLE_PREFIX}surface);display:flex;justify-content:space-between;` +
-        `color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
+        `color:var(${VARIABLE_PREFIX}heading);letter-spacing:${HEADING_LETTER_SPACING_EM}em;` +
         `font-size:${tokens.fontSmallPixels}px;` +
         // Deliberately unequal, against develop ADR 0014's rule for every other region: the air
         // under a heading belongs to the rows it names.
@@ -855,7 +870,7 @@ function composeListRules(tokens: TypeTokens): string {
         `.${CLASS.sidesSpare}{margin-top:var(${VARIABLE_PREFIX}small);` +
         `font-size:${tokens.fontSmallPixels}px;}` +
         `.${CLASS.sidesSpare} .${CLASS.sidesLabel}{color:inherit;}` +
-        `.${CLASS.sidesTrack}{display:flex;height:4px;` +
+        `.${CLASS.sidesTrack}{display:flex;height:${SIDES_TRACK_HEIGHT_PIXELS}px;` +
         `margin-top:var(${VARIABLE_PREFIX}small);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);overflow:hidden;` +
         `background:var(${VARIABLE_PREFIX}track);}` +
@@ -929,7 +944,8 @@ function composeRowRules(tokens: TypeTokens): string {
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
         // The edge opposite the cap: the left `CAP_WIDTH_PIXELS` are the profession's, and the open
         // row's inset shadow is on that side too. `develop ADR 0065`.
-        `.${CLASS.rowSide}{position:absolute;right:0;top:0;bottom:0;width:2px;` +
+        `.${CLASS.rowSide}{position:absolute;right:0;top:0;bottom:0;` +
+        `width:${ROW_SIDE_WIDTH_PIXELS}px;` +
         `border-radius:0 ${capRight} ${capRight} 0;background:currentColor;}` +
         `.${CLASS.rowSize}{flex:none;padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.row}.${CLASS.rowChosen}{box-shadow:inset ${CAP_WIDTH_PIXELS}px 0 0 ` +
@@ -953,7 +969,8 @@ function composeRowRules(tokens: TypeTokens): string {
         // here, because two copies of one figure drift apart (**C15**).
         `.${CLASS.row}.${CLASS.rowApart} .${CLASS.bar}{opacity:0.4;` +
         `mask-image:repeating-linear-gradient(` +
-        `-45deg,var(${VARIABLE_PREFIX}mask) 0 4px,transparent 4px 8px);}` +
+        `-45deg,var(${VARIABLE_PREFIX}mask) 0 ${MASK_STRIPE_PIXELS}px,` +
+        `transparent ${MASK_STRIPE_PIXELS}px ${2 * MASK_STRIPE_PIXELS}px);}` +
         `.${CLASS.row}.${CLASS.rowApart} .${CLASS.barCap}{opacity:0.7;}`;
 }
 
@@ -1043,7 +1060,8 @@ function composeCardRules(tokens: TypeTokens): string {
         composeCaveatMarkRule(tokens) +
         // The same letters a cut's heading wears down the panel, so a run of parts under one
         // reads as the same kind of thing in both places. `DESIGN.md` owns the look.
-        `.${CLASS.cardHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
+        `.${CLASS.cardHeading}{color:var(${VARIABLE_PREFIX}heading);` +
+        `letter-spacing:${HEADING_LETTER_SPACING_EM}em;` +
         `font-size:${tokens.fontSmallPixels}px;text-transform:uppercase;overflow:hidden;` +
         `text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.cardNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
@@ -1132,7 +1150,7 @@ function composeHelperRules(tokens: TypeTokens): string {
         `.${CLASS.helperBar}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
-        `font:${composeFontTitle(tokens)};letter-spacing:0.06em;` +
+        `font:${composeFontTitle(tokens)};letter-spacing:${TITLE_LETTER_SPACING_EM}em;` +
         `color:var(${VARIABLE_PREFIX}quiet);white-space:nowrap;` +
         `background:var(${VARIABLE_PREFIX}raised);` +
         `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
@@ -1194,7 +1212,7 @@ function composeSizeGripRules(): string {
     // 59px wider.
     const meterOutside = `-${RULE_WIDTH_PIXELS}px`;
     return `.${CLASS.sizeGrip}{position:absolute;right:0;bottom:0;` +
-        `width:${SIZE_GRIP.sizePixels}px;height:${SIZE_GRIP.sizePixels}px;z-index:1;` +
+        `width:${SIZE_GRIP.sizePixels}px;height:${SIZE_GRIP.sizePixels}px;z-index:${LAYER.grip};` +
         `color:var(${VARIABLE_PREFIX}quiet);background:linear-gradient(135deg,${strokes});` +
         `cursor:nwse-resize;touch-action:none;${NO_SELECTION}}` +
         `.${CLASS.meter}>.${CLASS.sizeGrip}{right:${meterOutside};bottom:${meterOutside};}` +
