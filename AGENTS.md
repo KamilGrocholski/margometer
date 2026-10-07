@@ -90,13 +90,13 @@ this language does not have would be**; each states what binds instead.
   `src/` or `tools/`, a function no other module imports, whose verb is not strong, called from
   exactly one function and never handed on, and whose body's depth plus the depth of its call stays
   within **S16**'s bound. ADR 0018, ADR 0022.
-- **S5.** Assertion density averages at least two per **function that takes something and may
-  assert**, across `libs/`, `src/core/`, `src/ports/`, `src/runtime/` and `tools/`, counting the
-  closures a file writes inside its functions as the functions they are. A function handed nothing
-  has no precondition a caller could break; one **E12** forbids to assert has none it may state.
-  **No guard counts it yet, so it is held by reading**; a guard that comes sets its floor below the
-  two, so that deleting an assertion **A12** calls no assertion never reddens the gate.
-  `develop ADR 0007`, `0051`, `0074`.
+- **S5. Assertion density is held where it stands, and only rises.** In each of `libs/`,
+  `src/core/`, `src/ports/`, `src/runtime/` and `tools/`, the assertions per **function that takes
+  something and may assert**, counting the closures a file writes inside its functions as the
+  functions they are, stay at or above the directory's floor. A floor is its density cut down to a
+  tenth, raised as the directory gains and never lowered to pass. A function handed nothing has no
+  precondition a caller could break; one **E12** forbids to assert has none it may state.
+  `develop ADR 0007`, `0051`, `0074`, ADR 0044.
 - **S6.** Declare at the smallest possible scope, `const` by default, at the point of use.
 - **S7.** Every return value is used or explicitly discarded; every parameter is checked. Held by
   the compiler.
@@ -583,6 +583,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/type-assertions.test.ts`         | C13                                                    |
 | `tests/repository/record-shapes.test.ts`           | S15                                                    |
 | `tests/repository/control-flow.test.ts`            | S1                                                     |
+| `tests/repository/assertion-density.test.ts`       | S5                                                     |
 | `tests/repository/called-once.test.ts`             | S4                                                     |
 | `tests/repository/nesting-depth.test.ts`           | S16                                                    |
 | `tests/repository/purity.test.ts`                  | P1, P3, P4                                             |
