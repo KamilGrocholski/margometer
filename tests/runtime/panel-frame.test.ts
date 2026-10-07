@@ -6,6 +6,7 @@
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import type { StatedSkills } from "#/src/core/aura-standing.ts";
+import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { createFightSession, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { createFightCapture } from "#/src/ports/fight-capture.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
@@ -19,7 +20,7 @@ import {
 import type { KeptFight } from "#/src/runtime/shelf.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import type { ShownScreen, WaitingContent } from "#/src/ui/panel-element.ts";
-import { createScreenState, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
+import { createScreenState, OPENED_PART, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
 import { HELPER_ABSENCE, type HelperAbsence, type HelperContent } from "#/src/ui/panel-helper.ts";
 import {
     EVERY_SLOT_PINNED_ANSWER,
@@ -148,6 +149,72 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
         );
     return { parts, shown, waited, standings, defects, readFiguresSaid };
 }
+
+/** A broken invariant the reader's layer passes over is carried out, and the frame says it. */
+Deno.test("a nameless charge and a part cut by no id are said as the helper's and the part's", () => {
+    const fight: KeptFight = {
+        openedAt: 1,
+        payloads: lookupRecordedFight(HILDUR).updates,
+        place: null,
+        readerId: null,
+        margonemClientBuild: null,
+        isPinned: false,
+    };
+    const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);
+    assert(!(replayed instanceof Error), "the recording replays");
+    const { statistics } = replayed.figures;
+    const [combatantId, figures] =
+        [...statistics.byCombatantId].find(([, held]) =>
+            held.damageDealtWithoutSkillByOpponent.size > 0
+        ) ?? [];
+    assert(combatantId !== undefined, "somebody struck under no announcement");
+    assert(figures !== undefined, "and is tallied");
+    const world = composeFrameWorld(fight, {
+        ...replayed,
+        figures: {
+            ...replayed.figures,
+            statistics: {
+                ...statistics,
+                byCombatantId: new Map([...statistics.byCombatantId, [combatantId, {
+                    ...figures,
+                    damageDealtWithoutSkillByOpponent: new Map([
+                        ...figures.damageDealtWithoutSkillByOpponent,
+                        ["nobody", 1],
+                    ]),
+                }]]),
+            },
+        },
+    });
+    world.parts.screen.openedCombatantId = combatantId;
+    world.parts.screen.openPart = { kind: OPENED_PART.plain };
+    const live = replayRecordedFight(lookupRecordedFight(HILDUR));
+    const state = live.state;
+    assert(state !== null, "the live fight stands");
+    live.state = {
+        ...state,
+        chargedSkills: [{
+            combatantId,
+            skillName: "",
+            turnsElapsed: 0,
+            turnsStated: 1,
+            state: CHARGED_SKILL_STATE.charging,
+            endedAtOrdinal: null,
+        }],
+    };
+    world.parts.live.session = live;
+    world.parts.screen.chosenFightOpenedAt = fight.openedAt;
+    renderFrame(world.parts);
+    // The ledger keeps one row a kind, so the two stand as its count and its first.
+    const said = world.defects.getCounts().filter((row) => row.kind === DEFECT_KIND.figures);
+    assertStrictEquals(said.length, 1, "one row for the figures");
+    assertStrictEquals(said[0]?.count, 2, "holding both, the helper's and the part's");
+    assertEquals(world.readFiguresSaid(), [FIGURES_CUT.helper], "the window's said first");
+    assertStrictEquals(
+        world.shown[0]?.part?.hasFiguresDisagreed,
+        true,
+        "and the part carries its own",
+    );
+});
 
 Deno.test("the window beside the panel says which reason leaves it nothing live to read", () => {
     const fight: KeptFight = {

@@ -702,6 +702,10 @@ Deno.test("a cut keyed by something that is no id is passed over, and carried ou
     const keyedBadly = {
         ...figures,
         damageDealtByOpponent: new Map([...figures.damageDealtByOpponent, ["nobody", 1]]),
+        damageDealtWithoutSkillByOpponent: new Map([
+            ...figures.damageDealtWithoutSkillByOpponent,
+            ["nobody", 1],
+        ]),
     };
     const brokenStatistics = {
         ...statistics,
@@ -720,6 +724,23 @@ Deno.test("a cut keyed by something that is no id is passed over, and carried ou
         whole?.byOtherEnd.rows.map((row) => row.combatantId),
         "with no row drawn for it",
     );
+    const plain = { kind: OPENED_PART.plain };
+    const wholePart = presentPartLevel(
+        statistics,
+        roster,
+        PANEL_METRIC.damageDealt,
+        combatantId,
+        plain,
+    );
+    assertStrictEquals(wholePart?.hasFiguresDisagreed, false, "a part core cut says nothing wrong");
+    const brokenPart = presentPartLevel(
+        brokenStatistics,
+        roster,
+        PANEL_METRIC.damageDealt,
+        combatantId,
+        plain,
+    );
+    assertStrictEquals(brokenPart?.hasFiguresDisagreed, true, "and a part carries its cut's out");
 });
 
 Deno.test("the same figure is cut a second time, by the kind of damage each blow carried", () => {
