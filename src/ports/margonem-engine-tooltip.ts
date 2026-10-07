@@ -93,18 +93,17 @@ export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngin
         writeRows(rowsByCombatantId) {
             const asked = [...rowsByCombatantId.values()].filter((rows) => rows.length > 0).length;
             assert(asked <= COMBATANTS_MAXIMUM, "no more blocks than a fight puts on a board");
-            // Read the fighters the page draws, each id once: a collection of theirs that repeats
-            // one holds one fighter, and its block is written and counted once.
+            // Read the fighters the page draws, each id once, as the warriors' reader hands them.
             const warriorsById = errors.attempt(() => {
-                const warriors = readMargonemEngineWarriorsNamed(
-                    readMargonemEngineBattle(browserWindow),
-                );
+                const battle = readMargonemEngineBattle(browserWindow);
+                if (battle instanceof errors.Caught) return battle;
+                const warriors = readMargonemEngineWarriorsNamed(battle);
                 if (warriors instanceof Error) return warriors;
                 const drawnById = new Map<number, UnknownRecord>();
                 for (const warrior of warriors) {
                     const id = warrior[WARRIOR_ID_KEY];
                     if (typeof id !== "number") continue;
-                    if (drawnById.has(id)) continue;
+                    assert(!drawnById.has(id), "the page's warriors are read each id once");
                     drawnById.set(id, warrior);
                 }
                 assert(drawnById.size <= warriors.length, "a fighter drawn is one the page holds");

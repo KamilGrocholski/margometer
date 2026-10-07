@@ -99,6 +99,12 @@ export interface MargonemEngineBattle {
         | errors.Caught;
 }
 
+/** What the game answered, and whether any spelling of it was there to ask. */
+export interface MargonemEngineAnswer<Answer> {
+    answer: Answer | null;
+    hasEngine: boolean;
+}
+
 export interface MargonemEngineBattlePort {
     readBattle(): MargonemEngineBattle | MargonemEngineFailure | errors.Caught;
 }
@@ -120,18 +126,24 @@ const FAILURES_MAXIMUM = 1048576;
  */
 const ENGINE_FIELDS: FieldKeys<MargonemEngineHeldMember> = { map: "map", hero: "hero" };
 const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };
+/** Both spellings of the game a page holds, in the order they are asked. */
+const ENGINE_ASKERS: readonly ((browserWindow: UnknownRecord) => unknown)[] = [
+    (browserWindow) => browserWindow[ENGINE_FIELD],
+    (browserWindow) => {
+        const getEngine = browserWindow[ENGINE_CALL_FIELD];
+        if (typeof getEngine !== "function") return null;
+        return Reflect.apply(getEngine, browserWindow, []);
+    },
+];
 
 /** The page's game, in whichever spelling answers. A call into the page may throw: theirs. */
 export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngineBattlePort {
     return {
         readBattle() {
-            const engineAndBattle = errors.attempt(() => {
-                const engines = readMargonemEngines(browserWindow);
-                return { engines, battle: lookupMargonemEngineBattle(engines) };
-            });
-            if (engineAndBattle instanceof Error) return engineAndBattle;
-            if (engineAndBattle.engines.length === 0) return new MargonemEngineAbsent();
-            const battle = engineAndBattle.battle;
+            const asked = readMargonemEngineAnswer(browserWindow, lookupMargonemEngineBattle);
+            if (asked instanceof errors.Caught) return asked;
+            if (!asked.hasEngine) return new MargonemEngineAbsent();
+            const battle = asked.answer;
             if (battle === null) return new MargonemEngineBattleAbsent();
             return {
                 // Put the wrap on the engine's own method.
@@ -202,12 +214,9 @@ export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngine
     };
 }
 
-function lookupMargonemEngineBattle(engines: readonly UnknownRecord[]): UnknownRecord | null {
-    for (const engine of engines) {
-        const battle = engine[BATTLE_FIELD];
-        if (isRecord(battle)) return battle;
-    }
-    return null;
+function lookupMargonemEngineBattle(engine: UnknownRecord): UnknownRecord | null {
+    const battle = engine[BATTLE_FIELD];
+    return isRecord(battle) ? battle : null;
 }
 
 function isOurWrap(engineMethod: unknown): boolean {
@@ -215,20 +224,44 @@ function isOurWrap(engineMethod: unknown): boolean {
     return WRAP_MARKER in engineMethod;
 }
 
-/** Both spellings of the game a page holds, in the order tried; a call into the page is theirs. */
-export function readMargonemEngines(browserWindow: unknown): UnknownRecord[] {
-    if (!isRecord(browserWindow)) return [];
-    const engineCandidates: unknown[] = [browserWindow[ENGINE_FIELD]];
-    const getEngine = browserWindow[ENGINE_CALL_FIELD];
-    if (typeof getEngine === "function") {
-        engineCandidates.push(Reflect.apply(getEngine, browserWindow, []));
+/**
+ * What the first spelling of the game answers, each asked under its own guard and in order: the
+ * page's call only where the field gave no answer, so a call that throws never costs what the field
+ * already said, and a page whose field answers is never called into. A throw is the answer only
+ * where no spelling gave one.
+ */
+export function readMargonemEngineAnswer<Answer>(
+    browserWindow: unknown,
+    readEngine: (engine: UnknownRecord) => Answer | null,
+): MargonemEngineAnswer<Answer> | errors.Caught {
+    if (!isRecord(browserWindow)) return { answer: null, hasEngine: false };
+    let hasEngine = false;
+    let firstFailure: errors.Caught | null = null;
+    for (const askEngine of ENGINE_ASKERS) {
+        const asked = errors.attempt(() => {
+            const engine = askEngine(browserWindow);
+            if (!isRecord(engine)) return null;
+            return { answer: readEngine(engine) };
+        });
+        if (asked instanceof errors.Caught) {
+            firstFailure ??= asked;
+            continue;
+        }
+        if (asked === null) continue;
+        hasEngine = true;
+        if (asked.answer !== null) return { answer: asked.answer, hasEngine };
     }
-    return engineCandidates.filter(isRecord);
+    if (firstFailure !== null) return firstFailure;
+    return { answer: null, hasEngine };
 }
 
 /** The battle a page's game holds, or null; a call into the page may throw, and it is theirs. */
-export function readMargonemEngineBattle(browserWindow: unknown): UnknownRecord | null {
-    return lookupMargonemEngineBattle(readMargonemEngines(browserWindow));
+export function readMargonemEngineBattle(
+    browserWindow: unknown,
+): UnknownRecord | null | errors.Caught {
+    const asked = readMargonemEngineAnswer(browserWindow, lookupMargonemEngineBattle);
+    if (asked instanceof errors.Caught) return asked;
+    return asked.answer;
 }
 
 /** What one member of the engine holds, or null where it holds no record. */

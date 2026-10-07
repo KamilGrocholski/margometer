@@ -190,6 +190,7 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
         }
         const combatantId = queue[least.key];
         if (typeof combatantId !== "number") return new PayloadFieldMalformed("turnStatement");
+        if (!Number.isSafeInteger(combatantId)) return new PayloadFieldMalformed("turnStatement");
         turnStatement = { ordinal: least.ordinal, combatantId };
     }
     let warriors: unknown[];
@@ -285,6 +286,8 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
         const id = getNumberField(warriorEntry, WARRIOR_FIELDS, "id");
         if (id instanceof Error) continue;
         if (id === null) continue;
+        // An id with a fraction names nobody: past here every id is held as a whole one.
+        if (!Number.isSafeInteger(id)) continue;
         let combatant: Combatant | null;
         // Read a combatant stated in full: an id, a name and a side. The rest may be absent.
         readCombatant: {
@@ -303,6 +306,10 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
                 break readCombatant;
             }
             if (side === null) {
+                combatant = null;
+                break readCombatant;
+            }
+            if (!Number.isSafeInteger(side)) {
                 combatant = null;
                 break readCombatant;
             }
@@ -413,8 +420,8 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
 }
 
 /**
- * A figure of the entry's health, or null where it says nothing about it. A pool of nothing or
- * below it is one no share can be read against: the same null a pool nobody stated is.
+ * A figure of the entry's health, or null where it says nothing about it. A pool of nothing, below
+ * it or with a fraction is one no share can be read against: the same null a pool nobody stated is.
  */
 function readPayloadWarriorHealth(warriorEntry: UnknownRecord, field: HealthField): number | null {
     const health = getRecordField(warriorEntry, WARRIOR_FIELDS, "health");
@@ -425,6 +432,7 @@ function readPayloadWarriorHealth(warriorEntry: UnknownRecord, field: HealthFiel
     if (figure === null) return null;
     if (field === "maximum") {
         if (figure <= 0) return null;
+        if (!Number.isSafeInteger(figure)) return null;
     }
     return figure;
 }

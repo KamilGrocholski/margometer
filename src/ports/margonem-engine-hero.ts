@@ -13,7 +13,7 @@ import {
     getTextField,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
-import { readMargonemEngineRecord, readMargonemEngines } from "./margonem-engine-battle.ts";
+import { readMargonemEngineAnswer, readMargonemEngineRecord } from "./margonem-engine-battle.ts";
 import { MARGONEM_VALUE, type MargonemReadFailure, MargonemValueAbsent } from "./margonem-value.ts";
 
 export interface MargonemEngineHeroPort {
@@ -29,13 +29,9 @@ const HERO_FIELDS: FieldKeys<HeroField> = { id: "id" };
 export function initMargonemEngineHero(browserWindow: unknown): MargonemEngineHeroPort {
     return {
         readHeroId() {
-            const heroIds = errors.attempt(() =>
-                readMargonemEngines(browserWindow).map(readMargonemEngineHeroId)
-            );
-            if (heroIds instanceof Error) return heroIds;
-            for (const id of heroIds) {
-                if (id !== null) return id;
-            }
+            const asked = readMargonemEngineAnswer(browserWindow, readMargonemEngineHeroId);
+            if (asked instanceof errors.Caught) return asked;
+            if (asked.answer !== null) return asked.answer;
             return new MargonemValueAbsent(MARGONEM_VALUE.hero);
         },
     };

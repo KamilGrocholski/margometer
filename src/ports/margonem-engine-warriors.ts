@@ -111,7 +111,9 @@ function readCapturedCombatant(warrior: UnknownRecord): CapturedCombatant {
 
 /**
  * The warriors themselves, out of whichever collection answers first: the objects the game goes on
- * drawing, so the one other reader of them, the tooltip, writes through their own methods.
+ * drawing, so the one other reader of them, the tooltip, writes through their own methods. A
+ * collection of theirs that repeats an id holds one fighter, so each id is taken once, before the
+ * bound is held: a full board with one fighter under two keys is a full board, not one past it.
  */
 export function readMargonemEngineWarriorsNamed(
     battle: unknown,
@@ -120,7 +122,17 @@ export function readMargonemEngineWarriorsNamed(
     for (const collectionKey of WARRIOR_COLLECTIONS) {
         const collection = battle[collectionKey];
         if (!isRecord(collection)) continue;
-        const named = Object.values(collection).filter(isMargonemEngineWarriorNamed);
+        const named: UnknownRecord[] = [];
+        const idsSeen = new Set<number>();
+        for (const warrior of Object.values(collection)) {
+            if (!isMargonemEngineWarriorNamed(warrior)) continue;
+            const id = warrior[WARRIOR_ID_KEY];
+            if (typeof id === "number") {
+                if (idsSeen.has(id)) continue;
+                idsSeen.add(id);
+            }
+            named.push(warrior);
+        }
         if (named.length === 0) continue;
         if (named.length > COMBATANTS_MAXIMUM) {
             return new MargonemEngineWarriorsExceeded(named.length, COMBATANTS_MAXIMUM);

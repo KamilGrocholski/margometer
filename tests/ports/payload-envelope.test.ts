@@ -53,6 +53,8 @@ Deno.test("a field of the wrong shape refuses the payload, and says which field 
     expectMalformed(readPayloadEnvelope(queue), "turnStatement", "an unnumbered queue");
     const whose = { turns_warriors: { 7: "11" } };
     expectMalformed(readPayloadEnvelope(whose), "turnStatement", "and nobody's turn");
+    const fraction = { turns_warriors: { 7: 11.5 } };
+    expectMalformed(readPayloadEnvelope(fraction), "turnStatement", "nor an id with a fraction");
     expectMalformed(readPayloadEnvelope({ w: "one" }), "combatants", "text is no cast");
 });
 
@@ -62,6 +64,13 @@ function expectMalformed(answer: unknown, field: EnvelopeField, message: string)
 }
 
 Deno.test("a list past its bound refuses the payload, and one at it does not", () => {
+    const messages = new Array(MESSAGES_MAXIMUM).fill("0;0;txt=a");
+    assertNotInstanceOf(readPayloadEnvelope({ m: messages }), Error, "messages at the bound read");
+    expectTooLong(
+        readPayloadEnvelope({ m: [...messages, "0;0;txt=a"] }),
+        { field: "messages", count: MESSAGES_MAXIMUM + 1, maximum: MESSAGES_MAXIMUM },
+        "and a message past it is refused, not cut",
+    );
     const full = new Array(MESSAGES_MAXIMUM).fill(0);
     assertNotInstanceOf(readPayloadEnvelope({ mi: full }), Error, "a count at the bound is read");
     expectTooLong(

@@ -1,9 +1,9 @@
 /**
  * The store a browser lends, wrapped so a refusal is an answer (`docs/design.md` §5).
  *
- * Reading can throw for no reason of ours (a browser set to forbid it does) and writing can throw
- * for quota, so each call into the page stands inside `errors.attempt`, once, here. What this asks of
- * a page is the three calls it makes and never a `Storage`, which keeps the contact declared.
+ * Each call into the page stands inside `errors.attempt`, once, here; why each one can throw is
+ * `SECURITY.md`'s. What this asks of a page is the three calls it makes and never a `Storage`, which
+ * keeps the contact declared.
  */
 
 import { assert } from "@std/assert/assert";

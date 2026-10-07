@@ -25,7 +25,7 @@ import {
     MargonemEngineMethodAbsent,
     MargonemEngineMethodUnwritable,
     type PayloadListener,
-    readMargonemEngines,
+    readMargonemEngineAnswer,
     WrapCovered,
     type WrapHandle,
 } from "#/src/ports/margonem-engine-battle.ts";
@@ -305,9 +305,22 @@ Deno.test("a detach puts back what was there, and only where ours is outermost",
 
 Deno.test("the page is asked for a game in both spellings, and a call may throw", () => {
     const battle = { updateData: () => 1 };
-    assertEquals(readMargonemEngines({ Engine: { battle } }), [{ battle }], "the field");
-    assertEquals(readMargonemEngines({ getEngine: () => ({ battle }) }), [{ battle }], "the call");
-    assertEquals(readMargonemEngines(null), [], "and a page that is not one is asked nothing");
+    const readBattle = (engine: Record<string, unknown>) => engine.battle ?? null;
+    assertEquals(
+        readMargonemEngineAnswer({ Engine: { battle } }, readBattle),
+        { answer: battle, hasEngine: true },
+        "the field",
+    );
+    assertEquals(
+        readMargonemEngineAnswer({ getEngine: () => ({ battle }) }, readBattle),
+        { answer: battle, hasEngine: true },
+        "the call",
+    );
+    assertEquals(
+        readMargonemEngineAnswer(null, readBattle),
+        { answer: null, hasEngine: false },
+        "and a page that is not one is asked nothing",
+    );
     const engine = initMargonemEngineBattle({});
     assertInstanceOf(engine.readBattle(), MargonemEngineAbsent, "no engine");
     const idle = initMargonemEngineBattle({ Engine: { battle: null } });
@@ -328,6 +341,35 @@ Deno.test("the page is asked for a game in both spellings, and a call may throw"
         },
     });
     assertInstanceOf(guarded.readBattle(), errors.Caught, "nor does a battle that throws read");
+});
+
+/**
+ * ⚠️ **A call that throws never costs what the field already said.** Asked together, a page whose
+ * `getEngine` throws mid-teardown would answer no battle on every look, with `Engine.battle`
+ * standing in plain sight; and a field that answers is never followed by a call into the page.
+ */
+Deno.test("the page's call is asked only where the field holds no answer", () => {
+    let calls = 0;
+    const page = {
+        Engine: { battle: { updateData: () => 1 } },
+        getEngine: () => {
+            calls += 1;
+            throw new RangeError("a client not yet standing");
+        },
+    };
+    assertNotInstanceOf(initMargonemEngineBattle(page).readBattle(), Error, "the field's battle");
+    assertStrictEquals(calls, 0, "and the page was not called into");
+    const fieldThrowing = {
+        get Engine(): unknown {
+            throw new RangeError("a field being torn down");
+        },
+        getEngine: () => ({ battle: { updateData: () => 1 } }),
+    };
+    assertNotInstanceOf(
+        initMargonemEngineBattle(fieldThrowing).readBattle(),
+        Error,
+        "and a field that throws leaves the call to answer",
+    );
 });
 
 Deno.test("the warriors are read off the live battle, and a battle holding none says so", () => {

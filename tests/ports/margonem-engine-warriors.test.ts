@@ -117,6 +117,18 @@ Deno.test("a fight of twenty is read, and one of twenty-one is refused", () => {
     );
 });
 
+/** The page's collection is theirs, and nothing stops it holding one id under two keys. */
+Deno.test("a full fight holding one fighter under two keys is a full fight", () => {
+    const warriorsList: Record<string, unknown> = {};
+    for (let id = 1; id <= COMBATANTS_MAXIMUM; id += 1) {
+        warriorsList[id] = composeWarrior(id, `P${id}`);
+    }
+    warriorsList.again = composeWarrior(1, "P1");
+    const snapshot = readMargonemEngineWarriorSnapshot({ warriorsList });
+    assertNotInstanceOf(snapshot, Error, "read, not refused as one past the bound");
+    assertStrictEquals(snapshot.length, COMBATANTS_MAXIMUM, "and the fighter is copied once");
+});
+
 Deno.test("what the game goes on changing is copied, not held by reference", () => {
     const warrior = composeWarrior(1, "A");
     const battle = { warriorsList: { 1: warrior } };

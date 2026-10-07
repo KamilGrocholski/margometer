@@ -18,6 +18,8 @@ Deno.test("a warrior missing what a row needs is passed over, not filled in", ()
     assertStrictEquals(readOne({ ...WHOLE, name: "" }), null, "an empty name is none");
     assertStrictEquals(readOne({ ...WHOLE, name: 7 }), null, "and a name that is no text is none");
     assertStrictEquals(readOne({ ...WHOLE, id: "1" }), null, "an id that is no number is none");
+    assertStrictEquals(readOne({ ...WHOLE, id: 1.5 }), null, "nor is one with a fraction");
+    assertStrictEquals(readOne({ ...WHOLE, team: 2.5 }), null, "and a side with one is none");
     assertStrictEquals(readOne(null), null, "and `null` is not a warrior");
     const bare = readOne({ id: 1, name: "Gracz 1", team: 2 });
     assertStrictEquals(bare?.healthMaximum, null, "what the game did not state stays unstated");
@@ -66,6 +68,18 @@ Deno.test("a pool of nothing is a pool nobody stated, never an assertion", () =>
         1,
         "and one is a pool",
     );
+    assertStrictEquals(
+        readOne({ ...WHOLE, hp: { max: 1234.6 } })?.healthMaximum,
+        null,
+        "a pool with a fraction is none, so no share rounds above it",
+    );
+});
+
+Deno.test("an id with a fraction names nobody, so it carries no mask and no charge", () => {
+    const reading = readPayloadWarriorEntries([{ ...WHOLE, id: 7.5, buffs: 4 }]);
+    assertEquals(reading.combatants, [], "no combatant");
+    assertEquals([...reading.statusMasksByCombatantId], [], "no mask");
+    assertEquals(reading.chargeStatements, [], "and no charge");
 });
 
 /**

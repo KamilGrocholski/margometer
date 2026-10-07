@@ -15,7 +15,7 @@ import {
     getTextField,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
-import { readMargonemEngineRecord, readMargonemEngines } from "./margonem-engine-battle.ts";
+import { readMargonemEngineAnswer, readMargonemEngineRecord } from "./margonem-engine-battle.ts";
 import type { FightPlace } from "./fight-place.ts";
 import { MARGONEM_VALUE, type MargonemReadFailure, MargonemValueAbsent } from "./margonem-value.ts";
 
@@ -36,13 +36,9 @@ const PLACE_FIELDS: FieldKeys<PlaceField> = { mapName: "name", x: "x", y: "y" };
 export function initMargonemEnginePlace(browserWindow: unknown): MargonemEnginePlacePort {
     return {
         readPlace() {
-            const places = errors.attempt(() =>
-                readMargonemEngines(browserWindow).map(readMargonemEnginePlace)
-            );
-            if (places instanceof Error) return places;
-            for (const place of places) {
-                if (place !== null) return place;
-            }
+            const asked = readMargonemEngineAnswer(browserWindow, readMargonemEnginePlace);
+            if (asked instanceof errors.Caught) return asked;
+            if (asked.answer !== null) return asked.answer;
             return new MargonemValueAbsent(MARGONEM_VALUE.place);
         },
     };
