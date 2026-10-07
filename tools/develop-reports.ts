@@ -12,6 +12,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { emptyDirSync } from "@std/fs";
 import { formatInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
+import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { DEVELOP_REVISION } from "#/tests/recording-sources.ts";
 import { formatMaterialStatus } from "./decoding-status.ts";
 import { formatMaterialFigures } from "./fight-figures.ts";
@@ -29,10 +30,19 @@ export interface ReportDifference {
     developLines: readonly string[] | null;
     rewriteLines: readonly string[] | null;
     /**
-     * Every line the two differ on, ascending, each past the shorter one included: one known
-     * difference never hides the lines after it. `[0]` where one side printed nothing.
+     * The lines `develop` printed and this branch did not, and the other way round, in the order
+     * they stand: a line one side added moves no line under it into a difference.
      */
-    lineIndices: readonly number[];
+    changes: readonly LineChange[];
+}
+
+export const LINE_CHANGE = { removed: "removed", added: "added" } as const;
+export type LineChangeKind = VocabularyWord<typeof LINE_CHANGE>;
+
+/** One line only one side printed: removed is `develop`'s, added is this branch's. */
+export interface LineChange {
+    kind: LineChangeKind;
+    line: string;
 }
 
 export interface ReportComparison {
@@ -45,7 +55,11 @@ const HEADING_CLOSE = " ===";
 /** Past the corpus by an order of magnitude: 35 recordings and 4571 lines, 2026-09-25. */
 export const SECTIONS_MAXIMUM = 1_000;
 export const LINES_MAXIMUM = 200_000;
-const CONTEXT_LINES = 3;
+/**
+ * The cells a comparison of two sections may fill: the longest section either report prints runs
+ * to a few hundred lines, so a pair past this is a report gone wrong rather than a fight.
+ */
+export const COMPARED_CELLS_MAXIMUM = 4_000_000;
 /** Where `develop`'s tree is taken out to; `.cache/` is git's to ignore. */
 const CACHE_DIRECTORY = ".cache";
 /** Written last, so a tree cut short by a failure is taken out again rather than trusted. */
@@ -148,9 +162,13 @@ function compareSectionMaps(
     for (const name of names) {
         const developLines = develop.get(name) ?? null;
         const rewriteLines = rewrite.get(name) ?? null;
-        const lineIndices = indexDifferentLines(developLines, rewriteLines);
-        if (lineIndices.length === 0) comparison.agreedNames.push(name);
-        else comparison.differences.push({ name, developLines, rewriteLines, lineIndices });
+        const changes = composeLineChanges(developLines ?? [], rewriteLines ?? []);
+        // A side that printed nothing under the name differs, even from another nothing.
+        let isAlike = changes.length === 0;
+        if (developLines === null) isAlike = false;
+        if (rewriteLines === null) isAlike = false;
+        if (isAlike) comparison.agreedNames.push(name);
+        else comparison.differences.push({ name, developLines, rewriteLines, changes });
     }
     assertStrictEquals(
         comparison.agreedNames.length + comparison.differences.length,
@@ -160,20 +178,75 @@ function compareSectionMaps(
     return comparison;
 }
 
-/** Empty where the two are alike line for line; zero alone where one side has nothing. */
-function indexDifferentLines(
-    developLines: readonly string[] | null,
-    rewriteLines: readonly string[] | null,
-): number[] {
-    if (developLines === null) return [0];
-    if (rewriteLines === null) return [0];
-    const longer = Math.max(developLines.length, rewriteLines.length);
-    assert(longer <= LINES_MAXIMUM, "both reports were read inside the bound on lines");
-    const lineIndices: number[] = [];
-    for (let index = 0; index < longer; index += 1) {
-        if (developLines[index] !== rewriteLines[index]) lineIndices.push(index);
+/**
+ * The lines one side printed and the other did not, by the longest run of lines both print in
+ * order. `@std` keeps its line diff in `@std/internal`, which is no package to depend on.
+ */
+function composeLineChanges(
+    developLines: readonly string[],
+    rewriteLines: readonly string[],
+): LineChange[] {
+    const developCount = developLines.length;
+    const rewriteCount = rewriteLines.length;
+    assert(developCount <= LINES_MAXIMUM, "both reports were read inside the bound on lines");
+    assert(rewriteCount <= LINES_MAXIMUM, "both of them");
+    if ((developCount + 1) * (rewriteCount + 1) > COMPARED_CELLS_MAXIMUM) {
+        throw new DevelopReportError(
+            `a section of ${developCount} lines against ${rewriteCount} is past the ` +
+                `${COMPARED_CELLS_MAXIMUM} cells a comparison fills`,
+        );
     }
-    return lineIndices;
+    // How many lines from each pair of places on run alike in order, filled from the ends back.
+    const commonAfter: Int32Array[] = [];
+    for (let developIndex = 0; developIndex <= developCount; developIndex += 1) {
+        commonAfter.push(new Int32Array(rewriteCount + 1));
+    }
+    for (let developIndex = developCount - 1; developIndex >= 0; developIndex -= 1) {
+        const row = commonAfter[developIndex];
+        const below = commonAfter[developIndex + 1];
+        assert(row !== undefined, "a row stands for every place on develop's side");
+        assert(below !== undefined, "and one past its last line");
+        for (let rewriteIndex = rewriteCount - 1; rewriteIndex >= 0; rewriteIndex -= 1) {
+            row[rewriteIndex] = developLines[developIndex] === rewriteLines[rewriteIndex]
+                ? (below[rewriteIndex + 1] ?? 0) + 1
+                : Math.max(below[rewriteIndex] ?? 0, row[rewriteIndex + 1] ?? 0);
+        }
+    }
+    const changes: LineChange[] = [];
+    let developIndex = 0;
+    let rewriteIndex = 0;
+    for (let look = 0; look < developCount + rewriteCount; look += 1) {
+        const developLine = developLines[developIndex];
+        const rewriteLine = rewriteLines[rewriteIndex];
+        if (developLine === undefined) {
+            if (rewriteLine === undefined) break;
+            changes.push({ kind: LINE_CHANGE.added, line: rewriteLine });
+            rewriteIndex += 1;
+            continue;
+        }
+        if (rewriteLine === undefined) {
+            changes.push({ kind: LINE_CHANGE.removed, line: developLine });
+            developIndex += 1;
+            continue;
+        }
+        if (developLine === rewriteLine) {
+            developIndex += 1;
+            rewriteIndex += 1;
+            continue;
+        }
+        const keptByRemoving = commonAfter[developIndex + 1]?.[rewriteIndex] ?? 0;
+        const keptByAdding = commonAfter[developIndex]?.[rewriteIndex + 1] ?? 0;
+        if (keptByRemoving >= keptByAdding) {
+            changes.push({ kind: LINE_CHANGE.removed, line: developLine });
+            developIndex += 1;
+        } else {
+            changes.push({ kind: LINE_CHANGE.added, line: rewriteLine });
+            rewriteIndex += 1;
+        }
+    }
+    assert(developIndex === developCount, "every line of develop's was walked");
+    assert(rewriteIndex === rewriteCount, "and every line of this branch's");
+    return changes;
 }
 
 /** Two reports with no sections, held as one text under the task that printed them. */
@@ -259,22 +332,15 @@ function formatDifferenceLines(difference: ReportDifference): string[] {
     const heading = `≠ ${difference.name}`;
     if (difference.developLines === null) return [heading, "  develop prints nothing for it"];
     if (difference.rewriteLines === null) return [heading, "  this branch prints nothing for it"];
-    const [firstIndex] = difference.lineIndices;
-    assert(firstIndex !== undefined, "a difference differs on a line");
-    const start = Math.max(0, firstIndex - CONTEXT_LINES);
-    const context = difference.developLines.slice(start, firstIndex);
+    const removed = difference.changes.filter((change) => change.kind === LINE_CHANGE.removed);
     const lines = [
-        `${heading}, ${formatInteger(difference.lineIndices.length)} lines of its report`,
-        ...context.map((line) => `    ${line}`),
+        `${heading}, ${formatInteger(removed.length)} lines only develop prints, ` +
+        `${formatInteger(difference.changes.length - removed.length)} only this branch`,
     ];
-    for (const lineIndex of difference.lineIndices) {
-        lines.push(
-            `  line ${formatInteger(lineIndex + 1)}`,
-            `  - ${difference.developLines[lineIndex] ?? "(develop's report ends)"}`,
-            `  + ${difference.rewriteLines[lineIndex] ?? "(this branch's report ends)"}`,
-        );
+    for (const change of difference.changes) {
+        lines.push(`  ${change.kind === LINE_CHANGE.removed ? "-" : "+"} ${change.line}`);
     }
-    assert(context.length <= CONTEXT_LINES, "the context is the lines just over the difference");
+    assert(lines.length === difference.changes.length + 1, "every change is a line of its own");
     return lines;
 }
 

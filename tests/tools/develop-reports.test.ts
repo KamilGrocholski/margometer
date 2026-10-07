@@ -5,10 +5,12 @@
 
 import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import {
+    COMPARED_CELLS_MAXIMUM,
     compareReportSections,
     compareWholeReports,
     formatComparison,
     indexReportSections,
+    LINE_CHANGE,
     LINES_MAXIMUM,
     SECTIONS_MAXIMUM,
     selectDevelopMaterial,
@@ -53,50 +55,48 @@ Deno.test("two alike reports agree on every recording, and differ on none", () =
     assertEquals(formatComparison("figures", comparison), ["figures: 2 agree, 0 differ"]);
 });
 
-Deno.test("one figure changed is one difference, at the line it stands on", () => {
+Deno.test("one figure changed is one difference, the line each side printed", () => {
     const changed = REPORT.replace("Gracz 1        99", "Gracz 1       100");
     const comparison = compareReportSections(REPORT, changed);
     assertEquals(comparison.agreedNames, ["two"]);
     assertStrictEquals(comparison.differences.length, 1);
     assertStrictEquals(comparison.differences[0]!.name, "one");
-    assertEquals(comparison.differences[0]!.lineIndices, [1], "the line under the payloads");
     assertEquals(formatComparison("figures", comparison), [
-        "≠ one, 1 lines of its report",
-        "      payloads 4",
-        "  line 2",
+        "≠ one, 1 lines only develop prints, 1 only this branch",
         "  -     Gracz 1        99",
         "  +     Gracz 1       100",
         "figures: 1 agree, 1 differ",
     ]);
 });
 
-/** A line known to differ never hides the ones after it, which is what the comparison is for. */
-Deno.test("every line two reports differ on is a line of the difference, not the first alone", () => {
+/**
+ * A line one side added moves no line under it into a difference: compared by index, one line more
+ * at the top of a section listed every line below it.
+ */
+Deno.test("a line one side added is that line alone, and the lines under it agree", () => {
     const status = "recordings   35\nmessages   13862\nlost   0\n";
-    const twice = status.replace("35", "36").replace("lost   0", "lost   1");
-    const difference = compareWholeReports("decoding", status, twice).differences[0]!;
-    assertEquals(difference.lineIndices, [0, 2], "the first and the last");
+    const inserted = status.replace("recordings   35\n", "recordings   35\nfights   35\n");
+    const difference = compareWholeReports("decoding", status, inserted).differences[0]!;
     assertEquals(
-        formatComparison("decoding", { agreedNames: [], differences: [difference] }).slice(1, -1),
-        [
-            "  line 1",
-            "  - recordings   35",
-            "  + recordings   36",
-            "  line 3",
-            "  - lost   0",
-            "  + lost   1",
-        ],
-        "each shown with both sides",
+        difference.changes,
+        [{ kind: LINE_CHANGE.added, line: "fights   35" }],
+        "the one line, and none of the two under it",
+    );
+    const twice = status.replace("35", "36").replace("lost   0", "lost   1");
+    assertEquals(
+        compareWholeReports("decoding", status, twice).differences[0]!.changes.map((change) =>
+            change.line
+        ),
+        ["recordings   35", "recordings   36", "lost   0", "lost   1"],
+        "and two lines changed apart are both said, with what stands between them left out",
     );
 });
 
-Deno.test("a report one line longer differs where the shorter one ends", () => {
+Deno.test("a report one line longer differs by that line", () => {
     const longer = REPORT.replace("  payloads 2", "  payloads 2\n  still going");
     const difference = compareReportSections(REPORT, longer).differences[0]!;
     assertStrictEquals(difference.name, "two");
-    assertEquals(difference.lineIndices, [1]);
-    const shown = formatComparison("figures", { agreedNames: [], differences: [difference] });
-    assertEquals(shown.slice(-3, -1), ["  - (develop's report ends)", "  +   still going"]);
+    assertEquals(difference.changes, [{ kind: LINE_CHANGE.added, line: "  still going" }]);
 });
 
 Deno.test("a recording one side reports and the other does not is a difference", () => {
@@ -127,9 +127,13 @@ Deno.test("a whole report is one section, its trailing blanks aside", () => {
     assertEquals(agreed.agreedNames, ["decoding"], "a printer's last newline is not a line");
     const changed = compareWholeReports("decoding", status, status.replace("13862", "13861"));
     assertStrictEquals(changed.differences[0]!.name, "decoding");
-    assertEquals(changed.differences[0]!.lineIndices, [1]);
+    assertEquals(changed.differences[0]!.changes.length, 2, "the line as each side printed it");
     const empty = compareWholeReports("decoding", "", status);
-    assertEquals(empty.differences[0]!.lineIndices, [0, 1], "an empty report differs at once");
+    assertEquals(
+        empty.differences[0]!.changes.map((change) => change.kind),
+        [LINE_CHANGE.added, LINE_CHANGE.added],
+        "an empty report differs by every line the other printed",
+    );
 });
 
 Deno.test("a recording develop never read is named apart, and the rest are compared", () => {
@@ -166,5 +170,22 @@ Deno.test("a report is read up to its bound on sections, and refused one past it
         () => indexReportSections(reporting(SECTIONS_MAXIMUM + 1)),
         DevelopReportError,
         `a report of ${SECTIONS_MAXIMUM + 1} sections, past the ${SECTIONS_MAXIMUM}`,
+    );
+});
+
+/** The cells a comparison fills grow as both sides do, so a pair is bounded before a cell is filled. */
+Deno.test("a section pair past the cells a comparison fills is refused, and one at them is read", () => {
+    const side = Math.sqrt(COMPARED_CELLS_MAXIMUM) - 1;
+    const text = (count: number, mark: string) =>
+        Array.from({ length: count }, (_, lineIndex) => `${mark}${lineIndex}`).join("\n");
+    assertStrictEquals(
+        compareWholeReports("decoding", text(side, "a"), text(side, "b")).differences.length,
+        1,
+        "a pair at the bound is compared",
+    );
+    assertThrows(
+        () => compareWholeReports("decoding", text(side + 1, "a"), text(side, "b")),
+        DevelopReportError,
+        "cells",
     );
 });
