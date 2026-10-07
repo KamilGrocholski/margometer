@@ -15407,6 +15407,7 @@ suite's material.
 - `docs/adr/0040-pomocnik-says-the-turns-a-length-has-left.md`
 - `docs/adr/0041-an-ended-charge-draws-no-length.md`
 - `docs/adr/0042-e10-guards-the-handovers-of-what-the-bundle-carries.md`
+- `docs/adr/0043-a-heal-of-its-own-announcer-hands-the-announcement-on.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

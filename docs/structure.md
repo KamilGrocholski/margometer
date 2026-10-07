@@ -111,6 +111,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0040-pomocnik-says-the-turns-a-length-has-left.md`                                           | every length Pomocnik draws is the turns it has left with their noun, and the charge's dots stay                         |
 | `docs/adr/0041-an-ended-charge-draws-no-length.md`                                                     | a charge broken or struck draws no length on its row or its card, and one still charging keeps its turns left            |
 | `docs/adr/0042-e10-guards-the-handovers-of-what-the-bundle-carries.md`                                 | E10 binds the bundle's handovers, which its guard reads; a page `tools/` writes is said by the browser                   |
+| `docs/adr/0043-a-heal-of-its-own-announcer-hands-the-announcement-on.md`                               | a message that only heals its announcer hands the announcement on, so the blow after it opens no turn                    |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

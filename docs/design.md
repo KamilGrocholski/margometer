@@ -1179,8 +1179,9 @@ What `tests/simulation.test.ts` holds, on every recording and every seed:
 **The rewrite is proven against `develop`.** On every recording, the figures this branch draws equal
 the figures `develop` @ `fa1dcce` draws, except where a decision record names a departure: ADR 0012
 counts what an absorption pool took, and states which lines of the report that moves; ADR 0035 keeps
-out of `report.totals` the figures it never summed. Any other difference is a finding in one of the
-two, never a golden value to move (`AGENTS.md` W8).
+out of `report.totals` the figures it never summed; ADR 0043 hands an announcement on over its
+announcer's own heal, which moves the blows behind no announcement in three recordings. Any other
+difference is a finding in one of the two, never a golden value to move (`AGENTS.md` W8).
 
 ## 13. Open
 
