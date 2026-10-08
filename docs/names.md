@@ -7264,7 +7264,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-element.test.ts`
 - `blocked` — `tests/core/fight-statistics.test.ts`
 - `blocks` — `tests/runtime/carried-tooltip.test.ts`, `tests/ui/panel-element.test.ts`
-- `blow` — `tests/core/fight-decoder.test.ts`, `tests/core/legendary-standing.test.ts`
+- `blow` — `tests/core/fight-decoder.test.ts`, `tests/core/fight-statistics.test.ts`,
+  `tests/core/legendary-standing.test.ts`
 - `blowKeys` — `tests/ui/blow-vocabulary.test.ts`
 - `blowMessage` — `tests/ui/panel-content.test.ts`
 - `blows` — in 5 files: `tests/`
@@ -8294,6 +8295,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `prefix` — `tests/repository/documents.test.ts`
 - `prefixed` — `tests/repository/browser-support.test.ts`
 - `prefixedNames` — `tests/repository/browser-support.test.ts`
+- `preparation` — `tests/core/fight-statistics.test.ts`
 - `prepared` — in 7 files: `tests/`
 - `present` — `tests/repository/protocol-keys.test.ts`
 - `pressIndex` — `tests/ui/panel-element.test.ts`

@@ -1265,6 +1265,29 @@ Deno.test("a preparation after that combatant's own named damage rides its turn"
 });
 
 /**
+ * A key the register does not know leaves its message unread, and the decoder stands a marker
+ * after the events it kept off that message. The marker is nobody's action, but it is no evidence
+ * that the action ended either: a preparation after it still rides the blow before it. No
+ * recording reaches the shape, so the key is written by hand — **W4**.
+ */
+Deno.test("an unread key on a blow opens no turn on the preparation that rides it", () => {
+    const blow = "1=90.00;2=80.00;+dmg=5;-dmg=5";
+    const preparation = "1=90.00;0;prepare=Cios";
+    assertStrictEquals(getTurnsTaken([blow, preparation], 1), 1, "a blow and its preparation");
+    const unread = decode([`${blow};+newproc`], null);
+    assertStrictEquals(
+        unread.at(-1)?.kind,
+        BATTLE_EVENT.unknownMessage,
+        "the key went unread, and the marker stands last",
+    );
+    assertStrictEquals(
+        getTurnsTaken([`${blow};+newproc`, preparation], 1),
+        1,
+        "and the same pair with a key nobody knows is still one turn",
+    );
+});
+
+/**
  * The negative space (**A2**), and it is what stops the suppression above from swallowing a turn:
  * a tick of poison is nobody's action, so the preparation after one opens a turn of its own. The
  * corpus stands 141 preparations on that shape and 32 on the shape above, 2026-09-07.

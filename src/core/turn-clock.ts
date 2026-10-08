@@ -83,7 +83,9 @@ function addTurn(turnsByCombatantId: Map<number, number>, combatantId: number | 
 /**
  * The same standing, one event on. A blow keeps the announcement going only while it is that
  * announcement's own; anything else ends it, and an event that is nobody's action ends both
- * halves. Damage stated by name is its actor's action as much as a blow is.
+ * halves. Damage stated by name is its actor's action as much as a blow is. An unread message
+ * leaves the standing as it was: the events read off it already moved it, and ending it there
+ * would open a turn on whatever follows, so a key nobody knows errs on the short side.
  */
 export function composeTurnStanding(event: BattleEvent, turnStanding: TurnStanding): TurnStanding {
     if (turnStanding.announcedStrikerId !== null) {
@@ -110,5 +112,6 @@ export function composeTurnStanding(event: BattleEvent, turnStanding: TurnStandi
     if (event.kind === BATTLE_EVENT.declaration) {
         return { announcedStrikerId: null, lastActorId: turnStanding.lastActorId };
     }
+    if (event.kind === BATTLE_EVENT.unknownMessage) return turnStanding;
     return NO_TURN_STANDING;
 }
