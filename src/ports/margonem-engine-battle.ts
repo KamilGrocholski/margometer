@@ -49,13 +49,17 @@ export class MargonemEngineAlreadyWrapped extends Error {
     override readonly name = "MargonemEngineAlreadyWrapped";
 }
 
+/**
+ * The looking ended with no game found: at its bound, or at once where the page will not start the
+ * timer, whose refusal is the cause. Null where the looks ran out.
+ */
 export class SearchAbandoned extends Error {
     override readonly name = "SearchAbandoned";
     readonly looks: number;
     readonly maximum: number;
 
-    constructor(looks: number, maximum: number) {
-        super();
+    constructor(looks: number, maximum: number, cause: errors.Caught | null) {
+        super(undefined, { cause });
         this.looks = looks;
         this.maximum = maximum;
     }

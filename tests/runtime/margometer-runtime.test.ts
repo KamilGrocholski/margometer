@@ -1416,6 +1416,20 @@ function initSearchingWorld(page: Record<string, unknown>) {
     return { world, fire };
 }
 
+/** `docs/design.md` §10.1: a timer that will not start is a search that has nothing left to do. */
+Deno.test("a page that will not start the timer puts the panel up saying so, at once", () => {
+    const world = initRuntimeWorld({}, () => ({
+        interval: { every: () => new errors.Caught(new RangeError("no timers here")) },
+    }));
+    assertStrictEquals(world.shown.length, 1, "the panel goes up with no look to wait for");
+    assertEquals(
+        getTextsByClass(world.getHost(), CLASS.defect),
+        [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.engine, null, 1)}`],
+        "saying the game cannot be seen",
+    );
+    assertEquals(world.lines, [PANEL_DEFECT_KIND.engine], "and the console heard it once");
+});
+
 Deno.test("a game whose method is gone puts the panel up saying so, once the looking stops", () => {
     const { world, fire } = initSearchingWorld(composeBattlePage({}));
     fire(LOOKS_MAXIMUM - 2);

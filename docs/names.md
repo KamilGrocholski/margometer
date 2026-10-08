@@ -2083,7 +2083,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### No verb
 
 - `Engine` — `tests/ports/margonem-engine-battle.test.ts`,
-  `tests/runtime/margometer-runtime.test.ts`
+  `tests/runtime/margometer-runtime.test.ts`, `tests/runtime/margonem-engine-search.test.ts`
 - `Program` — `tests/source-tree.ts`
 
 ### `_t` — not in N2's table

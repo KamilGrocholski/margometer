@@ -463,7 +463,7 @@ Deno.test("a search that is done looks no more, though the page's timer will not
     assertStrictEquals(told.abandoned.length, 1, "the search ended once");
 });
 
-Deno.test("a page that will not start the timer is marked, once, as a look that failed", () => {
+Deno.test("a page that will not start the timer ends the search at once, with the refusal", () => {
     const { report, told } = composeReport();
     const refusing: BrowserTimers = {
         setInterval: () => {
@@ -471,15 +471,46 @@ Deno.test("a page that will not start the timer is marked, once, as a look that 
         },
         clearInterval: () => {},
     };
-    initMargonemEngineSearch({
+    const search = initMargonemEngineSearch({
         battle: initMargonemEngineBattle({}),
         interval: initBrowserInterval(refusing),
         listener: { onBeforeCall: () => {}, onPayload: () => {} },
         report,
         console: SILENT_CONSOLE,
     });
-    assertStrictEquals(told.failures.length, 1, "the refusal is marked");
-    assertEquals(told.abandoned, [], "and the one look that ran was not the last");
+    assertEquals(told.failures, [], "a look that found nothing is no look that failed");
+    const [abandoned] = told.abandoned;
+    assertInstanceOf(abandoned, SearchAbandoned, "the search is given up on");
+    assertInstanceOf(abandoned.cause, errors.Caught, "carrying the page's refusal");
+    assertInstanceOf(abandoned.cause.cause, RangeError, "as the page threw it");
+    assertStrictEquals(abandoned.looks, 1, "after the one look that ran");
+    assertStrictEquals(told.abandoned.length, 1, "once");
+    assert(search.isDone(), "and nothing is left looking");
+});
+
+/** The first look's failure is said once, so the refusal after it must end the search on its own. */
+Deno.test("a timer that will not start after a look that failed still ends the search", () => {
+    const { report, told } = composeReport();
+    const refusing: BrowserTimers = {
+        setInterval: () => {
+            throw new RangeError("no timers here");
+        },
+        clearInterval: () => {},
+    };
+    const page = {
+        get Engine(): unknown {
+            throw new RangeError("a page that will not be read");
+        },
+    };
+    initMargonemEngineSearch({
+        battle: initMargonemEngineBattle(page),
+        interval: initBrowserInterval(refusing),
+        listener: { onBeforeCall: () => {}, onPayload: () => {} },
+        report,
+        console: SILENT_CONSOLE,
+    });
+    assertStrictEquals(told.failures.length, 1, "the look that failed is said");
+    assertStrictEquals(told.abandoned.length, 1, "and the search is given up on all the same");
 });
 
 /**
@@ -497,10 +528,10 @@ Deno.test("a report that breaks on the starting stack does not leave the start",
         onAttached: () => {},
         onStoodDown: () => {},
         onRefused: () => {},
-        onAbandoned: () => {},
-        onLookFailed: () => {
+        onAbandoned: () => {
             throw new Error("a report that will not write");
         },
+        onLookFailed: () => {},
     };
     const listener = { onBeforeCall: () => {}, onPayload: () => {} };
     const search = initMargonemEngineSearch({
@@ -510,5 +541,5 @@ Deno.test("a report that breaks on the starting stack does not leave the start",
         report,
         console: SILENT_CONSOLE,
     });
-    assertStrictEquals(search.isDone(), false, "the search stood up, with nothing escaping it");
+    assert(search.isDone(), "the search stood up and ended, with nothing escaping it");
 });

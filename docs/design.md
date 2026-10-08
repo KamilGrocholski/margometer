@@ -277,7 +277,7 @@ export type MargonemEngineFailure =
     | MargonemEngineMethodUnwritable // a write the page refused or threw on: at the wrap the engine's
     //                                  own is put back, at the detach ours stays; cause: Caught | null
     | MargonemEngineAlreadyWrapped // another copy's wrap marker is present
-    | SearchAbandoned // `looks` and `maximum`
+    | SearchAbandoned // `looks` and `maximum`; cause: the timer's refusal, null at the bound
     | WrapCovered; // somebody wrapped over us; only ours comes off
 
 // The game's page state, read
@@ -963,6 +963,8 @@ initRuntime(ports, options)
                                     → at the last look only, an "engine" defect,
                                      markStale: the panel waits
         a look that threw           → one console line; the looking goes on
+        a timer that will not start → abandoned at once, the refusal its cause: an "engine"
+                                     defect, markStale: the panel goes up and says so
         found                       → engine.wrap(listener), markStale
 the first frame draws and mounts   a failure → a "mount" defect, tried again at the next frame
 ```
@@ -1076,6 +1078,7 @@ goes without a mark.
 | `WrapCovered`                                   | `none`                 | returned by `deinit`, which only a test calls          |
 | `MargonemEngineAlreadyWrapped`, `BootFailure`   | `stand-down`           | no panel, one console line                             |
 | `SearchAbandoned`, `MargonemEngineMethodAbsent` | `defect` "engine"      | the panel waits, one console line                      |
+| `SearchAbandoned`, the timer refused            | `defect` "engine"      | as above, at once: no look is left to come             |
 | `MargonemEngineMethodUnwritable`                | `defect` "engine"      | as above; the engine's own method stands               |
 | `MargonemEngineMethodUnwritable` on a detach    | `none`                 | returned by `deinit`, which only a test calls          |
 | `Caught` from the search's own report           | console line           | nothing on the panel; one console line, the first time |

@@ -645,8 +645,12 @@ export function initMargonemEngineSearch(
             LOOK_EVERY_MILLISECONDS,
             onLookFailure,
         );
-        if (started instanceof Error) onLookFailure(started);
-        else search.handle = started;
+        if (started instanceof Error) {
+            // A timer that will not start leaves no look to come: the search ends here, and says so.
+            deinitSearchTimer(search);
+            const abandoned = new SearchAbandoned(search.looks, LOOKS_MAXIMUM, started);
+            executeSearchReport(search, () => report.onAbandoned(abandoned));
+        } else search.handle = started;
     }
     return {
         stop: () => deinitSearchTimer(search),
@@ -685,7 +689,7 @@ function executeSearchBound(search: Search, report: SearchReport): void {
     if (search.looks < LOOKS_MAXIMUM) return;
     if (search.isDone) return;
     deinitSearchTimer(search);
-    const abandoned = new SearchAbandoned(search.looks, LOOKS_MAXIMUM);
+    const abandoned = new SearchAbandoned(search.looks, LOOKS_MAXIMUM, null);
     executeSearchReport(search, () => report.onAbandoned(abandoned));
 }
 
