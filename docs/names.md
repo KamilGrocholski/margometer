@@ -4379,6 +4379,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `OUTPUT_DEFAULT` — `tools/fabricated-fight.ts`
 - `OUTPUT_DIRECTORY` — `tools/build-userscript.ts`, `tools/preview-site.ts`
 - `OUTPUT_FLAG` — `tools/fabricated-fight.ts`
+- `PAGE_FILE_PATHS` — `tools/preview-server.ts`
 - `PAGE_NAME` — `tools/skill-table.ts`
 - `PANEL_FILE` — `tools/panel-giving-way.ts`
 - `PARENT` — `tools/panel-giving-way.ts`
@@ -6990,6 +6991,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `sentence` — `tools/fabricated-fight.ts`, `tools/protocol-key-shape.ts`
 - `separator` — `tools/status-bit-table.ts`
 - `served` — `tools/margonem-client-source.ts`, `tools/panel-shots.ts`
+- `servedPaths` — `tools/preview-server.ts`
 - `server` — `tools/preview-server.ts`
 - `settings` — `tools/preview-page.ts`
 - `shape` — `tools/fabricated-fight.ts`, `tools/protocol-key-shape.ts`
@@ -12154,6 +12156,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isCases` — `tools/drill-report.ts`, `tools/turn-count.ts`
 - `isContested` — `tools/turn-reading.ts`
 - `isFabricated` — `tools/fabricated-fight.ts`
+- `isInstallOffered` — `tools/preview-server.ts`
 - `isKeys` — `tools/turn-reading.ts`
 - `isNarrated` — `tools/turn-count.ts`
 - `isPlayerById` — `tools/capture-intake.ts`
@@ -12328,6 +12331,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `shared` — `tools/develop-reports.ts`
 - `short` — `tools/turn-count.ts`
 - `shots` — `tools/panel-shots.ts`
+- `shouldOfferInstall` — `tools/panel-giving-way.ts`, `tools/preview-server.ts`
 - `shouldOpenFabricated` — `tools/preview-server.ts`
 - `shouldWatch` — `tools/panel-giving-way.ts`, `tools/preview-server.ts`
 - `shut` — `tools/drill-report.ts`
@@ -13307,6 +13311,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `short` — `tests/tools/turn-count.test.ts`, `tests/ui/level-drawn.test.ts`
 - `shortDrawn` — `tests/e2e/panel-helper.spec.ts`
 - `shortWanted` — `tests/e2e/panel-helper.spec.ts`
+- `shouldOfferInstall` — `tests/tools/preview-server.test.ts`
 - `shouldOpenFabricated` — `tests/tools/preview-server.test.ts`
 - `shouldWatch` — `tests/tools/preview-server.test.ts`
 - `shoutTargetId` — `tests/core/carried-figure.test.ts`

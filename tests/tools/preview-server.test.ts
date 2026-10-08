@@ -224,6 +224,28 @@ Deno.test("the build installs beside the release, named and polled at this serve
     }
 });
 
+Deno.test("a server offering no install draws no button and serves no install", async () => {
+    const preview = initPreviewServer({
+        port: 0,
+        shouldWatch: false,
+        readBundle: () => Promise.resolve(BUILT),
+        shouldOfferInstall: false,
+    });
+    try {
+        for (const path of ["/margometer-dev.user.js", "/margometer-dev.meta.js"]) {
+            const answer = await fetch(`${preview.url}${path}`);
+            assertStrictEquals(answer.status, 404, `${path} is a miss where nothing is offered`);
+            await answer.body?.cancel();
+        }
+        const page = await (await fetch(`${preview.url}/margometer.user.js`)).text();
+        assertStrictEquals(page, BUILT.script, "while the page still runs the build");
+        const drawn = await (await fetch(`${preview.url}/`)).text();
+        assert(!drawn.includes(`class="preview-development"`), "and its bar offers no install");
+    } finally {
+        await preview.stop();
+    }
+});
+
 Deno.test("the build a server makes is dated to its minute, and polled at this server", async () => {
     // The one case here that runs the bundler: the injected reader holds the routes, not this.
     const preview = initPreviewServer({ port: 0, shouldWatch: false });

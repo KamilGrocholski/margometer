@@ -232,6 +232,7 @@ if (import.meta.main) {
             port: flags.port,
             shouldWatch: false,
             readBundle: () => Promise.resolve(built),
+            shouldOfferInstall: false,
         });
         console.log(`preview  ${preview.url}`);
         console.log(`giving way: ${flags.regions.join(", ")}`);

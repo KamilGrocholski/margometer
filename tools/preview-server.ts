@@ -55,6 +55,8 @@ export interface PreviewServerOptions {
     appendedScript?: string | null;
     /** Fights opened at a path, beside the recordings; a name the recordings carry is refused. */
     fromPaths?: readonly string[];
+    /** Off where the build is not one to install: no button, and the install routes are a miss. */
+    shouldOfferInstall?: boolean;
 }
 
 export interface PreviewServer {
@@ -81,6 +83,7 @@ export interface PreviewState {
     edition: UserscriptEdition | null;
     readBundle(edition: Readonly<UserscriptEdition>): Promise<UserscriptFiles>;
     appendedScript: string | null;
+    isInstallOffered: boolean;
 }
 
 const PREVIEW_HOSTNAME = "127.0.0.1";
@@ -109,8 +112,9 @@ export const FROM_PATHS_MAXIMUM = 64;
 export const PORT_MAXIMUM = 65_535;
 const TEXT_ENCODER = new TextEncoder();
 const HTML_TYPE = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" };
+const PAGE_FILE_PATHS = [`/${USERSCRIPT_NAME}`];
 const SERVED_FILE_PATHS = [
-    `/${USERSCRIPT_NAME}`,
+    ...PAGE_FILE_PATHS,
     `/${DEVELOPMENT_USERSCRIPT_NAME}`,
     `/${DEVELOPMENT_METADATA_NAME}`,
 ];
@@ -180,6 +184,7 @@ export function initPreviewServer(options: PreviewServerOptions = {}): PreviewSe
         appendedScript: options.appendedScript === undefined
             ? RELOAD_SCRIPT
             : options.appendedScript,
+        isInstallOffered: options.shouldOfferInstall ?? true,
     };
     const server = Deno.serve(
         { hostname: PREVIEW_HOSTNAME, port: options.port ?? PORT_DEFAULT, onListen: () => {} },
@@ -281,7 +286,9 @@ function readServedFiles(state: PreviewState): Promise<UserscriptFiles> {
 async function answerPreviewRequest(state: PreviewState, url: URL): Promise<Response> {
     assert(url.pathname.startsWith("/"), "a request names a path");
     if (url.pathname === "/reload") return answerPreviewEvents(state.listeners);
-    if (SERVED_FILE_PATHS.includes(url.pathname)) {
+    // A server offering no install serves the page its bundle alone, and the install is a miss.
+    const servedPaths = state.isInstallOffered ? SERVED_FILE_PATHS : PAGE_FILE_PATHS;
+    if (servedPaths.includes(url.pathname)) {
         // Answer the bundle or its banner, built on first asking: a tree that does not build
         // answers 500. The page and an install are handed one build.
         try {
@@ -324,10 +331,9 @@ async function answerPreviewRequest(state: PreviewState, url: URL): Promise<Resp
             doesAddressCarryState: true,
             doesStartFromEmpty: true,
             install: null,
-            developmentInstall: {
-                label: "install MargoMeter Dev",
-                address: `/${DEVELOPMENT_USERSCRIPT_NAME}`,
-            },
+            developmentInstall: state.isInstallOffered
+                ? { label: "install MargoMeter Dev", address: `/${DEVELOPMENT_USERSCRIPT_NAME}` }
+                : null,
             appendedScript: state.appendedScript,
         });
         return new Response(page, { headers: HTML_TYPE });
