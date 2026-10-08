@@ -427,6 +427,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupEndedState` — `src/core/charged-skill.ts`
 - `lookupErrorClasses` — `tests/repository/throws.test.ts`
 - `lookupEventBreaches` — `tests/repository/event-entries.test.ts`
+- `lookupFetchingTagLiterals` — `tools/build-userscript.ts`
 - `lookupFightReader` — `src/runtime/panel-frame.ts`
 - `lookupFirstDifference` — `tests/repository/name-register.test.ts`
 - `lookupFragments` — `tools/help-article.ts`
@@ -1953,6 +1954,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isClearOf` — `tests/e2e/panel-helper.spec.ts`
 - `isCollectionMade` — `tests/repository/purity.test.ts`
 - `isCommentLine` — `tests/ui/panel-words.test.ts`
+- `isComparedLiteral` — `tools/build-userscript.ts`
 - `isConstAssertion` — `tests/repository/type-assertions.test.ts`
 - `isCountText` — `tests/repository/captured-fight-register.test.ts`
 - `isCountWord` — `tools/protocol-key-shape.ts`
@@ -4210,6 +4212,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `COLUMN_WIDTH` — `tools/turn-count.ts`
 - `COLUMN_WIDTH_MAXIMUM` — `tools/preview-page.ts`
 - `COMPARED_CELLS_MAXIMUM` — `tools/develop-reports.ts`
+- `COMPARISONS` — `tools/build-userscript.ts`
+- `COMPARISON_LENGTH` — `tools/build-userscript.ts`
 - `COMPLETE_MARK` — `tools/develop-reports.ts`
 - `CONFIGURATION_FILE` — `tools/build-userscript.ts`
 - `CONTEXT_CHARACTERS` — `tools/help-article.ts`
@@ -4263,6 +4267,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FABRICATION_FIELDS` — `tools/fabricated-fight.ts`
 - `FABRICATION_SCRIPT` — `tools/fabricated-fight.ts`
 - `FAILURE_LINE` — `tools/preview-server.ts`
+- `FETCHING_TAGS` — `tools/build-userscript.ts`
 - `FIELDS_PER_SKILL` — `tools/capture-intake.ts`
 - `FIGURES_TASK` — `tools/develop-reports.ts`
 - `FIGURE_PER_PLACE` — `tools/fabricated-fight.ts`
@@ -6510,7 +6515,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `added` — `tools/margonem-readings.ts`
 - `adding` — `tools/turn-reading.ts`
 - `advance` — `tools/turn-count.ts`
-- `after` — `tools/panel-shots.ts`, `tools/status-bit-table.ts`
+- `after` — `tools/build-userscript.ts`, `tools/panel-shots.ts`, `tools/status-bit-table.ts`
 - `afterText` — `tools/panel-shots.ts`
 - `age` — `tools/help-article.ts`
 - `ahead` — `tools/fabricated-fight.ts`
@@ -6607,6 +6612,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `close` — in 4 files: `tools/`
 - `closed` — `tools/aura-lifetime.ts`
 - `closes` — `tools/build-userscript.ts`
+- `closesAt` — `tools/build-userscript.ts`
 - `closing` — `tools/drill-report.ts`
 - `code` — `tools/build-userscript.ts`
 - `collision` — `tools/capture-intake.ts`
@@ -6875,6 +6881,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `openerId` — `tools/turn-reading.ts`
 - `opening` — `tools/preview-server.ts`
 - `opens` — `tools/drill-report.ts`, `tools/fabricated-fight.ts`
+- `opensAt` — `tools/build-userscript.ts`
 - `opposingSide` — `tools/fabricated-fight.ts`
 - `order` — `tools/capture-intake.ts`
 - `ordered` — `tools/card-height.ts`, `tools/payload-cost.ts`
@@ -9608,6 +9615,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `claims` — `tools/protocol-key-shape.ts`
 - `clock` — `tools/shout-holding.ts`
 - `clocks` — `tools/shout-holding.ts`
+- `closesAt` — `tools/build-userscript.ts`
 - `code` — `tools/build-userscript.ts`, `tools/margometer-tool-error.ts`
 - `column` — `tools/aura-standing.ts`
 - `combatant` — `tools/fabricated-fight.ts`
@@ -9745,6 +9753,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `openedPart` — `tools/drill-report.ts`
 - `opener` — `tools/turn-reading.ts`
 - `openerId` — `tools/turn-reading.ts`
+- `opensAt` — `tools/build-userscript.ts`
 - `options` — `tools/margometer-tool-error.ts`, `tools/preview-page.ts`, `tools/preview-server.ts`
 - `ordered` — `tools/card-height.ts`
 - `ordinal` — `tools/fabricated-fight.ts`
@@ -9845,6 +9854,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `subject` — `tools/margonem-readings.ts`
 - `substitutions` — `tools/capture-intake.ts`
 - `sum` — `tools/fabricated-fight.ts`, `tools/payload-cost.ts`
+- `tag` — `tools/build-userscript.ts`
 - `tallies` — `tools/turn-reading.ts`
 - `tally` — in 6 files: `tools/`
 - `tallyMaximum` — `tools/decoding-status.ts`
@@ -15036,6 +15046,7 @@ suite's material.
 
 ### `tools/build-userscript.ts`
 
+- `"!="` — `COMPARISONS`
 - `"\""` — `QUOTES`
 - `"${"` — `TEMPLATE_HOLE`
 - `"'"` — `QUOTES`
@@ -15043,8 +15054,11 @@ suite's material.
 - `"-dev"` — `DEVELOPMENT_SUFFIX`
 - `"/*"` — `BLOCK_COMMENT_OPEN`
 - `"//"` — `LINE_COMMENT`
+- `"=="` — `COMPARISONS`
 - `"@import"` — `STYLE_IMPORT`
+- `"Audio"` — `AMBIENT_WAYS_OUT`
 - `"EventSource"` — `AMBIENT_WAYS_OUT`, `OUTBOUND_CALLS`
+- `"FontFace"` — `AMBIENT_WAYS_OUT`
 - `"Image"` — `AMBIENT_WAYS_OUT`
 - `"MargoMeter"` — `RELEASE_EDITION`
 - `"Request"` — `AMBIENT_WAYS_OUT`
@@ -15056,6 +15070,7 @@ suite's material.
 - ``"`"`` — `QUOTES`, `TEMPLATE_QUOTE`
 - `"a"` — `TAGS_BUILT`
 - `"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$"` — `WORD_CHARACTERS`
+- `"audio"` — `FETCHING_TAGS`
 - `"com"` — `MARGONEM_DOMAINS`
 - `"commons"` — `NON_WORLD_HOSTS`
 - `"createElement("` — `TAG_CALL`
@@ -15063,22 +15078,32 @@ suite's material.
 - `"deno.json"` — `CONFIGURATION_FILE`
 - `"dist"` — `OUTPUT_DIRECTORY`
 - `"div"` — `TAGS_BUILT`
+- `"embed"` — `FETCHING_TAGS`
 - `"fetch"` — `AMBIENT_WAYS_OUT`
 - `"fetch("` — `OUTBOUND_CALLS`
 - `"forum"` — `NON_WORLD_HOSTS`
+- `"frame"` — `FETCHING_TAGS`
 - `"https://github.com/KamilGrocholski/margometer"` — `HOMEPAGE`
+- `"iframe"` — `FETCHING_TAGS`
+- `"img"` — `FETCHING_TAGS`
 - `"importScripts"` — `AMBIENT_WAYS_OUT`
+- `"input"` — `FETCHING_TAGS`
+- `"link"` — `FETCHING_TAGS`
 - `"location"` — `AMBIENT_WAYS_OUT`
 - `"margometer.meta.js"` — `METADATA_NAME`
 - `"margometer.user.js"` — `USERSCRIPT_NAME`
+- `"meta"` — `FETCHING_TAGS`
 - `"navigator"` — `AMBIENT_WAYS_OUT`
+- `"object"` — `FETCHING_TAGS`
 - `"pl"` — `MARGONEM_DOMAINS`
 - `"pomoc"` — `NON_WORLD_HOSTS`
+- `"script"` — `FETCHING_TAGS`
 - `"sendBeacon"` — `AMBIENT_WAYS_OUT`, `OUTBOUND_CALLS`
 - `"span"` — `TAGS_BUILT`
 - `"src/userscript-boot.ts"` — `BUNDLE_ENTRY`
 - `"style"` — `TAGS_BUILT`
 - `"url("` — `STYLE_URL_OPEN`
+- `"video"` — `FETCHING_TAGS`
 - `"www"` — `NON_WORLD_HOSTS`
 
 ### `tools/capture-intake.ts`

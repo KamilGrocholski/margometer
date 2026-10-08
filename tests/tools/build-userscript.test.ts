@@ -190,6 +190,38 @@ Deno.test("a way out reached through an object is read as a name in code, and no
     );
 });
 
+Deno.test("a tag that fetches is flagged wherever a literal spells it, and not where compared", () => {
+    assertEquals(
+        lookupAmbientWaysOut('renderElement(document, "img", null);'),
+        ["<img>"],
+        "handed to the panel's own maker",
+    );
+    assertEquals(
+        lookupAmbientWaysOut("renderText(document, 'SCRIPT', said);"),
+        ["<script>"],
+        "in either case",
+    );
+    assertEquals(lookupAmbientWaysOut("const tag = `iframe`;"), ["<iframe>"], "held for later");
+    assertEquals(lookupAmbientWaysOut("const held = new Audio(to);"), ["Audio"], "a sound");
+    assertEquals(lookupAmbientWaysOut("new FontFace(name, to);"), ["FontFace"], "and a font");
+    const staying = [
+        'if (typeof held !== "object") return;',
+        'const isRecord = "object" === typeof held;',
+        'const said = "an img here";',
+        '// renderElement(document, "img")',
+        'const OPENED = { source: "source", track: "track" };',
+        "const said = `${count} img`;",
+        'renderElement(document, "div", null);',
+    ];
+    for (const code of staying) assertEquals(lookupAmbientWaysOut(code), [], code);
+    assertThrows(
+        () => requireBundleInBrowser('renderElement(document, "video", null);'),
+        UserscriptBuildError,
+        "could leave the browser: <video>",
+        "and a bundle spelling one is refused, naming it",
+    );
+});
+
 Deno.test("a build writes its version over the constant, and refuses a text without one", () => {
     const said = `const version = "${BUILD_VERSION}"; console.log("${BUILD_VERSION}");`;
     assertStrictEquals(

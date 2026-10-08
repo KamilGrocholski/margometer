@@ -74,6 +74,8 @@ const AMBIENT_WAYS_OUT = [
     "Worker",
     "SharedWorker",
     "Image",
+    "Audio",
+    "FontFace",
     "Request",
 ];
 /**
@@ -85,6 +87,28 @@ const STYLE_IMPORT = "@import";
 const INLINE_SCHEME = "data:";
 /** The tags this add-on builds. One that fetches when it is appended is not among them. */
 const TAGS_BUILT = ["a", "div", "span", "style"];
+/**
+ * The tags the HTML Standard's index of attributes (read 2026-10-08) gives a URL fetched unasked —
+ * `src`, `data`, `poster`, `srcset`, `link`'s `href` — with `meta`'s refresh and the obsolete
+ * `frame`. `source` and `track` fetch only for an `audio`, `video` or `img` around them, which are
+ * here, and both are words the bundle spells, so they are left out.
+ */
+const FETCHING_TAGS = [
+    "audio",
+    "embed",
+    "frame",
+    "iframe",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "object",
+    "script",
+    "video",
+];
+/** What a compared literal stands beside: the tail of `===` and `!==` is the whole of `==`, `!=`. */
+const COMPARISONS = ["==", "!="];
+const COMPARISON_LENGTH = 2;
 const TAG_CALL = "createElement(";
 const QUOTES = ['"', "'", "`"];
 const TEMPLATE_QUOTE = "`";
@@ -296,13 +320,19 @@ export function lookupStyleFetches(text: string): string[] {
     return fetched;
 }
 
-/** Every ambient way out the code reaches for, and every tag it builds past the four, as `<img>`. */
+/**
+ * Every ambient way out the code reaches for, every tag it builds past the four, and every tag that
+ * fetches spelled anywhere in it, each tag as `<img>`.
+ */
 export function lookupAmbientWaysOut(text: string): string[] {
     const code = composeCodeOutsideStrings(text);
     assertStrictEquals(code.length, text.length, "blanking keeps every offset");
     const reached = AMBIENT_WAYS_OUT.filter((name) => hasAmbientName(code, name));
     for (const tag of lookupTagsCreated(text, code)) {
         if (!TAGS_BUILT.includes(tag)) reached.push(`<${tag}>`);
+    }
+    for (const tag of lookupFetchingTagLiterals(text, code)) {
+        if (!reached.includes(tag)) reached.push(tag);
     }
     return reached;
 }
@@ -416,6 +446,45 @@ function lookupTagsCreated(text: string, code: string): string[] {
         tags.push(text.slice(from + 1, closes));
     }
     throw new UserscriptBuildError("the walk for tags ran past the text it walks");
+}
+
+/**
+ * Every string literal that is a tag fetching when it is appended, wherever the code spells it: the
+ * panel hands its tag to `renderElement` and `renderText`, which call `createElement` with a name,
+ * so the call a tag is spelled at is not the one that makes it. A literal compared is not one made
+ * (`typeof held !== "object"`). ⚠️ **A template holding a hole is not read**, so `` `im${"g"}` ``
+ * passes: the panel assembles no tag.
+ */
+function lookupFetchingTagLiterals(text: string, code: string): string[] {
+    assertStrictEquals(code.length, text.length, "the code is read at the text's offsets");
+    assert(
+        FETCHING_TAGS.every((tag) => !TAGS_BUILT.includes(tag)),
+        "no tag the add-on builds is one that fetches",
+    );
+    const tags: string[] = [];
+    for (let opensAt = 0; opensAt < code.length; opensAt += 1) {
+        const quote = code.charAt(opensAt);
+        if (!QUOTES.includes(quote)) continue;
+        for (const tag of FETCHING_TAGS) {
+            // Two quotes the walk kept a tag apart hold one literal: no valid code spells a tag
+            // between a quote closing and the next opening.
+            const closesAt = opensAt + 1 + tag.length;
+            if (code.charAt(closesAt) !== quote) continue;
+            if (text.slice(opensAt + 1, closesAt).toLowerCase() !== tag) continue;
+            if (isComparedLiteral(code, opensAt, closesAt)) continue;
+            tags.push(`<${tag}>`);
+        }
+    }
+    return tags;
+}
+
+/** Whether the literal between two quotes stands beside `==`, `===`, `!=` or `!==`. */
+function isComparedLiteral(code: string, opensAt: number, closesAt: number): boolean {
+    assert(opensAt < closesAt, "a literal opens before it closes");
+    const before = code.slice(0, opensAt).trimEnd().slice(-COMPARISON_LENGTH);
+    if (COMPARISONS.includes(before)) return true;
+    const after = code.slice(closesAt + 1).trimStart().slice(0, COMPARISON_LENGTH);
+    return COMPARISONS.includes(after);
 }
 
 /** The version `deno.json` declares, marked as no release of it. */
