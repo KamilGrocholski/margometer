@@ -3341,6 +3341,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `PreviewFightLink` — `tools/preview-page.ts`
 - `PreviewInstall` — `tools/preview-page.ts`
 - `PreviewInstallNeed` — `tools/preview-page.ts`
+- `PreviewOffer` — `tools/preview-page.ts`
 - `PreviewPageOptions` — `tools/preview-page.ts`
 - `PreviewServer` — `tools/preview-server.ts`
 - `PreviewServerOptions` — `tools/preview-server.ts`
@@ -6761,6 +6762,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `indexes` — `tools/fabricated-fight.ts`
 - `indices` — `tools/turn-count.ts`
 - `inside` — `tools/capture-intake.ts`
+- `install` — `tools/preview-page.ts`
 - `intake` — `tools/capture-intake.ts`
 - `into` — `tools/panel-giving-way.ts`
 - `introduction` — `tools/preview-page.ts`
@@ -7547,7 +7549,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `drained` — `tests/core/fight-statistics.test.ts`, `tests/runtime/margometer-runtime.test.ts`,
   `tests/ui/panel-content.test.ts`
 - `drawing` — `tests/e2e/panel-type.spec.ts`
-- `drawn` — in 19 files: `tests/`
+- `drawn` — in 20 files: `tests/`
 - `drawnAnswer` — `tests/e2e/panel-options.spec.ts`
 - `drawnBar` — `tests/ui/panel-element.test.ts`
 - `drawnPin` — `tests/runtime/margometer-runtime.test.ts`
@@ -8127,7 +8129,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `offShelf` — `tests/runtime/shelf.test.ts`
 - `offer` — `tests/tools/preview-page.test.ts`
 - `offerAt` — `tests/tools/preview-site.test.ts`
-- `offered` — `tests/tools/capture-intake.test.ts`
+- `offered` — `tests/tools/capture-intake.test.ts`, `tests/tools/preview-page.test.ts`
 - `offs` — `tests/core/fight-statistics.test.ts`
 - `offset` — `tests/repository/browser-support.test.ts`
 - `okrzyk` — `tests/e2e/panel-helper.spec.ts`
@@ -9627,6 +9629,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `developLines` — `tools/develop-reports.ts`
 - `developNames` — `tools/develop-reports.ts`
 - `developText` — `tools/develop-reports.ts`
+- `developmentInstall` — `tools/preview-page.ts`
 - `developmentVersion` — `tools/build-userscript.ts`
 - `difference` — `tools/develop-reports.ts`
 - `directory` — `tools/develop-reports.ts`, `tools/preview-server.ts`
@@ -12069,6 +12072,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `developLines` — `tools/develop-reports.ts`
 - `developReport` — `tools/margometer-tool-error.ts`
 - `development` — `tools/margonem-client-source.ts`
+- `developmentInstall` — `tools/preview-page.ts`, `tools/preview-server.ts`, `tools/preview-site.ts`
 - `differences` — `tools/develop-reports.ts`
 - `digits` — `tools/protocol-key-table.ts`
 - `dodatek` — `tools/capture-intake.ts`
@@ -12159,7 +12163,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `kind` — `tools/develop-reports.ts`, `tools/drill-report.ts`, `tools/protocol-key-table.ts`
 - `kinds` — `tools/turn-reading.ts`
 - `komunikaty` — `tools/capture-intake.ts`
-- `label` — `tools/preview-page.ts`, `tools/preview-site.ts`
+- `label` — `tools/preview-page.ts`, `tools/preview-server.ts`, `tools/preview-site.ts`
 - `ladunek` — `tools/capture-intake.ts`
 - `language` — `tools/preview-page.ts`, `tools/preview-server.ts`, `tools/preview-site.ts`
 - `length` — `tools/aura-lifetime.ts`
@@ -12696,6 +12700,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `detail` — `tests/repository/browser-support.test.ts`, `tests/ui/panel-card.test.ts`,
   `tests/ui/panel-element.test.ts`
 - `develop` — `tests/ui/panel-look.test.ts`
+- `developmentInstall` — `tests/tools/preview-page.test.ts`
 - `dictionary` — `tests/fake-window.ts`, `tests/runtime-world.ts`
 - `died` — `tests/core/health-witness.test.ts`
 - `dmg` — `tests/runtime/fight-file.test.ts`

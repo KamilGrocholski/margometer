@@ -208,6 +208,12 @@ Deno.test("the build installs beside the release, named and polled at this serve
         assertStrictEquals(banner, BUILT.metadata, "and what it polls is that build's banner");
         const page = await (await fetch(`${preview.url}/margometer.user.js`)).text();
         assertStrictEquals(page, BUILT.script, "the page runs the same one");
+        const drawn = await (await fetch(`${preview.url}/`)).text();
+        assertStringIncludes(
+            drawn,
+            `class="preview-development" href="/margometer-dev.user.js"`,
+            "and its bar hands over the install at a press",
+        );
         assertEquals(editions, [{
             name: "MargoMeter Dev",
             scriptAddress: `${preview.url}/margometer-dev.user.js`,

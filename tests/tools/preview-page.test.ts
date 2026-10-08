@@ -84,6 +84,7 @@ function composeOptions(calls: readonly unknown[]): PreviewPageOptions {
         words: WORDS,
         introduction: null,
         install: null,
+        developmentInstall: null,
         appendedScript: null,
     };
 }
@@ -213,6 +214,24 @@ Deno.test("the band over the page is the caller's, and a served page carries non
     assert(
         dressed.indexOf(PREVIEW_INSTALL_OPENING) < dressed.indexOf(`<div class="preview-strip">`),
         "the band stands before the replay, which is the whole of why it is a band",
+    );
+});
+
+Deno.test("the bar installs a build only where its caller offers one", () => {
+    const bare = composePreviewPage(composeOptions(CALLS));
+    assert(!bare.includes('preview-development"'), "a page offered nothing draws no button");
+    const offered = composePreviewPage({
+        ...composeOptions(CALLS),
+        developmentInstall: { label: "install it", address: "/margometer-dev.user.js" },
+    });
+    assertStringIncludes(
+        offered,
+        `<a class="preview-development" href="/margometer-dev.user.js">install it</a>`,
+        "an offered one is a button handing over that file",
+    );
+    assert(
+        offered.indexOf('preview-development"') > offered.indexOf(`<div class="preview-strip">`),
+        "standing in the bar, beside what it says about the build",
     );
 });
 

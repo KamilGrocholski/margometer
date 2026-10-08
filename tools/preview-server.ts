@@ -324,6 +324,10 @@ async function answerPreviewRequest(state: PreviewState, url: URL): Promise<Resp
             doesAddressCarryState: true,
             doesStartFromEmpty: true,
             install: null,
+            developmentInstall: {
+                label: "install MargoMeter Dev",
+                address: `/${DEVELOPMENT_USERSCRIPT_NAME}`,
+            },
             appendedScript: state.appendedScript,
         });
         return new Response(page, { headers: HTML_TYPE });

@@ -107,6 +107,7 @@ Deno.test("the page a visitor lands on is the landing fight, finished, with no p
     assertStringIncludes(page, `"entryIndex":${fight.updates.length}`, "opened at its end");
     assertStringIncludes(page, `"fights":[]`, "and no other recording is offered");
     assert(!page.includes(`id="preview-fight"`), "so there is no picker to choose one with");
+    assert(!page.includes("margometer-dev.user.js"), "nor a build only a server makes");
 });
 
 Deno.test("every element the page's script looks up by name is one the page draws", () => {

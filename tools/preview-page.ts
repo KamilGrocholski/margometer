@@ -51,6 +51,12 @@ export interface PreviewFightLink {
     callsAddress: string | null;
 }
 
+/** A file a button hands over, and what the button says. */
+export interface PreviewOffer {
+    label: string;
+    address: string;
+}
+
 export interface PreviewInstallNeed {
     text: string;
     /** Whether its failure says nothing, which is the one the band marks. */
@@ -64,7 +70,7 @@ export interface PreviewInstall {
     needsLine: string;
     /** Above the button: a reader who presses first installs, sees nothing, and reads why after. */
     needs: readonly PreviewInstallNeed[];
-    offer: { label: string; address: string };
+    offer: PreviewOffer;
     versionLine: string;
     afterLine: string;
 }
@@ -92,6 +98,8 @@ export interface PreviewPageOptions {
      */
     doesStartFromEmpty: boolean;
     install: PreviewInstall | null;
+    /** The bar's button installing the build a server runs, beside the release; null when published. */
+    developmentInstall: PreviewOffer | null;
     /** Run after the driver, still synchronously: hot reloading, or the site's windows. */
     appendedScript: string | null;
 }
@@ -225,7 +233,7 @@ ${composeSplitStyle()}
 ${tipsStyle}
 </style>
 ${said}
-${composePreviewStrip(options.words, options.fights.length > 0)}`;
+${composePreviewStrip(options.words, options.fights.length > 0, options.developmentInstall)}`;
 }
 
 function composePreviewInstall(install: PreviewInstall): string {
@@ -319,6 +327,9 @@ function composeStripStyle(): string {
   background: ${formatColour(SURFACE.track)}; border: 1px solid ${border};
   border-radius: ${SHAPE.radiusSmallPixels}px; padding: 3px 9px; cursor: pointer; }
 .preview-strip select { width: 26em; }
+.preview-strip a.preview-development { color: ${formatColour(SIGNAL.ours)}; text-decoration: none;
+  border: 1px solid ${formatColour(SIGNAL.ours)}; border-radius: ${SHAPE.radiusSmallPixels}px;
+  padding: 3px 9px; }
 .preview-title { font-weight: 600; color: ${formatColour(TEXT.quiet)}; letter-spacing: .04em; }
 .preview-count { font-variant-numeric: tabular-nums; color: ${formatColour(TEXT.quiet)}; }
 .preview-opening:empty { display: none; }
@@ -419,14 +430,23 @@ function composePreviewTooltips(words: PreviewWords): string {
         `<h2>${words.tooltips}</h2><div id="preview-tips-list"></div></aside>\n`;
 }
 
-function composePreviewStrip(words: PreviewWords, doesOfferFights: boolean): string {
+function composePreviewStrip(
+    words: PreviewWords,
+    doesOfferFights: boolean,
+    developmentInstall: PreviewOffer | null,
+): string {
     assert(words.title.length > 0, "the bar says what it is");
     assert(words.entry.length > 0, "and what it is counting");
+    const install = developmentInstall === null
+        ? ""
+        : `<a class="preview-development" href="${developmentInstall.address}">` +
+            `${developmentInstall.label}</a>`;
     return `<div class="preview-strip">
   <div class="preview-line">
     <span class="preview-title">${words.title}</span>
     ${doesOfferFights ? `<select id="preview-fight"></select>` : ""}
     <span class="preview-build" id="preview-build"></span>
+    ${install}
   </div>
   <div class="preview-line">
     <button id="preview-start">${words.start}</button>

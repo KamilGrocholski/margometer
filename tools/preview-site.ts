@@ -126,6 +126,7 @@ export function composeSitePage(fight: RecordedFight, version: string): string {
         doesAddressCarryState: false,
         doesStartFromEmpty: false,
         install: composeSiteInstall(version),
+        developmentInstall: null,
         appendedScript: [
             composeSiteWindows(),
             composeOpeningWatched(),
