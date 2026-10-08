@@ -12,7 +12,7 @@ import {
     assertStrictEquals,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { DEFECTS_MAXIMUM, type PanelDefect } from "#/src/ui/panel-element.ts";
+import { CARD_LINES_MAXIMUM, DEFECTS_MAXIMUM, type PanelDefect } from "#/src/ui/panel-element.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { DEFECT_KIND, initDefectLedger, ROWS_MAXIMUM } from "#/src/runtime/defect-ledger.ts";
 import { SIDE_RELATION } from "#/src/ui/panel-content.ts";
@@ -25,6 +25,7 @@ import { PANEL_DEFECT_KIND, PANEL_REGION } from "#/src/ui/panel-words.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
 import { GRIP_ATTRIBUTE } from "#/src/ui/panel-drag.ts";
 import {
+    CardLinesExceeded,
     CardRefused,
     GestureDropped,
     PANEL_LISTENER,
@@ -221,6 +222,54 @@ Deno.test("a card that will not draw under the pointer is told to the sink as th
         "MargoMeter-card card-hidden",
         "and the card standing hides",
     );
+});
+
+/**
+ * The seam the card handle's own suite cannot reach: a card placed at its line bound is told to
+ * the sink as the card, whose region is where a reader is told (**S11**).
+ */
+Deno.test("a card counted past its line bound is told to the sink as the card", () => {
+    const failures: ViewFailure[] = [];
+    const panel = initTestView(composeFakeDocument(), {
+        onFailure: (failure) => failures.push(failure),
+    });
+    const drawCharge = (combatantId: number, skillName: string) => {
+        panel.renderHelper({
+            turnState: STANDING_TURN_STATE.held,
+            turnOrdinal: null,
+            turnHolder: null,
+            provocations: [],
+            chargedSkills: [{
+                combatantId,
+                name: "Hildur",
+                skillName,
+                turnsElapsed: 1,
+                turnsStated: 3,
+                state: CHARGED_SKILL_STATE.charging,
+                colour: SIGNAL.ours,
+                sideRelation: SIDE_RELATION.reader,
+            }],
+            hasFiguresDisagreed: false,
+        }, false);
+        const host = panel.element as FakeElement;
+        const row = getElementsWithin(host).find((descendant) =>
+            descendant.attributes.get("data-card") === `helper:charge:${combatantId}`
+        );
+        assertExists(row, "the charge's row carries a card");
+        pointAtElement(host, "pointermove", row, 200);
+    };
+    drawCharge(7, "Lodowe Pandemonium");
+    assertEquals(failures, [], "a card of a few lines tells nothing");
+    // A name runs a line for every 27 characters a card is counted at, so this one runs past it.
+    drawCharge(8, "x".repeat(27 * CARD_LINES_MAXIMUM));
+    assertEquals(
+        failures.map((failure) => failure instanceof RegionUndrawn ? failure.region : failure.name),
+        [PANEL_REGION.card],
+        "one past it is the card's region, told to the sink",
+    );
+    const [told] = failures;
+    assertInstanceOf(told, RegionUndrawn, "as a region undrawn");
+    assertInstanceOf(told.cause, CardLinesExceeded, "and the bound is its cause");
 });
 
 Deno.test("a region kept after a refused replace is the one the next draw replaces", () => {

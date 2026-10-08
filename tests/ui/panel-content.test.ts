@@ -3569,6 +3569,52 @@ Deno.test("a pair whose parts outrun its figure closes at nought, and says so", 
 });
 
 /**
+ * A cut by the other end whose rows come to more than the figure over them, built by hand for the
+ * pair's reason above: no half-named row can take the difference, so the column adds past a
+ * hundred, and only the defect says the drawn figures are wrong.
+ */
+Deno.test("an opponent cut whose rows outrun its figure says the figures disagree", () => {
+    const statistics = tallyFightStatistics([], new Map());
+    const figures = createCombatantFigures();
+    figures.damageDealt = 100;
+    figures.damageDealtByOpponent.set("2", 60);
+    figures.damageDealtByOpponent.set("3", 60);
+    (statistics.byCombatantId as Map<number, CombatantFigures>).set(1, figures);
+    const roster = indexCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 3, name: "Gracz 3", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
+    ]);
+    const drill = presentOpenedLevel(statistics, roster, PANEL_METRIC.damageDealt, 1);
+    assertExists(drill, "the level opens");
+    assertStrictEquals(drill.byOtherEnd.rows.length, 2, "both named rows are drawn");
+    assertStrictEquals(drill.byOtherEnd.halfNamed, null, "and no row takes a negative rest");
+    assert(drill.byOtherEnd.hasFiguresDisagreed, "the cut says its figures disagree");
+    assert(drill.hasFiguresDisagreed, "and so does the level it stands in");
+});
+
+/**
+ * The same cut where its rows come to exactly the figure over it: nothing disagrees.
+ */
+Deno.test("an opponent cut whose rows meet its figure says nothing disagrees", () => {
+    const statistics = tallyFightStatistics([], new Map());
+    const figures = createCombatantFigures();
+    figures.damageDealt = 120;
+    figures.damageDealtByOpponent.set("2", 60);
+    figures.damageDealtByOpponent.set("3", 60);
+    (statistics.byCombatantId as Map<number, CombatantFigures>).set(1, figures);
+    const roster = indexCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 3, name: "Gracz 3", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
+    ]);
+    const drill = presentOpenedLevel(statistics, roster, PANEL_METRIC.damageDealt, 1);
+    assertExists(drill, "the level opens");
+    assertStrictEquals(drill.byOtherEnd.halfNamed, null, "no rest is left to draw");
+    assertStrictEquals(drill.byOtherEnd.hasFiguresDisagreed, false, "the cut agrees with itself");
+});
+
+/**
  * From `develop:tests/ui/level-drawn.test.ts`, whose other cases read a drawn document. The
  * figures the decision moves, read off the reading rather than off the rule: half the sections the
  * corpus draws put the closing row first. `develop ADR 0080` took everything that was not a blow

@@ -541,8 +541,9 @@ export interface OtherEndCut {
     rows: OtherEndRow[];
     halfNamed: OpponentUnnamedRow | null;
     /**
-     * A cut keyed by something that is no id, which core never writes: passed over rather than
-     * named, and carried out so the entry turns it into a defect (**E12**).
+     * A cut keyed by something that is no id, which core never writes and which is passed over
+     * rather than named, or one whose rows hold more than the figure over them. Carried out so the
+     * entry turns it into a defect (**E12**).
      */
     hasFiguresDisagreed: boolean;
 }
@@ -2129,11 +2130,11 @@ function composeOpponentCut(
     const total = totals.figure;
     const stated: UnsharedRow[] = [];
     let partsTotal = 0;
-    let hasFiguresDisagreed = false;
+    let hasKeyUnparsed = false;
     for (const [named, figure] of cut) {
         const otherId = parseInteger(named);
         if (otherId === null) {
-            hasFiguresDisagreed = true;
+            hasKeyUnparsed = true;
             continue;
         }
         partsTotal += figure;
@@ -2148,6 +2149,14 @@ function composeOpponentCut(
     }
     stated.sort(getRowOrderByFigureThenId);
     const unnamed = total - partsTotal;
+    let hasFiguresDisagreed: boolean;
+    // The rows holding **more** than the figure over them: no half-named row stands, and the
+    // column adds past a hundred.
+    if (unnamed < 0) {
+        hasFiguresDisagreed = true;
+    } else {
+        hasFiguresDisagreed = hasKeyUnparsed;
+    }
     const figures = stated.map((unsharedRow) => unsharedRow.figure);
     if (unnamed > 0) figures.push(unnamed);
     const shares = formatSharesApportioned(figures, total);

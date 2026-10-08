@@ -1895,6 +1895,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeSuspicions` — `src/ui/panel-content.ts`
 - `composeSuspicionsOfReading` — `src/runtime/panel-frame.ts`
 - `composeSwap` — `tests/ui/card-window.test.ts`
+- `composeTall` — `tests/ui/card-window.test.ts`
 - `composeTarget` — `tests/ui/panel-intent.test.ts`
 - `composeTestCast` — `tests/core/combatant-roster.test.ts`
 - `composeTestCombatant` — `tests/core/combatant-roster.test.ts`
@@ -1951,6 +1952,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isCasterHalved` — `src/core/carried-figure.ts`
 - `isCaughtRangeError` — `tests/ui/view-failure.test.ts`
 - `isCharacterWithin` — `tools/protocol-key-table.ts`
+- `isChargedSkillUndrawable` — `src/ui/panel-helper.ts`
 - `isClearOf` — `tests/e2e/panel-helper.spec.ts`
 - `isCollectionMade` — `tests/repository/purity.test.ts`
 - `isCommentLine` — `tests/ui/panel-words.test.ts`
@@ -2274,6 +2276,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `draw` — `tests/ui/helper-window.test.ts`, `tests/ui/panel-element.test.ts`,
   `tests/ui/view-failure.test.ts`
+- `drawCharge` — `tests/ui/view-failure.test.ts`
 - `drawOpened` — `tests/ui/panel-element.test.ts`
 - `drawShownView` — `tests/ui/full-cast-bound.test.ts`
 
@@ -3580,6 +3583,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `src/ui/`
 
+- `CardLinesExceeded` — `src/ui/view-failure.ts`
 - `CardRefused` — `src/ui/view-failure.ts`
 - `GestureDropped` — `src/ui/view-failure.ts`
 - `MarkValueUnknown` — `src/ui/panel-intent.ts`
@@ -3929,7 +3933,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `CHANNEL_OFFSET` — `src/ui/panel-look.ts`
 - `CHANNEL_VALUE_MAXIMUM` — `src/ui/panel-look.ts`
 - `CHARACTERS_PER_LINE_BY_STEP` — `src/ui/panel-element.ts`
-- `CHARGED_PIPS_MAXIMUM` — `src/ui/panel-element.ts`
+- `CHARGED_PIPS_MAXIMUM` — `src/ui/panel-helper.ts`
 - `CHARGED_ROWS_MAXIMUM` — `src/ui/panel-helper.ts`
 - `CHARGED_SKILL_WORDS` — `src/ui/panel-words.ts`
 - `CHOICE_REFUSED_ANSWER` — `src/ui/panel-words.ts`
@@ -6172,6 +6176,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `hasClosing` — `src/ui/panel-content.ts`
 - `hasFightToSave` — `src/ui/panel-element.ts`
 - `hasFiguresDisagreed` — `src/ui/panel-content.ts`
+- `hasKeyUnparsed` — `src/ui/panel-content.ts`
 - `hasRest` — `src/ui/panel-content.ts`
 - `headcount` — `src/ui/panel-element.ts`
 - `header` — `src/ui/panel-element.ts`
@@ -7213,7 +7218,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `asset` — `tests/tools/preview-site.test.ts`
 - `astray` — `tests/tools/panel-shots.test.ts`
 - `asynchronous` — `tests/repository/synchronous-bundle.test.ts`
-- `atBound` — in 14 files: `tests/`
+- `atBound` — in 15 files: `tests/`
 - `atFirstCall` — `tests/tools/preview-state.test.ts`
 - `atIntake` — `tests/runtime/fight-file.test.ts`
 - `atMaximum` — `tests/ui/panel-helper.test.ts`
@@ -7802,7 +7807,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-content.test.ts`
 - `height` — `tests/ui/panel-look.test.ts`, `tests/userscript-entry.test.ts`
 - `heights` — `tests/tools/card-height.test.ts`
-- `held` — in 46 files: `tests/`
+- `held` — in 47 files: `tests/`
 - `heldPlace` — `tests/e2e/panel-drag.spec.ts`
 - `heldShare` — `tests/tools/shout-holding.test.ts`
 - `heldState` — `tests/runtime/shelf-keeper.test.ts`
@@ -8238,7 +8243,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `parts` — in 9 files: `tests/`
 - `pass` — `tests/repository/name-register.test.ts`
 - `passed` — `tests/ports/margonem-client-build.test.ts`
-- `past` — in 19 files: `tests/`
+- `past` — in 20 files: `tests/`
 - `pastBound` — in 4 files: `tests/`
 - `pastMidnight` — `tests/ui/panel-words.test.ts`
 - `pastTheHour` — `tests/ui/panel-words.test.ts`
@@ -8411,6 +8416,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `replayedOffShelf` — `tests/runtime/shelf.test.ts`
 - `replays` — `tests/ui/level-drawn.test.ts`, `tests/ui/panel-content.test.ts`
 - `report` — in 9 files: `tests/`
+- `reported` — `tests/ui/card-window.test.ts`
 - `reports` — `tests/core/absorption-destruction-rule.test.ts`,
   `tests/ports/browser-interval.test.ts`
 - `requested` — `tests/ports/browser-frame.test.ts`, `tests/runtime/margometer-runtime.test.ts`
@@ -8732,8 +8738,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `together` — `tests/ui/panel-content.test.ts`
 - `token` — `tests/repository/design-tokens.test.ts`
 - `tokens` — `tests/ui/panel-drag.test.ts`, `tests/ui/panel-look.test.ts`
-- `told` — `tests/e2e/panel-tooltip.spec.ts`, `tests/ports/margonem-engine-tooltip.test.ts`,
-  `tests/runtime/margonem-engine-search.test.ts`
+- `told` — in 4 files: `tests/`
 - `tolerance` — `tests/core/combatant-health.test.ts`, `tests/core/health-witness.test.ts`
 - `tooMany` — `tests/runtime/margometer-runtime.test.ts`
 - `tooNarrow` — `tests/ui/card-window.test.ts`
@@ -9384,7 +9389,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `level` — `src/ui/panel-content.ts`, `src/ui/panel-words.ts`
 - `limit` — `src/ui/panel-drag.ts`
 - `line` — `src/ui/panel-element.ts`
-- `lines` — `src/ui/panel-element.ts`
+- `lines` — `src/ui/panel-element.ts`, `src/ui/view-failure.ts`
 - `list` — `src/ui/panel-element.ts`
 - `listener` — `src/ui/panel-drag.ts`, `src/ui/panel-listener.ts`, `src/ui/view-failure.ts`
 - `listing` — `src/ui/panel-content.ts`
@@ -9392,6 +9397,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lost` — `src/ui/panel-words.ts`
 - `mapName` — `src/ui/panel-words.ts`
 - `mark` — `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
+- `maximum` — `src/ui/view-failure.ts`
 - `mergedPart` — `src/ui/panel-element.ts`
 - `meter` — `src/ui/panel-drag.ts`
 - `meterRegister` — `src/ui/panel-element.ts`
@@ -9456,6 +9462,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `renderedList` — `src/ui/panel-element.ts`
 - `replacement` — `src/ui/panel-document.ts`
 - `report` — `src/ui/panel-element.ts`
+- `reportLinesExceeded` — `src/ui/panel-element.ts`
 - `rest` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `rightGroup` — `src/ui/panel-words.ts`
 - `rightPart` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
@@ -9974,7 +9981,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `columns` — `tests/ui/card-window.test.ts`
 - `combatant` — in 10 files: `tests/`
 - `combatantFigures` — `tests/tools/fabricated-fight.test.ts`
-- `combatantId` — in 11 files: `tests/`
+- `combatantId` — in 12 files: `tests/`
 - `combatantIndex` — `tests/ui/panel-content.test.ts`
 - `comparison` — `tests/core/health-witness.test.ts`
 - `compose` — `tests/ui/card-window.test.ts`
@@ -10049,7 +10056,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `executablePath` — `tests/e2e/panel-camera.ts`
 - `expected` — `tests/libs/unknown-value.test.ts`, `tests/ports/payload-envelope.test.ts`
 - `extra` — `tests/tools/recorded-material.test.ts`, `tests/ui/panel-element.test.ts`
-- `failure` — in 10 files: `tests/`
+- `failure` — in 11 files: `tests/`
 - `fakeElement` — `tests/runtime/margometer-runtime.test.ts`, `tests/tools/drill-report.test.ts`
 - `fate` — `tests/runtime/failure-fate.test.ts`
 - `fault` — `tests/repository/changelog.test.ts`
@@ -10199,6 +10206,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `nested` — `tests/repository/called-once.test.ts`
 - `nonPlayer` — `tests/tools/capture-intake.test.ts`
 - `note` — `tests/drawn-card.ts`
+- `notes` — `tests/ui/card-window.test.ts`
 - `now` — `tests/ports/browser-clock.test.ts`
 - `number` — `tests/repository/decisions.test.ts`
 - `o` — `tests/core/last-heal-rule.test.ts`
@@ -10353,7 +10361,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/tools/skill-table.test.ts`
 - `skillId` — `tests/core/aura-standing.test.ts`
 - `skillIndex` — `tests/core/aura-standing.test.ts`
-- `skillName` — `tests/core/charged-skill.test.ts`
+- `skillName` — `tests/core/charged-skill.test.ts`, `tests/ui/view-failure.test.ts`
 - `skillRow` — in 4 files: `tests/`
 - `skills` — `tests/core/aura-standing.test.ts`
 - `snapshot` — `tests/recorded-fights.ts`
@@ -11501,7 +11509,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `light` — `src/ui/panel-words.ts`
 - `lineHeightPixels` — `src/ui/panel-look.ts`
 - `lineHeightTitlePixels` — `src/ui/panel-look.ts`
-- `lines` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
+- `lines` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`, `src/ui/view-failure.ts`
 - `list` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`, `src/ui/panel-words.ts`
 - `listBasis` — `src/ui/panel-look.ts`
 - `listName` — `src/ui/panel-element.ts`
@@ -11514,6 +11522,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `many` — `src/ui/panel-words.ts`
 - `mark` — `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
 - `markSizePixels` — `src/ui/panel-look.ts`
+- `maximum` — `src/ui/view-failure.ts`
 - `medium` — `src/ui/panel-choice.ts`, `src/ui/panel-words.ts`
 - `memory` — `src/ui/panel-choice.ts`, `src/ui/panel-words.ts`
 - `messages` — `src/ui/panel-words.ts`
@@ -12999,7 +13008,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `legendaryHeld` — `tests/ui/panel-words.test.ts`
 - `legendaryReached` — `tests/ui/panel-words.test.ts`
 - `legendaryStandings` — `tests/core/aura-standing.test.ts`, `tests/core/carried-figure.test.ts`
-- `length` — in 32 files: `tests/`
+- `length` — in 33 files: `tests/`
 - `level` — in 19 files: `tests/`
 - `lifted` — `tests/tools/margonem-readings.test.ts`
 - `lightings` — `tests/tools/aura-lifetime.test.ts`

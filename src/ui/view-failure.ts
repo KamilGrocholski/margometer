@@ -68,6 +68,23 @@ export class CardRefused extends Error {
     }
 }
 
+/**
+ * A card counted taller than the bound a card is placed by. Every line still draws, so it is placed
+ * as if it stood at the bound and may run past the window, which the box clips. It reaches a reader
+ * as the card's region undrawn.
+ */
+export class CardLinesExceeded extends Error {
+    override readonly name = "CardLinesExceeded";
+    readonly lines: number;
+    readonly maximum: number;
+
+    constructor(lines: number, maximum: number) {
+        super();
+        this.lines = lines;
+        this.maximum = maximum;
+    }
+}
+
 export type ViewFailure = RegionUndrawn | GestureDropped | WindowUnplaced;
 
 /** A region that could not draw stands undrawn in place. */

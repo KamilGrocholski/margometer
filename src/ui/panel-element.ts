@@ -129,6 +129,7 @@ import {
     SIDE_CHOICE,
 } from "./panel-screen.ts";
 import {
+    CHARGED_PIPS_MAXIMUM,
     type HelperAbsence,
     type HelperContent,
     type StandingChargedSkill,
@@ -199,6 +200,7 @@ import {
 } from "./panel-words.ts";
 import {
     addViewFailureGuarded,
+    CardLinesExceeded,
     CardRefused,
     GestureDropped,
     PANEL_LISTENER,
@@ -452,7 +454,7 @@ export interface PanelViewOptions {
  * or to the sink where none was — a card opened under the pointer draws between two frames.
  */
 interface UndrawnReport {
-    add(region: PanelRegion, cause: errors.Caught | CardRefused): void;
+    add(region: PanelRegion, cause: errors.Caught | CardRefused | CardLinesExceeded): void;
     collect(render: () => void): RenderReport;
 }
 
@@ -682,13 +684,6 @@ const HOST_NAME = "MargoMeter-Panel";
  * and one that does not say which build made it is a claim about no particular version.
  */
 const VERSION_ATTRIBUTE = "data-margometer-version";
-/**
- * A clamp on a figure the game hands us. Measured over `captures/` through `readPayloadEnvelope`
- * on 2026-10-06: its 37 recordings state 380 charges, running one to four turns. Eight is twice
- * the longest, and a charge past it draws eight dots beside a counter that still states it whole,
- * so what the clamp costs is dots and never the figure — no defect is owed.
- */
-const CHARGED_PIPS_MAXIMUM = 8;
 export const CARD_ATTRIBUTE = "data-card";
 /**
  * The one card key no row states, so it can be a constant where every other is composed off what
@@ -805,13 +800,14 @@ const CHARACTERS_PER_LINE_BY_STEP: { readonly [Step in TypeStep]: CharactersPerL
 const NOTE_MARK_CHARACTERS = 2;
 /**
  * Past every card this panel composes: four figures and their parts, the counters, both runs — the
- * criticals, the defences, the procs and what a blow destroyed — and the notes. A card counted
- * short of what it draws is judged to fit a window it overflows, and is clipped without a mark.
+ * criticals, the defences, the procs and what a blow destroyed — and the notes. It bounds where a
+ * card is placed and never what it holds: a card counted past it draws every line, is placed as if
+ * it stood at the bound, and may run past a window that clips it, so the handle reports it.
  * `deno task panel:cards` measures it: on 2026-10-03 the tallest of the 1,304 cards `captures/`
  * opens is 36 lines and the median 24, and of the 80 a ten against ten `tools/fabricated-fight.ts`
  * writes with no options 68 and 51.
  */
-const CARD_LINES_MAXIMUM = 128;
+export const CARD_LINES_MAXIMUM = 128;
 /**
  * What the edge a card is **not** measured from is released to. Both are always written together:
  * leaving one off would let the sheet's own fallback stand beside the offset just written, and the
@@ -1041,6 +1037,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             readCardAcross,
             () => placement?.readViewport() ?? null,
             getTypeStep,
+            (failure) => report.add(PANEL_REGION.card, failure),
         );
     }
     // The window beside the panel, as one element under the same root — `SECURITY.md`'s guest
@@ -3686,8 +3683,6 @@ export function tallyCardSize(card: CardContent | null, step: TypeStep): CardSiz
             lines += getCardLineCost(line, floors);
         }
     }
-    // The bound is on where the card is placed, never on what it holds: every line is drawn.
-    if (lines > CARD_LINES_MAXIMUM) lines = CARD_LINES_MAXIMUM;
     return { lines, groups: card.groups.length };
 }
 
@@ -4061,6 +4056,8 @@ export function initCardHandle(
     /** Asked as a card opens, never as the panel is built. Null is a page stating no size. */
     readViewport: () => PanelViewport | null = () => null,
     getTypeStep: () => TypeStep = () => TYPE_STEP_DEFAULT,
+    /** Told of a card placed at `CARD_LINES_MAXIMUM` rather than at the lines it was counted at. */
+    reportLinesExceeded: (failure: CardLinesExceeded) => void = () => {},
 ): CardHandle {
     let cardElement = renderCard(document, null);
     let openKey: string | null = null;
@@ -4082,7 +4079,14 @@ export function initCardHandle(
             };
             const layout = composeCardLayout(compose(), room, getTypeStep());
             const renderedCard = renderCard(document, layout.card, layout.secondColumnFrom);
-            openSize = tallyCardLayoutSize(layout, getTypeStep());
+            const counted = tallyCardLayoutSize(layout, getTypeStep());
+            // Clamped where the card is placed, never where it is counted (**S11**).
+            if (counted.lines > CARD_LINES_MAXIMUM) {
+                openSize = { lines: CARD_LINES_MAXIMUM, groups: counted.groups };
+                reportLinesExceeded(new CardLinesExceeded(counted.lines, CARD_LINES_MAXIMUM));
+            } else {
+                openSize = counted;
+            }
             openColumns = layout.secondColumnFrom === null ? 1 : 2;
             return renderedCard;
         });

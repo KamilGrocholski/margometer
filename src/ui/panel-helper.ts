@@ -122,8 +122,8 @@ export interface HelperContent {
     /** What is being made ready, and what became of it. Empty draws no section at all. */
     chargedSkills: StandingChargedSkill[];
     /**
-     * A charge standing with no name, which core never hands over: passed over rather than drawn
-     * as a blank row, and carried out so the entry turns it into a defect (**E12**).
+     * A charge the band cannot draw as the game states it, carried out so the entry turns it into a
+     * defect (**E12**): `isChargedSkillUndrawable` says which.
      */
     hasFiguresDisagreed: boolean;
 }
@@ -141,6 +141,14 @@ export const PROVOKED_MAXIMUM = COMBATANTS_MAXIMUM;
  * `tests/ui/share-bound.test.ts` holds the card register to (`develop ADR 0100`).
  */
 export const CHARGED_ROWS_MAXIMUM = CHARGED_SKILLS_MAXIMUM;
+/**
+ * A clamp on a figure the game hands us: the dots a charge's row draws, one a turn. Measured over
+ * `captures/` through `readPayloadEnvelope` on 2026-10-06: its 37 recordings state 380 charges,
+ * running one to four turns, and eight is twice the longest. A charge past it draws eight dots,
+ * and an ended one has no counter beside them to state it whole, so the clamp binding is a defect
+ * (**S11**).
+ */
+export const CHARGED_PIPS_MAXIMUM = 8;
 
 export function presentHelper(
     provocations: readonly ProvocationStanding[],
@@ -164,8 +172,17 @@ export function presentHelper(
         },
         provocations: presentStandingProvocations(provocationsBounded, roster, readerSide),
         chargedSkills: presentStandingChargedSkills(chargedSkills, roster, readerSide),
-        hasFiguresDisagreed: chargedSkills.some((standing) => standing.skillName.length === 0),
+        hasFiguresDisagreed: chargedSkills.some((standing) => isChargedSkillUndrawable(standing)),
     };
+}
+
+/**
+ * A charge with no name, which core never hands over and the band passes over rather than drawing
+ * as a blank row; or one stating more turns than the dots its row draws.
+ */
+function isChargedSkillUndrawable(standing: Readonly<ChargedSkillStanding>): boolean {
+    if (standing.skillName.length === 0) return true;
+    return standing.turnsStated > CHARGED_PIPS_MAXIMUM;
 }
 
 /**

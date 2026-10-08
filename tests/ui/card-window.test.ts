@@ -16,6 +16,7 @@ import {
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import {
+    CARD_LINES_MAXIMUM,
     type CardContent,
     type CardNoteTone,
     CARDS_DRAWN_MAXIMUM,
@@ -37,6 +38,7 @@ import {
 } from "#/src/ui/panel-look.ts";
 import { TYPE_STEP } from "#/src/ui/panel-choice.ts";
 import { CARD_WORDS } from "#/src/ui/panel-words.ts";
+import type { CardLinesExceeded } from "#/src/ui/view-failure.ts";
 import {
     composeFakeDocument,
     type FakeElement,
@@ -970,6 +972,62 @@ Deno.test("the card asks where it may stand with the columns it is drawn in", ()
     viewportHeight = whole + kept;
     handle.renderOpen();
     assertEquals(asked, [2, 1], "and one that fits asks for the room of one");
+});
+
+/**
+ * **S11**: the bound on a card's lines is on where it is placed, so a card counted past it draws
+ * whole, is placed at the bound and is reported — never clamped without a mark. **W5** puts the
+ * card at the bound beside the card one line past it.
+ */
+Deno.test("a card counted past its line bound is placed at it, and the handle says so", () => {
+    const document = composeFakeDocument();
+    const register = createCardRegister();
+    const swap = composeSwap();
+    const reported: CardLinesExceeded[] = [];
+    const handle = initCardHandle(
+        document,
+        (key) => register.lookup(key),
+        (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
+        undefined,
+        undefined,
+        () => STEP,
+        (failure) => reported.push(failure),
+    );
+    // The name stands on a line of its own, so the notes take the bound less one.
+    const composeTall = (notes: number): CardContent => ({
+        name: "Hildur",
+        subtitle: null,
+        ending: null,
+        groups: [{
+            lines: Array.from({ length: notes }, () => ({
+                kind: "note" as const,
+                text: ONE_LINE_NOTE,
+                tone: "plain" as const,
+            })),
+        }],
+    });
+    const atBound = getCardHeight({ lines: CARD_LINES_MAXIMUM, groups: 1 }, TOKENS);
+    assertExists(atBound, "the bound has a height");
+    register.add("row:7", () => composeTall(CARD_LINES_MAXIMUM - 1));
+    handle.onHover("row:7", 300);
+    const held = (handle.element as FakeElement).replacedBy;
+    assertExists(held, "a card at the bound opens");
+    assertStringIncludes(held.attributes.get("style") ?? "", `-height:${atBound}px`);
+    assertEquals(reported, [], "and one the bound holds whole reports nothing");
+
+    register.add("row:8", () => composeTall(CARD_LINES_MAXIMUM));
+    handle.onHover("row:8", 300);
+    const past = held.replacedBy;
+    assertExists(past, "a card past the bound opens all the same");
+    assertStrictEquals(
+        getTextsByClass(past, CLASS.cardNote).length,
+        CARD_LINES_MAXIMUM,
+        "and draws every line it holds",
+    );
+    assertStringIncludes(past.attributes.get("style") ?? "", `-height:${atBound}px`);
+    assertStrictEquals(reported.length, 1, "while the handle says it was placed at the bound");
+    assertStrictEquals(reported[0]?.lines, CARD_LINES_MAXIMUM + 1, "and what it was counted at");
+    assertStrictEquals(reported[0]?.maximum, CARD_LINES_MAXIMUM, "against the bound");
 });
 
 Deno.test("nobody under the pointer hides it, and a row nobody drew never opens it", () => {

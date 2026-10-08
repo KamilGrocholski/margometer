@@ -15,6 +15,7 @@ import type { TurnStatement } from "#/src/core/fight-session.ts";
 import { lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
 import { SIDE_RELATION } from "#/src/ui/panel-content.ts";
 import {
+    CHARGED_PIPS_MAXIMUM,
     CHARGED_ROWS_MAXIMUM,
     presentHelper,
     PROVOKED_MAXIMUM,
@@ -409,4 +410,43 @@ Deno.test("the band stops at its stated maximum, and one at it is stated whole",
     assertEquals(nameless.chargedSkills, [], "and a charge naming no blow is not a row");
     assert(nameless.hasFiguresDisagreed, "but a broken invariant, carried out to be said");
     assert(!atMaximum.hasFiguresDisagreed, "while charges core named carry nothing out");
+});
+
+/**
+ * **S11**: the row's dots are clamped, and an ended charge states no counter beside them, so a
+ * charge past the clamp is carried out as a defect. **W5** puts the charge at the clamp beside the
+ * one past it, on an end that draws the dots alone.
+ */
+Deno.test("a charge past the dots its row draws is carried out, and one at them is not", () => {
+    const past = presentHelper(
+        [],
+        [
+            composeCharge({
+                turnsStated: CHARGED_PIPS_MAXIMUM + 2,
+                turnsElapsed: CHARGED_PIPS_MAXIMUM + 1,
+                state: CHARGED_SKILL_STATE.broken,
+                endedAtOrdinal: 12,
+            }),
+        ],
+        ROSTER,
+        READER_SIDE,
+        composeTurn(null),
+    );
+    assertStrictEquals(past.chargedSkills.length, 1, "the charge still stands as a row");
+    assert(past.hasFiguresDisagreed, "and its dots, clamped, are carried out to be said");
+    const held = presentHelper(
+        [],
+        [
+            composeCharge({
+                turnsStated: CHARGED_PIPS_MAXIMUM,
+                turnsElapsed: CHARGED_PIPS_MAXIMUM - 1,
+                state: CHARGED_SKILL_STATE.broken,
+                endedAtOrdinal: 12,
+            }),
+        ],
+        ROSTER,
+        READER_SIDE,
+        composeTurn(null),
+    );
+    assert(!held.hasFiguresDisagreed, "while one the dots hold whole carries nothing out");
 });
