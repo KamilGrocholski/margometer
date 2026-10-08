@@ -1492,7 +1492,7 @@ Deno.test("every recording states no healing the game aimed at nobody", () => {
 
 /**
  * A wound announcing nothing to take off, which no recording states: a probe, because the figure
- * is the game's and it once reached an assertion that lost the fight the whole payload.
+ * is the game's, and a reading that asserted on it would lose the fight the whole payload.
  */
 Deno.test("a wound announced at nothing leaves no wound standing, and stops nothing", () => {
     const roster = indexCombatantRoster([

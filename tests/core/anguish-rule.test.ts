@@ -95,7 +95,7 @@ Deno.test("a tick is charged to its victim, and to nobody who applied the bleed"
         assert(event.amount < 0, "a bleed takes health rather than putting it back");
         assertStrictEquals(event.announced, null, "and nothing announced the tick itself");
         // Not `add(combatantId)`: a reading off the empty slot answers null for every tick, and a
-        // set of one null is a set of one, which is what a first draft of this test accepted.
+        // set of one null is a set of one, which would pass.
         assertExists(event.combatantId, "a tick names whose health moved");
         victims.add(event.combatantId);
     }

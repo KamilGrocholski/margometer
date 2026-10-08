@@ -342,10 +342,10 @@ Deno.test("a skill whose keys disagree reaches both sides, which is not a failed
 });
 
 /**
- * ⚠️ **This pair used to be the one above, on a reading that was backwards.** `shout` was held to
- * reach the caster's side — the help has the affected attacking whoever cast it, and over
- * `captures/` 168 of 168 named characters stand opposite the caster — so `Wyzywający
- * okrzyk`, whose every key faces the other side, reaches only that side and never both.
+ * ⚠️ **`shout` does not reach the caster's side, though it reads as if it might.** The help has
+ * the affected attacking whoever cast it, and over `captures/` 168 of 168 named characters stand
+ * opposite the caster — so `Wyzywający okrzyk`, whose every key faces the other side, reaches only
+ * that side and never both.
  */
 Deno.test("a skill whose keys all face the other side reaches that side alone", () => {
     assertStrictEquals(
@@ -386,13 +386,13 @@ function composeCombatant(id: number, side: number): Combatant {
     return { id, name: `Ktoś ${id}`, side, profession: "w", level: 40, healthMaximum: 100 };
 }
 
-Deno.test("a value naming one holds one, which is every recording before this round", () => {
+Deno.test("a value naming one character holds that one", () => {
     const dated = composeStated([{ id: 188, turns: 5 }], SHOUTS);
     const held = replayStandings(
         [composeCast(1, 188, "shout alllowdmg", 9, "Ktoś 9")],
         dated,
-        // Eight a side rather than develop's ten: its ten reused the id the other side starts at,
-        // which a roster now refuses as one combatant named twice.
+        // Eight a side: ten would reuse the id the other side starts at, which a roster refuses
+        // as one combatant named twice.
         composeRoster(8, 1),
     ).provocations;
     assertEquals(held.map((provocation) => provocation.provokedId), [9], "the one it named");
@@ -400,7 +400,7 @@ Deno.test("a value naming one holds one, which is every recording before this ro
 
 /**
  * **W5 at the edge of the reading.** A name the roster cannot place is dropped rather than guessed
- * at, and a value naming nobody at all holds nobody — `getCombatantIdByName` answers null for a
+ * at, and a value naming nobody at all holds nobody — `lookupCombatantIdByName` answers null for a
  * name it does not know and for one two combatants answer to.
  */
 Deno.test("a name the roster cannot place is dropped, and the rest of the list still holds", () => {
@@ -521,9 +521,9 @@ Deno.test("a later shout takes over each character it names, and leaves the rest
 });
 
 /**
- * ⚠️ **This is the test develop ADR 0097 turned round.** It read the other way until 2026-09-18 —
- * the okrzyk stood under the provocation and nowhere else, so that one announcement was one thing.
- * The published table dates its two halves apart, which is what makes them two.
+ * ⚠️ **One okrzyk is two things** (`develop ADR 0097`). Read under the provocation and nowhere
+ * else, one announcement would be one thing; the published table dates its two halves apart, which
+ * is what makes them two.
  */
 Deno.test("an okrzyk stands beside the whole-team casts as well as holding somebody", () => {
     const dated = composeStated([{ id: 188, turns: 5 }, { id: 264, turns: 8 }], SHOUTS);

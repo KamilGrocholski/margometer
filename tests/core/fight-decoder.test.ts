@@ -91,9 +91,8 @@ const POISON = "-255967=19.27;0;poison=140,14";
 const NEGATIVE_HEAL = "467968=99.52;0;heal=-92";
 /**
  * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the one key read off the target
- * slot. Chosen from
- * the 41 of its 117 occurrences whose two ends are different people — on the other 76 a reader
- * that took the actor would pass, which is what a first draft of this test did.
+ * slot. Chosen from the 41 of its 117 occurrences whose two ends are different people: on the
+ * other 76 a reader that took the actor would pass.
  */
 const HEAL_TARGET = "469657=95.78;445202=100.00;tspell=Leczenie ran;skillId=78;heal_target=11733";
 /**
@@ -409,9 +408,9 @@ Deno.test("the glue is the client's, and the same actor is our condition", () =>
 });
 
 /**
- * ⚠️ **This read the opposite until 2026-09-12, and the sample is why.** `Struna płomienna`
- * announces with no id, and the published table is the **player's**, keyed by one — so there the
- * table cannot say how many blows the skill strikes, and the reach is the announcer's own run.
+ * ⚠️ **The sample decides which way this reads.** `Struna płomienna` announces with no id, and
+ * the published table is the **player's**, keyed by one — so there the table cannot say how many
+ * blows the skill strikes, and the reach is the announcer's own run.
  * The corpus caught this skill striking twice three times over. `develop ADR 0078`.
  */
 Deno.test("an announcement the table cannot be asked about reaches its own run", () => {
@@ -757,11 +756,11 @@ Deno.test("the one element with no raw half still has an applied one", () => {
 });
 
 /**
- * What `9f039ab` left open: `Zwykły cios` counts a blow the game announced nothing over, and the
- * one granted-attack effect that reaches the protocol at all is this pair. If it arrived as a blow
- * of its own the count would report one swing as two, so the claim the register makes of it —
- * fired **alongside** the ordinary attack — is the claim that keeps the figure honest, and this is
- * where it is re-earned rather than read.
+ * `Zwykły cios` counts a blow the game announced nothing over, and the one granted-attack effect
+ * that reaches the protocol at all is this pair. If it arrived as a blow of its own the count
+ * would report one swing as two, so the claim the register makes of it — fired **alongside** the
+ * ordinary attack — is the claim that keeps the figure honest, and this is where it is re-earned
+ * rather than read.
  */
 Deno.test("the extra attack rides an ordinary blow and never arrives as one", () => {
     let carried = 0;
@@ -1065,7 +1064,7 @@ Deno.test("a movement standing behind a reach takes no skill from it", () => {
 /**
  * ⚠️ **A bound nothing ever reaches is a number rather than a bound.** The longest run of an
  * announcer's own blows over `captures/` is two, so the material never meets
- * `MAXIMUM_BLOWS_GRANTED` and only a payload written by hand can show it binding at all.
+ * `BLOWS_GRANTED_MAXIMUM` and only a payload written by hand can show it binding at all.
  */
 Deno.test("a reach the table could not bound still stops where the bound says", () => {
     const five = Array.from({ length: 5 }, () => BLOW_AFTER);
@@ -1101,8 +1100,9 @@ Deno.test("a blow past what the table granted takes no skill, and opens no turn"
 
 /**
  * Probes, every one: no recording states any of these shapes (measured 2026-09-21, 0 of every
- * value over `captures/`), and each once reached an assertion instead of the unread row,
- * which on the fight's last message left it never over, and on any other lost the payload whole.
+ * value over `captures/`), and each is one a reader could carry into an assertion instead of the
+ * unread row, which on the fight's last message leaves it never over, and on any other loses the
+ * payload whole.
  */
 Deno.test("a value the game's own text can spell goes unread, and never into an assertion", () => {
     assertEquals(
