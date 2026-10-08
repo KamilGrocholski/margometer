@@ -26,11 +26,20 @@
 - [ ] Plan: Mobile version???
 
 ## Done
-- [x] Feat: unknown target, source, and so on SHOULD have an information in 2+ level row's tooltip just like the the first level
-- [x] Feat: Add a legbon counter in the tooltip - a new design is needed
-- [x] Fix: Add a second column to the row's tooltip, when there is not enough space for it's content
-- [x] Check: The value of PROVOKED_MAXIMUM SHOULD be 10? NO
-- [x] Refactor: New, more expressive(like a sentence) names for functions, types, variables, interfaces, classes, errors, files, and so on
+- [x] Dev: Create an easier way to install dev version - maybe use dev preview and from there? Use suffix with date as it's name.
+- [x] Feat: (Shelf) use colors to inform user about a fight's outcome, tell more on hover - the ranking view SHOULD still show text
+- [x] Feat: Character tooltip rows are written like the game's own - "Dotyk anioła: 1/3", provocation shows "(2 tury)"
+- [x] Feat: `Pomocnik` shows turns left for a charged special skill and provocation, like the game does - "2 tury" instead of "2 z 4"
+- [x] Fix: Haste cast before a character's first turn is missing from its tooltip
+- [x] Fix: A charged special skill is shown twice in a character's tooltip
+- [x] Fix: Slow and haste count two casts of one character as one source, on the bearer's turns
+- [x] Fix: A viewed kept fight dropped from the list leaves its row open - go back to the live fight
+- [x] Fix: The next fight shows the location and character of the previous one
+- [x] Fix: A partly unread fight is kept and disappears after each reload - now it is not kept, and the panel says so
+- [x] Fix: Panel hides some defects when there are many of them
+- [x] Fix: Silent failures - refused tooltip notes, row details, storage move and pin SHOULD be said as defects
+- [x] Fix: A client build id with an underscore is cut
+- [x] Fix: A call the envelope refused is lost from the fight's file
 
 ## Later
 - [ ] Feat: Create a skill counter - a new tab with a new design is needed
@@ -45,13 +54,20 @@
 ---
 ## History
 
+### Done v0.22.0
+- [x] Feat: unknown target, source, and so on SHOULD have an information in 2+ level row's tooltip just like the the first level
+- [x] Feat: Add a legbon counter in the tooltip - a new design is needed
+- [x] Fix: Add a second column to the row's tooltip, when there is not enough space for it's content
+- [x] Check: The value of PROVOKED_MAXIMUM SHOULD be 10? NO
+- [x] Refactor: New, more expressive(like a sentence) names for functions, types, variables, interfaces, classes, errors, files, and so on
+
 ### Done v0.20.0, v0.21.0
 - [x] Feat: `Nieznany sprawca` SHOULD also open a view from the second level row, e.g. dmg taken -> character row -> `Nieznany sprawca` row
 - [x] Review: /ultrareview claude code
 - [x] Feat: `Pomocnik` SHOULD be scrollable.
 - [x] Feat: Tooltip for kept fight and ranking view info
 - [x] Feat: Attach a user's character name to it's kept fight
-- [x] Feat: Implement new ranking views design
+- [x] Feat: Implement the new ranking views design
 - [x] Design: Create a new design for ranking views, it SHOULD take less space - fight outcome, place, XvsY, view buttons
 - [x] Feat: Panels SHOULD have options: size change - html textarea like behavior; fontsize change
 - [x] Feat: `Pomocnik` SHOULD show something under its bar, when the init state is active.
