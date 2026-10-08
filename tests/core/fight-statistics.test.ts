@@ -137,14 +137,15 @@ const NAMED_BLOW_PREPARE_READY = "-10000544=100.00;0;prepare=Osobisty rozrachune
 const STRIKER_POISON = "-10000544=98.62;0;poison=204,20";
 
 /**
- * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the game announcing a turn its
- * holder spent on nothing. The nicknames in `captures/` are the recording's own anonymised
- * ones (`Gracz 5`), and the other name here is an NPC's.
+ * The shape `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` announces a turn its
+ * holder spent on nothing in, with the game's words and the NPC's name replaced: the reading is by
+ * shape and never by words (`docs/turns-taken.md`), and the game's sentences are not ours to keep.
  */
-const TURN_LOST = "0;0;txt=Hildur Muza Śmierci - utrata tury (redukcja ogłuszenia 50%)";
+const TURN_LOST = "0;0;txt=Potwór 1 - x (y)";
 /** The same shape, ending in a full stop, which is how the game writes its other lines. */
-const DEAD_TARGET = "0;0;txt=Gracz 5 - atak w martwego przeciwnika.";
-const LOOT = "0;0;txt=Hildur Muza Śmierci: zdobyto Stalowa kosa";
+const DEAD_TARGET = "0;0;txt=Gracz 5 - x.";
+/** And the loot line, which puts a colon after the name. */
+const LOOT = "0;0;txt=Potwór 1: x";
 
 /**
  * Health the protocol says came back, to nobody it named. **`captures/` carries neither shape**,
@@ -1363,7 +1364,7 @@ function composeTwoSided(): CombatantRoster {
     return indexCombatantRoster([
         {
             id: -10000249,
-            name: "Hildur Muza Śmierci",
+            name: "Potwór 1",
             side: 2,
             level: 100,
             profession: "m",
@@ -1421,7 +1422,7 @@ Deno.test("a name that opens another does not take its line", () => {
         { id: 1, name: "Ala", side: 1, level: 10, profession: "w", healthMaximum: null },
         { id: 2, name: "Ala - Bela", side: 2, level: 10, profession: "m", healthMaximum: null },
     ]);
-    const events = decode(["0;0;txt=Ala - Bela - utrata tury"], roster);
+    const events = decode(["0;0;txt=Ala - Bela - x"], roster);
     const statistics = tally(events, new Map());
     assertStrictEquals(
         statistics.byCombatantId.get(2)?.turnsLost,

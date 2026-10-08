@@ -198,9 +198,10 @@ const RESISTANCES_ON_SKILL = "10295=86.96;10295=86.96;tspell=Opatrywanie ran;ski
     "bandage=0;resfire_per=13;resfrost_per=13;reslight_per=13";
 /**
  * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: a line for the client's own log,
- * and a step.
+ * its words and the NPC's name replaced, since the game's sentences are not ours to keep; and a
+ * step.
  */
-const LOG_LINE = "0;0;txt=Locha: zdobyto Skóra z dzika";
+const LOG_LINE = "0;0;txt=Potwór 1: x";
 const STEP_TAKEN = "-255967=100.00;0;step";
 
 /**
@@ -611,7 +612,7 @@ Deno.test("a message about nobody's health is a declaration of its own", () => {
     assertStrictEquals(logged[0].combatantId, null, "and names nobody");
     assertStrictEquals(
         logged[0].declared[0]?.text,
-        "Locha: zdobyto Skóra z dzika",
+        "Potwór 1: x",
         "text, not a figure",
     );
     assertStrictEquals(
