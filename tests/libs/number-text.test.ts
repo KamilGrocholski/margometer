@@ -38,6 +38,14 @@ Deno.test("an integer writes as the text of its value, which holds no sign on a 
     assertStrictEquals(parseInteger("-0"), -0, "though a zero read with a sign holds it");
 });
 
+Deno.test("an integer is written only where it is held exactly, and whole", () => {
+    const message = "an integer written is one held exactly";
+    const highest = Number.MAX_SAFE_INTEGER;
+    assertStrictEquals(formatInteger(highest), "9007199254740991", "the highest held is written");
+    assertThrows(() => formatInteger(highest + 1), AssertionError, message);
+    assertThrows(() => formatInteger(0.5), AssertionError, message);
+});
+
 Deno.test("a decimal is read with a fraction or without one", () => {
     assertStrictEquals(parseDecimal("30"), 30, "a whole share is a share");
     assertStrictEquals(parseDecimal("22.5"), 22.5, "and so is one written with a fraction");
@@ -63,6 +71,7 @@ Deno.test("a decimal is read up to the largest double, and refused past it", () 
 Deno.test("a decimal is written to the places it was asked for", () => {
     assertStrictEquals(formatDecimal(10 / 3, 2), "3.33", "a number is written to the width asked");
     assertStrictEquals(formatDecimal(0, 0), "0", "nothing is written to no places at all");
+    assertThrows(() => formatDecimal(0, -1), AssertionError, "never fewer than none");
     assertStrictEquals(formatDecimal(0, 1), "0.0", "and to one place");
     assertStrictEquals(formatDecimal(0, 2), "0.00", "and zero fills the width it was given");
     assertStrictEquals(formatDecimal(10.000000000000002, 1), "10.0", "a tenth stays a tenth");

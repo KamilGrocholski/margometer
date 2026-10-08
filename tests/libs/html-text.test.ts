@@ -155,6 +155,12 @@ Deno.test("a `>` inside a comment or a quoted value closes nothing", () => {
     assertStrictEquals(decodeHtmlText('a<?b="1>2">c'), 'a 2">c', "and so does `<?`");
 });
 
+/** Where this reads a page otherwise than a browser does, on purpose, so a change of it is seen. */
+Deno.test("an unclosed comment is kept as text, and a tag inside a word parts it", () => {
+    assertStrictEquals(decodeHtmlText("a<!-- b"), "a<!-- b", "where a browser hides the rest");
+    assertStrictEquals(decodeHtmlText("Bl<b>o</b>k"), "Bl o k", "where a browser joins the word");
+});
+
 Deno.test("a page is read up to the bound on its length, and a page past it is a broken call", () => {
     const longest = "a".repeat(HTML_CHARACTERS_MAXIMUM);
     assertStrictEquals(

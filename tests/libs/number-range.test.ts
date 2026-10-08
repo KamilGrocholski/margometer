@@ -5,7 +5,7 @@
  * run out asks for a top below the bottom, and the answer must be the bottom rather than the top.
  */
 
-import { assertStrictEquals } from "@std/assert";
+import { AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
 import { clampNumber } from "#/libs/number-range.ts";
 
 Deno.test("a value inside its range is the value, and outside it is the end it passed", () => {
@@ -29,4 +29,12 @@ Deno.test("a range with no room in it answers its bottom", () => {
 Deno.test("a range below nothing is a range like any other", () => {
     assertStrictEquals(clampNumber(-5, -10, -1), -5, "a value between two ends below nothing");
     assertStrictEquals(clampNumber(0, -10, -1), -1, "and zero is above that range, not inside it");
+});
+
+Deno.test("a value that is no finite number is a broken call, at either end of the line", () => {
+    const message = "a value being held between two ends is a number";
+    assertStrictEquals(clampNumber(Number.MAX_VALUE, 0, 10), 10, "the largest finite is held");
+    assertThrows(() => clampNumber(Number.POSITIVE_INFINITY, 0, 10), AssertionError, message);
+    assertThrows(() => clampNumber(Number.NEGATIVE_INFINITY, 0, 10), AssertionError, message);
+    assertThrows(() => clampNumber(Number.NaN, 0, 10), AssertionError, message);
 });

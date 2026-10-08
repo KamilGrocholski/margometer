@@ -91,7 +91,8 @@ export function decodeHtmlText(html: string): string {
             const elementEnd = opening === null
                 ? null
                 : lookupRawTextClosing(html, opening.end, opening.name);
-            // An opening with no closing is no element, so only its tag is taken.
+            // An opening with no closing loses only its tag: a departure from a browser, listed
+            // over `decodeCharacterReferences`.
             const end = elementEnd === null ? lookupTagEnd(html, open) : elementEnd;
             if (end === null) {
                 kept += html.slice(from, open + 1);
@@ -149,13 +150,16 @@ function isTagNameEndAt(html: string, index: number): boolean {
     assert(Number.isSafeInteger(index), "a name is ended at a whole position");
     assert(index > 0, "after the `<` that opened it");
     const character = html.charAt(index);
-    if (character === "") return false;
     if (character === TAG_TERMINATOR) return true;
     if (character === TAG_CLOSE) return true;
     return isWhitespaceAt(html, index);
 }
 
 function lookupTagClose(html: string, from: number): number | null {
+    assert(
+        html.length <= HTML_CHARACTERS_MAXIMUM,
+        "a page stays inside the length it is walked to",
+    );
     assert(Number.isSafeInteger(from), "a tag is walked from a whole position");
     assert(from > 0, "after the `<` that opened it");
     let quote = "";
@@ -182,6 +186,10 @@ function lookupTagClose(html: string, from: number): number | null {
 
 /** A closing tag carrying attributes closes the element as a bare one does (WHATWG). */
 function lookupRawTextClosing(html: string, from: number, name: string): number | null {
+    assert(
+        html.length <= HTML_CHARACTERS_MAXIMUM,
+        "a page stays inside the length it is walked to",
+    );
     assert(name.length > 0, "a closing tag is looked for by name");
     assert(from > 0, "and after the opening tag it closes");
     for (let index = from; index < html.length; index += 1) {
@@ -230,7 +238,10 @@ function isTagOpeningAt(html: string, index: number): boolean {
 /**
  * ⚠️ Where a browser shows U+FFFD for a reference naming no character, reads one with no `;`, or
  * reads `&#128;`–`&#159;` through windows-1252, this keeps what was written; so it does an unclosed
- * comment. The no-break space reads as a space, as `&nbsp;` does.
+ * comment, which a browser hides to the end of the page, and the body of an unclosed `<script>` or
+ * `<style>`, which a browser runs to the end as code. Every tag reads as a space, one inside a word
+ * included, where a browser joins the word across an inline one. The no-break space reads as a
+ * space, as `&nbsp;` does.
  */
 function decodeCharacterReferences(text: string): string {
     assert(text.length <= HTML_CHARACTERS_MAXIMUM, "text stays inside the length it is walked to");

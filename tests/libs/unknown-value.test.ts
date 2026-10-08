@@ -117,6 +117,11 @@ Deno.test("a record field is a record, and a list or nothing is not one", () => 
 Deno.test("a list is read up to its bound, and past it is too long rather than cut", () => {
     const wrong = ["listed", "list"] as const;
     assertEquals(getListField({ l: [] }, KEYS, "listed", 0), [], "an empty list at none");
+    assertThrows(
+        () => getListField({ l: [] }, KEYS, "listed", -1),
+        AssertionError,
+        "of none or more",
+    );
     assertEquals(getListField({ l: [1] }, KEYS, "listed", 1), [1], "one at a bound of one");
     const past = [1, 0] as const;
     expectTooLong(getListField({ l: [1] }, KEYS, "listed", 0), past, "one past a bound of none");

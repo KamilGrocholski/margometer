@@ -66,17 +66,6 @@ export function isWhitespaceAt(text: string, index: number): boolean {
     return WHITESPACE.includes(character);
 }
 
-/** For text past the edge that read it, where a run reaching the bound is a bug of ours (E1). */
-export function getEndOfRun(
-    text: string,
-    from: number,
-    isMember: (text: string, index: number) => boolean,
-): number {
-    const runEnd = lookupEndOfRun(text, from, RUN_CHARACTERS_MAXIMUM, isMember);
-    assert(runEnd !== null, "a run ends inside the bound on its length");
-    return runEnd;
-}
-
 /**
  * Answers `from` where nothing matched, which is how a caller tells a run from none, and null
  * where the run reaches `maximum`: text from outside answers that as its own failure (E1).
@@ -110,7 +99,8 @@ export function lookupEndOfRun(
 export function isDigitRun(text: string): boolean {
     if (text.length === 0) return false;
     if (text.length >= RUN_CHARACTERS_MAXIMUM) return false;
-    const end = getEndOfRun(text, 0, isDigitAt);
+    const end = lookupEndOfRun(text, 0, RUN_CHARACTERS_MAXIMUM, isDigitAt);
+    assert(end !== null, "a run in text shorter than the bound ends inside the bound");
     assert(end <= text.length, "a run of digits ends inside the text it was read from");
     return end === text.length;
 }

@@ -158,8 +158,8 @@ export function formatDecimal(decimal: number, places: number): string;
 /** Unlike the usual clamp: where `maximum < minimum` the minimum wins. */
 export function clampNumber(number: number, minimum: number, maximum: number): number;
 
-// libs/text-walk.ts — walking text: isDigitAt, isWhitespaceAt, getEndOfRun, lookupEndOfRun,
-// isDigitRun, lookupQuotedLiteral, and the bounds each walk carries
+// libs/text-walk.ts — walking text: isDigitAt, isWhitespaceAt, lookupEndOfRun, isDigitRun,
+// lookupQuotedLiteral, and the bounds each walk carries
 // libs/html-text.ts — markup read as the words a person would have seen in it
 export function decodeHtmlText(html: string): string;
 ```

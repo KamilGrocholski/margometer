@@ -10,7 +10,6 @@ import {
     assertThrows,
 } from "@std/assert";
 import {
-    getEndOfRun,
     isDigitAt,
     isDigitRun,
     isWhitespaceAt,
@@ -33,24 +32,29 @@ Deno.test("a digit is told from its neighbours in the character table", () => {
 });
 
 Deno.test("a run ends where its first non-member stands, and is empty where none match", () => {
-    assertStrictEquals(getEndOfRun("12a", 0, isDigitAt), 2, "a run stops at a letter");
-    assertStrictEquals(getEndOfRun("a12", 0, isDigitAt), 0, "and one that never starts is empty");
-    assertStrictEquals(getEndOfRun("a12", 1, isDigitAt), 3, "a run may run to the end");
-    assertStrictEquals(getEndOfRun("", 0, isDigitAt), 0, "empty text holds no run");
+    assertStrictEquals(readRun("12a", 0, isDigitAt), 2, "a run stops at a letter");
+    assertStrictEquals(readRun("a12", 0, isDigitAt), 0, "and one that never starts is empty");
+    assertStrictEquals(readRun("a12", 1, isDigitAt), 3, "a run may run to the end");
+    assertStrictEquals(readRun("", 0, isDigitAt), 0, "empty text holds no run");
 });
 
-Deno.test("a run is walked up to the bound on its length, and a run reaching it is broken", () => {
+/** A run walked under the bound every caller of the library shares. */
+function readRun(
+    text: string,
+    from: number,
+    isMember: (text: string, index: number) => boolean,
+): number | null {
+    return lookupEndOfRun(text, from, RUN_CHARACTERS_MAXIMUM, isMember);
+}
+
+Deno.test("a run is walked up to the shared bound on its length, and one reaching it is none", () => {
     const longest = " ".repeat(RUN_CHARACTERS_MAXIMUM - 1);
     assertStrictEquals(
-        getEndOfRun(`${longest}a`, 0, isWhitespaceAt),
+        readRun(`${longest}a`, 0, isWhitespaceAt),
         RUN_CHARACTERS_MAXIMUM - 1,
         "a run one short of the bound is read",
     );
-    assertThrows(
-        () => getEndOfRun(`${longest} a`, 0, isWhitespaceAt),
-        AssertionError,
-        "a run ends inside the bound on its length",
-    );
+    assertStrictEquals(readRun(`${longest} a`, 0, isWhitespaceAt), null, "and one reaching it");
     assertStrictEquals(isDigitRun("1".repeat(RUN_CHARACTERS_MAXIMUM - 1)), true, "under the bound");
     assertStrictEquals(isDigitRun("1".repeat(RUN_CHARACTERS_MAXIMUM)), false, "and none at it");
 });

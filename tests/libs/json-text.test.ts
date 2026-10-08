@@ -66,6 +66,7 @@ Deno.test("a writing answers the text it wrote, empty text included", () => {
 Deno.test("indentation is written where a person will read it and not where nobody will", () => {
     const flat = encodeJson({ a: 1 }, 0);
     assertStrictEquals(flat, '{"a":1}', "on one line where only a reader will take it back");
+    assertThrows(() => encodeJson({ a: 1 }, -1), AssertionError, "of none or more");
 
     const spaced = encodeJson({ a: 1 }, 2);
     assertStrictEquals(spaced, '{\n  "a": 1\n}', "indented where a person will read it");
