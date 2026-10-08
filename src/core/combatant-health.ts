@@ -126,14 +126,14 @@ export function indexSideHeals(
     const entryHealthByCombatantId = indexFightEntryHealth(events, roster);
     const reducedSides = indexReducedSides(events, roster);
     const healthByCombatantId = new Map<number, number>();
-    const heals = new Map<BattleEvent, SideHeal>();
+    const sideHealByEvent = new Map<BattleEvent, SideHeal>();
     for (const event of events) {
         const heal = composeSideHeal(event, roster, entryHealthByCombatantId, healthByCombatantId);
         if (heal !== null) {
             const casterSide = roster.byId.get(heal.casterId)?.side;
             assert(casterSide !== undefined, "a cast is sized only on a side its caster stands on");
             if (!reducedSides.has(casterSide)) {
-                heals.set(event, heal);
+                sideHealByEvent.set(event, heal);
                 // What a cast put back is health the next one cannot put back again.
                 for (const [combatantId, amount] of heal.restoredByCombatantId) {
                     const healthNow = healthByCombatantId.get(combatantId);
@@ -148,8 +148,8 @@ export function indexSideHeals(
             if (health !== null) healthByCombatantId.set(combatantId, health);
         }
     }
-    assert(heals.size <= events.length, "a cast is one event");
-    return heals;
+    assert(sideHealByEvent.size <= events.length, "a cast is one event");
+    return sideHealByEvent;
 }
 
 /** Sides a reducer reached: the ones its own caster faced, which is what the help states. */

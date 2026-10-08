@@ -6,13 +6,20 @@
  * refresh, and that a payload saying nothing about somebody takes nothing away from them.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    AssertionError,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import {
     type CarriedStatusWalk,
     composeCarriedStatuses,
     NO_CARRIED_STATUS_WALK,
     prepareCarriedStatusWalk,
+    STATUS_BITS_MAXIMUM,
 } from "#/src/core/carried-status.ts";
 
 const SPEED_UP = 6;
@@ -184,5 +191,20 @@ Deno.test("a combatant whose mask lets everything go is no longer held at all", 
         [...walk.lightingTurnByBitByCombatantId.keys()],
         [2],
         "and one once the other lets go",
+    );
+});
+
+/**
+ * The edge refuses a mask past its last bit, so one reaching the walk is a bug of ours: a shift
+ * would read it as some other set of statuses. Both sides of the bound (**W5**).
+ */
+Deno.test("a mask holds every bit a status has, and one past them is a broken walk", () => {
+    const whole = 2 ** STATUS_BITS_MAXIMUM - 1;
+    const walk = prepareCarriedStatusWalk(NO_CARRIED_STATUS_WALK, [], new Map([[1, whole]]));
+    assertStrictEquals(composeCarriedStatuses(walk).length, STATUS_BITS_MAXIMUM, "every bit lit");
+    assertThrows(
+        () => prepareCarriedStatusWalk(NO_CARRIED_STATUS_WALK, [], new Map([[1, whole + 1]])),
+        AssertionError,
+        "and no bit past the ones a mask holds",
     );
 });

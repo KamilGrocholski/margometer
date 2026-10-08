@@ -13,11 +13,11 @@ import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { type AttackEvent, BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import {
     composeLegendaryStandings,
+    countLegendaryBonuses,
     HOLYTOUCH_HEALS_STATED,
     type LegendaryWalk,
     NO_LEGENDARY_WALK,
     prepareLegendaryWalk,
-    tallyLegendaryBonuses,
 } from "#/src/core/legendary-standing.ts";
 import { LEGENDARY_BONUS_SHOWING, lookupLegendaryBonus } from "#/src/core/protocol-key.ts";
 import { readRecordedFights, tallyRecordedFight } from "#/tests/recorded-fights.ts";
@@ -234,7 +234,7 @@ Deno.test("each legendary bonus is counted on its holder, whichever way the blow
             { effect: "+injure", amount: 40, text: null },
         ],
     };
-    const counts = tallyLegendaryBonuses([blow, composeLastheal(HOLDER)]).byHolderId;
+    const counts = countLegendaryBonuses([blow, composeLastheal(HOLDER)]).byHolderId;
     assertEquals(
         [...counts.get(HOLDER) ?? []],
         [["+legbon_verycrit", 1], ["+legbon_puncture", 1], ["legbon_lastheal", 1]],
@@ -250,19 +250,19 @@ Deno.test("each legendary bonus is counted on its holder, whichever way the blow
 
 /** **W5**: nothing is a boundary, and a bonus whose holder the message names nobody at is too. */
 Deno.test("no event counts nothing, and a bonus on an end nobody stands at is nobody's", () => {
-    assertStrictEquals(tallyLegendaryBonuses([]).byHolderId.size, 0, "no events, no holders");
-    assertStrictEquals(tallyLegendaryBonuses([]).byReachedId.size, 0, "and nobody reached");
+    assertStrictEquals(countLegendaryBonuses([]).byHolderId.size, 0, "no events, no holders");
+    assertStrictEquals(countLegendaryBonuses([]).byReachedId.size, 0, "and nobody reached");
     const unheld: BattleEvent = {
         ...composeDeclaringBlow(HOLDER),
         actorId: null,
         procs: ["+legbon_curse"],
     };
     assertStrictEquals(
-        tallyLegendaryBonuses([unheld]).byHolderId.size,
+        countLegendaryBonuses([unheld]).byHolderId.size,
         0,
         "and an actor nobody is holds none",
     );
-    const twice = tallyLegendaryBonuses([
+    const twice = countLegendaryBonuses([
         composeDeclaringBlow(HOLDER),
         composeDeclaringBlow(HOLDER),
     ]).byHolderId;
@@ -284,7 +284,7 @@ Deno.test("a bonus that acts on the other end is counted there too", () => {
             { effect: "-legbon_facade", amount: 13, text: null },
         ],
     };
-    const reached = tallyLegendaryBonuses([blow, blow]).byReachedId;
+    const reached = countLegendaryBonuses([blow, blow]).byReachedId;
     assertStrictEquals(
         reached.get(SOMEBODY_ELSE)?.get("+legbon_curse"),
         2,

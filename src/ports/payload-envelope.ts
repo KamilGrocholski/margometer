@@ -22,6 +22,7 @@ import {
     isRecord,
     type UnknownRecord,
 } from "#/libs/unknown-value.ts";
+import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
 import type { ChargedSkillStatement } from "#/src/core/charged-skill.ts";
 import { type Combatant, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
@@ -358,7 +359,8 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
                 mask = null;
                 break readMask;
             }
-            mask = stated;
+            if (stated < 2 ** STATUS_BITS_MAXIMUM) mask = stated;
+            else mask = null;
         }
         if (mask !== null) warriorEntries.statusMasksByCombatantId.set(id, mask);
         let charge: ChargedSkillStatement["charge"];

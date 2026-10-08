@@ -23,7 +23,7 @@ import {
 import { PERCENT_WHOLE, type SideHeal } from "./combatant-health.ts";
 import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
 import { ENDS_MAXIMUM, MESSAGE_PARTS_MAXIMUM } from "./fight-decoder.ts";
-import { type LegendaryBonusTally, tallyLegendaryBonuses } from "./legendary-standing.ts";
+import { countLegendaryBonuses, type LegendaryBonusTally } from "./legendary-standing.ts";
 import {
     CRITICAL_PROC_KEYS,
     DEFENCE_MECHANISM,
@@ -231,7 +231,7 @@ interface BlowFigures {
     preventedParts: PreventedDamage[];
 }
 
-/** The wound standing against a victim: the freshest overwrites it, so one entry per victim. */
+/** The wound a combatant carries: the freshest overwrites it, so one entry per wounded. */
 interface WoundStanding {
     actorId: number;
     amount: number;
@@ -383,7 +383,7 @@ export function tallyFightStatistics(
                 addBlowProcs(dealer, target, event.procs);
             }
             // Keep the wound a blow announced against whoever carries it: a tick arriving on the
-            // same message is a later event, and finds it the freshest against that victim.
+            // same message is a later event, and finds it the freshest one they carry.
             const wound = lookupAnnouncedWound(event);
             if (wound !== null) tallying.woundByWoundedId.set(wound.woundedId, wound.standing);
             assert(
@@ -487,7 +487,7 @@ export function tallyFightStatistics(
                     null,
                 );
                 // No announcement to ask: this figure rides a blow struck at somebody else, so
-                // the message's own actor is the attacker rather than the healer.
+                // the message's own actor is the blow's actor rather than the healer.
                 const giverId = lookupGiverId(event.source, event.targetId, null);
                 const stated = { source: event.source, announced: null };
                 addHealthGiven(tallying, giverId, event.amount, event.targetId, stated);
@@ -516,7 +516,6 @@ export function tallyFightStatistics(
             } else {
                 tallying.outcome = { ...outcomeSoFar, lostNames: [...event.combatantNames] };
             }
-            assert(tallying.outcome !== null, "a fight that stated its end holds one");
         }
         if (event.kind === BATTLE_EVENT.skillUsed) {
             // Count the use an announcement states, which a blow carrying it does not repeat.
@@ -575,7 +574,7 @@ export function tallyFightStatistics(
         sideHealsUnsized: tallying.sideHealsUnsized,
         sideHealsStated: tallying.sideHealsStated,
         outcome: tallying.outcome,
-        legendaryBonuses: tallyLegendaryBonuses(events),
+        legendaryBonuses: countLegendaryBonuses(events),
     };
 }
 
@@ -1229,7 +1228,7 @@ function lookupGiverId(
 }
 
 /**
- * Whose wound a tick belongs to, or nobody. The freshest wound against that victim is the one
+ * Whose wound a tick belongs to, or nobody. The freshest wound its target carries is the one
  * ticking, and a tick states the figure that wound announced (`develop ADR 0022`) — or that figure
  * weakened by the percentage it states beside it, rounded up.
  */

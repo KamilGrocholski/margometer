@@ -666,7 +666,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `readMargonemEngineWarriorsNamed` — `src/ports/margonem-engine-warriors.ts`
 - `readMargonemWorldPage` — `tools/margonem-client-source.ts`
 - `readMark` — `tests/ui/panel-intent.test.ts`
-- `readMasks` — `tests/ports/warrior-entries.test.ts`
+- `readMasks` — `tests/ports/payload-envelope.test.ts`, `tests/ports/warrior-entries.test.ts`
 - `readMessageIndices` — `tools/turn-count.ts`
 - `readMethodName` — `tests/repository/event-entries.test.ts`
 - `readMoment` — in 5 files: `src/ports/`, `tests/`
@@ -1062,7 +1062,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tallyKeyShapes` — `tools/protocol-key-shape.ts`
 - `tallyKeyShapesPlacement` — `tools/protocol-key-shape.ts`
 - `tallyKeyShapesValue` — `tools/protocol-key-shape.ts`
-- `tallyLegendaryBonuses` — `src/core/legendary-standing.ts`
 - `tallyListedTotal` — `src/ui/panel-content.ts`
 - `tallyPercentForBearer` — `src/core/carried-figure.ts`
 - `tallyPinnedFigure` — `src/ui/panel-content.ts`
@@ -1091,6 +1090,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `countEnclosingBlocks` — `tests/source-tree.ts`
 - `countEvent` — `tests/core/fight-decoder.test.ts`
 - `countHeld` — `tests/ui/helper-window.test.ts`, `tests/ui/panel-helper.test.ts`
+- `countLegendaryBonuses` — `src/core/legendary-standing.ts`
 - `countListRows` — `tests/runtime/margometer-runtime.test.ts`
 - `countMessagesLost` — `src/core/fight-session.ts`
 - `countOccurrences` — `tools/help-article.ts`
@@ -3687,7 +3687,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `CRITRED_KEY` — `src/core/protocol-key.ts`
 - `CURSE_KEY` — `src/core/protocol-key.ts`
 - `CUT_MAXIMUM` — `src/core/fight-statistics.ts`
-- `DAMAGE_ELEMENT_PREFIX` — `src/core/fight-decoder.ts`
 - `DAMAGE_HALF` — `src/core/protocol-key.ts`
 - `DAMAGE_KEYS` — `src/core/protocol-key.ts`
 - `DAMAGE_MARKER` — `src/core/protocol-key.ts`
@@ -5456,7 +5455,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `combatantNames` — `src/core/fight-decoder.ts`
 - `combatants` — `src/core/fight-session.ts`
 - `count` — `src/core/fight-decoder.ts`
-- `counts` — `src/core/fight-session.ts`, `src/core/legendary-standing.ts`
+- `countByKey` — `src/core/legendary-standing.ts`
+- `counts` — `src/core/fight-session.ts`
 - `countsByCombatantId` — `src/core/legendary-standing.ts`
 - `cut` — `src/core/fight-statistics.ts`
 - `cutForOtherEnd` — `src/core/fight-statistics.ts`
@@ -5508,7 +5508,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `hasSpentLastheal` — `src/core/legendary-standing.ts`
 - `heal` — `src/core/combatant-health.ts`, `src/core/fight-statistics.ts`
 - `healed` — `src/core/fight-statistics.ts`
-- `heals` — `src/core/combatant-health.ts`, `src/core/legendary-standing.ts`
+- `heals` — `src/core/legendary-standing.ts`
 - `health` — `src/core/combatant-health.ts`
 - `healthAtEntry` — `src/core/combatant-health.ts`
 - `healthByCombatantId` — `src/core/combatant-health.ts`
@@ -5582,8 +5582,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `provokedIds` — `src/core/aura-standing.ts`
 - `raw` — `src/core/fight-statistics.ts`
 - `reach` — `src/core/aura-standing.ts`, `src/core/carried-figure.ts`, `src/core/protocol-key.ts`
-- `reached` — `src/core/legendary-standing.ts`
 - `reachedByCombatantId` — `src/core/legendary-standing.ts`
+- `reachedByKey` — `src/core/legendary-standing.ts`
 - `reachedId` — `src/core/legendary-standing.ts`
 - `reducedSides` — `src/core/combatant-health.ts`
 - `restored` — `src/core/fight-decoder.ts`, `src/core/fight-statistics.ts`
@@ -5600,7 +5600,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `shoutNames` — `src/core/aura-standing.ts`
 - `shoutStated` — `src/core/aura-standing.ts`
 - `shoutsBySkillId` — `src/core/aura-standing.ts`
-- `sideHealByEvent` — `src/core/fight-figures.ts`
+- `sideHealByEvent` — `src/core/combatant-health.ts`, `src/core/fight-figures.ts`
 - `skill` — `src/core/aura-standing.ts`, `src/core/fight-decoder.ts`
 - `skillFigures` — `src/core/fight-statistics.ts`
 - `skillId` — `src/core/fight-decoder.ts`
@@ -7806,8 +7806,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `hereRules` — `tests/ui/panel-look.test.ts`
 - `hero` — in 4 files: `tests/`
 - `high` — `tests/ui/panel-look.test.ts`
-- `highest` — `tests/core/message-grammar.test.ts`,
-  `tests/repository/captured-fight-register.test.ts`, `tests/repository/declaration-order.test.ts`
+- `highest` — in 4 files: `tests/`
 - `highestAfter` — `tests/tools/shout-holding.test.ts`
 - `history` — `tests/repository/cited-paths.test.ts`
 - `hit` — `tests/core/fight-decoder.test.ts`, `tests/core/last-heal-rule.test.ts`,
@@ -8867,7 +8866,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `week` — `tests/tools/help-article.test.ts`
 - `where` — in 5 files: `tests/`
 - `which` — `tests/e2e/panel-drill.spec.ts`
-- `whole` — in 22 files: `tests/`
+- `whole` — in 23 files: `tests/`
 - `wholeFile` — `tests/repository/browser-globals.test.ts`
 - `wholePart` — `tests/ui/panel-content.test.ts`
 - `whom` — `tests/ui/panel-words.test.ts`
@@ -10162,7 +10161,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `markValue` — `tests/runtime/margometer-runtime.test.ts`, `tests/ui/panel-intent.test.ts`
 - `marker` — `tests/repository/protocol-keys.test.ts`
 - `marks` — `tests/ui/panel-intent.test.ts`
-- `mask` — `tests/ports/warrior-entries.test.ts`
+- `mask` — `tests/ports/payload-envelope.test.ts`, `tests/ports/warrior-entries.test.ts`
 - `maximum` — `tests/libs/unknown-value.test.ts`, `tests/repository/nesting-depth.test.ts`
 - `measured` — `tests/e2e/panel-card.spec.ts`
 - `members` — `tests/core/fight-decoder.test.ts`
@@ -14295,7 +14294,6 @@ suite's material.
 - `"="` — `VALUE_SEPARATOR`
 - `"?"` — `NO_WINNER`
 - `"actor"` — `MESSAGE_END`
-- `"dmg"` — `DAMAGE_ELEMENT_PREFIX`
 - `"target"` — `MESSAGE_END`
 
 ### `src/core/fight-session.ts`

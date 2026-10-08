@@ -62,6 +62,7 @@ export function prepareCarriedStatusWalk(
     for (const [combatantId, mask] of masksByCombatantId) {
         assert(Number.isSafeInteger(mask), "a mask handed to the walk is a whole count of bits");
         assert(mask >= 0, "and never a sign");
+        assert(mask < 2 ** STATUS_BITS_MAXIMUM, "and no bit past the ones a mask holds");
         const turnsNow = turnsByCombatantId.get(combatantId) ?? 0;
         const lightingTurnByBit = prepareLightingTurnByBit(
             lightingTurnByBitByCombatantId.get(combatantId),

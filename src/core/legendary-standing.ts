@@ -146,7 +146,7 @@ export function composeLegendaryStandings(walk: LegendaryWalk): LegendaryStandin
  * alike; the heal stated by name carries its key as its source. A bonus whose holder the message
  * names nobody at reaches no row, and a bonus nobody can be named as the giver of reaches nobody.
  */
-export function tallyLegendaryBonuses(events: readonly BattleEvent[]): LegendaryBonusTally {
+export function countLegendaryBonuses(events: readonly BattleEvent[]): LegendaryBonusTally {
     const countsByCombatantId = new Map<number, Map<string, number>>();
     const reachedByCombatantId = new Map<number, Map<string, number>>();
     for (const event of events) {
@@ -169,17 +169,20 @@ export function tallyLegendaryBonuses(events: readonly BattleEvent[]): Legendary
             if (bonus === null) continue;
             const holderId = bonus.end === PROC_END.actor ? actorId : targetId;
             if (holderId === null) continue;
-            const counts = countsByCombatantId.get(holderId) ?? new Map<string, number>();
-            counts.set(key, (counts.get(key) ?? 0) + 1);
-            countsByCombatantId.set(holderId, counts);
-            assert(counts.size <= BONUSES_PER_HOLDER_MAXIMUM, "a holder shows a bounded few");
+            const countByKey = countsByCombatantId.get(holderId) ?? new Map<string, number>();
+            countByKey.set(key, (countByKey.get(key) ?? 0) + 1);
+            countsByCombatantId.set(holderId, countByKey);
+            assert(countByKey.size <= BONUSES_PER_HOLDER_MAXIMUM, "a holder shows a bounded few");
             if (!bonus.doesReachOtherEnd) continue;
             const reachedId = bonus.end === PROC_END.actor ? targetId : actorId;
             if (reachedId === null) continue;
-            const reached = reachedByCombatantId.get(reachedId) ?? new Map<string, number>();
-            reached.set(key, (reached.get(key) ?? 0) + 1);
-            reachedByCombatantId.set(reachedId, reached);
-            assert(reached.size <= BONUSES_PER_HOLDER_MAXIMUM, "and is reached by a bounded few");
+            const reachedByKey = reachedByCombatantId.get(reachedId) ?? new Map<string, number>();
+            reachedByKey.set(key, (reachedByKey.get(key) ?? 0) + 1);
+            reachedByCombatantId.set(reachedId, reachedByKey);
+            assert(
+                reachedByKey.size <= BONUSES_PER_HOLDER_MAXIMUM,
+                "and is reached by a bounded few",
+            );
         }
     }
     assert(countsByCombatantId.size <= HOLDERS_MAXIMUM, "a board holds a bounded cast");

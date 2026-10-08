@@ -345,8 +345,8 @@ function composeDatedCasts(walk: AuraWalk): AuraStanding[] {
 
 /**
  * Whom a shout is holding, one row per character, and only the shout that holds them now. **Counted
- * on the held character's own turns**: over `captures/` the provoked strike whoever shouted
- * on their first three turns and fall back on the fourth (`docs/auras-standing.md`).
+ * on the held character's own turns**, the clock `docs/auras-standing.md` measures a shout's hold
+ * on (_What a shout holds_, over `captures/` as it stood on 2026-10-06).
  */
 function composeProvocationStandings(walk: AuraWalk): ProvocationStanding[] {
     const provocationStandings: ProvocationStanding[] = [];

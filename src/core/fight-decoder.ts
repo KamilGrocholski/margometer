@@ -34,6 +34,7 @@ import { encodeHealthPercent, parseHealthPercent } from "./protocol-number.ts";
 import {
     APPLIED_SIGN,
     DAMAGE_HALF,
+    DAMAGE_MARKER,
     KEY_FAMILY,
     type KeyMeaning,
     lookupKeyMeaning,
@@ -229,7 +230,6 @@ export const HEALTH_CHANGE_MEMBERS_MAXIMUM = 8;
 const NAMED_DAMAGE_MEMBERS = 3;
 /** `amount,name(percent%)`: the figure first, the opposite order from `+oth_dmg`. */
 const NAMED_HEALING_MEMBERS = 2;
-const DAMAGE_ELEMENT_PREFIX = "dmg";
 const PERCENT_OPENER = "(";
 const PERCENT_CLOSER = "%)";
 /** The key a draw arrives on is the winners'; the same mark on the losers' is not read. */
@@ -730,8 +730,8 @@ function decodeNamedDamage(
     if (amount < 0) return null;
     const named = parseNamedTarget(namedText);
     if (named === null) return null;
-    const damage = { element: `${DAMAGE_ELEMENT_PREFIX}${elementText.trim()}`, amount };
-    assert(damage.element.startsWith(DAMAGE_ELEMENT_PREFIX), "an element named is of the family");
+    const damage = { element: `${DAMAGE_MARKER}${elementText.trim()}`, amount };
+    assert(damage.element.startsWith(DAMAGE_MARKER), "an element named is of the family");
     assert(named.targetName.length > 0, "a figure stated against a name has a name");
     return { ...named, damage };
 }

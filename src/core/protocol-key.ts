@@ -47,14 +47,14 @@ export type LegendaryBonusShowing = VocabularyWord<typeof LEGENDARY_BONUS_SHOWIN
 
 /** Whose a legendary bonus is, read off the event it rides, and how it shows itself. */
 export interface LegendaryBonus {
-    end: ProcEnd;
-    showing: LegendaryBonusShowing;
+    readonly end: ProcEnd;
+    readonly showing: LegendaryBonusShowing;
     /**
      * Whether it acts on the blow's other end, beside its holder: a curse on whoever was struck, a
      * glare on whoever struck. False for a bonus that acts on its holder alone, and for a held one,
      * whose one message names only the first blow of a whole fight it acts on.
      */
-    doesReachOtherEnd: boolean;
+    readonly doesReachOtherEnd: boolean;
 }
 
 /**
@@ -67,32 +67,40 @@ export type DefenceMechanism = VocabularyWord<typeof DEFENCE_MECHANISM>;
 
 /** A defence, and the elements a pool takes from: none for a chance, which takes nothing. */
 interface Defence {
-    mechanism: DefenceMechanism;
-    elementsAbsorbed: readonly string[];
+    readonly mechanism: DefenceMechanism;
+    readonly elementsAbsorbed: readonly string[];
 }
 
 export const DAMAGE_HALF = { raw: "raw", applied: "applied" } as const;
 export type DamageHalf = VocabularyWord<typeof DAMAGE_HALF>;
 
 export type KeyMeaning =
-    | { kind: typeof KEY_FAMILY.damage; half: DamageHalf }
-    | { kind: typeof KEY_FAMILY.prevented }
-    | { kind: typeof KEY_FAMILY.destroyed }
-    | { kind: typeof KEY_FAMILY.proc; end: ProcEnd; doesTakeValue: boolean }
-    | { kind: typeof KEY_FAMILY.healthChange; sign: 1 | -1; isOnTarget: boolean }
-    | { kind: typeof KEY_FAMILY.declaration }
-    | { kind: typeof KEY_FAMILY.valuelessDeclaration }
-    | { kind: typeof KEY_FAMILY.skillName }
-    | { kind: typeof KEY_FAMILY.customSkillName }
-    | { kind: typeof KEY_FAMILY.skillId }
+    | { readonly kind: typeof KEY_FAMILY.damage; readonly half: DamageHalf }
+    | { readonly kind: typeof KEY_FAMILY.prevented }
+    | { readonly kind: typeof KEY_FAMILY.destroyed }
     | {
-        kind: typeof KEY_FAMILY.outcome;
-        result: typeof OUTCOME_RESULT.won | typeof OUTCOME_RESULT.lost;
+        readonly kind: typeof KEY_FAMILY.proc;
+        readonly end: ProcEnd;
+        readonly doesTakeValue: boolean;
     }
-    | { kind: typeof KEY_FAMILY.fled }
-    | { kind: typeof KEY_FAMILY.unaccountedHealth }
-    | { kind: typeof KEY_FAMILY.namedDamage }
-    | { kind: typeof KEY_FAMILY.namedHealing };
+    | {
+        readonly kind: typeof KEY_FAMILY.healthChange;
+        readonly sign: 1 | -1;
+        readonly isOnTarget: boolean;
+    }
+    | { readonly kind: typeof KEY_FAMILY.declaration }
+    | { readonly kind: typeof KEY_FAMILY.valuelessDeclaration }
+    | { readonly kind: typeof KEY_FAMILY.skillName }
+    | { readonly kind: typeof KEY_FAMILY.customSkillName }
+    | { readonly kind: typeof KEY_FAMILY.skillId }
+    | {
+        readonly kind: typeof KEY_FAMILY.outcome;
+        readonly result: typeof OUTCOME_RESULT.won | typeof OUTCOME_RESULT.lost;
+    }
+    | { readonly kind: typeof KEY_FAMILY.fled }
+    | { readonly kind: typeof KEY_FAMILY.unaccountedHealth }
+    | { readonly kind: typeof KEY_FAMILY.namedDamage }
+    | { readonly kind: typeof KEY_FAMILY.namedHealing };
 
 /**
  * Which side a cast reaches, relative to its caster: not which side is the reader's, which is the
@@ -104,9 +112,10 @@ export type KeyReach = VocabularyWord<typeof KEY_REACH>;
 /**
  * The client's default branch reads characters 1 to 3 of a key: `+` is raw, the rest applied. Only
  * `-` is read as applied here: no recording in `captures/` states a marker under any other sign,
- * 2026-09-25, and a key nobody has met stays unread rather than guessed at.
+ * 2026-09-25, and a key nobody has met stays unread rather than guessed at. The same marker opens
+ * every element a figure stated by name lands in.
  */
-const DAMAGE_MARKER = "dmg";
+export const DAMAGE_MARKER = "dmg";
 const DAMAGE_MARKER_AT = 1;
 export const RAW_SIGN = "+";
 export const APPLIED_SIGN = "-";
@@ -202,7 +211,7 @@ const DESTROYED_KEYS = [
 
 /**
  * ⚠️ **Membership is the second thing this table states.** A proc it does not hold goes unread
- * and reaches a player as a message nobody could read.
+ * and reaches the reader as a message nobody could read.
  */
 const PROC_END_BY_KEY: ReadonlyMap<string, ProcEnd> = new Map<string, ProcEnd>([
     [CRITICAL_KEY, PROC_END.actor],
@@ -255,7 +264,10 @@ const PROCS_WITH_VALUE = [
  * Health moving outside a blow: which way it goes, and which slot holds the combatant it happens
  * to. Both are ours to supply; the protocol states a magnitude and leaves the rest to the key.
  */
-const HEALTH_CHANGE_BY_KEY = new Map<string, { sign: 1 | -1; isOnTarget: boolean }>([
+const HEALTH_CHANGE_BY_KEY: ReadonlyMap<
+    string,
+    { readonly sign: 1 | -1; readonly isOnTarget: boolean }
+> = new Map([
     [HEAL_KEY, { sign: 1, isOnTarget: false }],
     [HOLYTOUCH_HEAL_KEY, { sign: 1, isOnTarget: false }],
     ["heal_target", { sign: 1, isOnTarget: true }],

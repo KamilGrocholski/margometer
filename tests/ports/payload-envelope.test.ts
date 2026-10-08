@@ -12,6 +12,7 @@ import {
     assertNotInstanceOf,
     assertStrictEquals,
 } from "@std/assert";
+import { STATUS_BITS_MAXIMUM } from "#/src/core/carried-status.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { MESSAGES_MAXIMUM } from "#/src/core/fight-decoder.ts";
 import {
@@ -200,6 +201,26 @@ Deno.test("a fight opens and ends on the presence of a key, whatever it holds", 
     assert(!readOk({ m: [] }).isEnd, "and its absence ends none");
     assert(!readOk(Object.create({ init: 1 })).isInit, "a key off the prototype is no key");
 });
+
+/**
+ * A mask is read bit by bit through a shift, which keeps 32 of them: a mask past its last bit
+ * would read back as some other set of statuses. Probes, both sides of the bound (**W5**).
+ */
+Deno.test("a mask holds as many bits as a status has, and one past them is no mask", () => {
+    const highest = 2 ** (STATUS_BITS_MAXIMUM - 1);
+    assertEquals(readMasks(highest), [[11, highest]], "the last bit a mask holds");
+    assertEquals(
+        readMasks(2 ** STATUS_BITS_MAXIMUM - 1),
+        [[11, 2 ** STATUS_BITS_MAXIMUM - 1]],
+        "and all",
+    );
+    assertEquals(readMasks(2 ** STATUS_BITS_MAXIMUM), [], "the first bit past them is refused");
+    assertEquals(readMasks(2 ** STATUS_BITS_MAXIMUM + 1), [], "and is not read as the first bit");
+});
+
+function readMasks(mask: number): [number, number][] {
+    return [...readOk({ w: [{ id: 11, buffs: mask }] }).statusMasksByCombatantId];
+}
 
 Deno.test("every recorded call is read, and none refused", () => {
     let calls = 0;
