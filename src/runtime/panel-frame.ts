@@ -38,6 +38,7 @@ import type {
 } from "#/src/ui/panel-element.ts";
 import type { RenderReport } from "#/src/ui/view-failure.ts";
 import {
+    composeFightSuspicions,
     composeHeadcount,
     type FightCardContent,
     type FightReader,
@@ -154,6 +155,7 @@ interface FightCardSource {
     place: FightPlace | null;
     readerId: number | null;
     roster: CombatantRoster;
+    suspicions: string[];
 }
 
 export function renderFrame(parts: FrameParts): void {
@@ -408,6 +410,7 @@ function presentFrameScreen(
                 ? liveFight.readerId
                 : shownFight.keptFight.readerId,
             roster: view.roster,
+            suspicions: composeSuspicionsOfReading(shownFight.fightState),
         }),
         isMeterCollapsed: screen.isMeterCollapsed,
     };
@@ -430,6 +433,8 @@ function presentFightCardContent(parts: FrameParts, source: FightCardSource): Fi
         place: formatFightPlace(source.place),
         world: parts.world,
         reader: lookupFightReader(source.roster, source.readerId),
+        suspicions: source.suspicions,
+        isUnread: false,
     };
 }
 
@@ -443,6 +448,12 @@ function lookupFightReader(roster: CombatantRoster, readerId: number | null): Fi
     if (combatant === undefined) return null;
     assert(combatant.id === readerId, "a combatant found by an id is the one it names");
     return { name: combatant.name, profession: combatant.profession, level: combatant.level };
+}
+
+/** What a card says is short about a whole fight, read off the fight a row or the line stands on. */
+function composeSuspicionsOfReading(fightState: FightState): string[] {
+    const { view, figures } = fightState;
+    return composeFightSuspicions(figures.statistics, view.roster, getFightSuspicions(view));
 }
 
 /** What is short about the reading itself, which the session states and the figures cannot. */
@@ -496,6 +507,7 @@ function presentShelfRows(
                 place: liveRow.place,
                 readerId: liveRow.readerId,
                 roster: liveRow.fightState.view.roster,
+                suspicions: composeSuspicionsOfReading(liveRow.fightState),
             }),
         });
     }
@@ -506,9 +518,13 @@ function presentShelfRows(
         if (keptFight.openedAt === alsoKept?.openedAt) continue;
         const fightState = keptFightStatesByOpenedAt.get(keptFight.openedAt);
         assert(fightState !== undefined, "a kept fight's reading is held while it is kept");
-        // A row for a fight nothing can be read out of would state a headcount it does not have.
-        if (fightState === null) continue;
-        rows.push(presentKeptShelfRow(parts, keptFight, fightState, chosenFightOpenedAt));
+        // A fight nothing can be read out of keeps its row, since a shelf it quietly left would
+        // hold a pin nobody can take back, but states no headcount it does not have (ADR 0046).
+        if (fightState === null) {
+            rows.push(presentUnreadShelfRow(parts, keptFight, chosenFightOpenedAt));
+        } else {
+            rows.push(presentKeptShelfRow(parts, keptFight, fightState, chosenFightOpenedAt));
+        }
     }
     assert(rows.length <= KEPT_MAXIMUM + 1, "a row per kept fight, and one for the live one");
     assert(rows.filter((shelfRow) => shelfRow.isLive).length <= 1, "and one live fight at most");
@@ -523,6 +539,39 @@ function presentShelfHeadcount(fightState: FightState): { sizes: number[]; unpla
     assert(headcount.sizes.every((count) => count > 0), "a side on the shelf holds somebody");
     assert(counted === roster.byId.size, "everybody the roster seats, once");
     return headcount;
+}
+
+function presentUnreadShelfRow(
+    parts: FrameParts,
+    fight: KeptFight,
+    chosenFightOpenedAt: number | null,
+): ShelfRow {
+    assert(fight.payloads.length > 0, "a kept row was kept from something, read or not");
+    const moment = parts.clock.readMoment(fight.openedAt);
+    const place = formatFightPlace(fight.place);
+    return {
+        openedAt: fight.openedAt,
+        at: moment,
+        sizes: [],
+        place,
+        outcome: null,
+        isLive: false,
+        isChosen: chosenFightOpenedAt === fight.openedAt,
+        isPinned: fight.isPinned,
+        isPinnable: true,
+        card: {
+            sizes: [],
+            unplaced: 0,
+            outcome: null,
+            isLive: false,
+            at: moment,
+            place,
+            world: parts.world,
+            reader: null,
+            suspicions: [],
+            isUnread: true,
+        },
+    };
 }
 
 function getOutcomeOfReading(fightState: FightState): OutcomeResult | null {
@@ -560,6 +609,7 @@ function presentKeptShelfRow(
             place: fight.place,
             readerId: fight.readerId,
             roster: fightState.view.roster,
+            suspicions: composeSuspicionsOfReading(fightState),
         }),
     };
 }

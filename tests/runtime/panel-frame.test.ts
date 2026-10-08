@@ -4,7 +4,7 @@
  * `presentScreen` that broke could draw one, and the frame is handed such a reading here instead.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import type { StatedSkills } from "#/src/core/aura-standing.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { createFightSession, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
@@ -24,6 +24,7 @@ import { createScreenState, OPENED_PART, PANEL_METRIC } from "#/src/ui/panel-scr
 import { HELPER_ABSENCE, type HelperAbsence, type HelperContent } from "#/src/ui/panel-helper.ts";
 import {
     EVERY_SLOT_PINNED_ANSWER,
+    formatJoinedInProgressSuspicion,
     MOVE_REFUSED_ANSWER,
     PIN_REFUSED_ANSWER,
     STORE_REFUSED_ANSWER,
@@ -331,6 +332,84 @@ Deno.test("the live row carries the moment it was given, and none where the cloc
             { openedAt: fight.openedAt, isLive: false, isPinnable: true },
         ],
         "and one with no moment states none, has nothing to pin, and stands beside the kept one",
+    );
+});
+
+/**
+ * A kept fight its payloads no longer read is a row beside the live one rather than a gap in the
+ * shelf (ADR 0046): when it was and its pin, and nothing a reading would have said.
+ */
+Deno.test("a kept fight that does not read stands on the shelf, saying only what was kept", () => {
+    const fight: KeptFight = {
+        openedAt: 1,
+        payloads: lookupRecordedFight(HILDUR).updates,
+        place: null,
+        readerId: null,
+        margonemClientBuild: null,
+        isPinned: true,
+    };
+    const world = composeFrameWorld(fight, null);
+    world.parts.live.session = replayRecordedFight(lookupRecordedFight(HILDUR));
+    world.parts.live.openedAt = null;
+    renderFrame(world.parts);
+    const shelf = world.shown[0]?.shelf ?? [];
+    assertEquals(
+        shelf.map((shelfRow) => [shelfRow.isLive, shelfRow.card.isUnread]),
+        [[true, false], [false, true]],
+        "the live fight, read, and the kept one beside it, unread",
+    );
+    const unread = shelf[1];
+    assertExists(unread, "the kept fight is a row");
+    assertEquals(
+        {
+            openedAt: unread.openedAt,
+            sizes: unread.sizes,
+            outcome: unread.outcome,
+            isPinned: unread.isPinned,
+            isPinnable: unread.isPinnable,
+            suspicions: unread.card.suspicions,
+            reader: unread.card.reader,
+        },
+        {
+            openedAt: fight.openedAt,
+            sizes: [],
+            outcome: null,
+            isPinned: true,
+            isPinnable: true,
+            suspicions: [],
+            reader: null,
+        },
+        "its moment and its pin, and no headcount, ending, suspicion or character",
+    );
+});
+
+/**
+ * Each row's card says what is short about its own fight (ADR 0046): the mark on a kept row is
+ * read off the kept reading, never off the fight the panel stands on.
+ */
+Deno.test("a kept row and the live one each say what is short about their own fight", () => {
+    const fight: KeptFight = {
+        openedAt: 1,
+        payloads: lookupRecordedFight(HILDUR).updates,
+        place: null,
+        readerId: null,
+        margonemClientBuild: null,
+        isPinned: false,
+    };
+    const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);
+    assert(!(replayed instanceof Error), "the recording replays");
+    assert(replayed !== null, "into a fight");
+    const joined = { ...replayed, view: { ...replayed.view, hasJoinedInProgress: true } };
+    const world = composeFrameWorld(fight, joined);
+    world.parts.live.session = replayRecordedFight(lookupRecordedFight(HILDUR));
+    world.parts.live.openedAt = null;
+    renderFrame(world.parts);
+    assertEquals(
+        (world.shown[0]?.shelf ?? []).map((
+            shelfRow,
+        ) => [shelfRow.isLive, shelfRow.card.suspicions]),
+        [[true, []], [false, [formatJoinedInProgressSuspicion()]]],
+        "the live fight read whole says nothing, and the kept one read from its middle says so",
     );
 });
 

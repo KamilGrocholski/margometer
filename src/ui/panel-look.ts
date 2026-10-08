@@ -108,6 +108,9 @@ export const CLASS = {
     headerPlaceName: "header-place-name",
     headerPlaceTile: "header-place-tile",
     headerOutcome: "header-outcome",
+    /** The ink of the side that took the fight, on the header's word and on a shelf row's letter. */
+    outcomeWon: "outcome-won",
+    outcomeLost: "outcome-lost",
     strips: "strips",
     stripsGap: "strips-gap",
     strip: "strip",
@@ -143,6 +146,9 @@ export const CLASS = {
     rowPin: "row-pin",
     rowPinSet: "pinned",
     rowValue: "row-value",
+    rowOutcome: "row-outcome",
+    /** A kept fight that no longer reads: its row opens nothing and says so in its last cell. */
+    rowUnread: "unread",
     rowShare: "row-share",
     rowSuspect: "row-suspect",
     rowCaveat: "row-caveat",
@@ -188,6 +194,7 @@ export const CLASS = {
     /** A sentence rather than a column, so the placement counts it as wrapping. */
     cardNote: "card-note",
     cardSuspect: "card-suspect",
+    cardDefect: "card-defect",
     /** The sentence's own, and never `cardCaveat` — that one is the glyph cell beside a figure. */
     cardCaveatNote: "card-caveat-note",
     /** The helper: its own bar, its own body, and the rows under each heading. */
@@ -749,6 +756,10 @@ function composeRegionRules(tokens: TypeTokens): string {
         // word a row at a time, in the case it was composed in.
         `.${CLASS.headerOutcome}{color:var(${VARIABLE_PREFIX}quiet);text-transform:uppercase;` +
         `font-size:${tokens.fontSmallPixels}px;}` +
+        // The side that took it, and nobody's ink where nobody did: a draw and an escape name no
+        // side (ADR 0046).
+        `.${CLASS.headerOutcome}.${CLASS.outcomeWon}{color:var(${VARIABLE_PREFIX}ours);}` +
+        `.${CLASS.headerOutcome}.${CLASS.outcomeLost}{color:var(${VARIABLE_PREFIX}theirs);}` +
         `.${CLASS.strips}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
         `padding:${region};padding-bottom:0;}` +
         `.${CLASS.strips}+.${CLASS.strips}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
@@ -960,6 +971,15 @@ function composeRowRules(tokens: TypeTokens): string {
         `.${CLASS.rowPin}.${CLASS.rowPinSet}{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.rowValue}{font-variant-numeric:tabular-nums;flex:none;white-space:nowrap;` +
         `padding-left:var(${VARIABLE_PREFIX}wide);font-weight:600;}` +
+        // A letter rather than the word, in a box of the row's own height like the pin opposite,
+        // because W and R are not one width: the place takes what the word gave back (ADR 0046).
+        `.${CLASS.rowOutcome}{position:relative;flex:none;width:var(${VARIABLE_PREFIX}row-height);` +
+        `text-align:center;font-weight:600;color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.rowOutcome}.${CLASS.outcomeWon}{color:var(${VARIABLE_PREFIX}ours);}` +
+        `.${CLASS.rowOutcome}.${CLASS.outcomeLost}{color:var(${VARIABLE_PREFIX}theirs);}` +
+        `.${CLASS.row}.${CLASS.rowUnread} .${CLASS.rowName}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.row}.${CLASS.rowUnread} .${CLASS.rowOutcome}{` +
+        `color:var(${VARIABLE_PREFIX}defect);}` +
         `.${CLASS.rowShare}{color:var(${VARIABLE_PREFIX}quiet);` +
         `padding-left:var(${VARIABLE_PREFIX}small);font-weight:400;}` +
         // Worn by the row and not by the region under the list, because the rows that earn it stand
@@ -1075,6 +1095,7 @@ function composeCardRules(tokens: TypeTokens): string {
         // Onto the optical centre of the first line: the line box less the ring, halved.
         `margin-top:${Math.floor((tokens.lineHeightPixels - tokens.markSizePixels) / 2)}px;}` +
         `.${CLASS.cardNote}.${CLASS.cardSuspect}{color:var(${VARIABLE_PREFIX}suspect);}` +
+        `.${CLASS.cardNote}.${CLASS.cardDefect}{color:var(${VARIABLE_PREFIX}defect);}` +
         `.${CLASS.cardNote}.${CLASS.cardCaveatNote}{color:var(${VARIABLE_PREFIX}caveat);}`;
 }
 

@@ -46,6 +46,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   siebie absorpcja, liczy się do obrażeń, które zatrzymała, na przykład do zimna, a gdy gra nie
   mówi, które z kilku obrażeń ciosu przyjęła, wiersz nazywa je razem, na przykład „zimno lub
   błyskawice”, a znaczek przy nim wyjaśnia w dymku, dlaczego nie wiadomo dokładniej.
+- **Zmiana** — Na liście zapisanych walk wynik to pierwsza litera słowa — W, P, R albo U — zielona
+  przy wygranej i czerwona przy przegranej, a całe słowo pokazuje dymek po najechaniu.
+- **Zmiana** — Wynik walki nad rankingiem jest zielony przy wygranej i czerwony przy przegranej.
+- **Zmiana** — Zapisana walka, której liczby mogą być zaniżone, ma na liście znak ⚠ przed miejscem,
+  a dymek po najechaniu mówi dlaczego.
+- **Poprawka** — Zapisana walka, której nie da się już odczytać, nie znika z listy bez śladu:
+  zostaje na niej ze znakiem ✖, można ją odpiąć, a dymek mówi, że nie da się jej otworzyć ani
+  zapisać do pliku.
 - **Poprawka** — Gdy gra przestanie przyjmować dopiski panelu w dymkach postaci, panel o tym mówi,
   zamiast po cichu ich nie pokazywać.
 - **Poprawka** — Dymek postaci w walce nie pokazuje już dwa razy ciosu specjalnego, który ładuje:

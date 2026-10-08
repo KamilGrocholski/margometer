@@ -334,6 +334,14 @@ export interface FightCardContent {
     place: string | null;
     world: string | null;
     reader: FightReader | null;
+    /** What is short about the whole fight, said on the card in the sentences under a ranking. */
+    suspicions: string[];
+    /**
+     * A kept fight its payloads no longer read: when it was, where and its pin, and nothing a
+     * reading would have said. Its row opens nothing — the screen a fight that will not read
+     * stands on draws no shelf to come back by (ADR 0046).
+     */
+    isUnread: boolean;
 }
 
 export interface ShelfRow {
@@ -353,6 +361,7 @@ export interface ShelfRow {
      * both for as long as the gap between it ending and the next one starting.
      */
     isPinnable: boolean;
+    /** Its `suspicions` put a mark on the row, and its `isUnread` leaves the row opening nothing. */
     card: FightCardContent;
 }
 
@@ -1793,24 +1802,7 @@ function composeSuspicions(
     metric: PanelMetric,
     suspicions: FightSuspicions,
 ): string[] {
-    const { messagesRead, messagesLost } = suspicions;
-    const said: string[] = [];
-    if (suspicions.hasJoinedInProgress) said.push(formatJoinedInProgressSuspicion());
-    // What never arrived is not among what was read, so the two added up are what was stated.
-    said.push(formatLostMessageSuspicion(messagesLost, messagesRead + messagesLost));
-    said.push(formatUnknownKeySuspicion(
-        statistics.unreadMessagesUnknownKey,
-        messagesRead,
-        formatRowsReachedByGap(statistics, roster, (figures) => figures.unreadMessagesUnknownKey),
-    ));
-    said.push(formatNoParameterSuspicion(
-        statistics.unreadMessagesNoParameter,
-        messagesRead,
-        formatRowsReachedByGap(statistics, roster, (figures) => figures.unreadMessagesNoParameter),
-    ));
-    said.push(
-        formatGrammarRefusedSuspicion(statistics.unreadMessagesGrammarRefused, messagesRead),
-    );
+    const said = composeFightSuspicions(statistics, roster, suspicions);
     if (getNounForMetric(metric) === PANEL_NOUN.healing) {
         said.push(formatUnplacedHealSuspicion(
             statistics.sideHealsUnsized,
@@ -1844,6 +1836,37 @@ function formatRowsReachedByGap(
         names.push(combatant.name);
     }
     return formatNamesReachedByGap(names, charged);
+}
+
+/**
+ * What is short about a whole fight, whichever figure a screen stands on: the sentences under a
+ * ranking but the one only a healing screen can carry, and what a shelf row's mark opens onto
+ * (ADR 0046).
+ */
+export function composeFightSuspicions(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    suspicions: FightSuspicions,
+): string[] {
+    const { messagesRead, messagesLost } = suspicions;
+    const said: string[] = [];
+    if (suspicions.hasJoinedInProgress) said.push(formatJoinedInProgressSuspicion());
+    // What never arrived is not among what was read, so the two added up are what was stated.
+    said.push(formatLostMessageSuspicion(messagesLost, messagesRead + messagesLost));
+    said.push(formatUnknownKeySuspicion(
+        statistics.unreadMessagesUnknownKey,
+        messagesRead,
+        formatRowsReachedByGap(statistics, roster, (figures) => figures.unreadMessagesUnknownKey),
+    ));
+    said.push(formatNoParameterSuspicion(
+        statistics.unreadMessagesNoParameter,
+        messagesRead,
+        formatRowsReachedByGap(statistics, roster, (figures) => figures.unreadMessagesNoParameter),
+    ));
+    said.push(
+        formatGrammarRefusedSuspicion(statistics.unreadMessagesGrammarRefused, messagesRead),
+    );
+    return said.filter((sentence) => sentence.length > 0);
 }
 
 /**

@@ -87,6 +87,8 @@ function composeShelfRow(openedAt: number, isLive: boolean): ShelfRow {
             place: null,
             world: null,
             reader: null,
+            suspicions: [],
+            isUnread: false,
         },
     };
 }

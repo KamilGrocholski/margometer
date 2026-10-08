@@ -47,6 +47,7 @@ import type {
     UnnamedLevelContent,
 } from "#/src/ui/panel-content.ts";
 import {
+    composeFightSuspicions,
     CUT_PARTS_MAXIMUM,
     formatRowSuspicions,
     getOutcomeForReaderSide,
@@ -2919,6 +2920,35 @@ Deno.test("what shortens a reading is said before what shortens one figure on it
         reading.suspicions[2]?.includes("Nie wiadomo, co znaczyła"),
         "then what arrived carrying a key with no meaning yet",
     );
+});
+
+/**
+ * What a shelf row's mark opens onto (ADR 0046): the fight's own sentences, in the order a ranking
+ * says them, and never the cast nobody could place — which only a healing screen can carry, and a
+ * shelf row stands on no screen.
+ */
+Deno.test("what is short about a whole fight is said as the ranking says it, but for a cast", () => {
+    const { roster, view } = tallyRecordedFight(HILDUR);
+    const unplaced = tallyFightStatistics(view.events, new Map());
+    assert(unplaced.sideHealsUnsized > 0, "a fight with a cast nobody could place");
+    assertEquals(
+        composeFightSuspicions(unplaced, roster, NOTHING_SUSPECT),
+        [],
+        "is nothing short about the fight as a whole",
+    );
+    const short = { messagesLost: 2, hasJoinedInProgress: true, messagesRead: MESSAGES_READ };
+    const healing = presentScreen(
+        unplaced,
+        roster,
+        PANEL_METRIC.healthRestored,
+        SIDE_CHOICE.everyone,
+        null,
+        short,
+    ).suspicions;
+    const said = composeFightSuspicions(unplaced, roster, short);
+    assertStrictEquals(said.length, 2, "the start nobody saw, and what never arrived");
+    assertEquals(said, healing.slice(0, 2), "in the ranking's own words and order");
+    assertStrictEquals(healing.length, 3, "where the healing screen says the cast after them");
 });
 
 /**

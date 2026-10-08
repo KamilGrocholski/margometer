@@ -48,6 +48,8 @@ export function composeShownScreen(
             place: null,
             world: null,
             reader: null,
+            suspicions: [],
+            isUnread: false,
         },
         isMeterCollapsed: false,
     };

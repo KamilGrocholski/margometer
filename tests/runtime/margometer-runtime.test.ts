@@ -1251,8 +1251,11 @@ Deno.test("a fight the reader walked into says so on the panel", () => {
     assertStringIncludes(said, "w trakcie", "and says the reading began after the fight did");
 });
 
-/** A kept fight that will not replay costs its own row, and the live fight nothing. */
-Deno.test("a kept fight that will not replay costs its row, and not the live fight", () => {
+/**
+ * A kept fight that will not replay is a row that opens nothing, and costs the live fight nothing
+ * (ADR 0046): pressed onto it, a reader would stand on a screen that draws no shelf to come back by.
+ */
+Deno.test("a kept fight that will not replay is a row that opens nothing, and not the live fight", () => {
     const over = new Array(MESSAGES_MAXIMUM + 1).fill("0;0;txt=c");
     const world = initRuntimeWorld(composeBattlePage(), (built) => {
         const fights = [{ openedAt: 1, payloads: [{ init: 1, m: over }], isPinned: false }];
@@ -1267,12 +1270,37 @@ Deno.test("a kept fight that will not replay costs its row, and not the live fig
         [`${DEFECT_MARK}${formatDefect(PANEL_DEFECT_KIND.kept, null, 1)}`],
         "one defect, for the shelf",
     );
+    const kept = findKeptShelfRow(world);
+    assertStrictEquals(
+        kept.className,
+        `${CLASS.row} ${CLASS.rowUnread}`,
+        "its row is on the shelf",
+    );
+    assertStrictEquals(kept.attributes.has("data-fight"), false, "and is pressed as no fight");
+    world.press(kept);
+    assert(
+        getElementsWithin(getPanelWithin(host)).some((fakeElement) =>
+            fakeElement.className === `${CLASS.row} ${CLASS.rowUnread}`
+        ),
+        "so a press on it leaves the reader on the shelf",
+    );
     assertStrictEquals(
         world.lines.length,
         1,
         "said once on the console, however many frames walked it",
     );
 });
+
+/** The row of the fight before the one going on, found on the shelf screen it opens. */
+function findKeptShelfRow(world: RuntimeWorld): FakeElement {
+    openShelfScreen(world);
+    const kept = getElementsWithin(getPanelWithin(world.getHost())).find((fakeElement) => {
+        if (fakeElement.className.split(" ")[0] !== CLASS.row) return false;
+        return fakeElement.attributes.get("data-fight") !== "live";
+    });
+    assertExists(kept, "the shelf holds the fight before this one");
+    return kept;
+}
 
 Deno.test("a call that is no payload is recorded under no messages but its own", () => {
     const world = initRuntimeWorld(composeBattlePage());
@@ -2078,17 +2106,6 @@ Deno.test("a kept fight opens at its own top, whatever place the live one was le
     world.press(findKeptShelfRow(world));
     assertStrictEquals(findList(host).scrollTop, 0, "a fight nobody scrolled stands at its top");
 });
-
-/** The row of the fight before the one going on, found on the shelf screen it opens. */
-function findKeptShelfRow(world: RuntimeWorld): FakeElement {
-    openShelfScreen(world);
-    const kept = getElementsWithin(getPanelWithin(world.getHost())).find((fakeElement) => {
-        if (fakeElement.className.split(" ")[0] !== CLASS.row) return false;
-        return fakeElement.attributes.get("data-fight") !== "live";
-    });
-    assertExists(kept, "the shelf holds the fight before this one");
-    return kept;
-}
 
 Deno.test("a store that made room for the fight says so on the shelf", () => {
     const held = new Map([[STORE_KEY.fights as string, composeSmallShelf(1, false)]]);

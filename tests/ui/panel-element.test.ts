@@ -27,6 +27,7 @@ import { composeShownScreen, SHOWN_LIST } from "#/tests/shown-screen.ts";
 import { initTestView, NOTHING_WAITING, TEST_VERSION } from "#/tests/panel-view.ts";
 import { readCard } from "#/tests/drawn-card.ts";
 import {
+    type FightCardContent,
     NOTHING_SUSPECT,
     type PinnedRow,
     presentOpenedLevel,
@@ -38,6 +39,7 @@ import {
     presentUnnamedPairLevel,
     RANKING_ROWS,
     type ScreenContent,
+    type ShelfRow,
     SIDE_RELATION,
     UNNAMED_END,
 } from "#/src/ui/panel-content.ts";
@@ -59,6 +61,7 @@ import {
     CARD_WORDS,
     CAVEAT,
     CHOICE_REFUSED_ANSWER,
+    DEFECT_MARK,
     FIGHT_CARD_WORDS,
     formatCardSubtitle,
     formatFigure,
@@ -1892,7 +1895,7 @@ Deno.test("the fight's line says where it is fought, after how it went, and stan
     const line = getElementsWithin(host).find((drawn) => drawn.className === "header-line");
     assertEquals(
         Array.from(line?.children ?? []).map((child) => child.className),
-        ["", "header-outcome", "header-place"],
+        ["", "header-outcome outcome-won", "header-place"],
         "on the line saying what the fight was, after how it went (ADR 0014)",
     );
     assertEquals(getTextsByClass(host, "header-place-name"), ["Mapa"], "the name that gives way");
@@ -2409,6 +2412,8 @@ Deno.test("a shelf row opens the fight's card, with the place its own cell had t
                 place: "Bagno Wisielców (128, 74)",
                 world: null,
                 reader: null,
+                suspicions: [],
+                isUnread: false,
             },
         }],
         isOnShelf: true,
@@ -2423,7 +2428,11 @@ Deno.test("a shelf row opens the fight's card, with the place its own cell had t
         ["13 wrz 21:05", "10×1"],
         "when it was, to the day, and how big it was, before the place that can be cut",
     );
-    assertStrictEquals(getTextsByClass(host, "row-value")[0], "przegrana", "and how it went, last");
+    assertStrictEquals(
+        getTextsByClass(host, "row-outcome outcome-lost")[0],
+        "P",
+        "and how it went, last, as a letter in the ink of the side that took it",
+    );
     pointAtElement(host, "pointermove", row, 120);
     const card = readCard(host);
     assertEquals(
@@ -2436,6 +2445,142 @@ Deno.test("a shelf row opens the fight's card, with the place its own cell had t
         card.stated.map((line) => [line.label, line.value]),
         [[FIGHT_CARD_WORDS.when, "13 wrz 21:05"]],
         "and no line for anything nobody could read",
+    );
+});
+
+/**
+ * The letter and not the word (ADR 0046): the ink says which side took the fight and the letter
+ * says it again for a reader who cannot tell the two inks apart. A draw and an escape name no side,
+ * and a fight going on has no ending yet, so those three wear no ink of a side.
+ */
+Deno.test("a shelf row says how the fight went in a letter, in the ink of the side that took it", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const outcomes = ["won", "lost", "drawn", "fled"] as const;
+    const shelf = outcomes.map((outcome, index) => composeKeptShelfRow(index + 1, outcome, []));
+    const live = { ...composeKeptShelfRow(9, null, []), isLive: true };
+    panel.render({ ...composeShownScreen(readFight()), shelf: [...shelf, live], isOnShelf: true });
+    const host = panel.element as FakeElement;
+    const cells = getElementsWithin(host).filter((drawn) =>
+        drawn.className.split(" ").includes("row-outcome")
+    );
+    assertEquals(
+        cells.map((cell) => [cell.className, cell.textContent]),
+        [
+            ["row-outcome outcome-won", "W"],
+            ["row-outcome outcome-lost", "P"],
+            ["row-outcome", "R"],
+            ["row-outcome", "U"],
+            ["row-outcome", ""],
+        ],
+        "a letter per ending, a side's ink only where a side took it, and none for one going on",
+    );
+});
+
+function composeKeptShelfRow(
+    openedAt: number,
+    outcome: ShelfRow["outcome"],
+    suspicions: string[],
+): ShelfRow {
+    const moment = { day: 13, month: 9, hour: 21, minute: openedAt };
+    const card: FightCardContent = {
+        sizes: [1, 1],
+        unplaced: 0,
+        outcome,
+        isLive: false,
+        at: moment,
+        place: null,
+        world: null,
+        reader: null,
+        suspicions,
+        isUnread: false,
+    };
+    return {
+        openedAt,
+        at: moment,
+        sizes: [1, 1],
+        place: null,
+        outcome,
+        isLive: false,
+        isChosen: false,
+        isPinned: false,
+        isPinnable: true,
+        card,
+    };
+}
+
+/** The suspect mark rides the row a suspicion reaches, as on a ranking, and the card says it. */
+Deno.test("a kept fight short of something wears the mark, and its card says what", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const said = "Panel zaczął czytać tę walkę już w trakcie.";
+    panel.render({
+        ...composeShownScreen(readFight()),
+        shelf: [composeKeptShelfRow(1, "won", [said]), composeKeptShelfRow(2, "lost", [])],
+        isOnShelf: true,
+    });
+    const host = panel.element as FakeElement;
+    const marks = getElementsWithin(host).filter((drawn) => drawn.className === "row-suspect");
+    assertEquals(
+        marks.map((mark) => [mark.textContent, mark.attributes.get("data-card")]),
+        [[SUSPECT_MARK, "shelf:1"]],
+        "one mark, on the row the suspicion is about, opening its card like the rest of the row",
+    );
+    assertEquals(
+        readCardByKey(host, "shelf:1").notes,
+        [`${SUSPECT_MARK}${said}`],
+        "whose foot says what is short",
+    );
+    assertEquals(readCardByKey(host, "shelf:2").notes, [], "and a whole fight's card says nothing");
+});
+
+/**
+ * A kept fight its payloads no longer read keeps its row, because a shelf it quietly left would
+ * hold a pin nobody could take back. It opens nothing: the screen it would open draws no shelf, and
+ * a reader pressed onto it had no way back (ADR 0046).
+ */
+Deno.test("a kept fight that will not read keeps its row and its pin, and opens nothing", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelIntent[] = [];
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    const kept = composeKeptShelfRow(7, null, []);
+    const unread: ShelfRow = {
+        ...kept,
+        sizes: [],
+        place: "Grota (34, 12)",
+        card: { ...kept.card, sizes: [], place: "Grota (34, 12)", isUnread: true },
+    };
+    panel.render({ ...composeShownScreen(readFight()), shelf: [unread], isOnShelf: true });
+    const host = panel.element as FakeElement;
+    const drawn = getElementsWithin(host);
+    const row = drawn.find((element) => element.className.startsWith("row "));
+    assertExists(row, "the fight is a row");
+    assertStrictEquals(row.className, "row unread", "which is not one a press drills into");
+    assertEquals(
+        drawn.filter((element) => element.attributes.has("data-fight")),
+        [],
+        "and no part of it is pressed as a fight",
+    );
+    assertEquals(
+        drawn.filter((element) => element.attributes.has("data-pin"))
+            .map((pin) => pin.attributes.get("data-pin")),
+        ["7"],
+        "while its pin still acts on the fight it was kept by",
+    );
+    assertEquals(
+        [getTextsByClass(host, "row-size")[0], getTextsByClass(host, "row-outcome")[0]],
+        ["", DEFECT_MARK.trimEnd()],
+        "no headcount a reading would have given, and the defect's mark where its ending would be",
+    );
+    pressElement(host, "pointerdown", row);
+    assertEquals(pressed, [], "a press on it asks for nothing");
+    const card = readCardByKey(host, "shelf:7");
+    assertEquals(card.name, ["Grota (34, 12)"], "its card is named for where it was");
+    assertEquals(card.subtitle, [], "states no headcount");
+    assertEquals(
+        card.notes,
+        [`${DEFECT_MARK}${PANEL_WORDS.keptUnreadNote}`],
+        "and says that it will not open",
     );
 });
 
@@ -2455,6 +2600,8 @@ Deno.test("the live row is pressed and pointed at by its word, with a moment and
         place: null,
         world: null,
         reader: null,
+        suspicions: [],
+        isUnread: false,
     };
     const timedRow = {
         openedAt: 17,
@@ -2548,9 +2695,15 @@ Deno.test("the header says how the fight went, and says nothing where nobody cou
     const reading = readFight();
     const won = draw({ ...reading, outcome: "won" });
     assertEquals(
-        getTextsByClass(won, "header-outcome"),
+        getTextsByClass(won, "header-outcome outcome-won"),
         [getWordsForOutcome("won")],
-        "in the word the shelf uses too, shouted by the sheet rather than by the words",
+        "in the word the shelf uses too, shouted by the sheet, in the ink of the reader's side",
+    );
+    const lost = draw({ ...reading, outcome: "lost" });
+    assertEquals(
+        getTextsByClass(lost, "header-outcome outcome-lost"),
+        [getWordsForOutcome("lost")],
+        "and in the other side's where that side took it",
     );
     const line = getElementsWithin(won).find((drawn) => drawn.className === "header-line");
     assertStrictEquals(
@@ -2562,7 +2715,7 @@ Deno.test("the header says how the fight went, and says nothing where nobody cou
     assertEquals(
         getTextsByClass(fled, "header-outcome"),
         [getWordsForOutcome("fled")],
-        "and a fight an escape broke off says so in the same place",
+        "and a fight an escape broke off says so in the same place, in nobody's ink",
     );
     const unsaid = draw({ ...reading, outcome: null });
     assertEquals(getTextsByClass(unsaid, "header-outcome"), [], "and nothing at all where none");

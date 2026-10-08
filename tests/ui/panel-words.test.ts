@@ -59,6 +59,7 @@ import {
     getCaveatForKind,
     getCaveatForUnannounced,
     getDirectionWordsForMetric,
+    getLetterForShelfOutcome,
     getNoteForCaveat,
     getNoteForNoKind,
     getNoteForOpenedUnnamedStanding,
@@ -189,6 +190,7 @@ const PANEL_WORD_ENDINGS: Record<keyof typeof PANEL_WORDS, Ending> = {
     noFightYet: ENDING.fullStop,
     fightUnread: ENDING.fullStop,
     keptUnread: ENDING.fullStop,
+    keptUnreadNote: ENDING.fullStop,
     noSides: ENDING.bare,
     fights: ENDING.bare,
     backFromFights: ENDING.bare,
@@ -559,6 +561,7 @@ function getSaidFromChoices(): Said[] {
     for (const outcome of PANEL_OUTCOMES) {
         add("OUTCOME_WORDS", ENDING.bare, [getWordsForOutcome(outcome)]);
         add("getWordsForShelfOutcome", ENDING.bare, [getWordsForShelfOutcome(outcome, false)]);
+        add("OUTCOME_LETTERS", ENDING.bare, [getLetterForShelfOutcome(outcome)]);
     }
     add("getWordsForShelfOutcome", ENDING.bare, [getWordsForShelfOutcome(null, true)]);
     add("getWordsForPin", ENDING.bare, [getWordsForPin(true), getWordsForPin(false)]);
@@ -642,6 +645,25 @@ Deno.test("each way a fight can end has its own word, and no two share one", () 
     }
     const words = Object.values(said);
     assertStrictEquals(new Set(words).size, words.length, "and no ending borrows another's word");
+});
+
+/**
+ * Written out for the reason the words are, and held to the words besides: a shelf row's letter
+ * is the one thing on it a reader who cannot tell its ink apart has to go on (ADR 0046).
+ */
+Deno.test("each way a fight can end has its own letter, the first of its word", () => {
+    const said: Record<OutcomeResult, string> = { won: "W", lost: "P", drawn: "R", fled: "U" };
+    for (const [outcome, letter] of Object.entries(said)) {
+        const ending = outcome as OutcomeResult;
+        assertStrictEquals(getLetterForShelfOutcome(ending), letter, `${outcome} is drawn as it`);
+        assertStrictEquals(
+            getWordsForOutcome(ending).slice(0, 1).toUpperCase(),
+            letter,
+            `which is the word ${outcome} is said in, cut to its first letter`,
+        );
+    }
+    const letters = Object.values(said);
+    assertStrictEquals(new Set(letters).size, letters.length, "and no two endings share one");
 });
 
 /**

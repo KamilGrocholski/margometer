@@ -164,6 +164,8 @@ export const PANEL_WORDS = {
     fightUnread: "Nie da się pokazać tej walki.",
     // Never "no fight yet" either: the shelf holds this one, and it is the one that would not read.
     keptUnread: "Nie da się odczytać zapisanej walki.",
+    // What pointing at such a fight on the shelf says: what it will not do, never why.
+    keptUnreadNote: "Nie da się odczytać tej walki, więc nie otworzy się ani nie zapisze do pliku.",
     noSides: "brak składu",
     fights: "Walki",
     backFromFights: "wróć",
@@ -219,6 +221,17 @@ const OUTCOME_WORDS: Record<OutcomeResult, string> = {
     lost: "przegrana",
     drawn: "remis",
     fled: "ucieczka",
+};
+
+/**
+ * The first letter of each word above, which is what a shelf row draws (ADR 0046): the ink says
+ * which side took the fight and the letter says it again where the ink cannot be told apart.
+ */
+const OUTCOME_LETTERS: Record<OutcomeResult, string> = {
+    won: "W",
+    lost: "P",
+    drawn: "R",
+    fled: "U",
 };
 
 const NOTHING_WORDS: Record<PanelMetric, string> = {
@@ -1438,6 +1451,11 @@ export function getWordsForShelfOutcome(outcome: OutcomeResult | null, isLive: b
     if (outcome !== null) return getWordsForOutcome(outcome);
     if (isLive) return LIVE_FIGHT_WORDS.outcome;
     return "";
+}
+
+export function getLetterForShelfOutcome(outcome: OutcomeResult): string {
+    const letter = OUTCOME_LETTERS[outcome];
+    return letter;
 }
 
 export function formatUses(uses: number): string {

@@ -112,8 +112,8 @@ const DEVELOP_SPELLINGS: readonly (readonly [string, string])[] = [
 ];
 
 /**
- * ADR 0013, 0014, 0015, 0033 and 0036: the rules the options, the sizing, the fight's line, the
- * card in two columns and the bar's controls and the caveat letter move.
+ * ADR 0013, 0014, 0015, 0033, 0036 and 0046: the rules the options, the sizing, the fight's line,
+ * the card in two columns, the bar's controls and the caveat letter, and the shelf's outcome move.
  */
 const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // The options control stands first on the bar and leads the rest to its far end.
@@ -209,6 +209,16 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: null, here: `${CAVEAT_DOT},${CAVEAT_STEM}` },
     { develop: null, here: CAVEAT_DOT },
     { develop: null, here: CAVEAT_STEM },
+    // How a fight went in the ink of the side that took it, a shelf row's letter in a box of its
+    // own, a kept fight that will not read kept as a row, and the note its card says (ADR 0046).
+    { develop: null, here: ".header-outcome.outcome-won" },
+    { develop: null, here: ".header-outcome.outcome-lost" },
+    { develop: null, here: ".row-outcome" },
+    { develop: null, here: ".row-outcome.outcome-won" },
+    { develop: null, here: ".row-outcome.outcome-lost" },
+    { develop: null, here: ".row.unread .row-name" },
+    { develop: null, here: ".row.unread .row-outcome" },
+    { develop: null, here: ".card-note.card-defect" },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
@@ -229,17 +239,20 @@ const INK_GROUNDS: Record<string, readonly string[]> = {
     heading: ["surface"],
     // The defects block stands in the panel body under a rule of its own, and on no row.
     defect: ["surface", "raised", "track"],
+    // How a fight went: a shelf row's letter on `track`, the header's word on `surface`
+    // (ADR 0046). The text floor holds them as the sides bar's fills too, which stand on `track`.
+    ours: ["surface", "track"],
+    theirs: ["surface", "track"],
 };
 
 /**
  * ⚠️ **The sheet spells `color:` for two jobs, and the property cannot tell them apart.** A
  * segment of the sides bar takes its ink from `currentColor`, so the rule filling it looks exactly
- * like a rule printing words. These three are that — held at the graphical floor rather than
- * exempted, because an exemption says nothing on the day one of them prints a word.
+ * like a rule printing words. This one is that — held at the graphical floor rather than exempted,
+ * because an exemption says nothing on the day it prints a word, which is the day `ours` and
+ * `theirs` moved up to the register above.
  */
 const FILL_GROUNDS: Record<string, readonly string[]> = {
-    ours: ["track"],
-    theirs: ["track"],
     nobody: ["track"],
 };
 

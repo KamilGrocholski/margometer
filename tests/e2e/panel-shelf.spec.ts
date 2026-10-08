@@ -32,6 +32,11 @@ test("the shelf carries the fight being read, and the one that ended", async ({ 
     await panel.at("[data-shelf]").click();
     await expect(panel.at(".list .row[data-fight]"), "the one that ended stayed for the next")
         .toHaveCount(2);
+    const ended = panel.at(`.list .row[data-fight]:not([data-fight="${LIVE}"]) .row-outcome`);
+    expect(
+        ["W", "P", "R", "U"],
+        "and says how it ended in the letter of its word (ADR 0046)",
+    ).toContain(await ended.textContent());
     await panel.expectHonest("a shelf carrying two");
 });
 

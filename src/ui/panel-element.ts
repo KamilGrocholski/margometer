@@ -10,6 +10,7 @@
 import { formatDecimal } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
+import type { OutcomeResult } from "#/src/core/battle-event.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import {
     PANEL_WINDOW,
@@ -158,6 +159,7 @@ import {
     formatWholeUngrouped,
     getCaveatForKind,
     getCaveatForUnannounced,
+    getLetterForShelfOutcome,
     getNoteForCaveat,
     getNoteForNoKind,
     getNoteForOpenedUnnamedStanding,
@@ -515,7 +517,12 @@ export const CARD_LINE = { stat: "stat", sub: "sub", heading: "heading", note: "
  * inside the sentence's `text`: it counts in the card's height, and a node of its own would
  * shorten every note in that arithmetic while the drawn sentence stayed as long.
  */
-export const CARD_NOTE_TONE = { plain: "plain", suspect: "suspect", caveat: "caveat" } as const;
+export const CARD_NOTE_TONE = {
+    plain: "plain",
+    suspect: "suspect",
+    caveat: "caveat",
+    defect: "defect",
+} as const;
 
 export type CardNoteTone = VocabularyWord<typeof CARD_NOTE_TONE>;
 
@@ -809,6 +816,14 @@ const CARD_NOTE_TONE_CLASS: Record<CardNoteTone, string> = {
     [CARD_NOTE_TONE.plain]: "",
     [CARD_NOTE_TONE.suspect]: ` ${CLASS.cardSuspect}`,
     [CARD_NOTE_TONE.caveat]: ` ${CLASS.cardCaveatNote}`,
+    [CARD_NOTE_TONE.defect]: ` ${CLASS.cardDefect}`,
+};
+/** The ink of the side that took a fight. A draw and an escape name no side, so they add none. */
+const OUTCOME_INK_CLASS: Record<OutcomeResult, string> = {
+    won: ` ${CLASS.outcomeWon}`,
+    lost: ` ${CLASS.outcomeLost}`,
+    drawn: "",
+    fled: "",
 };
 
 export function initPanelView(document: PanelDocument, options: PanelViewOptions): PanelView {
@@ -1510,7 +1525,12 @@ function renderHeaderRegion(
     // silence in.
     const outcome = shown.ranking.outcome;
     if (outcome !== null) {
-        const said = renderText(document, "span", CLASS.headerOutcome, getWordsForOutcome(outcome));
+        const said = renderText(
+            document,
+            "span",
+            `${CLASS.headerOutcome}${OUTCOME_INK_CLASS[outcome]}`,
+            getWordsForOutcome(outcome),
+        );
         line.append(said);
         marked.push(said);
     }
@@ -1649,11 +1669,10 @@ function renderListLevel(
         }
         for (const fight of shown.shelf) {
             const chosen = fight.isChosen ? ` ${CLASS.rowChosen}` : "";
-            const row = renderElement(
-                document,
-                "div",
-                `${CLASS.row} ${CLASS.rowDrillable}${chosen}`,
-            );
+            // A fight that will not read opens nothing: the screen it would open draws no shelf,
+            // and a reader pressed onto it had no way back (ADR 0046).
+            const opens = fight.card.isUnread ? ` ${CLASS.rowUnread}` : ` ${CLASS.rowDrillable}`;
+            const row = renderElement(document, "div", `${CLASS.row}${opens}${chosen}`);
             if (fight.isPinnable) {
                 const set = fight.isPinned ? ` ${CLASS.rowPinSet}` : "";
                 const pin = renderText(
@@ -1676,22 +1695,41 @@ function renderListLevel(
                 formatShelfTime(fight.at, fight.isLive),
             );
             const size = renderText(document, "span", CLASS.rowSize, formatShelfSize(fight.sizes));
+            const parts = [row, time, size];
+            for (const cell of [time, size]) row.append(cell);
+            // Before the place and never in place of it, as on a ranking's row: the place is the
+            // cell that shortens, and the card says what the mark is for.
+            if (fight.card.suspicions.length > 0) {
+                const mark = renderText(document, "span", CLASS.rowSuspect, SUSPECT_MARK);
+                row.append(mark);
+                parts.push(mark);
+            }
             const where = renderText(document, "span", CLASS.rowName, fight.place ?? "");
-            const outcome = renderText(
-                document,
-                "span",
-                CLASS.rowValue,
-                getWordsForShelfOutcome(fight.outcome, fight.isLive),
-            );
-            for (const cell of [time, size, where, outcome]) row.append(cell);
-            const parts = [row, time, size, where, outcome];
+            // The letter, in the ink of the side that took the fight; a fight that will not read
+            // has no outcome, and its cell carries the mark of what the panel could not do.
+            let outcomeClass: string;
+            let outcomeText: string;
+            if (fight.card.isUnread) {
+                outcomeClass = CLASS.rowOutcome;
+                outcomeText = DEFECT_MARK.trimEnd();
+            } else if (fight.outcome === null) {
+                // A fight going on: its time already says `teraz`, and a letter would repeat it.
+                outcomeClass = CLASS.rowOutcome;
+                outcomeText = "";
+            } else {
+                outcomeClass = `${CLASS.rowOutcome}${OUTCOME_INK_CLASS[fight.outcome]}`;
+                outcomeText = getLetterForShelfOutcome(fight.outcome);
+            }
+            const outcome = renderText(document, "span", outcomeClass, outcomeText);
+            for (const cell of [where, outcome]) row.append(cell);
+            parts.push(where, outcome);
             // The live row is keyed by its word and never by a moment: the clock may
             // have given it none, and a moment that could not be a kept fight's
             // does not exist.
             const rowKey = fight.isLive ? LIVE_FIGHT_MARK : `${fight.openedAt}`;
             register.add(`shelf:${rowKey}`, () => presentFightCard(fight.card));
             setRowMarks(parts, CARD_ATTRIBUTE, `shelf:${rowKey}`);
-            setRowMarks(parts, PANEL_MARK.fight, rowKey);
+            if (!fight.card.isUnread) setRowMarks(parts, PANEL_MARK.fight, rowKey);
             list.append(row);
         }
         return list;
@@ -3529,7 +3567,8 @@ function presentCaveatNoteLines(groups: readonly CardGroup[]): CardLine[] {
  * would be cut on the one card that exists to draw it whole (`develop ADR 0084`).
  */
 function presentFightCard(fight: FightCardContent): CardContent {
-    const counted = formatFightCardCounts(fight);
+    // A fight that will not read has no headcount to state, and `brak składu` would be a claim.
+    const counted = fight.isUnread ? null : formatFightCardCounts(fight);
     const lines: CardLine[] = [];
     // A fight going on is dated by when it opened: the shelf's `teraz` is a row's word, not a date.
     addFightCardLine(lines, FIGHT_CARD_WORDS.when, formatShelfTime(fight.at, false));
@@ -3543,7 +3582,26 @@ function presentFightCard(fight: FightCardContent): CardContent {
         : formatCardSubtitle(fight.reader.profession, fight.reader.level, SIDE_RELATION.nobody);
     addFightCardLine(lines, FIGHT_CARD_WORDS.profession, said ?? "");
     const groups = lines.length === 0 ? [] : [{ lines }];
-    if (fight.place === null) return { name: counted, subtitle: null, groups };
+    // The notes stand in a group of their own, under the lines, as a person's card puts them.
+    const notes: CardLine[] = [];
+    if (fight.isUnread) {
+        notes.push({
+            kind: CARD_LINE.note,
+            text: `${DEFECT_MARK}${PANEL_WORDS.keptUnreadNote}`,
+            tone: CARD_NOTE_TONE.defect,
+        });
+    }
+    for (const suspicion of fight.suspicions) {
+        notes.push({
+            kind: CARD_LINE.note,
+            text: `${SUSPECT_MARK}${suspicion}`,
+            tone: CARD_NOTE_TONE.suspect,
+        });
+    }
+    if (notes.length > 0) groups.push({ lines: notes });
+    if (fight.place === null) {
+        return { name: counted ?? PANEL_WORDS.keptUnread, subtitle: null, groups };
+    }
     return { name: fight.place, subtitle: counted, groups };
 }
 

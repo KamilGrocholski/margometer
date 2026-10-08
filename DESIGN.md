@@ -91,6 +91,10 @@ view on which one the reader should be pleased about. **They are this sheet's na
 else's**: `CONTEXT.md` puts `ours` on **Side**'s `_Avoid_` list, so what the panel _reads_ calls the
 two `reader` and `opposing`, and these two words stop at the stylesheet.
 
+**How a fight went takes the ink of the side that took it**, on the header's word and on a shelf
+row's letter: a win in `ours`, a loss in `theirs`, and a draw or an escape, which name no side, in
+`textQuiet`. That is a side again and still not a verdict. **ADR 0046.**
+
 `defect` is a magenta because every other family already means something here: green and red are the
 two sides, amber is a suspicion about a figure, grey is the absence of a category, and the six below
 are the professions. Measured 2026-09-15 on Euclidean distance in sRGB, it sits 124 from its nearest
@@ -223,12 +227,12 @@ three have no state to say, so their marks read the same always.
 tall. The icon is a shape and never a glyph: a glyph's ink stands where its face draws it, which is
 not the middle of anything the panel can lay out. **ADR 0036.**
 
-**Header.** One line: what the fight is, as a headcount, how it went, and where it is being fought,
-against the line's far end. **The map's name is the one thing on it that gives way**, and the tile
-after it never does: the headcount and the outcome say what the fight was, and the tile is what
-changes from one square to the next. Pointing at the line opens the fight's card — the place whole,
-the headcount under it, when it opened, the world and the reader's character — which is the card a
-shelf row opens too. **ADR 0014.**
+**Header.** One line: what the fight is, as a headcount, how it went, in words and in the ink of the
+side that took it, and where it is being fought, against the line's far end. **The map's name is the
+one thing on it that gives way**, and the tile after it never does: the headcount and the outcome
+say what the fight was, and the tile is what changes from one square to the next. Pointing at the
+line opens the fight's card — the place whole, the headcount under it, when it opened, the world and
+the reader's character — which is the card a shelf row opens too. **ADR 0014.**
 
 **Ranking row.** A place in the ranking, a name, a figure and its share. The bar is an element
 behind the text at `barTint`, with a three-pixel cap at full strength on the edge it starts from:
@@ -348,6 +352,15 @@ state about it.
 big it was, where, and how it went, in that order — the place is the only cell allowed to shorten,
 so it stands second to last. The fight going on now is a row like the rest and is drawn once: while
 it is both the live one and a kept one, it keeps the live row's wording and the kept row's pin.
+
+**How it went is a letter** — `W`, `P`, `R` or `U` — in the ink of the side that took it, in a box
+of the row's own height as the pin is at the other end, because the four are not one width. The
+letter is what a reader who cannot tell the two inks apart reads, and the card says the word. A
+fight going on draws none, because its time already says `teraz`. **A fight short of something wears
+the suspect mark before its place**, as a ranking's row does, and its card says what is short. **A
+kept fight that will not read keeps its row**: its time, its place and its pin, the defect's mark
+where its letter would stand, and nothing a reading would have said. It opens nothing — the screen
+it would open draws no shelf to come back by — and its card says it will not open. **ADR 0046.**
 
 **When it was is a day and a time, on every row** — `13 wrz 21:05`, the month as a word and the day
 in two digits, so the cell is one width whichever day it falls on. A shelf holds twenty fights and a
@@ -673,7 +686,9 @@ least interesting thing on screen on purpose.
 where something failed. One line per kind of failure, each saying what the panel could not do and
 how many times. It is the one mark that is about the add-on rather than about the fight, which is
 why it sits apart from the figures instead of beside one — Suspect Is Adjacent binds a mark to the
-figure it concerns, and a defect concerns none.
+figure it concerns, and a defect concerns none. **Its glyph stands in one other place**: the last
+cell of a shelf row for a kept fight the panel cannot read, where what failed is that row's own
+reading (ADR 0046).
 
 ## Motion and interaction
 
