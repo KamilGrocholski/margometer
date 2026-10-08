@@ -18,7 +18,11 @@ import {
     encodeFabricatedFight,
     requireFabricationShape,
 } from "#/tools/fabricated-fight.ts";
-import { readDevelopmentVersion } from "#/tools/build-userscript.ts";
+import {
+    readDevelopmentVersion,
+    type UserscriptEdition,
+    type UserscriptFiles,
+} from "#/tools/build-userscript.ts";
 import { PreviewServeError, UserscriptBuildError } from "#/tools/margometer-tool-error.ts";
 import {
     answerPreviewEvents,
@@ -37,6 +41,12 @@ import { LANDING_RECORDING } from "#/tools/preview-site.ts";
 import { formatRecordingName } from "#/tools/recorded-material.ts";
 
 const BUNDLE = "window.previewBundle = 1;\n";
+const BUILT: UserscriptFiles = { script: `// banner\n${BUNDLE}`, metadata: "// banner\n" };
+const SERVED_FILE_PATHS = [
+    "/margometer.user.js",
+    "/margometer-dev.user.js",
+    "/margometer-dev.meta.js",
+];
 /** The least a recording holds for the server to draw it: one call, naming nobody. */
 const OPENED_AT_A_PATH = JSON.stringify({ calls: [{ payload: { w: {} }, messages: [] }] });
 
@@ -62,7 +72,7 @@ function initTestServer(fromPaths: readonly string[] = []) {
     const preview = initPreviewServer({
         port: 0,
         shouldWatch: false,
-        readBundle: () => Promise.resolve(BUNDLE),
+        readBundle: () => Promise.resolve(BUILT),
         fromPaths,
     });
     assert(preview.port > 0, "a server under test listened somewhere");
@@ -148,7 +158,7 @@ Deno.test("the bundle is served under its name, and the decoy is never a miss", 
     const preview = initTestServer();
     try {
         const answer = await fetch(`${preview.url}/margometer.user.js`);
-        assertStrictEquals(await answer.text(), BUNDLE, "what was built is what is served");
+        assertStrictEquals(await answer.text(), BUILT.script, "what was built is what is served");
         const decoy = await fetch(`${preview.url}/main.min1785244275300.js`);
         assertStrictEquals(
             decoy.status,
@@ -171,9 +181,60 @@ Deno.test("a tree that does not build answers the script with the log, not a bla
         readBundle: () => Promise.reject(new UserscriptBuildError("the bundler refused: line 1")),
     });
     try {
-        const answer = await fetch(`${preview.url}/margometer.user.js`);
-        assertStrictEquals(answer.status, 500, "the page's script is refused");
-        assertStringIncludes(await answer.text(), "line 1", "and says why");
+        for (const path of SERVED_FILE_PATHS) {
+            const answer = await fetch(`${preview.url}${path}`);
+            assertStrictEquals(answer.status, 500, `${path} is refused`);
+            assertStringIncludes(await answer.text(), "line 1", "and says why");
+        }
+    } finally {
+        await preview.stop();
+    }
+});
+
+Deno.test("the build installs beside the release, named and polled at this server", async () => {
+    const editions: Readonly<UserscriptEdition>[] = [];
+    const preview = initPreviewServer({
+        port: 0,
+        shouldWatch: false,
+        readBundle: (edition) => {
+            editions.push(edition);
+            return Promise.resolve(BUILT);
+        },
+    });
+    try {
+        const script = await (await fetch(`${preview.url}/margometer-dev.user.js`)).text();
+        assertStrictEquals(script, BUILT.script, "the install is the build");
+        const banner = await (await fetch(`${preview.url}/margometer-dev.meta.js`)).text();
+        assertStrictEquals(banner, BUILT.metadata, "and what it polls is that build's banner");
+        const page = await (await fetch(`${preview.url}/margometer.user.js`)).text();
+        assertStrictEquals(page, BUILT.script, "the page runs the same one");
+        assertEquals(editions, [{
+            name: "MargoMeter Dev",
+            scriptAddress: `${preview.url}/margometer-dev.user.js`,
+            metadataAddress: `${preview.url}/margometer-dev.meta.js`,
+        }], "built once, under a name of its own, at the port listened on");
+    } finally {
+        await preview.stop();
+    }
+});
+
+Deno.test("the build a server makes is dated to its minute, and polled at this server", async () => {
+    // The one case here that runs the bundler: the injected reader holds the routes, not this.
+    const preview = initPreviewServer({ port: 0, shouldWatch: false });
+    try {
+        const banner = await (await fetch(`${preview.url}/margometer-dev.meta.js`)).text();
+        assertStringIncludes(banner, "// @name         MargoMeter Dev\n", "under its own name");
+        assertStringIncludes(
+            banner,
+            `// @updateURL    ${preview.url}/margometer-dev.meta.js\n`,
+            "polled where it was installed",
+        );
+        const stated = `// @version      ${readDevelopmentVersion()}.`;
+        const opens = banner.indexOf(stated);
+        assert(opens >= 0, "at the declaration marked as development");
+        const minute = banner.slice(opens + stated.length, banner.indexOf("\n", opens));
+        assertStrictEquals(minute.length, 12, "and dated to the minute");
+        assert([...minute].every((character) => "0123456789".includes(character)), "as one number");
     } finally {
         await preview.stop();
     }

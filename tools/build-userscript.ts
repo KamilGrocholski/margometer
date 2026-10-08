@@ -6,6 +6,8 @@
  *
  *     deno task build            # the version deno.json declares, marked -dev
  *     deno task build 1.2.3      # a release
+ *
+ * The development edition, which installs beside the release, is served by `deno task preview`.
  */
 
 import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
@@ -23,6 +25,16 @@ export interface UserscriptFiles {
     metadata: string;
 }
 
+/**
+ * What a script manager keys an installed copy by and polls it at: two editions under one
+ * namespace are two scripts, so a development build installed beside the release replaces nothing.
+ */
+export interface UserscriptEdition {
+    name: string;
+    scriptAddress: string;
+    metadataAddress: string;
+}
+
 export const BUNDLE_ENTRY = "src/userscript-boot.ts";
 export const CONFIGURATION_FILE = "deno.json";
 const OUTPUT_DIRECTORY = "dist";
@@ -34,6 +46,11 @@ const HOMEPAGE = "https://github.com/KamilGrocholski/margometer";
 export const USERSCRIPT_DOWNLOAD_ADDRESS =
     `${HOMEPAGE}/releases/latest/download/${USERSCRIPT_NAME}`;
 const METADATA_DOWNLOAD_ADDRESS = `${HOMEPAGE}/releases/latest/download/${METADATA_NAME}`;
+export const RELEASE_EDITION: UserscriptEdition = {
+    name: "MargoMeter",
+    scriptAddress: USERSCRIPT_DOWNLOAD_ADDRESS,
+    metadataAddress: METADATA_DOWNLOAD_ADDRESS,
+};
 /** Worlds live on subdomains of their own; these are the operator's site, not a world. */
 const NON_WORLD_HOSTS = ["www", "forum", "commons", "pomoc"];
 const MARGONEM_DOMAINS = ["pl", "com"];
@@ -80,6 +97,10 @@ const WORD_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012
 /** Sorts below the release of that number, so a copy built here is offered the release. */
 const DEVELOPMENT_SUFFIX = "-dev";
 const DIRECTIVE_KEY_WIDTH = 12;
+/** `YYYYMMDDHHMM`, so a later build sorts higher as a number and as text alike. */
+const DATED_MINUTE_LENGTH = 12;
+const ISO_MINUTE_LENGTH = "YYYY-MM-DDTHH:MM".length;
+const DIGITS = "0123456789";
 
 /** The file, written where a release picks it up. Answers the path of the script it wrote. */
 export async function writeUserscript(version: string): Promise<string> {
@@ -113,8 +134,9 @@ export async function readUserscriptFiles(
     version: string,
     entryPath = BUNDLE_ENTRY,
     root = ".",
+    edition = RELEASE_EDITION,
 ): Promise<UserscriptFiles> {
-    const metadata = encodeUserscriptBanner(version);
+    const metadata = encodeUserscriptBanner(version, edition);
     let bundle: string;
     // Read what the bundler wrote off a file of its own, so no build churns `dist/` half-way.
     {
@@ -173,11 +195,14 @@ export async function readUserscriptFiles(
     return { script, metadata };
 }
 
-export function encodeUserscriptBanner(version: string): string {
+export function encodeUserscriptBanner(
+    version: string,
+    edition: Readonly<UserscriptEdition> = RELEASE_EDITION,
+): string {
     if (version.length === 0) {
         throw new UserscriptBuildError("a build states the version it is");
     }
-    const directives = encodeUserscriptBannerDirectives(version);
+    const directives = encodeUserscriptBannerDirectives(version, edition);
     assert(directives.length > 0, "a banner states something");
     const lines = directives.map(([key, setting]) => {
         return `// @${key.padEnd(DIRECTIVE_KEY_WIDTH)} ${setting}`.trimEnd();
@@ -185,18 +210,22 @@ export function encodeUserscriptBanner(version: string): string {
     return `// ==UserScript==\n${lines.join("\n")}\n// ==/UserScript==\n`;
 }
 
-function encodeUserscriptBannerDirectives(version: string): [string, string][] {
+function encodeUserscriptBannerDirectives(
+    version: string,
+    edition: Readonly<UserscriptEdition>,
+): [string, string][] {
     assert(version.length > 0, "a banner states the version it is");
+    assert(edition.name.length > 0, "a manager keys a script by its name");
     const directives: [string, string][] = [
-        ["name", "MargoMeter"],
+        ["name", edition.name],
         ["namespace", HOMEPAGE],
         ["version", version],
         ["description", "Czyta przebieg walki i pokazuje, na co się złożyła"],
         ["homepageURL", HOMEPAGE],
         // On a second host the file travels with no README, so the banner is the way back.
         ["supportURL", `${HOMEPAGE}/issues`],
-        ["downloadURL", USERSCRIPT_DOWNLOAD_ADDRESS],
-        ["updateURL", METADATA_DOWNLOAD_ADDRESS],
+        ["downloadURL", edition.scriptAddress],
+        ["updateURL", edition.metadataAddress],
     ];
     for (const domain of MARGONEM_DOMAINS) {
         // A pattern without the trailing `/*` never fires on a world carrying a query.
@@ -401,6 +430,22 @@ export function readDevelopmentVersion(): string {
     const version = `${declared}${DEVELOPMENT_SUFFIX}`;
     assert(version.startsWith(declared), "a development build names the work it is built from");
     return version;
+}
+
+/**
+ * A development build's version with the minute it was built after it, in UTC, as one number: a
+ * separate `.HHMM` would begin with a nought before ten o'clock, which semantic versioning refuses
+ * in a numeric identifier, and a manager compares versions in its own way.
+ */
+export function formatDatedDevelopmentVersion(developmentVersion: string, moment: Date): string {
+    assert(developmentVersion.endsWith(DEVELOPMENT_SUFFIX), "a dated build is a development one");
+    assert(Number.isFinite(moment.getTime()), "a build was made at a moment");
+    // `toISOString` writes UTC whatever zone the machine is in.
+    const minute = [...moment.toISOString().slice(0, ISO_MINUTE_LENGTH)]
+        .filter((character) => DIGITS.includes(character))
+        .join("");
+    assertStrictEquals(minute.length, DATED_MINUTE_LENGTH, "a minute is written at one width");
+    return `${developmentVersion}.${minute}`;
 }
 
 /** `deno.json` carries comments, which `JSON.parse` refuses and `@std/jsonc` reads. */

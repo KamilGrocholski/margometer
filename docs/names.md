@@ -754,6 +754,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `readScreen` — `tests/ui/panel-card.test.ts`
 - `readScrollers` — `tests/e2e/panel-scroll.spec.ts`
 - `readServedBuild` — `tools/margonem-client-source.ts`
+- `readServedFiles` — `tools/preview-server.ts`
 - `readShapeFlag` — `tools/fabricated-fight.ts`
 - `readSheetVariable` — `tests/ui/panel-look.test.ts`
 - `readSheetVariables` — `tests/ui/panel-look.test.ts`
@@ -1287,6 +1288,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `formatBitReport` — `tools/aura-lifetime.ts`
 - `formatBitShift` — `tools/margonem-readings.ts`
 - `formatBlowLines` — `tools/fight-figures.ts`
+- `formatBuiltAt` — `tests/tools/build-userscript.test.ts`
 - `formatCardSubtitle` — `src/ui/panel-words.ts`
 - `formatCaseReport` — `tools/drill-report.ts`, `tools/turn-count.ts`
 - `formatCastText` — `tests/repository/captured-fight-register.test.ts`
@@ -1300,6 +1302,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `formatCostReport` — `tools/payload-cost.ts`
 - `formatCountedNoun` — `src/ui/panel-words.ts`
 - `formatCutText` — `tools/fight-figures.ts`
+- `formatDatedDevelopmentVersion` — `tools/build-userscript.ts`
 - `formatDecimal` — `libs/number-text.ts`
 - `formatDecisionName` — `tests/repository/decisions.test.ts`
 - `formatDecisionNumber` — `tests/repository/decisions.test.ts`
@@ -3383,6 +3386,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `TurnPlacing` — `tools/turn-count.ts`
 - `TurnStretch` — `tools/turn-count.ts`
 - `TurnVerdict` — `tools/turn-count.ts`
+- `UserscriptEdition` — `tools/build-userscript.ts`
 - `UserscriptFiles` — `tools/build-userscript.ts`
 
 ### `tests/`
@@ -4213,6 +4217,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `COUNT_WIDTH` — in 5 files: `tools/`
 - `COUNT_WORDS` — `tools/protocol-key-shape.ts`
 - `DAMAGE_FAMILY_HEADING` — `tools/protocol-key-shape.ts`
+- `DATED_MINUTE_LENGTH` — `tools/build-userscript.ts`
 - `DATE_INDENT` — `tools/frozen-files.ts`
 - `DATE_NOTE` — `tools/skill-table.ts`
 - `DATE_SEPARATOR` — `tools/frozen-files.ts`
@@ -4223,9 +4228,12 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `DEFAULT_BRANCH_SHAPES` — `tools/protocol-key-table.ts`
 - `DESCRIPTION_FIELD` — `tools/capture-intake.ts`
 - `DETAIL_INDENT` — `tools/fight-figures.ts`
+- `DEVELOPMENT_METADATA_NAME` — `tools/preview-server.ts`
 - `DEVELOPMENT_SUFFIX` — `tools/build-userscript.ts`
+- `DEVELOPMENT_USERSCRIPT_NAME` — `tools/preview-server.ts`
 - `DEVELOP_PATHS` — `tools/develop-reports.ts`
 - `DEVELOP_RECORDINGS` — `tools/develop-reports.ts`
+- `DIGITS` — `tools/build-userscript.ts`
 - `DIRECTIVE_KEY_WIDTH` — `tools/build-userscript.ts`
 - `DRILL_ROW` — `tools/drill-report.ts`
 - `DRILL_ROWS` — `tools/drill-report.ts`
@@ -4301,6 +4309,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `INSTALL_NEEDS_MAXIMUM` — `tools/preview-page.ts`
 - `INTAKE_KEYS` — `tools/recorded-material.ts`
 - `INTO_DEFAULT` — `tools/panel-giving-way.ts`
+- `ISO_MINUTE_LENGTH` — `tools/build-userscript.ts`
 - `KEEP_ALIVE_EVERY_MILLISECONDS` — `tools/preview-server.ts`
 - `KEPT_BREAK` — `tools/capture-intake.ts`
 - `KEYS_MAXIMUM` — `tools/protocol-key-shape.ts`
@@ -4415,6 +4424,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `REGIONS_ASKED_MAXIMUM` — `tools/panel-giving-way.ts`
 - `REGION_ANCHOR` — `tools/panel-giving-way.ts`
 - `REGISTER_PATH` — `tools/help-claim-register.ts`
+- `RELEASE_EDITION` — `tools/build-userscript.ts`
 - `RELEASE_FLAG` — `tools/preview-site.ts`
 - `RELEASE_INSTALL_NOTE` — `tools/changelog.ts`
 - `RELOAD_SCRIPT` — `tools/preview-server.ts`
@@ -4439,6 +4449,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SECTION_OPENER` — `tools/changelog.ts`
 - `SEGMENT_INDEX` — `tools/protocol-key-table.ts`
 - `SENTENCE_END` — `tools/protocol-key-shape.ts`
+- `SERVED_FILE_PATHS` — `tools/preview-server.ts`
 - `SHAPE_MARKER` — `tools/protocol-key-shape.ts`
 - `SHAPE_STEP` — `tools/protocol-key-table.ts`
 - `SHOTS_MAXIMUM` — `tools/panel-shots.ts`
@@ -4594,6 +4605,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `BROWSER_GLOBALS` — `tests/repository/browser-globals.test.ts`
 - `BROWSER_SUITE_DIRECTORY` — `tests/repository/import-paths.test.ts`
 - `BROWSER_SUITE_PREFIXES` — `tests/repository/import-paths.test.ts`
+- `BUILT` — `tests/tools/preview-server.test.ts`
 - `BUILT_DIRECTORY` — `tests/e2e/build-once.ts`
 - `BUNDLE` — `tests/tools/preview-server.test.ts`
 - `BUNDLED_PREFIXES` — `tests/source-tree.ts`
@@ -5116,6 +5128,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SENTENCE_ENDS` — `tests/repository/changelog.test.ts`
 - `SEPARATORS` — `tests/repository/protocol-keys.test.ts`
 - `SEPTEMBER` — `tests/ports/browser-clock.test.ts`
+- `SERVED_FILE_PATHS` — `tests/tools/preview-server.test.ts`
 - `SETTINGS_ID` — `tests/e2e/margonem-page.ts`
 - `SETTLED_HEADING` — `tests/repository/browser-support.test.ts`
 - `SETTLED_LABELS` — `tests/repository/browser-support.test.ts`
@@ -6754,6 +6767,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isAbsent` — `tools/preview-server.ts`
 - `isAhead` — `tools/margonem-readings.ts`
 - `isAlike` — `tools/develop-reports.ts`
+- `isBanner` — `tools/preview-server.ts`
 - `isDash` — `tools/capture-intake.ts`
 - `isDefault` — `tools/fabricated-fight.ts`
 - `isKept` — `tools/frozen-files.ts`
@@ -6824,6 +6838,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `metadataWritten` — `tools/build-userscript.ts`
 - `milliseconds` — `tools/help-article.ts`
 - `mine` — `tools/aura-lifetime.ts`, `tools/turn-count.ts`
+- `minute` — `tools/build-userscript.ts`
 - `missing` — `tools/help-article.ts`
 - `mode` — `tools/aura-lifetime.ts`
 - `monsterName` — `tools/capture-intake.ts`
@@ -7045,7 +7060,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `task` — `tools/capture-intake.ts`
 - `templateDepths` — `tools/build-userscript.ts`
 - `terminator` — `tools/protocol-key-table.ts`
-- `text` — in 13 files: `tools/`
+- `text` — in 14 files: `tools/`
 - `textLength` — `tools/help-article.ts`
 - `textPath` — `tools/help-article.ts`
 - `textWritten` — `tools/help-article.ts`
@@ -7074,12 +7089,12 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `upTo` — `tools/shout-holding.ts`
 - `update` — `tools/payload-cost.ts`, `tools/recorded-material.ts`, `tools/turn-count.ts`
 - `updates` — `tools/recorded-material.ts`
-- `url` — `tools/help-article.ts`, `tools/skill-table.ts`
+- `url` — `tools/help-article.ts`, `tools/preview-server.ts`, `tools/skill-table.ts`
 - `urlAt` — `tools/build-userscript.ts`
 - `valueClaim` — `tools/protocol-key-shape.ts`
 - `values` — `tools/skill-table.ts`
 - `verdict` — `tools/margonem-readings.ts`, `tools/protocol-key-shape.ts`
-- `version` — `tools/build-userscript.ts`, `tools/changelog.ts`
+- `version` — `tools/build-userscript.ts`, `tools/changelog.ts`, `tools/preview-server.ts`
 - `view` — in 4 files: `tools/`
 - `walk` — `tools/turn-reading.ts`
 - `walked` — `tools/drill-report.ts`
@@ -7206,7 +7221,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `balance` — `tests/core/fight-statistics.test.ts`
 - `band` — `tests/tools/preview-site.test.ts`
 - `bandaged` — `tests/core/fight-statistics.test.ts`
-- `banner` — `tests/e2e/build-once.ts`, `tests/tools/build-userscript.test.ts`
+- `banner` — `tests/e2e/build-once.ts`, `tests/tools/build-userscript.test.ts`,
+  `tests/tools/preview-server.test.ts`
 - `bar` — in 14 files: `tests/`
 - `bare` — in 10 files: `tests/`
 - `bareCount` — `tests/repository/browser-support.test.ts`
@@ -7547,6 +7563,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `east` — `tests/ports/margonem-engine-place.test.ts`
 - `edge` — `tests/e2e/panel-options.spec.ts`, `tests/tools/preview-state.test.ts`
 - `edited` — `tests/runtime/margometer-runtime.test.ts`, `tests/tools/frozen-files.test.ts`
+- `edition` — `tests/tools/build-userscript.test.ts`
+- `editions` — `tests/tools/preview-server.test.ts`
 - `eightIn` — `tests/core/carried-figure.test.ts`
 - `elapsed` — `tests/core/aura-standing.test.ts`
 - `element` — `tests/ui/panel-words.test.ts`
@@ -8027,6 +8045,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `metric` — in 7 files: `tests/`
 - `midStrike` — `tests/core/granted-blow-rule.test.ts`
 - `middle` — `tests/e2e/panel-type.spec.ts`, `tests/runtime/margometer-runtime.test.ts`
+- `minute` — `tests/tools/preview-server.test.ts`
 - `misnamed` — `tests/repository/names.test.ts`
 - `misplaced` — `tests/repository/declaration-order.test.ts`
 - `missed` — `tests/repository/skill-durations.test.ts`
@@ -8147,6 +8166,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/tools/turn-reading.test.ts`
 - `opening` — in 12 files: `tests/`
 - `openingLine` — `tests/repository/readmes.test.ts`
+- `opens` — `tests/tools/preview-server.test.ts`
 - `opensOnCode` — `tests/repository/comment-share.test.ts`
 - `operators` — `tests/ui/panel-look.test.ts`
 - `opponent` — `tests/core/fight-statistics.test.ts`, `tests/runtime/carried-tooltip.test.ts`,
@@ -8435,7 +8455,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `screen` — in 7 files: `tests/`
 - `screens` — `tests/e2e/panel-reload.spec.ts`
 - `screensRead` — `tests/ui/panel-content.test.ts`
-- `script` — `tests/repository/browser-support.test.ts`
+- `script` — `tests/repository/browser-support.test.ts`, `tests/tools/preview-server.test.ts`
 - `search` — `tests/runtime/margonem-engine-search.test.ts`
 - `seat` — `tests/repository/captured-fight-register.test.ts`
 - `seated` — `tests/core/fight-session.test.ts`, `tests/tools/fabricated-fight.test.ts`
@@ -8572,7 +8592,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `started` — `tests/ports/browser-interval.test.ts`
 - `starts` — `tests/runtime/margonem-engine-search.test.ts`
 - `state` — in 7 files: `tests/`
-- `stated` — in 38 files: `tests/`
+- `stated` — in 39 files: `tests/`
 - `statedHere` — `tests/core/health-witness.test.ts`
 - `statedName` — `tests/repository/throws.test.ts`
 - `statement` — in 4 files: `tests/`
@@ -9607,6 +9627,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `developLines` — `tools/develop-reports.ts`
 - `developNames` — `tools/develop-reports.ts`
 - `developText` — `tools/develop-reports.ts`
+- `developmentVersion` — `tools/build-userscript.ts`
 - `difference` — `tools/develop-reports.ts`
 - `directory` — `tools/develop-reports.ts`, `tools/preview-server.ts`
 - `directoryEntry` — `tools/preview-server.ts`
@@ -9619,6 +9640,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `done` — `tools/capture-intake.ts`
 - `drill` — `tools/drill-report.ts`
 - `drillCase` — `tools/drill-report.ts`
+- `edition` — `tools/build-userscript.ts`, `tools/preview-server.ts`
 - `effect` — `tools/skill-table.ts`
 - `encodable` — `tools/capture-intake.ts`, `tools/protocol-key-table.ts`
 - `encode` — `tools/fabricated-fight.ts`, `tools/frozen-files.ts`
@@ -9643,6 +9665,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `figure` — `tools/fabricated-fight.ts`
 - `figures` — `tools/fight-figures.ts`, `tools/turn-count.ts`
 - `file` — `tools/preview-site.ts`
+- `files` — `tools/preview-server.ts`
 - `flag` — in 7 files: `tools/`
 - `flags` — `tools/panel-giving-way.ts`
 - `fled` — `tools/fabricated-fight.ts`
@@ -9700,7 +9723,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `microseconds` — `tools/payload-cost.ts`
 - `mine` — `tools/turn-count.ts`
 - `minimum` — `tools/fabricated-fight.ts`
-- `moment` — `tools/panel-shots.ts`
+- `moment` — `tools/build-userscript.ts`, `tools/panel-shots.ts`
 - `moved` — `tools/fabricated-fight.ts`
 - `name` — in 10 files: `tools/`
 - `named` — `tools/help-article.ts`, `tools/recorded-material.ts`
@@ -9781,7 +9804,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `said` — `tools/margonem-readings.ts`
 - `screen` — `tools/card-height.ts`, `tools/drill-report.ts`
 - `screens` — `tools/drill-report.ts`
-- `script` — `tools/preview-page.ts`, `tools/preview-server.ts`
+- `script` — `tools/preview-page.ts`
 - `sentence` — `tools/protocol-key-shape.ts`
 - `served` — `tools/margonem-readings.ts`
 - `setting` — `tools/build-userscript.ts`
@@ -9910,7 +9933,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `change` — `tests/core/fight-statistics.test.ts`, `tests/tools/develop-reports.test.ts`
 - `changedNode` — `tests/repository/purity.test.ts`
 - `channels` — `tests/ui/panel-look.test.ts`
-- `character` — in 5 files: `tests/`
+- `character` — in 6 files: `tests/`
 - `charge` — `tests/ui/panel-helper.test.ts`
 - `chargedSkill` — `tests/core/fight-session.test.ts`, `tests/ui/panel-helper.test.ts`
 - `chargedSkills` — `tests/ui/view-failure.test.ts`
@@ -9985,6 +10008,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `drawn` — in 4 files: `tests/`
 - `drill` — `tests/ui/level-drawn.test.ts`, `tests/ui/panel-element.test.ts`
 - `drillCase` — `tests/tools/drill-report.test.ts`
+- `edition` — `tests/tools/preview-server.test.ts`
 - `effect` — in 4 files: `tests/`
 - `effectKey` — `tests/core/aura-standing.test.ts`
 - `effects` — `tests/tools/skill-table.test.ts`
@@ -10089,6 +10113,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/runtime/shelf.test.ts`
 - `isRowNarrower` — `tests/ui/panel-card.test.ts`
 - `isSizedAtOpening` — `tests/ui/panel-gesture.test.ts`
+- `iso` — `tests/tools/build-userscript.test.ts`
 - `items` — `tests/repository/declaration-order.test.ts`
 - `keptCall` — `tests/runtime/live-fight.test.ts`
 - `keptFight` — `tests/runtime/shelf-keeper.test.ts`
@@ -12057,6 +12082,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `doesShoot` — `tools/panel-giving-way.ts`
 - `doesStartFromEmpty` — `tools/preview-page.ts`, `tools/preview-server.ts`, `tools/preview-site.ts`
 - `drillReport` — `tools/margometer-tool-error.ts`
+- `edition` — `tools/preview-server.ts`
 - `effects` — `tools/skill-table.ts`
 - `element` — `tools/drill-report.ts`
 - `elsewhere` — `tools/turn-count.ts`
@@ -12085,6 +12111,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `fights` — in 5 files: `tools/`
 - `figureBonus` — `tools/fabricated-fight.ts`
 - `figureNow` — `tools/fabricated-fight.ts`
+- `files` — `tools/preview-server.ts`
 - `fled` — `tools/fabricated-fight.ts`
 - `focus` — `tools/fabricated-fight.ts`
 - `from` — `tools/turn-count.ts`, `tools/turn-reading.ts`
@@ -12164,6 +12191,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `messagesWithoutParameter` — `tools/decoding-status.ts`
 - `messagesWritten` — `tools/fabricated-fight.ts`
 - `metadata` — `tools/build-userscript.ts`
+- `metadataAddress` — `tools/build-userscript.ts`, `tools/preview-server.ts`
 - `metric` — `tools/card-height.ts`
 - `microseconds` — `tools/payload-cost.ts`
 - `moment` — `tools/panel-giving-way.ts`, `tools/panel-shots.ts`
@@ -12172,7 +12200,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `momentsWithTwo` — `tools/aura-standing.ts`
 - `move` — `tools/fabricated-fight.ts`
 - `moveOpening` — `tools/fabricated-fight.ts`
-- `name` — in 13 files: `tools/`
+- `name` — in 14 files: `tools/`
 - `namedAtOnce` — `tools/aura-standing.ts`
 - `namesById` — `tools/capture-intake.ts`
 - `needs` — `tools/preview-page.ts`, `tools/preview-site.ts`
@@ -12283,7 +12311,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `says` — `tools/margonem-readings.ts`
 - `scale` — `tools/fabricated-fight.ts`
 - `screen` — `tools/card-height.ts`, `tools/drill-report.ts`
-- `script` — `tools/build-userscript.ts`, `tools/panel-shots.ts`, `tools/preview-server.ts`
+- `script` — `tools/build-userscript.ts`, `tools/panel-shots.ts`
+- `scriptAddress` — `tools/build-userscript.ts`, `tools/preview-server.ts`
 - `scriptDirectory` — `tools/preview-page.ts`, `tools/preview-server.ts`, `tools/preview-site.ts`
 - `scriptName` — `tools/panel-shots.ts`
 - `segmentKey` — `tools/protocol-key-table.ts`
@@ -12996,6 +13025,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `messagesRead` — `tests/core/aura-standing.test.ts`, `tests/core/carried-figure.test.ts`,
   `tests/ui/panel-content.test.ts`
 - `messagesStated` — `tests/core/fight-figures.test.ts`, `tests/core/fight-session.test.ts`
+- `metadata` — `tests/tools/preview-server.test.ts`
+- `metadataAddress` — `tests/tools/build-userscript.test.ts`, `tests/tools/preview-server.test.ts`
 - `meter` — `tests/ui/panel-drag.test.ts`, `tests/ui/panel-element.test.ts`
 - `meterPlacement` — in 4 files: `tests/`
 - `meterWidth` — `tests/repository/design-tokens.test.ts`
@@ -13016,7 +13047,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-look.test.ts`
 - `myteam` — `tests/ports/payload-envelope.test.ts`, `tests/runtime/margometer-runtime.test.ts`
 - `n` — `tests/libs/unknown-value.test.ts`, `tests/ports/margonem-engine-battle.test.ts`
-- `name` — in 48 files: `tests/`
+- `name` — in 50 files: `tests/`
 - `named` — `tests/e2e/panel-save.spec.ts`, `tests/libs/unknown-value.test.ts`,
   `tests/repository/name-shapes.test.ts`
 - `namedAtOnce` — `tests/tools/aura-standing.test.ts`
@@ -13230,7 +13261,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-words.test.ts`
 - `screen` — in 4 files: `tests/`
 - `screens` — `tests/e2e/panel-crawler.ts`
-- `script` — `tests/e2e/panel-camera.ts`, `tests/e2e/panel-fixture.ts`
+- `script` — `tests/e2e/panel-camera.ts`, `tests/e2e/panel-fixture.ts`,
+  `tests/tools/preview-server.test.ts`
+- `scriptAddress` — `tests/tools/build-userscript.test.ts`, `tests/tools/preview-server.test.ts`
 - `scriptDirectory` — `tests/e2e/margonem-page.ts`, `tests/tools/preview-page.test.ts`
 - `scriptName` — `tests/e2e/panel-camera.ts`
 - `scripts` — `tests/fake-window.ts`, `tests/repository/name-register.test.ts`
@@ -14998,6 +15031,7 @@ suite's material.
 - `"@import"` — `STYLE_IMPORT`
 - `"EventSource"` — `AMBIENT_WAYS_OUT`, `OUTBOUND_CALLS`
 - `"Image"` — `AMBIENT_WAYS_OUT`
+- `"MargoMeter"` — `RELEASE_EDITION`
 - `"Request"` — `AMBIENT_WAYS_OUT`
 - `"SharedWorker"` — `AMBIENT_WAYS_OUT`
 - `"WebSocket"` — `AMBIENT_WAYS_OUT`
@@ -15266,6 +15300,8 @@ suite's material.
 - `"from"` — `FLAG_FROM`
 - `"frozen"` — `BUNDLE_SOURCE_PATHS`
 - `"libs"` — `BUNDLE_SOURCE_PATHS`
+- `"margometer-dev.meta.js"` — `DEVELOPMENT_METADATA_NAME`
+- `"margometer-dev.user.js"` — `DEVELOPMENT_USERSCRIPT_NAME`
 - `"no-store"` — `HTML_TYPE`, `SCRIPT_TYPE`
 - `"port"` — `FLAG_PORT`
 - `"src"` — `BUNDLE_SOURCE_PATHS`
@@ -15546,6 +15582,7 @@ suite's material.
 - `docs/adr/0044-assertion-density-is-held-where-it-stands-and-only-rises.md`
 - `docs/adr/0045-a-pools-part-stands-under-the-elements-it-could-take-from.md`
 - `docs/adr/0046-a-shelf-row-says-how-a-fight-went-in-a-letter-and-keeps-a-fight-it-cannot-read.md`
+- `docs/adr/0047-a-development-build-installs-beside-the-release-under-a-name-of-its-own.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

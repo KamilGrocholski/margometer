@@ -19,7 +19,12 @@ import { isOneOf } from "#/libs/vocabulary.ts";
 import { PANEL_MARK } from "#/src/ui/panel-intent.ts";
 import { PANEL_REGION, type PanelRegion } from "#/src/ui/panel-words.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
-import { BUNDLE_ENTRY, readDevelopmentVersion, readUserscriptFiles } from "./build-userscript.ts";
+import {
+    BUNDLE_ENTRY,
+    readDevelopmentVersion,
+    readUserscriptFiles,
+    type UserscriptFiles,
+} from "./build-userscript.ts";
 import { GivingWayError } from "./margometer-tool-error.ts";
 import {
     composeShotPage,
@@ -182,7 +187,7 @@ async function writeGivingWayShots(flags: GivingWayFlags): Promise<string[]> {
     const written: string[] = [];
     try {
         for (const region of flags.regions) {
-            const bundle = await readGivingWayBundle([region]);
+            const bundle = (await readGivingWayBundle([region])).script;
             const shot = composeGivingWayShot(region);
             const path = `${flags.into}/${shot.name}`;
             await writeShot(browser, html, bundle, shot, path);
@@ -199,7 +204,7 @@ async function writeGivingWayShots(flags: GivingWayFlags): Promise<string[]> {
  * The built bundle of a copy of the tree carrying the edit. A copy and never the tree: a run that
  * failed part-way would otherwise leave `src/` holding a panel that refuses to draw.
  */
-async function readGivingWayBundle(regions: readonly PanelRegion[]): Promise<string> {
+async function readGivingWayBundle(regions: readonly PanelRegion[]): Promise<UserscriptFiles> {
     assert(regions.length > 0, "a build that gives way is told what gives way");
     const root = await Deno.makeTempDir({ prefix: "margometer-giving-way-" });
     try {
@@ -210,7 +215,7 @@ async function readGivingWayBundle(regions: readonly PanelRegion[]): Promise<str
         const built = await readUserscriptFiles(readDevelopmentVersion(), BUNDLE_ENTRY, root);
         // A copy whose imports resolved back into this tree builds the panel unedited.
         assert(built.script.includes(GIVING_WAY_MARKER), "the build is of the edited copy");
-        return built.script;
+        return built;
     } finally {
         await Deno.remove(root, { recursive: true });
     }
@@ -222,11 +227,11 @@ if (import.meta.main) {
         for (const path of await writeGivingWayShots(flags)) console.log(path);
         console.log(`${flags.regions.length} of them, each a panel nobody installs`);
     } else {
-        const bundle = await readGivingWayBundle(flags.regions);
+        const built = await readGivingWayBundle(flags.regions);
         const preview = initPreviewServer({
             port: flags.port,
             shouldWatch: false,
-            readBundle: () => Promise.resolve(bundle),
+            readBundle: () => Promise.resolve(built),
         });
         console.log(`preview  ${preview.url}`);
         console.log(`giving way: ${flags.regions.join(", ")}`);

@@ -29,6 +29,10 @@ picker at the top lists every recording, and the strip beside it steps the fight
 `▶`, `play`, `to end`. `--fight` only names the address the server prints: a page opened without
 `?fight=` still lands on the landing fight. The flags are the docblock of `tools/preview-server.ts`.
 
+The address printed after `install` puts the same build into Tampermonkey as `MargoMeter Dev`,
+beside the release and dated to the minute it was built (ADR 0047). In a game tab, the copy that
+runs second stands down, so switch off the one you are not looking at.
+
 A change under `src/`, `libs/`, `frozen/`, `deno.json` or `deno.lock` rebuilds and reloads every
 open page where it was. A rebuild that **fails** does not reload: the label beside the picker turns
 from `build ok` to the failure, with the log under it, and the last good bundle stays up. `tools/`

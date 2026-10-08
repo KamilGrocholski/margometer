@@ -14,12 +14,14 @@ import {
 import { BUILD_VERSION } from "#/src/build-version.ts";
 import {
     encodeUserscriptBanner,
+    formatDatedDevelopmentVersion,
     lookupAmbientWaysOut,
     lookupOutboundCalls,
     lookupStyleFetches,
     METADATA_NAME,
     parseDeclaredVersion,
     readUserscriptFiles,
+    RELEASE_EDITION,
     requireBundleInBrowser,
     stampBundleVersion,
     USERSCRIPT_DOWNLOAD_ADDRESS,
@@ -49,7 +51,66 @@ Deno.test("the banner says what a script manager reads, and refuses to say nothi
         `// @downloadURL  ${USERSCRIPT_DOWNLOAD_ADDRESS}`,
         "the address an installed copy polls is one address",
     );
+    assertStringIncludes(banner, "// @name         MargoMeter\n", "under the release's name");
     assertThrows(() => encodeUserscriptBanner(""), UserscriptBuildError, "the version");
+});
+
+Deno.test("an edition of its own is a script of its own, polled where it was installed", () => {
+    const edition = {
+        name: "MargoMeter Dev",
+        scriptAddress: "http://127.0.0.1:4173/margometer-dev.user.js",
+        metadataAddress: "http://127.0.0.1:4173/margometer-dev.meta.js",
+    };
+    const banner = encodeUserscriptBanner("1.2.3-dev.202610081432", edition);
+    assertStringIncludes(banner, "// @name         MargoMeter Dev\n", "a name the release lacks");
+    assertStringIncludes(
+        banner,
+        "// @namespace    https://github.com/KamilGrocholski/margometer\n",
+        "in the release's namespace",
+    );
+    assertStringIncludes(banner, `// @downloadURL  ${edition.scriptAddress}\n`, "fetched here");
+    assertStringIncludes(banner, `// @updateURL    ${edition.metadataAddress}\n`, "polled here");
+    assert(!banner.includes("releases/latest"), "and never offered the release over itself");
+    assertStrictEquals(
+        encodeUserscriptBanner("1.2.3", RELEASE_EDITION),
+        encodeUserscriptBanner("1.2.3"),
+        "an edition unnamed is the release",
+    );
+});
+
+Deno.test("a dated build names its minute in UTC, at one width, and only on a development one", () => {
+    const formatBuiltAt = (iso: string) =>
+        formatDatedDevelopmentVersion("1.2.3-dev", new Date(iso));
+    assertStrictEquals(
+        formatBuiltAt("2026-01-02T03:04:05Z"),
+        "1.2.3-dev.202601020304",
+        "padded with noughts",
+    );
+    assertStrictEquals(
+        formatBuiltAt("2026-10-08T14:32:59.999Z"),
+        "1.2.3-dev.202610081432",
+        "to the minute",
+    );
+    assertStrictEquals(
+        formatBuiltAt("2026-10-08T23:30:00+02:00"),
+        "1.2.3-dev.202610082130",
+        "in UTC",
+    );
+    assertStrictEquals(
+        formatBuiltAt("2026-12-31T23:59:00Z"),
+        "1.2.3-dev.202612312359",
+        "the last minute",
+    );
+    assertStrictEquals(
+        formatBuiltAt("2027-01-01T00:00:00Z"),
+        "1.2.3-dev.202701010000",
+        "and the first",
+    );
+    assert(
+        formatBuiltAt("2027-01-01T00:00:00Z") > formatBuiltAt("2026-12-31T23:59:00Z"),
+        "a later build sorts higher",
+    );
+    assertThrows(() => formatDatedDevelopmentVersion("1.2.3", new Date()), Error, "development");
 });
 
 Deno.test("the add-on stays off the operator's own site, bare domain included", () => {

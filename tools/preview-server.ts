@@ -5,7 +5,8 @@
  * entry, the screen and the store through a reload (`tools/preview-state.ts`), and says a failed
  * build where the panel is. Nothing here ships, and `SECURITY.md`'s rule against the network binds
  * `src/`, not this. `--from` opens a recording at any path beside the rest, and `--fabricated`
- * every fight `tools/fabricated-fight.ts` wrote.
+ * every fight `tools/fabricated-fight.ts` wrote. The same build installs as `MargoMeter Dev` from
+ * the address it prints, and polls that address, port included, for the next.
  *
  *     deno task preview [--port N] [--fight NAME] [--from PATH]… [--fabricated]
  *     deno task preview:fabricated
@@ -24,9 +25,13 @@ import {
     type RecordedFight,
 } from "#/tests/recorded-fights.ts";
 import {
+    BUNDLE_ENTRY,
+    formatDatedDevelopmentVersion,
     readDevelopmentVersion,
     readUserscriptFiles,
     USERSCRIPT_NAME,
+    type UserscriptEdition,
+    type UserscriptFiles,
 } from "./build-userscript.ts";
 import { FABRICATED_DIRECTORY } from "./fabricated-fight.ts";
 import { PreviewServeError, UserscriptBuildError } from "./margometer-tool-error.ts";
@@ -45,7 +50,7 @@ export interface PreviewServerOptions {
     /** Off in a test, so no watcher outlives it. */
     shouldWatch?: boolean;
     /** Injected in a test, so holding the routes costs no bundler run. */
-    readBundle?: () => Promise<string>;
+    readBundle?: (edition: Readonly<UserscriptEdition>) => Promise<UserscriptFiles>;
     /** What the page runs after its own driver. Null turns reloading off. */
     appendedScript?: string | null;
     /** Fights opened at a path, beside the recordings; a name the recordings carry is refused. */
@@ -71,12 +76,16 @@ export interface PreviewState {
     fights: readonly ServedFight[];
     listeners: Set<ReloadListener>;
     /** The last bundle that built, so a failed rebuild costs nothing on screen. */
-    script: string | null;
-    readBundle(): Promise<string>;
+    files: UserscriptFiles | null;
+    /** Addressed at the port listened on, which is known once the server stands. */
+    edition: UserscriptEdition | null;
+    readBundle(edition: Readonly<UserscriptEdition>): Promise<UserscriptFiles>;
     appendedScript: string | null;
 }
 
 const PREVIEW_HOSTNAME = "127.0.0.1";
+const DEVELOPMENT_USERSCRIPT_NAME = "margometer-dev.user.js";
+const DEVELOPMENT_METADATA_NAME = "margometer-dev.meta.js";
 const PORT_DEFAULT = 4173;
 /** A preview is watched by the pages one person has open; this is far past that (S11). */
 export const LISTENERS_MAXIMUM = 64;
@@ -100,6 +109,11 @@ export const FROM_PATHS_MAXIMUM = 64;
 export const PORT_MAXIMUM = 65_535;
 const TEXT_ENCODER = new TextEncoder();
 const HTML_TYPE = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" };
+const SERVED_FILE_PATHS = [
+    `/${USERSCRIPT_NAME}`,
+    `/${DEVELOPMENT_USERSCRIPT_NAME}`,
+    `/${DEVELOPMENT_METADATA_NAME}`,
+];
 const SCRIPT_TYPE = {
     "content-type": "text/javascript; charset=utf-8",
     "cache-control": "no-store",
@@ -160,7 +174,8 @@ export function initPreviewServer(options: PreviewServerOptions = {}): PreviewSe
     const state: PreviewState = {
         fights: composeServedFights(options.fromPaths ?? []),
         listeners: new Set<ReloadListener>(),
-        script: null,
+        files: null,
+        edition: null,
         readBundle: options.readBundle ?? readPreviewBundle,
         appendedScript: options.appendedScript === undefined
             ? RELOAD_SCRIPT
@@ -183,8 +198,14 @@ export function initPreviewServer(options: PreviewServerOptions = {}): PreviewSe
     );
     const port = server.addr.port;
     assert(port > 0, "a server that started is one a browser can be pointed at");
+    const url = `http://${PREVIEW_HOSTNAME}:${port}`;
+    state.edition = {
+        name: "MargoMeter Dev",
+        scriptAddress: `${url}/${DEVELOPMENT_USERSCRIPT_NAME}`,
+        metadataAddress: `${url}/${DEVELOPMENT_METADATA_NAME}`,
+    };
     return {
-        url: `http://${PREVIEW_HOSTNAME}:${port}`,
+        url,
         port,
         fightNames: state.fights.map((fight) => fight.name),
         stop: async () => {
@@ -218,17 +239,21 @@ function composeServedFight(fight: RecordedFight): ServedFight {
     return { name: formatRecordingName(fight.path), calls: fight.updates };
 }
 
-/** Asynchronous throughout, so a version that cannot be read rejects rather than throws. */
-async function readPreviewBundle(): Promise<string> {
-    return (await readUserscriptFiles(readDevelopmentVersion())).script;
+/**
+ * Asynchronous throughout, so a version that cannot be read rejects rather than throws. Dated at
+ * the build, so a manager polling between two rebuilds is offered nothing.
+ */
+async function readPreviewBundle(edition: Readonly<UserscriptEdition>): Promise<UserscriptFiles> {
+    const version = formatDatedDevelopmentVersion(readDevelopmentVersion(), new Date());
+    return await readUserscriptFiles(version, BUNDLE_ENTRY, ".", edition);
 }
 
 /** Drains the watcher until it is closed, which is what `stop` does to end this. */
 async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Promise<void> {
     // Read the bundle rebuilt once the events go quiet, and tell every page listening how it went.
     const rebuild = debounce(() => {
-        state.readBundle().then((script) => {
-            state.script = script;
+        readServedFiles(state).then((files) => {
+            state.files = files;
             console.log(`rebuilt, ${state.listeners.size} page(s) told to reload`);
             tellPreviewListeners(state.listeners, "rebuilt", "ok");
         }, (failure: unknown) => {
@@ -246,15 +271,24 @@ async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Pro
     rebuild.clear();
 }
 
+/** The bundle at the edition this server installs, which stands before any request arrives. */
+function readServedFiles(state: PreviewState): Promise<UserscriptFiles> {
+    assert(state.edition !== null, "a server is asked for its bundle only once it listens");
+    return state.readBundle(state.edition);
+}
+
 /** Every request; the event stream holds its connection open and is the server's own. */
 async function answerPreviewRequest(state: PreviewState, url: URL): Promise<Response> {
     assert(url.pathname.startsWith("/"), "a request names a path");
     if (url.pathname === "/reload") return answerPreviewEvents(state.listeners);
-    if (url.pathname === `/${USERSCRIPT_NAME}`) {
-        // Answer the bundle, built on first asking: a tree that does not build answers 500.
+    if (SERVED_FILE_PATHS.includes(url.pathname)) {
+        // Answer the bundle or its banner, built on first asking: a tree that does not build
+        // answers 500. The page and an install are handed one build.
         try {
-            if (state.script === null) state.script = await state.readBundle();
-            return new Response(state.script, { headers: SCRIPT_TYPE });
+            if (state.files === null) state.files = await readServedFiles(state);
+            const isBanner = url.pathname === `/${DEVELOPMENT_METADATA_NAME}`;
+            const text = isBanner ? state.files.metadata : state.files.script;
+            return new Response(text, { headers: SCRIPT_TYPE });
         } catch (failure) {
             if (!(failure instanceof UserscriptBuildError)) throw failure;
             return new Response(failure.message, { status: 500 });
@@ -484,6 +518,7 @@ if (import.meta.main) {
         ? preview.url
         : `${preview.url}/?fight=${encodeURIComponent(flags.fight)}`;
     console.log(`preview  ${opening}`);
+    console.log(`install  ${preview.url}/${DEVELOPMENT_USERSCRIPT_NAME}  as MargoMeter Dev`);
     console.log(`watching ${BUNDLE_SOURCE_PATHS.join(", ")}: a change there rebuilds and reloads`);
     console.log("a change in tools/ does not, because this process already imported it: restart");
     for (const signal of ["SIGINT", "SIGTERM"] as const) {
