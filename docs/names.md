@@ -70,7 +70,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `onAttached` — `src/runtime/margometer-runtime.ts`, `tests/runtime/margonem-engine-search.test.ts`
 - `onBeforeCall` — in 4 files: `src/ports/`, `src/runtime/`, `tests/`
 - `onDragEnd` — `src/ui/panel-drag.ts`
-- `onDrawn` — `src/ui/panel-drag.ts`
 - `onFailure` — in 8 files: `src/runtime/`, `tests/`
 - `onFightKept` — `src/runtime/margometer-runtime.ts`, `tests/runtime/live-fight.test.ts`
 - `onFightOpened` — `src/runtime/margometer-runtime.ts`, `tests/runtime/live-fight.test.ts`
@@ -377,7 +376,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `setOverflowingLevelOpened` — `tests/e2e/panel-scroll.spec.ts`
 - `setPageServed` — `tests/e2e/panel-fixture.ts`
 - `setPointerCapture` — `src/ui/panel-document.ts`, `tests/fake-document.ts`
-- `setPosition` — `src/ui/panel-drag.ts`
 - `setRebuilt` — `tests/rebuilding-battle.ts`
 - `setRollName` — `tools/capture-intake.ts`
 - `setRowMarks` — `src/ui/panel-element.ts`
@@ -385,7 +383,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `setSecondFightKept` — `tests/e2e/panel-shelf.spec.ts`
 - `setShelfCardOpen` — `tests/e2e/panel-card.spec.ts`
 - `setShelfWritten` — `src/runtime/shelf-keeper.ts`
-- `setSize` — `src/ui/panel-drag.ts`
 - `setStatusBit` — `tools/fabricated-fight.ts`
 - `setTimeout` — in 4 files: `src/`, `src/ports/`, `tests/`
 - `setTop` — `src/ui/panel-element.ts`
@@ -1318,8 +1315,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `formatFabricationShape` — `tools/fabricated-fight.ts`
 - `formatFightPlace` — `src/runtime/panel-frame.ts`
 - `formatFightPlaceWords` — `src/runtime/panel-frame.ts`
+- `formatFightSuspicions` — `src/ui/panel-content.ts`
 - `formatFigure` — `src/ui/panel-words.ts`
 - `formatFigureReport` — `tools/fight-figures.ts`
+- `formatGenitiveNoun` — `src/ui/panel-words.ts`
 - `formatGradeRegister` — `tools/turn-count.ts`
 - `formatGradeRegisterBounded` — `tools/turn-count.ts`
 - `formatGradeRegisterStretch` — `tools/turn-count.ts`
@@ -1366,6 +1365,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `formatRowSuspicions` — `src/ui/panel-content.ts`
 - `formatRowsReachedByGap` — `src/ui/panel-content.ts`
 - `formatRuleName` — `tests/repository/documents.test.ts`
+- `formatScreenSuspicions` — `src/ui/panel-content.ts`
 - `formatShapeLine` — `tools/protocol-key-shape.ts`
 - `formatShapeReport` — `tools/protocol-key-shape.ts`
 - `formatShapeReportNote` — `tools/protocol-key-shape.ts`
@@ -1680,7 +1680,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/tools/capture-intake.test.ts`
 - `composeFightLinks` — `tools/preview-server.ts`
 - `composeFightMessages` — `tools/turn-reading.ts`
-- `composeFightSuspicions` — `src/ui/panel-content.ts`
 - `composeFightView` — `src/core/fight-session.ts`
 - `composeFigure` — `tools/fabricated-fight.ts`
 - `composeFileSubject` — `src/runtime/fight-handover.ts`
@@ -1702,7 +1701,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeFullCastScreen` — `tests/ui/full-cast-bound.test.ts`
 - `composeFullShelf` — `tests/ui/shelf-bound.test.ts`
 - `composeFunctionLines` — `tests/repository/name-register.test.ts`
-- `composeGenitiveNoun` — `src/ui/panel-words.ts`
 - `composeGivingWayShot` — `tools/panel-giving-way.ts`
 - `composeGivingWaySource` — `tools/panel-giving-way.ts`
 - `composeGrantedBlows` — `tools/skill-table.ts`
@@ -1892,7 +1890,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeStructureEntry` — `tests/repository/documents.test.ts`
 - `composeStyleSheet` — `src/ui/panel-look.ts`
 - `composeSubstitutionOrder` — `tools/capture-intake.ts`
-- `composeSuspicions` — `src/ui/panel-content.ts`
 - `composeSuspicionsOfReading` — `src/runtime/panel-frame.ts`
 - `composeSwap` — `tests/ui/card-window.test.ts`
 - `composeTall` — `tests/ui/card-window.test.ts`
@@ -2371,6 +2368,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `hold` — not in N2's table
 
 - `hold` — `tools/capture-intake.ts`
+- `holdBarRedrawn` — `src/ui/panel-drag.ts`
 
 ### `keep` — not in N2's table
 
@@ -2540,6 +2538,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `place` — not in N2's table
 
 - `place` — `tests/e2e/panel-fixture.ts`
+- `placeWindow` — `src/ui/panel-drag.ts`
 
 ### `play` — not in N2's table
 
@@ -2715,6 +2714,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `sides` — not in N2's table
 
 - `sides` — `tests/ui/panel-element.test.ts`, `tests/ui/view-failure.test.ts`
+
+### `size` — not in N2's table
+
+- `sizeWindow` — `src/ui/panel-drag.ts`
 
 ### `somebody` — not in N2's table
 
@@ -6479,6 +6482,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `viewport` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`
 - `walked` — `src/ui/panel-content.ts`
 - `wanted` — `src/ui/panel-screen.ts`
+- `wasKept` — `src/ui/panel-element.ts`
 - `when` — `src/ui/panel-element.ts`
 - `where` — `src/ui/panel-element.ts`
 - `who` — `src/ui/panel-element.ts`
@@ -14985,7 +14989,6 @@ suite's material.
 - `"-"` — `MINUS_SIGN`
 - `"<"` — `MARKUP_OPENER`
 - `"<1%"` — `SHARE_FLOOR`
-- `"MargoMeter"` — `ADD_ON_NAME`
 - `"P"` — `OUTCOME_LETTERS`
 - `"R"` — `OUTCOME_LETTERS`
 - `"U"` — `OUTCOME_LETTERS`

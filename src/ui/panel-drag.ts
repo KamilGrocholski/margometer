@@ -116,13 +116,13 @@ export interface PanelDragHandle {
      */
     getPosition(): PanelPosition | null;
     /** The bar has been drawn again; take hold of the one standing. */
-    onDrawn(): void;
+    holdBarRedrawn(): void;
     /** Stand the window here as a drag would leave it, and tell whoever a drag tells. */
-    setPosition(position: PanelPosition): void;
+    placeWindow(position: PanelPosition): void;
     /** How wide the window stands now: its size where it has one, its type's where it has none. */
     readWidthPixels(): number;
     /** The size a frame hands in. A frame landing while the corner is held is not the hand's. */
-    setSize(size: WindowSize | null): void;
+    sizeWindow(size: WindowSize | null): void;
 }
 
 export interface PanelPlacement {
@@ -517,7 +517,7 @@ export function initPanelDrag(
     }
     return {
         getPosition: () => state.position,
-        onDrawn: () => {
+        holdBarRedrawn: () => {
             if (state.grab?.kind === GRAB_KIND.move) {
                 // Hold the pointer again, on the bar a draw put in place of the held one.
                 // Every draw replaces the bar, and a browser drops the capture with the node it
@@ -527,7 +527,7 @@ export function initPanelDrag(
                 writePointerCapture(getBar(), true, grab.pointerId, options);
             }
         },
-        setPosition: (positionRequested: PanelPosition) => {
+        placeWindow: (positionRequested: PanelPosition) => {
             const position = clampPosition(positionRequested, placement.readViewport());
             state.position = position;
             writeHostStyle();
@@ -537,7 +537,7 @@ export function initPanelDrag(
             const applied = readPanelDragSize(state, placement, options);
             return applied?.width ?? getWindowWidthPixels(options.window, options.getTypeTokens());
         },
-        setSize: (size: WindowSize | null) => {
+        sizeWindow: (size: WindowSize | null) => {
             if (state.grab?.kind === GRAB_KIND.size) return;
             state.size = size;
             writeHostStyle();

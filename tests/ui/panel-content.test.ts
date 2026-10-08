@@ -47,8 +47,8 @@ import type {
     UnnamedLevelContent,
 } from "#/src/ui/panel-content.ts";
 import {
-    composeFightSuspicions,
     CUT_PARTS_MAXIMUM,
+    formatFightSuspicions,
     formatRowSuspicions,
     getOutcomeForReaderSide,
     getTextForNamedPart,
@@ -2932,7 +2932,7 @@ Deno.test("what is short about a whole fight is said as the ranking says it, but
     const unplaced = tallyFightStatistics(view.events, new Map());
     assert(unplaced.sideHealsUnsized > 0, "a fight with a cast nobody could place");
     assertEquals(
-        composeFightSuspicions(unplaced, roster, NOTHING_SUSPECT),
+        formatFightSuspicions(unplaced, roster, NOTHING_SUSPECT),
         [],
         "is nothing short about the fight as a whole",
     );
@@ -2945,7 +2945,7 @@ Deno.test("what is short about a whole fight is said as the ranking says it, but
         null,
         short,
     ).suspicions;
-    const said = composeFightSuspicions(unplaced, roster, short);
+    const said = formatFightSuspicions(unplaced, roster, short);
     assertStrictEquals(said.length, 2, "the start nobody saw, and what never arrived");
     assertEquals(said, healing.slice(0, 2), "in the ranking's own words and order");
     assertStrictEquals(healing.length, 3, "where the healing screen says the cast after them");

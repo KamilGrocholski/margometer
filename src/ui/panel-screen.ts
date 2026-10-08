@@ -178,7 +178,7 @@ function composeNameForPart(openedPart: OpenedPart): string {
     if (openedPart.kind === OPENED_PART.skill) return `${OPENED_PART.skill}:${openedPart.name}`;
     if (openedPart.kind === OPENED_PART.source) return `${OPENED_PART.source}:${openedPart.source}`;
     if (openedPart.kind === OPENED_PART.plain) return `${OPENED_PART.plain}:`;
-    return `kind:${openedPart.element}`;
+    return `${OPENED_PART.element}:${openedPart.element}`;
 }
 
 /**

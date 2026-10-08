@@ -955,13 +955,15 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                 if (name === shownName) {
                     // The document's own calls, and the region's to lose: what stands is the list
                     // as it was, at the place the browser already holds for the reader.
-                    const kept = errors.attempt(() => renderListRows(regions.list, renderedList));
-                    if (kept instanceof Error) {
-                        report.add(PANEL_REGION.list, kept);
+                    const wasKept = errors.attempt(() =>
+                        renderListRows(regions.list, renderedList)
+                    );
+                    if (wasKept instanceof Error) {
+                        report.add(PANEL_REGION.list, wasKept);
                         isRegionKept = true;
                         return;
                     }
-                    isRegionKept = kept;
+                    isRegionKept = wasKept;
                 } else {
                     isRegionKept = false;
                 }
@@ -1279,7 +1281,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             );
             const refused = helperRegister.lookupRefused();
             if (refused !== null) report.add(PANEL_REGION.card, refused);
-            helperDrag?.onDrawn();
+            helperDrag?.holdBarRedrawn();
         });
     return { element: host, render: renderScreen, renderWaiting, renderHelper };
 }
@@ -2412,15 +2414,15 @@ function renderFold(
                 after,
             );
             if (helperPositionAfter !== null) {
-                panelDrawing.helperDrag?.setPosition(helperPositionAfter);
+                panelDrawing.helperDrag?.placeWindow(helperPositionAfter);
             }
         });
     }
     executeRegionStep(panelDrawing.report, PANEL_REGION.header, () => {
-        panelDrawing.meterDrag?.setSize(drawn.windowSizes.meter);
+        panelDrawing.meterDrag?.sizeWindow(drawn.windowSizes.meter);
     });
     executeRegionStep(panelDrawing.report, PANEL_REGION.helper, () => {
-        panelDrawing.helperDrag?.setSize(drawn.windowSizes.helper);
+        panelDrawing.helperDrag?.sizeWindow(drawn.windowSizes.helper);
     });
     panelDrawing.regions.title = panelDrawing.renderInPlace(
         panelDrawing.regions.title,
@@ -3428,7 +3430,7 @@ function renderDefects(document: PanelDocument, defects: readonly PanelDefect[])
 /** After every region stands: the reader's place, the grip on the bar, and the card open. */
 function renderPanelSettled(panelDrawing: PanelDrawing): void {
     executeRegionStep(panelDrawing.report, PANEL_REGION.list, () => panelDrawing.drawing.settle());
-    panelDrawing.meterDrag?.onDrawn();
+    panelDrawing.meterDrag?.holdBarRedrawn();
     executeRegionStep(panelDrawing.report, PANEL_REGION.card, () => panelDrawing.card.renderOpen());
 }
 

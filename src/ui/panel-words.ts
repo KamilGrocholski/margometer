@@ -784,7 +784,7 @@ const TOOLTIP_WORDS = {
  */
 const STATUS_CATEGORY = "buff";
 /** What a reader meets outside the panel says whose it is — `SECURITY.md`'s guest rule. */
-const ADD_ON_NAME = "MargoMeter";
+const ADD_ON_NAME = PANEL_WORDS.title;
 const LEADING_STATUS_NAMES: readonly string[] = [SLOW_BIT_NAME, HASTE_BIT_NAME];
 /** The two characters that would make a row of ours part of somebody else's markup. */
 const MARKUP_OPENER = "<";
@@ -1474,14 +1474,14 @@ export function formatNamesReachedByGap(names: readonly string[], charged: numbe
     if (names.length === charged) {
         if (charged <= NAMED_ROWS_MAXIMUM) return ` (${names.join(", ")})`;
     }
-    return ` (dotyczy ${composeGenitiveNoun(charged, COUNTED_NOUN_WORDS.combatants)})`;
+    return ` (dotyczy ${formatGenitiveNoun(charged, COUNTED_NOUN_WORDS.combatants)})`;
 }
 
 /**
  * A count under a word governing the genitive — `z`, `dotyczy`. The **many** form is the genitive
  * plural: `1 z 3 uleczeń`, never `3 uleczenia`, which is the form nothing governs.
  */
-function composeGenitiveNoun(count: number, noun: CountedNoun): string {
+function formatGenitiveNoun(count: number, noun: CountedNoun): string {
     return `${formatWholeUngrouped(count)} ${noun.many}`;
 }
 
@@ -1510,7 +1510,7 @@ export function formatUnknownKeySuspicion(
 function formatOutOf(count: number, stated: number, noun: CountedNoun): string {
     if (stated <= 1) return formatCountedNoun(count, noun);
     if (stated < count) return formatCountedNoun(count, noun);
-    return `${formatWholeUngrouped(count)} z ${composeGenitiveNoun(stated, noun)}`;
+    return `${formatWholeUngrouped(count)} z ${formatGenitiveNoun(stated, noun)}`;
 }
 
 export function formatNoParameterSuspicion(

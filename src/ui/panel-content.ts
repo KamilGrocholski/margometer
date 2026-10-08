@@ -1242,9 +1242,9 @@ function composeHalfNamedKinds(
     if (neither > 0) rest += addFoldedCut(folded, statistics.damageByNeitherEndByKind);
     // A key standing only for what named neither end has nobody's row to open onto, and a level
     // holding one refusal says nothing the row above it did not.
-    return composeElementCut(folded, total, (element) => {
+    return composeElementCut(folded, total, rest, (element) => {
         return getHalfNamedByKind(statistics, shape.kinds, parts, element).length > 0;
-    }, rest);
+    });
 }
 
 /**
@@ -1280,9 +1280,9 @@ function addFoldedCut(folded: Map<string, number>, cut: FigureCut): number {
 function composeElementCut(
     cut: FigureCut,
     total: number,
-    doesOpen: (element: string) => boolean,
     /** What a fold gave no key of its own to. Held, because the protocol did state it. */
-    rest = 0,
+    rest: number,
+    doesOpen: (element: string) => boolean,
 ): ElementCut {
     const stated: Array<{ element: string; figure: number }> = [];
     let partsTotal = rest;
@@ -1402,6 +1402,7 @@ function composeHalfNamedForPerson(
         kinds: composeElementCut(
             figures[PINNED_SHAPES[pinnedCase].kinds],
             personPart.figure,
+            0,
             () => false,
         ),
     };
@@ -1478,7 +1479,7 @@ export function presentUnnamedPairLevel(
         case: pinnedCase,
         row,
         total: figure,
-        kinds: composeElementCut(figures[shape.kinds], figure, () => false),
+        kinds: composeElementCut(figures[shape.kinds], figure, 0, () => false),
     };
 }
 
@@ -1592,7 +1593,7 @@ export function presentScreen(
                 shareText: shares[shared.length - 1] ?? "",
             }
             : null,
-        suspicions: composeSuspicions(statistics, roster, metric, suspicions),
+        suspicions: formatScreenSuspicions(statistics, roster, metric, suspicions),
         sides,
         // Read off what the list is, and never off what was pressed: with no seat to read from
         // every list is everybody, whatever the strip last answered, and a shorter window would
@@ -1797,13 +1798,13 @@ function composePinnedRows(
  * (`develop ADR 0070`). Over the 37 recordings of `captures/` on 2026-10-06 none is short of any of
  * them, so the order two would stand in is one no recording has drawn.
  */
-function composeSuspicions(
+function formatScreenSuspicions(
     statistics: FightStatistics,
     roster: CombatantRoster,
     metric: PanelMetric,
     suspicions: FightSuspicions,
 ): string[] {
-    const said = composeFightSuspicions(statistics, roster, suspicions);
+    const said = formatFightSuspicions(statistics, roster, suspicions);
     if (getNounForMetric(metric) === PANEL_NOUN.healing) {
         said.push(formatUnplacedHealSuspicion(
             statistics.sideHealsUnsized,
@@ -1844,7 +1845,7 @@ function formatRowsReachedByGap(
  * ranking but the one only a healing screen can carry, and what a shelf row's mark opens onto
  * (ADR 0046).
  */
-export function composeFightSuspicions(
+export function formatFightSuspicions(
     statistics: FightStatistics,
     roster: CombatantRoster,
     suspicions: FightSuspicions,
@@ -2212,7 +2213,7 @@ export function presentPairLevel(
         // Nothing on the last rung opens: the protocol states no further cut of a pair.
         byElement: kinds === null
             ? { rows: [], rest: null, noKind: null }
-            : composeElementCut(kinds, total, () => false),
+            : composeElementCut(kinds, total, 0, () => false),
     };
 }
 
@@ -2432,6 +2433,7 @@ export function presentOpenedLevel(
         : composeElementCut(
             cuts.byElement,
             total,
+            0,
             (element) =>
                 composePeopleForPart(statistics, figures, metric, combatantId, {
                     kind: OPENED_PART.element,

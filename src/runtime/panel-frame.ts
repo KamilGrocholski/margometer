@@ -38,11 +38,11 @@ import type {
 } from "#/src/ui/panel-element.ts";
 import type { RenderReport } from "#/src/ui/view-failure.ts";
 import {
-    composeFightSuspicions,
     composeHeadcount,
     type FightCardContent,
     type FightReader,
     type FightSuspicions,
+    formatFightSuspicions,
     getEndForPinned,
     getOutcomeForReaderSide,
     HALF_NAMED_OPENED,
@@ -453,7 +453,7 @@ function lookupFightReader(roster: CombatantRoster, readerId: number | null): Fi
 /** What a card says is short about a whole fight, read off the fight a row or the line stands on. */
 function composeSuspicionsOfReading(fightState: FightState): string[] {
     const { view, figures } = fightState;
-    return composeFightSuspicions(figures.statistics, view.roster, getFightSuspicions(view));
+    return formatFightSuspicions(figures.statistics, view.roster, getFightSuspicions(view));
 }
 
 /** What is short about the reading itself, which the session states and the figures cannot. */
