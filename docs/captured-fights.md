@@ -16,7 +16,9 @@ those that stops being true fails the gate.
 
 The cast column is composed the same way: every warrior the payloads state, grouped by the side the
 recording player was on, counted by profession and by level range, and the census of shapes above is
-re-earned from the same reading.
+re-earned from the same reading. The outcome and the largest health are the add-on's own reading of
+the recording: the names the game gives as winners and losers placed against the recording player's
+side, and the largest health maximum the payloads state for anybody opposite.
 
 Two words the tables use in this repository's sense and not the game's: **side** is the team number
 as the game states it, and _ours_ is the side the recording player was on (`myteam`); **NPC** is
@@ -244,7 +246,7 @@ evidence.
   comes to. Measured rather than skipped, in the same place and for the same reason as the first
   (`tests/core/health-witness.test.ts`).
 
-  It brought two keys no other recording carries — `bandage`, a combatant restoring a share of their
+  It is the first recording carrying two keys — `bandage`, a combatant restoring a share of their
   own pool, and `+stun2-c` — and the first `+oth_dmg` whose element is `p`, which the help gives as
   damage from poison and which the panel had no word for (`docs/protocol-keys.md`,
   `src/ui/panel-words.ts`). It is also the first recording carrying `-poison_lowdmg_per` on
@@ -266,13 +268,13 @@ evidence.
   engine call, which is where the twenty comparisons that check them against the snapshots come
   from.
 
-  Two more things it settles, both by having a third of something. `+stun2-c` stands on four
-  occurrences in one other recording; its five here ride the same monster's blows and are followed
-  one-to-one by a turn-loss message, which its sibling's four were not — and all 20 of that
-  monster's blows carry `+dmgc` here too, so a second recording still cannot say which variant it
-  is. And `active_absorbdest_per` gained a third declared share, `6`: three casters announce in this
-  one fight, each says one value and never another, which is the clearest evidence yet that the
-  share belongs to the caster and not to the skill (`docs/protocol-keys.md`).
+  Two more things it settles. Its sibling above carries `+stun2-c` four times; its five here ride
+  the same monster's blows and are followed one-to-one by a turn-loss message, which the sibling's
+  four were not — and all 20 of that monster's blows carry `+dmgc` here too, so the two together
+  still cannot say which variant it is. And `active_absorbdest_per` gained a third declared share,
+  `6`: three casters announce in this one fight, each says one value and never another, which is the
+  clearest evidence yet that the share belongs to the caster and not to the skill
+  (`docs/protocol-keys.md`).
 
 - `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json` — the **smallest party
   in the material**, and the third fight the game settled by itself, in the shape the other two

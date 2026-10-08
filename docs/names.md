@@ -7434,7 +7434,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `colourless` — `tests/ui/panel-element.test.ts`
 - `colours` — `tests/ui/panel-look.test.ts`
 - `columns` — `tests/ui/card-window.test.ts`
-- `combatant` — in 6 files: `tests/`
+- `combatant` — in 7 files: `tests/`
 - `combatantEntry` — `tests/ports/payload-envelope.test.ts`
 - `combatantId` — in 11 files: `tests/`
 - `combatants` — in 12 files: `tests/`
@@ -8212,6 +8212,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ours` — `tests/repository/captured-fight-register.test.ts`, `tests/ui/panel-content.test.ts`,
   `tests/ui/panel-element.test.ts`
 - `outcome` — in 6 files: `tests/`
+- `outcomeText` — `tests/repository/captured-fight-register.test.ts`
+- `outcomeTextByResult` — `tests/repository/captured-fight-register.test.ts`
 - `outcomes` — `tests/core/fight-decoder.test.ts`, `tests/ui/panel-element.test.ts`
 - `outer` — `tests/ui/panel-element.test.ts`
 - `output` — `tests/repository/name-register.test.ts`
@@ -8366,6 +8368,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `readPreviewState` — `tests/tools/preview-state.test.ts`
 - `readable` — `tests/ui/panel-content.test.ts`
 - `reader` — `tests/runtime/margometer-runtime.test.ts`, `tests/tools/preview-server.test.ts`
+- `readerOutcome` — `tests/repository/captured-fight-register.test.ts`
 - `readerSide` — in 6 files: `tests/`
 - `reading` — in 24 files: `tests/`
 - `readings` — `tests/runtime/panel-frame.test.ts`
@@ -8442,7 +8445,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ring` — `tests/ui/panel-look.test.ts`
 - `room` — `tests/e2e/panel-card.spec.ts`, `tests/runtime/shelf.test.ts`
 - `root` — in 13 files: `tests/`
-- `roster` — in 29 files: `tests/`
+- `roster` — in 30 files: `tests/`
 - `roundTripped` — `tests/runtime/fight-file.test.ts`
 - `rounded` — `tests/core/combatant-health.test.ts`, `tests/core/injure-rule.test.ts`
 - `roundedAttacker` — `tests/core/injure-rule.test.ts`
@@ -8628,7 +8631,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/repository/declaration-order.test.ts`
 - `states` — `tests/ports/recorded-session.test.ts`
 - `statistic` — `tests/ui/panel-words.test.ts`
-- `statistics` — in 17 files: `tests/`
+- `statistics` — in 18 files: `tests/`
 - `status` — in 5 files: `tests/`
 - `statuses` — `tests/core/carried-status.test.ts`, `tests/ui/panel-words.test.ts`
 - `stayed` — `tests/e2e/panel-card.spec.ts`
@@ -8718,6 +8721,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `textNode` — `tests/ui/view-failure.test.ts`
 - `texts` — `tests/tools/frozen-files.test.ts`, `tests/ui/panel-words.test.ts`
 - `textsByHolder` — `tests/ui/panel-words.test.ts`
+- `theirHealths` — `tests/repository/captured-fight-register.test.ts`
 - `theirOwn` — `tests/core/combatant-health.test.ts`
 - `theirs` — in 4 files: `tests/`
 - `thirdShape` — `tests/e2e/panel-drill.spec.ts`
@@ -8861,7 +8865,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `versions` — `tests/repository/browser-support.test.ts`
 - `victim` — `tests/core/anguish-rule.test.ts`, `tests/core/injure-rule.test.ts`
 - `victims` — `tests/core/anguish-rule.test.ts`, `tests/core/wound-rule.test.ts`
-- `view` — in 14 files: `tests/`
+- `view` — in 15 files: `tests/`
 - `viewportHeight` — `tests/ui/card-window.test.ts`
 - `visited` — `tests/fake-document.ts`
 - `visitors` — `tests/source-tree.ts`

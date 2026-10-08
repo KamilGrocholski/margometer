@@ -11,8 +11,14 @@ import { isRecord } from "#/libs/unknown-value.ts";
 import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { FILE_FIELD, NOTHING_STATED } from "#/src/runtime/fight-file.ts";
 import { INTAKE_KEYS } from "#/tools/recorded-material.ts";
+import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
+import { getOutcomeForReaderSide } from "#/src/ui/panel-content.ts";
 import { parseSection } from "#/tests/markdown-document.ts";
-import { readRecordedFights, type RecordedFight } from "#/tests/recorded-fights.ts";
+import {
+    readRecordedFights,
+    type RecordedFight,
+    tallyRecordedFight,
+} from "#/tests/recorded-fights.ts";
 
 interface RecordedWarrior {
     side: number;
@@ -119,7 +125,7 @@ Deno.test("every recording is named by the register, and every row names one", (
     assertEquals([...named].filter((path) => !held.has(path)).sort(), [], "a row naming nothing");
 });
 
-/** The four a machine recomputes outright; the cast column has a test of its own below. */
+/** The recordings table, recomputed outright; the fights table has tests of its own below. */
 Deno.test("what the register states of each recording is what the recording states", () => {
     const rows = readRecordingRows(Deno.readTextFileSync(REGISTER_PATH));
     let checked = 0;
@@ -272,3 +278,47 @@ function readRecordingTableRows(section: string): string[][] {
     assert(tableRows.length <= ROWS_MAXIMUM, "and stays inside the bound this file walks by");
     return tableRows;
 }
+
+Deno.test("the outcome and the largest health each row states are what the add-on reads", () => {
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const rows = readRecordingRows(parseSection(register, CAST_HEADING, RECORDINGS_HEADING));
+    // The register's words, from the reader's seat; an outcome it has no words for is refused.
+    const outcomeTextByResult: ReadonlyMap<OutcomeResult, string> = new Map([
+        [OUTCOME_RESULT.won, "ours won"],
+        [OUTCOME_RESULT.lost, "theirs won"],
+    ]);
+    let checked = 0;
+    for (const fight of readRecordedFights()) {
+        const row = rows.find((cells) => cells[0] === fight.path);
+        assertExists(row, `${fight.path}: no row states its outcome`);
+        const { view, roster, statistics } = tallyRecordedFight(fight.path);
+        assertExists(statistics.outcome, `${fight.path}: the recording states how the fight ended`);
+        const readerOutcome = getOutcomeForReaderSide(
+            statistics.outcome,
+            roster,
+            view.readerSide,
+        );
+        assertExists(readerOutcome, `${fight.path}: the add-on places the outcome against a side`);
+        const outcomeText = outcomeTextByResult.get(readerOutcome);
+        assertExists(outcomeText, `${fight.path}: the register has words for ${readerOutcome}`);
+        assertStrictEquals(row[2], outcomeText, `${fight.path}: the outcome`);
+        const theirHealths: number[] = [];
+        for (const combatant of roster.byId.values()) {
+            if (combatant.side === view.readerSide) continue;
+            assertExists(combatant.healthMaximum, `${fight.path}: a payload states their pool`);
+            theirHealths.push(combatant.healthMaximum);
+        }
+        assert(theirHealths.length > 0, `${fight.path}: somebody stands opposite the reader`);
+        assertStrictEquals(
+            row[5],
+            String(Math.max(...theirHealths)),
+            `${fight.path}: their largest health`,
+        );
+        checked += 1;
+    }
+    assertStrictEquals(
+        checked,
+        readRecordedFights().length,
+        "every recording's outcome and health was re-earned",
+    );
+});
