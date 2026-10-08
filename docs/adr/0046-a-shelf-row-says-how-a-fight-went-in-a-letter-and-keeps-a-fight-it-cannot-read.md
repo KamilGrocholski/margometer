@@ -36,8 +36,8 @@ height, as the pin does at the other end, because W and R are not one width. A f
 no letter: its time already says `teraz`. The card under a row still says the word, and so does the
 header, which is the ranking's and stays in words.
 
-**The header's word takes the same ink.** It stays the word, upper case, so a reader who looks at
-one fight sees one colour for it in both places.
+**The header's word takes the same ink, and so does the word on the fight's card.** Both stay words,
+so a reader who looks at one fight sees one colour for it wherever it is said.
 
 **A fight short of something wears the suspect mark before its place, and its card says the
 sentences.** They are the sentences under a ranking, without the one only a healing screen carries,
@@ -75,7 +75,10 @@ pressing would have found.
 - `composeFightSuspicions` is the fight's sentences without the healing one, and the ranking's
   `composeSuspicions` adds that one to it.
 - `ours` and `theirs` print text now, so the contrast test holds them at the text floor, over
-  `track` and `surface`, rather than at the graphical floor it held the sides bar's fills to.
+  `track`, `surface` and `raised`, rather than at the graphical floor it held the sides bar's fills
+  to.
+- A card carries an `ending`, drawn after its headcount in a box of its own, and counted on the line
+  it is drawn on.
 - A card's note gains a `defect` tone.
 - Open, and the maintainer's call: a kept fight that will not read stays on the shelf until the
   rotation takes it or a reader unpins it. Nothing offers to delete it.

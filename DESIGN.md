@@ -91,9 +91,10 @@ view on which one the reader should be pleased about. **They are this sheet's na
 else's**: `CONTEXT.md` puts `ours` on **Side**'s `_Avoid_` list, so what the panel _reads_ calls the
 two `reader` and `opposing`, and these two words stop at the stylesheet.
 
-**How a fight went takes the ink of the side that took it**, on the header's word and on a shelf
-row's letter: a win in `ours`, a loss in `theirs`, and a draw or an escape, which name no side, in
-`textQuiet`. That is a side again and still not a verdict. **ADR 0046.**
+**How a fight went takes the ink of the side that took it**, on the header's word, on a shelf row's
+letter and on the word a fight's card says it in: a win in `ours`, a loss in `theirs`, and a draw or
+an escape, which name no side, in `textQuiet`. That is a side again and still not a verdict.
+**ADR 0046.**
 
 `defect` is a magenta because every other family already means something here: green and red are the
 two sides, amber is a suspicion about a figure, grey is the absence of a category, and the six below

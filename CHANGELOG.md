@@ -48,7 +48,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   błyskawice”, a znaczek przy nim wyjaśnia w dymku, dlaczego nie wiadomo dokładniej.
 - **Zmiana** — Na liście zapisanych walk wynik to pierwsza litera słowa — W, P, R albo U — zielona
   przy wygranej i czerwona przy przegranej, a całe słowo pokazuje dymek po najechaniu.
-- **Zmiana** — Wynik walki nad rankingiem jest zielony przy wygranej i czerwony przy przegranej.
+- **Zmiana** — Wynik walki nad rankingiem i w dymku walki jest zielony przy wygranej i czerwony przy
+  przegranej.
 - **Zmiana** — Zapisana walka, której liczby mogą być zaniżone, ma na liście znak ⚠ przed miejscem,
   a dymek po najechaniu mówi dlaczego.
 - **Poprawka** — Zapisana walka, której nie da się już odczytać, nie znika z listy bez śladu:

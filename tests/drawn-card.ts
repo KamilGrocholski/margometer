@@ -7,7 +7,12 @@
  */
 
 import { assertExists } from "@std/assert";
-import { type FakeElement, getElementsWithin, getTextsByClass } from "./fake-document.ts";
+import {
+    type FakeElement,
+    getElementsWithin,
+    getTextsByClass,
+    getWholeTextsByClass,
+} from "./fake-document.ts";
 import { CLASS } from "#/src/ui/panel-look.ts";
 
 /** One line of the card as a reader meets it: what it is of, what it says, and how it is drawn. */
@@ -33,11 +38,12 @@ export interface CardRead {
 export function readCard(host: FakeElement): CardRead {
     const card = (host.shadow ?? []).find((child) => child.className.startsWith(CLASS.card));
     assertExists(card, "the detail is a region of the panel like any other");
-    const name = getTextsByClass(card, CLASS.cardName);
+    // Whole, because a fight's card draws how it went as a box of its own inside one of the two.
+    const name = getWholeTextsByClass(card, CLASS.cardName);
     return {
         className: card.className,
         name,
-        subtitle: getTextsByClass(card, CLASS.cardSubtitle),
+        subtitle: getWholeTextsByClass(card, CLASS.cardSubtitle),
         // By the class among its classes, not by the whole attribute: a note carrying a tone
         // wears a second class, and an exact match read past every suspicion the panel drew.
         notes: getElementsWithin(card)

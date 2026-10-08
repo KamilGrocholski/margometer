@@ -57,6 +57,7 @@ const TWO_LINE_NOTE = `${ONE_LINE_NOTE}.`;
 const HILDUR: CardContent = {
     name: "Hildur Muza Śmierci",
     subtitle: "(83)",
+    ending: null,
     groups: [
         {
             lines: [
@@ -79,6 +80,7 @@ const HILDUR: CardContent = {
 const LONG: CardContent = {
     name: "Hildur Muza Śmierci",
     subtitle: "(83)",
+    ending: null,
     groups: [
         {
             lines: [{
@@ -204,6 +206,7 @@ Deno.test("a row with nothing further to say draws a name, and nobody hovered dr
     const bare = renderCard(document, {
         name: "Kolonia Mrówek",
         subtitle: null,
+        ending: null,
         groups: [],
     }) as FakeElement;
     assertEquals(getTextsByClass(bare, CLASS.cardName), ["Kolonia Mrówek"], "a name");
@@ -303,7 +306,7 @@ Deno.test("a name too long for one line is counted as the lines it folds to", ()
 
 /** A card of a name alone, which is the shape the shelf's own row opens (`develop ADR 0084`). */
 function composeNamed(length: number): CardContent {
-    return { name: "x".repeat(length), subtitle: null, groups: [] };
+    return { name: "x".repeat(length), subtitle: null, ending: null, groups: [] };
 }
 
 /**
@@ -324,10 +327,38 @@ Deno.test("a name is counted on a lower floor than a sentence, because it is dra
         tallyCardSize({
             name: "x",
             subtitle: null,
+            ending: null,
             groups: [{ lines: [{ kind: "note", text: "x".repeat(between), tone: "plain" }] }],
         }, STEP).lines - 1,
         1,
         "while a sentence of the same length has not",
+    );
+});
+
+/**
+ * A fight card draws how it went after its headcount (ADR 0046), on the subtitle where there is
+ * one and on the name where there is not, so it folds that line as its words would: counted at
+ * the edge where it pushes the line to a second.
+ */
+Deno.test("how a fight went is counted on the line it is drawn on", () => {
+    const ending = { words: "przegrana", outcome: "lost" as const };
+    const carried = " · przegrana".length;
+    const under = SUBTITLE_ON_ONE_LINE - carried;
+    const subtitled = { ...composeNamed(1), subtitle: "x".repeat(under) };
+    assertStrictEquals(
+        tallyCardSize({ ...subtitled, ending }, STEP).lines,
+        2,
+        "a subtitle it fills",
+    );
+    const past = { ...subtitled, subtitle: "x".repeat(under + 1) };
+    assertStrictEquals(tallyCardSize({ ...past, ending }, STEP).lines, 3, "and folds one past it");
+    const named = composeNamed(NAME_ON_ONE_LINE - carried);
+    assertStrictEquals(tallyCardSize({ ...named, ending }, STEP).lines, 1, "a name it fills");
+    const longer = composeNamed(NAME_ON_ONE_LINE - carried + 1);
+    assertStrictEquals(
+        tallyCardSize({ ...longer, ending }, STEP).lines,
+        2,
+        "and folds one past it",
     );
 });
 
@@ -439,6 +470,7 @@ Deno.test("a card too tall for one column stands in two, and gives a run up only
     const tall: CardContent = {
         name: "Hildur Muza Śmierci",
         subtitle: "(83)",
+        ending: null,
         groups: [
             {
                 lines: [{
@@ -520,6 +552,7 @@ Deno.test("a window too short for even the figures still draws them, and says so
     const tall: CardContent = {
         name: "Hildur",
         subtitle: null,
+        ending: null,
         groups: [
             {
                 lines: [{
@@ -655,6 +688,7 @@ Deno.test("the second column opens where the two come out closest in height", ()
     const lopsided: CardContent = {
         name: "Gracz 1",
         subtitle: null,
+        ending: null,
         groups: [
             { lines: [lineOf("Zadane")] },
             { lines: [lineOf("a"), lineOf("b"), lineOf("c"), lineOf("d"), lineOf("e")] },
@@ -973,6 +1007,7 @@ Deno.test("a caveated sentence is counted with the mark the card draws before it
     const compose = (length: number, tone: CardNoteTone): CardContent => ({
         name: "Hildur",
         subtitle: null,
+        ending: null,
         groups: [{ lines: [{ kind: "note", text: "x".repeat(length), tone }] }],
     });
     // What the mark costs, and never the card's own total: the name above the sentence is a line

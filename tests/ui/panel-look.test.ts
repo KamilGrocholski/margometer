@@ -219,6 +219,8 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: null, here: ".row.unread .row-name" },
     { develop: null, here: ".row.unread .row-outcome" },
     { develop: null, here: ".card-note.card-defect" },
+    { develop: null, here: ".card-outcome.outcome-won" },
+    { develop: null, here: ".card-outcome.outcome-lost" },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
@@ -239,10 +241,11 @@ const INK_GROUNDS: Record<string, readonly string[]> = {
     heading: ["surface"],
     // The defects block stands in the panel body under a rule of its own, and on no row.
     defect: ["surface", "raised", "track"],
-    // How a fight went: a shelf row's letter on `track`, the header's word on `surface`
-    // (ADR 0046). The text floor holds them as the sides bar's fills too, which stand on `track`.
-    ours: ["surface", "track"],
-    theirs: ["surface", "track"],
+    // How a fight went: a shelf row's letter on `track`, the header's word on `surface`, a fight
+    // card's on `raised` (ADR 0046). The text floor holds them as the sides bar's fills too, which
+    // stand on `track`.
+    ours: ["surface", "raised", "track"],
+    theirs: ["surface", "raised", "track"],
 };
 
 /**

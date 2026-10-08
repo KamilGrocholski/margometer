@@ -546,7 +546,18 @@ export interface CardGroup {
 export interface CardContent {
     name: string;
     subtitle: string | null;
+    /**
+     * How the fight a card is about went, after its headcount: on the subtitle where there is one,
+     * else on the name, in the ink of the side that took it (ADR 0046). Null on every other card.
+     */
+    ending: CardEnding | null;
     groups: CardGroup[];
+}
+
+export interface CardEnding {
+    words: string;
+    /** Null for the word a fight going on is said in, which names no side. */
+    outcome: OutcomeResult | null;
 }
 
 /**
@@ -818,6 +829,8 @@ const CARD_NOTE_TONE_CLASS: Record<CardNoteTone, string> = {
     [CARD_NOTE_TONE.caveat]: ` ${CLASS.cardCaveatNote}`,
     [CARD_NOTE_TONE.defect]: ` ${CLASS.cardDefect}`,
 };
+/** Between a fight card's headcount and how the fight went, as the fight's line has always read. */
+const CARD_ENDING_SEPARATOR = " · ";
 /** The ink of the side that took a fight. A draw and an escape name no side, so they add none. */
 const OUTCOME_INK_CLASS: Record<OutcomeResult, string> = {
     won: ` ${CLASS.outcomeWon}`,
@@ -2558,6 +2571,7 @@ function presentCrumbCard(leaving: string): CardContent {
     return {
         name: leaving,
         subtitle: null,
+        ending: null,
         groups: [{
             lines: [
                 { kind: CARD_LINE.note, text: CARD_WORDS.gestureBack, tone: CARD_NOTE_TONE.plain },
@@ -2963,11 +2977,16 @@ function presentRowCard(rowContent: RowContent, card: RowCard, doesOpen: boolean
     // sentences under them is a card cut in half for the sake of it, and every row but a pinned
     // one is exactly that card.
     if (cut.length === 0) {
-        return { name: rowContent.name, subtitle: null, groups: [{ lines: [...stated, ...said] }] };
+        return {
+            name: rowContent.name,
+            subtitle: null,
+            ending: null,
+            groups: [{ lines: [...stated, ...said] }],
+        };
     }
     const groups: CardGroup[] = [{ lines: stated }, { lines: cut }];
     if (said.length > 0) groups.push({ lines: said });
-    return { name: rowContent.name, subtitle: null, groups };
+    return { name: rowContent.name, subtitle: null, ending: null, groups };
 }
 
 /** What the figure was made of, as the run of a card it is drawn as. Empty where none was kept. */
@@ -3482,7 +3501,7 @@ function renderHelperPerson(
  */
 function presentHelperPersonCard(person: HelperPerson): CardContent {
     if (person.turns === null) {
-        return { name: person.name, subtitle: person.skillName, groups: [] };
+        return { name: person.name, subtitle: person.skillName, ending: null, groups: [] };
     }
     const stated: CardLine = {
         kind: CARD_LINE.stat,
@@ -3494,7 +3513,7 @@ function presentHelperPersonCard(person: HelperPerson): CardContent {
     // Read off the figure rather than asked a second time, which is what keeps one glyph and one
     // sentence answering to each other wherever either is drawn (`develop ADR 0089`).
     const lines: CardLine[] = [stated, ...presentCaveatNoteLines([{ lines: [stated] }])];
-    return { name: person.name, subtitle: person.skillName, groups: [{ lines }] };
+    return { name: person.name, subtitle: person.skillName, ending: null, groups: [{ lines }] };
 }
 
 /**
@@ -3507,7 +3526,7 @@ function presentChargedSkillCard(charged: StandingChargedSkill): CardContent {
     const name = charged.skillName;
     const subtitle = formatChargedSkillSubtitle(charged.name, charged.state);
     const turnsLeft = formatChargedSkillTurnsLeft(charged);
-    if (turnsLeft === null) return { name, subtitle, groups: [] };
+    if (turnsLeft === null) return { name, subtitle, ending: null, groups: [] };
     const stated: CardLine = {
         kind: CARD_LINE.stat,
         label: HELPER_WORDS.turnsLeft,
@@ -3515,7 +3534,7 @@ function presentChargedSkillCard(charged: StandingChargedSkill): CardContent {
         isStrong: false,
         caveat: null,
     };
-    return { name, subtitle, groups: [{ lines: [stated] }] };
+    return { name, subtitle, ending: null, groups: [{ lines: [stated] }] };
 }
 
 /**
@@ -3568,7 +3587,11 @@ function presentCaveatNoteLines(groups: readonly CardGroup[]): CardLine[] {
  */
 function presentFightCard(fight: FightCardContent): CardContent {
     // A fight that will not read has no headcount to state, and `brak składu` would be a claim.
-    const counted = fight.isUnread ? null : formatFightCardCounts(fight);
+    const counted = fight.isUnread ? null : formatSideCounts(fight.sizes, fight.unplaced);
+    // In the words a shelf row's card has always used for how it went, and none for a fight that
+    // will not read, which states no ending.
+    const words = getWordsForShelfOutcome(fight.outcome, fight.isLive);
+    const ending = words.length === 0 ? null : { words, outcome: fight.outcome };
     const lines: CardLine[] = [];
     // A fight going on is dated by when it opened: the shelf's `teraz` is a row's word, not a date.
     addFightCardLine(lines, FIGHT_CARD_WORDS.when, formatShelfTime(fight.at, false));
@@ -3600,17 +3623,9 @@ function presentFightCard(fight: FightCardContent): CardContent {
     }
     if (notes.length > 0) groups.push({ lines: notes });
     if (fight.place === null) {
-        return { name: counted ?? PANEL_WORDS.keptUnread, subtitle: null, groups };
+        return { name: counted ?? PANEL_WORDS.keptUnread, subtitle: null, ending, groups };
     }
-    return { name: fight.place, subtitle: counted, groups };
-}
-
-/** The line over the ranking, in the words a shelf row uses for how it went. */
-function formatFightCardCounts(fight: FightCardContent): string {
-    const counted = formatSideCounts(fight.sizes, fight.unplaced);
-    const outcome = getWordsForShelfOutcome(fight.outcome, fight.isLive);
-    if (outcome.length === 0) return counted;
-    return `${counted} · ${outcome}`;
+    return { name: fight.place, subtitle: counted, ending, groups };
 }
 
 function addFightCardLine(lines: CardLine[], label: string, stated: string): void {
@@ -3656,9 +3671,15 @@ export function createCardRegister(): CardRegister {
 export function tallyCardSize(card: CardContent | null, step: TypeStep): CardSize {
     if (card === null) return { lines: 1, groups: 0 };
     const floors = CHARACTERS_PER_LINE_BY_STEP[step];
-    let lines = getCardLinesForCharacters(card.name.length, floors.name);
+    // The ending is counted on the line it is drawn on, which is the subtitle where there is one.
+    const endingLength = card.ending === null
+        ? 0
+        : CARD_ENDING_SEPARATOR.length + card.ending.words.length;
+    let nameLength = card.name.length;
+    if (card.subtitle === null) nameLength += endingLength;
+    let lines = getCardLinesForCharacters(nameLength, floors.name);
     if (card.subtitle !== null) {
-        lines += getCardLinesForCharacters(card.subtitle.length, floors.note);
+        lines += getCardLinesForCharacters(card.subtitle.length + endingLength, floors.note);
     }
     for (const group of card.groups) {
         for (const line of group.lines) {
@@ -3706,15 +3727,25 @@ export function renderCard(
     if (card === null) return drawnCard;
     // A block rather than a span, because the name folds and an inline box would fold around
     // whatever stood beside it. What its lines cost is `tallyCardSize` above.
+    // The ending follows the headcount's own text, in a box of its own so the ink reaches the
+    // word and nothing else; the separator stays the line's text, in the line's ink.
+    const separator = card.ending === null ? "" : CARD_ENDING_SEPARATOR;
     const name = document.createElement("div");
     name.className = CLASS.cardName;
-    name.textContent = card.name;
+    name.textContent = card.subtitle === null ? `${card.name}${separator}` : card.name;
     drawnCard.append(name);
+    let headcount = name;
     if (card.subtitle !== null) {
         const subtitle = document.createElement("div");
         subtitle.className = CLASS.cardSubtitle;
-        subtitle.textContent = card.subtitle;
+        subtitle.textContent = `${card.subtitle}${separator}`;
         drawnCard.append(subtitle);
+        headcount = subtitle;
+    }
+    if (card.ending !== null) {
+        const inked = card.ending.outcome === null ? "" : OUTCOME_INK_CLASS[card.ending.outcome];
+        const words = card.ending.words;
+        headcount.append(renderText(document, "span", `${CLASS.cardOutcome}${inked}`, words));
     }
     // Lay out the two columns, where there are two: the notes stand under both, across the card.
     const notesFrom = countCardGroupsColumned(card.groups);
@@ -4143,6 +4174,7 @@ export function presentCard(subject: CardSubject): CardContent {
             subject.detail.level,
             subject.sideRelation,
         ),
+        ending: null,
         groups,
     };
 }

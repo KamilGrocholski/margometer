@@ -195,6 +195,8 @@ export const CLASS = {
     cardNote: "card-note",
     cardSuspect: "card-suspect",
     cardDefect: "card-defect",
+    /** How the fight a card is about went, after its headcount. */
+    cardOutcome: "card-outcome",
     /** The sentence's own, and never `cardCaveat` — that one is the glyph cell beside a figure. */
     cardCaveatNote: "card-caveat-note",
     /** The helper: its own bar, its own body, and the rows under each heading. */
@@ -1096,6 +1098,9 @@ function composeCardRules(tokens: TypeTokens): string {
         `margin-top:${Math.floor((tokens.lineHeightPixels - tokens.markSizePixels) / 2)}px;}` +
         `.${CLASS.cardNote}.${CLASS.cardSuspect}{color:var(${VARIABLE_PREFIX}suspect);}` +
         `.${CLASS.cardNote}.${CLASS.cardDefect}{color:var(${VARIABLE_PREFIX}defect);}` +
+        // In the ink the header and the shelf row give the same fight (ADR 0046).
+        `.${CLASS.cardOutcome}.${CLASS.outcomeWon}{color:var(${VARIABLE_PREFIX}ours);}` +
+        `.${CLASS.cardOutcome}.${CLASS.outcomeLost}{color:var(${VARIABLE_PREFIX}theirs);}` +
         `.${CLASS.cardNote}.${CLASS.cardCaveatNote}{color:var(${VARIABLE_PREFIX}caveat);}`;
 }
 

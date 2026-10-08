@@ -1953,6 +1953,11 @@ Deno.test("pointing at the fight's line opens the card saying which fight it was
         "under it the line itself",
     );
     assertEquals(
+        getTextsByClass(host, "card-outcome outcome-won"),
+        ["wygrana"],
+        "how it went in the ink the line gives it (ADR 0046)",
+    );
+    assertEquals(
         card.stated.map((line) => [line.label, line.value]),
         [
             [FIGHT_CARD_WORDS.when, "13 wrz 21:05"],
@@ -1976,6 +1981,7 @@ Deno.test("a fight's card with no place is named by its line, and states only wh
     const card = readCard(host);
     const counted = formatSideCounts(shown.ranking.sizes, shown.ranking.unplaced);
     assertEquals(card.name, [`${counted} · trwa`], "a fight going on, said as the shelf says it");
+    assertEquals(getTextsByClass(host, "card-outcome"), ["trwa"], "in no side's ink, naming none");
     assertEquals(card.subtitle, [], "with nothing under it to repeat");
     assertStrictEquals(card.groups, 0, "and no line for anything nobody read");
 });
@@ -2441,6 +2447,11 @@ Deno.test("a shelf row opens the fight's card, with the place its own cell had t
         "the place whole, which is the half the row loses to an ellipsis",
     );
     assertEquals(card.subtitle, ["10 vs 1 · przegrana"], "under it the fight, as its line says");
+    assertEquals(
+        getTextsByClass(host, "card-outcome outcome-lost"),
+        ["przegrana"],
+        "how it went in the ink of the side that took it, as the row's letter is",
+    );
     assertEquals(
         card.stated.map((line) => [line.label, line.value]),
         [[FIGHT_CARD_WORDS.when, "13 wrz 21:05"]],
