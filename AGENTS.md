@@ -293,7 +293,7 @@ TypeScript idiom, with the naming rules stated here.
   | `commit`            | Writes a prepared transition; cannot fail                                                  | weak            |
   | `execute`           | Performs one operation on state                                                            | none            |
   | `verify`            | Asserts the invariants of a whole structure                                                | strong          |
-  | `get`               | Accesses what this program holds, immediately                                              | strong          |
+  | `get`               | Accesses what this program holds, immediately, working nothing out                         | strong          |
   | `set`               | Assigns from one value to another                                                          | weak            |
   | `lookup`            | Finds something that may not be there                                                      | strong          |
   | `read`              | Takes a value from **outside** this program — **N16**                                      | either          |
@@ -304,6 +304,7 @@ TypeScript idiom, with the naming rules stated here.
   | `tally`             | Sums figures                                                                               | strong          |
   | `count`             | Counts what matches                                                                        | strong          |
   | `clamp`             | Holds a number inside its range                                                            | strong          |
+  | `calculate`         | Works a figure out of its parameters by arithmetic                                         | strong          |
   | `index`             | Builds a map to look things up in                                                          | strong          |
   | `replay`            | Walks events from the start to what stands now                                             | strong          |
   | `present`           | Turns figures into what a screen shows                                                     | strong          |
@@ -319,7 +320,10 @@ TypeScript idiom, with the naming rules stated here.
 
   `compose` is the residue, not the default. Other verbs are allowed where they are more precise,
   but never a **synonym** for one in the table, and one outside it is of none. A predicate that
-  **N8**'s prefixes open is strong.
+  **N8**'s prefixes open is strong. A `get` reaches what is held, choosing among it by an index at
+  most; a figure it works out is `calculate`'s, or `tally`'s, `count`'s or `clamp`'s where one of
+  them says more. Observation: an arithmetic operator or a `Math` call in a `get…` of `libs/`,
+  `src/` or `tools/`, outside an index and an assertion's arguments. ADR 0051.
 - **N3.** Units and qualifiers go **last**, sorted by descending significance: `damageRawTotal`,
   `latencyMillisecondsMaximum`, and a shouted constant the same way: `ROWS_MAXIMUM`, never
   `MAXIMUM_ROWS`. A bound is a qualifier like any other, and TigerBeetle spells it last everywhere
@@ -569,6 +573,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/throws.test.ts`                  | E1, E3, E13                                            |
 | `tests/repository/names.test.ts`                   | N1, N10, N21                                           |
 | `tests/repository/name-shapes.test.ts`             | N22                                                    |
+| `tests/repository/get-verb.test.ts`                | N2: `get`                                              |
 | `tests/repository/layers.test.ts`                  | `docs/design.md` §4                                    |
 | `tests/repository/browser-suite-keys.test.ts`      | N13                                                    |
 | `tests/repository/reader-layer.test.ts`            | A11                                                    |

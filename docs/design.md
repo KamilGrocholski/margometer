@@ -164,7 +164,7 @@ export function clampNumber(number: number, minimum: number, maximum: number): n
 export function decodeHtmlText(html: string): string;
 ```
 
-The order a ranking is drawn in is the panel's, not a library's: `getRankedOrder` in
+The order a ranking is drawn in is the panel's, not a library's: `calculateRankedOrder` in
 `src/ui/ranked-order.ts`.
 
 What is deliberately **not** here:

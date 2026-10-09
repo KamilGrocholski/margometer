@@ -23,7 +23,7 @@ import {
     composePositionStyle,
     composeSizeBounds,
 } from "#/src/ui/panel-drag.ts";
-import { getBarHeight, PLACE, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
+import { calculateBarHeight, PLACE, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 
 const WINDOW = { width: 1280, height: 900 };
 /** The windows at the small step of type, which the arithmetic below is written against. */
@@ -346,7 +346,7 @@ Deno.test("a window is made no narrower than its type and no wider than twice it
         PANEL_WIDTH * 2,
         "and a window twice that is the widest",
     );
-    const tallest = WINDOW.height - position.top - getBarHeight(tokens) - PLACE.insetPixels;
+    const tallest = WINDOW.height - position.top - calculateBarHeight(tokens) - PLACE.insetPixels;
     assertStrictEquals(
         bounds.heightMaximum,
         tallest,

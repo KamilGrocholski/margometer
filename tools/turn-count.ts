@@ -168,7 +168,7 @@ function composeTurnGrade(fight: RecordedFight, steps: readonly ReplayedStep[]):
     assert(untold <= boundaries.length, "a boundary nobody was told about is a boundary");
     return {
         name: formatRecordingName(fight.path),
-        verdict: getTurnVerdict(outcomes),
+        verdict: calculateTurnVerdict(outcomes),
         turns: tallyTurnDelta(
             indexTurnsByCombatantId(
                 lastStep.reading.figures.statistics,
@@ -430,7 +430,7 @@ export function getTurnPlacing(counted: number, mine: number, advance: number): 
 }
 
 /** A recording the game numbered once is `in a lump`: nothing for a count to stand against. */
-export function getTurnVerdict(outcomes: readonly TurnOutcome[]): TurnVerdict {
+export function calculateTurnVerdict(outcomes: readonly TurnOutcome[]): TurnVerdict {
     let wrong = 0;
     for (const outcome of outcomes) {
         if (outcome !== TURN_OUTCOME.exact) wrong += 1;

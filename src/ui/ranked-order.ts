@@ -5,7 +5,7 @@
  * `DESIGN.md` owns what a ranking looks like; this is only its order.
  */
 
-export function getRankedOrder(
+export function calculateRankedOrder(
     oneFigure: number,
     otherFigure: number,
     oneText: string,

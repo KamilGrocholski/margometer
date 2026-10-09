@@ -443,13 +443,13 @@ const NO_SELECTION = "-webkit-user-select:none;user-select:none;";
  * **No production caller**: this and the two bar readings below are what hold `DESIGN.md`'s
  * contrast floor, measured by `tests/ui/panel-look.test.ts` over the tokens and the palette.
  */
-export function getContrastRatio(ink: Colour, ground: Colour): number {
-    const bright = Math.max(getLuminance(ink), getLuminance(ground));
-    const dim = Math.min(getLuminance(ink), getLuminance(ground));
+export function calculateContrastRatio(ink: Colour, ground: Colour): number {
+    const bright = Math.max(calculateLuminance(ink), calculateLuminance(ground));
+    const dim = Math.min(calculateLuminance(ink), calculateLuminance(ground));
     return (bright + LUMINANCE_OFFSET) / (dim + LUMINANCE_OFFSET);
 }
 
-function getLuminance(colour: Colour): number {
+function calculateLuminance(colour: Colour): number {
     let luminance = 0;
     for (const [channelIndex, channel] of colour.entries()) {
         const share = channel / CHANNEL_VALUE_MAXIMUM;
@@ -490,8 +490,8 @@ function composeColourOverChannel(above: number, below: number, share: number): 
 
 export function getInkForBar(hue: Colour): Colour {
     const bar = composeBarColour(hue);
-    const onDark = getContrastRatio(bar, TEXT.inkDark);
-    const onLight = getContrastRatio(bar, TEXT.inkLight);
+    const onDark = calculateContrastRatio(bar, TEXT.inkDark);
+    const onLight = calculateContrastRatio(bar, TEXT.inkLight);
     if (onDark >= onLight) return TEXT.inkDark;
     return TEXT.inkLight;
 }
@@ -506,7 +506,7 @@ export function getInkForBar(hue: Colour): Colour {
  * out at two heights would put the notice on a card that fitted, or leave one that did not without
  * it.
  */
-export function getCardHeight(
+export function calculateCardHeight(
     size: { lines: number; groups: number },
     tokens: TypeTokens,
 ): number | null {
@@ -524,7 +524,7 @@ export function getCardHeight(
  * placement that decides its side, because two spellings of one bound drift apart with nothing
  * to notice it (`src/ui/panel-element.ts`).
  */
-export function getCardWidthForColumns(tokens: TypeTokens, columns: CardColumns): number {
+export function calculateCardWidthForColumns(tokens: TypeTokens, columns: CardColumns): number {
     const between = 2 * SPACE_PIXELS.wide + RULE_WIDTH_PIXELS;
     return columns * tokens.cardWidthPixelsMaximum + (columns - 1) * between;
 }
@@ -533,7 +533,7 @@ export function getCardWidthForColumns(tokens: TypeTokens, columns: CardColumns)
  * What a card has to stand in: the window, less the air the sheet keeps at either end of it. Null
  * where the page states no height, which is a window nothing here may reason about.
  */
-export function getCardHeightAvailable(viewportHeight: number | null): number | null {
+export function calculateCardHeightAvailable(viewportHeight: number | null): number | null {
     if (viewportHeight === null) return null;
     if (!Number.isFinite(viewportHeight)) return null;
     const room = viewportHeight - 2 * PLACE.insetPixels;
@@ -545,7 +545,7 @@ export function getCardHeightAvailable(viewportHeight: number | null): number | 
  * What a card has to stand across: the window, less the air the sheet keeps at either side of it,
  * which is what the sheet clamps a card of two columns to. Null where the page states no width.
  */
-export function getCardWidthAvailable(viewportWidth: number | null): number | null {
+export function calculateCardWidthAvailable(viewportWidth: number | null): number | null {
     if (viewportWidth === null) return null;
     if (!Number.isFinite(viewportWidth)) return null;
     const room = viewportWidth - 2 * PLACE.insetPixels;
@@ -563,12 +563,12 @@ export function composeSizedPanelStyle(): string {
  * How tall a window's bar stands: its line, the rules its controls carry over and under it — a
  * control is the tallest thing on the bar — the air over and under that, and the bar's top rule.
  */
-export function getBarHeight(tokens: TypeTokens): number {
-    return getControlHeightPixels(tokens) + 2 * SPACE_PIXELS.small + RULE_WIDTH_PIXELS;
+export function calculateBarHeight(tokens: TypeTokens): number {
+    return calculateControlHeightPixels(tokens) + 2 * SPACE_PIXELS.small + RULE_WIDTH_PIXELS;
 }
 
 /** A bar control's box: its line and its two rules. Every control is this tall. */
-export function getControlHeightPixels(tokens: TypeTokens): number {
+export function calculateControlHeightPixels(tokens: TypeTokens): number {
     return tokens.lineHeightTitlePixels + 2 * RULE_WIDTH_PIXELS;
 }
 
@@ -632,7 +632,9 @@ function composeFrameRules(tokens: TypeTokens): string {
         // the control's text at no size, for whoever copies it.
         `.${CLASS.control}{display:inline-flex;align-items:center;justify-content:center;` +
         `flex:none;box-sizing:border-box;padding:0;font-size:0;` +
-        `width:${getControlWidthPixels(tokens)}px;height:${getControlHeightPixels(tokens)}px;` +
+        `width:${calculateControlWidthPixels(tokens)}px;height:${
+            calculateControlHeightPixels(tokens)
+        }px;` +
         `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);` +
         `color:var(${VARIABLE_PREFIX}quiet);background:var(${VARIABLE_PREFIX}surface);` +
@@ -669,8 +671,8 @@ function composeFrameRules(tokens: TypeTokens): string {
  * `—`, keeps air at both sides, and one width for all so the four stand as a row of equals
  * (ADR 0036).
  */
-function getControlWidthPixels(tokens: TypeTokens): number {
-    return getControlHeightPixels(tokens) + SPACE_PIXELS.small;
+function calculateControlWidthPixels(tokens: TypeTokens): number {
+    return calculateControlHeightPixels(tokens) + SPACE_PIXELS.small;
 }
 
 /**
@@ -679,7 +681,8 @@ function getControlWidthPixels(tokens: TypeTokens): number {
  * the bare property an unmasked icon is a solid square, which is a defect and not a look.
  */
 function composeBarIconRules(tokens: TypeTokens): string {
-    const size = getControlHeightPixels(tokens) - 2 * RULE_WIDTH_PIXELS - 2 * BAR_ICON_INSET_PIXELS;
+    const size = calculateControlHeightPixels(tokens) - 2 * RULE_WIDTH_PIXELS -
+        2 * BAR_ICON_INSET_PIXELS;
     let rules = `.${CLASS.control}::before{content:"";flex:none;` +
         `width:${size}px;height:${size}px;background:currentColor;}`;
     for (const icon of BAR_ICONS) {
@@ -1053,7 +1056,7 @@ function composeCardRules(tokens: TypeTokens): string {
         // Two columns of the one bound each, laid out at the width of both rather than at what
         // they say: a column at `max-content` would draw its own width and the side the card
         // opens on is decided by this one (`composeCardAcross` in `src/ui/panel-drag.ts`).
-        `.${CLASS.card}.${CLASS.cardWide}{width:min(${getCardWidthForColumns(tokens, 2)}px,` +
+        `.${CLASS.card}.${CLASS.cardWide}{width:min(${calculateCardWidthForColumns(tokens, 2)}px,` +
         `calc(100vw - ${PLACE.insetPixels}px - ${PLACE.insetPixels}px));max-width:none;}` +
         // A rule between the two and air either side of it: at the air of a line alone, the first
         // column's figures read on as the second column's labels, seen in Chrome 154 on

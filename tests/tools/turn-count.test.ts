@@ -27,12 +27,12 @@ import { TurnCountError } from "#/tools/margometer-tool-error.ts";
 import { replayRecordedSteps } from "#/tools/recorded-material.ts";
 import {
     ARGUMENTS_MAXIMUM,
+    calculateTurnVerdict,
     composeTurnBoundaries,
     composeTurnGrades,
     formatCaseReport,
     getTurnOutcome,
     getTurnPlacing,
-    getTurnVerdict,
     NO_STRETCH,
     parseTurnArguments,
     TURN_OUTCOME,
@@ -324,11 +324,19 @@ Deno.test("a placing is asked only of one turn the game numbered on its own", ()
 });
 
 Deno.test("a verdict says what the steps under it came to", () => {
-    assertStrictEquals(getTurnVerdict([]), TURN_VERDICT.inLump, "nothing graded");
-    assertStrictEquals(getTurnVerdict([TURN_OUTCOME.exact]), TURN_VERDICT.always, "one, agreed");
+    assertStrictEquals(calculateTurnVerdict([]), TURN_VERDICT.inLump, "nothing graded");
+    assertStrictEquals(
+        calculateTurnVerdict([TURN_OUTCOME.exact]),
+        TURN_VERDICT.always,
+        "one, agreed",
+    );
     const mixed = [TURN_OUTCOME.exact, TURN_OUTCOME.over];
-    assertStrictEquals(getTurnVerdict(mixed), TURN_VERDICT.sometimes, "one of each");
-    assertStrictEquals(getTurnVerdict([TURN_OUTCOME.under]), TURN_VERDICT.never, "none agreed");
+    assertStrictEquals(calculateTurnVerdict(mixed), TURN_VERDICT.sometimes, "one of each");
+    assertStrictEquals(
+        calculateTurnVerdict([TURN_OUTCOME.under]),
+        TURN_VERDICT.never,
+        "none agreed",
+    );
 });
 
 /**

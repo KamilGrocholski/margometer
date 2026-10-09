@@ -45,6 +45,7 @@ export interface AstNode {
     operator?: string;
     optional?: boolean;
     left?: AstNode;
+    right?: AstNode;
     object?: AstNode;
     argument?: AstNode;
     expression?: AstNode;

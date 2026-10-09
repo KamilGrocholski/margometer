@@ -676,11 +676,11 @@ function encodeHealthRecord(combatant: FabricatedCombatant): Record<string, unkn
     return {
         [HEALTH_FIELDS.maximum]: combatant.healthMaximum,
         [HEALTH_FIELDS.now]: combatant.health,
-        [CLIENT_FIELDS.healthPercent]: getHealthPercent(combatant),
+        [CLIENT_FIELDS.healthPercent]: calculateHealthPercent(combatant),
     };
 }
 
-function getHealthPercent(combatant: FabricatedCombatant): number {
+function calculateHealthPercent(combatant: FabricatedCombatant): number {
     assert(combatant.healthMaximum > 0, "a combatant has a maximum to stand against");
     const share = combatant.health * WHOLE_PERCENT / combatant.healthMaximum;
     assert(share >= 0, "a percentage of health is never below nothing");
@@ -1002,7 +1002,7 @@ function encodeMessage(
 function encodeSide(combatant: FabricatedCombatant): StatedEnd {
     assert(combatant.id > 0, "a combatant a message names has an id");
     assert(combatant.name.length > 0, "and a name");
-    return { combatantId: combatant.id, healthPercent: getHealthPercent(combatant) };
+    return { combatantId: combatant.id, healthPercent: calculateHealthPercent(combatant) };
 }
 
 function encodeValued(key: string, text: string): MessageParameter {
@@ -1522,7 +1522,7 @@ function encodeFigure(key: string, amount: number): MessageParameter {
 
 /** `Gracz 7(63.00%)` — how the protocol writes a combatant inside a value. */
 function encodeNamedText(combatant: FabricatedCombatant): string {
-    const percent = encodeHealthPercent(getHealthPercent(combatant));
+    const percent = encodeHealthPercent(calculateHealthPercent(combatant));
     assert(combatant.name.length > 0, "a figure stated against a name has a name");
     assert(percent.includes("."), "and the percentage the game writes beside it");
     return `${combatant.name}(${percent}%)`;

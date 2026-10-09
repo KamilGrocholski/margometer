@@ -20,7 +20,7 @@ import {
     SKILLS_MAXIMUM,
     tallyUnreadMessages,
 } from "#/src/core/fight-statistics.ts";
-import { getRankedOrder } from "#/src/ui/ranked-order.ts";
+import { calculateRankedOrder } from "#/src/ui/ranked-order.ts";
 import {
     formatRecordingName,
     readRecordedMaterial,
@@ -246,7 +246,7 @@ export function formatCutText(cut: FigureCut, roster: CombatantRoster | null): s
     if (cut.size === 0) return NOTHING;
     const written = [...cut]
         .sort((cutPart, otherCutPart) =>
-            getRankedOrder(cutPart[1], otherCutPart[1], cutPart[0], otherCutPart[0])
+            calculateRankedOrder(cutPart[1], otherCutPart[1], cutPart[0], otherCutPart[0])
         )
         .map(([key, amount]) => {
             // Through the reader rather than `Number`: a key that is not an id reads as nothing

@@ -80,9 +80,9 @@ what follows.
 
 ## Gotchas paid for
 
-- **A verb outside the table makes a function of none.** The 0.22.0 audit proposed renaming
-  `getRankedOrder` to a `compare…` verb; `compare` is not in **N2**'s table, so the rename made it
-  "none" and **P1** reddened its seven strong callers. The finding was wrong.
+- **A verb outside the table makes a function of none.** The 0.22.0 audit proposed renaming the
+  ranking's comparator to a `compare…` verb; `compare` is not in **N2**'s table, so the rename made
+  it "none" and **P1** reddened its seven strong callers. The finding was wrong.
 - **A silent path is a decision, not a fix.** The shelf's three (a refused delete, fights dropped on
   open, a store fallen back to memory) each needed a fate the maintainer chose, and a design change
   in `docs/design.md` §10.5.

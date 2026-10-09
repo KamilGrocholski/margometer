@@ -30,10 +30,10 @@ import {
     tallyCardSize,
 } from "#/src/ui/panel-element.ts";
 import {
+    calculateCardHeight,
+    calculateCardHeightAvailable,
+    calculateCardWidthForColumns,
     CLASS,
-    getCardHeight,
-    getCardHeightAvailable,
-    getCardWidthForColumns,
     TYPE_TOKENS,
 } from "#/src/ui/panel-look.ts";
 import { TYPE_STEP } from "#/src/ui/panel-choice.ts";
@@ -394,7 +394,7 @@ Deno.test("hiding and showing write the class, and nothing else moves", () => {
 });
 
 /**
- * The height and not the counts it was worked out from: `getCardHeight` owns that arithmetic
+ * The height and not the counts it was worked out from: `calculateCardHeight` owns that arithmetic
  * now, because the trim and the sheet's own clamp have to spend one number.
  */
 Deno.test("where the detail sits and how tall it is are written together, in whole pixels", () => {
@@ -465,7 +465,7 @@ Deno.test("a card pinned by one edge releases the other, whichever way round it 
 
 /**
  * A card taller than the window, and what the panel does about it. Every figure here is the
- * panel's own arithmetic — `getCardHeight` — so the test states a room and never a pixel count of
+ * panel's own arithmetic — `calculateCardHeight` — so the test states a room and never a pixel count of
  * its own.
  */
 Deno.test("a card too tall for one column stands in two, and gives a run up only past those", () => {
@@ -497,7 +497,7 @@ Deno.test("a card too tall for one column stands in two, and gives a run up only
             { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "suspect" }] },
         ],
     };
-    const whole = getCardHeight(tallyCardSize(tall, STEP), TOKENS);
+    const whole = calculateCardHeight(tallyCardSize(tall, STEP), TOKENS);
     assertExists(whole, "the panel can say how tall its own card stands");
 
     assertEquals(
@@ -523,7 +523,7 @@ Deno.test("a card too tall for one column stands in two, and gives a run up only
         2,
         "it stands in two columns, split down the middle",
     );
-    const twoHigh = getCardHeight(tallyCardLayoutSize(twoColumns, STEP), TOKENS);
+    const twoHigh = calculateCardHeight(tallyCardLayoutSize(twoColumns, STEP), TOKENS);
     assertExists(twoHigh, "and the panel can say how tall the two columns stand");
     assert(twoHigh <= whole - 1, "which is within the room the one column was not");
 
@@ -633,8 +633,8 @@ Deno.test("a card in two columns draws them side by side, and its notes across t
 Deno.test("a card of two columns is as wide as two bounds and the air between them", () => {
     for (const step of Object.values(TYPE_STEP)) {
         const bound = TYPE_TOKENS[step].cardWidthPixelsMaximum;
-        const singleWidth = getCardWidthForColumns(TYPE_TOKENS[step], 1);
-        const doubleWidth = getCardWidthForColumns(TYPE_TOKENS[step], 2);
+        const singleWidth = calculateCardWidthForColumns(TYPE_TOKENS[step], 1);
+        const doubleWidth = calculateCardWidthForColumns(TYPE_TOKENS[step], 2);
         assertStrictEquals(singleWidth, bound, `${step}: one column is the bound`);
         assert(doubleWidth - singleWidth >= bound, `${step}: and the second adds a whole bound`);
         assert(doubleWidth - 2 * bound < bound, `${step}: and no more than the air between them`);
@@ -647,9 +647,9 @@ Deno.test("a card of two columns is as wide as two bounds and the air between th
  * instead (ADR 0033).
  */
 Deno.test("a window too narrow for two columns gives a run up rather than squeezing them", () => {
-    const whole = getCardHeight(tallyCardSize(LONG, STEP), TOKENS);
+    const whole = calculateCardHeight(tallyCardSize(LONG, STEP), TOKENS);
     assertExists(whole, "the long card has a height");
-    const twoWide = getCardWidthForColumns(TOKENS, 2);
+    const twoWide = calculateCardWidthForColumns(TOKENS, 2);
 
     // **W5**: exactly the width of two columns is the boundary, and a pixel less is past it.
     const wideEnough = composeCardLayout(
@@ -698,7 +698,7 @@ Deno.test("the second column opens where the two come out closest in height", ()
             { lines: [lineOf("g")] },
         ],
     };
-    const whole = getCardHeight(tallyCardSize(lopsided, STEP), TOKENS);
+    const whole = calculateCardHeight(tallyCardSize(lopsided, STEP), TOKENS);
     assertExists(whole, "the card has a height");
     assertStrictEquals(
         composeCardLayout(
@@ -949,11 +949,11 @@ Deno.test("the card asks where it may stand with the columns it is drawn in", ()
     const register = createCardRegister();
     const asked: number[] = [];
     const swap = composeSwap();
-    const whole = getCardHeight(tallyCardSize(LONG, STEP), TOKENS);
+    const whole = calculateCardHeight(tallyCardSize(LONG, STEP), TOKENS);
     assertExists(whole, "the long card has a height");
     // A window a pixel too short for the one column: what the sheet keeps around a card is the
     // panel's own figure, read off a window of any height.
-    const kept = 1000 - (getCardHeightAvailable(1000) ?? 1000);
+    const kept = 1000 - (calculateCardHeightAvailable(1000) ?? 1000);
     let viewportHeight = whole - 1 + kept;
     const handle = initCardHandle(
         document,
@@ -1006,7 +1006,7 @@ Deno.test("a card counted past its line bound is placed at it, and the handle sa
             })),
         }],
     });
-    const atBound = getCardHeight({ lines: CARD_LINES_MAXIMUM, groups: 1 }, TOKENS);
+    const atBound = calculateCardHeight({ lines: CARD_LINES_MAXIMUM, groups: 1 }, TOKENS);
     assertExists(atBound, "the bound has a height");
     register.add("row:7", () => composeTall(CARD_LINES_MAXIMUM - 1));
     handle.onHover("row:7", 300);

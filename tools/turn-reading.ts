@@ -360,7 +360,7 @@ export function composeKeyTally(walks: readonly FightMessages[]): KeyTally[] {
         }
     }
     const tallies = [...byKey.values()].filter((tally) => tally.opened + tally.lost > 0);
-    tallies.sort(getKeyTallyOrder);
+    tallies.sort(calculateKeyTallyOrder);
     for (const tally of tallies) {
         assert(tally.opened <= tally.messages, "a key opens no more than it came");
     }
@@ -371,7 +371,7 @@ export function composeKeyTally(walks: readonly FightMessages[]): KeyTally[] {
  * Most first, and a plain comparison of the key to break a tie: a key is an identifier the game
  * chose rather than a word anybody reads, so no collation is asked of it.
  */
-function getKeyTallyOrder(tally: KeyTally, otherTally: KeyTally): number {
+function calculateKeyTallyOrder(tally: KeyTally, otherTally: KeyTally): number {
     assert(tally.key.length > 0, "a tally is kept under a key");
     assert(otherTally.key.length > 0, "and compared against another kept under one");
     if (tally.opened !== otherTally.opened) return otherTally.opened - tally.opened;

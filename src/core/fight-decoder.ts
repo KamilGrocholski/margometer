@@ -387,7 +387,7 @@ function composeAnnouncementStanding(
     announced: AnnouncedSkill | null,
 ): AnnouncementStanding {
     if (announced !== null) {
-        const blowsRemaining = getBlowsForAnnouncement(announced, context.tables);
+        const blowsRemaining = calculateBlowsForAnnouncement(announced, context.tables);
         return { announced, blowsRemaining, isGlued: true };
     }
     const announcementStanding = context.announcementStanding;
@@ -435,7 +435,7 @@ function isHealingAnnouncerOnly(
  * announcement carried over `captures/` is one the table carries (0 exceptions of 3129,
  * 2026-09-12), and 364 of the 371 announcements without one are an NPC's.
  */
-function getBlowsForAnnouncement(announced: AnnouncedSkill, tables: DecoderTables): number {
+function calculateBlowsForAnnouncement(announced: AnnouncedSkill, tables: DecoderTables): number {
     if (announced.skillId === null) return BLOWS_GRANTED_MAXIMUM;
     const blowsGranted = tables.blowsGrantedBySkillId.get(announced.skillId) ?? 0;
     assert(blowsGranted >= 0, "a table grants nothing or more");

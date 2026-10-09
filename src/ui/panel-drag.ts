@@ -23,8 +23,8 @@ import {
 import { PANEL_INTENT, type PanelIntent } from "./panel-intent.ts";
 import { addGuardedListener } from "./panel-listener.ts";
 import {
+    calculateBarHeight,
     composeSizedPanelStyle,
-    getBarHeight,
     METER_HEIGHT_VIEWPORT_PERCENT_MAXIMUM,
     PLACE,
     SIZE_GRIP,
@@ -173,13 +173,13 @@ export function clampPosition(
 ): PanelPosition {
     if (viewport === null) {
         return {
-            left: getPositionWithin(position.left, Number.POSITIVE_INFINITY),
-            top: getPositionWithin(position.top, Number.POSITIVE_INFINITY),
+            left: clampPositionWithin(position.left, Number.POSITIVE_INFINITY),
+            top: clampPositionWithin(position.top, Number.POSITIVE_INFINITY),
         };
     }
     return {
-        left: getPositionWithin(position.left, viewport.width - VISIBLE_PIXELS_MINIMUM),
-        top: getPositionWithin(position.top, viewport.height - VISIBLE_PIXELS_MINIMUM),
+        left: clampPositionWithin(position.left, viewport.width - VISIBLE_PIXELS_MINIMUM),
+        top: clampPositionWithin(position.top, viewport.height - VISIBLE_PIXELS_MINIMUM),
     };
 }
 
@@ -187,7 +187,7 @@ export function clampPosition(
  * A whole pixel, on the screen, and a number a style can be written from. `clampNumber` refuses
  * anything else, so what is not one is answered before it is handed over (**E12**).
  */
-function getPositionWithin(coordinate: number, limit: number): number {
+function clampPositionWithin(coordinate: number, limit: number): number {
     if (!Number.isFinite(coordinate)) return 0;
     let clamped: number;
     if (Number.isFinite(limit)) clamped = clampNumber(coordinate, 0, limit);
@@ -275,7 +275,7 @@ export function composeSizeBounds(
                 widthTypeMaximum,
                 viewport.width - position.left - PLACE.insetPixels,
             );
-            heightMaximum = viewport.height - position.top - getBarHeight(tokens) -
+            heightMaximum = viewport.height - position.top - calculateBarHeight(tokens) -
                 PLACE.insetPixels;
         } else {
             widthMaximum = widthTypeMaximum;
@@ -629,7 +629,7 @@ function composePanelDragGrab(
     return {
         ...grab,
         fromLeft: right - from.left,
-        fromTop: bottom - from.top - getBarHeight(tokens),
+        fromTop: bottom - from.top - calculateBarHeight(tokens),
     };
 }
 

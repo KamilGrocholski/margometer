@@ -10,7 +10,7 @@
 
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
-import { getRankedOrder } from "./ranked-order.ts";
+import { calculateRankedOrder } from "./ranked-order.ts";
 import {
     type CombatantRoster,
     COMBATANTS_MAXIMUM,
@@ -860,7 +860,7 @@ export function presentUnnamedLevel(
         kinds: composeHalfNamedKinds(statistics, pinnedCase, parts, neither, total),
         neitherEnd: neither <= 0 ? null : {
             figure: neither,
-            fill: getBarFill(neither, largest),
+            fill: calculateBarFill(neither, largest),
             shareText: shares[parts.length] ?? "",
         },
     };
@@ -1085,13 +1085,13 @@ function composeHalfNamedRows(
             side: combatant?.side ?? null,
             profession: combatant?.profession ?? null,
             figure: halfNamedPart.figure,
-            fill: getBarFill(halfNamedPart.figure, largest),
+            fill: calculateBarFill(halfNamedPart.figure, largest),
             shareText: shares[partIndex] ?? "",
             detail: composeRowDetailFor(statistics, roster, halfNamedPart.combatantId),
         };
     });
     rows.sort((leftRow, rightRow) =>
-        getRankedOrder(
+        calculateRankedOrder(
             leftRow.figure,
             rightRow.figure,
             leftRow.name ?? "",
@@ -1103,7 +1103,7 @@ function composeHalfNamedRows(
     return rows;
 }
 
-function getBarFill(figure: number, largest: number): number {
+function calculateBarFill(figure: number, largest: number): number {
     if (largest <= 0) return 0;
     return figure / largest;
 }
@@ -1191,7 +1191,7 @@ function composeCutParts(cut: FigureCut): CutPart[] {
         if (figure > 0) parts.push({ key, figure });
     }
     parts.sort((leftPart, rightPart) =>
-        getRankedOrder(leftPart.figure, rightPart.figure, leftPart.key, rightPart.key)
+        calculateRankedOrder(leftPart.figure, rightPart.figure, leftPart.key, rightPart.key)
     );
     // The panel's own bound (**S11**), cut after the order so what it leaves out is the smallest.
     // It is the same number `core/` keeps a cut inside, so a card loses nothing to it.
@@ -1294,7 +1294,7 @@ function composeElementCut(
         if (figure > 0) stated.push({ element, figure });
     }
     stated.sort((leftRow, rightRow) =>
-        getRankedOrder(leftRow.figure, rightRow.figure, leftRow.element, rightRow.element)
+        calculateRankedOrder(leftRow.figure, rightRow.figure, leftRow.element, rightRow.element)
     );
     const unnamed = total - partsTotal;
     const figures = stated.map((elementRow) => elementRow.figure);
@@ -1307,20 +1307,20 @@ function composeElementCut(
         rows: stated.map((elementRow, rowIndex) => ({
             ...elementRow,
             doesOpenPart: doesOpen(elementRow.element),
-            fill: getBarFill(elementRow.figure, largest),
+            fill: calculateBarFill(elementRow.figure, largest),
             shareText: shares[rowIndex] ?? "",
         })),
         rest: rest > 0
             ? {
                 figure: rest,
-                fill: getBarFill(rest, largest),
+                fill: calculateBarFill(rest, largest),
                 shareText: shares[stated.length] ?? "",
             }
             : null,
         noKind: unnamed > 0
             ? {
                 figure: unnamed,
-                fill: getBarFill(unnamed, largest),
+                fill: calculateBarFill(unnamed, largest),
                 shareText: shares[closing] ?? "",
             }
             : null,
@@ -1442,7 +1442,7 @@ function composeHalfNamedForKind(
         rows: composeHalfNamedRows(statistics, roster, carriers, shares, largest),
         neitherEnd: neither <= 0 ? null : {
             figure: neither,
-            fill: getBarFill(neither, largest),
+            fill: calculateBarFill(neither, largest),
             shareText: shares[carriers.length] ?? "",
         },
     };
@@ -1524,7 +1524,7 @@ export function presentScreen(
     const sideRows = composeRowsBeforeShares(statistics, roster, metric).filter((row) =>
         isSideListed(row.side, choice, readerSide)
     );
-    sideRows.sort(getRowOrderByFigureThenId);
+    sideRows.sort(calculateRowOrderByFigureThenId);
     // **S11, and it is where the bound has to be**: after the sort, so a cast past it costs the
     // smallest figures rather than whichever rows the fold reached last, and before every figure
     // derived from the list, so the column a reader adds up is the column that was drawn. The
@@ -1548,7 +1548,7 @@ export function presentScreen(
     // difference is what the screen holds and no row does. Not the rows' own total: a whole
     // derived from the figures being shared makes the column read a hundred whatever went missing
     // on the way to it.
-    const screenTotal = getCountedTotal(statistics, sides, metric, sideListed);
+    const screenTotal = calculateCountedTotal(statistics, sides, metric, sideListed);
     const outside = Math.max(screenTotal - figurePlaced, 0);
     const whole = figurePlaced + outside;
     const shared = [
@@ -1563,7 +1563,7 @@ export function presentScreen(
     ]);
     const rows = listed.map((row, rowIndex) => ({
         ...row,
-        fill: getBarFill(row.figure, largest),
+        fill: calculateBarFill(row.figure, largest),
         shareText: shares[rowIndex] ?? "",
         detail: composeRowDetailFor(statistics, roster, row.combatantId),
     }));
@@ -1589,7 +1589,7 @@ export function presentScreen(
         outsideRanking: outside > 0
             ? {
                 figure: outside,
-                fill: getBarFill(outside, largest),
+                fill: calculateBarFill(outside, largest),
                 shareText: shares[shared.length - 1] ?? "",
             }
             : null,
@@ -1603,7 +1603,7 @@ export function presentScreen(
 }
 
 /** By figure, then by id — a tie broken by something that does not move between draws. */
-function getRowOrderByFigureThenId(leftRow: UnsharedRow, rightRow: UnsharedRow): number {
+function calculateRowOrderByFigureThenId(leftRow: UnsharedRow, rightRow: UnsharedRow): number {
     if (leftRow.figure !== rightRow.figure) return rightRow.figure - leftRow.figure;
     return leftRow.combatantId - rightRow.combatantId;
 }
@@ -1718,7 +1718,7 @@ function lookupApartCase(metric: PanelMetric): PinnedCase | null {
  * figure naming nobody has no side — so under a side there is nothing here to add
  * (`develop ADR 0038`).
  */
-function getCountedTotal(
+function calculateCountedTotal(
     statistics: FightStatistics,
     sides: PanelSides | null,
     metric: PanelMetric,
@@ -1787,7 +1787,7 @@ function composePinnedRows(
         const shareText = pinnedFigure.placing === PINNED_PLACING.apart
             ? apartShares[taken++] ?? ""
             : formatShareRounded(whole === 0 ? 0 : pinnedFigure.figure / whole);
-        return { ...pinnedFigure, fill: getBarFill(pinnedFigure.figure, largest), shareText };
+        return { ...pinnedFigure, fill: calculateBarFill(pinnedFigure.figure, largest), shareText };
     });
 }
 
@@ -2148,7 +2148,7 @@ function composeOpponentCut(
             figure,
         });
     }
-    stated.sort(getRowOrderByFigureThenId);
+    stated.sort(calculateRowOrderByFigureThenId);
     const unnamed = total - partsTotal;
     let hasFiguresDisagreed: boolean;
     // The rows holding **more** than the figure over them: no half-named row stands, and the
@@ -2166,7 +2166,7 @@ function composeOpponentCut(
     return {
         rows: stated.map((row, rowIndex) => ({
             ...row,
-            fill: getBarFill(row.figure, largest),
+            fill: calculateBarFill(row.figure, largest),
             shareText: shares[rowIndex] ?? "",
             doesOpenPair: doesOpen(row.combatantId),
             detail: composeRowDetailFor(statistics, roster, row.combatantId),
@@ -2174,7 +2174,7 @@ function composeOpponentCut(
         halfNamed: unnamed > 0
             ? {
                 figure: unnamed,
-                fill: getBarFill(unnamed, largest),
+                fill: calculateBarFill(unnamed, largest),
                 shareText: shares[stated.length] ?? "",
                 doesOpenPair: keptKinds !== null,
                 kinds: keptKinds,
@@ -2278,7 +2278,7 @@ function composePairParts(
 ): { rows: PairPartRow[]; hasFiguresDisagreed: boolean } {
     const stated = composePairPartFigures(statistics, metric, combatantId, otherId);
     stated.sort((leftPart, rightPart) =>
-        getRankedOrder(
+        calculateRankedOrder(
             leftPart.figure,
             rightPart.figure,
             getTextForNamedPart(leftPart.part),
@@ -2298,7 +2298,7 @@ function composePairParts(
     const rows: PairPartRow[] = stated.map((pairPart, partIndex) => ({
         part: pairPart.part,
         figure: pairPart.figure,
-        fill: getBarFill(pairPart.figure, largest),
+        fill: calculateBarFill(pairPart.figure, largest),
         shareText: shares[partIndex] ?? "",
     }));
     if (closingFigure === 0) return { rows, hasFiguresDisagreed: false };
@@ -2306,10 +2306,10 @@ function composePairParts(
     // than every skill sitting at the bottom of a column, and the closing row is the one that most
     // often is (`develop ADR 0079`). Its share is read by the index it was composed under, so the
     // figure it carries is unmoved by where it is drawn.
-    rows.splice(getPlaceForClosing(stated, closingFigureClamped) - 1, 0, {
+    rows.splice(calculatePlaceForClosing(stated, closingFigureClamped) - 1, 0, {
         part: { kind: OPENED_PART.plain },
         figure: closingFigureClamped,
-        fill: getBarFill(closingFigureClamped, largest),
+        fill: calculateBarFill(closingFigureClamped, largest),
         shareText: shares[stated.length] ?? "",
     });
     return { rows, hasFiguresDisagreed: closingFigure < 0 };
@@ -2396,7 +2396,7 @@ function tallyUnsharedPairParts(parts: readonly UnsharedPairPart[]): number {
  * other row's does — and on a tie it goes first, because `getTextForNamedPart` answers the empty
  * text for it and the order's tie-break is lexical (`develop ADR 0079`).
  */
-function getPlaceForClosing(stated: readonly { figure: number }[], figure: number): number {
+function calculatePlaceForClosing(stated: readonly { figure: number }[], figure: number): number {
     let bigger = 0;
     for (const row of stated) {
         if (row.figure <= figure) continue;
@@ -2508,7 +2508,7 @@ function composeSkillCut(
     return {
         rows: stated.map((skillRow, rowIndex) => ({
             ...skillRow,
-            fill: getBarFill(skillRow.figure, largest),
+            fill: calculateBarFill(skillRow.figure, largest),
             shareText: shares[rowIndex] ?? "",
         })),
         // ⚠️ **Last, because it is the only row of the section left holding no place.** What a
@@ -2595,7 +2595,7 @@ function composeSkillRowsStated(
     }
     const own = [...figures.skills.values()];
     if (metric === PANEL_METRIC.healthGiven) {
-        const given = getGivenSourceCut(figures);
+        const given = tallyGivenSourceCut(figures);
         return composeFoldsJoined({
             parts: own.filter((skill) => skill.healthGiven > 0).map((skill) => ({
                 part: { kind: OPENED_PART.skill, name: skill.name },
@@ -2708,7 +2708,7 @@ function composeSourceRows(cut: FigureCut): FoldedParts {
  * is made of are one rung down, so folding is a reading of their own figure and not a claim about
  * somebody else's cause.
  */
-function getGivenSourceCut(figures: CombatantFigures): { cut: FigureCut; rest: number } {
+function tallyGivenSourceCut(figures: CombatantFigures): { cut: FigureCut; rest: number } {
     const folded = new Map<string, number>();
     let rest = 0;
     for (const cut of figures.healthGivenWithoutSkillByReceiverAndKey.values()) {
@@ -2722,7 +2722,7 @@ function getGivenSourceCut(figures: CombatantFigures): { cut: FigureCut; rest: n
 
 /** Largest first, and a tie broken by the text a part is named with — `ranked-order.ts` owns it. */
 function getSkillRowOrder(leftSkill: UnsharedSkill, rightSkill: UnsharedSkill): number {
-    return getRankedOrder(
+    return calculateRankedOrder(
         leftSkill.figure,
         rightSkill.figure,
         getTextForNamedPart(leftSkill.part),
@@ -2735,7 +2735,7 @@ function getSkillRowOrder(leftSkill: UnsharedSkill, rightSkill: UnsharedSkill): 
  * test: its figure grows with how many we could not fit rather than with what any one of them did.
  */
 function composeRestRow(figure: number, largest: number, shareText: string): PlainRow {
-    return { blows: null, figure, fill: getBarFill(figure, largest), shareText };
+    return { blows: null, figure, fill: calculateBarFill(figure, largest), shareText };
 }
 
 /** The row a section closes against, and the place its own figure earns it (`develop ADR 0079`). */
@@ -2751,10 +2751,10 @@ function composeClosingRow(
 ): ClosingRow {
     return {
         blows: said.blows,
-        rank: getPlaceForClosing(said.stated, said.figure),
+        rank: calculatePlaceForClosing(said.stated, said.figure),
         doesOpenPart: said.doesOpenPart,
         figure: said.figure,
-        fill: getBarFill(said.figure, said.largest),
+        fill: calculateBarFill(said.figure, said.largest),
         shareText: said.shareText,
     };
 }

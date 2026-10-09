@@ -58,16 +58,16 @@ import { addGuardedListener } from "./panel-listener.ts";
 import {
     BAR_ICON,
     type BarIcon,
+    calculateCardHeight,
+    calculateCardHeightAvailable,
+    calculateCardWidthAvailable,
+    calculateCardWidthForColumns,
     CARD_VARIABLES,
     type CardColumns,
     CLASS,
     composeBarIconClass,
     composeOptionsStepClass,
     composeStyleSheet,
-    getCardHeight,
-    getCardHeightAvailable,
-    getCardWidthAvailable,
-    getCardWidthForColumns,
     ROWS_VARIABLE,
     TYPE_TOKENS,
 } from "./panel-look.ts";
@@ -208,7 +208,7 @@ import {
     type RenderReport,
     type ViewFailure,
 } from "./view-failure.ts";
-import { getRankedOrder } from "./ranked-order.ts";
+import { calculateRankedOrder } from "./ranked-order.ts";
 import {
     CRITICAL_OF_KEY,
     CRITICAL_PROC_KEYS,
@@ -1012,7 +1012,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             // stood 43px over the rows it explains. It decides the **side** a card opens on and
             // nothing else (`develop ADR 0091`).
             const viewport = placement?.readViewport() ?? null;
-            const widthMaximum = getCardWidthForColumns(TYPE_TOKENS[getTypeStep()], columns);
+            const widthMaximum = calculateCardWidthForColumns(TYPE_TOKENS[getTypeStep()], columns);
             if (key.startsWith(HELPER_CARD_PREFIX)) {
                 const helperPlace = readCardWindowPlace(helperDrag);
                 return composeCardAcross(helperPlace, viewport, widthMaximum);
@@ -3579,7 +3579,7 @@ function presentCaveatNoteLines(groups: readonly CardGroup[]): CardLine[] {
         }
     }
     // The sentence alone: the mark opening it is drawn from the tone rather than spelled into the
-    // text (`develop ADR 0092`), and `getCardLineCost` is where it goes on being counted.
+    // text (`develop ADR 0092`), and `calculateCardLineCost` is where it goes on being counted.
     return CAVEATS.filter((caveat) => said.has(caveat)).map((caveat): CardLine => ({
         kind: CARD_LINE.note,
         text: getNoteForCaveat(caveat),
@@ -3688,13 +3688,13 @@ export function tallyCardSize(card: CardContent | null, step: TypeStep): CardSiz
         : CARD_ENDING_SEPARATOR.length + card.ending.words.length;
     let nameLength = card.name.length;
     if (card.subtitle === null) nameLength += endingLength;
-    let lines = getCardLinesForCharacters(nameLength, floors.name);
+    let lines = calculateCardLinesForCharacters(nameLength, floors.name);
     if (card.subtitle !== null) {
-        lines += getCardLinesForCharacters(card.subtitle.length + endingLength, floors.note);
+        lines += calculateCardLinesForCharacters(card.subtitle.length + endingLength, floors.note);
     }
     for (const group of card.groups) {
         for (const line of group.lines) {
-            lines += getCardLineCost(line, floors);
+            lines += calculateCardLineCost(line, floors);
         }
     }
     return { lines, groups: card.groups.length };
@@ -3704,7 +3704,7 @@ export function tallyCardSize(card: CardContent | null, step: TypeStep): CardSiz
  * What a run of text costs the height, on the floor its face is counted at. A floor of nought
  * answers infinity, and a text of nothing stands on a line all the same.
  */
-function getCardLinesForCharacters(characters: number, charactersPerLine: number): number {
+function calculateCardLinesForCharacters(characters: number, charactersPerLine: number): number {
     const wrapped = Math.ceil(characters / charactersPerLine);
     if (wrapped < 1) return 1;
     return wrapped;
@@ -3720,10 +3720,10 @@ function getCardLinesForCharacters(characters: number, charactersPerLine: number
  * notes by a mark the card still draws — which is the trap the glyph sat inside the sentence to
  * avoid while it was a codepoint.
  */
-function getCardLineCost(line: CardLine, floors: CharactersPerLine): number {
+function calculateCardLineCost(line: CardLine, floors: CharactersPerLine): number {
     if (line.kind !== CARD_LINE.note) return 1;
     const marked = line.tone === CARD_NOTE_TONE.caveat ? NOTE_MARK_CHARACTERS : 0;
-    return getCardLinesForCharacters(line.text.length + marked, floors.note);
+    return calculateCardLinesForCharacters(line.text.length + marked, floors.note);
 }
 
 export function renderCard(
@@ -3899,7 +3899,7 @@ export function setCardPosition(
     const sideways = composeCardAcrossStyle(across);
     // The height rather than the counts it came from: the trim and the sheet's clamp spend one
     // number. A height nothing could be read for leaves the property off (**E12**).
-    const height = getCardHeight(size, TYPE_TOKENS[step]);
+    const height = calculateCardHeight(size, TYPE_TOKENS[step]);
     const tall = height === null ? "" : `;${CARD_VARIABLES.height}:${height}px`;
     card.setAttribute(STYLE_ATTRIBUTE, `${CARD_VARIABLES.top}:${top}px${tall}${sideways}`);
 }
@@ -3956,7 +3956,7 @@ export function composeCardLayout(
 }
 
 function isCardLayoutWithin(layout: CardLayout, room: number, step: TypeStep): boolean {
-    const height = getCardHeight(tallyCardLayoutSize(layout, step), TYPE_TOKENS[step]);
+    const height = calculateCardHeight(tallyCardLayoutSize(layout, step), TYPE_TOKENS[step]);
     if (height === null) return true;
     return height <= room;
 }
@@ -3964,7 +3964,7 @@ function isCardLayoutWithin(layout: CardLayout, room: number, step: TypeStep): b
 /** Whether two columns stand at their full width: a window stating no width holds one. */
 function isCardWidthWithin(room: number | null, step: TypeStep): boolean {
     if (room === null) return false;
-    return getCardWidthForColumns(TYPE_TOKENS[step], 2) <= room;
+    return calculateCardWidthForColumns(TYPE_TOKENS[step], 2) <= room;
 }
 
 /**
@@ -3976,7 +3976,7 @@ function lookupCardColumnSplit(card: CardContent, step: TypeStep): number | null
     if (columned < 2) return null;
     const floors = CHARACTERS_PER_LINE_BY_STEP[step];
     const costs = card.groups.slice(0, columned).map((group) =>
-        group.lines.reduce((sum, line) => sum + getCardLineCost(line, floors), 0)
+        group.lines.reduce((sum, line) => sum + calculateCardLineCost(line, floors), 0)
     );
     const total = costs.reduce((sum, cost) => sum + cost, 0);
     let split = 1;
@@ -4027,7 +4027,7 @@ function composeCardTrimmed(card: CardContent, kept: readonly CardGroup[]): Card
 }
 
 /**
- * How tall a laid-out card stands, in the counts `getCardHeight` multiplies: the name over both
+ * How tall a laid-out card stands, in the counts `calculateCardHeight` multiplies: the name over both
  * columns, the taller column, and the notes across the foot.
  */
 export function tallyCardLayoutSize(layout: CardLayout, step: TypeStep): CardSize {
@@ -4088,8 +4088,8 @@ export function initCardHandle(
             // again.
             const viewport = readViewport();
             const room = {
-                heightPixels: getCardHeightAvailable(viewport?.height ?? null),
-                widthPixels: getCardWidthAvailable(viewport?.width ?? null),
+                heightPixels: calculateCardHeightAvailable(viewport?.height ?? null),
+                widthPixels: calculateCardWidthAvailable(viewport?.width ?? null),
             };
             const layout = composeCardLayout(compose(), room, getTypeStep());
             const renderedCard = renderCard(document, layout.card, layout.secondColumnFrom);
@@ -4451,7 +4451,7 @@ function presentCardPartsMergedByWord(
     }
     const folded = [...byLabel].map(([label, figure]) => ({ label, figure }));
     folded.sort((leftPart, rightPart) =>
-        getRankedOrder(leftPart.figure, rightPart.figure, leftPart.label, rightPart.label)
+        calculateRankedOrder(leftPart.figure, rightPart.figure, leftPart.label, rightPart.label)
     );
     return folded;
 }
@@ -4520,7 +4520,7 @@ function presentCardProcSubParts(
     for (const [label, figureBySubWord] of byWords) {
         const run = [...figureBySubWord].map(([words, figure]) => ({ label: words, figure }));
         run.sort((leftPart, rightPart) =>
-            getRankedOrder(
+            calculateRankedOrder(
                 leftPart.figure,
                 rightPart.figure,
                 leftPart.label,

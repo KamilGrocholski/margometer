@@ -11,7 +11,7 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import { BATTLE_EVENT, UNREAD_CAUSE } from "#/src/core/battle-event.ts";
-import { getRankedOrder } from "#/src/ui/ranked-order.ts";
+import { calculateRankedOrder } from "#/src/ui/ranked-order.ts";
 import {
     formatRecordingName,
     readRecordedMaterial,
@@ -103,7 +103,7 @@ export function tallyDecodingStatus(
 function composeRankedTally(tally: Tally): Tally {
     assert(tally.length <= TALLY_MAXIMUM, "a tally sorted stays inside its stated bound");
     return [...tally].sort((keyCount, otherKeyCount) =>
-        getRankedOrder(keyCount[1], otherKeyCount[1], keyCount[0], otherKeyCount[0])
+        calculateRankedOrder(keyCount[1], otherKeyCount[1], keyCount[0], otherKeyCount[0])
     );
 }
 

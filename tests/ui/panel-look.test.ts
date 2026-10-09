@@ -18,16 +18,16 @@ import {
 } from "@std/assert";
 import {
     BAR_ICON,
+    calculateCardHeightAvailable,
+    calculateCardWidthAvailable,
+    calculateCardWidthForColumns,
+    calculateContrastRatio,
+    calculateControlHeightPixels,
     CLASS,
     composeBarColour,
     composeBarIconClass,
     composeOptionsStepClass,
     composeStyleSheet,
-    getCardHeightAvailable,
-    getCardWidthAvailable,
-    getCardWidthForColumns,
-    getContrastRatio,
-    getControlHeightPixels,
     getInkForBar,
     LAYER,
     PLACE,
@@ -398,10 +398,11 @@ function composeSheetColour(channels: readonly number[]): Colour | null {
 }
 
 Deno.test("a ratio runs from one, for a colour on itself, to twenty-one", () => {
-    assertStrictEquals(getContrastRatio(BLACK, WHITE), 21, "the widest there is");
-    assertStrictEquals(getContrastRatio(WHITE, WHITE), 1, "and the narrowest");
+    assertStrictEquals(calculateContrastRatio(BLACK, WHITE), 21, "the widest there is");
+    assertStrictEquals(calculateContrastRatio(WHITE, WHITE), 1, "and the narrowest");
     assert(
-        getContrastRatio(BLACK, WHITE) > getContrastRatio(SURFACE.panel, SURFACE.raised),
+        calculateContrastRatio(BLACK, WHITE) >
+            calculateContrastRatio(SURFACE.panel, SURFACE.raised),
         "order",
     );
 });
@@ -590,7 +591,7 @@ function countPairingsClearing(
     for (const where of grounds) {
         const ground = parseSheetColour(values.get(where) ?? "");
         assertExists(ground, `${where}: drawn on, and never declared as a colour`);
-        const ratio = getContrastRatio(
+        const ratio = calculateContrastRatio(
             composeInkOver(token, ground, ink.opacity),
             ground,
         );
@@ -679,7 +680,7 @@ Deno.test("every cell a bar reaches clears AA over every bar the panel draws", (
                 );
                 for (const ground of under) {
                     const drawn = composeInkOver(token, ground.colour, ink.opacity);
-                    const ratio = getContrastRatio(drawn, ground.colour);
+                    const ratio = calculateContrastRatio(drawn, ground.colour);
                     assert(
                         ratio >= AA_TEXT_RATIO,
                         `.${cell.join(".")} in ${ink.name} on ${ground.named}: ` +
@@ -854,15 +855,15 @@ Deno.test("every cell a ranking row draws beside its bar is one the contrast che
 Deno.test("text over every surface clears AA", () => {
     for (const surface of Object.values(SURFACE)) {
         assert(
-            getContrastRatio(TEXT.plain, surface) >= AA_TEXT_RATIO,
+            calculateContrastRatio(TEXT.plain, surface) >= AA_TEXT_RATIO,
             `${formatColour(surface)} under a figure`,
         );
     }
-    assert(getContrastRatio(TEXT.quiet, SURFACE.panel) >= AA_TEXT_RATIO, "and under a label");
+    assert(calculateContrastRatio(TEXT.quiet, SURFACE.panel) >= AA_TEXT_RATIO, "and under a label");
     // The quiet ink over the raised surface: the strip's own label, and every caption the detail
     // window prints. Raised is the lighter of the two, so the panel's pairing does not cover it.
     assert(
-        getContrastRatio(TEXT.quiet, SURFACE.raised) >= AA_TEXT_RATIO,
+        calculateContrastRatio(TEXT.quiet, SURFACE.raised) >= AA_TEXT_RATIO,
         "on what stands above it",
     );
 });
@@ -877,7 +878,7 @@ Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for",
     let lightest = 21;
     for (const hue of hues) {
         const bar = composeBarColour(hue);
-        const ratio = getContrastRatio(getInkForBar(hue), bar);
+        const ratio = calculateContrastRatio(getInkForBar(hue), bar);
         const named = `${formatColour(hue)}: ${ratio.toFixed(2)} on ${formatColour(bar)}`;
         assert(ratio >= AA_TEXT_RATIO, named);
         lightest = Math.min(lightest, ratio);
@@ -897,13 +898,14 @@ Deno.test("the two sides are told apart by more than a hue", () => {
     const sides = [formatColour(SIGNAL.ours), formatColour(SIGNAL.theirs)];
     assertStrictEquals(new Set(sides).size, 2, "two sides, two colours");
     assert(
-        getContrastRatio(SIGNAL.suspect, SURFACE.panel) >= AA_MARK_RATIO,
+        calculateContrastRatio(SIGNAL.suspect, SURFACE.panel) >= AA_MARK_RATIO,
         "a mark stands off its surface",
     );
     // The one it was drawn in until it got an ink of its own, and the reason it needed one: a
     // glyph in the label's colour stands 1.00 from the words it qualifies.
     assert(
-        getContrastRatio(SIGNAL.caveat, TEXT.quiet) > getContrastRatio(TEXT.quiet, TEXT.quiet),
+        calculateContrastRatio(SIGNAL.caveat, TEXT.quiet) >
+            calculateContrastRatio(TEXT.quiet, TEXT.quiet),
         "and off the label it stands beside, which is what a caveat mark is read against",
     );
     assertStrictEquals(
@@ -1491,24 +1493,28 @@ Deno.test("two columns stand only where the sheet leaves them their width", () =
     const sheet = composeStyleSheet(TYPE_STEP_DEFAULT);
     const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.card}.${CLASS.cardWide}`), "width");
     assertExists(stated, "the sheet states how wide a card of two columns stands");
-    const twoWide = getCardWidthForColumns(TYPE_TOKENS[TYPE_STEP_DEFAULT], 2);
+    const twoWide = calculateCardWidthForColumns(TYPE_TOKENS[TYPE_STEP_DEFAULT], 2);
     const opener = `min(${twoWide}px,calc(100vw - `;
     assert(stated.startsWith(opener), `${stated} is two bounds, held to the window's width`);
     const terms = stated.slice(opener.length, stated.length - 2).split(" - ");
     const air = terms.reduce((sum, term) => sum + getPixels(term), 0);
     assertStrictEquals(
-        getCardWidthAvailable(1366),
+        calculateCardWidthAvailable(1366),
         1366 - air,
         "the layout spends the air the sheet spends",
     );
     assertStrictEquals(
-        getCardWidthAvailable(air),
+        calculateCardWidthAvailable(air),
         null,
         "a window no wider than the air has no room",
     );
-    assertStrictEquals(getCardWidthAvailable(air + 1), 1, "and a pixel past it has that pixel");
     assertStrictEquals(
-        getCardWidthAvailable(null),
+        calculateCardWidthAvailable(air + 1),
+        1,
+        "and a pixel past it has that pixel",
+    );
+    assertStrictEquals(
+        calculateCardWidthAvailable(null),
         null,
         "a page stating no width has none either",
     );
@@ -1523,18 +1529,22 @@ Deno.test("a card is trimmed to the room the sheet leaves it, the window less it
     const terms = stated.slice(opener.length, stated.length - 1).split(" - ");
     const air = terms.reduce((sum, term) => sum + getPixels(term), 0);
     assertStrictEquals(
-        getCardHeightAvailable(900),
+        calculateCardHeightAvailable(900),
         900 - air,
         "the trim spends the air the sheet spends",
     );
     assertStrictEquals(
-        getCardHeightAvailable(air),
+        calculateCardHeightAvailable(air),
         null,
         "a window no taller than the air has no room",
     );
-    assertStrictEquals(getCardHeightAvailable(air + 1), 1, "and a pixel past it has that pixel");
     assertStrictEquals(
-        getCardHeightAvailable(null),
+        calculateCardHeightAvailable(air + 1),
+        1,
+        "and a pixel past it has that pixel",
+    );
+    assertStrictEquals(
+        calculateCardHeightAvailable(null),
         null,
         "a page stating no height has no room to reason about",
     );
@@ -1701,7 +1711,7 @@ Deno.test("every control on a bar is one box with its icon centred, at every ste
         const height = getPixels(getDeclaration(control, "height") ?? "");
         assertStrictEquals(
             height,
-            getControlHeightPixels(TYPE_TOKENS[step]),
+            calculateControlHeightPixels(TYPE_TOKENS[step]),
             `${step}: a control is as tall as the bar's height counts it`,
         );
         assert(width >= height, `${step}: and at least as wide, so the widest mark has air`);
