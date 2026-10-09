@@ -221,6 +221,12 @@ it is written down per key instead of derived from the grammar.
 The combatants on the winning side, as a single string, names separated by a comma and a space.
 Appears in a message that names no combatant at all: it is about the fight, not about anyone in it.
 
+**One value is not a name.** `?` in place of the names is a fight nobody won: the client branches on
+that value alone, and what puts a fight there is the cap on a fight's turns the help states under
+`max_moves`. `src/core/fight-decoder.ts` reads it as the `drawn` outcome, naming nobody.
+`docs/captured-fights.md` holds no drawn fight, so this rests on the client and the help rather than
+on a recording.
+
 _Shape:_ 37 occurrences; alone in its message; text
 
 _Help:_ names `max_moves`
@@ -232,9 +238,9 @@ that produces it.
 
 ### `loser` — decoded
 
-The same, for the losing side — with the one exception the entry above states: the `?` that key
-spends on a fight nobody won is not a value this one carries, and it is left unread here rather than
-read as a side of that name.
+The same, for the losing side. The client's case for this key has no branch for `?`, so the draw the
+entry above reads is not a value this one carries, and `loser=?` is left unread rather than read as
+a side of that name.
 
 _Shape:_ 37 occurrences; alone in its message; text
 
@@ -311,11 +317,11 @@ stated health before it, to within 0.01% of the pool. Production build `17865148
 value on the comma and renders the second member as `%val%`, which is where the order of the two is
 read from.
 
-⚠️ **It rides a group blow as readily as a single one**, which is what moved this entry's placement
-from `on a blow`. Most arrive inside a message that also carries `+oth_dmg` at nine other
-combatants, so the damage that triggered it is the segment naming the healed combatant and not the
-message's own figures. A reader that took the whole message's damage would attribute nine people's
-losses to one.
+⚠️ **It rides a group blow as readily as a single one**, which is why this entry's placement is
+`on a message reporting damage` and not `on a blow`. Most arrive inside a message that also carries
+`+oth_dmg` at nine other combatants, so the damage that triggered it is the segment naming the
+healed combatant and not the message's own figures. A reader that took the whole message's damage
+would attribute nine people's losses to one.
 
 ⚠️ **The bonus is stated before the blow that fired it, and the two share a percentage.** The
 segment order is not the order of events: the heal comes first and the damage that took the holder
@@ -408,7 +414,7 @@ _Evidence:_ as above. Before it was read, the first disagreement it caused was
 `-10000249=76.05;0;poison=563`. That nobody can be named for it rests on two sources rather than on
 the message: the client's key list carries no `+poison` beside `poison` the way it carries `+injure`
 beside `injure` (production builds `1786514810315` and `53XkBRxF`, whose lists are identical key for
-key; `frozen/protocol-keys.ts` holds the later one), and the help's table of damage over time —
+key, and the list `frozen/protocol-keys.ts` holds), and the help's table of damage over time —
 article `view,372` (read 2026-08-19) — puts poison among the types a fresh application does **not**
 overwrite, deep wound being the other: a later hit extends what is already ticking and only the
 highest figure counts, so even an announcement would not say whose tick this is. Its source is given
@@ -650,28 +656,20 @@ the material, both forms.
 ### `healall_per` — decoded
 
 Healing by a share of **maximum** health, floored, reaching every combatant on the caster's side and
-nobody on the other, and capped. The caster is the actor, and usually the target as well — but eight
-of 115 messages over `captures/` on 2026-08-27 stated a different id there, so reading the caster
-from the target slot would credit the wrong combatant. Read the actor slot, and read it always: the
-eight are the whole reason this sentence names a slot rather than a habit.
+nobody on the other, and capped. The caster is the actor, and usually the target as well — but five
+of the nine casts on `captures/2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0.json` state a
+different id there, so reading the caster from the target slot would credit the wrong combatant.
+Read the actor slot, and read it always: those casts are the whole reason this sentence names a slot
+rather than a habit.
 
 ⚠️ **A partly sized cast keeps both events.** Where six of eight side-mates could be sized, the
 figures for the six are drawn _and_ the cast goes on being counted as missing, so a partial answer
-can never be read as a whole one (**develop ADR 0010**). No capture produces one any more; the shape
-is held by hand-built fights instead.
+can never be read as a whole one (**develop ADR 0010**). No recording produces one; the shape is
+held by hand-built fights instead.
 
-⚠️ **The key is carried, and read, and what it buys is a refusal with a side on it.** It was unread
-while no capture carried it — reading a shape this repository had never seen would have been
-describing a message we had never met, which is a claim with no source (**V1**) — and
-`captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` ended that on 2026-08-27. It now
-has its own entry below and is decoded as the skill declaration it always was. What its absence buys
-is the right to size the casts around it; what its presence buys is the right to refuse **the casts
-on the sides its caster faced**, which the help scopes and the protocol names. In that recording the
-reducer is one of ours cast at the monster, so nothing of ours was reduced and all three of its
-casts are sized — and twenty of their figures are checked against the snapshots of the calls they
-stood alone in, exactly (`develop:docs/adr/0010-sizing-a-share-onto-a-side.md`,
-`tests/core/combatant-health.test.ts`). A cast on the side a reduction _did_ reach is refused, and
-no recording anywhere holds one.
+⚠️ **A cast on a side `lowheal_per-enemies` reaches is refused, and only that cast.** Where no
+reduction stands the casts are sized; whose side a reduction reaches, and what the material holds of
+it, is that key's entry below.
 
 ⚠️ **One shape of this key's own value is unmet and would be misread.** The same production build
 splits the value on a comma and composes a different sentence when there are two members —
@@ -804,10 +802,11 @@ is nothing for a raw side to be raw against when the reductions the protocol rep
 so the element has one entry here and not two. A `+dmga` arriving is a finding, not a gap: it would
 mean the key is reduced by something after all.
 
-⚠️ **It rides the reflected-damage key and is not the same figure.** Measured 2026-09-10, 1237 of
-the 1260 messages carrying this key carry `+taken_dmg` as well, and the two figures agree on 1095 of
-those — leaving 142 where they differ and 23 where this key arrives alone. Which is the raw side of
-which is settled against `+taken_dmg` below, and against this key not at all.
+⚠️ **It rides the reflected-damage key and is not the same figure.** On
+`captures/2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json`, 111 of the 119 messages carrying
+this key carry `+taken_dmg` as well, and the two figures agree on 85 of those — leaving 26 where
+they differ and 8 where this key arrives alone. Which is the raw side of which is settled against
+`+taken_dmg` below, and against this key not at all.
 
 ### `+thirdatt` — decoded
 
@@ -983,11 +982,12 @@ Production build `1786514810315` composes `msg_-pierceb` with no `%val%` hole, w
 it to the flag family rather than to the declarations; the development build `1781609507010` carries
 the same branch with its original comment.
 
-⚠️ **Four of the eight are documented, and a search by the wrong phrase finds none of them.**
-`legbon`, `tenacity`, `acdmg_destroyed` and `dispel` are not names the help prints. The help joins
-an article to a key through the engine name in parentheses, and for this family that name is the
-key's **stem**: `verycrit`, `curse`, `cleanse`, `holytouch`. Searched by the stem (read 2026-08-09),
-the help answers to all four and describes each in full.
+⚠️ **Four flags of this family are documented, and a search by the wrong phrase finds none of
+them.** They are `+legbon_verycrit`, `+legbon_curse`, `-legbon_cleanse` and `+legbon_holytouch`,
+below. `legbon`, `tenacity`, `acdmg_destroyed` and `dispel` are not names the help prints. The help
+joins an article to a key through the engine name in parentheses, and for these four that name is
+the key's **stem**: `verycrit`, `curse`, `cleanse`, `holytouch`. Searched by the stem (read
+2026-08-09), the help answers to all four and describes each in full.
 
 ### `+stun` — decoded
 
@@ -1018,8 +1018,8 @@ the Player two turns, during which no block, evade, parry or arrow-block can occ
 `1786514810315` composes `msg_+stun2-d` with no `%val%`, on the same switch as `msg_+stun` and
 `msg_+acdmg_destroyed`. 4 occurrences on
 `captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`, and none elsewhere as
-the set stood 2026-08-24. Of the other four, `+stun2` and `+stun2-c` are in the material now, and
-`-f` and `-l` in none.
+the set stood 2026-08-24. Which of the other four the material carries is each one's own `_Shape:_`
+line, or its absence.
 
 ### `+stun2` — decoded
 
@@ -1037,8 +1037,7 @@ the Player two turns, during which no block, evade, parry or arrow-block can occ
 `1786514810315` composes `msg_+stun2` with no `%val%`, on the same switch as `msg_+stun` and
 `msg_+acdmg_destroyed`. 4 occurrences on
 `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json`, and none elsewhere as the set
-stood 2026-08-25. Three of the five are in some recording now — this one, `+stun2-d` and `+stun2-c`
-— and `-f` and `-l` are in none.
+stood 2026-08-25.
 
 ### `+stun2-c` — decoded
 
@@ -1070,7 +1069,7 @@ bundle — the client fetches it. 4 occurrences on
 `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json` and 5 on
 `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`, and none elsewhere as the set
 stood 2026-08-27 — both against the same monster, which is the only one in the material with the
-statistic; of the five variants three are now in some recording and `-f` and `-l` are in none.
+statistic.
 
 ### `+stun2-f` — decoded
 
@@ -1219,10 +1218,9 @@ damage landed as zero.
 The target evaded this blow. Carries no figure, and sits on the defending side: every occurrence
 arrives beside the blow's own applied figure, stated as zero, which is the blow landing nothing.
 
-⚠️ **The key that figure rides is the element's, not always `-dmg`.** This read "beside `-dmg=0`"
-while every occurrence in the material happened to be physical, and the first recording carrying a
-dark-elemental evade made the sentence false in thirteen places at once without touching a number
-anybody checks. Measured over every recording as the set stood 2026-08-25: ten arrive beside
+⚠️ **The key that figure rides is the element's, not always `-dmg`.** A dark-elemental evade arrives
+beside `-dmgd=0`, so a reading that expects `-dmg=0` is wrong on every one of them without moving a
+number anybody checks. Measured over every recording as the set stood 2026-08-25: ten arrive beside
 `-dmg=0` and thirteen beside `-dmgd=0`, none beside a non-zero one, and none beside no applied
 figure at all.
 
@@ -1328,10 +1326,10 @@ _Help:_ names nothing of `superspell-dispel`, `dispel`, `superspell`
 _Evidence:_ the shared measurement, and production build `1785244275300`, where the branch reads
 `msg_+dispel`. 3 occurrences on
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`. The stem that worked for the
-four above was tried here too: `dispel` is the name the client's own sentence uses, and the article
-carries neither it nor `superspell` (read 2026-10-06). Every occurrence over every recording names
-**both** ends, as `-tenacity`'s do, so what is left open here is open to an article and not to more
-material (read 2026-09-17).
+four legendary bonuses `-pierceb`'s entry names was tried here too: `dispel` is the name the
+client's own sentence uses, and the article carries neither it nor `superspell` (read 2026-10-06).
+Every occurrence over every recording names **both** ends, as `-tenacity`'s do, so what is left open
+here is open to an article and not to more material (read 2026-09-17).
 
 ### `+superspell-prevented` — decoded
 
@@ -1509,19 +1507,19 @@ _Shape:_ 260 occurrences; on a blow; a whole number
 
 _Evidence:_ both entries, measured on
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: 18 occurrences each, every
-one on a blow, never apart from the other — which holds across every recording since, 186 each and
-not one apart (read 2026-08-19) — and values from 6017 down to 0 — which is what rules out a
-percentage and is why the suffix is not trusted. The help documents the _effect_ rather than these
-keys, at the engine name `active_absorbdest_per` (read 2026-08-09): a passive destroying a share of
-the opponent's current absorption and magical absorption, applied before the attack is reduced by
-any form of damage reduction, and unable to take absorption below zero. That floor is visible here —
+one on a blow, never apart from the other — which holds across every recording, not one apart
+(measured 2026-10-08) — and values from 6017 down to 0 — which is what rules out a percentage and is
+why the suffix is not trusted. The help documents the _effect_ rather than these keys, at the engine
+name `active_absorbdest_per` (read 2026-08-09): a passive destroying a share of the opponent's
+current absorption and magical absorption, applied before the attack is reduced by any form of
+damage reduction, and unable to take absorption below zero. That floor is visible here —
 `+abmdest_per` reaches 0 and the protocol still reports it rather than falling silent.
 
 ### `tspell` — decoded
 
 The skill a combatant used, by name. The announcement carries no key of the **damage family** —
-measured over every recording on 2026-08-19, not one announcement of the 2 108 carries one — but
-that is narrower than it sounds, and it is not "no damage at all".
+measured over every recording on 2026-10-08, not one announcement carries one — but that is narrower
+than it sounds, and it is not "no damage at all".
 
 This is the key an announcement always carries where `skillId` is the one it sometimes does, and
 that asymmetry decides how far the announcement reaches: `skillId` says which. `tcustom` is the
@@ -1545,17 +1543,16 @@ The game's own identifier for that skill, attached to the same announcement. Rea
 rather than on its own: an id with no name is a skill nothing can put on screen.
 
 It does a second job, and it is the only key that can: the published skill table is keyed by this
-id, so where it stands it is what says how many blows an announcement reaches. Three of the two
-hundred and twenty-six skills the table serves grant an attack beyond their own —
-`frozen/blows-granted.ts`, read 2026-09-09 — and an announcement of one of them is glued to that
-many blow messages more (**develop ADR 0078**).
+id, so where it stands it is what says how many blows an announcement reaches. The skills
+`frozen/blows-granted.ts` lists are the ones the table grants an attack beyond their own, and an
+announcement of one of them is glued to that many blow messages more (**develop ADR 0078**).
 
 ⚠️ **Its absence says something too, and it is not "no extra blows".** The table is keyed by this id
-and holds a **player's** skills, so an announcement without one is a question it cannot be asked:
-371 of the 3,500 announcements over `captures/` on 2026-09-12 carry `tspell` without `skillId`, and
-364 of those are an NPC's. There the reach falls to the bound `src/core/fight-decoder.ts` states.
-Every id any announcement did carry is one the table carries — 0 exceptions of 3,129, 2026-09-12 —
-which is what makes a missing id the whole of that case, and
+and holds a **player's** skills, so an announcement without one is a question it cannot be asked: on
+`captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`, 30 of the 161 announcements carry
+`tspell` without `skillId`, and every one of the 30 is the monster's. There the reach falls to the
+bound `src/core/fight-decoder.ts` states. Every id any announcement carries is one the table
+carries, which is what makes a missing id the whole of that case, and
 `tests/repository/skill-durations.test.ts` re-earns it.
 
 _Shape:_ 3658 occurrences; on a skill announcement; a whole number
@@ -1697,12 +1694,12 @@ Energy returned to the attacker by this blow. Rides the blow, states a whole num
 — **never arrives without a critical hit**: every occurrence sits beside `+crit` or beside
 `+of_crit`.
 
-⚠️ **This entry said `+crit` alone, and the material had already refuted it.** That was true of the
-13 occurrences `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` carried and of
-nothing since: read 2026-08-19, `+of_crit` without `+crit` accounts for 29 occurrences, and no
-occurrence anywhere arrives beside neither. A count in prose goes stale silently (**V5**) — this
-entry's own two did, twice over, which is why they now name what they were taken on — but so does a
-universal beside it, and nothing here re-measures a claim about which keys a key arrives _with_.
+⚠️ **Not `+crit` alone, though one recording reads that way.** The 13 occurrences
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` carries all sit beside
+`+crit`; 11 on `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` sit beside
+`+of_crit` with no `+crit`, and no occurrence in any recording arrives beside neither (measured
+2026-10-08). Nothing here re-measures a claim about which keys a key arrives _with_, so a universal
+like this one goes stale as silently as a count (**V5**).
 
 _Shape:_ 404 occurrences; on a blow; a whole number
 
@@ -1832,10 +1829,10 @@ view,372 (read 2026-08-09).
 
 ### `+taken_dmg` — decoded
 
-⚠️ **The key that looks like damage and is not.** It rides nearly every blow carrying `-dmga` — 1237
-of the 1260, read 2026-09-10, with 23 carrying `-dmga` alone — and the tempting reading is that it
-is the raw half of that applied figure — the help documents `taken_dmg_per` as damage added to what
-the target takes, reduced by armour, which is exactly a raw/applied pair.
+⚠️ **The key that looks like damage and is not.** It rides nearly every blow carrying `-dmga` — that
+key's entry counts how nearly, on one recording — and the tempting reading is that it is the raw
+half of that applied figure — the help documents `taken_dmg_per` as damage added to what the target
+takes, reduced by armour, which is exactly a raw/applied pair.
 
 _Shape:_ 1497 occurrences; on a blow; a whole number
 
@@ -1937,14 +1934,12 @@ _Evidence:_ article view,372 at the engine name `puncture` (read 2026-08-09) —
 `Przeszywająca skuteczność ( puncture )`, stated as ignoring armour, magic resistances, absorption,
 magic absorption, evade and block points, with the variable being the ignored share and the
 **initial value 12%**. Every occurrence in every recording states 12, which is that initial value
-(re-measured 2026-08-25, when a fourth arrived from a different world and stated it too). Production
-build `1786514810315` composes `msg_+legbon_puncture %val%`.
+(measured 2026-10-08, on `tempest` and `luvia` alike). Production build `1786514810315` composes
+`msg_+legbon_puncture %val%`.
 
-⚠️ **Few occurrences, and the join is still not stated.** What the ignored share does to the figures
-on the same message is not inferred: the entry claims the meaning, not an arithmetic. How few is the
-`_Shape:_` line's to say and this paragraph's to leave alone — a count written twice is one of them
-re-earned and one of them drifting, which is what `tests/repository/protocol-keys.test.ts` now
-refuses (**V5**).
+⚠️ **Few occurrences, and the join is not stated.** What the ignored share does to the figures on
+the same message is not inferred: the entry claims the meaning, not an arithmetic. How few is the
+`_Shape:_` line's to say, and nowhere else's (**V5**).
 
 ### `+absorbm` — decoded
 
@@ -2203,7 +2198,9 @@ casting side's opponents, and in the only recording carrying the key one of ours
 monster — so our own healing was never reduced, and all three of that fight's `healall_per` casts
 are sized. Twenty of their figures are checked against the snapshots of the calls they stood alone
 in and every one agrees with the share applied unreduced, which is what makes the scope a reading
-rather than a citation.
+rather than a citation. A cast on the side a reduction _does_ reach is refused rather than sized,
+and since that recording reduces nobody of ours, no recording holds one: the refusal is held on
+fights built by hand (`tests/core/combatant-health.test.ts`).
 
 ⚠️ **A reducer this meter cannot place a caster for still refuses the fight whole.** Two ways that
 happens: a declaration whose actor the roster cannot resolve, and one arriving with no announcement
@@ -2323,8 +2320,7 @@ _Help:_ names `mana`
 
 _Evidence:_ article view,372 (read 2026-08-09) documents mana as a resource some skills consume. On
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 15 occurrences, all negative,
-10 of them beside `energy`. Every occurrence in every recording is negative; 34 of them sit beside
-`energy` (measured 2026-09-10).
+10 of them beside `energy`. Every occurrence in every recording is negative (measured 2026-10-08).
 
 ### `energy` — decoded
 
@@ -2823,7 +2819,7 @@ is not read at all: a percentage is a unit no total here keeps, and what the wou
 arrives separately as the `wound` ticks the entry above reads. It is one of five keys in
 `PROC_END_BY_KEY` read as a proc while stating a value — the four below are the others — and
 `src/core/protocol-key.ts` names that set rather than letting every proc take one (**develop ADR
-0094**, which grew the set **develop ADR 0085** opened at this key alone).
+0094**, and **develop ADR 0085** for this key).
 
 **The published help settles what the figure means, under a heading that never names this key.** Its
 section on deep-wound damage states that where one attack applies poison and a deep wound together,
@@ -2848,10 +2844,10 @@ symmetry of the three, not from an article.
 ⚠️ **Both announcements reach the card, and both land on `+wound`'s row.** The proc reader takes
 valueless keys, this one excepted and named — because a wound nothing weakened standing on the card
 while a weakened one does not is a hole in what a player sees, turning on something they cannot. The
-`[ASK]` this entry carried was put and granted on 2026-09-13 (**develop ADR 0085**). What the card
-says of the difference is one line under that row, counting the weakened ones (**develop ADR
-0095**). What was **not** granted is reading the figure, and the help settling what it means has not
-changed that: the base it is a share of is a quantity no message carries.
+card reads it by **develop ADR 0085**, and what the card says of the difference is one line under
+that row, counting the weakened ones (**develop ADR 0095**). The figure itself is not read, and the
+help settling what it means leaves it so: the base it is a share of is a quantity no message
+carries.
 
 _Shape:_ 6 occurrences; on a blow; a whole number
 
