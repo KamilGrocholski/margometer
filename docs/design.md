@@ -820,6 +820,7 @@ export type RuntimeFailure =
     | MargonemEngineFailure
     | EnvelopeFailure
     | PayloadRejected
+    | CaptureCallsExceeded // a capture stopped at its ceiling: `maximum`
     | UnreadMessage
     | StoreFailure
     | ShelfFailure
