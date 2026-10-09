@@ -685,6 +685,8 @@ const HOST_NAME = "MargoMeter-Panel";
  */
 const VERSION_ATTRIBUTE = "data-margometer-version";
 export const CARD_ATTRIBUTE = "data-card";
+/** Every ranking row opens its person, on every screen (`docs/drill-levels.md`). */
+const DOES_RANKING_ROW_OPEN = true;
 /**
  * The one card key no row states, so it can be a constant where every other is composed off what
  * the row stands for: one crumb is drawn at a time and its card says the same two things whatever
@@ -2074,19 +2076,22 @@ function renderListLevel(
         keyPrefix: "row",
         figure: getWordsForMetric(metric),
         share: PANEL_WORDS.share,
-        card: {
-            metric,
-            translate,
-            isRowNarrower: false,
-            unnamedNote: null,
-            readerSide: shown.readerSide,
-        },
+        card: composeRankingCardPlace(metric, translate, shown.readerSide),
         place: personContext,
     };
     for (const [rowIndex, row] of ranking.rows.entries()) {
-        list.append(renderPersonRow(document, row, rowIndex + 1, person, true));
+        list.append(renderPersonRow(document, row, rowIndex + 1, person, DOES_RANKING_ROW_OPEN));
     }
     return list;
+}
+
+/** A ranking row's card states the whole fight over a row stating it whole, both ends named. */
+function composeRankingCardPlace(
+    metric: PanelMetric,
+    translate: TranslateLabel | null,
+    readerSide: number | null,
+): CardPlace {
+    return { metric, translate, isRowNarrower: false, unnamedNote: null, readerSide };
 }
 
 /**
@@ -2829,18 +2834,25 @@ function composePersonCard(
     cardContext: CardPlace,
     doesOpen: boolean,
 ): CardCompose {
-    return () =>
-        presentCard({
-            name: row.name ?? PANEL_WORDS.unknown,
-            profession: row.profession,
-            sideRelation: getSideRelation(row.side, cardContext.readerSide),
-            detail: row.detail,
-            metric: cardContext.metric,
-            doesOpen,
-            isRowNarrower: cardContext.isRowNarrower,
-            unnamedNote: cardContext.unnamedNote,
-            translate: cardContext.translate,
-        });
+    return () => presentPersonCard(row, cardContext, doesOpen);
+}
+
+function presentPersonCard(
+    row: Readonly<RankingRow | OtherEndRow>,
+    cardContext: Readonly<CardPlace>,
+    doesOpen: boolean,
+): CardContent {
+    return presentCard({
+        name: row.name ?? PANEL_WORDS.unknown,
+        profession: row.profession,
+        sideRelation: getSideRelation(row.side, cardContext.readerSide),
+        detail: row.detail,
+        metric: cardContext.metric,
+        doesOpen,
+        isRowNarrower: cardContext.isRowNarrower,
+        unnamedNote: cardContext.unnamedNote,
+        translate: cardContext.translate,
+    });
 }
 
 function renderRow(
@@ -4153,6 +4165,17 @@ export function initCardHandle(
             renderCardFor(key, compose);
         },
     };
+}
+
+/** The card a ranking row opens on the screen `metric` names, composed as the ranking composes it. */
+export function presentRankingCard(
+    row: Readonly<RankingRow>,
+    metric: PanelMetric,
+    readerSide: number | null,
+    translate: TranslateLabel | null,
+): CardContent {
+    const cardContext = composeRankingCardPlace(metric, translate, readerSide);
+    return presentPersonCard(row, cardContext, DOES_RANKING_ROW_OPEN);
 }
 
 /**

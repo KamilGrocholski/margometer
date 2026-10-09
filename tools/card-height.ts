@@ -1,7 +1,9 @@
 /**
  * How tall the card a person's row opens stands, measured in lines over the recordings. The card
  * is the panel's own (`src/ui/panel-element.ts`, which also owns what a line costs), composed for
- * every ranking row of the fight the runtime's chain replays. The counts stay here (**V5**).
+ * every ranking row of the fight the runtime's chain replays, with no game to name a key the
+ * repository has no word for: a card the game translates may run longer. The counts stay here
+ * (**V5**).
  *
  *     deno task panel:cards                      every recording, and the height it comes to
  *     deno task panel:cards [recording.json …]   one recording
@@ -11,16 +13,10 @@
 import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { formatInteger } from "#/libs/number-text.ts";
-import { CARD_LINE, presentCard, tallyCardSize } from "#/src/ui/panel-element.ts";
-import {
-    getSideRelation,
-    NOTHING_SUSPECT,
-    presentScreen,
-    type RankingRow,
-} from "#/src/ui/panel-content.ts";
+import { CARD_LINE, presentRankingCard, tallyCardSize } from "#/src/ui/panel-element.ts";
+import { NOTHING_SUSPECT, presentScreen, type RankingRow } from "#/src/ui/panel-content.ts";
 import { type PanelMetric, SCREEN_ORDER, SIDE_CHOICE } from "#/src/ui/panel-screen.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
-import { PANEL_WORDS } from "#/src/ui/panel-words.ts";
 import {
     formatRecordingName,
     lookupRecordingPaths,
@@ -89,19 +85,7 @@ function tallyCardHeight(
     row: RankingRow,
 ): CardHeight {
     assert(Number.isSafeInteger(row.combatantId), "a ranking row names somebody by number");
-    const reading = presentCard({
-        name: row.name ?? PANEL_WORDS.unknown,
-        profession: row.profession,
-        sideRelation: getSideRelation(row.side, replayed.reading.view.readerSide),
-        detail: row.detail,
-        metric: screen,
-        // A ranking row opens at every screen (`docs/drill-levels.md`), so the card carries the
-        // gesture line. Measured without one it would be a card the panel never draws.
-        doesOpen: true,
-        isRowNarrower: false,
-        unnamedNote: null,
-        translate: null,
-    });
+    const reading = presentRankingCard(row, screen, replayed.reading.view.readerSide, null);
     const size = tallyCardSize(reading, TYPE_STEP_DEFAULT);
     assert(size.lines > 0, "a card drawn at all stands at least one line");
     const notes = reading.groups

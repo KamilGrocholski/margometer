@@ -1200,6 +1200,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `presentOptions` — `src/runtime/panel-frame.ts`
 - `presentPairLevel` — `src/ui/panel-content.ts`
 - `presentPartLevel` — `src/ui/panel-content.ts`
+- `presentPersonCard` — `src/ui/panel-element.ts`
+- `presentRankingCard` — `src/ui/panel-element.ts`
 - `presentRowCard` — `src/ui/panel-element.ts`
 - `presentRowCardCutLines` — `src/ui/panel-element.ts`
 - `presentScreen` — `src/ui/panel-content.ts`
@@ -1820,6 +1822,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeProvocationStandings` — `src/core/aura-standing.ts`
 - `composePseudonymisedRecording` — `tools/capture-intake.ts`
 - `composeRankedTally` — `tools/decoding-status.ts`
+- `composeRankingCardPlace` — `src/ui/panel-element.ts`
 - `composeRebuildingBattle` — `tests/rebuilding-battle.ts`
 - `composeRecordingBattle` — `tests/runtime/margometer-runtime.test.ts`
 - `composeRecordingInEnglish` — `tools/capture-intake.ts`
@@ -3953,6 +3956,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `DEFENCE_WORD_BY_KEY` — `src/ui/panel-words.ts`
 - `DESTROYED_WORD_BY_KEY` — `src/ui/panel-words.ts`
 - `DIRECTION_WORDS` — `src/ui/panel-words.ts`
+- `DOES_RANKING_ROW_OPEN` — `src/ui/panel-element.ts`
 - `EDGE_RELEASED` — `src/ui/panel-element.ts`
 - `ELEMENT_WORD_BY_KEY` — `src/ui/panel-words.ts`
 - `EVENT_TYPE` — `src/ui/panel-document.ts`
@@ -9456,7 +9460,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `raw` — `src/ui/panel-element.ts`
 - `readAcross` — `src/ui/panel-element.ts`
 - `readViewport` — `src/ui/panel-element.ts`
-- `readerSide` — `src/ui/panel-content.ts`, `src/ui/panel-helper.ts`
+- `readerSide` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`, `src/ui/panel-helper.ts`
 - `redraw` — `src/ui/panel-element.ts`
 - `region` — `src/ui/panel-element.ts`, `src/ui/panel-words.ts`, `src/ui/view-failure.ts`
 - `regions` — `src/ui/panel-element.ts`
@@ -12095,7 +12099,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `date` — `tools/frozen-files.ts`
 - `dealtSign` — `tools/protocol-key-table.ts`
 - `declaredVersion` — `tools/margometer-tool-error.ts`
-- `detail` — `tools/card-height.ts`
 - `developLines` — `tools/develop-reports.ts`
 - `developReport` — `tools/margometer-tool-error.ts`
 - `development` — `tools/margonem-client-source.ts`
@@ -12108,7 +12111,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `doesCloseOnShouts` — `tools/fabricated-fight.ts`
 - `doesHover` — `tools/panel-giving-way.ts`, `tools/panel-shots.ts`
 - `doesLoadTwice` — `tools/panel-shots.ts`, `tools/preview-page.ts`
-- `doesOpen` — `tools/card-height.ts`
 - `doesOpenTurn` — `tools/fabricated-fight.ts`
 - `doesShoot` — `tools/panel-giving-way.ts`
 - `doesStartFromEmpty` — `tools/preview-page.ts`, `tools/preview-server.ts`, `tools/preview-site.ts`
@@ -12183,7 +12185,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isKeys` — `tools/turn-reading.ts`
 - `isNarrated` — `tools/turn-count.ts`
 - `isPlayerById` — `tools/capture-intake.ts`
-- `isRowNarrower` — `tools/card-height.ts`
 - `isSilent` — `tools/help-claim-register.ts`, `tools/preview-page.ts`, `tools/preview-site.ts`
 - `isTallest` — `tools/card-height.ts`
 - `key` — in 5 files: `tools/`
@@ -12224,7 +12225,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `messagesWritten` — `tools/fabricated-fight.ts`
 - `metadata` — `tools/build-userscript.ts`
 - `metadataAddress` — `tools/build-userscript.ts`, `tools/preview-server.ts`
-- `metric` — `tools/card-height.ts`
 - `microseconds` — `tools/payload-cost.ts`
 - `moment` — `tools/panel-giving-way.ts`, `tools/panel-shots.ts`
 - `momentsFromOne` — `tools/aura-standing.ts`
@@ -12305,7 +12305,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `previewServe` — `tools/margometer-tool-error.ts`
 - `production` — `tools/margonem-client-source.ts`
 - `prof` — `tools/fabricated-fight.ts`
-- `profession` — `tools/card-height.ts`, `tools/fabricated-fight.ts`
+- `profession` — `tools/fabricated-fight.ts`
 - `protocolKeyShape` — `tools/margometer-tool-error.ts`
 - `protocolKeyTable` — `tools/margometer-tool-error.ts`
 - `provokedId` — `tools/shout-holding.ts`
@@ -12359,7 +12359,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `shouldWatch` — `tools/panel-giving-way.ts`, `tools/preview-server.ts`
 - `shut` — `tools/drill-report.ts`
 - `side` — `tools/fabricated-fight.ts`
-- `sideRelation` — `tools/card-height.ts`
 - `skill` — `tools/drill-report.ts`
 - `skillId` — `tools/aura-standing.ts`
 - `skillName` — `tools/aura-standing.ts`
@@ -12402,7 +12401,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `to` — `tools/turn-count.ts`, `tools/turn-reading.ts`
 - `together` — `tools/aura-lifetime.ts`
 - `tooltips` — `tools/preview-page.ts`, `tools/preview-server.ts`, `tools/preview-site.ts`
-- `translate` — `tools/card-height.ts`
 - `turnCount` — `tools/margometer-tool-error.ts`
 - `turnReading` — `tools/margometer-tool-error.ts`
 - `turns` — `tools/skill-table.ts`, `tools/turn-count.ts`, `tools/turn-reading.ts`
@@ -12415,7 +12413,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unknown` — `tools/margonem-readings.ts`
 - `unnamed` — `tools/drill-report.ts`
 - `unnamedCut` — `tools/drill-report.ts`
-- `unnamedNote` — `tools/card-height.ts`
 - `unnamedPair` — `tools/drill-report.ts`
 - `unreadKeysByFrequency` — `tools/decoding-status.ts`
 - `untold` — `tools/turn-count.ts`
